@@ -1,5 +1,6 @@
 import videojs from 'video.js';
 import PlaylistLoader from './playlist-loader';
+import DashPlaylistLoader from './dash-playlist-loader';
 
 const noop = () => {};
 
@@ -384,6 +385,10 @@ export const initialize = {
           playlistLoader = new PlaylistLoader(properties.resolvedUri,
                                               hls,
                                               withCredentials);
+        } else if (properties.playlists) {
+          playlistLoader = new DashPlaylistLoader(properties.playlists[0],
+                                                  hls,
+                                                  withCredentials);
         } else {
           // no resolvedUri means the audio is muxed with the video when using this
           // audio track
@@ -458,12 +463,13 @@ export const initialize = {
         }
 
         let properties = mediaGroups[type][groupId][variantLabel];
+        const playlistLoader = properties.resolvedUri ?
+          new PlaylistLoader(properties.resolvedUri, hls, withCredentials) :
+          new DashPlaylistLoader(properties.playlists[0], hls, withCredentials);
 
         properties = videojs.mergeOptions({
           id: variantLabel,
-          playlistLoader: new PlaylistLoader(properties.resolvedUri,
-                                             hls,
-                                             withCredentials)
+          playlistLoader
         }, properties);
 
         setupListeners[type](type, properties.playlistLoader, settings);

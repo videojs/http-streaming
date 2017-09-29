@@ -567,12 +567,13 @@ HlsSourceHandler.canPlayType = function(type, options) {
   }
 
   let mpegurlRE = /^(audio|video|application)\/(x-|vnd\.apple\.)?mpegurl/i;
+  const dashRE = /^application\/dash\+xml/i;
 
   // favor native HLS support if it's available
   if (!options.hls.overrideNative && Hls.supportsNativeHls) {
     return false;
   }
-  return mpegurlRE.test(type);
+  return mpegurlRE.test(type) || dashRE.test(type);
 };
 
 if (typeof videojs.MediaSource === 'undefined' ||

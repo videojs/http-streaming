@@ -558,6 +558,10 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @private
    */
   monitorBufferTick_() {
+    if (this.sourceUpdater_.mediaSource.sourceBuffers.length < 2) {
+      return;
+    }
+
     if (this.state === 'READY') {
       this.fillBuffer_();
     }

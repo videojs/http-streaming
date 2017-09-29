@@ -2,6 +2,7 @@
  * @file master-playlist-controller.js
  */
 import PlaylistLoader from './playlist-loader';
+import DashPlaylistLoader from './dash-playlist-loader';
 import { isEnabled, isLowestEnabledRendition } from './playlist.js';
 import SegmentLoader from './segment-loader';
 import VTTSegmentLoader from './vtt-segment-loader';
@@ -142,7 +143,10 @@ export const mimeTypesForPlaylist_ = function(master, media) {
       isMuxed = false;
       // ...check to see if any audio group tracks are muxed (ie. lacking a uri)
       for (let groupId in audioGroup) {
-        if (!audioGroup[groupId].uri) {
+        // either a uri is present (if the case of HLS and an external playlist), or
+        // playlists is present (in the case of DASH where we don't have external audio
+        // playlists)
+        if (!audioGroup[groupId].uri && !audioGroup[groupId].playlists) {
           isMuxed = true;
           break;
         }
@@ -292,7 +296,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
     };
 
     // setup playlist loaders
-    this.masterPlaylistLoader_ = new PlaylistLoader(url, this.hls_, this.withCredentials);
+    this.masterPlaylistLoader_ =
+      // (/^application\/dash\+xml/i).test(type) ?
+        new DashPlaylistLoader(url, this.hls_, this.withCredentials);
+      //  new PlaylistLoader(url, this.hls_, this.withCredentials);
     this.setupMasterPlaylistLoaderListeners_();
 
     // setup segment loaders
