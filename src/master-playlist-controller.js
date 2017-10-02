@@ -236,7 +236,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       externHls,
       useCueTags,
       blacklistDuration,
-      enableLowInitialPlaylist
+      enableLowInitialPlaylist,
+      sourceType
     } = options;
 
     if (!url) {
@@ -295,11 +296,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
       decrypter: this.decrypter_
     };
 
-    // setup playlist loaders
-    this.masterPlaylistLoader_ =
-      // (/^application\/dash\+xml/i).test(type) ?
-        new DashPlaylistLoader(url, this.hls_, this.withCredentials);
-      //  new PlaylistLoader(url, this.hls_, this.withCredentials);
+    this.masterPlaylistLoader_ = sourceType === 'dash' ?
+      new DashPlaylistLoader(url, this.hls_, this.withCredentials) :
+      new PlaylistLoader(url, this.hls_, this.withCredentials);
     this.setupMasterPlaylistLoaderListeners_();
 
     // setup segment loaders

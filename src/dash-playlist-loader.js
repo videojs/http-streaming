@@ -2,11 +2,13 @@ import { EventTarget } from 'video.js';
 import mpdParser from '../mpd-parser';
 import {
   setupMediaPlaylists,
-  resolveMediaGroupUris,
-  resolveSegmentUris
+  resolveMediaGroupUris
 } from './playlist-loader';
 
 export default class DashPlaylistLoader extends EventTarget {
+  // DashPlaylistLoader must accept either a src url or a playlist because subsequent
+  // playlist loader setups from media groups will expect to be able to pass a playlist
+  // (since there aren't external URLs to media playlists with DASH)
   constructor(srcUrlOrPlaylist, hls, withCredentials) {
     super();
 
@@ -33,7 +35,6 @@ export default class DashPlaylistLoader extends EventTarget {
 
   dispose() {
     this.stopRequest();
-    window.clearTimeout(this.mediaUpdateTimeout);
   }
 
   stopRequest() {
@@ -59,8 +60,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
     const startingState = this.state;
 
-    // find the playlist object if the target playlist has been
-    // specified by URI
+    // find the playlist object if the target playlist has been specified by URI
     if (typeof playlist === 'string') {
       if (!this.master.playlists[playlist]) {
         throw new Error('Unknown playlist URI: ' + playlist);
@@ -90,18 +90,9 @@ export default class DashPlaylistLoader extends EventTarget {
     }
   }
 
-  load(isFinalRendition) {
-    window.clearTimeout(this.mediaUpdateTimeout);
-
-    const media = this.media();
-
-    if (isFinalRendition) {
-      const refreshDelay = media ? (media.targetDuration / 2) * 1000 : 5 * 1000;
-
-      this.mediaUpdateTimeout = window.setTimeout(() => this.load(), refreshDelay);
-      return;
-    }
-
+  load() {
+    // because the playlists are internal to the manifest, load should either load the
+    // main manifest, or do nothing but trigger an event
     if (!this.started) {
       this.start();
       return;
@@ -145,7 +136,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
       this.state = 'HAVE_MASTER';
 
-      // TODO this will be in mpd-parser
+      // TODO mediaSequence will be added in mpd-parser
       this.master.playlists.forEach((playlist) => {
         playlist.mediaSequence = 0;
       });
@@ -158,15 +149,14 @@ export default class DashPlaylistLoader extends EventTarget {
         }
       }
 
-      // set up phony URIs for the playlists since we won't have them for DASH
+      // set up phony URIs for the playlists since we won't have external URIs for DASH
+      // but reference playlists by their URI throughout the project
       for (let i = 0; i < this.master.playlists.length; i++) {
         this.master.playlists[i].uri = `${i}`;
       }
 
       setupMediaPlaylists(this.master);
       resolveMediaGroupUris(this.master);
-
-      console.log(this.master);
 
       this.trigger('loadedplaylist');
       if (!this.request) {

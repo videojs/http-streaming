@@ -73,6 +73,22 @@ const INITIAL_BANDWIDTH = 4194304;
   });
 });
 
+export const simpleTypeFromSourceType = (type) => {
+  const mpegurlRE = /^(audio|video|application)\/(x-|vnd\.apple\.)?mpegurl/i;
+
+  if (mpegurlRE.test(type)) {
+    return 'hls';
+  }
+
+  const dashRE = /^application\/dash\+xml/i;
+
+  if (dashRE.test(type)) {
+    return 'dash';
+  }
+
+  return null;
+};
+
 /**
  * Updates the selectedIndex of the QualityLevelList when a mediachange happens in hls.
  *
@@ -273,7 +289,7 @@ class HlsHandler extends Component {
    *
    * @param {Object} src the source object to handle
    */
-  src(src) {
+  src(src, type) {
     // do nothing if the src is falsey
     if (!src) {
       return;
@@ -283,6 +299,7 @@ class HlsHandler extends Component {
     this.options_.url = this.source_.src;
     this.options_.tech = this.tech_;
     this.options_.externHls = Hls;
+    this.options_.sourceType = simpleTypeFromSourceType(type);
 
     this.masterPlaylistController_ = new MasterPlaylistController(this.options_);
     this.playbackWatcher_ = new PlaybackWatcher(
@@ -546,7 +563,7 @@ const HlsSourceHandler = function(mode) {
       tech.hls = new HlsHandler(source, tech, localOptions);
       tech.hls.xhr = xhrFactory();
 
-      tech.hls.src(source.src);
+      tech.hls.src(source.src, source.type);
       return tech.hls;
     },
     canPlayType(type, options = {}) {
@@ -566,14 +583,18 @@ HlsSourceHandler.canPlayType = function(type, options) {
     return false;
   }
 
-  let mpegurlRE = /^(audio|video|application)\/(x-|vnd\.apple\.)?mpegurl/i;
-  const dashRE = /^application\/dash\+xml/i;
+  const sourceType = simpleTypeFromSourceType(type);
+
+  if (sourceType === 'dash') {
+    return true;
+  }
 
   // favor native HLS support if it's available
   if (!options.hls.overrideNative && Hls.supportsNativeHls) {
     return false;
   }
-  return mpegurlRE.test(type) || dashRE.test(type);
+
+  return sourceType === 'hls';
 };
 
 if (typeof videojs.MediaSource === 'undefined' ||
