@@ -1,5 +1,5 @@
 import { EventTarget } from 'video.js';
-import mpdParser from '../mpd-parser';
+import mpdParser from 'mpd-parser';
 import {
   setupMediaPlaylists,
   resolveMediaGroupUris
