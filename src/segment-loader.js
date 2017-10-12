@@ -558,7 +558,8 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @private
    */
   monitorBufferTick_() {
-    if (this.sourceUpdater_.mediaSource.sourceBuffers.length < 2) {
+    if (this.hls_.masterPlaylistController_.sourceType_ === 'dash' &&
+        this.sourceUpdater_.mediaSource.sourceBuffers.length < 2) {
       return;
     }
 
