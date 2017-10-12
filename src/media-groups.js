@@ -352,6 +352,7 @@ export const initialize = {
     const {
       mode,
       hls,
+      sourceType,
       segmentLoaders: { [type]: segmentLoader },
       requestOptions: { withCredentials },
       master: { mediaGroups },
@@ -385,7 +386,7 @@ export const initialize = {
           playlistLoader = new PlaylistLoader(properties.resolvedUri,
                                               hls,
                                               withCredentials);
-        } else if (properties.playlists) {
+        } else if (properties.playlists && sourceType === 'dash') {
           playlistLoader = new DashPlaylistLoader(properties.playlists[0],
                                                   hls,
                                                   withCredentials);
@@ -433,6 +434,7 @@ export const initialize = {
     const {
       tech,
       hls,
+      sourceType,
       segmentLoaders: { [type]: segmentLoader },
       requestOptions: { withCredentials },
       master: { mediaGroups },
@@ -463,9 +465,14 @@ export const initialize = {
         }
 
         let properties = mediaGroups[type][groupId][variantLabel];
-        const playlistLoader = properties.resolvedUri ?
-          new PlaylistLoader(properties.resolvedUri, hls, withCredentials) :
-          new DashPlaylistLoader(properties.playlists[0], hls, withCredentials);
+
+        let playlistLoader;
+
+        if (sourceType === 'hls') {
+          playlistLoader = new PlaylistLoader(properties.resolvedUri, hls, withCredentials);
+        } else if (sourceType === 'dash') {
+          playlistLoader = new DashPlaylistLoader(properties.playlists[0], hls, withCredentials);
+        }
 
         properties = videojs.mergeOptions({
           id: variantLabel,

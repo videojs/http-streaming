@@ -250,6 +250,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.tech_ = tech;
     this.hls_ = tech.hls;
     this.mode_ = mode;
+    this.sourceType_ = sourceType;
     this.useCueTags_ = useCueTags;
     this.blacklistDuration = blacklistDuration;
     this.enableLowInitialPlaylist = enableLowInitialPlaylist;
@@ -296,7 +297,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       decrypter: this.decrypter_
     };
 
-    this.masterPlaylistLoader_ = sourceType === 'dash' ?
+    this.masterPlaylistLoader_ = this.sourceType_ === 'dash' ?
       new DashPlaylistLoader(url, this.hls_, this.withCredentials) :
       new PlaylistLoader(url, this.hls_, this.withCredentials);
     this.setupMasterPlaylistLoaderListeners_();
@@ -358,6 +359,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       }
 
       setupMediaGroups({
+        sourceType: this.sourceType_,
         segmentLoaders: {
           AUDIO: this.audioSegmentLoader_,
           SUBTITLES: this.subtitleSegmentLoader_,
