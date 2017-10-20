@@ -618,7 +618,8 @@ QUnit.module('MediaGroups - initialize', {
       requestOptions: { withCredentials: false, timeout: 10 },
       master: this.master,
       mediaTypes: this.mediaTypes,
-      blacklistCurrentPlaylist() {}
+      blacklistCurrentPlaylist() {},
+      sourceType: 'hls'
     };
   }
 });

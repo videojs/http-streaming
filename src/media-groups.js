@@ -469,9 +469,11 @@ export const initialize = {
         let playlistLoader;
 
         if (sourceType === 'hls') {
-          playlistLoader = new PlaylistLoader(properties.resolvedUri, hls, withCredentials);
+          playlistLoader =
+            new PlaylistLoader(properties.resolvedUri, hls, withCredentials);
         } else if (sourceType === 'dash') {
-          playlistLoader = new DashPlaylistLoader(properties.playlists[0], hls, withCredentials);
+          playlistLoader =
+            new DashPlaylistLoader(properties.playlists[0], hls, withCredentials);
         }
 
         properties = videojs.mergeOptions({
