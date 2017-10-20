@@ -15,7 +15,12 @@ import {
 } from './test-helpers.js';
 /* eslint-disable no-unused-vars */
 // we need this so that it can register hls with videojs
-import {HlsSourceHandler, HlsHandler, Hls} from '../src/videojs-http-streaming';
+import {
+  HlsSourceHandler,
+  HlsHandler,
+  Hls,
+  emeOptions
+} from '../src/videojs-http-streaming';
 import window from 'global/window';
 // we need this so the plugin registers itself
 import 'videojs-contrib-quality-levels';
@@ -2924,6 +2929,64 @@ QUnit.test('populates quality levels list when available', function(assert) {
   assert.ok(this.player.tech_.hls.qualityLevels_, 'added quality levels from video with source');
 });
 
+QUnit.test('configures eme if present on selectedinitialmedia', function(assert) {
+  this.player.src({
+    src: 'manifest/master.mpd',
+    type: 'application/dash+xml',
+    eme: {
+      keySystems: {
+        keySystem1: {
+          url: 'url1'
+        }
+      }
+    }
+  });
+
+  this.clock.tick(1);
+
+  let playerEmeOptions;
+
+  this.player.eme = (options) => playerEmeOptions = options;
+
+  this.player.tech_.hls.playlists = {
+    media: () => {
+      return {
+        attributes: {
+          CODECS: 'video-codec'
+        }
+      };
+    },
+    // mocked for renditions mixin
+    master: {
+      playlists: []
+    }
+  };
+  this.player.tech_.hls.masterPlaylistController_.mediaTypes_ = {
+    AUDIO: {
+      activePlaylistLoader: {
+        media: () => {
+          return {
+            attributes: {
+              CODECS: 'audio-codec'
+            }
+          };
+        }
+      }
+    }
+  };
+  this.player.tech_.hls.masterPlaylistController_.trigger('selectedinitialmedia');
+
+  assert.deepEqual(playerEmeOptions, {
+    keySystems: {
+      keySystem1: {
+        url: 'url1',
+        audioContentType: 'audio/mp4; codecs="audio-codec"',
+        videoContentType: 'video/mp4; codecs="video-codec"'
+      }
+    }
+  }, 'set eme options');
+});
+
 QUnit.module('HLS Integration', {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
@@ -3326,4 +3389,93 @@ QUnit.test('treats invalid keys as a key request failure and blacklists playlist
   // verify stats
   assert.equal(hls.stats.mediaBytesTransferred, 1024, '1024 bytes');
   assert.equal(hls.stats.mediaRequests, 1, '1 request');
+});
+
+QUnit.module('videojs-contrib-hls isolated functions');
+
+QUnit.test('emeOptions returns original options when no keySystems', function(assert) {
+  assert.deepEqual(
+    emeOptions(
+      { test: 'something' },
+      { attributes: { CODECS: 'some-video-codec' } },
+      { attributes: { CODECS: 'some-audio-codec' } }),
+    { test: 'something' },
+    'returned original options');
+});
+
+QUnit.test('emeOptions adds content types for all keySystems', function(assert) {
+  assert.deepEqual(
+    emeOptions(
+      { keySystems: { keySystem1: {}, keySystem2: {} } },
+      { attributes: { CODECS: 'some-video-codec' } },
+      { attributes: { CODECS: 'some-audio-codec' } }),
+    {
+      keySystems: {
+        keySystem1: {
+          audioContentType: 'audio/mp4; codecs="some-audio-codec"',
+          videoContentType: 'video/mp4; codecs="some-video-codec"'
+        },
+        keySystem2: {
+          audioContentType: 'audio/mp4; codecs="some-audio-codec"',
+          videoContentType: 'video/mp4; codecs="some-video-codec"'
+        }
+      }
+    },
+    'added content types');
+});
+
+QUnit.test('emeOptions retains non content type properties', function(assert) {
+  assert.deepEqual(
+    emeOptions(
+      { keySystems: { keySystem1: { url: '1' }, keySystem2: { url: '2'} }, a: 'b' },
+      { attributes: { CODECS: 'some-video-codec' } },
+      { attributes: { CODECS: 'some-audio-codec' } }),
+    {
+      a: 'b',
+      keySystems: {
+        keySystem1: {
+          url: '1',
+          audioContentType: 'audio/mp4; codecs="some-audio-codec"',
+          videoContentType: 'video/mp4; codecs="some-video-codec"'
+        },
+        keySystem2: {
+          url: '2',
+          audioContentType: 'audio/mp4; codecs="some-audio-codec"',
+          videoContentType: 'video/mp4; codecs="some-video-codec"'
+        }
+      }
+    },
+    'retained options');
+});
+
+QUnit.test('emeOptions overwrites content types', function(assert) {
+  assert.deepEqual(
+    emeOptions(
+      {
+        keySystems: {
+          keySystem1: {
+            audioContentType: 'a',
+            videoContentType: 'b'
+          },
+          keySystem2: {
+            audioContentType: 'c',
+            videoContentType: 'd'
+          }
+        }
+      },
+      { attributes: { CODECS: 'some-video-codec' } },
+      { attributes: { CODECS: 'some-audio-codec' } }),
+    {
+      keySystems: {
+        keySystem1: {
+          audioContentType: 'audio/mp4; codecs="some-audio-codec"',
+          videoContentType: 'video/mp4; codecs="some-video-codec"'
+        },
+        keySystem2: {
+          audioContentType: 'audio/mp4; codecs="some-audio-codec"',
+          videoContentType: 'video/mp4; codecs="some-video-codec"'
+        }
+      }
+    },
+    'overwrote content types');
 });

@@ -135,6 +135,26 @@ Hls.canPlaySource = function() {
                           'your player\'s techOrder.');
 };
 
+const emeOptions = (options, videoPlaylist, audioPlaylist) => {
+  if (!options.keySystems) {
+    return options;
+  }
+
+  // upsert the content types based on the selected playlist
+  const keySystemContentTypes = {};
+
+  for (let keySystem in options.keySystems) {
+    keySystemContentTypes[keySystem] = {
+      audioContentType: `audio/mp4; codecs="${audioPlaylist.attributes.CODECS}"`,
+      videoContentType: `video/mp4; codecs="${videoPlaylist.attributes.CODECS}"`
+    };
+  }
+
+  return videojs.mergeOptions(options, {
+    keySystems: keySystemContentTypes
+  });
+};
+
 /**
  * Whether the browser has built-in HLS support.
  */
@@ -435,6 +455,18 @@ class HlsHandler extends Component {
     this.masterPlaylistController_.on('selectedinitialmedia', () => {
       // Add the manual rendition mix-in to HlsHandler
       renditionSelectionMixin(this);
+
+      if (this.options_.sourceType === 'dash') {
+        const player = videojs.players[this.tech_.options_.playerId];
+
+        if (player.eme) {
+          player.eme(emeOptions(
+            this.source_.eme,
+            this.playlists.media(),
+            this.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader.media()
+          ));
+        }
+      }
     });
 
     // the bandwidth of the primary segment loader is our best
@@ -631,5 +663,6 @@ if (videojs.registerPlugin) {
 module.exports = {
   Hls,
   HlsHandler,
-  HlsSourceHandler
+  HlsSourceHandler,
+  emeOptions
 };
