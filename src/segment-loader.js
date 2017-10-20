@@ -145,6 +145,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.startingMedia_ = void 0;
     this.segmentMetadataTrack_ = settings.segmentMetadataTrack;
     this.goalBufferLength_ = settings.goalBufferLength;
+    this.sourceType_ = settings.sourceType;
 
     // private instance variables
     this.checkBufferTimeout_ = null;
@@ -558,7 +559,7 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @private
    */
   monitorBufferTick_() {
-    if (this.hls_.masterPlaylistController_.sourceType_ === 'dash' &&
+    if (this.sourceType_ === 'dash' &&
         this.sourceUpdater_.mediaSource.sourceBuffers.length < 2) {
       return;
     }

@@ -294,7 +294,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       goalBufferLength: () => this.goalBufferLength(),
       bandwidth,
       syncController: this.syncController_,
-      decrypter: this.decrypter_
+      decrypter: this.decrypter_,
+      sourceType: this.sourceType_
     };
 
     this.masterPlaylistLoader_ = this.sourceType_ === 'dash' ?
