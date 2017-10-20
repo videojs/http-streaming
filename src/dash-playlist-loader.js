@@ -58,8 +58,6 @@ export default class DashPlaylistLoader extends EventTarget {
       throw new Error('Cannot switch media playlist from ' + this.state);
     }
 
-    const startingState = this.state;
-
     // find the playlist object if the target playlist has been specified by URI
     if (typeof playlist === 'string') {
       if (!this.master.playlists[playlist]) {
@@ -131,7 +129,7 @@ export default class DashPlaylistLoader extends EventTarget {
         return this.trigger('error');
       }
 
-      this.master = new mpdParser.parse(req.responseText, this.srcUrl);
+      this.master = mpdParser.parse(req.responseText, this.srcUrl);
       this.master.uri = this.srcUrl;
 
       this.state = 'HAVE_MASTER';
