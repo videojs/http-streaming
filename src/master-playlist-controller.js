@@ -1143,9 +1143,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
         media.resolvedUri;
       return this.mediaSource.endOfStream('decode');
     }
-    this.mainSegmentLoader_.mimeType(mimeTypes[0]);
+    this.mainSegmentLoader_.mimeType(mimeTypes[0], mimeTypes.length > 1);
     if (mimeTypes[1]) {
-      this.audioSegmentLoader_.mimeType(mimeTypes[1]);
+      this.audioSegmentLoader_.mimeType(mimeTypes[1], mimeTypes.length > 1);
     }
 
     // exclude any incompatible variant streams from future playlist
