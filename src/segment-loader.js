@@ -372,7 +372,9 @@ export default class SegmentLoader extends videojs.EventTarget {
    */
   init_() {
     this.state = 'READY';
-    this.sourceUpdater_ = new SourceUpdater(this.mediaSource_, this.mimeType_);
+    this.sourceUpdater_ = new SourceUpdater(this.mediaSource_,
+                                            this.mimeType_,
+                                            this.sourceBufferEmitter_);
     this.resetEverything();
     return this.monitorBuffer_();
   }
@@ -482,15 +484,16 @@ export default class SegmentLoader extends videojs.EventTarget {
    * SourceUpdater
    *
    * @param {String} mimeType the mime type string to use
-   * @param {Boolean} isDemuxed whether the content is demuxed and has another loader
+   * @param {Object} sourceBufferEmitter an event emitter that fires when a source buffer
+   * is added to the media source
    */
-  mimeType(mimeType, isDemuxed) {
+  mimeType(mimeType, sourceBufferEmitter) {
     if (this.mimeType_) {
       return;
     }
 
     this.mimeType_ = mimeType;
-    this.isDemuxed_ = true;
+    this.sourceBufferEmitter_ = sourceBufferEmitter;
     // if we were unpaused but waiting for a sourceUpdater, start
     // buffering now
     if (this.state === 'INIT' && this.couldBeginLoading_()) {
@@ -561,13 +564,6 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @private
    */
   monitorBufferTick_() {
-    if (this.isDemuxed_ && this.sourceUpdater_.mediaSource.sourceBuffers.length < 2) {
-      // We can't start appending segments until both source buffers are set up, or else
-      // the browser may not let us add the second source buffer (it will assume we are
-      // playing either audio only or video only).
-      return;
-    }
-
     if (this.state === 'READY') {
       this.fillBuffer_();
     }

@@ -1143,9 +1143,20 @@ export class MasterPlaylistController extends videojs.EventTarget {
         media.resolvedUri;
       return this.mediaSource.endOfStream('decode');
     }
-    this.mainSegmentLoader_.mimeType(mimeTypes[0], mimeTypes.length > 1);
+
+    // If the content is demuxed, we can't start appending segments to a source buffer
+    // until both source buffers are set up, or else the browser may not let us add the
+    // second source buffer (it will assume we are playing either audio only or video
+    // only).
+    const sourceBufferEmitter =
+      // if the first mime type has muxed video and audio then we shouldn't wait on the
+      // second source buffer
+      mimeTypes.length > 1 && mimeTypes[0].indexOf(',') === -1 ?
+        new videojs.EventTarget() : null;
+
+    this.mainSegmentLoader_.mimeType(mimeTypes[0], sourceBufferEmitter);
     if (mimeTypes[1]) {
-      this.audioSegmentLoader_.mimeType(mimeTypes[1], mimeTypes.length > 1);
+      this.audioSegmentLoader_.mimeType(mimeTypes[1], sourceBufferEmitter);
     }
 
     // exclude any incompatible variant streams from future playlist
