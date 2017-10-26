@@ -664,5 +664,6 @@ module.exports = {
   Hls,
   HlsHandler,
   HlsSourceHandler,
-  emeOptions
+  emeOptions,
+  simpleTypeFromSourceType
 };

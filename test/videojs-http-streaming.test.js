@@ -19,7 +19,8 @@ import {
   HlsSourceHandler,
   HlsHandler,
   Hls,
-  emeOptions
+  emeOptions,
+  simpleTypeFromSourceType
 } from '../src/videojs-http-streaming';
 import window from 'global/window';
 // we need this so the plugin registers itself
@@ -3497,4 +3498,25 @@ QUnit.test('emeOptions overwrites content types', function(assert) {
       }
     },
     'overwrote content types');
+});
+
+QUnit.test('simpleTypeFromSourceType converts HLS mime types to hls', function(assert) {
+  assert.equal(simpleTypeFromSourceType('aPplicatiOn/x-MPegUrl'),
+               'hls',
+               'supports application/x-mpegurl');
+  assert.equal(simpleTypeFromSourceType('aPplicatiOn/VnD.aPPle.MpEgUrL'),
+               'hls',
+               'supports application/vnd.apple.mpegurl');
+});
+
+QUnit.test('simpleTypeFromSourceType converts DASH mime type to dash', function(assert) {
+  assert.equal(simpleTypeFromSourceType('aPplication/dAsh+xMl'),
+               'dash',
+               'supports application/dash+xml');
+});
+
+QUnit.test('simpleTypeFromSourceType does not convert non HLS/DASH mime types',
+function(assert) {
+  assert.notOk(simpleTypeFromSourceType('video/mp4'), 'does not support video/mp4');
+  assert.notOk(simpleTypeFromSourceType('video/x-flv'), 'does not support video/x-flv');
 });
