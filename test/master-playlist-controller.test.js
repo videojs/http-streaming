@@ -19,6 +19,8 @@ import { Hls } from '../src/videojs-http-streaming';
 /* eslint-enable no-unused-vars */
 import Playlist from '../src/playlist';
 import Config from '../src/config';
+import PlaylistLoader from '../src/playlist-loader';
+import DashPlaylistLoader from '../src/dash-playlist-loader';
 
 const generateMedia = function(isMaat, isMuxed, hasVideoCodec, hasAudioCodec, isFMP4) {
   const codec = (hasVideoCodec ? 'avc1.deadbeef' : '') +
@@ -164,6 +166,25 @@ QUnit.test('obeys metadata preload option', function(assert) {
 
   // verify stats
   assert.equal(this.player.tech_.hls.stats.bandwidth, 4194304, 'default bandwidth');
+});
+
+QUnit.test('creates appropriate PlaylistLoader for sourceType', function(assert) {
+  let options = {
+    url: 'test',
+    tech: this.player.tech_,
+    sourceType: 'hls'
+  };
+
+  let mpc = new MasterPlaylistController(options);
+
+  assert.ok(mpc.masterPlaylistLoader_ instanceof PlaylistLoader,
+            'created a standard playlist loader');
+
+  options.sourceType = 'dash';
+  mpc = new MasterPlaylistController(options);
+
+  assert.ok(mpc.masterPlaylistLoader_ instanceof DashPlaylistLoader,
+            'created a dash playlist loader');
 });
 
 QUnit.test('resets SegmentLoader when seeking in flash for both in and out of buffer',
