@@ -1972,7 +1972,26 @@ QUnit.test('the source handler supports HLS mime types', function(assert) {
              'supports vnd.apple.mpegurl');
     assert.ok(HlsSourceHandler(techName).canPlayType('aPplicatiOn/x-MPegUrl'),
              'supports x-mpegurl');
+  });
+});
 
+QUnit.test('the source handler supports DASH mime types', function(assert) {
+  const techs = ['html5', 'flash'];
+
+  techs.forEach(function(techName) {
+    assert.ok(HlsSourceHandler(techName).canHandleSource({
+      type: 'aPplication/dAsh+xMl'
+    }), 'supports application/dash+xml');
+    assert.ok(HlsSourceHandler(techName).canPlayType('aPpLicAtion/DaSh+XmL'),
+             'supports application/dash+xml');
+  });
+});
+
+QUnit.test('the source handler does not support non HLS/DASH mime types',
+function(assert) {
+  const techs = ['html5', 'flash'];
+
+  techs.forEach(function(techName) {
     assert.ok(!(HlsSourceHandler(techName).canHandleSource({
       type: 'video/mp4'
     }) instanceof HlsHandler), 'does not support mp4');
