@@ -3,6 +3,8 @@ import {
   useFakeEnvironment
 } from './test-helpers.js';
 import * as MediaGroups from '../src/media-groups';
+import PlaylistLoader from '../src/playlist-loader';
+import DashPlaylistLoader from '../src/dash-playlist-loader';
 
 QUnit.module('MediaGroups', {
   beforeEach(assert) {
@@ -747,4 +749,90 @@ function(assert) {
     }, 'creates group properties');
   assert.ok(this.mediaTypes[type].tracks.en608, 'created text track');
   assert.ok(this.mediaTypes[type].tracks.fr608, 'created text track');
+});
+
+QUnit.test('initialize audio correctly uses HLS source type', function(assert) {
+  this.master.mediaGroups.AUDIO.aud1 = {
+    en: { default: true, language: 'en' },
+    fr: { default: false, language: 'fr', resolvedUri: 'aud1/fr.m3u8' }
+  };
+  this.settings.sourceType = 'hls';
+
+  MediaGroups.initialize.AUDIO('AUDIO', this.settings);
+
+  assert.notOk(this.mediaTypes.AUDIO.groups.aud1[0].playlistLoader,
+            'no playlist loader because muxed (no URI)');
+  assert.ok(this.mediaTypes.AUDIO.groups.aud1[1].playlistLoader instanceof PlaylistLoader,
+            'playlist loader is an HLS playlist loader');
+});
+
+QUnit.test('initialize audio correctly uses DASH source type', function(assert) {
+  this.master.mediaGroups.AUDIO.aud1 = {
+    // playlists are resolved, no URI for DASH
+    en: { default: true, language: 'en', playlists: [{}] },
+    fr: { default: false, language: 'fr', playlists: [{}] }
+  };
+  this.settings.sourceType = 'dash';
+
+  MediaGroups.initialize.AUDIO('AUDIO', this.settings);
+
+  assert.ok(
+    this.mediaTypes.AUDIO.groups.aud1[0].playlistLoader instanceof DashPlaylistLoader,
+    'playlist loader is a DASH playlist loader');
+  assert.ok(
+    this.mediaTypes.AUDIO.groups.aud1[1].playlistLoader instanceof DashPlaylistLoader,
+    'playlist loader is a DASH playlist loader');
+});
+
+QUnit.test('initialize audio does not create DASH playlist loader if no playlists',
+function(assert) {
+  this.master.mediaGroups.AUDIO.aud1 = {
+    en: { default: true, language: 'en' },
+    fr: { default: false, language: 'fr' }
+  };
+  this.settings.sourceType = 'dash';
+
+  MediaGroups.initialize.AUDIO('AUDIO', this.settings);
+
+  assert.notOk(this.mediaTypes.AUDIO.groups.aud1[0].playlistLoader,
+               'no playlist loader when misconfigured');
+  assert.notOk(this.mediaTypes.AUDIO.groups.aud1[1].playlistLoader,
+               'no playlist loader when misconfigured');
+});
+
+QUnit.test('initialize subtitles correctly uses HLS source type', function(assert) {
+  this.master.mediaGroups.SUBTITLES.sub1 = {
+    en: { language: 'en', resolvedUri: 'sub1/en.m3u8' },
+    fr: { language: 'fr', resolvedUri: 'sub1/fr.m3u8' }
+  };
+  this.settings.sourceType = 'hls';
+
+  MediaGroups.initialize.SUBTITLES('SUBTITLES', this.settings);
+
+  assert.ok(
+    this.mediaTypes.SUBTITLES.groups.sub1[0].playlistLoader instanceof PlaylistLoader,
+    'playlist loader is an HLS playlist loader');
+  assert.ok(
+    this.mediaTypes.SUBTITLES.groups.sub1[1].playlistLoader instanceof PlaylistLoader,
+    'playlist loader is an HLS playlist loader');
+});
+
+QUnit.test('initialize subtitles correctly uses DASH source type', function(assert) {
+  this.master.mediaGroups.SUBTITLES.sub1 = {
+    // playlists are resolved, no URI for DASH
+    en: { language: 'en', playlists: [{}] },
+    fr: { language: 'fr', playlists: [{}] }
+  };
+  this.settings.sourceType = 'dash';
+
+  MediaGroups.initialize.AUDIO('AUDIO', this.settings);
+
+  MediaGroups.initialize.SUBTITLES('SUBTITLES', this.settings);
+
+  assert.ok(
+    this.mediaTypes.SUBTITLES.groups.sub1[0].playlistLoader instanceof DashPlaylistLoader,
+    'playlist loader is a DASH playlist loader');
+  assert.ok(
+    this.mediaTypes.SUBTITLES.groups.sub1[1].playlistLoader instanceof DashPlaylistLoader,
+    'playlist loader is a DASH playlist loader');
 });
