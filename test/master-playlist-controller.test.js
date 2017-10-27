@@ -2405,6 +2405,48 @@ QUnit.test('recognizes muxed codec configurations', function(assert) {
   testMimeTypes(assert, true);
 });
 
+// dash audio playlist won't have a URI but will have resolved playlists
+QUnit.test('content demuxed if alt audio URI not present but playlists present',
+function(assert) {
+  const media = {
+    attributes: {
+      AUDIO: 'test',
+      CODECS: 'avc1.deadbeef, mp4a.40.E'
+    },
+    segments: [
+      // signal fmp4
+      { map: 'test' }
+    ]
+  };
+  const master = {
+    mediaGroups: {
+      AUDIO: {
+        test: {
+          demuxed: {
+            uri: 'foo.bar'
+          }
+        }
+      }
+    },
+    playlists: [media]
+  };
+
+  assert.deepEqual(mimeTypesForPlaylist_(master, media),
+                   ['video/mp4; codecs="avc1.deadbeef"', 'audio/mp4; codecs="mp4a.40.E"'],
+                   'demuxed if URI');
+
+  delete master.mediaGroups.AUDIO.test.demuxed.uri;
+  assert.deepEqual(
+    mimeTypesForPlaylist_(master, media),
+    [ 'video/mp4; codecs="avc1.deadbeef, mp4a.40.E"', 'audio/mp4; codecs="mp4a.40.E"' ],
+    'muxed if no URI and no playlists');
+
+  master.mediaGroups.AUDIO.test.demuxed.playlists = [{}];
+  assert.deepEqual(mimeTypesForPlaylist_(master, media),
+                   ['video/mp4; codecs="avc1.deadbeef"', 'audio/mp4; codecs="mp4a.40.E"'],
+                   'demuxed if no URI but playlists');
+});
+
 QUnit.module('Map Legacy AVC Codec');
 
 QUnit.test('maps legacy AVC codecs', function(assert) {
