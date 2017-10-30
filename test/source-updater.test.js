@@ -39,6 +39,47 @@ QUnit.test('runs a callback when the source buffer is created', function(assert)
                   'appended the bytes');
 });
 
+QUnit.test('runs callback if a media source exists when passed source buffer emitter',
+function(assert) {
+  let sourceBufferEmitter = new videojs.EventTarget();
+  let sourceBuffer;
+
+  this.mediaSource.trigger('sourceopen');
+  // create other media source
+  this.mediaSource.addSourceBuffer('audio/mp2t');
+
+  let updater = new SourceUpdater(this.mediaSource, 'video/mp2t', sourceBufferEmitter);
+
+  updater.appendBuffer(new Uint8Array([0, 1, 2]));
+
+  sourceBuffer = this.mediaSource.sourceBuffers[1];
+  assert.equal(sourceBuffer.updates_.length, 1, 'called the source buffer once');
+  assert.deepEqual(sourceBuffer.updates_[0].append, new Uint8Array([0, 1, 2]),
+                  'appended the bytes');
+});
+
+QUnit.test('runs callback after source buffer emitter triggers if other source buffer ' +
+'doesn\'t exist at creation',
+function(assert) {
+  let sourceBufferEmitter = new videojs.EventTarget();
+  let updater = new SourceUpdater(this.mediaSource, 'video/mp2t', sourceBufferEmitter);
+  let sourceBuffer;
+
+  updater.appendBuffer(new Uint8Array([0, 1, 2]));
+
+  this.mediaSource.trigger('sourceopen');
+  sourceBuffer = this.mediaSource.sourceBuffers[0];
+  assert.equal(sourceBuffer.updates_.length, 0, 'did not call the source buffer');
+
+  // create other media source
+  this.mediaSource.addSourceBuffer('audio/mp2t');
+  sourceBufferEmitter.trigger('sourcebufferadded');
+
+  assert.equal(sourceBuffer.updates_.length, 1, 'called the source buffer once');
+  assert.deepEqual(sourceBuffer.updates_[0].append, new Uint8Array([0, 1, 2]),
+                  'appended the bytes');
+});
+
 QUnit.test('runs the completion callback when updateend fires', function(assert) {
   let updater = new SourceUpdater(this.mediaSource, 'video/mp2t');
   let updateends = 0;
