@@ -2320,6 +2320,83 @@ QUnit.test('calculates dynamic BUFFER_LOW_WATER_LINE', function(assert) {
   Object.keys(configOld).forEach((key) => Config[key] = configOld[key]);
 });
 
+QUnit.test('properly configures loader mime types', function(assert) {
+  this.player = createPlayer();
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+
+  const masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+  const mainMimeTypeCalls = [];
+  const audioMimeTypeCalls = [];
+
+  masterPlaylistController.mainSegmentLoader_.mimeType = (mimeType, emitter) => {
+    mainMimeTypeCalls.push([mimeType, emitter]);
+  };
+  masterPlaylistController.audioSegmentLoader_.mimeType = (mimeType, emitter) => {
+    audioMimeTypeCalls.push([mimeType, emitter]);
+  };
+
+  masterPlaylistController.configureLoaderMimeTypes_([
+    'video/mp4; codecs="avc1.deadbeef"'
+  ]);
+
+  assert.equal(mainMimeTypeCalls.length, 1, 'configured main segment loader');
+  assert.equal(mainMimeTypeCalls[0][0],
+               'video/mp4; codecs="avc1.deadbeef"',
+               'correct mime type for main segment loader');
+  assert.notOk(mainMimeTypeCalls[0][1], 'no source buffer emitter');
+  assert.equal(audioMimeTypeCalls.length, 0, 'did not configure audio segment loader');
+
+  mainMimeTypeCalls.length = 0;
+
+  masterPlaylistController.configureLoaderMimeTypes_([
+    'audio/mp4; codecs="mp4a.40.E"'
+  ]);
+
+  assert.equal(mainMimeTypeCalls.length, 1, 'configured main segment loader');
+  assert.equal(mainMimeTypeCalls[0][0],
+               'audio/mp4; codecs="mp4a.40.E"',
+               'correct mime type for main segment loader');
+  assert.notOk(mainMimeTypeCalls[0][1], 'no source buffer emitter');
+  assert.equal(audioMimeTypeCalls.length, 0, 'did not configure audio segment loader');
+
+  mainMimeTypeCalls.length = 0;
+
+  masterPlaylistController.configureLoaderMimeTypes_([
+    'video/mp4; codecs="avc1.deadbeef, mp4a.40.E"'
+  ]);
+
+  assert.equal(mainMimeTypeCalls.length, 1, 'configured main segment loader');
+  assert.equal(mainMimeTypeCalls[0][0],
+               'video/mp4; codecs="avc1.deadbeef, mp4a.40.E"',
+               'correct mime type for main segment loader');
+  assert.notOk(mainMimeTypeCalls[0][1], 'no source buffer emitter');
+  assert.equal(audioMimeTypeCalls.length, 0, 'did not configure audio segment loader');
+
+  mainMimeTypeCalls.length = 0;
+
+  masterPlaylistController.configureLoaderMimeTypes_([
+    'video/mp4; codecs="avc1.deadbeef"',
+    'audio/mp4; codecs="mp4a.40.E"'
+  ]);
+
+  assert.equal(mainMimeTypeCalls.length, 1, 'configured main segment loader');
+  assert.equal(mainMimeTypeCalls[0][0],
+               'video/mp4; codecs="avc1.deadbeef"',
+               'correct mime type for main segment loader');
+  assert.ok(mainMimeTypeCalls[0][1] instanceof videojs.EventTarget,
+            'passed a source buffer emitter to main segment loader');
+  assert.equal(audioMimeTypeCalls.length, 1, 'configured audio segment loader');
+  assert.equal(audioMimeTypeCalls[0][0],
+               'audio/mp4; codecs="mp4a.40.E"',
+               'correct mime type for audio segment loader');
+  assert.ok(audioMimeTypeCalls[0][1] instanceof videojs.EventTarget,
+            'passed a source buffer emitter to audio segment loader');
+});
+
 QUnit.module('Codec to MIME Type Conversion');
 
 const testMimeTypes = function(assert, isFMP4) {

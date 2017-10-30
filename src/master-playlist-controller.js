@@ -1144,6 +1144,13 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return this.mediaSource.endOfStream('decode');
     }
 
+    this.configureLoaderMimeTypes_(mimeTypes);
+    // exclude any incompatible variant streams from future playlist
+    // selection
+    this.excludeIncompatibleVariants_(media);
+  }
+
+  configureLoaderMimeTypes_(mimeTypes) {
     // If the content is demuxed, we can't start appending segments to a source buffer
     // until both source buffers are set up, or else the browser may not let us add the
     // second source buffer (it will assume we are playing either audio only or video
@@ -1158,10 +1165,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
     if (mimeTypes[1]) {
       this.audioSegmentLoader_.mimeType(mimeTypes[1], sourceBufferEmitter);
     }
-
-    // exclude any incompatible variant streams from future playlist
-    // selection
-    this.excludeIncompatibleVariants_(media);
   }
 
   /**
