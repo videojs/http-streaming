@@ -14,9 +14,9 @@ var build = function() {
     var file = path.resolve(manifestDir, files.shift());
     var extname = path.extname(file);
 
-    if (extname === '.m3u8') {
+    if (extname === '.m3u8' || extname === '.mpd') {
       // translate this manifest
-      manifests += '  \'' + path.basename(file, '.m3u8') + '\': ';
+      manifests += '  \'' + path.basename(file, extname) + '\': ';
       manifests += fs.readFileSync(file, 'utf8')
         .split(/\r\n|\n/)
         // quote and concatenate

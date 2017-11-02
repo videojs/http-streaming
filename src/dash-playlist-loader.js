@@ -150,7 +150,11 @@ export default class DashPlaylistLoader extends EventTarget {
       // set up phony URIs for the playlists since we won't have external URIs for DASH
       // but reference playlists by their URI throughout the project
       for (let i = 0; i < this.master.playlists.length; i++) {
-        this.master.playlists[i].uri = `${i}`;
+        const phonyUri = `placeholder-uri-${i}`;
+
+        this.master.playlists[i].uri = phonyUri;
+        // set up by URI references
+        this.master.playlists[phonyUri] = this.master.playlists[i];
       }
 
       setupMediaPlaylists(this.master);
