@@ -9,7 +9,7 @@ import videojs from 'video.js';
 
 /* eslint-disable no-unused-vars */
 // we need this so that it can register hls with videojs
-import {HlsSourceHandler, HlsHandler, Hls} from '../src/videojs-contrib-hls';
+import {HlsSourceHandler, HlsHandler, Hls} from '../src/videojs-http-streaming';
 /* eslint-enable no-unused-vars */
 import Config from '../src/config';
 

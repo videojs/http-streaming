@@ -1,7 +1,7 @@
  {
   "meta": {
     "org": "videojs",
-    "name": "videojs-contrib-hls",
+    "name": "http-streaming",
     "requirements": [
       {
         "name": "git",
@@ -13,8 +13,8 @@
       }
     ],
     "urls": {
-      "repo_api": "https://api.github.com/repos/videojs/videojs-contrib-hls",
-      "repo_ui": "https://github.com/videojs/videojs-contrib-hls"
+      "repo_api": "https://api.github.com/repos/videojs/http-streaming",
+      "repo_ui": "https://github.com/videojs/http-streaming"
     },
     "branches": {
       "development": "master",

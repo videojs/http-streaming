@@ -1,24 +1,24 @@
 {
-  "name": "videojs-contrib-hls",
-  "version": "5.12.2",
+  "name": "@videojs/http-streaming",
+  "version": "0.1.0",
   "description": "Play back HLS with video.js, even where it's not natively supported",
-  "main": "es5/videojs-contrib-hls.js",
+  "main": "es5/videojs-http-streaming.js",
   "engines": {
     "node": ">= 0.10.12"
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:videojs/videojs-contrib-hls.git"
+    "url": "git@github.com:videojs/http-streaming.git"
   },
   "scripts": {
     "prebuild": "npm run clean",
     "build": "npm-run-all -p build:*",
     "build:js": "npm-run-all build:js:babel build:js:browserify build:js:bannerize build:js:collapse build:js:uglify",
     "build:js:babel": "babel src -d es5",
-    "build:js:bannerize": "bannerize dist/videojs-contrib-hls.js --banner=scripts/banner.ejs",
-    "build:js:browserify": "browserify . -s videojs-contrib-hls -g browserify-shim -o dist/videojs-contrib-hls.js",
-    "build:js:collapse": "bundle-collapser dist/videojs-contrib-hls.js -o dist/videojs-contrib-hls.min.js",
-    "build:js:uglify": "uglifyjs dist/videojs-contrib-hls.min.js --support-ie8 --comments -m -c -o dist/videojs-contrib-hls.min.js",
+    "build:js:bannerize": "bannerize dist/videojs-http-streaming.js --banner=scripts/banner.ejs",
+    "build:js:browserify": "browserify . -s videojs-http-streaming -g browserify-shim -o dist/videojs-http-streaming.js",
+    "build:js:collapse": "bundle-collapser dist/videojs-http-streaming.js -o dist/videojs-http-streaming.min.js",
+    "build:js:uglify": "uglifyjs dist/videojs-http-streaming.min.js --support-ie8 --comments -m -c -o dist/videojs-http-streaming.min.js",
     "build:test:browserify": "browserify test/browserify-test.js -o dist-test/browserify-test.js",
     "build:test:webpack": "webpack test/webpack-test.js dist-test/webpack-test.js",
     "build:test": "npm-run-all build:test:manifest build:test:js build:test:browserify build:test:webpack",
@@ -45,7 +45,7 @@
     "watch:docs": "nodemon --watch src/ --exec npm run docs",
     "watch:js": "npm-run-all -p watch:js:babel watch:js:browserify watch:js:switcher",
     "watch:js:babel": "npm run build:js:babel -- --watch",
-    "watch:js:browserify": "watchify . -v -g browserify-shim -o dist/videojs-contrib-hls.js",
+    "watch:js:browserify": "watchify . -v -g browserify-shim -o dist/videojs-http-streaming.js",
     "watch:js:switcher": "watchify utils/switcher/switcher.js -v -t babelify -g browserify-shim -o dist/switcher.js",
     "watch:test:browserify": "watchify test/browserify-test.js -o dist-test/browserify-test.js",
     "watch:test:webpack": "watchify test/webpack-test.js -o dist-test/webpack-test.js",

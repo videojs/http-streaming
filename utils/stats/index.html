@@ -10,7 +10,7 @@
   <script src="../../node_modules/video.js/dist/alt/video.novtt.js"></script>
 
   <!-- HLS plugin -->
-  <script src="../../dist/videojs-contrib-hls.js"></script>
+  <script src="../../dist/videojs-http-streaming.js"></script>
 
   <!-- quality levels plugin -->
   <script src="../../node_modules/videojs-contrib-quality-levels/dist/videojs-contrib-quality-levels.js"></script>
@@ -190,7 +190,7 @@
 
       // create video element in the dom
       var video = document.createElement('video');
-      video.id = 'videojs-contrib-hls-player';
+      video.id = 'videojs-http-streaming-player';
       video.className = 'video-js vjs-default-skin';
       video.setAttribute('controls', true);
       video.setAttribute('height', 300);
