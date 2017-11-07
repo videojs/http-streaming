@@ -1,4 +1,4 @@
 # VideoJS HLS Pages
 
-This branch houses the 
-[videojs-contrib-hls demo page](http://videojs.github.io/videojs-contrib-hls/).
+This branch houses the
+[videojs-http-streaming demo page](http://videojs.github.io/http-streaming/).

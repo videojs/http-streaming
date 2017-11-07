@@ -11,8 +11,8 @@
     <title>VideoJS HLS</title>
 
     <!-- Bootstrap core CSS. This is just to make the demo look
-    nice. It's not required for videojs-contrib-hls to work. -->
-    <link href="node_modules/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    nice. It's not required for videojs-http-streaming to work. -->
+    <link href="https://unpkg.com/bootstrap@3.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Some custom styles for the demo page -->
     <style>
@@ -65,13 +65,13 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="#">videojs-contrib-hls</a>
+          <a class="navbar-brand" href="#">videojs-http-streaming</a>
         </div>
         <div id="navbar" class="collapse navbar-collapse">
           <ul class="nav navbar-nav">
-            <li><a href="https://github.com/videojs/videojs-contrib-hls/blob/master/README.md">Docs</a></li>
-            <li><a href="https://github.com/videojs/videojs-contrib-hls">Source</a></li>
-            <li><a href="https://github.com/videojs/videojs-contrib-hls/issues">Issues</a></li>
+            <li><a href="https://github.com/videojs/http-streaming/blob/master/README.md">Docs</a></li>
+            <li><a href="https://github.com/videojs/http-streaming">Source</a></li>
+            <li><a href="https://github.com/videojs/http-streaming/issues">Issues</a></li>
           </ul>
         </div><!--/.nav-collapse -->
       </div>
@@ -82,7 +82,7 @@
       <section class="starter-template">
         <h1>VideoJS HLS</h1>
         <p class="lead">
-          <a href="https://github.com/videojs/videojs-contrib-hls">videojs-contrib-hls</a>
+          <a href="https://github.com/videojs/http-streaming">videojs-http-streaming</a>
           lets you use a single format and deliver adaptive streaming
           video to all major desktop and mobile browsers.
         </p>
@@ -110,7 +110,7 @@
         <h2>Getting Started</h2>
         <p>
           Download
-          <a href="https://github.com/videojs/videojs-contrib-hls/releases/latest">videojs-contrib-hls</a>
+          <a href="https://github.com/videojs/http-streaming/releases/latest">videojs-http-streaming</a>
           and include it in your page alongside video.js:
         </p>
         <pre>&lt;video id=example-video width=960 height=540 class="video-js vjs-default-skin" controls&gt;
@@ -119,7 +119,7 @@
      type="application/x-mpegURL"&gt;
 &lt;/video&gt;
 &lt;script src="video.js"&gt;&lt;/script&gt;
-&lt;script src="videojs.hls.min.js"&gt;&lt;/script&gt;
+&lt;script src="videojs-http-streaming.js"&gt;&lt;/script&gt;
 &lt;script&gt;
 var player = videojs('example-video');
 player.play();
@@ -131,14 +131,13 @@ player.play();
 
 
     <!-- Bootstrap stuff. These three scripts aren't necessary for you
-         to use videojs-contrib-hls -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
-    <script src="node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
-    <script src="js/ie10-viewport-bug-workaround.js"></script>
+         to use videojs-http-streaming -->
+    <script src="https://unpkg.com/jquery@1.11.2/dist/jquery.min.js"></script>
+    <script src="https://unpkg.com/bootstrap@3.3.7/dist/js/bootstrap.min.js"></script>
 
 
     <!--------------------------------------------------------------------------
-      --                      videojs-contrib-hls setup                       --
+      --                      videojs-http-streaming setup                       --
       ------------------------------------------------------------------------!>
 
     <!--
@@ -148,12 +147,12 @@ player.play();
     <link href="https://unpkg.com/video.js/dist/video-js.css" rel="stylesheet">
 
     <!--
-      -- Include video.js and videojs-contrib-hls in your page
+      -- Include video.js and videojs-http-streaming in your page
       -->
 
     <script src="https://unpkg.com/video.js/dist/video.js"></script>
     <script src="https://unpkg.com/videojs-flash/dist/videojs-flash.js"></script>
-    <script src="https://unpkg.com/videojs-contrib-hls/dist/videojs-contrib-hls.js"></script>
+    <script src="https://unpkg.com/@videojs/http-streaming/dist/videojs-http-streaming.js"></script>
 
     <!--
       -- Now, initialize your player. That's it!
