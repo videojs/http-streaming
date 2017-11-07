@@ -67,17 +67,17 @@ Maintenance Status: Stable
 
 ## Installation
 ### NPM
-To install `videojs-contrib-hls` with npm run
+To install `videojs-http-streaming` with npm run
 
 ```bash
-npm install --save videojs-contrib-hls
+npm install --save @videojs/http-streaming
 ```
 
 ### CDN
-Select a version of HLS from the [CDN](https://cdnjs.com/libraries/videojs-contrib-hls)
+Select a version of HLS from the [CDN](https://unpkg.com/@videojs/http-streaming/dist/)
 
 ### Releases
-Download a release of [videojs-contrib-hls](https://github.com/videojs/videojs-contrib-hls/releases)
+Download a release of [videojs-http-streaming](https://github.com/videojs/http-streaming/releases)
 
 ### Manual Build
 Download a copy of this git repository and then follow the steps in [Building](#building)
@@ -89,7 +89,7 @@ See [CONTRIBUTING.md](/CONTRIBUTING.md)
 Drop by our slack channel (#playback) on the [Video.js slack][slack-link].
 
 ## Getting Started
-Get a copy of [videojs-contrib-hls](#installation) and include it in your page along with video.js:
+Get a copy of [videojs-http-streaming](#installation) and include it in your page along with video.js:
 
 ```html
 <video id=example-video width=600 height=300 class="video-js vjs-default-skin" controls>
@@ -98,7 +98,7 @@ Get a copy of [videojs-contrib-hls](#installation) and include it in your page a
      type="application/x-mpegURL">
 </video>
 <script src="video.js"></script>
-<script src="videojs-contrib-hls.min.js"></script>
+<script src="videojs-http-streaming.min.js"></script>
 <script>
 var player = videojs('example-video');
 player.play();
@@ -112,11 +112,11 @@ With Video.js 6, by default there is no flash support. Instead, flash support is
 through the [videojs-flash](https://github.com/videojs/videojs-flash) plugin. If you are
 trying to use Video.js version 6 and want to include flash support, you must include
 [videojs-flash](https://github.com/videojs/videojs-flash) on your page before including
-videojs-contrib-hls
+videojs-http-streaming
 
 ```html
 <script src="https://unpkg.com/videojs-flash/dist/videojs-flash.js"></script>
-<script src="https://unpkg.com/videojs-contrib-hls/dist/videojs-contrib-hls.js"></script>
+<script src="https://unpkg.com/@videojs/http-streaming/dist/videojs-http-streaming.js"></script>
 ```
 
 Flash, and the [videojs-flash](https://github.com/videojs/videojs-flash) plugin, are not
@@ -151,7 +151,7 @@ Check out the [full documentation](docs/) for details on how HLS works
 and advanced configuration. A description of the [adaptive switching
 behavior](docs/bitrate-switching.md) is available, too.
 
-videojs-contrib-hls supports a bunch of HLS features. Here
+videojs-http-streaming supports a bunch of HLS features. Here
 are some highlights:
 
 - video-on-demand and live playback modes
@@ -278,18 +278,18 @@ cuesTrack.addEventListener('cuechange', function() {
 * Type: `boolean`
 * can be used as an initialization option
 
-Try to use videojs-contrib-hls even on platforms that provide some
+Try to use videojs-http-streaming even on platforms that provide some
 level of HLS support natively. There are a number of platforms that
 *technically* play back HLS content but aren't very reliable or are
 missing features like CEA-608 captions support. When `overrideNative`
 is true, if the platform supports Media Source Extensions
-videojs-contrib-hls will take over HLS playback to provide a more
+videojs-http-streaming will take over HLS playback to provide a more
 consistent experience.
 
 __NOTE__: If you use this option, you must also set
 `videojs.options.html5.nativeAudioTracks` and
 `videojs.options.html5.nativeVideoTracks` to
-`false`. videojs-contrib-hls relies on audio and video tracks to play
+`false`. videojs-http-streaming relies on audio and video tracks to play
 streams with alternate audio and requires additional capabilities only
 supported by non-native tracks in video.js.
 
@@ -328,9 +328,9 @@ var hls = player.tech({ IWillNotUseThisInPlugins: true }).hls;
 
 If you *were* thinking about modifying runtime properties in a
 video.js plugin, we'd recommend you avoid it. Your plugin won't work
-with videos that don't use videojs-contrib-hls and the best plugins
+with videos that don't use videojs-http-streaming and the best plugins
 work across all the media types that video.js supports. If you're
-deploying videojs-contrib-hls on your own website and want to make a
+deploying videojs-http-streaming on your own website and want to make a
 couple tweaks though, go for it!
 
 #### hls.playlists.master
@@ -395,7 +395,7 @@ adaptive streaming logic.
 #### hls.representations
 Type: `function`
 
-It is recommended to include the [videojs-contrib-quality-levels](https://github.com/videojs/videojs-contrib-quality-levels) plugin to your page so that videojs-contrib-hls will automatically populate the QualityLevelList exposed on the player by the plugin. You can access this list by calling `player.qualityLevels()`. See the [videojs-contrib-quality-levels project page](https://github.com/videojs/videojs-contrib-quality-levels) for more information on how to use the api.
+It is recommended to include the [videojs-contrib-quality-levels](https://github.com/videojs/videojs-contrib-quality-levels) plugin to your page so that videojs-http-streaming will automatically populate the QualityLevelList exposed on the player by the plugin. You can access this list by calling `player.qualityLevels()`. See the [videojs-contrib-quality-levels project page](https://github.com/videojs/videojs-contrib-quality-levels) for more information on how to use the api.
 
 Example, only enabling representations with a width greater than or equal to 720:
 
@@ -641,16 +641,16 @@ browsers that karma-detect-browsers detects on your machine.
 Check out the [changelog](CHANGELOG.md) for a summary of each release.
 
 ## Building
-To build a copy of videojs-contrib-hls run the following commands
+To build a copy of videojs-http-streaming run the following commands
 
 ```bash
-git clone https://github.com/videojs/videojs-contrib-hls
-cd videojs-contrib-hls
+git clone https://github.com/videojs/http-streaming
+cd http-streaming
 npm i
 npm run build
 ```
 
-videojs-contrib-hls will have created all of the files for using it in a dist folder
+videojs-http-streaming will have created all of the files for using it in a dist folder
 
 ## Development
 
@@ -666,5 +666,5 @@ npm run <command>
 
 [slack-icon]: http://slack.videojs.com/badge.svg
 [slack-link]: http://slack.videojs.com
-[travis-icon]: https://travis-ci.org/videojs/videojs-contrib-hls.svg?branch=master
-[travis-link]: https://travis-ci.org/videojs/videojs-contrib-hls
+[travis-icon]: https://travis-ci.org/videojs/http-streaming.svg?branch=master
+[travis-link]: https://travis-ci.org/videojs/http-streaming

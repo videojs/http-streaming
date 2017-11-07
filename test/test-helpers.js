@@ -114,7 +114,7 @@ export const useFakeMediaSource = function() {
     RealMediaSource.supportsNativeMediaSources;
   videojs.URL.createObjectURL = function() {
     id++;
-    return 'blob:videojs-contrib-hls-mock-url' + id;
+    return 'blob:videojs-http-streaming-mock-url' + id;
   };
 
   return {

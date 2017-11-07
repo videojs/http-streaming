@@ -1,8 +1,8 @@
 /**
- * @file videojs-contrib-hls.js
+ * @file videojs-http-streaming.js
  *
  * The main file for the HLS project.
- * License: https://github.com/videojs/videojs-contrib-hls/blob/master/LICENSE
+ * License: https://github.com/videojs/videojs-http-streaming/blob/master/LICENSE
  */
 import document from 'global/document';
 import PlaylistLoader from './playlist-loader';

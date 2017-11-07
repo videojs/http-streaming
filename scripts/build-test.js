@@ -7,5 +7,5 @@ glob('test/**/*.test.js', function(err, files) {
     .transform('babelify')
     .transform('browserify-shim', {global: true})
     .bundle()
-    .pipe(fs.createWriteStream('dist-test/videojs-contrib-hls.js'));
+    .pipe(fs.createWriteStream('dist-test/videojs-http-streaming.js'));
 });

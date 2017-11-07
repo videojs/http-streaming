@@ -15,7 +15,7 @@ import {
 } from '../src/master-playlist-controller';
 /* eslint-disable no-unused-vars */
 // we need this so that it can register hls with videojs
-import { Hls } from '../src/videojs-contrib-hls';
+import { Hls } from '../src/videojs-http-streaming';
 /* eslint-enable no-unused-vars */
 import Playlist from '../src/playlist';
 import Config from '../src/config';

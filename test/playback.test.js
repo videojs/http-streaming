@@ -1,7 +1,7 @@
 import QUnit from 'qunit';
 import videojs from 'video.js';
 /* eslint-disable no-unused-vars */
-import { Hls } from '../src/videojs-contrib-hls';
+import { Hls } from '../src/videojs-http-streaming';
 
 let when = function(element, type, cb, condition) {
   element.on(type, function func() {

@@ -15,7 +15,7 @@ import {
 } from './test-helpers.js';
 /* eslint-disable no-unused-vars */
 // we need this so that it can register hls with videojs
-import {HlsSourceHandler, HlsHandler, Hls} from '../src/videojs-contrib-hls';
+import {HlsSourceHandler, HlsHandler, Hls} from '../src/videojs-http-streaming';
 import window from 'global/window';
 // we need this so the plugin registers itself
 import 'videojs-contrib-quality-levels';

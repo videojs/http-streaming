@@ -4,7 +4,7 @@ import QUnit from 'qunit';
 import sinon from 'sinon';
 import videojs from 'video.js';
 
-QUnit.module('videojs-contrib-hls - sanity', {
+QUnit.module('videojs-http-streaming - sanity', {
   beforeEach() {
     this.fixture = document.getElementById('qunit-fixture');
     this.video = document.createElement('video');
