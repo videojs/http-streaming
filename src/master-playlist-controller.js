@@ -106,6 +106,29 @@ const getCodecs = function(media) {
   return defaultCodecs;
 };
 
+const audioProfileFromDefault = (master, audioGroupId) => {
+  if (!master.mediaGroups.AUDIO || !audioGroupId) {
+    return null;
+  }
+
+  const audioGroup = master.mediaGroups.AUDIO[audioGroupId];
+
+  if (!audioGroup) {
+    return null;
+  }
+
+  for (let name in audioGroup) {
+    const audioType = audioGroup[name];
+
+    if (audioType.default && audioType.playlists) {
+      // codec should be the same for all playlists within the audio type
+      return parseCodecs(audioType.playlists[0].attributes.CODECS).audioProfile;
+    }
+  }
+
+  return null;
+};
+
 /**
  * Calculates the MIME type strings for a working configuration of
  * SourceBuffers to play variant streams in a master playlist. If
@@ -157,10 +180,19 @@ export const mimeTypesForPlaylist_ = function(master, media) {
   // HLS with multiple-audio tracks must always get an audio codec.
   // Put another way, there is no way to have a video-only multiple-audio HLS!
   if (isMaat && !codecInfo.audioProfile) {
-    videojs.log.warn(
-      'Multiple audio tracks present but no audio codec string is specified. ' +
-      'Attempting to use the default audio codec (mp4a.40.2)');
-    codecInfo.audioProfile = defaultCodecs.audioProfile;
+    if (!isMuxed) {
+      // It is possible for codecs to be specified on the audio media group playlist but
+      // not on the rendition playlist. This is mostly the case for DASH, where audio and
+      // video are always separate (and separately specified).
+      codecInfo.audioProfile = audioProfileFromDefault(master, mediaAttributes.AUDIO);
+    }
+
+    if (!codecInfo.audioProfile) {
+      videojs.log.warn(
+        'Multiple audio tracks present but no audio codec string is specified. ' +
+        'Attempting to use the default audio codec (mp4a.40.2)');
+      codecInfo.audioProfile = defaultCodecs.audioProfile;
+    }
   }
 
   // Generate the final codec strings from the codec object generated above

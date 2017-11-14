@@ -2515,13 +2515,56 @@ function(assert) {
   delete master.mediaGroups.AUDIO.test.demuxed.uri;
   assert.deepEqual(
     mimeTypesForPlaylist_(master, media),
-    [ 'video/mp4; codecs="avc1.deadbeef, mp4a.40.E"', 'audio/mp4; codecs="mp4a.40.E"' ],
+    ['video/mp4; codecs="avc1.deadbeef, mp4a.40.E"', 'audio/mp4; codecs="mp4a.40.E"'],
     'muxed if no URI and no playlists');
 
   master.mediaGroups.AUDIO.test.demuxed.playlists = [{}];
   assert.deepEqual(mimeTypesForPlaylist_(master, media),
                    ['video/mp4; codecs="avc1.deadbeef"', 'audio/mp4; codecs="mp4a.40.E"'],
                    'demuxed if no URI but playlists');
+});
+
+QUnit.test('uses audio codec from default group if not specified in media attributes',
+function(assert) {
+  const media = {
+    attributes: {
+      AUDIO: 'test',
+      CODECS: 'avc1.deadbeef'
+    },
+    segments: [
+      // signal fmp4
+      { map: 'test' }
+    ]
+  };
+  // dash audio playlist won't have a URI but will have resolved playlists
+  const master = {
+    mediaGroups: {
+      AUDIO: {
+        test: {
+          demuxed: {
+            default: true,
+            playlists: [{
+              attributes: {
+                CODECS: 'mp4a.40.E'
+              }
+            }]
+          }
+        }
+      }
+    },
+    playlists: [media]
+  };
+
+  assert.deepEqual(
+    mimeTypesForPlaylist_(master, media),
+    ['video/mp4; codecs="avc1.deadbeef"', 'audio/mp4; codecs="mp4a.40.E"'],
+    'uses audio codec from media group');
+
+  delete master.mediaGroups.AUDIO.test.demuxed.default;
+  assert.deepEqual(
+    mimeTypesForPlaylist_(master, media),
+    ['video/mp4; codecs="avc1.deadbeef"', 'audio/mp4; codecs="mp4a.40.2"'],
+    'uses default audio codec');
 });
 
 QUnit.module('Map Legacy AVC Codec');
