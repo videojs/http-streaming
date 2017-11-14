@@ -187,6 +187,15 @@ Hls.supportsNativeHls = (function() {
   });
 }());
 
+Hls.supportsNativeDash = (function() {
+  if (!videojs.getTech('Html5').isSupported()) {
+    return false;
+  }
+
+  return (/maybe|probably/i).test(
+    document.createElement('video').canPlayType('application/dash+xml'));
+}());
+
 /**
  * HLS is a source handler, not a tech. Make sure attempts to use it
  * as one do not cause exceptions.
@@ -618,6 +627,9 @@ HlsSourceHandler.canPlayType = function(type, options) {
   const sourceType = simpleTypeFromSourceType(type);
 
   if (sourceType === 'dash') {
+    if (!options.hls.overrideNative && Hls.supportsNativeDash) {
+      return false;
+    }
     return true;
   }
 
