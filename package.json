@@ -135,7 +135,7 @@
     "shelljs": "^0.5.3",
     "sinon": "1.10.2",
     "uglify-js": "^2.5.0",
-    "videojs-contrib-eme": "^2.0.1",
+    "videojs-contrib-eme": "http://github.com/gesinger/videojs-contrib-eme#options-rework",
     "videojs-contrib-quality-levels": "^2.0.2",
     "videojs-flash": "^2.0.0",
     "videojs-standard": "^4.0.3",

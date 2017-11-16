@@ -2950,23 +2950,18 @@ QUnit.test('populates quality levels list when available', function(assert) {
 });
 
 QUnit.test('configures eme if present on selectedinitialmedia', function(assert) {
+  this.player.eme = {};
   this.player.src({
     src: 'manifest/master.mpd',
     type: 'application/dash+xml',
-    eme: {
-      keySystems: {
-        keySystem1: {
-          url: 'url1'
-        }
+    keySystems: {
+      keySystem1: {
+        url: 'url1'
       }
     }
   });
 
   this.clock.tick(1);
-
-  let playerEmeOptions;
-
-  this.player.eme = (options) => playerEmeOptions = options;
 
   this.player.tech_.hls.playlists = {
     media: () => {
@@ -2996,7 +2991,7 @@ QUnit.test('configures eme if present on selectedinitialmedia', function(assert)
   };
   this.player.tech_.hls.masterPlaylistController_.trigger('selectedinitialmedia');
 
-  assert.deepEqual(playerEmeOptions, {
+  assert.deepEqual(this.player.eme.options, {
     keySystems: {
       keySystem1: {
         url: 'url1',
@@ -3413,20 +3408,10 @@ QUnit.test('treats invalid keys as a key request failure and blacklists playlist
 
 QUnit.module('videojs-contrib-hls isolated functions');
 
-QUnit.test('emeOptions returns original options when no keySystems', function(assert) {
-  assert.deepEqual(
-    emeOptions(
-      { test: 'something' },
-      { attributes: { CODECS: 'some-video-codec' } },
-      { attributes: { CODECS: 'some-audio-codec' } }),
-    { test: 'something' },
-    'returned original options');
-});
-
 QUnit.test('emeOptions adds content types for all keySystems', function(assert) {
   assert.deepEqual(
     emeOptions(
-      { keySystems: { keySystem1: {}, keySystem2: {} } },
+      { keySystem1: {}, keySystem2: {} },
       { attributes: { CODECS: 'some-video-codec' } },
       { attributes: { CODECS: 'some-audio-codec' } }),
     {
@@ -3447,11 +3432,10 @@ QUnit.test('emeOptions adds content types for all keySystems', function(assert) 
 QUnit.test('emeOptions retains non content type properties', function(assert) {
   assert.deepEqual(
     emeOptions(
-      { keySystems: { keySystem1: { url: '1' }, keySystem2: { url: '2'} }, a: 'b' },
+      { keySystem1: { url: '1' }, keySystem2: { url: '2'} },
       { attributes: { CODECS: 'some-video-codec' } },
       { attributes: { CODECS: 'some-audio-codec' } }),
     {
-      a: 'b',
       keySystems: {
         keySystem1: {
           url: '1',
@@ -3472,15 +3456,13 @@ QUnit.test('emeOptions overwrites content types', function(assert) {
   assert.deepEqual(
     emeOptions(
       {
-        keySystems: {
-          keySystem1: {
-            audioContentType: 'a',
-            videoContentType: 'b'
-          },
-          keySystem2: {
-            audioContentType: 'c',
-            videoContentType: 'd'
-          }
+        keySystem1: {
+          audioContentType: 'a',
+          videoContentType: 'b'
+        },
+        keySystem2: {
+          audioContentType: 'c',
+          videoContentType: 'd'
         }
       },
       { attributes: { CODECS: 'some-video-codec' } },

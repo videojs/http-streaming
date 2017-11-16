@@ -135,24 +135,30 @@ Hls.canPlaySource = function() {
                           'your player\'s techOrder.');
 };
 
-const emeOptions = (options, videoPlaylist, audioPlaylist) => {
-  if (!options.keySystems) {
-    return options;
+const emeOptions = (keySystemOptions, videoPlaylist, audioPlaylist) => {
+  if (!keySystemOptions) {
+    return keySystemOptions;
   }
 
   // upsert the content types based on the selected playlist
   const keySystemContentTypes = {};
 
-  for (let keySystem in options.keySystems) {
+  for (let keySystem in keySystemOptions) {
     keySystemContentTypes[keySystem] = {
       audioContentType: `audio/mp4; codecs="${audioPlaylist.attributes.CODECS}"`,
       videoContentType: `video/mp4; codecs="${videoPlaylist.attributes.CODECS}"`
     };
+
+    // videojs-contrib-eme accepts the option of specifying: 'com.some.cdm': 'url'
+    // so we need to prevent overwriting the URL entirely
+    if (typeof keySystemOptions[keySystem] === 'string') {
+      keySystemContentTypes[keySystem].url = keySystemOptions[keySystem];
+    }
   }
 
-  return videojs.mergeOptions(options, {
-    keySystems: keySystemContentTypes
-  });
+  return {
+    keySystems: videojs.mergeOptions(keySystemOptions, keySystemContentTypes)
+  };
 };
 
 /**
@@ -469,11 +475,11 @@ class HlsHandler extends Component {
         const player = videojs.players[this.tech_.options_.playerId];
 
         if (player.eme) {
-          player.eme(emeOptions(
-            this.source_.eme,
+          player.eme.options = emeOptions(
+            this.source_.keySystems,
             this.playlists.media(),
             this.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader.media()
-          ));
+          );
         }
       }
     });
