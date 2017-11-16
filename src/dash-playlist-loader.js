@@ -30,7 +30,10 @@ export default class DashPlaylistLoader extends EventTarget {
     this.started = true;
     // we only should have one, so select it
     this.media(srcUrlOrPlaylist);
-    this.trigger('loadedplaylist');
+    // trigger async to mimic behavior of HLS, where it must request a playlist
+    setTimeout(() => {
+      this.trigger('loadedmetadata');
+    }, 0);
   }
 
   dispose() {
@@ -74,6 +77,8 @@ export default class DashPlaylistLoader extends EventTarget {
     // trigger media change if the active media has been updated
     if (mediaChange) {
       this.trigger('mediachanging');
+      // since every playlist is technically loaded, trigger that we loaded it
+      this.trigger('loadedplaylist');
       this.trigger('mediachange');
     }
     return;
@@ -167,7 +172,10 @@ export default class DashPlaylistLoader extends EventTarget {
         this.media(this.master.playlists[0]);
       }
       // trigger loadedmetadata to resolve setup of media groups
-      this.trigger('loadedmetadata');
+      // trigger async to mimic behavior of HLS, where it must request a playlist
+      setTimeout(() => {
+        this.trigger('loadedmetadata');
+      }, 0);
     });
   }
 }
