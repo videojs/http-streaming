@@ -50,19 +50,23 @@ QUnit.test('requests the manifest immediately when given a URL', function(assert
   assert.equal(this.requests[0].url, 'dash.mpd', 'requested the manifest');
 });
 
-QUnit.test('moves to HAVE_MASTER after loading the manifest', function(assert) {
+QUnit.test('moves to HAVE_MASTER and HAVE_METADATA after loading the manifest',
+function(assert) {
   let loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
-  let state;
+  let loadedPlaylistStates = [];
 
   loader.load();
 
   loader.on('loadedplaylist', function() {
-    state = loader.state;
+    loadedPlaylistStates.push(loader.state);
   });
   standardXHRResponse(this.requests.shift());
   assert.ok(loader.master, 'the master playlist is available');
-  assert.equal(state, 'HAVE_MASTER', 'has master');
-  assert.equal(loader.state, 'HAVE_METADATA', 'ends up in HAVE_METADATA');
+  // because DASH only has one manifest, it should go through two loadedplaylists
+  // and end with HAVE_METADATA because it already has the first media ready
+  assert.equal(loadedPlaylistStates.length, 2, 'triggered two loadedplaylist events');
+  assert.equal(loadedPlaylistStates[0], 'HAVE_MASTER', 'got master first');
+  assert.equal(loadedPlaylistStates[1], 'HAVE_METADATA', 'got media second');
 });
 
 QUnit.test('throws an error when initial manifest request fails', function(assert) {
@@ -109,7 +113,9 @@ QUnit.test('can switch playlists after the master is downloaded', function(asser
   let loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
 
   loader.load();
-  loader.on('loadedplaylist', function() {
+  // first media will already be selected since DASH needs no media request, so change on
+  // loadedmetadata
+  loader.on('loadedmetadata', function() {
     loader.media('placeholder-uri-0');
   });
   standardXHRResponse(this.requests.shift());
