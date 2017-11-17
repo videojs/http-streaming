@@ -767,6 +767,9 @@ QUnit.test('initialize audio correctly uses HLS source type', function(assert) {
 });
 
 QUnit.test('initialize audio correctly uses DASH source type', function(assert) {
+  // allow async methods to resolve before next test
+  const done = assert.async();
+
   this.master.mediaGroups.AUDIO.aud1 = {
     // playlists are resolved, no URI for DASH
     en: { default: true, language: 'en', playlists: [{}] },
@@ -782,6 +785,8 @@ QUnit.test('initialize audio correctly uses DASH source type', function(assert) 
   assert.ok(
     this.mediaTypes.AUDIO.groups.aud1[1].playlistLoader instanceof DashPlaylistLoader,
     'playlist loader is a DASH playlist loader');
+
+  done();
 });
 
 QUnit.test('initialize audio does not create DASH playlist loader if no playlists',
@@ -818,6 +823,9 @@ QUnit.test('initialize subtitles correctly uses HLS source type', function(asser
 });
 
 QUnit.test('initialize subtitles correctly uses DASH source type', function(assert) {
+  // allow async methods to resolve before next test
+  const done = assert.async();
+
   this.master.mediaGroups.SUBTITLES.sub1 = {
     // playlists are resolved, no URI for DASH
     en: { language: 'en', playlists: [{}] },
@@ -835,4 +843,6 @@ QUnit.test('initialize subtitles correctly uses DASH source type', function(asse
   assert.ok(
     this.mediaTypes.SUBTITLES.groups.sub1[1].playlistLoader instanceof DashPlaylistLoader,
     'playlist loader is a DASH playlist loader');
+
+  done();
 });
