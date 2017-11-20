@@ -161,6 +161,20 @@ const emeOptions = (keySystemOptions, videoPlaylist, audioPlaylist) => {
   };
 };
 
+const setupEmeOptions = (hlsHandler) => {
+  if (hlsHandler.options_.sourceType === 'dash') {
+    const player = videojs.players[hlsHandler.tech_.options_.playerId];
+
+    if (player.eme) {
+      player.eme.options = emeOptions(
+        hlsHandler.source_.keySystems,
+        hlsHandler.playlists.media(),
+        hlsHandler.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader.media()
+      );
+    }
+  }
+};
+
 /**
  * Whether the browser has built-in HLS support.
  */
@@ -470,18 +484,7 @@ class HlsHandler extends Component {
     this.masterPlaylistController_.on('selectedinitialmedia', () => {
       // Add the manual rendition mix-in to HlsHandler
       renditionSelectionMixin(this);
-
-      if (this.options_.sourceType === 'dash') {
-        const player = videojs.players[this.tech_.options_.playerId];
-
-        if (player.eme) {
-          player.eme.options = emeOptions(
-            this.source_.keySystems,
-            this.playlists.media(),
-            this.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader.media()
-          );
-        }
-      }
+      setupEmeOptions(this);
     });
 
     // the bandwidth of the primary segment loader is our best
