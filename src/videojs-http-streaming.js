@@ -255,6 +255,13 @@ class HlsHandler extends Component {
           }
         });
       }
+
+      // Set up a reference to the HlsHandler from player.vhs. This allows users to start
+      // migrating from player.tech_.hls... to player.vhs... for API access. Although this
+      // isn't the most appropriate form of reference for video.js (since all APIs should
+      // be provided through core video.js), it is a common pattern for plugins, and vhs
+      // will act accordingly.
+      _player.vhs = this;
     }
 
     this.tech_ = tech;

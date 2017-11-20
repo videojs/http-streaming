@@ -162,6 +162,17 @@ QUnit.test('deprecation warning is show when using player.hls', function(assert)
   videojs.log.warn = oldWarn;
 });
 
+QUnit.test('the HlsHandler instance is referenced by player.vhs', function(assert) {
+  this.player.src({
+    src: 'manifest/playlist.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+
+  assert.ok(this.player.vhs instanceof HlsHandler,
+            'player.vhs references an instance of HlsHandler');
+});
+
 QUnit.test('starts playing if autoplay is specified', function(assert) {
   this.player.autoplay(true);
   this.player.src({
