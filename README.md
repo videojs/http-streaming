@@ -1,12 +1,18 @@
-# video.js HLS Source Handler
+# videojs-http-streaming (VHS)
 
 [![Build Status][travis-icon]][travis-link]
 [![Slack Status][slack-icon]][slack-link]
 
+Play HLS, DASH, and future HTTP streaming protocols with video.js, even where they're not
+natively supported.
 
-Play back HLS with video.js, even where it's not natively supported.
-
-Lead Maintainer: Jon-Carlos Rivera [@imbcmdth](https://github.com/imbcmdth)
+Lead Maintainers:
+- Jon-Carlos Rivera [@imbcmdth](https://github.com/imbcmdth)
+- Joe Forbes [@forbesjo](https://github.com/forbesjo)
+- Matthew Neil [@mjneil](https://github.com/mjneil)
+- Oshin Karamian [@OshinKaramian](https://github.com/OshinKaramian)
+- Garrett Singer [@gesinger](https://github.com/gesinger)
+- Chuck Wilson [@squarebracket](https://github.com/squarebracket)
 
 Maintenance Status: Stable
 
