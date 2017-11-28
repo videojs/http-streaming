@@ -262,6 +262,8 @@ class HlsHandler extends Component {
       // be provided through core video.js), it is a common pattern for plugins, and vhs
       // will act accordingly.
       _player.vhs = this;
+      // deprecated, for backwards compatibility
+      _player.dash = this;
     }
 
     this.tech_ = tech;

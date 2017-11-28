@@ -173,6 +173,18 @@ QUnit.test('the HlsHandler instance is referenced by player.vhs', function(asser
             'player.vhs references an instance of HlsHandler');
 });
 
+// deprecated, for backwards compatibility
+QUnit.test('the HlsHandler instance is referenced by player.dash', function(assert) {
+  this.player.src({
+    src: 'manifest/playlist.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+
+  assert.ok(this.player.dash instanceof HlsHandler,
+            'player.dash references an instance of HlsHandler');
+});
+
 QUnit.test('starts playing if autoplay is specified', function(assert) {
   this.player.autoplay(true);
   this.player.src({
