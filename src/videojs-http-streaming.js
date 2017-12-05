@@ -606,6 +606,40 @@ if (videojs.registerPlugin) {
   videojs.plugin('reloadSourceOnError', reloadSourceOnError);
 }
 
+const getTimeRanges = (player, type) => {
+  const timeRangesList = [];
+  const timeRanges = player[type]();
+
+  for (let i = 0; i < timeRanges.length; i++) {
+    timeRangesList.push({
+      start: timeRanges.start(i),
+      end: timeRanges.end(i)
+    });
+  }
+
+  return timeRangesList;
+};
+
+videojs.registerPlugin('stats', function() {
+  const player = this;
+
+  return {
+    videoPlaybackQuality: player.getVideoPlaybackQuality(),
+    playerDimensions: player.currentDimensions(),
+    hlsStats: player.tech_.hls.stats,
+    duration: player.duration(),
+    buffered: getTimeRanges(player, 'buffered'),
+    seekable: getTimeRanges(player, 'seekable'),
+    currentTime: player.currentTime(),
+    timestamp: Date.now(),
+    currentSource: player.currentSource(),
+    master: player.tech_.hls.masterPlaylistController_.masterPlaylistLoader_.master,
+    currentTech: player.tech_.name_,
+    // TODO: filter by VHS logging only
+    history: videojs.log.history()
+  };
+});
+
 module.exports = {
   Hls,
   HlsHandler,
