@@ -509,6 +509,36 @@ class HlsHandler extends Component {
     }
     super.dispose();
   }
+
+  getPlaybackStats() {
+    const getTimeRanges = (player, type) => {
+      const timeRangesList = [];
+      const timeRanges = player[type]();
+
+      for (let i = 0; i < timeRanges.length; i++) {
+        timeRangesList.push({
+          start: timeRanges.start(i),
+          end: timeRanges.end(i)
+        });
+      }
+
+      return timeRangesList;
+    };
+
+    return {
+      videoPlaybackQuality: this.tech_.getVideoPlaybackQuality(),
+      playerDimensions: this.tech_.currentDimensions(),
+      vhsStats: this.stats,
+      duration: this.tech_.duration(),
+      buffered: getTimeRanges(this.tech_, 'buffered'),
+      seekable: getTimeRanges(this.tech_, 'seekable'),
+      currentTime: this.tech_.currentTime(),
+      timestamp: Date.now(),
+      currentSource: this.tech_.currentSource_,
+      master: this.playlists.master,
+      currentTech: this.tech_.name_
+    };
+  }
 }
 
 /**
