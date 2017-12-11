@@ -2,7 +2,7 @@ var browserify = require('browserify');
 var fs = require('fs');
 var glob = require('glob');
 
-glob('test/**/[!playback]*.test.js', function(err, files) {
+glob('test/**/playback.test.js', function(err, files) {
   browserify(files)
     .transform('babelify')
     .transform('browserify-shim', {global: true})
