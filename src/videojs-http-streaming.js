@@ -377,6 +377,20 @@ class HlsHandler extends Component {
       }
     });
 
+    const getTimeRanges = (player, type) => {
+      const timeRangesList = [];
+      const timeRanges = player[type]();
+
+      for (let i = 0; i < timeRanges.length; i++) {
+        timeRangesList.push({
+          start: timeRanges.start(i),
+          end: timeRanges.end(i)
+        });
+      }
+
+      return timeRangesList;
+    };
+
     Object.defineProperties(this.stats, {
       bandwidth: {
         get: () => this.bandwidth || 0,
@@ -408,6 +422,46 @@ class HlsHandler extends Component {
       },
       mediaSecondsLoaded: {
         get: () => this.masterPlaylistController_.mediaSecondsLoaded_() || 0,
+        enumerable: true
+      },
+      buffered: {
+        get: () => getTimeRanges(this.tech_, 'buffered'),
+        enumerable: true
+      },
+      currentTime: {
+        get: () => this.tech_.currentTime(),
+        enumerable: true
+      },
+      currentSource: {
+        get: () => this.tech_.currentSource_,
+        enumerable: true
+      },
+      currentTech: {
+        get: () => this.tech_.name_,
+        enumerable: true
+      },
+      duration: {
+        get: () => this.tech_.duration(),
+        enumerable: true
+      },
+      master: {
+        get: () => this.playlists.master,
+        enumerable: true
+      },
+      playerDimensions: {
+        get: () => this.tech_.currentDimensions(),
+        enumerable: true
+      },
+      seekable: {
+        get: () => getTimeRanges(this.tech_, 'seekable'),
+        enumerable: true
+      },
+      timestamp: {
+        get: () => Date.now(),
+        enumerable: true
+      },
+      videoPlaybackQuality: {
+        get: () => this.tech_.getVideoPlaybackQuality(),
         enumerable: true
       }
     });
@@ -508,36 +562,6 @@ class HlsHandler extends Component {
       this.qualityLevels_.dispose();
     }
     super.dispose();
-  }
-
-  getPlaybackStats() {
-    const getTimeRanges = (player, type) => {
-      const timeRangesList = [];
-      const timeRanges = player[type]();
-
-      for (let i = 0; i < timeRanges.length; i++) {
-        timeRangesList.push({
-          start: timeRanges.start(i),
-          end: timeRanges.end(i)
-        });
-      }
-
-      return timeRangesList;
-    };
-
-    return {
-      videoPlaybackQuality: this.tech_.getVideoPlaybackQuality(),
-      playerDimensions: this.tech_.currentDimensions(),
-      vhsStats: this.stats,
-      duration: this.tech_.duration(),
-      buffered: getTimeRanges(this.tech_, 'buffered'),
-      seekable: getTimeRanges(this.tech_, 'seekable'),
-      currentTime: this.tech_.currentTime(),
-      timestamp: Date.now(),
-      currentSource: this.tech_.currentSource_,
-      master: this.playlists.master,
-      currentTech: this.tech_.name_
-    };
   }
 }
 
