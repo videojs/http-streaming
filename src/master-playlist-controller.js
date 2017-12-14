@@ -2,6 +2,7 @@
  * @file master-playlist-controller.js
  */
 import PlaylistLoader from './playlist-loader';
+import DashPlaylistLoader from './dash-playlist-loader';
 import { isEnabled, isLowestEnabledRendition } from './playlist.js';
 import SegmentLoader from './segment-loader';
 import VTTSegmentLoader from './vtt-segment-loader';
@@ -105,6 +106,29 @@ const getCodecs = function(media) {
   return defaultCodecs;
 };
 
+const audioProfileFromDefault = (master, audioGroupId) => {
+  if (!master.mediaGroups.AUDIO || !audioGroupId) {
+    return null;
+  }
+
+  const audioGroup = master.mediaGroups.AUDIO[audioGroupId];
+
+  if (!audioGroup) {
+    return null;
+  }
+
+  for (let name in audioGroup) {
+    const audioType = audioGroup[name];
+
+    if (audioType.default && audioType.playlists) {
+      // codec should be the same for all playlists within the audio type
+      return parseCodecs(audioType.playlists[0].attributes.CODECS).audioProfile;
+    }
+  }
+
+  return null;
+};
+
 /**
  * Calculates the MIME type strings for a working configuration of
  * SourceBuffers to play variant streams in a master playlist. If
@@ -142,7 +166,10 @@ export const mimeTypesForPlaylist_ = function(master, media) {
       isMuxed = false;
       // ...check to see if any audio group tracks are muxed (ie. lacking a uri)
       for (let groupId in audioGroup) {
-        if (!audioGroup[groupId].uri) {
+        // either a uri is present (if the case of HLS and an external playlist), or
+        // playlists is present (in the case of DASH where we don't have external audio
+        // playlists)
+        if (!audioGroup[groupId].uri && !audioGroup[groupId].playlists) {
           isMuxed = true;
           break;
         }
@@ -153,10 +180,19 @@ export const mimeTypesForPlaylist_ = function(master, media) {
   // HLS with multiple-audio tracks must always get an audio codec.
   // Put another way, there is no way to have a video-only multiple-audio HLS!
   if (isMaat && !codecInfo.audioProfile) {
-    videojs.log.warn(
-      'Multiple audio tracks present but no audio codec string is specified. ' +
-      'Attempting to use the default audio codec (mp4a.40.2)');
-    codecInfo.audioProfile = defaultCodecs.audioProfile;
+    if (!isMuxed) {
+      // It is possible for codecs to be specified on the audio media group playlist but
+      // not on the rendition playlist. This is mostly the case for DASH, where audio and
+      // video are always separate (and separately specified).
+      codecInfo.audioProfile = audioProfileFromDefault(master, mediaAttributes.AUDIO);
+    }
+
+    if (!codecInfo.audioProfile) {
+      videojs.log.warn(
+        'Multiple audio tracks present but no audio codec string is specified. ' +
+        'Attempting to use the default audio codec (mp4a.40.2)');
+      codecInfo.audioProfile = defaultCodecs.audioProfile;
+    }
   }
 
   // Generate the final codec strings from the codec object generated above
@@ -232,7 +268,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       externHls,
       useCueTags,
       blacklistDuration,
-      enableLowInitialPlaylist
+      enableLowInitialPlaylist,
+      sourceType
     } = options;
 
     if (!url) {
@@ -245,6 +282,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.tech_ = tech;
     this.hls_ = tech.hls;
     this.mode_ = mode;
+    this.sourceType_ = sourceType;
     this.useCueTags_ = useCueTags;
     this.blacklistDuration = blacklistDuration;
     this.enableLowInitialPlaylist = enableLowInitialPlaylist;
@@ -288,11 +326,13 @@ export class MasterPlaylistController extends videojs.EventTarget {
       goalBufferLength: () => this.goalBufferLength(),
       bandwidth,
       syncController: this.syncController_,
-      decrypter: this.decrypter_
+      decrypter: this.decrypter_,
+      sourceType: this.sourceType_
     };
 
-    // setup playlist loaders
-    this.masterPlaylistLoader_ = new PlaylistLoader(url, this.hls_, this.withCredentials);
+    this.masterPlaylistLoader_ = this.sourceType_ === 'dash' ?
+      new DashPlaylistLoader(url, this.hls_, this.withCredentials) :
+      new PlaylistLoader(url, this.hls_, this.withCredentials);
     this.setupMasterPlaylistLoaderListeners_();
 
     // setup segment loaders
@@ -352,6 +392,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       }
 
       setupMediaGroups({
+        sourceType: this.sourceType_,
         segmentLoaders: {
           AUDIO: this.audioSegmentLoader_,
           SUBTITLES: this.subtitleSegmentLoader_,
@@ -1134,14 +1175,28 @@ export class MasterPlaylistController extends videojs.EventTarget {
         media.resolvedUri;
       return this.mediaSource.endOfStream('decode');
     }
-    this.mainSegmentLoader_.mimeType(mimeTypes[0]);
-    if (mimeTypes[1]) {
-      this.audioSegmentLoader_.mimeType(mimeTypes[1]);
-    }
 
+    this.configureLoaderMimeTypes_(mimeTypes);
     // exclude any incompatible variant streams from future playlist
     // selection
     this.excludeIncompatibleVariants_(media);
+  }
+
+  configureLoaderMimeTypes_(mimeTypes) {
+    // If the content is demuxed, we can't start appending segments to a source buffer
+    // until both source buffers are set up, or else the browser may not let us add the
+    // second source buffer (it will assume we are playing either audio only or video
+    // only).
+    const sourceBufferEmitter =
+      // if the first mime type has muxed video and audio then we shouldn't wait on the
+      // second source buffer
+      mimeTypes.length > 1 && mimeTypes[0].indexOf(',') === -1 ?
+        new videojs.EventTarget() : null;
+
+    this.mainSegmentLoader_.mimeType(mimeTypes[0], sourceBufferEmitter);
+    if (mimeTypes[1]) {
+      this.audioSegmentLoader_.mimeType(mimeTypes[1], sourceBufferEmitter);
+    }
   }
 
   /**

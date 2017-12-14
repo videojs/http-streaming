@@ -516,7 +516,7 @@ export default class SyncController extends videojs.EventTarget {
         time: segment.start,
         accuracy: 0
       };
-    } else if (playlist.discontinuityStarts.length) {
+    } else if (playlist.discontinuityStarts && playlist.discontinuityStarts.length) {
       // Search for future discontinuities that we can provide better timing
       // information for and save that information for sync purposes
       for (let i = 0; i < playlist.discontinuityStarts.length; i++) {

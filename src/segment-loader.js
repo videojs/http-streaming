@@ -145,6 +145,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.startingMedia_ = void 0;
     this.segmentMetadataTrack_ = settings.segmentMetadataTrack;
     this.goalBufferLength_ = settings.goalBufferLength;
+    this.sourceType_ = settings.sourceType;
 
     // private instance variables
     this.checkBufferTimeout_ = null;
@@ -371,7 +372,9 @@ export default class SegmentLoader extends videojs.EventTarget {
    */
   init_() {
     this.state = 'READY';
-    this.sourceUpdater_ = new SourceUpdater(this.mediaSource_, this.mimeType_);
+    this.sourceUpdater_ = new SourceUpdater(this.mediaSource_,
+                                            this.mimeType_,
+                                            this.sourceBufferEmitter_);
     this.resetEverything();
     return this.monitorBuffer_();
   }
@@ -481,13 +484,16 @@ export default class SegmentLoader extends videojs.EventTarget {
    * SourceUpdater
    *
    * @param {String} mimeType the mime type string to use
+   * @param {Object} sourceBufferEmitter an event emitter that fires when a source buffer
+   * is added to the media source
    */
-  mimeType(mimeType) {
+  mimeType(mimeType, sourceBufferEmitter) {
     if (this.mimeType_) {
       return;
     }
 
     this.mimeType_ = mimeType;
+    this.sourceBufferEmitter_ = sourceBufferEmitter;
     // if we were unpaused but waiting for a sourceUpdater, start
     // buffering now
     if (this.state === 'INIT' && this.couldBeginLoading_()) {
