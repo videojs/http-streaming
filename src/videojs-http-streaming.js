@@ -10,6 +10,7 @@ import Playlist from './playlist';
 import xhrFactory from './xhr';
 import {Decrypter, AsyncStream, decrypt} from 'aes-decrypter';
 import utils from './bin-utils';
+import {timeRangesToArray} from './ranges';
 import {MediaSource, URL} from 'videojs-contrib-media-sources';
 import m3u8 from 'm3u8-parser';
 import videojs from 'video.js';
@@ -483,6 +484,46 @@ class HlsHandler extends Component {
       },
       mediaSecondsLoaded: {
         get: () => this.masterPlaylistController_.mediaSecondsLoaded_() || 0,
+        enumerable: true
+      },
+      buffered: {
+        get: () => timeRangesToArray(this.tech_.buffered()),
+        enumerable: true
+      },
+      currentTime: {
+        get: () => this.tech_.currentTime(),
+        enumerable: true
+      },
+      currentSource: {
+        get: () => this.tech_.currentSource_,
+        enumerable: true
+      },
+      currentTech: {
+        get: () => this.tech_.name_,
+        enumerable: true
+      },
+      duration: {
+        get: () => this.tech_.duration(),
+        enumerable: true
+      },
+      master: {
+        get: () => this.playlists.master,
+        enumerable: true
+      },
+      playerDimensions: {
+        get: () => this.tech_.currentDimensions(),
+        enumerable: true
+      },
+      seekable: {
+        get: () => timeRangesToArray(this.tech_.seekable()),
+        enumerable: true
+      },
+      timestamp: {
+        get: () => Date.now(),
+        enumerable: true
+      },
+      videoPlaybackQuality: {
+        get: () => this.tech_.getVideoPlaybackQuality(),
         enumerable: true
       }
     });

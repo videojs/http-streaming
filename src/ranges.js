@@ -364,6 +364,24 @@ const timeUntilRebuffer = function(buffered, currentTime, playbackRate = 1) {
   return (bufferedEnd - currentTime) / playbackRate;
 };
 
+/**
+ * Converts a TimeRanges object into an array representation
+ * @param {TimeRanges} timeRanges
+ * @returns {Array}
+ */
+const timeRangesToArray = (timeRanges) => {
+  const timeRangesList = [];
+
+  for (let i = 0; i < timeRanges.length; i++) {
+    timeRangesList.push({
+      start: timeRanges.start(i),
+      end: timeRanges.end(i)
+    });
+  }
+
+  return timeRangesList;
+};
+
 export default {
   findRange,
   findNextRange,
@@ -373,5 +391,6 @@ export default {
   TIME_FUDGE_FACTOR,
   SAFE_TIME_DELTA,
   printableRange,
-  timeUntilRebuffer
+  timeUntilRebuffer,
+  timeRangesToArray
 };

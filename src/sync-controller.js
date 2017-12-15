@@ -6,6 +6,7 @@ import mp4probe from 'mux.js/lib/mp4/probe';
 import {inspect as tsprobe} from 'mux.js/lib/tools/ts-inspector.js';
 import {sumDurations} from './playlist';
 import videojs from 'video.js';
+import logger from './util/logger';
 
 export const syncPointStrategies = [
   // Stategy "VOD": Handle the VOD-case where the sync-point is *always*
@@ -147,9 +148,7 @@ export default class SyncController extends videojs.EventTarget {
     this.discontinuities = [];
     this.datetimeToDisplayTime = null;
 
-    if (options.debug) {
-      this.logger_ = videojs.log.bind(videojs, 'sync-controller ->');
-    }
+    this.logger_ = logger('SyncController');
   }
 
   /**
@@ -258,7 +257,6 @@ export default class SyncController extends videojs.EventTarget {
           strategy: strategy.name,
           syncPoint
         });
-        this.logger_(`syncPoint found via <${strategy.name}>:`, syncPoint);
       }
     }
 
@@ -547,12 +545,4 @@ export default class SyncController extends videojs.EventTarget {
       }
     }
   }
-
-  /**
-   * A debugging logger noop that is set to console.log only if debugging
-   * is enabled globally
-   *
-   * @private
-   */
-  logger_() {}
 }

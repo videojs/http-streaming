@@ -10,7 +10,7 @@
 
 import window from 'global/window';
 import Ranges from './ranges';
-import videojs from 'video.js';
+import logger from './util/logger';
 
 // Set of events that reset the playback-watcher time check logic and clear the timeout
 const timerCancelEvents = [
@@ -38,10 +38,8 @@ export default class PlaybackWatcher {
     this.lastRecordedTime = null;
     this.timer_ = null;
     this.checkCurrentTimeTimeout_ = null;
+    this.logger_ = logger('PlaybackWatcher');
 
-    if (options.debug) {
-      this.logger_ = videojs.log.bind(videojs, 'playback-watcher ->');
-    }
     this.logger_('initialize');
 
     let canPlayHandler = () => this.monitorCurrentTime_();
@@ -403,12 +401,4 @@ export default class PlaybackWatcher {
 
     return null;
   }
-
-  /**
-   * A debugging logger noop that is set to console.log only if debugging
-   * is enabled globally
-   *
-   * @private
-   */
-  logger_() {}
 }

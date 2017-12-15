@@ -12,6 +12,7 @@ import { initSegmentId } from './bin-utils';
 import {mediaSegmentRequest, REQUEST_ERRORS} from './media-segment-request';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
+import logger from './util/logger';
 
 // in ms
 const CHECK_BUFFER_DELAY = 500;
@@ -178,9 +179,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // ...for determining the fetch location
     this.fetchAtBuffer_ = false;
 
-    if (options.debug) {
-      this.logger_ = videojs.log.bind(videojs, 'segment-loader', this.loaderType_, '->');
-    }
+    this.logger_ = logger(`SegmentLoader[${this.loaderType_}]`);
   }
 
   /**
@@ -678,27 +677,17 @@ export default class SegmentLoader extends videojs.EventTarget {
       return null;
     }
 
-    this.logger_('checkBuffer_',
-      'mediaIndex:', mediaIndex,
-      'hasPlayed:', hasPlayed,
-      'currentTime:', currentTime,
-      'syncPoint:', syncPoint,
-      'fetchAtBuffer:', this.fetchAtBuffer_,
-      'bufferedTime:', bufferedTime);
-
     // When the syncPoint is null, there is no way of determining a good
     // conservative segment index to fetch from
     // The best thing to do here is to get the kind of sync-point data by
     // making a request
     if (syncPoint === null) {
       mediaIndex = this.getSyncSegmentCandidate_(playlist);
-      this.logger_('getSync', 'mediaIndex:', mediaIndex);
       return this.generateSegmentInfo_(playlist, mediaIndex, null, true);
     }
 
     // Under normal playback conditions fetching is a simple walk forward
     if (mediaIndex !== null) {
-      this.logger_('walkForward', 'mediaIndex:', mediaIndex + 1);
       let segment = playlist.segments[mediaIndex];
 
       if (segment && segment.end) {
@@ -731,9 +720,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       mediaIndex = mediaSourceInfo.mediaIndex;
       startOfSegment = mediaSourceInfo.startTime;
     }
-    this.logger_('getMediaIndexForTime',
-      'mediaIndex:', mediaIndex,
-      'startOfSegment:', startOfSegment);
 
     return this.generateSegmentInfo_(playlist, mediaIndex, startOfSegment, false);
   }
@@ -1279,14 +1265,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.throughput.rate +=
       (segmentProcessingThroughput - rate) / (++this.throughput.count);
   }
-
-  /**
-   * A debugging logger noop that is set to console.log only if debugging
-   * is enabled globally
-   *
-   * @private
-   */
-  logger_() {}
 
   /**
    * Adds a cue to the segment-metadata track with some metadata information about the
