@@ -10,6 +10,7 @@ import Playlist from './playlist';
 import xhrFactory from './xhr';
 import {Decrypter, AsyncStream, decrypt} from 'aes-decrypter';
 import utils from './bin-utils';
+import {timeRangesToArray} from './ranges';
 import {MediaSource, URL} from 'videojs-contrib-media-sources';
 import m3u8 from 'm3u8-parser';
 import videojs from 'video.js';
@@ -377,20 +378,6 @@ class HlsHandler extends Component {
       }
     });
 
-    const getTimeRanges = (player, type) => {
-      const timeRangesList = [];
-      const timeRanges = player[type]();
-
-      for (let i = 0; i < timeRanges.length; i++) {
-        timeRangesList.push({
-          start: timeRanges.start(i),
-          end: timeRanges.end(i)
-        });
-      }
-
-      return timeRangesList;
-    };
-
     Object.defineProperties(this.stats, {
       bandwidth: {
         get: () => this.bandwidth || 0,
@@ -425,7 +412,7 @@ class HlsHandler extends Component {
         enumerable: true
       },
       buffered: {
-        get: () => getTimeRanges(this.tech_, 'buffered'),
+        get: () => timeRangesToArray(this.tech_.buffered()),
         enumerable: true
       },
       currentTime: {
@@ -453,7 +440,7 @@ class HlsHandler extends Component {
         enumerable: true
       },
       seekable: {
-        get: () => getTimeRanges(this.tech_, 'seekable'),
+        get: () => timeRangesToArray(this.tech_.seekable()),
         enumerable: true
       },
       timestamp: {
