@@ -7,6 +7,9 @@ _(none)_
 
 --------------------
 ## 0.2.0
+* Updated the mpd-parser to fix IE11 DASH support ([#12](https://github.com/videojs/http-streaming/issues/12))
+
+## 0.2.0
 * Initial DASH Support ([#8](https://github.com/videojs/http-streaming/issues/8))
 
 ## 0.1.0
