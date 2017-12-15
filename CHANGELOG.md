@@ -6,7 +6,10 @@ CHANGELOG
 _(none)_
 
 --------------------
-## 0.2.0
+## 0.3.0
+* Added additional properties to the stats object ([#10](https://github.com/videojs/http-streaming/issues/10))
+
+## 0.2.1
 * Updated the mpd-parser to fix IE11 DASH support ([#12](https://github.com/videojs/http-streaming/issues/12))
 
 ## 0.2.0
