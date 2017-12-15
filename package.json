@@ -1,6 +1,6 @@
 {
   "name": "@videojs/http-streaming",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Play back HLS with video.js, even where it's not natively supported",
   "main": "es5/videojs-http-streaming.js",
   "engines": {
