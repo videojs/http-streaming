@@ -364,9 +364,9 @@ playlist.
 #### hls.systemBandwidth
 Type: `number`
 
-`systemBandwidth` is a combination of two serial processes bit-rates. The first
+`systemBandwidth` is a combination of two serial processes' bitrates. The first
 is the network bitrate provided by `bandwidth` and the second is the bitrate of
-the entire process after that - decryption, transmuxing, and appending - provided
+the entire process after that (decryption, transmuxing, and appending) provided
 by `throughput`. This value is used by the default implementation of `selectPlaylist`
 to select an appropriate bitrate to play.
 
@@ -387,7 +387,7 @@ bandwidth estimate.
 #### hls.throughput
 Type: `number`
 
-The number of bits decrypted, transmuxed, and appended per second as a cumulative average.
+The number of bits decrypted, transmuxed, and appended per second as a cumulative average across active processing time.
 
 #### hls.selectPlaylist
 Type: `function`
@@ -514,7 +514,7 @@ This object contains a summary of HLS and player related stats.
 | playerDimensions      | object | Contains the width and height of the player |
 | seekable              | array  | List of time ranges that the player can seek to |
 | timestamp             | number | Timestamp of when `hls.stats` was accessed |
-| videoPlaybackQuality  | object | Media playback quality metrics as specified by the W3C's Media Playback Quality API |
+| videoPlaybackQuality  | object | Media playback quality metrics as specified by the [W3C's Media Playback Quality API](https://wicg.github.io/media-playback-quality/) |
 
 
 ### Events
