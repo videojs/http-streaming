@@ -2000,15 +2000,17 @@ QUnit.test('the source handler supports HLS mime types', function(assert) {
 });
 
 QUnit.test('the source handler supports DASH mime types', function(assert) {
-  const techs = ['html5', 'flash'];
+  assert.ok(HlsSourceHandler('html5').canHandleSource({
+    type: 'aPplication/dAsh+xMl'
+  }), 'supports application/dash+xml');
+  assert.ok(HlsSourceHandler('html5').canPlayType('aPpLicAtion/DaSh+XmL'),
+            'supports application/dash+xml');
 
-  techs.forEach(function(techName) {
-    assert.ok(HlsSourceHandler(techName).canHandleSource({
-      type: 'aPplication/dAsh+xMl'
-    }), 'supports application/dash+xml');
-    assert.ok(HlsSourceHandler(techName).canPlayType('aPpLicAtion/DaSh+XmL'),
-             'supports application/dash+xml');
-  });
+  assert.notOk(HlsSourceHandler('flash').canHandleSource({
+    type: 'aPplication/dAsh+xMl'
+  }), 'supports application/dash+xml');
+  assert.notOk(HlsSourceHandler('flash').canPlayType('aPpLicAtion/DaSh+XmL'),
+            'supports application/dash+xml');
 });
 
 QUnit.test('the source handler does not support non HLS/DASH mime types',
