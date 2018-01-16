@@ -2008,9 +2008,9 @@ QUnit.test('the source handler supports DASH mime types', function(assert) {
 
   assert.notOk(HlsSourceHandler('flash').canHandleSource({
     type: 'aPplication/dAsh+xMl'
-  }), 'supports application/dash+xml');
+  }), 'does not support application/dash+xml');
   assert.notOk(HlsSourceHandler('flash').canPlayType('aPpLicAtion/DaSh+XmL'),
-            'supports application/dash+xml');
+            'does not support application/dash+xml');
 });
 
 QUnit.test('the source handler does not support non HLS/DASH mime types',
