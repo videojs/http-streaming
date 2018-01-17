@@ -636,6 +636,8 @@ class HlsHandler extends Component {
  * this object in normal usage.
  */
 const HlsSourceHandler = function(mode) {
+  const sourceHandlerOptions = { hls: { mode } };
+
   return {
     canHandleSource(srcObj, options = {}) {
       let localOptions = videojs.mergeOptions(videojs.options, options);
@@ -647,10 +649,10 @@ const HlsSourceHandler = function(mode) {
           localOptions.hls.mode !== mode) {
         return false;
       }
-      return HlsSourceHandler.canPlayType(srcObj.type, localOptions);
+      return HlsSourceHandler.canPlayType(srcObj.type, videojs.mergeOptions(localOptions, sourceHandlerOptions));
     },
     handleSource(source, tech, options = {}) {
-      let localOptions = videojs.mergeOptions(videojs.options, options, {hls: {mode}});
+      let localOptions = videojs.mergeOptions(videojs.options, options, sourceHandlerOptions);
 
       if (mode === 'flash') {
         // We need to trigger this asynchronously to give others the chance
@@ -667,7 +669,7 @@ const HlsSourceHandler = function(mode) {
       return tech.hls;
     },
     canPlayType(type, options = {}) {
-      let localOptions = videojs.mergeOptions(videojs.options, options);
+      let localOptions = videojs.mergeOptions(videojs.options, sourceHandlerOptions, options);
 
       if (HlsSourceHandler.canPlayType(type, localOptions)) {
         return 'maybe';
@@ -685,7 +687,8 @@ HlsSourceHandler.canPlayType = function(type, options) {
 
   const sourceType = simpleTypeFromSourceType(type);
 
-  if (sourceType === 'dash') {
+  if (sourceType === 'dash' && options.hls.mode !== 'flash') {
+    // favor native DASH support if it's available
     if (!options.hls.overrideNative && Hls.supportsNativeDash) {
       return false;
     }

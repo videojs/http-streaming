@@ -120,7 +120,7 @@
     "karma-chrome-launcher": "^2.2.0",
     "karma-coverage": "^1.1.1",
     "karma-detect-browsers": "^2.0.0",
-    "karma-firefox-launcher": "^0.1.0",
+    "karma-firefox-launcher": "^1.1.0",
     "karma-ie-launcher": "^0.2.0",
     "karma-qunit": "^1.2.1",
     "karma-safari-launcher": "^0.1.0",
