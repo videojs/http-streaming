@@ -1,5 +1,7 @@
 # videojs-http-streaming (VHS)
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/videojs/http-streaming.svg)](https://greenkeeper.io/)
+
 [![Build Status][travis-icon]][travis-link]
 [![Slack Status][slack-icon]][slack-link]
 
