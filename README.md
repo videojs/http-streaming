@@ -44,12 +44,13 @@ Maintenance Status: Stable
   - [Runtime Properties](#runtime-properties)
     - [hls.playlists.master](#hlsplaylistsmaster)
     - [hls.playlists.media](#hlsplaylistsmedia)
-    - [hls.segmentXhrTime](#hlssegmentxhrtime)
+    - [hls.systemBandwidth](#hlssystembandwidth)
     - [hls.bandwidth](#hlsbandwidth)
-    - [hls.bytesReceived](#hlsbytesreceived)
+    - [hls.throughput](#hlsthroughput)
     - [hls.selectPlaylist](#hlsselectplaylist)
     - [hls.representations](#hlsrepresentations)
     - [hls.xhr](#hlsxhr)
+    - [hls.stats](#hlsstats)
   - [Events](#events)
     - [loadedmetadata](#loadedmetadata)
   - [HLS Usage Events](#hls-usage-events)
@@ -62,7 +63,8 @@ Maintenance Status: Stable
   - [IE10 and Below](#ie10-and-below)
   - [IE11](#ie11)
   - [Fragmented MP4 Support](#fragmented-mp4-support)
-  - [Testing](#testing)
+- [Testing](#testing)
+- [Debugging](#debugging)
 - [Release History](#release-history)
 - [Building](#building)
 - [Development](#development)
@@ -329,7 +331,7 @@ Runtime properties are attached to the tech object when HLS is in
 use. You can get a reference to the HLS source handler like this:
 
 ```javascript
-var hls = player.tech({ IWillNotUseThisInPlugins: true }).hls;
+var hls = player.tech().hls;
 ```
 
 If you *were* thinking about modifying runtime properties in a
@@ -359,30 +361,33 @@ will kick off an asynchronous load of the specified media
 playlist. Once it has been retreived, it will become the active media
 playlist.
 
-#### hls.segmentXhrTime
+#### hls.systemBandwidth
 Type: `number`
 
-The number of milliseconds it took to download the last media segment.
-This value is updated after each segment download completes.
+`systemBandwidth` is a combination of two serial processes' bitrates. The first
+is the network bitrate provided by `bandwidth` and the second is the bitrate of
+the entire process after that (decryption, transmuxing, and appending) provided
+by `throughput`. This value is used by the default implementation of `selectPlaylist`
+to select an appropriate bitrate to play.
+
+Since the two process are serial, the overall system bandwidth is given by:
+`systemBandwidth = 1 / (1 / bandwidth + 1 / throughput)`
 
 #### hls.bandwidth
 Type: `number`
 
 The number of bits downloaded per second in the last segment download.
-This value is used by the default implementation of `selectPlaylist`
-to select an appropriate bitrate to play.
 
 Before the first video segment has been downloaded, it's hard to
-estimate bandwidth accurately. The HLS tech uses a heuristic based on
-the playlist download times to do this estimation by default. If you
+estimate bandwidth accurately. The HLS tech uses a starting value of 4194304 or 0.5 MB/s. If you
 have a more accurate source of bandwidth information, you can override
 this value as soon as the HLS tech has loaded to provide an initial
 bandwidth estimate.
 
-#### hls.bytesReceived
+#### hls.throughput
 Type: `number`
 
-The total number of content bytes downloaded by the HLS tech.
+The number of bits decrypted, transmuxed, and appended per second as a cumulative average across active processing time.
 
 #### hls.selectPlaylist
 Type: `function`
@@ -484,6 +489,33 @@ player.ready(function() {
 
 For information on the type of options that you can modify see the
 documentation at [https://github.com/Raynos/xhr](https://github.com/Raynos/xhr).
+
+#### hls.stats
+Type: `object`
+
+This object contains a summary of HLS and player related stats.
+
+| Property Name         | Type   | Description |
+| --------------------- | ------ | ----------- |
+| bandwidth             | number | Rate of the last segment download in bits/second |
+| mediaRequests         | number | Total number of media segment requests |
+| mediaRequestsAborted  | number | Total number of aborted media segment requests |
+| mediaRequestsTimedout | number | Total number of timedout media segment requests |
+| mediaRequestsErrored  | number | Total number of errored media segment requests |
+| mediaTransferDuration | number | Total time spent downloading media segments in milliseconds |
+| mediaBytesTransferred | number | Total number of content bytes downloaded |
+| mediaSecondsLoaded    | number | Total number of content seconds downloaded |
+| buffered              | array  | List of time ranges of content that are in the SourceBuffer |
+| currentTime           | number | The current position of the player |
+| currentSource         | object | The source object. Has the structure `{src: 'url', type: 'mimetype'}` |
+| currentTech           | string | The name of the tech in use |
+| duration              | number | Duration of the video in seconds |
+| master                | object | The [master playlist object](#hlsplaylistsmaster) |
+| playerDimensions      | object | Contains the width and height of the player |
+| seekable              | array  | List of time ranges that the player can seek to |
+| timestamp             | number | Timestamp of when `hls.stats` was accessed |
+| videoPlaybackQuality  | object | Media playback quality metrics as specified by the [W3C's Media Playback Quality API](https://wicg.github.io/media-playback-quality/) |
+
 
 ### Events
 Standard HTML video events are handled by video.js automatically and
@@ -638,10 +670,24 @@ you attempt to play an HLS stream with fragmented MP4 segments, Edge
 will stall. Fragmented MP4s are only supported on browser that have
 [Media Source Extensions](http://caniuse.com/#feat=mediasource) available.
 
-### Testing
+## Testing
 
 For testing, you run `npm run test`. This will run tests using any of the
 browsers that karma-detect-browsers detects on your machine.
+
+## Debugging
+
+videojs-http-streaming makes use of `videojs.log` for debug logging. You can enable these logs
+by setting the log level to `debug` using `videojs.log.level('debug')`. You can access a complete
+history of the logs using `videojs.log.history()`. This history is maintained even when the
+log level is not set to `debug`.
+
+`hls.stats` can also be helpful when debugging. Accessing this object will give you
+a snapshot summary of various HLS and player stats. See [hls.stats](#hlsstats) for details
+about what this object contains.
+
+__NOTE__: The `debug` level is only available in video.js v6.6.0+. With earlier versions of
+video.js, no debug messages will be logged to console.
 
 ## Release History
 Check out the [changelog](CHANGELOG.md) for a summary of each release.
