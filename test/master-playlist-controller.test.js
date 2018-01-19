@@ -19,6 +19,8 @@ import { Hls } from '../src/videojs-http-streaming';
 /* eslint-enable no-unused-vars */
 import Playlist from '../src/playlist';
 import Config from '../src/config';
+import PlaylistLoader from '../src/playlist-loader';
+import DashPlaylistLoader from '../src/dash-playlist-loader';
 
 const generateMedia = function(isMaat, isMuxed, hasVideoCodec, hasAudioCodec, isFMP4) {
   const codec = (hasVideoCodec ? 'avc1.deadbeef' : '') +
@@ -164,6 +166,25 @@ QUnit.test('obeys metadata preload option', function(assert) {
 
   // verify stats
   assert.equal(this.player.tech_.hls.stats.bandwidth, 4194304, 'default bandwidth');
+});
+
+QUnit.test('creates appropriate PlaylistLoader for sourceType', function(assert) {
+  let options = {
+    url: 'test',
+    tech: this.player.tech_,
+    sourceType: 'hls'
+  };
+
+  let mpc = new MasterPlaylistController(options);
+
+  assert.ok(mpc.masterPlaylistLoader_ instanceof PlaylistLoader,
+            'created a standard playlist loader');
+
+  options.sourceType = 'dash';
+  mpc = new MasterPlaylistController(options);
+
+  assert.ok(mpc.masterPlaylistLoader_ instanceof DashPlaylistLoader,
+            'created a dash playlist loader');
 });
 
 QUnit.test('resets SegmentLoader when seeking in flash for both in and out of buffer',
@@ -2299,6 +2320,83 @@ QUnit.test('calculates dynamic BUFFER_LOW_WATER_LINE', function(assert) {
   Object.keys(configOld).forEach((key) => Config[key] = configOld[key]);
 });
 
+QUnit.test('properly configures loader mime types', function(assert) {
+  this.player = createPlayer();
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+
+  const masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+  const mainMimeTypeCalls = [];
+  const audioMimeTypeCalls = [];
+
+  masterPlaylistController.mainSegmentLoader_.mimeType = (mimeType, emitter) => {
+    mainMimeTypeCalls.push([mimeType, emitter]);
+  };
+  masterPlaylistController.audioSegmentLoader_.mimeType = (mimeType, emitter) => {
+    audioMimeTypeCalls.push([mimeType, emitter]);
+  };
+
+  masterPlaylistController.configureLoaderMimeTypes_([
+    'video/mp4; codecs="avc1.deadbeef"'
+  ]);
+
+  assert.equal(mainMimeTypeCalls.length, 1, 'configured main segment loader');
+  assert.equal(mainMimeTypeCalls[0][0],
+               'video/mp4; codecs="avc1.deadbeef"',
+               'correct mime type for main segment loader');
+  assert.notOk(mainMimeTypeCalls[0][1], 'no source buffer emitter');
+  assert.equal(audioMimeTypeCalls.length, 0, 'did not configure audio segment loader');
+
+  mainMimeTypeCalls.length = 0;
+
+  masterPlaylistController.configureLoaderMimeTypes_([
+    'audio/mp4; codecs="mp4a.40.E"'
+  ]);
+
+  assert.equal(mainMimeTypeCalls.length, 1, 'configured main segment loader');
+  assert.equal(mainMimeTypeCalls[0][0],
+               'audio/mp4; codecs="mp4a.40.E"',
+               'correct mime type for main segment loader');
+  assert.notOk(mainMimeTypeCalls[0][1], 'no source buffer emitter');
+  assert.equal(audioMimeTypeCalls.length, 0, 'did not configure audio segment loader');
+
+  mainMimeTypeCalls.length = 0;
+
+  masterPlaylistController.configureLoaderMimeTypes_([
+    'video/mp4; codecs="avc1.deadbeef, mp4a.40.E"'
+  ]);
+
+  assert.equal(mainMimeTypeCalls.length, 1, 'configured main segment loader');
+  assert.equal(mainMimeTypeCalls[0][0],
+               'video/mp4; codecs="avc1.deadbeef, mp4a.40.E"',
+               'correct mime type for main segment loader');
+  assert.notOk(mainMimeTypeCalls[0][1], 'no source buffer emitter');
+  assert.equal(audioMimeTypeCalls.length, 0, 'did not configure audio segment loader');
+
+  mainMimeTypeCalls.length = 0;
+
+  masterPlaylistController.configureLoaderMimeTypes_([
+    'video/mp4; codecs="avc1.deadbeef"',
+    'audio/mp4; codecs="mp4a.40.E"'
+  ]);
+
+  assert.equal(mainMimeTypeCalls.length, 1, 'configured main segment loader');
+  assert.equal(mainMimeTypeCalls[0][0],
+               'video/mp4; codecs="avc1.deadbeef"',
+               'correct mime type for main segment loader');
+  assert.ok(mainMimeTypeCalls[0][1] instanceof videojs.EventTarget,
+            'passed a source buffer emitter to main segment loader');
+  assert.equal(audioMimeTypeCalls.length, 1, 'configured audio segment loader');
+  assert.equal(audioMimeTypeCalls[0][0],
+               'audio/mp4; codecs="mp4a.40.E"',
+               'correct mime type for audio segment loader');
+  assert.ok(audioMimeTypeCalls[0][1] instanceof videojs.EventTarget,
+            'passed a source buffer emitter to audio segment loader');
+});
+
 QUnit.module('Codec to MIME Type Conversion');
 
 const testMimeTypes = function(assert, isFMP4) {
@@ -2382,6 +2480,91 @@ const testMimeTypes = function(assert, isFMP4) {
 QUnit.test('recognizes muxed codec configurations', function(assert) {
   testMimeTypes(assert, false);
   testMimeTypes(assert, true);
+});
+
+// dash audio playlist won't have a URI but will have resolved playlists
+QUnit.test('content demuxed if alt audio URI not present but playlists present',
+function(assert) {
+  const media = {
+    attributes: {
+      AUDIO: 'test',
+      CODECS: 'avc1.deadbeef, mp4a.40.E'
+    },
+    segments: [
+      // signal fmp4
+      { map: 'test' }
+    ]
+  };
+  const master = {
+    mediaGroups: {
+      AUDIO: {
+        test: {
+          demuxed: {
+            uri: 'foo.bar'
+          }
+        }
+      }
+    },
+    playlists: [media]
+  };
+
+  assert.deepEqual(mimeTypesForPlaylist_(master, media),
+                   ['video/mp4; codecs="avc1.deadbeef"', 'audio/mp4; codecs="mp4a.40.E"'],
+                   'demuxed if URI');
+
+  delete master.mediaGroups.AUDIO.test.demuxed.uri;
+  assert.deepEqual(
+    mimeTypesForPlaylist_(master, media),
+    ['video/mp4; codecs="avc1.deadbeef, mp4a.40.E"', 'audio/mp4; codecs="mp4a.40.E"'],
+    'muxed if no URI and no playlists');
+
+  master.mediaGroups.AUDIO.test.demuxed.playlists = [{}];
+  assert.deepEqual(mimeTypesForPlaylist_(master, media),
+                   ['video/mp4; codecs="avc1.deadbeef"', 'audio/mp4; codecs="mp4a.40.E"'],
+                   'demuxed if no URI but playlists');
+});
+
+QUnit.test('uses audio codec from default group if not specified in media attributes',
+function(assert) {
+  const media = {
+    attributes: {
+      AUDIO: 'test',
+      CODECS: 'avc1.deadbeef'
+    },
+    segments: [
+      // signal fmp4
+      { map: 'test' }
+    ]
+  };
+  // dash audio playlist won't have a URI but will have resolved playlists
+  const master = {
+    mediaGroups: {
+      AUDIO: {
+        test: {
+          demuxed: {
+            default: true,
+            playlists: [{
+              attributes: {
+                CODECS: 'mp4a.40.E'
+              }
+            }]
+          }
+        }
+      }
+    },
+    playlists: [media]
+  };
+
+  assert.deepEqual(
+    mimeTypesForPlaylist_(master, media),
+    ['video/mp4; codecs="avc1.deadbeef"', 'audio/mp4; codecs="mp4a.40.E"'],
+    'uses audio codec from media group');
+
+  delete master.mediaGroups.AUDIO.test.demuxed.default;
+  assert.deepEqual(
+    mimeTypesForPlaylist_(master, media),
+    ['video/mp4; codecs="avc1.deadbeef"', 'audio/mp4; codecs="mp4a.40.2"'],
+    'uses default audio codec');
 });
 
 QUnit.module('Map Legacy AVC Codec');

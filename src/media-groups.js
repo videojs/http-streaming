@@ -1,5 +1,6 @@
 import videojs from 'video.js';
 import PlaylistLoader from './playlist-loader';
+import DashPlaylistLoader from './dash-playlist-loader';
 
 const noop = () => {};
 
@@ -351,6 +352,7 @@ export const initialize = {
     const {
       mode,
       hls,
+      sourceType,
       segmentLoaders: { [type]: segmentLoader },
       requestOptions: { withCredentials },
       master: { mediaGroups },
@@ -384,6 +386,10 @@ export const initialize = {
           playlistLoader = new PlaylistLoader(properties.resolvedUri,
                                               hls,
                                               withCredentials);
+        } else if (properties.playlists && sourceType === 'dash') {
+          playlistLoader = new DashPlaylistLoader(properties.playlists[0],
+                                                  hls,
+                                                  withCredentials);
         } else {
           // no resolvedUri means the audio is muxed with the video when using this
           // audio track
@@ -428,6 +434,7 @@ export const initialize = {
     const {
       tech,
       hls,
+      sourceType,
       segmentLoaders: { [type]: segmentLoader },
       requestOptions: { withCredentials },
       master: { mediaGroups },
@@ -459,11 +466,19 @@ export const initialize = {
 
         let properties = mediaGroups[type][groupId][variantLabel];
 
+        let playlistLoader;
+
+        if (sourceType === 'hls') {
+          playlistLoader =
+            new PlaylistLoader(properties.resolvedUri, hls, withCredentials);
+        } else if (sourceType === 'dash') {
+          playlistLoader =
+            new DashPlaylistLoader(properties.playlists[0], hls, withCredentials);
+        }
+
         properties = videojs.mergeOptions({
           id: variantLabel,
-          playlistLoader: new PlaylistLoader(properties.resolvedUri,
-                                             hls,
-                                             withCredentials)
+          playlistLoader
         }, properties);
 
         setupListeners[type](type, properties.playlistLoader, settings);

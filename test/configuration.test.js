@@ -372,35 +372,47 @@ QUnit.module('Configuration - Global Only', {
   }
 });
 
+QUnit.test('DASH can be handled', function(assert) {
+  let htmlCanHandleSource = new HlsSourceHandler('html5').canHandleSource;
+  let flashCanHandleSource = new HlsSourceHandler('flash').canHandleSource;
+
+  assert.ok(htmlCanHandleSource({type: 'application/dash+xml'}), 'supported with MSE');
+  assert.notOk(flashCanHandleSource({type: 'application/dash+xml'}), 'not supported in Flash');
+});
+
 QUnit.test('global mode override - flash', function(assert) {
   videojs.options.hls.mode = 'flash';
-  let htmlSourceHandler = new HlsSourceHandler('html5');
-  let flashSourceHandler = new HlsSourceHandler('flash');
+  let htmlCanHandleSource = new HlsSourceHandler('html5').canHandleSource;
+  let flashCanHandleSource = new HlsSourceHandler('flash').canHandleSource;
 
-  assert.equal(
-    htmlSourceHandler.canHandleSource({type: 'application/x-mpegURL'}),
-    false,
+  assert.notOk(htmlCanHandleSource({type: 'application/x-mpegURL'}),
     'Cannot play html as we are overriden not to');
 
-  assert.equal(
-    flashSourceHandler.canHandleSource({type: 'application/x-mpegURL'}),
-    true,
-    'Can play flash as it is supported and overides allow');
+  assert.ok(flashCanHandleSource({type: 'application/x-mpegURL'}),
+    'Can play flash as it is supported and overrides allow');
+
+  assert.notOk(htmlCanHandleSource({type: 'application/dash+xml'}),
+    'Cannot play html as we are overriden not to');
+
+  assert.notOk(flashCanHandleSource({type: 'application/dash+xml'}),
+    'Cannot play flash as it is unsupported');
 });
 
 QUnit.test('global mode override - html', function(assert) {
   videojs.options.hls.mode = 'html5';
-  let htmlSourceHandler = new HlsSourceHandler('html5');
-  let flashSourceHandler = new HlsSourceHandler('flash');
+  let htmlCanHandleSource = new HlsSourceHandler('html5').canHandleSource;
+  let flashCanHandleSource = new HlsSourceHandler('flash').canHandleSource;
 
-  assert.equal(
-    htmlSourceHandler.canHandleSource({type: 'application/x-mpegURL'}),
-    true,
-    'Can play html as we support it and overides allow');
+  assert.ok(htmlCanHandleSource({type: 'application/x-mpegURL'}),
+    'Can play html as we support it and overrides allow');
 
-  assert.equal(
-    flashSourceHandler.canHandleSource({type: 'application/x-mpegURL'}),
-    false,
-    'Cannot play flash as we are overiden not to');
+  assert.notOk(flashCanHandleSource({type: 'application/x-mpegURL'}),
+    'Cannot play flash as we are overriden not to');
+
+  assert.ok(htmlCanHandleSource({type: 'application/dash+xml'}),
+    'Can play html as we support it and overrides allow');
+
+  assert.notOk(flashCanHandleSource({type: 'application/dash+xml'}),
+    'Cannot play flash as we are overriden not to');
 });
 

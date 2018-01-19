@@ -15,7 +15,13 @@ import {
 } from './test-helpers.js';
 /* eslint-disable no-unused-vars */
 // we need this so that it can register hls with videojs
-import {HlsSourceHandler, HlsHandler, Hls} from '../src/videojs-http-streaming';
+import {
+  HlsSourceHandler,
+  HlsHandler,
+  Hls,
+  emeOptions,
+  simpleTypeFromSourceType
+} from '../src/videojs-http-streaming';
 import window from 'global/window';
 // we need this so the plugin registers itself
 import 'videojs-contrib-quality-levels';
@@ -154,6 +160,29 @@ QUnit.test('deprecation warning is show when using player.hls', function(assert)
   assert.equal(warning, 'player.hls is deprecated. Use player.tech_.hls instead.', 'warning would have been shown');
   assert.ok(hls, 'an instance of hls is returned by player.hls');
   videojs.log.warn = oldWarn;
+});
+
+QUnit.test('the HlsHandler instance is referenced by player.vhs', function(assert) {
+  this.player.src({
+    src: 'manifest/playlist.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+
+  assert.ok(this.player.vhs instanceof HlsHandler,
+            'player.vhs references an instance of HlsHandler');
+});
+
+// deprecated, for backwards compatibility
+QUnit.test('the HlsHandler instance is referenced by player.dash', function(assert) {
+  this.player.src({
+    src: 'manifest/playlist.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+
+  assert.ok(this.player.dash instanceof HlsHandler,
+            'player.dash references an instance of HlsHandler');
 });
 
 QUnit.test('starts playing if autoplay is specified', function(assert) {
@@ -1967,7 +1996,28 @@ QUnit.test('the source handler supports HLS mime types', function(assert) {
              'supports vnd.apple.mpegurl');
     assert.ok(HlsSourceHandler(techName).canPlayType('aPplicatiOn/x-MPegUrl'),
              'supports x-mpegurl');
+  });
+});
 
+QUnit.test('the source handler supports DASH mime types', function(assert) {
+  assert.ok(HlsSourceHandler('html5').canHandleSource({
+    type: 'aPplication/dAsh+xMl'
+  }), 'supports application/dash+xml');
+  assert.ok(HlsSourceHandler('html5').canPlayType('aPpLicAtion/DaSh+XmL'),
+            'supports application/dash+xml');
+
+  assert.notOk(HlsSourceHandler('flash').canHandleSource({
+    type: 'aPplication/dAsh+xMl'
+  }), 'does not support application/dash+xml');
+  assert.notOk(HlsSourceHandler('flash').canPlayType('aPpLicAtion/DaSh+XmL'),
+            'does not support application/dash+xml');
+});
+
+QUnit.test('the source handler does not support non HLS/DASH mime types',
+function(assert) {
+  const techs = ['html5', 'flash'];
+
+  techs.forEach(function(techName) {
     assert.ok(!(HlsSourceHandler(techName).canHandleSource({
       type: 'video/mp4'
     }) instanceof HlsHandler), 'does not support mp4');
@@ -2924,6 +2974,59 @@ QUnit.test('populates quality levels list when available', function(assert) {
   assert.ok(this.player.tech_.hls.qualityLevels_, 'added quality levels from video with source');
 });
 
+QUnit.test('configures eme if present on selectedinitialmedia', function(assert) {
+  this.player.eme = {};
+  this.player.src({
+    src: 'manifest/master.mpd',
+    type: 'application/dash+xml',
+    keySystems: {
+      keySystem1: {
+        url: 'url1'
+      }
+    }
+  });
+
+  this.clock.tick(1);
+
+  this.player.tech_.hls.playlists = {
+    media: () => {
+      return {
+        attributes: {
+          CODECS: 'video-codec'
+        }
+      };
+    },
+    // mocked for renditions mixin
+    master: {
+      playlists: []
+    }
+  };
+  this.player.tech_.hls.masterPlaylistController_.mediaTypes_ = {
+    AUDIO: {
+      activePlaylistLoader: {
+        media: () => {
+          return {
+            attributes: {
+              CODECS: 'audio-codec'
+            }
+          };
+        }
+      }
+    }
+  };
+  this.player.tech_.hls.masterPlaylistController_.trigger('selectedinitialmedia');
+
+  assert.deepEqual(this.player.eme.options, {
+    keySystems: {
+      keySystem1: {
+        url: 'url1',
+        audioContentType: 'audio/mp4; codecs="audio-codec"',
+        videoContentType: 'video/mp4; codecs="video-codec"'
+      }
+    }
+  }, 'set eme options');
+});
+
 QUnit.module('HLS Integration', {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
@@ -3326,4 +3429,101 @@ QUnit.test('treats invalid keys as a key request failure and blacklists playlist
   // verify stats
   assert.equal(hls.stats.mediaBytesTransferred, 1024, '1024 bytes');
   assert.equal(hls.stats.mediaRequests, 1, '1 request');
+});
+
+QUnit.module('videojs-contrib-hls isolated functions');
+
+QUnit.test('emeOptions adds content types for all keySystems', function(assert) {
+  assert.deepEqual(
+    emeOptions(
+      { keySystem1: {}, keySystem2: {} },
+      { attributes: { CODECS: 'some-video-codec' } },
+      { attributes: { CODECS: 'some-audio-codec' } }),
+    {
+      keySystems: {
+        keySystem1: {
+          audioContentType: 'audio/mp4; codecs="some-audio-codec"',
+          videoContentType: 'video/mp4; codecs="some-video-codec"'
+        },
+        keySystem2: {
+          audioContentType: 'audio/mp4; codecs="some-audio-codec"',
+          videoContentType: 'video/mp4; codecs="some-video-codec"'
+        }
+      }
+    },
+    'added content types');
+});
+
+QUnit.test('emeOptions retains non content type properties', function(assert) {
+  assert.deepEqual(
+    emeOptions(
+      { keySystem1: { url: '1' }, keySystem2: { url: '2'} },
+      { attributes: { CODECS: 'some-video-codec' } },
+      { attributes: { CODECS: 'some-audio-codec' } }),
+    {
+      keySystems: {
+        keySystem1: {
+          url: '1',
+          audioContentType: 'audio/mp4; codecs="some-audio-codec"',
+          videoContentType: 'video/mp4; codecs="some-video-codec"'
+        },
+        keySystem2: {
+          url: '2',
+          audioContentType: 'audio/mp4; codecs="some-audio-codec"',
+          videoContentType: 'video/mp4; codecs="some-video-codec"'
+        }
+      }
+    },
+    'retained options');
+});
+
+QUnit.test('emeOptions overwrites content types', function(assert) {
+  assert.deepEqual(
+    emeOptions(
+      {
+        keySystem1: {
+          audioContentType: 'a',
+          videoContentType: 'b'
+        },
+        keySystem2: {
+          audioContentType: 'c',
+          videoContentType: 'd'
+        }
+      },
+      { attributes: { CODECS: 'some-video-codec' } },
+      { attributes: { CODECS: 'some-audio-codec' } }),
+    {
+      keySystems: {
+        keySystem1: {
+          audioContentType: 'audio/mp4; codecs="some-audio-codec"',
+          videoContentType: 'video/mp4; codecs="some-video-codec"'
+        },
+        keySystem2: {
+          audioContentType: 'audio/mp4; codecs="some-audio-codec"',
+          videoContentType: 'video/mp4; codecs="some-video-codec"'
+        }
+      }
+    },
+    'overwrote content types');
+});
+
+QUnit.test('simpleTypeFromSourceType converts HLS mime types to hls', function(assert) {
+  assert.equal(simpleTypeFromSourceType('aPplicatiOn/x-MPegUrl'),
+               'hls',
+               'supports application/x-mpegurl');
+  assert.equal(simpleTypeFromSourceType('aPplicatiOn/VnD.aPPle.MpEgUrL'),
+               'hls',
+               'supports application/vnd.apple.mpegurl');
+});
+
+QUnit.test('simpleTypeFromSourceType converts DASH mime type to dash', function(assert) {
+  assert.equal(simpleTypeFromSourceType('aPplication/dAsh+xMl'),
+               'dash',
+               'supports application/dash+xml');
+});
+
+QUnit.test('simpleTypeFromSourceType does not convert non HLS/DASH mime types',
+function(assert) {
+  assert.notOk(simpleTypeFromSourceType('video/mp4'), 'does not support video/mp4');
+  assert.notOk(simpleTypeFromSourceType('video/x-flv'), 'does not support video/x-flv');
 });

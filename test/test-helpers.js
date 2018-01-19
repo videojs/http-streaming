@@ -333,7 +333,7 @@ export const standardXHRResponse = function(request, data) {
 
   let contentType = 'application/json';
   // contents off the global object
-  let manifestName = (/(?:.*\/)?(.*)\.m3u8/).exec(request.url);
+  let manifestName = (/(?:.*\/)?(.*)\.(m3u8|mpd)/).exec(request.url);
 
   if (manifestName) {
     manifestName = manifestName[1];
@@ -345,6 +345,8 @@ export const standardXHRResponse = function(request, data) {
     contentType = 'application/vnd.apple.mpegurl';
   } else if (/\.ts/.test(request.url)) {
     contentType = 'video/MP2T';
+  } else if (/\.mpd/.test(request.url)) {
+    contentType = 'application/dash+xml';
   }
 
   if (!data) {

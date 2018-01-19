@@ -16,31 +16,11 @@ const noop = function() {};
  * SourceBuffer from
  * @param {String} mimeType the desired MIME type of the underlying
  * SourceBuffer
+ * @param {Object} sourceBufferEmitter an event emitter that fires when a source buffer is
+ * added to the media source
  */
 export default class SourceUpdater {
-  constructor(mediaSource, mimeType) {
-    let createSourceBuffer = () => {
-      this.sourceBuffer_ = mediaSource.addSourceBuffer(mimeType);
-
-      // run completion handlers and process callbacks as updateend
-      // events fire
-      this.onUpdateendCallback_ = () => {
-        let pendingCallback = this.pendingCallback_;
-
-        this.pendingCallback_ = null;
-
-        if (pendingCallback) {
-          pendingCallback();
-        }
-
-        this.runCallback_();
-      };
-
-      this.sourceBuffer_.addEventListener('updateend', this.onUpdateendCallback_);
-
-      this.runCallback_();
-    };
-
+  constructor(mediaSource, mimeType, sourceBufferEmitter) {
     this.callbacks_ = [];
     this.pendingCallback_ = null;
     this.timestampOffset_ = 0;
@@ -48,10 +28,54 @@ export default class SourceUpdater {
     this.processedAppend_ = false;
 
     if (mediaSource.readyState === 'closed') {
-      mediaSource.addEventListener('sourceopen', createSourceBuffer);
+      mediaSource.addEventListener(
+        'sourceopen', this.createSourceBuffer_.bind(this, mimeType, sourceBufferEmitter));
     } else {
-      createSourceBuffer();
+      this.createSourceBuffer_(mimeType, sourceBufferEmitter);
     }
+  }
+
+  createSourceBuffer_(mimeType, sourceBufferEmitter) {
+    this.sourceBuffer_ = this.mediaSource.addSourceBuffer(mimeType);
+
+    if (sourceBufferEmitter) {
+      sourceBufferEmitter.trigger('sourcebufferadded');
+
+      if (this.mediaSource.sourceBuffers.length < 2) {
+        // There's another source buffer we must wait for before we can start updating
+        // our own (or else we can get into a bad state, i.e., appending video/audio data
+        // before the other video/audio source buffer is available and leading to a video
+        // or audio only buffer).
+        sourceBufferEmitter.on('sourcebufferadded', () => {
+          this.start_();
+        });
+        return;
+      }
+    }
+
+    this.start_();
+  }
+
+  start_() {
+    this.started_ = true;
+
+    // run completion handlers and process callbacks as updateend
+    // events fire
+    this.onUpdateendCallback_ = () => {
+      let pendingCallback = this.pendingCallback_;
+
+      this.pendingCallback_ = null;
+
+      if (pendingCallback) {
+        pendingCallback();
+      }
+
+      this.runCallback_();
+    };
+
+    this.sourceBuffer_.addEventListener('updateend', this.onUpdateendCallback_);
+
+    this.runCallback_();
   }
 
   /**
@@ -148,7 +172,8 @@ export default class SourceUpdater {
     let callbacks;
 
     if (!this.updating() &&
-        this.callbacks_.length) {
+        this.callbacks_.length &&
+        this.started_) {
       callbacks = this.callbacks_.shift();
       this.pendingCallback_ = callbacks[1];
       callbacks[0]();
