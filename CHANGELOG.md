@@ -6,6 +6,9 @@ CHANGELOG
 _(none)_
 
 --------------------
+## 0.3.1
+* Skip flash-based source handler with DASH sources ([#14](https://github.com/videojs/http-streaming/issues/14))
+
 ## 0.3.0
 * Added additional properties to the stats object ([#10](https://github.com/videojs/http-streaming/issues/10))
 
