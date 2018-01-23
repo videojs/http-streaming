@@ -8,11 +8,11 @@ import {
   openMediaSource
 } from './test-helpers.js';
 import manifests from './test-manifests.js';
+import { MasterPlaylistController } from '../src/master-playlist-controller';
 import {
-  MasterPlaylistController,
   mimeTypesForPlaylist_,
   mapLegacyAvcCodecs_
-} from '../src/master-playlist-controller';
+} from '../src/util/codecs';
 /* eslint-disable no-unused-vars */
 // we need this so that it can register hls with videojs
 import { Hls } from '../src/videojs-http-streaming';
