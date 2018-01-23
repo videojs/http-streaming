@@ -64,7 +64,7 @@ base: 'ChromeCanary',
 captureTimeout: 210000,
 browserDisconnectTolerance: 3, //this one helps
 browserDisconnectTimeout : 210000,
-browserNoActivityTimeout : 400000
+browserNoActivityTimeout : 600000
 }
     },
     preprocessors: {
