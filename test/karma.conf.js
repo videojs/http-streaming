@@ -62,7 +62,11 @@ module.exports = function(config) {
       },
 ChromeCanary: {
 base: 'ChromeCanary',
-flags: ['--no-sandbox']
+flags: ['--no-sandbox'],
+captureTimeout: 600000,
+browserDisconnectTolerance: 3, //this one helps
+browserDisconnectTimeout : 210000,
+browserNoActivityTimeout : 600000
 }
     },
     preprocessors: {
@@ -92,13 +96,8 @@ flags: ['--no-sandbox']
     port: 9876,
     colors: true,
     autoWatch: false,
-    singleRun: true,
-    concurrency: Infinity,
-    captureTimeout: 600000,
-    browserDisconnectTolerance: 3, //this one helps
-    browserDisconnectTimeout : 210000,
-    browserNoActivityTimeout : 600000
-
+    singleRun: true
+  //  concurrency: Infinity
   });
 
   // Coverage reporting
