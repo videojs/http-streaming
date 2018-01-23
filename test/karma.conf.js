@@ -29,7 +29,7 @@ module.exports = function(config) {
   };
 
   if (process.env.TRAVIS) {
-    config.browsers = ['ChromeHeadlessNoSandbox','chrome_canary_harmony'];
+    config.browsers = ['ChromeHeadlessNoSandbox','ChromeCanary'];
   }
 
   // If no browsers are specified, we enable `karma-detect-browsers`
@@ -60,10 +60,10 @@ module.exports = function(config) {
         base: 'ChromeHeadless',
         flags: ['--no-sandbox']
       },
-chrome_canary_harmony: {
-base: 'ChromeCanary',
+ChromeCanary: {
+base: 'Chrome',
 flags: ['--no-sandbox'],
-captureTimeout: 210000,
+captureTimeout: 600000,
 browserDisconnectTolerance: 3, //this one helps
 browserDisconnectTimeout : 210000,
 browserNoActivityTimeout : 600000
