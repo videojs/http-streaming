@@ -52,7 +52,6 @@ module.exports = function(config) {
 chrome_canary_harmony: {
 base: 'ChromeCanary',
 flags: [
-  '--headless',
   '--no-sandbox'
 ]
 }
