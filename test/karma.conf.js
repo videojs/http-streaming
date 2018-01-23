@@ -18,7 +18,7 @@ module.exports = function(config) {
   };
 
   if (process.env.TRAVIS) {
-    config.browsers = ['chrome_canary_harmony'];
+    config.browsers = ['ChromeHeadlessNoSandbox','chrome_canary_harmony'];
   }
 
   // If no browsers are specified, we enable `karma-detect-browsers`
@@ -45,9 +45,16 @@ module.exports = function(config) {
       terminal: false
     },
     customLaunchers: {
+      ChromeHeadlessNoSandbox: {
+        base: 'ChromeHeadless',
+        flags: ['--no-sandbox']
+      },
 chrome_canary_harmony: {
 base: 'ChromeCanary',
-flags: ['--no-sandbox']
+flags: [
+  '--headless',
+  '--no-sandbox'
+]
 }
     },
     preprocessors: {
@@ -78,7 +85,8 @@ flags: ['--no-sandbox']
     colors: true,
     autoWatch: false,
     singleRun: true,
-    concurrency: Infinity
+    concurrency: Infinity,
+    browserNoActivityTimeout: 100000
   });
 
   // Coverage reporting
