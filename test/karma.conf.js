@@ -85,10 +85,10 @@ flags: [
     autoWatch: false,
     singleRun: true,
     concurrency: Infinity,
-    captureTimeout: 60000, // it was already there
-browserDisconnectTimeout : 10000,
-browserDisconnectTolerance : 1,
-browserNoActivityTimeout : 60000
+    captureTimeout: 210000,
+browserDisconnectTolerance: 3, //this one helps
+browserDisconnectTimeout : 210000,
+browserNoActivityTimeout : 210000,
   });
 
   // Coverage reporting
