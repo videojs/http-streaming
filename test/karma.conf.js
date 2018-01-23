@@ -60,7 +60,14 @@ module.exports = function(config) {
         flags: ['--no-sandbox']
       },
 chrome_canary_harmony: {
-base: 'ChromeCanary'
+base: 'ChromeCanary',
+flags: [
+  '--no-sandbox'
+],
+captureTimeout: 210000,
+browserDisconnectTolerance: 3, //this one helps
+browserDisconnectTimeout : 210000,
+browserNoActivityTimeout : 210000
 }
     },
     preprocessors: {
@@ -91,11 +98,7 @@ base: 'ChromeCanary'
     colors: true,
     autoWatch: false,
     singleRun: true,
-    concurrency: Infinity,
-    captureTimeout: 210000,
-browserDisconnectTolerance: 3, //this one helps
-browserDisconnectTimeout : 210000,
-browserNoActivityTimeout : 210000,
+    concurrency: Infinity
   });
 
   // Coverage reporting
