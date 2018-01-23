@@ -67,7 +67,7 @@ flags: [
 captureTimeout: 210000,
 browserDisconnectTolerance: 3, //this one helps
 browserDisconnectTimeout : 210000,
-browserNoActivityTimeout : 210000
+browserNoActivityTimeout : 400000
 }
     },
     preprocessors: {
