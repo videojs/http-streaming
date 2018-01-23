@@ -61,7 +61,7 @@ module.exports = function(config) {
         flags: ['--no-sandbox']
       },
 ChromeCanary: {
-base: 'Chrome',
+base: 'ChromeCanary',
 flags: ['--no-sandbox'],
 captureTimeout: 600000,
 browserDisconnectTolerance: 3, //this one helps
