@@ -18,7 +18,7 @@ module.exports = function(config) {
   };
 
   if (process.env.TRAVIS) {
-    config.browsers = ['ChromeHeadlessNoSandbox'];
+    config.browsers = ['ChromeHeadlessNoSandbox','chrome_canary_harmony'];
   }
 
   // If no browsers are specified, we enable `karma-detect-browsers`
@@ -48,7 +48,11 @@ module.exports = function(config) {
       ChromeHeadlessNoSandbox: {
         base: 'ChromeHeadless',
         flags: ['--no-sandbox']
-      }
+      },
+chrome_canary_harmony: {
+base: 'ChromeCanary',
+flags: ['--no-sandbox']
+}
     },
     preprocessors: {
       'test/**/*.test.js': ['browserify']
