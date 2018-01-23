@@ -22,7 +22,7 @@ module.exports = function(config) {
       'node_modules/video.js/dist/video-js.css',
       'dist-test/browserify-test.js',
       'dist-test/webpack-test.js',
-      'dist-test/videojs-http-streaming.js'
+      'test/**/*.test.js'
     ],
     browserConsoleLogOptions: {
       level: 'error',
@@ -111,16 +111,6 @@ module.exports = function(config) {
         'test/data/**',
       ]
     },
-    babelPreprocessor: {
-      options: {
-        presets: ['es2015'],
-        sourceMap: 'inline'
-      },
-      sourceFileName: function (file) {
-        return file.originalPath;
-      }
-    },
-
     reporters: ['dots'],
     port: 9876,
     colors: true,

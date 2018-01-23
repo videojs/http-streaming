@@ -1,8 +1,7 @@
 import videojs from 'video.js';
 import PlaylistLoader from './playlist-loader';
 import DashPlaylistLoader from './dash-playlist-loader';
-
-const noop = () => {};
+import noop from './util/noop';
 
 /**
  * Convert the properties of an HLS track into an audioTrackKind.
