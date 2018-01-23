@@ -60,10 +60,7 @@ module.exports = function(config) {
         flags: ['--no-sandbox']
       },
 chrome_canary_harmony: {
-base: 'ChromeCanary',
-flags: [
-  '--no-sandbox'
-]
+base: 'ChromeCanary'
 }
     },
     preprocessors: {
