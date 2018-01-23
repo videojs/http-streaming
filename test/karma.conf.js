@@ -61,9 +61,6 @@ module.exports = function(config) {
       },
 chrome_canary_harmony: {
 base: 'ChromeCanary',
-flags: [
-  '--no-sandbox'
-],
 captureTimeout: 210000,
 browserDisconnectTolerance: 3, //this one helps
 browserDisconnectTimeout : 210000,
