@@ -8,10 +8,20 @@ module.exports = function(config) {
     usePhantomJS: false,
     postDetection: function(availableBrowsers) {
       var safariIndex = availableBrowsers.indexOf('Safari');
+      var firfoxIndex = availableBrowsers.indexOf('Firefox');
 
+      var chromeIndex = availableBrowsers.indexOf('Chrome');
       if(safariIndex !== -1) {
         availableBrowsers.splice(safariIndex, 1);
         console.log("Disabled Safari as it was/is not supported");
+      }
+      if(firfoxIndex !== -1) {
+        availableBrowsers.splice(firfoxIndex, 1);
+        console.log("Disabled Firefox as it was/is not supported");
+      }
+      if(chromeIndex !== -1) {
+        availableBrowsers.splice(chromeIndex, 1);
+        console.log("Disabled Chrome as it was/is not supported");
       }
       return availableBrowsers;
     }
