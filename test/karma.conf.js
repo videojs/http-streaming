@@ -6,7 +6,6 @@ module.exports = function(config) {
 
   if (process.env.TRAVIS) {
     config.browsers = ['ChromeHeadlessNoSandbox'];
-
   }else {
     config.browsers = ['ChromeCanaryHeadlessNoSandbox', 'FirefoxHeadless'];
   }
