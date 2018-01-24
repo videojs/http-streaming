@@ -672,8 +672,7 @@ will stall. Fragmented MP4s are only supported on browser that have
 
 ## Testing
 
-For testing, you run `npm run test`. This will run tests using any of the
-browsers that karma-detect-browsers detects on your machine.
+For testing, you run `npm run test`. You will need Chrome, Chrome Canary and Firefox for running the tests.
 
 ## Debugging
 
