@@ -2,4 +2,4 @@ sudo: required
 dist: trusty
 language: node_js
 addons:
-  chrome: ChromeHeadless
+  chrome: stable
