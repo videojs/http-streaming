@@ -166,7 +166,7 @@ export default class DashPlaylistLoader extends EventTarget {
       resolveMediaGroupUris(this.master);
 
       this.trigger('loadedplaylist');
-      if (!this.request) {
+      if (!this.media_) {
         // no media playlist was specifically selected so start
         // from the first listed one
         this.media(this.master.playlists[0]);

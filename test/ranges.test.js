@@ -333,7 +333,8 @@ QUnit.test('creates printable ranges', function(assert) {
 });
 
 QUnit.test('converts time ranges to an array', function(assert) {
-  assert.deepEqual(Ranges.timeRangesToArray(createTimeRanges()), [], 'empty range empty array');
+  assert.deepEqual(Ranges.timeRangesToArray(createTimeRanges()), [],
+    'empty range empty array');
   assert.deepEqual(Ranges.timeRangesToArray(createTimeRanges([[0, 1]])),
                [{start: 0, end: 1}],
                'formats range correctly');
