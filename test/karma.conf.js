@@ -36,7 +36,7 @@ module.exports = function(config) {
       },
       ChromeCanaryHeadlessNoSandbox: {
         base: 'ChromeCanaryHeadless',
-        flags: ['--no-sandbox', '--no-user-gesture-required'],
+        flags: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required'],
        }
     },
     preprocessors: {
