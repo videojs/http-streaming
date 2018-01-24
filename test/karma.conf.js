@@ -5,7 +5,10 @@ module.exports = function(config) {
 
 
   if (process.env.TRAVIS) {
-    config.browsers = ['ChromeHeadlessNoSandbox','ChromeCanaryHeadlessNoSandbox','FirefoxHeadless'];
+    config.browsers = ['ChromeHeadlessNoSandbox'];
+  }
+  else {
+    config.browsers=['ChromeCanaryHeadlessNoSandbox','FirefoxHeadless'];
   }
 
   // If no browsers are specified, we enable `karma-detect-browsers`
