@@ -847,7 +847,7 @@ function(assert) {
       this.masterPlaylistController.master().playlists[0].excludeUntil,
       Infinity,
       'Blacklists unsupported playlist before initial selection');
-  }
+  };
 
   openMediaSource(this.player, this.clock);
 

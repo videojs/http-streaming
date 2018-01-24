@@ -163,16 +163,17 @@ const emeOptions = (keySystemOptions, videoPlaylist, audioPlaylist) => {
 };
 
 const setupEmeOptions = (hlsHandler) => {
-  if (hlsHandler.options_.sourceType === 'dash') {
-    const player = videojs.players[hlsHandler.tech_.options_.playerId];
+  if (hlsHandler.options_.sourceType !== 'dash') {
+    return;
+  }
+  const player = videojs.players[hlsHandler.tech_.options_.playerId];
 
-    if (player.eme) {
-      player.eme.options = emeOptions(
-        hlsHandler.source_.keySystems,
-        hlsHandler.playlists.media(),
-        hlsHandler.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader.media()
-      );
-    }
+  if (player.eme) {
+    player.eme.options = emeOptions(
+      hlsHandler.source_.keySystems,
+      hlsHandler.playlists.media(),
+      hlsHandler.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader.media()
+    );
   }
 };
 
@@ -649,10 +650,13 @@ const HlsSourceHandler = function(mode) {
           localOptions.hls.mode !== mode) {
         return false;
       }
-      return HlsSourceHandler.canPlayType(srcObj.type, videojs.mergeOptions(localOptions, sourceHandlerOptions));
+      return HlsSourceHandler.canPlayType(srcObj.type,
+        videojs.mergeOptions(localOptions, sourceHandlerOptions));
     },
     handleSource(source, tech, options = {}) {
-      let localOptions = videojs.mergeOptions(videojs.options, options, sourceHandlerOptions);
+      let localOptions = videojs.mergeOptions(videojs.options,
+                                              options,
+                                              sourceHandlerOptions);
 
       if (mode === 'flash') {
         // We need to trigger this asynchronously to give others the chance
@@ -669,7 +673,9 @@ const HlsSourceHandler = function(mode) {
       return tech.hls;
     },
     canPlayType(type, options = {}) {
-      let localOptions = videojs.mergeOptions(videojs.options, sourceHandlerOptions, options);
+      let localOptions = videojs.mergeOptions(videojs.options,
+                                              sourceHandlerOptions,
+                                              options);
 
       if (HlsSourceHandler.canPlayType(type, localOptions)) {
         return 'maybe';

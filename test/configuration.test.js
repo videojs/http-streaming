@@ -377,7 +377,8 @@ QUnit.test('DASH can be handled', function(assert) {
   let flashCanHandleSource = new HlsSourceHandler('flash').canHandleSource;
 
   assert.ok(htmlCanHandleSource({type: 'application/dash+xml'}), 'supported with MSE');
-  assert.notOk(flashCanHandleSource({type: 'application/dash+xml'}), 'not supported in Flash');
+  assert.notOk(flashCanHandleSource({type: 'application/dash+xml'}),
+    'not supported in Flash');
 });
 
 QUnit.test('global mode override - flash', function(assert) {
