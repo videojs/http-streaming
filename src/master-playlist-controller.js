@@ -15,8 +15,8 @@ import Decrypter from './decrypter-worker';
 import Config from './config';
 import {
   parseCodecs,
-  mapLegacyAvcCodecs_,
-  mimeTypesForPlaylist_
+  mapLegacyAvcCodecs,
+  mimeTypesForPlaylist
 } from './util/codecs.js';
 import { createMediaTypes, setupMediaGroups } from './media-groups';
 
@@ -965,7 +965,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    mimeTypes = mimeTypesForPlaylist_(this.masterPlaylistLoader_.master, media);
+    mimeTypes = mimeTypesForPlaylist(this.masterPlaylistLoader_.master, media);
     if (mimeTypes.length < 1) {
       this.error =
         'No compatible SourceBuffer configuration for the variant stream:' +
@@ -1005,7 +1005,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
           window.MediaSource &&
           window.MediaSource.isTypeSupported &&
           !window.MediaSource.isTypeSupported(
-            `video/mp4; codecs="${mapLegacyAvcCodecs_(variant.attributes.CODECS)}"`)) {
+            `video/mp4; codecs="${mapLegacyAvcCodecs(variant.attributes.CODECS)}"`)) {
         variant.excludeUntil = Infinity;
       }
     });

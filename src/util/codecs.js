@@ -52,7 +52,7 @@ export const parseCodecs = function(codecs = '') {
  *
  * @private
  */
-export const mapLegacyAvcCodecs_ = function(codecString) {
+export const mapLegacyAvcCodecs = function(codecString) {
   return codecString.replace(/avc1\.(\d+)\.(\d+)/i, (match) => {
     return translateLegacyCodecs([match])[0];
   });
@@ -142,7 +142,7 @@ const audioProfileFromDefault = (master, audioGroupId) => {
  *
  * @private
  */
-export const mimeTypesForPlaylist_ = function(master, media) {
+export const mimeTypesForPlaylist = function(master, media) {
   let containerType = getContainerType(media);
   let codecInfo = getCodecs(media);
   let mediaAttributes = media.attributes || {};
