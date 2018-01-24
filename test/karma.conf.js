@@ -6,8 +6,8 @@ module.exports = function(config) {
 
   if (process.env.TRAVIS) {
     config.browsers = ['ChromeHeadlessNoSandbox'];
-  }else {
-    config.browsers = ['ChromeCanaryHeadlessNoSandbox', 'FirefoxHeadless'];
+  } else {
+    config.browsers = ['ChromeHeadlessNoSandbox', 'ChromeCanaryHeadlessNoSandbox', 'FirefoxHeadless'];
   }
 
   // If no browsers are specified, we enable `karma-detect-browsers`
@@ -32,7 +32,7 @@ module.exports = function(config) {
     customLaunchers: {
       ChromeHeadlessNoSandbox: {
         base: 'ChromeHeadless',
-        flags: ['--no-sandbox']
+        flags: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required']
       },
       ChromeCanaryHeadlessNoSandbox: {
         base: 'ChromeCanaryHeadless',
