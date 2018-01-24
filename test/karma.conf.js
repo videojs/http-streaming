@@ -6,9 +6,8 @@ module.exports = function(config) {
 
   if (process.env.TRAVIS) {
     config.browsers = ['ChromeHeadlessNoSandbox'];
-  }
-  else {
-    config.browsers=['ChromeCanaryHeadlessNoSandbox','FirefoxHeadless'];
+  }else {
+    config.browsers = ['ChromeCanaryHeadlessNoSandbox', 'FirefoxHeadless'];
   }
 
   // If no browsers are specified, we enable `karma-detect-browsers`
@@ -37,7 +36,7 @@ module.exports = function(config) {
       },
       ChromeCanaryHeadlessNoSandbox: {
         base: 'ChromeCanaryHeadless',
-        flags: ['--no-sandbox','--autoplay-policy=no-user-gesture-required'],
+        flags: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required'],
        }
     },
     preprocessors: {
