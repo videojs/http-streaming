@@ -1,9 +1,10 @@
+import document from 'global/document';
 import QUnit from 'qunit';
 import videojs from 'video.js';
 /* eslint-disable no-unused-vars */
 import { Hls } from '../src/videojs-http-streaming';
 
-let when = function(element, type, cb, condition) {
+const when = function(element, type, cb, condition) {
   element.on(type, function func() {
     if (condition()) {
       element.off(type, func);
@@ -12,16 +13,16 @@ let when = function(element, type, cb, condition) {
   });
 };
 
-let playFor = function(player, time, cb) {
-  let targetTime = player.currentTime() + time;
+const playFor = function(player, time, cb) {
+  const targetTime = player.currentTime() + time;
 
   when(player, 'timeupdate', cb, () => player.currentTime() >= targetTime);
 };
 
 QUnit.module('Playback', {
   beforeEach(assert) {
-    let done = assert.async();
-    let video = document.createElement('video');
+    const done = assert.async();
+    const video = document.createElement('video');
 
     video.width = 600;
     video.height = 300;
@@ -32,10 +33,10 @@ QUnit.module('Playback', {
 });
 
 QUnit.test('Advanced Bip Bop', function(assert) {
-  let done = assert.async();
+  const done = assert.async();
 
   assert.expect(2);
-  let player = this.player;
+  const player = this.player;
 
   player.autoplay(true);
 
@@ -53,10 +54,10 @@ QUnit.test('Advanced Bip Bop', function(assert) {
 });
 
 QUnit.test('Advanced Bip Bop preload=none', function(assert) {
-  let done = assert.async();
+  const done = assert.async();
 
   assert.expect(2);
-  let player = this.player;
+  const player = this.player;
 
   player.autoplay(true);
   player.preload('none');

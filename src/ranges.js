@@ -27,7 +27,7 @@ const clamp = function(num, [start, end]) {
   return Math.min(Math.max(start, num), end);
 };
 const filterRanges = function(timeRanges, predicate) {
-  let results = [];
+  const results = [];
   let i;
 
   if (timeRanges && timeRanges.length) {
@@ -78,11 +78,11 @@ const findGaps = function(buffered) {
     return videojs.createTimeRanges();
   }
 
-  let ranges = [];
+  const ranges = [];
 
   for (let i = 1; i < buffered.length; i++) {
-    let start = buffered.end(i - 1);
-    let end = buffered.start(i);
+    const start = buffered.end(i - 1);
+    const end = buffered.start(i);
 
     ranges.push([start, end]);
   }
@@ -103,8 +103,8 @@ const findSoleUncommonTimeRangesEnd = function(original, update) {
   let i;
   let start;
   let end;
-  let result = [];
-  let edges = [];
+  const result = [];
+  const edges = [];
 
   // In order to qualify as a possible candidate, the end point must:
   //  1) Not have already existed in the `original` ranges
@@ -160,8 +160,8 @@ const bufferIntersection = function(bufferA, bufferB) {
   let start = null;
   let end = null;
   let arity = 0;
-  let extents = [];
-  let ranges = [];
+  const extents = [];
+  const ranges = [];
 
   if (!bufferA || !bufferA.length || !bufferB || !bufferB.length) {
     return videojs.createTimeRange();
@@ -234,11 +234,11 @@ const calculateBufferedPercent = function(adjustedRange,
                                           referenceRange,
                                           currentTime,
                                           buffered) {
-  let referenceDuration = referenceRange.end(0) - referenceRange.start(0);
-  let adjustedDuration = adjustedRange.end(0) - adjustedRange.start(0);
-  let bufferMissingFromAdjusted = referenceDuration - adjustedDuration;
-  let adjustedIntersection = bufferIntersection(adjustedRange, buffered);
-  let referenceIntersection = bufferIntersection(referenceRange, buffered);
+  const referenceDuration = referenceRange.end(0) - referenceRange.start(0);
+  const adjustedDuration = adjustedRange.end(0) - adjustedRange.start(0);
+  const bufferMissingFromAdjusted = referenceDuration - adjustedDuration;
+  const adjustedIntersection = bufferIntersection(adjustedRange, buffered);
+  const referenceIntersection = bufferIntersection(referenceRange, buffered);
   let adjustedOverlap = 0;
   let referenceOverlap = 0;
 
@@ -285,10 +285,10 @@ const getSegmentBufferedPercent = function(startOfSegment,
                                            segmentDuration,
                                            currentTime,
                                            buffered) {
-  let endOfSegment = startOfSegment + segmentDuration;
+  const endOfSegment = startOfSegment + segmentDuration;
 
   // The entire time range of the segment
-  let originalSegmentRange = videojs.createTimeRanges([[
+  const originalSegmentRange = videojs.createTimeRanges([[
     startOfSegment,
     endOfSegment
   ]]);
@@ -299,7 +299,7 @@ const getSegmentBufferedPercent = function(startOfSegment,
   // for that and the function will still return 100% if a only half of a
   // segment is actually in the buffer as long as the currentTime is also
   // half-way through the segment
-  let adjustedSegmentRange = videojs.createTimeRanges([[
+  const adjustedSegmentRange = videojs.createTimeRanges([[
     clamp(startOfSegment, [currentTime, endOfSegment]),
     endOfSegment
   ]]);
@@ -310,7 +310,7 @@ const getSegmentBufferedPercent = function(startOfSegment,
     return 0;
   }
 
-  let percent = calculateBufferedPercent(adjustedSegmentRange,
+  const percent = calculateBufferedPercent(adjustedSegmentRange,
                                          originalSegmentRange,
                                          currentTime,
                                          buffered);
@@ -331,7 +331,7 @@ const getSegmentBufferedPercent = function(startOfSegment,
  * @returns {String} a human readable string
  */
 const printableRange = (range) => {
-  let strArr = [];
+  const strArr = [];
 
   if (!range || !range.length) {
     return '';

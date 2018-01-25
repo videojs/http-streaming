@@ -7,7 +7,7 @@ import videojs from 'video.js';
 const makeMockPlaylist = function(options) {
   options = options || {};
 
-  let playlist = {
+  const playlist = {
     segments: [],
     attributes: {}
   };
@@ -42,7 +42,7 @@ const makeMockPlaylist = function(options) {
 };
 
 const makeMockHlsHandler = function(playlistOptions) {
-  let mcp = {
+  const mcp = {
     fastQualityChange_: () => {
       mcp.fastQualityChange_.calls++;
     }
@@ -50,7 +50,7 @@ const makeMockHlsHandler = function(playlistOptions) {
 
   mcp.fastQualityChange_.calls = 0;
 
-  let hlsHandler = {
+  const hlsHandler = {
     masterPlaylistController_: mcp
   };
 
@@ -72,7 +72,7 @@ const makeMockHlsHandler = function(playlistOptions) {
 QUnit.module('Rendition Selector API Mixin');
 
 QUnit.test('adds the representations API to HlsHandler', function(assert) {
-  let hlsHandler = makeMockHlsHandler([
+  const hlsHandler = makeMockHlsHandler([
     {}
   ]);
 
@@ -83,19 +83,19 @@ QUnit.test('adds the representations API to HlsHandler', function(assert) {
 });
 
 QUnit.test('returns proper number of representations', function(assert) {
-  let hlsHandler = makeMockHlsHandler([
+  const hlsHandler = makeMockHlsHandler([
     {}, {}, {}
   ]);
 
   RenditionMixin(hlsHandler);
 
-  let renditions = hlsHandler.representations();
+  const renditions = hlsHandler.representations();
 
   assert.equal(renditions.length, 3, 'number of renditions is 3');
 });
 
 QUnit.test('returns representations in playlist order', function(assert) {
-  let hlsHandler = makeMockHlsHandler([
+  const hlsHandler = makeMockHlsHandler([
     {
       bandwidth: 10
     },
@@ -109,7 +109,7 @@ QUnit.test('returns representations in playlist order', function(assert) {
 
   RenditionMixin(hlsHandler);
 
-  let renditions = hlsHandler.representations();
+  const renditions = hlsHandler.representations();
 
   assert.equal(renditions[0].bandwidth, 10, 'rendition has bandwidth 10');
   assert.equal(renditions[1].bandwidth, 20, 'rendition has bandwidth 20');
@@ -117,7 +117,7 @@ QUnit.test('returns representations in playlist order', function(assert) {
 });
 
 QUnit.test('returns representations with width and height if present', function(assert) {
-  let hlsHandler = makeMockHlsHandler([
+  const hlsHandler = makeMockHlsHandler([
     {
       bandwidth: 10,
       width: 100,
@@ -135,7 +135,7 @@ QUnit.test('returns representations with width and height if present', function(
 
   RenditionMixin(hlsHandler);
 
-  let renditions = hlsHandler.representations();
+  const renditions = hlsHandler.representations();
 
   assert.equal(renditions[0].width, 100, 'rendition has a width of 100');
   assert.equal(renditions[0].height, 200, 'rendition has a height of 200');
@@ -147,7 +147,7 @@ QUnit.test('returns representations with width and height if present', function(
 
 QUnit.test('incompatible playlists are not included in the representations list',
 function(assert) {
-  let hlsHandler = makeMockHlsHandler([
+  const hlsHandler = makeMockHlsHandler([
     {
       bandwidth: 0,
       excludeUntil: Infinity,
@@ -176,7 +176,7 @@ function(assert) {
 
   RenditionMixin(hlsHandler);
 
-  let renditions = hlsHandler.representations();
+  const renditions = hlsHandler.representations();
 
   assert.equal(renditions.length, 4, 'incompatible rendition not added');
   assert.equal(renditions[0].id, 'media1.m3u8', 'rendition is enabled');
@@ -188,7 +188,7 @@ function(assert) {
 QUnit.test('setting a representation to disabled sets disabled to true',
 function(assert) {
   let renditiondisabled = 0;
-  let hlsHandler = makeMockHlsHandler([
+  const hlsHandler = makeMockHlsHandler([
     {
       bandwidth: 0,
       excludeUntil: 0,
@@ -200,7 +200,7 @@ function(assert) {
       uri: 'media1.m3u8'
     }
   ]);
-  let playlists = hlsHandler.playlists.master.playlists;
+  const playlists = hlsHandler.playlists.master.playlists;
 
   hlsHandler.playlists.on('renditiondisabled', function() {
     renditiondisabled++;
@@ -208,7 +208,7 @@ function(assert) {
 
   RenditionMixin(hlsHandler);
 
-  let renditions = hlsHandler.representations();
+  const renditions = hlsHandler.representations();
 
   assert.equal(renditiondisabled, 0, 'renditiondisabled event has not been triggered');
   renditions[0].enabled(false);
@@ -225,7 +225,7 @@ function(assert) {
 QUnit.test('changing the enabled state of a representation calls fastQualityChange_',
 function(assert) {
   let renditionEnabledEvents = 0;
-  let hlsHandler = makeMockHlsHandler([
+  const hlsHandler = makeMockHlsHandler([
     {
       bandwidth: 0,
       disabled: true,
@@ -236,7 +236,7 @@ function(assert) {
       uri: 'media1.m3u8'
     }
   ]);
-  let mpc = hlsHandler.masterPlaylistController_;
+  const mpc = hlsHandler.masterPlaylistController_;
 
   hlsHandler.playlists.on('renditionenabled', function() {
     renditionEnabledEvents++;
@@ -244,7 +244,7 @@ function(assert) {
 
   RenditionMixin(hlsHandler);
 
-  let renditions = hlsHandler.representations();
+  const renditions = hlsHandler.representations();
 
   assert.equal(mpc.fastQualityChange_.calls, 0, 'fastQualityChange_ was never called');
   assert.equal(renditionEnabledEvents, 0,

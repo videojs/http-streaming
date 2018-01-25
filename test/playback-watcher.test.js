@@ -158,7 +158,7 @@ QUnit.test('skips over gap in Chrome due to video underflow', function(assert) {
 
   this.player.currentTime(13);
 
-  let seeks = [];
+  const seeks = [];
 
   this.player.tech_.setCurrentTime = (time) => {
     seeks.push(time);
@@ -190,7 +190,7 @@ function(assert) {
 
   this.player.currentTime(0);
 
-  let seeks = [];
+  const seeks = [];
 
   this.player.tech_.setCurrentTime = (time) => {
     seeks.push(time);
@@ -226,7 +226,7 @@ QUnit.test('seeks to current time when stuck inside buffered region', function(a
 
   this.player.currentTime(10);
 
-  let seeks = [];
+  const seeks = [];
 
   this.player.tech_.setCurrentTime = (time) => {
     seeks.push(time);
@@ -314,7 +314,7 @@ QUnit.test('does not seek to current time when stuck near edge of buffered regio
 
     this.player.currentTime(29.98);
 
-    let seeks = [];
+    const seeks = [];
 
     this.player.tech_.setCurrentTime = (time) => {
       seeks.push(time);
@@ -352,11 +352,10 @@ QUnit.test('does not seek to current time when stuck near edge of buffered regio
 
 QUnit.test('fires notifications when activated', function(assert) {
   let buffered = [[]];
-  let seekable = [[]];
+  const seekable = [[]];
   let currentTime = 0;
   let hlsLiveResyncEvents = 0;
   let hlsVideoUnderflowEvents = 0;
-  let playbackWatcher;
 
   this.player.src({
     src: 'liveStart30sBefore.m3u8',
@@ -378,7 +377,8 @@ QUnit.test('fires notifications when activated', function(assert) {
       }
     };
   };
-  playbackWatcher = this.player.tech_.hls.playbackWatcher_;
+  const playbackWatcher = this.player.tech_.hls.playbackWatcher_;
+
   playbackWatcher.seekable = function() {
     return {
       length: seekable.length,
@@ -428,8 +428,8 @@ QUnit.test('fixes bad seeks', function(assert) {
   this.player.tech_.trigger('playing');
   this.clock.tick(1);
 
-  let playbackWatcher = this.player.tech_.hls.playbackWatcher_;
-  let seeks = [];
+  const playbackWatcher = this.player.tech_.hls.playbackWatcher_;
+  const seeks = [];
   let seekable;
   let seeking;
   let currentTime;
@@ -481,8 +481,8 @@ QUnit.test('corrects seek outside of seekable', function(assert) {
   this.player.tech_.trigger('playing');
   this.clock.tick(1);
 
-  let playbackWatcher = this.player.tech_.hls.playbackWatcher_;
-  let seeks = [];
+  const playbackWatcher = this.player.tech_.hls.playbackWatcher_;
+  const seeks = [];
   let seekable;
   let seeking;
   let currentTime;
@@ -570,7 +570,7 @@ QUnit.test('calls fixesBadSeeks_ on seekablechanged', function(assert) {
   this.player.tech_.trigger('playing');
   this.clock.tick(1);
 
-  let playbackWatcher = this.player.tech_.hls.playbackWatcher_;
+  const playbackWatcher = this.player.tech_.hls.playbackWatcher_;
   let fixesBadSeeks_ = 0;
 
   playbackWatcher.fixesBadSeeks_ = () => fixesBadSeeks_++;
@@ -651,7 +651,7 @@ QUnit.test('skips gap from video underflow', function(assert) {
 });
 
 QUnit.test('detects live window falloff', function(assert) {
-  let beforeSeekableWindow_ =
+  const beforeSeekableWindow_ =
     this.playbackWatcher.beforeSeekableWindow_.bind(this.playbackWatcher);
 
   assert.ok(
@@ -682,7 +682,7 @@ QUnit.test('detects live window falloff', function(assert) {
 });
 
 QUnit.test('detects beyond seekable window', function(assert) {
-  let afterSeekableWindow_ =
+  const afterSeekableWindow_ =
     this.playbackWatcher.afterSeekableWindow_.bind(this.playbackWatcher);
 
   assert.ok(

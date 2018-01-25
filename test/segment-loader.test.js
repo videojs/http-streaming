@@ -110,8 +110,8 @@ QUnit.test('illegalMediaSwitch detects illegal media switches', function(assert)
 
 QUnit.test('safeBackBufferTrimTime determines correct safe removeToTime',
 function(assert) {
-  let seekable = videojs.createTimeRanges([[75, 120]]);
-  let targetDuration = 10;
+  const seekable = videojs.createTimeRanges([[75, 120]]);
+  const targetDuration = 10;
   let currentTime = 70;
 
   assert.equal(safeBackBufferTrimTime(seekable, currentTime, targetDuration), 40,
@@ -163,7 +163,7 @@ QUnit.module('SegmentLoader', function(hooks) {
       this.startTime.restore();
     });
 
-    QUnit.test(`load waits until a playlist and mime type are specified to proceed`,
+    QUnit.test('load waits until a playlist and mime type are specified to proceed',
     function(assert) {
       loader.load();
 
@@ -179,7 +179,7 @@ QUnit.module('SegmentLoader', function(hooks) {
       assert.equal(loader.state, 'WAITING', 'transitioned states');
     });
 
-    QUnit.test(`calling mime type and load begins buffering`, function(assert) {
+    QUnit.test('calling mime type and load begins buffering', function(assert) {
       assert.equal(loader.state, 'INIT', 'starts in the init state');
       loader.playlist(playlistWithDuration(10));
       assert.equal(loader.state, 'INIT', 'starts in the init state');
@@ -220,7 +220,7 @@ QUnit.module('SegmentLoader', function(hooks) {
     });
 
     QUnit.test('updates timestamps when segments do not start at zero', function(assert) {
-      let playlist = playlistWithDuration(10);
+      const playlist = playlistWithDuration(10);
 
       playlist.segments.forEach((segment) => {
         segment.map = {
@@ -261,7 +261,7 @@ QUnit.module('SegmentLoader', function(hooks) {
 
       this.seekable = videojs.createTimeRanges([[0, 10]]);
       this.syncController.probeSegmentInfo = (segmentInfo) => {
-        let segment = segmentInfo.segment;
+        const segment = segmentInfo.segment;
 
         segment.end = 10;
       };
@@ -302,7 +302,7 @@ QUnit.module('SegmentLoader', function(hooks) {
     });
 
     QUnit.test('sets the timestampOffset on timeline change', function(assert) {
-      let playlist = playlistWithDuration(40);
+      const playlist = playlistWithDuration(40);
       let buffered = videojs.createTimeRanges();
       let hlsTimestampOffsetEvents = 0;
 
@@ -343,7 +343,7 @@ QUnit.module('SegmentLoader', function(hooks) {
     });
 
     QUnit.test('tracks segment end times as they are buffered', function(assert) {
-      let playlist = playlistWithDuration(20);
+      const playlist = playlistWithDuration(20);
 
       loader.syncController_.probeTsSegment_ = function(segmentInfo) {
         return { start: 0, end: 9.5 };
@@ -369,9 +369,9 @@ QUnit.module('SegmentLoader', function(hooks) {
 
     QUnit.test('loader triggers segmenttimemapping before appending segment',
     function(assert) {
-      let playlist = playlistWithDuration(20);
+      const playlist = playlistWithDuration(20);
       let segmenttimemappings = 0;
-      let timingInfo = { hasMapping: false };
+      const timingInfo = { hasMapping: false };
 
       this.syncController.probeSegmentInfo = () => timingInfo;
 
@@ -413,7 +413,7 @@ QUnit.module('SegmentLoader', function(hooks) {
                'as they are buffered',
       function(assert) {
         const track = loader.segmentMetadataTrack_;
-        let playlist = playlistWithDuration(50);
+        const playlist = playlistWithDuration(50);
         let probeResponse;
         let expectedCue;
 
@@ -588,12 +588,12 @@ QUnit.module('SegmentLoader', function(hooks) {
 
     QUnit.test('live playlists do not trigger ended', function(assert) {
       let endOfStreams = 0;
-      let playlist;
       let buffered = videojs.createTimeRanges();
 
       loader.buffered_ = () => buffered;
 
-      playlist = playlistWithDuration(10);
+      const playlist = playlistWithDuration(10);
+
       playlist.endList = false;
       loader.playlist(playlist);
       loader.mimeType(this.mimeType);
@@ -622,7 +622,7 @@ QUnit.module('SegmentLoader', function(hooks) {
 
     QUnit.test('saves segment info to new segment after playlist refresh',
     function(assert) {
-      let playlist = playlistWithDuration(40);
+      const playlist = playlistWithDuration(40);
       let buffered = videojs.createTimeRanges();
 
       loader.buffered_ = () => buffered;
@@ -654,7 +654,7 @@ QUnit.module('SegmentLoader', function(hooks) {
                    'correct segment reference');
 
       // playlist updated during waiting
-      let playlistUpdated = playlistWithDuration(40);
+      const playlistUpdated = playlistWithDuration(40);
 
       playlistUpdated.segments.shift();
       playlistUpdated.mediaSequence++;
@@ -689,7 +689,7 @@ QUnit.module('SegmentLoader', function(hooks) {
     QUnit.test(
       'saves segment info to old segment after playlist refresh if segment fell off',
     function(assert) {
-      let playlist = playlistWithDuration(40);
+      const playlist = playlistWithDuration(40);
       let buffered = videojs.createTimeRanges();
 
       loader.buffered_ = () => buffered;
@@ -721,7 +721,7 @@ QUnit.module('SegmentLoader', function(hooks) {
                    'correct segment reference');
 
       // playlist updated during waiting
-      let playlistUpdated = playlistWithDuration(40);
+      const playlistUpdated = playlistWithDuration(40);
 
       playlistUpdated.segments.shift();
       playlistUpdated.segments.shift();

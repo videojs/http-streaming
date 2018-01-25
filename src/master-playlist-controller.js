@@ -1,6 +1,7 @@
 /**
  * @file master-playlist-controller.js
  */
+import window from 'global/window';
 import PlaylistLoader from './playlist-loader';
 import DashPlaylistLoader from './dash-playlist-loader';
 import { isEnabled, isLowestEnabledRendition } from './playlist.js';
@@ -52,7 +53,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
   constructor(options) {
     super();
 
-    let {
+    const {
       url,
       withCredentials,
       mode,
@@ -165,8 +166,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
    */
   setupMasterPlaylistLoaderListeners_() {
     this.masterPlaylistLoader_.on('loadedmetadata', () => {
-      let media = this.masterPlaylistLoader_.media();
-      let requestTimeout = (this.masterPlaylistLoader_.targetDuration * 1.5) * 1000;
+      const media = this.masterPlaylistLoader_.media();
+      const requestTimeout = (this.masterPlaylistLoader_.targetDuration * 1.5) * 1000;
 
       // If we don't have any more available playlists, we don't want to
       // timeout the request.
@@ -215,7 +216,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     this.masterPlaylistLoader_.on('loadedplaylist', () => {
-      let updatedPlaylist = this.masterPlaylistLoader_.media();
+      const updatedPlaylist = this.masterPlaylistLoader_.media();
 
       if (!updatedPlaylist) {
         // blacklist any variants that are not supported by the browser before selecting
@@ -256,8 +257,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       }
 
       if (!updatedPlaylist.endList) {
-        let addSeekableRange = () => {
-          let seekable = this.seekable();
+        const addSeekableRange = () => {
+          const seekable = this.seekable();
 
           if (seekable.length !== 0) {
             this.mediaSource.addSeekableRange_(seekable.start(0), seekable.end(0));
@@ -265,7 +266,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
         };
 
         if (this.duration() !== Infinity) {
-          let onDurationchange = () => {
+          const onDurationchange = () => {
             if (this.duration() === Infinity) {
               addSeekableRange();
             } else {
@@ -290,8 +291,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     this.masterPlaylistLoader_.on('mediachange', () => {
-      let media = this.masterPlaylistLoader_.media();
-      let requestTimeout = (this.masterPlaylistLoader_.targetDuration * 1.5) * 1000;
+      const media = this.masterPlaylistLoader_.media();
+      const requestTimeout = (this.masterPlaylistLoader_.targetDuration * 1.5) * 1000;
 
       // If we don't have any more available playlists, we don't want to
       // timeout the request.
@@ -316,8 +317,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     this.masterPlaylistLoader_.on('playlistunchanged', () => {
-      let updatedPlaylist = this.masterPlaylistLoader_.media();
-      let playlistOutdated = this.stuckAtPlaylistEnd_(updatedPlaylist);
+      const updatedPlaylist = this.masterPlaylistLoader_.media();
+      const playlistOutdated = this.stuckAtPlaylistEnd_(updatedPlaylist);
 
       if (playlistOutdated) {
         // Playlist has stopped updating and we're stuck at its end. Try to
@@ -346,13 +347,13 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * @private
    */
   triggerPresenceUsage_(master, media) {
-    let mediaGroups = master.mediaGroups || {};
+    const mediaGroups = master.mediaGroups || {};
     let defaultDemuxed = true;
-    let audioGroupKeys = Object.keys(mediaGroups.AUDIO);
+    const audioGroupKeys = Object.keys(mediaGroups.AUDIO);
 
-    for (let mediaGroup in mediaGroups.AUDIO) {
-      for (let label in mediaGroups.AUDIO[mediaGroup]) {
-        let properties = mediaGroups.AUDIO[mediaGroup][label];
+    for (const mediaGroup in mediaGroups.AUDIO) {
+      for (const label in mediaGroups.AUDIO[mediaGroup]) {
+        const properties = mediaGroups.AUDIO[mediaGroup][label];
 
         if (!properties.uri) {
           defaultDemuxed = false;
@@ -496,7 +497,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * @private
    */
   fastQualityChange_() {
-    let media = this.selectPlaylist();
+    const media = this.selectPlaylist();
 
     if (media !== this.masterPlaylistLoader_.media()) {
       this.masterPlaylistLoader_.media(media);
@@ -522,7 +523,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       this.load();
     }
 
-    let seekable = this.tech_.seekable();
+    const seekable = this.tech_.seekable();
 
     // if the viewer has paused and we fell out of the live window,
     // seek forward to the live point
@@ -538,7 +539,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * player and video are loaded and initialized.
    */
   setupFirstPlay() {
-    let media = this.masterPlaylistLoader_.media();
+    const media = this.masterPlaylistLoader_.media();
 
     // Check that everything is ready to begin buffering for the first call to play
     //  If 1) there is no active media
@@ -639,14 +640,14 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * @return {boolean} whether the playlist has stopped being updated or not
    */
   stuckAtPlaylistEnd_(playlist) {
-    let seekable = this.seekable();
+    const seekable = this.seekable();
 
     if (!seekable.length) {
       // playlist doesn't have enough information to determine whether we are stuck
       return false;
     }
 
-    let expired =
+    const expired =
       this.syncController_.getExpiredTime(playlist, this.mediaSource.duration);
 
     if (expired === null) {
@@ -655,15 +656,15 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     // does not use the safe live end to calculate playlist end, since we
     // don't want to say we are stuck while there is still content
-    let absolutePlaylistEnd = Hls.Playlist.playlistEnd(playlist, expired);
-    let currentTime = this.tech_.currentTime();
-    let buffered = this.tech_.buffered();
+    const absolutePlaylistEnd = Hls.Playlist.playlistEnd(playlist, expired);
+    const currentTime = this.tech_.currentTime();
+    const buffered = this.tech_.buffered();
 
     if (!buffered.length) {
       // return true if the playhead reached the absolute end of the playlist
       return absolutePlaylistEnd - currentTime <= Ranges.SAFE_TIME_DELTA;
     }
-    let bufferedEnd = buffered.end(buffered.length - 1);
+    const bufferedEnd = buffered.end(buffered.length - 1);
 
     // return true if there is too little buffer left and buffer has reached absolute
     // end of playlist
@@ -682,14 +683,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * playlist
    */
   blacklistCurrentPlaylist(error = {}, blacklistDuration) {
-    let currentPlaylist;
-    let nextPlaylist;
-
     // If the `error` was generated by the playlist loader, it will contain
     // the playlist we were trying to load (but failed) and that should be
     // blacklisted instead of the currently selected playlist which is likely
     // out-of-date in this scenario
-    currentPlaylist = error.playlist || this.masterPlaylistLoader_.media();
+    const currentPlaylist = error.playlist || this.masterPlaylistLoader_.media();
 
     blacklistDuration = blacklistDuration ||
                         error.blacklistDuration ||
@@ -707,7 +705,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       }
     }
 
-    let isFinalRendition =
+    const isFinalRendition =
       this.masterPlaylistLoader_.master.playlists.filter(isEnabled).length === 1;
 
     if (isFinalRendition) {
@@ -724,7 +722,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.tech_.trigger({type: 'usage', name: 'hls-rendition-blacklisted'});
 
     // Select a new playlist
-    nextPlaylist = this.selectPlaylist();
+    const nextPlaylist = this.selectPlaylist();
+
     videojs.log.warn('Problem encountered with the current HLS playlist.' +
                      (error.message ? ' ' + error.message : '') +
                      ' Switching to another playlist.');
@@ -752,7 +751,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * @return {TimeRange} the current time
    */
   setCurrentTime(currentTime) {
-    let buffered = Ranges.findRange(this.tech_.buffered(), currentTime);
+    const buffered = Ranges.findRange(this.tech_.buffered(), currentTime);
 
     if (!(this.masterPlaylistLoader_ && this.masterPlaylistLoader_.media())) {
       // return immediately if the metadata is not ready yet
@@ -816,7 +815,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
   }
 
   onSyncInfoUpdate_() {
-    let mainSeekable;
     let audioSeekable;
 
     if (!this.masterPlaylistLoader_) {
@@ -836,7 +834,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    mainSeekable = Hls.Playlist.seekable(media, expired);
+    const mainSeekable = Hls.Playlist.seekable(media, expired);
 
     if (mainSeekable.length === 0) {
       return;
@@ -881,10 +879,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * Update the player duration
    */
   updateDuration() {
-    let oldDuration = this.mediaSource.duration;
+    const oldDuration = this.mediaSource.duration;
     let newDuration = Hls.Playlist.duration(this.masterPlaylistLoader_.media());
-    let buffered = this.tech_.buffered();
-    let setDuration = () => {
+    const buffered = this.tech_.buffered();
+    const setDuration = () => {
       this.mediaSource.duration = newDuration;
       this.tech_.trigger('durationchange');
 
@@ -918,7 +916,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     ['AUDIO', 'SUBTITLES'].forEach((type) => {
       const groups = this.mediaTypes_[type].groups;
 
-      for (let id in groups) {
+      for (const id in groups) {
         groups[id].forEach((group) => {
           if (group.playlistLoader) {
             group.playlistLoader.dispose();
@@ -956,8 +954,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * @private
    */
   setupSourceBuffers_() {
-    let media = this.masterPlaylistLoader_.media();
-    let mimeTypes;
+    const media = this.masterPlaylistLoader_.media();
 
     // wait until a media playlist is available and the Media Source is
     // attached
@@ -965,7 +962,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    mimeTypes = mimeTypesForPlaylist(this.masterPlaylistLoader_.master, media);
+    const mimeTypes = mimeTypesForPlaylist(this.masterPlaylistLoader_.master, media);
+
     if (mimeTypes.length < 1) {
       this.error =
         'No compatible SourceBuffer configuration for the variant stream:' +
@@ -1062,7 +1060,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
   updateAdCues_(media) {
     let offset = 0;
-    let seekable = this.seekable();
+    const seekable = this.seekable();
 
     if (seekable.length) {
       offset = seekable.start(0);

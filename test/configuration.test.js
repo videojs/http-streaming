@@ -40,7 +40,9 @@ QUnit.module('Configuration - Deprication', {
     this.clock = this.env.clock;
     this.old = {};
 
-    CONFIG_KEYS.forEach((key) => this.old[key] = Config[key]);
+    CONFIG_KEYS.forEach((key) => {
+      this.old[key] = Config[key];
+    });
 
     // force the HLS tech to run
     this.old.NativeHlsSupport = videojs.Hls.supportsNativeHls;
@@ -48,7 +50,9 @@ QUnit.module('Configuration - Deprication', {
   },
 
   afterEach() {
-    CONFIG_KEYS.forEach((key) => Config[key] = this.old[key]);
+    CONFIG_KEYS.forEach((key) => {
+      Config[key] = this.old[key];
+    });
 
     this.env.restore();
     this.mse.restore();
@@ -258,7 +262,7 @@ options.forEach((opt) => {
 
     openMediaSource(this.player, this.clock);
 
-    let hls = this.player.tech_.hls;
+    const hls = this.player.tech_.hls;
 
     assert.equal(hls.options_[opt.name],
                 opt.default,
@@ -275,7 +279,7 @@ options.forEach((opt) => {
 
     openMediaSource(this.player, this.clock);
 
-    let hls = this.player.tech_.hls;
+    const hls = this.player.tech_.hls;
 
     assert.equal(hls.options_[opt.name],
                 opt.test,
@@ -283,7 +287,7 @@ options.forEach((opt) => {
   });
 
   QUnit.test(`sourceHandler ${opt.name}`, function(assert) {
-    let sourceHandlerOptions = {html5: {hls: {}}};
+    const sourceHandlerOptions = {html5: {hls: {}}};
 
     sourceHandlerOptions.html5.hls[opt.name] = opt.test;
     this.player = createPlayer(sourceHandlerOptions);
@@ -294,7 +298,7 @@ options.forEach((opt) => {
 
     openMediaSource(this.player, this.clock);
 
-    let hls = this.player.tech_.hls;
+    const hls = this.player.tech_.hls;
 
     assert.equal(hls.options_[opt.name],
                 opt.test,
@@ -302,7 +306,7 @@ options.forEach((opt) => {
   });
 
   QUnit.test(`src ${opt.name}`, function(assert) {
-    let srcOptions = {
+    const srcOptions = {
       src: 'http://example.com/media.m3u8',
       type: 'application/vnd.apple.mpegurl'
     };
@@ -313,7 +317,7 @@ options.forEach((opt) => {
 
     openMediaSource(this.player, this.clock);
 
-    let hls = this.player.tech_.hls;
+    const hls = this.player.tech_.hls;
 
     assert.equal(hls.options_[opt.name],
                 opt.test,
@@ -321,7 +325,7 @@ options.forEach((opt) => {
   });
 
   QUnit.test(`srcHandler overrides global ${opt.name}`, function(assert) {
-    let sourceHandlerOptions = {html5: {hls: {}}};
+    const sourceHandlerOptions = {html5: {hls: {}}};
 
     sourceHandlerOptions.html5.hls[opt.name] = opt.test;
     videojs.options.hls[opt.name] = opt.alt;
@@ -333,7 +337,7 @@ options.forEach((opt) => {
 
     openMediaSource(this.player, this.clock);
 
-    let hls = this.player.tech_.hls;
+    const hls = this.player.tech_.hls;
 
     assert.equal(hls.options_[opt.name],
                 opt.test,
@@ -341,8 +345,8 @@ options.forEach((opt) => {
   });
 
   QUnit.test(`src overrides sourceHandler ${opt.name}`, function(assert) {
-    let sourceHandlerOptions = {html5: {hls: {}}};
-    let srcOptions = {
+    const sourceHandlerOptions = {html5: {hls: {}}};
+    const srcOptions = {
       src: 'http://example.com/media.m3u8',
       type: 'application/vnd.apple.mpegurl'
     };
@@ -354,7 +358,7 @@ options.forEach((opt) => {
 
     openMediaSource(this.player, this.clock);
 
-    let hls = this.player.tech_.hls;
+    const hls = this.player.tech_.hls;
 
     assert.equal(hls.options_[opt.name],
                 opt.test,
@@ -373,8 +377,8 @@ QUnit.module('Configuration - Global Only', {
 });
 
 QUnit.test('DASH can be handled', function(assert) {
-  let htmlCanHandleSource = new HlsSourceHandler('html5').canHandleSource;
-  let flashCanHandleSource = new HlsSourceHandler('flash').canHandleSource;
+  const htmlCanHandleSource = new HlsSourceHandler('html5').canHandleSource;
+  const flashCanHandleSource = new HlsSourceHandler('flash').canHandleSource;
 
   assert.ok(htmlCanHandleSource({type: 'application/dash+xml'}), 'supported with MSE');
   assert.notOk(flashCanHandleSource({type: 'application/dash+xml'}),
@@ -383,8 +387,8 @@ QUnit.test('DASH can be handled', function(assert) {
 
 QUnit.test('global mode override - flash', function(assert) {
   videojs.options.hls.mode = 'flash';
-  let htmlCanHandleSource = new HlsSourceHandler('html5').canHandleSource;
-  let flashCanHandleSource = new HlsSourceHandler('flash').canHandleSource;
+  const htmlCanHandleSource = new HlsSourceHandler('html5').canHandleSource;
+  const flashCanHandleSource = new HlsSourceHandler('flash').canHandleSource;
 
   assert.notOk(htmlCanHandleSource({type: 'application/x-mpegURL'}),
     'Cannot play html as we are overriden not to');
@@ -401,8 +405,8 @@ QUnit.test('global mode override - flash', function(assert) {
 
 QUnit.test('global mode override - html', function(assert) {
   videojs.options.hls.mode = 'html5';
-  let htmlCanHandleSource = new HlsSourceHandler('html5').canHandleSource;
-  let flashCanHandleSource = new HlsSourceHandler('flash').canHandleSource;
+  const htmlCanHandleSource = new HlsSourceHandler('html5').canHandleSource;
+  const flashCanHandleSource = new HlsSourceHandler('flash').canHandleSource;
 
   assert.ok(htmlCanHandleSource({type: 'application/x-mpegURL'}),
     'Can play html as we support it and overrides allow');

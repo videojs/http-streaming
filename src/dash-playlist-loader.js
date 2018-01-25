@@ -5,10 +5,20 @@ import {
   resolveMediaGroupUris
 } from './playlist-loader';
 
+/**
+ *
+ */
 export default class DashPlaylistLoader extends EventTarget {
   // DashPlaylistLoader must accept either a src url or a playlist because subsequent
   // playlist loader setups from media groups will expect to be able to pass a playlist
   // (since there aren't external URLs to media playlists with DASH)
+
+  /**
+   *
+   * @param {Object} srcUrlOrPlaylist
+   * @param {Object} hls
+   * @param {boolean} withCredentials
+   */
   constructor(srcUrlOrPlaylist, hls, withCredentials) {
     super();
 
@@ -36,10 +46,16 @@ export default class DashPlaylistLoader extends EventTarget {
     }, 0);
   }
 
+  /**
+   *
+   */
   dispose() {
     this.stopRequest();
   }
 
+  /**
+   *
+   */
   stopRequest() {
     if (this.request) {
       const oldRequest = this.request;
@@ -50,6 +66,12 @@ export default class DashPlaylistLoader extends EventTarget {
     }
   }
 
+  /**
+   *
+   * @param {Object} playlist
+   *
+   * @return {Object}
+   */
   media(playlist) {
     // getter
     if (!playlist) {
@@ -84,6 +106,9 @@ export default class DashPlaylistLoader extends EventTarget {
     return;
   }
 
+  /**
+   *
+   */
   pause() {
     this.stopRequest();
     if (this.state === 'HAVE_NOTHING') {
@@ -93,6 +118,9 @@ export default class DashPlaylistLoader extends EventTarget {
     }
   }
 
+  /**
+   *
+   */
   load() {
     // because the playlists are internal to the manifest, load should either load the
     // main manifest, or do nothing but trigger an event
@@ -104,6 +132,9 @@ export default class DashPlaylistLoader extends EventTarget {
     this.trigger('loadedplaylist');
   }
 
+  /**
+   *
+   */
   start() {
     this.started = true;
 
@@ -143,8 +174,8 @@ export default class DashPlaylistLoader extends EventTarget {
       this.master.playlists.forEach((playlist) => {
         playlist.mediaSequence = 0;
       });
-      for (let groupKey in this.master.mediaGroups.AUDIO) {
-        for (let labelKey in this.master.mediaGroups.AUDIO[groupKey]) {
+      for (const groupKey in this.master.mediaGroups.AUDIO) {
+        for (const labelKey in this.master.mediaGroups.AUDIO[groupKey]) {
           this.master.mediaGroups.AUDIO[groupKey][labelKey].playlists.forEach(
             (playlist) => {
               playlist.mediaSequence = 0;

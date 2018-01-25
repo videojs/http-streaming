@@ -1,4 +1,4 @@
-/* eslint-disable no-var */
+/* eslint-disable no-var, no-undef */
 /* eslint-env qunit */
 var hls = require('../es5/videojs-http-streaming.js');
 var q = window.QUnit;

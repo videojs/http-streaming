@@ -106,7 +106,7 @@ function(assert) {
 QUnit.test('startLoaders starts playlist loader when appropriate',
 function(assert) {
   let playlistLoaderLoadCalls = 0;
-  let media = null;
+  const media = null;
 
   const playlistLoader = {
     load: () => playlistLoaderLoadCalls++,
@@ -450,7 +450,9 @@ function(assert) {
   // setting the track on the segment loader only applies to the SUBTITLES case.
   // even though this test is testing type AUDIO, aside from this difference of setting
   // the track, the functionality between the types is the same.
-  segmentLoader.track = (track) => segmentLoaderTrack = track;
+  segmentLoader.track = (track) => {
+    segmentLoaderTrack = track;
+  };
   mediaType.activePlaylistLoader = groups.main[2].playlistLoader;
 
   onTrackChanged();

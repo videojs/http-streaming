@@ -74,7 +74,7 @@ class MockMediaSource extends videojs.EventTarget {
   }
 
   addSourceBuffer(mime) {
-    let sourceBuffer = new MockSourceBuffer();
+    const sourceBuffer = new MockSourceBuffer();
 
     sourceBuffer.mimeType_ = mime;
     this.sourceBuffers.push(sourceBuffer);
@@ -105,8 +105,8 @@ export class MockTextTrack {
 }
 
 export const useFakeMediaSource = function() {
-  let RealMediaSource = videojs.MediaSource;
-  let realCreateObjectURL = videojs.URL.createObjectURL;
+  const RealMediaSource = videojs.MediaSource;
+  const realCreateObjectURL = videojs.URL.createObjectURL;
   let id = 0;
 
   videojs.MediaSource = MockMediaSource;
@@ -126,9 +126,9 @@ export const useFakeMediaSource = function() {
 };
 
 export const useFakeEnvironment = function(assert) {
-  let realXMLHttpRequest = videojs.xhr.XMLHttpRequest;
+  const realXMLHttpRequest = videojs.xhr.XMLHttpRequest;
 
-  let fakeEnvironment = {
+  const fakeEnvironment = {
     requests: [],
     restore() {
       this.clock.restore();
@@ -137,7 +137,7 @@ export const useFakeEnvironment = function(assert) {
       ['warn', 'error'].forEach((level) => {
         if (this.log && this.log[level] && this.log[level].restore) {
           if (assert) {
-            let calls = (this.log[level].args || []).map((args) => {
+            const calls = (this.log[level].args || []).map((args) => {
               return args.join(', ');
             }).join('\n  ');
 
@@ -159,7 +159,7 @@ export const useFakeEnvironment = function(assert) {
     Object.defineProperty(videojs.log[level], 'calls', {
       get() {
         // reset callCount to 0 so they don't have to
-        let callCount = this.callCount;
+        const callCount = this.callCount;
 
         this.callCount = 0;
         return callCount;
@@ -172,8 +172,7 @@ export const useFakeEnvironment = function(assert) {
   // Sinon 1.10.2 handles abort incorrectly (triggering the error event)
   // Later versions fixed this but broke the ability to set the response
   // to an arbitrary object (in our case, a typed array).
-  XMLHttpRequest.prototype = Object.create(XMLHttpRequest.prototype);
-  XMLHttpRequest.prototype.abort = function abort() {
+  fakeEnvironment.xhr.prototype.abort = function abort() {
     this.response = this.responseText = '';
     this.errorFlag = true;
     this.requestHeaders = {};
@@ -187,7 +186,7 @@ export const useFakeEnvironment = function(assert) {
     this.readyState = 0;
   };
 
-  XMLHttpRequest.prototype.downloadProgress = function downloadProgress(rawEventData) {
+  fakeEnvironment.xhr.prototype.downloadProgress = function downloadProgress(rawEventData) {
     this.dispatchEvent(new sinon.ProgressEvent('progress',
                                                rawEventData,
                                                rawEventData.target));
@@ -270,16 +269,14 @@ export const mockTech = function(tech) {
 };
 
 export const createPlayer = function(options, src, clock) {
-  let video;
-  let player;
+  const video = document.createElement('video');
 
-  video = document.createElement('video');
   video.className = 'video-js';
   if (src) {
     if (typeof src === 'string') {
       video.src = src;
     } else if (src.src) {
-      let source = document.createElement('source');
+      const source = document.createElement('source');
 
       source.src = src.src;
       if (src.type) {
@@ -289,7 +286,7 @@ export const createPlayer = function(options, src, clock) {
     }
   }
   document.querySelector('#qunit-fixture').appendChild(video);
-  player = videojs(video, options || {
+  const player = videojs(video, options || {
     flash: {
       swf: ''
     }
@@ -370,7 +367,7 @@ export const absoluteUrl = function(relativeUrl) {
 };
 
 export const playlistWithDuration = function(time, conf) {
-  let result = {
+  const result = {
     targetDuration: 10,
     mediaSequence: conf && conf.mediaSequence ? conf.mediaSequence : 0,
     discontinuityStarts: [],
@@ -381,11 +378,11 @@ export const playlistWithDuration = function(time, conf) {
       conf && conf.discontinuitySequence ? conf.discontinuitySequence : 0,
     attributes: {}
   };
-  let count = Math.floor(time / 10);
-  let remainder = time % 10;
+  const count = Math.floor(time / 10);
+  const remainder = time % 10;
   let i;
-  let isEncrypted = conf && conf.isEncrypted;
-  let extension = conf && conf.extension ? conf.extension : '.ts';
+  const isEncrypted = conf && conf.isEncrypted;
+  const extension = conf && conf.extension ? conf.extension : '.ts';
 
   for (i = 0; i < count; i++) {
     result.segments.push({

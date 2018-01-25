@@ -62,7 +62,7 @@ QUnit.module('MasterPlaylistController', {
 });
 
 QUnit.test('throws error when given an empty URL', function(assert) {
-  let options = {
+  const options = {
     url: 'test',
     tech: this.player.tech_
   };
@@ -121,7 +121,7 @@ QUnit.test('obeys metadata preload option', function(assert) {
 });
 
 QUnit.test('creates appropriate PlaylistLoader for sourceType', function(assert) {
-  let options = {
+  const options = {
     url: 'test',
     tech: this.player.tech_,
     sourceType: 'hls'
@@ -149,8 +149,8 @@ QUnit.test('resets SegmentLoader when seeking in flash for both in and out of bu
     this.standardXHRResponse(this.requests.shift());
     this.masterPlaylistController.mediaSource.trigger('sourceopen');
 
-    let mpc = this.masterPlaylistController;
-    let segmentLoader = mpc.mainSegmentLoader_;
+    const mpc = this.masterPlaylistController;
+    const segmentLoader = mpc.mainSegmentLoader_;
 
     segmentLoader.resetEverything = function() {
       resets++;
@@ -241,7 +241,7 @@ QUnit.test('resyncs SegmentLoader for a fast quality change', function(assert) {
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  let segmentLoader = this.masterPlaylistController.mainSegmentLoader_;
+  const segmentLoader = this.masterPlaylistController.mainSegmentLoader_;
 
   segmentLoader.resyncLoader = function() {
     resyncs++;
@@ -269,7 +269,7 @@ QUnit.test('does not resync the segmentLoader when no fast quality change occurs
     this.standardXHRResponse(this.requests.shift());
     this.masterPlaylistController.mediaSource.trigger('sourceopen');
 
-    let segmentLoader = this.masterPlaylistController.mainSegmentLoader_;
+    const segmentLoader = this.masterPlaylistController.mainSegmentLoader_;
 
     segmentLoader.resyncLoader = function() {
       resyncs++;
@@ -309,7 +309,7 @@ QUnit.test('fast quality change resyncs audio segment loader', function(assert) 
 
   let resyncs = 0;
   let resets = 0;
-  let realReset = masterPlaylistController.audioSegmentLoader_.resetLoader;
+  const realReset = masterPlaylistController.audioSegmentLoader_.resetLoader;
 
   masterPlaylistController.audioSegmentLoader_.resetLoader = function() {
     resets++;
@@ -360,7 +360,7 @@ QUnit.test('audio segment loader is reset on audio track change', function(asser
 
   let resyncs = 0;
   let resets = 0;
-  let realReset = masterPlaylistController.audioSegmentLoader_.resetLoader;
+  const realReset = masterPlaylistController.audioSegmentLoader_.resetLoader;
 
   masterPlaylistController.audioSegmentLoader_.resetLoader = function() {
     resets++;
@@ -470,7 +470,7 @@ function(assert) {
 
 QUnit.test('updates the combined segment loader on live playlist refreshes',
 function(assert) {
-  let updates = [];
+  const updates = [];
 
   openMediaSource(this.player, this.clock);
   // master
@@ -536,8 +536,8 @@ function(assert) {
   // ignore audio segment requests
   this.requests.length = 0;
 
-  let mpc = this.masterPlaylistController;
-  let combinedPlaylist = mpc.master().playlists[0];
+  const mpc = this.masterPlaylistController;
+  const combinedPlaylist = mpc.master().playlists[0];
 
   assert.ok(mpc.mediaTypes_.AUDIO.activePlaylistLoader,
     'starts with an active playlist loader');
@@ -659,11 +659,11 @@ function(assert) {
 });
 
 QUnit.test('detects if the player is stuck at the playlist end', function(assert) {
-  let playlistCopy = Hls.Playlist.playlistEnd;
+  const playlistCopy = Hls.Playlist.playlistEnd;
 
   this.masterPlaylistController.mediaSource.trigger('sourceopen');
   this.standardXHRResponse(this.requests.shift());
-  let playlist = this.player.tech_.hls.selectPlaylist();
+  const playlist = this.player.tech_.hls.selectPlaylist();
 
   // not stuck at playlist end when no seekable, even if empty buffer
   // and positive currentTime
@@ -723,8 +723,6 @@ QUnit.test('detects if the player is stuck at the playlist end', function(assert
 
 QUnit.test('blacklists switching from video+audio playlists to audio only',
 function(assert) {
-  let audioPlaylist;
-
   openMediaSource(this.player, this.clock);
 
   this.player.tech_.hls.bandwidth = 1e10;
@@ -742,7 +740,9 @@ function(assert) {
   assert.equal(this.masterPlaylistController.masterPlaylistLoader_.media(),
               this.masterPlaylistController.masterPlaylistLoader_.master.playlists[1],
               'selected video+audio');
-  audioPlaylist = this.masterPlaylistController.masterPlaylistLoader_.master.playlists[0];
+  const audioPlaylist = this.masterPlaylistController
+    .masterPlaylistLoader_.master.playlists[0];
+
   assert.equal(audioPlaylist.excludeUntil, Infinity, 'excluded incompatible playlist');
 
   // verify stats
@@ -751,8 +751,6 @@ function(assert) {
 
 QUnit.test('blacklists switching from audio-only playlists to video+audio',
 function(assert) {
-  let videoAudioPlaylist;
-
   openMediaSource(this.player, this.clock);
 
   this.player.tech_.hls.bandwidth = 1;
@@ -769,8 +767,9 @@ function(assert) {
   assert.equal(this.masterPlaylistController.masterPlaylistLoader_.media(),
               this.masterPlaylistController.masterPlaylistLoader_.master.playlists[0],
               'selected audio only');
-  videoAudioPlaylist =
+  const videoAudioPlaylist =
     this.masterPlaylistController.masterPlaylistLoader_.master.playlists[1];
+
   assert.equal(videoAudioPlaylist.excludeUntil,
               Infinity,
               'excluded incompatible playlist');
@@ -781,8 +780,6 @@ function(assert) {
 
 QUnit.test('blacklists switching from video-only playlists to video+audio',
 function(assert) {
-  let videoAudioPlaylist;
-
   openMediaSource(this.player, this.clock);
 
   this.player.tech_.hls.bandwidth = 1;
@@ -800,8 +797,9 @@ function(assert) {
   assert.equal(this.masterPlaylistController.masterPlaylistLoader_.media(),
               this.masterPlaylistController.masterPlaylistLoader_.master.playlists[0],
               'selected video only');
-  videoAudioPlaylist =
+  const videoAudioPlaylist =
     this.masterPlaylistController.masterPlaylistLoader_.master.playlists[1];
+
   assert.equal(videoAudioPlaylist.excludeUntil,
               Infinity,
               'excluded incompatible playlist');
@@ -812,8 +810,6 @@ function(assert) {
 
 QUnit.test('does not blacklist switching between playlists with different audio profiles',
 function(assert) {
-  let alternatePlaylist;
-
   openMediaSource(this.player, this.clock);
 
   this.player.tech_.hls.bandwidth = 1;
@@ -831,8 +827,9 @@ function(assert) {
   assert.equal(this.masterPlaylistController.masterPlaylistLoader_.media(),
               this.masterPlaylistController.masterPlaylistLoader_.master.playlists[0],
               'selected HE-AAC stream');
-  alternatePlaylist =
+  const alternatePlaylist =
     this.masterPlaylistController.masterPlaylistLoader_.master.playlists[1];
+
   assert.equal(alternatePlaylist.excludeUntil,
                undefined,
                'not excluded playlist');
@@ -864,7 +861,7 @@ function(assert) {
 });
 
 QUnit.test('updates the combined segment loader on media changes', function(assert) {
-  let updates = [];
+  const updates = [];
 
   this.masterPlaylistController.mediaSource.trigger('sourceopen');
 
@@ -961,7 +958,7 @@ function(assert) {
   let buffered = [];
   let currentPlaylistBandwidth = 0;
   let nextPlaylistBandwidth = 0;
-  let mediaChanges = [];
+  const mediaChanges = [];
   let currentTime = 0;
   let endList = true;
   let duration = 100;
@@ -1133,12 +1130,12 @@ QUnit.test('blacklists playlist on earlyabort', function(assert) {
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  let mediaChanges = [];
+  const mediaChanges = [];
   const playlistLoader = this.masterPlaylistController.masterPlaylistLoader_;
   const currentMedia = playlistLoader.media();
   const origMedia = playlistLoader.media.bind(playlistLoader);
   const origWarn = videojs.log.warn;
-  let warnings = [];
+  const warnings = [];
 
   this.masterPlaylistController.masterPlaylistLoader_.media = (media) => {
     if (media) {
@@ -1215,9 +1212,9 @@ function(assert) {
   // media.m3u8
   this.requests.shift().respond(200, null, mediaContents);
 
-  let playlistLoader = this.masterPlaylistController.masterPlaylistLoader_;
-  let origMedia = playlistLoader.media.bind(playlistLoader);
-  let mediaChanges = [];
+  const playlistLoader = this.masterPlaylistController.masterPlaylistLoader_;
+  const origMedia = playlistLoader.media.bind(playlistLoader);
+  const mediaChanges = [];
 
   this.masterPlaylistController.masterPlaylistLoader_.media = (media) => {
     if (media) {
@@ -1258,7 +1255,7 @@ function(assert) {
   segmentLoader.mediaSource_.sourceBuffers[0].trigger('updateend');
   this.clock.tick(1);
 
-  let mediaRequest = this.requests[0];
+  const mediaRequest = this.requests[0];
 
   // after two segments, bandwidth is high enough to switch up to media1.m3u8
   assert.equal(segmentLoader.bandwidth, 880, 'bandwidth is correct');
@@ -1494,13 +1491,13 @@ QUnit.test('removes request timeout when the source is a media playlist and not 
 
 QUnit.test('seekable uses the intersection of alternate audio and combined tracks',
 function(assert) {
-  let origSeekable = Playlist.seekable;
-  let mpc = this.masterPlaylistController;
-  let mainMedia = {};
-  let audioMedia = {};
+  const origSeekable = Playlist.seekable;
+  const mpc = this.masterPlaylistController;
+  const mainMedia = {};
+  const audioMedia = {};
   let mainTimeRanges = [];
   let audioTimeRanges = [];
-  let assertTimeRangesEqual = (left, right, message) => {
+  const assertTimeRangesEqual = (left, right, message) => {
     if (left.length === 0 && right.length === 0) {
       return;
     }
@@ -1638,11 +1635,11 @@ function(assert) {
 
 QUnit.test('syncInfoUpdate triggers seekablechanged when seekable is updated',
 function(assert) {
-  let origSeekable = Playlist.seekable;
-  let mpc = this.masterPlaylistController;
-  let tech = this.player.tech_;
+  const origSeekable = Playlist.seekable;
+  const mpc = this.masterPlaylistController;
+  const tech = this.player.tech_;
   let mainTimeRanges = [];
-  let media = {};
+  const media = {};
   let seekablechanged = 0;
 
   tech.on('seekablechanged', () => seekablechanged++);
@@ -1662,7 +1659,7 @@ function(assert) {
 });
 
 QUnit.test('calls to update cues on new media', function(assert) {
-  let origHlsOptions = videojs.options.hls;
+  const origHlsOptions = videojs.options.hls;
 
   videojs.options.hls = {
     useCueTags: true
@@ -1727,7 +1724,7 @@ QUnit.test('calls to update cues on media when no master', function(assert) {
 });
 
 QUnit.test('respects useCueTags option', function(assert) {
-  let origHlsOptions = videojs.options.hls;
+  const origHlsOptions = videojs.options.hls;
   let hlsPlaylistCueTagsEvents = 0;
 
   videojs.options.hls = {
@@ -1826,7 +1823,7 @@ QUnit.test('trigger events when video and audio is demuxed by default', function
 
 QUnit.test('trigger events when an AES is detected', function(assert) {
   let hlsAesEvents = 0;
-  let isAesCopy = Hls.Playlist.isAes;
+  const isAesCopy = Hls.Playlist.isAes;
 
   Hls.Playlist.isAes = (media) => {
     return true;
@@ -1850,7 +1847,7 @@ QUnit.test('trigger events when an AES is detected', function(assert) {
 
 QUnit.test('trigger events when an fMP4 stream is detected', function(assert) {
   let hlsFmp4Events = 0;
-  let isFmp4Copy = Hls.Playlist.isFmp4;
+  const isFmp4Copy = Hls.Playlist.isFmp4;
 
   Hls.Playlist.isFmp4 = (media) => {
     return true;
@@ -2257,7 +2254,9 @@ QUnit.test('calculates dynamic GOAL_BUFFER_LENGTH', function(assert) {
   assert.equal(mpc.goalBufferLength(), 60, 'dynamic GBL continues to use max value');
 
   // restore config
-  Object.keys(configOld).forEach((key) => Config[key] = configOld[key]);
+  Object.keys(configOld).forEach((key) => {
+    Config[key] = configOld[key];
+  });
 });
 
 QUnit.test('calculates dynamic BUFFER_LOW_WATER_LINE', function(assert) {
@@ -2292,7 +2291,9 @@ QUnit.test('calculates dynamic BUFFER_LOW_WATER_LINE', function(assert) {
   assert.equal(mpc.bufferLowWaterLine(), 30, 'dynamic BLWL continues to use max value');
 
   // restore config
-  Object.keys(configOld).forEach((key) => Config[key] = configOld[key]);
+  Object.keys(configOld).forEach((key) => {
+    Config[key] = configOld[key];
+  });
 });
 
 QUnit.test('properly configures loader mime types', function(assert) {

@@ -20,10 +20,10 @@ QUnit.module('SyncController', {
 });
 
 QUnit.test('returns correct sync point for VOD strategy', function(assert) {
-  let playlist = playlistWithDuration(40);
+  const playlist = playlistWithDuration(40);
   let duration = 40;
-  let timeline = 0;
-  let vodStrategy = getStrategy('VOD');
+  const timeline = 0;
+  const vodStrategy = getStrategy('VOD');
   let syncPoint = vodStrategy.run(this.syncController, playlist, duration, timeline);
 
   assert.deepEqual(syncPoint, { time: 0, segmentIndex: 0 }, 'sync point found for vod');
@@ -35,11 +35,11 @@ QUnit.test('returns correct sync point for VOD strategy', function(assert) {
 });
 
 QUnit.test('returns correct sync point for ProgramDateTime strategy', function(assert) {
-  let strategy = getStrategy('ProgramDateTime');
-  let datetime = new Date(2012, 11, 12, 12, 12, 12);
-  let playlist = playlistWithDuration(40);
-  let timeline = 0;
-  let duration = Infinity;
+  const strategy = getStrategy('ProgramDateTime');
+  const datetime = new Date(2012, 11, 12, 12, 12, 12);
+  const playlist = playlistWithDuration(40);
+  const timeline = 0;
+  const duration = Infinity;
   let syncPoint;
 
   syncPoint = strategy.run(this.syncController, playlist, duration, timeline);
@@ -50,7 +50,7 @@ QUnit.test('returns correct sync point for ProgramDateTime strategy', function(a
 
   this.syncController.setDateTimeMapping(playlist);
 
-  let newPlaylist = playlistWithDuration(40);
+  const newPlaylist = playlistWithDuration(40);
 
   syncPoint = strategy.run(this.syncController, newPlaylist, duration, timeline);
 
@@ -67,8 +67,8 @@ QUnit.test('returns correct sync point for ProgramDateTime strategy', function(a
 });
 
 QUnit.test('returns correct sync point for Segment strategy', function(assert) {
-  let strategy = getStrategy('Segment');
-  let playlist = {
+  const strategy = getStrategy('Segment');
+  const playlist = {
     segments: [
       { timeline: 0 },
       { timeline: 0 },
@@ -102,8 +102,8 @@ QUnit.test('returns correct sync point for Segment strategy', function(assert) {
 });
 
 QUnit.test('returns correct sync point for Discontinuity strategy', function(assert) {
-  let strategy = getStrategy('Discontinuity');
-  let playlist = {
+  const strategy = getStrategy('Discontinuity');
+  const playlist = {
     targetDuration: 10,
     discontinuitySequence: 2,
     discontinuityStarts: [2, 5],
@@ -118,7 +118,7 @@ QUnit.test('returns correct sync point for Discontinuity strategy', function(ass
       { timeline: 4, start: 90, end: 100, duration: 10 }
     ]
   };
-  let segmentInfo = {
+  const segmentInfo = {
     playlist,
     segment: playlist.segments[2],
     mediaIndex: 2
@@ -147,8 +147,8 @@ QUnit.test('returns correct sync point for Discontinuity strategy', function(ass
 });
 
 QUnit.test('returns correct sync point for Playlist strategy', function(assert) {
-  let strategy = getStrategy('Playlist');
-  let playlist = { mediaSequence: 100 };
+  const strategy = getStrategy('Playlist');
+  const playlist = { mediaSequence: 100 };
   let syncPoint;
 
   syncPoint = strategy.run(this.syncController, playlist, 40, 0);
@@ -163,8 +163,8 @@ QUnit.test('returns correct sync point for Playlist strategy', function(assert) 
 });
 
 QUnit.test('saves expired info onto new playlist for sync point', function(assert) {
-  let oldPlaylist = playlistWithDuration(50);
-  let newPlaylist = playlistWithDuration(50);
+  const oldPlaylist = playlistWithDuration(50);
+  const newPlaylist = playlistWithDuration(50);
 
   oldPlaylist.mediaSequence = 100;
   newPlaylist.mediaSequence = 103;
@@ -180,8 +180,8 @@ QUnit.test('saves expired info onto new playlist for sync point', function(asser
 
 QUnit.test('Correctly updates time mapping and discontinuity info when probing segments',
   function(assert) {
-    let syncCon = this.syncController;
-    let playlist = playlistWithDuration(60);
+    const syncCon = this.syncController;
+    const playlist = playlistWithDuration(60);
 
     playlist.discontinuityStarts = [3];
     playlist.discontinuitySequence = 0;
@@ -203,7 +203,7 @@ QUnit.test('Correctly updates time mapping and discontinuity info when probing s
     };
 
     let segment = playlist.segments[0];
-    let segmentInfo = {
+    const segmentInfo = {
       mediaIndex: 0,
       playlist,
       timeline: 0,

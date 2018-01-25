@@ -15,13 +15,11 @@ export const REQUEST_ERRORS = {
  *                             of a byte-range
  */
 const byterangeStr = function(byterange) {
-  let byterangeStart;
-  let byterangeEnd;
-
   // `byterangeEnd` is one less than `offset + length` because the HTTP range
   // header uses inclusive ranges
-  byterangeEnd = byterange.offset + byterange.length - 1;
-  byterangeStart = byterange.offset;
+  const byterangeEnd = byterange.offset + byterange.length - 1;
+  const byterangeStart = byterange.offset;
+
   return 'bytes=' + byterangeStart + '-' + byterangeEnd;
 };
 
@@ -32,7 +30,7 @@ const byterangeStr = function(byterange) {
  *                           from SegmentLoader
  */
 const segmentXhrHeaders = function(segment) {
-  let headers = {};
+  const headers = {};
 
   if (segment.byterange) {
     headers.Range = byterangeStr(segment.byterange);
@@ -292,7 +290,7 @@ const getMostImportantError = (errors) => {
  *                            downloaded and any decryption completed
  */
 const waitForCompletion = (activeXhrs, decrypter, doneFn) => {
-  let errors = [];
+  const errors = [];
   let count = 0;
 
   return (error, segment) => {

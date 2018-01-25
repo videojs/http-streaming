@@ -27,13 +27,13 @@ QUnit.test('waits for sourceopen to create a source buffer', function(assert) {
 });
 
 QUnit.test('runs a callback when the source buffer is created', function(assert) {
-  let updater = new SourceUpdater(this.mediaSource, 'video/mp2t');
-  let sourceBuffer;
+  const updater = new SourceUpdater(this.mediaSource, 'video/mp2t');
 
   updater.appendBuffer(new Uint8Array([0, 1, 2]));
 
   this.mediaSource.trigger('sourceopen');
-  sourceBuffer = this.mediaSource.sourceBuffers[0];
+  const sourceBuffer = this.mediaSource.sourceBuffers[0];
+
   assert.equal(sourceBuffer.updates_.length, 1, 'called the source buffer once');
   assert.deepEqual(sourceBuffer.updates_[0].append, new Uint8Array([0, 1, 2]),
                   'appended the bytes');
@@ -41,18 +41,18 @@ QUnit.test('runs a callback when the source buffer is created', function(assert)
 
 QUnit.test('runs callback if a media source exists when passed source buffer emitter',
 function(assert) {
-  let sourceBufferEmitter = new videojs.EventTarget();
-  let sourceBuffer;
+  const sourceBufferEmitter = new videojs.EventTarget();
 
   this.mediaSource.trigger('sourceopen');
   // create other media source
   this.mediaSource.addSourceBuffer('audio/mp2t');
 
-  let updater = new SourceUpdater(this.mediaSource, 'video/mp2t', sourceBufferEmitter);
+  const updater = new SourceUpdater(this.mediaSource, 'video/mp2t', sourceBufferEmitter);
 
   updater.appendBuffer(new Uint8Array([0, 1, 2]));
 
-  sourceBuffer = this.mediaSource.sourceBuffers[1];
+  const sourceBuffer = this.mediaSource.sourceBuffers[1];
+
   assert.equal(sourceBuffer.updates_.length, 1, 'called the source buffer once');
   assert.deepEqual(sourceBuffer.updates_[0].append, new Uint8Array([0, 1, 2]),
                   'appended the bytes');
@@ -61,14 +61,14 @@ function(assert) {
 QUnit.test('runs callback after source buffer emitter triggers if other source buffer ' +
 'doesn\'t exist at creation',
 function(assert) {
-  let sourceBufferEmitter = new videojs.EventTarget();
-  let updater = new SourceUpdater(this.mediaSource, 'video/mp2t', sourceBufferEmitter);
-  let sourceBuffer;
+  const sourceBufferEmitter = new videojs.EventTarget();
+  const updater = new SourceUpdater(this.mediaSource, 'video/mp2t', sourceBufferEmitter);
 
   updater.appendBuffer(new Uint8Array([0, 1, 2]));
 
   this.mediaSource.trigger('sourceopen');
-  sourceBuffer = this.mediaSource.sourceBuffers[0];
+  const sourceBuffer = this.mediaSource.sourceBuffers[0];
+
   assert.equal(sourceBuffer.updates_.length, 0, 'did not call the source buffer');
 
   // create other media source
@@ -81,12 +81,12 @@ function(assert) {
 });
 
 QUnit.test('runs the completion callback when updateend fires', function(assert) {
-  let updater = new SourceUpdater(this.mediaSource, 'video/mp2t');
+  const updater = new SourceUpdater(this.mediaSource, 'video/mp2t');
   let updateends = 0;
-  let sourceBuffer;
 
   this.mediaSource.trigger('sourceopen');
-  sourceBuffer = this.mediaSource.sourceBuffers[0];
+  const sourceBuffer = this.mediaSource.sourceBuffers[0];
+
   updater.appendBuffer(new Uint8Array([0, 1, 2]), function() {
     updateends++;
   });
@@ -100,12 +100,11 @@ QUnit.test('runs the completion callback when updateend fires', function(assert)
 });
 
 QUnit.test('runs the next callback after updateend fires', function(assert) {
-  let updater = new SourceUpdater(this.mediaSource, 'video/mp2t');
-  let sourceBuffer;
+  const updater = new SourceUpdater(this.mediaSource, 'video/mp2t');
 
   updater.appendBuffer(new Uint8Array([0, 1, 2]));
   this.mediaSource.trigger('sourceopen');
-  sourceBuffer = this.mediaSource.sourceBuffers[0];
+  const sourceBuffer = this.mediaSource.sourceBuffers[0];
 
   updater.appendBuffer(new Uint8Array([2, 3, 4]));
   assert.equal(sourceBuffer.updates_.length, 1, 'delayed the update');
@@ -117,13 +116,12 @@ QUnit.test('runs the next callback after updateend fires', function(assert) {
 });
 
 QUnit.test('runs only one callback at a time', function(assert) {
-  let updater = new SourceUpdater(this.mediaSource, 'video/mp2t');
-  let sourceBuffer;
+  const updater = new SourceUpdater(this.mediaSource, 'video/mp2t');
 
   updater.appendBuffer(new Uint8Array([0]));
   updater.appendBuffer(new Uint8Array([1]));
   this.mediaSource.trigger('sourceopen');
-  sourceBuffer = this.mediaSource.sourceBuffers[0];
+  const sourceBuffer = this.mediaSource.sourceBuffers[0];
 
   updater.appendBuffer(new Uint8Array([2]));
   assert.equal(sourceBuffer.updates_.length, 1, 'queued some updates');
@@ -148,11 +146,11 @@ QUnit.test('runs only one callback at a time', function(assert) {
 });
 
 QUnit.test('runs updates immediately if possible', function(assert) {
-  let updater = new SourceUpdater(this.mediaSource, 'video/mp2t');
-  let sourceBuffer;
+  const updater = new SourceUpdater(this.mediaSource, 'video/mp2t');
 
   this.mediaSource.trigger('sourceopen');
-  sourceBuffer = this.mediaSource.sourceBuffers[0];
+  const sourceBuffer = this.mediaSource.sourceBuffers[0];
+
   updater.appendBuffer(new Uint8Array([0]));
   assert.equal(sourceBuffer.updates_.length, 1, 'ran an update');
   assert.deepEqual(sourceBuffer.updates_[0].append, new Uint8Array([0]),
@@ -160,8 +158,7 @@ QUnit.test('runs updates immediately if possible', function(assert) {
 });
 
 QUnit.test('supports abort', function(assert) {
-  let updater = new SourceUpdater(this.mediaSource, 'video/mp2t');
-  let sourceBuffer;
+  const updater = new SourceUpdater(this.mediaSource, 'video/mp2t');
 
   updater.abort();
   this.mediaSource.trigger('sourceopen');
@@ -173,13 +170,14 @@ QUnit.test('supports abort', function(assert) {
 
   updater.abort();
 
-  sourceBuffer = this.mediaSource.sourceBuffers[0];
+  const sourceBuffer = this.mediaSource.sourceBuffers[0];
+
   sourceBuffer.trigger('updateend');
   assert.ok(sourceBuffer.updates_[1].abort, 'aborted the source buffer');
 });
 
 QUnit.test('supports buffered', function(assert) {
-  let updater = new SourceUpdater(this.mediaSource, 'video/mp2t');
+  const updater = new SourceUpdater(this.mediaSource, 'video/mp2t');
 
   assert.equal(updater.buffered().length, 0, 'buffered is empty');
 
@@ -188,11 +186,10 @@ QUnit.test('supports buffered', function(assert) {
 });
 
 QUnit.test('supports removeBuffer', function(assert) {
-  let updater = new SourceUpdater(this.mediaSource, 'video/mp2t');
-  let sourceBuffer;
+  const updater = new SourceUpdater(this.mediaSource, 'video/mp2t');
 
   this.mediaSource.trigger('sourceopen');
-  sourceBuffer = this.mediaSource.sourceBuffers[0];
+  const sourceBuffer = this.mediaSource.sourceBuffers[0];
 
   updater.remove(1, 14);
 
@@ -210,11 +207,10 @@ QUnit.test('supports removeBuffer', function(assert) {
 });
 
 QUnit.test('supports timestampOffset', function(assert) {
-  let updater = new SourceUpdater(this.mediaSource, 'video/mp2t');
-  let sourceBuffer;
+  const updater = new SourceUpdater(this.mediaSource, 'video/mp2t');
 
   this.mediaSource.trigger('sourceopen');
-  sourceBuffer = this.mediaSource.sourceBuffers[0];
+  const sourceBuffer = this.mediaSource.sourceBuffers[0];
 
   assert.equal(updater.timestampOffset(), 0, 'intialized to zero');
   updater.timestampOffset(21);

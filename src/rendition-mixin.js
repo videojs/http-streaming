@@ -49,7 +49,7 @@ const enableFunction = (loader, playlistUri, changePlaylistFn) => (enable) => {
 class Representation {
   constructor(hlsHandler, playlist, id) {
     // Get a reference to a bound version of fastQualityChange_
-    let fastChangeFunction = hlsHandler
+    const fastChangeFunction = hlsHandler
                               .masterPlaylistController_
                               .fastQualityChange_
                               .bind(hlsHandler.masterPlaylistController_);
@@ -82,8 +82,8 @@ class Representation {
  * @param {HlsHandler} hlsHandler - An instance of HlsHandler to add the
  * representation API into
  */
-let renditionSelectionMixin = function(hlsHandler) {
-  let playlists = hlsHandler.playlists;
+const renditionSelectionMixin = function(hlsHandler) {
+  const playlists = hlsHandler.playlists;
 
   // Add a single API-specific function to the HlsHandler instance
   hlsHandler.representations = () => {
