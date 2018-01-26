@@ -20,18 +20,25 @@ module.exports = function(config) {
       terminal: false
     },
     customLaunchers: {
-      ChromeHeadlessDisableAutoplayPolicy: {
+      ChromeHeadlessWithFlags: {
         base: 'ChromeHeadless',
-        flags: ['--no-sandbox', '--no-user-gesture-required']
+        flags: [
+          '--mute-audio',
+          '--no-sandbox',
+          '--no-user-gesture-required'
+        ]
       }
     },
     detectBrowsers: {
       usePhantomJS: false,
+
+      // detect what browsers are installed on the system and
+      // use headless mode and flags to allow for playback
       postDetection: function(browsers) {
         var newBrowsers = [];
 
         if (browsers.indexOf('Chrome') !== -1) {
-          newBrowsers.push('ChromeHeadlessDisableAutoplayPolicy');
+          newBrowsers.push('ChromeHeadlessWithFlags');
         }
 
         if (browsers.indexOf('Firefox') !== -1) {
