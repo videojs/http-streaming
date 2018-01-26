@@ -2,19 +2,9 @@ var istanbul = require('browserify-istanbul');
 var isparta = require('isparta');
 
 module.exports = function(config) {
-
-
-  if (process.env.TRAVIS) {
-    config.browsers = ['ChromeHeadlessNoSandbox'];
-  } else {
-    config.browsers = ['ChromeHeadlessNoSandbox', 'ChromeCanaryHeadlessNoSandbox', 'FirefoxHeadless'];
-  }
-
-  // If no browsers are specified, we enable `karma-detect-browsers`
-  // this will detect all browsers that are available for testing
   config.set({
     basePath: '..',
-    frameworks: ['qunit', 'browserify'],
+    frameworks: ['qunit', 'browserify', 'detectBrowsers'],
     files: [
       'node_modules/sinon/pkg/sinon.js',
       'node_modules/sinon/pkg/sinon-ie.js',
@@ -30,14 +20,33 @@ module.exports = function(config) {
       terminal: false
     },
     customLaunchers: {
-      ChromeHeadlessNoSandbox: {
+      ChromeHeadlessWithFlags: {
         base: 'ChromeHeadless',
-        flags: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required']
-      },
-      ChromeCanaryHeadlessNoSandbox: {
-        base: 'ChromeCanaryHeadless',
-        flags: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required'],
-       }
+        flags: [
+          '--mute-audio',
+          '--no-sandbox',
+          '--no-user-gesture-required'
+        ]
+      }
+    },
+    detectBrowsers: {
+      usePhantomJS: false,
+
+      // detect what browsers are installed on the system and
+      // use headless mode and flags to allow for playback
+      postDetection: function(browsers) {
+        var newBrowsers = [];
+
+        if (browsers.indexOf('Chrome') !== -1) {
+          newBrowsers.push('ChromeHeadlessWithFlags');
+        }
+
+        if (browsers.indexOf('Firefox') !== -1) {
+          newBrowsers.push('FirefoxHeadless');
+        }
+
+        return newBrowsers;
+      }
     },
     preprocessors: {
       'test/**/*.test.js': ['browserify']
