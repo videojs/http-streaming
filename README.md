@@ -672,7 +672,7 @@ will stall. Fragmented MP4s are only supported on browser that have
 
 ## Testing
 
-For testing, you run `npm run test`. You will need Chrome, Chrome Canary and Firefox for running the tests.
+For testing, you run `npm run test`. You will need Chrome and Firefox for running the tests.
 
 ## Debugging
 
