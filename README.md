@@ -674,6 +674,8 @@ will stall. Fragmented MP4s are only supported on browser that have
 
 For testing, you run `npm run test`. You will need Chrome and Firefox for running the tests.
 
+_videojs-http-streaming uses [BrowserStack](https://browserstack.com) for compatibility testing._
+
 ## Debugging
 
 videojs-http-streaming makes use of `videojs.log` for debug logging. You can enable these logs
