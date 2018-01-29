@@ -8,8 +8,11 @@ before_script:
   # pulseaudio is needed for dockerized chrome since it has a dummy sink and
   # the dummy audio ALSA kernel module isn't loaded by Travis
   # libavcodec54 is needed by firefox for h.264 support
-  - sudo apt-get install --no-install-recommends pulseaudio libavcodec54
-  - pulseaudio -D
+  # if we're not running browserstack tests, skip the installs
+  - 'if [ -z "$BROWSER_STACK_ACCESS_KEY" ]; then
+      sudo apt-get install --no-install-recommends pulseaudio libavcodec54;
+      pulseaudio -D;
+    fi'
 addons:
   chrome: stable
   firefox: latest
