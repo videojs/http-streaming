@@ -139,7 +139,7 @@ QUnit.test('creates appropriate PlaylistLoader for sourceType', function(assert)
             'created a dash playlist loader');
 });
 
-QUnit.test('resets SegmentLoader when seeking for both in and out of buffer',
+QUnit.test('resets SegmentLoader when seeking out of buffer',
   function(assert) {
     let resets = 0;
 
