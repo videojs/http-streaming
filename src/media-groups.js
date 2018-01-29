@@ -350,7 +350,6 @@ export const initialize = {
    */
   'AUDIO': (type, settings) => {
     const {
-      mode,
       hls,
       sourceType,
       segmentLoaders: { [type]: segmentLoader },
@@ -364,12 +363,9 @@ export const initialize = {
       }
     } = settings;
 
-    // force a default if we have none or we are not
-    // in html5 mode (the only mode to support more than one
-    // audio track)
+    // force a default if we have none
     if (!mediaGroups[type] ||
-        Object.keys(mediaGroups[type]).length === 0 ||
-        mode !== 'html5') {
+        Object.keys(mediaGroups[type]).length === 0) {
       mediaGroups[type] = { main: { default: { default: true } } };
     }
 
@@ -671,8 +667,6 @@ export const activeTrack = {
  *        XHR request options used by the segment loaders
  * @param {PlaylistLoader} settings.masterPlaylistLoader
  *        PlaylistLoader for the master source
- * @param {String} mode
- *        Mode of the hls source handler. Can be 'auto', 'html5', or 'flash'
  * @param {HlsHandler} settings.hls
  *        HLS SourceHandler
  * @param {Object} settings.master

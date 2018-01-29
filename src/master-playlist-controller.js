@@ -55,7 +55,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
     let {
       url,
       withCredentials,
-      mode,
       tech,
       bandwidth,
       externHls,
@@ -74,7 +73,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.withCredentials = withCredentials;
     this.tech_ = tech;
     this.hls_ = tech.hls;
-    this.mode_ = mode;
     this.sourceType_ = sourceType;
     this.useCueTags_ = useCueTags;
     this.blacklistDuration = blacklistDuration;
@@ -92,7 +90,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.mediaTypes_ = createMediaTypes();
 
-    this.mediaSource = new videojs.MediaSource({ mode });
+    this.mediaSource = new videojs.MediaSource();
 
     // load the media source into the player
     this.mediaSource.addEventListener('sourceopen', this.handleSourceOpen_.bind(this));
@@ -194,7 +192,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
         tech: this.tech_,
         requestOptions: this.requestOptions_,
         masterPlaylistLoader: this.masterPlaylistLoader_,
-        mode: this.mode_,
         hls: this.hls_,
         master: this.master(),
         mediaTypes: this.mediaTypes_,
@@ -560,7 +557,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
       }
 
       if (videojs.browser.IE_VERSION &&
-          this.mode_ === 'html5' &&
           this.tech_.readyState() === 0) {
         // IE11 throws an InvalidStateError if you try to set currentTime while the
         // readyState is 0, so it must be delayed until the tech fires loadedmetadata.
@@ -768,7 +764,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // In flash playback, the segment loaders should be reset on every seek, even
     // in buffer seeks. If the seek location is already buffered, continue buffering as
     // usual
-    if (buffered && buffered.length && this.mode_ !== 'flash') {
+    // TODO: redo this comment
+    if (buffered && buffered.length) {
       return currentTime;
     }
 
