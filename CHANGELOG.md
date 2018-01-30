@@ -6,6 +6,10 @@ CHANGELOG
 _(none)_
 
 --------------------
+## 0.4.0
+* Removed Flash support ([#15](https://github.com/videojs/http-streaming/issues/15))
+* Blacklist playlists not supported by browser media source before initial selection ([#17](https://github.com/videojs/http-streaming/issues/17))
+
 ## 0.3.1
 * Skip flash-based source handler with DASH sources ([#14](https://github.com/videojs/http-streaming/issues/14))
 
