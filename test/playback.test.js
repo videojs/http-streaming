@@ -19,15 +19,22 @@ let playFor = function(player, time, cb) {
 };
 
 QUnit.module('Playback', {
+  before() {
+    this.fixture = document.createElement('div');
+    document.body.appendChild(this.fixture);
+  },
   beforeEach(assert) {
     let done = assert.async();
     let video = document.createElement('video');
 
     video.width = 600;
     video.height = 300;
-    document.querySelector('#qunit-fixture').appendChild(video);
+    this.fixture.appendChild(video);
     this.player = videojs(video);
     this.player.ready(done);
+  },
+  afterEach() {
+    this.player.dispose();
   }
 });
 

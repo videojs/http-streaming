@@ -27,9 +27,7 @@ import window from 'global/window';
 import 'videojs-contrib-quality-levels';
 /* eslint-enable no-unused-vars */
 
-const Flash = videojs.getTech('Flash');
 const ogHlsHandlerSetupQualityLevels = videojs.HlsHandler.prototype.setupQualityLevels_;
-let nextId = 0;
 
 // do a shallow copy of the properties of source onto the target object
 const merge = function(target, source) {
@@ -47,46 +45,6 @@ QUnit.module('HLS', {
     this.mse = useFakeMediaSource();
     this.clock = this.env.clock;
     this.old = {};
-
-    // mock out Flash features for phantomjs
-    this.old.Flash = videojs.mergeOptions({}, Flash);
-    /* eslint-disable camelcase */
-    Flash.embed = function(swf, flashVars) {
-      let el = document.createElement('div');
-
-      el.id = 'vjs_mock_flash_' + nextId++;
-      el.className = 'vjs-tech vjs-mock-flash';
-      el.duration = Infinity;
-      el.vjs_load = function() {};
-      el.vjs_getProperty = function(attr) {
-        if (attr === 'buffered') {
-          return [[0, 0]];
-        }
-        return el[attr];
-      };
-      el.vjs_setProperty = function(attr, value) {
-        el[attr] = value;
-      };
-      el.vjs_src = function() {};
-      el.vjs_play = function() {};
-      el.vjs_discontinuity = function() {};
-
-      if (flashVars.autoplay) {
-        el.autoplay = true;
-      }
-      if (flashVars.preload) {
-        el.preload = flashVars.preload;
-      }
-
-      el.currentTime = 0;
-
-      return el;
-    };
-    /* eslint-enable camelcase */
-    this.old.FlashSupported = Flash.isSupported;
-    Flash.isSupported = function() {
-      return true;
-    };
 
     // store functionality that some tests need to mock
     this.old.GlobalOptions = videojs.mergeOptions(videojs.options);
@@ -121,8 +79,6 @@ QUnit.module('HLS', {
     this.mse.restore();
 
     merge(videojs.options, this.old.GlobalOptions);
-    Flash.isSupported = this.old.FlashSupported;
-    merge(Flash, this.old.Flash);
 
     videojs.Hls.supportsNativeHls = this.old.NativeHlsSupport;
     videojs.Hls.Decrypter = this.old.Decrypt;
@@ -1767,26 +1723,6 @@ QUnit.test('playlist blacklisting duration is set through options', function(ass
   videojs.options.hls = hlsOptions;
 });
 
-QUnit.test('if mode global option is used, mode is set to global option', function(assert) {
-  let hlsOptions = videojs.options.hls;
-
-  this.player.dispose();
-  videojs.options.hls = {
-    mode: 'flash'
-  };
-  this.player = createPlayer();
-  this.player.src({
-    src: 'http://example.com/media.m3u8',
-    type: 'application/vnd.apple.mpegurl'
-  });
-
-  this.clock.tick(1);
-
-  openMediaSource(this.player, this.clock);
-  assert.equal(this.player.tech_.hls.options_.mode, 'flash', 'mode set to flash');
-  videojs.options.hls = hlsOptions;
-});
-
 QUnit.test('respects bandwidth option of 0', function(assert) {
   this.player.dispose();
   this.player = createPlayer({ html5: { hls: { bandwidth: 0 } } });
@@ -1983,82 +1919,38 @@ QUnit.test('remove event handlers on dispose', function(assert) {
 });
 
 QUnit.test('the source handler supports HLS mime types', function(assert) {
-  const techs = ['html5', 'flash'];
-
-  techs.forEach(function(techName) {
-    assert.ok(HlsSourceHandler(techName).canHandleSource({
-      type: 'aPplicatiOn/x-MPegUrl'
-    }), 'supports x-mpegurl');
-    assert.ok(HlsSourceHandler(techName).canHandleSource({
-      type: 'aPplicatiOn/VnD.aPPle.MpEgUrL'
-    }), 'supports vnd.apple.mpegurl');
-    assert.ok(HlsSourceHandler(techName).canPlayType('aPplicatiOn/VnD.aPPle.MpEgUrL'),
-             'supports vnd.apple.mpegurl');
-    assert.ok(HlsSourceHandler(techName).canPlayType('aPplicatiOn/x-MPegUrl'),
-             'supports x-mpegurl');
-  });
+  assert.ok(HlsSourceHandler.canHandleSource({
+    type: 'aPplicatiOn/x-MPegUrl'
+  }), 'supports x-mpegurl');
+  assert.ok(HlsSourceHandler.canHandleSource({
+    type: 'aPplicatiOn/VnD.aPPle.MpEgUrL'
+  }), 'supports vnd.apple.mpegurl');
+  assert.ok(HlsSourceHandler.canPlayType('aPplicatiOn/VnD.aPPle.MpEgUrL'),
+            'supports vnd.apple.mpegurl');
+  assert.ok(HlsSourceHandler.canPlayType('aPplicatiOn/x-MPegUrl'),
+            'supports x-mpegurl');
 });
 
 QUnit.test('the source handler supports DASH mime types', function(assert) {
-  assert.ok(HlsSourceHandler('html5').canHandleSource({
+  assert.ok(HlsSourceHandler.canHandleSource({
     type: 'aPplication/dAsh+xMl'
   }), 'supports application/dash+xml');
-  assert.ok(HlsSourceHandler('html5').canPlayType('aPpLicAtion/DaSh+XmL'),
+  assert.ok(HlsSourceHandler.canPlayType('aPpLicAtion/DaSh+XmL'),
             'supports application/dash+xml');
-
-  assert.notOk(HlsSourceHandler('flash').canHandleSource({
-    type: 'aPplication/dAsh+xMl'
-  }), 'does not support application/dash+xml');
-  assert.notOk(HlsSourceHandler('flash').canPlayType('aPpLicAtion/DaSh+XmL'),
-            'does not support application/dash+xml');
 });
 
 QUnit.test('the source handler does not support non HLS/DASH mime types',
 function(assert) {
-  const techs = ['html5', 'flash'];
-
-  techs.forEach(function(techName) {
-    assert.ok(!(HlsSourceHandler(techName).canHandleSource({
-      type: 'video/mp4'
-    }) instanceof HlsHandler), 'does not support mp4');
-    assert.ok(!(HlsSourceHandler(techName).canHandleSource({
-      type: 'video/x-flv'
-    }) instanceof HlsHandler), 'does not support flv');
-    assert.ok(!(HlsSourceHandler(techName).canPlayType('video/mp4')),
-             'does not support mp4');
-    assert.ok(!(HlsSourceHandler(techName).canPlayType('video/x-flv')),
-             'does not support flv');
-  });
-});
-
-QUnit.test('source handler does not support sources when IE 10 or below', function(assert) {
-  videojs.browser.IE_VERSION = 10;
-
-  ['html5', 'flash'].forEach(function(techName) {
-    assert.ok(!HlsSourceHandler(techName).canHandleSource({
-      type: 'application/x-mpegURL'
-    }), 'does not support when browser is IE10');
-  });
-});
-
-QUnit.test('fires loadstart manually if Flash is used', function(assert) {
-  videojs.HlsHandler.prototype.setupQualityLevels_ = () => {};
-  let tech = new (videojs.getTech('Flash'))({});
-  let loadstarts = 0;
-
-  tech.on('loadstart', function() {
-    loadstarts++;
-  });
-  HlsSourceHandler('flash').handleSource({
-    src: 'movie.m3u8',
-    type: 'application/x-mpegURL'
-  }, tech);
-
-  assert.equal(loadstarts, 0, 'loadstart is not synchronous');
-  this.clock.tick(1);
-  assert.equal(loadstarts, 1, 'fired loadstart');
-  tech.dispose();
-  videojs.HlsHandler.prototype.setupQualityLevels_ = ogHlsHandlerSetupQualityLevels;
+  assert.ok(!(HlsSourceHandler.canHandleSource({
+    type: 'video/mp4'
+  }) instanceof HlsHandler), 'does not support mp4');
+  assert.ok(!(HlsSourceHandler.canHandleSource({
+    type: 'video/x-flv'
+  }) instanceof HlsHandler), 'does not support flv');
+  assert.ok(!(HlsSourceHandler.canPlayType('video/mp4')),
+            'does not support mp4');
+  assert.ok(!(HlsSourceHandler.canPlayType('video/x-flv')),
+            'does not support flv');
 });
 
 QUnit.test('has no effect if native HLS is available', function(assert) {
@@ -2481,38 +2373,6 @@ QUnit.test('adds 1 default audio track if we have not parsed any and the playlis
 
   assert.equal(this.player.audioTracks().length, 1, 'one audio track after load');
   assert.equal(this.player.audioTracks()[0].label, 'default', 'set the label');
-});
-
-QUnit.test('adds 1 default audio track if in flash mode', function(assert) {
-  let hlsOptions = videojs.options.hls;
-
-  this.player.dispose();
-  videojs.options.hls = {
-    mode: 'flash'
-  };
-
-  this.player = createPlayer();
-
-  this.player.src({
-    src: 'manifest/multipleAudioGroups.m3u8',
-    type: 'application/vnd.apple.mpegurl'
-  });
-
-  this.clock.tick(1);
-
-  assert.equal(this.player.audioTracks().length, 0, 'zero audio tracks at load time');
-
-  openMediaSource(this.player, this.clock);
-
-  // master
-  this.standardXHRResponse(this.requests.shift());
-  // media
-  this.standardXHRResponse(this.requests.shift());
-
-  assert.equal(this.player.audioTracks().length, 1, 'one audio track after load');
-  assert.equal(this.player.audioTracks()[0].label, 'default', 'set the label');
-
-  videojs.options.hls = hlsOptions;
 });
 
 QUnit.test('adds audio tracks if we have parsed some from a playlist', function(assert) {
@@ -3056,7 +2916,7 @@ QUnit.module('HLS Integration', {
 QUnit.test('does not error when MediaSource is not defined', function(assert) {
   window.MediaSource = null;
 
-  let hls = HlsSourceHandler('html5').handleSource({
+  let hls = HlsSourceHandler.handleSource({
     src: 'manifest/alternateAudio.m3u8',
     type: 'application/vnd.apple.mpegurl'
   }, this.tech);
@@ -3071,7 +2931,7 @@ QUnit.test('does not error when MediaSource is not defined', function(assert) {
 });
 
 QUnit.test('aborts all in-flight work when disposed', function(assert) {
-  let hls = HlsSourceHandler('html5').handleSource({
+  let hls = HlsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
   }, this.tech);
@@ -3092,7 +2952,7 @@ QUnit.test('aborts all in-flight work when disposed', function(assert) {
 });
 
 QUnit.test('stats are reset on dispose', function(assert) {
-  let hls = HlsSourceHandler('html5').handleSource({
+  let hls = HlsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
   }, this.tech);
@@ -3113,7 +2973,7 @@ QUnit.test('stats are reset on dispose', function(assert) {
 
 QUnit.test('detects fullscreen and triggers a quality change', function(assert) {
   let qualityChanges = 0;
-  let hls = HlsSourceHandler('html5').handleSource({
+  let hls = HlsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
   }, this.tech);
@@ -3147,7 +3007,7 @@ QUnit.test('detects fullscreen and triggers a quality change', function(assert) 
 
 QUnit.test('downloads additional playlists if required', function(assert) {
   let originalPlaylist;
-  let hls = HlsSourceHandler('html5').handleSource({
+  let hls = HlsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
   }, this.tech);
@@ -3191,7 +3051,7 @@ QUnit.test('downloads additional playlists if required', function(assert) {
 
 QUnit.test('waits to download new segments until the media playlist is stable', function(assert) {
   let sourceBuffer;
-  let hls = HlsSourceHandler('html5').handleSource({
+  let hls = HlsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
   }, this.tech);
@@ -3237,7 +3097,7 @@ QUnit.test('waits to download new segments until the media playlist is stable', 
 });
 
 QUnit.test('live playlist starts three target durations before live', function(assert) {
-  let hls = HlsSourceHandler('html5').handleSource({
+  let hls = HlsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
   }, this.tech);
@@ -3278,7 +3138,7 @@ QUnit.test('uses user defined selectPlaylist from HlsHandler if specified', func
 
   Hls.STANDARD_PLAYLIST_SELECTOR = () => defaultSelectPlaylistCount++;
 
-  let hls = HlsSourceHandler('html5').handleSource({
+  let hls = HlsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
   }, this.tech);
@@ -3293,7 +3153,7 @@ QUnit.test('uses user defined selectPlaylist from HlsHandler if specified', func
 
   HlsHandler.prototype.selectPlaylist = newSelectPlaylist;
 
-  hls = HlsSourceHandler('html5').handleSource({
+  hls = HlsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
   }, this.tech);
@@ -3344,7 +3204,7 @@ QUnit.module('HLS - Encryption', {
 });
 
 QUnit.test('blacklists playlist if key requests fail', function(assert) {
-  let hls = HlsSourceHandler('html5').handleSource({
+  let hls = HlsSourceHandler.handleSource({
     src: 'manifest/encrypted-master.m3u8',
     type: 'application/vnd.apple.mpegurl'
   }, this.tech);
@@ -3384,7 +3244,7 @@ QUnit.test('blacklists playlist if key requests fail', function(assert) {
 });
 
 QUnit.test('treats invalid keys as a key request failure and blacklists playlist', function(assert) {
-  let hls = HlsSourceHandler('html5').handleSource({
+  let hls = HlsSourceHandler.handleSource({
     src: 'manifest/encrypted-master.m3u8',
     type: 'application/vnd.apple.mpegurl'
   }, this.tech);
