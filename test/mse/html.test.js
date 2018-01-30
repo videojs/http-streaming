@@ -40,7 +40,7 @@ QUnit.module('videojs-contrib-media-sources - HTML', {
         this.duration = NaN;
       },
       addSourceBuffer(type) {
-        let buffer = new (videojs.extend(videojs.EventTarget, {
+        const buffer = new (videojs.extend(videojs.EventTarget, {
           type,
           appendBuffer() {}
         }))();
@@ -70,7 +70,7 @@ QUnit.test('constructs a native MediaSource', function(assert) {
 });
 
 const createDataMessage = function(type, typedArray, extraObject) {
-  let message = {
+  const message = {
     data: {
       action: 'data',
       segment: {
@@ -115,8 +115,8 @@ const initializeNativeSourceBuffers = function(sourceBuffer) {
 };
 
 QUnit.test('creates mp4 source buffers for mp2t segments', function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
 
   initializeNativeSourceBuffers(sourceBuffer);
 
@@ -145,8 +145,8 @@ QUnit.test('creates mp4 source buffers for mp2t segments', function(assert) {
 QUnit.test(
 'the terminate is called on the transmuxer when the media source is killed',
 function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
   let terminates = 0;
 
   sourceBuffer.transmuxer_ = {
@@ -161,8 +161,8 @@ function(assert) {
 });
 
 QUnit.test('duration is faked when playing a live stream', function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
 
   mediaSource.duration = Infinity;
   mediaSource.nativeMediaSource_.duration = 100;
@@ -174,8 +174,8 @@ QUnit.test('duration is faked when playing a live stream', function(assert) {
 
 QUnit.test(
 'duration uses the underlying MediaSource\'s duration when not live', function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
 
   mediaSource.duration = 100;
   mediaSource.nativeMediaSource_.duration = 120;
@@ -184,9 +184,9 @@ QUnit.test(
 });
 
 QUnit.test('abort on the fake source buffer calls abort on the real ones', function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
-  let messages = [];
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  const messages = [];
   let aborts = 0;
 
   initializeNativeSourceBuffers(sourceBuffer);
@@ -217,9 +217,9 @@ QUnit.test('abort on the fake source buffer calls abort on the real ones', funct
 QUnit.test(
 'calling remove deletes cues and invokes remove on any extant source buffers',
 function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
-  let removedCue = [];
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  const removedCue = [];
   let removes = 0;
 
   initializeNativeSourceBuffers(sourceBuffer);
@@ -265,8 +265,8 @@ function(assert) {
 QUnit.test(
 'calling remove property handles absence of cues (null)',
 function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
 
   initializeNativeSourceBuffers(sourceBuffer);
 
@@ -294,11 +294,11 @@ function(assert) {
 });
 
 QUnit.test('removing doesn\'t happen with audio disabled', function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let muxedBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  const mediaSource = new videojs.MediaSource();
+  const muxedBuffer = mediaSource.addSourceBuffer('video/mp2t');
   // creating this audio buffer disables audio in the muxed one
-  let audioBuffer = mediaSource.addSourceBuffer('audio/mp2t; codecs="mp4a.40.2"');
-  let removedCue = [];
+  const audioBuffer = mediaSource.addSourceBuffer('audio/mp2t; codecs="mp4a.40.2"');
+  const removedCue = [];
   let removes = 0;
 
   initializeNativeSourceBuffers(muxedBuffer);
@@ -338,7 +338,7 @@ QUnit.test('removing doesn\'t happen with audio disabled', function(assert) {
 });
 
 QUnit.test('readyState delegates to the native implementation', function(assert) {
-  let mediaSource = new HtmlMediaSource();
+  const mediaSource = new HtmlMediaSource();
 
   assert.strictEqual(
     mediaSource.readyState,
@@ -355,7 +355,7 @@ QUnit.test('readyState delegates to the native implementation', function(assert)
 });
 
 QUnit.test('addSeekableRange_ throws an error for media with known duration', function(assert) {
-  let mediaSource = new videojs.MediaSource();
+  const mediaSource = new videojs.MediaSource();
 
   mediaSource.duration = 100;
   assert.throws(function() {
@@ -364,7 +364,7 @@ QUnit.test('addSeekableRange_ throws an error for media with known duration', fu
 });
 
 QUnit.test('addSeekableRange_ adds to the native MediaSource duration', function(assert) {
-  let mediaSource = new videojs.MediaSource();
+  const mediaSource = new videojs.MediaSource();
 
   mediaSource.duration = Infinity;
   mediaSource.addSeekableRange_(120, 240);
@@ -377,8 +377,8 @@ QUnit.test('addSeekableRange_ adds to the native MediaSource duration', function
 });
 
 QUnit.test('appendBuffer error triggers on the player', function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
   let error = false;
 
   mediaSource.player_ = this.player;
@@ -389,12 +389,14 @@ QUnit.test('appendBuffer error triggers on the player', function(assert) {
     throw new Error();
   };
 
-  this.player.on('error', () => error = true);
+  this.player.on('error', () => {
+    error = true;
+  });
 
   // send fake data to the source buffer from the transmuxer to append to native buffer
   // initializeNativeSourceBuffers does the same thing to trigger the creation of
   // native source buffers.
-  let fakeTransmuxerMessage = initializeNativeSourceBuffers;
+  const fakeTransmuxerMessage = initializeNativeSourceBuffers;
 
   fakeTransmuxerMessage(sourceBuffer);
 
@@ -404,18 +406,15 @@ QUnit.test('appendBuffer error triggers on the player', function(assert) {
 });
 
 QUnit.test('transmuxes mp2t segments', function(assert) {
-  let mp2tSegments = [];
-  let mp4Segments = [];
-  let data = new Uint8Array(1);
-  let mediaSource;
-  let sourceBuffer;
-
-  mediaSource = new videojs.MediaSource();
-  sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  const mp2tSegments = [];
+  const mp4Segments = [];
+  const data = new Uint8Array(1);
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
 
   sourceBuffer.transmuxer_.postMessage = function(segment) {
     if (segment.action === 'push') {
-      let buffer = new Uint8Array(segment.data, segment.byteOffset, segment.byteLength);
+      const buffer = new Uint8Array(segment.data, segment.byteOffset, segment.byteLength);
 
       mp2tSegments.push(buffer);
     }
@@ -453,19 +452,16 @@ QUnit.test('transmuxes mp2t segments', function(assert) {
 QUnit.test(
 'handles typed-arrays that are subsets of their underlying buffer',
 function(assert) {
-  let mp2tSegments = [];
-  let mp4Segments = [];
-  let dataBuffer = new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
-  let data = dataBuffer.subarray(5, 7);
-  let mediaSource;
-  let sourceBuffer;
-
-  mediaSource = new videojs.MediaSource();
-  sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  const mp2tSegments = [];
+  const mp4Segments = [];
+  const dataBuffer = new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  const data = dataBuffer.subarray(5, 7);
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
 
   sourceBuffer.transmuxer_.postMessage = function(segment) {
     if (segment.action === 'push') {
-      let buffer = new Uint8Array(segment.data, segment.byteOffset, segment.byteLength);
+      const buffer = new Uint8Array(segment.data, segment.byteOffset, segment.byteLength);
 
       mp2tSegments.push(buffer);
     }
@@ -513,21 +509,19 @@ function(assert) {
 QUnit.test(
 'only appends audio init segment for first segment or on audio/media changes',
 function(assert) {
-  let mp4Segments = [];
-  let initBuffer = new Uint8Array([0, 1]);
+  const mp4Segments = [];
+  const initBuffer = new Uint8Array([0, 1]);
   let dataBuffer = new Uint8Array([2, 3]);
-  let mediaSource;
-  let sourceBuffer;
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
 
-  mediaSource = new videojs.MediaSource();
-  sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
   sourceBuffer.audioDisabled_ = false;
   mediaSource.player_ = this.player;
   mediaSource.url_ = this.url;
   mediaSource.trigger('sourceopen');
 
   sourceBuffer.concatAndAppendSegments_ = function(segmentObj, destinationBuffer) {
-    let segment = segmentObj.segments.reduce((seg, arr) => seg.concat(Array.from(arr)),
+    const segment = segmentObj.segments.reduce((seg, arr) => seg.concat(Array.from(arr)),
       []);
 
     mp4Segments.push(segment);
@@ -637,20 +631,18 @@ function(assert) {
 QUnit.test(
 'appends video init segment for every segment',
 function(assert) {
-  let mp4Segments = [];
-  let initBuffer = new Uint8Array([0, 1]);
+  const mp4Segments = [];
+  const initBuffer = new Uint8Array([0, 1]);
   let dataBuffer = new Uint8Array([2, 3]);
-  let mediaSource;
-  let sourceBuffer;
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
 
-  mediaSource = new videojs.MediaSource();
-  sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
   mediaSource.player_ = this.player;
   mediaSource.url_ = this.url;
   mediaSource.trigger('sourceopen');
 
   sourceBuffer.concatAndAppendSegments_ = function(segmentObj, destinationBuffer) {
-    let segment = segmentObj.segments.reduce((seg, arr) => seg.concat(Array.from(arr)),
+    const segment = segmentObj.segments.reduce((seg, arr) => seg.concat(Array.from(arr)),
       []);
 
     mp4Segments.push(segment);
@@ -716,8 +708,8 @@ function(assert) {
 });
 
 QUnit.test('handles empty codec string value', function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer =
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer =
     mediaSource.addSourceBuffer('video/mp2t; codecs=""');
 
   initializeNativeSourceBuffers(sourceBuffer);
@@ -744,8 +736,8 @@ QUnit.test('handles empty codec string value', function(assert) {
 });
 
 QUnit.test('can create an audio buffer by itself', function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer =
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer =
     mediaSource.addSourceBuffer('video/mp2t; codecs="mp4a.40.2"');
 
   initializeNativeSourceBuffers(sourceBuffer);
@@ -766,8 +758,8 @@ QUnit.test('can create an audio buffer by itself', function(assert) {
 });
 
 QUnit.test('can create an video buffer by itself', function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer =
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer =
     mediaSource.addSourceBuffer('video/mp2t; codecs="avc1.4d400d"');
 
   initializeNativeSourceBuffers(sourceBuffer);
@@ -788,8 +780,8 @@ QUnit.test('can create an video buffer by itself', function(assert) {
 });
 
 QUnit.test('handles invalid codec string', function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer =
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer =
     mediaSource.addSourceBuffer('video/mp2t; codecs="nope"');
 
   initializeNativeSourceBuffers(sourceBuffer);
@@ -816,8 +808,8 @@ QUnit.test('handles invalid codec string', function(assert) {
 });
 
 QUnit.test('handles codec strings in reverse order', function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer =
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer =
     mediaSource.addSourceBuffer('video/mp2t; codecs="mp4a.40.5,avc1.64001f"');
 
   initializeNativeSourceBuffers(sourceBuffer);
@@ -846,8 +838,8 @@ QUnit.test('handles codec strings in reverse order', function(assert) {
 });
 
 QUnit.test('forwards codec strings to native buffers when specified', function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer =
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer =
     mediaSource.addSourceBuffer('video/mp2t; codecs="avc1.64001f,mp4a.40.5"');
 
   initializeNativeSourceBuffers(sourceBuffer);
@@ -864,8 +856,8 @@ QUnit.test('forwards codec strings to native buffers when specified', function(a
 });
 
 QUnit.test('parses old-school apple codec strings to the modern standard', function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer =
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer =
     mediaSource.addSourceBuffer('video/mp2t; codecs="avc1.100.31,mp4a.40.5"');
 
   initializeNativeSourceBuffers(sourceBuffer);
@@ -883,8 +875,8 @@ QUnit.test('parses old-school apple codec strings to the modern standard', funct
 });
 
 QUnit.test('specifies reasonable codecs if none are specified', function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
 
   initializeNativeSourceBuffers(sourceBuffer);
 
@@ -900,8 +892,8 @@ QUnit.test('specifies reasonable codecs if none are specified', function(assert)
 });
 
 QUnit.test('virtual buffers are updating if either native buffer is', function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
 
   initializeNativeSourceBuffers(sourceBuffer);
 
@@ -922,8 +914,8 @@ QUnit.test('virtual buffers are updating if either native buffer is', function(a
 QUnit.test(
 'virtual buffers have a position buffered if both native buffers do',
 function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
 
   initializeNativeSourceBuffers(sourceBuffer);
 
@@ -945,10 +937,10 @@ function(assert) {
 });
 
 QUnit.test('disabled audio does not affect buffered property', function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let muxedBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  const mediaSource = new videojs.MediaSource();
+  const muxedBuffer = mediaSource.addSourceBuffer('video/mp2t');
   // creating a separate audio buffer disables audio on the muxed one
-  let audioBuffer = mediaSource.addSourceBuffer('audio/mp2t; codecs="mp4a.40.2"');
+  const audioBuffer = mediaSource.addSourceBuffer('audio/mp2t; codecs="mp4a.40.2"');
 
   initializeNativeSourceBuffers(muxedBuffer);
 
@@ -964,9 +956,9 @@ QUnit.test('disabled audio does not affect buffered property', function(assert) 
 });
 
 QUnit.test('sets transmuxer baseMediaDecodeTime on appends', function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
-  let resets = [];
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  const resets = [];
 
   sourceBuffer.transmuxer_.postMessage = function(message) {
     if (message.action === 'setTimestampOffset') {
@@ -989,8 +981,8 @@ QUnit.test('sets transmuxer baseMediaDecodeTime on appends', function(assert) {
 });
 
 QUnit.test('aggregates source buffer update events', function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
   let updates = 0;
   let updateends = 0;
   let updatestarts = 0;
@@ -1042,9 +1034,9 @@ QUnit.test('aggregates source buffer update events', function(assert) {
 });
 
 QUnit.test('translates caption events into WebVTT cues', function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
-  let types = [];
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  const types = [];
   let hls608 = 0;
 
   mediaSource.player_ = {
@@ -1086,7 +1078,7 @@ QUnit.test('translates caption events into WebVTT cues', function(assert) {
     captionStreams: {CC1: true}
   }));
   sourceBuffer.transmuxer_.onmessage(doneMessage);
-  let cues = sourceBuffer.inbandTextTracks_.CC1.cues;
+  const cues = sourceBuffer.inbandTextTracks_.CC1.cues;
 
   assert.strictEqual(hls608, 1, 'one hls-608 event was triggered');
   assert.strictEqual(types.length, 1, 'created one text track');
@@ -1098,10 +1090,10 @@ QUnit.test('translates caption events into WebVTT cues', function(assert) {
 });
 
 QUnit.test('captions use existing tracks with id equal to CC#', function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
   let addTrackCalled = 0;
-  let tracks = {
+  const tracks = {
     CC1: {
       kind: 'captions',
       label: 'CC1',
@@ -1154,7 +1146,7 @@ QUnit.test('captions use existing tracks with id equal to CC#', function(assert)
   }));
 
   sourceBuffer.transmuxer_.onmessage(doneMessage);
-  let cues = sourceBuffer.inbandTextTracks_.CC1.cues;
+  const cues = sourceBuffer.inbandTextTracks_.CC1.cues;
 
   assert.strictEqual(addTrackCalled, 0, 'no tracks were created');
   assert.strictEqual(tracks.CC1.cues.length, 1, 'CC1 contains 1 cue');
@@ -1165,14 +1157,14 @@ QUnit.test('captions use existing tracks with id equal to CC#', function(assert)
 });
 
 QUnit.test('translates metadata events into WebVTT cues', function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
 
   mediaSource.duration = Infinity;
   mediaSource.nativeMediaSource_.duration = 60;
 
-  let types = [];
-  let metadata = [{
+  const types = [];
+  const metadata = [{
     cueTime: 2,
     frames: [{
       url: 'This is a url tag'
@@ -1216,7 +1208,7 @@ QUnit.test('translates metadata events into WebVTT cues', function(assert) {
     16,
   'in-band metadata track dispatch type correctly set'
   );
-  let cues = sourceBuffer.metadataTrack_.cues;
+  const cues = sourceBuffer.metadataTrack_.cues;
 
   assert.strictEqual(types.length, 1, 'created one text track');
   assert.strictEqual(types[0], 'metadata', 'the type was metadata');
@@ -1236,7 +1228,7 @@ QUnit.test('translates metadata events into WebVTT cues', function(assert) {
 });
 
 QUnit.test('does not wrap mp4 source buffers', function(assert) {
-  let mediaSource = new videojs.MediaSource();
+  const mediaSource = new videojs.MediaSource();
 
   mediaSource.addSourceBuffer('video/mp4;codecs=avc1.4d400d');
   mediaSource.addSourceBuffer('audio/mp4;codecs=mp4a.40.2');
@@ -1249,7 +1241,7 @@ QUnit.test('does not wrap mp4 source buffers', function(assert) {
 });
 
 QUnit.test('can get activeSourceBuffers', function(assert) {
-  let mediaSource = new videojs.MediaSource();
+  const mediaSource = new videojs.MediaSource();
 
   // although activeSourceBuffers should technically be a SourceBufferList, we are
   // returning it as an array, and users may expect it to behave as such
@@ -1258,7 +1250,7 @@ QUnit.test('can get activeSourceBuffers', function(assert) {
 
 QUnit.test('active source buffers are updated on each buffer\'s updateend',
 function(assert) {
-  let mediaSource = new videojs.MediaSource();
+  const mediaSource = new videojs.MediaSource();
   let updateCallCount = 0;
   let sourceBuffer;
 
@@ -1293,10 +1285,8 @@ function(assert) {
 
 QUnit.test('combined buffer is the only active buffer when main track enabled',
 function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBufferAudio;
-  let sourceBufferCombined;
-  let audioTracks = [{
+  const mediaSource = new videojs.MediaSource();
+  const audioTracks = [{
     enabled: true,
     kind: 'main',
     label: 'main'
@@ -1310,10 +1300,13 @@ function(assert) {
 
   mediaSource.player_ = this.player;
 
-  sourceBufferCombined = mediaSource.addSourceBuffer('video/m2pt');
+  const sourceBufferCombined = mediaSource.addSourceBuffer('video/m2pt');
+
   sourceBufferCombined.videoCodec_ = true;
   sourceBufferCombined.audioCodec_ = true;
-  sourceBufferAudio = mediaSource.addSourceBuffer('video/m2pt');
+
+  const sourceBufferAudio = mediaSource.addSourceBuffer('video/m2pt');
+
   sourceBufferAudio.videoCodec_ = false;
   sourceBufferAudio.audioCodec_ = true;
 
@@ -1327,10 +1320,8 @@ function(assert) {
 
 QUnit.test('combined & audio buffers are active when alternative track enabled',
 function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBufferAudio;
-  let sourceBufferCombined;
-  let audioTracks = [{
+  const mediaSource = new videojs.MediaSource();
+  const audioTracks = [{
     enabled: false,
     kind: 'main',
     label: 'main'
@@ -1344,10 +1335,13 @@ function(assert) {
 
   mediaSource.player_ = this.player;
 
-  sourceBufferCombined = mediaSource.addSourceBuffer('video/m2pt');
+  const sourceBufferCombined = mediaSource.addSourceBuffer('video/m2pt');
+
   sourceBufferCombined.videoCodec_ = true;
   sourceBufferCombined.audioCodec_ = true;
-  sourceBufferAudio = mediaSource.addSourceBuffer('video/m2pt');
+
+  const sourceBufferAudio = mediaSource.addSourceBuffer('video/m2pt');
+
   sourceBufferAudio.videoCodec_ = false;
   sourceBufferAudio.audioCodec_ = true;
 
@@ -1364,10 +1358,8 @@ function(assert) {
 
 QUnit.test('video only & audio only buffers are always active',
 function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBufferAudio;
-  let sourceBufferCombined;
-  let audioTracks = [{
+  const mediaSource = new videojs.MediaSource();
+  const audioTracks = [{
     enabled: false,
     kind: 'main',
     label: 'main'
@@ -1381,10 +1373,13 @@ function(assert) {
 
   mediaSource.player_ = this.player;
 
-  sourceBufferCombined = mediaSource.addSourceBuffer('video/m2pt');
+  const sourceBufferCombined = mediaSource.addSourceBuffer('video/m2pt');
+
   sourceBufferCombined.videoCodec_ = true;
   sourceBufferCombined.audioCodec_ = false;
-  sourceBufferAudio = mediaSource.addSourceBuffer('video/m2pt');
+
+  const sourceBufferAudio = mediaSource.addSourceBuffer('video/m2pt');
+
   sourceBufferAudio.videoCodec_ = false;
   sourceBufferAudio.audioCodec_ = true;
 
@@ -1413,8 +1408,8 @@ function(assert) {
 
 QUnit.test('Single buffer always active. Audio disabled depends on audio codec',
 function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let audioTracks = [{
+  const mediaSource = new videojs.MediaSource();
+  const audioTracks = [{
     enabled: true,
     kind: 'main',
     label: 'main'
@@ -1424,7 +1419,7 @@ function(assert) {
 
   mediaSource.player_ = this.player;
 
-  let sourceBuffer = mediaSource.addSourceBuffer('video/m2pt');
+  const sourceBuffer = mediaSource.addSourceBuffer('video/m2pt');
 
   // video only
   sourceBuffer.videoCodec_ = true;
@@ -1448,12 +1443,12 @@ function(assert) {
 });
 
 QUnit.test('video segments with info trigger videooinfo event', function(assert) {
-  let data = new Uint8Array(1);
-  let infoEvents = [];
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
-  let info = {width: 100};
-  let newinfo = {width: 225};
+  const data = new Uint8Array(1);
+  const infoEvents = [];
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  const info = {width: 100};
+  const newinfo = {width: 225};
 
   mediaSource.on('videoinfo', (e) => infoEvents.push(e));
 
@@ -1473,12 +1468,12 @@ QUnit.test('video segments with info trigger videooinfo event', function(assert)
 });
 
 QUnit.test('audio segments with info trigger audioinfo event', function(assert) {
-  let data = new Uint8Array(1);
-  let infoEvents = [];
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
-  let info = {width: 100};
-  let newinfo = {width: 225};
+  const data = new Uint8Array(1);
+  const infoEvents = [];
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  const info = {width: 100};
+  const newinfo = {width: 225};
 
   mediaSource.on('audioinfo', (e) => infoEvents.push(e));
 
@@ -1499,10 +1494,10 @@ QUnit.test('audio segments with info trigger audioinfo event', function(assert) 
 
 QUnit.test('creates native SourceBuffers immediately if a second ' +
            'VirtualSourceBuffer is created', function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer =
+  const mediaSource = new videojs.MediaSource();
+  const sourceBuffer =
     mediaSource.addSourceBuffer('video/mp2t; codecs="avc1.64001f,mp4a.40.5"');
-  let sourceBuffer2 =
+  const sourceBuffer2 =
     mediaSource.addSourceBuffer('video/mp2t; codecs="mp4a.40.5"');
 
   assert.ok(mediaSource.videoBuffer_, 'created a video buffer');
@@ -1656,7 +1651,7 @@ QUnit.test('removeGopBuffer correctly removes range from buffer', function(asser
   let buffer = [];
   let start = 0;
   let end = 0;
-  let mapping = -5;
+  const mapping = -5;
   let actual;
   let expected;
 

@@ -25,7 +25,7 @@ QUnit.module('createObjectURL', {
     // force MediaSource support
     if (!window.MediaSource) {
       window.MediaSource = function() {
-        let result = new window.Blob();
+        const result = new window.Blob();
 
         result.addEventListener = function() {};
         result.addSourceBuffer = function() {};
@@ -62,8 +62,8 @@ QUnit.test('uses the native MediaSource when available', function(assert) {
 });
 
 QUnit.test('stores the associated blob URL on the media source', function(assert) {
-  let blob = new window.Blob();
-  let url = videojs.URL.createObjectURL(blob);
+  const blob = new window.Blob();
+  const url = videojs.URL.createObjectURL(blob);
 
   assert.strictEqual(blob.url_, url, 'captured the generated URL');
 });

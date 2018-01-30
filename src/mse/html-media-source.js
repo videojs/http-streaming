@@ -94,7 +94,7 @@ export default class HtmlMediaSource extends videojs.EventTarget {
       // If there is only one source buffer, then it will always be active and audio will
       // be disabled based on the codec of the source buffer
       if (this.sourceBuffers.length === 1) {
-        let sourceBuffer = this.sourceBuffers[0];
+        const sourceBuffer = this.sourceBuffers[0];
 
         sourceBuffer.appendAudioInitSegment_ = true;
         sourceBuffer.audioDisabled_ = !sourceBuffer.audioCodec_;
@@ -112,7 +112,7 @@ export default class HtmlMediaSource extends videojs.EventTarget {
       // TODO: maybe we can store the sourcebuffers on the track objects?
       // safari may do something like this
       for (let i = 0; i < this.player_.audioTracks().length; i++) {
-        let track = this.player_.audioTracks()[i];
+        const track = this.player_.audioTracks()[i];
 
         if (track.enabled && track.kind !== 'main') {
           // The enabled track is an alternate audio track so disable the audio in
@@ -167,7 +167,9 @@ export default class HtmlMediaSource extends videojs.EventTarget {
     };
 
     this.onHlsSegmentTimeMapping_ = (event) => {
-      this.sourceBuffers.forEach(buffer => buffer.timeMapping_ = event.mapping);
+      this.sourceBuffers.forEach(buffer => {
+        buffer.timeMapping_ = event.mapping;
+      });
     };
 
     // Re-emit MediaSource events on the polyfill
@@ -183,7 +185,7 @@ export default class HtmlMediaSource extends videojs.EventTarget {
     // successfully attached
     this.on('sourceopen', (event) => {
       // Get the player this MediaSource is attached to
-      let video = document.querySelector('[src="' + this.url_ + '"]');
+      const video = document.querySelector('[src="' + this.url_ + '"]');
 
       if (!video) {
         return;
@@ -209,11 +211,11 @@ export default class HtmlMediaSource extends videojs.EventTarget {
     });
 
     this.on('sourceended', (event) => {
-      let duration = durationOfVideo(this.duration);
+      const duration = durationOfVideo(this.duration);
 
       for (let i = 0; i < this.sourceBuffers.length; i++) {
-        let sourcebuffer = this.sourceBuffers[i];
-        let cues = sourcebuffer.metadataTrack_ && sourcebuffer.metadataTrack_.cues;
+        const sourcebuffer = this.sourceBuffers[i];
+        const cues = sourcebuffer.metadataTrack_ && sourcebuffer.metadataTrack_.cues;
 
         if (cues && cues.length) {
           cues[cues.length - 1].endTime = duration;
@@ -286,7 +288,7 @@ export default class HtmlMediaSource extends videojs.EventTarget {
    */
   addSourceBuffer(type) {
     let buffer;
-    let parsedType = parseContentType(type);
+    const parsedType = parseContentType(type);
 
     // Create a VirtualSourceBuffer to transmux MPEG-2 transport
     // stream segments into fragmented MP4s

@@ -649,12 +649,12 @@ class HlsHandler extends Component {
  */
 const HlsSourceHandler = {
   canHandleSource(srcObj, options = {}) {
-    let localOptions = videojs.mergeOptions(videojs.options, options);
+    const localOptions = videojs.mergeOptions(videojs.options, options);
 
     return HlsSourceHandler.canPlayType(srcObj.type, localOptions);
   },
   handleSource(source, tech, options = {}) {
-    let localOptions = videojs.mergeOptions(videojs.options, options);
+    const localOptions = videojs.mergeOptions(videojs.options, options);
 
     tech.hls = new HlsHandler(source, tech, localOptions);
     tech.hls.xhr = xhrFactory();

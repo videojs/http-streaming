@@ -60,11 +60,11 @@ const durationOfVideo = function(duration) {
  * @private
  */
 const addTextTrackData = function(sourceHandler, captionArray, metadataArray) {
-  let Cue = window.WebKitDataCue || window.VTTCue;
+  const Cue = window.WebKitDataCue || window.VTTCue;
 
   if (captionArray) {
     captionArray.forEach(function(caption) {
-      let track = caption.stream;
+      const track = caption.stream;
 
       this.inbandTextTracks_[track].addCue(
         new Cue(
@@ -76,13 +76,13 @@ const addTextTrackData = function(sourceHandler, captionArray, metadataArray) {
   }
 
   if (metadataArray) {
-    let videoDuration = durationOfVideo(sourceHandler.mediaSource_.duration);
+    const videoDuration = durationOfVideo(sourceHandler.mediaSource_.duration);
 
     metadataArray.forEach(function(metadata) {
-      let time = metadata.cueTime + this.timestampOffset;
+      const time = metadata.cueTime + this.timestampOffset;
 
       metadata.frames.forEach(function(frame) {
-        let cue = new Cue(
+        const cue = new Cue(
           time,
           time,
           frame.value || frame.url || frame.data || '');
@@ -101,8 +101,8 @@ const addTextTrackData = function(sourceHandler, captionArray, metadataArray) {
     if (sourceHandler.metadataTrack_ &&
         sourceHandler.metadataTrack_.cues &&
         sourceHandler.metadataTrack_.cues.length) {
-      let cues = sourceHandler.metadataTrack_.cues;
-      let cuesArray = [];
+      const cues = sourceHandler.metadataTrack_.cues;
+      const cuesArray = [];
 
       // Create a copy of the TextTrackCueList...
       // ...disregarding cues with a falsey value
@@ -113,8 +113,8 @@ const addTextTrackData = function(sourceHandler, captionArray, metadataArray) {
       }
 
       // Group cues by their startTime value
-      let cuesGroupedByStartTime = cuesArray.reduce((obj, cue) => {
-        let timeSlot = obj[cue.startTime] || [];
+      const cuesGroupedByStartTime = cuesArray.reduce((obj, cue) => {
+        const timeSlot = obj[cue.startTime] || [];
 
         timeSlot.push(cue);
         obj[cue.startTime] = timeSlot;
@@ -123,13 +123,13 @@ const addTextTrackData = function(sourceHandler, captionArray, metadataArray) {
       }, {});
 
       // Sort startTimes by ascending order
-      let sortedStartTimes = Object.keys(cuesGroupedByStartTime)
+      const sortedStartTimes = Object.keys(cuesGroupedByStartTime)
                                    .sort((a, b) => Number(a) - Number(b));
 
       // Map each cue group's endTime to the next group's startTime
       sortedStartTimes.forEach((startTime, idx) => {
-        let cueGroup = cuesGroupedByStartTime[startTime];
-        let nextTime = Number(sortedStartTimes[idx + 1]) || videoDuration;
+        const cueGroup = cuesGroupedByStartTime[startTime];
+        const nextTime = Number(sortedStartTimes[idx + 1]) || videoDuration;
 
         // Map each cue's endTime the next group's startTime
         cueGroup.forEach((cue) => {

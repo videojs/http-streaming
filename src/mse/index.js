@@ -23,7 +23,7 @@ videojs.mediaSources = {};
  * @param {String} swfId the swf id
  */
 const open = function(msObjectURL, swfId) {
-  let mediaSource = videojs.mediaSources[msObjectURL];
+  const mediaSource = videojs.mediaSources[msObjectURL];
 
   if (mediaSource) {
     mediaSource.trigger({type: 'sourceopen', swfId});
@@ -82,7 +82,7 @@ export const URL = {
    * @param {MediaSource} object the object to create a blob url to
    */
   createObjectURL(object) {
-    let objectUrlPrefix = 'blob:vjs-media-source/';
+    const objectUrlPrefix = 'blob:vjs-media-source/';
     let url;
 
     // use the native MediaSource to generate an object URL

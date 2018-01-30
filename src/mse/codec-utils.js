@@ -33,17 +33,17 @@ const isVideoCodec = function(codec) {
  * @private
  */
 const parseContentType = function(type) {
-  let object = {type: '', parameters: {}};
-  let parameters = type.trim().split(';');
+  const object = {type: '', parameters: {}};
+  const parameters = type.trim().split(';');
 
   // first parameter should always be content-type
   object.type = parameters.shift().trim();
   parameters.forEach((parameter) => {
-    let pair = parameter.trim().split('=');
+    const pair = parameter.trim().split('=');
 
     if (pair.length > 1) {
-      let name = pair[0].replace(/"/g, '').trim();
-      let value = pair[1].replace(/"/g, '').trim();
+      const name = pair[0].replace(/"/g, '').trim();
+      const value = pair[1].replace(/"/g, '').trim();
 
       object.parameters[name] = value;
     }
@@ -63,8 +63,8 @@ const parseContentType = function(type) {
 const translateLegacyCodecs = function(codecs) {
   return codecs.map((codec) => {
     return codec.replace(/avc1\.(\d+)\.(\d+)/i, function(orig, profile, avcLevel) {
-      let profileHex = ('00' + Number(profile).toString(16)).slice(-2);
-      let avcLevelHex = ('00' + Number(avcLevel).toString(16)).slice(-2);
+      const profileHex = ('00' + Number(profile).toString(16)).slice(-2);
+      const avcLevelHex = ('00' + Number(avcLevel).toString(16)).slice(-2);
 
       return 'avc1.' + profileHex + '00' + avcLevelHex;
     });
