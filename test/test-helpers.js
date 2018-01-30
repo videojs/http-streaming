@@ -3,7 +3,7 @@ import sinon from 'sinon';
 import videojs from 'video.js';
 /* eslint-disable no-unused-vars */
 // needed so MediaSource can be registered with videojs
-import MediaSource from 'videojs-contrib-media-sources';
+import MediaSource from '../src/mse';
 /* eslint-enable */
 import testDataManifests from './test-manifests.js';
 import xhrFactory from '../src/xhr';
@@ -286,11 +286,8 @@ export const createPlayer = function(options, src, clock) {
     }
   }
   document.querySelector('#qunit-fixture').appendChild(video);
-  const player = videojs(video, options || {
-    flash: {
-      swf: ''
-    }
-  });
+
+  const player = videojs(video, options || {});
 
   player.buffered = function() {
     return videojs.createTimeRange(0, 0);
@@ -306,7 +303,6 @@ export const createPlayer = function(options, src, clock) {
 };
 
 export const openMediaSource = function(player, clock) {
-  // ensure the Flash tech is ready
   player.tech_.triggerReady();
   clock.tick(1);
   // mock the tech *after* it has finished loading so that we don't

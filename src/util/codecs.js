@@ -4,7 +4,7 @@
  */
 
 import videojs from 'video.js';
-import { translateLegacyCodecs } from 'videojs-contrib-media-sources/es5/codec-utils';
+import { translateLegacyCodecs } from '../mse/codec-utils';
 
 // Default codec parameters if none were provided for video and/or audio
 const defaultCodecs = {

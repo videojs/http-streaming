@@ -252,6 +252,7 @@ const calculateBufferedPercent = function(adjustedRange,
     // overlap duration so that it actually starts at the beginning of referenceRange
     // by including the difference between the two Range's durations
     // This is a work around for the way Flash has no buffer before currentTime
+    // TODO: see if this is still necessary since Flash isn't included
     if (adjustedIntersection.start(count) === currentTime) {
       adjustedOverlap += bufferMissingFromAdjusted;
     }

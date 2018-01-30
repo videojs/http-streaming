@@ -8,16 +8,15 @@ import document from 'global/document';
 import PlaylistLoader from './playlist-loader';
 import Playlist from './playlist';
 import xhrFactory from './xhr';
-import {Decrypter, AsyncStream, decrypt} from 'aes-decrypter';
+import { Decrypter, AsyncStream, decrypt } from 'aes-decrypter';
 import utils from './bin-utils';
-import {timeRangesToArray} from './ranges';
-import {MediaSource, URL} from 'videojs-contrib-media-sources';
+import { timeRangesToArray } from './ranges';
+import { MediaSource, URL } from './mse';
 import m3u8 from 'm3u8-parser';
 import videojs from 'video.js';
 import { MasterPlaylistController } from './master-playlist-controller';
 import Config from './config';
 import renditionSelectionMixin from './rendition-mixin';
-import window from 'global/window';
 import PlaybackWatcher from './playback-watcher';
 import reloadSourceOnError from './reload-source-on-error';
 import {
@@ -133,7 +132,7 @@ const handleHlsLoadedMetadata = function(qualityLevels, hls) {
 // as one do not cause exceptions.
 Hls.canPlaySource = function() {
   return videojs.log.warn('HLS is no longer a tech. Please remove it from ' +
-                          'your player\'s techOrder.');
+    'your player\'s techOrder.');
 };
 
 const emeOptions = (keySystemOptions, videoPlaylist, audioPlaylist) => {
@@ -218,13 +217,25 @@ Hls.supportsNativeDash = (function() {
     document.createElement('video').canPlayType('application/dash+xml'));
 }());
 
+Hls.supportsTypeNatively = (type) => {
+  if (type === 'hls') {
+    return Hls.supportsNativeHls;
+  }
+
+  if (type === 'dash') {
+    return Hls.supportsNativeDash;
+  }
+
+  return false;
+};
+
 /**
  * HLS is a source handler, not a tech. Make sure attempts to use it
  * as one do not cause exceptions.
  */
 Hls.isSupported = function() {
   return videojs.log.warn('HLS is no longer a tech. Please remove it from ' +
-                          'your player\'s techOrder.');
+    'your player\'s techOrder.');
 };
 
 const Component = videojs.getComponent('Component');
@@ -252,7 +263,7 @@ class HlsHandler extends Component {
         Object.defineProperty(_player, 'hls', {
           get: () => {
             videojs.log.warn('player.hls is deprecated. Use player.tech_.hls instead.');
-            tech.trigger({type: 'usage', name: 'hls-player-access'});
+            tech.trigger({ type: 'usage', name: 'hls-player-access' });
             return this;
           }
         });
@@ -279,7 +290,7 @@ class HlsHandler extends Component {
     if (this.options_.overrideNative &&
         (tech.featuresNativeVideoTracks || tech.featuresNativeAudioTracks)) {
       throw new Error('Overriding native HLS requires emulated tracks. ' +
-                      'See https://git.io/vMpjB');
+        'See https://git.io/vMpjB');
     }
 
     // listen for fullscreenchange events for this player so that we
@@ -289,9 +300,9 @@ class HlsHandler extends Component {
       'mozfullscreenchange', 'MSFullscreenChange'
     ], (event) => {
       const fullscreenElement = document.fullscreenElement ||
-          document.webkitFullscreenElement ||
-          document.mozFullScreenElement ||
-          document.msFullscreenElement;
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement;
 
       if (fullscreenElement && fullscreenElement.contains(this.tech_.el())) {
         this.masterPlaylistController_.fastQualityChange_();
@@ -332,8 +343,8 @@ class HlsHandler extends Component {
     // If the bandwidth number is unchanged from the initial setting
     // then this takes precedence over the enableLowInitialPlaylist option
     this.options_.enableLowInitialPlaylist =
-       this.options_.enableLowInitialPlaylist &&
-       this.options_.bandwidth === INITIAL_BANDWIDTH;
+      this.options_.enableLowInitialPlaylist &&
+      this.options_.bandwidth === INITIAL_BANDWIDTH;
 
     // grab options passed to player.src
     ['withCredentials', 'bandwidth'].forEach((option) => {
@@ -613,8 +624,8 @@ class HlsHandler extends Component {
   }
 
   /**
-  * Abort all outstanding work and cleanup.
-  */
+   * Abort all outstanding work and cleanup.
+   */
   dispose() {
     if (this.playbackWatcher_) {
       this.playbackWatcher_.dispose();
@@ -636,77 +647,29 @@ class HlsHandler extends Component {
  * the browser it is running in. It is not necessary to use or modify
  * this object in normal usage.
  */
-const HlsSourceHandler = function(mode) {
-  const sourceHandlerOptions = { hls: { mode } };
+const HlsSourceHandler = {
+  canHandleSource(srcObj, options = {}) {
+    let localOptions = videojs.mergeOptions(videojs.options, options);
 
-  return {
-    canHandleSource(srcObj, options = {}) {
-      const localOptions = videojs.mergeOptions(videojs.options, options);
+    return HlsSourceHandler.canPlayType(srcObj.type, localOptions);
+  },
+  handleSource(source, tech, options = {}) {
+    let localOptions = videojs.mergeOptions(videojs.options, options);
 
-      // this forces video.js to skip this tech/mode if its not the one we have been
-      // overriden to use, by returing that we cannot handle the source.
-      if (localOptions.hls &&
-          localOptions.hls.mode &&
-          localOptions.hls.mode !== mode) {
-        return false;
-      }
-      return HlsSourceHandler.canPlayType(srcObj.type,
-        videojs.mergeOptions(localOptions, sourceHandlerOptions));
-    },
-    handleSource(source, tech, options = {}) {
-      const localOptions = videojs.mergeOptions(videojs.options,
-                                              options,
-                                              sourceHandlerOptions);
+    tech.hls = new HlsHandler(source, tech, localOptions);
+    tech.hls.xhr = xhrFactory();
 
-      if (mode === 'flash') {
-        // We need to trigger this asynchronously to give others the chance
-        // to bind to the event when a source is set at player creation
-        tech.setTimeout(function() {
-          tech.trigger('loadstart');
-        }, 1);
-      }
+    tech.hls.src(source.src, source.type);
+    return tech.hls;
+  },
+  canPlayType(type, options = {}) {
+    const { hls: { overrideNative } } = videojs.mergeOptions(videojs.options, options);
+    const supportedType = simpleTypeFromSourceType(type);
+    const canUseMsePlayback = supportedType &&
+      (!Hls.supportsTypeNatively(supportedType) || overrideNative);
 
-      tech.hls = new HlsHandler(source, tech, localOptions);
-      tech.hls.xhr = xhrFactory();
-
-      tech.hls.src(source.src, source.type);
-      return tech.hls;
-    },
-    canPlayType(type, options = {}) {
-      const localOptions = videojs.mergeOptions(videojs.options,
-                                              sourceHandlerOptions,
-                                              options);
-
-      if (HlsSourceHandler.canPlayType(type, localOptions)) {
-        return 'maybe';
-      }
-      return '';
-    }
-  };
-};
-
-HlsSourceHandler.canPlayType = function(type, options) {
-  // No support for IE 10 or below
-  if (videojs.browser.IE_VERSION && videojs.browser.IE_VERSION <= 10) {
-    return false;
+    return canUseMsePlayback ? 'maybe' : '';
   }
-
-  const sourceType = simpleTypeFromSourceType(type);
-
-  if (sourceType === 'dash' && options.hls.mode !== 'flash') {
-    // favor native DASH support if it's available
-    if (!options.hls.overrideNative && Hls.supportsNativeDash) {
-      return false;
-    }
-    return true;
-  }
-
-  // favor native HLS support if it's available
-  if (!options.hls.overrideNative && Hls.supportsNativeHls) {
-    return false;
-  }
-
-  return sourceType === 'hls';
 };
 
 if (typeof videojs.MediaSource === 'undefined' ||
@@ -715,14 +678,9 @@ if (typeof videojs.MediaSource === 'undefined' ||
   videojs.URL = URL;
 }
 
-const flashTech = videojs.getTech('Flash');
-
 // register source handlers with the appropriate techs
 if (MediaSource.supportsNativeMediaSources()) {
-  videojs.getTech('Html5').registerSourceHandler(HlsSourceHandler('html5'), 0);
-}
-if (window.Uint8Array && flashTech) {
-  flashTech.registerSourceHandler(HlsSourceHandler('flash'));
+  videojs.getTech('Html5').registerSourceHandler(HlsSourceHandler, 0);
 }
 
 videojs.HlsHandler = HlsHandler;

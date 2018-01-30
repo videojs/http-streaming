@@ -110,10 +110,8 @@ export default class PlaybackWatcher {
       // If current time is at the end of the final buffered region, then any playback
       // stall is most likely caused by buffering in a low bandwidth environment. The tech
       // should fire a `waiting` event in this scenario, but due to browser and tech
-      // inconsistencies (e.g. The Flash tech does not fire a `waiting` event when the end
-      // of the buffer is reached and has fallen off the live window). Calling
-      // `techWaiting_` here allows us to simulate responding to a native `waiting` event
-      // when the tech fails to emit one.
+      // inconsistencies. Calling `techWaiting_` here allows us to simulate
+      // responding to a native `waiting` event when the tech fails to emit one.
       return this.techWaiting_();
     }
 

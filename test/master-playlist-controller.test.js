@@ -139,7 +139,7 @@ QUnit.test('creates appropriate PlaylistLoader for sourceType', function(assert)
             'created a dash playlist loader');
 });
 
-QUnit.test('resets SegmentLoader when seeking in flash for both in and out of buffer',
+QUnit.test('resets SegmentLoader when seeking out of buffer',
   function(assert) {
     let resets = 0;
 
@@ -163,26 +163,14 @@ QUnit.test('resets SegmentLoader when seeking in flash for both in and out of bu
     };
 
     buffered = videojs.createTimeRanges([[0, 20]]);
-    mpc.mode_ = 'html5';
 
     mpc.setCurrentTime(10);
     assert.equal(resets, 0,
-      'does not reset loader when seeking into a buffered region in html5');
+      'does not reset loader when seeking into a buffered region');
 
     mpc.setCurrentTime(21);
     assert.equal(resets, 1,
-      'does reset loader when seeking outside of the buffered region in html5');
-
-    mpc.mode_ = 'flash';
-
-    mpc.setCurrentTime(10);
-    assert.equal(resets, 2,
-      'does reset loader when seeking into a buffered region in flash');
-
-    mpc.setCurrentTime(21);
-    assert.equal(resets, 3,
-      'does reset loader when seeking outside of the buffered region in flash');
-
+      'does reset loader when seeking outside of the buffered region');
   });
 
 QUnit.test('selects lowest bitrate rendition when enableLowInitialPlaylist is set',

@@ -28,7 +28,7 @@ Maintenance Status: Stable
 - [Contributing](#contributing)
 - [Talk to us](#talk-to-us)
 - [Getting Started](#getting-started)
-  - [Video.js 6](#videojs-6)
+  - [Flash Support](#flash-support)
 - [Documentation](#documentation)
   - [Options](#options)
     - [How to use](#how-to-use)
@@ -60,8 +60,6 @@ Maintenance Status: Stable
   - [Segment Metadata](#segment-metadata)
 - [Hosting Considerations](#hosting-considerations)
 - [Known Issues](#known-issues)
-  - [IE10 and Below](#ie10-and-below)
-  - [IE11](#ie11)
   - [Fragmented MP4 Support](#fragmented-mp4-support)
 - [Testing](#testing)
 - [Debugging](#debugging)
@@ -115,21 +113,9 @@ player.play();
 
 Check out our [live example](http://jsbin.com/vokipos/8/edit?html,output) if you're having trouble.
 
-### Video.js 6
-With Video.js 6, by default there is no flash support. Instead, flash support is provided
-through the [videojs-flash](https://github.com/videojs/videojs-flash) plugin. If you are
-trying to use Video.js version 6 and want to include flash support, you must include
-[videojs-flash](https://github.com/videojs/videojs-flash) on your page before including
-videojs-http-streaming
-
-```html
-<script src="https://unpkg.com/videojs-flash/dist/videojs-flash.js"></script>
-<script src="https://unpkg.com/@videojs/http-streaming/dist/videojs-http-streaming.js"></script>
-```
-
-Flash, and the [videojs-flash](https://github.com/videojs/videojs-flash) plugin, are not
-required, but are recommended as a fallback option for browsers that don't have a native
-HLS player or support for [Media Source Extensions](http://caniuse.com/#feat=mediasource).
+### Flash Support
+This plugin does not support Flash playback. Instead, it is recommended that users use the [videojs-flashls-source-handler](https://github.com/brightcove/videojs-flashls-source-handler) plugin as a fallback option for browsers that don't have a native
+[HLS](https://caniuse.com/#feat=http-live-streaming)/[DASH](https://caniuse.com/#feat=mpeg-dash) player or support for [Media Source Extensions](http://caniuse.com/#feat=mediasource).
 
 ## Documentation
 [HTTP Live Streaming](https://developer.apple.com/streaming/) (HLS) has
@@ -150,8 +136,8 @@ the best desktop viewing experience.
 
 This project addresses that situation by providing a polyfill for HLS
 on browsers that have support for [Media Source
-Extensions](http://caniuse.com/#feat=mediasource), or failing that,
-support Flash. You can deploy a single HLS stream, code against the
+Extensions](http://caniuse.com/#feat=mediasource).
+You can deploy a single HLS stream, code against the
 regular HTML5 video APIs, and create a fast, high-quality video
 experience across all the big web device categories.
 
@@ -203,20 +189,11 @@ videojs(video, {html5: {
 
 // or
 
-// flash for flash hls
-videojs(video, {flash: {
-  hls: {
-    withCredentials: true
-  }
-}});
-
-// or
-
 var options = {hls: {
   withCredentials: true;
 }};
 
-videojs(video, {flash: options, html5: options});
+videojs(video, {html5: options});
 
 ```
 
@@ -652,17 +629,8 @@ and most CDNs should have no trouble turning CORS on for your account.
 
 
 ## Known Issues
-Issues that are currenty know about with workarounds. If you want to
+Issues that are currenty known with workarounds. If you want to
 help find a solution that would be appreciated!
-
-### IE10 and Below
-As of version 5.0.0, IE10 and below are no longer supported.
-
-### IE11
-In some IE11 setups there are issues working with its native HTML
-SourceBuffers functionality. This leads to various issues, such as
-videos stopping playback with media decode errors. The known workaround
-for this issues is to force the player to use flash when running on IE11.
 
 ### Fragmented MP4 Support
 Edge has native support for HLS but only in the MPEG2-TS container. If
@@ -672,7 +640,9 @@ will stall. Fragmented MP4s are only supported on browser that have
 
 ## Testing
 
-For testing, you run `npm run test`. You will need Chrome, Chrome Canary and Firefox for running the tests.
+For testing, you run `npm run test`. You will need Chrome and Firefox for running the tests.
+
+_videojs-http-streaming uses [BrowserStack](https://browserstack.com) for compatibility testing._
 
 ## Debugging
 
