@@ -62,7 +62,7 @@ export default class SourceUpdater {
     // run completion handlers and process callbacks as updateend
     // events fire
     this.onUpdateendCallback_ = () => {
-      let pendingCallback = this.pendingCallback_;
+      const pendingCallback = this.pendingCallback_;
 
       this.pendingCallback_ = null;
 

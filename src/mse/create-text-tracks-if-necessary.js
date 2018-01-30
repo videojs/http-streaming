@@ -20,10 +20,10 @@ const createTextTracksIfNecessary = function(sourceBuffer, mediaSource, segment)
       sourceBuffer.inbandTextTracks_ = {};
     }
 
-    for (let trackId in segment.captionStreams) {
+    for (const trackId in segment.captionStreams) {
       if (!sourceBuffer.inbandTextTracks_[trackId]) {
         player.tech_.trigger({type: 'usage', name: 'hls-608'});
-        let track = player.textTracks().getTrackById(trackId);
+        const track = player.textTracks().getTrackById(trackId);
 
         if (track) {
           // Resuse an existing track with a CC# id because this was

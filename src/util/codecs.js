@@ -20,16 +20,16 @@ const defaultCodecs = {
  */
 
 export const parseCodecs = function(codecs = '') {
-  let result = {
+  const result = {
     codecCount: 0
   };
-  let parsed;
 
   result.codecCount = codecs.split(',').length;
   result.codecCount = result.codecCount || 2;
 
   // parse the video codec
-  parsed = (/(^|\s|,)+(avc[13])([^ ,]*)/i).exec(codecs);
+  const parsed = (/(^|\s|,)+(avc[13])([^ ,]*)/i).exec(codecs);
+
   if (parsed) {
     result.videoCodec = parsed[2];
     result.videoObjectTypeIndicator = parsed[3];
@@ -97,7 +97,7 @@ export const getContainerType = function(media) {
 const getCodecs = function(media) {
   // if the codecs were explicitly specified, use them instead of the
   // defaults
-  let mediaAttributes = media.attributes || {};
+  const mediaAttributes = media.attributes || {};
 
   if (mediaAttributes.CODECS) {
     return parseCodecs(mediaAttributes.CODECS);
@@ -116,7 +116,7 @@ const audioProfileFromDefault = (master, audioGroupId) => {
     return null;
   }
 
-  for (let name in audioGroup) {
+  for (const name in audioGroup) {
     const audioType = audioGroup[name];
 
     if (audioType.default && audioType.playlists) {
@@ -143,9 +143,9 @@ const audioProfileFromDefault = (master, audioGroupId) => {
  * @private
  */
 export const mimeTypesForPlaylist = function(master, media) {
-  let containerType = getContainerType(media);
-  let codecInfo = getCodecs(media);
-  let mediaAttributes = media.attributes || {};
+  const containerType = getContainerType(media);
+  const codecInfo = getCodecs(media);
+  const mediaAttributes = media.attributes || {};
   // Default condition for a traditional HLS (no demuxed audio/video)
   let isMuxed = true;
   let isMaat = false;
@@ -156,7 +156,7 @@ export const mimeTypesForPlaylist = function(master, media) {
   }
 
   if (master.mediaGroups.AUDIO && mediaAttributes.AUDIO) {
-    let audioGroup = master.mediaGroups.AUDIO[mediaAttributes.AUDIO];
+    const audioGroup = master.mediaGroups.AUDIO[mediaAttributes.AUDIO];
 
     // Handle the case where we are in a multiple-audio track scenario
     if (audioGroup) {
@@ -164,7 +164,7 @@ export const mimeTypesForPlaylist = function(master, media) {
       // Start with the everything demuxed then...
       isMuxed = false;
       // ...check to see if any audio group tracks are muxed (ie. lacking a uri)
-      for (let groupId in audioGroup) {
+      for (const groupId in audioGroup) {
         // either a uri is present (if the case of HLS and an external playlist), or
         // playlists is present (in the case of DASH where we don't have external audio
         // playlists)
@@ -195,7 +195,7 @@ export const mimeTypesForPlaylist = function(master, media) {
   }
 
   // Generate the final codec strings from the codec object generated above
-  let codecStrings = {};
+  const codecStrings = {};
 
   if (codecInfo.videoCodec) {
     codecStrings.video = `${codecInfo.videoCodec}${codecInfo.videoObjectTypeIndicator}`;
@@ -207,9 +207,9 @@ export const mimeTypesForPlaylist = function(master, media) {
 
   // Finally, make and return an array with proper mime-types depending on
   // the configuration
-  let justAudio = makeMimeTypeString('audio', containerType, [codecStrings.audio]);
-  let justVideo = makeMimeTypeString('video', containerType, [codecStrings.video]);
-  let bothVideoAudio = makeMimeTypeString('video', containerType, [
+  const justAudio = makeMimeTypeString('audio', containerType, [codecStrings.audio]);
+  const justVideo = makeMimeTypeString('video', containerType, [codecStrings.video]);
+  const bothVideoAudio = makeMimeTypeString('video', containerType, [
     codecStrings.video,
     codecStrings.audio
   ]);

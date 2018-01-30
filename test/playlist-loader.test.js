@@ -801,7 +801,7 @@ QUnit.test('throws if the playlist url is empty or undefined', function(assert) 
 });
 
 QUnit.test('starts without any metadata', function(assert) {
-  let loader = new PlaylistLoader('master.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('master.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -809,7 +809,7 @@ QUnit.test('starts without any metadata', function(assert) {
 });
 
 QUnit.test('requests the initial playlist immediately', function(assert) {
-  let loader = new PlaylistLoader('master.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('master.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -820,7 +820,7 @@ QUnit.test('requests the initial playlist immediately', function(assert) {
 });
 
 QUnit.test('moves to HAVE_MASTER after loading a master playlist', function(assert) {
-  let loader = new PlaylistLoader('master.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('master.m3u8', this.fakeHls);
   let state;
 
   loader.load();
@@ -837,7 +837,7 @@ QUnit.test('moves to HAVE_MASTER after loading a master playlist', function(asse
 });
 
 QUnit.test('logs warning for master playlist with invalid STREAM-INF', function(assert) {
-  let loader = new PlaylistLoader('master.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('master.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -861,7 +861,7 @@ QUnit.test('logs warning for master playlist with invalid STREAM-INF', function(
 QUnit.test('jumps to HAVE_METADATA when initialized with a media playlist',
 function(assert) {
   let loadedmetadatas = 0;
-  let loader = new PlaylistLoader('media.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('media.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -883,7 +883,7 @@ function(assert) {
 });
 
 QUnit.test('resolves relative media playlist URIs', function(assert) {
-  let loader = new PlaylistLoader('master.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('master.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -896,7 +896,7 @@ QUnit.test('resolves relative media playlist URIs', function(assert) {
 });
 
 QUnit.test('resolves media initialization segment URIs', function(assert) {
-  let loader = new PlaylistLoader('video/fmp4.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('video/fmp4.m3u8', this.fakeHls);
 
   loader.load();
   this.requests.shift().respond(200, null,
@@ -911,7 +911,7 @@ QUnit.test('resolves media initialization segment URIs', function(assert) {
 });
 
 QUnit.test('recognizes absolute URIs and requests them unmodified', function(assert) {
-  let loader = new PlaylistLoader('manifest/media.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('manifest/media.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -932,7 +932,7 @@ QUnit.test('recognizes absolute URIs and requests them unmodified', function(ass
 });
 
 QUnit.test('recognizes domain-relative URLs', function(assert) {
-  let loader = new PlaylistLoader('manifest/media.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('manifest/media.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -957,7 +957,7 @@ QUnit.test('recognizes domain-relative URLs', function(assert) {
 });
 
 QUnit.test('recognizes key URLs relative to master and playlist', function(assert) {
-  let loader = new PlaylistLoader('/video/media-encrypted.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('/video/media-encrypted.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -986,7 +986,7 @@ QUnit.test('recognizes key URLs relative to master and playlist', function(asser
 
 QUnit.test('trigger an error event when a media playlist 404s', function(assert) {
   let count = 0;
-  let loader = new PlaylistLoader('manifest/master.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('manifest/master.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -1013,7 +1013,7 @@ QUnit.test('trigger an error event when a media playlist 404s', function(assert)
 });
 
 QUnit.test('recognizes absolute key URLs', function(assert) {
-  let loader = new PlaylistLoader('/video/media-encrypted.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('/video/media-encrypted.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -1043,7 +1043,7 @@ QUnit.test('recognizes absolute key URLs', function(assert) {
 
 QUnit.test('jumps to HAVE_METADATA when initialized with a live media playlist',
 function(assert) {
-  let loader = new PlaylistLoader('media.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('media.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -1060,7 +1060,7 @@ function(assert) {
 QUnit.test('moves to HAVE_METADATA after loading a media playlist', function(assert) {
   let loadedPlaylist = 0;
   let loadedMetadata = 0;
-  let loader = new PlaylistLoader('master.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('master.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -1096,7 +1096,7 @@ QUnit.test('moves to HAVE_METADATA after loading a media playlist', function(ass
 });
 
 QUnit.test('defaults missing media groups for a media playlist', function(assert) {
-  let loader = new PlaylistLoader('master.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('master.m3u8', this.fakeHls);
 
   loader.load();
   this.requests.pop().respond(200, null,
@@ -1112,7 +1112,7 @@ QUnit.test('defaults missing media groups for a media playlist', function(assert
 
 QUnit.test('moves to HAVE_CURRENT_METADATA when refreshing the playlist',
 function(assert) {
-  let loader = new PlaylistLoader('live.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('live.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -1130,7 +1130,7 @@ function(assert) {
 });
 
 QUnit.test('returns to HAVE_METADATA after refreshing the playlist', function(assert) {
-  let loader = new PlaylistLoader('live.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('live.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -1148,7 +1148,7 @@ QUnit.test('returns to HAVE_METADATA after refreshing the playlist', function(as
 });
 
 QUnit.test('refreshes the playlist after last segment duration', function(assert) {
-  let loader = new PlaylistLoader('live.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('live.m3u8', this.fakeHls);
   let refreshes = 0;
 
   loader.on('mediaupdatetimeout', () => refreshes++);
@@ -1169,8 +1169,8 @@ QUnit.test('refreshes the playlist after last segment duration', function(assert
 });
 
 QUnit.test('emits an error when an initial playlist request fails', function(assert) {
-  let errors = [];
-  let loader = new PlaylistLoader('master.m3u8', this.fakeHls);
+  const errors = [];
+  const loader = new PlaylistLoader('master.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -1184,8 +1184,8 @@ QUnit.test('emits an error when an initial playlist request fails', function(ass
 });
 
 QUnit.test('errors when an initial media playlist request fails', function(assert) {
-  let errors = [];
-  let loader = new PlaylistLoader('master.m3u8', this.fakeHls);
+  const errors = [];
+  const loader = new PlaylistLoader('master.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -1208,7 +1208,7 @@ QUnit.test('errors when an initial media playlist request fails', function(asser
 // http://tools.ietf.org/html/draft-pantos-http-live-streaming-12#section-6.3.4
 QUnit.test('halves the refresh timeout if a playlist is unchanged since the last reload',
 function(assert) {
-  let loader = new PlaylistLoader('live.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('live.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -1234,8 +1234,7 @@ function(assert) {
 });
 
 QUnit.test('preserves segment metadata across playlist refreshes', function(assert) {
-  let loader = new PlaylistLoader('live.m3u8', this.fakeHls);
-  let segment;
+  const loader = new PlaylistLoader('live.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -1249,7 +1248,8 @@ QUnit.test('preserves segment metadata across playlist refreshes', function(asse
                               '#EXTINF:10,\n' +
                               '2.ts\n');
   // add PTS info to 1.ts
-  segment = loader.media().segments[1];
+  const segment = loader.media().segments[1];
+
   segment.minVideoPts = 14;
   segment.maxAudioPts = 27;
   segment.preciseDuration = 10.045;
@@ -1268,7 +1268,7 @@ QUnit.test('preserves segment metadata across playlist refreshes', function(asse
 });
 
 QUnit.test('clears the update timeout when switching quality', function(assert) {
-  let loader = new PlaylistLoader('live-master.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('live-master.m3u8', this.fakeHls);
   let refreshes = 0;
 
   loader.load();
@@ -1304,7 +1304,7 @@ QUnit.test('clears the update timeout when switching quality', function(assert) 
 });
 
 QUnit.test('media-sequence updates are considered a playlist change', function(assert) {
-  let loader = new PlaylistLoader('live.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('live.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -1328,8 +1328,8 @@ QUnit.test('media-sequence updates are considered a playlist change', function(a
 
 QUnit.test('emits an error if a media refresh fails', function(assert) {
   let errors = 0;
-  let errorResponseText = 'custom error message';
-  let loader = new PlaylistLoader('live.m3u8', this.fakeHls);
+  const errorResponseText = 'custom error message';
+  const loader = new PlaylistLoader('live.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -1353,7 +1353,7 @@ QUnit.test('emits an error if a media refresh fails', function(assert) {
 });
 
 QUnit.test('switches media playlists when requested', function(assert) {
-  let loader = new PlaylistLoader('master.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('master.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -1385,7 +1385,7 @@ QUnit.test('switches media playlists when requested', function(assert) {
 
 QUnit.test('can switch playlists immediately after the master is downloaded',
 function(assert) {
-  let loader = new PlaylistLoader('master.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('master.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -1402,7 +1402,7 @@ function(assert) {
 });
 
 QUnit.test('can switch media playlists based on URI', function(assert) {
-  let loader = new PlaylistLoader('master.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('master.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -1433,7 +1433,7 @@ QUnit.test('can switch media playlists based on URI', function(assert) {
 });
 
 QUnit.test('aborts in-flight playlist refreshes when switching', function(assert) {
-  let loader = new PlaylistLoader('master.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('master.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -1459,7 +1459,7 @@ QUnit.test('aborts in-flight playlist refreshes when switching', function(assert
 });
 
 QUnit.test('switching to the active playlist is a no-op', function(assert) {
-  let loader = new PlaylistLoader('master.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('master.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -1481,7 +1481,7 @@ QUnit.test('switching to the active playlist is a no-op', function(assert) {
 });
 
 QUnit.test('switching to the active live playlist is a no-op', function(assert) {
-  let loader = new PlaylistLoader('master.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('master.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -1503,7 +1503,7 @@ QUnit.test('switching to the active live playlist is a no-op', function(assert) 
 
 QUnit.test('switches back to loaded playlists without re-requesting them',
 function(assert) {
-  let loader = new PlaylistLoader('master.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('master.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -1534,7 +1534,7 @@ function(assert) {
 
 QUnit.test('aborts outstanding requests if switching back to an already loaded playlist',
 function(assert) {
-  let loader = new PlaylistLoader('master.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('master.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -1570,7 +1570,7 @@ function(assert) {
 
 QUnit.test('does not abort requests when the same playlist is re-requested',
 function(assert) {
-  let loader = new PlaylistLoader('master.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('master.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -1594,7 +1594,7 @@ function(assert) {
 });
 
 QUnit.test('throws an error if a media switch is initiated too early', function(assert) {
-  let loader = new PlaylistLoader('master.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('master.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -1612,7 +1612,7 @@ QUnit.test('throws an error if a media switch is initiated too early', function(
 
 QUnit.test('throws an error if a switch to an unrecognized playlist is requested',
 function(assert) {
-  let loader = new PlaylistLoader('master.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('master.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -1627,7 +1627,7 @@ function(assert) {
 });
 
 QUnit.test('dispose cancels the refresh timeout', function(assert) {
-  let loader = new PlaylistLoader('live.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('live.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -1644,7 +1644,7 @@ QUnit.test('dispose cancels the refresh timeout', function(assert) {
 });
 
 QUnit.test('dispose aborts pending refresh requests', function(assert) {
-  let loader = new PlaylistLoader('live.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('live.m3u8', this.fakeHls);
 
   loader.load();
 
@@ -1663,7 +1663,7 @@ QUnit.test('dispose aborts pending refresh requests', function(assert) {
 });
 
 QUnit.test('errors if requests take longer than 45s', function(assert) {
-  let loader = new PlaylistLoader('media.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('media.m3u8', this.fakeHls);
   let errors = 0;
 
   loader.load();
@@ -1678,7 +1678,7 @@ QUnit.test('errors if requests take longer than 45s', function(assert) {
 });
 
 QUnit.test('triggers an event when the active media changes', function(assert) {
-  let loader = new PlaylistLoader('master.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('master.m3u8', this.fakeHls);
   let mediaChanges = 0;
   let mediaChangings = 0;
 
@@ -1731,7 +1731,7 @@ QUnit.test('triggers an event when the active media changes', function(assert) {
 
 QUnit.test('does not misintrepret playlists missing newlines at the end',
 function(assert) {
-  let loader = new PlaylistLoader('media.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('media.m3u8', this.fakeHls);
 
   loader.load();
 

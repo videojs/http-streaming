@@ -2,7 +2,7 @@ import Ranges from '../src/ranges';
 import {createTimeRanges} from 'video.js';
 import QUnit from 'qunit';
 
-let rangesEqual = (rangeOne, rangeTwo) => {
+const rangesEqual = (rangeOne, rangeTwo) => {
   if (!rangeOne || !rangeTwo) {
     return false;
   }
@@ -142,11 +142,11 @@ QUnit.module('Segment Percent Buffered Calculations');
 
 QUnit.test('calculates the percent buffered for segments in the simple case',
 function(assert) {
-  let segmentStart = 10;
-  let segmentDuration = 10;
-  let currentTime = 0;
-  let buffered = createTimeRanges([[15, 19]]);
-  let percentBuffered = Ranges.getSegmentBufferedPercent(
+  const segmentStart = 10;
+  const segmentDuration = 10;
+  const currentTime = 0;
+  const buffered = createTimeRanges([[15, 19]]);
+  const percentBuffered = Ranges.getSegmentBufferedPercent(
     segmentStart,
     segmentDuration,
     currentTime,
@@ -157,11 +157,11 @@ function(assert) {
 
 QUnit.test('consider the buffer before currentTime to be filled if the ' +
            'segement begins at or before the currentTime', function(assert) {
-  let segmentStart = 10;
-  let segmentDuration = 10;
-  let currentTime = 15;
-  let buffered = createTimeRanges([[15, 19]]);
-  let percentBuffered = Ranges.getSegmentBufferedPercent(
+  const segmentStart = 10;
+  const segmentDuration = 10;
+  const currentTime = 15;
+  const buffered = createTimeRanges([[15, 19]]);
+  const percentBuffered = Ranges.getSegmentBufferedPercent(
     segmentStart,
     segmentDuration,
     currentTime,
@@ -172,11 +172,11 @@ QUnit.test('consider the buffer before currentTime to be filled if the ' +
 
 QUnit.test('does not consider the buffer before currentTime as filled if the segment ' +
            'begins after the currentTime', function(assert) {
-  let segmentStart = 10;
-  let segmentDuration = 10;
-  let currentTime = 18;
-  let buffered = createTimeRanges([[19, 30]]);
-  let percentBuffered = Ranges.getSegmentBufferedPercent(
+  const segmentStart = 10;
+  const segmentDuration = 10;
+  const currentTime = 18;
+  const buffered = createTimeRanges([[19, 30]]);
+  const percentBuffered = Ranges.getSegmentBufferedPercent(
     segmentStart,
     segmentDuration,
     currentTime,
@@ -187,11 +187,11 @@ QUnit.test('does not consider the buffer before currentTime as filled if the seg
 
 QUnit.test('calculates the percent buffered for segments with multiple buffered ' +
            'regions', function(assert) {
-  let segmentStart = 10;
-  let segmentDuration = 10;
-  let currentTime = 0;
-  let buffered = createTimeRanges([[0, 11], [12, 19]]);
-  let percentBuffered = Ranges.getSegmentBufferedPercent(
+  const segmentStart = 10;
+  const segmentDuration = 10;
+  const currentTime = 0;
+  const buffered = createTimeRanges([[0, 11], [12, 19]]);
+  const percentBuffered = Ranges.getSegmentBufferedPercent(
     segmentStart,
     segmentDuration,
     currentTime,
@@ -202,11 +202,11 @@ QUnit.test('calculates the percent buffered for segments with multiple buffered 
 
 QUnit.test('calculates the percent buffered for segments with multiple buffered ' +
            'regions taking into account currentTime', function(assert) {
-  let segmentStart = 10;
-  let segmentDuration = 10;
-  let currentTime = 12;
-  let buffered = createTimeRanges([[0, 11], [12, 19]]);
-  let percentBuffered = Ranges.getSegmentBufferedPercent(
+  const segmentStart = 10;
+  const segmentDuration = 10;
+  const currentTime = 12;
+  const buffered = createTimeRanges([[0, 11], [12, 19]]);
+  const percentBuffered = Ranges.getSegmentBufferedPercent(
     segmentStart,
     segmentDuration,
     currentTime,
@@ -217,11 +217,11 @@ QUnit.test('calculates the percent buffered for segments with multiple buffered 
 
 QUnit.test('calculates the percent buffered as 0 for zero-length segments',
 function(assert) {
-  let segmentStart = 10;
-  let segmentDuration = 0;
-  let currentTime = 0;
-  let buffered = createTimeRanges([[0, 19]]);
-  let percentBuffered = Ranges.getSegmentBufferedPercent(
+  const segmentStart = 10;
+  const segmentDuration = 0;
+  const currentTime = 0;
+  const buffered = createTimeRanges([[0, 19]]);
+  const percentBuffered = Ranges.getSegmentBufferedPercent(
     segmentStart,
     segmentDuration,
     currentTime,
@@ -232,11 +232,11 @@ function(assert) {
 
 QUnit.test('calculates the percent buffered as 0 for segments that do not overlap ' +
            'buffered regions taking into account currentTime', function(assert) {
-  let segmentStart = 10;
-  let segmentDuration = 10;
-  let currentTime = 19;
-  let buffered = createTimeRanges([[20, 30]]);
-  let percentBuffered = Ranges.getSegmentBufferedPercent(
+  const segmentStart = 10;
+  const segmentDuration = 10;
+  const currentTime = 19;
+  const buffered = createTimeRanges([[20, 30]]);
+  const percentBuffered = Ranges.getSegmentBufferedPercent(
     segmentStart,
     segmentDuration,
     currentTime,
@@ -247,11 +247,11 @@ QUnit.test('calculates the percent buffered as 0 for segments that do not overla
 
 QUnit.test('calculates the percent buffered for segments ' +
            'that end before currentTime', function(assert) {
-  let segmentStart = 10;
-  let segmentDuration = 10;
-  let currentTime = 19.6;
-  let buffered = createTimeRanges([[0, 19.5]]);
-  let percentBuffered = Ranges.getSegmentBufferedPercent(
+  const segmentStart = 10;
+  const segmentDuration = 10;
+  const currentTime = 19.6;
+  const buffered = createTimeRanges([[0, 19.5]]);
+  const percentBuffered = Ranges.getSegmentBufferedPercent(
     segmentStart,
     segmentDuration,
     currentTime,

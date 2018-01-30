@@ -1,5 +1,5 @@
-var istanbul = require('browserify-istanbul');
-var isparta = require('isparta');
+const istanbul = require('browserify-istanbul');
+const isparta = require('isparta');
 
 module.exports = function(config) {
   // build out a name for browserstack
@@ -136,8 +136,8 @@ module.exports = function(config) {
 
   // Coverage reporting
   // Coverage is enabled by passing the flag --coverage to npm test
-  var coverageFlag = process.env.npm_config_coverage;
-  var reportCoverage = process.env.TRAVIS || coverageFlag;
+  const coverageFlag = process.env.npm_config_coverage;
+  const reportCoverage = process.env.TRAVIS || coverageFlag;
 
   if (reportCoverage) {
     config.reporters.push('coverage');

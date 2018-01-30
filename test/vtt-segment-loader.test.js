@@ -1,3 +1,4 @@
+import window from 'global/window';
 import QUnit from 'qunit';
 import VTTSegmentLoader from '../src/vtt-segment-loader';
 import videojs from 'video.js';
@@ -62,7 +63,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
       this.track = new MockTextTrack();
     });
 
-    QUnit.test(`load waits until a playlist and track are specified to proceed`,
+    QUnit.test('load waits until a playlist and track are specified to proceed',
     function(assert) {
       loader.load();
 
@@ -78,7 +79,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
       assert.equal(loader.state, 'WAITING', 'transitioned states');
     });
 
-    QUnit.test(`calling track and load begins buffering`, function(assert) {
+    QUnit.test('calling track and load begins buffering', function(assert) {
       assert.equal(loader.state, 'INIT', 'starts in the init state');
       loader.playlist(playlistWithDuration(10));
       assert.equal(loader.state, 'INIT', 'starts in the init state');
@@ -96,7 +97,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
 
     QUnit.test('saves segment info to new segment after playlist refresh',
     function(assert) {
-      let playlist = playlistWithDuration(40);
+      const playlist = playlistWithDuration(40);
       let buffered = videojs.createTimeRanges();
 
       loader.buffered_ = () => buffered;
@@ -127,7 +128,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
                    'correct segment reference');
 
       // playlist updated during waiting
-      let playlistUpdated = playlistWithDuration(40);
+      const playlistUpdated = playlistWithDuration(40);
 
       playlistUpdated.segments.shift();
       playlistUpdated.mediaSequence++;
@@ -156,7 +157,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
     QUnit.test(
       'saves segment info to old segment after playlist refresh if segment fell off',
     function(assert) {
-      let playlist = playlistWithDuration(40);
+      const playlist = playlistWithDuration(40);
       let buffered = videojs.createTimeRanges();
 
       loader.buffered_ = () => buffered;
@@ -187,7 +188,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
                    'correct segment reference');
 
       // playlist updated during waiting
-      let playlistUpdated = playlistWithDuration(40);
+      const playlistUpdated = playlistWithDuration(40);
 
       playlistUpdated.segments.shift();
       playlistUpdated.segments.shift();
@@ -216,7 +217,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
 
     QUnit.test('waits for syncController to have sync info for the timeline of the vtt' +
       'segment being requested before loading', function(assert) {
-      let playlist = playlistWithDuration(40);
+      const playlist = playlistWithDuration(40);
       let loadedSegment = false;
 
       loader.loadSegment_ = () => {
@@ -259,7 +260,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
     QUnit.test('waits for vtt.js to be loaded before attempting to parse cues',
     function(assert) {
       const vttjs = window.WebVTT;
-      let playlist = playlistWithDuration(40);
+      const playlist = playlistWithDuration(40);
       let parsedCues = false;
 
       delete window.WebVTT;
@@ -362,7 +363,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
 
     QUnit.test('loader logs vtt.js ParsingErrors and does not trigger an error event',
     function(assert) {
-      let playlist = playlistWithDuration(40);
+      const playlist = playlistWithDuration(40);
 
       window.WebVTT.Parser = () => {
         this.parserCreated = true;
@@ -417,7 +418,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
 
     QUnit.test('Cues that overlap segment boundaries',
     function(assert) {
-      let playlist = playlistWithDuration(20);
+      const playlist = playlistWithDuration(20);
 
       loader.parseVTTCues_ = (segmentInfo) => {
         segmentInfo.cues = [{ startTime: 0, endTime: 5}, { startTime: 5, endTime: 15}];
@@ -457,7 +458,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
 
     QUnit.test('loader does not re-request segments that contain no subtitles',
     function(assert) {
-      let playlist = playlistWithDuration(60);
+      const playlist = playlistWithDuration(60);
 
       playlist.endList = false;
 
@@ -492,7 +493,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
     });
 
     QUnit.test('loader triggers error event on fatal vtt.js errors', function(assert) {
-      let playlist = playlistWithDuration(40);
+      const playlist = playlistWithDuration(40);
       let errors = 0;
 
       loader.parseVTTCues_ = () => {
@@ -520,7 +521,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
     });
 
     QUnit.test('loader triggers error event when vtt.js fails to load', function(assert) {
-      let playlist = playlistWithDuration(40);
+      const playlist = playlistWithDuration(40);
       let errors = 0;
 
       delete window.WebVTT;

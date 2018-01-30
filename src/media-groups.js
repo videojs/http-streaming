@@ -207,7 +207,7 @@ export const onError = {
     videojs.log.warn('Problem encountered loading the alternate audio track.' +
                        'Switching back to default.');
 
-    for (let trackId in mediaType.tracks) {
+    for (const trackId in mediaType.tracks) {
       mediaType.tracks[trackId].enabled = mediaType.tracks[trackId] === defaultTrack;
     }
 
@@ -369,12 +369,12 @@ export const initialize = {
       mediaGroups[type] = { main: { default: { default: true } } };
     }
 
-    for (let groupId in mediaGroups[type]) {
+    for (const groupId in mediaGroups[type]) {
       if (!groups[groupId]) {
         groups[groupId] = [];
       }
 
-      for (let variantLabel in mediaGroups[type][groupId]) {
+      for (const variantLabel in mediaGroups[type][groupId]) {
         let properties = mediaGroups[type][groupId][variantLabel];
         let playlistLoader;
 
@@ -442,12 +442,12 @@ export const initialize = {
       }
     } = settings;
 
-    for (let groupId in mediaGroups[type]) {
+    for (const groupId in mediaGroups[type]) {
       if (!groups[groupId]) {
         groups[groupId] = [];
       }
 
-      for (let variantLabel in mediaGroups[type][groupId]) {
+      for (const variantLabel in mediaGroups[type][groupId]) {
         if (mediaGroups[type][groupId][variantLabel].forced) {
           // Subtitle playlists with the forced attribute are not selectable in Safari.
           // According to Apple's HLS Authoring Specification:
@@ -519,13 +519,13 @@ export const initialize = {
       }
     } = settings;
 
-    for (let groupId in mediaGroups[type]) {
+    for (const groupId in mediaGroups[type]) {
       if (!groups[groupId]) {
         groups[groupId] = [];
       }
 
-      for (let variantLabel in mediaGroups[type][groupId]) {
-        let properties = mediaGroups[type][groupId][variantLabel];
+      for (const variantLabel in mediaGroups[type][groupId]) {
+        const properties = mediaGroups[type][groupId][variantLabel];
 
         // We only support CEA608 captions for now, so ignore anything that
         // doesn't use a CCx INSTREAM-ID
@@ -616,7 +616,7 @@ export const activeTrack = {
   AUDIO: (type, settings) => () => {
     const { mediaTypes: { [type]: { tracks } } } = settings;
 
-    for (let id in tracks) {
+    for (const id in tracks) {
       if (tracks[id].enabled) {
         return tracks[id];
       }
@@ -639,7 +639,7 @@ export const activeTrack = {
   SUBTITLES: (type, settings) => () => {
     const { mediaTypes: { [type]: { tracks } } } = settings;
 
-    for (let id in tracks) {
+    for (const id in tracks) {
       if (tracks[id].mode === 'showing') {
         return tracks[id];
       }
@@ -728,7 +728,7 @@ export const setupMediaGroups = (settings) => {
   // clear existing audio tracks and add the ones we just created
   tech.clearTracks('audio');
 
-  for (let id in mediaTypes.AUDIO.tracks) {
+  for (const id in mediaTypes.AUDIO.tracks) {
     tech.audioTracks().addTrack(mediaTypes.AUDIO.tracks[id]);
   }
 };

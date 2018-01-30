@@ -97,7 +97,7 @@ export const simpleTypeFromSourceType = (type) => {
  * @function handleHlsMediaChange
  */
 const handleHlsMediaChange = function(qualityLevels, playlistLoader) {
-  let newPlaylist = playlistLoader.media();
+  const newPlaylist = playlistLoader.media();
   let selectedIndex = -1;
 
   for (let i = 0; i < qualityLevels.length; i++) {
@@ -143,7 +143,7 @@ const emeOptions = (keySystemOptions, videoPlaylist, audioPlaylist) => {
   // upsert the content types based on the selected playlist
   const keySystemContentTypes = {};
 
-  for (let keySystem in keySystemOptions) {
+  for (const keySystem in keySystemOptions) {
     keySystemContentTypes[keySystem] = {
       audioContentType: `audio/mp4; codecs="${audioPlaylist.attributes.CODECS}"`,
       videoContentType: `video/mp4; codecs="${videoPlaylist.attributes.CODECS}"`
@@ -180,7 +180,7 @@ const setupEmeOptions = (hlsHandler) => {
  * Whether the browser has built-in HLS support.
  */
 Hls.supportsNativeHls = (function() {
-  let video = document.createElement('video');
+  const video = document.createElement('video');
 
   // native HLS is definitely not supported if HTML5 video isn't
   if (!videojs.getTech('Html5').isSupported()) {
@@ -188,7 +188,7 @@ Hls.supportsNativeHls = (function() {
   }
 
   // HLS manifests can go by many mime-types
-  let canPlay = [
+  const canPlay = [
     // Apple santioned
     'application/vnd.apple.mpegurl',
     // Apple sanctioned for backwards compatibility
@@ -257,7 +257,7 @@ class HlsHandler extends Component {
     // tech.player() is deprecated but setup a reference to HLS for
     // backwards-compatibility
     if (tech.options_ && tech.options_.playerId) {
-      let _player = videojs(tech.options_.playerId);
+      const _player = videojs(tech.options_.playerId);
 
       if (!_player.hasOwnProperty('hls')) {
         Object.defineProperty(_player, 'hls', {
@@ -299,7 +299,7 @@ class HlsHandler extends Component {
       'fullscreenchange', 'webkitfullscreenchange',
       'mozfullscreenchange', 'MSFullscreenChange'
     ], (event) => {
-      let fullscreenElement = document.fullscreenElement ||
+      const fullscreenElement = document.fullscreenElement ||
         document.webkitFullscreenElement ||
         document.mozFullScreenElement ||
         document.msFullscreenElement;
@@ -379,7 +379,7 @@ class HlsHandler extends Component {
       }));
 
     this.masterPlaylistController_.on('error', () => {
-      let player = videojs.players[this.tech_.options_.playerId];
+      const player = videojs.players[this.tech_.options_.playerId];
 
       player.error(this.masterPlaylistController_.error);
     });
@@ -446,7 +446,7 @@ class HlsHandler extends Component {
        */
       systemBandwidth: {
         get() {
-          let invBandwidth = 1 / (this.bandwidth || 1);
+          const invBandwidth = 1 / (this.bandwidth || 1);
           let invThroughput;
 
           if (this.throughput > 0) {
@@ -455,7 +455,7 @@ class HlsHandler extends Component {
             invThroughput = 0;
           }
 
-          let systemBitrate = Math.floor(1 / (invBandwidth + invThroughput));
+          const systemBitrate = Math.floor(1 / (invBandwidth + invThroughput));
 
           return systemBitrate;
         },
@@ -580,7 +580,7 @@ class HlsHandler extends Component {
    * @private
    */
   setupQualityLevels_() {
-    let player = videojs.players[this.tech_.options_.playerId];
+    const player = videojs.players[this.tech_.options_.playerId];
 
     if (player && player.qualityLevels) {
       this.qualityLevels_ = player.qualityLevels();
@@ -649,12 +649,12 @@ class HlsHandler extends Component {
  */
 const HlsSourceHandler = {
   canHandleSource(srcObj, options = {}) {
-    let localOptions = videojs.mergeOptions(videojs.options, options);
+    const localOptions = videojs.mergeOptions(videojs.options, options);
 
     return HlsSourceHandler.canPlayType(srcObj.type, localOptions);
   },
   handleSource(source, tech, options = {}) {
-    let localOptions = videojs.mergeOptions(videojs.options, options);
+    const localOptions = videojs.mergeOptions(videojs.options, options);
 
     tech.hls = new HlsHandler(source, tech, localOptions);
     tech.hls.xhr = xhrFactory();

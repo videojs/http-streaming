@@ -5,12 +5,17 @@ import window from 'global/window';
 
 /**
  * Searches for an ad cue that overlaps with the given mediaTime
+ *
+ * @param {Object} track
+ * @param {number} mediaTime
+ *
+ * @return {Object}
  */
 const findAdCue = function(track, mediaTime) {
-  let cues = track.cues;
+  const cues = track.cues;
 
   for (let i = 0; i < cues.length; i++) {
-    let cue = cues[i];
+    const cue = cues[i];
 
     if (mediaTime >= cue.adStartTime && mediaTime <= cue.adEndTime) {
       return cue;
@@ -28,7 +33,7 @@ const updateAdCues = function(media, track, offset = 0) {
   let cue;
 
   for (let i = 0; i < media.segments.length; i++) {
-    let segment = media.segments[i];
+    const segment = media.segments[i];
 
     if (!cue) {
       // Since the cues will span for at least the segment duration, adding a fudge
@@ -71,12 +76,10 @@ const updateAdCues = function(media, track, offset = 0) {
 
       if ('cueOutCont' in segment) {
         // Entered into the middle of an ad cue
-        let adOffset;
-        let adTotal;
 
         // Assumes tag formate to be
         // #EXT-X-CUE-OUT-CONT:10/30
-        [adOffset, adTotal] = segment.cueOutCont.split('/').map(parseFloat);
+        const [adOffset, adTotal] = segment.cueOutCont.split('/').map(parseFloat);
 
         cue = new window.VTTCue(mediaTime,
                                 mediaTime + segment.duration,

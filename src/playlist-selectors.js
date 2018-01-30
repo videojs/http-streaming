@@ -1,3 +1,4 @@
+import window from 'global/window';
 import Config from './config';
 import Playlist from './playlist';
 import { parseCodecs } from './util/codecs.js';
@@ -15,13 +16,12 @@ import { parseCodecs } from './util/codecs.js';
  * @param {string} the proprety to get the style for
  */
 const safeGetComputedStyle = function(el, property) {
-  let result;
-
   if (!el) {
     return '';
   }
 
-  result = window.getComputedStyle(el);
+  const result = window.getComputedStyle(el);
+
   if (!result) {
     return '';
   }
@@ -37,10 +37,10 @@ const safeGetComputedStyle = function(el, property) {
  * @function stableSort
  */
 const stableSort = function(array, sortFn) {
-  let newArray = array.slice();
+  const newArray = array.slice();
 
   array.sort(function(left, right) {
-    let cmp = sortFn(left, right);
+    const cmp = sortFn(left, right);
 
     if (cmp === 0) {
       return newArray.indexOf(left) - newArray.indexOf(right);
@@ -133,12 +133,13 @@ export const simpleSelector = function(master,
                                        playerHeight) {
   // convert the playlists to an intermediary representation to make comparisons easier
   let sortedPlaylistReps = master.playlists.map((playlist) => {
-    let width;
-    let height;
     let bandwidth;
 
-    width = playlist.attributes.RESOLUTION && playlist.attributes.RESOLUTION.width;
-    height = playlist.attributes.RESOLUTION && playlist.attributes.RESOLUTION.height;
+    const width = playlist.attributes.RESOLUTION &&
+      playlist.attributes.RESOLUTION.width;
+    const height = playlist.attributes.RESOLUTION &&
+      playlist.attributes.RESOLUTION.height;
+
     bandwidth = playlist.attributes.BANDWIDTH;
 
     bandwidth = bandwidth || window.Number.MAX_VALUE;
@@ -176,7 +177,7 @@ export const simpleSelector = function(master,
 
   // filter out any variant that has greater effective bitrate
   // than the current estimated bandwidth
-  let bandwidthPlaylistReps = enabledPlaylistReps.filter(
+  const bandwidthPlaylistReps = enabledPlaylistReps.filter(
     (rep) => rep.bandwidth * Config.BANDWIDTH_VARIANCE < playerBandwidth
   );
 
@@ -185,24 +186,24 @@ export const simpleSelector = function(master,
 
   // get all of the renditions with the same (highest) bandwidth
   // and then taking the very first element
-  let bandwidthBestRep = bandwidthPlaylistReps.filter(
+  const bandwidthBestRep = bandwidthPlaylistReps.filter(
     (rep) => rep.bandwidth === highestRemainingBandwidthRep.bandwidth
   )[0];
 
   // filter out playlists without resolution information
-  let haveResolution = bandwidthPlaylistReps.filter((rep) => rep.width && rep.height);
+  const haveResolution = bandwidthPlaylistReps.filter((rep) => rep.width && rep.height);
 
   // sort variants by resolution
   stableSort(haveResolution, (left, right) => left.width - right.width);
 
   // if we have the exact resolution as the player use it
-  let resolutionBestRepList = haveResolution.filter(
+  const resolutionBestRepList = haveResolution.filter(
     (rep) => rep.width === playerWidth && rep.height === playerHeight
   );
 
   highestRemainingBandwidthRep = resolutionBestRepList[resolutionBestRepList.length - 1];
   // ensure that we pick the highest bandwidth variant that have exact resolution
-  let resolutionBestRep = resolutionBestRepList.filter(
+  const resolutionBestRep = resolutionBestRepList.filter(
     (rep) => rep.bandwidth === highestRemainingBandwidthRep.bandwidth
   )[0];
 
@@ -233,7 +234,7 @@ export const simpleSelector = function(master,
   }
 
   // fallback chain of variants
-  let chosenRep = (
+  const chosenRep = (
     resolutionPlusOneRep ||
     resolutionBestRep ||
     bandwidthBestRep ||

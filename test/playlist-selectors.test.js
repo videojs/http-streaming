@@ -1,3 +1,4 @@
+import document from 'global/document';
 import { module, test } from 'qunit';
 import {
   simpleSelector,
@@ -65,14 +66,14 @@ test('Exponential moving average has a configurable decay parameter', function(a
 
 test('minRebufferMaxBandwidthSelector picks highest rendition without rebuffering',
 function(assert) {
-  let master = this.hls.playlists.master;
-  let currentTime = 0;
+  const master = this.hls.playlists.master;
+  const currentTime = 0;
   let bandwidth = 2000;
-  let duration = 100;
-  let segmentDuration = 10;
+  const duration = 100;
+  const segmentDuration = 10;
   let timeUntilRebuffer = 5;
-  let currentTimeline = 0;
-  let syncController = {
+  const currentTimeline = 0;
+  const syncController = {
     getSyncPoint: (playlist) => playlist.syncPoint
   };
 
@@ -156,7 +157,7 @@ test('lowestBitrateCompatibleVariantSelector return null if no video exists',
   });
 
 test('simpleSelector switches up even without resolution information', function(assert) {
-  let master = this.hls.playlists.master;
+  const master = this.hls.playlists.master;
 
   master.playlists = [
     { attributes: { BANDWIDTH: 100 } },

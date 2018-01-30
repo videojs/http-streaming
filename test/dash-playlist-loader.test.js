@@ -43,7 +43,7 @@ QUnit.test('starts with a manifest URL or playlist', function(assert) {
 });
 
 QUnit.test('requests the manifest immediately when given a URL', function(assert) {
-  let loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
 
   loader.load();
   assert.equal(this.requests.length, 1, 'made a request');
@@ -52,8 +52,8 @@ QUnit.test('requests the manifest immediately when given a URL', function(assert
 
 QUnit.test('moves to HAVE_MASTER and HAVE_METADATA after loading the manifest',
 function(assert) {
-  let loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
-  let loadedPlaylistStates = [];
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const loadedPlaylistStates = [];
 
   loader.load();
 
@@ -70,8 +70,8 @@ function(assert) {
 });
 
 QUnit.test('throws an error when initial manifest request fails', function(assert) {
-  let errors = [];
-  let loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const errors = [];
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
 
   loader.load();
 
@@ -85,7 +85,7 @@ QUnit.test('throws an error when initial manifest request fails', function(asser
 });
 
 QUnit.test('throws an error if a media switch is initiated too early', function(assert) {
-  let loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
 
   loader.load();
 
@@ -99,7 +99,7 @@ QUnit.test('throws an error if a media switch is initiated too early', function(
 
 QUnit.test('throws an error if a switch to an unrecognized playlist is requested',
 function(assert) {
-  let loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
 
   loader.load();
   standardXHRResponse(this.requests.shift());
@@ -110,7 +110,7 @@ function(assert) {
 });
 
 QUnit.test('can switch playlists after the master is downloaded', function(assert) {
-  let loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
 
   loader.load();
   // first media will already be selected since DASH needs no media request, so change on
@@ -126,7 +126,7 @@ QUnit.test('can switch playlists after the master is downloaded', function(asser
 });
 
 QUnit.test('can switch playlists based on object or URI', function(assert) {
-  let loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
 
   loader.load();
   standardXHRResponse(this.requests.shift());
@@ -141,7 +141,7 @@ QUnit.test('can switch playlists based on object or URI', function(assert) {
 });
 
 QUnit.test('dispose aborts pending manifest request', function(assert) {
-  let loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
 
   loader.load();
   assert.equal(this.requests.length, 1, 'one request');
@@ -155,7 +155,7 @@ QUnit.test('dispose aborts pending manifest request', function(assert) {
 });
 
 QUnit.test('errors if requests take longer than 45s', function(assert) {
-  let loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
   let errors = 0;
 
   loader.load();
@@ -170,7 +170,7 @@ QUnit.test('errors if requests take longer than 45s', function(assert) {
 });
 
 QUnit.test('triggers an event when the active media changes', function(assert) {
-  let loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
   let mediaChanges = 0;
   let mediaChangings = 0;
 

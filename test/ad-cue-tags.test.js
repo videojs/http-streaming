@@ -101,7 +101,7 @@ QUnit.test('update incomplete cue in live playlist situation', function(assert) 
 
   assert.equal(this.track.cues.length, 1, 'adds a single cue for new ad');
 
-  let testCue = this.track.cues[0];
+  const testCue = this.track.cues[0];
 
   assert.equal(testCue.startTime, 10, 'cue starts at 10');
   assert.equal(testCue.endTime, 30, 'cue ends at start time plus segment durations');
@@ -169,7 +169,7 @@ QUnit.test('adjust cue end time in event of early CUE-IN', function(assert) {
 
   assert.equal(this.track.cues.length, 1, 'adds a single cue for new ad');
 
-  let testCue = this.track.cues[0];
+  const testCue = this.track.cues[0];
 
   assert.equal(testCue.startTime, 10, 'cue starts at 10');
   assert.equal(testCue.endTime, 40, 'cue ends at start time plus segment durations');

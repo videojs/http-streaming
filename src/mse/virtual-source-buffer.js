@@ -20,13 +20,15 @@ const makeWrappedSourceBuffer = function(mediaSource, mimeType) {
   wrapper.updating = false;
   wrapper.realBuffer_ = sourceBuffer;
 
-  for (let key in sourceBuffer) {
+  for (const key in sourceBuffer) {
     if (typeof sourceBuffer[key] === 'function') {
       wrapper[key] = (...params) => sourceBuffer[key](...params);
     } else if (typeof wrapper[key] === 'undefined') {
       Object.defineProperty(wrapper, key, {
         get: () => sourceBuffer[key],
-        set: (v) => sourceBuffer[key] = v
+        set: (v) => {
+          sourceBuffer[key] = v;
+        }
       });
     }
   }
@@ -182,7 +184,7 @@ export default class VirtualSourceBuffer extends videojs.EventTarget {
     this.timeMapping_ = 0;
     this.safeAppend_ = videojs.browser.IE_VERSION >= 11;
 
-    let options = {
+    const options = {
       remux: false,
       alignGopsAtEnd: this.safeAppend_
     };
@@ -270,8 +272,8 @@ export default class VirtualSourceBuffer extends videojs.EventTarget {
         let start = null;
         let end = null;
         let arity = 0;
-        let extents = [];
-        let ranges = [];
+        const extents = [];
+        const ranges = [];
 
         // neither buffer has been created yet
         if (!this.videoBuffer_ && !this.audioBuffer_) {
@@ -299,8 +301,8 @@ export default class VirtualSourceBuffer extends videojs.EventTarget {
 
         // Handle the case where we have both buffers and create an
         // intersection of the two
-        let videoBuffered = this.videoBuffer_.buffered;
-        let audioBuffered = this.audioBuffer_.buffered;
+        const videoBuffered = this.videoBuffer_.buffered;
+        const audioBuffered = this.audioBuffer_.buffered;
         let count = videoBuffered.length;
 
         // A) Gather up all start and end times
@@ -361,7 +363,7 @@ export default class VirtualSourceBuffer extends videojs.EventTarget {
    * @param {Event} event the data event from the transmuxer
    */
   data_(event) {
-    let segment = event.data.segment;
+    const segment = event.data.segment;
 
     // Cast ArrayBuffer to TypedArray
     segment.data = new Uint8Array(
@@ -414,7 +416,7 @@ export default class VirtualSourceBuffer extends videojs.EventTarget {
    * @private
    */
   createRealSourceBuffers_() {
-    let types = ['audio', 'video'];
+    const types = ['audio', 'video'];
 
     types.forEach((type) => {
       // Don't create a SourceBuffer of this type if we don't have a
@@ -468,7 +470,7 @@ export default class VirtualSourceBuffer extends videojs.EventTarget {
             this[`${type}Buffer_`].updating = false;
           }
 
-          let shouldTrigger = types.every((t) => {
+          const shouldTrigger = types.every((t) => {
             // skip checking audio's updating status if audio
             // is not enabled
             if (t === 'audio' && this.audioDisabled_) {
@@ -505,7 +507,7 @@ export default class VirtualSourceBuffer extends videojs.EventTarget {
     this.bufferUpdating_ = true;
 
     if (this.audioBuffer_ && this.audioBuffer_.buffered.length) {
-      let audioBuffered = this.audioBuffer_.buffered;
+      const audioBuffered = this.audioBuffer_.buffered;
 
       this.transmuxer_.postMessage({
         action: 'setAudioAppendStart',
@@ -577,7 +579,7 @@ export default class VirtualSourceBuffer extends videojs.EventTarget {
 
     // Remove Any Captions
     if (this.inbandTextTracks_) {
-      for (let track in this.inbandTextTracks_) {
+      for (const track in this.inbandTextTracks_) {
         removeCuesFromTrack(start, end, this.inbandTextTracks_[track]);
       }
     }
@@ -607,9 +609,9 @@ export default class VirtualSourceBuffer extends videojs.EventTarget {
     // Sort segments into separate video/audio arrays and
     // keep track of their total byte lengths
     sortedSegments = this.pendingBuffers_.reduce(function(segmentObj, segment) {
-      let type = segment.type;
-      let data = segment.data;
-      let initSegment = segment.initSegment;
+      const type = segment.type;
+      const data = segment.data;
+      const initSegment = segment.initSegment;
 
       segmentObj[type].segments.push(data);
       segmentObj[type].bytes += data.byteLength;

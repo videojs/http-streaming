@@ -1,5 +1,6 @@
-let hls = require('../es5/videojs-http-streaming.js');
-let q = window.QUnit;
+/* eslint-disable no-undef */
+const hls = require('../es5/videojs-http-streaming.js');
+const q = window.QUnit;
 
 q.module('Webpack Require');
 q.test('hls should be requirable and bundled via webpack', function(assert) {

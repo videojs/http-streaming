@@ -100,9 +100,6 @@ const forwardDuration = function(playlist, endSequence) {
   * and end index.
   */
 const intervalDuration = function(playlist, endSequence, expired) {
-  let backward;
-  let forward;
-
   if (typeof endSequence === 'undefined') {
     endSequence = playlist.mediaSequence + playlist.segments.length;
   }
@@ -112,7 +109,8 @@ const intervalDuration = function(playlist, endSequence, expired) {
   }
 
   // do a backward walk to estimate the duration
-  backward = backwardDuration(playlist, endSequence);
+  const backward = backwardDuration(playlist, endSequence);
+
   if (backward.precise) {
     // if we were able to base our duration estimate on timing
     // information provided directly from the Media Source, return
@@ -122,7 +120,8 @@ const intervalDuration = function(playlist, endSequence, expired) {
 
   // walk forward to see if a precise duration estimate can be made
   // that way
-  forward = forwardDuration(playlist, endSequence);
+  const forward = forwardDuration(playlist, endSequence);
+
   if (forward.precise) {
     // we found a segment that has been buffered and so it's
     // position is known precisely
@@ -291,9 +290,9 @@ export const playlistEnd = function(playlist, expired, useSafeLiveEnd) {
   * for seeking
   */
 export const seekable = function(playlist, expired) {
-  let useSafeLiveEnd = true;
-  let seekableStart = expired || 0;
-  let seekableEnd = playlistEnd(playlist, expired, useSafeLiveEnd);
+  const useSafeLiveEnd = true;
+  const seekableStart = expired || 0;
+  const seekableEnd = playlistEnd(playlist, expired, useSafeLiveEnd);
 
   if (seekableEnd === null) {
     return createTimeRange();
@@ -311,11 +310,11 @@ const roundSignificantDigit = function(increment, num) {
     return num + (increment * 0.1);
   }
 
-  let numDecimalDigits = num.toString().split('.')[1].length;
+  const numDecimalDigits = num.toString().split('.')[1].length;
 
   for (let i = 1; i <= numDecimalDigits; i++) {
-    let scale = Math.pow(10, i);
-    let temp = num * scale;
+    const scale = Math.pow(10, i);
+    const temp = num * scale;
 
     if (isWholeNumber(temp) ||
         i === numDecimalDigits) {
@@ -344,7 +343,7 @@ export const getMediaInfoForTime = function(playlist,
                                             startTime) {
   let i;
   let segment;
-  let numSegments = playlist.segments.length;
+  const numSegments = playlist.segments.length;
 
   let time = currentTime - startTime;
 

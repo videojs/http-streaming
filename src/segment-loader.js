@@ -31,11 +31,11 @@ const detectEndOfStream = function(playlist, mediaSource, segmentIndex) {
     return false;
   }
 
-  let segments = playlist.segments;
+  const segments = playlist.segments;
 
   // determine a few boolean values to help make the branch below easier
   // to read
-  let appendedLastSegment = segmentIndex === segments.length;
+  const appendedLastSegment = segmentIndex === segments.length;
 
   // if we've buffered to the end of the video, we need to call endOfStream
   // so that MediaSources can trigger the `ended` event when it runs out of
@@ -173,7 +173,9 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     this.syncController_.on('syncinfoupdate', () => this.trigger('syncinfoupdate'));
 
-    this.mediaSource_.addEventListener('sourceopen', () => this.ended_ = false);
+    this.mediaSource_.addEventListener('sourceopen', () => {
+      this.ended_ = false;
+    });
 
     // ...for determining the fetch location
     this.fetchAtBuffer_ = false;
@@ -387,8 +389,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    let oldPlaylist = this.playlist_;
-    let segmentInfo = this.pendingSegment_;
+    const oldPlaylist = this.playlist_;
+    const segmentInfo = this.pendingSegment_;
 
     this.playlist_ = newPlaylist;
     this.xhrOptions_ = options;
@@ -426,7 +428,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // we reloaded the same playlist so we are in a live scenario
     // and we will likely need to adjust the mediaIndex
-    let mediaSequenceDiff = newPlaylist.mediaSequence - oldPlaylist.mediaSequence;
+    const mediaSequenceDiff = newPlaylist.mediaSequence - oldPlaylist.mediaSequence;
 
     this.logger_('mediaSequenceDiff', mediaSequenceDiff);
 
@@ -596,20 +598,20 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     // see if we need to begin loading immediately
-    let segmentInfo = this.checkBuffer_(this.buffered_(),
-                                        this.playlist_,
-                                        this.mediaIndex,
-                                        this.hasPlayed_(),
-                                        this.currentTime_(),
-                                        this.syncPoint_);
+    const segmentInfo = this.checkBuffer_(this.buffered_(),
+                                          this.playlist_,
+                                          this.mediaIndex,
+                                          this.hasPlayed_(),
+                                          this.currentTime_(),
+                                          this.syncPoint_);
 
     if (!segmentInfo) {
       return;
     }
 
-    let isEndOfStream = detectEndOfStream(this.playlist_,
-                                          this.mediaSource_,
-                                          segmentInfo.mediaIndex);
+    const isEndOfStream = detectEndOfStream(this.playlist_,
+                                            this.mediaSource_,
+                                            segmentInfo.mediaIndex);
 
     if (isEndOfStream) {
       this.endOfStream();
@@ -658,7 +660,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       lastBufferedEnd = buffered.end(buffered.length - 1);
     }
 
-    let bufferedTime = Math.max(0, lastBufferedEnd - currentTime);
+    const bufferedTime = Math.max(0, lastBufferedEnd - currentTime);
 
     if (!playlist.segments.length) {
       return null;
@@ -687,7 +689,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // Under normal playback conditions fetching is a simple walk forward
     if (mediaIndex !== null) {
-      let segment = playlist.segments[mediaIndex];
+      const segment = playlist.segments[mediaIndex];
 
       if (segment && segment.end) {
         startOfSegment = segment.end;
@@ -702,19 +704,19 @@ export default class SegmentLoader extends videojs.EventTarget {
     // fetch
     if (this.fetchAtBuffer_) {
       // Find the segment containing the end of the buffer
-      let mediaSourceInfo = Playlist.getMediaInfoForTime(playlist,
-                                                         lastBufferedEnd,
-                                                         syncPoint.segmentIndex,
-                                                         syncPoint.time);
+      const mediaSourceInfo = Playlist.getMediaInfoForTime(playlist,
+                                                           lastBufferedEnd,
+                                                           syncPoint.segmentIndex,
+                                                           syncPoint.time);
 
       mediaIndex = mediaSourceInfo.mediaIndex;
       startOfSegment = mediaSourceInfo.startTime;
     } else {
       // Find the segment containing currentTime
-      let mediaSourceInfo = Playlist.getMediaInfoForTime(playlist,
-                                                         currentTime,
-                                                         syncPoint.segmentIndex,
-                                                         syncPoint.time);
+      const mediaSourceInfo = Playlist.getMediaInfoForTime(playlist,
+                                                           currentTime,
+                                                           syncPoint.segmentIndex,
+                                                           syncPoint.time);
 
       mediaIndex = mediaSourceInfo.mediaIndex;
       startOfSegment = mediaSourceInfo.startTime;
@@ -737,7 +739,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       return 0;
     }
 
-    let segmentIndexArray = playlist.segments
+    const segmentIndexArray = playlist.segments
       .map((s, i) => {
         return {
           timeline: s.timeline,
@@ -757,7 +759,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       return null;
     }
 
-    let segment = playlist.segments[mediaIndex];
+    const segment = playlist.segments[mediaIndex];
 
     return {
       requestId: 'segment-loader-' + Math.random(),

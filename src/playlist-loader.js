@@ -112,7 +112,7 @@ export const setupMediaPlaylists = (master) => {
   let i = master.playlists.length;
 
   while (i--) {
-    let playlist = master.playlists[i];
+    const playlist = master.playlists[i];
 
     master.playlists[playlist.uri] = playlist;
     playlist.resolvedUri = resolveUrl(master.uri, playlist.uri);
@@ -132,9 +132,9 @@ export const setupMediaPlaylists = (master) => {
 
 export const resolveMediaGroupUris = (master) => {
   ['AUDIO', 'SUBTITLES'].forEach((mediaType) => {
-    for (let groupKey in master.mediaGroups[mediaType]) {
-      for (let labelKey in master.mediaGroups[mediaType][groupKey]) {
-        let mediaProperties = master.mediaGroups[mediaType][groupKey][labelKey];
+    for (const groupKey in master.mediaGroups[mediaType]) {
+      for (const labelKey in master.mediaGroups[mediaType][groupKey]) {
+        const mediaProperties = master.mediaGroups[mediaType][groupKey][labelKey];
 
         if (mediaProperties.uri) {
           mediaProperties.resolvedUri = resolveUrl(master.uri, mediaProperties.uri);

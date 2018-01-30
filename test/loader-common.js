@@ -421,8 +421,8 @@ export const LoaderCommonFactory = (LoaderConstructor,
     });
 
     QUnit.test('downloads init segments if specified', function(assert) {
-      let playlist = playlistWithDuration(20);
-      let map = {
+      const playlist = playlistWithDuration(20);
+      const map = {
         resolvedUri: 'mainInitSegment',
         byterange: {
           length: 20,
@@ -470,7 +470,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
     });
 
     QUnit.test('detects init segment changes and downloads it', function(assert) {
-      let playlist = playlistWithDuration(20);
+      const playlist = playlistWithDuration(20);
       let buffered = videojs.createTimeRanges();
 
       playlist.segments[0].map = {
@@ -629,7 +629,9 @@ export const LoaderCommonFactory = (LoaderConstructor,
         loader.mediaIndex = null;
         loader.fetchAtBuffer_ = false;
         // remove empty flag that may be added by vtt loader
-        loader.playlist_.segments.forEach(segment => segment.empty = false);
+        loader.playlist_.segments.forEach(segment => {
+          segment.empty = false;
+        });
       };
 
       // Setting currentTime to 31 so that we start requesting at segment #3
@@ -686,7 +688,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
     });
 
     QUnit.test('segment 404s should trigger an error', function(assert) {
-      let errors = [];
+      const errors = [];
 
       loader.playlist(playlistWithDuration(10));
 
@@ -706,7 +708,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
     });
 
     QUnit.test('empty segments should trigger an error', function(assert) {
-      let errors = [];
+      const errors = [];
 
       loader.playlist(playlistWithDuration(10));
 
@@ -727,7 +729,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
     });
 
     QUnit.test('segment 5xx status codes trigger an error', function(assert) {
-      let errors = [];
+      const errors = [];
 
       loader.playlist(playlistWithDuration(10));
 
@@ -768,7 +770,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       // Check that media source was properly cleaned up if it exists on the loader
       if (loader.mediaSource_) {
         loader.mediaSource_.sourceBuffers.forEach((sourceBuffer, i) => {
-          let lastOperation = sourceBuffer.updates_.slice(-1)[0];
+          const lastOperation = sourceBuffer.updates_.slice(-1)[0];
 
           assert.ok(lastOperation.abort, 'aborted source buffer ' + i);
         });
@@ -814,7 +816,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
     });
 
     QUnit.test('key 404s should trigger an error', function(assert) {
-      let errors = [];
+      const errors = [];
 
       loader.playlist(playlistWithDuration(10, {isEncrypted: true}));
 
@@ -837,7 +839,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
     });
 
     QUnit.test('key 5xx status codes trigger an error', function(assert) {
-      let errors = [];
+      const errors = [];
 
       loader.playlist(playlistWithDuration(10, {isEncrypted: true}));
 
@@ -878,21 +880,21 @@ export const LoaderCommonFactory = (LoaderConstructor,
 
     QUnit.test('checks the goal buffer configuration every loading opportunity',
     function(assert) {
-      let playlist = playlistWithDuration(20);
-      let defaultGoal = Config.GOAL_BUFFER_LENGTH;
-      let segmentInfo;
+      const playlist = playlistWithDuration(20);
+      const defaultGoal = Config.GOAL_BUFFER_LENGTH;
 
       Config.GOAL_BUFFER_LENGTH = 1;
       loader.playlist(playlist);
 
       loader.load();
 
-      segmentInfo = loader.checkBuffer_(videojs.createTimeRanges([[0, 1]]),
-                                        playlist,
-                                        null,
-                                        loader.hasPlayed_(),
-                                        0,
-                                        null);
+      const segmentInfo = loader.checkBuffer_(videojs.createTimeRanges([[0, 1]]),
+                                              playlist,
+                                              null,
+                                              loader.hasPlayed_(),
+                                              0,
+                                              null);
+
       assert.ok(!segmentInfo, 'no request generated');
       Config.GOAL_BUFFER_LENGTH = defaultGoal;
     });
@@ -900,7 +902,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
     QUnit.test(
       'does not skip over segment if live playlist update occurs while processing',
     function(assert) {
-      let playlist = playlistWithDuration(40);
+      const playlist = playlistWithDuration(40);
       let buffered = videojs.createTimeRanges();
 
       loader.buffered_ = () => buffered;
@@ -921,7 +923,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       this.requests[0].response = new Uint8Array(10).buffer;
       this.requests.shift().respond(200, null, '');
       // playlist updated during append
-      let playlistUpdated = playlistWithDuration(40);
+      const playlistUpdated = playlistWithDuration(40);
 
       playlistUpdated.segments.shift();
       playlistUpdated.mediaSequence++;
@@ -942,7 +944,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
     function(assert) {
       const handleUpdateEnd_ = loader.handleUpdateEnd_.bind(loader);
       let expectedURI = '0.ts';
-      let playlist = playlistWithDuration(40);
+      const playlist = playlistWithDuration(40);
       let buffered = videojs.createTimeRanges();
 
       loader.handleUpdateEnd_ = () => {
@@ -987,7 +989,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
                    'correct segment reference');
 
       // playlist updated during waiting
-      let playlistUpdated = playlistWithDuration(40);
+      const playlistUpdated = playlistWithDuration(40);
 
       playlistUpdated.segments.shift();
       playlistUpdated.segments.shift();
@@ -1033,12 +1035,12 @@ export const LoaderCommonFactory = (LoaderConstructor,
 
     QUnit.test('requests the first segment with an empty buffer', function(assert) {
 
-      let segmentInfo = loader.checkBuffer_(videojs.createTimeRanges(),
-                                            playlistWithDuration(20),
-                                            null,
-                                            loader.hasPlayed_(),
-                                            0,
-                                            null);
+      const segmentInfo = loader.checkBuffer_(videojs.createTimeRanges(),
+                                              playlistWithDuration(20),
+                                              null,
+                                              loader.hasPlayed_(),
+                                              0,
+                                              null);
 
       assert.ok(segmentInfo, 'generated a request');
       assert.equal(segmentInfo.uri, '0.ts', 'requested the first segment');
@@ -1048,91 +1050,80 @@ export const LoaderCommonFactory = (LoaderConstructor,
     function(assert) {
       this.hasPlayed = false;
 
-      let segmentInfo = loader.checkBuffer_(videojs.createTimeRanges([[0, 1]]),
-                                            playlistWithDuration(20),
-                                            0,
-                                            loader.hasPlayed_(),
-                                            0,
-                                            null);
+      const segmentInfo = loader.checkBuffer_(videojs.createTimeRanges([[0, 1]]),
+                                              playlistWithDuration(20),
+                                              0,
+                                              loader.hasPlayed_(),
+                                              0,
+                                              null);
 
       assert.ok(!segmentInfo, 'no request generated');
     });
 
     QUnit.test('does not download the next segment if the buffer is full',
     function(assert) {
-      let buffered;
-      let segmentInfo;
-
-      buffered = videojs.createTimeRanges([
+      const buffered = videojs.createTimeRanges([
         [0, 30 + Config.GOAL_BUFFER_LENGTH]
       ]);
-      segmentInfo = loader.checkBuffer_(buffered,
-                                        playlistWithDuration(30),
-                                        null,
-                                        true,
-                                        15,
-                                        { segmentIndex: 0, time: 0 });
+      const segmentInfo = loader.checkBuffer_(buffered,
+                                              playlistWithDuration(30),
+                                              null,
+                                              true,
+                                              15,
+                                              { segmentIndex: 0, time: 0 });
 
       assert.ok(!segmentInfo, 'no segment request generated');
     });
 
     QUnit.test('downloads the next segment if the buffer is getting low',
     function(assert) {
-      let buffered;
-      let segmentInfo;
-      let playlist = playlistWithDuration(30);
+      const playlist = playlistWithDuration(30);
 
       loader.playlist(playlist);
 
-      buffered = videojs.createTimeRanges([[0, 19.999]]);
-      segmentInfo = loader.checkBuffer_(buffered,
-                                        playlist,
-                                        1,
-                                        true,
-                                        15,
-                                        { segmentIndex: 0, time: 0 });
+      const buffered = videojs.createTimeRanges([[0, 19.999]]);
+      const segmentInfo = loader.checkBuffer_(buffered,
+                                              playlist,
+                                              1,
+                                              true,
+                                              15,
+                                              { segmentIndex: 0, time: 0 });
 
       assert.ok(segmentInfo, 'made a request');
       assert.equal(segmentInfo.uri, '2.ts', 'requested the third segment');
     });
 
     QUnit.test('stops downloading segments at the end of the playlist', function(assert) {
-      let buffered;
-      let segmentInfo;
-
-      buffered = videojs.createTimeRanges([[0, 60]]);
-      segmentInfo = loader.checkBuffer_(buffered,
-                                        playlistWithDuration(60),
-                                        null,
-                                        true,
-                                        0,
-                                        null);
+      const buffered = videojs.createTimeRanges([[0, 60]]);
+      const segmentInfo = loader.checkBuffer_(buffered,
+                                              playlistWithDuration(60),
+                                              null,
+                                              true,
+                                              0,
+                                              null);
 
       assert.ok(!segmentInfo, 'no request was made');
     });
 
     QUnit.test('stops downloading segments if buffered past reported end of the playlist',
     function(assert) {
-      let buffered;
-      let segmentInfo;
-      let playlist;
+      const buffered = videojs.createTimeRanges([[0, 59.9]]);
+      const playlist = playlistWithDuration(60);
 
-      buffered = videojs.createTimeRanges([[0, 59.9]]);
-      playlist = playlistWithDuration(60);
       playlist.segments[playlist.segments.length - 1].end = 59.9;
-      segmentInfo = loader.checkBuffer_(buffered,
-                                        playlist,
-                                        playlist.segments.length - 1,
-                                        true,
-                                        50,
-                                        { segmentIndex: 0, time: 0 });
+      const segmentInfo = loader.checkBuffer_(buffered,
+                                              playlist,
+                                              playlist.segments.length - 1,
+                                              true,
+                                              50,
+                                              { segmentIndex: 0, time: 0 });
 
       assert.ok(!segmentInfo, 'no request was made');
     });
 
     QUnit.test('doesn\'t allow more than one monitor buffer timer to be set',
     function(assert) {
-      let timeoutCount = this.clock.methods.length;
+      const timeoutCount = this.clock.methods.length;
 
       loader.monitorBuffer_();
 

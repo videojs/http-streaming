@@ -48,10 +48,10 @@ const generateMedia = function(isMaat, isMuxed, hasVideoCodec, hasAudioCodec, is
 QUnit.module('Codec to MIME Type Conversion');
 
 const testMimeTypes = function(assert, isFMP4) {
-  let container = isFMP4 ? 'mp4' : 'mp2t';
+  const container = isFMP4 ? 'mp4' : 'mp2t';
 
-  let videoMime = `video/${container}`;
-  let audioMime = `audio/${container}`;
+  const videoMime = `video/${container}`;
+  const audioMime = `audio/${container}`;
 
   // no MAAT
   assert.deepEqual(mimeTypesForPlaylist.apply(null,

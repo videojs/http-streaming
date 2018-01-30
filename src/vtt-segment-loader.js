@@ -44,8 +44,8 @@ export default class VTTSegmentLoader extends SegmentLoader {
     }
 
     const cues = this.subtitlesTrack_.cues;
-    let start = cues[0].startTime;
-    let end = cues[cues.length - 1].startTime;
+    const start = cues[0].startTime;
+    const end = cues[cues.length - 1].startTime;
 
     return videojs.createTimeRanges([[start, end]]);
   }
@@ -181,7 +181,7 @@ export default class VTTSegmentLoader extends SegmentLoader {
     if (this.syncController_.timestampOffsetForTimeline(segmentInfo.timeline) === null) {
       // We don't have the timestamp offset that we need to sync subtitles.
       // Rerun on a timestamp offset or user interaction.
-      let checkTimestampOffset = () => {
+      const checkTimestampOffset = () => {
         this.state = 'READY';
         if (!this.paused()) {
           // if not paused, queue a buffer check as soon as possible
@@ -231,8 +231,8 @@ export default class VTTSegmentLoader extends SegmentLoader {
 
     this.state = 'APPENDING';
 
-    let segmentInfo = this.pendingSegment_;
-    let segment = segmentInfo.segment;
+    const segmentInfo = this.pendingSegment_;
+    const segment = segmentInfo.segment;
 
     // Make sure that vttjs has loaded, otherwise, wait till it finished loading
     if (typeof window.WebVTT !== 'function' &&
@@ -325,7 +325,9 @@ export default class VTTSegmentLoader extends SegmentLoader {
     segmentInfo.timestampmap = { MPEGTS: 0, LOCAL: 0 };
 
     parser.oncue = segmentInfo.cues.push.bind(segmentInfo.cues);
-    parser.ontimestampmap = (map) => segmentInfo.timestampmap = map;
+    parser.ontimestampmap = (map) => {
+      segmentInfo.timestampmap = map;
+    };
     parser.onparsingerror = (error) => {
       videojs.log.warn('Error encountered when parsing cues: ' + error.message);
     };
