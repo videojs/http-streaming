@@ -246,10 +246,10 @@ export default class SyncController extends videojs.EventTarget {
     for (let i = 0; i < syncPointStrategies.length; i++) {
       const strategy = syncPointStrategies[i];
       const syncPoint = strategy.run(this,
-                                   playlist,
-                                   duration,
-                                   currentTimeline,
-                                   currentTime);
+                                     playlist,
+                                     duration,
+                                     currentTimeline,
+                                     currentTime);
 
       if (syncPoint) {
         syncPoint.strategy = strategy.name;

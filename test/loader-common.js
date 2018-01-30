@@ -889,11 +889,11 @@ export const LoaderCommonFactory = (LoaderConstructor,
       loader.load();
 
       const segmentInfo = loader.checkBuffer_(videojs.createTimeRanges([[0, 1]]),
-                                        playlist,
-                                        null,
-                                        loader.hasPlayed_(),
-                                        0,
-                                        null);
+                                              playlist,
+                                              null,
+                                              loader.hasPlayed_(),
+                                              0,
+                                              null);
 
       assert.ok(!segmentInfo, 'no request generated');
       Config.GOAL_BUFFER_LENGTH = defaultGoal;
@@ -1036,11 +1036,11 @@ export const LoaderCommonFactory = (LoaderConstructor,
     QUnit.test('requests the first segment with an empty buffer', function(assert) {
 
       const segmentInfo = loader.checkBuffer_(videojs.createTimeRanges(),
-                                            playlistWithDuration(20),
-                                            null,
-                                            loader.hasPlayed_(),
-                                            0,
-                                            null);
+                                              playlistWithDuration(20),
+                                              null,
+                                              loader.hasPlayed_(),
+                                              0,
+                                              null);
 
       assert.ok(segmentInfo, 'generated a request');
       assert.equal(segmentInfo.uri, '0.ts', 'requested the first segment');
@@ -1051,11 +1051,11 @@ export const LoaderCommonFactory = (LoaderConstructor,
       this.hasPlayed = false;
 
       const segmentInfo = loader.checkBuffer_(videojs.createTimeRanges([[0, 1]]),
-                                            playlistWithDuration(20),
-                                            0,
-                                            loader.hasPlayed_(),
-                                            0,
-                                            null);
+                                              playlistWithDuration(20),
+                                              0,
+                                              loader.hasPlayed_(),
+                                              0,
+                                              null);
 
       assert.ok(!segmentInfo, 'no request generated');
     });
@@ -1066,11 +1066,11 @@ export const LoaderCommonFactory = (LoaderConstructor,
         [0, 30 + Config.GOAL_BUFFER_LENGTH]
       ]);
       const segmentInfo = loader.checkBuffer_(buffered,
-                                        playlistWithDuration(30),
-                                        null,
-                                        true,
-                                        15,
-                                        { segmentIndex: 0, time: 0 });
+                                              playlistWithDuration(30),
+                                              null,
+                                              true,
+                                              15,
+                                              { segmentIndex: 0, time: 0 });
 
       assert.ok(!segmentInfo, 'no segment request generated');
     });
@@ -1083,11 +1083,11 @@ export const LoaderCommonFactory = (LoaderConstructor,
 
       const buffered = videojs.createTimeRanges([[0, 19.999]]);
       const segmentInfo = loader.checkBuffer_(buffered,
-                                        playlist,
-                                        1,
-                                        true,
-                                        15,
-                                        { segmentIndex: 0, time: 0 });
+                                              playlist,
+                                              1,
+                                              true,
+                                              15,
+                                              { segmentIndex: 0, time: 0 });
 
       assert.ok(segmentInfo, 'made a request');
       assert.equal(segmentInfo.uri, '2.ts', 'requested the third segment');
@@ -1096,11 +1096,11 @@ export const LoaderCommonFactory = (LoaderConstructor,
     QUnit.test('stops downloading segments at the end of the playlist', function(assert) {
       const buffered = videojs.createTimeRanges([[0, 60]]);
       const segmentInfo = loader.checkBuffer_(buffered,
-                                        playlistWithDuration(60),
-                                        null,
-                                        true,
-                                        0,
-                                        null);
+                                              playlistWithDuration(60),
+                                              null,
+                                              true,
+                                              0,
+                                              null);
 
       assert.ok(!segmentInfo, 'no request was made');
     });
@@ -1112,11 +1112,11 @@ export const LoaderCommonFactory = (LoaderConstructor,
 
       playlist.segments[playlist.segments.length - 1].end = 59.9;
       const segmentInfo = loader.checkBuffer_(buffered,
-                                        playlist,
-                                        playlist.segments.length - 1,
-                                        true,
-                                        50,
-                                        { segmentIndex: 0, time: 0 });
+                                              playlist,
+                                              playlist.segments.length - 1,
+                                              true,
+                                              50,
+                                              { segmentIndex: 0, time: 0 });
 
       assert.ok(!segmentInfo, 'no request was made');
     });

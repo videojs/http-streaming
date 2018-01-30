@@ -599,19 +599,19 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // see if we need to begin loading immediately
     const segmentInfo = this.checkBuffer_(this.buffered_(),
-                                        this.playlist_,
-                                        this.mediaIndex,
-                                        this.hasPlayed_(),
-                                        this.currentTime_(),
-                                        this.syncPoint_);
+                                          this.playlist_,
+                                          this.mediaIndex,
+                                          this.hasPlayed_(),
+                                          this.currentTime_(),
+                                          this.syncPoint_);
 
     if (!segmentInfo) {
       return;
     }
 
     const isEndOfStream = detectEndOfStream(this.playlist_,
-                                          this.mediaSource_,
-                                          segmentInfo.mediaIndex);
+                                            this.mediaSource_,
+                                            segmentInfo.mediaIndex);
 
     if (isEndOfStream) {
       this.endOfStream();
@@ -705,18 +705,18 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (this.fetchAtBuffer_) {
       // Find the segment containing the end of the buffer
       const mediaSourceInfo = Playlist.getMediaInfoForTime(playlist,
-                                                         lastBufferedEnd,
-                                                         syncPoint.segmentIndex,
-                                                         syncPoint.time);
+                                                           lastBufferedEnd,
+                                                           syncPoint.segmentIndex,
+                                                           syncPoint.time);
 
       mediaIndex = mediaSourceInfo.mediaIndex;
       startOfSegment = mediaSourceInfo.startTime;
     } else {
       // Find the segment containing currentTime
       const mediaSourceInfo = Playlist.getMediaInfoForTime(playlist,
-                                                         currentTime,
-                                                         syncPoint.segmentIndex,
-                                                         syncPoint.time);
+                                                           currentTime,
+                                                           syncPoint.segmentIndex,
+                                                           syncPoint.time);
 
       mediaIndex = mediaSourceInfo.mediaIndex;
       startOfSegment = mediaSourceInfo.startTime;
