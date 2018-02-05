@@ -40,7 +40,7 @@ const deprecateOldCue = function(cue) {
   });
 };
 
-const durationOfVideo = function(duration) {
+export const durationOfVideo = function(duration) {
   let dur;
 
   if (isNaN(duration) || Math.abs(duration) === Infinity) {
@@ -59,7 +59,7 @@ const durationOfVideo = function(duration) {
  * @param {Array} metadataArray an array of meta data
  * @private
  */
-const addTextTrackData = function(sourceHandler, captionArray, metadataArray) {
+export const addTextTrackData = function(sourceHandler, captionArray, metadataArray) {
   let Cue = window.WebKitDataCue || window.VTTCue;
 
   if (captionArray) {
@@ -138,9 +138,4 @@ const addTextTrackData = function(sourceHandler, captionArray, metadataArray) {
       });
     }
   }
-};
-
-export default {
-  addTextTrackData,
-  durationOfVideo
 };

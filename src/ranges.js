@@ -8,13 +8,13 @@
 import videojs from 'video.js';
 
 // Fudge factor to account for TimeRanges rounding
-const TIME_FUDGE_FACTOR = 1 / 30;
+export const TIME_FUDGE_FACTOR = 1 / 30;
 // Comparisons between time values such as current time and the end of the buffered range
 // can be misleading because of precision differences or when the current media has poorly
 // aligned audio and video, which can cause values to be slightly off from what you would
 // expect. This value is what we consider to be safe to use in such comparisons to account
 // for these scenarios.
-const SAFE_TIME_DELTA = TIME_FUDGE_FACTOR * 3;
+export const SAFE_TIME_DELTA = TIME_FUDGE_FACTOR * 3;
 
 /**
  * Clamps a value to within a range
@@ -49,7 +49,7 @@ const filterRanges = function(timeRanges, predicate) {
  * @param {number} time  - the time to filter on.
  * @returns {TimeRanges} a new TimeRanges object
  */
-const findRange = function(buffered, time) {
+export const findRange = function(buffered, time) {
   return filterRanges(buffered, function(start, end) {
     return start - TIME_FUDGE_FACTOR <= time &&
       end + TIME_FUDGE_FACTOR >= time;
@@ -62,7 +62,7 @@ const findRange = function(buffered, time) {
  * @param {number} time - the time to filter on.
  * @returns {TimeRanges} a new TimeRanges object.
  */
-const findNextRange = function(timeRanges, time) {
+export const findNextRange = function(timeRanges, time) {
   return filterRanges(timeRanges, function(start) {
     return start - TIME_FUDGE_FACTOR >= time;
   });
@@ -73,7 +73,7 @@ const findNextRange = function(timeRanges, time) {
  * @param {TimeRanges} buffered - the TimeRanges object
  * @return {TimeRanges} a TimeRanges object of gaps
  */
-const findGaps = function(buffered) {
+export const findGaps = function(buffered) {
   if (buffered.length < 2) {
     return videojs.createTimeRanges();
   }
@@ -99,7 +99,7 @@ const findGaps = function(buffered) {
  * @returns {Number|null} the end time added between `original` and `update`,
  * or null if one cannot be unambiguously determined.
  */
-const findSoleUncommonTimeRangesEnd = function(original, update) {
+export const findSoleUncommonTimeRangesEnd = function(original, update) {
   let i;
   let start;
   let end;
@@ -282,7 +282,7 @@ const calculateBufferedPercent = function(adjustedRange,
  * @returns {Number} percentage of the segment's time range that is
  * already in `buffered`
  */
-const getSegmentBufferedPercent = function(startOfSegment,
+export const getSegmentBufferedPercent = function(startOfSegment,
                                            segmentDuration,
                                            currentTime,
                                            buffered) {
@@ -331,7 +331,7 @@ const getSegmentBufferedPercent = function(startOfSegment,
  * @param {TimeRange} range
  * @returns {String} a human readable string
  */
-const printableRange = (range) => {
+export const printableRange = (range) => {
   let strArr = [];
 
   if (!range || !range.length) {
@@ -359,7 +359,7 @@ const printableRange = (range) => {
  *         Time until the player has to start rebuffering in seconds.
  * @function timeUntilRebuffer
  */
-const timeUntilRebuffer = function(buffered, currentTime, playbackRate = 1) {
+export const timeUntilRebuffer = function(buffered, currentTime, playbackRate = 1) {
   const bufferedEnd = buffered.length ? buffered.end(buffered.length - 1) : 0;
 
   return (bufferedEnd - currentTime) / playbackRate;
@@ -370,7 +370,7 @@ const timeUntilRebuffer = function(buffered, currentTime, playbackRate = 1) {
  * @param {TimeRanges} timeRanges
  * @returns {Array}
  */
-const timeRangesToArray = (timeRanges) => {
+export const timeRangesToArray = (timeRanges) => {
   const timeRangesList = [];
 
   for (let i = 0; i < timeRanges.length; i++) {
@@ -381,17 +381,4 @@ const timeRangesToArray = (timeRanges) => {
   }
 
   return timeRangesList;
-};
-
-export default {
-  findRange,
-  findNextRange,
-  findGaps,
-  findSoleUncommonTimeRangesEnd,
-  getSegmentBufferedPercent,
-  TIME_FUDGE_FACTOR,
-  SAFE_TIME_DELTA,
-  printableRange,
-  timeUntilRebuffer,
-  timeRangesToArray
 };

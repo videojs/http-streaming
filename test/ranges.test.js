@@ -1,4 +1,4 @@
-import Ranges from '../src/ranges';
+import * as Ranges from '../src/ranges';
 import {createTimeRanges} from 'video.js';
 import QUnit from 'qunit';
 

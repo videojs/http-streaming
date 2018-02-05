@@ -9,7 +9,7 @@
  * @return {Boolean} if this is an audio codec
  * @private
  */
-const isAudioCodec = function(codec) {
+export const isAudioCodec = function(codec) {
   return (/mp4a\.\d+.\d+/i).test(codec);
 };
 
@@ -20,7 +20,7 @@ const isAudioCodec = function(codec) {
  * @return {Boolean} if this is a video codec
  * @private
  */
-const isVideoCodec = function(codec) {
+export const isVideoCodec = function(codec) {
   return (/avc1\.[\da-f]+/i).test(codec);
 };
 
@@ -32,7 +32,7 @@ const isVideoCodec = function(codec) {
  * @return {Object} the parsed content-type
  * @private
  */
-const parseContentType = function(type) {
+export const parseContentType = function(type) {
   let object = {type: '', parameters: {}};
   let parameters = type.trim().split(';');
 
@@ -60,7 +60,7 @@ const parseContentType = function(type) {
  * @return {Array} the translated codec array
  * @private
  */
-const translateLegacyCodecs = function(codecs) {
+export const translateLegacyCodecs = function(codecs) {
   return codecs.map((codec) => {
     return codec.replace(/avc1\.(\d+)\.(\d+)/i, function(orig, profile, avcLevel) {
       let profileHex = ('00' + Number(profile).toString(16)).slice(-2);
@@ -69,11 +69,4 @@ const translateLegacyCodecs = function(codecs) {
       return 'avc1.' + profileHex + '00' + avcLevelHex;
     });
   });
-};
-
-export default {
-  isAudioCodec,
-  parseContentType,
-  isVideoCodec,
-  translateLegacyCodecs
 };
