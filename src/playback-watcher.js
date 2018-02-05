@@ -9,7 +9,7 @@
  */
 
 import window from 'global/window';
-import Ranges from './ranges';
+import * as Ranges from './ranges';
 import logger from './util/logger';
 
 // Set of events that reset the playback-watcher time check logic and clear the timeout

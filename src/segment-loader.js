@@ -7,11 +7,13 @@ import SourceUpdater from './source-updater';
 import Config from './config';
 import window from 'global/window';
 import removeCuesFromTrack from './mse/remove-cues-from-track';
-import { initSegmentId } from './bin-utils';
+import BinUtils from './bin-utils';
 import {mediaSegmentRequest, REQUEST_ERRORS} from './media-segment-request';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
 import logger from './util/logger';
+
+const { initSegmentId } = BinUtils;
 
 // in ms
 const CHECK_BUFFER_DELAY = 500;

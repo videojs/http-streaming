@@ -6,7 +6,7 @@ import DashPlaylistLoader from './dash-playlist-loader';
 import { isEnabled, isLowestEnabledRendition } from './playlist.js';
 import SegmentLoader from './segment-loader';
 import VTTSegmentLoader from './vtt-segment-loader';
-import Ranges from './ranges';
+import * as Ranges from './ranges';
 import videojs from 'video.js';
 import AdCueTags from './ad-cue-tags';
 import SyncController from './sync-controller';
