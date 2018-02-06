@@ -8,7 +8,7 @@
     <meta name="author" content="">
     <link rel="icon" href="favicon.ico">
 
-    <title>VideoJS HLS</title>
+    <title>VideoJS HTTP Streaming</title>
 
     <!-- Bootstrap core CSS. This is just to make the demo look
     nice. It's not required for videojs-http-streaming to work. -->
@@ -80,7 +80,7 @@
     <div class="container">
 
       <section class="starter-template">
-        <h1>VideoJS HLS</h1>
+        <h1>VideoJS HTTP Streaming</h1>
         <p class="lead">
           <a href="https://github.com/videojs/http-streaming">videojs-http-streaming</a>
           lets you use a single format and deliver adaptive streaming
@@ -97,11 +97,26 @@
         </video>
 
         <form id=load-url>
-          <label>
-            Video URL:
-            <input id=url type=url value="https://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8">
-          </label>
-          <button type=submit>Load</button>
+          <div>
+            <label>
+              Video URL:
+              <input id=url type=url value="https://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8">
+            </label>
+          </div>
+
+          <div>
+            <label>
+              MimeType:
+              <select id=mimetype>
+                <option selected>application/x-mpegURL</option>
+                <option>application/dash+xml</option>
+              </select>
+            </label>
+          </div>
+
+          <div>
+            <button type=submit>Load</button>
+          </div>
         </form>
 
       </section>
@@ -151,7 +166,6 @@ player.play();
       -->
 
     <script src="https://unpkg.com/video.js/dist/video.js"></script>
-    <script src="https://unpkg.com/videojs-flash/dist/videojs-flash.js"></script>
     <script src="https://unpkg.com/@videojs/http-streaming/dist/videojs-http-streaming.js"></script>
 
     <!--
@@ -164,11 +178,12 @@ player.play();
         // hook up the video switcher
         var loadUrl = document.getElementById('load-url');
         var url = document.getElementById('url');
+        var mimeType = document.getElementById('mimetype');
         loadUrl.addEventListener('submit', function(event) {
           event.preventDefault();
           player.src({
             src: url.value,
-            type: 'application/x-mpegURL'
+            type: mimeType.options[mimeType.selectedIndex].innerText
           });
           return false;
         });
