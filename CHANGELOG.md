@@ -6,6 +6,9 @@ CHANGELOG
 _(none)_
 
 --------------------
+## 0.5.0
+* update mpd-parser to support more segment list types ([#27](https://github.com/videojs/http-streaming/issues/27))
+
 ## 0.4.0
 * Removed Flash support ([#15](https://github.com/videojs/http-streaming/issues/15))
 * Blacklist playlists not supported by browser media source before initial selection ([#17](https://github.com/videojs/http-streaming/issues/17))
