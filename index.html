@@ -97,11 +97,26 @@
         </video>
 
         <form id=load-url>
-          <label>
-            Video URL:
-            <input id=url type=url value="https://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8">
-          </label>
-          <button type=submit>Load</button>
+          <div>
+            <label>
+              Video URL:
+              <input id=url type=url value="https://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8">
+            </label>
+          </div>
+
+          <div>
+            <label>
+              MimeType:
+              <select id=mimetype>
+                <option selected>application/x-mpegURL</option>
+                <option>application/dash+xml</option>
+              </select>
+            </label>
+          </div>
+
+          <div>
+            <button type=submit>Load</button>
+          </div>
         </form>
 
       </section>
@@ -163,11 +178,12 @@ player.play();
         // hook up the video switcher
         var loadUrl = document.getElementById('load-url');
         var url = document.getElementById('url');
+        var mimeType = document.getElementById('mimetype');
         loadUrl.addEventListener('submit', function(event) {
           event.preventDefault();
           player.src({
             src: url.value,
-            type: 'application/x-mpegURL'
+            type: mimeType.options[mimeType.selectedIndex].innerText
           });
           return false;
         });
