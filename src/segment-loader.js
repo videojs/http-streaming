@@ -128,7 +128,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       throw new TypeError('No MediaSource specified');
     }
     // public properties
-    this.state = 'INIT';
     this.bandwidth = settings.bandwidth;
     this.throughput = {rate: 0, count: 0};
     this.roundTrip = NaN;
@@ -148,6 +147,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.segmentMetadataTrack_ = settings.segmentMetadataTrack;
     this.goalBufferLength_ = settings.goalBufferLength;
     this.sourceType_ = settings.sourceType;
+    this.state_ = 'INIT';
 
     // private instance variables
     this.checkBufferTimeout_ = null;
@@ -181,6 +181,18 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.fetchAtBuffer_ = false;
 
     this.logger_ = logger(`SegmentLoader[${this.loaderType_}]`);
+
+    Object.defineProperty(this, 'state', {
+      get() {
+        return this.state_;
+      },
+      set(newState) {
+        if (newState !== this.state_) {
+          this.logger_(`${this.state_} -> ${newState}`);
+          this.state_ = newState;
+        }
+      }
+    });
   }
 
   /**
@@ -374,6 +386,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.state = 'READY';
     this.sourceUpdater_ = new SourceUpdater(this.mediaSource_,
                                             this.mimeType_,
+                                            this.loaderType_,
                                             this.sourceBufferEmitter_);
     this.resetEverything();
     return this.monitorBuffer_();
@@ -1167,6 +1180,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.mediaSecondsLoaded += segment.duration;
     }
 
+    this.logger_(`appending segment [${segment.start} => ${segment.end}]`);
+
     this.sourceUpdater_.appendBuffer(segmentInfo.bytes,
                                      this.handleUpdateEnd_.bind(this));
   }
@@ -1179,8 +1194,6 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @private
    */
   handleUpdateEnd_() {
-    this.logger_('handleUpdateEnd_', 'segmentInfo:', this.pendingSegment_);
-
     if (!this.pendingSegment_) {
       this.state = 'READY';
       if (!this.paused()) {

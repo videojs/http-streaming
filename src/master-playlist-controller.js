@@ -619,9 +619,15 @@ export class MasterPlaylistController extends videojs.EventTarget {
     let isEndOfStream = this.mainSegmentLoader_.ended_;
 
     if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
-      // if the audio playlist loader exists, then alternate audio is active, so we need
-      // to wait for both the main and audio segment loaders to call endOfStream
-      isEndOfStream = isEndOfStream && this.audioSegmentLoader_.ended_;
+      // if the audio playlist loader exists, then alternate audio is active
+      if (this.mainSegmentLoader_.startingMedia_.containsVideo) {
+        // if the main segment loader contains video, then we need to wait for both the
+        // main and audio segment loaders to call endOfStream
+        isEndOfStream = isEndOfStream && this.audioSegmentLoader_.ended_;
+      } else {
+        // otherwise just rely on the audio loader
+        isEndOfStream = this.audioSegmentLoader_.ended_;
+      }
     }
 
     if (isEndOfStream) {
@@ -982,10 +988,18 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // second source buffer (it will assume we are playing either audio only or video
     // only).
     const sourceBufferEmitter =
-      // if the first mime type has muxed video and audio then we shouldn't wait on the
-      // second source buffer
-      mimeTypes.length > 1 && mimeTypes[0].indexOf(',') === -1 ?
-        new videojs.EventTarget() : null;
+      // If there is more than one mime type
+      mimeTypes.length > 1 &&
+      // and the first mime type does not have muxed video and audio
+      mimeTypes[0].indexOf(',') === -1 &&
+      // and the two mime types are different (they can be the same in the case of audio
+      // only with alternate audio)
+      mimeTypes[0] !== mimeTypes[1] ?
+        // then we want to wait on the second source buffer
+        new videojs.EventTarget() :
+        // otherwise there is no need to wait as the content is either audio only,
+        // video only, or muxed content.
+        null;
 
     this.mainSegmentLoader_.mimeType(mimeTypes[0], sourceBufferEmitter);
     if (mimeTypes[1]) {

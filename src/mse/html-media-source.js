@@ -123,7 +123,7 @@ export default class HtmlMediaSource extends videojs.EventTarget {
         }
       }
 
-      this.sourceBuffers.forEach((sourceBuffer) => {
+      this.sourceBuffers.forEach((sourceBuffer, index) => {
         /* eslinst-disable */
         // TODO once codecs are required, we can switch to using the codecs to determine
         //      what stream is the video stream, rather than relying on videoTracks
@@ -142,8 +142,13 @@ export default class HtmlMediaSource extends videojs.EventTarget {
           disableAudioOnly = false;
         } else if (!sourceBuffer.videoCodec_ && sourceBuffer.audioCodec_) {
           // audio only
-          sourceBuffer.audioDisabled_ = disableAudioOnly;
-          if (disableAudioOnly) {
+          // In the case of audio only with alternate audio and disableAudioOnly is true
+          // this means we want to disable the audio on the alternate audio sourcebuffer
+          // but not the main "combined" source buffer. The "combined" source buffer is
+          // always at index 0, so this ensures audio won't be disabled in both source
+          // buffers.
+          sourceBuffer.audioDisabled_ = disableAudioOnly && index;
+          if (disableAudioOnly && index) {
             return;
           }
         }

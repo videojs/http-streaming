@@ -354,7 +354,7 @@ export const initialize = {
       sourceType,
       segmentLoaders: { [type]: segmentLoader },
       requestOptions: { withCredentials },
-      master: { mediaGroups },
+      master: { mediaGroups, playlists },
       mediaTypes: {
         [type]: {
           groups,
@@ -374,8 +374,30 @@ export const initialize = {
         groups[groupId] = [];
       }
 
+      // List of playlists that have an AUDIO attribute value matching the current
+      // group ID
+      const groupPlaylists = playlists.filter(playlist => {
+        return playlist.attributes.AUDIO === groupId;
+      });
+
       for (let variantLabel in mediaGroups[type][groupId]) {
         let properties = mediaGroups[type][groupId][variantLabel];
+
+        // List of playlists for the current group ID that have a matching uri with
+        // this alternate audio variant
+        const matchingPlaylists = groupPlaylists.filter(playlist => {
+          return playlist.resolvedUri === properties.resolvedUri;
+        });
+
+        if (matchingPlaylists.length) {
+          // If there is a playlist that has the same uri as this audio variant, assume
+          // that the playlist is audio only. We delete the resolvedUri property here
+          // to prevent a playlist loader from being created so that we don't have
+          // both the main and audio segment loaders loading the same audio segments
+          // from the same playlist.
+          delete properties.resolvedUri;
+        }
+
         let playlistLoader;
 
         if (properties.resolvedUri) {

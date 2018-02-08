@@ -293,7 +293,6 @@ export default class SyncController extends videojs.EventTarget {
       }
     }
 
-    this.logger_(`syncPoint with strategy <${bestStrategy}> chosen: `, bestSyncPoint);
     return bestSyncPoint;
   }
 
@@ -473,7 +472,7 @@ export default class SyncController extends videojs.EventTarget {
     let mappingObj = this.timelines[segmentInfo.timeline];
 
     if (segmentInfo.timestampOffset !== null) {
-      this.logger_('tsO:', segmentInfo.timestampOffset);
+      this.logger_('timestampOffset:', segmentInfo.timestampOffset);
 
       mappingObj = {
         time: segmentInfo.startOfSegment,

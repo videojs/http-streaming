@@ -2,6 +2,8 @@
  * @file source-updater.js
  */
 import videojs from 'video.js';
+import { printableRange } from './ranges';
+import logger from './util/logger';
 
 const noop = function() {};
 
@@ -20,12 +22,15 @@ const noop = function() {};
  * added to the media source
  */
 export default class SourceUpdater {
-  constructor(mediaSource, mimeType, sourceBufferEmitter) {
+  constructor(mediaSource, mimeType, type, sourceBufferEmitter) {
     this.callbacks_ = [];
     this.pendingCallback_ = null;
     this.timestampOffset_ = 0;
     this.mediaSource = mediaSource;
     this.processedAppend_ = false;
+    this.type_ = type;
+    this.mimeType_ = mimeType;
+    this.logger_ = logger(`SourceUpdater[${type}][${mimeType}]`);
 
     if (mediaSource.readyState === 'closed') {
       mediaSource.addEventListener(
@@ -37,6 +42,8 @@ export default class SourceUpdater {
 
   createSourceBuffer_(mimeType, sourceBufferEmitter) {
     this.sourceBuffer_ = this.mediaSource.addSourceBuffer(mimeType);
+
+    this.logger_('created SourceBuffer');
 
     if (sourceBufferEmitter) {
       sourceBufferEmitter.trigger('sourcebufferadded');
@@ -65,6 +72,8 @@ export default class SourceUpdater {
       let pendingCallback = this.pendingCallback_;
 
       this.pendingCallback_ = null;
+
+      this.logger_(`buffered [${printableRange(this.buffered())}]`);
 
       if (pendingCallback) {
         pendingCallback();
@@ -128,6 +137,7 @@ export default class SourceUpdater {
   remove(start, end) {
     if (this.processedAppend_) {
       this.queueCallback_(() => {
+        this.logger_(`remove [${start} => ${end}]`);
         this.sourceBuffer_.remove(start, end);
       }, noop);
     }
