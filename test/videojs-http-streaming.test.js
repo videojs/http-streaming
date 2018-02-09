@@ -2835,7 +2835,7 @@ QUnit.test('populates quality levels list when available', function(assert) {
 });
 
 QUnit.test('configures eme if present on selectedinitialmedia', function(assert) {
-  this.player.eme = {};
+  this.player.eme = { previousSetting: 1 };
   this.player.src({
     src: 'manifest/master.mpd',
     type: 'application/dash+xml',
@@ -2877,6 +2877,7 @@ QUnit.test('configures eme if present on selectedinitialmedia', function(assert)
   this.player.tech_.hls.masterPlaylistController_.trigger('selectedinitialmedia');
 
   assert.deepEqual(this.player.eme.options, {
+    previousSetting: 1,
     keySystems: {
       keySystem1: {
         url: 'url1',
