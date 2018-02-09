@@ -62,7 +62,8 @@ QUnit.test('runs callback after source buffer emitter triggers if other source b
 'doesn\'t exist at creation',
 function(assert) {
   let sourceBufferEmitter = new videojs.EventTarget();
-  let updater = new SourceUpdater(this.mediaSource, 'video/mp2t', sourceBufferEmitter);
+  let updater =
+    new SourceUpdater(this.mediaSource, 'video/mp2t', '', sourceBufferEmitter);
   let sourceBuffer;
 
   updater.appendBuffer(new Uint8Array([0, 1, 2]));

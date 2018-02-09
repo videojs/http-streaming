@@ -293,6 +293,10 @@ export default class SyncController extends videojs.EventTarget {
       }
     }
 
+    this.logger_(`syncPoint for [${target.key}: ${target.value}] chosen with strategy` +
+      ` [${bestStrategy}]: [time:${bestSyncPoint.time},` +
+      ` segmentIndex:${bestSyncPoint.segmentIndex}]`);
+
     return bestSyncPoint;
   }
 
@@ -317,7 +321,8 @@ export default class SyncController extends videojs.EventTarget {
           mediaSequence: oldPlaylist.mediaSequence + i,
           time: lastRemovedSegment.start
         };
-        this.logger_('playlist sync:', newPlaylist.syncInfo);
+        this.logger_(`playlist refresh sync: [time:${newPlaylist.syncInfo.time},` +
+          ` mediaSequence: ${newPlaylist.syncInfo.mediaSequence}]`);
         this.trigger('syncinfoupdate');
         break;
       }
@@ -472,14 +477,15 @@ export default class SyncController extends videojs.EventTarget {
     let mappingObj = this.timelines[segmentInfo.timeline];
 
     if (segmentInfo.timestampOffset !== null) {
-      this.logger_('timestampOffset:', segmentInfo.timestampOffset);
-
       mappingObj = {
         time: segmentInfo.startOfSegment,
         mapping: segmentInfo.startOfSegment - timingInfo.start
       };
       this.timelines[segmentInfo.timeline] = mappingObj;
       this.trigger('timestampoffset');
+
+      this.logger_(`time mapping for timeline ${segmentInfo.timeline}: ` +
+        `[time: ${mappingObj.time}] [mapping: ${mappingObj.mapping}]`);
 
       segment.start = segmentInfo.startOfSegment;
       segment.end = timingInfo.end + mappingObj.mapping;

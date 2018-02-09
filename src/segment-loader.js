@@ -107,6 +107,27 @@ export const safeBackBufferTrimTime = (seekable, currentTime, targetDuration) =>
   return Math.min(removeToTime, currentTime - targetDuration);
 };
 
+const segmentInfoString = (segmentInfo) => {
+  const {
+    segment: {
+      start,
+      end
+    },
+    playlist: {
+      mediaSequence: seq,
+      id,
+      segments = []
+    },
+    mediaIndex: index,
+    timeline
+  } = segmentInfo;
+
+  return [
+    `appending [${index}] of [${seq}, ${seq + segments.length}] from playlist [${id}]`,
+    `[${start} => ${end}] in timeline [${timeline}]`
+  ].join(' ');
+};
+
 /**
  * An object that manages segment loading and appending.
  *
@@ -418,6 +439,10 @@ export default class SegmentLoader extends videojs.EventTarget {
       };
     }
 
+    const oldId = oldPlaylist ? oldPlaylist.id : null;
+
+    this.logger_(`playlist update [${oldId} => ${newPlaylist.id}]`);
+
     // in VOD, this is always a rendition switch (or we updated our syncInfo above)
     // in LIVE, we always want to update with new playlists (including refreshes)
     this.trigger('syncinfoupdate');
@@ -443,7 +468,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // and we will likely need to adjust the mediaIndex
     let mediaSequenceDiff = newPlaylist.mediaSequence - oldPlaylist.mediaSequence;
 
-    this.logger_('mediaSequenceDiff', mediaSequenceDiff);
+    this.logger_(`live window shift [${mediaSequenceDiff}]`);
 
     // update the mediaIndex on the SegmentLoader
     // this is important because we can abort a request and this value must be
@@ -1180,7 +1205,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.mediaSecondsLoaded += segment.duration;
     }
 
-    this.logger_(`appending segment [${segment.start} => ${segment.end}]`);
+    this.logger_(segmentInfoString(segmentInfo));
 
     this.sourceUpdater_.appendBuffer(segmentInfo.bytes,
                                      this.handleUpdateEnd_.bind(this));

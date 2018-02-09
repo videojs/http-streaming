@@ -89,7 +89,7 @@ const testMimeTypes = function(assert, isFMP4) {
 
   assert.deepEqual(mimeTypesForPlaylist.apply(null,
       generateMedia(true, false, false, true, isFMP4)),
-    [`${videoMime}; codecs="mp4a.40.E"`,
+    [`${audioMime}; codecs="mp4a.40.E"`,
      `${audioMime}; codecs="mp4a.40.E"`],
     `MAAT, demuxed, container: ${container}, codecs: audio`);
 

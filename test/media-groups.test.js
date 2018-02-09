@@ -603,7 +603,8 @@ QUnit.module('MediaGroups - initialize', {
         'AUDIO': {},
         'SUBTITLES': {},
         'CLOSED-CAPTIONS': {}
-      }
+      },
+      playlists: []
     };
     this.settings = {
       mode: 'html5',

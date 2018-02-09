@@ -572,6 +572,9 @@ function(assert) {
   MPC.mainSegmentLoader_.on('ended', () => videoEnded++);
   MPC.audioSegmentLoader_.on('ended', () => audioEnded++);
 
+  MPC.mainSegmentLoader_.startingMedia_ = { containsVideo: true };
+  MPC.audioSegmentLoader_.startingMedia_ = { containsAudio: true };
+
   // master
   this.standardXHRResponse(this.requests.shift(), manifests.demuxed);
 

@@ -116,6 +116,7 @@ export const setupMediaPlaylists = (master) => {
 
     master.playlists[playlist.uri] = playlist;
     playlist.resolvedUri = resolveUrl(master.uri, playlist.uri);
+    playlist.id = i;
 
     if (!playlist.attributes) {
       // Although the spec states an #EXT-X-STREAM-INF tag MUST have a
@@ -521,7 +522,8 @@ export default class PlaylistLoader extends EventTarget {
         },
         uri: window.location.href,
         playlists: [{
-          uri: this.srcUrl
+          uri: this.srcUrl,
+          id: 0
         }]
       };
       this.master.playlists[this.srcUrl] = this.master.playlists[0];
