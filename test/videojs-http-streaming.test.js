@@ -2835,7 +2835,11 @@ QUnit.test('populates quality levels list when available', function(assert) {
 });
 
 QUnit.test('configures eme if present on selectedinitialmedia', function(assert) {
-  this.player.eme.options = { previousSetting: 1 };
+  this.player.eme = { 
+    options: {
+      previousSetting: 1 
+    }
+  };
   this.player.src({
     src: 'manifest/master.mpd',
     type: 'application/dash+xml',
