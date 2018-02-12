@@ -377,7 +377,7 @@ export const initialize = {
       // List of playlists that have an AUDIO attribute value matching the current
       // group ID
       const groupPlaylists = playlists.filter(playlist => {
-        return playlist.attributes.AUDIO === groupId;
+        return playlist.attributes[type] === groupId;
       });
 
       for (let variantLabel in mediaGroups[type][groupId]) {

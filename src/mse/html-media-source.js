@@ -147,8 +147,8 @@ export default class HtmlMediaSource extends videojs.EventTarget {
           // but not the main "combined" source buffer. The "combined" source buffer is
           // always at index 0, so this ensures audio won't be disabled in both source
           // buffers.
-          sourceBuffer.audioDisabled_ = disableAudioOnly && index;
-          if (disableAudioOnly && index) {
+          sourceBuffer.audioDisabled_ = index ? disableAudioOnly : !disableAudioOnly;
+          if (sourceBuffer.audioDisabled_) {
             return;
           }
         }

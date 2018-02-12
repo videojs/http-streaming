@@ -603,6 +603,55 @@ function(assert) {
   assert.equal(MPC.mediaSource.readyState, 'ended', 'Media Source ended');
 });
 
+QUnit.test('does not wait for main loader to finish before calling endOfStream with' +
+' audio only stream and alternate audio active', function(assert) {
+  openMediaSource(this.player, this.clock);
+
+  const mainMedia = '#EXTM3U\n' +
+                    '#EXT-X-VERSION:3\n' +
+                    '#EXT-X-PLAYLIST-TYPE:VOD\n' +
+                    '#EXT-X-MEDIA-SEQUENCE:0\n' +
+                    '#EXT-X-TARGETDURATION:10\n' +
+                    '#EXTINF:10,\n' +
+                    'audio-0.ts\n' +
+                    '#EXT-X-ENDLIST\n';
+
+  const audioMedia = '#EXTM3U\n' +
+                    '#EXT-X-VERSION:3\n' +
+                    '#EXT-X-PLAYLIST-TYPE:VOD\n' +
+                    '#EXT-X-MEDIA-SEQUENCE:0\n' +
+                    '#EXT-X-TARGETDURATION:10\n' +
+                    '#EXTINF:10,\n' +
+                    'audio-0.ts\n' +
+                    '#EXT-X-ENDLIST\n';
+
+  let mainEnded = 0;
+  let audioEnded = 0;
+
+  const MPC = this.masterPlaylistController;
+
+  MPC.mainSegmentLoader_.on('ended', () => mainEnded++);
+  MPC.audioSegmentLoader_.on('ended', () => audioEnded++);
+
+  MPC.mainSegmentLoader_.startingMedia_ = { containsAudio: true };
+  MPC.audioSegmentLoader_.startingMedia_ = { containsAudio: true };
+
+  // master
+  this.standardXHRResponse(this.requests.shift(), manifests.audioOnlyAlternateAudio);
+
+  // main media
+  this.standardXHRResponse(this.requests.shift(), mainMedia);
+
+  this.player.audioTracks()[0].enabled = false;
+  this.player.audioTracks()[1].enabled = true;
+
+  // main segment
+  this.standardXHRResponse(this.requests.shift());
+
+  // audio media
+  this.standardXHRResponse(this.requests.shift(), audioMedia);
+});
+
 QUnit.test('Segment loaders are unpaused when seeking after player has ended',
 function(assert) {
   openMediaSource(this.player, this.clock);
@@ -2361,4 +2410,21 @@ QUnit.test('properly configures loader mime types', function(assert) {
                'correct mime type for audio segment loader');
   assert.ok(audioMimeTypeCalls[0][1] instanceof videojs.EventTarget,
             'passed a source buffer emitter to audio segment loader');
+
+  mainMimeTypeCalls.length = 0;
+  audioMimeTypeCalls.length = 0;
+
+  masterPlaylistController.configureLoaderMimeTypes_([
+    'audio/mp4; codecs="mp4a.40.E"',
+    'audio/mp4; codecs="mp4a.40.E"'
+  ]);
+
+  assert.equal(mainMimeTypeCalls.length, 1, 'configured main segment loader');
+  assert.equal(mainMimeTypeCalls[0][0], 'audio/mp4; codecs="mp4a.40.E"',
+    'correct mime type for main segment loader');
+  assert.notOk(mainMimeTypeCalls[0][1], 'no source buffer emitter');
+  assert.equal(audioMimeTypeCalls.length, 1, 'configured audio segment loader');
+  assert.equal(audioMimeTypeCalls[0][0], 'audio/mp4; codecs="mp4a.40.E"',
+    'correct mime type for audio segment loader');
+  assert.notOk(audioMimeTypeCalls[0][1], 'no source buffer emitter');
 });
