@@ -60,6 +60,7 @@ Maintenance Status: Stable
   - [Segment Metadata](#segment-metadata)
 - [Hosting Considerations](#hosting-considerations)
 - [Known Issues](#known-issues)
+  - [IE10 and Below](#ie10-and-below)
   - [Fragmented MP4 Support](#fragmented-mp4-support)
 - [Testing](#testing)
 - [Debugging](#debugging)
@@ -80,7 +81,7 @@ npm install --save @videojs/http-streaming
 ```
 
 ### CDN
-Select a version of HLS from the [CDN](https://unpkg.com/@videojs/http-streaming/dist/)
+Select a version of VHS from the [CDN](https://unpkg.com/@videojs/http-streaming/dist/)
 
 ### Releases
 Download a release of [videojs-http-streaming](https://github.com/videojs/http-streaming/releases)
@@ -631,6 +632,9 @@ and most CDNs should have no trouble turning CORS on for your account.
 ## Known Issues
 Issues that are currenty known with workarounds. If you want to
 help find a solution that would be appreciated!
+
+### IE10 and Below
+As of version 5.0.0, IE10 and below are no longer supported.
 
 ### Fragmented MP4 Support
 Edge has native support for HLS but only in the MPEG2-TS container. If
