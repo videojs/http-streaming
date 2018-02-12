@@ -650,6 +650,15 @@ QUnit.test('does not wait for main loader to finish before calling endOfStream w
 
   // audio media
   this.standardXHRResponse(this.requests.shift(), audioMedia);
+
+  // audio segment
+  this.standardXHRResponse(this.requests.shift());
+
+  MPC.mediaSource.sourceBuffers[1].trigger('updateend');
+
+  assert.equal(mainEnded, 0, 'main segment loader did not trigger ended');
+  assert.equal(audioEnded, 1, 'audio segment loader triggered ended');
+  assert.equal(MPC.mediaSource.readyState, 'ended', 'Media Source ended');
 });
 
 QUnit.test('Segment loaders are unpaused when seeking after player has ended',
