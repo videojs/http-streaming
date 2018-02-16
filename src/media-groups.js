@@ -359,7 +359,8 @@ export const initialize = {
           groups,
           tracks
         }
-      }
+      },
+      masterPlaylistLoader
     } = settings;
 
     // force a default if we have none
@@ -406,7 +407,8 @@ export const initialize = {
         } else if (properties.playlists && sourceType === 'dash') {
           playlistLoader = new DashPlaylistLoader(properties.playlists[0],
                                                   hls,
-                                                  withCredentials);
+                                                  withCredentials,
+                                                  masterPlaylistLoader);
         } else {
           // no resolvedUri means the audio is muxed with the video when using this
           // audio track
@@ -460,7 +462,8 @@ export const initialize = {
           groups,
           tracks
         }
-      }
+      },
+      masterPlaylistLoader
     } = settings;
 
     for (let groupId in mediaGroups[type]) {
@@ -489,8 +492,10 @@ export const initialize = {
           playlistLoader =
             new PlaylistLoader(properties.resolvedUri, hls, withCredentials);
         } else if (sourceType === 'dash') {
-          playlistLoader =
-            new DashPlaylistLoader(properties.playlists[0], hls, withCredentials);
+          playlistLoader = new DashPlaylistLoader(properties.playlists[0],
+                                                  hls,
+                                                  withCredentials,
+                                                  masterPlaylistLoader);
         }
 
         properties = videojs.mergeOptions({

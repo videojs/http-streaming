@@ -10,6 +10,18 @@ import { mergeOptions, EventTarget, log } from 'video.js';
 import m3u8 from 'm3u8-parser';
 import window from 'global/window';
 
+export const forEachMediaGroup = (master, callback) => {
+  ['AUDIO', 'SUBTITLES'].forEach((mediaType) => {
+    for (let groupKey in master.mediaGroups[mediaType]) {
+      for (let labelKey in master.mediaGroups[mediaType][groupKey]) {
+        const mediaProperties = master.mediaGroups[mediaType][groupKey][labelKey];
+
+        callback(mediaProperties, mediaType, groupKey, labelKey);
+      }
+    }
+  });
+};
+
 /**
   * Returns a new array of segments that is the result of merging
   * properties from an older list of segments onto an updated
@@ -63,7 +75,7 @@ export const resolveSegmentUris = (segment, baseUri) => {
   */
 export const updateMaster = (master, media) => {
   const result = mergeOptions(master, {});
-  const playlist = result.playlists.filter((p) => p.uri === media.uri)[0];
+  const playlist = result.playlists[media.uri];
 
   if (!playlist) {
     return null;
@@ -132,15 +144,9 @@ export const setupMediaPlaylists = (master) => {
 };
 
 export const resolveMediaGroupUris = (master) => {
-  ['AUDIO', 'SUBTITLES'].forEach((mediaType) => {
-    for (let groupKey in master.mediaGroups[mediaType]) {
-      for (let labelKey in master.mediaGroups[mediaType][groupKey]) {
-        let mediaProperties = master.mediaGroups[mediaType][groupKey][labelKey];
-
-        if (mediaProperties.uri) {
-          mediaProperties.resolvedUri = resolveUrl(master.uri, mediaProperties.uri);
-        }
-      }
+  forEachMediaGroup(master, (properties) => {
+    if (properties.uri) {
+      properties.resolvedUri = resolveUrl(master.uri, properties.uri);
     }
   });
 };
