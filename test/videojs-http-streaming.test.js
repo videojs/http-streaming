@@ -2865,6 +2865,11 @@ QUnit.test('configures eme if present on selectedinitialmedia', function(assert)
       return {
         attributes: {
           CODECS: 'video-codec'
+        },
+        contentProtection: {
+          keySystem1: {
+            pssh: 'test'
+          }
         }
       };
     },
@@ -2894,7 +2899,8 @@ QUnit.test('configures eme if present on selectedinitialmedia', function(assert)
       keySystem1: {
         url: 'url1',
         audioContentType: 'audio/mp4; codecs="audio-codec"',
-        videoContentType: 'video/mp4; codecs="video-codec"'
+        videoContentType: 'video/mp4; codecs="video-codec"',
+        pssh: 'test'
       }
     }
   }, 'set eme options');
