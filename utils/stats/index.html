@@ -359,6 +359,9 @@
     }
 
     (function(window, videojs) {
+      if (videojs.log.debug) {
+        videojs.log.level('debug');
+      }
       videojs.options.flash.swf = '../../node_modules/videojs-swf/dist/video-js.swf';
       createPlayer(setup);
       // hook up the video switcher

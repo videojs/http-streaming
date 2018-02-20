@@ -567,12 +567,14 @@ QUnit.test('setupMediaPlaylists adds URI keys for each playlist', function(asser
   const expectedPlaylist0 = {
     attributes: {},
     resolvedUri: urlTo('uri-0'),
-    uri: 'uri-0'
+    uri: 'uri-0',
+    id: 0
   };
   const expectedPlaylist1 = {
     attributes: {},
     resolvedUri: urlTo('uri-1'),
-    uri: 'uri-1'
+    uri: 'uri-1',
+    id: 1
   };
 
   setupMediaPlaylists(master);

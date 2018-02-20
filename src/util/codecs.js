@@ -221,6 +221,16 @@ export const mimeTypesForPlaylist = function(master, media) {
         justAudio
       ];
     }
+
+    if (!isMuxed && !codecStrings.video) {
+      // There is no muxed content and no video codec string, so this is an audio only
+      // stream with alternate audio.
+      return [
+        justAudio,
+        justAudio
+      ];
+    }
+
     // There exists the possiblity that this will return a `video/container`
     // mime-type for the first entry in the array even when there is only audio.
     // This doesn't appear to be a problem and simplifies the code.
@@ -230,7 +240,7 @@ export const mimeTypesForPlaylist = function(master, media) {
     ];
   }
 
-  // If there is ano video codec at all, always just return a single
+  // If there is no video codec at all, always just return a single
   // audio/<container> mime-type
   if (!codecStrings.video) {
     return [

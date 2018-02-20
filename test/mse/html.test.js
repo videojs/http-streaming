@@ -1362,6 +1362,76 @@ function(assert) {
     'active source buffers ends with audio source buffer');
 });
 
+QUnit.test('main buffer is the only active buffer when combined is audio only and' +
+'main track enabled', function(assert) {
+  const mediaSource = new videojs.MediaSource();
+  const audioTracks = [{
+    enabled: true,
+    kind: 'main',
+    label: 'main'
+  }, {
+    enabled: false,
+    kind: 'alternative',
+    label: 'English'
+  }];
+
+  this.player.audioTracks = () => audioTracks;
+
+  mediaSource.player_ = this.player;
+
+  const sourceBufferCombined = mediaSource.addSourceBuffer('audio/m2pt');
+
+  sourceBufferCombined.videoCodec_ = false;
+  sourceBufferCombined.audioCodec_ = true;
+
+  const sourceBufferAudio = mediaSource.addSourceBuffer('audio/m2pt');
+
+  sourceBufferAudio.videoCodec_ = false;
+  sourceBufferAudio.audioCodec_ = true;
+
+  mediaSource.updateActiveSourceBuffers_();
+
+  assert.strictEqual(mediaSource.activeSourceBuffers.length, 1,
+    'active source buffers has only one buffer');
+  assert.strictEqual(mediaSource.activeSourceBuffers[0], sourceBufferCombined,
+    'main buffer is the only active source buffer');
+});
+
+QUnit.test('audio buffer is the only active buffer when combined is audio only and' +
+'alternative track enabled', function(assert) {
+  const mediaSource = new videojs.MediaSource();
+  const audioTracks = [{
+    enabled: false,
+    kind: 'main',
+    label: 'main'
+  }, {
+    enabled: true,
+    kind: 'alternative',
+    label: 'English'
+  }];
+
+  this.player.audioTracks = () => audioTracks;
+
+  mediaSource.player_ = this.player;
+
+  const sourceBufferCombined = mediaSource.addSourceBuffer('audio/m2pt');
+
+  sourceBufferCombined.videoCodec_ = false;
+  sourceBufferCombined.audioCodec_ = true;
+
+  const sourceBufferAudio = mediaSource.addSourceBuffer('audio/m2pt');
+
+  sourceBufferAudio.videoCodec_ = false;
+  sourceBufferAudio.audioCodec_ = true;
+
+  mediaSource.updateActiveSourceBuffers_();
+
+  assert.strictEqual(mediaSource.activeSourceBuffers.length, 1,
+    'active source buffers has only one buffer');
+  assert.strictEqual(mediaSource.activeSourceBuffers[0], sourceBufferAudio,
+    'audio buffer is the only active source buffer');
+});
+
 QUnit.test('video only & audio only buffers are always active',
 function(assert) {
   let mediaSource = new videojs.MediaSource();

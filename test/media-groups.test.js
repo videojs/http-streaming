@@ -603,7 +603,8 @@ QUnit.module('MediaGroups - initialize', {
         'AUDIO': {},
         'SUBTITLES': {},
         'CLOSED-CAPTIONS': {}
-      }
+      },
+      playlists: []
     };
     this.settings = {
       mode: 'html5',
@@ -803,6 +804,27 @@ function(assert) {
                'no playlist loader when misconfigured');
   assert.notOk(this.mediaTypes.AUDIO.groups.aud1[1].playlistLoader,
                'no playlist loader when misconfigured');
+});
+
+QUnit.test('initialize audio does not create playlist loader for alternate tracks with' +
+' main stream as URI attribute', function(assert) {
+  this.master.mediaGroups.AUDIO.aud1 = {
+    en: { default: true, language: 'en', resolvedUri: 'main.m3u8' },
+    fr: { default: false, language: 'fr', resolvedUri: 'audio/fr.m3u8' }
+  };
+  this.master.playlists = [{
+    attributes: { AUDIO: 'aud1' },
+    resolvedUri: 'main.m3u8'
+  }];
+
+  MediaGroups.initialize.AUDIO('AUDIO', this.settings);
+
+  assert.notOk(this.mediaTypes.AUDIO.groups.aud1[0].resolvedUri,
+    'resolvedUri proeprty deleted');
+  assert.notOk(this.mediaTypes.AUDIO.groups.aud1[0].playlistLoader,
+    'no playlist loader for alternate audio in main stream');
+  assert.ok(this.mediaTypes.AUDIO.groups.aud1[1].playlistLoader instanceof PlaylistLoader,
+    'playlist loader for alternate audio not in main stream');
 });
 
 QUnit.test('initialize subtitles correctly uses HLS source type', function(assert) {
