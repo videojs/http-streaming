@@ -2,6 +2,7 @@
 
 [![Build Status][travis-icon]][travis-link]
 [![Slack Status][slack-icon]][slack-link]
+[![Greenkeeper badge][greenkeeper-icon]][greenkeeper-link]
 
 Play HLS, DASH, and future HTTP streaming protocols with video.js, even where they're not
 natively supported.
@@ -689,3 +690,5 @@ npm run <command>
 [slack-link]: http://slack.videojs.com
 [travis-icon]: https://travis-ci.org/videojs/http-streaming.svg?branch=master
 [travis-link]: https://travis-ci.org/videojs/http-streaming
+[greenkeeper-icon]: https://badges.greenkeeper.io/videojs/http-streaming.svg
+[greenkeeper-link]: https://greenkeeper.io/
