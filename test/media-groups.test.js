@@ -38,6 +38,7 @@ function(assert) {
     'created noop function for AUDIO onGroupChanged');
   assert.equal(result.AUDIO.onTrackChanged.toString(), noopToString,
     'created noop function for AUDIO onTrackChanged');
+
   assert.ok(result.SUBTITLES, 'created SUBTITLES media group object');
   assert.deepEqual(result.SUBTITLES.groups, {},
     'created empty object for SUBTITLES groups');
@@ -53,6 +54,7 @@ function(assert) {
     'created noop function for SUBTITLES onGroupChanged');
   assert.equal(result.SUBTITLES.onTrackChanged.toString(), noopToString,
     'created noop function for SUBTITLES onTrackChanged');
+
   assert.ok(result['CLOSED-CAPTIONS'], 'created CLOSED-CAPTIONS media group object');
   assert.deepEqual(result['CLOSED-CAPTIONS'].groups, {},
     'created empty object for CLOSED-CAPTIONS groups');
@@ -69,6 +71,7 @@ function(assert) {
   assert.equal(result['CLOSED-CAPTIONS'].onTrackChanged.toString(), noopToString,
     'created noop function for CLOSED-CAPTIONS onTrackChanged');
 });
+
 QUnit.test('stopLoaders pauses segment loader and playlist loader when available',
 function(assert) {
   let segmentLoaderAbortCalls = 0;
