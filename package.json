@@ -106,6 +106,7 @@
     "browserify": "^11.0.0",
     "browserify-istanbul": "^2.0.0",
     "browserify-shim": "^3.0.0",
+    "browserify-versionify": "^1.0.6",
     "bundle-collapser": "^1.2.1",
     "connect": "^3.4.0",
     "cowsay": "^1.1.0",
