@@ -19,6 +19,7 @@ import {
   mimeTypesForPlaylist
 } from './util/codecs.js';
 import { createMediaTypes, setupMediaGroups } from './media-groups';
+import logger from './util/logger';
 
 const ABORT_EARLY_BLACKLIST_SECONDS = 60 * 2;
 
@@ -151,6 +152,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
     loaderStats.forEach((stat) => {
       this[stat + '_'] = sumLoaderStat.bind(this, stat);
     });
+
+    this.logger_ = logger('MPC');
 
     this.masterPlaylistLoader_.load();
   }
@@ -877,6 +880,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
                                                        mainSeekable.end(0)
       ]]);
     }
+
+    this.logger_(`seekable updated [${Ranges.printableRange(this.seekable_)}]`);
 
     this.tech_.trigger('seekablechanged');
   }
