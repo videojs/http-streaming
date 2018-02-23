@@ -41,7 +41,7 @@
     "watch:docs": "nodemon --watch src/ --exec npm run docs",
     "watch:js": "npm-run-all -p watch:js:babel watch:js:browserify watch:js:switcher",
     "watch:js:babel": "npm run build:js:babel -- --watch",
-    "watch:js:browserify": "watchify . -v -g browserify-shim -o dist/videojs-http-streaming.js",
+    "watch:js:browserify": "watchify . -v -t browserify-shim -o dist/videojs-http-streaming.js",
     "watch:js:switcher": "watchify utils/switcher/switcher.js -v -t babelify -g browserify-shim -o dist/switcher.js",
     "watch:test:browserify": "watchify test/browserify-test.js -o dist-test/browserify-test.js",
     "watch:test:webpack": "watchify test/webpack-test.js -o dist-test/webpack-test.js",
