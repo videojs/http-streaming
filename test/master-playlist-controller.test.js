@@ -589,7 +589,7 @@ function(assert) {
 
   MPC.mediaSource.sourceBuffers[0].trigger('updateend');
 
-  assert.equal(videoEnded, 1, 'main segment loader triggered endded');
+  assert.equal(videoEnded, 1, 'main segment loader triggered ended');
   assert.equal(audioEnded, 0, 'audio segment loader did not trigger ended');
   assert.equal(MPC.mediaSource.readyState, 'open', 'Media Source not yet ended');
 
@@ -651,8 +651,8 @@ QUnit.test('waits for both main and audio loaders to finish before calling endOf
   // audio source buffer
   MPC.mediaSource.sourceBuffers[1].trigger('updateend');
 
-  assert.equal(videoEnded, 0, 'main segment loader triggered endded');
-  assert.equal(audioEnded, 1, 'audio segment loader did not trigger ended');
+  assert.equal(videoEnded, 0, 'main segment loader did not trigger ended');
+  assert.equal(audioEnded, 1, 'audio segment loader triggered ended');
   assert.equal(MPC.mediaSource.readyState, 'open', 'Media Source not yet ended');
 
   // video segment
@@ -662,8 +662,8 @@ QUnit.test('waits for both main and audio loaders to finish before calling endOf
   // main source buffer
   MPC.mediaSource.sourceBuffers[0].trigger('updateend');
 
-  assert.equal(videoEnded, 1, 'main segment loader did not trigger ended again');
-  assert.equal(audioEnded, 1, 'audio segment loader triggered ended');
+  assert.equal(videoEnded, 1, 'main segment loader triggered ended');
+  assert.equal(audioEnded, 1, 'audio segment loader did not trigger ended again');
   assert.equal(MPC.mediaSource.readyState, 'ended', 'Media Source ended');
 });
 
