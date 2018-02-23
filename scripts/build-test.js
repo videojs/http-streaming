@@ -5,7 +5,7 @@ var glob = require('glob');
 glob('test/**/*.test.js', function(err, files) {
   browserify(files)
     .transform('babelify')
-    .transform('browserify-shim', {global: true})
+    .transform('browserify-global-shim')
     .bundle()
     .pipe(fs.createWriteStream('dist-test/videojs-http-streaming.js'));
 });
