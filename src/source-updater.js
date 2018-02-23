@@ -4,8 +4,7 @@
 import videojs from 'video.js';
 import { printableRange } from './ranges';
 import logger from './util/logger';
-
-const noop = function() {};
+import noop from './util/noop';
 
 /**
  * A queue of callbacks to be serialized and applied when a

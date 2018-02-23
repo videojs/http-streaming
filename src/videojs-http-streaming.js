@@ -648,6 +648,8 @@ class HlsHandler extends Component {
  * this object in normal usage.
  */
 const HlsSourceHandler = {
+  name: 'videojs-http-streaming',
+  VERSION: '__VERSION__',
   canHandleSource(srcObj, options = {}) {
     let localOptions = videojs.mergeOptions(videojs.options, options);
 

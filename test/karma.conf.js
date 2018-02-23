@@ -22,7 +22,7 @@ module.exports = function(config) {
       'node_modules/video.js/dist/video-js.css',
       'dist-test/browserify-test.js',
       'dist-test/webpack-test.js',
-      'dist-test/videojs-http-streaming.js'
+      'test/**/*.test.js'
     ],
     browserConsoleLogOptions: {
       level: 'error',
@@ -35,6 +35,11 @@ module.exports = function(config) {
       pollingTimeout: 30000,
       captureTimeout: 600,
       timeout: 600
+    },
+    coverageReporter: {
+      reporters: [{
+        type: 'text-summary'
+      }]
     },
     customLaunchers: {
       ChromeHeadlessWithFlags: {
@@ -99,29 +104,24 @@ module.exports = function(config) {
       }
     },
     preprocessors: {
+      'src/**/*.js': ['browserify', 'coverage'],
       'test/**/*.test.js': ['browserify']
     },
     browserify: {
       debug: true,
       transform: [
         'babelify',
-        ['browserify-shim', { global: true }]
+        ['browserify-shim', { global: true }],
+        istanbul({
+          instrumenter: isparta,
+          ignore: ['**/node_modules/**', '**/test/**']
+        })
       ],
       noParse: [
         'test/data/**',
       ]
     },
-    babelPreprocessor: {
-      options: {
-        presets: ['es2015'],
-        sourceMap: 'inline'
-      },
-      sourceFileName: function (file) {
-        return file.originalPath;
-      }
-    },
-
-    reporters: ['dots'],
+    reporters: ['dots', 'coverage'],
     port: 9876,
     colors: true,
     autoWatch: false,
@@ -132,19 +132,4 @@ module.exports = function(config) {
     browserDisconnectTimeout: 300000,
     browserDisconnectTolerance: 3
   });
-
-  // Coverage reporting
-  // Coverage is enabled by passing the flag --coverage to npm test
-  var coverageFlag = process.env.npm_config_coverage;
-  var reportCoverage = process.env.TRAVIS || coverageFlag;
-
-  if (reportCoverage) {
-    config.reporters.push('coverage');
-    config.browserify.transform.push(istanbul({
-      instrumenter: isparta,
-      ignore: ['**/node_modules/**', '**/test/**']
-    }));
-    config.preprocessors['src/**/*.js'] = ['browserify', 'coverage'];
-  }
-
 };

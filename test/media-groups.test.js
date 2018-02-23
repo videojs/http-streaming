@@ -5,6 +5,7 @@ import {
 import * as MediaGroups from '../src/media-groups';
 import PlaylistLoader from '../src/playlist-loader';
 import DashPlaylistLoader from '../src/dash-playlist-loader';
+import noop from '../src/util/noop';
 
 QUnit.module('MediaGroups', {
   beforeEach(assert) {
@@ -19,7 +20,7 @@ QUnit.module('MediaGroups', {
 
 QUnit.test('createMediaTypes creates skeleton object for all supported media groups',
 function(assert) {
-  const noopToString = 'function noop() {}';
+  const noopToString = noop.toString();
   const result = MediaGroups.createMediaTypes();
 
   assert.ok(result.AUDIO, 'created AUDIO media group object');
