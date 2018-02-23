@@ -1,6 +1,6 @@
 {
   "name": "@videojs/http-streaming",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Play back HLS with video.js, even where it's not natively supported",
   "main": "es5/videojs-http-streaming.js",
   "engines": {
@@ -56,6 +56,11 @@
   ],
   "author": "Brightcove, Inc",
   "license": "Apache-2.0",
+  "browserify": {
+    "transform": [
+      "browserify-versionify"
+    ]
+  },
   "browserify-global-shim": {
     "qunit": "QUnit",
     "sinon": "sinon",
@@ -101,6 +106,7 @@
     "browserify": "^11.0.0",
     "browserify-global-shim": "^1.0.3",
     "browserify-istanbul": "^2.0.0",
+    "browserify-versionify": "^1.0.6",
     "bundle-collapser": "^1.2.1",
     "connect": "^3.4.0",
     "cowsay": "^1.1.0",

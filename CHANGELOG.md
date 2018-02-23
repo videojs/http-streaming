@@ -6,6 +6,17 @@ CHANGELOG
 _(none)_
 
 --------------------
+## 0.5.2
+* add debug logging statement for seekable updates ([#40](https://github.com/videojs/http-streaming/pull/40))
+
+## 0.5.1
+* Fix audio only streams with EXT-X-MEDIA tags ([#34](https://github.com/videojs/http-streaming/pull/34))
+* Merge videojs-contrib-hls master into http-streaming master ([#35](https://github.com/videojs/http-streaming/pull/35))
+  * Update sinon to 1.10.3=
+  * Update videojs-contrib-quality-levels to ^2.0.4
+  * Fix test for event handler cleanup on dispose by calling event handling methods
+* fix: Don't reset eme options ([#32](https://github.com/videojs/http-streaming/pull/32))
+
 ## 0.5.0
 * update mpd-parser to support more segment list types ([#27](https://github.com/videojs/http-streaming/issues/27))
 
