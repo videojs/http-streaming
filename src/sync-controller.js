@@ -359,8 +359,11 @@ export default class SyncController extends videojs.EventTarget {
    * @param {Playlist} playlist - The currently active playlist
    */
   setDateTimeMapping(playlist) {
-    if (!this.datetimeToDisplayTime && playlist.dateTimeObject) {
-      let playlistTimestamp = playlist.dateTimeObject.getTime() / 1000;
+    if (!this.datetimeToDisplayTime &&
+        playlist.segments &&
+        playlist.segments.length &&
+        playlist.segments[0].dateTimeObject) {
+      let playlistTimestamp = playlist.segments[0].dateTimeObject.getTime() / 1000;
 
       this.datetimeToDisplayTime = -playlistTimestamp;
     }

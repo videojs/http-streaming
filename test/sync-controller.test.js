@@ -46,7 +46,7 @@ QUnit.test('returns correct sync point for ProgramDateTime strategy', function(a
 
   assert.equal(syncPoint, null, 'no syncpoint when datetimeToDisplayTime not set');
 
-  playlist.dateTimeObject = datetime;
+  playlist.segments[0].dateTimeObject = datetime;
 
   this.syncController.setDateTimeMapping(playlist);
 
@@ -56,7 +56,7 @@ QUnit.test('returns correct sync point for ProgramDateTime strategy', function(a
 
   assert.equal(syncPoint, null, 'no syncpoint when datetimeObject not set on playlist');
 
-  newPlaylist.dateTimeObject = new Date(2012, 11, 12, 12, 12, 22);
+  newPlaylist.segments[0].dateTimeObject = new Date(2012, 11, 12, 12, 12, 22);
 
   syncPoint = strategy.run(this.syncController, newPlaylist, duration, timeline);
 
