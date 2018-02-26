@@ -53,13 +53,11 @@ export const syncPointStrategies = [
             break;
           }
 
-          if (!syncPoint || lastDistance === null || lastDistance >= distance) {
-            lastDistance = distance;
-            syncPoint = {
-              time: segmentStart,
-              segmentIndex: i
-            };
-          }
+          lastDistance = distance;
+          syncPoint = {
+            time: segmentStart,
+            segmentIndex: i
+          };
         }
       }
       return syncPoint;
