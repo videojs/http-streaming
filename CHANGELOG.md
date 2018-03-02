@@ -6,6 +6,13 @@ CHANGELOG
 _(none)_
 
 --------------------
+## 0.5.3
+* fix: program date time handling (#45)
+  * update m3u8-parser to v4.2.0
+  * use segment program date time info
+* feat: Adding support for segments in Period and Representation (#47)
+* wait for both main and audio loaders for endOfStream if main starting media unknown (#44)
+
 ## 0.5.2
 * add debug logging statement for seekable updates ([#40](https://github.com/videojs/http-streaming/pull/40))
 
