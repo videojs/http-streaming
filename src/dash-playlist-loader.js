@@ -7,6 +7,7 @@ import {
   updateMaster as updatePlaylist,
   forEachMediaGroup
 } from './playlist-loader';
+import resolveUrl from './resolve-url';
 
 export const updateMaster = (oldMaster, newMaster) => {
   let update = mergeOptions(oldMaster, {
@@ -161,7 +162,10 @@ export default class DashPlaylistLoader extends EventTarget {
   }
 
   parseMasterXml() {
-    const master = mpdParser.parse(this.masterXml_, this.srcUrl);
+    const master = mpdParser.parse(this.masterXml_, {
+      manifestUri: this.srcUrl,
+      clientOffset: this.clientOffset_
+    });
 
     master.uri = this.srcUrl;
 
@@ -226,31 +230,94 @@ export default class DashPlaylistLoader extends EventTarget {
 
       this.masterXml_ = req.responseText;
 
-      this.master = this.parseMasterXml();
-
-      this.state = 'HAVE_MASTER';
-
-      this.trigger('loadedplaylist');
-
-      if (!this.media_) {
-        // no media playlist was specifically selected so start
-        // from the first listed one
-        this.media(this.master.playlists[0]);
+      if (req.responseHeaders && req.responseHeaders.date) {
+        this.masterLoaded_ = Date.parse(req.responseHeaders.date);
+      } else {
+        this.masterLoaded_ = Date.now();
       }
-      // trigger loadedmetadata to resolve setup of media groups
-      // trigger async to mimic behavior of HLS, where it must request a playlist
-      setTimeout(() => {
-        this.trigger('loadedmetadata');
-      }, 0);
 
-      // if (this.master.minimumUpdatePeriod) {
-      //   setTimeout(() => {
-      //     this.trigger('minimumUpdatePeriod');
-      //   }, this.master.minimumUpdatePeriod);
-      // }
+      this.syncClientServerClock_(this.onClientServerClockSync_.bind(this));
     });
   }
 
+  syncClientServerClock_(done) {
+    const utcTiming = mpdParser.parseUTCTiming(this.masterXml_);
+
+    // No UTCTiming element found in the mpd. Use Date header from mpd request as the
+    // server clock
+    if (utcTiming === null) {
+      this.clientOffset_ = this.masterLoaded_ - Date.now();
+      return done();
+    }
+
+    if (utcTiming.method === 'DIRECT') {
+      this.clientOffset_ = utcTiming.value - Date.now();
+      return done();
+    }
+
+    this.request = this.hls_.xhr({
+      uri: resolveUrl(this.srcUrl, utcTiming.value),
+      method: utcTiming.method,
+      withCredentials: this.withCredentials
+    }, (error, req) => {
+      // disposed
+      if (!this.request) {
+        return;
+      }
+
+      if (error) {
+        // sync request failed, fall back to using date header from mpd
+        // TODO: log warning
+        this.clientOffset_ = this.masterLoaded_ - Date.now();
+        return done();
+      }
+
+      let serverTime;
+
+      if (utcTiming.method === 'HEAD') {
+        if (!req.responseHeaders || !req.responseHeaders.date) {
+          // expected date header not preset, fall back to using date header from mpd
+          // TODO: log warning
+          serverTime = this.masterLoaded_;
+        } else {
+          serverTime = Date.parse(req.responseHeaders.date);
+        }
+      } else {
+        serverTime = Date.parse(req.responseText);
+      }
+
+      this.clientOffset_ = serverTime - Date.now();
+
+      done();
+    });
+  }
+
+  onClientServerClockSync_() {
+    this.master = this.parseMasterXml();
+
+    this.state = 'HAVE_MASTER';
+
+    this.trigger('loadedplaylist');
+
+    if (!this.media_) {
+      // no media playlist was specifically selected so start
+      // from the first listed one
+      this.media(this.master.playlists[0]);
+    }
+    // trigger loadedmetadata to resolve setup of media groups
+    // trigger async to mimic behavior of HLS, where it must request a playlist
+    setTimeout(() => {
+      this.trigger('loadedmetadata');
+    }, 0);
+
+    if (this.master.minimumUpdatePeriod) {
+      setTimeout(() => {
+        this.trigger('minimumUpdatePeriod');
+      }, this.master.minimumUpdatePeriod);
+    }
+  }
+
+  // TODO: Does the client offset need to be recalculated when the xml is refreshed?
   refreshXml_() {
     this.request = this.hls_.xhr({
       uri: this.srcUrl,

@@ -47,6 +47,10 @@ const xhrFactory = function() {
         }
       }
 
+      if (response.headers) {
+        request.responseHeaders = response.headers;
+      }
+
       // videojs.xhr now uses a specific code on the error
       // object to signal that a request has timed out instead
       // of setting a boolean on the request object
