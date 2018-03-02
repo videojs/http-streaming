@@ -29,17 +29,38 @@ export const syncPointStrategies = [
   {
     name: 'ProgramDateTime',
     run: (syncController, playlist, duration, currentTimeline, currentTime) => {
-      if (syncController.datetimeToDisplayTime && playlist.dateTimeObject) {
-        let playlistTime = playlist.dateTimeObject.getTime() / 1000;
-        let playlistStart = playlistTime + syncController.datetimeToDisplayTime;
-        let syncPoint = {
-          time: playlistStart,
-          segmentIndex: 0
-        };
-
-        return syncPoint;
+      if (!syncController.datetimeToDisplayTime) {
+        return null;
       }
-      return null;
+
+      let segments = playlist.segments || [];
+      let syncPoint = null;
+      let lastDistance = null;
+
+      currentTime = currentTime || 0;
+
+      for (let i = 0; i < segments.length; i++) {
+        let segment = segments[i];
+
+        if (segment.dateTimeObject) {
+          let segmentTime = segment.dateTimeObject.getTime() / 1000;
+          let segmentStart = segmentTime + syncController.datetimeToDisplayTime;
+          let distance = Math.abs(currentTime - segmentStart);
+
+          // Once the distance begins to increase, we have passed
+          // currentTime and can stop looking for better candidates
+          if (lastDistance !== null && lastDistance < distance) {
+            break;
+          }
+
+          lastDistance = distance;
+          syncPoint = {
+            time: segmentStart,
+            segmentIndex: i
+          };
+        }
+      }
+      return syncPoint;
     }
   },
   // Stategy "Segment": We have a known time mapping for a timeline and a
@@ -336,8 +357,11 @@ export default class SyncController extends videojs.EventTarget {
    * @param {Playlist} playlist - The currently active playlist
    */
   setDateTimeMapping(playlist) {
-    if (!this.datetimeToDisplayTime && playlist.dateTimeObject) {
-      let playlistTimestamp = playlist.dateTimeObject.getTime() / 1000;
+    if (!this.datetimeToDisplayTime &&
+        playlist.segments &&
+        playlist.segments.length &&
+        playlist.segments[0].dateTimeObject) {
+      let playlistTimestamp = playlist.segments[0].dateTimeObject.getTime() / 1000;
 
       this.datetimeToDisplayTime = -playlistTimestamp;
     }
