@@ -178,6 +178,8 @@ QUnit.test('updateMaster updates master when new media sequence', function(asser
     }]
   };
 
+  master.playlists[media.uri] = master.playlists[0];
+
   assert.deepEqual(
     updateMaster(master, media),
     {
@@ -233,6 +235,8 @@ QUnit.test('updateMaster retains top level values in master', function(assert) {
       uri: 'segment-0-uri'
     }]
   };
+
+  master.playlists[media.uri] = master.playlists[0];
 
   assert.deepEqual(
     updateMaster(master, media),
@@ -300,6 +304,8 @@ QUnit.test('updateMaster adds new segments to master', function(assert) {
       uri: 'segment-1-uri'
     }]
   };
+
+  master.playlists[media.uri] = master.playlists[0];
 
   assert.deepEqual(
     updateMaster(master, media),
@@ -373,6 +379,8 @@ QUnit.test('updateMaster changes old values', function(assert) {
     }]
   };
 
+  master.playlists[media.uri] = master.playlists[0];
+
   assert.deepEqual(
     updateMaster(master, media),
     {
@@ -432,6 +440,8 @@ QUnit.test('updateMaster retains saved segment values', function(assert) {
       uri: 'segment-1-uri'
     }]
   };
+
+  master.playlists[media.uri] = master.playlists[0];
 
   assert.deepEqual(
     updateMaster(master, media),
@@ -502,6 +512,8 @@ QUnit.test('updateMaster resolves key and map URIs', function(assert) {
       }
     }]
   };
+
+  master.playlists[media.uri] = master.playlists[0];
 
   assert.deepEqual(
     updateMaster(master, media),

@@ -37,9 +37,16 @@ QUnit.test('starts with a manifest URL or playlist', function(assert) {
   assert.equal(loader.state, 'HAVE_NOTHING', 'no metadata has loaded yet');
   assert.ok(loader.started, 'started');
 
-  loader = new DashPlaylistLoader({}, this.fakeHls);
-  assert.equal(loader.state, 'HAVE_METADATA', 'has metadata');
-  assert.ok(loader.started, 'started');
+  loader.master = { playlists: { 'playlist-1': { endList: true } }, mediaGroups: {} };
+  loader.parseMasterXml = () => {
+    return { playlists: [], mediaGroups: {} };
+  };
+
+  let newLoader =
+    new DashPlaylistLoader({ uri: 'playlist-1' }, this.fakeHls, false, loader);
+
+  assert.equal(newLoader.state, 'HAVE_METADATA', 'has metadata');
+  assert.ok(newLoader.started, 'started');
 });
 
 QUnit.test('requests the manifest immediately when given a URL', function(assert) {
@@ -184,18 +191,20 @@ QUnit.test('triggers an event when the active media changes', function(assert) {
   });
 
   standardXHRResponse(this.requests.shift());
-  assert.strictEqual(mediaChangings, 1, 'initial selection fired a mediachanging event');
-  assert.strictEqual(mediaChanges, 1, 'initial selection fired a mediachange event');
+  assert.strictEqual(mediaChangings, 0,
+    'initial selection does not fire a mediachanging event');
+  assert.strictEqual(mediaChanges, 0,
+    'initial selection does not fire a mediachange event');
 
   loader.media(loader.master.playlists[1]);
-  assert.strictEqual(mediaChangings, 2, 'fired a mediachanging event');
-  assert.strictEqual(mediaChanges, 2, 'fired a mediachange event');
+  assert.strictEqual(mediaChangings, 1, 'fired a mediachanging event');
+  assert.strictEqual(mediaChanges, 1, 'fired a mediachange event');
 
   loader.media(loader.master.playlists[0]);
-  assert.strictEqual(mediaChangings, 3, 'fired a mediachanging event');
-  assert.strictEqual(mediaChanges, 3, 'fired a mediachange');
+  assert.strictEqual(mediaChangings, 2, 'fired a mediachanging event');
+  assert.strictEqual(mediaChanges, 2, 'fired a mediachange');
   // no op switch
   loader.media(loader.master.playlists[0]);
-  assert.strictEqual(mediaChangings, 3, 'ignored the no-op media change');
-  assert.strictEqual(mediaChanges, 3, 'ignored the no-op media change');
+  assert.strictEqual(mediaChangings, 2, 'ignored the no-op media change');
+  assert.strictEqual(mediaChanges, 2, 'ignored the no-op media change');
 });

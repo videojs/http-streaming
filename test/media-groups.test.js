@@ -774,8 +774,10 @@ QUnit.test('initialize audio correctly uses DASH source type', function(assert) 
 
   this.master.mediaGroups.AUDIO.aud1 = {
     // playlists are resolved, no URI for DASH
-    en: { default: true, language: 'en', playlists: [{}] },
-    fr: { default: false, language: 'fr', playlists: [{}] }
+    // use strings as playlists to simplify test to prevent playlist object code path
+    // which assumes there a MastPlaylistLoader
+    en: { default: true, language: 'en', playlists: ['playlist-1'] },
+    fr: { default: false, language: 'fr', playlists: ['playlist-2'] }
   };
   this.settings.sourceType = 'dash';
 
@@ -851,8 +853,10 @@ QUnit.test('initialize subtitles correctly uses DASH source type', function(asse
 
   this.master.mediaGroups.SUBTITLES.sub1 = {
     // playlists are resolved, no URI for DASH
-    en: { language: 'en', playlists: [{}] },
-    fr: { language: 'fr', playlists: [{}] }
+    // use strings as playlists to simplify test to prevent playlist object code path
+    // which assumes there a MastPlaylistLoader
+    en: { language: 'en', playlists: ['playlist-1'] },
+    fr: { language: 'fr', playlists: ['playlist-2'] }
   };
   this.settings.sourceType = 'dash';
 

@@ -169,9 +169,9 @@ export default class DashPlaylistLoader extends EventTarget {
 
     master.uri = this.srcUrl;
 
-    // TODO: Should we create the dummy uris in mpd-parser as well (leaning towards yes)
-    // set up phony URIs for the playlists since we won't have external URIs for DASH
+    // Set up phony URIs for the playlists since we won't have external URIs for DASH
     // but reference playlists by their URI throughout the project
+    // TODO: Should we create the dummy uris in mpd-parser as well (leaning towards yes).
     for (let i = 0; i < master.playlists.length; i++) {
       const phonyUri = `placeholder-uri-${i}`;
 
