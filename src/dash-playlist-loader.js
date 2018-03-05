@@ -9,6 +9,18 @@ import {
 } from './playlist-loader';
 import resolveUrl from './resolve-url';
 
+/**
+ * Returns a new master manifest that is the result of merging an updated master manifest
+ * into the original version.
+ *
+ * @param {Object} oldMaster
+ *        The old parsed mpd object
+ * @param {Object} newMaster
+ *        The updated parsed mpd object
+ * @return {Object}
+ *         A new object representing the original master manifest with the updated media
+ *         playlists merged in
+ */
 export const updateMaster = (oldMaster, newMaster) => {
   let update = mergeOptions(oldMaster, {
     // These are top level properties that can be updated
@@ -164,6 +176,12 @@ export default class DashPlaylistLoader extends EventTarget {
     this.trigger('loadedplaylist');
   }
 
+  /**
+   * Parses the master xml string and updates playlist uri references
+   *
+   * @return {Object}
+   *         The parsed mpd manifest object
+   */
   parseMasterXml() {
     const master = mpdParser.parse(this.masterXml_, {
       manifestUri: this.srcUrl,
@@ -243,6 +261,13 @@ export default class DashPlaylistLoader extends EventTarget {
     });
   }
 
+  /**
+   * Parses the master xml for UTCTiming node to sync the client clock to the server
+   * clock. If the UTCTiming node requires a HEAD or GET request, that request is made.
+   *
+   * @param {Function} done
+   *        Function to call when clock sync has completed
+   */
   syncClientServerClock_(done) {
     const utcTiming = mpdParser.parseUTCTiming(this.masterXml_);
 
@@ -295,6 +320,10 @@ export default class DashPlaylistLoader extends EventTarget {
     });
   }
 
+  /**
+   * Handler for after client/server clock synchronization has happened. Sets up
+   * xml refresh timer if specificed by the manifest.
+   */
   onClientServerClockSync_() {
     this.master = this.parseMasterXml();
 
@@ -326,7 +355,10 @@ export default class DashPlaylistLoader extends EventTarget {
     }
   }
 
-  // TODO: Does the client offset need to be recalculated when the xml is refreshed?
+  /**
+   * Sends request to refresh the master xml and updates the parsed master manifest
+   * TODO: Does the client offset need to be recalculated when the xml is refreshed?
+   */
   refreshXml_() {
     this.request = this.hls_.xhr({
       uri: this.srcUrl,
@@ -366,6 +398,11 @@ export default class DashPlaylistLoader extends EventTarget {
     });
   }
 
+  /**
+   * Refreshes the media playlist by re-parsing the master xml and updating playlist
+   * references. If this is an alternate loader, the updated parsed manifest is retrieved
+   * from the master loader.
+   */
   refreshMedia_() {
     let oldMaster;
     let newMaster;

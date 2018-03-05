@@ -10,6 +10,15 @@ import { mergeOptions, EventTarget, log } from 'video.js';
 import m3u8 from 'm3u8-parser';
 import window from 'global/window';
 
+/**
+ * Loops through all supported media groups in master and calls the provided
+ * callback for each group
+ *
+ * @param {Object} master
+ *        The parsed master manifest object
+ * @param {Function} callback
+ *        Callback to call for each media group
+ */
 export const forEachMediaGroup = (master, callback) => {
   ['AUDIO', 'SUBTITLES'].forEach((mediaType) => {
     for (let groupKey in master.mediaGroups[mediaType]) {
