@@ -26,12 +26,15 @@ export const updateMaster = (oldMaster, newMaster) => {
   }
 
   // Then update media group playlists
-  forEachMediaGroup(newMaster, (properties) => {
+  forEachMediaGroup(newMaster, (properties, type, group, label) => {
     if (properties.playlists && properties.playlists.length) {
+      const uri = properties.playlists[0].uri;
       const playlistUpdate = updatePlaylist(update, properties.playlists[0]);
 
       if (playlistUpdate) {
         update = playlistUpdate;
+        // update the playlist reference within media groups
+        update.mediaGroups[type][group][label].playlists[0] = update.playlists[uri];
       }
     }
   });
@@ -310,6 +313,12 @@ export default class DashPlaylistLoader extends EventTarget {
       this.trigger('loadedmetadata');
     }, 0);
 
+    // TODO: minimumUpdatePeriod can have a value of 0. Currently the manifest will not
+    // be refreshed when this is the case. The inter-op guide says that when the
+    // minimumUpdatePeriod is 0, the manifest should outline all currently available
+    // segments, but future segments may require an update. I think a good solution
+    // would be to update the manifest at the same rate that the media playlists
+    // are "refreshed", i.e. every targetDuration.
     if (this.master.minimumUpdatePeriod) {
       setTimeout(() => {
         this.trigger('minimumUpdatePeriod');

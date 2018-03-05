@@ -8,18 +8,8 @@ import {
   refreshDelay
 } from '../src/playlist-loader';
 import xhrFactory from '../src/xhr';
-import { useFakeEnvironment } from './test-helpers';
+import { useFakeEnvironment, urlTo } from './test-helpers';
 import window from 'global/window';
-
-// Attempts to produce an absolute URL to a given relative path
-// based on window.location.href
-const urlTo = function(path) {
-  return window.location.href
-    .split('/')
-    .slice(0, -1)
-    .concat([path])
-    .join('/');
-};
 
 QUnit.module('Playlist Loader', {
   beforeEach(assert) {
