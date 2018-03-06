@@ -6,7 +6,7 @@ CHANGELOG
 _(none)_
 
 --------------------
-## 0.6.0
+## 0.6.1
 * use webwackify for webworkers to support webpack bundle ([#50](https://github.com/videojs/http-streaming/pull/45))
 
 ## 0.5.3
