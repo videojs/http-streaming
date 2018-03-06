@@ -14,7 +14,9 @@ const workerResolve = () => {
 
   try {
     result = require.resolve('./transmuxer-worker');
-  } catch (e) {}
+  } catch (e) {
+    // no result
+  }
 
   return result;
 };

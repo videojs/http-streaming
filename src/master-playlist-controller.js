@@ -45,7 +45,9 @@ const workerResolve = () => {
 
   try {
     result = require.resolve('./decrypter-worker');
-  } catch (e) {}
+  } catch (e) {
+    // no result
+  }
 
   return result;
 };
