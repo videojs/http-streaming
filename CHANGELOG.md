@@ -6,6 +6,9 @@ CHANGELOG
 _(none)_
 
 --------------------
+## 0.6.0
+* use webwackify for webworkers to support webpack bundle ([#50](https://github.com/videojs/http-streaming/pull/45))
+
 ## 0.5.3
 * fix: program date time handling ([#45](https://github.com/videojs/http-streaming/pull/45))
   * update m3u8-parser to v4.2.0
