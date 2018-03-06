@@ -10,7 +10,7 @@ import * as Ranges from './ranges';
 import videojs from 'video.js';
 import AdCueTags from './ad-cue-tags';
 import SyncController from './sync-controller';
-import worker from 'webworkify';
+import worker from 'webwackify';
 import Decrypter from './decrypter-worker';
 import Config from './config';
 import {
@@ -38,6 +38,18 @@ const loaderStats = [
 const sumLoaderStat = function(stat) {
   return this.audioSegmentLoader_[stat] +
          this.mainSegmentLoader_[stat];
+};
+
+const workerResolve = () => {
+  let result;
+
+  try {
+    result = require.resolve('./decrypter-worker');
+  } catch (e) {
+    // no result
+  }
+
+  return result;
 };
 
 /**
@@ -105,7 +117,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       label: 'segment-metadata'
     }, false).track;
 
-    this.decrypter_ = worker(Decrypter);
+    this.decrypter_ = worker(Decrypter, workerResolve());
 
     const segmentLoaderSettings = {
       hls: this.hls_,
