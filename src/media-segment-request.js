@@ -1,5 +1,6 @@
 import videojs from 'video.js';
 import BinUtils from './bin-utils';
+import { stringToArrayBuffer } from './util/string-to-array-buffer';
 
 const { createTransferableMessage } = BinUtils;
 
@@ -213,6 +214,9 @@ const handleSegmentResponse = (segment, finishProcessingFn) => (error, request) 
     return finishProcessingFn(errorObj, segment);
   }
 
+  const newBytes =
+    stringToArrayBuffer(request.responseText.substring(segment.lastReachedChar || 0));
+
   // stop processing if received empty content
   if (response.byteLength === 0) {
     return finishProcessingFn({
@@ -226,9 +230,9 @@ const handleSegmentResponse = (segment, finishProcessingFn) => (error, request) 
   segment.stats = getRequestStats(request);
 
   if (segment.key) {
-    segment.encryptedBytes = new Uint8Array(request.response);
+    segment.encryptedBytes = new Uint8Array(newBytes);
   } else {
-    segment.bytes = new Uint8Array(request.response);
+    segment.bytes = new Uint8Array(newBytes);
   }
 
   return finishProcessingFn(null, segment);
@@ -334,6 +338,21 @@ const waitForCompletion = (activeXhrs, decrypter, doneFn) => {
  * @param {Event} event - the progress event object from XMLHttpRequest
  */
 const handleProgress = (segment, progressFn) => (event) => {
+  const request = event.target;
+
+  /* eslint-disable */
+  console.log('Progress called with ' + request.responseText.length + ' bytes');
+  /* eslint-enable */
+
+  // don't support encrypted segments for now
+  if (!segment.key) {
+    const newBytes = stringToArrayBuffer(
+      request.responseText.substring(segment.lastReachedChar || 0));
+
+    segment.lastReachedChar = request.responseText.length - 1;
+    segment.progressBytes = new Uint8Array(newBytes);
+  }
+
   segment.stats = videojs.mergeOptions(segment.stats, getProgressStats(event));
 
   // record the time that we receive the first byte of data
@@ -430,8 +449,14 @@ export const mediaSegmentRequest = (xhr,
 
   const segmentRequestOptions = videojs.mergeOptions(xhrOptions, {
     uri: segment.resolvedUri,
-    responseType: 'arraybuffer',
-    headers: segmentXhrHeaders(segment)
+    // set to text to allow for partial responses, conversion to ArrayBuffer happens later
+    responseType: 'text',
+    headers: segmentXhrHeaders(segment),
+    beforeSend: (xhrObject) => {
+      // XHR binary charset opt by Marcus Granado 2006 [http://mgran.blogspot.com]
+      // makes the browser pass through the "text" unparsed
+      xhrObject.overrideMimeType('text/plain; charset=x-user-defined');
+    }
   });
   const segmentRequestCallback = handleSegmentResponse(segment, finishProcessingFn);
   const segmentXhr = xhr(segmentRequestOptions, segmentRequestCallback);

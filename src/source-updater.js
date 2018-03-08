@@ -115,6 +115,17 @@ export default class SourceUpdater {
   }
 
   /**
+   * Queue a flush to be notified when all previous buffers have been appended
+   *
+   * @param {Function} done the function to call when done
+   */
+  flush(done) {
+    this.queueCallback_(() => {
+      this.sourceBuffer_.flush();
+    }, done);
+  }
+
+  /**
    * Indicates what TimeRanges are buffered in the managed SourceBuffer.
    *
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-buffered

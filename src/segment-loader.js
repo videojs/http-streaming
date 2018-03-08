@@ -938,6 +938,13 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
+    if (simpleSegment.progressBytes) {
+      /* eslint-disable */
+      console.log('Got progress bytes: ', simpleSegment.progressBytes);
+      /* eslint-enable */
+      this.sourceUpdater_.appendBuffer(simpleSegment.progressBytes);
+    }
+
     this.trigger('progress');
   }
 
@@ -1207,8 +1214,8 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     this.logger_(segmentInfoString(segmentInfo));
 
-    this.sourceUpdater_.appendBuffer(segmentInfo.bytes,
-                                     this.handleUpdateEnd_.bind(this));
+    this.sourceUpdater_.appendBuffer(segmentInfo.bytes);
+    this.sourceUpdater_.flush(this.handleUpdateEnd_.bind(this));
   }
 
   /**
