@@ -1,6 +1,7 @@
 /**
  * @file master-playlist-controller.js
  */
+import window from 'global/window';
 import PlaylistLoader from './playlist-loader';
 import DashPlaylistLoader from './dash-playlist-loader';
 import { isEnabled, isLowestEnabledRendition } from './playlist.js';
@@ -103,7 +104,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.mediaTypes_ = createMediaTypes();
 
-    this.mediaSource = new videojs.MediaSource();
+    this.mediaSource = new window.MediaSource();
 
     // load the media source into the player
     this.mediaSource.addEventListener('sourceopen', this.handleSourceOpen_.bind(this));

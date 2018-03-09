@@ -4,7 +4,6 @@
  */
 
 import videojs from 'video.js';
-import { translateLegacyCodecs } from '../mse/codec-utils';
 
 // Default codec parameters if none were provided for video and/or audio
 const defaultCodecs = {
@@ -253,4 +252,95 @@ export const mimeTypesForPlaylist = function(master, media) {
   return [
     bothVideoAudio
   ];
+};
+
+export const parseMimeTypes = (mimeType) => {
+  const parsedType = parseContentType(mimeType);
+  let codecs = [];
+
+  if (parsedType.parameters && parsedType.parameters.codecs) {
+    codecs = parsedType.parameters.codecs.split(',');
+    codecs = translateLegacyCodecs(codecs);
+    codecs = codecs.filter((codec) => {
+      return (isAudioCodec(codec) || isVideoCodec(codec));
+    });
+  }
+
+  if (codecs.length === 0) {
+    return null;
+  }
+
+  return codecs.reduce((acc, codec) => {
+    acc[isAudioCodec(codec) ? 'audio' : 'video'] = codec;
+    return acc;
+  }, {});
+};
+
+/**
+ * Check if a codec string refers to an audio codec.
+ *
+ * @param {String} codec codec string to check
+ * @return {Boolean} if this is an audio codec
+ * @private
+ */
+export const isAudioCodec = function(codec) {
+  return (/mp4a\.\d+.\d+/i).test(codec);
+};
+
+/**
+ * Check if a codec string refers to a video codec.
+ *
+ * @param {String} codec codec string to check
+ * @return {Boolean} if this is a video codec
+ * @private
+ */
+export const isVideoCodec = function(codec) {
+  return (/avc1\.[\da-f]+/i).test(codec);
+};
+
+/**
+ * Parse a content type header into a type and parameters
+ * object
+ *
+ * @param {String} type the content type header
+ * @return {Object} the parsed content-type
+ * @private
+ */
+export const parseContentType = function(type) {
+  let object = {type: '', parameters: {}};
+  let parameters = type.trim().split(';');
+
+  // first parameter should always be content-type
+  object.type = parameters.shift().trim();
+  parameters.forEach((parameter) => {
+    let pair = parameter.trim().split('=');
+
+    if (pair.length > 1) {
+      let name = pair[0].replace(/"/g, '').trim();
+      let value = pair[1].replace(/"/g, '').trim();
+
+      object.parameters[name] = value;
+    }
+  });
+
+  return object;
+};
+
+/**
+ * Replace the old apple-style `avc1.<dd>.<dd>` codec string with the standard
+ * `avc1.<hhhhhh>`
+ *
+ * @param {Array} codecs an array of codec strings to fix
+ * @return {Array} the translated codec array
+ * @private
+ */
+export const translateLegacyCodecs = function(codecs) {
+  return codecs.map((codec) => {
+    return codec.replace(/avc1\.(\d+)\.(\d+)/i, function(orig, profile, avcLevel) {
+      let profileHex = ('00' + Number(profile).toString(16)).slice(-2);
+      let avcLevelHex = ('00' + Number(avcLevel).toString(16)).slice(-2);
+
+      return 'avc1.' + profileHex + '00' + avcLevelHex;
+    });
+  });
 };

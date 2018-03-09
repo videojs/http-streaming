@@ -3,6 +3,7 @@
  */
 import Playlist from './playlist';
 import videojs from 'video.js';
+import work from 'webwackify';
 import SourceUpdater from './source-updater';
 import Config from './config';
 import window from 'global/window';
@@ -12,8 +13,24 @@ import {mediaSegmentRequest, REQUEST_ERRORS} from './media-segment-request';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
 import logger from './util/logger';
+import { concatSegments } from './util/concat-segments';
+import transmuxWorker from './mse/transmuxer-worker';
+import createTextTracksIfNecessary from './mse/create-text-tracks-if-necessary';
+import { transmux } from './segment-transmuxer';
 
 const { initSegmentId } = BinUtils;
+
+const workerResolve = () => {
+  let result;
+
+  try {
+    result = require.resolve('./transmuxer-worker');
+  } catch (e) {
+    // no result
+  }
+
+  return result;
+};
 
 // in ms
 const CHECK_BUFFER_DELAY = 500;
@@ -178,6 +195,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.mimeType_ = null;
     this.sourceUpdater_ = null;
     this.xhrOptions_ = null;
+    this.pendingSegments_ = [];
+    this.appendAudioInitSegment_ = true;
 
     // Fragmented mp4 playback
     this.activeInitSegmentId_ = null;
@@ -193,6 +212,17 @@ export default class SegmentLoader extends videojs.EventTarget {
       segmentIndex: 0,
       time: 0
     };
+
+    // append muxed segments to their respective native buffers as
+    // soon as they are available
+    this.transmuxer_ = work(transmuxWorker, workerResolve());
+    this.transmuxer_.postMessage({
+      action: 'init',
+      options: {
+        remux: false,
+        alignGopsAtEnd: videojs.browser.IE_VERSION >= 11
+      }
+    });
 
     this.syncController_.on('syncinfoupdate', () => this.trigger('syncinfoupdate'));
 
@@ -1183,6 +1213,16 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     this.state = 'APPENDING';
 
+    segmentInfo.byteLength = segmentInfo.bytes.byteLength;
+    if (typeof segment.start === 'number' && typeof segment.end === 'number') {
+      this.mediaSecondsLoaded += segment.end - segment.start;
+    } else {
+      this.mediaSecondsLoaded += segment.duration;
+    }
+
+    this.logger_(segmentInfoString(segmentInfo));
+
+
     // if the media initialization segment is changing, append it
     // before the content segment
     if (segment.map) {
@@ -1196,19 +1236,78 @@ export default class SegmentLoader extends videojs.EventTarget {
           this.activeInitSegmentId_ = initId;
         });
       }
+
+      this.sourceUpdater_.appendBuffer(segment.bytes, this.handleUpdateEnd_.bind(this));
+      return;
     }
 
-    segmentInfo.byteLength = segmentInfo.bytes.byteLength;
-    if (typeof segment.start === 'number' && typeof segment.end === 'number') {
-      this.mediaSecondsLoaded += segment.end - segment.start;
-    } else {
-      this.mediaSecondsLoaded += segment.duration;
+    transmux({
+      segmentInfo,
+      transmuxer: this.transmuxer_,
+      callback: this.handleTransmuxed_.bind(this)
+    });
+  }
+
+  handleTransmuxed_(err, result) {
+    // TODO - handle aborts/changes
+    // TODO - listen for PMT info for buffer creation
+
+    // don't process and append data if the mediaSource is closed
+    if (this.mediaSource_.readyState === 'closed') {
+      return;
     }
 
-    this.logger_(segmentInfoString(segmentInfo));
+    // TODO
+    // createTextTracksIfNecessary(this, this.mediaSource_, segment);
 
-    this.sourceUpdater_.appendBuffer(segmentInfo.bytes,
-                                     this.handleUpdateEnd_.bind(this));
+    /*
+     * should be dealt with in MPC
+    this.sourceUpdater_.createSourceBuffers({
+      audio: result.audio ? result.audio.codec : null,
+      video: result.video ? result.video.codec : null
+    });
+    */
+
+    // trigger for outside listeners, TODO are they being used?
+    /*
+    if (result.audio && result.audio.info) {
+      this.mediaSource_.trigger({type: 'audioinfo', info: result.audio.info});
+    }
+    if (result.video && result.video.info) {
+      this.mediaSource_.trigger({type: 'videoinfo', info: result.video.info});
+    }
+    */
+
+    // TODO
+    const sortedSegments = result;
+    let videoBytes;
+    let audioBytes;
+
+    // Merge multiple video and audio segments into one and append
+    if (sortedSegments.video.bytes) {
+      sortedSegments.video.segments.unshift(sortedSegments.video.initSegment);
+      sortedSegments.video.bytes += sortedSegments.video.initSegment.byteLength;
+
+      videoBytes = concatSegments(sortedSegments.video);
+    }
+
+    // TODO: are video tracks the only ones with text tracks?
+    // addTextTrackData(this, sortedSegments.captions, sortedSegments.metadata);
+
+    if (!this.audioDisabled_ && sortedSegments.audio.bytes) {
+      // TODO we need to actually update this value somewhere - or global source updater
+      // can handle it
+      if (this.appendAudioInitSegment_) {
+        sortedSegments.audio.segments.unshift(sortedSegments.audio.initSegment);
+        sortedSegments.audio.bytes += sortedSegments.audio.initSegment.byteLength;
+        this.appendAudioInitSegment_ = false;
+      }
+
+      audioBytes = concatSegments(sortedSegments.audio);
+    }
+
+    this.sourceUpdater_.appendBuffer(
+      { videoBytes, audioBytes }, this.handleUpdateEnd_.bind(this));
   }
 
   /**

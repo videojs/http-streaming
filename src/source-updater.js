@@ -5,6 +5,7 @@ import videojs from 'video.js';
 import { printableRange } from './ranges';
 import logger from './util/logger';
 import noop from './util/noop';
+import { parseMimeTypes } from './util/codecs';
 
 /**
  * A queue of callbacks to be serialized and applied when a
@@ -33,14 +34,23 @@ export default class SourceUpdater {
 
     if (mediaSource.readyState === 'closed') {
       mediaSource.addEventListener(
-        'sourceopen', this.createSourceBuffer_.bind(this, mimeType, sourceBufferEmitter));
+        'sourceopen', this.createSourceBuffers_.bind(this, mimeType, sourceBufferEmitter));
     } else {
-      this.createSourceBuffer_(mimeType, sourceBufferEmitter);
+      this.createSourceBuffers_(mimeType, sourceBufferEmitter);
     }
   }
 
-  createSourceBuffer_(mimeType, sourceBufferEmitter) {
-    this.sourceBuffer_ = this.mediaSource.addSourceBuffer(mimeType);
+  createSourceBuffers_(mimeType, sourceBufferEmitter) {
+    const codecs = parseMimeTypes(mimeType) || ['avc1.4d400d', 'mp4a.40.2'];
+
+    if (codecs.audio) {
+      this.audioBuffer = this.mediaSource.addSourceBuffer(
+        `audio/mp4;codecs="${codecs.audio}"`);
+    }
+    if (codecs.video) {
+      this.videoBuffer = this.mediaSource.addSourceBuffer(
+        `video/mp4;codecs="${codecs.video}"`);
+    }
 
     this.logger_('created SourceBuffer');
 
@@ -81,7 +91,12 @@ export default class SourceUpdater {
       this.runCallback_();
     };
 
-    this.sourceBuffer_.addEventListener('updateend', this.onUpdateendCallback_);
+    if (this.audioBuffer) {
+      this.audioBuffer.addEventListener('updateend', this.onUpdateendCallback_);
+    }
+    if (this.videoBuffer) {
+      this.videoBuffer.addEventListener('updateend', this.onUpdateendCallback_);
+    }
 
     this.runCallback_();
   }
@@ -95,7 +110,12 @@ export default class SourceUpdater {
   abort(done) {
     if (this.processedAppend_) {
       this.queueCallback_(() => {
-        this.sourceBuffer_.abort();
+        if (this.audioBuffer) {
+          this.audioBuffer.abort();
+        }
+        if (this.videoBuffer) {
+          this.videoBuffer.abort();
+        }
       }, done);
     }
   }
@@ -103,14 +123,30 @@ export default class SourceUpdater {
   /**
    * Queue an update to append an ArrayBuffer.
    *
-   * @param {ArrayBuffer} bytes
+   * @param {ArrayBuffer} bytes (TODO)
    * @param {Function} done the function to call when done
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-appendBuffer-void-ArrayBuffer-data
    */
-  appendBuffer(bytes, done) {
+  appendBuffer(mediaObject, done) {
+    // TODO eventually we should probably have two source updaters, one for audio and one for video
     this.processedAppend_ = true;
+    if (mediaObject.audioBytes && mediaObject.videoBytes) {
+      this.queueCallback_(() => {
+        this.audioBuffer.appendBuffer(mediaObject.audioBytes);
+      }, () => {
+        this.queueCallback_(() => {
+          this.videoBuffer.appendBuffer(mediaObject.videoBytes);
+        }, done);
+      });
+      return;
+    }
     this.queueCallback_(() => {
-      this.sourceBuffer_.appendBuffer(bytes);
+      if (mediaObject.audioBytes) {
+        this.audioBuffer.appendBuffer(mediaObject.audioBytes);
+      }
+      if (mediaObject.videoBytes) {
+        this.videoBuffer.appendBuffer(mediaObject.videoBytes);
+      }
     }, done);
   }
 
@@ -120,10 +156,87 @@ export default class SourceUpdater {
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-buffered
    */
   buffered() {
-    if (!this.sourceBuffer_) {
-      return videojs.createTimeRanges();
+    let start = null;
+    let end = null;
+    let arity = 0;
+    let extents = [];
+    let ranges = [];
+
+    // neither buffer has been created yet
+    if (!this.videoBuffer && !this.audioBuffer) {
+      return videojs.createTimeRange();
     }
-    return this.sourceBuffer_.buffered;
+
+    // only one buffer is configured
+    if (!this.videoBuffer) {
+      return this.audioBuffer.buffered;
+    }
+    if (!this.audioBuffer) {
+      return this.videoBuffer.buffered;
+    }
+
+    // both buffers are configured
+    if (this.audioDisabled_) {
+      return this.videoBuffer.buffered;
+    }
+
+    // both buffers are empty
+    if (this.videoBuffer.buffered.length === 0 &&
+        this.audioBuffer.buffered.length === 0) {
+      return videojs.createTimeRange();
+    }
+
+    // Handle the case where we have both buffers and create an
+    // intersection of the two
+    let videoBuffered = this.videoBuffer.buffered;
+    let audioBuffered = this.audioBuffer.buffered;
+    let count = videoBuffered.length;
+
+    // A) Gather up all start and end times
+    while (count--) {
+      extents.push({time: videoBuffered.start(count), type: 'start'});
+      extents.push({time: videoBuffered.end(count), type: 'end'});
+    }
+    count = audioBuffered.length;
+    while (count--) {
+      extents.push({time: audioBuffered.start(count), type: 'start'});
+      extents.push({time: audioBuffered.end(count), type: 'end'});
+    }
+    // B) Sort them by time
+    extents.sort(function(a, b) {
+      return a.time - b.time;
+    });
+
+    // C) Go along one by one incrementing arity for start and decrementing
+    //    arity for ends
+    for (count = 0; count < extents.length; count++) {
+      if (extents[count].type === 'start') {
+        arity++;
+
+        // D) If arity is ever incremented to 2 we are entering an
+        //    overlapping range
+        if (arity === 2) {
+          start = extents[count].time;
+        }
+      } else if (extents[count].type === 'end') {
+        arity--;
+
+        // E) If arity is ever decremented to 1 we leaving an
+        //    overlapping range
+        if (arity === 1) {
+          end = extents[count].time;
+        }
+      }
+
+      // F) Record overlapping ranges
+      if (start !== null && end !== null) {
+        ranges.push([start, end]);
+        start = null;
+        end = null;
+      }
+    }
+
+    return videojs.createTimeRanges(ranges);
   }
 
   /**
@@ -137,7 +250,13 @@ export default class SourceUpdater {
     if (this.processedAppend_) {
       this.queueCallback_(() => {
         this.logger_(`remove [${start} => ${end}]`);
-        this.sourceBuffer_.remove(start, end);
+
+        if (this.audioBuffer) {
+          this.audioBuffer.remove(start, end);
+        }
+        if (this.videoBuffer) {
+          this.videoBuffer.remove(start, end);
+        }
       }, noop);
     }
   }
@@ -148,7 +267,13 @@ export default class SourceUpdater {
    * @return {Boolean} the updating status of the SourceBuffer
    */
   updating() {
-    return !this.sourceBuffer_ || this.sourceBuffer_.updating || this.pendingCallback_;
+    return
+      (!this.audioBuffer ||
+       this.audioBuffer.updating ||
+       this.pendingCallback_) ||
+      (!this.videoBuffer ||
+       this.videoBuffer.updating ||
+       this.pendingCallback_);
   }
 
   /**
@@ -159,7 +284,12 @@ export default class SourceUpdater {
   timestampOffset(offset) {
     if (typeof offset !== 'undefined') {
       this.queueCallback_(() => {
-        this.sourceBuffer_.timestampOffset = offset;
+        if (this.audioBuffer) {
+          this.audioBuffer.timestampOffset = offset;
+        }
+        if (this.videoBuffer) {
+          this.videoBuffer.timestampOffset = offset;
+        }
       });
       this.timestampOffset_ = offset;
     }
@@ -193,9 +323,17 @@ export default class SourceUpdater {
    * dispose of the source updater and the underlying sourceBuffer
    */
   dispose() {
-    this.sourceBuffer_.removeEventListener('updateend', this.onUpdateendCallback_);
-    if (this.sourceBuffer_ && this.mediaSource.readyState === 'open') {
-      this.sourceBuffer_.abort();
+    if (this.audioBuffer) {
+      if (this.mediaSource.readyState === 'open') {
+        this.audioBuffer.abort();
+      }
+      this.audioBuffer.removeEventListener('updateend', this.onUpdateendCallback_);
+    }
+    if (this.videoBuffer) {
+      if (this.mediaSource.readyState === 'open') {
+        this.videoBuffer.abort();
+      }
+      this.videoBuffer.removeEventListener('updateend', this.onUpdateendCallback_);
     }
   }
 }
