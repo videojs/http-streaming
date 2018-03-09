@@ -349,7 +349,7 @@ const handleProgress = (segment, progressFn) => (event) => {
     const newBytes = stringToArrayBuffer(
       request.responseText.substring(segment.lastReachedChar || 0));
 
-    segment.lastReachedChar = request.responseText.length - 1;
+    segment.lastReachedChar = request.responseText.length;
     segment.progressBytes = new Uint8Array(newBytes);
   }
 
