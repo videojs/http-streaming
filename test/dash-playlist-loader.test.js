@@ -386,7 +386,7 @@ QUnit.test('media playlists "refresh" by re-parsing master xml', function(assert
     result.playlists[0].segments.push({ duration: 2, uri: 'segment-0' });
 
     return result;
-  }
+  };
 
   loader.load();
 
