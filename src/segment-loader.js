@@ -4,7 +4,6 @@
 import Playlist from './playlist';
 import videojs from 'video.js';
 import work from 'webwackify';
-import SourceUpdater from './source-updater';
 import Config from './config';
 import window from 'global/window';
 import removeCuesFromTrack from './mse/remove-cues-from-track';
@@ -185,6 +184,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.segmentMetadataTrack_ = settings.segmentMetadataTrack;
     this.goalBufferLength_ = settings.goalBufferLength;
     this.sourceType_ = settings.sourceType;
+    this.sourceUpdater_ = settings.sourceUpdater;
     this.state_ = 'INIT';
 
     // private instance variables
@@ -192,10 +192,9 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.error_ = void 0;
     this.currentTimeline_ = -1;
     this.pendingSegment_ = null;
-    this.mimeType_ = null;
-    this.sourceUpdater_ = null;
     this.xhrOptions_ = null;
     this.pendingSegments_ = [];
+    this.audioDisabled_ = false;
     this.appendAudioInitSegment_ = true;
 
     // Fragmented mp4 playback
@@ -386,12 +385,7 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @private
    */
   couldBeginLoading_() {
-    return this.playlist_ &&
-           // the source updater is created when init_ is called, so either having a
-           // source updater or being in the INIT state with a mimeType is enough
-           // to say we have all the needed configuration to start loading.
-           (this.sourceUpdater_ || (this.mimeType_ && this.state === 'INIT')) &&
-           !this.paused();
+    return this.playlist_ && !this.paused();
   }
 
   /**
@@ -435,10 +429,6 @@ export default class SegmentLoader extends videojs.EventTarget {
    */
   init_() {
     this.state = 'READY';
-    this.sourceUpdater_ = new SourceUpdater(this.mediaSource_,
-                                            this.mimeType_,
-                                            this.loaderType_,
-                                            this.sourceBufferEmitter_);
     this.resetEverything();
     return this.monitorBuffer_();
   }
@@ -548,28 +538,6 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   /**
-   * create/set the following mimetype on the SourceBuffer through a
-   * SourceUpdater
-   *
-   * @param {String} mimeType the mime type string to use
-   * @param {Object} sourceBufferEmitter an event emitter that fires when a source buffer
-   * is added to the media source
-   */
-  mimeType(mimeType, sourceBufferEmitter) {
-    if (this.mimeType_) {
-      return;
-    }
-
-    this.mimeType_ = mimeType;
-    this.sourceBufferEmitter_ = sourceBufferEmitter;
-    // if we were unpaused but waiting for a sourceUpdater, start
-    // buffering now
-    if (this.state === 'INIT' && this.couldBeginLoading_()) {
-      this.init_();
-    }
-  }
-
-  /**
    * Delete all the buffered data and reset the SegmentLoader
    */
   resetEverything() {
@@ -607,7 +575,13 @@ export default class SegmentLoader extends videojs.EventTarget {
    */
   remove(start, end) {
     if (this.sourceUpdater_) {
-      this.sourceUpdater_.remove(start, end);
+      if (!this.audioDisabled) {
+        this.sourceUpdater_.removeAudio(start, end);
+      }
+      // TODO better check? - or handle in MPC
+      if (this.loaderType_ === 'main') {
+        this.sourceUpdater_.removeVideo(start, end);
+      }
     }
     removeCuesFromTrack(start, end, this.segmentMetadataTrack_);
   }
@@ -654,6 +628,7 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @private
    */
   fillBuffer_() {
+    // TODO do we need this?
     if (this.sourceUpdater_.updating()) {
       return;
     }
@@ -1244,13 +1219,21 @@ export default class SegmentLoader extends videojs.EventTarget {
     transmux({
       segmentInfo,
       transmuxer: this.transmuxer_,
-      callback: this.handleTransmuxed_.bind(this)
+      callback: this.handleTransmuxed_.bind(this, this.pendingSegment_)
     });
   }
 
-  handleTransmuxed_(err, result) {
-    // TODO - handle aborts/changes
-    // TODO - listen for PMT info for buffer creation
+  handleTransmuxed_(err, pendingSegment, result) {
+    if (!this.pendingSegment_ || this.pendingSegment_ !== pendingSegment) {
+      // we're no longer dealing with this segment
+    }
+
+    if (result.trackInfo) {
+      this.sourceUpdater_.createSourceBuffers({
+        audio: result.trackInfo.hasAudio ? {} : null,
+        video: result.trackInfo.hasVideo ? {} : null
+      });
+    }
 
     // don't process and append data if the mediaSource is closed
     if (this.mediaSource_.readyState === 'closed') {
@@ -1259,14 +1242,6 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // TODO
     // createTextTracksIfNecessary(this, this.mediaSource_, segment);
-
-    /*
-     * should be dealt with in MPC
-    this.sourceUpdater_.createSourceBuffers({
-      audio: result.audio ? result.audio.codec : null,
-      video: result.video ? result.video.codec : null
-    });
-    */
 
     // trigger for outside listeners, TODO are they being used?
     /*
@@ -1278,32 +1253,28 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
     */
 
-    // TODO
-    const sortedSegments = result;
     let videoBytes;
     let audioBytes;
 
     // Merge multiple video and audio segments into one and append
-    if (sortedSegments.video.bytes) {
-      sortedSegments.video.segments.unshift(sortedSegments.video.initSegment);
-      sortedSegments.video.bytes += sortedSegments.video.initSegment.byteLength;
+    if (result.video.bytes) {
+      result.video.segments.unshift(result.video.initSegment);
+      result.video.bytes += result.video.initSegment.byteLength;
 
-      videoBytes = concatSegments(sortedSegments.video);
+      videoBytes = concatSegments(result.video);
     }
 
     // TODO: are video tracks the only ones with text tracks?
-    // addTextTrackData(this, sortedSegments.captions, sortedSegments.metadata);
+    // addTextTrackData(this, result.captions, result.metadata);
 
-    if (!this.audioDisabled_ && sortedSegments.audio.bytes) {
-      // TODO we need to actually update this value somewhere - or global source updater
-      // can handle it
+    if (!this.audioDisabled_ && result.audio.bytes) {
       if (this.appendAudioInitSegment_) {
-        sortedSegments.audio.segments.unshift(sortedSegments.audio.initSegment);
-        sortedSegments.audio.bytes += sortedSegments.audio.initSegment.byteLength;
+        result.audio.segments.unshift(result.audio.initSegment);
+        result.audio.bytes += result.audio.initSegment.byteLength;
         this.appendAudioInitSegment_ = false;
       }
 
-      audioBytes = concatSegments(sortedSegments.audio);
+      audioBytes = concatSegments(result.audio);
     }
 
     this.sourceUpdater_.appendBuffer(

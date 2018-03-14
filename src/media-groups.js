@@ -142,8 +142,13 @@ export const onTrackChanged = (type, settings) => () => {
     // when switching from demuxed audio/video to muxed audio/video (noted by no playlist
     // loader for the audio group), we want to do a destructive reset of the main segment
     // loader and not restart the audio loaders
+    mainSegmentLoader.audioDisabled_ = false;
+    // don't have to worry about enabling the audio of the audio segment loader since it
+    // should be stopped (never have to disable/enable on the audio segment loader)
     mainSegmentLoader.resetEverything();
     return;
+  } else {
+    mainSegmentLoader.audioDisabled_ = true;
   }
 
   if (previousActiveLoader === activeGroup.playlistLoader) {
@@ -707,7 +712,11 @@ export const setupMediaGroups = (settings) => {
     mediaTypes,
     masterPlaylistLoader,
     tech,
-    hls
+    hls,
+    segmentLoaders: {
+      AUDIO: audioSegmentLoader,
+      main: mainSegmentLoader
+    },
   } = settings;
 
   // setup active group and track getters and change event handlers
@@ -732,6 +741,8 @@ export const setupMediaGroups = (settings) => {
 
   // custom audio track change event handler for usage event
   const onAudioTrackChanged = () => {
+    mainSegmentLoader.appendAudioInitSegment_ = true;
+    audioSegmentLoader.appendAudioInitSegment_ = true;
     mediaTypes.AUDIO.onTrackChanged();
     tech.trigger({ type: 'usage', name: 'hls-audio-change' });
   };

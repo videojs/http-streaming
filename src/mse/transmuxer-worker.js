@@ -66,6 +66,10 @@ const wireTransmuxerEvents = function(transmuxer) {
       gopInfo
     });
   });
+
+  transmuxer.on('trackinfo', function(trackInfo) {
+    window.postMessage({ action: 'trackinfo', trackInfo });
+  });
 };
 
 /**

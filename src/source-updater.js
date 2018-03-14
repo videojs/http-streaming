@@ -14,61 +14,71 @@ import { parseMimeTypes } from './util/codecs';
  * underlying SourceBuffers when new data is loaded, for instance.
  *
  * @class SourceUpdater
- * @param {MediaSource} mediaSource the MediaSource to create the
- * SourceBuffer from
- * @param {String} mimeType the desired MIME type of the underlying
- * SourceBuffer
- * @param {Object} sourceBufferEmitter an event emitter that fires when a source buffer is
- * added to the media source
+ * @param {MediaSource} mediaSource the MediaSource to create the SourceBuffer from
+ * @param {String} mimeType the desired MIME type of the underlying SourceBuffer
  */
 export default class SourceUpdater {
-  constructor(mediaSource, mimeType, type, sourceBufferEmitter) {
+  constructor(mediaSource) {
     this.callbacks_ = [];
     this.pendingCallback_ = null;
     this.timestampOffset_ = 0;
     this.mediaSource = mediaSource;
+    // TODO this may no longer be necessary now that we no longer use virtual source
+    // buffers: see videojs-contrib-hls PR #1089
     this.processedAppend_ = false;
-    this.type_ = type;
-    this.mimeType_ = mimeType;
-    this.logger_ = logger(`SourceUpdater[${type}][${mimeType}]`);
-
-    if (mediaSource.readyState === 'closed') {
-      mediaSource.addEventListener(
-        'sourceopen', this.createSourceBuffers_.bind(this, mimeType, sourceBufferEmitter));
-    } else {
-      this.createSourceBuffers_(mimeType, sourceBufferEmitter);
-    }
+    // TODO add audio/video to actions on other logs
+    this.logger_ = logger(`SourceUpdater`);
   }
 
-  createSourceBuffers_(mimeType, sourceBufferEmitter) {
-    const codecs = parseMimeTypes(mimeType) || ['avc1.4d400d', 'mp4a.40.2'];
+  ready() {
+    return this.audioBuffer || this.videoBuffer;
+  }
+
+  createSourceBuffers(codecs) {
+    if (this.ready()) {
+      // already created them before
+      return;
+    }
+
+    if (this.mediaSource.readyState === 'closed') {
+      this.mediaSource.addEventListener(
+        'sourceopen', this.createSourceBuffers.bind(this, mimeType));
+      return;
+    }
 
     if (codecs.audio) {
+      // default
+      let audioCodec = 'mp4a.40.2';
+
+      if (codecs.audio.mimeType) {
+        let parsed = parseMimeTypes(codecs.audio.mimeType);
+
+        if (parsed && parsed.audio) {
+          audioCodec = parsed.audio;
+        }
+      }
+
       this.audioBuffer = this.mediaSource.addSourceBuffer(
-        `audio/mp4;codecs="${codecs.audio}"`);
+        `audio/mp4;codecs="${audioCodec}"`);
     }
+
     if (codecs.video) {
+      // default
+      let videoCodec = 'avc1.4d400d';
+
+      if (codecs.video.mimeType) {
+        let parsed = parseMimeTypes(codecs.video.mimeType);
+
+        if (parsed && parsed.video) {
+          videoCodec = parsed.video;
+        }
+      }
+
       this.videoBuffer = this.mediaSource.addSourceBuffer(
-        `video/mp4;codecs="${codecs.video}"`);
+        `video/mp4;codecs="${videoCodec}"`);
     }
 
     this.logger_('created SourceBuffer');
-
-    if (sourceBufferEmitter) {
-      sourceBufferEmitter.trigger('sourcebufferadded');
-
-      if (this.mediaSource.sourceBuffers.length < 2) {
-        // There's another source buffer we must wait for before we can start updating
-        // our own (or else we can get into a bad state, i.e., appending video/audio data
-        // before the other video/audio source buffer is available and leading to a video
-        // or audio only buffer).
-        sourceBufferEmitter.on('sourcebufferadded', () => {
-          this.start_();
-        });
-        return;
-      }
-    }
-
     this.start_();
   }
 
@@ -246,19 +256,31 @@ export default class SourceUpdater {
    * @param {Number} end where to end the removal
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-remove-void-double-start-unrestricted-double-end
    */
-  remove(start, end) {
-    if (this.processedAppend_) {
-      this.queueCallback_(() => {
-        this.logger_(`remove [${start} => ${end}]`);
-
-        if (this.audioBuffer) {
-          this.audioBuffer.remove(start, end);
-        }
-        if (this.videoBuffer) {
-          this.videoBuffer.remove(start, end);
-        }
-      }, noop);
+  removeAudio(start, end) {
+    if (!this.processedAppend_) {
+      return;
     }
+
+    this.queueCallback_(() => {
+      this.audioBuffer.remove(start, end);
+    }, noop);
+  }
+
+  /**
+   * Queue an update to remove a time range from the buffer.
+   *
+   * @param {Number} start where to start the removal
+   * @param {Number} end where to end the removal
+   * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-remove-void-double-start-unrestricted-double-end
+   */
+  removeVideo(start, end) {
+    if (!this.processedAppend_) {
+      return;
+    }
+
+    this.queueCallback_(() => {
+      this.videoBuffer.remove(start, end);
+    }, noop);
   }
 
   /**
@@ -267,13 +289,16 @@ export default class SourceUpdater {
    * @return {Boolean} the updating status of the SourceBuffer
    */
   updating() {
-    return
-      (!this.audioBuffer ||
-       this.audioBuffer.updating ||
-       this.pendingCallback_) ||
-      (!this.videoBuffer ||
-       this.videoBuffer.updating ||
-       this.pendingCallback_);
+    if (this.audioBuffer && this.audioBuffer.updating) {
+      return true;
+    }
+    if (this.videoBuffer && this.videoBuffer.updating) {
+      return true;
+    }
+    if (this.pendingCallback_) {
+      return true;
+    }
+    return false
   }
 
   /**

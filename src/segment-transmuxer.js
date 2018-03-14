@@ -1,12 +1,17 @@
 export const transmux = ({ transmuxer, segmentInfo, callback }) => {
-  const buffer = [];
+  const transmuxedData = {
+    buffer: []
+  };
   const handleMessage = (event) => {
     if (event.data.action === 'data') {
-      handleData_(event, buffer);
+      handleData_(event, transmuxedData);
     }
     if (event.data.action === 'done') {
-      handleDone_(event, buffer, callback);
+      handleDone_(event, transmuxedData, callback);
       transmuxer.removeEventListener('message', handleMessage);
+    }
+    if (event.data.action === 'trackinfo') {
+      handleTrackInfo_(event, transmuxedData);
     }
   };
 
@@ -31,7 +36,7 @@ export const transmux = ({ transmuxer, segmentInfo, callback }) => {
   transmuxer.postMessage({ action: 'flush' });
 };
 
-export const handleData_ = (event, buffer) => {
+export const handleData_ = (event, transmuxedData) => {
   const segment = event.data.segment;
 
   // cast ArrayBuffer to TypedArray
@@ -47,10 +52,10 @@ export const handleData_ = (event, buffer) => {
     segment.initSegment.byteLength
   );
 
-  buffer.push(segment);
+  transmuxedData.buffer.push(segment);
 };
 
-export const handleDone_ = (event, buffer, callback) => {
+export const handleDone_ = (event, transmuxedData, callback) => {
   // all buffers should have been flushed from the muxer, so start processing anything we
   // have received
   let sortedSegments = {
@@ -63,12 +68,13 @@ export const handleDone_ = (event, buffer, callback) => {
       bytes: 0
     },
     captions: [],
-    metadata: []
+    metadata: [],
+    trackInfo: transmuxedData.trackInfo
   };
 
   // Sort segments into separate video/audio arrays and
   // keep track of their total byte lengths
-  sortedSegments = buffer.reduce((segmentObj, segment) => {
+  sortedSegments = transmuxedData.buffer.reduce((segmentObj, segment) => {
     const type = segment.type;
     const data = segment.data;
     const initSegment = segment.initSegment;
@@ -96,4 +102,8 @@ export const handleDone_ = (event, buffer, callback) => {
   }, sortedSegments);
 
   callback(null, sortedSegments);
+};
+
+export const handleTrackInfo_ = (event, transmuxedData) => {
+  transmuxedData.trackInfo = event.data.trackInfo;
 };

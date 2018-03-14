@@ -6,6 +6,7 @@ import PlaylistLoader from './playlist-loader';
 import DashPlaylistLoader from './dash-playlist-loader';
 import { isEnabled, isLowestEnabledRendition } from './playlist.js';
 import SegmentLoader from './segment-loader';
+import SourceUpdater from './source-updater';
 import VTTSegmentLoader from './vtt-segment-loader';
 import * as Ranges from './ranges';
 import videojs from 'video.js';
@@ -119,6 +120,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     }, false).track;
 
     this.decrypter_ = worker(Decrypter, workerResolve());
+    this.sourceUpdater_ = new SourceUpdater(this.mediaSource);
 
     const segmentLoaderSettings = {
       hls: this.hls_,
@@ -132,7 +134,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       bandwidth,
       syncController: this.syncController_,
       decrypter: this.decrypter_,
-      sourceType: this.sourceType_
+      sourceType: this.sourceType_,
+      sourceUpdater: this.sourceUpdater_
     };
 
     this.masterPlaylistLoader_ = this.sourceType_ === 'dash' ?
@@ -996,35 +999,35 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return this.mediaSource.endOfStream('decode');
     }
 
-    this.configureLoaderMimeTypes_(mimeTypes);
+    this.tryCreatingSourceBuffers_(mimeTypes);
     // exclude any incompatible variant streams from future playlist
     // selection
     this.excludeIncompatibleVariants_(media);
   }
 
-  configureLoaderMimeTypes_(mimeTypes) {
-    // If the content is demuxed, we can't start appending segments to a source buffer
-    // until both source buffers are set up, or else the browser may not let us add the
-    // second source buffer (it will assume we are playing either audio only or video
-    // only).
-    const sourceBufferEmitter =
-      // If there is more than one mime type
+  tryCreatingSourceBuffers_(mimeTypes) {
+    // check the case where the manifest provided enough information for us to determine
+    // that the content is demuxed
+    if (
+      // if there is more than one mime type
       mimeTypes.length > 1 &&
       // and the first mime type does not have muxed video and audio
       mimeTypes[0].indexOf(',') === -1 &&
       // and the two mime types are different (they can be the same in the case of audio
       // only with alternate audio)
-      mimeTypes[0] !== mimeTypes[1] ?
-        // then we want to wait on the second source buffer
-        new videojs.EventTarget() :
-        // otherwise there is no need to wait as the content is either audio only,
-        // video only, or muxed content.
-        null;
-
-    this.mainSegmentLoader_.mimeType(mimeTypes[0], sourceBufferEmitter);
-    if (mimeTypes[1]) {
-      this.audioSegmentLoader_.mimeType(mimeTypes[1], sourceBufferEmitter);
+      mimeTypes[0] !== mimeTypes[1]) {
+      this.sourceUpdater_.createSourceBuffers({
+        audio: {
+          mimeType: mimeTypes[1]
+        },
+        video: {
+          mimeType: mimeTypes[0]
+        }
+      });
+      return;
     }
+
+    // otherwise the loader must wait for the PMT
   }
 
   /**
