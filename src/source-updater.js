@@ -23,10 +23,6 @@ export default class SourceUpdater {
     this.pendingCallback_ = null;
     this.timestampOffset_ = 0;
     this.mediaSource = mediaSource;
-    // TODO this may no longer be necessary now that we no longer use virtual source
-    // buffers: see videojs-contrib-hls PR #1089
-    this.processedAppend_ = false;
-    // TODO add audio/video to actions on other logs
     this.logger_ = logger(`SourceUpdater`);
   }
 
@@ -92,7 +88,15 @@ export default class SourceUpdater {
 
       this.pendingCallback_ = null;
 
-      this.logger_(`buffered [${printableRange(this.buffered())}]`);
+      if (this.audioBuffer && this.videoBuffer) {
+        this.logger_(`buffered intersection [${printableRange(this.buffered())}]`);
+      }
+      if (this.audioBuffer) {
+        this.logger_(`buffered audio [${printableRange(this.audioBuffer.buffered)}]`);
+      }
+      if (this.videoBuffer) {
+        this.logger_(`buffered video [${printableRange(this.videoBuffer.buffered)}]`);
+      }
 
       if (pendingCallback) {
         pendingCallback();
@@ -112,33 +116,13 @@ export default class SourceUpdater {
   }
 
   /**
-   * Aborts the current segment and resets the segment parser.
-   *
-   * @param {Function} done function to call when done
-   * @see http://w3c.github.io/media-source/#widl-SourceBuffer-abort-void
-   */
-  abort(done) {
-    if (this.processedAppend_) {
-      this.queueCallback_(() => {
-        if (this.audioBuffer) {
-          this.audioBuffer.abort();
-        }
-        if (this.videoBuffer) {
-          this.videoBuffer.abort();
-        }
-      }, done);
-    }
-  }
-
-  /**
    * Queue an update to append an ArrayBuffer.
    *
-   * @param {ArrayBuffer} bytes (TODO)
+   * @param {MediaObject} object containing audioBytes and/or videoBytes
    * @param {Function} done the function to call when done
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-appendBuffer-void-ArrayBuffer-data
    */
   appendBuffer(mediaObject, done) {
-    // TODO eventually we should probably have two source updaters, one for audio and one for video
     this.processedAppend_ = true;
     if (mediaObject.audioBytes && mediaObject.videoBytes) {
       this.queueCallback_(() => {
@@ -257,7 +241,7 @@ export default class SourceUpdater {
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-remove-void-double-start-unrestricted-double-end
    */
   removeAudio(start, end) {
-    if (!this.processedAppend_) {
+    if (!this.audioBuffer) {
       return;
     }
 
@@ -274,7 +258,7 @@ export default class SourceUpdater {
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-remove-void-double-start-unrestricted-double-end
    */
   removeVideo(start, end) {
-    if (!this.processedAppend_) {
+    if (!this.videoBuffer) {
       return;
     }
 
