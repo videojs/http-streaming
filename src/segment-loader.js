@@ -1240,18 +1240,9 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    // TODO
-    // createTextTracksIfNecessary(this, this.mediaSource_, segment);
-
-    // trigger for outside listeners, TODO are they being used?
-    /*
-    if (result.audio && result.audio.info) {
-      this.mediaSource_.trigger({type: 'audioinfo', info: result.audio.info});
-    }
-    if (result.video && result.video.info) {
-      this.mediaSource_.trigger({type: 'videoinfo', info: result.video.info});
-    }
-    */
+    // TODO first this should be somewhere else
+    //      handle removes
+    // createTextTracksIfNecessary(inbandTextTracks, this.hls_.tech_, result);
 
     let videoBytes;
     let audioBytes;
@@ -1264,8 +1255,10 @@ export default class SegmentLoader extends videojs.EventTarget {
       videoBytes = concatSegments(result.video);
     }
 
-    // TODO: are video tracks the only ones with text tracks?
-    // addTextTrackData(this, result.captions, result.metadata);
+    // TODO: handle muxed/demuxed/audio disabled
+    // if (!this.audioDisabled_) {
+    //   addTextTrackData(this, result.captions, result.metadata);
+    // }
 
     if (!this.audioDisabled_ && result.audio.bytes) {
       if (this.appendAudioInitSegment_) {

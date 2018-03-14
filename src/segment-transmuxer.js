@@ -1,3 +1,5 @@
+import videojs from 'video.js';
+
 export const transmux = ({ transmuxer, segmentInfo, callback }) => {
   const transmuxedData = {
     buffer: []
@@ -69,7 +71,8 @@ export const handleDone_ = (event, transmuxedData, callback) => {
     },
     captions: [],
     metadata: [],
-    trackInfo: transmuxedData.trackInfo
+    trackInfo: transmuxedData.trackInfo,
+    captionStreams: {}
   };
 
   // Sort segments into separate video/audio arrays and
@@ -96,6 +99,11 @@ export const handleDone_ = (event, transmuxedData, callback) => {
     // Gather any metadata into a single array
     if (segment.metadata) {
       segmentObj.metadata = segmentObj.metadata.concat(segment.metadata);
+    }
+
+    if (segment.captionStreams) {
+      segmentObj.captionStreams = videojs.mergeOptions(
+        segmentObj.captionStreams, segment.captionStreams);
     }
 
     return segmentObj;
