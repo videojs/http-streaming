@@ -550,8 +550,8 @@ export default class SegmentLoader extends videojs.EventTarget {
   resetEverything() {
     this.ended_ = false;
     this.resetLoader();
+    this.transmuxer_.postMessage({ action: 'resetCaptions' });
     this.remove(0, this.duration_());
-    this.trigger('reseteverything');
   }
 
   /**
@@ -691,6 +691,7 @@ export default class SegmentLoader extends videojs.EventTarget {
         ((segmentInfo.startOfSegment !== null) &&
         segmentInfo.startOfSegment < this.sourceUpdater_.timestampOffset())) {
       this.syncController_.reset();
+      this.appendAudioInitSegment_ = true;
       segmentInfo.timestampOffset = segmentInfo.startOfSegment;
     }
 

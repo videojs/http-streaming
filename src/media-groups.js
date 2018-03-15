@@ -736,6 +736,8 @@ export const setupMediaGroups = (settings) => {
   mediaTypes.AUDIO.onTrackChanged();
 
   masterPlaylistLoader.on('mediachange', () => {
+    mainSegmentLoader.appendAudioInitSegment_ = true;
+    audioSegmentLoader.appendAudioInitSegment_ = true;
     ['AUDIO', 'SUBTITLES'].forEach(type => mediaTypes[type].onGroupChanged());
   });
 
