@@ -144,6 +144,14 @@ export default class SourceUpdater {
     }, done);
   }
 
+  audioBuffered() {
+    return this.audioBuffer && this.audioBuffer.buffered;
+  }
+
+  videoBuffered() {
+    return this.videoBuffer && this.videoBuffer.buffered;
+  }
+
   /**
    * Indicates what TimeRanges are buffered in the managed SourceBuffer.
    *

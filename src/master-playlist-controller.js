@@ -471,15 +471,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
       this.tech_.trigger('hls-reset');
     });
 
-    this.mainSegmentLoader_.on('segmenttimemapping', (event) => {
-      // If playing an MTS stream in html, a videojs.MediaSource is listening for
-      // hls-segment-time-mapping update its internal mapping of stream to display time
-      this.tech_.trigger({
-        type: 'hls-segment-time-mapping',
-        mapping: event.mapping
-      });
-    });
-
     this.audioSegmentLoader_.on('ended', () => {
       this.onEndOfStream();
     });

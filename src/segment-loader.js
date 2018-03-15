@@ -16,6 +16,7 @@ import { concatSegments } from './util/concat-segments';
 import transmuxWorker from './mse/transmuxer-worker';
 import createTextTracksIfNecessary from './mse/create-text-tracks-if-necessary';
 import { transmux } from './segment-transmuxer';
+import { gopsSafeToAlignWith, removeGopBuffer, updateGopBuffer } from './util/gops';
 
 const { initSegmentId } = BinUtils;
 
@@ -196,6 +197,10 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.pendingSegments_ = [];
     this.audioDisabled_ = false;
     this.appendAudioInitSegment_ = true;
+    // TODO possibly move gopBuffer and timeMapping info to a separate controller
+    this.gopBuffer_ = [];
+    this.timeMapping_ = 0;
+    this.safeAppend_ = videojs.browser.IE_VERSION >= 11;
 
     // Fragmented mp4 playback
     this.activeInitSegmentId_ = null;
@@ -219,7 +224,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       action: 'init',
       options: {
         remux: false,
-        alignGopsAtEnd: videojs.browser.IE_VERSION >= 11
+        alignGopsAtEnd: this.safeAppend_
       }
     });
 
@@ -580,6 +585,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       }
       // TODO better check? - or handle in MPC
       if (this.loaderType_ === 'main') {
+        this.gopBuffer_ = removeGopBuffer(this.gopBuffer_, start, end, this.timeMapping_);
         this.sourceUpdater_.removeVideo(start, end);
       }
     }
@@ -1172,6 +1178,9 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     if (segmentInfo.timestampOffset !== null &&
         segmentInfo.timestampOffset !== this.sourceUpdater_.timestampOffset()) {
+      // reset gop buffer on timestampoffset as this signals a change in timeline
+      this.gopBuffer_.length = 0;
+      this.timeMapping_ = 0;
       this.sourceUpdater_.timestampOffset(segmentInfo.timestampOffset);
       // fired when a timestamp offset is set in HLS (can also identify discontinuities)
       this.trigger('timestampoffset');
@@ -1180,10 +1189,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     const timelineMapping = this.syncController_.mappingForTimeline(segmentInfo.timeline);
 
     if (timelineMapping !== null) {
-      this.trigger({
-        type: 'segmenttimemapping',
-        mapping: timelineMapping
-      });
+      this.timeMapping_ = timelineMapping;
     }
 
     this.state = 'APPENDING';
@@ -1216,11 +1222,23 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    transmux({
+    const transmuxerConfig = {
       segmentInfo,
       transmuxer: this.transmuxer_,
       callback: this.handleTransmuxed_.bind(this, this.pendingSegment_)
-    });
+    };
+    const audioBuffered = this.sourceUpdater_.audioBuffered();
+    const videoBuffered = this.sourceUpdater_.videoBuffered();
+
+    if (audioBuffered && audioBuffered.length) {
+      transmuxerConfig.audioAppendStart = audioBuffered.end(audioBuffered.length - 1);
+    }
+    if (videoBuffered && videoBuffered.length) {
+      transmuxerConfig.gopsToAlignWith = gopsSafeToAlignWith(
+        this.gopBuffer_, this.currentTime_(), this.timeMapping_);
+    }
+
+    transmux(transmuxerConfig);
   }
 
   handleTransmuxed_(err, pendingSegment, result) {
@@ -1233,6 +1251,11 @@ export default class SegmentLoader extends videojs.EventTarget {
         audio: result.trackInfo.hasAudio ? {} : null,
         video: result.trackInfo.hasVideo ? {} : null
       });
+    }
+
+    if (result.gopInfo) {
+      this.gopBuffer_ = updateGopBuffer(
+        this.gopBuffer_, result.gopInfo, this.safeAppend_);
     }
 
     // don't process and append data if the mediaSource is closed

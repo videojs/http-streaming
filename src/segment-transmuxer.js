@@ -1,6 +1,11 @@
 import videojs from 'video.js';
 
-export const transmux = ({ transmuxer, segmentInfo, callback }) => {
+export const transmux = ({
+  transmuxer,
+  segmentInfo,
+  audioAppendStart,
+  gopsToAlignWith,
+  callback }) => {
   const transmuxedData = {
     buffer: []
   };
@@ -15,13 +20,26 @@ export const transmux = ({ transmuxer, segmentInfo, callback }) => {
     if (event.data.action === 'trackinfo') {
       handleTrackInfo_(event, transmuxedData);
     }
+    if (event.data.action === 'gopInfo') {
+      handleGopInfo_(event, transmuxedData);
+    }
   };
 
   transmuxer.addEventListener('message', handleMessage);
 
-  // TODO
-  // - 'setAudioAppendStart',
-  // - 'alignGopsWith',
+  if (audioAppendStart) {
+    transmuxer.postMessage({
+      action: 'setAudioAppendStart',
+      appendStart: audioAppendStart
+    });
+  }
+
+  if (gopsToAlignWith) {
+    transmuxer.postMessage({
+      action: 'alignGopsWith',
+      gopsToAlignWith: gopsToAlignWith
+    });
+  }
 
   transmuxer.postMessage({
     action: 'push',
@@ -72,6 +90,7 @@ export const handleDone_ = (event, transmuxedData, callback) => {
     captions: [],
     metadata: [],
     trackInfo: transmuxedData.trackInfo,
+    gopInfo: transmuxedData.gopInfo,
     captionStreams: {}
   };
 
@@ -114,4 +133,8 @@ export const handleDone_ = (event, transmuxedData, callback) => {
 
 export const handleTrackInfo_ = (event, transmuxedData) => {
   transmuxedData.trackInfo = event.data.trackInfo;
+};
+
+export const handleGopInfo_ = (event, transmuxedData) => {
+  transmuxedData.gopInfo = event.data.gopInfo;
 };
