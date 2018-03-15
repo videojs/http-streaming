@@ -6,18 +6,18 @@ import videojs from 'video.js';
 import work from 'webwackify';
 import Config from './config';
 import window from 'global/window';
-import removeCuesFromTrack from './mse/remove-cues-from-track';
+import removeCuesFromTrack from './util/remove-cues-from-track';
 import BinUtils from './bin-utils';
 import {mediaSegmentRequest, REQUEST_ERRORS} from './media-segment-request';
+import transmuxWorker from './transmuxer-worker';
+import { transmux } from './segment-transmuxer';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
 import logger from './util/logger';
 import { concatSegments } from './util/concat-segments';
-import transmuxWorker from './mse/transmuxer-worker';
-import createTextTracksIfNecessary from './mse/create-text-tracks-if-necessary';
-import { transmux } from './segment-transmuxer';
+import createTextTracksIfNecessary from './util/create-text-tracks-if-necessary';
 import { gopsSafeToAlignWith, removeGopBuffer, updateGopBuffer } from './util/gops';
-import { addTextTrackData } from './mse/add-text-track-data';
+import { addTextTrackData } from './util/add-text-track-data';
 
 const { initSegmentId } = BinUtils;
 
