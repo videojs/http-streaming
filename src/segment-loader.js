@@ -17,6 +17,7 @@ import transmuxWorker from './mse/transmuxer-worker';
 import createTextTracksIfNecessary from './mse/create-text-tracks-if-necessary';
 import { transmux } from './segment-transmuxer';
 import { gopsSafeToAlignWith, removeGopBuffer, updateGopBuffer } from './util/gops';
+import { addTextTrackData } from './mse/add-text-track-data';
 
 const { initSegmentId } = BinUtils;
 
@@ -197,6 +198,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.pendingSegments_ = [];
     this.audioDisabled_ = false;
     this.appendAudioInitSegment_ = true;
+    this.inbandTextTracks_ = {};
     // TODO possibly move gopBuffer and timeMapping info to a separate controller
     this.gopBuffer_ = [];
     this.timeMapping_ = 0;
@@ -589,6 +591,12 @@ export default class SegmentLoader extends videojs.EventTarget {
         this.sourceUpdater_.removeVideo(start, end);
       }
     }
+
+    // remove any captions and ID3 tags
+    for (let track in this.inbandTextTracks_) {
+      removeCuesFromTrack(start, end, this.inbandTextTracks_[track]);
+    }
+
     removeCuesFromTrack(start, end, this.segmentMetadataTrack_);
   }
 
@@ -1263,9 +1271,19 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    // TODO first this should be somewhere else
-    //      handle removes
-    // createTextTracksIfNecessary(inbandTextTracks, this.hls_.tech_, result);
+    // TODO eventually we may want to do this elsewhere so we don't have to pass in the
+    // tech (and can handle removes more gracefully)
+    createTextTracksIfNecessary(this.inbandTextTracks_, this.hls_.tech_, result);
+    // There's potentially an issue where we could double add metadata if there's a
+    // muxed audio/video source with a metadata track, and an alt audio with a metadata
+    // track. However, this probably won't happen, and if it does it can be handled then.
+    addTextTrackData({
+      inbandTextTracks: this.inbandTextTracks_,
+      timestampOffset: this.sourceUpdater_.timestampOffset(),
+      videoDuration: this.duration_(),
+      captionArray: result.captions,
+      metadataArray: result.metadata
+    });
 
     let videoBytes;
     let audioBytes;
@@ -1277,11 +1295,6 @@ export default class SegmentLoader extends videojs.EventTarget {
 
       videoBytes = concatSegments(result.video);
     }
-
-    // TODO: handle muxed/demuxed/audio disabled
-    // if (!this.audioDisabled_) {
-    //   addTextTrackData(this, result.captions, result.metadata);
-    // }
 
     if (!this.audioDisabled_ && result.audio.bytes) {
       if (this.appendAudioInitSegment_) {

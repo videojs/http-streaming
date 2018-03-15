@@ -10,16 +10,11 @@
  * @param {Object} segment the segment that may contain the text track
  * @private
  */
-const createTextTracksIfNecessary = function(inbandTextTracks, tech, segment) {
+const createTextTracksIfNecessary = (inbandTextTracks, tech, segment) => {
   // create an in-band caption track if one is present in the segment
-  if (segment.captions &&
-      segment.captions.length) {
-    if (!inbandTextTracks.inbandTextTracks_) {
-      inbandTextTracks.inbandTextTracks_ = {};
-    }
-
+  if (segment.captions && segment.captions.length) {
     for (let trackId in segment.captionStreams) {
-      if (!inbandTextTracks.inbandTextTracks_[trackId]) {
+      if (!inbandTextTracks[trackId]) {
         tech.trigger({type: 'usage', name: 'hls-608'});
         let track = tech.textTracks().getTrackById(trackId);
 
@@ -27,11 +22,11 @@ const createTextTracksIfNecessary = function(inbandTextTracks, tech, segment) {
           // Resuse an existing track with a CC# id because this was
           // very likely created by videojs-contrib-hls from information
           // in the m3u8 for us to use
-          inbandTextTracks.inbandTextTracks_[trackId] = track;
+          inbandTextTracks[trackId] = track;
         } else {
           // Otherwise, create a track with the default `CC#` label and
           // without a language
-          inbandTextTracks.inbandTextTracks_[trackId] = tech.addRemoteTextTrack({
+          inbandTextTracks[trackId] = tech.addRemoteTextTrack({
             kind: 'captions',
             id: trackId,
             label: trackId
@@ -41,9 +36,7 @@ const createTextTracksIfNecessary = function(inbandTextTracks, tech, segment) {
     }
   }
 
-  if (segment.metadata &&
-      segment.metadata.length &&
-      !inbandTextTracks.metadataTrack_) {
+  if (segment.metadata && segment.metadata.length && !inbandTextTracks.metadataTrack_) {
     inbandTextTracks.metadataTrack_ = tech.addRemoteTextTrack({
       kind: 'metadata',
       label: 'Timed Metadata'

@@ -54,34 +54,41 @@ export const durationOfVideo = function(duration) {
  * Add text track data to a source handler given the captions and
  * metadata from the buffer.
  *
- * @param {Object} sourceHandler the virtual source buffer
- * @param {Array} captionArray an array of caption data
- * @param {Array} metadataArray an array of meta data
+ * @param {Object}
+ *   @param {Object} inbandTextTracks the inband text tracks
+ *   @param {Number} timestampOffset the timestamp offset of the source buffer
+ *   @param {Number} videoDuration the duration of the video
+ *   @param {Array} captionArray an array of caption data
+ *   @param {Array} metadataArray an array of meta data
  * @private
  */
-export const addTextTrackData = function(sourceHandler, captionArray, metadataArray) {
+export const addTextTrackData = ({
+  inbandTextTracks,
+  timestampOffset,
+  videoDuration,
+  captionArray,
+  metadataArray
+}) => {
   let Cue = window.WebKitDataCue || window.VTTCue;
 
   if (captionArray) {
-    captionArray.forEach(function(caption) {
+    captionArray.forEach((caption) => {
       let track = caption.stream;
 
-      this.inbandTextTracks_[track].addCue(
+      inbandTextTracks[track].addCue(
         new Cue(
-          caption.startTime + this.timestampOffset,
-          caption.endTime + this.timestampOffset,
+          caption.startTime + timestampOffset,
+          caption.endTime + timestampOffset,
           caption.text
         ));
-    }, sourceHandler);
+    });
   }
 
   if (metadataArray) {
-    let videoDuration = durationOfVideo(sourceHandler.mediaSource_.duration);
+    metadataArray.forEach((metadata) => {
+      let time = metadata.cueTime + timestampOffset;
 
-    metadataArray.forEach(function(metadata) {
-      let time = metadata.cueTime + this.timestampOffset;
-
-      metadata.frames.forEach(function(frame) {
+      metadata.frames.forEach((frame) => {
         let cue = new Cue(
           time,
           time,
@@ -91,17 +98,17 @@ export const addTextTrackData = function(sourceHandler, captionArray, metadataAr
         cue.value = frame;
         deprecateOldCue(cue);
 
-        this.metadataTrack_.addCue(cue);
-      }, this);
-    }, sourceHandler);
+        inbandTextTracks.metadataTrack_.addCue(cue);
+      });
+    });
 
     // Updating the metadeta cues so that
     // the endTime of each cue is the startTime of the next cue
     // the endTime of last cue is the duration of the video
-    if (sourceHandler.metadataTrack_ &&
-        sourceHandler.metadataTrack_.cues &&
-        sourceHandler.metadataTrack_.cues.length) {
-      let cues = sourceHandler.metadataTrack_.cues;
+    if (inbandTextTracks.metadataTrack_ &&
+        inbandTextTracks.metadataTrack_.cues &&
+        inbandTextTracks.metadataTrack_.cues.length) {
+      let cues = inbandTextTracks.metadataTrack_.cues;
       let cuesArray = [];
 
       // Create a copy of the TextTrackCueList...
