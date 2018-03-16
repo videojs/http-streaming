@@ -111,7 +111,7 @@ module.exports = function(config) {
       debug: true,
       transform: [
         'babelify',
-        ['browserify-shim', { global: true }],
+        'browserify-global-shim',
         istanbul({
           instrumenter: isparta,
           ignore: ['**/node_modules/**', '**/test/**']
