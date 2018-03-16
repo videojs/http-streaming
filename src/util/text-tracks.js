@@ -41,17 +41,6 @@ const deprecateOldCue = function(cue) {
   });
 };
 
-export const durationOfVideo = function(duration) {
-  let dur;
-
-  if (isNaN(duration) || Math.abs(duration) === Infinity) {
-    dur = Number.MAX_VALUE;
-  } else {
-    dur = duration;
-  }
-  return dur;
-};
-
 /**
  * Add text track data to a source handler given the captions and
  * metadata from the buffer.

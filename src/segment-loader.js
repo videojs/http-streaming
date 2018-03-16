@@ -189,6 +189,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.goalBufferLength_ = settings.goalBufferLength;
     this.sourceType_ = settings.sourceType;
     this.sourceUpdater_ = settings.sourceUpdater;
+    this.inbandTextTracks_ = settings.inbandTextTracks;
     this.state_ = 'INIT';
 
     // private instance variables
@@ -200,7 +201,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.pendingSegments_ = [];
     this.audioDisabled_ = false;
     this.appendAudioInitSegment_ = true;
-    this.inbandTextTracks_ = {};
     // TODO possibly move gopBuffer and timeMapping info to a separate controller
     this.gopBuffer_ = [];
     this.timeMapping_ = 0;
@@ -276,6 +276,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.state = 'DISPOSED';
     this.pause();
     this.abort_();
+    this.transmuxer_.terminate();
     if (this.sourceUpdater_) {
       this.sourceUpdater_.dispose();
     }

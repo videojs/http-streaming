@@ -109,6 +109,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     // load the media source into the player
     this.mediaSource.addEventListener('sourceopen', this.handleSourceOpen_.bind(this));
+    this.mediaSource.addEventListener('sourceended', this.handleSourceEnded_.bind(this));
+    // we don't have to handle sourceclose since dispose will handle termination of
+    // everything, and the MediaSource should not be detached without a proper disposal
 
     this.seekable_ = videojs.createTimeRanges();
     this.hasPlayed_ = () => false;
@@ -121,6 +124,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.decrypter_ = worker(Decrypter, workerResolve());
     this.sourceUpdater_ = new SourceUpdater(this.mediaSource);
+    this.inbandTextTracks_ = {};
 
     const segmentLoaderSettings = {
       hls: this.hls_,
@@ -135,7 +139,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       syncController: this.syncController_,
       decrypter: this.decrypter_,
       sourceType: this.sourceType_,
-      sourceUpdater: this.sourceUpdater_
+      sourceUpdater: this.sourceUpdater_,
+      inbandTextTracks: this.inbandTextTracks_
     };
 
     this.masterPlaylistLoader_ = this.sourceType_ === 'dash' ?
@@ -609,6 +614,23 @@ export class MasterPlaylistController extends videojs.EventTarget {
     }
 
     this.trigger('sourceopen');
+  }
+
+  handleSourceEnded_() {
+    if (!this.inbandTextTracks_.metadataTrack_) {
+      return;
+    }
+
+    const cues = this.inbandTextTracks_.metadataTrack_.cues;
+
+    if (!cues || !cues.length) {
+      return;
+    }
+
+    const duration = this.duration();
+
+    cues[cues.length - 1].endTime = isNaN(duration) || Math.abs(duration) === Infinity ?
+      Number.MAX_VALUE : duration;
   }
 
   /**
