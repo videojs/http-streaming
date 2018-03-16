@@ -8,18 +8,8 @@ import {
   refreshDelay
 } from '../src/playlist-loader';
 import xhrFactory from '../src/xhr';
-import { useFakeEnvironment } from './test-helpers';
+import { useFakeEnvironment, urlTo } from './test-helpers';
 import window from 'global/window';
-
-// Attempts to produce an absolute URL to a given relative path
-// based on window.location.href
-const urlTo = function(path) {
-  return window.location.href
-    .split('/')
-    .slice(0, -1)
-    .concat([path])
-    .join('/');
-};
 
 QUnit.module('Playlist Loader', {
   beforeEach(assert) {
@@ -178,6 +168,8 @@ QUnit.test('updateMaster updates master when new media sequence', function(asser
     }]
   };
 
+  master.playlists[media.uri] = master.playlists[0];
+
   assert.deepEqual(
     updateMaster(master, media),
     {
@@ -233,6 +225,8 @@ QUnit.test('updateMaster retains top level values in master', function(assert) {
       uri: 'segment-0-uri'
     }]
   };
+
+  master.playlists[media.uri] = master.playlists[0];
 
   assert.deepEqual(
     updateMaster(master, media),
@@ -300,6 +294,8 @@ QUnit.test('updateMaster adds new segments to master', function(assert) {
       uri: 'segment-1-uri'
     }]
   };
+
+  master.playlists[media.uri] = master.playlists[0];
 
   assert.deepEqual(
     updateMaster(master, media),
@@ -373,6 +369,8 @@ QUnit.test('updateMaster changes old values', function(assert) {
     }]
   };
 
+  master.playlists[media.uri] = master.playlists[0];
+
   assert.deepEqual(
     updateMaster(master, media),
     {
@@ -432,6 +430,8 @@ QUnit.test('updateMaster retains saved segment values', function(assert) {
       uri: 'segment-1-uri'
     }]
   };
+
+  master.playlists[media.uri] = master.playlists[0];
 
   assert.deepEqual(
     updateMaster(master, media),
@@ -502,6 +502,8 @@ QUnit.test('updateMaster resolves key and map URIs', function(assert) {
       }
     }]
   };
+
+  master.playlists[media.uri] = master.playlists[0];
 
   assert.deepEqual(
     updateMaster(master, media),
