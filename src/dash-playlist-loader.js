@@ -99,6 +99,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
   dispose() {
     this.stopRequest();
+    window.clearTimeout(this.mediaUpdateTimeout);
   }
 
   stopRequest() {
