@@ -8,6 +8,7 @@ import {
   forEachMediaGroup
 } from './playlist-loader';
 import resolveUrl from './resolve-url';
+import window from 'global/window';
 
 /**
  * Returns a new master manifest that is the result of merging an updated master manifest
