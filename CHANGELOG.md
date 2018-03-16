@@ -6,6 +6,9 @@ CHANGELOG
 _(none)_
 
 --------------------
+## 0.7.0
+* feat: Live support for DASH
+
 ## 0.6.1
 * use webwackify for webworkers to support webpack bundle ([#50](https://github.com/videojs/http-streaming/pull/45))
 
