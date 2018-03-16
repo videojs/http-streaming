@@ -8,6 +8,7 @@ import {
   forEachMediaGroup
 } from './playlist-loader';
 import resolveUrl from './resolve-url';
+import window from 'global/window';
 
 /**
  * Returns a new master manifest that is the result of merging an updated master manifest
@@ -92,7 +93,7 @@ export default class DashPlaylistLoader extends EventTarget {
     // we only should have one playlist so select it
     this.media(srcUrlOrPlaylist);
     // trigger async to mimic behavior of HLS, where it must request a playlist
-    setTimeout(() => {
+    window.setTimeout(() => {
       this.trigger('loadedmetadata');
     }, 0);
   }
@@ -339,7 +340,7 @@ export default class DashPlaylistLoader extends EventTarget {
     }
     // trigger loadedmetadata to resolve setup of media groups
     // trigger async to mimic behavior of HLS, where it must request a playlist
-    setTimeout(() => {
+    window.setTimeout(() => {
       this.trigger('loadedmetadata');
     }, 0);
 
@@ -350,7 +351,7 @@ export default class DashPlaylistLoader extends EventTarget {
     // would be to update the manifest at the same rate that the media playlists
     // are "refreshed", i.e. every targetDuration.
     if (this.master.minimumUpdatePeriod) {
-      setTimeout(() => {
+      window.setTimeout(() => {
         this.trigger('minimumUpdatePeriod');
       }, this.master.minimumUpdatePeriod);
     }
@@ -393,7 +394,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
       this.master = updateMaster(this.master, newMaster);
 
-      setTimeout(() => {
+      window.setTimeout(() => {
         this.trigger('minimumUpdatePeriod');
       }, this.master.minimumUpdatePeriod);
     });
@@ -430,7 +431,7 @@ export default class DashPlaylistLoader extends EventTarget {
     }
 
     if (!this.media().endList) {
-      this.mediaUpdateTimeout = setTimeout(()=> {
+      this.mediaUpdateTimeout = window.setTimeout(()=> {
         this.trigger('mediaupdatetimeout');
       }, refreshDelay(this.media(), !!updatedMaster));
     }
