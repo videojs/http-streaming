@@ -8,7 +8,7 @@ import Config from './config';
 import window from 'global/window';
 import BinUtils from './bin-utils';
 import { mediaSegmentRequest, REQUEST_ERRORS } from './media-segment-request';
-import transmuxWorker from './transmuxer-worker';
+import transmuxerWorker from './transmuxer-worker';
 import { transmux } from './segment-transmuxer';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
@@ -223,14 +223,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // append muxed segments to their respective native buffers as
     // soon as they are available
-    this.transmuxer_ = work(transmuxWorker, workerResolve());
-    this.transmuxer_.postMessage({
-      action: 'init',
-      options: {
-        remux: false,
-        alignGopsAtEnd: this.safeAppend_
-      }
-    });
+    this.transmuxer_ = this.createTransmuxer_();
 
     this.syncController_.on('syncinfoupdate', () => this.trigger('syncinfoupdate'));
 
@@ -252,6 +245,20 @@ export default class SegmentLoader extends videojs.EventTarget {
         }
       }
     });
+  }
+
+  createTransmuxer_() {
+    const transmuxer = work(transmuxerWorker, workerResolve());
+
+    transmuxer.postMessage({
+      action: 'init',
+      options: {
+        remux: false,
+        alignGopsAtEnd: this.safeAppend_
+      }
+    });
+
+    return transmuxer;
   }
 
   /**
@@ -553,7 +560,9 @@ export default class SegmentLoader extends videojs.EventTarget {
   resetEverything() {
     this.ended_ = false;
     this.resetLoader();
-    this.transmuxer_.postMessage({ action: 'resetCaptions' });
+    if (this.transmuxer_) {
+      this.transmuxer_.postMessage({ action: 'resetCaptions' });
+    }
     this.remove(0, this.duration_());
   }
 

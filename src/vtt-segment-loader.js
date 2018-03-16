@@ -34,6 +34,11 @@ export default class VTTSegmentLoader extends SegmentLoader {
     this.subtitlesTrack_ = null;
   }
 
+  createTransmuxer_() {
+    // don't need to transmux any subtitles
+    return null;
+  }
+
   /**
    * Indicates which time ranges are buffered
    *
