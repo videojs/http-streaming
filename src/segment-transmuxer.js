@@ -23,6 +23,12 @@ export const transmux = ({
     if (event.data.action === 'gopInfo') {
       handleGopInfo_(event, transmuxedData);
     }
+    if (event.data.action === 'audioTimingInfo') {
+      handleAudioTimingInfo_(event, transmuxedData);
+    }
+    if (event.data.action === 'videoTimingInfo') {
+      handleVideoTimingInfo_(event, transmuxedData);
+    }
   };
 
   transmuxer.addEventListener('message', handleMessage);
@@ -91,6 +97,7 @@ export const handleDone_ = (event, transmuxedData, callback) => {
     metadata: [],
     trackInfo: transmuxedData.trackInfo,
     gopInfo: transmuxedData.gopInfo,
+    timingInfo: transmuxedData.videoTimingInfo || transmuxedData.audioTimingInfo,
     captionStreams: {}
   };
 
@@ -128,7 +135,7 @@ export const handleDone_ = (event, transmuxedData, callback) => {
     return segmentObj;
   }, sortedSegments);
 
-  callback(null, sortedSegments);
+  callback(sortedSegments);
 };
 
 export const handleTrackInfo_ = (event, transmuxedData) => {
@@ -137,4 +144,12 @@ export const handleTrackInfo_ = (event, transmuxedData) => {
 
 export const handleGopInfo_ = (event, transmuxedData) => {
   transmuxedData.gopInfo = event.data.gopInfo;
+};
+
+export const handleAudioTimingInfo_ = (event, transmuxedData) => {
+  transmuxedData.audioTimingInfo = event.data.audioTimingInfo;
+};
+
+export const handleVideoTimingInfo_ = (event, transmuxedData) => {
+  transmuxedData.videoTimingInfo = event.data.videoTimingInfo;
 };

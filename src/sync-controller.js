@@ -375,64 +375,19 @@ export default class SyncController extends videojs.EventTarget {
     this.inspectCache_ = undefined;
   }
 
-  /**
-   * Probe or inspect a fmp4 or an mpeg2-ts segment to determine the start
-   * and end of the segment in it's internal "media time". Used to generate
-   * mappings from that internal "media time" to the display time that is
-   * shown on the player.
-   *
-   * @param {SegmentInfo} segmentInfo - The current active request information
-   */
-  probeSegmentInfo(segmentInfo) {
-    const segment = segmentInfo.segment;
-    const playlist = segmentInfo.playlist;
-    let timingInfo;
+  saveSegmentTimingInfo(segmentInfo, timingInfo) {
+    if (this.calculateSegmentTimeMapping_(segmentInfo, segmentInfo.timingInfo)) {
+      this.saveDiscontinuitySyncInfo_(segmentInfo);
 
-    if (segment.map) {
-      timingInfo = this.probeMp4Segment_(segmentInfo);
-    } else {
-      timingInfo = this.probeTsSegment_(segmentInfo);
-    }
-
-    if (timingInfo) {
-      if (this.calculateSegmentTimeMapping_(segmentInfo, timingInfo)) {
-        this.saveDiscontinuitySyncInfo_(segmentInfo);
-
-        // If the playlist does not have sync information yet, record that information
-        // now with segment timing information
-        if (!playlist.syncInfo) {
-          playlist.syncInfo = {
-            mediaSequence: playlist.mediaSequence + segmentInfo.mediaIndex,
-            time: segment.start
-          };
-        }
+      // If the playlist does not have sync information yet, record that information
+      // now with segment timing information
+      if (!segmentInfo.playlist.syncInfo) {
+        segmentInfo.playlist.syncInfo = {
+          mediaSequence: segmentInfo.playlist.mediaSequence + segmentInfo.mediaIndex,
+          time: segmentInfo.segment.start
+        };
       }
     }
-
-    return timingInfo;
-  }
-
-  /**
-   * Probe an fmp4 or an mpeg2-ts segment to determine the start of the segment
-   * in it's internal "media time".
-   *
-   * @private
-   * @param {SegmentInfo} segmentInfo - The current active request information
-   * @return {object} The start and end time of the current segment in "media time"
-   */
-  probeMp4Segment_(segmentInfo) {
-    let segment = segmentInfo.segment;
-    let timescales = mp4probe.timescale(segment.map.bytes);
-    let startTime = mp4probe.startTime(timescales, segmentInfo.bytes);
-
-    if (segmentInfo.timestampOffset !== null) {
-      segmentInfo.timestampOffset -= startTime;
-    }
-
-    return {
-      start: startTime,
-      end: startTime + segment.duration
-    };
   }
 
   /**

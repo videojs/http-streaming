@@ -70,6 +70,26 @@ const wireTransmuxerEvents = function(transmuxer) {
   transmuxer.on('trackinfo', function(trackInfo) {
     window.postMessage({ action: 'trackinfo', trackInfo });
   });
+
+  transmuxer.on('audioTimingInfo', function(audioTimingInfo) {
+    window.postMessage({
+      action: 'audioTimingInfo',
+      audioTimingInfo: {
+        start: audioTimingInfo.start / 90000,
+        end: audioTimingInfo.end / 90000,
+      }
+    });
+  });
+
+  transmuxer.on('videoTimingInfo', function(videoTimingInfo) {
+    window.postMessage({
+      action: 'videoTimingInfo',
+      videoTimingInfo: {
+        start: videoTimingInfo.start / 90000,
+        end: videoTimingInfo.end / 90000,
+      }
+    });
+  });
 };
 
 /**

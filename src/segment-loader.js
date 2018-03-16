@@ -13,7 +13,7 @@ import { transmux } from './segment-transmuxer';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
 import logger from './util/logger';
-import { concatSegments } from './util/concat-segments';
+import { concatSegments, probeMp4Segment } from './util/segment';
 import {
   addTextTrackData,
   createTextTracksIfNecessary,
@@ -283,7 +283,9 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.state = 'DISPOSED';
     this.pause();
     this.abort_();
-    this.transmuxer_.terminate();
+    if (this.transmuxer) {
+      this.transmuxer_.terminate();
+    }
     if (this.sourceUpdater_) {
       this.sourceUpdater_.dispose();
     }
@@ -1162,39 +1164,13 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     const segmentInfo = this.pendingSegment_;
     const segment = segmentInfo.segment;
-    const timingInfo = this.syncController_.probeSegmentInfo(segmentInfo);
 
-    // When we have our first timing info, determine what media types this loader is
-    // dealing with. Although we're maintaining extra state, it helps to preserve the
-    // separation of segment loader from the actual source buffers.
-    if (typeof this.startingMedia_ === 'undefined' &&
-        timingInfo &&
-        // Guard against cases where we're not getting timing info at all until we are
-        // certain that all streams will provide it.
-        (timingInfo.containsAudio || timingInfo.containsVideo)) {
-      this.startingMedia_ = {
-        containsAudio: timingInfo.containsAudio,
-        containsVideo: timingInfo.containsVideo
-      };
-    }
+    if (segment.map) {
+      segmentInfo.timingInfo = probeMp4Segment(segmentInfo);
 
-    const illegalMediaSwitchError =
-      illegalMediaSwitch(this.loaderType_, this.startingMedia_, timingInfo);
-
-    if (illegalMediaSwitchError) {
-      this.error({
-        message: illegalMediaSwitchError,
-        blacklistDuration: Infinity
-      });
-      this.trigger('error');
-      return;
-    }
-
-    if (segmentInfo.isSyncRequest) {
-      this.trigger('syncinfoupdate');
-      this.pendingSegment_ = null;
-      this.state = 'READY';
-      return;
+      if (segmentInfo.timestampOffset !== null) {
+        segmentInfo.timestampOffset -= segmentInfo.timingInfo.start;
+      }
     }
 
     if (segmentInfo.timestampOffset !== null &&
@@ -1202,7 +1178,17 @@ export default class SegmentLoader extends videojs.EventTarget {
       // reset gop buffer on timestampoffset as this signals a change in timeline
       this.gopBuffer_.length = 0;
       this.timeMapping_ = 0;
-      this.sourceUpdater_.timestampOffset(segmentInfo.timestampOffset);
+      if (segment.map) {
+        // fmp4
+        this.sourceUpdater_.timestampOffset(segmentInfo.timestampOffset);
+      } else {
+        // ts
+        // TODO we should consider using native source buffer timestamp offsets only
+        this.transmuxer_.postMessage({
+          action: 'setTimestampOffset',
+          timestampOffset: segmentInfo.timestampOffset
+        });
+      }
       // fired when a timestamp offset is set in HLS (can also identify discontinuities)
       this.trigger('timestampoffset');
     }
@@ -1224,7 +1210,6 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     this.logger_(segmentInfoString(segmentInfo));
 
-
     // if the media initialization segment is changing, append it
     // before the content segment
     if (segment.map) {
@@ -1239,14 +1224,14 @@ export default class SegmentLoader extends videojs.EventTarget {
         });
       }
 
-      this.sourceUpdater_.appendBuffer(segment.bytes, this.handleUpdateEnd_.bind(this));
+      this.appendSegment_(segmentInfo);
       return;
     }
 
     const transmuxerConfig = {
       segmentInfo,
       transmuxer: this.transmuxer_,
-      callback: this.handleTransmuxed_.bind(this, this.pendingSegment_)
+      callback: this.handleTransmuxed_.bind(this)
     };
     const audioBuffered = this.sourceUpdater_.audioBuffered();
     const videoBuffered = this.sourceUpdater_.videoBuffered();
@@ -1262,10 +1247,13 @@ export default class SegmentLoader extends videojs.EventTarget {
     transmux(transmuxerConfig);
   }
 
-  handleTransmuxed_(err, pendingSegment, result) {
-    if (!this.pendingSegment_ || this.pendingSegment_ !== pendingSegment) {
-      // we're no longer dealing with this segment
+  handleTransmuxed_(result) {
+    if (!this.pendingSegment_) {
+      this.state = 'READY';
+      return;
     }
+
+    const segmentInfo = this.pendingSegment_;
 
     if (result.trackInfo) {
       this.sourceUpdater_.createSourceBuffers({
@@ -1284,6 +1272,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
+    segmentInfo.timingInfo = result.timingInfo;
+
     // TODO eventually we may want to do this elsewhere so we don't have to pass in the
     // tech (and can handle removes more gracefully)
     createTextTracksIfNecessary(this.inbandTextTracks_, this.hls_.tech_, result);
@@ -1298,15 +1288,12 @@ export default class SegmentLoader extends videojs.EventTarget {
       metadataArray: result.metadata
     });
 
-    let videoBytes;
-    let audioBytes;
-
     // Merge multiple video and audio segments into one and append
     if (result.video.bytes) {
       result.video.segments.unshift(result.video.initSegment);
       result.video.bytes += result.video.initSegment.byteLength;
 
-      videoBytes = concatSegments(result.video);
+      segmentInfo.videoBytes = concatSegments(result.video);
     }
 
     if (!this.audioDisabled_ && result.audio.bytes) {
@@ -1316,11 +1303,64 @@ export default class SegmentLoader extends videojs.EventTarget {
         this.appendAudioInitSegment_ = false;
       }
 
-      audioBytes = concatSegments(result.audio);
+      segmentInfo.audioBytes = concatSegments(result.audio);
     }
 
-    this.sourceUpdater_.appendBuffer(
-      { videoBytes, audioBytes }, this.handleUpdateEnd_.bind(this));
+    this.appendSegment_(segmentInfo);
+  }
+
+  appendSegment_(segmentInfo) {
+    this.syncController_.saveSegmentTimingInfo(segmentInfo);
+
+    // When we have our first timing info, determine what media types this loader is
+    // dealing with. Although we're maintaining extra state, it helps to preserve the
+    // separation of segment loader from the actual source buffers.
+    if (typeof this.startingMedia_ === 'undefined' &&
+        segmentInfo.timingInfo &&
+        // Guard against cases where we're not getting timing info at all until we are
+        // certain that all streams will provide it.
+        (segmentInfo.timingInfo.containsAudio || segmentInfo.timingInfo.containsVideo)) {
+      this.startingMedia_ = {
+        containsAudio: segmentInfo.timingInfo.containsAudio,
+        containsVideo: segmentInfo.timingInfo.containsVideo
+      };
+    }
+
+    const illegalMediaSwitchError =
+      illegalMediaSwitch(this.loaderType_, this.startingMedia_, segmentInfo.timingInfo);
+
+    if (illegalMediaSwitchError) {
+      this.error({
+        message: illegalMediaSwitchError,
+        blacklistDuration: Infinity
+      });
+      this.trigger('error');
+      return;
+    }
+
+    // TODO right now we do a full transmux for a sync request. This can just be probed
+    // instead.
+    if (segmentInfo.isSyncRequest) {
+      this.trigger('syncinfoupdate');
+      this.pendingSegment_ = null;
+      this.state = 'READY';
+      return;
+    }
+
+    if (!segmentInfo.videoBytes && !segmentInfo.audioBytes) {
+      // Assuming fmp4 cases are demuxed. If it is muxed, this will break, but we haven't
+      // seen that case yet. If we do have to handle that case, we have to write an fmp4
+      // splitter for separating audio and video bytes (so that we can drop muxed audio
+      // bytes in the case where alternate audio is selected).
+
+      segmentInfo[this.loaderType === 'main' ? 'videoBytes' : 'audioBytes'] =
+        segmentInfo.segment.bytes;
+    }
+
+    this.sourceUpdater_.appendBuffer({
+      videoBytes: segmentInfo.videoBytes,
+      audioBytes: segmentInfo.audioBytes
+    }, this.handleUpdateEnd_.bind(this));
   }
 
   /**
