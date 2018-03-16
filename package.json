@@ -79,14 +79,8 @@
     ]
   },
   "files": [
-    "CONTRIBUTING.md",
     "dist/",
-    "docs/",
-    "es5/",
-    "index.html",
-    "scripts/",
-    "src/",
-    "test/"
+    "es5/"
   ],
   "dependencies": {
     "aes-decrypter": "1.0.3",
