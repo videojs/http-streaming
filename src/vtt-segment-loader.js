@@ -4,7 +4,7 @@
 import SegmentLoader from './segment-loader';
 import videojs from 'video.js';
 import window from 'global/window';
-import removeCuesFromTrack from './util/remove-cues-from-track';
+import { removeCuesFromTrack } from './util/text-tracks';
 import BinUtils from './bin-utils';
 
 const { initSegmentId } = BinUtils;

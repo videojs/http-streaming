@@ -1,8 +1,9 @@
 /**
- * @file add-text-track-data.js
+ * @file text-tracks.js
  */
 import window from 'global/window';
 import videojs from 'video.js';
+
 /**
  * Define properties on a cue for backwards compatability,
  * but warn the user that the way that they are using it
@@ -50,6 +51,7 @@ export const durationOfVideo = function(duration) {
   }
   return dur;
 };
+
 /**
  * Add text track data to a source handler given the captions and
  * metadata from the buffer.
@@ -143,6 +145,82 @@ export const addTextTrackData = ({
           cue.endTime = nextTime;
         });
       });
+    }
+  }
+};
+
+/**
+ * Create text tracks on video.js if they exist on a segment.
+ *
+ * @param {Object} inbandTextTracks a reference to current inbandTextTracks
+ * @param {Object} mediaSource the HTML media source
+ * @param {Object} segment the segment that may contain the text track
+ * @private
+ */
+export const createTextTracksIfNecessary = (inbandTextTracks, tech, segment) => {
+  // create an in-band caption track if one is present in the segment
+  if (segment.captions && segment.captions.length) {
+    for (let trackId in segment.captionStreams) {
+      if (!inbandTextTracks[trackId]) {
+        tech.trigger({type: 'usage', name: 'hls-608'});
+        let track = tech.textTracks().getTrackById(trackId);
+
+        if (track) {
+          // Resuse an existing track with a CC# id because this was
+          // very likely created by videojs-contrib-hls from information
+          // in the m3u8 for us to use
+          inbandTextTracks[trackId] = track;
+        } else {
+          // Otherwise, create a track with the default `CC#` label and
+          // without a language
+          inbandTextTracks[trackId] = tech.addRemoteTextTrack({
+            kind: 'captions',
+            id: trackId,
+            label: trackId
+          }, false).track;
+        }
+      }
+    }
+  }
+
+  if (segment.metadata && segment.metadata.length && !inbandTextTracks.metadataTrack_) {
+    inbandTextTracks.metadataTrack_ = tech.addRemoteTextTrack({
+      kind: 'metadata',
+      label: 'Timed Metadata'
+    }, false).track;
+    inbandTextTracks.metadataTrack_.inBandMetadataTrackDispatchType =
+      segment.metadata.dispatchType;
+  }
+};
+
+/**
+ * Remove cues from a track on video.js.
+ *
+ * @param {Double} start start of where we should remove the cue
+ * @param {Double} end end of where the we should remove the cue
+ * @param {Object} track the text track to remove the cues from
+ * @private
+ */
+export const removeCuesFromTrack = function(start, end, track) {
+  let i;
+  let cue;
+
+  if (!track) {
+    return;
+  }
+
+  if (!track.cues) {
+    return;
+  }
+
+  i = track.cues.length;
+
+  while (i--) {
+    cue = track.cues[i];
+
+    // Remove any overlapping cue
+    if (cue.startTime <= end && cue.endTime >= start) {
+      track.removeCue(cue);
     }
   }
 };
