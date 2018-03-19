@@ -1217,7 +1217,31 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (audioBuffered && audioBuffered.length) {
       transmuxerConfig.audioAppendStart = audioBuffered.end(audioBuffered.length - 1);
     }
-    if (videoBuffered && videoBuffered.length) {
+
+    let shouldSetTimestampOffset = false;
+
+    if (this.loaderType_ === 'main' &&
+        segmentInfo.timestampOffset !== this.sourceUpdater_.videoTimestampOffset()) {
+      shouldSetTimestampOffset = true;
+    }
+
+    if (!this.audioDisabled_ &&
+        segmentInfo.timestampOffset !== this.sourceUpdater_.audioTimestampOffset()) {
+      shouldSetTimestampOffset = true;
+    }
+
+    if (segmentInfo.timestampOffset !== null && shouldSetTimestampOffset) {
+      // this won't shift the timestamps (since we have keepOriginalTimestamps set to
+      // true), however, the transmuxer needs to know there was a discontinuity
+      this.gopBuffer_.length = 0;
+      this.timeMapping_ = 0;
+      this.transmuxer_.postMessage({
+        action: 'setTimestampOffset',
+        timestampOffset: segmentInfo.timestampOffset
+      });
+    }
+
+    if (videoBuffered) {
       transmuxerConfig.gopsToAlignWith = gopsSafeToAlignWith(
         this.gopBuffer_, this.currentTime_(), this.timeMapping_);
     }

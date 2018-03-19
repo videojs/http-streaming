@@ -280,8 +280,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
         let addSeekableRange = () => {
           let seekable = this.seekable();
 
-          if (seekable.length !== 0) {
-            this.mediaSource.addSeekableRange_(seekable.start(0), seekable.end(0));
+          if (seekable.length !== 0 &&
+              (isNaN(this.mediaSource.duration) ||
+                seekable.end(0) > this.mediaSource.duration)) {
+            this.mediaSource.duration = seekable.end(0);
           }
         };
 
