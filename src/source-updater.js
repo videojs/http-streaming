@@ -24,6 +24,8 @@ export default class SourceUpdater {
     this.timestampOffset_ = 0;
     this.mediaSource = mediaSource;
     this.logger_ = logger(`SourceUpdater`);
+    this.audioTimestampOffset_ = null;
+    this.videoTimestampOffset_ = null;
   }
 
   ready() {
@@ -294,23 +296,37 @@ export default class SourceUpdater {
   }
 
   /**
-   * Set/get the timestampoffset on the SourceBuffer
+   * Set/get the timestampoffset on the audio SourceBuffer
    *
    * @return {Number} the timestamp offset
    */
-  timestampOffset(offset) {
-    if (typeof offset !== 'undefined') {
+  audioTimestampOffset(offset) {
+    if (typeof offset !== 'undefined' && this.audioBuffer) {
       this.queueCallback_(() => {
         if (this.audioBuffer) {
           this.audioBuffer.timestampOffset = offset;
         }
+      });
+      this.audioTimestampOffset_ = offset;
+    }
+    return this.audioTimestampOffset_;
+  }
+
+  /**
+   * Set/get the timestampoffset on the video SourceBuffer
+   *
+   * @return {Number} the timestamp offset
+   */
+  videoTimestampOffset(offset) {
+    if (typeof offset !== 'undefined' && this.videoBuffer) {
+      this.queueCallback_(() => {
         if (this.videoBuffer) {
           this.videoBuffer.timestampOffset = offset;
         }
       });
-      this.timestampOffset_ = offset;
+      this.videoTimestampOffset_ = offset;
     }
-    return this.timestampOffset_;
+    return this.videoTimestampOffset_;
   }
 
   /**

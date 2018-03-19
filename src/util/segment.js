@@ -1,3 +1,5 @@
+import mp4probe from 'mux.js/lib/mp4/probe';
+
 /**
  * Probe an fmp4 segment to determine the start of the segment in it's internal
  * "media time".
