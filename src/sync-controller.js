@@ -2,8 +2,6 @@
  * @file sync-controller.js
  */
 
-import mp4probe from 'mux.js/lib/mp4/probe';
-import {inspect as tsprobe} from 'mux.js/lib/tools/ts-inspector.js';
 import {sumDurations} from './playlist';
 import videojs from 'video.js';
 import logger from './util/logger';
@@ -160,10 +158,6 @@ export const syncPointStrategies = [
 export default class SyncController extends videojs.EventTarget {
   constructor(options = {}) {
     super();
-    // Segment Loader state variables...
-    // ...for synching across variants
-    this.inspectCache_ = undefined;
-
     // ...for synching across variants
     this.timelines = [];
     this.discontinuities = [];
@@ -367,14 +361,6 @@ export default class SyncController extends videojs.EventTarget {
     }
   }
 
-  /**
-   * Reset the state of the inspection cache when we do a rendition
-   * switch
-   */
-  reset() {
-    this.inspectCache_ = undefined;
-  }
-
   saveSegmentTimingInfo(segmentInfo, timingInfo) {
     if (this.calculateSegmentTimeMapping_(segmentInfo, segmentInfo.timingInfo)) {
       this.saveDiscontinuitySyncInfo_(segmentInfo);
@@ -388,41 +374,6 @@ export default class SyncController extends videojs.EventTarget {
         };
       }
     }
-  }
-
-  /**
-   * Probe an mpeg2-ts segment to determine the start and end of the segment
-   * in it's internal "media time".
-   *
-   * @private
-   * @param {SegmentInfo} segmentInfo - The current active request information
-   * @return {object} The start and end time of the current segment in "media time"
-   */
-  probeTsSegment_(segmentInfo) {
-    let timeInfo = tsprobe(segmentInfo.bytes, this.inspectCache_);
-    let segmentStartTime;
-    let segmentEndTime;
-
-    if (!timeInfo) {
-      return null;
-    }
-
-    if (timeInfo.video && timeInfo.video.length === 2) {
-      this.inspectCache_ = timeInfo.video[1].dts;
-      segmentStartTime = timeInfo.video[0].dtsTime;
-      segmentEndTime = timeInfo.video[1].dtsTime;
-    } else if (timeInfo.audio && timeInfo.audio.length === 2) {
-      this.inspectCache_ = timeInfo.audio[1].dts;
-      segmentStartTime = timeInfo.audio[0].dtsTime;
-      segmentEndTime = timeInfo.audio[1].dtsTime;
-    }
-
-    return {
-      start: segmentStartTime,
-      end: segmentEndTime,
-      containsVideo: timeInfo.video && timeInfo.video.length === 2,
-      containsAudio: timeInfo.audio && timeInfo.audio.length === 2
-    };
   }
 
   timestampOffsetForTimeline(timeline) {

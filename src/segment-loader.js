@@ -704,7 +704,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (segmentInfo.timeline !== this.currentTimeline_ ||
         ((segmentInfo.startOfSegment !== null) &&
         segmentInfo.startOfSegment < this.sourceUpdater_.timestampOffset())) {
-      this.syncController_.reset();
       this.appendAudioInitSegment_ = true;
       segmentInfo.timestampOffset = segmentInfo.startOfSegment;
     }
