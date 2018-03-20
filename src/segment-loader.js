@@ -990,6 +990,10 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
+    if (simpleSegment.progressBytes) {
+      // TODO transmux
+    }
+
     this.trigger('progress');
   }
 

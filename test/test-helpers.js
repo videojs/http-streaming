@@ -193,6 +193,30 @@ export const useFakeEnvironment = function(assert) {
                                                rawEventData.target));
   };
 
+  // used for treating the response however we want, instead of the browser deciding
+  // responses we don't have to worry about the browser changing responses
+  XMLHttpRequest.prototype.overrideMimeType = function overrideMimeType(mimeType) {
+    this.mimeTypeOverride = mimeType;
+  };
+
+  const origResponseText = XMLHttpRequest.prototype.responseText;
+
+  Object.defineProperty(XMLHttpRequest.prototype, 'responseText', {
+    get() {
+      const responseText = origResponseText.call(this);
+
+      // special case for media segment request partial downloads
+      if (this.mimeTypeOverride === 'text/plain; charset=x-user-defined') {
+        return (new TextDecoder()).decode(responseText);
+      }
+
+      return responseText;
+    },
+    set(val) {
+      return origResponseText.call(this, val);
+    }
+  });
+
   fakeEnvironment.requests.length = 0;
   fakeEnvironment.xhr.onCreate = function(xhr) {
     fakeEnvironment.requests.push(xhr);
