@@ -149,6 +149,13 @@ const segmentInfoString = (segmentInfo) => {
   ].join(' ');
 };
 
+const isFmp4 = (segment) => {
+  // TODO we need a better way if determining if a segment is an mp4 or not. We rely on
+  // this method at the moment because the spec requires a map tag on each fmp4
+  // segment), however, ts segments may have the map tag as well
+  return !!segment.map;
+}
+
 /**
  * An object that manages segment loading and appending.
  *
@@ -222,8 +229,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       time: 0
     };
 
-    // append muxed segments to their respective native buffers as
-    // soon as they are available
     this.transmuxer_ = this.createTransmuxer_();
 
     this.syncController_.on('syncinfoupdate', () => this.trigger('syncinfoupdate'));
@@ -601,7 +606,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       if (!this.audioDisabled) {
         this.sourceUpdater_.removeAudio(start, end);
       }
-      // TODO better check? - or handle in MPC
       if (this.loaderType_ === 'main') {
         this.gopBuffer_ = removeGopBuffer(this.gopBuffer_, start, end, this.timeMapping_);
         this.sourceUpdater_.removeVideo(start, end);
@@ -612,7 +616,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     for (let track in this.inbandTextTracks_) {
       removeCuesFromTrack(start, end, this.inbandTextTracks_[track]);
     }
-
     removeCuesFromTrack(start, end, this.segmentMetadataTrack_);
   }
 
@@ -658,7 +661,8 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @private
    */
   fillBuffer_() {
-    // TODO do we need this?
+    // TODO since the source buffer maintains a queue, and we shouldn't call this function
+    // except when we're ready for the next segment, this check can most likely be removed
     if (this.sourceUpdater_.updating()) {
       return;
     }
@@ -697,12 +701,9 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    // We will need to change timestampOffset of the sourceBuffer if either of
-    // the following conditions are true:
-    // - The segment.timeline !== this.currentTimeline
-    //   (we are crossing a discontinuity somehow)
-    // - The "timestampOffset" for the start of this segment is less than
-    //   the currently set timestampOffset
+    // check to see if we are crossing a discontinuity or requesting a segment that starts
+    // earlier than the last set timestamp offset to see if we need to set the timestamp
+    // offset on the source buffer
     if (segmentInfo.timeline !== this.currentTimeline_ ||
         this.startsBeforeTimestampOffset(segmentInfo)) {
       this.appendAudioInitSegment_ = true;
@@ -1065,7 +1066,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       };
     }
 
-    if (segment.map) {
+    if (isFmp4(segment)) {
       simpleSegment.map = this.initSegment(segment.map);
     }
 
@@ -1180,9 +1181,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     const segmentInfo = this.pendingSegment_;
-    const segment = segmentInfo.segment;
 
-    if (segment.map) {
+    if (isFmp4(segmentInfo.segment)) {
       segmentInfo.timingInfo = probeMp4Segment(segmentInfo);
     }
 
@@ -1195,17 +1195,28 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.state = 'APPENDING';
 
     segmentInfo.byteLength = segmentInfo.bytes.byteLength;
+
+    this.updateMediaSecondsLoaded_(segmentInfo.segment);
+
+    if (isFmp4(segmentInfo.segment)) {
+      this.appendSegment_(segmentInfo);
+      return;
+    }
+
+    // MP2TS case
+    this.updateTransmuxerTimestampOffset_(segmentInfo);
+    transmux(this.transmuxerConfig_(segmentInfo));
+  }
+
+  updateMediaSecondsLoaded_(segment) {
     if (typeof segment.start === 'number' && typeof segment.end === 'number') {
       this.mediaSecondsLoaded += segment.end - segment.start;
     } else {
       this.mediaSecondsLoaded += segment.duration;
     }
+  }
 
-    if (segment.map) {
-      this.appendSegment_(segmentInfo);
-      return;
-    }
-
+  transmuxerConfig_(segmentInfo) {
     const transmuxerConfig = {
       segmentInfo,
       transmuxer: this.transmuxer_,
@@ -1218,6 +1229,15 @@ export default class SegmentLoader extends videojs.EventTarget {
       transmuxerConfig.audioAppendStart = audioBuffered.end(audioBuffered.length - 1);
     }
 
+    if (videoBuffered) {
+      transmuxerConfig.gopsToAlignWith = gopsSafeToAlignWith(
+        this.gopBuffer_, this.currentTime_(), this.timeMapping_);
+    }
+
+    return transmuxerConfig;
+  }
+
+  updateTransmuxerTimestampOffset_(segmentInfo) {
     let shouldSetTimestampOffset = false;
 
     if (this.loaderType_ === 'main' &&
@@ -1240,13 +1260,6 @@ export default class SegmentLoader extends videojs.EventTarget {
         timestampOffset: segmentInfo.timestampOffset
       });
     }
-
-    if (videoBuffered) {
-      transmuxerConfig.gopsToAlignWith = gopsSafeToAlignWith(
-        this.gopBuffer_, this.currentTime_(), this.timeMapping_);
-    }
-
-    transmux(transmuxerConfig);
   }
 
   handleTransmuxed_(result) {

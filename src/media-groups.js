@@ -144,7 +144,7 @@ export const onTrackChanged = (type, settings) => () => {
     // loader and not restart the audio loaders
     mainSegmentLoader.audioDisabled_ = false;
     // don't have to worry about enabling the audio of the audio segment loader since it
-    // should be stopped (never have to disable/enable on the audio segment loader)
+    // should be stopped
     mainSegmentLoader.resetEverything();
     return;
   } else {
