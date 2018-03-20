@@ -1,21 +1,26 @@
 import videojs from 'video.js';
 
+// TODO better handling
+let alreadyListening = false;
+
 export const transmux = ({
   transmuxer,
   segmentInfo,
   audioAppendStart,
   gopsToAlignWith,
-  callback }) => {
+  ignoreAudio,
+  isPartial,
+  callback
+}) => {
+  let audioDone = ignoreAudio;
+  let audioSuperDone = ignoreAudio;
   const transmuxedData = {
+    isPartial,
     buffer: []
   };
   const handleMessage = (event) => {
     if (event.data.action === 'data') {
       handleData_(event, transmuxedData);
-    }
-    if (event.data.action === 'done') {
-      handleDone_(event, transmuxedData, callback);
-      transmuxer.removeEventListener('message', handleMessage);
     }
     if (event.data.action === 'trackinfo') {
       handleTrackInfo_(event, transmuxedData);
@@ -29,9 +34,38 @@ export const transmux = ({
     if (event.data.action === 'videoTimingInfo') {
       handleVideoTimingInfo_(event, transmuxedData);
     }
+
+    if (event.data.action === 'done') {
+      if (event.data.type === 'audio') {
+        audioDone = true;
+      }
+      if (audioDone) {
+        handleDone_(event, transmuxedData, callback);
+      }
+    }
+
+    if (event.data.action === 'superDone') {
+      if (event.data.type === 'audio') {
+        audioSuperDone = true;
+      }
+      if (audioSuperDone) {
+        transmuxer.removeEventListener('message', handleMessage);
+        alreadyListening = false;
+        handleDone_(event, transmuxedData, callback);
+      }
+    }
   };
 
-  transmuxer.addEventListener('message', handleMessage);
+  if (!alreadyListening) {
+    transmuxer.addEventListener('message', handleMessage);
+    alreadyListening = true;
+  }
+
+  if (!isPartial) {
+    // all data should be handled via partials
+    transmuxer.postMessage({ action: 'superFlush' });
+    return;
+  }
 
   if (audioAppendStart) {
     transmuxer.postMessage({
@@ -67,9 +101,9 @@ export const handleData_ = (event, transmuxedData) => {
 
   // cast ArrayBuffer to TypedArray
   segment.data = new Uint8Array(
-    segment.data,
-    event.data.byteOffset,
-    event.data.byteLength
+    segment.boxes.data,
+    segment.boxes.data.byteOffset,
+    segment.boxes.data.byteLength
   );
 
   segment.initSegment = new Uint8Array(
@@ -85,6 +119,7 @@ export const handleDone_ = (event, transmuxedData, callback) => {
   // all buffers should have been flushed from the muxer, so start processing anything we
   // have received
   let sortedSegments = {
+    type: transmuxedData.isPartial ? 'content' : 'info',
     video: {
       segments: [],
       bytes: 0
@@ -111,7 +146,9 @@ export const handleDone_ = (event, transmuxedData, callback) => {
     segmentObj[type].segments.push(data);
     segmentObj[type].bytes += data.byteLength;
 
-    segmentObj[type].initSegment = initSegment;
+    if (!segmentObj[type].initSegment) {
+      segmentObj[type].initSegment = initSegment;
+    }
 
     // Gather any captions into a single array
     if (segment.captions) {
@@ -151,5 +188,6 @@ export const handleAudioTimingInfo_ = (event, transmuxedData) => {
 };
 
 export const handleVideoTimingInfo_ = (event, transmuxedData) => {
+  console.log(event.data.videoTimingInfo);
   transmuxedData.videoTimingInfo = event.data.videoTimingInfo;
 };

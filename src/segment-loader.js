@@ -209,6 +209,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.pendingSegments_ = [];
     this.audioDisabled_ = false;
     this.appendAudioInitSegment_ = true;
+    this.appendVideoInitSegment_ = true;
     // TODO possibly move gopBuffer and timeMapping info to a separate controller
     this.gopBuffer_ = [];
     this.timeMapping_ = 0;
@@ -991,7 +992,11 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     if (simpleSegment.progressBytes) {
-      // TODO transmux
+      /* eslint-disable */
+      console.log('Got progress bytes: ', simpleSegment.progressBytes);
+      /* eslint-enable */
+      this.pendingSegment_.bytes = simpleSegment.progressBytes;
+      this.handlePartialSegment_();
     }
 
     this.trigger('progress');
@@ -1170,6 +1175,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     segmentInfo.endOfAllRequests = simpleSegment.endOfAllRequests;
+
     this.handleSegment_();
   }
 
@@ -1209,7 +1215,26 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // MP2TS case
     this.updateTransmuxerTimestampOffset_(segmentInfo);
-    transmux(this.transmuxerConfig_(segmentInfo));
+    transmux(this.transmuxerConfig_(segmentInfo, false));
+  }
+
+  handlePartialSegment_() {
+    if (!this.pendingSegment_) {
+      this.state = 'READY';
+      return;
+    }
+
+    const segmentInfo = this.pendingSegment_;
+    const timelineMapping = this.syncController_.mappingForTimeline(segmentInfo.timeline);
+
+    if (timelineMapping !== null) {
+      this.timeMapping_ = timelineMapping;
+    }
+
+    segmentInfo.byteLength = segmentInfo.bytes.byteLength;
+
+    this.updateTransmuxerTimestampOffset_(segmentInfo);
+    transmux(this.transmuxerConfig_(segmentInfo, true));
   }
 
   updateMediaSecondsLoaded_(segment) {
@@ -1220,10 +1245,12 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
   }
 
-  transmuxerConfig_(segmentInfo) {
+  transmuxerConfig_(segmentInfo, isPartial) {
     const transmuxerConfig = {
       segmentInfo,
       transmuxer: this.transmuxer_,
+      ignoreAudio: this.audioDisabled_,
+      isPartial,
       callback: this.handleTransmuxed_.bind(this)
     };
     const audioBuffered = this.sourceUpdater_.audioBuffered();
@@ -1267,6 +1294,14 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   handleTransmuxed_(result) {
+    if (result.type === 'content') {
+      this.handleTransmuxedContent_(result);
+    } else {
+      this.handleTransmuxedInfo_(result);
+    }
+  }
+
+  handleTransmuxedContent_(result) {
     if (!this.pendingSegment_) {
       this.state = 'READY';
       return;
@@ -1281,6 +1316,55 @@ export default class SegmentLoader extends videojs.EventTarget {
       });
     }
 
+    // don't process and append data if the mediaSource is closed
+    if (this.mediaSource_.readyState === 'closed') {
+      return;
+    }
+
+    segmentInfo.timingInfo = result.timingInfo;
+
+    // Merge multiple video and audio segments into one and append
+    if (result.video.bytes) {
+      // TODO we need to update this value
+      if (this.appendVideoInitSegment_) {
+        result.video.segments.unshift(result.video.initSegment);
+        result.video.bytes += result.video.initSegment.byteLength;
+        this.appendVideoInitSegment_ = false;
+      }
+
+      segmentInfo.videoBytes = concatSegments(result.video);
+    }
+
+    if (!this.audioDisabled_ && result.audio.bytes) {
+      if (this.appendAudioInitSegment_) {
+        result.audio.segments.unshift(result.audio.initSegment);
+        result.audio.bytes += result.audio.initSegment.byteLength;
+        this.appendAudioInitSegment_ = false;
+      }
+
+      segmentInfo.audioBytes = concatSegments(result.audio);
+    }
+
+    this.updateTimestampOffset_(segmentInfo);
+    this.sourceUpdater_.appendBuffer({
+      videoBytes: segmentInfo.videoBytes,
+      audioBytes: segmentInfo.audioBytes
+    }, () => {
+      this.logger_('Appended partial segment data, ' +
+        `${segmentInfo.videoBytes ? segmentInfo.videoBytes.byteLength : 0} video bytes ` +
+        'and ' +
+        `${segmentInfo.audioBytes ? segmentInfo.audioBytes.byteLength : 0} audio bytes`);
+    });
+  }
+
+  handleTransmuxedInfo_(result) {
+    if (!this.pendingSegment_) {
+      this.state = 'READY';
+      return;
+    }
+
+    const segmentInfo = this.pendingSegment_;
+
     if (result.gopInfo) {
       this.gopBuffer_ = updateGopBuffer(
         this.gopBuffer_, result.gopInfo, this.safeAppend_);
@@ -1290,8 +1374,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (this.mediaSource_.readyState === 'closed') {
       return;
     }
-
-    segmentInfo.timingInfo = result.timingInfo;
 
     const prioritizedTimestampOffset =
       this.sourceUpdater_.videoTimestampOffset() === null ?
@@ -1311,26 +1393,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       captionArray: result.captions,
       metadataArray: result.metadata
     });
-
-    // Merge multiple video and audio segments into one and append
-    if (result.video.bytes) {
-      result.video.segments.unshift(result.video.initSegment);
-      result.video.bytes += result.video.initSegment.byteLength;
-
-      segmentInfo.videoBytes = concatSegments(result.video);
-    }
-
-    if (!this.audioDisabled_ && result.audio.bytes) {
-      if (this.appendAudioInitSegment_) {
-        result.audio.segments.unshift(result.audio.initSegment);
-        result.audio.bytes += result.audio.initSegment.byteLength;
-        this.appendAudioInitSegment_ = false;
-      }
-
-      segmentInfo.audioBytes = concatSegments(result.audio);
-    }
-
-    this.appendSegment_(segmentInfo);
   }
 
   appendSegment_(segmentInfo) {
@@ -1371,7 +1433,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    if (!segmentInfo.videoBytes && !segmentInfo.audioBytes) {
+    if (isFmp4(segmentInfo.segment) &&
+        !segmentInfo.videoBytes && !segmentInfo.audioBytes) {
       // Assuming fmp4 cases are demuxed. If it is muxed, this will break, but we haven't
       // seen that case yet. If we do have to handle that case, we have to write an fmp4
       // splitter for separating audio and video bytes (so that we can drop muxed audio
@@ -1394,6 +1457,12 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     this.logger_(segmentInfoString(segmentInfo));
+
+    if (!segmentInfo.audioBytes && !segmentInfo.videoBytes) {
+      // we appended all of the partial segment data earlier, no need to append again
+      this.handleUpdateEnd_();
+      return;
+    }
 
     this.updateTimestampOffset_(segmentInfo);
 
