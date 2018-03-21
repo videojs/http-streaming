@@ -1,5 +1,5 @@
 import { EventTarget, mergeOptions } from 'video.js';
-import mpdParser from 'mpd-parser';
+import { parse as parseMpd, parseUTCTiming } from 'mpd-parser';
 import {
   refreshDelay,
   setupMediaPlaylists,
@@ -185,7 +185,7 @@ export default class DashPlaylistLoader extends EventTarget {
    *         The parsed mpd manifest object
    */
   parseMasterXml() {
-    const master = mpdParser.parse(this.masterXml_, {
+    const master = parseMpd(this.masterXml_, {
       manifestUri: this.srcUrl,
       clientOffset: this.clientOffset_
     });
@@ -271,7 +271,7 @@ export default class DashPlaylistLoader extends EventTarget {
    *        Function to call when clock sync has completed
    */
   syncClientServerClock_(done) {
-    const utcTiming = mpdParser.parseUTCTiming(this.masterXml_);
+    const utcTiming = parseUTCTiming(this.masterXml_);
 
     // No UTCTiming element found in the mpd. Use Date header from mpd request as the
     // server clock
