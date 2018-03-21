@@ -12,7 +12,6 @@ import { Decrypter, AsyncStream, decrypt } from 'aes-decrypter';
 import utils from './bin-utils';
 import { timeRangesToArray } from './ranges';
 import { MediaSource, URL } from './mse';
-import m3u8 from 'm3u8-parser';
 import videojs from 'video.js';
 import { MasterPlaylistController } from './master-playlist-controller';
 import Config from './config';
@@ -691,7 +690,6 @@ videojs.Hls = Hls;
 if (!videojs.use) {
   videojs.registerComponent('Hls', Hls);
 }
-videojs.m3u8 = m3u8;
 videojs.options.hls = videojs.options.hls || {};
 
 if (videojs.registerPlugin) {

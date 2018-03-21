@@ -7,7 +7,7 @@
  */
 import resolveUrl from './resolve-url';
 import { mergeOptions, EventTarget, log } from 'video.js';
-import m3u8 from 'm3u8-parser';
+import { Parser as M3u8Parser } from 'm3u8-parser';
 import window from 'global/window';
 
 /**
@@ -262,7 +262,7 @@ export default class PlaylistLoader extends EventTarget {
     this.request = null;
     this.state = 'HAVE_METADATA';
 
-    const parser = new m3u8.Parser();
+    const parser = new M3u8Parser();
 
     parser.push(xhr.responseText);
     parser.end();
@@ -501,7 +501,7 @@ export default class PlaylistLoader extends EventTarget {
         return this.trigger('error');
       }
 
-      const parser = new m3u8.Parser();
+      const parser = new M3u8Parser();
 
       parser.push(req.responseText);
       parser.end();
