@@ -21,11 +21,11 @@ export default class SourceUpdater {
   constructor(mediaSource) {
     this.callbacks_ = [];
     this.pendingCallback_ = null;
-    this.timestampOffset_ = 0;
     this.mediaSource = mediaSource;
     this.logger_ = logger(`SourceUpdater`);
-    this.audioTimestampOffset_ = null;
-    this.videoTimestampOffset_ = null;
+    // initial timestamp offset is 0
+    this.audioTimestampOffset_ = 0;
+    this.videoTimestampOffset_ = 0;
   }
 
   ready() {
@@ -301,11 +301,12 @@ export default class SourceUpdater {
    * @return {Number} the timestamp offset
    */
   audioTimestampOffset(offset) {
-    if (typeof offset !== 'undefined' && this.audioBuffer) {
+    if (typeof offset !== 'undefined' &&
+        this.audioBuffer &&
+        // updateend doesn't fire when timestamp offset isn't different
+        this.audioBuffer.timestampOffset !== offset) {
       this.queueCallback_(() => {
-        if (this.audioBuffer) {
-          this.audioBuffer.timestampOffset = offset;
-        }
+        this.audioBuffer.timestampOffset = offset;
       });
       this.audioTimestampOffset_ = offset;
     }
@@ -318,11 +319,12 @@ export default class SourceUpdater {
    * @return {Number} the timestamp offset
    */
   videoTimestampOffset(offset) {
-    if (typeof offset !== 'undefined' && this.videoBuffer) {
+    if (typeof offset !== 'undefined' &&
+        this.videoBuffer &&
+        // updateend doesn't fire when timestamp offset isn't different
+        this.videoBuffer.timestampOffset !== offset) {
       this.queueCallback_(() => {
-        if (this.videoBuffer) {
-          this.videoBuffer.timestampOffset = offset;
-        }
+        this.videoBuffer.timestampOffset = offset;
       });
       this.videoTimestampOffset_ = offset;
     }

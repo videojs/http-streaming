@@ -208,8 +208,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.xhrOptions_ = null;
     this.pendingSegments_ = [];
     this.audioDisabled_ = false;
-    this.appendAudioInitSegment_ = true;
-    this.appendVideoInitSegment_ = true;
     // TODO possibly move gopBuffer and timeMapping info to a separate controller
     this.gopBuffer_ = [];
     this.timeMapping_ = 0;
@@ -707,7 +705,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     // offset on the source buffer
     if (segmentInfo.timeline !== this.currentTimeline_ ||
         this.startsBeforeTimestampOffset(segmentInfo)) {
-      this.appendAudioInitSegment_ = true;
       segmentInfo.timestampOffset = segmentInfo.startOfSegment;
     }
 
@@ -996,6 +993,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       console.log('Got progress bytes: ', simpleSegment.progressBytes);
       /* eslint-enable */
       this.pendingSegment_.bytes = simpleSegment.progressBytes;
+      window.progress = window.progress || [];
+      window.progress.push(new Uint8Array(simpleSegment.progressBytes));
       this.handlePartialSegment_();
     }
 
@@ -1282,8 +1281,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     if (segmentInfo.timestampOffset !== null && shouldSetTimestampOffset) {
-      // this won't shift the timestamps (since we have keepOriginalTimestamps set to
-      // true), however, the transmuxer needs to know there was a discontinuity
+      // this won't shift the timestamps (since keepOriginalTimestamps is set to true),
+      // however, the transmuxer needs to know there was a discontinuity
       this.gopBuffer_.length = 0;
       this.timeMapping_ = 0;
       this.transmuxer_.postMessage({
@@ -1324,36 +1323,42 @@ export default class SegmentLoader extends videojs.EventTarget {
     segmentInfo.timingInfo = result.timingInfo;
 
     // Merge multiple video and audio segments into one and append
-    if (result.video.bytes) {
-      // TODO we need to update this value
-      if (this.appendVideoInitSegment_) {
-        result.video.segments.unshift(result.video.initSegment);
-        result.video.bytes += result.video.initSegment.byteLength;
-        this.appendVideoInitSegment_ = false;
-      }
+    if (result.video.segments.length && result.video.bytes) {
+      // always append the init segment
+      result.video.segments.unshift(result.video.initSegment);
+      result.video.bytes += result.video.initSegment.byteLength;
 
       segmentInfo.videoBytes = concatSegments(result.video);
+    } else {
+      segmentInfo.videoBytes = null;
     }
 
-    if (!this.audioDisabled_ && result.audio.bytes) {
-      if (this.appendAudioInitSegment_) {
-        result.audio.segments.unshift(result.audio.initSegment);
-        result.audio.bytes += result.audio.initSegment.byteLength;
-        this.appendAudioInitSegment_ = false;
-      }
+    if (!this.audioDisabled_ && result.audio.segments.length && result.audio.bytes) {
+      // always append the init segment
+      result.audio.segments.unshift(result.audio.initSegment);
+      result.audio.bytes += result.audio.initSegment.byteLength;
 
       segmentInfo.audioBytes = concatSegments(result.audio);
+    } else {
+      segmentInfo.audioBytes = null;
     }
 
+    if (!segmentInfo.audioBytes && !segmentInfo.videoBytes) {
+      return;
+    }
+
+    const videoBytesLength = segmentInfo.videoBytes ? segmentInfo.videoBytes.length : 0;
+    const audioBytesLength = segmentInfo.audioBytes ? segmentInfo.audioBytes.length : 0;
+
+    window.appends = window.appends || [];
+    window.appends.push({ video: segmentInfo.videoBytes, audio: segmentInfo.audioBytes });
     this.updateTimestampOffset_(segmentInfo);
     this.sourceUpdater_.appendBuffer({
       videoBytes: segmentInfo.videoBytes,
       audioBytes: segmentInfo.audioBytes
     }, () => {
       this.logger_('Appended partial segment data, ' +
-        `${segmentInfo.videoBytes ? segmentInfo.videoBytes.byteLength : 0} video bytes ` +
-        'and ' +
-        `${segmentInfo.audioBytes ? segmentInfo.audioBytes.byteLength : 0} audio bytes`);
+        `${videoBytesLength} video bytes and ${audioBytesLength} audio bytes`);
     });
   }
 
@@ -1393,6 +1398,9 @@ export default class SegmentLoader extends videojs.EventTarget {
       captionArray: result.captions,
       metadataArray: result.metadata
     });
+
+    // now that we got the segment info, segment transmuxing is done
+    this.handleUpdateEnd_();
   }
 
   appendSegment_(segmentInfo) {
@@ -1473,15 +1481,22 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   updateTimestampOffset_(segmentInfo) {
-    if (segmentInfo.timestampOffset === null) {
+    // if there's no timestamp offset or it's already been changed once for this segment,
+    // don't do it again
+    if (segmentInfo.timestampOffset === null || segmentInfo.changedTimestampOffset) {
       return;
     }
 
     let didChange = false;
 
-    // in the event that the audio is longer than the video, this will trim the start of
-    // the audio
+    // Primary timing goes by video, and audio is trimmed in the transmuxer, meaning that
+    // the timing info here comes from video. In the event that the audio is longer than
+    // the video, this will trim the start of the audio.
     segmentInfo.timestampOffset -= segmentInfo.timingInfo.start;
+    // TODO in the even that there are partial segment downloads, each will try to update
+    // the timestamp offset. Retaining this bit of state prevents us from updating in the
+    // future (within the same segment), however, there may be a better way to handle it.
+    segmentInfo.changedTimestampOffset = true;
 
     if (this.loaderType_ === 'main' &&
         segmentInfo.timestampOffset !== this.sourceUpdater_.videoTimestampOffset()) {
@@ -1496,7 +1511,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     if (didChange) {
-      // can also identify discontinuities
       this.trigger('timestampoffset');
     }
   }

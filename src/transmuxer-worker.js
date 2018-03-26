@@ -183,10 +183,20 @@ class MessageHandlers {
    */
   flush(data) {
     this.transmuxer.flush();
+    window.postMessage({
+      action: 'done',
+      type: 'transmuxed',
+      id: data.id
+    });
   }
 
   superFlush(data) {
     this.transmuxer.superFlush();
+    window.postMessage({
+      action: 'superDone',
+      type: 'transmuxed',
+      id: data.id
+    });
   }
 
   resetCaptions() {

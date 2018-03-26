@@ -1,19 +1,16 @@
 import videojs from 'video.js';
 
-// TODO better handling
-let alreadyListening = false;
-
 export const transmux = ({
   transmuxer,
   segmentInfo,
   audioAppendStart,
   gopsToAlignWith,
+  // TODO
   ignoreAudio,
   isPartial,
   callback
 }) => {
-  let audioDone = ignoreAudio;
-  let audioSuperDone = ignoreAudio;
+  const id = Math.random();
   const transmuxedData = {
     isPartial,
     buffer: []
@@ -35,35 +32,28 @@ export const transmux = ({
       handleVideoTimingInfo_(event, transmuxedData);
     }
 
+    // since the transmuxer can be shared between pushes, ensure that the message is for
+    // the correct push
+    if (event.data.id !== id || event.data.type !== 'transmuxed') {
+      return;
+    }
+
     if (event.data.action === 'done') {
-      if (event.data.type === 'audio') {
-        audioDone = true;
-      }
-      if (audioDone) {
-        handleDone_(event, transmuxedData, callback);
-      }
+      transmuxer.removeEventListener('message', handleMessage);
+      handleDone_(event, transmuxedData, false, callback);
     }
 
     if (event.data.action === 'superDone') {
-      if (event.data.type === 'audio') {
-        audioSuperDone = true;
-      }
-      if (audioSuperDone) {
-        transmuxer.removeEventListener('message', handleMessage);
-        alreadyListening = false;
-        handleDone_(event, transmuxedData, callback);
-      }
+      transmuxer.removeEventListener('message', handleMessage);
+      handleDone_(event, transmuxedData, true, callback);
     }
   };
 
-  if (!alreadyListening) {
-    transmuxer.addEventListener('message', handleMessage);
-    alreadyListening = true;
-  }
+  transmuxer.addEventListener('message', handleMessage);
 
   if (!isPartial) {
     // all data should be handled via partials
-    transmuxer.postMessage({ action: 'superFlush' });
+    transmuxer.postMessage({ action: 'superFlush', id });
     return;
   }
 
@@ -93,7 +83,7 @@ export const transmux = ({
     byteLength: segmentInfo.bytes.byteLength
   },
   [ segmentInfo.bytes.buffer ]);
-  transmuxer.postMessage({ action: 'flush' });
+  transmuxer.postMessage({ action: 'flush', id });
 };
 
 export const handleData_ = (event, transmuxedData) => {
@@ -115,11 +105,11 @@ export const handleData_ = (event, transmuxedData) => {
   transmuxedData.buffer.push(segment);
 };
 
-export const handleDone_ = (event, transmuxedData, callback) => {
+export const handleDone_ = (event, transmuxedData, isInfo, callback) => {
   // all buffers should have been flushed from the muxer, so start processing anything we
   // have received
   let sortedSegments = {
-    type: transmuxedData.isPartial ? 'content' : 'info',
+    type: isInfo ? 'info' : 'content',
     video: {
       segments: [],
       bytes: 0
@@ -135,10 +125,14 @@ export const handleDone_ = (event, transmuxedData, callback) => {
     timingInfo: transmuxedData.videoTimingInfo || transmuxedData.audioTimingInfo,
     captionStreams: {}
   };
+  const buffer = transmuxedData.buffer;
+
+  // TODO best place?
+  transmuxedData.buffer = [];
 
   // Sort segments into separate video/audio arrays and
   // keep track of their total byte lengths
-  sortedSegments = transmuxedData.buffer.reduce((segmentObj, segment) => {
+  sortedSegments = buffer.reduce((segmentObj, segment) => {
     const type = segment.type;
     const data = segment.data;
     const initSegment = segment.initSegment;
@@ -188,6 +182,5 @@ export const handleAudioTimingInfo_ = (event, transmuxedData) => {
 };
 
 export const handleVideoTimingInfo_ = (event, transmuxedData) => {
-  console.log(event.data.videoTimingInfo);
   transmuxedData.videoTimingInfo = event.data.videoTimingInfo;
 };
