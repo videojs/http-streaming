@@ -72,7 +72,7 @@ const INITIAL_BANDWIDTH = 4194304;
   });
 });
 
-export const simpleTypeFromSourceType = (type) => {
+const simpleTypeFromSourceType = (type) => {
   const mpegurlRE = /^(audio|video|application)\/(x-|vnd\.apple\.)?mpegurl/i;
 
   if (mpegurlRE.test(type)) {
@@ -698,7 +698,7 @@ if (videojs.registerPlugin) {
   videojs.plugin('reloadSourceOnError', reloadSourceOnError);
 }
 
-export default {
+export {
   Hls,
   HlsHandler,
   HlsSourceHandler,
