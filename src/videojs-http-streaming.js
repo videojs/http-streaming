@@ -698,7 +698,7 @@ if (videojs.registerPlugin) {
   videojs.plugin('reloadSourceOnError', reloadSourceOnError);
 }
 
-module.exports = {
+export default {
   Hls,
   HlsHandler,
   HlsSourceHandler,

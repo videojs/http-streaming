@@ -6,10 +6,11 @@
  *
  */
 import resolveUrl from './resolve-url';
-import { mergeOptions, EventTarget, log } from 'video.js';
+import videojs from 'video.js';
 import { Parser as M3u8Parser } from 'm3u8-parser';
 import window from 'global/window';
 
+const { mergeOptions, EventTarget, log } = videojs;
 /**
  * Loops through all supported media groups in master and calls the provided
  * callback for each group
