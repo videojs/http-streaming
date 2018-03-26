@@ -1,4 +1,4 @@
-import { EventTarget, mergeOptions } from 'video.js';
+import videojs from 'video.js';
 import { parse as parseMpd, parseUTCTiming } from 'mpd-parser';
 import {
   refreshDelay,
@@ -9,6 +9,8 @@ import {
 } from './playlist-loader';
 import resolveUrl from './resolve-url';
 import window from 'global/window';
+
+const { EventTarget, mergeOptions } = videojs;
 
 /**
  * Returns a new master manifest that is the result of merging an updated master manifest
