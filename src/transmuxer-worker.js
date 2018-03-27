@@ -185,8 +185,7 @@ class MessageHandlers {
     this.transmuxer.flush();
     window.postMessage({
       action: 'done',
-      type: 'transmuxed',
-      id: data.id
+      type: 'transmuxed'
     });
   }
 
@@ -194,8 +193,7 @@ class MessageHandlers {
     this.transmuxer.superFlush();
     window.postMessage({
       action: 'superDone',
-      type: 'transmuxed',
-      id: data.id
+      type: 'transmuxed'
     });
   }
 

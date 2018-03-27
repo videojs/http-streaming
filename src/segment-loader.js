@@ -993,8 +993,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       console.log('Got progress bytes: ', simpleSegment.progressBytes);
       /* eslint-enable */
       this.pendingSegment_.bytes = simpleSegment.progressBytes;
-      window.progress = window.progress || [];
-      window.progress.push(new Uint8Array(simpleSegment.progressBytes));
       this.handlePartialSegment_();
     }
 
@@ -1246,7 +1244,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
   transmuxerConfig_(segmentInfo, isPartial) {
     const transmuxerConfig = {
-      segmentInfo,
+      bytes: segmentInfo.bytes,
       transmuxer: this.transmuxer_,
       ignoreAudio: this.audioDisabled_,
       isPartial,
@@ -1293,9 +1291,8 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   handleTransmuxed_(result) {
-    if (result.type === 'content') {
-      this.handleTransmuxedContent_(result);
-    } else {
+    this.handleTransmuxedContent_(result);
+    if (result.type === 'info') {
       this.handleTransmuxedInfo_(result);
     }
   }
@@ -1350,8 +1347,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     const videoBytesLength = segmentInfo.videoBytes ? segmentInfo.videoBytes.length : 0;
     const audioBytesLength = segmentInfo.audioBytes ? segmentInfo.audioBytes.length : 0;
 
-    window.appends = window.appends || [];
-    window.appends.push({ video: segmentInfo.videoBytes, audio: segmentInfo.audioBytes });
     this.updateTimestampOffset_(segmentInfo);
     this.sourceUpdater_.appendBuffer({
       videoBytes: segmentInfo.videoBytes,

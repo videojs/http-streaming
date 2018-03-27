@@ -1,8 +1,20 @@
 import videojs from 'video.js';
 
-export const transmux = ({
+const transmuxQueue = [];
+let currentTransmux;
+
+export const transmux = (options) => {
+  if (!currentTransmux) {
+    currentTransmux = options;
+    processTransmux(options);
+    return;
+  }
+  transmuxQueue.push(options);
+};
+
+const processTransmux = ({
   transmuxer,
-  segmentInfo,
+  bytes,
   audioAppendStart,
   gopsToAlignWith,
   // TODO
@@ -10,11 +22,11 @@ export const transmux = ({
   isPartial,
   callback
 }) => {
-  const id = Math.random();
   const transmuxedData = {
     isPartial,
     buffer: []
   };
+
   const handleMessage = (event) => {
     if (event.data.action === 'data') {
       handleData_(event, transmuxedData);
@@ -32,9 +44,7 @@ export const transmux = ({
       handleVideoTimingInfo_(event, transmuxedData);
     }
 
-    // since the transmuxer can be shared between pushes, ensure that the message is for
-    // the correct push
-    if (event.data.id !== id || event.data.type !== 'transmuxed') {
+    if (event.data.type !== 'transmuxed') {
       return;
     }
 
@@ -53,7 +63,7 @@ export const transmux = ({
 
   if (!isPartial) {
     // all data should be handled via partials
-    transmuxer.postMessage({ action: 'superFlush', id });
+    transmuxer.postMessage({ action: 'superFlush' });
     return;
   }
 
@@ -76,14 +86,14 @@ export const transmux = ({
     // Send the typed-array of data as an ArrayBuffer so that
     // it can be sent as a "Transferable" and avoid the costly
     // memory copy
-    data: segmentInfo.bytes.buffer,
+    data: bytes.buffer,
     // To recreate the original typed-array, we need information
     // about what portion of the ArrayBuffer it was a view into
-    byteOffset: segmentInfo.bytes.byteOffset,
-    byteLength: segmentInfo.bytes.byteLength
+    byteOffset: bytes.byteOffset,
+    byteLength: bytes.byteLength
   },
-  [ segmentInfo.bytes.buffer ]);
-  transmuxer.postMessage({ action: 'flush', id });
+  [ bytes.buffer ]);
+  transmuxer.postMessage({ action: 'flush' });
 };
 
 export const handleData_ = (event, transmuxedData) => {
@@ -167,6 +177,12 @@ export const handleDone_ = (event, transmuxedData, isInfo, callback) => {
   }, sortedSegments);
 
   callback(sortedSegments);
+
+  currentTransmux = null;
+  if (transmuxQueue.length) {
+    currentTransmux = transmuxQueue.shift();
+    processTransmux(currentTransmux);
+  }
 };
 
 export const handleTrackInfo_ = (event, transmuxedData) => {
