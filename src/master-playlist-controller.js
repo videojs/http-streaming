@@ -8,7 +8,7 @@ import SegmentLoader from './segment-loader';
 import VTTSegmentLoader from './vtt-segment-loader';
 import * as Ranges from './ranges';
 import videojs from 'video.js';
-import AdCueTags from './ad-cue-tags';
+import { updateAdCues } from './ad-cue-tags';
 import SyncController from './sync-controller';
 import worker from 'webwackify';
 import Decrypter from './decrypter-worker';
@@ -1098,7 +1098,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       offset = seekable.start(0);
     }
 
-    AdCueTags.updateAdCues(media, this.cueTagsTrack_, offset);
+    updateAdCues(media, this.cueTagsTrack_, offset);
   }
 
   /**

@@ -3,11 +3,11 @@
  */
 import videojs from 'video.js';
 import createTextTracksIfNecessary from './create-text-tracks-if-necessary';
-import removeCuesFromTrack from './remove-cues-from-track';
-import {addTextTrackData} from './add-text-track-data';
+import { removeCuesFromTrack } from './remove-cues-from-track';
+import { addTextTrackData } from './add-text-track-data';
 import work from 'webwackify';
 import transmuxWorker from './transmuxer-worker';
-import {isAudioCodec, isVideoCodec} from './codec-utils';
+import { isAudioCodec, isVideoCodec } from './codec-utils';
 
 const workerResolve = () => {
   let result;

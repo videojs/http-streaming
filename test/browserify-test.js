@@ -1,6 +1,6 @@
 /* eslint-disable no-var */
 /* eslint-env qunit */
-var hls = require('../es5/videojs-http-streaming.js');
+var hls = require('../');
 var q = window.QUnit;
 
 q.module('Browserify Require');

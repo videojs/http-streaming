@@ -9,7 +9,7 @@ import PlaylistLoader from './playlist-loader';
 import Playlist from './playlist';
 import xhrFactory from './xhr';
 import { Decrypter, AsyncStream, decrypt } from 'aes-decrypter';
-import utils from './bin-utils';
+import * as utils from './bin-utils';
 import { timeRangesToArray } from './ranges';
 import { MediaSource, URL } from './mse';
 import videojs from 'video.js';
