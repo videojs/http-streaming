@@ -17,8 +17,6 @@ const processTransmux = ({
   bytes,
   audioAppendStart,
   gopsToAlignWith,
-  // TODO
-  ignoreAudio,
   isPartial,
   callback
 }) => {

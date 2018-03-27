@@ -1246,7 +1246,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     const transmuxerConfig = {
       bytes: segmentInfo.bytes,
       transmuxer: this.transmuxer_,
-      ignoreAudio: this.audioDisabled_,
       isPartial,
       callback: this.handleTransmuxed_.bind(this)
     };
