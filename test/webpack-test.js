@@ -1,4 +1,4 @@
-let hls = require('../es5/videojs-http-streaming.js');
+let hls = require('../');
 let q = window.QUnit;
 
 q.module('Webpack Require');

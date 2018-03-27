@@ -3,8 +3,8 @@
  */
 
 import mp4probe from 'mux.js/lib/mp4/probe';
-import {inspect as tsprobe} from 'mux.js/lib/tools/ts-inspector.js';
-import {sumDurations} from './playlist';
+import { inspect as tsprobe } from 'mux.js/lib/tools/ts-inspector.js';
+import { sumDurations } from './playlist';
 import videojs from 'video.js';
 import logger from './util/logger';
 
