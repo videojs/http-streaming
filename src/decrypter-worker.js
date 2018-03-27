@@ -1,6 +1,8 @@
 import window from 'global/window';
-import { Decrypter } from 'aes-decrypter';
+import aesDecrypter from 'aes-decrypter';
 import { createTransferableMessage } from './bin-utils';
+
+const { Decrypter } = aesDecrypter;
 
 /**
  * Our web worker interface so that things can talk to aes-decrypter
@@ -37,6 +39,4 @@ const DecrypterWorker = function(self) {
   };
 };
 
-export default (self) => {
-  return new DecrypterWorker(self);
-};
+export default new DecrypterWorker(self);
