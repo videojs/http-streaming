@@ -31,6 +31,16 @@ const umdPlugins = [
   babel(),
 ];
 
+const onwarn = (warning) => {
+  if (warning.code === 'UNUSED_EXTERNAL_IMPORT' ||
+      warning.code === 'UNRESOLVED_IMPORT') {
+    return;
+  }
+
+  // eslint-disable-next-line no-console
+  console.warn(warning.message);
+};
+
 export default [
   /**
    * Rollup configuration for packaging the plugin in a module that is consumable
@@ -90,7 +100,8 @@ export default [
       file: 'dist/videojs-http-streaming.cjs.js',
       format: 'cjs',
       banner
-    }]
+    }],
+    onwarn
   }, {
     input: 'src/videojs-http-streaming.js',
     plugins: [
@@ -104,6 +115,7 @@ export default [
       file: 'dist/videojs-http-streaming.es.js',
       format: 'es',
       banner
-    }]
+    }],
+    onwarn
   }
 ];
