@@ -177,11 +177,11 @@ const setupEmeOptions = (hlsHandler) => {
   const player = videojs.players[hlsHandler.tech_.options_.playerId];
 
   if (player.eme) {
-    player.eme.options = videojs.mergeOptions(player.eme.options, emeOptions(
+    player.eme.options = emeOptions(
       hlsHandler.source_.keySystems,
       hlsHandler.playlists.media(),
       hlsHandler.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader.media()
-    ));
+    );
   }
 };
 
