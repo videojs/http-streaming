@@ -154,7 +154,7 @@ const isFmp4 = (segment) => {
   // this method at the moment because the spec requires a map tag on each fmp4
   // segment), however, ts segments may have the map tag as well
   return !!segment.map;
-}
+};
 
 /**
  * An object that manages segment loading and appending.
@@ -212,6 +212,10 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.gopBuffer_ = [];
     this.timeMapping_ = 0;
     this.safeAppend_ = videojs.browser.IE_VERSION >= 11;
+    this.appendInitSegment_ = {
+      audio: true,
+      video: true
+    };
 
     // Fragmented mp4 playback
     this.activeInitSegmentId_ = null;
@@ -989,9 +993,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     if (simpleSegment.progressBytes) {
-      /* eslint-disable */
-      console.log('Got progress bytes: ', simpleSegment.progressBytes);
-      /* eslint-enable */
       this.pendingSegment_.bytes = simpleSegment.progressBytes;
       this.handlePartialSegment_();
     }
@@ -1247,7 +1248,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       bytes: segmentInfo.bytes,
       transmuxer: this.transmuxer_,
       isPartial,
-      callback: this.handleTransmuxed_.bind(this)
+      onData: this.handleTransmuxedContent_.bind(this),
+      onDone: this.handleTransmuxedInfo_.bind(this)
     };
     const audioBuffered = this.sourceUpdater_.audioBuffered();
     const videoBuffered = this.sourceUpdater_.videoBuffered();
@@ -1289,15 +1291,10 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
   }
 
-  handleTransmuxed_(result) {
-    this.handleTransmuxedContent_(result);
-    if (result.type === 'info') {
-      this.handleTransmuxedInfo_(result);
-    }
-  }
-
   handleTransmuxedContent_(result) {
     if (!this.pendingSegment_) {
+      // TODO might have to make sure the transmux doesnt emit more messages for
+      // the aborted segment after a new segment gets started
       this.state = 'READY';
       return;
     }
@@ -1319,40 +1316,40 @@ export default class SegmentLoader extends videojs.EventTarget {
     segmentInfo.timingInfo = result.timingInfo;
 
     // Merge multiple video and audio segments into one and append
-    if (result.video.segments.length && result.video.bytes) {
-      // always append the init segment
-      result.video.segments.unshift(result.video.initSegment);
-      result.video.bytes += result.video.initSegment.byteLength;
+    const {
+      type,
+      data,
+      initSegment
+    } = result;
 
-      segmentInfo.videoBytes = concatSegments(result.video);
-    } else {
-      segmentInfo.videoBytes = null;
-    }
-
-    if (!this.audioDisabled_ && result.audio.segments.length && result.audio.bytes) {
-      // always append the init segment
-      result.audio.segments.unshift(result.audio.initSegment);
-      result.audio.bytes += result.audio.initSegment.byteLength;
-
-      segmentInfo.audioBytes = concatSegments(result.audio);
-    } else {
-      segmentInfo.audioBytes = null;
-    }
-
-    if (!segmentInfo.audioBytes && !segmentInfo.videoBytes) {
+    if (!data.byteLength) {
       return;
     }
 
-    const videoBytesLength = segmentInfo.videoBytes ? segmentInfo.videoBytes.length : 0;
-    const audioBytesLength = segmentInfo.audioBytes ? segmentInfo.audioBytes.length : 0;
+    if (type === 'audio' && this.audioDisabled_) {
+      return;
+    }
+
+    // TODO handle reseting appendInitSegment
+    const segments = [data];
+    let byteLength = data.byteLength;
+
+    if (this.appendInitSegment_[type]) {
+      this.appendInitSegment_[type] = false;
+
+      segments.unshift(initSegment);
+      byteLength += initSegment.byteLength;
+    }
+
+    const bytes = concatSegments({
+      bytes: byteLength,
+      segments
+    });
 
     this.updateTimestampOffset_(segmentInfo);
-    this.sourceUpdater_.appendBuffer({
-      videoBytes: segmentInfo.videoBytes,
-      audioBytes: segmentInfo.audioBytes
-    }, () => {
-      this.logger_('Appended partial segment data, ' +
-        `${videoBytesLength} video bytes and ${audioBytesLength} audio bytes`);
+
+    this.sourceUpdater_.appendBuffer(type, bytes, () => {
+      this.logger_(`Appended partial segment data, ${bytes.byteLength} ${type} bytes`);
     });
   }
 
@@ -1394,7 +1391,9 @@ export default class SegmentLoader extends videojs.EventTarget {
     });
 
     // now that we got the segment info, segment transmuxing is done
-    this.handleUpdateEnd_();
+    if (result.complete) {
+      this.handleUpdateEnd_();
+    }
   }
 
   appendSegment_(segmentInfo) {
@@ -1451,10 +1450,11 @@ export default class SegmentLoader extends videojs.EventTarget {
       if (!this.activeInitSegmentId_ || this.activeInitSegmentId_ !== initId) {
         const initSegment = this.initSegment(segmentInfo.segment.map);
 
-      segmentInfo[this.loaderType_ === 'main' ? 'videoBytes' : 'audioBytes'] =
-        concatTypedArrays(
-          initSegment.bytes,
-          segmentInfo[this.loaderType_ === 'main' ? 'videoBytes' : 'audioBytes']);
+        segmentInfo[this.loaderType_ === 'main' ? 'videoBytes' : 'audioBytes'] =
+          concatTypedArrays(
+            initSegment.bytes,
+            segmentInfo[this.loaderType_ === 'main' ? 'videoBytes' : 'audioBytes']
+          );
       }
     }
 
@@ -1468,10 +1468,22 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     this.updateTimestampOffset_(segmentInfo);
 
-    this.sourceUpdater_.appendBuffer({
-      videoBytes: segmentInfo.videoBytes,
-      audioBytes: segmentInfo.audioBytes
-    }, this.handleUpdateEnd_.bind(this));
+    const videoBytesLength = segmentInfo.videoBytes ? segmentInfo.videoBytes.length : 0;
+    const audioBytesLength = segmentInfo.audioBytes ? segmentInfo.audioBytes.length : 0;
+
+    if (videoBytesLength) {
+      this.sourceUpdater_.appendBuffer('video', segmentInfo.videoBytes, () => {
+        this.logger_(`Appended segment data, ${videoBytesLength} video bytes`);
+      });
+    }
+
+    if (audioBytesLength) {
+      this.sourceUpdater_.appendBuffer('audio', segmentInfo.audioBytes, () => {
+        this.logger_(`Appended segment data, ${audioBytesLength} audio bytes`);
+      });
+    }
+
+    this.handleUpdateEnd_();
   }
 
   updateTimestampOffset_(segmentInfo) {

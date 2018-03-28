@@ -7,6 +7,94 @@ import logger from './util/logger';
 import noop from './util/noop';
 import { parseMimeTypes } from './util/codecs';
 
+const actions = {
+  appendBuffer: (bytes) => (type, updater) => {
+    const {
+      [`${type}Buffer`]: sourceBuffer
+    } = updater;
+
+    sourceBuffer.appendBuffer(bytes);
+  },
+  remove: (start, end) => (type, updater) => {
+    const {
+      [`${type}Buffer`]: sourceBuffer
+    } = updater;
+
+    sourceBuffer.remove(start, end);
+  },
+  timestampOffset: (offset) => (type, updater) => {
+    const {
+      [`${type}Buffer`]: sourceBuffer
+    } = updater;
+
+    sourceBuffer.timestampOffset = offset;
+  }
+};
+
+const updating = (type, updater) => {
+  const {
+    [`${type}Buffer`]: sourceBuffer,
+    queue: {
+      [type]: {
+        pending
+      }
+    }
+  } = updater;
+
+  return (sourceBuffer && sourceBuffer.updating) || pending;
+};
+
+const shiftQueue = (type, updater) => {
+  const {
+    queue: {
+      [type]: queue
+    },
+    started_
+  } = updater;
+
+  if (updating(type, updater) || !queue.actions.length || !started_) {
+    return;
+  }
+
+  const action = queue.actions.shift();
+
+  queue.pending = action[1];
+  action[0](type, updater);
+};
+
+const pushQueue = (type, updater, action) => {
+  const {
+    queue: { [type]: queue }
+  } = updater;
+
+  queue.actions.push(action);
+  shiftQueue(type, updater);
+};
+
+const onUpdateend = (type, updater) => () => {
+  const {
+    queue: { [type]: queue },
+    logger_,
+    [`${type}Buffer`]: sourceBuffer
+  } = updater;
+
+  const {
+    doneFn,
+    name
+  } = queue.pending;
+
+  queue.pending = null;
+
+  logger_(`updateend from ${type}Buffer.${name}`);
+  logger_(`${type}Buffer.buffered [${printableRange(sourceBuffer.buffered)}]`);
+
+  if (doneFn) {
+    doneFn();
+  }
+
+  shiftQueue(type, updater);
+};
+
 /**
  * A queue of callbacks to be serialized and applied when a
  * MediaSource and its associated SourceBuffers are not in the
@@ -19,13 +107,21 @@ import { parseMimeTypes } from './util/codecs';
  */
 export default class SourceUpdater {
   constructor(mediaSource) {
-    this.callbacks_ = [];
-    this.pendingCallback_ = null;
     this.mediaSource = mediaSource;
     this.logger_ = logger(`SourceUpdater`);
     // initial timestamp offset is 0
     this.audioTimestampOffset_ = 0;
     this.videoTimestampOffset_ = 0;
+    this.queue = {
+      audio: {
+        actions: [],
+        doneFn: null
+      },
+      video: {
+        actions: [],
+        doneFn: null
+      }
+    };
   }
 
   ready() {
@@ -40,7 +136,7 @@ export default class SourceUpdater {
 
     if (this.mediaSource.readyState === 'closed') {
       this.mediaSource.addEventListener(
-        'sourceopen', this.createSourceBuffers.bind(this, mimeType));
+        'sourceopen', this.createSourceBuffers.bind(this, codecs));
       return;
     }
 
@@ -58,6 +154,7 @@ export default class SourceUpdater {
 
       this.audioBuffer = this.mediaSource.addSourceBuffer(
         `audio/mp4;codecs="${audioCodec}"`);
+      this.logger_(`created SourceBuffer audio/mp4;codecs="${audioCodec}`);
     }
 
     if (codecs.video) {
@@ -74,47 +171,25 @@ export default class SourceUpdater {
 
       this.videoBuffer = this.mediaSource.addSourceBuffer(
         `video/mp4;codecs="${videoCodec}"`);
+      this.logger_(`created SourceBuffer video/mp4;codecs="${videoCodec}"`);
     }
 
-    this.logger_('created SourceBuffer');
     this.start_();
   }
 
   start_() {
     this.started_ = true;
 
-    // run completion handlers and process callbacks as updateend
-    // events fire
-    this.onUpdateendCallback_ = () => {
-      let pendingCallback = this.pendingCallback_;
-
-      this.pendingCallback_ = null;
-
-      if (this.audioBuffer && this.videoBuffer) {
-        this.logger_(`buffered intersection [${printableRange(this.buffered())}]`);
-      }
-      if (this.audioBuffer) {
-        this.logger_(`buffered audio [${printableRange(this.audioBuffer.buffered)}]`);
-      }
-      if (this.videoBuffer) {
-        this.logger_(`buffered video [${printableRange(this.videoBuffer.buffered)}]`);
-      }
-
-      if (pendingCallback) {
-        pendingCallback();
-      }
-
-      this.runCallback_();
-    };
-
     if (this.audioBuffer) {
-      this.audioBuffer.addEventListener('updateend', this.onUpdateendCallback_);
+      this.onAudioUpdateEnd_ = onUpdateend('audio', this);
+      this.audioBuffer.addEventListener('updateend', this.onAudioUpdateEnd_);
+      shiftQueue('audio', this);
     }
     if (this.videoBuffer) {
-      this.videoBuffer.addEventListener('updateend', this.onUpdateendCallback_);
+      this.onVideoUpdateEnd_ = onUpdateend('video', this);
+      this.videoBuffer.addEventListener('updateend', this.onVideoUpdateEnd_);
+      shiftQueue('video', this);
     }
-
-    this.runCallback_();
   }
 
   /**
@@ -124,26 +199,12 @@ export default class SourceUpdater {
    * @param {Function} done the function to call when done
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-appendBuffer-void-ArrayBuffer-data
    */
-  appendBuffer(mediaObject, done) {
+  appendBuffer(type, bytes, doneFn) {
     this.processedAppend_ = true;
-    if (mediaObject.audioBytes && mediaObject.videoBytes) {
-      this.queueCallback_(() => {
-        this.audioBuffer.appendBuffer(mediaObject.audioBytes);
-      }, () => {
-        this.queueCallback_(() => {
-          this.videoBuffer.appendBuffer(mediaObject.videoBytes);
-        }, done);
-      });
-      return;
-    }
-    this.queueCallback_(() => {
-      if (mediaObject.audioBytes) {
-        this.audioBuffer.appendBuffer(mediaObject.audioBytes);
-      }
-      if (mediaObject.videoBytes) {
-        this.videoBuffer.appendBuffer(mediaObject.videoBytes);
-      }
-    }, done);
+    pushQueue(type, this, [
+      actions.appendBuffer(bytes),
+      { doneFn, name: 'appendBuffer' }
+    ]);
   }
 
   audioBuffered() {
@@ -255,9 +316,10 @@ export default class SourceUpdater {
       return;
     }
 
-    this.queueCallback_(() => {
-      this.audioBuffer.remove(start, end);
-    }, noop);
+    pushQueue('audio', this, [
+      actions.remove(start, end),
+      { doneFn: noop, name: 'remove' }
+    ]);
   }
 
   /**
@@ -272,9 +334,10 @@ export default class SourceUpdater {
       return;
     }
 
-    this.queueCallback_(() => {
-      this.videoBuffer.remove(start, end);
-    }, noop);
+    pushQueue('video', this, [
+      actions.remove(start, end),
+      { doneFn: noop, name: 'remove' }
+    ]);
   }
 
   /**
@@ -292,7 +355,7 @@ export default class SourceUpdater {
     if (this.pendingCallback_) {
       return true;
     }
-    return false
+    return false;
   }
 
   /**
@@ -305,9 +368,10 @@ export default class SourceUpdater {
         this.audioBuffer &&
         // updateend doesn't fire when timestamp offset isn't different
         this.audioBuffer.timestampOffset !== offset) {
-      this.queueCallback_(() => {
-        this.audioBuffer.timestampOffset = offset;
-      });
+      pushQueue('audio', this, [
+        actions.timestampOffset(offset),
+        null
+      ]);
       this.audioTimestampOffset_ = offset;
     }
     return this.audioTimestampOffset_;
@@ -323,35 +387,13 @@ export default class SourceUpdater {
         this.videoBuffer &&
         // updateend doesn't fire when timestamp offset isn't different
         this.videoBuffer.timestampOffset !== offset) {
-      this.queueCallback_(() => {
-        this.videoBuffer.timestampOffset = offset;
-      });
+      pushQueue('video', this, [
+        actions.timestampOffset(offset),
+        null
+      ]);
       this.videoTimestampOffset_ = offset;
     }
     return this.videoTimestampOffset_;
-  }
-
-  /**
-   * Queue a callback to run
-   */
-  queueCallback_(callback, done) {
-    this.callbacks_.push([callback.bind(this), done]);
-    this.runCallback_();
-  }
-
-  /**
-   * Run a queued callback
-   */
-  runCallback_() {
-    let callbacks;
-
-    if (!this.updating() &&
-        this.callbacks_.length &&
-        this.started_) {
-      callbacks = this.callbacks_.shift();
-      this.pendingCallback_ = callbacks[1];
-      callbacks[0]();
-    }
   }
 
   /**
@@ -362,13 +404,13 @@ export default class SourceUpdater {
       if (this.mediaSource.readyState === 'open') {
         this.audioBuffer.abort();
       }
-      this.audioBuffer.removeEventListener('updateend', this.onUpdateendCallback_);
+      this.audioBuffer.removeEventListener('updateend', this.onAudioUpdateEnd_);
     }
     if (this.videoBuffer) {
       if (this.mediaSource.readyState === 'open') {
         this.videoBuffer.abort();
       }
-      this.videoBuffer.removeEventListener('updateend', this.onUpdateendCallback_);
+      this.videoBuffer.removeEventListener('updateend', this.onVideoUpdateEnd_);
     }
   }
 }

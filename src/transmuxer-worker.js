@@ -17,7 +17,7 @@ import mux from 'mux.js/lib/mux';
 
 const typeFromStreamString = (streamString) => {
   return streamString === 'AudioSegmentStream' ? 'audio' :
-    streamString === 'VideoSegmentStream' ?  'video' : '';
+    streamString === 'VideoSegmentStream' ? 'video' : '';
 };
 
 /**

@@ -340,10 +340,6 @@ const waitForCompletion = (activeXhrs, decrypter, doneFn) => {
 const handleProgress = (segment, progressFn) => (event) => {
   const request = event.target;
 
-  /* eslint-disable */
-  console.log('Progress called with ' + request.responseText.length + ' bytes');
-  /* eslint-enable */
-
   // don't support encrypted segments for now
   if (!segment.key) {
     const newBytes = stringToArrayBuffer(
