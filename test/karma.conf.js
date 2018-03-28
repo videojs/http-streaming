@@ -11,7 +11,7 @@ module.exports = function(config) {
 
   config.set({
     basePath: '..',
-    frameworks: ['qunit', 'sinon', 'detectBrowsers'],
+    frameworks: ['qunit', 'detectBrowsers'],
     client: {
       clearContext: false,
       qunit: {
@@ -20,7 +20,9 @@ module.exports = function(config) {
       }
     },
     files: [
+      'node_modules/sinon/pkg/sinon.js',
       'node_modules/video.js/dist/video.js',
+      'node_modules/video.js/dist/video-js.css',
       'dist-test/videojs-http-streaming.test.js'
     ],
     browserConsoleLogOptions: {
@@ -34,11 +36,6 @@ module.exports = function(config) {
       pollingTimeout: 30000,
       captureTimeout: 600,
       timeout: 600
-    },
-    coverageReporter: {
-      reporters: [{
-        type: 'text-summary'
-      }]
     },
     customLaunchers: {
       ChromeHeadlessWithFlags: {
@@ -102,7 +99,7 @@ module.exports = function(config) {
         return newBrowsers;
       }
     },
-    reporters: ['dots', 'coverage'],
+    reporters: ['dots'],
     port: 9876,
     colors: true,
     autoWatch: false,

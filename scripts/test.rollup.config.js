@@ -4,7 +4,6 @@ import commonjs from 'rollup-plugin-commonjs';
 import resolve from 'rollup-plugin-node-resolve';
 import worker from '@gkatsev/rollup-plugin-bundle-worker';
 import multiEntry from "rollup-plugin-multi-entry";
-import istanbul from 'rollup-plugin-istanbul';
 
 export default {
   input: 'test/**/*.test.js',
@@ -32,7 +31,6 @@ export default {
     commonjs({
       sourceMap: false
     }),
-    babel(),
-    istanbul({ exclude: ['test/**/*.js'] })
+    babel()
   ]
 };
