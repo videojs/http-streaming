@@ -111,7 +111,7 @@ export default [
       worker()
     ],
     output: [{
-      name: 'videojs-http-streaming',
+      name: 'videojsHttpStreaming',
       file: 'dist/videojs-http-streaming.es.js',
       format: 'es',
       banner
