@@ -2894,6 +2894,7 @@ QUnit.test('configures eme if present on selectedinitialmedia', function(assert)
   this.player.tech_.hls.masterPlaylistController_.trigger('selectedinitialmedia');
 
   assert.deepEqual(this.player.eme.options, {
+    previousSetting: 1,
     keySystems: {
       keySystem1: {
         url: 'url1',
@@ -2902,7 +2903,7 @@ QUnit.test('configures eme if present on selectedinitialmedia', function(assert)
         pssh: 'test'
       }
     }
-  }, 'set eme options and ignores previous setting');
+  }, 'set eme options');
 });
 
 QUnit.module('HLS Integration', {
