@@ -3322,11 +3322,13 @@ QUnit.test('emeOptions adds content types for all keySystems', function(assert) 
       keySystems: {
         keySystem1: {
           audioContentType: 'audio/mp4; codecs="some-audio-codec"',
-          videoContentType: 'video/mp4; codecs="some-video-codec"'
+          videoContentType: 'video/mp4; codecs="some-video-codec"',
+          pssh: ''
         },
         keySystem2: {
           audioContentType: 'audio/mp4; codecs="some-audio-codec"',
-          videoContentType: 'video/mp4; codecs="some-video-codec"'
+          videoContentType: 'video/mp4; codecs="some-video-codec"',
+          pssh: ''
         }
       }
     },
@@ -3344,12 +3346,14 @@ QUnit.test('emeOptions retains non content type properties', function(assert) {
         keySystem1: {
           url: '1',
           audioContentType: 'audio/mp4; codecs="some-audio-codec"',
-          videoContentType: 'video/mp4; codecs="some-video-codec"'
+          videoContentType: 'video/mp4; codecs="some-video-codec"',
+          pssh: ''
         },
         keySystem2: {
           url: '2',
           audioContentType: 'audio/mp4; codecs="some-audio-codec"',
-          videoContentType: 'video/mp4; codecs="some-video-codec"'
+          videoContentType: 'video/mp4; codecs="some-video-codec"',
+          pssh: ''
         }
       }
     },
@@ -3375,11 +3379,13 @@ QUnit.test('emeOptions overwrites content types', function(assert) {
       keySystems: {
         keySystem1: {
           audioContentType: 'audio/mp4; codecs="some-audio-codec"',
-          videoContentType: 'video/mp4; codecs="some-video-codec"'
+          videoContentType: 'video/mp4; codecs="some-video-codec"',
+          pssh: ''
         },
         keySystem2: {
           audioContentType: 'audio/mp4; codecs="some-audio-codec"',
-          videoContentType: 'video/mp4; codecs="some-video-codec"'
+          videoContentType: 'video/mp4; codecs="some-video-codec"',
+          pssh: ''
         }
       }
     },

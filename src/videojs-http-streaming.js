@@ -148,7 +148,8 @@ const emeOptions = (keySystemOptions, videoPlaylist, audioPlaylist) => {
   for (let keySystem in keySystemOptions) {
     keySystemContentTypes[keySystem] = {
       audioContentType: `audio/mp4; codecs="${audioPlaylist.attributes.CODECS}"`,
-      videoContentType: `video/mp4; codecs="${videoPlaylist.attributes.CODECS}"`
+      videoContentType: `video/mp4; codecs="${videoPlaylist.attributes.CODECS}"`,
+      pssh: ''
     };
 
     if (videoPlaylist.contentProtection &&
