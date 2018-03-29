@@ -28,6 +28,9 @@ const actions = {
     } = updater;
 
     sourceBuffer.timestampOffset = offset;
+  },
+  callback: (callback) => (type, updater) => {
+    callback();
   }
 };
 
@@ -396,6 +399,23 @@ export default class SourceUpdater {
     return this.videoTimestampOffset_;
   }
 
+  audioQueueCallback(callback) {
+    if (this.audioBuffer) {
+      pushQueue('audio', this, [
+        actions.callback(callback),
+        null
+      ]);
+    }
+  }
+
+  videoQueueCallback(callback) {
+    if (this.videoBuffer) {
+      pushQueue('video', this, [
+        actions.callback(callback),
+        null
+      ]);
+    }
+  }
   /**
    * dispose of the source updater and the underlying sourceBuffer
    */

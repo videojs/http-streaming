@@ -22,7 +22,6 @@ export const handleData_ = (event, transmuxedData, callback) => {
 
   callback({
     type,
-    trackInfo: transmuxedData.trackInfo,
     timingInfo: transmuxedData.videoTimingInfo || transmuxedData.audioTimingInfo,
     // cast ArrayBuffer to TypedArray
     data: new Uint8Array(
@@ -78,10 +77,6 @@ export const handleDone_ = (event, transmuxedData, complete, callback) => {
   callback(sortedSegments);
 };
 
-export const handleTrackInfo_ = (event, transmuxedData) => {
-  transmuxedData.trackInfo = event.data.trackInfo;
-};
-
 export const handleGopInfo_ = (event, transmuxedData) => {
   transmuxedData.gopInfo = event.data.gopInfo;
 };
@@ -101,6 +96,7 @@ export const processTransmux = ({
   gopsToAlignWith,
   isPartial,
   onData,
+  onTrackInfo,
   onDone
 }) => {
   const transmuxedData = {
@@ -113,7 +109,7 @@ export const processTransmux = ({
       handleData_(event, transmuxedData, onData);
     }
     if (event.data.action === 'trackinfo') {
-      handleTrackInfo_(event, transmuxedData);
+      onTrackInfo(event.data.trackInfo);
     }
     if (event.data.action === 'gopInfo') {
       handleGopInfo_(event, transmuxedData);

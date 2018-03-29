@@ -70,24 +70,24 @@ const detectEndOfStream = function(playlist, mediaSource, segmentIndex) {
 
 const finite = (num) => typeof num === 'number' && isFinite(num);
 
-export const illegalMediaSwitch = (loaderType, startingMedia, newSegmentMedia) => {
+export const illegalMediaSwitch = (loaderType, startingMedia, trackInfo) => {
   // Although these checks should most likely cover non 'main' types, for now it narrows
   // the scope of our checks.
-  if (loaderType !== 'main' || !startingMedia || !newSegmentMedia) {
+  if (loaderType !== 'main' || !startingMedia || !trackInfo) {
     return null;
   }
 
-  if (!newSegmentMedia.containsAudio && !newSegmentMedia.containsVideo) {
+  if (!trackInfo.containsAudio && !trackInfo.containsVideo) {
     return 'Neither audio nor video found in segment.';
   }
 
-  if (startingMedia.containsVideo && !newSegmentMedia.containsVideo) {
+  if (startingMedia.containsVideo && !trackInfo.containsVideo) {
     return 'Only audio found in segment when we expected video.' +
       ' We can\'t switch to audio only from a stream that had video.' +
       ' To get rid of this message, please add codec information to the manifest.';
   }
 
-  if (!startingMedia.containsVideo && newSegmentMedia.containsVideo) {
+  if (!startingMedia.containsVideo && trackInfo.containsVideo) {
     return 'Video found in segment when we expected only audio.' +
       ' We can\'t switch to a stream with video from an audio only stream.' +
       ' To get rid of this message, please add codec information to the manifest.';
@@ -328,6 +328,22 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.monitorBuffer_();
     }
   }
+
+  checkForAbort_(requestId) {
+    // If the state is APPENDING, then aborts will not modify the state, meaning the first
+    // callback that happens should reset the state to READY so that loading can continue.
+    if (this.state === 'APPENDING' && !this.pendingSegment_) {
+      this.state = 'READY';
+      return true;
+    }
+
+    if (!this.pendingSegment_ || this.pendingSegment_.requestId !== requestId) {
+      return true;
+    }
+
+    return false;
+  }
+
 
   /**
    * abort all pending xhr requests and null any pending segements
@@ -877,7 +893,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       // The expected duration of the segment in seconds
       duration: segment.duration,
       // retain the segment in case the playlist updates while doing an async process
-      segment
+      segment,
+      byteLength: 0
     };
   }
 
@@ -986,8 +1003,7 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @private
    */
   handleProgress_(event, simpleSegment) {
-    if (!this.pendingSegment_ ||
-        simpleSegment.requestId !== this.pendingSegment_.requestId ||
+    if (this.checkForAbort_(simpleSegment.requestId) ||
         this.abortRequestEarly_(simpleSegment.stats)) {
       return;
     }
@@ -1183,11 +1199,6 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @private
    */
   handleSegment_() {
-    if (!this.pendingSegment_) {
-      this.state = 'READY';
-      return;
-    }
-
     const segmentInfo = this.pendingSegment_;
 
     if (isFmp4(segmentInfo.segment)) {
@@ -1202,12 +1213,16 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     this.state = 'APPENDING';
 
-    segmentInfo.byteLength = segmentInfo.bytes.byteLength;
+    segmentInfo.byteLength = segmentInfo.byteLength ?
+      // we've been tracking progress bytes
+      segmentInfo.byteLength :
+      // we have not been tracking progress bytes
+      segmentInfo.bytes.byteLength;
 
     this.updateMediaSecondsLoaded_(segmentInfo.segment);
 
     if (isFmp4(segmentInfo.segment)) {
-      this.appendSegment_(segmentInfo);
+      this.appendFmp4Segment_(segmentInfo);
       return;
     }
 
@@ -1217,11 +1232,6 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   handlePartialSegment_() {
-    if (!this.pendingSegment_) {
-      this.state = 'READY';
-      return;
-    }
-
     const segmentInfo = this.pendingSegment_;
     const timelineMapping = this.syncController_.mappingForTimeline(segmentInfo.timeline);
 
@@ -1229,8 +1239,15 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.timeMapping_ = timelineMapping;
     }
 
-    segmentInfo.byteLength = segmentInfo.bytes.byteLength;
+    segmentInfo.byteLength += segmentInfo.bytes.byteLength;
 
+    // Note that the state isn't changed from loading to appending. This is because abort
+    // logic may change behavior depending on the state, and changing state too early may
+    // inflate our estimates of bandwidth. In the future this should be re-examined to
+    // note more granular states.
+
+    // We'll update the source buffer's timestamp offset once we have transmuxed data, but
+    // the transmuxer still needs to be updated before then.
     this.updateTransmuxerTimestampOffset_(segmentInfo);
     transmux(this.transmuxerConfig_(segmentInfo, true));
   }
@@ -1248,8 +1265,9 @@ export default class SegmentLoader extends videojs.EventTarget {
       bytes: segmentInfo.bytes,
       transmuxer: this.transmuxer_,
       isPartial,
-      onData: this.handleTransmuxedContent_.bind(this),
-      onDone: this.handleTransmuxedInfo_.bind(this)
+      onData: this.handleTransmuxedContent_.bind(this, segmentInfo),
+      onTrackInfo: this.handleTransmuxedTrackInfo_.bind(this, segmentInfo),
+      onDone: this.handleTransmuxedInfo_.bind(this, segmentInfo)
     };
     const audioBuffered = this.sourceUpdater_.audioBuffered();
     const videoBuffered = this.sourceUpdater_.videoBuffered();
@@ -1267,45 +1285,52 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   updateTransmuxerTimestampOffset_(segmentInfo) {
+    // note that we're potentially using the same timestamp offset for both video and
+    // audio
+    const timestampOffset = segmentInfo.timestampOffset;
     let shouldSetTimestampOffset = false;
 
     if (this.loaderType_ === 'main' &&
-        segmentInfo.timestampOffset !== this.sourceUpdater_.videoTimestampOffset()) {
+        timestampOffset !== this.sourceUpdater_.videoTimestampOffset()) {
       shouldSetTimestampOffset = true;
     }
 
     if (!this.audioDisabled_ &&
-        segmentInfo.timestampOffset !== this.sourceUpdater_.audioTimestampOffset()) {
+        timestampOffset !== this.sourceUpdater_.audioTimestampOffset()) {
       shouldSetTimestampOffset = true;
     }
 
-    if (segmentInfo.timestampOffset !== null && shouldSetTimestampOffset) {
+    if (timestampOffset !== null && shouldSetTimestampOffset) {
       // this won't shift the timestamps (since keepOriginalTimestamps is set to true),
-      // however, the transmuxer needs to know there was a discontinuity
+      // however, the transmuxer needs to know there was a discontinuity to reset other
+      // values
       this.gopBuffer_.length = 0;
       this.timeMapping_ = 0;
       this.transmuxer_.postMessage({
         action: 'setTimestampOffset',
-        timestampOffset: segmentInfo.timestampOffset
+        timestampOffset: timestampOffset
       });
     }
   }
 
-  handleTransmuxedContent_(result) {
-    if (!this.pendingSegment_) {
-      // TODO might have to make sure the transmux doesnt emit more messages for
-      // the aborted segment after a new segment gets started
-      this.state = 'READY';
+  handleTransmuxedTrackInfo_(segmentInfo, trackInfo) {
+    if (this.checkForAbort_(segmentInfo.requestId)) {
       return;
     }
 
-    const segmentInfo = this.pendingSegment_;
+    this.sourceUpdater_.createSourceBuffers({
+      audio: trackInfo.containsAudio ? {} : null,
+      video: trackInfo.containsVideo ? {} : null
+    });
 
-    if (result.trackInfo) {
-      this.sourceUpdater_.createSourceBuffers({
-        audio: result.trackInfo.hasAudio ? {} : null,
-        video: result.trackInfo.hasVideo ? {} : null
-      });
+    if (this.checkForIllegalMediaSwitch(trackInfo)) {
+      return;
+    }
+  }
+
+  handleTransmuxedContent_(segmentInfo, result) {
+    if (this.checkForAbort_(segmentInfo.requestId)) {
+      return;
     }
 
     // don't process and append data if the mediaSource is closed
@@ -1322,7 +1347,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       initSegment
     } = result;
 
-    if (!data.byteLength) {
+    if (!data || !data.byteLength) {
       return;
     }
 
@@ -1353,13 +1378,16 @@ export default class SegmentLoader extends videojs.EventTarget {
     });
   }
 
-  handleTransmuxedInfo_(result) {
-    if (!this.pendingSegment_) {
-      this.state = 'READY';
+  handleTransmuxedInfo_(segmentInfo, result) {
+    if (this.checkForAbort_(segmentInfo.requestId)) {
       return;
     }
 
-    const segmentInfo = this.pendingSegment_;
+    if (!result.complete) {
+      // partial flush, done transmuxing the last partial chunk from progress that was
+      // pushed through
+      this.handleTransmuxedContent_(segmentInfo, result);
+    }
 
     if (result.gopInfo) {
       this.gopBuffer_ = updateGopBuffer(
@@ -1390,31 +1418,66 @@ export default class SegmentLoader extends videojs.EventTarget {
       metadataArray: result.metadata
     });
 
-    // now that we got the segment info, segment transmuxing is done
     if (result.complete) {
+      this.waitForAppendsToComplete_(segmentInfo);
+    }
+  }
+
+  waitForAppendsToComplete_(segmentInfo) {
+    // Although transmuxing is done, appends may not yet be finished. Throw a marker
+    // on each queue this loader is responsible for to ensure that the appends are
+    // complete.
+    const waitForVideo = this.loaderType_ === 'main';
+    const waitForAudio = !this.audioDisabled;
+
+    segmentInfo.waitingOnAppends = 0;
+
+    // Since source updater could call back synchronously, do the increments first.
+    if (waitForVideo) {
+      segmentInfo.waitingOnAppends++;
+    }
+    if (waitForAudio) {
+      segmentInfo.waitingOnAppends++;
+    }
+
+    if (waitForVideo) {
+      this.sourceUpdater_.videoQueueCallback(
+        this.checkAppendsDone_.bind(this, segmentInfo));
+    }
+    if (waitForAudio) {
+      this.sourceUpdater_.audioQueueCallback(
+        this.checkAppendsDone_.bind(this, segmentInfo));
+    }
+  }
+
+  checkAppendsDone_(segmentInfo) {
+    if (this.checkForAbort_(segmentInfo.requestId)) {
+      return;
+    }
+
+    segmentInfo.waitingOnAppends--;
+
+    if (segmentInfo.waitingOnAppends === 0) {
       this.handleUpdateEnd_();
     }
   }
 
-  appendSegment_(segmentInfo) {
-    this.syncController_.saveSegmentTimingInfo(segmentInfo);
-
+  checkForIllegalMediaSwitch(trackInfo) {
     // When we have our first timing info, determine what media types this loader is
     // dealing with. Although we're maintaining extra state, it helps to preserve the
     // separation of segment loader from the actual source buffers.
     if (typeof this.startingMedia_ === 'undefined' &&
-        segmentInfo.timingInfo &&
         // Guard against cases where we're not getting timing info at all until we are
         // certain that all streams will provide it.
-        (segmentInfo.timingInfo.containsAudio || segmentInfo.timingInfo.containsVideo)) {
+        (trackInfo.containsAudio || trackInfo.containsVideo)) {
       this.startingMedia_ = {
-        containsAudio: segmentInfo.timingInfo.containsAudio,
-        containsVideo: segmentInfo.timingInfo.containsVideo
+        containsAudio: trackInfo.containsAudio,
+        containsVideo: trackInfo.containsVideo
       };
     }
 
     const illegalMediaSwitchError =
-      illegalMediaSwitch(this.loaderType_, this.startingMedia_, segmentInfo.timingInfo);
+      illegalMediaSwitch(this.loaderType_, this.startingMedia_, trackInfo);
 
     if (illegalMediaSwitchError) {
       this.error({
@@ -1422,20 +1485,14 @@ export default class SegmentLoader extends videojs.EventTarget {
         blacklistDuration: Infinity
       });
       this.trigger('error');
-      return;
+      return true;
     }
 
-    // TODO right now we do a full transmux for a sync request. This can just be probed
-    // instead.
-    if (segmentInfo.isSyncRequest) {
-      this.trigger('syncinfoupdate');
-      this.pendingSegment_ = null;
-      this.state = 'READY';
-      return;
-    }
+    return false;
+  }
 
-    if (isFmp4(segmentInfo.segment) &&
-        !segmentInfo.videoBytes && !segmentInfo.audioBytes) {
+  appendFmp4Segment_(segmentInfo) {
+    if (!segmentInfo.videoBytes && !segmentInfo.audioBytes) {
       // Assuming fmp4 cases are demuxed. If it is muxed, this will break, but we haven't
       // seen that case yet. If we do have to handle that case, we have to write an fmp4
       // splitter for separating audio and video bytes (so that we can drop muxed audio
@@ -1458,14 +1515,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       }
     }
 
-    this.logger_(segmentInfoString(segmentInfo));
-
-    if (!segmentInfo.audioBytes && !segmentInfo.videoBytes) {
-      // we appended all of the partial segment data earlier, no need to append again
-      this.handleUpdateEnd_();
-      return;
-    }
-
     this.updateTimestampOffset_(segmentInfo);
 
     const videoBytesLength = segmentInfo.videoBytes ? segmentInfo.videoBytes.length : 0;
@@ -1483,7 +1532,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       });
     }
 
-    this.handleUpdateEnd_();
+    this.waitForAppendsToComplete_(segmentInfo);
   }
 
   updateTimestampOffset_(segmentInfo) {
@@ -1531,6 +1580,8 @@ export default class SegmentLoader extends videojs.EventTarget {
   handleUpdateEnd_() {
     if (!this.pendingSegment_) {
       this.state = 'READY';
+      // TODO should this move into this.checkForAbort to speed up requests post abort in
+      // all appending cases?
       if (!this.paused()) {
         this.monitorBuffer_();
       }
@@ -1540,6 +1591,18 @@ export default class SegmentLoader extends videojs.EventTarget {
     const segmentInfo = this.pendingSegment_;
     const segment = segmentInfo.segment;
     const isWalkingForward = this.mediaIndex !== null;
+
+    this.syncController_.saveSegmentTimingInfo(segmentInfo);
+
+    this.logger_(segmentInfoString(segmentInfo));
+
+    // TODO for partial segment downloads, this can be done much earlier
+    if (segmentInfo.isSyncRequest) {
+      this.trigger('syncinfoupdate');
+      this.pendingSegment_ = null;
+      this.state = 'READY';
+      return;
+    }
 
     this.pendingSegment_ = null;
     this.recordThroughput_(segmentInfo);
