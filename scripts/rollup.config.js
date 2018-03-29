@@ -83,7 +83,7 @@ export default [
 
   /**
    * Rollup configuration for packaging the plugin in a module that is consumable
-   * by either CommonJS (e.g. Node or Browserify) or ECMAScript (e.g. Rollup).
+   * by either CommonJS (e.g. Node or Browserify) or ECMAScript (e.g. Rollup or webpack).
    *
    * These modules DO NOT include their dependencies as we expect those to be
    * handled by the module system.
