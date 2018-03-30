@@ -151,14 +151,6 @@ class MessageHandlers {
   }
 
   /**
-   * Recreate the transmuxer so that the next segment added via `push`
-   * start with a fresh transmuxer.
-   */
-  reset() {
-    this.init();
-  }
-
-  /**
    * Set the value that will be used as the `baseMediaDecodeTime` time for the
    * next segment pushed in. Subsequent segments will have their `baseMediaDecodeTime`
    * set relative to the first based on the PTS values.
@@ -197,8 +189,8 @@ class MessageHandlers {
     });
   }
 
-  resetCaptions() {
-    this.transmuxer.resetCaptions();
+  reset() {
+    this.transmuxer.reset();
   }
 
   alignGopsWith(data) {

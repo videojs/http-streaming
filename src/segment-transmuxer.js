@@ -126,11 +126,7 @@ export const processTransmux = ({
     transmuxer.removeEventListener('message', handleMessage);
     handleDone_(event, transmuxedData, event.data.action === 'superDone', onDone);
 
-    currentTransmux = null;
-    if (transmuxQueue.length) {
-      currentTransmux = transmuxQueue.shift();
-      processTransmux(currentTransmux);
-    }
+    dequeue();
   };
 
   transmuxer.addEventListener('message', handleMessage);
@@ -168,6 +164,33 @@ export const processTransmux = ({
   },
   [ bytes.buffer ]);
   transmuxer.postMessage({ action: 'flush' });
+};
+
+export const dequeue = () => {
+  currentTransmux = null;
+  if (transmuxQueue.length) {
+    currentTransmux = transmuxQueue.shift();
+    if (typeof currentTransmux === 'function') {
+      currentTransmux();
+    } else {
+      processTransmux(currentTransmux);
+    }
+  }
+};
+
+export const processReset = (transmuxer) => {
+  transmuxer.postMessage({ action: 'reset' });
+  dequeue();
+};
+
+// TODO might be better to pass in an action into transmux
+export const reset = (transmuxer) => {
+  if (!currentTransmux) {
+    currentTransmux = 'reset';
+    processReset(transmuxer);
+    return;
+  }
+  transmuxQueue.push(processReset.bind(null, transmuxer));
 };
 
 export const transmux = (options) => {

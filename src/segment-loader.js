@@ -9,7 +9,7 @@ import window from 'global/window';
 import BinUtils from './bin-utils';
 import { mediaSegmentRequest, REQUEST_ERRORS } from './media-segment-request';
 import transmuxerWorker from './transmuxer-worker';
-import { transmux } from './segment-transmuxer';
+import { transmux, reset as resetTransmuxer } from './segment-transmuxer';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
 import logger from './util/logger';
@@ -589,7 +589,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.ended_ = false;
     this.resetLoader();
     if (this.transmuxer_) {
-      this.transmuxer_.postMessage({ action: 'resetCaptions' });
+      resetTransmuxer(this.transmuxer_);
     }
     this.remove(0, this.duration_());
   }
