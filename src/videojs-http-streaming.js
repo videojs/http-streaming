@@ -137,7 +137,7 @@ Hls.canPlaySource = function() {
     'your player\'s techOrder.');
 };
 
-const emeOptions = (keySystemOptions, videoPlaylist, audioPlaylist) => {
+const emeKeySystems = (keySystemOptions, videoPlaylist, audioPlaylist) => {
   if (!keySystemOptions) {
     return keySystemOptions;
   }
@@ -165,9 +165,7 @@ const emeOptions = (keySystemOptions, videoPlaylist, audioPlaylist) => {
     }
   }
 
-  return {
-    keySystems: videojs.mergeOptions(keySystemOptions, keySystemContentTypes)
-  };
+  return videojs.mergeOptions(keySystemOptions, keySystemContentTypes);
 };
 
 const setupEmeOptions = (hlsHandler) => {
@@ -177,13 +175,15 @@ const setupEmeOptions = (hlsHandler) => {
   const player = videojs.players[hlsHandler.tech_.options_.playerId];
 
   if (player.eme) {
-    const sourceOptions = emeOptions(
+    const sourceOptions = emeKeySystems(
       hlsHandler.source_.keySystems,
       hlsHandler.playlists.media(),
       hlsHandler.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader.media()
     );
 
-    player.currentSource().keySystems = sourceOptions.keySystems;
+    if (player.currentSource().keySystems) {
+      player.currentSource().keySystems = sourceOptions;
+    }
   }
 };
 
@@ -714,6 +714,6 @@ export {
   Hls,
   HlsHandler,
   HlsSourceHandler,
-  emeOptions,
+  emeKeySystems,
   simpleTypeFromSourceType
 };
