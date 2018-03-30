@@ -8,7 +8,6 @@ export const handleData_ = (event, transmuxedData, callback) => {
     type,
     boxes,
     initSegment,
-    // TODO is segment.info used ever???
     captions,
     captionStreams,
     metadata
@@ -50,7 +49,6 @@ export const handleDone_ = (event, transmuxedData, complete, callback) => {
   };
   const buffer = transmuxedData.buffer;
 
-  // TODO best place?
   transmuxedData.buffer = [];
 
   // Sort segments into separate video/audio arrays and

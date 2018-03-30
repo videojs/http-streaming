@@ -81,15 +81,16 @@ const onUpdateend = (type, updater) => () => {
     [`${type}Buffer`]: sourceBuffer
   } = updater;
 
+  if (!queue.pending) {
+    shiftQueue(type, updater);
+  }
+
   const {
     doneFn,
     name
   } = queue.pending;
 
   queue.pending = null;
-
-  logger_(`updateend from ${type}Buffer.${name}`);
-  logger_(`${type}Buffer.buffered [${printableRange(sourceBuffer.buffered)}]`);
 
   if (doneFn) {
     doneFn();

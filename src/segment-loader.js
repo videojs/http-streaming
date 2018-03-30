@@ -1355,7 +1355,9 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    // TODO handle reseting appendInitSegment
+    // TODO handle reseting appendInitSegment (discos, track changes, and media changes)
+    // We also may or may not want to always append the init segment for video (we used to
+    // always append it for each video segment). Consider appending on each new segment.
     const segments = [data];
     let byteLength = data.byteLength;
 
@@ -1373,15 +1375,18 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     this.updateTimestampOffset_(segmentInfo);
 
-    this.sourceUpdater_.appendBuffer(type, bytes, () => {
-      this.logger_(`Appended partial segment data, ${bytes.byteLength} ${type} bytes`);
-    });
+    // no need for a callback on progress, just keep pushing data on
+    this.sourceUpdater_.appendBuffer(type, bytes, () => {});
   }
 
   handleTransmuxedInfo_(segmentInfo, result) {
     if (this.checkForAbort_(segmentInfo.requestId)) {
       return;
     }
+
+    // this is also done in handleTransmuxedContent, but we still need to save it for the
+    // final case
+    segmentInfo.timingInfo = result.timingInfo;
 
     if (!result.complete) {
       // partial flush, done transmuxing the last partial chunk from progress that was
@@ -1521,15 +1526,11 @@ export default class SegmentLoader extends videojs.EventTarget {
     const audioBytesLength = segmentInfo.audioBytes ? segmentInfo.audioBytes.length : 0;
 
     if (videoBytesLength) {
-      this.sourceUpdater_.appendBuffer('video', segmentInfo.videoBytes, () => {
-        this.logger_(`Appended segment data, ${videoBytesLength} video bytes`);
-      });
+      this.sourceUpdater_.appendBuffer('video', segmentInfo.videoBytes, () => {});
     }
 
     if (audioBytesLength) {
-      this.sourceUpdater_.appendBuffer('audio', segmentInfo.audioBytes, () => {
-        this.logger_(`Appended segment data, ${audioBytesLength} audio bytes`);
-      });
+      this.sourceUpdater_.appendBuffer('audio', segmentInfo.audioBytes, () => {});
     }
 
     this.waitForAppendsToComplete_(segmentInfo);
