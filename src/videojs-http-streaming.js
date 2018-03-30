@@ -181,7 +181,7 @@ const setupEmeOptions = (hlsHandler) => {
       hlsHandler.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader.media()
     );
 
-    if (player.currentSource().keySystems) {
+    if (sourceOptions) {
       player.currentSource().keySystems = sourceOptions;
     }
   }
