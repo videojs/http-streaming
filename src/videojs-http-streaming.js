@@ -137,7 +137,7 @@ Hls.canPlaySource = function() {
     'your player\'s techOrder.');
 };
 
-const emeOptions = (keySystemOptions, videoPlaylist, audioPlaylist) => {
+const emeKeySystems = (keySystemOptions, videoPlaylist, audioPlaylist) => {
   if (!keySystemOptions) {
     return keySystemOptions;
   }
@@ -151,6 +151,13 @@ const emeOptions = (keySystemOptions, videoPlaylist, audioPlaylist) => {
       videoContentType: `video/mp4; codecs="${videoPlaylist.attributes.CODECS}"`
     };
 
+    if (videoPlaylist.contentProtection &&
+        videoPlaylist.contentProtection[keySystem] &&
+        videoPlaylist.contentProtection[keySystem].pssh) {
+      keySystemContentTypes[keySystem].pssh =
+        videoPlaylist.contentProtection[keySystem].pssh;
+    }
+
     // videojs-contrib-eme accepts the option of specifying: 'com.some.cdm': 'url'
     // so we need to prevent overwriting the URL entirely
     if (typeof keySystemOptions[keySystem] === 'string') {
@@ -158,9 +165,7 @@ const emeOptions = (keySystemOptions, videoPlaylist, audioPlaylist) => {
     }
   }
 
-  return {
-    keySystems: videojs.mergeOptions(keySystemOptions, keySystemContentTypes)
-  };
+  return videojs.mergeOptions(keySystemOptions, keySystemContentTypes);
 };
 
 const setupEmeOptions = (hlsHandler) => {
@@ -170,11 +175,15 @@ const setupEmeOptions = (hlsHandler) => {
   const player = videojs.players[hlsHandler.tech_.options_.playerId];
 
   if (player.eme) {
-    player.eme.options = videojs.mergeOptions(player.eme.options, emeOptions(
+    const sourceOptions = emeKeySystems(
       hlsHandler.source_.keySystems,
       hlsHandler.playlists.media(),
       hlsHandler.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader.media()
-    ));
+    );
+
+    if (sourceOptions) {
+      player.currentSource().keySystems = sourceOptions;
+    }
   }
 };
 
@@ -705,6 +714,6 @@ export {
   Hls,
   HlsHandler,
   HlsSourceHandler,
-  emeOptions,
+  emeKeySystems,
   simpleTypeFromSourceType
 };

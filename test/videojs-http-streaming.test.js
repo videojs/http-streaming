@@ -19,7 +19,7 @@ import {
   HlsSourceHandler,
   HlsHandler,
   Hls,
-  emeOptions,
+  emeKeySystems,
   simpleTypeFromSourceType
 } from '../src/videojs-http-streaming';
 import window from 'global/window';
@@ -2865,6 +2865,11 @@ QUnit.test('configures eme if present on selectedinitialmedia', function(assert)
       return {
         attributes: {
           CODECS: 'video-codec'
+        },
+        contentProtection: {
+          keySystem1: {
+            pssh: 'test'
+          }
         }
       };
     },
@@ -2889,15 +2894,68 @@ QUnit.test('configures eme if present on selectedinitialmedia', function(assert)
   this.player.tech_.hls.masterPlaylistController_.trigger('selectedinitialmedia');
 
   assert.deepEqual(this.player.eme.options, {
-    previousSetting: 1,
+    previousSetting: 1
+  }, 'did not modify plugin options');
+
+  assert.deepEqual(this.player.currentSource(), {
+    src: 'manifest/master.mpd',
+    type: 'application/dash+xml',
     keySystems: {
       keySystem1: {
         url: 'url1',
         audioContentType: 'audio/mp4; codecs="audio-codec"',
-        videoContentType: 'video/mp4; codecs="video-codec"'
+        videoContentType: 'video/mp4; codecs="video-codec"',
+        pssh: 'test'
       }
     }
-  }, 'set eme options');
+  }, 'set source eme options');
+});
+
+QUnit.test('does not set source keySystems if keySystems not provided by source', function(assert) {
+  this.player.src({
+    src: 'manifest/master.mpd',
+    type: 'application/dash+xml'
+  });
+
+  this.clock.tick(1);
+
+  this.player.tech_.hls.playlists = {
+    media: () => {
+      return {
+        attributes: {
+          CODECS: 'video-codec'
+        },
+        contentProtection: {
+          keySystem1: {
+            pssh: 'test'
+          }
+        }
+      };
+    },
+    // mocked for renditions mixin
+    master: {
+      playlists: []
+    }
+  };
+  this.player.tech_.hls.masterPlaylistController_.mediaTypes_ = {
+    AUDIO: {
+      activePlaylistLoader: {
+        media: () => {
+          return {
+            attributes: {
+              CODECS: 'audio-codec'
+            }
+          };
+        }
+      }
+    }
+  };
+  this.player.tech_.hls.masterPlaylistController_.trigger('selectedinitialmedia');
+
+  assert.deepEqual(this.player.currentSource(), {
+    src: 'manifest/master.mpd',
+    type: 'application/dash+xml'
+  }, 'does not set source eme options');
 });
 
 QUnit.module('HLS Integration', {
@@ -3306,53 +3364,49 @@ QUnit.test('treats invalid keys as a key request failure and blacklists playlist
 
 QUnit.module('videojs-contrib-hls isolated functions');
 
-QUnit.test('emeOptions adds content types for all keySystems', function(assert) {
+QUnit.test('emeKeySystems adds content types for all keySystems', function(assert) {
   assert.deepEqual(
-    emeOptions(
+    emeKeySystems(
       { keySystem1: {}, keySystem2: {} },
       { attributes: { CODECS: 'some-video-codec' } },
       { attributes: { CODECS: 'some-audio-codec' } }),
     {
-      keySystems: {
-        keySystem1: {
-          audioContentType: 'audio/mp4; codecs="some-audio-codec"',
-          videoContentType: 'video/mp4; codecs="some-video-codec"'
-        },
-        keySystem2: {
-          audioContentType: 'audio/mp4; codecs="some-audio-codec"',
-          videoContentType: 'video/mp4; codecs="some-video-codec"'
-        }
+      keySystem1: {
+        audioContentType: 'audio/mp4; codecs="some-audio-codec"',
+        videoContentType: 'video/mp4; codecs="some-video-codec"'
+      },
+      keySystem2: {
+        audioContentType: 'audio/mp4; codecs="some-audio-codec"',
+        videoContentType: 'video/mp4; codecs="some-video-codec"'
       }
     },
     'added content types');
 });
 
-QUnit.test('emeOptions retains non content type properties', function(assert) {
+QUnit.test('emeKeySystems retains non content type properties', function(assert) {
   assert.deepEqual(
-    emeOptions(
+    emeKeySystems(
       { keySystem1: { url: '1' }, keySystem2: { url: '2'} },
       { attributes: { CODECS: 'some-video-codec' } },
       { attributes: { CODECS: 'some-audio-codec' } }),
     {
-      keySystems: {
-        keySystem1: {
-          url: '1',
-          audioContentType: 'audio/mp4; codecs="some-audio-codec"',
-          videoContentType: 'video/mp4; codecs="some-video-codec"'
-        },
-        keySystem2: {
-          url: '2',
-          audioContentType: 'audio/mp4; codecs="some-audio-codec"',
-          videoContentType: 'video/mp4; codecs="some-video-codec"'
-        }
+      keySystem1: {
+        url: '1',
+        audioContentType: 'audio/mp4; codecs="some-audio-codec"',
+        videoContentType: 'video/mp4; codecs="some-video-codec"'
+      },
+      keySystem2: {
+        url: '2',
+        audioContentType: 'audio/mp4; codecs="some-audio-codec"',
+        videoContentType: 'video/mp4; codecs="some-video-codec"'
       }
     },
     'retained options');
 });
 
-QUnit.test('emeOptions overwrites content types', function(assert) {
+QUnit.test('emeKeySystems overwrites content types', function(assert) {
   assert.deepEqual(
-    emeOptions(
+    emeKeySystems(
       {
         keySystem1: {
           audioContentType: 'a',
@@ -3366,15 +3420,13 @@ QUnit.test('emeOptions overwrites content types', function(assert) {
       { attributes: { CODECS: 'some-video-codec' } },
       { attributes: { CODECS: 'some-audio-codec' } }),
     {
-      keySystems: {
-        keySystem1: {
-          audioContentType: 'audio/mp4; codecs="some-audio-codec"',
-          videoContentType: 'video/mp4; codecs="some-video-codec"'
-        },
-        keySystem2: {
-          audioContentType: 'audio/mp4; codecs="some-audio-codec"',
-          videoContentType: 'video/mp4; codecs="some-video-codec"'
-        }
+      keySystem1: {
+        audioContentType: 'audio/mp4; codecs="some-audio-codec"',
+        videoContentType: 'video/mp4; codecs="some-video-codec"'
+      },
+      keySystem2: {
+        audioContentType: 'audio/mp4; codecs="some-audio-codec"',
+        videoContentType: 'video/mp4; codecs="some-video-codec"'
       }
     },
     'overwrote content types');

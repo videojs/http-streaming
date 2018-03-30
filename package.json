@@ -105,7 +105,7 @@
     "serve-static": "^1.13.2",
     "sinon": "^1.10.3",
     "uglify-es": "^3.3.9",
-    "videojs-contrib-eme": "^3.0.0",
+    "videojs-contrib-eme": "^3.2.0",
     "videojs-contrib-quality-levels": "^2.0.4",
     "videojs-standard": "^4.0.3"
   }
