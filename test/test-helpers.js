@@ -3,7 +3,7 @@ import sinon from 'sinon';
 import videojs from 'video.js';
 /* eslint-disable no-unused-vars */
 // needed so MediaSource can be registered with videojs
-import MediaSource from '../src/mse';
+import { MediaSource } from '../src/mse/index';
 /* eslint-enable */
 import testDataManifests from './test-manifests.js';
 import xhrFactory from '../src/xhr';

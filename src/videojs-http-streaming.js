@@ -8,10 +8,10 @@ import document from 'global/document';
 import PlaylistLoader from './playlist-loader';
 import Playlist from './playlist';
 import xhrFactory from './xhr';
-import { Decrypter, AsyncStream, decrypt } from 'aes-decrypter';
+import aesDecrypter from 'aes-decrypter';
 import * as utils from './bin-utils';
 import { timeRangesToArray } from './ranges';
-import { MediaSource, URL } from './mse';
+import { MediaSource, URL } from './mse/index';
 import videojs from 'video.js';
 import { MasterPlaylistController } from './master-playlist-controller';
 import Config from './config';
@@ -24,6 +24,9 @@ import {
   comparePlaylistBandwidth,
   comparePlaylistResolution
 } from './playlist-selectors.js';
+import { version } from '../package.json';
+
+const { Decrypter, AsyncStream, decrypt } = aesDecrypter;
 
 const Hls = {
   PlaylistLoader,
@@ -648,7 +651,7 @@ class HlsHandler extends Component {
  */
 const HlsSourceHandler = {
   name: 'videojs-http-streaming',
-  VERSION: '__VERSION__',
+  VERSION: version,
   canHandleSource(srcObj, options = {}) {
     let localOptions = videojs.mergeOptions(videojs.options, options);
 

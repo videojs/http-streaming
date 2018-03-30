@@ -1,3 +1,4 @@
+import window from 'global/window';
 import Config from './config';
 import Playlist from './playlist';
 import { parseCodecs } from './util/codecs.js';
