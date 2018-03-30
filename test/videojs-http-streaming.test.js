@@ -2911,7 +2911,7 @@ QUnit.test('configures eme if present on selectedinitialmedia', function(assert)
   }, 'set source eme options');
 });
 
-QUnit.test('ignores configures eme if not provided by source', function(assert) {
+QUnit.test('does not set source keySystems if keySystems not provided by source', function(assert) {
   this.player.src({
     src: 'manifest/master.mpd',
     type: 'application/dash+xml'
