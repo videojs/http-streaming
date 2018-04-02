@@ -40,6 +40,18 @@ const sumLoaderStat = function(stat) {
          this.mainSegmentLoader_[stat];
 };
 
+const resolveDecrypterWorker = () => {
+  let result;
+
+  try {
+    result = require.resolve('./decrypter-worker');
+  } catch (e) {
+    // no result
+  }
+
+  return result;
+};
+
 /**
  * the master playlist controller controller all interactons
  * between playlists and segmentloaders. At this time this mainly
@@ -604,7 +616,13 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // code in video.js but is required because play() must be invoked
     // *after* the media source has opened.
     if (this.tech_.autoplay()) {
-      this.tech_.play();
+      const playPromise = this.tech_.play();
+
+      // Catch/silence error when a pause interrupts a play request
+      // on browsers which return a promise
+      if (typeof playPromise !== 'undefined' && typeof playPromise.then === 'function') {
+        playPromise.then(null, (e) => {});
+      }
     }
 
     this.trigger('sourceopen');
