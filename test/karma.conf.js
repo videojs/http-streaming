@@ -16,7 +16,7 @@ module.exports = function(config) {
       clearContext: false,
       qunit: {
         showUI: true,
-        testTimeout: 5000
+        testTimeout: 30000
       }
     },
     files: [
