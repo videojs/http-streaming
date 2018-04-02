@@ -1,8 +1,6 @@
 import window from 'global/window';
-import aesDecrypter from 'aes-decrypter';
+import { Decrypter } from 'aes-decrypter';
 import { createTransferableMessage } from './bin-utils';
-
-const { Decrypter } = aesDecrypter;
 
 /**
  * Our web worker interface so that things can talk to aes-decrypter
