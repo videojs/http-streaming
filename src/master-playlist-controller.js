@@ -40,18 +40,6 @@ const sumLoaderStat = function(stat) {
          this.mainSegmentLoader_[stat];
 };
 
-const resolveDecrypterWorker = () => {
-  let result;
-
-  try {
-    result = require.resolve('./decrypter-worker');
-  } catch (e) {
-    // no result
-  }
-
-  return result;
-};
-
 /**
  * the master playlist controller controller all interactons
  * between playlists and segmentloaders. At this time this mainly
