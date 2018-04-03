@@ -21,7 +21,8 @@ export const handleData_ = (event, transmuxedData, callback) => {
 
   callback({
     type,
-    timingInfo: transmuxedData.videoTimingInfo || transmuxedData.audioTimingInfo,
+    videoTimingInfo: transmuxedData.videoTimingInfo,
+    audioTimingInfo: transmuxedData.audioTimingInfo,
     // cast ArrayBuffer to TypedArray
     data: new Uint8Array(
       boxes.data,
@@ -43,7 +44,8 @@ export const handleDone_ = (event, transmuxedData, complete, callback) => {
     captions: [],
     metadata: [],
     gopInfo: transmuxedData.gopInfo,
-    timingInfo: transmuxedData.videoTimingInfo || transmuxedData.audioTimingInfo,
+    videoTimingInfo: transmuxedData.videoTimingInfo,
+    audioTimingInfo: transmuxedData.audioTimingInfo,
     captionStreams: {},
     complete
   };

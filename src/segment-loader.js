@@ -1338,7 +1338,10 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    segmentInfo.timingInfo = result.timingInfo;
+    // it's possible we transmux audio after finishing video, so don't set the timing info
+    // if it doesn't come back from the function
+    segmentInfo.timingInfo = this.timingInfoFromTransmuxed(result) ||
+      segmentInfo.timingInfo;
 
     // Merge multiple video and audio segments into one and append
     const {
@@ -1379,6 +1382,13 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.sourceUpdater_.appendBuffer(type, bytes, () => {});
   }
 
+  timingInfoFromTransmuxed(result) {
+    if (this.loaderType_ === 'main' && this.startingMedia_.containsVideo) {
+      return result.videoTimingInfo;
+    }
+    return result.audioTimingInfo;
+  }
+
   handleTransmuxedInfo_(segmentInfo, result) {
     if (this.checkForAbort_(segmentInfo.requestId)) {
       return;
@@ -1386,7 +1396,10 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // this is also done in handleTransmuxedContent, but we still need to save it for the
     // final case
-    segmentInfo.timingInfo = result.timingInfo;
+    // it's possible we transmux audio after finishing video, so don't set the timing info
+    // if it doesn't come back from the function
+    segmentInfo.timingInfo = this.timingInfoFromTransmuxed(result) ||
+      segmentInfo.timingInfo;
 
     if (!result.complete) {
       // partial flush, done transmuxing the last partial chunk from progress that was
