@@ -2501,3 +2501,18 @@ QUnit.test('properly configures loader mime types', function(assert) {
     'correct mime type for audio segment loader');
   assert.notOk(audioMimeTypeCalls[0][1], 'no source buffer emitter');
 });
+
+QUnit.test('Exception in play promise should be caught', function(assert) {
+  const mpc = this.masterPlaylistController;
+
+  mpc.setupSourceBuffers = () => true;
+  mpc.tech_ = {
+    autoplay: () => true,
+    play: () => new Promise(function(resolve, reject) {
+      reject(new DOMException());
+    })
+  };
+  mpc.handleSourceOpen_();
+
+  assert.ok(true, 'rejects dom exception');
+});
