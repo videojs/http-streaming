@@ -285,12 +285,9 @@ class HlsHandler extends Component {
     this.ignoreNextSeekingEvent_ = false;
     this.setOptions_();
 
-    // overriding native HLS only works if audio tracks have been emulated
-    // error early if we're misconfigured:
-    if (this.options_.overrideNative &&
-        (tech.featuresNativeVideoTracks || tech.featuresNativeAudioTracks)) {
-      throw new Error('Overriding native HLS requires emulated tracks. ' +
-        'See https://git.io/vMpjB');
+    if (this.options_.overrideNative) {
+      tech.overrideNativeVideoTracks(true);
+      tech.overrideNativeAudioTracks(true);
     }
 
     // listen for fullscreenchange events for this player so that we
