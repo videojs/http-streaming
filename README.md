@@ -703,8 +703,9 @@ videojs-http-streaming will have created all of the files for using it in a dist
 ## Development
 
 ### Tools
-* Download stream locally with the [HLS Fetcher](https://github.com/imbcmdth/hls-fetcher)
-* Simulate errors with [Murphy](https://github.com/mrocajr/murphy)
+* Download stream locally with the [HLS Fetcher](https://github.com/videojs/hls-fetcher)
+* Simulate errors with [Murphy](https://github.com/videojs/murphy)
+* Inspect content with [Thumbcoil](http://thumb.co.il)
 
 ### Commands
 All commands for development are listed in the `package.json` file and are run using
