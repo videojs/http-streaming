@@ -29,6 +29,9 @@ Maintenance Status: Stable
 - [Contributing](#contributing)
 - [Talk to us](#talk-to-us)
 - [Getting Started](#getting-started)
+- [Compatibility](#compatibility)
+  - [Via MSE](#via-mse)
+  - [Via MSE with the [overrideNative](#overridenative) option](#via-mse-with-the-overridenativeoverridenative-option)
   - [Flash Support](#flash-support)
 - [Documentation](#documentation)
   - [Options](#options)
@@ -113,6 +116,18 @@ player.play();
 ```
 
 Check out our [live example](https://jsbin.com/gejugat/edit?html,output) if you're having trouble.
+
+## Compatibility
+
+### Via MSE
+- Chrome
+- Firefox
+- Internet Explorer 11 Windows 10 or 8.1
+
+### Via MSE with the [overrideNative](#overridenative) option
+- Chrome Android
+- Edge
+- Mac Safari
 
 ### Flash Support
 This plugin does not support Flash playback. Instead, it is recommended that users use the [videojs-flashls-source-handler](https://github.com/brightcove/videojs-flashls-source-handler) plugin as a fallback option for browsers that don't have a native
@@ -266,8 +281,7 @@ videojs-http-streaming will take over HLS playback to provide a more
 consistent experience.
 
 __NOTE__: If you use this option, you must also set
-`html5.nativeAudioTracks` and
-`html5.nativeVideoTracks` to
+`html5.nativeAudioTracks`, `html5.nativeVideoTracks` and `html5.nativeTextTracks` to
 `false`. videojs-http-streaming relies on audio and video tracks to play
 streams with alternate audio and requires additional capabilities only
 supported by non-native tracks in video.js.
@@ -277,6 +291,7 @@ var player = videojs('playerId', {
   html5: {
     nativeAudioTracks: false,
     nativeVideoTracks: false,
+    nativeTextTracks: false,
     hls: {
       overrideNative: true
     }
