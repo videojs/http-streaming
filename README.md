@@ -99,20 +99,20 @@ Drop by our slack channel (#playback) on the [Video.js slack][slack-link].
 Get a copy of [videojs-http-streaming](#installation) and include it in your page along with video.js:
 
 ```html
-<video id=example-video width=600 height=300 class="video-js vjs-default-skin" controls>
+<video-js id=vid1 width=600 height=300 class="vjs-default-skin" controls>
   <source
      src="https://example.com/index.m3u8"
      type="application/x-mpegURL">
-</video>
+</video-js>
 <script src="video.js"></script>
 <script src="videojs-http-streaming.min.js"></script>
 <script>
-var player = videojs('example-video');
+var player = videojs('vid1');
 player.play();
 </script>
 ```
 
-Check out our [live example](http://jsbin.com/vokipos/8/edit?html,output) if you're having trouble.
+Check out our [live example](https://jsbin.com/gejugat/edit?html,output) if you're having trouble.
 
 ### Flash Support
 This plugin does not support Flash playback. Instead, it is recommended that users use the [videojs-flashls-source-handler](https://github.com/brightcove/videojs-flashls-source-handler) plugin as a fallback option for browsers that don't have a native
@@ -182,20 +182,13 @@ parts of video.js:
 
 ```javascript
 // html5 for html hls
-videojs(video, {html5: {
-  hls: {
-    withCredentials: true
+videojs(video, {
+  html5: {
+    hls: {
+      withCredentials: true
+    }
   }
-}});
-
-// or
-
-var options = {hls: {
-  withCredentials: true;
-}};
-
-videojs(video, {html5: options});
-
+});
 ```
 
 ##### Source
@@ -273,11 +266,23 @@ videojs-http-streaming will take over HLS playback to provide a more
 consistent experience.
 
 __NOTE__: If you use this option, you must also set
-`videojs.options.html5.nativeAudioTracks` and
-`videojs.options.html5.nativeVideoTracks` to
+`html5.nativeAudioTracks` and
+`html5.nativeVideoTracks` to
 `false`. videojs-http-streaming relies on audio and video tracks to play
 streams with alternate audio and requires additional capabilities only
 supported by non-native tracks in video.js.
+
+```
+var player = videojs('playerId', {
+  html5: {
+    nativeAudioTracks: false,
+    nativeVideoTracks: false,
+    hls: {
+      overrideNative: true
+    }
+  }
+});
+```
 
 ##### blacklistDuration
 * Type: `number`
