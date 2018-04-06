@@ -119,6 +119,8 @@ player.play();
 
 Check out our [live example](https://jsbin.com/gejugat/edit?html,output) if you're having trouble.
 
+Is it recommended to use the `<video-js>` element or load a source with `player.src(sourceObject)` in order to prevent the video element from playing the source natively where HLS is supported.
+
 ## Compatibility
 
 ### Via MSE
