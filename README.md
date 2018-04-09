@@ -34,6 +34,7 @@ Video.js Compatibility: 6.0
 - [Compatibility](#compatibility)
   - [Via MSE](#via-mse)
   - [Via MSE with the [overrideNative](#overridenative) option](#via-mse-with-the-overridenativeoverridenative-option)
+  - [Native only](#native-only)
   - [Flash Support](#flash-support)
 - [Documentation](#documentation)
   - [Options](#options)
@@ -131,7 +132,10 @@ Is it recommended to use the `<video-js>` element or load a source with `player.
 ### Via MSE with the [overrideNative](#overridenative) option
 - Chrome Android
 - Edge
+
+### Native only
 - Mac Safari
+- iOS Safari
 
 ### Flash Support
 This plugin does not support Flash playback. Instead, it is recommended that users use the [videojs-flashls-source-handler](https://github.com/brightcove/videojs-flashls-source-handler) plugin as a fallback option for browsers that don't have a native
