@@ -33,7 +33,6 @@ Video.js Compatibility: 6.0
 - [Getting Started](#getting-started)
 - [Compatibility](#compatibility)
   - [Via MSE](#via-mse)
-  - [Via MSE with the overrideNative option](#via-mse-with-the-overridenativeoverridenative-option)
   - [Native only](#native-only)
   - [Flash Support](#flash-support)
 - [Documentation](#documentation)
@@ -129,7 +128,7 @@ Is it recommended to use the `<video-js>` element or load a source with `player.
 - Firefox
 - Internet Explorer 11 Windows 10 or 8.1
 
-### Via MSE with the [overrideNative](#overridenative) option
+Using the [overrideNative](#overridenative) option
 - Chrome Android
 - Edge
 
