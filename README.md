@@ -33,7 +33,7 @@ Video.js Compatibility: 6.0
 - [Getting Started](#getting-started)
 - [Compatibility](#compatibility)
   - [Via MSE](#via-mse)
-  - [Via MSE with the [overrideNative](#overridenative) option](#via-mse-with-the-overridenativeoverridenative-option)
+  - [Via MSE with the overrideNative option](#via-mse-with-the-overridenativeoverridenative-option)
   - [Native only](#native-only)
   - [Flash Support](#flash-support)
 - [Documentation](#documentation)
