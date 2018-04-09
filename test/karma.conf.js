@@ -57,6 +57,12 @@ module.exports = function(config) {
         os: 'Windows',
         os_version: '10'
       },
+      SafariBrowserStack: {
+        base: 'BrowserStack',
+        browser: 'safari',
+        os: 'OS X',
+        os_version: 'High Sierra'
+      },
       FirefoxBrowserStack: {
         base: 'BrowserStack',
         browser: 'firefox',
