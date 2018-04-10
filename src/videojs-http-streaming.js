@@ -149,11 +149,16 @@ const emeKeySystems = (keySystemOptions, videoPlaylist, audioPlaylist) => {
       videoContentType: `video/mp4; codecs="${videoPlaylist.attributes.CODECS}"`
     };
 
-    if (videoPlaylist.contentProtection &&
-        videoPlaylist.contentProtection[keySystem] &&
-        videoPlaylist.contentProtection[keySystem].pssh) {
-      keySystemContentTypes[keySystem].pssh =
-        videoPlaylist.contentProtection[keySystem].pssh;
+    const contentProtection = videoPlaylist.contentProtection &&
+        videoPlaylist.contentProtection[keySystem];
+    if (contentProtection) {
+      if (contentProtection.pssh) {
+        keySystemContentTypes[keySystem].pssh = contentProtection.pssh;
+      }
+
+      if (videoPlaylist.contentProtection[keySystem].licenseUrl) {
+        keySystemContentTypes[keySystem].url = contentProtection.licenseUrl;
+      }
     }
 
     // videojs-contrib-eme accepts the option of specifying: 'com.some.cdm': 'url'
