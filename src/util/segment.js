@@ -5,13 +5,13 @@ import mp4probe from 'mux.js/lib/mp4/probe';
  * "media time".
  *
  * @private
- * @param {SegmentInfo} segmentInfo - The current active request information
+ * @param {Uint8Array} segmentBytes - segment bytes
+ * @param {Uint8Array} mapBytes - map bytes
  * @return {object} The start and end time of the current segment in "media time"
  */
-export const probeMp4Segment = (segmentInfo) => {
-  let segment = segmentInfo.segment;
-  let timescales = mp4probe.timescale(segment.map.bytes);
-  let startTime = mp4probe.startTime(timescales, segmentInfo.bytes);
+export const probeMp4Segment = (segmentBytes, mapBytes) => {
+  let timescales = mp4probe.timescale(mapBytes);
+  let startTime = mp4probe.startTime(timescales, segmentBytes);
 
   return {
     start: startTime,

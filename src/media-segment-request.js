@@ -1,6 +1,8 @@
 import videojs from 'video.js';
 import BinUtils from './bin-utils';
 import { stringToArrayBuffer } from './util/string-to-array-buffer';
+import { transmux } from './segment-transmuxer';
+import { probeMp4Segment } from './util/segment';
 
 const { createTransferableMessage } = BinUtils;
 
@@ -244,9 +246,11 @@ const handleSegmentResponse = (segment, finishProcessingFn) => (error, request) 
  * @param {WebWorker} decrypter - a WebWorker interface to AES-128 decryption routines
  * @param {Object} segment - a simplified copy of the segmentInfo object
  *                           from SegmentLoader
+ * @param {Function} dataFn - a callback that is executed when segment bytes are available
+ *                            and ready to use
  * @param {Function} doneFn - a callback that is executed after decryption has completed
  */
-const decryptSegment = (decrypter, segment, doneFn) => {
+const decryptSegment = (decrypter, segment, dataFn, doneFn) => {
   const decryptionHandler = (event) => {
     if (event.data.source === segment.requestId) {
       decrypter.removeEventListener('message', decryptionHandler);
@@ -255,7 +259,14 @@ const decryptSegment = (decrypter, segment, doneFn) => {
       segment.bytes = new Uint8Array(decrypted.bytes,
                                      decrypted.byteOffset,
                                      decrypted.byteLength);
-      return doneFn(null, segment);
+
+      handleDecryptedBytes({
+        segment,
+        bytes: segment.bytes,
+        isPartial: false,
+        dataFn,
+        doneFn
+      });
     }
   };
 
@@ -294,10 +305,12 @@ const getMostImportantError = (errors) => {
  *
  * @param {Object} activeXhrs - an object that tracks all XHR requests
  * @param {WebWorker} decrypter - a WebWorker interface to AES-128 decryption routines
+ * @param {Function} dataFn - a callback that is executed when segment bytes are available
+ *                            and ready to use
  * @param {Function} doneFn - a callback that is executed after all resources have been
  *                            downloaded and any decryption completed
  */
-const waitForCompletion = (activeXhrs, decrypter, doneFn) => {
+const waitForCompletion = (activeXhrs, decrypter, dataFn, doneFn) => {
   let errors = [];
   let count = 0;
 
@@ -319,10 +332,16 @@ const waitForCompletion = (activeXhrs, decrypter, doneFn) => {
         return doneFn(worstError, segment);
       }
       if (segment.encryptedBytes) {
-        return decryptSegment(decrypter, segment, doneFn);
+        return decryptSegment(decrypter, segment, dataFn, doneFn);
       }
       // Otherwise, everything is ready just continue
-      return doneFn(null, segment);
+      handleDecryptedBytes({
+        segment,
+        bytes: segment.bytes,
+        isPartial: false,
+        dataFn,
+        doneFn
+      });
     }
   };
 };
@@ -335,18 +354,26 @@ const waitForCompletion = (activeXhrs, decrypter, doneFn) => {
  *                           from SegmentLoader
  * @param {Function} progressFn - a callback that is executed each time a progress event
  *                                is received
+ * @param {Function} dataFn - a callback that is executed when segment bytes are available
+ *                            and ready to use
  * @param {Event} event - the progress event object from XMLHttpRequest
  */
-const handleProgress = (segment, progressFn) => (event) => {
+const handleProgress = (segment, progressFn, dataFn) => (event) => {
   const request = event.target;
 
-  // don't support encrypted segments for now
-  if (!segment.key) {
+  // don't support encrypted segments or fmp4 for now
+  if (!segment.key || !segment.map) {
     const newBytes = stringToArrayBuffer(
       request.responseText.substring(segment.lastReachedChar || 0));
 
     segment.lastReachedChar = request.responseText.length;
-    segment.progressBytes = new Uint8Array(newBytes);
+
+    handleDecryptedBytes({
+      segment,
+      bytes: newBytes,
+      isPartial: true,
+      dataFn
+    });
   }
 
   segment.stats = videojs.mergeOptions(segment.stats, getProgressStats(event));
@@ -359,6 +386,71 @@ const handleProgress = (segment, progressFn) => (event) => {
   return progressFn(event, segment);
 };
 
+const handleDecryptedBytes = ({
+  segment,
+  bytes,
+  isPartial,
+  dataFn,
+  doneFn
+}) => {
+  if (segment.map) {
+    // fmp4
+    // since we don't support appending fmp4 data on progress, we know we have the full
+    // segment here
+    segment.timingInfo = probeMp4Segment(bytes, segment.map.bytes);
+    segment.data = bytes;
+    dataFn(segment);
+    doneFn(null, segment);
+    return;
+  }
+
+  // ts
+  transmuxAndNotify({
+    segment,
+    bytes,
+    isPartial,
+    dataFn,
+    doneFn
+  });
+};
+
+const transmuxAndNotify = ({
+  segment,
+  bytes,
+  isPartial,
+  dataFn,
+  doneFn
+}) => {
+  transmux({
+    bytes,
+    transmuxer: segment.transmuxer,
+    audioAppendStart: segment.audioAppendStart,
+    gopsToAlignWith: segment.gopsToAlignWith,
+    isPartial,
+    onData: (result) => {
+      dataFn(segment, result);
+    },
+    onTrackInfo: (trackInfo) => {
+      // TODO don't use simpleSegment for trackInfo, or pass it along
+      segment.trackInfo = trackInfo;
+    },
+    onDone: (result) => {
+      // TODO better handling
+      if (!result.audioTimingInfo && !result.videoTimingInfo) {
+        // no data yet
+        return;
+      }
+      // TODO
+      if (!doneFn) {
+        return;
+      }
+      // dataFn(segment, result);
+      // TODO pass less than result
+      doneFn(null, segment, result);
+    }
+  });
+};
+
 /**
  * Load all resources and does any processing necessary for a media-segment
  *
@@ -369,6 +461,7 @@ const handleProgress = (segment, progressFn) => (event) => {
  * The segment object, at minimum, has the following format:
  * {
  *   resolvedUri: String,
+ *   [transmuxer]: Object,
  *   [byterange]: {
  *     offset: Number,
  *     length: Number
@@ -402,6 +495,8 @@ const handleProgress = (segment, progressFn) => (event) => {
  *                           from SegmentLoader
  * @param {Function} progressFn - a callback that receives progress events from the main
  *                                segment's xhr request
+ * @param {Function} dataFn - a callback that receives data from the main segment's xhr
+ *                            request, transmuxed if needed
  * @param {Function} doneFn - a callback that is executed only once all requests have
  *                            succeeded or failed
  * @returns {Function} a function that, when invoked, immediately aborts all
@@ -412,9 +507,11 @@ export const mediaSegmentRequest = (xhr,
                                     decryptionWorker,
                                     segment,
                                     progressFn,
+                                    dataFn,
                                     doneFn) => {
   const activeXhrs = [];
-  const finishProcessingFn = waitForCompletion(activeXhrs, decryptionWorker, doneFn);
+  const finishProcessingFn = waitForCompletion(
+    activeXhrs, decryptionWorker, dataFn, doneFn);
 
   // optionally, request the decryption key
   if (segment.key) {
@@ -457,7 +554,8 @@ export const mediaSegmentRequest = (xhr,
   const segmentRequestCallback = handleSegmentResponse(segment, finishProcessingFn);
   const segmentXhr = xhr(segmentRequestOptions, segmentRequestCallback);
 
-  segmentXhr.addEventListener('progress', handleProgress(segment, progressFn));
+  segmentXhr.addEventListener('progress',
+    handleProgress(segment, progressFn, dataFn));
   activeXhrs.push(segmentXhr);
 
   return () => abortAll(activeXhrs);

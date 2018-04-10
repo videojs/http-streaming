@@ -67,7 +67,7 @@ export default class VTTSegmentLoader extends SegmentLoader {
    * @return {Object}
    *         map object for desired init segment
    */
-  initSegment(map, set = false) {
+  initSegmentForMap(map, set = false) {
     if (!map) {
       return null;
     }

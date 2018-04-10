@@ -153,18 +153,21 @@ export const processTransmux = ({
     });
   }
 
+  const buffer = bytes instanceof ArrayBuffer ? bytes : bytes.buffer;
+  const byteOffset = bytes instanceof ArrayBuffer ? 0 : bytes.byteOffset;
+
   transmuxer.postMessage({
     action: 'push',
     // Send the typed-array of data as an ArrayBuffer so that
     // it can be sent as a "Transferable" and avoid the costly
     // memory copy
-    data: bytes.buffer,
+    data: buffer,
     // To recreate the original typed-array, we need information
     // about what portion of the ArrayBuffer it was a view into
-    byteOffset: bytes.byteOffset,
+    byteOffset: byteOffset,
     byteLength: bytes.byteLength
   },
-  [ bytes.buffer ]);
+  [ buffer ]);
   transmuxer.postMessage({ action: 'flush' });
 };
 
