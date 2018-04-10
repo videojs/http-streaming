@@ -87,14 +87,11 @@
           video to all major desktop and mobile browsers.
         </p>
 
-        <!--
-          -- Your video element. Just like regular HTML5 video.
-          -->
-        <video id=example-video width=960 height=400 class="video-js vjs-default-skin" controls>
+        <video-js id="example-video" class="vjs-default-skin" width=960 height=400 controls>
           <source
-             src="//d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8"
-             type="application/x-mpegURL">
-        </video>
+            src="https://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8"
+            type="application/x-mpegURL">
+        </video-js>
 
         <form id=load-url>
           <div>
@@ -128,11 +125,11 @@
           <a href="https://github.com/videojs/http-streaming/releases/latest">videojs-http-streaming</a>
           and include it in your page alongside video.js:
         </p>
-        <pre>&lt;video id=example-video width=960 height=540 class="video-js vjs-default-skin" controls&gt;
+        <pre>&lt;video-js id=example-video width=960 height=540 class="vjs-default-skin" controls&gt;
   &lt;source
      src="https://example.com/index.m3u8"
      type="application/x-mpegURL"&gt;
-&lt;/video&gt;
+&lt;/video-js&gt;
 &lt;script src="video.js"&gt;&lt;/script&gt;
 &lt;script src="videojs-http-streaming.js"&gt;&lt;/script&gt;
 &lt;script&gt;
