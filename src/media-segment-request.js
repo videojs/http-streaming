@@ -444,7 +444,6 @@ const transmuxAndNotify = ({
       if (!doneFn) {
         return;
       }
-      // dataFn(segment, result);
       // TODO pass less than result
       doneFn(null, segment, result);
     }

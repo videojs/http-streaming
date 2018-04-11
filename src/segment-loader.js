@@ -1038,7 +1038,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
   }
 
-  handleData_(event, simpleSegment, result) {
+  handleData_(simpleSegment, result) {
     if (this.checkForAbort_(simpleSegment.requestId) ||
         this.abortRequestEarly_(simpleSegment.stats)) {
       return;
@@ -1074,16 +1074,35 @@ export default class SegmentLoader extends videojs.EventTarget {
     // TODO this may need to move
     this.state = 'APPENDING';
 
-    if (simpleSegment.map) {
+    if (isFmp4(segmentInfo.segment)) {
       // TODO do we need this here? maybe handle map directly
       segmentInfo.segment.map.bytes = simpleSegment.map.bytes;
       segmentInfo.timingInfo = result.timingInfo;
     } else {
+      segmentInfo.timingInfo = segmentInfo.timingInfo || {};
+
+      // TODO audio frames as well
+      // The start of a segment should be the start of the first full frame contained
+      // within that segment. Since the transmuxer maintains a cache of incomplete data
+      // from and/or the last frame seen, the start time may reflect a frame that starts
+      // in the previous segment. Check for that case and ensure the start time is
+      // accurate for the segment.
+      if (typeof segmentInfo.timingInfo.start === 'undefined') {
+        const previousSegment = segmentInfo.playlist.segments[segmentInfo.mediaIndex - 1];
+
+        if (segmentInfo.mediaIndex === 0 ||
+            typeof previousSegment.start === 'undefined' ||
+            previousSegment.end !==
+              (result.videoDtsTime + this.sourceUpdater_.videoTimestampOffset())) {
+          segmentInfo.timingInfo.start = result.videoDtsTime;
+        }
+      }
+
       // TODO timing info may want to be moved to media segment request
       // it's possible we transmux audio after finishing video, so don't set the timing
       // info if it doesn't come back from the function
-      segmentInfo.timingInfo = this.timingInfoFromTransmuxed(result) ||
-        segmentInfo.timingInfo;
+      segmentInfo.timingInfo.end = (this.timingInfoFromTransmuxed(result) ||
+        segmentInfo.timingInfo).end;
     }
 
     // timestamp offset should be updated once we get new data and have its timing info,
@@ -1167,7 +1186,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       simpleSegment,
       // progress callback
       this.handleProgress_.bind(this),
-      this.handleData_.bind(this, simpleSegment),
+      this.handleData_.bind(this),
       this.segmentRequestFinished_.bind(this));
   }
 

@@ -10,7 +10,8 @@ export const handleData_ = (event, transmuxedData, callback) => {
     initSegment,
     captions,
     captionStreams,
-    metadata
+    metadata,
+    videoDtsTime
   } = event.data.segment;
 
   transmuxedData.buffer.push({
@@ -19,7 +20,7 @@ export const handleData_ = (event, transmuxedData, callback) => {
     metadata
   });
 
-  callback({
+  const result = {
     type,
     videoTimingInfo: transmuxedData.videoTimingInfo,
     audioTimingInfo: transmuxedData.audioTimingInfo,
@@ -34,7 +35,13 @@ export const handleData_ = (event, transmuxedData, callback) => {
       initSegment.byteOffset,
       initSegment.byteLength
     )
-  });
+  };
+
+  if (videoDtsTime) {
+    result.videoDtsTime = videoDtsTime;
+  }
+
+  callback(result);
 };
 
 export const handleDone_ = (event, transmuxedData, complete, callback) => {

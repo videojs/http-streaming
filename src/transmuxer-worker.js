@@ -15,6 +15,8 @@
 import window from 'global/window';
 import mux from 'mux.js/lib/mux';
 
+const ONE_SECOND_IN_TS = 90000;
+
 const typeFromStreamString = (streamString) => {
   return streamString === 'AudioSegmentStream' ? 'audio' :
     streamString === 'VideoSegmentStream' ? 'video' : '';
@@ -50,6 +52,10 @@ const wireTransmuxerEvents = function(transmuxer) {
       type: event.type,
       sequence: event.data.sequence
     };
+
+    if (typeof event.data.videoDts !== 'undefined') {
+      segment.videoDtsTime = event.data.videoDts / ONE_SECOND_IN_TS;
+    }
 
     window.postMessage({
       action: 'data',
@@ -96,8 +102,8 @@ const wireTransmuxerEvents = function(transmuxer) {
     window.postMessage({
       action: 'audioTimingInfo',
       audioTimingInfo: {
-        start: audioTimingInfo.start / 90000,
-        end: audioTimingInfo.end / 90000,
+        start: audioTimingInfo.start / ONE_SECOND_IN_TS,
+        end: audioTimingInfo.end / ONE_SECOND_IN_TS,
       }
     });
   });
@@ -106,8 +112,8 @@ const wireTransmuxerEvents = function(transmuxer) {
     window.postMessage({
       action: 'videoTimingInfo',
       videoTimingInfo: {
-        start: videoTimingInfo.start / 90000,
-        end: videoTimingInfo.end / 90000,
+        start: videoTimingInfo.start / ONE_SECOND_IN_TS,
+        end: videoTimingInfo.end / ONE_SECOND_IN_TS,
       }
     });
   });
@@ -160,11 +166,12 @@ class MessageHandlers {
   setTimestampOffset(data) {
     let timestampOffset = data.timestampOffset || 0;
 
-    this.transmuxer.setBaseMediaDecodeTime(Math.round(timestampOffset * 90000));
+    this.transmuxer.setBaseMediaDecodeTime(
+      Math.round(timestampOffset * ONE_SECOND_IN_TS));
   }
 
   setAudioAppendStart(data) {
-    this.transmuxer.setAudioAppendStart(Math.ceil(data.appendStart * 90000));
+    this.transmuxer.setAudioAppendStart(Math.ceil(data.appendStart * ONE_SECOND_IN_TS));
   }
 
   /**
