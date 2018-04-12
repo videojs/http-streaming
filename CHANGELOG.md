@@ -1,3 +1,10 @@
+<a name="1.0.1"></a>
+## [1.0.1](https://github.com/videojs/http-streaming/compare/v1.0.0...v1.0.1) (2018-04-12)
+
+### Bug Fixes
+
+* minified build ([#84](https://github.com/videojs/http-streaming/issues/84)) ([2402ac6](https://github.com/videojs/http-streaming/commit/2402ac6))
+
 <a name="1.0.0"></a>
 # [1.0.0](https://github.com/videojs/http-streaming/compare/v0.9.0...v1.0.0) (2018-04-10)
 
