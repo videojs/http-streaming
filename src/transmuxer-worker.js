@@ -80,9 +80,9 @@ const wireTransmuxerEvents = function(transmuxer) {
     });
   });
 
-  transmuxer.on('superdone', function(data) {
+  transmuxer.on('endedsegment', function(data) {
     window.postMessage({
-      action: 'superDone',
+      action: 'endedSegment',
       type: typeFromStreamString(data)
     });
   });
@@ -188,10 +188,18 @@ class MessageHandlers {
     });
   }
 
-  superFlush(data) {
-    this.transmuxer.superFlush();
+  endSegment(data) {
+    this.transmuxer.endSegment();
     window.postMessage({
-      action: 'superDone',
+      action: 'endSegment',
+      type: 'transmuxed'
+    });
+  }
+
+  endTimeline() {
+    this.transmuxer.endTimeline();
+    window.postMessage({
+      action: 'endTimeline',
       type: 'transmuxed'
     });
   }

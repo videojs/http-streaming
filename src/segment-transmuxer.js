@@ -133,7 +133,7 @@ export const processTransmux = ({
     }
 
     transmuxer.removeEventListener('message', handleMessage);
-    handleDone_(event, transmuxedData, event.data.action === 'superDone', onDone);
+    handleDone_(event, transmuxedData, event.data.action === 'endedSegment', onDone);
 
     dequeue();
   };
@@ -142,7 +142,7 @@ export const processTransmux = ({
 
   if (!isPartial) {
     // all data should be handled via partials
-    transmuxer.postMessage({ action: 'superFlush' });
+    transmuxer.postMessage({ action: 'endSegment' });
     return;
   }
 
@@ -195,6 +195,11 @@ export const processReset = (transmuxer) => {
   dequeue();
 };
 
+export const processEndTimeline = (transmuxer) => {
+  transmuxer.postMessage({ action: 'endTimeline' });
+  dequeue();
+};
+
 // TODO might be better to pass in an action into transmux
 export const reset = (transmuxer) => {
   if (!currentTransmux) {
@@ -205,6 +210,15 @@ export const reset = (transmuxer) => {
   transmuxQueue.push(processReset.bind(null, transmuxer));
 };
 
+export const endTimeline = (transmuxer) => {
+  if (!currentTransmux) {
+    currentTransmux = 'endTimeline';
+    processEndTimeline(transmuxer);
+    return;
+  }
+  transmuxQueue.push(processEndTimeline.bind(null, transmuxer));
+};
+
 export const transmux = (options) => {
   if (!currentTransmux) {
     currentTransmux = options;
@@ -212,4 +226,10 @@ export const transmux = (options) => {
     return;
   }
   transmuxQueue.push(options);
+};
+
+export default {
+  reset,
+  endTimeline,
+  transmux
 };

@@ -9,7 +9,7 @@ import window from 'global/window';
 import BinUtils from './bin-utils';
 import { mediaSegmentRequest, REQUEST_ERRORS } from './media-segment-request';
 import transmuxerWorker from './transmuxer-worker';
-import { reset as resetTransmuxer } from './segment-transmuxer';
+import segmentTransmuxer from './segment-transmuxer';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
 import logger from './util/logger';
@@ -589,7 +589,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.ended_ = false;
     this.resetLoader();
     if (this.transmuxer_) {
-      resetTransmuxer(this.transmuxer_);
+      segmentTransmuxer.reset(this.transmuxer_);
     }
     this.remove(0, this.duration_());
   }
@@ -1083,9 +1083,10 @@ export default class SegmentLoader extends videojs.EventTarget {
         mediaIndex: segmentInfo.mediaIndex,
         videoDtsTimeFromTransmuxed: result.videoDtsTime,
         currentVideoTimestampOffset: this.sourceUpdater_.videoTimestampOffset(),
-        timingInfoFromTransmuxed:
-          this.loaderType_ === 'main' && this.startingMedia_.containsVideo ?
-            result.videoTimingInfo : result.audioTimingInfo,
+        useVideoTimingInfo:
+          this.loaderType_ === 'main' && this.startingMedia_.containsVideo,
+        videoTimingInfo: result.videoTimingInfo,
+        audioTimingInfo: result.audioTimingInfo
       });
     }
 
@@ -1340,6 +1341,16 @@ export default class SegmentLoader extends videojs.EventTarget {
     // state away from loading until we are officially done loading the segment data.
     this.state = 'APPENDING';
 
+    const isEndOfStream = detectEndOfStream(segmentInfo.playlist,
+                                            this.mediaSource_,
+                                            segmentInfo.mediaIndex + 1);
+    const isWalkingForward = this.mediaIndex !== null;
+    const isDiscontinuity = segmentInfo.timeline !== this.currentTimeline_;
+
+    if (isEndOfStream || (isWalkingForward && isDiscontinuity)) {
+      segmentTransmuxer.endTimeline(this.transmuxer_);
+    }
+
     this.waitForAppendsToComplete_(segmentInfo);
   }
 
@@ -1394,31 +1405,39 @@ export default class SegmentLoader extends videojs.EventTarget {
     mediaIndex,
     videoDtsTimeFromTransmuxed,
     currentVideoTimestampOffset,
-    timingInfoFromTransmuxed
+    useVideoTimingInfo,
+    videoTimingInfo,
+    audioTimingInfo
   }) {
     const updatedTimingInfo = currentTimingInfo || {};
 
-    // TODO audio frames as well
-    // The start of a segment should be the start of the first full frame contained
-    // within that segment. Since the transmuxer maintains a cache of incomplete data
-    // from and/or the last frame seen, the start time may reflect a frame that starts
-    // in the previous segment. Check for that case and ensure the start time is
-    // accurate for the segment.
+    // TODO clean up
     if (typeof updatedTimingInfo.start === 'undefined') {
-      const previousSegment = playlist.segments[mediaIndex - 1];
+      // The start of a segment should be the start of the first full frame contained
+      // within that segment. Since the transmuxer maintains a cache of incomplete data
+      // from and/or the last frame seen, the start time may reflect a frame that starts
+      // in the previous segment. Check for that case and ensure the start time is
+      // accurate for the segment.
+      if (useVideoTimingInfo) {
+        const previousSegment = playlist.segments[mediaIndex - 1];
 
-      if (mediaIndex === 0 ||
-          typeof previousSegment.start === 'undefined' ||
-          previousSegment.end !==
-            (videoDtsTimeFromTransmuxed + currentVideoTimestampOffset)) {
-        updatedTimingInfo.start = videoDtsTimeFromTransmuxed;
+        if (mediaIndex === 0 ||
+            typeof previousSegment.start === 'undefined' ||
+            previousSegment.end !==
+              (videoDtsTimeFromTransmuxed + currentVideoTimestampOffset)) {
+          updatedTimingInfo.start = videoDtsTimeFromTransmuxed;
+        }
+      } else {
+        updatedTimingInfo.start = audioTimingInfo.start;
       }
     }
 
     // TODO timing info may want to be moved to media segment request
     // it's possible we transmux audio after finishing video, so don't set the timing
     // info if it doesn't come back from the function
-    updatedTimingInfo.end = (timingInfoFromTransmuxed || updatedTimingInfo).end;
+    updatedTimingInfo.end = useVideoTimingInfo && videoTimingInfo ?
+      videoTimingInfo.end : audioTimingInfo ?
+      audioTimingInfo.end : updatedTimingInfo.end;
 
     return updatedTimingInfo;
   }
@@ -1427,7 +1446,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // Although transmuxing is done, appends may not yet be finished. Throw a marker
     // on each queue this loader is responsible for to ensure that the appends are
     // complete.
-    const waitForVideo = this.loaderType_ === 'main';
+    const waitForVideo = this.loaderType_ === 'main' && this.startingMedia_.containsVideo;
     const waitForAudio = !this.audioDisabled;
 
     segmentInfo.waitingOnAppends = 0;
