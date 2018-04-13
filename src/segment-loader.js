@@ -1105,9 +1105,9 @@ export default class SegmentLoader extends videojs.EventTarget {
         segmentInfo.timingInfo).end;
     }
 
-    // timestamp offset should be updated once we get new data and have its timing info,
+    // Timestamp offset should be updated once we get new data and have its timing info,
     // as we use the start of the segment to offset the best guess (playlist provided)
-    // timestamp offset
+    // timestamp offset.
     this.updateTimestampOffset_(segmentInfo);
 
     this.appendData_(segmentInfo, result);

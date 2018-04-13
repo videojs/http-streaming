@@ -168,7 +168,10 @@ export default class PlaybackWatcher {
 
       // sync to the beginning of the live window
       // provide a buffer of .1 seconds to handle rounding/imprecise numbers
-      seekTo = seekableStart + Ranges.SAFE_TIME_DELTA;
+      seekTo = seekableStart +
+        // if the playlist is too short and the seekable range is an exact time (can
+        // happen in live with a 3 segment playlist), then don't use a time delta
+        (seekableStart === seekable.end(0) ? 0 : Ranges.SAFE_TIME_DELTA);
     }
 
     if (typeof seekTo !== 'undefined') {
