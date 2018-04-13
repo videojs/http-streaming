@@ -1027,7 +1027,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.trigger('progress');
   }
 
-  setupWithTrackInfo_(trackInfo) {
+  setupSourceBuffers_(trackInfo) {
     this.sourceUpdater_.createSourceBuffers({
       audio: trackInfo.containsAudio ? {} : null,
       video: trackInfo.containsVideo ? {} : null
@@ -1044,15 +1044,16 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    if (simpleSegment.map) {
+    if (isFmp4(simpleSegment)) {
       // fmp4 isn't parsed (yet), therefore doesn't have track info
       // fmp4 is always demuxed (current assumption)
+      // TODO audio only
       simpleSegment.trackInfo = {
         containsAudio: this.loaderType_ === 'audio',
         containsVideo: this.loaderType_ === 'main'
       };
     }
-    this.setupWithTrackInfo_(simpleSegment.trackInfo);
+    this.setupSourceBuffers_(simpleSegment.trackInfo);
 
     const segmentInfo = this.pendingSegment_;
 
@@ -1071,38 +1072,21 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    // TODO this may need to move
-    this.state = 'APPENDING';
-
     if (isFmp4(segmentInfo.segment)) {
       // TODO do we need this here? maybe handle map directly
       segmentInfo.segment.map.bytes = simpleSegment.map.bytes;
       segmentInfo.timingInfo = result.timingInfo;
     } else {
-      segmentInfo.timingInfo = segmentInfo.timingInfo || {};
-
-      // TODO audio frames as well
-      // The start of a segment should be the start of the first full frame contained
-      // within that segment. Since the transmuxer maintains a cache of incomplete data
-      // from and/or the last frame seen, the start time may reflect a frame that starts
-      // in the previous segment. Check for that case and ensure the start time is
-      // accurate for the segment.
-      if (typeof segmentInfo.timingInfo.start === 'undefined') {
-        const previousSegment = segmentInfo.playlist.segments[segmentInfo.mediaIndex - 1];
-
-        if (segmentInfo.mediaIndex === 0 ||
-            typeof previousSegment.start === 'undefined' ||
-            previousSegment.end !==
-              (result.videoDtsTime + this.sourceUpdater_.videoTimestampOffset())) {
-          segmentInfo.timingInfo.start = result.videoDtsTime;
-        }
-      }
-
-      // TODO timing info may want to be moved to media segment request
-      // it's possible we transmux audio after finishing video, so don't set the timing
-      // info if it doesn't come back from the function
-      segmentInfo.timingInfo.end = (this.timingInfoFromTransmuxed(result) ||
-        segmentInfo.timingInfo).end;
+      segmentInfo.timingInfo = this.updatedTimingInfo_({
+        currentTimingInfo: segmentInfo.timingInfo,
+        playlist: segmentInfo.playlist,
+        mediaIndex: segmentInfo.mediaIndex,
+        videoDtsTimeFromTransmuxed: result.videoDtsTime,
+        currentVideoTimestampOffset: this.sourceUpdater_.videoTimestampOffset(),
+        timingInfoFromTransmuxed:
+          this.loaderType_ === 'main' && this.startingMedia_.containsVideo ?
+            result.videoTimingInfo : result.audioTimingInfo,
+      });
     }
 
     // Timestamp offset should be updated once we get new data and have its timing info,
@@ -1352,6 +1336,10 @@ export default class SegmentLoader extends videojs.EventTarget {
       metadataArray: result.metadata
     });
 
+    // Although we may have already started appending on progress, we shouldn't switch the
+    // state away from loading until we are officially done loading the segment data.
+    this.state = 'APPENDING';
+
     this.waitForAppendsToComplete_(segmentInfo);
   }
 
@@ -1400,11 +1388,39 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
   }
 
-  timingInfoFromTransmuxed(result) {
-    if (this.loaderType_ === 'main' && this.startingMedia_.containsVideo) {
-      return result.videoTimingInfo;
+  updatedTimingInfo_({
+    currentTimingInfo,
+    playlist,
+    mediaIndex,
+    videoDtsTimeFromTransmuxed,
+    currentVideoTimestampOffset,
+    timingInfoFromTransmuxed
+  }) {
+    const updatedTimingInfo = currentTimingInfo || {};
+
+    // TODO audio frames as well
+    // The start of a segment should be the start of the first full frame contained
+    // within that segment. Since the transmuxer maintains a cache of incomplete data
+    // from and/or the last frame seen, the start time may reflect a frame that starts
+    // in the previous segment. Check for that case and ensure the start time is
+    // accurate for the segment.
+    if (typeof updatedTimingInfo.start === 'undefined') {
+      const previousSegment = playlist.segments[mediaIndex - 1];
+
+      if (mediaIndex === 0 ||
+          typeof previousSegment.start === 'undefined' ||
+          previousSegment.end !==
+            (videoDtsTimeFromTransmuxed + currentVideoTimestampOffset)) {
+        updatedTimingInfo.start = videoDtsTimeFromTransmuxed;
+      }
     }
-    return result.audioTimingInfo;
+
+    // TODO timing info may want to be moved to media segment request
+    // it's possible we transmux audio after finishing video, so don't set the timing
+    // info if it doesn't come back from the function
+    updatedTimingInfo.end = (timingInfoFromTransmuxed || updatedTimingInfo).end;
+
+    return updatedTimingInfo;
   }
 
   waitForAppendsToComplete_(segmentInfo) {
