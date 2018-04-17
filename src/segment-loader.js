@@ -1422,6 +1422,7 @@ export default class SegmentLoader extends videojs.EventTarget {
         const previousSegment = playlist.segments[mediaIndex - 1];
 
         if (mediaIndex === 0 ||
+            !previousSegment ||
             typeof previousSegment.start === 'undefined' ||
             previousSegment.end !==
               (videoDtsTimeFromTransmuxed + currentVideoTimestampOffset)) {
