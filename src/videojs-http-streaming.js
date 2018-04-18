@@ -281,7 +281,6 @@ class HlsHandler extends Component {
     this.tech_ = tech;
     this.source_ = source;
     this.stats = {};
-    this.ignoreNextSeekingEvent_ = false;
     this.setOptions_();
 
     // overriding native HLS only works if audio tracks have been emulated
@@ -308,14 +307,6 @@ class HlsHandler extends Component {
       }
     });
 
-    this.on(this.tech_, 'seeking', function() {
-      if (this.ignoreNextSeekingEvent_) {
-        this.ignoreNextSeekingEvent_ = false;
-        return;
-      }
-
-      this.setCurrentTime(this.tech_.currentTime());
-    });
     this.on(this.tech_, 'error', function() {
       if (this.masterPlaylistController_) {
         this.masterPlaylistController_.pauseLoading();
@@ -554,12 +545,6 @@ class HlsHandler extends Component {
       this.tech_.trigger('progress');
     });
 
-    // In the live case, we need to ignore the very first `seeking` event since
-    // that will be the result of the seek-to-live behavior
-    this.on(this.masterPlaylistController_, 'firstplay', function() {
-      this.ignoreNextSeekingEvent_ = true;
-    });
-
     this.tech_.ready(() => this.setupQualityLevels_());
 
     // do nothing if the tech has been disposed already
@@ -703,6 +688,23 @@ if (videojs.registerPlugin) {
 } else {
   videojs.plugin('reloadSourceOnError', reloadSourceOnError);
 }
+
+videojs.use('*', (player) => {
+  return {
+    setSource: (srcObj, next) => {
+      // pass null as the first argument to indicate that the source is not rejected
+      next(null, srcObj);
+    },
+
+    setCurrentTime: (time) => {
+      if (player.vhs && player.currentSource().src === player.vhs.source_.src) {
+        player.vhs.setCurrentTime(time);
+      }
+
+      return time;
+    }
+  };
+});
 
 module.exports = {
   Hls,
