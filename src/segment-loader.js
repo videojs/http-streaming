@@ -588,9 +588,6 @@ export default class SegmentLoader extends videojs.EventTarget {
   resetEverything() {
     this.ended_ = false;
     this.resetLoader();
-    if (this.transmuxer_) {
-      segmentTransmuxer.reset(this.transmuxer_);
-    }
     this.remove(0, this.duration_());
   }
 
@@ -610,6 +607,12 @@ export default class SegmentLoader extends videojs.EventTarget {
    * before returning to the simple walk-forward method
    */
   resyncLoader() {
+    // TODO this should probably be moved back to resetEverything and the transmuxer
+    // should get updates through setTimestampOffset to identify discontinuities, though
+    // that may be different now that we use real times in the transmuxer
+    if (this.transmuxer_) {
+      segmentTransmuxer.reset(this.transmuxer_);
+    }
     this.mediaIndex = null;
     this.syncPoint_ = null;
     this.abort();
