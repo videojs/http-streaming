@@ -85,6 +85,11 @@ const onUpdateend = (type, updater) => () => {
     shiftQueue(type, updater);
   }
 
+  if (!queue.pending) {
+    // nothing in the queue
+    return;
+  }
+
   const {
     doneFn,
     name
