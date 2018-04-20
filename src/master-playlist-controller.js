@@ -778,6 +778,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
     }
   }
 
+  handleReplay() {
+    this.bufferAtNewLocation();
+  }
+
   /**
    * set the current time on all segment loaders
    *
@@ -806,6 +810,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return currentTime;
     }
 
+    this.bufferAtNewLocation();
+  }
+
+  bufferAtNewLocation() {
     // cancel outstanding requests so we begin buffering at the new
     // location
     this.mainSegmentLoader_.resetEverything();

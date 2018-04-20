@@ -533,6 +533,15 @@ class HlsHandler extends Component {
     this.tech_.one('canplay',
       this.masterPlaylistController_.setupFirstPlay.bind(this.masterPlaylistController_));
 
+    // since replays are handled internal to the video element, and don't go through the
+    // middlware for setting current time, use the first seek after each ended event to
+    // determine replays
+    this.tech_.on('ended', () => {
+      this.tech_.one('seeking', () => {
+        this.masterPlaylistController_.handleReplay();
+      });
+    });
+
     this.masterPlaylistController_.on('selectedinitialmedia', () => {
       // Add the manual rendition mix-in to HlsHandler
       renditionSelectionMixin(this);
