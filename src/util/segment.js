@@ -9,14 +9,10 @@ import mp4probe from 'mux.js/lib/mp4/probe';
  * @param {Uint8Array} mapBytes - map bytes
  * @return {object} The start and end time of the current segment in "media time"
  */
-export const probeMp4Segment = (segmentBytes, mapBytes) => {
-  let timescales = mp4probe.timescale(mapBytes);
-  let startTime = mp4probe.startTime(timescales, segmentBytes);
+export const probeMp4StartTime = (segmentBytes, mapBytes) => {
+  const timescales = mp4probe.timescale(mapBytes);
 
-  return {
-    start: startTime,
-    end: startTime + segment.duration
-  };
+  return mp4probe.startTime(timescales, segmentBytes);
 };
 
 /**

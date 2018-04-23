@@ -2,7 +2,7 @@ import videojs from 'video.js';
 import BinUtils from './bin-utils';
 import { stringToArrayBuffer } from './util/string-to-array-buffer';
 import { transmux } from './segment-transmuxer';
-import { probeMp4Segment } from './util/segment';
+import { probeMp4StartTime } from './util/segment';
 
 const { createTransferableMessage } = BinUtils;
 
@@ -362,7 +362,7 @@ const handleProgress = (segment, progressFn, dataFn) => (event) => {
   const request = event.target;
 
   // don't support encrypted segments or fmp4 for now
-  if (!segment.key || !segment.map) {
+  if (!segment.key && !segment.map) {
     const newBytes = stringToArrayBuffer(
       request.responseText.substring(segment.lastReachedChar || 0));
 
@@ -397,10 +397,16 @@ const handleDecryptedBytes = ({
     // fmp4
     // since we don't support appending fmp4 data on progress, we know we have the full
     // segment here
-    segment.timingInfo = probeMp4Segment(bytes, segment.map.bytes);
-    segment.data = bytes;
-    dataFn(segment);
-    doneFn(null, segment);
+    const startTime = probeMp4StartTime(bytes, segment.map.bytes);
+
+    dataFn(segment, {
+      data: bytes,
+      // TODO
+      timingInfo: {
+        start: startTime
+      }
+    });
+    doneFn(null, segment, {});
     return;
   }
 

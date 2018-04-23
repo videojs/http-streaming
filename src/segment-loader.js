@@ -1079,6 +1079,10 @@ export default class SegmentLoader extends videojs.EventTarget {
       // TODO do we need this here? maybe handle map directly
       segmentInfo.segment.map.bytes = simpleSegment.map.bytes;
       segmentInfo.timingInfo = result.timingInfo;
+      segmentInfo.timingInfo.end = segmentInfo.timingInfo.start + segmentInfo.duration;
+      // for fmp4 the loader type is used to determine whether audio or video, it doesn't
+      // come back from result
+      result.type = this.loaderType_ === 'main' ? 'video' : 'audio';
     } else {
       segmentInfo.timingInfo = this.updatedTimingInfo_({
         currentTimingInfo: segmentInfo.timingInfo,
@@ -1128,6 +1132,11 @@ export default class SegmentLoader extends videojs.EventTarget {
 
       if (!this.activeInitSegmentId_ || this.activeInitSegmentId_ !== initId) {
         initSegment = this.initSegmentForMap(segmentInfo.segment.map);
+      }
+
+      // convert from object to just bytes (common form) before concatting
+      if (initSegment) {
+        initSegment = initSegment.bytes;
       }
     }
 
