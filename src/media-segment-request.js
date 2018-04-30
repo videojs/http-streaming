@@ -260,7 +260,7 @@ const decryptSegment = (decrypter, segment, dataFn, doneFn) => {
                                      decrypted.byteOffset,
                                      decrypted.byteLength);
 
-      handleDecryptedBytes({
+      handleSegmentBytes({
         segment,
         bytes: segment.bytes,
         isPartial: false,
@@ -335,7 +335,7 @@ const waitForCompletion = (activeXhrs, decrypter, dataFn, doneFn) => {
         return decryptSegment(decrypter, segment, dataFn, doneFn);
       }
       // Otherwise, everything is ready just continue
-      handleDecryptedBytes({
+      handleSegmentBytes({
         segment,
         bytes: segment.bytes,
         isPartial: false,
@@ -368,7 +368,7 @@ const handleProgress = (segment, progressFn, dataFn) => (event) => {
 
     segment.lastReachedChar = request.responseText.length;
 
-    handleDecryptedBytes({
+    handleSegmentBytes({
       segment,
       bytes: newBytes,
       isPartial: true,
@@ -386,7 +386,7 @@ const handleProgress = (segment, progressFn, dataFn) => (event) => {
   return progressFn(event, segment);
 };
 
-const handleDecryptedBytes = ({
+const handleSegmentBytes = ({
   segment,
   bytes,
   isPartial,
