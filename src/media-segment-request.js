@@ -428,6 +428,9 @@ const transmuxAndNotify = ({
   dataFn,
   doneFn
 }) => {
+  // TODO at the moment segment is being passed around in addition to result to pass
+  // information. Only one object should be passed at any given point, segment being
+  // merely an input to the functions. See: segment.trackInfo, and doneFn
   transmux({
     bytes,
     transmuxer: segment.transmuxer,
@@ -438,20 +441,19 @@ const transmuxAndNotify = ({
       dataFn(segment, result);
     },
     onTrackInfo: (trackInfo) => {
-      // TODO don't use simpleSegment for trackInfo, or pass it along
       segment.trackInfo = trackInfo;
     },
     onDone: (result) => {
-      // TODO better handling
       if (!result.audioTimingInfo && !result.videoTimingInfo) {
-        // no data yet
+        // the transmuxer hasn't yet seen enough data to get timing info (e.g., the first
+        // frame hasn't yet been completed)
         return;
       }
-      // TODO
+      // To handle partial appends, there won't be a done function passed in (since
+      // there's still, potentially, more segment to process), so there's nothing to do.
       if (!doneFn) {
         return;
       }
-      // TODO pass less than result
       doneFn(null, segment, result);
     }
   });
