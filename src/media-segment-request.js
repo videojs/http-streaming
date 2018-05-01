@@ -246,11 +246,12 @@ const handleSegmentResponse = (segment, finishProcessingFn) => (error, request) 
  * @param {WebWorker} decrypter - a WebWorker interface to AES-128 decryption routines
  * @param {Object} segment - a simplified copy of the segmentInfo object
  *                           from SegmentLoader
+ * @param {Function} trackInfoFn - a callback that receives track info
  * @param {Function} dataFn - a callback that is executed when segment bytes are available
  *                            and ready to use
  * @param {Function} doneFn - a callback that is executed after decryption has completed
  */
-const decryptSegment = (decrypter, segment, dataFn, doneFn) => {
+const decryptSegment = (decrypter, segment, trackInfoFn, dataFn, doneFn) => {
   const decryptionHandler = (event) => {
     if (event.data.source === segment.requestId) {
       decrypter.removeEventListener('message', decryptionHandler);
@@ -264,6 +265,7 @@ const decryptSegment = (decrypter, segment, dataFn, doneFn) => {
         segment,
         bytes: segment.bytes,
         isPartial: false,
+        trackInfoFn,
         dataFn,
         doneFn
       });
@@ -305,12 +307,13 @@ const getMostImportantError = (errors) => {
  *
  * @param {Object} activeXhrs - an object that tracks all XHR requests
  * @param {WebWorker} decrypter - a WebWorker interface to AES-128 decryption routines
+ * @param {Function} trackInfoFn - a callback that receives track info
  * @param {Function} dataFn - a callback that is executed when segment bytes are available
  *                            and ready to use
  * @param {Function} doneFn - a callback that is executed after all resources have been
  *                            downloaded and any decryption completed
  */
-const waitForCompletion = (activeXhrs, decrypter, dataFn, doneFn) => {
+const waitForCompletion = (activeXhrs, decrypter, trackInfoFn, dataFn, doneFn) => {
   let errors = [];
   let count = 0;
 
@@ -332,13 +335,14 @@ const waitForCompletion = (activeXhrs, decrypter, dataFn, doneFn) => {
         return doneFn(worstError, segment);
       }
       if (segment.encryptedBytes) {
-        return decryptSegment(decrypter, segment, dataFn, doneFn);
+        return decryptSegment(decrypter, segment, trackInfoFn, dataFn, doneFn);
       }
       // Otherwise, everything is ready just continue
       handleSegmentBytes({
         segment,
         bytes: segment.bytes,
         isPartial: false,
+        trackInfoFn,
         dataFn,
         doneFn
       });
@@ -354,11 +358,12 @@ const waitForCompletion = (activeXhrs, decrypter, dataFn, doneFn) => {
  *                           from SegmentLoader
  * @param {Function} progressFn - a callback that is executed each time a progress event
  *                                is received
+ * @param {Function} trackInfoFn - a callback that receives track info
  * @param {Function} dataFn - a callback that is executed when segment bytes are available
  *                            and ready to use
  * @param {Event} event - the progress event object from XMLHttpRequest
  */
-const handleProgress = (segment, progressFn, dataFn) => (event) => {
+const handleProgress = (segment, progressFn, trackInfoFn, dataFn) => (event) => {
   const request = event.target;
 
   // don't support encrypted segments or fmp4 for now
@@ -372,6 +377,7 @@ const handleProgress = (segment, progressFn, dataFn) => (event) => {
       segment,
       bytes: newBytes,
       isPartial: true,
+      trackInfoFn,
       dataFn
     });
   }
@@ -390,6 +396,7 @@ const handleSegmentBytes = ({
   segment,
   bytes,
   isPartial,
+  trackInfoFn,
   dataFn,
   doneFn
 }) => {
@@ -399,6 +406,9 @@ const handleSegmentBytes = ({
     // segment here
     const startTime = probeMp4StartTime(bytes, segment.map.bytes);
 
+    // since fmp4 isn't parsed yet, we can't provide any track info, however, the callback
+    // should still be called before the dataFn is called
+    trackInfoFn(segment, {});
     dataFn(segment, {
       data: bytes,
       // the probe doesn't provide the end of the segment, so the end must be calculated
@@ -416,6 +426,7 @@ const handleSegmentBytes = ({
     segment,
     bytes,
     isPartial,
+    trackInfoFn,
     dataFn,
     doneFn
   });
@@ -425,12 +436,10 @@ const transmuxAndNotify = ({
   segment,
   bytes,
   isPartial,
+  trackInfoFn,
   dataFn,
   doneFn
 }) => {
-  // TODO at the moment segment is being passed around in addition to result to pass
-  // information. Only one object should be passed at any given point, segment being
-  // merely an input to the functions. See: segment.trackInfo, and doneFn
   transmux({
     bytes,
     transmuxer: segment.transmuxer,
@@ -441,7 +450,7 @@ const transmuxAndNotify = ({
       dataFn(segment, result);
     },
     onTrackInfo: (trackInfo) => {
-      segment.trackInfo = trackInfo;
+      trackInfoFn(segment, trackInfo);
     },
     onDone: (result) => {
       if (!result.audioTimingInfo && !result.videoTimingInfo) {
@@ -503,6 +512,7 @@ const transmuxAndNotify = ({
  *                           from SegmentLoader
  * @param {Function} progressFn - a callback that receives progress events from the main
  *                                segment's xhr request
+ * @param {Function} trackInfoFn - a callback that receives track info
  * @param {Function} dataFn - a callback that receives data from the main segment's xhr
  *                            request, transmuxed if needed
  * @param {Function} doneFn - a callback that is executed only once all requests have
@@ -515,11 +525,12 @@ export const mediaSegmentRequest = (xhr,
                                     decryptionWorker,
                                     segment,
                                     progressFn,
+                                    trackInfoFn,
                                     dataFn,
                                     doneFn) => {
   const activeXhrs = [];
   const finishProcessingFn = waitForCompletion(
-    activeXhrs, decryptionWorker, dataFn, doneFn);
+    activeXhrs, decryptionWorker, trackInfoFn, dataFn, doneFn);
 
   // optionally, request the decryption key
   if (segment.key) {
@@ -563,7 +574,7 @@ export const mediaSegmentRequest = (xhr,
   const segmentXhr = xhr(segmentRequestOptions, segmentRequestCallback);
 
   segmentXhr.addEventListener('progress',
-    handleProgress(segment, progressFn, dataFn));
+    handleProgress(segment, progressFn, trackInfoFn, dataFn));
   activeXhrs.push(segmentXhr);
 
   return () => abortAll(activeXhrs);

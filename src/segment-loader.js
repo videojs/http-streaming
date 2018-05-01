@@ -1041,7 +1041,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
   }
 
-  handleData_(simpleSegment, result) {
+  handleTrackInfo_(simpleSegment, trackInfo) {
     if (this.checkForAbort_(simpleSegment.requestId) ||
         this.abortRequestEarly_(simpleSegment.stats)) {
       return;
@@ -1051,12 +1051,19 @@ export default class SegmentLoader extends videojs.EventTarget {
       // fmp4 isn't parsed (yet), therefore doesn't have track info
       // fmp4 is always demuxed (current assumption)
       // TODO audio only
-      simpleSegment.trackInfo = {
+      trackInfo = {
         containsAudio: this.loaderType_ === 'audio',
         containsVideo: this.loaderType_ === 'main'
       };
     }
-    this.setupSourceBuffers_(simpleSegment.trackInfo);
+    this.setupSourceBuffers_(trackInfo);
+  }
+
+  handleData_(simpleSegment, result) {
+    if (this.checkForAbort_(simpleSegment.requestId) ||
+        this.abortRequestEarly_(simpleSegment.stats)) {
+      return;
+    }
 
     const segmentInfo = this.pendingSegment_;
 
@@ -1185,6 +1192,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       simpleSegment,
       // progress callback
       this.handleProgress_.bind(this),
+      this.handleTrackInfo_.bind(this),
       this.handleData_.bind(this),
       this.segmentRequestFinished_.bind(this));
   }
