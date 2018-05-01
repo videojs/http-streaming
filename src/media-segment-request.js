@@ -401,7 +401,8 @@ const handleSegmentBytes = ({
 
     dataFn(segment, {
       data: bytes,
-      // TODO
+      // the probe doesn't provide the end of the segment, so the end must be calculated
+      // later based on the duration of the segment
       timingInfo: {
         start: startTime
       }
