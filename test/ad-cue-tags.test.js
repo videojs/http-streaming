@@ -1,3 +1,6 @@
+/* eslint-disable prefer-const */
+// TODO: fix above
+
 import QUnit from 'qunit';
 import AdCueTags from '../src/ad-cue-tags';
 import window from 'global/window';

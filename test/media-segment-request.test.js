@@ -1,3 +1,6 @@
+/* eslint-disable prefer-const */
+// TODO: fix above
+
 import QUnit from 'qunit';
 import {mediaSegmentRequest, REQUEST_ERRORS} from '../src/media-segment-request';
 import xhrFactory from '../src/xhr';

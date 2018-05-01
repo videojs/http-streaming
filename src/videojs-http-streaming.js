@@ -1,3 +1,6 @@
+/* eslint-disable prefer-const */
+// TODO: fix above!
+
 /**
  * @file videojs-http-streaming.js
  *
@@ -5,6 +8,7 @@
  * License: https://github.com/videojs/videojs-http-streaming/blob/master/LICENSE
  */
 import document from 'global/document';
+import window from 'global/window';
 import PlaylistLoader from './playlist-loader';
 import Playlist from './playlist';
 import xhrFactory from './xhr';

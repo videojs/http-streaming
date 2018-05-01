@@ -1,3 +1,6 @@
+/* eslint-disable prefer-const */
+// TODO: fix above!
+
 export const concatTypedArrays = (arr1, arr2) => {
   let tempArray = new Uint8Array(arr1.length + arr2.length);
 

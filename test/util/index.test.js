@@ -5,7 +5,7 @@ import videojs from 'video.js';
 // we disable this because browserify needs to include these files
 // but the exports are not important
 /* eslint-disable no-unused-vars */
-import {MediaSource, URL} from '../../src/mse';
+// import {MediaSource, URL} from '../../src/mse';
 /* eslint-disable no-unused-vars */
 
 QUnit.test('the environment is sane', function(assert) {

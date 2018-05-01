@@ -1,3 +1,6 @@
+/* eslint-disable prefer-const */
+// TODO: fix above
+
 import SourceUpdater from '../src/source-updater';
 import QUnit from 'qunit';
 import videojs from 'video.js';

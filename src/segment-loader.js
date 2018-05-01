@@ -1,3 +1,8 @@
+/* eslint-disable prefer-const */
+/* eslint-disable no-unused-vars */
+/* eslint-disable no-return-assign */
+// TODO: fix above!
+
 /**
  * @file segment-loader.js
  */
@@ -343,7 +348,6 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     return false;
   }
-
 
   /**
    * abort all pending xhr requests and null any pending segements
@@ -1118,7 +1122,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // Merge multiple video and audio segments into one and append
     const {
       type,
-      data,
+      data
     } = result;
     let initSegment = result.initSegment;
 
@@ -1416,7 +1420,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.timeMapping_ = 0;
       this.transmuxer_.postMessage({
         action: 'setTimestampOffset',
-        timestampOffset: timestampOffset
+        timestampOffset
       });
     }
   }

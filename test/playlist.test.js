@@ -1,3 +1,6 @@
+/* eslint-disable prefer-const */
+// TODO: fix above
+
 import Playlist from '../src/playlist';
 import PlaylistLoader from '../src/playlist-loader';
 import QUnit from 'qunit';

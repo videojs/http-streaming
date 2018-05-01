@@ -1,3 +1,6 @@
+/* eslint-disable prefer-const */
+// TODO: fix above
+
 import QUnit from 'qunit';
 import {
   default as SegmentLoader,
@@ -163,7 +166,7 @@ QUnit.module('SegmentLoader', function(hooks) {
       this.startTime.restore();
     });
 
-    QUnit.test(`load waits until a playlist and mime type are specified to proceed`,
+    QUnit.test('load waits until a playlist and mime type are specified to proceed',
     function(assert) {
       loader.load();
 
@@ -179,7 +182,7 @@ QUnit.module('SegmentLoader', function(hooks) {
       assert.equal(loader.state, 'WAITING', 'transitioned states');
     });
 
-    QUnit.test(`calling mime type and load begins buffering`, function(assert) {
+    QUnit.test('calling mime type and load begins buffering', function(assert) {
       assert.equal(loader.state, 'INIT', 'starts in the init state');
       loader.playlist(playlistWithDuration(10));
       assert.equal(loader.state, 'INIT', 'starts in the init state');

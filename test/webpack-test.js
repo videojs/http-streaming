@@ -1,3 +1,7 @@
+/* eslint-disable prefer-const */
+/* eslint-disable no-undef */
+// TODO: fix above
+
 let hls = require('../es5/videojs-http-streaming.js');
 let q = window.QUnit;
 

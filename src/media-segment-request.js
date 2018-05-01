@@ -1,3 +1,7 @@
+/* eslint-disable prefer-const */
+/* eslint-disable no-use-before-define */
+// TODO: fix above!
+
 import videojs from 'video.js';
 import BinUtils from './bin-utils';
 import { stringToArrayBuffer } from './util/string-to-array-buffer';

@@ -4,6 +4,9 @@
 import window from 'global/window';
 import videojs from 'video.js';
 
+/* eslint-disable prefer-const */
+// TODO: fix above
+
 /**
  * Define properties on a cue for backwards compatability,
  * but warn the user that the way that they are using it

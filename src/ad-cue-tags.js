@@ -1,6 +1,10 @@
 /**
  * @file ad-cue-tags.js
  */
+
+/* eslint-disable prefer-const */
+// TODO: fix above!
+
 import window from 'global/window';
 
 /**

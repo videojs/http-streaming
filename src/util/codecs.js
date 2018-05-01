@@ -3,6 +3,10 @@
  * codec strings, or translating codec strings into objects that can be examined.
  */
 
+/* eslint-disable prefer-const */
+/* eslint-disable no-use-before-define */
+// TODO: fix the above
+
 import videojs from 'video.js';
 
 // Default codec parameters if none were provided for video and/or audio

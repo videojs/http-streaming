@@ -1,3 +1,7 @@
+/* eslint-disable prefer-const */
+/* eslint-disable no-else-return */
+// TODO: fix above!
+
 import videojs from 'video.js';
 import PlaylistLoader from './playlist-loader';
 import DashPlaylistLoader from './dash-playlist-loader';
@@ -716,7 +720,7 @@ export const setupMediaGroups = (settings) => {
     segmentLoaders: {
       AUDIO: audioSegmentLoader,
       main: mainSegmentLoader
-    },
+    }
   } = settings;
 
   // setup active group and track getters and change event handlers

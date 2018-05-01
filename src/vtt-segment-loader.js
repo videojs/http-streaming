@@ -1,3 +1,7 @@
+/* eslint-disable prefer-const */
+/* eslint-disable no-return-assign */
+// TODO: fix above!
+
 /**
  * @file vtt-segment-loader.js
  */

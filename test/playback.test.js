@@ -1,5 +1,9 @@
+/* eslint-disable prefer-const */
+// TODO: fix above
+
 import QUnit from 'qunit';
 import videojs from 'video.js';
+import document from 'global/document';
 /* eslint-disable no-unused-vars */
 import { Hls } from '../src/videojs-http-streaming';
 

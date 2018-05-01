@@ -1,3 +1,5 @@
+/* eslint-disable prefer-const */
+// TODO: fix above
 /* eslint-disable max-len */
 
 import QUnit from 'qunit';

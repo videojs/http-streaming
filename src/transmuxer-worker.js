@@ -12,6 +12,9 @@
  * transmuxer running inside of a WebWorker by exposing a simple
  * message-based interface to a Transmuxer object.
  */
+
+/* eslint-disable prefer-const */
+
 import window from 'global/window';
 import mux from 'mux.js/lib/mux';
 
@@ -103,7 +106,7 @@ const wireTransmuxerEvents = function(transmuxer) {
       action: 'audioTimingInfo',
       audioTimingInfo: {
         start: audioTimingInfo.start / ONE_SECOND_IN_TS,
-        end: audioTimingInfo.end / ONE_SECOND_IN_TS,
+        end: audioTimingInfo.end / ONE_SECOND_IN_TS
       }
     });
   });
@@ -113,7 +116,7 @@ const wireTransmuxerEvents = function(transmuxer) {
       action: 'videoTimingInfo',
       videoTimingInfo: {
         start: videoTimingInfo.start / ONE_SECOND_IN_TS,
-        end: videoTimingInfo.end / ONE_SECOND_IN_TS,
+        end: videoTimingInfo.end / ONE_SECOND_IN_TS
       }
     });
   });

@@ -1,3 +1,6 @@
+/* eslint-disable prefer-const */
+// TODO: fix above!
+
 /**
  * @file master-playlist-controller.js
  */

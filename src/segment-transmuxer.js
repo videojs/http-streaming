@@ -1,3 +1,6 @@
+/* eslint-disable no-use-before-define */
+// TODO: fix above!
+
 import videojs from 'video.js';
 
 const transmuxQueue = [];
@@ -171,7 +174,7 @@ export const processTransmux = ({
     data: buffer,
     // To recreate the original typed-array, we need information
     // about what portion of the ArrayBuffer it was a view into
-    byteOffset: byteOffset,
+    byteOffset,
     byteLength: bytes.byteLength
   },
   [ buffer ]);

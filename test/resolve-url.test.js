@@ -1,3 +1,6 @@
+/* eslint-disable prefer-const */
+// TODO: fix above
+
 import QUnit from 'qunit';
 import window from 'global/window';
 import resolveUrl from '../src/resolve-url';

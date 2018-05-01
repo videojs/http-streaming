@@ -1,5 +1,9 @@
 /* eslint-disable no-var */
 /* eslint-env qunit */
+
+/* eslint-disable no-undef */
+// TODO: fix above
+
 var hls = require('../es5/videojs-http-streaming.js');
 var q = window.QUnit;
 

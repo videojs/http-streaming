@@ -1,3 +1,7 @@
+/* eslint-disable prefer-const */
+/* eslint-disable no-unused-vars */
+// TODO: fix above!
+
 /**
  * @file source-updater.js
  */
@@ -117,6 +121,8 @@ const onUpdateend = (type, updater) => () => {
 export default class SourceUpdater {
   constructor(mediaSource) {
     this.mediaSource = mediaSource;
+    // TODO: can the next line be a string?
+    // eslint-disable-next-line quotes
     this.logger_ = logger(`SourceUpdater`);
     // initial timestamp offset is 0
     this.audioTimestampOffset_ = 0;

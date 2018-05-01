@@ -1,4 +1,8 @@
+/* eslint-disable prefer-const */
+// TODO: fix above
+
 import QUnit from 'qunit';
+import window from 'global/window';
 import VTTSegmentLoader from '../src/vtt-segment-loader';
 import videojs from 'video.js';
 import {
@@ -62,7 +66,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
       this.track = new MockTextTrack();
     });
 
-    QUnit.test(`load waits until a playlist and track are specified to proceed`,
+    QUnit.test('load waits until a playlist and track are specified to proceed',
     function(assert) {
       loader.load();
 
@@ -78,7 +82,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
       assert.equal(loader.state, 'WAITING', 'transitioned states');
     });
 
-    QUnit.test(`calling track and load begins buffering`, function(assert) {
+    QUnit.test('calling track and load begins buffering', function(assert) {
       assert.equal(loader.state, 'INIT', 'starts in the init state');
       loader.playlist(playlistWithDuration(10));
       assert.equal(loader.state, 'INIT', 'starts in the init state');

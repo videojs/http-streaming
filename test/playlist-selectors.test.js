@@ -1,4 +1,8 @@
+/* eslint-disable prefer-const */
+// TODO: fix above
+
 import { module, test } from 'qunit';
+import document from 'global/document';
 import {
   simpleSelector,
   movingAverageBandwidthSelector,

@@ -37,4 +37,4 @@ export const concatSegments = (segmentObj) => {
   }
 
   return tempBuffer;
-}
+};

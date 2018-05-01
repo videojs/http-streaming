@@ -1,3 +1,6 @@
+/* eslint-disable prefer-const */
+// TODO: fix above!
+
 /**
  * @file xhr.js
  */
