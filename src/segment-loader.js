@@ -1470,7 +1470,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // on each queue this loader is responsible for to ensure that the appends are
     // complete.
     const waitForVideo = this.loaderType_ === 'main' && this.startingMedia_.containsVideo;
-    const waitForAudio = !this.audioDisabled;
+    const waitForAudio = !this.audioDisabled && this.startingMedia_.containsAudio;
 
     segmentInfo.waitingOnAppends = 0;
 
