@@ -1538,9 +1538,14 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   updateTimestampOffset_(segmentInfo) {
-    // if there's no timestamp offset or it's already been changed once for this segment,
-    // don't do it again
-    if (segmentInfo.timestampOffset === null || segmentInfo.changedTimestampOffset) {
+    if (segmentInfo.timestampOffset === null ||
+        // we don't yet have the start for whatever media type (video or audio) has
+        // priority, timing-wise, so we must wait
+        // TODO: do we have to wait for both pieces of content before any appends (since
+        // the timestamp offset should be set for both)?
+        typeof segmentInfo.timingInfo.start !== 'number' ||
+        // already updated the timestamp offset for this segment
+        segmentInfo.changedTimestampOffset) {
       return;
     }
 
@@ -1550,7 +1555,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // the timing info here comes from video. In the event that the audio is longer than
     // the video, this will trim the start of the audio.
     segmentInfo.timestampOffset -= segmentInfo.timingInfo.start;
-    // TODO in the even that there are partial segment downloads, each will try to update
+    // TODO in the event that there are partial segment downloads, each will try to update
     // the timestamp offset. Retaining this bit of state prevents us from updating in the
     // future (within the same segment), however, there may be a better way to handle it.
     segmentInfo.changedTimestampOffset = true;
