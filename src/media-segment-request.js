@@ -524,14 +524,16 @@ const transmuxAndNotify = ({
  * @returns {Function} a function that, when invoked, immediately aborts all
  *                     outstanding requests
  */
-export const mediaSegmentRequest = (xhr,
-                                    xhrOptions,
-                                    decryptionWorker,
-                                    segment,
-                                    progressFn,
-                                    trackInfoFn,
-                                    dataFn,
-                                    doneFn) => {
+export const mediaSegmentRequest = ({
+  xhr,
+  xhrOptions,
+  decryptionWorker,
+  segment,
+  progressFn,
+  trackInfoFn,
+  dataFn,
+  doneFn
+}) => {
   const activeXhrs = [];
   const finishProcessingFn = waitForCompletion(
     activeXhrs, decryptionWorker, trackInfoFn, dataFn, doneFn);

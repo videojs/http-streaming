@@ -1190,15 +1190,16 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     const simpleSegment = this.createSimplifiedSegmentObj_(segmentInfo);
 
-    segmentInfo.abortRequests = mediaSegmentRequest(this.hls_.xhr,
-      this.xhrOptions_,
-      this.decrypter_,
-      simpleSegment,
-      // progress callback
-      this.handleProgress_.bind(this),
-      this.handleTrackInfo_.bind(this),
-      this.handleData_.bind(this),
-      this.segmentRequestFinished_.bind(this));
+    segmentInfo.abortRequests = mediaSegmentRequest({
+      xhr: this.hls_.xhr,
+      xhrOptions: this.xhrOptions_,
+      decryptionWorker: this.decrypter_,
+      segment: simpleSegment,
+      progressFn: this.handleProgress_.bind(this),
+      trackInfoFn: this.handleTrackInfo_.bind(this),
+      dataFn: this.handleData_.bind(this),
+      doneFn: this.segmentRequestFinished_.bind(this)
+    });
   }
 
   /**
