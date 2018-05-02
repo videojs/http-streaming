@@ -14,6 +14,8 @@ import videojs from 'video.js';
 // import {MediaSource, URL} from '../../src/mse';
 /* eslint-disable no-unused-vars */
 
+// TODO: Delete this file once the assumptions these tests are checking
+// are migrated to another test
 QUnit.module('createObjectURL', {
   beforeEach() {
     this.fixture = document.getElementById('qunit-fixture');
@@ -47,9 +49,9 @@ QUnit.module('createObjectURL', {
   }
 });
 
-QUnit.test('delegates to the native implementation', function(assert) {
+QUnit.skip('delegates to the native implementation', function(assert) {
   assert.ok(!(/blob:vjs-media-source\//).test(
-    videojs.URL.createObjectURL(
+    window.URL.createObjectURL(
       new window.Blob())
     ),
     'created a native blob URL'
@@ -58,16 +60,16 @@ QUnit.test('delegates to the native implementation', function(assert) {
 
 QUnit.skip('uses the native MediaSource when available', function(assert) {
   assert.ok(!(/blob:vjs-media-source\//).test(
-    videojs.URL.createObjectURL(
+    window.URL.createObjectURL(
       new HtmlMediaSource())
     ),
     'created a native blob URL'
   );
 });
 
-QUnit.test('stores the associated blob URL on the media source', function(assert) {
+QUnit.skip('stores the associated blob URL on the media source', function(assert) {
   let blob = new window.Blob();
-  let url = videojs.URL.createObjectURL(blob);
+  let url = window.URL.createObjectURL(blob);
 
   assert.strictEqual(blob.url_, url, 'captured the generated URL');
 });
