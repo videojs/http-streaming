@@ -193,13 +193,8 @@ export const dequeue = () => {
   }
 };
 
-export const processReset = (transmuxer) => {
-  transmuxer.postMessage({ action: 'reset' });
-  dequeue();
-};
-
-export const processEndTimeline = (transmuxer) => {
-  transmuxer.postMessage({ action: 'endTimeline' });
+export const processAction = (transmuxer, action) => {
+  transmuxer.postMessage({ action });
   dequeue();
 };
 
@@ -207,19 +202,19 @@ export const processEndTimeline = (transmuxer) => {
 export const reset = (transmuxer) => {
   if (!currentTransmux) {
     currentTransmux = 'reset';
-    processReset(transmuxer);
+    processAction(transmuxer, 'reset');
     return;
   }
-  transmuxQueue.push(processReset.bind(null, transmuxer));
+  transmuxQueue.push(processAction.bind(null, transmuxer, 'reset'));
 };
 
 export const endTimeline = (transmuxer) => {
   if (!currentTransmux) {
     currentTransmux = 'endTimeline';
-    processEndTimeline(transmuxer);
+    processAction(transmuxer, 'endTimeline');
     return;
   }
-  transmuxQueue.push(processEndTimeline.bind(null, transmuxer));
+  transmuxQueue.push(processAction.bind(null, transmuxer, 'endTimeline'));
 };
 
 export const transmux = (options) => {
