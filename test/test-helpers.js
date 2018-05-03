@@ -109,22 +109,20 @@ export class MockTextTrack {
 }
 
 export const useFakeMediaSource = function() {
-  let RealMediaSource = videojs.MediaSource;
-  let realCreateObjectURL = videojs.URL.createObjectURL;
+  let RealMediaSource = window.MediaSource;
+  let realCreateObjectURL = window.URL.createObjectURL;
   let id = 0;
 
-  videojs.MediaSource = MockMediaSource;
-  videojs.MediaSource.supportsNativeMediaSources =
-    RealMediaSource.supportsNativeMediaSources;
-  videojs.URL.createObjectURL = function() {
+  window.MediaSource = MockMediaSource;
+  window.URL.createObjectURL = function() {
     id++;
     return 'blob:videojs-http-streaming-mock-url' + id;
   };
 
   return {
     restore() {
-      videojs.MediaSource = RealMediaSource;
-      videojs.URL.createObjectURL = realCreateObjectURL;
+      window.MediaSource = RealMediaSource;
+      window.URL.createObjectURL = realCreateObjectURL;
     }
   };
 };
@@ -207,6 +205,10 @@ export const useFakeEnvironment = function(assert) {
 
   Object.defineProperty(XMLHttpRequest.prototype, 'responseText', {
     get() {
+      if (!origResponseText) {
+        return '';
+      }
+
       const responseText = origResponseText.call(this);
 
       // special case for media segment request partial downloads
@@ -217,6 +219,9 @@ export const useFakeEnvironment = function(assert) {
       return responseText;
     },
     set(val) {
+      if (!origResponseText) {
+        return origResponseText;
+      }
       return origResponseText.call(this, val);
     }
   });
