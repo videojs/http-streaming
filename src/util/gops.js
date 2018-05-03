@@ -12,7 +12,7 @@
  *         List of gops considered safe to append over
  */
 export const gopsSafeToAlignWith = (buffer, currentTime, mapping) => {
-  if (!currentTime || !buffer.length) {
+  if (currentTime === undefined || currentTime === null || !buffer.length) {
     return [];
   }
 
