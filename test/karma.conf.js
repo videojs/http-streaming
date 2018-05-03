@@ -43,7 +43,7 @@ module.exports = function(config) {
         flags: [
           '--mute-audio',
           '--no-sandbox',
-          '--no-user-gesture-required'
+          '--autoplay-policy=no-user-gesture-required'
         ]
       },
       ChromeBrowserStack: {
@@ -51,7 +51,7 @@ module.exports = function(config) {
         flags: [
           '--mute-audio',
           '--no-sandbox',
-          '--no-user-gesture-required'
+          '--autoplay-policy=no-user-gesture-required'
         ],
         browser: 'chrome',
         os: 'Windows',
