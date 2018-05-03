@@ -7,12 +7,6 @@ import {
 
 QUnit.module('GOPs');
 
-/*
-    gopsSafeToAlignWith = (buffer, currentTime, mapping)
-    removeGopBuffer = (buffer, start, end, mapping)
-    updateGopBuffer = (buffer, gops, replace)
-*/
-
 QUnit.test('gopsSafeToAlignWith returns correct list', function(assert) {
   // gopsSafeToAlignWith uses a 3 second safetyNet so that gops very close to the playhead
   // are not considered safe to append to
@@ -76,8 +70,7 @@ QUnit.test('gopsSafeToAlignWith returns correct list', function(assert) {
     'empty array when no gops in buffer come after currentTime');
 });
 
-// TODO: this seems to be in the wrong place?
-QUnit.todo('updateGopBuffer correctly processes new gop information', function(assert) {
+QUnit.test('updateGopBuffer correctly processes new gop information', function(assert) {
   let buffer = [];
   let gops = [];
   let replace = true;
@@ -126,8 +119,7 @@ QUnit.todo('updateGopBuffer correctly processes new gop information', function(a
     'completely replaces buffer with new gops when all gops come before buffer');
 });
 
-// TODO: this seems to be in the wrong place?
-QUnit.todo('removeGopBuffer correctly removes range from buffer', function(assert) {
+QUnit.test('removeGopBuffer correctly removes range from buffer', function(assert) {
   const pts = (time) => Math.ceil(time * 90000);
   let buffer = [];
   let start = 0;
