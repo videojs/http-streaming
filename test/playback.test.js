@@ -30,7 +30,7 @@ QUnit.module('Playback', {
     video.width = 600;
     video.height = 300;
     this.fixture.appendChild(video);
-    this.player = videojs(video);
+    this.player = videojs(video, { muted: true });
     this.player.ready(done);
   },
   afterEach() {
