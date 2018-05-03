@@ -40,19 +40,11 @@ module.exports = function(config) {
     customLaunchers: {
       ChromeHeadlessWithFlags: {
         base: 'ChromeHeadless',
-        flags: [
-          '--mute-audio',
-          '--no-sandbox',
-          '--autoplay-policy=no-user-gesture-required'
-        ]
+        flags: [ '--no-sandbox' ]
       },
       ChromeBrowserStack: {
         base: 'BrowserStack',
-        flags: [
-          '--mute-audio',
-          '--no-sandbox',
-          '--autoplay-policy=no-user-gesture-required'
-        ],
+        flags: [ '--no-sandbox' ],
         browser: 'chrome',
         os: 'Windows',
         os_version: '10'
