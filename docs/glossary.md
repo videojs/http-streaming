@@ -8,7 +8,7 @@
 
 **Media Playlist**: This is a manifest that represents a single rendition of the source.
 
-**Segment Loader**: This controlls the requesting and appending of segments on to the browser's [SourceBuffers](https://developer.mozilla.org/en-US/docs/Web/API/SourceBuffer).
+**Segment Loader**: This controls the requesting and appending of segments on to the browser's [SourceBuffers](https://developer.mozilla.org/en-US/docs/Web/API/SourceBuffer).
 
 **ABR(Adaptive Bitrate) Algorithm**: This is defined in selectPlaylist and is described more [here](./bitrate-switching.md).
 
