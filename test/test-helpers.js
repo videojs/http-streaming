@@ -110,19 +110,12 @@ export class MockTextTrack {
 
 export const useFakeMediaSource = function() {
   let RealMediaSource = window.MediaSource;
-  let realCreateObjectURL = window.URL.createObjectURL;
-  let id = 0;
 
   window.MediaSource = MockMediaSource;
-  window.URL.createObjectURL = function() {
-    id++;
-    return 'blob:videojs-http-streaming-mock-url' + id;
-  };
 
   return {
     restore() {
       window.MediaSource = RealMediaSource;
-      window.URL.createObjectURL = realCreateObjectURL;
     }
   };
 };

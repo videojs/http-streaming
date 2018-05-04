@@ -9,7 +9,7 @@ import {
   standardXHRResponse
 } from './test-helpers';
 
-QUnit.module('DASH Playlist Loader', {
+QUnit.module.skip('DASH Playlist Loader', {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
     this.clock = this.env.clock;
