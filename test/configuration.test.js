@@ -254,14 +254,13 @@ QUnit.module('Configuration - Options', {
 });
 
 options.forEach((opt) => {
-  QUnit.skip(`default ${opt.name}`, function(assert) {
+  QUnit.test(`default ${opt.name}`, function(assert) {
     this.player = createPlayer();
     this.player.src({
       src: 'http://example.com/media.m3u8',
       type: 'application/vnd.apple.mpegurl'
     });
-
-    openMediaSource(this.player, this.clock);
+    this.clock.tick(1);
 
     let hls = this.player.tech_.hls;
 
@@ -270,16 +269,14 @@ options.forEach((opt) => {
                 `${opt.name} should be default`);
   });
 
-  QUnit.skip(`global ${opt.name}`, function(assert) {
+  QUnit.test(`global ${opt.name}`, function(assert) {
     videojs.options.hls[opt.name] = opt.test;
     this.player = createPlayer();
     this.player.src({
       src: 'http://example.com/media.m3u8',
       type: 'application/vnd.apple.mpegurl'
     });
-
-    openMediaSource(this.player, this.clock);
-
+    this.clock.tick(1);
     let hls = this.player.tech_.hls;
 
     assert.equal(hls.options_[opt.name],
@@ -287,7 +284,7 @@ options.forEach((opt) => {
                 `${opt.name} should be equal to global`);
   });
 
-  QUnit.skip(`sourceHandler ${opt.name}`, function(assert) {
+  QUnit.test(`sourceHandler ${opt.name}`, function(assert) {
     let sourceHandlerOptions = {html5: {hls: {}}};
 
     sourceHandlerOptions.html5.hls[opt.name] = opt.test;
@@ -296,8 +293,7 @@ options.forEach((opt) => {
       src: 'http://example.com/media.m3u8',
       type: 'application/vnd.apple.mpegurl'
     });
-
-    openMediaSource(this.player, this.clock);
+    this.clock.tick(1);
 
     let hls = this.player.tech_.hls;
 
@@ -306,7 +302,7 @@ options.forEach((opt) => {
                 `${opt.name} should be equal to sourceHandler Option`);
   });
 
-  QUnit.skip(`src ${opt.name}`, function(assert) {
+  QUnit.test(`src ${opt.name}`, function(assert) {
     let srcOptions = {
       src: 'http://example.com/media.m3u8',
       type: 'application/vnd.apple.mpegurl'
@@ -315,8 +311,7 @@ options.forEach((opt) => {
     srcOptions[opt.name] = opt.test;
     this.player = createPlayer();
     this.player.src(srcOptions);
-
-    openMediaSource(this.player, this.clock);
+    this.clock.tick(1);
 
     let hls = this.player.tech_.hls;
 
@@ -325,7 +320,7 @@ options.forEach((opt) => {
                 `${opt.name} should be equal to src option`);
   });
 
-  QUnit.skip(`srcHandler overrides global ${opt.name}`, function(assert) {
+  QUnit.test(`srcHandler overrides global ${opt.name}`, function(assert) {
     let sourceHandlerOptions = {html5: {hls: {}}};
 
     sourceHandlerOptions.html5.hls[opt.name] = opt.test;
@@ -335,8 +330,7 @@ options.forEach((opt) => {
       src: 'http://example.com/media.m3u8',
       type: 'application/vnd.apple.mpegurl'
     });
-
-    openMediaSource(this.player, this.clock);
+    this.clock.tick(1);
 
     let hls = this.player.tech_.hls;
 
@@ -345,7 +339,7 @@ options.forEach((opt) => {
                 `${opt.name} should be equal to sourchHandler option`);
   });
 
-  QUnit.skip(`src overrides sourceHandler ${opt.name}`, function(assert) {
+  QUnit.test(`src overrides sourceHandler ${opt.name}`, function(assert) {
     let sourceHandlerOptions = {html5: {hls: {}}};
     let srcOptions = {
       src: 'http://example.com/media.m3u8',
@@ -356,8 +350,7 @@ options.forEach((opt) => {
     srcOptions[opt.name] = opt.test;
     this.player = createPlayer(sourceHandlerOptions);
     this.player.src(srcOptions);
-
-    openMediaSource(this.player, this.clock);
+    this.clock.tick(1);
 
     let hls = this.player.tech_.hls;
 

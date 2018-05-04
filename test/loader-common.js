@@ -39,7 +39,7 @@ export const LoaderCommonHooks = {
     this.env = useFakeEnvironment(assert);
     this.clock = this.env.clock;
     this.requests = this.env.requests;
-    this.mse = useFakeMediaSource();
+    this.mse = new window.MediaSource();
     this.currentTime = 0;
     this.seekable = {
       length: 0
@@ -59,9 +59,9 @@ export const LoaderCommonHooks = {
     this.tech_ = this.fakeHls.tech_;
     this.goalBufferLength =
       MasterPlaylistController.prototype.goalBufferLength.bind(this);
-    this.mediaSource = new window.MediaSource();
-    this.mediaSource.trigger('sourceopen');
+    this.mediaSource = this.mse;
     this.sourceUpdater = new SourceUpdater(this.mediaSource);
+    this.mediaSource.trigger('sourceopen');
     this.syncController = new SyncController();
     this.decrypter = worker(Decrypter, workerResolve());
   },

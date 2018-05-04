@@ -68,9 +68,17 @@ class MockMediaSource extends videojs.EventTarget {
       this.readyState = 'open';
     });
 
-    this.sourceBuffers = [];
+    this.activeSourceBuffers = {
+      length: 0,
+      onaddsourcebuffer: null,
+      onremovesourcebuffer: null
+    };
+    this.sourceBuffers = this.activeSourceBuffers;
     this.duration = NaN;
     this.seekable = videojs.createTimeRange();
+    this.onsourceclose = null;
+    this.onsourceended = null;
+    this.onsourceopen = null;
   }
 
   addSeekableRange_(start, end) {
@@ -111,7 +119,7 @@ export class MockTextTrack {
 export const useFakeMediaSource = function() {
   let RealMediaSource = window.MediaSource;
 
-  window.MediaSource = MockMediaSource;
+  // window.MediaSource = MockMediaSource;
 
   return {
     restore() {
