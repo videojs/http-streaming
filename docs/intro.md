@@ -1,8 +1,8 @@
-# HLS Overview
-The HLS project polyfills support for [HTTP Live Streaming](https://developer.apple.com/library/ios/documentation/NetworkingInternet/Conceptual/StreamingMediaGuide/Introduction/Introduction.html) (HLS) video format. This document is intended as a primer for anyone interested in contributing or just better understanding how bits from a server get turned into video on their display.
+# Overview
+This project supports both [HLS](hls) and [MPEG-DASH](dash) playback in the video.js player. This document is intended as a primer for anyone interested in contributing or just better understanding how bits from a server get turned into video on their display.
 
 ## HTTP Live Streaming
-HLS has two primary characteristics that distinguish it from other video formats:
+[HLS](https://developer.apple.com/library/ios/documentation/NetworkingInternet/Conceptual/StreamingMediaGuide/Introduction/Introduction.html) has two primary characteristics that distinguish it from other video formats:
 
 - Delivered over HTTP(S): it uses the standard application protocol of the web to deliver all its data
 - Segmented: longer videos are broken up into smaller chunks which can be downloaded independently and switched between at runtime
@@ -17,13 +17,27 @@ Live mode can work in one of two ways. For truly live events, the most common co
 
 If you're interested in a more in-depth treatment of the HLS format, check out [Apple's documentation](https://developer.apple.com/library/ios/documentation/NetworkingInternet/Conceptual/StreamingMediaGuide/Introduction/Introduction.html) and the IETF [Draft Specification](https://datatracker.ietf.org/doc/draft-pantos-http-live-streaming/).
 
+## Dynamic Adaptive Streaming over HTTP
+Similar to HLS, [DASH](https://en.wikipedia.org/wiki/Dynamic_Adaptive_Streaming_over_HTTP) content is segmented and and is delivered over HTTP(s).
+
+A DASH stream consits of a *Media Presentation Description*(MPD) that describes segment metadata. Each segment must contain either ISO base media file format(e.g MP4) or MPEG-2 TS data. Typically the MPD will describe the various *Representations* that map to collections of segments at different bitrates to allow bitrate selection.
+
+DASH streams can be delivered in both video-on-demand(VOD) and live streaming modes. In the VOD case, the MPD describes all the segments and representations available and the player can chose which representation to play based on it's capabilities.
+
+Live mode is accomplished using the ISOBMFF Live profile if the segments are in ISOBMFF. There are a few different ways to setup the MPD including but not limited to updating the MPD after an interval of time, using *Periods*, or using the *availabilityTimeOffset* field. A few examples of this are provided by the [DASH Reference Client](https://reference.dashif.org/dash.js/). The MPD will provide enough information for the player to playback the live stream and seek back as far as is specified in the MPD.
+
+If you're interested in a more in-depth description of MPEG-DASH, check out [MDN's tutorial on setting up DASH](https://developer.mozilla.org/en-US/Apps/Fundamentals/Audio_and_video_delivery/Setting_up_adaptive_streaming_media_sources) or the [DASHIF Guidelines](http://dashif.org/guidelines/).
+
 # Further Documentation
 
-- [Arch](arch.md)
+- [Architechture](arch.md)
 - [Glossary](glossary.md)
 - [Adaptive Bitrate Switching](bitrate-switching.md)
 - [Multiple Alternative Audio Tracks](multiple-alternative-audio-tracks.md)
 
 # Helpful Tools
 - [FFmpeg](http://trac.ffmpeg.org/wiki/CompilationGuide)
-- [Thumbcoil](http://thumb.co.il/)
+- [Thumbcoil](http://thumb.co.il/): web based video inspector
+
+[hls]: /docs/intro.md#http-live-streaming
+[dash]: /docs/intro.md#

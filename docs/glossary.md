@@ -2,7 +2,7 @@
 
 **Playlist**: This is a representation of an HLS or DASH manifest.
 
-**Master Playlist Controller**: This acts as the gateway for the playback engine to interact with the player. It interacts with the SegmentLoaders, PlaylistLoaders, PlaybackWatcher, etc.
+**Master Playlist Controller**: This acts as the main controller for the playback engine. It interacts with the SegmentLoaders, PlaylistLoaders, PlaybackWatcher, etc.
 
 **Playlist Loader**: This will request the source and load the master manifest. It also interacts with the ABR algorithm to pick a media playlist or wraps a media playlist if it is provided as the source. There are more details about the playlist loader [here](./arch.md).
 
