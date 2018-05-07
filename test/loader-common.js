@@ -8,8 +8,7 @@ import xhrFactory from '../src/xhr';
 import Config from '../src/config';
 import {
   playlistWithDuration,
-  useFakeEnvironment,
-  useFakeMediaSource
+  useFakeEnvironment
 } from './test-helpers.js';
 import { MasterPlaylistController } from '../src/master-playlist-controller';
 import SourceUpdater from '../src/source-updater';
@@ -40,6 +39,10 @@ export const LoaderCommonHooks = {
     this.clock = this.env.clock;
     this.requests = this.env.requests;
     this.mse = new window.MediaSource();
+    this.mse.addEventListener('sourceopen', function() {
+      this.readyState = 'open';
+    });
+
     this.currentTime = 0;
     this.seekable = {
       length: 0
@@ -61,13 +64,13 @@ export const LoaderCommonHooks = {
       MasterPlaylistController.prototype.goalBufferLength.bind(this);
     this.mediaSource = this.mse;
     this.sourceUpdater = new SourceUpdater(this.mediaSource);
-    this.mediaSource.trigger('sourceopen');
+    // TODO maybe change this to make a masterPlaylistController instead?
+    // this.mediaSource.trigger('sourceopen');
     this.syncController = new SyncController();
     this.decrypter = worker(Decrypter, workerResolve());
   },
   afterEach(assert) {
     this.env.restore();
-    this.mse.restore();
     this.decrypter.terminate();
   }
 };
@@ -125,7 +128,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
 
       // shim updateend trigger to be a noop if the loader has no media source
       this.updateend = function() {
-        if (loader.mediaSource_) {
+        if (loader.mediaSource_ && loader.mediaSource_.length > 0) {
           loader.mediaSource_.sourceBuffers[0].trigger('updateend');
         }
       };
@@ -278,7 +281,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(loader.mediaTransferDuration, 100, '100 ms (clock above)');
     });
 
-    QUnit.skip('segment request timeouts reset bandwidth', function(assert) {
+    QUnit.test('segment request timeouts reset bandwidth', function(assert) {
       loader.playlist(playlistWithDuration(10));
 
       loader.load();
@@ -292,7 +295,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.ok(isNaN(loader.roundTrip), 'reset round trip time');
     });
 
-    QUnit.skip('progress on segment requests are redispatched', function(assert) {
+    QUnit.test('progress on segment requests are redispatched', function(assert) {
       let progressEvents = 0;
 
       loader.on('progress', function() {
@@ -303,11 +306,14 @@ export const LoaderCommonFactory = (LoaderConstructor,
       loader.load();
       this.clock.tick(1);
 
+      // TODO, probably want to repeat this test for
+      // both partial appends and full segment playback
+      this.requests[0].responseText = '';
       this.requests[0].dispatchEvent({ type: 'progress', target: this.requests[0] });
       assert.equal(progressEvents, 1, 'triggered progress');
     });
 
-    QUnit.skip('aborts request at progress events if bandwidth is too low',
+    QUnit.test('aborts request at progress events if bandwidth is too low',
     function(assert) {
       const playlist1 = playlistWithDuration(10, { uri: 'playlist1.m3u8' });
       const playlist2 = playlistWithDuration(10, { uri: 'playlist2.m3u8' });
@@ -356,6 +362,9 @@ export const LoaderCommonFactory = (LoaderConstructor,
 
       this.clock.tick(1);
 
+      // TODO, probably want to repeat this test for
+      // both partial appends and full segment playback
+      this.requests[0].responseText = '';
       this.requests[0].dispatchEvent({
         type: 'progress',
         target: this.requests[0],
@@ -429,7 +438,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(loader.mediaRequests, 2, '2 request');
     });
 
-    QUnit.skip('only requests one segment at a time', function(assert) {
+    QUnit.test('only requests one segment at a time', function(assert) {
       loader.playlist(playlistWithDuration(10));
 
       loader.load();
@@ -484,6 +493,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       this.updateend();
       this.clock.tick(1);
 
+      // TODO figure out how this is meant to pass
       assert.equal(this.requests.length, 1, 'made a request');
       assert.equal(this.requests[0].url, '1.ts',
                   'did not re-request the init segment');
@@ -538,6 +548,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       this.updateend();
       this.clock.tick(1);
 
+      // TODO: figure out how this used to work
       assert.equal(this.requests.length, 2, 'made requests');
       assert.equal(this.requests[0].url, 'init0', 'requested the init segment');
       assert.equal(this.requests[0].headers.Range, 'bytes=20-39',
@@ -546,7 +557,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
                   'did not re-request the init segment');
     });
 
-    QUnit.skip('request error increments mediaRequestsErrored stat', function(assert) {
+    QUnit.test('request error increments mediaRequestsErrored stat', function(assert) {
       loader.playlist(playlistWithDuration(20));
 
       loader.load();
@@ -559,7 +570,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(loader.mediaRequestsErrored, 1, '1 errored request');
     });
 
-    QUnit.skip('request timeout increments mediaRequestsTimedout stat', function(assert) {
+    QUnit.test('request timeout increments mediaRequestsTimedout stat', function(assert) {
       loader.playlist(playlistWithDuration(20));
 
       loader.load();
@@ -572,7 +583,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(loader.mediaRequestsTimedout, 1, '1 timed-out request');
     });
 
-    QUnit.skip('request abort increments mediaRequestsAborted stat', function(assert) {
+    QUnit.test('request abort increments mediaRequestsAborted stat', function(assert) {
       loader.playlist(playlistWithDuration(20));
 
       loader.load();
@@ -705,7 +716,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       this.updateend();
     });
 
-    QUnit.skip('segment 404s should trigger an error', function(assert) {
+    QUnit.test('segment 404s should trigger an error', function(assert) {
       let errors = [];
 
       loader.playlist(playlistWithDuration(10));
@@ -725,7 +736,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(loader.state, 'READY', 'returned to the ready state');
     });
 
-    QUnit.skip('empty segments should trigger an error', function(assert) {
+    QUnit.test('empty segments should trigger an error', function(assert) {
       let errors = [];
 
       loader.playlist(playlistWithDuration(10));
@@ -746,7 +757,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(loader.state, 'READY', 'returned to the ready state');
     });
 
-    QUnit.skip('segment 5xx status codes trigger an error', function(assert) {
+    QUnit.test('segment 5xx status codes trigger an error', function(assert) {
       let errors = [];
 
       loader.playlist(playlistWithDuration(10));
@@ -766,7 +777,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(loader.state, 'READY', 'returned to the ready state');
     });
 
-    QUnit.skip('remains ready if there are no segments', function(assert) {
+    QUnit.test('remains ready if there are no segments', function(assert) {
       loader.playlist(playlistWithDuration(0));
 
       loader.load();
@@ -785,13 +796,17 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.ok(this.requests[0].aborted, 'aborted segment request');
       assert.equal(this.requests.length, 1, 'did not open another request');
 
+      assert.ok(!loader.mediaSource_ || loader.mediaSource_.sourceBuffers.length > 0,
+        'there is a mediaSource_ with source buffers');
+
       // Check that media source was properly cleaned up if it exists on the loader
       if (loader.mediaSource_) {
-        loader.mediaSource_.sourceBuffers.forEach((sourceBuffer, i) => {
-          let lastOperation = sourceBuffer.updates_.slice(-1)[0];
+        for (let i = 0; i < loader.mediaSource_.sourceBuffers.length; i++) {
+          const sourceBuffer = loader.mediaSource_.sourceBuffers[i];
+          const lastOperation = sourceBuffer.updates_.slice(-1)[0];
 
           assert.ok(lastOperation.abort, 'aborted source buffer ' + i);
-        });
+        }
       }
     });
 
@@ -799,7 +814,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
     // Decryption
     // ----------
 
-    QUnit.skip('calling load with an encrypted segment requests key and segment',
+    QUnit.test('calling load with an encrypted segment requests key and segment',
     function(assert) {
       assert.equal(loader.state, 'INIT', 'starts in the init state');
       loader.playlist(playlistWithDuration(10, {isEncrypted: true}));
@@ -818,7 +833,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(this.requests[1].url, '0.ts', 'requested the first segment');
     });
 
-    QUnit.skip('dispose cleans up key requests for encrypted segments', function(assert) {
+    QUnit.test('dispose cleans up key requests for encrypted segments', function(assert) {
       loader.playlist(playlistWithDuration(20, {isEncrypted: true}));
 
       loader.load();
@@ -833,7 +848,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(this.requests.length, 2, 'did not open another request');
     });
 
-    QUnit.skip('key 404s should trigger an error', function(assert) {
+    QUnit.test('key 404s should trigger an error', function(assert) {
       let errors = [];
 
       loader.playlist(playlistWithDuration(10, {isEncrypted: true}));
@@ -856,7 +871,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(loader.state, 'READY', 'returned to the ready state');
     });
 
-    QUnit.skip('key 5xx status codes trigger an error', function(assert) {
+    QUnit.test('key 5xx status codes trigger an error', function(assert) {
       let errors = [];
 
       loader.playlist(playlistWithDuration(10, {isEncrypted: true}));
@@ -878,7 +893,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(loader.state, 'READY', 'returned to the ready state');
     });
 
-    QUnit.skip('key request timeouts reset bandwidth', function(assert) {
+    QUnit.test('key request timeouts reset bandwidth', function(assert) {
       loader.playlist(playlistWithDuration(10, {isEncrypted: true}));
 
       loader.load();
@@ -896,7 +911,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.ok(isNaN(loader.roundTrip), 'reset round trip time');
     });
 
-    QUnit.skip('checks the goal buffer configuration every loading opportunity',
+    QUnit.test('checks the goal buffer configuration every loading opportunity',
     function(assert) {
       let playlist = playlistWithDuration(20);
       let defaultGoal = Config.GOAL_BUFFER_LENGTH;
@@ -1025,7 +1040,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       this.updateend();
     });
 
-    QUnit.skip('new playlist always triggers syncinfoupdate', function(assert) {
+    QUnit.test('new playlist always triggers syncinfoupdate', function(assert) {
       let playlist = playlistWithDuration(100, { endList: false });
       let syncInfoUpdates = 0;
 
@@ -1051,7 +1066,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
 
     QUnit.module('Loading Calculation');
 
-    QUnit.skip('requests the first segment with an empty buffer', function(assert) {
+    QUnit.test('requests the first segment with an empty buffer', function(assert) {
 
       let segmentInfo = loader.checkBuffer_(videojs.createTimeRanges(),
                                             playlistWithDuration(20),
@@ -1064,7 +1079,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(segmentInfo.uri, '0.ts', 'requested the first segment');
     });
 
-    QUnit.skip('no request if video not played and 1 segment is buffered',
+    QUnit.test('no request if video not played and 1 segment is buffered',
     function(assert) {
       this.hasPlayed = false;
 
@@ -1078,7 +1093,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.ok(!segmentInfo, 'no request generated');
     });
 
-    QUnit.skip('does not download the next segment if the buffer is full',
+    QUnit.test('does not download the next segment if the buffer is full',
     function(assert) {
       let buffered;
       let segmentInfo;
@@ -1096,7 +1111,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.ok(!segmentInfo, 'no segment request generated');
     });
 
-    QUnit.skip('downloads the next segment if the buffer is getting low',
+    QUnit.test('downloads the next segment if the buffer is getting low',
     function(assert) {
       let buffered;
       let segmentInfo;
@@ -1116,7 +1131,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(segmentInfo.uri, '2.ts', 'requested the third segment');
     });
 
-    QUnit.skip('stops downloading segments at the end of the playlist', function(assert) {
+    QUnit.test('stops downloading segments at the end of the playlist', function(assert) {
       let buffered;
       let segmentInfo;
 
@@ -1131,7 +1146,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.ok(!segmentInfo, 'no request was made');
     });
 
-    QUnit.skip('stops downloading segments if buffered past reported end of the playlist',
+    QUnit.test('stops downloading segments if buffered past reported end of the playlist',
     function(assert) {
       let buffered;
       let segmentInfo;
@@ -1150,7 +1165,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.ok(!segmentInfo, 'no request was made');
     });
 
-    QUnit.skip('doesn\'t allow more than one monitor buffer timer to be set',
+    QUnit.test('doesn\'t allow more than one monitor buffer timer to be set',
     function(assert) {
       let timeoutCount = this.clock.methods.length;
 

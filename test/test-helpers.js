@@ -1,5 +1,6 @@
 /* eslint-disable prefer-const */
 /* eslint-disable no-undef */
+/* eslint-disable no-unused-vars */
 // TODO: fix above
 
 import document from 'global/document';
@@ -202,28 +203,20 @@ export const useFakeEnvironment = function(assert) {
     this.mimeTypeOverride = mimeType;
   };
 
-  const origResponseText = XMLHttpRequest.prototype.responseText;
+  let responseText = (XMLHttpRequest.prototype.responseText === undefined) ?
+    '' : XMLHttpRequest.prototype.responseText;
 
   Object.defineProperty(XMLHttpRequest.prototype, 'responseText', {
     get() {
-      if (!origResponseText) {
-        return '';
-      }
-
-      const responseText = origResponseText.call(this);
-
       // special case for media segment request partial downloads
-      if (this.mimeTypeOverride === 'text/plain; charset=x-user-defined') {
+      if (this.mimeTypeOverride === 'text/plain; charset=x-user-defined' && responseText) {
         return (new TextDecoder()).decode(responseText);
       }
 
       return responseText;
     },
     set(val) {
-      if (!origResponseText) {
-        return origResponseText;
-      }
-      return origResponseText.call(this, val);
+      responseText = val;
     }
   });
 
