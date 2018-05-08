@@ -138,7 +138,7 @@ QUnit.module('SegmentLoader', function(hooks) {
 
   LoaderCommonFactory(SegmentLoader,
                       { loaderType: 'main' },
-                      (loader) => loader.mimeType('video/mp2t'));
+                      () => {});
 
   // Tests specific to the main segment loader go in this module
   QUnit.module('Loader Main', function(nestedHooks) {

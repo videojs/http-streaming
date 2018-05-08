@@ -1,5 +1,6 @@
 /* eslint-disable prefer-const */
 /* eslint-disable no-undef */
+/* eslint-disable no-unused-vars */
 // TODO: fix above
 
 import document from 'global/document';
@@ -68,9 +69,17 @@ class MockMediaSource extends videojs.EventTarget {
       this.readyState = 'open';
     });
 
-    this.sourceBuffers = [];
+    this.activeSourceBuffers = {
+      length: 0,
+      onaddsourcebuffer: null,
+      onremovesourcebuffer: null
+    };
+    this.sourceBuffers = this.activeSourceBuffers;
     this.duration = NaN;
     this.seekable = videojs.createTimeRange();
+    this.onsourceclose = null;
+    this.onsourceended = null;
+    this.onsourceopen = null;
   }
 
   addSeekableRange_(start, end) {
@@ -109,22 +118,13 @@ export class MockTextTrack {
 }
 
 export const useFakeMediaSource = function() {
-  let RealMediaSource = videojs.MediaSource;
-  let realCreateObjectURL = videojs.URL.createObjectURL;
-  let id = 0;
+  let RealMediaSource = window.MediaSource;
 
-  videojs.MediaSource = MockMediaSource;
-  videojs.MediaSource.supportsNativeMediaSources =
-    RealMediaSource.supportsNativeMediaSources;
-  videojs.URL.createObjectURL = function() {
-    id++;
-    return 'blob:videojs-http-streaming-mock-url' + id;
-  };
+  // window.MediaSource = MockMediaSource;
 
   return {
     restore() {
-      videojs.MediaSource = RealMediaSource;
-      videojs.URL.createObjectURL = realCreateObjectURL;
+      window.MediaSource = RealMediaSource;
     }
   };
 };
@@ -203,21 +203,21 @@ export const useFakeEnvironment = function(assert) {
     this.mimeTypeOverride = mimeType;
   };
 
-  const origResponseText = XMLHttpRequest.prototype.responseText;
+  let responseText = (XMLHttpRequest.prototype.responseText === undefined) ?
+    '' : XMLHttpRequest.prototype.responseText;
 
   Object.defineProperty(XMLHttpRequest.prototype, 'responseText', {
     get() {
-      const responseText = origResponseText.call(this);
-
       // special case for media segment request partial downloads
-      if (this.mimeTypeOverride === 'text/plain; charset=x-user-defined') {
-        return (new TextDecoder()).decode(responseText);
-      }
+      // if (this.mimeTypeOverride === 'text/plain; charset=x-user-defined' && responseText) {
+      //   // responseText should be an ArrayBuffer
+      //   return (new TextDecoder()).decode(responseText);
+      // }
 
       return responseText;
     },
     set(val) {
-      return origResponseText.call(this, val);
+      responseText = val;
     }
   });
 
@@ -432,4 +432,14 @@ export const playlistWithDuration = function(time, conf) {
     });
   }
   return result;
+};
+
+export const createResponseText = function(length) {
+  let responseText = '';
+
+  for (let i = 0; i < length; i++) {
+    responseText += '0';
+  }
+
+  return responseText;
 };

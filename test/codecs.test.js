@@ -2,7 +2,10 @@
 // TODO: fix above
 
 import QUnit from 'qunit';
-import { mimeTypesForPlaylist, mapLegacyAvcCodecs } from '../src/util/codecs';
+import {
+  mimeTypesForPlaylist,
+  mapLegacyAvcCodecs
+} from '../src/util/codecs';
 
 const generateMedia = function(isMaat, isMuxed, hasVideoCodec, hasAudioCodec, isFMP4) {
   const codec = (hasVideoCodec ? 'avc1.deadbeef' : '') +

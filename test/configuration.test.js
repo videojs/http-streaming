@@ -1,5 +1,6 @@
 /* eslint-disable prefer-const */
 /* eslint-disable no-return-assign */
+/* eslint-disable no-unused-vars */
 // TODO: fix above
 
 import QUnit from 'qunit';
@@ -259,8 +260,7 @@ options.forEach((opt) => {
       src: 'http://example.com/media.m3u8',
       type: 'application/vnd.apple.mpegurl'
     });
-
-    openMediaSource(this.player, this.clock);
+    this.clock.tick(1);
 
     let hls = this.player.tech_.hls;
 
@@ -276,9 +276,7 @@ options.forEach((opt) => {
       src: 'http://example.com/media.m3u8',
       type: 'application/vnd.apple.mpegurl'
     });
-
-    openMediaSource(this.player, this.clock);
-
+    this.clock.tick(1);
     let hls = this.player.tech_.hls;
 
     assert.equal(hls.options_[opt.name],
@@ -295,8 +293,7 @@ options.forEach((opt) => {
       src: 'http://example.com/media.m3u8',
       type: 'application/vnd.apple.mpegurl'
     });
-
-    openMediaSource(this.player, this.clock);
+    this.clock.tick(1);
 
     let hls = this.player.tech_.hls;
 
@@ -314,8 +311,7 @@ options.forEach((opt) => {
     srcOptions[opt.name] = opt.test;
     this.player = createPlayer();
     this.player.src(srcOptions);
-
-    openMediaSource(this.player, this.clock);
+    this.clock.tick(1);
 
     let hls = this.player.tech_.hls;
 
@@ -334,8 +330,7 @@ options.forEach((opt) => {
       src: 'http://example.com/media.m3u8',
       type: 'application/vnd.apple.mpegurl'
     });
-
-    openMediaSource(this.player, this.clock);
+    this.clock.tick(1);
 
     let hls = this.player.tech_.hls;
 
@@ -355,8 +350,7 @@ options.forEach((opt) => {
     srcOptions[opt.name] = opt.test;
     this.player = createPlayer(sourceHandlerOptions);
     this.player.src(srcOptions);
-
-    openMediaSource(this.player, this.clock);
+    this.clock.tick(1);
 
     let hls = this.player.tech_.hls;
 

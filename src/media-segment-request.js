@@ -551,7 +551,7 @@ const transmuxAndNotify = ({
       }
       // To handle partial appends, there won't be a done function passed in (since
       // there's still, potentially, more segment to process), so there's nothing to do.
-      if (!doneFn) {
+      if (!doneFn || isPartial) {
         return;
       }
       doneFn(null, segment, result);

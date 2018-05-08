@@ -49,15 +49,16 @@ export const handleData_ = (event, transmuxedData, callback) => {
   callback(result);
 };
 
-export const handleDone_ = (event, transmuxedData, complete, callback) => {
+export const handleDone_ = (event, transmuxedData, callback) => {
   // all buffers should have been flushed from the muxer, so start processing anything we
   // have received
   let sortedSegments = {
     captions: [],
     metadata: [],
     gopInfo: transmuxedData.gopInfo,
-    captionStreams: {},
-    complete
+    videoTimingInfo: transmuxedData.videoTimingInfo,
+    audioTimingInfo: transmuxedData.audioTimingInfo,
+    captionStreams: {}
   };
   const buffer = transmuxedData.buffer;
 
@@ -130,7 +131,7 @@ export const processTransmux = ({
     }
 
     transmuxer.removeEventListener('message', handleMessage);
-    handleDone_(event, transmuxedData, event.data.action === 'endedSegment', onDone);
+    handleDone_(event, transmuxedData, onDone);
 
     dequeue();
   };
