@@ -18,7 +18,7 @@ Live mode can work in one of two ways. For truly live events, the most common co
 If you're interested in a more in-depth treatment of the HLS format, check out [Apple's documentation][apple-hls-intro] and the IETF [Draft Specification][hls-spec].
 
 ## Dynamic Adaptive Streaming over HTTP
-Similar to HLS, [DASH][dash-wiki] content is segmented and and is delivered over HTTP(s).
+Similar to HLS, [DASH][dash-wiki] content is segmented and is delivered over HTTP(s).
 
 A DASH stream consits of a *Media Presentation Description*(MPD) that describes segment metadata. Each segment must contain either ISO base media file format(e.g MP4) or MPEG-2 TS data. Typically the MPD will describe the various *Representations* that map to collections of segments at different bitrates to allow bitrate selection.
 
