@@ -209,9 +209,10 @@ export const useFakeEnvironment = function(assert) {
   Object.defineProperty(XMLHttpRequest.prototype, 'responseText', {
     get() {
       // special case for media segment request partial downloads
-      if (this.mimeTypeOverride === 'text/plain; charset=x-user-defined' && responseText) {
-        return (new TextDecoder()).decode(responseText);
-      }
+      // if (this.mimeTypeOverride === 'text/plain; charset=x-user-defined' && responseText) {
+      //   // responseText should be an ArrayBuffer
+      //   return (new TextDecoder()).decode(responseText);
+      // }
 
       return responseText;
     },
@@ -431,4 +432,14 @@ export const playlistWithDuration = function(time, conf) {
     });
   }
   return result;
+};
+
+export const createResponseText = function(length) {
+  let responseText = '';
+
+  for (let i = 0; i < length; i++) {
+    responseText += '0';
+  }
+
+  return responseText;
 };
