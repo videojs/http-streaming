@@ -9,7 +9,6 @@ let currentTransmux;
 export const handleData_ = (event, transmuxedData, callback) => {
   const {
     type,
-    boxes,
     initSegment,
     captions,
     captionStreams,
@@ -23,10 +22,13 @@ export const handleData_ = (event, transmuxedData, callback) => {
     metadata
   });
 
+  // right now, boxes will come back from partial transmuxer, data from full
+  const boxes = event.data.segment.boxes || {
+    data: event.data.segment.data
+  };
+
   const result = {
     type,
-    videoTimingInfo: transmuxedData.videoTimingInfo,
-    audioTimingInfo: transmuxedData.audioTimingInfo,
     // cast ArrayBuffer to TypedArray
     data: new Uint8Array(
       boxes.data,
@@ -54,8 +56,6 @@ export const handleDone_ = (event, transmuxedData, complete, callback) => {
     captions: [],
     metadata: [],
     gopInfo: transmuxedData.gopInfo,
-    videoTimingInfo: transmuxedData.videoTimingInfo,
-    audioTimingInfo: transmuxedData.audioTimingInfo,
     captionStreams: {},
     complete
   };
@@ -91,14 +91,6 @@ export const handleGopInfo_ = (event, transmuxedData) => {
   transmuxedData.gopInfo = event.data.gopInfo;
 };
 
-export const handleAudioTimingInfo_ = (event, transmuxedData) => {
-  transmuxedData.audioTimingInfo = event.data.audioTimingInfo;
-};
-
-export const handleVideoTimingInfo_ = (event, transmuxedData) => {
-  transmuxedData.videoTimingInfo = event.data.videoTimingInfo;
-};
-
 export const processTransmux = ({
   transmuxer,
   bytes,
@@ -107,6 +99,8 @@ export const processTransmux = ({
   isPartial,
   onData,
   onTrackInfo,
+  onAudioTimingInfo,
+  onVideoTimingInfo,
   onDone
 }) => {
   const transmuxedData = {
@@ -125,10 +119,10 @@ export const processTransmux = ({
       handleGopInfo_(event, transmuxedData);
     }
     if (event.data.action === 'audioTimingInfo') {
-      handleAudioTimingInfo_(event, transmuxedData);
+      onAudioTimingInfo(event.data.audioTimingInfo);
     }
     if (event.data.action === 'videoTimingInfo') {
-      handleVideoTimingInfo_(event, transmuxedData);
+      onVideoTimingInfo(event.data.videoTimingInfo);
     }
 
     if (event.data.type !== 'transmuxed') {
@@ -143,8 +137,8 @@ export const processTransmux = ({
 
   transmuxer.addEventListener('message', handleMessage);
 
-  if (!isPartial) {
-    // all data should be handled via partials
+  if (!isPartial && bytes.byteLength === 0) {
+    // all data handled via partials
     transmuxer.postMessage({ action: 'endSegment' });
     return;
   }

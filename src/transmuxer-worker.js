@@ -16,7 +16,8 @@
 /* eslint-disable prefer-const */
 
 import window from 'global/window';
-import mux from 'mux.js/lib/mux';
+import fullMux from 'mux.js/lib/mp4';
+import partialMux from 'mux.js/lib/partial';
 
 const ONE_SECOND_IN_TS = 90000;
 
@@ -32,7 +33,77 @@ const typeFromStreamString = (streamString) => {
  * @param {Object} transmuxer the transmuxer to wire events on
  * @private
  */
-const wireTransmuxerEvents = function(transmuxer) {
+const wireFullTransmuxerEvents = function(transmuxer) {
+  transmuxer.on('data', function(segment) {
+    // transfer ownership of the underlying ArrayBuffer
+    // instead of doing a copy to save memory
+    // ArrayBuffers are transferable but generic TypedArrays are not
+    // @link https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers#Passing_data_by_transferring_ownership_(transferable_objects)
+    let initArray = segment.initSegment;
+
+    segment.initSegment = {
+      data: initArray.buffer,
+      byteOffset: initArray.byteOffset,
+      byteLength: initArray.byteLength
+    };
+
+    let typedArray = segment.data;
+
+    segment.data = typedArray.buffer;
+    window.postMessage({
+      action: 'data',
+      segment,
+      byteOffset: typedArray.byteOffset,
+      byteLength: typedArray.byteLength
+    }, [segment.data]);
+  });
+
+  if (transmuxer.captionStream) {
+    transmuxer.captionStream.on('data', function(caption) {
+      window.postMessage({
+        action: 'caption',
+        data: caption
+      });
+    });
+  }
+
+  transmuxer.on('done', function(data) {
+    window.postMessage({ action: 'done' });
+  });
+
+  transmuxer.on('gopInfo', function(gopInfo) {
+    window.postMessage({
+      action: 'gopInfo',
+      gopInfo
+    });
+  });
+
+  transmuxer.on('trackinfo', function(trackInfo) {
+    window.postMessage({ action: 'trackinfo', trackInfo });
+  });
+
+  transmuxer.on('audioTimingInfo', function(audioTimingInfo) {
+    window.postMessage({
+      action: 'audioTimingInfo',
+      audioTimingInfo: {
+        start: audioTimingInfo.start / ONE_SECOND_IN_TS,
+        end: audioTimingInfo.end / ONE_SECOND_IN_TS
+      }
+    });
+  });
+
+  transmuxer.on('videoTimingInfo', function(videoTimingInfo) {
+    window.postMessage({
+      action: 'videoTimingInfo',
+      videoTimingInfo: {
+        start: videoTimingInfo.start / ONE_SECOND_IN_TS,
+        end: videoTimingInfo.end / ONE_SECOND_IN_TS
+      }
+    });
+  });
+};
+
+const wirePartialTransmuxerEvents = function(transmuxer) {
   transmuxer.on('data', function(event) {
     // transfer ownership of the underlying ArrayBuffer
     // instead of doing a copy to save memory
@@ -142,8 +213,15 @@ class MessageHandlers {
     if (this.transmuxer) {
       this.transmuxer.dispose();
     }
-    this.transmuxer = new mux.Transmuxer(this.options);
-    wireTransmuxerEvents(this.transmuxer);
+    this.transmuxer = this.options.handlePartialData ?
+      new partialMux.Transmuxer(this.options) :
+      new fullMux.Transmuxer(this.options);
+
+    if (this.options.handlePartialData) {
+      wirePartialTransmuxerEvents(this.transmuxer);
+    } else {
+      wireFullTransmuxerEvents(this.transmuxer);
+    }
   }
 
   /**
@@ -191,12 +269,15 @@ class MessageHandlers {
     });
   }
 
-  endSegment(data) {
-    this.transmuxer.endSegment();
-    window.postMessage({
-      action: 'endSegment',
-      type: 'transmuxed'
-    });
+  endSegment() {
+    // TODO only supported by partial
+    if (this.options.handlePartialData) {
+      this.transmuxer.endSegment();
+      window.postMessage({
+        action: 'endSegment',
+        type: 'transmuxed'
+      });
+    }
   }
 
   endTimeline() {

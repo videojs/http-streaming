@@ -1,4 +1,7 @@
 import mp4probe from 'mux.js/lib/mp4/probe';
+import tsInspector from 'mux.js/lib/tools/ts-inspector.js';
+
+const ONE_SECOND_IN_TS = 90000;
 
 /**
  * Probe an fmp4 segment to determine the start of the segment in it's internal
@@ -13,6 +16,37 @@ export const probeMp4StartTime = (segmentBytes, mapBytes) => {
   const timescales = mp4probe.timescale(mapBytes);
 
   return mp4probe.startTime(timescales, segmentBytes);
+};
+
+/**
+ * Probe an mpeg2-ts segment to determine the start time of the segment in it's
+ * internal "media time," as well as whether it contains video and/or audio.
+ *
+ * @private
+ * @param {Uint8Array} bytes - segment bytes
+ * @return {object} The start time of the current segment in "media time" as well as
+ *                  whether it contains video and/or audio
+ */
+export const probeTsSegment = (bytes, baseStartTime) => {
+  let timeInfo = tsInspector.inspect(bytes, baseStartTime * ONE_SECOND_IN_TS);
+
+  if (!timeInfo) {
+    return null;
+  }
+
+  const result = {
+    hasVideo: timeInfo.video && timeInfo.video.length === 2,
+    hasAudio: timeInfo.audio && timeInfo.audio.length === 2
+  };
+
+  if (result.hasVideo) {
+    result.videoStart = timeInfo.video[0].dtsTime;
+  }
+  if (result.hasAudio) {
+    result.audioStart = timeInfo.audio[0].dtsTime;
+  }
+
+  return result;
 };
 
 /**

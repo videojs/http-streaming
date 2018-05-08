@@ -82,17 +82,17 @@ export const illegalMediaSwitch = (loaderType, startingMedia, trackInfo) => {
     return null;
   }
 
-  if (!trackInfo.containsAudio && !trackInfo.containsVideo) {
+  if (!trackInfo.hasAudio && !trackInfo.hasVideo) {
     return 'Neither audio nor video found in segment.';
   }
 
-  if (startingMedia.containsVideo && !trackInfo.containsVideo) {
+  if (startingMedia.hasVideo && !trackInfo.hasVideo) {
     return 'Only audio found in segment when we expected video.' +
       ' We can\'t switch to audio only from a stream that had video.' +
       ' To get rid of this message, please add codec information to the manifest.';
   }
 
-  if (!startingMedia.containsVideo && trackInfo.containsVideo) {
+  if (!startingMedia.hasVideo && trackInfo.hasVideo) {
     return 'Video found in segment when we expected only audio.' +
       ' We can\'t switch to a stream with video from an audio only stream.' +
       ' To get rid of this message, please add codec information to the manifest.';
@@ -204,6 +204,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.sourceUpdater_ = settings.sourceUpdater;
     this.inbandTextTracks_ = settings.inbandTextTracks;
     this.state_ = 'INIT';
+    this.handlePartialData_ = true;
 
     // private instance variables
     this.checkBufferTimeout_ = null;
@@ -221,6 +222,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       audio: true,
       video: true
     };
+    this.appendQueue_ = [];
 
     // Fragmented mp4 playback
     this.activeInitSegmentId_ = null;
@@ -269,7 +271,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       options: {
         remux: false,
         alignGopsAtEnd: this.safeAppend_,
-        keepOriginalTimestamps: true
+        keepOriginalTimestamps: true,
+        handlePartialData: this.handlePartialData_
       }
     });
 
@@ -619,6 +622,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
     this.mediaIndex = null;
     this.syncPoint_ = null;
+    this.appendQueue_.length = 0;
     this.abort();
   }
 
@@ -1036,8 +1040,8 @@ export default class SegmentLoader extends videojs.EventTarget {
 
   setupSourceBuffers_(trackInfo) {
     this.sourceUpdater_.createSourceBuffers({
-      audio: trackInfo.containsAudio ? {} : null,
-      video: trackInfo.containsVideo ? {} : null
+      audio: trackInfo.hasAudio ? {} : null,
+      video: trackInfo.hasVideo ? {} : null
     });
 
     if (this.checkForIllegalMediaSwitch(trackInfo)) {
@@ -1056,11 +1060,53 @@ export default class SegmentLoader extends videojs.EventTarget {
       // fmp4 is always demuxed (current assumption)
       // TODO audio only
       trackInfo = {
-        containsAudio: this.loaderType_ === 'audio',
-        containsVideo: this.loaderType_ === 'main'
+        hasAudio: this.loaderType_ === 'audio',
+        hasVideo: this.loaderType_ === 'main'
       };
     }
     this.setupSourceBuffers_(trackInfo);
+  }
+
+  handleTimingInfo_(simpleSegment, mediaType, timeType, time) {
+    if (this.checkForAbort_(simpleSegment.requestId) ||
+        this.abortRequestEarly_(simpleSegment.stats)) {
+      return;
+    }
+
+    const segmentInfo = this.pendingSegment_;
+    const timingInfoProperty = mediaType + 'TimingInfo';
+
+    segmentInfo[timingInfoProperty] = segmentInfo[timingInfoProperty] || {};
+    segmentInfo[timingInfoProperty][timeType] = time;
+
+    this.checkAppendQueue_();
+  }
+
+  // TODO this function may never be used. It must be checked and tested.
+  checkAppendQueue_() {
+    for (let i = 0; i < this.appendQueue_.length; i++) {
+      const queueEntry = this.appendQueue_[i];
+
+      if (this.hasEnoughInfoToAppend_(queueEntry.simpleSegment, queueEntry.result)) {
+        this.handleData_(queueEntry.simpleSegment, queueEntry.result);
+        this.appendQueue_.splice(i, 1);
+      }
+    }
+  }
+
+  hasEnoughInfoToAppend_(simpleSegment, result) {
+    const segmentInfo = this.pendingSegment_;
+
+    if (this.loaderType_ === 'main' &&
+        !this.handlePartialData_ &&
+        !segmentInfo.videoTimingInfo) {
+      // video timing info is needed before an append can happen, since video time is the
+      // "source of truth"
+      // TODO what about the case where there's no video in the segment?
+      return false;
+    }
+
+    return true;
   }
 
   handleData_(simpleSegment, result) {
@@ -1069,10 +1115,20 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
+    if (!this.hasEnoughInfoToAppend_(simpleSegment, result)) {
+      this.appendQueue_.push({
+        simpleSegment,
+        result
+      });
+      return;
+    }
+
     const segmentInfo = this.pendingSegment_;
 
+    // update the time mapping so we can translate from display time to media time
     this.setTimeMapping_(segmentInfo.timeline);
 
+    // for tracking overall stats
     segmentInfo.byteLength += result.data.byteLength;
     this.updateMediaSecondsLoaded_(segmentInfo.segment);
 
@@ -1093,20 +1149,26 @@ export default class SegmentLoader extends videojs.EventTarget {
       // the probe doesn't provide the end of the segment, so we must use the duration
       // to determine an end time
       segmentInfo.timingInfo.end = segmentInfo.timingInfo.start + segmentInfo.duration;
-      // for fmp4 the loader type is used to determine whether audio or video, it doesn't
-      // come back from result
+      // for fmp4 the loader type is used to determine whether audio or video (fmp4 is
+      // always considered demuxed)
       result.type = this.loaderType_ === 'main' ? 'video' : 'audio';
     } else {
-      segmentInfo.timingInfo = this.updatedTimingInfo_({
-        currentTimingInfo: segmentInfo.timingInfo,
+      segmentInfo.timingInfo = segmentInfo.timingInfo || {};
+      // segment loader knows more about segment timing than the transmuxer (in certain
+      // aspects), so make any changes required for a more accurate start time
+      // don't set the end time yet, as the segment may not be finished processing
+      segmentInfo.timingInfo.start = this.trueSegmentStart_({
+        currentStart: segmentInfo.timingInfo.start,
         playlist: segmentInfo.playlist,
         mediaIndex: segmentInfo.mediaIndex,
-        videoDtsTimeFromTransmuxed: result.videoDtsTime,
+        // TODO demuxed audio fix
+        videoDtsTimeFromTransmuxed: this.handlePartialData_ ?
+          result.videoDtsTime : segmentInfo.videoTimingInfo.start,
         currentVideoTimestampOffset: this.sourceUpdater_.videoTimestampOffset(),
         useVideoTimingInfo:
-          this.loaderType_ === 'main' && this.startingMedia_.containsVideo,
-        videoTimingInfo: result.videoTimingInfo,
-        audioTimingInfo: result.audioTimingInfo
+          this.loaderType_ === 'main' && this.startingMedia_.hasVideo,
+        videoTimingInfo: segmentInfo.videoTimingInfo,
+        audioTimingInfo: segmentInfo.audioTimingInfo
       });
     }
 
@@ -1197,8 +1259,10 @@ export default class SegmentLoader extends videojs.EventTarget {
       segment: simpleSegment,
       progressFn: this.handleProgress_.bind(this),
       trackInfoFn: this.handleTrackInfo_.bind(this),
+      timingInfoFn: this.handleTimingInfo_.bind(this),
       dataFn: this.handleData_.bind(this),
-      doneFn: this.segmentRequestFinished_.bind(this)
+      doneFn: this.segmentRequestFinished_.bind(this),
+      handlePartialData: this.handlePartialData_
     });
   }
 
@@ -1246,6 +1310,14 @@ export default class SegmentLoader extends videojs.EventTarget {
       gopsToAlignWith: segmentInfo.gopsToAlignWith
     };
 
+    const previousSegment = segmentInfo.playlist.segments[segmentInfo.mediaIndex];
+
+    if (previousSegment &&
+        previousSegment.end &&
+        previousSegment.timeline === segment.timeline) {
+      simpleSegment.baseStartTime = previousSegment.end + segmentInfo.timestampOffset;
+    }
+
     if (segment.key) {
       // if the media sequence is greater than 2^32, the IV will be incorrect
       // assuming 10s segments, that would be about 1300 years
@@ -1273,6 +1345,9 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @private
    */
   segmentRequestFinished_(error, simpleSegment, result) {
+    // TODO handle special cases, e.g., muxed audio/video but only audio in the segment
+    // this.checkAppendQueue_();
+
     // every request counts as a media request even if it has been aborted
     // or canceled due to a timeout
     this.mediaRequests += 1;
@@ -1426,8 +1501,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
   }
 
-  updatedTimingInfo_({
-    currentTimingInfo,
+  trueSegmentStart_({
+    currentStart,
     playlist,
     mediaIndex,
     videoDtsTimeFromTransmuxed,
@@ -1436,46 +1511,39 @@ export default class SegmentLoader extends videojs.EventTarget {
     videoTimingInfo,
     audioTimingInfo
   }) {
-    const updatedTimingInfo = currentTimingInfo || {};
-
-    // TODO clean up
-    if (typeof updatedTimingInfo.start === 'undefined') {
-      // The start of a segment should be the start of the first full frame contained
-      // within that segment. Since the transmuxer maintains a cache of incomplete data
-      // from and/or the last frame seen, the start time may reflect a frame that starts
-      // in the previous segment. Check for that case and ensure the start time is
-      // accurate for the segment.
-      if (useVideoTimingInfo) {
-        const previousSegment = playlist.segments[mediaIndex - 1];
-
-        if (mediaIndex === 0 ||
-            !previousSegment ||
-            typeof previousSegment.start === 'undefined' ||
-            previousSegment.end !==
-              (videoDtsTimeFromTransmuxed + currentVideoTimestampOffset)) {
-          updatedTimingInfo.start = videoDtsTimeFromTransmuxed;
-        }
-      } else {
-        updatedTimingInfo.start = audioTimingInfo.start;
-      }
+    if (typeof currentStart !== 'undefined') {
+      // if start was obtained once, keep using it
+      return currentStart;
     }
 
-    // TODO timing info may want to be moved to media segment request
-    // it's possible we transmux audio after finishing video, so don't set the timing
-    // info if it doesn't come back from the function
-    updatedTimingInfo.end = useVideoTimingInfo && videoTimingInfo ?
-      videoTimingInfo.end : audioTimingInfo ?
-      audioTimingInfo.end : updatedTimingInfo.end;
+    if (!useVideoTimingInfo) {
+      return audioTimingInfo.start;
+    }
 
-    return updatedTimingInfo;
+    const previousSegment = playlist.segments[mediaIndex - 1];
+
+    // The start of a segment should be the start of the first full frame contained
+    // within that segment. Since the transmuxer maintains a cache of incomplete data
+    // from and/or the last frame seen, the start time may reflect a frame that starts
+    // in the previous segment. Check for that case and ensure the start time is
+    // accurate for the segment.
+    if (mediaIndex === 0 ||
+        !previousSegment ||
+        typeof previousSegment.start === 'undefined' ||
+        previousSegment.end !==
+          (videoDtsTimeFromTransmuxed + currentVideoTimestampOffset)) {
+      return videoDtsTimeFromTransmuxed;
+    }
+
+    return videoTimingInfo.start;
   }
 
   waitForAppendsToComplete_(segmentInfo) {
     // Although transmuxing is done, appends may not yet be finished. Throw a marker
     // on each queue this loader is responsible for to ensure that the appends are
     // complete.
-    const waitForVideo = this.loaderType_ === 'main' && this.startingMedia_.containsVideo;
-    const waitForAudio = !this.audioDisabled && this.startingMedia_.containsAudio;
+    const waitForVideo = this.loaderType_ === 'main' && this.startingMedia_.hasVideo;
+    const waitForAudio = !this.audioDisabled && this.startingMedia_.hasAudio;
 
     segmentInfo.waitingOnAppends = 0;
 
@@ -1487,6 +1555,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       segmentInfo.waitingOnAppends++;
     }
 
+    // TODO do we have to handle waiting for done from each of audio/video?
     if (waitForVideo) {
       this.sourceUpdater_.videoQueueCallback(
         this.checkAppendsDone_.bind(this, segmentInfo));
@@ -1516,10 +1585,10 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (typeof this.startingMedia_ === 'undefined' &&
         // Guard against cases where we're not getting timing info at all until we are
         // certain that all streams will provide it.
-        (trackInfo.containsAudio || trackInfo.containsVideo)) {
+        (trackInfo.hasAudio || trackInfo.hasVideo)) {
       this.startingMedia_ = {
-        containsAudio: trackInfo.containsAudio,
-        containsVideo: trackInfo.containsVideo
+        hasAudio: trackInfo.hasAudio,
+        hasVideo: trackInfo.hasVideo
       };
     }
 
@@ -1597,14 +1666,19 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     const segmentInfo = this.pendingSegment_;
-    const segment = segmentInfo.segment;
-    const isWalkingForward = this.mediaIndex !== null;
+    const useVideoTimingInfo =
+      this.loaderType_ === 'main' && this.startingMedia_.hasVideo;
+
+    // now that the end of the segment has been reached, we can set the end time
+    segmentInfo.timingInfo.end = useVideoTimingInfo && segmentInfo.videoTimingInfo ?
+      segmentInfo.videoTimingInfo.end : segmentInfo.audioTimingInfo.end;
 
     this.syncController_.saveSegmentTimingInfo(segmentInfo);
 
     this.logger_(segmentInfoString(segmentInfo));
 
-    // TODO for partial segment downloads, this can be done much earlier
+    // TODO minor, but for partial segment downloads, this can be done earlier to save
+    // on bandwidth and download time
     if (segmentInfo.isSyncRequest) {
       this.trigger('syncinfoupdate');
       this.pendingSegment_ = null;
@@ -1628,6 +1702,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     // point would mean that this was the perfect segment to fetch
     this.trigger('syncinfoupdate');
 
+    const segment = segmentInfo.segment;
+
     // If we previously appended a segment that ends more than 3 targetDurations before
     // the currentTime_ that means that our conservative guess was too conservative.
     // In that case, reset the loader state so that we try to use any information gained
@@ -1637,6 +1713,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.resetEverything();
       return;
     }
+
+    const isWalkingForward = this.mediaIndex !== null;
 
     // Don't do a rendition switch unless we have enough time to get a sync segment
     // and conservatively guess
