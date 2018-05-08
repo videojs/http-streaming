@@ -1,5 +1,5 @@
 # Overview
-This project supports both [HLS](hls) and [MPEG-DASH](dash) playback in the video.js player. This document is intended as a primer for anyone interested in contributing or just better understanding how bits from a server get turned into video on their display.
+This project supports both [HLS][hls] and [MPEG-DASH][dash] playback in the video.js player. This document is intended as a primer for anyone interested in contributing or just better understanding how bits from a server get turned into video on their display.
 
 ## HTTP Live Streaming
 [HLS](https://developer.apple.com/library/ios/documentation/NetworkingInternet/Conceptual/StreamingMediaGuide/Introduction/Introduction.html) has two primary characteristics that distinguish it from other video formats:
@@ -40,4 +40,4 @@ If you're interested in a more in-depth description of MPEG-DASH, check out [MDN
 - [Thumbcoil](http://thumb.co.il/): web based video inspector
 
 [hls]: /docs/intro.md#http-live-streaming
-[dash]: /docs/intro.md#
+[dash]: /docs/intro.md#dash
