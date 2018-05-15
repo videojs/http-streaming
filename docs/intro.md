@@ -7,7 +7,7 @@ This project supports both [HLS][hls] and [MPEG-DASH][dash] playback in the vide
 - Delivered over HTTP(S): it uses the standard application protocol of the web to deliver all its data
 - Segmented: longer videos are broken up into smaller chunks which can be downloaded independently and switched between at runtime
 
-A standard HLS stream consists of a *Master Playlist* which references one or more *Media Playlists*. Each Media Playlist contains references one or more sequential video segments. All these components form a logical hierarchy that informs the player of the different quality levels of the video available and how to address the individual segments of video at each of those levels:
+A standard HLS stream consists of a *Master Playlist* which references one or more *Media Playlists*. Each Media Playlist contains one or more sequential video segments. All these components form a logical hierarchy that informs the player of the different quality levels of the video available and how to address the individual segments of video at each of those levels:
 
 ![HLS Format](hls-format.png)
 
@@ -20,7 +20,7 @@ If you're interested in a more in-depth treatment of the HLS format, check out [
 ## Dynamic Adaptive Streaming over HTTP
 Similar to HLS, [DASH][dash-wiki] content is segmented and is delivered over HTTP(s).
 
-A DASH stream consits of a *Media Presentation Description*(MPD) that describes segment metadata. Each segment must contain either ISO base media file format(e.g MP4) or MPEG-2 TS data. Typically the MPD will describe the various *Representations* that map to collections of segments at different bitrates to allow bitrate selection.
+A DASH stream consits of a *Media Presentation Description*(MPD) that describes segment metadata and includes links to the segments themselves. Each segment can contain either ISO base media file format(e.g MP4) or MPEG-2 TS data. Typically the MPD will describe the various *Representations* that map to collections of segments at different bitrates to allow bitrate selection.
 
 DASH streams can be delivered in both video-on-demand(VOD) and live streaming modes. In the VOD case, the MPD describes all the segments and representations available and the player can chose which representation to play based on it's capabilities.
 

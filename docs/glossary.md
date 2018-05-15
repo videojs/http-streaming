@@ -2,16 +2,20 @@
 
 **Playlist**: This is a representation of an HLS or DASH manifest.
 
-**Master Playlist Controller**: This acts as the main controller for the playback engine. It interacts with the SegmentLoaders, PlaylistLoaders, PlaybackWatcher, etc.
-
-**Playlist Loader**: This will request the source and load the master manifest. It also interacts with the ABR algorithm to pick a media playlist or wraps a media playlist if it is provided as the source. There are more details about the playlist loader [here](./arch.md).
-
 **Media Playlist**: This is a manifest that represents a single rendition of the source.
 
-**Segment Loader**: This controls the requesting and appending of segments on to the browser's [SourceBuffers](https://developer.mozilla.org/en-US/docs/Web/API/SourceBuffer).
+**Master Playlist Controller**: This acts as the main controller for the playback engine. It interacts with the SegmentLoaders, PlaylistLoaders, PlaybackWatcher, etc.
 
-**ABR(Adaptive Bitrate) Algorithm**: This is defined in selectPlaylist and is described more [here](./bitrate-switching.md).
+**Playlist Loader**: This will request the source and load the master manifest. It is also instructed by the ABR algorithm to load a media playlist or wraps a media playlist if it is provided as the source. There are more details about the playlist loader [here](./arch.md).
 
-**Playback Watcher**: This handles seeking to live when playing a live source with a live window, or skipping over gaps in content. This is described in detail [here]().
+**Segment Loader**: This determines which segment should be loaded via the Media Segment Loader, decrypts the segment if necessary and passes the result to the Source Updater.
+
+**Media Segment Loader**: This requests a given segment and returns it to the Segment Loader.
+
+**Source Updater**: This manages the browser's [SourceBuffers](https://developer.mozilla.org/en-US/docs/Web/API/SourceBuffer). It appends decrypted segment bytes provided by the Segment Loader to the corresponding Source Buffer.
+
+**ABR(Adaptive Bitrate) Algorithm**: This concept is described more in detail [here](https://en.wikipedia.org/wiki/Adaptive_bitrate_streaming). Our chosen ABR algorithm is referenced by [selectPlaylist](../README.md#hlsselectplaylist) and is described more [here](./bitrate-switching.md).
+
+**Playback Watcher**: This attemps to resolve common playback stalls caused by improper seeking, gaps in content and browser issues. Some examples of the ways these issues are handled is by seeking to live when playing a live source with a live window, or skipping over gaps in content.
 
 **Sync Controller**: This will attempt to create a mapping between the segment index and a display time on the player.
