@@ -20,7 +20,7 @@ If you're interested in a more in-depth treatment of the HLS format, check out [
 ## Dynamic Adaptive Streaming over HTTP
 Similar to HLS, [DASH][dash-wiki] content is segmented and is delivered over HTTP(s).
 
-A DASH stream consits of a *Media Presentation Description*(MPD) that describes segment metadata and includes links to the segments themselves. Each segment can contain either ISO base media file format(e.g MP4) or MPEG-2 TS data. Typically the MPD will describe the various *Representations* that map to collections of segments at different bitrates to allow bitrate selection.
+A DASH stream consits of a *Media Presentation Description*(MPD) that describes segment metadata such as timing information, URLs, resolution and bitrate. Each segment can contain either ISO base media file format(e.g MP4) or MPEG-2 TS data. Typically, the MPD will describe the various *Representations* that map to collections of segments at different bitrates to allow bitrate selection. These Representations can be organized as a SegmentList, SegmentTemplate, SegmentBase, or SegmentTimeline.
 
 DASH streams can be delivered in both video-on-demand(VOD) and live streaming modes. In the VOD case, the MPD describes all the segments and representations available and the player can chose which representation to play based on it's capabilities.
 
