@@ -632,15 +632,38 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @param {Number} end - the end time of the region to remove from the buffer
    */
   remove(start, end) {
-    if (this.sourceUpdater_) {
+    // since the transmuxer is using the actual timing values, but the time is
+    // adjusted by the timestmap offset, we must adjust the values
+    const mainTimestampOffset = this.sourceUpdater_  && this.startingMedia_ ?
+      this.loaderType_ === 'main' && this.startingMedia_.hasVideo ?
+        this.sourceUpdater_.videoTimestampOffset() :
+        this.sourceUpdater_.audioTimestampOffset() :
+      0;
+
+    if (this.sourceUpdater_ && this.startingMedia_) {
       if (!this.audioDisabled) {
-        this.sourceUpdater_.removeAudio(start, end);
+        const audioStart = start - this.sourceUpdater_.audioTimestampOffset();
+        const audioEnd = end - this.sourceUpdater_.audioTimestampOffset();
+
+        this.sourceUpdater_.removeAudio(audioStart, audioEnd);
       }
       if (this.loaderType_ === 'main') {
-        this.gopBuffer_ = removeGopBuffer(this.gopBuffer_, start, end, this.timeMapping_);
-        this.sourceUpdater_.removeVideo(start, end);
+        const mainStart = start - mainTimestampOffset;
+        const mainEnd = end - mainTimestampOffset;
+
+        this.gopBuffer_ = removeGopBuffer(
+          this.gopBuffer_,
+          mainStart,
+          mainEnd,
+          this.timeMapping_);
+        if (this.startingMedia_.hasVideo) {
+          this.sourceUpdater_.removeVideo(mainStart, mainEnd);
+        }
       }
     }
+
+    start -= mainTimestampOffset;
+    end -= mainTimestampOffset;
 
     // remove any captions and ID3 tags
     for (let track in this.inbandTextTracks_) {
@@ -885,12 +908,19 @@ export default class SegmentLoader extends videojs.EventTarget {
     let gopsToAlignWith;
 
     if (audioBuffered && audioBuffered.length) {
-      audioAppendStart = audioBuffered.end(audioBuffered.length - 1);
+      // since the transmuxer is using the actual timing values, but the buffer is
+      // adjusted by the timestamp offset, we must adjust the value here
+      audioAppendStart = audioBuffered.end(audioBuffered.length - 1) -
+        this.sourceUpdater_.audioTimestampOffset();;
     }
 
     if (videoBuffered) {
       gopsToAlignWith = gopsSafeToAlignWith(
-        this.gopBuffer_, this.currentTime_(), this.timeMapping_);
+        this.gopBuffer_,
+        // since the transmuxer is using the actual timing values, but the time is
+        // adjusted by the timestmap offset, we must adjust the value here
+        this.currentTime_() - this.sourceUpdater_.videoTimestampOffset(),
+        this.timeMapping_);
     }
 
     return {
@@ -1058,7 +1088,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (isFmp4(simpleSegment)) {
       // fmp4 isn't parsed (yet), therefore doesn't have track info
       // fmp4 is always demuxed (current assumption)
-      // TODO audio only
+      // TODO fmp4 audio only
       trackInfo = {
         hasAudio: this.loaderType_ === 'audio',
         hasVideo: this.loaderType_ === 'main'
@@ -1670,6 +1700,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.loaderType_ === 'main' && this.startingMedia_.hasVideo;
 
     // now that the end of the segment has been reached, we can set the end time
+    // TODO why wait until here, why not on done?
     segmentInfo.timingInfo.end = useVideoTimingInfo && segmentInfo.videoTimingInfo ?
       segmentInfo.videoTimingInfo.end : segmentInfo.audioTimingInfo.end;
 

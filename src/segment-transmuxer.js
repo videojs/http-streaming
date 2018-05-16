@@ -126,6 +126,7 @@ export const processTransmux = ({
       onVideoTimingInfo(event.data.videoTimingInfo);
     }
 
+    // wait for the transmuxed event since we may have audio and video
     if (event.data.type !== 'transmuxed') {
       return;
     }
@@ -137,12 +138,6 @@ export const processTransmux = ({
   };
 
   transmuxer.addEventListener('message', handleMessage);
-
-  if (!isPartial && bytes.byteLength === 0) {
-    // all data handled via partials
-    transmuxer.postMessage({ action: 'endSegment' });
-    return;
-  }
 
   if (audioAppendStart) {
     transmuxer.postMessage({
@@ -158,22 +153,27 @@ export const processTransmux = ({
     });
   }
 
-  const buffer = bytes instanceof ArrayBuffer ? bytes : bytes.buffer;
-  const byteOffset = bytes instanceof ArrayBuffer ? 0 : bytes.byteOffset;
+  if (bytes.byteLength) {
+    const buffer = bytes instanceof ArrayBuffer ? bytes : bytes.buffer;
+    const byteOffset = bytes instanceof ArrayBuffer ? 0 : bytes.byteOffset;
 
-  transmuxer.postMessage({
-    action: 'push',
-    // Send the typed-array of data as an ArrayBuffer so that
-    // it can be sent as a "Transferable" and avoid the costly
-    // memory copy
-    data: buffer,
-    // To recreate the original typed-array, we need information
-    // about what portion of the ArrayBuffer it was a view into
-    byteOffset,
-    byteLength: bytes.byteLength
-  },
-  [ buffer ]);
-  transmuxer.postMessage({ action: 'flush' });
+    transmuxer.postMessage({
+      action: 'push',
+      // Send the typed-array of data as an ArrayBuffer so that
+      // it can be sent as a "Transferable" and avoid the costly
+      // memory copy
+      data: buffer,
+      // To recreate the original typed-array, we need information
+      // about what portion of the ArrayBuffer it was a view into
+      byteOffset,
+      byteLength: bytes.byteLength
+    },
+    [ buffer ]);
+  }
+
+  // even if we didn't push any bytes, we have to make sure we flush in case we reached
+  // the end of the segment
+  transmuxer.postMessage({ action: isPartial ? 'partialFlush' : 'flush' });
 };
 
 export const dequeue = () => {

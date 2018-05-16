@@ -154,6 +154,13 @@ const wirePartialTransmuxerEvents = function(transmuxer) {
     });
   });
 
+  transmuxer.on('partialdone', function(data) {
+    window.postMessage({
+      action: 'partialdone',
+      type: typeFromStreamString(data)
+    });
+  });
+
   transmuxer.on('endedsegment', function(data) {
     window.postMessage({
       action: 'endedSegment',
@@ -269,15 +276,12 @@ class MessageHandlers {
     });
   }
 
-  endSegment() {
-    // TODO only supported by partial
-    if (this.options.handlePartialData) {
-      this.transmuxer.endSegment();
-      window.postMessage({
-        action: 'endSegment',
-        type: 'transmuxed'
-      });
-    }
+  partialFlush(data) {
+    this.transmuxer.partialFlush();
+    window.postMessage({
+      action: 'partialFlush',
+      type: 'transmuxed'
+    });
   }
 
   endTimeline() {
