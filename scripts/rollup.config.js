@@ -111,7 +111,8 @@ export default [
       json({
         preferConst: true
       }),
-      worker()
+      worker(),
+      babel()
     ],
     output: [{
       name: 'videojsHttpStreaming',
