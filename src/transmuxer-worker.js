@@ -127,8 +127,8 @@ const wirePartialTransmuxerEvents = function(transmuxer) {
       sequence: event.data.sequence
     };
 
-    if (typeof event.data.videoDts !== 'undefined') {
-      segment.videoDtsTime = event.data.videoDts / ONE_SECOND_IN_TS;
+    if (typeof event.data.videoFrameDts !== 'undefined') {
+      segment.videoFrameDtsTime = event.data.videoFrameDts / ONE_SECOND_IN_TS;
     }
 
     window.postMessage({

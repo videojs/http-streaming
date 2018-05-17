@@ -632,38 +632,19 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @param {Number} end - the end time of the region to remove from the buffer
    */
   remove(start, end) {
-    // since the transmuxer is using the actual timing values, but the time is
-    // adjusted by the timestmap offset, we must adjust the values
-    const mainTimestampOffset = this.sourceUpdater_  && this.startingMedia_ ?
-      this.loaderType_ === 'main' && this.startingMedia_.hasVideo ?
-        this.sourceUpdater_.videoTimestampOffset() :
-        this.sourceUpdater_.audioTimestampOffset() :
-      0;
-
-    if (this.sourceUpdater_ && this.startingMedia_) {
-      if (!this.audioDisabled) {
-        const audioStart = start - this.sourceUpdater_.audioTimestampOffset();
-        const audioEnd = end - this.sourceUpdater_.audioTimestampOffset();
-
-        this.sourceUpdater_.removeAudio(audioStart, audioEnd);
-      }
-      if (this.loaderType_ === 'main') {
-        const mainStart = start - mainTimestampOffset;
-        const mainEnd = end - mainTimestampOffset;
-
-        this.gopBuffer_ = removeGopBuffer(
-          this.gopBuffer_,
-          mainStart,
-          mainEnd,
-          this.timeMapping_);
-        if (this.startingMedia_.hasVideo) {
-          this.sourceUpdater_.removeVideo(mainStart, mainEnd);
-        }
-      }
+    if (!this.sourceUpdater_ || !this.startingMedia_) {
+      // nothing to remove if we haven't processed any media
+      return;
     }
 
-    start -= mainTimestampOffset;
-    end -= mainTimestampOffset;
+    if (!this.audioDisabled) {
+      this.sourceUpdater_.removeAudio(start, end);
+    }
+
+    if (this.loaderType_ === 'main' && this.startingMedia_.hasVideo) {
+      this.gopBuffer_ = removeGopBuffer(this.gopBuffer_, start, end, this.timeMapping_);
+      this.sourceUpdater_.removeVideo(start, end);
+    }
 
     // remove any captions and ID3 tags
     for (let track in this.inbandTextTracks_) {
@@ -1193,7 +1174,7 @@ export default class SegmentLoader extends videojs.EventTarget {
         mediaIndex: segmentInfo.mediaIndex,
         // TODO demuxed audio fix
         videoDtsTimeFromTransmuxed: this.handlePartialData_ ?
-          result.videoDtsTime : segmentInfo.videoTimingInfo.start,
+          result.videoFrameDtsTime : segmentInfo.videoTimingInfo.start,
         currentVideoTimestampOffset: this.sourceUpdater_.videoTimestampOffset(),
         useVideoTimingInfo:
           this.loaderType_ === 'main' && this.startingMedia_.hasVideo,
