@@ -270,6 +270,7 @@ class MessageHandlers {
    */
   flush(data) {
     this.transmuxer.flush();
+    // transmuxed done action is fired after both audio/video pipelines are flushed
     window.postMessage({
       action: 'done',
       type: 'transmuxed'
@@ -278,16 +279,19 @@ class MessageHandlers {
 
   partialFlush(data) {
     this.transmuxer.partialFlush();
+    // transmuxed partialdone action is fired after both audio/video pipelines are flushed
     window.postMessage({
-      action: 'partialFlush',
+      action: 'partialdone',
       type: 'transmuxed'
     });
   }
 
   endTimeline() {
     this.transmuxer.endTimeline();
+    // transmuxed endedtimeline action is fired after both audio/video pipelines end their
+    // timelines
     window.postMessage({
-      action: 'endTimeline',
+      action: 'endedtimeline',
       type: 'transmuxed'
     });
   }
