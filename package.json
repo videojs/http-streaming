@@ -62,7 +62,7 @@
     "aes-decrypter": "3.0.0",
     "global": "^4.3.0",
     "m3u8-parser": "4.2.0",
-    "mpd-parser": "0.6.0",
+    "mpd-parser": "0.6.1",
     "mux.js": "4.4.1",
     "url-toolkit": "^2.1.3",
     "video.js": "^6.8.0 || ^7.0.0"
