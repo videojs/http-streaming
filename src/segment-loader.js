@@ -337,6 +337,20 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
   }
 
+  /**
+   * abort all pending xhr requests and null any pending segements
+   *
+   * @private
+   */
+  abort_() {
+    if (this.pendingSegment_) {
+      this.pendingSegment_.abortRequests();
+    }
+
+    // clear out the segment being processed
+    this.pendingSegment_ = null;
+  }
+
   checkForAbort_(requestId) {
     // If the state is APPENDING, then aborts will not modify the state, meaning the first
     // callback that happens should reset the state to READY so that loading can continue.
@@ -350,20 +364,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     return false;
-  }
-
-  /**
-   * abort all pending xhr requests and null any pending segements
-   *
-   * @private
-   */
-  abort_() {
-    if (this.pendingSegment_) {
-      this.pendingSegment_.abortRequests();
-    }
-
-    // clear out the segment being processed
-    this.pendingSegment_ = null;
   }
 
   /**
@@ -1113,7 +1113,8 @@ export default class SegmentLoader extends videojs.EventTarget {
         !segmentInfo.videoTimingInfo) {
       // video timing info is needed before an append can happen, since video time is the
       // "source of truth"
-      // TODO what about the case where there's no video in the segment?
+      // TODO what about the case where there's no video in the segment (but there is
+      // video in the rendition)?
       return false;
     }
 
@@ -1658,6 +1659,16 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
   }
 
+  updateTimingInfoEnd_(segmentInfo) {
+    const useVideoTimingInfo =
+      this.loaderType_ === 'main' && this.startingMedia_.hasVideo;
+
+    // now that the end of the segment has been reached, we can set the end time
+    // TODO why wait until here, why not on done?
+    segmentInfo.timingInfo.end = useVideoTimingInfo && segmentInfo.videoTimingInfo ?
+      segmentInfo.videoTimingInfo.end : segmentInfo.audioTimingInfo.end;
+  }
+
   /**
    * callback to run when appendBuffer is finished. detects if we are
    * in a good state to do things with the data we got, or if we need
@@ -1677,14 +1688,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     const segmentInfo = this.pendingSegment_;
-    const useVideoTimingInfo =
-      this.loaderType_ === 'main' && this.startingMedia_.hasVideo;
 
-    // now that the end of the segment has been reached, we can set the end time
-    // TODO why wait until here, why not on done?
-    segmentInfo.timingInfo.end = useVideoTimingInfo && segmentInfo.videoTimingInfo ?
-      segmentInfo.videoTimingInfo.end : segmentInfo.audioTimingInfo.end;
-
+    this.updateTimingInfoEnd_(segmentInfo);
     this.syncController_.saveSegmentTimingInfo(segmentInfo);
 
     this.logger_(segmentInfoString(segmentInfo));

@@ -180,22 +180,32 @@ const wirePartialTransmuxerEvents = function(transmuxer) {
   });
 
   transmuxer.on('audioTimingInfo', function(audioTimingInfo) {
+    const timingInfoInSeconds = {
+      start: audioTimingInfo.start / ONE_SECOND_IN_TS,
+    };
+
+    if (audioTimingInfo.end) {
+      timingInfoInSeconds.end = audioTimingInfo.end / ONE_SECOND_IN_TS;
+    }
+
     window.postMessage({
       action: 'audioTimingInfo',
-      audioTimingInfo: {
-        start: audioTimingInfo.start / ONE_SECOND_IN_TS,
-        end: audioTimingInfo.end / ONE_SECOND_IN_TS
-      }
+      audioTimingInfo: timingInfoInSeconds
     });
   });
 
   transmuxer.on('videoTimingInfo', function(videoTimingInfo) {
+    const timingInfoInSeconds = {
+      start: videoTimingInfo.start / ONE_SECOND_IN_TS
+    };
+
+    if (videoTimingInfo.end) {
+      timingInfoInSeconds.end = videoTimingInfo.end / ONE_SECOND_IN_TS;
+    }
+
     window.postMessage({
       action: 'videoTimingInfo',
-      videoTimingInfo: {
-        start: videoTimingInfo.start / ONE_SECOND_IN_TS,
-        end: videoTimingInfo.end / ONE_SECOND_IN_TS
-      }
+      videoTimingInfo: timingInfoInSeconds
     });
   });
 };

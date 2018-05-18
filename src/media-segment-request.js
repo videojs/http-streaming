@@ -459,6 +459,12 @@ const handleSegmentBytes = ({
     return;
   }
 
+  // VTT or other segments that don't need processing
+  if (!segment.transmuxer) {
+    doneFn(null, segment, {});
+    return;
+  }
+
   // ts
   transmuxAndNotify({
     segment,
@@ -480,9 +486,9 @@ const transmuxAndNotify = ({
   dataFn,
   doneFn
 }) => {
-  // Keep references to each function so we can null them out after use, to prevent
-  // triggering multiple times. One reason for this is that in the case of full segments,
-  // we want to trust start times from the probe, rather than the transmuxer.
+  // Keep references to each function so we can null them out after we're done with them.
+  // One reason for this is that in the case of full segments, we want to trust start
+  // times from the probe, rather than the transmuxer.
   let audioStartFn = timingInfoFn.bind(null, segment, 'audio', 'start');
   let audioEndFn = timingInfoFn.bind(null, segment, 'audio', 'end');
   let videoStartFn = timingInfoFn.bind(null, segment, 'video', 'start');
@@ -525,25 +531,25 @@ const transmuxAndNotify = ({
       }
     },
     onAudioTimingInfo: (audioTimingInfo) => {
-      // TODO
-      if (audioStartFn && audioTimingInfo.start) {
+      // we only want the first start value we encounter
+      if (audioStartFn && typeof audioTimingInfo.start !== 'undefined') {
         audioStartFn(audioTimingInfo.start);
         audioStartFn = null;
       }
-      // TODO
-      if (audioEndFn && audioTimingInfo.end) {
+      // we want to continually update the end time
+      if (audioEndFn && typeof audioTimingInfo.end !== 'undefined') {
         audioEndFn(audioTimingInfo.end);
-        audioEndFn = null;
       }
     },
     onVideoTimingInfo: (videoTimingInfo) => {
-      if (videoStartFn) {
+      // we only want the first start value we encounter
+      if (videoStartFn && typeof videoTimingInfo.start !== 'undefined') {
         videoStartFn(videoTimingInfo.start);
         videoStartFn = null;
       }
-      if (videoEndFn) {
+      // we want to continually update the end time
+      if (videoEndFn && typeof videoTimingInfo.end !== 'undefined') {
         videoEndFn(videoTimingInfo.end);
-        videoEndFn = null;
       }
     },
     onDone: (result) => {

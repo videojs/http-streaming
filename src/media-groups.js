@@ -142,17 +142,19 @@ export const onTrackChanged = (type, settings) => () => {
     return;
   }
 
-  if (!activeGroup.playlistLoader) {
-    // when switching from demuxed audio/video to muxed audio/video (noted by no playlist
-    // loader for the audio group), we want to do a destructive reset of the main segment
-    // loader and not restart the audio loaders
-    mainSegmentLoader.audioDisabled_ = false;
-    // don't have to worry about enabling the audio of the audio segment loader since it
-    // should be stopped
-    mainSegmentLoader.resetEverything();
-    return;
-  } else {
-    mainSegmentLoader.audioDisabled_ = true;
+  if (type === 'AUDIO') {
+    if (!activeGroup.playlistLoader) {
+      // when switching from demuxed audio/video to muxed audio/video (noted by no playlist
+      // loader for the audio group), we want to do a destructive reset of the main segment
+      // loader and not restart the audio loaders
+      mainSegmentLoader.audioDisabled_ = false;
+      // don't have to worry about enabling the audio of the audio segment loader since it
+      // should be stopped
+      mainSegmentLoader.resetEverything();
+      return;
+    } else {
+      mainSegmentLoader.audioDisabled_ = true;
+    }
   }
 
   if (previousActiveLoader === activeGroup.playlistLoader) {
