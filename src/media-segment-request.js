@@ -402,6 +402,10 @@ const handleProgress = ({
 }) => (event) => {
   const request = event.target;
 
+  if (request.aborted) {
+    return;
+  }
+
   // don't support encrypted segments or fmp4 for now
   if (handlePartialData && !segment.key && !segment.map) {
     const newBytes = stringToArrayBuffer(

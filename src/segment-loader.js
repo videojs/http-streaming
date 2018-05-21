@@ -526,9 +526,12 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     if (!oldPlaylist || oldPlaylist.uri !== newPlaylist.uri) {
-      if (this.mediaIndex !== null) {
+      if (this.mediaIndex !== null || this.handlePartialData_) {
         // we must "resync" the segment loader when we switch renditions and
         // the segment loader is already synced to the previous rendition
+        //
+        // or if we're handling partial data, we need to ensure the transmuxer is cleared
+        // out before we start adding more data
         this.resyncLoader();
       }
 
