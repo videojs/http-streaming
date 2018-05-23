@@ -1,0 +1,106 @@
+@startuml
+
+participant SegmentLoader order 1
+participant "media-segment-request" order 2
+participant XMLHttpRequest order 3
+participant "segment-transmuxer" order 4
+participant mux.js order 5
+
+SegmentLoader -> "media-segment-request" : mediaSegmentRequest(...)
+"media-segment-request" -> XMLHttpRequest : request for segment/key/init segment
+
+group Request
+  XMLHttpRequest -> "media-segment-request" : //segment progress//
+  note over "media-segment-request" #moccasin
+   If handling partial data,
+   tries to transmux new
+   segment bytes.
+  end note
+  "media-segment-request" -> SegmentLoader : progressFn(...)
+  note left
+    Forwards "progress" events from
+    the XML HTTP Request.
+  end note
+  XMLHttpRequest -> "media-segment-request" : //segment request finished//
+  group Transmux
+    "media-segment-request" -> "segment-transmuxer" : transmux(...)
+
+    "segment-transmuxer" -> mux.js : postMessage(...setAudioAppendStart...)
+    note left
+      Used for checking for overlap when
+      prefixing audio with silence.
+    end note
+    "segment-transmuxer" -> mux.js : postMessage(...alignGopsWith...)
+    note left
+      Used for aligning gops when overlapping
+      content (switching renditions) to fix
+      some browser glitching.
+    end note
+
+    "segment-transmuxer" -> mux.js : postMessage(...push...)
+    note left
+      Pushes bytes into the transmuxer pipeline.
+    end note
+    "mux.js" -> "segment-transmuxer" : postMessage(...data...)
+    note left
+        Gathers data and calls data callback
+    end note
+    "segment-transmuxer" -> "media-segment-request" : onData(...)
+    "media-segment-request" -> SegmentLoader : dataFn(...)
+    note left
+      Gets an fmp4 segment
+      ready to be appended
+    end note
+    "mux.js" -> "segment-transmuxer" : postMessage(...trackinfo...)
+    "segment-transmuxer" -> "media-segment-request" : onTrackInfo(...)
+    "media-segment-request" -> SegmentLoader : trackInfoFn(...)
+    note left
+      Gets whether the segment
+      has audio and/or video.
+    end note
+    "mux.js" -> "segment-transmuxer" : postMessage(...audioTimingInfo...)
+    "segment-transmuxer" -> "media-segment-request" : onAudioTimingInfo(...)
+    "mux.js" -> "segment-transmuxer" : postMessage(...videoTimingInfo...)
+    "segment-transmuxer" -> "media-segment-request" : onVideoTimingInfo(...)
+    "media-segment-request" -> SegmentLoader : timingInfoFn(...)
+    note left
+      Gets the audio/video
+      start/end times.
+    end note
+
+    "segment-transmuxer" -> mux.js : postMessage(...flush...)
+    note left
+      Flushes the transmuxer pipeline
+      to collate any data it can.
+    end note
+    "mux.js" -> "segment-transmuxer" : postMessage(...done...)
+    note left
+      Gathers GOP info, captions, and
+      metadata, and calls done callback.
+    end note
+    "segment-transmuxer" -> mux.js : postMessage(...endSegment...)
+    note left
+      When end of segment is reached,
+      used to clean up data in the
+      transmuxer.
+    end note
+    "mux.js" -> "segment-transmuxer" : postMessage(...endedsegment...)
+    note left
+      Uses done handler.
+    end note
+    "segment-transmuxer" -> "media-segment-request" : onDone(...)
+    "media-segment-request" -> SegmentLoader : doneFn(...)
+    note left
+      Queues callbacks on source
+      buffer queue to wait for
+      appends to complete.
+    end note
+  end
+end
+SegmentLoader -> SegmentLoader : handleUpdateEnd_()
+note left
+  Saves segment timing info
+  and starts next request.
+end note
+
+@enduml
