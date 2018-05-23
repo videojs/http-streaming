@@ -30,10 +30,10 @@ In order to support LHLS, a few components are required:
 At the moment, VHS doesn't support any of the client requirements. It waits until a request is completed and the transmuxer expects full segments.
 
 Current flow:
-![current flow](./current-flow.png)
+![current flow](./current-flow.plantuml.png)
 
 Expected flow:
-![expected flow](./expected-flow.png)
+![expected flow](./expected-flow.plantuml.png)
 
 ### Request Segment Pieces
 
@@ -58,7 +58,7 @@ This change was made in [media-segment-request](https://github.com/videojs/http-
 Getting the progress bytes is easy. Supporting partial transmuxing and appending is harder.
 
 Current flow:
-![current transmux and append flow](./current-transmux-and-append-flow.png)
+![current transmux and append flow](./current-transmux-and-append-flow.plantuml.png)
 
 In order to support partial transmuxing and appending in the current flow, videojs-contrib-media-sources would have to get more complicated.
 
@@ -98,7 +98,7 @@ Much of the pipeline was reused, however, the top level audio and video segment 
 
 One benefit to transmuxing before appending is the possibility of extracting track and timing information from the segments. Previously, this required a separate parsing step to happen on the full segment. Now, it is included in the transmuxing pipeline, and comes back to us on separate callbacks.
 
-![new segment loader sequence](./new-segment-loader-sequence.png)
+![new segment loader sequence](./new-segment-loader-sequence.plantuml.png)
 
 ### Resources
 
