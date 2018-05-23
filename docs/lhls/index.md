@@ -30,9 +30,11 @@ In order to support LHLS, a few components are required:
 At the moment, VHS doesn't support any of the client requirements. It waits until a request is completed and the transmuxer expects full segments.
 
 Current flow:
+
 ![current flow](./current-flow.plantuml.png)
 
 Expected flow:
+
 ![expected flow](./expected-flow.plantuml.png)
 
 ### Request Segment Pieces
@@ -58,6 +60,7 @@ This change was made in [media-segment-request](https://github.com/videojs/http-
 Getting the progress bytes is easy. Supporting partial transmuxing and appending is harder.
 
 Current flow:
+
 ![current transmux and append flow](./current-transmux-and-append-flow.plantuml.png)
 
 In order to support partial transmuxing and appending in the current flow, videojs-contrib-media-sources would have to get more complicated.
