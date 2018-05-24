@@ -1961,7 +1961,7 @@ function(assert) {
             'does not support flv');
 });
 
-QUnit.only('has no effect if native HLS is available', function(assert) {
+QUnit.test('has no effect if native HLS is available', function(assert) {
   const Html5 = videojs.getTech('Html5');
   const oldHtml5CanPlaySource = Html5.canPlaySource;
   let player;
