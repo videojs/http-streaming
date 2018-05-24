@@ -337,6 +337,10 @@ export const setupListeners = {
   }
 };
 
+const byGroupId = (type, groupId) => (playlist) => playlist.attributes[type] === groupId;
+
+const byResolvedUri = (resolvedUri) => (playlist) => playlist.resolvedUri === resolvedUri;
+
 export const initialize = {
   /**
    * Setup PlaylistLoaders and AudioTracks for the audio groups
@@ -359,7 +363,8 @@ export const initialize = {
           groups,
           tracks
         }
-      }
+      },
+      masterPlaylistLoader
     } = settings;
 
     // force a default if we have none
@@ -375,18 +380,15 @@ export const initialize = {
 
       // List of playlists that have an AUDIO attribute value matching the current
       // group ID
-      const groupPlaylists = playlists.filter(playlist => {
-        return playlist.attributes[type] === groupId;
-      });
+      const groupPlaylists = playlists.filter(byGroupId(type, groupId));
 
       for (let variantLabel in mediaGroups[type][groupId]) {
         let properties = mediaGroups[type][groupId][variantLabel];
 
         // List of playlists for the current group ID that have a matching uri with
         // this alternate audio variant
-        const matchingPlaylists = groupPlaylists.filter(playlist => {
-          return playlist.resolvedUri === properties.resolvedUri;
-        });
+        const matchingPlaylists =
+          groupPlaylists.filter(byResolvedUri(properties.resolvedUri));
 
         if (matchingPlaylists.length) {
           // If there is a playlist that has the same uri as this audio variant, assume
@@ -406,7 +408,8 @@ export const initialize = {
         } else if (properties.playlists && sourceType === 'dash') {
           playlistLoader = new DashPlaylistLoader(properties.playlists[0],
                                                   hls,
-                                                  withCredentials);
+                                                  withCredentials,
+                                                  masterPlaylistLoader);
         } else {
           // no resolvedUri means the audio is muxed with the video when using this
           // audio track
@@ -460,7 +463,8 @@ export const initialize = {
           groups,
           tracks
         }
-      }
+      },
+      masterPlaylistLoader
     } = settings;
 
     for (let groupId in mediaGroups[type]) {
@@ -489,8 +493,10 @@ export const initialize = {
           playlistLoader =
             new PlaylistLoader(properties.resolvedUri, hls, withCredentials);
         } else if (sourceType === 'dash') {
-          playlistLoader =
-            new DashPlaylistLoader(properties.playlists[0], hls, withCredentials);
+          playlistLoader = new DashPlaylistLoader(properties.playlists[0],
+                                                  hls,
+                                                  withCredentials,
+                                                  masterPlaylistLoader);
         }
 
         properties = videojs.mergeOptions({

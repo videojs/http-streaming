@@ -9,10 +9,9 @@ import PlaylistLoader from './playlist-loader';
 import Playlist from './playlist';
 import xhrFactory from './xhr';
 import { Decrypter, AsyncStream, decrypt } from 'aes-decrypter';
-import utils from './bin-utils';
+import * as utils from './bin-utils';
 import { timeRangesToArray } from './ranges';
-import { MediaSource, URL } from './mse';
-import m3u8 from 'm3u8-parser';
+import { MediaSource, URL } from './mse/index';
 import videojs from 'video.js';
 import { MasterPlaylistController } from './master-playlist-controller';
 import Config from './config';
@@ -25,6 +24,7 @@ import {
   comparePlaylistBandwidth,
   comparePlaylistResolution
 } from './playlist-selectors.js';
+import { version } from '../package.json';
 
 const Hls = {
   PlaylistLoader,
@@ -73,7 +73,7 @@ const INITIAL_BANDWIDTH = 4194304;
   });
 });
 
-export const simpleTypeFromSourceType = (type) => {
+const simpleTypeFromSourceType = (type) => {
   const mpegurlRE = /^(audio|video|application)\/(x-|vnd\.apple\.)?mpegurl/i;
 
   if (mpegurlRE.test(type)) {
@@ -135,7 +135,7 @@ Hls.canPlaySource = function() {
     'your player\'s techOrder.');
 };
 
-const emeOptions = (keySystemOptions, videoPlaylist, audioPlaylist) => {
+const emeKeySystems = (keySystemOptions, videoPlaylist, audioPlaylist) => {
   if (!keySystemOptions) {
     return keySystemOptions;
   }
@@ -149,6 +149,13 @@ const emeOptions = (keySystemOptions, videoPlaylist, audioPlaylist) => {
       videoContentType: `video/mp4; codecs="${videoPlaylist.attributes.CODECS}"`
     };
 
+    if (videoPlaylist.contentProtection &&
+        videoPlaylist.contentProtection[keySystem] &&
+        videoPlaylist.contentProtection[keySystem].pssh) {
+      keySystemContentTypes[keySystem].pssh =
+        videoPlaylist.contentProtection[keySystem].pssh;
+    }
+
     // videojs-contrib-eme accepts the option of specifying: 'com.some.cdm': 'url'
     // so we need to prevent overwriting the URL entirely
     if (typeof keySystemOptions[keySystem] === 'string') {
@@ -156,9 +163,7 @@ const emeOptions = (keySystemOptions, videoPlaylist, audioPlaylist) => {
     }
   }
 
-  return {
-    keySystems: videojs.mergeOptions(keySystemOptions, keySystemContentTypes)
-  };
+  return videojs.mergeOptions(keySystemOptions, keySystemContentTypes);
 };
 
 const setupEmeOptions = (hlsHandler) => {
@@ -168,11 +173,15 @@ const setupEmeOptions = (hlsHandler) => {
   const player = videojs.players[hlsHandler.tech_.options_.playerId];
 
   if (player.eme) {
-    player.eme.options = videojs.mergeOptions(player.eme.options, emeOptions(
+    const sourceOptions = emeKeySystems(
       hlsHandler.source_.keySystems,
       hlsHandler.playlists.media(),
       hlsHandler.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader.media()
-    ));
+    );
+
+    if (sourceOptions) {
+      player.currentSource().keySystems = sourceOptions;
+    }
   }
 };
 
@@ -654,7 +663,7 @@ class HlsHandler extends Component {
  */
 const HlsSourceHandler = {
   name: 'videojs-http-streaming',
-  VERSION: '__VERSION__',
+  VERSION: version,
   canHandleSource(srcObj, options = {}) {
     let localOptions = videojs.mergeOptions(videojs.options, options);
 
@@ -696,7 +705,6 @@ videojs.Hls = Hls;
 if (!videojs.use) {
   videojs.registerComponent('Hls', Hls);
 }
-videojs.m3u8 = m3u8;
 videojs.options.hls = videojs.options.hls || {};
 
 if (videojs.registerPlugin) {
@@ -705,10 +713,10 @@ if (videojs.registerPlugin) {
   videojs.plugin('reloadSourceOnError', reloadSourceOnError);
 }
 
-module.exports = {
+export {
   Hls,
   HlsHandler,
   HlsSourceHandler,
-  emeOptions,
+  emeKeySystems,
   simpleTypeFromSourceType
 };

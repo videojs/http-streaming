@@ -1,8 +1,8 @@
-import connect from 'connect';
-import cowsay from 'cowsay';
-import path from 'path';
-import portscanner from 'portscanner';
-import serveStatic from 'serve-static';
+const connect = require('connect');
+const cowsay = require('cowsay');
+const path = require('path');
+const portscanner = require('portscanner');
+const serveStatic = require('serve-static');
 
 // Configuration for the server.
 const PORT = 9999;

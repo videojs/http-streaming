@@ -6,14 +6,12 @@ import videojs from 'video.js';
 import SourceUpdater from './source-updater';
 import Config from './config';
 import window from 'global/window';
-import removeCuesFromTrack from './mse/remove-cues-from-track';
-import BinUtils from './bin-utils';
-import {mediaSegmentRequest, REQUEST_ERRORS} from './media-segment-request';
+import { removeCuesFromTrack } from './mse/remove-cues-from-track';
+import { initSegmentId } from './bin-utils';
+import { mediaSegmentRequest, REQUEST_ERRORS } from './media-segment-request';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
 import logger from './util/logger';
-
-const { initSegmentId } = BinUtils;
 
 // in ms
 const CHECK_BUFFER_DELAY = 500;
@@ -1332,6 +1330,10 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     const Cue = window.WebKitDataCue || window.VTTCue;
     const value = {
+      bandwidth: segmentInfo.playlist.attributes.BANDWIDTH,
+      resolution: segmentInfo.playlist.attributes.RESOLUTION,
+      codecs: segmentInfo.playlist.attributes.CODECS,
+      byteLength: segmentInfo.byteLength,
       uri: segmentInfo.uri,
       timeline: segmentInfo.timeline,
       playlist: segmentInfo.playlist.uri,

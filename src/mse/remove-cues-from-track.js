@@ -10,7 +10,7 @@
  * @param {Object} track the text track to remove the cues from
  * @private
  */
-const removeCuesFromTrack = function(start, end, track) {
+export const removeCuesFromTrack = function(start, end, track) {
   let i;
   let cue;
 
@@ -33,5 +33,3 @@ const removeCuesFromTrack = function(start, end, track) {
     }
   }
 };
-
-export default removeCuesFromTrack;

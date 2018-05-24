@@ -1,6 +1,7 @@
 /**
  * @file master-playlist-controller.js
  */
+import window from 'global/window';
 import PlaylistLoader from './playlist-loader';
 import DashPlaylistLoader from './dash-playlist-loader';
 import { isEnabled, isLowestEnabledRendition } from './playlist.js';
@@ -8,10 +9,9 @@ import SegmentLoader from './segment-loader';
 import VTTSegmentLoader from './vtt-segment-loader';
 import * as Ranges from './ranges';
 import videojs from 'video.js';
-import AdCueTags from './ad-cue-tags';
+import { updateAdCues } from './ad-cue-tags';
 import SyncController from './sync-controller';
-import worker from 'webwackify';
-import Decrypter from './decrypter-worker';
+import Decrypter from 'worker!./decrypter-worker.worker.js';
 import Config from './config';
 import {
   parseCodecs,
@@ -38,18 +38,6 @@ const loaderStats = [
 const sumLoaderStat = function(stat) {
   return this.audioSegmentLoader_[stat] +
          this.mainSegmentLoader_[stat];
-};
-
-const workerResolve = () => {
-  let result;
-
-  try {
-    result = require.resolve('./decrypter-worker');
-  } catch (e) {
-    // no result
-  }
-
-  return result;
 };
 
 /**
@@ -117,7 +105,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       label: 'segment-metadata'
     }, false).track;
 
-    this.decrypter_ = worker(Decrypter, workerResolve());
+    this.decrypter_ = new Decrypter();
 
     const segmentLoaderSettings = {
       hls: this.hls_,
@@ -616,7 +604,13 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // code in video.js but is required because play() must be invoked
     // *after* the media source has opened.
     if (this.tech_.autoplay()) {
-      this.tech_.play();
+      const playPromise = this.tech_.play();
+
+      // Catch/silence error when a pause interrupts a play request
+      // on browsers which return a promise
+      if (typeof playPromise !== 'undefined' && typeof playPromise.then === 'function') {
+        playPromise.then(null, (e) => {});
+      }
     }
 
     this.trigger('sourceopen');
@@ -1098,7 +1092,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       offset = seekable.start(0);
     }
 
-    AdCueTags.updateAdCues(media, this.cueTagsTrack_, offset);
+    updateAdCues(media, this.cueTagsTrack_, offset);
   }
 
   /**

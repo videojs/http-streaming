@@ -1,7 +1,12 @@
 {
-  "presets": [["env", {
-    "targets": {
-      "browsers": ["last 2 versions", "ie 9-11"]
-    }
-  }]]
+  "presets": [
+    ["env", {
+      "modules": false,
+      "exclude": ["transform-es2015-typeof-symbol"],
+      "targets": {
+        "browsers": ["last 2 versions", "ie 9-11"]
+      }
+    }]
+  ],
+  "plugins": ["external-helpers"]
 }

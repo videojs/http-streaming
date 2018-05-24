@@ -4,10 +4,8 @@
 import SegmentLoader from './segment-loader';
 import videojs from 'video.js';
 import window from 'global/window';
-import removeCuesFromTrack from './mse/remove-cues-from-track';
-import BinUtils from './bin-utils';
-
-const { initSegmentId } = BinUtils;
+import { removeCuesFromTrack } from './mse/remove-cues-from-track';
+import { initSegmentId } from './bin-utils';
 
 const VTT_LINE_TERMINATORS =
   new Uint8Array('\n\n'.split('').map(char => char.charCodeAt(0)));

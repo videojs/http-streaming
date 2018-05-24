@@ -1,6 +1,3 @@
-var istanbul = require('browserify-istanbul');
-var isparta = require('isparta');
-
 module.exports = function(config) {
   // build out a name for browserstack
   // {TRAVIS_BUILD_NUMBER} [{TRAVIS_PULL_REQUEST} {PR_BRANCH}] {TRAVIS_BRANCH}
@@ -14,15 +11,19 @@ module.exports = function(config) {
 
   config.set({
     basePath: '..',
-    frameworks: ['qunit', 'browserify', 'detectBrowsers'],
+    frameworks: ['qunit', 'detectBrowsers'],
+    client: {
+      clearContext: false,
+      qunit: {
+        showUI: true,
+        testTimeout: 30000
+      }
+    },
     files: [
       'node_modules/sinon/pkg/sinon.js',
-      'node_modules/sinon/pkg/sinon-ie.js',
       'node_modules/video.js/dist/video.js',
       'node_modules/video.js/dist/video-js.css',
-      'dist-test/browserify-test.js',
-      'dist-test/webpack-test.js',
-      'test/**/*.test.js'
+      'dist-test/videojs-http-streaming.test.js'
     ],
     browserConsoleLogOptions: {
       level: 'error',
@@ -36,30 +37,23 @@ module.exports = function(config) {
       captureTimeout: 600,
       timeout: 600
     },
-    coverageReporter: {
-      reporters: [{
-        type: 'text-summary'
-      }]
-    },
     customLaunchers: {
       ChromeHeadlessWithFlags: {
         base: 'ChromeHeadless',
-        flags: [
-          '--mute-audio',
-          '--no-sandbox',
-          '--no-user-gesture-required'
-        ]
+        flags: [ '--no-sandbox' ]
       },
       ChromeBrowserStack: {
         base: 'BrowserStack',
-        flags: [
-          '--mute-audio',
-          '--no-sandbox',
-          '--no-user-gesture-required'
-        ],
+        flags: [ '--no-sandbox' ],
         browser: 'chrome',
         os: 'Windows',
         os_version: '10'
+      },
+      SafariBrowserStack: {
+        base: 'BrowserStack',
+        browser: 'safari',
+        os: 'OS X',
+        os_version: 'High Sierra'
       },
       FirefoxBrowserStack: {
         base: 'BrowserStack',
@@ -103,25 +97,7 @@ module.exports = function(config) {
         return newBrowsers;
       }
     },
-    preprocessors: {
-      'src/**/*.js': ['browserify', 'coverage'],
-      'test/**/*.test.js': ['browserify']
-    },
-    browserify: {
-      debug: true,
-      transform: [
-        'babelify',
-        ['browserify-shim', { global: true }],
-        istanbul({
-          instrumenter: isparta,
-          ignore: ['**/node_modules/**', '**/test/**']
-        })
-      ],
-      noParse: [
-        'test/data/**',
-      ]
-    },
-    reporters: ['dots', 'coverage'],
+    reporters: ['dots'],
     port: 9876,
     colors: true,
     autoWatch: false,

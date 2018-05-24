@@ -13,7 +13,7 @@ import {
 // we disable this because browserify needs to include these files
 // but the exports are not important
 /* eslint-disable no-unused-vars */
-import {MediaSource, URL} from '../../src/mse';
+import {MediaSource, URL} from '../../src/mse/index';
 /* eslint-disable no-unused-vars */
 
 QUnit.module('videojs-contrib-media-sources - HTML', {

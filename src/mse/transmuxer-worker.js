@@ -175,6 +175,4 @@ const TransmuxerWorker = function(self) {
   };
 };
 
-export default (self) => {
-  return new TransmuxerWorker(self);
-};
+export default new TransmuxerWorker(self);

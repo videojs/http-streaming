@@ -9,11 +9,12 @@
  * @param {Function} callback the callback to call when done
  * @return {Request} the xhr request that is going to be made
  */
-import {
-  xhr as videojsXHR,
-  mergeOptions,
-  default as videojs
-} from 'video.js';
+import videojs from 'video.js';
+
+const {
+  xhr: videojsXHR,
+  mergeOptions
+} = videojs;
 
 const xhrFactory = function() {
   const xhr = function XhrFunction(options, callback) {
@@ -45,6 +46,10 @@ const xhrFactory = function() {
           request.bandwidth =
             Math.floor((request.bytesReceived / request.roundTripTime) * 8 * 1000);
         }
+      }
+
+      if (response.headers) {
+        request.responseHeaders = response.headers;
       }
 
       // videojs.xhr now uses a specific code on the error

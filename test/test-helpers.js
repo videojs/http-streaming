@@ -3,7 +3,7 @@ import sinon from 'sinon';
 import videojs from 'video.js';
 /* eslint-disable no-unused-vars */
 // needed so MediaSource can be registered with videojs
-import MediaSource from '../src/mse';
+import { MediaSource } from '../src/mse/index';
 /* eslint-enable */
 import testDataManifests from './test-manifests.js';
 import xhrFactory from '../src/xhr';
@@ -374,7 +374,7 @@ export const playlistWithDuration = function(time, conf) {
     uri: conf && typeof conf.uri !== 'undefined' ? conf.uri : 'playlist.m3u8',
     discontinuitySequence:
       conf && conf.discontinuitySequence ? conf.discontinuitySequence : 0,
-    attributes: {}
+    attributes: conf && typeof conf.attributes !== 'undefined' ? conf.attributes : {}
   };
   let count = Math.floor(time / 10);
   let remainder = time % 10;
@@ -404,4 +404,14 @@ export const playlistWithDuration = function(time, conf) {
     });
   }
   return result;
+};
+
+// Attempts to produce an absolute URL to a given relative path
+// based on window.location.href
+export const urlTo = function(path) {
+  return window.location.href
+    .split('/')
+    .slice(0, -1)
+    .concat([path])
+    .join('/');
 };

@@ -1,7 +1,5 @@
 import videojs from 'video.js';
-import BinUtils from './bin-utils';
-
-const { createTransferableMessage } = BinUtils;
+import { createTransferableMessage } from './bin-utils';
 
 export const REQUEST_ERRORS = {
   FAILURE: 2,

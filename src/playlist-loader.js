@@ -6,9 +6,32 @@
  *
  */
 import resolveUrl from './resolve-url';
-import { mergeOptions, EventTarget, log } from 'video.js';
-import m3u8 from 'm3u8-parser';
+import videojs from 'video.js';
+import { Parser as M3u8Parser } from 'm3u8-parser';
 import window from 'global/window';
+
+const { mergeOptions, EventTarget, log } = videojs;
+
+/**
+ * Loops through all supported media groups in master and calls the provided
+ * callback for each group
+ *
+ * @param {Object} master
+ *        The parsed master manifest object
+ * @param {Function} callback
+ *        Callback to call for each media group
+ */
+export const forEachMediaGroup = (master, callback) => {
+  ['AUDIO', 'SUBTITLES'].forEach((mediaType) => {
+    for (let groupKey in master.mediaGroups[mediaType]) {
+      for (let labelKey in master.mediaGroups[mediaType][groupKey]) {
+        const mediaProperties = master.mediaGroups[mediaType][groupKey][labelKey];
+
+        callback(mediaProperties, mediaType, groupKey, labelKey);
+      }
+    }
+  });
+};
 
 /**
   * Returns a new array of segments that is the result of merging
@@ -63,7 +86,7 @@ export const resolveSegmentUris = (segment, baseUri) => {
   */
 export const updateMaster = (master, media) => {
   const result = mergeOptions(master, {});
-  const playlist = result.playlists.filter((p) => p.uri === media.uri)[0];
+  const playlist = result.playlists[media.uri];
 
   if (!playlist) {
     return null;
@@ -132,15 +155,9 @@ export const setupMediaPlaylists = (master) => {
 };
 
 export const resolveMediaGroupUris = (master) => {
-  ['AUDIO', 'SUBTITLES'].forEach((mediaType) => {
-    for (let groupKey in master.mediaGroups[mediaType]) {
-      for (let labelKey in master.mediaGroups[mediaType][groupKey]) {
-        let mediaProperties = master.mediaGroups[mediaType][groupKey][labelKey];
-
-        if (mediaProperties.uri) {
-          mediaProperties.resolvedUri = resolveUrl(master.uri, mediaProperties.uri);
-        }
-      }
+  forEachMediaGroup(master, (properties) => {
+    if (properties.uri) {
+      properties.resolvedUri = resolveUrl(master.uri, properties.uri);
     }
   });
 };
@@ -247,7 +264,7 @@ export default class PlaylistLoader extends EventTarget {
     this.request = null;
     this.state = 'HAVE_METADATA';
 
-    const parser = new m3u8.Parser();
+    const parser = new M3u8Parser();
 
     parser.push(xhr.responseText);
     parser.end();
@@ -486,7 +503,7 @@ export default class PlaylistLoader extends EventTarget {
         return this.trigger('error');
       }
 
-      const parser = new m3u8.Parser();
+      const parser = new M3u8Parser();
 
       parser.push(req.responseText);
       parser.end();

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <title>videojs-http-streaming Demo</title>
-  <link href="/node_modules/video.js/dist/video-js.css" rel="stylesheet">
+  <link href="node_modules/video.js/dist/video-js.css" rel="stylesheet">
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -28,9 +28,9 @@
   <div class="info">
     <p>The video below is an <a href="https://developer.apple.com/library/ios/documentation/networkinginternet/conceptual/streamingmediaguide/Introduction/Introduction.html#//apple_ref/doc/uid/TP40008332-CH1-SW1">HTTP Live Stream</a>.</p>
   </div>
-  <video id="videojs-http-streaming-player" class="video-js vjs-default-skin" controls>
+  <video-js id="videojs-http-streaming-player" class="vjs-default-skin" controls>
     <source src="https://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8" type="application/x-mpegURL">
-  </video>
+  </video-js>
 
   <form id=load-url>
     <label>
@@ -47,17 +47,26 @@
     <button type=submit>Load</button>
   </form>
   <ul>
-    <li><a href="/test/">Run unit tests in browser.</a></li>
-    <li><a href="/docs/api/">Read generated docs.</a></li>
-    <li><a href="/examples">Browse Examples</a></li>
+    <li><a href="test/">Run unit tests in browser.</a></li>
+    <li><a href="docs/api/">Read generated docs.</a></li>
+    <li><a href="examples">Browse Examples</a></li>
   </ul>
 
-  <script src="/node_modules/video.js/dist/video.js"></script>
-  <script src="/node_modules/videojs-contrib-eme/dist/videojs-contrib-eme.js"></script>
-  <script src="/dist/videojs-http-streaming.js"></script>
+  <script src="node_modules/video.js/dist/video.js"></script>
+  <script src="node_modules/videojs-contrib-eme/dist/videojs-contrib-eme.js"></script>
+
+  <script src="dist/videojs-http-streaming.js"></script>
   <script>
     (function(window, videojs) {
-      var player = window.player = videojs('videojs-http-streaming-player');
+      var player = window.player = videojs('videojs-http-streaming-player', {
+        html5: {
+          nativeAudioTracks: !!videojs.browser.IS_SAFARI,
+          nativeVideoTracks: !!videojs.browser.IS_SAFARI,
+          hls: {
+            overrideNative: !videojs.browser.IS_SAFARI
+          }
+        }
+      });
 
       // configure videojs-contrib-eme
       player.eme();

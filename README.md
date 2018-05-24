@@ -17,6 +17,8 @@ Lead Maintainers:
 
 Maintenance Status: Stable
 
+Video.js Compatibility: 6.0
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
@@ -29,6 +31,9 @@ Maintenance Status: Stable
 - [Contributing](#contributing)
 - [Talk to us](#talk-to-us)
 - [Getting Started](#getting-started)
+- [Compatibility](#compatibility)
+  - [Via MSE](#via-mse)
+  - [Native only](#native-only)
   - [Flash Support](#flash-support)
 - [Documentation](#documentation)
   - [Options](#options)
@@ -61,6 +66,7 @@ Maintenance Status: Stable
   - [Segment Metadata](#segment-metadata)
 - [Hosting Considerations](#hosting-considerations)
 - [Known Issues](#known-issues)
+  - [Fragmented MP4 Embedded Captions](#fragmented-mp4-embedded-captions)
   - [Fragmented MP4 Support](#fragmented-mp4-support)
 - [Testing](#testing)
 - [Debugging](#debugging)
@@ -99,20 +105,37 @@ Drop by our slack channel (#playback) on the [Video.js slack][slack-link].
 Get a copy of [videojs-http-streaming](#installation) and include it in your page along with video.js:
 
 ```html
-<video id=example-video width=600 height=300 class="video-js vjs-default-skin" controls>
+<video-js id=vid1 width=600 height=300 class="vjs-default-skin" controls>
   <source
      src="https://example.com/index.m3u8"
      type="application/x-mpegURL">
-</video>
+</video-js>
 <script src="video.js"></script>
 <script src="videojs-http-streaming.min.js"></script>
 <script>
-var player = videojs('example-video');
+var player = videojs('vid1');
 player.play();
 </script>
 ```
 
-Check out our [live example](http://jsbin.com/vokipos/8/edit?html,output) if you're having trouble.
+Check out our [live example](https://jsbin.com/gejugat/edit?html,output) if you're having trouble.
+
+Is it recommended to use the `<video-js>` element or load a source with `player.src(sourceObject)` in order to prevent the video element from playing the source natively where HLS is supported.
+
+## Compatibility
+
+### Via MSE
+- Chrome
+- Firefox
+- Internet Explorer 11 Windows 10 or 8.1
+
+Using the [overrideNative](#overridenative) option
+- Chrome Android
+- Edge
+
+### Native only
+- Mac Safari
+- iOS Safari
 
 ### Flash Support
 This plugin does not support Flash playback. Instead, it is recommended that users use the [videojs-flashls-source-handler](https://github.com/brightcove/videojs-flashls-source-handler) plugin as a fallback option for browsers that don't have a native
@@ -142,7 +165,7 @@ You can deploy a single HLS stream, code against the
 regular HTML5 video APIs, and create a fast, high-quality video
 experience across all the big web device categories.
 
-Check out the [full documentation](docs/) for details on how HLS works
+Check out the [full documentation](docs/intro.md) for details on how HLS works
 and advanced configuration. A description of the [adaptive switching
 behavior](docs/bitrate-switching.md) is available, too.
 
@@ -182,20 +205,13 @@ parts of video.js:
 
 ```javascript
 // html5 for html hls
-videojs(video, {html5: {
-  hls: {
-    withCredentials: true
+videojs(video, {
+  html5: {
+    hls: {
+      withCredentials: true
+    }
   }
-}});
-
-// or
-
-var options = {hls: {
-  withCredentials: true;
-}};
-
-videojs(video, {html5: options});
-
+});
 ```
 
 ##### Source
@@ -273,11 +289,22 @@ videojs-http-streaming will take over HLS playback to provide a more
 consistent experience.
 
 __NOTE__: If you use this option, you must also set
-`videojs.options.html5.nativeAudioTracks` and
-`videojs.options.html5.nativeVideoTracks` to
+`html5.nativeAudioTracks` and `html5.nativeVideoTracks` to
 `false`. videojs-http-streaming relies on audio and video tracks to play
 streams with alternate audio and requires additional capabilities only
 supported by non-native tracks in video.js.
+
+```javascript
+var player = videojs('playerId', {
+  html5: {
+    nativeAudioTracks: false,
+    nativeVideoTracks: false,
+    hls: {
+      overrideNative: true
+    }
+  }
+});
+```
 
 ##### blacklistDuration
 * Type: `number`
@@ -581,6 +608,10 @@ will have this structure
 
 ```javascript
 cue.value = {
+  byteLength, // The size of the segment in bytes
+  bandwidth, // The peak bitrate reported by the segment's playlist
+  resolution, // The resolution reported by the segment's playlist
+  codecs, // The codecs reported by the segment's playlist
   uri, // The Segment uri
   timeline, // Timeline of the segment for detecting discontinuities
   playlist, // The Playlist uri
@@ -630,8 +661,11 @@ and most CDNs should have no trouble turning CORS on for your account.
 
 
 ## Known Issues
-Issues that are currenty known with workarounds. If you want to
+Issues that are currenty known. If you want to
 help find a solution that would be appreciated!
+
+### Fragmented MP4 Embedded Captions
+Currently this project does not parse embedded captions from fragmented MP4 segments for HLS or DASH content.
 
 ### Fragmented MP4 Support
 Edge has native support for HLS but only in the MPEG2-TS container. If
@@ -677,8 +711,9 @@ videojs-http-streaming will have created all of the files for using it in a dist
 ## Development
 
 ### Tools
-* Download stream locally with the [HLS Fetcher](https://github.com/imbcmdth/hls-fetcher)
-* Simulate errors with [Murphy](https://github.com/mrocajr/murphy)
+* Download stream locally with the [HLS Fetcher](https://github.com/videojs/hls-fetcher)
+* Simulate errors with [Murphy](https://github.com/videojs/murphy)
+* Inspect content with [Thumbcoil](http://thumb.co.il)
 
 ### Commands
 All commands for development are listed in the `package.json` file and are run using
