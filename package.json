@@ -105,7 +105,7 @@
     "rollup-watch": "^4.3.1",
     "semver": "^5.5.0",
     "serve-static": "^1.13.2",
-    "sinon": "^1.10.3",
+    "sinon": "^5.0.1",
     "uglify-es": "^3.3.9",
     "videojs-contrib-eme": "^3.2.0",
     "videojs-contrib-quality-levels": "^2.0.4",
