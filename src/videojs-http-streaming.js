@@ -294,10 +294,15 @@ class HlsHandler extends Component {
     this.ignoreNextSeekingEvent_ = false;
     this.setOptions_();
 
-    // overriding native HLS only works if audio tracks have been emulated
-    // error early if we're misconfigured:
     if (this.options_.overrideNative &&
-        (tech.featuresNativeVideoTracks || tech.featuresNativeAudioTracks)) {
+        tech.overrideNativeAudioTracks &&
+        tech.overrideNativeVideoTracks){
+      tech.overrideNativeAudioTracks(true);
+      tech.overrideNativeVideoTracks(true);
+    } else if (this.options_.overrideNative &&
+      (tech.featuresNativeVideoTracks || tech.featuresNativeAudioTracks)) {
+      // overriding native HLS only works if audio tracks have been emulated
+      // error early if we're misconfigured
       throw new Error('Overriding native HLS requires emulated tracks. ' +
         'See https://git.io/vMpjB');
     }
