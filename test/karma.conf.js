@@ -21,7 +21,7 @@ module.exports = function(config) {
     },
     files: [
       'node_modules/sinon/pkg/sinon.js',
-      'node_modules/video.js/dist/video.js',
+      'node_modules/video.js/dist/alt/video.core.js',
       'node_modules/video.js/dist/video-js.css',
       'dist-test/videojs-http-streaming.test.js'
     ],
