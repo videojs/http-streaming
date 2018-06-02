@@ -12,6 +12,7 @@ import { mediaSegmentRequest, REQUEST_ERRORS } from './media-segment-request';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
 import logger from './util/logger';
+import handleCaptions from './util/608-captions';
 
 // in ms
 const CHECK_BUFFER_DELAY = 500;
@@ -1112,6 +1113,12 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     segmentInfo.endOfAllRequests = simpleSegment.endOfAllRequests;
+
+    // TODO: wip
+    if (simpleSegment.map && simpleSegment.captions) {
+      handleCaptions(this.mediaSource_, this.sourceUpdater_.sourceBuffer_, simpleSegment);
+    }
+
     this.handleSegment_();
   }
 

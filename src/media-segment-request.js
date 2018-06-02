@@ -1,5 +1,6 @@
 import videojs from 'video.js';
 import { createTransferableMessage } from './bin-utils';
+import mp4probe from 'mux.js/lib/mp4/probe';
 
 export const REQUEST_ERRORS = {
   FAILURE: 2,
@@ -227,6 +228,12 @@ const handleSegmentResponse = (segment, finishProcessingFn) => (error, request) 
     segment.encryptedBytes = new Uint8Array(request.response);
   } else {
     segment.bytes = new Uint8Array(request.response);
+  }
+
+  // TODO: wip
+  // This is an FMP4 and has the init segment
+  if (segment.map && segment.map.bytes) {
+    segment.captions = mp4probe.parseEmbeddedCaptions(segment.map.bytes, segment.bytes);
   }
 
   return finishProcessingFn(null, segment);
