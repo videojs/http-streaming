@@ -227,10 +227,6 @@
       }
 
       videojs.options.hls.overrideNative = overrideNative === 'on';
-      if (videojs.options.hls.overrideNative) {
-        videojs.options.html5.nativeAudioTracks = false;
-        videojs.options.html5.nativeVideoTracks = false;
-      }
 
       var type = document.getElementById('url-content-type').value;
       // use the form data to add a src to the player
