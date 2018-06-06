@@ -197,7 +197,13 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.mediaSource_ = settings.mediaSource;
     this.hls_ = settings.hls;
     this.loaderType_ = settings.loaderType;
-    this.startingMedia_ = void 0;
+    // we always know the starting media for audio segment loaders (by definition),
+    // however, the main segment loader can be any combination, so we must wait for track
+    // info to determine the starting media
+    this.startingMedia_ = this.loaderType_ === 'audio' ? {
+      hasAudio: true,
+      hasVideo: false
+    } : void 0;
     this.segmentMetadataTrack_ = settings.segmentMetadataTrack;
     this.goalBufferLength_ = settings.goalBufferLength;
     this.sourceType_ = settings.sourceType;
@@ -308,6 +314,13 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.sourceUpdater_.dispose();
     }
     this.resetStats_();
+  }
+
+  setAudio(enable) {
+    this.audioDisabled_ = !enable;
+    if (enable) {
+      this.appendInitSegment_.audio = true;
+    }
   }
 
   /**
@@ -597,6 +610,10 @@ export default class SegmentLoader extends videojs.EventTarget {
    */
   resetEverything() {
     this.ended_ = false;
+    this.appendInitSegment_ = {
+      audio: true,
+      video: true
+    };
     this.resetLoader();
     this.remove(0, this.duration_());
   }
@@ -640,7 +657,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    if (!this.audioDisabled) {
+    if (!this.audioDisabled_) {
       this.sourceUpdater_.removeAudio(start, end);
     }
 
@@ -740,16 +757,16 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // check to see if we are crossing a discontinuity or requesting a segment that starts
     // earlier than the last set timestamp offset to see if we need to set the timestamp
-    // offset on the source buffer
+    // offset on the transmuxer and source buffer
     if (segmentInfo.timeline !== this.currentTimeline_ ||
-        this.startsBeforeTimestampOffset(segmentInfo)) {
+        this.startsBeforeSourceBufferTimestampOffset(segmentInfo)) {
       segmentInfo.timestampOffset = segmentInfo.startOfSegment;
     }
 
     this.loadSegment_(segmentInfo);
   }
 
-  startsBeforeTimestampOffset(segmentInfo) {
+  startsBeforeSourceBufferTimestampOffset(segmentInfo) {
     if (segmentInfo.startOfSegment === null) {
       return false;
     }
@@ -1190,7 +1207,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // Timestamp offset should be updated once we get new data and have its timing info,
     // as we use the start of the segment to offset the best guess (playlist provided)
     // timestamp offset.
-    this.updateTimestampOffset_(segmentInfo);
+    this.updateSourceBufferTimestampOffset_(segmentInfo);
 
     this.appendData_(segmentInfo, result);
   }
@@ -1558,7 +1575,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // on each queue this loader is responsible for to ensure that the appends are
     // complete.
     const waitForVideo = this.loaderType_ === 'main' && this.startingMedia_.hasVideo;
-    const waitForAudio = !this.audioDisabled && this.startingMedia_.hasAudio;
+    const waitForAudio = !this.audioDisabled_ && this.startingMedia_.hasAudio;
 
     segmentInfo.waitingOnAppends = 0;
 
@@ -1622,7 +1639,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     return false;
   }
 
-  updateTimestampOffset_(segmentInfo) {
+  updateSourceBufferTimestampOffset_(segmentInfo) {
     if (segmentInfo.timestampOffset === null ||
         // we don't yet have the start for whatever media type (video or audio) has
         // priority, timing-wise, so we must wait
@@ -1630,7 +1647,9 @@ export default class SegmentLoader extends videojs.EventTarget {
         // the timestamp offset should be set for both)?
         typeof segmentInfo.timingInfo.start !== 'number' ||
         // already updated the timestamp offset for this segment
-        segmentInfo.changedTimestampOffset) {
+        segmentInfo.changedTimestampOffset ||
+        // the alt audio loader should not be responsible for setting the timestamp offset
+        this.loaderType_ !== 'main') {
       return;
     }
 
@@ -1639,20 +1658,19 @@ export default class SegmentLoader extends videojs.EventTarget {
     // Primary timing goes by video, and audio is trimmed in the transmuxer, meaning that
     // the timing info here comes from video. In the event that the audio is longer than
     // the video, this will trim the start of the audio.
+    // This also trims any offset from 0 at the beginning of the media
     segmentInfo.timestampOffset -= segmentInfo.timingInfo.start;
     // TODO in the event that there are partial segment downloads, each will try to update
     // the timestamp offset. Retaining this bit of state prevents us from updating in the
     // future (within the same segment), however, there may be a better way to handle it.
     segmentInfo.changedTimestampOffset = true;
 
-    if (this.loaderType_ === 'main' &&
-        segmentInfo.timestampOffset !== this.sourceUpdater_.videoTimestampOffset()) {
+    if (segmentInfo.timestampOffset !== this.sourceUpdater_.videoTimestampOffset()) {
       this.sourceUpdater_.videoTimestampOffset(segmentInfo.timestampOffset);
       didChange = true;
     }
 
-    if (!this.audioDisabled_ &&
-        segmentInfo.timestampOffset !== this.sourceUpdater_.audioTimestampOffset()) {
+    if (segmentInfo.timestampOffset !== this.sourceUpdater_.audioTimestampOffset()) {
       this.sourceUpdater_.audioTimestampOffset(segmentInfo.timestampOffset);
       didChange = true;
     }

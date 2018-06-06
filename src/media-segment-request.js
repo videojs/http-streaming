@@ -469,7 +469,7 @@ const handleSegmentBytes = ({
     return;
   }
 
-  // ts
+  // ts or aac
   transmuxAndNotify({
     segment,
     bytes,
@@ -557,11 +557,6 @@ const transmuxAndNotify = ({
       }
     },
     onDone: (result) => {
-      if (isPartial && !result.audioTimingInfo && !result.videoTimingInfo) {
-        // the transmuxer hasn't yet seen enough data to get timing info (e.g., the first
-        // frame hasn't yet been completed)
-        return;
-      }
       // To handle partial appends, there won't be a done function passed in (since
       // there's still, potentially, more segment to process), so there's nothing to do.
       if (!doneFn || isPartial) {

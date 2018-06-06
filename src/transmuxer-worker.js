@@ -20,6 +20,8 @@ import fullMux from 'mux.js/lib/mp4';
 import partialMux from 'mux.js/lib/partial';
 
 const ONE_SECOND_IN_TS = 90000;
+const secondsToVideoTs = (seconds) => seconds * ONE_SECOND_IN_TS;
+const videoTsToSeconds = (videoTs) => videoTs / ONE_SECOND_IN_TS;
 
 const typeFromStreamString = (streamString) => {
   return streamString === 'AudioSegmentStream' ? 'audio' :
@@ -83,11 +85,12 @@ const wireFullTransmuxerEvents = function(transmuxer) {
   });
 
   transmuxer.on('audioTimingInfo', function(audioTimingInfo) {
+    // convert to video TS since we prioritize video time over audio
     window.postMessage({
       action: 'audioTimingInfo',
       audioTimingInfo: {
-        start: audioTimingInfo.start / ONE_SECOND_IN_TS,
-        end: audioTimingInfo.end / ONE_SECOND_IN_TS
+        start: videoTsToSeconds(audioTimingInfo.start),
+        end: videoTsToSeconds(audioTimingInfo.end)
       }
     });
   });
@@ -96,8 +99,8 @@ const wireFullTransmuxerEvents = function(transmuxer) {
     window.postMessage({
       action: 'videoTimingInfo',
       videoTimingInfo: {
-        start: videoTimingInfo.start / ONE_SECOND_IN_TS,
-        end: videoTimingInfo.end / ONE_SECOND_IN_TS
+        start: videoTsToSeconds(videoTimingInfo.start),
+        end: videoTsToSeconds(videoTimingInfo.end)
       }
     });
   });
@@ -128,7 +131,7 @@ const wirePartialTransmuxerEvents = function(transmuxer) {
     };
 
     if (typeof event.data.videoFrameDts !== 'undefined') {
-      segment.videoFrameDtsTime = event.data.videoFrameDts / ONE_SECOND_IN_TS;
+      segment.videoFrameDtsTime = videoTsToSeconds(event.data.videoFrameDts);
     }
 
     window.postMessage({
@@ -180,12 +183,13 @@ const wirePartialTransmuxerEvents = function(transmuxer) {
   });
 
   transmuxer.on('audioTimingInfo', function(audioTimingInfo) {
+    // convert to video TS since we prioritize video time over audio
     const timingInfoInSeconds = {
-      start: audioTimingInfo.start / ONE_SECOND_IN_TS,
+      start: videoTsToSeconds(audioTimingInfo.start)
     };
 
     if (audioTimingInfo.end) {
-      timingInfoInSeconds.end = audioTimingInfo.end / ONE_SECOND_IN_TS;
+      timingInfoInSeconds.end = videoTsToSeconds(audioTimingInfo.end);
     }
 
     window.postMessage({
@@ -196,11 +200,11 @@ const wirePartialTransmuxerEvents = function(transmuxer) {
 
   transmuxer.on('videoTimingInfo', function(videoTimingInfo) {
     const timingInfoInSeconds = {
-      start: videoTimingInfo.start / ONE_SECOND_IN_TS
+      start: videoTsToSeconds(videoTimingInfo.start)
     };
 
     if (videoTimingInfo.end) {
-      timingInfoInSeconds.end = videoTimingInfo.end / ONE_SECOND_IN_TS;
+      timingInfoInSeconds.end = videoTsToSeconds(videoTimingInfo.end);
     }
 
     window.postMessage({
@@ -265,11 +269,11 @@ class MessageHandlers {
     let timestampOffset = data.timestampOffset || 0;
 
     this.transmuxer.setBaseMediaDecodeTime(
-      Math.round(timestampOffset * ONE_SECOND_IN_TS));
+      Math.round(secondsToVideoTs(timestampOffset)));
   }
 
   setAudioAppendStart(data) {
-    this.transmuxer.setAudioAppendStart(Math.ceil(data.appendStart * ONE_SECOND_IN_TS));
+    this.transmuxer.setAudioAppendStart(Math.ceil(secondsToVideoTs(data.appendStart)));
   }
 
   /**
