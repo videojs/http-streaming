@@ -60,8 +60,6 @@
     (function(window, videojs) {
       var player = window.player = videojs('videojs-http-streaming-player', {
         html5: {
-          nativeAudioTracks: !!videojs.browser.IS_SAFARI,
-          nativeVideoTracks: !!videojs.browser.IS_SAFARI,
           hls: {
             overrideNative: !videojs.browser.IS_SAFARI
           }

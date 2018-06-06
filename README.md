@@ -288,21 +288,23 @@ is true, if the platform supports Media Source Extensions
 videojs-http-streaming will take over HLS playback to provide a more
 consistent experience.
 
-__NOTE__: If you use this option, you must also set
-`html5.nativeAudioTracks` and `html5.nativeVideoTracks` to
-`false`. videojs-http-streaming relies on audio and video tracks to play
-streams with alternate audio and requires additional capabilities only
-supported by non-native tracks in video.js.
-
 ```javascript
+// via the constructor
 var player = videojs('playerId', {
   html5: {
-    nativeAudioTracks: false,
-    nativeVideoTracks: false,
     hls: {
       overrideNative: true
     }
   }
+});
+
+// via the source
+var player = videojs('playerId');
+
+player.src({
+  src: 'https://example.com/index.m3u8',
+  type: 'application/x-mpegURL',
+  overrideNative: true
 });
 ```
 
