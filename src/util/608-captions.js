@@ -32,12 +32,7 @@ const handleCaptions = function(sourceHandler, sourceBuffer, segment) {
   if (segment.captions.length) {
     for (var i = 0; i < segment.captions.length; i ++) {
       const caption = segment.captions[i];
-      let track;
-
-      caption.startTime = caption.startPts / 90e3;
-      caption.endTime = caption.endPts / 90e3;
-
-      track = getOrCreateTextTrack(sourceHandler, caption);
+      let track = getOrCreateTextTrack(sourceHandler, caption);
 
       addTextTrackData(track, caption);
     }
