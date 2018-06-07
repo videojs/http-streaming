@@ -1,6 +1,3 @@
-/* eslint-disable prefer-const */
-// TODO: fix above
-
 import window from 'global/window';
 import SourceUpdater from '../src/source-updater';
 import QUnit from 'qunit';

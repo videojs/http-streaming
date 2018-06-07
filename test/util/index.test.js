@@ -20,14 +20,7 @@ QUnit.test('the environment is sane', function(assert) {
 
 QUnit.module('videojs-contrib-media-sources - General');
 
-// TODO: This can most likely be deleted as the native MediaSource
-// will be used instead
 QUnit.skip('Plugin is registered', function(assert) {
-  assert.strictEqual(
-    typeof videojs.MediaSource,
-    'function',
-    'MediaSource plugin is attached to videojs'
-  );
   assert.strictEqual(
     typeof videojs.URL,
     'object',
@@ -57,7 +50,8 @@ QUnit.test('Logger includes source', function(assert) {
   videojs.log.debug = originalLogDebug;
 });
 
-QUnit.test('array buffer created from string contains the correct codes', function(assert) {
+QUnit.test('array buffer created from string contains the correct codes',
+function(assert) {
   const text = 'test';
   const arrayBuffer = stringToArrayBuffer(text);
   const view = new Uint8Array(arrayBuffer);

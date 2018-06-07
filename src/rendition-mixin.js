@@ -1,6 +1,3 @@
-/* eslint-disable prefer-const */
-// TODO: fix above!
-
 import { isIncompatible, isEnabled } from './playlist.js';
 
 /**

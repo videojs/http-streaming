@@ -1,7 +1,3 @@
-/* eslint-disable prefer-const */
-/* eslint-disable no-else-return */
-// TODO: fix above!
-
 import videojs from 'video.js';
 import PlaylistLoader from './playlist-loader';
 import DashPlaylistLoader from './dash-playlist-loader';
@@ -144,21 +140,21 @@ export const onTrackChanged = (type, settings) => () => {
 
   if (type === 'AUDIO') {
     if (!activeGroup.playlistLoader) {
-      // when switching from demuxed audio/video to muxed audio/video (noted by no playlist
-      // loader for the audio group), we want to do a destructive reset of the main segment
-      // loader and not restart the audio loaders
+      // when switching from demuxed audio/video to muxed audio/video (noted by no
+      // playlist loader for the audio group), we want to do a destructive reset of the
+      // main segment loader and not restart the audio loaders
       mainSegmentLoader.setAudio(true);
       // don't have to worry about disabling the audio of the audio segment loader since
       // it should be stopped
       mainSegmentLoader.resetEverything();
       return;
-    } else {
-      // although the segment loader is an audio segment loader, call the setAudio
-      // function to ensure it is prepared to re-append the init segment (or handle other
-      // config changes)
-      segmentLoader.setAudio(true);
-      mainSegmentLoader.setAudio(false);
     }
+
+    // although the segment loader is an audio segment loader, call the setAudio
+    // function to ensure it is prepared to re-append the init segment (or handle other
+    // config changes)
+    segmentLoader.setAudio(true);
+    mainSegmentLoader.setAudio(false);
   }
 
   if (previousActiveLoader === activeGroup.playlistLoader) {
@@ -390,9 +386,11 @@ export const initialize = {
 
       // List of playlists that have an AUDIO attribute value matching the current
       // group ID
+      /* eslint-disable no-loop-func */
       const groupPlaylists = playlists.filter(playlist => {
         return playlist.attributes[type] === groupId;
       });
+      /* eslint-enable */
 
       for (let variantLabel in mediaGroups[type][groupId]) {
         let properties = mediaGroups[type][groupId][variantLabel];

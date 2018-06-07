@@ -24,8 +24,10 @@ const secondsToVideoTs = (seconds) => seconds * ONE_SECOND_IN_TS;
 const videoTsToSeconds = (videoTs) => videoTs / ONE_SECOND_IN_TS;
 
 const typeFromStreamString = (streamString) => {
-  return streamString === 'AudioSegmentStream' ? 'audio' :
-    streamString === 'VideoSegmentStream' ? 'video' : '';
+  if (streamString === 'AudioSegmentStream') {
+    return 'audio';
+  }
+  return streamString === 'VideoSegmentStream' ? 'video' : '';
 };
 
 /**

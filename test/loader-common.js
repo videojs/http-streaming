@@ -1,7 +1,3 @@
-/* eslint-disable prefer-const */
-/* eslint-disable no-return-assign */
-// TODO: fix above
-
 import QUnit from 'qunit';
 import videojs from 'video.js';
 import xhrFactory from '../src/xhr';
@@ -136,19 +132,19 @@ export const LoaderCommonFactory = (LoaderConstructor,
 
       this.originalTransmuxerMessageHandler = loader.transmuxer_.onmessage;
 
-      this.transmuxerMessageHandler = function(loader, assertMethod) {
-        loader.transmuxer_.onmessage = function (msg) {
+      this.transmuxerMessageHandler = function(transmuxer, assertMethod) {
+        transmuxer.onmessage = function(msg) {
           if (msg.data && msg.data.action &&
             msg.data.action === 'endSegment') {
             assertMethod();
           }
-        }
+        };
       };
     });
 
     hooks.afterEach(function(assert) {
       loader.transmuxer_.onmessage = this.originalTransmuxerMessageHandler;
-    })
+    });
 
     QUnit.test('fails without required initialization options', function(assert) {
       /* eslint-disable no-new */
@@ -189,7 +185,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       loader.load();
       assert.equal(this.requests.length, 0, 'load has no effect');
 
-      this.transmuxerMessageHandler(loader, function() {
+      this.transmuxerMessageHandler(loader.transmuxer_, function() {
         // verify stats
         assert.equal(loader.mediaBytesTransferred, 10, '10 bytes');
         assert.equal(loader.mediaTransferDuration, 100, '100 ms (clock above)');

@@ -1,6 +1,3 @@
-/* eslint-disable prefer-const */
-// TODO: fix above
-
 import QUnit from 'qunit';
 import DashPlaylistLoader from '../src/dash-playlist-loader';
 import xhrFactory from '../src/xhr';

@@ -1,6 +1,3 @@
-/* eslint-disable no-use-before-define */
-// TODO: fix above!
-
 import videojs from 'video.js';
 
 const transmuxQueue = [];
@@ -134,7 +131,9 @@ export const processTransmux = ({
     transmuxer.removeEventListener('message', handleMessage);
     handleDone_(event, transmuxedData, onDone);
 
+    /* eslint-disable no-use-before-define */
     dequeue();
+    /* eslint-enable */
   };
 
   transmuxer.addEventListener('message', handleMessage);

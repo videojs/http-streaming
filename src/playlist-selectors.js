@@ -1,6 +1,3 @@
-/* eslint-disable prefer-const */
-// TODO: fix above!
-
 import window from 'global/window';
 import Config from './config';
 import Playlist from './playlist';

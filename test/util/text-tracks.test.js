@@ -35,7 +35,9 @@ test('does nothing if no cues are specified', function(assert) {
     metadataArray: []
   });
   assert.strictEqual(this.inbandTextTracks.CC1.cues.length, 0, 'added no 608 cues');
-  assert.strictEqual(this.inbandTextTracks.metadataTrack_.cues.length, 0, 'added no metadata cues');
+  assert.strictEqual(this.inbandTextTracks.metadataTrack_.cues.length,
+                     0,
+                     'added no metadata cues');
 });
 
 test('creates cues for 608 captions with "stream" property in ccX', function(assert) {
@@ -66,11 +68,21 @@ test('creates cues for 608 captions with "stream" property in ccX', function(ass
     }],
     metadataArray: []
   });
-  assert.strictEqual(this.inbandTextTracks.CC1.cues.length, 1, 'added one 608 cue to CC1');
-  assert.strictEqual(this.inbandTextTracks.CC2.cues.length, 1, 'added one 608 cue to CC2');
-  assert.strictEqual(this.inbandTextTracks.CC3.cues.length, 1, 'added one 608 cue to CC3');
-  assert.strictEqual(this.inbandTextTracks.CC4.cues.length, 1, 'added one 608 cue to CC4');
-  assert.strictEqual(this.inbandTextTracks.metadataTrack_.cues.length, 0, 'added no metadata cues');
+  assert.strictEqual(this.inbandTextTracks.CC1.cues.length,
+                     1,
+                     'added one 608 cue to CC1');
+  assert.strictEqual(this.inbandTextTracks.CC2.cues.length,
+                     1,
+                     'added one 608 cue to CC2');
+  assert.strictEqual(this.inbandTextTracks.CC3.cues.length,
+                     1,
+                     'added one 608 cue to CC3');
+  assert.strictEqual(this.inbandTextTracks.CC4.cues.length,
+                     1,
+                     'added one 608 cue to CC4');
+  assert.strictEqual(this.inbandTextTracks.metadataTrack_.cues.length,
+                     0,
+                     'added no metadata cues');
 });
 
 test('creates cues for timed metadata', function(assert) {
@@ -85,5 +97,7 @@ test('creates cues for timed metadata', function(assert) {
     }]
   });
   assert.strictEqual(this.inbandTextTracks.CC1.cues.length, 0, 'added no 608 cues');
-  assert.strictEqual(this.inbandTextTracks.metadataTrack_.cues.length, 1, 'added one metadata cues');
+  assert.strictEqual(this.inbandTextTracks.metadataTrack_.cues.length,
+                     1,
+                     'added one metadata cues');
 });

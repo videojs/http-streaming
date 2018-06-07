@@ -1,7 +1,3 @@
-/* eslint-disable prefer-const */
-/* eslint-disable no-return-assign */
-// TODO: fix above!
-
 /**
  * @file vtt-segment-loader.js
  */
@@ -302,7 +298,7 @@ export default class VTTSegmentLoader extends SegmentLoader {
     } else {
       segmentInfo.timingInfo = {
         start: segmentInfo.startOfSegment,
-        end: segmentInfo.startOfSegment + segmentInfo.duration,
+        end: segmentInfo.startOfSegment + segmentInfo.duration
       };
     }
 

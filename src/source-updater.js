@@ -1,12 +1,7 @@
-/* eslint-disable prefer-const */
-/* eslint-disable no-unused-vars */
-// TODO: fix above!
-
 /**
  * @file source-updater.js
  */
 import videojs from 'video.js';
-import { printableRange } from './ranges';
 import logger from './util/logger';
 import noop from './util/noop';
 import { parseMimeTypes } from './util/codecs';
@@ -80,9 +75,7 @@ const pushQueue = (type, updater, action) => {
 
 const onUpdateend = (type, updater) => () => {
   const {
-    queue: { [type]: queue },
-    logger_,
-    [`${type}Buffer`]: sourceBuffer
+    queue: { [type]: queue }
   } = updater;
 
   if (!queue.pending) {
@@ -94,10 +87,7 @@ const onUpdateend = (type, updater) => () => {
     return;
   }
 
-  const {
-    doneFn,
-    name
-  } = queue.pending;
+  const doneFn = queue.pending.doneFn;
 
   queue.pending = null;
 

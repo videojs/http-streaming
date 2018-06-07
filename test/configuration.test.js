@@ -1,13 +1,7 @@
-/* eslint-disable prefer-const */
-/* eslint-disable no-return-assign */
-/* eslint-disable no-unused-vars */
-// TODO: fix above
-
 import QUnit from 'qunit';
 import {
   createPlayer,
   useFakeEnvironment,
-  openMediaSource,
   useFakeMediaSource
 } from './test-helpers.js';
 import videojs from 'video.js';

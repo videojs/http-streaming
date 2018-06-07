@@ -1,7 +1,3 @@
-/* eslint-disable prefer-const */
-/* eslint-disable no-use-before-define */
-// TODO: fix above!
-
 import videojs from 'video.js';
 import BinUtils from './bin-utils';
 import { stringToArrayBuffer } from './util/string-to-array-buffer';
@@ -213,7 +209,7 @@ const handleInitSegmentResponse = (segment, finishProcessingFn) => (error, reque
  *                                        this request
  */
 const handleSegmentResponse =
-  (segment, finishProcessingFn, responseType) => (error, request) => {
+(segment, finishProcessingFn, responseType) => (error, request) => {
   const response = request.response;
   const errorObj = handleErrors(error, request);
 
@@ -243,6 +239,140 @@ const handleSegmentResponse =
   }
 
   return finishProcessingFn(null, segment);
+};
+
+const transmuxAndNotify = ({
+  segment,
+  bytes,
+  isPartial,
+  trackInfoFn,
+  timingInfoFn,
+  dataFn,
+  doneFn
+}) => {
+  // Keep references to each function so we can null them out after we're done with them.
+  // One reason for this is that in the case of full segments, we want to trust start
+  // times from the probe, rather than the transmuxer.
+  let audioStartFn = timingInfoFn.bind(null, segment, 'audio', 'start');
+  let audioEndFn = timingInfoFn.bind(null, segment, 'audio', 'end');
+  let videoStartFn = timingInfoFn.bind(null, segment, 'video', 'start');
+  let videoEndFn = timingInfoFn.bind(null, segment, 'video', 'end');
+
+  // TODO
+  if (!isPartial && !segment.lastReachedChar) {
+    // In the full segment transmuxer, we don't yet have the ability to extract a "proper"
+    // start time. Meaning, cached frame data may corrupt our notion of where this segment
+    // really starts. Until that's fixed, full segment appends should probe for the info
+    // needed.
+    const probeResult = probeTsSegment(bytes, segment.baseStartTime);
+
+    if (probeResult) {
+      trackInfoFn(segment, {
+        hasAudio: probeResult.hasAudio,
+        hasVideo: probeResult.hasVideo
+      });
+      trackInfoFn = null;
+
+      audioStartFn(probeResult.audioStart);
+      audioStartFn = null;
+      videoStartFn(probeResult.videoStart);
+      videoStartFn = null;
+    }
+  }
+
+  transmux({
+    bytes,
+    transmuxer: segment.transmuxer,
+    audioAppendStart: segment.audioAppendStart,
+    gopsToAlignWith: segment.gopsToAlignWith,
+    isPartial,
+    onData: (result) => {
+      dataFn(segment, result);
+    },
+    onTrackInfo: (trackInfo) => {
+      if (trackInfoFn) {
+        trackInfoFn(segment, trackInfo);
+      }
+    },
+    onAudioTimingInfo: (audioTimingInfo) => {
+      // we only want the first start value we encounter
+      if (audioStartFn && typeof audioTimingInfo.start !== 'undefined') {
+        audioStartFn(audioTimingInfo.start);
+        audioStartFn = null;
+      }
+      // we want to continually update the end time
+      if (audioEndFn && typeof audioTimingInfo.end !== 'undefined') {
+        audioEndFn(audioTimingInfo.end);
+      }
+    },
+    onVideoTimingInfo: (videoTimingInfo) => {
+      // we only want the first start value we encounter
+      if (videoStartFn && typeof videoTimingInfo.start !== 'undefined') {
+        videoStartFn(videoTimingInfo.start);
+        videoStartFn = null;
+      }
+      // we want to continually update the end time
+      if (videoEndFn && typeof videoTimingInfo.end !== 'undefined') {
+        videoEndFn(videoTimingInfo.end);
+      }
+    },
+    onDone: (result) => {
+      // To handle partial appends, there won't be a done function passed in (since
+      // there's still, potentially, more segment to process), so there's nothing to do.
+      if (!doneFn || isPartial) {
+        return;
+      }
+      doneFn(null, segment, result);
+    }
+  });
+};
+
+const handleSegmentBytes = ({
+  segment,
+  bytes,
+  isPartial,
+  trackInfoFn,
+  timingInfoFn,
+  dataFn,
+  doneFn
+}) => {
+  if (segment.map) {
+    // fmp4
+    // since we don't support appending fmp4 data on progress, we know we have the full
+    // segment here
+    const startTime = probeMp4StartTime(bytes, segment.map.bytes);
+
+    // since fmp4 isn't parsed yet, we can't provide any track info, however, the callback
+    // should still be called before the dataFn is called
+    trackInfoFn(segment, {});
+    dataFn(segment, {
+      data: bytes,
+      // the probe doesn't provide the end of the segment, so the end must be calculated
+      // later based on the duration of the segment
+      timingInfo: {
+        start: startTime
+      }
+    });
+    doneFn(null, segment, {});
+    return;
+  }
+
+  // VTT or other segments that don't need processing
+  if (!segment.transmuxer) {
+    doneFn(null, segment, {});
+    return;
+  }
+
+  // ts or aac
+  transmuxAndNotify({
+    segment,
+    bytes,
+    isPartial,
+    trackInfoFn,
+    timingInfoFn,
+    dataFn,
+    doneFn
+  });
 };
 
 /**
@@ -433,140 +563,6 @@ const handleProgress = ({
   return progressFn(event, segment);
 };
 
-const handleSegmentBytes = ({
-  segment,
-  bytes,
-  isPartial,
-  trackInfoFn,
-  timingInfoFn,
-  dataFn,
-  doneFn
-}) => {
-  if (segment.map) {
-    // fmp4
-    // since we don't support appending fmp4 data on progress, we know we have the full
-    // segment here
-    const startTime = probeMp4StartTime(bytes, segment.map.bytes);
-
-    // since fmp4 isn't parsed yet, we can't provide any track info, however, the callback
-    // should still be called before the dataFn is called
-    trackInfoFn(segment, {});
-    dataFn(segment, {
-      data: bytes,
-      // the probe doesn't provide the end of the segment, so the end must be calculated
-      // later based on the duration of the segment
-      timingInfo: {
-        start: startTime
-      }
-    });
-    doneFn(null, segment, {});
-    return;
-  }
-
-  // VTT or other segments that don't need processing
-  if (!segment.transmuxer) {
-    doneFn(null, segment, {});
-    return;
-  }
-
-  // ts or aac
-  transmuxAndNotify({
-    segment,
-    bytes,
-    isPartial,
-    trackInfoFn,
-    timingInfoFn,
-    dataFn,
-    doneFn
-  });
-};
-
-const transmuxAndNotify = ({
-  segment,
-  bytes,
-  isPartial,
-  trackInfoFn,
-  timingInfoFn,
-  dataFn,
-  doneFn
-}) => {
-  // Keep references to each function so we can null them out after we're done with them.
-  // One reason for this is that in the case of full segments, we want to trust start
-  // times from the probe, rather than the transmuxer.
-  let audioStartFn = timingInfoFn.bind(null, segment, 'audio', 'start');
-  let audioEndFn = timingInfoFn.bind(null, segment, 'audio', 'end');
-  let videoStartFn = timingInfoFn.bind(null, segment, 'video', 'start');
-  let videoEndFn = timingInfoFn.bind(null, segment, 'video', 'end');
-
-  // TODO
-  if (!isPartial && !segment.lastReachedChar) {
-    // In the full segment transmuxer, we don't yet have the ability to extract a "proper"
-    // start time. Meaning, cached frame data may corrupt our notion of where this segment
-    // really starts. Until that's fixed, full segment appends should probe for the info
-    // needed.
-    const probeResult = probeTsSegment(bytes, segment.baseStartTime);
-
-    if (probeResult) {
-      trackInfoFn(segment, {
-        hasAudio: probeResult.hasAudio,
-        hasVideo: probeResult.hasVideo
-      });
-      trackInfoFn = null;
-
-      audioStartFn(probeResult.audioStart);
-      audioStartFn = null;
-      videoStartFn(probeResult.videoStart);
-      videoStartFn = null;
-    }
-  }
-
-  transmux({
-    bytes,
-    transmuxer: segment.transmuxer,
-    audioAppendStart: segment.audioAppendStart,
-    gopsToAlignWith: segment.gopsToAlignWith,
-    isPartial,
-    onData: (result) => {
-      dataFn(segment, result);
-    },
-    onTrackInfo: (trackInfo) => {
-      if (trackInfoFn) {
-        trackInfoFn(segment, trackInfo);
-      }
-    },
-    onAudioTimingInfo: (audioTimingInfo) => {
-      // we only want the first start value we encounter
-      if (audioStartFn && typeof audioTimingInfo.start !== 'undefined') {
-        audioStartFn(audioTimingInfo.start);
-        audioStartFn = null;
-      }
-      // we want to continually update the end time
-      if (audioEndFn && typeof audioTimingInfo.end !== 'undefined') {
-        audioEndFn(audioTimingInfo.end);
-      }
-    },
-    onVideoTimingInfo: (videoTimingInfo) => {
-      // we only want the first start value we encounter
-      if (videoStartFn && typeof videoTimingInfo.start !== 'undefined') {
-        videoStartFn(videoTimingInfo.start);
-        videoStartFn = null;
-      }
-      // we want to continually update the end time
-      if (videoEndFn && typeof videoTimingInfo.end !== 'undefined') {
-        videoEndFn(videoTimingInfo.end);
-      }
-    },
-    onDone: (result) => {
-      // To handle partial appends, there won't be a done function passed in (since
-      // there's still, potentially, more segment to process), so there's nothing to do.
-      if (!doneFn || isPartial) {
-        return;
-      }
-      doneFn(null, segment, result);
-    }
-  });
-};
-
 /**
  * Load all resources and does any processing necessary for a media-segment
  *
@@ -682,7 +678,7 @@ export const mediaSegmentRequest = ({
       // XHR binary charset opt by Marcus Granado 2006 [http://mgran.blogspot.com]
       // makes the browser pass through the "text" unparsed
       xhrObject.overrideMimeType('text/plain; charset=x-user-defined');
-    }
+    };
   }
 
   const segmentRequestCallback = handleSegmentResponse(

@@ -2,9 +2,6 @@
  * @file bin-utils.js
  */
 
-/* eslint-disable prefer-const */
-// TODO: fix above!
-
 /**
  * convert a TimeRange to text
  *

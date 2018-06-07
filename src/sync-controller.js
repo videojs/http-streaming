@@ -1,6 +1,3 @@
-/* eslint-disable prefer-const */
-// TODO: fix above!
-
 /**
  * @file sync-controller.js
  */

@@ -1,6 +1,3 @@
-/* eslint-disable prefer-const */
-// TODO: fix above!
-
 import { EventTarget } from 'video.js';
 import mpdParser from 'mpd-parser';
 import {

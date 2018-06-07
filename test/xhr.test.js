@@ -1,6 +1,3 @@
-/* eslint-disable prefer-const */
-// TODO: fix above
-
 import QUnit from 'qunit';
 import xhrFactory from '../src/xhr';
 import { useFakeEnvironment } from './test-helpers.js';

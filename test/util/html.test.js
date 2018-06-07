@@ -1,20 +1,8 @@
-/* eslint-disable prefer-const */
-/* eslint-disable no-undef */
-/* eslint-disable no-return-assign */
-// TODO: fix above
-
 import document from 'global/document';
 import window from 'global/window';
 import QUnit from 'qunit';
 import sinon from 'sinon';
 import videojs from 'video.js';
-// import HtmlMediaSource from '../../src/mse/html-media-source';
-
-// we disable this because browserify needs to include these files
-// but the exports are not important
-/* eslint-disable no-unused-vars */
-// import {MediaSource, URL} from '../../src/mse';
-/* eslint-disable no-unused-vars */
 
 QUnit.module('videojs-contrib-media-sources - HTML', {
   beforeEach() {
@@ -60,14 +48,6 @@ QUnit.module('videojs-contrib-media-sources - HTML', {
     window.MediaSource = this.oldMediaSource;
     window.WebKitMediaSource = window.MediaSource;
   }
-});
-
-// TODO: we're using native MediaSources now, delete this
-QUnit.skip('constructs a native MediaSource', function(assert) {
-  assert.ok(
-    new videojs.MediaSource().nativeMediaSource_.isNative,
-    'constructed a MediaSource'
-  );
 });
 
 const createDataMessage = function(type, typedArray, extraObject) {
@@ -164,7 +144,8 @@ function(assert) {
 // TODO: should be able to delete this
 QUnit.skip('duration is faked when playing a live stream', function(assert) {
   let mediaSource = new videojs.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+
+  mediaSource.addSourceBuffer('video/mp2t');
 
   mediaSource.duration = Infinity;
   mediaSource.nativeMediaSource_.duration = 100;
@@ -178,7 +159,8 @@ QUnit.skip('duration is faked when playing a live stream', function(assert) {
 QUnit.skip(
 'duration uses the underlying MediaSource\'s duration when not live', function(assert) {
   let mediaSource = new videojs.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+
+  mediaSource.addSourceBuffer('video/mp2t');
 
   mediaSource.duration = 100;
   mediaSource.nativeMediaSource_.duration = 120;
@@ -187,7 +169,8 @@ QUnit.skip(
 });
 
 // TODO: should be able to delete this
-QUnit.skip('abort on the fake source buffer calls abort on the real ones', function(assert) {
+QUnit.skip('abort on the fake source buffer calls abort on the real ones',
+function(assert) {
   let mediaSource = new videojs.MediaSource();
   let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
   let messages = [];
@@ -303,8 +286,10 @@ function(assert) {
 QUnit.test('removing doesn\'t happen with audio disabled', function(assert) {
   let mediaSource = new window.MediaSource();
   let muxedBuffer = mediaSource.addSourceBuffer('video/mp2t');
+
   // creating this audio buffer disables audio in the muxed one
-  let audioBuffer = mediaSource.addSourceBuffer('audio/mp2t; codecs="mp4a.40.2"');
+  mediaSource.addSourceBuffer('audio/mp2t; codecs="mp4a.40.2"');
+
   let removedCue = [];
   let removes = 0;
 
@@ -344,26 +329,9 @@ QUnit.test('removing doesn\'t happen with audio disabled', function(assert) {
               'the cue that overlapped the remove region was removed');
 });
 
-// TODO can probably remove this now
-QUnit.todo('readyState delegates to the native implementation', function(assert) {
-  let mediaSource = new HtmlMediaSource();
-
-  assert.strictEqual(
-    mediaSource.readyState,
-    mediaSource.nativeMediaSource_.readyState,
-    'readyStates are equal'
-  );
-
-  mediaSource.nativeMediaSource_.readyState = 'nonsense stuff';
-  assert.strictEqual(
-    mediaSource.readyState,
-    mediaSource.nativeMediaSource_.readyState,
-    'readyStates are equal'
-  );
-});
-
 // TODO We should test addSeekableRange in master playlist controller instead
-QUnit.todo('addSeekableRange_ throws an error for media with known duration', function(assert) {
+QUnit.todo('addSeekableRange_ throws an error for media with known duration',
+function(assert) {
   let mediaSource = new window.MediaSource();
 
   mediaSource.duration = 100;
@@ -382,7 +350,9 @@ QUnit.todo('addSeekableRange_ adds to the native MediaSource duration', function
   assert.strictEqual(mediaSource.duration, Infinity, 'emulated duration');
 
   mediaSource.addSeekableRange_(120, 220);
-  assert.strictEqual(mediaSource.nativeMediaSource_.duration, 240, 'ignored the smaller range');
+  assert.strictEqual(mediaSource.nativeMediaSource_.duration,
+                     240,
+                     'ignored the smaller range');
   assert.strictEqual(mediaSource.duration, Infinity, 'emulated duration');
 });
 
@@ -594,7 +564,8 @@ function(assert) {
   // audio track change
   this.player.audioTracks().trigger('change');
   sourceBuffer.audioDisabled_ = false;
-  assert.ok(sourceBuffer.appendAudioInitSegment_, 'audio change sets appendAudioInitSegment_');
+  assert.ok(sourceBuffer.appendAudioInitSegment_,
+            'audio change sets appendAudioInitSegment_');
   dataBuffer = new Uint8Array([6, 7]);
   sourceBuffer.transmuxer_.onmessage(createDataMessage('audio', dataBuffer, {
     initSegment: {
@@ -629,7 +600,8 @@ function(assert) {
 
   // rendition switch
   this.player.trigger('mediachange');
-  assert.ok(sourceBuffer.appendAudioInitSegment_, 'media change sets appendAudioInitSegment_');
+  assert.ok(sourceBuffer.appendAudioInitSegment_,
+            'media change sets appendAudioInitSegment_');
   dataBuffer = new Uint8Array([10, 11]);
   sourceBuffer.transmuxer_.onmessage(createDataMessage('audio', dataBuffer, {
     initSegment: {
@@ -885,7 +857,8 @@ QUnit.todo('forwards codec strings to native buffers when specified', function(a
 });
 
 // TODO: maybe rewrite for native world?
-QUnit.todo('parses old-school apple codec strings to the modern standard', function(assert) {
+QUnit.todo('parses old-school apple codec strings to the modern standard',
+function(assert) {
   let mediaSource = new videojs.MediaSource();
   let sourceBuffer =
     mediaSource.addSourceBuffer('video/mp2t; codecs="avc1.100.31,mp4a.40.5"');
@@ -1037,7 +1010,9 @@ QUnit.todo('aggregates source buffer update events', function(assert) {
     updateends++;
   });
 
-  assert.strictEqual(updatestarts, 0, 'no updatestarts before a `done` message is received');
+  assert.strictEqual(updatestarts,
+                     0,
+                     'no updatestarts before a `done` message is received');
   assert.strictEqual(updates, 0, 'no updates before a `done` message is received');
   assert.strictEqual(updateends, 0, 'no updateends before a `done` message is received');
 
@@ -1121,7 +1096,9 @@ QUnit.todo('translates caption events into WebVTT cues', function(assert) {
   assert.strictEqual(types.length, 1, 'created one text track');
   assert.strictEqual(types[0], 'captions', 'the type was captions');
   assert.strictEqual(cues.length, 1, 'created one cue');
-  assert.strictEqual(cues[0].text, 'This is an in-band caption in CC1', 'included the text');
+  assert.strictEqual(cues[0].text,
+                     'This is an in-band caption in CC1',
+                     'included the text');
   assert.strictEqual(cues[0].startTime, 11, 'started at eleven');
   assert.strictEqual(cues[0].endTime, 13, 'ended at thirteen');
 });
@@ -1184,14 +1161,17 @@ QUnit.todo('captions use existing tracks with id equal to CC#', function(assert)
   }));
 
   sourceBuffer.transmuxer_.onmessage(doneMessage);
-  let cues = sourceBuffer.inbandTextTracks_.CC1.cues;
 
   assert.strictEqual(addTrackCalled, 0, 'no tracks were created');
   assert.strictEqual(tracks.CC1.cues.length, 1, 'CC1 contains 1 cue');
   assert.strictEqual(tracks.CC2.cues.length, 1, 'CC2 contains 1 cue');
 
-  assert.strictEqual(tracks.CC1.cues[0].text, 'This is an in-band caption in CC1', 'CC1 contains the right cue');
-  assert.strictEqual(tracks.CC2.cues[0].text, 'This is an in-band caption in CC2', 'CC2 contains the right cue');
+  assert.strictEqual(tracks.CC1.cues[0].text,
+                     'This is an in-band caption in CC1',
+                     'CC1 contains the right cue');
+  assert.strictEqual(tracks.CC2.cues[0].text,
+                     'This is an in-band caption in CC2',
+                     'CC2 contains the right cue');
 });
 
 // TODO most likely belongs somewhere else?
@@ -1294,13 +1274,12 @@ QUnit.todo('active source buffers are updated on each buffer\'s updateend',
 function(assert) {
   let mediaSource = new window.MediaSource();
   let updateCallCount = 0;
-  let sourceBuffer;
 
   mediaSource.updateActiveSourceBuffers_ = () => {
     updateCallCount++;
   };
 
-  sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  mediaSource.addSourceBuffer('video/mp2t');
   mediaSource.player_ = this.player;
   mediaSource.url_ = this.url;
   mediaSource.trigger('sourceopen');
@@ -1311,7 +1290,7 @@ function(assert) {
   assert.strictEqual(updateCallCount, 1,
               'active source buffers updated after addtrack');
 
-  sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  mediaSource.addSourceBuffer('video/mp2t');
   assert.strictEqual(updateCallCount, 1,
               'active source buffers not updated on adding second source buffer');
 
@@ -1610,7 +1589,8 @@ QUnit.todo('audio segments with info trigger audioinfo event', function(assert) 
 });
 
 // TODO: rewrite for native MediaSource world
-QUnit.todo('creates native SourceBuffers immediately if a second VirtualSourceBuffer is created',
+QUnit.todo(
+'creates native SourceBuffers immediately if a second VirtualSourceBuffer is created',
 function(assert) {
   let mediaSource = new window.MediaSource();
   let sourceBuffer =

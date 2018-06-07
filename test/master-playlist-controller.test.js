@@ -1,7 +1,3 @@
-/* eslint-disable prefer-const */
-/* eslint-disable no-return-assign */
-// TODO: fix above
-
 import QUnit from 'qunit';
 import videojs from 'video.js';
 import {

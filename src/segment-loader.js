@@ -1,8 +1,3 @@
-/* eslint-disable prefer-const */
-/* eslint-disable no-unused-vars */
-/* eslint-disable no-return-assign */
-// TODO: fix above!
-
 /**
  * @file segment-loader.js
  */
@@ -19,7 +14,6 @@ import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ra
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
 import logger from './util/logger';
 import { concatSegments } from './util/segment';
-import { concatTypedArrays } from './util/typed-array';
 import {
   addTextTrackData,
   createTextTracksIfNecessary,
@@ -912,7 +906,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       // since the transmuxer is using the actual timing values, but the buffer is
       // adjusted by the timestamp offset, we must adjust the value here
       audioAppendStart = audioBuffered.end(audioBuffered.length - 1) -
-        this.sourceUpdater_.audioTimestampOffset();;
+        this.sourceUpdater_.audioTimestampOffset();
     }
 
     if (videoBuffered) {

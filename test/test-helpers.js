@@ -1,15 +1,6 @@
-/* eslint-disable prefer-const */
-/* eslint-disable no-undef */
-/* eslint-disable no-unused-vars */
-// TODO: fix above
-
 import document from 'global/document';
 import sinon from 'sinon';
 import videojs from 'video.js';
-/* eslint-disable no-unused-vars */
-// needed so MediaSource can be registered with videojs
-// import MediaSource from '../src/mse';
-/* eslint-enable */
 import testDataManifests from './test-manifests.js';
 import xhrFactory from '../src/xhr';
 import window from 'global/window';
@@ -120,6 +111,7 @@ export class MockTextTrack {
 export const useFakeMediaSource = function() {
   let RealMediaSource = window.MediaSource;
 
+  // TODO
   // window.MediaSource = MockMediaSource;
 
   return {
@@ -209,7 +201,8 @@ export const useFakeEnvironment = function(assert) {
   Object.defineProperty(XMLHttpRequest.prototype, 'responseText', {
     get() {
       // special case for media segment request partial downloads
-      // if (this.mimeTypeOverride === 'text/plain; charset=x-user-defined' && responseText) {
+      // if (this.mimeTypeOverride === 'text/plain; charset=x-user-defined' &&
+      //     responseText) {
       //   // responseText should be an ArrayBuffer
       //   return (new TextDecoder()).decode(responseText);
       // }

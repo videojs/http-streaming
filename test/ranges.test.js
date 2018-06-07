@@ -1,6 +1,3 @@
-/* eslint-disable prefer-const */
-// TODO: fix above
-
 import * as Ranges from '../src/ranges';
 import {createTimeRanges} from 'video.js';
 import QUnit from 'qunit';
