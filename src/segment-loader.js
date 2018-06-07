@@ -222,6 +222,10 @@ export default class SegmentLoader extends videojs.EventTarget {
       audio: true,
       video: true
     };
+    this.playlistOfLastInitSegment_ = {
+      audio: null,
+      video: null
+    };
     this.appendQueue_ = [];
 
     // Fragmented mp4 playback
@@ -1205,12 +1209,38 @@ export default class SegmentLoader extends videojs.EventTarget {
       });
     }
 
+    // Init segments for audio and video only need to be appended in certain cases. Now
+    // that data is about to be appended, we can check the final cases to determine
+    // whether we should append an init segment.
+    this.updateAppendInitSegmentStatus(segmentInfo, result.type);
     // Timestamp offset should be updated once we get new data and have its timing info,
     // as we use the start of the segment to offset the best guess (playlist provided)
     // timestamp offset.
     this.updateSourceBufferTimestampOffset_(segmentInfo);
 
     this.appendData_(segmentInfo, result);
+  }
+
+  updateAppendInitSegmentStatus(segmentInfo, type) {
+    // alt audio doesn't manage timestamp offset
+    if (this.loaderType_ === 'main' &&
+        typeof segmentInfo.timestampOffset === 'number' &&
+        // in the case that we're handling partial data, we don't want to append an init
+        // segment for each chunk
+        !segmentInfo.changedTimestampOffset) {
+      // if the timestamp offset changed, the timeline may have changed, so we have to re-
+      // append init segments
+      this.appendInitSegment_ = {
+        audio: true,
+        video: true
+      };
+    }
+
+    if (this.playlistOfLastInitSegment_[type] !== segmentInfo.playlist) {
+      // make sure we append init segment on playlist changes, in case the media config
+      // changed
+      this.appendInitSegment_[type] = true;
+    }
   }
 
   appendData_(segmentInfo, result) {
@@ -1248,11 +1278,14 @@ export default class SegmentLoader extends videojs.EventTarget {
       }
     }
 
-    // TODO handle resetting appendInitSegment (discos, track changes, and media changes)
-    // We also may or may not want to always append the init segment for video (we used to
-    // always append it for each video segment). Consider appending on each new segment.
+    //  Consider always appending an init segment for video (we used to, but it might not
+    //  be necessary).
     if (initSegment && this.appendInitSegment_[type]) {
       this.appendInitSegment_[type] = segmentInfo.segment.map ? true : false;
+      // Make sure we track the playlist that we last used for the init segment, so that
+      // we can re-append the init segment in the event that we get data from a new
+      // playlist. Discontinuities and track changes are handled in other sections.
+      this.playlistOfLastInitSegment_[type] = segmentInfo.playlist;
 
       segments.unshift(initSegment);
       byteLength += initSegment.byteLength;
