@@ -310,11 +310,14 @@ export const setupListeners = {
       segmentLoaders: { [type]: segmentLoader },
       mediaTypes: { [type]: mediaType }
     } = settings;
+    const subtitleRequestOptions = videojs.mergeOptions(requestOptions, {
+      responseType: 'text'
+    });
 
     playlistLoader.on('loadedmetadata', () => {
       const media = playlistLoader.media();
 
-      segmentLoader.playlist(media, requestOptions);
+      segmentLoader.playlist(media, subtitleRequestOptions);
       segmentLoader.track(mediaType.activeTrack());
 
       // if the video is already playing, or if this isn't a live video and preload
@@ -325,7 +328,7 @@ export const setupListeners = {
     });
 
     playlistLoader.on('loadedplaylist', () => {
-      segmentLoader.playlist(playlistLoader.media(), requestOptions);
+      segmentLoader.playlist(playlistLoader.media(), subtitleRequestOptions);
 
       // If the player isn't paused, ensure that the segment loader is running
       if (!tech.paused()) {

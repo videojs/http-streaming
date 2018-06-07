@@ -24,7 +24,6 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
     this.parserCreated = false;
 
     window.WebVTT = () => {};
-    window.WebVTT.StringDecoder = () => {};
     window.WebVTT.Parser = () => {
       this.parserCreated = true;
       return {
@@ -69,7 +68,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
       assert.equal(loader.state, 'INIT', 'waiting in init');
       assert.equal(loader.paused(), false, 'not paused');
 
-      loader.playlist(playlistWithDuration(10));
+      loader.playlist(playlistWithDuration(10), { response: 'text' });
       assert.equal(this.requests.length, 0, 'have not made a request yet');
       loader.track(this.track);
       this.clock.tick(1);
@@ -80,7 +79,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
 
     QUnit.test(`calling track and load begins buffering`, function(assert) {
       assert.equal(loader.state, 'INIT', 'starts in the init state');
-      loader.playlist(playlistWithDuration(10));
+      loader.playlist(playlistWithDuration(10), { response: 'text' });
       assert.equal(loader.state, 'INIT', 'starts in the init state');
       assert.ok(loader.paused(), 'starts paused');
 
@@ -103,7 +102,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
 
       playlist.endList = false;
 
-      loader.playlist(playlist);
+      loader.playlist(playlist, { response: 'text' });
       loader.track(this.track);
       loader.load();
       this.clock.tick(1);
@@ -115,7 +114,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
                    'correct segment reference');
 
       // wrap up the first request to set mediaIndex and start normal live streaming
-      this.requests[0].response = new Uint8Array(10).buffer;
+      this.requests[0].response = '';
       this.requests.shift().respond(200, null, '');
       buffered = videojs.createTimeRanges([[0, 10]]);
       this.clock.tick(1);
@@ -131,7 +130,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
 
       playlistUpdated.segments.shift();
       playlistUpdated.mediaSequence++;
-      loader.playlist(playlistUpdated);
+      loader.playlist(playlistUpdated, { response: 'text' });
 
       assert.equal(loader.pendingSegment_.uri, '1.vtt', 'second segment still pending');
       assert.equal(loader.pendingSegment_.segment.uri,
@@ -144,7 +143,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
         segmentInfo.timestampmap = { MPEGTS: 0, LOCAL: 0 };
       };
 
-      this.requests[0].response = new Uint8Array(10).buffer;
+      this.requests[0].response = '';
       this.requests.shift().respond(200, null, '');
 
       assert.ok(playlistUpdated.segments[0].empty,
@@ -163,7 +162,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
 
       playlist.endList = false;
 
-      loader.playlist(playlist);
+      loader.playlist(playlist, { response: 'text' });
       loader.track(this.track);
       loader.load();
       this.clock.tick(1);
@@ -175,7 +174,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
                    'correct segment reference');
 
       // wrap up the first request to set mediaIndex and start normal live streaming
-      this.requests[0].response = new Uint8Array(10).buffer;
+      this.requests[0].response = '';
       this.requests.shift().respond(200, null, '');
       buffered = videojs.createTimeRanges([[0, 10]]);
       this.clock.tick(1);
@@ -192,7 +191,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
       playlistUpdated.segments.shift();
       playlistUpdated.segments.shift();
       playlistUpdated.mediaSequence += 2;
-      loader.playlist(playlistUpdated);
+      loader.playlist(playlistUpdated, { response: 'text' });
 
       assert.equal(loader.pendingSegment_.uri, '1.vtt', 'second segment still pending');
       assert.equal(loader.pendingSegment_.segment.uri,
@@ -205,7 +204,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
         segmentInfo.timestampmap = { MPEGTS: 0, LOCAL: 0 };
       };
 
-      this.requests[0].response = new Uint8Array(10).buffer;
+      this.requests[0].response = '';
       this.requests.shift().respond(200, null, '');
 
       assert.ok(playlist.segments[1].empty,
@@ -227,7 +226,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
         return { mediaIndex: 2, timeline: 2, segment: { } };
       };
 
-      loader.playlist(playlist);
+      loader.playlist(playlist, { response: 'text' });
       loader.track(this.track);
       loader.load();
 
@@ -285,7 +284,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
         off() {}
       };
 
-      loader.playlist(playlist);
+      loader.playlist(playlist, { response: 'text' });
       loader.track(this.track);
       loader.load();
 
@@ -297,7 +296,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
       assert.equal(loader.state, 'WAITING', 'loader is waiting on segment request');
       assert.ok(!parsedCues, 'no cues parsed yet');
 
-      this.requests[0].response = new Uint8Array(10).buffer;
+      this.requests[0].response = '';
       this.requests.shift().respond(200, null, '');
 
       this.clock.tick(1);
@@ -380,7 +379,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
         };
       };
 
-      loader.playlist(playlist);
+      loader.playlist(playlist, { response: 'text' });
       loader.track(this.track);
       loader.load();
 
@@ -400,8 +399,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
       `;
 
       // state WAITING for segment response
-      this.requests[0].response =
-        new Uint8Array(vttString.split('').map(char => char.charCodeAt(0)));
+      this.requests[0].response = vttString;
       this.requests.shift().respond(200, null, '');
 
       this.clock.tick(1);
@@ -424,13 +422,13 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
         segmentInfo.timestampmap = { MPEGTS: 0, LOCAL: 0 };
       };
 
-      loader.playlist(playlist);
+      loader.playlist(playlist, { response: 'text' });
       loader.track(this.track);
       loader.load();
 
       this.clock.tick(1);
 
-      this.requests[0].response = new Uint8Array(10).buffer;
+      this.requests[0].response = '';
       this.requests.shift().respond(200, null, '');
 
       this.clock.tick(1);
@@ -444,7 +442,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
 
       this.clock.tick(1);
 
-      this.requests[0].response = new Uint8Array(10).buffer;
+      this.requests[0].response = '';
       this.requests.shift().respond(200, null, '');
 
       this.clock.tick(1);
@@ -470,7 +468,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
         return 30;
       };
 
-      loader.playlist(playlist);
+      loader.playlist(playlist, { response: 'text' });
       loader.track(this.track);
       loader.load();
 
@@ -480,7 +478,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
                    2,
                    'requesting initial segment guess');
 
-      this.requests[0].response = new Uint8Array(10).buffer;
+      this.requests[0].response = '';
       this.requests.shift().respond(200, null, '');
 
       this.clock.tick(1);
@@ -500,7 +498,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
       };
       loader.on('error', () => errors++);
 
-      loader.playlist(playlist);
+      loader.playlist(playlist, { response: 'text' });
       loader.track(this.track);
       loader.load();
 
@@ -509,7 +507,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
       this.clock.tick(1);
 
       // state WAITING for segment response
-      this.requests[0].response = new Uint8Array(10).buffer;
+      this.requests[0].response = '';
       this.requests.shift().respond(200, null, '');
 
       this.clock.tick(1);
@@ -542,7 +540,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
 
       loader.on('error', () => errors++);
 
-      loader.playlist(playlist);
+      loader.playlist(playlist, { response: 'text' });
       loader.track(this.track);
       loader.load();
 
@@ -554,7 +552,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
       assert.equal(loader.state, 'WAITING', 'loader is waiting on segment request');
       assert.equal(errors, 0, 'no errors yet');
 
-      this.requests[0].response = new Uint8Array(10).buffer;
+      this.requests[0].response = '';
       this.requests.shift().respond(200, null, '');
 
       this.clock.tick(1);

@@ -7,12 +7,7 @@ import window from 'global/window';
 import { removeCuesFromTrack } from './mse/remove-cues-from-track';
 import { initSegmentId } from './bin-utils';
 
-const VTT_LINE_TERMINATORS =
-  new Uint8Array('\n\n'.split('').map(char => char.charCodeAt(0)));
-
-const uintToString = function(uintArray) {
-  return String.fromCharCode.apply(null, uintArray);
-};
+const VTT_LINE_TERMINATORS = '\n\n';
 
 /**
  * An object that manages segment loading and appending.
@@ -73,16 +68,9 @@ export default class VTTSegmentLoader extends SegmentLoader {
       // to follow the WebVTT spec (https://w3c.github.io/webvtt/#file-structure) that
       // requires two or more WebVTT line terminators between the WebVTT header and the
       // rest of the file
-      const combinedByteLength = VTT_LINE_TERMINATORS.byteLength + map.bytes.byteLength;
-      const combinedSegment = new Uint8Array(combinedByteLength);
-
-      combinedSegment.set(map.bytes);
-      combinedSegment.set(VTT_LINE_TERMINATORS, map.bytes.byteLength);
-
       this.initSegments_[id] = storedMap = {
         resolvedUri: map.resolvedUri,
-        byterange: map.byterange,
-        bytes: combinedSegment
+        bytes: map.bytes + VTT_LINE_TERMINATORS
       };
     }
 
@@ -282,8 +270,6 @@ export default class VTTSegmentLoader extends SegmentLoader {
       return;
     }
 
-    segmentInfo.byteLength = segmentInfo.bytes.byteLength;
-
     this.mediaSecondsLoaded += segment.duration;
 
     if (segmentInfo.cues.length) {
@@ -307,19 +293,9 @@ export default class VTTSegmentLoader extends SegmentLoader {
    * @private
    */
   parseVTTCues_(segmentInfo) {
-    let decoder;
-    let decodeBytesToString = false;
-
-    if (typeof window.TextDecoder === 'function') {
-      decoder = new window.TextDecoder('utf8');
-    } else {
-      decoder = window.WebVTT.StringDecoder();
-      decodeBytesToString = true;
-    }
-
     const parser = new window.WebVTT.Parser(window,
                                             window.vttjs,
-                                            decoder);
+                                            window.WebVTT.StringDecoder);
 
     segmentInfo.cues = [];
     segmentInfo.timestampmap = { MPEGTS: 0, LOCAL: 0 };
@@ -331,22 +307,10 @@ export default class VTTSegmentLoader extends SegmentLoader {
     };
 
     if (segmentInfo.segment.map) {
-      let mapData = segmentInfo.segment.map.bytes;
-
-      if (decodeBytesToString) {
-        mapData = uintToString(mapData);
-      }
-
-      parser.parse(mapData);
+      parser.parse(segmentInfo.segment.map.bytes);
     }
 
-    let segmentData = segmentInfo.bytes;
-
-    if (decodeBytesToString) {
-      segmentData = uintToString(segmentData);
-    }
-
-    parser.parse(segmentData);
+    parser.parse(segmentInfo.bytes);
     parser.flush();
   }
 
