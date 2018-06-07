@@ -1180,19 +1180,26 @@ export default class SegmentLoader extends videojs.EventTarget {
       result.type = this.loaderType_ === 'main' ? 'video' : 'audio';
     } else {
       segmentInfo.timingInfo = segmentInfo.timingInfo || {};
-      // segment loader knows more about segment timing than the transmuxer (in certain
-      // aspects), so make any changes required for a more accurate start time
-      // don't set the end time yet, as the segment may not be finished processing
+
+      const useVideoTimingInfo =
+        this.loaderType_ === 'main' && this.startingMedia_.hasVideo;
+      let firstVideoFrameTimeForData;
+
+      if (useVideoTimingInfo) {
+        firstVideoFrameTimeForData = this.handlePartialData_ ?
+          result.videoFrameDtsTime : segmentInfo.videoTimingInfo.start;
+      }
+
+      // Segment loader knows more about segment timing than the transmuxer (in certain
+      // aspects), so make any changes required for a more accurate start time.
+      // Don't set the end time yet, as the segment may not be finished processing.
       segmentInfo.timingInfo.start = this.trueSegmentStart_({
         currentStart: segmentInfo.timingInfo.start,
         playlist: segmentInfo.playlist,
         mediaIndex: segmentInfo.mediaIndex,
-        // TODO demuxed audio fix
-        videoDtsTimeFromTransmuxed: this.handlePartialData_ ?
-          result.videoFrameDtsTime : segmentInfo.videoTimingInfo.start,
         currentVideoTimestampOffset: this.sourceUpdater_.videoTimestampOffset(),
-        useVideoTimingInfo:
-          this.loaderType_ === 'main' && this.startingMedia_.hasVideo,
+        useVideoTimingInfo,
+        firstVideoFrameTimeForData,
         videoTimingInfo: segmentInfo.videoTimingInfo,
         audioTimingInfo: segmentInfo.audioTimingInfo
       });
@@ -1531,7 +1538,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     currentStart,
     playlist,
     mediaIndex,
-    videoDtsTimeFromTransmuxed,
+    firstVideoFrameTimeForData,
     currentVideoTimestampOffset,
     useVideoTimingInfo,
     videoTimingInfo,
@@ -1557,8 +1564,8 @@ export default class SegmentLoader extends videojs.EventTarget {
         !previousSegment ||
         typeof previousSegment.start === 'undefined' ||
         previousSegment.end !==
-          (videoDtsTimeFromTransmuxed + currentVideoTimestampOffset)) {
-      return videoDtsTimeFromTransmuxed;
+          (firstVideoFrameTimeForData + currentVideoTimestampOffset)) {
+      return firstVideoFrameTimeForData;
     }
 
     return videoTimingInfo.start;
