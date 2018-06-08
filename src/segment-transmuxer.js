@@ -192,23 +192,21 @@ export const processAction = (transmuxer, action) => {
   dequeue();
 };
 
-// TODO might be better to pass in an action into transmux
-export const reset = (transmuxer) => {
+export const enqueueAction = (action, transmuxer) => {
   if (!currentTransmux) {
-    currentTransmux = 'reset';
-    processAction(transmuxer, 'reset');
+    currentTransmux = action;
+    processAction(transmuxer, action);
     return;
   }
-  transmuxQueue.push(processAction.bind(null, transmuxer, 'reset'));
+  transmuxQueue.push(processAction.bind(null, transmuxer, action));
+};
+
+export const reset = (transmuxer) => {
+  enqueueAction('reset', transmuxer);
 };
 
 export const endTimeline = (transmuxer) => {
-  if (!currentTransmux) {
-    currentTransmux = 'endTimeline';
-    processAction(transmuxer, 'endTimeline');
-    return;
-  }
-  transmuxQueue.push(processAction.bind(null, transmuxer, 'endTimeline'));
+  enqueueAction('endTimeline', transmuxer);
 };
 
 export const transmux = (options) => {

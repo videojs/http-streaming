@@ -111,9 +111,7 @@ const onUpdateend = (type, updater) => () => {
 export default class SourceUpdater {
   constructor(mediaSource) {
     this.mediaSource = mediaSource;
-    // TODO: can the next line be a string?
-    // eslint-disable-next-line quotes
-    this.logger_ = logger(`SourceUpdater`);
+    this.logger_ = logger('SourceUpdater');
     // initial timestamp offset is 0
     this.audioTimestampOffset_ = 0;
     this.videoTimestampOffset_ = 0;

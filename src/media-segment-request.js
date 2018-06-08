@@ -258,11 +258,11 @@ const transmuxAndNotify = ({
   let videoStartFn = timingInfoFn.bind(null, segment, 'video', 'start');
   let videoEndFn = timingInfoFn.bind(null, segment, 'video', 'end');
 
-  // TODO
+  // Check to see if we are appending a full segment.
   if (!isPartial && !segment.lastReachedChar) {
     // In the full segment transmuxer, we don't yet have the ability to extract a "proper"
-    // start time. Meaning, cached frame data may corrupt our notion of where this segment
-    // really starts. Until that's fixed, full segment appends should probe for the info
+    // start time. Meaning cached frame data may corrupt our notion of where this segment
+    // really starts. To get around this, full segment appends should probe for the info
     // needed.
     const probeResult = probeTsSegment(bytes, segment.baseStartTime);
 
