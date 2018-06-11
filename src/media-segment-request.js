@@ -1,6 +1,6 @@
 import videojs from 'video.js';
 import { createTransferableMessage } from './bin-utils';
-import mp4probe from 'mux.js/lib/mp4/probe';
+import { captionsParser } from 'mux.js/lib/mp4';
 
 export const REQUEST_ERRORS = {
   FAILURE: 2,
@@ -233,7 +233,7 @@ const handleSegmentResponse = (segment, finishProcessingFn) => (error, request) 
   // TODO: wip
   // This is an FMP4 and has the init segment
   if (segment.map && segment.map.bytes) {
-    segment.captions = mp4probe.parseEmbeddedCaptions(segment.map.bytes, segment.bytes);
+    segment.captions = captionsParser.parse(segment.map.bytes, segment.bytes);
   }
 
   return finishProcessingFn(null, segment);
