@@ -152,6 +152,13 @@ const wirePartialTransmuxerEvents = function(transmuxer) {
     });
   }
 
+  transmuxer.on('id3Frame', function(id3Frame) {
+    window.postMessage({
+      action: 'id3Frame',
+      id3Frame
+    });
+  });
+
   transmuxer.on('done', function(data) {
     window.postMessage({
       action: 'done',

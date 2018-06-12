@@ -15,8 +15,10 @@ import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
 import logger from './util/logger';
 import { concatSegments } from './util/segment';
 import {
-  addTextTrackData,
-  createTextTracksIfNecessary,
+  createCaptionsTrackIfNotExists,
+  createMetadataTrackIfNotExists,
+  addMetadata,
+  addCaptionData,
   removeCuesFromTrack
 } from './util/text-tracks';
 import { gopsSafeToAlignWith, removeGopBuffer, updateGopBuffer } from './util/gops';
@@ -227,6 +229,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       video: null
     };
     this.appendQueue_ = [];
+    this.id3Queue_ = [];
 
     // Fragmented mp4 playback
     this.activeInitSegmentId_ = null;
@@ -360,6 +363,8 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // clear out the segment being processed
     this.pendingSegment_ = null;
+    this.appendQueue_.length = 0;
+    this.id3Queue_.length = 0;
   }
 
   checkForAbort_(requestId) {
@@ -639,6 +644,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.mediaIndex = null;
     this.syncPoint_ = null;
     this.appendQueue_.length = 0;
+    this.id3Queue_.length = 0;
     this.abort();
   }
 
@@ -1109,6 +1115,62 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.checkAppendQueue_();
   }
 
+  handleCaptions_(simpleSegment, captions, captionStreams) {
+    // Don't need to check for abort since captions are only handled for non partial
+    // appends at the moment (therefore, they will only trigger once a segment is finished
+    // being transmuxed).
+    createCaptionsTrackIfNotExists(
+      this.inbandTextTracks_, this.hls_.tech_, captionStreams);
+    addCaptionData({
+      captionArray: captions,
+      inbandTextTracks: this.inbandTextTracks_,
+      // full segments appends already offset times in the transmuxer
+      timestampOffset: 0
+    });
+  }
+
+  handleId3_(simpleSegment, id3Frames, dispatchType) {
+    if (this.checkForAbort_(simpleSegment.requestId) ||
+        this.abortRequestEarly_(simpleSegment.stats)) {
+      return;
+    }
+
+    const segmentInfo = this.pendingSegment_;
+
+    // we need to have appended data in order for the timestamp offset to be set
+    if (!segmentInfo.hasAppendedData_) {
+      this.id3Queue_.push(id3Frames);
+      return;
+    }
+
+    // full segments appends already offset times in the transmuxer
+    let timestampOffset = 0;
+
+    if (this.handlePartialData_) {
+      timestampOffset = this.sourceUpdater_.videoTimestampOffset() === null ?
+        this.sourceUpdater_.videoTimestampOffset() :
+        this.sourceUpdater_.audioTimestampOffset();
+    }
+
+    // There's potentially an issue where we could double add metadata if there's a muxed
+    // audio/video source with a metadata track, and an alt audio with a metadata track.
+    // However, this probably won't happen, and if it does it can be handled then.
+    createMetadataTrackIfNotExists(this.inbandTextTracks_, dispatchType, this.hls_.tech_);
+    addMetadata({
+      inbandTextTracks: this.inbandTextTracks_,
+      metadataArray: id3Frames,
+      timestampOffset,
+      videoDuration: this.duration_()
+    });
+  }
+
+  processId3Queue_(simpleSegment) {
+    for (let i = 0; i < this.id3Queue_.length; i++) {
+      this.handleId3_(simpleSegment, this.id3Queue_[i]);
+      this.id3Queue_.splice(i, 1);
+    }
+  }
+
   // TODO this function may never be used. It must be checked and tested.
   checkAppendQueue_() {
     for (let i = 0; i < this.appendQueue_.length; i++) {
@@ -1218,6 +1280,13 @@ export default class SegmentLoader extends videojs.EventTarget {
     // as we use the start of the segment to offset the best guess (playlist provided)
     // timestamp offset.
     this.updateSourceBufferTimestampOffset_(segmentInfo);
+    // Save some state so that in the future anything waiting on first append (and/or
+    // timestamp offset(s)) can process immediately. While the extra state isn't optimal,
+    // we need some notion of whether the timestamp offset or other relevant information
+    // has had a chance to be set.
+    segmentInfo.hasAppendedData_ = true;
+    // Now that the timestamp offset should be set, we can append any waiting ID3 tags.
+    this.processId3Queue_(simpleSegment);
 
     this.appendData_(segmentInfo, result);
   }
@@ -1327,6 +1396,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       progressFn: this.handleProgress_.bind(this),
       trackInfoFn: this.handleTrackInfo_.bind(this),
       timingInfoFn: this.handleTimingInfo_.bind(this),
+      captionsFn: this.handleCaptions_.bind(this),
+      id3Fn: this.handleId3_.bind(this),
       dataFn: this.handleData_.bind(this),
       doneFn: this.segmentRequestFinished_.bind(this),
       handlePartialData: this.handlePartialData_
@@ -1486,25 +1557,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.gopBuffer_ = updateGopBuffer(
         this.gopBuffer_, result.gopInfo, this.safeAppend_);
     }
-
-    const prioritizedTimestampOffset =
-      this.sourceUpdater_.videoTimestampOffset() === null ?
-        this.sourceUpdater_.videoTimestampOffset() :
-        this.sourceUpdater_.audioTimestampOffset();
-
-    // TODO eventually we may want to do this elsewhere so we don't have to pass in the
-    // tech (and can handle removes more gracefully)
-    createTextTracksIfNecessary(this.inbandTextTracks_, this.hls_.tech_, result);
-    // There's potentially an issue where we could double add metadata if there's a
-    // muxed audio/video source with a metadata track, and an alt audio with a metadata
-    // track. However, this probably won't happen, and if it does it can be handled then.
-    addTextTrackData({
-      inbandTextTracks: this.inbandTextTracks_,
-      timestampOffset: prioritizedTimestampOffset,
-      videoDuration: this.duration_(),
-      captionArray: result.captions,
-      metadataArray: result.metadata
-    });
 
     // Although we may have already started appending on progress, we shouldn't switch the
     // state away from loading until we are officially done loading the segment data.

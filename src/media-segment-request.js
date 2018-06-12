@@ -247,6 +247,8 @@ const transmuxAndNotify = ({
   isPartial,
   trackInfoFn,
   timingInfoFn,
+  id3Fn,
+  captionsFn,
   dataFn,
   doneFn
 }) => {
@@ -316,6 +318,12 @@ const transmuxAndNotify = ({
         videoEndFn(videoTimingInfo.end);
       }
     },
+    onId3: (id3Frames, dispatchType) => {
+      id3Fn(segment, id3Frames, dispatchType);
+    },
+    onCaptions: (captions, captionStreams) => {
+      captionsFn(segment, captions, captionStreams);
+    },
     onDone: (result) => {
       // To handle partial appends, there won't be a done function passed in (since
       // there's still, potentially, more segment to process), so there's nothing to do.
@@ -333,6 +341,8 @@ const handleSegmentBytes = ({
   isPartial,
   trackInfoFn,
   timingInfoFn,
+  id3Fn,
+  captionsFn,
   dataFn,
   doneFn
 }) => {
@@ -370,6 +380,8 @@ const handleSegmentBytes = ({
     isPartial,
     trackInfoFn,
     timingInfoFn,
+    id3Fn,
+    captionsFn,
     dataFn,
     doneFn
   });
@@ -391,6 +403,8 @@ const decryptSegment = ({
   segment,
   trackInfoFn,
   timingInfoFn,
+  id3Fn,
+  captionsFn,
   dataFn,
   doneFn
 }) => {
@@ -409,6 +423,8 @@ const decryptSegment = ({
         isPartial: false,
         trackInfoFn,
         timingInfoFn,
+        id3Fn,
+        captionsFn,
         dataFn,
         doneFn
       });
@@ -452,6 +468,8 @@ const getMostImportantError = (errors) => {
  * @param {WebWorker} decrypter - a WebWorker interface to AES-128 decryption routines
  * @param {Function} trackInfoFn - a callback that receives track info
  * @param {Function} timingInfoFn - a callback that receives timing info
+ * @param {Function} id3Fn - a callback that receives ID3 metadata
+ * @param {Function} captionsFn - a callback that receives captions
  * @param {Function} dataFn - a callback that is executed when segment bytes are available
  *                            and ready to use
  * @param {Function} doneFn - a callback that is executed after all resources have been
@@ -462,6 +480,8 @@ const waitForCompletion = ({
   decrypter,
   trackInfoFn,
   timingInfoFn,
+  id3Fn,
+  captionsFn,
   dataFn,
   doneFn
 }) => {
@@ -491,6 +511,8 @@ const waitForCompletion = ({
           segment,
           trackInfoFn,
           timingInfoFn,
+          id3Fn,
+          captionsFn,
           dataFn,
           doneFn
         });
@@ -502,6 +524,8 @@ const waitForCompletion = ({
         isPartial: false,
         trackInfoFn,
         timingInfoFn,
+        id3Fn,
+        captionsFn,
         dataFn,
         doneFn
       });
@@ -527,6 +551,8 @@ const handleProgress = ({
   progressFn,
   trackInfoFn,
   timingInfoFn,
+  id3Fn,
+  captionsFn,
   dataFn,
   handlePartialData
 }) => (event) => {
@@ -549,6 +575,8 @@ const handleProgress = ({
       isPartial: true,
       trackInfoFn,
       timingInfoFn,
+      id3Fn,
+      captionsFn,
       dataFn
     });
   }
@@ -608,6 +636,8 @@ const handleProgress = ({
  * @param {Function} progressFn - a callback that receives progress events from the main
  *                                segment's xhr request
  * @param {Function} trackInfoFn - a callback that receives track info
+ * @param {Function} id3Fn - a callback that receives ID3 metadata
+ * @param {Function} captionsFn - a callback that receives captions
  * @param {Function} dataFn - a callback that receives data from the main segment's xhr
  *                            request, transmuxed if needed
  * @param {Function} doneFn - a callback that is executed only once all requests have
@@ -623,6 +653,8 @@ export const mediaSegmentRequest = ({
   progressFn,
   trackInfoFn,
   timingInfoFn,
+  id3Fn,
+  captionsFn,
   dataFn,
   doneFn,
   handlePartialData
@@ -633,6 +665,8 @@ export const mediaSegmentRequest = ({
     decryptionWorker,
     trackInfoFn,
     timingInfoFn,
+    id3Fn,
+    captionsFn,
     dataFn,
     doneFn
   });
@@ -692,6 +726,8 @@ export const mediaSegmentRequest = ({
       progressFn,
       trackInfoFn,
       timingInfoFn,
+      id3Fn,
+      captionsFn,
       dataFn,
       handlePartialData
     }));

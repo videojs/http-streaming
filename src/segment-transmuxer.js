@@ -46,18 +46,26 @@ export const handleData_ = (event, transmuxedData, callback) => {
   callback(result);
 };
 
-export const handleDone_ = (event, transmuxedData, callback) => {
+export const handleDone_ = ({
+  event,
+  transmuxedData,
+  onId3,
+  onCaptions,
+  callback
+}) => {
   // all buffers should have been flushed from the muxer, so start processing anything we
   // have received
   let sortedSegments = {
     captions: [],
-    metadata: [],
     gopInfo: transmuxedData.gopInfo,
     videoTimingInfo: transmuxedData.videoTimingInfo,
     audioTimingInfo: transmuxedData.audioTimingInfo,
     captionStreams: {}
   };
   const buffer = transmuxedData.buffer;
+  let metadata = [];
+  let captions = [];
+  let captionStreams = [];
 
   transmuxedData.buffer = [];
 
@@ -66,21 +74,27 @@ export const handleDone_ = (event, transmuxedData, callback) => {
   sortedSegments = buffer.reduce((segmentObj, segment) => {
     // Gather any captions into a single array
     if (segment.captions) {
-      segmentObj.captions = segmentObj.captions.concat(segment.captions);
+      captions = captions.concat(segment.captions);
     }
 
     // Gather any metadata into a single array
     if (segment.metadata) {
-      segmentObj.metadata = segmentObj.metadata.concat(segment.metadata);
+      metadata = metadata.concat(segment.metadata);
     }
 
     if (segment.captionStreams) {
-      segmentObj.captionStreams = videojs.mergeOptions(
-        segmentObj.captionStreams, segment.captionStreams);
+      captionStreams = videojs.mergeOptions(captionStreams, segment.captionStreams);
     }
 
     return segmentObj;
   }, sortedSegments);
+
+  if (metadata && metadata.length) {
+    onId3(metadata, metadata.dispatchType);
+  }
+  if (captions && captions.length) {
+    onCaptions(captions, captionStreams);
+  }
 
   callback(sortedSegments);
 };
@@ -99,6 +113,8 @@ export const processTransmux = ({
   onTrackInfo,
   onAudioTimingInfo,
   onVideoTimingInfo,
+  onId3,
+  onCaptions,
   onDone
 }) => {
   const transmuxedData = {
@@ -122,6 +138,10 @@ export const processTransmux = ({
     if (event.data.action === 'videoTimingInfo') {
       onVideoTimingInfo(event.data.videoTimingInfo);
     }
+    // only used for partial transmuxer, full transmuxer will handle on done
+    if (event.data.action === 'id3Frame') {
+      onId3([event.data.id3Frame], event.data.id3Frame.dispatchType);
+    }
 
     // wait for the transmuxed event since we may have audio and video
     if (event.data.type !== 'transmuxed') {
@@ -129,7 +149,13 @@ export const processTransmux = ({
     }
 
     transmuxer.removeEventListener('message', handleMessage);
-    handleDone_(event, transmuxedData, onDone);
+    handleDone_({
+      event,
+      transmuxedData,
+      onId3,
+      onCaptions,
+      callback: onDone
+    });
 
     /* eslint-disable no-use-before-define */
     dequeue();

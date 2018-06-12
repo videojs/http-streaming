@@ -42,143 +42,172 @@ const deprecateOldCue = function(cue) {
 };
 
 /**
- * Add text track data to a source handler given the captions and
- * metadata from the buffer.
+ * Add metadata text track data to a source handler given an array of metadata
+ *
+ * @param {Object}
+ *   @param {Object} inbandTextTracks the inband text tracks
+ *   @param {Array} metadataArray an array of meta data
+ *   @param {Number} timestampOffset the timestamp offset of the source buffer
+ *   @param {Number} videoDuration the duration of the video
+ * @private
+ */
+export const addMetadata = ({
+  inbandTextTracks,
+  metadataArray,
+  timestampOffset,
+  videoDuration
+}) => {
+  if (!metadataArray) {
+    return;
+  }
+
+  const Cue = window.WebKitDataCue || window.VTTCue;
+  const metadataTrack = inbandTextTracks.metadataTrack_;
+
+  metadataArray.forEach((metadata) => {
+    let time = metadata.cueTime + timestampOffset;
+
+    metadata.frames.forEach((frame) => {
+      let cue = new Cue(
+        time,
+        time,
+        frame.value || frame.url || frame.data || '');
+
+      cue.frame = frame;
+      cue.value = frame;
+      deprecateOldCue(cue);
+
+      metadataTrack.addCue(cue);
+    });
+  });
+
+  if (!metadataTrack || !metadataTrack.cues || !metadataTrack.cues.length) {
+    return;
+  }
+
+  // Updating the metadeta cues so that
+  // the endTime of each cue is the startTime of the next cue
+  // the endTime of last cue is the duration of the video
+  let cues = metadataTrack.cues;
+  let cuesArray = [];
+
+  // Create a copy of the TextTrackCueList...
+  // ...disregarding cues with a falsey value
+  for (let i = 0; i < cues.length; i++) {
+    if (cues[i]) {
+      cuesArray.push(cues[i]);
+    }
+  }
+
+  // Group cues by their startTime value
+  let cuesGroupedByStartTime = cuesArray.reduce((obj, cue) => {
+    let timeSlot = obj[cue.startTime] || [];
+
+    timeSlot.push(cue);
+    obj[cue.startTime] = timeSlot;
+
+    return obj;
+  }, {});
+
+  // Sort startTimes by ascending order
+  let sortedStartTimes = Object.keys(cuesGroupedByStartTime)
+                               .sort((a, b) => Number(a) - Number(b));
+
+  // Map each cue group's endTime to the next group's startTime
+  sortedStartTimes.forEach((startTime, idx) => {
+    let cueGroup = cuesGroupedByStartTime[startTime];
+    let nextTime = Number(sortedStartTimes[idx + 1]) || videoDuration;
+
+    // Map each cue's endTime the next group's startTime
+    cueGroup.forEach((cue) => {
+      cue.endTime = nextTime;
+    });
+  });
+}
+
+/**
+ * Add caption text track data to a source handler given an array of captions
  *
  * @param {Object}
  *   @param {Object} inbandTextTracks the inband text tracks
  *   @param {Number} timestampOffset the timestamp offset of the source buffer
- *   @param {Number} videoDuration the duration of the video
  *   @param {Array} captionArray an array of caption data
- *   @param {Array} metadataArray an array of meta data
  * @private
  */
-export const addTextTrackData = ({
+export const addCaptionData = ({
   inbandTextTracks,
-  timestampOffset,
-  videoDuration,
   captionArray,
-  metadataArray
+  timestampOffset
 }) => {
-  let Cue = window.WebKitDataCue || window.VTTCue;
-
-  if (captionArray) {
-    captionArray.forEach((caption) => {
-      let track = caption.stream;
-
-      inbandTextTracks[track].addCue(
-        new Cue(
-          caption.startTime + timestampOffset,
-          caption.endTime + timestampOffset,
-          caption.text
-        ));
-    });
+  if (!captionArray) {
+    return;
   }
 
-  if (metadataArray) {
-    metadataArray.forEach((metadata) => {
-      let time = metadata.cueTime + timestampOffset;
+  const Cue = window.WebKitDataCue || window.VTTCue;
 
-      metadata.frames.forEach((frame) => {
-        let cue = new Cue(
-          time,
-          time,
-          frame.value || frame.url || frame.data || '');
+  captionArray.forEach((caption) => {
+    const track = caption.stream;
 
-        cue.frame = frame;
-        cue.value = frame;
-        deprecateOldCue(cue);
-
-        inbandTextTracks.metadataTrack_.addCue(cue);
-      });
-    });
-
-    // Updating the metadeta cues so that
-    // the endTime of each cue is the startTime of the next cue
-    // the endTime of last cue is the duration of the video
-    if (inbandTextTracks.metadataTrack_ &&
-        inbandTextTracks.metadataTrack_.cues &&
-        inbandTextTracks.metadataTrack_.cues.length) {
-      let cues = inbandTextTracks.metadataTrack_.cues;
-      let cuesArray = [];
-
-      // Create a copy of the TextTrackCueList...
-      // ...disregarding cues with a falsey value
-      for (let i = 0; i < cues.length; i++) {
-        if (cues[i]) {
-          cuesArray.push(cues[i]);
-        }
-      }
-
-      // Group cues by their startTime value
-      let cuesGroupedByStartTime = cuesArray.reduce((obj, cue) => {
-        let timeSlot = obj[cue.startTime] || [];
-
-        timeSlot.push(cue);
-        obj[cue.startTime] = timeSlot;
-
-        return obj;
-      }, {});
-
-      // Sort startTimes by ascending order
-      let sortedStartTimes = Object.keys(cuesGroupedByStartTime)
-                                   .sort((a, b) => Number(a) - Number(b));
-
-      // Map each cue group's endTime to the next group's startTime
-      sortedStartTimes.forEach((startTime, idx) => {
-        let cueGroup = cuesGroupedByStartTime[startTime];
-        let nextTime = Number(sortedStartTimes[idx + 1]) || videoDuration;
-
-        // Map each cue's endTime the next group's startTime
-        cueGroup.forEach((cue) => {
-          cue.endTime = nextTime;
-        });
-      });
-    }
-  }
+    inbandTextTracks[track].addCue(
+      new Cue(
+        caption.startTime + timestampOffset,
+        caption.endTime + timestampOffset,
+        caption.text
+      ));
+  });
 };
 
 /**
- * Create text tracks on video.js if they exist on a segment.
+ * Create metadata text track on video.js if it does not exist
  *
  * @param {Object} inbandTextTracks a reference to current inbandTextTracks
- * @param {Object} mediaSource the HTML media source
- * @param {Object} segment the segment that may contain the text track
+ * @param {String} dispatchType the inband metadata track dispatch type
+ * @param {Object} tech the video.js tech
  * @private
  */
-export const createTextTracksIfNecessary = (inbandTextTracks, tech, segment) => {
-  // create an in-band caption track if one is present in the segment
-  if (segment.captions && segment.captions.length) {
-    for (let trackId in segment.captionStreams) {
-      if (!inbandTextTracks[trackId]) {
-        tech.trigger({type: 'usage', name: 'hls-608'});
-        let track = tech.textTracks().getTrackById(trackId);
-
-        if (track) {
-          // Resuse an existing track with a CC# id because this was
-          // very likely created by videojs-contrib-hls from information
-          // in the m3u8 for us to use
-          inbandTextTracks[trackId] = track;
-        } else {
-          // Otherwise, create a track with the default `CC#` label and
-          // without a language
-          inbandTextTracks[trackId] = tech.addRemoteTextTrack({
-            kind: 'captions',
-            id: trackId,
-            label: trackId
-          }, false).track;
-        }
-      }
-    }
+export const createMetadataTrackIfNotExists = (inbandTextTracks, dispatchType, tech) => {
+  if (inbandTextTracks.metadataTrack_) {
+    return;
   }
 
-  if (segment.metadata && segment.metadata.length && !inbandTextTracks.metadataTrack_) {
-    inbandTextTracks.metadataTrack_ = tech.addRemoteTextTrack({
-      kind: 'metadata',
-      label: 'Timed Metadata'
-    }, false).track;
-    inbandTextTracks.metadataTrack_.inBandMetadataTrackDispatchType =
-      segment.metadata.dispatchType;
+  inbandTextTracks.metadataTrack_ = tech.addRemoteTextTrack({
+    kind: 'metadata',
+    label: 'Timed Metadata'
+  }, false).track;
+
+  inbandTextTracks.metadataTrack_.inBandMetadataTrackDispatchType = dispatchType;
+};
+
+/**
+ * Create captions text tracks on video.js if they do not exist
+ *
+ * @param {Object} inbandTextTracks a reference to current inbandTextTracks
+ * @param {Object} tech the video.js tech
+ * @param {Object} captionStreams the caption streams to create
+ * @private
+ */
+export const createCaptionsTrackIfNotExists =
+  (inbandTextTracks, tech, captionStreams) => {
+  for (let trackId in captionStreams) {
+    if (!inbandTextTracks[trackId]) {
+      tech.trigger({type: 'usage', name: 'hls-608'});
+      let track = tech.textTracks().getTrackById(trackId);
+
+      if (track) {
+        // Resuse an existing track with a CC# id because this was
+        // very likely created by videojs-contrib-hls from information
+        // in the m3u8 for us to use
+        inbandTextTracks[trackId] = track;
+      } else {
+        // Otherwise, create a track with the default `CC#` label and
+        // without a language
+        inbandTextTracks[trackId] = tech.addRemoteTextTrack({
+          kind: 'captions',
+          id: trackId,
+          label: trackId
+        }, false).track;
+      }
+    }
   }
 };
 
