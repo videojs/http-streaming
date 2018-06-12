@@ -632,10 +632,8 @@ export default class SegmentLoader extends videojs.EventTarget {
    * before returning to the simple walk-forward method
    */
   resyncLoader() {
-    // TODO this should probably be moved back to resetEverything and the transmuxer
-    // should get updates through setTimestampOffset to identify discontinuities, though
-    // that may be different now that we use real times in the transmuxer
     if (this.transmuxer_) {
+      // need to clear out any cached data to prepare for the new segment
       segmentTransmuxer.reset(this.transmuxer_);
     }
     this.mediaIndex = null;
@@ -1087,9 +1085,9 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (isFmp4(simpleSegment)) {
       // fmp4 isn't parsed (yet), therefore doesn't have track info
       // fmp4 is always demuxed (current assumption)
-      // TODO fmp4 audio only
       trackInfo = {
         hasAudio: this.loaderType_ === 'audio',
+        // TODO fmp4 audio only
         hasVideo: this.loaderType_ === 'main'
       };
     }
@@ -1172,9 +1170,12 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    if (isFmp4(segmentInfo.segment)) {
-      // TODO do we need this here? maybe handle map directly
+    if (simpleSegment.map) {
+      // move the map bytes onto the segment loader's segment state object
       segmentInfo.segment.map.bytes = simpleSegment.map.bytes;
+    }
+
+    if (isFmp4(segmentInfo.segment)) {
       segmentInfo.timingInfo = result.timingInfo;
       // the probe doesn't provide the end of the segment, so we must use the duration
       // to determine an end time
@@ -1621,7 +1622,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       segmentInfo.waitingOnAppends++;
     }
 
-    // TODO do we have to handle waiting for done from each of audio/video?
     if (waitForVideo) {
       this.sourceUpdater_.videoQueueCallback(
         this.checkAppendsDone_.bind(this, segmentInfo));
@@ -1677,8 +1677,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (segmentInfo.timestampOffset === null ||
         // we don't yet have the start for whatever media type (video or audio) has
         // priority, timing-wise, so we must wait
-        // TODO: do we have to wait for both pieces of content before any appends (since
-        // the timestamp offset should be set for both)?
         typeof segmentInfo.timingInfo.start !== 'number' ||
         // already updated the timestamp offset for this segment
         segmentInfo.changedTimestampOffset ||
