@@ -1114,7 +1114,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     segmentInfo.endOfAllRequests = simpleSegment.endOfAllRequests;
 
-    // TODO: wip
+    // This is an fmp4 with captions
     if (simpleSegment.map && simpleSegment.captions) {
       handleCaptions(this.mediaSource_, this.sourceUpdater_.sourceBuffer_, simpleSegment);
     }

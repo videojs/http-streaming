@@ -230,7 +230,6 @@ const handleSegmentResponse = (segment, finishProcessingFn) => (error, request) 
     segment.bytes = new Uint8Array(request.response);
   }
 
-  // TODO: wip
   // This is an FMP4 and has the init segment
   if (segment.map && segment.map.bytes) {
     segment.captions = captionsParser.parse(segment.map.bytes, segment.bytes);

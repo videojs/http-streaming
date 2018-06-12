@@ -28,7 +28,6 @@ const addTextTrackData = function(track, caption) {
 const handleCaptions = function(sourceHandler, sourceBuffer, segment) {
   var player = sourceHandler.player_;
 
-  // Match the contract
   if (segment.captions.length) {
     for (var i = 0; i < segment.captions.length; i ++) {
       const caption = segment.captions[i];
