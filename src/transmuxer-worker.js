@@ -142,15 +142,7 @@ const wirePartialTransmuxerEvents = function(transmuxer) {
     }, [ segment.boxes.data, segment.initSegment.data ]);
   });
 
-  // TODO add support for captionStream
-  if (transmuxer.captionStream) {
-    transmuxer.captionStream.on('data', function(caption) {
-      window.postMessage({
-        action: 'caption',
-        data: caption
-      });
-    });
-  }
+  // TODO add support for captions in the partial transmuxer
 
   transmuxer.on('id3Frame', function(id3Frame) {
     window.postMessage({

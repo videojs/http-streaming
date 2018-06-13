@@ -1631,7 +1631,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     audioTimingInfo
   }) {
     if (typeof currentStart !== 'undefined') {
-      // if start was obtained once, keep using it
+      // if start was set once, keep using it
       return currentStart;
     }
 
