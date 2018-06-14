@@ -344,3 +344,21 @@ export const translateLegacyCodecs = function(codecs) {
     });
   });
 };
+
+export const isLikelyFmp4Data = (bytes) => {
+  // not enough data to determine, in which case it is an invalid mp4 file/fragment anyway
+  if (bytes.length < 8) {
+    return false;
+  }
+
+  // ignore the first 4 bytes (they represent the box length)
+  // ftyp/styp (file type/segment type) should be the first box in an mp4 or mp4 fragment
+  if ((bytes[4] === 'f'.charCodeAt(0) || (bytes[4] === 's'.charCodeAt(0))) &&
+      (bytes[5] === 't'.charCodeAt(0)) &&
+      (bytes[6] === 'y'.charCodeAt(0)) &&
+      (bytes[7] === 'p'.charCodeAt(0))) {
+    return true;
+  }
+
+  return false;
+};

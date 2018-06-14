@@ -3,6 +3,7 @@ import BinUtils from './bin-utils';
 import { stringToArrayBuffer } from './util/string-to-array-buffer';
 import { transmux } from './segment-transmuxer';
 import { probeMp4StartTime, probeTsSegment } from './util/segment';
+import { isLikelyFmp4Data } from './util/codecs';
 
 const { createTransferableMessage } = BinUtils;
 
@@ -346,23 +347,29 @@ const handleSegmentBytes = ({
   dataFn,
   doneFn
 }) => {
-  if (segment.map) {
-    // fmp4
+  const bytesAsUint8Array = new Uint8Array(bytes);
+
+  segment.isFmp4 =
+    // only set the property the first time we see some bytes so that partial appends
+    // don't try to check every section of bytes (since the check should only consider the
+    // first bytes in the segment)
+    typeof segment.isFmp4 === 'boolean' ?  segment.isFmp4 :
+      isLikelyFmp4Data(bytesAsUint8Array);
+
+  if (segment.isFmp4) {
     // since we don't support appending fmp4 data on progress, we know we have the full
     // segment here
-    const startTime = probeMp4StartTime(bytes, segment.map.bytes);
+    const startTime = probeMp4StartTime(bytesAsUint8Array, segment.map.bytes);
 
-    // since fmp4 isn't parsed yet, we can't provide any track info, however, the callback
-    // should still be called before the dataFn is called
-    trackInfoFn(segment, {});
-    dataFn(segment, {
-      data: bytes,
-      // the probe doesn't provide the end of the segment, so the end must be calculated
-      // later based on the duration of the segment
-      timingInfo: {
-        start: startTime
-      }
-    });
+    // we don't parse fmp4 (yet), so we can't provide any track info, however, the
+    // track info callback should still be called before the dataFn is called
+    trackInfoFn(segment, null);
+    // use null for the media type since we don't technically know whether it's audio or
+    // video
+    // the probe doesn't provide the segment end time, so only callback with the start
+    // (the end time can be roughly calculated by the receiver using the duration)
+    timingInfoFn(segment, null, 'start', startTime);
+    dataFn(segment, { data: bytes });
     doneFn(null, segment, {});
     return;
   }
@@ -563,22 +570,25 @@ const handleProgress = ({
   }
 
   // don't support encrypted segments or fmp4 for now
-  if (handlePartialData && !segment.key && !segment.map) {
+  // in order to determine if it's an fmp4 we need at least 8 bytes
+  if (handlePartialData && !segment.key && request.responseText.length >= 8) {
     const newBytes = stringToArrayBuffer(
       request.responseText.substring(segment.lastReachedChar || 0));
 
-    segment.lastReachedChar = request.responseText.length;
+    if (segment.lastReachedChar || !isLikelyFmp4Data(new Uint8Array(newBytes))) {
+      segment.lastReachedChar = request.responseText.length;
 
-    handleSegmentBytes({
-      segment,
-      bytes: newBytes,
-      isPartial: true,
-      trackInfoFn,
-      timingInfoFn,
-      id3Fn,
-      captionsFn,
-      dataFn
-    });
+      handleSegmentBytes({
+        segment,
+        bytes: newBytes,
+        isPartial: true,
+        trackInfoFn,
+        timingInfoFn,
+        id3Fn,
+        captionsFn,
+        dataFn
+      });
+    }
   }
 
   segment.stats = videojs.mergeOptions(segment.stats, getProgressStats(event));

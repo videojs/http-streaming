@@ -150,12 +150,7 @@ const segmentInfoString = (segmentInfo) => {
   ].join(' ');
 };
 
-const isFmp4 = (segment) => {
-  // TODO we need a better way if determining if a segment is an mp4 or not. We rely on
-  // this method at the moment because the spec requires a map tag on each fmp4
-  // segment), however, ts segments may have the map tag as well
-  return !!segment.map;
-};
+const timingInfoPropertyForMedia = (mediaType) => `${mediaType}TimingInfo`;
 
 /**
  * An object that manages segment loading and appending.
@@ -1088,15 +1083,28 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    if (isFmp4(simpleSegment)) {
-      // fmp4 isn't parsed (yet), therefore doesn't have track info
-      // fmp4 is always demuxed (current assumption)
+    if (!trackInfo) {
+      // At the moment, the only case we have where we won't have track info is fmp4,
+      // since fmp4 isn't parsed (yet).
+      // Also assume that fmp4 is always demuxed.
       trackInfo = {
         hasAudio: this.loaderType_ === 'audio',
         // TODO fmp4 audio only
         hasVideo: this.loaderType_ === 'main'
       };
     }
+
+    // When we have track info, determine what media types this loader is dealing with.
+    if (typeof this.startingMedia_ === 'undefined' &&
+        // Guard against cases where we're not getting track info at all until we are
+        // certain that all streams will provide it.
+        (trackInfo.hasAudio || trackInfo.hasVideo)) {
+      this.startingMedia_ = {
+        hasAudio: trackInfo.hasAudio,
+        hasVideo: trackInfo.hasVideo
+      };
+    }
+
     this.setupSourceBuffers_(trackInfo);
   }
 
@@ -1106,8 +1114,16 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
+    if (!mediaType) {
+      // If media type isn't set, that means it's not being parsed from the content. This
+      // can happen in the case of fmp4, since we don't parse the media type (yet). In
+      // this case, just use the loader type, since fmp4 should always be demuxed.
+      mediaType =
+        this.loaderType_ === 'main' && this.startingMedia_.hasVideo ? 'video' : 'audio';
+    }
+
     const segmentInfo = this.pendingSegment_;
-    const timingInfoProperty = mediaType + 'TimingInfo';
+    const timingInfoProperty = timingInfoPropertyForMedia(mediaType);
 
     segmentInfo[timingInfoProperty] = segmentInfo[timingInfoProperty] || {};
     segmentInfo[timingInfoProperty][timeType] = time;
@@ -1237,17 +1253,17 @@ export default class SegmentLoader extends videojs.EventTarget {
       segmentInfo.segment.map.bytes = simpleSegment.map.bytes;
     }
 
-    if (isFmp4(segmentInfo.segment)) {
-      segmentInfo.timingInfo = result.timingInfo;
-      // the probe doesn't provide the end of the segment, so we must use the duration
-      // to determine an end time
-      segmentInfo.timingInfo.end = segmentInfo.timingInfo.start + segmentInfo.duration;
+    segmentInfo.isFmp4 = simpleSegment.isFmp4;
+    segmentInfo.timingInfo = segmentInfo.timingInfo || {};
+
+    if (segmentInfo.isFmp4) {
       // for fmp4 the loader type is used to determine whether audio or video (fmp4 is
       // always considered demuxed)
       result.type = this.loaderType_ === 'main' ? 'video' : 'audio';
-    } else {
-      segmentInfo.timingInfo = segmentInfo.timingInfo || {};
 
+      segmentInfo.timingInfo.start =
+        segmentInfo[timingInfoPropertyForMedia(result.type)].start;
+    } else {
       const useVideoTimingInfo =
         this.loaderType_ === 'main' && this.startingMedia_.hasVideo;
       let firstVideoFrameTimeForData;
@@ -1332,7 +1348,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     const segments = [data];
     let byteLength = data.byteLength;
 
-    // fmp4
     if (segmentInfo.segment.map) {
       // if the media initialization segment is changing, append it before the content
       // segment
@@ -1469,7 +1484,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       };
     }
 
-    if (isFmp4(segment)) {
+    if (segment.map) {
       simpleSegment.map = this.initSegmentForMap(segment.map);
     }
 
@@ -1697,19 +1712,6 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   checkForIllegalMediaSwitch(trackInfo) {
-    // When we have our first timing info, determine what media types this loader is
-    // dealing with. Although we're maintaining extra state, it helps to preserve the
-    // separation of segment loader from the actual source buffers.
-    if (typeof this.startingMedia_ === 'undefined' &&
-        // Guard against cases where we're not getting timing info at all until we are
-        // certain that all streams will provide it.
-        (trackInfo.hasAudio || trackInfo.hasVideo)) {
-      this.startingMedia_ = {
-        hasAudio: trackInfo.hasAudio,
-        hasVideo: trackInfo.hasVideo
-      };
-    }
-
     const illegalMediaSwitchError =
       illegalMediaSwitch(this.loaderType_, this.startingMedia_, trackInfo);
 
@@ -1767,11 +1769,14 @@ export default class SegmentLoader extends videojs.EventTarget {
   updateTimingInfoEnd_(segmentInfo) {
     const useVideoTimingInfo =
       this.loaderType_ === 'main' && this.startingMedia_.hasVideo;
+    const prioritizedTimingInfo = useVideoTimingInfo && segmentInfo.videoTimingInfo ?
+      segmentInfo.videoTimingInfo : segmentInfo.audioTimingInfo;
 
-    // now that the end of the segment has been reached, we can set the end time
-    // TODO why wait until here, why not on done?
-    segmentInfo.timingInfo.end = useVideoTimingInfo && segmentInfo.videoTimingInfo ?
-      segmentInfo.videoTimingInfo.end : segmentInfo.audioTimingInfo.end;
+    segmentInfo.timingInfo.end = typeof prioritizedTimingInfo.end === 'number' ?
+      // End time may not exist in a case where we aren't parsing the full segment (one
+      // current example is the case of fmp4), so use the rough duration to calculate an
+      // end time.
+      prioritizedTimingInfo.end : prioritizedTimingInfo.start + segmentInfo.duration;
   }
 
   /**
@@ -1794,6 +1799,9 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     const segmentInfo = this.pendingSegment_;
 
+    // Now that the end of the segment has been reached, we can set the end time. It's
+    // best to wait until all appends are done so we're sure that the primary media is
+    // finished (and we have its end time).
     this.updateTimingInfoEnd_(segmentInfo);
     this.syncController_.saveSegmentTimingInfo(segmentInfo);
 
