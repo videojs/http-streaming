@@ -4,7 +4,6 @@ import window from 'global/window';
 import videojs from 'video.js';
 import logger from '../../src/util/logger';
 import { stringToArrayBuffer } from '../../src/util/string-to-array-buffer';
-import { concatTypedArrays } from '../../src/util/typed-array';
 // we disable this because browserify needs to include these files
 // but the exports are not important
 /* eslint-disable no-unused-vars */
@@ -65,21 +64,3 @@ function(assert) {
   assert.strictEqual(String.fromCharCode(view[2]), 's');
   assert.strictEqual(String.fromCharCode(view[3]), 't');
 });
-
-QUnit.test('concats two Uint8Array objects together', function(assert) {
-  const arr1 = new Uint8Array(1);
-  const arr2 = new Uint8Array(2);
-  let result;
-
-  arr1[0] = 12;
-  arr2[0] = 4;
-  arr2[1] = 7;
-
-  result = concatTypedArrays(arr1, arr2);
-
-  assert.strictEqual(result.length, 3);
-  assert.strictEqual(result[0], 12);
-  assert.strictEqual(result[1], 4);
-  assert.strictEqual(result[2], 7);
-});
-
