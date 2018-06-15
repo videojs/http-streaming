@@ -1567,7 +1567,6 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     segmentInfo.endOfAllRequests = simpleSegment.endOfAllRequests;
 
-    // TODO this and below, we may not have result from before
     if (result.gopInfo) {
       this.gopBuffer_ = updateGopBuffer(
         this.gopBuffer_, result.gopInfo, this.safeAppend_);
@@ -1746,8 +1745,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     // the video, this will trim the start of the audio.
     // This also trims any offset from 0 at the beginning of the media
     segmentInfo.timestampOffset -= segmentInfo.timingInfo.start;
-    // TODO in the event that there are partial segment downloads, each will try to update
-    // the timestamp offset. Retaining this bit of state prevents us from updating in the
+    // In the event that there are partial segment downloads, each will try to update the
+    // timestamp offset. Retaining this bit of state prevents us from updating in the
     // future (within the same segment), however, there may be a better way to handle it.
     segmentInfo.changedTimestampOffset = true;
 

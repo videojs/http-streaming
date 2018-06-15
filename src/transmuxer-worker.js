@@ -142,8 +142,6 @@ const wirePartialTransmuxerEvents = function(transmuxer) {
     }, [ segment.boxes.data, segment.initSegment.data ]);
   });
 
-  // TODO add support for captions in the partial transmuxer
-
   transmuxer.on('id3Frame', function(id3Frame) {
     window.postMessage({
       action: 'id3Frame',
@@ -169,13 +167,6 @@ const wirePartialTransmuxerEvents = function(transmuxer) {
     window.postMessage({
       action: 'endedSegment',
       type: typeFromStreamString(data)
-    });
-  });
-
-  transmuxer.on('gopInfo', function(gopInfo) {
-    window.postMessage({
-      action: 'gopInfo',
-      gopInfo
     });
   });
 
