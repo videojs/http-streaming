@@ -123,7 +123,7 @@ export const addMetadata = ({
       cue.endTime = nextTime;
     });
   });
-}
+};
 
 /**
  * Add caption text track data to a source handler given an array of captions
@@ -187,7 +187,7 @@ export const createMetadataTrackIfNotExists = (inbandTextTracks, dispatchType, t
  * @private
  */
 export const createCaptionsTrackIfNotExists =
-  (inbandTextTracks, tech, captionStreams) => {
+(inbandTextTracks, tech, captionStreams) => {
   for (let trackId in captionStreams) {
     if (!inbandTextTracks[trackId]) {
       tech.trigger({type: 'usage', name: 'hls-608'});

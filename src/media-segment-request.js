@@ -353,7 +353,7 @@ const handleSegmentBytes = ({
     // only set the property the first time we see some bytes so that partial appends
     // don't try to check every section of bytes (since the check should only consider the
     // first bytes in the segment)
-    typeof segment.isFmp4 === 'boolean' ?  segment.isFmp4 :
+    typeof segment.isFmp4 === 'boolean' ? segment.isFmp4 :
       isLikelyFmp4Data(bytesAsUint8Array);
 
   if (segment.isFmp4) {
