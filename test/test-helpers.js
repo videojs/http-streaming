@@ -5,8 +5,6 @@ import testDataManifests from './test-manifests.js';
 import xhrFactory from '../src/xhr';
 import window from 'global/window';
 
-/*
- * TODO
 // a SourceBuffer that tracks updates but otherwise is a noop
 class MockSourceBuffer extends videojs.EventTarget {
   constructor() {
@@ -92,7 +90,6 @@ class MockMediaSource extends videojs.EventTarget {
     this.error_ = error;
   }
 }
-*/
 
 export class MockTextTrack {
   constructor() {
@@ -114,8 +111,7 @@ export class MockTextTrack {
 export const useFakeMediaSource = function() {
   let RealMediaSource = window.MediaSource;
 
-  // TODO
-  // window.MediaSource = MockMediaSource;
+  window.MediaSource = MockMediaSource;
 
   return {
     restore() {
