@@ -19,7 +19,7 @@ QUnit.test('the environment is sane', function(assert) {
 
 QUnit.module('videojs-contrib-media-sources - General');
 
-QUnit.skip('Plugin is registered', function(assert) {
+QUnit.test('Plugin is registered', function(assert) {
   assert.strictEqual(
     typeof videojs.URL,
     'object',

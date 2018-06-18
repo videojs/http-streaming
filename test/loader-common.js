@@ -150,7 +150,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
     });
 
     // TODO: revist when partialAppend flag is available
-    QUnit.skip('calling load is idempotent', function(assert) {
+    QUnit.test('calling load is idempotent', function(assert) {
       const done = assert.async();
 
       loader.playlist(playlistWithDuration(20));
@@ -182,7 +182,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
 
     });
 
-    QUnit.skip('calling load should unpause', function(assert) {
+    QUnit.test('calling load should unpause', function(assert) {
       loader.playlist(playlistWithDuration(20));
       loader.pause();
 
@@ -215,7 +215,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(loader.mediaRequests, 1, '1 request');
     });
 
-    QUnit.skip('regularly checks the buffer while unpaused', function(assert) {
+    QUnit.test('regularly checks the buffer while unpaused', function(assert) {
       loader.playlist(playlistWithDuration(90));
 
       loader.load();
@@ -245,7 +245,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(loader.mediaRequests, 1, '1 request');
     });
 
-    QUnit.skip('does not check the buffer while paused', function(assert) {
+    QUnit.test('does not check the buffer while paused', function(assert) {
       loader.playlist(playlistWithDuration(90));
 
       loader.load();
@@ -267,7 +267,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(loader.mediaRequests, 1, '1 request');
     });
 
-    QUnit.skip('calculates bandwidth after downloading a segment', function(assert) {
+    QUnit.test('calculates bandwidth after downloading a segment', function(assert) {
       loader.playlist(playlistWithDuration(10));
 
       loader.load();
@@ -304,7 +304,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
     // This test will fail for VTTSegments currently as
     // they try to get transmuxed even though they shouldn't
     // TODO: fix this bug and revisit
-    QUnit.skip('progress on segment requests are redispatched', function(assert) {
+    QUnit.test('progress on segment requests are redispatched', function(assert) {
       let progressEvents = 0;
 
       loader.on('progress', function() {
@@ -323,7 +323,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
     });
 
     // TODO: revisit once VTTSegment Loader is fixed to not attempt to transmux
-    QUnit.skip('aborts request at progress events if bandwidth is too low',
+    QUnit.test('aborts request at progress events if bandwidth is too low',
     function(assert) {
       const playlist1 = playlistWithDuration(10, { uri: 'playlist1.m3u8' });
       const playlist2 = playlistWithDuration(10, { uri: 'playlist2.m3u8' });
@@ -411,7 +411,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
     });
 
     // TODO: revisit once VTTSegment Loader is fixed to not attempt to transmux
-    QUnit.skip(
+    QUnit.test(
       'appending a segment when loader is in walk-forward mode triggers bandwidthupdate',
     function(assert) {
       let progresses = 0;
@@ -462,7 +462,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
 
     // VTTSegment Loader does not have a media source. This will fail for VTTSegments.
     // TODO: revist when vtt transmuxing bug is fixed
-    QUnit.skip('downloads init segments if specified', function(assert) {
+    QUnit.test('downloads init segments if specified', function(assert) {
       let playlist = playlistWithDuration(20);
       let map = {
         resolvedUri: 'mainInitSegment',
@@ -514,7 +514,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
 
     // VTTSegment Loader does not have a media source. This will fail for VTTSegments.
     // TODO: revist when vtt transmuxing bug is fixed
-    QUnit.skip('detects init segment changes and downloads it', function(assert) {
+    QUnit.test('detects init segment changes and downloads it', function(assert) {
       let playlist = playlistWithDuration(20);
       let buffered = videojs.createTimeRanges();
 
@@ -613,7 +613,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
     });
 
     // TODO: revisit once VTTSegment Loader is fixed to not attempt to transmux
-    QUnit.skip('SegmentLoader.mediaIndex is adjusted when live playlist is updated',
+    QUnit.test('SegmentLoader.mediaIndex is adjusted when live playlist is updated',
     function(assert) {
       loader.playlist(playlistWithDuration(50, {
         mediaSequence: 0,
@@ -662,7 +662,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(loader.mediaIndex, 2, 'SegmentLoader.mediaIndex ends at 2');
     });
 
-    QUnit.skip('segmentInfo.mediaIndex is adjusted when live playlist is updated',
+    QUnit.test('segmentInfo.mediaIndex is adjusted when live playlist is updated',
     function(assert) {
       const handleUpdateEnd_ = loader.handleUpdateEnd_.bind(loader);
       let expectedLoaderIndex = 3;
@@ -949,7 +949,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
     });
 
     // TODO: revisit once VTTSegment Loader is fixed to not attempt to transmux
-    QUnit.skip(
+    QUnit.test(
       'does not skip over segment if live playlist update occurs while processing',
     function(assert) {
       let playlist = playlistWithDuration(40);
@@ -991,7 +991,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
     });
 
     // TODO: revisit once VTTSegment Loader is fixed to not attempt to transmux
-    QUnit.skip('processing segment reachable even after playlist update removes it',
+    QUnit.test('processing segment reachable even after playlist update removes it',
     function(assert) {
       const handleUpdateEnd_ = loader.handleUpdateEnd_.bind(loader);
       let expectedURI = '0.ts';

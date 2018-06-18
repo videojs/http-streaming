@@ -18,7 +18,7 @@ import Config from '../src/config';
 import PlaylistLoader from '../src/playlist-loader';
 import DashPlaylistLoader from '../src/dash-playlist-loader';
 
-QUnit.module.skip('MasterPlaylistController', {
+QUnit.module('MasterPlaylistController', {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
     this.clock = this.env.clock;

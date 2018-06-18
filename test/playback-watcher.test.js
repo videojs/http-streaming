@@ -11,7 +11,7 @@ import PlaybackWatcher from '../src/playback-watcher';
 
 let monitorCurrentTime_;
 
-QUnit.module.skip('PlaybackWatcher', {
+QUnit.module('PlaybackWatcher', {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
     this.requests = this.env.requests;

@@ -142,7 +142,7 @@ function(assert) {
 });
 
 // TODO: should be able to delete this
-QUnit.skip('duration is faked when playing a live stream', function(assert) {
+QUnit.test('duration is faked when playing a live stream', function(assert) {
   let mediaSource = new videojs.MediaSource();
 
   mediaSource.addSourceBuffer('video/mp2t');
@@ -156,7 +156,7 @@ QUnit.skip('duration is faked when playing a live stream', function(assert) {
 });
 
 // TODO: should be able to delete this
-QUnit.skip(
+QUnit.test(
 'duration uses the underlying MediaSource\'s duration when not live', function(assert) {
   let mediaSource = new videojs.MediaSource();
 
@@ -166,39 +166,6 @@ QUnit.skip(
   mediaSource.nativeMediaSource_.duration = 120;
   assert.strictEqual(mediaSource.duration, 120,
               'the MediaSource wrapper returns the native duration');
-});
-
-// TODO: should be able to delete this
-QUnit.skip('abort on the fake source buffer calls abort on the real ones',
-function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
-  let messages = [];
-  let aborts = 0;
-
-  initializeNativeSourceBuffers(sourceBuffer);
-
-  sourceBuffer.transmuxer_.postMessage = function(message) {
-    messages.push(message);
-  };
-  sourceBuffer.bufferUpdating_ = true;
-  sourceBuffer.videoBuffer_.abort = function() {
-    aborts++;
-  };
-  sourceBuffer.audioBuffer_.abort = function() {
-    aborts++;
-  };
-
-  sourceBuffer.abort();
-
-  assert.strictEqual(aborts, 2, 'called abort on both');
-  assert.strictEqual(
-    sourceBuffer.bufferUpdating_,
-    false,
-    'set updating to false'
-  );
-  assert.strictEqual(messages.length, 1, 'has one message');
-  assert.strictEqual(messages[0].action, 'reset', 'reset called on transmuxer');
 });
 
 // TODO: Needs a rewrite for native MediaSource world
@@ -837,25 +804,6 @@ QUnit.todo('handles codec strings in reverse order', function(assert) {
   assert.ok(sourceBuffer.transmuxer_, 'created a transmuxer');
 });
 
-// TODO: should be able to remove
-QUnit.todo('forwards codec strings to native buffers when specified', function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer =
-    mediaSource.addSourceBuffer('video/mp2t; codecs="avc1.64001f,mp4a.40.5"');
-
-  initializeNativeSourceBuffers(sourceBuffer);
-
-  assert.ok(mediaSource.videoBuffer_, 'created a video buffer');
-  assert.strictEqual(mediaSource.videoBuffer_.type,
-              'video/mp4;codecs="avc1.64001f"',
-              'passed the video codec along');
-
-  assert.ok(mediaSource.audioBuffer_, 'created a video buffer');
-  assert.strictEqual(mediaSource.audioBuffer_.type,
-              'audio/mp4;codecs="mp4a.40.5"',
-              'passed the audio codec along');
-});
-
 // TODO: maybe rewrite for native world?
 QUnit.todo('parses old-school apple codec strings to the modern standard',
 function(assert) {
@@ -914,32 +862,6 @@ QUnit.todo('virtual buffers are updating if either native buffer is', function(a
 
   mediaSource.audioBuffer_.updating = false;
   assert.strictEqual(sourceBuffer.updating, false, 'virtual buffer is not updating');
-});
-
-// TODO: should be able to remove
-QUnit.todo(
-'virtual buffers have a position buffered if both native buffers do',
-function(assert) {
-  let mediaSource = new window.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
-
-  initializeNativeSourceBuffers(sourceBuffer);
-
-  mediaSource.videoBuffer_.buffered = videojs.createTimeRanges([
-    [0, 10],
-    [20, 30]
-  ]);
-  mediaSource.audioBuffer_.buffered = videojs.createTimeRanges([
-    [0, 7],
-    [11, 15],
-    [16, 40]
-  ]);
-
-  assert.strictEqual(sourceBuffer.buffered.length, 2, 'two buffered ranges');
-  assert.strictEqual(sourceBuffer.buffered.start(0), 0, 'first starts at zero');
-  assert.strictEqual(sourceBuffer.buffered.end(0), 7, 'first ends at seven');
-  assert.strictEqual(sourceBuffer.buffered.start(1), 20, 'second starts at twenty');
-  assert.strictEqual(sourceBuffer.buffered.end(1), 30, 'second ends at 30');
 });
 
 // TODO: maybe rewrite for native world?
@@ -1586,45 +1508,4 @@ QUnit.todo('audio segments with info trigger audioinfo event', function(assert) 
 
   assert.strictEqual(infoEvents.length, 2, 'audio info should trigger');
   assert.deepEqual(infoEvents[1].info, newinfo, 'audio info = muxed info');
-});
-
-// TODO: rewrite for native MediaSource world
-QUnit.todo(
-'creates native SourceBuffers immediately if a second VirtualSourceBuffer is created',
-function(assert) {
-  let mediaSource = new window.MediaSource();
-  let sourceBuffer =
-    mediaSource.addSourceBuffer('video/mp2t; codecs="avc1.64001f,mp4a.40.5"');
-  let sourceBuffer2 =
-    mediaSource.addSourceBuffer('video/mp2t; codecs="mp4a.40.5"');
-
-  assert.ok(mediaSource.videoBuffer_, 'created a video buffer');
-  assert.strictEqual(
-    mediaSource.videoBuffer_.type,
-    'video/mp4;codecs="avc1.64001f"',
-    'video buffer has the specified codec'
-  );
-
-  assert.ok(mediaSource.audioBuffer_, 'created an audio buffer');
-  assert.strictEqual(
-    mediaSource.audioBuffer_.type,
-    'audio/mp4;codecs="mp4a.40.5"',
-    'audio buffer has the specified codec'
-  );
-  assert.strictEqual(mediaSource.sourceBuffers.length, 2, 'created two virtual buffers');
-  assert.strictEqual(
-    mediaSource.sourceBuffers[0],
-    sourceBuffer,
-    'returned the virtual buffer');
-  assert.strictEqual(
-    mediaSource.sourceBuffers[1],
-    sourceBuffer2,
-    'returned the virtual buffer');
-  assert.strictEqual(
-    sourceBuffer.audioDisabled_,
-    true,
-    'first source buffer\'s audio is automatically disabled');
-  assert.ok(
-    sourceBuffer2.audioBuffer_,
-    'second source buffer has an audio source buffer');
 });
