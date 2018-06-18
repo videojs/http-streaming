@@ -1,5 +1,8 @@
 import Qunit from 'qunit';
-// import { addTextTrackData } from '../../src/util/text-tracks';
+import {
+  addMetadata,
+  addCaptionData
+} from '../../src/util/text-tracks';
 
 const { module, test } = Qunit;
 
@@ -26,24 +29,29 @@ module('Text Track Data', {
   }
 });
 
-// TODO
-/*
-test('does nothing if no cues are specified', function(assert) {
-  addTextTrackData({
+test('does nothing if no metadata is specified', function(assert) {
+  addMetadata({
     inbandTextTracks: this.inbandTextTracks,
     timestampOffset: this.timestampOffset,
     videoDuration: this.videoDuration,
-    captionArray: [],
     metadataArray: []
   });
-  assert.strictEqual(this.inbandTextTracks.CC1.cues.length, 0, 'added no 608 cues');
   assert.strictEqual(this.inbandTextTracks.metadataTrack_.cues.length,
                      0,
                      'added no metadata cues');
 });
 
+test('does nothing if no captions are specified', function(assert) {
+  addCaptionData({
+    inbandTextTracks: this.inbandTextTracks,
+    timestampOffset: this.timestampOffset,
+    captionArray: []
+  });
+  assert.strictEqual(this.inbandTextTracks.CC1.cues.length, 0, 'added no 608 cues');
+});
+
 test('creates cues for 608 captions with "stream" property in ccX', function(assert) {
-  addTextTrackData({
+  addCaptionData({
     inbandTextTracks: this.inbandTextTracks,
     timestampOffset: this.timestampOffset,
     videoDuration: this.videoDuration,
@@ -67,8 +75,7 @@ test('creates cues for 608 captions with "stream" property in ccX', function(ass
       endTime: 1,
       text: 'CC4 text',
       stream: 'CC4'
-    }],
-    metadataArray: []
+    }]
   });
   assert.strictEqual(this.inbandTextTracks.CC1.cues.length,
                      1,
@@ -88,11 +95,10 @@ test('creates cues for 608 captions with "stream" property in ccX', function(ass
 });
 
 test('creates cues for timed metadata', function(assert) {
-  addTextTrackData({
+  addMetadata({
     inbandTextTracks: this.inbandTextTracks,
     timestampOffset: this.timestampOffset,
     videoDuration: 1,
-    captionArray: [],
     metadataArray: [{
       cueTime: 1,
       frames: [{}]
@@ -103,4 +109,3 @@ test('creates cues for timed metadata', function(assert) {
                      1,
                      'added one metadata cues');
 });
-*/
