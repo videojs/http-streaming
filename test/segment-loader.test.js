@@ -135,7 +135,7 @@ QUnit.module('SegmentLoader', function(hooks) {
 
   LoaderCommonFactory(SegmentLoader,
                       { loaderType: 'main' },
-                      (loader) => loader.mimeType('video/mp2t'));
+                      () => {});
 
   // Tests specific to the main segment loader go in this module
   QUnit.module('Loader Main', function(nestedHooks) {
@@ -163,7 +163,7 @@ QUnit.module('SegmentLoader', function(hooks) {
       this.startTime.restore();
     });
 
-    QUnit.test(`load waits until a playlist and mime type are specified to proceed`,
+    QUnit.test('load waits until a playlist and mime type are specified to proceed',
     function(assert) {
       loader.load();
 
@@ -179,7 +179,7 @@ QUnit.module('SegmentLoader', function(hooks) {
       assert.equal(loader.state, 'WAITING', 'transitioned states');
     });
 
-    QUnit.test(`calling mime type and load begins buffering`, function(assert) {
+    QUnit.test('calling mime type and load begins buffering', function(assert) {
       assert.equal(loader.state, 'INIT', 'starts in the init state');
       loader.playlist(playlistWithDuration(10));
       assert.equal(loader.state, 'INIT', 'starts in the init state');

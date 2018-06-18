@@ -5,13 +5,13 @@
  * License: https://github.com/videojs/videojs-http-streaming/blob/master/LICENSE
  */
 import document from 'global/document';
+import window from 'global/window';
 import PlaylistLoader from './playlist-loader';
 import Playlist from './playlist';
 import xhrFactory from './xhr';
 import { Decrypter, AsyncStream, decrypt } from 'aes-decrypter';
 import * as utils from './bin-utils';
 import { timeRangesToArray } from './ranges';
-import { MediaSource, URL } from './mse/index';
 import videojs from 'video.js';
 import { MasterPlaylistController } from './master-playlist-controller';
 import Config from './config';
@@ -291,7 +291,6 @@ class HlsHandler extends Component {
     this.tech_ = tech;
     this.source_ = source;
     this.stats = {};
-    this.ignoreNextSeekingEvent_ = false;
     this.setOptions_();
 
     if (this.options_.overrideNative &&
@@ -323,14 +322,6 @@ class HlsHandler extends Component {
       }
     });
 
-    this.on(this.tech_, 'seeking', function() {
-      if (this.ignoreNextSeekingEvent_) {
-        this.ignoreNextSeekingEvent_ = false;
-        return;
-      }
-
-      this.setCurrentTime(this.tech_.currentTime());
-    });
     this.on(this.tech_, 'error', function() {
       if (this.masterPlaylistController_) {
         this.masterPlaylistController_.pauseLoading();
@@ -557,6 +548,15 @@ class HlsHandler extends Component {
     this.tech_.one('canplay',
       this.masterPlaylistController_.setupFirstPlay.bind(this.masterPlaylistController_));
 
+    // since replays are handled internal to the video element, and don't go through the
+    // middlware for setting current time, use the first seek after each ended event to
+    // determine replays
+    this.tech_.on('ended', () => {
+      this.tech_.one('seeking', () => {
+        this.masterPlaylistController_.handleReplay();
+      });
+    });
+
     this.masterPlaylistController_.on('selectedinitialmedia', () => {
       // Add the manual rendition mix-in to HlsHandler
       renditionSelectionMixin(this);
@@ -569,12 +569,6 @@ class HlsHandler extends Component {
       this.tech_.trigger('progress');
     });
 
-    // In the live case, we need to ignore the very first `seeking` event since
-    // that will be the result of the seek-to-live behavior
-    this.on(this.masterPlaylistController_, 'firstplay', function() {
-      this.ignoreNextSeekingEvent_ = true;
-    });
-
     this.tech_.ready(() => this.setupQualityLevels_());
 
     // do nothing if the tech has been disposed already
@@ -583,7 +577,7 @@ class HlsHandler extends Component {
       return;
     }
 
-    this.tech_.src(videojs.URL.createObjectURL(
+    this.tech_.src(window.URL.createObjectURL(
       this.masterPlaylistController_.mediaSource));
   }
 
@@ -688,14 +682,19 @@ const HlsSourceHandler = {
   }
 };
 
-if (typeof videojs.MediaSource === 'undefined' ||
-    typeof videojs.URL === 'undefined') {
-  videojs.MediaSource = MediaSource;
-  videojs.URL = URL;
-}
+/**
+ * Check to see if the native MediaSource object exists and supports
+ * an MP4 container with both H.264 video and AAC-LC audio.
+ *
+ * @return {Boolean} if  native media sources are supported
+ */
+const supportsNativeMediaSources = () => {
+  return !!window.MediaSource && !!window.MediaSource.isTypeSupported &&
+    window.MediaSource.isTypeSupported('video/mp4;codecs="avc1.4d400d,mp4a.40.2"');
+};
 
 // register source handlers with the appropriate techs
-if (MediaSource.supportsNativeMediaSources()) {
+if (supportsNativeMediaSources()) {
   videojs.getTech('Html5').registerSourceHandler(HlsSourceHandler, 0);
 }
 
@@ -712,6 +711,23 @@ if (videojs.registerPlugin) {
 } else {
   videojs.plugin('reloadSourceOnError', reloadSourceOnError);
 }
+
+videojs.use('*', (player) => {
+  return {
+    setSource: (srcObj, next) => {
+      // pass null as the first argument to indicate that the source is not rejected
+      next(null, srcObj);
+    },
+
+    setCurrentTime: (time) => {
+      if (player.vhs && player.currentSource().src === player.vhs.source_.src) {
+        player.vhs.setCurrentTime(time);
+      }
+
+      return time;
+    }
+  };
+});
 
 export {
   Hls,

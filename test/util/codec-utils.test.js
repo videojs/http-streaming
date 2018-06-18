@@ -1,5 +1,5 @@
 import Qunit from 'qunit';
-import { translateLegacyCodecs } from '../../src/mse/codec-utils';
+import { translateLegacyCodecs } from '../../src/util/codecs';
 
 const { module, test } = Qunit;
 

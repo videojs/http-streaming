@@ -21,10 +21,10 @@ export default [{
     babel()
   ]
 }, {
-  input: 'src/mse/transmuxer-worker.js',
+  input: 'src/transmuxer-worker.js',
   output: {
     name: 'transmuxerWorker',
-    file: 'src/mse/transmuxer-worker.worker.js',
+    file: 'src/transmuxer-worker.worker.js',
     format: 'iife'
   },
   plugins: [

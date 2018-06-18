@@ -2,13 +2,9 @@
  * @file sync-controller.js
  */
 
-import mp4probe from 'mux.js/lib/mp4/probe';
-import tsInspector from 'mux.js/lib/tools/ts-inspector.js';
-import { sumDurations } from './playlist';
+import {sumDurations} from './playlist';
 import videojs from 'video.js';
 import logger from './util/logger';
-
-const tsprobe = tsInspector.inspect;
 
 export const syncPointStrategies = [
   // Stategy "VOD": Handle the VOD-case where the sync-point is *always*
@@ -162,10 +158,6 @@ export const syncPointStrategies = [
 export default class SyncController extends videojs.EventTarget {
   constructor(options = {}) {
     super();
-    // Segment Loader state variables...
-    // ...for synching across variants
-    this.inspectCache_ = undefined;
-
     // ...for synching across variants
     this.timelines = [];
     this.discontinuities = [];
@@ -369,107 +361,19 @@ export default class SyncController extends videojs.EventTarget {
     }
   }
 
-  /**
-   * Reset the state of the inspection cache when we do a rendition
-   * switch
-   */
-  reset() {
-    this.inspectCache_ = undefined;
-  }
+  saveSegmentTimingInfo(segmentInfo, timingInfo) {
+    if (this.calculateSegmentTimeMapping_(segmentInfo, segmentInfo.timingInfo)) {
+      this.saveDiscontinuitySyncInfo_(segmentInfo);
 
-  /**
-   * Probe or inspect a fmp4 or an mpeg2-ts segment to determine the start
-   * and end of the segment in it's internal "media time". Used to generate
-   * mappings from that internal "media time" to the display time that is
-   * shown on the player.
-   *
-   * @param {SegmentInfo} segmentInfo - The current active request information
-   */
-  probeSegmentInfo(segmentInfo) {
-    const segment = segmentInfo.segment;
-    const playlist = segmentInfo.playlist;
-    let timingInfo;
-
-    if (segment.map) {
-      timingInfo = this.probeMp4Segment_(segmentInfo);
-    } else {
-      timingInfo = this.probeTsSegment_(segmentInfo);
-    }
-
-    if (timingInfo) {
-      if (this.calculateSegmentTimeMapping_(segmentInfo, timingInfo)) {
-        this.saveDiscontinuitySyncInfo_(segmentInfo);
-
-        // If the playlist does not have sync information yet, record that information
-        // now with segment timing information
-        if (!playlist.syncInfo) {
-          playlist.syncInfo = {
-            mediaSequence: playlist.mediaSequence + segmentInfo.mediaIndex,
-            time: segment.start
-          };
-        }
+      // If the playlist does not have sync information yet, record that information
+      // now with segment timing information
+      if (!segmentInfo.playlist.syncInfo) {
+        segmentInfo.playlist.syncInfo = {
+          mediaSequence: segmentInfo.playlist.mediaSequence + segmentInfo.mediaIndex,
+          time: segmentInfo.segment.start
+        };
       }
     }
-
-    return timingInfo;
-  }
-
-  /**
-   * Probe an fmp4 or an mpeg2-ts segment to determine the start of the segment
-   * in it's internal "media time".
-   *
-   * @private
-   * @param {SegmentInfo} segmentInfo - The current active request information
-   * @return {object} The start and end time of the current segment in "media time"
-   */
-  probeMp4Segment_(segmentInfo) {
-    let segment = segmentInfo.segment;
-    let timescales = mp4probe.timescale(segment.map.bytes);
-    let startTime = mp4probe.startTime(timescales, segmentInfo.bytes);
-
-    if (segmentInfo.timestampOffset !== null) {
-      segmentInfo.timestampOffset -= startTime;
-    }
-
-    return {
-      start: startTime,
-      end: startTime + segment.duration
-    };
-  }
-
-  /**
-   * Probe an mpeg2-ts segment to determine the start and end of the segment
-   * in it's internal "media time".
-   *
-   * @private
-   * @param {SegmentInfo} segmentInfo - The current active request information
-   * @return {object} The start and end time of the current segment in "media time"
-   */
-  probeTsSegment_(segmentInfo) {
-    let timeInfo = tsprobe(segmentInfo.bytes, this.inspectCache_);
-    let segmentStartTime;
-    let segmentEndTime;
-
-    if (!timeInfo) {
-      return null;
-    }
-
-    if (timeInfo.video && timeInfo.video.length === 2) {
-      this.inspectCache_ = timeInfo.video[1].dts;
-      segmentStartTime = timeInfo.video[0].dtsTime;
-      segmentEndTime = timeInfo.video[1].dtsTime;
-    } else if (timeInfo.audio && timeInfo.audio.length === 2) {
-      this.inspectCache_ = timeInfo.audio[1].dts;
-      segmentStartTime = timeInfo.audio[0].dtsTime;
-      segmentEndTime = timeInfo.audio[1].dtsTime;
-    }
-
-    return {
-      start: segmentStartTime,
-      end: segmentEndTime,
-      containsVideo: timeInfo.video && timeInfo.video.length === 2,
-      containsAudio: timeInfo.audio && timeInfo.audio.length === 2
-    };
   }
 
   timestampOffsetForTimeline(timeline) {

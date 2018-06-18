@@ -1,10 +1,6 @@
 import document from 'global/document';
 import sinon from 'sinon';
 import videojs from 'video.js';
-/* eslint-disable no-unused-vars */
-// needed so MediaSource can be registered with videojs
-import { MediaSource } from '../src/mse/index';
-/* eslint-enable */
 import testDataManifests from './test-manifests.js';
 import xhrFactory from '../src/xhr';
 import window from 'global/window';
@@ -64,9 +60,17 @@ class MockMediaSource extends videojs.EventTarget {
       this.readyState = 'open';
     });
 
-    this.sourceBuffers = [];
+    this.activeSourceBuffers = {
+      length: 0,
+      onaddsourcebuffer: null,
+      onremovesourcebuffer: null
+    };
+    this.sourceBuffers = this.activeSourceBuffers;
     this.duration = NaN;
     this.seekable = videojs.createTimeRange();
+    this.onsourceclose = null;
+    this.onsourceended = null;
+    this.onsourceopen = null;
   }
 
   addSeekableRange_(start, end) {
@@ -105,22 +109,13 @@ export class MockTextTrack {
 }
 
 export const useFakeMediaSource = function() {
-  let RealMediaSource = videojs.MediaSource;
-  let realCreateObjectURL = videojs.URL.createObjectURL;
-  let id = 0;
+  let RealMediaSource = window.MediaSource;
 
-  videojs.MediaSource = MockMediaSource;
-  videojs.MediaSource.supportsNativeMediaSources =
-    RealMediaSource.supportsNativeMediaSources;
-  videojs.URL.createObjectURL = function() {
-    id++;
-    return 'blob:videojs-http-streaming-mock-url' + id;
-  };
+  window.MediaSource = MockMediaSource;
 
   return {
     restore() {
-      videojs.MediaSource = RealMediaSource;
-      videojs.URL.createObjectURL = realCreateObjectURL;
+      window.MediaSource = RealMediaSource;
     }
   };
 };
@@ -192,6 +187,31 @@ export const useFakeEnvironment = function(assert) {
                                                rawEventData,
                                                rawEventData.target));
   };
+
+  // used for treating the response however we want, instead of the browser deciding
+  // responses we don't have to worry about the browser changing responses
+  XMLHttpRequest.prototype.overrideMimeType = function overrideMimeType(mimeType) {
+    this.mimeTypeOverride = mimeType;
+  };
+
+  let responseText = (XMLHttpRequest.prototype.responseText === undefined) ?
+    '' : XMLHttpRequest.prototype.responseText;
+
+  Object.defineProperty(XMLHttpRequest.prototype, 'responseText', {
+    get() {
+      // special case for media segment request partial downloads
+      // if (this.mimeTypeOverride === 'text/plain; charset=x-user-defined' &&
+      //     responseText) {
+      //   // responseText should be an ArrayBuffer
+      //   return (new TextDecoder()).decode(responseText);
+      // }
+
+      return responseText;
+    },
+    set(val) {
+      responseText = val;
+    }
+  });
 
   fakeEnvironment.requests.length = 0;
   fakeEnvironment.xhr.onCreate = function(xhr) {
@@ -414,4 +434,14 @@ export const urlTo = function(path) {
     .slice(0, -1)
     .concat([path])
     .join('/');
+};
+
+export const createResponseText = function(length) {
+  let responseText = '';
+
+  for (let i = 0; i < length; i++) {
+    responseText += '0';
+  }
+
+  return responseText;
 };

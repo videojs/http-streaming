@@ -138,12 +138,23 @@ export const onTrackChanged = (type, settings) => () => {
     return;
   }
 
-  if (!activeGroup.playlistLoader) {
-    // when switching from demuxed audio/video to muxed audio/video (noted by no playlist
-    // loader for the audio group), we want to do a destructive reset of the main segment
-    // loader and not restart the audio loaders
-    mainSegmentLoader.resetEverything();
-    return;
+  if (type === 'AUDIO') {
+    if (!activeGroup.playlistLoader) {
+      // when switching from demuxed audio/video to muxed audio/video (noted by no
+      // playlist loader for the audio group), we want to do a destructive reset of the
+      // main segment loader and not restart the audio loaders
+      mainSegmentLoader.setAudio(true);
+      // don't have to worry about disabling the audio of the audio segment loader since
+      // it should be stopped
+      mainSegmentLoader.resetEverything();
+      return;
+    }
+
+    // although the segment loader is an audio segment loader, call the setAudio
+    // function to ensure it is prepared to re-append the init segment (or handle other
+    // config changes)
+    segmentLoader.setAudio(true);
+    mainSegmentLoader.setAudio(false);
   }
 
   if (previousActiveLoader === activeGroup.playlistLoader) {
@@ -713,7 +724,11 @@ export const setupMediaGroups = (settings) => {
     mediaTypes,
     masterPlaylistLoader,
     tech,
-    hls
+    hls,
+    segmentLoaders: {
+      AUDIO: audioSegmentLoader,
+      main: mainSegmentLoader
+    }
   } = settings;
 
   // setup active group and track getters and change event handlers
@@ -733,11 +748,15 @@ export const setupMediaGroups = (settings) => {
   mediaTypes.AUDIO.onTrackChanged();
 
   masterPlaylistLoader.on('mediachange', () => {
+    mainSegmentLoader.appendAudioInitSegment_ = true;
+    audioSegmentLoader.appendAudioInitSegment_ = true;
     ['AUDIO', 'SUBTITLES'].forEach(type => mediaTypes[type].onGroupChanged());
   });
 
   // custom audio track change event handler for usage event
   const onAudioTrackChanged = () => {
+    mainSegmentLoader.appendAudioInitSegment_ = true;
+    audioSegmentLoader.appendAudioInitSegment_ = true;
     mediaTypes.AUDIO.onTrackChanged();
     tech.trigger({ type: 'usage', name: 'hls-audio-change' });
   };

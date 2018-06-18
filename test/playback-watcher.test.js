@@ -11,7 +11,7 @@ import PlaybackWatcher from '../src/playback-watcher';
 
 let monitorCurrentTime_;
 
-QUnit.module('PlaybackWatcher', {
+QUnit.module.skip('PlaybackWatcher', {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
     this.requests = this.env.requests;
@@ -580,7 +580,7 @@ QUnit.test('calls fixesBadSeeks_ on seekablechanged', function(assert) {
   assert.equal(fixesBadSeeks_, 1, 'fixesBadSeeks_ was called');
 });
 
-QUnit.module('PlaybackWatcher isolated functions', {
+QUnit.module.skip('PlaybackWatcher isolated functions', {
   beforeEach() {
     monitorCurrentTime_ = PlaybackWatcher.prototype.monitorCurrentTime_;
     PlaybackWatcher.prototype.monitorCurrentTime_ = () => {};

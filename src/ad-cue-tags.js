@@ -1,6 +1,7 @@
 /**
  * @file ad-cue-tags.js
  */
+
 import window from 'global/window';
 
 /**

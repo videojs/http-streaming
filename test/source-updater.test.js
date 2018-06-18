@@ -1,3 +1,4 @@
+import window from 'global/window';
 import SourceUpdater from '../src/source-updater';
 import QUnit from 'qunit';
 import videojs from 'video.js';
@@ -6,7 +7,7 @@ import { useFakeMediaSource } from './test-helpers';
 QUnit.module('Source Updater', {
   beforeEach() {
     this.mse = useFakeMediaSource();
-    this.mediaSource = new videojs.MediaSource();
+    this.mediaSource = new window.MediaSource();
   },
   afterEach() {
     this.mse.restore();

@@ -7,7 +7,7 @@ import PlaylistLoader from '../src/playlist-loader';
 import DashPlaylistLoader from '../src/dash-playlist-loader';
 import noop from '../src/util/noop';
 
-QUnit.module('MediaGroups', {
+QUnit.module.skip('MediaGroups', {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
     this.clock = this.env.clock;

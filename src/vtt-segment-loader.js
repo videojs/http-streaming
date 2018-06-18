@@ -4,7 +4,7 @@
 import SegmentLoader from './segment-loader';
 import videojs from 'video.js';
 import window from 'global/window';
-import { removeCuesFromTrack } from './mse/remove-cues-from-track';
+import { removeCuesFromTrack } from './util/text-tracks';
 import { initSegmentId } from './bin-utils';
 
 const VTT_LINE_TERMINATORS =
@@ -25,11 +25,19 @@ export default class VTTSegmentLoader extends SegmentLoader {
   constructor(settings, options = {}) {
     super(settings, options);
 
+    // VTT can't handle partial data
+    this.handlePartialData_ = false;
+
     // SegmentLoader requires a MediaSource be specified or it will throw an error;
     // however, VTTSegmentLoader has no need of a media source, so delete the reference
     this.mediaSource_ = null;
 
     this.subtitlesTrack_ = null;
+  }
+
+  createTransmuxer_() {
+    // don't need to transmux any subtitles
+    return null;
   }
 
   /**
@@ -60,7 +68,7 @@ export default class VTTSegmentLoader extends SegmentLoader {
    * @return {Object}
    *         map object for desired init segment
    */
-  initSegment(map, set = false) {
+  initSegmentForMap(map, set = false) {
     if (!map) {
       return null;
     }
@@ -223,7 +231,7 @@ export default class VTTSegmentLoader extends SegmentLoader {
    *
    * @private
    */
-  handleSegment_() {
+  segmentRequestFinished_(error, simpleSegment, result) {
     if (!this.pendingSegment_ || !this.subtitlesTrack_) {
       this.state = 'READY';
       return;
@@ -234,13 +242,18 @@ export default class VTTSegmentLoader extends SegmentLoader {
     let segmentInfo = this.pendingSegment_;
     let segment = segmentInfo.segment;
 
+    if (segment.map) {
+      segment.map.bytes = simpleSegment.map.bytes;
+    }
+    segmentInfo.bytes = simpleSegment.bytes;
+
     // Make sure that vttjs has loaded, otherwise, wait till it finished loading
     if (typeof window.WebVTT !== 'function' &&
         this.subtitlesTrack_ &&
         this.subtitlesTrack_.tech_) {
 
       const loadHandler = () => {
-        this.handleSegment_();
+        this.segmentRequestFinished_(error, simpleSegment, result);
       };
 
       this.state = 'WAITING_ON_VTTJS';
@@ -275,6 +288,18 @@ export default class VTTSegmentLoader extends SegmentLoader {
                             this.syncController_.timelines[segmentInfo.timeline],
                             this.playlist_);
 
+    if (segmentInfo.cues.length) {
+      segmentInfo.timingInfo = {
+        start: segmentInfo.cues[0].startTime,
+        end: segmentInfo.cues[segmentInfo.cues.length - 1].endTime
+      };
+    } else {
+      segmentInfo.timingInfo = {
+        start: segmentInfo.startOfSegment,
+        end: segmentInfo.startOfSegment + segmentInfo.duration
+      };
+    }
+
     if (segmentInfo.isSyncRequest) {
       this.trigger('syncinfoupdate');
       this.pendingSegment_ = null;
@@ -297,6 +322,10 @@ export default class VTTSegmentLoader extends SegmentLoader {
     });
 
     this.handleUpdateEnd_();
+  }
+
+  updateTimingInfoEnd_() {
+    // noop
   }
 
   /**

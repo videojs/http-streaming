@@ -1,5 +1,9 @@
 import videojs from 'video.js';
 import { createTransferableMessage } from './bin-utils';
+import { stringToArrayBuffer } from './util/string-to-array-buffer';
+import { transmux } from './segment-transmuxer';
+import { probeMp4StartTime, probeTsSegment } from './util/segment';
+import { isLikelyFmp4Data } from './util/codecs';
 
 export const REQUEST_ERRORS = {
   FAILURE: 2,
@@ -203,13 +207,17 @@ const handleInitSegmentResponse = (segment, finishProcessingFn) => (error, reque
  * @param {Function} finishProcessingFn - a callback to execute to continue processing
  *                                        this request
  */
-const handleSegmentResponse = (segment, finishProcessingFn) => (error, request) => {
+const handleSegmentResponse =
+(segment, finishProcessingFn, responseType) => (error, request) => {
   const response = request.response;
   const errorObj = handleErrors(error, request);
 
   if (errorObj) {
     return finishProcessingFn(errorObj, segment);
   }
+
+  const newBytes = responseType === 'arraybuffer' ? request.response :
+    stringToArrayBuffer(request.responseText.substring(segment.lastReachedChar || 0));
 
   // stop processing if received empty content
   if (response.byteLength === 0) {
@@ -224,12 +232,164 @@ const handleSegmentResponse = (segment, finishProcessingFn) => (error, request) 
   segment.stats = getRequestStats(request);
 
   if (segment.key) {
-    segment.encryptedBytes = new Uint8Array(request.response);
+    segment.encryptedBytes = new Uint8Array(newBytes);
   } else {
-    segment.bytes = new Uint8Array(request.response);
+    segment.bytes = new Uint8Array(newBytes);
   }
 
   return finishProcessingFn(null, segment);
+};
+
+const transmuxAndNotify = ({
+  segment,
+  bytes,
+  isPartial,
+  trackInfoFn,
+  timingInfoFn,
+  id3Fn,
+  captionsFn,
+  dataFn,
+  doneFn
+}) => {
+  // Keep references to each function so we can null them out after we're done with them.
+  // One reason for this is that in the case of full segments, we want to trust start
+  // times from the probe, rather than the transmuxer.
+  let audioStartFn = timingInfoFn.bind(null, segment, 'audio', 'start');
+  let audioEndFn = timingInfoFn.bind(null, segment, 'audio', 'end');
+  let videoStartFn = timingInfoFn.bind(null, segment, 'video', 'start');
+  let videoEndFn = timingInfoFn.bind(null, segment, 'video', 'end');
+
+  // Check to see if we are appending a full segment.
+  if (!isPartial && !segment.lastReachedChar) {
+    // In the full segment transmuxer, we don't yet have the ability to extract a "proper"
+    // start time. Meaning cached frame data may corrupt our notion of where this segment
+    // really starts. To get around this, full segment appends should probe for the info
+    // needed.
+    const probeResult = probeTsSegment(bytes, segment.baseStartTime);
+
+    if (probeResult) {
+      trackInfoFn(segment, {
+        hasAudio: probeResult.hasAudio,
+        hasVideo: probeResult.hasVideo
+      });
+      trackInfoFn = null;
+
+      audioStartFn(probeResult.audioStart);
+      audioStartFn = null;
+      videoStartFn(probeResult.videoStart);
+      videoStartFn = null;
+    }
+  }
+
+  transmux({
+    bytes,
+    transmuxer: segment.transmuxer,
+    audioAppendStart: segment.audioAppendStart,
+    gopsToAlignWith: segment.gopsToAlignWith,
+    isPartial,
+    onData: (result) => {
+      dataFn(segment, result);
+    },
+    onTrackInfo: (trackInfo) => {
+      if (trackInfoFn) {
+        trackInfoFn(segment, trackInfo);
+      }
+    },
+    onAudioTimingInfo: (audioTimingInfo) => {
+      // we only want the first start value we encounter
+      if (audioStartFn && typeof audioTimingInfo.start !== 'undefined') {
+        audioStartFn(audioTimingInfo.start);
+        audioStartFn = null;
+      }
+      // we want to continually update the end time
+      if (audioEndFn && typeof audioTimingInfo.end !== 'undefined') {
+        audioEndFn(audioTimingInfo.end);
+      }
+    },
+    onVideoTimingInfo: (videoTimingInfo) => {
+      // we only want the first start value we encounter
+      if (videoStartFn && typeof videoTimingInfo.start !== 'undefined') {
+        videoStartFn(videoTimingInfo.start);
+        videoStartFn = null;
+      }
+      // we want to continually update the end time
+      if (videoEndFn && typeof videoTimingInfo.end !== 'undefined') {
+        videoEndFn(videoTimingInfo.end);
+      }
+    },
+    onId3: (id3Frames, dispatchType) => {
+      id3Fn(segment, id3Frames, dispatchType);
+    },
+    onCaptions: (captions, captionStreams) => {
+      captionsFn(segment, captions, captionStreams);
+    },
+    onDone: (result) => {
+      // To handle partial appends, there won't be a done function passed in (since
+      // there's still, potentially, more segment to process), so there's nothing to do.
+      if (!doneFn || isPartial) {
+        return;
+      }
+      doneFn(null, segment, result);
+    }
+  });
+};
+
+const handleSegmentBytes = ({
+  segment,
+  bytes,
+  isPartial,
+  trackInfoFn,
+  timingInfoFn,
+  id3Fn,
+  captionsFn,
+  dataFn,
+  doneFn
+}) => {
+  const bytesAsUint8Array = new Uint8Array(bytes);
+
+  segment.isFmp4 =
+    // only set the property the first time we see some bytes so that partial appends
+    // don't try to check every section of bytes (since the check should only consider the
+    // first bytes in the segment)
+    typeof segment.isFmp4 === 'boolean' ? segment.isFmp4 :
+      isLikelyFmp4Data(bytesAsUint8Array);
+
+  if (segment.isFmp4) {
+    // since we don't support appending fmp4 data on progress, we know we have the full
+    // segment here
+    const startTime = probeMp4StartTime(bytesAsUint8Array, segment.map.bytes);
+
+    // we don't parse fmp4 (yet), so we can't provide any track info, however, the
+    // track info callback should still be called before the dataFn is called
+    trackInfoFn(segment, null);
+    // use null for the media type since we don't technically know whether it's audio or
+    // video
+    // the probe doesn't provide the segment end time, so only callback with the start
+    // (the end time can be roughly calculated by the receiver using the duration)
+    timingInfoFn(segment, null, 'start', startTime);
+    dataFn(segment, { data: bytes });
+    doneFn(null, segment, {});
+    return;
+  }
+
+  // VTT or other segments that don't need processing
+  if (!segment.transmuxer) {
+    doneFn(null, segment, {});
+    return;
+  }
+
+  // ts or aac
+  transmuxAndNotify({
+    segment,
+    bytes,
+    isPartial,
+    trackInfoFn,
+    timingInfoFn,
+    id3Fn,
+    captionsFn,
+    dataFn,
+    doneFn
+  });
 };
 
 /**
@@ -238,9 +398,21 @@ const handleSegmentResponse = (segment, finishProcessingFn) => (error, request) 
  * @param {WebWorker} decrypter - a WebWorker interface to AES-128 decryption routines
  * @param {Object} segment - a simplified copy of the segmentInfo object
  *                           from SegmentLoader
+ * @param {Function} trackInfoFn - a callback that receives track info
+ * @param {Function} dataFn - a callback that is executed when segment bytes are available
+ *                            and ready to use
  * @param {Function} doneFn - a callback that is executed after decryption has completed
  */
-const decryptSegment = (decrypter, segment, doneFn) => {
+const decryptSegment = ({
+  decrypter,
+  segment,
+  trackInfoFn,
+  timingInfoFn,
+  id3Fn,
+  captionsFn,
+  dataFn,
+  doneFn
+}) => {
   const decryptionHandler = (event) => {
     if (event.data.source === segment.requestId) {
       decrypter.removeEventListener('message', decryptionHandler);
@@ -249,7 +421,18 @@ const decryptSegment = (decrypter, segment, doneFn) => {
       segment.bytes = new Uint8Array(decrypted.bytes,
                                      decrypted.byteOffset,
                                      decrypted.byteLength);
-      return doneFn(null, segment);
+
+      handleSegmentBytes({
+        segment,
+        bytes: segment.bytes,
+        isPartial: false,
+        trackInfoFn,
+        timingInfoFn,
+        id3Fn,
+        captionsFn,
+        dataFn,
+        doneFn
+      });
     }
   };
 
@@ -288,10 +471,25 @@ const getMostImportantError = (errors) => {
  *
  * @param {Object} activeXhrs - an object that tracks all XHR requests
  * @param {WebWorker} decrypter - a WebWorker interface to AES-128 decryption routines
+ * @param {Function} trackInfoFn - a callback that receives track info
+ * @param {Function} timingInfoFn - a callback that receives timing info
+ * @param {Function} id3Fn - a callback that receives ID3 metadata
+ * @param {Function} captionsFn - a callback that receives captions
+ * @param {Function} dataFn - a callback that is executed when segment bytes are available
+ *                            and ready to use
  * @param {Function} doneFn - a callback that is executed after all resources have been
  *                            downloaded and any decryption completed
  */
-const waitForCompletion = (activeXhrs, decrypter, doneFn) => {
+const waitForCompletion = ({
+  activeXhrs,
+  decrypter,
+  trackInfoFn,
+  timingInfoFn,
+  id3Fn,
+  captionsFn,
+  dataFn,
+  doneFn
+}) => {
   let errors = [];
   let count = 0;
 
@@ -313,10 +511,29 @@ const waitForCompletion = (activeXhrs, decrypter, doneFn) => {
         return doneFn(worstError, segment);
       }
       if (segment.encryptedBytes) {
-        return decryptSegment(decrypter, segment, doneFn);
+        return decryptSegment({
+          decrypter,
+          segment,
+          trackInfoFn,
+          timingInfoFn,
+          id3Fn,
+          captionsFn,
+          dataFn,
+          doneFn
+        });
       }
       // Otherwise, everything is ready just continue
-      return doneFn(null, segment);
+      handleSegmentBytes({
+        segment,
+        bytes: segment.bytes,
+        isPartial: false,
+        trackInfoFn,
+        timingInfoFn,
+        id3Fn,
+        captionsFn,
+        dataFn,
+        doneFn
+      });
     }
   };
 };
@@ -329,9 +546,49 @@ const waitForCompletion = (activeXhrs, decrypter, doneFn) => {
  *                           from SegmentLoader
  * @param {Function} progressFn - a callback that is executed each time a progress event
  *                                is received
+ * @param {Function} trackInfoFn - a callback that receives track info
+ * @param {Function} dataFn - a callback that is executed when segment bytes are available
+ *                            and ready to use
  * @param {Event} event - the progress event object from XMLHttpRequest
  */
-const handleProgress = (segment, progressFn) => (event) => {
+const handleProgress = ({
+  segment,
+  progressFn,
+  trackInfoFn,
+  timingInfoFn,
+  id3Fn,
+  captionsFn,
+  dataFn,
+  handlePartialData
+}) => (event) => {
+  const request = event.target;
+
+  if (request.aborted) {
+    return;
+  }
+
+  // don't support encrypted segments or fmp4 for now
+  // in order to determine if it's an fmp4 we need at least 8 bytes
+  if (handlePartialData && !segment.key && request.responseText.length >= 8) {
+    const newBytes = stringToArrayBuffer(
+      request.responseText.substring(segment.lastReachedChar || 0));
+
+    if (segment.lastReachedChar || !isLikelyFmp4Data(new Uint8Array(newBytes))) {
+      segment.lastReachedChar = request.responseText.length;
+
+      handleSegmentBytes({
+        segment,
+        bytes: newBytes,
+        isPartial: true,
+        trackInfoFn,
+        timingInfoFn,
+        id3Fn,
+        captionsFn,
+        dataFn
+      });
+    }
+  }
+
   segment.stats = videojs.mergeOptions(segment.stats, getProgressStats(event));
 
   // record the time that we receive the first byte of data
@@ -352,6 +609,7 @@ const handleProgress = (segment, progressFn) => (event) => {
  * The segment object, at minimum, has the following format:
  * {
  *   resolvedUri: String,
+ *   [transmuxer]: Object,
  *   [byterange]: {
  *     offset: Number,
  *     length: Number
@@ -385,19 +643,41 @@ const handleProgress = (segment, progressFn) => (event) => {
  *                           from SegmentLoader
  * @param {Function} progressFn - a callback that receives progress events from the main
  *                                segment's xhr request
+ * @param {Function} trackInfoFn - a callback that receives track info
+ * @param {Function} id3Fn - a callback that receives ID3 metadata
+ * @param {Function} captionsFn - a callback that receives captions
+ * @param {Function} dataFn - a callback that receives data from the main segment's xhr
+ *                            request, transmuxed if needed
  * @param {Function} doneFn - a callback that is executed only once all requests have
  *                            succeeded or failed
  * @returns {Function} a function that, when invoked, immediately aborts all
  *                     outstanding requests
  */
-export const mediaSegmentRequest = (xhr,
-                                    xhrOptions,
-                                    decryptionWorker,
-                                    segment,
-                                    progressFn,
-                                    doneFn) => {
+export const mediaSegmentRequest = ({
+  xhr,
+  xhrOptions,
+  decryptionWorker,
+  segment,
+  progressFn,
+  trackInfoFn,
+  timingInfoFn,
+  id3Fn,
+  captionsFn,
+  dataFn,
+  doneFn,
+  handlePartialData
+}) => {
   const activeXhrs = [];
-  const finishProcessingFn = waitForCompletion(activeXhrs, decryptionWorker, doneFn);
+  const finishProcessingFn = waitForCompletion({
+    activeXhrs,
+    decryptionWorker,
+    trackInfoFn,
+    timingInfoFn,
+    id3Fn,
+    captionsFn,
+    dataFn,
+    doneFn
+  });
 
   // optionally, request the decryption key
   if (segment.key) {
@@ -431,10 +711,34 @@ export const mediaSegmentRequest = (xhr,
     responseType: 'arraybuffer',
     headers: segmentXhrHeaders(segment)
   });
-  const segmentRequestCallback = handleSegmentResponse(segment, finishProcessingFn);
+
+  if (handlePartialData) {
+    // setting to text is required for partial responses
+    // conversion to ArrayBuffer happens later
+    segmentRequestOptions.responseType = 'text';
+    segmentRequestOptions.beforeSend = (xhrObject) => {
+      // XHR binary charset opt by Marcus Granado 2006 [http://mgran.blogspot.com]
+      // makes the browser pass through the "text" unparsed
+      xhrObject.overrideMimeType('text/plain; charset=x-user-defined');
+    };
+  }
+
+  const segmentRequestCallback = handleSegmentResponse(
+    segment, finishProcessingFn, segmentRequestOptions.responseType);
   const segmentXhr = xhr(segmentRequestOptions, segmentRequestCallback);
 
-  segmentXhr.addEventListener('progress', handleProgress(segment, progressFn));
+  segmentXhr.addEventListener(
+    'progress',
+    handleProgress({
+      segment,
+      progressFn,
+      trackInfoFn,
+      timingInfoFn,
+      id3Fn,
+      captionsFn,
+      dataFn,
+      handlePartialData
+    }));
   activeXhrs.push(segmentXhr);
 
   return () => abortAll(activeXhrs);

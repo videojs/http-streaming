@@ -4,7 +4,7 @@ import xhrFactory from '../src/xhr';
 import {useFakeEnvironment} from './test-helpers';
 import Decrypter from 'worker!../src/decrypter-worker.worker.js';
 
-QUnit.module('Media Segment Request', {
+QUnit.module.skip('Media Segment Request', {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
     this.clock = this.env.clock;

@@ -9,6 +9,7 @@
  */
 
 import window from 'global/window';
+import videojs from 'video.js';
 import * as Ranges from './ranges';
 import logger from './util/logger';
 
@@ -32,6 +33,7 @@ export default class PlaybackWatcher {
    */
   constructor(options) {
     this.tech_ = options.tech;
+    this.player_ = videojs.players[this.tech_.options_.playerId];
     this.seekable = options.seekable;
 
     this.consecutiveUpdates = 0;
@@ -168,7 +170,10 @@ export default class PlaybackWatcher {
 
       // sync to the beginning of the live window
       // provide a buffer of .1 seconds to handle rounding/imprecise numbers
-      seekTo = seekableStart + Ranges.SAFE_TIME_DELTA;
+      seekTo = seekableStart +
+        // if the playlist is too short and the seekable range is an exact time (can
+        // happen in live with a 3 segment playlist), then don't use a time delta
+        (seekableStart === seekable.end(0) ? 0 : Ranges.SAFE_TIME_DELTA);
     }
 
     if (typeof seekTo !== 'undefined') {
@@ -176,7 +181,7 @@ export default class PlaybackWatcher {
                   `seekable range ${Ranges.printableRange(seekable)}. Seeking to ` +
                   `${seekTo}.`);
 
-      this.tech_.setCurrentTime(seekTo);
+      this.player_.currentTime(seekTo);
       return true;
     }
 
@@ -208,10 +213,11 @@ export default class PlaybackWatcher {
     // to avoid triggering an `unknownwaiting` event when the network is slow.
     if (currentRange.length && currentTime + 3 <= currentRange.end(0)) {
       this.cancelTimer_();
-      this.tech_.setCurrentTime(currentTime);
+      this.player_.currentTime(currentTime);
 
       this.logger_(`Stopped at ${currentTime} while inside a buffered region ` +
         `[${currentRange.start(0)} -> ${currentRange.end(0)}]. Attempting to resume ` +
+        // eslint-disable-next-line quotes
         `playback by seeking to the current time.`);
 
       // unknown waiting corrections may be useful for monitoring QoS
@@ -248,7 +254,7 @@ export default class PlaybackWatcher {
       this.logger_(`Fell out of live window at time ${currentTime}. Seeking to ` +
                    `live point (seekable end) ${livePoint}`);
       this.cancelTimer_();
-      this.tech_.setCurrentTime(livePoint);
+      this.player_.currentTime(livePoint);
 
       // live window resyncs may be useful for monitoring QoS
       this.tech_.trigger({type: 'usage', name: 'hls-live-resync'});
@@ -264,7 +270,7 @@ export default class PlaybackWatcher {
       // allows the video to catch up to the audio position without losing any audio
       // (only suffering ~3 seconds of frozen video and a pause in audio playback).
       this.cancelTimer_();
-      this.tech_.setCurrentTime(currentTime);
+      this.player_.currentTime(currentTime);
 
       // video underflow may be useful for monitoring QoS
       this.tech_.trigger({type: 'usage', name: 'hls-video-underflow'});
@@ -354,7 +360,7 @@ export default class PlaybackWatcher {
                  'nextRange start:', nextRange.start(0));
 
     // only seek if we still have not played
-    this.tech_.setCurrentTime(nextRange.start(0) + Ranges.TIME_FUDGE_FACTOR);
+    this.player_.currentTime(nextRange.start(0) + Ranges.TIME_FUDGE_FACTOR);
 
     this.tech_.trigger({type: 'usage', name: 'hls-gap-skip'});
   }

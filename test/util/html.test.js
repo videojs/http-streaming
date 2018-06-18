@@ -3,18 +3,6 @@ import window from 'global/window';
 import QUnit from 'qunit';
 import sinon from 'sinon';
 import videojs from 'video.js';
-import HtmlMediaSource from '../../src/mse/html-media-source';
-import {
-  gopsSafeToAlignWith,
-  updateGopBuffer,
-  removeGopBuffer
-} from '../../src/mse/virtual-source-buffer';
-
-// we disable this because browserify needs to include these files
-// but the exports are not important
-/* eslint-disable no-unused-vars */
-import {MediaSource, URL} from '../../src/mse/index';
-/* eslint-disable no-unused-vars */
 
 QUnit.module('videojs-contrib-media-sources - HTML', {
   beforeEach() {
@@ -62,13 +50,6 @@ QUnit.module('videojs-contrib-media-sources - HTML', {
   }
 });
 
-QUnit.test('constructs a native MediaSource', function(assert) {
-  assert.ok(
-    new videojs.MediaSource().nativeMediaSource_.isNative,
-    'constructed a MediaSource'
-  );
-});
-
 const createDataMessage = function(type, typedArray, extraObject) {
   let message = {
     data: {
@@ -114,7 +95,7 @@ const initializeNativeSourceBuffers = function(sourceBuffer) {
   sourceBuffer.transmuxer_.onmessage(doneMessage);
 };
 
-QUnit.test('creates mp4 source buffers for mp2t segments', function(assert) {
+QUnit.todo('creates mp4 source buffers for mp2t segments', function(assert) {
   let mediaSource = new videojs.MediaSource();
   let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
 
@@ -142,7 +123,7 @@ QUnit.test('creates mp4 source buffers for mp2t segments', function(assert) {
   assert.ok(sourceBuffer.transmuxer_, 'created a transmuxer');
 });
 
-QUnit.test(
+QUnit.todo(
 'the terminate is called on the transmuxer when the media source is killed',
 function(assert) {
   let mediaSource = new videojs.MediaSource();
@@ -160,9 +141,11 @@ function(assert) {
   assert.strictEqual(terminates, 1, 'called terminate on transmux web worker');
 });
 
-QUnit.test('duration is faked when playing a live stream', function(assert) {
+// TODO: should be able to delete this
+QUnit.skip('duration is faked when playing a live stream', function(assert) {
   let mediaSource = new videojs.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+
+  mediaSource.addSourceBuffer('video/mp2t');
 
   mediaSource.duration = Infinity;
   mediaSource.nativeMediaSource_.duration = 100;
@@ -172,10 +155,12 @@ QUnit.test('duration is faked when playing a live stream', function(assert) {
               'the MediaSource wrapper pretends it has an infinite duration');
 });
 
-QUnit.test(
+// TODO: should be able to delete this
+QUnit.skip(
 'duration uses the underlying MediaSource\'s duration when not live', function(assert) {
   let mediaSource = new videojs.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+
+  mediaSource.addSourceBuffer('video/mp2t');
 
   mediaSource.duration = 100;
   mediaSource.nativeMediaSource_.duration = 120;
@@ -183,7 +168,9 @@ QUnit.test(
               'the MediaSource wrapper returns the native duration');
 });
 
-QUnit.test('abort on the fake source buffer calls abort on the real ones', function(assert) {
+// TODO: should be able to delete this
+QUnit.skip('abort on the fake source buffer calls abort on the real ones',
+function(assert) {
   let mediaSource = new videojs.MediaSource();
   let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
   let messages = [];
@@ -214,10 +201,11 @@ QUnit.test('abort on the fake source buffer calls abort on the real ones', funct
   assert.strictEqual(messages[0].action, 'reset', 'reset called on transmuxer');
 });
 
-QUnit.test(
+// TODO: Needs a rewrite for native MediaSource world
+QUnit.todo(
 'calling remove deletes cues and invokes remove on any extant source buffers',
 function(assert) {
-  let mediaSource = new videojs.MediaSource();
+  let mediaSource = new window.MediaSource();
   let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
   let removedCue = [];
   let removes = 0;
@@ -262,10 +250,11 @@ function(assert) {
   );
 });
 
-QUnit.test(
+// TODO: Needs a rewrite for native MediaSource world
+QUnit.todo(
 'calling remove property handles absence of cues (null)',
 function(assert) {
-  let mediaSource = new videojs.MediaSource();
+  let mediaSource = new window.MediaSource();
   let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
 
   initializeNativeSourceBuffers(sourceBuffer);
@@ -293,11 +282,14 @@ function(assert) {
   );
 });
 
+// TODO: Needs a rewrite for native MediaSource world
 QUnit.test('removing doesn\'t happen with audio disabled', function(assert) {
-  let mediaSource = new videojs.MediaSource();
+  let mediaSource = new window.MediaSource();
   let muxedBuffer = mediaSource.addSourceBuffer('video/mp2t');
+
   // creating this audio buffer disables audio in the muxed one
-  let audioBuffer = mediaSource.addSourceBuffer('audio/mp2t; codecs="mp4a.40.2"');
+  mediaSource.addSourceBuffer('audio/mp2t; codecs="mp4a.40.2"');
+
   let removedCue = [];
   let removes = 0;
 
@@ -337,25 +329,10 @@ QUnit.test('removing doesn\'t happen with audio disabled', function(assert) {
               'the cue that overlapped the remove region was removed');
 });
 
-QUnit.test('readyState delegates to the native implementation', function(assert) {
-  let mediaSource = new HtmlMediaSource();
-
-  assert.strictEqual(
-    mediaSource.readyState,
-    mediaSource.nativeMediaSource_.readyState,
-    'readyStates are equal'
-  );
-
-  mediaSource.nativeMediaSource_.readyState = 'nonsense stuff';
-  assert.strictEqual(
-    mediaSource.readyState,
-    mediaSource.nativeMediaSource_.readyState,
-    'readyStates are equal'
-  );
-});
-
-QUnit.test('addSeekableRange_ throws an error for media with known duration', function(assert) {
-  let mediaSource = new videojs.MediaSource();
+// TODO We should test addSeekableRange in master playlist controller instead
+QUnit.todo('addSeekableRange_ throws an error for media with known duration',
+function(assert) {
+  let mediaSource = new window.MediaSource();
 
   mediaSource.duration = 100;
   assert.throws(function() {
@@ -363,7 +340,8 @@ QUnit.test('addSeekableRange_ throws an error for media with known duration', fu
   }, 'cannot add seekable range');
 });
 
-QUnit.test('addSeekableRange_ adds to the native MediaSource duration', function(assert) {
+// TODO We should test addSeekableRange in master playlist controller instead
+QUnit.todo('addSeekableRange_ adds to the native MediaSource duration', function(assert) {
   let mediaSource = new videojs.MediaSource();
 
   mediaSource.duration = Infinity;
@@ -372,12 +350,15 @@ QUnit.test('addSeekableRange_ adds to the native MediaSource duration', function
   assert.strictEqual(mediaSource.duration, Infinity, 'emulated duration');
 
   mediaSource.addSeekableRange_(120, 220);
-  assert.strictEqual(mediaSource.nativeMediaSource_.duration, 240, 'ignored the smaller range');
+  assert.strictEqual(mediaSource.nativeMediaSource_.duration,
+                     240,
+                     'ignored the smaller range');
   assert.strictEqual(mediaSource.duration, Infinity, 'emulated duration');
 });
 
-QUnit.test('appendBuffer error triggers on the player', function(assert) {
-  let mediaSource = new videojs.MediaSource();
+// TODO Rewrite this test for native MediaSource
+QUnit.todo('appendBuffer error triggers on the player', function(assert) {
+  let mediaSource = new window.MediaSource();
   let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
   let error = false;
 
@@ -403,6 +384,7 @@ QUnit.test('appendBuffer error triggers on the player', function(assert) {
   assert.ok(error, 'error triggered on player');
 });
 
+// TODO: can this be rewritten for native MediaSources?
 QUnit.test('transmuxes mp2t segments', function(assert) {
   let mp2tSegments = [];
   let mp4Segments = [];
@@ -410,7 +392,7 @@ QUnit.test('transmuxes mp2t segments', function(assert) {
   let mediaSource;
   let sourceBuffer;
 
-  mediaSource = new videojs.MediaSource();
+  mediaSource = new window.MediaSource();
   sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
 
   sourceBuffer.transmuxer_.postMessage = function(segment) {
@@ -450,7 +432,8 @@ QUnit.test('transmuxes mp2t segments', function(assert) {
   assert.strictEqual(mp4Segments.length, 2, 'appended the segments');
 });
 
-QUnit.test(
+// TODO rewrite for native world
+QUnit.todo(
 'handles typed-arrays that are subsets of their underlying buffer',
 function(assert) {
   let mp2tSegments = [];
@@ -460,7 +443,7 @@ function(assert) {
   let mediaSource;
   let sourceBuffer;
 
-  mediaSource = new videojs.MediaSource();
+  mediaSource = new window.MediaSource();
   sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
 
   sourceBuffer.transmuxer_.postMessage = function(segment) {
@@ -510,7 +493,8 @@ function(assert) {
   assert.strictEqual(mp4Segments[0][1], 6, 'fragment contains the correct second byte');
 });
 
-QUnit.test(
+// TODO Rewrite with native MediaSource
+QUnit.todo(
 'only appends audio init segment for first segment or on audio/media changes',
 function(assert) {
   let mp4Segments = [];
@@ -519,7 +503,7 @@ function(assert) {
   let mediaSource;
   let sourceBuffer;
 
-  mediaSource = new videojs.MediaSource();
+  mediaSource = new window.MediaSource();
   sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
   sourceBuffer.audioDisabled_ = false;
   mediaSource.player_ = this.player;
@@ -580,7 +564,8 @@ function(assert) {
   // audio track change
   this.player.audioTracks().trigger('change');
   sourceBuffer.audioDisabled_ = false;
-  assert.ok(sourceBuffer.appendAudioInitSegment_, 'audio change sets appendAudioInitSegment_');
+  assert.ok(sourceBuffer.appendAudioInitSegment_,
+            'audio change sets appendAudioInitSegment_');
   dataBuffer = new Uint8Array([6, 7]);
   sourceBuffer.transmuxer_.onmessage(createDataMessage('audio', dataBuffer, {
     initSegment: {
@@ -615,7 +600,8 @@ function(assert) {
 
   // rendition switch
   this.player.trigger('mediachange');
-  assert.ok(sourceBuffer.appendAudioInitSegment_, 'media change sets appendAudioInitSegment_');
+  assert.ok(sourceBuffer.appendAudioInitSegment_,
+            'media change sets appendAudioInitSegment_');
   dataBuffer = new Uint8Array([10, 11]);
   sourceBuffer.transmuxer_.onmessage(createDataMessage('audio', dataBuffer, {
     initSegment: {
@@ -634,7 +620,8 @@ function(assert) {
   assert.ok(!sourceBuffer.appendAudioInitSegment_, 'will not append init segment next');
 });
 
-QUnit.test(
+// TODO Rewrite with native MediaSource
+QUnit.todo(
 'appends video init segment for every segment',
 function(assert) {
   let mp4Segments = [];
@@ -643,7 +630,7 @@ function(assert) {
   let mediaSource;
   let sourceBuffer;
 
-  mediaSource = new videojs.MediaSource();
+  mediaSource = new window.MediaSource();
   sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
   mediaSource.player_ = this.player;
   mediaSource.url_ = this.url;
@@ -715,8 +702,9 @@ function(assert) {
   assert.strictEqual(mp4Segments[2][3], 7, 'fragment contains the correct fourth byte');
 });
 
-QUnit.test('handles empty codec string value', function(assert) {
-  let mediaSource = new videojs.MediaSource();
+// TODO: maybe rewrite for native world?
+QUnit.todo('handles empty codec string value', function(assert) {
+  let mediaSource = new window.MediaSource();
   let sourceBuffer =
     mediaSource.addSourceBuffer('video/mp2t; codecs=""');
 
@@ -743,7 +731,8 @@ QUnit.test('handles empty codec string value', function(assert) {
   );
 });
 
-QUnit.test('can create an audio buffer by itself', function(assert) {
+// TODO: maybe rewrite for native world?
+QUnit.todo('can create an audio buffer by itself', function(assert) {
   let mediaSource = new videojs.MediaSource();
   let sourceBuffer =
     mediaSource.addSourceBuffer('video/mp2t; codecs="mp4a.40.2"');
@@ -765,7 +754,8 @@ QUnit.test('can create an audio buffer by itself', function(assert) {
   );
 });
 
-QUnit.test('can create an video buffer by itself', function(assert) {
+// TODO: maybe rewrite for native world?
+QUnit.todo('can create an video buffer by itself', function(assert) {
   let mediaSource = new videojs.MediaSource();
   let sourceBuffer =
     mediaSource.addSourceBuffer('video/mp2t; codecs="avc1.4d400d"');
@@ -787,7 +777,8 @@ QUnit.test('can create an video buffer by itself', function(assert) {
   );
 });
 
-QUnit.test('handles invalid codec string', function(assert) {
+// TODO: maybe rewrite for native world?
+QUnit.todo('handles invalid codec string', function(assert) {
   let mediaSource = new videojs.MediaSource();
   let sourceBuffer =
     mediaSource.addSourceBuffer('video/mp2t; codecs="nope"');
@@ -815,7 +806,8 @@ QUnit.test('handles invalid codec string', function(assert) {
   );
 });
 
-QUnit.test('handles codec strings in reverse order', function(assert) {
+// TODO: maybe rewrite for native world?
+QUnit.todo('handles codec strings in reverse order', function(assert) {
   let mediaSource = new videojs.MediaSource();
   let sourceBuffer =
     mediaSource.addSourceBuffer('video/mp2t; codecs="mp4a.40.5,avc1.64001f"');
@@ -845,7 +837,8 @@ QUnit.test('handles codec strings in reverse order', function(assert) {
   assert.ok(sourceBuffer.transmuxer_, 'created a transmuxer');
 });
 
-QUnit.test('forwards codec strings to native buffers when specified', function(assert) {
+// TODO: should be able to remove
+QUnit.todo('forwards codec strings to native buffers when specified', function(assert) {
   let mediaSource = new videojs.MediaSource();
   let sourceBuffer =
     mediaSource.addSourceBuffer('video/mp2t; codecs="avc1.64001f,mp4a.40.5"');
@@ -863,7 +856,9 @@ QUnit.test('forwards codec strings to native buffers when specified', function(a
               'passed the audio codec along');
 });
 
-QUnit.test('parses old-school apple codec strings to the modern standard', function(assert) {
+// TODO: maybe rewrite for native world?
+QUnit.todo('parses old-school apple codec strings to the modern standard',
+function(assert) {
   let mediaSource = new videojs.MediaSource();
   let sourceBuffer =
     mediaSource.addSourceBuffer('video/mp2t; codecs="avc1.100.31,mp4a.40.5"');
@@ -882,7 +877,8 @@ QUnit.test('parses old-school apple codec strings to the modern standard', funct
 
 });
 
-QUnit.test('specifies reasonable codecs if none are specified', function(assert) {
+// TODO: maybe rewrite for native world?
+QUnit.todo('specifies reasonable codecs if none are specified', function(assert) {
   let mediaSource = new videojs.MediaSource();
   let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
 
@@ -899,8 +895,9 @@ QUnit.test('specifies reasonable codecs if none are specified', function(assert)
               'passed the audio codec along');
 });
 
-QUnit.test('virtual buffers are updating if either native buffer is', function(assert) {
-  let mediaSource = new videojs.MediaSource();
+// TODO: should be able to remove
+QUnit.todo('virtual buffers are updating if either native buffer is', function(assert) {
+  let mediaSource = new window.MediaSource();
   let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
 
   initializeNativeSourceBuffers(sourceBuffer);
@@ -919,10 +916,11 @@ QUnit.test('virtual buffers are updating if either native buffer is', function(a
   assert.strictEqual(sourceBuffer.updating, false, 'virtual buffer is not updating');
 });
 
-QUnit.test(
+// TODO: should be able to remove
+QUnit.todo(
 'virtual buffers have a position buffered if both native buffers do',
 function(assert) {
-  let mediaSource = new videojs.MediaSource();
+  let mediaSource = new window.MediaSource();
   let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
 
   initializeNativeSourceBuffers(sourceBuffer);
@@ -944,8 +942,9 @@ function(assert) {
   assert.strictEqual(sourceBuffer.buffered.end(1), 30, 'second ends at 30');
 });
 
-QUnit.test('disabled audio does not affect buffered property', function(assert) {
-  let mediaSource = new videojs.MediaSource();
+// TODO: maybe rewrite for native world?
+QUnit.todo('disabled audio does not affect buffered property', function(assert) {
+  let mediaSource = new window.MediaSource();
   let muxedBuffer = mediaSource.addSourceBuffer('video/mp2t');
   // creating a separate audio buffer disables audio on the muxed one
   let audioBuffer = mediaSource.addSourceBuffer('audio/mp2t; codecs="mp4a.40.2"');
@@ -963,8 +962,9 @@ QUnit.test('disabled audio does not affect buffered property', function(assert) 
   assert.strictEqual(muxedBuffer.buffered.end(0), 10, 'ends at ten');
 });
 
-QUnit.test('sets transmuxer baseMediaDecodeTime on appends', function(assert) {
-  let mediaSource = new videojs.MediaSource();
+// TODO: maybe rewrite for native world?
+QUnit.todo('sets transmuxer baseMediaDecodeTime on appends', function(assert) {
+  let mediaSource = new window.MediaSource();
   let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
   let resets = [];
 
@@ -988,8 +988,9 @@ QUnit.test('sets transmuxer baseMediaDecodeTime on appends', function(assert) {
   );
 });
 
-QUnit.test('aggregates source buffer update events', function(assert) {
-  let mediaSource = new videojs.MediaSource();
+// TODO: maybe rewrite for native world?
+QUnit.todo('aggregates source buffer update events', function(assert) {
+  let mediaSource = new window.MediaSource();
   let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
   let updates = 0;
   let updateends = 0;
@@ -1009,7 +1010,9 @@ QUnit.test('aggregates source buffer update events', function(assert) {
     updateends++;
   });
 
-  assert.strictEqual(updatestarts, 0, 'no updatestarts before a `done` message is received');
+  assert.strictEqual(updatestarts,
+                     0,
+                     'no updatestarts before a `done` message is received');
   assert.strictEqual(updates, 0, 'no updates before a `done` message is received');
   assert.strictEqual(updateends, 0, 'no updateends before a `done` message is received');
 
@@ -1041,8 +1044,9 @@ QUnit.test('aggregates source buffer update events', function(assert) {
   assert.strictEqual(updateends, 1, 'aggregated updateend');
 });
 
-QUnit.test('translates caption events into WebVTT cues', function(assert) {
-  let mediaSource = new videojs.MediaSource();
+// TODO most likely belongs somewhere else?
+QUnit.todo('translates caption events into WebVTT cues', function(assert) {
+  let mediaSource = new window.MediaSource();
   let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
   let types = [];
   let hls608 = 0;
@@ -1092,13 +1096,16 @@ QUnit.test('translates caption events into WebVTT cues', function(assert) {
   assert.strictEqual(types.length, 1, 'created one text track');
   assert.strictEqual(types[0], 'captions', 'the type was captions');
   assert.strictEqual(cues.length, 1, 'created one cue');
-  assert.strictEqual(cues[0].text, 'This is an in-band caption in CC1', 'included the text');
+  assert.strictEqual(cues[0].text,
+                     'This is an in-band caption in CC1',
+                     'included the text');
   assert.strictEqual(cues[0].startTime, 11, 'started at eleven');
   assert.strictEqual(cues[0].endTime, 13, 'ended at thirteen');
 });
 
-QUnit.test('captions use existing tracks with id equal to CC#', function(assert) {
-  let mediaSource = new videojs.MediaSource();
+// TODO most likely belongs somewhere else?
+QUnit.todo('captions use existing tracks with id equal to CC#', function(assert) {
+  let mediaSource = new window.MediaSource();
   let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
   let addTrackCalled = 0;
   let tracks = {
@@ -1154,18 +1161,22 @@ QUnit.test('captions use existing tracks with id equal to CC#', function(assert)
   }));
 
   sourceBuffer.transmuxer_.onmessage(doneMessage);
-  let cues = sourceBuffer.inbandTextTracks_.CC1.cues;
 
   assert.strictEqual(addTrackCalled, 0, 'no tracks were created');
   assert.strictEqual(tracks.CC1.cues.length, 1, 'CC1 contains 1 cue');
   assert.strictEqual(tracks.CC2.cues.length, 1, 'CC2 contains 1 cue');
 
-  assert.strictEqual(tracks.CC1.cues[0].text, 'This is an in-band caption in CC1', 'CC1 contains the right cue');
-  assert.strictEqual(tracks.CC2.cues[0].text, 'This is an in-band caption in CC2', 'CC2 contains the right cue');
+  assert.strictEqual(tracks.CC1.cues[0].text,
+                     'This is an in-band caption in CC1',
+                     'CC1 contains the right cue');
+  assert.strictEqual(tracks.CC2.cues[0].text,
+                     'This is an in-band caption in CC2',
+                     'CC2 contains the right cue');
 });
 
-QUnit.test('translates metadata events into WebVTT cues', function(assert) {
-  let mediaSource = new videojs.MediaSource();
+// TODO most likely belongs somewhere else?
+QUnit.todo('translates metadata events into WebVTT cues', function(assert) {
+  let mediaSource = new window.MediaSource();
   let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
 
   mediaSource.duration = Infinity;
@@ -1235,8 +1246,9 @@ QUnit.test('translates metadata events into WebVTT cues', function(assert) {
   assert.strictEqual(cues[2].endTime, mediaSource.duration, 'sourceended is fired');
 });
 
-QUnit.test('does not wrap mp4 source buffers', function(assert) {
-  let mediaSource = new videojs.MediaSource();
+// TODO: rewrite for native MediaSource world
+QUnit.todo('does not wrap mp4 source buffers', function(assert) {
+  let mediaSource = new window.MediaSource();
 
   mediaSource.addSourceBuffer('video/mp4;codecs=avc1.4d400d');
   mediaSource.addSourceBuffer('audio/mp4;codecs=mp4a.40.2');
@@ -1248,25 +1260,26 @@ QUnit.test('does not wrap mp4 source buffers', function(assert) {
   assert.strictEqual(mediaSource.sourceBuffers.length, 2, 'created native buffers');
 });
 
-QUnit.test('can get activeSourceBuffers', function(assert) {
-  let mediaSource = new videojs.MediaSource();
+// TODO: rewrite for native MediaSource world
+QUnit.todo('can get activeSourceBuffers', function(assert) {
+  let mediaSource = new window.MediaSource();
 
   // although activeSourceBuffers should technically be a SourceBufferList, we are
   // returning it as an array, and users may expect it to behave as such
   assert.ok(Array.isArray(mediaSource.activeSourceBuffers));
 });
 
-QUnit.test('active source buffers are updated on each buffer\'s updateend',
+// TODO: rewrite for native MediaSource world
+QUnit.todo('active source buffers are updated on each buffer\'s updateend',
 function(assert) {
-  let mediaSource = new videojs.MediaSource();
+  let mediaSource = new window.MediaSource();
   let updateCallCount = 0;
-  let sourceBuffer;
 
   mediaSource.updateActiveSourceBuffers_ = () => {
     updateCallCount++;
   };
 
-  sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  mediaSource.addSourceBuffer('video/mp2t');
   mediaSource.player_ = this.player;
   mediaSource.url_ = this.url;
   mediaSource.trigger('sourceopen');
@@ -1277,7 +1290,7 @@ function(assert) {
   assert.strictEqual(updateCallCount, 1,
               'active source buffers updated after addtrack');
 
-  sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
+  mediaSource.addSourceBuffer('video/mp2t');
   assert.strictEqual(updateCallCount, 1,
               'active source buffers not updated on adding second source buffer');
 
@@ -1291,9 +1304,10 @@ function(assert) {
 
 });
 
-QUnit.test('combined buffer is the only active buffer when main track enabled',
+// TODO: rewrite for native MediaSource world
+QUnit.todo('combined buffer is the only active buffer when main track enabled',
 function(assert) {
-  let mediaSource = new videojs.MediaSource();
+  let mediaSource = new window.MediaSource();
   let sourceBufferAudio;
   let sourceBufferCombined;
   let audioTracks = [{
@@ -1325,9 +1339,10 @@ function(assert) {
     'active source buffers starts with combined source buffer');
 });
 
-QUnit.test('combined & audio buffers are active when alternative track enabled',
+// TODO: rewrite for native MediaSource world
+QUnit.todo('combined & audio buffers are active when alternative track enabled',
 function(assert) {
-  let mediaSource = new videojs.MediaSource();
+  let mediaSource = new window.MediaSource();
   let sourceBufferAudio;
   let sourceBufferCombined;
   let audioTracks = [{
@@ -1362,9 +1377,10 @@ function(assert) {
     'active source buffers ends with audio source buffer');
 });
 
-QUnit.test('main buffer is the only active buffer when combined is audio only and' +
+// TODO: rewrite for native MediaSource world
+QUnit.todo('main buffer is the only active buffer when combined is audio only and' +
 'main track enabled', function(assert) {
-  const mediaSource = new videojs.MediaSource();
+  const mediaSource = new window.MediaSource();
   const audioTracks = [{
     enabled: true,
     kind: 'main',
@@ -1397,9 +1413,10 @@ QUnit.test('main buffer is the only active buffer when combined is audio only an
     'main buffer is the only active source buffer');
 });
 
-QUnit.test('audio buffer is the only active buffer when combined is audio only and' +
+// TODO: rewrite for native MediaSource world
+QUnit.todo('audio buffer is the only active buffer when combined is audio only and' +
 'alternative track enabled', function(assert) {
-  const mediaSource = new videojs.MediaSource();
+  const mediaSource = new window.MediaSource();
   const audioTracks = [{
     enabled: false,
     kind: 'main',
@@ -1432,9 +1449,10 @@ QUnit.test('audio buffer is the only active buffer when combined is audio only a
     'audio buffer is the only active source buffer');
 });
 
-QUnit.test('video only & audio only buffers are always active',
+// TODO: rewrite for native MediaSource world
+QUnit.todo('video only & audio only buffers are always active',
 function(assert) {
-  let mediaSource = new videojs.MediaSource();
+  let mediaSource = new window.MediaSource();
   let sourceBufferAudio;
   let sourceBufferCombined;
   let audioTracks = [{
@@ -1481,9 +1499,10 @@ function(assert) {
     'active source buffers ends with audio source buffer');
 });
 
-QUnit.test('Single buffer always active. Audio disabled depends on audio codec',
+// TODO: rewrite for native MediaSource world
+QUnit.todo('Single buffer always active. Audio disabled depends on audio codec',
 function(assert) {
-  let mediaSource = new videojs.MediaSource();
+  let mediaSource = new window.MediaSource();
   let audioTracks = [{
     enabled: true,
     kind: 'main',
@@ -1517,10 +1536,11 @@ function(assert) {
     'audio not disabled on audio only active sourceBuffer');
 });
 
-QUnit.test('video segments with info trigger videooinfo event', function(assert) {
+// TODO: rewrite for native MediaSource world
+QUnit.todo('video segments with info trigger videooinfo event', function(assert) {
   let data = new Uint8Array(1);
   let infoEvents = [];
-  let mediaSource = new videojs.MediaSource();
+  let mediaSource = new window.MediaSource();
   let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
   let info = {width: 100};
   let newinfo = {width: 225};
@@ -1542,10 +1562,11 @@ QUnit.test('video segments with info trigger videooinfo event', function(assert)
   assert.deepEqual(infoEvents[1].info, newinfo, 'video info = muxed info');
 });
 
-QUnit.test('audio segments with info trigger audioinfo event', function(assert) {
+// TODO: rewrite for native MediaSource world
+QUnit.todo('audio segments with info trigger audioinfo event', function(assert) {
   let data = new Uint8Array(1);
   let infoEvents = [];
-  let mediaSource = new videojs.MediaSource();
+  let mediaSource = new window.MediaSource();
   let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
   let info = {width: 100};
   let newinfo = {width: 225};
@@ -1567,9 +1588,11 @@ QUnit.test('audio segments with info trigger audioinfo event', function(assert) 
   assert.deepEqual(infoEvents[1].info, newinfo, 'audio info = muxed info');
 });
 
-QUnit.test('creates native SourceBuffers immediately if a second ' +
-           'VirtualSourceBuffer is created', function(assert) {
-  let mediaSource = new videojs.MediaSource();
+// TODO: rewrite for native MediaSource world
+QUnit.todo(
+'creates native SourceBuffers immediately if a second VirtualSourceBuffer is created',
+function(assert) {
+  let mediaSource = new window.MediaSource();
   let sourceBuffer =
     mediaSource.addSourceBuffer('video/mp2t; codecs="avc1.64001f,mp4a.40.5"');
   let sourceBuffer2 =
@@ -1604,426 +1627,4 @@ QUnit.test('creates native SourceBuffers immediately if a second ' +
   assert.ok(
     sourceBuffer2.audioBuffer_,
     'second source buffer has an audio source buffer');
-});
-
-QUnit.module('VirtualSourceBuffer - Isolated Functions');
-
-QUnit.test('gopsSafeToAlignWith returns correct list', function(assert) {
-  // gopsSafeToAlignWith uses a 3 second safetyNet so that gops very close to the playhead
-  // are not considered safe to append to
-  const safetyNet = 3;
-  const pts = (time) => Math.ceil(time * 90000);
-  let mapping = 0;
-  let currentTime = 0;
-  let buffer = [];
-  let player;
-  let actual;
-  let expected;
-
-  expected = [];
-  actual = gopsSafeToAlignWith(buffer, player, mapping);
-  assert.deepEqual(actual, expected, 'empty array when player is undefined');
-
-  player = { currentTime: () => currentTime };
-  actual = gopsSafeToAlignWith(buffer, player, mapping);
-  assert.deepEqual(actual, expected, 'empty array when buffer is empty');
-
-  buffer = expected = [
-    { pts: pts(currentTime + safetyNet + 1) },
-    { pts: pts(currentTime + safetyNet + 2) },
-    { pts: pts(currentTime + safetyNet + 3) }
-  ];
-  actual = gopsSafeToAlignWith(buffer, player, mapping);
-  assert.deepEqual(actual, expected,
-    'entire buffer considered safe when all gops come after currentTime + safetyNet');
-
-  buffer = [
-    { pts: pts(currentTime + safetyNet) },
-    { pts: pts(currentTime + safetyNet + 1) },
-    { pts: pts(currentTime + safetyNet + 2) }
-  ];
-  expected = [
-    { pts: pts(currentTime + safetyNet + 1) },
-    { pts: pts(currentTime + safetyNet + 2) }
-  ];
-  actual = gopsSafeToAlignWith(buffer, player, mapping);
-  assert.deepEqual(actual, expected, 'safetyNet comparison is not inclusive');
-
-  currentTime = 10;
-  mapping = -5;
-  buffer = [
-    { pts: pts(currentTime - mapping + safetyNet - 2) },
-    { pts: pts(currentTime - mapping + safetyNet - 1) },
-    { pts: pts(currentTime - mapping + safetyNet) },
-    { pts: pts(currentTime - mapping + safetyNet + 1) },
-    { pts: pts(currentTime - mapping + safetyNet + 2) }
-  ];
-  expected = [
-    { pts: pts(currentTime - mapping + safetyNet + 1) },
-    { pts: pts(currentTime - mapping + safetyNet + 2) }
-  ];
-  actual = gopsSafeToAlignWith(buffer, player, mapping);
-  assert.deepEqual(actual, expected, 'uses mapping to shift currentTime');
-
-  currentTime = 20;
-  expected = [];
-  actual = gopsSafeToAlignWith(buffer, player, mapping);
-  assert.deepEqual(actual, expected,
-    'empty array when no gops in buffer come after currentTime');
-});
-
-QUnit.test('updateGopBuffer correctly processes new gop information', function(assert) {
-  let buffer = [];
-  let gops = [];
-  let replace = true;
-  let actual;
-  let expected;
-
-  buffer = expected = [{ pts: 100 }, { pts: 200 }];
-  actual = updateGopBuffer(buffer, gops, replace);
-  assert.deepEqual(actual, expected, 'returns buffer when no new gops');
-
-  gops = expected = [{ pts: 300 }, { pts: 400 }];
-  actual = updateGopBuffer(buffer, gops, replace);
-  assert.deepEqual(actual, expected, 'returns only new gops when replace is true');
-
-  replace = false;
-  buffer = [];
-  gops = [{ pts: 100 }];
-  expected = [{ pts: 100 }];
-  actual = updateGopBuffer(buffer, gops, replace);
-  assert.deepEqual(actual, expected, 'appends new gops to empty buffer');
-
-  buffer = [{ pts: 100 }, { pts: 200 }];
-  gops = [{ pts: 300 }, { pts: 400 }];
-  expected = [{ pts: 100 }, { pts: 200 }, { pts: 300 }, { pts: 400 }];
-  actual = updateGopBuffer(buffer, gops, replace);
-  assert.deepEqual(actual, expected, 'appends new gops at end of buffer when no overlap');
-
-  buffer = [{ pts: 100 }, { pts: 200 }, { pts: 300 }, { pts: 400 }];
-  gops = [{ pts: 250 }, { pts: 300 }, { pts: 350 }];
-  expected = [{ pts: 100 }, { pts: 200 }, { pts: 250 }, { pts: 300 }, { pts: 350 }];
-  actual = updateGopBuffer(buffer, gops, replace);
-  assert.deepEqual(actual, expected,
-    'slices buffer at point of overlap and appends new gops');
-
-  buffer = [{ pts: 100 }, { pts: 200 }, { pts: 300 }, { pts: 400 }];
-  gops = [{ pts: 200 }, { pts: 300 }, { pts: 350 }];
-  expected = [{ pts: 100 }, { pts: 200 }, { pts: 300 }, { pts: 350 }];
-  actual = updateGopBuffer(buffer, gops, replace);
-  assert.deepEqual(actual, expected, 'overlap slice is inclusive');
-
-  buffer = [{ pts: 300 }, { pts: 400 }, { pts: 500 }, { pts: 600 }];
-  gops = [{ pts: 100 }, { pts: 200 }, { pts: 250 }];
-  expected = [{ pts: 100 }, { pts: 200 }, { pts: 250 }];
-  actual = updateGopBuffer(buffer, gops, replace);
-  assert.deepEqual(actual, expected,
-    'completely replaces buffer with new gops when all gops come before buffer');
-});
-
-QUnit.test('removeGopBuffer correctly removes range from buffer', function(assert) {
-  const pts = (time) => Math.ceil(time * 90000);
-  let buffer = [];
-  let start = 0;
-  let end = 0;
-  let mapping = -5;
-  let actual;
-  let expected;
-
-  expected = [];
-  actual = removeGopBuffer(buffer, start, end, mapping);
-  assert.deepEqual(actual, expected, 'returns empty array when buffer empty');
-
-  start = 0;
-  end = 8;
-  buffer = expected = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(12 - mapping) },
-    { pts: pts(15 - mapping) },
-    { pts: pts(18 - mapping) },
-    { pts: pts(20 - mapping) }
-  ];
-  actual = removeGopBuffer(buffer, start, end, mapping);
-  assert.deepEqual(actual, expected,
-    'no removal when remove range comes before start of buffer');
-
-  start = 22;
-  end = 30;
-  buffer = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(12 - mapping) },
-    { pts: pts(15 - mapping) },
-    { pts: pts(18 - mapping) },
-    { pts: pts(20 - mapping) }
-  ];
-  expected = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(12 - mapping) },
-    { pts: pts(15 - mapping) },
-    { pts: pts(18 - mapping) }
-  ];
-  actual = removeGopBuffer(buffer, start, end, mapping);
-  assert.deepEqual(actual, expected,
-    'removes last gop when remove range is after end of buffer');
-
-  start = 0;
-  end = 10;
-  buffer = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(12 - mapping) },
-    { pts: pts(15 - mapping) },
-    { pts: pts(18 - mapping) },
-    { pts: pts(20 - mapping) }
-  ];
-  expected = [
-    { pts: pts(11 - mapping) },
-    { pts: pts(12 - mapping) },
-    { pts: pts(15 - mapping) },
-    { pts: pts(18 - mapping) },
-    { pts: pts(20 - mapping) }
-  ];
-  actual = removeGopBuffer(buffer, start, end, mapping);
-  assert.deepEqual(actual, expected, 'clamps start range to begining of buffer');
-
-  start = 0;
-  end = 12;
-  buffer = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(12 - mapping) },
-    { pts: pts(15 - mapping) },
-    { pts: pts(18 - mapping) },
-    { pts: pts(20 - mapping) }
-  ];
-  expected = [
-    { pts: pts(15 - mapping) },
-    { pts: pts(18 - mapping) },
-    { pts: pts(20 - mapping) }
-  ];
-  actual = removeGopBuffer(buffer, start, end, mapping);
-  assert.deepEqual(actual, expected, 'clamps start range to begining of buffer');
-
-  start = 0;
-  end = 14;
-  buffer = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(12 - mapping) },
-    { pts: pts(15 - mapping) },
-    { pts: pts(18 - mapping) },
-    { pts: pts(20 - mapping) }
-  ];
-  expected = [
-    { pts: pts(15 - mapping) },
-    { pts: pts(18 - mapping) },
-    { pts: pts(20 - mapping) }
-  ];
-  actual = removeGopBuffer(buffer, start, end, mapping);
-  assert.deepEqual(actual, expected, 'clamps start range to begining of buffer');
-
-  start = 15;
-  end = 30;
-  buffer = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(12 - mapping) },
-    { pts: pts(15 - mapping) },
-    { pts: pts(18 - mapping) },
-    { pts: pts(20 - mapping) }
-  ];
-  expected = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(12 - mapping) }
-  ];
-  actual = removeGopBuffer(buffer, start, end, mapping);
-  assert.deepEqual(actual, expected, 'clamps end range to end of buffer');
-
-  start = 17;
-  end = 30;
-  buffer = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(12 - mapping) },
-    { pts: pts(15 - mapping) },
-    { pts: pts(18 - mapping) },
-    { pts: pts(20 - mapping) }
-  ];
-  expected = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(12 - mapping) }
-  ];
-  actual = removeGopBuffer(buffer, start, end, mapping);
-  assert.deepEqual(actual, expected, 'clamps end range to end of buffer');
-
-  start = 20;
-  end = 30;
-  buffer = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(12 - mapping) },
-    { pts: pts(15 - mapping) },
-    { pts: pts(18 - mapping) },
-    { pts: pts(20 - mapping) }
-  ];
-  expected = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(12 - mapping) },
-    { pts: pts(15 - mapping) },
-    { pts: pts(18 - mapping) }
-  ];
-  actual = removeGopBuffer(buffer, start, end, mapping);
-  assert.deepEqual(actual, expected, 'clamps end range to end of buffer');
-
-  buffer = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(12 - mapping) },
-    { pts: pts(15 - mapping) },
-    { pts: pts(18 - mapping) },
-    { pts: pts(20 - mapping) }
-  ];
-  start = 12;
-  end = 15;
-  expected = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(18 - mapping) },
-    { pts: pts(20 - mapping) }
-  ];
-  actual = removeGopBuffer(buffer, start, end, mapping);
-  assert.deepEqual(actual, expected, 'removes gops that remove range intersects with');
-
-  buffer = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(12 - mapping) },
-    { pts: pts(15 - mapping) },
-    { pts: pts(18 - mapping) },
-    { pts: pts(20 - mapping) }
-  ];
-  start = 12;
-  end = 14;
-  expected = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(15 - mapping) },
-    { pts: pts(18 - mapping) },
-    { pts: pts(20 - mapping) }
-  ];
-  actual = removeGopBuffer(buffer, start, end, mapping);
-  assert.deepEqual(actual, expected, 'removes gops that remove range intersects with');
-
-  buffer = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(12 - mapping) },
-    { pts: pts(15 - mapping) },
-    { pts: pts(18 - mapping) },
-    { pts: pts(20 - mapping) }
-  ];
-  start = 13;
-  end = 14;
-  expected = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(15 - mapping) },
-    { pts: pts(18 - mapping) },
-    { pts: pts(20 - mapping) }
-  ];
-  actual = removeGopBuffer(buffer, start, end, mapping);
-  assert.deepEqual(actual, expected, 'removes gops that remove range intersects with');
-
-  buffer = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(12 - mapping) },
-    { pts: pts(15 - mapping) },
-    { pts: pts(18 - mapping) },
-    { pts: pts(20 - mapping) }
-  ];
-  start = 13;
-  end = 15;
-  expected = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(18 - mapping) },
-    { pts: pts(20 - mapping) }
-  ];
-  actual = removeGopBuffer(buffer, start, end, mapping);
-  assert.deepEqual(actual, expected, 'removes gops that remove range intersects with');
-
-  buffer = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(12 - mapping) },
-    { pts: pts(15 - mapping) },
-    { pts: pts(18 - mapping) },
-    { pts: pts(20 - mapping) }
-  ];
-  start = 12;
-  end = 17;
-  expected = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(18 - mapping) },
-    { pts: pts(20 - mapping) }
-  ];
-  actual = removeGopBuffer(buffer, start, end, mapping);
-  assert.deepEqual(actual, expected, 'removes gops that remove range intersects with');
-
-  buffer = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(12 - mapping) },
-    { pts: pts(15 - mapping) },
-    { pts: pts(18 - mapping) },
-    { pts: pts(20 - mapping) }
-  ];
-  start = 13;
-  end = 16;
-  expected = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(18 - mapping) },
-    { pts: pts(20 - mapping) }
-  ];
-  actual = removeGopBuffer(buffer, start, end, mapping);
-  assert.deepEqual(actual, expected, 'removes gops that remove range intersects with');
-
-  start = 10;
-  end = 20;
-  buffer = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(12 - mapping) },
-    { pts: pts(15 - mapping) },
-    { pts: pts(18 - mapping) },
-    { pts: pts(20 - mapping) }
-  ];
-  expected = [];
-  actual = removeGopBuffer(buffer, start, end, mapping);
-  assert.deepEqual(actual, expected,
-    'removes entire buffer when buffer inside remove range');
-
-  start = 0;
-  end = 30;
-  buffer = [
-    { pts: pts(10 - mapping) },
-    { pts: pts(11 - mapping) },
-    { pts: pts(12 - mapping) },
-    { pts: pts(15 - mapping) },
-    { pts: pts(18 - mapping) },
-    { pts: pts(20 - mapping) }
-  ];
-  expected = [];
-  actual = removeGopBuffer(buffer, start, end, mapping);
-  assert.deepEqual(actual, expected,
-    'removes entire buffer when buffer inside remove range');
 });
