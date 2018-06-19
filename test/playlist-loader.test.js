@@ -10,6 +10,8 @@ import {
 import xhrFactory from '../src/xhr';
 import { useFakeEnvironment, urlTo } from './test-helpers';
 import window from 'global/window';
+// needed for plugin registration
+import '../src/videojs-http-streaming';
 
 QUnit.module('Playlist Loader', {
   beforeEach(assert) {

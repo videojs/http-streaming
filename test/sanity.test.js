@@ -1,5 +1,7 @@
 import QUnit from 'qunit';
 import videojs from 'video.js';
+// needed for plugin registration
+import '../src/videojs-http-streaming';
 
 QUnit.module('videojs-http-streaming - sanity');
 

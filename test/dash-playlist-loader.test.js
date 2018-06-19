@@ -6,6 +6,8 @@ import {
   standardXHRResponse,
   urlTo
 } from './test-helpers';
+// needed for plugin registration
+import '../src/videojs-http-streaming';
 
 QUnit.module('DASH Playlist Loader', {
   beforeEach(assert) {

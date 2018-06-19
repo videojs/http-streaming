@@ -2,6 +2,8 @@ import QUnit from 'qunit';
 import xhrFactory from '../src/xhr';
 import { useFakeEnvironment } from './test-helpers.js';
 import videojs from 'video.js';
+// needed for plugin registration
+import '../src/videojs-http-streaming';
 
 QUnit.module('xhr', {
   beforeEach(assert) {

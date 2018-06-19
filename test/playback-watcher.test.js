@@ -8,6 +8,8 @@ import {
   standardXHRResponse
 } from './test-helpers.js';
 import PlaybackWatcher from '../src/playback-watcher';
+// needed for plugin registration
+import '../src/videojs-http-streaming';
 
 let monitorCurrentTime_;
 

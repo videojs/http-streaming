@@ -3,6 +3,8 @@ import PlaylistLoader from '../src/playlist-loader';
 import QUnit from 'qunit';
 import xhrFactory from '../src/xhr';
 import { useFakeEnvironment } from './test-helpers';
+// needed for plugin registration
+import '../src/videojs-http-streaming';
 
 QUnit.module('Playlist Duration');
 
