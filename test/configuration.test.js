@@ -1,8 +1,7 @@
 import QUnit from 'qunit';
 import {
   createPlayer,
-  useFakeEnvironment,
-  useFakeMediaSource
+  useFakeEnvironment
 } from './test-helpers.js';
 import videojs from 'video.js';
 
@@ -35,7 +34,6 @@ QUnit.module('Configuration - Deprication', {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
     this.requests = this.env.requests;
-    this.mse = useFakeMediaSource();
     this.clock = this.env.clock;
     this.old = {};
 
@@ -50,7 +48,6 @@ QUnit.module('Configuration - Deprication', {
     CONFIG_KEYS.forEach((key) => Config[key] = this.old[key]);
 
     this.env.restore();
-    this.mse.restore();
     videojs.Hls.supportsNativeHls = this.old.NativeHlsSupport;
   }
 });
@@ -227,7 +224,6 @@ QUnit.module('Configuration - Options', {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
     this.requests = this.env.requests;
-    this.mse = useFakeMediaSource();
     this.clock = this.env.clock;
     this.old = {};
 
@@ -238,7 +234,6 @@ QUnit.module('Configuration - Options', {
 
   afterEach() {
     this.env.restore();
-    this.mse.restore();
     videojs.Hls.supportsNativeHls = this.old.NativeHlsSupport;
 
     this.player.dispose();
