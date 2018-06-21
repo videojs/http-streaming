@@ -5,6 +5,9 @@ import testDataManifests from './test-manifests.js';
 import xhrFactory from '../src/xhr';
 import window from 'global/window';
 
+const RealMediaSource = window.MediaSource;
+const realCreateObjectURL = window.URL.createObjectURL;
+
 // a SourceBuffer that tracks updates but otherwise is a noop
 class MockSourceBuffer extends videojs.EventTarget {
   constructor() {
@@ -71,6 +74,7 @@ class MockMediaSource extends videojs.EventTarget {
     this.onsourceclose = null;
     this.onsourceended = null;
     this.onsourceopen = null;
+    this.nativeMediaSource_ = new RealMediaSource();
   }
 
   addSeekableRange_(start, end) {
@@ -109,13 +113,14 @@ export class MockTextTrack {
 }
 
 export const useFakeMediaSource = function() {
-  let RealMediaSource = window.MediaSource;
-
   window.MediaSource = MockMediaSource;
+  window.URL.createObjectURL = (object) => realCreateObjectURL(
+    object instanceof MockMediaSource ? object.nativeMediaSource_ : object);
 
   return {
     restore() {
       window.MediaSource = RealMediaSource;
+      window.URL.createObjectURL = realCreateObjectURL;
     }
   };
 };
