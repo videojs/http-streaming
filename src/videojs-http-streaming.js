@@ -320,7 +320,7 @@ class HlsHandler extends Component {
         document.msFullscreenElement;
 
       if (fullscreenElement && fullscreenElement.contains(this.tech_.el())) {
-        this.masterPlaylistController_.fastQualityChange_();
+        this.masterPlaylistController_.smoothQualityChange_();
       }
     });
     this.on(this.tech_, 'error', function() {
