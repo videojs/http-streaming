@@ -440,11 +440,9 @@ QUnit.test('fixes bad seeks', function(assert) {
   playbackWatcher.tech_ = {
     off: () => {},
     seeking: () => seeking,
-    setCurrentTime: (time) => {
-      seeks.push(time);
-    },
     currentTime: () => currentTime
   };
+  this.player.vhs.setCurrentTime = (time) => seeks.push(time);
 
   currentTime = 50;
   seekable = videojs.createTimeRanges([[1, 45]]);
@@ -493,14 +491,12 @@ QUnit.test('corrects seek outside of seekable', function(assert) {
   playbackWatcher.tech_ = {
     off: () => {},
     seeking: () => seeking,
-    setCurrentTime: (time) => {
-      seeks.push(time);
-    },
     currentTime: () => currentTime,
     // mocked out
     paused: () => false,
     buffered: () => videojs.createTimeRanges()
   };
+  this.player.vhs.setCurrentTime = (time) => seeks.push(time);
 
   // waiting
 
@@ -582,14 +578,18 @@ QUnit.test('calls fixesBadSeeks_ on seekablechanged', function(assert) {
   assert.equal(fixesBadSeeks_, 1, 'fixesBadSeeks_ was called');
 });
 
-QUnit.module.skip('PlaybackWatcher isolated functions', {
+QUnit.module('PlaybackWatcher isolated functions', {
   beforeEach() {
     monitorCurrentTime_ = PlaybackWatcher.prototype.monitorCurrentTime_;
     PlaybackWatcher.prototype.monitorCurrentTime_ = () => {};
     this.playbackWatcher = new PlaybackWatcher({
       tech: {
         on: () => {},
-        off: () => {}
+        off: () => {},
+        // needed to construct a playback watcher
+        options_: {
+          playerId: 'mock-player-id'
+        }
       }
     });
   },
