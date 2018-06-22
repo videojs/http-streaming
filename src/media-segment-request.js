@@ -395,7 +395,8 @@ const handleSegmentBytes = ({
 /**
  * Decrypt the segment via the decryption web worker
  *
- * @param {WebWorker} decryptionWorker - a WebWorker interface to AES-128 decryption routines
+ * @param {WebWorker} decryptionWorker - a WebWorker interface to AES-128 decryption
+ *                                       routines
  * @param {Object} segment - a simplified copy of the segmentInfo object
  *                           from SegmentLoader
  * @param {Function} trackInfoFn - a callback that receives track info
@@ -470,7 +471,8 @@ const getMostImportantError = (errors) => {
  * each request can be examined later.
  *
  * @param {Object} activeXhrs - an object that tracks all XHR requests
- * @param {WebWorker} decryptionWorker - a WebWorker interface to AES-128 decryption routines
+ * @param {WebWorker} decryptionWorker - a WebWorker interface to AES-128 decryption
+ *                                       routines
  * @param {Function} trackInfoFn - a callback that receives track info
  * @param {Function} timingInfoFn - a callback that receives timing info
  * @param {Function} id3Fn - a callback that receives ID3 metadata
