@@ -3,6 +3,8 @@ import {mediaSegmentRequest, REQUEST_ERRORS} from '../src/media-segment-request'
 import xhrFactory from '../src/xhr';
 import {useFakeEnvironment} from './test-helpers';
 import Decrypter from 'worker!../src/decrypter-worker.worker.js';
+// needed for plugin registration
+import '../src/videojs-http-streaming';
 
 QUnit.module('Media Segment Request', {
   beforeEach(assert) {
@@ -44,13 +46,13 @@ QUnit.test('cancels outstanding segment request on abort', function(assert) {
 
   assert.expect(7);
 
-  const abort = mediaSegmentRequest(
-    this.xhr,
-    this.xhrOptions,
-    this.noop,
-    { resolvedUri: '0-test.ts' },
-    this.noop,
-    (error, segmentData) => {
+  const abort = mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.noop,
+    segment: { resolvedUri: '0-test.ts' },
+    progressFn: this.noop,
+    doneFn: (error, segmentData) => {
       assert.equal(this.requests.length, 1, 'there is only one request');
       assert.equal(this.requests[0].uri, '0-test.ts', 'the request is for a segment');
       assert.ok(this.requests[0].aborted, 'aborted the first request');
@@ -58,7 +60,8 @@ QUnit.test('cancels outstanding segment request on abort', function(assert) {
       assert.equal(error.code, REQUEST_ERRORS.ABORTED, 'request was aborted');
 
       done();
-    });
+    }
+  });
 
   // Simulate Firefox's handling of aborted segments -
   // Firefox sets the response to an empty array buffer if the xhr type is 'arraybuffer'
@@ -74,23 +77,24 @@ QUnit.test('cancels outstanding key requests on abort', function(assert) {
 
   assert.expect(7);
 
-  const abort = mediaSegmentRequest(
-    this.xhr,
-    this.xhrOptions,
-    this.noop,
-    {
+  const abort = mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.noop,
+    segment: {
       resolvedUri: '0-test.ts',
       key: {
         resolvedUri: '0-key.php'
       }
     },
-    this.noop,
-    (error, segmentData) => {
+    progressFn: this.noop,
+    doneFn: (error, segmentData) => {
       assert.ok(keyReq.aborted, 'aborted the key request');
       assert.equal(error.code, REQUEST_ERRORS.ABORTED, 'key request was aborted');
 
       done();
-    });
+    }
+  });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
 
@@ -112,23 +116,24 @@ QUnit.test('cancels outstanding key requests on failure', function(assert) {
   const done = assert.async();
 
   assert.expect(7);
-  mediaSegmentRequest(
-    this.xhr,
-    this.xhrOptions,
-    this.noop,
-    {
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.noop,
+    segment: {
       resolvedUri: '0-test.ts',
       key: {
         resolvedUri: '0-key.php'
       }
     },
-    this.noop,
-    (error, segmentData) => {
+    progressFn: this.noop,
+    doneFn: (error, segmentData) => {
       assert.ok(keyReq.aborted, 'aborted the key request');
       assert.equal(error.code, REQUEST_ERRORS.FAILURE, 'segment request failed');
 
       done();
-    });
+    }
+  });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
 
@@ -147,23 +152,24 @@ QUnit.test('cancels outstanding key requests on timeout', function(assert) {
   const done = assert.async();
 
   assert.expect(7);
-  mediaSegmentRequest(
-    this.xhr,
-    this.xhrOptions,
-    this.noop,
-    {
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.noop,
+    segment: {
       resolvedUri: '0-test.ts',
       key: {
         resolvedUri: '0-key.php'
       }
     },
-    this.noop,
-    (error, segmentData) => {
+    progressFn: this.noop,
+    doneFn: (error, segmentData) => {
       assert.ok(keyReq.aborted, 'aborted the key request');
       assert.equal(error.code, REQUEST_ERRORS.TIMEOUT, 'key request failed');
 
       done();
-    });
+    }
+  });
   assert.equal(this.requests.length, 2, 'there are two requests');
 
   keyReq = this.requests.shift();
@@ -193,19 +199,19 @@ QUnit.test('the key response is converted to the correct format', function(asser
     postMessage.call(this.mockDecrypter, message);
   };
 
-  mediaSegmentRequest(
-    this.xhr,
-    this.xhrOptions,
-    this.mockDecrypter,
-    {
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.mockDecrypter,
+    segment: {
       resolvedUri: '0-test.ts',
       key: {
         resolvedUri: '0-key.php',
         IV: [0, 0, 0, 1]
       }
     },
-    this.noop,
-    (error, segmentData) => {
+    progressFn: this.noop,
+    doneFn: (error, segmentData) => {
       assert.notOk(error, 'there are no errors');
       assert.equal(this.mockDecrypter.listeners.length,
                    0,
@@ -213,7 +219,8 @@ QUnit.test('the key response is converted to the correct format', function(asser
       // verify stats
       assert.equal(segmentData.stats.bytesReceived, 10, '10 bytes');
       done();
-    });
+    }
+  });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
 
@@ -233,11 +240,11 @@ QUnit.test('segment with key has bytes decrypted', function(assert) {
   const done = assert.async();
 
   assert.expect(8);
-  mediaSegmentRequest(
-    this.xhr,
-    this.xhrOptions,
-    this.realDecrypter,
-    {
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.realDecrypter,
+    segment: {
       resolvedUri: '0-test.ts',
       key: {
         resolvedUri: '0-key.php',
@@ -246,15 +253,16 @@ QUnit.test('segment with key has bytes decrypted', function(assert) {
         }
       }
     },
-    this.noop,
-    (error, segmentData) => {
+    progressFn: this.noop,
+    doneFn: (error, segmentData) => {
       assert.notOk(error, 'there are no errors');
       assert.ok(segmentData.bytes, 'decrypted bytes in segment');
 
       // verify stats
       assert.equal(segmentData.stats.bytesReceived, 8, '8 bytes');
       done();
-    });
+    }
+  });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
 
@@ -278,11 +286,11 @@ function(assert) {
   const done = assert.async();
 
   assert.expect(10);
-  mediaSegmentRequest(
-    this.xhr,
-    this.xhrOptions,
-    this.realDecrypter,
-    {
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.realDecrypter,
+    segment: {
       resolvedUri: '0-test.ts',
       key: {
         resolvedUri: '0-key.php',
@@ -294,8 +302,8 @@ function(assert) {
         resolvedUri: '0-init.dat'
       }
     },
-    this.noop,
-    (error, segmentData) => {
+    progressFn: this.noop,
+    doneFn: (error, segmentData) => {
       assert.notOk(error, 'there are no errors');
       assert.ok(segmentData.bytes, 'decrypted bytes in segment');
       assert.ok(segmentData.map.bytes, 'init segment bytes in map');
@@ -303,7 +311,8 @@ function(assert) {
       // verify stats
       assert.equal(segmentData.stats.bytesReceived, 8, '8 bytes');
       done();
-    });
+    }
+  });
 
   assert.equal(this.requests.length, 3, 'there are three requests');
 

@@ -395,7 +395,7 @@ const handleSegmentBytes = ({
 /**
  * Decrypt the segment via the decryption web worker
  *
- * @param {WebWorker} decrypter - a WebWorker interface to AES-128 decryption routines
+ * @param {WebWorker} decryptionWorker - a WebWorker interface to AES-128 decryption routines
  * @param {Object} segment - a simplified copy of the segmentInfo object
  *                           from SegmentLoader
  * @param {Function} trackInfoFn - a callback that receives track info
@@ -404,7 +404,7 @@ const handleSegmentBytes = ({
  * @param {Function} doneFn - a callback that is executed after decryption has completed
  */
 const decryptSegment = ({
-  decrypter,
+  decryptionWorker,
   segment,
   trackInfoFn,
   timingInfoFn,
@@ -415,7 +415,7 @@ const decryptSegment = ({
 }) => {
   const decryptionHandler = (event) => {
     if (event.data.source === segment.requestId) {
-      decrypter.removeEventListener('message', decryptionHandler);
+      decryptionWorker.removeEventListener('message', decryptionHandler);
       const decrypted = event.data.decrypted;
 
       segment.bytes = new Uint8Array(decrypted.bytes,
@@ -436,11 +436,11 @@ const decryptSegment = ({
     }
   };
 
-  decrypter.addEventListener('message', decryptionHandler);
+  decryptionWorker.addEventListener('message', decryptionHandler);
 
   // this is an encrypted segment
   // incrementally decrypt the segment
-  decrypter.postMessage(createTransferableMessage({
+  decryptionWorker.postMessage(createTransferableMessage({
     source: segment.requestId,
     encrypted: segment.encryptedBytes,
     key: segment.key.bytes,
@@ -470,7 +470,7 @@ const getMostImportantError = (errors) => {
  * each request can be examined later.
  *
  * @param {Object} activeXhrs - an object that tracks all XHR requests
- * @param {WebWorker} decrypter - a WebWorker interface to AES-128 decryption routines
+ * @param {WebWorker} decryptionWorker - a WebWorker interface to AES-128 decryption routines
  * @param {Function} trackInfoFn - a callback that receives track info
  * @param {Function} timingInfoFn - a callback that receives timing info
  * @param {Function} id3Fn - a callback that receives ID3 metadata
@@ -482,7 +482,7 @@ const getMostImportantError = (errors) => {
  */
 const waitForCompletion = ({
   activeXhrs,
-  decrypter,
+  decryptionWorker,
   trackInfoFn,
   timingInfoFn,
   id3Fn,
@@ -512,7 +512,7 @@ const waitForCompletion = ({
       }
       if (segment.encryptedBytes) {
         return decryptSegment({
-          decrypter,
+          decryptionWorker,
           segment,
           trackInfoFn,
           timingInfoFn,
