@@ -361,7 +361,7 @@ export default class SyncController extends videojs.EventTarget {
     }
   }
 
-  saveSegmentTimingInfo(segmentInfo, timingInfo) {
+  saveSegmentTimingInfo(segmentInfo) {
     if (this.calculateSegmentTimeMapping_(segmentInfo, segmentInfo.timingInfo)) {
       this.saveDiscontinuitySyncInfo_(segmentInfo);
 
