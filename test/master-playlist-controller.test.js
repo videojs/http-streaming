@@ -325,7 +325,9 @@ QUnit.test('smooth quality change resyncs audio segment loader', function(assert
 });
 
 QUnit.test('resets everything for a fast quality change', function(assert) {
+  let resyncs = 0;
   let resets = 0;
+  let removeFuncArgs = {};
 
   this.masterPlaylistController.mediaSource.trigger('sourceopen');
   // master
@@ -335,9 +337,24 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
 
   let segmentLoader = this.masterPlaylistController.mainSegmentLoader_;
 
-  segmentLoader.resetEverything = function() {
-    resets++;
+  segmentLoader.resyncLoader = function() {
+    resyncs++;
   };
+
+  segmentLoader.remove = function(start, end) {
+    removeFuncArgs = {
+      start,
+      end
+    };
+  };
+
+  segmentLoader.duration_ = function() {
+    return 60;
+  };
+
+  segmentLoader.on('reseteverything', function() {
+    resets++;
+  });
 
   this.masterPlaylistController.selectPlaylist = () => {
     return this.masterPlaylistController.master().playlists[0];
@@ -345,7 +362,13 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
 
   this.masterPlaylistController.fastQualityChange_();
 
-  assert.equal(resets, 1, 'called resetEverything');
+  assert.equal(segmentLoader.ended_, false, 'segment loader ended property is false');
+
+  assert.equal(resyncs, 1, 'resynced segment loader');
+
+  assert.equal(resets, 1, 'reseteverything event triggered successfully');
+
+  assert.deepEqual(removeFuncArgs, {start: 0, end: 60}, 'remove() called with correct arguments');
 
   // verify stats
   assert.equal(this.player.tech_.hls.stats.bandwidth, 4194304, 'default bandwidth');
