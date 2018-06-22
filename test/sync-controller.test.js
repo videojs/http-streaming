@@ -230,78 +230,80 @@ QUnit.test('saves expired info onto new playlist for sync point', function(asser
     'saved correct info for expired segment onto new playlist');
 });
 
-QUnit.test('Correctly updates time mapping and discontinuity info when probing segments',
-  function(assert) {
-    let syncCon = this.syncController;
-    let playlist = playlistWithDuration(60);
+QUnit.test('saves segment timing info', function(assert) {
+  const syncCon = this.syncController;
+  let playlist = playlistWithDuration(60);
 
-    playlist.discontinuityStarts = [3];
-    playlist.discontinuitySequence = 0;
-    playlist.segments[3].discontinuity = true;
-    playlist.segments.forEach((segment, i) => {
-      if (i >= playlist.discontinuityStarts[0]) {
-        segment.timeline = 1;
-      } else {
-        segment.timeline = 0;
-      }
-    });
-
-    syncCon.probeTsSegment_ = function(segmentInfo) {
-      return {
-        // offset segment timing to make things interesting
-        start: segmentInfo.mediaIndex * 10 + 5 + (6 * segmentInfo.timeline),
-        end: segmentInfo.mediaIndex * 10 + 10 + 5 + (6 * segmentInfo.timeline)
-      };
-    };
-
-    let segment = playlist.segments[0];
-    let segmentInfo = {
-      mediaIndex: 0,
-      playlist,
-      timeline: 0,
-      timestampOffset: 0,
-      startOfSegment: 0,
-      segment
-    };
-
-    syncCon.probeSegmentInfo(segmentInfo);
-    assert.ok(syncCon.timelines[0], 'created mapping object for timeline 0');
-    assert.deepEqual(syncCon.timelines[0], { time: 0, mapping: -5 },
-      'mapping object correct');
-    assert.equal(segment.start, 0, 'correctly calculated segment start');
-    assert.equal(segment.end, 10, 'correctly calculated segment end');
-    assert.ok(syncCon.discontinuities[1], 'created discontinuity info for timeline 1');
-    assert.deepEqual(syncCon.discontinuities[1], { time: 30, accuracy: 3 },
-      'discontinuity sync info correct');
-
-    segmentInfo.timestampOffset = null;
-    segmentInfo.startOfSegment = 10;
-    segmentInfo.mediaIndex = 1;
-    segment = playlist.segments[1];
-    segmentInfo.segment = segment;
-
-    syncCon.probeSegmentInfo(segmentInfo);
-    assert.equal(segment.start, 10, 'correctly calculated segment start');
-    assert.equal(segment.end, 20, 'correctly calculated segment end');
-    assert.deepEqual(syncCon.discontinuities[1], { time: 30, accuracy: 2 },
-      'discontinuity sync info correctly updated with new accuracy');
-
-    segmentInfo.timestampOffset = 30;
-    segmentInfo.startOfSegment = 30;
-    segmentInfo.mediaIndex = 3;
-    segmentInfo.timeline = 1;
-    segment = playlist.segments[3];
-    segmentInfo.segment = segment;
-
-    syncCon.probeSegmentInfo(segmentInfo);
-    assert.ok(syncCon.timelines[1], 'created mapping object for timeline 1');
-    assert.deepEqual(syncCon.timelines[1], { time: 30, mapping: -11 },
-      'mapping object correct');
-    assert.equal(segment.start, 30, 'correctly calculated segment start');
-    assert.equal(segment.end, 40, 'correctly calculated segment end');
-    assert.deepEqual(syncCon.discontinuities[1], { time: 30, accuracy: 0 },
-      'discontinuity sync info correctly updated with new accuracy');
+  playlist.discontinuityStarts = [3];
+  playlist.discontinuitySequence = 0;
+  playlist.segments[3].discontinuity = true;
+  playlist.segments.forEach((segment, i) => {
+    if (i >= playlist.discontinuityStarts[0]) {
+      segment.timeline = 1;
+    } else {
+      segment.timeline = 0;
+    }
   });
+
+  const updateTimingInfo = (segmentInfo) => {
+    segmentInfo.timingInfo = {
+      // offset segment timing to make things interesting
+      start: segmentInfo.mediaIndex * 10 + 5 + (6 * segmentInfo.timeline),
+      end: segmentInfo.mediaIndex * 10 + 10 + 5 + (6 * segmentInfo.timeline)
+    };
+  };
+
+  let segment = playlist.segments[0];
+  let segmentInfo = {
+    mediaIndex: 0,
+    playlist,
+    timeline: 0,
+    timestampOffset: 0,
+    startOfSegment: 0,
+    segment
+  };
+
+  updateTimingInfo(segmentInfo);
+  syncCon.saveSegmentTimingInfo(segmentInfo);
+  assert.ok(syncCon.timelines[0], 'created mapping object for timeline 0');
+  assert.deepEqual(syncCon.timelines[0], { time: 0, mapping: -5 },
+    'mapping object correct');
+  assert.equal(segment.start, 0, 'correctly calculated segment start');
+  assert.equal(segment.end, 10, 'correctly calculated segment end');
+  assert.ok(syncCon.discontinuities[1], 'created discontinuity info for timeline 1');
+  assert.deepEqual(syncCon.discontinuities[1], { time: 30, accuracy: 3 },
+    'discontinuity sync info correct');
+
+  segmentInfo.timestampOffset = null;
+  segmentInfo.startOfSegment = 10;
+  segmentInfo.mediaIndex = 1;
+  segment = playlist.segments[1];
+  segmentInfo.segment = segment;
+
+  updateTimingInfo(segmentInfo);
+  syncCon.saveSegmentTimingInfo(segmentInfo);
+  assert.equal(segment.start, 10, 'correctly calculated segment start');
+  assert.equal(segment.end, 20, 'correctly calculated segment end');
+  assert.deepEqual(syncCon.discontinuities[1], { time: 30, accuracy: 2 },
+    'discontinuity sync info correctly updated with new accuracy');
+
+  segmentInfo.timestampOffset = 30;
+  segmentInfo.startOfSegment = 30;
+  segmentInfo.mediaIndex = 3;
+  segmentInfo.timeline = 1;
+  segment = playlist.segments[3];
+  segmentInfo.segment = segment;
+
+  updateTimingInfo(segmentInfo);
+  syncCon.saveSegmentTimingInfo(segmentInfo);
+  assert.ok(syncCon.timelines[1], 'created mapping object for timeline 1');
+  assert.deepEqual(syncCon.timelines[1], { time: 30, mapping: -11 },
+    'mapping object correct');
+  assert.equal(segment.start, 30, 'correctly calculated segment start');
+  assert.equal(segment.end, 40, 'correctly calculated segment end');
+  assert.deepEqual(syncCon.discontinuities[1], { time: 30, accuracy: 0 },
+    'discontinuity sync info correctly updated with new accuracy');
+});
 
 QUnit.test('Correctly calculates expired time', function(assert) {
   let playlist = {
