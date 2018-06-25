@@ -1,5 +1,8 @@
 import Qunit from 'qunit';
-import { translateLegacyCodecs } from '../../src/util/codecs';
+import {
+  translateLegacyCodecs,
+  parseMimeTypes
+} from '../../src/util/codecs';
 
 const { module, test } = Qunit;
 
@@ -25,4 +28,21 @@ test('translates legacy codecs', function(assert) {
              'avc1.4d0020', 'avc1.4d001f', 'avc1.4d001e',
              'avc1.42001e', 'avc1.420015', 'avc1.42C01e'],
             'translates a whole bunch');
+});
+
+test('parses mime types', function(assert) {
+  assert.deepEqual(
+    parseMimeTypes('video/mp4; codecs="avc1.deadbeef"'),
+    { video: 'avc1.deadbeef' },
+    'parsed video codec');
+
+  assert.deepEqual(
+    parseMimeTypes('audio/mp4; codecs="mp4a.40.2"'),
+    { audio: 'mp4a.40.2' },
+    'parsed audio codec');
+
+  assert.deepEqual(
+    parseMimeTypes('video/mp4; codecs="avc1.deadbeef,mp4a.40.2"'),
+    { video: 'avc1.deadbeef', audio: 'mp4a.40.2' },
+    'parsed both codecs');
 });
