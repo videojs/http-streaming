@@ -9,7 +9,6 @@
  */
 
 import window from 'global/window';
-import videojs from 'video.js';
 import * as Ranges from './ranges';
 import logger from './util/logger';
 
@@ -33,8 +32,8 @@ export default class PlaybackWatcher {
    */
   constructor(options) {
     this.tech_ = options.tech;
-    this.player_ = videojs.players[this.tech_.options_.playerId];
     this.seekable = options.seekable;
+    this.seekTo = options.seekTo;
 
     this.consecutiveUpdates = 0;
     this.lastRecordedTime = null;
@@ -181,7 +180,7 @@ export default class PlaybackWatcher {
                   `seekable range ${Ranges.printableRange(seekable)}. Seeking to ` +
                   `${seekTo}.`);
 
-      this.player_.currentTime(seekTo);
+      this.seekTo(seekTo);
       return true;
     }
 
@@ -213,7 +212,7 @@ export default class PlaybackWatcher {
     // to avoid triggering an `unknownwaiting` event when the network is slow.
     if (currentRange.length && currentTime + 3 <= currentRange.end(0)) {
       this.cancelTimer_();
-      this.player_.currentTime(currentTime);
+      this.seekTo(currentTime);
 
       this.logger_(`Stopped at ${currentTime} while inside a buffered region ` +
         `[${currentRange.start(0)} -> ${currentRange.end(0)}]. Attempting to resume ` +
@@ -254,7 +253,7 @@ export default class PlaybackWatcher {
       this.logger_(`Fell out of live window at time ${currentTime}. Seeking to ` +
                    `live point (seekable end) ${livePoint}`);
       this.cancelTimer_();
-      this.player_.currentTime(livePoint);
+      this.seekTo(livePoint);
 
       // live window resyncs may be useful for monitoring QoS
       this.tech_.trigger({type: 'usage', name: 'hls-live-resync'});
@@ -270,7 +269,7 @@ export default class PlaybackWatcher {
       // allows the video to catch up to the audio position without losing any audio
       // (only suffering ~3 seconds of frozen video and a pause in audio playback).
       this.cancelTimer_();
-      this.player_.currentTime(currentTime);
+      this.seekTo(currentTime);
 
       // video underflow may be useful for monitoring QoS
       this.tech_.trigger({type: 'usage', name: 'hls-video-underflow'});
@@ -360,7 +359,7 @@ export default class PlaybackWatcher {
                  'nextRange start:', nextRange.start(0));
 
     // only seek if we still have not played
-    this.player_.currentTime(nextRange.start(0) + Ranges.TIME_FUDGE_FACTOR);
+    this.seekTo(nextRange.start(0) + Ranges.TIME_FUDGE_FACTOR);
 
     this.tech_.trigger({type: 'usage', name: 'hls-gap-skip'});
   }

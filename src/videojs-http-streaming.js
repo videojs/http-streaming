@@ -25,6 +25,8 @@ import {
   comparePlaylistResolution
 } from './playlist-selectors.js';
 import { version } from '../package.json';
+// import needed to register middleware
+import './middleware-set-current-time';
 
 const Hls = {
   PlaylistLoader,
@@ -376,6 +378,13 @@ class HlsHandler extends Component {
     this.options_.tech = this.tech_;
     this.options_.externHls = Hls;
     this.options_.sourceType = simpleTypeFromSourceType(type);
+    // Whenever we seek internally, we should update both the tech and call our own
+    // setCurrentTime function. This is needed because seek events aren't always reliable.
+    // External seeks (via the player object) are handled via middleware.
+    this.options_.seekTo = (time) => {
+      this.tech_.setCurrentTime(time);
+      this.setCurrentTime(time);
+    };
 
     this.masterPlaylistController_ = new MasterPlaylistController(this.options_);
     this.playbackWatcher_ = new PlaybackWatcher(
@@ -711,23 +720,6 @@ if (videojs.registerPlugin) {
 } else {
   videojs.plugin('reloadSourceOnError', reloadSourceOnError);
 }
-
-videojs.use('*', (player) => {
-  return {
-    setSource: (srcObj, next) => {
-      // pass null as the first argument to indicate that the source is not rejected
-      next(null, srcObj);
-    },
-
-    setCurrentTime: (time) => {
-      if (player.vhs && player.currentSource().src === player.vhs.source_.src) {
-        player.vhs.setCurrentTime(time);
-      }
-
-      return time;
-    }
-  };
-});
 
 export {
   Hls,

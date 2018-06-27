@@ -63,7 +63,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       useCueTags,
       blacklistDuration,
       enableLowInitialPlaylist,
-      sourceType
+      sourceType,
+      seekTo
     } = options;
 
     if (!url) {
@@ -74,8 +75,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.withCredentials = withCredentials;
     this.tech_ = tech;
-    this.player_ = videojs.players[this.tech_.options_.playerId];
     this.hls_ = tech.hls;
+    this.seekTo_ = seekTo;
     this.sourceType_ = sourceType;
     this.useCueTags_ = useCueTags;
     this.blacklistDuration = blacklistDuration;
@@ -511,7 +512,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     }
 
     if (this.tech_.ended()) {
-      this.player_.currentTime(0);
+      this.seekTo_(0);
     }
 
     if (this.hasPlayed_()) {
@@ -524,7 +525,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // seek forward to the live point
     if (this.tech_.duration() === Infinity) {
       if (this.tech_.currentTime() < seekable.start(0)) {
-        return this.player_.currentTime(seekable.end(seekable.length - 1));
+        return this.seekTo_(seekable.end(seekable.length - 1));
       }
     }
   }
@@ -561,7 +562,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
         // readyState is 0, so it must be delayed until the tech fires loadedmetadata.
         this.tech_.one('loadedmetadata', () => {
           this.trigger('firstplay');
-          this.player_.currentTime(seekable.end(0));
+          this.seekTo_(seekable.end(0));
           this.hasPlayed_ = () => true;
         });
 
@@ -571,7 +572,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       // trigger firstplay to inform the source handler to ignore the next seek event
       this.trigger('firstplay');
       // seek to the live point
-      this.player_.currentTime(seekable.end(0));
+      this.seekTo_(seekable.end(0));
     }
 
     this.hasPlayed_ = () => true;
