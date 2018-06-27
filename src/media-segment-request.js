@@ -207,6 +207,7 @@ const handleInitSegmentResponse = (segment, finishProcessingFn) => (error, reque
 const handleSegmentResponse = (segment, finishProcessingFn) => (error, request) => {
   const response = request.response;
   const errorObj = handleErrors(error, request);
+  let parsedCaptions;
 
   if (errorObj) {
     return finishProcessingFn(errorObj, segment);
@@ -232,7 +233,11 @@ const handleSegmentResponse = (segment, finishProcessingFn) => (error, request) 
 
   // This is an FMP4 and has the init segment
   if (segment.map && segment.map.bytes) {
-    segment.captions = captionsParser.parse(segment.map.bytes, segment.bytes);
+    parsedCaptions = captionsParser.parse(segment.map.bytes, segment.bytes);
+    if (parsedCaptions) {
+      segment.fmp4Captions = parsedCaptions.captions;
+      segment.captionStreams = parsedCaptions.captionStreams;
+    }
   }
 
   return finishProcessingFn(null, segment);

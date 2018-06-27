@@ -12,7 +12,7 @@ import { mediaSegmentRequest, REQUEST_ERRORS } from './media-segment-request';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
 import logger from './util/logger';
-import handleCaptions from './util/608-captions';
+import { addCaptionData, createCaptionsTrackIfNotExists } from './util/608-captions';
 
 // in ms
 const CHECK_BUFFER_DELAY = 500;
@@ -167,6 +167,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.segmentMetadataTrack_ = settings.segmentMetadataTrack;
     this.goalBufferLength_ = settings.goalBufferLength;
     this.sourceType_ = settings.sourceType;
+    this.inbandTextTracks_ = settings.inbandTextTracks;
     this.state_ = 'INIT';
 
     // private instance variables
@@ -1114,9 +1115,18 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     segmentInfo.endOfAllRequests = simpleSegment.endOfAllRequests;
 
-    // This is an fmp4 with captions
-    if (simpleSegment.map && simpleSegment.captions) {
-      handleCaptions(this.mediaSource_, this.sourceUpdater_.sourceBuffer_, simpleSegment);
+    // This is likely an fmp4 with captions
+    if (simpleSegment.map && simpleSegment.fmp4Captions) {
+      createCaptionsTrackIfNotExists(
+        this.inbandTextTracks_,
+        this.hls_.tech_,
+        simpleSegment.captionStreams);
+      addCaptionData({
+        inbandTextTracks: this.inbandTextTracks_,
+        captionArray: simpleSegment.fmp4Captions,
+        // fmp4s will not have a timestamp offset
+        timestampOffset: 0
+      });
     }
 
     this.handleSegment_();
