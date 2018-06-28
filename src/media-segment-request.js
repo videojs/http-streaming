@@ -1,6 +1,5 @@
 import videojs from 'video.js';
 import { createTransferableMessage } from './bin-utils';
-import { captionsParser } from 'mux.js/lib/mp4';
 
 export const REQUEST_ERRORS = {
   FAILURE: 2,
@@ -204,10 +203,10 @@ const handleInitSegmentResponse = (segment, finishProcessingFn) => (error, reque
  * @param {Function} finishProcessingFn - a callback to execute to continue processing
  *                                        this request
  */
-const handleSegmentResponse = (segment, finishProcessingFn) => (error, request) => {
+const handleSegmentResponse = (segment, captionsParser, finishProcessingFn) => (error, request) => {
   const response = request.response;
   const errorObj = handleErrors(error, request);
-  let parsedCaptions;
+  let parsed;
 
   if (errorObj) {
     return finishProcessingFn(errorObj, segment);
@@ -231,12 +230,19 @@ const handleSegmentResponse = (segment, finishProcessingFn) => (error, request) 
     segment.bytes = new Uint8Array(request.response);
   }
 
-  // This is an FMP4 and has the init segment
+  // This is likely an FMP4 and has the init segment
+  // Run through the CaptionsParser in case there are captions
   if (segment.map && segment.map.bytes) {
-    parsedCaptions = captionsParser.parse(segment.map.bytes, segment.bytes);
-    if (parsedCaptions) {
-      segment.fmp4Captions = parsedCaptions.captions;
-      segment.captionStreams = parsedCaptions.captionStreams;
+    // Initialize CaptionParser if it hasn't been yet
+    if (!captionsParser.isInitialized()) {
+      captionsParser.init();
+    }
+
+    parsed = captionsParser.parse(segment.map.bytes, segment.bytes);
+
+    if (parsed) {
+      segment.captionStreams = parsed.captionStreams;
+      segment.fmp4Captions = parsed.captions;
     }
   }
 
@@ -404,6 +410,7 @@ const handleProgress = (segment, progressFn) => (event) => {
 export const mediaSegmentRequest = (xhr,
                                     xhrOptions,
                                     decryptionWorker,
+                                    captionsParser,
                                     segment,
                                     progressFn,
                                     doneFn) => {
@@ -442,7 +449,7 @@ export const mediaSegmentRequest = (xhr,
     responseType: 'arraybuffer',
     headers: segmentXhrHeaders(segment)
   });
-  const segmentRequestCallback = handleSegmentResponse(segment, finishProcessingFn);
+  const segmentRequestCallback = handleSegmentResponse(segment, captionsParser, finishProcessingFn);
   const segmentXhr = xhr(segmentRequestOptions, segmentRequestCallback);
 
   segmentXhr.addEventListener('progress', handleProgress(segment, progressFn));

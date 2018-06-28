@@ -35,29 +35,29 @@ export const addCaptionData = function({
     captionArray,
     timestampOffset
   }) {
-    if (!captionArray) {
+  if (!captionArray) {
+    return;
+  }
+
+  const Cue = window.WebKitDataCue || window.VTTCue;
+
+  captionArray.forEach((caption) => {
+    const track = caption.stream;
+    let startTime = caption.startTime;
+    let endTime = caption.endTime;
+
+    if (!inbandTextTracks[track]) {
       return;
     }
 
-    const Cue = window.WebKitDataCue || window.VTTCue;
+    startTime += timestampOffset;
+    endTime += timestampOffset;
 
-    captionArray.forEach((caption) => {
-      const track = caption.stream;
-      let startTime = caption.startTime;
-      let endTime = caption.endTime;
-
-      if (!inbandTextTracks[track]) {
-        return;
-      }
-
-      startTime += timestampOffset;
-      endTime += timestampOffset;
-
-      inbandTextTracks[track].addCue(
-        new Cue(
-          startTime,
-          endTime,
-          caption.text
-        ));
-    });
-  };
+    inbandTextTracks[track].addCue(
+      new Cue(
+        startTime,
+        endTime,
+        caption.text
+      ));
+  });
+};

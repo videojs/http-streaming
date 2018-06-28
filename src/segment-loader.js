@@ -11,8 +11,9 @@ import { initSegmentId } from './bin-utils';
 import { mediaSegmentRequest, REQUEST_ERRORS } from './media-segment-request';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
+import { addCaptionData, createCaptionsTrackIfNotExists } from './util/text-tracks';
+import { CaptionsParser } from 'mux.js/lib/mp4';
 import logger from './util/logger';
-import { addCaptionData, createCaptionsTrackIfNotExists } from './util/608-captions';
 
 // in ms
 const CHECK_BUFFER_DELAY = 500;
@@ -182,6 +183,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     // Fragmented mp4 playback
     this.activeInitSegmentId_ = null;
     this.initSegments_ = {};
+    // Fmp4 CaptionsParser
+    this.captionsParser_ = new CaptionsParser();
 
     this.decrypter_ = settings.decrypter;
 
@@ -954,6 +957,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     segmentInfo.abortRequests = mediaSegmentRequest(this.hls_.xhr,
       this.xhrOptions_,
       this.decrypter_,
+      this.captionsParser_,
       this.createSimplifiedSegmentObj_(segmentInfo),
       // progress callback
       this.handleProgress_.bind(this),
@@ -1115,8 +1119,8 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     segmentInfo.endOfAllRequests = simpleSegment.endOfAllRequests;
 
-    // This is likely an fmp4 with captions
-    if (simpleSegment.map && simpleSegment.fmp4Captions) {
+    // This has fmp4 captions, add them to text tracks
+    if (simpleSegment.fmp4Captions) {
       createCaptionsTrackIfNotExists(
         this.inbandTextTracks_,
         this.hls_.tech_,
@@ -1127,6 +1131,9 @@ export default class SegmentLoader extends videojs.EventTarget {
         // fmp4s will not have a timestamp offset
         timestampOffset: 0
       });
+      // Reset the parser since we added parsed
+      // captions to a text track at this point
+      this.captionsParser_.reset();
     }
 
     this.handleSegment_();
