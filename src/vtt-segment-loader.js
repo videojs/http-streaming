@@ -237,6 +237,15 @@ export default class VTTSegmentLoader extends SegmentLoader {
       return;
     }
 
+    if (error) {
+      this.error({
+        message: error.message
+      });
+      this.state = 'READY';
+      this.pause();
+      return this.trigger('error');
+    }
+
     this.state = 'APPENDING';
 
     let segmentInfo = this.pendingSegment_;
