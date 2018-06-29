@@ -17,6 +17,7 @@ import Playlist from '../src/playlist';
 import Config from '../src/config';
 import PlaylistLoader from '../src/playlist-loader';
 import DashPlaylistLoader from '../src/dash-playlist-loader';
+import { muxed as muxedSegment } from './test-segments';
 
 QUnit.module('MasterPlaylistController', {
   beforeEach(assert) {
@@ -1468,11 +1469,13 @@ function(assert) {
   this.env.log.warn.callCount = 0;
 });
 
-QUnit.test('updates the duration after switching playlists', function(assert) {
+QUnit.test('updates the duration after switching playlists', async function(assert) {
+  // copy the segment and relevant stats since it gets cleared out
+  const segment = new Uint8Array(muxedSegment);
+  const segmentByteLength = segment.byteLength;
   let selectedPlaylist = false;
 
   this.masterPlaylistController.mediaSource.trigger('sourceopen');
-
   this.masterPlaylistController.bandwidth = 1e20;
 
   // master
@@ -1489,13 +1492,24 @@ QUnit.test('updates the duration after switching playlists', function(assert) {
 
     return this.masterPlaylistController.masterPlaylistLoader_.master.playlists[1];
   };
-  // 1ms has passed to upload 1kb
-  // that gives us a bandwidth of 1024 / 1 * 8 * 1000 = 8192000
+
+  assert.ok(segmentByteLength, 'the segment has some number of bytes');
+
+  // 1ms for request duration
   this.clock.tick(1);
   this.masterPlaylistController.mainSegmentLoader_.mediaIndex = 0;
   // segment 0
-  this.standardXHRResponse(this.requests[2]);
+  this.standardXHRResponse(this.requests[2], segment);
+
+  await new Promise((accept, reject) => {
+    this.masterPlaylistController.mainSegmentLoader_.on('appending', accept);
+  });
+
+  // source buffers are mocked, so must manually trigger update ends on audio and video
+  // buffers
   this.masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
+  this.masterPlaylistController.mediaSource.sourceBuffers[1].trigger('updateend');
+
   // media1
   this.standardXHRResponse(this.requests[3]);
   assert.ok(selectedPlaylist, 'selected playlist');
@@ -1503,11 +1517,14 @@ QUnit.test('updates the duration after switching playlists', function(assert) {
            'updates the duration');
 
   // verify stats
-  assert.equal(this.player.tech_.hls.stats.bandwidth, 8192000, 'Live stream');
+  // request duration was 1ms, giving a bandwidth of bytes / 1 * 8 * 1000
+  assert.equal(this.player.tech_.hls.stats.bandwidth,
+               segmentByteLength / 1 * 8 * 1000,
+               'stats has the right bandwidth');
   assert.equal(this.player.tech_.hls.stats.mediaRequests, 1, '1 segment request');
   assert.equal(this.player.tech_.hls.stats.mediaBytesTransferred,
-               1024,
-               '1024 bytes downloaded');
+               segmentByteLength,
+               'stats has the right number of bytes transferred');
 });
 
 QUnit.test('playlist selection uses systemBandwidth', function(assert) {

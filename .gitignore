@@ -35,6 +35,7 @@ docs/api/
 es5/
 tmp
 test/test-manifests.js
+test/test-segments.js
 test/test-expected.js
 coverage/
 
