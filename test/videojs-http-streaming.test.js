@@ -23,6 +23,7 @@ import {
 import window from 'global/window';
 // we need this so the plugin registers itself
 import 'videojs-contrib-quality-levels';
+import { muxed as muxedSegment } from './test-segments';
 
 const ogHlsHandlerSetupQualityLevels = videojs.HlsHandler.prototype.setupQualityLevels_;
 
@@ -156,25 +157,39 @@ QUnit.test('starts playing if autoplay is specified', function(assert) {
   assert.ok(!this.player.paused(), 'not paused');
 });
 
-QUnit.test('stats are reset on each new source', function(assert) {
+QUnit.test('stats are reset on each new source', async function(assert) {
   this.player.src({
     src: 'manifest/playlist.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
-
   this.clock.tick(1);
 
   // make sure play() is called *after* the media source opens
   openMediaSource(this.player, this.clock);
-  this.standardXHRResponse(this.requests.shift());
-  this.standardXHRResponse(this.requests.shift());
 
-  assert.equal(this.player.tech_.hls.stats.mediaBytesTransferred, 1024, 'stat is set');
+  // copy the segment and relevant stats since it gets cleared out
+  const segment = new Uint8Array(muxedSegment);
+  const segmentByteLength = segment.byteLength;
+
+  assert.ok(segmentByteLength, 'the segment has some number of bytes');
+
+  // media
+  this.standardXHRResponse(this.requests.shift());
+  // segment 0
+  this.standardXHRResponse(this.requests.shift(), segment);
+
+  await new Promise((accept, reject) => {
+    this.player.vhs.masterPlaylistController_.mainSegmentLoader_.on('appending', accept);
+  });
+
+  assert.equal(this.player.tech_.hls.stats.mediaBytesTransferred,
+               segmentByteLength,
+               'stat is set');
+
   this.player.src({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
-
   this.clock.tick(1);
 
   assert.equal(this.player.tech_.hls.stats.mediaBytesTransferred, 0, 'stat is reset');

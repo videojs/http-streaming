@@ -1571,6 +1571,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       segmentTransmuxer.endTimeline(this.transmuxer_);
     }
 
+    this.trigger('appending');
+
     this.waitForAppendsToComplete_(segmentInfo);
   }
 
