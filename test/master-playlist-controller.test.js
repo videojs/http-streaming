@@ -492,20 +492,17 @@ function(assert) {
   this.player.tech_.on('progress', function() {
     progressCount++;
   });
-  // 1ms has passed to upload 1kb
-  // that gives us a bandwidth of 1024 / 1 * 8 * 1000 = 8192000
+
+  // copy the segment since it gets cleared out
+  const segment = new Uint8Array(muxedSegment);
+
+  // 1ms for request duration
   this.clock.tick(1);
   // segment
-  this.standardXHRResponse(this.requests.shift());
+  this.standardXHRResponse(this.requests.shift(), segment);
+
   this.masterPlaylistController.mainSegmentLoader_.trigger('progress');
   assert.equal(progressCount, 1, 'fired a progress event');
-
-  // verify stats
-  assert.equal(this.player.tech_.hls.stats.bandwidth, 8192000, 'Live stream');
-  assert.equal(this.player.tech_.hls.stats.mediaRequests, 1, '1 segment request');
-  assert.equal(this.player.tech_.hls.stats.mediaBytesTransferred,
-               1024,
-               '1024 bytes downloaded');
 });
 
 QUnit.test('updates the active loader when switching from unmuxed to muxed audio group',
@@ -727,7 +724,7 @@ QUnit.test('does not wait for main loader to finish before calling endOfStream w
 });
 
 QUnit.test('Segment loaders are unpaused when seeking after player has ended',
-function(assert) {
+async function(assert) {
   openMediaSource(this.player, this.clock);
 
   const videoMedia = '#EXTM3U\n' +
@@ -751,13 +748,23 @@ function(assert) {
   // media
   this.standardXHRResponse(this.requests.shift(), videoMedia);
 
+  // copy the segment since it gets cleared out
+  const segment = new Uint8Array(muxedSegment);
+
   // segment
-  this.standardXHRResponse(this.requests.shift());
+  this.standardXHRResponse(this.requests.shift(), segment);
+
+  await new Promise((accept, reject) => {
+    this.masterPlaylistController.mainSegmentLoader_.on('appending', accept);
+  });
 
   assert.notOk(this.masterPlaylistController.mainSegmentLoader_.paused(),
     'segment loader not yet paused');
 
+  // source buffers are mocked, so must manually trigger update ends on audio and video
+  // buffers
   this.masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
+  this.masterPlaylistController.mediaSource.sourceBuffers[1].trigger('updateend');
 
   assert.ok(this.masterPlaylistController.mainSegmentLoader_.paused(),
     'segment loader is paused after ending');
@@ -977,7 +984,8 @@ function(assert) {
   this.standardXHRResponse(this.requests.shift());
 });
 
-QUnit.test('updates the combined segment loader on media changes', function(assert) {
+QUnit.test('updates the combined segment loader on media changes',
+async function(assert) {
   let updates = [];
 
   this.masterPlaylistController.mediaSource.trigger('sourceopen');
@@ -997,26 +1005,44 @@ QUnit.test('updates the combined segment loader on media changes', function(asse
   this.clock.tick(1);
 
   this.masterPlaylistController.mainSegmentLoader_.mediaIndex = 0;
+
+  // copy the segment and relevant stats since it gets cleared out
+  const segment = new Uint8Array(muxedSegment);
+  const segmentByteLength = segment.byteLength;
+
+  assert.ok(segmentByteLength, 'the segment has some number of bytes');
+
   // downloading the new segment will update bandwidth and cause a
   // playlist change
   // segment 0
-  this.standardXHRResponse(this.requests.shift());
+  this.standardXHRResponse(this.requests.shift(), segment);
   // update the buffer to reflect the appended segment, and have enough buffer to
   // change playlist
   this.masterPlaylistController.tech_.buffered = () => {
     return videojs.createTimeRanges([[0, 30]]);
   };
+
+  await new Promise((accept, reject) => {
+    this.masterPlaylistController.mainSegmentLoader_.on('appending', accept);
+  });
+
+  // source buffers are mocked, so must manually trigger update ends on audio and video
+  // buffers
   this.masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
+  this.masterPlaylistController.mediaSource.sourceBuffers[1].trigger('updateend');
   // media
   this.standardXHRResponse(this.requests.shift());
   assert.ok(updates.length > 0, 'updated the segment list');
 
   // verify stats
-  assert.equal(this.player.tech_.hls.stats.bandwidth, 8192000, 'Live stream');
+  // request duration was 1ms, giving a bandwidth of bytes / 1 * 8 * 1000
+  assert.equal(this.player.tech_.hls.stats.bandwidth,
+               segmentByteLength / 1 * 8 * 1000,
+               'stats has the right bandwidth');
   assert.equal(this.player.tech_.hls.stats.mediaRequests, 1, '1 segment request');
   assert.equal(this.player.tech_.hls.stats.mediaBytesTransferred,
-               1024,
-               '1024 bytes downloaded');
+               segmentByteLength,
+               'stats has the right number of bytes transferred');
 });
 
 QUnit.test('selects a playlist after main/combined segment downloads', function(assert) {
