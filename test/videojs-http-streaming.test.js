@@ -322,17 +322,16 @@ function(assert) {
                'set the duration');
 });
 
-QUnit.test('codecs are passed to the source buffer', function(assert) {
+QUnit.test('codecs are passed to the source buffer', async function(assert) {
   let codecs = [];
 
   this.player.src({
     src: 'custom-codecs.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
-
   this.clock.tick(1);
-
   openMediaSource(this.player, this.clock);
+
   let addSourceBuffer = this.player.tech_.hls.mediaSource.addSourceBuffer;
 
   this.player.tech_.hls.mediaSource.addSourceBuffer = function(codec) {
@@ -340,15 +339,33 @@ QUnit.test('codecs are passed to the source buffer', function(assert) {
     return addSourceBuffer.call(this, codec);
   };
 
+  // master
   this.requests.shift().respond(200, null,
                                 '#EXTM3U\n' +
-                                '#EXT-X-STREAM-INF:CODECS="avc1.dd00dd, mp4a.40.f"\n' +
+                                '#EXT-X-STREAM-INF:CODECS="avc1.dd00dd, mp4a.40.9"\n' +
                                 'media.m3u8\n');
+  // media
   this.standardXHRResponse(this.requests.shift());
-  assert.equal(codecs.length, 1, 'created a source buffer');
+
+  // copy the segment since it gets cleared out
+  const segment = new Uint8Array(muxedSegment);
+
+  // segment 0
+  this.standardXHRResponse(this.requests.shift(), segment);
+
+  // source buffer won't be created until we have our first segment
+  await new Promise((accept, reject) => {
+    this.player.vhs.masterPlaylistController_.mainSegmentLoader_.on('appending', accept);
+  });
+
+  // always create separate audio and video source buffers
+  assert.equal(codecs.length, 2, 'created two source buffers');
   assert.equal(codecs[0],
-               'video/mp2t; codecs="avc1.dd00dd, mp4a.40.f"',
-               'specified the codecs');
+               'audio/mp4;codecs="mp4a.40.9"',
+               'specified the audio codec');
+  assert.equal(codecs[1],
+               'video/mp4;codecs="avc1.dd00dd"',
+               'specified the video codec');
 });
 
 QUnit.test('including HLS as a tech does not error', function(assert) {

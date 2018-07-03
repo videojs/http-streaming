@@ -17,7 +17,9 @@ import Config from './config';
 import {
   parseCodecs,
   mapLegacyAvcCodecs,
-  mimeTypesForPlaylist
+  mimeTypesForPlaylist,
+  isMuxed,
+  isMaat
 } from './util/codecs.js';
 import { createMediaTypes, setupMediaGroups } from './media-groups';
 import logger from './util/logger';
@@ -1004,42 +1006,34 @@ export class MasterPlaylistController extends videojs.EventTarget {
     }
 
     mimeTypes = mimeTypesForPlaylist(this.masterPlaylistLoader_.master, media);
-    if (mimeTypes.length < 1) {
+    if (!mimeTypes.video && !mimeTypes.audio) {
       this.error =
         'No compatible SourceBuffer configuration for the variant stream:' +
         media.resolvedUri;
       return this.mediaSource.endOfStream('decode');
     }
 
-    this.tryCreatingSourceBuffers_(mimeTypes);
-    // exclude any incompatible variant streams from future playlist
-    // selection
-    this.excludeIncompatibleVariants_(media);
-  }
-
-  tryCreatingSourceBuffers_(mimeTypes) {
-    // check the case where the manifest provided enough information for us to determine
-    // that the content is demuxed
-    if (
-      // if there is more than one mime type
-      mimeTypes.length > 1 &&
-      // and the first mime type does not have muxed video and audio
-      mimeTypes[0].indexOf(',') === -1 &&
-      // and the two mime types are different (they can be the same in the case of audio
-      // only with alternate audio)
-      mimeTypes[0] !== mimeTypes[1]) {
+    // Only create the source buffers if we know for sure that we are dealing with demuxed
+    // content. We create the source buffers because in the case of demuxed content we
+    // don't want to try creating separate audio and video source buffers too far apart in
+    // time.
+    // TODO - Check the behavior for demuxed content where we don't create the source
+    //        buffers here. Ensure that we're waiting to create them simultaneously.
+    if (mimeTypes.audio &&
+        mimeTypes.video &&
+        isMaat(this.masterPlaylistLoader_.master) &&
+        !isMuxed(media)) {
       this.sourceUpdater_.createSourceBuffers({
-        audio: {
-          mimeType: mimeTypes[1]
-        },
-        video: {
-          mimeType: mimeTypes[0]
-        }
+        audio: { mimeType: mimeTypes.audio },
+        video: { mimeType: mimeTypes.video }
       });
-      return;
     }
 
-    // otherwise the loader must wait for the PMT
+    // If the source buffers weren't created, give segment loader the mime type info and
+    // Wait for the PMT. This is done in most cases in order to be sure of the types of
+    // media included (in case the manifest says we have codecs for media we don't have).
+    this.mainSegmentLoader_.mimeTypes(mimeTypes);
+    this.excludeIncompatibleVariants_(media);
   }
 
   /**

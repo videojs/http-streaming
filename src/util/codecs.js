@@ -146,58 +146,65 @@ const audioProfileFromDefault = (master, audioGroupId) => {
   return null;
 };
 
+export const isMaat = (master, media) => {
+  if (!media) {
+    // Not enough information
+    return false;
+  }
+
+  const mediaAttributes = media.attributes || {};
+
+  return master.mediaGroups.AUDIO &&
+    mediaAttributes.AUDIO &&
+    master.mediaGroups.AUDIO[mediaAttributes.AUDIO];
+};
+
+export const isMuxed = (master, media) => {
+  if (!isMaat(master, media)) {
+    return true;
+  }
+
+  const mediaAttributes = media.attributes || {};
+  const audioGroup = master.mediaGroups.AUDIO[mediaAttributes.AUDIO];
+
+  // ...check to see if any audio group tracks are muxed (ie. lacking a uri)
+  for (let groupId in audioGroup) {
+    // either a uri is present (if the case of HLS and an external playlist), or
+    // playlists is present (in the case of DASH where we don't have external audio
+    // playlists)
+    if (!audioGroup[groupId].uri && !audioGroup[groupId].playlists) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
 /**
  * Calculates the MIME type strings for a working configuration of
  * SourceBuffers to play variant streams in a master playlist. If
- * there is no possible working configuration, an empty array will be
+ * there is no possible working configuration, an empty object will be
  * returned.
  *
  * @param master {Object} the m3u8 object for the master playlist
  * @param media {Object} the m3u8 object for the variant playlist
- * @return {Array} the MIME type strings. If the array has more than
- * one entry, the first element should be applied to the video
- * SourceBuffer and the second to the audio SourceBuffer.
+ * @return {Object} the MIME type strings.
  *
  * @private
  */
 export const mimeTypesForPlaylist = function(master, media) {
-  let containerType = getContainerType(media);
-  let codecInfo = getCodecs(media);
-  let mediaAttributes = media.attributes || {};
-  // Default condition for a traditional HLS (no demuxed audio/video)
-  let isMuxed = true;
-  let isMaat = false;
-
   if (!media) {
     // Not enough information
-    return [];
+    return {};
   }
 
-  if (master.mediaGroups.AUDIO && mediaAttributes.AUDIO) {
-    let audioGroup = master.mediaGroups.AUDIO[mediaAttributes.AUDIO];
-
-    // Handle the case where we are in a multiple-audio track scenario
-    if (audioGroup) {
-      isMaat = true;
-      // Start with the everything demuxed then...
-      isMuxed = false;
-      // ...check to see if any audio group tracks are muxed (ie. lacking a uri)
-      for (let groupId in audioGroup) {
-        // either a uri is present (if the case of HLS and an external playlist), or
-        // playlists is present (in the case of DASH where we don't have external audio
-        // playlists)
-        if (!audioGroup[groupId].uri && !audioGroup[groupId].playlists) {
-          isMuxed = true;
-          break;
-        }
-      }
-    }
-  }
+  const mediaAttributes = media.attributes || {};
+  const codecInfo = getCodecs(media);
 
   // HLS with multiple-audio tracks must always get an audio codec.
   // Put another way, there is no way to have a video-only multiple-audio HLS!
-  if (isMaat && !codecInfo.audioProfile) {
-    if (!isMuxed) {
+  if (isMaat(master, media) && !codecInfo.audioProfile) {
+    if (!isMuxed(master, media)) {
       // It is possible for codecs to be specified on the audio media group playlist but
       // not on the rendition playlist. This is mostly the case for DASH, where audio and
       // video are always separate (and separately specified).
@@ -213,7 +220,7 @@ export const mimeTypesForPlaylist = function(master, media) {
   }
 
   // Generate the final codec strings from the codec object generated above
-  let codecStrings = {};
+  const codecStrings = {};
 
   if (codecInfo.videoCodec) {
     codecStrings.video = `${codecInfo.videoCodec}${codecInfo.videoObjectTypeIndicator}`;
@@ -223,54 +230,12 @@ export const mimeTypesForPlaylist = function(master, media) {
     codecStrings.audio = `mp4a.40.${codecInfo.audioProfile}`;
   }
 
-  // Finally, make and return an array with proper mime-types depending on
-  // the configuration
-  let justAudio = makeMimeTypeString('audio', containerType, [codecStrings.audio]);
-  let justVideo = makeMimeTypeString('video', containerType, [codecStrings.video]);
-  let bothVideoAudio = makeMimeTypeString('video', containerType, [
-    codecStrings.video,
-    codecStrings.audio
-  ]);
+  const containerType = getContainerType(media);
 
-  if (isMaat) {
-    if (!isMuxed && codecStrings.video) {
-      return [
-        justVideo,
-        justAudio
-      ];
-    }
-
-    if (!isMuxed && !codecStrings.video) {
-      // There is no muxed content and no video codec string, so this is an audio only
-      // stream with alternate audio.
-      return [
-        justAudio,
-        justAudio
-      ];
-    }
-
-    // There exists the possiblity that this will return a `video/container`
-    // mime-type for the first entry in the array even when there is only audio.
-    // This doesn't appear to be a problem and simplifies the code.
-    return [
-      bothVideoAudio,
-      justAudio
-    ];
-  }
-
-  // If there is no video codec at all, always just return a single
-  // audio/<container> mime-type
-  if (!codecStrings.video) {
-    return [
-      justAudio
-    ];
-  }
-
-  // When not using separate audio media groups, audio and video is
-  // *always* muxed
-  return [
-    bothVideoAudio
-  ];
+  return {
+    audio: makeMimeTypeString('audio', containerType, [codecStrings.audio]),
+    video: makeMimeTypeString('video', containerType, [codecStrings.video])
+  };
 };
 
 /**

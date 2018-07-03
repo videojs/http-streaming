@@ -187,6 +187,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.inbandTextTracks_ = settings.inbandTextTracks;
     this.state_ = 'INIT';
     this.handlePartialData_ = true;
+    this.mimeTypes_ = {};
 
     // private instance variables
     this.checkBufferTimeout_ = null;
@@ -1033,6 +1034,10 @@ export default class SegmentLoader extends videojs.EventTarget {
     return true;
   }
 
+  mimeTypes(mimeTypes) {
+    this.mimeTypes_ = mimeTypes;
+  }
+
   /**
    * XHR `progress` event handler
    *
@@ -1052,10 +1057,20 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   setupSourceBuffers_(trackInfo) {
-    this.sourceUpdater_.createSourceBuffers({
+    const codecs = {
       audio: trackInfo.hasAudio ? {} : null,
       video: trackInfo.hasVideo ? {} : null
-    });
+    };
+
+    if (codecs.audio && this.mimeTypes_.audio) {
+      codecs.audio.mimeType = this.mimeTypes_.audio;
+    }
+
+    if (codecs.video && this.mimeTypes_.video) {
+      codecs.video.mimeType = this.mimeTypes_.video;
+    }
+
+    this.sourceUpdater_.createSourceBuffers(codecs);
 
     if (this.checkForIllegalMediaSwitch(trackInfo)) {
       return;
