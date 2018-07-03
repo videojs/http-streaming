@@ -245,6 +245,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.sourceUpdater_.dispose();
     }
     this.resetStats_();
+    this.captionsParser_.reset();
   }
 
   /**
@@ -345,7 +346,9 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.initSegments_[id] = storedMap = {
         resolvedUri: map.resolvedUri,
         byterange: map.byterange,
-        bytes: map.bytes
+        bytes: map.bytes,
+        timescales: map.timescales,
+        videoTrackIds: map.videoTrackIds
       };
     }
 
@@ -549,6 +552,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.ended_ = false;
     this.resetLoader();
     this.remove(0, this.duration_());
+    // clears fmp4 captions
+    this.captionsParser_.clearAllCaptions();
     this.trigger('reseteverything');
   }
 
@@ -583,6 +588,12 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.sourceUpdater_.remove(start, end);
     }
     removeCuesFromTrack(start, end, this.segmentMetadataTrack_);
+
+    if (this.inbandTextTracks_) {
+      for (let id in this.inbandTextTracks_) {
+        removeCuesFromTrack(start, end, this.inbandTextTracks_[id]);
+      }
+    }
   }
 
   /**
@@ -671,11 +682,13 @@ export default class SegmentLoader extends videojs.EventTarget {
     //   (we are crossing a discontinuity somehow)
     // - The "timestampOffset" for the start of this segment is less than
     //   the currently set timestampOffset
+    // Also, clear captions if we are crossing a discontinuity boundary
     if (segmentInfo.timeline !== this.currentTimeline_ ||
         ((segmentInfo.startOfSegment !== null) &&
         segmentInfo.startOfSegment < this.sourceUpdater_.timestampOffset())) {
       this.syncController_.reset();
       segmentInfo.timestampOffset = segmentInfo.startOfSegment;
+      this.captionsParser_.clearAllCaptions();
     }
 
     this.loadSegment_(segmentInfo);
@@ -1131,9 +1144,9 @@ export default class SegmentLoader extends videojs.EventTarget {
         // fmp4s will not have a timestamp offset
         timestampOffset: 0
       });
-      // Reset the parser since we added parsed
+      // Reset stored captions since we added parsed
       // captions to a text track at this point
-      this.captionsParser_.reset();
+      this.captionsParser_.clearParsedCaptions();
     }
 
     this.handleSegment_();

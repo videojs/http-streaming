@@ -1,5 +1,6 @@
 import videojs from 'video.js';
 import { createTransferableMessage } from './bin-utils';
+import mp4probe from 'mux.js/lib/mp4/probe';
 
 export const REQUEST_ERRORS = {
   FAILURE: 2,
@@ -171,7 +172,7 @@ const handleKeyResponse = (segment, finishProcessingFn) => (error, request) => {
  * @param {Function} finishProcessingFn - a callback to execute to continue processing
  *                                        this request
  */
-const handleInitSegmentResponse = (segment, finishProcessingFn) => (error, request) => {
+const handleInitSegmentResponse = (segment, captionsParser, finishProcessingFn) => (error, request) => {
   const response = request.response;
   const errorObj = handleErrors(error, request);
 
@@ -190,6 +191,15 @@ const handleInitSegmentResponse = (segment, finishProcessingFn) => (error, reque
   }
 
   segment.map.bytes = new Uint8Array(request.response);
+
+  // Initialize CaptionsParser if it hasn't been yet
+  if (!captionsParser.isInitialized()) {
+    captionsParser.init();
+  }
+
+  segment.map.timescales = mp4probe.timescale(segment.map.bytes);
+  segment.map.videoTrackIds = mp4probe.videoTrackIds(segment.map.bytes);
+
   return finishProcessingFn(null, segment);
 };
 
@@ -230,17 +240,20 @@ const handleSegmentResponse = (segment, captionsParser, finishProcessingFn) => (
     segment.bytes = new Uint8Array(request.response);
   }
 
-  // This is likely an FMP4 and has the init segment
-  // Run through the CaptionsParser in case there are captions
+  // This is likely an FMP4 and has the init segment.
+  // Run through the CaptionsParser in case there are captions.
   if (segment.map && segment.map.bytes) {
-    // Initialize CaptionParser if it hasn't been yet
+    // Initialize CaptionsParser if it hasn't been yet
     if (!captionsParser.isInitialized()) {
       captionsParser.init();
     }
 
-    parsed = captionsParser.parse(segment.map.bytes, segment.bytes);
+    parsed = captionsParser.parse(
+      segment.bytes,
+      segment.map.videoTrackIds,
+      segment.map.timescales);
 
-    if (parsed) {
+    if (parsed && parsed.captions) {
       segment.captionStreams = parsed.captionStreams;
       segment.fmp4Captions = parsed.captions;
     }
@@ -438,6 +451,7 @@ export const mediaSegmentRequest = (xhr,
       headers: segmentXhrHeaders(segment.map)
     });
     const initSegmentRequestCallback = handleInitSegmentResponse(segment,
+                                                                 captionsParser,
                                                                  finishProcessingFn);
     const initSegmentXhr = xhr(initSegmentOptions, initSegmentRequestCallback);
 
@@ -449,7 +463,9 @@ export const mediaSegmentRequest = (xhr,
     responseType: 'arraybuffer',
     headers: segmentXhrHeaders(segment)
   });
-  const segmentRequestCallback = handleSegmentResponse(segment, captionsParser, finishProcessingFn);
+  const segmentRequestCallback = handleSegmentResponse(segment,
+                                                       captionsParser,
+                                                       finishProcessingFn);
   const segmentXhr = xhr(segmentRequestOptions, segmentRequestCallback);
 
   segmentXhr.addEventListener('progress', handleProgress(segment, progressFn));
