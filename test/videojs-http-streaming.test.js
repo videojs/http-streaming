@@ -486,7 +486,7 @@ function(assert) {
   assert.equal(seekable.end(0), 10, 'end is relative to the start');
 });
 
-QUnit.test('starts downloading a segment on loadedmetadata', function(assert) {
+QUnit.test('starts downloading a segment on loadedmetadata', async function(assert) {
   this.player.src({
     src: 'manifest/media.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -499,14 +499,29 @@ QUnit.test('starts downloading a segment on loadedmetadata', function(assert) {
   };
   openMediaSource(this.player, this.clock);
 
+  // copy the segment and relevant stats since it gets cleared out
+  const segment = new Uint8Array(muxedSegment);
+  const segmentByteLength = segment.byteLength;
+
+  assert.ok(segmentByteLength, 'the segment has some number of bytes');
+
+  // media
   this.standardXHRResponse(this.requests[0]);
-  this.standardXHRResponse(this.requests[1]);
+  // segment 0
+  this.standardXHRResponse(this.requests[1], segment);
+
   assert.strictEqual(this.requests[1].url,
                      absoluteUrl('manifest/media-00001.ts'),
                      'the first segment is requested');
 
+  await new Promise((accept, reject) => {
+    this.player.vhs.masterPlaylistController_.mainSegmentLoader_.on('appending', accept);
+  });
+
   // verify stats
-  assert.equal(this.player.tech_.hls.stats.mediaBytesTransferred, 1024, '1024 bytes');
+  assert.equal(this.player.tech_.hls.stats.mediaBytesTransferred,
+               segmentByteLength,
+               'transferred the segment byte length');
   assert.equal(this.player.tech_.hls.stats.mediaRequests, 1, '1 request');
 });
 
