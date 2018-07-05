@@ -751,6 +751,35 @@ function(assert) {
                      'systemBandwidth is the combination of bandwidth and throughput');
 });
 
+QUnit.test('requests a reasonable rendition to start', function(assert) {
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+
+  this.standardXHRResponse(this.requests[0],
+    '#EXTM3U\n' +
+    '#EXT-X-STREAM-INF:BANDWIDTH=50\n' +
+    'mediaLow.m3u8\n' +
+    '#EXT-X-STREAM-INF:BANDWIDTH=240000\n' +
+    'mediaNormal.m3u8\n' +
+    '#EXT-X-STREAM-INF:BANDWIDTH=19280000000\n' +
+    'mediaHigh.m3u8\n');
+
+  assert.strictEqual(
+    this.requests[0].url,
+    'manifest/master.m3u8',
+    'master playlist requested');
+  assert.strictEqual(
+    this.requests[1].url,
+    absoluteUrl('manifest/mediaNormal.m3u8'),
+    'reasonable bandwidth media playlist requested');
+});
+
 QUnit.test('upshifts if the initial bandwidth hint is high', function(assert) {
   this.player.src({
     src: 'manifest/master.m3u8',
@@ -762,29 +791,23 @@ QUnit.test('upshifts if the initial bandwidth hint is high', function(assert) {
   openMediaSource(this.player, this.clock);
 
   this.player.tech_.hls.bandwidth = 10e20;
-  this.standardXHRResponse(this.requests[0]);
-  this.standardXHRResponse(this.requests[1]);
-  this.standardXHRResponse(this.requests[2]);
+  this.standardXHRResponse(this.requests[0],
+    '#EXTM3U\n' +
+    '#EXT-X-STREAM-INF:BANDWIDTH=50\n' +
+    'mediaLow.m3u8\n' +
+    '#EXT-X-STREAM-INF:BANDWIDTH=240000\n' +
+    'mediaNormal.m3u8\n' +
+    '#EXT-X-STREAM-INF:BANDWIDTH=19280000000\n' +
+    'mediaHigh.m3u8\n');
 
   assert.strictEqual(
     this.requests[0].url,
     'manifest/master.m3u8',
-    'master playlist requested'
-  );
+    'master playlist requested');
   assert.strictEqual(
     this.requests[1].url,
-    absoluteUrl('manifest/media2.m3u8'),
-    'media playlist requested'
-  );
-  assert.strictEqual(
-    this.requests[2].url,
-    absoluteUrl('manifest/media2-00001.ts'),
-    'first segment requested'
-  );
-
-  // verify stats
-  assert.equal(this.player.tech_.hls.stats.mediaBytesTransferred, 1024, '1024 bytes');
-  assert.equal(this.player.tech_.hls.stats.mediaRequests, 1, '1 request');
+    absoluteUrl('manifest/mediaHigh.m3u8'),
+    'high bandwidth media playlist requested');
 });
 
 QUnit.test('downshifts if the initial bandwidth hint is low', function(assert) {
@@ -798,23 +821,24 @@ QUnit.test('downshifts if the initial bandwidth hint is low', function(assert) {
   openMediaSource(this.player, this.clock);
 
   this.player.tech_.hls.bandwidth = 100;
-  this.standardXHRResponse(this.requests[0]);
-  this.standardXHRResponse(this.requests[1]);
-  this.standardXHRResponse(this.requests[2]);
+  this.standardXHRResponse(this.requests[0],
+    '#EXTM3U\n' +
+    '#EXT-X-STREAM-INF:BANDWIDTH=50\n' +
+    'mediaLow.m3u8\n' +
+    '#EXT-X-STREAM-INF:BANDWIDTH=240000\n' +
+    'mediaNormal.m3u8\n' +
+    '#EXT-X-STREAM-INF:BANDWIDTH=19280000000\n' +
+    'mediaHigh.m3u8\n');
 
-  assert.strictEqual(this.requests[0].url,
-                     'manifest/master.m3u8',
-                     'master playlist requested');
-  assert.strictEqual(this.requests[1].url,
-                     absoluteUrl('manifest/media1.m3u8'),
-                     'media playlist requested');
-  assert.strictEqual(this.requests[2].url,
-                     absoluteUrl('manifest/media1-00001.ts'),
-                     'first segment requested');
-
-  // verify stats
-  assert.equal(this.player.tech_.hls.stats.mediaBytesTransferred, 1024, '1024 bytes');
-  assert.equal(this.player.tech_.hls.stats.mediaRequests, 1, '1 request');
+  assert.strictEqual(
+    this.requests[0].url,
+    'manifest/master.m3u8',
+    'master playlist requested'
+  );
+  assert.strictEqual(
+    this.requests[1].url,
+    absoluteUrl('manifest/mediaLow.m3u8'),
+    'low bandwidth media playlist requested');
 });
 
 QUnit.test('buffer checks are noops until a media playlist is ready', function(assert) {
