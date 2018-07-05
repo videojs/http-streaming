@@ -2235,7 +2235,7 @@ QUnit.test('can be disposed before finishing initialization', function(assert) {
   }
 });
 
-QUnit.test('calling play() at the end of a video replays', function(assert) {
+QUnit.test('calling play() at the end of a video replays', async function(assert) {
   let seekTime = -1;
 
   this.player.src({
@@ -2259,7 +2259,19 @@ QUnit.test('calling play() at the end of a video replays', function(assert) {
                                 '#EXT-X-ENDLIST\n');
   this.clock.tick(1);
 
-  this.standardXHRResponse(this.requests.shift());
+  const segment = muxedSegment();
+  // copy the byte length since the segment bytes get cleared out
+  const segmentByteLength = segment.byteLength;
+
+  assert.ok(segmentByteLength, 'the segment has some number of bytes');
+
+  // segment 0
+  this.standardXHRResponse(this.requests.shift(), segment);
+
+  await new Promise((accept, reject) => {
+    this.player.vhs.masterPlaylistController_.mainSegmentLoader_.on('appending', accept);
+  });
+
   this.player.tech_.ended = function() {
     return true;
   };
@@ -2269,7 +2281,9 @@ QUnit.test('calling play() at the end of a video replays', function(assert) {
   assert.equal(seekTime, 0, 'seeked to the beginning');
 
   // verify stats
-  assert.equal(this.player.tech_.hls.stats.mediaBytesTransferred, 1024, '1024 bytes');
+  assert.equal(this.player.tech_.hls.stats.mediaBytesTransferred,
+               segmentByteLength,
+               'transferred segment bytes');
   assert.equal(this.player.tech_.hls.stats.mediaRequests, 1, '1 request');
 });
 
