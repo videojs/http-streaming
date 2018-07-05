@@ -2932,10 +2932,6 @@ QUnit.test('Allows overriding the global beforeRequest function', function(asser
                                             'for the master playlist');
 
   delete videojs.Hls.xhr.beforeRequest;
-
-  // verify stats
-  assert.equal(this.player.tech_.hls.stats.mediaBytesTransferred, 1024, 'seen above');
-  assert.equal(this.player.tech_.hls.stats.mediaRequests, 1, 'one segment request');
 });
 
 QUnit.test('passes useCueTags hls option to master playlist controller',
