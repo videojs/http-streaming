@@ -172,7 +172,7 @@ const handleKeyResponse = (segment, finishProcessingFn) => (error, request) => {
  * @param {Function} finishProcessingFn - a callback to execute to continue processing
  *                                        this request
  */
-const handleInitSegmentResponse = (segment, captionsParser, finishProcessingFn) => (error, request) => {
+const handleInitSegmentResponse = (segment, captionParser, finishProcessingFn) => (error, request) => {
   const response = request.response;
   const errorObj = handleErrors(error, request);
 
@@ -192,9 +192,9 @@ const handleInitSegmentResponse = (segment, captionsParser, finishProcessingFn) 
 
   segment.map.bytes = new Uint8Array(request.response);
 
-  // Initialize CaptionsParser if it hasn't been yet
-  if (!captionsParser.isInitialized()) {
-    captionsParser.init();
+  // Initialize CaptionParser if it hasn't been yet
+  if (!captionParser.isInitialized()) {
+    captionParser.init();
   }
 
   segment.map.timescales = mp4probe.timescale(segment.map.bytes);
@@ -213,7 +213,7 @@ const handleInitSegmentResponse = (segment, captionsParser, finishProcessingFn) 
  * @param {Function} finishProcessingFn - a callback to execute to continue processing
  *                                        this request
  */
-const handleSegmentResponse = (segment, captionsParser, finishProcessingFn) => (error, request) => {
+const handleSegmentResponse = (segment, captionParser, finishProcessingFn) => (error, request) => {
   const response = request.response;
   const errorObj = handleErrors(error, request);
   let parsed;
@@ -241,14 +241,14 @@ const handleSegmentResponse = (segment, captionsParser, finishProcessingFn) => (
   }
 
   // This is likely an FMP4 and has the init segment.
-  // Run through the CaptionsParser in case there are captions.
+  // Run through the CaptionParser in case there are captions.
   if (segment.map && segment.map.bytes) {
-    // Initialize CaptionsParser if it hasn't been yet
-    if (!captionsParser.isInitialized()) {
-      captionsParser.init();
+    // Initialize CaptionParser if it hasn't been yet
+    if (!captionParser.isInitialized()) {
+      captionParser.init();
     }
 
-    parsed = captionsParser.parse(
+    parsed = captionParser.parse(
       segment.bytes,
       segment.map.videoTrackIds,
       segment.map.timescales);
@@ -423,7 +423,7 @@ const handleProgress = (segment, progressFn) => (event) => {
 export const mediaSegmentRequest = (xhr,
                                     xhrOptions,
                                     decryptionWorker,
-                                    captionsParser,
+                                    captionParser,
                                     segment,
                                     progressFn,
                                     doneFn) => {
@@ -451,7 +451,7 @@ export const mediaSegmentRequest = (xhr,
       headers: segmentXhrHeaders(segment.map)
     });
     const initSegmentRequestCallback = handleInitSegmentResponse(segment,
-                                                                 captionsParser,
+                                                                 captionParser,
                                                                  finishProcessingFn);
     const initSegmentXhr = xhr(initSegmentOptions, initSegmentRequestCallback);
 
@@ -464,7 +464,7 @@ export const mediaSegmentRequest = (xhr,
     headers: segmentXhrHeaders(segment)
   });
   const segmentRequestCallback = handleSegmentResponse(segment,
-                                                       captionsParser,
+                                                       captionParser,
                                                        finishProcessingFn);
   const segmentXhr = xhr(segmentRequestOptions, segmentRequestCallback);
 

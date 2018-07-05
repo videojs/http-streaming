@@ -12,7 +12,7 @@ import { mediaSegmentRequest, REQUEST_ERRORS } from './media-segment-request';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
 import { addCaptionData, createCaptionsTrackIfNotExists } from './util/text-tracks';
-import { CaptionsParser } from 'mux.js/lib/mp4';
+import { CaptionParser } from 'mux.js/lib/mp4';
 import logger from './util/logger';
 
 // in ms
@@ -183,8 +183,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     // Fragmented mp4 playback
     this.activeInitSegmentId_ = null;
     this.initSegments_ = {};
-    // Fmp4 CaptionsParser
-    this.captionsParser_ = new CaptionsParser();
+    // Fmp4 CaptionParser
+    this.captionParser_ = new CaptionParser();
 
     this.decrypter_ = settings.decrypter;
 
@@ -245,7 +245,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.sourceUpdater_.dispose();
     }
     this.resetStats_();
-    this.captionsParser_.reset();
+    this.captionParser_.reset();
   }
 
   /**
@@ -553,7 +553,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.resetLoader();
     this.remove(0, this.duration_());
     // clears fmp4 captions
-    this.captionsParser_.clearAllCaptions();
+    this.captionParser_.clearAllCaptions();
     this.trigger('reseteverything');
   }
 
@@ -688,7 +688,7 @@ export default class SegmentLoader extends videojs.EventTarget {
         segmentInfo.startOfSegment < this.sourceUpdater_.timestampOffset())) {
       this.syncController_.reset();
       segmentInfo.timestampOffset = segmentInfo.startOfSegment;
-      this.captionsParser_.clearAllCaptions();
+      this.captionParser_.clearAllCaptions();
     }
 
     this.loadSegment_(segmentInfo);
@@ -970,7 +970,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     segmentInfo.abortRequests = mediaSegmentRequest(this.hls_.xhr,
       this.xhrOptions_,
       this.decrypter_,
-      this.captionsParser_,
+      this.captionParser_,
       this.createSimplifiedSegmentObj_(segmentInfo),
       // progress callback
       this.handleProgress_.bind(this),
@@ -1146,7 +1146,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       });
       // Reset stored captions since we added parsed
       // captions to a text track at this point
-      this.captionsParser_.clearParsedCaptions();
+      this.captionParser_.clearParsedCaptions();
     }
 
     this.handleSegment_();
