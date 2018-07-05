@@ -37,7 +37,8 @@ module.exports = {
     }
 
     const segmentDataExportStrings = Object.keys(segmentData).reduce((acc, key) => {
-      acc.push(`export const ${key} = base64ToUint8Array('${segmentData[key]}');`);
+      // use a function since the segment may be cleared out on usage
+      acc.push(`export const ${key} = () => base64ToUint8Array('${segmentData[key]}');`);
       return acc;
     }, []);
 

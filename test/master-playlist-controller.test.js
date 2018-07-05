@@ -493,13 +493,9 @@ function(assert) {
     progressCount++;
   });
 
-  // copy the segment since it gets cleared out
-  const segment = new Uint8Array(muxedSegment);
-
   // 1ms for request duration
   this.clock.tick(1);
-  // segment
-  this.standardXHRResponse(this.requests.shift(), segment);
+  this.standardXHRResponse(this.requests.shift(), muxedSegment());
 
   this.masterPlaylistController.mainSegmentLoader_.trigger('progress');
   assert.equal(progressCount, 1, 'fired a progress event');
@@ -748,11 +744,8 @@ async function(assert) {
   // media
   this.standardXHRResponse(this.requests.shift(), videoMedia);
 
-  // copy the segment since it gets cleared out
-  const segment = new Uint8Array(muxedSegment);
-
   // segment
-  this.standardXHRResponse(this.requests.shift(), segment);
+  this.standardXHRResponse(this.requests.shift(), muxedSegment());
 
   await new Promise((accept, reject) => {
     this.masterPlaylistController.mainSegmentLoader_.on('appending', accept);
@@ -1006,8 +999,8 @@ async function(assert) {
 
   this.masterPlaylistController.mainSegmentLoader_.mediaIndex = 0;
 
-  // copy the segment and relevant stats since it gets cleared out
-  const segment = new Uint8Array(muxedSegment);
+  const segment = muxedSegment();
+  // copy the byte length since the segment bytes get cleared out
   const segmentByteLength = segment.byteLength;
 
   assert.ok(segmentByteLength, 'the segment has some number of bytes');
@@ -1496,8 +1489,8 @@ function(assert) {
 });
 
 QUnit.test('updates the duration after switching playlists', async function(assert) {
-  // copy the segment and relevant stats since it gets cleared out
-  const segment = new Uint8Array(muxedSegment);
+  const segment = muxedSegment();
+  // copy the byte length since the segment bytes get cleared out
   const segmentByteLength = segment.byteLength;
   let selectedPlaylist = false;
 

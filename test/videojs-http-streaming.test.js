@@ -167,8 +167,8 @@ QUnit.test('stats are reset on each new source', async function(assert) {
   // make sure play() is called *after* the media source opens
   openMediaSource(this.player, this.clock);
 
-  // copy the segment and relevant stats since it gets cleared out
-  const segment = new Uint8Array(muxedSegment);
+  const segment = muxedSegment();
+  // copy the byte length since the segment bytes get cleared out
   const segmentByteLength = segment.byteLength;
 
   assert.ok(segmentByteLength, 'the segment has some number of bytes');
@@ -347,11 +347,8 @@ QUnit.test('codecs are passed to the source buffer', async function(assert) {
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  // copy the segment since it gets cleared out
-  const segment = new Uint8Array(muxedSegment);
-
   // segment 0
-  this.standardXHRResponse(this.requests.shift(), segment);
+  this.standardXHRResponse(this.requests.shift(), muxedSegment());
 
   // source buffer won't be created until we have our first segment
   await new Promise((accept, reject) => {
@@ -499,8 +496,8 @@ QUnit.test('starts downloading a segment on loadedmetadata', async function(asse
   };
   openMediaSource(this.player, this.clock);
 
-  // copy the segment and relevant stats since it gets cleared out
-  const segment = new Uint8Array(muxedSegment);
+  const segment = muxedSegment();
+  // copy the byte length since the segment bytes get cleared out
   const segmentByteLength = segment.byteLength;
 
   assert.ok(segmentByteLength, 'the segment has some number of bytes');
@@ -644,8 +641,8 @@ QUnit.test('downloads media playlists after loading the master', async function(
   // media
   this.standardXHRResponse(this.requests[1]);
 
-  // copy the segment and relevant stats since it gets cleared out
-  const segment = new Uint8Array(muxedSegment);
+  const segment = muxedSegment();
+  // copy the byte length since the segment bytes get cleared out
   const segmentByteLength = segment.byteLength;
 
   assert.ok(segmentByteLength, 'the segment has some number of bytes');
