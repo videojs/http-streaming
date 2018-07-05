@@ -1613,7 +1613,7 @@ QUnit.test('fire loadedmetadata once we successfully load a playlist', function(
   assert.equal(this.player.tech_.hls.stats.bandwidth, 20000, 'bandwidth set above');
 });
 
-QUnit.test('sets seekable and duration for live playlists', function(assert) {
+QUnit.test('sets seekable and duration for live playlists', async function(assert) {
   this.player.src({
     src: 'http://example.com/manifest/missingEndlist.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -1623,17 +1623,13 @@ QUnit.test('sets seekable and duration for live playlists', function(assert) {
 
   openMediaSource(this.player, this.clock);
 
-  this.standardXHRResponse(this.requests[0]);
+  // media (live)
+  this.standardXHRResponse(this.requests.shift());
 
-  assert.equal(this.player.tech_.hls.mediaSource.seekable.length,
-               1,
-               'set one seekable range');
-  assert.equal(this.player.tech_.hls.mediaSource.seekable.start(0),
-               this.player.tech_.hls.seekable().start(0),
-               'set seekable start');
-  assert.equal(this.player.tech_.hls.mediaSource.seekable.end(0),
-               this.player.tech_.hls.seekable().end(0),
-               'set seekable end');
+  assert.equal(this.player.tech_.hls.seekable().length, 1, 'set one seekable range');
+  assert.equal(this.player.tech_.hls.seekable().start(0), 0, 'set seekable start');
+  // can only seek to the safe live point, which, for a 3 segment or less playlist, is 0
+  assert.equal(this.player.tech_.hls.seekable().end(0), 0, 'set seekable end');
 
   assert.strictEqual(this.player.tech_.hls.mediaSource.duration,
                      Infinity,
