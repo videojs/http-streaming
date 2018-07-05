@@ -522,12 +522,11 @@ QUnit.test('starts downloading a segment on loadedmetadata', async function(asse
   assert.equal(this.player.tech_.hls.stats.mediaRequests, 1, '1 request');
 });
 
-QUnit.test('re-initializes the handler for each source', function(assert) {
+QUnit.test('re-initializes the handler for each source', async function(assert) {
   let firstPlaylists;
   let secondPlaylists;
   let firstMSE;
   let secondMSE;
-  let aborts = 0;
   let masterPlaylistController;
 
   this.player.src({
@@ -540,12 +539,40 @@ QUnit.test('re-initializes the handler for each source', function(assert) {
   openMediaSource(this.player, this.clock);
   firstPlaylists = this.player.tech_.hls.playlists;
   firstMSE = this.player.tech_.hls.mediaSource;
+  // master
   this.standardXHRResponse(this.requests.shift());
+  // media
   this.standardXHRResponse(this.requests.shift());
+
+  // need a segment request to complete for the source buffers to be created
+
+  // segment 0
+  this.standardXHRResponse(this.requests.shift(), muxedSegment());
+
+  let audioBufferAborts = 0;
+  let videoBufferAborts = 0;
+
   masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
-  masterPlaylistController.mainSegmentLoader_.sourceUpdater_.sourceBuffer_.abort = () => {
-    aborts++;
-  };
+  masterPlaylistController.mainSegmentLoader_.sourceUpdater_.audioBuffer.abort = () =>
+    audioBufferAborts++;
+  masterPlaylistController.mainSegmentLoader_.sourceUpdater_.videoBuffer.abort = () =>
+    videoBufferAborts++;
+
+  await new Promise((accept, reject) => {
+    masterPlaylistController.mainSegmentLoader_.on('appending', accept);
+  });
+
+  // source buffers are mocked, so must manually trigger update ends on audio and video
+  // buffers
+  //
+  // finish them to allow for a new segment request to test for aborting the new segment
+  masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
+  masterPlaylistController.mediaSource.sourceBuffers[1].trigger('updateend');
+
+  // allow timeout for making another request
+  this.clock.tick(1);
+
+  assert.equal(this.requests.length, 1, 'made another request');
 
   this.player.src({
     src: 'manifest/master.m3u8',
@@ -558,7 +585,8 @@ QUnit.test('re-initializes the handler for each source', function(assert) {
   secondPlaylists = this.player.tech_.hls.playlists;
   secondMSE = this.player.tech_.hls.mediaSource;
 
-  assert.equal(1, aborts, 'aborted the old source buffer');
+  assert.equal(audioBufferAborts, 1, 'aborted the old audio source buffer');
+  assert.equal(videoBufferAborts, 1, 'aborted the old video source buffer');
   assert.ok(this.requests[0].aborted, 'aborted the old segment request');
   assert.notStrictEqual(firstPlaylists,
                         secondPlaylists,
