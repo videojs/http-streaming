@@ -314,12 +314,28 @@ QUnit.test('fast quality change resyncs audio segment loader', function(assert) 
     return masterPlaylistController.master().playlists[1];
   };
 
-  assert.equal(this.requests.length, 1, 'one request');
+  assert.equal(this.requests.length, 3, 'three requests');
+  assert.ok(this.requests[0].url.endsWith('eng/prog_index.m3u8'),
+            'requests eng playlist');
+  assert.ok(this.requests[1].url.endsWith('lo/main.mp4'), 'correct segment url');
+  assert.equal(this.requests[1].requestHeaders['Range'],
+               'bytes=0-603',
+               'requests init segment byte range');
+  assert.ok(this.requests[2].url.endsWith('lo/main.mp4'), 'correct segment url');
+  assert.equal(this.requests[2].requestHeaders['Range'],
+               'bytes=604-118754',
+               'requests segment byte range');
+  assert.notOk(this.requests[0].aborted, 'did not abort alt audio playlist request');
+  assert.notOk(this.requests[1].aborted, 'did not abort init request');
+  assert.notOk(this.requests[2].aborted, 'did not abort segment request');
   masterPlaylistController.fastQualityChange_();
-  assert.equal(this.requests.length, 2, 'added a request for new media');
+  assert.equal(this.requests.length, 4, 'added a request for new media');
+  assert.notOk(this.requests[0].aborted, 'did not abort alt audio playlist request');
+  assert.ok(this.requests[1].aborted, 'aborted init segment request');
+  assert.ok(this.requests[2].aborted, 'aborted segment request');
   assert.equal(resyncs, 0, 'does not resync the audio segment loader yet');
   // new media request
-  this.standardXHRResponse(this.requests[1]);
+  this.standardXHRResponse(this.requests[3]);
   assert.equal(resyncs, 1, 'resyncs the audio segment loader when media changes');
   assert.equal(resets, 0, 'does not reset the audio segment loader when media changes');
 });
@@ -357,12 +373,30 @@ QUnit.test('audio segment loader is reset on audio track change', function(asser
   };
   masterPlaylistController.audioSegmentLoader_.resyncLoader = () => resyncs++;
 
-  assert.equal(this.requests.length, 1, 'one request');
+  assert.equal(this.requests.length, 3, 'three requests');
+  assert.ok(this.requests[0].url.endsWith('eng/prog_index.m3u8'),
+            'requests eng playlist');
+  assert.ok(this.requests[1].url.endsWith('lo/main.mp4'), 'correct segment url');
+  assert.equal(this.requests[1].requestHeaders['Range'],
+               'bytes=0-603',
+               'requests init segment byte range');
+  assert.ok(this.requests[2].url.endsWith('lo/main.mp4'), 'correct segment url');
+  assert.equal(this.requests[2].requestHeaders['Range'],
+               'bytes=604-118754',
+               'requests segment byte range');
+  assert.notOk(this.requests[0].aborted, 'did not abort alt audio playlist request');
+  assert.notOk(this.requests[1].aborted, 'did not abort init request');
+  assert.notOk(this.requests[2].aborted, 'did not abort segment request');
   assert.equal(resyncs, 0, 'does not resync the audio segment loader yet');
 
   this.player.audioTracks()[1].enabled = true;
 
-  assert.equal(this.requests.length, 2, 'two requests');
+  assert.equal(this.requests.length, 4, 'added a request for new media');
+  assert.ok(this.requests[0].aborted, 'aborted old alt audio playlist request');
+  assert.notOk(this.requests[1].aborted, 'did not abort init request');
+  assert.notOk(this.requests[2].aborted, 'did not abort segment request');
+  assert.ok(this.requests[3].url.endsWith('esp/prog_index.m3u8'),
+            'requests esp playlist');
   assert.equal(resyncs, 1, 'resyncs the audio segment loader when audio track changes');
   assert.equal(resets, 1, 'resets the audio segment loader when audio track changes');
 });
