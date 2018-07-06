@@ -2570,7 +2570,7 @@ QUnit.test('adds audio tracks if we have parsed some from a playlist', function(
   assert.equal(vjsAudioTracks[0].enabled, false, 'main track is disabled');
 });
 
-QUnit.test('cleans up the buffer when loading live segments', function(assert) {
+QUnit.test('cleans up the buffer when loading live segments', async function(assert) {
   let removes = [];
   let seekable = videojs.createTimeRanges([[0, 70]]);
 
@@ -2593,22 +2593,26 @@ QUnit.test('cleans up the buffer when loading live segments', function(assert) {
       this.resetLoader();
     };
 
-  this.player.tech_.hls.mediaSource.addSourceBuffer = () => {
+  this.player.tech_.hls.mediaSource.addSourceBuffer = (codec) => {
     let buffer = new (videojs.extend(videojs.EventTarget, {
       constructor() {},
       abort() {},
       buffered: videojs.createTimeRange(),
       appendBuffer() {},
       remove(start, end) {
-        removes.push([start, end]);
+        removes.push({
+          range: [start, end],
+          codec
+        });
       }
     }))();
 
-    this.player.tech_.hls.mediaSource.sourceBuffers = [buffer];
+    this.player.tech_.hls.mediaSource.sourceBuffers.push(buffer);
     return buffer;
   };
   this.player.tech_.hls.bandwidth = 20e10;
   this.player.tech_.triggerReady();
+  // media
   this.standardXHRResponse(this.requests[0]);
 
   this.player.tech_.hls.playlists.trigger('loadedmetadata');
@@ -2619,30 +2623,48 @@ QUnit.test('cleans up the buffer when loading live segments', function(assert) {
   this.player.tech_.trigger('play');
   this.clock.tick(1);
 
-  // request first playable segment
-  this.standardXHRResponse(this.requests[1]);
-  this.clock.tick(1);
-  this.player.tech_.hls.mediaSource.sourceBuffers[0].trigger('updateend');
+  const masterPlaylistController = this.player.vhs.masterPlaylistController_;
 
+  // request first playable segment
+  this.standardXHRResponse(this.requests[1], muxedSegment());
+  await new Promise((accept, reject) => {
+    masterPlaylistController.mainSegmentLoader_.on('appending', accept);
+  });
+  this.clock.tick(1);
+
+  // source buffers are mocked, so must manually trigger update ends on audio and video
+  // buffers
+  masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
+  masterPlaylistController.mediaSource.sourceBuffers[1].trigger('updateend');
+
+  // next segment request happens asynchronously
   this.clock.tick(1);
 
   // request second playable segment
-  this.standardXHRResponse(this.requests[2]);
+  this.standardXHRResponse(this.requests[2], muxedSegment());
 
   assert.strictEqual(this.requests[0].url, 'liveStart30sBefore.m3u8',
                     'master playlist requested');
-  assert.equal(removes.length, 1, 'remove called');
+  assert.equal(removes.length, 2, 'two removes');
   // segment-loader removes at currentTime - 30
-  assert.deepEqual(removes[0], [0, 40],
-                  'remove called with the right range');
-
-  // verify stats
-  assert.equal(this.player.tech_.hls.stats.mediaBytesTransferred, 2048, '2048 bytes');
-  assert.equal(this.player.tech_.hls.stats.mediaRequests, 2, '2 requests');
+  assert.deepEqual(
+    removes[0],
+    {
+      range: [0, 40],
+      codec: 'audio/mp4;codecs="mp4a.40.2"'
+    },
+    'removed from audio buffer with right range');
+  assert.deepEqual(
+    removes[1],
+    {
+      range: [0, 40],
+      codec: 'video/mp4;codecs="avc1.4d400d"'
+    },
+    'removed from video buffer with right range');
 });
 
 QUnit.test('cleans up the buffer based on currentTime when loading a live segment ' +
-           'if seekable start is after currentTime', function(assert) {
+           'if seekable start is after currentTime', async function(assert) {
   let removes = [];
   let seekable = videojs.createTimeRanges([[0, 80]]);
 
@@ -2661,23 +2683,27 @@ QUnit.test('cleans up the buffer based on currentTime when loading a live segmen
       this.resetLoader();
     };
 
-  this.player.tech_.hls.mediaSource.addSourceBuffer = () => {
+  this.player.tech_.hls.mediaSource.addSourceBuffer = (codec) => {
     let buffer = new (videojs.extend(videojs.EventTarget, {
       constructor() {},
       abort() {},
       buffered: videojs.createTimeRange(),
       appendBuffer() {},
       remove(start, end) {
-        removes.push([start, end]);
+        removes.push({
+          range: [start, end],
+          codec
+        });
       }
     }))();
 
-    this.player.tech_.hls.mediaSource.sourceBuffers = [buffer];
+    this.player.tech_.hls.mediaSource.sourceBuffers.push(buffer);
     return buffer;
 
   };
   this.player.tech_.hls.bandwidth = 20e10;
   this.player.tech_.triggerReady();
+   // media
   this.standardXHRResponse(this.requests[0]);
   this.player.tech_.hls.playlists.trigger('loadedmetadata');
   this.player.tech_.trigger('canplay');
@@ -2689,11 +2715,21 @@ QUnit.test('cleans up the buffer based on currentTime when loading a live segmen
   this.player.tech_.trigger('play');
   this.clock.tick(1);
 
+  const masterPlaylistController = this.player.vhs.masterPlaylistController_;
+
   // request first playable segment
-  this.standardXHRResponse(this.requests[1]);
+  this.standardXHRResponse(this.requests[1], muxedSegment());
+  await new Promise((accept, reject) => {
+    masterPlaylistController.mainSegmentLoader_.on('appending', accept);
+  });
+  this.clock.tick(1);
+
+  // source buffers are mocked, so must manually trigger update ends on audio and video
+  // buffers
+  masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
+  masterPlaylistController.mediaSource.sourceBuffers[1].trigger('updateend');
 
   this.clock.tick(1);
-  this.player.tech_.hls.mediaSource.sourceBuffers[0].trigger('updateend');
 
   // Change seekable so that it starts *after* the currentTime which was set
   // based on the previous seekable range (the end of 80)
@@ -2702,16 +2738,30 @@ QUnit.test('cleans up the buffer based on currentTime when loading a live segmen
   this.clock.tick(1);
 
   // request second playable segment
-  this.standardXHRResponse(this.requests[2]);
+  this.standardXHRResponse(this.requests[2], muxedSegment());
 
   assert.strictEqual(this.requests[0].url,
                      'liveStart30sBefore.m3u8',
                      'master playlist requested');
-  assert.equal(removes.length, 1, 'remove called');
-  assert.deepEqual(removes[0], [0, 80 - 30], 'remove called with the right range');
+  assert.equal(removes.length, 2, 'two removes');
+  // segment-loader removes at currentTime - 30
+  assert.deepEqual(
+    removes[0],
+    {
+      range: [0, 80 - 30],
+      codec: 'audio/mp4;codecs="mp4a.40.2"'
+    },
+    'removed from audio buffer with right range');
+  assert.deepEqual(
+    removes[1],
+    {
+      range: [0, 80 - 30],
+      codec: 'video/mp4;codecs="avc1.4d400d"'
+    },
+    'removed from video buffer with right range');
 });
 
-QUnit.test('cleans up the buffer when loading VOD segments', function(assert) {
+QUnit.test('cleans up the buffer when loading VOD segments', async function(assert) {
   let removes = [];
 
   this.player.src({
@@ -2729,43 +2779,74 @@ QUnit.test('cleans up the buffer when loading VOD segments', function(assert) {
       this.resetLoader();
     };
 
-  this.player.tech_.hls.mediaSource.addSourceBuffer = () => {
+  this.player.tech_.hls.mediaSource.addSourceBuffer = (codec) => {
     let buffer = new (videojs.extend(videojs.EventTarget, {
       constructor() {},
       abort() {},
       buffered: videojs.createTimeRange(),
       appendBuffer() {},
       remove(start, end) {
-        removes.push([start, end]);
-      }
+        removes.push({
+          range: [start, end],
+          codec
+        });
+      },
+      codec
     }))();
 
-    this.player.tech_.hls.mediaSource.sourceBuffers = [buffer];
+    this.player.tech_.hls.mediaSource.sourceBuffers.push(buffer);
     return buffer;
 
   };
   this.player.width(640);
   this.player.height(360);
   this.player.tech_.hls.bandwidth = 20e10;
+  // master
   this.standardXHRResponse(this.requests[0]);
+  // media
   this.standardXHRResponse(this.requests[1]);
-  this.standardXHRResponse(this.requests[2]);
+
+  const masterPlaylistController = this.player.vhs.masterPlaylistController_;
+
+  // segment
+  this.standardXHRResponse(this.requests[2], muxedSegment());
+  await new Promise((accept, reject) => {
+    masterPlaylistController.mainSegmentLoader_.on('appending', accept);
+  });
   this.clock.tick(1);
   this.player.currentTime(120);
-  this.player.tech_.hls.mediaSource.sourceBuffers[0].trigger('updateend');
+  // source buffers are mocked, so must manually trigger update ends on audio and video
+  // buffers
+  masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
+  masterPlaylistController.mediaSource.sourceBuffers[1].trigger('updateend');
   // This requires 2 clock ticks because after updateend monitorBuffer_ is called
   // to setup fillBuffer on the next tick, but the seek also causes monitorBuffer_ to be
   // called, which cancels the previously set timeout and sets a new one for the following
   // tick.
   this.clock.tick(2);
-  this.standardXHRResponse(this.requests[3]);
+  // segment
+  this.standardXHRResponse(this.requests[3], muxedSegment());
 
   assert.strictEqual(this.requests[0].url, 'manifest/master.m3u8',
                     'master playlist requested');
   assert.strictEqual(this.requests[1].url, absoluteUrl('manifest/media3.m3u8'),
                     'media playlist requested');
-  assert.equal(removes.length, 1, 'remove called');
-  assert.deepEqual(removes[0], [0, 120 - 30], 'remove called with the right range');
+  assert.equal(removes.length, 2, 'two removes');
+  // segment-loader removes at currentTime - 30
+  assert.deepEqual(
+    removes[0],
+    {
+      range: [0, 120 - 30],
+      codec: 'audio/mp4;codecs="mp4a.40.2"'
+    },
+    'removed from audio buffer with right range');
+  assert.deepEqual(
+    removes[1],
+    {
+      range: [0, 120 - 30],
+      codec: 'video/mp4;codecs="avc1.4d400d"'
+    },
+    'removed from video buffer with right range');
 });
 
 QUnit.test('when mediaGroup changes enabled track should not change', function(assert) {
