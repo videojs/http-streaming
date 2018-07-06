@@ -93,6 +93,8 @@ class MockMediaSource extends videojs.EventTarget {
   }
 }
 
+MockMediaSource.isTypeSupported = RealMediaSource.isTypeSupported;
+
 export class MockTextTrack {
   constructor() {
     this.cues = [];
