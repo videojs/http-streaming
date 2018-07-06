@@ -1240,8 +1240,6 @@ QUnit.test('does not blacklist compatible H.264 codec strings', function(assert)
 });
 
 QUnit.test('does not blacklist compatible AAC codec strings', function(assert) {
-  let master;
-
   this.player.src({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -1251,7 +1249,6 @@ QUnit.test('does not blacklist compatible AAC codec strings', function(assert) {
 
   openMediaSource(this.player, this.clock);
 
-  this.player.tech_.hls.bandwidth = 1;
   // master
   this.requests.shift()
     .respond(200, null,
@@ -1263,16 +1260,15 @@ QUnit.test('does not blacklist compatible AAC codec strings', function(assert) {
 
   // media
   this.standardXHRResponse(this.requests.shift());
-  master = this.player.tech_.hls.playlists.master;
+
+  const master = this.player.tech_.hls.playlists.master;
+
   assert.strictEqual(typeof master.playlists[0].excludeUntil,
                      'undefined',
                      'did not blacklist mp4a.40.2');
   assert.strictEqual(master.playlists[1].excludeUntil,
                      Infinity,
                      'blacklisted invalid audio codec');
-
-  // verify stats
-  assert.equal(this.player.tech_.hls.stats.bandwidth, 1, 'bandwidth set above');
 });
 
 QUnit.test('cancels outstanding XHRs when seeking', function(assert) {
