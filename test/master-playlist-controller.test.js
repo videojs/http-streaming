@@ -568,7 +568,7 @@ function(assert) {
 });
 
 QUnit.test('waits for both main and audio loaders to finish before calling endOfStream',
-function(assert) {
+async function(assert) {
   openMediaSource(this.player, this.clock);
 
   const videoMedia = '#EXTM3U\n' +
@@ -597,8 +597,8 @@ function(assert) {
   MPC.mainSegmentLoader_.on('ended', () => videoEnded++);
   MPC.audioSegmentLoader_.on('ended', () => audioEnded++);
 
-  MPC.mainSegmentLoader_.startingMedia_ = { containsVideo: true };
-  MPC.audioSegmentLoader_.startingMedia_ = { containsAudio: true };
+  MPC.mainSegmentLoader_.startingMedia_ = { hasVideo: true };
+  MPC.audioSegmentLoader_.startingMedia_ = { hasAudio: true };
 
   // master
   this.standardXHRResponse(this.requests.shift(), manifests.demuxed);
@@ -610,18 +610,28 @@ function(assert) {
   this.standardXHRResponse(this.requests.shift(), audioMedia);
 
   // video segment
-  this.standardXHRResponse(this.requests.shift());
-
-  MPC.mediaSource.sourceBuffers[0].trigger('updateend');
+  this.standardXHRResponse(this.requests.shift(), muxedSegment());
+  await new Promise((accept, reject) => {
+    MPC.mainSegmentLoader_.on('appending', accept);
+  });
+  // source buffers are mocked, so must manually trigger the video buffer
+  // video buffer is second buffer created
+  MPC.mediaSource.sourceBuffers[1].trigger('updateend');
+  this.clock.tick(1);
 
   assert.equal(videoEnded, 1, 'main segment loader triggered ended');
   assert.equal(audioEnded, 0, 'audio segment loader did not trigger ended');
   assert.equal(MPC.mediaSource.readyState, 'open', 'Media Source not yet ended');
 
   // audio segment
-  this.standardXHRResponse(this.requests.shift());
-
-  MPC.mediaSource.sourceBuffers[1].trigger('updateend');
+  this.standardXHRResponse(this.requests.shift(), muxedSegment());
+  await new Promise((accept, reject) => {
+    MPC.audioSegmentLoader_.on('appending', accept);
+  });
+  // source buffers are mocked, so must manually trigger the audio buffer
+  // video buffer is first buffer created
+  MPC.mediaSource.sourceBuffers[0].trigger('updateend');
+  this.clock.tick(1);
 
   assert.equal(videoEnded, 1, 'main segment loader did not trigger ended again');
   assert.equal(audioEnded, 1, 'audio segment loader triggered ended');
