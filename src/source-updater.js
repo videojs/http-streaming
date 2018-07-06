@@ -420,17 +420,20 @@ export default class SourceUpdater {
    * dispose of the source updater and the underlying sourceBuffer
    */
   dispose() {
+    // Abort then remove each source buffer. Removing is important for idempotency.
     if (this.audioBuffer) {
       if (this.mediaSource.readyState === 'open') {
         this.audioBuffer.abort();
       }
       this.audioBuffer.removeEventListener('updateend', this.onAudioUpdateEnd_);
+      this.audioBuffer = null;
     }
     if (this.videoBuffer) {
       if (this.mediaSource.readyState === 'open') {
         this.videoBuffer.abort();
       }
       this.videoBuffer.removeEventListener('updateend', this.onVideoUpdateEnd_);
+      this.videoBuffer = null;
     }
   }
 }
