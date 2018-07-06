@@ -3231,7 +3231,7 @@ QUnit.module('HLS Integration', {
 });
 
 QUnit.test('aborts all in-flight work when disposed', function(assert) {
-  let hls = HlsSourceHandler.handleSource({
+  const hls = HlsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
   }, this.tech);
@@ -3251,8 +3251,8 @@ QUnit.test('aborts all in-flight work when disposed', function(assert) {
   });
 });
 
-QUnit.test('stats are reset on dispose', function(assert) {
-  let hls = HlsSourceHandler.handleSource({
+QUnit.test('stats are reset on dispose', async function(assert) {
+  const hls = HlsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
   }, this.tech);
@@ -3263,20 +3263,31 @@ QUnit.test('stats are reset on dispose', function(assert) {
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  // media
-  this.standardXHRResponse(this.requests.shift());
+  const segment = muxedSegment();
+  // copy the byte length since the segment bytes get cleared out
+  const segmentByteLength = segment.byteLength;
 
-  assert.equal(hls.stats.mediaBytesTransferred, 1024, 'stat is set');
+  assert.ok(segmentByteLength, 'the segment has some number of bytes');
+
+  // segment 0
+  this.standardXHRResponse(this.requests.shift(), segment);
+
+  await new Promise((accept, reject) => {
+    hls.masterPlaylistController_.mainSegmentLoader_.on('appending', accept);
+  });
+
+  assert.equal(hls.stats.mediaBytesTransferred, segmentByteLength, 'stat is set');
   hls.dispose();
   assert.equal(hls.stats.mediaBytesTransferred, 0, 'stat is reset');
 });
 
 QUnit.test('detects fullscreen and triggers a quality change', function(assert) {
-  let qualityChanges = 0;
-  let hls = HlsSourceHandler.handleSource({
+  const hls = HlsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
   }, this.tech);
+
+  let qualityChanges = 0;
   let fullscreenElementName;
 
   ['fullscreenElement', 'webkitFullscreenElement',
@@ -3305,9 +3316,8 @@ QUnit.test('detects fullscreen and triggers a quality change', function(assert) 
   assert.equal(qualityChanges, 1, 'did not make another quality change');
 });
 
-QUnit.test('downloads additional playlists if required', function(assert) {
-  let originalPlaylist;
-  let hls = HlsSourceHandler.handleSource({
+QUnit.test('downloads additional playlists if required', async function(assert) {
+  const hls = HlsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
   }, this.tech);
@@ -3321,17 +3331,25 @@ QUnit.test('downloads additional playlists if required', function(assert) {
   this.standardXHRResponse(this.requests[0]);
   // media
   this.standardXHRResponse(this.requests[1]);
-  originalPlaylist = hls.playlists.media();
+
+  const originalPlaylist = hls.playlists.media();
+
   hls.masterPlaylistController_.mainSegmentLoader_.mediaIndex = 0;
 
   // the playlist selection is revisited after a new segment is downloaded
   this.requests[2].bandwidth = 3000000;
   // segment
-  this.standardXHRResponse(this.requests[2]);
+  this.standardXHRResponse(this.requests[2], muxedSegment());
+  await new Promise((accept, reject) => {
+    hls.masterPlaylistController_.mainSegmentLoader_.on('appending', accept);
+  });
   // update the buffer to reflect the appended segment, and have enough buffer to
   // change playlist
   this.tech.buffered = () => videojs.createTimeRanges([[0, 30]]);
+  // source buffers are mocked, so must manually trigger update ends on audio and video
+  // buffers
   hls.mediaSource.sourceBuffers[0].trigger('updateend');
+  hls.mediaSource.sourceBuffers[1].trigger('updateend');
 
   // new media
   this.standardXHRResponse(this.requests[3]);
@@ -3344,15 +3362,12 @@ QUnit.test('downloads additional playlists if required', function(assert) {
   assert.ok(hls.playlists.media().segments, 'segments are now available');
 
   // verify stats
-  assert.equal(hls.stats.bandwidth, 3000000, 'default');
-  assert.equal(hls.stats.mediaBytesTransferred, 1024, '1024 bytes');
-  assert.equal(hls.stats.mediaRequests, 1, '1 request');
+  assert.equal(hls.stats.bandwidth, 3000000, 'updated bandwidth');
 });
 
 QUnit.test('waits to download new segments until the media playlist is stable',
-function(assert) {
-  let sourceBuffer;
-  let hls = HlsSourceHandler.handleSource({
+async function(assert) {
+  const hls = HlsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
   }, this.tech);
@@ -3365,22 +3380,22 @@ function(assert) {
   hls.bandwidth = 1;
   // master
   this.standardXHRResponse(this.requests.shift());
-
   // media1
   this.standardXHRResponse(this.requests.shift());
-
-  // source buffer created after media source is open and first media playlist is selected
-  sourceBuffer = hls.mediaSource.sourceBuffers[0];
-  hls.masterPlaylistController_.mainSegmentLoader_.mediaIndex = 0;
-
   // segment 0
-  this.standardXHRResponse(this.requests.shift());
+  this.standardXHRResponse(this.requests.shift(), muxedSegment());
+  await new Promise((accept, reject) => {
+    hls.masterPlaylistController_.mainSegmentLoader_.on('appending', accept);
+  });
   // update the buffer to reflect the appended segment, and have enough buffer to
   // change playlist
   this.tech.buffered = () => videojs.createTimeRanges([[0, 30]]);
   // no time has elapsed, so bandwidth is really high and we'll switch
   // playlists
-  sourceBuffer.trigger('updateend');
+  // source buffers are mocked, so must manually trigger update ends on audio and video
+  // buffers
+  hls.mediaSource.sourceBuffers[0].trigger('updateend');
+  hls.mediaSource.sourceBuffers[1].trigger('updateend');
 
   assert.equal(this.requests.length, 1, 'only the playlist request outstanding');
   this.clock.tick(10 * 1000);
@@ -3392,13 +3407,11 @@ function(assert) {
   assert.equal(this.requests.length, 1, 'resumes segment fetching');
 
   // verify stats
-  assert.equal(hls.stats.bandwidth, Infinity, 'default');
-  assert.equal(hls.stats.mediaBytesTransferred, 1024, '1024 bytes');
-  assert.equal(hls.stats.mediaRequests, 1, '1 request');
+  assert.equal(hls.stats.bandwidth, Infinity, 'bandwidth is set to infinity');
 });
 
 QUnit.test('live playlist starts three target durations before live', function(assert) {
-  let hls = HlsSourceHandler.handleSource({
+  const hls = HlsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
   }, this.tech);
@@ -3407,6 +3420,7 @@ QUnit.test('live playlist starts three target durations before live', function(a
   this.requests.shift().respond(200, null,
                                 '#EXTM3U\n' +
                                 '#EXT-X-MEDIA-SEQUENCE:101\n' +
+                                '#EXT-X-TARGETDURATION:10\n' +
                                 '#EXTINF:10,\n' +
                                 '0.ts\n' +
                                 '#EXTINF:10,\n' +
@@ -3423,14 +3437,16 @@ QUnit.test('live playlist starts three target durations before live', function(a
   this.tech.paused = function() {
     return false;
   };
+
   this.tech.trigger('play');
   this.clock.tick(1);
+  assert.equal(hls.seekable().end(0),
+               20,
+               'seekable end is three target durations from playlist end');
   assert.equal(this.tech.currentTime(),
-              hls.seekable().end(0),
-              'seeked to the seekable end');
-
+               hls.seekable().end(0),
+               'seeked to the seekable end');
   assert.equal(this.requests.length, 1, 'begins buffering');
-
 });
 
 QUnit.test('uses user defined selectPlaylist from HlsHandler if specified',
