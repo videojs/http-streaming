@@ -401,7 +401,7 @@ QUnit.test('audio segment loader is reset on audio track change', function(asser
   assert.equal(resets, 1, 'resets the audio segment loader when audio track changes');
 });
 
-QUnit.test('if buffered, will request second segment byte range', function(assert) {
+QUnit.test('if buffered, will request second segment byte range', async function(assert) {
   this.requests.length = 0;
   this.player.src({
     src: 'manifest/playlist.m3u8',
@@ -428,23 +428,20 @@ QUnit.test('if buffered, will request second segment byte range', function(asser
   this.masterPlaylistController.mainSegmentLoader_.sourceUpdater_.buffered = () => {
     return videojs.createTimeRanges([[0, 20]]);
   };
-  // 1ms has passed to upload 1kb
-  // that gives us a bandwidth of 1024 / 1 * 8 * 1000 = 8192000
   this.clock.tick(1);
   // segment
-  this.standardXHRResponse(this.requests[1]);
+  this.standardXHRResponse(this.requests[1], muxedSegment());
+  await new Promise((accept, reject) => {
+    this.masterPlaylistController.mainSegmentLoader_.on('appending', accept);
+  });
   this.masterPlaylistController.mainSegmentLoader_.fetchAtBuffer_ = true;
+  // source buffers are mocked, so must manually trigger update ends on audio and video
+  // buffers
   this.masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
+  this.masterPlaylistController.mediaSource.sourceBuffers[1].trigger('updateend');
   this.clock.tick(10 * 1000);
   this.clock.tick(1);
   assert.equal(this.requests[2].headers.Range, 'bytes=522828-1110327');
-
-  // verify stats
-  assert.equal(this.player.tech_.hls.stats.bandwidth, 8192000, 'Live stream');
-  assert.equal(this.player.tech_.hls.stats.mediaRequests, 1, '1 segment request');
-  assert.equal(this.player.tech_.hls.stats.mediaBytesTransferred,
-               1024,
-               '1024 bytes downloaded');
 });
 
 QUnit.test('re-initializes the combined playlist loader when switching sources',
