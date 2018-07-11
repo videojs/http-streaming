@@ -11,7 +11,7 @@ import {
   isVideoCodec,
   parseContentType,
   translateLegacyCodecs
-} from './codec-utils';
+} from '../util/codecs';
 
 /**
  * Our MediaSource implementation in HTML, mimics native

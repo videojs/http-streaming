@@ -6,7 +6,7 @@ import createTextTracksIfNecessary from './create-text-tracks-if-necessary';
 import { removeCuesFromTrack } from './remove-cues-from-track';
 import { addTextTrackData } from './add-text-track-data';
 import TransmuxWorker from 'worker!./transmuxer-worker.worker.js';
-import { isAudioCodec, isVideoCodec } from './codec-utils';
+import { isAudioCodec, isVideoCodec } from '../util/codecs';
 
 // We create a wrapper around the SourceBuffer so that we can manage the
 // state of the `updating` property manually. We have to do this because
