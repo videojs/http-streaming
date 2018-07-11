@@ -403,7 +403,9 @@ export default class VirtualSourceBuffer extends videojs.EventTarget {
       this.transmuxer_.postMessage({
         action: 'alignGopsWith',
         gopsToAlignWith: gopsSafeToAlignWith(this.gopBuffer_,
-                                             this.mediaSource_.player_.currentTime(),
+                                             this.mediaSource_.player_ ?
+                                               this.mediaSource_.player_.currentTime() :
+                                               null,
                                              this.timeMapping_)
       });
     }
