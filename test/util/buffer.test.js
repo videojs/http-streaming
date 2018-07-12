@@ -29,7 +29,7 @@ QUnit.test('buffered returns audio buffered when no video', function(assert) {
   assert.timeRangesEqual(
     buffered(null, { buffered: audioBuffered }, false),
     audioBuffered,
-    'returns video buffered');
+    'returns audio buffered');
 });
 
 QUnit.test('buffered returns intersection of audio and video buffers', function(assert) {
