@@ -6,7 +6,10 @@ import worker from '@gkatsev/rollup-plugin-bundle-worker';
 import multiEntry from "rollup-plugin-multi-entry";
 
 export default {
-  input: 'test/**/*.test.js',
+  input: [
+    'test/custom-assertions.js',
+    'test/**/*.test.js'
+  ],
   external: ['video.js', 'qunit', 'sinon'],
   output: {
     name: 'vhsTest',
