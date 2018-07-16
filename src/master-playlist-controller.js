@@ -106,6 +106,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     }, false).track;
 
     this.decrypter_ = new Decrypter();
+    this.inbandTextTracks_ = {};
 
     const segmentLoaderSettings = {
       hls: this.hls_,
@@ -119,7 +120,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       bandwidth,
       syncController: this.syncController_,
       decrypter: this.decrypter_,
-      sourceType: this.sourceType_
+      sourceType: this.sourceType_,
+      inbandTextTracks: this.inbandTextTracks_
     };
 
     this.masterPlaylistLoader_ = this.sourceType_ === 'dash' ?

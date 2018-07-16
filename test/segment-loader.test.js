@@ -129,7 +129,7 @@ function(assert) {
     'within target duration');
 });
 
-QUnit.module('SegmentLoader', function(hooks) {
+QUnit.module('SegmentLoader: M2TS', function(hooks) {
   hooks.beforeEach(LoaderCommonHooks.beforeEach);
   hooks.afterEach(LoaderCommonHooks.afterEach);
 
@@ -908,6 +908,126 @@ QUnit.module('SegmentLoader', function(hooks) {
       this.requests.shift().respond(200, null, '');
 
       assert.equal(errors.length, 0, 'no errors');
+    });
+  });
+});
+
+QUnit.module('SegmentLoader: FMP4', function(hooks) {
+  hooks.beforeEach(LoaderCommonHooks.beforeEach);
+  hooks.afterEach(LoaderCommonHooks.afterEach);
+
+  LoaderCommonFactory(SegmentLoader,
+                      { loaderType: 'main' },
+                      (loader) => loader.mimeType('video/mp4'));
+
+  // Tests specific to the main segment loader go in this module
+  QUnit.module('Loader Main', function(nestedHooks) {
+    let loader;
+
+    nestedHooks.beforeEach(function(assert) {
+      this.segmentMetadataTrack = new MockTextTrack();
+      this.inbandTextTracks = {
+        CC1: new MockTextTrack()
+      };
+      this.startTime = sinon.stub(mp4probe, 'startTime');
+      this.mimeType = 'video/mp4';
+
+      loader = new SegmentLoader(LoaderCommonSettings.call(this, {
+        loaderType: 'main',
+        segmentMetadataTrack: this.segmentMetadataTrack,
+        inbandTextTracks: this.inbandTextTracks
+      }), {});
+
+      // shim updateend trigger to be a noop if the loader has no media source
+      this.updateend = function() {
+        if (loader.mediaSource_) {
+          loader.mediaSource_.sourceBuffers[0].trigger('updateend');
+        }
+      };
+    });
+
+    nestedHooks.afterEach(function(assert) {
+      this.startTime.restore();
+    });
+
+    QUnit.test(`CaptionParser is handled as expected`,
+    function(assert) {
+      let mockCaptionParserReset;
+      let mockCaptionParserClear;
+      let mockCaptionParserClearParsedCaptions;
+      let originalCurrentTimeline;
+      let originalPendingSegment;
+      let segment;
+
+      assert.ok(loader.captionParser_, 'there is a captions parser');
+
+      mockCaptionParserReset = sinon.stub(loader.captionParser_, 'reset');
+      mockCaptionParserClear = sinon.stub(loader.captionParser_, 'clearAllCaptions');
+      mockCaptionParserClearParsedCaptions = sinon.stub(loader.captionParser_, 'clearParsedCaptions');
+
+      loader.load();
+      loader.playlist(playlistWithDuration(10, 'm4s'));
+      assert.equal(this.requests.length, 0, 'have not made a request yet');
+
+      loader.mimeType(this.mimeType);
+      this.clock.tick(1);
+      assert.equal(this.requests.length, 1, 'made a request');
+      assert.equal(mockCaptionParserClear.callCount, 2, 'captions cleared on load and mimeType');
+
+      // Simulate a rendition switch
+      loader.resetEverything();
+      assert.equal(mockCaptionParserClear.callCount, 3, 'captions cleared on rendition switch');
+
+      // Simulate a discontinuity
+      originalCurrentTimeline = loader.currentTimeline_;
+      loader.currentTimeline_ = originalCurrentTimeline + 1;
+      assert.equal(mockCaptionParserClear.callCount, 3, 'captions cleared on discontinuity');
+      loader.currentTimeline_ = originalCurrentTimeline;
+
+      // Add to the inband text track, then call remove
+      this.inbandTextTracks.CC1.addCue({
+        startTime: 1,
+        endTime: 2,
+        text: 'test'
+      });
+      loader.remove(0, 2);
+      assert.equal(this.inbandTextTracks.CC1.cues.length, 0, 'all cues have been removed');
+
+      // Check that captions are added to track when found in the segment
+      // and then captionParser is cleared
+      segment = {
+        resolvedUri: '0.m4s',
+        bytes: new Uint8Array([0, 0, 1]),
+        map: {
+          bytes: new Uint8Array([0, 0, 1])
+        },
+        endOfAllRequests: 0,
+        fmp4Captions: [{
+          startTime: 1,
+          endTime: 2,
+          text: 'test',
+          stream: 'CC1'
+        }],
+        captionStreams: {
+          CC1: true
+        }
+      };
+      originalPendingSegment = loader.pendingSegment_;
+      loader.pendingSegment_ = {
+        segment,
+        playlist: {
+          syncInfo: null
+        }
+      };
+      loader.processSegmentResponse_(segment);
+      assert.ok(this.inbandTextTracks.CC1, 'text track created');
+      assert.ok(this.inbandTextTracks.CC1.cues.length, 1, 'cue added');
+      assert.equal(mockCaptionParserClearParsedCaptions.callCount, 1, 'captions cleared after adding to text track');
+      loader.pendingSegment_ = originalPendingSegment;
+
+      // Dispose the loader
+      loader.dispose();
+      assert.equal(mockCaptionParserReset.callCount, 1, 'CaptionParser reset');
     });
   });
 });

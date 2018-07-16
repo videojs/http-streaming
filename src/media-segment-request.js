@@ -1,5 +1,6 @@
 import videojs from 'video.js';
 import { createTransferableMessage } from './bin-utils';
+import mp4probe from 'mux.js/lib/mp4/probe';
 
 export const REQUEST_ERRORS = {
   FAILURE: 2,
@@ -171,7 +172,7 @@ const handleKeyResponse = (segment, finishProcessingFn) => (error, request) => {
  * @param {Function} finishProcessingFn - a callback to execute to continue processing
  *                                        this request
  */
-const handleInitSegmentResponse = (segment, finishProcessingFn) => (error, request) => {
+const handleInitSegmentResponse = (segment, captionParser, finishProcessingFn) => (error, request) => {
   const response = request.response;
   const errorObj = handleErrors(error, request);
 
@@ -190,6 +191,15 @@ const handleInitSegmentResponse = (segment, finishProcessingFn) => (error, reque
   }
 
   segment.map.bytes = new Uint8Array(request.response);
+
+  // Initialize CaptionParser if it hasn't been yet
+  if (!captionParser.isInitialized()) {
+    captionParser.init();
+  }
+
+  segment.map.timescales = mp4probe.timescale(segment.map.bytes);
+  segment.map.videoTrackIds = mp4probe.videoTrackIds(segment.map.bytes);
+
   return finishProcessingFn(null, segment);
 };
 
@@ -203,9 +213,10 @@ const handleInitSegmentResponse = (segment, finishProcessingFn) => (error, reque
  * @param {Function} finishProcessingFn - a callback to execute to continue processing
  *                                        this request
  */
-const handleSegmentResponse = (segment, finishProcessingFn) => (error, request) => {
+const handleSegmentResponse = (segment, captionParser, finishProcessingFn) => (error, request) => {
   const response = request.response;
   const errorObj = handleErrors(error, request);
+  let parsed;
 
   if (errorObj) {
     return finishProcessingFn(errorObj, segment);
@@ -227,6 +238,25 @@ const handleSegmentResponse = (segment, finishProcessingFn) => (error, request) 
     segment.encryptedBytes = new Uint8Array(request.response);
   } else {
     segment.bytes = new Uint8Array(request.response);
+  }
+
+  // This is likely an FMP4 and has the init segment.
+  // Run through the CaptionParser in case there are captions.
+  if (segment.map && segment.map.bytes) {
+    // Initialize CaptionParser if it hasn't been yet
+    if (!captionParser.isInitialized()) {
+      captionParser.init();
+    }
+
+    parsed = captionParser.parse(
+      segment.bytes,
+      segment.map.videoTrackIds,
+      segment.map.timescales);
+
+    if (parsed && parsed.captions) {
+      segment.captionStreams = parsed.captionStreams;
+      segment.fmp4Captions = parsed.captions;
+    }
   }
 
   return finishProcessingFn(null, segment);
@@ -393,6 +423,7 @@ const handleProgress = (segment, progressFn) => (event) => {
 export const mediaSegmentRequest = (xhr,
                                     xhrOptions,
                                     decryptionWorker,
+                                    captionParser,
                                     segment,
                                     progressFn,
                                     doneFn) => {
@@ -420,6 +451,7 @@ export const mediaSegmentRequest = (xhr,
       headers: segmentXhrHeaders(segment.map)
     });
     const initSegmentRequestCallback = handleInitSegmentResponse(segment,
+                                                                 captionParser,
                                                                  finishProcessingFn);
     const initSegmentXhr = xhr(initSegmentOptions, initSegmentRequestCallback);
 
@@ -431,7 +463,9 @@ export const mediaSegmentRequest = (xhr,
     responseType: 'arraybuffer',
     headers: segmentXhrHeaders(segment)
   });
-  const segmentRequestCallback = handleSegmentResponse(segment, finishProcessingFn);
+  const segmentRequestCallback = handleSegmentResponse(segment,
+                                                       captionParser,
+                                                       finishProcessingFn);
   const segmentXhr = xhr(segmentRequestOptions, segmentRequestCallback);
 
   segmentXhr.addEventListener('progress', handleProgress(segment, progressFn));
