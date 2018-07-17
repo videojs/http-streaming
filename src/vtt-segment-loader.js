@@ -6,7 +6,7 @@ import videojs from 'video.js';
 import window from 'global/window';
 import { removeCuesFromTrack } from './mse/remove-cues-from-track';
 import { initSegmentId } from './bin-utils';
-import { uintToString } from './util/string';
+import { uint8ToUtf8 } from './util/string';
 
 const VTT_LINE_TERMINATORS =
   new Uint8Array('\n\n'.split('').map(char => char.charCodeAt(0)));
@@ -331,7 +331,7 @@ export default class VTTSegmentLoader extends SegmentLoader {
       let mapData = segmentInfo.segment.map.bytes;
 
       if (decodeBytesToString) {
-        mapData = uintToString(mapData);
+        mapData = uint8ToUtf8(mapData);
       }
 
       parser.parse(mapData);
@@ -340,7 +340,7 @@ export default class VTTSegmentLoader extends SegmentLoader {
     let segmentData = segmentInfo.bytes;
 
     if (decodeBytesToString) {
-      segmentData = uintToString(segmentData);
+      segmentData = uint8ToUtf8(segmentData);
     }
 
     parser.parse(segmentData);
