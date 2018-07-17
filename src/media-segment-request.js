@@ -190,7 +190,9 @@ const handleInitSegmentResponse = (segment, captionParser, finishProcessingFn) =
     }, segment);
   }
 
-  segment.map.bytes = new Uint8Array(request.response);
+  segment.map.bytes = request.responseType === 'arraybuffer' ?
+    new Uint8Array(request.response) :
+    request.response;
 
   // Initialize CaptionParser if it hasn't been yet
   if (!captionParser.isInitialized()) {
@@ -237,7 +239,9 @@ const handleSegmentResponse = (segment, captionParser, finishProcessingFn) => (e
   if (segment.key) {
     segment.encryptedBytes = new Uint8Array(request.response);
   } else {
-    segment.bytes = new Uint8Array(request.response);
+    segment.bytes = request.responseType === 'arraybuffer' ?
+      new Uint8Array(request.response) :
+      request.response;
   }
 
   // This is likely an FMP4 and has the init segment.
@@ -445,11 +449,11 @@ export const mediaSegmentRequest = (xhr,
   // optionally, request the associated media init segment
   if (segment.map &&
     !segment.map.bytes) {
-    const initSegmentOptions = videojs.mergeOptions(xhrOptions, {
+    const initSegmentOptions = videojs.mergeOptions({
       uri: segment.map.resolvedUri,
       responseType: 'arraybuffer',
       headers: segmentXhrHeaders(segment.map)
-    });
+    }, xhrOptions);
     const initSegmentRequestCallback = handleInitSegmentResponse(segment,
                                                                  captionParser,
                                                                  finishProcessingFn);
@@ -462,7 +466,7 @@ export const mediaSegmentRequest = (xhr,
     uri: segment.resolvedUri,
     responseType: 'arraybuffer',
     headers: segmentXhrHeaders(segment)
-  });
+  }, xhrOptions);
   const segmentRequestCallback = handleSegmentResponse(segment,
                                                        captionParser,
                                                        finishProcessingFn);
