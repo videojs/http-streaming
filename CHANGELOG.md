@@ -1,3 +1,10 @@
+<a name="1.2.1"></a>
+## [1.2.1](https://github.com/videojs/http-streaming/compare/v1.2.0...v1.2.1) (2018-07-17)
+
+### Bug Fixes
+
+* convert non-latin characters in IE ([#157](https://github.com/videojs/http-streaming/issues/157)) ([17678fb](https://github.com/videojs/http-streaming/commit/17678fb))
+
 <a name="1.2.0"></a>
 # [1.2.0](https://github.com/videojs/http-streaming/compare/v1.1.0...v1.2.0) (2018-07-16)
 
