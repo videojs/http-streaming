@@ -6,13 +6,10 @@ import videojs from 'video.js';
 import window from 'global/window';
 import { removeCuesFromTrack } from './mse/remove-cues-from-track';
 import { initSegmentId } from './bin-utils';
+import { uintToString } from './util/string';
 
 const VTT_LINE_TERMINATORS =
   new Uint8Array('\n\n'.split('').map(char => char.charCodeAt(0)));
-
-const uintToString = function(uintArray) {
-  return String.fromCharCode.apply(null, uintArray);
-};
 
 /**
  * An object that manages segment loading and appending.
