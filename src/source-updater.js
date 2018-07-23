@@ -108,8 +108,9 @@ const onUpdateend = (type, updater) => () => {
  * @param {MediaSource} mediaSource the MediaSource to create the SourceBuffer from
  * @param {String} mimeType the desired MIME type of the underlying SourceBuffer
  */
-export default class SourceUpdater {
+export default class SourceUpdater extends videojs.EventTarget {
   constructor(mediaSource) {
+    super();
     this.mediaSource = mediaSource;
     this.logger_ = logger('SourceUpdater');
     // initial timestamp offset is 0
@@ -128,7 +129,7 @@ export default class SourceUpdater {
   }
 
   ready() {
-    return this.audioBuffer || this.videoBuffer;
+    return !!(this.audioBuffer || this.videoBuffer);
   }
 
   createSourceBuffers(codecs) {
@@ -176,6 +177,8 @@ export default class SourceUpdater {
         `video/mp4;codecs="${videoCodec}"`);
       this.logger_(`created SourceBuffer video/mp4;codecs="${videoCodec}"`);
     }
+
+    this.trigger('ready');
 
     this.start_();
   }

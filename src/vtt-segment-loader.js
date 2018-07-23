@@ -6,13 +6,10 @@ import videojs from 'video.js';
 import window from 'global/window';
 import { removeCuesFromTrack } from './util/text-tracks';
 import { initSegmentId } from './bin-utils';
+import { uint8ToUtf8 } from './util/string';
 
 const VTT_LINE_TERMINATORS =
   new Uint8Array('\n\n'.split('').map(char => char.charCodeAt(0)));
-
-const uintToString = function(uintArray) {
-  return String.fromCharCode.apply(null, uintArray);
-};
 
 /**
  * An object that manages segment loading and appending.
@@ -372,7 +369,7 @@ export default class VTTSegmentLoader extends SegmentLoader {
       let mapData = segmentInfo.segment.map.bytes;
 
       if (decodeBytesToString) {
-        mapData = uintToString(mapData);
+        mapData = uint8ToUtf8(mapData);
       }
 
       parser.parse(mapData);
@@ -381,7 +378,7 @@ export default class VTTSegmentLoader extends SegmentLoader {
     let segmentData = segmentInfo.bytes;
 
     if (decodeBytesToString) {
-      segmentData = uintToString(segmentData);
+      segmentData = uint8ToUtf8(segmentData);
     }
 
     parser.parse(segmentData);

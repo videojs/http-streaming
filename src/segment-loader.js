@@ -11,6 +11,7 @@ import TransmuxWorker from 'worker!./transmuxer-worker.worker.js';
 import segmentTransmuxer from './segment-transmuxer';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
+import { CaptionParser } from 'mux.js/lib/mp4';
 import logger from './util/logger';
 import { concatSegments } from './util/segment';
 import {
@@ -209,12 +210,14 @@ export default class SegmentLoader extends videojs.EventTarget {
       audio: null,
       video: null
     };
-    this.appendQueue_ = [];
+    this.callQueue_ = [];
     this.id3Queue_ = [];
 
     // Fragmented mp4 playback
     this.activeInitSegmentId_ = null;
     this.initSegments_ = {};
+    // Fmp4 CaptionParser
+    this.captionParser_ = new CaptionParser();
 
     this.decrypter_ = settings.decrypter;
 
@@ -247,6 +250,13 @@ export default class SegmentLoader extends videojs.EventTarget {
           this.logger_(`${this.state_} -> ${newState}`);
           this.state_ = newState;
         }
+      }
+    });
+
+    this.sourceUpdater_.on('ready', () => {
+      // check if any calls were waiting on source buffer creation
+      if (this.hasEnoughInfoToAppend_()) {
+        this.processCallQueue_();
       }
     });
   }
@@ -296,6 +306,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.sourceUpdater_.dispose();
     }
     this.resetStats_();
+    this.captionParser_.reset();
   }
 
   setAudio(enable) {
@@ -344,8 +355,8 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // clear out the segment being processed
     this.pendingSegment_ = null;
-    this.appendQueue_.length = 0;
-    this.id3Queue_.length = 0;
+    this.callQueue_ = [];
+    this.id3Queue_ = [];
   }
 
   checkForAbort_(requestId) {
@@ -420,7 +431,9 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.initSegments_[id] = storedMap = {
         resolvedUri: map.resolvedUri,
         byterange: map.byterange,
-        bytes: map.bytes
+        bytes: map.bytes,
+        timescales: map.timescales,
+        videoTrackIds: map.videoTrackIds
       };
     }
 
@@ -600,6 +613,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     };
     this.resetLoader();
     this.remove(0, this.duration_());
+    // clears fmp4 captions
+    this.captionParser_.clearAllCaptions();
   }
 
   /**
@@ -624,8 +639,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
     this.mediaIndex = null;
     this.syncPoint_ = null;
-    this.appendQueue_.length = 0;
-    this.id3Queue_.length = 0;
+    this.callQueue_ = [];
+    this.id3Queue_ = [];
     this.abort();
   }
 
@@ -654,6 +669,12 @@ export default class SegmentLoader extends videojs.EventTarget {
       removeCuesFromTrack(start, end, this.inbandTextTracks_[track]);
     }
     removeCuesFromTrack(start, end, this.segmentMetadataTrack_);
+
+    if (this.inbandTextTracks_) {
+      for (let id in this.inbandTextTracks_) {
+        removeCuesFromTrack(start, end, this.inbandTextTracks_[id]);
+      }
+    }
   }
 
   /**
@@ -744,6 +765,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (segmentInfo.timeline !== this.currentTimeline_ ||
         this.startsBeforeSourceBufferTimestampOffset(segmentInfo)) {
       segmentInfo.timestampOffset = segmentInfo.startOfSegment;
+      this.captionParser_.clearAllCaptions();
     }
 
     this.loadSegment_(segmentInfo);
@@ -1056,27 +1078,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.trigger('progress');
   }
 
-  setupSourceBuffers_(trackInfo) {
-    const codecs = {
-      audio: trackInfo.hasAudio ? {} : null,
-      video: trackInfo.hasVideo ? {} : null
-    };
-
-    if (codecs.audio && this.mimeTypes_.audio) {
-      codecs.audio.mimeType = this.mimeTypes_.audio;
-    }
-
-    if (codecs.video && this.mimeTypes_.video) {
-      codecs.video.mimeType = this.mimeTypes_.video;
-    }
-
-    this.sourceUpdater_.createSourceBuffers(codecs);
-
-    if (this.checkForIllegalMediaSwitch(trackInfo)) {
-      return;
-    }
-  }
-
   handleTrackInfo_(simpleSegment, trackInfo) {
     if (this.checkForAbort_(simpleSegment.requestId) ||
         this.abortRequestEarly_(simpleSegment.stats)) {
@@ -1105,7 +1106,11 @@ export default class SegmentLoader extends videojs.EventTarget {
       };
     }
 
-    this.setupSourceBuffers_(trackInfo);
+    this.trigger('trackinfo');
+
+    if (this.checkForIllegalMediaSwitch(trackInfo)) {
+      return;
+    }
   }
 
   handleTimingInfo_(simpleSegment, mediaType, timeType, time) {
@@ -1128,7 +1133,10 @@ export default class SegmentLoader extends videojs.EventTarget {
     segmentInfo[timingInfoProperty] = segmentInfo[timingInfoProperty] || {};
     segmentInfo[timingInfoProperty][timeType] = time;
 
-    this.checkAppendQueue_();
+    // check if any calls were waiting on the timing info
+    if (this.hasEnoughInfoToAppend_()) {
+      this.processCallQueue_();
+    }
   }
 
   handleCaptions_(simpleSegment, captions, captionStreams) {
@@ -1143,6 +1151,11 @@ export default class SegmentLoader extends videojs.EventTarget {
       // full segments appends already offset times in the transmuxer
       timestampOffset: 0
     });
+
+    // TODO
+    // Reset stored captions since we added parsed
+    // captions to a text track at this point
+    this.captionParser_.clearParsedCaptions();
   }
 
   handleId3_(simpleSegment, id3Frames, dispatchType) {
@@ -1155,7 +1168,8 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // we need to have appended data in order for the timestamp offset to be set
     if (!segmentInfo.hasAppendedData_) {
-      this.id3Queue_.push(id3Frames);
+      this.id3Queue_.push(
+        this.handleId3_.bind(this, simpleSegment, id3Frames, dispatchType));
       return;
     }
 
@@ -1181,34 +1195,42 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   processId3Queue_(simpleSegment) {
-    for (let i = 0; i < this.id3Queue_.length; i++) {
-      this.handleId3_(simpleSegment, this.id3Queue_[i]);
-      this.id3Queue_.splice(i, 1);
-    }
+    const id3Queue = this.id3Queue_;
+
+    this.id3Queue_ = [];
+    id3Queue.forEach((fun) => fun());
   }
 
-  // TODO this function may never be used. It must be checked and tested.
-  checkAppendQueue_() {
-    for (let i = 0; i < this.appendQueue_.length; i++) {
-      const queueEntry = this.appendQueue_[i];
+  processCallQueue_() {
+    const callQueue = this.callQueue_;
 
-      if (this.hasEnoughInfoToAppend_(queueEntry.simpleSegment, queueEntry.result)) {
-        this.handleData_(queueEntry.simpleSegment, queueEntry.result);
-        this.appendQueue_.splice(i, 1);
-      }
-    }
+    // this also takes care of any places within function calls where callQueue_.length is
+    // checked
+    this.callQueue_ = [];
+    callQueue.forEach((fun) => fun());
   }
 
-  hasEnoughInfoToAppend_(simpleSegment, result) {
+  hasEnoughInfoToAppend_() {
+    if (!this.sourceUpdater_.ready()) {
+      // waiting on one of the segment loaders to get enough data to create source buffers
+      return false;
+    }
+
     const segmentInfo = this.pendingSegment_;
+
+    if (!segmentInfo) {
+      // no segment to append any data for
+      return false;
+    }
 
     if (this.loaderType_ === 'main' &&
         !this.handlePartialData_ &&
         !segmentInfo.videoTimingInfo) {
       // video timing info is needed before an append can happen, since video time is the
       // "source of truth"
-      // TODO what about the case where there's no video in the segment (but there is
-      // video in the rendition)?
+      // TODO handle the case where there's no video in the segment, but there is video in
+      // the rendition (this case has only been noticed once before, and content is not
+      // usually configured this way)
       return false;
     }
 
@@ -1221,11 +1243,10 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    if (!this.hasEnoughInfoToAppend_(simpleSegment, result)) {
-      this.appendQueue_.push({
-        simpleSegment,
-        result
-      });
+    // If there's anything in the call queue, then this data came later and should be
+    // executed after the calls currently queued.
+    if (this.callQueue_.length || !this.hasEnoughInfoToAppend_()) {
+      this.callQueue_.push(this.handleData_.bind(this, simpleSegment, result));
       return;
     }
 
@@ -1407,15 +1428,17 @@ export default class SegmentLoader extends videojs.EventTarget {
       xhr: this.hls_.xhr,
       xhrOptions: this.xhrOptions_,
       decryptionWorker: this.decrypter_,
+      captionParser: this.captionParser_,
       segment: simpleSegment,
+      handlePartialData: this.handlePartialData_,
       progressFn: this.handleProgress_.bind(this),
       trackInfoFn: this.handleTrackInfo_.bind(this),
       timingInfoFn: this.handleTimingInfo_.bind(this),
       captionsFn: this.handleCaptions_.bind(this),
       id3Fn: this.handleId3_.bind(this),
+
       dataFn: this.handleData_.bind(this),
-      doneFn: this.segmentRequestFinished_.bind(this),
-      handlePartialData: this.handlePartialData_
+      doneFn: this.segmentRequestFinished_.bind(this)
     });
   }
 
@@ -1499,7 +1522,15 @@ export default class SegmentLoader extends videojs.EventTarget {
    */
   segmentRequestFinished_(error, simpleSegment, result) {
     // TODO handle special cases, e.g., muxed audio/video but only audio in the segment
-    // this.checkAppendQueue_();
+
+    // check the call queue directly since this function doesn't need to deal with any
+    // data, and can continue even if the source buffers are not set up and we didn't get
+    // any data from the segment
+    if (this.callQueue_.length) {
+      this.callQueue_.push(
+        this.segmentRequestFinished_.bind(this, error, simpleSegment, result));
+      return;
+    }
 
     // every request counts as a media request even if it has been aborted
     // or canceled due to a timeout

@@ -112,7 +112,7 @@ QUnit.test('deprecation warning is show when using player.hls', function(assert)
 
   assert.equal(hlsPlayerAccessEvents, 1, 'an hls-player-access event was fired');
   assert.equal(warning,
-               'player.hls is deprecated. Use player.tech_.hls instead.',
+               'player.hls is deprecated. Use player.tech().hls instead.',
                'warning would have been shown');
   assert.ok(hls, 'an instance of hls is returned by player.hls');
   videojs.log.warn = oldWarn;

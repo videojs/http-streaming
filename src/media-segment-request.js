@@ -4,6 +4,7 @@ import { stringToArrayBuffer } from './util/string-to-array-buffer';
 import { transmux } from './segment-transmuxer';
 import { probeMp4StartTime, probeTsSegment } from './util/segment';
 import { isLikelyFmp4Data } from './util/codecs';
+import mp4probe from 'mux.js/lib/mp4/probe';
 
 export const REQUEST_ERRORS = {
   FAILURE: 2,
@@ -175,7 +176,8 @@ const handleKeyResponse = (segment, finishProcessingFn) => (error, request) => {
  * @param {Function} finishProcessingFn - a callback to execute to continue processing
  *                                        this request
  */
-const handleInitSegmentResponse = (segment, finishProcessingFn) => (error, request) => {
+const handleInitSegmentResponse =
+(segment, captionParser, finishProcessingFn) => (error, request) => {
   const response = request.response;
   const errorObj = handleErrors(error, request);
 
@@ -194,6 +196,15 @@ const handleInitSegmentResponse = (segment, finishProcessingFn) => (error, reque
   }
 
   segment.map.bytes = new Uint8Array(request.response);
+
+  // Initialize CaptionParser if it hasn't been yet
+  if (!captionParser.isInitialized()) {
+    captionParser.init();
+  }
+
+  segment.map.timescales = mp4probe.timescale(segment.map.bytes);
+  segment.map.videoTrackIds = mp4probe.videoTrackIds(segment.map.bytes);
+
   return finishProcessingFn(null, segment);
 };
 
@@ -207,8 +218,13 @@ const handleInitSegmentResponse = (segment, finishProcessingFn) => (error, reque
  * @param {Function} finishProcessingFn - a callback to execute to continue processing
  *                                        this request
  */
-const handleSegmentResponse =
-(segment, finishProcessingFn, responseType) => (error, request) => {
+const handleSegmentResponse = ({
+  segment,
+  captionParser,
+  captionsFn,
+  finishProcessingFn,
+  responseType
+}) => (error, request) => {
   const response = request.response;
   const errorObj = handleErrors(error, request);
 
@@ -338,6 +354,7 @@ const handleSegmentBytes = ({
   segment,
   bytes,
   isPartial,
+  captionParser,
   trackInfoFn,
   timingInfoFn,
   id3Fn,
@@ -368,6 +385,22 @@ const handleSegmentBytes = ({
     // (the end time can be roughly calculated by the receiver using the duration)
     timingInfoFn(segment, null, 'start', startTime);
     dataFn(segment, { data: bytes });
+
+    // Run through the CaptionParser in case there are captions.
+    // Initialize CaptionParser if it hasn't been yet
+    if (!captionParser.isInitialized()) {
+      captionParser.init();
+    }
+
+    const parsed = captionParser.parse(
+      segment.bytes,
+      segment.map.videoTrackIds,
+      segment.map.timescales);
+
+    if (parsed && parsed.captions) {
+      captionsFn(segment, parsed.captions, parsed.captionStreams);
+    }
+
     doneFn(null, segment, {});
     return;
   }
@@ -407,6 +440,7 @@ const handleSegmentBytes = ({
 const decryptSegment = ({
   decryptionWorker,
   segment,
+  captionParser,
   trackInfoFn,
   timingInfoFn,
   id3Fn,
@@ -427,6 +461,7 @@ const decryptSegment = ({
         segment,
         bytes: segment.bytes,
         isPartial: false,
+        captionParser,
         trackInfoFn,
         timingInfoFn,
         id3Fn,
@@ -485,6 +520,7 @@ const getMostImportantError = (errors) => {
 const waitForCompletion = ({
   activeXhrs,
   decryptionWorker,
+  captionParser,
   trackInfoFn,
   timingInfoFn,
   id3Fn,
@@ -516,6 +552,7 @@ const waitForCompletion = ({
         return decryptSegment({
           decryptionWorker,
           segment,
+          captionParser,
           trackInfoFn,
           timingInfoFn,
           id3Fn,
@@ -529,6 +566,7 @@ const waitForCompletion = ({
         segment,
         bytes: segment.bytes,
         isPartial: false,
+        captionParser,
         trackInfoFn,
         timingInfoFn,
         id3Fn,
@@ -659,6 +697,7 @@ export const mediaSegmentRequest = ({
   xhr,
   xhrOptions,
   decryptionWorker,
+  captionParser,
   segment,
   progressFn,
   trackInfoFn,
@@ -673,6 +712,7 @@ export const mediaSegmentRequest = ({
   const finishProcessingFn = waitForCompletion({
     activeXhrs,
     decryptionWorker,
+    captionParser,
     trackInfoFn,
     timingInfoFn,
     id3Fn,
@@ -702,6 +742,7 @@ export const mediaSegmentRequest = ({
       headers: segmentXhrHeaders(segment.map)
     });
     const initSegmentRequestCallback = handleInitSegmentResponse(segment,
+                                                                 captionParser,
                                                                  finishProcessingFn);
     const initSegmentXhr = xhr(initSegmentOptions, initSegmentRequestCallback);
 
@@ -725,8 +766,13 @@ export const mediaSegmentRequest = ({
     };
   }
 
-  const segmentRequestCallback = handleSegmentResponse(
-    segment, finishProcessingFn, segmentRequestOptions.responseType);
+  const segmentRequestCallback = handleSegmentResponse({
+    segment,
+    captionParser,
+    captionsFn,
+    finishProcessingFn,
+    responseType: segmentRequestOptions.responseType
+  });
   const segmentXhr = xhr(segmentRequestOptions, segmentRequestCallback);
 
   segmentXhr.addEventListener(

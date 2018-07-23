@@ -12,7 +12,7 @@
  *         List of gops considered safe to append over
  */
 export const gopsSafeToAlignWith = (buffer, currentTime, mapping) => {
-  if (currentTime === undefined || currentTime === null || !buffer.length) {
+  if (typeof currentTime === 'undefined' || currentTime === null || !buffer.length) {
     return [];
   }
 
@@ -28,6 +28,46 @@ export const gopsSafeToAlignWith = (buffer, currentTime, mapping) => {
   }
 
   return buffer.slice(i);
+};
+
+/**
+ * Appends gop information (timing and byteLength) received by the transmuxer for the
+ * gops appended in the last call to appendBuffer
+ *
+ * @param {Array} buffer
+ *        The current buffer of gop information
+ * @param {Array} gops
+ *        List of new gop information
+ * @param {boolean} replace
+ *        If true, replace the buffer with the new gop information. If false, append the
+ *        new gop information to the buffer in the right location of time.
+ * @return {Array}
+ *         Updated list of gop information
+ */
+export const updateGopBuffer = (buffer, gops, replace) => {
+  if (!gops.length) {
+    return buffer;
+  }
+
+  if (replace) {
+    // If we are in safe append mode, then completely overwrite the gop buffer
+    // with the most recent appeneded data. This will make sure that when appending
+    // future segments, we only try to align with gops that are both ahead of current
+    // time and in the last segment appended.
+    return gops.slice();
+  }
+
+  const start = gops[0].pts;
+
+  let i = 0;
+
+  for (i; i < buffer.length; i++) {
+    if (buffer[i].pts >= start) {
+      break;
+    }
+  }
+
+  return buffer.slice(0, i).concat(gops);
 };
 
 /**
@@ -74,44 +114,4 @@ export const removeGopBuffer = (buffer, start, end, mapping) => {
   updatedBuffer.splice(j, i - j + 1);
 
   return updatedBuffer;
-};
-
-/**
- * Appends gop information (timing and byteLength) received by the transmuxer for the
- * gops appended in the last call to appendBuffer
- *
- * @param {Array} buffer
- *        The current buffer of gop information
- * @param {Array} gops
- *        List of new gop information
- * @param {boolean} replace
- *        If true, replace the buffer with the new gop information. If false, append the
- *        new gop information to the buffer in the right location of time.
- * @return {Array}
- *         Updated list of gop information
- */
-export const updateGopBuffer = (buffer, gops, replace) => {
-  if (!gops.length) {
-    return buffer;
-  }
-
-  if (replace) {
-    // If we are in safe append mode, then completely overwrite the gop buffer
-    // with the most recent appeneded data. This will make sure that when appending
-    // future segments, we only try to align with gops that are both ahead of current
-    // time and in the last segment appended.
-    return gops.slice();
-  }
-
-  const start = gops[0].pts;
-
-  let i = 0;
-
-  for (i; i < buffer.length; i++) {
-    if (buffer[i].pts >= start) {
-      break;
-    }
-  }
-
-  return buffer.slice(0, i).concat(gops);
 };

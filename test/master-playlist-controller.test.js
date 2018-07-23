@@ -1690,17 +1690,6 @@ function(assert) {
   let audioMedia = {};
   let mainTimeRanges = [];
   let audioTimeRanges = [];
-  let assertTimeRangesEqual = (left, right, message) => {
-    if (left.length === 0 && right.length === 0) {
-      return;
-    }
-
-    assert.equal(left.length, 1, message);
-    assert.equal(right.length, 1, message);
-
-    assert.equal(left.start(0), right.start(0), message);
-    assert.equal(left.end(0), right.end(0), message);
-  };
 
   this.masterPlaylistController.masterPlaylistLoader_.media = () => mainMedia;
   this.masterPlaylistController.syncController_.getExpiredTime = () => 0;
@@ -1712,15 +1701,13 @@ function(assert) {
     return videojs.createTimeRanges(audioTimeRanges);
   };
 
-  assertTimeRangesEqual(mpc.seekable(),
-                        videojs.createTimeRanges(),
-                        'empty when main empty');
+  assert.timeRangesEqual(
+    mpc.seekable(), videojs.createTimeRanges(), 'empty when main empty');
   mainTimeRanges = [[0, 10]];
   mpc.seekable_ = videojs.createTimeRanges();
   mpc.onSyncInfoUpdate_();
-  assertTimeRangesEqual(mpc.seekable(),
-                        videojs.createTimeRanges([[0, 10]]),
-                        'main when no audio');
+  assert.timeRangesEqual(
+    mpc.seekable(), videojs.createTimeRanges([[0, 10]]), 'main when no audio');
 
   mpc.mediaTypes_.AUDIO.activePlaylistLoader = {
     media: () => audioMedia,
@@ -1731,97 +1718,95 @@ function(assert) {
   mpc.seekable_ = videojs.createTimeRanges();
   mpc.onSyncInfoUpdate_();
 
-  assertTimeRangesEqual(mpc.seekable(),
-                        videojs.createTimeRanges(),
-                        'empty when both empty');
+  assert.timeRangesEqual(
+    mpc.seekable(), videojs.createTimeRanges(), 'empty when both empty');
   mainTimeRanges = [[0, 10]];
   mpc.seekable_ = videojs.createTimeRanges();
   mpc.onSyncInfoUpdate_();
-  assertTimeRangesEqual(mpc.seekable(),
-                        videojs.createTimeRanges(),
-                        'empty when audio empty');
+  assert.timeRangesEqual(
+    mpc.seekable(), videojs.createTimeRanges(), 'empty when audio empty');
   mainTimeRanges = [];
   audioTimeRanges = [[0, 10]];
   mpc.seekable_ = videojs.createTimeRanges();
   mpc.onSyncInfoUpdate_();
-  assertTimeRangesEqual(mpc.seekable(),
-                        videojs.createTimeRanges(),
-                        'empty when main empty');
+  assert.timeRangesEqual(
+    mpc.seekable(), videojs.createTimeRanges(), 'empty when main empty');
   mainTimeRanges = [[0, 10]];
   audioTimeRanges = [[0, 10]];
   mpc.seekable_ = videojs.createTimeRanges();
   mpc.onSyncInfoUpdate_();
-  assertTimeRangesEqual(mpc.seekable(),
-                        videojs.createTimeRanges([[0, 10]]),
-                        'ranges equal');
+  assert.timeRangesEqual(
+    mpc.seekable(), videojs.createTimeRanges([[0, 10]]), 'ranges equal');
   mainTimeRanges = [[5, 10]];
   mpc.seekable_ = videojs.createTimeRanges();
   mpc.onSyncInfoUpdate_();
-  assertTimeRangesEqual(mpc.seekable(),
-                        videojs.createTimeRanges([[5, 10]]),
-                        'main later start');
+  assert.timeRangesEqual(
+    mpc.seekable(), videojs.createTimeRanges([[5, 10]]), 'main later start');
   mainTimeRanges = [[0, 10]];
   audioTimeRanges = [[5, 10]];
   mpc.seekable_ = videojs.createTimeRanges();
   mpc.onSyncInfoUpdate_();
-  assertTimeRangesEqual(mpc.seekable(),
-                        videojs.createTimeRanges([[5, 10]]),
-                        'audio later start');
+  assert.timeRangesEqual(
+    mpc.seekable(), videojs.createTimeRanges([[5, 10]]), 'audio later start');
   mainTimeRanges = [[0, 9]];
   audioTimeRanges = [[0, 10]];
   mpc.seekable_ = videojs.createTimeRanges();
   mpc.onSyncInfoUpdate_();
-  assertTimeRangesEqual(mpc.seekable(),
-                        videojs.createTimeRanges([[0, 9]]),
-                        'main earlier end');
+  assert.timeRangesEqual(
+    mpc.seekable(), videojs.createTimeRanges([[0, 9]]), 'main earlier end');
   mainTimeRanges = [[0, 10]];
   audioTimeRanges = [[0, 9]];
   mpc.seekable_ = videojs.createTimeRanges();
   mpc.onSyncInfoUpdate_();
-  assertTimeRangesEqual(mpc.seekable(),
-                        videojs.createTimeRanges([[0, 9]]),
-                        'audio earlier end');
+  assert.timeRangesEqual(
+    mpc.seekable(), videojs.createTimeRanges([[0, 9]]), 'audio earlier end');
   mainTimeRanges = [[1, 10]];
   audioTimeRanges = [[0, 9]];
   mpc.seekable_ = videojs.createTimeRanges();
   mpc.onSyncInfoUpdate_();
-  assertTimeRangesEqual(mpc.seekable(),
-                        videojs.createTimeRanges([[1, 9]]),
-                        'main later start, audio earlier end');
+  assert.timeRangesEqual(
+    mpc.seekable(),
+    videojs.createTimeRanges([[1, 9]]),
+    'main later start, audio earlier end');
   mainTimeRanges = [[0, 9]];
   audioTimeRanges = [[1, 10]];
   mpc.seekable_ = videojs.createTimeRanges();
   mpc.onSyncInfoUpdate_();
-  assertTimeRangesEqual(mpc.seekable(),
-                        videojs.createTimeRanges([[1, 9]]),
-                        'audio later start, main earlier end');
+  assert.timeRangesEqual(
+    mpc.seekable(),
+    videojs.createTimeRanges([[1, 9]]),
+    'audio later start, main earlier end');
   mainTimeRanges = [[2, 9]];
   mpc.seekable_ = videojs.createTimeRanges();
   mpc.onSyncInfoUpdate_();
-  assertTimeRangesEqual(mpc.seekable(),
-                        videojs.createTimeRanges([[2, 9]]),
-                        'main later start, main earlier end');
+  assert.timeRangesEqual(
+    mpc.seekable(),
+    videojs.createTimeRanges([[2, 9]]),
+    'main later start, main earlier end');
   mainTimeRanges = [[1, 10]];
   audioTimeRanges = [[2, 9]];
   mpc.seekable_ = videojs.createTimeRanges();
   mpc.onSyncInfoUpdate_();
-  assertTimeRangesEqual(mpc.seekable(),
-                        videojs.createTimeRanges([[2, 9]]),
-                        'audio later start, audio earlier end');
+  assert.timeRangesEqual(
+    mpc.seekable(),
+    videojs.createTimeRanges([[2, 9]]),
+    'audio later start, audio earlier end');
   mainTimeRanges = [[1, 10]];
   audioTimeRanges = [[11, 20]];
   mpc.seekable_ = videojs.createTimeRanges();
   mpc.onSyncInfoUpdate_();
-  assertTimeRangesEqual(mpc.seekable(),
-                        videojs.createTimeRanges([[1, 10]]),
-                        'no intersection, audio later');
+  assert.timeRangesEqual(
+    mpc.seekable(),
+    videojs.createTimeRanges([[1, 10]]),
+    'no intersection, audio later');
   mainTimeRanges = [[11, 20]];
   audioTimeRanges = [[1, 10]];
   mpc.seekable_ = videojs.createTimeRanges();
   mpc.onSyncInfoUpdate_();
-  assertTimeRangesEqual(mpc.seekable(),
-                        videojs.createTimeRanges([[11, 20]]),
-                        'no intersection, main later');
+  assert.timeRangesEqual(
+    mpc.seekable(),
+    videojs.createTimeRanges([[11, 20]]),
+    'no intersection, main later');
 
   Playlist.seekable = origSeekable;
 });

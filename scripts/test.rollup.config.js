@@ -10,6 +10,7 @@ export default {
     // include the regenerator-runtime directly instead of using the whole babel polyfill
     // with core-js
     'node_modules/regenerator-runtime/runtime.js',
+    'test/custom-assertions.js',
     'test/**/*.test.js'
   ],
   external: ['video.js', 'qunit', 'sinon'],

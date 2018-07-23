@@ -43,6 +43,23 @@ const sumLoaderStat = function(stat) {
          this.mainSegmentLoader_[stat];
 };
 
+const codecsForTrackInfo = (trackInfo, mimeTypes) => {
+  const codecs = {
+    audio: trackInfo.hasAudio ? {} : null,
+    video: trackInfo.hasVideo ? {} : null
+  };
+
+  if (codecs.audio && mimeTypes.audio) {
+    codecs.audio.mimeType = mimeTypes.audio;
+  }
+
+  if (codecs.video && mimeTypes.video) {
+    codecs.video.mimeType = mimeTypes.video;
+  }
+
+  return codecs;
+};
+
 /**
  * the master playlist controller controller all interactons
  * between playlists and segmentloaders. At this time this mainly
@@ -461,6 +478,59 @@ export class MasterPlaylistController extends videojs.EventTarget {
         message: 'Aborted early because there isn\'t enough bandwidth to complete the ' +
           'request without rebuffering.'
       }, ABORT_EARLY_BLACKLIST_SECONDS);
+    });
+
+    this.mainSegmentLoader_.on('trackinfo', () => {
+      if (this.sourceUpdater_.ready()) {
+        // already configured source buffers
+        return;
+      }
+
+      const codecs = codecsForTrackInfo(
+        this.mainSegmentLoader_.startingMedia_, this.mimeTypes_);
+
+      if (this.mediaTypes_.AUDIO.activePlaylistLoader &&
+          !codecs.audio &&
+          !this.audioCodecs_) {
+        // We are using an audio track but haven't yet gotten the audiocodec info. In
+        // order to ensure that source buffers are created simultaneously (a requirement
+        // by browsers), wait for the audio track info.
+        this.mainCodecs_ = codecs;
+        return;
+      }
+
+      if (this.audioCodecs_) {
+        // allow codec info from the audio segment loader to override any info from the
+        // main loader
+        codecs.audio = this.audioCodecs_.audio;
+      }
+
+      this.sourceUpdater_.createSourceBuffers(codecs);
+    });
+
+    this.audioSegmentLoader_.on('trackinfo', () => {
+      if (this.sourceUpdater_.ready()) {
+        // already configured source buffers
+        return;
+      }
+
+      const codecs = codecsForTrackInfo(
+        this.audioSegmentLoader_.startingMedia_, this.mimeTypes_);
+
+      if (!this.mainCodecs_) {
+        // audio arrived before video, wait for video tack info before we create the
+        // source buffers
+        this.audioCodecs_ = codecs;
+        return;
+      }
+
+      if (this.mainCodecs_) {
+        // allow codec info from the main segment loader to override any info from the
+        // audio loader
+        codecs.video = this.mainCodecs_.video;
+      }
+
+      this.sourceUpdater_.createSourceBuffers(codecs);
     });
 
     this.audioSegmentLoader_.on('ended', () => {
@@ -996,8 +1066,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * @private
    */
   setupSourceBuffers_() {
-    let media = this.masterPlaylistLoader_.media();
-    let mimeTypes;
+    const media = this.masterPlaylistLoader_.media();
 
     // wait until a media playlist is available and the Media Source is
     // attached
@@ -1005,7 +1074,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    mimeTypes = mimeTypesForPlaylist(this.masterPlaylistLoader_.master, media);
+    const mimeTypes = mimeTypesForPlaylist(this.masterPlaylistLoader_.master, media);
+
     if (!mimeTypes.video && !mimeTypes.audio) {
       this.error =
         'No compatible SourceBuffer configuration for the variant stream:' +
@@ -1017,8 +1087,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // content. We create the source buffers because in the case of demuxed content we
     // don't want to try creating separate audio and video source buffers too far apart in
     // time.
-    // TODO - Check the behavior for demuxed content where we don't create the source
-    //        buffers here. Ensure that we're waiting to create them simultaneously.
     if (mimeTypes.audio &&
         mimeTypes.video &&
         isMaat(this.masterPlaylistLoader_.master) &&
@@ -1029,10 +1097,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
       });
     }
 
-    // If the source buffers weren't created, give segment loader the mime type info and
-    // Wait for the PMT. This is done in most cases in order to be sure of the types of
-    // media included (in case the manifest says we have codecs for media we don't have).
-    this.mainSegmentLoader_.mimeTypes(mimeTypes);
+    // If the source buffers weren't created, retain the mime type info and wait for
+    // track info from the segment loaders. This is done in most cases in order to be sure
+    // of the types of media included (in case the manifest says we have codecs for media
+    // we don't have).
+    this.mimeTypes_ = mimeTypes;
     this.excludeIncompatibleVariants_(media);
   }
 
