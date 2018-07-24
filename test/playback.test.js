@@ -59,7 +59,7 @@ QUnit.test('Advanced Bip Bop', function(assert) {
   });
 });
 
-QUnit.skip('Fmp4', function(assert) {
+QUnit.skip('playlist with fmp4 and ts segments', function(assert) {
   let done = assert.async();
 
   assert.expect(2);
@@ -68,7 +68,7 @@ QUnit.skip('Fmp4', function(assert) {
   player.autoplay(true);
 
   playFor(player, 6, function() {
-    assert.ok(true, 'played for at least six seconds order over to hit the change in codec');
+    assert.ok(true, 'played for at least six seconds to hit the change in container format');
     assert.equal(player.error(), null, 'has no player errors');
 
     done();
