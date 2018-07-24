@@ -67,8 +67,8 @@ QUnit.test('Advanced Bip Bop', function(assert) {
 
   player.autoplay(true);
 
-  playFor(player, 2, function() {
-    assert.ok(true, 'played for at least two seconds');
+  playFor(player, 6, function() {
+    assert.ok(true, 'played for at least six seconds order over to hit the change in codec');
     assert.equal(player.error(), null, 'has no player errors');
 
     done();
