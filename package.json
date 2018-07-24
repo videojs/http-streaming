@@ -81,7 +81,7 @@
     "doctoc": "^0.15.0",
     "in-publish": "^2.0.0",
     "jsdoc": "^3.4.0",
-    "karma": "^1.7.1",
+    "karma": "^2.0.5",
     "karma-browserstack-launcher": "^1.3.0",
     "karma-chrome-launcher": "^2.2.0",
     "karma-coverage": "^1.1.1",
