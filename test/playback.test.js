@@ -38,7 +38,7 @@ QUnit.module('Playback', {
   }
 });
 
-QUnit.skip('Fmp4', function(assert) {
+QUnit.test('Advanced Bip Bop', function(assert) {
   let done = assert.async();
 
   assert.expect(2);
@@ -54,12 +54,12 @@ QUnit.skip('Fmp4', function(assert) {
   });
 
   player.src({
-    src: 'https://d2zihajmogu5jn.cloudfront.net/ts-fmp4/index.m3u8',
+    src: 'http://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8',
     type: 'application/x-mpegURL'
   });
 });
 
-QUnit.test('Advanced Bip Bop', function(assert) {
+QUnit.skip('Fmp4', function(assert) {
   let done = assert.async();
 
   assert.expect(2);
@@ -75,7 +75,7 @@ QUnit.test('Advanced Bip Bop', function(assert) {
   });
 
   player.src({
-    src: 'http://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8',
+    src: 'https://d2zihajmogu5jn.cloudfront.net/ts-fmp4/index.m3u8',
     type: 'application/x-mpegURL'
   });
 });
