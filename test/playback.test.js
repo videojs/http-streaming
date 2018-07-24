@@ -38,6 +38,27 @@ QUnit.module('Playback', {
   }
 });
 
+QUnit.skip('Fmp4', function(assert) {
+  let done = assert.async();
+
+  assert.expect(2);
+  let player = this.player;
+
+  player.autoplay(true);
+
+  playFor(player, 2, function() {
+    assert.ok(true, 'played for at least two seconds');
+    assert.equal(player.error(), null, 'has no player errors');
+
+    done();
+  });
+
+  player.src({
+    src: 'https://d2zihajmogu5jn.cloudfront.net/ts-fmp4/index.m3u8',
+    type: 'application/x-mpegURL'
+  });
+});
+
 QUnit.test('Advanced Bip Bop', function(assert) {
   let done = assert.async();
 
