@@ -9,17 +9,9 @@
 Play HLS, DASH, and future HTTP streaming protocols with video.js, even where they're not
 natively supported.
 
-Lead Maintainers:
-- Jon-Carlos Rivera [@imbcmdth](https://github.com/imbcmdth)
-- Joe Forbes [@forbesjo](https://github.com/forbesjo)
-- Matthew Neil [@mjneil](https://github.com/mjneil)
-- Oshin Karamian [@OshinKaramian](https://github.com/OshinKaramian)
-- Garrett Singer [@gesinger](https://github.com/gesinger)
-- Chuck Wilson [@squarebracket](https://github.com/squarebracket)
-
 Maintenance Status: Stable
 
-Video.js Compatibility: 6.0
+Video.js Compatibility: 6.0, 7.0
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -68,7 +60,6 @@ Video.js Compatibility: 6.0
   - [Segment Metadata](#segment-metadata)
 - [Hosting Considerations](#hosting-considerations)
 - [Known Issues](#known-issues)
-  - [Fragmented MP4 Embedded Captions](#fragmented-mp4-embedded-captions)
   - [Fragmented MP4 Support](#fragmented-mp4-support)
 - [Testing](#testing)
 - [Debugging](#debugging)
@@ -667,9 +658,6 @@ and most CDNs should have no trouble turning CORS on for your account.
 ## Known Issues
 Issues that are currenty known. If you want to
 help find a solution that would be appreciated!
-
-### Fragmented MP4 Embedded Captions
-Currently this project does not parse embedded captions from fragmented MP4 segments for HLS or DASH content.
 
 ### Fragmented MP4 Support
 Edge has native support for HLS but only in the MPEG2-TS container. If
