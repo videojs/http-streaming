@@ -5,8 +5,8 @@
 [mux.js](https://github.com/videojs/mux.js/blob/master/docs/troubleshooting.md)
 
 ## Table of Contents
-- [Content plays on Mac but not on Windows](content-plays-on-mac-but-not-windows)
-- ["No compatible source was found" on IE11 Win 7](no-compatible-source-was-found-on-ie11-win-7)
+- [Content plays on Mac but not on Windows](#content-plays-on-mac-but-not-windows)
+- ["No compatible source was found" on IE11 Win 7](#no-compatible-source-was-found-on-ie11-win-7)
 
 ## Content plays on Mac but not Windows
 

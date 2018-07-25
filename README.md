@@ -93,7 +93,7 @@ Download a copy of this git repository and then follow the steps in [Building](#
 See [CONTRIBUTING.md](/CONTRIBUTING.md)
 
 ## Troubleshooting
-See [our troubleshooting doc](/docs/troubleshooting.md)
+See [our troubleshooting guide](/docs/troubleshooting.md)
 
 ## Talk to us
 Drop by our slack channel (#playback) on the [Video.js slack][slack-link].
