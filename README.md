@@ -23,6 +23,7 @@ Video.js Compatibility: 6.0, 7.0
   - [Releases](#releases)
   - [Manual Build](#manual-build)
 - [Contributing](#contributing)
+- [Troubleshooting](#troubleshooting)
 - [Talk to us](#talk-to-us)
 - [Getting Started](#getting-started)
 - [Compatibility](#compatibility)
@@ -90,6 +91,9 @@ Download a copy of this git repository and then follow the steps in [Building](#
 
 ## Contributing
 See [CONTRIBUTING.md](/CONTRIBUTING.md)
+
+## Troubleshooting
+See [our troubleshooting doc](/docs/troubleshooting.md)
 
 ## Talk to us
 Drop by our slack channel (#playback) on the [Video.js slack][slack-link].
