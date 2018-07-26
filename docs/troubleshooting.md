@@ -8,7 +8,7 @@
 - [Content plays on Mac but not on Windows](#content-plays-on-mac-but-not-windows)
 - ["No compatible source was found" on IE11 Win 7](#no-compatible-source-was-found-on-ie11-win-7)
 - [CORS: No Access-Control-Allow-Origin header](#cors-no-access-control-allow-origin-header)
-- [Desktop Safari/iOS Safari/Android exhibit different behavior from other browsers](#desktop-safariios-safariandroid-exhibit-different-behavior-from-other-browsers)
+- [Desktop Safari/iOS Safari/Android Chrome/Edge exhibit different behavior from other browsers](#desktop-safariios-safariandroid-chromeedge-exhibit-different-behavior-from-other-browsers)
 
 ## Content plays on Mac but not Windows
 
@@ -32,7 +32,7 @@ XMLHttpRequest cannot load ... No 'Access-Control-Allow-Origin' header is presen
 
 you need to properly configure CORS on your server: https://github.com/videojs/http-streaming#hosting-considerations
 
-## Desktop Safari/iOS Safari/Android exhibit different behavior from other browsers
+## Desktop Safari/iOS Safari/Android Chrome/Edge exhibit different behavior from other browsers
 
 Some browsers support native playback of certain streaming formats. By default, we defer to the native players. However, this means that features specific to videojs-http-streaming will not be available.
 
