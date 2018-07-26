@@ -2,7 +2,7 @@
 
 ## Other troubleshooting guides
 
-[mux.js](https://github.com/videojs/mux.js/blob/master/docs/troubleshooting.md)
+For issues around data embedded into media segments (e.g., 608 captions), see the [mux.js troubleshooting guide](https://github.com/videojs/mux.js/blob/master/docs/troubleshooting.md).
 
 ## Table of Contents
 - [Content plays on Mac but not on Windows](#content-plays-on-mac-but-not-windows)
