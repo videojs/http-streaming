@@ -7,6 +7,8 @@
 ## Table of Contents
 - [Content plays on Mac but not on Windows](#content-plays-on-mac-but-not-windows)
 - ["No compatible source was found" on IE11 Win 7](#no-compatible-source-was-found-on-ie11-win-7)
+- [CORS: No Access-Control-Allow-Origin header](#cors-no-access-control-allow-origin-header)
+- [Desktop Safari/iOS Safari/Android exhibit different behavior from other browsers](#desktop-safari-ios-safari-android-exhibit-different-behavior-from-other-browsers)
 
 ## Content plays on Mac but not Windows
 
@@ -16,6 +18,22 @@ Potential solution: re-encode with a Windows supported audio sample rate
 
 ## "No compatible source was found" on IE11 Win 7
 
-videojs-http-streaming does not support Flash HLS playback (like the videojs-contrib-hls plugin did)
+videojs-http-streaming does not support Flash HLS playback (like the videojs-contrib-hls plugin does)
 
-Solution: please use the FlasHLS source handler https://github.com/brightcove/videojs-flashls-source-handler
+Solution: include the FlasHLS source handler https://github.com/brightcove/videojs-flashls-source-handler#usage
+
+## CORS: No Access-Control-Allow-Origin header
+
+If you see an error along the lines of
+
+```
+XMLHttpRequest cannot load ... No 'Access-Control-Allow-Origin' header is present on the requested resource. Origin ... is therefore not allowed access.
+```
+
+you need to properly configure CORS on your server: https://github.com/videojs/http-streaming#hosting-considerations
+
+## Desktop Safari/iOS Safari/Android exhibit different behavior from other browsers
+
+Some browsers support native playback of certain streaming formats. By default, we defer to the native players. However, this means that features specific to videojs-http-streaming will not be available.
+
+Solution: use videojs-http-streaming based playback on those devices: https://github.com/videojs/http-streaming#overridenative
