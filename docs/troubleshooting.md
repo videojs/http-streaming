@@ -9,7 +9,7 @@ For issues around data embedded into media segments (e.g., 608 captions), see th
 - ["No compatible source was found" on IE11 Win 7](#no-compatible-source-was-found-on-ie11-win-7)
 - [CORS: No Access-Control-Allow-Origin header](#cors-no-access-control-allow-origin-header)
 - [Desktop Safari/iOS Safari/Android Chrome/Edge exhibit different behavior from other browsers](#desktop-safariios-safariandroid-chromeedge-exhibit-different-behavior-from-other-browsers)
-- [media_err_decode error on Desktop Safari](#media_err_decode-error-on-desktop-safari)
+- [MEDIA_ERR_DECODE error on Desktop Safari](#media_err_decode-error-on-desktop-safari)
 
 ## Content plays on Mac but not Windows
 
