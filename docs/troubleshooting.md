@@ -39,9 +39,9 @@ Some browsers support native playback of certain streaming formats. By default, 
 
 Solution: use videojs-http-streaming based playback on those devices: https://github.com/videojs/http-streaming#overridenative
 
-## media_err_decode error on Desktop Safari
+## MEDIA_ERR_DECODE error on Desktop Safari
 
-This error may occur if the source manifest has `CLOSED-CAPTIONS=NONE` and an external text track is loaded into the player. Safari does not allow the inclusion any captions if the manifest indicates that captions will not be provided.
+This error may occur for a number of reasons, as it is particularly common for misconfigured content. One instance of misconfiguration is if the source manifest has `CLOSED-CAPTIONS=NONE` and an external text track is loaded into the player. Safari does not allow the inclusion any captions if the manifest indicates that captions will not be provided.
 
 Solution: remove `CLOSED-CAPTIONS=NONE` from the manifest
 
