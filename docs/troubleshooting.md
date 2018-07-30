@@ -9,6 +9,7 @@ For issues around data embedded into media segments (e.g., 608 captions), see th
 - ["No compatible source was found" on IE11 Win 7](#no-compatible-source-was-found-on-ie11-win-7)
 - [CORS: No Access-Control-Allow-Origin header](#cors-no-access-control-allow-origin-header)
 - [Desktop Safari/iOS Safari/Android Chrome/Edge exhibit different behavior from other browsers](#desktop-safariios-safariandroid-chromeedge-exhibit-different-behavior-from-other-browsers)
+- [MEDIA_ERR_DECODE error on Desktop Safari](#media_err_decode-error-on-desktop-safari)
 
 ## Content plays on Mac but not Windows
 
@@ -37,3 +38,10 @@ you need to properly configure CORS on your server: https://github.com/videojs/h
 Some browsers support native playback of certain streaming formats. By default, we defer to the native players. However, this means that features specific to videojs-http-streaming will not be available.
 
 Solution: use videojs-http-streaming based playback on those devices: https://github.com/videojs/http-streaming#overridenative
+
+## MEDIA_ERR_DECODE error on Desktop Safari
+
+This error may occur for a number of reasons, as it is particularly common for misconfigured content. One instance of misconfiguration is if the source manifest has `CLOSED-CAPTIONS=NONE` and an external text track is loaded into the player. Safari does not allow the inclusion any captions if the manifest indicates that captions will not be provided.
+
+Solution: remove `CLOSED-CAPTIONS=NONE` from the manifest
+
