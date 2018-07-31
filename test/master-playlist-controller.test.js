@@ -337,9 +337,7 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
 
   let segmentLoader = this.masterPlaylistController.mainSegmentLoader_;
 
-  segmentLoader.resyncLoader = function() {
-    resyncs++;
-  };
+  segmentLoader.resyncLoader = () => resyncs++;
 
   segmentLoader.remove = function(start, end) {
     removeFuncArgs = {
@@ -348,14 +346,23 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
     };
   };
 
-  segmentLoader.duration_ = function() {
-    return 60;
-  };
+  segmentLoader.duration_ = () => 60;
 
   segmentLoader.on('reseteverything', function() {
     resets++;
   });
 
+
+  // media is unchanged
+  this.masterPlaylistController.fastQualityChange_();
+
+  assert.equal(resyncs, 0, 'does not resync segment loader if media is unchanged');
+
+  assert.equal(resets, 0, 'reseteverything event not triggered if media is unchanged');
+
+  assert.deepEqual(removeFuncArgs, {}, 'remove() not called if media is unchanged');
+
+  // media is changed
   this.masterPlaylistController.selectPlaylist = () => {
     return this.masterPlaylistController.master().playlists[0];
   };
@@ -364,14 +371,11 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
 
   assert.equal(segmentLoader.ended_, false, 'segment loader ended property is false');
 
-  assert.equal(resyncs, 1, 'resynced segment loader');
+  assert.equal(resyncs, 1, 'resynced segment loader if media is changed');
 
-  assert.equal(resets, 1, 'reseteverything event triggered successfully');
+  assert.equal(resets, 1, 'reseteverything event triggered if media is changed');
 
-  assert.deepEqual(removeFuncArgs, {start: 0, end: 60}, 'remove() called with correct arguments');
-
-  // verify stats
-  assert.equal(this.player.tech_.hls.stats.bandwidth, 4194304, 'default bandwidth');
+  assert.deepEqual(removeFuncArgs, {start: 0, end: 60}, 'remove() called with correct arguments if media is changed');
 });
 
 QUnit.test('audio segment loader is reset on audio track change', function(assert) {

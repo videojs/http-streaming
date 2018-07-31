@@ -522,31 +522,27 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * @private
    */
   fastQualityChange_() {
-    let media = this.selectPlaylist();
+    const media = this.selectPlaylist();
 
-    if (media !== this.masterPlaylistLoader_.media()) {
-      const hls = this.hls_;
-      const sourceBuffer = this.mainSegmentLoader_.sourceUpdater_.sourceBuffer_;
-      const setCurrentTime = this.tech_.setCurrentTime.bind(this.tech_);
-      const currentTime = this.tech_.currentTime();
-
-      this.masterPlaylistLoader_.media(media);
-
-      // delete all buffered data to allow an immediate quality switch
-      this.mainSegmentLoader_.resetEverything();
-
-      // Wait for the buffer to finish clearing, then seek in place to give the
-      // browser a kick to remove any cached frames from the previous rendition
-      sourceBuffer.one('updateend', function() {
-
-        // We want SegmentLoader.load() to be called only once the new playlist
-        // has finished loading. This prevents it from being called too soon.
-        hls.ignoreNextSeekingEvent_ = true;
-        setCurrentTime(currentTime);
-      });
-
-      // don't need to reset audio as it is reset when media changes
+    if (media === this.masterPlaylistLoader_.media()) {
+      return;
     }
+
+    this.masterPlaylistLoader_.media(media);
+
+    // delete all buffered data to allow an immediate quality switch
+    this.mainSegmentLoader_.resetEverything();
+
+    // Wait for the buffer to finish clearing, then seek in place to give the
+    // browser a kick to remove any cached frames from the previous rendition
+    this.mainSegmentLoader_.sourceUpdater_.sourceBuffer_.one('updateend', () => {
+      // We want SegmentLoader.load() to be called only once the new playlist
+      // has finished loading. This prevents it from being called too soon.
+      this.hls_.ignoreNextSeekingEvent_ = true;
+      this.tech_.setCurrentTime(this.tech_.currentTime());
+    });
+
+    // don't need to reset audio as it is reset when media changes
   }
 
   /**
