@@ -21,7 +21,6 @@ group Request
     Forwards "progress" events from
     the XML HTTP Request.
   end note
-  XMLHttpRequest -> "media-segment-request" : //segment request finished//
   group Transmux
     "media-segment-request" -> "segment-transmuxer" : transmux(...)
 
@@ -41,16 +40,20 @@ group Request
     note left
       Pushes bytes into the transmuxer pipeline.
     end note
-    "mux.js" -> "segment-transmuxer" : postMessage(...data...)
-    note left
-        Gathers data and calls data callback
+
+    "segment-transmuxer" -> mux.js : postMessage(...partialFlush...)
+    note left #moccasin
+      Collates any complete frame data
+      from partial segment and
+      caches remainder.
     end note
-    "segment-transmuxer" -> "media-segment-request" : onData(...)
-    "media-segment-request" -> SegmentLoader : dataFn(...)
+    "segment-transmuxer" -> mux.js : postMessage(...flush...)
     note left
-      Gets an fmp4 segment
-      ready to be appended
+      Collates any complete frame data
+      from segment, caches only data
+      required between segments.
     end note
+
     "mux.js" -> "segment-transmuxer" : postMessage(...trackinfo...)
     "segment-transmuxer" -> "media-segment-request" : onTrackInfo(...)
     "media-segment-request" -> SegmentLoader : trackInfoFn(...)
@@ -68,25 +71,38 @@ group Request
       start/end times.
     end note
 
-    "segment-transmuxer" -> mux.js : postMessage(...flush...)
-    note left
-      Flushes the transmuxer pipeline
-      to collate any data it can.
+    "mux.js" -> "segment-transmuxer" : postMessage(...id3Frame...)
+    "segment-transmuxer" -> "media-segment-request" : onId3(...)
+    "media-segment-request" -> SegmentLoader : id3Fn(...)
+    note left #moccasin
+      Passes along metadata for
+      partial transmux.
     end note
+
+    "mux.js" -> "segment-transmuxer" : postMessage(...data...)
+    "segment-transmuxer" -> "media-segment-request" : onData(...)
+    "media-segment-request" -> SegmentLoader : dataFn(...)
+    note left
+      Gets an fmp4 segment
+      ready to be appended.
+    end note
+
     "mux.js" -> "segment-transmuxer" : postMessage(...done...)
     note left
       Gathers GOP info, captions, and
       metadata, and calls done callback.
     end note
-    "segment-transmuxer" -> mux.js : postMessage(...endSegment...)
+    "segment-transmuxer" -> "media-segment-request" : onId3(...)
+    "media-segment-request" -> SegmentLoader : id3Fn(...)
     note left
-      When end of segment is reached,
-      used to clean up data in the
-      transmuxer.
+      Passes along metadata for full
+      segment transmux.
     end note
-    "mux.js" -> "segment-transmuxer" : postMessage(...endedsegment...)
+    "segment-transmuxer" -> "media-segment-request" : onCaptions(...)
+    "media-segment-request" -> SegmentLoader : captionsFn(...)
     note left
-      Uses done handler.
+      Passes along captions for full
+      segment transmux.
     end note
     "segment-transmuxer" -> "media-segment-request" : onDone(...)
     "media-segment-request" -> SegmentLoader : doneFn(...)
@@ -96,7 +112,9 @@ group Request
       appends to complete.
     end note
   end
+  XMLHttpRequest -> "media-segment-request" : //segment request finished//
 end
+
 SegmentLoader -> SegmentLoader : handleUpdateEnd_()
 note left
   Saves segment timing info
