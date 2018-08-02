@@ -15,7 +15,7 @@
     "build:webworker": "rollup -c scripts/webworker.rollup.config.js",
     "clean": "run-p clean:dist clean:test",
     "clean:dist": "rimraf dist dist-test",
-    "clean:test": "node -e \"var b=require('./scripts/manifest-data.js'); b.clean();\"",
+    "clean:test": "node scripts/clean-tests.js",
     "postclean": "mkdirp dist",
     "docs": "run-p docs:*",
     "docs:api": "jsdoc src -r -d docs/api",
@@ -26,14 +26,16 @@
     "start:server": "node scripts/server.js",
     "pretest": "run-s lint build:test:js",
     "test": "karma start test/karma.conf.js",
-    "prebuild:test:js": "run-s build:webworker build:test:manifest",
+    "prebuild:test:js": "run-s build:webworker build:test:manifest build:test:segments",
     "build:test:js": "rollup -c scripts/test.rollup.config.js",
     "build:test:manifest": "node -e \"var b=require('./scripts/manifest-data.js'); b.build();\"",
-    "watch": "run-p watch:js watch:test:manifest watch:test:js watch:js:switcher",
+    "build:test:segments": "node -e \"var b=require('./scripts/segments-data.js'); b.build();\"",
+    "watch": "run-p watch:js watch:test:manifest watch:test:segments watch:test:js watch:js:switcher",
     "watch:js": "rollup -c scripts/rollup.config.js -w",
     "watch:js:switcher": "rollup -c scripts/switcher.rollup.config.js -w",
     "watch:test:js": "rollup -c scripts/test.rollup.config.js -w",
     "watch:test:manifest": "node -e \"var b=require('./scripts/manifest-data.js'); b.watch();\"",
+    "watch:test:segments": "node -e \"var b=require('./scripts/segments-data.js'); b.watch();\"",
     "preversion": "npm test",
     "version": "node scripts/version.js",
     "prepublish": "in-publish && npm run build || not-in-publish"
@@ -46,13 +48,16 @@
   "license": "Apache-2.0",
   "vjsstandard": {
     "ignore": [
+      "es5",
       "dist",
       "dist-test",
       "docs",
       "test/karma.conf.js",
       "scripts",
       "utils",
-      "test/test-manifests.js"
+      "test/test-manifests.js",
+      "test/test-segments.js",
+      "*.worker.*"
     ]
   },
   "files": [
