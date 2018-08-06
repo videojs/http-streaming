@@ -220,22 +220,22 @@ export const mimeTypesForPlaylist = function(master, media) {
   }
 
   // Generate the final codec strings from the codec object generated above
-  const codecStrings = {};
+  const mimeTypes = {};
+  const containerType = getContainerType(media);
 
   if (codecInfo.videoCodec) {
-    codecStrings.video = `${codecInfo.videoCodec}${codecInfo.videoObjectTypeIndicator}`;
+    const codecString = `${codecInfo.videoCodec}${codecInfo.videoObjectTypeIndicator}`;
+
+    mimeTypes.video = makeMimeTypeString('video', containerType, [codecString]);
   }
 
   if (codecInfo.audioProfile) {
-    codecStrings.audio = `mp4a.40.${codecInfo.audioProfile}`;
+    const codecString = `mp4a.40.${codecInfo.audioProfile}`;
+
+    mimeTypes.audio = makeMimeTypeString('audio', containerType, [codecString]);
   }
 
-  const containerType = getContainerType(media);
-
-  return {
-    audio: makeMimeTypeString('audio', containerType, [codecStrings.audio]),
-    video: makeMimeTypeString('video', containerType, [codecStrings.video])
-  };
+  return mimeTypes;
 };
 
 /**
