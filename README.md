@@ -2,8 +2,6 @@
 
 [![Build Status][travis-icon]][travis-link]
 [![Slack Status][slack-icon]][slack-link]
-[![Issue Stats][issue-stats-pr-icon]][issue-stats-link]
-[![Issue Stats][issue-stats-issues-icon]][issue-stats-link]
 [![Greenkeeper badge][greenkeeper-icon]][greenkeeper-link]
 
 Play HLS, DASH, and future HTTP streaming protocols with video.js, even where they're not
