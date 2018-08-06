@@ -149,6 +149,13 @@ const wirePartialTransmuxerEvents = function(transmuxer) {
     });
   });
 
+  transmuxer.on('captionInfo', function(captionInfo) {
+    window.postMessage({
+      action: 'captionInfo',
+      captionInfo
+    });
+  });
+
   transmuxer.on('done', function(data) {
     window.postMessage({
       action: 'done',

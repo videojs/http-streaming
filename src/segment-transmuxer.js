@@ -93,6 +93,7 @@ export const handleDone_ = ({
     onId3(metadata, metadata.dispatchType);
   }
   if (captions && captions.length) {
+    // console.log('FULL CAPTIONS', captions, captionStreams);
     onCaptions(captions, captionStreams);
   }
 
@@ -141,6 +142,13 @@ export const processTransmux = ({
     // only used for partial transmuxer, full transmuxer will handle on done
     if (event.data.action === 'id3Frame') {
       onId3([event.data.id3Frame], event.data.id3Frame.dispatchType);
+    }
+    // only used for partial transmuxer, full transmuxer will handle on done
+    if (event.data.action === 'captionInfo') {
+      const captionInfo = event.data.captionInfo;
+
+      // console.log('PARTIAL transmux return', captionInfo);
+      onCaptions(captionInfo.captions, captionInfo.captionStreams);
     }
 
     // wait for the transmuxed event since we may have audio and video

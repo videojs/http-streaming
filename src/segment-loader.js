@@ -1139,6 +1139,7 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   handleCaptions_(simpleSegment, captions, captionStreams) {
+    // console.log('HANDLING CAPTIONS', captions, captionStreams);
     // Don't need to check for abort since captions are only handled for non partial
     // appends at the moment (therefore, they will only trigger once a segment is finished
     // being transmuxed).
