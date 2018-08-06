@@ -547,11 +547,13 @@ export default class SegmentLoader extends videojs.EventTarget {
 
   /**
    * Delete all the buffered data and reset the SegmentLoader
+   * @param {Function} [done] an optional callback to be executed when the remove
+   * operation is complete
    */
-  resetEverything() {
+  resetEverything(done) {
     this.ended_ = false;
     this.resetLoader();
-    this.remove(0, this.duration_());
+    this.remove(0, this.duration_(), done);
     // clears fmp4 captions
     this.captionParser_.clearAllCaptions();
     this.trigger('reseteverything');
@@ -582,10 +584,12 @@ export default class SegmentLoader extends videojs.EventTarget {
    * Remove any data in the source buffer between start and end times
    * @param {Number} start - the start time of the region to remove from the buffer
    * @param {Number} end - the end time of the region to remove from the buffer
+   * @param {Function} [done] - an optional callback to be executed when the remove
+   * operation is complete
    */
-  remove(start, end) {
+  remove(start, end, done) {
     if (this.sourceUpdater_) {
-      this.sourceUpdater_.remove(start, end);
+      this.sourceUpdater_.remove(start, end, done);
     }
     removeCuesFromTrack(start, end, this.segmentMetadataTrack_);
 

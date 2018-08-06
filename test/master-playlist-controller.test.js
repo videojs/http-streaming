@@ -369,8 +369,6 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
 
   this.masterPlaylistController.fastQualityChange_();
 
-  assert.equal(segmentLoader.ended_, false, 'segment loader ended property is false');
-
   assert.equal(resyncs, 1, 'resynced segment loader if media is changed');
 
   assert.equal(resets, 1, 'reseteverything event triggered if media is changed');

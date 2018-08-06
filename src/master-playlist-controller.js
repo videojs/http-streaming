@@ -530,13 +530,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.masterPlaylistLoader_.media(media);
 
-    // delete all buffered data to allow an immediate quality switch
-    this.mainSegmentLoader_.resetEverything();
-
-    // Wait for the buffer to finish clearing, then seek in place to give the
-    // browser a kick to remove any cached frames from the previous rendition
-    this.mainSegmentLoader_.sourceUpdater_.sourceBuffer_.one('updateend', () => {
-      // We want SegmentLoader.load() to be called only once the new playlist
+    // delete all buffered data to allow an immediate quality switch, then seek
+    // in place to give the browser a kick to remove any cached frames from the
+    // previous rendition
+    this.mainSegmentLoader_.resetEverything(() => {
+      // we want SegmentLoader.load() to be called only once the new playlist
       // has finished loading. This prevents it from being called too soon.
       this.hls_.ignoreNextSeekingEvent_ = true;
       this.tech_.setCurrentTime(this.tech_.currentTime());
