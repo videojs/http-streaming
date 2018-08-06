@@ -97,7 +97,7 @@ module.exports = function(config) {
         return newBrowsers;
       }
     },
-    reporters: ['dots'],
+    reporters: ['spec'],
     port: 9876,
     colors: true,
     autoWatch: false,
