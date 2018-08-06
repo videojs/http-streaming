@@ -12,7 +12,6 @@
  * transmuxer running inside of a WebWorker by exposing a simple
  * message-based interface to a Transmuxer object.
  */
-import window from 'global/window';
 import mp4 from 'mux.js/lib/mp4';
 
 /**
@@ -22,7 +21,7 @@ import mp4 from 'mux.js/lib/mp4';
  * @param {Object} transmuxer the transmuxer to wire events on
  * @private
  */
-const wireTransmuxerEvents = function(transmuxer) {
+const wireTransmuxerEvents = function(self, transmuxer) {
   transmuxer.on('data', function(segment) {
     // transfer ownership of the underlying ArrayBuffer
     // instead of doing a copy to save memory
@@ -39,7 +38,7 @@ const wireTransmuxerEvents = function(transmuxer) {
     let typedArray = segment.data;
 
     segment.data = typedArray.buffer;
-    window.postMessage({
+    self.postMessage({
       action: 'data',
       segment,
       byteOffset: typedArray.byteOffset,
@@ -49,7 +48,7 @@ const wireTransmuxerEvents = function(transmuxer) {
 
   if (transmuxer.captionStream) {
     transmuxer.captionStream.on('data', function(caption) {
-      window.postMessage({
+      self.postMessage({
         action: 'caption',
         data: caption
       });
@@ -57,11 +56,11 @@ const wireTransmuxerEvents = function(transmuxer) {
   }
 
   transmuxer.on('done', function(data) {
-    window.postMessage({ action: 'done' });
+    self.postMessage({ action: 'done' });
   });
 
   transmuxer.on('gopInfo', function(gopInfo) {
-    window.postMessage({
+    self.postMessage({
       action: 'gopInfo',
       gopInfo
     });
@@ -76,8 +75,9 @@ const wireTransmuxerEvents = function(transmuxer) {
  * @param {Object} options the options to initialize with
  */
 class MessageHandlers {
-  constructor(options) {
+  constructor(self, options) {
     this.options = options || {};
+    this.self = self;
     this.init();
   }
 
@@ -89,7 +89,7 @@ class MessageHandlers {
       this.transmuxer.dispose();
     }
     this.transmuxer = new mp4.Transmuxer(this.options);
-    wireTransmuxerEvents(this.transmuxer);
+    wireTransmuxerEvents(this.self, this.transmuxer);
   }
 
   /**
@@ -159,12 +159,12 @@ class MessageHandlers {
 const TransmuxerWorker = function(self) {
   self.onmessage = function(event) {
     if (event.data.action === 'init' && event.data.options) {
-      this.messageHandlers = new MessageHandlers(event.data.options);
+      this.messageHandlers = new MessageHandlers(self, event.data.options);
       return;
     }
 
     if (!this.messageHandlers) {
-      this.messageHandlers = new MessageHandlers();
+      this.messageHandlers = new MessageHandlers(self);
     }
 
     if (event.data && event.data.action && event.data.action !== 'init') {
