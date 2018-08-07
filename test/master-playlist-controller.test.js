@@ -352,7 +352,6 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
     resets++;
   });
 
-
   // media is unchanged
   this.masterPlaylistController.fastQualityChange_();
 
