@@ -25,6 +25,8 @@ import {
   comparePlaylistResolution
 } from './playlist-selectors.js';
 import { version } from '../package.json';
+// import needed to register middleware
+import './middleware-set-current-time';
 
 const Hls = {
   PlaylistLoader,
@@ -291,7 +293,6 @@ class HlsHandler extends Component {
     this.tech_ = tech;
     this.source_ = source;
     this.stats = {};
-    this.ignoreNextSeekingEvent_ = false;
     this.setOptions_();
 
     if (this.options_.overrideNative &&
@@ -321,15 +322,6 @@ class HlsHandler extends Component {
       if (fullscreenElement && fullscreenElement.contains(this.tech_.el())) {
         this.masterPlaylistController_.fastQualityChange_();
       }
-    });
-
-    this.on(this.tech_, 'seeking', function() {
-      if (this.ignoreNextSeekingEvent_) {
-        this.ignoreNextSeekingEvent_ = false;
-        return;
-      }
-
-      this.setCurrentTime(this.tech_.currentTime());
     });
     this.on(this.tech_, 'error', function() {
       if (this.masterPlaylistController_) {
@@ -385,6 +377,13 @@ class HlsHandler extends Component {
     this.options_.tech = this.tech_;
     this.options_.externHls = Hls;
     this.options_.sourceType = simpleTypeFromSourceType(type);
+    // Whenever we seek internally, we should update both the tech and call our own
+    // setCurrentTime function. This is needed because "seeking" events aren't always
+    // reliable. External seeks (via the player object) are handled via middleware.
+    this.options_.seekTo = (time) => {
+      this.tech_.setCurrentTime(time);
+      this.setCurrentTime(time);
+    };
 
     this.masterPlaylistController_ = new MasterPlaylistController(this.options_);
     this.playbackWatcher_ = new PlaybackWatcher(
@@ -567,12 +566,6 @@ class HlsHandler extends Component {
     // estimate of overall bandwidth
     this.on(this.masterPlaylistController_, 'progress', function() {
       this.tech_.trigger('progress');
-    });
-
-    // In the live case, we need to ignore the very first `seeking` event since
-    // that will be the result of the seek-to-live behavior
-    this.on(this.masterPlaylistController_, 'firstplay', function() {
-      this.ignoreNextSeekingEvent_ = true;
     });
 
     this.tech_.ready(() => this.setupQualityLevels_());
