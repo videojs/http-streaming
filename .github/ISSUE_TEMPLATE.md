@@ -23,9 +23,9 @@ If there are any errors in the console, from the player, or anywhere else please
 Please include any additional information necessary here. Including the following:
 
 
-### videojs-contrib-hls version
-what version of videojs-contrib-hls does this occur with?
-videojs-contrib-hls x.y.z
+### videojs-http-streaming version
+what version of videojs-http-streaming does this occur with?
+videojs-http-streaming x.y.z
 
 ### videojs version
 what version of videojs does this occur with?
