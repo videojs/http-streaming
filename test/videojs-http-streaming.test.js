@@ -25,7 +25,6 @@ import {
 import window from 'global/window';
 // we need this so the plugin registers itself
 import 'videojs-contrib-quality-levels';
-/* eslint-enable no-unused-vars */
 
 const ogHlsHandlerSetupQualityLevels = videojs.HlsHandler.prototype.setupQualityLevels_;
 

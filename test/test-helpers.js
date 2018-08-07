@@ -348,8 +348,12 @@ export const standardXHRResponse = function(request, data) {
     data = testDataManifests[manifestName];
   }
 
-  request.response = new Uint8Array(1024).buffer;
-  request.respond(200, {'Content-Type': contentType}, data);
+  request.response =
+    // if segment data was passed, use that, otherwise use a placeholder
+    data instanceof Uint8Array ? data.buffer : new Uint8Array(1024).buffer;
+  request.respond(200,
+                  { 'Content-Type': contentType },
+                  data instanceof Uint8Array ? '' : data);
 };
 
 // return an absolute version of a page-relative URL

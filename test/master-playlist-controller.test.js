@@ -17,6 +17,7 @@ import Playlist from '../src/playlist';
 import Config from '../src/config';
 import PlaylistLoader from '../src/playlist-loader';
 import DashPlaylistLoader from '../src/dash-playlist-loader';
+import { muxed as muxedSegment } from './test-segments';
 
 QUnit.module('MasterPlaylistController', {
   beforeEach(assert) {
@@ -585,8 +586,9 @@ function(assert) {
   this.standardXHRResponse(this.requests.shift(), audioMedia);
 
   // video segment
-  this.standardXHRResponse(this.requests.shift());
-
+  this.standardXHRResponse(this.requests.shift(), muxedSegment());
+  // source buffer is mocked, so must manually trigger the video buffer
+  // video buffer is the first buffer created
   MPC.mediaSource.sourceBuffers[0].trigger('updateend');
 
   assert.equal(videoEnded, 1, 'main segment loader triggered ended');
@@ -594,8 +596,9 @@ function(assert) {
   assert.equal(MPC.mediaSource.readyState, 'open', 'Media Source not yet ended');
 
   // audio segment
-  this.standardXHRResponse(this.requests.shift());
-
+  this.standardXHRResponse(this.requests.shift(), muxedSegment());
+  // source buffer is mocked, so must manually trigger the audio buffer
+  // audio buffer is the second buffer created
   MPC.mediaSource.sourceBuffers[1].trigger('updateend');
 
   assert.equal(videoEnded, 1, 'main segment loader did not trigger ended again');
