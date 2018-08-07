@@ -9,6 +9,8 @@
     "url": "git@github.com:videojs/http-streaming.git"
   },
   "scripts": {
+    "prenetlify": "npm run build",
+    "netlify": "node scripts/netlify.js",
     "prebuild": "npm run clean",
     "build": "run-s build:webworker build:js",
     "build:js": "rollup -c scripts/rollup.config.js",
@@ -111,6 +113,7 @@
     "rollup-watch": "^4.3.1",
     "semver": "^5.5.0",
     "serve-static": "^1.13.2",
+    "shelljs": "^0.8.2",
     "sinon": "^1.10.3",
     "uglify-es": "^3.3.9",
     "videojs-contrib-eme": "^3.2.0",
