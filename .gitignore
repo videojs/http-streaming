@@ -38,6 +38,7 @@ test/test-manifests.js
 test/test-segments.js
 test/test-expected.js
 coverage/
+deploy/
 
 # this file is generated and shouldn't be checked in
 src/decrypter-worker.worker.js
