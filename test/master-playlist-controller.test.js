@@ -5,7 +5,8 @@ import {
   useFakeMediaSource,
   createPlayer,
   standardXHRResponse,
-  openMediaSource
+  openMediaSource,
+  requestAndAppendSegment
 } from './test-helpers.js';
 import manifests from './test-manifests.js';
 import { MasterPlaylistController } from '../src/master-playlist-controller';
@@ -1341,7 +1342,7 @@ QUnit.test('blacklists playlist on earlyabort', function(assert) {
 });
 
 QUnit.test('does not get stuck in a loop due to inconsistent network/caching',
-function(assert) {
+async function(assert) {
   /*
    * This test is a long one, but it is meant to follow a true path to a possible loop.
    * The reason for the loop is due to inconsistent network bandwidth, often caused or
@@ -1371,14 +1372,14 @@ function(assert) {
     '#EXTINF:10\n' +
     '3.ts\n' +
     '#EXT-X-ENDLIST\n';
-
-  const segmentLoader = this.masterPlaylistController.mainSegmentLoader_;
+  const mpc = this.masterPlaylistController;
+  const segmentLoader = mpc.mainSegmentLoader_;
 
   // start on lowest bandwidth rendition (will be media.m3u8)
   segmentLoader.bandwidth = 0;
 
   this.player.tech_.paused = () => false;
-  this.masterPlaylistController.mediaSource.trigger('sourceopen');
+  mpc.mediaSource.trigger('sourceopen');
   // master
   this.requests.shift().respond(200, null,
                                 '#EXTM3U\n' +
@@ -1389,11 +1390,11 @@ function(assert) {
   // media.m3u8
   this.requests.shift().respond(200, null, mediaContents);
 
-  let playlistLoader = this.masterPlaylistController.masterPlaylistLoader_;
+  let playlistLoader = mpc.masterPlaylistLoader_;
   let origMedia = playlistLoader.media.bind(playlistLoader);
   let mediaChanges = [];
 
-  this.masterPlaylistController.masterPlaylistLoader_.media = (media) => {
+  mpc.masterPlaylistLoader_.media = (media) => {
     if (media) {
       mediaChanges.push(media);
     }
@@ -1408,13 +1409,15 @@ function(assert) {
                '0.ts',
                'requested first segment');
 
-  // 100ms for the segment response
-  this.clock.tick(100);
-  // 10 bytes in 100ms = 800 bits/s
-  this.requests[0].response = new Uint8Array(10).buffer;
-  this.requests.shift().respond(200, null, '');
-  segmentLoader.mediaSource_.sourceBuffers[0].trigger('updateend');
+  await requestAndAppendSegment({
+    request: this.requests.shift(),
+    mediaSource: mpc.mediaSource,
+    segmentLoader: mpc.mainSegmentLoader_,
+    clock: this.clock,
+    bandwidth: 800
+  });
   this.clock.tick(1);
+
   segmentRequest = this.requests[0];
 
   // should be walking forwards (need two segments before we can switch)
@@ -1424,12 +1427,13 @@ function(assert) {
                'requested second segment');
   assert.equal(mediaChanges.length, 0, 'no media changes');
 
-  // 100ms for the segment response
-  this.clock.tick(100);
-  // 11 bytes in 100ms = 880 bits/s
-  this.requests[0].response = new Uint8Array(11).buffer;
-  this.requests.shift().respond(200, null, '');
-  segmentLoader.mediaSource_.sourceBuffers[0].trigger('updateend');
+  await requestAndAppendSegment({
+    request: this.requests.shift(),
+    mediaSource: mpc.mediaSource,
+    segmentLoader: mpc.mainSegmentLoader_,
+    clock: this.clock,
+    bandwidth: 880
+  });
   this.clock.tick(1);
 
   let mediaRequest = this.requests[0];
@@ -1492,15 +1496,20 @@ function(assert) {
   this.requests.shift();
   // 1ms for the cached segment response
   this.clock.tick(1);
-  // 10 bytes in 1ms = 80 kbps
-  this.requests[0].response = new Uint8Array(10).buffer;
-  this.requests.shift().respond(200, null, '');
-  segmentLoader.mediaSource_.sourceBuffers[0].trigger('updateend');
+
+  await requestAndAppendSegment({
+    request: this.requests.shift(),
+    mediaSource: mpc.mediaSource,
+    segmentLoader: mpc.mainSegmentLoader_,
+    clock: this.clock,
+    bandwidth: 80000
+  });
   this.clock.tick(1);
+
   segmentRequest = this.requests[0];
 
   // walking forwards, still need two segments before trying to change rendition
-  assert.equal(segmentLoader.bandwidth, 80000, 'bandwidth is correct');
+  assert.bandwidthWithinTolerance(segmentLoader.bandwidth, 80000, 'bandwidth is correct');
   assert.equal(mediaChanges.length, 2, 'did not change media');
   assert.equal(segmentRequest.uri.substring(segmentRequest.uri.length - 4),
                '1.ts',
@@ -1508,15 +1517,19 @@ function(assert) {
 
   // 1ms for the cached segment response
   this.clock.tick(1);
-  // 11 bytes in 1ms = 88 kbps
-  this.requests[0].response = new Uint8Array(11).buffer;
-  this.requests.shift().respond(200, null, '');
-  segmentLoader.mediaSource_.sourceBuffers[0].trigger('updateend');
+
+  await requestAndAppendSegment({
+    request: this.requests.shift(),
+    mediaSource: mpc.mediaSource,
+    segmentLoader: mpc.mainSegmentLoader_,
+    clock: this.clock,
+    bandwidth: 88000
+  });
   this.clock.tick(1);
 
   // Media may be changed, but it should be changed to the same media. In the future, this
   // can safely not be changed.
-  assert.equal(segmentLoader.bandwidth, 88000, 'bandwidth is correct');
+  assert.bandwidthWithinTolerance(segmentLoader.bandwidth, 88000, 'bandwidth is correct');
   assert.equal(mediaChanges.length, 3, 'changed media');
   assert.equal(mediaChanges[2].uri, 'media.m3u8', 'media remains unchanged');
 

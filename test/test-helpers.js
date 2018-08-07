@@ -4,6 +4,7 @@ import videojs from 'video.js';
 import testDataManifests from './test-manifests.js';
 import xhrFactory from '../src/xhr';
 import window from 'global/window';
+import { muxed as muxedSegment } from './test-segments';
 
 const RealMediaSource = window.MediaSource;
 const realCreateObjectURL = window.URL.createObjectURL;
@@ -453,4 +454,45 @@ export const createResponseText = function(length) {
   }
 
   return responseText;
+};
+
+/*
+ * Helper method to request and append a segment (from XHR to source buffers).
+ *
+ * @param {Object} request the mocked request
+ * @param {Uint8Array} [segment=muxed segment] segment bytes to response with
+ * @param {Object} mediaSource the media source
+ * @param {Object} segmentLoader the segment loader
+ * @param {Object} clock the mocked clock
+ * @param {Number} [bandwidth] bandwidth to use in bits/s (takes precedence over requestDurationMillis)
+ * @param {Number} [requestDurationMillis=1000] duration of request to tick the clock, in milliseconds
+ */
+export const requestAndAppendSegment = async ({
+  request,
+  segment,
+  mediaSource,
+  segmentLoader,
+  clock,
+  bandwidth,
+  requestDurationMillis,
+}) => {
+  segment = segment || muxedSegment();
+
+  if (bandwidth) {
+    requestDurationMillis = ((segment.byteLength * 8) / bandwidth) * 1000;
+  }
+  // one second default
+  requestDurationMillis = requestDurationMillis || 1000;
+
+  clock.tick(requestDurationMillis);
+  standardXHRResponse(request, segment);
+
+  await new Promise((accept, reject) => {
+    segmentLoader.on('appending', accept);
+  });
+
+  // source buffers are mocked, so must manually trigger update ends on audio and video
+  // buffers
+  mediaSource.sourceBuffers[0].trigger('updateend');
+  mediaSource.sourceBuffers[1].trigger('updateend');
 };

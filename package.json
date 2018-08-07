@@ -56,6 +56,7 @@
       "utils",
       "test/test-manifests.js",
       "test/test-segments.js",
+      "test/test-helpers.js",
       "test/master-playlist-controller.test.js",
       "test/videojs-http-streaming.test.js"
     ]
