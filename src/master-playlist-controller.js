@@ -534,9 +534,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // in place to give the browser a kick to remove any cached frames from the
     // previous rendition
     this.mainSegmentLoader_.resetEverything(() => {
-      // we want SegmentLoader.load() to be called only once the new playlist
-      // has finished loading. This prevents it from being called too soon.
-      this.hls_.ignoreNextSeekingEvent_ = true;
+      // We avoid the seekTo method here to prevent the buffering of segments from
+      // the previously enabled rendition before the new playlist has finished loading
       this.tech_.setCurrentTime(this.tech_.currentTime());
     });
 
