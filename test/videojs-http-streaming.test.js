@@ -9,7 +9,8 @@ import {
   createPlayer,
   openMediaSource,
   standardXHRResponse,
-  absoluteUrl
+  absoluteUrl,
+  requestAndAppendSegment
 } from './test-helpers.js';
 /* eslint-disable no-unused-vars */
 // we need this so that it can register hls with videojs
@@ -527,7 +528,6 @@ QUnit.test('re-initializes the handler for each source', async function(assert) 
   let secondPlaylists;
   let firstMSE;
   let secondMSE;
-  let masterPlaylistController;
 
   this.player.src({
     src: 'manifest/master.m3u8',
@@ -544,30 +544,21 @@ QUnit.test('re-initializes the handler for each source', async function(assert) 
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  // need a segment request to complete for the source buffers to be created
+  const mpc = this.player.tech_.hls.masterPlaylistController_;
 
-  // segment 0
-  this.standardXHRResponse(this.requests.shift(), muxedSegment());
+  // need a segment request to complete for the source buffers to be created
+  await requestAndAppendSegment({
+    request: this.requests.shift(),
+    mediaSource: mpc.mediaSource,
+    segmentLoader: mpc.mainSegmentLoader_,
+    clock: this.clock,
+  });
 
   let audioBufferAborts = 0;
   let videoBufferAborts = 0;
 
-  masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
-  masterPlaylistController.mainSegmentLoader_.sourceUpdater_.audioBuffer.abort = () =>
-    audioBufferAborts++;
-  masterPlaylistController.mainSegmentLoader_.sourceUpdater_.videoBuffer.abort = () =>
-    videoBufferAborts++;
-
-  await new Promise((accept, reject) => {
-    masterPlaylistController.mainSegmentLoader_.on('appending', accept);
-  });
-
-  // source buffers are mocked, so must manually trigger update ends on audio and video
-  // buffers
-  //
-  // finish them to allow for a new segment request to test for aborting the new segment
-  masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
-  masterPlaylistController.mediaSource.sourceBuffers[1].trigger('updateend');
+  mpc.mainSegmentLoader_.sourceUpdater_.audioBuffer.abort = () => audioBufferAborts++;
+  mpc.mainSegmentLoader_.sourceUpdater_.videoBuffer.abort = () => videoBufferAborts++;
 
   // allow timeout for making another request
   this.clock.tick(1);
@@ -2619,20 +2610,15 @@ QUnit.test('cleans up the buffer when loading live segments', async function(ass
   this.player.tech_.trigger('play');
   this.clock.tick(1);
 
-  const masterPlaylistController = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech_.hls.masterPlaylistController_;
 
   // request first playable segment
-  this.standardXHRResponse(this.requests[1], muxedSegment());
-  await new Promise((accept, reject) => {
-    masterPlaylistController.mainSegmentLoader_.on('appending', accept);
+  await requestAndAppendSegment({
+    request: this.requests[1],
+    mediaSource: mpc.mediaSource,
+    segmentLoader: mpc.mainSegmentLoader_,
+    clock: this.clock,
   });
-  this.clock.tick(1);
-
-  // source buffers are mocked, so must manually trigger update ends on audio and video
-  // buffers
-  masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
-  masterPlaylistController.mediaSource.sourceBuffers[1].trigger('updateend');
-
   // next segment request happens asynchronously
   this.clock.tick(1);
 
@@ -2711,20 +2697,15 @@ QUnit.test('cleans up the buffer based on currentTime when loading a live segmen
   this.player.tech_.trigger('play');
   this.clock.tick(1);
 
-  const masterPlaylistController = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech_.hls.masterPlaylistController_;
 
   // request first playable segment
-  this.standardXHRResponse(this.requests[1], muxedSegment());
-  await new Promise((accept, reject) => {
-    masterPlaylistController.mainSegmentLoader_.on('appending', accept);
+  await requestAndAppendSegment({
+    request: this.requests[1],
+    mediaSource: mpc.mediaSource,
+    segmentLoader: mpc.mainSegmentLoader_,
+    clock: this.clock,
   });
-  this.clock.tick(1);
-
-  // source buffers are mocked, so must manually trigger update ends on audio and video
-  // buffers
-  masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
-  masterPlaylistController.mediaSource.sourceBuffers[1].trigger('updateend');
-
   this.clock.tick(1);
 
   // Change seekable so that it starts *after* the currentTime which was set
@@ -2802,19 +2783,15 @@ QUnit.test('cleans up the buffer when loading VOD segments', async function(asse
   // media
   this.standardXHRResponse(this.requests[1]);
 
-  const masterPlaylistController = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech_.hls.masterPlaylistController_;
 
-  // segment
-  this.standardXHRResponse(this.requests[2], muxedSegment());
-  await new Promise((accept, reject) => {
-    masterPlaylistController.mainSegmentLoader_.on('appending', accept);
+  await requestAndAppendSegment({
+    request: this.requests[2],
+    mediaSource: mpc.mediaSource,
+    segmentLoader: mpc.mainSegmentLoader_,
+    clock: this.clock,
   });
-  this.clock.tick(1);
   this.player.currentTime(120);
-  // source buffers are mocked, so must manually trigger update ends on audio and video
-  // buffers
-  masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
-  masterPlaylistController.mediaSource.sourceBuffers[1].trigger('updateend');
   // This requires 2 clock ticks because after updateend monitorBuffer_ is called
   // to setup fillBuffer on the next tick, but the seek also causes monitorBuffer_ to be
   // called, which cancels the previously set timeout and sets a new one for the following
@@ -3333,23 +3310,22 @@ QUnit.test('downloads additional playlists if required', async function(assert) 
   this.standardXHRResponse(this.requests[1]);
 
   const originalPlaylist = hls.playlists.media();
+  const mpc = hls.masterPlaylistController_;
 
-  hls.masterPlaylistController_.mainSegmentLoader_.mediaIndex = 0;
+  mpc.mainSegmentLoader_.mediaIndex = 0;
 
-  // the playlist selection is revisited after a new segment is downloaded
-  this.requests[2].bandwidth = 3000000;
-  // segment
-  this.standardXHRResponse(this.requests[2], muxedSegment());
-  await new Promise((accept, reject) => {
-    hls.masterPlaylistController_.mainSegmentLoader_.on('appending', accept);
+  await requestAndAppendSegment({
+    request: this.requests[2],
+    mediaSource: mpc.mediaSource,
+    segmentLoader: mpc.mainSegmentLoader_,
+    clock: this.clock,
+    // the playlist selection is revisited after a new segment is downloaded
+    bandwidth: 3000000
   });
   // update the buffer to reflect the appended segment, and have enough buffer to
   // change playlist
   this.tech.buffered = () => videojs.createTimeRanges([[0, 30]]);
-  // source buffers are mocked, so must manually trigger update ends on audio and video
-  // buffers
-  hls.mediaSource.sourceBuffers[0].trigger('updateend');
-  hls.mediaSource.sourceBuffers[1].trigger('updateend');
+  this.clock.tick(1);
 
   // new media
   this.standardXHRResponse(this.requests[3]);
@@ -3371,8 +3347,9 @@ async function(assert) {
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
   }, this.tech);
+  const mpc = hls.masterPlaylistController_;
 
-  hls.masterPlaylistController_.mainSegmentLoader_.addSegmentMetadataCue_ = () => {};
+  mpc.mainSegmentLoader_.addSegmentMetadataCue_ = () => {};
 
   hls.mediaSource.trigger('sourceopen');
 
@@ -3382,20 +3359,23 @@ async function(assert) {
   this.standardXHRResponse(this.requests.shift());
   // media1
   this.standardXHRResponse(this.requests.shift());
-  // segment 0
-  this.standardXHRResponse(this.requests.shift(), muxedSegment());
-  await new Promise((accept, reject) => {
-    hls.masterPlaylistController_.mainSegmentLoader_.on('appending', accept);
+
+  // put segment loader in walking forward mode
+  mpc.mainSegmentLoader_.mediaIndex = 0;
+
+  await requestAndAppendSegment({
+    request: this.requests.shift(),
+    mediaSource: mpc.mediaSource,
+    segmentLoader: mpc.mainSegmentLoader_,
+    clock: this.clock,
+    // bandwidth is high enough to switch playlists
+    bandwidth: Number.MAX_VALUE
   });
   // update the buffer to reflect the appended segment, and have enough buffer to
   // change playlist
   this.tech.buffered = () => videojs.createTimeRanges([[0, 30]]);
-  // no time has elapsed, so bandwidth is really high and we'll switch
-  // playlists
-  // source buffers are mocked, so must manually trigger update ends on audio and video
-  // buffers
-  hls.mediaSource.sourceBuffers[0].trigger('updateend');
-  hls.mediaSource.sourceBuffers[1].trigger('updateend');
+
+  this.clock.tick(1);
 
   assert.equal(this.requests.length, 1, 'only the playlist request outstanding');
   this.clock.tick(10 * 1000);
