@@ -13,7 +13,7 @@ videojs.use('*', (player) => {
     // the tech level), we use a wrapped function so that we can handle it on our own
     // (specified elsewhere).
     setCurrentTime: (time) => {
-      if (player.vhs && player.currentSource().src === player.vhs.source_.src) {
+      if (player.vhs && player.currentSrc() === player.vhs.source_.src) {
         player.vhs.setCurrentTime(time);
       }
 
