@@ -257,6 +257,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
       // a playlist (e.g., in case the playlist errored and we re-requested it).
       if (!this.tech_.paused()) {
         this.mainSegmentLoader_.load();
+        if (this.audioSegmentLoader_) {
+          this.audioSegmentLoader_.load();
+        }
       }
 
       if (!updatedPlaylist.endList) {
