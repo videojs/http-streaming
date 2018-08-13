@@ -2204,6 +2204,8 @@ QUnit.test('switches off subtitles on subtitle errors', function(assert) {
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
+  // media segment
+  this.standardXHRResponse(this.requests.shift());
 
   const textTracks = this.player.textTracks();
 
