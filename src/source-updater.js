@@ -131,14 +131,16 @@ export default class SourceUpdater {
    *
    * @param {Number} start where to start the removal
    * @param {Number} end where to end the removal
+   * @param {Function} [done=noop] optional callback to be executed when the remove
+   * operation is complete
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-remove-void-double-start-unrestricted-double-end
    */
-  remove(start, end) {
+  remove(start, end, done = noop) {
     if (this.processedAppend_) {
       this.queueCallback_(() => {
         this.logger_(`remove [${start} => ${end}]`);
         this.sourceBuffer_.remove(start, end);
-      }, noop);
+      }, done);
     }
   }
 

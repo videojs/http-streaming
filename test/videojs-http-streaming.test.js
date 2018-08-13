@@ -3040,7 +3040,7 @@ QUnit.test('stats are reset on dispose', function(assert) {
   assert.equal(hls.stats.mediaBytesTransferred, 0, 'stat is reset');
 });
 
-QUnit.test('detects fullscreen and triggers a quality change', function(assert) {
+QUnit.test('detects fullscreen and triggers a smooth quality change', function(assert) {
   let qualityChanges = 0;
   let hls = HlsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
@@ -3056,7 +3056,7 @@ QUnit.test('detects fullscreen and triggers a quality change', function(assert) 
     }
   });
 
-  hls.masterPlaylistController_.fastQualityChange_ = function() {
+  hls.masterPlaylistController_.smoothQualityChange_ = function() {
     qualityChanges++;
   };
 

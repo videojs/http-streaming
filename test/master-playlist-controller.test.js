@@ -221,7 +221,7 @@ QUnit.test('selects lowest bitrate rendition when enableLowInitialPlaylist is se
     assert.equal(numCallsToSelectPlaylist, 0, 'selectPlaylist');
   });
 
-QUnit.test('resyncs SegmentLoader for a fast quality change', function(assert) {
+QUnit.test('resyncs SegmentLoader for a smooth quality change', function(assert) {
   let resyncs = 0;
 
   this.masterPlaylistController.mediaSource.trigger('sourceopen');
@@ -240,7 +240,7 @@ QUnit.test('resyncs SegmentLoader for a fast quality change', function(assert) {
     return this.masterPlaylistController.master().playlists[0];
   };
 
-  this.masterPlaylistController.fastQualityChange_();
+  this.masterPlaylistController.smoothQualityChange_();
 
   assert.equal(resyncs, 1, 'resynced the segmentLoader');
 
@@ -248,7 +248,7 @@ QUnit.test('resyncs SegmentLoader for a fast quality change', function(assert) {
   assert.equal(this.player.tech_.hls.stats.bandwidth, 4194304, 'default bandwidth');
 });
 
-QUnit.test('does not resync the segmentLoader when no fast quality change occurs',
+QUnit.test('does not resync the segmentLoader when no smooth quality change occurs',
   function(assert) {
     let resyncs = 0;
 
@@ -264,14 +264,14 @@ QUnit.test('does not resync the segmentLoader when no fast quality change occurs
       resyncs++;
     };
 
-    this.masterPlaylistController.fastQualityChange_();
+    this.masterPlaylistController.smoothQualityChange_();
 
     assert.equal(resyncs, 0, 'did not resync the segmentLoader');
     // verify stats
     assert.equal(this.player.tech_.hls.stats.bandwidth, 4194304, 'default bandwidth');
   });
 
-QUnit.test('fast quality change resyncs audio segment loader', function(assert) {
+QUnit.test('smooth quality change resyncs audio segment loader', function(assert) {
   this.requests.length = 0;
   this.player = createPlayer();
   this.player.src({
@@ -306,7 +306,7 @@ QUnit.test('fast quality change resyncs audio segment loader', function(assert) 
   };
 
   masterPlaylistController.audioSegmentLoader_.resyncLoader = () => resyncs++;
-  masterPlaylistController.fastQualityChange_();
+  masterPlaylistController.smoothQualityChange_();
   assert.equal(resyncs, 0, 'does not resync the audio segment loader when media same');
 
   // force different media
@@ -315,13 +315,64 @@ QUnit.test('fast quality change resyncs audio segment loader', function(assert) 
   };
 
   assert.equal(this.requests.length, 1, 'one request');
-  masterPlaylistController.fastQualityChange_();
+  masterPlaylistController.smoothQualityChange_();
   assert.equal(this.requests.length, 2, 'added a request for new media');
   assert.equal(resyncs, 0, 'does not resync the audio segment loader yet');
   // new media request
   this.standardXHRResponse(this.requests[1]);
   assert.equal(resyncs, 1, 'resyncs the audio segment loader when media changes');
   assert.equal(resets, 0, 'does not reset the audio segment loader when media changes');
+});
+
+QUnit.test('resets everything for a fast quality change', function(assert) {
+  let resyncs = 0;
+  let resets = 0;
+  let removeFuncArgs = {};
+
+  this.masterPlaylistController.mediaSource.trigger('sourceopen');
+  // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  let segmentLoader = this.masterPlaylistController.mainSegmentLoader_;
+
+  segmentLoader.resyncLoader = () => resyncs++;
+
+  segmentLoader.remove = function(start, end) {
+    removeFuncArgs = {
+      start,
+      end
+    };
+  };
+
+  segmentLoader.duration_ = () => 60;
+
+  segmentLoader.on('reseteverything', function() {
+    resets++;
+  });
+
+  // media is unchanged
+  this.masterPlaylistController.fastQualityChange_();
+
+  assert.equal(resyncs, 0, 'does not resync segment loader if media is unchanged');
+
+  assert.equal(resets, 0, 'reseteverything event not triggered if media is unchanged');
+
+  assert.deepEqual(removeFuncArgs, {}, 'remove() not called if media is unchanged');
+
+  // media is changed
+  this.masterPlaylistController.selectPlaylist = () => {
+    return this.masterPlaylistController.master().playlists[0];
+  };
+
+  this.masterPlaylistController.fastQualityChange_();
+
+  assert.equal(resyncs, 1, 'resynced segment loader if media is changed');
+
+  assert.equal(resets, 1, 'reseteverything event triggered if media is changed');
+
+  assert.deepEqual(removeFuncArgs, {start: 0, end: 60}, 'remove() called with correct arguments if media is changed');
 });
 
 QUnit.test('audio segment loader is reset on audio track change', function(assert) {
