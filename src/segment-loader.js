@@ -1258,7 +1258,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.setTimeMapping_(segmentInfo.timeline);
 
     // for tracking overall stats
-    segmentInfo.byteLength += result.data.byteLength;
     this.updateMediaSecondsLoaded_(segmentInfo.segment);
 
     // Note that the state isn't changed from loading to appending. This is because abort
@@ -1548,6 +1547,11 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.mediaRequestsAborted += 1;
       return;
     }
+
+    // byteLength will be used for throughput, and should be based on bytes receieved,
+    // which we only know at the end of the request and should reflect total bytes
+    // downloaded rather than just bytes processed from components of the segment
+    this.pendingSegment_.byteLength = simpleSegment.stats.bytesReceived;
 
     // the request was aborted and the SegmentLoader has already started
     // another request. this can happen when the timeout for an aborted
