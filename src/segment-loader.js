@@ -491,6 +491,8 @@ export default class SegmentLoader extends videojs.EventTarget {
    */
   init_() {
     this.state = 'READY';
+    // if this is the audio segment loader, and it hasn't been inited before, then any old
+    // audio data from the muxed content should be removed
     this.resetEverything();
     return this.monitorBuffer_();
   }

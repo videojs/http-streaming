@@ -18,7 +18,11 @@ import Playlist from '../src/playlist';
 import Config from '../src/config';
 import PlaylistLoader from '../src/playlist-loader';
 import DashPlaylistLoader from '../src/dash-playlist-loader';
-import { muxed as muxedSegment } from './test-segments';
+import {
+  muxed as muxedSegment,
+  audio as audioSegment,
+  video as videoSegment
+} from './test-segments';
 
 QUnit.module('MasterPlaylistController', {
   beforeEach(assert) {
@@ -610,28 +614,29 @@ async function(assert) {
   // audio media
   this.standardXHRResponse(this.requests.shift(), audioMedia);
 
-  // video segment
-  this.standardXHRResponse(this.requests.shift(), muxedSegment());
-  await new Promise((accept, reject) => {
-    MPC.mainSegmentLoader_.on('appending', accept);
+  await requestAndAppendSegment({
+    request: this.requests.shift(),
+    segment: videoSegment(),
+    isOnlyVideo: true,
+    segmentLoader: MPC.mainSegmentLoader_,
+    clock: this.clock
   });
-  // source buffers are mocked, so must manually trigger the video buffer
-  // video buffer is second buffer created
-  MPC.mediaSource.sourceBuffers[1].trigger('updateend');
   this.clock.tick(1);
 
   assert.equal(videoEnded, 1, 'main segment loader triggered ended');
   assert.equal(audioEnded, 0, 'audio segment loader did not trigger ended');
   assert.equal(MPC.mediaSource.readyState, 'open', 'Media Source not yet ended');
 
-  // audio segment
-  this.standardXHRResponse(this.requests.shift(), muxedSegment());
-  await new Promise((accept, reject) => {
-    MPC.audioSegmentLoader_.on('appending', accept);
+  // when the audio segment loader is created it triggers a remove on the source buffer
+  MPC.audioSegmentLoader_.sourceUpdater_.audioBuffer.trigger('updateend');
+
+  await requestAndAppendSegment({
+    request: this.requests.shift(),
+    segment: audioSegment(),
+    isOnlyAudio: true,
+    segmentLoader: MPC.audioSegmentLoader_,
+    clock: this.clock
   });
-  // source buffers are mocked, so must manually trigger the audio buffer
-  // video buffer is first buffer created
-  MPC.mediaSource.sourceBuffers[0].trigger('updateend');
   this.clock.tick(1);
 
   assert.equal(videoEnded, 1, 'main segment loader did not trigger ended again');
@@ -640,7 +645,7 @@ async function(assert) {
 });
 
 QUnit.test('waits for both main and audio loaders to finish before calling endOfStream' +
-' if main loader starting media is unknown', function(assert) {
+' if main loader starting media is unknown', async function(assert) {
   openMediaSource(this.player, this.clock);
 
   const videoMedia = '#EXTM3U\n' +
@@ -669,8 +674,6 @@ QUnit.test('waits for both main and audio loaders to finish before calling endOf
   MPC.mainSegmentLoader_.on('ended', () => videoEnded++);
   MPC.audioSegmentLoader_.on('ended', () => audioEnded++);
 
-  MPC.audioSegmentLoader_.startingMedia_ = { containsAudio: true };
-
   // master
   this.standardXHRResponse(this.requests.shift(), manifests.demuxed);
 
@@ -682,21 +685,30 @@ QUnit.test('waits for both main and audio loaders to finish before calling endOf
 
   // this.requests === [videoSegment, audioSegment]
 
-  // audio segment
-  this.standardXHRResponse(this.requests[1]);
-  // audio source buffer
-  MPC.mediaSource.sourceBuffers[1].trigger('updateend');
+  // when the audio segment loader is created it triggers a remove on the source buffer
+  MPC.audioSegmentLoader_.sourceUpdater_.audioBuffer.trigger('updateend');
+
+  await requestAndAppendSegment({
+    request: this.requests[1],
+    segment: audioSegment(),
+    isOnlyAudio: true,
+    segmentLoader: MPC.audioSegmentLoader_,
+    clock: this.clock
+  });
+  this.clock.tick(1);
 
   assert.equal(videoEnded, 0, 'main segment loader did not trigger ended');
   assert.equal(audioEnded, 1, 'audio segment loader triggered ended');
   assert.equal(MPC.mediaSource.readyState, 'open', 'Media Source not yet ended');
 
-  // video segment
-  this.standardXHRResponse(this.requests[0]);
-
-  MPC.mainSegmentLoader_.startingMedia_ = { containsVideo: true };
-  // main source buffer
-  MPC.mediaSource.sourceBuffers[0].trigger('updateend');
+  await requestAndAppendSegment({
+    request: this.requests[0],
+    segment: videoSegment(),
+    isOnlyVideo: true,
+    segmentLoader: MPC.mainSegmentLoader_,
+    clock: this.clock
+  });
+  this.clock.tick(1);
 
   assert.equal(videoEnded, 1, 'main segment loader triggered ended');
   assert.equal(audioEnded, 1, 'audio segment loader did not trigger ended again');
@@ -733,8 +745,8 @@ QUnit.test('does not wait for main loader to finish before calling endOfStream w
   MPC.mainSegmentLoader_.on('ended', () => mainEnded++);
   MPC.audioSegmentLoader_.on('ended', () => audioEnded++);
 
-  MPC.mainSegmentLoader_.startingMedia_ = { containsAudio: true };
-  MPC.audioSegmentLoader_.startingMedia_ = { containsAudio: true };
+  MPC.mainSegmentLoader_.startingMedia_ = { hasAudio: true };
+  MPC.audioSegmentLoader_.startingMedia_ = { hasAudio: true };
 
   // master
   this.standardXHRResponse(this.requests.shift(), manifests.audioOnlyAlternateAudio);
@@ -1411,7 +1423,6 @@ async function(assert) {
 
   await requestAndAppendSegment({
     request: this.requests.shift(),
-    mediaSource: mpc.mediaSource,
     segmentLoader: mpc.mainSegmentLoader_,
     clock: this.clock,
     bandwidth: 800
@@ -1429,7 +1440,6 @@ async function(assert) {
 
   await requestAndAppendSegment({
     request: this.requests.shift(),
-    mediaSource: mpc.mediaSource,
     segmentLoader: mpc.mainSegmentLoader_,
     clock: this.clock,
     bandwidth: 880
@@ -1499,7 +1509,6 @@ async function(assert) {
 
   await requestAndAppendSegment({
     request: this.requests.shift(),
-    mediaSource: mpc.mediaSource,
     segmentLoader: mpc.mainSegmentLoader_,
     clock: this.clock,
     bandwidth: 80000
@@ -1520,7 +1529,6 @@ async function(assert) {
 
   await requestAndAppendSegment({
     request: this.requests.shift(),
-    mediaSource: mpc.mediaSource,
     segmentLoader: mpc.mainSegmentLoader_,
     clock: this.clock,
     bandwidth: 88000

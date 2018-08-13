@@ -461,20 +461,22 @@ export const createResponseText = function(length) {
  *
  * @param {Object} request the mocked request
  * @param {Uint8Array} [segment=muxed segment] segment bytes to response with
- * @param {Object} mediaSource the media source
  * @param {Object} segmentLoader the segment loader
  * @param {Object} clock the mocked clock
  * @param {Number} [bandwidth] bandwidth to use in bits/s (takes precedence over requestDurationMillis)
  * @param {Number} [requestDurationMillis=1000] duration of request to tick the clock, in milliseconds
+ * @param {Boolean} [isOnlyAudio] segment and append should only be for audio
+ * @param {Boolean} [isOnlyVideo] segment and append should only be for video
  */
 export const requestAndAppendSegment = async ({
   request,
   segment,
-  mediaSource,
   segmentLoader,
   clock,
   bandwidth,
   requestDurationMillis,
+  isOnlyAudio,
+  isOnlyVideo
 }) => {
   segment = segment || muxedSegment();
 
@@ -491,8 +493,13 @@ export const requestAndAppendSegment = async ({
     segmentLoader.on('appending', accept);
   });
 
-  // source buffers are mocked, so must manually trigger update ends on audio and video
-  // buffers
-  mediaSource.sourceBuffers[0].trigger('updateend');
-  mediaSource.sourceBuffers[1].trigger('updateend');
+  // source buffers are mocked, so must manually trigger update ends on buffers
+  if (isOnlyAudio) {
+    segmentLoader.sourceUpdater_.audioBuffer.trigger('updateend');
+  } else if (isOnlyVideo) {
+    segmentLoader.sourceUpdater_.videoBuffer.trigger('updateend');
+  } else {
+    segmentLoader.sourceUpdater_.audioBuffer.trigger('updateend');
+    segmentLoader.sourceUpdater_.videoBuffer.trigger('updateend');
+  }
 };

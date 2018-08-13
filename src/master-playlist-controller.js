@@ -1074,7 +1074,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    const mimeTypes = mimeTypesForPlaylist(this.masterPlaylistLoader_.master, media);
+    const master = this.masterPlaylistLoader_.master;
+    const mimeTypes = mimeTypesForPlaylist(master, media);
 
     if (!mimeTypes.video && !mimeTypes.audio) {
       this.error =
@@ -1089,8 +1090,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // time.
     if (mimeTypes.audio &&
         mimeTypes.video &&
-        isMaat(this.masterPlaylistLoader_.master) &&
-        !isMuxed(media)) {
+        isMaat(master, media) &&
+        !isMuxed(master, media)) {
       this.sourceUpdater_.createSourceBuffers({
         audio: { mimeType: mimeTypes.audio },
         video: { mimeType: mimeTypes.video }
