@@ -664,11 +664,11 @@ export const LoaderCommonFactory = (LoaderConstructor,
 
     QUnit.test('segmentInfo.mediaIndex is adjusted when live playlist is updated',
     function(assert) {
-      const handleUpdateEnd_ = loader.handleUpdateEnd_.bind(loader);
+      const handleAppendsDone_ = loader.handleAppendsDone_.bind(loader);
       let expectedLoaderIndex = 3;
 
-      loader.handleUpdateEnd_ = function() {
-        handleUpdateEnd_();
+      loader.handleAppendsDone_ = function() {
+        handleAppendsDone_();
 
         assert.equal(loader.mediaIndex,
                      expectedLoaderIndex,
@@ -993,12 +993,12 @@ export const LoaderCommonFactory = (LoaderConstructor,
     // TODO: revisit once VTTSegment Loader is fixed to not attempt to transmux
     QUnit.test('processing segment reachable even after playlist update removes it',
     function(assert) {
-      const handleUpdateEnd_ = loader.handleUpdateEnd_.bind(loader);
+      const handleAppendsDone_ = loader.handleAppendsDone_.bind(loader);
       let expectedURI = '0.ts';
       let playlist = playlistWithDuration(40);
       let buffered = videojs.createTimeRanges();
 
-      loader.handleUpdateEnd_ = () => {
+      loader.handleAppendsDone_ = () => {
         // we need to check for the right state, as normally handleResponse would throw an
         // error under failing cases, but sinon swallows it as part of fake XML HTTP
         // request's response
@@ -1008,7 +1008,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
                      expectedURI,
                      'correct segment reference');
 
-        handleUpdateEnd_();
+        handleAppendsDone_();
       };
 
       loader.buffered_ = () => buffered;

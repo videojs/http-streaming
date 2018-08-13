@@ -64,7 +64,7 @@ QUnit.module('HLS', {
 
       // Because SegmentLoader#fillBuffer_ is now scheduled asynchronously
       // we have to use clock.tick to get the expected side effects of
-      // SegmentLoader#handleUpdateEnd_
+      // SegmentLoader#handleAppendsDone_
       this.clock.tick(1);
     };
 
@@ -3194,7 +3194,7 @@ QUnit.module('HLS Integration', {
 
       // Because SegmentLoader#fillBuffer_ is now scheduled asynchronously
       // we have to use clock.tick to get the expected side effects of
-      // SegmentLoader#handleUpdateEnd_
+      // SegmentLoader#handleAppendsDone_
       this.clock.tick(1);
     };
 
@@ -3488,7 +3488,7 @@ QUnit.module('HLS - Encryption', {
 
       // Because SegmentLoader#fillBuffer_ is now scheduled asynchronously
       // we have to use clock.tick to get the expected side effects of
-      // SegmentLoader#handleUpdateEnd_
+      // SegmentLoader#handleAppendsDone_
       this.clock.tick(1);
     };
 

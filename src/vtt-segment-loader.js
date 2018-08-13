@@ -327,7 +327,7 @@ export default class VTTSegmentLoader extends SegmentLoader {
       this.subtitlesTrack_.addCue(cue);
     });
 
-    this.handleUpdateEnd_();
+    this.handleAppendsDone_();
   }
 
   updateTimingInfoEnd_() {

@@ -566,7 +566,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // update the mediaIndex on the SegmentInfo object
     // this is important because we will update this.mediaIndex with this value
-    // in `handleUpdateEnd_` after the segment has been successfully appended
+    // in `handleAppendsDone_` after the segment has been successfully appended
     if (segmentInfo) {
       segmentInfo.mediaIndex -= mediaSequenceDiff;
 
@@ -1741,7 +1741,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     segmentInfo.waitingOnAppends--;
 
     if (segmentInfo.waitingOnAppends === 0) {
-      this.handleUpdateEnd_();
+      this.handleAppendsDone_();
     }
   }
 
@@ -1820,7 +1820,7 @@ export default class SegmentLoader extends videojs.EventTarget {
    *
    * @private
    */
-  handleUpdateEnd_() {
+  handleAppendsDone_() {
     if (!this.pendingSegment_) {
       this.state = 'READY';
       // TODO should this move into this.checkForAbort to speed up requests post abort in

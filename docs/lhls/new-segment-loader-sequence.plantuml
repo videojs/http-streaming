@@ -115,7 +115,7 @@ group Request
   XMLHttpRequest -> "media-segment-request" : //segment request finished//
 end
 
-SegmentLoader -> SegmentLoader : handleUpdateEnd_()
+SegmentLoader -> SegmentLoader : handleAppendsDone_()
 note left
   Saves segment timing info
   and starts next request.

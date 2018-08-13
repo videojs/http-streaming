@@ -265,7 +265,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
 
       delete window.WebVTT;
 
-      loader.handleUpdateEnd_ = () => {
+      loader.handleAppendsDone_ = () => {
         parsedCues = true;
         loader.state = 'READY';
       };
