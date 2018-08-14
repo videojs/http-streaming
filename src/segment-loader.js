@@ -188,7 +188,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.inbandTextTracks_ = settings.inbandTextTracks;
     this.state_ = 'INIT';
     this.handlePartialData_ = true;
-    this.mimeTypes_ = {};
 
     // private instance variables
     this.checkBufferTimeout_ = null;
@@ -1056,10 +1055,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.abort();
     this.trigger('earlyabort');
     return true;
-  }
-
-  mimeTypes(mimeTypes) {
-    this.mimeTypes_ = mimeTypes;
   }
 
   /**
