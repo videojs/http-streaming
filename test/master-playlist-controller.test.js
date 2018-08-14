@@ -714,7 +714,7 @@ QUnit.test('waits for both main and audio loaders to finish before calling endOf
 });
 
 QUnit.test('does not wait for main loader to finish before calling endOfStream with' +
-' audio only stream and alternate audio active', function(assert) {
+' audio only stream and alternate audio active', async function(assert) {
   openMediaSource(this.player, this.clock);
 
   const mainMedia = '#EXTM3U\n' +
@@ -755,16 +755,26 @@ QUnit.test('does not wait for main loader to finish before calling endOfStream w
   this.player.audioTracks()[0].enabled = false;
   this.player.audioTracks()[1].enabled = true;
 
-  // main segment
-  this.standardXHRResponse(this.requests.shift());
+  await requestAndAppendSegment({
+    request: this.requests.shift(),
+    segment: audioSegment(),
+    isOnlyAudio: true,
+    segmentLoader: MPC.mainSegmentLoader_,
+    clock: this.clock
+  });
 
   // audio media
   this.standardXHRResponse(this.requests.shift(), audioMedia);
+  // when the audio segment loader is created it triggers a remove on the source buffer
+  MPC.audioSegmentLoader_.sourceUpdater_.audioBuffer.trigger('updateend');
 
-  // audio segment
-  this.standardXHRResponse(this.requests.shift());
-
-  MPC.mediaSource.sourceBuffers[1].trigger('updateend');
+  await requestAndAppendSegment({
+    request: this.requests.shift(),
+    segment: audioSegment(),
+    isOnlyAudio: true,
+    segmentLoader: MPC.audioSegmentLoader_,
+    clock: this.clock
+  });
 
   assert.equal(mainEnded, 0, 'main segment loader did not trigger ended');
   assert.equal(audioEnded, 1, 'audio segment loader triggered ended');
