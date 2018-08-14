@@ -183,30 +183,28 @@ export const createMetadataTrackIfNotExists = (inbandTextTracks, dispatchType, t
  *
  * @param {Object} inbandTextTracks a reference to current inbandTextTracks
  * @param {Object} tech the video.js tech
- * @param {Object} captionStreams the caption streams to create
+ * @param {Object} captionStream the caption stream to create
  * @private
  */
 export const createCaptionsTrackIfNotExists =
-(inbandTextTracks, tech, captionStreams) => {
-  for (let trackId in captionStreams) {
-    if (!inbandTextTracks[trackId]) {
-      tech.trigger({type: 'usage', name: 'hls-608'});
-      let track = tech.textTracks().getTrackById(trackId);
+(inbandTextTracks, tech, captionStream) => {
+  if (!inbandTextTracks[captionStream]) {
+    tech.trigger({type: 'usage', name: 'hls-608'});
+    let track = tech.textTracks().getTrackById(captionStream);
 
-      if (track) {
-        // Resuse an existing track with a CC# id because this was
-        // very likely created by videojs-contrib-hls from information
-        // in the m3u8 for us to use
-        inbandTextTracks[trackId] = track;
-      } else {
-        // Otherwise, create a track with the default `CC#` label and
-        // without a language
-        inbandTextTracks[trackId] = tech.addRemoteTextTrack({
-          kind: 'captions',
-          id: trackId,
-          label: trackId
-        }, false).track;
-      }
+    if (track) {
+      // Resuse an existing track with a CC# id because this was
+      // very likely created by videojs-contrib-hls from information
+      // in the m3u8 for us to use
+      inbandTextTracks[captionStream] = track;
+    } else {
+      // Otherwise, create a track with the default `CC#` label and
+      // without a language
+      inbandTextTracks[captionStream] = tech.addRemoteTextTrack({
+        kind: 'captions',
+        id: captionStream,
+        label: captionStream
+      }, false).track;
     }
   }
 };

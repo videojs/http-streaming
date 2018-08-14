@@ -62,14 +62,19 @@ const wireFullTransmuxerEvents = function(transmuxer) {
     }, [segment.data]);
   });
 
-  if (transmuxer.captionStream) {
-    transmuxer.captionStream.on('data', function(caption) {
-      window.postMessage({
-        action: 'caption',
-        data: caption
-      });
+  transmuxer.on('id3Frame', function(id3Frame) {
+    window.postMessage({
+      action: 'id3Frame',
+      id3Frame
     });
-  }
+  });
+
+  transmuxer.on('caption', function(caption) {
+    window.postMessage({
+      action: 'caption',
+      caption
+    });
+  });
 
   transmuxer.on('done', function(data) {
     window.postMessage({ action: 'done' });
@@ -83,7 +88,10 @@ const wireFullTransmuxerEvents = function(transmuxer) {
   });
 
   transmuxer.on('trackinfo', function(trackInfo) {
-    window.postMessage({ action: 'trackinfo', trackInfo });
+    window.postMessage({
+      action: 'trackinfo',
+      trackInfo
+    });
   });
 
   transmuxer.on('audioTimingInfo', function(audioTimingInfo) {
@@ -149,10 +157,10 @@ const wirePartialTransmuxerEvents = function(transmuxer) {
     });
   });
 
-  transmuxer.on('captionInfo', function(captionInfo) {
+  transmuxer.on('caption', function(caption) {
     window.postMessage({
-      action: 'captionInfo',
-      captionInfo
+      action: 'caption',
+      caption
     });
   });
 

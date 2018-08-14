@@ -56,46 +56,12 @@ export const handleDone_ = ({
   // all buffers should have been flushed from the muxer, so start processing anything we
   // have received
   let sortedSegments = {
-    captions: [],
     gopInfo: transmuxedData.gopInfo,
     videoTimingInfo: transmuxedData.videoTimingInfo,
-    audioTimingInfo: transmuxedData.audioTimingInfo,
-    captionStreams: {}
+    audioTimingInfo: transmuxedData.audioTimingInfo
   };
-  const buffer = transmuxedData.buffer;
-  let metadata = [];
-  let captions = [];
-  let captionStreams = [];
 
   transmuxedData.buffer = [];
-
-  // Sort segments into separate video/audio arrays and
-  // keep track of their total byte lengths
-  sortedSegments = buffer.reduce((segmentObj, segment) => {
-    // Gather any captions into a single array
-    if (segment.captions) {
-      captions = captions.concat(segment.captions);
-    }
-
-    // Gather any metadata into a single array
-    if (segment.metadata) {
-      metadata = metadata.concat(segment.metadata);
-    }
-
-    if (segment.captionStreams) {
-      captionStreams = videojs.mergeOptions(captionStreams, segment.captionStreams);
-    }
-
-    return segmentObj;
-  }, sortedSegments);
-
-  if (metadata && metadata.length) {
-    onId3(metadata, metadata.dispatchType);
-  }
-  if (captions && captions.length) {
-    // console.log('FULL CAPTIONS', captions, captionStreams);
-    onCaptions(captions, captionStreams);
-  }
 
   callback(sortedSegments);
 };
@@ -140,15 +106,16 @@ export const processTransmux = ({
       onVideoTimingInfo(event.data.videoTimingInfo);
     }
     // only used for partial transmuxer, full transmuxer will handle on done
+    // FIXME: update comment
     if (event.data.action === 'id3Frame') {
       onId3([event.data.id3Frame], event.data.id3Frame.dispatchType);
     }
     // only used for partial transmuxer, full transmuxer will handle on done
-    if (event.data.action === 'captionInfo') {
-      const captionInfo = event.data.captionInfo;
+    // FIXME: update comment
+    if (event.data.action === 'caption') {
+      const caption = event.data.caption;
 
-      // console.log('PARTIAL transmux return', captionInfo);
-      onCaptions(captionInfo.captions, captionInfo.captionStreams);
+      onCaptions(caption);
     }
 
     // wait for the transmuxed event since we may have audio and video

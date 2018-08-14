@@ -1138,18 +1138,36 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
   }
 
-  handleCaptions_(simpleSegment, captions, captionStreams) {
-    // console.log('HANDLING CAPTIONS', captions, captionStreams);
-    // Don't need to check for abort since captions are only handled for non partial
-    // appends at the moment (therefore, they will only trigger once a segment is finished
-    // being transmuxed).
-    createCaptionsTrackIfNotExists(
-      this.inbandTextTracks_, this.hls_.tech_, captionStreams);
-    addCaptionData({
-      captionArray: captions,
-      inbandTextTracks: this.inbandTextTracks_,
-      // full segments appends already offset times in the transmuxer
-      timestampOffset: 0
+  handleCaptions_(simpleSegment, captions) {
+    if (this.checkForAbort_(simpleSegment.requestId) ||
+      this.abortRequestEarly_(simpleSegment.stats) ||
+      !captions || captions.length === 0) {
+      return;
+    }
+
+    const segmentInfo = this.pendingSegment_;
+
+    // TODO what happens in this case?
+    if (!segmentInfo.hasAppendedData_) {
+      return;
+    }
+
+    // FIXME do FMP4 segments need to be adjusted?
+    const timestampOffset = this.sourceUpdater_.videoTimestampOffset() === null ?
+      this.sourceUpdater_.audioTimestampOffset() :
+      this.sourceUpdater_.videoTimestampOffset();
+
+    captions.forEach((caption) => {
+      // Don't need to check for abort since captions are only handled for non partial
+      // appends at the moment (therefore, they will only trigger once a segment is finished
+      // being transmuxed).
+      createCaptionsTrackIfNotExists(
+        this.inbandTextTracks_, this.hls_.tech_, caption.stream);
+      addCaptionData({
+        captionArray: [caption],
+        inbandTextTracks: this.inbandTextTracks_,
+        timestampOffset
+      });
     });
 
     // TODO
@@ -1178,8 +1196,8 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     if (this.handlePartialData_) {
       timestampOffset = this.sourceUpdater_.videoTimestampOffset() === null ?
-        this.sourceUpdater_.videoTimestampOffset() :
-        this.sourceUpdater_.audioTimestampOffset();
+        this.sourceUpdater_.audioTimestampOffset() :
+        this.sourceUpdater_.videoTimestampOffset();
     }
 
     // There's potentially an issue where we could double add metadata if there's a muxed

@@ -336,8 +336,8 @@ const transmuxAndNotify = ({
     onId3: (id3Frames, dispatchType) => {
       id3Fn(segment, id3Frames, dispatchType);
     },
-    onCaptions: (captions, captionStreams) => {
-      captionsFn(segment, captions, captionStreams);
+    onCaptions: (captions) => {
+      captionsFn(segment, [captions]);
     },
     onDone: (result) => {
       // To handle partial appends, there won't be a done function passed in (since
@@ -392,13 +392,14 @@ const handleSegmentBytes = ({
       captionParser.init();
     }
 
+    // TODO: adapt to parse partials
     const parsed = captionParser.parse(
       segment.bytes,
       segment.map.videoTrackIds,
       segment.map.timescales);
 
     if (parsed && parsed.captions) {
-      captionsFn(segment, parsed.captions, parsed.captionStreams);
+      captionsFn(segment, parsed.captions);
     }
 
     doneFn(null, segment, {});
