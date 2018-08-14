@@ -463,10 +463,15 @@ export const createResponseText = function(length) {
  * @param {Uint8Array} [segment=muxed segment] segment bytes to response with
  * @param {Object} segmentLoader the segment loader
  * @param {Object} clock the mocked clock
- * @param {Number} [bandwidth] bandwidth to use in bits/s (takes precedence over requestDurationMillis)
- * @param {Number} [requestDurationMillis=1000] duration of request to tick the clock, in milliseconds
+ * @param {Number} [bandwidth] bandwidth to use in bits/s
+ *                             (takes precedence over requestDurationMillis)
+ * @param {Number} [throughput] throughput to use in bits/s
+ * @param {Number} [requestDurationMillis=1000] duration of request to tick the clock, in
+ *                                              milliseconds
  * @param {Boolean} [isOnlyAudio] segment and append should only be for audio
  * @param {Boolean} [isOnlyVideo] segment and append should only be for video
+ * @param {Boolean} [tickClock=true] tick clock after updateend to allow for next
+ *                                   asynchronous request
  */
 export const requestAndAppendSegment = async ({
   request,
@@ -474,14 +479,20 @@ export const requestAndAppendSegment = async ({
   segmentLoader,
   clock,
   bandwidth,
+  throughput,
   requestDurationMillis,
   isOnlyAudio,
-  isOnlyVideo
+  isOnlyVideo,
+  tickClock
 }) => {
   segment = segment || muxedSegment();
+  tickClock = typeof tickClock === 'undefined' ? true : tickClock;
+
+  // record now since the bytes will be lost during processing
+  const segmentByteLength = segment.byteLength;
 
   if (bandwidth) {
-    requestDurationMillis = ((segment.byteLength * 8) / bandwidth) * 1000;
+    requestDurationMillis = ((segmentByteLength * 8) / bandwidth) * 1000;
   }
   // one second default
   requestDurationMillis = requestDurationMillis || 1000;
@@ -493,6 +504,12 @@ export const requestAndAppendSegment = async ({
     segmentLoader.on('appending', accept);
   });
 
+  if (throughput) {
+    const appendMillis = ((segmentByteLength * 8) / throughput) * 1000;
+
+    clock.tick(appendMillis - (tickClock ? 1 : 0));
+  }
+
   // source buffers are mocked, so must manually trigger update ends on buffers
   if (isOnlyAudio) {
     segmentLoader.sourceUpdater_.audioBuffer.trigger('updateend');
@@ -501,5 +518,9 @@ export const requestAndAppendSegment = async ({
   } else {
     segmentLoader.sourceUpdater_.audioBuffer.trigger('updateend');
     segmentLoader.sourceUpdater_.videoBuffer.trigger('updateend');
+  }
+
+  if (tickClock) {
+    clock.tick(1);
   }
 };

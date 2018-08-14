@@ -299,6 +299,8 @@ QUnit.test('fast quality change resyncs audio segment loader', function(assert) 
 
   masterPlaylistController.mediaSource.trigger('sourceopen');
 
+  this.clock.tick(1);
+
   this.player.audioTracks()[0].enabled = true;
 
   let resyncs = 0;
@@ -621,7 +623,6 @@ async function(assert) {
     segmentLoader: MPC.mainSegmentLoader_,
     clock: this.clock
   });
-  this.clock.tick(1);
 
   assert.equal(videoEnded, 1, 'main segment loader triggered ended');
   assert.equal(audioEnded, 0, 'audio segment loader did not trigger ended');
@@ -637,7 +638,6 @@ async function(assert) {
     segmentLoader: MPC.audioSegmentLoader_,
     clock: this.clock
   });
-  this.clock.tick(1);
 
   assert.equal(videoEnded, 1, 'main segment loader did not trigger ended again');
   assert.equal(audioEnded, 1, 'audio segment loader triggered ended');
@@ -695,7 +695,6 @@ QUnit.test('waits for both main and audio loaders to finish before calling endOf
     segmentLoader: MPC.audioSegmentLoader_,
     clock: this.clock
   });
-  this.clock.tick(1);
 
   assert.equal(videoEnded, 0, 'main segment loader did not trigger ended');
   assert.equal(audioEnded, 1, 'audio segment loader triggered ended');
@@ -708,7 +707,6 @@ QUnit.test('waits for both main and audio loaders to finish before calling endOf
     segmentLoader: MPC.mainSegmentLoader_,
     clock: this.clock
   });
-  this.clock.tick(1);
 
   assert.equal(videoEnded, 1, 'main segment loader triggered ended');
   assert.equal(audioEnded, 1, 'audio segment loader did not trigger ended again');
@@ -1427,7 +1425,6 @@ async function(assert) {
     clock: this.clock,
     bandwidth: 800
   });
-  this.clock.tick(1);
 
   segmentRequest = this.requests[0];
 
@@ -1444,7 +1441,6 @@ async function(assert) {
     clock: this.clock,
     bandwidth: 880
   });
-  this.clock.tick(1);
 
   let mediaRequest = this.requests[0];
 
@@ -1513,7 +1509,6 @@ async function(assert) {
     clock: this.clock,
     bandwidth: 80000
   });
-  this.clock.tick(1);
 
   segmentRequest = this.requests[0];
 
@@ -1533,7 +1528,6 @@ async function(assert) {
     clock: this.clock,
     bandwidth: 88000
   });
-  this.clock.tick(1);
 
   // Media may be changed, but it should be changed to the same media. In the future, this
   // can safely not be changed.
@@ -1608,7 +1602,7 @@ QUnit.test('updates the duration after switching playlists', async function(asse
                'stats has the right number of bytes transferred');
 });
 
-QUnit.test('playlist selection uses systemBandwidth', function(assert) {
+QUnit.test('playlist selection uses systemBandwidth', async function(assert) {
   this.masterPlaylistController.mediaSource.trigger('sourceopen');
   this.player.width(1000);
   this.player.height(900);
@@ -1617,33 +1611,29 @@ QUnit.test('playlist selection uses systemBandwidth', function(assert) {
   this.standardXHRResponse(this.requests[0]);
   // media
   this.standardXHRResponse(this.requests[1]);
+
   assert.ok(/media3\.m3u8/i.test(this.requests[1].url), 'Selected the highest rendition');
 
-  // 1ms has passed to upload 1kb
-  // that gives us a bandwidth of 1024 / 1 * 8 * 1000 = 8192000
-  this.clock.tick(1);
-  this.masterPlaylistController.mainSegmentLoader_.mediaIndex = 0;
-  // segment 0
-  this.standardXHRResponse(this.requests[2]);
-  // 20ms have passed to upload 1kb
-  // that gives us a throughput of 1024 / 20 * 8 * 1000 = 409600
-  this.clock.tick(20);
-  this.masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
+  await requestAndAppendSegment({
+    request: this.requests[2],
+    segment: muxedSegment(),
+    segmentLoader: this.masterPlaylistController.mainSegmentLoader_,
+    clock: this.clock,
+    bandwidth: 8192000,
+    throughput: 409600
+  });
+  // need two segments before a rendition change can happen
+  await requestAndAppendSegment({
+    request: this.requests[3],
+    segment: muxedSegment(),
+    segmentLoader: this.masterPlaylistController.mainSegmentLoader_,
+    clock: this.clock,
+    bandwidth: 8192000,
+    throughput: 409600
+  });
+
   // systemBandwidth is 1 / (1 / 8192000 + 1 / 409600) = ~390095
-
-  // media1
-  this.standardXHRResponse(this.requests[3]);
-  assert.ok(/media\.m3u8/i.test(this.requests[3].url), 'Selected the rendition < 390095');
-
-  assert.ok(this.masterPlaylistController.mediaSource.duration !== 0,
-           'updates the duration');
-
-  // verify stats
-  assert.equal(this.player.tech_.hls.stats.bandwidth, 8192000, 'Live stream');
-  assert.equal(this.player.tech_.hls.stats.mediaRequests, 1, '1 segment request');
-  assert.equal(this.player.tech_.hls.stats.mediaBytesTransferred,
-               1024,
-               '1024 bytes downloaded');
+  assert.ok(/media\.m3u8/i.test(this.requests[4].url), 'Selected the rendition < 390095');
 });
 
 QUnit.test('removes request timeout when segment timesout on lowest rendition',

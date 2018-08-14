@@ -1548,11 +1548,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    // byteLength will be used for throughput, and should be based on bytes receieved,
-    // which we only know at the end of the request and should reflect total bytes
-    // downloaded rather than just bytes processed from components of the segment
-    this.pendingSegment_.byteLength = simpleSegment.stats.bytesReceived;
-
     // the request was aborted and the SegmentLoader has already started
     // another request. this can happen when the timeout for an aborted
     // request triggers due to a limitation in the XHR library
@@ -1599,6 +1594,11 @@ export default class SegmentLoader extends videojs.EventTarget {
     // generated for ABR purposes
     this.bandwidth = simpleSegment.stats.bandwidth;
     this.roundTrip = simpleSegment.stats.roundTripTime;
+
+    // byteLength will be used for throughput, and should be based on bytes receieved,
+    // which we only know at the end of the request and should reflect total bytes
+    // downloaded rather than just bytes processed from components of the segment
+    this.pendingSegment_.byteLength = simpleSegment.stats.bytesReceived;
 
     const segmentInfo = this.pendingSegment_;
 

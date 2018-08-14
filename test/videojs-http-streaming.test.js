@@ -552,6 +552,7 @@ QUnit.test('re-initializes the handler for each source', async function(assert) 
     mediaSource: mpc.mediaSource,
     segmentLoader: mpc.mainSegmentLoader_,
     clock: this.clock,
+    tickClock: false
   });
 
   let audioBufferAborts = 0;
@@ -2619,8 +2620,6 @@ QUnit.test('cleans up the buffer when loading live segments', async function(ass
     segmentLoader: mpc.mainSegmentLoader_,
     clock: this.clock,
   });
-  // next segment request happens asynchronously
-  this.clock.tick(1);
 
   // request second playable segment
   this.standardXHRResponse(this.requests[2], muxedSegment());
@@ -2706,7 +2705,6 @@ QUnit.test('cleans up the buffer based on currentTime when loading a live segmen
     segmentLoader: mpc.mainSegmentLoader_,
     clock: this.clock,
   });
-  this.clock.tick(1);
 
   // Change seekable so that it starts *after* the currentTime which was set
   // based on the previous seekable range (the end of 80)
@@ -2790,6 +2788,7 @@ QUnit.test('cleans up the buffer when loading VOD segments', async function(asse
     mediaSource: mpc.mediaSource,
     segmentLoader: mpc.mainSegmentLoader_,
     clock: this.clock,
+    tickClock: false
   });
   this.player.currentTime(120);
   // This requires 2 clock ticks because after updateend monitorBuffer_ is called
@@ -3320,7 +3319,8 @@ QUnit.test('downloads additional playlists if required', async function(assert) 
     segmentLoader: mpc.mainSegmentLoader_,
     clock: this.clock,
     // the playlist selection is revisited after a new segment is downloaded
-    bandwidth: 3000000
+    bandwidth: 3000000,
+    tickClock: false
   });
   // update the buffer to reflect the appended segment, and have enough buffer to
   // change playlist
@@ -3369,7 +3369,8 @@ async function(assert) {
     segmentLoader: mpc.mainSegmentLoader_,
     clock: this.clock,
     // bandwidth is high enough to switch playlists
-    bandwidth: Number.MAX_VALUE
+    bandwidth: Number.MAX_VALUE,
+    tickClock: false
   });
   // update the buffer to reflect the appended segment, and have enough buffer to
   // change playlist
