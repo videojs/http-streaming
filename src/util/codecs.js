@@ -13,6 +13,19 @@ const defaultCodecs = {
   audioProfile: '2'
 };
 
+export const translateLegacyCodec = function(codec) {
+  if (!codec) {
+    return codec;
+  }
+
+  return codec.replace(/avc1\.(\d+)\.(\d+)/i, function(orig, profile, avcLevel) {
+    let profileHex = ('00' + Number(profile).toString(16)).slice(-2);
+    let avcLevelHex = ('00' + Number(avcLevel).toString(16)).slice(-2);
+
+    return 'avc1.' + profileHex + '00' + avcLevelHex;
+  });
+};
+
 /**
  * Replace the old apple-style `avc1.<dd>.<dd>` codec string with the standard
  * `avc1.<hhhhhh>`
@@ -22,14 +35,7 @@ const defaultCodecs = {
  * @private
  */
 export const translateLegacyCodecs = function(codecs) {
-  return codecs.map((codec) => {
-    return codec.replace(/avc1\.(\d+)\.(\d+)/i, function(orig, profile, avcLevel) {
-      let profileHex = ('00' + Number(profile).toString(16)).slice(-2);
-      let avcLevelHex = ('00' + Number(avcLevel).toString(16)).slice(-2);
-
-      return 'avc1.' + profileHex + '00' + avcLevelHex;
-    });
-  });
+  return codecs.map(translateLegacyCodec);
 };
 
 /**
@@ -74,36 +80,6 @@ export const mapLegacyAvcCodecs = function(codecString) {
   return codecString.replace(/avc1\.(\d+)\.(\d+)/i, (match) => {
     return translateLegacyCodecs([match])[0];
   });
-};
-
-/**
- * Build a media mime-type string from a set of parameters
- * @param {String} type either 'audio' or 'video'
- * @param {String} container either 'mp2t' or 'mp4'
- * @param {Array} codecs an array of codec strings to add
- * @return {String} a valid media mime-type
- */
-export const makeMimeTypeString = function(type, container, codecs) {
-  // The codecs array is filtered so that falsey values are
-  // dropped and don't cause Array#join to create spurious
-  // commas
-  return `${type}/${container}; codecs="${codecs.filter(c=>!!c).join(', ')}"`;
-};
-
-/**
- * Returns the type container based on information in the playlist
- * @param {Playlist} media the current media playlist
- * @return {String} a valid media container type
- */
-export const getContainerType = function(media) {
-  // An initialization segment means the media playlist is an iframe
-  // playlist or is using the mp4 container. We don't currently
-  // support iframe playlists, so assume this is signalling mp4
-  // fragments.
-  if (media.segments && media.segments.length && media.segments[0].map) {
-    return 'mp4';
-  }
-  return 'mp2t';
 };
 
 /**
@@ -181,18 +157,18 @@ export const isMuxed = (master, media) => {
 };
 
 /**
- * Calculates the MIME type strings for a working configuration of
+ * Calculates the codec strings for a working configuration of
  * SourceBuffers to play variant streams in a master playlist. If
  * there is no possible working configuration, an empty object will be
  * returned.
  *
  * @param master {Object} the m3u8 object for the master playlist
  * @param media {Object} the m3u8 object for the variant playlist
- * @return {Object} the MIME type strings.
+ * @return {Object} the codec strings.
  *
  * @private
  */
-export const mimeTypesForPlaylist = function(master, media) {
+export const codecsForPlaylist = function(master, media) {
   if (!media) {
     // Not enough information
     return {};
@@ -219,95 +195,17 @@ export const mimeTypesForPlaylist = function(master, media) {
     }
   }
 
-  // Generate the final codec strings from the codec object generated above
-  const mimeTypes = {};
-  const containerType = getContainerType(media);
+  const codecs = {};
 
   if (codecInfo.videoCodec) {
-    const codecString = `${codecInfo.videoCodec}${codecInfo.videoObjectTypeIndicator}`;
-
-    mimeTypes.video = makeMimeTypeString('video', containerType, [codecString]);
+    codecs.video = `${codecInfo.videoCodec}${codecInfo.videoObjectTypeIndicator}`;
   }
 
   if (codecInfo.audioProfile) {
-    const codecString = `mp4a.40.${codecInfo.audioProfile}`;
-
-    mimeTypes.audio = makeMimeTypeString('audio', containerType, [codecString]);
+    codecs.audio = `mp4a.40.${codecInfo.audioProfile}`;
   }
 
-  return mimeTypes;
-};
-
-/**
- * Parse a content type header into a type and parameters
- * object
- *
- * @param {String} type the content type header
- * @return {Object} the parsed content-type
- * @private
- */
-export const parseContentType = function(type) {
-  let object = {type: '', parameters: {}};
-  let parameters = type.trim().split(';');
-
-  // first parameter should always be content-type
-  object.type = parameters.shift().trim();
-  parameters.forEach((parameter) => {
-    let pair = parameter.trim().split('=');
-
-    if (pair.length > 1) {
-      let name = pair[0].replace(/"/g, '').trim();
-      let value = pair[1].replace(/"/g, '').trim();
-
-      object.parameters[name] = value;
-    }
-  });
-
-  return object;
-};
-
-/**
- * Check if a codec string refers to an audio codec.
- *
- * @param {String} codec codec string to check
- * @return {Boolean} if this is an audio codec
- * @private
- */
-export const isAudioCodec = function(codec) {
-  return (/mp4a\.\d+.\d+/i).test(codec);
-};
-
-/**
- * Check if a codec string refers to a video codec.
- *
- * @param {String} codec codec string to check
- * @return {Boolean} if this is a video codec
- * @private
- */
-export const isVideoCodec = function(codec) {
-  return (/avc1\.[\da-f]+/i).test(codec);
-};
-
-export const parseMimeTypes = (mimeType) => {
-  const parsedType = parseContentType(mimeType);
-  let codecs = [];
-
-  if (parsedType.parameters && parsedType.parameters.codecs) {
-    codecs = parsedType.parameters.codecs.split(',');
-    codecs = translateLegacyCodecs(codecs);
-    codecs = codecs.filter((codec) => {
-      return (isAudioCodec(codec) || isVideoCodec(codec));
-    });
-  }
-
-  if (codecs.length === 0) {
-    return null;
-  }
-
-  return codecs.reduce((acc, codec) => {
-    acc[isAudioCodec(codec) ? 'audio' : 'video'] = codec;
-    return acc;
-  }, {});
+  return codecs;
 };
 
 export const isLikelyFmp4Data = (bytes) => {

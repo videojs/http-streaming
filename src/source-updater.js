@@ -4,7 +4,6 @@
 import videojs from 'video.js';
 import logger from './util/logger';
 import noop from './util/noop';
-import { parseMimeTypes } from './util/codecs';
 import { buffered } from './util/buffer';
 
 const actions = {
@@ -146,41 +145,18 @@ export default class SourceUpdater extends videojs.EventTarget {
     }
 
     if (codecs.audio) {
-      // default
-      let audioCodec = 'mp4a.40.2';
-
-      if (codecs.audio.mimeType) {
-        let parsed = parseMimeTypes(codecs.audio.mimeType);
-
-        if (parsed && parsed.audio) {
-          audioCodec = parsed.audio;
-        }
-      }
-
       this.audioBuffer = this.mediaSource.addSourceBuffer(
-        `audio/mp4;codecs="${audioCodec}"`);
-      this.logger_(`created SourceBuffer audio/mp4;codecs="${audioCodec}`);
+        `audio/mp4;codecs="${codecs.audio}"`);
+      this.logger_(`created SourceBuffer audio/mp4;codecs="${codecs.audio}`);
     }
 
     if (codecs.video) {
-      // default
-      let videoCodec = 'avc1.4d400d';
-
-      if (codecs.video.mimeType) {
-        let parsed = parseMimeTypes(codecs.video.mimeType);
-
-        if (parsed && parsed.video) {
-          videoCodec = parsed.video;
-        }
-      }
-
       this.videoBuffer = this.mediaSource.addSourceBuffer(
-        `video/mp4;codecs="${videoCodec}"`);
-      this.logger_(`created SourceBuffer video/mp4;codecs="${videoCodec}"`);
+        `video/mp4;codecs="${codecs.video}"`);
+      this.logger_(`created SourceBuffer video/mp4;codecs="${codecs.video}"`);
     }
 
     this.trigger('ready');
-
     this.start_();
   }
 

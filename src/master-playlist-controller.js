@@ -17,14 +17,16 @@ import Config from './config';
 import {
   parseCodecs,
   mapLegacyAvcCodecs,
-  mimeTypesForPlaylist,
-  isMuxed,
-  isMaat
+  codecsForPlaylist,
+  translateLegacyCodec
 } from './util/codecs.js';
 import { createMediaTypes, setupMediaGroups } from './media-groups';
 import logger from './util/logger';
 
 const ABORT_EARLY_BLACKLIST_SECONDS = 60 * 2;
+
+export const DEFAULT_AUDIO_CODEC = 'mp4a.40.2';
+export const DEFAULT_VIDEO_CODEC = 'avc1.4d400d';
 
 let Hls;
 
@@ -41,23 +43,6 @@ const loaderStats = [
 const sumLoaderStat = function(stat) {
   return this.audioSegmentLoader_[stat] +
          this.mainSegmentLoader_[stat];
-};
-
-const codecsForTrackInfo = (trackInfo, mimeTypes) => {
-  const codecs = {
-    audio: trackInfo.hasAudio ? {} : null,
-    video: trackInfo.hasVideo ? {} : null
-  };
-
-  if (codecs.audio && mimeTypes.audio) {
-    codecs.audio.mimeType = mimeTypes.audio;
-  }
-
-  if (codecs.video && mimeTypes.video) {
-    codecs.video.mimeType = mimeTypes.video;
-  }
-
-  return codecs;
 };
 
 /**
@@ -231,15 +216,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       });
 
       this.triggerPresenceUsage_(this.master(), media);
-
-      try {
-        this.setupSourceBuffers_();
-      } catch (e) {
-        videojs.log.warn('Failed to create SourceBuffers', e);
-        return this.mediaSource.endOfStream('decode');
-      }
       this.setupFirstPlay();
-
       this.trigger('selectedinitialmedia');
     });
 
@@ -485,52 +462,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
         // already configured source buffers
         return;
       }
-
-      const codecs = codecsForTrackInfo(
-        this.mainSegmentLoader_.startingMedia_, this.mimeTypes_);
-
-      if (this.mediaTypes_.AUDIO.activePlaylistLoader &&
-          !codecs.audio &&
-          !this.audioCodecs_) {
-        // We are using an audio track but haven't yet gotten the audiocodec info. In
-        // order to ensure that source buffers are created simultaneously (a requirement
-        // by browsers), wait for the audio track info.
-        this.mainCodecs_ = codecs;
-        return;
-      }
-
-      if (this.audioCodecs_) {
-        // allow codec info from the audio segment loader to override any info from the
-        // main loader
-        codecs.audio = this.audioCodecs_.audio;
-      }
-
-      this.sourceUpdater_.createSourceBuffers(codecs);
-    });
-
-    this.audioSegmentLoader_.on('trackinfo', () => {
-      if (this.sourceUpdater_.ready()) {
-        // already configured source buffers
-        return;
-      }
-
-      const codecs = codecsForTrackInfo(
-        this.audioSegmentLoader_.startingMedia_, this.mimeTypes_);
-
-      if (!this.mainCodecs_) {
-        // audio arrived before video, wait for video tack info before we create the
-        // source buffers
-        this.audioCodecs_ = codecs;
-        return;
-      }
-
-      if (this.mainCodecs_) {
-        // allow codec info from the main segment loader to override any info from the
-        // audio loader
-        codecs.video = this.mainCodecs_.video;
-      }
-
-      this.sourceUpdater_.createSourceBuffers(codecs);
+      this.tryToCreateSourceBuffers_();
     });
 
     this.audioSegmentLoader_.on('ended', () => {
@@ -663,7 +595,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // handleSourceOpen is also called when we are "re-opening" a source buffer
     // after `endOfStream` has been called (in response to a seek for instance)
     try {
-      this.setupSourceBuffers_();
+      this.tryToCreateSourceBuffers_();
     } catch (e) {
       videojs.log.warn('Failed to create Source Buffers', e);
       return this.mediaSource.endOfStream('decode');
@@ -1061,48 +993,64 @@ export class MasterPlaylistController extends videojs.EventTarget {
   }
 
   /**
-   * setup our internal source buffers on our segment Loaders
+   * Create source buffers and exlude any incompatible renditions.
    *
    * @private
    */
-  setupSourceBuffers_() {
-    const media = this.masterPlaylistLoader_.media();
-
-    // wait until a media playlist is available and the Media Source is
-    // attached
-    if (!media || this.mediaSource.readyState !== 'open') {
+  tryToCreateSourceBuffers_() {
+    if (this.mediaSource.readyState !== 'open') {
       return;
     }
 
-    const master = this.masterPlaylistLoader_.master;
-    const mimeTypes = mimeTypesForPlaylist(master, media);
+    // Because a URI is required for EXT-X-STREAM-INF tags (therefore, there must always
+    // be a playlist, even for audio only playlists with alt audio), a segment will always
+    // be downloaded for the main segment loader, and the track info parsed from it.
+    // Therefore we must always wait for the main segment loader's track info.
+    if (!this.mainSegmentLoader_.startingMedia_) {
+      return;
+    }
 
-    if (!mimeTypes.video && !mimeTypes.audio) {
-      this.error =
-        'No compatible SourceBuffer configuration for the variant stream:' +
-        media.resolvedUri;
+    // We don't need to wait for the audio loader, since if it isn't active we rely on the
+    // main only, and if it is active the starting media always has audio (and only
+    // audio). In the future, we may parse codec info from the segments, but for now, we
+    // rely on the manifest or defaults, so don't have to wait for the alt audio segment.
+
+    const hasVideo = this.mainSegmentLoader_.startingMedia_.hasVideo;
+    const hasAudio = this.mainSegmentLoader_.startingMedia_.hasAudio ||
+      // alt audio always has audio
+      this.mediaTypes_.AUDIO.activePlaylistLoader;
+    const media = this.masterPlaylistLoader_.media();
+    // get the manifest specified codecs (if there are any) for the selected stream and
+    // alt audio from its audio group (if applicable)
+    const playlistCodecs = codecsForPlaylist(this.masterPlaylistLoader_.master, media);
+    const codecs = {};
+
+    if (hasVideo) {
+      codecs.video = translateLegacyCodec(playlistCodecs.video) || DEFAULT_VIDEO_CODEC;
+    }
+    if (hasAudio) {
+      codecs.audio = translateLegacyCodec(playlistCodecs.audio) || DEFAULT_AUDIO_CODEC;
+    }
+
+    if (!codecs.video && !codecs.audio) {
+      const error = 'Failed to create SourceBuffers. No compatible SourceBuffer ' +
+        'configuration for the variant stream:' + media.resolvedUri;
+
+      videojs.log.warn(error);
+      this.error = error;
       return this.mediaSource.endOfStream('decode');
     }
 
-    // Only create the source buffers if we know for sure that we are dealing with demuxed
-    // content. We create the source buffers because in the case of demuxed content we
-    // don't want to try creating separate audio and video source buffers too far apart in
-    // time.
-    if (mimeTypes.audio &&
-        mimeTypes.video &&
-        isMaat(master, media) &&
-        !isMuxed(master, media)) {
-      this.sourceUpdater_.createSourceBuffers({
-        audio: { mimeType: mimeTypes.audio },
-        video: { mimeType: mimeTypes.video }
-      });
+    try {
+      this.sourceUpdater_.createSourceBuffers(codecs);
+    } catch (e) {
+      const error = 'Failed to create SourceBuffers: ' + e;
+
+      videojs.log.warn(error);
+      this.error = error;
+      return this.mediaSource.endOfStream('decode');
     }
 
-    // If the source buffers weren't created, retain the mime type info and wait for
-    // track info from the segment loaders. This is done in most cases in order to be sure
-    // of the types of media included (in case the manifest says we have codecs for media
-    // we don't have).
-    this.mimeTypes_ = mimeTypes;
     this.excludeIncompatibleVariants_(media);
   }
 
