@@ -2652,6 +2652,311 @@ async function(assert) {
     'passed default codecs');
 });
 
+QUnit.test('uses codec info from manifest for source buffer creation',
+async function(assert) {
+  this.requests.length = 0;
+  this.player = createPlayer();
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+
+  const createSourceBufferCalls = [];
+  const mpc = this.player.vhs.masterPlaylistController_;
+  const origCreateSourceBuffers =
+    mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
+
+  mpc.sourceUpdater_.createSourceBuffers = (codecs) => {
+    createSourceBufferCalls.push(codecs);
+    origCreateSourceBuffers(codecs);
+  };
+
+  openMediaSource(this.player, this.clock);
+
+  // master
+  this.requests.shift().respond(
+    200,
+    null,
+    '#EXTM3U\n' +
+    '#EXT-X-VERSION:4\n' +
+    '#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=1,CODECS="mp4a.40.e, avc1.deadbeef"\n' +
+    'media.m3u8\n');
+  // media
+  this.standardXHRResponse(this.requests.shift());
+  await requestAndAppendSegment({
+    request: this.requests.shift(),
+    segmentLoader: mpc.mainSegmentLoader_,
+    clock: this.clock
+  });
+
+  assert.equal(createSourceBufferCalls.length, 1, 'called to create source buffers');
+  assert.deepEqual(
+    createSourceBufferCalls[0],
+    {
+      audio: 'mp4a.40.e',
+      video: 'avc1.deadbeef'
+    },
+    'passed manifest specified codecs');
+});
+
+QUnit.test('uses codec info from manifest for source buffer creation even when demuxed',
+async function(assert) {
+  this.requests.length = 0;
+  this.player = createPlayer();
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+
+  const createSourceBufferCalls = [];
+  const mpc = this.player.vhs.masterPlaylistController_;
+  const origCreateSourceBuffers =
+    mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
+
+  mpc.sourceUpdater_.createSourceBuffers = (codecs) => {
+    createSourceBufferCalls.push(codecs);
+    origCreateSourceBuffers(codecs);
+  };
+
+  openMediaSource(this.player, this.clock);
+
+  // master
+  this.requests.shift().respond(
+    200,
+    null,
+    '#EXTM3U\n' +
+    '#EXT-X-VERSION:4\n' +
+    '#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="en",DEFAULT=YES,AUTOSELECT=YES,' +
+      'LANGUAGE="en",URI="audio.m3u8"\n' +
+    '#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=1,AUDIO="audio",' +
+      'CODECS="mp4a.40.e, avc1.deadbeef"\n' +
+    'media.m3u8\n');
+  // video media
+  this.standardXHRResponse(this.requests.shift());
+  // audio media
+  this.standardXHRResponse(this.requests.shift());
+  await requestAndAppendSegment({
+    request: this.requests.shift(),
+    segment: videoSegment(),
+    isOnlyVideo: true,
+    segmentLoader: mpc.mainSegmentLoader_,
+    clock: this.clock
+  });
+
+  assert.equal(createSourceBufferCalls.length, 1, 'called to create source buffers');
+  assert.deepEqual(
+    createSourceBufferCalls[0],
+    {
+      audio: 'mp4a.40.e',
+      video: 'avc1.deadbeef'
+    },
+    'passed manifest specified codecs');
+});
+
+QUnit.test('uses codec info from manifest for source buffer creation for audio only',
+async function(assert) {
+  this.requests.length = 0;
+  this.player = createPlayer();
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+
+  const createSourceBufferCalls = [];
+  const mpc = this.player.vhs.masterPlaylistController_;
+  const origCreateSourceBuffers =
+    mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
+
+  mpc.sourceUpdater_.createSourceBuffers = (codecs) => {
+    createSourceBufferCalls.push(codecs);
+    origCreateSourceBuffers(codecs);
+  };
+
+  openMediaSource(this.player, this.clock);
+
+  // master
+  this.requests.shift().respond(
+    200,
+    null,
+    '#EXTM3U\n' +
+    '#EXT-X-VERSION:4\n' +
+    '#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=1,CODECS="mp4a.40.e"\n' +
+    'media.m3u8\n');
+  // media
+  this.standardXHRResponse(this.requests.shift());
+  await requestAndAppendSegment({
+    request: this.requests.shift(),
+    segment: audioSegment(),
+    isOnlyAudio: true,
+    segmentLoader: mpc.mainSegmentLoader_,
+    clock: this.clock
+  });
+
+  assert.equal(createSourceBufferCalls.length, 1, 'called to create source buffers');
+  assert.deepEqual(
+    createSourceBufferCalls[0],
+    {
+      audio: 'mp4a.40.e'
+    },
+    'passed manifest specified audio codec');
+});
+
+QUnit.test('uses codec info from manifest for source buffer creation for video only',
+async function(assert) {
+  this.requests.length = 0;
+  this.player = createPlayer();
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+
+  const createSourceBufferCalls = [];
+  const mpc = this.player.vhs.masterPlaylistController_;
+  const origCreateSourceBuffers =
+    mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
+
+  mpc.sourceUpdater_.createSourceBuffers = (codecs) => {
+    createSourceBufferCalls.push(codecs);
+    origCreateSourceBuffers(codecs);
+  };
+
+  openMediaSource(this.player, this.clock);
+
+  // master
+  this.requests.shift().respond(
+    200,
+    null,
+    '#EXTM3U\n' +
+    '#EXT-X-VERSION:4\n' +
+    '#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=1,CODECS="avc1.deadbeef"\n' +
+    'media.m3u8\n');
+  // media
+  this.standardXHRResponse(this.requests.shift());
+  await requestAndAppendSegment({
+    request: this.requests.shift(),
+    segment: videoSegment(),
+    isOnlyVideo: true,
+    segmentLoader: mpc.mainSegmentLoader_,
+    clock: this.clock
+  });
+
+  assert.equal(createSourceBufferCalls.length, 1, 'called to create source buffers');
+  assert.deepEqual(
+    createSourceBufferCalls[0],
+    {
+      video: 'avc1.deadbeef'
+    },
+    'passed manifest specified video codec');
+});
+
+// Technically, the HLS spec at least requires that the user provide all codec info if
+// they supply a CODEC attribute. However, we can be a little more flexible in some cases.
+QUnit.test('uses available audio codec info from manifest plus video default for source' +
+'buffer creation if content looks different from codec info', async function(assert) {
+  this.requests.length = 0;
+  this.player = createPlayer();
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+
+  const createSourceBufferCalls = [];
+  const mpc = this.player.vhs.masterPlaylistController_;
+  const origCreateSourceBuffers =
+    mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
+
+  mpc.sourceUpdater_.createSourceBuffers = (codecs) => {
+    createSourceBufferCalls.push(codecs);
+    origCreateSourceBuffers(codecs);
+  };
+
+  openMediaSource(this.player, this.clock);
+
+  // master
+  this.requests.shift().respond(
+    200,
+    null,
+    '#EXTM3U\n' +
+    '#EXT-X-VERSION:4\n' +
+    // CODECS specify audio only
+    '#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=1,CODECS="mp4a.40.e"\n' +
+    'media.m3u8\n');
+  // media
+  this.standardXHRResponse(this.requests.shift());
+  // segment with both audio and video
+  await requestAndAppendSegment({
+    request: this.requests.shift(),
+    segmentLoader: mpc.mainSegmentLoader_,
+    clock: this.clock
+  });
+
+  assert.equal(createSourceBufferCalls.length, 1, 'called to create source buffers');
+  assert.deepEqual(
+    createSourceBufferCalls[0],
+    {
+      audio: 'mp4a.40.e',
+      video: DEFAULT_VIDEO_CODEC,
+    },
+    'passed manifest specified codecs and used default');
+});
+
+// Technically, the HLS spec at least requires that the user provide all codec info if
+// they supply a CODEC attribute. However, we can be a little more flexible in some cases.
+QUnit.test('uses available video codec info from manifest plus audio default for source' +
+'buffer creation if content looks different from codec info', async function(assert) {
+  this.requests.length = 0;
+  this.player = createPlayer();
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+
+  const createSourceBufferCalls = [];
+  const mpc = this.player.vhs.masterPlaylistController_;
+  const origCreateSourceBuffers =
+    mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
+
+  mpc.sourceUpdater_.createSourceBuffers = (codecs) => {
+    createSourceBufferCalls.push(codecs);
+    origCreateSourceBuffers(codecs);
+  };
+
+  openMediaSource(this.player, this.clock);
+
+  // master
+  this.requests.shift().respond(
+    200,
+    null,
+    '#EXTM3U\n' +
+    '#EXT-X-VERSION:4\n' +
+    // CODECS specify video only
+    '#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=1,CODECS="avc1.deadbeef"\n' +
+    'media.m3u8\n');
+  // media
+  this.standardXHRResponse(this.requests.shift());
+  // segment with both audio and video
+  await requestAndAppendSegment({
+    request: this.requests.shift(),
+    segmentLoader: mpc.mainSegmentLoader_,
+    clock: this.clock
+  });
+
+  assert.equal(createSourceBufferCalls.length, 1, 'called to create source buffers');
+  assert.deepEqual(
+    createSourceBufferCalls[0],
+    {
+      audio: DEFAULT_AUDIO_CODEC,
+      video: 'avc1.deadbeef',
+    },
+    'passed manifest specified codecs and used default');
+});
+
 QUnit.test('Exception in play promise should be caught', function(assert) {
   const mpc = this.masterPlaylistController;
 
