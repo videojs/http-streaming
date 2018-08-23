@@ -1,0 +1,10 @@
+{
+  "extends": "videojs",
+  "rules": {
+    'prefer-const': 'off',
+    'indent': 'off',
+    'require-jsdoc': 'off',
+    'valid-jsdoc': 'off',
+    'jsdoc/newline-after-description': 'off'
+  }
+}

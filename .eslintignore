@@ -1,0 +1,11 @@
+dist/
+dist-test/
+docs/
+test/karma.conf.js
+scripts/
+utils/
+es5/
+**/*.worker.js
+test/test-manifests.js
+test/test-segments.js
+test/test-helpers.js
