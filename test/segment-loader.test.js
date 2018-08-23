@@ -950,7 +950,7 @@ QUnit.module('SegmentLoader: FMP4', function(hooks) {
       this.startTime.restore();
     });
 
-    QUnit.test(`CaptionParser is handled as expected`,
+    QUnit.test('CaptionParser is handled as expected',
     function(assert) {
       let mockCaptionParserReset;
       let mockCaptionParserClear;

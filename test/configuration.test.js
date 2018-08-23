@@ -37,7 +37,9 @@ QUnit.module('Configuration - Deprication', {
     this.clock = this.env.clock;
     this.old = {};
 
-    CONFIG_KEYS.forEach((key) => this.old[key] = Config[key]);
+    CONFIG_KEYS.forEach((key) => {
+      this.old[key] = Config[key];
+    });
 
     // force the HLS tech to run
     this.old.NativeHlsSupport = videojs.Hls.supportsNativeHls;
@@ -45,7 +47,9 @@ QUnit.module('Configuration - Deprication', {
   },
 
   afterEach() {
-    CONFIG_KEYS.forEach((key) => Config[key] = this.old[key]);
+    CONFIG_KEYS.forEach((key) => {
+      Config[key] = this.old[key];
+    });
 
     this.env.restore();
     videojs.Hls.supportsNativeHls = this.old.NativeHlsSupport;

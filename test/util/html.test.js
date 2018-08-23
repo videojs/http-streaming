@@ -337,7 +337,9 @@ QUnit.todo('appendBuffer error triggers on the player', function(assert) {
     throw new Error();
   };
 
-  this.player.on('error', () => error = true);
+  this.player.on('error', () => {
+    error = true;
+  });
 
   // send fake data to the source buffer from the transmuxer to append to native buffer
   // initializeNativeSourceBuffers does the same thing to trigger the creation of

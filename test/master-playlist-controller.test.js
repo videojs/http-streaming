@@ -1,5 +1,6 @@
 import QUnit from 'qunit';
 import videojs from 'video.js';
+import window from 'global/window';
 import {
   useFakeEnvironment,
   useFakeMediaSource,
@@ -329,11 +330,11 @@ QUnit.test('fast quality change resyncs audio segment loader', function(assert) 
   assert.ok(this.requests[0].url.endsWith('eng/prog_index.m3u8'),
             'requests eng playlist');
   assert.ok(this.requests[1].url.endsWith('lo/main.mp4'), 'correct segment url');
-  assert.equal(this.requests[1].requestHeaders['Range'],
+  assert.equal(this.requests[1].requestHeaders.Range,
                'bytes=0-603',
                'requests init segment byte range');
   assert.ok(this.requests[2].url.endsWith('lo/main.mp4'), 'correct segment url');
-  assert.equal(this.requests[2].requestHeaders['Range'],
+  assert.equal(this.requests[2].requestHeaders.Range,
                'bytes=604-118754',
                'requests segment byte range');
   assert.notOk(this.requests[0].aborted, 'did not abort alt audio playlist request');
@@ -388,11 +389,11 @@ QUnit.test('audio segment loader is reset on audio track change', function(asser
   assert.ok(this.requests[0].url.endsWith('eng/prog_index.m3u8'),
             'requests eng playlist');
   assert.ok(this.requests[1].url.endsWith('lo/main.mp4'), 'correct segment url');
-  assert.equal(this.requests[1].requestHeaders['Range'],
+  assert.equal(this.requests[1].requestHeaders.Range,
                'bytes=0-603',
                'requests init segment byte range');
   assert.ok(this.requests[2].url.endsWith('lo/main.mp4'), 'correct segment url');
-  assert.equal(this.requests[2].requestHeaders['Range'],
+  assert.equal(this.requests[2].requestHeaders.Range,
                'bytes=604-118754',
                'requests segment byte range');
   assert.notOk(this.requests[0].aborted, 'did not abort alt audio playlist request');
@@ -2416,7 +2417,9 @@ QUnit.test('calculates dynamic GOAL_BUFFER_LENGTH', function(assert) {
   assert.equal(mpc.goalBufferLength(), 60, 'dynamic GBL continues to use max value');
 
   // restore config
-  Object.keys(configOld).forEach((key) => Config[key] = configOld[key]);
+  Object.keys(configOld).forEach((key) => {
+    Config[key] = configOld[key];
+  });
 });
 
 QUnit.test('calculates dynamic BUFFER_LOW_WATER_LINE', function(assert) {
@@ -2451,7 +2454,9 @@ QUnit.test('calculates dynamic BUFFER_LOW_WATER_LINE', function(assert) {
   assert.equal(mpc.bufferLowWaterLine(), 30, 'dynamic BLWL continues to use max value');
 
   // restore config
-  Object.keys(configOld).forEach((key) => Config[key] = configOld[key]);
+  Object.keys(configOld).forEach((key) => {
+    Config[key] = configOld[key];
+  });
 });
 
 QUnit.test('creates source buffers after first main segment if muxed content',
@@ -2540,7 +2545,7 @@ async function(assert) {
   assert.deepEqual(
     createSourceBufferCalls[0],
     {
-      audio: DEFAULT_AUDIO_CODEC,
+      audio: DEFAULT_AUDIO_CODEC
     },
     'passed default audio codec');
 });
@@ -2586,7 +2591,7 @@ async function(assert) {
   assert.deepEqual(
     createSourceBufferCalls[0],
     {
-      video: DEFAULT_VIDEO_CODEC,
+      video: DEFAULT_VIDEO_CODEC
     },
     'passed default video codec');
 });
@@ -2900,7 +2905,7 @@ QUnit.test('uses available audio codec info from manifest plus video default for
     createSourceBufferCalls[0],
     {
       audio: 'mp4a.40.e',
-      video: DEFAULT_VIDEO_CODEC,
+      video: DEFAULT_VIDEO_CODEC
     },
     'passed manifest specified codecs and used default');
 });
@@ -2952,7 +2957,7 @@ QUnit.test('uses available video codec info from manifest plus audio default for
     createSourceBufferCalls[0],
     {
       audio: DEFAULT_AUDIO_CODEC,
-      video: 'avc1.deadbeef',
+      video: 'avc1.deadbeef'
     },
     'passed manifest specified codecs and used default');
 });
@@ -2964,7 +2969,7 @@ QUnit.test('Exception in play promise should be caught', function(assert) {
   mpc.tech_ = {
     autoplay: () => true,
     play: () => new Promise(function(resolve, reject) {
-      reject(new DOMException());
+      reject(new window.DOMException());
     })
   };
   mpc.handleSourceOpen_();

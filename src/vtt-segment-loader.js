@@ -360,7 +360,9 @@ export default class VTTSegmentLoader extends SegmentLoader {
     segmentInfo.timestampmap = { MPEGTS: 0, LOCAL: 0 };
 
     parser.oncue = segmentInfo.cues.push.bind(segmentInfo.cues);
-    parser.ontimestampmap = (map) => segmentInfo.timestampmap = map;
+    parser.ontimestampmap = (map) => {
+      segmentInfo.timestampmap = map;
+    };
     parser.onparsingerror = (error) => {
       videojs.log.warn('Error encountered when parsing cues: ' + error.message);
     };

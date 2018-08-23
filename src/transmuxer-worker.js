@@ -337,4 +337,4 @@ const TransmuxerWorker = function(self) {
   };
 };
 
-export default new TransmuxerWorker(self);
+export default new TransmuxerWorker(self); // eslint-disable-line no-undef

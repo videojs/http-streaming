@@ -37,4 +37,4 @@ const DecrypterWorker = function(self) {
   };
 };
 
-export default new DecrypterWorker(self);
+export default new DecrypterWorker(self); // eslint-disable-line no-undef

@@ -676,7 +676,9 @@ export const LoaderCommonFactory = (LoaderConstructor,
         loader.mediaIndex = null;
         loader.fetchAtBuffer_ = false;
         // remove empty flag that may be added by vtt loader
-        loader.playlist_.segments.forEach(segment => segment.empty = false);
+        loader.playlist_.segments.forEach(segment => {
+          segment.empty = false;
+        });
       };
 
       // Setting currentTime to 31 so that we start requesting at segment #3

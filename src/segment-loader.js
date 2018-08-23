@@ -233,7 +233,9 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     this.syncController_.on('syncinfoupdate', () => this.trigger('syncinfoupdate'));
 
-    this.mediaSource_.addEventListener('sourceopen', () => this.ended_ = false);
+    this.mediaSource_.addEventListener('sourceopen', () => {
+      this.ended_ = false;
+    });
 
     // ...for determining the fetch location
     this.fetchAtBuffer_ = false;

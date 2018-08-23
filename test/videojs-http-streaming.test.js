@@ -2618,7 +2618,7 @@ QUnit.test('cleans up the buffer when loading live segments', async function(ass
     request: this.requests[1],
     mediaSource: mpc.mediaSource,
     segmentLoader: mpc.mainSegmentLoader_,
-    clock: this.clock,
+    clock: this.clock
   });
 
   // request second playable segment
@@ -2703,7 +2703,7 @@ QUnit.test('cleans up the buffer based on currentTime when loading a live segmen
     request: this.requests[1],
     mediaSource: mpc.mediaSource,
     segmentLoader: mpc.mainSegmentLoader_,
-    clock: this.clock,
+    clock: this.clock
   });
 
   // Change seekable so that it starts *after* the currentTime which was set
