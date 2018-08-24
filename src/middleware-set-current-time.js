@@ -21,10 +21,10 @@ videojs.use('*', (player) => {
       return time;
     },
 
-    callPlay() {
+    play() {
       if (player.vhs &&
           player.currentSource().src === player.vhs.source_.src) {
-        player.vhs.play();
+        player.vhs.setCurrentTime(player.currentTime());
       }
     }
   };
