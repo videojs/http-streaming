@@ -30,7 +30,10 @@ QUnit.module('Playback', {
     video.width = 600;
     video.height = 300;
     this.fixture.appendChild(video);
-    this.player = videojs(video, { muted: true });
+    this.player = videojs(video, {
+      muted: true,
+      autoplay: true
+    });
     this.player.ready(done);
   },
   afterEach() {
@@ -43,8 +46,6 @@ QUnit.test('Advanced Bip Bop', function(assert) {
 
   assert.expect(2);
   let player = this.player;
-
-  player.autoplay(true);
 
   playFor(player, 2, function() {
     assert.ok(true, 'played for at least two seconds');
@@ -59,13 +60,39 @@ QUnit.test('Advanced Bip Bop', function(assert) {
   });
 });
 
-QUnit.skip('playlist with fmp4 and ts segments', function(assert) {
+QUnit.test('replay', function(assert) {
   let done = assert.async();
 
   assert.expect(2);
   let player = this.player;
 
-  player.autoplay(true);
+  // seek to near the end of the video
+  playFor(player, 1, function() {
+    player.currentTime(player.duration() - 1);
+  });
+
+  player.one('ended', function() {
+    player.one('timeupdate', function() {
+      assert.ok(player.currentTime() < 10, 'played');
+      assert.equal(player.error(), null, 'has no player errors');
+
+      done();
+    });
+
+    player.play();
+  });
+
+  player.src({
+    src: 'http://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8',
+    type: 'application/x-mpegURL'
+  });
+});
+
+QUnit.skip('playlist with fmp4 and ts segments', function(assert) {
+  let done = assert.async();
+
+  assert.expect(2);
+  let player = this.player;
 
   playFor(player, 6, function() {
     assert.ok(true, 'played for at least six seconds to hit the change in container format');
@@ -86,7 +113,6 @@ QUnit.test('Advanced Bip Bop preload=none', function(assert) {
   assert.expect(2);
   let player = this.player;
 
-  player.autoplay(true);
   player.preload('none');
 
   playFor(player, 2, function() {
@@ -108,8 +134,6 @@ QUnit.test('Big Buck Bunny', function(assert) {
   assert.expect(2);
   let player = this.player;
 
-  player.autoplay(true);
-
   playFor(player, 2, function() {
     assert.ok(true, 'played for at least two seconds');
     assert.equal(player.error(), null, 'has no player errors');
@@ -128,8 +152,6 @@ QUnit.test('Live DASH', function(assert) {
 
   assert.expect(2);
   let player = this.player;
-
-  player.autoplay(true);
 
   playFor(player, 2, function() {
     assert.ok(true, 'played for at least two seconds');
