@@ -30,7 +30,10 @@ QUnit.module('Playback', {
     video.width = 600;
     video.height = 300;
     this.fixture.appendChild(video);
-    this.player = videojs(video, { muted: true });
+    this.player = videojs(video, {
+      muted: true,
+      autoplay: true
+    });
     this.player.ready(done);
   },
   afterEach() {
@@ -43,8 +46,6 @@ QUnit.test('Advanced Bip Bop', function(assert) {
 
   assert.expect(2);
   let player = this.player;
-
-  player.autoplay(true);
 
   playFor(player, 2, function() {
     assert.ok(true, 'played for at least two seconds');
@@ -64,8 +65,6 @@ QUnit.test('replay', function(assert) {
 
   assert.expect(2);
   let player = this.player;
-
-  player.autoplay(true);
 
   // seek to near the end of the video
   playFor(player, 1, function() {
@@ -95,8 +94,6 @@ QUnit.skip('playlist with fmp4 and ts segments', function(assert) {
   assert.expect(2);
   let player = this.player;
 
-  player.autoplay(true);
-
   playFor(player, 6, function() {
     assert.ok(true, 'played for at least six seconds to hit the change in container format');
     assert.equal(player.error(), null, 'has no player errors');
@@ -116,7 +113,6 @@ QUnit.test('Advanced Bip Bop preload=none', function(assert) {
   assert.expect(2);
   let player = this.player;
 
-  player.autoplay(true);
   player.preload('none');
 
   playFor(player, 2, function() {
@@ -138,8 +134,6 @@ QUnit.test('Big Buck Bunny', function(assert) {
   assert.expect(2);
   let player = this.player;
 
-  player.autoplay(true);
-
   playFor(player, 2, function() {
     assert.ok(true, 'played for at least two seconds');
     assert.equal(player.error(), null, 'has no player errors');
@@ -158,8 +152,6 @@ QUnit.test('Live DASH', function(assert) {
 
   assert.expect(2);
   let player = this.player;
-
-  player.autoplay(true);
 
   playFor(player, 2, function() {
     assert.ok(true, 'played for at least two seconds');
