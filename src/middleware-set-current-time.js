@@ -21,6 +21,9 @@ videojs.use('*', (player) => {
       return time;
     },
 
+    // Sync VHS after play requests.
+    // This specifically handles replay where the video element will
+    // seek to 0, skipping the setCurrentTime middleware, then play
     play() {
       if (player.vhs &&
           player.currentSource().src === player.vhs.source_.src) {

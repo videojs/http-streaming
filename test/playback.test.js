@@ -74,7 +74,7 @@ QUnit.test('replay', function(assert) {
 
   player.one('ended', function() {
     player.one('timeupdate', function() {
-      assert.ok(true, 'played');
+      assert.ok(player.currentTime() < 10, 'played');
       assert.equal(player.error(), null, 'has no player errors');
 
       done();
