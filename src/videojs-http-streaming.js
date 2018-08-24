@@ -328,8 +328,6 @@ class HlsHandler extends Component {
         this.masterPlaylistController_.pauseLoading();
       }
     });
-
-    this.on(this.tech_, 'play', this.play);
   }
 
   setOptions_() {
