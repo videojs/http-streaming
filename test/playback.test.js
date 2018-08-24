@@ -59,6 +59,36 @@ QUnit.test('Advanced Bip Bop', function(assert) {
   });
 });
 
+QUnit.test('replay', function(assert) {
+  let done = assert.async();
+
+  assert.expect(2);
+  let player = this.player;
+
+  player.autoplay(true);
+
+  // seek to near the end of the video
+  playFor(player, 1, function() {
+    player.currentTime(player.duration() - 1);
+  });
+
+  player.one('ended', function() {
+    player.one('timeupdate', function() {
+      assert.ok(true, 'played');
+      assert.equal(player.error(), null, 'has no player errors');
+
+      done();
+    });
+
+    player.play();
+  });
+
+  player.src({
+    src: 'http://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8',
+    type: 'application/x-mpegURL'
+  });
+});
+
 QUnit.skip('playlist with fmp4 and ts segments', function(assert) {
   let done = assert.async();
 
