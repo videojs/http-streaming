@@ -13,6 +13,7 @@ import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ra
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
 import { addCaptionData, createCaptionsTrackIfNotExists } from './util/text-tracks';
 import { CaptionParser } from 'mux.js/lib/mp4';
+import mp4Inspector from 'mux.js/lib/tools/mp4-inspector.js';
 import logger from './util/logger';
 
 // in ms
@@ -1135,6 +1136,27 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     segmentInfo.endOfAllRequests = simpleSegment.endOfAllRequests;
+
+    // See if this segment is a sidx box
+    if (new TextDecoder('utf-8').decode(segmentInfo.bytes.slice(4,8)) === 'sidx') {
+      segmentInfo.duration = 0;
+      var sidx = mp4Inspector.parseSidx(segmentInfo.bytes.slice(8));
+      var offset = simpleSegment.byterange.length + simpleSegment.byterange.offset;
+
+      for (var i = 0; i < sidx.references.length; i++) {
+        segmentInfo.playlist.segments.push({
+          byterange: {
+            length: sidx.references[i].referencedSize,
+            offset: offset
+          },
+          duration: sidx.references[i].referencedSize / sidx.timescale,
+          uri: simpleSegment.uri,
+          resolvedUri: simpleSegment.resolvedUri
+        });
+
+        offset += sidx.references[i].referencedSize;
+      }
+    }
 
     // This has fmp4 captions, add them to text tracks
     if (simpleSegment.fmp4Captions) {
