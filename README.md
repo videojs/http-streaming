@@ -9,7 +9,7 @@
 Play HLS, DASH, and future HTTP streaming protocols with video.js, even where they're not
 natively supported.
 
-Included in video.js 7 by default!
+Included in video.js 7 by default! See the [video.js 7 blog post](https://blog.videojs.com/video-js-7-is-here/)
 
 Maintenance Status: Stable
 
