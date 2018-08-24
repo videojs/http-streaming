@@ -1,3 +1,10 @@
+<a name="1.2.5"></a>
+## [1.2.5](https://github.com/videojs/http-streaming/compare/v1.2.4...v1.2.5) (2018-08-24)
+
+### Bug Fixes
+
+* fix replay functionality ([#204](https://github.com/videojs/http-streaming/issues/204)) ([fd6be83](https://github.com/videojs/http-streaming/commit/fd6be83))
+
 <a name="1.2.4"></a>
 ## [1.2.4](https://github.com/videojs/http-streaming/compare/v1.2.3...v1.2.4) (2018-08-13)
 
