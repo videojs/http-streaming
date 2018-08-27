@@ -199,7 +199,7 @@ export default class SourceUpdater extends videojs.EventTarget {
   }
 
   buffered() {
-    return buffered(this.videoBuffer, this.audioBuffer, this.audioDisabled_);
+    return buffered(this.videoBuffer, this.audioBuffer);
   }
 
   /**
@@ -264,7 +264,7 @@ export default class SourceUpdater extends videojs.EventTarget {
   audioTimestampOffset(offset) {
     if (typeof offset !== 'undefined' &&
         this.audioBuffer &&
-        // updateend doesn't fire when timestamp offset isn't different
+        // no point in updating if it's the same
         this.audioBuffer.timestampOffset !== offset) {
       pushQueue('audio', this, [
         actions.timestampOffset(offset),
@@ -283,7 +283,7 @@ export default class SourceUpdater extends videojs.EventTarget {
   videoTimestampOffset(offset) {
     if (typeof offset !== 'undefined' &&
         this.videoBuffer &&
-        // updateend doesn't fire when timestamp offset isn't different
+        // no point in updating if it's the same
         this.videoBuffer.timestampOffset !== offset) {
       pushQueue('video', this, [
         actions.timestampOffset(offset),
