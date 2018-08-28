@@ -493,22 +493,62 @@ function(assert) {
   });
 });
 
-// DONE:
-// audio/video timestampoffset
-// ready
-// createSourceBuffers
-// audioBuffered
-// videoBuffered
-// appendBuffer
-// buffered
-// removeAudio
-// removeVideo
-// audioQueueCallback
-// videoQueueCallback
-// dispose
-// TODO:
-// start_?
-// updating
+QUnit.test('updating returns true if audio buffer is updating', function(assert) {
+  const done = assert.async();
+
+  this.sourceUpdater.createSourceBuffers({
+    audio: 'mp4a.40.2'
+  });
+
+  assert.notOk(this.sourceUpdater.updating(), 'not updating by default');
+
+  this.sourceUpdater.appendBuffer('audio', mp4Audio(), () => {
+    assert.notOk(this.sourceUpdater.updating(), 'not updating after append');
+    done();
+  });
+
+  assert.ok(this.sourceUpdater.updating(), 'updating during append');
+});
+
+QUnit.test('updating returns true if video buffer is updating', function(assert) {
+  const done = assert.async();
+
+  this.sourceUpdater.createSourceBuffers({
+    video: 'avc1.4D001E'
+  });
+
+  assert.notOk(this.sourceUpdater.updating(), 'not updating by default');
+
+  this.sourceUpdater.appendBuffer('video', mp4Video(), () => {
+    assert.notOk(this.sourceUpdater.updating(), 'not updating after append');
+    done();
+  });
+
+  assert.ok(this.sourceUpdater.updating(), 'updating during append');
+});
+
+QUnit.test('updating returns true if either audio or video buffer is updating',
+function(assert) {
+  const done = assert.async();
+
+  this.sourceUpdater.createSourceBuffers({
+    audio: 'mp4a.40.2',
+    video: 'avc1.4D001E'
+  });
+
+  assert.notOk(this.sourceUpdater.updating(), 'not updating by default');
+
+  this.sourceUpdater.appendBuffer('video', mp4Video(), () => {
+    assert.notOk(this.sourceUpdater.updating(), 'not updating after append');
+    this.sourceUpdater.appendBuffer('audio', mp4Audio(), () => {
+      assert.notOk(this.sourceUpdater.updating(), 'not updating after append');
+      done();
+    });
+    assert.ok(this.sourceUpdater.updating(), 'updating during append');
+  });
+
+  assert.ok(this.sourceUpdater.updating(), 'updating during append');
+});
 
 QUnit.test('dispose aborts and clears out audio and video buffers', function(assert) {
   this.sourceUpdater.createSourceBuffers({
