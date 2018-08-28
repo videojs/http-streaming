@@ -177,7 +177,7 @@ const handleKeyResponse = (segment, finishProcessingFn) => (error, request) => {
  *                                        this request
  */
 const handleInitSegmentResponse =
-(segment, captionParser, finishProcessingFn) => (error, request) => {
+({segment, captionParser, handlePartialData, finishProcessingFn}) => (error, request) => {
   const response = request.response;
   const errorObj = handleErrors(error, request);
 
@@ -199,7 +199,7 @@ const handleInitSegmentResponse =
 
   // Initialize CaptionParser if it hasn't been yet
   if (!captionParser.isInitialized()) {
-    captionParser.init();
+    captionParser.init({ isPartial: handlePartialData });
   }
 
   segment.map.timescales = mp4probe.timescale(segment.map.bytes);
@@ -389,7 +389,7 @@ const handleSegmentBytes = ({
     // Run through the CaptionParser in case there are captions.
     // Initialize CaptionParser if it hasn't been yet
     if (!captionParser.isInitialized()) {
-      captionParser.init();
+      captionParser.init({ isPartial });
     }
 
     // TODO: adapt to parse partials
@@ -742,9 +742,12 @@ export const mediaSegmentRequest = ({
       responseType: 'arraybuffer',
       headers: segmentXhrHeaders(segment.map)
     });
-    const initSegmentRequestCallback = handleInitSegmentResponse(segment,
-                                                                 captionParser,
-                                                                 finishProcessingFn);
+    const initSegmentRequestCallback = handleInitSegmentResponse({
+      segment,
+      captionParser,
+      handlePartialData,
+      finishProcessingFn
+    });
     const initSegmentXhr = xhr(initSegmentOptions, initSegmentRequestCallback);
 
     activeXhrs.push(initSegmentXhr);
