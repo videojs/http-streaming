@@ -523,21 +523,30 @@ export class MasterPlaylistController extends videojs.EventTarget {
    */
   fastQualityChange_() {
     const media = this.selectPlaylist();
+    const isPaused = this.tech_.paused();
 
     if (media === this.masterPlaylistLoader_.media()) {
       return;
     }
 
+    this.tech_.pause();
     this.masterPlaylistLoader_.media(media);
 
-    // delete all buffered data to allow an immediate quality switch, then seek
-    // in place to give the browser a kick to remove any cached frames from the
-    // previous rendition
+    // Delete all buffered data to allow an immediate quality switch, then seek
+    // forward slightly to give the browser a kick to remove any cached frames from the
+    // previous rendition (.02 seconds ahead is roughly the minimum that will accomplish this
+    // in IE and Edge)
+    // Edge/IE bug: https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/14600375/
+    // Chrome bug: https://bugs.chromium.org/p/chromium/issues/detail?id=651904
     this.mainSegmentLoader_.resetEverything(() => {
       // Since this is not a typical seek, we avoid the seekTo method which can cause
       // segments from the previously enabled rendition to load before the new playlist
       // has finished loading
-      this.tech_.setCurrentTime(this.tech_.currentTime());
+      this.tech_.setCurrentTime(this.tech_.currentTime() + .02);
+
+      if (!isPaused) {
+        this.tech_.play();
+      }
     });
 
     // don't need to reset audio as it is reset when media changes
