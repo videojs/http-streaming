@@ -916,14 +916,14 @@ export default class SegmentLoader extends videojs.EventTarget {
     let audioAppendStart;
     let gopsToAlignWith;
 
-    if (audioBuffered && audioBuffered.length) {
+    if (audioBuffered.length) {
       // since the transmuxer is using the actual timing values, but the buffer is
       // adjusted by the timestamp offset, we must adjust the value here
       audioAppendStart = audioBuffered.end(audioBuffered.length - 1) -
         this.sourceUpdater_.audioTimestampOffset();
     }
 
-    if (videoBuffered) {
+    if (videoBuffered.length) {
       gopsToAlignWith = gopsSafeToAlignWith(
         this.gopBuffer_,
         // since the transmuxer is using the actual timing values, but the time is

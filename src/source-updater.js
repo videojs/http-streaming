@@ -191,11 +191,13 @@ export default class SourceUpdater extends videojs.EventTarget {
   }
 
   audioBuffered() {
-    return this.audioBuffer && this.audioBuffer.buffered;
+    return this.audioBuffer && this.audioBuffer.buffered ? this.audioBuffer.buffered :
+      videojs.createTimeRange();
   }
 
   videoBuffered() {
-    return this.videoBuffer && this.videoBuffer.buffered;
+    return this.videoBuffer && this.videoBuffer.buffered ? this.videoBuffer.buffered :
+      videojs.createTimeRange();
   }
 
   buffered() {
@@ -207,16 +209,18 @@ export default class SourceUpdater extends videojs.EventTarget {
    *
    * @param {Number} start where to start the removal
    * @param {Number} end where to end the removal
+   * @param {Function} [done=noop] optional callback to be executed when the remove
+   * operation is complete
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-remove-void-double-start-unrestricted-double-end
    */
-  removeAudio(start, end) {
+  removeAudio(start, end, done = noop) {
     if (!this.audioBuffer) {
       return;
     }
 
     pushQueue('audio', this, [
       actions.remove(start, end),
-      { doneFn: noop, name: 'remove' }
+      { doneFn: done, name: 'remove' }
     ]);
   }
 
@@ -225,16 +229,18 @@ export default class SourceUpdater extends videojs.EventTarget {
    *
    * @param {Number} start where to start the removal
    * @param {Number} end where to end the removal
+   * @param {Function} [done=noop] optional callback to be executed when the remove
+   * operation is complete
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-remove-void-double-start-unrestricted-double-end
    */
-  removeVideo(start, end) {
+  removeVideo(start, end, done = noop) {
     if (!this.videoBuffer) {
       return;
     }
 
     pushQueue('video', this, [
       actions.remove(start, end),
-      { doneFn: noop, name: 'remove' }
+      { doneFn: done, name: 'remove' }
     ]);
   }
 

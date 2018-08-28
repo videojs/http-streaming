@@ -174,7 +174,7 @@ QUnit.test('waits for sourceopen to create source buffers', function(assert) {
 QUnit.test('audioBuffered can append to and get the audio buffer', function(assert) {
   const done = assert.async();
 
-  assert.notOk(this.sourceUpdater.audioBuffered(), 'no buffered when no source buffer');
+  assert.equal(this.sourceUpdater.audioBuffered().length, 0, 'no buffered time range');
 
   this.sourceUpdater.createSourceBuffers({
     audio: 'mp4a.40.2'
@@ -192,7 +192,7 @@ QUnit.test('audioBuffered can append to and get the audio buffer', function(asse
 QUnit.test('videoBuffered can append to and gets the video buffer', function(assert) {
   const done = assert.async();
 
-  assert.notOk(this.sourceUpdater.videoBuffered(), 'no buffered when no source buffer');
+  assert.equal(this.sourceUpdater.videoBuffered().length, 0, 'no buffered time range');
 
   this.sourceUpdater.createSourceBuffers({
     video: 'avc1.4D001E'
@@ -259,6 +259,90 @@ QUnit.test('buffered returns intersection of audio and video buffers', function(
    'buffered is intersection');
 });
 
+QUnit.test('removeAudio removes audio buffer', function(assert) {
+  const done = assert.async();
+
+  this.sourceUpdater.createSourceBuffers({
+    audio: 'mp4a.40.2'
+  });
+
+  this.sourceUpdater.appendBuffer('audio', mp4Audio(), () => {
+    assert.equal(this.sourceUpdater.buffered().length, 1, 'has buffered time range');
+    assert.ok(this.sourceUpdater.buffered().end(0) > 0, 'buffered content');
+    this.sourceUpdater.removeAudio(0, Infinity, () => {
+      assert.equal(this.sourceUpdater.buffered().length, 0, 'no buffered conent');
+      done();
+    });
+  });
+});
+
+QUnit.test('removeVideo removes video buffer', function(assert) {
+  const done = assert.async();
+
+  this.sourceUpdater.createSourceBuffers({
+    video: 'avc1.4D001E'
+  });
+
+  this.sourceUpdater.appendBuffer('video', mp4Video(), () => {
+    assert.equal(this.sourceUpdater.buffered().length, 1, 'has buffered time range');
+    assert.ok(this.sourceUpdater.buffered().end(0) > 0, 'buffered content');
+    this.sourceUpdater.removeVideo(0, Infinity, () => {
+      assert.equal(this.sourceUpdater.buffered().length, 0, 'no buffered content');
+      done();
+    });
+  });
+});
+
+QUnit.test('removeAudio does not remove video buffer', function(assert) {
+  const done = assert.async();
+
+  this.sourceUpdater.createSourceBuffers({
+    audio: 'mp4a.40.2',
+    video: 'avc1.4D001E'
+  });
+
+  this.sourceUpdater.appendBuffer('audio', mp4Audio(), () => {
+    assert.ok(this.sourceUpdater.audioBuffered().end(0) > 0, 'buffered audio content');
+    this.sourceUpdater.appendBuffer('video', mp4Video(), () => {
+      assert.ok(this.sourceUpdater.videoBuffered().end(0) > 0, 'buffered video content');
+      this.sourceUpdater.removeAudio(0, Infinity, () => {
+        assert.equal(
+          this.sourceUpdater.audioBuffered().length, 0, 'removed audio content');
+        assert.equal(
+          this.sourceUpdater.videoBuffered().length, 1, 'has buffered video time range');
+        assert.ok(
+          this.sourceUpdater.videoBuffered().end(0) > 0, 'did not remove video content');
+        done();
+      });
+    });
+  });
+});
+
+QUnit.test('removeVideo does not remove audio buffer', function(assert) {
+  const done = assert.async();
+
+  this.sourceUpdater.createSourceBuffers({
+    audio: 'mp4a.40.2',
+    video: 'avc1.4D001E'
+  });
+
+  this.sourceUpdater.appendBuffer('audio', mp4Audio(), () => {
+    assert.ok(this.sourceUpdater.audioBuffered().end(0) > 0, 'buffered audio content');
+    this.sourceUpdater.appendBuffer('video', mp4Video(), () => {
+      assert.ok(this.sourceUpdater.videoBuffered().end(0) > 0, 'buffered video content');
+      this.sourceUpdater.removeVideo(0, Infinity, () => {
+        assert.equal(
+          this.sourceUpdater.videoBuffered().length, 0, 'removed video content');
+        assert.equal(
+          this.sourceUpdater.audioBuffered().length, 1, 'has buffered audio time range');
+        assert.ok(
+          this.sourceUpdater.audioBuffered().end(0) > 0, 'did not remove audio content');
+        done();
+      });
+    });
+  });
+});
+
 // DONE:
 // audio/video timestampoffset
 // ready
@@ -267,10 +351,10 @@ QUnit.test('buffered returns intersection of audio and video buffers', function(
 // videoBuffered
 // appendBuffer
 // buffered
-// TODO:
-// start_?
 // removeAudio
 // removeVideo
+// TODO:
+// start_?
 // updating
 // audioQueueCallback
 // videoQueueCallback
@@ -408,26 +492,4 @@ QUnit.test('runs updates immediately if possible', function(assert) {
   assert.equal(sourceBuffer.updates_.length, 1, 'ran an update');
   assert.deepEqual(sourceBuffer.updates_[0].append, new Uint8Array([0]),
                   'appended the bytes');
-});
-
-QUnit.test('supports removeBuffer', function(assert) {
-  let updater = new SourceUpdater(this.mediaSource, 'video/mp2t');
-  let sourceBuffer;
-
-  this.mediaSource.trigger('sourceopen');
-  sourceBuffer = this.mediaSource.sourceBuffers[0];
-
-  updater.remove(1, 14);
-
-  assert.equal(sourceBuffer.updates_.length,
-               0,
-               'remove not queued before sourceBuffers are appended to');
-
-  updater.appendBuffer(new Uint8Array([0]));
-
-  updater.remove(1, 14);
-
-  sourceBuffer.trigger('updateend');
-  assert.equal(sourceBuffer.updates_.length, 2, 'ran an update');
-  assert.deepEqual(sourceBuffer.updates_[1].remove, [1, 14], 'removed the time range');
 });
