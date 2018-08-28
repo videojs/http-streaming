@@ -1152,15 +1152,11 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    // FIXME do FMP4 segments need to be adjusted?
     const timestampOffset = this.sourceUpdater_.videoTimestampOffset() === null ?
       this.sourceUpdater_.audioTimestampOffset() :
       this.sourceUpdater_.videoTimestampOffset();
 
     captions.forEach((caption) => {
-      // Don't need to check for abort since captions are only handled for non partial
-      // appends at the moment (therefore, they will only trigger once a segment is finished
-      // being transmuxed).
       createCaptionsTrackIfNotExists(
         this.inbandTextTracks_, this.hls_.tech_, caption.stream);
       addCaptionData({
@@ -1170,7 +1166,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       });
     });
 
-    // TODO
     // Reset stored captions since we added parsed
     // captions to a text track at this point
     this.captionParser_.clearParsedCaptions();

@@ -199,7 +199,7 @@ const handleInitSegmentResponse =
 
   // Initialize CaptionParser if it hasn't been yet
   if (!captionParser.isInitialized()) {
-    captionParser.init({ isPartial: handlePartialData });
+    captionParser.init();
   }
 
   segment.map.timescales = mp4probe.timescale(segment.map.bytes);
@@ -389,10 +389,9 @@ const handleSegmentBytes = ({
     // Run through the CaptionParser in case there are captions.
     // Initialize CaptionParser if it hasn't been yet
     if (!captionParser.isInitialized()) {
-      captionParser.init({ isPartial });
+      captionParser.init();
     }
 
-    // TODO: adapt to parse partials
     const parsed = captionParser.parse(
       segment.bytes,
       segment.map.videoTrackIds,

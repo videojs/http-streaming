@@ -105,17 +105,11 @@ export const processTransmux = ({
     if (event.data.action === 'videoTimingInfo') {
       onVideoTimingInfo(event.data.videoTimingInfo);
     }
-    // only used for partial transmuxer, full transmuxer will handle on done
-    // FIXME: update comment
     if (event.data.action === 'id3Frame') {
       onId3([event.data.id3Frame], event.data.id3Frame.dispatchType);
     }
-    // only used for partial transmuxer, full transmuxer will handle on done
-    // FIXME: update comment
     if (event.data.action === 'caption') {
-      const caption = event.data.caption;
-
-      onCaptions(caption);
+      onCaptions(event.data.caption);
     }
 
     // wait for the transmuxed event since we may have audio and video
