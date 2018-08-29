@@ -35,7 +35,9 @@ you need to properly configure CORS on your server: https://github.com/videojs/h
 
 ## Desktop Safari/iOS Safari/Android Chrome/Edge exhibit different behavior from other browsers
 
-Some browsers support native playback of certain streaming formats. By default, we defer to the native players. However, this means that features specific to videojs-http-streaming will not be available.
+Some browsers support native playback of certain streaming formats. By default, we defer to the native players. However, this means that features specific to videojs-http-streaming will not be available. 
+
+On Edge and mobile Chrome 608 captions, ID3 tags or live streaming may not work as expected with native playback, it is recommended that  `overridenative` be used on those platforms if necessary.
 
 Solution: use videojs-http-streaming based playback on those devices: https://github.com/videojs/http-streaming#overridenative
 
