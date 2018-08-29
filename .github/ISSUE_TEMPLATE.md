@@ -1,6 +1,10 @@
+__Please do not delete the template, by filling out the required information we can investigate your issue more quickly.__
+
+Before opening an issue see if your problem can be resolved with the [troubleshooting guide](https://github.com/videojs/http-streaming/blob/master/docs/troubleshooting.md). 
+
 ## Description
 Briefly describe the issue.
-Include a [reduced test case](https://css-tricks.com/reduced-test-cases/), we have a [starter template](https://jsbin.com/gejugat/edit?html,output) on JSBin you can use.
+Include a [reduced test case](https://css-tricks.com/reduced-test-cases/), we have a [starter template](https://jsbin.com/gejugat/edit?html,output) on JSBin you can use. 
 
 ## Sources
 Is a certain source or a certain segment affected? please provide a public (accesible over the internet) link to it below.
