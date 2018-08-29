@@ -542,7 +542,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       // Since this is not a typical seek, we avoid the seekTo method which can cause
       // segments from the previously enabled rendition to load before the new playlist
       // has finished loading
-      this.tech_.setCurrentTime(this.tech_.currentTime() + .04);
+      this.tech_.setCurrentTime(this.tech_.currentTime() + 0.04);
 
       if (!isPaused) {
         this.tech_.play();
