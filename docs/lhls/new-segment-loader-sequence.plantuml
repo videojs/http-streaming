@@ -71,12 +71,20 @@ group Request
       start/end times.
     end note
 
+    "mux.js" -> "segment-transmuxer" : postMessage(...caption...)
+    "segment-transmuxer" -> "media-segment-request" : onCaptions(...)
+    "media-segment-request" -> SegmentLoader : captionsFn(...)
+    note left #moccasin
+      Passes along captions
+      from transmux.
+    end note
+
     "mux.js" -> "segment-transmuxer" : postMessage(...id3Frame...)
     "segment-transmuxer" -> "media-segment-request" : onId3(...)
     "media-segment-request" -> SegmentLoader : id3Fn(...)
     note left #moccasin
-      Passes along metadata for
-      partial transmux.
+      Passes along metadata
+      from transmux.
     end note
 
     "mux.js" -> "segment-transmuxer" : postMessage(...data...)
@@ -89,20 +97,8 @@ group Request
 
     "mux.js" -> "segment-transmuxer" : postMessage(...done...)
     note left
-      Gathers GOP info, captions, and
-      metadata, and calls done callback.
-    end note
-    "segment-transmuxer" -> "media-segment-request" : onId3(...)
-    "media-segment-request" -> SegmentLoader : id3Fn(...)
-    note left
-      Passes along metadata for full
-      segment transmux.
-    end note
-    "segment-transmuxer" -> "media-segment-request" : onCaptions(...)
-    "media-segment-request" -> SegmentLoader : captionsFn(...)
-    note left
-      Passes along captions for full
-      segment transmux.
+      Gathers GOP info, and calls
+      done callback.
     end note
     "segment-transmuxer" -> "media-segment-request" : onDone(...)
     "media-segment-request" -> SegmentLoader : doneFn(...)

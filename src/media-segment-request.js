@@ -397,7 +397,7 @@ const handleSegmentBytes = ({
       segment.map.videoTrackIds,
       segment.map.timescales);
 
-    if (parsed && parsed.captions) {
+    if (parsed && parsed.captions && parsed.captions.length > 0) {
       captionsFn(segment, parsed.captions);
     }
 

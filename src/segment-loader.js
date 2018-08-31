@@ -1141,7 +1141,9 @@ export default class SegmentLoader extends videojs.EventTarget {
   handleCaptions_(simpleSegment, captions) {
     if (this.checkForAbort_(simpleSegment.requestId) ||
       this.abortRequestEarly_(simpleSegment.stats) ||
-      !captions || captions.length === 0) {
+      // This could only happen with fmp4 segments, but
+      // should still not happen in general
+      captions.length === 0) {
       return;
     }
 

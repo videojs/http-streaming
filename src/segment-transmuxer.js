@@ -47,23 +47,16 @@ export const handleData_ = (event, transmuxedData, callback) => {
 };
 
 export const handleDone_ = ({
-  event,
   transmuxedData,
-  onId3,
-  onCaptions,
   callback
 }) => {
-  // all buffers should have been flushed from the muxer, so start processing anything we
-  // have received
-  let sortedSegments = {
-    gopInfo: transmuxedData.gopInfo,
-    videoTimingInfo: transmuxedData.videoTimingInfo,
-    audioTimingInfo: transmuxedData.audioTimingInfo
-  };
-
+  // Previously we only returned data on data events,
+  // not on done events. Clear out the buffer to keep that consistent.
   transmuxedData.buffer = [];
 
-  callback(sortedSegments);
+  // all buffers should have been flushed from the muxer, so start processing anything we
+  // have received
+  callback(transmuxedData);
 };
 
 export const handleGopInfo_ = (event, transmuxedData) => {
@@ -119,10 +112,7 @@ export const processTransmux = ({
 
     transmuxer.removeEventListener('message', handleMessage);
     handleDone_({
-      event,
       transmuxedData,
-      onId3,
-      onCaptions,
       callback: onDone
     });
 
