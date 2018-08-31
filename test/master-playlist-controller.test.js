@@ -375,6 +375,30 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
   assert.deepEqual(removeFuncArgs, {start: 0, end: 60}, 'remove() called with correct arguments if media is changed');
 });
 
+QUnit.test('seeks forward 0.04 seconds for fast quality switch', function(assert) {
+  this.masterPlaylistController.mediaSource.trigger('sourceopen');
+  // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  // media is changed
+  this.masterPlaylistController.selectPlaylist = () => {
+    return this.masterPlaylistController.master().playlists[0];
+  };
+
+  // makes sure the resetEverything callback is queued when sourceUpdater_.remove() gets called
+  this.masterPlaylistController.mainSegmentLoader_.sourceUpdater_.processedAppend_ = true;
+
+  const timeBeforeSwitch = this.player.currentTime();
+
+  this.masterPlaylistController.fastQualityChange_();
+
+  this.masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
+
+  assert.equal(this.player.currentTime(), timeBeforeSwitch + 0.04, 'seeked forward on fast quality switch');
+});
+
 QUnit.test('audio segment loader is reset on audio track change', function(assert) {
   this.requests.length = 0;
   this.player = createPlayer();
