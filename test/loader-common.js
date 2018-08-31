@@ -89,7 +89,7 @@ export const LoaderCommonSettings = function(settings) {
   }, settings);
 };
 
-const setupMediaSource = (mediaSource, sourceUpdater, options) => {
+export const setupMediaSource = (mediaSource, sourceUpdater, options) => {
   // must attach a media source to a video element
   const video = document.createElement('video');
 
