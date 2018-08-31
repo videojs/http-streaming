@@ -300,7 +300,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.state = 'DISPOSED';
     this.pause();
     this.abort_();
-    if (this.transmuxer) {
+    if (this.transmuxer_) {
       this.transmuxer_.terminate();
     }
     if (this.sourceUpdater_) {
@@ -1614,12 +1614,17 @@ export default class SegmentLoader extends videojs.EventTarget {
                                             this.mediaSource_,
                                             segmentInfo.mediaIndex + 1);
     const isWalkingForward = this.mediaIndex !== null;
-    const isDiscontinuity = segmentInfo.timeline !== this.currentTimeline_;
+    const isDiscontinuity = segmentInfo.timeline !== this.currentTimeline_ &&
+      // TODO verify this behavior
+      // currentTimeline starts at -1, but we shouldn't end the timeline switching to 0,
+      // the first timeline
+      segmentInfo.timeline > 0;
 
     if (isEndOfStream || (isWalkingForward && isDiscontinuity)) {
       segmentTransmuxer.endTimeline(this.transmuxer_);
     }
 
+    // used for testing
     this.trigger('appending');
 
     this.waitForAppendsToComplete_(segmentInfo);
@@ -1888,6 +1893,9 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.trigger('progress');
 
     this.mediaIndex = segmentInfo.mediaIndex;
+
+    // used for testing
+    this.trigger('appended');
 
     // any time an update finishes and the last segment is in the
     // buffer, end the stream. this ensures the "ended" event will

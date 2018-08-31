@@ -41,3 +41,24 @@ movflags:
 ```
 $ ffmpeg -i file.mp4 -movflags frag_keyframe+empty_moov+omit_tfhd_offset -vframes 2 -an -vcodec copy mp4Audio.mp4
 ```
+
+### mp4VideoInit.mp4 and mp4AudioInit.mp4
+
+Using DASH as the format type (-f) will lead to two init segments, one for video and one for audio. Using HLS will lead to one joined.
+Renamed from .m4s to .mp4
+
+```
+$ ffmpeg -i input.mp4 -f dash out.mpd
+```
+
+## Other useful commands
+
+### Joined (audio and video) initialization segment (for HLS)
+
+Using DASH as the format type (-f) will lead to two init segments, one for video and one for audio. Using HLS will lead to one joined.
+Note that -hls\_fmp4\_init\_filename defaults to init.mp4, but is here for readability.
+Without specifying fmp4 for hls\_segment\_type, ffmpeg defaults to ts.
+
+```
+$ ffmpeg -i input.mp4 -f hls -hls_fmp4_init_filename init.mp4 -hls_segment_type fmp4 out.m3u8
+```
