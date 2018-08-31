@@ -1075,7 +1075,7 @@ export const LoaderCommonFactory = (LoaderConstructor, loaderSettings) => {
 
     QUnit.module('Loading Calculation');
 
-    QUnit.skip('requests the first segment with an empty buffer', function(assert) {
+    QUnit.test('requests the first segment with an empty buffer', function(assert) {
 
       let segmentInfo = loader.checkBuffer_(videojs.createTimeRanges(),
                                             playlistWithDuration(20),
@@ -1088,7 +1088,7 @@ export const LoaderCommonFactory = (LoaderConstructor, loaderSettings) => {
       assert.equal(segmentInfo.uri, '0.ts', 'requested the first segment');
     });
 
-    QUnit.skip('no request if video not played and 1 segment is buffered',
+    QUnit.test('no request if video not played and 1 segment is buffered',
     function(assert) {
       this.hasPlayed = false;
 
@@ -1102,7 +1102,7 @@ export const LoaderCommonFactory = (LoaderConstructor, loaderSettings) => {
       assert.ok(!segmentInfo, 'no request generated');
     });
 
-    QUnit.skip('does not download the next segment if the buffer is full',
+    QUnit.test('does not download the next segment if the buffer is full',
     function(assert) {
       let buffered;
       let segmentInfo;
@@ -1120,7 +1120,7 @@ export const LoaderCommonFactory = (LoaderConstructor, loaderSettings) => {
       assert.ok(!segmentInfo, 'no segment request generated');
     });
 
-    QUnit.skip('downloads the next segment if the buffer is getting low',
+    QUnit.test('downloads the next segment if the buffer is getting low',
     function(assert) {
       let buffered;
       let segmentInfo;
@@ -1140,7 +1140,7 @@ export const LoaderCommonFactory = (LoaderConstructor, loaderSettings) => {
       assert.equal(segmentInfo.uri, '2.ts', 'requested the third segment');
     });
 
-    QUnit.skip('stops downloading segments at the end of the playlist', function(assert) {
+    QUnit.test('stops downloading segments at the end of the playlist', function(assert) {
       let buffered;
       let segmentInfo;
 
@@ -1155,7 +1155,7 @@ export const LoaderCommonFactory = (LoaderConstructor, loaderSettings) => {
       assert.ok(!segmentInfo, 'no request was made');
     });
 
-    QUnit.skip('stops downloading segments if buffered past reported end of the playlist',
+    QUnit.test('stops downloading segments if buffered past reported end of the playlist',
     function(assert) {
       let buffered;
       let segmentInfo;
@@ -1174,7 +1174,7 @@ export const LoaderCommonFactory = (LoaderConstructor, loaderSettings) => {
       assert.ok(!segmentInfo, 'no request was made');
     });
 
-    QUnit.skip('doesn\'t allow more than one monitor buffer timer to be set',
+    QUnit.test('doesn\'t allow more than one monitor buffer timer to be set',
     function(assert) {
       let timeoutCount = this.clock.methods.length;
 
