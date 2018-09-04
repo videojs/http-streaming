@@ -210,7 +210,10 @@ export default class SegmentLoader extends videojs.EventTarget {
       video: null
     };
     this.callQueue_ = [];
-    this.id3Queue_ = [];
+    this.metadataQueue_ = {
+      id3: [],
+      caption: []
+    };
 
     // Fragmented mp4 playback
     this.activeInitSegmentId_ = null;
@@ -357,7 +360,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     // clear out the segment being processed
     this.pendingSegment_ = null;
     this.callQueue_ = [];
-    this.id3Queue_ = [];
+    this.metadataQueue_.id3 = [];
+    this.metadataQueue_.caption = [];
   }
 
   checkForAbort_(requestId) {
@@ -643,7 +647,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.mediaIndex = null;
     this.syncPoint_ = null;
     this.callQueue_ = [];
-    this.id3Queue_ = [];
+    this.metadataQueue_.id3 = [];
+    this.metadataQueue_.caption = [];
     this.abort();
   }
 
@@ -1149,8 +1154,11 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     const segmentInfo = this.pendingSegment_;
 
-    // TODO what happens in this case?
+    // Wait until we have some video data so that caption timing
+    // can be adjusted by the timestamp offset
     if (!segmentInfo.hasAppendedData_) {
+      this.metadataQueue_.caption.push(
+        this.handleCaptions_.bind(this, simpleSegment, captions));
       return;
     }
 
@@ -1183,7 +1191,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // we need to have appended data in order for the timestamp offset to be set
     if (!segmentInfo.hasAppendedData_) {
-      this.id3Queue_.push(
+      this.metadataQueue_.id3.push(
         this.handleId3_.bind(this, simpleSegment, id3Frames, dispatchType));
       return;
     }
@@ -1204,11 +1212,15 @@ export default class SegmentLoader extends videojs.EventTarget {
     });
   }
 
-  processId3Queue_(simpleSegment) {
-    const id3Queue = this.id3Queue_;
+  processMetadataQueue_(simpleSegment, type) {
+    if (type !== 'id3' && type !== 'caption') {
+      return;
+    }
 
-    this.id3Queue_ = [];
-    id3Queue.forEach((fun) => fun());
+    const queue = this.metadataQueue_[type];
+
+    this.metadataQueue_[type] = [];
+    queue.forEach((fn) => fn());
   }
 
   processCallQueue_() {
@@ -1332,7 +1344,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     // has had a chance to be set.
     segmentInfo.hasAppendedData_ = true;
     // Now that the timestamp offset should be set, we can append any waiting ID3 tags.
-    this.processId3Queue_(simpleSegment);
+    this.processMetadataQueue_(simpleSegment, 'id3');
+    this.processMetadataQueue_(simpleSegment, 'caption');
 
     this.appendData_(segmentInfo, result);
   }
