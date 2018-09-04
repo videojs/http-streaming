@@ -375,7 +375,7 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
   assert.deepEqual(removeFuncArgs, {start: 0, end: 60}, 'remove() called with correct arguments if media is changed');
 });
 
-QUnit.test('seeks forward 0.04 seconds for fast quality switch', function(assert) {
+QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', function(assert) {
   this.masterPlaylistController.mediaSource.trigger('sourceopen');
   // master
   this.standardXHRResponse(this.requests.shift());
@@ -396,7 +396,61 @@ QUnit.test('seeks forward 0.04 seconds for fast quality switch', function(assert
 
   this.masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
 
-  assert.equal(this.player.currentTime(), timeBeforeSwitch + 0.04, 'seeked forward on fast quality switch');
+  assert.equal(this.player.currentTime(), timeBeforeSwitch, 'seeks in place on fast quality switch');
+});
+
+QUnit.test('seeks forward 0.04 sec for fast quality switch on Edge', function(assert) {
+  this.masterPlaylistController.mediaSource.trigger('sourceopen');
+  // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  // media is changed
+  this.masterPlaylistController.selectPlaylist = () => {
+    return this.masterPlaylistController.master().playlists[0];
+  };
+
+  // makes sure the resetEverything callback is queued when sourceUpdater_.remove() gets called
+  this.masterPlaylistController.mainSegmentLoader_.sourceUpdater_.processedAppend_ = true;
+
+  const timeBeforeSwitch = this.player.currentTime();
+
+  videojs.browser.IE_VERSION = null;
+  videojs.browser.IS_EDGE = true;
+
+  this.masterPlaylistController.fastQualityChange_();
+
+  this.masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
+
+  assert.equal(this.player.currentTime(), timeBeforeSwitch + 0.04, 'seeks in place on fast quality switch');
+});
+
+QUnit.test('seeks forward 0.04 sec for fast quality switch on IE', function(assert) {
+  this.masterPlaylistController.mediaSource.trigger('sourceopen');
+  // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  // media is changed
+  this.masterPlaylistController.selectPlaylist = () => {
+    return this.masterPlaylistController.master().playlists[0];
+  };
+
+  // makes sure the resetEverything callback is queued when sourceUpdater_.remove() gets called
+  this.masterPlaylistController.mainSegmentLoader_.sourceUpdater_.processedAppend_ = true;
+
+  const timeBeforeSwitch = this.player.currentTime();
+
+  videojs.browser.IE_VERSION = 11;
+  videojs.browser.IS_EDGE = false;
+
+  this.masterPlaylistController.fastQualityChange_();
+
+  this.masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
+
+  assert.equal(this.player.currentTime(), timeBeforeSwitch + 0.04, 'seeks in place on fast quality switch');
 });
 
 QUnit.test('audio segment loader is reset on audio track change', function(assert) {
