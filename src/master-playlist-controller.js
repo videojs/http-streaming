@@ -523,7 +523,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
    */
   fastQualityChange_() {
     const media = this.selectPlaylist();
-    const isPaused = this.tech_.paused();
 
     if (media === this.masterPlaylistLoader_.media()) {
       return;
