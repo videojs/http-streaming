@@ -48,8 +48,9 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
   });
 
   LoaderCommonFactory(VTTSegmentLoader,
-                      { loaderType: 'vtt' },
-                      (loader) => loader.track(new MockTextTrack()));
+                      {loaderType: 'vtt'},
+                      (loader) => loader.track(new MockTextTrack()),
+                      false);
 
   // Tests specific to the vtt loader go in this module
   QUnit.module('Loader VTT', function(nestedHooks) {

@@ -1512,6 +1512,36 @@ export default class SegmentLoader extends videojs.EventTarget {
     return simpleSegment;
   }
 
+  saveTransferStats_(stats) {
+    // every request counts as a media request even if it has been aborted
+    // or canceled due to a timeout
+    this.mediaRequests += 1;
+
+    if (stats) {
+      this.mediaBytesTransferred += stats.bytesReceived;
+      this.mediaTransferDuration += stats.roundTripTime;
+    }
+  }
+
+  saveBandwidthRelatedStats_(stats) {
+    this.bandwidth = stats.bandwidth;
+    this.roundTrip = stats.roundTripTime;
+
+    // byteLength will be used for throughput, and should be based on bytes receieved,
+    // which we only know at the end of the request and should reflect total bytes
+    // downloaded rather than just bytes processed from components of the segment
+    this.pendingSegment_.byteLength = stats.bytesReceived;
+  }
+
+  handleTimeout_() {
+    // although the VTT segment loader bandwidth isn't really used, it's good to
+    // maintain functinality between segment loaders
+    this.mediaRequestsTimedout += 1;
+    this.bandwidth = 1;
+    this.roundTrip = NaN;
+    this.trigger('bandwidthupdate');
+  }
+
   /**
    * Handle the callback from the segmentRequest function and set the
    * associated SegmentLoader state and errors if necessary
@@ -1530,14 +1560,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    // every request counts as a media request even if it has been aborted
-    // or canceled due to a timeout
-    this.mediaRequests += 1;
-
-    if (simpleSegment.stats) {
-      this.mediaBytesTransferred += simpleSegment.stats.bytesReceived;
-      this.mediaTransferDuration += simpleSegment.stats.roundTripTime;
-    }
+    this.saveTransferStats_(simpleSegment.stats);
 
     // The request was aborted and the SegmentLoader has already been reset
     if (!this.pendingSegment_) {
@@ -1572,10 +1595,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       // set the bandwidth to a very low value and trigger an ABR switch to
       // take emergency action
       if (error.code === REQUEST_ERRORS.TIMEOUT) {
-        this.mediaRequestsTimedout += 1;
-        this.bandwidth = 1;
-        this.roundTrip = NaN;
-        this.trigger('bandwidthupdate');
+        this.handleTimeout_();
         return;
       }
 
@@ -1589,13 +1609,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // the response was a success so set any bandwidth stats the request
     // generated for ABR purposes
-    this.bandwidth = simpleSegment.stats.bandwidth;
-    this.roundTrip = simpleSegment.stats.roundTripTime;
-
-    // byteLength will be used for throughput, and should be based on bytes receieved,
-    // which we only know at the end of the request and should reflect total bytes
-    // downloaded rather than just bytes processed from components of the segment
-    this.pendingSegment_.byteLength = simpleSegment.stats.bytesReceived;
+    this.saveBandwidthRelatedStats_(simpleSegment.stats);
 
     const segmentInfo = this.pendingSegment_;
 

@@ -7,6 +7,7 @@ import window from 'global/window';
 import { removeCuesFromTrack } from './util/text-tracks';
 import { initSegmentId } from './bin-utils';
 import { uint8ToUtf8 } from './util/string';
+import { REQUEST_ERRORS } from './media-segment-request';
 
 const VTT_LINE_TERMINATORS =
   new Uint8Array('\n\n'.split('').map(char => char.charCodeAt(0)));
@@ -229,21 +230,45 @@ export default class VTTSegmentLoader extends SegmentLoader {
    * @private
    */
   segmentRequestFinished_(error, simpleSegment, result) {
-    if (!this.pendingSegment_ || !this.subtitlesTrack_) {
+    if (!this.subtitlesTrack_) {
       this.state = 'READY';
       return;
     }
 
+    this.saveTransferStats_(simpleSegment.stats);
+
+    // the request was aborted
+    if (!this.pendingSegment_) {
+      this.state = 'READY';
+      this.mediaRequestsAborted += 1;
+      return;
+    }
+
     if (error) {
-      this.error({
-        message: error.message
-      });
+      if (error.code === REQUEST_ERRORS.TIMEOUT) {
+        this.handleTimeout_();
+      }
+
+      if (error.code === REQUEST_ERRORS.ABORTED) {
+        this.mediaRequestsAborted += 1;
+      } else {
+        this.mediaRequestsErrored += 1;
+      }
+
+      this.error(error);
       this.state = 'READY';
       this.pause();
       return this.trigger('error');
     }
 
+    // although the VTT segment loader bandwidth isn't really used, it's good to
+    // maintain functionality between segment loaders
+    this.saveBandwidthRelatedStats_(simpleSegment.stats);
+
     this.state = 'APPENDING';
+
+    // used for tests
+    this.trigger('appending');
 
     let segmentInfo = this.pendingSegment_;
     let segment = segmentInfo.segment;

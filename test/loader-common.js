@@ -90,6 +90,11 @@ export const LoaderCommonSettings = function(settings) {
 };
 
 export const setupMediaSource = (mediaSource, sourceUpdater, options) => {
+  // this can be a valid case, for instance, for the vtt loader
+  if (!mediaSource) {
+    return;
+  }
+
   // must attach a media source to a video element
   const video = document.createElement('video');
 
@@ -124,8 +129,14 @@ export const setupMediaSource = (mediaSource, sourceUpdater, options) => {
  *        Constructor for segment loader. Takes one parameter, a settings object
  * @param {Object} loaderSettings
  *        Custom settings to merge with defaults for the provided loader constructor
+ * @param {function(SegmentLoader|VTTLoader)} loaderBeforeEach
+ *        Function to be run in the beforeEach after loader creation. Takes one parameter,
+ *        the loader for custom modifications to the loader object.
  */
-export const LoaderCommonFactory = (LoaderConstructor, loaderSettings) => {
+export const LoaderCommonFactory = (LoaderConstructor,
+                                    loaderSettings,
+                                    loaderBeforeEach,
+                                    usesAsyncAppends = true) => {
   let loader;
 
   QUnit.module('Loader Common', function(hooks) {
@@ -134,30 +145,12 @@ export const LoaderCommonFactory = (LoaderConstructor, loaderSettings) => {
 
       loader = new LoaderConstructor(LoaderCommonSettings.call(this, loaderSettings), {});
 
-      // shim updateend trigger to be a noop if the loader has no media source
-      this.updateend = function() {
-        if (loader.mediaSource_ && loader.mediaSource_.sourceBuffers.length > 0) {
-          loader.mediaSource_.sourceBuffers[0].trigger('updateend');
-        }
-      };
-
-      /*
-      this.originalTransmuxerMessageHandler = loader.transmuxer_.onmessage;
-
-      this.transmuxerMessageHandler = function(transmuxer, assertMethod) {
-        transmuxer.onmessage = function(msg) {
-          if (msg.data && msg.data.action &&
-            msg.data.action === 'endSegment') {
-            assertMethod();
-          }
-        };
-      };
-      */
+      if (loaderBeforeEach) {
+        loaderBeforeEach(loader);
+      }
     });
 
-    hooks.afterEach(function(assert) {
-      loader.transmuxer_.onmessage = this.originalTransmuxerMessageHandler;
-    });
+    hooks.afterEach(function(assert) {});
 
     QUnit.test('fails without required initialization options', function(assert) {
       /* eslint-disable no-new */
@@ -214,15 +207,19 @@ export const LoaderCommonFactory = (LoaderConstructor, loaderSettings) => {
       loader.load();
       assert.equal(loader.paused(), false, 'unpaused during processing');
 
-      await new Promise((accept, reject) => {
-        loader.on('appending', accept);
-      });
+      if (usesAsyncAppends) {
+        await new Promise((accept, reject) => {
+          loader.on('appending', accept);
+        });
+      }
 
       loader.pause();
 
-      await new Promise((accept, reject) => {
-        loader.on('appended', accept);
-      });
+      if (usesAsyncAppends) {
+        await new Promise((accept, reject) => {
+          loader.on('appended', accept);
+        });
+      }
 
       assert.equal(loader.state, 'READY', 'finished processing');
       assert.ok(loader.paused(), 'stayed paused');
@@ -246,9 +243,11 @@ export const LoaderCommonFactory = (LoaderConstructor, loaderSettings) => {
         0, Config.GOAL_BUFFER_LENGTH
       ]]);
 
-      await new Promise((accept, reject) => {
-        loader.on('appended', accept);
-      });
+      if (usesAsyncAppends) {
+        await new Promise((accept, reject) => {
+          loader.on('appended', accept);
+        });
+      }
 
       assert.equal(this.requests.length, 0, 'no outstanding requests');
 
@@ -269,9 +268,11 @@ export const LoaderCommonFactory = (LoaderConstructor, loaderSettings) => {
       this.clock.tick(1);
       standardXHRResponse(this.requests.shift(), muxedSegment());
 
-      await new Promise((accept, reject) => {
-        loader.on('appended', accept);
-      });
+      if (usesAsyncAppends) {
+        await new Promise((accept, reject) => {
+          loader.on('appended', accept);
+        });
+      }
 
       this.clock.tick(10 * 1000);
       assert.equal(this.requests.length, 0, 'did not make a request');
@@ -291,9 +292,11 @@ export const LoaderCommonFactory = (LoaderConstructor, loaderSettings) => {
       this.clock.tick(100);
       standardXHRResponse(this.requests.shift(), muxedSegment());
 
-      await new Promise((accept, reject) => {
-        loader.on('appended', accept);
-      });
+      if (usesAsyncAppends) {
+        await new Promise((accept, reject) => {
+          loader.on('appended', accept);
+        });
+      }
 
       assert.equal(loader.bandwidth,
                    (segmentBytes / 100) * 8 * 1000,
@@ -437,9 +440,11 @@ export const LoaderCommonFactory = (LoaderConstructor, loaderSettings) => {
       this.clock.tick(1);
 
       standardXHRResponse(this.requests.shift(), muxedSegment());
-      await new Promise((accept, reject) => {
-        loader.on('appended', accept);
-      });
+      if (usesAsyncAppends) {
+        await new Promise((accept, reject) => {
+          loader.on('appended', accept);
+        });
+      }
 
       assert.equal(progresses, 0, 'no bandwidthupdate fired');
 
@@ -448,9 +453,11 @@ export const LoaderCommonFactory = (LoaderConstructor, loaderSettings) => {
       loader.mediaIndex = 1;
 
       standardXHRResponse(this.requests.shift(), muxedSegment());
-      await new Promise((accept, reject) => {
-        loader.on('appended', accept);
-      });
+      if (usesAsyncAppends) {
+        await new Promise((accept, reject) => {
+          loader.on('appended', accept);
+        });
+      }
 
       assert.equal(progresses, 1, 'fired bandwidthupdate');
     });
@@ -494,9 +501,11 @@ export const LoaderCommonFactory = (LoaderConstructor, loaderSettings) => {
 
       standardXHRResponse(this.requests.shift(), mp4VideoSegment());
 
-      await new Promise((accept, reject) => {
-        loader.on('appended', accept);
-      });
+      if (usesAsyncAppends) {
+        await new Promise((accept, reject) => {
+          loader.on('appended', accept);
+        });
+      }
       this.clock.tick(1);
 
       assert.equal(this.requests.length, 1, 'made a request');
@@ -541,9 +550,11 @@ export const LoaderCommonFactory = (LoaderConstructor, loaderSettings) => {
                   'requested the segment');
       standardXHRResponse(this.requests.shift(), mp4VideoSegment());
 
-      await new Promise((accept, reject) => {
-        loader.on('appended', accept);
-      });
+      if (usesAsyncAppends) {
+        await new Promise((accept, reject) => {
+          loader.on('appended', accept);
+        });
+      }
       this.clock.tick(1);
 
       assert.equal(this.requests.length, 2, 'made requests');
@@ -613,9 +624,11 @@ export const LoaderCommonFactory = (LoaderConstructor, loaderSettings) => {
                    '3.ts',
                    'requesting the segment at mediaIndex 3');
       standardXHRResponse(this.requests.shift(), muxedSegment());
-      await new Promise((accept, reject) => {
-        loader.on('appended', accept);
-      });
+      if (usesAsyncAppends) {
+        await new Promise((accept, reject) => {
+          loader.on('appended', accept);
+        });
+      }
 
       assert.equal(loader.mediaIndex, 3, 'mediaIndex ends at 3');
 
@@ -636,9 +649,11 @@ export const LoaderCommonFactory = (LoaderConstructor, loaderSettings) => {
       assert.equal(loader.mediaIndex, 1, 'SegmentLoader.mediaIndex is updated to 1');
 
       standardXHRResponse(this.requests.shift(), muxedSegment());
-      await new Promise((accept, reject) => {
-        loader.on('appended', accept);
-      });
+      if (usesAsyncAppends) {
+        await new Promise((accept, reject) => {
+          loader.on('appended', accept);
+        });
+      }
 
       assert.equal(loader.mediaIndex, 2, 'SegmentLoader.mediaIndex ends at 2');
     });
@@ -688,9 +703,11 @@ export const LoaderCommonFactory = (LoaderConstructor, loaderSettings) => {
                    '3.ts',
                    'requesting the segment at mediaIndex 3');
       standardXHRResponse(this.requests.shift(), muxedSegment());
-      await new Promise((accept, reject) => {
-        loader.on('appended', accept);
-      });
+      if (usesAsyncAppends) {
+        await new Promise((accept, reject) => {
+          loader.on('appended', accept);
+        });
+      }
       this.clock.tick(1);
       segmentInfo = loader.pendingSegment_;
 
@@ -710,9 +727,11 @@ export const LoaderCommonFactory = (LoaderConstructor, loaderSettings) => {
 
       expectedLoaderIndex = 1;
       standardXHRResponse(this.requests.shift(), muxedSegment());
-      await new Promise((accept, reject) => {
-        loader.on('appended', accept);
-      });
+      if (usesAsyncAppends) {
+        await new Promise((accept, reject) => {
+          loader.on('appended', accept);
+        });
+      }
     });
 
     QUnit.test('segment 404s should trigger an error', function(assert) {
@@ -789,31 +808,12 @@ export const LoaderCommonFactory = (LoaderConstructor, loaderSettings) => {
       await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
       loader.playlist(playlistWithDuration(20));
 
-      const origSourceUpdaterDispose =
-        loader.sourceUpdater_.dispose.bind(loader.sourceUpdater_);
-      let sourceUpdaterDisposeCount = 0;
-      const origTransmuxerTerminate =
-        loader.transmuxer_.terminate.bind(loader.transmuxer_);
-      let transmuxerTerminateCount = 0;
-
-      loader.sourceUpdater_.dispose = () => {
-        sourceUpdaterDisposeCount++;
-        origSourceUpdaterDispose();
-      };
-      loader.transmuxer_.terminate = () => {
-        transmuxerTerminateCount++;
-        origTransmuxerTerminate();
-      };
-
       loader.load();
       this.clock.tick(1);
       loader.dispose();
 
       assert.ok(this.requests[0].aborted, 'aborted segment request');
       assert.equal(this.requests.length, 1, 'did not open another request');
-
-      assert.equal(sourceUpdaterDisposeCount, 1, 'disposed source updater');
-      assert.equal(transmuxerTerminateCount, 1, 'terminated transmuxer');
     });
 
     // ----------
@@ -971,9 +971,11 @@ export const LoaderCommonFactory = (LoaderConstructor, loaderSettings) => {
       playlistUpdated.mediaSequence++;
       loader.playlist(playlistUpdated);
       // finish append
-      await new Promise((accept, reject) => {
-        loader.on('appended', accept);
-      });
+      if (usesAsyncAppends) {
+        await new Promise((accept, reject) => {
+          loader.on('appended', accept);
+        });
+      }
       this.clock.tick(1);
 
       assert.equal(loader.pendingSegment_.uri, '1.ts', 'retrieving second segment');
@@ -1018,9 +1020,11 @@ export const LoaderCommonFactory = (LoaderConstructor, loaderSettings) => {
 
       // wrap up the first request to set mediaIndex and start normal live streaming
       standardXHRResponse(this.requests.shift(), muxedSegment());
-      await new Promise((accept, reject) => {
-        loader.on('appended', accept);
-      });
+      if (usesAsyncAppends) {
+        await new Promise((accept, reject) => {
+          loader.on('appended', accept);
+        });
+      }
       this.clock.tick(1);
 
       assert.equal(loader.state, 'WAITING', 'in waiting state');
@@ -1044,9 +1048,11 @@ export const LoaderCommonFactory = (LoaderConstructor, loaderSettings) => {
 
       expectedURI = '1.ts';
       standardXHRResponse(this.requests.shift(), muxedSegment());
-      await new Promise((accept, reject) => {
-        loader.on('appended', accept);
-      });
+      if (usesAsyncAppends) {
+        await new Promise((accept, reject) => {
+          loader.on('appended', accept);
+        });
+      }
     });
 
     QUnit.test('new playlist always triggers syncinfoupdate', function(assert) {

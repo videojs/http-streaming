@@ -971,6 +971,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.audioSegmentLoader_.dispose();
     this.subtitleSegmentLoader_.dispose();
+    this.sourceUpdater_.dispose();
   }
 
   /**

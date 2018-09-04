@@ -142,7 +142,7 @@ QUnit.module('SegmentLoader', function(hooks) {
   hooks.beforeEach(LoaderCommonHooks.beforeEach);
   hooks.afterEach(LoaderCommonHooks.afterEach);
 
-  LoaderCommonFactory(SegmentLoader, { loaderType: 'main' });
+  LoaderCommonFactory(SegmentLoader, {loaderType: 'main'});
 
   // Tests specific to the main segment loader go in this module
   QUnit.module('Main', function(nestedHooks) {
@@ -748,6 +748,26 @@ QUnit.module('SegmentLoader', function(hooks) {
       });
 
       assert.equal(errors.length, 0, 'no errors');
+    });
+
+    QUnit.test('dispose cleans up transmuxer', async function(assert) {
+      await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
+      loader.playlist(playlistWithDuration(20));
+
+      const origTransmuxerTerminate =
+        loader.transmuxer_.terminate.bind(loader.transmuxer_);
+      let transmuxerTerminateCount = 0;
+
+      loader.transmuxer_.terminate = () => {
+        transmuxerTerminateCount++;
+        origTransmuxerTerminate();
+      };
+
+      loader.load();
+      this.clock.tick(1);
+      loader.dispose();
+
+      assert.equal(transmuxerTerminateCount, 1, 'terminated transmuxer');
     });
   });
 });
