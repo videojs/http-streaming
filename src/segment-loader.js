@@ -1634,7 +1634,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       // the first timeline
       segmentInfo.timeline > 0;
 
-    if (isEndOfStream || (isWalkingForward && isDiscontinuity)) {
+    if (!segmentInfo.isFmp4 &&
+        (isEndOfStream || (isWalkingForward && isDiscontinuity))) {
       segmentTransmuxer.endTimeline(this.transmuxer_);
     }
 
