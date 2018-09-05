@@ -123,6 +123,11 @@ export const processTransmux = ({
   };
 
   const handleMessage = (event) => {
+    if (!currentTransmux) {
+      // disposed
+      return;
+    }
+
     if (event.data.action === 'data') {
       handleData_(event, transmuxedData, onData);
     }
@@ -244,8 +249,15 @@ export const transmux = (options) => {
   transmuxQueue.push(options);
 };
 
+export const dispose = () => {
+  // clear out module-level references
+  currentTransmux = null;
+  transmuxQueue.length = 0;
+};
+
 export default {
   reset,
+  dispose,
   endTimeline,
   transmux
 };

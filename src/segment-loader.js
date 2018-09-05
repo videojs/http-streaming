@@ -302,9 +302,9 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.abort_();
     if (this.transmuxer_) {
       this.transmuxer_.terminate();
-    }
-    if (this.sourceUpdater_) {
-      this.sourceUpdater_.dispose();
+      // Although it isn't an instance of a class, the segment transmuxer must still be
+      // cleaned up.
+      segmentTransmuxer.dispose();
     }
     this.resetStats_();
     this.captionParser_.reset();

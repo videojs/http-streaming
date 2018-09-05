@@ -4,6 +4,7 @@ import {
   illegalMediaSwitch,
   safeBackBufferTrimTime
 } from '../src/segment-loader';
+import segmentTransmuxer from '../src/segment-transmuxer';
 import videojs from 'video.js';
 import mp4probe from 'mux.js/lib/mp4/probe';
 import {
@@ -757,10 +758,17 @@ QUnit.module('SegmentLoader', function(hooks) {
       const origTransmuxerTerminate =
         loader.transmuxer_.terminate.bind(loader.transmuxer_);
       let transmuxerTerminateCount = 0;
+      const origSegmentTransmuxerDispose =
+        segmentTransmuxer.dispose.bind(segmentTransmuxer);
+      let segmentTransmuxerDisposeCalls = 0;
 
       loader.transmuxer_.terminate = () => {
         transmuxerTerminateCount++;
         origTransmuxerTerminate();
+      };
+      segmentTransmuxer.dispose = () => {
+        origSegmentTransmuxerDispose();
+        segmentTransmuxerDisposeCalls++;
       };
 
       loader.load();
@@ -768,6 +776,7 @@ QUnit.module('SegmentLoader', function(hooks) {
       loader.dispose();
 
       assert.equal(transmuxerTerminateCount, 1, 'terminated transmuxer');
+      assert.equal(segmentTransmuxerDisposeCalls, 1, 'disposed segment transmuxer');
     });
   });
 });
