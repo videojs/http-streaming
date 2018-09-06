@@ -95,134 +95,6 @@ const initializeNativeSourceBuffers = function(sourceBuffer) {
   sourceBuffer.transmuxer_.onmessage(doneMessage);
 };
 
-// TODO remove in segment-loader removes cues and removes audio/video from source buffers
-QUnit.todo(
-'calling remove deletes cues and invokes remove on any extant source buffers',
-function(assert) {
-  let mediaSource = new window.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
-  let removedCue = [];
-  let removes = 0;
-
-  initializeNativeSourceBuffers(sourceBuffer);
-
-  sourceBuffer.inbandTextTracks_ = {
-    CC1: {
-      removeCue(cue) {
-        removedCue.push(cue);
-        this.cues.splice(this.cues.indexOf(cue), 1);
-      },
-      cues: [
-        {startTime: 10, endTime: 20, text: 'delete me'},
-        {startTime: 0, endTime: 2, text: 'save me'}
-      ]
-    }
-  };
-  mediaSource.videoBuffer_.remove = function(start, end) {
-    if (start === 3 && end === 10) {
-      removes++;
-    }
-  };
-  mediaSource.audioBuffer_.remove = function(start, end) {
-    if (start === 3 && end === 10) {
-      removes++;
-    }
-  };
-
-  sourceBuffer.remove(3, 10);
-
-  assert.strictEqual(removes, 2, 'called remove on both sourceBuffers');
-  assert.strictEqual(
-    sourceBuffer.inbandTextTracks_.CC1.cues.length,
-    1,
-    'one cue remains after remove'
-  );
-  assert.strictEqual(
-    removedCue[0].text,
-    'delete me',
-    'the cue that overlapped the remove region was removed'
-  );
-});
-
-// TODO move to segment-loader remove for remove call
-QUnit.todo(
-'calling remove property handles absence of cues (null)',
-function(assert) {
-  let mediaSource = new window.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
-
-  initializeNativeSourceBuffers(sourceBuffer);
-
-  sourceBuffer.inbandTextTracks_ = {
-    CC1: {
-      cues: null
-    }
-  };
-
-  mediaSource.videoBuffer_.remove = function(start, end) {
-    // pass
-  };
-  mediaSource.audioBuffer_.remove = function(start, end) {
-    // pass
-  };
-
-  // this call should not raise an exception
-  sourceBuffer.remove(3, 10);
-
-  assert.strictEqual(
-    sourceBuffer.inbandTextTracks_.CC1.cues,
-    null,
-    'cues are still null'
-  );
-});
-
-// TODO segment-loader remove only removes audio/video
-QUnit.test('removing doesn\'t happen with audio disabled', function(assert) {
-  let mediaSource = new window.MediaSource();
-  let muxedBuffer = mediaSource.addSourceBuffer('video/mp2t');
-
-  // creating this audio buffer disables audio in the muxed one
-  mediaSource.addSourceBuffer('audio/mp2t; codecs="mp4a.40.2"');
-
-  let removedCue = [];
-  let removes = 0;
-
-  initializeNativeSourceBuffers(muxedBuffer);
-
-  muxedBuffer.inbandTextTracks_ = {
-    CC1: {
-      removeCue(cue) {
-        removedCue.push(cue);
-        this.cues.splice(this.cues.indexOf(cue), 1);
-      },
-      cues: [
-        {startTime: 10, endTime: 20, text: 'delete me'},
-        {startTime: 0, endTime: 2, text: 'save me'}
-      ]
-    }
-  };
-  mediaSource.videoBuffer_.remove = function(start, end) {
-    if (start === 3 && end === 10) {
-      removes++;
-    }
-  };
-  mediaSource.audioBuffer_.remove = function(start, end) {
-    if (start === 3 && end === 10) {
-      removes++;
-    }
-  };
-
-  muxedBuffer.remove(3, 10);
-
-  assert.strictEqual(removes, 1, 'called remove on only one source buffer');
-  assert.strictEqual(muxedBuffer.inbandTextTracks_.CC1.cues.length,
-              1,
-              'one cue remains after remove');
-  assert.strictEqual(removedCue[0].text,
-              'delete me',
-              'the cue that overlapped the remove region was removed');
-});
-
 // TODO We should test addSeekableRange in master playlist controller instead
 QUnit.todo('addSeekableRange_ throws an error for media with known duration',
 function(assert) {
@@ -551,6 +423,8 @@ function(assert) {
 });
 
 // TODO move to master-playlist-controller source buffer creation
+// do we want to handle this case anymore? it may be better to always try to use what's
+// specified
 QUnit.todo('handles invalid codec string', function(assert) {
   let mediaSource = new videojs.MediaSource();
   let sourceBuffer =
@@ -577,37 +451,6 @@ QUnit.todo('handles invalid codec string', function(assert) {
     sourceBuffer,
     'returned the virtual buffer'
   );
-});
-
-// TODO move to master-playlist-controller source buffer creation
-QUnit.todo('handles codec strings in reverse order', function(assert) {
-  let mediaSource = new videojs.MediaSource();
-  let sourceBuffer =
-    mediaSource.addSourceBuffer('video/mp2t; codecs="mp4a.40.5,avc1.64001f"');
-
-  initializeNativeSourceBuffers(sourceBuffer);
-
-  assert.ok(mediaSource.videoBuffer_, 'created a video buffer');
-
-  assert.strictEqual(
-    mediaSource.videoBuffer_.type,
-    'video/mp4;codecs="avc1.64001f"',
-    'video buffer has the passed codec'
-  );
-
-  assert.ok(mediaSource.audioBuffer_, 'created an audio buffer');
-  assert.strictEqual(
-    mediaSource.audioBuffer_.type,
-    'audio/mp4;codecs="mp4a.40.5"',
-    'audio buffer has the passed codec'
-  );
-  assert.strictEqual(mediaSource.sourceBuffers.length, 1, 'created one virtual buffer');
-  assert.strictEqual(
-    mediaSource.sourceBuffers[0],
-    sourceBuffer,
-    'returned the virtual buffer'
-  );
-  assert.ok(sourceBuffer.transmuxer_, 'created a transmuxer');
 });
 
 // TODO move to master-playlist-controller source buffer creation

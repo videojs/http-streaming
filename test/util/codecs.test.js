@@ -255,6 +255,36 @@ function(assert) {
     'uses default audio codec');
 });
 
+QUnit.test('parses codecs regardless of codec order', function(assert) {
+  const master = {
+    mediaGroups: {},
+    playlists: []
+  };
+  const media = {
+    attributes: {
+      CODECS: 'avc1.deadbeef, mp4a.40.e'
+    }
+  };
+
+  assert.deepEqual(
+    codecsForPlaylist(master, media),
+    {
+      audio: 'mp4a.40.e',
+      video: 'avc1.deadbeef'
+    },
+    'parses video first');
+
+  media.attributes.CODECS = 'mp4a.40.e, avc1.deadbeef';
+
+  assert.deepEqual(
+    codecsForPlaylist(master, media),
+    {
+      audio: 'mp4a.40.e',
+      video: 'avc1.deadbeef'
+    },
+    'parses audio first');
+});
+
 QUnit.module('Legacy Codecs');
 
 QUnit.test('maps legacy AVC codecs', function(assert) {

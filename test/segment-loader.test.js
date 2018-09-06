@@ -778,6 +778,111 @@ QUnit.module('SegmentLoader', function(hooks) {
       assert.equal(transmuxerTerminateCount, 1, 'terminated transmuxer');
       assert.equal(segmentTransmuxerDisposeCalls, 1, 'disposed segment transmuxer');
     });
+
+    QUnit.test('calling remove removes cues', async function(assert) {
+      await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
+      const playlist = playlistWithDuration(40);
+
+      loader.playlist(playlist);
+      loader.load();
+      this.clock.tick(1);
+
+      // load a segment as we can't remove if nothing's been appended
+      standardXHRResponse(this.requests.shift(), muxedSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      let removedCues = [];
+
+      loader.inbandTextTracks_ = {
+        CC1: {
+          removeCue(cue) {
+            removedCues.push(cue);
+            this.cues.splice(this.cues.indexOf(cue), 1);
+          },
+          cues: [
+            {startTime: 10, endTime: 20, text: 'delete me'},
+            {startTime: 0, endTime: 2, text: 'save me'}
+          ]
+        }
+      };
+
+      loader.remove(3, 10);
+
+      assert.strictEqual(
+        loader.inbandTextTracks_.CC1.cues.length,
+        1,
+        'one cue remains after remove'
+      );
+      assert.strictEqual(
+        removedCues[0].text,
+        'delete me',
+        'the cue that overlapped the remove region was removed'
+      );
+    });
+
+    QUnit.test('calling remove handles absence of cues (null)', async function(assert) {
+      await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
+      const playlist = playlistWithDuration(40);
+
+      loader.playlist(playlist);
+      loader.load();
+      this.clock.tick(1);
+
+      // load a segment as we can't remove if nothing's been appended
+      standardXHRResponse(this.requests.shift(), muxedSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      loader.inbandTextTracks_ = {
+        CC1: {
+          cues: null
+        }
+      };
+
+      // this call should not raise an exception
+      loader.remove(3, 10);
+
+      assert.strictEqual(loader.inbandTextTracks_.CC1.cues, null, 'cues are still null');
+    });
+
+    QUnit.test('only removes video when audio disabled', async function(assert) {
+      await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
+      const playlist = playlistWithDuration(40);
+
+      loader.playlist(playlist);
+      loader.load();
+      this.clock.tick(1);
+
+      // load a segment as we can't remove if nothing's been appended
+      standardXHRResponse(this.requests.shift(), muxedSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      loader.setAudio(false);
+
+      let audioRemoves = [];
+      let videoRemoves = [];
+
+      loader.sourceUpdater_.removeAudio = (start, end) => {
+        audioRemoves.push({start, end});
+      };
+      loader.sourceUpdater_.removeVideo = (start, end) => {
+        videoRemoves.push({start, end});
+      };
+
+      loader.remove(3, 10);
+
+      assert.equal(audioRemoves, 0, 'did not remove from audio buffer');
+      assert.equal(videoRemoves.length, 1, 'removed from video buffer');
+      assert.deepEqual(videoRemoves[0], {start: 3, end: 10}, 'removed the right range');
+    });
   });
 });
 
