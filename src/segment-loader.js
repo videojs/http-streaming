@@ -1145,10 +1145,13 @@ export default class SegmentLoader extends videojs.EventTarget {
 
   handleCaptions_(simpleSegment, captions) {
     if (this.checkForAbort_(simpleSegment.requestId) ||
-      this.abortRequestEarly_(simpleSegment.stats) ||
-      // This could only happen with fmp4 segments, but
-      // should still not happen in general
-      captions.length === 0) {
+      this.abortRequestEarly_(simpleSegment.stats)) {
+      return;
+
+    // This could only happen with fmp4 segments, but
+    // should still not happen in general
+    } else if (captions.length === 0) {
+      this.logger_('SegmentLoader received no captions from a caption event');
       return;
     }
 
@@ -1212,15 +1215,14 @@ export default class SegmentLoader extends videojs.EventTarget {
     });
   }
 
-  processMetadataQueue_(simpleSegment, type) {
-    if (type !== 'id3' && type !== 'caption') {
-      return;
-    }
+  processMetadataQueue_() {
+    const id3Queue = this.metadataQueue_.id3;
+    const captionQueue = this.metadataQueue_.caption;
 
-    const queue = this.metadataQueue_[type];
-
-    this.metadataQueue_[type] = [];
-    queue.forEach((fn) => fn());
+    this.metadataQueue_.id3 = [];
+    this.metadataQueue_.caption = [];
+    id3Queue.forEach((fn) => fn());
+    captionQueue.forEach((fn) => fn());
   }
 
   processCallQueue_() {
@@ -1344,8 +1346,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // has had a chance to be set.
     segmentInfo.hasAppendedData_ = true;
     // Now that the timestamp offset should be set, we can append any waiting ID3 tags.
-    this.processMetadataQueue_(simpleSegment, 'id3');
-    this.processMetadataQueue_(simpleSegment, 'caption');
+    this.processMetadataQueue_();
 
     this.appendData_(segmentInfo, result);
   }

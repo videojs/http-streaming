@@ -177,7 +177,7 @@ const handleKeyResponse = (segment, finishProcessingFn) => (error, request) => {
  *                                        this request
  */
 const handleInitSegmentResponse =
-({segment, captionParser, handlePartialData, finishProcessingFn}) => (error, request) => {
+({segment, captionParser, finishProcessingFn}) => (error, request) => {
   const response = request.response;
   const errorObj = handleErrors(error, request);
 
@@ -744,7 +744,6 @@ export const mediaSegmentRequest = ({
     const initSegmentRequestCallback = handleInitSegmentResponse({
       segment,
       captionParser,
-      handlePartialData,
       finishProcessingFn
     });
     const initSegmentXhr = xhr(initSegmentOptions, initSegmentRequestCallback);
