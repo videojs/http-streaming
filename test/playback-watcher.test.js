@@ -162,9 +162,7 @@ QUnit.test('skips over gap in Chrome due to video underflow', function(assert) {
 
   let seeks = [];
 
-  this.player.tech_.setCurrentTime = (time) => {
-    seeks.push(time);
-  };
+  this.player.vhs.setCurrentTime = (time) => seeks.push(time);
 
   this.player.tech_.trigger('waiting');
 

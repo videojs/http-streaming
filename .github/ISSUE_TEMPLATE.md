@@ -1,3 +1,7 @@
+__Please do not delete the template, by filling out the required information we can investigate your issue more quickly.__
+
+Before opening an issue see if your problem can be resolved with the [troubleshooting guide](https://github.com/videojs/http-streaming/blob/master/docs/troubleshooting.md). 
+
 ## Description
 Briefly describe the issue.
 Include a [reduced test case](https://css-tricks.com/reduced-test-cases/), we have a [starter template](https://jsbin.com/gejugat/edit?html,output) on JSBin you can use.
@@ -23,9 +27,9 @@ If there are any errors in the console, from the player, or anywhere else please
 Please include any additional information necessary here. Including the following:
 
 
-### videojs-contrib-hls version
-what version of videojs-contrib-hls does this occur with?
-videojs-contrib-hls x.y.z
+### videojs-http-streaming version
+what version of videojs-http-streaming does this occur with?
+videojs-http-streaming x.y.z
 
 ### videojs version
 what version of videojs does this occur with?

@@ -611,15 +611,17 @@ export default class SegmentLoader extends videojs.EventTarget {
 
   /**
    * Delete all the buffered data and reset the SegmentLoader
+   * @param {Function} [done] an optional callback to be executed when the remove
+   * operation is complete
    */
-  resetEverything() {
+  resetEverything(done) {
     this.ended_ = false;
     this.appendInitSegment_ = {
       audio: true,
       video: true
     };
     this.resetLoader();
-    this.remove(0, this.duration_());
+    this.remove(0, this.duration_(), done);
     // clears fmp4 captions
     this.captionParser_.clearAllCaptions();
   }
@@ -656,20 +658,33 @@ export default class SegmentLoader extends videojs.EventTarget {
    * Remove any data in the source buffer between start and end times
    * @param {Number} start - the start time of the region to remove from the buffer
    * @param {Number} end - the end time of the region to remove from the buffer
+   * @param {Function} [done] - an optional callback to be executed when the remove
+   * operation is complete
    */
-  remove(start, end) {
+  remove(start, end, done = () => {}) {
     if (!this.sourceUpdater_ || !this.startingMedia_) {
       // nothing to remove if we haven't processed any media
       return;
     }
 
+    // set it to one to complete this function's removes
+    let removesRemaining = 1;
+    const removeFinished = () => {
+      removesRemaining--;
+      if (removesRemaining === 0) {
+        done();
+      }
+    };
+
     if (!this.audioDisabled_) {
-      this.sourceUpdater_.removeAudio(start, end);
+      removesRemaining++;
+      this.sourceUpdater_.removeAudio(start, end, removeFinished);
     }
 
     if (this.loaderType_ === 'main' && this.startingMedia_.hasVideo) {
       this.gopBuffer_ = removeGopBuffer(this.gopBuffer_, start, end, this.timeMapping_);
-      this.sourceUpdater_.removeVideo(start, end);
+      removesRemaining++;
+      this.sourceUpdater_.removeVideo(start, end, removeFinished);
     }
 
     // remove any captions and ID3 tags
@@ -683,6 +698,8 @@ export default class SegmentLoader extends videojs.EventTarget {
         removeCuesFromTrack(start, end, this.inbandTextTracks_[id]);
       }
     }
+    // finished this function's removes
+    removeFinished();
   }
 
   /**

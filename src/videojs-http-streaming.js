@@ -320,7 +320,7 @@ class HlsHandler extends Component {
         document.msFullscreenElement;
 
       if (fullscreenElement && fullscreenElement.contains(this.tech_.el())) {
-        this.masterPlaylistController_.fastQualityChange_();
+        this.masterPlaylistController_.smoothQualityChange_();
       }
     });
 
@@ -379,8 +379,8 @@ class HlsHandler extends Component {
     this.options_.externHls = Hls;
     this.options_.sourceType = simpleTypeFromSourceType(type);
     // Whenever we seek internally, we should update both the tech and call our own
-    // setCurrentTime function. This is needed because seek events aren't always reliable.
-    // External seeks (via the player object) are handled via middleware.
+    // setCurrentTime function. This is needed because "seeking" events aren't always
+    // reliable. External seeks (via the player object) are handled via middleware.
     this.options_.seekTo = (time) => {
       this.tech_.setCurrentTime(time);
       this.setCurrentTime(time);

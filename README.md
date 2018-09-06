@@ -1,3 +1,5 @@
+<img width=300 src="./logo.svg" alt="VHS Logo consisting of a VHS tape, the Video.js logo and the words VHS" />
+
 # videojs-http-streaming (VHS)
 
 [![Build Status][travis-icon]][travis-link]
@@ -6,6 +8,8 @@
 
 Play HLS, DASH, and future HTTP streaming protocols with video.js, even where they're not
 natively supported.
+
+Included in video.js 7 by default! See the [video.js 7 blog post](https://blog.videojs.com/video-js-7-is-here/)
 
 Maintenance Status: Stable
 
@@ -97,7 +101,8 @@ See [our troubleshooting guide](/docs/troubleshooting.md)
 Drop by our slack channel (#playback) on the [Video.js slack][slack-link].
 
 ## Getting Started
-Get a copy of [videojs-http-streaming](#installation) and include it in your page along with video.js:
+This library is included in video.js 7 by default, if you are using an older version of video.js then
+get a copy of [videojs-http-streaming](#installation) and include it in your page along with video.js:
 
 ```html
 <video-js id=vid1 width=600 height=300 class="vjs-default-skin" controls>

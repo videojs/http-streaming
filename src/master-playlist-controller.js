@@ -259,6 +259,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
       // a playlist (e.g., in case the playlist errored and we re-requested it).
       if (!this.tech_.paused()) {
         this.mainSegmentLoader_.load();
+        if (this.audioSegmentLoader_) {
+          this.audioSegmentLoader_.load();
+        }
       }
 
       if (!updatedPlaylist.endList) {
@@ -315,6 +318,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       // update the SegmentLoader instead of doing it twice here and
       // on `loadedplaylist`
       this.mainSegmentLoader_.playlist(media, this.requestOptions_);
+
       this.mainSegmentLoader_.load();
 
       this.tech_.trigger({
@@ -490,13 +494,12 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
   /**
    * Re-tune playback quality level for the current player
-   * conditions. This method may perform destructive actions, like
-   * removing already buffered content, to readjust the currently
-   * active playlist quickly.
+   * conditions without performing destructive actions, like
+   * removing already buffered content
    *
    * @private
    */
-  fastQualityChange_() {
+  smoothQualityChange_() {
     let media = this.selectPlaylist();
 
     if (media !== this.masterPlaylistLoader_.media()) {
@@ -505,6 +508,36 @@ export class MasterPlaylistController extends videojs.EventTarget {
       this.mainSegmentLoader_.resetLoader();
       // don't need to reset audio as it is reset when media changes
     }
+  }
+
+  /**
+   * Re-tune playback quality level for the current player
+   * conditions. This method will perform destructive actions like removing
+   * already buffered content in order to readjust the currently active
+   * playlist quickly. This is good for manual quality changes
+   *
+   * @private
+   */
+  fastQualityChange_() {
+    const media = this.selectPlaylist();
+
+    if (media === this.masterPlaylistLoader_.media()) {
+      return;
+    }
+
+    this.masterPlaylistLoader_.media(media);
+
+    // delete all buffered data to allow an immediate quality switch, then seek
+    // in place to give the browser a kick to remove any cached frames from the
+    // previous rendition
+    this.mainSegmentLoader_.resetEverything(() => {
+      // Since this is not a typical seek, we avoid the seekTo method which can cause
+      // segments from the previously enabled rendition to load before the new playlist
+      // has finished loading
+      this.tech_.setCurrentTime(this.tech_.currentTime());
+    });
+
+    // don't need to reset audio as it is reset when media changes
   }
 
   /**

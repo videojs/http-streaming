@@ -75,9 +75,6 @@ export default [
     external: ['video.js'],
     plugins: umdPlugins
       .concat([uglify({
-        compress: {
-          typeofs: false
-        },
         output: {
           comments: 'some'
         }
