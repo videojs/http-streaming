@@ -1,8 +1,9 @@
 import QUnit from 'qunit';
 import {mediaSegmentRequest, REQUEST_ERRORS} from '../src/media-segment-request';
 import xhrFactory from '../src/xhr';
-import {useFakeEnvironment} from './test-helpers';
+import { useFakeEnvironment, standardXHRResponse } from './test-helpers';
 import Decrypter from 'worker!../src/decrypter-worker.worker.js';
+import { mp4Video, mp4VideoInit } from './test-segments';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
 
@@ -41,12 +42,32 @@ QUnit.module('Media Segment Request', {
       },
       parse(segment, videoTrackIds, timescales) {
         this.parsed = true;
+
+        return {
+          captions: [{
+            startTime: 0,
+            endTime: 1,
+            text: 'test caption'
+          }],
+          captionStreams: {
+            'CC1': true
+          }
+        };
       }
     };
     this.xhrOptions = {
       timeout: 1000
     };
     this.noop = () => {};
+
+    this.standardXHRResponse = (request, data) => {
+      standardXHRResponse(request, data);
+
+      // Because SegmentLoader#fillBuffer_ is now scheduled asynchronously
+      // we have to use clock.tick to get the expected side effects of
+      // SegmentLoader#handleAppendsDone_
+      this.clock.tick(1);
+    };
   },
   afterEach(assert) {
     this.realDecrypter.terminate();
@@ -359,9 +380,10 @@ function(assert) {
   this.clock.tick(100);
 });
 
-// TODO update for new flow
-QUnit.skip('non-TS segment will get parsed for captions', function(assert) {
+QUnit.test('non-TS segment will get parsed for captions', function(assert) {
   const done = assert.async();
+  let gotCaption = false;
+  let gotData = false;
 
   mediaSegmentRequest({
     xhr: this.xhr,
@@ -369,25 +391,36 @@ QUnit.skip('non-TS segment will get parsed for captions', function(assert) {
     decryptionWorker: this.mockDecrypter,
     captionParser: this.mockCaptionParser,
     segment: {
-      resolvedUri: '0-test.m4s',
+      resolvedUri: 'mp4Video.mp4',
       map: {
-        resolvedUri: '0-init.mp4'
-      }
+        resolvedUri: 'mp4VideoInit.mp4'
+      },
+      isFmp4: true
     },
     progressFn: this.noop,
-    dataFn: (error, segmentData) => {
-      assert.notOk(error, 'there are no errors');
-      assert.ok(segmentData.map.bytes, 'init segment bytes in map');
+    trackInfoFn: this.noop,
+    timingInfoFn: this.noop,
+    id3Fn: this.noop,
+    captionsFn: (segment, captions) => {
+      gotCaption = true;
 
-      // verify stats
-      assert.equal(segmentData.stats.bytesReceived, 8, '8 bytes');
-      // verify cached map
-      assert.ok(segmentData.map.timescales, 'looked for timescales');
-      assert.ok(segmentData.map.videoTrackIds, 'looked for videoTrackIds');
       // verify the caption parser
       assert.equal(this.mockCaptionParser.parsed, true, 'tried to parse captions');
+      assert.deepEqual(captions, this.mockCaptionParser.parse().captions, 'returned the expected captions');
+    },
+    dataFn: (segment, segmentData) => {
+      gotData = true;
+
+      assert.ok(segment.map.bytes, 'init segment bytes in map');
+      assert.ok(segment.map.timescales, 'looked for timescales');
+      assert.ok(segment.map.videoTrackIds, 'looked for videoTrackIds');
+    },
+    doneFn: () => {
+      assert.ok(gotCaption, 'received caption event');
+      assert.ok(gotData, 'received data event');
       done();
-    }
+    },
+    handlePartialData: false
   });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
@@ -395,100 +428,72 @@ QUnit.skip('non-TS segment will get parsed for captions', function(assert) {
   const initReq = this.requests.shift();
   const segmentReq = this.requests.shift();
 
-  assert.equal(initReq.uri, '0-init.mp4', 'the first request is for the init segment');
-  assert.equal(segmentReq.uri, '0-test.m4s', 'the second request is for a segment');
+  assert.equal(initReq.uri, 'mp4VideoInit.mp4', 'the first request is for the init segment');
+  assert.equal(segmentReq.uri, 'mp4Video.mp4', 'the second request is for a segment');
 
-  initReq.response = new Uint32Array([0, 1, 2, 3]).buffer;
-  initReq.respond(200, null, '');
-  this.clock.tick(200);
-
-  segmentReq.response = new Uint8Array(8).buffer;
-  segmentReq.respond(200, null, '');
-  this.clock.tick(200);
+  this.standardXHRResponse(initReq, mp4VideoInit());
+  this.standardXHRResponse(segmentReq, mp4Video());
 });
 
-// TODO update for new flow
-QUnit.skip('non-TS segment will get parsed for captions on next segment request if init is late', function(assert) {
+QUnit.test('non-TS segment will get parsed for captions on next segment request if init is late', function(assert) {
   const done = assert.async();
-  let initBytes;
+  let gotCaption = 0;
+  let gotData = 0;
 
-  mediaSegmentRequest(
-    this.xhr,
-    this.xhrOptions,
-    this.mockDecrypter,
-    this.mockCaptionParser,
-    {
-      resolvedUri: '0-test.m4s',
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.mockDecrypter,
+    captionParser: this.mockCaptionParser,
+    segment: {
+      resolvedUri: 'mp4Video.mp4',
       map: {
-        resolvedUri: '0-init.mp4'
+        resolvedUri: 'mp4VideoInit.mp4'
       }
     },
-    this.noop,
-    (error, segmentData) => {
-      assert.notOk(error, 'there are no errors');
-      assert.ok(segmentData.map.bytes, 'init segment bytes in map');
-      initBytes = segmentData.map.bytes;
+    progressFn: this.noop,
+    trackInfoFn: this.noop,
+    timingInfoFn: this.noop,
+    id3Fn: this.noop,
+    captionsFn: (segment, captions) => {
+      gotCaption++;
 
-      // verify stats
-      assert.equal(segmentData.stats.bytesReceived, 8, '8 bytes');
-      // verify cached map
-      assert.ok(segmentData.map.timescales, 'looked for timescales');
-      assert.ok(segmentData.map.videoTrackIds, 'looked for videoTrackIds');
       // verify the caption parser
-      assert.equal(this.mockCaptionParser.parsed, false, 'tried to parse captions');
-    });
+      assert.equal(
+        this.mockCaptionParser.parsed,
+        true,
+        'should have parsed captions even though init was received late');
+      assert.deepEqual(
+        captions,
+        this.mockCaptionParser.parse().captions,
+        'the expected captions were received'
+      );
+    },
+    dataFn: (segment, segmentData) => {
+      gotData++;
+
+      assert.ok(segmentData, 'init segment bytes in map');
+      assert.ok(segment.map.timescales, 'looked for timescales');
+      assert.ok(segment.map.videoTrackIds, 'looked for videoTrackIds');
+    },
+    doneFn: () => {
+      assert.equal(gotCaption, 1, 'received caption event');
+      assert.equal(gotData, 1,  'received data event');
+      done();
+    },
+    handlePartialData: false
+  });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
 
   let initReq = this.requests.shift();
   let segmentReq = this.requests.shift();
 
-  assert.equal(initReq.uri, '0-init.mp4', 'the first request is for the init segment');
-  assert.equal(segmentReq.uri, '0-test.m4s', 'the second request is for a segment');
+  assert.equal(initReq.uri, 'mp4VideoInit.mp4', 'the first request is for the init segment');
+  assert.equal(segmentReq.uri, 'mp4Video.mp4', 'the second request is for a segment');
 
-  segmentReq.response = new Uint8Array(8).buffer;
-  segmentReq.respond(200, null, '');
-  this.clock.tick(200);
-
-  initReq.response = new Uint32Array([0, 1, 2, 3]).buffer;
-  initReq.respond(200, null, '');
-  this.clock.tick(200);
-
-  mediaSegmentRequest(
-    this.xhr,
-    this.xhrOptions,
-    this.mockDecrypter,
-    this.mockCaptionParser,
-    {
-      resolvedUri: '1-test.m4s',
-      map: {
-        resolvedUri: '0-init.mp4',
-        bytes: initBytes,
-        timescales: {},
-        videoTrackIds: [1]
-      }
-    },
-    this.noop,
-    (error, segmentData) => {
-      assert.notOk(error, 'there are no errors');
-      assert.ok(segmentData.map.bytes, 'init segment bytes in map');
-
-      // verify stats
-      assert.equal(segmentData.stats.bytesReceived, 8, '8 bytes');
-      // verify cached map
-      assert.ok(segmentData.map.timescales, 'looked for timescales');
-      assert.ok(segmentData.map.videoTrackIds, 'looked for videoTrackIds');
-      // verify the caption parser
-      assert.equal(this.mockCaptionParser.parsed, true, 'tried to parse captions');
-      done();
-    });
-
-  assert.equal(this.requests.length, 1, 'there is one request');
-
-  segmentReq = this.requests.shift();
-  assert.equal(segmentReq.uri, '1-test.m4s', 'the next request is for a segment');
-
-  segmentReq.response = new Uint8Array(8).buffer;
-  segmentReq.respond(200, null, '');
-  this.clock.tick(200);
+  // Simulate receiving the media first
+  this.standardXHRResponse(segmentReq, mp4Video());
+  // Simulate receiving the init segment after the media
+  this.standardXHRResponse(initReq, mp4VideoInit());
 });

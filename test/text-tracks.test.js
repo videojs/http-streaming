@@ -51,7 +51,7 @@ test('creates a track if it does not exist yet', function(assert) {
   const inbandTracks = {};
   const tech = new MockTech();
 
-  createCaptionsTrackIfNotExists(inbandTracks, tech, {CC1: true});
+  createCaptionsTrackIfNotExists(inbandTracks, tech, 'CC1');
   assert.ok(inbandTracks.CC1, 'CC1 track was added');
 });
 
@@ -60,7 +60,7 @@ test('fills inbandTextTracks if a track already exists', function(assert) {
   const tech = new MockTech();
   const track = tech.addRemoteTextTrack({kind: 'captions', id: 'CC1', label: 'CC1'});
 
-  createCaptionsTrackIfNotExists(inbandTracks, tech, {CC1: true});
+  createCaptionsTrackIfNotExists(inbandTracks, tech, 'CC1');
   assert.ok(inbandTracks.CC1, 'CC1 track is now available on inbandTextTracks');
   assert.strictEqual(inbandTracks.CC1, track.track);
 });
