@@ -1,5 +1,3 @@
-import videojs from 'video.js';
-
 const transmuxQueue = [];
 let currentTransmux;
 
