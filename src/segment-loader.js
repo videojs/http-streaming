@@ -187,7 +187,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.sourceUpdater_ = settings.sourceUpdater;
     this.inbandTextTracks_ = settings.inbandTextTracks;
     this.state_ = 'INIT';
-    this.handlePartialData_ = true;
+    this.handlePartialData_ = false;
 
     // private instance variables
     this.checkBufferTimeout_ = null;
