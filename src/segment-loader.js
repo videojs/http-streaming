@@ -1147,10 +1147,11 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (this.checkForAbort_(simpleSegment.requestId) ||
       this.abortRequestEarly_(simpleSegment.stats)) {
       return;
+    }
 
     // This could only happen with fmp4 segments, but
     // should still not happen in general
-    } else if (captions.length === 0) {
+    if (captions.length === 0) {
       this.logger_('SegmentLoader received no captions from a caption event');
       return;
     }
@@ -1216,13 +1217,11 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   processMetadataQueue_() {
-    const id3Queue = this.metadataQueue_.id3;
-    const captionQueue = this.metadataQueue_.caption;
+    this.metadataQueue_.id3.forEach((fn) => fn());
+    this.metadataQueue_.caption.forEach((fn) => fn());
 
     this.metadataQueue_.id3 = [];
     this.metadataQueue_.caption = [];
-    id3Queue.forEach((fn) => fn());
-    captionQueue.forEach((fn) => fn());
   }
 
   processCallQueue_() {
