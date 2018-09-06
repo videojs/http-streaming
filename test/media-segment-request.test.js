@@ -50,7 +50,7 @@ QUnit.module('Media Segment Request', {
             text: 'test caption'
           }],
           captionStreams: {
-            'CC1': true
+            CC1: true
           }
         };
       }
@@ -478,7 +478,7 @@ QUnit.test('non-TS segment will get parsed for captions on next segment request 
     },
     doneFn: () => {
       assert.equal(gotCaption, 1, 'received caption event');
-      assert.equal(gotData, 1,  'received data event');
+      assert.equal(gotData, 1, 'received data event');
       done();
     },
     handlePartialData: false
