@@ -177,7 +177,7 @@ const handleKeyResponse = (segment, finishProcessingFn) => (error, request) => {
  *                                        this request
  */
 const handleInitSegmentResponse =
-(segment, captionParser, finishProcessingFn) => (error, request) => {
+({segment, captionParser, finishProcessingFn}) => (error, request) => {
   const response = request.response;
   const errorObj = handleErrors(error, request);
 
@@ -336,8 +336,8 @@ const transmuxAndNotify = ({
     onId3: (id3Frames, dispatchType) => {
       id3Fn(segment, id3Frames, dispatchType);
     },
-    onCaptions: (captions, captionStreams) => {
-      captionsFn(segment, captions, captionStreams);
+    onCaptions: (captions) => {
+      captionsFn(segment, [captions]);
     },
     onDone: (result) => {
       // To handle partial appends, there won't be a done function passed in (since
@@ -397,8 +397,8 @@ const handleSegmentBytes = ({
       segment.map.videoTrackIds,
       segment.map.timescales);
 
-    if (parsed && parsed.captions) {
-      captionsFn(segment, parsed.captions, parsed.captionStreams);
+    if (parsed && parsed.captions && parsed.captions.length > 0) {
+      captionsFn(segment, parsed.captions);
     }
 
     doneFn(null, segment, {});
@@ -741,9 +741,11 @@ export const mediaSegmentRequest = ({
       responseType: 'arraybuffer',
       headers: segmentXhrHeaders(segment.map)
     });
-    const initSegmentRequestCallback = handleInitSegmentResponse(segment,
-                                                                 captionParser,
-                                                                 finishProcessingFn);
+    const initSegmentRequestCallback = handleInitSegmentResponse({
+      segment,
+      captionParser,
+      finishProcessingFn
+    });
     const initSegmentXhr = xhr(initSegmentOptions, initSegmentRequestCallback);
 
     activeXhrs.push(initSegmentXhr);

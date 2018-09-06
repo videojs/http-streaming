@@ -210,7 +210,10 @@ export default class SegmentLoader extends videojs.EventTarget {
       video: null
     };
     this.callQueue_ = [];
-    this.id3Queue_ = [];
+    this.metadataQueue_ = {
+      id3: [],
+      caption: []
+    };
 
     // Fragmented mp4 playback
     this.activeInitSegmentId_ = null;
@@ -357,7 +360,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     // clear out the segment being processed
     this.pendingSegment_ = null;
     this.callQueue_ = [];
-    this.id3Queue_ = [];
+    this.metadataQueue_.id3 = [];
+    this.metadataQueue_.caption = [];
   }
 
   checkForAbort_(requestId) {
@@ -643,7 +647,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.mediaIndex = null;
     this.syncPoint_ = null;
     this.callQueue_ = [];
-    this.id3Queue_ = [];
+    this.metadataQueue_.id3 = [];
+    this.metadataQueue_.caption = [];
     this.abort();
   }
 
@@ -1138,20 +1143,43 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
   }
 
-  handleCaptions_(simpleSegment, captions, captionStreams) {
-    // Don't need to check for abort since captions are only handled for non partial
-    // appends at the moment (therefore, they will only trigger once a segment is finished
-    // being transmuxed).
-    createCaptionsTrackIfNotExists(
-      this.inbandTextTracks_, this.hls_.tech_, captionStreams);
-    addCaptionData({
-      captionArray: captions,
-      inbandTextTracks: this.inbandTextTracks_,
-      // full segments appends already offset times in the transmuxer
-      timestampOffset: 0
+  handleCaptions_(simpleSegment, captions) {
+    if (this.checkForAbort_(simpleSegment.requestId) ||
+      this.abortRequestEarly_(simpleSegment.stats)) {
+      return;
+    }
+
+    // This could only happen with fmp4 segments, but
+    // should still not happen in general
+    if (captions.length === 0) {
+      this.logger_('SegmentLoader received no captions from a caption event');
+      return;
+    }
+
+    const segmentInfo = this.pendingSegment_;
+
+    // Wait until we have some video data so that caption timing
+    // can be adjusted by the timestamp offset
+    if (!segmentInfo.hasAppendedData_) {
+      this.metadataQueue_.caption.push(
+        this.handleCaptions_.bind(this, simpleSegment, captions));
+      return;
+    }
+
+    const timestampOffset = this.sourceUpdater_.videoTimestampOffset() === null ?
+      this.sourceUpdater_.audioTimestampOffset() :
+      this.sourceUpdater_.videoTimestampOffset();
+
+    captions.forEach((caption) => {
+      createCaptionsTrackIfNotExists(
+        this.inbandTextTracks_, this.hls_.tech_, caption.stream);
+      addCaptionData({
+        captionArray: [caption],
+        inbandTextTracks: this.inbandTextTracks_,
+        timestampOffset
+      });
     });
 
-    // TODO
     // Reset stored captions since we added parsed
     // captions to a text track at this point
     this.captionParser_.clearParsedCaptions();
@@ -1167,19 +1195,14 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // we need to have appended data in order for the timestamp offset to be set
     if (!segmentInfo.hasAppendedData_) {
-      this.id3Queue_.push(
+      this.metadataQueue_.id3.push(
         this.handleId3_.bind(this, simpleSegment, id3Frames, dispatchType));
       return;
     }
 
-    // full segments appends already offset times in the transmuxer
-    let timestampOffset = 0;
-
-    if (this.handlePartialData_) {
-      timestampOffset = this.sourceUpdater_.videoTimestampOffset() === null ?
-        this.sourceUpdater_.videoTimestampOffset() :
-        this.sourceUpdater_.audioTimestampOffset();
-    }
+    const timestampOffset = this.sourceUpdater_.videoTimestampOffset() === null ?
+      this.sourceUpdater_.audioTimestampOffset() :
+      this.sourceUpdater_.videoTimestampOffset();
 
     // There's potentially an issue where we could double add metadata if there's a muxed
     // audio/video source with a metadata track, and an alt audio with a metadata track.
@@ -1193,11 +1216,12 @@ export default class SegmentLoader extends videojs.EventTarget {
     });
   }
 
-  processId3Queue_(simpleSegment) {
-    const id3Queue = this.id3Queue_;
+  processMetadataQueue_() {
+    this.metadataQueue_.id3.forEach((fn) => fn());
+    this.metadataQueue_.caption.forEach((fn) => fn());
 
-    this.id3Queue_ = [];
-    id3Queue.forEach((fun) => fun());
+    this.metadataQueue_.id3 = [];
+    this.metadataQueue_.caption = [];
   }
 
   processCallQueue_() {
@@ -1321,7 +1345,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // has had a chance to be set.
     segmentInfo.hasAppendedData_ = true;
     // Now that the timestamp offset should be set, we can append any waiting ID3 tags.
-    this.processId3Queue_(simpleSegment);
+    this.processMetadataQueue_();
 
     this.appendData_(segmentInfo, result);
   }
