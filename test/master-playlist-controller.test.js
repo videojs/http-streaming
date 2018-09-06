@@ -3080,3 +3080,36 @@ QUnit.test('Exception in play promise should be caught', function(assert) {
 
   assert.ok(true, 'rejects dom exception');
 });
+
+QUnit.test('adds duration to media source after loading playlist', function(assert) {
+  openMediaSource(this.player, this.clock);
+  const mpc = this.masterPlaylistController;
+
+  // master
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.notOk(mpc.mediaSource.duration, 'no duration set on media source');
+
+  // playlist
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.equal(mpc.mediaSource.duration, 40, 'duration set on media source');
+});
+
+QUnit.test('adds infinite duration to media source after loading live playlist',
+function(assert) {
+  openMediaSource(this.player, this.clock);
+  const mpc = this.masterPlaylistController;
+
+  // master
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.notOk(mpc.mediaSource.duration, 'no duration set on media source');
+
+  this.requests.shift().respond(200, null,
+                                '#EXTM3U\n' +
+                                '#EXTINF:5.0\n' +
+                                '0.ts\n');
+
+  assert.equal(mpc.mediaSource.duration, Infinity, 'duration set on media source');
+});

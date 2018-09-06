@@ -95,33 +95,6 @@ const initializeNativeSourceBuffers = function(sourceBuffer) {
   sourceBuffer.transmuxer_.onmessage(doneMessage);
 };
 
-// TODO We should test addSeekableRange in master playlist controller instead
-QUnit.todo('addSeekableRange_ throws an error for media with known duration',
-function(assert) {
-  let mediaSource = new window.MediaSource();
-
-  mediaSource.duration = 100;
-  assert.throws(function() {
-    mediaSource.addSeekableRange_(0, 100);
-  }, 'cannot add seekable range');
-});
-
-// TODO We should test addSeekableRange in master playlist controller instead
-QUnit.todo('addSeekableRange_ adds to the native MediaSource duration', function(assert) {
-  let mediaSource = new videojs.MediaSource();
-
-  mediaSource.duration = Infinity;
-  mediaSource.addSeekableRange_(120, 240);
-  assert.strictEqual(mediaSource.nativeMediaSource_.duration, 240, 'set native duration');
-  assert.strictEqual(mediaSource.duration, Infinity, 'emulated duration');
-
-  mediaSource.addSeekableRange_(120, 220);
-  assert.strictEqual(mediaSource.nativeMediaSource_.duration,
-                     240,
-                     'ignored the smaller range');
-  assert.strictEqual(mediaSource.duration, Infinity, 'emulated duration');
-});
-
 // TODO move to source updater
 QUnit.todo('appendBuffer error triggers on the player', function(assert) {
   let mediaSource = new window.MediaSource();
