@@ -95,67 +95,6 @@ const initializeNativeSourceBuffers = function(sourceBuffer) {
   sourceBuffer.transmuxer_.onmessage(doneMessage);
 };
 
-// TODO rewrite for native world
-QUnit.todo(
-'handles typed-arrays that are subsets of their underlying buffer',
-function(assert) {
-  let mp2tSegments = [];
-  let mp4Segments = [];
-  let dataBuffer = new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
-  let data = dataBuffer.subarray(5, 7);
-  let mediaSource;
-  let sourceBuffer;
-
-  mediaSource = new window.MediaSource();
-  sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
-
-  sourceBuffer.transmuxer_.postMessage = function(segment) {
-    if (segment.action === 'push') {
-      let buffer = new Uint8Array(segment.data, segment.byteOffset, segment.byteLength);
-
-      mp2tSegments.push(buffer);
-    }
-  };
-
-  sourceBuffer.concatAndAppendSegments_ = function(segmentObj, destinationBuffer) {
-    mp4Segments.push(segmentObj.segments[0]);
-  };
-
-  sourceBuffer.appendBuffer(data);
-
-  assert.strictEqual(mp2tSegments.length, 1, 'emitted the fragment');
-  assert.strictEqual(
-    mp2tSegments[0].length,
-    2,
-    'correctly handled a typed-array that is a subset'
-  );
-  assert.strictEqual(mp2tSegments[0][0], 5, 'fragment contains the correct first byte');
-  assert.strictEqual(mp2tSegments[0][1], 6, 'fragment contains the correct second byte');
-
-  // an init segment
-  sourceBuffer.transmuxer_.onmessage(createDataMessage('video', data));
-
-  // Segments are concatenated
-  assert.strictEqual(
-    mp4Segments.length,
-    0,
-    'segments are not appended until after the `done` message'
-  );
-
-  // send `done` message
-  sourceBuffer.transmuxer_.onmessage(doneMessage);
-
-  // Segments are concatenated
-  assert.strictEqual(mp4Segments.length, 1, 'emitted the fragment');
-  assert.strictEqual(
-    mp4Segments[0].length,
-    2,
-    'correctly handled a typed-array that is a subset'
-  );
-  assert.strictEqual(mp4Segments[0][0], 5, 'fragment contains the correct first byte');
-  assert.strictEqual(mp4Segments[0][1], 6, 'fragment contains the correct second byte');
-});
-
 // TODO move to segment-loader
 QUnit.todo(
 'only appends audio init segment for first segment or on audio/media changes',
