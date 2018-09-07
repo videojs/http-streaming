@@ -356,26 +356,6 @@ function(assert) {
 
 });
 
-// TODO move to source updater
-QUnit.todo('disabled audio does not affect buffered property', function(assert) {
-  let mediaSource = new window.MediaSource();
-  let muxedBuffer = mediaSource.addSourceBuffer('video/mp2t');
-  // creating a separate audio buffer disables audio on the muxed one
-  let audioBuffer = mediaSource.addSourceBuffer('audio/mp2t; codecs="mp4a.40.2"');
-
-  initializeNativeSourceBuffers(muxedBuffer);
-
-  mediaSource.videoBuffer_.buffered = videojs.createTimeRanges([[1, 10]]);
-  mediaSource.audioBuffer_.buffered = videojs.createTimeRanges([[2, 11]]);
-
-  assert.strictEqual(audioBuffer.buffered.length, 1, 'one buffered range');
-  assert.strictEqual(audioBuffer.buffered.start(0), 2, 'starts at two');
-  assert.strictEqual(audioBuffer.buffered.end(0), 11, 'ends at eleven');
-  assert.strictEqual(muxedBuffer.buffered.length, 1, 'one buffered range');
-  assert.strictEqual(muxedBuffer.buffered.start(0), 1, 'starts at one');
-  assert.strictEqual(muxedBuffer.buffered.end(0), 10, 'ends at ten');
-});
-
 // TODO move to segment loader
 QUnit.todo('sets transmuxer baseMediaDecodeTime on appends', function(assert) {
   let mediaSource = new window.MediaSource();
@@ -400,56 +380,4 @@ QUnit.todo('sets transmuxer baseMediaDecodeTime on appends', function(assert) {
     42,
     'set the baseMediaDecodeTime based on timestampOffset'
   );
-});
-
-// TODO: rewrite for native MediaSource world
-QUnit.todo('video segments with info trigger videooinfo event', function(assert) {
-  let data = new Uint8Array(1);
-  let infoEvents = [];
-  let mediaSource = new window.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
-  let info = {width: 100};
-  let newinfo = {width: 225};
-
-  mediaSource.on('videoinfo', (e) => infoEvents.push(e));
-
-  // send an audio segment with info, then send done
-  sourceBuffer.transmuxer_.onmessage(createDataMessage('video', data, {info}));
-  sourceBuffer.transmuxer_.onmessage(doneMessage);
-
-  assert.strictEqual(infoEvents.length, 1, 'video info should trigger');
-  assert.deepEqual(infoEvents[0].info, info, 'video info = muxed info');
-
-  // send an audio segment with info, then send done
-  sourceBuffer.transmuxer_.onmessage(createDataMessage('video', data, {info: newinfo}));
-  sourceBuffer.transmuxer_.onmessage(doneMessage);
-
-  assert.strictEqual(infoEvents.length, 2, 'video info should trigger');
-  assert.deepEqual(infoEvents[1].info, newinfo, 'video info = muxed info');
-});
-
-// TODO: rewrite for native MediaSource world
-QUnit.todo('audio segments with info trigger audioinfo event', function(assert) {
-  let data = new Uint8Array(1);
-  let infoEvents = [];
-  let mediaSource = new window.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
-  let info = {width: 100};
-  let newinfo = {width: 225};
-
-  mediaSource.on('audioinfo', (e) => infoEvents.push(e));
-
-  // send an audio segment with info, then send done
-  sourceBuffer.transmuxer_.onmessage(createDataMessage('audio', data, {info}));
-  sourceBuffer.transmuxer_.onmessage(doneMessage);
-
-  assert.strictEqual(infoEvents.length, 1, 'audio info should trigger');
-  assert.deepEqual(infoEvents[0].info, info, 'audio info = muxed info');
-
-  // send an audio segment with info, then send done
-  sourceBuffer.transmuxer_.onmessage(createDataMessage('audio', data, {info: newinfo}));
-  sourceBuffer.transmuxer_.onmessage(doneMessage);
-
-  assert.strictEqual(infoEvents.length, 2, 'audio info should trigger');
-  assert.deepEqual(infoEvents[1].info, newinfo, 'audio info = muxed info');
 });
