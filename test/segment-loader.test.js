@@ -473,6 +473,110 @@ QUnit.module('SegmentLoader', function(hooks) {
         assert.equal(loader.mediaRequests, 5, '5 requests');
       });
 
+    QUnit.test('translates metadata events into WebVTT cues', async function(assert) {
+      const cues = [];
+      const dispatchType = 0x10;
+      const metadataCues = [
+        {
+          cueTime: 2,
+          frames: [
+            { url: 'This is a url tag' },
+            { value: 'This is a text tag' }
+          ]
+        },
+        {
+          cueTime: 14,
+          frames: [{
+            data: 'This is a priv tag'
+          }]
+        }
+      ];
+      let simpleSegment;
+      let metadataTrack;
+
+      await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
+      loader.playlist(playlistWithDuration(20));
+      loader.load();
+
+      this.clock.tick(1);
+
+      // Setup the textTracks, timestampOffset and duration
+      sinon.stub(loader.hls_.tech_, 'addRemoteTextTrack')
+        .returns({
+          track: {
+            addCue: (cue) => {
+              cues.push(cue);
+            },
+            cues
+          }
+        });
+      sinon.stub(loader.sourceUpdater_, 'videoTimestampOffset')
+        .returns(10);
+      loader.mediaSource_.duration = 100;
+      loader.inbandTextTracks_ = {};
+
+      // Pretend we have appended data already
+      simpleSegment = videojs.mergeOptions({}, loader.pendingSegment_);
+      loader.pendingSegment_.hasAppendedData_ = true;
+
+      // This will be called on an id3Frame event
+      loader.handleId3_(simpleSegment, metadataCues, dispatchType);
+      // Resulting track
+      metadataTrack = loader.inbandTextTracks_.metadataTrack_;
+
+      assert.strictEqual(
+        metadataTrack.inBandMetadataTrackDispatchType,
+        16,
+        'in-band metadata track dispatch type correctly set'
+      );
+      assert.strictEqual(
+        metadataTrack.cues.length,
+        3,
+        'created three metadataTrack.cues from the frames'
+      );
+      assert.strictEqual(
+        metadataTrack.cues[0].text,
+        'This is a url tag',
+        'included the text'
+      );
+      assert.strictEqual(
+        metadataTrack.cues[0].startTime,
+        12,
+        'started at 12'
+      );
+      assert.strictEqual(
+        metadataTrack.cues[0].endTime,
+        24,
+        'ended at StartTime of next cue(24)'
+      );
+
+      assert.strictEqual(
+        metadataTrack.cues[1].text,
+        'This is a text tag',
+        'included the text');
+      assert.strictEqual(
+        metadataTrack.cues[1].startTime,
+        12,
+        'started at 12');
+      assert.strictEqual(
+        metadataTrack.cues[1].endTime,
+        24,
+        'ended at the startTime of next cue(24)');
+
+      assert.strictEqual(
+        metadataTrack.cues[2].text,
+        'This is a priv tag',
+        'included the text');
+      assert.strictEqual(
+        metadataTrack.cues[2].startTime,
+        24,
+        'started at 24');
+      assert.strictEqual(
+        metadataTrack.cues[2].endTime,
+        loader.mediaSource_.duration,
+        'ended at duration 100');
+    });
+
     QUnit.test('translates caption events into WebVTT cues', async function(assert) {
       const timestampOffsetStub = sinon.stub(loader.sourceUpdater_, 'videoTimestampOffset');
       const textTrackStub = sinon.stub(loader.hls_.tech_, 'textTracks');
@@ -486,9 +590,7 @@ QUnit.module('SegmentLoader', function(hooks) {
       let segmentInfo;
 
       await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
-      let playlist = playlistWithDuration(20);
-
-      loader.playlist(playlist);
+      loader.playlist(playlistWithDuration(20));
       loader.load();
 
       this.clock.tick(1);

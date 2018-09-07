@@ -1,4 +1,5 @@
 import Qunit from 'qunit';
+import sinon from 'sinon';
 import {
   createCaptionsTrackIfNotExists,
   addCaptionData
@@ -43,7 +44,6 @@ module('Text Tracks', {
       metadataTrack_: new MockTextTrack()
     };
     this.timestampOffset = 0;
-    this.videoDuration = NaN;
   }
 });
 
@@ -78,7 +78,6 @@ test('creates cues for 608 captions with "stream" property in ccX', function(ass
   addCaptionData({
     inbandTextTracks: this.inbandTextTracks,
     timestampOffset: this.timestampOffset,
-    videoDuration: this.videoDuration,
     captionArray: [{
       startTime: 0,
       endTime: 1,
@@ -116,4 +115,46 @@ test('creates cues for 608 captions with "stream" property in ccX', function(ass
   assert.strictEqual(this.inbandTextTracks.metadataTrack_.cues.length,
                      0,
                      'added no metadata cues');
+});
+
+test('use existing tracks with id equal to CC#', function(assert) {
+  const tech = new MockTech();
+  const inbandTextTracks = {};
+  const CC2 = tech.addRemoteTextTrack({
+    kind: 'captions',
+    label: 'CC2',
+    id: 'CC2'
+  });
+  const captionArray = [{
+    stream: 'CC2',
+    startTime: 1,
+    endTime: 3,
+    text: 'This is an in-band caption in CC2'
+  }];
+  let addRemoteTextTrackSpy;
+
+  this.timestampOffset = 10;
+
+  // Wrap the addRemoteTextTrack method after adding tracks
+  // to the tech to ensure that any calls on the spy are the
+  // result of createCaptionsTrackIfNotExists
+  addRemoteTextTrackSpy = sinon.spy(tech, 'addRemoteTextTrack');
+
+  createCaptionsTrackIfNotExists(inbandTextTracks, tech, 'CC2');
+  assert.strictEqual(inbandTextTracks.CC2, CC2.track);
+  assert.strictEqual(addRemoteTextTrackSpy.callCount, 0);
+
+  addCaptionData({
+    inbandTextTracks,
+    timestampOffset: this.timestampOffset,
+    captionArray
+  });
+
+  assert.strictEqual(addRemoteTextTrackSpy.callCount, 0, 'no tracks were created');
+  assert.strictEqual(CC2.track.cues.length, 1, 'CC2 contains 1 cue');
+  assert.strictEqual(
+    CC2.track.cues[0].text,
+   'This is an in-band caption in CC2',
+   'CC2 contains the right cue'
+  );
 });
