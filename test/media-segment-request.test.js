@@ -47,7 +47,8 @@ QUnit.module('Media Segment Request', {
           captions: [{
             startTime: 0,
             endTime: 1,
-            text: 'test caption'
+            text: 'test caption',
+            stream: 'CC1'
           }],
           captionStreams: {
             CC1: true

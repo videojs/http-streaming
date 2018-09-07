@@ -473,6 +473,56 @@ QUnit.module('SegmentLoader', function(hooks) {
         assert.equal(loader.mediaRequests, 5, '5 requests');
       });
 
+    QUnit.test('translates caption events into WebVTT cues', async function(assert) {
+      const timestampOffsetStub = sinon.stub(loader.sourceUpdater_, 'videoTimestampOffset');
+      const textTrackStub = sinon.stub(loader.hls_.tech_, 'textTracks');
+      const captions = [{
+        startTime: 0,
+        endTime: 1,
+        text: 'text',
+        stream: 'CC1'
+      }];
+      let addCueSpy;
+      let segmentInfo;
+
+      await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
+      let playlist = playlistWithDuration(20);
+
+      loader.playlist(playlist);
+      loader.load();
+
+      this.clock.tick(1);
+
+      // Setup the inbandTextTracks and tech textTracks
+      loader.inbandTextTracks_ = {};
+      textTrackStub.returns({
+        getTrackById: () => null
+      });
+      addCueSpy = sinon.spy();
+      sinon.stub(loader.hls_.tech_, 'addRemoteTextTrack')
+        .returns({
+          track: {
+            addCue: addCueSpy
+          }
+        });
+
+      // Pretend to have appended data
+      segmentInfo = videojs.mergeOptions({}, loader.pendingSegment_);
+
+      loader.pendingSegment_.hasAppendedData_ = true;
+      timestampOffsetStub.returns(10);
+
+      // This will be called on a caption event
+      loader.handleCaptions_(segmentInfo, captions);
+
+      assert.strictEqual(
+        Object.keys(loader.inbandTextTracks_).length,
+        1,
+        'created one text track'
+      );
+      assert.strictEqual(addCueSpy.callCount, 1, 'created one cue');
+    });
+
     QUnit.test('fires ended at the end of a playlist', async function(assert) {
       await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
       let endOfStreams = 0;

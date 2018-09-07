@@ -494,65 +494,6 @@ QUnit.todo('sets transmuxer baseMediaDecodeTime on appends', function(assert) {
 });
 
 // TODO move to segment-loader
-QUnit.todo('translates caption events into WebVTT cues', function(assert) {
-  let mediaSource = new window.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
-  let types = [];
-  let hls608 = 0;
-
-  mediaSource.player_ = {
-    addRemoteTextTrack(options) {
-      types.push(options.kind);
-      return {
-        track: {
-          kind: options.kind,
-          label: options.label,
-          cues: [],
-          addCue(cue) {
-            this.cues.push(cue);
-          }
-        }
-      };
-    },
-    textTracks() {
-      return {
-        getTrackById() {}
-      };
-    },
-    remoteTextTracks() {
-    },
-    tech_: new videojs.EventTarget()
-  };
-  mediaSource.player_.tech_.on('usage', (event) => {
-    if (event.name === 'hls-608') {
-      hls608++;
-    }
-  });
-  sourceBuffer.timestampOffset = 10;
-  sourceBuffer.transmuxer_.onmessage(createDataMessage('video', new Uint8Array(1), {
-    captions: [{
-      startTime: 1,
-      endTime: 3,
-      text: 'This is an in-band caption in CC1',
-      stream: 'CC1'
-    }],
-    captionStreams: {CC1: true}
-  }));
-  sourceBuffer.transmuxer_.onmessage(doneMessage);
-  let cues = sourceBuffer.inbandTextTracks_.CC1.cues;
-
-  assert.strictEqual(hls608, 1, 'one hls-608 event was triggered');
-  assert.strictEqual(types.length, 1, 'created one text track');
-  assert.strictEqual(types[0], 'captions', 'the type was captions');
-  assert.strictEqual(cues.length, 1, 'created one cue');
-  assert.strictEqual(cues[0].text,
-                     'This is an in-band caption in CC1',
-                     'included the text');
-  assert.strictEqual(cues[0].startTime, 11, 'started at eleven');
-  assert.strictEqual(cues[0].endTime, 13, 'ended at thirteen');
-});
-
-// TODO move to segment-loader
 QUnit.todo('captions use existing tracks with id equal to CC#', function(assert) {
   let mediaSource = new window.MediaSource();
   let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');

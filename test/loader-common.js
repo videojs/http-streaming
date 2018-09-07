@@ -46,7 +46,10 @@ export const LoaderCommonHooks = {
       tech_: {
         paused: () => this.paused,
         playbackRate: () => this.playbackRate,
-        currentTime: () => this.currentTime
+        currentTime: () => this.currentTime,
+        textTracks: () => {},
+        addRemoteTextTrack: () => {},
+        trigger: () => {}
       }
     };
     this.tech_ = this.fakeHls.tech_;
