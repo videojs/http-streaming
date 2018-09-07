@@ -1441,8 +1441,16 @@ export default class SegmentLoader extends videojs.EventTarget {
       segments
     });
 
-    // no need for a callback on progress, just keep pushing data on
-    this.sourceUpdater_.appendBuffer(type, bytes, () => {});
+    this.sourceUpdater_.appendBuffer(type, bytes, (error) => {
+      if (error) {
+        this.error(error);
+        // If an append errors, we can't recover.
+        // (see https://w3c.github.io/media-source/#sourcebuffer-append-error).
+        // Trigger a special error so that it can be handled separately from normal,
+        // recoverable errors.
+        this.trigger('appenderror');
+      }
+    });
   }
 
   /**

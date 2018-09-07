@@ -95,36 +95,6 @@ const initializeNativeSourceBuffers = function(sourceBuffer) {
   sourceBuffer.transmuxer_.onmessage(doneMessage);
 };
 
-// TODO move to source updater
-QUnit.todo('appendBuffer error triggers on the player', function(assert) {
-  let mediaSource = new window.MediaSource();
-  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t');
-  let error = false;
-
-  mediaSource.player_ = this.player;
-
-  initializeNativeSourceBuffers(sourceBuffer);
-
-  sourceBuffer.videoBuffer_.appendBuffer = () => {
-    throw new Error();
-  };
-
-  this.player.on('error', () => {
-    error = true;
-  });
-
-  // send fake data to the source buffer from the transmuxer to append to native buffer
-  // initializeNativeSourceBuffers does the same thing to trigger the creation of
-  // native source buffers.
-  let fakeTransmuxerMessage = initializeNativeSourceBuffers;
-
-  fakeTransmuxerMessage(sourceBuffer);
-
-  this.clock.tick(1);
-
-  assert.ok(error, 'error triggered on player');
-});
-
 // TODO rewrite for native world
 QUnit.todo(
 'handles typed-arrays that are subsets of their underlying buffer',

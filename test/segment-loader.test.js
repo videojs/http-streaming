@@ -933,6 +933,35 @@ QUnit.module('SegmentLoader', function(hooks) {
       assert.equal(videoRemoves.length, 1, 'removed from video buffer');
       assert.deepEqual(videoRemoves[0], {start: 3, end: 10}, 'removed the right range');
     });
+
+    QUnit.test('triggers appenderror when append errors', async function(assert) {
+      await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
+      const playlist = playlistWithDuration(40);
+
+      loader.playlist(playlist);
+      loader.load();
+      this.clock.tick(1);
+
+      const error = { message: 'this is an error' };
+
+      // mocking in this case because it's hard to find a good append error that will
+      // 1) work across browsers
+      // 2) won't cause an error in the transmuxer first
+      loader.sourceUpdater_.appendBuffer = (type, bytes, callback) => {
+        callback(error);
+      };
+
+      standardXHRResponse(this.requests.shift(), muxedSegment());
+
+      await new Promise((accept, reject) => {
+        loader.on('appenderror', () => {
+          assert.deepEqual(
+            loader.error_, error,
+            'loader triggered and saved the appenderror');
+          accept();
+        });
+      });
+    });
   });
 });
 

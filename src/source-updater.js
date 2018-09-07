@@ -92,7 +92,8 @@ const onUpdateend = (type, updater) => () => {
   queue.pending = null;
 
   if (doneFn) {
-    doneFn();
+    // if there's an error, report it
+    doneFn(updater[`${type}Error_`]);
   }
 
   shiftQueue(type, updater);
@@ -166,11 +167,19 @@ export default class SourceUpdater extends videojs.EventTarget {
     if (this.audioBuffer) {
       this.onAudioUpdateEnd_ = onUpdateend('audio', this);
       this.audioBuffer.addEventListener('updateend', this.onAudioUpdateEnd_);
+      this.onAudioError_ = (e) => {
+        this.audioError_ = e;
+      };
+      this.audioBuffer.addEventListener('error', this.onAudioError_);
       shiftQueue('audio', this);
     }
     if (this.videoBuffer) {
       this.onVideoUpdateEnd_ = onUpdateend('video', this);
       this.videoBuffer.addEventListener('updateend', this.onVideoUpdateEnd_);
+      this.onVideoError_ = (e) => {
+        this.videoError_ = e;
+      };
+      this.videoBuffer.addEventListener('error', this.onVideoError_);
       shiftQueue('video', this);
     }
   }
@@ -317,6 +326,7 @@ export default class SourceUpdater extends videojs.EventTarget {
       ]);
     }
   }
+
   /**
    * dispose of the source updater and the underlying sourceBuffer
    */
@@ -327,6 +337,7 @@ export default class SourceUpdater extends videojs.EventTarget {
         this.audioBuffer.abort();
       }
       this.audioBuffer.removeEventListener('updateend', this.onAudioUpdateEnd_);
+      this.audioBuffer.removeEventListener('error', this.onAudioError_);
       this.audioBuffer = null;
     }
     if (this.videoBuffer) {
@@ -334,6 +345,7 @@ export default class SourceUpdater extends videojs.EventTarget {
         this.videoBuffer.abort();
       }
       this.videoBuffer.removeEventListener('updateend', this.onVideoUpdateEnd_);
+      this.videoBuffer.removeEventListener('error', this.onVideoError_);
       this.videoBuffer = null;
     }
   }

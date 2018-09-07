@@ -585,3 +585,44 @@ QUnit.test('dispose aborts and clears out audio and video buffers', function(ass
   assert.notOk(this.sourceUpdater.audioBuffer, 'removed audioBuffer reference');
   assert.notOk(this.sourceUpdater.videoBuffer, 'removed videoBuffer reference');
 });
+
+QUnit.test('no error passed by default in done callback', function(assert) {
+  const done = assert.async();
+
+  this.sourceUpdater.createSourceBuffers({
+    audio: 'mp4a.40.2'
+  });
+
+  this.sourceUpdater.appendBuffer('audio', mp4Audio(), (error) => {
+    assert.notOk(error, 'no error');
+    done();
+  });
+});
+
+QUnit.test('audio source buffer error passed in done callback', function(assert) {
+  const done = assert.async();
+
+  this.sourceUpdater.createSourceBuffers({
+    audio: 'mp4a.40.2'
+  });
+
+  // errors when appending video to an audio buffer
+  this.sourceUpdater.appendBuffer('audio', mp4Video(), (error) => {
+    assert.ok(error, 'error passed back');
+    done();
+  });
+});
+
+QUnit.test('video source buffer error passed in done callback', function(assert) {
+  const done = assert.async();
+
+  this.sourceUpdater.createSourceBuffers({
+    video: 'avc1.4D001E'
+  });
+
+  // errors when appending audio to a video buffer
+  this.sourceUpdater.appendBuffer('video', mp4Audio(), (error) => {
+    assert.ok(error, 'error passed back');
+    done();
+  });
+});

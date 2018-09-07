@@ -439,6 +439,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
       this.blacklistCurrentPlaylist(this.mainSegmentLoader_.error());
     });
 
+    this.mainSegmentLoader_.on('appenderror', () => {
+      this.error = this.mainSegmentLoader_.error_;
+      this.trigger('error');
+    });
+
     this.mainSegmentLoader_.on('syncinfoupdate', () => {
       this.onSyncInfoUpdate_();
     });
@@ -448,6 +453,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
     this.audioSegmentLoader_.on('syncinfoupdate', () => {
       this.onSyncInfoUpdate_();
+    });
+
+    this.audioSegmentLoader_.on('appenderror', () => {
+      this.error = this.mainSegmentLoader_.error_;
+      this.trigger('error');
     });
 
     this.mainSegmentLoader_.on('ended', () => {
