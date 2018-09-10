@@ -345,240 +345,122 @@ QUnit.module('SegmentLoader', function(hooks) {
       assert.ok(playlist.segments[0].end, 'updated duration');
     });
 
-    // TODO
-    QUnit.skip('adds cues with segment information to the segment-metadata track ' +
-               'as they are buffered',
-      function(assert) {
-        const track = loader.segmentMetadataTrack_;
-        const attributes = {
+    QUnit.test('adds cues with segment information to the segment-metadata' +
+               ' track as they are buffered', async function(assert) {
+      const addCueSpy = sinon.spy();
+
+      loader.segmentMetadataTrack_ = {
+        addCue: addCueSpy
+      };
+
+      // Setup mediaSource and segment loader
+      await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
+      loader.playlist(playlistWithDuration(50, {
+        attributes: {
           BANDWIDTH: 3500000,
           RESOLUTION: '1920x1080',
           CODECS: 'mp4a.40.5,avc1.42001e'
-        };
-        let playlist = playlistWithDuration(50, {attributes});
-        let probeResponse;
-        let expectedCue;
-
-        // loader.addSegmentMetadataCue_ = ogAddSegmentMetadataCue_;
-        loader.syncController_.probeTsSegment_ = function(segmentInfo) {
-          return probeResponse;
-        };
-
-        loader.playlist(playlist);
-        loader.mimeType(this.mimeType);
-        loader.load();
-        this.clock.tick(1);
-
-        assert.ok(!track.cues.length,
-                  'segment-metadata track empty when no segments appended');
-
-        // Start appending some segments
-        probeResponse = { start: 0, end: 9.5 };
-        this.requests[0].response = new Uint8Array(10).buffer;
-        this.requests.shift().respond(200, null, '');
-        this.updateend();
-        this.clock.tick(1);
-        expectedCue = {
-          uri: '0.ts',
-          timeline: 0,
-          playlist: 'playlist.m3u8',
-          start: 0,
-          end: 9.5,
-          bandwidth: 3500000,
-          resolution: '1920x1080',
-          codecs: 'mp4a.40.5,avc1.42001e',
-          byteLength: 10
-        };
-
-        assert.equal(track.cues.length, 1, 'one cue added for segment');
-        assert.deepEqual(track.cues[0].value, expectedCue,
-          'added correct segment info to cue');
-
-        probeResponse = { start: 9.56, end: 19.2 };
-        this.requests[0].response = new Uint8Array(10).buffer;
-        this.requests.shift().respond(200, null, '');
-        this.updateend();
-        this.clock.tick(1);
-        expectedCue = {
-          uri: '1.ts',
-          timeline: 0,
-          playlist: 'playlist.m3u8',
-          start: 9.56,
-          end: 19.2,
-          bandwidth: 3500000,
-          resolution: '1920x1080',
-          codecs: 'mp4a.40.5,avc1.42001e',
-          byteLength: 10
-        };
-
-        assert.equal(track.cues.length, 2, 'one cue added for segment');
-        assert.deepEqual(track.cues[1].value, expectedCue,
-          'added correct segment info to cue');
-
-        probeResponse = { start: 19.24, end: 28.99 };
-        this.requests[0].response = new Uint8Array(10).buffer;
-        this.requests.shift().respond(200, null, '');
-        this.updateend();
-        this.clock.tick(1);
-        expectedCue = {
-          uri: '2.ts',
-          timeline: 0,
-          playlist: 'playlist.m3u8',
-          start: 19.24,
-          end: 28.99,
-          bandwidth: 3500000,
-          resolution: '1920x1080',
-          codecs: 'mp4a.40.5,avc1.42001e',
-          byteLength: 10
-        };
-
-        assert.equal(track.cues.length, 3, 'one cue added for segment');
-        assert.deepEqual(track.cues[2].value, expectedCue,
-          'added correct segment info to cue');
-
-        // append overlapping segment, emmulating segment-loader fetching behavior on
-        // rendtion switch
-        probeResponse = { start: 19.21, end: 28.98 };
-        this.requests[0].response = new Uint8Array(10).buffer;
-        this.requests.shift().respond(200, null, '');
-        this.updateend();
-        this.clock.tick(1);
-        expectedCue = {
-          uri: '3.ts',
-          timeline: 0,
-          playlist: 'playlist.m3u8',
-          start: 19.21,
-          end: 28.98,
-          bandwidth: 3500000,
-          resolution: '1920x1080',
-          codecs: 'mp4a.40.5,avc1.42001e',
-          byteLength: 10
-        };
-
-        assert.equal(track.cues.length, 3, 'overlapped cue removed, new one added');
-        assert.deepEqual(track.cues[2].value, expectedCue,
-          'added correct segment info to cue');
-
-        // does not add cue for invalid segment timing info
-        probeResponse = { start: 30, end: void 0 };
-        this.requests[0].response = new Uint8Array(10).buffer;
-        this.requests.shift().respond(200, null, '');
-        this.updateend();
-        this.clock.tick(1);
-
-        assert.equal(track.cues.length, 3, 'no cue added');
-
-        // verify stats
-        assert.equal(loader.mediaBytesTransferred, 50, '50 bytes');
-        assert.equal(loader.mediaRequests, 5, '5 requests');
-      });
-
-    QUnit.test('translates metadata events into WebVTT cues', async function(assert) {
-      const cues = [];
-      const dispatchType = 0x10;
-      const metadataCues = [
-        {
-          cueTime: 2,
-          frames: [
-            { url: 'This is a url tag' },
-            { value: 'This is a text tag' }
-          ]
-        },
-        {
-          cueTime: 14,
-          frames: [{
-            data: 'This is a priv tag'
-          }]
         }
-      ];
-      let simpleSegment;
-      let metadataTrack;
-
-      await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
-      loader.playlist(playlistWithDuration(20));
+      }));
       loader.load();
 
       this.clock.tick(1);
 
-      // Setup the textTracks, timestampOffset and duration
+      // Respond with a segment, and wait until it is appended
+      standardXHRResponse(this.requests.shift(), muxedSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+
+      assert.strictEqual(
+        addCueSpy.callCount,
+        1,
+        'appending segment should have added a new cue to the segmentMetadataTrack'
+      );
+      this.clock.tick(1);
+
+      // If mediaIndex is set, then the SegmentLoader is in walk-forward mode
+      loader.mediaIndex = 1;
+
+      standardXHRResponse(this.requests.shift(), muxedSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+
+      assert.strictEqual(
+        addCueSpy.callCount,
+        2,
+        'another append adds to segmentMetadataTrack'
+      );
+
+      // Does not add cue for invalid segment timing info
+      loader.addSegmentMetadataCue_({
+        segment: {},
+        start: 0,
+        end: undefined
+      });
+
+      assert.equal(addCueSpy.callCount, 2, 'no cue added for invalid segment');
+    });
+
+    QUnit.test('translates metadata events into WebVTT cues', async function(assert) {
+      const dispatchType = 0x10;
+      const metadataCues = [{
+        cueTime: 14,
+        frames: [{
+          data: 'This is a priv tag'
+        }]
+      }];
+      const addCueSpy = sinon.spy();
+
+      // Setup mediaSource and segmentLoader
+      await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
+      loader.inbandTextTracks_ = {};
+      loader.playlist(playlistWithDuration(20));
+      loader.load();
+      loader.mediaSource_.duration = 20;
+
+      this.clock.tick(1);
+
+      // Setup the textTracks
       sinon.stub(loader.hls_.tech_, 'addRemoteTextTrack')
         .returns({
           track: {
-            addCue: (cue) => {
-              cues.push(cue);
-            },
-            cues
+            addCue: addCueSpy
           }
         });
-      sinon.stub(loader.sourceUpdater_, 'videoTimestampOffset')
-        .returns(10);
-      loader.mediaSource_.duration = 100;
-      loader.inbandTextTracks_ = {};
 
-      // Pretend we have appended data already
-      simpleSegment = videojs.mergeOptions({}, loader.pendingSegment_);
-      loader.pendingSegment_.hasAppendedData_ = true;
+      standardXHRResponse(this.requests.shift(), muxedSegment());
 
-      // This will be called on an id3Frame event
-      loader.handleId3_(simpleSegment, metadataCues, dispatchType);
-      // Resulting track
-      metadataTrack = loader.inbandTextTracks_.metadataTrack_;
+      // Simulate an id3Frame event happening that will call handleId3_
+      const handleId3 = () => {
+        loader.handleId3_(loader.pendingSegment_, metadataCues, dispatchType);
+      };
+
+      await new Promise((accept, reject) => {
+        loader.on('appending', handleId3);
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
 
       assert.strictEqual(
-        metadataTrack.inBandMetadataTrackDispatchType,
-        16,
+        loader.sourceUpdater_.videoTimestampOffset(),
+        -1.443988888888889,
+        'expected timestampoffset for video'
+      );
+      assert.strictEqual(
+        loader.inbandTextTracks_.metadataTrack_.inBandMetadataTrackDispatchType,
+        dispatchType,
         'in-band metadata track dispatch type correctly set'
       );
       assert.strictEqual(
-        metadataTrack.cues.length,
-        3,
-        'created three metadataTrack.cues from the frames'
+        addCueSpy.callCount,
+        1,
+        'created 1 metadataTrack.cue from the frames'
       );
-      assert.strictEqual(
-        metadataTrack.cues[0].text,
-        'This is a url tag',
-        'included the text'
-      );
-      assert.strictEqual(
-        metadataTrack.cues[0].startTime,
-        12,
-        'started at 12'
-      );
-      assert.strictEqual(
-        metadataTrack.cues[0].endTime,
-        24,
-        'ended at StartTime of next cue(24)'
-      );
-
-      assert.strictEqual(
-        metadataTrack.cues[1].text,
-        'This is a text tag',
-        'included the text');
-      assert.strictEqual(
-        metadataTrack.cues[1].startTime,
-        12,
-        'started at 12');
-      assert.strictEqual(
-        metadataTrack.cues[1].endTime,
-        24,
-        'ended at the startTime of next cue(24)');
-
-      assert.strictEqual(
-        metadataTrack.cues[2].text,
-        'This is a priv tag',
-        'included the text');
-      assert.strictEqual(
-        metadataTrack.cues[2].startTime,
-        24,
-        'started at 24');
-      assert.strictEqual(
-        metadataTrack.cues[2].endTime,
-        loader.mediaSource_.duration,
-        'ended at duration 100');
     });
 
     QUnit.test('translates caption events into WebVTT cues', async function(assert) {
-      const timestampOffsetStub = sinon.stub(loader.sourceUpdater_, 'videoTimestampOffset');
       const textTrackStub = sinon.stub(loader.hls_.tech_, 'textTracks');
       const captions = [{
         startTime: 0,
@@ -586,9 +468,9 @@ QUnit.module('SegmentLoader', function(hooks) {
         text: 'text',
         stream: 'CC1'
       }];
-      let addCueSpy;
-      let segmentInfo;
+      const addCueSpy = sinon.spy();
 
+      // Setup mediaSource and segmentLoader
       await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
       loader.playlist(playlistWithDuration(20));
       loader.load();
@@ -600,7 +482,6 @@ QUnit.module('SegmentLoader', function(hooks) {
       textTrackStub.returns({
         getTrackById: () => null
       });
-      addCueSpy = sinon.spy();
       sinon.stub(loader.hls_.tech_, 'addRemoteTextTrack')
         .returns({
           track: {
@@ -608,19 +489,26 @@ QUnit.module('SegmentLoader', function(hooks) {
           }
         });
 
-      // Pretend to have appended data
-      segmentInfo = videojs.mergeOptions({}, loader.pendingSegment_);
+      standardXHRResponse(this.requests.shift(), muxedSegment());
 
-      loader.pendingSegment_.hasAppendedData_ = true;
-      timestampOffsetStub.returns(10);
+      // Simulate a caption event happening that will call handleCaptions_
+      const handleCaptions = () => {
+        loader.handleCaptions_(loader.pendingSegment_, captions);
+      };
 
-      // This will be called on a caption event
-      loader.handleCaptions_(segmentInfo, captions);
+      await new Promise((accept, reject) => {
+        loader.on('appending', handleCaptions);
+        loader.on('appended', accept);
+      });
 
       assert.strictEqual(
-        Object.keys(loader.inbandTextTracks_).length,
-        1,
-        'created one text track'
+        loader.sourceUpdater_.videoTimestampOffset(),
+        -1.443988888888889,
+        'expected timestampoffset for video'
+      );
+      assert.ok(
+        Object.keys(loader.inbandTextTracks_.CC1),
+        'created one text track with the caption stream as the id'
       );
       assert.strictEqual(addCueSpy.callCount, 1, 'created one cue');
     });

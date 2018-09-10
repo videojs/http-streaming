@@ -2,7 +2,9 @@ import Qunit from 'qunit';
 import sinon from 'sinon';
 import {
   createCaptionsTrackIfNotExists,
-  addCaptionData
+  addCaptionData,
+  createMetadataTrackIfNotExists,
+  addMetadata
 } from '../src/util/text-tracks';
 
 const { module, test } = Qunit;
@@ -157,4 +159,131 @@ test('use existing tracks with id equal to CC#', function(assert) {
    'This is an in-band caption in CC2',
    'CC2 contains the right cue'
   );
+});
+
+test('creates a track if it does not exist yet', function(assert) {
+  const tech = new MockTech();
+  const inbandTextTracks = {};
+  const dispatchType = 0x10;
+
+  this.timestampOffset = 10;
+  createMetadataTrackIfNotExists(inbandTextTracks, dispatchType, tech);
+
+  assert.ok(inbandTextTracks.metadataTrack_, 'created the metadataTrack');
+});
+
+test('does nothing if there is no metadataTrack or no metadata cues given', function(assert) {
+  const tech = new MockTech();
+  const inbandTextTracks = {};
+  const dispatchType = 0x10;
+  const videoDuration = 20;
+
+  this.timestampOffset = 10;
+  addMetadata({
+    inbandTextTracks,
+    metadataArray: [{
+      cueTime: 14,
+      frames: [{
+        data: 'This is a priv tag'
+      }]
+    }],
+    timestampOffset: this.timestampOffset,
+    videoDuration
+  });
+
+  assert.strictEqual(
+    Object.keys(inbandTextTracks).length,
+    0,
+    'no metadata track'
+  );
+
+  createMetadataTrackIfNotExists(inbandTextTracks, dispatchType, tech);
+  addMetadata({
+    inbandTextTracks,
+    metadataArray: [],
+    timestampOffset: this.timestampOffset,
+    videoDuration
+  });
+
+  assert.ok(inbandTextTracks.metadataTrack_, 'metadataTrack exists');
+  assert.strictEqual(
+    inbandTextTracks.metadataTrack_.cues.length,
+    0,
+    'no metadata cues are added'
+  );
+});
+
+test('adds cues for each metadata frame seen', function(assert) {
+  const tech = new MockTech();
+  const inbandTextTracks = {};
+  const dispatchType = 0x10;
+  const videoDuration = 20;
+  const metadataArray = [
+    {
+      cueTime: 2,
+      frames: [
+        { url: 'This is a url tag' },
+        { value: 'This is a text tag' }
+      ]
+    },
+    {
+      cueTime: 14,
+      frames: [{
+        data: 'This is a priv tag'
+      }]
+    }
+  ];
+
+  this.timestampOffset = 10;
+  createMetadataTrackIfNotExists(inbandTextTracks, dispatchType, tech);
+  addMetadata({
+    inbandTextTracks,
+    metadataArray,
+    timestampOffset: this.timestampOffset,
+    videoDuration
+  });
+
+  const metadataTrack = inbandTextTracks.metadataTrack_;
+
+  assert.strictEqual(
+    metadataTrack.cues[0].text,
+    'This is a url tag',
+    'included the text'
+  );
+  assert.strictEqual(
+    metadataTrack.cues[0].startTime,
+    2 + 10,
+    'started at 12'
+  );
+  assert.strictEqual(
+    metadataTrack.cues[0].endTime,
+    14 + 10,
+    'ended at StartTime of next cue(24)'
+  );
+
+  assert.strictEqual(
+    metadataTrack.cues[1].text,
+    'This is a text tag',
+    'included the text');
+  assert.strictEqual(
+    metadataTrack.cues[1].startTime,
+    2 + 10,
+    'started at 12');
+  assert.strictEqual(
+    metadataTrack.cues[1].endTime,
+    14 + 10,
+    'ended at the startTime of next cue(24)');
+
+  assert.strictEqual(
+    metadataTrack.cues[2].text,
+    'This is a priv tag',
+    'included the text');
+  assert.strictEqual(
+    metadataTrack.cues[2].startTime,
+    14 + 10,
+    'started at 24');
+  assert.strictEqual(
+    metadataTrack.cues[2].endTime,
+    videoDuration,
+    'ended at duration 20');
 });

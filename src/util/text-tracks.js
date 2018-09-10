@@ -64,6 +64,10 @@ export const addMetadata = ({
   const Cue = window.WebKitDataCue || window.VTTCue;
   const metadataTrack = inbandTextTracks.metadataTrack_;
 
+  if (!metadataTrack) {
+    return;
+  }
+
   metadataArray.forEach((metadata) => {
     let time = metadata.cueTime + timestampOffset;
 
@@ -81,7 +85,7 @@ export const addMetadata = ({
     });
   });
 
-  if (!metadataTrack || !metadataTrack.cues || !metadataTrack.cues.length) {
+  if (!metadataTrack.cues || !metadataTrack.cues.length) {
     return;
   }
 
