@@ -25,7 +25,7 @@ QUnit.module('Playback', {
   },
   beforeEach(assert) {
     let done = assert.async();
-    let video = document.createElement('video');
+    let video = document.createElement('video-js');
 
     video.width = 600;
     video.height = 300;
@@ -147,8 +147,7 @@ QUnit.test('Big Buck Bunny', function(assert) {
   });
 });
 
-// TODO
-QUnit.skip('Live DASH', function(assert) {
+QUnit.test('Live DASH', function(assert) {
   let done = assert.async();
 
   assert.expect(2);

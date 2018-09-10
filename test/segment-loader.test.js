@@ -353,15 +353,8 @@ QUnit.module('SegmentLoader', function(hooks) {
         addCue: addCueSpy
       };
 
-      // Setup mediaSource and segment loader
       await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
-      loader.playlist(playlistWithDuration(50, {
-        attributes: {
-          BANDWIDTH: 3500000,
-          RESOLUTION: '1920x1080',
-          CODECS: 'mp4a.40.5,avc1.42001e'
-        }
-      }));
+      loader.playlist(playlistWithDuration(50));
       loader.load();
 
       this.clock.tick(1);
@@ -379,9 +372,6 @@ QUnit.module('SegmentLoader', function(hooks) {
       );
       this.clock.tick(1);
 
-      // If mediaIndex is set, then the SegmentLoader is in walk-forward mode
-      loader.mediaIndex = 1;
-
       standardXHRResponse(this.requests.shift(), muxedSegment());
       await new Promise((accept, reject) => {
         loader.on('appended', accept);
@@ -392,15 +382,36 @@ QUnit.module('SegmentLoader', function(hooks) {
         2,
         'another append adds to segmentMetadataTrack'
       );
+    });
 
-      // Does not add cue for invalid segment timing info
+    QUnit.test('does not add cue for invalid segment timing info', async function(assert) {
+      const addCueSpy = sinon.spy();
+
+      loader.segmentMetadataTrack_ = {
+        addCue: addCueSpy
+      };
+
+      await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
+      loader.playlist(playlistWithDuration(50));
+      loader.load();
+
+      this.clock.tick(1);
+
+      // Respond with a segment, and wait until it is appended
+      standardXHRResponse(this.requests.shift(), muxedSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+
+      assert.equal(addCueSpy.callCount, 1, 'cue added for appended segment');
+
       loader.addSegmentMetadataCue_({
         segment: {},
         start: 0,
         end: undefined
       });
 
-      assert.equal(addCueSpy.callCount, 2, 'no cue added for invalid segment');
+      assert.equal(addCueSpy.callCount, 1, 'no cue added for invalid segment');
     });
 
     QUnit.test('translates metadata events into WebVTT cues', async function(assert) {
@@ -413,16 +424,17 @@ QUnit.module('SegmentLoader', function(hooks) {
       }];
       const addCueSpy = sinon.spy();
 
-      // Setup mediaSource and segmentLoader
       await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
       loader.inbandTextTracks_ = {};
       loader.playlist(playlistWithDuration(20));
       loader.load();
+      // set the mediaSource duration as it is usually set by
+      // master playlist controller, which is not present here
       loader.mediaSource_.duration = 20;
 
       this.clock.tick(1);
 
-      // Setup the textTracks
+      // Mock text tracks and addRemoteTextTrack on the mock tech
       sinon.stub(loader.hls_.tech_, 'addRemoteTextTrack')
         .returns({
           track: {
@@ -438,16 +450,13 @@ QUnit.module('SegmentLoader', function(hooks) {
       };
 
       await new Promise((accept, reject) => {
+        // we needed some data to be appended first,
+        // but the append is not yet finished
         loader.on('appending', handleId3);
         loader.on('appended', accept);
       });
       this.clock.tick(1);
 
-      assert.strictEqual(
-        loader.sourceUpdater_.videoTimestampOffset(),
-        -1.443988888888889,
-        'expected timestampoffset for video'
-      );
       assert.strictEqual(
         loader.inbandTextTracks_.metadataTrack_.inBandMetadataTrackDispatchType,
         dispatchType,
@@ -470,14 +479,13 @@ QUnit.module('SegmentLoader', function(hooks) {
       }];
       const addCueSpy = sinon.spy();
 
-      // Setup mediaSource and segmentLoader
       await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
       loader.playlist(playlistWithDuration(20));
       loader.load();
 
       this.clock.tick(1);
 
-      // Setup the inbandTextTracks and tech textTracks
+      // Mock text tracks on the mock tech and setup the inbandTextTracks
       loader.inbandTextTracks_ = {};
       textTrackStub.returns({
         getTrackById: () => null
@@ -497,15 +505,12 @@ QUnit.module('SegmentLoader', function(hooks) {
       };
 
       await new Promise((accept, reject) => {
+        // we needed some data appended first,
+        // but we haven't finished the append yet
         loader.on('appending', handleCaptions);
         loader.on('appended', accept);
       });
 
-      assert.strictEqual(
-        loader.sourceUpdater_.videoTimestampOffset(),
-        -1.443988888888889,
-        'expected timestampoffset for video'
-      );
       assert.ok(
         Object.keys(loader.inbandTextTracks_.CC1),
         'created one text track with the caption stream as the id'
