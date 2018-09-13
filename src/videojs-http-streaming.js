@@ -337,6 +337,8 @@ class HlsHandler extends Component {
       _player.vhs = this;
       // deprecated, for backwards compatibility
       _player.dash = this;
+
+      this.player_ = _player;
     }
 
     this.tech_ = tech;
@@ -736,6 +738,14 @@ class HlsHandler extends Component {
     if (this.qualityLevels_) {
       this.qualityLevels_.dispose();
     }
+
+    this.player_.vhs = null;
+    this.player_.dash = null;
+
+    if (this.tech_ && this.tech_.hls) {
+      this.tech_.hls = null;
+    }
+
     super.dispose();
   }
 
