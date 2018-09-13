@@ -739,8 +739,10 @@ class HlsHandler extends Component {
       this.qualityLevels_.dispose();
     }
 
-    this.player_.vhs = null;
-    this.player_.dash = null;
+    if (this.player_) {
+      this.player_.vhs = null;
+      this.player_.dash = null;
+    }
 
     if (this.tech_ && this.tech_.hls) {
       this.tech_.hls = null;

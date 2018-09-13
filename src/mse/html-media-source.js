@@ -252,6 +252,9 @@ export default class HtmlMediaSource extends videojs.EventTarget {
       // event handlers left to unbind anyway
       if (this.player_.el_) {
         this.player_.off('mediachange', this.onPlayerMediachange_);
+      }
+
+      if (this.player_.tech_) {
         this.player_.tech_.off('hls-reset', this.onHlsReset_);
         this.player_.tech_.off('hls-segment-time-mapping', this.onHlsSegmentTimeMapping_);
       }
