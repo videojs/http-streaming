@@ -398,7 +398,7 @@ export const playlistWithDuration = function(time, conf) {
   let result = {
     targetDuration: 10,
     mediaSequence: conf && conf.mediaSequence ? conf.mediaSequence : 0,
-    discontinuityStarts: [],
+    discontinuityStarts: conf && conf.discontinuityStarts ? conf.discontinuityStarts : [],
     segments: [],
     endList: conf && typeof conf.endList !== 'undefined' ? !!conf.endList : true,
     uri: conf && typeof conf.uri !== 'undefined' ? conf.uri : 'playlist.m3u8',
@@ -411,13 +411,21 @@ export const playlistWithDuration = function(time, conf) {
   let i;
   let isEncrypted = conf && conf.isEncrypted;
   let extension = conf && conf.extension ? conf.extension : '.ts';
+  let timeline = result.discontinuitySequence;
+  let discontinuitySequenceIndex = 0;
 
   for (i = 0; i < count; i++) {
+    if (result.discontinuityStarts &&
+        result.discontinuityStarts[discontinuitySequenceIndex] === i) {
+      timeline++;
+      discontinuitySequenceIndex++;
+    }
+
     result.segments.push({
       uri: i + extension,
       resolvedUri: i + extension,
       duration: 10,
-      timeline: result.discontinuitySequence
+      timeline
     });
     if (isEncrypted) {
       result.segments[i].key = {

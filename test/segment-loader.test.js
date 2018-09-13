@@ -20,8 +20,11 @@ import {
 import {
   muxed as muxedSegment,
   audio as audioSegment,
+  video as videoSegment,
   mp4Video as mp4VideoSegment,
-  mp4VideoInit as mp4VideoInitSegment
+  mp4VideoInit as mp4VideoInitSegment,
+  mp4Audio as mp4AudioSegment,
+  mp4AudioInit as mp4AudioInitSegment
 } from './test-segments';
 import sinon from 'sinon';
 
@@ -1063,6 +1066,431 @@ QUnit.module('SegmentLoader', function(hooks) {
           accept();
         });
       });
+    });
+
+    QUnit.test('appends init segments initially', async function(assert) {
+      await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
+
+      const origAudioBufferAppend = loader.sourceUpdater_.audioBuffer.appendBuffer.bind(
+        loader.sourceUpdater_.audioBuffer);
+      const origVideoBufferAppend = loader.sourceUpdater_.videoBuffer.appendBuffer.bind(
+        loader.sourceUpdater_.videoBuffer);
+      const audioBufferAppends = [];
+      const videoBufferAppends = [];
+
+      loader.sourceUpdater_.audioBuffer.appendBuffer = (bytes) => {
+        audioBufferAppends.push(bytes);
+        origAudioBufferAppend(bytes);
+      };
+      loader.sourceUpdater_.videoBuffer.appendBuffer = (bytes) => {
+        videoBufferAppends.push(bytes);
+        origVideoBufferAppend(bytes);
+      };
+
+      loader.playlist(playlistWithDuration(20));
+      loader.load();
+      this.clock.tick(1);
+      standardXHRResponse(this.requests.shift(), muxedSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(audioBufferAppends.length, 2, 'two audio buffer appends');
+      // although not an exact calculation, so long as the lengths are different, we can
+      // be relatively safe in assuming an init segment was append
+      assert.notEqual(
+        audioBufferAppends[0],
+        audioBufferAppends[1],
+        'appended to audio buffer with different bytes');
+      assert.equal(videoBufferAppends.length, 2, 'two video buffer appends');
+      assert.notEqual(
+        videoBufferAppends[0],
+        videoBufferAppends[1],
+        'appended to video buffer with different bytes');
+    });
+
+    QUnit.test('does not append init segments after first', async function(assert) {
+      await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
+
+      const origAudioBufferAppend = loader.sourceUpdater_.audioBuffer.appendBuffer.bind(
+        loader.sourceUpdater_.audioBuffer);
+      const origVideoBufferAppend = loader.sourceUpdater_.videoBuffer.appendBuffer.bind(
+        loader.sourceUpdater_.videoBuffer);
+      const audioBufferAppends = [];
+      const videoBufferAppends = [];
+
+      loader.sourceUpdater_.audioBuffer.appendBuffer = (bytes) => {
+        audioBufferAppends.push(bytes);
+        origAudioBufferAppend(bytes);
+      };
+      loader.sourceUpdater_.videoBuffer.appendBuffer = (bytes) => {
+        videoBufferAppends.push(bytes);
+        origVideoBufferAppend(bytes);
+      };
+
+      loader.playlist(playlistWithDuration(20));
+      loader.load();
+      this.clock.tick(1);
+      standardXHRResponse(this.requests.shift(), muxedSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(audioBufferAppends.length, 2, 'two audio buffer appends');
+      // although not an exact calculation, so long as the lengths are different, we can
+      // be relatively safe in assuming an init segment was append
+      assert.notEqual(
+        audioBufferAppends[0],
+        audioBufferAppends[1],
+        'appended to audio buffer with different bytes');
+      assert.equal(videoBufferAppends.length, 2, 'two video buffer appends');
+      assert.notEqual(
+        videoBufferAppends[0],
+        videoBufferAppends[1],
+        'appended to video buffer with different bytes');
+
+      standardXHRResponse(this.requests.shift(), muxedSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      // only one append should be data (two appends would be init segment and data)
+      assert.equal(audioBufferAppends.length, 3, 'one more audio buffer append');
+      assert.equal(videoBufferAppends.length, 3, 'one more video buffer append');
+    });
+
+    QUnit.test('does not re-append audio init segment when audio only',
+    async function(assert) {
+      await setupMediaSource(
+        loader.mediaSource_, loader.sourceUpdater_, { isAudioOnly: true });
+
+      const origAudioBufferAppend = loader.sourceUpdater_.audioBuffer.appendBuffer.bind(
+        loader.sourceUpdater_.audioBuffer);
+      const audioBufferAppends = [];
+
+      loader.sourceUpdater_.audioBuffer.appendBuffer = (bytes) => {
+        audioBufferAppends.push(bytes);
+        origAudioBufferAppend(bytes);
+      };
+
+      loader.playlist(playlistWithDuration(20));
+      loader.load();
+      this.clock.tick(1);
+      standardXHRResponse(this.requests.shift(), audioSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(audioBufferAppends.length, 2, 'two audio buffer appends');
+      // although not an exact calculation, so long as the lengths are different, we can
+      // be relatively safe in assuming an init segment was append
+      assert.notEqual(
+        audioBufferAppends[0],
+        audioBufferAppends[1],
+        'appended to audio buffer with different bytes');
+
+      standardXHRResponse(this.requests.shift(), audioSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      // only one append should be data (two appends would be init segment and data)
+      assert.equal(audioBufferAppends.length, 3, 'one more audio buffer append');
+    });
+
+    QUnit.test('re-appends audio init segment on playlist changes',
+    async function(assert) {
+      await setupMediaSource(
+        loader.mediaSource_, loader.sourceUpdater_, { isAudioOnly: true });
+
+      const origAudioBufferAppend = loader.sourceUpdater_.audioBuffer.appendBuffer.bind(
+        loader.sourceUpdater_.audioBuffer);
+      const audioBufferAppends = [];
+
+      loader.sourceUpdater_.audioBuffer.appendBuffer = (bytes) => {
+        audioBufferAppends.push(bytes);
+        origAudioBufferAppend(bytes);
+      };
+
+      loader.playlist(playlistWithDuration(20));
+      loader.load();
+      this.clock.tick(1);
+      standardXHRResponse(this.requests.shift(), audioSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(audioBufferAppends.length, 2, 'two audio buffer appends');
+      // although not an exact calculation, so long as the lengths are different, we can
+      // be relatively safe in assuming an init segment was append
+      assert.notEqual(
+        audioBufferAppends[0],
+        audioBufferAppends[1],
+        'appended to audio buffer with different bytes');
+
+      // new playlist for an audio only loader would mean an audio track change
+      loader.playlist(playlistWithDuration(20, { uri: 'new-playlist.m3u8' }));
+      // remove old aborted request
+      this.requests.shift();
+      // get the new request
+      this.clock.tick(1);
+      standardXHRResponse(this.requests.shift(), audioSegment());
+      // since it's a sync request, wait for the syncinfoupdate event (we won't get the
+      // appended event)
+      await new Promise((accept, reject) => {
+        loader.on('syncinfoupdate', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(audioBufferAppends.length, 4, 'two more audio buffer appends');
+      assert.notEqual(
+        audioBufferAppends[2],
+        audioBufferAppends[3],
+        'appended to audio buffer with different bytes');
+    });
+
+    QUnit.test('re-appends video init segment on playlist changes', async function(assert) {
+      await setupMediaSource(
+        loader.mediaSource_, loader.sourceUpdater_, { isVideoOnly: true });
+
+      const origVideoBufferAppend = loader.sourceUpdater_.videoBuffer.appendBuffer.bind(
+        loader.sourceUpdater_.videoBuffer);
+      const videoBufferAppends = [];
+
+      loader.sourceUpdater_.videoBuffer.appendBuffer = (bytes) => {
+        videoBufferAppends.push(bytes);
+        origVideoBufferAppend(bytes);
+      };
+
+      loader.playlist(playlistWithDuration(20));
+      loader.load();
+      this.clock.tick(1);
+      standardXHRResponse(this.requests.shift(), videoSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(videoBufferAppends.length, 2, 'two video buffer appends');
+      // although not an exact calculation, so long as the lengths are different, we can
+      // be relatively safe in assuming an init segment was append
+      assert.notEqual(
+        videoBufferAppends[0],
+        videoBufferAppends[1],
+        'appended to video buffer with different bytes');
+
+      loader.playlist(playlistWithDuration(20, { uri: 'new-playlist.m3u8' }));
+      // remove old aborted request
+      this.requests.shift();
+      // get the new request
+      this.clock.tick(1);
+      standardXHRResponse(this.requests.shift(), videoSegment());
+      // since it's a sync request, wait for the syncinfoupdate event (we won't get the
+      // appended event)
+      await new Promise((accept, reject) => {
+        loader.on('syncinfoupdate', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(videoBufferAppends.length, 4, 'two more video buffer appends');
+      assert.notEqual(
+        videoBufferAppends[2],
+        videoBufferAppends[3],
+        'appended to video buffer with different bytes');
+    });
+
+    QUnit.test('re-appends init segments on discontinuity', async function(assert) {
+      await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
+
+      const origAudioBufferAppend = loader.sourceUpdater_.audioBuffer.appendBuffer.bind(
+        loader.sourceUpdater_.audioBuffer);
+      const origVideoBufferAppend = loader.sourceUpdater_.videoBuffer.appendBuffer.bind(
+        loader.sourceUpdater_.videoBuffer);
+      const audioBufferAppends = [];
+      const videoBufferAppends = [];
+
+      loader.sourceUpdater_.audioBuffer.appendBuffer = (bytes) => {
+        audioBufferAppends.push(bytes);
+        origAudioBufferAppend(bytes);
+      };
+      loader.sourceUpdater_.videoBuffer.appendBuffer = (bytes) => {
+        videoBufferAppends.push(bytes);
+        origVideoBufferAppend(bytes);
+      };
+
+      loader.playlist(playlistWithDuration(20, { discontinuityStarts: [1] }));
+      loader.load();
+      this.clock.tick(1);
+      standardXHRResponse(this.requests.shift(), muxedSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(audioBufferAppends.length, 2, 'two audio buffer appends');
+      // although not an exact calculation, so long as the lengths are different, we can
+      // be relatively safe in assuming an init segment was append
+      assert.notEqual(
+        audioBufferAppends[0],
+        audioBufferAppends[1],
+        'appended to audio buffer with different bytes');
+      assert.equal(videoBufferAppends.length, 2, 'two video buffer appends');
+      assert.notEqual(
+        videoBufferAppends[0],
+        videoBufferAppends[1],
+        'appended to video buffer with different bytes');
+
+      standardXHRResponse(this.requests.shift(), muxedSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(audioBufferAppends.length, 4, 'two more audio buffer appends');
+      assert.notEqual(
+        audioBufferAppends[2],
+        audioBufferAppends[3],
+        'appended to audio buffer with different bytes');
+      assert.equal(videoBufferAppends.length, 4, 'two more video buffer appends');
+      assert.notEqual(
+        videoBufferAppends[2],
+        videoBufferAppends[3],
+        'appended to video buffer with different bytes');
+    });
+
+    QUnit.test('stores and reuses audio init segments from map tag',
+    async function(assert) {
+      loader = new SegmentLoader(LoaderCommonSettings.call(this, {
+        loaderType: 'audio',
+        segmentMetadataTrack: this.segmentMetadataTrack
+      }), {});
+
+      await setupMediaSource(
+        loader.mediaSource_, loader.sourceUpdater_, { isAudioOnly: true });
+
+      const origAudioBufferAppend = loader.sourceUpdater_.audioBuffer.appendBuffer.bind(
+        loader.sourceUpdater_.audioBuffer);
+      const audioBufferAppends = [];
+
+      loader.sourceUpdater_.audioBuffer.appendBuffer = (bytes) => {
+        audioBufferAppends.push(bytes);
+        origAudioBufferAppend(bytes);
+      };
+
+      const playlist = playlistWithDuration(20);
+
+      playlist.segments.forEach((segment) => {
+        segment.map = {
+          resolvedUri: 'init.mp4',
+          byterange: { length: Infinity, offset: 0 }
+        };
+      });
+      loader.playlist(playlist);
+      loader.load();
+      this.clock.tick(1);
+
+      // init
+      standardXHRResponse(this.requests.shift(), mp4AudioInitSegment());
+      // segment
+      standardXHRResponse(this.requests.shift(), mp4AudioSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(audioBufferAppends.length, 2, 'two audio buffer appends');
+      // although not an exact calculation, so long as the lengths are different, we can
+      // be relatively safe in assuming an init segment was append
+      assert.notEqual(
+        audioBufferAppends[0],
+        audioBufferAppends[1],
+        'appended to audio buffer with different bytes');
+
+      // no second init segment request, as it should be the same (and cached)
+      // segment
+      standardXHRResponse(this.requests.shift(), mp4AudioSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+
+      assert.equal(audioBufferAppends.length, 4, 'two more audio buffer appends');
+      assert.notEqual(
+        audioBufferAppends[2],
+        audioBufferAppends[3],
+        'appended to audio buffer with different bytes');
+
+      assert.equal(
+        audioBufferAppends[0],
+        audioBufferAppends[2],
+        'reused the same init segment');
+    });
+
+    QUnit.test('stores and reuses video init segments from map tag',
+    async function(assert) {
+      await setupMediaSource(
+        loader.mediaSource_, loader.sourceUpdater_, { isVideoOnly: true });
+
+      const origVideoBufferAppend = loader.sourceUpdater_.videoBuffer.appendBuffer.bind(
+        loader.sourceUpdater_.videoBuffer);
+      const videoBufferAppends = [];
+
+      loader.sourceUpdater_.videoBuffer.appendBuffer = (bytes) => {
+        videoBufferAppends.push(bytes);
+        origVideoBufferAppend(bytes);
+      };
+
+      const playlist = playlistWithDuration(20);
+
+      playlist.segments.forEach((segment) => {
+        segment.map = {
+          resolvedUri: 'init.mp4',
+          byterange: { length: Infinity, offset: 0 }
+        };
+      });
+      loader.playlist(playlist);
+      loader.load();
+      this.clock.tick(1);
+
+      // init
+      standardXHRResponse(this.requests.shift(), mp4VideoInitSegment());
+      // segment
+      standardXHRResponse(this.requests.shift(), mp4VideoSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(videoBufferAppends.length, 2, 'two video buffer appends');
+      // although not an exact calculation, so long as the lengths are different, we can
+      // be relatively safe in assuming an init segment was append
+      assert.notEqual(
+        videoBufferAppends[0],
+        videoBufferAppends[1],
+        'appended to video buffer with different bytes');
+
+      // no second init segment request, as it should be the same (and cached)
+      // segment
+      standardXHRResponse(this.requests.shift(), mp4VideoSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+
+      assert.equal(videoBufferAppends.length, 4, 'two more video buffer appends');
+      assert.notEqual(
+        videoBufferAppends[2],
+        videoBufferAppends[3],
+        'appended to video buffer with different bytes');
+
+      assert.equal(
+        videoBufferAppends[0],
+        videoBufferAppends[2],
+        'reused the same init segment');
     });
   });
 });
