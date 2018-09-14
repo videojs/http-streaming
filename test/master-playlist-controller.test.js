@@ -385,6 +385,7 @@ QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', fun
   this.standardXHRResponse(this.requests.shift());
   // segment
   this.standardXHRResponse(this.requests.shift());
+  // trigger updateend to indicate the end of the append operation
   this.masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
 
   // media is changed
@@ -399,6 +400,7 @@ QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', fun
   const timeBeforeSwitch = this.player.currentTime();
 
   this.masterPlaylistController.fastQualityChange_();
+  // trigger updateend to indicate the end of the remove operation
   this.masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
   this.clock.tick(1);
 
@@ -416,6 +418,7 @@ QUnit.test('seeks forward 0.04 sec for fast quality switch on Edge', function(as
   this.standardXHRResponse(this.requests.shift());
   // segment
   this.standardXHRResponse(this.requests.shift());
+  // trigger updateend to indicate the end of the append operation
   this.masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
 
   // media is changed
@@ -433,6 +436,7 @@ QUnit.test('seeks forward 0.04 sec for fast quality switch on Edge', function(as
   videojs.browser.IS_EDGE = true;
 
   this.masterPlaylistController.fastQualityChange_();
+  // trigger updateend to indicate the end of the remove operation
   this.masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
   this.clock.tick(1);
 
@@ -450,6 +454,7 @@ QUnit.test('seeks forward 0.04 sec for fast quality switch on IE', function(asse
   this.standardXHRResponse(this.requests.shift());
   // segment
   this.standardXHRResponse(this.requests.shift());
+  // trigger updateend to indicate the end of the append operation
   this.masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
 
   // media is changed
@@ -467,6 +472,7 @@ QUnit.test('seeks forward 0.04 sec for fast quality switch on IE', function(asse
   videojs.browser.IS_EDGE = false;
 
   this.masterPlaylistController.fastQualityChange_();
+  // trigger updateend to indicate the end of the remove operation
   this.masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
   this.clock.tick(1);
 
