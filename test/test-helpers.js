@@ -412,13 +412,13 @@ export const playlistWithDuration = function(time, conf) {
   let isEncrypted = conf && conf.isEncrypted;
   let extension = conf && conf.extension ? conf.extension : '.ts';
   let timeline = result.discontinuitySequence;
-  let discontinuitySequenceIndex = 0;
+  let discontinuityStartsIndex = 0;
 
   for (i = 0; i < count; i++) {
     if (result.discontinuityStarts &&
-        result.discontinuityStarts[discontinuitySequenceIndex] === i) {
+        result.discontinuityStarts[discontinuityStartsIndex] === i) {
       timeline++;
-      discontinuitySequenceIndex++;
+      discontinuityStartsIndex++;
     }
 
     result.segments.push({

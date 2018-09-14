@@ -13,6 +13,7 @@ import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ra
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
 import { CaptionParser } from 'mux.js/lib/mp4';
 import logger from './util/logger';
+import { concatSegments } from './util/segment';
 import {
   createCaptionsTrackIfNotExists,
   createMetadataTrackIfNotExists,
@@ -1388,20 +1389,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
   }
 
-  appendToSourceBuffer_(type, bytes) {
-    this.sourceUpdater_.appendBuffer(type, bytes, (error) => {
-      if (error) {
-        this.error(error);
-        // If an append errors, we can't recover.
-        // (see https://w3c.github.io/media-source/#sourcebuffer-append-error).
-        // Trigger a special error so that it can be handled separately from normal,
-        // recoverable errors.
-        this.trigger('appenderror');
-      }
-    });
-  }
-
-  appendInitSegmentIfNecessary_({ type, initSegment, map, playlist }) {
+  getInitSegmentAndUpdateState_({ type, initSegment, map, playlist }) {
     // "The EXT-X-MAP tag specifies how to obtain the Media Initialization Section
     // (Section 3) required to parse the applicable Media Segments.  It applies to every
     // Media Segment that appears after it in the Playlist until the next EXT-X-MAP tag
@@ -1428,17 +1416,47 @@ export default class SegmentLoader extends videojs.EventTarget {
       // we should only be appending the next init segment if we detect a change, or if
       // the segment has a map
       this.appendInitSegment_[type] = map ? true : false;
+
+      return initSegment;
+    }
+
+    return null;
+  }
+
+  appendToSourceBuffer_({ type, initSegment, data }) {
+    const segments = [data];
+    let byteLength = data.byteLength;
+
+    if (initSegment) {
       // if the media initialization segment is changing, append it before the content
       // segment
-      this.appendToSourceBuffer_(type, initSegment);
+      segments.unshift(initSegment);
+      byteLength += initSegment.byteLength;
     }
+
+    // Technically we should be OK appending the init segment separately, however, we
+    // haven't yet tested that, and prepending is how we have always done things.
+    const bytes = concatSegments({
+      bytes: byteLength,
+      segments
+    });
+
+    this.sourceUpdater_.appendBuffer(type, bytes, (error) => {
+      if (error) {
+        this.error(error);
+        // If an append errors, we can't recover.
+        // (see https://w3c.github.io/media-source/#sourcebuffer-append-error).
+        // Trigger a special error so that it can be handled separately from normal,
+        // recoverable errors.
+        this.trigger('appenderror');
+      }
+    });
   }
 
   appendData_(segmentInfo, result) {
     const {
       type,
-      data,
-      initSegment
+      data
     } = result;
 
     if (!data || !data.byteLength) {
@@ -1449,13 +1467,14 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    this.appendInitSegmentIfNecessary_({
+    const initSegment = this.getInitSegmentAndUpdateState_({
       type,
-      initSegment,
+      initSegment: result.initSegment,
       playlist: segmentInfo.playlist,
       map: segmentInfo.segment.map
     });
-    this.appendToSourceBuffer_(type, data);
+
+    this.appendToSourceBuffer_({ type, initSegment, data });
   }
 
   /**
