@@ -409,6 +409,8 @@ QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', fun
 });
 
 QUnit.test('seeks forward 0.04 sec for fast quality switch on Edge', function(assert) {
+  let oldIEVersion = videojs.browser.IE_VERSION;
+  let oldIsEdge = videojs.browser.IS_EDGE;
   let seeks = 0;
 
   this.masterPlaylistController.mediaSource.trigger('sourceopen');
@@ -442,9 +444,14 @@ QUnit.test('seeks forward 0.04 sec for fast quality switch on Edge', function(as
 
   assert.equal(this.player.currentTime(), timeBeforeSwitch + 0.04, 'seeks forward on fast quality switch');
   assert.equal(seeks, 1, 'seek event occurs on fast quality switch');
+
+  videojs.browser.IE_VERSION = oldIEVersion;
+  videojs.browser.IS_EDGE = oldIsEdge;
 });
 
 QUnit.test('seeks forward 0.04 sec for fast quality switch on IE', function(assert) {
+  let oldIEVersion = videojs.browser.IE_VERSION;
+  let oldIsEdge = videojs.browser.IS_EDGE;
   let seeks = 0;
 
   this.masterPlaylistController.mediaSource.trigger('sourceopen');
@@ -478,6 +485,9 @@ QUnit.test('seeks forward 0.04 sec for fast quality switch on IE', function(asse
 
   assert.equal(this.player.currentTime(), timeBeforeSwitch + 0.04, 'seeks forward on fast quality switch');
   assert.equal(seeks, 1, 'seek event occurs on fast quality switch');
+
+  videojs.browser.IE_VERSION = oldIEVersion;
+  videojs.browser.IS_EDGE = oldIsEdge;
 });
 
 QUnit.test('audio segment loader is reset on audio track change', function(assert) {
