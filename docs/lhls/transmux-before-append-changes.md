@@ -23,6 +23,7 @@ videojs-contrib-media-sources and TS:
     * after timestampOffset is set
     * audio track events: change/addtrack/removetrack
     * 'mediachange' event
+
 segment-loader and FMP4:
 * if segment.map is set:
   * save (cache) the init segment after the request finished
