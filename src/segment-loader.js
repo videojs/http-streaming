@@ -1389,53 +1389,61 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
   }
 
-  appendData_(segmentInfo, result) {
-    // Merge multiple video and audio segments into one and append
-    const {
-      type,
-      data
-    } = result;
-    let initSegment = result.initSegment;
+  getInitSegmentAndUpdateState_({ type, initSegment, map, playlist }) {
+    // "The EXT-X-MAP tag specifies how to obtain the Media Initialization Section
+    // (Section 3) required to parse the applicable Media Segments.  It applies to every
+    // Media Segment that appears after it in the Playlist until the next EXT-X-MAP tag
+    // or until the end of the playlist."
+    // https://tools.ietf.org/html/draft-pantos-http-live-streaming-23#section-4.3.2.5
+    if (map) {
+      const id = initSegmentId(map);
 
-    if (!data || !data.byteLength) {
-      return;
-    }
-
-    if (type === 'audio' && this.audioDisabled_) {
-      return;
-    }
-
-    const segments = [data];
-    let byteLength = data.byteLength;
-
-    if (segmentInfo.segment.map) {
-      // if the media initialization segment is changing, append it before the content
-      // segment
-      const initId = initSegmentId(segmentInfo.segment.map);
-
-      if (!this.activeInitSegmentId_ || this.activeInitSegmentId_ !== initId) {
-        initSegment = this.initSegmentForMap(segmentInfo.segment.map);
+      if (this.activeInitSegmentId_ === id) {
+        // don't need to re-append the init segment if the ID matches
+        return null;
       }
 
-      // convert from object to just bytes (common form) before concatting
-      if (initSegment) {
-        initSegment = initSegment.bytes;
-      }
+      // a map-specified init segment takes priority over any transmuxed (or otherwise
+      // obtained) init segment
+      //
+      // this also caches the init segment for later use
+      initSegment = this.initSegmentForMap(map, true).bytes;
+      this.activeInitSegmentId_ = id;
     }
 
-    //  Consider always appending an init segment for video (we used to, but it might not
-    //  be necessary).
+    // We used to always prepend init segments for video, however, that shouldn't be
+    // necessary. Instead, we should only append on changes, similar to what we've always
+    // done for audio. This is more important (though may not be that important) for
+    // frame-by-frame appending for LHLS, simply because of the increased quantity of
+    // appends.
     if (initSegment && this.appendInitSegment_[type]) {
-      this.appendInitSegment_[type] = segmentInfo.segment.map ? true : false;
       // Make sure we track the playlist that we last used for the init segment, so that
       // we can re-append the init segment in the event that we get data from a new
       // playlist. Discontinuities and track changes are handled in other sections.
-      this.playlistOfLastInitSegment_[type] = segmentInfo.playlist;
+      this.playlistOfLastInitSegment_[type] = playlist;
+      // we should only be appending the next init segment if we detect a change, or if
+      // the segment has a map
+      this.appendInitSegment_[type] = map ? true : false;
 
+      return initSegment;
+    }
+
+    return null;
+  }
+
+  appendToSourceBuffer_({ type, initSegment, data }) {
+    const segments = [data];
+    let byteLength = data.byteLength;
+
+    if (initSegment) {
+      // if the media initialization segment is changing, append it before the content
+      // segment
       segments.unshift(initSegment);
       byteLength += initSegment.byteLength;
     }
 
+    // Technically we should be OK appending the init segment separately, however, we
+    // haven't yet tested that, and prepending is how we have always done things.
     const bytes = concatSegments({
       bytes: byteLength,
       segments
@@ -1451,6 +1459,30 @@ export default class SegmentLoader extends videojs.EventTarget {
         this.trigger('appenderror');
       }
     });
+  }
+
+  appendData_(segmentInfo, result) {
+    const {
+      type,
+      data
+    } = result;
+
+    if (!data || !data.byteLength) {
+      return;
+    }
+
+    if (type === 'audio' && this.audioDisabled_) {
+      return;
+    }
+
+    const initSegment = this.getInitSegmentAndUpdateState_({
+      type,
+      initSegment: result.initSegment,
+      playlist: segmentInfo.playlist,
+      map: segmentInfo.segment.map
+    });
+
+    this.appendToSourceBuffer_({ type, initSegment, data });
   }
 
   /**

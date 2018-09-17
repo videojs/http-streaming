@@ -20,8 +20,11 @@ import {
 import {
   muxed as muxedSegment,
   audio as audioSegment,
+  video as videoSegment,
   mp4Video as mp4VideoSegment,
-  mp4VideoInit as mp4VideoInitSegment
+  mp4VideoInit as mp4VideoInitSegment,
+  mp4Audio as mp4AudioSegment,
+  mp4AudioInit as mp4AudioInitSegment
 } from './test-segments';
 import sinon from 'sinon';
 
@@ -956,6 +959,399 @@ QUnit.module('SegmentLoader', function(hooks) {
           accept();
         });
       });
+    });
+
+    QUnit.test('appends init segments initially', async function(assert) {
+      await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
+
+      const origAppendToSourceBuffer = loader.appendToSourceBuffer_.bind(loader);
+      const appends = [];
+
+      loader.appendToSourceBuffer_ = (config) => {
+        appends.push(config);
+        origAppendToSourceBuffer(config);
+      };
+
+      loader.playlist(playlistWithDuration(20));
+      loader.load();
+      this.clock.tick(1);
+      standardXHRResponse(this.requests.shift(), muxedSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(appends.length, 2, 'two appends');
+      assert.equal(appends[0].type, 'video', 'appended to video buffer');
+      assert.ok(appends[0].initSegment, 'appended video init segment');
+      assert.equal(appends[1].type, 'audio', 'appended to audio buffer');
+      assert.ok(appends[1].initSegment, 'appended audio init segment');
+    });
+
+    QUnit.test('does not append init segments after first', async function(assert) {
+      await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
+
+      const origAppendToSourceBuffer = loader.appendToSourceBuffer_.bind(loader);
+      const appends = [];
+
+      loader.appendToSourceBuffer_ = (config) => {
+        appends.push(config);
+        origAppendToSourceBuffer(config);
+      };
+
+      loader.playlist(playlistWithDuration(20));
+      loader.load();
+      this.clock.tick(1);
+      standardXHRResponse(this.requests.shift(), muxedSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(appends.length, 2, 'two appends');
+      assert.equal(appends[0].type, 'video', 'appended to video buffer');
+      assert.ok(appends[0].initSegment, 'appended video init segment');
+      assert.equal(appends[1].type, 'audio', 'appended to audio buffer');
+      assert.ok(appends[1].initSegment, 'appended audio init segment');
+
+      standardXHRResponse(this.requests.shift(), muxedSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(appends.length, 4, 'two more appends');
+      assert.equal(appends[2].type, 'video', 'appended to video buffer');
+      assert.notOk(appends[2].initSegment, 'did not append video init segment');
+      assert.equal(appends[3].type, 'audio', 'appended to audio buffer');
+      assert.notOk(appends[3].initSegment, 'did not append audio init segment');
+    });
+
+    QUnit.test('does not re-append audio init segment when audio only',
+    async function(assert) {
+      await setupMediaSource(
+        loader.mediaSource_, loader.sourceUpdater_, { isAudioOnly: true });
+
+      const origAppendToSourceBuffer = loader.appendToSourceBuffer_.bind(loader);
+      const appends = [];
+
+      loader.appendToSourceBuffer_ = (config) => {
+        appends.push(config);
+        origAppendToSourceBuffer(config);
+      };
+
+      loader.playlist(playlistWithDuration(20));
+      loader.load();
+      this.clock.tick(1);
+      standardXHRResponse(this.requests.shift(), audioSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(appends.length, 1, 'one append');
+      assert.equal(appends[0].type, 'audio', 'appended to audio buffer');
+      assert.ok(appends[0].initSegment, 'appended audio init segment');
+
+      standardXHRResponse(this.requests.shift(), audioSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(appends.length, 2, 'one more append');
+      assert.equal(appends[1].type, 'audio', 'appended to audio buffer');
+      assert.notOk(appends[1].initSegment, 'did not append audio init segment');
+    });
+
+    QUnit.test('re-appends audio init segment on playlist changes',
+    async function(assert) {
+      await setupMediaSource(
+        loader.mediaSource_, loader.sourceUpdater_, { isAudioOnly: true });
+
+      const origAppendToSourceBuffer = loader.appendToSourceBuffer_.bind(loader);
+      const appends = [];
+
+      loader.appendToSourceBuffer_ = (config) => {
+        appends.push(config);
+        origAppendToSourceBuffer(config);
+      };
+
+      loader.playlist(playlistWithDuration(20));
+      loader.load();
+      this.clock.tick(1);
+      standardXHRResponse(this.requests.shift(), audioSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(appends.length, 1, 'one append');
+      assert.equal(appends[0].type, 'audio', 'appended to audio buffer');
+      assert.ok(appends[0].initSegment, 'appended audio init segment');
+
+      // new playlist for an audio only loader would mean an audio track change
+      loader.playlist(playlistWithDuration(20, { uri: 'new-playlist.m3u8' }));
+      // remove old aborted request
+      this.requests.shift();
+      // get the new request
+      this.clock.tick(1);
+      standardXHRResponse(this.requests.shift(), audioSegment());
+      // since it's a sync request, wait for the syncinfoupdate event (we won't get the
+      // appended event)
+      await new Promise((accept, reject) => {
+        loader.on('syncinfoupdate', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(appends.length, 2, 'one more appends');
+      assert.equal(appends[1].type, 'audio', 'appended to audio buffer');
+      assert.ok(appends[1].initSegment, 'appended audio init segment');
+    });
+
+    QUnit.test('re-appends video init segment on playlist changes', async function(assert) {
+      await setupMediaSource(
+        loader.mediaSource_, loader.sourceUpdater_, { isVideoOnly: true });
+
+      const origAppendToSourceBuffer = loader.appendToSourceBuffer_.bind(loader);
+      const appends = [];
+
+      loader.appendToSourceBuffer_ = (config) => {
+        appends.push(config);
+        origAppendToSourceBuffer(config);
+      };
+
+      loader.playlist(playlistWithDuration(20));
+      loader.load();
+      this.clock.tick(1);
+      standardXHRResponse(this.requests.shift(), videoSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(appends.length, 1, 'one append');
+      assert.equal(appends[0].type, 'video', 'appended to video buffer');
+      assert.ok(appends[0].initSegment, 'appended video init segment');
+
+      loader.playlist(playlistWithDuration(20, { uri: 'new-playlist.m3u8' }));
+      // remove old aborted request
+      this.requests.shift();
+      // get the new request
+      this.clock.tick(1);
+      standardXHRResponse(this.requests.shift(), videoSegment());
+      // since it's a sync request, wait for the syncinfoupdate event (we won't get the
+      // appended event)
+      await new Promise((accept, reject) => {
+        loader.on('syncinfoupdate', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(appends.length, 2, 'one more append');
+      assert.equal(appends[1].type, 'video', 'appended to video buffer');
+      assert.ok(appends[1].initSegment, 'appended video init segment');
+    });
+
+    QUnit.test('re-appends init segments on discontinuity', async function(assert) {
+      await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
+
+      const origAppendToSourceBuffer = loader.appendToSourceBuffer_.bind(loader);
+      const appends = [];
+
+      loader.appendToSourceBuffer_ = (config) => {
+        appends.push(config);
+        origAppendToSourceBuffer(config);
+      };
+
+      loader.playlist(playlistWithDuration(20, { discontinuityStarts: [1] }));
+      loader.load();
+      this.clock.tick(1);
+      standardXHRResponse(this.requests.shift(), muxedSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(appends.length, 2, 'two appends');
+      assert.equal(appends[0].type, 'video', 'appended to video buffer');
+      assert.ok(appends[0].initSegment, 'appended video init segment');
+      assert.equal(appends[1].type, 'audio', 'appended to audio buffer');
+      assert.ok(appends[1].initSegment, 'appended audio init segment');
+
+      standardXHRResponse(this.requests.shift(), muxedSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(appends.length, 4, 'two more appends');
+      assert.equal(appends[2].type, 'video', 'appended to video buffer');
+      assert.ok(appends[2].initSegment, 'appended video init segment');
+      assert.equal(appends[3].type, 'audio', 'appended to audio buffer');
+      assert.ok(appends[3].initSegment, 'appended audio init segment');
+    });
+
+    QUnit.test('stores and reuses audio init segments from map tag',
+    async function(assert) {
+      loader = new SegmentLoader(LoaderCommonSettings.call(this, {
+        loaderType: 'audio',
+        segmentMetadataTrack: this.segmentMetadataTrack
+      }), {});
+
+      await setupMediaSource(
+        loader.mediaSource_, loader.sourceUpdater_, { isAudioOnly: true });
+
+      const origAppendToSourceBuffer = loader.appendToSourceBuffer_.bind(loader);
+      const appends = [];
+
+      loader.appendToSourceBuffer_ = (config) => {
+        appends.push(config);
+        origAppendToSourceBuffer(config);
+      };
+
+      const playlist = playlistWithDuration(30);
+
+      playlist.segments[0].map = {
+        resolvedUri: 'init.mp4',
+        byterange: { length: Infinity, offset: 0 }
+      };
+      // change the map tag as we won't re-append the init segment if it hasn't changed
+      playlist.segments[1].map = {
+        resolvedUri: 'init2.mp4',
+        byterange: { length: 100, offset: 10 }
+      };
+      // reuse the initial map to see if it was cached
+      playlist.segments[2].map = {
+        resolvedUri: 'init.mp4',
+        byterange: { length: Infinity, offset: 0 }
+      };
+
+      loader.playlist(playlist);
+      loader.load();
+      this.clock.tick(1);
+
+      // init
+      standardXHRResponse(this.requests.shift(), mp4AudioInitSegment());
+      // segment
+      standardXHRResponse(this.requests.shift(), mp4AudioSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(appends.length, 1, 'one append');
+      assert.equal(appends[0].type, 'audio', 'appended to audio buffer');
+      assert.ok(appends[0].initSegment, 'appended audio init segment');
+
+      // init
+      standardXHRResponse(this.requests.shift(), mp4AudioInitSegment());
+      // segment
+      standardXHRResponse(this.requests.shift(), mp4AudioSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(appends.length, 2, 'one more append');
+      assert.equal(appends[1].type, 'audio', 'appended to audio buffer');
+      assert.ok(appends[1].initSegment, 'appended audio init segment');
+      assert.notEqual(
+        appends[0].initSegment,
+        appends[1].initSegment,
+        'appended a different init segment');
+
+      // no init segment request, as it should be the same (and cached) segment
+      standardXHRResponse(this.requests.shift(), mp4AudioSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+
+      assert.equal(appends.length, 3, 'one more append');
+      assert.equal(appends[2].type, 'audio', 'appended to audio buffer');
+      assert.ok(appends[2].initSegment, 'appended audio init segment');
+      assert.equal(
+        appends[0].initSegment,
+        appends[2].initSegment,
+        'reused the init segment');
+    });
+
+    QUnit.test('stores and reuses video init segments from map tag',
+    async function(assert) {
+      await setupMediaSource(
+        loader.mediaSource_, loader.sourceUpdater_, { isVideoOnly: true });
+
+      const origAppendToSourceBuffer = loader.appendToSourceBuffer_.bind(loader);
+      const appends = [];
+
+      loader.appendToSourceBuffer_ = (config) => {
+        appends.push(config);
+        origAppendToSourceBuffer(config);
+      };
+
+      const playlist = playlistWithDuration(30);
+
+      playlist.segments[0].map = {
+        resolvedUri: 'init.mp4',
+        byterange: { length: Infinity, offset: 0 }
+      };
+      // change the map tag as we won't re-append the init segment if it hasn't changed
+      playlist.segments[1].map = {
+        resolvedUri: 'init2.mp4',
+        byterange: { length: 100, offset: 10 }
+      };
+      // reuse the initial map to see if it was cached
+      playlist.segments[2].map = {
+        resolvedUri: 'init.mp4',
+        byterange: { length: Infinity, offset: 0 }
+      };
+
+      loader.playlist(playlist);
+      loader.load();
+      this.clock.tick(1);
+
+      // init
+      standardXHRResponse(this.requests.shift(), mp4VideoInitSegment());
+      // segment
+      standardXHRResponse(this.requests.shift(), mp4VideoSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(appends.length, 1, 'one append');
+      assert.equal(appends[0].type, 'video', 'appended to video buffer');
+      assert.ok(appends[0].initSegment, 'appended video init segment');
+
+      // init
+      standardXHRResponse(this.requests.shift(), mp4VideoInitSegment());
+      // segment
+      standardXHRResponse(this.requests.shift(), mp4VideoSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+      this.clock.tick(1);
+
+      assert.equal(appends.length, 2, 'one more append');
+      assert.equal(appends[1].type, 'video', 'appended to audio buffer');
+      assert.ok(appends[1].initSegment, 'appended video init segment');
+      assert.notEqual(
+        appends[0].initSegment,
+        appends[1].initSegment,
+        'appended a different init segment');
+
+      // no init segment request, as it should be the same (and cached) segment
+      standardXHRResponse(this.requests.shift(), mp4VideoSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+
+      assert.equal(appends.length, 3, 'one more append');
+      assert.equal(appends[2].type, 'video', 'appended to video buffer');
+      assert.ok(appends[2].initSegment, 'appended video init segment');
+      assert.equal(
+        appends[0].initSegment,
+        appends[2].initSegment,
+        'reused the init segment');
     });
   });
 });

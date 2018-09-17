@@ -223,7 +223,8 @@ export default class SourceUpdater extends videojs.EventTarget {
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-remove-void-double-start-unrestricted-double-end
    */
   removeAudio(start, end, done = noop) {
-    if (!this.audioBuffer) {
+    if (!this.audioBuffered().length || this.audioBuffered().end(0) === 0) {
+      done();
       return;
     }
 
@@ -243,7 +244,8 @@ export default class SourceUpdater extends videojs.EventTarget {
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-remove-void-double-start-unrestricted-double-end
    */
   removeVideo(start, end, done = noop) {
-    if (!this.videoBuffer) {
+    if (!this.videoBuffered().length || this.videoBuffered().end(0) === 0) {
+      done();
       return;
     }
 
