@@ -1395,12 +1395,20 @@ export default class SegmentLoader extends videojs.EventTarget {
     // Media Segment that appears after it in the Playlist until the next EXT-X-MAP tag
     // or until the end of the playlist."
     // https://tools.ietf.org/html/draft-pantos-http-live-streaming-23#section-4.3.2.5
-    if (map && this.activeInitSegmentId_ !== initSegmentId(map)) {
+    if (map) {
+      const id = initSegmentId(map);
+
+      if (this.activeInitSegmentId_ === id) {
+        // don't need to re-append the init segment if the ID matches
+        return null;
+      }
+
       // a map-specified init segment takes priority over any transmuxed (or otherwise
       // obtained) init segment
       //
       // this also caches the init segment for later use
       initSegment = this.initSegmentForMap(map, true).bytes;
+      this.activeInitSegmentId_ = id;
     }
 
     // We used to always prepend init segments for video, however, that shouldn't be

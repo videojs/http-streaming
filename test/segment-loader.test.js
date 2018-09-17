@@ -1316,14 +1316,23 @@ QUnit.module('SegmentLoader', function(hooks) {
         origAppendToSourceBuffer(config);
       };
 
-      const playlist = playlistWithDuration(20);
+      const playlist = playlistWithDuration(30);
 
-      playlist.segments.forEach((segment) => {
-        segment.map = {
-          resolvedUri: 'init.mp4',
-          byterange: { length: Infinity, offset: 0 }
-        };
-      });
+      playlist.segments[0].map = {
+        resolvedUri: 'init.mp4',
+        byterange: { length: Infinity, offset: 0 }
+      };
+      // change the map tag as we won't re-append the init segment if it hasn't changed
+      playlist.segments[1].map = {
+        resolvedUri: 'init2.mp4',
+        byterange: { length: 100, offset: 10 }
+      };
+      // reuse the initial map to see if it was cached
+      playlist.segments[2].map = {
+        resolvedUri: 'init.mp4',
+        byterange: { length: Infinity, offset: 0 }
+      };
+
       loader.playlist(playlist);
       loader.load();
       this.clock.tick(1);
@@ -1341,20 +1350,36 @@ QUnit.module('SegmentLoader', function(hooks) {
       assert.equal(appends[0].type, 'audio', 'appended to audio buffer');
       assert.ok(appends[0].initSegment, 'appended audio init segment');
 
-      // no second init segment request, as it should be the same (and cached)
+      // init
+      standardXHRResponse(this.requests.shift(), mp4AudioInitSegment());
       // segment
       standardXHRResponse(this.requests.shift(), mp4AudioSegment());
       await new Promise((accept, reject) => {
         loader.on('appended', accept);
       });
+      this.clock.tick(1);
 
       assert.equal(appends.length, 2, 'one more append');
       assert.equal(appends[1].type, 'audio', 'appended to audio buffer');
       assert.ok(appends[1].initSegment, 'appended audio init segment');
-      assert.equal(
+      assert.notEqual(
         appends[0].initSegment,
         appends[1].initSegment,
-        'reused the same init segment');
+        'appended a different init segment');
+
+      // no init segment request, as it should be the same (and cached) segment
+      standardXHRResponse(this.requests.shift(), mp4AudioSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+
+      assert.equal(appends.length, 3, 'one more append');
+      assert.equal(appends[2].type, 'audio', 'appended to audio buffer');
+      assert.ok(appends[2].initSegment, 'appended audio init segment');
+      assert.equal(
+        appends[0].initSegment,
+        appends[2].initSegment,
+        'reused the init segment');
     });
 
     QUnit.test('stores and reuses video init segments from map tag',
@@ -1370,14 +1395,23 @@ QUnit.module('SegmentLoader', function(hooks) {
         origAppendToSourceBuffer(config);
       };
 
-      const playlist = playlistWithDuration(20);
+      const playlist = playlistWithDuration(30);
 
-      playlist.segments.forEach((segment) => {
-        segment.map = {
-          resolvedUri: 'init.mp4',
-          byterange: { length: Infinity, offset: 0 }
-        };
-      });
+      playlist.segments[0].map = {
+        resolvedUri: 'init.mp4',
+        byterange: { length: Infinity, offset: 0 }
+      };
+      // change the map tag as we won't re-append the init segment if it hasn't changed
+      playlist.segments[1].map = {
+        resolvedUri: 'init2.mp4',
+        byterange: { length: 100, offset: 10 }
+      };
+      // reuse the initial map to see if it was cached
+      playlist.segments[2].map = {
+        resolvedUri: 'init.mp4',
+        byterange: { length: Infinity, offset: 0 }
+      };
+
       loader.playlist(playlist);
       loader.load();
       this.clock.tick(1);
@@ -1395,20 +1429,36 @@ QUnit.module('SegmentLoader', function(hooks) {
       assert.equal(appends[0].type, 'video', 'appended to video buffer');
       assert.ok(appends[0].initSegment, 'appended video init segment');
 
-      // no second init segment request, as it should be the same (and cached)
+      // init
+      standardXHRResponse(this.requests.shift(), mp4VideoInitSegment());
       // segment
       standardXHRResponse(this.requests.shift(), mp4VideoSegment());
       await new Promise((accept, reject) => {
         loader.on('appended', accept);
       });
+      this.clock.tick(1);
 
       assert.equal(appends.length, 2, 'one more append');
-      assert.equal(appends[1].type, 'video', 'appended to video buffer');
+      assert.equal(appends[1].type, 'video', 'appended to audio buffer');
       assert.ok(appends[1].initSegment, 'appended video init segment');
-      assert.equal(
+      assert.notEqual(
         appends[0].initSegment,
         appends[1].initSegment,
-        'reused the same init segment');
+        'appended a different init segment');
+
+      // no init segment request, as it should be the same (and cached) segment
+      standardXHRResponse(this.requests.shift(), mp4VideoSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+
+      assert.equal(appends.length, 3, 'one more append');
+      assert.equal(appends[2].type, 'video', 'appended to video buffer');
+      assert.ok(appends[2].initSegment, 'appended video init segment');
+      assert.equal(
+        appends[0].initSegment,
+        appends[2].initSegment,
+        'reused the init segment');
     });
   });
 });
