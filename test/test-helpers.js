@@ -310,15 +310,16 @@ export const openMediaSource = function(player, clock) {
   // mock the tech *after* it has finished loading so that we don't
   // mock a tech that will be unloaded on the next tick
   mockTech(player.tech_);
-  player.tech_.hls.xhr = xhrFactory();
-
-  // simulate the sourceopen event
-  player.tech_.hls.mediaSource.readyState = 'open';
-  player.tech_.hls.mediaSource.dispatchEvent({
-    type: 'sourceopen',
-    swfId: player.tech_.el().id
-  });
-  clock.tick(1);
+  if (player.tech_.hls) {
+    player.tech_.hls.xhr = xhrFactory();
+    // simulate the sourceopen event
+    player.tech_.hls.mediaSource.readyState = 'open';
+    player.tech_.hls.mediaSource.dispatchEvent({
+      type: 'sourceopen',
+      swfId: player.tech_.el().id
+    });
+    clock.tick(1);
+  }
 };
 
 export const standardXHRResponse = function(request, data) {
