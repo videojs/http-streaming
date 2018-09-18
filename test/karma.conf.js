@@ -25,10 +25,10 @@ module.exports = function(config) {
       'node_modules/video.js/dist/video-js.css',
       'dist-test/videojs-http-streaming.test.js'
     ],
-    browserConsoleLogOptions: {
+    /*browserConsoleLogOptions: {
       level: 'error',
       terminal: false
-    },
+    },*/
     browserStack: {
       project: 'videojs-http-streaming',
       name: browserstackName,
