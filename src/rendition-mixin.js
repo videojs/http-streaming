@@ -48,11 +48,13 @@ const enableFunction = (loader, playlistUri, changePlaylistFn) => (enable) => {
  */
 class Representation {
   constructor(hlsHandler, playlist, id) {
-    // Get a reference to a bound version of fastQualityChange_
-    let fastChangeFunction = hlsHandler
-                              .masterPlaylistController_
-                              .fastQualityChange_
-                              .bind(hlsHandler.masterPlaylistController_);
+    const {
+      masterPlaylistController_: mpc,
+      options_: { smoothQualityChange }
+    } = hlsHandler;
+    // Get a reference to a bound version of the quality change function
+    const changeType = smoothQualityChange ? 'smooth' : 'fast';
+    const qualityChangeFunction = mpc[`${changeType}QualityChange_`].bind(mpc);
 
     // some playlist attributes are optional
     if (playlist.attributes.RESOLUTION) {
@@ -72,7 +74,7 @@ class Representation {
     // specific variant
     this.enabled = enableFunction(hlsHandler.playlists,
                                   playlist.uri,
-                                  fastChangeFunction);
+                                  qualityChangeFunction);
   }
 }
 

@@ -41,17 +41,22 @@ const makeMockPlaylist = function(options) {
   return playlist;
 };
 
-const makeMockHlsHandler = function(playlistOptions) {
+const makeMockHlsHandler = function(playlistOptions, handlerOptions) {
   let mcp = {
     fastQualityChange_: () => {
       mcp.fastQualityChange_.calls++;
+    },
+    smoothQualityChange_: () => {
+      mcp.smoothQualityChange_.calls++;
     }
   };
 
   mcp.fastQualityChange_.calls = 0;
+  mcp.smoothQualityChange_.calls = 0;
 
   let hlsHandler = {
-    masterPlaylistController_: mcp
+    masterPlaylistController_: mcp,
+    options_: handlerOptions || {}
   };
 
   hlsHandler.playlists = new videojs.EventTarget();
@@ -222,7 +227,7 @@ function(assert) {
     'excludeUntil not touched when disabling a rendition');
 });
 
-QUnit.test('changing the enabled state of a representation calls fastQualityChange_',
+QUnit.test('changing the enabled state of a representation calls fastQualityChange_ by default',
 function(assert) {
   let renditionEnabledEvents = 0;
   let hlsHandler = makeMockHlsHandler([
@@ -259,4 +264,46 @@ function(assert) {
   renditions[1].enabled(false);
 
   assert.equal(mpc.fastQualityChange_.calls, 2, 'fastQualityChange_ was called twice');
+});
+
+QUnit.test('changing the enabled state of a representation calls smoothQualityChange_ ' +
+  'when the flag is set',
+function(assert) {
+  let renditionEnabledEvents = 0;
+  let hlsHandler = makeMockHlsHandler([
+    {
+      bandwidth: 0,
+      disabled: true,
+      uri: 'media0.m3u8'
+    },
+    {
+      bandwidth: 0,
+      uri: 'media1.m3u8'
+    }
+  ], {
+    smoothQualityChange: true
+  });
+  let mpc = hlsHandler.masterPlaylistController_;
+
+  hlsHandler.playlists.on('renditionenabled', function() {
+    renditionEnabledEvents++;
+  });
+
+  RenditionMixin(hlsHandler);
+
+  let renditions = hlsHandler.representations();
+
+  assert.equal(mpc.smoothQualityChange_.calls, 0, 'smoothQualityChange_ was never called');
+  assert.equal(renditionEnabledEvents, 0,
+    'renditionenabled event has not been triggered');
+
+  renditions[0].enabled(true);
+
+  assert.equal(mpc.smoothQualityChange_.calls, 1, 'smoothQualityChange_ was called once');
+  assert.equal(renditionEnabledEvents, 1,
+    'renditionenabled event has been triggered once');
+
+  renditions[1].enabled(false);
+
+  assert.equal(mpc.smoothQualityChange_.calls, 2, 'smoothQualityChange_ was called twice');
 });

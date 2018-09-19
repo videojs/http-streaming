@@ -44,6 +44,8 @@ Video.js Compatibility: 6.0, 7.0
       - [blacklistDuration](#blacklistduration)
       - [bandwidth](#bandwidth)
       - [enableLowInitialPlaylist](#enablelowinitialplaylist)
+      - [limitRenditionByPlayerDimensions](#limitrenditionbyplayerdimensions)
+      - [smoothQualityChange](#smoothqualitychange)
   - [Runtime Properties](#runtime-properties)
     - [hls.playlists.master](#hlsplaylistsmaster)
     - [hls.playlists.media](#hlsplaylistsmedia)
@@ -341,6 +343,22 @@ When `limitRenditionByPlayerDimensions` is set to true, rendition
 selection logic will take into account the player size and rendition
 resolutions when making a decision.
 This setting is `true` by default.
+
+##### smoothQualityChange
+* Type: `boolean`
+* can be used as a source option
+* can be used as an initialization option
+
+When the `smoothQualityChange` property is set to `true`, a manual quality
+change triggered via the [representations API](#hlsrepresentations) will use
+smooth quality switching rather than the default fast (buffer-ejecting)
+quality switching. Using smooth quality switching will mean no loading spinner
+will appear during quality switches, but will cause quality switches to only
+be visible after a few seconds.
+
+Note that this _only_ affects quality changes triggered via the representations
+API; automatic quality switches based on available bandwidth will always be
+smooth switches.
 
 ### Runtime Properties
 Runtime properties are attached to the tech object when HLS is in
