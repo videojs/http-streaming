@@ -1611,17 +1611,33 @@ QUnit.test('sets seekable and duration for live playlists', async function(asser
 
   openMediaSource(this.player, this.clock);
 
-  // media (live)
-  this.standardXHRResponse(this.requests.shift());
+  // since the safe live end will be 3 target durations back, in order for there to be a
+  // positive seekable end, there should be at least 4 segments
+  this.requests.shift().respond(200, null, `
+		#EXTM3U
+		#EXT-X-TARGETDURATION:5
+		#EXTINF:5
+		0.ts
+		#EXTINF:5
+		1.ts
+		#EXTINF:5
+		2.ts
+		#EXTINF:5
+		3.ts
+  `);
 
-  assert.equal(this.player.tech_.hls.seekable().length, 1, 'set one seekable range');
-  assert.equal(this.player.tech_.hls.seekable().start(0), 0, 'set seekable start');
-  // can only seek to the safe live point, which, for a 3 segment or less playlist, is 0
-  assert.equal(this.player.tech_.hls.seekable().end(0), 0, 'set seekable end');
+  assert.equal(this.player.vhs.seekable().length, 1, 'set one seekable range');
+  assert.equal(this.player.vhs.seekable().start(0), 0, 'set seekable start');
+  assert.equal(this.player.vhs.seekable().end(0), 5, 'set seekable end');
 
-  assert.strictEqual(this.player.tech_.hls.mediaSource.duration,
-                     Infinity,
-                     'duration on the mediaSource is infinity');
+  assert.strictEqual(
+    this.player.vhs.duration(),
+    Infinity,
+    'duration reported by VHS is infinite');
+  assert.strictEqual(
+    this.player.vhs.mediaSource.duration,
+    this.player.vhs.seekable().end(0),
+    'duration on the mediaSource is seekable end');
 });
 
 QUnit.test('live playlist starts with correct currentTime value', function(assert) {
