@@ -193,7 +193,7 @@ export const simpleSelector = function(master,
     (rep) => rep.bandwidth === highestRemainingBandwidthRep.bandwidth
   )[0];
 
-  // if we not going to limit renditions by player size, make an early decision.
+  // if we're not going to limit renditions by player size, make an early decision.
   if (!limitRenditionByPlayerDimensions) {
     let chosenRep = (
       bandwidthBestRep ||
