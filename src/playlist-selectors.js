@@ -124,6 +124,8 @@ export const comparePlaylistResolution = function(left, right) {
  *        Current width of the player element
  * @param {Number} playerHeight
  *        Current height of the player element
+ * @param {Boolean} ignorePlayerSize
+ *        True if the player width and height should be ignored during the selection, false otherwise
  * @return {Playlist} the highest bitrate playlist less than the
  * currently detected bandwidth, accounting for some amount of
  * bandwidth variance
@@ -131,7 +133,8 @@ export const comparePlaylistResolution = function(left, right) {
 export const simpleSelector = function(master,
                                        playerBandwidth,
                                        playerWidth,
-                                       playerHeight) {
+                                       playerHeight,
+                                       ignorePlayerSize) {
   // convert the playlists to an intermediary representation to make comparisons easier
   let sortedPlaylistReps = master.playlists.map((playlist) => {
     let width;
@@ -190,6 +193,16 @@ export const simpleSelector = function(master,
     (rep) => rep.bandwidth === highestRemainingBandwidthRep.bandwidth
   )[0];
 
+  // if we are ignoring the player size, make an early decision
+  if (ignorePlayerSize) {
+    let chosenRep = (
+      bandwidthBestRep ||
+      enabledPlaylistReps[0] ||
+      sortedPlaylistReps[0]
+    );
+    return chosenRep ? chosenRep.playlist : null;
+  }
+
   // filter out playlists without resolution information
   let haveResolution = bandwidthPlaylistReps.filter((rep) => rep.width && rep.height);
 
@@ -217,6 +230,7 @@ export const simpleSelector = function(master,
     resolutionPlusOneList = haveResolution.filter(
       (rep) => rep.width > playerWidth || rep.height > playerHeight
     );
+    console.log('resolutionPlusOneList', haveResolution, resolutionPlusOneList, playerWidth, playerHeight);
 
     // find all the variants have the same smallest resolution
     resolutionPlusOneSmallest = resolutionPlusOneList.filter(
@@ -261,7 +275,8 @@ export const lastBandwidthSelector = function() {
   return simpleSelector(this.playlists.master,
                         this.systemBandwidth,
                         parseInt(safeGetComputedStyle(this.tech_.el(), 'width'), 10),
-                        parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10));
+                        parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10),
+                        this.ignorePlayerSize);
 };
 
 /**
@@ -294,7 +309,8 @@ export const movingAverageBandwidthSelector = function(decay) {
     return simpleSelector(this.playlists.master,
                           average,
                           parseInt(safeGetComputedStyle(this.tech_.el(), 'width'), 10),
-                          parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10));
+                          parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10),
+                          this.ignorePlayerSize);
   };
 };
 

@@ -24,6 +24,11 @@ const options = [{
   test: true,
   alt: false
 }, {
+  name: 'ignorePlayerSize',
+  default: false,
+  test: true,
+  alt: false
+}, {
   name: 'bandwidth',
   default: 4194304,
   test: 5,

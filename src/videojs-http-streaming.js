@@ -44,9 +44,6 @@ const Hls = {
   xhr: xhrFactory()
 };
 
-// 0.5 MB/s
-const INITIAL_BANDWIDTH = 4194304;
-
 // Define getter/setters for config properites
 [
   'GOAL_BUFFER_LENGTH',
@@ -335,6 +332,7 @@ class HlsHandler extends Component {
   setOptions_() {
     // defaults
     this.options_.withCredentials = this.options_.withCredentials || false;
+    this.options_.ignorePlayerSize = this.options_.ignorePlayerSize || false;
 
     if (typeof this.options_.blacklistDuration !== 'number') {
       this.options_.blacklistDuration = 5 * 60;
@@ -343,17 +341,17 @@ class HlsHandler extends Component {
     // start playlist selection at a reasonable bandwidth for
     // broadband internet (0.5 MB/s) or mobile (0.0625 MB/s)
     if (typeof this.options_.bandwidth !== 'number') {
-      this.options_.bandwidth = INITIAL_BANDWIDTH;
+      this.options_.bandwidth = Config.INITIAL_BANDWIDTH;
     }
 
     // If the bandwidth number is unchanged from the initial setting
     // then this takes precedence over the enableLowInitialPlaylist option
     this.options_.enableLowInitialPlaylist =
       this.options_.enableLowInitialPlaylist &&
-      this.options_.bandwidth === INITIAL_BANDWIDTH;
+      this.options_.bandwidth === Config.INITIAL_BANDWIDTH;
 
     // grab options passed to player.src
-    ['withCredentials', 'bandwidth'].forEach((option) => {
+    ['withCredentials', 'ignorePlayerSize', 'bandwidth'].forEach((option) => {
       if (typeof this.source_[option] !== 'undefined') {
         this.options_[option] = this.source_[option];
       }
