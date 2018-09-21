@@ -24,8 +24,8 @@ const options = [{
   test: true,
   alt: false
 }, {
-  name: 'ignorePlayerSize',
-  default: false,
+  name: 'limitRenditionByPlayerDimensions',
+  default: true,
   test: true,
   alt: false
 }, {

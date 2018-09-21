@@ -332,7 +332,7 @@ class HlsHandler extends Component {
   setOptions_() {
     // defaults
     this.options_.withCredentials = this.options_.withCredentials || false;
-    this.options_.ignorePlayerSize = this.options_.ignorePlayerSize || false;
+    this.options_.limitRenditionByPlayerDimensions = this.options_.limitRenditionByPlayerDimensions || true;
 
     if (typeof this.options_.blacklistDuration !== 'number') {
       this.options_.blacklistDuration = 5 * 60;
@@ -351,7 +351,7 @@ class HlsHandler extends Component {
       this.options_.bandwidth === Config.INITIAL_BANDWIDTH;
 
     // grab options passed to player.src
-    ['withCredentials', 'ignorePlayerSize', 'bandwidth'].forEach((option) => {
+    ['withCredentials', 'limitRenditionByPlayerDimensions', 'bandwidth'].forEach((option) => {
       if (typeof this.source_[option] !== 'undefined') {
         this.options_[option] = this.source_[option];
       }

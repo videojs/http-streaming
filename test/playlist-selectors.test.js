@@ -180,22 +180,22 @@ const trickyPlaylists = [
   { attributes: { BANDWIDTH: 6151620, RESOLUTION: { width: 1920, height: 1080 } } }
 ];
 
-test('simpleSelector accounts for resolution information when it exists', function(assert) {
-  let master = this.hls.playlists.master;
-
-  master.playlists = trickyPlaylists;
-
-  const selectedPlaylist = simpleSelector(master, Config.INITIAL_BANDWIDTH, 444, 790, false);
-
-  assert.equal(selectedPlaylist, master.playlists[3], 'selected the playlist with the lowest bandwidth higher than player resolution');
-});
-
-test('simpleSelector can ignore player size and resolutions', function(assert) {
+test('simpleSelector limits using resolution information when it exists', function(assert) {
   let master = this.hls.playlists.master;
 
   master.playlists = trickyPlaylists;
 
   const selectedPlaylist = simpleSelector(master, Config.INITIAL_BANDWIDTH, 444, 790, true);
+
+  assert.equal(selectedPlaylist, master.playlists[3], 'selected the playlist with the lowest bandwidth higher than player resolution');
+});
+
+test('simpleSelector can not limit based on resolution information', function(assert) {
+  let master = this.hls.playlists.master;
+
+  master.playlists = trickyPlaylists;
+
+  const selectedPlaylist = simpleSelector(master, Config.INITIAL_BANDWIDTH, 444, 790, false);
 
   assert.equal(selectedPlaylist, master.playlists[4], 'selected a playlist based solely on bandwidth');
 });

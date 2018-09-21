@@ -124,8 +124,8 @@ export const comparePlaylistResolution = function(left, right) {
  *        Current width of the player element
  * @param {Number} playerHeight
  *        Current height of the player element
- * @param {Boolean} ignorePlayerSize
- *        True if the player width and height should be ignored during the selection, false otherwise
+ * @param {Boolean} limitRenditionByPlayerDimensions
+ *        True if the player width and height should be used during the selection, false otherwise
  * @return {Playlist} the highest bitrate playlist less than the
  * currently detected bandwidth, accounting for some amount of
  * bandwidth variance
@@ -134,7 +134,7 @@ export const simpleSelector = function(master,
                                        playerBandwidth,
                                        playerWidth,
                                        playerHeight,
-                                       ignorePlayerSize) {
+                                       limitRenditionByPlayerDimensions) {
   // convert the playlists to an intermediary representation to make comparisons easier
   let sortedPlaylistReps = master.playlists.map((playlist) => {
     let width;
@@ -193,8 +193,8 @@ export const simpleSelector = function(master,
     (rep) => rep.bandwidth === highestRemainingBandwidthRep.bandwidth
   )[0];
 
-  // if we are ignoring the player size, make an early decision
-  if (ignorePlayerSize) {
+  // if we not going to limit renditions by player size, make an early decision.
+  if (!limitRenditionByPlayerDimensions) {
     let chosenRep = (
       bandwidthBestRep ||
       enabledPlaylistReps[0] ||
@@ -276,7 +276,7 @@ export const lastBandwidthSelector = function() {
                         this.systemBandwidth,
                         parseInt(safeGetComputedStyle(this.tech_.el(), 'width'), 10),
                         parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10),
-                        this.ignorePlayerSize);
+                        this.limitRenditionByPlayerDimensions);
 };
 
 /**
@@ -310,7 +310,7 @@ export const movingAverageBandwidthSelector = function(decay) {
                           average,
                           parseInt(safeGetComputedStyle(this.tech_.el(), 'width'), 10),
                           parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10),
-                          this.ignorePlayerSize);
+                          this.limitRenditionByPlayerDimensions);
   };
 };
 

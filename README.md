@@ -333,13 +333,14 @@ When `enableLowInitialPlaylist` is set to true, it will be used to select
 the lowest bitrate playlist initially.  This helps to decrease playback start time.
 This setting is `false` by default.
 
-##### ignorePlayerSize
+##### limitRenditionByPlayerDimensions
 * Type: `boolean`
 * can be used as an initialization option
 
-When `ignorePlayerSize` is set to true, rendition selection logic will ignore
-the player size and rendition resolutions when making a decision.
-This setting is `false` by default.
+When `limitRenditionByPlayerDimensions` is set to true, rendition
+selection logic will take into account the player size and rendition
+resolutions when making a decision.
+This setting is `true` by default.
 
 ### Runtime Properties
 Runtime properties are attached to the tech object when HLS is in
