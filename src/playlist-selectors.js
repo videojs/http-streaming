@@ -200,6 +200,7 @@ export const simpleSelector = function(master,
       enabledPlaylistReps[0] ||
       sortedPlaylistReps[0]
     );
+
     return chosenRep ? chosenRep.playlist : null;
   }
 
@@ -230,7 +231,6 @@ export const simpleSelector = function(master,
     resolutionPlusOneList = haveResolution.filter(
       (rep) => rep.width > playerWidth || rep.height > playerHeight
     );
-    console.log('resolutionPlusOneList', haveResolution, resolutionPlusOneList, playerWidth, playerHeight);
 
     // find all the variants have the same smallest resolution
     resolutionPlusOneSmallest = resolutionPlusOneList.filter(

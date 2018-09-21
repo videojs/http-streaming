@@ -337,10 +337,8 @@ This setting is `false` by default.
 * Type: `boolean`
 * can be used as an initialization option
 
-When `ignorePlayerSize` is set to true, selection logic will ignore the
-player size and rendition resolutions when making a decision.  This should
-be used when doing per-title encoding which makes non-traditional
-rendition resolution decisions.
+When `ignorePlayerSize` is set to true, rendition selection logic will ignore
+the player size and rendition resolutions when making a decision.
 This setting is `false` by default.
 
 ### Runtime Properties
