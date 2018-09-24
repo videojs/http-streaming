@@ -125,7 +125,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       currentTime: this.tech_.currentTime.bind(this.tech_),
       seekable: () => this.seekable(),
       seeking: () => this.tech_.seeking(),
-      duration: () => this.mediaSource.duration,
+      duration: () => this.duration(),
       hasPlayed: () => this.hasPlayed_(),
       goalBufferLength: () => this.goalBufferLength(),
       bandwidth,
@@ -252,7 +252,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       // update the SegmentLoader instead of doing it twice here and
       // on `mediachange`
       this.mainSegmentLoader_.playlist(updatedPlaylist, this.requestOptions_);
-      this.updateDuration();
+      this.updateDuration(!updatedPlaylist.endList);
 
       // If the player isn't paused, ensure that the segment loader is running,
       // as it is possible that it was temporarily stopped while waiting for
@@ -261,32 +261,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
         this.mainSegmentLoader_.load();
         if (this.audioSegmentLoader_) {
           this.audioSegmentLoader_.load();
-        }
-      }
-
-      if (!updatedPlaylist.endList) {
-        let addSeekableRange = () => {
-          let seekable = this.seekable();
-
-          if (seekable.length !== 0 &&
-              (isNaN(this.mediaSource.duration) ||
-                seekable.end(0) > this.mediaSource.duration)) {
-            this.mediaSource.duration = seekable.end(0);
-          }
-        };
-
-        if (this.duration() !== Infinity) {
-          let onDurationchange = () => {
-            if (this.duration() === Infinity) {
-              addSeekableRange();
-            } else {
-              this.tech_.one('durationchange', onDurationchange);
-            }
-          };
-
-          this.tech_.one('durationchange', onDurationchange);
-        } else {
-          addSeekableRange();
         }
       }
     });
@@ -721,7 +695,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     }
 
     let expired =
-      this.syncController_.getExpiredTime(playlist, this.mediaSource.duration);
+      this.syncController_.getExpiredTime(playlist, this.duration());
 
     if (expired === null) {
       return false;
@@ -882,11 +856,35 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return 0;
     }
 
+    const media = this.masterPlaylistLoader_.media();
+
+    if (!media) {
+      // no playlists loaded yet, so can't determine a duration
+      return 0;
+    }
+
+    // Don't rely on the media source for duration in the case of a live playlist since
+    // setting the native MediaSource's duration to infinity ends up with consequences to
+    // seekable behavior. See https://github.com/w3c/media-source/issues/5 for details.
+    //
+    // This is resolved in the spec by https://github.com/w3c/media-source/pull/92,
+    // however, few browsers have support for setLiveSeekableRange()
+    // https://developer.mozilla.org/en-US/docs/Web/API/MediaSource/setLiveSeekableRange
+    //
+    // Until a time when the duration of the media source can be set to infinity, and a
+    // seekable range specified across browsers, just return Infinity.
+    if (!media.endList) {
+      return Infinity;
+    }
+
+    // Since this is a VOD video, it is safe to rely on the media source's duration (if
+    // available). If it's not available, fall back to a playlist-calculated estimate.
+
     if (this.mediaSource) {
       return this.mediaSource.duration;
     }
 
-    return Hls.Playlist.duration(this.masterPlaylistLoader_.media());
+    return Hls.Playlist.duration(media);
   }
 
   /**
@@ -912,7 +910,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    let expired = this.syncController_.getExpiredTime(media, this.mediaSource.duration);
+    let expired = this.syncController_.getExpiredTime(media, this.duration());
 
     if (expired === null) {
       // not enough information to update seekable
@@ -927,7 +925,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
       media = this.mediaTypes_.AUDIO.activePlaylistLoader.media();
-      expired = this.syncController_.getExpiredTime(media, this.mediaSource.duration);
+      expired = this.syncController_.getExpiredTime(media, this.duration());
 
       if (expired === null) {
         return;
@@ -962,33 +960,73 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.tech_.trigger('seekablechanged');
   }
 
+  updateLiveDuration() {
+    const seekable = this.seekable();
+
+    if (!seekable.length) {
+      return;
+    }
+
+    // Even in the case of a live playlist, the native MediaSource's duration should not
+    // be set to Infinity (even though this would be expected for a live playlist), since
+    // setting the native MediaSource's duration to infinity ends up with consequences to
+    // seekable behavior. See https://github.com/w3c/media-source/issues/5 for details.
+    //
+    // This is resolved in the spec by https://github.com/w3c/media-source/pull/92,
+    // however, few browsers have support for setLiveSeekableRange()
+    // https://developer.mozilla.org/en-US/docs/Web/API/MediaSource/setLiveSeekableRange
+    //
+    // Until a time when the duration of the media source can be set to infinity, and a
+    // seekable range specified across browsers, the duration should be greater than or
+    // equal to the last possible seekable value.
+    if (
+      // MediaSource duration starts as NaN
+      isNaN(this.mediaSource.duration) ||
+      // It is possible (and probable) that this case will never be reached for many
+      // sources, since the MediaSource reports duration as the highest value without
+      // accounting for timestamp offset. For example, if the timestamp offset is -100 and
+      // we buffered times 0 to 100 with real times of 100 to 200, even though current
+      // time will be between 0 and 100, the native media source may report the duration
+      // as 200. However, since we report duration separate from the media source (as
+      // Infinity), and as long as the native media source duration value is greater than
+      // our reported seekable range, seeks will work as expected. The large number as
+      // duration for live is actually a strategy used by some players to work around the
+      // issue of live seekable ranges cited above.
+      this.mediaSource.duration < seekable.end(seekable.length - 1)) {
+      this.mediaSource.duration = seekable.end(seekable.length - 1);
+      this.tech_.trigger('durationchange');
+    }
+  }
+
+  updateVODDuration() {
+    const buffered = this.tech_.buffered();
+    let duration = Hls.Playlist.duration(this.masterPlaylistLoader_.media());
+
+    if (buffered.length > 0) {
+      duration = Math.max(duration, buffered.end(buffered.length - 1));
+    }
+
+    if (this.mediaSource.duration !== duration) {
+      this.mediaSource.duration = duration;
+      this.tech_.trigger('durationchange');
+    }
+  }
+
   /**
    * Update the player duration
    */
-  updateDuration() {
-    let oldDuration = this.mediaSource.duration;
-    let newDuration = Hls.Playlist.duration(this.masterPlaylistLoader_.media());
-    let buffered = this.tech_.buffered();
-    let setDuration = () => {
-      this.mediaSource.duration = newDuration;
-      this.tech_.trigger('durationchange');
-
-      this.mediaSource.removeEventListener('sourceopen', setDuration);
-    };
-
-    if (buffered.length > 0) {
-      newDuration = Math.max(newDuration, buffered.end(buffered.length - 1));
+  updateDuration(isLive) {
+    if (this.mediaSource.readyState !== 'open') {
+      this.mediaSource.addEventListener(
+        'sourceopen', this.updateDuration.bind(this, isLive));
+      return;
     }
 
-    // if the duration has changed, invalidate the cached value
-    if (oldDuration !== newDuration) {
-      // update the duration
-      if (this.mediaSource.readyState !== 'open') {
-        this.mediaSource.addEventListener('sourceopen', setDuration);
-      } else {
-        setDuration();
-      }
+    if (isLive) {
+      this.updateLiveDuration();
+      return;
     }
+    this.updateVODDuration();
   }
 
   /**

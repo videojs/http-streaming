@@ -3096,8 +3096,7 @@ QUnit.test('adds duration to media source after loading playlist', function(asse
   assert.equal(mpc.mediaSource.duration, 40, 'duration set on media source');
 });
 
-QUnit.test('adds infinite duration to media source after loading live playlist',
-function(assert) {
+QUnit.test('live playlist reports infinite duration', function(assert) {
   openMediaSource(this.player, this.clock);
   const mpc = this.masterPlaylistController;
 
@@ -3111,5 +3110,87 @@ function(assert) {
                                 '#EXTINF:5.0\n' +
                                 '0.ts\n');
 
-  assert.equal(mpc.mediaSource.duration, Infinity, 'duration set on media source');
+  assert.equal(mpc.duration(), Infinity, 'duration reported as infinite');
+});
+
+QUnit.test('live playlist sets duration of media source to seekable end',
+function(assert) {
+  openMediaSource(this.player, this.clock);
+  const mpc = this.masterPlaylistController;
+
+  // master
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.notOk(mpc.mediaSource.duration, 'no duration set on media source');
+
+  // since the safe live end will be 3 target durations back, in order for there to be a
+  // positive seekable end, there should be at least 4 segments
+  this.requests.shift().respond(200, null, `
+		#EXTM3U
+		#EXT-X-TARGETDURATION:5
+		#EXTINF:5
+		0.ts
+		#EXTINF:5
+		1.ts
+		#EXTINF:5
+		2.ts
+		#EXTINF:5
+		3.ts
+  `);
+
+  assert.equal(mpc.seekable().end(0), 5, 'calculated seekable end');
+  assert.equal(
+    mpc.mediaSource.duration,
+    5,
+    'native media source duration set to seekable end');
+});
+
+QUnit.test('VOD playlist sets duration of media source to calculated playlist duration',
+function(assert) {
+  openMediaSource(this.player, this.clock);
+  const mpc = this.masterPlaylistController;
+
+  // master
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.notOk(mpc.mediaSource.duration, 'no duration set on media source');
+
+  this.requests.shift().respond(200, null, `
+		#EXTM3U
+		#EXT-X-TARGETDURATION:5
+		#EXTINF:5
+		0.ts
+		#EXTINF:5
+		1.ts
+    #EXT-X-ENDLIST
+  `);
+
+  assert.equal(mpc.mediaSource.duration, 10, 'media source duration set to 10');
+});
+
+QUnit.test(
+'VOD playlist sets duration of media source to buffered end if greater than calculated ' +
+'playlist duration',
+function(assert) {
+  openMediaSource(this.player, this.clock);
+  const mpc = this.masterPlaylistController;
+
+  this.player.tech_.buffered = () => videojs.createTimeRanges([[0, 11]]);
+
+  // master
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.notOk(mpc.mediaSource.duration, 'no duration set on media source');
+
+  this.requests.shift().respond(200, null, `
+		#EXTM3U
+		#EXT-X-TARGETDURATION:5
+		#EXTINF:5
+		0.ts
+		#EXTINF:5
+		1.ts
+    #EXT-X-ENDLIST
+  `);
+
+  assert.equal(mpc.mediaSource.duration, 11, 'media source duration set to 11');
 });
