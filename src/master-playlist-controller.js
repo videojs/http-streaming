@@ -760,8 +760,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     if (isFinalRendition) {
       // Never blacklisting this playlist because it's final rendition
-      videojs.log.warn('Problem encountered with the current ' +
-                       'HLS playlist. Trying again since it is the final playlist.');
+      videojs.log.warn('Problem encountered with the current playlist.' +
+                       ' Trying again since it is the final playlist.');
 
       this.tech_.trigger('retryplaylist');
       return this.masterPlaylistLoader_.load(isFinalRendition);
@@ -773,7 +773,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     // Select a new playlist
     nextPlaylist = this.selectPlaylist();
-    videojs.log.warn('Problem encountered with the current HLS playlist.' +
+    videojs.log.warn('Problem encountered with the current playlist.' +
                      (error.message ? ' ' + error.message : '') +
                      ' Switching to another playlist.');
 

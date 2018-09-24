@@ -1369,7 +1369,7 @@ QUnit.test('blacklists playlist on earlyabort', function(assert) {
   assert.equal(mediaChanges.length, 1, 'one media change');
   assert.equal(warnings.length, 1, 'one warning logged');
   assert.equal(warnings[0],
-               'Problem encountered with the current HLS playlist. ' +
+               'Problem encountered with the current playlist. ' +
                  'Aborted early because there isn\'t enough bandwidth to complete the ' +
                  'request without rebuffering. Switching to another playlist.',
                'warning message is correct');

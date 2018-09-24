@@ -1385,7 +1385,7 @@ QUnit.test('playlist 404 should blacklist media', function(assert) {
   assert.ok(media.excludeUntil > 0, 'original media blacklisted for some time');
   assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
   assert.equal(this.env.log.warn.args[0],
-              'Problem encountered with the current HLS playlist. ' +
+              'Problem encountered with the current playlist. ' +
                 'HLS playlist request error at URL: media.m3u8 ' +
                 'Switching to another playlist.',
               'log generic error message');
@@ -1405,7 +1405,7 @@ QUnit.test('playlist 404 should blacklist media', function(assert) {
   assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
   assert.equal(
     this.env.log.warn.args[1],
-    'Problem encountered with the current HLS playlist. ' +
+    'Problem encountered with the current playlist. ' +
       'Trying again since it is the final playlist.',
     'log specific error message for final playlist');
   assert.equal(retryplaylist, 1, 'retried final playlist for once');
@@ -1481,7 +1481,7 @@ QUnit.test('blacklists playlist if it has stopped being updated', function(asser
             'playlist blacklisted for some time');
   assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
   assert.equal(this.env.log.warn.args[0],
-              'Problem encountered with the current HLS playlist. ' +
+              'Problem encountered with the current playlist. ' +
                 'Playlist no longer updating. Switching to another playlist.',
               'log specific error message for not updated playlist');
   assert.equal(playliststuck, 1, 'there is one stuck playlist');
@@ -1509,7 +1509,7 @@ QUnit.test('never blacklist the playlist if it is the only playlist', function(a
   assert.ok(!media.excludeUntil, 'media was not blacklisted after playlist 404');
   assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
   assert.equal(this.env.log.warn.args[0],
-              'Problem encountered with the current HLS playlist. ' +
+              'Problem encountered with the current playlist. ' +
                 'Trying again since it is the final playlist.',
               'log specific error message for final playlist');
 });
@@ -1539,7 +1539,7 @@ function(assert) {
   assert.ok(!media.excludeUntil, 'media was not blacklisted after playlist 404');
   assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
   assert.equal(this.env.log.warn.args[0],
-              'Problem encountered with the current HLS playlist. ' +
+              'Problem encountered with the current playlist. ' +
                 'Trying again since it is the final playlist.',
               'log specific error message for final playlist');
 });
@@ -1850,7 +1850,7 @@ QUnit.test('playlist blacklisting duration is set through options', function(ass
   assert.ok(media.excludeUntil > 0, 'original media blacklisted for some time');
   assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
   assert.equal(this.env.log.warn.args[0],
-              'Problem encountered with the current HLS playlist. ' +
+              'Problem encountered with the current playlist. ' +
                 'HLS playlist request error at URL: media.m3u8 ' +
                 'Switching to another playlist.',
               'log generic error message');
