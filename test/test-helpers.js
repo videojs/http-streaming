@@ -189,9 +189,17 @@ export const useFakeEnvironment = function(assert) {
   };
 
   XMLHttpRequest.prototype.downloadProgress = function downloadProgress(rawEventData) {
+    // `responseText` we only really use when we’re requesting as text
+    // so that we can see data on progress events.
+    // `downloadProgress` should be called with 0 bytes
+    // and then add new bytes each progress event
+    if (this.mimeTypeOverride === 'text/plain; charset=x-user-defined') {
+      this.responseText = rawEventData.toString();
+    }
+
     this.dispatchEvent(new sinon.ProgressEvent('progress',
                                                rawEventData,
-                                               rawEventData.target));
+                                               this));
   };
 
   // used for treating the response however we want, instead of the browser deciding
@@ -199,25 +207,6 @@ export const useFakeEnvironment = function(assert) {
   XMLHttpRequest.prototype.overrideMimeType = function overrideMimeType(mimeType) {
     this.mimeTypeOverride = mimeType;
   };
-
-  let responseText = (XMLHttpRequest.prototype.responseText === undefined) ?
-    '' : XMLHttpRequest.prototype.responseText;
-
-  Object.defineProperty(XMLHttpRequest.prototype, 'responseText', {
-    get() {
-      // special case for media segment request partial downloads
-      // if (this.mimeTypeOverride === 'text/plain; charset=x-user-defined' &&
-      //     responseText) {
-      //   // responseText should be an ArrayBuffer
-      //   return (new TextDecoder()).decode(responseText);
-      // }
-
-      return responseText;
-    },
-    set(val) {
-      responseText = val;
-    }
-  });
 
   fakeEnvironment.requests.length = 0;
   fakeEnvironment.xhr.onCreate = function(xhr) {
@@ -377,9 +366,13 @@ export const standardXHRResponse = function(request, data) {
   request.response =
     // if segment data was passed, use that, otherwise use a placeholder
     data instanceof Uint8Array ? data.buffer : new Uint8Array(1024).buffer;
-  request.respond(200,
-                  { 'Content-Type': contentType },
-                  data instanceof Uint8Array ? '' : data);
+
+  // `response` will get the full value after the request finishes
+  request.respond(
+    200,
+    { 'Content-Type': contentType },
+    data instanceof Uint8Array ? '' : data
+  );
 };
 
 // return an absolute version of a page-relative URL
