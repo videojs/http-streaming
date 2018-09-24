@@ -512,7 +512,7 @@ export const initialize = {
           const track = tech.addRemoteTextTrack({
             id: variantLabel,
             kind: 'subtitles',
-            default: propreties.default && properties.autoselect,
+            default: properties.default && properties.autoselect,
             language: properties.language,
             label: variantLabel
           }, false).track;
