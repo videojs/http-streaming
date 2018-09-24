@@ -1943,21 +1943,18 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     this.logger_(segmentInfoString(segmentInfo));
 
+    this.recordThroughput_(segmentInfo);
+    this.pendingSegment_ = null;
+    this.state = 'READY';
+
     // TODO minor, but for partial segment downloads, this can be done earlier to save
     // on bandwidth and download time
     if (segmentInfo.isSyncRequest) {
       this.trigger('syncinfoupdate');
-      this.pendingSegment_ = null;
-      this.state = 'READY';
       return;
     }
 
-    this.pendingSegment_ = null;
-    this.recordThroughput_(segmentInfo);
     this.addSegmentMetadataCue_(segmentInfo);
-
-    this.state = 'READY';
-
     this.fetchAtBuffer_ = true;
     this.currentTimeline_ = segmentInfo.timeline;
 
