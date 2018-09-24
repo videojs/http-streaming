@@ -9,7 +9,7 @@ import {
   mp4Video,
   mp4VideoInit,
   muxed as muxedSegment,
-  muxedString
+  muxedString as muxedSegmentString
 } from './test-segments';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
@@ -531,8 +531,6 @@ QUnit.test('all callbacks fire for TS segment with partial data', function(asser
   const progressSpy = sinon.spy();
   const trackInfoSpy = sinon.spy();
   const timingInfoSpy = sinon.spy();
-  const id3Spy = sinon.spy();
-  const captionSpy = sinon.spy();
   const dataSpy = sinon.spy();
   const done = assert.async();
 
@@ -550,8 +548,8 @@ QUnit.test('all callbacks fire for TS segment with partial data', function(asser
     progressFn: progressSpy,
     trackInfoFn: trackInfoSpy,
     timingInfoFn: timingInfoSpy,
-    id3Fn: id3Spy,
-    captionsFn: captionSpy,
+    id3Fn: this.noop,
+    captionsFn: this.noop,
     dataFn: dataSpy,
     doneFn: () => {
       assert.strictEqual(progressSpy.callCount, 1, 'saw 1 progress event');
@@ -565,7 +563,46 @@ QUnit.test('all callbacks fire for TS segment with partial data', function(asser
 
   const request = this.requests.shift();
   // Need to take enough of the segment to trigger a data event
-  const partialResponse = muxedString().substring(0, 1700);
+  const partialResponse = muxedSegmentString().substring(0, 1700);
+
+  // simulates progress event
+  request.downloadProgress(partialResponse);
+  this.standardXHRResponse(request, muxedSegment());
+});
+
+QUnit.test('data callback does not fire if too little data', function(assert) {
+  const progressSpy = sinon.spy();
+  const dataSpy = sinon.spy();
+  const done = assert.async();
+
+  this.transmuxer = this.createTransmuxer(true);
+
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.mockDecrypter,
+    captionParser: this.mockCaptionParser,
+    segment: {
+      resolvedUri: 'muxed.ts',
+      transmuxer: this.transmuxer
+    },
+    progressFn: progressSpy,
+    trackInfoFn: this.noop,
+    timingInfoFn: this.noop,
+    id3Fn: this.noop,
+    captionsFn: this.noop,
+    dataFn: dataSpy,
+    doneFn: () => {
+      assert.strictEqual(progressSpy.callCount, 1, 'saw 1 progress event');
+      assert.notOk(dataSpy.callCount, 'did not get data event');
+      done();
+    },
+    handlePartialData: true
+  });
+
+  const request = this.requests.shift();
+  // less data than needed for a data event to be fired
+  const partialResponse = muxedSegmentString().substring(0, 1000);
 
   // simulates progress event
   request.downloadProgress(partialResponse);
