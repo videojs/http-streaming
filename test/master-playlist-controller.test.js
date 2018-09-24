@@ -2759,9 +2759,8 @@ async function(assert) {
     'passed manifest specified codecs');
 });
 
-// TODO translate?
-QUnit.skip('translates old-school apple codec strings from manifest for source buffer ' +
-'creation',
+QUnit.test('translates old-school apple codec strings from manifest to modern standard ' +
+'for source buffer creation',
 async function(assert) {
   this.requests.length = 0;
   this.player = createPlayer();
@@ -2804,9 +2803,57 @@ async function(assert) {
     createSourceBufferCalls[0],
     {
       audio: 'mp4a.40.5',
-      video: 'avc1.100.31'
+      video: 'avc1.64001f'
     },
-    'passed manifest specified codecs');
+    'translated to modern codec strings');
+});
+
+QUnit.test('uses default codec strings when provided are invalid',
+async function(assert) {
+  this.requests.length = 0;
+  this.player = createPlayer();
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+
+  const createSourceBufferCalls = [];
+  const mpc = this.player.vhs.masterPlaylistController_;
+  const origCreateSourceBuffers =
+    mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
+
+  mpc.sourceUpdater_.createSourceBuffers = (codecs) => {
+    createSourceBufferCalls.push(codecs);
+    origCreateSourceBuffers(codecs);
+  };
+
+  openMediaSource(this.player, this.clock);
+
+  // master
+  this.requests.shift().respond(
+    200,
+    null,
+    '#EXTM3U\n' +
+    '#EXT-X-VERSION:4\n' +
+    '#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=1,CODECS="nope"\n' +
+    'media.m3u8\n');
+  // media
+  this.standardXHRResponse(this.requests.shift());
+  await requestAndAppendSegment({
+    request: this.requests.shift(),
+    segmentLoader: mpc.mainSegmentLoader_,
+    clock: this.clock
+  });
+
+  assert.equal(createSourceBufferCalls.length, 1, 'called to create source buffers');
+  assert.deepEqual(
+    createSourceBufferCalls[0],
+    {
+      audio: 'mp4a.40.2',
+      video: 'avc1.4d400d'
+    },
+    'used default codec strings');
 });
 
 QUnit.test('uses codec info from manifest for source buffer creation even when demuxed',
