@@ -3141,7 +3141,7 @@ function(assert) {
   assert.equal(mpc.seekable().end(0), 5, 'calculated seekable end');
   assert.equal(
     mpc.mediaSource.duration,
-    mpc.seekable().end(0),
+    5,
     'native media source duration set to seekable end');
 });
 

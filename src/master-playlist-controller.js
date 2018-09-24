@@ -859,13 +859,13 @@ export class MasterPlaylistController extends videojs.EventTarget {
     const media = this.masterPlaylistLoader_.media();
 
     if (!media) {
+      // no playlists loaded yet, so can't determine a duration
       return 0;
     }
 
     // Don't rely on the media source for duration in the case of a live playlist since
-    // the native MediaSource's duration should never be set to Infinity (even though this
-    // would be expected for a live playlist). See
-    // https://github.com/w3c/media-source/issues/5 for details.
+    // setting the native MediaSource's duration to infinity ends up with consequences to
+    // seekable behavior. See https://github.com/w3c/media-source/issues/5 for details.
     //
     // This is resolved in the spec by https://github.com/w3c/media-source/pull/92,
     // however, few browsers have support for setLiveSeekableRange()
@@ -968,8 +968,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
     }
 
     // Even in the case of a live playlist, the native MediaSource's duration should not
-    // be set to Infinity (even though this would be expected for a live playlist). See
-    // https://github.com/w3c/media-source/issues/5 for details.
+    // be set to Infinity (even though this would be expected for a live playlist), since
+    // setting the native MediaSource's duration to infinity ends up with consequences to
+    // seekable behavior. See https://github.com/w3c/media-source/issues/5 for details.
     //
     // This is resolved in the spec by https://github.com/w3c/media-source/pull/92,
     // however, few browsers have support for setLiveSeekableRange()
@@ -991,8 +992,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       // our reported seekable range, seeks will work as expected. The large number as
       // duration for live is actually a strategy used by some players to work around the
       // issue of live seekable ranges cited above.
-      this.mediaSource.duration < seekable.end(0)) {
-      this.mediaSource.duration = seekable.end(0);
+      this.mediaSource.duration < seekable.end(seekable.length - 1)) {
+      this.mediaSource.duration = seekable.end(seekable.length - 1);
       this.tech_.trigger('durationchange');
     }
   }
