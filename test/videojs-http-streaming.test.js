@@ -10,7 +10,8 @@ import {
   openMediaSource,
   standardXHRResponse,
   absoluteUrl,
-  requestAndAppendSegment
+  requestAndAppendSegment,
+  disposePlaybackWatcher
 } from './test-helpers.js';
 /* eslint-disable no-unused-vars */
 // we need this so that it can register hls with videojs
@@ -2575,7 +2576,6 @@ QUnit.test('adds audio tracks if we have parsed some from a playlist', function(
 });
 
 QUnit.test('cleans up the buffer when loading live segments', async function(assert) {
-  let removes = [];
   let seekable = videojs.createTimeRanges([[0, 70]]);
 
   this.player.src({
@@ -2591,29 +2591,6 @@ QUnit.test('cleans up the buffer when loading live segments', async function(ass
     return seekable;
   };
 
-  // This is so we do not track first call to remove during segment loader init
-  this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.resetEverything =
-    function() {
-      this.resetLoader();
-    };
-
-  this.player.tech_.hls.mediaSource.addSourceBuffer = (codec) => {
-    let buffer = new (videojs.extend(videojs.EventTarget, {
-      constructor() {},
-      abort() {},
-      buffered: videojs.createTimeRange(),
-      appendBuffer() {},
-      remove(start, end) {
-        removes.push({
-          range: [start, end],
-          codec
-        });
-      }
-    }))();
-
-    this.player.tech_.hls.mediaSource.sourceBuffers.push(buffer);
-    return buffer;
-  };
   this.player.tech_.hls.bandwidth = 20e10;
   this.player.tech_.triggerReady();
   // media
@@ -2637,32 +2614,50 @@ QUnit.test('cleans up the buffer when loading live segments', async function(ass
     clock: this.clock
   });
 
-  // request second playable segment
-  this.standardXHRResponse(this.requests[2], muxedSegment());
+  const audioRemoves = [];
+  const videoRemoves = [];
+  const audioBuffer = mpc.sourceUpdater_.audioBuffer;
+  const videoBuffer = mpc.sourceUpdater_.videoBuffer;
+  const origAudioRemove = audioBuffer.remove.bind(audioBuffer);
+  const origVideoRemove = videoBuffer.remove.bind(videoBuffer);
 
-  assert.strictEqual(this.requests[0].url, 'liveStart30sBefore.m3u8',
-                    'master playlist requested');
-  assert.equal(removes.length, 2, 'two removes');
+  audioBuffer.remove = (start, end) => {
+    audioRemoves.push({start, end});
+    origAudioRemove();
+  };
+  videoBuffer.remove = (start, end) => {
+    videoRemoves.push({start, end});
+    origVideoRemove();
+  };
+
+  // since source buffers are mocked, must fake that there's buffered data, or else we
+  // don't bother processing removes
+  audioBuffer.buffered = videojs.createTimeRanges([[10, 20]]);
+  videoBuffer.buffered = videojs.createTimeRanges([[15, 25]]);
+
+  // request second segment, and give enough time for the source buffer to process removes
+  await requestAndAppendSegment({
+    request: this.requests[2],
+    mediaSource: mpc.mediaSource,
+    segmentLoader: mpc.mainSegmentLoader_,
+    clock: this.clock
+  });
+
+  assert.equal(audioRemoves.length, 1, 'one audio remove');
+  assert.equal(videoRemoves.length, 1, 'one video remove');
   // segment-loader removes at currentTime - 30
   assert.deepEqual(
-    removes[0],
-    {
-      range: [0, 40],
-      codec: 'audio/mp4;codecs="mp4a.40.2"'
-    },
+    audioRemoves[0],
+    { start: 0, end: 40 },
     'removed from audio buffer with right range');
   assert.deepEqual(
-    removes[1],
-    {
-      range: [0, 40],
-      codec: 'video/mp4;codecs="avc1.4d400d"'
-    },
+    videoRemoves[0],
+    { start: 0, end: 40 },
     'removed from video buffer with right range');
 });
 
 QUnit.test('cleans up the buffer based on currentTime when loading a live segment ' +
            'if seekable start is after currentTime', async function(assert) {
-  let removes = [];
   let seekable = videojs.createTimeRanges([[0, 80]]);
 
   this.player.src({
@@ -2674,34 +2669,10 @@ QUnit.test('cleans up the buffer based on currentTime when loading a live segmen
     return seekable;
   };
 
-  // This is so we do not track first call to remove during segment loader init
-  this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.resetEverything =
-    function() {
-      this.resetLoader();
-    };
-
-  this.player.tech_.hls.mediaSource.addSourceBuffer = (codec) => {
-    let buffer = new (videojs.extend(videojs.EventTarget, {
-      constructor() {},
-      abort() {},
-      buffered: videojs.createTimeRange(),
-      appendBuffer() {},
-      remove(start, end) {
-        removes.push({
-          range: [start, end],
-          codec
-        });
-      }
-    }))();
-
-    this.player.tech_.hls.mediaSource.sourceBuffers.push(buffer);
-    return buffer;
-
-  };
   this.player.tech_.hls.bandwidth = 20e10;
   this.player.tech_.triggerReady();
    // media
-  this.standardXHRResponse(this.requests[0]);
+  this.standardXHRResponse(this.requests.shift());
   this.player.tech_.hls.playlists.trigger('loadedmetadata');
   this.player.tech_.trigger('canplay');
 
@@ -2716,7 +2687,7 @@ QUnit.test('cleans up the buffer based on currentTime when loading a live segmen
 
   // request first playable segment
   await requestAndAppendSegment({
-    request: this.requests[1],
+    request: this.requests.shift(),
     mediaSource: mpc.mediaSource,
     segmentLoader: mpc.mainSegmentLoader_,
     clock: this.clock
@@ -2725,36 +2696,54 @@ QUnit.test('cleans up the buffer based on currentTime when loading a live segmen
   // Change seekable so that it starts *after* the currentTime which was set
   // based on the previous seekable range (the end of 80)
   seekable = videojs.createTimeRanges([[100, 120]]);
-
   this.clock.tick(1);
 
-  // request second playable segment
-  this.standardXHRResponse(this.requests[2], muxedSegment());
+  const audioRemoves = [];
+  const videoRemoves = [];
+  const audioBuffer = mpc.sourceUpdater_.audioBuffer;
+  const videoBuffer = mpc.sourceUpdater_.videoBuffer;
+  const origAudioRemove = audioBuffer.remove.bind(audioBuffer);
+  const origVideoRemove = videoBuffer.remove.bind(videoBuffer);
 
-  assert.strictEqual(this.requests[0].url,
-                     'liveStart30sBefore.m3u8',
-                     'master playlist requested');
-  assert.equal(removes.length, 2, 'two removes');
+  audioBuffer.remove = (start, end) => {
+    audioRemoves.push({start, end});
+    origAudioRemove();
+  };
+  videoBuffer.remove = (start, end) => {
+    videoRemoves.push({start, end});
+    origVideoRemove();
+  };
+
+  // since source buffers are mocked, must fake that there's buffered data, or else we
+  // don't bother processing removes
+  audioBuffer.buffered = videojs.createTimeRanges([[10, 20]]);
+  videoBuffer.buffered = videojs.createTimeRanges([[15, 25]]);
+
+  // prevent trying to correct live time
+  disposePlaybackWatcher(this.player);
+
+  // request second segment, and give enough time for the source buffer to process removes
+  await requestAndAppendSegment({
+    request: this.requests.shift(),
+    mediaSource: mpc.mediaSource,
+    segmentLoader: mpc.mainSegmentLoader_,
+    clock: this.clock
+  });
+
+  assert.equal(audioRemoves.length, 1, 'one audio remove');
+  assert.equal(videoRemoves.length, 1, 'one video remove');
   // segment-loader removes at currentTime - 30
   assert.deepEqual(
-    removes[0],
-    {
-      range: [0, 80 - 30],
-      codec: 'audio/mp4;codecs="mp4a.40.2"'
-    },
+    audioRemoves[0],
+    { start: 0, end: 80 - 30 },
     'removed from audio buffer with right range');
   assert.deepEqual(
-    removes[1],
-    {
-      range: [0, 80 - 30],
-      codec: 'video/mp4;codecs="avc1.4d400d"'
-    },
+    videoRemoves[0],
+    { start: 0, end: 80 - 30 },
     'removed from video buffer with right range');
 });
 
 QUnit.test('cleans up the buffer when loading VOD segments', async function(assert) {
-  let removes = [];
-
   this.player.src({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -2764,31 +2753,6 @@ QUnit.test('cleans up the buffer when loading VOD segments', async function(asse
 
   openMediaSource(this.player, this.clock);
 
-  // This is so we do not track first call to remove during segment loader init
-  this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.resetEverything =
-    function() {
-      this.resetLoader();
-    };
-
-  this.player.tech_.hls.mediaSource.addSourceBuffer = (codec) => {
-    let buffer = new (videojs.extend(videojs.EventTarget, {
-      constructor() {},
-      abort() {},
-      buffered: videojs.createTimeRange(),
-      appendBuffer() {},
-      remove(start, end) {
-        removes.push({
-          range: [start, end],
-          codec
-        });
-      },
-      codec
-    }))();
-
-    this.player.tech_.hls.mediaSource.sourceBuffers.push(buffer);
-    return buffer;
-
-  };
   this.player.width(640);
   this.player.height(360);
   this.player.tech_.hls.bandwidth = 20e10;
@@ -2799,6 +2763,7 @@ QUnit.test('cleans up the buffer when loading VOD segments', async function(asse
 
   const mpc = this.player.tech_.hls.masterPlaylistController_;
 
+  // first segment request will set up all of the source buffers we need
   await requestAndAppendSegment({
     request: this.requests[2],
     mediaSource: mpc.mediaSource,
@@ -2806,34 +2771,56 @@ QUnit.test('cleans up the buffer when loading VOD segments', async function(asse
     clock: this.clock,
     tickClock: false
   });
+
+  // the seek will have removed everything to the duration of the video, so we want to
+  // only start tracking removes after the seek, once the next segment request is made
   this.player.currentTime(120);
+
+  const audioRemoves = [];
+  const videoRemoves = [];
+  const audioBuffer = mpc.sourceUpdater_.audioBuffer;
+  const videoBuffer = mpc.sourceUpdater_.videoBuffer;
+  const origAudioRemove = audioBuffer.remove.bind(audioBuffer);
+  const origVideoRemove = videoBuffer.remove.bind(videoBuffer);
+
+  audioBuffer.remove = (start, end) => {
+    audioRemoves.push({start, end});
+    origAudioRemove();
+  };
+  videoBuffer.remove = (start, end) => {
+    videoRemoves.push({start, end});
+    origVideoRemove();
+  };
+
+  // since source buffers are mocked, must fake that there's buffered data, or else we
+  // don't bother processing removes
+  audioBuffer.buffered = videojs.createTimeRanges([[0, 10]]);
+  videoBuffer.buffered = videojs.createTimeRanges([[1, 11]]);
+
   // This requires 2 clock ticks because after updateend monitorBuffer_ is called
   // to setup fillBuffer on the next tick, but the seek also causes monitorBuffer_ to be
   // called, which cancels the previously set timeout and sets a new one for the following
   // tick.
   this.clock.tick(2);
-  // segment
-  this.standardXHRResponse(this.requests[3], muxedSegment());
 
-  assert.strictEqual(this.requests[0].url, 'manifest/master.m3u8',
-                    'master playlist requested');
-  assert.strictEqual(this.requests[1].url, absoluteUrl('manifest/media3.m3u8'),
-                    'media playlist requested');
-  assert.equal(removes.length, 2, 'two removes');
+  // request second segment, and give enough time for the source buffer to process removes
+  await requestAndAppendSegment({
+    request: this.requests[3],
+    mediaSource: mpc.mediaSource,
+    segmentLoader: mpc.mainSegmentLoader_,
+    clock: this.clock
+  });
+
+  assert.equal(audioRemoves.length, 1, 'one audio remove');
+  assert.equal(videoRemoves.length, 1, 'one video remove');
   // segment-loader removes at currentTime - 30
   assert.deepEqual(
-    removes[0],
-    {
-      range: [0, 120 - 30],
-      codec: 'audio/mp4;codecs="mp4a.40.2"'
-    },
+    audioRemoves[0],
+    { start: 0, end: 120 - 30 },
     'removed from audio buffer with right range');
   assert.deepEqual(
-    removes[1],
-    {
-      range: [0, 120 - 30],
-      codec: 'video/mp4;codecs="avc1.4d400d"'
-    },
+    videoRemoves[0],
+    { start: 0, end: 120 - 30 },
     'removed from video buffer with right range');
 });
 

@@ -532,3 +532,7 @@ export const requestAndAppendSegment = async ({
     clock.tick(1);
   }
 };
+
+export const disposePlaybackWatcher = (player) => {
+  player.vhs.playbackWatcher_.dispose();
+};
