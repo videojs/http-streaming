@@ -570,7 +570,7 @@ QUnit.test('all callbacks fire for TS segment with partial data', function(asser
   this.standardXHRResponse(request, muxedSegment());
 });
 
-QUnit.test('data callback does not fire if too little data', function(assert) {
+QUnit.test('data callback does not fire if too little partial data', function(assert) {
   const progressSpy = sinon.spy();
   const dataSpy = sinon.spy();
   const done = assert.async();
