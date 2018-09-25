@@ -280,19 +280,49 @@ QUnit.module('SegmentLoader', function(hooks) {
       assert.equal(loader.state, 'APPENDING', 'still appending');
     });
 
-    // TODO
-    QUnit.skip('sets the timestampOffset on timeline change', async function(assert) {
+    QUnit.test('sets the timestampOffset on timeline change', async function(assert) {
       await setupMediaSource(
         loader.mediaSource_, loader.sourceUpdater_, { isVideoOnly: true });
-      let playlist = playlistWithDuration(40);
-      let buffered = videojs.createTimeRanges();
       let timestampOffsetEvents = 0;
 
+      // timestampoffset events are triggered when the source buffer's timestamp offset is
+      // set
       loader.on('timestampoffset', () => {
         timestampOffsetEvents++;
       });
+      // The transmuxer's timestamp offset is set at different times than the source
+      // buffers' timestamp offsets. Since keepOriginalTimestamps is set to true, the
+      // timestampOffset value in the transmuxer is used for content alignment
+      // modifications, rather than changing time values to match a timeline.
+      const origPostMessage = loader.transmuxer_.postMessage.bind(loader.transmuxer_);
+      const setTimestampOffsetMessages = [];
+
+      loader.transmuxer_.postMessage = (config) => {
+        if (config.action === 'setTimestampOffset') {
+          setTimestampOffsetMessages.push(config);
+        }
+
+        origPostMessage(config);
+      };
+
+      let videoSegmentStartTime = 3;
+      let videoSegmentEndTime = 13;
+      const origHandleTimingInfo = loader.handleTimingInfo_.bind(loader);
+
+      // The source buffer timestamp offset is offset by the start of the segment. In
+      // order to account for this, use a fixed value.
+      loader.handleTimingInfo_ = (simpleSegment, mediaType, timeType, time) => {
+        if (mediaType === 'video') {
+          time = timeType === 'start' ? videoSegmentStartTime : videoSegmentEndTime;
+        }
+        origHandleTimingInfo(simpleSegment, mediaType, timeType, time);
+      };
+
+      let buffered = videojs.createTimeRanges();
 
       loader.buffered_ = () => buffered;
+
+      const playlist = playlistWithDuration(40);
 
       playlist.discontinuityStarts = [2];
       playlist.segments[2].timeline = 1;
@@ -301,32 +331,93 @@ QUnit.module('SegmentLoader', function(hooks) {
       this.clock.tick(1);
 
       // segment 0
-      standardXHRResponse(this.requests.shift(), mp4VideoSegment());
-      buffered = videojs.createTimeRanges([[0, 10]]);
+      standardXHRResponse(this.requests.shift(), videoSegment());
       await new Promise((accept, reject) => {
         loader.on('appended', accept);
       });
-      this.clock.tick(1);
 
-      assert.equal(timestampOffsetEvents, 1, 'timestamp-offset event was fired');
-
-      // segment 1
-      standardXHRResponse(this.requests.shift(), mp4VideoSegment());
-      buffered = videojs.createTimeRanges([[10, 20]]);
-      await new Promise((accept, reject) => {
-        loader.on('appended', accept);
-      });
-      this.clock.tick(1);
-
+      assert.equal(timestampOffsetEvents, 1, 'timestampoffset event was fired');
       assert.equal(
-        timestampOffsetEvents, 1, 'no additional timestamp-offset event was fired');
+        loader.sourceUpdater_.videoBuffer.timestampOffset,
+        0 - 3,
+        'timestampoffset set on source buffer');
+      assert.equal(
+        setTimestampOffsetMessages.length,
+        0,
+        'timestampoffset was not set in transmuxer');
 
-      // segment 2, discontinuity
-      standardXHRResponse(this.requests.shift(), muxedSegment());
-      assert.equal(timestampOffsetEvents, 2, 'timestamp-offset event was fired');
-      assert.equal(loader.mediaSource_.sourceBuffers[0].timestampOffset,
-                   10,
-                   'set timestampOffset');
+      buffered = videojs.createTimeRanges([[0, 10]]);
+      playlist.segments[0].end = 10;
+      // start request for segment 1
+      this.clock.tick(1);
+
+      assert.equal(timestampOffsetEvents, 1, 'timestampoffset event was not fired again');
+      assert.equal(
+        loader.sourceUpdater_.videoBuffer.timestampOffset,
+        0 - 3,
+        'timestampoffset not changed on source buffer');
+      // still at 0
+      assert.equal(
+        setTimestampOffsetMessages.length,
+        0,
+        'timestampoffset was not set in transmuxer');
+
+      // video start time changed for the next segment (1), but the timestamp offset on
+      // the source buffer shouldn't change
+      videoSegmentStartTime = 13;
+      videoSegmentEndTime = 23;
+      // segment 1
+      standardXHRResponse(this.requests.shift(), videoSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+
+      assert.equal(timestampOffsetEvents, 1, 'timestampoffset event was not fired again');
+      assert.equal(
+        loader.sourceUpdater_.videoBuffer.timestampOffset,
+        0 - 3,
+        'timestampoffset not changed on source buffer');
+      assert.equal(
+        setTimestampOffsetMessages.length,
+        0,
+        'timestampoffset was not set in transmuxer');
+
+      buffered = videojs.createTimeRanges([[10, 20]]);
+      playlist.segments[1].end = 20;
+      // start request for segment 2, which has a discontinuity (new timeline)
+      this.clock.tick(1);
+
+      assert.equal(timestampOffsetEvents, 1, 'timestampoffset event was not fired again');
+      assert.equal(
+        loader.sourceUpdater_.videoBuffer.timestampOffset,
+        0 - 3,
+        'timestampoffset not changed on source buffer');
+      assert.equal(
+        setTimestampOffsetMessages.length,
+        1,
+        'timestampoffset was set in transmuxer');
+      assert.equal(
+        setTimestampOffsetMessages[0].timestampOffset,
+        20,
+        'transmuxer timestampoffset set to 20');
+
+      videoSegmentStartTime = 101;
+      videoSegmentEndTime = 111;
+      // segment 2
+      standardXHRResponse(this.requests.shift(), videoSegment());
+      await new Promise((accept, reject) => {
+        loader.on('appended', accept);
+      });
+
+      assert.equal(timestampOffsetEvents, 2, 'timestampoffset event was fired');
+      assert.equal(
+        loader.sourceUpdater_.videoBuffer.timestampOffset,
+        20 - 101,
+        'timestampoffset changed on source buffer');
+      assert.equal(
+        setTimestampOffsetMessages.length,
+        1,
+        'timestampoffset unchanged in transmuxer');
     });
 
     QUnit.test('tracks segment end times as they are buffered', async function(assert) {

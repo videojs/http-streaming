@@ -1496,9 +1496,10 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.trimBackBuffer_(segmentInfo);
 
     // We'll update the source buffer's timestamp offset once we have transmuxed data, but
-    // the transmuxer still needs to be updated before then. In the future we may want to
-    // remove this since we are using actual timestamps from the transmuxer, and rely only
-    // on setting the offset on the source buffers.
+    // the transmuxer still needs to be updated before then.
+    //
+    // Even though we keep original timestamps in the transmuxer, we have to set the
+    // timestamp offset if we want stream correcting adjustments.
     this.updateTransmuxerTimestampOffset_(segmentInfo);
 
     const simpleSegment = this.createSimplifiedSegmentObj_(segmentInfo);
