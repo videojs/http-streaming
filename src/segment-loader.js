@@ -396,6 +396,11 @@ export default class SegmentLoader extends videojs.EventTarget {
 
   endOfStream() {
     this.ended_ = true;
+    if (this.transmuxer_) {
+      // need to clear out any cached data to prepare for the new segment
+      segmentTransmuxer.reset(this.transmuxer_);
+    }
+    this.gopBuffer_.length = 0;
     this.pause();
     this.trigger('ended');
   }
