@@ -118,6 +118,6 @@
     "uglify-es": "^3.3.9",
     "videojs-contrib-eme": "^3.2.0",
     "videojs-contrib-quality-levels": "^2.0.4",
-    "videojs-standard": "^4.0.3"
+    "videojs-standard": "^8.0.2"
   }
 }
