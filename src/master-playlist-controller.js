@@ -817,10 +817,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return 0;
     }
 
-    // In flash playback, the segment loaders should be reset on every seek, even
-    // in buffer seeks. If the seek location is already buffered, continue buffering as
-    // usual
-    // TODO: redo this comment
+    // if the seek location is already buffered, continue buffering as usual
     if (buffered && buffered.length) {
       return currentTime;
     }

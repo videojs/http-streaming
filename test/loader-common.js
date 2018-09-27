@@ -823,8 +823,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
     // Decryption
     // ----------
 
-    // TODO move to media-segment-request
-    QUnit.skip('calling load with an encrypted segment requests key and segment',
+    QUnit.test('calling load with an encrypted segment requests key and segment',
     function(assert) {
       assert.equal(loader.state, 'INIT', 'starts in the init state');
       loader.playlist(playlistWithDuration(10, {isEncrypted: true}));
@@ -843,8 +842,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(this.requests[1].url, '0.ts', 'requested the first segment');
     });
 
-    // TODO move to media-segment-request
-    QUnit.skip('dispose cleans up key requests for encrypted segments', function(assert) {
+    QUnit.test('dispose cleans up key requests for encrypted segments', function(assert) {
       loader.playlist(playlistWithDuration(20, {isEncrypted: true}));
 
       loader.load();
@@ -859,8 +857,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(this.requests.length, 2, 'did not open another request');
     });
 
-    // TODO move to media-segment-request
-    QUnit.skip('key 404s should trigger an error', function(assert) {
+    QUnit.test('key 404s pauses the loader and triggers error', function(assert) {
       let errors = [];
 
       loader.playlist(playlistWithDuration(10, {isEncrypted: true}));
@@ -883,8 +880,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(loader.state, 'READY', 'returned to the ready state');
     });
 
-    // TODO move to media-segment-request
-    QUnit.skip('key 5xx status codes trigger an error', function(assert) {
+    QUnit.test('key 500 status code pauses loader and triggers error', function(assert) {
       let errors = [];
 
       loader.playlist(playlistWithDuration(10, {isEncrypted: true}));
@@ -906,8 +902,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(loader.state, 'READY', 'returned to the ready state');
     });
 
-    // TODO move to media-segment-request
-    QUnit.skip('key request timeouts reset bandwidth', function(assert) {
+    QUnit.test('key request timeouts reset bandwidth', function(assert) {
       loader.playlist(playlistWithDuration(10, {isEncrypted: true}));
 
       loader.load();

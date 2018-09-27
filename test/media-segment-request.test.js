@@ -350,6 +350,94 @@ QUnit.test('segment with key has bytes decrypted', function(assert) {
   this.clock.tick(100);
 });
 
+QUnit.test('key 404 calls back with error', function(assert) {
+  const done = assert.async();
+  let segmentReq;
+
+  assert.expect(11);
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.realDecrypter,
+    captionParser: this.noop,
+    segment: {
+      resolvedUri: '0-test.ts',
+      key: {
+        resolvedUri: '0-key.php',
+        iv: {
+          bytes: new Uint32Array([0, 0, 0, 1])
+        }
+      }
+    },
+    progressFn: this.noop,
+    doneFn: (error, segmentData) => {
+      assert.ok(segmentReq.aborted, 'segment request aborted');
+
+      assert.ok(error, 'there is an error');
+      assert.equal(error.status, 404, 'error status matches response code');
+      assert.equal(error.code, REQUEST_ERRORS.FAILURE, 'error code set to FAILURE');
+      assert.notOk(segmentData.bytes, 'no bytes in segment');
+      done();
+    }
+  });
+
+  assert.equal(this.requests.length, 2, 'there are two requests');
+
+  const keyReq = this.requests.shift();
+
+  segmentReq = this.requests.shift();
+
+  assert.equal(keyReq.uri, '0-key.php', 'the first request is for a key');
+  assert.equal(segmentReq.uri, '0-test.ts', 'the second request is for a segment');
+  assert.notOk(segmentReq.aborted, 'segment request not aborted');
+
+  keyReq.respond(404, null, '');
+});
+
+QUnit.test('key 500 calls back with error', function(assert) {
+  const done = assert.async();
+  let segmentReq;
+
+  assert.expect(11);
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.realDecrypter,
+    captionParser: this.noop,
+    segment: {
+      resolvedUri: '0-test.ts',
+      key: {
+        resolvedUri: '0-key.php',
+        iv: {
+          bytes: new Uint32Array([0, 0, 0, 1])
+        }
+      }
+    },
+    progressFn: this.noop,
+    doneFn: (error, segmentData) => {
+      assert.ok(segmentReq.aborted, 'segment request aborted');
+
+      assert.ok(error, 'there is an error');
+      assert.equal(error.status, 500, 'error status matches response code');
+      assert.equal(error.code, REQUEST_ERRORS.FAILURE, 'error code set to FAILURE');
+      assert.notOk(segmentData.bytes, 'no bytes in segment');
+      done();
+    }
+  });
+
+  assert.equal(this.requests.length, 2, 'there are two requests');
+
+  const keyReq = this.requests.shift();
+
+  segmentReq = this.requests.shift();
+
+  assert.equal(keyReq.uri, '0-key.php', 'the first request is for a key');
+  assert.equal(segmentReq.uri, '0-test.ts', 'the second request is for a segment');
+  assert.notOk(segmentReq.aborted, 'segment request not aborted');
+
+  keyReq.respond(500, null, '');
+});
+
 QUnit.test('waits for every request to finish before the callback is run',
 function(assert) {
   const done = assert.async();
