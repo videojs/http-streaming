@@ -531,7 +531,7 @@ QUnit.test('non-TS segment will get parsed for captions on next segment request 
   this.standardXHRResponse(initReq, mp4VideoInit());
 });
 
-QUnit.test('all callbacks fire for TS segment with partial data', function(assert) {
+QUnit.test('callbacks fire for TS segment with partial data', function(assert) {
   const progressSpy = sinon.spy();
   const trackInfoSpy = sinon.spy();
   const timingInfoSpy = sinon.spy();
@@ -655,6 +655,47 @@ QUnit.test('caption callback fires for TS segment with partial data', function(a
   this.standardXHRResponse(request, captionSegment());
 });
 
+QUnit.test('caption callback does not fire if partial data has no captions', function(assert) {
+  const progressSpy = sinon.spy();
+  const captionSpy = sinon.spy();
+  const dataSpy = sinon.spy();
+  const done = assert.async();
+
+  this.transmuxer = this.createTransmuxer(true);
+
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.mockDecrypter,
+    captionParser: this.mockCaptionParser,
+    segment: {
+      resolvedUri: 'caption.ts',
+      transmuxer: this.transmuxer
+    },
+    progressFn: progressSpy,
+    trackInfoFn: this.noop,
+    timingInfoFn: this.noop,
+    id3Fn: this.noop,
+    captionsFn: captionSpy,
+    dataFn: dataSpy,
+    doneFn: () => {
+      assert.strictEqual(progressSpy.callCount, 1, 'saw 1 progress event');
+      assert.strictEqual(captionSpy.callCount, 0, 'got no caption back');
+      assert.ok(dataSpy.callCount, 'got data event');
+      done();
+    },
+    handlePartialData: true
+  });
+
+  const request = this.requests.shift();
+    // Need to take enough of the segment to trigger a data event
+  const partialResponse = muxedSegmentString().substring(0, 1700);
+
+  // simulates progress event
+  request.downloadProgress(partialResponse);
+  this.standardXHRResponse(request, muxedSegment());
+});
+
 QUnit.test('id3 callback fires for TS segment with partial data', function(assert) {
   const progressSpy = sinon.spy();
   const id3Spy = sinon.spy();
@@ -695,4 +736,45 @@ QUnit.test('id3 callback fires for TS segment with partial data', function(asser
   // simulates progress event
   request.downloadProgress(partialResponse);
   this.standardXHRResponse(request, id3Segment());
+});
+
+QUnit.test('id3 callback does not fire if partial data has no ID3 tags', function(assert) {
+  const progressSpy = sinon.spy();
+  const id3Spy = sinon.spy();
+  const dataSpy = sinon.spy();
+  const done = assert.async();
+
+  this.transmuxer = this.createTransmuxer(true);
+
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.mockDecrypter,
+    captionParser: this.mockCaptionParser,
+    segment: {
+      resolvedUri: 'id3.ts',
+      transmuxer: this.transmuxer
+    },
+    progressFn: progressSpy,
+    trackInfoFn: this.noop,
+    timingInfoFn: this.noop,
+    id3Fn: id3Spy,
+    captionsFn: this.noop,
+    dataFn: dataSpy,
+    doneFn: () => {
+      assert.strictEqual(progressSpy.callCount, 1, 'saw 1 progress event');
+      assert.strictEqual(id3Spy.callCount, 0, 'got no id3Frames back');
+      assert.ok(dataSpy.callCount, 'got data event');
+      done();
+    },
+    handlePartialData: true
+  });
+
+  const request = this.requests.shift();
+  // Need to take enough of the segment to trigger a data event
+  const partialResponse = muxedSegmentString().substring(0, 1700);
+
+  // simulates progress event
+  request.downloadProgress(partialResponse);
+  this.standardXHRResponse(request, muxedSegment());
 });
