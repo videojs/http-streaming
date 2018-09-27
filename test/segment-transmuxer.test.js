@@ -19,36 +19,36 @@ import {
 // needed for plugin registration
 import '../src/videojs-http-streaming';
 
+const noop = () => {};
+
+const createTransmuxer = (isPartial) => {
+  const transmuxer = new TransmuxWorker();
+
+  transmuxer.postMessage({
+    action: 'init',
+    options: {
+      remux: false,
+      keepOriginalTimestamps: true,
+      handlePartialData: isPartial
+    }
+  });
+
+  return transmuxer;
+};
+
+const mockTransmuxer = (isPartial) => {
+  const transmuxer = {
+    onmessage(event) {},
+    postMessage(event) {},
+    addEventListener(event, handler) {},
+    terminate() {}
+  };
+
+  return transmuxer;
+};
+
 QUnit.module('Segment Transmuxer', {
   beforeEach(assert) {
-    this.noop = () => {};
-
-    this.createTransmuxer = (isPartial) => {
-      const transmuxer = new TransmuxWorker();
-
-      transmuxer.postMessage({
-        action: 'init',
-        options: {
-          remux: false,
-          keepOriginalTimestamps: true,
-          handlePartialData: isPartial
-        }
-      });
-
-      return transmuxer;
-    };
-
-    this.mockTransmuxer = (isPartial) => {
-      const transmuxer = {
-        onmessage(event) {},
-        postMessage(event) {},
-        addEventListener(event, handler) {},
-        terminate() {}
-      };
-
-      return transmuxer;
-    };
-
     this.transmuxer = null;
   },
   afterEach(assert) {
@@ -65,7 +65,7 @@ QUnit.test('transmux returns data for full appends', function(assert) {
   const audioTimingFn = sinon.spy();
   const videoTimingFn = sinon.spy();
 
-  this.transmuxer = this.createTransmuxer(false);
+  this.transmuxer = createTransmuxer(false);
 
   transmux({
     transmuxer: this.transmuxer,
@@ -77,8 +77,8 @@ QUnit.test('transmux returns data for full appends', function(assert) {
     onTrackInfo: trackInfoFn,
     onAudioTimingInfo: audioTimingFn,
     onVideoTimingInfo: videoTimingFn,
-    onId3: this.noop,
-    onCaptions: this.noop,
+    onId3: noop,
+    onCaptions: noop,
     onDone: () => {
       assert.ok(dataFn.callCount, 'got data events');
       assert.ok(trackInfoFn.callCount, 'got trackInfo events');
@@ -90,7 +90,7 @@ QUnit.test('transmux returns data for full appends', function(assert) {
 });
 
 QUnit.test('resets transmuxer on reset()', function(assert) {
-  this.transmuxer = this.mockTransmuxer(false);
+  this.transmuxer = mockTransmuxer(false);
   this.transmuxer.postMessage = sinon.spy();
 
   reset(this.transmuxer);
@@ -102,7 +102,7 @@ QUnit.test('resets transmuxer on reset()', function(assert) {
 });
 
 QUnit.test('passes endTimeline to transmuxer on endTimeline()', function(assert) {
-  this.transmuxer = this.mockTransmuxer(false);
+  this.transmuxer = mockTransmuxer(false);
   this.transmuxer.postMessage = sinon.spy();
 
   endTimeline(this.transmuxer);
@@ -114,7 +114,7 @@ QUnit.test('passes endTimeline to transmuxer on endTimeline()', function(assert)
 });
 
 QUnit.test('passes action to transmuxer on enqueueAction()', function(assert) {
-  this.transmuxer = this.mockTransmuxer(false);
+  this.transmuxer = mockTransmuxer(false);
   this.transmuxer.postMessage = sinon.spy();
 
   enqueueAction('push', this.transmuxer);
@@ -131,7 +131,7 @@ QUnit.test('passes action to transmuxer on enqueueAction()', function(assert) {
 });
 
 QUnit.test('dequeues and processes action on dequeue()', function(assert) {
-  this.transmuxer = this.mockTransmuxer(false);
+  this.transmuxer = mockTransmuxer(false);
   this.transmuxer.postMessage = sinon.spy();
 
   assert.deepEqual(this.transmuxer.postMessage.callCount, 0, 'no actions yet');
@@ -142,16 +142,17 @@ QUnit.test('dequeues and processes action on dequeue()', function(assert) {
     audioAppendStart: null,
     gopsToAlignWith: null,
     isPartial: false,
-    onData: this.noop,
-    onTrackInfo: this.noop,
-    onAudioTimingInfo: this.noop,
-    onVideoTimingInfo: this.noop,
-    onId3: this.noop,
-    onCaptions: this.noop,
-    onDone: this.noop
+    onData: noop,
+    onTrackInfo: noop,
+    onAudioTimingInfo: noop,
+    onVideoTimingInfo: noop,
+    onId3: noop,
+    onCaptions: noop,
+    onDone: noop
   });
   enqueueAction('reset', this.transmuxer);
-  assert.deepEqual(this.transmuxer.postMessage.callCount, 1, 'reset is in the queue');
+  // reset is in the queue instead of being processed
+  assert.deepEqual(this.transmuxer.postMessage.callCount, 1, 'only one action is processed');
   assert.deepEqual(
     this.transmuxer.postMessage.args[0][0],
     { action: 'flush' },
@@ -159,16 +160,16 @@ QUnit.test('dequeues and processes action on dequeue()', function(assert) {
   );
 
   dequeue();
-  assert.deepEqual(this.transmuxer.postMessage.callCount, 2, 'flush is processed');
+  assert.deepEqual(this.transmuxer.postMessage.callCount, 2, 'two actions processed');
   assert.deepEqual(
-    this.transmuxer.postMessage.args[0][0],
-    { action: 'flush' },
-    'the flush was posted to the transmuxer'
+    this.transmuxer.postMessage.args[1][0],
+    { action: 'reset' },
+    'the reset was posted to the transmuxer'
   );
 });
 
 QUnit.test('processAction posts a message to the transmuxer', function(assert) {
-  this.transmuxer = this.mockTransmuxer(false);
+  this.transmuxer = mockTransmuxer(false);
   this.transmuxer.postMessage = sinon.spy();
 
   processAction(this.transmuxer, 'fakeaction');
@@ -179,8 +180,8 @@ QUnit.test('processAction posts a message to the transmuxer', function(assert) {
   );
 });
 
-QUnit.test('processTransmux', function(assert) {
-  this.transmuxer = this.mockTransmuxer(false);
+QUnit.test('processTransmux posts all actions', function(assert) {
+  this.transmuxer = mockTransmuxer(false);
   this.transmuxer.onmessage = sinon.spy();
   this.transmuxer.postMessage = sinon.spy();
   this.transmuxer.addEventListener = sinon.spy();
@@ -191,13 +192,13 @@ QUnit.test('processTransmux', function(assert) {
     audioAppendStart: [0],
     gopsToAlignWith: [0],
     isPartial: false,
-    onData: this.noop,
-    onTrackInfo: this.noop,
-    onAudioTimingInfo: this.noop,
-    onVideoTimingInfo: this.noop,
-    onId3: this.noop,
-    onCaptions: this.noop,
-    onDone: this.noop
+    onData: noop,
+    onTrackInfo: noop,
+    onAudioTimingInfo: noop,
+    onVideoTimingInfo: noop,
+    onId3: noop,
+    onCaptions: noop,
+    onDone: noop
   });
 
   assert.deepEqual(
@@ -228,12 +229,12 @@ QUnit.test('processTransmux', function(assert) {
   assert.deepEqual(
     this.transmuxer.postMessage.args[2][0].byteOffset,
     0,
-    'pushed data to transmuxer'
+    'pushed byteOffset to transmuxer'
   );
   assert.deepEqual(
     this.transmuxer.postMessage.args[2][0].byteLength,
     muxedSegment().length,
-    'pushed data to transmuxer'
+    'pushed byteLength to transmuxer'
   );
   assert.deepEqual(
     this.transmuxer.postMessage.args[3][0],
@@ -242,7 +243,7 @@ QUnit.test('processTransmux', function(assert) {
   );
 });
 
-QUnit.test('handleGopInfo_', function(assert) {
+QUnit.test('handleGopInfo_ attaches gopInfo from an event to the transmuxedData', function(assert) {
   const transmuxedData = {};
 
   handleGopInfo_(
@@ -262,7 +263,7 @@ QUnit.test('handleGopInfo_', function(assert) {
   );
 });
 
-QUnit.test('handleDone_', function(assert) {
+QUnit.test('handleDone_ modifies transmuxedData and passes it to the callback', function(assert) {
   const callback = sinon.spy();
 
   handleDone_({
@@ -281,7 +282,7 @@ QUnit.test('handleDone_', function(assert) {
   );
 });
 
-QUnit.test('handleData_', function(assert) {
+QUnit.test(`handleData_ passes initSegment and segment data to callback`, function(assert) {
   const callback = sinon.spy();
   const event = {
     data: {
