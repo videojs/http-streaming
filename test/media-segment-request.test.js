@@ -688,7 +688,7 @@ QUnit.test('caption callback does not fire if partial data has no captions', fun
   });
 
   const request = this.requests.shift();
-    // Need to take enough of the segment to trigger a data event
+  // Need to take enough of the segment to trigger a data event
   const partialResponse = muxedSegmentString().substring(0, 1700);
 
   // simulates progress event
