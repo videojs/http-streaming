@@ -406,7 +406,8 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
   assert.deepEqual(removeFuncArgs, {start: 0, end: 60}, 'remove() called with correct arguments if media is changed');
 });
 
-QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', function(assert) {
+QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers',
+async function(assert) {
   let seeks = 0;
 
   this.masterPlaylistController.mediaSource.trigger('sourceopen');
@@ -414,10 +415,12 @@ QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', fun
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
-  // segment
-  this.standardXHRResponse(this.requests.shift());
-  // trigger updateend to indicate the end of the append operation
-  this.masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
+
+  await requestAndAppendSegment({
+    request: this.requests.shift(),
+    segmentLoader: this.masterPlaylistController.mainSegmentLoader_,
+    clock: this.clock
+  });
 
   // media is changed
   this.masterPlaylistController.selectPlaylist = () => {
@@ -439,7 +442,8 @@ QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', fun
   assert.equal(seeks, 1, 'seek event occurs on fast quality switch');
 });
 
-QUnit.test('seeks forward 0.04 sec for fast quality switch on Edge', function(assert) {
+QUnit.test('seeks forward 0.04 sec for fast quality switch on Edge',
+async function(assert) {
   let oldIEVersion = videojs.browser.IE_VERSION;
   let oldIsEdge = videojs.browser.IS_EDGE;
   let seeks = 0;
@@ -449,10 +453,12 @@ QUnit.test('seeks forward 0.04 sec for fast quality switch on Edge', function(as
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
-  // segment
-  this.standardXHRResponse(this.requests.shift());
-  // trigger updateend to indicate the end of the append operation
-  this.masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
+
+  await requestAndAppendSegment({
+    request: this.requests.shift(),
+    segmentLoader: this.masterPlaylistController.mainSegmentLoader_,
+    clock: this.clock
+  });
 
   // media is changed
   this.masterPlaylistController.selectPlaylist = () => {
@@ -469,6 +475,7 @@ QUnit.test('seeks forward 0.04 sec for fast quality switch on Edge', function(as
   videojs.browser.IS_EDGE = true;
 
   this.masterPlaylistController.fastQualityChange_();
+
   // trigger updateend to indicate the end of the remove operation
   this.masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
   this.clock.tick(1);
@@ -480,7 +487,8 @@ QUnit.test('seeks forward 0.04 sec for fast quality switch on Edge', function(as
   videojs.browser.IS_EDGE = oldIsEdge;
 });
 
-QUnit.test('seeks forward 0.04 sec for fast quality switch on IE', function(assert) {
+QUnit.test('seeks forward 0.04 sec for fast quality switch on IE',
+async function(assert) {
   let oldIEVersion = videojs.browser.IE_VERSION;
   let oldIsEdge = videojs.browser.IS_EDGE;
   let seeks = 0;
@@ -490,10 +498,12 @@ QUnit.test('seeks forward 0.04 sec for fast quality switch on IE', function(asse
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
-  // segment
-  this.standardXHRResponse(this.requests.shift());
-  // trigger updateend to indicate the end of the append operation
-  this.masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
+
+  await requestAndAppendSegment({
+    request: this.requests.shift(),
+    segmentLoader: this.masterPlaylistController.mainSegmentLoader_,
+    clock: this.clock
+  });
 
   // media is changed
   this.masterPlaylistController.selectPlaylist = () => {
