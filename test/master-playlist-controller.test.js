@@ -406,6 +406,121 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
   assert.deepEqual(removeFuncArgs, {start: 0, end: 60}, 'remove() called with correct arguments if media is changed');
 });
 
+QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', function(assert) {
+  let seeks = 0;
+
+  this.masterPlaylistController.mediaSource.trigger('sourceopen');
+  // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+  // segment
+  this.standardXHRResponse(this.requests.shift());
+  // trigger updateend to indicate the end of the append operation
+  this.masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
+
+  // media is changed
+  this.masterPlaylistController.selectPlaylist = () => {
+    return this.masterPlaylistController.master().playlists[0];
+  };
+
+  this.player.tech_.on('seeking', function() {
+    seeks++;
+  });
+
+  const timeBeforeSwitch = this.player.currentTime();
+
+  this.masterPlaylistController.fastQualityChange_();
+  // trigger updateend to indicate the end of the remove operation
+  this.masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
+  this.clock.tick(1);
+
+  assert.equal(this.player.currentTime(), timeBeforeSwitch, 'current time remains the same on fast quality switch');
+  assert.equal(seeks, 1, 'seek event occurs on fast quality switch');
+});
+
+QUnit.test('seeks forward 0.04 sec for fast quality switch on Edge', function(assert) {
+  let oldIEVersion = videojs.browser.IE_VERSION;
+  let oldIsEdge = videojs.browser.IS_EDGE;
+  let seeks = 0;
+
+  this.masterPlaylistController.mediaSource.trigger('sourceopen');
+  // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+  // segment
+  this.standardXHRResponse(this.requests.shift());
+  // trigger updateend to indicate the end of the append operation
+  this.masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
+
+  // media is changed
+  this.masterPlaylistController.selectPlaylist = () => {
+    return this.masterPlaylistController.master().playlists[0];
+  };
+
+  this.player.tech_.on('seeking', function() {
+    seeks++;
+  });
+
+  const timeBeforeSwitch = this.player.currentTime();
+
+  videojs.browser.IE_VERSION = null;
+  videojs.browser.IS_EDGE = true;
+
+  this.masterPlaylistController.fastQualityChange_();
+  // trigger updateend to indicate the end of the remove operation
+  this.masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
+  this.clock.tick(1);
+
+  assert.equal(this.player.currentTime(), timeBeforeSwitch + 0.04, 'seeks forward on fast quality switch');
+  assert.equal(seeks, 1, 'seek event occurs on fast quality switch');
+
+  videojs.browser.IE_VERSION = oldIEVersion;
+  videojs.browser.IS_EDGE = oldIsEdge;
+});
+
+QUnit.test('seeks forward 0.04 sec for fast quality switch on IE', function(assert) {
+  let oldIEVersion = videojs.browser.IE_VERSION;
+  let oldIsEdge = videojs.browser.IS_EDGE;
+  let seeks = 0;
+
+  this.masterPlaylistController.mediaSource.trigger('sourceopen');
+  // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+  // segment
+  this.standardXHRResponse(this.requests.shift());
+  // trigger updateend to indicate the end of the append operation
+  this.masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
+
+  // media is changed
+  this.masterPlaylistController.selectPlaylist = () => {
+    return this.masterPlaylistController.master().playlists[0];
+  };
+
+  this.player.tech_.on('seeking', function() {
+    seeks++;
+  });
+
+  const timeBeforeSwitch = this.player.currentTime();
+
+  videojs.browser.IE_VERSION = 11;
+  videojs.browser.IS_EDGE = false;
+
+  this.masterPlaylistController.fastQualityChange_();
+  // trigger updateend to indicate the end of the remove operation
+  this.masterPlaylistController.mediaSource.sourceBuffers[0].trigger('updateend');
+  this.clock.tick(1);
+
+  assert.equal(this.player.currentTime(), timeBeforeSwitch + 0.04, 'seeks forward on fast quality switch');
+  assert.equal(seeks, 1, 'seek event occurs on fast quality switch');
+
+  videojs.browser.IE_VERSION = oldIEVersion;
+  videojs.browser.IS_EDGE = oldIsEdge;
+});
+
 QUnit.test('audio segment loader is reset on audio track change', function(assert) {
   this.requests.length = 0;
   this.player = createPlayer();

@@ -511,14 +511,20 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.masterPlaylistLoader_.media(media);
 
-    // delete all buffered data to allow an immediate quality switch, then seek
-    // in place to give the browser a kick to remove any cached frames from the
-    // previous rendition
+    // Delete all buffered data to allow an immediate quality switch, then seek to give
+    // the browser a kick to remove any cached frames from the previous rendtion (.04 seconds
+    // ahead is roughly the minimum that will accomplish this across a variety of content
+    // in IE and Edge, but seeking in place is sufficient on all other browsers)
+    // Edge/IE bug: https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/14600375/
+    // Chrome bug: https://bugs.chromium.org/p/chromium/issues/detail?id=651904
     this.mainSegmentLoader_.resetEverything(() => {
-      // Since this is not a typical seek, we avoid the seekTo method which can cause
-      // segments from the previously enabled rendition to load before the new playlist
-      // has finished loading
-      this.tech_.setCurrentTime(this.tech_.currentTime());
+      // Since this is not a typical seek, we avoid the seekTo method which can cause segments
+      // from the previously enabled rendition to load before the new playlist has finished loading
+      if (videojs.browser.IE_VERSION || videojs.browser.IS_EDGE) {
+        this.tech_.setCurrentTime(this.tech_.currentTime() + 0.04);
+      } else {
+        this.tech_.setCurrentTime(this.tech_.currentTime());
+      }
     });
 
     // don't need to reset audio as it is reset when media changes
