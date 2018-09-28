@@ -599,7 +599,9 @@ QUnit.test('no error passed by default in done callback', function(assert) {
   });
 });
 
-QUnit.test('audio source buffer error passed in done callback', function(assert) {
+// Firefox allows appending video to an audio buffer, for some reason.
+// TODO find an alternative for triggering an error
+QUnit.skip('audio source buffer error passed in done callback', function(assert) {
   const done = assert.async();
 
   this.sourceUpdater.createSourceBuffers({
@@ -613,7 +615,9 @@ QUnit.test('audio source buffer error passed in done callback', function(assert)
   });
 });
 
-QUnit.test('video source buffer error passed in done callback', function(assert) {
+// Firefox allows appending audio to a video buffer, for some reason.
+// TODO find an alternative for triggering an error
+QUnit.skip('video source buffer error passed in done callback', function(assert) {
   const done = assert.async();
 
   this.sourceUpdater.createSourceBuffers({
