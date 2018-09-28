@@ -7,79 +7,57 @@ import noop from './util/noop';
 import { buffered } from './util/buffer';
 
 const actions = {
-  appendBuffer: (bytes) => (type, updater) => {
-    const {
-      [`${type}Buffer`]: sourceBuffer
-    } = updater;
+  appendBuffer: (bytes) => (type, sourceUpdater) => {
+    const sourceBuffer = sourceUpdater[`${type}Buffer`];
 
     sourceBuffer.appendBuffer(bytes);
   },
-  remove: (start, end) => (type, updater) => {
-    const {
-      [`${type}Buffer`]: sourceBuffer
-    } = updater;
+  remove: (start, end) => (type, sourceUpdater) => {
+    const sourceBuffer = sourceUpdater[`${type}Buffer`];
 
     sourceBuffer.remove(start, end);
   },
-  timestampOffset: (offset) => (type, updater) => {
-    const {
-      [`${type}Buffer`]: sourceBuffer
-    } = updater;
+  timestampOffset: (offset) => (type, sourceUpdater) => {
+    const sourceBuffer = sourceUpdater[`${type}Buffer`];
 
     sourceBuffer.timestampOffset = offset;
   },
-  callback: (callback) => (type, updater) => {
+  callback: (callback) => (type, sourceUpdater) => {
     callback();
   }
 };
 
-const updating = (type, updater) => {
-  const {
-    [`${type}Buffer`]: sourceBuffer,
-    queue: {
-      [type]: {
-        pending
-      }
-    }
-  } = updater;
+const updating = (type, sourceUpdater) => {
+  const sourceBuffer = sourceUpdater[`${type}Buffer`];
 
-  return (sourceBuffer && sourceBuffer.updating) || pending;
+  return (sourceBuffer && sourceBuffer.updating) || sourceUpdater.queue[type].pending;
 };
 
-const shiftQueue = (type, updater) => {
-  const {
-    queue: {
-      [type]: queue
-    },
-    started_
-  } = updater;
+const shiftQueue = (type, sourceUpdater) => {
+  const queue = sourceUpdater.queue[type];
 
-  if (updating(type, updater) || !queue.actions.length || !started_) {
+  if (updating(type, sourceUpdater) || !queue.actions.length || !sourceUpdater.started_) {
     return;
   }
 
   const action = queue.actions.shift();
 
   queue.pending = action[1];
-  action[0](type, updater);
+  action[0](type, sourceUpdater);
 };
 
-const pushQueue = (type, updater, action) => {
-  const {
-    queue: { [type]: queue }
-  } = updater;
+const pushQueue = (type, sourceUpdater, action) => {
+  const queue = sourceUpdater.queue[type];
 
   queue.actions.push(action);
-  shiftQueue(type, updater);
+  shiftQueue(type, sourceUpdater);
 };
 
-const onUpdateend = (type, updater) => () => {
-  const {
-    queue: { [type]: queue }
-  } = updater;
+const onUpdateend = (type, sourceUpdater) => () => {
+  const queue = sourceUpdater.queue[type];
 
   if (!queue.pending) {
-    shiftQueue(type, updater);
+    shiftQueue(type, sourceUpdater);
   }
 
   if (!queue.pending) {
@@ -93,10 +71,10 @@ const onUpdateend = (type, updater) => () => {
 
   if (doneFn) {
     // if there's an error, report it
-    doneFn(updater[`${type}Error_`]);
+    doneFn(sourceUpdater[`${type}Error_`]);
   }
 
-  shiftQueue(type, updater);
+  shiftQueue(type, sourceUpdater);
 };
 
 /**

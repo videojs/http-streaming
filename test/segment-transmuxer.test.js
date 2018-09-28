@@ -282,7 +282,8 @@ QUnit.test('handleDone_ modifies transmuxedData and passes it to the callback', 
   );
 });
 
-QUnit.test(`handleData_ passes initSegment and segment data to callback`, function(assert) {
+QUnit.test('handleData_ passes initSegment and segment data to callback',
+function(assert) {
   const callback = sinon.spy();
   const event = {
     data: {
