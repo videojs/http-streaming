@@ -118,6 +118,8 @@ QUnit.test('transmux returns captions for full appends', function(assert) {
 });
 
 // This test should pass but potentially does not have enough data?
+// Often needs at least 3 video frames, and potentially needs up to
+// 13 audio frames to return respective timingInfo
 QUnit.skip('transmux returns data for partial appends', function(assert) {
   const done = assert.async();
   const dataFn = sinon.spy();
