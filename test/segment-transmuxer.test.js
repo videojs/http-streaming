@@ -2,7 +2,8 @@ import QUnit from 'qunit';
 import sinon from 'sinon';
 import TransmuxWorker from 'worker!../src/transmuxer-worker.worker.js';
 import {
-  muxed as muxedSegment
+  muxed as muxedSegment,
+  caption as captionSegment
 } from './test-segments';
 import {
   transmux,
@@ -86,6 +87,67 @@ QUnit.test('transmux returns data for full appends', function(assert) {
       assert.ok(videoTimingFn.callCount, 'got videoTimingInfo events');
       done();
     }
+  });
+});
+
+QUnit.test('transmux returns captions for full appends', function(assert) {
+  const done = assert.async();
+  const dataFn = sinon.spy();
+  const captionsFn = sinon.spy();
+
+  this.transmuxer = createTransmuxer(false);
+
+  transmux({
+    transmuxer: this.transmuxer,
+    bytes: captionSegment(),
+    audioAppendStart: null,
+    gopsToAlignWith: null,
+    isPartial: false,
+    onData: dataFn,
+    onTrackInfo: noop,
+    onAudioTimingInfo: noop,
+    onVideoTimingInfo: noop,
+    onId3: noop,
+    onCaptions: captionsFn,
+    onDone: () => {
+      assert.ok(dataFn.callCount, 'got data events');
+      assert.ok(captionsFn.callCount, 'got captions');
+      done();
+    }
+  });
+});
+
+// This test should pass but potentially does not have enough data?
+QUnit.skip('transmux returns data for partial appends', function(assert) {
+  const done = assert.async();
+  const dataFn = sinon.spy();
+  const trackInfoFn = sinon.spy();
+  const audioTimingFn = sinon.spy();
+  const videoTimingFn = sinon.spy();
+
+  this.transmuxer = createTransmuxer(true);
+
+  transmux({
+    transmuxer: this.transmuxer,
+    bytes: muxedSegment(),
+    audioAppendStart: null,
+    gopsToAlignWith: null,
+    isPartial: true,
+    onData: () => {
+      dataFn();
+      assert.ok(trackInfoFn.callCount, 'got trackInfo events');
+      assert.ok(audioTimingFn.callCount, 'got audioTimingInfo events');
+      assert.ok(videoTimingFn.callCount, 'got videoTimingInfo events');
+      done();
+    },
+    onTrackInfo: trackInfoFn,
+    onAudioTimingInfo: audioTimingFn,
+    onVideoTimingInfo: videoTimingFn,
+    onId3: noop,
+    onCaptions: noop,
+    // This will be called on partialdone events,
+    // so don't check here
+    onDone: noop
   });
 });
 
