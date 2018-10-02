@@ -332,7 +332,7 @@ class HlsHandler extends Component {
   setOptions_() {
     // defaults
     this.options_.withCredentials = this.options_.withCredentials || false;
-    this.options_.limitRenditionByPlayerDimensions = this.options_.limitRenditionByPlayerDimensions || true;
+    this.options_.limitRenditionByPlayerDimensions = this.options_.limitRenditionByPlayerDimensions === false ? false : true;
 
     if (typeof this.options_.blacklistDuration !== 'number') {
       this.options_.blacklistDuration = 5 * 60;

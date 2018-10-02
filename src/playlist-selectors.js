@@ -194,7 +194,7 @@ export const simpleSelector = function(master,
   )[0];
 
   // if we're not going to limit renditions by player size, make an early decision.
-  if (!limitRenditionByPlayerDimensions) {
+  if (limitRenditionByPlayerDimensions === false) {
     let chosenRep = (
       bandwidthBestRep ||
       enabledPlaylistReps[0] ||
