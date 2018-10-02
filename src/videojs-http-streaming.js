@@ -358,6 +358,7 @@ class HlsHandler extends Component {
     });
 
     this.bandwidth = this.options_.bandwidth;
+    this.limitRenditionByPlayerDimensions = this.options_.limitRenditionByPlayerDimensions;
   }
   /**
    * called when player.src gets called, handle a new source
