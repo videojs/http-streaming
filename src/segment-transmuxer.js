@@ -113,7 +113,7 @@ export const processTransmux = ({
       return;
     }
 
-    transmuxer.removeEventListener('message', handleMessage);
+    transmuxer.onmessage = null;
     handleDone_({
       transmuxedData,
       callback: onDone
@@ -124,7 +124,7 @@ export const processTransmux = ({
     /* eslint-enable */
   };
 
-  transmuxer.addEventListener('message', handleMessage);
+  transmuxer.onmessage = handleMessage;
 
   if (audioAppendStart) {
     transmuxer.postMessage({
