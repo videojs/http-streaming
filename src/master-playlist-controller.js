@@ -100,6 +100,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.mediaSource = new window.MediaSource();
 
+    this.mediaSource.addEventListener('durationchange', () => {
+      this.tech_.trigger('durationchange');
+    });
     // load the media source into the player
     this.mediaSource.addEventListener('sourceopen', this.handleSourceOpen_.bind(this));
     this.mediaSource.addEventListener('sourceended', this.handleSourceEnded_.bind(this));
@@ -996,8 +999,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       // duration for live is actually a strategy used by some players to work around the
       // issue of live seekable ranges cited above.
       this.mediaSource.duration < seekable.end(seekable.length - 1)) {
-      this.mediaSource.duration = seekable.end(seekable.length - 1);
-      this.tech_.trigger('durationchange');
+      this.sourceUpdater_.setDuration(seekable.end(seekable.length - 1));
     }
   }
 
@@ -1010,8 +1012,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     }
 
     if (this.mediaSource.duration !== duration) {
-      this.mediaSource.duration = duration;
-      this.tech_.trigger('durationchange');
+      this.sourceUpdater_.setDuration(duration);
     }
   }
 
