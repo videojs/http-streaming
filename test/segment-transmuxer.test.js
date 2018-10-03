@@ -39,9 +39,7 @@ const createTransmuxer = (isPartial) => {
 
 const mockTransmuxer = (isPartial) => {
   const transmuxer = {
-    onmessage(event) {},
     postMessage(event) {},
-    addEventListener(event, handler) {},
     terminate() {}
   };
 
@@ -248,7 +246,6 @@ QUnit.test('processTransmux posts all actions', function(assert) {
   this.transmuxer = mockTransmuxer(false);
   this.transmuxer.onmessage = sinon.spy();
   this.transmuxer.postMessage = sinon.spy();
-  this.transmuxer.addEventListener = sinon.spy();
 
   processTransmux({
     transmuxer: this.transmuxer,
@@ -265,11 +262,6 @@ QUnit.test('processTransmux posts all actions', function(assert) {
     onDone: noop
   });
 
-  assert.deepEqual(
-    this.transmuxer.addEventListener.args[0][0],
-    'message',
-    'added message event listener'
-  );
   assert.deepEqual(this.transmuxer.postMessage.args[0][0],
     {
       action: 'setAudioAppendStart',

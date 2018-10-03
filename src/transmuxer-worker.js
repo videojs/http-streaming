@@ -19,6 +19,7 @@ import window from 'global/window';
 import fullMux from 'mux.js/lib/mp4';
 import partialMux from 'mux.js/lib/partial';
 
+// TODO: can we import mux.js/lib/utils/clock?
 const ONE_SECOND_IN_TS = 90000;
 const secondsToVideoTs = (seconds) => seconds * ONE_SECOND_IN_TS;
 const videoTsToSeconds = (videoTs) => videoTs / ONE_SECOND_IN_TS;
@@ -190,6 +191,18 @@ const wirePartialTransmuxerEvents = function(transmuxer) {
   });
 
   transmuxer.on('audioTimingInfo', function(audioTimingInfo) {
+    // This can happen if flush is called when no
+    // audio has been processed. This should be an
+    // unusual case, but if it does occur should not
+    // result in valid data being returned
+    if (audioTimingInfo.start === null) {
+      window.postMessage({
+        action: 'audioTimingInfo',
+        audioTimingInfo
+      });
+      return;
+    }
+
     // convert to video TS since we prioritize video time over audio
     const timingInfoInSeconds = {
       start: videoTsToSeconds(audioTimingInfo.start)
