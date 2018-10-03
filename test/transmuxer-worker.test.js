@@ -1,7 +1,8 @@
 import QUnit from 'qunit';
 import TransmuxWorker from 'worker!../src/transmuxer-worker.worker.js';
 import {
-  muxed as muxedSegment
+  muxed as muxedSegment,
+  caption as captionSegment
 } from './test-segments';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
@@ -233,6 +234,87 @@ QUnit.test('full: endTimeline will return unflushed data',
 
   this.transmuxer.postMessage({
     action: 'endTimeline'
+  });
+});
+
+QUnit.test('full: caption events are returned', function(assert) {
+  const done = assert.async();
+  const messages = [];
+
+  this.transmuxer = createTransmuxer(false);
+  this.transmuxer.onmessage = (e) => {
+    messages.push(e.data);
+
+    if (!isFinalDone(e)) {
+      return;
+    }
+
+    assert.deepEqual(
+      messages
+        .map((x) => x.action)
+        .filter((y) => y === 'trackinfo')
+        .length,
+      25,
+      'expected amount of trackinfo events returned'
+    );
+
+    assert.deepEqual(
+      messages
+        .map((x) => x.action)
+        .filter((y) => y !== 'trackinfo'),
+      [
+        'gopInfo',
+        'videoTimingInfo',
+        'data',
+        'caption',
+        'done',
+        'done'
+      ],
+      'events are returned in expected order'
+    );
+
+    assert.deepEqual(
+      messages.shift().trackInfo,
+      {
+        hasVideo: true,
+        hasAudio: false
+      },
+      'trackinfo should have video only'
+    );
+    assert.ok(
+      messages[24].gopInfo,
+      'gopInfo event has gopInfo'
+    );
+    assert.ok(
+      messages[25].videoTimingInfo,
+      'videoTimingInfo event has timing info'
+    );
+    assert.ok(
+      messages[26].segment.data.byteLength > 0,
+      'data event returns data'
+    );
+    assert.deepEqual(
+      messages[27].caption,
+      {
+        text: 'Bip!',
+        stream: 'CC1',
+        startPts: 157500,
+        endPts: 175500,
+        startTime: 1.75,
+        endTime: 1.95
+      },
+      'caption event returns expected caption'
+    );
+
+    done();
+  };
+
+  this.transmuxer.postMessage({
+    action: 'push',
+    data: captionSegment()
+  });
+  this.transmuxer.postMessage({
+    action: 'flush'
   });
 });
 
