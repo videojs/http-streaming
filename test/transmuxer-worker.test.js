@@ -88,9 +88,6 @@ QUnit.test('flush should return data from transmuxer',
       return;
     }
 
-    let data1;
-    let data2;
-
     assert.deepEqual(
       messages.map((x) => x.action),
       [
@@ -118,7 +115,7 @@ QUnit.test('flush should return data from transmuxer',
       'returns timing information with videoTimingInfo event'
     );
 
-    data1 = messages.shift();
+    const data1 = messages.shift();
 
     assert.ok(
       data1.segment.data.byteLength > 0,
@@ -134,7 +131,7 @@ QUnit.test('flush should return data from transmuxer',
       'returns timing information with audioTimingInfo event'
     );
 
-    data2 = messages.shift();
+    const data2 = messages.shift();
 
     assert.ok(
       data2.segment.data.byteLength > 0,
@@ -379,16 +376,6 @@ QUnit.test('flush should return data from transmuxer',
       return;
     }
 
-    let trackInfoEvent;
-    let videoTimingInfoEvent;
-    let data1;
-    let data2;
-    let done1;
-    let audioTimingInfoEvent;
-    let data3;
-    let audioTimingInfoEvent2;
-    let done2;
-
     assert.deepEqual(
       messages.map((x) => x.action),
       [
@@ -406,15 +393,15 @@ QUnit.test('flush should return data from transmuxer',
       'the events are received in the expected order'
     );
 
-    trackInfoEvent = messages.shift();
-    videoTimingInfoEvent = messages.shift();
-    data1 = messages.shift();
-    data2 = messages.shift();
-    done1 = messages.shift();
-    audioTimingInfoEvent = messages.shift();
-    data3 = messages.shift();
-    audioTimingInfoEvent2 = messages.shift();
-    done2 = messages.shift();
+    const trackInfoEvent = messages.shift();
+    const videoTimingInfoEvent = messages.shift();
+    const data1 = messages.shift();
+    const data2 = messages.shift();
+    const done1 = messages.shift();
+    const audioTimingInfoEvent = messages.shift();
+    const data3 = messages.shift();
+    const audioTimingInfoEvent2 = messages.shift();
+    const done2 = messages.shift();
 
     assert.ok(
       trackInfoEvent.trackInfo,
@@ -632,15 +619,6 @@ QUnit.skip('partialFlush', function(assert) {
       return;
     }
 
-    let trackInfoEvent;
-    let videoTimingInfoEvent;
-    let data1;
-    let partialdone1;
-    let audioTimingInfoEvent;
-    let data2;
-    let audioTimingInfoEvent2;
-    let partialdone2;
-
     assert.deepEqual(
       messages.map((x) => x.action),
       [
@@ -657,14 +635,14 @@ QUnit.skip('partialFlush', function(assert) {
       'the events are received in the expected order'
     );
 
-    trackInfoEvent = messages.shift();
-    videoTimingInfoEvent = messages.shift();
-    data1 = messages.shift();
-    partialdone1 = messages.shift();
-    audioTimingInfoEvent = messages.shift();
-    data2 = messages.shift();
-    audioTimingInfoEvent2 = messages.shift();
-    partialdone2 = messages.shift();
+    const trackInfoEvent = messages.shift();
+    const videoTimingInfoEvent = messages.shift();
+    const data1 = messages.shift();
+    const partialdone1 = messages.shift();
+    const audioTimingInfoEvent = messages.shift();
+    const data2 = messages.shift();
+    const audioTimingInfoEvent2 = messages.shift();
+    const partialdone2 = messages.shift();
 
     assert.deepEqual(
       trackInfoEvent,
