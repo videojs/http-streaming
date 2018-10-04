@@ -115,7 +115,7 @@ QUnit.test('transmux returns captions for full appends', function(assert) {
   });
 });
 
-// This test should pass but potentially does not have enough data?
+// TODO: This test should pass but potentially does not have enough data?
 // Often needs at least 3 video frames, and potentially needs up to
 // 13 audio frames to return respective timingInfo
 QUnit.skip('transmux returns data for partial appends', function(assert) {
@@ -135,9 +135,9 @@ QUnit.skip('transmux returns data for partial appends', function(assert) {
     isPartial: true,
     onData: () => {
       dataFn();
-      assert.ok(trackInfoFn.callCount, 'got trackInfo events');
-      assert.ok(audioTimingFn.callCount, 'got audioTimingInfo events');
-      assert.ok(videoTimingFn.callCount, 'got videoTimingInfo events');
+      assert.ok(trackInfoFn.callCount, 'got trackInfo event');
+      assert.ok(audioTimingFn.callCount, 'got audioTimingInfo event');
+      assert.ok(videoTimingFn.callCount, 'got videoTimingInfo event');
       done();
     },
     onTrackInfo: trackInfoFn,

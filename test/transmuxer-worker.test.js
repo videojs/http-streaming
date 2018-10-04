@@ -29,7 +29,16 @@ const isFinalDone = (event) => {
     event.data.type === 'transmuxed';
 };
 
-QUnit.module('Transmuxer Worker', {
+/**
+ * Full Transmuxer
+ **/
+
+// Missing tests as these are not accessible to unit testing
+// - setTimestampOffset
+// - setAudioAppendStart
+// - alignGopsWith
+
+QUnit.module('Transmuxer Worker: Full Transmuxer', {
   beforeEach(assert) {
     this.transmuxer = null;
   },
@@ -40,16 +49,7 @@ QUnit.module('Transmuxer Worker', {
   }
 });
 
-/**
- * Full Transmuxer
- **/
-
-// Missing tests as these are not accessible to unit testing
-// - setTimestampOffset
-// - setAudioAppendStart
-// - alignGopsWith
-
-QUnit.test('full: push should result in a trackinfo event', function(assert) {
+QUnit.test('push should result in a trackinfo event', function(assert) {
   const done = assert.async();
 
   this.transmuxer = createTransmuxer(false);
@@ -77,7 +77,7 @@ QUnit.test('full: push should result in a trackinfo event', function(assert) {
   });
 });
 
-QUnit.test('full: flush should return data from transmuxer',
+QUnit.test('flush should return data from transmuxer',
   function(assert) {
   const testDone = assert.async();
   const messages = [];
@@ -161,7 +161,7 @@ QUnit.test('full: flush should return data from transmuxer',
   });
 });
 
-QUnit.test('full: reset will clear transmuxer', function(assert) {
+QUnit.test('reset will clear transmuxer', function(assert) {
   const done = assert.async();
   const messages = [];
 
@@ -198,7 +198,7 @@ QUnit.test('full: reset will clear transmuxer', function(assert) {
   });
 });
 
-QUnit.test('full: endTimeline will return unflushed data',
+QUnit.test('endTimeline will return unflushed data',
   function(assert) {
   const done = assert.async();
   const messages = [];
@@ -237,7 +237,7 @@ QUnit.test('full: endTimeline will return unflushed data',
   });
 });
 
-QUnit.test('full: caption events are returned', function(assert) {
+QUnit.test('caption events are returned', function(assert) {
   const done = assert.async();
   const messages = [];
 
@@ -327,7 +327,19 @@ QUnit.test('full: caption events are returned', function(assert) {
 // - setAudioAppendStart
 // - alignGopsWith
 
-QUnit.test('partial: push should result in a trackinfo event', function(assert) {
+QUnit.module('Transmuxer Worker: Partial Transmuxer', {
+  beforeEach(assert) {
+    this.transmuxer = null;
+  },
+  afterEach(assert) {
+    if (this.transmuxer) {
+      this.transmuxer.terminate();
+      delete this.transmuxer;
+    }
+  }
+});
+
+QUnit.test('push should result in a trackinfo event', function(assert) {
   const done = assert.async();
 
   this.transmuxer = createTransmuxer(true);
@@ -355,7 +367,7 @@ QUnit.test('partial: push should result in a trackinfo event', function(assert) 
   });
 });
 
-QUnit.test('partial: flush should return data from transmuxer',
+QUnit.test('flush should return data from transmuxer',
   function(assert) {
   const testDone = assert.async();
   const messages = [];
@@ -491,7 +503,7 @@ QUnit.test('partial: flush should return data from transmuxer',
   });
 });
 
-QUnit.test('partial: reset will clear transmuxer', function(assert) {
+QUnit.test('reset will clear transmuxer', function(assert) {
   const done = assert.async();
   const messages = [];
 
@@ -562,7 +574,7 @@ QUnit.test('partial: reset will clear transmuxer', function(assert) {
   });
 });
 
-QUnit.test('partial: endTimeline will return unflushed data',
+QUnit.test('endTimeline will return unflushed data',
   function(assert) {
   const done = assert.async();
   const messages = [];
@@ -601,10 +613,10 @@ QUnit.test('partial: endTimeline will return unflushed data',
   });
 });
 
-// This test should pass but potentially does not have enough data?
+// TODO: This test should pass but potentially does not have enough data?
 // Often needs at least 3 video frames, and potentially needs up to
 // 13 audio frames to return respective timingInfo
-QUnit.skip('partial: partialFlush', function(assert) {
+QUnit.skip('partialFlush', function(assert) {
   const done = assert.async();
   const messages = [];
   const isFinalPartialDone = (e) => {
