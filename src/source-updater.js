@@ -37,20 +37,13 @@ const updating = (type, sourceUpdater) => {
 };
 
 const processMediaSourceQueueEntry = (index, sourceUpdater) => {
-  const queueEntry = sourceUpdater.queue[index];
-  const types = queueEntry.type;
-  const bufferInUse =
-    types.reduce((acc, type) => acc || updating(type, sourceUpdater), false);
-
-  if (bufferInUse) {
+  if (updating('audio', sourceUpdater) || updating('video', sourceUpdater)) {
     // block until all buffers are ready for use
     return false;
   }
 
-  // remove the entry since it'll be processed
-  sourceUpdater.queue.splice(index, 1);
-  // when the entry needs multiple source buffer types, an individual type doesn't need to
-  // be passed for the action
+  const queueEntry = sourceUpdater.queue.splice(index, 1)[0];
+
   queueEntry.action(sourceUpdater);
 
   if (queueEntry.doneFn) {
@@ -64,7 +57,7 @@ const nextQueueIndexOfType = (type, queue) => {
   for (let i = 0; i < queue.length; i++) {
     const queueEntry = queue[i];
 
-    if (Array.isArray(queueEntry.type)) {
+    if (queueEntry.type === 'mediaSource') {
       // If the next entry that uses this type is a media source entry (uses multiple
       // source buffers), block processing to allow it to go through first.
       return null;
@@ -86,30 +79,28 @@ const shiftQueue = (type, sourceUpdater) => {
   let queueIndex = 0;
   let queueEntry = sourceUpdater.queue[queueIndex];
 
-  if (Array.isArray(queueEntry.type)) {
-    // Right now any action which requires multiple source buffer types is considered a
-    // media source action.
+  if (queueEntry.type === 'mediaSource') {
     if (processMediaSourceQueueEntry(queueIndex, sourceUpdater)) {
       // Only specific source buffer actions must wait for async updateend events. Media
-      // source actions process synchronously. Therefore, we can immediately process the
-      // next items.
-      queueEntry.type.forEach((entryType) => {
-        shiftQueue(entryType, sourceUpdater);
-      });
+      // Source actions process synchronously. Therefore, both audio and video source
+      // buffers are now clear to process the next queue entries.
+      shiftQueue('audio', sourceUpdater);
+      shiftQueue('video', sourceUpdater);
     }
     return;
   }
 
-  if (Array.isArray(type)) {
-    // If the queue was shifted by an action that requires multiple types (a media source
-    // action), then it wasn't from an updateend event from an individual source buffer,
-    // so there's no change from previous state (therefore no processing that should be
-    // done).
+  if (type === 'mediaSource') {
+    // If the queue was shifted by a media source action (this happens when pushing a
+    // media source action onto the queue), then it wasn't from an updateend event from an
+    // audio or video source buffer, so there's no change from previous state, and no
+    // processing should be done.
     return;
   }
 
   // Media source queue entries don't need to consider whether the source updater is
-  // started as they don't need the source buffers, but source buffer queue entries do.
+  // started (i.e., source buffers are created) as they don't need the source buffers, but
+  // source buffer queue entries do.
   if (!sourceUpdater.started_ || updating(type, sourceUpdater)) {
     return;
   }
@@ -133,6 +124,7 @@ const shiftQueue = (type, sourceUpdater) => {
     return;
   }
 
+  // asynchronous operation, so keep a record that this source buffer type is in use
   sourceUpdater.queuePending[type] = queueEntry;
 };
 
@@ -185,8 +177,6 @@ export default class SourceUpdater extends videojs.EventTarget {
     // initial timestamp offset is 0
     this.audioTimestampOffset_ = 0;
     this.videoTimestampOffset_ = 0;
-    this.audioBufferPending = null;
-    this.videoBufferPending = null;
     this.queue = [];
     this.queuePending = {
       audio: null,
@@ -287,7 +277,7 @@ export default class SourceUpdater extends videojs.EventTarget {
     // any SourceBuffer in sourceBuffers, then throw an InvalidStateError exception and
     // abort these steps." (source: https://www.w3.org/TR/media-source/#attributes).
     pushQueue({
-      type: ['audio', 'video'],
+      type: 'mediaSource',
       sourceUpdater: this,
       action: actions.duration(duration),
       name: 'duration',
