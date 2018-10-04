@@ -13,16 +13,13 @@
  * message-based interface to a Transmuxer object.
  */
 
-/* eslint-disable prefer-const */
-
 import window from 'global/window';
 import fullMux from 'mux.js/lib/mp4';
 import partialMux from 'mux.js/lib/partial';
-
-// TODO: can we import mux.js/lib/utils/clock?
-const ONE_SECOND_IN_TS = 90000;
-const secondsToVideoTs = (seconds) => seconds * ONE_SECOND_IN_TS;
-const videoTsToSeconds = (videoTs) => videoTs / ONE_SECOND_IN_TS;
+import {
+  secondsToVideoTs,
+  videoTsToSeconds
+} from 'mux.js/lib/utils/clock';
 
 const typeFromStreamString = (streamString) => {
   if (streamString === 'AudioSegmentStream') {
