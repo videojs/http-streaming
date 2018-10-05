@@ -124,6 +124,8 @@ export const comparePlaylistResolution = function(left, right) {
  *        Current width of the player element
  * @param {Number} playerHeight
  *        Current height of the player element
+ * @param {Boolean} limitRenditionByPlayerDimensions
+ *        True if the player width and height should be used during the selection, false otherwise
  * @return {Playlist} the highest bitrate playlist less than the
  * currently detected bandwidth, accounting for some amount of
  * bandwidth variance
@@ -131,7 +133,8 @@ export const comparePlaylistResolution = function(left, right) {
 export const simpleSelector = function(master,
                                        playerBandwidth,
                                        playerWidth,
-                                       playerHeight) {
+                                       playerHeight,
+                                       limitRenditionByPlayerDimensions) {
   // convert the playlists to an intermediary representation to make comparisons easier
   let sortedPlaylistReps = master.playlists.map((playlist) => {
     let width;
@@ -189,6 +192,17 @@ export const simpleSelector = function(master,
   let bandwidthBestRep = bandwidthPlaylistReps.filter(
     (rep) => rep.bandwidth === highestRemainingBandwidthRep.bandwidth
   )[0];
+
+  // if we're not going to limit renditions by player size, make an early decision.
+  if (limitRenditionByPlayerDimensions === false) {
+    let chosenRep = (
+      bandwidthBestRep ||
+      enabledPlaylistReps[0] ||
+      sortedPlaylistReps[0]
+    );
+
+    return chosenRep ? chosenRep.playlist : null;
+  }
 
   // filter out playlists without resolution information
   let haveResolution = bandwidthPlaylistReps.filter((rep) => rep.width && rep.height);
@@ -261,7 +275,8 @@ export const lastBandwidthSelector = function() {
   return simpleSelector(this.playlists.master,
                         this.systemBandwidth,
                         parseInt(safeGetComputedStyle(this.tech_.el(), 'width'), 10),
-                        parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10));
+                        parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10),
+                        this.limitRenditionByPlayerDimensions);
 };
 
 /**
@@ -294,7 +309,8 @@ export const movingAverageBandwidthSelector = function(decay) {
     return simpleSelector(this.playlists.master,
                           average,
                           parseInt(safeGetComputedStyle(this.tech_.el(), 'width'), 10),
-                          parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10));
+                          parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10),
+                          this.limitRenditionByPlayerDimensions);
   };
 };
 

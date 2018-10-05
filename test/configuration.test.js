@@ -24,6 +24,11 @@ const options = [{
   test: true,
   alt: false
 }, {
+  name: 'limitRenditionByPlayerDimensions',
+  default: true,
+  test: false,
+  alt: false
+}, {
   name: 'bandwidth',
   default: 4194304,
   test: 5,
