@@ -10,9 +10,9 @@ For issues around data embedded into media segments (e.g., 608 captions), see th
 
 Thumbcoil is a video inspector tool that can unpackage various media containers and inspect the bitstreams therein. Thumbcoil runs entirely within your browser so that none of your video data is ever transmitted to a server.
 
-http://thumb.co.il
-http://beta.thumb.co.il
-https://github.com/videojs/thumbcoil
+http://thumb.co.il<br/>
+http://beta.thumb.co.il<br/>
+https://github.com/videojs/thumbcoil<br/>
 
 ## Table of Contents
 - [Content plays on Mac but not on Windows](#content-plays-on-mac-but-not-windows)
