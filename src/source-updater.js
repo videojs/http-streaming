@@ -36,30 +36,13 @@ const updating = (type, sourceUpdater) => {
   return (sourceBuffer && sourceBuffer.updating) || sourceUpdater.queuePending[type];
 };
 
-const processMediaSourceQueueEntry = (index, sourceUpdater) => {
-  if (updating('audio', sourceUpdater) || updating('video', sourceUpdater)) {
-    // block until all buffers are ready for use
-    return false;
-  }
-
-  const queueEntry = sourceUpdater.queue.splice(index, 1)[0];
-
-  queueEntry.action(sourceUpdater);
-
-  if (queueEntry.doneFn) {
-    queueEntry.doneFn();
-  }
-
-  return true;
-};
-
 const nextQueueIndexOfType = (type, queue) => {
   for (let i = 0; i < queue.length; i++) {
     const queueEntry = queue[i];
 
     if (queueEntry.type === 'mediaSource') {
-      // If the next entry that uses this type is a media source entry (uses multiple
-      // source buffers), block processing to allow it to go through first.
+      // If the next entry is a media source entry (uses multiple source buffers), block
+      // processing to allow it to go through first.
       return null;
     }
 
@@ -80,13 +63,24 @@ const shiftQueue = (type, sourceUpdater) => {
   let queueEntry = sourceUpdater.queue[queueIndex];
 
   if (queueEntry.type === 'mediaSource') {
-    if (processMediaSourceQueueEntry(queueIndex, sourceUpdater)) {
+    if (!updating('audio', sourceUpdater) && !updating('video', sourceUpdater)) {
+      sourceUpdater.queue.shift();
+      queueEntry.action(sourceUpdater);
+
+      if (queueEntry.doneFn) {
+        queueEntry.doneFn();
+      }
+
       // Only specific source buffer actions must wait for async updateend events. Media
       // Source actions process synchronously. Therefore, both audio and video source
       // buffers are now clear to process the next queue entries.
       shiftQueue('audio', sourceUpdater);
       shiftQueue('video', sourceUpdater);
     }
+
+    // Media Source actions require both source buffers, so if the media source action
+    // couldn't process yet (because one or both source buffers are busy), block other
+    // queue actions until both are available and the media source action can process.
     return;
   }
 
@@ -109,6 +103,9 @@ const shiftQueue = (type, sourceUpdater) => {
     queueIndex = nextQueueIndexOfType(type, sourceUpdater.queue);
 
     if (queueIndex === null) {
+      // Either there's no queue entry that uses this source buffer type in the queue, or
+      // there's a media source queue entry before the next entry of this type, in which
+      // case wait for that action to process first.
       return;
     }
 
@@ -144,7 +141,7 @@ const onUpdateend = (type, sourceUpdater) => (e) => {
   // the w3c spec. For instance, setting the duration on the media source may trigger
   // updateend events on source buffers. This does not appear to be in the spec. As such,
   // if we encounter an updateend without a corresponding pending action from our queue
-  // for that source buffer type, just shift to the next action.
+  // for that source buffer type, process the next action.
   if (sourceUpdater.queuePending[type]) {
     const doneFn = sourceUpdater.queuePending[type].doneFn;
 
