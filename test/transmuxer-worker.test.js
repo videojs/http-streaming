@@ -29,25 +29,18 @@ const isFinalDone = (event) => {
     event.data.type === 'transmuxed';
 };
 
-/**
- * Full Transmuxer
- **/
-
-// Missing tests as these are not accessible to unit testing
-// - setTimestampOffset
-// - setAudioAppendStart
-// - alignGopsWith
-
 QUnit.module('Transmuxer Worker: Full Transmuxer', {
-  beforeEach(assert) {
-    this.transmuxer = null;
-  },
   afterEach(assert) {
     if (this.transmuxer) {
       this.transmuxer.terminate();
     }
   }
 });
+
+// Missing tests as these are not accessible to unit testing
+// - setTimestampOffset
+// - setAudioAppendStart
+// - alignGopsWith
 
 QUnit.test('push should result in a trackinfo event', function(assert) {
   const done = assert.async();
@@ -315,19 +308,7 @@ QUnit.test('caption events are returned', function(assert) {
   });
 });
 
-/**
- * Partial Transmuxer
- **/
-
-// Missing tests as these are not accessible to unit testing
-// - setTimestampOffset
-// - setAudioAppendStart
-// - alignGopsWith
-
 QUnit.module('Transmuxer Worker: Partial Transmuxer', {
-  beforeEach(assert) {
-    this.transmuxer = null;
-  },
   afterEach(assert) {
     if (this.transmuxer) {
       this.transmuxer.terminate();
@@ -335,6 +316,11 @@ QUnit.module('Transmuxer Worker: Partial Transmuxer', {
     }
   }
 });
+
+// Missing tests as these are not accessible to unit testing
+// - setTimestampOffset
+// - setAudioAppendStart
+// - alignGopsWith
 
 QUnit.test('push should result in a trackinfo event', function(assert) {
   const done = assert.async();
