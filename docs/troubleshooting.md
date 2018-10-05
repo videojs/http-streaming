@@ -4,6 +4,16 @@
 
 For issues around data embedded into media segments (e.g., 608 captions), see the [mux.js troubleshooting guide](https://github.com/videojs/mux.js/blob/master/docs/troubleshooting.md).
 
+## Tools
+
+### Thumbcoil
+
+Thumbcoil is a video inspector tool that can unpackage various media containers and inspect the bitstreams therein. Thumbcoil runs entirely within your browser so that none of your video data is ever transmitted to a server.
+
+http://thumb.co.il
+http://beta.thumb.co.il
+https://github.com/videojs/thumbcoil
+
 ## Table of Contents
 - [Content plays on Mac but not on Windows](#content-plays-on-mac-but-not-windows)
 - ["No compatible source was found" on IE11 Win 7](#no-compatible-source-was-found-on-ie11-win-7)
