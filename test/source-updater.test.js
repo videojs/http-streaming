@@ -630,3 +630,140 @@ QUnit.skip('video source buffer error passed in done callback', function(assert)
     done();
   });
 });
+
+QUnit.test('setDuration processes immediately if not waiting on source buffers',
+function(assert) {
+  this.sourceUpdater.createSourceBuffers({
+    audio: 'mp4a.40.2',
+    video: 'avc1.4D001E'
+  });
+
+  assert.ok(Number.isNaN(this.mediaSource.duration), 'duration set to NaN at start');
+  this.sourceUpdater.setDuration(11);
+  assert.equal(this.mediaSource.duration, 11, 'set duration on media source');
+});
+
+QUnit.test('setDuration waits for audio buffer to finish updating', function(assert) {
+  const done = assert.async();
+
+  assert.expect(5);
+
+  this.sourceUpdater.createSourceBuffers({
+    audio: 'mp4a.40.2',
+    video: 'avc1.4D001E'
+  });
+
+  assert.notOk(this.sourceUpdater.updating(), 'not updating by default');
+
+  const checkDuration = () => {
+    // duration is set to infinity if content is appended before an explicit duration is
+    // set https://w3c.github.io/media-source/#sourcebuffer-init-segment-received
+    assert.equal(this.mediaSource.duration, Infinity, 'duration not set on media source');
+  };
+
+  this.sourceUpdater.appendBuffer('audio', mp4Audio(), checkDuration);
+  this.sourceUpdater.setDuration(11, () => {
+    assert.equal(this.mediaSource.duration, 11, 'set duration on media source');
+    done();
+  });
+
+  assert.ok(Number.isNaN(this.mediaSource.duration), 'duration set to NaN at start');
+  assert.ok(this.sourceUpdater.updating(), 'updating during appends');
+});
+
+QUnit.test('setDuration waits for video buffer to finish updating', function(assert) {
+  const done = assert.async();
+
+  assert.expect(5);
+
+  this.sourceUpdater.createSourceBuffers({
+    audio: 'mp4a.40.2',
+    video: 'avc1.4D001E'
+  });
+
+  assert.notOk(this.sourceUpdater.updating(), 'not updating by default');
+
+  const checkDuration = () => {
+    // duration is set to infinity if content is appended before an explicit duration is
+    // set https://w3c.github.io/media-source/#sourcebuffer-init-segment-received
+    assert.equal(this.mediaSource.duration, Infinity, 'duration not set on media source');
+  };
+
+  this.sourceUpdater.appendBuffer('video', mp4Video(), checkDuration);
+  this.sourceUpdater.setDuration(11, () => {
+    assert.equal(this.mediaSource.duration, 11, 'set duration on media source');
+    done();
+  });
+
+  assert.ok(Number.isNaN(this.mediaSource.duration), 'duration set to NaN at start');
+  assert.ok(this.sourceUpdater.updating(), 'updating during appends');
+});
+
+QUnit.test('setDuration waits for both audio and video buffers to finish updating',
+function(assert) {
+  const done = assert.async();
+
+  assert.expect(6);
+
+  this.sourceUpdater.createSourceBuffers({
+    audio: 'mp4a.40.2',
+    video: 'avc1.4D001E'
+  });
+
+  assert.notOk(this.sourceUpdater.updating(), 'not updating by default');
+
+  const checkDuration = () => {
+    // duration is set to infinity if content is appended before an explicit duration is
+    // set https://w3c.github.io/media-source/#sourcebuffer-init-segment-received
+    assert.equal(this.mediaSource.duration, Infinity, 'duration not set on media source');
+  };
+
+  this.sourceUpdater.appendBuffer('video', mp4Video(), checkDuration);
+  this.sourceUpdater.appendBuffer('audio', mp4Audio(), checkDuration);
+  this.sourceUpdater.setDuration(11, () => {
+    assert.equal(this.mediaSource.duration, 11, 'set duration on media source');
+    done();
+  });
+
+  assert.ok(Number.isNaN(this.mediaSource.duration), 'duration set to NaN at start');
+  assert.ok(this.sourceUpdater.updating(), 'updating during appends');
+});
+
+QUnit.test('setDuration blocks audio and video queue entries until it finishes',
+function(assert) {
+  const done = assert.async();
+
+  assert.expect(6);
+
+  this.sourceUpdater.createSourceBuffers({
+    audio: 'mp4a.40.2',
+    video: 'avc1.4D001E'
+  });
+
+  const checkDurationPreSet = () => {
+    // duration is set to infinity if content is appended before an explicit duration is
+    // set https://w3c.github.io/media-source/#sourcebuffer-init-segment-received
+    assert.equal(this.mediaSource.duration, Infinity, 'duration not set on media source');
+  };
+
+  this.sourceUpdater.appendBuffer('video', mp4Video(), checkDurationPreSet);
+  this.sourceUpdater.appendBuffer('audio', mp4Audio(), checkDurationPreSet);
+  this.sourceUpdater.setDuration(11, () => {
+    assert.equal(this.mediaSource.duration, 11, 'set duration on media source');
+  });
+  this.sourceUpdater.appendBuffer('video', mp4Video(), () => {
+    assert.equal(
+      this.mediaSource.duration,
+      11,
+      'video append processed post duration set');
+  });
+  this.sourceUpdater.appendBuffer('audio', mp4Audio(), () => {
+    assert.equal(
+      this.mediaSource.duration,
+      11,
+      'audio append processed post duration set');
+    done();
+  });
+
+  assert.ok(Number.isNaN(this.mediaSource.duration), 'duration set to NaN at start');
+});

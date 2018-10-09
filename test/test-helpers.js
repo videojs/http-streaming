@@ -68,12 +68,22 @@ class MockMediaSource extends videojs.EventTarget {
     // this.activeSourceBuffers.onaddsourcebuffer: null,
     // this.activeSourceBuffers.onremovesourcebuffer: null
     this.sourceBuffers = this.activeSourceBuffers;
-    this.duration = NaN;
+    this.duration_ = NaN;
     this.seekable = videojs.createTimeRange();
     this.onsourceclose = null;
     this.onsourceended = null;
     this.onsourceopen = null;
     this.nativeMediaSource_ = new RealMediaSource();
+
+    Object.defineProperty(this, 'duration', {
+      get() {
+        return this.duration_;
+      },
+      set(duration) {
+        this.duration_ = duration;
+        this.trigger('durationchange');
+      }
+    });
   }
 
   addSeekableRange_(start, end) {
