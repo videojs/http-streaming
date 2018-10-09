@@ -854,78 +854,12 @@ async function(assert) {
   assert.equal(MPC.mediaSource.readyState, 'ended', 'Media Source ended');
 });
 
-// TODO once we have support for audio only with alternate audio
-QUnit.skip('does not wait for main loader to finish before calling endOfStream with' +
-' audio only stream and alternate audio active', async function(assert) {
-  openMediaSource(this.player, this.clock);
-
-  const mainMedia = '#EXTM3U\n' +
-                    '#EXT-X-VERSION:3\n' +
-                    '#EXT-X-PLAYLIST-TYPE:VOD\n' +
-                    '#EXT-X-MEDIA-SEQUENCE:0\n' +
-                    '#EXT-X-TARGETDURATION:10\n' +
-                    '#EXTINF:10,\n' +
-                    'audio-0.ts\n' +
-                    '#EXT-X-ENDLIST\n';
-
-  const audioMedia = '#EXTM3U\n' +
-                    '#EXT-X-VERSION:3\n' +
-                    '#EXT-X-PLAYLIST-TYPE:VOD\n' +
-                    '#EXT-X-MEDIA-SEQUENCE:0\n' +
-                    '#EXT-X-TARGETDURATION:10\n' +
-                    '#EXTINF:10,\n' +
-                    'audio-0.ts\n' +
-                    '#EXT-X-ENDLIST\n';
-
-  let mainEnded = 0;
-  let audioEnded = 0;
-
-  const MPC = this.masterPlaylistController;
-
-  MPC.mainSegmentLoader_.on('ended', () => mainEnded++);
-  MPC.audioSegmentLoader_.on('ended', () => audioEnded++);
-
-  MPC.mainSegmentLoader_.startingMedia_ = { hasAudio: true };
-  MPC.audioSegmentLoader_.startingMedia_ = { hasAudio: true };
-
-  // master
-  this.standardXHRResponse(this.requests.shift(), manifests.audioOnlyAlternateAudio);
-
-  // main media
-  this.standardXHRResponse(this.requests.shift(), mainMedia);
-
-  this.player.audioTracks()[0].enabled = false;
-  this.player.audioTracks()[1].enabled = true;
-
-  await requestAndAppendSegment({
-    request: this.requests.shift(),
-    segment: audioSegment(),
-    isOnlyAudio: true,
-    segmentLoader: MPC.mainSegmentLoader_,
-    clock: this.clock
-  });
-
-  // mock buffered values so removes are processed
-  MPC.mainSegmentLoader_.sourceUpdater_.audioBuffer.buffered =
-    videojs.createTimeRanges([[0, 10]]);
-
-  // audio media
-  this.standardXHRResponse(this.requests.shift(), audioMedia);
-  // when the audio segment loader is created it triggers a remove on the source buffer
-  MPC.audioSegmentLoader_.sourceUpdater_.audioBuffer.trigger('updateend');
-
-  await requestAndAppendSegment({
-    request: this.requests.shift(),
-    segment: audioSegment(),
-    isOnlyAudio: true,
-    segmentLoader: MPC.audioSegmentLoader_,
-    clock: this.clock
-  });
-
-  assert.equal(mainEnded, 0, 'main segment loader did not trigger ended');
-  assert.equal(audioEnded, 1, 'audio segment loader triggered ended');
-  assert.equal(MPC.mediaSource.readyState, 'ended', 'Media Source ended');
-});
+// TODO once we have support for audio only with alternate audio, we should have a test
+// for: "does not wait for main loader to finish before calling endOfStream with audio
+// only stream and alternate audio active." This will require changes in segment loader to
+// handle disabled audio on the main stream, as well as potential media group changes and
+// master playlist controller changes to use measurements from the audio segment loader as
+// the primary source when main is disabled.
 
 QUnit.test('Segment loaders are unpaused when seeking after player has ended',
 async function(assert) {
