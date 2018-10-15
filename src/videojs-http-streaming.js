@@ -320,6 +320,14 @@ class HlsHandler extends Component {
         this.masterPlaylistController_.smoothQualityChange_();
       }
     });
+
+    // Handle seeking when looping - middleware doesn't handle this seek event from the tech
+    this.on(this.tech_, 'seeking', function() {
+      if (this.tech_.seeking() && this.tech_.currentTime() === 0 && this.tech_.player_.loop()) {
+        this.setCurrentTime(0);
+      }
+    });
+
     this.on(this.tech_, 'error', function() {
       if (this.masterPlaylistController_) {
         this.masterPlaylistController_.pauseLoading();
