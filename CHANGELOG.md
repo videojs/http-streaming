@@ -1,3 +1,10 @@
+<a name="1.3.1"></a>
+## [1.3.1](https://github.com/videojs/http-streaming/compare/v1.3.0...v1.3.1) (2018-10-15)
+
+### Bug Fixes
+
+* ensure content loops ([#259](https://github.com/videojs/http-streaming/issues/259)) ([26300df](https://github.com/videojs/http-streaming/commit/26300df))
+
 <a name="1.3.0"></a>
 # [1.3.0](https://github.com/videojs/http-streaming/compare/v1.2.6...v1.3.0) (2018-10-05)
 
