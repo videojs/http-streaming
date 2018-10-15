@@ -178,9 +178,11 @@ QUnit.test('loops', function(assert) {
     type: 'application/x-mpegURL'
   });
   player.one('playing', function() {
-    player.vhs.mediaSource.on('sourceopen', () => {
-      assert.ok(true, 'sourceopen triggered after ending stream');
-      done();
+    player.vhs.mediaSource.one('sourceended', () => {
+      player.vhs.mediaSource.on('sourceopen', () => {
+        assert.ok(true, 'sourceopen triggered after ending stream');
+        done();
+      });
     });
     player.currentTime(player.duration());
   });
