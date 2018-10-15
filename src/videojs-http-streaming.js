@@ -321,6 +321,7 @@ class HlsHandler extends Component {
       }
     });
 
+    // Handle seeking when looping - middleware doesn't handle this seek event from the tech
     this.on(this.tech_, 'seeking', function() {
       if (this.tech_.seeking() && this.tech_.currentTime() === 0 && this.tech_.player_.loop()) {
         this.setCurrentTime(0);
