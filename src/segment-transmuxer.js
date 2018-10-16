@@ -133,7 +133,8 @@ export const processTransmux = ({
     });
   }
 
-  if (gopsToAlignWith) {
+  // allow empty arrays to be passed to clear out GOPs
+  if (Array.isArray(gopsToAlignWith)) {
     transmuxer.postMessage({
       action: 'alignGopsWith',
       gopsToAlignWith

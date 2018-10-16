@@ -762,8 +762,10 @@ export default class SegmentLoader extends videojs.EventTarget {
                                                           this.currentTime_());
     }
 
+    const buffered = this.buffered_();
+
     // see if we need to begin loading immediately
-    let segmentInfo = this.checkBuffer_(this.buffered_(),
+    let segmentInfo = this.checkBuffer_(buffered,
                                         this.playlist_,
                                         this.mediaIndex,
                                         this.hasPlayed_(),
@@ -794,7 +796,13 @@ export default class SegmentLoader extends videojs.EventTarget {
     // offset on the transmuxer and source buffer
     if (segmentInfo.timeline !== this.currentTimeline_ ||
         this.startsBeforeSourceBufferTimestampOffset(segmentInfo)) {
-      segmentInfo.timestampOffset = segmentInfo.startOfSegment;
+      // segmentInfo.startOfSegment used to be used as the timestamp offset, however, that
+      // value uses the end of the last segment if it is available. While this value
+      // should often be correct, it's better to rely on the buffered end, as the new
+      // content post discontinuity should line up with the buffered end as if it were
+      // time 0 for the new content.
+      segmentInfo.timestampOffset =
+        buffered.length ? buffered.end(buffered.length - 1) : segmentInfo.startOfSegment;
       this.captionParser_.clearAllCaptions();
     }
 
@@ -1503,9 +1511,22 @@ export default class SegmentLoader extends videojs.EventTarget {
     // We'll update the source buffer's timestamp offset once we have transmuxed data, but
     // the transmuxer still needs to be updated before then.
     //
-    // Even though we keep original timestamps in the transmuxer, we have to set the
-    // timestamp offset if we want stream correcting adjustments.
-    this.updateTransmuxerTimestampOffset_(segmentInfo);
+    // Even though keepOriginalTimestamps is set to true for the transmuxer, timestamp
+    // offset must be passed to the transmuxer for stream correcting adjustments.
+    if (this.shouldUpdateTransmuxerTimestampOffset_(segmentInfo.timestampOffset)) {
+      this.gopBuffer_.length = 0;
+      // gopsToAlignWith was set before the GOP buffer was cleared
+      segmentInfo.gopsToAlignWith = [];
+      this.timeMapping_ = 0;
+      // reset values in the transmuxer since a discontinuity should start fresh
+      this.transmuxer_.postMessage({
+        action: 'reset'
+      });
+      this.transmuxer_.postMessage({
+        action: 'setTimestampOffset',
+        timestampOffset: segmentInfo.timestampOffset
+      });
+    }
 
     const simpleSegment = this.createSimplifiedSegmentObj_(segmentInfo);
 
@@ -1748,33 +1769,25 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
   }
 
-  updateTransmuxerTimestampOffset_(segmentInfo) {
+  shouldUpdateTransmuxerTimestampOffset_(timestampOffset) {
+    if (timestampOffset === null) {
+      return false;
+    }
+
     // note that we're potentially using the same timestamp offset for both video and
     // audio
-    const timestampOffset = segmentInfo.timestampOffset;
-    let shouldSetTimestampOffset = false;
 
     if (this.loaderType_ === 'main' &&
         timestampOffset !== this.sourceUpdater_.videoTimestampOffset()) {
-      shouldSetTimestampOffset = true;
+      return true;
     }
 
     if (!this.audioDisabled_ &&
         timestampOffset !== this.sourceUpdater_.audioTimestampOffset()) {
-      shouldSetTimestampOffset = true;
+      return true;
     }
 
-    if (timestampOffset !== null && shouldSetTimestampOffset) {
-      // this won't shift the timestamps (since keepOriginalTimestamps is set to true),
-      // however, the transmuxer needs to know there was a discontinuity to reset other
-      // values
-      this.gopBuffer_.length = 0;
-      this.timeMapping_ = 0;
-      this.transmuxer_.postMessage({
-        action: 'setTimestampOffset',
-        timestampOffset
-      });
-    }
+    return false;
   }
 
   trueSegmentStart_({
