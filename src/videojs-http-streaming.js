@@ -180,6 +180,10 @@ const setupEmeOptions = (hlsHandler) => {
 
     if (sourceOptions) {
       player.currentSource().keySystems = sourceOptions;
+
+      if (player.eme.initializeMediaKeys) {
+        player.eme.initializeMediaKeys();
+      }
     }
   }
 };
