@@ -181,6 +181,7 @@ const setupEmeOptions = (hlsHandler) => {
     if (sourceOptions) {
       player.currentSource().keySystems = sourceOptions;
 
+      // works around https://bugs.chromium.org/p/chromium/issues/detail?id=895449
       if (player.eme.initializeMediaKeys) {
         player.eme.initializeMediaKeys();
       }
