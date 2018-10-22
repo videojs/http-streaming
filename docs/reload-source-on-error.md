@@ -17,7 +17,7 @@ can tweak the amount of time required between restarts by adjusting the
 If your video URLs are time-sensitive, the original source could be invalid by the
 time an error occurs. If that's the case, you can provide a `getSource` callback
 to regenerate a valid source object. In your callback, the `this` keyword is a
-reference to the player that errored. The first argument to `getSources` is a
+reference to the player that errored. The first argument to `getSource` is a
 function. Invoke that function and pass in your new source object when you're ready.
 
 ```js
