@@ -1,5 +1,5 @@
 # Using the reloadSourceOnError Plugin
-Call the plugin activate it:
+Call the plugin to activate it:
 
 ```js
 player.reloadSourceOnError()
