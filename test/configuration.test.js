@@ -22,10 +22,20 @@ const options = [{
   test: true,
   alt: false
 }, {
+  name: 'limitRenditionByPlayerDimensions',
+  default: true,
+  test: false,
+  alt: false
+}, {
   name: 'bandwidth',
   default: 4194304,
   test: 5,
   alt: 555
+}, {
+  name: 'smoothQualityChange',
+  default: false,
+  test: true,
+  alt: false
 }];
 
 const CONFIG_KEYS = Object.keys(Config);

@@ -165,3 +165,26 @@ QUnit.test('Live DASH', function(assert) {
     type: 'application/dash+xml'
   });
 });
+
+QUnit.test('loops', function(assert) {
+  assert.timeout(5000);
+
+  let done = assert.async();
+  let player = this.player;
+
+  player.loop(true);
+  player.src({
+    src: 'http://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8',
+    type: 'application/x-mpegURL'
+  });
+  player.one('playing', function() {
+    player.vhs.mediaSource.addEventListener('sourceended', () => {
+      player.vhs.mediaSource.addEventListener('sourceopen', () => {
+        assert.ok(true, 'sourceopen triggered after ending stream');
+        done();
+      });
+    });
+    player.currentTime(player.duration());
+  });
+  player.play();
+});
