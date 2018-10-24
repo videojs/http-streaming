@@ -4,33 +4,35 @@ import {
   getStreamTime
 } from '../../src/util/time.js';
 
-QUnit.module('Time: convertToStreamTime', {
+QUnit.module('Time: getStreamTime', {
   beforeEach(assert) {
     this.player = {
       currentTime() {
         return 1;
       }
     };
-    this.masterPlaylistController = {
-      media() {
-        return {};
-      }
-    };
-    this.getStreamTime = getStreamTime(this.player, this.masterPlaylistController);
+    this.playlist = {};
   },
   afterEach(assert) {
-    delete this.getStreamTime;
-    delete this.masterPlaylistController;
     delete this.player;
+    delete this.playlist;
   }
 });
 
-QUnit.test('convertToStreamTime should return function', function(assert) {
-  assert.equal(typeof getStreamTime({}), 'function');
+QUnit.test('getStreamTime should return an object', function(assert) {
+  assert.equal(
+    typeof getStreamTime({
+      player: this.player,
+      playlist: this.playlist
+    }),
+    'object'
+  );
 });
 
 QUnit.test('should return mediaSeconds and programDateTime', function(assert) {
-  const streamTime = this.getStreamTime({
+  const streamTime = getStreamTime({
+    player: this.player,
+    playlist: this.playlist,
     time: 5
   });
 
@@ -50,7 +52,9 @@ QUnit.test('calls callback with mediaSeconds and programDateTime', function(asse
     callbackSpy(args);
     return 'callback';
   };
-  const streamTime = this.getStreamTime({
+  const streamTime = getStreamTime({
+    player: this.player,
+    playlist: this.playlist,
     time: 0,
     callback
   });
@@ -66,12 +70,14 @@ QUnit.test('calls callback with mediaSeconds and programDateTime', function(asse
   assert.deepEqual(
     streamTime,
     'callback',
-    'convertToStreamTime returns callback'
+    'getStreamTime returns callback'
   );
 });
 
 QUnit.test('returns mediaSeconds and programDateTime if no callback', function(assert) {
-  const streamTime = this.getStreamTime({
+  const streamTime = getStreamTime({
+    player: this.player,
+    playlist: this.playlist,
     time: 4
   });
 
@@ -90,7 +96,10 @@ QUnit.test('returns currentTime if no modifications and no time given', function
     return 5;
   };
 
-  const streamTime = this.getStreamTime();
+  const streamTime = getStreamTime({
+    player: this.player,
+    playlist: this.playlist
+  });
 
   assert.equal(
     streamTime.mediaSeconds,
@@ -100,7 +109,9 @@ QUnit.test('returns currentTime if no modifications and no time given', function
 });
 
 QUnit.test('returns time if no modifications', function(assert) {
-  const streamTime = this.getStreamTime({
+  const streamTime = getStreamTime({
+    player: this.player,
+    playlist: this.playlist,
     time: 3
   });
 
@@ -121,13 +132,9 @@ QUnit.test('returns programDateTime parsed from media segment tags', function(as
     }]
   };
 
-  this.masterPlaylistController = {
-    media() {
-      return playlist;
-    }
-  };
-
-  const streamTime = getStreamTime(this.player, this.masterPlaylistController)({
+  const streamTime = getStreamTime({
+    player: this.player,
+    playlist,
     time: 0
   });
 

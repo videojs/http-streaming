@@ -660,9 +660,13 @@ class HlsHandler extends Component {
     super.dispose();
   }
 
-  convertToStreamTime(args) {
-    return getStreamTime(this.player_, this.masterPlaylistController_)
-      .call(null, args);
+  convertToStreamTime(time, callback) {
+    return getStreamTime({
+      player: this.player_,
+      playlist: this.masterPlaylistController_.media(),
+      time,
+      callback
+    });
   }
 }
 

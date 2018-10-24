@@ -1,6 +1,7 @@
 /**
  * @file time.js
  */
+import videojs from 'video.js';
 
 const findSegmentForTime = (time, timeline) => {
   const matchingSegments = timeline.filter((x) => {
@@ -45,32 +46,41 @@ const buildMediaTimeline = (playlist) => {
   return timeline;
 };
 
-export const getStreamTime = (player, masterPlaylistController) => {
-  return function({
-    time = player.currentTime(),
-    callback
-  } = {}) {
-    const streamTime = {
-      mediaSeconds: time,
-      programDateTime: null
-    };
+export const getStreamTime = ({
+  player,
+  playlist,
+  time,
+  callback
+}) => {
 
-    const media = masterPlaylistController.media();
-    const timeline = buildMediaTimeline(media);
+  if (!player || !playlist) {
+    videojs.log.warn('getStreamTime: no player or playlist provided');
+    return null;
+  } else if (time === undefined || time === null) {
+    time = player.currentTime();
+  }
 
-    if (timeline) {
-      const segment = findSegmentForTime(time, timeline);
-
-      if (segment.dateTimeObject) {
-        // TODO confirm this is YYYY-MM-DDThh:mm:ss.SSSZ ISO_8601 format
-        streamTime.programDateTime = segment.dateTimeObject.toISOString();
-      }
-    }
-
-    if (callback) {
-      return callback(streamTime);
-    }
-
-    return streamTime;
+  const streamTime = {
+    mediaSeconds: time,
+    programDateTime: null
   };
+
+  const timeline = buildMediaTimeline(playlist);
+
+  if (timeline) {
+    const segment = findSegmentForTime(time, timeline);
+
+    if (segment.dateTimeObject) {
+      // TODO this is currently the time of the beginning of the
+      // segment. This still needs to be modified to be offset
+      // by the time requested.
+      streamTime.programDateTime = segment.dateTimeObject.toISOString();
+    }
+  }
+
+  if (callback) {
+    return callback(streamTime);
+  }
+
+  return streamTime;
 };
