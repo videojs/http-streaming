@@ -690,7 +690,7 @@ function(assert) {
   const type = 'SUBTITLES';
 
   this.master.mediaGroups[type].sub1 = {
-    'en': { language: 'en', resolvedUri: 'sub1/en.m3u8' },
+    'en': { language: 'en', default: true, autoselect: true, resolvedUri: 'sub1/en.m3u8' },
     'en-forced': { language: 'en', resolvedUri: 'sub1/en-forced.m3u8', forced: true },
     'fr': { language: 'fr', resolvedUri: 'sub1/fr.m3u8' }
   };
@@ -705,7 +705,7 @@ function(assert) {
   assert.deepEqual(this.mediaTypes[type].groups,
     {
       sub1: [
-        { id: 'en', language: 'en', resolvedUri: 'sub1/en.m3u8',
+        { id: 'en', language: 'en', default: true, autoselect: true, resolvedUri: 'sub1/en.m3u8',
           playlistLoader: this.mediaTypes[type].groups.sub1[0].playlistLoader },
         { id: 'fr', language: 'fr', resolvedUri: 'sub1/fr.m3u8',
           playlistLoader: this.mediaTypes[type].groups.sub1[1].playlistLoader }
@@ -726,6 +726,7 @@ function(assert) {
   assert.ok(this.mediaTypes[type].groups.sub2[1].playlistLoader,
     'playlistLoader created');
   assert.ok(this.mediaTypes[type].tracks.en, 'created text track');
+  assert.equal(this.mediaTypes[type].tracks.en.default, true, 'en track auto selected');
   assert.ok(this.mediaTypes[type].tracks.fr, 'created text track');
 });
 
@@ -734,7 +735,7 @@ function(assert) {
   const type = 'CLOSED-CAPTIONS';
 
   this.master.mediaGroups[type].CCs = {
-    en608: { language: 'en', instreamId: 'CC1' },
+    en608: { language: 'en', default: true, autoselect: true, instreamId: 'CC1' },
     en708: { language: 'en', instreamId: 'SERVICE1' },
     fr608: { language: 'fr', instreamId: 'CC3' },
     fr708: { language: 'fr', instreamId: 'SERVICE3' }
@@ -745,12 +746,13 @@ function(assert) {
   assert.deepEqual(this.mediaTypes[type].groups,
     {
       CCs: [
-        { id: 'en608', language: 'en', instreamId: 'CC1' },
+        { id: 'en608', default: true, autoselect: true, language: 'en', instreamId: 'CC1' },
         { id: 'fr608', language: 'fr', instreamId: 'CC3' }
       ]
     }, 'creates group properties');
   assert.ok(this.mediaTypes[type].tracks.en608, 'created text track');
   assert.ok(this.mediaTypes[type].tracks.fr608, 'created text track');
+  assert.equal(this.mediaTypes[type].tracks.en608.enabled, true, 'en608 track auto selected');
 });
 
 QUnit.test('initialize audio correctly uses HLS source type', function(assert) {
