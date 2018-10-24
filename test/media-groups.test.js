@@ -686,49 +686,69 @@ function(assert) {
 });
 
 QUnit.test('initialize subtitles correctly generates tracks and playlist loaders',
-function(assert) {
-  const type = 'SUBTITLES';
+  function(assert) {
+    const type = 'SUBTITLES';
 
-  this.master.mediaGroups[type].sub1 = {
-    'en': { language: 'en', default: true, autoselect: true, resolvedUri: 'sub1/en.m3u8' },
-    'en-forced': { language: 'en', resolvedUri: 'sub1/en-forced.m3u8', forced: true },
-    'fr': { language: 'fr', resolvedUri: 'sub1/fr.m3u8' }
-  };
-  this.master.mediaGroups[type].sub2 = {
-    'en': { language: 'en', resolvedUri: 'sub2/en.m3u8' },
-    'en-forced': { language: 'en', resolvedUri: 'sub2/en-forced.m3u8', forced: true },
-    'fr': { language: 'fr', resolvedUri: 'sub2/fr.m3u8' }
-  };
+    this.master.mediaGroups[type].sub1 = {
+      'en': { language: 'en', default: true, resolvedUri: 'sub1/en.m3u8' },
+      'en-forced': { language: 'en', resolvedUri: 'sub1/en-forced.m3u8', forced: true },
+      'fr': { language: 'fr', resolvedUri: 'sub1/fr.m3u8' }
+    };
+    this.master.mediaGroups[type].sub2 = {
+      'en': { language: 'en', resolvedUri: 'sub2/en.m3u8' },
+      'en-forced': { language: 'en', resolvedUri: 'sub2/en-forced.m3u8', forced: true },
+      'fr': { language: 'fr', resolvedUri: 'sub2/fr.m3u8' }
+    };
 
-  MediaGroups.initialize[type](type, this.settings);
+    MediaGroups.initialize[type](type, this.settings);
 
-  assert.deepEqual(this.mediaTypes[type].groups,
-    {
-      sub1: [
-        { id: 'en', language: 'en', default: true, autoselect: true, resolvedUri: 'sub1/en.m3u8',
-          playlistLoader: this.mediaTypes[type].groups.sub1[0].playlistLoader },
-        { id: 'fr', language: 'fr', resolvedUri: 'sub1/fr.m3u8',
-          playlistLoader: this.mediaTypes[type].groups.sub1[1].playlistLoader }
-      ],
-      sub2: [
-        { id: 'en', language: 'en', resolvedUri: 'sub2/en.m3u8',
-          playlistLoader: this.mediaTypes[type].groups.sub2[0].playlistLoader },
-        { id: 'fr', language: 'fr', resolvedUri: 'sub2/fr.m3u8',
-          playlistLoader: this.mediaTypes[type].groups.sub2[1].playlistLoader }
-      ]
-    }, 'creates group properties');
-  assert.ok(this.mediaTypes[type].groups.sub1[0].playlistLoader,
-    'playlistLoader created');
-  assert.ok(this.mediaTypes[type].groups.sub1[1].playlistLoader,
-    'playlistLoader created');
-  assert.ok(this.mediaTypes[type].groups.sub2[0].playlistLoader,
-    'playlistLoader created');
-  assert.ok(this.mediaTypes[type].groups.sub2[1].playlistLoader,
-    'playlistLoader created');
-  assert.ok(this.mediaTypes[type].tracks.en, 'created text track');
-  assert.equal(this.mediaTypes[type].tracks.en.default, true, 'en track auto selected');
-  assert.ok(this.mediaTypes[type].tracks.fr, 'created text track');
-});
+    assert.deepEqual(this.mediaTypes[type].groups,
+      {
+        sub1: [
+          { id: 'en', language: 'en', default: true, resolvedUri: 'sub1/en.m3u8',
+            playlistLoader: this.mediaTypes[type].groups.sub1[0].playlistLoader },
+          { id: 'fr', language: 'fr', resolvedUri: 'sub1/fr.m3u8',
+            playlistLoader: this.mediaTypes[type].groups.sub1[1].playlistLoader }
+        ],
+        sub2: [
+          { id: 'en', language: 'en', resolvedUri: 'sub2/en.m3u8',
+            playlistLoader: this.mediaTypes[type].groups.sub2[0].playlistLoader },
+          { id: 'fr', language: 'fr', resolvedUri: 'sub2/fr.m3u8',
+            playlistLoader: this.mediaTypes[type].groups.sub2[1].playlistLoader }
+        ]
+      }, 'creates group properties');
+    assert.ok(this.mediaTypes[type].groups.sub1[0].playlistLoader,
+      'playlistLoader created');
+    assert.ok(this.mediaTypes[type].groups.sub1[1].playlistLoader,
+      'playlistLoader created');
+    assert.ok(this.mediaTypes[type].groups.sub2[0].playlistLoader,
+      'playlistLoader created');
+    assert.ok(this.mediaTypes[type].groups.sub2[1].playlistLoader,
+      'playlistLoader created');
+    assert.ok(this.mediaTypes[type].tracks.en, 'created text track');
+    assert.equal(this.mediaTypes[type].tracks.en.default, undefined, 'No autoselect, no default');
+    assert.ok(this.mediaTypes[type].tracks.fr, 'created text track');
+  });
+
+QUnit.test('initialize subtitles correctly with auto select',
+  function(assert) {
+    const type = 'SUBTITLES';
+
+    this.master.mediaGroups[type].sub1 = {
+      'en': { language: 'en', default: true, autoselect: true, resolvedUri: 'sub1/en.m3u8' },
+      'en-forced': { language: 'en', resolvedUri: 'sub1/en-forced.m3u8', forced: true },
+      'fr': { language: 'fr', resolvedUri: 'sub1/fr.m3u8' }
+    };
+    this.master.mediaGroups[type].sub2 = {
+      'en': { language: 'en', resolvedUri: 'sub2/en.m3u8' },
+      'en-forced': { language: 'en', resolvedUri: 'sub2/en-forced.m3u8', forced: true },
+      'fr': { language: 'fr', resolvedUri: 'sub2/fr.m3u8' }
+    };
+
+    MediaGroups.initialize[type](type, this.settings);
+
+    assert.equal(this.mediaTypes[type].tracks.en.default, true, 'en track auto selected');
+  });
 
 QUnit.test('initialize closed-captions correctly generates tracks and NO loaders',
 function(assert) {
