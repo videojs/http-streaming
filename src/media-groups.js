@@ -568,7 +568,7 @@ export const initialize = {
           const track = tech.addRemoteTextTrack({
             id: properties.instreamId,
             kind: 'captions',
-            enabled: properties.default && properties.autoselect,
+            default: properties.default && properties.autoselect,
             language: properties.language,
             label: variantLabel
           }, false).track;
