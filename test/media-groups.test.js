@@ -752,7 +752,7 @@ function(assert) {
     }, 'creates group properties');
   assert.ok(this.mediaTypes[type].tracks.en608, 'created text track');
   assert.ok(this.mediaTypes[type].tracks.fr608, 'created text track');
-  assert.equal(this.mediaTypes[type].tracks.en608.enabled, true, 'en608 track auto selected');
+  assert.equal(this.mediaTypes[type].tracks.en608.default, true, 'en608 track auto selected');
 });
 
 QUnit.test('initialize audio correctly uses HLS source type', function(assert) {
