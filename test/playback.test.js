@@ -1,9 +1,10 @@
+import document from 'global/document';
 import QUnit from 'qunit';
 import videojs from 'video.js';
 /* eslint-disable no-unused-vars */
 import '../src/videojs-http-streaming';
 
-let when = function(element, type, cb, condition) {
+const when = function(element, type, cb, condition) {
   element.on(type, function func() {
     if (condition()) {
       element.off(type, func);
@@ -12,8 +13,8 @@ let when = function(element, type, cb, condition) {
   });
 };
 
-let playFor = function(player, time, cb) {
-  let targetTime = player.currentTime() + time;
+const playFor = function(player, time, cb) {
+  const targetTime = player.currentTime() + time;
 
   when(player, 'timeupdate', cb, () => player.currentTime() >= targetTime);
 };
@@ -24,8 +25,8 @@ QUnit.module('Playback', {
     document.body.appendChild(this.fixture);
   },
   beforeEach(assert) {
-    let done = assert.async();
-    let video = document.createElement('video');
+    const done = assert.async();
+    const video = document.createElement('video');
 
     video.width = 600;
     video.height = 300;
@@ -42,10 +43,10 @@ QUnit.module('Playback', {
 });
 
 QUnit.test('Advanced Bip Bop', function(assert) {
-  let done = assert.async();
+  const done = assert.async();
 
   assert.expect(2);
-  let player = this.player;
+  const player = this.player;
 
   playFor(player, 2, function() {
     assert.ok(true, 'played for at least two seconds');
@@ -61,10 +62,10 @@ QUnit.test('Advanced Bip Bop', function(assert) {
 });
 
 QUnit.test('replay', function(assert) {
-  let done = assert.async();
+  const done = assert.async();
 
   assert.expect(2);
-  let player = this.player;
+  const player = this.player;
 
   // seek to near the end of the video
   playFor(player, 1, function() {
@@ -89,10 +90,10 @@ QUnit.test('replay', function(assert) {
 });
 
 QUnit.skip('playlist with fmp4 and ts segments', function(assert) {
-  let done = assert.async();
+  const done = assert.async();
 
   assert.expect(2);
-  let player = this.player;
+  const player = this.player;
 
   playFor(player, 6, function() {
     assert.ok(true, 'played for at least six seconds to hit the change in container format');
@@ -108,10 +109,10 @@ QUnit.skip('playlist with fmp4 and ts segments', function(assert) {
 });
 
 QUnit.test('Advanced Bip Bop preload=none', function(assert) {
-  let done = assert.async();
+  const done = assert.async();
 
   assert.expect(2);
-  let player = this.player;
+  const player = this.player;
 
   player.preload('none');
 
@@ -129,10 +130,10 @@ QUnit.test('Advanced Bip Bop preload=none', function(assert) {
 });
 
 QUnit.test('Big Buck Bunny', function(assert) {
-  let done = assert.async();
+  const done = assert.async();
 
   assert.expect(2);
-  let player = this.player;
+  const player = this.player;
 
   playFor(player, 2, function() {
     assert.ok(true, 'played for at least two seconds');
@@ -148,10 +149,10 @@ QUnit.test('Big Buck Bunny', function(assert) {
 });
 
 QUnit.test('Live DASH', function(assert) {
-  let done = assert.async();
+  const done = assert.async();
 
   assert.expect(2);
-  let player = this.player;
+  const player = this.player;
 
   playFor(player, 2, function() {
     assert.ok(true, 'played for at least two seconds');
@@ -169,8 +170,8 @@ QUnit.test('Live DASH', function(assert) {
 QUnit.test('loops', function(assert) {
   assert.timeout(5000);
 
-  let done = assert.async();
-  let player = this.player;
+  const done = assert.async();
+  const player = this.player;
 
   player.loop(true);
   player.src({

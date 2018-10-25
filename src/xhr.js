@@ -25,18 +25,18 @@ const xhrFactory = function() {
 
     // Allow an optional user-specified function to modify the option
     // object before we construct the xhr request
-    let beforeRequest = XhrFunction.beforeRequest || videojs.Hls.xhr.beforeRequest;
+    const beforeRequest = XhrFunction.beforeRequest || videojs.Hls.xhr.beforeRequest;
 
     if (beforeRequest && typeof beforeRequest === 'function') {
-      let newOptions = beforeRequest(options);
+      const newOptions = beforeRequest(options);
 
       if (newOptions) {
         options = newOptions;
       }
     }
 
-    let request = videojsXHR(options, function(error, response) {
-      let reqResponse = request.response;
+    const request = videojsXHR(options, function(error, response) {
+      const reqResponse = request.response;
 
       if (!error && reqResponse) {
         request.responseTime = Date.now();

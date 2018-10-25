@@ -72,7 +72,8 @@ QUnit.test('cancels outstanding segment request on abort', function(assert) {
       assert.equal(error.code, REQUEST_ERRORS.ABORTED, 'request was aborted');
 
       done();
-    });
+    }
+  );
 
   // Simulate Firefox's handling of aborted segments -
   // Firefox sets the response to an empty array buffer if the xhr type is 'arraybuffer'
@@ -105,7 +106,8 @@ QUnit.test('cancels outstanding key requests on abort', function(assert) {
       assert.equal(error.code, REQUEST_ERRORS.ABORTED, 'key request was aborted');
 
       done();
-    });
+    }
+  );
 
   assert.equal(this.requests.length, 2, 'there are two requests');
 
@@ -144,7 +146,8 @@ QUnit.test('cancels outstanding key requests on failure', function(assert) {
       assert.equal(error.code, REQUEST_ERRORS.FAILURE, 'segment request failed');
 
       done();
-    });
+    }
+  );
 
   assert.equal(this.requests.length, 2, 'there are two requests');
 
@@ -180,7 +183,8 @@ QUnit.test('cancels outstanding key requests on timeout', function(assert) {
       assert.equal(error.code, REQUEST_ERRORS.TIMEOUT, 'key request failed');
 
       done();
-    });
+    }
+  );
   assert.equal(this.requests.length, 2, 'there are two requests');
 
   keyReq = this.requests.shift();
@@ -194,19 +198,22 @@ QUnit.test('cancels outstanding key requests on timeout', function(assert) {
 });
 
 QUnit.test('the key response is converted to the correct format', function(assert) {
-  let keyReq;
   const done = assert.async();
   const postMessage = this.mockDecrypter.postMessage;
 
   assert.expect(9);
   this.mockDecrypter.postMessage = (message) => {
-    const key = new Uint32Array(message.key.bytes,
+    const key = new Uint32Array(
+      message.key.bytes,
       message.key.byteOffset,
-      message.key.byteLength / 4);
+      message.key.byteLength / 4
+    );
 
-    assert.deepEqual(key,
-                     new Uint32Array([0, 0x01000000, 0x02000000, 0x03000000]),
-                     'passed the specified segment key');
+    assert.deepEqual(
+      key,
+      new Uint32Array([0, 0x01000000, 0x02000000, 0x03000000]),
+      'passed the specified segment key'
+    );
     postMessage.call(this.mockDecrypter, message);
   };
 
@@ -225,17 +232,20 @@ QUnit.test('the key response is converted to the correct format', function(asser
     this.noop,
     (error, segmentData) => {
       assert.notOk(error, 'there are no errors');
-      assert.equal(this.mockDecrypter.listeners.length,
-                   0,
-                   'all decryption webworker listeners are unbound');
+      assert.equal(
+        this.mockDecrypter.listeners.length,
+        0,
+        'all decryption webworker listeners are unbound'
+      );
       // verify stats
       assert.equal(segmentData.stats.bytesReceived, 10, '10 bytes');
       done();
-    });
+    }
+  );
 
   assert.equal(this.requests.length, 2, 'there are two requests');
 
-  keyReq = this.requests.shift();
+  const keyReq = this.requests.shift();
   const segmentReq = this.requests.shift();
 
   assert.equal(keyReq.uri, '0-key.php', 'the first request is for a key');
@@ -273,7 +283,8 @@ QUnit.test('segment with key has bytes decrypted', function(assert) {
       // verify stats
       assert.equal(segmentData.stats.bytesReceived, 8, '8 bytes');
       done();
-    });
+    }
+  );
 
   assert.equal(this.requests.length, 2, 'there are two requests');
 
@@ -292,63 +303,66 @@ QUnit.test('segment with key has bytes decrypted', function(assert) {
   this.clock.tick(100);
 });
 
-QUnit.test('waits for every request to finish before the callback is run',
-function(assert) {
-  const done = assert.async();
+QUnit.test(
+  'waits for every request to finish before the callback is run',
+  function(assert) {
+    const done = assert.async();
 
-  assert.expect(10);
-  mediaSegmentRequest(
-    this.xhr,
-    this.xhrOptions,
-    this.realDecrypter,
-    this.mockCaptionParser,
-    {
-      resolvedUri: '0-test.ts',
-      key: {
-        resolvedUri: '0-key.php',
-        iv: {
-          bytes: new Uint32Array([0, 0, 0, 1])
+    assert.expect(10);
+    mediaSegmentRequest(
+      this.xhr,
+      this.xhrOptions,
+      this.realDecrypter,
+      this.mockCaptionParser,
+      {
+        resolvedUri: '0-test.ts',
+        key: {
+          resolvedUri: '0-key.php',
+          iv: {
+            bytes: new Uint32Array([0, 0, 0, 1])
+          }
+        },
+        map: {
+          resolvedUri: '0-init.dat'
         }
       },
-      map: {
-        resolvedUri: '0-init.dat'
+      this.noop,
+      (error, segmentData) => {
+        assert.notOk(error, 'there are no errors');
+        assert.ok(segmentData.bytes, 'decrypted bytes in segment');
+        assert.ok(segmentData.map.bytes, 'init segment bytes in map');
+
+        // verify stats
+        assert.equal(segmentData.stats.bytesReceived, 8, '8 bytes');
+        done();
       }
-    },
-    this.noop,
-    (error, segmentData) => {
-      assert.notOk(error, 'there are no errors');
-      assert.ok(segmentData.bytes, 'decrypted bytes in segment');
-      assert.ok(segmentData.map.bytes, 'init segment bytes in map');
+    );
 
-      // verify stats
-      assert.equal(segmentData.stats.bytesReceived, 8, '8 bytes');
-      done();
-    });
+    assert.equal(this.requests.length, 3, 'there are three requests');
 
-  assert.equal(this.requests.length, 3, 'there are three requests');
+    const keyReq = this.requests.shift();
+    const initReq = this.requests.shift();
+    const segmentReq = this.requests.shift();
 
-  const keyReq = this.requests.shift();
-  const initReq = this.requests.shift();
-  const segmentReq = this.requests.shift();
+    assert.equal(keyReq.uri, '0-key.php', 'the first request is for a key');
+    assert.equal(initReq.uri, '0-init.dat', 'the second request is for the init segment');
+    assert.equal(segmentReq.uri, '0-test.ts', 'the third request is for a segment');
 
-  assert.equal(keyReq.uri, '0-key.php', 'the first request is for a key');
-  assert.equal(initReq.uri, '0-init.dat', 'the second request is for the init segment');
-  assert.equal(segmentReq.uri, '0-test.ts', 'the third request is for a segment');
+    segmentReq.response = new Uint8Array(8).buffer;
+    segmentReq.respond(200, null, '');
+    this.clock.tick(200);
 
-  segmentReq.response = new Uint8Array(8).buffer;
-  segmentReq.respond(200, null, '');
-  this.clock.tick(200);
+    initReq.response = new Uint32Array([0, 1, 2, 3]).buffer;
+    initReq.respond(200, null, '');
+    this.clock.tick(200);
 
-  initReq.response = new Uint32Array([0, 1, 2, 3]).buffer;
-  initReq.respond(200, null, '');
-  this.clock.tick(200);
+    keyReq.response = new Uint32Array([0, 1, 2, 3]).buffer;
+    keyReq.respond(200, null, '');
 
-  keyReq.response = new Uint32Array([0, 1, 2, 3]).buffer;
-  keyReq.respond(200, null, '');
-
-  // Allow the decrypter to decrypt
-  this.clock.tick(100);
-});
+    // Allow the decrypter to decrypt
+    this.clock.tick(100);
+  }
+);
 
 QUnit.test('non-TS segment will get parsed for captions', function(assert) {
   const done = assert.async();
@@ -377,7 +391,8 @@ QUnit.test('non-TS segment will get parsed for captions', function(assert) {
       // verify the caption parser
       assert.equal(this.mockCaptionParser.parsed, true, 'tried to parse captions');
       done();
-    });
+    }
+  );
 
   assert.equal(this.requests.length, 2, 'there are two requests');
 
@@ -424,11 +439,12 @@ QUnit.test('non-TS segment will get parsed for captions on next segment request 
       assert.ok(segmentData.map.videoTrackIds, 'looked for videoTrackIds');
       // verify the caption parser
       assert.equal(this.mockCaptionParser.parsed, false, 'tried to parse captions');
-    });
+    }
+  );
 
   assert.equal(this.requests.length, 2, 'there are two requests');
 
-  let initReq = this.requests.shift();
+  const initReq = this.requests.shift();
   let segmentReq = this.requests.shift();
 
   assert.equal(initReq.uri, '0-init.mp4', 'the first request is for the init segment');
@@ -469,7 +485,8 @@ QUnit.test('non-TS segment will get parsed for captions on next segment request 
       // verify the caption parser
       assert.equal(this.mockCaptionParser.parsed, true, 'tried to parse captions');
       done();
-    });
+    }
+  );
 
   assert.equal(this.requests.length, 1, 'there is one request');
 

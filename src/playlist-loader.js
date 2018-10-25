@@ -23,8 +23,8 @@ const { mergeOptions, EventTarget, log } = videojs;
  */
 export const forEachMediaGroup = (master, callback) => {
   ['AUDIO', 'SUBTITLES'].forEach((mediaType) => {
-    for (let groupKey in master.mediaGroups[mediaType]) {
-      for (let labelKey in master.mediaGroups[mediaType][groupKey]) {
+    for (const groupKey in master.mediaGroups[mediaType]) {
+      for (const labelKey in master.mediaGroups[mediaType][groupKey]) {
         const mediaProperties = master.mediaGroups[mediaType][groupKey][labelKey];
 
         callback(mediaProperties, mediaType, groupKey, labelKey);
@@ -40,7 +40,7 @@ export const forEachMediaGroup = (master, callback) => {
   *
   * @param {Array} original the outdated list of segments
   * @param {Array} update the updated list of segments
-  * @param {Number=} offset the index of the first update
+  * @param {number=} offset the index of the first update
   * segment in the original segment list. For non-live playlists,
   * this should always be zero and does not need to be
   * specified. For live playlists, it should be the difference
@@ -135,7 +135,7 @@ export const setupMediaPlaylists = (master) => {
   let i = master.playlists.length;
 
   while (i--) {
-    let playlist = master.playlists[i];
+    const playlist = master.playlists[i];
 
     master.playlists[playlist.uri] = playlist;
     playlist.resolvedUri = resolveUrl(master.uri, playlist.uri);
@@ -167,9 +167,9 @@ export const resolveMediaGroupUris = (master) => {
  *
  * @param {Object} media
  *        The current media
- * @param {Boolean} update
+ * @param {boolean} update
  *        True if there were any updates from the last refresh, false otherwise
- * @return {Number}
+ * @return {number}
  *         The time in ms to wait before refreshing the live playlist
  */
 export const refreshDelay = (media, update) => {
@@ -191,9 +191,9 @@ export const refreshDelay = (media, update) => {
  *
  * @class PlaylistLoader
  * @extends Stream
- * @param {String} srcUrl the url to start with
- * @param {Boolean} withCredentials the withCredentials xhr option
- * @constructor
+ * @param {string} srcUrl the url to start with
+ * @param {boolean} withCredentials the withCredentials xhr option
+ * @class
  */
 export default class PlaylistLoader extends EventTarget {
   constructor(srcUrl, hls, withCredentials) {
@@ -229,8 +229,7 @@ export default class PlaylistLoader extends EventTarget {
         }
 
         if (error) {
-          return this.playlistRequestError(
-            this.request, this.media().uri, 'HAVE_METADATA');
+          return this.playlistRequestError(this.request, this.media().uri, 'HAVE_METADATA');
         }
 
         this.haveMetadata(this.request, this.media().uri);
@@ -296,7 +295,7 @@ export default class PlaylistLoader extends EventTarget {
     this.trigger('loadedplaylist');
   }
 
-   /**
+  /**
     * Abort any outstanding work and clean up.
     */
   dispose() {
@@ -314,7 +313,7 @@ export default class PlaylistLoader extends EventTarget {
     }
   }
 
-   /**
+  /**
     * When called without any arguments, returns the currently
     * active media playlist. When called with a single argument,
     * triggers the playlist loader to asynchronously switch to the

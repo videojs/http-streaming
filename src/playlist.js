@@ -56,7 +56,7 @@ const backwardDuration = function(playlist, endSequence) {
  * or return a failure
  *
  * @param {Playlist} playlist the playlist to walk through
- * @param {Number} endSequence the mediaSequence to stop walking on
+ * @param {number} endSequence the mediaSequence to stop walking on
  */
 const forwardDuration = function(playlist, endSequence) {
   let result = 0;
@@ -94,17 +94,14 @@ const forwardDuration = function(playlist, endSequence) {
   * may be calculated by specifying an end index.
   *
   * @param {Object} playlist a media playlist object
-  * @param {Number=} endSequence an exclusive upper boundary
+  * @param {number=} endSequence an exclusive upper boundary
   * for the playlist.  Defaults to playlist length.
-  * @param {Number} expired the amount of time that has dropped
+  * @param {number} expired the amount of time that has dropped
   * off the front of the playlist in a live scenario
-  * @return {Number} the duration between the first available segment
+  * @return {number} the duration between the first available segment
   * and end index.
   */
 const intervalDuration = function(playlist, endSequence, expired) {
-  let backward;
-  let forward;
-
   if (typeof endSequence === 'undefined') {
     endSequence = playlist.mediaSequence + playlist.segments.length;
   }
@@ -114,7 +111,8 @@ const intervalDuration = function(playlist, endSequence, expired) {
   }
 
   // do a backward walk to estimate the duration
-  backward = backwardDuration(playlist, endSequence);
+  const backward = backwardDuration(playlist, endSequence);
+
   if (backward.precise) {
     // if we were able to base our duration estimate on timing
     // information provided directly from the Media Source, return
@@ -124,7 +122,8 @@ const intervalDuration = function(playlist, endSequence, expired) {
 
   // walk forward to see if a precise duration estimate can be made
   // that way
-  forward = forwardDuration(playlist, endSequence);
+  const forward = forwardDuration(playlist, endSequence);
+
   if (forward.precise) {
     // we found a segment that has been buffered and so it's
     // position is known precisely
@@ -142,12 +141,12 @@ const intervalDuration = function(playlist, endSequence, expired) {
   * playlists is always Infinity.
   *
   * @param {Object} playlist a media playlist object
-  * @param {Number=} endSequence an exclusive upper
+  * @param {number=} endSequence an exclusive upper
   * boundary for the playlist. Defaults to the playlist media
   * sequence number plus its length.
-  * @param {Number=} expired the amount of time that has
+  * @param {number=} expired the amount of time that has
   * dropped off the front of the playlist in a live scenario
-  * @return {Number} the duration between the start index and end
+  * @return {number} the duration between the start index and end
   * index.
   */
 export const duration = function(playlist, endSequence, expired) {
@@ -174,9 +173,11 @@ export const duration = function(playlist, endSequence, expired) {
   }
 
   // calculate the total duration based on the segment durations
-  return intervalDuration(playlist,
-                          endSequence,
-                          expired);
+  return intervalDuration(
+    playlist,
+    endSequence,
+    expired
+  );
 };
 
 /**
@@ -186,9 +187,9 @@ export const duration = function(playlist, endSequence, expired) {
   * to approximate the durations of the segments
   *
   * @param {Object} playlist a media playlist object
-  * @param {Number} startIndex
-  * @param {Number} endIndex
-  * @return {Number} the number of seconds between startIndex and endIndex
+  * @param {number} startIndex
+  * @param {number} endIndex
+  * @return {number} the number of seconds between startIndex and endIndex
   */
 export const sumDurations = function(playlist, startIndex, endIndex) {
   let durations = 0;
@@ -218,7 +219,7 @@ export const sumDurations = function(playlist, startIndex, endIndex) {
  *
  * @param {Object} playlist
  *        a media playlist object
- * @return {Number}
+ * @return {number}
  *         The media index of the segment at the safe live point. 0 if there is no "safe"
  *         point.
  * @function safeLiveIndex
@@ -247,13 +248,13 @@ export const safeLiveIndex = function(playlist) {
  * Calculates the playlist end time
  *
  * @param {Object} playlist a media playlist object
- * @param {Number=} expired the amount of time that has
+ * @param {number=} expired the amount of time that has
  *                  dropped off the front of the playlist in a live scenario
- * @param {Boolean|false} useSafeLiveEnd a boolean value indicating whether or not the
+ * @param {boolean|false} useSafeLiveEnd a boolean value indicating whether or not the
  *                        playlist end calculation should consider the safe live end
  *                        (truncate the playlist end by three segments). This is normally
  *                        used for calculating the end of the playlist's seekable range.
- * @returns {Number} the end time of playlist
+ * @return {number} the end time of playlist
  * @function playlistEnd
  */
 export const playlistEnd = function(playlist, expired, useSafeLiveEnd) {
@@ -272,9 +273,11 @@ export const playlistEnd = function(playlist, expired, useSafeLiveEnd) {
 
   const endSequence = useSafeLiveEnd ? safeLiveIndex(playlist) : playlist.segments.length;
 
-  return intervalDuration(playlist,
-                          playlist.mediaSequence + endSequence,
-                          expired);
+  return intervalDuration(
+    playlist,
+    playlist.mediaSequence + endSequence,
+    expired
+  );
 };
 
 /**
@@ -287,15 +290,15 @@ export const playlistEnd = function(playlist, expired, useSafeLiveEnd) {
   *
   * @param {Object} playlist a media playlist object
   * dropped off the front of the playlist in a live scenario
-  * @param {Number=} expired the amount of time that has
+  * @param {number=} expired the amount of time that has
   * dropped off the front of the playlist in a live scenario
   * @return {TimeRanges} the periods of time that are valid targets
   * for seeking
   */
 export const seekable = function(playlist, expired) {
-  let useSafeLiveEnd = true;
-  let seekableStart = expired || 0;
-  let seekableEnd = playlistEnd(playlist, expired, useSafeLiveEnd);
+  const useSafeLiveEnd = true;
+  const seekableStart = expired || 0;
+  const seekableEnd = playlistEnd(playlist, expired, useSafeLiveEnd);
 
   if (seekableEnd === null) {
     return createTimeRange();
@@ -313,11 +316,11 @@ const roundSignificantDigit = function(increment, num) {
     return num + (increment * 0.1);
   }
 
-  let numDecimalDigits = num.toString().split('.')[1].length;
+  const numDecimalDigits = num.toString().split('.')[1].length;
 
   for (let i = 1; i <= numDecimalDigits; i++) {
-    let scale = Math.pow(10, i);
-    let temp = num * scale;
+    const scale = Math.pow(10, i);
+    const temp = num * scale;
 
     if (isWholeNumber(temp) ||
         i === numDecimalDigits) {
@@ -334,19 +337,21 @@ const floorLeastSignificantDigit = roundSignificantDigit.bind(null, -1);
  * contains a specified playback position in a media playlist.
  *
  * @param {Object} playlist the media playlist to query
- * @param {Number} currentTime The number of seconds since the earliest
+ * @param {number} currentTime The number of seconds since the earliest
  * possible position to determine the containing segment for
- * @param {Number} startIndex
- * @param {Number} startTime
+ * @param {number} startIndex
+ * @param {number} startTime
  * @return {Object}
  */
-export const getMediaInfoForTime = function(playlist,
-                                            currentTime,
-                                            startIndex,
-                                            startTime) {
+export const getMediaInfoForTime = function(
+  playlist,
+  currentTime,
+  startIndex,
+  startTime
+) {
   let i;
   let segment;
-  let numSegments = playlist.segments.length;
+  const numSegments = playlist.segments.length;
 
   let time = currentTime - startTime;
 
@@ -459,7 +464,7 @@ export const isDisabled = function(playlist) {
 /**
  * Returns whether the current playlist is an AES encrypted HLS stream
  *
- * @return {Boolean} true if it's an AES encrypted HLS stream
+ * @return {boolean} true if it's an AES encrypted HLS stream
  */
 export const isAes = function(media) {
   for (let i = 0; i < media.segments.length; i++) {
@@ -473,7 +478,7 @@ export const isAes = function(media) {
 /**
  * Returns whether the current playlist contains fMP4
  *
- * @return {Boolean} true if the playlist contains fMP4
+ * @return {boolean} true if the playlist contains fMP4
  */
 export const isFmp4 = function(media) {
   for (let i = 0; i < media.segments.length; i++) {
@@ -487,11 +492,11 @@ export const isFmp4 = function(media) {
 /**
  * Checks if the playlist has a value for the specified attribute
  *
- * @param {String} attr
+ * @param {string} attr
  *        Attribute to check for
  * @param {Object} playlist
  *        The media playlist object
- * @return {Boolean}
+ * @return {boolean}
  *         Whether the playlist contains a value for the attribute or not
  * @function hasAttribute
  */
@@ -502,23 +507,25 @@ export const hasAttribute = function(attr, playlist) {
 /**
  * Estimates the time required to complete a segment download from the specified playlist
  *
- * @param {Number} segmentDuration
+ * @param {number} segmentDuration
  *        Duration of requested segment
- * @param {Number} bandwidth
+ * @param {number} bandwidth
  *        Current measured bandwidth of the player
  * @param {Object} playlist
  *        The media playlist object
- * @param {Number=} bytesReceived
+ * @param {number=} bytesReceived
  *        Number of bytes already received for the request. Defaults to 0
- * @return {Number|NaN}
+ * @return {number|NaN}
  *         The estimated time to request the segment. NaN if bandwidth information for
  *         the given playlist is unavailable
  * @function estimateSegmentRequestTime
  */
-export const estimateSegmentRequestTime = function(segmentDuration,
-                                                   bandwidth,
-                                                   playlist,
-                                                   bytesReceived = 0) {
+export const estimateSegmentRequestTime = function(
+  segmentDuration,
+  bandwidth,
+  playlist,
+  bytesReceived = 0
+) {
   if (!hasAttribute('BANDWIDTH', playlist)) {
     return NaN;
   }

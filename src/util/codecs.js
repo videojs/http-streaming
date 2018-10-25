@@ -24,8 +24,8 @@ const defaultCodecs = {
 export const translateLegacyCodecs = function(codecs) {
   return codecs.map((codec) => {
     return codec.replace(/avc1\.(\d+)\.(\d+)/i, function(orig, profile, avcLevel) {
-      let profileHex = ('00' + Number(profile).toString(16)).slice(-2);
-      let avcLevelHex = ('00' + Number(avcLevel).toString(16)).slice(-2);
+      const profileHex = ('00' + Number(profile).toString(16)).slice(-2);
+      const avcLevelHex = ('00' + Number(avcLevel).toString(16)).slice(-2);
 
       return 'avc1.' + profileHex + '00' + avcLevelHex;
     });
@@ -38,16 +38,16 @@ export const translateLegacyCodecs = function(codecs) {
  */
 
 export const parseCodecs = function(codecs = '') {
-  let result = {
+  const result = {
     codecCount: 0
   };
-  let parsed;
 
   result.codecCount = codecs.split(',').length;
   result.codecCount = result.codecCount || 2;
 
   // parse the video codec
-  parsed = (/(^|\s|,)+(avc[13])([^ ,]*)/i).exec(codecs);
+  const parsed = (/(^|\s|,)+(avc[13])([^ ,]*)/i).exec(codecs);
+
   if (parsed) {
     result.videoCodec = parsed[2];
     result.videoObjectTypeIndicator = parsed[3];
@@ -66,7 +66,7 @@ export const parseCodecs = function(codecs = '') {
  * standard `avc1.<hhhhhh>`.
  *
  * @param codecString {String} the codec string
- * @return {String} the codec string with old apple-style codecs replaced
+ * @return {string} the codec string with old apple-style codecs replaced
  *
  * @private
  */
@@ -78,10 +78,11 @@ export const mapLegacyAvcCodecs = function(codecString) {
 
 /**
  * Build a media mime-type string from a set of parameters
- * @param {String} type either 'audio' or 'video'
- * @param {String} container either 'mp2t' or 'mp4'
+ *
+ * @param {string} type either 'audio' or 'video'
+ * @param {string} container either 'mp2t' or 'mp4'
  * @param {Array} codecs an array of codec strings to add
- * @return {String} a valid media mime-type
+ * @return {string} a valid media mime-type
  */
 export const makeMimeTypeString = function(type, container, codecs) {
   // The codecs array is filtered so that falsey values are
@@ -92,8 +93,9 @@ export const makeMimeTypeString = function(type, container, codecs) {
 
 /**
  * Returns the type container based on information in the playlist
+ *
  * @param {Playlist} media the current media playlist
- * @return {String} a valid media container type
+ * @return {string} a valid media container type
  */
 export const getContainerType = function(media) {
   // An initialization segment means the media playlist is an iframe
@@ -109,13 +111,14 @@ export const getContainerType = function(media) {
 /**
  * Returns a set of codec strings parsed from the playlist or the default
  * codec strings if no codecs were specified in the playlist
+ *
  * @param {Playlist} media the current media playlist
  * @return {Object} an object with the video and audio codecs
  */
 const getCodecs = function(media) {
   // if the codecs were explicitly specified, use them instead of the
   // defaults
-  let mediaAttributes = media.attributes || {};
+  const mediaAttributes = media.attributes || {};
 
   if (mediaAttributes.CODECS) {
     return parseCodecs(mediaAttributes.CODECS);
@@ -134,7 +137,7 @@ const audioProfileFromDefault = (master, audioGroupId) => {
     return null;
   }
 
-  for (let name in audioGroup) {
+  for (const name in audioGroup) {
     const audioType = audioGroup[name];
 
     if (audioType.default && audioType.playlists) {
@@ -161,9 +164,9 @@ const audioProfileFromDefault = (master, audioGroupId) => {
  * @private
  */
 export const mimeTypesForPlaylist = function(master, media) {
-  let containerType = getContainerType(media);
-  let codecInfo = getCodecs(media);
-  let mediaAttributes = media.attributes || {};
+  const containerType = getContainerType(media);
+  const codecInfo = getCodecs(media);
+  const mediaAttributes = media.attributes || {};
   // Default condition for a traditional HLS (no demuxed audio/video)
   let isMuxed = true;
   let isMaat = false;
@@ -174,7 +177,7 @@ export const mimeTypesForPlaylist = function(master, media) {
   }
 
   if (master.mediaGroups.AUDIO && mediaAttributes.AUDIO) {
-    let audioGroup = master.mediaGroups.AUDIO[mediaAttributes.AUDIO];
+    const audioGroup = master.mediaGroups.AUDIO[mediaAttributes.AUDIO];
 
     // Handle the case where we are in a multiple-audio track scenario
     if (audioGroup) {
@@ -182,7 +185,7 @@ export const mimeTypesForPlaylist = function(master, media) {
       // Start with the everything demuxed then...
       isMuxed = false;
       // ...check to see if any audio group tracks are muxed (ie. lacking a uri)
-      for (let groupId in audioGroup) {
+      for (const groupId in audioGroup) {
         // either a uri is present (if the case of HLS and an external playlist), or
         // playlists is present (in the case of DASH where we don't have external audio
         // playlists)
@@ -205,15 +208,14 @@ export const mimeTypesForPlaylist = function(master, media) {
     }
 
     if (!codecInfo.audioProfile) {
-      videojs.log.warn(
-        'Multiple audio tracks present but no audio codec string is specified. ' +
+      videojs.log.warn('Multiple audio tracks present but no audio codec string is specified. ' +
         'Attempting to use the default audio codec (mp4a.40.2)');
       codecInfo.audioProfile = defaultCodecs.audioProfile;
     }
   }
 
   // Generate the final codec strings from the codec object generated above
-  let codecStrings = {};
+  const codecStrings = {};
 
   if (codecInfo.videoCodec) {
     codecStrings.video = `${codecInfo.videoCodec}${codecInfo.videoObjectTypeIndicator}`;
@@ -225,9 +227,9 @@ export const mimeTypesForPlaylist = function(master, media) {
 
   // Finally, make and return an array with proper mime-types depending on
   // the configuration
-  let justAudio = makeMimeTypeString('audio', containerType, [codecStrings.audio]);
-  let justVideo = makeMimeTypeString('video', containerType, [codecStrings.video]);
-  let bothVideoAudio = makeMimeTypeString('video', containerType, [
+  const justAudio = makeMimeTypeString('audio', containerType, [codecStrings.audio]);
+  const justVideo = makeMimeTypeString('video', containerType, [codecStrings.video]);
+  const bothVideoAudio = makeMimeTypeString('video', containerType, [
     codecStrings.video,
     codecStrings.audio
   ]);
@@ -277,22 +279,22 @@ export const mimeTypesForPlaylist = function(master, media) {
  * Parse a content type header into a type and parameters
  * object
  *
- * @param {String} type the content type header
+ * @param {string} type the content type header
  * @return {Object} the parsed content-type
  * @private
  */
 export const parseContentType = function(type) {
-  let object = {type: '', parameters: {}};
-  let parameters = type.trim().split(';');
+  const object = {type: '', parameters: {}};
+  const parameters = type.trim().split(';');
 
   // first parameter should always be content-type
   object.type = parameters.shift().trim();
   parameters.forEach((parameter) => {
-    let pair = parameter.trim().split('=');
+    const pair = parameter.trim().split('=');
 
     if (pair.length > 1) {
-      let name = pair[0].replace(/"/g, '').trim();
-      let value = pair[1].replace(/"/g, '').trim();
+      const name = pair[0].replace(/"/g, '').trim();
+      const value = pair[1].replace(/"/g, '').trim();
 
       object.parameters[name] = value;
     }
@@ -304,8 +306,8 @@ export const parseContentType = function(type) {
 /**
  * Check if a codec string refers to an audio codec.
  *
- * @param {String} codec codec string to check
- * @return {Boolean} if this is an audio codec
+ * @param {string} codec codec string to check
+ * @return {boolean} if this is an audio codec
  * @private
  */
 export const isAudioCodec = function(codec) {
@@ -315,8 +317,8 @@ export const isAudioCodec = function(codec) {
 /**
  * Check if a codec string refers to a video codec.
  *
- * @param {String} codec codec string to check
- * @return {Boolean} if this is a video codec
+ * @param {string} codec codec string to check
+ * @return {boolean} if this is a video codec
  * @private
  */
 export const isVideoCodec = function(codec) {

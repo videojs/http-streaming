@@ -19,11 +19,11 @@ videojs.mediaSources = {};
  * Provide a method for a swf object to notify JS that a
  * media source is now open.
  *
- * @param {String} msObjectURL string referencing the MSE Object URL
- * @param {String} swfId the swf id
+ * @param {string} msObjectURL string referencing the MSE Object URL
+ * @param {string} swfId the swf id
  */
 const open = function(msObjectURL, swfId) {
-  let mediaSource = videojs.mediaSources[msObjectURL];
+  const mediaSource = videojs.mediaSources[msObjectURL];
 
   if (mediaSource) {
     mediaSource.trigger({type: 'sourceopen', swfId});
@@ -36,7 +36,7 @@ const open = function(msObjectURL, swfId) {
  * Check to see if the native MediaSource object exists and supports
  * an MP4 container with both H.264 video and AAC-LC audio.
  *
- * @return {Boolean} if  native media sources are supported
+ * @return {boolean} if  native media sources are supported
  */
 const supportsNativeMediaSources = function() {
   return (!!window.MediaSource && !!window.MediaSource.isTypeSupported &&
@@ -82,7 +82,7 @@ export const URL = {
    * @param {MediaSource} object the object to create a blob url to
    */
   createObjectURL(object) {
-    let objectUrlPrefix = 'blob:vjs-media-source/';
+    const objectUrlPrefix = 'blob:vjs-media-source/';
     let url;
 
     // use the native MediaSource to generate an object URL

@@ -1,3 +1,4 @@
+import window from 'global/window';
 /**
  * Create captions text tracks on video.js if they do not exist
  *
@@ -7,10 +8,10 @@
  * @private
  */
 export const createCaptionsTrackIfNotExists = function(inbandTextTracks, tech, captionStreams) {
-  for (let trackId in captionStreams) {
+  for (const trackId in captionStreams) {
     if (!inbandTextTracks[trackId]) {
       tech.trigger({type: 'usage', name: 'hls-608'});
-      let track = tech.textTracks().getTrackById(trackId);
+      const track = tech.textTracks().getTrackById(trackId);
 
       if (track) {
         // Resuse an existing track with a CC# id because this was
@@ -31,10 +32,10 @@ export const createCaptionsTrackIfNotExists = function(inbandTextTracks, tech, c
 };
 
 export const addCaptionData = function({
-    inbandTextTracks,
-    captionArray,
-    timestampOffset
-  }) {
+  inbandTextTracks,
+  captionArray,
+  timestampOffset
+}) {
   if (!captionArray) {
     return;
   }
@@ -53,11 +54,10 @@ export const addCaptionData = function({
     startTime += timestampOffset;
     endTime += timestampOffset;
 
-    inbandTextTracks[track].addCue(
-      new Cue(
-        startTime,
-        endTime,
-        caption.text
-      ));
+    inbandTextTracks[track].addCue(new Cue(
+      startTime,
+      endTime,
+      caption.text
+    ));
   });
 };

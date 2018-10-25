@@ -50,7 +50,9 @@ QUnit.module('Configuration - Deprication', {
     this.clock = this.env.clock;
     this.old = {};
 
-    CONFIG_KEYS.forEach((key) => this.old[key] = Config[key]);
+    CONFIG_KEYS.forEach((key) => {
+      this.old[key] = Config[key];
+    });
 
     // force the HLS tech to run
     this.old.NativeHlsSupport = videojs.Hls.supportsNativeHls;
@@ -58,7 +60,9 @@ QUnit.module('Configuration - Deprication', {
   },
 
   afterEach() {
-    CONFIG_KEYS.forEach((key) => Config[key] = this.old[key]);
+    CONFIG_KEYS.forEach((key) => {
+      Config[key] = this.old[key];
+    });
 
     this.env.restore();
     this.mse.restore();
@@ -67,9 +71,11 @@ QUnit.module('Configuration - Deprication', {
 });
 
 QUnit.test('GOAL_BUFFER_LENGTH get warning', function(assert) {
-  assert.equal(Hls.GOAL_BUFFER_LENGTH,
-              Config.GOAL_BUFFER_LENGTH,
-              'Hls.GOAL_BUFFER_LENGTH returns the default');
+  assert.equal(
+    Hls.GOAL_BUFFER_LENGTH,
+    Config.GOAL_BUFFER_LENGTH,
+    'Hls.GOAL_BUFFER_LENGTH returns the default'
+  );
   assert.equal(this.env.log.warn.calls, 1, 'logged a warning');
 });
 
@@ -93,9 +99,11 @@ QUnit.test('GOAL_BUFFER_LENGTH set warning and invalid', function(assert) {
 });
 
 QUnit.test('MAX_GOAL_BUFFER_LENGTH get warning', function(assert) {
-  assert.equal(Hls.MAX_GOAL_BUFFER_LENGTH,
-              Config.MAX_GOAL_BUFFER_LENGTH,
-              'Hls.MAX_GOAL_BUFFER_LENGTH returns the default');
+  assert.equal(
+    Hls.MAX_GOAL_BUFFER_LENGTH,
+    Config.MAX_GOAL_BUFFER_LENGTH,
+    'Hls.MAX_GOAL_BUFFER_LENGTH returns the default'
+  );
   assert.equal(this.env.log.warn.calls, 1, 'logged a warning');
 });
 
@@ -119,9 +127,11 @@ QUnit.test('MAX_GOAL_BUFFER_LENGTH set warning and invalid', function(assert) {
 });
 
 QUnit.test('GOAL_BUFFER_LENGTH_RATE get warning', function(assert) {
-  assert.equal(Hls.GOAL_BUFFER_LENGTH_RATE,
-              Config.GOAL_BUFFER_LENGTH_RATE,
-              'Hls.GOAL_BUFFER_LENGTH_RATE returns the default');
+  assert.equal(
+    Hls.GOAL_BUFFER_LENGTH_RATE,
+    Config.GOAL_BUFFER_LENGTH_RATE,
+    'Hls.GOAL_BUFFER_LENGTH_RATE returns the default'
+  );
   assert.equal(this.env.log.warn.calls, 1, 'logged a warning');
 });
 
@@ -145,9 +155,11 @@ QUnit.test('GOAL_BUFFER_LENGTH_RATE set warning and invalid', function(assert) {
 });
 
 QUnit.test('BUFFER_LOW_WATER_LINE get warning', function(assert) {
-  assert.equal(Hls.BUFFER_LOW_WATER_LINE,
-              Config.BUFFER_LOW_WATER_LINE,
-              'Hls.BUFFER_LOW_WATER_LINE returns the default');
+  assert.equal(
+    Hls.BUFFER_LOW_WATER_LINE,
+    Config.BUFFER_LOW_WATER_LINE,
+    'Hls.BUFFER_LOW_WATER_LINE returns the default'
+  );
   assert.equal(this.env.log.warn.calls, 1, 'logged a warning');
 });
 
@@ -177,9 +189,11 @@ QUnit.test('BUFFER_LOW_WATER_LINE set warning and invalid', function(assert) {
 });
 
 QUnit.test('MAX_BUFFER_LOW_WATER_LINE get warning', function(assert) {
-  assert.equal(Hls.MAX_BUFFER_LOW_WATER_LINE,
-              Config.MAX_BUFFER_LOW_WATER_LINE,
-              'Hls.MAX_BUFFER_LOW_WATER_LINE returns the default');
+  assert.equal(
+    Hls.MAX_BUFFER_LOW_WATER_LINE,
+    Config.MAX_BUFFER_LOW_WATER_LINE,
+    'Hls.MAX_BUFFER_LOW_WATER_LINE returns the default'
+  );
   assert.equal(this.env.log.warn.calls, 1, 'logged a warning');
 });
 
@@ -209,9 +223,11 @@ QUnit.test('MAX_BUFFER_LOW_WATER_LINE set warning and invalid', function(assert)
 });
 
 QUnit.test('BUFFER_LOW_WATER_LINE_RATE get warning', function(assert) {
-  assert.equal(Hls.BUFFER_LOW_WATER_LINE_RATE,
-              Config.BUFFER_LOW_WATER_LINE_RATE,
-              'Hls.BUFFER_LOW_WATER_LINE_RATE returns the default');
+  assert.equal(
+    Hls.BUFFER_LOW_WATER_LINE_RATE,
+    Config.BUFFER_LOW_WATER_LINE_RATE,
+    'Hls.BUFFER_LOW_WATER_LINE_RATE returns the default'
+  );
   assert.equal(this.env.log.warn.calls, 1, 'logged a warning');
 });
 
@@ -268,11 +284,13 @@ options.forEach((opt) => {
 
     openMediaSource(this.player, this.clock);
 
-    let hls = this.player.tech_.hls;
+    const hls = this.player.tech_.hls;
 
-    assert.equal(hls.options_[opt.name],
-                opt.default,
-                `${opt.name} should be default`);
+    assert.equal(
+      hls.options_[opt.name],
+      opt.default,
+      `${opt.name} should be default`
+    );
   });
 
   QUnit.test(`global ${opt.name}`, function(assert) {
@@ -285,15 +303,17 @@ options.forEach((opt) => {
 
     openMediaSource(this.player, this.clock);
 
-    let hls = this.player.tech_.hls;
+    const hls = this.player.tech_.hls;
 
-    assert.equal(hls.options_[opt.name],
-                opt.test,
-                `${opt.name} should be equal to global`);
+    assert.equal(
+      hls.options_[opt.name],
+      opt.test,
+      `${opt.name} should be equal to global`
+    );
   });
 
   QUnit.test(`sourceHandler ${opt.name}`, function(assert) {
-    let sourceHandlerOptions = {html5: {hls: {}}};
+    const sourceHandlerOptions = {html5: {hls: {}}};
 
     sourceHandlerOptions.html5.hls[opt.name] = opt.test;
     this.player = createPlayer(sourceHandlerOptions);
@@ -304,15 +324,17 @@ options.forEach((opt) => {
 
     openMediaSource(this.player, this.clock);
 
-    let hls = this.player.tech_.hls;
+    const hls = this.player.tech_.hls;
 
-    assert.equal(hls.options_[opt.name],
-                opt.test,
-                `${opt.name} should be equal to sourceHandler Option`);
+    assert.equal(
+      hls.options_[opt.name],
+      opt.test,
+      `${opt.name} should be equal to sourceHandler Option`
+    );
   });
 
   QUnit.test(`src ${opt.name}`, function(assert) {
-    let srcOptions = {
+    const srcOptions = {
       src: 'http://example.com/media.m3u8',
       type: 'application/vnd.apple.mpegurl'
     };
@@ -323,15 +345,17 @@ options.forEach((opt) => {
 
     openMediaSource(this.player, this.clock);
 
-    let hls = this.player.tech_.hls;
+    const hls = this.player.tech_.hls;
 
-    assert.equal(hls.options_[opt.name],
-                opt.test,
-                `${opt.name} should be equal to src option`);
+    assert.equal(
+      hls.options_[opt.name],
+      opt.test,
+      `${opt.name} should be equal to src option`
+    );
   });
 
   QUnit.test(`srcHandler overrides global ${opt.name}`, function(assert) {
-    let sourceHandlerOptions = {html5: {hls: {}}};
+    const sourceHandlerOptions = {html5: {hls: {}}};
 
     sourceHandlerOptions.html5.hls[opt.name] = opt.test;
     videojs.options.hls[opt.name] = opt.alt;
@@ -343,16 +367,18 @@ options.forEach((opt) => {
 
     openMediaSource(this.player, this.clock);
 
-    let hls = this.player.tech_.hls;
+    const hls = this.player.tech_.hls;
 
-    assert.equal(hls.options_[opt.name],
-                opt.test,
-                `${opt.name} should be equal to sourchHandler option`);
+    assert.equal(
+      hls.options_[opt.name],
+      opt.test,
+      `${opt.name} should be equal to sourchHandler option`
+    );
   });
 
   QUnit.test(`src overrides sourceHandler ${opt.name}`, function(assert) {
-    let sourceHandlerOptions = {html5: {hls: {}}};
-    let srcOptions = {
+    const sourceHandlerOptions = {html5: {hls: {}}};
+    const srcOptions = {
       src: 'http://example.com/media.m3u8',
       type: 'application/vnd.apple.mpegurl'
     };
@@ -364,10 +390,12 @@ options.forEach((opt) => {
 
     openMediaSource(this.player, this.clock);
 
-    let hls = this.player.tech_.hls;
+    const hls = this.player.tech_.hls;
 
-    assert.equal(hls.options_[opt.name],
-                opt.test,
-                `${opt.name} should be equal to sourchHandler option`);
+    assert.equal(
+      hls.options_[opt.name],
+      opt.test,
+      `${opt.name} should be equal to sourchHandler option`
+    );
   });
 });

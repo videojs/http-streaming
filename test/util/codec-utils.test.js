@@ -11,25 +11,33 @@ const { module, test } = Qunit;
 module('Codec Utils');
 
 test('translates legacy codecs', function(assert) {
-  assert.deepEqual(translateLegacyCodecs(['avc1.66.30', 'avc1.66.30']),
-            ['avc1.42001e', 'avc1.42001e'],
-            'translates legacy avc1.66.30 codec');
+  assert.deepEqual(
+    translateLegacyCodecs(['avc1.66.30', 'avc1.66.30']),
+    ['avc1.42001e', 'avc1.42001e'],
+    'translates legacy avc1.66.30 codec'
+  );
 
-  assert.deepEqual(translateLegacyCodecs(['avc1.42C01E', 'avc1.42C01E']),
-            ['avc1.42C01E', 'avc1.42C01E'],
-            'does not translate modern codecs');
+  assert.deepEqual(
+    translateLegacyCodecs(['avc1.42C01E', 'avc1.42C01E']),
+    ['avc1.42C01E', 'avc1.42C01E'],
+    'does not translate modern codecs'
+  );
 
-  assert.deepEqual(translateLegacyCodecs(['avc1.42C01E', 'avc1.66.30']),
-            ['avc1.42C01E', 'avc1.42001e'],
-            'only translates legacy codecs when mixed');
+  assert.deepEqual(
+    translateLegacyCodecs(['avc1.42C01E', 'avc1.66.30']),
+    ['avc1.42C01E', 'avc1.42001e'],
+    'only translates legacy codecs when mixed'
+  );
 
-  assert.deepEqual(translateLegacyCodecs(['avc1.4d0020', 'avc1.100.41', 'avc1.77.41',
-                                   'avc1.77.32', 'avc1.77.31', 'avc1.77.30',
-                                   'avc1.66.30', 'avc1.66.21', 'avc1.42C01e']),
-            ['avc1.4d0020', 'avc1.640029', 'avc1.4d0029',
-             'avc1.4d0020', 'avc1.4d001f', 'avc1.4d001e',
-             'avc1.42001e', 'avc1.420015', 'avc1.42C01e'],
-            'translates a whole bunch');
+  assert.deepEqual(
+    translateLegacyCodecs(['avc1.4d0020', 'avc1.100.41', 'avc1.77.41',
+      'avc1.77.32', 'avc1.77.31', 'avc1.77.30',
+      'avc1.66.30', 'avc1.66.21', 'avc1.42C01e']),
+    ['avc1.4d0020', 'avc1.640029', 'avc1.4d0029',
+      'avc1.4d0020', 'avc1.4d001f', 'avc1.4d001e',
+      'avc1.42001e', 'avc1.420015', 'avc1.42C01e'],
+    'translates a whole bunch'
+  );
 });
 
 test('parseContentType parses content type', function(assert) {
@@ -43,7 +51,8 @@ test('parseContentType parses content type', function(assert) {
         param3: "'val3'"
       }
     },
-    'parses content type and parameters');
+    'parses content type and parameters'
+  );
 });
 
 test('isAudioCodec detects audio codecs', function(assert) {
@@ -68,8 +77,10 @@ test('isVideoCodec detects video codecs', function(assert) {
   assert.ok(isVideoCodec('avc1.4d400'), 'avc1.4d400 is a valid video codec');
   assert.ok(isVideoCodec('avc1.4'), 'avc1.4 is a valid video codec');
   assert.ok(isVideoCodec('avc1.d'), 'avc1.d is a valid video codec');
-  assert.ok(isVideoCodec('avc1.4d400d0000009999993333333333333333'),
-            'avc1.4d400d0000009999993333333333333333 is a valid video codec');
+  assert.ok(
+    isVideoCodec('avc1.4d400d0000009999993333333333333333'),
+    'avc1.4d400d0000009999993333333333333333 is a valid video codec'
+  );
 
   assert.notOk(isVideoCodec('avc2.4d400d'), 'avc2.4d400d is not a valid video codec');
   assert.notOk(isVideoCodec('avc.4d400d'), 'avc.4d400d is not a valid video codec');

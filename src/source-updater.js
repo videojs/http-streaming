@@ -15,7 +15,7 @@ import noop from './util/noop';
  * @class SourceUpdater
  * @param {MediaSource} mediaSource the MediaSource to create the
  * SourceBuffer from
- * @param {String} mimeType the desired MIME type of the underlying
+ * @param {string} mimeType the desired MIME type of the underlying
  * SourceBuffer
  * @param {Object} sourceBufferEmitter an event emitter that fires when a source buffer is
  * added to the media source
@@ -32,8 +32,7 @@ export default class SourceUpdater {
     this.logger_ = logger(`SourceUpdater[${type}][${mimeType}]`);
 
     if (mediaSource.readyState === 'closed') {
-      mediaSource.addEventListener(
-        'sourceopen', this.createSourceBuffer_.bind(this, mimeType, sourceBufferEmitter));
+      mediaSource.addEventListener('sourceopen', this.createSourceBuffer_.bind(this, mimeType, sourceBufferEmitter));
     } else {
       this.createSourceBuffer_(mimeType, sourceBufferEmitter);
     }
@@ -68,7 +67,7 @@ export default class SourceUpdater {
     // run completion handlers and process callbacks as updateend
     // events fire
     this.onUpdateendCallback_ = () => {
-      let pendingCallback = this.pendingCallback_;
+      const pendingCallback = this.pendingCallback_;
 
       this.pendingCallback_ = null;
 
@@ -129,8 +128,8 @@ export default class SourceUpdater {
   /**
    * Queue an update to remove a time range from the buffer.
    *
-   * @param {Number} start where to start the removal
-   * @param {Number} end where to end the removal
+   * @param {number} start where to start the removal
+   * @param {number} end where to end the removal
    * @param {Function} [done=noop] optional callback to be executed when the remove
    * operation is complete
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-remove-void-double-start-unrestricted-double-end
@@ -147,7 +146,7 @@ export default class SourceUpdater {
   /**
    * Whether the underlying sourceBuffer is updating or not
    *
-   * @return {Boolean} the updating status of the SourceBuffer
+   * @return {boolean} the updating status of the SourceBuffer
    */
   updating() {
     return !this.sourceBuffer_ || this.sourceBuffer_.updating || this.pendingCallback_;
@@ -156,7 +155,7 @@ export default class SourceUpdater {
   /**
    * Set/get the timestampoffset on the SourceBuffer
    *
-   * @return {Number} the timestamp offset
+   * @return {number} the timestamp offset
    */
   timestampOffset(offset) {
     if (typeof offset !== 'undefined') {

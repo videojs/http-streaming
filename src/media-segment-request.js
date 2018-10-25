@@ -16,13 +16,11 @@ export const REQUEST_ERRORS = {
  *                             of a byte-range
  */
 const byterangeStr = function(byterange) {
-  let byterangeStart;
-  let byterangeEnd;
-
   // `byterangeEnd` is one less than `offset + length` because the HTTP range
   // header uses inclusive ranges
-  byterangeEnd = byterange.offset + byterange.length - 1;
-  byterangeStart = byterange.offset;
+  const byterangeEnd = byterange.offset + byterange.length - 1;
+  const byterangeStart = byterange.offset;
+
   return 'bytes=' + byterangeStart + '-' + byterangeEnd;
 };
 
@@ -33,7 +31,7 @@ const byterangeStr = function(byterange) {
  *                           from SegmentLoader
  */
 const segmentXhrHeaders = function(segment) {
-  let headers = {};
+  const headers = {};
 
   if (segment.byterange) {
     headers.Range = byterangeStr(segment.byterange);
@@ -251,7 +249,8 @@ const handleSegmentResponse = (segment, captionParser, finishProcessingFn) => (e
     parsed = captionParser.parse(
       segment.bytes,
       segment.map.videoTrackIds,
-      segment.map.timescales);
+      segment.map.timescales
+    );
 
     if (parsed && parsed.captions) {
       segment.captionStreams = parsed.captionStreams;
@@ -276,9 +275,11 @@ const decryptSegment = (decrypter, segment, doneFn) => {
       decrypter.removeEventListener('message', decryptionHandler);
       const decrypted = event.data.decrypted;
 
-      segment.bytes = new Uint8Array(decrypted.bytes,
-                                     decrypted.byteOffset,
-                                     decrypted.byteLength);
+      segment.bytes = new Uint8Array(
+        decrypted.bytes,
+        decrypted.byteOffset,
+        decrypted.byteLength
+      );
       return doneFn(null, segment);
     }
   };
@@ -322,7 +323,7 @@ const getMostImportantError = (errors) => {
  *                            downloaded and any decryption completed
  */
 const waitForCompletion = (activeXhrs, decrypter, doneFn) => {
-  let errors = [];
+  const errors = [];
   let count = 0;
 
   return (error, segment) => {
@@ -417,16 +418,18 @@ const handleProgress = (segment, progressFn) => (event) => {
  *                                segment's xhr request
  * @param {Function} doneFn - a callback that is executed only once all requests have
  *                            succeeded or failed
- * @returns {Function} a function that, when invoked, immediately aborts all
+ * @return {Function} a function that, when invoked, immediately aborts all
  *                     outstanding requests
  */
-export const mediaSegmentRequest = (xhr,
-                                    xhrOptions,
-                                    decryptionWorker,
-                                    captionParser,
-                                    segment,
-                                    progressFn,
-                                    doneFn) => {
+export const mediaSegmentRequest = (
+  xhr,
+  xhrOptions,
+  decryptionWorker,
+  captionParser,
+  segment,
+  progressFn,
+  doneFn
+) => {
   const activeXhrs = [];
   const finishProcessingFn = waitForCompletion(activeXhrs, decryptionWorker, doneFn);
 
@@ -450,9 +453,11 @@ export const mediaSegmentRequest = (xhr,
       responseType: 'arraybuffer',
       headers: segmentXhrHeaders(segment.map)
     });
-    const initSegmentRequestCallback = handleInitSegmentResponse(segment,
-                                                                 captionParser,
-                                                                 finishProcessingFn);
+    const initSegmentRequestCallback = handleInitSegmentResponse(
+      segment,
+      captionParser,
+      finishProcessingFn
+    );
     const initSegmentXhr = xhr(initSegmentOptions, initSegmentRequestCallback);
 
     activeXhrs.push(initSegmentXhr);
@@ -463,9 +468,11 @@ export const mediaSegmentRequest = (xhr,
     responseType: 'arraybuffer',
     headers: segmentXhrHeaders(segment)
   });
-  const segmentRequestCallback = handleSegmentResponse(segment,
-                                                       captionParser,
-                                                       finishProcessingFn);
+  const segmentRequestCallback = handleSegmentResponse(
+    segment,
+    captionParser,
+    finishProcessingFn
+  );
   const segmentXhr = xhr(segmentRequestOptions, segmentRequestCallback);
 
   segmentXhr.addEventListener('progress', handleProgress(segment, progressFn));

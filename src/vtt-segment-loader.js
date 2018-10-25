@@ -41,8 +41,8 @@ export default class VTTSegmentLoader extends SegmentLoader {
     }
 
     const cues = this.subtitlesTrack_.cues;
-    let start = cues[0].startTime;
-    let end = cues[cues.length - 1].startTime;
+    const start = cues[0].startTime;
+    const end = cues[cues.length - 1].startTime;
 
     return videojs.createTimeRanges([[start, end]]);
   }
@@ -52,7 +52,7 @@ export default class VTTSegmentLoader extends SegmentLoader {
    *
    * @param {Object} map
    *        The map object representing the init segment to get or set
-   * @param {Boolean=} set
+   * @param {boolean=} set
    *        If true, the init segment for the provided map should be saved
    * @return {Object}
    *         map object for desired init segment
@@ -89,7 +89,7 @@ export default class VTTSegmentLoader extends SegmentLoader {
   /**
    * Returns true if all configuration required for loading is present, otherwise false.
    *
-   * @return {Boolean} True if the all configuration is ready for loading
+   * @return {boolean} True if the all configuration is ready for loading
    * @private
    */
   couldBeginLoading_() {
@@ -137,8 +137,9 @@ export default class VTTSegmentLoader extends SegmentLoader {
 
   /**
    * Remove any data in the source buffer between start and end times
-   * @param {Number} start - the start time of the region to remove from the buffer
-   * @param {Number} end - the end time of the region to remove from the buffer
+   *
+   * @param {number} start - the start time of the region to remove from the buffer
+   * @param {number} end - the end time of the region to remove from the buffer
    */
   remove(start, end) {
     removeCuesFromTrack(start, end, this.subtitlesTrack_);
@@ -155,19 +156,23 @@ export default class VTTSegmentLoader extends SegmentLoader {
    */
   fillBuffer_() {
     if (!this.syncPoint_) {
-      this.syncPoint_ = this.syncController_.getSyncPoint(this.playlist_,
-                                                          this.duration_(),
-                                                          this.currentTimeline_,
-                                                          this.currentTime_());
+      this.syncPoint_ = this.syncController_.getSyncPoint(
+        this.playlist_,
+        this.duration_(),
+        this.currentTimeline_,
+        this.currentTime_()
+      );
     }
 
     // see if we need to begin loading immediately
-    let segmentInfo = this.checkBuffer_(this.buffered_(),
-                                        this.playlist_,
-                                        this.mediaIndex,
-                                        this.hasPlayed_(),
-                                        this.currentTime_(),
-                                        this.syncPoint_);
+    let segmentInfo = this.checkBuffer_(
+      this.buffered_(),
+      this.playlist_,
+      this.mediaIndex,
+      this.hasPlayed_(),
+      this.currentTime_(),
+      this.syncPoint_
+    );
 
     segmentInfo = this.skipEmptySegments_(segmentInfo);
 
@@ -178,7 +183,7 @@ export default class VTTSegmentLoader extends SegmentLoader {
     if (this.syncController_.timestampOffsetForTimeline(segmentInfo.timeline) === null) {
       // We don't have the timestamp offset that we need to sync subtitles.
       // Rerun on a timestamp offset or user interaction.
-      let checkTimestampOffset = () => {
+      const checkTimestampOffset = () => {
         this.state = 'READY';
         if (!this.paused()) {
           // if not paused, queue a buffer check as soon as possible
@@ -210,7 +215,8 @@ export default class VTTSegmentLoader extends SegmentLoader {
         segmentInfo.playlist,
         segmentInfo.mediaIndex + 1,
         segmentInfo.startOfSegment + segmentInfo.duration,
-        segmentInfo.isSyncRequest);
+        segmentInfo.isSyncRequest
+      );
     }
     return segmentInfo;
   }
@@ -228,8 +234,8 @@ export default class VTTSegmentLoader extends SegmentLoader {
 
     this.state = 'APPENDING';
 
-    let segmentInfo = this.pendingSegment_;
-    let segment = segmentInfo.segment;
+    const segmentInfo = this.pendingSegment_;
+    const segment = segmentInfo.segment;
 
     // Make sure that vttjs has loaded, otherwise, wait till it finished loading
     if (typeof window.WebVTT !== 'function' &&
@@ -268,9 +274,11 @@ export default class VTTSegmentLoader extends SegmentLoader {
       return this.trigger('error');
     }
 
-    this.updateTimeMapping_(segmentInfo,
-                            this.syncController_.timelines[segmentInfo.timeline],
-                            this.playlist_);
+    this.updateTimeMapping_(
+      segmentInfo,
+      this.syncController_.timelines[segmentInfo.timeline],
+      this.playlist_
+    );
 
     if (segmentInfo.isSyncRequest) {
       this.trigger('syncinfoupdate');
@@ -284,9 +292,11 @@ export default class VTTSegmentLoader extends SegmentLoader {
     this.mediaSecondsLoaded += segment.duration;
 
     if (segmentInfo.cues.length) {
-     // remove any overlapping cues to prevent doubling
-      this.remove(segmentInfo.cues[0].endTime,
-                  segmentInfo.cues[segmentInfo.cues.length - 1].endTime);
+      // remove any overlapping cues to prevent doubling
+      this.remove(
+        segmentInfo.cues[0].endTime,
+        segmentInfo.cues[segmentInfo.cues.length - 1].endTime
+      );
     }
 
     segmentInfo.cues.forEach((cue) => {
@@ -314,15 +324,19 @@ export default class VTTSegmentLoader extends SegmentLoader {
       decodeBytesToString = true;
     }
 
-    const parser = new window.WebVTT.Parser(window,
-                                            window.vttjs,
-                                            decoder);
+    const parser = new window.WebVTT.Parser(
+      window,
+      window.vttjs,
+      decoder
+    );
 
     segmentInfo.cues = [];
     segmentInfo.timestampmap = { MPEGTS: 0, LOCAL: 0 };
 
     parser.oncue = segmentInfo.cues.push.bind(segmentInfo.cues);
-    parser.ontimestampmap = (map) => segmentInfo.timestampmap = map;
+    parser.ontimestampmap = (map) => {
+      segmentInfo.timestampmap = map;
+    };
     parser.onparsingerror = (error) => {
       videojs.log.warn('Error encountered when parsing cues: ' + error.message);
     };

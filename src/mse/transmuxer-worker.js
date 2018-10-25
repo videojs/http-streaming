@@ -1,3 +1,4 @@
+/* eslint-env worker */
 /**
  * @file transmuxer-worker.js
  */
@@ -27,7 +28,7 @@ const wireTransmuxerEvents = function(self, transmuxer) {
     // instead of doing a copy to save memory
     // ArrayBuffers are transferable but generic TypedArrays are not
     // @link https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers#Passing_data_by_transferring_ownership_(transferable_objects)
-    let initArray = segment.initSegment;
+    const initArray = segment.initSegment;
 
     segment.initSegment = {
       data: initArray.buffer,
@@ -35,7 +36,7 @@ const wireTransmuxerEvents = function(self, transmuxer) {
       byteLength: initArray.byteLength
     };
 
-    let typedArray = segment.data;
+    const typedArray = segment.data;
 
     segment.data = typedArray.buffer;
     self.postMessage({
@@ -100,7 +101,7 @@ class MessageHandlers {
    */
   push(data) {
     // Cast array buffer to correct type for transmuxer
-    let segment = new Uint8Array(data.data, data.byteOffset, data.byteLength);
+    const segment = new Uint8Array(data.data, data.byteOffset, data.byteLength);
 
     this.transmuxer.push(segment);
   }
@@ -121,7 +122,7 @@ class MessageHandlers {
    * @param {Object} data used to set the timestamp offset in the muxer
    */
   setTimestampOffset(data) {
-    let timestampOffset = data.timestampOffset || 0;
+    const timestampOffset = data.timestampOffset || 0;
 
     this.transmuxer.setBaseMediaDecodeTime(Math.round(timestampOffset * 90000));
   }
