@@ -316,7 +316,7 @@ export const openMediaSource = function(player, clock) {
     player.tech_.hls.mediaSource.readyState = 'open';
     player.tech_.hls.mediaSource.dispatchEvent({
       type: 'sourceopen',
-      swfId: player.tech_.el().id
+      swfId: player.tech_.el() && player.tech_.el().id
     });
     clock.tick(1);
   }

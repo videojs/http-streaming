@@ -975,6 +975,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.mainSegmentLoader_.dispose();
 
     ['AUDIO', 'SUBTITLES'].forEach((type) => {
+      if (!this.mediaTypes_[type]) {
+        return;
+      }
       const groups = this.mediaTypes_[type].groups;
 
       for (let id in groups) {
