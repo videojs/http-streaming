@@ -1,22 +1,7 @@
 /**
  * @file time.js
  */
-import videojs from 'video.js';
-
-const findSegmentForTime = (time, timeline) => {
-  const matchingSegments = timeline.filter((x) => {
-    return x.start <= time && time <= x.end;
-  });
-
-  if (matchingSegments.length === 0) {
-    return null;
-  }
-
-  return matchingSegments[0].segment;
-};
-
-const buildMediaTimeline = (playlist) => {
-  const timeline = [];
+const findSegmentForTime = (time, playlist) => {
 
   if (!playlist.segments || playlist.segments.length === 0) {
     return;
@@ -27,60 +12,76 @@ const buildMediaTimeline = (playlist) => {
   // - we can start from zero
   // - segments are in time order
   // - segment.start and segment.end only come
-  //    from syncController(ignored for now)
+  //    from syncController
 
-  let time = 0;
+  let manifestTime = 0;
 
-  playlist.segments.forEach((segment) => {
-    const end = time + segment.duration;
+  for (let i = 0; i < playlist.segments.length; i++) {
+    const segment = playlist.segments[i];
+    const estimatedStart = manifestTime;
+    const estimatedEnd = manifestTime + segment.duration;
 
-    timeline.push({
-      start: time,
-      end,
-      segment
-    });
+    if (segment.start <= time && time <= segment.end) {
+      return {
+        segment,
+        estimatedStart,
+        estimatedEnd,
+        type: 'accurate'
+      };
+    } else if (estimatedStart <= time && time <= estimatedEnd) {
+      return {
+        segment,
+        estimatedStart,
+        estimatedEnd,
+        type: 'estimate'
+      };
+    }
 
-    time = end;
-  });
+    manifestTime = estimatedEnd;
+  }
 
-  return timeline;
+  return null;
 };
 
 export const getStreamTime = ({
-  player,
   playlist,
-  time,
-  callback
+  time = undefined,
+  onsuccess,
+  onreject
 }) => {
 
-  if (!player || !playlist) {
-    videojs.log.warn('getStreamTime: no player or playlist provided');
-    return null;
-  } else if (time === undefined || time === null) {
-    time = player.currentTime();
+  if (!playlist || !onsuccess || !onreject || time === undefined) {
+    return onreject({
+      message: 'getStreamTime: player, playlist, onsuccess and onreject must be provided'
+    });
+  }
+
+  const matchedSegment = findSegmentForTime(time, playlist);
+
+  if (!matchedSegment) {
+    return onreject({
+      message: 'valid streamTime was not found'
+    });
+  }
+
+  if (matchedSegment.type === 'estimate') {
+    return onreject({
+      message:
+        'Accurate streamTime could not be determined. Please seek to e.seekTime and try again',
+      seekTime: matchedSegment.estimatedStart
+    });
   }
 
   const streamTime = {
-    mediaSeconds: time,
-    programDateTime: null
+    mediaSeconds: time
   };
 
-  const timeline = buildMediaTimeline(playlist);
-
-  if (timeline) {
-    const segment = findSegmentForTime(time, timeline);
-
-    if (segment.dateTimeObject) {
-      // TODO this is currently the time of the beginning of the
-      // segment. This still needs to be modified to be offset
-      // by the time requested.
-      streamTime.programDateTime = segment.dateTimeObject.toISOString();
-    }
+  if (matchedSegment.segment.dateTimeObject) {
+    // TODO this is currently the time of the beginning of the
+    // segment. This still needs to be modified to be offset
+    // by the time requested.
+    streamTime.programDateTime = matchedSegment.segment.dateTimeObject.toISOString();
   }
 
-  if (callback) {
-    return callback(streamTime);
-  }
-
-  return streamTime;
+  return onsuccess(streamTime);
 };
