@@ -72,6 +72,8 @@ const Hls = {
   });
 });
 
+export const LOCAL_STORAGE_KEY = 'videojs-vhs';
+
 const simpleTypeFromSourceType = (type) => {
   const mpegurlRE = /^(audio|video|application)\/(x-|vnd\.apple\.)?mpegurl/i;
 
@@ -187,6 +189,42 @@ const setupEmeOptions = (hlsHandler) => {
       }
     }
   }
+};
+
+const getVhsLocalStorage = () => {
+  if (!window.localStorage) {
+    return null;
+  }
+
+  const storedObject = window.localStorage.getItem('videojs-vhs');
+
+  if (!storedObject) {
+    return null;
+  }
+
+  return JSON.parse(storedObject);
+};
+
+const updateVhsLocalStorage = (options) => {
+  if (!window.localStorage) {
+    return false;
+  }
+
+  let objectToStore = getVhsLocalStorage();
+
+  objectToStore = objectToStore ? videojs.mergeOptions(objectToStore, options) : options;
+
+  try {
+    window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(objectToStore));
+  } catch (e) {
+    // Throws if storage is full (e.g., always on iOS 5+ Safari private mode, where
+    // storage is set to 0).
+    // https://developer.mozilla.org/en-US/docs/Web/API/Storage/setItem#Exceptions
+    // No need to perform any operation.
+    return false;
+  }
+
+  return objectToStore;
 };
 
 /**
@@ -352,8 +390,22 @@ class HlsHandler extends Component {
       this.options_.blacklistDuration = 5 * 60;
     }
 
-    // start playlist selection at a reasonable bandwidth for
-    // broadband internet (0.5 MB/s) or mobile (0.0625 MB/s)
+    if (typeof this.options_.bandwidth !== 'number') {
+      if (this.options_.useBandwidthFromLocalStorage) {
+        const storedObject = getVhsLocalStorage();
+
+        if (storedObject && storedObject.bandwidth) {
+          this.options_.bandwidth = storedObject.bandwidth;
+          this.tech_.trigger({type: 'usage', name: 'hls-bandwidth-from-local-storage'});
+        }
+        if (storedObject && storedObject.throughput) {
+          this.options_.throughput = storedObject.throughput;
+          this.tech_.trigger({type: 'usage', name: 'hls-throughput-from-local-storage'});
+        }
+      }
+    }
+     // if bandwidth was not set by options or pulled from local storage, start playlist
+    // selection at a reasonable bandwidth
     if (typeof this.options_.bandwidth !== 'number') {
       this.options_.bandwidth = Config.INITIAL_BANDWIDTH;
     }
@@ -371,7 +423,6 @@ class HlsHandler extends Component {
       }
     });
 
-    this.bandwidth = this.options_.bandwidth;
     this.limitRenditionByPlayerDimensions = this.options_.limitRenditionByPlayerDimensions;
   }
   /**
@@ -491,6 +542,13 @@ class HlsHandler extends Component {
       }
     });
 
+    if (this.options_.bandwidth) {
+      this.bandwidth = this.options_.bandwidth;
+    }
+    if (this.options_.throughput) {
+      this.throughput = this.options_.throughput;
+    }
+
     Object.defineProperties(this.stats, {
       bandwidth: {
         get: () => this.bandwidth || 0,
@@ -568,6 +626,15 @@ class HlsHandler extends Component {
 
     this.tech_.one('canplay',
       this.masterPlaylistController_.setupFirstPlay.bind(this.masterPlaylistController_));
+
+    this.tech_.on('bandwidthupdate', () => {
+      if (this.options_.useBandwidthFromLocalStorage) {
+        updateVhsLocalStorage({
+          bandwidth: this.bandwidth,
+          throughput: this.throughput
+        });
+      }
+    });
 
     this.masterPlaylistController_.on('selectedinitialmedia', () => {
       // Add the manual rendition mix-in to HlsHandler
