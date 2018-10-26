@@ -196,13 +196,18 @@ const getVhsLocalStorage = () => {
     return null;
   }
 
-  const storedObject = window.localStorage.getItem('videojs-vhs');
+  const storedObject = window.localStorage.getItem(LOCAL_STORAGE_KEY);
 
   if (!storedObject) {
     return null;
   }
 
-  return JSON.parse(storedObject);
+  try {
+    return JSON.parse(storedObject);
+  } catch (e) {
+    // someone may have tampered with the value
+    return null;
+  }
 };
 
 const updateVhsLocalStorage = (options) => {

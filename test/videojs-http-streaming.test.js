@@ -3102,6 +3102,48 @@ QUnit.test('retrieves bandwidth and throughput from localStorage', function(asse
   videojs.options.hls = origHlsOptions;
 });
 
+QUnit.test(
+'does not retrieve bandwidth and throughput from localStorage when stored value is not as expected',
+function(assert) {
+  // bad value
+  window.localStorage.setItem(LOCAL_STORAGE_KEY, 'a');
+
+  let bandwidthUsageEvents = 0;
+  let throughputUsageEvents = 0;
+  const usageListener = (event) => {
+    if (event.name === 'hls-bandwidth-from-local-storage') {
+      bandwidthUsageEvents++;
+    }
+    if (event.name === 'hls-throughput-from-local-storage') {
+      throughputUsageEvents++;
+    }
+  };
+
+  const origHlsOptions = videojs.options.hls;
+
+  videojs.options.hls = {
+    useBandwidthFromLocalStorage: true
+  };
+  // values must be stored before player is created, otherwise defaults are provided
+  this.player = createPlayer();
+  this.player.tech_.on('usage', usageListener);
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  openMediaSource(this.player, this.clock);
+
+  assert.equal(this.player.tech_.hls.bandwidth,
+               4194304,
+               'uses default bandwidth when bandwidth value retrieved');
+  assert.notOk(this.player.tech_.hls.throughput, 'no throughput value retrieved');
+
+  assert.equal(bandwidthUsageEvents, 0, 'no bandwidth usage event');
+  assert.equal(throughputUsageEvents, 0, 'no throughput usage event');
+
+  videojs.options.hls = origHlsOptions;
+});
+
 QUnit.module('HLS Integration', {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
