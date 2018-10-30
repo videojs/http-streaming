@@ -46,26 +46,27 @@ const findSegmentForTime = (time, playlist) => {
 export const getStreamTime = ({
   playlist,
   time = undefined,
-  onsuccess,
-  onreject
+  callback
 }) => {
 
-  if (!playlist || !onsuccess || !onreject || time === undefined) {
-    return onreject({
-      message: 'getStreamTime: player, playlist, onsuccess and onreject must be provided'
+  if (!playlist || time === undefined) {
+    return callback({
+      message: 'getStreamTime: playlist and time must be provided'
     });
+  } else if (!callback) {
+    throw new Error('getStreamTime: callback must be provided');
   }
 
   const matchedSegment = findSegmentForTime(time, playlist);
 
   if (!matchedSegment) {
-    return onreject({
+    return callback({
       message: 'valid streamTime was not found'
     });
   }
 
   if (matchedSegment.type === 'estimate') {
-    return onreject({
+    return callback({
       message:
         'Accurate streamTime could not be determined. Please seek to e.seekTime and try again',
       seekTime: matchedSegment.estimatedStart
@@ -83,5 +84,5 @@ export const getStreamTime = ({
     streamTime.programDateTime = matchedSegment.segment.dateTimeObject.toISOString();
   }
 
-  return onsuccess(streamTime);
+  return callback(null, streamTime);
 };

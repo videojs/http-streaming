@@ -22,6 +22,48 @@ QUnit.module('Time: getStreamTime', {
   }
 });
 
+QUnit.test('returns error if playlist or time is not provided', function(assert) {
+  const done = assert.async();
+  const done2 = assert.async();
+
+  getStreamTime({
+    time: 1,
+    callback: (err, streamTime) => {
+      assert.equal(
+        err.message,
+        'getStreamTime: playlist and time must be provided',
+        'error message is returned when no playlist provided'
+      );
+      done();
+    }
+  });
+
+  getStreamTime({
+    playlist: this.playlist,
+    callback: (err, streamTime) => {
+      assert.equal(
+        err.message,
+        'getStreamTime: playlist and time must be provided',
+        'error message is returned when no playlist provided'
+      );
+      done2();
+    }
+  });
+});
+
+QUnit.test('throws error if no callback is provided', function(assert) {
+  assert.throws(
+    () => {
+      return getStreamTime({
+        time: 1,
+        playlist: this.playlist
+      });
+    },
+    /getStreamTime: callback must be provided/,
+    'throws error if callback is not provided'
+  );
+});
+
 QUnit.test('returns info to accept callback if accurate value can be returned',
 function(assert) {
   const done = assert.async();
@@ -29,7 +71,11 @@ function(assert) {
   getStreamTime({
     playlist: this.playlist,
     time: 6,
-    onsuccess: (streamTime) => {
+    callback: (err, streamTime) => {
+      assert.notOk(
+        err,
+        'should not fail when accurate segment times are available'
+      );
       assert.equal(
         typeof streamTime,
         'object',
@@ -48,13 +94,6 @@ function(assert) {
         streamTime.programDateTime,
         this.playlist.segments[0].dateTimeString,
         'uses programDateTime found in media segments'
-      );
-      done();
-    },
-    onreject: (e) => {
-      assert.notOk(
-        true,
-        'should not fail when accurate segment times are available'
       );
       done();
     }
@@ -84,21 +123,14 @@ function(assert) {
   getStreamTime({
     playlist,
     time: 2,
-    onsuccess: (streamTime) => {
-      assert.notOk(
-        true,
-        'should not succeed when accurate segment times are not available'
-      );
-      done();
-    },
-    onreject: (e) => {
+    callback: (err, streamTime) => {
       assert.equal(
-        e.message,
+        err.message,
         'Accurate streamTime could not be determined. Please seek to e.seekTime and try again',
         'error message is returned for seekTime'
       );
       assert.equal(
-        e.seekTime,
+        err.seekTime,
         1,
         'returns the approximate start time of the segment containing the time requested'
       );
@@ -123,15 +155,15 @@ QUnit.test('returns time if no modifications', function(assert) {
   getStreamTime({
     playlist,
     time: 3,
-    onsuccess: (streamTime) => {
+    callback: (err, streamTime) => {
+      assert.equal(err, null, 'no error');
       assert.equal(
         streamTime.mediaSeconds,
         3,
         'mediaSeconds is currentTime if no further modifications'
       );
       done();
-    },
-    onreject: () => {}
+    }
   });
 });
 
@@ -151,14 +183,14 @@ QUnit.test('returns programDateTime parsed from media segment tags', function(as
   getStreamTime({
     playlist,
     time: 0,
-    onsuccess: (streamTime) => {
+    callback: (err, streamTime) => {
+      assert.equal(err, null, 'no error');
       assert.equal(
         streamTime.programDateTime,
         playlist.segments[0].dateTimeString,
         'uses programDateTime found in media segments'
       );
       done();
-    },
-    onreject: () => {}
+    }
   });
 });

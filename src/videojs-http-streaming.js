@@ -660,13 +660,11 @@ class HlsHandler extends Component {
     super.dispose();
   }
 
-  convertToStreamTime(time, onsuccess, onreject) {
+  convertToStreamTime(time, callback) {
     return getStreamTime({
-      player: this.player_,
       playlist: this.masterPlaylistController_.media(),
       time,
-      onsuccess,
-      onreject
+      callback
     });
   }
 }
