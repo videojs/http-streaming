@@ -67,11 +67,6 @@ module.exports = function(config) {
 
   config.client.qunit.testTimeout = 30000;
 
-  // config.browserConsoleLogOptions = {
-  //   level: 'error',
-  //   terminal: false
-  // };
-
   config.reporters = ['spec'];
 
   config.concurrency = 1;
