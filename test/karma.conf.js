@@ -1,111 +1,85 @@
+const generateKarmaConfig = require('videojs-generate-karma-config');
+
 module.exports = function(config) {
-  // build out a name for browserstack
-  // {TRAVIS_BUILD_NUMBER} [{TRAVIS_PULL_REQUEST} {PR_BRANCH}] {TRAVIS_BRANCH}
-  var browserstackName = process.env.TRAVIS_BUILD_NUMBER;
+  const options = {
+    files(defaultFiles) {
+      defaultFiles
+        .filter((x) => {
+          x !== 'node_modules/video.js/dist/video.js' &&
+          x !== 'dist/*.css' &&
+          x !== 'test/dist/bundle.js';
+        });
 
-  if (process.env.TRAVIS_PULL_REQUEST !== 'false') {
-    browserstackName += ' ' + process.env.TRAVIS_PULL_REQUEST + ' ' + process.env.TRAVIS_PULL_REQUEST_BRANCH;
-  }
+      console.log('files', defaultFiles);
 
-  browserstackName +=  ' ' + process.env.TRAVIS_BRANCH;
-
-  config.set({
-    basePath: '..',
-    frameworks: ['qunit', 'detectBrowsers'],
-    client: {
-      clearContext: false,
-      qunit: {
-        showUI: true,
-        testTimeout: 30000
-      }
+      return defaultFiles.concat([
+        'dist-test/videojs-http-streaming.test.js',
+        'node_modules/video.js/dist/alt/video.core.js'
+      ]);
     },
-    files: [
-      'node_modules/sinon/pkg/sinon.js',
-      'node_modules/video.js/dist/alt/video.core.js',
-      'node_modules/video.js/dist/video-js.css',
-      'dist-test/videojs-http-streaming.test.js'
-    ],
-    browserConsoleLogOptions: {
-      level: 'error',
-      terminal: false
-    },
-    browserStack: {
-      project: 'videojs-http-streaming',
-      name: browserstackName,
-      build: browserstackName,
-      pollingTimeout: 30000,
-      captureTimeout: 600,
-      timeout: 600
-    },
-    customLaunchers: {
-      ChromeHeadlessWithFlags: {
-        base: 'ChromeHeadless',
-        flags: [ '--no-sandbox' ]
-      },
-      ChromeBrowserStack: {
-        base: 'BrowserStack',
-        flags: [ '--no-sandbox' ],
-        browser: 'chrome',
-        os: 'Windows',
-        os_version: '10'
-      },
-      SafariBrowserStack: {
-        base: 'BrowserStack',
-        browser: 'safari',
-        os: 'OS X',
-        os_version: 'High Sierra'
-      },
-      FirefoxBrowserStack: {
-        base: 'BrowserStack',
-        browser: 'firefox',
-        os: 'Windows',
-        os_version: '10'
-      },
-      EdgeBrowserStack: {
-        base: 'BrowserStack',
-        browser: 'edge',
-        os: 'Windows',
-        os_version: '10'
-      },
-      IE11BrowserStack: {
-        base: 'BrowserStack',
-        browser: 'ie',
-        browser_version: '11',
-        os: 'Windows',
-        os_version: '10'
-      }
-    },
-    detectBrowsers: {
-      usePhantomJS: false,
-
-      // detect what browsers are installed on the system and
-      // use headless mode and flags to allow for playback
-      postDetection: function(browsers) {
-        if (process.env.BROWSER_STACK_ACCESS_KEY) {
-          return [ 'ChromeBrowserStack', 'FirefoxBrowserStack' ];
+    detectBrowsers: true,
+    coverage: false,
+    customLaunchers(defaults) {
+      return Object.assign(defaults, {
+        ChromeHeadlessWithFlags: {
+          base: 'ChromeHeadless',
+          flags: [ '--no-sandbox' ]
         }
-
-        var newBrowsers = [];
-        if (browsers.indexOf('Chrome') !== -1) {
-          newBrowsers.push('ChromeHeadlessWithFlags');
-        }
-
-        if (browsers.indexOf('Firefox') !== -1) {
-          newBrowsers.push('FirefoxHeadless');
-        }
-
-        return newBrowsers;
-      }
+      });
     },
-    reporters: ['spec'],
-    port: 9876,
-    colors: true,
-    autoWatch: false,
-    singleRun: true,
-    concurrency: 1,
-    captureTimeout: 300000,
-    browserNoActivityTimeout: 300000,
-    browserDisconnectTimeout: 300000,
-    browserDisconnectTolerance: 3
-  });
+    browserstackLaunchers(defaults) {
+      // only test on Edge windows 10
+      return {
+        bsFirefox: defaults.bsFirefox,
+        bsIE11Win10: defaults.bsIE11Win10,
+        bsEdgeWin10: defaults.bsEdgeWin10,
+        SafariBrowserStack: {
+          base: 'BrowserStack',
+          browser: 'safari',
+          os: 'OS X',
+          os_version: 'High Sierra'
+        },
+        ChromeBrowserStack: {
+          base: 'BrowserStack',
+          flags: [ '--no-sandbox' ],
+          browser: 'chrome',
+          os: 'Windows',
+          os_version: '10'
+        }
+      };
+    },
+    browsers(aboutToRun) {
+      var newBrowsers = [];
+
+      const chromeBrowsers = aboutToRun.filter(
+        (x) => /Chrome/.test(x)
+      );
+      const firefoxBrowsers = aboutToRun.filter(
+        (x) => /Firefox/.test(x)
+      );
+
+      if (chromeBrowsers.length) {
+        newBrowsers.push('ChromeHeadlessWithFlags');
+      }
+
+      if (firefoxBrowsers.length) {
+        newBrowsers.push('FirefoxHeadless');
+      }
+
+      return newBrowsers;
+    }
+  };
+
+  config = generateKarmaConfig(config, options);
+
+  config.client.qunit.testTimeout = 30000;
+
+  // config.browserConsoleLogOptions = {
+  //   level: 'error',
+  //   terminal: false
+  // };
+
+  config.reporters = ['spec'];
+
+  config.concurrency = 1;
 };
