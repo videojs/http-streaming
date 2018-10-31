@@ -91,7 +91,6 @@
     "karma": "^1.7.1",
     "karma-spec-reporter": "0.0.32",
     "lodash": "^4.17.4",
-    "lodash-compat": "^3.10.0",
     "npm-run-all": "^4.1.2",
     "portscanner": "^2.1.1",
     "qunitjs": "^2.0.1",
