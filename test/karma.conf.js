@@ -3,19 +3,12 @@ const generateKarmaConfig = require('videojs-generate-karma-config');
 module.exports = function(config) {
   const options = {
     files(defaultFiles) {
-      defaultFiles
-        .filter((x) => {
-          x !== 'node_modules/video.js/dist/video.js' &&
-          x !== 'dist/*.css' &&
-          x !== 'test/dist/bundle.js';
-        });
-
-      console.log('files', defaultFiles);
-
-      return defaultFiles.concat([
-        'dist-test/videojs-http-streaming.test.js',
-        'node_modules/video.js/dist/alt/video.core.js'
-      ]);
+      return [
+        'node_modules/sinon/pkg/sinon.js',
+        'node_modules/video.js/dist/alt/video.core.js',
+        'node_modules/video.js/dist/video-js.css',
+        'dist-test/videojs-http-streaming.test.js'
+      ];
     },
     detectBrowsers: true,
     coverage: false,
