@@ -10,6 +10,7 @@ import Playlist from './playlist';
 import xhrFactory from './xhr';
 import { Decrypter, AsyncStream, decrypt } from 'aes-decrypter';
 import * as utils from './bin-utils';
+import { getStreamTime } from './util/time';
 import { timeRangesToArray } from './ranges';
 import { MediaSource, URL } from './mse/index';
 import videojs from 'video.js';
@@ -657,6 +658,14 @@ class HlsHandler extends Component {
       this.qualityLevels_.dispose();
     }
     super.dispose();
+  }
+
+  convertToStreamTime(time, callback) {
+    return getStreamTime({
+      playlist: this.masterPlaylistController_.media(),
+      time,
+      callback
+    });
   }
 }
 
