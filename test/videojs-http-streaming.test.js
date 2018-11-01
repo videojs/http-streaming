@@ -557,6 +557,8 @@ function(assert) {
   });
   openMediaSource(this.player, this.clock);
 
+  this.clock.tick(1);
+
   this.player.tech_.hls.masterPlaylistController_.mediaSource.endOfStream = (type) => {
     endOfStreams.push(type);
     throw new Error();
