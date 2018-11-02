@@ -390,6 +390,10 @@ class HlsHandler extends Component {
     this.options_.withCredentials = this.options_.withCredentials || false;
     this.options_.limitRenditionByPlayerDimensions = this.options_.limitRenditionByPlayerDimensions === false ? false : true;
     this.options_.smoothQualityChange = this.options_.smoothQualityChange || false;
+    this.options_.useBandwidthFromLocalStorage =
+      typeof this.source_.useBandwidthFromLocalStorage !== 'undefined' ?
+        this.source_.useBandwidthFromLocalStorage :
+        this.options_.useBandwidthFromLocalStorage || false;
 
     if (typeof this.options_.blacklistDuration !== 'number') {
       this.options_.blacklistDuration = 5 * 60;
@@ -636,7 +640,7 @@ class HlsHandler extends Component {
       if (this.options_.useBandwidthFromLocalStorage) {
         updateVhsLocalStorage({
           bandwidth: this.bandwidth,
-          throughput: this.throughput
+          throughput: Math.round(this.throughput)
         });
       }
     });
