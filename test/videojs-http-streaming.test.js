@@ -3023,6 +3023,70 @@ function(assert) {
   assert.equal(parseInt(storedObject.throughput, 10), 22, 'set throughput');
 });
 
+QUnit.test('stores bandwidth and throughput in localStorage when source option is true',
+function(assert) {
+  this.player.dispose();
+  this.player = createPlayer();
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl',
+    useBandwidthFromLocalStorage: true
+  });
+  openMediaSource(this.player, this.clock);
+
+  // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.notOk(
+    window.localStorage.getItem(LOCAL_STORAGE_KEY), 'nothing in local storage');
+
+  this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.bandwidth = 11;
+  this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.throughput.rate = 22;
+  this.player.tech_.trigger('bandwidthupdate');
+
+  const storedObject = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY));
+
+  assert.equal(parseInt(storedObject.bandwidth, 10), 11, 'set bandwidth');
+  assert.equal(parseInt(storedObject.throughput, 10), 22, 'set throughput');
+});
+
+QUnit.test('source localStorage option takes priority over player option',
+function(assert) {
+  this.player.dispose();
+  this.player = createPlayer({
+    html5: {
+      hls: {
+        useBandwidthFromLocalStorage: false
+      }
+    }
+  });
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl',
+    useBandwidthFromLocalStorage: true
+  });
+  openMediaSource(this.player, this.clock);
+
+  // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.notOk(
+    window.localStorage.getItem(LOCAL_STORAGE_KEY), 'nothing in local storage');
+
+  this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.bandwidth = 11;
+  this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.throughput.rate = 22;
+  this.player.tech_.trigger('bandwidthupdate');
+
+  const storedObject = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY));
+
+  assert.equal(parseInt(storedObject.bandwidth, 10), 11, 'set bandwidth');
+  assert.equal(parseInt(storedObject.throughput, 10), 22, 'set throughput');
+});
+
 QUnit.test('does not store bandwidth and throughput in localStorage by default',
 function(assert) {
   this.player = createPlayer();
