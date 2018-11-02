@@ -278,6 +278,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
     setupMediaPlaylists(master);
     resolveMediaGroupUris(master);
+    this.fetchMediaSegmentsFromSidx_(master.playlists);
 
     return master;
   }
@@ -522,5 +523,17 @@ export default class DashPlaylistLoader extends EventTarget {
     }
 
     this.trigger('loadedplaylist');
+  }
+
+  fetchMediaSegmentsFromSidx_(playlists) {
+    playlists.forEach((playlist) => {
+      if (playlist.sidx) {
+        this.trigger({
+          type: 'sidxrequested',
+          playlist
+        });
+      }
+    });
+
   }
 }
