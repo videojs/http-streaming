@@ -196,18 +196,27 @@ QUnit.test('returns programDateTime parsed from media segment tags', function(as
   });
 });
 
-QUnit.module('Time: seekToStreamTime');
+QUnit.module('Time: seekToStreamTime', {
+  beforeEach(assert) {
+    this.seekTo = () => {};
+  },
+  afterEach(assert) {
+    delete this.seekTo;
+  }
+});
 
 QUnit.test('returns error if no playlist or streamTime provided', function(assert) {
   const done = assert.async();
   const done2 = assert.async();
+  const done3 = assert.async();
 
   seekToStreamTime({
     streamTime: 0,
+    seekTo: this.seekTo,
     callback: (err, newTime) => {
       assert.equal(
         err.message,
-        'seekToStreamTime: streamTime and playlist must be provided',
+        'seekToStreamTime: streamTime, seekTo and playlist must be provided',
         'error message is returned when no playlist is provided'
       );
       done();
@@ -216,13 +225,27 @@ QUnit.test('returns error if no playlist or streamTime provided', function(asser
 
   seekToStreamTime({
     playlist: {},
+    seekTo: this.seekTo,
     callback: (err, newTime) => {
       assert.equal(
         err.message,
-        'seekToStreamTime: streamTime and playlist must be provided',
+        'seekToStreamTime: streamTime, seekTo and playlist must be provided',
         'error message is returned when no time is provided'
       );
       done2();
+    }
+  });
+
+  seekToStreamTime({
+    time: 0,
+    playlist: {},
+    callback: (err, newTime) => {
+      assert.equal(
+        err.message,
+        'seekToStreamTime: streamTime, seekTo and playlist must be provided',
+        'error message is returned when no seekTo method is provided'
+      );
+      done3();
     }
   });
 });
@@ -250,6 +273,7 @@ function(assert) {
       segments: [],
       resolvedUri: 'test'
     },
+    seekTo: this.seekTo,
     callback: (err, newTime) => {
       assert.equal(
         err.message,
@@ -280,6 +304,7 @@ function(assert) {
       ],
       resolvedUri: 'test2'
     },
+    seekTo: this.seekTo,
     callback: (err, newTime) => {
       assert.equal(
         err.message,

@@ -173,6 +173,8 @@ export const seekToStreamTime = ({
   streamTime,
   playlist,
   seekTo,
+  pauseAfterSeek = true,
+  tech,
   callback
 }) => {
 
@@ -208,7 +210,15 @@ export const seekToStreamTime = ({
 
   // TODO: need to wait until segment.start is available
   const seekToTime = segment.start + milliSecondOffset / 1000;
+  const newTimeFn = () => {
+    return callback(null, tech.currentTime());
+  };
 
+  // listen for seeked event
+  tech.one('seeked', newTimeFn);
+
+  if (pauseAfterSeek) {
+    tech.pause();
+  }
   seekTo(seekToTime);
-  callback(null, seekToTime);
 };

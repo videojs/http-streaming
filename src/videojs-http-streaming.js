@@ -671,11 +671,13 @@ class HlsHandler extends Component {
     });
   }
 
-  seekToStreamTime(streamTime, callback) {
+  seekToStreamTime(streamTime, callback, pauseAfterSeek = true) {
     return seekToStreamTime({
       streamTime,
       playlist: this.masterPlaylistController_.media(),
+      pauseAfterSeek,
       seekTo: this.options_.seekTo,
+      tech: this.options_.tech,
       callback
     });
   }
