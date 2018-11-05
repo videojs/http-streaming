@@ -43,6 +43,88 @@ const findSegmentForTime = (time, playlist) => {
   return null;
 };
 
+const findSegmentForStreamTime = (streamTime, playlist) => {
+  let dateTimeObject;
+
+  try {
+    dateTimeObject = new Date(streamTime);
+  } catch (e) {
+    // TODO something here?
+  }
+
+  // Assumptions:
+  //   - verifyProgramDateTimeTags has already been run
+
+  for (let i = 1; i <= playlist.segments.length; i++) {
+    const prev = playlist.segments[i - 1];
+    const next = playlist.segments[i];
+
+    if (
+      prev.dateTimeObject.toISOString() ===
+      dateTimeObject.toISOString()
+    ) {
+      return prev;
+
+    } else if (
+      next.dateTimeObject.toISOString() ===
+      dateTimeObject.toISOString()
+    ) {
+      return next;
+
+    } else if (
+      (prev.dateTimeObject.toISOString() <
+        dateTimeObject.toISOString()) &&
+      (dateTimeObject.toISOString() <
+        next.dateTimeObject.toISOString())
+    ) {
+      return prev;
+
+    } else if (
+      i === playlist.segments.length &&
+      (dateTimeObject.toISOString() >
+        next.dateTimeObject.toISOString())
+    ) {
+      return next;
+    }
+  }
+
+  // TODO error as time hasn't been found
+  return null;
+};
+
+const getOffsetFromTimestamp = (comparisonTimeStamp, streamTime) => {
+  let segmentDateTime;
+  let streamDateTime;
+
+  try {
+    segmentDateTime = new Date(comparisonTimeStamp);
+    streamDateTime = new Date(streamTime);
+  } catch (e) {
+    // TODO handle error
+  }
+
+  const segmentTimeEpoch = segmentDateTime.getTime();
+  const streamTimeEpoch = streamDateTime.getTime();
+
+  return streamTimeEpoch - segmentTimeEpoch;
+};
+
+const verifyProgramDateTimeTags = (playlist) => {
+  if (!playlist.segments || playlist.segments.length === 0) {
+    return false;
+  }
+
+  for (let i = 0; i < playlist.segments.length; i++) {
+    const segment = playlist.segments[i];
+
+    if (!segment.dateTimeObject) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
 export const getStreamTime = ({
   playlist,
   time = undefined,
@@ -85,4 +167,48 @@ export const getStreamTime = ({
   }
 
   return callback(null, streamTime);
+};
+
+export const seekToStreamTime = ({
+  streamTime,
+  playlist,
+  seekTo,
+  callback
+}) => {
+
+  if (typeof streamTime === 'undefined' || !playlist || !seekTo) {
+    return callback({
+      message: 'seekToStreamTime: streamTime, seekTo and playlist must be provided',
+      newTime: null
+    });
+  } else if (!callback) {
+    throw new Error('seekToStreamTime: callback must be provided');
+  }
+
+  if (!verifyProgramDateTimeTags(playlist)) {
+    return callback({
+      message: 'programDateTime tags must be provided in the manifest ' + playlist.resolvedUri,
+      newTime: null
+    });
+  }
+
+  const segment = findSegmentForStreamTime(streamTime, playlist);
+
+  if (!segment) {
+    return callback({
+      message: `${streamTime} was not found in the stream`,
+      newTime: null
+    });
+  }
+
+  const milliSecondOffset = getOffsetFromTimestamp(
+    segment.dateTimeObject,
+    streamTime
+  );
+
+  // TODO: need to wait until segment.start is available
+  const seekToTime = segment.start + milliSecondOffset / 1000;
+
+  seekTo(seekToTime);
+  callback(null, seekToTime);
 };

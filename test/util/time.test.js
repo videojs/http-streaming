@@ -1,7 +1,8 @@
 import QUnit from 'qunit';
 import videojs from 'video.js';
 import {
-  getStreamTime
+  getStreamTime,
+  seekToStreamTime
 } from '../../src/util/time.js';
 
 QUnit.module('Time: getStreamTime', {
@@ -191,6 +192,106 @@ QUnit.test('returns programDateTime parsed from media segment tags', function(as
         'uses programDateTime found in media segments'
       );
       done();
+    }
+  });
+});
+
+QUnit.module('Time: seekToStreamTime');
+
+QUnit.test('returns error if no playlist or streamTime provided', function(assert) {
+  const done = assert.async();
+  const done2 = assert.async();
+
+  seekToStreamTime({
+    streamTime: 0,
+    callback: (err, newTime) => {
+      assert.equal(
+        err.message,
+        'seekToStreamTime: streamTime and playlist must be provided',
+        'error message is returned when no playlist is provided'
+      );
+      done();
+    }
+  });
+
+  seekToStreamTime({
+    playlist: {},
+    callback: (err, newTime) => {
+      assert.equal(
+        err.message,
+        'seekToStreamTime: streamTime and playlist must be provided',
+        'error message is returned when no time is provided'
+      );
+      done2();
+    }
+  });
+});
+
+QUnit.test('throws error if no callback is provided', function(assert) {
+  assert.throws(
+    () => {
+      return seekToStreamTime({
+        streamTime: 1,
+        playlist: {}
+      });
+    },
+    'throws an error if no callback is provided'
+  );
+});
+
+QUnit.test('returns error if any playlist segments do not include programDateTime tags',
+function(assert) {
+  const done = assert.async();
+  const done2 = assert.async();
+
+  seekToStreamTime({
+    streamTime: 1,
+    playlist: {
+      segments: [],
+      resolvedUri: 'test'
+    },
+    callback: (err, newTime) => {
+      assert.equal(
+        err.message,
+        'programDateTime tags must be provided in the manifest test',
+        'returns error when there are no segments'
+      );
+      assert.equal(
+        newTime,
+        null,
+        'valid newTime value is not returned'
+      );
+      done();
+    }
+  });
+
+  seekToStreamTime({
+    streamTime: 1,
+    playlist: {
+      segments: [
+        {
+          // UTC: Sun, 11 Nov 2018 00:00:00 GMT
+          programDateTime: '2018-11-11T00:00:00.000Z',
+          duration: 10
+        },
+        {
+          duration: 10
+        }
+      ],
+      resolvedUri: 'test2'
+    },
+    callback: (err, newTime) => {
+      assert.equal(
+        err.message,
+        'programDateTime tags must be provided in the manifest test2',
+        'returns error when there are any segments without a programDateTime tag'
+      );
+      assert.equal(
+        newTime,
+        null,
+        'valid newTime value is not returned'
+      );
+      done2();
     }
   });
 });
