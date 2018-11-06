@@ -408,6 +408,7 @@ QUnit.test('delays load when on final rendition', function(assert) {
   loader.load();
   standardXHRResponse(this.requests.shift());
 
+  // one for master, one for media on first selection
   assert.equal(loadedplaylistEvents, 2, 'two loadedplaylist events after first load');
 
   loader.load();
