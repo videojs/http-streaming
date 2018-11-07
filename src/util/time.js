@@ -4,7 +4,7 @@
 const findSegmentForTime = (time, playlist) => {
 
   if (!playlist.segments || playlist.segments.length === 0) {
-    return;
+    return null;
   }
 
   // Assumptions:
@@ -43,6 +43,14 @@ const findSegmentForTime = (time, playlist) => {
   return null;
 };
 
+const timeWithinSegment = (requestedTime, segment) => {
+  const segmentDuration = segment.duration;
+  const segmentTime = segment.dateTimeObject;
+
+  return requestedTime >= segmentTime &&
+    ((requestedTime - segmentTime) / 1000) < segmentDuration;
+};
+
 const findSegmentForStreamTime = (streamTime, playlist) => {
   let dateTimeObject;
 
@@ -53,54 +61,46 @@ const findSegmentForStreamTime = (streamTime, playlist) => {
   }
 
   // Assumptions:
-  //   - verifyProgramDateTimeTags has already been run
+  //  - verifyProgramDateTimeTags has already been run
+  //  - live streams have been started
 
+  let matchedSegment;
+
+  // TODO: just estimate the PDT for each segment like in findSegmentForTime
   for (let i = 1; i <= playlist.segments.length; i++) {
     const prev = playlist.segments[i - 1];
+    const prevTime = prev.dateTimeObject.toISOString();
     const next = playlist.segments[i];
-    let matchedSegment;
+    const nextTime = next.dateTimeObject.toISOString();
+    const requestedTime = dateTimeObject.toISOString();
 
     if (
-      prev.dateTimeObject.toISOString() ===
-      dateTimeObject.toISOString()
+        prevTime <= requestedTime &&
+        requestedTime < nextTime
     ) {
       matchedSegment = prev;
-
-    } else if (
-      next.dateTimeObject.toISOString() ===
-      dateTimeObject.toISOString()
-    ) {
-      matchedSegment = next;
-
-    } else if (
-      (prev.dateTimeObject.toISOString() <
-        dateTimeObject.toISOString()) &&
-      (dateTimeObject.toISOString() <
-        next.dateTimeObject.toISOString())
-    ) {
-      matchedSegment = prev;
-
-    } else if (
-      i === playlist.segments.length &&
-      (dateTimeObject.toISOString() >
-        next.dateTimeObject.toISOString())
-    ) {
-      matchedSegment = next;
+      break;
     }
+  }
 
-    if (matchedSegment) {
-      if (matchedSegment.start && matchedSegment.end) {
-        return {
-          segment: matchedSegment,
-          type: 'accurate'
-        };
-      }
+  const lastSegment = playlist.segments[playlist.segments.length - 1];
 
+  if (timeWithinSegment(dateTimeObject, lastSegment)) {
+    matchedSegment = lastSegment;
+  }
+
+  if (matchedSegment) {
+    if (matchedSegment.start && matchedSegment.end) {
       return {
         segment: matchedSegment,
-        type: 'estimate'
+        type: 'accurate'
       };
     }
+
+    return {
+      segment: matchedSegment,
+      type: 'estimate'
+    };
   }
 
   // TODO error as time hasn't been found

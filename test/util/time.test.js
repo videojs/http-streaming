@@ -342,3 +342,10 @@ function(assert) {
     }
   });
 });
+
+// TODO:
+//  - live stream playlist and some segments buffered
+//  - vod playlist and some segments buffered
+//  - live stream playlist and segments not buffered
+//  - vod playlist and segments not buffered
+//  ***- live stream playlist and requesting non-available segment
