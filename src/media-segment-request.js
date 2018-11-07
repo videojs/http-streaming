@@ -299,18 +299,6 @@ const decryptSegment = (decrypter, segment, doneFn) => {
 };
 
 /**
- * The purpose of this function is to get the most pertinent error from the
- * array of errors.
- * For instance if a timeout and two aborts occur, then the aborts were
- * likely triggered by the timeout so return that error object.
- */
-const getMostImportantError = (errors) => {
-  return errors.reduce((prev, err) => {
-    return err.code > prev.code ? err : prev;
-  });
-};
-
-/**
  * This function waits for all XHRs to finish (with either success or failure)
  * before continueing processing via it's callback. The function gathers errors
  * from each request into a single errors array so that the error status for
@@ -322,26 +310,39 @@ const getMostImportantError = (errors) => {
  *                            downloaded and any decryption completed
  */
 const waitForCompletion = (activeXhrs, decrypter, doneFn) => {
-  let errors = [];
   let count = 0;
+  let didError = false;
 
   return (error, segment) => {
+    if (didError) {
+      return;
+    }
+
     if (error) {
+      didError = true;
       // If there are errors, we have to abort any outstanding requests
       abortAll(activeXhrs);
-      errors.push(error);
+
+      // Even though the requests above are aborted, and in theory we could wait until we
+      // handle the aborted events from those requests, there are some cases where we may
+      // never get an aborted event. For instance, if the network connection is lost and
+      // there were two requests, the first may have triggered an error immediately, while
+      // the second request remains unsent. In that case, the aborted algorithm will not
+      // trigger an abort: see https://xhr.spec.whatwg.org/#the-abort()-method
+      //
+      // We also can't rely on the ready state of the XHR, since the request that
+      // triggered the connection error may also show as a ready state of 0 (unsent).
+      // Therefore, we have to finish this group of requests immediately after the first
+      // seen error.
+      return doneFn(error, segment);
     }
+
     count += 1;
 
     if (count === activeXhrs.length) {
       // Keep track of when *all* of the requests have completed
       segment.endOfAllRequests = Date.now();
 
-      if (errors.length > 0) {
-        const worstError = getMostImportantError(errors);
-
-        return doneFn(worstError, segment);
-      }
       if (segment.encryptedBytes) {
         return decryptSegment(decrypter, segment, doneFn);
       }
