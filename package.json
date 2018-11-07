@@ -93,7 +93,7 @@
     "lodash": "^4.17.4",
     "npm-run-all": "^4.1.2",
     "portscanner": "^2.1.1",
-    "qunit": "^2.0.1",
+    "qunit": "2.4.1",
     "rollup": "^0.57.1",
     "rollup-plugin-babel": "^3.0.3",
     "rollup-plugin-commonjs": "^9.1.0",
