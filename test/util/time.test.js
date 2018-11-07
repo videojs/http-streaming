@@ -199,9 +199,24 @@ QUnit.test('returns programDateTime parsed from media segment tags', function(as
 QUnit.module('Time: seekToStreamTime', {
   beforeEach(assert) {
     this.seekTo = () => {};
+    this.ct = 0;
+    this.tech = {
+      paused() {
+        return false;
+      },
+      pause() {},
+      one() {},
+      currentTime() {
+        return this.ct;
+      }
+    };
+    this.playlist = {};
   },
   afterEach(assert) {
     delete this.seekTo;
+    delete this.tech;
+    delete this.ct;
+    delete this.playlist;
   }
 });
 
@@ -213,6 +228,7 @@ QUnit.test('returns error if no playlist or streamTime provided', function(asser
   seekToStreamTime({
     streamTime: 0,
     seekTo: this.seekTo,
+    tech: this.tech,
     callback: (err, newTime) => {
       assert.equal(
         err.message,
@@ -226,6 +242,7 @@ QUnit.test('returns error if no playlist or streamTime provided', function(asser
   seekToStreamTime({
     playlist: {},
     seekTo: this.seekTo,
+    tech: this.tech,
     callback: (err, newTime) => {
       assert.equal(
         err.message,
@@ -237,8 +254,9 @@ QUnit.test('returns error if no playlist or streamTime provided', function(asser
   });
 
   seekToStreamTime({
-    time: 0,
+    streamTime: 0,
     playlist: {},
+    tech: this.tech,
     callback: (err, newTime) => {
       assert.equal(
         err.message,
@@ -255,7 +273,9 @@ QUnit.test('throws error if no callback is provided', function(assert) {
     () => {
       return seekToStreamTime({
         streamTime: 1,
-        playlist: {}
+        playlist: {},
+        seekTo: this.seekTo,
+        tech: this.tech
       });
     },
     'throws an error if no callback is provided'
@@ -274,6 +294,7 @@ function(assert) {
       resolvedUri: 'test'
     },
     seekTo: this.seekTo,
+    tech: this.tech,
     callback: (err, newTime) => {
       assert.equal(
         err.message,
@@ -305,6 +326,7 @@ function(assert) {
       resolvedUri: 'test2'
     },
     seekTo: this.seekTo,
+    tech: this.tech,
     callback: (err, newTime) => {
       assert.equal(
         err.message,

@@ -58,18 +58,19 @@ const findSegmentForStreamTime = (streamTime, playlist) => {
   for (let i = 1; i <= playlist.segments.length; i++) {
     const prev = playlist.segments[i - 1];
     const next = playlist.segments[i];
+    let matchedSegment;
 
     if (
       prev.dateTimeObject.toISOString() ===
       dateTimeObject.toISOString()
     ) {
-      return prev;
+      matchedSegment = prev;
 
     } else if (
       next.dateTimeObject.toISOString() ===
       dateTimeObject.toISOString()
     ) {
-      return next;
+      matchedSegment = next;
 
     } else if (
       (prev.dateTimeObject.toISOString() <
@@ -77,14 +78,28 @@ const findSegmentForStreamTime = (streamTime, playlist) => {
       (dateTimeObject.toISOString() <
         next.dateTimeObject.toISOString())
     ) {
-      return prev;
+      matchedSegment = prev;
 
     } else if (
       i === playlist.segments.length &&
       (dateTimeObject.toISOString() >
         next.dateTimeObject.toISOString())
     ) {
-      return next;
+      matchedSegment = next;
+    }
+
+    if (matchedSegment) {
+      if (matchedSegment.start && matchedSegment.end) {
+        return {
+          segment: matchedSegment,
+          type: 'accurate'
+        };
+      }
+
+      return {
+        segment: matchedSegment,
+        type: 'estimate'
+      };
     }
   }
 
@@ -106,7 +121,7 @@ const getOffsetFromTimestamp = (comparisonTimeStamp, streamTime) => {
   const segmentTimeEpoch = segmentDateTime.getTime();
   const streamTimeEpoch = streamDateTime.getTime();
 
-  return streamTimeEpoch - segmentTimeEpoch;
+  return (streamTimeEpoch - segmentTimeEpoch) / 1000;
 };
 
 const verifyProgramDateTimeTags = (playlist) => {
@@ -172,19 +187,29 @@ export const getStreamTime = ({
 export const seekToStreamTime = ({
   streamTime,
   playlist,
+  retryCount = 2,
   seekTo,
   pauseAfterSeek = true,
   tech,
   callback
 }) => {
 
+  if (!callback) {
+    throw new Error('seekToStreamTime: callback must be provided');
+  }
+
   if (typeof streamTime === 'undefined' || !playlist || !seekTo) {
     return callback({
       message: 'seekToStreamTime: streamTime, seekTo and playlist must be provided',
       newTime: null
     });
-  } else if (!callback) {
-    throw new Error('seekToStreamTime: callback must be provided');
+  }
+
+  if (!playlist.endList && tech.paused()) {
+    return callback({
+      message: 'player must be playing a live stream to start buffering',
+      newTime: null
+    });
   }
 
   if (!verifyProgramDateTimeTags(playlist)) {
@@ -194,29 +219,50 @@ export const seekToStreamTime = ({
     });
   }
 
-  const segment = findSegmentForStreamTime(streamTime, playlist);
+  const matchedSegment = findSegmentForStreamTime(streamTime, playlist);
 
-  if (!segment) {
+  // no match
+  if (!matchedSegment) {
     return callback({
       message: `${streamTime} was not found in the stream`,
       newTime: null
     });
   }
 
-  const milliSecondOffset = getOffsetFromTimestamp(
+  if (matchedSegment.type === 'estimate') {
+    // we've run out of retries
+    if (retryCount === 0) {
+      return callback({
+        message: `${streamTime} is not buffered yet. Try again`,
+        newTime: null
+      });
+    }
+
+    // TODO Otherwise retry (wip)
+    return seekToStreamTime({
+      streamTime,
+      playlist,
+      retryCount: retryCount - 1,
+      seekTo,
+      pauseAfterSeek,
+      tech,
+      callback
+    });
+  }
+
+  const segment = matchedSegment.segment;
+  const mediaOffset = getOffsetFromTimestamp(
     segment.dateTimeObject,
     streamTime
   );
-
-  // TODO: need to wait until segment.start is available
-  const seekToTime = segment.start + milliSecondOffset / 1000;
-  const newTimeFn = () => {
+  const seekToTime = segment.start + mediaOffset;
+  const seekedCallback = () => {
     return callback(null, tech.currentTime());
   };
 
   // listen for seeked event
-  tech.one('seeked', newTimeFn);
-
+  tech.one('seeked', seekedCallback);
+  // pause before seeking as video.js will restore this state
   if (pauseAfterSeek) {
     tech.pause();
   }

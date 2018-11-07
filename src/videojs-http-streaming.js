@@ -671,10 +671,12 @@ class HlsHandler extends Component {
     });
   }
 
-  seekToStreamTime(streamTime, callback, pauseAfterSeek = true) {
+  // the player must be playing before calling this
+  seekToStreamTime(streamTime, callback, pauseAfterSeek = true, retryCount = 2) {
     return seekToStreamTime({
       streamTime,
       playlist: this.masterPlaylistController_.media(),
+      retryCount,
       pauseAfterSeek,
       seekTo: this.options_.seekTo,
       tech: this.options_.tech,
