@@ -208,7 +208,8 @@ QUnit.module('Time: seekToStreamTime', {
       one() {},
       currentTime() {
         return this.ct;
-      }
+      },
+      hasStarted_: true
     };
     this.playlist = {};
   },

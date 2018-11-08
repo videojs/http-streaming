@@ -1,38 +1,81 @@
 /**
  * @file time.js
  */
-const findSegmentForTime = (time, playlist) => {
 
+const timeWithinSegment = (requestedTime, type, segmentStart, duration) => {
+  let endTime;
+
+  if (type === 'stream') {
+    endTime = new Date(duration * 1000 + segmentStart.getTime());
+
+    const requestedTimeString = requestedTime.toISOString();
+    const segmentTimeString = segmentStart.toISOString();
+    const endTimeString = endTime.toISOString();
+
+    return segmentTimeString <= requestedTimeString &&
+      requestedTimeString <= endTimeString;
+
+  } else if (type === 'player') {
+    endTime = duration + segmentStart;
+
+    return segmentStart <= requestedTime &&
+      requestedTime <= endTime;
+  }
+};
+
+const findSegmentForTime = (time, type, playlist) => {
   if (!playlist.segments || playlist.segments.length === 0) {
     return null;
   }
 
-  // Assumptions:
-  // - there will always be a segment.duration
-  // - we can start from zero
-  // - segments are in time order
-  // - segment.start and segment.end only come
-  //    from syncController
+  if (type !== 'player' && type !== 'stream') {
+    return null;
+  }
 
   let manifestTime = 0;
 
   for (let i = 0; i < playlist.segments.length; i++) {
     const segment = playlist.segments[i];
-    const estimatedStart = manifestTime;
     const estimatedEnd = manifestTime + segment.duration;
+    let segmentStart;
+    let estimatedStart;
 
-    if (segment.start <= time && time <= segment.end) {
+    if (type === 'player') {
+      segmentStart = segment.start;
+      estimatedStart = manifestTime;
+    } else {
+      // we can rely on the program date time being accurate
+      segmentStart = segment.dateTimeObject;
+      estimatedStart = segment.dateTimeObject;
+    }
+
+    const timeWithinSegmentEnd =
+      typeof segment.start !== 'undefined' &&
+      typeof segment.end !== 'undefined' &&
+      timeWithinSegment(
+        time,
+        type,
+        segmentStart,
+        segment.end - segment.start
+      );
+    const timeWithinSegmentDuration = timeWithinSegment(
+      time,
+      type,
+      estimatedStart,
+      segment.duration
+    );
+
+    if (timeWithinSegmentEnd) {
       return {
         segment,
         estimatedStart,
-        estimatedEnd,
         type: 'accurate'
       };
-    } else if (estimatedStart <= time && time <= estimatedEnd) {
+
+    } else if (timeWithinSegmentDuration) {
       return {
         segment,
         estimatedStart,
-        estimatedEnd,
         type: 'estimate'
       };
     }
@@ -43,12 +86,15 @@ const findSegmentForTime = (time, playlist) => {
   return null;
 };
 
-const timeWithinSegment = (requestedTime, segment) => {
-  const segmentDuration = segment.duration;
-  const segmentTime = segment.dateTimeObject;
+const findSegmentForPlayerTime = (time, playlist) => {
+  // Assumptions:
+  // - there will always be a segment.duration
+  // - we can start from zero
+  // - segments are in time order
+  // - segment.start and segment.end only come
+  //    from syncController
 
-  return requestedTime >= segmentTime &&
-    ((requestedTime - segmentTime) / 1000) < segmentDuration;
+  return findSegmentForTime(time, 'player', playlist);
 };
 
 const findSegmentForStreamTime = (streamTime, playlist) => {
@@ -64,47 +110,7 @@ const findSegmentForStreamTime = (streamTime, playlist) => {
   //  - verifyProgramDateTimeTags has already been run
   //  - live streams have been started
 
-  let matchedSegment;
-
-  // TODO: just estimate the PDT for each segment like in findSegmentForTime
-  for (let i = 1; i <= playlist.segments.length; i++) {
-    const prev = playlist.segments[i - 1];
-    const prevTime = prev.dateTimeObject.toISOString();
-    const next = playlist.segments[i];
-    const nextTime = next.dateTimeObject.toISOString();
-    const requestedTime = dateTimeObject.toISOString();
-
-    if (
-        prevTime <= requestedTime &&
-        requestedTime < nextTime
-    ) {
-      matchedSegment = prev;
-      break;
-    }
-  }
-
-  const lastSegment = playlist.segments[playlist.segments.length - 1];
-
-  if (timeWithinSegment(dateTimeObject, lastSegment)) {
-    matchedSegment = lastSegment;
-  }
-
-  if (matchedSegment) {
-    if (matchedSegment.start && matchedSegment.end) {
-      return {
-        segment: matchedSegment,
-        type: 'accurate'
-      };
-    }
-
-    return {
-      segment: matchedSegment,
-      type: 'estimate'
-    };
-  }
-
-  // TODO error as time hasn't been found
-  return null;
+  return findSegmentForTime(dateTimeObject, 'stream', playlist);
 };
 
 const getOffsetFromTimestamp = (comparisonTimeStamp, streamTime) => {
@@ -154,7 +160,7 @@ export const getStreamTime = ({
     throw new Error('getStreamTime: callback must be provided');
   }
 
-  const matchedSegment = findSegmentForTime(time, playlist);
+  const matchedSegment = findSegmentForPlayerTime(time, playlist);
 
   if (!matchedSegment) {
     return callback({
@@ -205,7 +211,7 @@ export const seekToStreamTime = ({
     });
   }
 
-  if (!playlist.endList && tech.paused()) {
+  if (!playlist.endList && !tech.hasStarted_) {
     return callback({
       message: 'player must be playing a live stream to start buffering',
       newTime: null
@@ -238,7 +244,6 @@ export const seekToStreamTime = ({
       });
     }
 
-    // TODO Otherwise retry (wip)
     return seekToStreamTime({
       streamTime,
       playlist,
