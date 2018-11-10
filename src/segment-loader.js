@@ -981,7 +981,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.trigger('progress');
   }
 
-  requestSidx(sidx, playlist) {
+  requestSidx(sidx, playlist, callback) {
     const sidxInfo = {
       requestId: 'segment-loader-' + Math.random(),
       // resolve the segment URL relative to the playlist
@@ -1008,11 +1008,10 @@ export default class SegmentLoader extends videojs.EventTarget {
             debugger;
           }
 
-          // tODO temp
+          // TODO temp
+          const sidx = mp4Inspector.parseSidx(segment.bytes.subarray(8));
 
-
-          const sidx = mp4Inspector.parseSidx(segment.bytes);
-          debugger;
+          callback(sidx);
         }
     );
   }

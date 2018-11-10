@@ -1,5 +1,9 @@
 import videojs from 'video.js';
-import { parse as parseMpd, parseUTCTiming } from 'mpd-parser';
+import {
+  parse as parseMpd,
+  parseUTCTiming,
+  attachSegmentInfoFromSidx
+} from 'mpd-parser';
 import {
   refreshDelay,
   setupMediaPlaylists,
@@ -280,6 +284,8 @@ export default class DashPlaylistLoader extends EventTarget {
     resolveMediaGroupUris(master);
     this.fetchMediaSegmentsFromSidx_(master.playlists);
 
+    console.log('orig', master.playlists);
+
     return master;
   }
 
@@ -526,14 +532,25 @@ export default class DashPlaylistLoader extends EventTarget {
   }
 
   fetchMediaSegmentsFromSidx_(playlists) {
-    playlists.forEach((playlist) => {
-      if (playlist.sidx) {
-        this.trigger({
-          type: 'sidxrequested',
-          playlist
-        });
-      }
-    });
+    const sidxPlaylists = playlists.filter((p) => p.sidx);
 
+    this.trigger({
+      type: 'sidxrequested',
+      playlists: sidxPlaylists
+    });
+  }
+
+  addSidxInfoToPlaylist_(sidx, playlist) {
+    const p = attachSegmentInfoFromSidx(playlist, sidx);
+
+    for (let i = 0; i < this.master.playlists.length; i++) {
+      const x = this.master.playlists[i];
+
+      if (x.uri === p.uri) {
+        this.master.playlists[i] = p;
+      }
+    }
+
+    console.log('after', this.master.playlists);
   }
 }

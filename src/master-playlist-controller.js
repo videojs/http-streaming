@@ -361,9 +361,13 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     this.masterPlaylistLoader_.on('sidxrequested', (event) => {
-      const { playlist } = event;
+      const { playlists } = event;
 
-      this.mainSegmentLoader_.requestSidx(playlist.sidx, playlist);
+      playlists.forEach(playlist => {
+        this.mainSegmentLoader_.requestSidx(playlist.sidx, playlist, (sidx) => {
+          this.masterPlaylistLoader_.addSidxInfoToPlaylist_(sidx, playlist);
+        });
+      });
     });
   }
 
