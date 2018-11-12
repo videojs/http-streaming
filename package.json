@@ -96,7 +96,7 @@
     "karma-firefox-launcher": "^1.1.0",
     "karma-qunit": "^1.2.1",
     "karma-safari-launcher": "^1.0.0",
-    "karma-safaritechpreview-launcher": "0.0.6",
+    "karma-safaritechpreview-launcher": "1.0.0",
     "karma-spec-reporter": "0.0.32",
     "lodash": "^4.17.4",
     "lodash-compat": "^3.10.0",
