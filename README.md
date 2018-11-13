@@ -43,6 +43,7 @@ Video.js Compatibility: 6.0, 7.0
       - [overrideNative](#overridenative)
       - [blacklistDuration](#blacklistduration)
       - [bandwidth](#bandwidth)
+      - [useBandwidthFromLocalStorage](#usebandwidthfromlocalstorage)
       - [enableLowInitialPlaylist](#enablelowinitialplaylist)
       - [limitRenditionByPlayerDimensions](#limitrenditionbyplayerdimensions)
       - [smoothQualityChange](#smoothqualitychange)
@@ -327,6 +328,12 @@ When the `bandwidth` property is set (bits per second), it will be used in
 the calculation for initial playlist selection, before more bandwidth
 information is seen by the player.
 
+##### useBandwidthFromLocalStorage
+* Type: `boolean`
+* can be used as an initialization option
+ If true, `bandwidth` and `throughput` values are stored in and retrieved from local
+storage on startup (for initial rendition selection). This setting is `false` by default.
+
 ##### enableLowInitialPlaylist
 * Type: `boolean`
 * can be used as an initialization option
@@ -586,6 +593,8 @@ Each of the following usage events are fired once per source if (and when) detec
 | hls-demuxed   | audio and video are demuxed by default |
 | hls-alternate-audio | alternate audio available in the master manifest |
 | hls-playlist-cue-tags | a playlist used cue tags (see useCueTags(#usecuetags) for details) |
+| hls-bandwidth-from-local-storage | starting bandwidth was retrieved from local storage (see useBandwidthFromLocalStorage(#useBandwidthFromLocalStorage) for details) |
+| hls-throughput-from-local-storage | starting throughput was retrieved from local storage (see useBandwidthFromLocalStorage(#useBandwidthFromLocalStorage) for details) |
 
 #### Use Stats
 

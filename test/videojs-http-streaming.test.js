@@ -21,7 +21,8 @@ import {
   HlsHandler,
   Hls,
   emeKeySystems,
-  simpleTypeFromSourceType
+  simpleTypeFromSourceType,
+  LOCAL_STORAGE_KEY
 } from '../src/videojs-http-streaming';
 import window from 'global/window';
 // we need this so the plugin registers itself
@@ -83,6 +84,8 @@ QUnit.module('HLS', {
     videojs.Hls.supportsNativeHls = this.old.NativeHlsSupport;
     videojs.Hls.Decrypter = this.old.Decrypt;
     videojs.browser = this.old.browser;
+
+    window.localStorage.clear();
 
     this.player.dispose();
   }
@@ -2958,6 +2961,255 @@ QUnit.test('does not set source keySystems if keySystems not provided by source'
   }, 'does not set source eme options');
 });
 
+QUnit.test('stores bandwidth and throughput in localStorage when global option is true',
+function(assert) {
+  videojs.options.hls = {
+    useBandwidthFromLocalStorage: true
+  };
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  openMediaSource(this.player, this.clock);
+   // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.notOk(
+    window.localStorage.getItem(LOCAL_STORAGE_KEY), 'nothing in local storage');
+
+  this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.bandwidth = 11;
+  this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.throughput.rate = 22;
+  this.player.tech_.trigger('bandwidthupdate');
+
+  const storedObject = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY));
+
+  assert.equal(parseInt(storedObject.bandwidth, 10), 11, 'set bandwidth');
+  assert.equal(parseInt(storedObject.throughput, 10), 22, 'set throughput');
+});
+
+QUnit.test('stores bandwidth and throughput in localStorage when player option is true',
+function(assert) {
+  this.player.dispose();
+  this.player = createPlayer({
+    html5: {
+      hls: {
+        useBandwidthFromLocalStorage: true
+      }
+    }
+  });
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  openMediaSource(this.player, this.clock);
+
+  // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.notOk(
+    window.localStorage.getItem(LOCAL_STORAGE_KEY), 'nothing in local storage');
+
+  this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.bandwidth = 11;
+  this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.throughput.rate = 22;
+  this.player.tech_.trigger('bandwidthupdate');
+
+  const storedObject = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY));
+
+  assert.equal(parseInt(storedObject.bandwidth, 10), 11, 'set bandwidth');
+  assert.equal(parseInt(storedObject.throughput, 10), 22, 'set throughput');
+});
+
+QUnit.test('stores bandwidth and throughput in localStorage when source option is true',
+function(assert) {
+  this.player.dispose();
+  this.player = createPlayer();
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl',
+    useBandwidthFromLocalStorage: true
+  });
+  openMediaSource(this.player, this.clock);
+
+  // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.notOk(
+    window.localStorage.getItem(LOCAL_STORAGE_KEY), 'nothing in local storage');
+
+  this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.bandwidth = 11;
+  this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.throughput.rate = 22;
+  this.player.tech_.trigger('bandwidthupdate');
+
+  const storedObject = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY));
+
+  assert.equal(parseInt(storedObject.bandwidth, 10), 11, 'set bandwidth');
+  assert.equal(parseInt(storedObject.throughput, 10), 22, 'set throughput');
+});
+
+QUnit.test('source localStorage option takes priority over player option',
+function(assert) {
+  this.player.dispose();
+  this.player = createPlayer({
+    html5: {
+      hls: {
+        useBandwidthFromLocalStorage: false
+      }
+    }
+  });
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl',
+    useBandwidthFromLocalStorage: true
+  });
+  openMediaSource(this.player, this.clock);
+
+  // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.notOk(
+    window.localStorage.getItem(LOCAL_STORAGE_KEY), 'nothing in local storage');
+
+  this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.bandwidth = 11;
+  this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.throughput.rate = 22;
+  this.player.tech_.trigger('bandwidthupdate');
+
+  const storedObject = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY));
+
+  assert.equal(parseInt(storedObject.bandwidth, 10), 11, 'set bandwidth');
+  assert.equal(parseInt(storedObject.throughput, 10), 22, 'set throughput');
+});
+
+QUnit.test('does not store bandwidth and throughput in localStorage by default',
+function(assert) {
+  this.player = createPlayer();
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  openMediaSource(this.player, this.clock);
+
+   // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.notOk(
+    window.localStorage.getItem(LOCAL_STORAGE_KEY), 'nothing in local storage');
+
+  this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.bandwidth = 11;
+  this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.throughput.rate = 22;
+  this.player.tech_.trigger('bandwidthupdate');
+
+  assert.notOk(
+    window.localStorage.getItem(LOCAL_STORAGE_KEY), 'nothing in local storage');
+});
+
+QUnit.test('retrieves bandwidth and throughput from localStorage', function(assert) {
+  window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({
+    bandwidth: 33,
+    throughput: 44
+  }));
+
+  let bandwidthUsageEvents = 0;
+  let throughputUsageEvents = 0;
+  const usageListener = (event) => {
+    if (event.name === 'hls-bandwidth-from-local-storage') {
+      bandwidthUsageEvents++;
+    }
+    if (event.name === 'hls-throughput-from-local-storage') {
+      throughputUsageEvents++;
+    }
+  };
+
+  // values must be stored before player is created, otherwise defaults are provided
+  this.player = createPlayer();
+  this.player.tech_.on('usage', usageListener);
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  openMediaSource(this.player, this.clock);
+
+  assert.equal(this.player.tech_.hls.bandwidth,
+               4194304,
+               'uses default bandwidth when no option to use stored bandwidth');
+  assert.notOk(this.player.tech_.hls.throughput,
+               'no throughput when no option to use stored throughput');
+
+  assert.equal(bandwidthUsageEvents, 0, 'no bandwidth usage event');
+  assert.equal(throughputUsageEvents, 0, 'no throughput usage event');
+
+  const origHlsOptions = videojs.options.hls;
+
+  videojs.options.hls = {
+    useBandwidthFromLocalStorage: true
+  };
+  this.player = createPlayer();
+  this.player.tech_.on('usage', usageListener);
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  openMediaSource(this.player, this.clock);
+
+  assert.equal(this.player.tech_.hls.bandwidth, 33, 'retrieved stored bandwidth');
+  assert.equal(this.player.tech_.hls.throughput, 44, 'retrieved stored throughput');
+  assert.equal(bandwidthUsageEvents, 1, 'one bandwidth usage event');
+  assert.equal(throughputUsageEvents, 1, 'one throughput usage event');
+
+  videojs.options.hls = origHlsOptions;
+});
+
+QUnit.test(
+'does not retrieve bandwidth and throughput from localStorage when stored value is not as expected',
+function(assert) {
+  // bad value
+  window.localStorage.setItem(LOCAL_STORAGE_KEY, 'a');
+
+  let bandwidthUsageEvents = 0;
+  let throughputUsageEvents = 0;
+  const usageListener = (event) => {
+    if (event.name === 'hls-bandwidth-from-local-storage') {
+      bandwidthUsageEvents++;
+    }
+    if (event.name === 'hls-throughput-from-local-storage') {
+      throughputUsageEvents++;
+    }
+  };
+
+  const origHlsOptions = videojs.options.hls;
+
+  videojs.options.hls = {
+    useBandwidthFromLocalStorage: true
+  };
+  // values must be stored before player is created, otherwise defaults are provided
+  this.player = createPlayer();
+  this.player.tech_.on('usage', usageListener);
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  openMediaSource(this.player, this.clock);
+
+  assert.equal(this.player.tech_.hls.bandwidth,
+               4194304,
+               'uses default bandwidth when bandwidth value retrieved');
+  assert.notOk(this.player.tech_.hls.throughput, 'no throughput value retrieved');
+
+  assert.equal(bandwidthUsageEvents, 0, 'no bandwidth usage event');
+  assert.equal(throughputUsageEvents, 0, 'no throughput usage event');
+
+  videojs.options.hls = origHlsOptions;
+});
+
 QUnit.test('convertToStreamTime will return error if time is not buffered', function(assert) {
   const done = assert.async();
 
@@ -3049,6 +3301,7 @@ QUnit.module('HLS Integration', {
   afterEach() {
     this.env.restore();
     this.mse.restore();
+    window.localStorage.clear();
     videojs.HlsHandler.prototype.setupQualityLevels_ = ogHlsHandlerSetupQualityLevels;
   }
 });
@@ -3339,6 +3592,7 @@ QUnit.module('HLS - Encryption', {
   afterEach() {
     this.env.restore();
     this.mse.restore();
+    window.localStorage.clear();
     videojs.HlsHandler.prototype.setupQualityLevels_ = ogHlsHandlerSetupQualityLevels;
   }
 });
