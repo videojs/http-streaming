@@ -152,12 +152,14 @@ export const getStreamTime = ({
   callback
 }) => {
 
+  if (!callback) {
+    throw new Error('getStreamTime: callback must be provided');
+  }
+
   if (!playlist || time === undefined) {
     return callback({
       message: 'getStreamTime: playlist and time must be provided'
     });
-  } else if (!callback) {
-    throw new Error('getStreamTime: callback must be provided');
   }
 
   const matchedSegment = findSegmentForPlayerTime(time, playlist);
@@ -206,22 +208,19 @@ export const seekToStreamTime = ({
 
   if (typeof streamTime === 'undefined' || !playlist || !seekTo) {
     return callback({
-      message: 'seekToStreamTime: streamTime, seekTo and playlist must be provided',
-      newTime: null
+      message: 'seekToStreamTime: streamTime, seekTo and playlist must be provided'
     });
   }
 
   if (!playlist.endList && !tech.hasStarted_) {
     return callback({
-      message: 'player must be playing a live stream to start buffering',
-      newTime: null
+      message: 'player must be playing a live stream to start buffering'
     });
   }
 
   if (!verifyProgramDateTimeTags(playlist)) {
     return callback({
-      message: 'programDateTime tags must be provided in the manifest ' + playlist.resolvedUri,
-      newTime: null
+      message: 'programDateTime tags must be provided in the manifest ' + playlist.resolvedUri
     });
   }
 
@@ -230,8 +229,7 @@ export const seekToStreamTime = ({
   // no match
   if (!matchedSegment) {
     return callback({
-      message: `${streamTime} was not found in the stream`,
-      newTime: null
+      message: `${streamTime} was not found in the stream`
     });
   }
 
@@ -239,8 +237,7 @@ export const seekToStreamTime = ({
     // we've run out of retries
     if (retryCount === 0) {
       return callback({
-        message: `${streamTime} is not buffered yet. Try again`,
-        newTime: null
+        message: `${streamTime} is not buffered yet. Try again`
       });
     }
 
