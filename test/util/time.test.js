@@ -5,6 +5,14 @@ import {
   seekToStreamTime
 } from '../../src/util/time.js';
 
+// TODO:
+//  - verifyProgramDateTimeTags
+//  - findSegmentForStreamTime
+//  - findSegmentForPlayerTime
+//  - findSegmentForTime
+//  - getTimestampOffset
+//  - timeWithinSegment
+
 QUnit.module('Time: getStreamTime', {
   beforeEach(assert) {
     this.playlist = {
@@ -344,9 +352,302 @@ function(assert) {
   });
 });
 
-// TODO:
-//  - live stream playlist and some segments buffered
-//  - vod playlist and some segments buffered
-//  - live stream playlist and segments not buffered
-//  - vod playlist and segments not buffered
-//  ***- live stream playlist and requesting non-available segment
+QUnit.test('returns error if live stream has not started', function(assert) {
+  const done = assert.async();
+  const tech = videojs.mergeOptions(this.tech, {
+    hasStarted_: false
+  });
+
+  seekToStreamTime({
+    streamTime: 1,
+    playlist: {
+      segments: [],
+      resolvedUri: 'test'
+    },
+    seekTo: this.seekTo,
+    // tech that hasn't started
+    tech,
+    callback: (err, newTime) => {
+      assert.equal(
+        err.message,
+        'player must be playing a live stream to start buffering',
+        'returns error when live stream has not started'
+      );
+      done();
+    }
+  });
+});
+
+QUnit.test('returns error if time does not exist in live stream', function(assert) {
+  const done = assert.async();
+
+  seekToStreamTime({
+    streamTime: '2018-10-12T22:33:52.037+00:00',
+    playlist: {
+      segments: [{
+        dateTimeString: '2018-10-12T22:33:49.037+00:00',
+        dateTimeObject: new Date('2018-10-12T22:33:49.037+00:00'),
+        start: 0,
+        end: 1,
+        duration: 1
+      }],
+      resolvedUri: 'test'
+    },
+    seekTo: this.seekTo,
+    // tech that hasn't started
+    tech: this.tech,
+    callback: (err, newTime) => {
+      assert.equal(
+        err.message,
+        '2018-10-12T22:33:52.037+00:00 was not found in the stream',
+        'returns error when live stream has not started'
+      );
+      done();
+    }
+  });
+});
+
+QUnit.test('vod: returns error if we can only get estimates even with retries',
+function(assert) {
+  const done = assert.async();
+
+  seekToStreamTime({
+    streamTime: '2018-10-12T22:33:50.037+00:00',
+    playlist: {
+      segments: [
+        {
+          dateTimeString: '2018-10-12T22:33:49.037+00:00',
+          dateTimeObject: new Date('2018-10-12T22:33:49.037+00:00'),
+          duration: 1
+        }, {
+          dateTimeString: '2018-10-12T22:33:50.037+00:00',
+          dateTimeObject: new Date('2018-10-12T22:33:50.037+00:00'),
+          duration: 1
+        }
+      ],
+      resolvedUri: 'test',
+      endList: true
+    },
+    seekTo: this.seekTo,
+    // tech that hasn't started
+    tech: this.tech,
+    callback: (err, newTime) => {
+      assert.equal(
+        err.message,
+        '2018-10-12T22:33:50.037+00:00 is not buffered yet. Try again',
+        'returns error when live stream has not started'
+      );
+      done();
+    }
+  });
+});
+
+QUnit.test('live: returns error if we can only get estimates even with retries',
+function(assert) {
+  const done = assert.async();
+
+  seekToStreamTime({
+    streamTime: '2018-10-12T22:33:50.037+00:00',
+    playlist: {
+      segments: [
+        {
+          dateTimeString: '2018-10-12T22:33:49.037+00:00',
+          dateTimeObject: new Date('2018-10-12T22:33:49.037+00:00'),
+          duration: 1
+        }, {
+          dateTimeString: '2018-10-12T22:33:50.037+00:00',
+          dateTimeObject: new Date('2018-10-12T22:33:50.037+00:00'),
+          duration: 1
+        }
+      ],
+      resolvedUri: 'test'
+    },
+    seekTo: this.seekTo,
+    // tech that hasn't started
+    tech: this.tech,
+    callback: (err, newTime) => {
+      assert.equal(
+        err.message,
+        '2018-10-12T22:33:50.037+00:00 is not buffered yet. Try again',
+        'returns error when live stream has not started'
+      );
+      done();
+    }
+  });
+});
+
+QUnit.test('vod: seeks and returns player time seeked to if buffered', function(assert) {
+  let currentTime = 0;
+  const done = assert.async();
+  const handlers = {};
+  const tech = videojs.mergeOptions(this.tech, {
+    one(e, handler) {
+      handlers[e] = handler;
+    },
+    currentTime(ct) {
+      if (ct && handlers.seeked) {
+        currentTime = ct;
+        return handlers.seeked(ct);
+      }
+
+      return currentTime;
+    }
+  });
+  const seekTo = (t) => {
+    tech.currentTime(t);
+  };
+
+  seekToStreamTime({
+    streamTime: '2018-10-12T22:33:50.037+00:00',
+    playlist: {
+      segments: [
+        {
+          dateTimeString: '2018-10-12T22:33:49.037+00:00',
+          dateTimeObject: new Date('2018-10-12T22:33:49.037+00:00'),
+          duration: 1,
+          start: 0,
+          end: 1
+        }, {
+          dateTimeString: '2018-10-12T22:33:50.037+00:00',
+          dateTimeObject: new Date('2018-10-12T22:33:50.037+00:00'),
+          duration: 1,
+          start: 1,
+          end: 2
+        }
+      ],
+      resolvedUri: 'test',
+      endList: true
+    },
+    seekTo,
+    // tech that hasn't started
+    tech,
+    callback: (err, newTime) => {
+      assert.notOk(err, 'no errors returned');
+      assert.equal(
+        newTime,
+        1,
+        'player time that has been seeked to is returned'
+      );
+      done();
+    }
+  });
+});
+
+QUnit.test('live: seeks and returns player time seeked to if buffered', function(assert) {
+  let currentTime = 0;
+  const done = assert.async();
+  const handlers = {};
+  const tech = videojs.mergeOptions(this.tech, {
+    one(e, handler) {
+      handlers[e] = handler;
+    },
+    currentTime(ct) {
+      if (ct && handlers.seeked) {
+        currentTime = ct;
+        return handlers.seeked(ct);
+      }
+
+      return currentTime;
+    }
+  });
+  const seekTo = (t) => {
+    tech.currentTime(t);
+  };
+
+  seekToStreamTime({
+    streamTime: '2018-10-12T22:33:50.037+00:00',
+    playlist: {
+      segments: [
+        {
+          dateTimeString: '2018-10-12T22:33:49.037+00:00',
+          dateTimeObject: new Date('2018-10-12T22:33:49.037+00:00'),
+          duration: 1,
+          start: 0,
+          end: 1
+        }, {
+          dateTimeString: '2018-10-12T22:33:50.037+00:00',
+          dateTimeObject: new Date('2018-10-12T22:33:50.037+00:00'),
+          duration: 1,
+          start: 1,
+          end: 2
+        }
+      ],
+      resolvedUri: 'test'
+    },
+    seekTo,
+    // tech that hasn't started
+    tech,
+    callback: (err, newTime) => {
+      assert.notOk(err, 'no errors returned');
+      assert.equal(
+        newTime,
+        1,
+        'player time that has been seeked to is returned'
+      );
+      done();
+    }
+  });
+});
+
+QUnit.test('setting pauseAfterSeek to false seeks without pausing', function(assert) {
+  let currentTime = 0;
+  const done = assert.async();
+  const handlers = {};
+  const tech = videojs.mergeOptions(this.tech, {
+    one(e, handler) {
+      handlers[e] = handler;
+    },
+    currentTime(ct) {
+      if (ct && handlers.seeked) {
+        currentTime = ct;
+        return handlers.seeked(ct);
+      }
+
+      return currentTime;
+    }
+  });
+  const seekTo = (t) => {
+    tech.currentTime(t);
+  };
+
+  seekToStreamTime({
+    streamTime: '2018-10-12T22:33:50.037+00:00',
+    playlist: {
+      segments: [
+        {
+          dateTimeString: '2018-10-12T22:33:49.037+00:00',
+          dateTimeObject: new Date('2018-10-12T22:33:49.037+00:00'),
+          duration: 1,
+          start: 0,
+          end: 1
+        }, {
+          dateTimeString: '2018-10-12T22:33:50.037+00:00',
+          dateTimeObject: new Date('2018-10-12T22:33:50.037+00:00'),
+          duration: 1,
+          start: 1,
+          end: 2
+        }
+      ],
+      resolvedUri: 'test',
+      endList: true
+    },
+    pauseAfterSeek: false,
+    seekTo,
+    // tech that hasn't started
+    tech,
+    callback: (err, newTime) => {
+      assert.notOk(err, 'no errors returned');
+      assert.equal(
+        newTime,
+        1,
+        'player time that has been seeked to is returned'
+      );
+      assert.equal(
+        tech.paused(),
+        false,
+        'player should not be paused'
+      );
+      done();
+    }
+  });
+});
