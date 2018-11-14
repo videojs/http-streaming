@@ -81,7 +81,7 @@ Afterwards, you want to push the commit and the tag to the repo.
 It's necessary to do this before running `npm publish` because our GitHub release automation relies on the commit being available on GitHub.
 
 ```sh
-git push --follow-tags origin master
+git push origin v`cat package.json | grep version | head -n 1 | cut -f 4 -d \"`
 ```
 
 Publish to npm.
