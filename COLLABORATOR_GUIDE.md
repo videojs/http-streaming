@@ -52,6 +52,17 @@ To make the release process easier, and in case you have a dirty repo from devel
 ```sh
 git clone git@github.com:videojs/http-streaming vhs-release
 cd vhs-release
+```
+
+Install the latest compatible version of node for the project. By not specifying a version, [nvm will default to the .nvmrc file if available](https://github.com/creationix/nvm#nvmrc).
+
+```sh
+nvm install
+```
+
+Install dependencies for the project.
+
+```sh
 npm install
 ```
 
@@ -70,13 +81,13 @@ Afterwards, you want to push the commit and the tag to the repo.
 It's necessary to do this before running `npm publish` because our GitHub release automation relies on the commit being available on GitHub.
 
 ```sh
-git push --tags origin master
+git push --follow-tags origin master
 ```
 
-Run `npm publish` with an appropriate tag. Don't forget to supply your token.
+Publish to npm.
 
 ```sh
-VJS_GITHUB_USER=your-github-username VJS_GITHUB_TOKEN=my-personal-access-token npm publish --tag next
+npm publish
 ```
 
 After it's done, [create a release in github](https://github.com/videojs/http-streaming/releases/new) with latest tag, no title or description, and attach the .min.js and .js dist files.
@@ -86,6 +97,8 @@ If it's a large enough release, consider writing a blog post as well.
 ## Doc credit
 
 This collaborator guide was heavily inspired by [node.js's guide](https://github.com/nodejs/node/blob/master/COLLABORATOR_GUIDE.md) and [video.js's guide](https://github.com/videojs/video.js/blob/master/COLLABORATOR_GUIDE.md)
+
+[conventions]: https://github.com/videojs/conventional-changelog-videojs/blob/master/convention.md
 
 [vjs npm]: http://npmjs.com/org/videojs
 
