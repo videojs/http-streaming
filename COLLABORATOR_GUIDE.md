@@ -90,7 +90,7 @@ Publish to npm.
 npm publish
 ```
 
-After it's done, [create a release in github](https://github.com/videojs/http-streaming/releases/new) with latest tag, no title or description, and attach the .min.js and .js dist files.
+After it's done, [create a release in github](https://github.com/videojs/http-streaming/releases/new) with latest tag, no title, description copied from [the changelog](https://github.com/videojs/http-streaming/blob/master/CHANGELOG.md), and the .min.js and .js dist files attached.
 
 If it's a large enough release, consider writing a blog post as well.
 
