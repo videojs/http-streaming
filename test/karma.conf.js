@@ -16,7 +16,7 @@ module.exports = function(config) {
       return Object.assign(defaults, {
         ChromeHeadlessWithFlags: {
           base: 'ChromeHeadless',
-          flags: [ '--no-sandbox' ]
+          flags: [ '--no-sandbox', '--autoplay-policy=no-user-gesture-required' ]
         }
       });
     },

@@ -93,7 +93,7 @@
     "lodash": "^4.17.4",
     "npm-run-all": "^4.1.2",
     "portscanner": "^2.1.1",
-    "qunit": "2.4.1",
+    "qunit": "2.5.1",
     "rollup": "^0.57.1",
     "rollup-plugin-babel": "^3.0.3",
     "rollup-plugin-commonjs": "^9.1.0",
@@ -109,7 +109,7 @@
     "uglify-es": "^3.3.9",
     "videojs-contrib-eme": "^3.2.0",
     "videojs-contrib-quality-levels": "^2.0.4",
-    "videojs-generate-karma-config": "^4.0.2",
+    "videojs-generate-karma-config": "^5.0.0",
     "videojs-standard": "^4.0.3"
   }
 }
