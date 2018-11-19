@@ -5,12 +5,288 @@ import {
   seekToStreamTime,
   verifyProgramDateTimeTags,
   findSegmentForPlayerTime,
-  findSegmentForStreamTime
+  findSegmentForStreamTime,
+  getOffsetFromTimestamp,
+  timeWithinSegment
 } from '../../src/util/time.js';
 
-// TODO:
-//  - getTimestampOffset
-//  - timeWithinSegment
+QUnit.module('Time');
+
+QUnit.test('verifyProgramDateTimeTags only returns true when all segments have programDateTime tags',
+  function(assert) {
+    const emptyPlaylist = {};
+    const emptySegments = {
+      segments: []
+    };
+    const goodPlaylist = {
+      segments: [{
+        start: 0,
+        end: 1,
+        dateTimeObject: new Date()
+      }]
+    };
+    const badPlaylist = {
+      segments: [
+        {
+          start: 0,
+          end: 1,
+          dateTimeObject: new Date()
+        },
+        {
+          start: 1,
+          end: 2
+        },
+        {
+          start: 2,
+          end: 3,
+          dateTimeObject: new Date()
+        }
+      ]
+    };
+
+    assert.equal(
+      verifyProgramDateTimeTags(emptyPlaylist),
+      false,
+      'empty playlist will be false'
+    );
+    assert.equal(
+      verifyProgramDateTimeTags(emptySegments),
+      false,
+      'empty segment list will be false'
+    );
+    assert.equal(
+      verifyProgramDateTimeTags(badPlaylist),
+      false,
+      'false if any segment is missing a programDateTime tag'
+    );
+    assert.equal(
+      verifyProgramDateTimeTags(goodPlaylist),
+      true,
+      'true if all segments have programDateTime'
+    );
+  });
+
+QUnit.test('findSegmentForPlayerTime returns nothing if a match cannot be found', function(assert) {
+  assert.equal(
+    findSegmentForPlayerTime(0, {}),
+    null,
+    'returns nothing if empty playlist'
+  );
+
+  assert.equal(
+    findSegmentForPlayerTime(0, {
+      segments: []
+    }),
+    null,
+    'returns nothing if empty segment list'
+  );
+
+  assert.equal(
+    findSegmentForPlayerTime(10, {
+      segments: [{
+        start: 0,
+        end: 1
+      }]
+    }),
+    null,
+    'returns nothing if time is outside available segments'
+  );
+});
+
+QUnit.test('findSegmentForPlayerTime returns estimate if segment not buffered', function(assert) {
+  const segment = {
+    duration: 1
+  };
+
+  assert.deepEqual(
+    findSegmentForPlayerTime(0, {
+      segments: [segment]
+    }),
+    {
+      type: 'estimate',
+      segment,
+      estimatedStart: 0
+    },
+    'returns the estimated match if time is within segment boundaries'
+  );
+});
+
+QUnit.test('findSegmentForPlayerTime returns accurate if segment buffered', function(assert) {
+  const segment = {
+    start: 0,
+    end: 1,
+    duration: 1
+  };
+
+  assert.deepEqual(
+    findSegmentForPlayerTime(0.1, {
+      segments: [segment]
+    }),
+    {
+      type: 'accurate',
+      segment,
+      estimatedStart: 0
+    },
+    'returns the accurate match if the segment has been buffered'
+  );
+});
+
+QUnit.test('findSegmentForStreamTime returns nothing if a match cannot be found', function(assert) {
+  assert.equal(
+    findSegmentForStreamTime('2018-11-10T19:39:57.158Z', {}),
+    null,
+    'returns nothing if empty playlist'
+  );
+  assert.equal(
+    findSegmentForStreamTime('2018-11-10T19:39:57.158Z', {
+      segments: []
+    }),
+    null,
+    'returns nothing if empty segment list'
+  );
+  assert.equal(
+    findSegmentForStreamTime('2018-11-10T19:40:57.158Z', {
+      segments: [{
+        start: 0,
+        end: 1,
+        duration: 1,
+        dateTimeObject: new Date('2018-11-10T19:39:57.158Z')
+      }]
+    }),
+    null,
+    'returns nothing if requested time is not available'
+  );
+});
+
+QUnit.test('findSegmentForStreamTime returns estimate if segment not buffered', function(assert) {
+  const segment = {
+    duration: 1,
+    dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
+  };
+
+  assert.deepEqual(
+    findSegmentForStreamTime('2018-11-10T19:38:57.200Z', {
+      segments: [segment]
+    }),
+    {
+      type: 'estimate',
+      segment,
+      estimatedStart: new Date('2018-11-10T19:38:57.158Z')
+    },
+    'returns estimated match if segment not buffered'
+  );
+});
+
+QUnit.test('findSegmentForStreamTime returns accurate match if buffered', function(assert) {
+  const segment = {
+    start: 0,
+    end: 1,
+    duration: 1,
+    dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
+  };
+
+  assert.deepEqual(
+    findSegmentForStreamTime('2018-11-10T19:38:57.200Z', {
+      segments: [segment]
+    }),
+    {
+      type: 'accurate',
+      segment,
+      estimatedStart: new Date('2018-11-10T19:38:57.158Z')
+    },
+    'returns accurate match if segment buffered'
+  );
+});
+
+QUnit.test('getOffsetFromTimestamp', function(assert) {
+  assert.equal(
+    getOffsetFromTimestamp('2018-11-10T19:38:57.158Z', '2018-11-10T19:38:57.158Z'),
+    0,
+    'returns difference in timestamps'
+  );
+
+  assert.equal(
+    getOffsetFromTimestamp('2018-11-10T19:38:57.158Z', '2018-11-10T19:38:58.158Z'),
+    1,
+    'returns offset in seconds'
+  );
+
+  assert.equal(
+    getOffsetFromTimestamp('2018-11-10T19:38:57.158Z', '2018-11-10T19:38:56.158Z'),
+    -1,
+    'negative offset returned if streamTime is before comparison timestamp'
+  );
+});
+
+QUnit.test('timeWithinSegment for streamTime', function(assert) {
+  assert.equal(
+    timeWithinSegment(
+      new Date('2018-11-10T19:38:57.158'),
+      'stream',
+      new Date('2018-11-10T19:38:57.100'),
+      1
+    ),
+    true,
+    'true if requestedTime is within the segment duration'
+  );
+
+  assert.equal(
+    timeWithinSegment(
+      new Date('2018-11-10T19:38:59.158'),
+      'stream',
+      new Date('2018-11-10T19:38:57.158'),
+      1
+    ),
+    false,
+    'false if requestedTime is outside the segment duration'
+  );
+
+  assert.equal(
+    timeWithinSegment(
+      new Date('2018-11-10T19:38:57.158'),
+      'stream',
+      new Date('2018-11-10T19:38:59.158'),
+      1
+    ),
+    false,
+    'false if requestedTime is before segment start'
+  );
+});
+
+QUnit.test('timeWithinSegment for player time', function(assert) {
+  assert.equal(
+    timeWithinSegment(
+      4,
+      'player',
+      3,
+      1
+    ),
+    true,
+    'true if requestedTime is within the segment duration'
+  );
+
+  assert.equal(
+    timeWithinSegment(
+      5,
+      'player',
+      3,
+      1
+    ),
+    false,
+    'false if requestedTime is outside the segment duration'
+  );
+
+  assert.equal(
+    timeWithinSegment(
+      2,
+      'player',
+      3,
+      1
+    ),
+    false,
+    'false if requestedTime is before segment start'
+  );
+});
 
 QUnit.module('Time: getStreamTime', {
   beforeEach(assert) {
@@ -649,192 +925,4 @@ QUnit.test('setting pauseAfterSeek to false seeks without pausing', function(ass
       done();
     }
   });
-});
-
-QUnit.module('Time');
-
-QUnit.test('verifyProgramDateTimeTags only returns true when all segments have programDateTime tags',
-function(assert) {
-  const emptyPlaylist = {};
-  const emptySegments = {
-    segments: []
-  };
-  const goodPlaylist = {
-    segments: [{
-      start: 0,
-      end: 1,
-      dateTimeObject: new Date()
-    }]
-  };
-  const badPlaylist = {
-    segments: [
-      {
-        start: 0,
-        end: 1,
-        dateTimeObject: new Date()
-      },
-      {
-        start: 1,
-        end: 2
-      },
-      {
-        start: 2,
-        end: 3,
-        dateTimeObject: new Date()
-      }
-    ]
-  };
-
-  assert.equal(
-    verifyProgramDateTimeTags(emptyPlaylist),
-    false,
-    'empty playlist will be false'
-  );
-  assert.equal(
-    verifyProgramDateTimeTags(emptySegments),
-    false,
-    'empty segment list will be false'
-  );
-  assert.equal(
-    verifyProgramDateTimeTags(badPlaylist),
-    false,
-    'false if any segment is missing a programDateTime tag'
-  );
-  assert.equal(
-    verifyProgramDateTimeTags(goodPlaylist),
-    true,
-    'true if all segments have programDateTime'
-  );
-});
-
-QUnit.test('findSegmentForPlayerTime returns nothing if a match cannot be found', function(assert) {
-  assert.equal(
-    findSegmentForPlayerTime(0, {}),
-    null,
-    'returns nothing if empty playlist'
-  );
-
-  assert.equal(
-    findSegmentForPlayerTime(0, {
-      segments: []
-    }),
-    null,
-    'returns nothing if empty segment list'
-  );
-
-  assert.equal(
-    findSegmentForPlayerTime(10, {
-      segments: [{
-        start: 0,
-        end: 1
-      }]
-    }),
-    null,
-    'returns nothing if time is outside available segments'
-  );
-});
-
-QUnit.test('findSegmentForPlayerTime returns estimate if segment not buffered', function(assert) {
-  const segment = {
-    duration: 1
-  };
-
-  assert.deepEqual(
-    findSegmentForPlayerTime(0, {
-      segments: [segment]
-    }),
-    {
-      type: 'estimate',
-      segment,
-      estimatedStart: 0
-    },
-    'returns the estimated match if time is within segment boundaries'
-  );
-});
-
-QUnit.test('findSegmentForPlayerTime returns accurate if segment buffered', function(assert) {
-  const segment = {
-    start: 0,
-    end: 1,
-    duration: 1
-  };
-
-  assert.deepEqual(
-    findSegmentForPlayerTime(0.1, {
-      segments: [segment]
-    }),
-    {
-      type: 'accurate',
-      segment,
-      estimatedStart: 0
-    },
-    'returns the accurate match if the segment has been buffered'
-  );
-});
-
-QUnit.test('findSegmentForStreamTime returns nothing if a match cannot be found', function(assert) {
-  assert.equal(
-    findSegmentForStreamTime('2018-11-10T19:39:57.158Z', {}),
-    null,
-    'returns nothing if empty playlist'
-  );
-  assert.equal(
-    findSegmentForStreamTime('2018-11-10T19:39:57.158Z', {
-      segments: []
-    }),
-    null,
-    'returns nothing if empty segment list'
-  );
-  assert.equal(
-    findSegmentForStreamTime('2018-11-10T19:40:57.158Z', {
-      segments: [{
-        start: 0,
-        end: 1,
-        duration: 1,
-        dateTimeObject: new Date('2018-11-10T19:39:57.158Z')
-      }]
-    }),
-    null,
-    'returns nothing if requested time is not available'
-  );
-});
-
-QUnit.test('findSegmentForStreamTime returns estimate if segment not buffered', function(assert) {
-  const segment = {
-    duration: 1,
-    dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
-  };
-
-  assert.deepEqual(
-    findSegmentForStreamTime('2018-11-10T19:38:57.200Z', {
-      segments: [segment]
-    }),
-    {
-      type: 'estimate',
-      segment,
-      estimatedStart: new Date('2018-11-10T19:38:57.158Z')
-    },
-    'returns estimated match if segment not buffered'
-  );
-});
-
-QUnit.test('findSegmentForStreamTime returns accurate match if buffered', function(assert) {
-  const segment = {
-    start: 0,
-    end: 1,
-    duration: 1,
-    dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
-  };
-
-  assert.deepEqual(
-    findSegmentForStreamTime('2018-11-10T19:38:57.200Z', {
-      segments: [segment]
-    }),
-    {
-      type: 'accurate',
-      segment,
-      estimatedStart: new Date('2018-11-10T19:38:57.158Z')
-    },
-    'returns accurate match if segment buffered'
-  );
 });

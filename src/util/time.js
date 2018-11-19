@@ -2,7 +2,7 @@
  * @file time.js
  */
 
-const timeWithinSegment = (requestedTime, type, segmentStart, duration) => {
+export const timeWithinSegment = (requestedTime, type, segmentStart, duration) => {
   let endTime;
 
   if (type === 'stream') {
@@ -113,7 +113,7 @@ export const findSegmentForStreamTime = (streamTime, playlist) => {
   return findSegmentForTime(dateTimeObject, 'stream', playlist);
 };
 
-const getOffsetFromTimestamp = (comparisonTimeStamp, streamTime) => {
+export const getOffsetFromTimestamp = (comparisonTimeStamp, streamTime) => {
   let segmentDateTime;
   let streamDateTime;
 
