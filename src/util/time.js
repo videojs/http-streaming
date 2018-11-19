@@ -86,7 +86,7 @@ const findSegmentForTime = (time, type, playlist) => {
   return null;
 };
 
-const findSegmentForPlayerTime = (time, playlist) => {
+export const findSegmentForPlayerTime = (time, playlist) => {
   // Assumptions:
   // - there will always be a segment.duration
   // - we can start from zero
@@ -97,7 +97,7 @@ const findSegmentForPlayerTime = (time, playlist) => {
   return findSegmentForTime(time, 'player', playlist);
 };
 
-const findSegmentForStreamTime = (streamTime, playlist) => {
+export const findSegmentForStreamTime = (streamTime, playlist) => {
   let dateTimeObject;
 
   try {
@@ -130,7 +130,7 @@ const getOffsetFromTimestamp = (comparisonTimeStamp, streamTime) => {
   return (streamTimeEpoch - segmentTimeEpoch) / 1000;
 };
 
-const verifyProgramDateTimeTags = (playlist) => {
+export const verifyProgramDateTimeTags = (playlist) => {
   if (!playlist.segments || playlist.segments.length === 0) {
     return false;
   }
