@@ -2,6 +2,16 @@
  * @file time.js
  */
 
+/**
+ * Checks whether a given time is within a segment based on its start time
+ * and duration. For playerTime, the requested time is in seconds, for
+ * streamTime, the time is a Date object.
+ *
+ * @param {Date|Number} requestedTime Time to check is within a segment
+ * @param {"stream" | "player"} type Whether passing in a playerTime or streamTime
+ * @param {Date|Number} segmentStart The start time of the segment
+ * @param {Number} duration Segment duration in seconds
+ */
 export const timeWithinSegment = (requestedTime, type, segmentStart, duration) => {
   let endTime;
 
@@ -23,6 +33,18 @@ export const timeWithinSegment = (requestedTime, type, segmentStart, duration) =
   }
 };
 
+/**
+ * Finds a segment that contains the time requested. This might be an estimate or
+ * an accurate match.
+ *
+ * @param {Date|Number} time The streamTime or playerTime to find a matching segment for
+ * @param {"stream" | "player"} type Either the playerTime or streamTime
+ * @param {Object} playlist A playlist object
+ * @return {Object} match
+ * @return {Object} match.segment The matched segment from the playlist
+ * @return {Date|Number} match.estimatedStart The estimated start time of the segment
+ * @return {"accurate" | "estimate"} match.type Whether the match is estimated or accurate
+ */
 const findSegmentForTime = (time, type, playlist) => {
   if (!playlist.segments || playlist.segments.length === 0) {
     return null;
@@ -86,6 +108,12 @@ const findSegmentForTime = (time, type, playlist) => {
   return null;
 };
 
+/**
+ * Finds a segment that contains the given player time(in seconds).
+ *
+ * @param {Number} time The player time to find a match for
+ * @param {Object} playlist A playlist object to search within
+ */
 export const findSegmentForPlayerTime = (time, playlist) => {
   // Assumptions:
   // - there will always be a segment.duration
@@ -97,6 +125,12 @@ export const findSegmentForPlayerTime = (time, playlist) => {
   return findSegmentForTime(time, 'player', playlist);
 };
 
+/**
+ * Finds a segment that contains the stream time give as an ISO-8601 string.
+ *
+ * @param {String} streamTime The ISO-8601 streamTime to find a match for
+ * @param {Object} playlist A playlist object to search within
+ */
 export const findSegmentForStreamTime = (streamTime, playlist) => {
   let dateTimeObject;
 
@@ -104,15 +138,24 @@ export const findSegmentForStreamTime = (streamTime, playlist) => {
     dateTimeObject = new Date(streamTime);
   } catch (e) {
     // TODO something here?
+    return null;
   }
 
   // Assumptions:
   //  - verifyProgramDateTimeTags has already been run
   //  - live streams have been started
-
   return findSegmentForTime(dateTimeObject, 'stream', playlist);
 };
 
+/**
+ * Gives the offset of the comparisonTimestamp from the streamTime timestamp in seconds.
+ * If the offset returned is positive, the streamTime occurs before the comparisonTimestamp.
+ * If the offset is negative, the streamTime occurs before the comparisonTimestamp.
+ *
+ * @param {String} comparisonTimeStamp An ISO-8601 timestamp to compare against
+ * @param {String} streamTime The streamTime as an ISO-8601 string
+ * @return {Number} offset
+ */
 export const getOffsetFromTimestamp = (comparisonTimeStamp, streamTime) => {
   let segmentDateTime;
   let streamDateTime;
@@ -130,6 +173,11 @@ export const getOffsetFromTimestamp = (comparisonTimeStamp, streamTime) => {
   return (streamTimeEpoch - segmentTimeEpoch) / 1000;
 };
 
+/**
+ * Checks that all segments in this playlist have programDateTime tags.
+ *
+ * @param {Object} playlist A playlist object
+ */
 export const verifyProgramDateTimeTags = (playlist) => {
   if (!playlist.segments || playlist.segments.length === 0) {
     return false;
@@ -146,6 +194,21 @@ export const verifyProgramDateTimeTags = (playlist) => {
   return true;
 };
 
+/**
+ * Returns the streamTime  of the media given a playlist and a playerTime.
+ * The playlist must have programDateTime tags for a programDateTime tag to be returned.
+ * If the segments containing the time requested have not been buffered yet, an estimate
+ * may be returned to the callback.
+ *
+ * @param {Object} args
+ * @param {Object} args.playlist A playlist object to search within
+ * @param {Number} time A playerTime in seconds
+ * @param {Function} callback(err, streamTime)
+ * @returns {String} err.message A detailed error message
+ * @returns {Object} streamTime
+ * @returns {Number} streamTime.mediaSeconds The streamTime in seconds
+ * @returns {String} streamTime.programDateTime The streamTime as an ISO-8601 String
+ */
 export const getStreamTime = ({
   playlist,
   time = undefined,
@@ -192,6 +255,20 @@ export const getStreamTime = ({
   return callback(null, streamTime);
 };
 
+/**
+ * Seeks in the player to a time that matches the given streamTime ISO-8601 string.
+ *
+ * @param {Object} args
+ * @param {String} args.streamTime A streamTime to seek to as an ISO-8601 String
+ * @param {Object} args.playlist A playlist to look within
+ * @param {Number} args.retryCount The number of times to try for an accurate seek. Default is 2.
+ * @param {Function} args.seekTo A method to perform a seek
+ * @param {Boolean} args.pauseAfterSeek Whether to end in a paused state after seeking. Default is true.
+ * @param {Object} args.tech The tech to seek on
+ * @param {Function} args.callback(err, newTime) A callback to return the new time to
+ * @returns {String} err.message A detailed error message
+ * @returns {Number} newTime The exact time that was seeked to in seconds
+ */
 export const seekToStreamTime = ({
   streamTime,
   playlist,

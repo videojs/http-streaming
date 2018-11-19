@@ -198,7 +198,7 @@ QUnit.test('findSegmentForStreamTime returns accurate match if buffered', functi
   );
 });
 
-QUnit.test('getOffsetFromTimestamp', function(assert) {
+QUnit.test('getOffsetFromTimestamp will calculate second differences in timestamps', function(assert) {
   assert.equal(
     getOffsetFromTimestamp('2018-11-10T19:38:57.158Z', '2018-11-10T19:38:57.158Z'),
     0,
