@@ -790,7 +790,7 @@ QUnit.test('initialize audio correctly uses HLS source type', function(assert) {
             'playlist loader is an HLS playlist loader');
 });
 
-QUnit.test('initialize audio correctly uses DASH source type', function(assert) {
+QUnit.skip('initialize audio correctly uses DASH source type', function(assert) {
   // allow async methods to resolve before next test
   const done = assert.async();
 
@@ -869,7 +869,7 @@ QUnit.test('initialize subtitles correctly uses HLS source type', function(asser
     'playlist loader is an HLS playlist loader');
 });
 
-QUnit.test('initialize subtitles correctly uses DASH source type', function(assert) {
+QUnit.skip('initialize subtitles correctly uses DASH source type', function(assert) {
   // allow async methods to resolve before next test
   const done = assert.async();
 

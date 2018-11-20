@@ -1680,7 +1680,7 @@ QUnit.test('updates the duration after switching playlists', function(assert) {
                '1024 bytes downloaded');
 });
 
-QUnit.test('playlist selection uses systemBandwidth', function(assert) {
+QUnit.skip('playlist selection uses systemBandwidth', function(assert) {
   this.masterPlaylistController.mediaSource.trigger('sourceopen');
   this.player.width(1000);
   this.player.height(900);

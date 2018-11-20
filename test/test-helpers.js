@@ -289,7 +289,11 @@ export const createPlayer = function(options, src, clock) {
     }
   }
   document.querySelector('#qunit-fixture').appendChild(video);
-  player = videojs(video, options || {});
+
+  let opts = options || {};
+
+  opts = videojs.mergeOptions(opts, { muted: true });
+  player = videojs(video, opts);
 
   player.buffered = function() {
     return videojs.createTimeRange(0, 0);

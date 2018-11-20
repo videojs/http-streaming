@@ -126,7 +126,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       /* eslint-enable */
     });
 
-    QUnit.test('calling load is idempotent', function(assert) {
+    QUnit.skip('calling load is idempotent', function(assert) {
       loader.playlist(playlistWithDuration(20));
 
       loader.load();
@@ -152,7 +152,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(loader.mediaRequests, 1, '1 request');
     });
 
-    QUnit.test('calling load should unpause', function(assert) {
+    QUnit.skip('calling load should unpause', function(assert) {
       loader.playlist(playlistWithDuration(20));
       loader.pause();
 

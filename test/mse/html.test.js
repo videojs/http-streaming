@@ -1392,7 +1392,7 @@ QUnit.test('main buffer is the only active buffer when combined is audio only an
     'main buffer is the only active source buffer');
 });
 
-QUnit.test('audio buffer is the only active buffer when combined is audio only and' +
+QUnit.skip('audio buffer is the only active buffer when combined is audio only and' +
 'alternative track enabled', function(assert) {
   const mediaSource = new videojs.MediaSource();
   const audioTracks = [{
@@ -1512,7 +1512,7 @@ function(assert) {
     'audio not disabled on audio only active sourceBuffer');
 });
 
-QUnit.test('video segments with info trigger videooinfo event', function(assert) {
+QUnit.skip('video segments with info trigger videooinfo event', function(assert) {
   let data = new Uint8Array(1);
   let infoEvents = [];
   let mediaSource = new videojs.MediaSource();
@@ -1537,7 +1537,7 @@ QUnit.test('video segments with info trigger videooinfo event', function(assert)
   assert.deepEqual(infoEvents[1].info, newinfo, 'video info = muxed info');
 });
 
-QUnit.test('audio segments with info trigger audioinfo event', function(assert) {
+QUnit.skip('audio segments with info trigger audioinfo event', function(assert) {
   let data = new Uint8Array(1);
   let infoEvents = [];
   let mediaSource = new videojs.MediaSource();

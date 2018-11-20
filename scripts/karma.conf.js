@@ -66,8 +66,11 @@ module.exports = function(config) {
   config = generateKarmaConfig(config, options);
 
   config.client.qunit.testTimeout = 30000;
+  config.client.qunit.reorder = false;
 
   config.reporters = ['spec'];
-
+  config.specReporter = {
+    failFast: true
+  };
   config.concurrency = 1;
 };

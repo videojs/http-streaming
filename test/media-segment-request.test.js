@@ -52,7 +52,7 @@ QUnit.module('Media Segment Request', {
   }
 });
 
-QUnit.test('cancels outstanding segment request on abort', function(assert) {
+QUnit.skip('cancels outstanding segment request on abort', function(assert) {
   const done = assert.async();
 
   assert.expect(7);
@@ -82,7 +82,7 @@ QUnit.test('cancels outstanding segment request on abort', function(assert) {
   abort();
 });
 
-QUnit.test('cancels outstanding key requests on abort', function(assert) {
+QUnit.skip('cancels outstanding key requests on abort', function(assert) {
   let keyReq;
   const done = assert.async();
 
@@ -122,7 +122,7 @@ QUnit.test('cancels outstanding key requests on abort', function(assert) {
   abort();
 });
 
-QUnit.test('cancels outstanding key requests on failure', function(assert) {
+QUnit.skip('cancels outstanding key requests on failure', function(assert) {
   let keyReq;
   const done = assert.async();
 
@@ -158,7 +158,7 @@ QUnit.test('cancels outstanding key requests on failure', function(assert) {
   segmentReq.respond(500, null, '');
 });
 
-QUnit.test('cancels outstanding key requests on timeout', function(assert) {
+QUnit.skip('cancels outstanding key requests on timeout', function(assert) {
   let keyReq;
   const done = assert.async();
 
@@ -237,7 +237,7 @@ function(assert) {
   segmentReq.respond(500, null, '');
 });
 
-QUnit.test('the key response is converted to the correct format', function(assert) {
+QUnit.skip('the key response is converted to the correct format', function(assert) {
   let keyReq;
   const done = assert.async();
   const postMessage = this.mockDecrypter.postMessage;
@@ -291,7 +291,7 @@ QUnit.test('the key response is converted to the correct format', function(asser
   keyReq.respond(200, null, '');
 });
 
-QUnit.test('segment with key has bytes decrypted', function(assert) {
+QUnit.skip('segment with key has bytes decrypted', function(assert) {
   const done = assert.async();
 
   assert.expect(8);
@@ -336,7 +336,7 @@ QUnit.test('segment with key has bytes decrypted', function(assert) {
   this.clock.tick(100);
 });
 
-QUnit.test('waits for every request to finish before the callback is run',
+QUnit.skip('waits for every request to finish before the callback is run',
 function(assert) {
   const done = assert.async();
 
@@ -394,7 +394,7 @@ function(assert) {
   this.clock.tick(100);
 });
 
-QUnit.test('non-TS segment will get parsed for captions', function(assert) {
+QUnit.skip('non-TS segment will get parsed for captions', function(assert) {
   const done = assert.async();
 
   mediaSegmentRequest(
@@ -440,7 +440,7 @@ QUnit.test('non-TS segment will get parsed for captions', function(assert) {
   this.clock.tick(200);
 });
 
-QUnit.test('non-TS segment will get parsed for captions on next segment request if init is late', function(assert) {
+QUnit.skip('non-TS segment will get parsed for captions on next segment request if init is late', function(assert) {
   const done = assert.async();
   let initBytes;
 
