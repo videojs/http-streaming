@@ -10,7 +10,10 @@ import Playlist from './playlist';
 import xhrFactory from './xhr';
 import { Decrypter, AsyncStream, decrypt } from 'aes-decrypter';
 import * as utils from './bin-utils';
-import { getStreamTime } from './util/time';
+import {
+  getStreamTime,
+  seekToStreamTime
+} from './util/time';
 import { timeRangesToArray } from './ranges';
 import { MediaSource, URL } from './mse/index';
 import videojs from 'video.js';
@@ -740,6 +743,19 @@ class HlsHandler extends Component {
     return getStreamTime({
       playlist: this.masterPlaylistController_.media(),
       time,
+      callback
+    });
+  }
+
+  // the player must be playing before calling this
+  seekToStreamTime(streamTime, callback, pauseAfterSeek = true, retryCount = 2) {
+    return seekToStreamTime({
+      streamTime,
+      playlist: this.masterPlaylistController_.media(),
+      retryCount,
+      pauseAfterSeek,
+      seekTo: this.options_.seekTo,
+      tech: this.options_.tech,
       callback
     });
   }

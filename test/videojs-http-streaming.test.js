@@ -3221,9 +3221,9 @@ QUnit.test('convertToStreamTime will return error if time is not buffered', func
 
   openMediaSource(this.player, this.clock);
 
-  // master
+  // media
   this.standardXHRResponse(this.requests.shift());
-  // media.m3u8
+  // ts
   this.standardXHRResponse(this.requests.shift());
 
   this.player.vhs.convertToStreamTime(3, (err, streamTime) => {
@@ -3277,6 +3277,94 @@ QUnit.test('convertToStreamTime will return stream time if buffered', function(a
     );
     done();
   });
+});
+
+QUnit.test('seekToStreamTime will error if live stream has not started', function(assert) {
+  this.player.src({
+    src: 'manifest/program-date-time.m3u8',
+    type: 'application/x-mpegurl'
+  });
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  this.player.vhs.seekToStreamTime(
+    '2018-10-12T22:33:49.037+00:00',
+    (err, newTime) => {
+      assert.equal(
+        err.message,
+        'player must be playing a live stream to start buffering',
+        'error is returned when live stream has not started'
+      );
+    }
+  );
+
+  this.player.play();
+  // trigger playing with non-existent content
+  this.player.tech_.trigger('playing');
+  // wait for playlist refresh
+  this.clock.tick(4 * 1000 + 1);
+  // ts
+  this.standardXHRResponse(this.requests.shift(), muxedSegment());
+
+  this.player.vhs.seekToStreamTime(
+    '2018-10-12T22:33:49.037+00:00',
+    (err, newTime) => {
+      assert.equal(
+        err.message,
+        '2018-10-12T22:33:49.037+00:00 is not buffered yet. Try again',
+        'error returned if time has not been buffered'
+      );
+    }
+  );
+});
+
+QUnit.test('seekToStreamTime will seek to time if buffered', function(assert) {
+  const done = assert.async();
+
+  this.player.src({
+    src: 'manifest/program-date-time.m3u8',
+    type: 'application/x-mpegurl'
+  });
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  this.player.play();
+  // trigger playing with non-existent content
+  this.player.tech_.trigger('playing');
+  // wait for playlist refresh
+  this.clock.tick(2 * 1000 + 1);
+  // ts
+  this.standardXHRResponse(this.requests.shift(), muxedSegment());
+  // source buffer is mocked, so must manually trigger the video buffer
+  // video buffer is the first buffer created
+  this.player.vhs.masterPlaylistController_
+    .mediaSource.sourceBuffers[0].trigger('updateend');
+  this.clock.tick(1);
+
+  this.player.vhs.seekToStreamTime(
+    '2018-10-12T22:33:49.037+00:00',
+    (err, newTime) => {
+      assert.notOk(
+        err,
+        'no error returned'
+      );
+      assert.equal(
+        newTime,
+        0,
+        'newTime is returned as the time the player seeked to'
+      );
+      done();
+    }
+  );
+
+  // This allows seek to take affect
+  this.clock.tick(2);
 });
 
 QUnit.module('HLS Integration', {
