@@ -57,6 +57,7 @@ QUnit.module('MasterPlaylistController', {
     this.env.restore();
     this.mse.restore();
     videojs.Hls.supportsNativeHls = this.origSupportsNativeHls;
+    window.localStorage.clear();
     videojs.browser = this.oldBrowser;
     this.player.dispose();
   }

@@ -397,3 +397,42 @@ QUnit.test('media playlists "refresh" by re-parsing master xml', function(assert
 
   assert.equal(refreshes, 1, 'refreshed playlist after last segment duration');
 });
+
+QUnit.test('delays load when on final rendition', function(assert) {
+  let loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  let loadedplaylistEvents = 0;
+
+  loader.on('loadedplaylist', () => loadedplaylistEvents++);
+
+  // do an initial load to start the loader
+  loader.load();
+  standardXHRResponse(this.requests.shift());
+
+  // one for master, one for media on first selection
+  assert.equal(loadedplaylistEvents, 2, 'two loadedplaylist events after first load');
+
+  loader.load();
+
+  assert.equal(loadedplaylistEvents, 3, 'one more loadedplaylist event after load');
+
+  loader.load(false);
+
+  assert.equal(
+    loadedplaylistEvents,
+    4,
+    'one more loadedplaylist event after load with isFinalRendition false');
+
+  loader.load(true);
+
+  assert.equal(
+    loadedplaylistEvents,
+    4,
+    'no loadedplaylist event after load with isFinalRendition false');
+
+  this.clock.tick(loader.media().targetDuration / 2 * 1000);
+
+  assert.equal(
+    loadedplaylistEvents,
+    5,
+    'one more loadedplaylist event after final rendition delay');
+});

@@ -10,6 +10,10 @@ import Playlist from './playlist';
 import xhrFactory from './xhr';
 import { Decrypter, AsyncStream, decrypt } from 'aes-decrypter';
 import * as utils from './bin-utils';
+import {
+  getStreamTime,
+  seekToStreamTime
+} from './util/time';
 import { timeRangesToArray } from './ranges';
 import { MediaSource, URL } from './mse/index';
 import videojs from 'video.js';
@@ -71,6 +75,8 @@ const Hls = {
     }
   });
 });
+
+export const LOCAL_STORAGE_KEY = 'videojs-vhs';
 
 const simpleTypeFromSourceType = (type) => {
   const mpegurlRE = /^(audio|video|application)\/(x-|vnd\.apple\.)?mpegurl/i;
@@ -187,6 +193,47 @@ const setupEmeOptions = (hlsHandler) => {
       }
     }
   }
+};
+
+const getVhsLocalStorage = () => {
+  if (!window.localStorage) {
+    return null;
+  }
+
+  const storedObject = window.localStorage.getItem(LOCAL_STORAGE_KEY);
+
+  if (!storedObject) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(storedObject);
+  } catch (e) {
+    // someone may have tampered with the value
+    return null;
+  }
+};
+
+const updateVhsLocalStorage = (options) => {
+  if (!window.localStorage) {
+    return false;
+  }
+
+  let objectToStore = getVhsLocalStorage();
+
+  objectToStore = objectToStore ? videojs.mergeOptions(objectToStore, options) : options;
+
+  try {
+    window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(objectToStore));
+  } catch (e) {
+    // Throws if storage is full (e.g., always on iOS 5+ Safari private mode, where
+    // storage is set to 0).
+    // https://developer.mozilla.org/en-US/docs/Web/API/Storage/setItem#Exceptions
+    // No need to perform any operation.
+    return false;
+  }
+
+  return objectToStore;
 };
 
 /**
@@ -347,13 +394,31 @@ class HlsHandler extends Component {
     this.options_.withCredentials = this.options_.withCredentials || false;
     this.options_.limitRenditionByPlayerDimensions = this.options_.limitRenditionByPlayerDimensions === false ? false : true;
     this.options_.smoothQualityChange = this.options_.smoothQualityChange || false;
+    this.options_.useBandwidthFromLocalStorage =
+      typeof this.source_.useBandwidthFromLocalStorage !== 'undefined' ?
+        this.source_.useBandwidthFromLocalStorage :
+        this.options_.useBandwidthFromLocalStorage || false;
 
     if (typeof this.options_.blacklistDuration !== 'number') {
       this.options_.blacklistDuration = 5 * 60;
     }
 
-    // start playlist selection at a reasonable bandwidth for
-    // broadband internet (0.5 MB/s) or mobile (0.0625 MB/s)
+    if (typeof this.options_.bandwidth !== 'number') {
+      if (this.options_.useBandwidthFromLocalStorage) {
+        const storedObject = getVhsLocalStorage();
+
+        if (storedObject && storedObject.bandwidth) {
+          this.options_.bandwidth = storedObject.bandwidth;
+          this.tech_.trigger({type: 'usage', name: 'hls-bandwidth-from-local-storage'});
+        }
+        if (storedObject && storedObject.throughput) {
+          this.options_.throughput = storedObject.throughput;
+          this.tech_.trigger({type: 'usage', name: 'hls-throughput-from-local-storage'});
+        }
+      }
+    }
+     // if bandwidth was not set by options or pulled from local storage, start playlist
+    // selection at a reasonable bandwidth
     if (typeof this.options_.bandwidth !== 'number') {
       this.options_.bandwidth = Config.INITIAL_BANDWIDTH;
     }
@@ -371,7 +436,6 @@ class HlsHandler extends Component {
       }
     });
 
-    this.bandwidth = this.options_.bandwidth;
     this.limitRenditionByPlayerDimensions = this.options_.limitRenditionByPlayerDimensions;
   }
   /**
@@ -491,6 +555,13 @@ class HlsHandler extends Component {
       }
     });
 
+    if (this.options_.bandwidth) {
+      this.bandwidth = this.options_.bandwidth;
+    }
+    if (this.options_.throughput) {
+      this.throughput = this.options_.throughput;
+    }
+
     Object.defineProperties(this.stats, {
       bandwidth: {
         get: () => this.bandwidth || 0,
@@ -568,6 +639,15 @@ class HlsHandler extends Component {
 
     this.tech_.one('canplay',
       this.masterPlaylistController_.setupFirstPlay.bind(this.masterPlaylistController_));
+
+    this.tech_.on('bandwidthupdate', () => {
+      if (this.options_.useBandwidthFromLocalStorage) {
+        updateVhsLocalStorage({
+          bandwidth: this.bandwidth,
+          throughput: Math.round(this.throughput)
+        });
+      }
+    });
 
     this.masterPlaylistController_.on('selectedinitialmedia', () => {
       // Add the manual rendition mix-in to HlsHandler
@@ -657,6 +737,27 @@ class HlsHandler extends Component {
       this.qualityLevels_.dispose();
     }
     super.dispose();
+  }
+
+  convertToStreamTime(time, callback) {
+    return getStreamTime({
+      playlist: this.masterPlaylistController_.media(),
+      time,
+      callback
+    });
+  }
+
+  // the player must be playing before calling this
+  seekToStreamTime(streamTime, callback, pauseAfterSeek = true, retryCount = 2) {
+    return seekToStreamTime({
+      streamTime,
+      playlist: this.masterPlaylistController_.media(),
+      retryCount,
+      pauseAfterSeek,
+      seekTo: this.options_.seekTo,
+      tech: this.options_.tech,
+      callback
+    });
   }
 }
 
