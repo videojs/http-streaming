@@ -668,6 +668,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * @private
    */
   onEndOfStream() {
+    // Media Source may have been closed
+    if (!this.masterPlaylistLoader_.media() || this.mediaSource.readyState !== 'open' || this.mainSegmentLoader_.sourceUpdater_ && this.mainSegmentLoader_.sourceUpdater_.updating()) {
+      return;
+    }
+
     let isEndOfStream = this.mainSegmentLoader_.ended_;
 
     if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
