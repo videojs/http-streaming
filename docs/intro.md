@@ -34,6 +34,7 @@ If you're interested in a more in-depth description of MPEG-DASH, check out [MDN
 - [Glossary](glossary.md)
 - [Adaptive Bitrate Switching](bitrate-switching.md)
 - [Multiple Alternative Audio Tracks](multiple-alternative-audio-tracks.md)
+- [reloadSourceOnError](reload-source-on-error.md)
 
 # Helpful Tools
 - [FFmpeg](http://trac.ffmpeg.org/wiki/CompilationGuide)
