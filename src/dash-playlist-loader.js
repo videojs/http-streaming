@@ -12,6 +12,8 @@ import {
   forEachMediaGroup
 } from './playlist-loader';
 import { resolveUrl, resolveManifestRedirect } from './resolve-url';
+import mp4Inspector from 'mux.js/lib/tools/mp4-inspector';
+import { segmentXhrHeaders } from './xhr';
 import window from 'global/window';
 
 const { EventTarget, mergeOptions } = videojs;
@@ -284,8 +286,6 @@ export default class DashPlaylistLoader extends EventTarget {
     resolveMediaGroupUris(master);
     this.fetchMediaSegmentsFromSidx_(master.playlists);
 
-    console.log('orig', master.playlists);
-
     return master;
   }
 
@@ -534,23 +534,58 @@ export default class DashPlaylistLoader extends EventTarget {
   fetchMediaSegmentsFromSidx_(playlists) {
     const sidxPlaylists = playlists.filter((p) => p.sidx);
 
-    this.trigger({
-      type: 'sidxrequested',
-      playlists: sidxPlaylists
+    if (sidxPlaylists.length === 0) {
+      return;
+    }
+
+    sidxPlaylists.forEach(playlist => {
+      this.requestSidx(playlist.sidx, playlist);
     });
   }
 
   addSidxInfoToPlaylist_(sidx, playlist) {
+    const newMaster = mergeOptions({}, this.master);
     const p = attachSegmentInfoFromSidx(playlist, sidx);
 
-    for (let i = 0; i < this.master.playlists.length; i++) {
-      const x = this.master.playlists[i];
+    for (let i = 0; i < newMaster.playlists.length; i++) {
+      const x = newMaster.playlists[i];
 
       if (x.uri === p.uri) {
-        this.master.playlists[i] = p;
+        newMaster.playlists[i] = p;
       }
     }
 
-    console.log('after', this.master.playlists);
+    this.master = updateMaster(this.master, newMaster);
+  }
+
+  requestSidx(sidx, playlist) {
+    const sidxInfo = {
+      // resolve the segment URL relative to the playlist
+      uri: sidx.resolvedUri,
+      resolvedUri: sidx.resolvedUri,
+      byterange: sidx.byterange,
+      // the segment's playlist
+      playlist
+    };
+
+    const sidxRequestOptions = videojs.mergeOptions(sidxInfo, {
+      responseType: 'arraybuffer',
+      headers: segmentXhrHeaders(sidxInfo)
+    });
+    const sidxRequestCallback = (err, request) => {
+      if (err) {
+        debugger;
+      }
+
+      const bytes  = new Uint8Array(request.response);
+      const sidx = mp4Inspector.parseSidx(bytes.subarray(8));
+
+      this.addSidxInfoToPlaylist_(sidx, playlist);
+    };
+    const sidxXhr = this.hls_.xhr(sidxRequestOptions, sidxRequestCallback);
   }
 }
+
+// TODO:
+// - make fetchMediaSegmentsFromSidx_ wait for responses for all playlists before calling
+//   addSidxInfoToPlaylist_ and updateMaster

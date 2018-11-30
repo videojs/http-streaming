@@ -13,7 +13,6 @@ import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ra
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
 import { addCaptionData, createCaptionsTrackIfNotExists } from './util/text-tracks';
 import { CaptionParser } from 'mux.js/lib/mp4';
-import mp4Inspector from 'mux.js/lib/tools/mp4-inspector';
 import logger from './util/logger';
 
 // in ms
@@ -979,41 +978,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     this.trigger('progress');
-  }
-
-  requestSidx(sidx, playlist, callback) {
-    const sidxInfo = {
-      requestId: 'segment-loader-' + Math.random(),
-      // resolve the segment URL relative to the playlist
-      uri: sidx.resolvedUri,
-      resolvedUri: sidx.resolvedUri,
-      byterange: sidx.byterange,
-      // the segment's playlist
-      playlist
-    };
-
-    this.state = 'WAITING';
-    this.pendingSegment_ = sidxInfo;
-
-    mediaSegmentRequest(
-        this.hls_.xhr,
-        {},
-        this.decrypter_,
-        this.captionParser_,
-        sidxInfo,
-        // progress callback
-        this.handleProgress_.bind(this),
-        (err, segment) => {
-          if (err) {
-            debugger;
-          }
-
-          // TODO temp
-          const sidx = mp4Inspector.parseSidx(segment.bytes.subarray(8));
-
-          callback(sidx);
-        }
-    );
   }
 
   /**

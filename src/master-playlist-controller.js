@@ -359,16 +359,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.masterPlaylistLoader_.on('renditionenabled', () => {
       this.tech_.trigger({type: 'usage', name: 'hls-rendition-enabled'});
     });
-
-    this.masterPlaylistLoader_.on('sidxrequested', (event) => {
-      const { playlists } = event;
-
-      playlists.forEach(playlist => {
-        this.mainSegmentLoader_.requestSidx(playlist.sidx, playlist, (sidx) => {
-          this.masterPlaylistLoader_.addSidxInfoToPlaylist_(sidx, playlist);
-        });
-      });
-    });
   }
 
   /**

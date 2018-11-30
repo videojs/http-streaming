@@ -1,44 +1,12 @@
 import videojs from 'video.js';
 import { createTransferableMessage } from './bin-utils';
 import mp4probe from 'mux.js/lib/mp4/probe';
+import { segmentXhrHeaders } from './xhr';
 
 export const REQUEST_ERRORS = {
   FAILURE: 2,
   TIMEOUT: -101,
   ABORTED: -102
-};
-
-/**
- * Turns segment byterange into a string suitable for use in
- * HTTP Range requests
- *
- * @param {Object} byterange - an object with two values defining the start and end
- *                             of a byte-range
- */
-const byterangeStr = function(byterange) {
-  let byterangeStart;
-  let byterangeEnd;
-
-  // `byterangeEnd` is one less than `offset + length` because the HTTP range
-  // header uses inclusive ranges
-  byterangeEnd = byterange.offset + byterange.length - 1;
-  byterangeStart = byterange.offset;
-  return 'bytes=' + byterangeStart + '-' + byterangeEnd;
-};
-
-/**
- * Defines headers for use in the xhr request for a particular segment.
- *
- * @param {Object} segment - a simplified copy of the segmentInfo object
- *                           from SegmentLoader
- */
-const segmentXhrHeaders = function(segment) {
-  let headers = {};
-
-  if (segment.byterange) {
-    headers.Range = byterangeStr(segment.byterange);
-  }
-  return headers;
 };
 
 /**
