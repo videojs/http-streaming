@@ -284,7 +284,13 @@ export default class DashPlaylistLoader extends EventTarget {
 
     setupMediaPlaylists(master);
     resolveMediaGroupUris(master);
-    this.fetchMediaSegmentsFromSidx_(master.playlists);
+
+    const sidxPlaylists = master.playlists.filter((p) => p.sidx);
+
+    if (sidxPlaylists.length > 0) {
+      this.fetchMediaSegmentsFromSidx_(master.playlists, master);
+      return null;
+    }
 
     return master;
   }
@@ -509,6 +515,10 @@ export default class DashPlaylistLoader extends EventTarget {
       newMaster = this.parseMasterXml();
     }
 
+    if (!newMaster) {
+      return null;
+    }
+
     const updatedMaster = updateMaster(oldMaster, newMaster);
 
     if (updatedMaster) {
@@ -531,20 +541,14 @@ export default class DashPlaylistLoader extends EventTarget {
     this.trigger('loadedplaylist');
   }
 
-  fetchMediaSegmentsFromSidx_(playlists) {
-    const sidxPlaylists = playlists.filter((p) => p.sidx);
-
-    if (sidxPlaylists.length === 0) {
-      return;
-    }
-
+  fetchMediaSegmentsFromSidx_(sidxPlaylists, master) {
     sidxPlaylists.forEach(playlist => {
-      this.requestSidx(playlist.sidx, playlist);
+      this.requestSidx(playlist.sidx, playlist, master);
     });
   }
 
-  addSidxInfoToPlaylist_(sidx, playlist) {
-    const newMaster = mergeOptions({}, this.master);
+  addSidxInfoToPlaylist_(sidx, playlist, master) {
+    const newMaster = mergeOptions({}, master);
     const p = attachSegmentInfoFromSidx(playlist, sidx);
 
     for (let i = 0; i < newMaster.playlists.length; i++) {
@@ -555,10 +559,16 @@ export default class DashPlaylistLoader extends EventTarget {
       }
     }
 
-    this.master = updateMaster(this.master, newMaster);
+    this.master = updateMaster(master, newMaster);
+
+    this.state = 'HAVE_MASTER';
+    this.trigger('loadedplaylist');
+    // window.setTimeout(() => {
+    //   this.trigger('loadedmetadata');
+    // }, 0);
   }
 
-  requestSidx(sidx, playlist) {
+  requestSidx(sidx, playlist, master) {
     const sidxInfo = {
       // resolve the segment URL relative to the playlist
       uri: sidx.resolvedUri,
@@ -580,7 +590,7 @@ export default class DashPlaylistLoader extends EventTarget {
       const bytes  = new Uint8Array(request.response);
       const sidx = mp4Inspector.parseSidx(bytes.subarray(8));
 
-      this.addSidxInfoToPlaylist_(sidx, playlist);
+      this.addSidxInfoToPlaylist_(sidx, playlist, master);
     };
     const sidxXhr = this.hls_.xhr(sidxRequestOptions, sidxRequestCallback);
   }
