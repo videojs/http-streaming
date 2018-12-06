@@ -742,6 +742,7 @@ class HlsHandler extends Component {
     if (this.player_) {
       this.player_.vhs = null;
       this.player_.dash = null;
+      this.player_.hls = null;
     }
 
     if (this.tech_ && this.tech_.hls) {
