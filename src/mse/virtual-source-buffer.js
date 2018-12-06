@@ -14,6 +14,8 @@ import {
 } from '../util/gops';
 import { buffered } from '../util/buffer';
 
+const ONE_SECOND_IN_TS = 90000;
+
 // We create a wrapper around the SourceBuffer so that we can manage the
 // state of the `updating` property manually. We have to do this because
 // Firefox changes `updating` to false long before triggering `updateend`
@@ -98,6 +100,10 @@ export default class VirtualSourceBuffer extends videojs.EventTarget {
 
       if (event.data.action === 'gopInfo') {
         return this.appendGopInfo_(event);
+      }
+
+      if (event.data.action === 'videoTimingInfo') {
+        return this.videoTimingInfo_(event.data.videoTimingInfo);
       }
     };
 
@@ -210,6 +216,26 @@ export default class VirtualSourceBuffer extends videojs.EventTarget {
     // start processing anything we have received
     this.processPendingSegments_();
     return;
+  }
+
+  videoTimingInfo_(timingInfo) {
+    const timingInfoInSeconds = {
+      start: {
+        decode: timingInfo.start.dts / ONE_SECOND_IN_TS,
+        presentation: timingInfo.start.pts / ONE_SECOND_IN_TS
+      },
+      end: {
+        decode: timingInfo.end.dts / ONE_SECOND_IN_TS,
+        presentation: timingInfo.end.pts / ONE_SECOND_IN_TS
+      }
+    };
+
+    if (timingInfo.prependedGopDuration) {
+      timingInfoInSeconds.prependedGopDuration =
+          timingInfo.prependedGopDuration / ONE_SECOND_IN_TS;
+    }
+
+    this.trigger({ type: 'videoTimingInfo', videoTimingInfo: timingInfoInSeconds });
   }
 
   /**

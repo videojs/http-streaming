@@ -107,11 +107,15 @@ export default class SourceUpdater {
    * @param {Function} done the function to call when done
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-appendBuffer-void-ArrayBuffer-data
    */
-  appendBuffer(bytes, done) {
+  appendBuffer(bytes, done, videoTimingInfoCallback) {
     this.processedAppend_ = true;
     this.queueCallback_(() => {
+      this.sourceBuffer_.addEventListener('videoTimingInfo', videoTimingInfoCallback);
       this.sourceBuffer_.appendBuffer(bytes);
-    }, done);
+    }, () => {
+      this.sourceBuffer_.removeEventListener('videoTimingInfo', videoTimingInfoCallback);
+      done();
+    });
   }
 
   /**

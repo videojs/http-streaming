@@ -65,6 +65,13 @@ const wireTransmuxerEvents = function(self, transmuxer) {
       gopInfo
     });
   });
+
+  transmuxer.on('videoTimingInfo', function(videoTimingInfo) {
+    self.postMessage({
+      action: 'videoTimingInfo',
+      videoTimingInfo
+    });
+  });
 };
 
 /**
