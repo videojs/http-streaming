@@ -2882,6 +2882,7 @@ QUnit.test('configures eme if present on selectedinitialmedia', function(assert)
     }
   };
   this.player.tech_.hls.masterPlaylistController_.mediaTypes_ = {
+    SUBTITLES: {},
     AUDIO: {
       activePlaylistLoader: {
         media: () => {
@@ -2941,6 +2942,7 @@ QUnit.test('does not set source keySystems if keySystems not provided by source'
     }
   };
   this.player.tech_.hls.masterPlaylistController_.mediaTypes_ = {
+    SUBTITLES: {},
     AUDIO: {
       activePlaylistLoader: {
         media: () => {

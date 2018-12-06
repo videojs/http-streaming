@@ -196,6 +196,10 @@ export default class HtmlMediaSource extends videojs.EventTarget {
 
       this.player_ = videojs(video.parentNode);
 
+      if (!this.player_) {
+        return;
+      }
+
       // hls-reset is fired by videojs.Hls on to the tech after the main SegmentLoader
       // resets its state and flushes the buffer
       this.player_.tech_.on('hls-reset', this.onHlsReset_);
@@ -252,6 +256,9 @@ export default class HtmlMediaSource extends videojs.EventTarget {
       // event handlers left to unbind anyway
       if (this.player_.el_) {
         this.player_.off('mediachange', this.onPlayerMediachange_);
+      }
+
+      if (this.player_.tech_ && this.player_.tech_.el_) {
         this.player_.tech_.off('hls-reset', this.onHlsReset_);
         this.player_.tech_.off('hls-segment-time-mapping', this.onHlsSegmentTimeMapping_);
       }
