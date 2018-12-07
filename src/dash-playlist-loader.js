@@ -555,7 +555,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
     return (error, playlist, sidx) => {
       if (error) {
-        debugger;
+        // debugger;
       }
       count += 1;
 
@@ -577,7 +577,7 @@ export default class DashPlaylistLoader extends EventTarget {
   handleSidxResponse_(playlist, finishProcessingFn) {
     return (err, request) => {
       if (err) {
-        debugger;
+        // debugger;
       }
 
       const bytes = new Uint8Array(request.response);
@@ -610,7 +610,7 @@ export default class DashPlaylistLoader extends EventTarget {
     const requestComplete = this.addSidxInfoToPlaylists_(sidxPlaylists.length, master, doneFn);
 
     sidxPlaylists.forEach(playlist => {
-      const playlistXhr = this.requestSidx_(playlist.sidx, playlist, requestComplete);
+      this.requestSidx_(playlist.sidx, playlist, requestComplete);
     });
   }
 }
