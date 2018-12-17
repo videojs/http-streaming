@@ -33,6 +33,191 @@ export const timeWithinSegment = (requestedTime, type, segmentStart, duration) =
   }
 };
 
+export const playerTimeToStreamTime = (playerTime, segment) => {
+  const originalStart = segment.videoTimingInfo.originalStart;
+  const transmuxerPrependedSeconds = segment.videoTimingInfo.transmuxerPrependedSeconds;
+  const transmuxedStart = segment.videoTimingInfo.transmuxedStart;
+
+  // get the proper start of new content (not prepended old content) from the segment,
+  // in player time
+  const startOfSegment = transmuxedStart + transmuxerPrependedSeconds;
+  const offsetFromSegmentStart = playerTime - startOfSegment;
+
+  return originalStart + offsetFromSegmentStart;
+};
+
+export const segmentForStreamTime = (time, playlist) => {
+  let segment = playlist.segments[0];
+
+  for (let i = 0; i < playlist.segments.length - 1; i++) {
+    segment = playlist.segments[i];
+
+    const nextSegmentStart = playlist.segments[i + 1].dateTimeObject;
+
+    if (time < nextSegmentStart) {
+      break;
+    }
+  }
+
+  const lastSegment = playlist.segments[playlist.segments.length - 1];
+  const lastSegmentStart = lastSegment.dateTimeObject;
+
+  if (time > new Date(lastSegmentStart + playlist.targetDuration * 1000)) {
+    // Target duration is the longest a segment can be. If the time exceeds that length
+    // from the last segment's start, then the time requested lies outside of the
+    // playlist.
+    return null;
+  }
+
+  if (time > lastSegmentStart) {
+    segment = lastSegment;
+  }
+
+  return {
+    segment,
+    estimatedStart: segment.dateTimeObject,
+    type: 'accurate'
+  };
+};
+
+export const segmentForPlayerTime = (time, playlist) => {
+  let segmentEnd = 0;
+  let segment;
+
+  for (let i = 0; i < playlist.segments.length; i++) {
+    segment = playlist.segments[i];
+
+    // videoTimingInfo is set after the segment is downloaded and transmuxed, and
+    // should contain the most accurate values we have for the segment's player times.
+    //
+    // Use the accurate transmuxedEnd value if it is available, otherwise fall back to
+    // an estimate based on the manifest derived (inaccurate) segment.duration, to
+    // calculate an end value.
+    segmentEnd = segment.videoTimingInfo ?
+      segment.videoTimingInfo.transmuxedEnd : segmentEnd + segment.duration;
+
+    if (time <= segmentEnd) {
+      break;
+    }
+  }
+
+  const lastSegment = playlist.segments[playlist.segments.length - 1];
+
+  if (lastSegment.videoTimingInfo && lastSegment.videoTimingInfo.transmuxedEnd < time) {
+    // The time requested is beyond the stream end.
+    return null;
+  }
+
+  if (time > segmentEnd) {
+    // Multiply the last segment duration by 1.25 to account for small discrepencies.
+    if (time > segmentEnd + (lastSegment.duration * 1.25)) {
+      // Technically, because the duration value is only an estimate, the time may still
+      // exist in the last segment, however, there isn't enough information to make even
+      // a reasonable estimate.
+      return null;
+    }
+
+    segment = lastSegment;
+  }
+
+  return {
+    segment,
+    estimatedStart: segment.videoTimingInfo ? segment.videoTimingInfo.transmuxedStart :
+      segmentEnd - segment.duration,
+    type: segment.videoTimingInfo ? 'accurate' : 'estimate'
+  };
+};
+
+// TODO delete
+export const segmentForTime = (time, type, playlist) => {
+  if (!playlist.segments || time < 0) {
+    return null;
+  }
+
+  // Two different approaches are used, depending on whether we are looking for player
+  // time or stream time. Although they look similar (segment end time versus next segment
+  // start), they are slightly different, as there could be gaps or other issues between
+  // segments. However, using one over the other, rather than relying on either end or
+  // next segment start for both, should provide the greatest accuracy.
+  let segmentEnd = 0;
+  let segment = playlist.segments[0];
+
+  for (let i = 0; i < playlist.segments.length - 1; i++) {
+    segment = playlist.segments[i];
+
+    if (type === 'player') {
+      // videoTimingInfo is set after the segment is downloaded and transmuxed, and
+      // should contain the most accurate values we have for the segment's player times.
+      //
+      // Use the accurate transmuxedEnd value if it is available, otherwise fall back to
+      // an estimate based on the manifest derived (inaccurate) segment.duration, to
+      // calculate an end value.
+      segmentEnd = segment.videoTimingInfo ?
+        segment.videoTimingInfo.transmuxedEnd : segmentEnd + segment.duration;
+
+      if (time <= segmentEnd) {
+        break;
+      }
+    } else if (type === 'stream') {
+      const nextSegment = playlist.segments[i + 1];
+
+      // The program date time property should always be accurate, thus, as long as we
+      // only consider those values, we can accurately determine the segment for the time.
+      const nextSegmentStart = nextSegment.dateTimeObject;
+
+      if (time < nextSegmentStart) {
+        break;
+      }
+    }
+  }
+
+  const lastSegment = playlist.segments[playlist.segments.length - 1];
+  let accuracy;
+
+  if (type === 'player') {
+    if (lastSegment.videoTimingInfo && lastSegment.videoTimingInfo.transmuxedEnd < time) {
+      // The time requested is beyond the stream end.
+      return null;
+    }
+
+    if (time > segmentEnd) {
+      // Multiply the last segment duration by 1.25 to account for small discrepencies.
+      if (time > segmentEnd + (lastSegment.duration * 1.25)) {
+        // Technically, because the duration value is only an estimate, the time may still
+        // exist in the last segment, however, there isn't enough information to make even
+        // a reasonable estimate.
+        return null;
+      }
+
+      segment = lastSegment;
+    }
+
+    accuracy = segment.videoTimingInfo ? 'accurate' : 'estimate';
+  }
+
+  if (type === 'stream') {
+    const lastSegmentStart = lastSegment.dateTimeObject;
+
+    if (time > new Date(lastSegmentStart + playlist.targetDuration * 1000)) {
+      // Target duration is the longest a segment can be. If the time exceeds that length
+      // from the last segment's start, then the time requested lies outside of the
+      // playlist.
+      return null;
+    }
+
+    accuracy = 'accurate';
+
+    if (time > lastSegment.dateTimeObject) {
+      segment = lastSegment;
+    }
+  }
+
+  return {
+    segment,
+    accuracy
+  };
+};
+
 /**
  * Finds a segment that contains the time requested. This might be an estimate or
  * an accurate match.
@@ -45,6 +230,7 @@ export const timeWithinSegment = (requestedTime, type, segmentStart, duration) =
  * @return {Date|Number} match.estimatedStart The estimated start time of the segment
  * @return {"accurate" | "estimate"} match.type Whether the match is estimated or accurate
  */
+/*
 const findSegmentForTime = (time, type, playlist) => {
   if (!playlist.segments || playlist.segments.length === 0) {
     return null;
@@ -107,6 +293,7 @@ const findSegmentForTime = (time, type, playlist) => {
 
   return null;
 };
+*/
 
 /**
  * Finds a segment that contains the given player time(in seconds).
@@ -122,7 +309,8 @@ export const findSegmentForPlayerTime = (time, playlist) => {
   // - segment.start and segment.end only come
   //    from syncController
 
-  return findSegmentForTime(time, 'player', playlist);
+  // return findSegmentForTime(time, 'player', playlist);
+  return segmentForPlayerTime(time, playlist);
 };
 
 /**
@@ -144,7 +332,8 @@ export const findSegmentForStreamTime = (streamTime, playlist) => {
   // Assumptions:
   //  - verifyProgramDateTimeTags has already been run
   //  - live streams have been started
-  return findSegmentForTime(dateTimeObject, 'stream', playlist);
+  // return findSegmentForTime(dateTimeObject, 'stream', playlist);
+  return segmentForStreamTime(dateTimeObject, playlist);
 };
 
 /**
