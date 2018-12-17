@@ -42,10 +42,6 @@ module.exports = function(config) {
         base: 'ChromeHeadless',
         flags: [ '--no-sandbox' ]
       },
-      ChromeWithFlags: {
-        base: 'Chrome',
-        flags: ['--no-sandbox']
-      },
       ChromeBrowserStack: {
         base: 'BrowserStack',
         flags: [ '--no-sandbox' ],
@@ -91,7 +87,7 @@ module.exports = function(config) {
 
         var newBrowsers = [];
         if (browsers.indexOf('Chrome') !== -1) {
-          newBrowsers.push('ChromeWithFlags');
+          newBrowsers.push('Chrome');
         }
 
         if (browsers.indexOf('Firefox') !== -1) {
