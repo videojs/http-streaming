@@ -325,7 +325,8 @@ class HlsHandler extends Component {
             videojs.log.warn('player.hls is deprecated. Use player.tech().hls instead.');
             tech.trigger({ type: 'usage', name: 'hls-player-access' });
             return this;
-          }
+          },
+          configurable: true
         });
       }
 
@@ -337,6 +338,8 @@ class HlsHandler extends Component {
       _player.vhs = this;
       // deprecated, for backwards compatibility
       _player.dash = this;
+
+      this.player_ = _player;
     }
 
     this.tech_ = tech;
@@ -736,6 +739,17 @@ class HlsHandler extends Component {
     if (this.qualityLevels_) {
       this.qualityLevels_.dispose();
     }
+
+    if (this.player_) {
+      delete this.player_.vhs;
+      delete this.player_.dash;
+      delete this.player_.hls;
+    }
+
+    if (this.tech_ && this.tech_.hls) {
+      delete this.tech_.hls;
+    }
+
     super.dispose();
   }
 

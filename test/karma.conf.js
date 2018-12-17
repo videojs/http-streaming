@@ -87,7 +87,7 @@ module.exports = function(config) {
 
         var newBrowsers = [];
         if (browsers.indexOf('Chrome') !== -1) {
-          newBrowsers.push('ChromeHeadlessWithFlags');
+          newBrowsers.push('Chrome');
         }
 
         if (browsers.indexOf('Firefox') !== -1) {

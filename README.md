@@ -32,6 +32,7 @@ Video.js Compatibility: 6.0, 7.0
   - [Via MSE](#via-mse)
   - [Native only](#native-only)
   - [Flash Support](#flash-support)
+  - [DRM](#drm)
 - [Documentation](#documentation)
   - [Options](#options)
     - [How to use](#how-to-use)
@@ -143,6 +144,12 @@ Using the [overrideNative](#overridenative) option
 ### Flash Support
 This plugin does not support Flash playback. Instead, it is recommended that users use the [videojs-flashls-source-handler](https://github.com/brightcove/videojs-flashls-source-handler) plugin as a fallback option for browsers that don't have a native
 [HLS](https://caniuse.com/#feat=http-live-streaming)/[DASH](https://caniuse.com/#feat=mpeg-dash) player or support for [Media Source Extensions](http://caniuse.com/#feat=mediasource).
+
+### DRM
+
+DRM is supported through [videojs-contrib-eme](https://github.com/videojs/videojs-contrib-eme). In order to use DRM, include the videojs-contrib-eme plug, [initialize it](https://github.com/videojs/videojs-contrib-eme#initialization), and add options to either the [plugin](https://github.com/videojs/videojs-contrib-eme#plugin-options) or the [source](https://github.com/videojs/videojs-contrib-eme#source-options).
+
+Detailed option information can be found in the [videojs-contrib-eme README](https://github.com/videojs/videojs-contrib-eme/blob/master/README.md).
 
 ## Documentation
 [HTTP Live Streaming](https://developer.apple.com/streaming/) (HLS) has

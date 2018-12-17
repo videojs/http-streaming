@@ -2286,6 +2286,9 @@ QUnit.test('switches off subtitles on subtitle errors', function(assert) {
   assert.equal(textTracks[1].kind, 'subtitles', 'kind is subtitles');
   textTracks[1].mode = 'showing';
 
+  // Wait for VTT segment to be requested
+  this.clock.tick(1);
+
   assert.equal(this.requests.length, 1, 'made a request');
   assert.equal(textTracks[1].mode, 'showing', 'text track still showing');
 
@@ -2301,6 +2304,9 @@ QUnit.test('switches off subtitles on subtitle errors', function(assert) {
 
   // re-enable first text track
   textTracks[1].mode = 'showing';
+
+  // Wait for VTT segment request to be made
+  this.clock.tick(1);
 
   assert.equal(this.requests.length, 1, 'made a request');
   assert.equal(textTracks[1].mode, 'showing', 'text track still showing');
@@ -2359,6 +2365,9 @@ QUnit.test('pauses subtitle segment loader on tech errors', function(assert) {
   assert.notEqual(textTracks[0].kind, 'subtitles', 'kind is not subtitles');
   assert.equal(textTracks[1].kind, 'subtitles', 'kind is subtitles');
   textTracks[1].mode = 'showing';
+
+  // Wait for VTT segment request to be made
+  this.clock.tick(1);
 
   let pauseCount = 0;
 
@@ -2421,6 +2430,9 @@ QUnit.test('disposes subtitle loaders on dispose', function(assert) {
   assert.equal(textTracks[1].kind, 'subtitles', 'kind is subtitles');
   textTracks[1].mode = 'showing';
 
+  // Wait for VTT segment request to be made
+  this.clock.tick(1);
+
   assert.ok(masterPlaylistController.mediaTypes_.SUBTITLES.activePlaylistLoader,
             'has a subtitle playlist loader');
   assert.ok(masterPlaylistController.subtitleSegmentLoader_,
@@ -2467,6 +2479,9 @@ QUnit.test('subtitle segment loader resets on seeks', function(assert) {
   assert.notEqual(textTracks[0].kind, 'subtitles', 'kind is not subtitles');
   assert.equal(textTracks[1].kind, 'subtitles', 'kind is subtitles');
   textTracks[1].mode = 'showing';
+
+  // Wait for VTT segment request to be made
+  this.clock.tick(1);
 
   let resetCount = 0;
   let abortCount = 0;
