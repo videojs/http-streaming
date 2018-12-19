@@ -468,7 +468,8 @@ class HlsHandler extends Component {
     this.masterPlaylistController_ = new MasterPlaylistController(this.options_);
     this.playbackWatcher_ = new PlaybackWatcher(
       videojs.mergeOptions(this.options_, {
-        seekable: () => this.seekable()
+        seekable: () => this.seekable(),
+        media: () => this.masterPlaylistController_.media()
       }));
 
     this.masterPlaylistController_.on('error', () => {
