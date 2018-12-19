@@ -852,4 +852,35 @@ QUnit.test('respects allowSeeksWithinUnsafeLiveWindow flag', function(assert) {
   assert.notOk(
     afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), 10, playlist, true),
     'false if within seekable range');
+
+  playlist.endList = true;
+
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 10.8, playlist, true),
+    'false if before seekable range');
+  assert.ok(
+    afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 20.2, playlist, true),
+    'true if after seekable range');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 10.9, playlist, true),
+    'false if within starting seekable range buffer');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 20.1, playlist, true),
+    'false if within ending seekable range buffer');
+
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges(), 10, playlist, true),
+    'false if no seekable range');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), -0.2, playlist, true),
+    'false if current time is negative');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), 5, playlist, true),
+    'false if within seekable range');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), 0, playlist, true),
+    'false if within seekable range');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), 10, playlist, true),
+    'false if within seekable range');
 });
