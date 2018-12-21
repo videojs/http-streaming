@@ -48,6 +48,7 @@ Video.js Compatibility: 6.0, 7.0
       - [enableLowInitialPlaylist](#enablelowinitialplaylist)
       - [limitRenditionByPlayerDimensions](#limitrenditionbyplayerdimensions)
       - [smoothQualityChange](#smoothqualitychange)
+      - [allowSeeksWithinUnsafeLiveWindow](#allowSeeksWithinUnsafeLiveWindow)
   - [Runtime Properties](#runtime-properties)
     - [hls.playlists.master](#hlsplaylistsmaster)
     - [hls.playlists.media](#hlsplaylistsmedia)
@@ -373,6 +374,25 @@ be visible after a few seconds.
 Note that this _only_ affects quality changes triggered via the representations
 API; automatic quality switches based on available bandwidth will always be
 smooth switches.
+
+##### allowSeeksWithinUnsafeLiveWindow
+* Type: `boolean`
+* can be used as a source option
+
+When `allowSeeksWithinUnsafeLiveWindow` is set to `true`, if the active playlist is live
+and a seek is made to a time between the safe live point (end of manifest minus three
+times the target duration,
+see [the hls spec](https://tools.ietf.org/html/draft-pantos-http-live-streaming-23#section-6.3.3)
+for details) and the end of the playlist, the seek is allowed, rather than corrected to
+the safe live point.
+
+This option can help in instances where the live stream's target duration is greater than
+the segment durations, playback ends up in the unsafe live window, and there are gaps in
+the content. In this case the player will attempt to seek past the gaps but end up seeking
+inside of the unsafe range, leading to a correction and seek back into a previously played
+content.
+
+The property defaults to `false`.
 
 ### Runtime Properties
 Runtime properties are attached to the tech object when HLS is in

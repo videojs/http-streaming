@@ -548,6 +548,65 @@ QUnit.test('corrects seek outside of seekable', function(assert) {
   assert.equal(seeks.length, 4, 'did not seek');
 });
 
+QUnit.test('corrected seeks respect allowSeeksWithinUnsafeLiveWindow flag',
+function(assert) {
+  // set an arbitrary live source
+  this.player.src({
+    src: 'liveStart30sBefore.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  // start playback normally
+  this.player.tech_.triggerReady();
+  this.clock.tick(1);
+  standardXHRResponse(this.requests.shift());
+  openMediaSource(this.player, this.clock);
+  this.player.tech_.trigger('play');
+  this.player.tech_.trigger('playing');
+  this.clock.tick(1);
+
+  let playbackWatcher = this.player.tech_.hls.playbackWatcher_;
+  let seeks = [];
+  let seekable;
+  let seeking;
+  let currentTime;
+
+  playbackWatcher.seekable = () => seekable;
+  playbackWatcher.tech_ = {
+    off: () => {},
+    seeking: () => seeking,
+    currentTime: () => currentTime,
+    // mocked out
+    paused: () => false,
+    buffered: () => videojs.createTimeRanges()
+  };
+  this.player.vhs.setCurrentTime = (time) => seeks.push(time);
+
+  playbackWatcher.allowSeeksWithinUnsafeLiveWindow = true;
+
+  // waiting
+
+  seekable = videojs.createTimeRanges([[1, 45]]);
+  seeking = true;
+
+  // target duration of 10, seekable end of 45
+  // 45 + 3 * 10 = 75
+  currentTime = 75;
+  this.player.tech_.trigger('waiting');
+  assert.equal(seeks.length, 0, 'did not seek');
+
+  currentTime = 75.1;
+  this.player.tech_.trigger('waiting');
+  assert.equal(seeks.length, 1, 'seeked');
+  assert.equal(seeks[0], 45, 'player seeked to live point');
+
+  playbackWatcher.allowSeeksWithinUnsafeLiveWindow = true;
+
+  currentTime = 75;
+  this.player.tech_.trigger('waiting');
+  assert.equal(seeks.length, 1, 'did not seek');
+});
+
 QUnit.test('calls fixesBadSeeks_ on seekablechanged', function(assert) {
   // set an arbitrary live source
   this.player.src({
@@ -675,36 +734,153 @@ QUnit.test('detects live window falloff', function(assert) {
     'true if current time is 0 and earlier than seekable range');
 });
 
-QUnit.test('detects beyond seekable window', function(assert) {
+QUnit.test('detects beyond seekable window for VOD', function(assert) {
+  const playlist = {
+    endList: true,
+    targetDuration: 7
+  };
   let afterSeekableWindow_ =
     this.playbackWatcher.afterSeekableWindow_.bind(this.playbackWatcher);
 
-  assert.ok(
-    !afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 10.8),
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 10.8, playlist),
     'false if before seekable range');
   assert.ok(
-    afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 20.2),
+    afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 20.2, playlist),
     'true if after seekable range');
-  assert.ok(
-    !afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 10.9),
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 10.9, playlist),
     'false if within starting seekable range buffer');
-  assert.ok(
-    !afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 20.1),
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 20.1, playlist),
     'false if within ending seekable range buffer');
 
-  assert.ok(
-    !afterSeekableWindow_(videojs.createTimeRanges(), 10),
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges(), 10, playlist),
     'false if no seekable range');
-  assert.ok(
-    !afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), -0.2),
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), -0.2, playlist),
     'false if current time is negative');
-  assert.ok(
-    !afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), 5),
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), 5, playlist),
     'false if within seekable range');
-  assert.ok(
-    !afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), 0),
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), 0, playlist),
     'false if within seekable range');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), 10, playlist),
+    'false if within seekable range');
+});
+
+QUnit.test('detects beyond seekable window for LIVE', function(assert) {
+  // no endList means live
+  const playlist = {
+    targetDuration: 7
+  };
+  let afterSeekableWindow_ =
+    this.playbackWatcher.afterSeekableWindow_.bind(this.playbackWatcher);
+
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 10.8, playlist),
+    'false if before seekable range');
   assert.ok(
-    !afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), 10),
+    afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 20.2, playlist),
+    'true if after seekable range');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 10.9, playlist),
+    'false if within starting seekable range buffer');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 20.1, playlist),
+    'false if within ending seekable range buffer');
+
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges(), 10, playlist),
+    'false if no seekable range');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), -0.2, playlist),
+    'false if current time is negative');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), 5, playlist),
+    'false if within seekable range');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), 0, playlist),
+    'false if within seekable range');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), 10, playlist),
+    'false if within seekable range');
+});
+
+QUnit.test('respects allowSeeksWithinUnsafeLiveWindow flag', function(assert) {
+  // no endList means live
+  const playlist = {
+    targetDuration: 7
+  };
+  let afterSeekableWindow_ =
+    this.playbackWatcher.afterSeekableWindow_.bind(this.playbackWatcher);
+
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 10.8, playlist, true),
+    'false if before seekable range');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 20.2, playlist, true),
+    'false if after seekable range but within unsafe live window');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 40.9, playlist, true),
+    'false if after seekable range but within unsafe live window');
+  assert.ok(
+    afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 41.1, playlist, true),
+    'true if after seekable range and unsafe live window');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 10.9, playlist, true),
+    'false if within starting seekable range buffer');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 20.1, playlist, true),
+    'false if within ending seekable range buffer');
+
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges(), 10, playlist, true),
+    'false if no seekable range');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), -0.2, playlist, true),
+    'false if current time is negative');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), 5, playlist, true),
+    'false if within seekable range');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), 0, playlist, true),
+    'false if within seekable range');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), 10, playlist, true),
+    'false if within seekable range');
+
+  playlist.endList = true;
+
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 10.8, playlist, true),
+    'false if before seekable range');
+  assert.ok(
+    afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 20.2, playlist, true),
+    'true if after seekable range');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 10.9, playlist, true),
+    'false if within starting seekable range buffer');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 20.1, playlist, true),
+    'false if within ending seekable range buffer');
+
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges(), 10, playlist, true),
+    'false if no seekable range');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), -0.2, playlist, true),
+    'false if current time is negative');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), 5, playlist, true),
+    'false if within seekable range');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), 0, playlist, true),
+    'false if within seekable range');
+  assert.notOk(
+    afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), 10, playlist, true),
     'false if within seekable range');
 });
