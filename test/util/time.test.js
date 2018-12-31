@@ -84,8 +84,12 @@ QUnit.test('findSegmentForPlayerTime returns nothing if a match cannot be found'
   assert.equal(
     findSegmentForPlayerTime(10, {
       segments: [{
-        start: 0,
-        end: 1
+        videoTimingInfo: {
+          originalPresentationStart: 0,
+          transmuxerPrependedSeconds: 0,
+          transmuxedPresentationStart: 0,
+          transmuxedPresentationEnd: 1
+        }
       }]
     }),
     null,
@@ -113,8 +117,12 @@ QUnit.test('findSegmentForPlayerTime returns estimate if segment not buffered', 
 
 QUnit.test('findSegmentForPlayerTime returns accurate if segment buffered', function(assert) {
   const segment = {
-    start: 0,
-    end: 1,
+    videoTimingInfo: {
+      originalPresentationStart: 0,
+      transmuxerPrependedSeconds: 0,
+      transmuxedPresentationStart: 0,
+      transmuxedPresentationEnd: 1
+    },
     duration: 1
   };
 
@@ -139,7 +147,8 @@ QUnit.test('findSegmentForStreamTime returns nothing if a match cannot be found'
   );
   assert.equal(
     findSegmentForStreamTime('2018-11-10T19:39:57.158Z', {
-      segments: []
+      segments: [],
+      targetDuration: 1
     }),
     null,
     'returns nothing if empty segment list'
@@ -147,18 +156,24 @@ QUnit.test('findSegmentForStreamTime returns nothing if a match cannot be found'
   assert.equal(
     findSegmentForStreamTime('2018-11-10T19:40:57.158Z', {
       segments: [{
-        start: 0,
-        end: 1,
+        videoTimingInfo: {
+          originalPresentationStart: 0,
+          transmuxerPrependedSeconds: 0,
+          transmuxedPresentationStart: 0,
+          transmuxedPresentationEnd: 1
+        },
         duration: 1,
         dateTimeObject: new Date('2018-11-10T19:39:57.158Z')
-      }]
+      }],
+      targetDuration: 1
     }),
     null,
     'returns nothing if requested time is not available'
   );
 });
 
-QUnit.test('findSegmentForStreamTime returns estimate if segment not buffered', function(assert) {
+QUnit.test('findSegmentForStreamTime returns estimate if last segment and not buffered',
+function(assert) {
   const segment = {
     duration: 1,
     dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
@@ -173,14 +188,42 @@ QUnit.test('findSegmentForStreamTime returns estimate if segment not buffered', 
       segment,
       estimatedStart: new Date('2018-11-10T19:38:57.158Z')
     },
-    'returns estimated match if segment not buffered'
+    'returns estimate'
+  );
+});
+
+QUnit.test('findSegmentForStreamTime returns accurate even if not buffered',
+function(assert) {
+  const segment1 = {
+    duration: 1,
+    dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
+  };
+  const segment2 = {
+    duration: 1,
+    dateTimeObject: new Date('2018-11-10T19:38:58.158Z')
+  };
+
+  assert.deepEqual(
+    findSegmentForStreamTime('2018-11-10T19:38:57.200Z', {
+      segments: [segment1, segment2]
+    }),
+    {
+      type: 'accurate',
+      segment: segment1,
+      estimatedStart: new Date('2018-11-10T19:38:57.158Z')
+    },
+    'returns accurate'
   );
 });
 
 QUnit.test('findSegmentForStreamTime returns accurate match if buffered', function(assert) {
   const segment = {
-    start: 0,
-    end: 1,
+    videoTimingInfo: {
+      originalPresentationStart: 0,
+      transmuxerPrependedSeconds: 0,
+      transmuxedPresentationStart: 0,
+      transmuxedPresentationEnd: 1
+    },
     duration: 1,
     dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
   };
@@ -297,7 +340,12 @@ QUnit.module('Time: getStreamTime', {
         dateTimeObject: new Date(1541894400000),
         dateTimeString: '2018-11-11T00:00:00.000Z',
         start: 5,
-        end: 9
+        videoTimingInfo: {
+          originalPresentationStart: 5,
+          transmuxerPrependedSeconds: 0,
+          transmuxedPresentationStart: 0,
+          transmuxedPresentationEnd: 9
+        }
       }]
     };
   },
@@ -662,10 +710,10 @@ QUnit.test('returns error if time does not exist in live stream', function(asser
       segments: [{
         dateTimeString: '2018-10-12T22:33:49.037+00:00',
         dateTimeObject: new Date('2018-10-12T22:33:49.037+00:00'),
-        start: 0,
-        end: 1,
-        duration: 1
+        duration: 1,
+        start: 0
       }],
+      targetDuration: 1,
       resolvedUri: 'test'
     },
     seekTo: this.seekTo,
@@ -675,75 +723,6 @@ QUnit.test('returns error if time does not exist in live stream', function(asser
       assert.equal(
         err.message,
         '2018-10-12T22:33:52.037+00:00 was not found in the stream',
-        'returns error when live stream has not started'
-      );
-      done();
-    }
-  });
-});
-
-QUnit.test('vod: returns error if we can only get estimates even with retries',
-function(assert) {
-  const done = assert.async();
-
-  seekToStreamTime({
-    streamTime: '2018-10-12T22:33:50.037+00:00',
-    playlist: {
-      segments: [
-        {
-          dateTimeString: '2018-10-12T22:33:49.037+00:00',
-          dateTimeObject: new Date('2018-10-12T22:33:49.037+00:00'),
-          duration: 1
-        }, {
-          dateTimeString: '2018-10-12T22:33:50.037+00:00',
-          dateTimeObject: new Date('2018-10-12T22:33:50.037+00:00'),
-          duration: 1
-        }
-      ],
-      resolvedUri: 'test',
-      endList: true
-    },
-    seekTo: this.seekTo,
-    // tech that hasn't started
-    tech: this.tech,
-    callback: (err, newTime) => {
-      assert.equal(
-        err.message,
-        '2018-10-12T22:33:50.037+00:00 is not buffered yet. Try again',
-        'returns error when live stream has not started'
-      );
-      done();
-    }
-  });
-});
-
-QUnit.test('live: returns error if we can only get estimates even with retries',
-function(assert) {
-  const done = assert.async();
-
-  seekToStreamTime({
-    streamTime: '2018-10-12T22:33:50.037+00:00',
-    playlist: {
-      segments: [
-        {
-          dateTimeString: '2018-10-12T22:33:49.037+00:00',
-          dateTimeObject: new Date('2018-10-12T22:33:49.037+00:00'),
-          duration: 1
-        }, {
-          dateTimeString: '2018-10-12T22:33:50.037+00:00',
-          dateTimeObject: new Date('2018-10-12T22:33:50.037+00:00'),
-          duration: 1
-        }
-      ],
-      resolvedUri: 'test'
-    },
-    seekTo: this.seekTo,
-    // tech that hasn't started
-    tech: this.tech,
-    callback: (err, newTime) => {
-      assert.equal(
-        err.message,
-        '2018-10-12T22:33:50.037+00:00 is not buffered yet. Try again',
         'returns error when live stream has not started'
       );
       done();
@@ -780,16 +759,15 @@ QUnit.test('vod: seeks and returns player time seeked to if buffered', function(
           dateTimeString: '2018-10-12T22:33:49.037+00:00',
           dateTimeObject: new Date('2018-10-12T22:33:49.037+00:00'),
           duration: 1,
-          start: 0,
-          end: 1
+          start: 0
         }, {
           dateTimeString: '2018-10-12T22:33:50.037+00:00',
           dateTimeObject: new Date('2018-10-12T22:33:50.037+00:00'),
           duration: 1,
-          start: 1,
-          end: 2
+          start: 1
         }
       ],
+      targetDuration: 1,
       resolvedUri: 'test',
       endList: true
     },
@@ -837,16 +815,15 @@ QUnit.test('live: seeks and returns player time seeked to if buffered', function
           dateTimeString: '2018-10-12T22:33:49.037+00:00',
           dateTimeObject: new Date('2018-10-12T22:33:49.037+00:00'),
           duration: 1,
-          start: 0,
-          end: 1
+          start: 0
         }, {
           dateTimeString: '2018-10-12T22:33:50.037+00:00',
           dateTimeObject: new Date('2018-10-12T22:33:50.037+00:00'),
           duration: 1,
-          start: 1,
-          end: 2
+          start: 1
         }
       ],
+      targetDuration: 1,
       resolvedUri: 'test'
     },
     seekTo,
@@ -893,16 +870,15 @@ QUnit.test('setting pauseAfterSeek to false seeks without pausing', function(ass
           dateTimeString: '2018-10-12T22:33:49.037+00:00',
           dateTimeObject: new Date('2018-10-12T22:33:49.037+00:00'),
           duration: 1,
-          start: 0,
-          end: 1
+          start: 0
         }, {
           dateTimeString: '2018-10-12T22:33:50.037+00:00',
           dateTimeObject: new Date('2018-10-12T22:33:50.037+00:00'),
           duration: 1,
-          start: 1,
-          end: 2
+          start: 1
         }
       ],
+      targetDuration: 1,
       resolvedUri: 'test',
       endList: true
     },

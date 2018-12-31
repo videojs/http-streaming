@@ -3261,10 +3261,27 @@ QUnit.test('convertToStreamTime will return stream time if buffered', function(a
   // ts
   this.standardXHRResponse(this.requests[2], muxedSegment());
 
+  const videoBuffer =
+    this.player.vhs.masterPlaylistController_.mediaSource.sourceBuffers[0];
+
+  // since we don't run through the transmuxer, we have to manually trigger the timing
+  // info callback
+  videoBuffer.trigger({
+    type: 'videoTimingInfo',
+    videoTimingInfo: {
+      prependedGopDuration: 0,
+      start: {
+        presentation: 0
+      },
+      end: {
+        presentation: 1
+      }
+    }
+  });
+
   // source buffer is mocked, so must manually trigger the video buffer
   // video buffer is the first buffer created
-  this.player.vhs.masterPlaylistController_
-    .mediaSource.sourceBuffers[0].trigger('updateend');
+  videoBuffer.trigger('updateend');
   this.clock.tick(1);
 
   // ts
