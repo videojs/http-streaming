@@ -288,7 +288,8 @@ export default class DashPlaylistLoader extends EventTarget {
     const sidxPlaylists = master.playlists.filter((p) => p.sidx);
 
     if (sidxPlaylists.length > 0) {
-      return this.fetchMediaSegmentsFromSidx_(master.playlists, master, done);
+      // Note: this calls done!
+      this.fetchMediaSegmentsFromSidx_(master.playlists, master, done);
     }
 
     done(master);
