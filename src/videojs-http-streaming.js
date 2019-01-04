@@ -401,6 +401,7 @@ class HlsHandler extends Component {
       typeof this.source_.useBandwidthFromLocalStorage !== 'undefined' ?
         this.source_.useBandwidthFromLocalStorage :
         this.options_.useBandwidthFromLocalStorage || false;
+    this.options_.customTagParsers = this.options_.customTagParsers || [];
 
     if (typeof this.options_.blacklistDuration !== 'number') {
       this.options_.blacklistDuration = 5 * 60;
@@ -433,7 +434,13 @@ class HlsHandler extends Component {
       this.options_.bandwidth === Config.INITIAL_BANDWIDTH;
 
     // grab options passed to player.src
-    ['withCredentials', 'limitRenditionByPlayerDimensions', 'bandwidth', 'smoothQualityChange'].forEach((option) => {
+    [
+      'withCredentials',
+      'limitRenditionByPlayerDimensions',
+      'bandwidth',
+      'smoothQualityChange',
+      'customTagParsers'
+    ].forEach((option) => {
       if (typeof this.source_[option] !== 'undefined') {
         this.options_[option] = this.source_[option];
       }
