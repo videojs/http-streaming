@@ -862,6 +862,32 @@ QUnit.test('logs warning for master playlist with invalid STREAM-INF', function(
     'logged a warning');
 });
 
+QUnit.test('executes custom tag parsers', function(assert) {
+  const customTagParsers = [{
+    expression: /#PARSER/,
+    customType: 'test',
+    segment: true
+  }];
+
+  this.fakeHls.options_ = { customTagParsers };
+
+  let loader = new PlaylistLoader('master.m3u8', this.fakeHls);
+
+  loader.load();
+  this.requests.pop().respond(200, null,
+                             '#EXTM3U\n' +
+                             '#PARSER:parsed\n' +
+                             '#EXTINF:10,\n' +
+                             '0.ts\n' +
+                             '#EXT-X-ENDLIST\n');
+
+  const segment = loader.master.playlists[0].segments[0];
+
+  assert.strictEqual(segment.custom.test, '#PARSER:parsed', 'parsed custom tag');
+
+  delete this.fakeHls.options_;
+});
+
 QUnit.test('jumps to HAVE_METADATA when initialized with a media playlist',
 function(assert) {
   let loadedmetadatas = 0;
