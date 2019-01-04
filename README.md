@@ -48,7 +48,8 @@ Video.js Compatibility: 6.0, 7.0
       - [enableLowInitialPlaylist](#enablelowinitialplaylist)
       - [limitRenditionByPlayerDimensions](#limitrenditionbyplayerdimensions)
       - [smoothQualityChange](#smoothqualitychange)
-      - [allowSeeksWithinUnsafeLiveWindow](#allowSeeksWithinUnsafeLiveWindow)
+      - [allowSeeksWithinUnsafeLiveWindow](#allowseekswithinunsafelivewindow)
+      - [customTagParsers](#customtagparsers)
   - [Runtime Properties](#runtime-properties)
     - [hls.playlists.master](#hlsplaylistsmaster)
     - [hls.playlists.media](#hlsplaylistsmedia)
@@ -393,6 +394,12 @@ inside of the unsafe range, leading to a correction and seek back into a previou
 content.
 
 The property defaults to `false`.
+
+##### customTagParsers
+* Type: `Array`
+* can be used as a source option
+
+With `customTagParsers` you can pass an array of custom m3u8 tag parser objects. See https://github.com/videojs/m3u8-parser#custom-parsers
 
 ### Runtime Properties
 Runtime properties are attached to the tech object when HLS is in
