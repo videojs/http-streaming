@@ -285,9 +285,17 @@ export default class DashPlaylistLoader extends EventTarget {
     setupMediaPlaylists(master);
     resolveMediaGroupUris(master);
 
-    const sidxPlaylists = master.playlists.filter((p) => p.sidx);
+    let sidxPlaylists = 0;
 
-    if (sidxPlaylists.length > 0) {
+    for (var key in master.playlists) {
+      const playlist = master.playlists[key];
+
+      if (playlist.sidx) {
+        sidxPlaylists++;
+      }
+    }
+
+    if (sidxPlaylists > 0) {
       // Note: this calls done!
       this.fetchMediaSegmentsFromSidx_(master.playlists, master, done);
     }
@@ -550,7 +558,7 @@ export default class DashPlaylistLoader extends EventTarget {
     }
   }
 
-  addSidxInfoToPlaylists_(numRequests, master, doneFn) {
+  addSidxInfoToPlaylists_(activeXhrs, master, doneFn) {
     let count = 0;
     let sidxMapping = {};
 
@@ -565,7 +573,7 @@ export default class DashPlaylistLoader extends EventTarget {
         sidx
       };
 
-      if (count === numRequests) {
+      if (count === activeXhrs.length) {
         // mutates the playlist and master by consequence
         attachSegmentInfoFromSidx({master, sidxMapping});
 
@@ -608,11 +616,20 @@ export default class DashPlaylistLoader extends EventTarget {
   }
 
   fetchMediaSegmentsFromSidx_(sidxPlaylists, master, doneFn) {
-    const requestComplete = this.addSidxInfoToPlaylists_(sidxPlaylists.length, master, doneFn);
+    const activeXhrs = [];
+    const requestComplete = this.addSidxInfoToPlaylists_(activeXhrs, master, doneFn);
+    const requestedUris = [];
 
-    sidxPlaylists.forEach(playlist => {
-      this.requestSidx_(playlist.sidx, playlist, requestComplete);
-    });
+    for (let key in sidxPlaylists) {
+      const playlist = sidxPlaylists[key];
+
+      if (requestedUris.indexOf(playlist.uri) === -1 && playlist.sidx) {
+        const sidxRequest = this.requestSidx_(playlist.sidx, playlist, requestComplete);
+
+        activeXhrs.push(sidxRequest);
+        requestedUris.push(playlist.uri);
+      }
+    }
   }
 }
 
