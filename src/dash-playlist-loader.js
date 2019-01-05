@@ -285,17 +285,15 @@ export default class DashPlaylistLoader extends EventTarget {
     setupMediaPlaylists(master);
     resolveMediaGroupUris(master);
 
-    let sidxPlaylists = 0;
-
+    let hasSidx = false;
     for (var key in master.playlists) {
-      const playlist = master.playlists[key];
-
-      if (playlist.sidx) {
-        sidxPlaylists++;
+      if (master.playlists[key].sidx) {
+        hasSidx = true;
+        break;
       }
     }
 
-    if (sidxPlaylists > 0) {
+    if (hasSidx) {
       // Note: this calls done!
       this.fetchMediaSegmentsFromSidx_(master.playlists, master, done);
     }
