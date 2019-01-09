@@ -223,7 +223,7 @@ export default class PlaylistLoader extends EventTarget {
 
       this.state = 'HAVE_CURRENT_METADATA';
 
-      this.request = this.hls_.xhr({
+      this.hls_.xhr({
         uri: resolveUrl(this.master.uri, this.media().uri),
         withCredentials: this.withCredentials
       }, (error, req) => {
@@ -238,7 +238,8 @@ export default class PlaylistLoader extends EventTarget {
         }
 
         this.haveMetadata(this.request, this.media().uri);
-      });
+      })
+        .then(xhr => this.request = xhr);
     });
   }
 
@@ -400,7 +401,7 @@ export default class PlaylistLoader extends EventTarget {
       this.trigger('mediachanging');
     }
 
-    this.request = this.hls_.xhr({
+    this.hls_.xhr({
       uri: resolveUrl(this.master.uri, playlist.uri),
       withCredentials: this.withCredentials
     }, (error, req) => {
@@ -421,7 +422,8 @@ export default class PlaylistLoader extends EventTarget {
       } else {
         this.trigger('mediachange');
       }
-    });
+    })
+      .then(xhr => this.request = xhr);
   }
 
   /**
@@ -484,7 +486,7 @@ export default class PlaylistLoader extends EventTarget {
     this.started = true;
 
     // request the specified URL
-    this.request = this.hls_.xhr({
+    this.hls_.xhr({
       uri: this.srcUrl,
       withCredentials: this.withCredentials
     }, (error, req) => {
@@ -560,6 +562,7 @@ export default class PlaylistLoader extends EventTarget {
       this.master.playlists[0].attributes = this.master.playlists[0].attributes || {};
       this.haveMetadata(req, this.srcUrl);
       return this.trigger('loadedmetadata');
-    });
+    })
+      .then(xhr => this.request = xhr);
   }
 }
