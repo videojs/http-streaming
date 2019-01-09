@@ -1256,11 +1256,11 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     this.sourceUpdater_.appendBuffer({
       bytes: segmentInfo.bytes,
-      videoTimingInfoCallback: this.handleVideoTimingInfo_.bind(this)
+      videoSegmentTimingInfoCallback: this.handleVideoSegmentTimingInfo_.bind(this)
     }, this.handleUpdateEnd_.bind(this));
   }
 
-  handleVideoTimingInfo_(event) {
+  handleVideoSegmentTimingInfo_(event) {
     if (!this.pendingSegment_) {
       return;
     }
@@ -1273,11 +1273,11 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     segment.videoTimingInfo.transmuxerPrependedSeconds =
-      event.videoTimingInfo.prependedGopDuration || 0;
+      event.videoSegmentTimingInfo.prependedContentDuration || 0;
     segment.videoTimingInfo.transmuxedPresentationStart =
-      event.videoTimingInfo.start.presentation;
+      event.videoSegmentTimingInfo.start.presentation;
     segment.videoTimingInfo.transmuxedPresentationEnd =
-      event.videoTimingInfo.end.presentation;
+      event.videoSegmentTimingInfo.end.presentation;
   }
 
   /**

@@ -3267,8 +3267,8 @@ QUnit.test('convertToStreamTime will return stream time if buffered', function(a
   // since we don't run through the transmuxer, we have to manually trigger the timing
   // info callback
   videoBuffer.trigger({
-    type: 'videoTimingInfo',
-    videoTimingInfo: {
+    type: 'videoSegmentTimingInfo',
+    videoSegmentTimingInfo: {
       prependedGopDuration: 0,
       start: {
         presentation: 0

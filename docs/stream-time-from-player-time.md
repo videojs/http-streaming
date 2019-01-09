@@ -4,10 +4,10 @@
 
 NOTE: All times referenced in seconds unless otherwise specified.
 
-*Player Time*: any time that can be gotten/set from player.currentTime() (e.g., any time within player.seekable().start(0) to player.seekable().end(0))
-*Stream Time*: any time set within one of the stream's segments used by video frames (e.g., dts, pts, base media decode time), natively uses clock values, but referenced in seconds throughout the document
-*Program Time*: any time referencing the real world (e.g., EXT-X-PROGRAM-DATE-TIME)
-*Start of Segment*: the pts (presentation timestamp) value of the first frame in a segment
+*Player Time*: any time that can be gotten/set from player.currentTime() (e.g., any time within player.seekable().start(0) to player.seekable().end(0)).
+*Stream Time*: any time within one of the stream's segments. Used by video frames (e.g., dts, pts, base media decode time). While these times natively use clock values, throughout the document the times are referenced in seconds.
+*Program Time*: any time referencing the real world (e.g., EXT-X-PROGRAM-DATE-TIME).
+*Start of Segment*: the pts (presentation timestamp) value of the first frame in a segment.
 
 ## Overview
 
@@ -16,7 +16,7 @@ In order to convert from a *player time* to a *stream time*, two things are requ
 1. An anchor point must be chosen to match up a *player time* and a *stream time*
 1. The offset must be determined between the *player time* and the *stream time* at that point
 
-Two anchor points that are usable are the time since the start of a new timeline (e.g., the time since the last discontinuity or start of the stream), and the start of a segment. Because each segment is tagged with its *program time*, using the segment start as the anchor point is the easiest solution, since it's the closest point to the time to convert, and it doesn't require us to track time changes across multiple segments.
+Two anchor points that are usable are the time since the start of a new timeline (e.g., the time since the last discontinuity or start of the stream), and the start of a segment. Because each segment is tagged with its *program time*, using the segment start as the anchor point is the easiest solution, as it's the closest potential anchor point to the time to convert, and it doesn't require us to track time changes across multiple segments.
 
 To make use of the segment start, and to calculate the offset between the two, a few properties are needed:
 
@@ -24,9 +24,9 @@ To make use of the segment start, and to calculate the offset between the two, a
 1. Time changes made to the segment during transmuxing
 1. The start of the segment after transmuxing
 
-While the start of the segment before and after transmuxing is trivial to retrieve, getting the time changes made during transmuxing is more complicated, as we must account for any trimming, prepending, and gap filling made during the transmux stage. However, the required use-case only requires determining the position of a video frame, allowing us to ignore any changes made to the audio timeline (because VHS uses video as the timeline of truth), and allowing us to ignore a couple of the video changes made.
+While the start of the segment before and after transmuxing is trivial to retrieve, getting the time changes made during transmuxing is more complicated, as we must account for any trimming, prepending, and gap filling made during the transmux stage. However, the required use-case only needs the position of a video frame, allowing us to ignore any changes made to the audio timeline (because VHS uses video as the timeline of truth), as well as a couple of the video modifications.
 
-What follows are the changes made to a video stream by the transmuxer that could modify the timeline, and if they must be accounted for in the conversion:
+What follows are the changes made to a video stream by the transmuxer that could alter the timeline, and if they must be accounted for in the conversion:
 
 * Keyframe Pulling
   * Used when: the segment doesn't start with a keyframe.
@@ -41,7 +41,7 @@ What follows are the changes made to a video stream by the transmuxer that could
   * Impact: GOPs in the segment will be dropped until there are no overlapping GOPs with previous segments.
   * Need to account in time conversion? No. So long as we aren't switching renditions, and the content is sane enough to not contain overlapping GOPs, this should not have a meaningful impact.
 
-Among the changes, with only GOP Fusion having an impact, the task becomes simpler. Instead of accounting for any changes to the video stream, only those from GOP Fusion should be accounted for. Since GOP fusion will potentially only prepend frames to the segment, we just need the number of seconds prepended to the segment when offsetting the time. As such, we can add the following properties to each segment:
+Among the changes, with only GOP Fusion having an impact, the task is simplified. Instead of accounting for any changes to the video stream, only those from GOP Fusion should be accounted for. Since GOP fusion will potentially only prepend frames to the segment, we just need the number of seconds prepended to the segment when offsetting the time. As such, we can add the following properties to each segment:
 
 ```
 segment: {

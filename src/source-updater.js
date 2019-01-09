@@ -110,15 +110,15 @@ export default class SourceUpdater {
   appendBuffer(config, done) {
     this.processedAppend_ = true;
     this.queueCallback_(() => {
-      if (config.videoTimingInfoCallback) {
+      if (config.videoSegmentTimingInfoCallback) {
         this.sourceBuffer_.addEventListener(
-          'videoTimingInfo', config.videoTimingInfoCallback);
+          'videoSegmentTimingInfo', config.videoSegmentTimingInfoCallback);
       }
       this.sourceBuffer_.appendBuffer(config.bytes);
     }, () => {
-      if (config.videoTimingInfoCallback) {
+      if (config.videoSegmentTimingInfoCallback) {
         this.sourceBuffer_.removeEventListener(
-          'videoTimingInfo', config.videoTimingInfoCallback);
+          'videoSegmentTimingInfo', config.videoSegmentTimingInfoCallback);
       }
       if (done) {
         done();

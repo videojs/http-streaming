@@ -66,10 +66,10 @@ const wireTransmuxerEvents = function(self, transmuxer) {
     });
   });
 
-  transmuxer.on('videoTimingInfo', function(videoTimingInfo) {
+  transmuxer.on('videoSegmentTimingInfo', function(videoSegmentTimingInfo) {
     self.postMessage({
-      action: 'videoTimingInfo',
-      videoTimingInfo
+      action: 'videoSegmentTimingInfo',
+      videoSegmentTimingInfo
     });
   });
 };

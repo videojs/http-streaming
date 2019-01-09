@@ -102,8 +102,8 @@ export default class VirtualSourceBuffer extends videojs.EventTarget {
         return this.appendGopInfo_(event);
       }
 
-      if (event.data.action === 'videoTimingInfo') {
-        return this.videoTimingInfo_(event.data.videoTimingInfo);
+      if (event.data.action === 'videoSegmentTimingInfo') {
+        return this.videoSegmentTimingInfo_(event.data.videoSegmentTimingInfo);
       }
     };
 
@@ -218,7 +218,7 @@ export default class VirtualSourceBuffer extends videojs.EventTarget {
     return;
   }
 
-  videoTimingInfo_(timingInfo) {
+  videoSegmentTimingInfo_(timingInfo) {
     const timingInfoInSeconds = {
       start: {
         decode: timingInfo.start.dts / ONE_SECOND_IN_TS,
@@ -230,12 +230,15 @@ export default class VirtualSourceBuffer extends videojs.EventTarget {
       }
     };
 
-    if (timingInfo.prependedGopDuration) {
-      timingInfoInSeconds.prependedGopDuration =
-          timingInfo.prependedGopDuration / ONE_SECOND_IN_TS;
+    if (timingInfo.prependedContentDuration) {
+      timingInfoInSeconds.prependedContentDuration =
+          timingInfo.prependedContentDuration / ONE_SECOND_IN_TS;
     }
 
-    this.trigger({ type: 'videoTimingInfo', videoTimingInfo: timingInfoInSeconds });
+    this.trigger({
+      type: 'videoSegmentTimingInfo',
+      videoSegmentTimingInfo: timingInfoInSeconds
+    });
   }
 
   /**

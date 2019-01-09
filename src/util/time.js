@@ -55,7 +55,8 @@ export const actualSegmentVideoDuration = (videoTimingInfo) => {
 };
 
 /**
- * Finds a segment that contains the stream time give as an ISO-8601 string.
+ * Finds a segment that contains the time requested given as an ISO-8601 string. The
+ * returned segment might be an estimate or an accurate match.
  *
  * @param {String} streamTime The ISO-8601 streamTime to find a match for
  * @param {Object} playlist A playlist object to search within
