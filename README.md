@@ -50,6 +50,7 @@ Video.js Compatibility: 6.0, 7.0
       - [smoothQualityChange](#smoothqualitychange)
       - [allowSeeksWithinUnsafeLiveWindow](#allowseekswithinunsafelivewindow)
       - [customTagParsers](#customtagparsers)
+      - [customTagMappers](#customtagmappers)
   - [Runtime Properties](#runtime-properties)
     - [hls.playlists.master](#hlsplaylistsmaster)
     - [hls.playlists.media](#hlsplaylistsmedia)
@@ -400,6 +401,12 @@ The property defaults to `false`.
 * can be used as a source option
 
 With `customTagParsers` you can pass an array of custom m3u8 tag parser objects. See https://github.com/videojs/m3u8-parser#custom-parsers
+
+##### customTagMappers
+* Type: `Array`
+* can be used as a source option
+
+Similar to `customTagParsers`, with `customTagMappers` you can pass an array of custom m3u8 tag mapper objects. See https://github.com/videojs/m3u8-parser#custom-parsers
 
 ### Runtime Properties
 Runtime properties are attached to the tech object when HLS is in
