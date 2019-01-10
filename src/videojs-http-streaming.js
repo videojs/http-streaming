@@ -402,6 +402,7 @@ class HlsHandler extends Component {
         this.source_.useBandwidthFromLocalStorage :
         this.options_.useBandwidthFromLocalStorage || false;
     this.options_.customTagParsers = this.options_.customTagParsers || [];
+    this.options_.customTagMappers = this.options_.customTagMappers || [];
 
     if (typeof this.options_.blacklistDuration !== 'number') {
       this.options_.blacklistDuration = 5 * 60;
@@ -439,7 +440,8 @@ class HlsHandler extends Component {
       'limitRenditionByPlayerDimensions',
       'bandwidth',
       'smoothQualityChange',
-      'customTagParsers'
+      'customTagParsers',
+      'customTagMappers'
     ].forEach((option) => {
       if (typeof this.source_[option] !== 'undefined') {
         this.options_[option] = this.source_[option];

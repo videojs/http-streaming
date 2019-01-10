@@ -38,6 +38,27 @@ const options = [{
   default: false,
   test: true,
   alt: false
+}, {
+  name: 'useBandwidthFromLocalStorage',
+  default: false,
+  test: true
+}, {
+  name: 'customTagParsers',
+  default: [],
+  test: [{
+    expression: /#PARSER/,
+    customType: 'test',
+    segment: true
+  }]
+}, {
+  name: 'customTagMappers',
+  default: [],
+  test: [{
+    expression: /#MAPPER/,
+    map(line) {
+      return `#FOO`;
+    }
+  }]
 }];
 
 const CONFIG_KEYS = Object.keys(Config);
@@ -270,7 +291,7 @@ options.forEach((opt) => {
 
     let hls = this.player.tech_.hls;
 
-    assert.equal(hls.options_[opt.name],
+    assert.deepEqual(hls.options_[opt.name],
                 opt.default,
                 `${opt.name} should be default`);
   });
@@ -306,7 +327,7 @@ options.forEach((opt) => {
 
     let hls = this.player.tech_.hls;
 
-    assert.equal(hls.options_[opt.name],
+    assert.deepEqual(hls.options_[opt.name],
                 opt.test,
                 `${opt.name} should be equal to sourceHandler Option`);
   });
@@ -325,7 +346,7 @@ options.forEach((opt) => {
 
     let hls = this.player.tech_.hls;
 
-    assert.equal(hls.options_[opt.name],
+    assert.deepEqual(hls.options_[opt.name],
                 opt.test,
                 `${opt.name} should be equal to src option`);
   });
@@ -345,7 +366,7 @@ options.forEach((opt) => {
 
     let hls = this.player.tech_.hls;
 
-    assert.equal(hls.options_[opt.name],
+    assert.deepEqual(hls.options_[opt.name],
                 opt.test,
                 `${opt.name} should be equal to sourchHandler option`);
   });
@@ -366,7 +387,7 @@ options.forEach((opt) => {
 
     let hls = this.player.tech_.hls;
 
-    assert.equal(hls.options_[opt.name],
+    assert.deepEqual(hls.options_[opt.name],
                 opt.test,
                 `${opt.name} should be equal to sourchHandler option`);
   });
