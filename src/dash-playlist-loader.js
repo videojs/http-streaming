@@ -275,7 +275,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
       this.syncClientServerClock_(this.onClientServerClockSync_.bind(this));
     })
-      .then(xhr => this.request = xhr);
+      .then(request => this.request = request);
   }
 
   /**
@@ -335,7 +335,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
       done();
     })
-      .then(xhr => this.request = xhr);
+      .then(request => this.request = request);
   }
 
   /**
@@ -414,7 +414,7 @@ export default class DashPlaylistLoader extends EventTarget {
         this.trigger('minimumUpdatePeriod');
       }, this.master.minimumUpdatePeriod);
     })
-      .then(xhr => this.request = xhr);
+      .then(request => this.request = request);
   }
 
   /**

@@ -48,7 +48,7 @@ const segmentXhrHeaders = function(segment) {
  */
 const abortAll = (activeXhrs) => {
   activeXhrs.forEach(promise => {
-    promise.then(xhr => xhr.abort());
+    promise.then(request => request.abort());
   });
 };
 
@@ -469,7 +469,7 @@ export const mediaSegmentRequest = (xhr,
                                                        finishProcessingFn);
   const segmentXhr = xhr(segmentRequestOptions, segmentRequestCallback);
 
-  segmentXhr.then(s => s.addEventListener('progress', handleProgress(segment, progressFn)));
+  segmentXhr.then(request => request.addEventListener('progress', handleProgress(segment, progressFn)));
   activeXhrs.push(segmentXhr);
 
   return () => abortAll(activeXhrs);

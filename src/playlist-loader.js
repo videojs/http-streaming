@@ -239,7 +239,7 @@ export default class PlaylistLoader extends EventTarget {
 
         this.haveMetadata(this.request, this.media().uri);
       })
-        .then(xhr => this.request = xhr);
+        .then(request => this.request = request);
     });
   }
 
@@ -423,7 +423,7 @@ export default class PlaylistLoader extends EventTarget {
         this.trigger('mediachange');
       }
     })
-      .then(xhr => this.request = xhr);
+      .then(request => this.request = request);
   }
 
   /**
@@ -563,6 +563,6 @@ export default class PlaylistLoader extends EventTarget {
       this.haveMetadata(req, this.srcUrl);
       return this.trigger('loadedmetadata');
     })
-      .then(xhr => this.request = xhr);
+      .then(request => this.request = request);
   }
 }
