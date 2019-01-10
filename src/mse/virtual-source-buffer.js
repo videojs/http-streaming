@@ -479,7 +479,7 @@ export default class VirtualSourceBuffer extends videojs.EventTarget {
       sortedSegments.video.segments.unshift(sortedSegments.video.initSegment);
       sortedSegments.video.bytes += sortedSegments.video.initSegment.byteLength;
       this.concatAndAppendSegments_(sortedSegments.video, this.videoBuffer_);
-      
+
     } else if (this.videoBuffer_ && (this.audioDisabled_ || !this.audioBuffer_)) {
       // The transmuxer did not return any bytes of video, meaning it was all trimmed
       // for gop alignment. Since we have a video buffer and audio is disabled, updateend
