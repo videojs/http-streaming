@@ -68,7 +68,7 @@
   "dependencies": {
     "aes-decrypter": "3.0.0",
     "global": "^4.3.0",
-    "m3u8-parser": "4.2.0",
+    "m3u8-parser": "4.3.0",
     "mpd-parser": "0.7.0",
     "mux.js": "5.0.1",
     "url-toolkit": "^2.1.3",
