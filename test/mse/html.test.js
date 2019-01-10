@@ -1230,6 +1230,64 @@ QUnit.test('translates metadata events into WebVTT cues', function(assert) {
   assert.strictEqual(cues[2].endTime, mediaSource.duration, 'sourceended is fired');
 });
 
+QUnit.test('translates metadata events from audio-only stream into WebVTT cues', function(assert) {
+  let mediaSource = new videojs.MediaSource();
+  let sourceBuffer = mediaSource.addSourceBuffer('video/mp2t; codecs=\"avc1.4d400d, mp4a.40.2\"');
+
+  mediaSource.duration = Infinity;
+  mediaSource.nativeMediaSource_.duration = 60;
+
+  let types = [];
+  let metadata = [{
+    cueTime: 12,
+    frames: [{
+      data: 'This is a priv tag'
+    }]
+  }];
+
+  metadata.dispatchType = 0x10;
+  mediaSource.player_ = {
+    addRemoteTextTrack(options) {
+      types.push(options.kind);
+      return {
+        track: {
+          kind: options.kind,
+          label: options.label,
+          cues: [],
+          addCue(cue) {
+            this.cues.push(cue);
+          }
+        }
+      };
+    },
+    remoteTextTracks() {
+    }
+  };
+  sourceBuffer.timestampOffset = 10;
+
+  sourceBuffer.transmuxer_.onmessage(createDataMessage('audio', new Uint8Array(1), {
+    metadata
+  }));
+  sourceBuffer.transmuxer_.onmessage(doneMessage);
+
+  assert.strictEqual(
+    sourceBuffer.metadataTrack_.inBandMetadataTrackDispatchType,
+    16,
+    'in-band metadata track dispatch type correctly set'
+  );
+  let cues = sourceBuffer.metadataTrack_.cues;
+
+  assert.strictEqual(types.length, 1, 'created one text track');
+  assert.strictEqual(types[0], 'metadata', 'the type was metadata');
+  assert.strictEqual(cues.length, 1, 'created one cue');
+  assert.strictEqual(cues[0].text, 'This is a priv tag', 'included the text');
+  assert.strictEqual(cues[0].startTime, 22, 'started at twenty two');
+  assert.strictEqual(cues[0].endTime, Number.MAX_VALUE, 'ended at the maximum value');
+  mediaSource.duration = 100;
+  mediaSource.trigger('sourceended');
+  assert.strictEqual(cues[0].endTime, mediaSource.duration, 'sourceended is fired');
+});
+
 QUnit.test('does not wrap mp4 source buffers', function(assert) {
   let mediaSource = new videojs.MediaSource();
 
