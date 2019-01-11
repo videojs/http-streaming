@@ -7,7 +7,8 @@ import {
   findSegmentForPlayerTime,
   findSegmentForStreamTime,
   getOffsetFromTimestamp,
-  originalSegmentVideoDuration
+  originalSegmentVideoDuration,
+  playerTimeToStreamTime
 } from '../../src/util/time.js';
 
 QUnit.module('Time');
@@ -516,6 +517,62 @@ function(assert) {
     }),
     7,
     'determined original segment video duration'
+  );
+});
+
+QUnit.test('playerTimeToStreamTime returns null if no dateTimeObject', function(assert) {
+  assert.equal(
+    playerTimeToStreamTime(7, {
+      videoTimingInfo: {
+        transmuxedPresentationEnd: 11,
+        transmuxedPresentationStart: 4,
+        transmuxerPrependedSeconds: 0
+      }
+    }),
+    null,
+    'returns null'
+  );
+});
+
+QUnit.test(
+'playerTimeToStreamTime converts a player time to a stream time based on segment' +
+' program date time',
+function(assert) {
+  // UTC: Sun, 11 Nov 2018 00:00:00 GMT
+  const dateTimeObject = new Date(1541894400000);
+
+  assert.deepEqual(
+    playerTimeToStreamTime(7, {
+      dateTimeObject,
+      videoTimingInfo: {
+        transmuxedPresentationEnd: 11,
+        transmuxedPresentationStart: 4,
+        transmuxerPrependedSeconds: 0
+      }
+    }).toISOString(),
+    // 7 seconds into the stream, segment starts at 4 seconds
+    (new Date(dateTimeObject.getTime() + 3 * 1000)).toISOString(),
+    'returns stream time based on segment program date time'
+  );
+});
+
+QUnit.test('playerTimeToStreamTime accounts for prepended content', function(assert) {
+  // UTC: Sun, 11 Nov 2018 00:00:00 GMT
+  const dateTimeObject = new Date(1541894400000);
+
+  assert.deepEqual(
+    playerTimeToStreamTime(7, {
+      dateTimeObject,
+      videoTimingInfo: {
+        transmuxedPresentationEnd: 11,
+        transmuxedPresentationStart: 4,
+        transmuxerPrependedSeconds: 2
+      }
+    }).toISOString(),
+    // 7 seconds into the stream, segment starts at 4 seconds, but after accounting for
+    // prepended content of 2 seconds, the original segment starts at 6 seconds
+    (new Date(dateTimeObject.getTime() + 1 * 1000)).toISOString(),
+    'returns stream time based on segment program date time'
   );
 });
 
