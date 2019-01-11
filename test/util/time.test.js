@@ -6,7 +6,8 @@ import {
   verifyProgramDateTimeTags,
   findSegmentForPlayerTime,
   findSegmentForStreamTime,
-  getOffsetFromTimestamp
+  getOffsetFromTimestamp,
+  originalSegmentVideoDuration
 } from '../../src/util/time.js';
 
 QUnit.module('Time');
@@ -501,6 +502,33 @@ QUnit.test('getOffsetFromTimestamp will calculate second differences in timestam
     getOffsetFromTimestamp('2018-11-10T19:38:57.158Z', '2018-11-10T19:38:56.158Z'),
     -1,
     'negative offset returned if streamTime is before comparison timestamp'
+  );
+});
+
+QUnit.test(
+'originalSegmentVideoDuration uses transmuxed end and start to determine duration',
+function(assert) {
+  assert.equal(
+    originalSegmentVideoDuration({
+      transmuxedPresentationEnd: 11,
+      transmuxedPresentationStart: 4,
+      transmuxerPrependedSeconds: 0
+    }),
+    7,
+    'determined original segment video duration'
+  );
+});
+
+QUnit.test('originalSegmentVideoDuration accounts for prepended content',
+function(assert) {
+  assert.equal(
+    originalSegmentVideoDuration({
+      transmuxedPresentationEnd: 11,
+      transmuxedPresentationStart: 4,
+      transmuxerPrependedSeconds: 3
+    }),
+    4,
+    'determined original segment video duration'
   );
 });
 
