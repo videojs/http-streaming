@@ -10,7 +10,7 @@ import { removeCuesFromTrack } from './mse/remove-cues-from-track';
 import { initSegmentId } from './bin-utils';
 import { mediaSegmentRequest, REQUEST_ERRORS } from './media-segment-request';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
-import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
+import { maxBandwidthForDeadlineSelector } from './playlist-selectors';
 import { addCaptionData, createCaptionsTrackIfNotExists } from './util/text-tracks';
 import { CaptionParser } from 'mux.js/lib/mp4';
 import logger from './util/logger';
@@ -160,6 +160,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.currentTime_ = settings.currentTime;
     this.seekable_ = settings.seekable;
     this.seeking_ = settings.seeking;
+    this.seekStartedAt_ = settings.seekStartedAt;
     this.duration_ = settings.duration;
     this.mediaSource_ = settings.mediaSource;
     this.hls_ = settings.hls;
@@ -170,6 +171,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.sourceType_ = settings.sourceType;
     this.inbandTextTracks_ = settings.inbandTextTracks;
     this.state_ = 'INIT';
+    this.seekDeadline_ = options.seekDeadline;
 
     // private instance variables
     this.checkBufferTimeout_ = null;
@@ -904,26 +906,36 @@ export default class SegmentLoader extends videojs.EventTarget {
                                           this.playlist_,
                                           stats.bytesReceived);
 
-    // Subtract 1 from the timeUntilRebuffer so we still consider an early abort
-    // if we are only left with less than 1 second when the request completes.
-    // A negative timeUntilRebuffering indicates we are already rebuffering
-    const timeUntilRebuffer = timeUntilRebuffer_(this.buffered_(),
-                                                 currentTime,
-                                                 this.hls_.tech_.playbackRate()) - 1;
+    let deadline;
+
+    if (this.seeking_()) {
+      if (!this.seekStartedAt_()) {
+        // we need the time at which seeking started to make a decision
+        return;
+      }
+      deadline = this.seekDeadline_ - ((new Date() - this.seekStartedAt_()) / 1000);
+    } else {
+      // Subtract 1 from the timeUntilRebuffer so we still consider an early abort
+      // if we are only left with less than 1 second when the request completes.
+      // A negative timeUntilRebuffering indicates we are already rebuffering
+      deadline = timeUntilRebuffer_(this.buffered_(),
+                                                   currentTime,
+                                                   this.hls_.tech_.playbackRate()) - 1;
+    }
 
     // Only consider aborting early if the estimated time to finish the download
     // is larger than the estimated time until the player runs out of forward buffer
-    if (requestTimeRemaining <= timeUntilRebuffer) {
+    if (requestTimeRemaining <= deadline) {
       return false;
     }
 
-    const switchCandidate = minRebufferMaxBandwidthSelector({
+    const switchCandidate = maxBandwidthForDeadlineSelector({
       master: this.hls_.playlists.master,
       currentTime,
       bandwidth: measuredBandwidth,
       duration: this.duration_(),
       segmentDuration,
-      timeUntilRebuffer,
+      deadline,
       currentTimeline: this.currentTimeline_,
       syncController: this.syncController_
     });
@@ -932,16 +944,14 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    const rebufferingImpact = requestTimeRemaining - timeUntilRebuffer;
-
-    const timeSavedBySwitching = rebufferingImpact - switchCandidate.rebufferingImpact;
+    const timeSavedBySwitching = requestTimeRemaining - switchCandidate.requestTimeEstimate;
 
     let minimumTimeSaving = 0.5;
 
     // If we are already rebuffering, increase the amount of variance we add to the
     // potential round trip time of the new request so that we are not too aggressive
     // with switching to a playlist that might save us a fraction of a second.
-    if (timeUntilRebuffer <= TIME_FUDGE_FACTOR) {
+    if (deadline <= TIME_FUDGE_FACTOR) {
       minimumTimeSaving = 1;
     }
 
@@ -1342,6 +1352,21 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
+    // any time an update finishes and the last segment is in the
+    // buffer, end the stream. this ensures the "ended" event will
+    // fire if playback reaches that point.
+    const isEndOfStream = this.isEndOfStream_(segmentInfo.mediaIndex + 1,
+      segmentInfo.playlist);
+
+    if (this.loaderType_ === 'main' && this.seeking_()) {
+      let buffered = this.buffered_();
+
+      if (isEndOfStream ||
+          (buffered.end(0) - this.currentTime_()) >= (this.roundTrip / 1000) + 1) {
+        this.trigger('buffered');
+      }
+    }
+
     // Don't do a rendition switch unless we have enough time to get a sync segment
     // and conservatively guess
     if (isWalkingForward) {
@@ -1349,10 +1374,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
     this.trigger('progress');
 
-    // any time an update finishes and the last segment is in the
-    // buffer, end the stream. this ensures the "ended" event will
-    // fire if playback reaches that point.
-    if (this.isEndOfStream_(segmentInfo.mediaIndex + 1, segmentInfo.playlist)) {
+    if (isEndOfStream) {
       this.endOfStream();
     }
 

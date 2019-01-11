@@ -2,7 +2,7 @@ import { module, test } from 'qunit';
 import {
   simpleSelector,
   movingAverageBandwidthSelector,
-  minRebufferMaxBandwidthSelector,
+  maxBandwidthForDeadlineSelector,
   lowestBitrateCompatibleVariantSelector
 } from '../src/playlist-selectors';
 import Config from '../src/config';
@@ -63,17 +63,21 @@ test('Exponential moving average has a configurable decay parameter', function(a
   assert.equal(playlist.attributes.BANDWIDTH, 50, 'selected the middle playlist');
 });
 
-test('minRebufferMaxBandwidthSelector picks highest rendition without rebuffering',
+test('maxBandwidthForDeadlineSelector picks highest rendition that meets deadline',
 function(assert) {
   let master = this.hls.playlists.master;
   let currentTime = 0;
   let bandwidth = 2000;
   let duration = 100;
   let segmentDuration = 10;
-  let timeUntilRebuffer = 5;
+  let deadline = 5;
   let currentTimeline = 0;
+  let bufferAfterSeek = 8;
   let syncController = {
     getSyncPoint: (playlist) => playlist.syncPoint
+  };
+  let needsExtraRequest = (requestTime) => {
+    return requestTime >= bufferAfterSeek;
   };
 
   const settings = () => {
@@ -83,9 +87,10 @@ function(assert) {
       bandwidth,
       duration,
       segmentDuration,
-      timeUntilRebuffer,
+      deadline,
       currentTimeline,
-      syncController
+      syncController,
+      needsExtraRequest
     };
   };
 
@@ -97,31 +102,55 @@ function(assert) {
     { attributes: { BANDWIDTH: 5000 }, syncPoint: false }
   ];
 
-  let result = minRebufferMaxBandwidthSelector(settings());
+  let result = maxBandwidthForDeadlineSelector(settings());
 
-  assert.equal(result.playlist, master.playlists[1], 'selected the correct playlist');
-  assert.equal(result.rebufferingImpact, 0, 'impact on rebuffering is 0');
+  assert.equal(result.playlist, master.playlists[1], 'selected 500kbps ' +
+    'playlist (no sync point, 2000kbps bandwidth, 5s deadline)');
+  assert.equal(deadline - result.requestTimeEstimate, 0,
+    'playlist will finish exactly at deadline');
+
+  bufferAfterSeek = 2;
+  result = maxBandwidthForDeadlineSelector(settings());
+
+  assert.equal(result.playlist, master.playlists[0], 'selected 100kbps ' +
+    'playlist (no sync point, 2000kbps bandwidth, 5s deadline, needs extra request)');
+  assert.equal(deadline - result.requestTimeEstimate, 4,
+    'playlist will finish 4s before deadline');
 
   master.playlists = [
     { attributes: { BANDWIDTH: 100 }, syncPoint: false },
-    { attributes: { BANDWIDTH: 500 }, syncPoint: false },
+    { attributes: { BANDWIDTH: 500 }, syncPoint: true },
     { attributes: { BANDWIDTH: 1000 }, syncPoint: true },
     { attributes: { BANDWIDTH: 2000 }, syncPoint: true },
     { attributes: { BANDWIDTH: 5000 }, syncPoint: false }
   ];
 
-  result = minRebufferMaxBandwidthSelector(settings());
+  bufferAfterSeek = 8;
+  result = maxBandwidthForDeadlineSelector(settings());
 
-  assert.equal(result.playlist, master.playlists[2], 'selected the corerct playlist');
-  assert.equal(result.rebufferingImpact, 0, 'impact on rebuffering is 0');
+  assert.equal(result.playlist, master.playlists[2], 'selected 1000kbps ' +
+    'playlist (sync point, 2000kbps bandwidth, 5s deadline)');
+  assert.equal(deadline - result.requestTimeEstimate, 0,
+    'playlist will finish exactly at deadline');
 
+  bufferAfterSeek = 3;
+  result = maxBandwidthForDeadlineSelector(settings());
+
+  assert.equal(result.playlist, master.playlists[1], 'selected 500kbps ' +
+    'playlist (sync point, 2000kbps bandwidth, 5s deadline, needs extra request)');
+  assert.equal(deadline - result.requestTimeEstimate, 2.5,
+    'playlist will finish 2.5s before deadline');
+
+  bufferAfterSeek = 8;
   bandwidth = 500;
-  timeUntilRebuffer = 3;
+  deadline = 3;
 
-  result = minRebufferMaxBandwidthSelector(settings());
+  result = maxBandwidthForDeadlineSelector(settings());
 
-  assert.equal(result.playlist, master.playlists[0], 'selected the correct playlist');
-  assert.equal(result.rebufferingImpact, 1, 'impact on rebuffering is 1 second');
+  assert.equal(result.playlist, master.playlists[0], 'selected 100kbps ' +
+    'playlist (sync point, 500kbps bandwidth, 3s deadline)');
+  assert.equal(deadline - result.requestTimeEstimate, -1,
+    'playlist will take 1s longer than deadline');
 });
 
 test('lowestBitrateCompatibleVariantSelector picks lowest non-audio playlist',

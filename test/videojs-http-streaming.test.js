@@ -2542,6 +2542,7 @@ QUnit.test('cleans up the buffer when loading live segments', function(assert) {
     return false;
   };
   this.player.tech_.trigger('play');
+  this.player.tech_.hls.masterPlaylistController_.seeked_();
   this.clock.tick(1);
 
   // request first playable segment
@@ -2611,6 +2612,7 @@ QUnit.test('cleans up the buffer based on currentTime when loading a live segmen
   };
 
   this.player.tech_.trigger('play');
+  this.player.tech_.hls.masterPlaylistController_.seeked_();
   this.clock.tick(1);
 
   // request first playable segment
@@ -3489,6 +3491,7 @@ QUnit.test('seekToProgramTime will seek to time if buffered', function(assert) {
   this.player.play();
   // trigger playing with non-existent content
   this.player.tech_.trigger('playing');
+  this.player.tech_.hls.masterPlaylistController_.seeked_();
   // wait for playlist refresh
   this.clock.tick(2 * 1000 + 1);
   // ts

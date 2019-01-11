@@ -315,6 +315,14 @@ export const movingAverageBandwidthSelector = function(decay) {
 };
 
 /**
+ * Callback for determining if a second request is needed to fill the buffer
+ *
+ * @callback needsExtraRequest
+ * @param {Number} requestTimeEstimate
+ * @return {Boolean}
+ */
+
+/**
  * Chooses the appropriate media playlist based on the potential to rebuffer
  *
  * @param {Object} settings
@@ -329,29 +337,31 @@ export const movingAverageBandwidthSelector = function(decay) {
  *        Duration of the media
  * @param {Number} settings.segmentDuration
  *        Segment duration to be used in round trip time calculations
- * @param {Number} settings.timeUntilRebuffer
- *        Time left in seconds until the player has to rebuffer
+ * @param {Number} settings.deadline
+ *        Deadline time in seconds
  * @param {Number} settings.currentTimeline
  *        The current timeline segments are being loaded from
  * @param {SyncController} settings.syncController
  *        SyncController for determining if we have a sync point for a given playlist
+ * @param {needsExtraRequest=} settings.needsExtraRequest
+ *        Function for determining if an extra request is needed to fill the buffer
  * @return {Object|null}
  *         {Object} return.playlist
  *         The highest bandwidth playlist with the least amount of rebuffering
- *         {Number} return.rebufferingImpact
- *         The amount of time in seconds switching to this playlist will rebuffer. A
- *         negative value means that switching will cause zero rebuffering.
+ *         {Number} return.requestTimeEstimate
+ *         The amount of time in seconds required for buffering the playlist
  */
-export const minRebufferMaxBandwidthSelector = function(settings) {
+export const maxBandwidthForDeadlineSelector = function(settings) {
   const {
     master,
     currentTime,
     bandwidth,
     duration,
     segmentDuration,
-    timeUntilRebuffer,
+    deadline,
     currentTimeline,
-    syncController
+    syncController,
+    needsExtraRequest
   } = settings;
 
   // filter out any playlists that have been excluded due to
@@ -381,30 +391,39 @@ export const minRebufferMaxBandwidthSelector = function(settings) {
                                                   currentTime);
     // If there is no sync point for this playlist, switching to it will require a
     // sync request first. This will double the request time
-    const numRequests = syncPoint ? 1 : 2;
-    const requestTimeEstimate = Playlist.estimateSegmentRequestTime(segmentDuration,
-                                                                    bandwidth,
-                                                                    playlist);
-    const rebufferingImpact = (requestTimeEstimate * numRequests) - timeUntilRebuffer;
+    let requestTimeEstimate;
+    const singleRequestEstimate = requestTimeEstimate =
+      Playlist.estimateSegmentRequestTime(segmentDuration, bandwidth, playlist);
+
+    // if we don't have a sync point, we need to make 2 requests to get the
+    // desired segment
+    if (!syncPoint) {
+      requestTimeEstimate += singleRequestEstimate;
+    }
+
+    // see if we'll need an extra request to fill the buffer
+    if (needsExtraRequest && needsExtraRequest(requestTimeEstimate)) {
+      requestTimeEstimate += singleRequestEstimate;
+    }
 
     return {
       playlist,
-      rebufferingImpact
+      requestTimeEstimate
     };
   });
 
-  const noRebufferingPlaylists = rebufferingEstimates.filter(
-    (estimate) => estimate.rebufferingImpact <= 0);
+  const safePlaylists = rebufferingEstimates.filter(
+    (estimate) => estimate.requestTimeEstimate <= deadline);
 
   // Sort by bandwidth DESC
-  stableSort(noRebufferingPlaylists,
+  stableSort(safePlaylists,
     (a, b) => comparePlaylistBandwidth(b.playlist, a.playlist));
 
-  if (noRebufferingPlaylists.length) {
-    return noRebufferingPlaylists[0];
+  if (safePlaylists.length) {
+    return safePlaylists[0];
   }
 
-  stableSort(rebufferingEstimates, (a, b) => a.rebufferingImpact - b.rebufferingImpact);
+  stableSort(rebufferingEstimates, (a, b) => a.requestTimeEstimate - b.requestTimeEstimate);
 
   return rebufferingEstimates[0] || null;
 };

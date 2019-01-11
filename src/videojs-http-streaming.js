@@ -450,6 +450,10 @@ class HlsHandler extends Component {
       }
     });
 
+    if (typeof this.options_.seekDeadline !== 'number') {
+      this.options_.seekDeadline = 5;
+    }
+
     this.limitRenditionByPlayerDimensions = this.options_.limitRenditionByPlayerDimensions;
   }
   /**
@@ -736,6 +740,13 @@ class HlsHandler extends Component {
    */
   seekable() {
     return this.masterPlaylistController_.seekable();
+  }
+
+  /**
+   * a wrapper around the function in MasterPlaylistController
+   */
+  seeking() {
+    return this.masterPlaylistController_.seeking();
   }
 
   /**

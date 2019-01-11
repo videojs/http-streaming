@@ -198,6 +198,7 @@ function(assert) {
     return videojs.createTimeRanges([[1, 45]]);
   };
 
+  this.player.tech_.hls.masterPlaylistController_.seeked_();
   this.player.tech_.trigger('waiting');
 
   assert.equal(seeks.length, 1, 'one seek');
@@ -490,7 +491,8 @@ QUnit.test('corrects seek outside of seekable', function(assert) {
     currentTime: () => currentTime,
     // mocked out
     paused: () => false,
-    buffered: () => videojs.createTimeRanges()
+    buffered: () => videojs.createTimeRanges(),
+    playbackRate: () => {}
   };
   this.player.vhs.setCurrentTime = (time) => seeks.push(time);
 
