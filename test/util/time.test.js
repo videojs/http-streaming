@@ -1021,12 +1021,24 @@ QUnit.test('vod: seeks and returns player time seeked to if buffered', function(
           dateTimeString: '2018-10-12T22:33:49.037+00:00',
           dateTimeObject: new Date('2018-10-12T22:33:49.037+00:00'),
           duration: 1,
-          start: 0
+          start: 0,
+          videoTimingInfo: {
+            originalPresentationStart: 2,
+            transmuxerPrependedSeconds: 0,
+            transmuxedPresentationStart: 0,
+            transmuxedPresentationEnd: 1
+          }
         }, {
           dateTimeString: '2018-10-12T22:33:50.037+00:00',
           dateTimeObject: new Date('2018-10-12T22:33:50.037+00:00'),
           duration: 1,
-          start: 1
+          start: 1,
+          videoTimingInfo: {
+            originalPresentationStart: 1,
+            transmuxerPrependedSeconds: 0,
+            transmuxedPresentationStart: 1,
+            transmuxedPresentationEnd: 2
+          }
         }
       ],
       targetDuration: 1,
@@ -1042,6 +1054,74 @@ QUnit.test('vod: seeks and returns player time seeked to if buffered', function(
         newTime,
         1,
         'player time that has been seeked to is returned'
+      );
+      done();
+    }
+  });
+});
+
+QUnit.test('vod: does not account for prepended content duration', function(assert) {
+  let currentTime = 0;
+  const done = assert.async();
+  const handlers = {};
+  const tech = videojs.mergeOptions(this.tech, {
+    one(e, handler) {
+      handlers[e] = handler;
+    },
+    currentTime(ct) {
+      if (ct && handlers.seeked) {
+        currentTime = ct;
+        return handlers.seeked(ct);
+      }
+
+      return currentTime;
+    }
+  });
+  const seekTo = (t) => {
+    tech.currentTime(t);
+  };
+
+  seekToStreamTime({
+    streamTime: '2018-10-12T22:33:51.037+00:00',
+    playlist: {
+      segments: [
+        {
+          dateTimeString: '2018-10-12T22:33:48.037+00:00',
+          dateTimeObject: new Date('2018-10-12T22:33:48.037+00:00'),
+          duration: 2,
+          start: 0,
+          videoTimingInfo: {
+            originalPresentationStart: 0,
+            transmuxerPrependedSeconds: 0,
+            transmuxedPresentationStart: 0,
+            transmuxedPresentationEnd: 2
+          }
+        }, {
+          dateTimeString: '2018-10-12T22:33:50.037+00:00',
+          dateTimeObject: new Date('2018-10-12T22:33:50.037+00:00'),
+          duration: 2,
+          start: 2,
+          videoTimingInfo: {
+            originalPresentationStart: 2,
+            transmuxerPrependedSeconds: 1,
+            transmuxedPresentationStart: 1,
+            transmuxedPresentationEnd: 4
+          }
+        }
+      ],
+      targetDuration: 1,
+      resolvedUri: 'test',
+      endList: true
+    },
+    seekTo,
+    // tech that hasn't started
+    tech,
+    callback: (err, newTime) => {
+      assert.notOk(err, 'no errors returned');
+      assert.equal(
+        newTime,
+        3,
+        'did not offset seek time by transmuxer modifications'
       );
       done();
     }
@@ -1077,12 +1157,24 @@ QUnit.test('live: seeks and returns player time seeked to if buffered', function
           dateTimeString: '2018-10-12T22:33:49.037+00:00',
           dateTimeObject: new Date('2018-10-12T22:33:49.037+00:00'),
           duration: 1,
-          start: 0
+          start: 0,
+          videoTimingInfo: {
+            originalPresentationStart: 0,
+            transmuxerPrependedSeconds: 0,
+            transmuxedPresentationStart: 0,
+            transmuxedPresentationEnd: 1
+          }
         }, {
           dateTimeString: '2018-10-12T22:33:50.037+00:00',
           dateTimeObject: new Date('2018-10-12T22:33:50.037+00:00'),
           duration: 1,
-          start: 1
+          start: 1,
+          videoTimingInfo: {
+            originalPresentationStart: 1,
+            transmuxerPrependedSeconds: 0,
+            transmuxedPresentationStart: 1,
+            transmuxedPresentationEnd: 2
+          }
         }
       ],
       targetDuration: 1,
@@ -1132,12 +1224,24 @@ QUnit.test('setting pauseAfterSeek to false seeks without pausing', function(ass
           dateTimeString: '2018-10-12T22:33:49.037+00:00',
           dateTimeObject: new Date('2018-10-12T22:33:49.037+00:00'),
           duration: 1,
-          start: 0
+          start: 0,
+          videoTimingInfo: {
+            originalPresentationStart: 0,
+            transmuxerPrependedSeconds: 0,
+            transmuxedPresentationStart: 0,
+            transmuxedPresentationEnd: 1
+          }
         }, {
           dateTimeString: '2018-10-12T22:33:50.037+00:00',
           dateTimeObject: new Date('2018-10-12T22:33:50.037+00:00'),
           duration: 1,
-          start: 1
+          start: 1,
+          videoTimingInfo: {
+            originalPresentationStart: 1,
+            transmuxerPrependedSeconds: 0,
+            transmuxedPresentationStart: 1,
+            transmuxedPresentationEnd: 2
+          }
         }
       ],
       targetDuration: 1,

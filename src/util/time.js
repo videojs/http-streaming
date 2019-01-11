@@ -352,7 +352,10 @@ export const seekToStreamTime = ({
     segment.dateTimeObject,
     streamTime
   );
-  // TODO account for prepended content
+
+  // Since the segment.start value is determined from the buffered end or ending time
+  // of the prior segment, the seekToTime doesn't need to account for any transmuxer
+  // modifications.
   const seekToTime = segment.start + mediaOffset;
   const seekedCallback = () => {
     return callback(null, tech.currentTime());
