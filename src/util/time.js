@@ -4,39 +4,18 @@
  * @file time.js
  */
 
-/**
- * Checks whether a given time is within a segment based on its start time
- * and duration. For playerTime, the requested time is in seconds, for
- * streamTime, the time is a Date object.
- *
- * @param {Date|Number} requestedTime Time to check is within a segment
- * @param {"stream" | "player"} type Whether passing in a playerTime or streamTime
- * @param {Date|Number} segmentStart The start time of the segment
- * @param {Number} duration Segment duration in seconds
- */
-export const timeWithinSegment = (requestedTime, type, segmentStart, duration) => {
-  let endTime;
-
-  if (type === 'stream') {
-    endTime = new Date(duration * 1000 + segmentStart.getTime());
-
-    const requestedTimeString = requestedTime.toISOString();
-    const segmentTimeString = segmentStart.toISOString();
-    const endTimeString = endTime.toISOString();
-
-    return segmentTimeString <= requestedTimeString &&
-      requestedTimeString <= endTimeString;
-
-  } else if (type === 'player') {
-    endTime = duration + segmentStart;
-
-    return segmentStart <= requestedTime &&
-      requestedTime <= endTime;
-  }
-};
+// Add 25% to the segment duration to account for small discrepencies in segment timing.
+// 25% was arbitrarily chosen, and may need to be refined over time.
+const SEGMENT_END_FUDGE_PERCENT = 0.25;
 
 export const playerTimeToStreamTime = (playerTime, segment) => {
-  const originalStart = segment.videoTimingInfo.originalStart;
+  // If there's no "anchor point" for the stream time (i.e., a time that can be used to
+  // sync the start of a segment with a real world stream time), then a stream time can't
+  // be calculated.
+  if (!segment.dateTimeObject) {
+    return null;
+  }
+
   const transmuxerPrependedSeconds = segment.videoTimingInfo.transmuxerPrependedSeconds;
   const transmuxedStart = segment.videoTimingInfo.transmuxedPresentationStart;
 
@@ -45,13 +24,13 @@ export const playerTimeToStreamTime = (playerTime, segment) => {
   const startOfSegment = transmuxedStart + transmuxerPrependedSeconds;
   const offsetFromSegmentStart = playerTime - startOfSegment;
 
-  return originalStart + offsetFromSegmentStart;
+  return new Date(segment.dateTimeObject.getTime() + offsetFromSegmentStart * 1000);
 };
 
-export const actualSegmentVideoDuration = (videoTimingInfo) => {
+export const originalSegmentVideoDuration = (videoTimingInfo) => {
   return videoTimingInfo.transmuxedPresentationEnd -
-  videoTimingInfo.transmuxedPresentationStart -
-  videoTimingInfo.transmuxerPrependedSeconds;
+    videoTimingInfo.transmuxedPresentationStart -
+    videoTimingInfo.transmuxerPrependedSeconds;
 };
 
 /**
@@ -97,9 +76,11 @@ export const findSegmentForStreamTime = (streamTime, playlist) => {
 
   const lastSegment = playlist.segments[playlist.segments.length - 1];
   const lastSegmentStart = lastSegment.dateTimeObject;
-  const segmentDuration = lastSegment.videoTimingInfo ?
-    actualSegmentVideoDuration(lastSegment.videoTimingInfo) : lastSegment.duration;
-  const lastSegmentEnd = new Date(lastSegmentStart.getTime() + segmentDuration * 1000);
+  const lastSegmentDuration = lastSegment.videoTimingInfo ?
+    originalSegmentVideoDuration(lastSegment.videoTimingInfo) :
+    lastSegment.duration + lastSegment.duration * SEGMENT_END_FUDGE_PERCENT;
+  const lastSegmentEnd =
+    new Date(lastSegmentStart.getTime() + lastSegmentDuration * 1000);
 
   if (dateTimeObject > lastSegmentEnd) {
     return null;
@@ -165,8 +146,7 @@ export const findSegmentForPlayerTime = (time, playlist) => {
   }
 
   if (time > segmentEnd) {
-    // Multiply the last segment duration by 1.25 to account for small discrepencies.
-    if (time > segmentEnd + (lastSegment.duration * 1.25)) {
+    if (time > segmentEnd + (lastSegment.duration * SEGMENT_END_FUDGE_PERCENT)) {
       // Technically, because the duration value is only an estimate, the time may still
       // exist in the last segment, however, there isn't enough information to make even
       // a reasonable estimate.
@@ -180,6 +160,8 @@ export const findSegmentForPlayerTime = (time, playlist) => {
     segment,
     estimatedStart: segment.videoTimingInfo ?
       segment.videoTimingInfo.transmuxedPresentationStart : segmentEnd - segment.duration,
+    // Because videoTimingInfo is only set after transmux, it is the only way to get
+    // accurate timing values.
     type: segment.videoTimingInfo ? 'accurate' : 'estimate'
   };
 };
@@ -232,7 +214,7 @@ export const verifyProgramDateTimeTags = (playlist) => {
 };
 
 /**
- * Returns the streamTime  of the media given a playlist and a playerTime.
+ * Returns the streamTime of the media given a playlist and a playerTime.
  * The playlist must have programDateTime tags for a programDateTime tag to be returned.
  * If the segments containing the time requested have not been buffered yet, an estimate
  * may be returned to the callback.
@@ -273,23 +255,22 @@ export const getStreamTime = ({
   if (matchedSegment.type === 'estimate') {
     return callback({
       message:
-        'Accurate streamTime could not be determined. Please seek to e.seekTime and try again',
+        'Accurate streamTime could not be determined.' +
+        ' Please seek to e.seekTime and try again',
       seekTime: matchedSegment.estimatedStart
     });
   }
 
-  const streamTime = {
+  const streamTimeObject = {
     mediaSeconds: time
   };
+  const streamTime = playerTimeToStreamTime(time, matchedSegment.segment);
 
-  if (matchedSegment.segment.dateTimeObject) {
-    // TODO this is currently the time of the beginning of the
-    // segment. This still needs to be modified to be offset
-    // by the time requested.
-    streamTime.programDateTime = matchedSegment.segment.dateTimeObject.toISOString();
+  if (streamTime) {
+    streamTimeObject.programDateTime = streamTime.toISOString();
   }
 
-  return callback(null, streamTime);
+  return callback(null, streamTimeObject);
 };
 
 /**
@@ -371,6 +352,7 @@ export const seekToStreamTime = ({
     segment.dateTimeObject,
     streamTime
   );
+  // TODO account for prepended content
   const seekToTime = segment.start + mediaOffset;
   const seekedCallback = () => {
     return callback(null, tech.currentTime());
