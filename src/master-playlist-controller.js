@@ -523,23 +523,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
           setTimeout(() => {
             this.tech_.off('timeupdate', waitingChecker);
           }, this.masterPlaylistLoader_.targetDuration * 1000);
-
-        } else if (videojs.browser.IS_CHROME) {
-          // on chrome, a `waiting` event will fire, but will also have a
-          // `timeupdate` fire right after (while still rebuffering). this
-          // causes the spinner to clear because of the code in video.js. to
-          // work around this, we re-trigger a `waiting` if the current time
-          // at the first `waiting` and the subsequent `timeupdate` are the
-          // same.
-          this.tech_.one('waiting', () => {
-            let currentTime = this.tech_.currentTime();
-
-            this.tech_.one('timeupdate', () => {
-              if (this.tech_.currentTime() === currentTime) {
-                this.tech_.trigger('waiting');
-              }
-            });
-          });
         }
       }
     });
