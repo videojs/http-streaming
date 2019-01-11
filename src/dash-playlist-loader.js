@@ -239,7 +239,7 @@ export default class DashPlaylistLoader extends EventTarget {
     this.started = true;
 
     // request the specified URL
-    this.request = this.hls_.xhr({
+    this.hls_.xhr({
       uri: this.srcUrl,
       withCredentials: this.withCredentials
     }, (error, req) => {
@@ -274,7 +274,8 @@ export default class DashPlaylistLoader extends EventTarget {
       }
 
       this.syncClientServerClock_(this.onClientServerClockSync_.bind(this));
-    });
+    })
+      .then(request => this.request = request);
   }
 
   /**
@@ -299,7 +300,7 @@ export default class DashPlaylistLoader extends EventTarget {
       return done();
     }
 
-    this.request = this.hls_.xhr({
+    this.hls_.xhr({
       uri: resolveUrl(this.srcUrl, utcTiming.value),
       method: utcTiming.method,
       withCredentials: this.withCredentials
@@ -333,7 +334,8 @@ export default class DashPlaylistLoader extends EventTarget {
       this.clientOffset_ = serverTime - Date.now();
 
       done();
-    });
+    })
+      .then(request => this.request = request);
   }
 
   /**
@@ -376,7 +378,7 @@ export default class DashPlaylistLoader extends EventTarget {
    * TODO: Does the client offset need to be recalculated when the xml is refreshed?
    */
   refreshXml_() {
-    this.request = this.hls_.xhr({
+    this.hls_.xhr({
       uri: this.srcUrl,
       withCredentials: this.withCredentials
     }, (error, req) => {
@@ -411,7 +413,8 @@ export default class DashPlaylistLoader extends EventTarget {
       window.setTimeout(() => {
         this.trigger('minimumUpdatePeriod');
       }, this.master.minimumUpdatePeriod);
-    });
+    })
+      .then(request => this.request = request);
   }
 
   /**
