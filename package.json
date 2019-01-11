@@ -1,7 +1,7 @@
 {
   "name": "@inplayer-org/http-streaming",
   "version": "0.0.1",
-  "description": "InPlayer's video.js fork",
+  "description": "InPlayer's fork of https://github.com/videojs/http-streaming",
   "main": "dist/videojs-http-streaming.cjs.js",
   "module": "dist/videojs-http-streaming.es.js",
   "repository": {
