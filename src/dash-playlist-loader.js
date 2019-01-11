@@ -71,6 +71,80 @@ export const updateMaster = (oldMaster, newMaster) => {
   return update;
 };
 
+const addSidxInfoToPlaylists_ = (activeXhrs, master, doneFn) => {
+  let count = 0;
+  let sidxMapping = {};
+
+  return (error, playlist, sidx) => {
+    if (error) {
+      // debugger;
+    }
+    count += 1;
+
+    sidxMapping[playlist.uri] = {
+      playlist,
+      sidx
+    };
+
+    if (count === activeXhrs.length) {
+      // mutates the playlist and master by consequence
+      attachSegmentInfoFromSidx({ master, sidxMapping });
+
+      // Otherwise, everything is ready just continue
+      return doneFn(master);
+    }
+  };
+};
+
+const handleSidxResponse_ = (playlist, finishProcessingFn) => {
+  return (err, request) => {
+    if (err) {
+      // debugger;
+    }
+
+    const bytes = new Uint8Array(request.response);
+    const sidx = mp4Inspector.parseSidx(bytes.subarray(8));
+
+    return finishProcessingFn(null, playlist, sidx);
+  };
+};
+
+const requestSidx_ = (sidxRange, playlist, xhr, finishProcessingFn) => {
+  const sidxInfo = {
+    // resolve the segment URL relative to the playlist
+    uri: sidxRange.resolvedUri,
+    // resolvedUri: sidxRange.resolvedUri,
+    byterange: sidxRange.byterange,
+    // the segment's playlist
+    playlist
+  };
+
+  const sidxRequestOptions = videojs.mergeOptions(sidxInfo, {
+    responseType: 'arraybuffer',
+    headers: segmentXhrHeaders(sidxInfo)
+  });
+  const sidxRequestCallback = handleSidxResponse_(playlist, finishProcessingFn);
+
+  return xhr(sidxRequestOptions, sidxRequestCallback);
+};
+
+const fetchMediaSegmentsFromSidx_ = (xhr, sidxPlaylists, master, doneFn) => {
+  const activeXhrs = [];
+  const requestComplete = addSidxInfoToPlaylists_(activeXhrs, master, doneFn);
+  const requestedUris = [];
+
+  for (let key in sidxPlaylists) {
+    const playlist = sidxPlaylists[key];
+
+    if (requestedUris.indexOf(playlist.uri) === -1 && playlist.sidx) {
+      const sidxRequest = requestSidx_(playlist.sidx, playlist, xhr, requestComplete);
+
+      activeXhrs.push(sidxRequest);
+      requestedUris.push(playlist.uri);
+    }
+  }
+};
+
 export default class DashPlaylistLoader extends EventTarget {
   // DashPlaylistLoader must accept either a src url or a playlist because subsequent
   // playlist loader setups from media groups will expect to be able to pass a playlist
@@ -286,7 +360,8 @@ export default class DashPlaylistLoader extends EventTarget {
     resolveMediaGroupUris(master);
 
     let hasSidx = false;
-    for (var key in master.playlists) {
+
+    for (let key in master.playlists) {
       if (master.playlists[key].sidx) {
         hasSidx = true;
         break;
@@ -295,7 +370,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
     if (hasSidx) {
       // Note: this calls done!
-      this.fetchMediaSegmentsFromSidx_(master.playlists, master, done);
+      return fetchMediaSegmentsFromSidx_(this.hls_.xhr, master.playlists, master, done);
     }
 
     done(master);
@@ -555,82 +630,7 @@ export default class DashPlaylistLoader extends EventTarget {
       this.parseMasterXml(updateWithMaster);
     }
   }
-
-  addSidxInfoToPlaylists_(activeXhrs, master, doneFn) {
-    let count = 0;
-    let sidxMapping = {};
-
-    return (error, playlist, sidx) => {
-      if (error) {
-        // debugger;
-      }
-      count += 1;
-
-      sidxMapping[playlist.uri] = {
-        playlist,
-        sidx
-      };
-
-      if (count === activeXhrs.length) {
-        // mutates the playlist and master by consequence
-        attachSegmentInfoFromSidx({master, sidxMapping});
-
-        // Otherwise, everything is ready just continue
-        return doneFn(master);
-      }
-    };
-  }
-
-  handleSidxResponse_(playlist, finishProcessingFn) {
-    return (err, request) => {
-      if (err) {
-        // debugger;
-      }
-
-      const bytes = new Uint8Array(request.response);
-      const sidx = mp4Inspector.parseSidx(bytes.subarray(8));
-
-      return finishProcessingFn(null, playlist, sidx);
-    };
-  }
-
-  requestSidx_(sidxRange, playlist, finishProcessingFn) {
-    const sidxInfo = {
-      // resolve the segment URL relative to the playlist
-      uri: sidxRange.resolvedUri,
-      // resolvedUri: sidxRange.resolvedUri,
-      byterange: sidxRange.byterange,
-      // the segment's playlist
-      playlist
-    };
-
-    const sidxRequestOptions = videojs.mergeOptions(sidxInfo, {
-      responseType: 'arraybuffer',
-      headers: segmentXhrHeaders(sidxInfo)
-    });
-    const sidxRequestCallback = this.handleSidxResponse_(playlist, finishProcessingFn);
-
-    return this.hls_.xhr(sidxRequestOptions, sidxRequestCallback);
-  }
-
-  fetchMediaSegmentsFromSidx_(sidxPlaylists, master, doneFn) {
-    const activeXhrs = [];
-    const requestComplete = this.addSidxInfoToPlaylists_(activeXhrs, master, doneFn);
-    const requestedUris = [];
-
-    for (let key in sidxPlaylists) {
-      const playlist = sidxPlaylists[key];
-
-      if (requestedUris.indexOf(playlist.uri) === -1 && playlist.sidx) {
-        const sidxRequest = this.requestSidx_(playlist.sidx, playlist, requestComplete);
-
-        activeXhrs.push(sidxRequest);
-        requestedUris.push(playlist.uri);
-      }
-    }
-  }
 }
-
 // TODO:
 // store sidx for the master and check if it changed before re-requesting
 // cleanup between source changes and period changes
