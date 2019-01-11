@@ -45,14 +45,15 @@ Among the changes, with only GOP Fusion having an impact, the task is simplified
 
 ```
 segment: {
+  // calculated start of segment from either end of previous segment or end of last buffer
+  // (in stream time)
+  start,
   ...
   videoTimingInfo: {
-    // start of segment (stream time)
-    originalStart
     // number of seconds prepended by GOP fusion
     transmuxerPrependedSeconds
-    // start of transmuxed segment (player time)
-    transmuxedStart
+    // start of transmuxed segment (in player time)
+    transmuxedPresentationStart
   }
 }
 ```
@@ -63,19 +64,26 @@ With the properties listed above, calculating a *stream time* from a *player tim
 
 ```
 const playerTimeToStreamTime = (playerTime, segment) => {
-  const originalStart = segment.videoTimingInfo.originalStart;
-  const transmuxerPrependedSeconds = segment.videoTimingInfo.transmuxerPrependedSeconds;
-  const transmuxedStart = segment.videoTimingInfo.transmuxedStart;
+  // If there's no "anchor point" for the stream time (i.e., a time that can be used to
+  // sync the start of a segment with a real world stream time), then a stream time can't
+  // be calculated.
+  if (!segment.dateTimeObject) {
+    return null;
+  }
 
-  // get the proper start of new content (not prepended old content) from the segment, in player time
-  const startOfSegment = transmuxedStart + prependedSeconds;
+  const transmuxerPrependedSeconds = segment.videoTimingInfo.transmuxerPrependedSeconds;
+  const transmuxedStart = segment.videoTimingInfo.transmuxedPresentationStart;
+
+  // get the proper start of new content (not prepended old content) from the segment,
+  // in player time
+  const startOfSegment = transmuxedStart + transmuxerPrependedSeconds;
   const offsetFromSegmentStart = playerTime - startOfSegment;
 
-  return originalStart + offsetFromSegmentStart;
+  return new Date(segment.dateTimeObject.getTime() + offsetFromSegmentStart * 1000);
 };
 ```
 
-The *stream time* can be converted to *program time* by taking the EXT-X-PROGRAM-DATE-TIME tagged on the segment and adding *stream time* - segment.videoTimingInfo.originalStart.
+The *stream time* can be converted to *program time* by taking the EXT-X-PROGRAM-DATE-TIME tagged on the segment and adding *stream time* - segment.start.
 
 ## Examples
 
@@ -91,10 +99,10 @@ The *stream time* can be converted to *program time* by taking the EXT-X-PROGRAM
 //   segment3: 4 => 6
 
 const segment2 = {
+  start: 32.1,
   videoTimingInfo: {
-    originalStart: 32.1,
     transmuxerPrependedSeconds: 0.3,
-    transmuxedStart: 1.7
+    transmuxedPresentationStart: 1.7
   }
 };
 playerTimeToStreamTime(2.5, segment2);
@@ -103,10 +111,10 @@ playerTimeToStreamTime(2.5, segment2);
 // return 32.1 + 0.5 = 32.6
 
 const segment3 = {
+  start: 34.1,
   videoTimingInfo: {
-    originalStart: 34.1,
     transmuxerPrependedSeconds: 0.2,
-    transmuxedStart: 3.8
+    transmuxedPresentationStart: 3.8
   }
 };
 playerTimeToStreamTime(4, segment3);
