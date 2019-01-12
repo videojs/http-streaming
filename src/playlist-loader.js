@@ -97,6 +97,7 @@ export const updateMaster = (master, media) => {
   if (playlist.segments &&
       media.segments &&
       playlist.segments.length === media.segments.length &&
+      playlist.endList === media.endList &&
       playlist.mediaSequence === media.mediaSequence) {
     return null;
   }
