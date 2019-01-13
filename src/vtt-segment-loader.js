@@ -335,6 +335,8 @@ export default class VTTSegmentLoader extends SegmentLoader {
       }
 
       parser.parse(mapData);
+      parser.flush();
+      return;
     }
 
     let segmentData = segmentInfo.bytes;
