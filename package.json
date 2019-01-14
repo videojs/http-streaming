@@ -1,12 +1,12 @@
 {
-  "name": "@inplayer-org/http-streaming",
-  "version": "0.0.1",
-  "description": "InPlayer's fork of https://github.com/videojs/http-streaming",
+  "name": "@videojs/http-streaming",
+  "version": "1.8.0",
+  "description": "Play back HLS and DASH with Video.js, even where it's not natively supported",
   "main": "dist/videojs-http-streaming.cjs.js",
   "module": "dist/videojs-http-streaming.es.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/inplayer-org/http-streaming"
+    "url": "git@github.com:videojs/http-streaming.git"
   },
   "scripts": {
     "prenetlify": "npm run build",
@@ -68,7 +68,7 @@
   "dependencies": {
     "aes-decrypter": "3.0.0",
     "global": "^4.3.0",
-    "m3u8-parser": "4.2.0",
+    "m3u8-parser": "4.3.0",
     "mpd-parser": "0.7.0",
     "mux.js": "5.0.1",
     "url-toolkit": "^2.1.3",
