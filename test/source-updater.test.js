@@ -32,7 +32,7 @@ QUnit.test('runs a callback when the source buffer is created', function(assert)
 
   updater.appendBuffer({
     bytes: new Uint8Array([0, 1, 2])
-  });
+  }, () => {});
 
   this.mediaSource.trigger('sourceopen');
   sourceBuffer = this.mediaSource.sourceBuffers[0];
@@ -54,7 +54,7 @@ function(assert) {
 
   updater.appendBuffer({
     bytes: new Uint8Array([0, 1, 2])
-  });
+  }, () => {});
 
   sourceBuffer = this.mediaSource.sourceBuffers[1];
   assert.equal(sourceBuffer.updates_.length, 1, 'called the source buffer once');
@@ -72,7 +72,7 @@ function(assert) {
 
   updater.appendBuffer({
     bytes: new Uint8Array([0, 1, 2])
-  });
+  }, () => {});
 
   this.mediaSource.trigger('sourceopen');
   sourceBuffer = this.mediaSource.sourceBuffers[0];
@@ -116,13 +116,13 @@ QUnit.test('runs the next callback after updateend fires', function(assert) {
 
   updater.appendBuffer({
     bytes: new Uint8Array([0, 1, 2])
-  });
+  }, () => {});
   this.mediaSource.trigger('sourceopen');
   sourceBuffer = this.mediaSource.sourceBuffers[0];
 
   updater.appendBuffer({
     bytes: new Uint8Array([2, 3, 4])
-  });
+  }, () => {});
   assert.equal(sourceBuffer.updates_.length, 1, 'delayed the update');
 
   sourceBuffer.trigger('updateend');
@@ -137,16 +137,16 @@ QUnit.test('runs only one callback at a time', function(assert) {
 
   updater.appendBuffer({
     bytes: new Uint8Array([0])
-  });
+  }, () => {});
   updater.appendBuffer({
     bytes: new Uint8Array([1])
-  });
+  }, () => {});
   this.mediaSource.trigger('sourceopen');
   sourceBuffer = this.mediaSource.sourceBuffers[0];
 
   updater.appendBuffer({
     bytes: new Uint8Array([2])
-  });
+  }, () => {});
   assert.equal(sourceBuffer.updates_.length, 1, 'queued some updates');
   assert.deepEqual(sourceBuffer.updates_[0].append, new Uint8Array([0]),
                   'ran the first update');
@@ -158,7 +158,7 @@ QUnit.test('runs only one callback at a time', function(assert) {
 
   updater.appendBuffer({
     bytes: new Uint8Array([3])
-  });
+  }, () => {});
   sourceBuffer.trigger('updateend');
   assert.equal(sourceBuffer.updates_.length, 3, 'queued the updates');
   assert.deepEqual(sourceBuffer.updates_[2].append, new Uint8Array([2]),
@@ -178,7 +178,7 @@ QUnit.test('runs updates immediately if possible', function(assert) {
   sourceBuffer = this.mediaSource.sourceBuffers[0];
   updater.appendBuffer({
     bytes: new Uint8Array([0])
-  });
+  }, () => {});
   assert.equal(sourceBuffer.updates_.length, 1, 'ran an update');
   assert.deepEqual(sourceBuffer.updates_[0].append, new Uint8Array([0]),
                   'appended the bytes');
@@ -196,7 +196,7 @@ QUnit.test('supports abort', function(assert) {
 
   updater.appendBuffer({
     bytes: new Uint8Array([0])
-  });
+  }, () => {});
 
   updater.abort();
 
@@ -229,7 +229,7 @@ QUnit.test('supports removeBuffer', function(assert) {
 
   updater.appendBuffer({
     bytes: new Uint8Array([0])
-  });
+  }, () => {});
 
   updater.remove(1, 14);
 
@@ -252,7 +252,7 @@ QUnit.test('supports timestampOffset', function(assert) {
 
   updater.appendBuffer({
     bytes: new Uint8Array(2)
-  });
+  }, () => {});
   updater.timestampOffset(14);
   assert.equal(updater.timestampOffset(), 14, 'reflects changes immediately');
   assert.equal(sourceBuffer.timestampOffset, 21, 'queues application after updates');

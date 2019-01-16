@@ -120,9 +120,7 @@ export default class SourceUpdater {
         this.sourceBuffer_.removeEventListener(
           'videoSegmentTimingInfo', config.videoSegmentTimingInfoCallback);
       }
-      if (done) {
-        done();
-      }
+      done();
     });
   }
 

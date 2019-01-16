@@ -8,6 +8,22 @@
 // 25% was arbitrarily chosen, and may need to be refined over time.
 const SEGMENT_END_FUDGE_PERCENT = 0.25;
 
+/**
+ * Converts a player time (any time that can be gotten/set from player.currentTime(),
+ * e.g., any time within player.seekable().start(0) to player.seekable().end(0)) to a
+ * stream time (any time within one of the stream's segments, e.g., dts/pts for video
+ * frames).
+ *
+ * The containing segment is required as it serves as an anchor point for the stream time.
+ * As such, the dateTimeObject from EXT-X-PROGRAM-DATE-TIME is also required (it serves
+ * as the anchor point).
+ *
+ * For more details, see [this doc](../../docs/stream-time-from-player-time.md).
+ *
+ * @param {Number} playerTime the player time
+ * @param {Object} segment the segment which contains the player time
+ * @return {Date} stream time
+ */
 export const playerTimeToStreamTime = (playerTime, segment) => {
   // If there's no "anchor point" for the stream time (i.e., a time that can be used to
   // sync the start of a segment with a real world stream time), then a stream time can't
@@ -19,8 +35,7 @@ export const playerTimeToStreamTime = (playerTime, segment) => {
   const transmuxerPrependedSeconds = segment.videoTimingInfo.transmuxerPrependedSeconds;
   const transmuxedStart = segment.videoTimingInfo.transmuxedPresentationStart;
 
-  // get the proper start of new content (not prepended old content) from the segment,
-  // in player time
+  // get the start of the content from before old content is prepended
   const startOfSegment = transmuxedStart + transmuxerPrependedSeconds;
   const offsetFromSegmentStart = playerTime - startOfSegment;
 
@@ -83,6 +98,7 @@ export const findSegmentForStreamTime = (streamTime, playlist) => {
     new Date(lastSegmentStart.getTime() + lastSegmentDuration * 1000);
 
   if (dateTimeObject > lastSegmentEnd) {
+    // Beyond the end of the stream, or our best guess of the end of the stream.
     return null;
   }
 
@@ -146,6 +162,9 @@ export const findSegmentForPlayerTime = (time, playlist) => {
   }
 
   if (time > segmentEnd) {
+    // The time is within or beyond the last segment.
+    //
+    // Check to see if the time is beyond a reasonable guess of the end of the stream.
     if (time > segmentEnd + (lastSegment.duration * SEGMENT_END_FUDGE_PERCENT)) {
       // Technically, because the duration value is only an estimate, the time may still
       // exist in the last segment, however, there isn't enough information to make even

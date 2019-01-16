@@ -4,10 +4,10 @@
 
 NOTE: All times referenced in seconds unless otherwise specified.
 
-*Player Time*: any time that can be gotten/set from player.currentTime() (e.g., any time within player.seekable().start(0) to player.seekable().end(0)).
-*Stream Time*: any time within one of the stream's segments. Used by video frames (e.g., dts, pts, base media decode time). While these times natively use clock values, throughout the document the times are referenced in seconds.
-*Program Time*: any time referencing the real world (e.g., EXT-X-PROGRAM-DATE-TIME).
-*Start of Segment*: the pts (presentation timestamp) value of the first frame in a segment.
+*Player Time*: any time that can be gotten/set from player.currentTime() (e.g., any time within player.seekable().start(0) to player.seekable().end(0)).<br />
+*Stream Time*: any time within one of the stream's segments. Used by video frames (e.g., dts, pts, base media decode time). While these times natively use clock values, throughout the document the times are referenced in second.<br />
+*Program Time*: any time referencing the real world (e.g., EXT-X-PROGRAM-DATE-TIME).<br />
+*Start of Segment*: the pts (presentation timestamp) value of the first frame in a segment.<br />
 
 ## Overview
 
@@ -74,8 +74,7 @@ const playerTimeToStreamTime = (playerTime, segment) => {
   const transmuxerPrependedSeconds = segment.videoTimingInfo.transmuxerPrependedSeconds;
   const transmuxedStart = segment.videoTimingInfo.transmuxedPresentationStart;
 
-  // get the proper start of new content (not prepended old content) from the segment,
-  // in player time
+  // get the start of the content from before old content is prepended
   const startOfSegment = transmuxedStart + transmuxerPrependedSeconds;
   const offsetFromSegmentStart = playerTime - startOfSegment;
 
@@ -89,17 +88,29 @@ The *stream time* can be converted to *program time* by taking the EXT-X-PROGRAM
 
 ```
 // Stream Times:
-//   segment1: 30.1 => 32.1
-//   segment2: 32.1 => 34.1
-//   segment3: 34.1 => 36.1
+//   segment1: 2018-11-10T00:00:30.1Z => 2018-11-10T00:00:32.1Z
+//   segment2: 2018-11-10T00:00:32.1Z => 2018-11-10T00:00:34.1Z
+//   segment3: 2018-11-10T00:00:34.1Z => 2018-11-10T00:00:36.1Z
 //
 // Player Times:
 //   segment1: 0 => 2
 //   segment2: 2 => 4
 //   segment3: 4 => 6
 
+const segment1 = {
+  dateTimeObject: 2018-11-10T00:00:30.1Z
+  videoTimingInfo: {
+    transmuxerPrependedSeconds: 0,
+    transmuxedPresentationStart: 0
+  }
+};
+playerTimeToStreamTime(0.1, segment1);
+// startOfSegment = 0 + 0 = 0
+// offsetFromSegmentStart = 0.1 - 0 = 0.1
+// return 2018-11-10T00:00:30.1Z + 0.1 = 2018-11-10T00:00:30.2Z
+
 const segment2 = {
-  start: 32.1,
+  dateTimeObject: 2018-11-10T00:00:32.1Z
   videoTimingInfo: {
     transmuxerPrependedSeconds: 0.3,
     transmuxedPresentationStart: 1.7
@@ -108,10 +119,10 @@ const segment2 = {
 playerTimeToStreamTime(2.5, segment2);
 // startOfSegment = 1.7 + 0.3 = 2
 // offsetFromSegmentStart = 2.5 - 2 = 0.5
-// return 32.1 + 0.5 = 32.6
+// return 2018-11-10T00:00:32.1Z + 0.5 = 2018-11-10T00:00:32.6Z
 
 const segment3 = {
-  start: 34.1,
+  dateTimeObject: 2018-11-10T00:00:34.1Z
   videoTimingInfo: {
     transmuxerPrependedSeconds: 0.2,
     transmuxedPresentationStart: 3.8
@@ -120,7 +131,7 @@ const segment3 = {
 playerTimeToStreamTime(4, segment3);
 // startOfSegment = 3.8 + 0.2 = 4
 // offsetFromSegmentStart = 4 - 4 = 0
-// return 34.1 + 0 = 34.1
+// return 2018-11-10T00:00:34.1Z + 0 = 2018-11-10T00:00:34.1Z
 ```
 
 ## Transmux Before Append Changes
