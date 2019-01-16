@@ -1171,12 +1171,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     const segment = segmentInfo.segment;
     const timingInfo = this.syncController_.probeSegmentInfo(segmentInfo);
 
-    if (timingInfo && typeof timingInfo.videoPresentationStart !== 'undefined') {
-      segment.videoTimingInfo = {
-        originalPresentationStart: timingInfo.videoPresentationStart
-      };
-    }
-
     // When we have our first timing info, determine what media types this loader is
     // dealing with. Although we're maintaining extra state, it helps to preserve the
     // separation of segment loader from the actual source buffers.

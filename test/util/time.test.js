@@ -86,7 +86,6 @@ QUnit.test('findSegmentForPlayerTime returns nothing if a match cannot be found'
     findSegmentForPlayerTime(10, {
       segments: [{
         videoTimingInfo: {
-          originalPresentationStart: 0,
           transmuxerPrependedSeconds: 0,
           transmuxedPresentationStart: 0,
           transmuxedPresentationEnd: 1
@@ -119,7 +118,6 @@ QUnit.test('findSegmentForPlayerTime returns estimate if segment not buffered', 
 QUnit.test('findSegmentForPlayerTime returns accurate if segment buffered', function(assert) {
   const segment = {
     videoTimingInfo: {
-      originalPresentationStart: 0,
       transmuxerPrependedSeconds: 0,
       transmuxedPresentationStart: 0,
       transmuxedPresentationEnd: 1
@@ -144,7 +142,6 @@ QUnit.test('findSegmentForPlayerTime returns accurate last segment', function(as
   const playlist = {
     segments: [{
       videoTimingInfo: {
-        originalPresentationStart: 0,
         transmuxerPrependedSeconds: 0,
         transmuxedPresentationStart: 0,
         transmuxedPresentationEnd: 1
@@ -152,7 +149,6 @@ QUnit.test('findSegmentForPlayerTime returns accurate last segment', function(as
       duration: 1
     }, {
       videoTimingInfo: {
-        originalPresentationStart: 1,
         transmuxerPrependedSeconds: 0,
         transmuxedPresentationStart: 1,
         transmuxedPresentationEnd: 2
@@ -178,7 +174,6 @@ function(assert) {
   const playlist = {
     segments: [{
       videoTimingInfo: {
-        originalPresentationStart: 0,
         transmuxerPrependedSeconds: 0,
         transmuxedPresentationStart: 0,
         transmuxedPresentationEnd: 1
@@ -186,7 +181,6 @@ function(assert) {
       duration: 1
     }, {
       videoTimingInfo: {
-        originalPresentationStart: 1,
         transmuxerPrependedSeconds: 0,
         transmuxedPresentationStart: 1,
         transmuxedPresentationEnd: 2
@@ -206,7 +200,6 @@ QUnit.test('findSegmentForPlayerTime returns estimated last segment', function(a
   const playlist = {
     segments: [{
       videoTimingInfo: {
-        originalPresentationStart: 0,
         transmuxerPrependedSeconds: 0,
         transmuxedPresentationStart: 0,
         transmuxedPresentationEnd: 1
@@ -236,7 +229,6 @@ function(assert) {
   const playlist = {
     segments: [{
       videoTimingInfo: {
-        originalPresentationStart: 0,
         transmuxerPrependedSeconds: 0,
         transmuxedPresentationStart: 0,
         transmuxedPresentationEnd: 1
@@ -273,7 +265,6 @@ QUnit.test('findSegmentForStreamTime returns nothing if a match cannot be found'
     findSegmentForStreamTime('2018-11-10T19:40:57.158Z', {
       segments: [{
         videoTimingInfo: {
-          originalPresentationStart: 0,
           transmuxerPrependedSeconds: 0,
           transmuxedPresentationStart: 0,
           transmuxedPresentationEnd: 1
@@ -335,7 +326,6 @@ function(assert) {
 QUnit.test('findSegmentForStreamTime returns accurate match if buffered', function(assert) {
   const segment = {
     videoTimingInfo: {
-      originalPresentationStart: 0,
       transmuxerPrependedSeconds: 0,
       transmuxedPresentationStart: 0,
       transmuxedPresentationEnd: 1
@@ -361,7 +351,6 @@ QUnit.test('findSegmentForStreamTime returns accurate last segment', function(as
   const playlist = {
     segments: [{
       videoTimingInfo: {
-        originalPresentationStart: 0,
         transmuxerPrependedSeconds: 0,
         transmuxedPresentationStart: 0,
         transmuxedPresentationEnd: 1
@@ -370,7 +359,6 @@ QUnit.test('findSegmentForStreamTime returns accurate last segment', function(as
       dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
     }, {
       videoTimingInfo: {
-        originalPresentationStart: 1,
         transmuxerPrependedSeconds: 0,
         transmuxedPresentationStart: 1,
         transmuxedPresentationEnd: 2
@@ -397,7 +385,6 @@ function(assert) {
   const playlist = {
     segments: [{
       videoTimingInfo: {
-        originalPresentationStart: 0,
         transmuxerPrependedSeconds: 0,
         transmuxedPresentationStart: 0,
         transmuxedPresentationEnd: 1
@@ -406,7 +393,6 @@ function(assert) {
       dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
     }, {
       videoTimingInfo: {
-        originalPresentationStart: 1,
         transmuxerPrependedSeconds: 0,
         transmuxedPresentationStart: 1,
         transmuxedPresentationEnd: 2
@@ -427,7 +413,6 @@ QUnit.test('findSegmentForStreamTime returns estimated last segment', function(a
   const playlist = {
     segments: [{
       videoTimingInfo: {
-        originalPresentationStart: 0,
         transmuxerPrependedSeconds: 0,
         transmuxedPresentationStart: 0,
         transmuxedPresentationEnd: 1
@@ -462,7 +447,6 @@ function(assert) {
   const playlist = {
     segments: [{
       videoTimingInfo: {
-        originalPresentationStart: 0,
         transmuxerPrependedSeconds: 0,
         transmuxedPresentationStart: 0,
         transmuxedPresentationEnd: 1
@@ -599,7 +583,6 @@ QUnit.module('Time: getStreamTime', {
         dateTimeString: '2018-11-11T00:00:00.000Z',
         start: 5,
         videoTimingInfo: {
-          originalPresentationStart: 5,
           transmuxerPrependedSeconds: 0,
           transmuxedPresentationStart: 0,
           transmuxedPresentationEnd: 9
@@ -1023,7 +1006,6 @@ QUnit.test('vod: seeks and returns player time seeked to if buffered', function(
           duration: 1,
           start: 0,
           videoTimingInfo: {
-            originalPresentationStart: 2,
             transmuxerPrependedSeconds: 0,
             transmuxedPresentationStart: 0,
             transmuxedPresentationEnd: 1
@@ -1034,7 +1016,6 @@ QUnit.test('vod: seeks and returns player time seeked to if buffered', function(
           duration: 1,
           start: 1,
           videoTimingInfo: {
-            originalPresentationStart: 1,
             transmuxerPrependedSeconds: 0,
             transmuxedPresentationStart: 1,
             transmuxedPresentationEnd: 2
@@ -1091,7 +1072,6 @@ QUnit.test('vod: does not account for prepended content duration', function(asse
           duration: 2,
           start: 0,
           videoTimingInfo: {
-            originalPresentationStart: 0,
             transmuxerPrependedSeconds: 0,
             transmuxedPresentationStart: 0,
             transmuxedPresentationEnd: 2
@@ -1102,7 +1082,6 @@ QUnit.test('vod: does not account for prepended content duration', function(asse
           duration: 2,
           start: 2,
           videoTimingInfo: {
-            originalPresentationStart: 2,
             transmuxerPrependedSeconds: 1,
             transmuxedPresentationStart: 1,
             transmuxedPresentationEnd: 4
@@ -1159,7 +1138,6 @@ QUnit.test('live: seeks and returns player time seeked to if buffered', function
           duration: 1,
           start: 0,
           videoTimingInfo: {
-            originalPresentationStart: 0,
             transmuxerPrependedSeconds: 0,
             transmuxedPresentationStart: 0,
             transmuxedPresentationEnd: 1
@@ -1170,7 +1148,6 @@ QUnit.test('live: seeks and returns player time seeked to if buffered', function
           duration: 1,
           start: 1,
           videoTimingInfo: {
-            originalPresentationStart: 1,
             transmuxerPrependedSeconds: 0,
             transmuxedPresentationStart: 1,
             transmuxedPresentationEnd: 2
@@ -1226,7 +1203,6 @@ QUnit.test('setting pauseAfterSeek to false seeks without pausing', function(ass
           duration: 1,
           start: 0,
           videoTimingInfo: {
-            originalPresentationStart: 0,
             transmuxerPrependedSeconds: 0,
             transmuxedPresentationStart: 0,
             transmuxedPresentationEnd: 1
@@ -1237,7 +1213,6 @@ QUnit.test('setting pauseAfterSeek to false seeks without pausing', function(ass
           duration: 1,
           start: 1,
           videoTimingInfo: {
-            originalPresentationStart: 1,
             transmuxerPrependedSeconds: 0,
             transmuxedPresentationStart: 1,
             transmuxedPresentationEnd: 2

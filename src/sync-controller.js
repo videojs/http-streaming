@@ -471,10 +471,6 @@ export default class SyncController extends videojs.EventTarget {
       containsAudio: timeInfo.audio && timeInfo.audio.length === 2
     };
 
-    if (timeInfo.video && timeInfo.video.length === 2) {
-      probedInfo.videoPresentationStart = timeInfo.video[0].ptsTime;
-    }
-
     return probedInfo;
   }
 
