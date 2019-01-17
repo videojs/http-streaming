@@ -1272,6 +1272,9 @@ export default class SegmentLoader extends videojs.EventTarget {
       event.videoSegmentTimingInfo.start.presentation;
     segment.videoTimingInfo.transmuxedPresentationEnd =
       event.videoSegmentTimingInfo.end.presentation;
+    // mainly used as a reference for debugging
+    segment.videoTimingInfo.baseMediaDecodeTime =
+      event.videoSegmentTimingInfo.baseMediaDecodeTime;
   }
 
   /**

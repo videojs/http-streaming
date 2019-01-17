@@ -227,7 +227,8 @@ export default class VirtualSourceBuffer extends videojs.EventTarget {
       end: {
         decode: timingInfo.end.dts / ONE_SECOND_IN_TS,
         presentation: timingInfo.end.pts / ONE_SECOND_IN_TS
-      }
+      },
+      baseMediaDecodeTime: timingInfo.baseMediaDecodeTime / ONE_SECOND_IN_TS
     };
 
     if (timingInfo.prependedContentDuration) {
