@@ -3360,10 +3360,27 @@ QUnit.test('seekToStreamTime will seek to time if buffered', function(assert) {
   this.clock.tick(2 * 1000 + 1);
   // ts
   this.standardXHRResponse(this.requests.shift(), muxedSegment());
+
+  const videoBuffer =
+    this.player.vhs.masterPlaylistController_.mediaSource.sourceBuffers[0];
+
+  // must fake the call to videoTimingInfo as the segment isn't transmuxed in the test
+  videoBuffer.trigger({
+    type: 'videoSegmentTimingInfo',
+    videoSegmentTimingInfo: {
+      start: {
+        presentation: 0
+      },
+      end: {
+        presentation: 0.3333
+      },
+      baseMediaDecodeTime: 0,
+      prependedContentDuration: 0
+    }
+  });
   // source buffer is mocked, so must manually trigger the video buffer
   // video buffer is the first buffer created
-  this.player.vhs.masterPlaylistController_
-    .mediaSource.sourceBuffers[0].trigger('updateend');
+  videoBuffer.trigger('updateend');
   this.clock.tick(1);
 
   this.player.vhs.seekToStreamTime(

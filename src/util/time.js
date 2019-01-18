@@ -4,6 +4,8 @@
  * @file time.js
  */
 
+import Playlist from '../playlist';
+
 // Add 25% to the segment duration to account for small discrepencies in segment timing.
 // 25% was arbitrarily chosen, and may need to be refined over time.
 const SEGMENT_END_FUDGE_PERCENT = 0.25;
@@ -108,12 +110,17 @@ export const findSegmentForStreamTime = (streamTime, playlist) => {
 
   return {
     segment,
-    estimatedStart: segment.dateTimeObject,
-    // Since all segments will have accurate date time objects, as long as the time is
-    // not the last segment, the boundaries should provide accurate numbers. Otherwise,
-    // the time is only accurate if the segment was downloaded at some point (determined
-    // by the presence of the videoTimingInfo object).
-    type: (segment.videoTimingInfo || segment !== lastSegment) ? 'accurate' : 'estimate'
+    estimatedStart: segment.videoTimingInfo ?
+      segment.videoTimingInfo.transmuxedPresentationStart :
+      Playlist.duration(
+        playlist,
+        playlist.mediaSequence + playlist.segments.indexOf(segment)
+      ),
+    // Although, given that all segments have accurate date time objects, the segment
+    // selected should be accurate, unless the video has been transmuxed at some point
+    // (determined by the presence of the videoTimingInfo object), the segment's "player
+    // time" (the start time in the player) can't be considered accurate.
+    type: segment.videoTimingInfo ? 'accurate' : 'estimate'
   };
 };
 
@@ -347,6 +354,12 @@ export const seekToStreamTime = ({
     });
   }
 
+  const segment = matchedSegment.segment;
+  const mediaOffset = getOffsetFromTimestamp(
+    segment.dateTimeObject,
+    streamTime
+  );
+
   if (matchedSegment.type === 'estimate') {
     // we've run out of retries
     if (retryCount === 0) {
@@ -355,22 +368,22 @@ export const seekToStreamTime = ({
       });
     }
 
-    return seekToStreamTime({
-      streamTime,
-      playlist,
-      retryCount: retryCount - 1,
-      seekTo,
-      pauseAfterSeek,
-      tech,
-      callback
-    });
-  }
+    seekTo(matchedSegment.estimatedStart + mediaOffset);
 
-  const segment = matchedSegment.segment;
-  const mediaOffset = getOffsetFromTimestamp(
-    segment.dateTimeObject,
-    streamTime
-  );
+    tech.one('seeked', () => {
+      seekToStreamTime({
+        streamTime,
+        playlist,
+        retryCount: retryCount - 1,
+        seekTo,
+        pauseAfterSeek,
+        tech,
+        callback
+      });
+    });
+
+    return;
+  }
 
   // Since the segment.start value is determined from the buffered end or ending time
   // of the prior segment, the seekToTime doesn't need to account for any transmuxer

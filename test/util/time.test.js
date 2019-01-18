@@ -140,6 +140,7 @@ QUnit.test('findSegmentForPlayerTime returns accurate if segment buffered', func
 
 QUnit.test('findSegmentForPlayerTime returns accurate last segment', function(assert) {
   const playlist = {
+    mediaSequence: 0,
     segments: [{
       videoTimingInfo: {
         transmuxerPrependedSeconds: 0,
@@ -172,6 +173,7 @@ QUnit.test(
 'findSegmentForPlayerTime returns null if beyond last segment and segment transmuxed',
 function(assert) {
   const playlist = {
+    mediaSequence: 0,
     segments: [{
       videoTimingInfo: {
         transmuxerPrependedSeconds: 0,
@@ -198,6 +200,7 @@ function(assert) {
 
 QUnit.test('findSegmentForPlayerTime returns estimated last segment', function(assert) {
   const playlist = {
+    mediaSequence: 0,
     segments: [{
       videoTimingInfo: {
         transmuxerPrependedSeconds: 0,
@@ -227,6 +230,7 @@ QUnit.test(
 'findSegmentForPlayerTime returns null if beyond last segment and segment not transmuxed',
 function(assert) {
   const playlist = {
+    mediaSequence: 0,
     segments: [{
       videoTimingInfo: {
         transmuxerPrependedSeconds: 0,
@@ -293,14 +297,13 @@ function(assert) {
     {
       type: 'estimate',
       segment,
-      estimatedStart: new Date('2018-11-10T19:38:57.158Z')
+      estimatedStart: 0
     },
     'returns estimate'
   );
 });
 
-QUnit.test('findSegmentForStreamTime returns accurate even if not buffered',
-function(assert) {
+QUnit.test('findSegmentForStreamTime returns estimate if not buffered', function(assert) {
   const segment1 = {
     duration: 1,
     dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
@@ -315,11 +318,11 @@ function(assert) {
       segments: [segment1, segment2]
     }),
     {
-      type: 'accurate',
+      type: 'estimate',
       segment: segment1,
-      estimatedStart: new Date('2018-11-10T19:38:57.158Z')
+      estimatedStart: 0
     },
-    'returns accurate'
+    'returns estimate'
   );
 });
 
@@ -341,7 +344,7 @@ QUnit.test('findSegmentForStreamTime returns accurate match if buffered', functi
     {
       type: 'accurate',
       segment,
-      estimatedStart: new Date('2018-11-10T19:38:57.158Z')
+      estimatedStart: 0
     },
     'returns accurate match if segment buffered'
   );
@@ -349,6 +352,7 @@ QUnit.test('findSegmentForStreamTime returns accurate match if buffered', functi
 
 QUnit.test('findSegmentForStreamTime returns accurate last segment', function(assert) {
   const playlist = {
+    mediaSequence: 0,
     segments: [{
       videoTimingInfo: {
         transmuxerPrependedSeconds: 0,
@@ -373,7 +377,7 @@ QUnit.test('findSegmentForStreamTime returns accurate last segment', function(as
     {
       type: 'accurate',
       segment: playlist.segments[1],
-      estimatedStart: new Date('2018-11-10T19:38:58.158Z')
+      estimatedStart: 1
     },
     'returns accurate match if segment buffered'
   );
@@ -383,6 +387,7 @@ QUnit.test(
 'findSegmentForStreamTime returns null if beyond last segment and segment transmuxed',
 function(assert) {
   const playlist = {
+    mediaSequence: 0,
     segments: [{
       videoTimingInfo: {
         transmuxerPrependedSeconds: 0,
@@ -411,6 +416,7 @@ function(assert) {
 
 QUnit.test('findSegmentForStreamTime returns estimated last segment', function(assert) {
   const playlist = {
+    mediaSequence: 0,
     segments: [{
       videoTimingInfo: {
         transmuxerPrependedSeconds: 0,
@@ -435,7 +441,7 @@ QUnit.test('findSegmentForStreamTime returns estimated last segment', function(a
     {
       type: 'estimate',
       segment: playlist.segments[1],
-      estimatedStart: playlist.segments[1].dateTimeObject
+      estimatedStart: 1
     },
     'returns the estimated last segment match if the segment has not been transmuxed'
   );
@@ -445,6 +451,7 @@ QUnit.test(
 'findSegmentForStreamTime returns null if beyond last segment and segment not transmuxed',
 function(assert) {
   const playlist = {
+    mediaSequence: 0,
     segments: [{
       videoTimingInfo: {
         transmuxerPrependedSeconds: 0,
@@ -576,6 +583,7 @@ function(assert) {
 QUnit.module('Time: getStreamTime', {
   beforeEach(assert) {
     this.playlist = {
+      mediaSequence: 0,
       segments: [{
         duration: 4,
         // UTC: Sun, 11 Nov 2018 00:00:00 GMT
@@ -681,6 +689,7 @@ QUnit.test('return a seek time to reject callback if accurate value cannot be re
 function(assert) {
   const done = assert.async();
   const playlist = {
+    mediaSequence: 0,
     segments: [
       {
         duration: 1,
@@ -724,6 +733,7 @@ QUnit.test('returns time if no modifications', function(assert) {
     end: 5
   });
   const playlist = {
+    mediaSequence: 0,
     segments: [
       segment
     ]
@@ -752,6 +762,7 @@ QUnit.test('returns programDateTime parsed from media segment tags', function(as
     end: 1
   });
   const playlist = {
+    mediaSequence: 0,
     segments: [
       segment
     ]
