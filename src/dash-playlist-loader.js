@@ -521,6 +521,8 @@ export default class DashPlaylistLoader extends EventTarget {
       }, refreshDelay(this.media(), !!updatedMaster));
     }
 
+    // Note: if a src is provided on DashPlaylistLoader creation,
+    // this will trigger immediately
     this.trigger('loadedplaylist');
   }
 }
