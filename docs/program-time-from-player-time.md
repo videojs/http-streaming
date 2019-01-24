@@ -5,20 +5,19 @@
 NOTE: All times referenced in seconds unless otherwise specified.
 
 *Player Time*: any time that can be gotten/set from player.currentTime() (e.g., any time within player.seekable().start(0) to player.seekable().end(0)).<br />
-*Stream Time*: any time within one of the stream's segments. Used by video frames (e.g., dts, pts, base media decode time). While these times natively use clock values, throughout the document the times are referenced in second.<br />
+*Stream Time*: any time within one of the stream's segments. Used by video frames (e.g., dts, pts, base media decode time). While these times natively use clock values, throughout the document the times are referenced in seconds.<br />
 *Program Time*: any time referencing the real world (e.g., EXT-X-PROGRAM-DATE-TIME).<br />
 *Start of Segment*: the pts (presentation timestamp) value of the first frame in a segment.<br />
 
 ## Overview
 
-In order to convert from a *player time* to a *stream time*, two things are required:
+In order to convert from a *player time* to a *stream time*, an "anchor point" is required to match up a *player time*, *stream time*, and *program time*.
 
-1. An anchor point must be chosen to match up a *player time* and a *stream time*
-1. The offset must be determined between the *player time* and the *stream time* at that point
+Two anchor points that are usable are the time since the start of a new timeline (e.g., the time since the last discontinuity or start of the stream), and the start of a segment. Because, in our requirements for this conversion, each segment is tagged with its *program time* in the form of an [EXT-X-PROGRAM-DATE-TIME tag](https://tools.ietf.org/html/draft-pantos-http-live-streaming-23#section-4.3.2.6), using the segment start as the anchor point is the easiest solution. It's the closest potential anchor point to the time to convert, and it doesn't require us to track time changes across segments.
 
-Two anchor points that are usable are the time since the start of a new timeline (e.g., the time since the last discontinuity or start of the stream), and the start of a segment. Because each segment is tagged with its *program time*, using the segment start as the anchor point is the easiest solution, as it's the closest potential anchor point to the time to convert, and it doesn't require us to track time changes across multiple segments.
+Those time changes are the result of the transmuxer, which can add/remove content in order to keep the content playable (without gaps or other breaking changes between segments), particularly when a segment doesn't start with a key frame.
 
-To make use of the segment start, and to calculate the offset between the two, a few properties are needed:
+In order to make use of the segment start, and to calculate the offset between the segment start and the time to convert, a few properties are needed:
 
 1. The start of the segment before transmuxing
 1. Time changes made to the segment during transmuxing
@@ -60,14 +59,13 @@ segment: {
 
 ## The Formula
 
-With the properties listed above, calculating a *stream time* from a *player time* is given as follows:
+With the properties listed above, calculating a *program time* from a *player time* is given as follows:
 
 ```
-const playerTimeToStreamTime = (playerTime, segment) => {
-  // If there's no "anchor point" for the stream time (i.e., a time that can be used to
-  // sync the start of a segment with a real world stream time), then a stream time can't
-  // be calculated.
+const playerTimeToProgramTime = (playerTime, segment) => {
   if (!segment.dateTimeObject) {
+    // Can't convert without an "anchor point" for the program time (i.e., a time that can
+    // be used to map the start of a segment with a real world time).
     return null;
   }
 
@@ -82,12 +80,10 @@ const playerTimeToStreamTime = (playerTime, segment) => {
 };
 ```
 
-The *stream time* can be converted to *program time* by taking the EXT-X-PROGRAM-DATE-TIME tagged on the segment and adding *stream time* - segment.start.
-
 ## Examples
 
 ```
-// Stream Times:
+// Program Times:
 //   segment1: 2018-11-10T00:00:30.1Z => 2018-11-10T00:00:32.1Z
 //   segment2: 2018-11-10T00:00:32.1Z => 2018-11-10T00:00:34.1Z
 //   segment3: 2018-11-10T00:00:34.1Z => 2018-11-10T00:00:36.1Z
@@ -104,7 +100,7 @@ const segment1 = {
     transmuxedPresentationStart: 0
   }
 };
-playerTimeToStreamTime(0.1, segment1);
+playerTimeToProgramTime(0.1, segment1);
 // startOfSegment = 0 + 0 = 0
 // offsetFromSegmentStart = 0.1 - 0 = 0.1
 // return 2018-11-10T00:00:30.1Z + 0.1 = 2018-11-10T00:00:30.2Z
@@ -116,7 +112,7 @@ const segment2 = {
     transmuxedPresentationStart: 1.7
   }
 };
-playerTimeToStreamTime(2.5, segment2);
+playerTimeToProgramTime(2.5, segment2);
 // startOfSegment = 1.7 + 0.3 = 2
 // offsetFromSegmentStart = 2.5 - 2 = 0.5
 // return 2018-11-10T00:00:32.1Z + 0.5 = 2018-11-10T00:00:32.6Z
@@ -128,7 +124,7 @@ const segment3 = {
     transmuxedPresentationStart: 3.8
   }
 };
-playerTimeToStreamTime(4, segment3);
+playerTimeToProgramTime(4, segment3);
 // startOfSegment = 3.8 + 0.2 = 4
 // offsetFromSegmentStart = 4 - 4 = 0
 // return 2018-11-10T00:00:34.1Z + 0 = 2018-11-10T00:00:34.1Z

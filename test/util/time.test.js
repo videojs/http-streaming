@@ -8,7 +8,7 @@ import {
   findSegmentForStreamTime,
   getOffsetFromTimestamp,
   originalSegmentVideoDuration,
-  playerTimeToStreamTime
+  playerTimeToProgramTime
 } from '../../src/util/time.js';
 
 QUnit.module('Time');
@@ -511,9 +511,9 @@ function(assert) {
   );
 });
 
-QUnit.test('playerTimeToStreamTime returns null if no dateTimeObject', function(assert) {
+QUnit.test('playerTimeToProgramTime returns null if no dateTimeObject', function(assert) {
   assert.equal(
-    playerTimeToStreamTime(7, {
+    playerTimeToProgramTime(7, {
       videoTimingInfo: {
         transmuxedPresentationEnd: 11,
         transmuxedPresentationStart: 4,
@@ -526,14 +526,14 @@ QUnit.test('playerTimeToStreamTime returns null if no dateTimeObject', function(
 });
 
 QUnit.test(
-'playerTimeToStreamTime converts a player time to a stream time based on segment' +
+'playerTimeToProgramTime converts a player time to a stream time based on segment' +
 ' program date time',
 function(assert) {
   // UTC: Sun, 11 Nov 2018 00:00:00 GMT
   const dateTimeObject = new Date(1541894400000);
 
   assert.deepEqual(
-    playerTimeToStreamTime(7, {
+    playerTimeToProgramTime(7, {
       dateTimeObject,
       videoTimingInfo: {
         transmuxedPresentationEnd: 11,
@@ -547,12 +547,12 @@ function(assert) {
   );
 });
 
-QUnit.test('playerTimeToStreamTime accounts for prepended content', function(assert) {
+QUnit.test('playerTimeToProgramTime accounts for prepended content', function(assert) {
   // UTC: Sun, 11 Nov 2018 00:00:00 GMT
   const dateTimeObject = new Date(1541894400000);
 
   assert.deepEqual(
-    playerTimeToStreamTime(7, {
+    playerTimeToProgramTime(7, {
       dateTimeObject,
       videoTimingInfo: {
         transmuxedPresentationEnd: 11,

@@ -13,24 +13,22 @@ const SEGMENT_END_FUDGE_PERCENT = 0.25;
 /**
  * Converts a player time (any time that can be gotten/set from player.currentTime(),
  * e.g., any time within player.seekable().start(0) to player.seekable().end(0)) to a
- * stream time (any time within one of the stream's segments, e.g., dts/pts for video
- * frames).
+ * program time (any time referencing the real world (e.g., EXT-X-PROGRAM-DATE-TIME)).
  *
- * The containing segment is required as it serves as an anchor point for the stream time.
- * As such, the dateTimeObject from EXT-X-PROGRAM-DATE-TIME is also required (it serves
- * as the anchor point).
+ * The containing segment is required as the EXT-X-PROGRAM-DATE-TIME serves as an "anchor
+ * point" (a point where we have a mapping from program time to player time, with player
+ * time being the post transmux start of the segment).
  *
- * For more details, see [this doc](../../docs/stream-time-from-player-time.md).
+ * For more details, see [this doc](../../docs/program-time-from-player-time.md).
  *
  * @param {Number} playerTime the player time
  * @param {Object} segment the segment which contains the player time
- * @return {Date} stream time
+ * @return {Date} program time
  */
-export const playerTimeToStreamTime = (playerTime, segment) => {
-  // If there's no "anchor point" for the stream time (i.e., a time that can be used to
-  // sync the start of a segment with a real world stream time), then a stream time can't
-  // be calculated.
+export const playerTimeToProgramTime = (playerTime, segment) => {
   if (!segment.dateTimeObject) {
+    // Can't convert without an "anchor point" for the program time (i.e., a time that can
+    // be used to map the start of a segment with a real world time).
     return null;
   }
 
@@ -287,16 +285,16 @@ export const getStreamTime = ({
     });
   }
 
-  const streamTimeObject = {
+  const programTimeObject = {
     mediaSeconds: time
   };
-  const streamTime = playerTimeToStreamTime(time, matchedSegment.segment);
+  const programTime = playerTimeToProgramTime(time, matchedSegment.segment);
 
-  if (streamTime) {
-    streamTimeObject.programDateTime = streamTime.toISOString();
+  if (programTime) {
+    programTimeObject.programDateTime = programTime.toISOString();
   }
 
-  return callback(null, streamTimeObject);
+  return callback(null, programTimeObject);
 };
 
 /**
