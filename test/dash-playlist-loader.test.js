@@ -30,26 +30,6 @@ QUnit.test('throws if the playlist url is empty or undefined', function(assert) 
   }, 'does not accept the empty string');
 });
 
-QUnit.test('starts with a manifest URL or playlist', function(assert) {
-  let loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
-
-  assert.notOk(loader.started, 'not started');
-  loader.load();
-  assert.equal(loader.state, 'HAVE_NOTHING', 'no metadata has loaded yet');
-  assert.ok(loader.started, 'started');
-
-  loader.master = { playlists: { 'playlist-1': { endList: true } }, mediaGroups: {} };
-  loader.parseMasterXml = () => {
-    return { playlists: [], mediaGroups: {} };
-  };
-
-  let newLoader =
-    new DashPlaylistLoader({ uri: 'playlist-1' }, this.fakeHls, false, loader);
-
-  assert.equal(newLoader.state, 'HAVE_METADATA', 'has metadata');
-  assert.ok(newLoader.started, 'started');
-});
-
 QUnit.test('requests the manifest immediately when given a URL', function(assert) {
   let loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
 
@@ -58,23 +38,141 @@ QUnit.test('requests the manifest immediately when given a URL', function(assert
   assert.equal(this.requests[0].url, 'dash.mpd', 'requested the manifest');
 });
 
-QUnit.test('moves to HAVE_MASTER and HAVE_METADATA after loading the manifest',
-function(assert) {
+QUnit.test('starts without any metadata', function(assert) {
   let loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
-  let loadedPlaylistStates = [];
+
+  assert.notOk(loader.started, 'not started');
+
+  loader.load();
+  assert.equal(loader.state, 'HAVE_NOTHING', 'no metadata has loaded yet');
+  assert.ok(loader.started, 'started');
+});
+
+QUnit.skip('moves to HAVE_MASTER after loading a master playlist', function(assert) {
+  let loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  let state;
+
+  loader.on('loadedplaylist', function() {
+    state = loader.state;
+  });
+
+  loader.load();
+  standardXHRResponse(this.requests.shift());
+
+  assert.ok(loader.master, 'the master playlist is available');
+  assert.strictEqual(state, 'HAVE_MASTER', 'the state at loadedplaylist correct');
+});
+
+QUnit.test('moves to HAVE_METADATA after loading a media playlist', function(assert) {
+  let loadedPlaylist = 0;
+  let loadedMetadata = 0;
+  let loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
 
   loader.load();
 
   loader.on('loadedplaylist', function() {
-    loadedPlaylistStates.push(loader.state);
+    loadedPlaylist++;
   });
+  loader.on('loadedmetadata', function() {
+    loadedMetadata++;
+  });
+
   standardXHRResponse(this.requests.shift());
-  assert.ok(loader.master, 'the master playlist is available');
+  this.clock.tick(1);
+
   // because DASH only has one manifest, it should go through two loadedplaylists
   // and end with HAVE_METADATA because it already has the first media ready
-  assert.equal(loadedPlaylistStates.length, 2, 'triggered two loadedplaylist events');
-  assert.equal(loadedPlaylistStates[0], 'HAVE_MASTER', 'got master first');
-  assert.equal(loadedPlaylistStates[1], 'HAVE_METADATA', 'got media second');
+  assert.strictEqual(loadedPlaylist, 2,
+    'fired loadedplaylist once for master playlist and once for' +
+    ' autoselected first child playlist');
+  // this is triggered on the next tick after construction
+  assert.strictEqual(loadedMetadata, 1, 'fired loadedmetadata once');
+  assert.ok(loader.master, 'sets the master playlist');
+  assert.ok(loader.media(), 'sets the media playlist');
+  assert.strictEqual(this.requests.length, 0, 'no further requests are needed');
+
+  const childLoader = new DashPlaylistLoader(loader.master.playlists[0], this.fakeHls, false, loader);
+
+  childLoader.on('loadedplaylist', function() {
+    loadedPlaylist++;
+  });
+  childLoader.on('loadedmetadata', function() {
+    loadedMetadata++;
+  });
+
+  childLoader.load();
+  this.clock.tick(1);
+
+  // actually, loadedplaylist is triggered 4 times at this point,
+  // but the 3rd is on childLoader's creation so it's not observable
+  assert.strictEqual(loadedPlaylist, 3, 'fired loadedplaylist thrice');
+  assert.strictEqual(loadedMetadata, 2, 'fired loadedmetadata twice');
+  assert.strictEqual(loader.state, 'HAVE_METADATA', 'the state is correct');
+});
+
+QUnit.test('jumps to HAVE_METADATA when initialized with a live media playlist',
+  function(assert) {
+    const loader = new DashPlaylistLoader('dash-live.mpd', this.fakeHls);
+    let loadedmetadatas = 0;
+
+    loader.load();
+    standardXHRResponse(this.requests.shift());
+
+    assert.strictEqual(loadedmetadatas, 0, 'fired no loadedmetadata on same tick');
+    assert.ok(loader.master, 'infers a master playlist');
+    assert.ok(loader.media(), 'sets the media playlist');
+    assert.ok(loader.media().attributes, 'sets the media playlist attributes');
+
+    this.clock.tick(1);
+
+    assert.strictEqual(loader.state, 'HAVE_METADATA', 'the state is correct');
+  });
+
+QUnit.test('returns to HAVE_METADATA after refreshing the playlist', function(assert) {
+  let loader = new DashPlaylistLoader('dash-live.mpd', this.fakeHls);
+
+  loader.load();
+
+  standardXHRResponse(this.requests.shift());
+  // 10s, one target duration
+  this.clock.tick(10 * 1000);
+
+  assert.strictEqual(loader.state, 'HAVE_METADATA', 'the state is correct');
+});
+
+QUnit.test('triggers an event when the active media changes', function(assert) {
+  let loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  let mediaChanges = 0;
+  let mediaChangings = 0;
+
+  loader.on('mediachange', function() {
+    mediaChanges++;
+  });
+  loader.on('mediachanging', function() {
+    mediaChangings++;
+  });
+
+  loader.load();
+  standardXHRResponse(this.requests.shift());
+  this.clock.tick(1);
+
+  assert.strictEqual(mediaChangings, 0, 'initial selection is not a media changing');
+  assert.strictEqual(mediaChanges, 0, 'initial selection is not a media change');
+
+  loader.media(loader.master.playlists[1]);
+  assert.strictEqual(mediaChangings, 1, 'mediachanging fires immediately');
+  // Note: does not match PlaylistLoader behavior
+  assert.strictEqual(mediaChanges, 1, 'mediachange fires immediately');
+
+  // switch back to an already loaded playlist
+  loader.media(loader.master.playlists[0]);
+  assert.strictEqual(mediaChangings, 2, 'mediachanging fires');
+  assert.strictEqual(mediaChanges, 2, 'fired a mediachange');
+
+  // trigger a no-op switch
+  loader.media(loader.master.playlists[0]);
+  assert.strictEqual(mediaChangings, 2, 'mediachanging ignored the no-op');
+  assert.strictEqual(mediaChanges, 2, 'ignored a no-op media change');
 });
 
 QUnit.test('throws an error when initial manifest request fails', function(assert) {

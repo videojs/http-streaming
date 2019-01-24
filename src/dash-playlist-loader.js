@@ -82,6 +82,7 @@ export default class DashPlaylistLoader extends EventTarget {
     });
 
     // initialize the loader state
+    // master manifests will be created with a string
     if (typeof srcUrlOrPlaylist === 'string') {
       this.srcUrl = srcUrlOrPlaylist;
       this.state = 'HAVE_NOTHING';
@@ -450,6 +451,8 @@ export default class DashPlaylistLoader extends EventTarget {
       }, refreshDelay(this.media(), !!updatedMaster));
     }
 
+    // Note: if a src is provided on DashPlaylistLoader creation,
+    // this will trigger immediately
     this.trigger('loadedplaylist');
   }
 }

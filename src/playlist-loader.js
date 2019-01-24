@@ -537,6 +537,8 @@ export default class PlaylistLoader extends EventTarget {
         setupMediaPlaylists(this.master);
         resolveMediaGroupUris(this.master);
 
+        // this will trigger a request for a child manifest
+        // if a media playlist has been selected
         this.trigger('loadedplaylist');
         if (!this.request) {
           // no media playlist was specifically selected so start
