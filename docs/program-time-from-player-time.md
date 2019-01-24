@@ -1,4 +1,4 @@
-# How to get stream time from player time
+# How to get program time from player time
 
 ## Definitions
 
@@ -133,3 +133,9 @@ playerTimeToProgramTime(4, segment3);
 ## Transmux Before Append Changes
 
 Even though segment timing values are retained for transmux before append, the formula does not need to change, as all that matters for calculation is the offset from the transmuxed segment start, which can then be applied to the stream time start of segment, or the program time start of segment.
+
+## Getting the Right Segment
+
+In order to make use of the above calculation, the right segment must be chosen for a given player time. This time may be retrieved by simply using the times of the segment after transmuxing (as the start/end pts/dts values then reflect the player time it should slot into in the source buffer). These are included in `videoTimingInfo` as `transmuxedPresentationStart` and `transmuxedPresentationEnd`.
+
+Although there may be a small amount of overlap due to `transmuxerPrependedSeconds`, as long as the search is sequential from the beginning of the playlist to the end, the right segment will be found, as the prepended times will only come from content from prior segments.
