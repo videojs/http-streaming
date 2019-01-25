@@ -684,8 +684,16 @@ export class MasterPlaylistController extends videojs.EventTarget {
       }
     }
 
-    if (isEndOfStream) {
+    if (!isEndOfStream) {
+      return;
+    }
+
+    // sometimes endOfStream will fail here due to suourcebuffers updating
+    // often times it will not.
+    try {
       this.mediaSource.endOfStream();
+    } catch (e) {
+      videojs.log.warn('Failed to call media source endOfStream', e);
     }
   }
 
@@ -944,9 +952,15 @@ export class MasterPlaylistController extends videojs.EventTarget {
     let newDuration = Hls.Playlist.duration(this.masterPlaylistLoader_.media());
     let buffered = this.tech_.buffered();
     let setDuration = () => {
-      this.mediaSource.duration = newDuration;
+      // on firefox setting the duration may sometimes cause an exception
+      // even if the media source is open and source buffers are not
+      // updating.
+      try {
+        this.mediaSource.duration = newDuration;
+      } catch (e) {
+        videojs.log.warn('Failed to set media source duration', e);
+      }
       this.tech_.trigger('durationchange');
-
       this.mediaSource.removeEventListener('sourceopen', setDuration);
     };
 
