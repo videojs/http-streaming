@@ -688,8 +688,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    // sometimes endOfStream will fail here due to suourcebuffers updating
-    // often times it will not.
+    // on chrome calling endOfStream can sometimes cause an exception,
+    // even when the media source is in a valid state.
     try {
       this.mediaSource.endOfStream();
     } catch (e) {
@@ -954,13 +954,14 @@ export class MasterPlaylistController extends videojs.EventTarget {
     let setDuration = () => {
       // on firefox setting the duration may sometimes cause an exception
       // even if the media source is open and source buffers are not
-      // updating.
+      // updating, something about the media source being in an invalid state.
       try {
         this.mediaSource.duration = newDuration;
       } catch (e) {
         videojs.log.warn('Failed to set media source duration', e);
       }
       this.tech_.trigger('durationchange');
+
       this.mediaSource.removeEventListener('sourceopen', setDuration);
     };
 
