@@ -1,0 +1,101 @@
+@startuml
+
+header PlaylistLoader sequences
+
+title PlaylistLoader sequences: Master Manifest and Video-Only
+
+Participant "Create loader" as constructor
+Participant "load()" as load
+Participant "start()" as start
+Participant "request master manifest" as requestMaster
+Participant "parse master manifest" as parseMaster
+Participant "setupMediaGroups" as setupMediaGroups
+Participant "masterPlaylistLoader" as MPL
+Participant "media()" as media
+Participant "request child manifest" as requestChild
+Participant "haveMetadata()" as haveMetadata
+Participant "parse child manifest" as parseChild
+Participant "segmentLoader" as SL
+
+== Initialization ==
+
+constructor -> load : "state = 'HAVE_NOTHING'"
+note left
+  sets up mediaupdatetimeout handler
+  for live playlist staleness
+end note
+
+alt started
+  load -> load
+  note left
+    If live playlist
+      trigger 'mediaupdatetimeout' on master loader
+    If vod
+      trigger 'loadedplaylist' on master loader
+  end note
+
+else not started
+
+	load -> start : "started = true"
+
+end
+
+== Requesting Master ==
+
+start -> requestMaster
+requestMaster -> requestMaster : "response with master manifest"
+requestMaster -> parseMaster : "state = 'HAVE_MASTER'"
+
+parseMaster -> parseMaster
+note left
+  trigger 'loadedplaylist' on master loader
+end note
+
+== Requesting media ==
+
+parseMaster -> MPL : "loadedplaylist handler"
+MPL -> media : "select initial (video) playlist"
+
+media -> requestChild : "state = 'SWITCHING_MEDIA'"
+requestChild -> requestChild : child manifest returned
+
+requestChild -> haveMetadata: "state = 'HAVE_METADATA'"
+
+== Request media segments ===
+
+haveMetadata -> parseChild
+  alt live
+    parseChild -> haveMetadata
+    note left
+      setup mediaupdatetimeout
+    end note
+
+  else vod
+    parseChild -> haveMetadata
+    note left
+      trigger 'loadedplaylist' on master loader
+    end note
+
+    haveMetadata -> MPL : "loadedplaylist handler"
+    MPL -> SL : "request media segments ?????? is this the right order?"
+  end
+
+haveMetadata -> requestChild
+  note left
+    trigger 'loadedmetadata' on master loader
+  end note
+
+requestChild -> MPL  : "loadedmetadata handler"
+
+alt live and preload != 'none'
+  MPL -> SL: request media segments
+
+else vod and live with preload = 'none'
+  MPL -> setupMediaGroups
+  note left
+    trigger 'selectedinitialmedia'
+  end note
+
+end
+
+@enduml
