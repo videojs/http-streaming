@@ -77,7 +77,7 @@ haveMetadata -> parseChild
     end note
 
     haveMetadata -> MPL : "loadedplaylist handler"
-    MPL -> SL : "request media segments ?????? is this the right order?"
+    MPL -> MPL : "setup durationchange handler"
   end
 
 haveMetadata -> requestChild
@@ -92,9 +92,6 @@ alt live and preload != 'none'
 
 else vod and live with preload = 'none'
   MPL -> setupMediaGroups
-  note left
-    trigger 'selectedinitialmedia'
-  end note
 
 end
 
