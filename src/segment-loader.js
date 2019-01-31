@@ -1250,12 +1250,13 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     this.sourceUpdater_.appendBuffer({
       bytes: segmentInfo.bytes,
-      videoSegmentTimingInfoCallback: this.handleVideoSegmentTimingInfo_.bind(this)
+      videoSegmentTimingInfoCallback:
+        this.handleVideoSegmentTimingInfo_.bind(this, segmentInfo.requestId)
     }, this.handleUpdateEnd_.bind(this));
   }
 
-  handleVideoSegmentTimingInfo_(event) {
-    if (!this.pendingSegment_) {
+  handleVideoSegmentTimingInfo_(requestId, event) {
+    if (!this.pendingSegment_ || requestId !== this.pendingSegment_.requestId) {
       return;
     }
 
