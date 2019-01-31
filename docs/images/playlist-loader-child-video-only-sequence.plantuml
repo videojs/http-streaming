@@ -1,7 +1,7 @@
 @startuml
 
 header PlaylistLoader sequences
-title PlaylistLoader sequences: Master Manifest and Video-Only
+title PlaylistLoader sequences: Child Manifest Video-Only
 
 Participant "MasterPlaylistController" as MPC #green
 Participant "PlaylistLoader: constructor" as PLc
@@ -32,28 +32,21 @@ load -> start : calls
 note left: not started yet
 note over start #lightgray: started = true
 
-== Requesting Master ==
+== Requesting media ===
 
-start -> ext: xhr request for master manifest
-ext -> start : response with master manifest
-start -> parser: parse master manifest
+start -> ext: xhr request for child manifest
+ext -> start: response with child manifest
+
+start -> parser: parse child manifest
 parser -> start: object representing manifest
 note over start #lightgray: state = 'HAVE_MASTER'
-note left: trigger 'loadedplaylist' on master loader
+start -> start : infer a master playlist
 
-== Requesting media ==
-
-start -> lpH: handling loadedplaylist
-lpH -> media : select initial (video) playlist
-note over media #lightgray: state = 'SWITCHING_MEDIA'
-
-media -> ext : request child manifest
-ext -> media: child manifest returned
-media -> haveMetadata: calls
+start -> haveMetadata: calls
 note over haveMetadata #lightgray: state = 'HAVE_METADATA'
 
-haveMetadata -> parser: parse manifest
-parser -> haveMetadata: object representing the manifest
+haveMetadata -> parser: parse child manifest again
+parser -> haveMetadata: object representing manifest
 haveMetadata -> haveMetadata: update loader's master playlist
 
 alt live
@@ -69,16 +62,15 @@ else vod
     at this point.
   end note
 
-  haveMetadata -> lpH : "loadedplaylist handler"
-  lpH -> lpH : "setup durationchange handler"
+  haveMetadata -> lpH : loadedplaylist handler
+  lpH -> lpH : setup durationchange handler
 end
 
-== Requesting media segments ===
+== Requesting segments ==
 
-haveMetadata -> media: return
-note left: trigger 'loadedmetadata' on master loader
-
-media -> lmH: handling 'loadedmetadata'
+start -> start
+note left: "trigger 'loadedmetadata' on master loader"
+start -> lmH: handling 'loadedmetadata'
 
 alt vod and preload != 'none'
   lmH -> SL: request media segments
