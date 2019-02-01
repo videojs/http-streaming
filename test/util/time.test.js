@@ -1,11 +1,11 @@
 import QUnit from 'qunit';
 import videojs from 'video.js';
 import {
-  getStreamTime,
-  seekToStreamTime,
+  getProgramTime,
+  seekToProgramTime,
   verifyProgramDateTimeTags,
   findSegmentForPlayerTime,
-  findSegmentForStreamTime,
+  findSegmentForProgramTime,
   getOffsetFromTimestamp,
   originalSegmentVideoDuration,
   playerTimeToProgramTime
@@ -251,14 +251,15 @@ function(assert) {
   );
 });
 
-QUnit.test('findSegmentForStreamTime returns nothing if a match cannot be found', function(assert) {
+QUnit.test('findSegmentForProgramTime returns nothing if a match cannot be found',
+function(assert) {
   assert.equal(
-    findSegmentForStreamTime('2018-11-10T19:39:57.158Z', {}),
+    findSegmentForProgramTime('2018-11-10T19:39:57.158Z', {}),
     null,
     'returns nothing if empty playlist'
   );
   assert.equal(
-    findSegmentForStreamTime('2018-11-10T19:39:57.158Z', {
+    findSegmentForProgramTime('2018-11-10T19:39:57.158Z', {
       segments: [],
       targetDuration: 1
     }),
@@ -266,7 +267,7 @@ QUnit.test('findSegmentForStreamTime returns nothing if a match cannot be found'
     'returns nothing if empty segment list'
   );
   assert.equal(
-    findSegmentForStreamTime('2018-11-10T19:40:57.158Z', {
+    findSegmentForProgramTime('2018-11-10T19:40:57.158Z', {
       segments: [{
         videoTimingInfo: {
           transmuxerPrependedSeconds: 0,
@@ -283,7 +284,7 @@ QUnit.test('findSegmentForStreamTime returns nothing if a match cannot be found'
   );
 });
 
-QUnit.test('findSegmentForStreamTime returns estimate if last segment and not buffered',
+QUnit.test('findSegmentForProgramTime returns estimate if last segment and not buffered',
 function(assert) {
   const segment = {
     duration: 1,
@@ -291,7 +292,7 @@ function(assert) {
   };
 
   assert.deepEqual(
-    findSegmentForStreamTime('2018-11-10T19:38:57.200Z', {
+    findSegmentForProgramTime('2018-11-10T19:38:57.200Z', {
       segments: [segment]
     }),
     {
@@ -303,7 +304,8 @@ function(assert) {
   );
 });
 
-QUnit.test('findSegmentForStreamTime returns estimate if not buffered', function(assert) {
+QUnit.test('findSegmentForProgramTime returns estimate if not buffered',
+function(assert) {
   const segment1 = {
     duration: 1,
     dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
@@ -314,7 +316,7 @@ QUnit.test('findSegmentForStreamTime returns estimate if not buffered', function
   };
 
   assert.deepEqual(
-    findSegmentForStreamTime('2018-11-10T19:38:57.200Z', {
+    findSegmentForProgramTime('2018-11-10T19:38:57.200Z', {
       segments: [segment1, segment2]
     }),
     {
@@ -326,7 +328,8 @@ QUnit.test('findSegmentForStreamTime returns estimate if not buffered', function
   );
 });
 
-QUnit.test('findSegmentForStreamTime returns accurate match if buffered', function(assert) {
+QUnit.test('findSegmentForProgramTime returns accurate match if buffered',
+function(assert) {
   const segment = {
     videoTimingInfo: {
       transmuxerPrependedSeconds: 0,
@@ -338,7 +341,7 @@ QUnit.test('findSegmentForStreamTime returns accurate match if buffered', functi
   };
 
   assert.deepEqual(
-    findSegmentForStreamTime('2018-11-10T19:38:57.200Z', {
+    findSegmentForProgramTime('2018-11-10T19:38:57.200Z', {
       segments: [segment]
     }),
     {
@@ -350,7 +353,7 @@ QUnit.test('findSegmentForStreamTime returns accurate match if buffered', functi
   );
 });
 
-QUnit.test('findSegmentForStreamTime returns accurate last segment', function(assert) {
+QUnit.test('findSegmentForProgramTime returns accurate last segment', function(assert) {
   const playlist = {
     mediaSequence: 0,
     segments: [{
@@ -373,7 +376,7 @@ QUnit.test('findSegmentForStreamTime returns accurate last segment', function(as
   };
 
   assert.deepEqual(
-    findSegmentForStreamTime('2018-11-10T19:38:58.200Z', playlist),
+    findSegmentForProgramTime('2018-11-10T19:38:58.200Z', playlist),
     {
       type: 'accurate',
       segment: playlist.segments[1],
@@ -384,7 +387,7 @@ QUnit.test('findSegmentForStreamTime returns accurate last segment', function(as
 });
 
 QUnit.test(
-'findSegmentForStreamTime returns null if beyond last segment and segment transmuxed',
+'findSegmentForProgramTime returns null if beyond last segment and segment transmuxed',
 function(assert) {
   const playlist = {
     mediaSequence: 0,
@@ -408,13 +411,13 @@ function(assert) {
   };
 
   assert.deepEqual(
-    findSegmentForStreamTime('2018-11-10T19:38:59.200Z', playlist),
+    findSegmentForProgramTime('2018-11-10T19:38:59.200Z', playlist),
     null,
     'returns null if beyond the transmuxed last segment'
   );
 });
 
-QUnit.test('findSegmentForStreamTime returns estimated last segment', function(assert) {
+QUnit.test('findSegmentForProgramTime returns estimated last segment', function(assert) {
   const playlist = {
     mediaSequence: 0,
     segments: [{
@@ -433,11 +436,11 @@ QUnit.test('findSegmentForStreamTime returns estimated last segment', function(a
 
   // 25% of last segment duration + last segment duration on top of last segment start
   // to test allowed fudge
-  const streamTime =
+  const programTime =
     new Date(playlist.segments[1].dateTimeObject.getTime() + 1.25 * 1000);
 
   assert.deepEqual(
-    findSegmentForStreamTime(streamTime.toISOString(), playlist),
+    findSegmentForProgramTime(programTime.toISOString(), playlist),
     {
       type: 'estimate',
       segment: playlist.segments[1],
@@ -448,7 +451,8 @@ QUnit.test('findSegmentForStreamTime returns estimated last segment', function(a
 });
 
 QUnit.test(
-'findSegmentForStreamTime returns null if beyond last segment and segment not transmuxed',
+'findSegmentForProgramTime returns null if beyond last segment and' +
+' segment not transmuxed',
 function(assert) {
   const playlist = {
     mediaSequence: 0,
@@ -467,11 +471,11 @@ function(assert) {
   };
 
   // just over allowed fudge of 25%
-  const streamTime =
+  const programTime =
     new Date(playlist.segments[1].dateTimeObject.getTime() + 1.26 * 1000);
 
   assert.equal(
-    findSegmentForStreamTime(streamTime.toISOString(), playlist),
+    findSegmentForProgramTime(programTime.toISOString(), playlist),
     null,
     'returns null if beyond the non transmuxed last segment'
   );
@@ -493,7 +497,7 @@ QUnit.test('getOffsetFromTimestamp will calculate second differences in timestam
   assert.equal(
     getOffsetFromTimestamp('2018-11-10T19:38:57.158Z', '2018-11-10T19:38:56.158Z'),
     -1,
-    'negative offset returned if streamTime is before comparison timestamp'
+    'negative offset returned if programTime is before comparison timestamp'
   );
 });
 
@@ -580,7 +584,7 @@ function(assert) {
   );
 });
 
-QUnit.module('Time: getStreamTime', {
+QUnit.module('Time: getProgramTime', {
   beforeEach(assert) {
     this.playlist = {
       mediaSequence: 0,
@@ -607,24 +611,24 @@ QUnit.test('returns error if playlist or time is not provided', function(assert)
   const done = assert.async();
   const done2 = assert.async();
 
-  getStreamTime({
+  getProgramTime({
     time: 1,
-    callback: (err, streamTime) => {
+    callback: (err, programTime) => {
       assert.equal(
         err.message,
-        'getStreamTime: playlist and time must be provided',
+        'getProgramTime: playlist and time must be provided',
         'error message is returned when no playlist provided'
       );
       done();
     }
   });
 
-  getStreamTime({
+  getProgramTime({
     playlist: this.playlist,
-    callback: (err, streamTime) => {
+    callback: (err, programTime) => {
       assert.equal(
         err.message,
-        'getStreamTime: playlist and time must be provided',
+        'getProgramTime: playlist and time must be provided',
         'error message is returned when no playlist provided'
       );
       done2();
@@ -635,12 +639,12 @@ QUnit.test('returns error if playlist or time is not provided', function(assert)
 QUnit.test('throws error if no callback is provided', function(assert) {
   assert.throws(
     () => {
-      return getStreamTime({
+      return getProgramTime({
         time: 1,
         playlist: this.playlist
       });
     },
-    /getStreamTime: callback must be provided/,
+    /getProgramTime: callback must be provided/,
     'throws error if callback is not provided'
   );
 });
@@ -649,25 +653,25 @@ QUnit.test('returns info to accept callback if accurate value can be returned',
 function(assert) {
   const done = assert.async();
 
-  getStreamTime({
+  getProgramTime({
     playlist: this.playlist,
     time: 6,
-    callback: (err, streamTime) => {
+    callback: (err, programTime) => {
       assert.notOk(
         err,
         'should not fail when accurate segment times are available'
       );
       assert.equal(
-        typeof streamTime,
+        typeof programTime,
         'object',
         'should return an object to onsuccess callback'
       );
       assert.ok(
-        streamTime.mediaSeconds !== undefined,
+        programTime.mediaSeconds !== undefined,
         'mediaSeconds is passed to onsuccess'
       );
       assert.ok(
-        streamTime.programDateTime !== undefined,
+        programTime.programDateTime !== undefined,
         'programDateTime is passed to onsuccess'
       );
 
@@ -676,7 +680,7 @@ function(assert) {
         new Date(this.playlist.segments[0].dateTimeObject.getTime() + 6 * 1000);
 
       assert.equal(
-        streamTime.programDateTime,
+        programTime.programDateTime,
         expectedDateTime.toISOString(),
         'uses programDateTime found in media segments'
       );
@@ -706,13 +710,14 @@ function(assert) {
     ]
   };
 
-  getStreamTime({
+  getProgramTime({
     playlist,
     time: 2,
-    callback: (err, streamTime) => {
+    callback: (err, programTime) => {
       assert.equal(
         err.message,
-        'Accurate streamTime could not be determined. Please seek to e.seekTime and try again',
+        'Accurate programTime could not be determined.' +
+        ' Please seek to e.seekTime and try again',
         'error message is returned for seekTime'
       );
       assert.equal(
@@ -739,13 +744,13 @@ QUnit.test('returns time if no modifications', function(assert) {
     ]
   };
 
-  getStreamTime({
+  getProgramTime({
     playlist,
     time: 3,
-    callback: (err, streamTime) => {
+    callback: (err, programTime) => {
       assert.equal(err, null, 'no error');
       assert.equal(
-        streamTime.mediaSeconds,
+        programTime.mediaSeconds,
         3,
         'mediaSeconds is currentTime if no further modifications'
       );
@@ -768,13 +773,13 @@ QUnit.test('returns programDateTime parsed from media segment tags', function(as
     ]
   };
 
-  getStreamTime({
+  getProgramTime({
     playlist,
     time: 0,
-    callback: (err, streamTime) => {
+    callback: (err, programTime) => {
       assert.equal(err, null, 'no error');
       assert.equal(
-        streamTime.programDateTime,
+        programTime.programDateTime,
         playlist.segments[0].dateTimeString,
         'uses programDateTime found in media segments'
       );
@@ -783,7 +788,7 @@ QUnit.test('returns programDateTime parsed from media segment tags', function(as
   });
 });
 
-QUnit.module('Time: seekToStreamTime', {
+QUnit.module('Time: seekToProgramTime', {
   beforeEach(assert) {
     this.seekTo = () => {};
     this.ct = 0;
@@ -808,47 +813,47 @@ QUnit.module('Time: seekToStreamTime', {
   }
 });
 
-QUnit.test('returns error if no playlist or streamTime provided', function(assert) {
+QUnit.test('returns error if no playlist or programTime provided', function(assert) {
   const done = assert.async();
   const done2 = assert.async();
   const done3 = assert.async();
 
-  seekToStreamTime({
-    streamTime: 0,
+  seekToProgramTime({
+    programTime: 0,
     seekTo: this.seekTo,
     tech: this.tech,
     callback: (err, newTime) => {
       assert.equal(
         err.message,
-        'seekToStreamTime: streamTime, seekTo and playlist must be provided',
+        'seekToProgramTime: programTime, seekTo and playlist must be provided',
         'error message is returned when no playlist is provided'
       );
       done();
     }
   });
 
-  seekToStreamTime({
+  seekToProgramTime({
     playlist: {},
     seekTo: this.seekTo,
     tech: this.tech,
     callback: (err, newTime) => {
       assert.equal(
         err.message,
-        'seekToStreamTime: streamTime, seekTo and playlist must be provided',
+        'seekToProgramTime: programTime, seekTo and playlist must be provided',
         'error message is returned when no time is provided'
       );
       done2();
     }
   });
 
-  seekToStreamTime({
-    streamTime: 0,
+  seekToProgramTime({
+    programTime: 0,
     playlist: {},
     tech: this.tech,
     callback: (err, newTime) => {
       assert.equal(
         err.message,
-        'seekToStreamTime: streamTime, seekTo and playlist must be provided',
+        'seekToProgramTime: programTime, seekTo and playlist must be provided',
         'error message is returned when no seekTo method is provided'
       );
       done3();
@@ -859,8 +864,8 @@ QUnit.test('returns error if no playlist or streamTime provided', function(asser
 QUnit.test('throws error if no callback is provided', function(assert) {
   assert.throws(
     () => {
-      return seekToStreamTime({
-        streamTime: 1,
+      return seekToProgramTime({
+        programTime: 1,
         playlist: {},
         seekTo: this.seekTo,
         tech: this.tech
@@ -875,8 +880,8 @@ function(assert) {
   const done = assert.async();
   const done2 = assert.async();
 
-  seekToStreamTime({
-    streamTime: 1,
+  seekToProgramTime({
+    programTime: 1,
     playlist: {
       segments: [],
       resolvedUri: 'test'
@@ -898,8 +903,8 @@ function(assert) {
     }
   });
 
-  seekToStreamTime({
-    streamTime: 1,
+  seekToProgramTime({
+    programTime: 1,
     playlist: {
       segments: [
         {
@@ -937,8 +942,8 @@ QUnit.test('returns error if live stream has not started', function(assert) {
     hasStarted_: false
   });
 
-  seekToStreamTime({
-    streamTime: 1,
+  seekToProgramTime({
+    programTime: 1,
     playlist: {
       segments: [],
       resolvedUri: 'test'
@@ -960,8 +965,8 @@ QUnit.test('returns error if live stream has not started', function(assert) {
 QUnit.test('returns error if time does not exist in live stream', function(assert) {
   const done = assert.async();
 
-  seekToStreamTime({
-    streamTime: '2018-10-12T22:33:52.037+00:00',
+  seekToProgramTime({
+    programTime: '2018-10-12T22:33:52.037+00:00',
     playlist: {
       segments: [{
         dateTimeString: '2018-10-12T22:33:49.037+00:00',
@@ -1007,8 +1012,8 @@ QUnit.test('vod: seeks and returns player time seeked to if buffered', function(
     tech.currentTime(t);
   };
 
-  seekToStreamTime({
-    streamTime: '2018-10-12T22:33:50.037+00:00',
+  seekToProgramTime({
+    programTime: '2018-10-12T22:33:50.037+00:00',
     playlist: {
       segments: [
         {
@@ -1073,8 +1078,8 @@ QUnit.test('vod: does not account for prepended content duration', function(asse
     tech.currentTime(t);
   };
 
-  seekToStreamTime({
-    streamTime: '2018-10-12T22:33:51.037+00:00',
+  seekToProgramTime({
+    programTime: '2018-10-12T22:33:51.037+00:00',
     playlist: {
       segments: [
         {
@@ -1139,8 +1144,8 @@ QUnit.test('live: seeks and returns player time seeked to if buffered', function
     tech.currentTime(t);
   };
 
-  seekToStreamTime({
-    streamTime: '2018-10-12T22:33:50.037+00:00',
+  seekToProgramTime({
+    programTime: '2018-10-12T22:33:50.037+00:00',
     playlist: {
       segments: [
         {
@@ -1204,8 +1209,8 @@ QUnit.test('setting pauseAfterSeek to false seeks without pausing', function(ass
     tech.currentTime(t);
   };
 
-  seekToStreamTime({
-    streamTime: '2018-10-12T22:33:50.037+00:00',
+  seekToProgramTime({
+    programTime: '2018-10-12T22:33:50.037+00:00',
     playlist: {
       segments: [
         {

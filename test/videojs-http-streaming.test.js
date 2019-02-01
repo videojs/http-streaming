@@ -3212,7 +3212,8 @@ function(assert) {
   videojs.options.hls = origHlsOptions;
 });
 
-QUnit.test('convertToStreamTime will return error if time is not buffered', function(assert) {
+QUnit.test('convertToProgramTime will return error if time is not buffered',
+function(assert) {
   const done = assert.async();
 
   this.player.src({
@@ -3228,12 +3229,13 @@ QUnit.test('convertToStreamTime will return error if time is not buffered', func
   // ts
   this.standardXHRResponse(this.requests.shift());
 
-  this.player.vhs.convertToStreamTime(3, (err, streamTime) => {
+  this.player.vhs.convertToProgramTime(3, (err, programTime) => {
     assert.deepEqual(
       err,
       {
         message:
-          'Accurate streamTime could not be determined. Please seek to e.seekTime and try again',
+          'Accurate programTime could not be determined.' +
+          ' Please seek to e.seekTime and try again',
         seekTime: 0
       },
       'error is returned as time is not buffered'
@@ -3242,7 +3244,7 @@ QUnit.test('convertToStreamTime will return error if time is not buffered', func
   });
 });
 
-QUnit.test('convertToStreamTime will return stream time if buffered', function(assert) {
+QUnit.test('convertToProgramTime will return stream time if buffered', function(assert) {
   const done = assert.async();
 
   this.player.src({
@@ -3287,18 +3289,19 @@ QUnit.test('convertToStreamTime will return stream time if buffered', function(a
   // ts
   this.standardXHRResponse(this.requests[3], muxedSegment());
 
-  this.player.vhs.convertToStreamTime(0.01, (err, streamTime) => {
+  this.player.vhs.convertToProgramTime(0.01, (err, programTime) => {
     assert.notOk(err, 'no errors');
     assert.equal(
-      streamTime.mediaSeconds,
+      programTime.mediaSeconds,
       0.01,
-      'returned the streamTime of the source'
+      'returned the stream time of the source'
     );
     done();
   });
 });
 
-QUnit.test('seekToStreamTime will error if live stream has not started', function(assert) {
+QUnit.test('seekToProgramTime will error if live stream has not started',
+function(assert) {
   this.player.src({
     src: 'manifest/program-date-time.m3u8',
     type: 'application/x-mpegurl'
@@ -3309,7 +3312,7 @@ QUnit.test('seekToStreamTime will error if live stream has not started', functio
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  this.player.vhs.seekToStreamTime(
+  this.player.vhs.seekToProgramTime(
     '2018-10-12T22:33:49.037+00:00',
     (err, newTime) => {
       assert.equal(
@@ -3328,7 +3331,7 @@ QUnit.test('seekToStreamTime will error if live stream has not started', functio
   // ts
   this.standardXHRResponse(this.requests.shift(), muxedSegment());
 
-  this.player.vhs.seekToStreamTime(
+  this.player.vhs.seekToProgramTime(
     '2018-10-12T22:33:49.037+00:00',
     (err, newTime) => {
       assert.equal(
@@ -3340,7 +3343,7 @@ QUnit.test('seekToStreamTime will error if live stream has not started', functio
   );
 });
 
-QUnit.test('seekToStreamTime will seek to time if buffered', function(assert) {
+QUnit.test('seekToProgramTime will seek to time if buffered', function(assert) {
   const done = assert.async();
 
   this.player.src({
@@ -3383,7 +3386,7 @@ QUnit.test('seekToStreamTime will seek to time if buffered', function(assert) {
   videoBuffer.trigger('updateend');
   this.clock.tick(1);
 
-  this.player.vhs.seekToStreamTime(
+  this.player.vhs.seekToProgramTime(
     '2018-10-12T22:33:49.037+00:00',
     (err, newTime) => {
       assert.notOk(

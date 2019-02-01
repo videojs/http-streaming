@@ -13,7 +13,7 @@ NOTE: All times referenced in seconds unless otherwise specified.
 
 In order to convert from a *player time* to a *stream time*, an "anchor point" is required to match up a *player time*, *stream time*, and *program time*.
 
-Two anchor points that are usable are the time since the start of a new timeline (e.g., the time since the last discontinuity or start of the stream), and the start of a segment. Because, in our requirements for this conversion, each segment is tagged with its *program time* in the form of an [EXT-X-PROGRAM-DATE-TIME tag](https://tools.ietf.org/html/draft-pantos-http-live-streaming-23#section-4.3.2.6), using the segment start as the anchor point is the easiest solution. It's the closest potential anchor point to the time to convert, and it doesn't require us to track time changes across segments.
+Two anchor points that are usable are the time since the start of a new timeline (e.g., the time since the last discontinuity or start of the stream), and the start of a segment. Because, in our requirements for this conversion, each segment is tagged with its *program time* in the form of an [EXT-X-PROGRAM-DATE-TIME tag](https://tools.ietf.org/html/draft-pantos-http-live-streaming-23#section-4.3.2.6), using the segment start as the anchor point is the easiest solution. It's the closest potential anchor point to the time to convert, and it doesn't require us to track time changes across segments (e.g., trimmed or prepended content).
 
 Those time changes are the result of the transmuxer, which can add/remove content in order to keep the content playable (without gaps or other breaking changes between segments), particularly when a segment doesn't start with a key frame.
 

@@ -2,7 +2,7 @@
 
 ## Commands for creating tests streams
 
-### Streams with EXT-X-PROGRAM-DATE-TIME for testing seekToStreamTime and convertToStreamTime
+### Streams with EXT-X-PROGRAM-DATE-TIME for testing seekToProgramTime and convertToProgramTime
 
 lavfi and testsrc are provided for creating a test stream in ffmpeg
 -g 300 sets the GOP size to 300 (keyframe interval, at 30fps, one keyframe every 10 seconds)

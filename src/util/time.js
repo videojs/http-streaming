@@ -52,10 +52,10 @@ export const originalSegmentVideoDuration = (videoTimingInfo) => {
  * Finds a segment that contains the time requested given as an ISO-8601 string. The
  * returned segment might be an estimate or an accurate match.
  *
- * @param {String} streamTime The ISO-8601 streamTime to find a match for
+ * @param {String} programTime The ISO-8601 programTime to find a match for
  * @param {Object} playlist A playlist object to search within
  */
-export const findSegmentForStreamTime = (streamTime, playlist) => {
+export const findSegmentForProgramTime = (programTime, playlist) => {
   // Assumptions:
   //  - verifyProgramDateTimeTags has already been run
   //  - live streams have been started
@@ -63,7 +63,7 @@ export const findSegmentForStreamTime = (streamTime, playlist) => {
   let dateTimeObject;
 
   try {
-    dateTimeObject = new Date(streamTime);
+    dateTimeObject = new Date(programTime);
   } catch (e) {
     return null;
   }
@@ -191,29 +191,30 @@ export const findSegmentForPlayerTime = (time, playlist) => {
 };
 
 /**
- * Gives the offset of the comparisonTimestamp from the streamTime timestamp in seconds.
- * If the offset returned is positive, the streamTime occurs before the comparisonTimestamp.
- * If the offset is negative, the streamTime occurs before the comparisonTimestamp.
+ * Gives the offset of the comparisonTimestamp from the programTime timestamp in seconds.
+ * If the offset returned is positive, the programTime occurs after the
+ * comparisonTimestamp.
+ * If the offset is negative, the programTime occurs before the comparisonTimestamp.
  *
  * @param {String} comparisonTimeStamp An ISO-8601 timestamp to compare against
- * @param {String} streamTime The streamTime as an ISO-8601 string
+ * @param {String} programTime The programTime as an ISO-8601 string
  * @return {Number} offset
  */
-export const getOffsetFromTimestamp = (comparisonTimeStamp, streamTime) => {
+export const getOffsetFromTimestamp = (comparisonTimeStamp, programTime) => {
   let segmentDateTime;
-  let streamDateTime;
+  let programDateTime;
 
   try {
     segmentDateTime = new Date(comparisonTimeStamp);
-    streamDateTime = new Date(streamTime);
+    programDateTime = new Date(programTime);
   } catch (e) {
     // TODO handle error
   }
 
   const segmentTimeEpoch = segmentDateTime.getTime();
-  const streamTimeEpoch = streamDateTime.getTime();
+  const programTimeEpoch = programDateTime.getTime();
 
-  return (streamTimeEpoch - segmentTimeEpoch) / 1000;
+  return (programTimeEpoch - segmentTimeEpoch) / 1000;
 };
 
 /**
@@ -238,7 +239,7 @@ export const verifyProgramDateTimeTags = (playlist) => {
 };
 
 /**
- * Returns the streamTime of the media given a playlist and a playerTime.
+ * Returns the programTime of the media given a playlist and a playerTime.
  * The playlist must have programDateTime tags for a programDateTime tag to be returned.
  * If the segments containing the time requested have not been buffered yet, an estimate
  * may be returned to the callback.
@@ -246,25 +247,25 @@ export const verifyProgramDateTimeTags = (playlist) => {
  * @param {Object} args
  * @param {Object} args.playlist A playlist object to search within
  * @param {Number} time A playerTime in seconds
- * @param {Function} callback(err, streamTime)
+ * @param {Function} callback(err, programTime)
  * @returns {String} err.message A detailed error message
- * @returns {Object} streamTime
- * @returns {Number} streamTime.mediaSeconds The streamTime in seconds
- * @returns {String} streamTime.programDateTime The streamTime as an ISO-8601 String
+ * @returns {Object} programTime
+ * @returns {Number} programTime.mediaSeconds The streamTime in seconds
+ * @returns {String} programTime.programDateTime The programTime as an ISO-8601 String
  */
-export const getStreamTime = ({
+export const getProgramTime = ({
   playlist,
   time = undefined,
   callback
 }) => {
 
   if (!callback) {
-    throw new Error('getStreamTime: callback must be provided');
+    throw new Error('getProgramTime: callback must be provided');
   }
 
   if (!playlist || time === undefined) {
     return callback({
-      message: 'getStreamTime: playlist and time must be provided'
+      message: 'getProgramTime: playlist and time must be provided'
     });
   }
 
@@ -272,14 +273,14 @@ export const getStreamTime = ({
 
   if (!matchedSegment) {
     return callback({
-      message: 'valid streamTime was not found'
+      message: 'valid programTime was not found'
     });
   }
 
   if (matchedSegment.type === 'estimate') {
     return callback({
       message:
-        'Accurate streamTime could not be determined.' +
+        'Accurate programTime could not be determined.' +
         ' Please seek to e.seekTime and try again',
       seekTime: matchedSegment.estimatedStart
     });
@@ -298,10 +299,10 @@ export const getStreamTime = ({
 };
 
 /**
- * Seeks in the player to a time that matches the given streamTime ISO-8601 string.
+ * Seeks in the player to a time that matches the given programTime ISO-8601 string.
  *
  * @param {Object} args
- * @param {String} args.streamTime A streamTime to seek to as an ISO-8601 String
+ * @param {String} args.programTime A programTime to seek to as an ISO-8601 String
  * @param {Object} args.playlist A playlist to look within
  * @param {Number} args.retryCount The number of times to try for an accurate seek. Default is 2.
  * @param {Function} args.seekTo A method to perform a seek
@@ -311,8 +312,8 @@ export const getStreamTime = ({
  * @returns {String} err.message A detailed error message
  * @returns {Number} newTime The exact time that was seeked to in seconds
  */
-export const seekToStreamTime = ({
-  streamTime,
+export const seekToProgramTime = ({
+  programTime,
   playlist,
   retryCount = 2,
   seekTo,
@@ -322,12 +323,12 @@ export const seekToStreamTime = ({
 }) => {
 
   if (!callback) {
-    throw new Error('seekToStreamTime: callback must be provided');
+    throw new Error('seekToProgramTime: callback must be provided');
   }
 
-  if (typeof streamTime === 'undefined' || !playlist || !seekTo) {
+  if (typeof programTime === 'undefined' || !playlist || !seekTo) {
     return callback({
-      message: 'seekToStreamTime: streamTime, seekTo and playlist must be provided'
+      message: 'seekToProgramTime: programTime, seekTo and playlist must be provided'
     });
   }
 
@@ -343,34 +344,34 @@ export const seekToStreamTime = ({
     });
   }
 
-  const matchedSegment = findSegmentForStreamTime(streamTime, playlist);
+  const matchedSegment = findSegmentForProgramTime(programTime, playlist);
 
   // no match
   if (!matchedSegment) {
     return callback({
-      message: `${streamTime} was not found in the stream`
+      message: `${programTime} was not found in the stream`
     });
   }
 
   const segment = matchedSegment.segment;
   const mediaOffset = getOffsetFromTimestamp(
     segment.dateTimeObject,
-    streamTime
+    programTime
   );
 
   if (matchedSegment.type === 'estimate') {
     // we've run out of retries
     if (retryCount === 0) {
       return callback({
-        message: `${streamTime} is not buffered yet. Try again`
+        message: `${programTime} is not buffered yet. Try again`
       });
     }
 
     seekTo(matchedSegment.estimatedStart + mediaOffset);
 
     tech.one('seeked', () => {
-      seekToStreamTime({
-        streamTime,
+      seekToProgramTime({
+        programTime,
         playlist,
         retryCount: retryCount - 1,
         seekTo,
