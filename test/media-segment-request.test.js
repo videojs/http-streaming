@@ -253,6 +253,51 @@ QUnit.test('cancels outstanding key requests on timeout', function(assert) {
   this.clock.tick(2000);
 });
 
+QUnit.test('does not wait for other requests to finish when one request errors',
+function(assert) {
+  let keyReq;
+  let abortedKeyReq = false;
+  const done = assert.async();
+
+  assert.expect(8);
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.noop,
+    captionParser: this.noop,
+    segment: {
+      resolvedUri: '0-test.ts',
+      key: {
+        resolvedUri: '0-key.php'
+      }
+    },
+    progressFn: this.noop,
+    doneFn: (error, segmentData) => {
+      assert.notOk(keyReq.aborted, 'did not run original abort function');
+      assert.ok(abortedKeyReq, 'ran overridden abort function');
+      assert.equal(error.code, REQUEST_ERRORS.FAILURE, 'request failed');
+
+      done();
+    }
+  });
+  assert.equal(this.requests.length, 2, 'there are two requests');
+
+  keyReq = this.requests.shift();
+  // Typically, an abort will run the error algorithm for an XHR, however, in certain
+  // cases (e.g., if the request is unsent), the error algorithm will not be run and
+  // the request will never "finish." In order to mimic this behavior, override the
+  // default abort function so that it doesn't finish.
+  keyReq.abort = () => {
+    abortedKeyReq = true;
+  };
+  const segmentReq = this.requests.shift();
+
+  assert.equal(keyReq.uri, '0-key.php', 'the first request is for a key');
+  assert.equal(segmentReq.uri, '0-test.ts', 'the second request is for a segment');
+
+  segmentReq.respond(500, null, '');
+});
+
 QUnit.test('the key response is converted to the correct format', function(assert) {
   let keyReq;
   const done = assert.async();

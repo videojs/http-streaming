@@ -20,6 +20,7 @@ https://github.com/videojs/thumbcoil<br/>
 - [CORS: No Access-Control-Allow-Origin header](#cors-no-access-control-allow-origin-header)
 - [Desktop Safari/iOS Safari/Android Chrome/Edge exhibit different behavior from other browsers](#desktop-safariios-safariandroid-chromeedge-exhibit-different-behavior-from-other-browsers)
 - [MEDIA_ERR_DECODE error on Desktop Safari](#media_err_decode-error-on-desktop-safari)
+- [Network requests are still being made while paused](#network-requests-are-still-being-made-while-paused)
 
 ## Content plays on Mac but not Windows
 
@@ -57,3 +58,10 @@ This error may occur for a number of reasons, as it is particularly common for m
 
 Solution: remove `CLOSED-CAPTIONS=NONE` from the manifest
 
+## Network requests are still being made while paused
+
+There are a couple of cases where network requests will still be made by VHS when the video is paused.
+
+1) If the forward buffer (buffered content ahead of the playhead) has not reached the GOAL\_BUFFER\_LENGTH. For instance, if the playhead is at time 10 seconds, the buffered range goes from 5 seconds to 20 seconds, and the GOAL\_BUFFER\_LENGTH is set to 30 seconds, then segments will continue to be requested, even while paused, until the buffer ends at a time greater than or equal to 10 seconds (current time) + 30 seconds (GOAL\_BUFFER\_LENGTH) = 40 seconds. This is expected behavior in order to provide a better playback experience.
+
+2) If the stream is LIVE, then the manifest will continue to be refreshed even while paused. This is because it is easier to keep playback in sync if we receieve manifest updates consistently.

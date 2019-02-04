@@ -32,6 +32,7 @@ Video.js Compatibility: 6.0, 7.0
   - [Via MSE](#via-mse)
   - [Native only](#native-only)
   - [Flash Support](#flash-support)
+  - [DRM](#drm)
 - [Documentation](#documentation)
   - [Options](#options)
     - [How to use](#how-to-use)
@@ -43,9 +44,13 @@ Video.js Compatibility: 6.0, 7.0
       - [overrideNative](#overridenative)
       - [blacklistDuration](#blacklistduration)
       - [bandwidth](#bandwidth)
+      - [useBandwidthFromLocalStorage](#usebandwidthfromlocalstorage)
       - [enableLowInitialPlaylist](#enablelowinitialplaylist)
       - [limitRenditionByPlayerDimensions](#limitrenditionbyplayerdimensions)
       - [smoothQualityChange](#smoothqualitychange)
+      - [allowSeeksWithinUnsafeLiveWindow](#allowseekswithinunsafelivewindow)
+      - [customTagParsers](#customtagparsers)
+      - [customTagMappers](#customtagmappers)
   - [Runtime Properties](#runtime-properties)
     - [hls.playlists.master](#hlsplaylistsmaster)
     - [hls.playlists.media](#hlsplaylistsmedia)
@@ -142,6 +147,12 @@ Using the [overrideNative](#overridenative) option
 ### Flash Support
 This plugin does not support Flash playback. Instead, it is recommended that users use the [videojs-flashls-source-handler](https://github.com/brightcove/videojs-flashls-source-handler) plugin as a fallback option for browsers that don't have a native
 [HLS](https://caniuse.com/#feat=http-live-streaming)/[DASH](https://caniuse.com/#feat=mpeg-dash) player or support for [Media Source Extensions](http://caniuse.com/#feat=mediasource).
+
+### DRM
+
+DRM is supported through [videojs-contrib-eme](https://github.com/videojs/videojs-contrib-eme). In order to use DRM, include the videojs-contrib-eme plug, [initialize it](https://github.com/videojs/videojs-contrib-eme#initialization), and add options to either the [plugin](https://github.com/videojs/videojs-contrib-eme#plugin-options) or the [source](https://github.com/videojs/videojs-contrib-eme#source-options).
+
+Detailed option information can be found in the [videojs-contrib-eme README](https://github.com/videojs/videojs-contrib-eme/blob/master/README.md).
 
 ## Documentation
 [HTTP Live Streaming](https://developer.apple.com/streaming/) (HLS) has
@@ -327,6 +338,12 @@ When the `bandwidth` property is set (bits per second), it will be used in
 the calculation for initial playlist selection, before more bandwidth
 information is seen by the player.
 
+##### useBandwidthFromLocalStorage
+* Type: `boolean`
+* can be used as an initialization option
+ If true, `bandwidth` and `throughput` values are stored in and retrieved from local
+storage on startup (for initial rendition selection). This setting is `false` by default.
+
 ##### enableLowInitialPlaylist
 * Type: `boolean`
 * can be used as an initialization option
@@ -359,6 +376,37 @@ be visible after a few seconds.
 Note that this _only_ affects quality changes triggered via the representations
 API; automatic quality switches based on available bandwidth will always be
 smooth switches.
+
+##### allowSeeksWithinUnsafeLiveWindow
+* Type: `boolean`
+* can be used as a source option
+
+When `allowSeeksWithinUnsafeLiveWindow` is set to `true`, if the active playlist is live
+and a seek is made to a time between the safe live point (end of manifest minus three
+times the target duration,
+see [the hls spec](https://tools.ietf.org/html/draft-pantos-http-live-streaming-23#section-6.3.3)
+for details) and the end of the playlist, the seek is allowed, rather than corrected to
+the safe live point.
+
+This option can help in instances where the live stream's target duration is greater than
+the segment durations, playback ends up in the unsafe live window, and there are gaps in
+the content. In this case the player will attempt to seek past the gaps but end up seeking
+inside of the unsafe range, leading to a correction and seek back into a previously played
+content.
+
+The property defaults to `false`.
+
+##### customTagParsers
+* Type: `Array`
+* can be used as a source option
+
+With `customTagParsers` you can pass an array of custom m3u8 tag parser objects. See https://github.com/videojs/m3u8-parser#custom-parsers
+
+##### customTagMappers
+* Type: `Array`
+* can be used as a source option
+
+Similar to `customTagParsers`, with `customTagMappers` you can pass an array of custom m3u8 tag mapper objects. See https://github.com/videojs/m3u8-parser#custom-parsers
 
 ### Runtime Properties
 Runtime properties are attached to the tech object when HLS is in
@@ -586,6 +634,8 @@ Each of the following usage events are fired once per source if (and when) detec
 | hls-demuxed   | audio and video are demuxed by default |
 | hls-alternate-audio | alternate audio available in the master manifest |
 | hls-playlist-cue-tags | a playlist used cue tags (see useCueTags(#usecuetags) for details) |
+| hls-bandwidth-from-local-storage | starting bandwidth was retrieved from local storage (see useBandwidthFromLocalStorage(#useBandwidthFromLocalStorage) for details) |
+| hls-throughput-from-local-storage | starting throughput was retrieved from local storage (see useBandwidthFromLocalStorage(#useBandwidthFromLocalStorage) for details) |
 
 #### Use Stats
 

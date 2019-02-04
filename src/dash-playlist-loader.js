@@ -162,6 +162,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
   pause() {
     this.stopRequest();
+    window.clearTimeout(this.mediaUpdateTimeout);
     if (this.state === 'HAVE_NOTHING') {
       // If we pause the loader before any data has been retrieved, its as if we never
       // started, so reset to an unstarted state.
@@ -169,7 +170,18 @@ export default class DashPlaylistLoader extends EventTarget {
     }
   }
 
-  load() {
+  load(isFinalRendition) {
+    window.clearTimeout(this.mediaUpdateTimeout);
+
+    const media = this.media();
+
+    if (isFinalRendition) {
+      const delay = media ? (media.targetDuration / 2) * 1000 : 5 * 1000;
+
+      this.mediaUpdateTimeout = window.setTimeout(() => this.load(), delay);
+      return;
+    }
+
     // because the playlists are internal to the manifest, load should either load the
     // main manifest, or do nothing but trigger an event
     if (!this.started) {

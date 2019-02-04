@@ -612,6 +612,66 @@ QUnit.module('SegmentLoader', function(hooks) {
       assert.strictEqual(addCueSpy.callCount, 1, 'created one cue');
     });
 
+    QUnit.test('translates metadata events from audio-only stream into WebVTT cues',
+    async function(assert) {
+      const textTrackStub = sinon.stub(loader.hls_.tech_, 'textTracks');
+      const metadata = [{
+        cueTime: 12,
+        frames: [{
+          data: 'This is a priv tag'
+        }]
+      }];
+
+      const addCueSpy = sinon.spy();
+
+      await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
+      loader.playlist(playlistWithDuration(20));
+      loader.load();
+
+      this.clock.tick(1);
+
+      // Mock text tracks on the mock tech and setup the inbandTextTracks
+      loader.inbandTextTracks_ = {};
+      textTrackStub.returns({
+        getTrackById: () => null
+      });
+      sinon.stub(loader.hls_.tech_, 'addRemoteTextTrack')
+        .returns({
+          track: {
+            addCue: addCueSpy
+          }
+        });
+
+      standardXHRResponse(this.requests.shift(), audioSegment());
+
+      const dispatchType = 0x10;
+      // Simulate a caption event happening that will call handleCaptions_
+      const handleId3 = () => {
+        loader.handleId3_(loader.pendingSegment_, metadata, dispatchType);
+      };
+
+      await new Promise((accept, reject) => {
+        // we needed some data appended first,
+        // but we haven't finished the append yet
+        loader.on('appending', handleId3);
+        loader.on('appended', accept);
+      });
+
+      assert.ok(
+        Object.keys(loader.inbandTextTracks_.metadataTrack_), 'created a metadata track');
+      assert.strictEqual(addCueSpy.callCount, 1, 'created one cue');
+
+      assert.strictEqual(
+        loader.inbandTextTracks_.metadataTrack_.inBandMetadataTrackDispatchType,
+        16,
+        'in-band metadata track dispatch type correctly set'
+      );
+
+      let cue = addCueSpy.getCall(0).args[0];
+
+      assert.strictEqual(cue.value.data, 'This is a priv tag', 'included the text');
+    });
+
     QUnit.test('fires ended at the end of a playlist', async function(assert) {
       await setupMediaSource(loader.mediaSource_, loader.sourceUpdater_);
       let endOfStreams = 0;

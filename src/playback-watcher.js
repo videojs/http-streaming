@@ -34,6 +34,8 @@ export default class PlaybackWatcher {
     this.tech_ = options.tech;
     this.seekable = options.seekable;
     this.seekTo = options.seekTo;
+    this.allowSeeksWithinUnsafeLiveWindow = options.allowSeeksWithinUnsafeLiveWindow;
+    this.media = options.media;
 
     this.consecutiveUpdates = 0;
     this.lastRecordedTime = null;
@@ -153,18 +155,29 @@ export default class PlaybackWatcher {
    */
   fixesBadSeeks_() {
     const seeking = this.tech_.seeking();
+
+    if (!seeking) {
+      return false;
+    }
+
     const seekable = this.seekable();
     const currentTime = this.tech_.currentTime();
+    const isAfterSeekableRange = this.afterSeekableWindow_(
+      seekable,
+      currentTime,
+      this.media(),
+      this.allowSeeksWithinUnsafeLiveWindow
+    );
     let seekTo;
 
-    if (seeking && this.afterSeekableWindow_(seekable, currentTime)) {
+    if (isAfterSeekableRange) {
       const seekableEnd = seekable.end(seekable.length - 1);
 
       // sync to live point (if VOD, our seekable was updated and we're simply adjusting)
       seekTo = seekableEnd;
     }
 
-    if (seeking && this.beforeSeekableWindow_(seekable, currentTime)) {
+    if (this.beforeSeekableWindow_(seekable, currentTime)) {
       const seekableStart = seekable.start(0);
 
       // sync to the beginning of the live window
@@ -294,13 +307,21 @@ export default class PlaybackWatcher {
     return false;
   }
 
-  afterSeekableWindow_(seekable, currentTime) {
+  afterSeekableWindow_(
+    seekable, currentTime, playlist, allowSeeksWithinUnsafeLiveWindow = false) {
     if (!seekable.length) {
       // we can't make a solid case if there's no seekable, default to false
       return false;
     }
 
-    if (currentTime > seekable.end(seekable.length - 1) + Ranges.SAFE_TIME_DELTA) {
+    let allowedEnd = seekable.end(seekable.length - 1) + Ranges.SAFE_TIME_DELTA;
+    const isLive = !playlist.endList;
+
+    if (isLive && allowSeeksWithinUnsafeLiveWindow) {
+      allowedEnd = seekable.end(seekable.length - 1) + (playlist.targetDuration * 3);
+    }
+
+    if (currentTime > allowedEnd) {
       return true;
     }
 

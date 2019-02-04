@@ -864,6 +864,44 @@ QUnit.test('logs warning for master playlist with invalid STREAM-INF', function(
     'logged a warning');
 });
 
+QUnit.test('executes custom parsers and mappers', function(assert) {
+  const customTagParsers = [{
+    expression: /#PARSER/,
+    customType: 'test',
+    segment: true
+  }];
+  const customTagMappers = [{
+    expression: /#MAPPER/,
+    map(line) {
+      const regex = /#MAPPER:(\d+)/g;
+      const match = regex.exec(line);
+      const ISOdate = new Date(Number(match[1])).toISOString();
+
+      return `#EXT-X-PROGRAM-DATE-TIME:${ISOdate}`;
+    }
+  }];
+
+  this.fakeHls.options_ = { customTagParsers, customTagMappers };
+
+  let loader = new PlaylistLoader('master.m3u8', this.fakeHls);
+
+  loader.load();
+  this.requests.pop().respond(200, null,
+                             '#EXTM3U\n' +
+                             '#PARSER:parsed\n' +
+                             '#MAPPER:1511816599485\n' +
+                             '#EXTINF:10,\n' +
+                             '0.ts\n' +
+                             '#EXT-X-ENDLIST\n');
+
+  const segment = loader.master.playlists[0].segments[0];
+
+  assert.strictEqual(segment.custom.test, '#PARSER:parsed', 'parsed custom tag');
+  assert.ok(segment.dateTimeObject, 'converted and parsed custom time');
+
+  delete this.fakeHls.options_;
+});
+
 QUnit.test('jumps to HAVE_METADATA when initialized with a media playlist',
 function(assert) {
   let loadedmetadatas = 0;

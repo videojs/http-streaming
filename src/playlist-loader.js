@@ -203,6 +203,11 @@ export default class PlaylistLoader extends EventTarget {
     this.hls_ = hls;
     this.withCredentials = withCredentials;
 
+    const options = hls.options_;
+
+    this.customTagParsers = (options && options.customTagParsers) || [];
+    this.customTagMappers = (options && options.customTagMappers) || [];
+
     if (!this.srcUrl) {
       throw new Error('A non-empty playlist URL is required');
     }
@@ -265,6 +270,12 @@ export default class PlaylistLoader extends EventTarget {
     this.state = 'HAVE_METADATA';
 
     const parser = new M3u8Parser();
+
+    // adding custom tag parsers
+    this.customTagParsers.forEach(customParser => parser.addParser(customParser));
+
+    // adding custom tag mappers
+    this.customTagMappers.forEach(mapper => parser.addTagMapper(mapper));
 
     parser.push(xhr.responseText);
     parser.end();
@@ -504,6 +515,12 @@ export default class PlaylistLoader extends EventTarget {
       }
 
       const parser = new M3u8Parser();
+
+      // adding custom tag parsers
+      this.customTagParsers.forEach(customParser => parser.addParser(customParser));
+
+      // adding custom tag mappers
+      this.customTagMappers.forEach(mapper => parser.addTagMapper(mapper));
 
       parser.push(req.responseText);
       parser.end();
