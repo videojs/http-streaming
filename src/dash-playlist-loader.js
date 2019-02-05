@@ -32,6 +32,8 @@ export const updateMaster = (oldMaster, newMaster) => {
     minimumUpdatePeriod: newMaster.minimumUpdatePeriod
   });
 
+  // TODO: fix this to return falsy if no changes are seen
+
   // First update the playlists in playlist list
   for (let i = 0; i < newMaster.playlists.length; i++) {
     const playlistUpdate = updatePlaylist(update, newMaster.playlists[i]);
@@ -93,7 +95,6 @@ export default class DashPlaylistLoader extends EventTarget {
     });
 
     this.state = 'HAVE_NOTHING';
-    this.loadedPlaylists_ = {};
 
     // initialize the loader state
     // The masterPlaylistLoader will be created with a string
@@ -153,21 +154,6 @@ export default class DashPlaylistLoader extends EventTarget {
 
     const mediaChange = !this.media_ || playlist.uri !== this.media_.uri;
 
-    // switch to previously loaded playlists immediately
-    if (mediaChange &&
-        this.loadedPlaylists_[playlist.uri] &&
-        this.loadedPlaylists_[playlist.uri].endList) {
-      this.state = 'HAVE_METADATA';
-      this.media_ = playlist;
-
-      // trigger media change if the active media has been updated
-      if (mediaChange) {
-        this.trigger('mediachanging');
-        this.trigger('mediachange');
-      }
-      return;
-    }
-
     // switching to the active playlist is a no-op
     if (!mediaChange) {
       return;
@@ -178,33 +164,23 @@ export default class DashPlaylistLoader extends EventTarget {
       this.trigger('mediachanging');
     }
 
-    // TODO: check for sidx here
+    const haveMetadata = () => {
+
+      this.state = 'HAVE_METADATA';
+      this.media_ = playlist;
+
+      this.refreshMedia_();
+
+      // TODO: maybe this is where loadedmetadata should be triggered?
+
+      // trigger media change if the active media has been updated
+      if (startingState !== 'HAVE_MASTER') {
+        this.trigger('mediachange');
+      }
+    };
 
     // Continue asynchronously if there is no sidx
-    // wait one tick to allow haveMaster to run first on a child loader
-    this.mediaRequest_ = window.setTimeout(
-      this.haveMetadata.bind(this, { startingState, playlist }),
-      0
-    );
-  }
-
-  haveMetadata({startingState, playlist}) {
-    this.state = 'HAVE_METADATA';
-    this.media_ = playlist;
-    this.loadedPlaylists_[playlist.uri] = playlist;
-    this.mediaRequest_ = null;
-
-    // This will trigger loadedplaylist
-    this.refreshMedia_();
-
-    // fire loadedmetadata the first time a media playlist is loaded
-    // to resolve setup of media groups
-    if (startingState === 'HAVE_MASTER') {
-      this.trigger('loadedmetadata');
-    } else {
-      // trigger media change if the active media has been updated
-      this.trigger('mediachange');
-    }
+    window.setTimeout(haveMetadata, 1);
   }
 
   pause() {
@@ -286,10 +262,9 @@ export default class DashPlaylistLoader extends EventTarget {
     this.started = true;
 
     // We don't need to request the master manifest again
-    // Call this asynchronously to match the xhr request behavior below
     if (this.masterPlaylistLoader_) {
-      this.mediaRequest_ = window.setTimeout(
-        this.haveMaster_.bind(this),
+      window.setTimeout(
+        this.onClientServerClockSync_.bind(this),
         0
       );
       return;
@@ -418,11 +393,31 @@ export default class DashPlaylistLoader extends EventTarget {
    * xml refresh timer if specificed by the manifest.
    */
   onClientServerClockSync_() {
-    this.haveMaster_();
+    this.state = 'HAVE_MASTER';
 
-    if (!this.hasPendingRequest() && !this.media_) {
-      this.media(this.master.playlists[0]);
+    if (!this.masterPlaylistLoader_) {
+      this.master = this.parseMasterXml();
+      // TODO:  maybe shouldn't happen here anymore?
+      this.trigger('loadedplaylist');
     }
+
+    if (!this.media_) {
+      // no media playlist was specifically selected so start
+      // from the first listed one
+      if (!this.masterPlaylistLoader_) {
+        // TODO this is no longer needed?
+        // this.media(this.master.playlists[0]);
+
+      } else {
+        this.media(this.childPlaylist_);
+      }
+    }
+
+    // trigger loadedmetadata to resolve setup of media groups
+    // trigger async to mimic behavior of HLS, where it must request a playlist
+    window.setTimeout(() => {
+      this.trigger('loadedmetadata');
+    }, 1);
 
     // TODO: minimumUpdatePeriod can have a value of 0. Currently the manifest will not
     // be refreshed when this is the case. The inter-op guide says that when the
@@ -430,7 +425,11 @@ export default class DashPlaylistLoader extends EventTarget {
     // segments, but future segments may require an update. I think a good solution
     // would be to update the manifest at the same rate that the media playlists
     // are "refreshed", i.e. every targetDuration.
-    if (this.master && this.master.minimumUpdatePeriod) {
+    if (
+      !this.masterPlaylistLoader_ &&
+      this.master &&
+      this.master.minimumUpdatePeriod
+    ) {
       window.setTimeout(() => {
         this.trigger('minimumUpdatePeriod');
       }, this.master.minimumUpdatePeriod);
@@ -494,6 +493,8 @@ export default class DashPlaylistLoader extends EventTarget {
     let oldMaster;
     let newMaster;
 
+    // TODO: check for sidx here
+
     if (this.masterPlaylistLoader_) {
       oldMaster = this.masterPlaylistLoader_.master;
       newMaster = this.masterPlaylistLoader_.parseMasterXml();
@@ -523,6 +524,9 @@ export default class DashPlaylistLoader extends EventTarget {
 
     // Note: if a src is provided on DashPlaylistLoader creation,
     // this will trigger immediately
-    this.trigger('loadedplaylist');
+    //  TODO: this used to happen but maybe is incorrect?
+    if (this.masterPlaylistLoader_) {
+      this.trigger('loadedplaylist');
+    }
   }
 }
