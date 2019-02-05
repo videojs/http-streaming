@@ -229,8 +229,7 @@ export default class PlaybackWatcher {
 
       this.logger_(`Stopped at ${currentTime} while inside a buffered region ` +
         `[${currentRange.start(0)} -> ${currentRange.end(0)}]. Attempting to resume ` +
-        // eslint-disable-next-line quotes
-        `playback by seeking to the current time.`);
+        'playback by seeking to the current time.');
 
       // unknown waiting corrections may be useful for monitoring QoS
       this.tech_.trigger({type: 'usage', name: 'hls-unknown-waiting'});
