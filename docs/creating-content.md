@@ -63,7 +63,7 @@ movflags:
 * omit\_tfhd\_offset: "Do not write any absolute base\_data\_offset in tfhd atoms. This avoids tying fragments to absolute byte positions in the file/streams." (see also: https://www.w3.org/TR/mse-byte-stream-format-isobmff/#movie-fragment-relative-addressing)
 
 ```
-$ ffmpeg -i file.mp4 -movflags frag_keyframe+empty_moov+omit_tfhd_offset -vframes 2 -an -vcodec copy mp4Audio.mp4
+$ ffmpeg -i file.mp4 -movflags frag_keyframe+empty_moov+omit_tfhd_offset -aframes 2 -vn -acodec copy mp4Audio.mp4
 ```
 
 ### mp4VideoInit.mp4 and mp4AudioInit.mp4
