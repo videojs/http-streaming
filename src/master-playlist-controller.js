@@ -433,7 +433,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     this.audioSegmentLoader_.on('appenderror', () => {
-      this.error = this.mainSegmentLoader_.error_;
+      this.error = this.audioSegmentLoader_.error_;
       this.trigger('error');
     });
 
