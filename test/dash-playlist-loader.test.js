@@ -88,6 +88,8 @@ QUnit.test('moves to HAVE_METADATA after loading a media playlist', function(ass
   loader.media(loader.master.playlists[0]);
   this.clock.tick(1);
   assert.strictEqual(loader.state, 'HAVE_METADATA', 'the loader state is correct');
+  assert.strictEqual(loadedPlaylist, 2, 'fired loadedplaylist twice');
+  assert.strictEqual(loadedMetadata, 1, 'fired loadedmetadata once');
   assert.ok(loader.media(), 'sets the media playlist');
 });
 
@@ -534,23 +536,23 @@ QUnit.test('delays load when on final rendition', function(assert) {
   // do an initial load to start the loader
   loader.load();
   standardXHRResponse(this.requests.shift());
+  assert.equal(loadedplaylistEvents, 1, 'one loadedplaylist event after first load');
+
   loader.media(loader.master.playlists[0]);
   this.clock.tick(1);
-
-  // one for master, one for media on first selection
-  assert.equal(loadedplaylistEvents, 1, 'one loadedplaylist event after first load');
+  assert.equal(loadedplaylistEvents, 2, 'one more loadedplaylist event after media selected');
 
   loader.load();
   this.clock.tick(1);
 
-  assert.equal(loadedplaylistEvents, 2, 'one more loadedplaylist event after load');
+  assert.equal(loadedplaylistEvents, 3, 'one more loadedplaylist event after load');
 
   loader.load(false);
   this.clock.tick(1);
 
   assert.equal(
     loadedplaylistEvents,
-    3,
+    4,
     'one more loadedplaylist event after load with isFinalRendition false');
 
   loader.load(true);
@@ -558,13 +560,13 @@ QUnit.test('delays load when on final rendition', function(assert) {
 
   assert.equal(
     loadedplaylistEvents,
-    3,
+    4,
     'no loadedplaylist event after load with isFinalRendition false');
 
   this.clock.tick(loader.media().targetDuration / 2 * 1000);
 
   assert.equal(
     loadedplaylistEvents,
-    4,
+    5,
     'one more loadedplaylist event after final rendition delay');
 });
