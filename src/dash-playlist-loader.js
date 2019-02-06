@@ -264,7 +264,7 @@ export default class DashPlaylistLoader extends EventTarget {
     // We don't need to request the master manifest again
     if (this.masterPlaylistLoader_) {
       window.setTimeout(
-        this.onClientServerClockSync_.bind(this),
+        this.haveMaster_.bind(this),
         0
       );
       return;
@@ -418,6 +418,14 @@ export default class DashPlaylistLoader extends EventTarget {
     window.setTimeout(() => {
       this.trigger('loadedmetadata');
     }, 1);
+  }
+
+  /**
+   * Handler for after client/server clock synchronization has happened. Sets up
+   * xml refresh timer if specificed by the manifest.
+   */
+  onClientServerClockSync_() {
+    this.haveMaster_();
 
     // TODO: minimumUpdatePeriod can have a value of 0. Currently the manifest will not
     // be refreshed when this is the case. The inter-op guide says that when the
@@ -525,7 +533,7 @@ export default class DashPlaylistLoader extends EventTarget {
     // Note: if a src is provided on DashPlaylistLoader creation,
     // this will trigger immediately
     //  TODO: this used to happen but maybe is incorrect?
-    if (this.masterPlaylistLoader_) {
+    if (this.masterPlaylistLoader_ || !this.media_.endList) {
       this.trigger('loadedplaylist');
     }
   }
