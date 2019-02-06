@@ -532,9 +532,6 @@ export default class DashPlaylistLoader extends EventTarget {
 
     // Note: if a src is provided on DashPlaylistLoader creation,
     // this will trigger immediately
-    //  TODO: this used to happen but maybe is incorrect?
-    if (this.masterPlaylistLoader_ || !this.media_.endList) {
-      this.trigger('loadedplaylist');
-    }
+    this.trigger('loadedplaylist');
   }
 }
