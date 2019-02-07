@@ -44,7 +44,7 @@ QUnit.test('starts with a manifest URL or playlist', function(assert) {
   };
 
   let newLoader =
-    new DashPlaylistLoader({ uri: 'playlist-1' }, this.fakeHls, false, loader);
+    new DashPlaylistLoader({ uri: 'playlist-1' }, this.fakeHls, { withCredentials: false }, loader);
 
   assert.equal(newLoader.state, 'HAVE_METADATA', 'has metadata');
   assert.ok(newLoader.started, 'started');

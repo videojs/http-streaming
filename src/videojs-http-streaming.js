@@ -441,7 +441,8 @@ class HlsHandler extends Component {
       'bandwidth',
       'smoothQualityChange',
       'customTagParsers',
-      'customTagMappers'
+      'customTagMappers',
+      'handleManifestRedirects'
     ].forEach((option) => {
       if (typeof this.source_[option] !== 'undefined') {
         this.options_[option] = this.source_[option];

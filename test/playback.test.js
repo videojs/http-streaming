@@ -167,8 +167,6 @@ QUnit.test('Live DASH', function(assert) {
 });
 
 QUnit.test('loops', function(assert) {
-  assert.timeout(5000);
-
   let done = assert.async();
   let player = this.player;
 

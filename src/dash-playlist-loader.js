@@ -61,11 +61,13 @@ export default class DashPlaylistLoader extends EventTarget {
   // DashPlaylistLoader must accept either a src url or a playlist because subsequent
   // playlist loader setups from media groups will expect to be able to pass a playlist
   // (since there aren't external URLs to media playlists with DASH)
-  constructor(srcUrlOrPlaylist, hls, withCredentials, masterPlaylistLoader) {
+  constructor(srcUrlOrPlaylist, hls, options, masterPlaylistLoader) {
     super();
 
+    options = options || {};
+
     this.hls_ = hls;
-    this.withCredentials = withCredentials;
+    this.withCredentials = !!options.withCredentials;
 
     if (!srcUrlOrPlaylist) {
       throw new Error('A non-empty playlist URL or playlist is required');
