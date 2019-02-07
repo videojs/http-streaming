@@ -190,6 +190,59 @@ QUnit.test('updateMaster updates master when new media sequence', function(asser
     'updates master when new media sequence');
 });
 
+QUnit.test('updateMaster updates master when endList changes', function(assert) {
+  const master = {
+    playlists: [{
+      endList: false,
+      mediaSequence: 0,
+      attributes: {
+        BANDWIDTH: 9
+      },
+      uri: 'playlist-0-uri',
+      resolvedUri: urlTo('playlist-0-uri'),
+      segments: [{
+        duration: 10,
+        uri: 'segment-0-uri',
+        resolvedUri: urlTo('segment-0-uri')
+      }]
+    }]
+  };
+  const media = {
+    endList: true,
+    mediaSequence: 0,
+    attributes: {
+      BANDWIDTH: 9
+    },
+    uri: 'playlist-0-uri',
+    segments: [{
+      duration: 10,
+      uri: 'segment-0-uri'
+    }]
+  };
+
+  master.playlists[media.uri] = master.playlists[0];
+
+  assert.deepEqual(
+    updateMaster(master, media),
+    {
+      playlists: [{
+        endList: true,
+        mediaSequence: 0,
+        attributes: {
+          BANDWIDTH: 9
+        },
+        uri: 'playlist-0-uri',
+        resolvedUri: urlTo('playlist-0-uri'),
+        segments: [{
+          duration: 10,
+          uri: 'segment-0-uri',
+          resolvedUri: urlTo('segment-0-uri')
+        }]
+      }]
+    },
+    'updates master when endList changes');
+});
+
 QUnit.test('updateMaster retains top level values in master', function(assert) {
   const master = {
     mediaGroups: {
