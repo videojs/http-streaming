@@ -42,9 +42,9 @@ class MockSourceBuffer extends videojs.EventTarget {
     });
   }
 
-  appendBuffer(bytes) {
+  appendBuffer(config) {
     this.updates_.push({
-      append: bytes
+      append: config
     });
     this.updating = true;
   }

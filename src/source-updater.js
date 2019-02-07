@@ -107,11 +107,21 @@ export default class SourceUpdater {
    * @param {Function} done the function to call when done
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-appendBuffer-void-ArrayBuffer-data
    */
-  appendBuffer(bytes, done) {
+  appendBuffer(config, done) {
     this.processedAppend_ = true;
     this.queueCallback_(() => {
-      this.sourceBuffer_.appendBuffer(bytes);
-    }, done);
+      if (config.videoSegmentTimingInfoCallback) {
+        this.sourceBuffer_.addEventListener(
+          'videoSegmentTimingInfo', config.videoSegmentTimingInfoCallback);
+      }
+      this.sourceBuffer_.appendBuffer(config.bytes);
+    }, () => {
+      if (config.videoSegmentTimingInfoCallback) {
+        this.sourceBuffer_.removeEventListener(
+          'videoSegmentTimingInfo', config.videoSegmentTimingInfoCallback);
+      }
+      done();
+    });
   }
 
   /**
