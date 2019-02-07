@@ -1464,6 +1464,158 @@ function(assert) {
     'set reference by uri for easy access');
 });
 
+<<<<<<< HEAD
+=======
+QUnit.test('updateMaster updates playlists and mediaGroups', function(assert) {
+  const master = {
+    duration: 10,
+    minimumUpdatePeriod: 0,
+    mediaGroups: {
+      AUDIO: {
+        audio: {
+          main: {
+            playlists: [{
+              mediaSequence: 0,
+              attributes: {},
+              uri: 'audio-0-uri',
+              resolvedUri: urlTo('audio-0-uri'),
+              segments: [{
+                duration: 10,
+                uri: 'audio-segment-0-uri',
+                resolvedUri: urlTo('audio-segment-0-uri')
+              }]
+            }]
+          }
+        }
+      }
+    },
+    playlists: [{
+      mediaSequence: 0,
+      attributes: {
+        BANDWIDTH: 9
+      },
+      uri: 'playlist-0-uri',
+      resolvedUri: urlTo('playlist-0-uri'),
+      segments: [{
+        duration: 10,
+        uri: 'segment-0-uri',
+        resolvedUri: urlTo('segment-0-uri')
+      }]
+    }]
+  };
+  const update = {
+    duration: 20,
+    minimumUpdatePeriod: 0,
+    mediaGroups: {
+      AUDIO: {
+        audio: {
+          main: {
+            playlists: [{
+              mediaSequence: 1,
+              attributes: {},
+              uri: 'audio-0-uri',
+              resolvedUri: urlTo('audio-0-uri'),
+              segments: [{
+                duration: 10,
+                uri: 'audio-segment-0-uri',
+                resolvedUri: urlTo('audio-segment-0-uri')
+              }]
+            }]
+          }
+        }
+      }
+    },
+    playlists: [{
+      mediaSequence: 1,
+      attributes: {
+        BANDWIDTH: 9
+      },
+      uri: 'playlist-0-uri',
+      resolvedUri: urlTo('playlist-0-uri'),
+      segments: [{
+        duration: 10,
+        uri: 'segment-0-uri',
+        resolvedUri: urlTo('segment-0-uri')
+      }]
+    }]
+  };
+
+  master.playlists['playlist-0-uri'] = master.playlists[0];
+  master.playlists['audio-0-uri'] = master.mediaGroups.AUDIO.audio.main.playlists[0];
+
+  assert.deepEqual(
+    updateMaster(master, update),
+    {
+      duration: 20,
+      minimumUpdatePeriod: 0,
+      mediaGroups: {
+        AUDIO: {
+          audio: {
+            main: {
+              playlists: [{
+                mediaSequence: 1,
+                attributes: {},
+                uri: 'audio-0-uri',
+                resolvedUri: urlTo('audio-0-uri'),
+                segments: [{
+                  duration: 10,
+                  uri: 'audio-segment-0-uri',
+                  resolvedUri: urlTo('audio-segment-0-uri')
+                }]
+              }]
+            }
+          }
+        }
+      },
+      playlists: [{
+        mediaSequence: 1,
+        attributes: {
+          BANDWIDTH: 9
+        },
+        uri: 'playlist-0-uri',
+        resolvedUri: urlTo('playlist-0-uri'),
+        segments: [{
+          duration: 10,
+          uri: 'segment-0-uri',
+          resolvedUri: urlTo('segment-0-uri')
+        }]
+      }]
+    },
+    'updates playlists and media groups');
+});
+
+QUnit.test('updateMaster returns falsy when there are no changes', function(assert) {
+  const master = {
+    playlists: {
+      length: 1,
+      0: {}
+    },
+    mediaGroups: {
+      AUDIO: {
+        audio: {
+          'audio-main': {
+            attributes: {
+              NAME: 'audio'
+            },
+            playlists: {
+              length: 1,
+              0: {
+                playlists: {}
+              }
+            }
+          }
+        }
+      },
+      SUBTITLES: {}
+    },
+    duration: 0,
+    minimumUpdatePeriod: 0
+  };
+
+  assert.deepEqual(updateMaster(master, master), null);
+});
+
+>>>>>>> 8e631e4... Fixes:
 QUnit.test('refreshes the xml if there is a minimumUpdatePeriod', function(assert) {
   let loader = new DashPlaylistLoader('dash-live.mpd', this.fakeHls);
   let minimumUpdatePeriods = 0;
@@ -1499,7 +1651,6 @@ QUnit.test('media playlists "refresh" by re-parsing master xml', function(assert
 
   standardXHRResponse(this.requests.shift());
   loader.media(loader.master.playlists[0]);
-  this.clock.tick(1);
 
   // 2s, last segment duration
   this.clock.tick(2 * 1000);
