@@ -25,6 +25,7 @@ const { EventTarget, mergeOptions } = videojs;
  *         playlists merged in
  */
 export const updateMaster = (oldMaster, newMaster) => {
+  let noChanges;
   let update = mergeOptions(oldMaster, {
     // These are top level properties that can be updated
     duration: newMaster.duration,
@@ -39,6 +40,8 @@ export const updateMaster = (oldMaster, newMaster) => {
 
     if (playlistUpdate) {
       update = playlistUpdate;
+    } else {
+      noChanges = true;
     }
   }
 
@@ -52,9 +55,14 @@ export const updateMaster = (oldMaster, newMaster) => {
         update = playlistUpdate;
         // update the playlist reference within media groups
         update.mediaGroups[type][group][label].playlists[0] = update.playlists[uri];
+        noChanges = false;
       }
     }
   });
+
+  if (noChanges) {
+    return null;
+  }
 
   return update;
 };
@@ -361,16 +369,10 @@ export default class DashPlaylistLoader extends EventTarget {
       this.trigger('loadedplaylist');
     }
 
-    if (!this.media_) {
+    if (!this.media_ && this.masterPlaylistLoader_) {
       // no media playlist was specifically selected so start
       // from the first listed one
-      if (!this.masterPlaylistLoader_) {
-        // TODO this is no longer needed?
-        // this.media(this.master.playlists[0]);
-
-      } else {
-        this.media(this.childPlaylist_);
-      }
+      this.media(this.childPlaylist_);
     }
 
     // trigger loadedmetadata to resolve setup of media groups
