@@ -215,7 +215,18 @@ export class MasterPlaylistController extends videojs.EventTarget {
       }
       this.setupFirstPlay();
 
-      this.trigger('selectedinitialmedia');
+      if (!this.mediaTypes_.AUDIO.activePlaylistLoader ||
+          this.mediaTypes_.AUDIO.activePlaylistLoader.media()) {
+        this.trigger('selectedinitialmedia');
+      } else {
+        // We must wait for the active audio playlist loader to
+        // finish setting up before triggering this event so the
+        // representations API and EME setup is correct
+        this.mediaTypes_.AUDIO.activePlaylistLoader.one('loadedmetadata', () => {
+          this.trigger('selectedinitialmedia');
+        });
+      }
+
     });
 
     this.masterPlaylistLoader_.on('loadedplaylist', () => {
