@@ -2934,7 +2934,6 @@ QUnit.test('integration: configures eme if present on selectedinitialmedia', fun
   });
 
   this.clock.tick(1);
-  this.standardXHRResponse(this.requests[0]);
 
   this.player.tech_.hls.masterPlaylistController_.on('selectedinitialmedia', () => {
     assert.deepEqual(this.player.eme.options, {
@@ -2956,7 +2955,7 @@ QUnit.test('integration: configures eme if present on selectedinitialmedia', fun
     done();
   });
 
-  this.clock.tick(1);
+  this.standardXHRResponse(this.requests[0]);
 });
 
 QUnit.test('does not set source keySystems if keySystems not provided by source', function(assert) {
