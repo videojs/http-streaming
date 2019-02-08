@@ -274,13 +274,9 @@ QUnit.test('can switch playlists after the master is downloaded', function(asser
   let loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
 
   loader.load();
-  // first media will already be selected since DASH needs no media request, so change on
-  // loadedmetadata
-  loader.on('loadedmetadata', function() {
-    loader.media('placeholder-uri-0');
-    clock.tick(1);
-  });
+
   standardXHRResponse(this.requests.shift());
+  loader.media('placeholder-uri-0');
   clock.tick(1);
 
   assert.equal(loader.media().uri, 'placeholder-uri-0', 'changed to new playlist');

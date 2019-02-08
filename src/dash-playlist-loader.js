@@ -32,8 +32,6 @@ export const updateMaster = (oldMaster, newMaster) => {
     minimumUpdatePeriod: newMaster.minimumUpdatePeriod
   });
 
-  // TODO: fix this to return falsy if no changes are seen
-
   // First update the playlists in playlist list
   for (let i = 0; i < newMaster.playlists.length; i++) {
     const playlistUpdate = updatePlaylist(update, newMaster.playlists[i]);
@@ -156,6 +154,8 @@ export default class DashPlaylistLoader extends EventTarget {
       this.trigger('mediachanging');
     }
 
+    // TODO: check for sidx here
+
     const haveMetadata = () => {
 
       this.state = 'HAVE_METADATA';
@@ -163,7 +163,11 @@ export default class DashPlaylistLoader extends EventTarget {
 
       this.refreshMedia_();
 
-      // TODO: maybe this is where loadedmetadata should be triggered?
+      // fire loadedmetadata the first time a media playlist is loaded
+      // to resolve setup of media groups
+      if (startingState === 'HAVE_MASTER') {
+        this.trigger('loadedmetadata');
+      }
 
       // trigger media change if the active media has been updated
       if (startingState !== 'HAVE_MASTER') {
@@ -172,6 +176,7 @@ export default class DashPlaylistLoader extends EventTarget {
     };
 
     // Continue asynchronously if there is no sidx
+    // trigger async to mimic behavior of HLS, where it must request a playlist
     window.setTimeout(haveMetadata, 1);
   }
 
@@ -365,21 +370,16 @@ export default class DashPlaylistLoader extends EventTarget {
 
     if (!this.masterPlaylistLoader_) {
       this.master = this.parseMasterXml();
-      // TODO:  maybe shouldn't happen here anymore?
+      // We have the master playlist at this point, so
+      // trigger this to allow MasterPlaylistController
+      // to make an initial playlist selection
       this.trigger('loadedplaylist');
-    }
 
-    if (!this.media_ && this.masterPlaylistLoader_) {
-      // no media playlist was specifically selected so start
-      // from the first listed one
+    } else if (!this.media_) {
+      // no media playlist was specifically selected so select
+      // the one the child playlist loader was created with
       this.media(this.childPlaylist_);
     }
-
-    // trigger loadedmetadata to resolve setup of media groups
-    // trigger async to mimic behavior of HLS, where it must request a playlist
-    window.setTimeout(() => {
-      this.trigger('loadedmetadata');
-    }, 1);
   }
 
   /**
@@ -457,8 +457,6 @@ export default class DashPlaylistLoader extends EventTarget {
   refreshMedia_() {
     let oldMaster;
     let newMaster;
-
-    // TODO: check for sidx here
 
     if (this.masterPlaylistLoader_) {
       oldMaster = this.masterPlaylistLoader_.master;
