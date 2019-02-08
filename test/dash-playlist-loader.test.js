@@ -1185,14 +1185,13 @@ QUnit.test('moves to HAVE_METADATA after loading a media playlist', function(ass
   // Initial media selection happens here as a result of calling load
   // and receiving the master xml
   loader.media(loader.master.playlists[0]);
-  this.clock.tick(1);
   assert.strictEqual(loader.state, 'HAVE_METADATA', 'the loader state is correct');
   assert.strictEqual(loadedPlaylist, 2, 'fired loadedplaylist twice');
   assert.strictEqual(loadedMetadata, 1, 'fired loadedmetadata once');
   assert.ok(loader.media(), 'sets the media playlist');
 });
 
-QUnit.test('child playlist moves to HAVE_METADATA when initialized with a master playlist', function(assert) {
+QUnit.test('child loader moves to HAVE_METADATA when initialized with a master playlist', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
   let loadedPlaylist = 0;
   let loadedMetadata = 0;
@@ -1201,7 +1200,6 @@ QUnit.test('child playlist moves to HAVE_METADATA when initialized with a master
 
   loader.load();
   standardXHRResponse(this.requests.shift());
-  this.clock.tick(1);
   playlist = loader.master.playlists['placeholder-uri-AUDIO-audio-main'];
   childLoader = new DashPlaylistLoader(playlist, this.fakeHls, false, loader);
 
@@ -1218,14 +1216,8 @@ QUnit.test('child playlist moves to HAVE_METADATA when initialized with a master
   assert.strictEqual(childLoader.media(), undefined, 'childLoader media not yet set');
 
   childLoader.load();
-  this.clock.tick(0);
 
   assert.strictEqual(childLoader.started, true, 'childLoader has started');
-  assert.strictEqual(childLoader.state, 'HAVE_MASTER', 'childLoader state is correct');
-  assert.strictEqual(loadedPlaylist, 0, 'loadedplaylist has not fired yet');
-  assert.strictEqual(loadedMetadata, 0, 'loadedmetadata has not fired yet');
-
-  this.clock.tick(1);
   assert.strictEqual(childLoader.state, 'HAVE_METADATA', 'childLoader state is correct');
   assert.strictEqual(loadedPlaylist, 1, 'triggered loadedplaylist');
   assert.strictEqual(loadedMetadata, 1, 'triggered loadedmetadata');
@@ -1242,7 +1234,6 @@ QUnit.test('child playlist moves to HAVE_METADATA when initialized with a live m
 
   loader.load();
   standardXHRResponse(this.requests.shift());
-  this.clock.tick(1);
   playlist = loader.master.playlists['placeholder-uri-AUDIO-audio-main'];
   childLoader = new DashPlaylistLoader(playlist, this.fakeHls, false, loader);
 
@@ -1259,14 +1250,8 @@ QUnit.test('child playlist moves to HAVE_METADATA when initialized with a live m
   assert.strictEqual(childLoader.media(), undefined, 'childLoader media not yet set');
 
   childLoader.load();
-  this.clock.tick(0);
 
   assert.strictEqual(childLoader.started, true, 'childLoader has started');
-  assert.strictEqual(childLoader.state, 'HAVE_MASTER', 'childLoader state is correct');
-  assert.strictEqual(loadedPlaylist, 0, 'loadedplaylist has not fired yet');
-  assert.strictEqual(loadedMetadata, 0, 'loadedmetadata has not fired yet');
-
-  this.clock.tick(1);
   assert.strictEqual(childLoader.state, 'HAVE_METADATA', 'childLoader state is correct');
   assert.strictEqual(loadedPlaylist, 1, 'triggered loadedplaylist');
   assert.strictEqual(loadedMetadata, 1, 'triggered loadedmetadata');
@@ -1304,26 +1289,22 @@ QUnit.test('triggers an event when the active media changes', function(assert) {
   standardXHRResponse(this.requests.shift());
 
   loader.media(loader.master.playlists[0]);
-  this.clock.tick(1);
   assert.strictEqual(mediaChangings, 0, 'initial selection is not a media changing');
   assert.strictEqual(mediaChanges, 0, 'initial selection is not a media change');
 
   // switching to a different playlist
   loader.media(loader.master.playlists[1]);
-  this.clock.tick(1);
   assert.strictEqual(mediaChangings, 1, 'mediachanging fires immediately');
   // Note: does not match PlaylistLoader behavior
   assert.strictEqual(mediaChanges, 1, 'mediachange fires immediately');
 
   // switch back to an already loaded playlist
   loader.media(loader.master.playlists[0]);
-  this.clock.tick(1);
   assert.strictEqual(mediaChangings, 2, 'mediachanging fires');
   assert.strictEqual(mediaChanges, 2, 'fired a mediachange');
 
   // trigger a no-op switch
   loader.media(loader.master.playlists[0]);
-  this.clock.tick(1);
   assert.strictEqual(mediaChangings, 2, 'mediachanging ignored the no-op');
   assert.strictEqual(mediaChanges, 2, 'ignored a no-op media change');
 });
@@ -1391,18 +1372,14 @@ QUnit.test('can switch playlists based on object or URI', function(assert) {
 
   loader.load();
   standardXHRResponse(this.requests.shift());
-  this.clock.tick(1);
 
   loader.media('placeholder-uri-0');
-  this.clock.tick(1);
   assert.equal(loader.media().uri, 'placeholder-uri-0', 'changed to playlist by uri');
 
   loader.media('placeholder-uri-1');
-  this.clock.tick(1);
   assert.equal(loader.media().uri, 'placeholder-uri-1', 'changed to playlist by uri');
 
   loader.media(loader.master.playlists[0]);
-  this.clock.tick(1);
   assert.equal(loader.media().uri, 'placeholder-uri-0', 'changed to playlist by object');
 });
 
@@ -1460,158 +1437,6 @@ function(assert) {
     'set reference by uri for easy access');
 });
 
-<<<<<<< HEAD
-=======
-QUnit.test('updateMaster updates playlists and mediaGroups', function(assert) {
-  const master = {
-    duration: 10,
-    minimumUpdatePeriod: 0,
-    mediaGroups: {
-      AUDIO: {
-        audio: {
-          main: {
-            playlists: [{
-              mediaSequence: 0,
-              attributes: {},
-              uri: 'audio-0-uri',
-              resolvedUri: urlTo('audio-0-uri'),
-              segments: [{
-                duration: 10,
-                uri: 'audio-segment-0-uri',
-                resolvedUri: urlTo('audio-segment-0-uri')
-              }]
-            }]
-          }
-        }
-      }
-    },
-    playlists: [{
-      mediaSequence: 0,
-      attributes: {
-        BANDWIDTH: 9
-      },
-      uri: 'playlist-0-uri',
-      resolvedUri: urlTo('playlist-0-uri'),
-      segments: [{
-        duration: 10,
-        uri: 'segment-0-uri',
-        resolvedUri: urlTo('segment-0-uri')
-      }]
-    }]
-  };
-  const update = {
-    duration: 20,
-    minimumUpdatePeriod: 0,
-    mediaGroups: {
-      AUDIO: {
-        audio: {
-          main: {
-            playlists: [{
-              mediaSequence: 1,
-              attributes: {},
-              uri: 'audio-0-uri',
-              resolvedUri: urlTo('audio-0-uri'),
-              segments: [{
-                duration: 10,
-                uri: 'audio-segment-0-uri',
-                resolvedUri: urlTo('audio-segment-0-uri')
-              }]
-            }]
-          }
-        }
-      }
-    },
-    playlists: [{
-      mediaSequence: 1,
-      attributes: {
-        BANDWIDTH: 9
-      },
-      uri: 'playlist-0-uri',
-      resolvedUri: urlTo('playlist-0-uri'),
-      segments: [{
-        duration: 10,
-        uri: 'segment-0-uri',
-        resolvedUri: urlTo('segment-0-uri')
-      }]
-    }]
-  };
-
-  master.playlists['playlist-0-uri'] = master.playlists[0];
-  master.playlists['audio-0-uri'] = master.mediaGroups.AUDIO.audio.main.playlists[0];
-
-  assert.deepEqual(
-    updateMaster(master, update),
-    {
-      duration: 20,
-      minimumUpdatePeriod: 0,
-      mediaGroups: {
-        AUDIO: {
-          audio: {
-            main: {
-              playlists: [{
-                mediaSequence: 1,
-                attributes: {},
-                uri: 'audio-0-uri',
-                resolvedUri: urlTo('audio-0-uri'),
-                segments: [{
-                  duration: 10,
-                  uri: 'audio-segment-0-uri',
-                  resolvedUri: urlTo('audio-segment-0-uri')
-                }]
-              }]
-            }
-          }
-        }
-      },
-      playlists: [{
-        mediaSequence: 1,
-        attributes: {
-          BANDWIDTH: 9
-        },
-        uri: 'playlist-0-uri',
-        resolvedUri: urlTo('playlist-0-uri'),
-        segments: [{
-          duration: 10,
-          uri: 'segment-0-uri',
-          resolvedUri: urlTo('segment-0-uri')
-        }]
-      }]
-    },
-    'updates playlists and media groups');
-});
-
-QUnit.test('updateMaster returns falsy when there are no changes', function(assert) {
-  const master = {
-    playlists: {
-      length: 1,
-      0: {}
-    },
-    mediaGroups: {
-      AUDIO: {
-        audio: {
-          'audio-main': {
-            attributes: {
-              NAME: 'audio'
-            },
-            playlists: {
-              length: 1,
-              0: {
-                playlists: {}
-              }
-            }
-          }
-        }
-      },
-      SUBTITLES: {}
-    },
-    duration: 0,
-    minimumUpdatePeriod: 0
-  };
-
-  assert.deepEqual(updateMaster(master, master), null);
-});
-
->>>>>>> 8e631e4... Fixes:
 QUnit.test('refreshes the xml if there is a minimumUpdatePeriod', function(assert) {
   let loader = new DashPlaylistLoader('dash-live.mpd', this.fakeHls);
   let minimumUpdatePeriods = 0;
@@ -1634,9 +1459,6 @@ QUnit.test('refreshes the xml if there is a minimumUpdatePeriod', function(asser
 QUnit.test('media playlists "refresh" by re-parsing master xml', function(assert) {
   let loader = new DashPlaylistLoader('dash-live.mpd', this.fakeHls);
   let refreshes = 0;
-  let parseMasterXml_;
-
-  parseMasterXml_ = loader.parseMasterXml.bind(loader);
 
   loader.on('mediaupdatetimeout', () => refreshes++);
 
@@ -1648,8 +1470,8 @@ QUnit.test('media playlists "refresh" by re-parsing master xml', function(assert
   standardXHRResponse(this.requests.shift());
   loader.media(loader.master.playlists[0]);
 
-  // 2s, last segment duration
-  this.clock.tick(2 * 1000);
+  // 1s, half segment target duration, since the playlist didn't change
+  this.clock.tick(2 * 500);
 
   assert.equal(refreshes, 1, 'refreshed playlist after last segment duration');
 });
@@ -1667,17 +1489,12 @@ QUnit.test('delays load when on final rendition', function(assert) {
   assert.equal(loadedplaylistEvents, 1, 'one loadedplaylist event after first load');
 
   loader.media(loader.master.playlists[0]);
-  this.clock.tick(1);
   assert.equal(loadedplaylistEvents, 2, 'one more loadedplaylist event after media selected');
 
   loader.load();
-  this.clock.tick(1);
-
   assert.equal(loadedplaylistEvents, 3, 'one more loadedplaylist event after load');
 
   loader.load(false);
-  this.clock.tick(1);
-
   assert.equal(
     loadedplaylistEvents,
     4,

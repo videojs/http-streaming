@@ -164,28 +164,25 @@ export default class DashPlaylistLoader extends EventTarget {
 
     // TODO: check for sidx here
 
-    const haveMetadata = () => {
+    // Continue  if there is no sidx
+    return this.haveMetadata({ startingState, playlist });
+  }
 
-      this.state = 'HAVE_METADATA';
-      this.media_ = playlist;
+  haveMetadata({startingState, playlist}) {
+    this.state = 'HAVE_METADATA';
+    this.media_ = playlist;
 
-      this.refreshMedia_();
+    // This will trigger loadedplaylist
+    this.refreshMedia_();
 
-      // fire loadedmetadata the first time a media playlist is loaded
-      // to resolve setup of media groups
-      if (startingState === 'HAVE_MASTER') {
-        this.trigger('loadedmetadata');
-      }
-
+    // fire loadedmetadata the first time a media playlist is loaded
+    // to resolve setup of media groups
+    if (startingState === 'HAVE_MASTER') {
+      this.trigger('loadedmetadata');
+    } else {
       // trigger media change if the active media has been updated
-      if (startingState !== 'HAVE_MASTER') {
-        this.trigger('mediachange');
-      }
-    };
-
-    // Continue asynchronously if there is no sidx
-    // trigger async to mimic behavior of HLS, where it must request a playlist
-    window.setTimeout(haveMetadata, 1);
+      this.trigger('mediachange');
+    }
   }
 
   pause() {
@@ -268,11 +265,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
     // We don't need to request the master manifest again
     if (this.masterPlaylistLoader_) {
-      window.setTimeout(
-        this.haveMaster_.bind(this),
-        0
-      );
-      return;
+      return this.haveMaster_();
     }
 
     // request the specified URL
@@ -427,11 +420,7 @@ export default class DashPlaylistLoader extends EventTarget {
     // segments, but future segments may require an update. I think a good solution
     // would be to update the manifest at the same rate that the media playlists
     // are "refreshed", i.e. every targetDuration.
-    if (
-      !this.masterPlaylistLoader_ &&
-      this.master &&
-      this.master.minimumUpdatePeriod
-    ) {
+    if (this.master && this.master.minimumUpdatePeriod) {
       window.setTimeout(() => {
         this.trigger('minimumUpdatePeriod');
       }, this.master.minimumUpdatePeriod);
@@ -522,8 +511,6 @@ export default class DashPlaylistLoader extends EventTarget {
       }, refreshDelay(this.media(), !!updatedMaster));
     }
 
-    // Note: if a src is provided on DashPlaylistLoader creation,
-    // this will trigger immediately
     this.trigger('loadedplaylist');
   }
 }
