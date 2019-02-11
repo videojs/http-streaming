@@ -1326,6 +1326,10 @@ export default class SegmentLoader extends videojs.EventTarget {
       segmentInfo.segment.map.bytes = simpleSegment.map.bytes;
     }
 
+    if (simpleSegment.isFmp4) {
+      this.trigger('fmp4');
+    }
+
     segmentInfo.isFmp4 = simpleSegment.isFmp4;
     segmentInfo.timingInfo = segmentInfo.timingInfo || {};
 

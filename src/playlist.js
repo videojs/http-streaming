@@ -471,20 +471,6 @@ export const isAes = function(media) {
 };
 
 /**
- * Returns whether the current playlist contains fMP4
- *
- * @return {Boolean} true if the playlist contains fMP4
- */
-export const isFmp4 = function(media) {
-  for (let i = 0; i < media.segments.length; i++) {
-    if (media.segments[i].map) {
-      return true;
-    }
-  }
-  return false;
-};
-
-/**
  * Checks if the playlist has a value for the specified attribute
  *
  * @param {String} attr
@@ -562,7 +548,6 @@ export default {
   isIncompatible,
   playlistEnd,
   isAes,
-  isFmp4,
   hasAttribute,
   estimateSegmentRequestTime,
   isLowestEnabledRendition

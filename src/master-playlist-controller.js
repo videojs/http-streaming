@@ -172,6 +172,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.logger_ = logger('MPC');
 
+    this.triggeredFmp4Usage = false;
+
     this.masterPlaylistLoader_.load();
   }
 
@@ -361,10 +363,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
       this.tech_.trigger({type: 'usage', name: 'hls-aes'});
     }
 
-    if (Hls.Playlist.isFmp4(media)) {
-      this.tech_.trigger({type: 'usage', name: 'hls-fmp4'});
-    }
-
     if (audioGroupKeys.length &&
         Object.keys(mediaGroups.AUDIO[audioGroupKeys[0]]).length > 1) {
       this.tech_.trigger({type: 'usage', name: 'hls-alternate-audio'});
@@ -458,6 +456,20 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.audioSegmentLoader_.on('ended', () => {
       this.onEndOfStream();
+    });
+
+    this.mainSegmentLoader_.on('fmp4', () => {
+      if (!this.triggeredFmp4Usage) {
+        this.tech_.trigger({type: 'usage', name: 'hls-fmp4'});
+        this.triggeredFmp4Usage = true;
+      }
+    });
+
+    this.audioSegmentLoader_.on('fmp4', () => {
+      if (!this.triggeredFmp4Usage) {
+        this.tech_.trigger({type: 'usage', name: 'hls-fmp4'});
+        this.triggeredFmp4Usage = true;
+      }
     });
   }
 

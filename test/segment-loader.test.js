@@ -9,13 +9,13 @@ import videojs from 'video.js';
 import mp4probe from 'mux.js/lib/mp4/probe';
 import {
   playlistWithDuration,
-  standardXHRResponse
+  standardXHRResponse,
+  setupMediaSource
 } from './test-helpers.js';
 import {
   LoaderCommonHooks,
   LoaderCommonSettings,
-  LoaderCommonFactory,
-  setupMediaSource
+  LoaderCommonFactory
 } from './loader-common.js';
 import {
   muxed as muxedSegment,

@@ -7,7 +7,8 @@ import {
   createPlayer,
   standardXHRResponse,
   openMediaSource,
-  requestAndAppendSegment
+  requestAndAppendSegment,
+  setupMediaSource
 } from './test-helpers.js';
 import manifests from './test-manifests.js';
 import {
@@ -26,7 +27,11 @@ import DashPlaylistLoader from '../src/dash-playlist-loader';
 import {
   muxed as muxedSegment,
   audio as audioSegment,
-  video as videoSegment
+  video as videoSegment,
+  mp4VideoInit as mp4VideoInitSegment,
+  mp4Video as mp4VideoSegment,
+  mp4AudioInit as mp4AudioInitSegment,
+  mp4Audio as mp4AudioSegment
 } from './test-segments';
 
 QUnit.module('MasterPlaylistController', {
@@ -2154,13 +2159,18 @@ QUnit.test('trigger events when an AES is detected', function(assert) {
   Hls.Playlist.isAes = isAesCopy;
 });
 
-QUnit.test('trigger events when an fMP4 stream is detected', function(assert) {
-  let hlsFmp4Events = 0;
-  let isFmp4Copy = Hls.Playlist.isFmp4;
+QUnit.test('trigger event when a video fMP4 stream is detected', async function(assert) {
+  // use real media sources to allow segment loader to naturally detect fmp4
+  this.mse.restore();
+  this.requests.length = 0;
+  this.player = createPlayer();
+  this.player.src({
+    src: 'prog_index.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
 
-  Hls.Playlist.isFmp4 = (media) => {
-    return true;
-  };
+  let hlsFmp4Events = 0;
 
   this.player.tech_.on('usage', (event) => {
     if (event.name === 'hls-fmp4') {
@@ -2168,14 +2178,116 @@ QUnit.test('trigger events when an fMP4 stream is detected', function(assert) {
     }
   });
 
-  // master
-  this.standardXHRResponse(this.requests.shift());
+  const mpc = this.player.vhs.masterPlaylistController_;
+
+  await setupMediaSource(
+    mpc.mainSegmentLoader_.mediaSource_,
+    mpc.mainSegmentLoader_.sourceUpdater_,
+    {
+      videoEl: this.player.tech_.el_,
+      isVideoOnly: true
+    }
+  );
+
   // media
   this.standardXHRResponse(this.requests.shift());
-  this.masterPlaylistController.mediaSource.trigger('sourceopen');
+
+  assert.equal(hlsFmp4Events, 0, 'an fMP4 stream is not detected');
+
+  const initSegmentRequest = this.requests.shift();
+  const segmentRequest = this.requests.shift();
+
+  await requestAndAppendSegment({
+    request: segmentRequest,
+    initSegmentRequest,
+    segmentLoader: mpc.mainSegmentLoader_,
+    initSegment: mp4VideoInitSegment(),
+    segment: mp4VideoSegment(),
+    isOnlyVideo: true,
+    clock: this.clock
+  });
 
   assert.equal(hlsFmp4Events, 1, 'an fMP4 stream is detected');
-  Hls.Playlist.isFmp4 = isFmp4Copy;
+});
+
+QUnit.test('only triggers a single fmp4 usage event', async function(assert) {
+  let hlsFmp4Events = 0;
+
+  this.player.tech_.on('usage', (event) => {
+    if (event.name === 'hls-fmp4') {
+      hlsFmp4Events++;
+    }
+  });
+
+  const mainSegmentLoader = this.player.vhs.masterPlaylistController_.mainSegmentLoader_;
+
+  mainSegmentLoader.trigger('fmp4');
+
+  assert.equal(hlsFmp4Events, 1, 'fired fMP4 usage event');
+
+  mainSegmentLoader.trigger('fmp4');
+
+  assert.equal(hlsFmp4Events, 1, 'did not fire usage event');
+
+  const audioSegmentLoader =
+    this.player.vhs.masterPlaylistController_.audioSegmentLoader_;
+
+  audioSegmentLoader.trigger('fmp4');
+
+  assert.equal(hlsFmp4Events, 1, 'did not fire usage event');
+});
+
+// TODO currently this test is skipped because audio only fmp4 isn't supported. Once
+// support is added, this test can be unskipped.
+QUnit.skip('trigger event when an audio fMP4 stream is detected', async function(assert) {
+  // use real media sources to allow segment loader to naturally detect fmp4
+  this.mse.restore();
+  this.requests.length = 0;
+  this.player = createPlayer();
+  this.player.src({
+    src: 'prog_index.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+
+  let hlsFmp4Events = 0;
+
+  this.player.tech_.on('usage', (event) => {
+    if (event.name === 'hls-fmp4') {
+      hlsFmp4Events++;
+    }
+  });
+
+  const mpc = this.player.vhs.masterPlaylistController_;
+
+  await setupMediaSource(
+    mpc.mainSegmentLoader_.mediaSource_,
+    mpc.mainSegmentLoader_.sourceUpdater_,
+    {
+      videoEl: this.player.tech_.el_,
+      isAudioOnly: true
+    }
+  );
+
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.equal(hlsFmp4Events, 0, 'an fMP4 stream is not detected');
+
+  const initSegmentRequest = this.requests.shift();
+  const segmentRequest = this.requests.shift();
+
+  await requestAndAppendSegment({
+    request: segmentRequest,
+    initSegmentRequest,
+    segmentLoader: mpc.mainSegmentLoader_,
+    initSegment: mp4AudioInitSegment(),
+    segment: mp4AudioSegment(),
+    isOnlyAudio: true,
+    clock: this.clock
+  });
+
+  assert.equal(hlsFmp4Events, 1, 'an fMP4 stream is detected');
 });
 
 QUnit.test('adds only CEA608 closed-caption tracks when a master playlist is loaded',

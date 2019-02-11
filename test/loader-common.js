@@ -6,14 +6,14 @@ import {
   playlistWithDuration,
   useFakeEnvironment,
   createResponseText,
-  standardXHRResponse
+  standardXHRResponse,
+  setupMediaSource
 } from './test-helpers.js';
 import { MasterPlaylistController } from '../src/master-playlist-controller';
 import SourceUpdater from '../src/source-updater';
 import SyncController from '../src/sync-controller';
 import Decrypter from 'worker!../src/decrypter-worker.worker.js';
 import window from 'global/window';
-import document from 'global/document';
 /* eslint-disable no-unused-vars */
 // we need this so that it can register hls with videojs
 import { Hls } from '../src/videojs-http-streaming';
@@ -90,38 +90,6 @@ export const LoaderCommonSettings = function(settings) {
     syncController: this.syncController,
     decrypter: this.decrypter
   }, settings);
-};
-
-export const setupMediaSource = (mediaSource, sourceUpdater, options) => {
-  // this can be a valid case, for instance, for the vtt loader
-  if (!mediaSource) {
-    return;
-  }
-
-  // must attach a media source to a video element
-  const video = document.createElement('video');
-
-  video.src = window.URL.createObjectURL(mediaSource);
-
-  return new Promise((resolve, reject) => {
-    mediaSource.addEventListener('sourceopen', () => {
-      const codecs = {};
-
-      if (!options || !options.isVideoOnly) {
-        codecs.audio = 'mp4a.40.2';
-      }
-      if (!options || !options.isAudioOnly) {
-        codecs.video = 'avc1.4d001e';
-      }
-
-      sourceUpdater.createSourceBuffers(codecs);
-      resolve();
-    });
-
-    mediaSource.addEventListener('error', (e) => {
-      reject(e);
-    });
-  });
 };
 
 /**

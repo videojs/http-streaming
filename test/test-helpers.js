@@ -3,6 +3,7 @@ import sinon from 'sinon';
 import videojs from 'video.js';
 import testDataManifests from './test-manifests.js';
 import xhrFactory from '../src/xhr';
+import { isLikelyFmp4Data } from '../src/util/codecs';
 import window from 'global/window';
 import { muxed as muxedSegment } from './test-segments';
 
@@ -487,7 +488,9 @@ export const createResponseText = function(length) {
  */
 export const requestAndAppendSegment = async ({
   request,
+  initSegmentRequest,
   segment,
+  initSegment,
   segmentLoader,
   clock,
   bandwidth,
@@ -510,11 +513,17 @@ export const requestAndAppendSegment = async ({
   requestDurationMillis = requestDurationMillis || 1000;
 
   clock.tick(requestDurationMillis);
+  if (initSegmentRequest) {
+    standardXHRResponse(initSegmentRequest, initSegment);
+  }
   standardXHRResponse(request, segment);
 
-  await new Promise((accept, reject) => {
-    segmentLoader.on('appending', accept);
-  });
+  // fmp4 segments don't need to be transmuxed, therefore will execute synchronously
+  if (!isLikelyFmp4Data(segment)) {
+    await new Promise((accept, reject) => {
+      segmentLoader.on('appending', accept);
+    });
+  }
 
   if (throughput) {
     const appendMillis = ((segmentByteLength * 8) / throughput) * 1000;
@@ -522,14 +531,18 @@ export const requestAndAppendSegment = async ({
     clock.tick(appendMillis - (tickClock ? 1 : 0));
   }
 
-  // source buffers are mocked, so must manually trigger update ends on buffers
-  if (isOnlyAudio) {
-    segmentLoader.sourceUpdater_.audioBuffer.trigger('updateend');
-  } else if (isOnlyVideo) {
-    segmentLoader.sourceUpdater_.videoBuffer.trigger('updateend');
-  } else {
-    segmentLoader.sourceUpdater_.audioBuffer.trigger('updateend');
-    segmentLoader.sourceUpdater_.videoBuffer.trigger('updateend');
+  if (segmentLoader.sourceUpdater_.audioBuffer instanceof MockSourceBuffer ||
+      segmentLoader.sourceUpdater_.videoBuffer instanceof MockSourceBuffer) {
+    // source buffers are mocked, so must manually trigger update ends on buffers,
+    // since they don't actually do any appends
+    if (isOnlyAudio) {
+      segmentLoader.sourceUpdater_.audioBuffer.trigger('updateend');
+    } else if (isOnlyVideo) {
+      segmentLoader.sourceUpdater_.videoBuffer.trigger('updateend');
+    } else {
+      segmentLoader.sourceUpdater_.audioBuffer.trigger('updateend');
+      segmentLoader.sourceUpdater_.videoBuffer.trigger('updateend');
+    }
   }
 
   if (tickClock) {
@@ -539,4 +552,37 @@ export const requestAndAppendSegment = async ({
 
 export const disposePlaybackWatcher = (player) => {
   player.vhs.playbackWatcher_.dispose();
+};
+
+export const setupMediaSource = (mediaSource, sourceUpdater, options) => {
+  // this can be a valid case, for instance, for the vtt loader
+  if (!mediaSource) {
+    return;
+  }
+
+  // must attach a media source to a video element
+  const videoEl =
+    (options && options.videoEl) ? options.videoEl : document.createElement('video');
+
+  videoEl.src = window.URL.createObjectURL(mediaSource);
+
+  return new Promise((resolve, reject) => {
+    mediaSource.addEventListener('sourceopen', () => {
+      const codecs = {};
+
+      if (!options || !options.isVideoOnly) {
+        codecs.audio = 'mp4a.40.2';
+      }
+      if (!options || !options.isAudioOnly) {
+        codecs.video = 'avc1.4d001e';
+      }
+
+      sourceUpdater.createSourceBuffers(codecs);
+      resolve();
+    });
+
+    mediaSource.addEventListener('error', (e) => {
+      reject(e);
+    });
+  });
 };

@@ -903,7 +903,7 @@ function(assert) {
     'Detected not on lowest rendition');
 });
 
-QUnit.module('Playlist isAes and isFmp4', {
+QUnit.module('Playlist isAes', {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
     this.clock = this.env.clock;
@@ -936,23 +936,6 @@ QUnit.test('determine if playlist is an AES encrypted HLS stream', function(asse
   media = loader.media();
 
   assert.ok(Playlist.isAes(media), 'media is an AES encrypted HLS stream');
-});
-
-QUnit.test('determine if playlist contains an fmp4 segment', function(assert) {
-  let media;
-  let loader = new PlaylistLoader('video/fmp4.m3u8', this.fakeHls);
-
-  loader.load();
-  this.requests.shift().respond(200, null,
-                                '#EXTM3U\n' +
-                                '#EXT-X-MAP:URI="main.mp4",BYTERANGE="720@0"\n' +
-                                '#EXTINF:10,\n' +
-                                '0.mp4\n' +
-                                '#EXT-X-ENDLIST\n');
-
-  media = loader.media();
-
-  assert.ok(Playlist.isFmp4(media), 'media contains fmp4 segment');
 });
 
 QUnit.module('Playlist Media Index For Time', {
