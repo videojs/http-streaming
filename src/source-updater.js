@@ -220,6 +220,7 @@ export default class SourceUpdater extends videojs.EventTarget {
       this.onAudioUpdateEnd_ = onUpdateend('audio', this);
       this.audioBuffer.addEventListener('updateend', this.onAudioUpdateEnd_);
       this.onAudioError_ = (e) => {
+        // used for debugging
         this.audioError_ = e;
       };
       this.audioBuffer.addEventListener('error', this.onAudioError_);
@@ -229,6 +230,7 @@ export default class SourceUpdater extends videojs.EventTarget {
       this.onVideoUpdateEnd_ = onUpdateend('video', this);
       this.videoBuffer.addEventListener('updateend', this.onVideoUpdateEnd_);
       this.onVideoError_ = (e) => {
+        // used for debugging
         this.videoError_ = e;
       };
       this.videoBuffer.addEventListener('error', this.onVideoError_);
