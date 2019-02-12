@@ -34,6 +34,8 @@ Currently, videojs-http-streaming (VHS) does not support multiple video tracks. 
 
 ## Future Ideas
 
+Considering that we could have multiple tracks of all media types, it may be the most accurate to **always** use MediaGroups for all content. This would include HLS without alternate audio tracks and DASH for all cases. In this way, the MasterPlaylistController could delegate much of the interaction handling for the PlaylistLoaders and SegmentLoaders to the MediaGroups class which would act as a specialized controller.
+
 [dpl]: ../src/dash-playlist-loader.js
 [mg]: ../src/media-groups.js
 [pl]: ../src/playlist-loader.js
