@@ -123,11 +123,6 @@ const audioProfileFromDefault = (master, audioGroupId) => {
 };
 
 export const isMaat = (master, media) => {
-  if (!media) {
-    // Not enough information
-    return false;
-  }
-
   const mediaAttributes = media.attributes || {};
 
   return master.mediaGroups.AUDIO &&
@@ -169,11 +164,6 @@ export const isMuxed = (master, media) => {
  * @private
  */
 export const codecsForPlaylist = function(master, media) {
-  if (!media) {
-    // Not enough information
-    return {};
-  }
-
   const mediaAttributes = media.attributes || {};
   const codecInfo = getCodecs(media);
 
