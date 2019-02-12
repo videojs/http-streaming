@@ -224,6 +224,13 @@ export default class VTTSegmentLoader extends SegmentLoader {
     return segmentInfo;
   }
 
+  stopForError(error) {
+    this.error(error);
+    this.state = 'READY';
+    this.pause();
+    this.trigger('error');
+  }
+
   /**
    * append a decrypted segement to the SourceBuffer through a SourceUpdater
    *
@@ -255,10 +262,8 @@ export default class VTTSegmentLoader extends SegmentLoader {
         this.mediaRequestsErrored += 1;
       }
 
-      this.error(error);
-      this.state = 'READY';
-      this.pause();
-      return this.trigger('error');
+      this.stopForError(error);
+      return;
     }
 
     // although the VTT segment loader bandwidth isn't really used, it's good to
@@ -291,12 +296,10 @@ export default class VTTSegmentLoader extends SegmentLoader {
       this.subtitlesTrack_.tech_.one('vttjsloaded', loadHandler);
       this.subtitlesTrack_.tech_.one('vttjserror', () => {
         this.subtitlesTrack_.tech_.off('vttjsloaded', loadHandler);
-        this.error({
+        this.stopForError({
           message: 'Error loading vtt.js'
         });
-        this.state = 'READY';
-        this.pause();
-        this.trigger('error');
+        return;
       });
 
       return;
@@ -307,12 +310,10 @@ export default class VTTSegmentLoader extends SegmentLoader {
     try {
       this.parseVTTCues_(segmentInfo);
     } catch (e) {
-      this.error({
+      this.stopForError({
         message: e.message
       });
-      this.state = 'READY';
-      this.pause();
-      return this.trigger('error');
+      return;
     }
 
     this.updateTimeMapping_(segmentInfo,
