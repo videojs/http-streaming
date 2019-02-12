@@ -180,8 +180,12 @@ export default class DashPlaylistLoader extends EventTarget {
 
     // TODO: check for sidx here
 
-    // Continue  if there is no sidx
-    return this.haveMetadata({ startingState, playlist });
+    // Continue asynchronously if there is no sidx
+    // wait one tick to allow haveMaster to run first on a child loader
+    return window.setTimeout(
+      this.haveMetadata.bind(this, { startingState, playlist }),
+      1
+    );
   }
 
   haveMetadata({startingState, playlist}) {
@@ -281,8 +285,9 @@ export default class DashPlaylistLoader extends EventTarget {
     this.started = true;
 
     // We don't need to request the master manifest again
+    // Call this asynchronously to match the xhr request behavior below
     if (this.masterPlaylistLoader_) {
-      return this.haveMaster_();
+      return window.setTimeout(this.haveMaster_.bind(this), 0);
     }
 
     // request the specified URL
