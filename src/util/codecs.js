@@ -143,11 +143,11 @@ export const isMuxed = (master, media) => {
   const mediaAttributes = media.attributes || {};
   const audioGroup = master.mediaGroups.AUDIO[mediaAttributes.AUDIO];
 
-  // ...check to see if any audio group tracks are muxed (ie. lacking a uri)
   for (let groupId in audioGroup) {
-    // either a uri is present (if the case of HLS and an external playlist), or
-    // playlists is present (in the case of DASH where we don't have external audio
-    // playlists)
+    // If an audio group has a URI (the case for HLS, as HLS will use external playlists),
+    // or there are listed playlists (the case for DASH, as the manifest will have already
+    // provided all of the details necessary to generate the audio playlist, as opposed to
+    // HLS' externally requested playlists), then the content is demuxed.
     if (!audioGroup[groupId].uri && !audioGroup[groupId].playlists) {
       return true;
     }
