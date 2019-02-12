@@ -28,7 +28,7 @@ videojs.use('*', (player) => {
     play() {
       if (player.vhs &&
           player.currentSource().src === player.vhs.source_.src) {
-        player.vhs.setCurrentTime(player.currentTime());
+        player.vhs.setCurrentTime(player.tech_.currentTime());
       }
     }
   };
