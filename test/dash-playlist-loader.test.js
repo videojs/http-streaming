@@ -178,36 +178,54 @@ QUnit.test('triggers an event when the active media changes', function(assert) {
   let loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
   let mediaChanges = 0;
   let mediaChangings = 0;
+  let loadedPlaylists = 0;
+  let loadedMetadata = 0;
 
-  loader.on('mediachange', function() {
+  loader.on('mediachange', () => {
     mediaChanges++;
   });
-  loader.on('mediachanging', function() {
+  loader.on('mediachanging', () => {
     mediaChangings++;
+  });
+  loader.on('loadedplaylist', () => {
+    loadedPlaylists++;
+  });
+  loader.on('loadedmetadata', () => {
+    loadedMetadata++;
   });
 
   loader.load();
   standardXHRResponse(this.requests.shift());
+  assert.strictEqual(loadedPlaylists, 1, 'loadedplaylist triggered');
+  assert.strictEqual(loadedMetadata, 0, 'no loadedmetadata');
 
   loader.media(loader.master.playlists[0]);
   assert.strictEqual(mediaChangings, 0, 'initial selection is not a media changing');
   assert.strictEqual(mediaChanges, 0, 'initial selection is not a media change');
+  assert.strictEqual(loadedPlaylists, 2, 'loadedplaylist triggered twice');
+  assert.strictEqual(loadedMetadata, 1, 'loadedmetadata triggered');
 
   // switching to a different playlist
   loader.media(loader.master.playlists[1]);
   assert.strictEqual(mediaChangings, 1, 'mediachanging fires immediately');
   // Note: does not match PlaylistLoader behavior
   assert.strictEqual(mediaChanges, 1, 'mediachange fires immediately');
+  assert.strictEqual(loadedPlaylists, 3, 'three loadedplaylists');
+  assert.strictEqual(loadedMetadata, 1, 'still one loadedmetadata');
 
   // switch back to an already loaded playlist
   loader.media(loader.master.playlists[0]);
   assert.strictEqual(mediaChangings, 2, 'mediachanging fires');
   assert.strictEqual(mediaChanges, 2, 'fired a mediachange');
+  assert.strictEqual(loadedPlaylists, 3, 'still three loadedplaylists');
+  assert.strictEqual(loadedMetadata, 1, 'still one loadedmetadata');
 
   // trigger a no-op switch
   loader.media(loader.master.playlists[0]);
   assert.strictEqual(mediaChangings, 2, 'mediachanging ignored the no-op');
   assert.strictEqual(mediaChanges, 2, 'ignored a no-op media change');
+  assert.strictEqual(loadedPlaylists, 3, 'still three loadedplaylists');
+  assert.strictEqual(loadedMetadata, 1, 'still one loadedmetadata');
 });
 
 QUnit.test('throws an error when initial manifest request fails', function(assert) {

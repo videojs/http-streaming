@@ -90,6 +90,7 @@ export default class DashPlaylistLoader extends EventTarget {
     });
 
     this.state = 'HAVE_NOTHING';
+    this.loadedPlaylists_ = {};
 
     // initialize the loader state
     // The masterPlaylistLoader will be created with a string
@@ -108,6 +109,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
   dispose() {
     this.stopRequest();
+    this.loadedPlaylists_ = {};
     window.clearTimeout(this.mediaUpdateTimeout);
   }
 
@@ -144,6 +146,21 @@ export default class DashPlaylistLoader extends EventTarget {
 
     const mediaChange = !this.media_ || playlist.uri !== this.media_.uri;
 
+    // switch to previously loaded playlists immediately
+    if (mediaChange &&
+        this.loadedPlaylists_[playlist.uri] &&
+        this.loadedPlaylists_[playlist.uri].endList) {
+      this.state = 'HAVE_METADATA';
+      this.media_ = playlist;
+
+      // trigger media change if the active media has been updated
+      if (mediaChange) {
+        this.trigger('mediachanging');
+        this.trigger('mediachange');
+      }
+      return;
+    }
+
     // switching to the active playlist is a no-op
     if (!mediaChange) {
       return;
@@ -163,6 +180,7 @@ export default class DashPlaylistLoader extends EventTarget {
   haveMetadata({startingState, playlist}) {
     this.state = 'HAVE_METADATA';
     this.media_ = playlist;
+    this.loadedPlaylists_[playlist.uri] = playlist;
 
     // This will trigger loadedplaylist
     this.refreshMedia_();
