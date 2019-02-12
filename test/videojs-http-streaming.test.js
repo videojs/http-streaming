@@ -2918,6 +2918,8 @@ QUnit.test('configures eme if present on selectedinitialmedia', function(assert)
 QUnit.test('integration: configures eme if present on selectedinitialmedia', function(assert) {
   const done = assert.async();
 
+  assert.timeout(3000);
+
   this.player.eme = {
     options: {
       previousSetting: 1
@@ -2932,7 +2934,6 @@ QUnit.test('integration: configures eme if present on selectedinitialmedia', fun
       }
     }
   });
-
   this.clock.tick(1);
 
   this.player.tech_.hls.masterPlaylistController_.on('selectedinitialmedia', () => {
@@ -2956,6 +2957,8 @@ QUnit.test('integration: configures eme if present on selectedinitialmedia', fun
   });
 
   this.standardXHRResponse(this.requests[0]);
+  // this allows the audio playlist loader to load
+  this.clock.tick(1);
 });
 
 QUnit.test('does not set source keySystems if keySystems not provided by source', function(assert) {
