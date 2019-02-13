@@ -257,6 +257,7 @@ function(assert) {
     playlists: [media]
   };
 
+  // HLS case, URI present for the alt audio playlist
   assert.deepEqual(
     codecsForPlaylist(master, media),
     {
@@ -265,6 +266,7 @@ function(assert) {
     },
     'demuxed if URI');
 
+  // HLS case, no URI or alt audio playlist present, so no available alt audio
   delete master.mediaGroups.AUDIO.test.demuxed.uri;
   assert.deepEqual(
     codecsForPlaylist(master, media),
@@ -274,6 +276,7 @@ function(assert) {
     },
     'muxed if no URI and no playlists');
 
+  // DASH case, no URI but a playlist is available for alt audio
   master.mediaGroups.AUDIO.test.demuxed.playlists = [{}];
   assert.deepEqual(
     codecsForPlaylist(master, media),
