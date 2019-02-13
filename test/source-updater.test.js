@@ -20,6 +20,10 @@ QUnit.module('Source Updater', {
       this.mediaSource.addEventListener('sourceopen', accept);
       this.mediaSource.addEventListener('error', reject);
     });
+  },
+
+  afterEach() {
+    this.sourceUpdater.dispose();
   }
 });
 
@@ -133,14 +137,15 @@ QUnit.test('waits for sourceopen to create source buffers', function(assert) {
     }
   };
 
-  this.sourceUpdater = new SourceUpdater(mockMediaSource);
+  // create new source update instance to allow for mocked media source
+  const sourceUpdater = new SourceUpdater(mockMediaSource);
 
   assert.equal(
     mockMediaSource.addEventListenerCalls.length, 0, 'no event listener calls');
   assert.equal(
     mockMediaSource.addSourceBufferCalls.length, 0, 'no add source buffer calls');
 
-  this.sourceUpdater.createSourceBuffers({
+  sourceUpdater.createSourceBuffers({
     video: 'avc1.4d400d',
     audio: 'mp4a.40.2'
   });
@@ -244,6 +249,9 @@ QUnit.test('buffered returns video buffer when only video', function(assert) {
 });
 
 QUnit.test('buffered returns intersection of audio and video buffers', function(assert) {
+  const origAudioBuffer = this.sourceUpdater.audioBuffer;
+  const origVideoBuffer = this.sourceUpdater.videoBuffer;
+
   // mocking the buffered ranges in this test because it's tough to know how much each
   // browser will actually buffer
   this.sourceUpdater.audioBuffer = {
@@ -257,6 +265,9 @@ QUnit.test('buffered returns intersection of audio and video buffers', function(
    this.sourceUpdater.buffered(),
    videojs.createTimeRanges([[1.25, 1.5], [5.5, 5.6], [10.5, 10.9]]),
    'buffered is intersection');
+
+  this.sourceUpdater.audioBuffer = origAudioBuffer;
+  this.sourceUpdater.videoBuffer = origVideoBuffer;
 });
 
 QUnit.test('removeAudio removes audio buffer', function(assert) {
