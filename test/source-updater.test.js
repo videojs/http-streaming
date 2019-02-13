@@ -457,14 +457,14 @@ function(assert) {
     video: 'avc1.4D001E'
   });
 
-  let executedCallback = false;
+  let executedVideoCallback = false;
   let appendedAudio = false;
 
   this.sourceUpdater.appendBuffer('audio', mp4Audio(), () => {
     appendedAudio = true;
-    assert.notOk(executedCallback, 'haven\'t executed callback');
+    assert.notOk(executedVideoCallback, 'haven\'t executed callback');
     setTimeout(() => {
-      assert.notOk(executedCallback, 'haven\'t executed callback');
+      assert.notOk(executedVideoCallback, 'haven\'t executed callback');
       done();
     }, 0);
   });
@@ -475,7 +475,7 @@ function(assert) {
   assert.notOk(appendedAudio, 'haven\'t appended audio before callback is queued');
 
   this.sourceUpdater.videoQueueCallback(() => {
-    executedCallback = true;
+    executedVideoCallback = true;
   });
 });
 
@@ -490,14 +490,14 @@ function(assert) {
     video: 'avc1.4D001E'
   });
 
-  let executedCallback = false;
+  let executedAudioCallback = false;
   let appendedVideo = false;
 
   this.sourceUpdater.appendBuffer('video', mp4Video(), () => {
     appendedVideo = true;
-    assert.notOk(executedCallback, 'haven\'t executed callback');
+    assert.notOk(executedAudioCallback, 'haven\'t executed callback');
     setTimeout(() => {
-      assert.notOk(executedCallback, 'haven\'t executed callback');
+      assert.notOk(executedAudioCallback, 'haven\'t executed callback');
       done();
     }, 0);
   });
@@ -508,7 +508,7 @@ function(assert) {
   assert.notOk(appendedVideo, 'haven\'t appended video before callback is queued');
 
   this.sourceUpdater.audioQueueCallback(() => {
-    executedCallback = true;
+    executedAudioCallback = true;
   });
 });
 
