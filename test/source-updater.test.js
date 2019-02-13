@@ -786,3 +786,40 @@ function(assert) {
 
   assert.ok(Number.isNaN(this.mediaSource.duration), 'duration set to NaN at start');
 });
+
+QUnit.test('dispose removes sourceopen listener', function(assert) {
+  // create fake media source so we can detect event listeners being added and removed
+  const addEventListenerCalls = [];
+  const removeEventListenerCalls = [];
+  const mediaSource = {
+    // native media source ready state starts as closed
+    readyState: 'closed',
+    addEventListener(type, callback) {
+      addEventListenerCalls.push({ type, callback });
+    },
+    removeEventListener(type, callback) {
+      removeEventListenerCalls.push({ type, callback });
+    }
+  };
+  const sourceUpdater = new SourceUpdater(mediaSource);
+
+  // need to call createSourceBuffers before the source updater will check that the media
+  // source is opened
+  sourceUpdater.createSourceBuffers({});
+
+  assert.equal(addEventListenerCalls.length, 1, 'added one event listener');
+  assert.equal(addEventListenerCalls[0].type, 'sourceopen', 'added sourceopen listener');
+  assert.equal(typeof addEventListenerCalls[0].callback, 'function', 'added callback');
+  assert.equal(removeEventListenerCalls.length, 0, 'no remove event listener calls');
+
+  sourceUpdater.dispose();
+
+  assert.equal(addEventListenerCalls.length, 1, 'no event listener added');
+  assert.equal(removeEventListenerCalls.length, 1, 'removed an event listener');
+  assert.equal(
+    removeEventListenerCalls[0].type, 'sourceopen', 'removed sourceopen listener');
+  assert.equal(
+    removeEventListenerCalls[0].callback,
+    addEventListenerCalls[0].callback,
+    'removed sourceopen listener with correct callback');
+});

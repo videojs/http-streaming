@@ -192,8 +192,8 @@ export default class SourceUpdater extends videojs.EventTarget {
     }
 
     if (this.mediaSource.readyState === 'closed') {
-      this.mediaSource.addEventListener(
-        'sourceopen', this.createSourceBuffers.bind(this, codecs));
+      this.sourceopenListener = this.createSourceBuffers.bind(this, codecs);
+      this.mediaSource.addEventListener('sourceopen', this.sourceopenListener);
       return;
     }
 
@@ -435,5 +435,7 @@ export default class SourceUpdater extends videojs.EventTarget {
       this.videoBuffer.removeEventListener('error', this.onVideoError_);
       this.videoBuffer = null;
     }
+
+    this.mediaSource.removeEventListener('sourceopen', this.sourceopenListener);
   }
 }
