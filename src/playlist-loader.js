@@ -208,6 +208,7 @@ export default class PlaylistLoader extends EventTarget {
 
     this.customTagParsers = (options && options.customTagParsers) || [];
     this.customTagMappers = (options && options.customTagMappers) || [];
+    this.handleManifestRedirects = !!(options && options.handleManifestRedirects);
 
     if (!this.srcUrl) {
       throw new Error('A non-empty playlist URL is required');
@@ -414,6 +415,8 @@ export default class PlaylistLoader extends EventTarget {
         return;
       }
 
+      playlist.resolvedUri = this.resolveManifestRedirect(playlist.resolvedUri, req);
+
       if (error) {
         return this.playlistRequestError(this.request, playlist.uri, startingState);
       }
@@ -427,6 +430,28 @@ export default class PlaylistLoader extends EventTarget {
         this.trigger('mediachange');
       }
     });
+  }
+
+  /**
+   * Checks whether xhr request was redirected and returns correct url depending
+   * on `handleManifestRedirects` option
+   *
+   * @api private
+   *
+   * @param  {String} url - an url being requested
+   * @param  {XMLHttpRequest} req - xhr request result
+   *
+   * @return {String}
+   */
+  resolveManifestRedirect(url, req) {
+    if (this.handleManifestRedirects &&
+      req.responseURL &&
+      url !== req.responseURL
+    ) {
+      return req.responseURL;
+    }
+
+    return url;
   }
 
   /**
@@ -527,6 +552,8 @@ export default class PlaylistLoader extends EventTarget {
       parser.end();
 
       this.state = 'HAVE_MASTER';
+
+      this.srcUrl = this.resolveManifestRedirect(this.srcUrl, req);
 
       parser.manifest.uri = this.srcUrl;
 
