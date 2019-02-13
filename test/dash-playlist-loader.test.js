@@ -325,6 +325,7 @@ QUnit.test('constructor sets srcUrl and other properties', function(assert) {
 
 QUnit.test('load: will start an unstarted loader', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const origHasPendingRequest = loader.hasPendingRequest;
   let loadedPlaylists = 0;
   let loadedMetadata = 0;
 
@@ -341,10 +342,14 @@ QUnit.test('load: will start an unstarted loader', function(assert) {
   assert.strictEqual(this.requests.length, 1, 'should request the manifest');
   assert.strictEqual(loader.state, 'HAVE_NOTHING', 'state has not changed');
 
+  // pretend there's a pending media request so
+  // media isn't selected automatically
+  loader.hasPendingRequest = () =>  true;
   this.standardXHRResponse(this.requests.shift());
   assert.strictEqual(loader.state, 'HAVE_MASTER', 'state is updated');
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist');
   assert.strictEqual(loadedMetadata, 0, 'no loadedmetadata');
+  loader.hasPendingRequest = origHasPendingRequest;
 
   loader.load();
   assert.strictEqual(loader.started, true, 'still loaded');
@@ -371,6 +376,7 @@ QUnit.test('load: will start an unstarted loader', function(assert) {
 
 QUnit.test('load: will not request manifest when started', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const origHasPendingRequest = loader.hasPendingRequest;
   let loadedPlaylists = 0;
   let loadedMetadata = 0;
 
@@ -382,10 +388,14 @@ QUnit.test('load: will not request manifest when started', function(assert) {
   });
 
   loader.load();
+  // pretend there's a pending media request so
+  // media isn't selected automatically
+  loader.hasPendingRequest = () => true;
   this.standardXHRResponse(this.requests.shift());
   assert.strictEqual(loader.state, 'HAVE_MASTER', 'state is updated');
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist');
   assert.strictEqual(loadedMetadata, 0, 'no loadedmetadata');
+  loader.hasPendingRequest = origHasPendingRequest;
 
   loader.load();
   assert.strictEqual(loader.started, true, 'still loaded');
@@ -429,12 +439,17 @@ QUnit.test('load: will retry if this is the final rendition', function(assert) {
 
 QUnit.test('media: get returns currently active media playlist', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const origHasPendingRequest = loader.hasPendingRequest;
 
   // setup loader
   loader.load();
+  // pretend there's a pending media request so
+  // media isn't selected automatically
+  loader.hasPendingRequest = () => true;
   this.standardXHRResponse(this.requests.shift());
   assert.strictEqual(loader.state, 'HAVE_MASTER', 'state should be HAVE_MASTER');
   assert.strictEqual(loader.media(), undefined, 'no media set yet');
+  loader.hasPendingRequest = origHasPendingRequest;
 
   loader.media(loader.master.playlists[0]);
   this.clock.tick(1);
@@ -447,6 +462,7 @@ QUnit.test('media: get returns currently active media playlist', function(assert
 
 QUnit.test('media: does not set media if getter is called', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const origHasPendingRequest = loader.hasPendingRequest;
   let loadedPlaylists = 0;
   let loadedMetadata = 0;
 
@@ -459,10 +475,14 @@ QUnit.test('media: does not set media if getter is called', function(assert) {
   });
 
   loader.load();
+  // pretend there's a pending media request so
+  // media isn't selected automatically
+  loader.hasPendingRequest = () => true;
   this.standardXHRResponse(this.requests.shift());
   assert.strictEqual(loader.state, 'HAVE_MASTER', 'state should be HAVE_MASTER');
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist');
   assert.strictEqual(loadedMetadata, 0, 'no loadedmetadata');
+  loader.hasPendingRequest = origHasPendingRequest;
 
   loader.media(null);
   assert.strictEqual(loader.state, 'HAVE_MASTER', 'state should stay HAVE_MASTER');
@@ -492,6 +512,7 @@ QUnit.test('media: setting media causes an asynchronous action', function(assert
 
 QUnit.test('media: sets initial media playlist on master loader', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const origHasPendingRequest = loader.hasPendingRequest;
   let loadedPlaylists = 0;
   let loadedMetadata = 0;
 
@@ -505,10 +526,14 @@ QUnit.test('media: sets initial media playlist on master loader', function(asser
 
   // setup loader
   loader.load();
+  // pretend there's a pending media request so
+  // media isn't selected automatically
+  loader.hasPendingRequest = () => true;
   this.standardXHRResponse(this.requests.shift());
   assert.strictEqual(loader.state, 'HAVE_MASTER', 'state should be HAVE_MASTER');
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist');
   assert.strictEqual(loadedMetadata, 0, 'no loadedmetadata');
+  loader.hasPendingRequest = origHasPendingRequest;
 
   // set initial media
   loader.media(loader.master.playlists[0]);
@@ -530,6 +555,7 @@ QUnit.test('media: sets initial media playlist on master loader', function(asser
 
 QUnit.test('media: sets a playlist from a string reference', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const origHasPendingRequest = loader.hasPendingRequest;
   let loadedPlaylists = 0;
   let loadedMetadata = 0;
 
@@ -542,10 +568,14 @@ QUnit.test('media: sets a playlist from a string reference', function(assert) {
   });
 
   loader.load();
+  // pretend there's a pending media request so
+  // media isn't selected automatically
+  loader.hasPendingRequest = () => true;
   this.standardXHRResponse(this.requests.shift());
   assert.strictEqual(loader.state, 'HAVE_MASTER', 'state should be HAVE_MASTER');
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist');
   assert.strictEqual(loadedMetadata, 0, 'no loadedmetadata');
+  loader.hasPendingRequest = origHasPendingRequest;
 
   loader.media('0');
   this.clock.tick(1);
@@ -566,6 +596,7 @@ QUnit.test('media: sets a playlist from a string reference', function(assert) {
 
 QUnit.test('media: switches to a new playlist from a loaded one', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const origHasPendingRequest = loader.hasPendingRequest;
   let loadedPlaylists = 0;
   let loadedMetadata = 0;
   let mediaChange = 0;
@@ -589,10 +620,14 @@ QUnit.test('media: switches to a new playlist from a loaded one', function(asser
   });
 
   loader.load();
+  // pretend there's a pending media request so
+  // media isn't selected automatically
+  loader.hasPendingRequest = () => true;
   this.standardXHRResponse(this.requests.shift());
   assert.strictEqual(loader.state, 'HAVE_MASTER', 'state should be HAVE_MASTER');
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist');
   assert.strictEqual(loadedMetadata, 0, 'no loadedmetadata');
+  loader.hasPendingRequest = origHasPendingRequest;
 
   // initial selection
   loader.media(loader.master.playlists[0]);
@@ -628,6 +663,7 @@ QUnit.test('media: switches to a new playlist from a loaded one', function(asser
 
 QUnit.test('media: switches to a previously loaded playlist immediately', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const origHasPendingRequest = loader.hasPendingRequest;
   let loadedPlaylists = 0;
   let loadedMetadata = 0;
   let mediaChange = 0;
@@ -651,10 +687,14 @@ QUnit.test('media: switches to a previously loaded playlist immediately', functi
   });
 
   loader.load();
+  // pretend there's a pending media request so
+  // media isn't selected automatically
+  loader.hasPendingRequest = () => true;
   this.standardXHRResponse(this.requests.shift());
   assert.strictEqual(loader.state, 'HAVE_MASTER', 'state should be HAVE_MASTER');
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist');
   assert.strictEqual(loadedMetadata, 0, 'no loadedmetadata');
+  loader.hasPendingRequest = origHasPendingRequest;
 
   // initial selection
   loader.media(loader.master.playlists[0]);
@@ -700,6 +740,7 @@ QUnit.test('media: switches to a previously loaded playlist immediately', functi
 
 QUnit.test('media: does not switch to same playlist', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const origHasPendingRequest = loader.hasPendingRequest;
   let loadedPlaylists = 0;
   let loadedMetadata = 0;
   let mediaChange = 0;
@@ -723,10 +764,14 @@ QUnit.test('media: does not switch to same playlist', function(assert) {
   });
 
   loader.load();
+  // pretend there's a pending media request so
+  // media isn't selected automatically
+  loader.hasPendingRequest = () => true;
   this.standardXHRResponse(this.requests.shift());
   assert.strictEqual(loader.state, 'HAVE_MASTER', 'state should be HAVE_MASTER');
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist');
   assert.strictEqual(loadedMetadata, 0, 'no loadedmetadata');
+  loader.hasPendingRequest = origHasPendingRequest;
 
   // initial selection
   loader.media(loader.master.playlists[0]);
@@ -799,15 +844,20 @@ QUnit.test('haveMetadata: triggers loadedplaylist if initial selection', functio
 
 QUnit.test('haveMetadata: triggers mediachange if new selection', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const origHasPendingRequest = loader.hasPendingRequest;
   let loadedPlaylists = 0;
   let loadedMetadata = 0;
   let mediaChanges = 0;
   let mediaChangings = 0;
 
   loader.load();
+  // pretend there's a pending media request so
+  // media isn't selected automatically
+  loader.hasPendingRequest = () => true;
   this.standardXHRResponse(this.requests.shift());
   loader.media(loader.master.playlists[1]);
   this.clock.tick(1);
+  loader.hasPendingRequest = origHasPendingRequest;
 
   loader.on([
     'loadedplaylist',
