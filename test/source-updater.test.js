@@ -526,7 +526,7 @@ QUnit.test('updating returns true if audio buffer is updating', function(assert)
     done();
   });
 
-  assert.ok(this.sourceUpdater.updating(), 'updating during append');
+  assert.ok(this.sourceUpdater.updating(), 'updating during audio append');
 });
 
 QUnit.test('updating returns true if video buffer is updating', function(assert) {
