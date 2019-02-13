@@ -182,7 +182,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
     // Continue asynchronously if there is no sidx
     // wait one tick to allow haveMaster to run first on a child loader
-    return window.setTimeout(
+    this.mediaRequest_ = window.setTimeout(
       this.haveMetadata.bind(this, { startingState, playlist }),
       1
     );
@@ -192,6 +192,7 @@ export default class DashPlaylistLoader extends EventTarget {
     this.state = 'HAVE_METADATA';
     this.media_ = playlist;
     this.loadedPlaylists_[playlist.uri] = playlist;
+    this.mediaRequest_ = null;
 
     // This will trigger loadedplaylist
     this.refreshMedia_();
@@ -287,7 +288,8 @@ export default class DashPlaylistLoader extends EventTarget {
     // We don't need to request the master manifest again
     // Call this asynchronously to match the xhr request behavior below
     if (this.masterPlaylistLoader_) {
-      return window.setTimeout(this.haveMaster_.bind(this), 0);
+      this.mediaRequest_ = window.setTimeout(this.haveMaster_.bind(this), 0);
+      return;
     }
 
     // request the specified URL
@@ -413,28 +415,11 @@ export default class DashPlaylistLoader extends EventTarget {
    * xml refresh timer if specificed by the manifest.
    */
   onClientServerClockSync_() {
-    this.state = 'HAVE_MASTER';
-
-    if (!this.masterPlaylistLoader_) {
-      this.master = this.parseMasterXml();
-      // We have the master playlist at this point, so
-      // trigger this to allow MasterPlaylistController
-      // to make an initial playlist selection
-      this.trigger('loadedplaylist');
-
-    } else if (!this.media_) {
-      // no media playlist was specifically selected so select
-      // the one the child playlist loader was created with
-      this.media(this.childPlaylist_);
-    }
-  }
-
-  /**
-   * Handler for after client/server clock synchronization has happened. Sets up
-   * xml refresh timer if specificed by the manifest.
-   */
-  onClientServerClockSync_() {
     this.haveMaster_();
+
+    if (!this.hasPendingRequest() && !this.media_) {
+      this.media(this.master.playlists[0]);
+    }
 
     // TODO: minimumUpdatePeriod can have a value of 0. Currently the manifest will not
     // be refreshed when this is the case. The inter-op guide says that when the
