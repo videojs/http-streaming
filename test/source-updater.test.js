@@ -453,7 +453,8 @@ function(assert) {
   // Source buffer must exist for the callback to run. This case isn't tested, as it isn't
   // required behavior (at the moment), but is necessary to know for this test.
   this.sourceUpdater.createSourceBuffers({
-    audio: 'mp4a.40.2'
+    audio: 'mp4a.40.2',
+    video: 'avc1.4D001E'
   });
 
   let executedCallback = false;
@@ -467,6 +468,9 @@ function(assert) {
       done();
     }, 0);
   });
+
+  // add a video queue entry so that the video queue callback doesn't immediately run
+  this.sourceUpdater.queuePending.video = {};
 
   assert.notOk(appendedAudio, 'haven\'t appended audio before callback is queued');
 
@@ -482,6 +486,7 @@ function(assert) {
   // Source buffer must exist for the callback to run. This case isn't tested, as it isn't
   // required behavior (at the moment), but is necessary to know for this test.
   this.sourceUpdater.createSourceBuffers({
+    audio: 'mp4a.40.2',
     video: 'avc1.4D001E'
   });
 
@@ -496,6 +501,9 @@ function(assert) {
       done();
     }, 0);
   });
+
+  // add a video queue entry so that the video queue callback doesn't immediately run
+  this.sourceUpdater.queuePending.audio = {};
 
   assert.notOk(appendedVideo, 'haven\'t appended video before callback is queued');
 
