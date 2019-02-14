@@ -184,7 +184,7 @@ export default class DashPlaylistLoader extends EventTarget {
     // wait one tick to allow haveMaster to run first on a child loader
     this.mediaRequest_ = window.setTimeout(
       this.haveMetadata.bind(this, { startingState, playlist }),
-      1
+      0
     );
   }
 
@@ -288,7 +288,10 @@ export default class DashPlaylistLoader extends EventTarget {
     // We don't need to request the master manifest again
     // Call this asynchronously to match the xhr request behavior below
     if (this.masterPlaylistLoader_) {
-      this.mediaRequest_ = window.setTimeout(this.haveMaster_.bind(this), 0);
+      this.mediaRequest_ = window.setTimeout(
+        this.haveMaster_.bind(this),
+        0
+      );
       return;
     }
 
