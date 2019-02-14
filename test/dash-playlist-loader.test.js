@@ -1148,20 +1148,26 @@ QUnit.test('starts without any metadata', function(assert) {
 });
 
 QUnit.test('moves to HAVE_MASTER after loading a master playlist', function(assert) {
-  let loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const origHasPendingRequest = loader.hasPendingRequest;
 
   loader.load();
   assert.strictEqual(loader.state, 'HAVE_NOTHING', 'the state at loadedplaylist correct');
 
+  // pretend there's a pending media request so
+  // media isn't selected automatically
+  loader.hasPendingRequest = () => true;
   this.standardXHRResponse(this.requests.shift());
   assert.ok(loader.master, 'the master playlist is available');
   assert.strictEqual(loader.state, 'HAVE_MASTER', 'the state at loadedplaylist correct');
+  loader.hasPendingRequest = origHasPendingRequest;
 });
 
 QUnit.test('moves to HAVE_METADATA after loading a media playlist', function(assert) {
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const origHasPendingRequest = loader.hasPendingRequest;
   let loadedPlaylist = 0;
   let loadedMetadata = 0;
-  let loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
 
   loader.on('loadedplaylist', function() {
     loadedPlaylist++;
@@ -1174,6 +1180,9 @@ QUnit.test('moves to HAVE_METADATA after loading a media playlist', function(ass
   assert.strictEqual(loadedPlaylist, 0, 'loadedplaylist not fired');
   assert.strictEqual(loadedMetadata, 0, 'loadedmetadata not fired');
 
+  // pretend there's a pending media request so
+  // media isn't selected automatically
+  loader.hasPendingRequest = () => true;
   this.standardXHRResponse(this.requests.shift());
   assert.strictEqual(loadedPlaylist, 1, 'fired loadedplaylist once');
   assert.strictEqual(loadedMetadata, 0, 'fired loadedmetadata once');
@@ -1181,6 +1190,7 @@ QUnit.test('moves to HAVE_METADATA after loading a media playlist', function(ass
     'the loader state is correct before setting the media');
   assert.ok(loader.master, 'sets the master playlist');
   assert.strictEqual(this.requests.length, 0, 'no further requests are needed');
+  loader.hasPendingRequest = origHasPendingRequest;
 
   // Initial media selection happens here as a result of calling load
   // and receiving the master xml
@@ -1278,7 +1288,8 @@ QUnit.test('returns to HAVE_METADATA after refreshing the playlist', function(as
 });
 
 QUnit.test('triggers an event when the active media changes', function(assert) {
-  let loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const origHasPendingRequest = loader.hasPendingRequest;
   let mediaChanges = 0;
   let mediaChangings = 0;
   let loadedPlaylists = 0;
@@ -1298,9 +1309,13 @@ QUnit.test('triggers an event when the active media changes', function(assert) {
   });
 
   loader.load();
+  // pretend there's a pending media request so
+  // media isn't selected automatically
+  loader.hasPendingRequest = () => true;
   this.standardXHRResponse(this.requests.shift());
   assert.strictEqual(loadedPlaylists, 1, 'loadedplaylist triggered');
   assert.strictEqual(loadedMetadata, 0, 'no loadedmetadata');
+  loader.hasPendingRequest = origHasPendingRequest;
 
   loader.media(loader.master.playlists[0]);
   this.clock.tick(1);
@@ -1334,8 +1349,6 @@ QUnit.test('triggers an event when the active media changes', function(assert) {
   assert.strictEqual(loadedPlaylists, 3, 'still three loadedplaylists');
   assert.strictEqual(loadedMetadata, 1, 'still one loadedmetadata');
 });
-// TODO: write a test that simulates a late XHR response
-// and why we need async media setting
 
 QUnit.test('throws an error when initial manifest request fails', function(assert) {
   let errors = [];
@@ -1517,8 +1530,12 @@ QUnit.test('delays load when on final rendition', function(assert) {
 
   // do an initial load to start the loader
   loader.load();
+  // pretend there's a pending media request so
+  // media isn't selected automatically
+  loader.hasPendingRequest = () => true;
   this.standardXHRResponse(this.requests.shift());
   assert.equal(loadedplaylistEvents, 1, 'one loadedplaylist event after first load');
+  loader.hasPendingRequest = origHasPendingRequest;
 
   loader.media(loader.master.playlists[0]);
   this.clock.tick(1);
