@@ -259,6 +259,23 @@ export default class DashPlaylistLoader extends EventTarget {
     }
 
     // TODO: check for sidx here
+    // TODO: check on specific playlist instead
+    let hasSidx = false;
+
+    for (let key in this.master.playlists) {
+      if (this.master.playlists[key].sidx) {
+        hasSidx = true;
+        break;
+      }
+    }
+
+    if (hasSidx) {
+      // Note: this calls done!
+      fetchMediaSegmentsFromSidx_(this.hls_.xhr, this.master.playlists, this.master, (newMaster) => {
+
+      });
+      return;
+    }
 
     // Continue asynchronously if there is no sidx
     // wait one tick to allow haveMaster to run first on a child loader
@@ -325,7 +342,7 @@ export default class DashPlaylistLoader extends EventTarget {
    * @return {Object}
    *         The parsed mpd manifest object
    */
-  parseMasterXml(done = () => {}) {
+  parseMasterXml() {
     const master = parseMpd(this.masterXml_, {
       manifestUri: this.srcUrl,
       clientOffset: this.clientOffset_
@@ -359,21 +376,7 @@ export default class DashPlaylistLoader extends EventTarget {
     setupMediaPlaylists(master);
     resolveMediaGroupUris(master);
 
-    let hasSidx = false;
-
-    for (let key in master.playlists) {
-      if (master.playlists[key].sidx) {
-        hasSidx = true;
-        break;
-      }
-    }
-
-    if (hasSidx) {
-      // Note: this calls done!
-      return fetchMediaSegmentsFromSidx_(this.hls_.xhr, master.playlists, master, done);
-    }
-
-    done(master);
+    return master;
   }
 
   start() {
@@ -526,21 +529,9 @@ export default class DashPlaylistLoader extends EventTarget {
     // are "refreshed", i.e. every targetDuration.
     if (this.master && this.master.minimumUpdatePeriod) {
       window.setTimeout(() => {
-        this.trigger('loadedmetadata');
-      }, 0);
-
-      // TODO: minimumUpdatePeriod can have a value of 0. Currently the manifest will not
-      // be refreshed when this is the case. The inter-op guide says that when the
-      // minimumUpdatePeriod is 0, the manifest should outline all currently available
-      // segments, but future segments may require an update. I think a good solution
-      // would be to update the manifest at the same rate that the media playlists
-      // are "refreshed", i.e. every targetDuration.
-      if (this.master.minimumUpdatePeriod) {
-        window.setTimeout(() => {
-          this.trigger('minimumUpdatePeriod');
-        }, this.master.minimumUpdatePeriod);
-      }
-    });
+        this.trigger('minimumUpdatePeriod');
+      }, this.master.minimumUpdatePeriod);
+    }
   }
 
   /**
@@ -598,37 +589,36 @@ export default class DashPlaylistLoader extends EventTarget {
    */
   refreshMedia_() {
     let oldMaster;
-
-    const updateWithMaster = (newMaster) => {
-      const updatedMaster = updateMaster(oldMaster, newMaster);
-
-      if (updatedMaster) {
-        if (this.masterPlaylistLoader_) {
-          this.masterPlaylistLoader_.master = updatedMaster;
-        } else {
-          this.master = updatedMaster;
-        }
-        this.media_ = updatedMaster.playlists[this.media_.uri];
-      } else {
-        this.trigger('playlistunchanged');
-      }
-
-      if (!this.media().endList) {
-        this.mediaUpdateTimeout = window.setTimeout(() => {
-          this.trigger('mediaupdatetimeout');
-        }, refreshDelay(this.media(), !!updatedMaster));
-      }
-
-      this.trigger('loadedplaylist');
-    };
+    let newMaster;
 
     if (this.masterPlaylistLoader_) {
       oldMaster = this.masterPlaylistLoader_.master;
-      this.masterPlaylistLoader_.parseMasterXml(updateWithMaster);
+      newMaster = this.masterPlaylistLoader_.parseMasterXml();
     } else {
       oldMaster = this.master;
-      this.parseMasterXml(updateWithMaster);
+      newMaster = this.parseMasterXml();
     }
+
+    const updatedMaster = updateMaster(oldMaster, newMaster);
+
+    if (updatedMaster) {
+      if (this.masterPlaylistLoader_) {
+        this.masterPlaylistLoader_.master = updatedMaster;
+      } else {
+        this.master = updatedMaster;
+      }
+      this.media_ = updatedMaster.playlists[this.media_.uri];
+    } else {
+      this.trigger('playlistunchanged');
+    }
+
+    if (!this.media().endList) {
+      this.mediaUpdateTimeout = window.setTimeout(() => {
+        this.trigger('mediaupdatetimeout');
+      }, refreshDelay(this.media(), !!updatedMaster));
+    }
+
+    this.trigger('loadedplaylist');
   }
 }
 // TODO:
