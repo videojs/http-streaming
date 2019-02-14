@@ -50,7 +50,7 @@ A DASH MPD that describes a `sidx` is therefore similar to an HLS master manifes
 
 In [this PR](https://github.com/videojs/http-streaming/pull/386), the [DPL] was updated to go through the `HAVE_NOTHING` and `HAVE_MASTER` states before arriving at `HAVE_METADATA`. If the MPD does not contain `sidx` boxes, then this transition happens quickly after `load()` is called, spending little time in the `HAVE_MASTER` state.
 
-A media playlist for the `masterPlaylistLoader` (for video streams) is no longer auto-selected. This initial selection is made in the `loadedplaylist` handler located in [MasterPlaylistController][mpc]. However, when a child [DPL] is created, the media playlist passed in the constructor is saved and auto-selected once we enter the `HAVE_MASTER` state.
+The initial media selection for `masterPlaylistLoader` is made in the `loadedplaylist` handler located in [MasterPlaylistController][mpc]. We now use `hasPendingRequest` to determine whether to automatically select a media playlist for the `masterPlaylistLoader` as a fallback in case one is not selected by [MPC]. The child [DPL]s are created with a media playlist passed in as an argument, so this fallback is not necessary for them. Instead, that media playlist is saved and auto-selected once we enter the `HAVE_MASTER` state.
 
 The `updateMaster` method will return `null` if no updates are found.
 
