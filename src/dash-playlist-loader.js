@@ -5,7 +5,8 @@ import {
   setupMediaPlaylists,
   resolveMediaGroupUris,
   updateMaster as updatePlaylist,
-  forEachMediaGroup
+  forEachMediaGroup,
+  resolveManifestRedirect
 } from './playlist-loader';
 import resolveUrl from './resolve-url';
 import window from 'global/window';
@@ -68,6 +69,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
     this.hls_ = hls;
     this.withCredentials = !!options.withCredentials;
+    this.handleManifestRedirects = !!options.handleManifestRedirects;
 
     if (!srcUrlOrPlaylist) {
       throw new Error('A non-empty playlist URL or playlist is required');
@@ -274,6 +276,8 @@ export default class DashPlaylistLoader extends EventTarget {
       } else {
         this.masterLoaded_ = Date.now();
       }
+
+      this.srcUrl = resolveManifestRedirect(this.handleManifestRedirects, this.srcUrl, req);
 
       this.syncClientServerClock_(this.onClientServerClockSync_.bind(this));
     });

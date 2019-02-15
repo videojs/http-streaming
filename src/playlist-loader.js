@@ -34,6 +34,27 @@ export const forEachMediaGroup = (master, callback) => {
 };
 
 /**
+ * Checks whether xhr request was redirected and returns correct url depending
+ * on `handleManifestRedirects` option
+ *
+ * @api private
+ *
+ * @param  {String} url - an url being requested
+ * @param  {XMLHttpRequest} req - xhr request result
+ *
+ * @return {String}
+ */
+export const resolveManifestRedirect = (handleManifestRedirect, url, req) => {
+  if (handleManifestRedirect && req.responseURL &&
+    url !== req.responseURL
+  ) {
+    return req.responseURL;
+  }
+
+  return url;
+};
+
+/**
   * Returns a new array of segments that is the result of merging
   * properties from an older list of segments onto an updated
   * list. No properties on the updated playlist will be overridden.
@@ -416,7 +437,7 @@ export default class PlaylistLoader extends EventTarget {
         return;
       }
 
-      playlist.resolvedUri = this.resolveManifestRedirect(playlist.resolvedUri, req);
+      playlist.resolvedUri = resolveManifestRedirect(this.handleManifestRedirects, playlist.resolvedUri, req);
 
       if (error) {
         return this.playlistRequestError(this.request, playlist.uri, startingState);
@@ -431,28 +452,6 @@ export default class PlaylistLoader extends EventTarget {
         this.trigger('mediachange');
       }
     });
-  }
-
-  /**
-   * Checks whether xhr request was redirected and returns correct url depending
-   * on `handleManifestRedirects` option
-   *
-   * @api private
-   *
-   * @param  {String} url - an url being requested
-   * @param  {XMLHttpRequest} req - xhr request result
-   *
-   * @return {String}
-   */
-  resolveManifestRedirect(url, req) {
-    if (this.handleManifestRedirects &&
-      req.responseURL &&
-      url !== req.responseURL
-    ) {
-      return req.responseURL;
-    }
-
-    return url;
   }
 
   /**
@@ -554,7 +553,7 @@ export default class PlaylistLoader extends EventTarget {
 
       this.state = 'HAVE_MASTER';
 
-      this.srcUrl = this.resolveManifestRedirect(this.srcUrl, req);
+      this.srcUrl = resolveManifestRedirect(this.handleManifestRedirects, this.srcUrl, req);
 
       parser.manifest.uri = this.srcUrl;
 

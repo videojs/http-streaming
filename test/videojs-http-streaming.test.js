@@ -1703,6 +1703,47 @@ QUnit.test('the handleManifestRedirects option overrides the global default', fu
   videojs.options.hls = hlsOptions;
 });
 
+QUnit.test('if handleManifestRedirects global option is used, it should be passed to DashPlaylistLoader', function(assert) {
+  let hlsOptions = videojs.options.hls;
+
+  this.player.dispose();
+  videojs.options.hls = {
+    handleManifestRedirects: true
+  };
+  this.player = createPlayer();
+  this.player.src({
+    src: 'http://example.com/media.mpd',
+    type: 'application/dash+xml'
+  });
+
+  this.clock.tick(1);
+
+  assert.ok(this.player.tech_.hls.masterPlaylistController_.masterPlaylistLoader_.handleManifestRedirects);
+
+  videojs.options.hls = hlsOptions;
+});
+
+QUnit.test('the handleManifestRedirects in DashPlaylistLoader option overrides the global default', function(assert) {
+  let hlsOptions = videojs.options.hls;
+
+  this.player.dispose();
+  videojs.options.hls = {
+    handleManifestRedirects: true
+  };
+  this.player = createPlayer();
+  this.player.src({
+    src: 'http://example.com/media.mpd',
+    type: 'application/dash+xml',
+    handleManifestRedirects: false
+  });
+
+  this.clock.tick(1);
+
+  assert.notOk(this.player.tech_.hls.masterPlaylistController_.masterPlaylistLoader_.handleManifestRedirects);
+
+  videojs.options.hls = hlsOptions;
+});
+
 QUnit.test('the withCredentials option overrides the global default', function(assert) {
   let hlsOptions = videojs.options.hls;
 
