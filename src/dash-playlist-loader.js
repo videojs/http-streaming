@@ -260,6 +260,10 @@ export default class DashPlaylistLoader extends EventTarget {
         sidxMapping = this.sidxMapping_;
       }
 
+      sidxMapping[playlist.uri] = {
+        sidxRef: playlist.sidx
+      };
+
       this.request = fetchMediaSegmentsFromSidx_(this.hls_.xhr, playlist, oldMaster, (newMaster, sidx) => {
         if (this.masterPlaylistLoader_) {
           this.masterPlaylistLoader_.master = newMaster;
@@ -268,7 +272,6 @@ export default class DashPlaylistLoader extends EventTarget {
         }
 
         sidxMapping[playlist.uri] = {
-          sidxRef: playlist.sidx,
           updatedPlaylist: newMaster.playlists[playlist.uri],
           sidx
         };
