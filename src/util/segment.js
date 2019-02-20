@@ -1,7 +1,6 @@
 import mp4probe from 'mux.js/lib/mp4/probe';
 import tsInspector from 'mux.js/lib/tools/ts-inspector.js';
-
-const ONE_SECOND_IN_TS = 90000;
+import { ONE_SECOND_IN_TS } from 'mux.js/lib/utils/clock';
 
 /**
  * Probe an fmp4 segment to determine the start of the segment in it's internal

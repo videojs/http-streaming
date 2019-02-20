@@ -8,6 +8,7 @@ import { removeCuesFromTrack } from './util/text-tracks';
 import { initSegmentId } from './bin-utils';
 import { uint8ToUtf8 } from './util/string';
 import { REQUEST_ERRORS } from './media-segment-request';
+import { ONE_SECOND_IN_TS } from 'mux.js/lib/utils/clock';
 
 const VTT_LINE_TERMINATORS =
   new Uint8Array('\n\n'.split('').map(char => char.charCodeAt(0)));
@@ -445,7 +446,8 @@ export default class VTTSegmentLoader extends SegmentLoader {
     }
 
     const timestampmap = segmentInfo.timestampmap;
-    const diff = (timestampmap.MPEGTS / 90000) - timestampmap.LOCAL + mappingObj.mapping;
+    const diff =
+      (timestampmap.MPEGTS / ONE_SECOND_IN_TS) - timestampmap.LOCAL + mappingObj.mapping;
 
     segmentInfo.cues.forEach((cue) => {
       // First convert cue time to TS time using the timestamp-map provided within the vtt
