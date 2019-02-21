@@ -10,7 +10,7 @@ function(assert) {
   assert.strictEqual(
     typeof arrayBuffer,
     typeof new ArrayBuffer(0),
-    'creates a int8 array buffer');
+    'created an array buffer');
   assert.strictEqual(String.fromCharCode(view[0]), 't');
   assert.strictEqual(String.fromCharCode(view[1]), 'e');
   assert.strictEqual(String.fromCharCode(view[2]), 's');
