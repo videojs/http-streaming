@@ -395,6 +395,7 @@ class HlsHandler extends Component {
   setOptions_() {
     // defaults
     this.options_.withCredentials = this.options_.withCredentials || false;
+    this.options_.handleManifestRedirects = this.options_.handleManifestRedirects || false;
     this.options_.limitRenditionByPlayerDimensions = this.options_.limitRenditionByPlayerDimensions === false ? false : true;
     this.options_.smoothQualityChange = this.options_.smoothQualityChange || false;
     this.options_.useBandwidthFromLocalStorage =
