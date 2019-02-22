@@ -71,13 +71,16 @@ export const updateMaster = (oldMaster, newMaster) => {
   return update;
 };
 
-const addSidxInfoToPlaylist_ = (master, doneFn) => {
-  return (error, playlist, sidx) => {
-    if (error) {
+const handleSidxResponse_ = (playlist, master, doneFn) => {
+  return (err, request) => {
+    if (err) {
       // debugger;
     }
 
+    const bytes = new Uint8Array(request.response);
+    const sidx = mp4Inspector.parseSidx(bytes.subarray(8));
     const sidxMapping = {};
+
     sidxMapping[playlist.uri] = {
       playlist,
       sidx
@@ -88,19 +91,6 @@ const addSidxInfoToPlaylist_ = (master, doneFn) => {
 
     // Otherwise, everything is ready just continue
     return doneFn(master, sidx);
-  };
-};
-
-const handleSidxResponse_ = (playlist, finishProcessingFn) => {
-  return (err, request) => {
-    if (err) {
-      // debugger;
-    }
-
-    const bytes = new Uint8Array(request.response);
-    const sidx = mp4Inspector.parseSidx(bytes.subarray(8));
-
-    return finishProcessingFn(null, playlist, sidx);
   };
 };
 
@@ -118,19 +108,8 @@ const requestSidx_ = (sidxRange, playlist, xhr, finishProcessingFn) => {
     responseType: 'arraybuffer',
     headers: segmentXhrHeaders(sidxInfo)
   });
-  const sidxRequestCallback = handleSidxResponse_(playlist, finishProcessingFn);
 
-  return xhr(sidxRequestOptions, sidxRequestCallback);
-};
-
-const fetchMediaSegmentsFromSidx_ = (xhr, sidxPlaylist, master, doneFn) => {
-  const requestComplete = addSidxInfoToPlaylist_(master, doneFn);
-
-  if (true) {
-    return requestSidx_(sidxPlaylist.sidx, sidxPlaylist, xhr, requestComplete);
-  }
-
-  return null;
+  return xhr(sidxRequestOptions, finishProcessingFn);
 };
 
 export default class DashPlaylistLoader extends EventTarget {
@@ -247,11 +226,12 @@ export default class DashPlaylistLoader extends EventTarget {
       this.trigger('mediachanging');
     }
 
-    // TODO: check for sidx here
     if (playlist.sidx) {
       let oldMaster;
       let sidxMapping;
 
+      // sidxMapping is used when parsing the masterXml, so store
+      // it on the masterPlaylistLoader
       if (this.masterPlaylistLoader_) {
         oldMaster = this.masterPlaylistLoader_.master;
         sidxMapping = this.masterPlaylistLoader_.sidxMapping_;
@@ -260,27 +240,28 @@ export default class DashPlaylistLoader extends EventTarget {
         sidxMapping = this.sidxMapping_;
       }
 
-      sidxMapping[playlist.uri] = {
-        sidxRef: playlist.sidx
-      };
+      this.request = requestSidx_(
+        playlist.sidx,
+        playlist,
+        this.hls_.xhr,
+        handleSidxResponse_(playlist, oldMaster, (newMaster, sidx) => {
+          if (this.masterPlaylistLoader_) {
+            this.masterPlaylistLoader_.master = newMaster;
+          } else {
+            this.master = newMaster;
+          }
 
-      this.request = fetchMediaSegmentsFromSidx_(this.hls_.xhr, playlist, oldMaster, (newMaster, sidx) => {
-        if (this.masterPlaylistLoader_) {
-          this.masterPlaylistLoader_.master = newMaster;
-        } else {
-          this.master = newMaster;
-        }
+          // udpate sidxMapping with parsed sidx box
+          sidxMapping[playlist.uri] = {
+            sidx
+          };
 
-        sidxMapping[playlist.uri] = {
-          updatedPlaylist: newMaster.playlists[playlist.uri],
-          sidx
-        };
-
-        this.haveMetadata({
-          startingState,
-          playlist: newMaster.playlists[playlist.uri]
-        });
-      });
+          this.haveMetadata({
+            startingState,
+            playlist: newMaster.playlists[playlist.uri]
+          });
+        })
+      );
       return;
     }
 
@@ -615,12 +596,6 @@ export default class DashPlaylistLoader extends EventTarget {
     const updatedMaster = updateMaster(oldMaster, newMaster);
 
     if (updatedMaster) {
-
-      // TODO: Currently this is overwriting the newly set
-      // sidx resolved playlists. Figure out how to signal to this
-      // that the sidx references are the same so don't update again?
-      // Or have parseMasterXml_ use the sidxMapping as well.
-
       if (this.masterPlaylistLoader_) {
         this.masterPlaylistLoader_.master = updatedMaster;
       } else {
