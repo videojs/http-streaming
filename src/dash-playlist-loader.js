@@ -71,7 +71,8 @@ export const updateMaster = (oldMaster, newMaster) => {
   return update;
 };
 
-const handleSidxResponse_ = (playlist, master, doneFn) => {
+// exported for testing
+export const handleSidxResponse_ = (playlist, master, doneFn) => {
   return (err, request) => {
     if (err) {
       // TODO
@@ -93,7 +94,8 @@ const handleSidxResponse_ = (playlist, master, doneFn) => {
   };
 };
 
-const requestSidx_ = (sidxRange, playlist, xhr, finishProcessingFn) => {
+// exported for testing
+export const requestSidx_ = (sidxRange, playlist, xhr, finishProcessingFn) => {
   const sidxInfo = {
     // resolve the segment URL relative to the playlist
     uri: sidxRange.resolvedUri,
