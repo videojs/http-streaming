@@ -147,6 +147,7 @@ export default class DashPlaylistLoader extends EventTarget {
     // The masterPlaylistLoader will be created with a string
     if (typeof srcUrlOrPlaylist === 'string') {
       this.srcUrl = srcUrlOrPlaylist;
+      // TODO: reset sidxMapping between period changes
       this.sidxMapping_ = {};
       return;
     }
@@ -617,6 +618,5 @@ export default class DashPlaylistLoader extends EventTarget {
     this.trigger('loadedplaylist');
   }
 }
-// TODO:
-// store sidx for the master and check if it changed before re-requesting
-// cleanup between source changes and period changes
+// TODO: store sidx for the master and check if sidx changed before re-requesting
+// TODO: handle cases where saved sidx doesn't match updatedMaster

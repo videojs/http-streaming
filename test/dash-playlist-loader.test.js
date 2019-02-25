@@ -528,7 +528,45 @@ QUnit.test('media: errors if called in incorrect state', function(assert) {
 });
 
 QUnit.test('media: setting media causes an asynchronous action', function(assert) {
-  // TODO
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const origHasPendingRequest = loader.hasPendingRequest;
+  let loadedPlaylists = 0;
+  let loadedMetadata = 0;
+
+  loader.on(['loadedplaylist', 'loadedmetadata'], (e) => {
+    if (e.type === 'loadedplaylist') {
+      loadedPlaylists++;
+    } else if (e.type === 'loadedmetadata') {
+      loadedMetadata++;
+    }
+  });
+
+  // setup loader
+  loader.load();
+  // pretend there's a pending media request so
+  // media isn't selected automatically
+  loader.hasPendingRequest = () => true;
+  this.standardXHRResponse(this.requests.shift());
+  loader.hasPendingRequest = origHasPendingRequest;
+
+  assert.strictEqual(loader.state, 'HAVE_MASTER', 'correct state before media call');
+  assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist before media is loaded');
+  assert.strictEqual(loadedMetadata, 0, 'no loadedmetadata before media is loaded');
+  assert.notOk(loader.hasPendingRequest(), 'no pending asynchronous actions');
+
+  // set initial media
+  loader.media(loader.master.playlists[0]);
+  assert.ok(loader.hasPendingRequest(), 'has asynchronous action pending');
+  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state is still HAVE_MASTER');
+  assert.strictEqual(loadedPlaylists, 1, 'still one loadedplaylist');
+  assert.strictEqual(loadedMetadata, 0, 'still no loadedmetadata');
+
+  // runs any pending async actions
+  this.clock.tick(0);
+  assert.notOk(loader.hasPendingRequest(), 'no asynchronous action pending');
+  assert.strictEqual(loader.state, 'HAVE_METADATA', 'state is now HAVE_METADATA');
+  assert.strictEqual(loadedPlaylists, 2, 'two loadedplaylist');
+  assert.strictEqual(loadedMetadata, 1, 'one loadedmetadata');
 });
 
 QUnit.test('media: sets initial media playlist on master loader', function(assert) {
@@ -1242,13 +1280,88 @@ QUnit.test('requestSidx_: creates an XHR request for a sidx range', function(ass
   assert.strictEqual(callback.callCount, 1, 'callback was called');
 });
 
-QUnit.todo('setupChildLoader: sets masterPlaylistLoader and ' +
+QUnit.test('setupChildLoader: sets masterPlaylistLoader and ' +
   'playlist on child loader', function(assert) {
+    const fakePlaylist = { uri: 'fakeplaylist1' };
+    const newPlaylist = { uri: 'fakeplaylist2' };
+    const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+    const newLoader = new DashPlaylistLoader('dash-sidx.mpd', this.fakeHls);
+    const childLoader = new DashPlaylistLoader(fakePlaylist, this.fakeHls, false, loader);
 
+    assert.deepEqual(
+      childLoader.masterPlaylistLoader_,
+      loader,
+      'starts with loader passed into constructor'
+    );
+    assert.deepEqual(
+      childLoader.childPlaylist_,
+      fakePlaylist,
+      'starts with playlist passed in constructor'
+    );
+
+    childLoader.setupChildLoader(newLoader, newPlaylist);
+    assert.deepEqual(
+      childLoader.masterPlaylistLoader_,
+      newLoader,
+      'masterPlaylistLoader correctly set'
+    );
+    assert.deepEqual(
+      childLoader.childPlaylist_,
+      newPlaylist,
+      'child playlist correctly set'
+    );
 });
 
-QUnit.todo('hasPendingRequest: returns true if async code is running', function(assert) {
+QUnit.test('hasPendingRequest: returns true if async code is running in master loader', function(assert) {
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
 
+  assert.notOk(loader.hasPendingRequest(), 'no requests on construction');
+
+  loader.load();
+  assert.ok(loader.hasPendingRequest(), 'should make a request after loading');
+  assert.ok(loader.request, 'xhr request is being made');
+
+  this.standardXHRResponse(this.requests.shift());
+  assert.notOk(loader.hasPendingRequest(), 'no pending request before setting media');
+
+  loader.media(loader.master.playlists[1]);
+  assert.ok(loader.hasPendingRequest(), 'pending request while loading media playlist');
+  assert.ok(loader.mediaRequest_, 'media request is being made');
+  assert.notOk(loader.request, 'xhr request is not being made');
+
+  this.clock.tick(1);
+  assert.ok(loader.state, 'HAVE_METADATA', 'in HAVE_METADATA state once media is loaded');
+  assert.notOk(loader.hasPendingRequest(), 'no pending request once media is loaded');
+});
+
+QUnit.test('hasPendingRequest: returns true if async code is running in child loader', function(assert) {
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  let childLoader;
+  let childPlaylist;
+
+  loader.load();
+  this.standardXHRResponse(this.requests.shift());
+  childPlaylist = loader.master.playlists['placeholder-uri-AUDIO-audio-main'];
+  childLoader = new DashPlaylistLoader(childPlaylist, this.fakeHls, false, loader);
+  assert.notOk(childLoader.hasPendingRequest(), 'no pending requests on construction');
+
+  childLoader.load();
+  assert.ok(childLoader.hasPendingRequest(), 'pending request while loading master playlist');
+  assert.ok(childLoader.mediaRequest_, 'media request is being made');
+  assert.notOk(childLoader.request, 'xhr request is not being made');
+
+  // this starts a request for the media playlist
+  childLoader.haveMaster_();
+  assert.ok(childLoader.hasPendingRequest(), 'pending request while loading media playlist');
+  assert.ok(childLoader.mediaRequest_, 'media request is being made');
+  assert.notOk(childLoader.request, 'xhr request is not being made');
+
+  childLoader.haveMetadata({
+    startingState: 'HAVE_MASTER',
+    playlist: childLoader.childPlaylist_
+  });
+  assert.strictEqual(childLoader.state, 'HAVE_METADATA', 'state is in HAVE_METADATA');
+  assert.notOk(childLoader.hasPendingRequest(), 'no pending requests once media is loaded');
 });
 
 QUnit.module('DASH Playlist Loader: functional', {
@@ -1741,8 +1854,32 @@ QUnit.test('delays load when on final rendition', function(assert) {
     'one more loadedplaylist event after final rendition delay');
 });
 
+QUnit.test('requests sidx if master xml includes it', function(assert) {
+  const loader = new DashPlaylistLoader('dash-sidx.mpd', this.fakeHls);
+
+  loader.load();
+  this.standardXHRResponse(this.requests.shift());
+  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state is HAVE_MASTER');
+  assert.ok(loader.master.playlists[0].sidx, 'sidx info is returned from parser');
+
+  // initial media selection happens automatically
+  // as there was  no pending request
+  assert.ok(loader.hasPendingRequest(), 'request is pending');
+  assert.strictEqual(this.requests.length, 1, 'one request for sidx has been made');
+  assert.notOk(loader.media(), 'media playlist is not yet set');
+
+  this.standardXHRResponse(this.requests.shift(), sidxResponse());
+  assert.strictEqual(loader.state, 'HAVE_METADATA', 'state is HAVE_METADATA');
+  assert.ok(loader.media(), 'media playlist is set');
+  assert.notOk(loader.media().sidx, 'no sidx info attribute');
+  assert.deepEqual(
+    loader.media().segments[0].byterange, {
+      offset: 400,
+      length: 13001
+    },
+    'sidx was correctly applied'
+  );
+});
+
 // TODO: write a test that simulates a late XHR response
 // and why we need async media setting
-
-// functional:
-// - requests sidx if there is one
