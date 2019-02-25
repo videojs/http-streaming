@@ -445,9 +445,17 @@ export default class SegmentLoader extends videojs.EventTarget {
       };
     }
 
-    const oldId = oldPlaylist ? oldPlaylist.id : null;
+    let oldId = null;
 
-    this.logger_(`playlist update [${oldId} => ${newPlaylist.id}]`);
+    if (oldPlaylist) {
+      if (oldPlaylist.id) {
+        oldId = oldPlaylist.id;
+      } else if (oldPlaylist.uri) {
+        oldId = oldPlaylist.uri;
+      }
+    }
+
+    this.logger_(`playlist update [${oldId} => ${newPlaylist.id || newPlaylist.uri}]`);
 
     // in VOD, this is always a rendition switch (or we updated our syncInfo above)
     // in LIVE, we always want to update with new playlists (including refreshes)
