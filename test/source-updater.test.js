@@ -723,8 +723,9 @@ QUnit.test('setDuration waits for video buffer to finish updating', function(ass
 QUnit.test('setDuration waits for both audio and video buffers to finish updating',
 function(assert) {
   const done = assert.async();
+  let appendsFinished = 0;
 
-  assert.expect(6);
+  assert.expect(7);
 
   this.sourceUpdater.createSourceBuffers({
     audio: 'mp4a.40.2',
@@ -737,13 +738,23 @@ function(assert) {
     // duration is set to infinity if content is appended before an explicit duration is
     // set https://w3c.github.io/media-source/#sourcebuffer-init-segment-received
     assert.equal(this.mediaSource.duration, Infinity, 'duration not set on media source');
+
+    if (appendsFinished === 0) {
+      // try to set the duration while one of the buffers is still updating, this should
+      // happen after the other setDuration call
+      this.sourceUpdater.setDuration(12, () => {
+        assert.equal(this.mediaSource.duration, 12, 'set duration on media source');
+        done();
+      });
+    }
+
+    appendsFinished++;
   };
 
   this.sourceUpdater.appendBuffer('video', mp4Video(), checkDuration);
   this.sourceUpdater.appendBuffer('audio', mp4Audio(), checkDuration);
   this.sourceUpdater.setDuration(11, () => {
     assert.equal(this.mediaSource.duration, 11, 'set duration on media source');
-    done();
   });
 
   assert.ok(Number.isNaN(this.mediaSource.duration), 'duration set to NaN at start');
