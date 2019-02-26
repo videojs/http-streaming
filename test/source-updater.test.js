@@ -618,33 +618,39 @@ QUnit.test('no error passed by default in done callback', function(assert) {
   });
 });
 
-// Firefox allows appending video to an audio buffer, for some reason.
-// TODO find an alternative for triggering an error
-QUnit.skip('audio source buffer error passed in done callback', function(assert) {
+QUnit.test('audio source buffer error passed in done callback', function(assert) {
   const done = assert.async();
 
   this.sourceUpdater.createSourceBuffers({
     audio: 'mp4a.40.2'
   });
 
+  const corruptVideoSegment = mp4Video();
+
+  // throw some bad data in the segment
+  corruptVideoSegment.fill(5, 100, 500);
+
   // errors when appending video to an audio buffer
-  this.sourceUpdater.appendBuffer('audio', mp4Video(), (error) => {
+  this.sourceUpdater.appendBuffer('audio', corruptVideoSegment, (error) => {
     assert.ok(error, 'error passed back');
     done();
   });
 });
 
-// Firefox allows appending audio to a video buffer, for some reason.
-// TODO find an alternative for triggering an error
-QUnit.skip('video source buffer error passed in done callback', function(assert) {
+QUnit.test('video source buffer error passed in done callback', function(assert) {
   const done = assert.async();
 
   this.sourceUpdater.createSourceBuffers({
     video: 'avc1.4D001E'
   });
 
+  const corruptAudioSegment = mp4Audio();
+
+  // throw some bad data in the segment
+  corruptAudioSegment.fill(5, 100, 500);
+
   // errors when appending audio to a video buffer
-  this.sourceUpdater.appendBuffer('video', mp4Audio(), (error) => {
+  this.sourceUpdater.appendBuffer('video', corruptAudioSegment, (error) => {
     assert.ok(error, 'error passed back');
     done();
   });
