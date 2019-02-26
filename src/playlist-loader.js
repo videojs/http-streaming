@@ -217,10 +217,8 @@ export const refreshDelay = (media, update) => {
  * @constructor
  */
 export default class PlaylistLoader extends EventTarget {
-  constructor(srcUrl, hls, options) {
+  constructor(srcUrl, hls, options = { }) {
     super();
-
-    options = options || {};
 
     this.srcUrl = srcUrl;
     this.hls_ = hls;
