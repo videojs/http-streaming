@@ -75,7 +75,7 @@ export const updateMaster = (oldMaster, newMaster) => {
 export const handleSidxResponse_ = (playlist, master, doneFn) => {
   return (err, request) => {
     if (err) {
-      // TODO
+      // TODO deal with errors and aborted requests
     }
 
     const bytes = new Uint8Array(request.response);
@@ -253,12 +253,12 @@ export default class DashPlaylistLoader extends EventTarget {
             this.master = newMaster;
           }
 
-          // udpate sidxMapping with parsed sidx box
+          // update sidxMapping with parsed sidx box
           sidxMapping[playlist.uri] = {
             sidx
           };
 
-          // Everything is ready just continue to haveMetadata
+          // everything is ready just continue to haveMetadata
           this.haveMetadata({
             startingState,
             playlist: newMaster.playlists[playlist.uri]
