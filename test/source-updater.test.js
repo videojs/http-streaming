@@ -680,13 +680,11 @@ QUnit.test('setDuration waits for audio buffer to finish updating', function(ass
 
   assert.notOk(this.sourceUpdater.updating(), 'not updating by default');
 
-  const checkDuration = () => {
+  this.sourceUpdater.appendBuffer('audio', mp4Audio(), () => {
     // duration is set to infinity if content is appended before an explicit duration is
     // set https://w3c.github.io/media-source/#sourcebuffer-init-segment-received
     assert.equal(this.mediaSource.duration, Infinity, 'duration not set on media source');
-  };
-
-  this.sourceUpdater.appendBuffer('audio', mp4Audio(), checkDuration);
+  });
   this.sourceUpdater.setDuration(11, () => {
     assert.equal(this.mediaSource.duration, 11, 'set duration on media source');
     done();
@@ -708,13 +706,11 @@ QUnit.test('setDuration waits for video buffer to finish updating', function(ass
 
   assert.notOk(this.sourceUpdater.updating(), 'not updating by default');
 
-  const checkDuration = () => {
+  this.sourceUpdater.appendBuffer('video', mp4Video(), () => {
     // duration is set to infinity if content is appended before an explicit duration is
     // set https://w3c.github.io/media-source/#sourcebuffer-init-segment-received
     assert.equal(this.mediaSource.duration, Infinity, 'duration not set on media source');
-  };
-
-  this.sourceUpdater.appendBuffer('video', mp4Video(), checkDuration);
+  });
   this.sourceUpdater.setDuration(11, () => {
     assert.equal(this.mediaSource.duration, 11, 'set duration on media source');
     done();
