@@ -2915,6 +2915,52 @@ QUnit.test('configures eme if present on selectedinitialmedia', function(assert)
   }, 'set source eme options');
 });
 
+QUnit.test('integration: configures eme if present on selectedinitialmedia', function(assert) {
+  const done = assert.async();
+
+  assert.timeout(3000);
+
+  this.player.eme = {
+    options: {
+      previousSetting: 1
+    }
+  };
+  this.player.src({
+    src: 'dash.mpd',
+    type: 'application/dash+xml',
+    keySystems: {
+      keySystem1: {
+        url: 'url1'
+      }
+    }
+  });
+  this.clock.tick(1);
+
+  this.player.tech_.hls.masterPlaylistController_.on('selectedinitialmedia', () => {
+    assert.deepEqual(this.player.eme.options, {
+      previousSetting: 1
+    }, 'did not modify plugin options');
+
+    assert.deepEqual(this.player.currentSource(), {
+      src: 'dash.mpd',
+      type: 'application/dash+xml',
+      keySystems: {
+        keySystem1: {
+          url: 'url1',
+          audioContentType: 'audio/mp4; codecs="mp4a.40.2"',
+          videoContentType: 'video/mp4; codecs="avc1.420015"'
+        }
+      }
+    }, 'set source eme options');
+
+    done();
+  });
+
+  this.standardXHRResponse(this.requests[0]);
+  // this allows the audio playlist loader to load
+  this.clock.tick(1);
+});
+
 QUnit.test('does not set source keySystems if keySystems not provided by source', function(assert) {
   this.player.src({
     src: 'manifest/master.mpd',

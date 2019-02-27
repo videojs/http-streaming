@@ -171,7 +171,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
   setupMasterPlaylistLoaderListeners_() {
     this.masterPlaylistLoader_.on('loadedmetadata', () => {
       let media = this.masterPlaylistLoader_.media();
-      let requestTimeout = (this.masterPlaylistLoader_.targetDuration * 1.5) * 1000;
+      let requestTimeout = (media.targetDuration * 1.5) * 1000;
 
       // If we don't have any more available playlists, we don't want to
       // timeout the request.
@@ -215,7 +215,18 @@ export class MasterPlaylistController extends videojs.EventTarget {
       }
       this.setupFirstPlay();
 
-      this.trigger('selectedinitialmedia');
+      if (!this.mediaTypes_.AUDIO.activePlaylistLoader ||
+          this.mediaTypes_.AUDIO.activePlaylistLoader.media()) {
+        this.trigger('selectedinitialmedia');
+      } else {
+        // We must wait for the active audio playlist loader to
+        // finish setting up before triggering this event so the
+        // representations API and EME setup is correct
+        this.mediaTypes_.AUDIO.activePlaylistLoader.one('loadedmetadata', () => {
+          this.trigger('selectedinitialmedia');
+        });
+      }
+
     });
 
     this.masterPlaylistLoader_.on('loadedplaylist', () => {
@@ -298,7 +309,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.masterPlaylistLoader_.on('mediachange', () => {
       let media = this.masterPlaylistLoader_.media();
-      let requestTimeout = (this.masterPlaylistLoader_.targetDuration * 1.5) * 1000;
+      let requestTimeout = (media.targetDuration * 1.5) * 1000;
 
       // If we don't have any more available playlists, we don't want to
       // timeout the request.
