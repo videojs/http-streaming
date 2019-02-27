@@ -160,7 +160,10 @@ export default class SourceUpdater {
    * @return {Boolean} the updating status of the SourceBuffer
    */
   updating() {
-    return !this.sourceBuffer_ || this.sourceBuffer_.updating || this.pendingCallback_;
+    // we are updating if the sourcebuffer is updating or
+    return !this.sourceBuffer_ || this.sourceBuffer_.updating ||
+      // if we have a pending callback that is not our internal noop
+      (!!this.pendingCallback_ && this.pendingCallback_ !== noop);
   }
 
   /**
