@@ -80,7 +80,7 @@ export const syncPointStrategies = [
         let segment = segments[i];
 
         if (segment.timeline === currentTimeline &&
-            typeof segment.start !== 'undefined') {
+          typeof segment.start !== 'undefined') {
           let distance = Math.abs(currentTime - segment.start);
 
           // Once the distance begins to increase, we have passed
@@ -170,7 +170,7 @@ export default class SyncController extends videojs.EventTarget {
     this.timelines = [];
     this.discontinuities = [];
     this.datetimeToDisplayTime = null;
-
+    this.syncOffset = 0;
     this.logger_ = logger('SyncController');
   }
 
@@ -191,9 +191,9 @@ export default class SyncController extends videojs.EventTarget {
    */
   getSyncPoint(playlist, duration, currentTimeline, currentTime) {
     const syncPoints = this.runStrategies_(playlist,
-                                           duration,
-                                           currentTimeline,
-                                           currentTime);
+      duration,
+      currentTimeline,
+      currentTime);
 
     if (!syncPoints.length) {
       // Signal that we need to attempt to get a sync-point manually
@@ -225,9 +225,9 @@ export default class SyncController extends videojs.EventTarget {
     }
 
     const syncPoints = this.runStrategies_(playlist,
-                                           duration,
-                                           playlist.discontinuitySequence,
-                                           0);
+      duration,
+      playlist.discontinuitySequence,
+      0);
 
     // Without sync-points, there is not enough information to determine the expired time
     if (!syncPoints.length) {
@@ -269,10 +269,10 @@ export default class SyncController extends videojs.EventTarget {
     for (let i = 0; i < syncPointStrategies.length; i++) {
       let strategy = syncPointStrategies[i];
       let syncPoint = strategy.run(this,
-                                   playlist,
-                                   duration,
-                                   currentTimeline,
-                                   currentTime);
+        playlist,
+        duration,
+        currentTimeline,
+        currentTime);
 
       if (syncPoint) {
         syncPoint.strategy = strategy.name;
@@ -360,9 +360,9 @@ export default class SyncController extends videojs.EventTarget {
    */
   setDateTimeMapping(playlist) {
     if (!this.datetimeToDisplayTime &&
-        playlist.segments &&
-        playlist.segments.length &&
-        playlist.segments[0].dateTimeObject) {
+      playlist.segments &&
+      playlist.segments.length &&
+      playlist.segments[0].dateTimeObject) {
       let playlistTimestamp = playlist.segments[0].dateTimeObject.getTime() / 1000;
 
       this.datetimeToDisplayTime = -playlistTimestamp;
@@ -429,6 +429,14 @@ export default class SyncController extends videojs.EventTarget {
 
     if (segmentInfo.timestampOffset !== null) {
       segmentInfo.timestampOffset -= startTime;
+
+      if (segment.map.videoTrackIds.length > 0) {
+        //It is Video segment
+        this.syncOffset = segmentInfo.timestampOffset;
+      } else {
+        //It isn't Video segment
+        if (segmentInfo.timestampOffset !== this.syncOffset) segmentInfo.timestampOffset = this.syncOffset;
+      }
     }
 
     return {
@@ -557,17 +565,17 @@ export default class SyncController extends videojs.EventTarget {
         let accuracy = Math.abs(mediaIndexDiff);
 
         if (!this.discontinuities[discontinuity] ||
-             this.discontinuities[discontinuity].accuracy > accuracy) {
+          this.discontinuities[discontinuity].accuracy > accuracy) {
           let time;
 
           if (mediaIndexDiff < 0) {
             time = segment.start - sumDurations(playlist,
-                                                segmentInfo.mediaIndex,
-                                                segmentIndex);
+              segmentInfo.mediaIndex,
+              segmentIndex);
           } else {
             time = segment.end + sumDurations(playlist,
-                                              segmentInfo.mediaIndex + 1,
-                                              segmentIndex);
+              segmentInfo.mediaIndex + 1,
+              segmentIndex);
           }
 
           this.discontinuities[discontinuity] = {
