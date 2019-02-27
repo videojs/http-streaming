@@ -148,6 +148,7 @@ export default class DashPlaylistLoader extends EventTarget {
     if (typeof srcUrlOrPlaylist === 'string') {
       this.srcUrl = srcUrlOrPlaylist;
       // TODO: reset sidxMapping between period changes
+      // once multi-period is refactored
       this.sidxMapping_ = {};
       return;
     }

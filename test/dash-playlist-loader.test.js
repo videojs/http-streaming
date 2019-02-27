@@ -1801,10 +1801,6 @@ QUnit.test('media playlists "refresh" by re-parsing master xml', function(assert
   loader.media(loader.master.playlists[0]);
   this.clock.tick(1);
 
-  standardXHRResponse(this.requests.shift());
-  loader.media(loader.master.playlists[0]);
-  this.clock.tick(1);
-
   // 1s, half segment target duration, since the playlist didn't change
   this.clock.tick(2 * 500);
 

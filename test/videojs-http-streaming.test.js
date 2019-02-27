@@ -3003,8 +3003,6 @@ QUnit.test('integration: configures eme if present on selectedinitialmedia', fun
   assert.timeout(3000);
   const done = assert.async();
 
-  assert.timeout(3000);
-
   this.player.eme = {
     options: {
       previousSetting: 1
