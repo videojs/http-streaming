@@ -45,6 +45,9 @@ export const forEachMediaGroup = (master, callback) => {
  * @return {String}
  */
 export const resolveManifestRedirect = (handleManifestRedirect, url, req) => {
+  // To understand how the responseURL below is set and generated:
+  // - https://fetch.spec.whatwg.org/#concept-response-url
+  // - https://fetch.spec.whatwg.org/#atomic-http-redirect-handling
   if (handleManifestRedirect && req.responseURL &&
     url !== req.responseURL
   ) {
