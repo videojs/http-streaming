@@ -11,8 +11,8 @@ import xhrFactory from './xhr';
 import { Decrypter, AsyncStream, decrypt } from 'aes-decrypter';
 import * as utils from './bin-utils';
 import {
-  getStreamTime,
-  seekToStreamTime
+  getProgramTime,
+  seekToProgramTime
 } from './util/time';
 import { timeRangesToArray } from './ranges';
 import { MediaSource, URL } from './mse/index';
@@ -765,8 +765,8 @@ class HlsHandler extends Component {
     super.dispose();
   }
 
-  convertToStreamTime(time, callback) {
-    return getStreamTime({
+  convertToProgramTime(time, callback) {
+    return getProgramTime({
       playlist: this.masterPlaylistController_.media(),
       time,
       callback
@@ -774,9 +774,9 @@ class HlsHandler extends Component {
   }
 
   // the player must be playing before calling this
-  seekToStreamTime(streamTime, callback, pauseAfterSeek = true, retryCount = 2) {
-    return seekToStreamTime({
-      streamTime,
+  seekToProgramTime(programTime, callback, pauseAfterSeek = true, retryCount = 2) {
+    return seekToProgramTime({
+      programTime,
       playlist: this.masterPlaylistController_.media(),
       retryCount,
       pauseAfterSeek,

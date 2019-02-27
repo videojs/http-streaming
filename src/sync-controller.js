@@ -464,12 +464,14 @@ export default class SyncController extends videojs.EventTarget {
       segmentEndTime = timeInfo.audio[1].dtsTime;
     }
 
-    return {
+    const probedInfo = {
       start: segmentStartTime,
       end: segmentEndTime,
       containsVideo: timeInfo.video && timeInfo.video.length === 2,
       containsAudio: timeInfo.audio && timeInfo.audio.length === 2
     };
+
+    return probedInfo;
   }
 
   timestampOffsetForTimeline(timeline) {

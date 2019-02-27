@@ -190,6 +190,59 @@ QUnit.test('updateMaster updates master when new media sequence', function(asser
     'updates master when new media sequence');
 });
 
+QUnit.test('updateMaster updates master when endList changes', function(assert) {
+  const master = {
+    playlists: [{
+      endList: false,
+      mediaSequence: 0,
+      attributes: {
+        BANDWIDTH: 9
+      },
+      uri: 'playlist-0-uri',
+      resolvedUri: urlTo('playlist-0-uri'),
+      segments: [{
+        duration: 10,
+        uri: 'segment-0-uri',
+        resolvedUri: urlTo('segment-0-uri')
+      }]
+    }]
+  };
+  const media = {
+    endList: true,
+    mediaSequence: 0,
+    attributes: {
+      BANDWIDTH: 9
+    },
+    uri: 'playlist-0-uri',
+    segments: [{
+      duration: 10,
+      uri: 'segment-0-uri'
+    }]
+  };
+
+  master.playlists[media.uri] = master.playlists[0];
+
+  assert.deepEqual(
+    updateMaster(master, media),
+    {
+      playlists: [{
+        endList: true,
+        mediaSequence: 0,
+        attributes: {
+          BANDWIDTH: 9
+        },
+        uri: 'playlist-0-uri',
+        resolvedUri: urlTo('playlist-0-uri'),
+        segments: [{
+          duration: 10,
+          uri: 'segment-0-uri',
+          resolvedUri: urlTo('segment-0-uri')
+        }]
+      }]
+    },
+    'updates master when endList changes');
+});
+
 QUnit.test('updateMaster retains top level values in master', function(assert) {
   const master = {
     mediaGroups: {
@@ -1785,21 +1838,32 @@ QUnit.test('triggers an event when the active media changes', function(assert) {
   let loader = new PlaylistLoader('master.m3u8', this.fakeHls);
   let mediaChanges = 0;
   let mediaChangings = 0;
+  let loadedPlaylists = 0;
+  let loadedMetadata = 0;
 
-  loader.load();
-
-  loader.on('mediachange', function() {
+  loader.on('mediachange', () => {
     mediaChanges++;
   });
-  loader.on('mediachanging', function() {
+  loader.on('mediachanging', () => {
     mediaChangings++;
   });
+  loader.on('loadedplaylist', () => {
+    loadedPlaylists++;
+  });
+  loader.on('loadedmetadata', () => {
+    loadedMetadata++;
+  });
+
+  loader.load();
   this.requests.pop().respond(200, null,
                               '#EXTM3U\n' +
                               '#EXT-X-STREAM-INF:BANDWIDTH=1\n' +
                               'low.m3u8\n' +
                               '#EXT-X-STREAM-INF:BANDWIDTH=2\n' +
                               'high.m3u8\n');
+  assert.strictEqual(loadedPlaylists, 1, 'trigger loadedplaylist');
+  assert.strictEqual(loadedMetadata, 0, 'no loadedmetadata yet');
+
   this.requests.shift().respond(200, null,
                                 '#EXTM3U\n' +
                                 '#EXT-X-MEDIA-SEQUENCE:0\n' +
@@ -1808,10 +1872,14 @@ QUnit.test('triggers an event when the active media changes', function(assert) {
                                 '#EXT-X-ENDLIST\n');
   assert.strictEqual(mediaChangings, 0, 'initial selection is not a media changing');
   assert.strictEqual(mediaChanges, 0, 'initial selection is not a media change');
+  assert.strictEqual(loadedPlaylists, 2, 'two loadedplaylists');
+  assert.strictEqual(loadedMetadata, 1, 'fired loadedMetadata');
 
   loader.media('high.m3u8');
   assert.strictEqual(mediaChangings, 1, 'mediachanging fires immediately');
   assert.strictEqual(mediaChanges, 0, 'mediachange does not fire immediately');
+  assert.strictEqual(loadedPlaylists, 2, 'still two loadedplaylists');
+  assert.strictEqual(loadedMetadata, 1, 'still one loadedmetadata');
 
   this.requests.shift().respond(200, null,
                                 '#EXTM3U\n' +
@@ -1821,16 +1889,24 @@ QUnit.test('triggers an event when the active media changes', function(assert) {
                                 '#EXT-X-ENDLIST\n');
   assert.strictEqual(mediaChangings, 1, 'still one mediachanging');
   assert.strictEqual(mediaChanges, 1, 'fired a mediachange');
+  assert.strictEqual(loadedPlaylists, 3, 'three loadedplaylists');
+  assert.strictEqual(loadedMetadata, 1, 'still one loadedmetadata');
 
   // switch back to an already loaded playlist
   loader.media('low.m3u8');
+  assert.strictEqual(this.requests.length, 0, 'no requests made');
   assert.strictEqual(mediaChangings, 2, 'mediachanging fires');
   assert.strictEqual(mediaChanges, 2, 'fired a mediachange');
+  assert.strictEqual(loadedPlaylists, 3, 'still three loadedplaylists');
+  assert.strictEqual(loadedMetadata, 1, 'still one loadedmetadata');
 
   // trigger a no-op switch
   loader.media('low.m3u8');
+  assert.strictEqual(this.requests.length, 0, 'no requests made');
   assert.strictEqual(mediaChangings, 2, 'mediachanging ignored the no-op');
   assert.strictEqual(mediaChanges, 2, 'ignored a no-op media change');
+  assert.strictEqual(loadedPlaylists, 3, 'still three loadedplaylists');
+  assert.strictEqual(loadedMetadata, 1, 'still one loadedmetadata');
 });
 
 QUnit.test('does not misintrepret playlists missing newlines at the end',

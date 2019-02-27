@@ -1231,7 +1231,9 @@ export default class SegmentLoader extends videojs.EventTarget {
           this.activeInitSegmentId_ !== initId) {
         const initSegment = this.initSegment(segment.map);
 
-        this.sourceUpdater_.appendBuffer(initSegment.bytes, () => {
+        this.sourceUpdater_.appendBuffer({
+          bytes: initSegment.bytes
+        }, () => {
           this.activeInitSegmentId_ = initId;
         });
       }
@@ -1246,8 +1248,33 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     this.logger_(segmentInfoString(segmentInfo));
 
-    this.sourceUpdater_.appendBuffer(segmentInfo.bytes,
-                                     this.handleUpdateEnd_.bind(this));
+    this.sourceUpdater_.appendBuffer({
+      bytes: segmentInfo.bytes,
+      videoSegmentTimingInfoCallback:
+        this.handleVideoSegmentTimingInfo_.bind(this, segmentInfo.requestId)
+    }, this.handleUpdateEnd_.bind(this));
+  }
+
+  handleVideoSegmentTimingInfo_(requestId, event) {
+    if (!this.pendingSegment_ || requestId !== this.pendingSegment_.requestId) {
+      return;
+    }
+
+    const segment = this.pendingSegment_.segment;
+
+    if (!segment.videoTimingInfo) {
+      segment.videoTimingInfo = {};
+    }
+
+    segment.videoTimingInfo.transmuxerPrependedSeconds =
+      event.videoSegmentTimingInfo.prependedContentDuration || 0;
+    segment.videoTimingInfo.transmuxedPresentationStart =
+      event.videoSegmentTimingInfo.start.presentation;
+    segment.videoTimingInfo.transmuxedPresentationEnd =
+      event.videoSegmentTimingInfo.end.presentation;
+    // mainly used as a reference for debugging
+    segment.videoTimingInfo.baseMediaDecodeTime =
+      event.videoSegmentTimingInfo.baseMediaDecodeTime;
   }
 
   /**
