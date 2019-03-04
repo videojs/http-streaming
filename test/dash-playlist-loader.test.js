@@ -3,7 +3,6 @@ import sinon from 'sinon';
 import {
   default as DashPlaylistLoader,
   updateMaster,
-  handleSidxResponse_,
   requestSidx_
 } from '../src/dash-playlist-loader';
 import xhrFactory from '../src/xhr';
@@ -1204,6 +1203,7 @@ QUnit.test(
 });
 
 QUnit.test('handleSidxResponse_: updates master with sidx information', function(assert) {
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
   const fakePlaylist = {
     segments: [{
       uri: 'fake-segment',
@@ -1225,11 +1225,13 @@ QUnit.test('handleSidxResponse_: updates master with sidx information', function
     }
   };
   const stubDone = sinon.stub();
-  const handleSidxResponse = handleSidxResponse_(fakePlaylist, fakeMaster, stubDone);
+  const handleSidxResponse = loader.handleSidxResponse_(fakePlaylist, fakeMaster, 'HAVE_MASTER', stubDone);
   const fakeRequest = {
     response: sidxResponse()
   };
 
+  // fake the loader active request for sidx
+  loader.request = true;
   handleSidxResponse(null, fakeRequest);
   assert.strictEqual(stubDone.callCount, 1, 'callback was called');
   assert.ok(
@@ -1253,6 +1255,58 @@ QUnit.test('handleSidxResponse_: updates master with sidx information', function
     stubDone.getCall(0).args[1].references[0].referencedSize,
     'sidx reference size is used for byterange'
   );
+});
+
+QUnit.test('handleSidxResponse_: errors if request for sidx fails', function(assert) {
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const fakePlaylist = {
+    segments: [{
+      uri: 'fake-segment',
+      duration: 15360
+    }],
+    uri: 'fakeplaylist',
+    sidx: {
+      byterange: {
+        offset: 0,
+        length: sidxResponse().byteLength
+      },
+      resolvedUri: 'sidx.mp4'
+    }
+  };
+  const fakeMaster = {
+    playlists: {
+      0: fakePlaylist,
+      fakeplaylist: fakePlaylist
+    }
+  };
+  const stubDone = sinon.stub();
+  const handleSidxResponse = loader.handleSidxResponse_(fakePlaylist, fakeMaster, 'HAVE_MASTER', stubDone);
+  const fakeRequest = {
+    response: sidxResponse(),
+    status: 400,
+    responseText: 'fake error msg'
+  };
+  let errors = 0;
+
+  loader.on('error', () => {
+    errors++;
+  });
+
+  // fake xhr request being active
+  loader.request = true;
+  handleSidxResponse(true, fakeRequest);
+  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state is returned to state passed in');
+  assert.deepEqual(
+    loader.error,
+    {
+      status: fakeRequest.status,
+      message: 'DASH playlist request error at URL: fakeplaylist',
+      responseText: fakeRequest.responseText,
+      code: 2
+    },
+    'error object is filled out correctly'
+  );
+  assert.strictEqual(errors, 1, 'triggered an error event');
 });
 
 QUnit.test('requestSidx_: creates an XHR request for a sidx range', function(assert) {
