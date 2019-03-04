@@ -673,13 +673,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    let isEndOfStream = detectEndOfStream(
-      this.playlist_,
-      this.mediaSource_,
-      segmentInfo.mediaIndex
-    ) && !this.sourceUpdater_.updating();
-
-    if (isEndOfStream) {
+    if (this.isEndOfStream_(segmentInfo.mediaIndex)) {
       this.endOfStream();
       return;
     }
@@ -706,6 +700,21 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     this.loadSegment_(segmentInfo);
+  }
+
+  /**
+   * Determines if this segment loader is at the end of it's stream.
+   *
+   * @param {Number} mediaIndex the index of segment we last appended
+   * @param {Object} [playlist=this.playlist_] a media playlist object
+   * @returns {Boolean} true if at end of stream, false otherwise.
+   */
+  isEndOfStream_(mediaIndex, playlist = this.playlist_) {
+    return detectEndOfStream(
+      playlist,
+      this.mediaSource_,
+      mediaIndex
+    ) && !this.sourceUpdater_.updating();
   }
 
   /**
@@ -1343,13 +1352,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // any time an update finishes and the last segment is in the
     // buffer, end the stream. this ensures the "ended" event will
     // fire if playback reaches that point.
-    const isEndOfStream = detectEndOfStream(
-      segmentInfo.playlist,
-      this.mediaSource_,
-      segmentInfo.mediaIndex + 1
-    ) && !this.sourceUpdater_.updating();
-
-    if (isEndOfStream) {
+    if (this.isEndOfStream_(segmentInfo.mediaIndex + 1, segmentInfo.playlist)) {
       this.endOfStream();
     }
 
