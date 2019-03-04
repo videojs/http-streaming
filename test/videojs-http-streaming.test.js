@@ -1677,12 +1677,13 @@ QUnit.test('if handleManifestRedirects global option is used, it should be passe
 
   this.clock.tick(1);
 
-  assert.ok(this.player.tech_.hls.masterPlaylistController_.masterPlaylistLoader_.handleManifestRedirects);
+  assert.ok(this.player.tech_.hls.masterPlaylistController_.masterPlaylistLoader_.handleManifestRedirects,
+    'handleManifestRedirects is set correctly');
 
   videojs.options.hls = hlsOptions;
 });
 
-QUnit.test('the handleManifestRedirects option overrides the global default', function(assert) {
+QUnit.test('the handleManifestRedirects source option overrides the global default', function(assert) {
   let hlsOptions = videojs.options.hls;
 
   this.player.dispose();
@@ -1698,7 +1699,8 @@ QUnit.test('the handleManifestRedirects option overrides the global default', fu
 
   this.clock.tick(1);
 
-  assert.notOk(this.player.tech_.hls.masterPlaylistController_.masterPlaylistLoader_.handleManifestRedirects);
+  assert.notOk(this.player.tech_.hls.masterPlaylistController_.masterPlaylistLoader_.handleManifestRedirects,
+    'handleManifestRedirects is set correctly');
 
   videojs.options.hls = hlsOptions;
 });

@@ -5,7 +5,7 @@
  * M3U8 playlists.
  *
  */
-import resolveUrl from './resolve-url';
+import { resolveUrl, resolveManifestRedirect } from './resolve-url';
 import videojs from 'video.js';
 import { Parser as M3u8Parser } from 'm3u8-parser';
 import window from 'global/window';
@@ -31,30 +31,6 @@ export const forEachMediaGroup = (master, callback) => {
       }
     }
   });
-};
-
-/**
- * Checks whether xhr request was redirected and returns correct url depending
- * on `handleManifestRedirects` option
- *
- * @api private
- *
- * @param  {String} url - an url being requested
- * @param  {XMLHttpRequest} req - xhr request result
- *
- * @return {String}
- */
-export const resolveManifestRedirect = (handleManifestRedirect, url, req) => {
-  // To understand how the responseURL below is set and generated:
-  // - https://fetch.spec.whatwg.org/#concept-response-url
-  // - https://fetch.spec.whatwg.org/#atomic-http-redirect-handling
-  if (handleManifestRedirect && req.responseURL &&
-    url !== req.responseURL
-  ) {
-    return req.responseURL;
-  }
-
-  return url;
 };
 
 /**
@@ -224,10 +200,12 @@ export default class PlaylistLoader extends EventTarget {
   constructor(srcUrl, hls, options = { }) {
     super();
 
+    const { withCredentials = false, handleManifestRedirects = false } = options;
+
     this.srcUrl = srcUrl;
     this.hls_ = hls;
-    this.withCredentials = !!options.withCredentials;
-    this.handleManifestRedirects = !!options.handleManifestRedirects;
+    this.withCredentials = withCredentials;
+    this.handleManifestRedirects = handleManifestRedirects;
 
     const hlsOptions = hls.options_;
 
