@@ -933,6 +933,14 @@ export class MasterPlaylistController extends videojs.EventTarget {
       }
     }
 
+    let oldEnd;
+    let oldStart;
+
+    if (this.seekable_ && this.seekable_.length) {
+      oldEnd = this.seekable_.end(0);
+      oldStart = this.seekable_.start(0);
+    }
+
     if (!audioSeekable) {
       // seekable has been calculated based on buffering video data so it
       // can be returned directly
@@ -948,6 +956,13 @@ export class MasterPlaylistController extends videojs.EventTarget {
         (audioSeekable.end(0) < mainSeekable.end(0)) ? audioSeekable.end(0) :
                                                        mainSeekable.end(0)
       ]]);
+    }
+
+    // seekable is the same as last time
+    if (this.seekable_ && this.seekable_.length) {
+      if (this.seekable_.end(0) === oldEnd && this.seekable_.start(0) === oldStart) {
+        return;
+      }
     }
 
     this.logger_(`seekable updated [${Ranges.printableRange(this.seekable_)}]`);
