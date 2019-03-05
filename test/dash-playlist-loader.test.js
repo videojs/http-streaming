@@ -3,7 +3,8 @@ import sinon from 'sinon';
 import {
   default as DashPlaylistLoader,
   updateMaster,
-  requestSidx_
+  requestSidx_,
+  generateSidxKey
 } from '../src/dash-playlist-loader';
 import xhrFactory from '../src/xhr';
 import {
@@ -1034,7 +1035,12 @@ QUnit.test('parseMasterXml: includes sidx info if available and matches playlist
     'empty sidxMapping will not affect master xml parsing'
   );
 
-  loader.sidxMapping_[loader.master.playlists[0].uri] = {
+  // Allow sidx request to finish
+  this.standardXHRResponse(this.requests.shift());
+  const key = generateSidxKey(loader.media().sidx);
+
+  loader.sidxMapping_[key] = {
+    sidxInfo: loader.media().sidx,
     sidx: {
       timescale: 90000,
       firstOffset: 0,
@@ -1093,7 +1099,7 @@ QUnit.test('refreshMedia: updates master and media playlists for master loader',
   const newMasterXml = testDataManifests['dash-live'];
 
   loader.masterXml_ = newMasterXml;
-  loader.refreshMedia_();
+  loader.refreshMedia_(loader.media().uri);
 
   assert.notEqual(loader.master, oldMaster, 'new master set');
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist');
@@ -1126,7 +1132,7 @@ QUnit.test(
     playlistUnchanged++;
   });
 
-  loader.refreshMedia_();
+  loader.refreshMedia_(loader.media().uri);
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylists');
   assert.strictEqual(playlistUnchanged, 1, 'one playlistunchanged');
 });
@@ -1161,7 +1167,7 @@ QUnit.test('refreshMedia: updates master and media playlists for child loader', 
   const newMasterXml = testDataManifests['dash-live'];
 
   loader.masterXml_ = newMasterXml;
-  childLoader.refreshMedia_();
+  childLoader.refreshMedia_(loader.media().uri);
 
   assert.notEqual(loader.master, oldMaster, 'new master set on master loader');
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist');
@@ -1196,7 +1202,7 @@ QUnit.test(
     playlistUnchanged++;
   });
 
-  childLoader.refreshMedia_();
+  childLoader.refreshMedia_(loader.media().uri);
 
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist');
   assert.strictEqual(playlistUnchanged, 1, 'one playlistunchanged');
@@ -1205,10 +1211,7 @@ QUnit.test(
 QUnit.test('handleSidxResponse_: updates master with sidx information', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
   const fakePlaylist = {
-    segments: [{
-      uri: 'fake-segment',
-      duration: 15360
-    }],
+    segments: [],
     uri: 'fakeplaylist',
     sidx: {
       byterange: {
@@ -1242,18 +1245,10 @@ QUnit.test('handleSidxResponse_: updates master with sidx information', function
     stubDone.getCall(0).args[1].references,
     'returned a parsed sidx box'
   );
-  assert.deepEqual(
-    stubDone.getCall(0).args[0].playlists.fakeplaylist.segments[0].byterange,
-    {
-      offset: 44,
-      length: 13001
-    },
-    'updated master playlists'
-  );
   assert.strictEqual(
-    stubDone.getCall(0).args[0].playlists.fakeplaylist.segments[0].byterange.length,
     stubDone.getCall(0).args[1].references[0].referencedSize,
-    'sidx reference size is used for byterange'
+    13001,
+    'sidx box returned has been parsed'
   );
 });
 
@@ -1923,7 +1918,7 @@ QUnit.test('requests sidx if master xml includes it', function(assert) {
   this.standardXHRResponse(this.requests.shift(), sidxResponse());
   assert.strictEqual(loader.state, 'HAVE_METADATA', 'state is HAVE_METADATA');
   assert.ok(loader.media(), 'media playlist is set');
-  assert.notOk(loader.media().sidx, 'no sidx info attribute');
+  assert.ok(loader.media().sidx, 'sidx info attribute is preserved');
   assert.deepEqual(
     loader.media().segments[0].byterange, {
       offset: 400,
