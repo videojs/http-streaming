@@ -55,6 +55,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     let {
       url,
+      handleManifestRedirects,
       withCredentials,
       tech,
       bandwidth,
@@ -87,7 +88,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
     }
 
     this.requestOptions_ = {
-      withCredentials: this.withCredentials,
+      withCredentials,
+      handleManifestRedirects,
       timeout: null
     };
 
@@ -127,8 +129,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
     };
 
     this.masterPlaylistLoader_ = this.sourceType_ === 'dash' ?
-      new DashPlaylistLoader(url, this.hls_, this.withCredentials) :
-      new PlaylistLoader(url, this.hls_, this.withCredentials);
+      new DashPlaylistLoader(url, this.hls_, this.requestOptions_) :
+      new PlaylistLoader(url, this.hls_, this.requestOptions_);
     this.setupMasterPlaylistLoaderListeners_();
 
     // setup segment loaders

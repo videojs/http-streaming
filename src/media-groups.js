@@ -356,7 +356,7 @@ export const initialize = {
       hls,
       sourceType,
       segmentLoaders: { [type]: segmentLoader },
-      requestOptions: { withCredentials },
+      requestOptions,
       master: { mediaGroups, playlists },
       mediaTypes: {
         [type]: {
@@ -404,11 +404,11 @@ export const initialize = {
         if (properties.resolvedUri) {
           playlistLoader = new PlaylistLoader(properties.resolvedUri,
                                               hls,
-                                              withCredentials);
+                                              requestOptions);
         } else if (properties.playlists && sourceType === 'dash') {
           playlistLoader = new DashPlaylistLoader(properties.playlists[0],
                                                   hls,
-                                                  withCredentials,
+                                                  requestOptions,
                                                   masterPlaylistLoader);
         } else {
           // no resolvedUri means the audio is muxed with the video when using this
@@ -456,7 +456,7 @@ export const initialize = {
       hls,
       sourceType,
       segmentLoaders: { [type]: segmentLoader },
-      requestOptions: { withCredentials },
+      requestOptions,
       master: { mediaGroups },
       mediaTypes: {
         [type]: {
@@ -491,11 +491,11 @@ export const initialize = {
 
         if (sourceType === 'hls') {
           playlistLoader =
-            new PlaylistLoader(properties.resolvedUri, hls, withCredentials);
+            new PlaylistLoader(properties.resolvedUri, hls, requestOptions);
         } else if (sourceType === 'dash') {
           playlistLoader = new DashPlaylistLoader(properties.playlists[0],
                                                   hls,
-                                                  withCredentials,
+                                                  requestOptions,
                                                   masterPlaylistLoader);
         }
 

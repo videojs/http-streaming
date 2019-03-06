@@ -7,7 +7,7 @@ import {
   updateMaster as updatePlaylist,
   forEachMediaGroup
 } from './playlist-loader';
-import resolveUrl from './resolve-url';
+import { resolveUrl, resolveManifestRedirect } from './resolve-url';
 import window from 'global/window';
 
 const { EventTarget, mergeOptions } = videojs;
@@ -69,11 +69,14 @@ export default class DashPlaylistLoader extends EventTarget {
   // DashPlaylistLoader must accept either a src url or a playlist because subsequent
   // playlist loader setups from media groups will expect to be able to pass a playlist
   // (since there aren't external URLs to media playlists with DASH)
-  constructor(srcUrlOrPlaylist, hls, withCredentials, masterPlaylistLoader) {
+  constructor(srcUrlOrPlaylist, hls, options = { }, masterPlaylistLoader) {
     super();
+
+    const { withCredentials = false, handleManifestRedirects = false } = options;
 
     this.hls_ = hls;
     this.withCredentials = withCredentials;
+    this.handleManifestRedirects = handleManifestRedirects;
 
     if (!srcUrlOrPlaylist) {
       throw new Error('A non-empty playlist URL or playlist is required');
@@ -327,6 +330,8 @@ export default class DashPlaylistLoader extends EventTarget {
         this.masterLoaded_ = Date.now();
       }
 
+      this.srcUrl = resolveManifestRedirect(this.handleManifestRedirects, this.srcUrl, req);
+
       this.syncClientServerClock_(this.onClientServerClockSync_.bind(this));
     });
   }
@@ -437,6 +442,8 @@ export default class DashPlaylistLoader extends EventTarget {
    * TODO: Does the client offset need to be recalculated when the xml is refreshed?
    */
   refreshXml_() {
+    // The srcUrl here *may* need to pass through handleManifestsRedirects when
+    // sidx is implemented
     this.request = this.hls_.xhr({
       uri: this.srcUrl,
       withCredentials: this.withCredentials
