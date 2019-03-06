@@ -1208,6 +1208,57 @@ QUnit.test(
   assert.strictEqual(playlistUnchanged, 1, 'one playlistunchanged');
 });
 
+QUnit.test('refreshXml_: re-requests the MPD', function(assert) {
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+
+  assert.strictEqual(this.requests.length, 0, 'no requests');
+  loader.refreshXml_();
+  assert.strictEqual(this.requests.length, 1, 'made a request');
+  const spy = sinon.spy(loader, 'refreshXml_');
+
+  loader.trigger('minimumUpdatePeriod');
+  assert.strictEqual(this.requests.length, 2, 'minimumUpdatePeriod event make a request');
+  assert.strictEqual(spy.callCount, 1, 'refreshXml_ was called due to minimumUpdatePeriod event');
+});
+
+QUnit.test('refreshXml_: requests the sidx if it changed', function(assert) {
+  const loader = new DashPlaylistLoader('dash-sidx.mpd', this.fakeHls);
+
+  loader.load();
+  // initial manifest
+  this.standardXHRResponse(this.requests.shift());
+  // child playlist
+  this.standardXHRResponse(this.requests.shift());
+
+  const oldMaster = loader.parseMasterXml();
+  const newMasterXml = loader.masterXml_.replace(/(indexRange)=\"\d+-\d+\"/g, '$1="400-599"');
+
+  loader.masterXml_ = newMasterXml;
+  assert.deepEqual(
+    oldMaster.playlists[0].sidx.byterange, {
+      offset: 200,
+      length: 200
+    },
+    'sidx is the original in the xml'
+  );
+  assert.notEqual(
+    loader.parseMasterXml().playlists[0].sidx.byterange.offset,
+    oldMaster.playlists[0].sidx.byterange.offset,
+    'the sidx has been changed'
+  );
+  loader.refreshXml_();
+
+  assert.strictEqual(this.requests.length, 1, 'manifest is being requested');
+  assert.deepEqual(
+    loader.parseMasterXml().playlists[0].sidx.byterange,
+    {
+      offset: 400,
+      length: 200
+    },
+    'the sidx byterange has changed to reflect the new manifest'
+  );
+});
+
 QUnit.test('handleSidxResponse_: updates master with sidx information', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
   const fakePlaylist = {
