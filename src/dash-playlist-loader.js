@@ -94,7 +94,7 @@ const equivalentSidx = (a, b) => {
   return equivalentMap &&
     a.uri === b.uri &&
     a.byterange.offset === b.byterange.offset &&
-    a.byterange.length === b.byterange.length
+    a.byterange.length === b.byterange.length;
 };
 
 // exported for testing

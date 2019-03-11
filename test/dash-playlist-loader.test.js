@@ -353,7 +353,7 @@ QUnit.test('compareSidxEntry: will will not add new sidx info to a mapping', fun
   assert.strictEqual(Object.keys(result).length, 1, 'only one sidx');
 });
 
-QUnit.test('compareSidxEntry: will remove non-matching sidxes from a mapping', function(assert){
+QUnit.test('compareSidxEntry: will remove non-matching sidxes from a mapping', function(assert) {
   const playlists = [
     {
       uri: '0',
