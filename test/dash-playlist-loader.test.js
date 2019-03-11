@@ -464,7 +464,13 @@ QUnit.test('requestSidx_: creates an XHR request for a sidx range', function(ass
     sidx: sidxInfo
   };
   const callback = sinon.stub();
-  const request = requestSidx_(sidxInfo, playlist, this.fakeHls.xhr, callback);
+  const request = requestSidx_(
+    sidxInfo,
+    playlist,
+    this.fakeHls.xhr,
+    { handleManifestRedirects: false },
+    callback
+  );
 
   assert.ok(request, 'a request was returned');
   assert.strictEqual(request.headers.Range, 'bytes=0-9', 'byterange is correctly requested');

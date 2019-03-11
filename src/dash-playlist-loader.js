@@ -149,10 +149,10 @@ export const filterSidxMapping = (masterXml, srcUrl, clientOffset, oldSidxMappin
 };
 
 // exported for testing
-export const requestSidx_ = (sidxRange, playlist, xhr, finishProcessingFn) => {
+export const requestSidx_ = (sidxRange, playlist, xhr, options, finishProcessingFn) => {
   const sidxInfo = {
     // resolve the segment URL relative to the playlist
-    uri: sidxRange.resolvedUri,
+    uri: resolveManifestRedirect(options.handleManifestRedirects, sidxRange.resolvedUri),
     // resolvedUri: sidxRange.resolvedUri,
     byterange: sidxRange.byterange,
     // the segment's playlist
@@ -340,6 +340,7 @@ export default class DashPlaylistLoader extends EventTarget {
         playlist.sidx,
         playlist,
         this.hls_.xhr,
+        { handleManifestRedirects: this.handleManifestRedirects },
         this.handleSidxResponse_(playlist, oldMaster, startingState, (newMaster, sidx) => {
           if (!newMaster || !sidx) {
             throw new Error('failed to request sidx');
@@ -672,6 +673,7 @@ export default class DashPlaylistLoader extends EventTarget {
             playlist.sidx,
             playlist,
             this.hls_.xhr,
+            { handleManifestRedirects: this.handleManifestRedirects },
             this.handleSidxResponse_(playlist, master, this.state, (newMaster, sidx) => {
               if (!newMaster || !sidx) {
                 throw new Error('failed to request sidx on minimumUpdatePeriod');
