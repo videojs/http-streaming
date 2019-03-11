@@ -82,10 +82,27 @@ export const generateSidxKey = (sidxInfo) => {
     sidxByteRangeEnd;
 };
 
-const compareSidxEntry = (playlists, oldSidxMapping) => {
+const equivalentSidx = (a, b) => {
+  let equivalentMap = true;
+
+  if (a.map && b.map) {
+    equivalentMap = a.map && b.map &&
+      a.map.byterange.offset === b.map.byterange.offset &&
+      a.map.byterange.length === b.map.byterange.length;
+  }
+
+  return equivalentMap &&
+    a.uri === b.uri &&
+    a.byterange.offset === b.byterange.offset &&
+    a.byterange.length === b.byterange.length
+};
+
+// exported for testing
+export const compareSidxEntry = (playlists, oldSidxMapping) => {
   const newSidxMapping = {};
 
-  for (const playlist in playlists) {
+  for (const uri in playlists) {
+    const playlist = playlists[uri];
     const currentSidxInfo = playlist.sidx;
 
     if (currentSidxInfo) {
@@ -97,14 +114,7 @@ const compareSidxEntry = (playlists, oldSidxMapping) => {
 
       const savedSidxInfo = oldSidxMapping[key].sidxInfo;
 
-      if (
-        savedSidxInfo.uri === currentSidxInfo.uri &&
-        savedSidxInfo.byterange.offset === currentSidxInfo.byterange.offset &&
-        savedSidxInfo.byterange.length === currentSidxInfo.byterange.length &&
-        savedSidxInfo.map && currentSidxInfo.map &&
-        savedSidxInfo.map.byterange.offset === currentSidxInfo.map.byterange.offset &&
-        savedSidxInfo.map.byterange.length === currentSidxInfo.map.byterange.length
-      ) {
+      if (equivalentSidx(savedSidxInfo, currentSidxInfo)) {
         newSidxMapping[key] = oldSidxMapping[key];
       }
     }
@@ -113,7 +123,8 @@ const compareSidxEntry = (playlists, oldSidxMapping) => {
   return newSidxMapping;
 };
 
-const filterSidxMapping = (masterXml, srcUrl, clientOffset, oldSidxMapping) => {
+// exported for testing
+export const filterSidxMapping = (masterXml, srcUrl, clientOffset, oldSidxMapping) => {
   // Don't pass current sidx mapping
   const master = parseMpd(masterXml, {
     manifestUri: srcUrl,
@@ -125,7 +136,7 @@ const filterSidxMapping = (masterXml, srcUrl, clientOffset, oldSidxMapping) => {
 
   forEachMediaGroup(master, (properties, mediaType, groupKey, labelKey) => {
     if (properties.playlists && properties.playlists.length) {
-      const playlists = properties.playlists[0];
+      const playlists = properties.playlists;
 
       mediaGroupSidx = mergeOptions(
         mediaGroupSidx,

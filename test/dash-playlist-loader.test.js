@@ -4,7 +4,9 @@ import {
   default as DashPlaylistLoader,
   updateMaster,
   requestSidx_,
-  generateSidxKey
+  generateSidxKey,
+  compareSidxEntry,
+  filterSidxMapping
 } from '../src/dash-playlist-loader';
 import xhrFactory from '../src/xhr';
 import {
@@ -299,6 +301,178 @@ QUnit.test('updateMaster: updates playlists and mediaGroups', function(assert) {
       }]
     },
     'updates playlists and media groups');
+});
+
+QUnit.test('generateSidxKey: generates correct key', function(assert) {
+  const sidxInfo = {
+    byterange: {
+      offset: 1,
+      length: 5
+    },
+    uri: 'uri'
+  };
+
+  assert.strictEqual(
+    generateSidxKey(sidxInfo),
+    'uri-1-5',
+    'the key byterange should have a inclusive end'
+  );
+});
+
+QUnit.test('compareSidxEntry: will will not add new sidx info to a mapping', function(assert) {
+  const playlists = {
+    0: {
+      sidx: {
+        byterange: {
+          offset: 0,
+          length: 10
+        },
+        uri: '0'
+      }
+    },
+    1: {
+      sidx: {
+        byterange: {
+          offset: 10,
+          length: 29
+        },
+        uri: '1'
+      }
+    }
+  };
+  const oldSidxMapping = {
+    '0-0-9': {
+      sidx: new Uint8Array(),
+      sidxInfo: playlists[0].sidx
+    }
+  };
+  const result = compareSidxEntry(playlists, oldSidxMapping);
+
+  assert.notOk(result['1-10-29'], 'new playlists are not returned');
+  assert.ok(result['0-0-9'], 'matching playlists are returned');
+  assert.strictEqual(Object.keys(result).length, 1, 'only one sidx');
+});
+
+QUnit.test('compareSidxEntry: will remove non-matching sidxes from a mapping', function(assert){
+  const playlists = [
+    {
+      uri: '0',
+      sidx: {
+        byterange: {
+          offset: 0,
+          length: 10
+        }
+      }
+    }
+  ];
+  const oldSidxMapping = {
+    '0-0-9': {
+      sidx: new Uint8Array(),
+      sidxInfo: {
+        byterange: {
+          offset: 1,
+          length: 3
+        }
+      }
+    }
+  };
+  const result = compareSidxEntry(playlists, oldSidxMapping);
+
+  assert.strictEqual(Object.keys(result).length, 0, 'no sidxes in mapping');
+});
+
+QUnit.test('filterSidxMapping: removes change sidx info from mapping', function(assert) {
+  const loader = new DashPlaylistLoader('dash-sidx.mpd', this.fakeHls);
+  let childPlaylist;
+  let childLoader;
+  let masterXml;
+
+  loader.load();
+  this.standardXHRResponse(this.requests.shift());
+  this.standardXHRResponse(this.requests.shift());
+  childPlaylist = loader.master.mediaGroups.AUDIO.audio.en.playlists[0];
+  childLoader = new DashPlaylistLoader(childPlaylist, this.fakeHls, false, loader);
+  childLoader.load();
+  this.clock.tick(1);
+  this.standardXHRResponse(this.requests.shift());
+
+  const oldSidxMapping = loader.sidxMapping_;
+  let newSidxMapping = filterSidxMapping(
+    loader.masterXml_,
+    loader.srcUrl,
+    loader.clientOffset_,
+    loader.sidxMapping_
+  );
+
+  assert.deepEqual(
+    newSidxMapping,
+    oldSidxMapping,
+    'if no sidx info changed, return the same object'
+  );
+  const playlists = loader.master.playlists;
+  const oldVideoKey = generateSidxKey(playlists['placeholder-uri-0'].sidx);
+  const oldAudioEnKey = generateSidxKey(playlists['placeholder-uri-AUDIO-audio-en'].sidx);
+
+  // should change the video playlist
+  masterXml = loader.masterXml_.replace(/(indexRange)=\"\d+-\d+\"/, '$1="201-400"');
+  newSidxMapping = filterSidxMapping(
+    masterXml,
+    loader.srcUrl,
+    loader.clientOffset_,
+    loader.sidxMapping_
+  );
+  const newVideoKey = `${playlists['placeholder-uri-0'].sidx.uri}-201-400`;
+
+  assert.notOk(
+    newSidxMapping[oldVideoKey],
+    'old video playlist mapping is not returned'
+  );
+  assert.notOk(
+    newSidxMapping[newVideoKey],
+    'new video playlists are not returned'
+  );
+  assert.ok(
+    newSidxMapping[oldAudioEnKey],
+    'audio group mapping is returned as it is unchanged'
+  );
+
+  // should change the English audio group
+  masterXml = masterXml.replace(/(indexRange)=\"\d+-\d+\"/g, '$1="201-400"');
+  newSidxMapping = filterSidxMapping(
+    masterXml,
+    loader.srcUrl,
+    loader.clientOffset_,
+    loader.sidxMapping_
+  );
+  assert.notOk(
+    newSidxMapping[oldAudioEnKey],
+    'audio group English is removed'
+  );
+});
+
+QUnit.test('requestSidx_: creates an XHR request for a sidx range', function(assert) {
+  const sidxInfo = {
+    resolvedUri: 'sidx.mp4',
+    byterange: {
+      offset: 0,
+      length: 10
+    }
+  };
+  const playlist = {
+    uri: 'fakeplaylist',
+    segments: [sidxInfo],
+    sidx: sidxInfo
+  };
+  const callback = sinon.stub();
+  const request = requestSidx_(sidxInfo, playlist, this.fakeHls.xhr, callback);
+
+  assert.ok(request, 'a request was returned');
+  assert.strictEqual(request.headers.Range, 'bytes=0-9', 'byterange is correctly requested');
+  assert.strictEqual(request.uri, sidxInfo.resolvedUri, 'uri requested is correct');
+  assert.strictEqual(this.requests.length, 1, 'one xhr request');
+
+  this.standardXHRResponse(this.requests.shift());
+  assert.strictEqual(callback.callCount, 1, 'callback was called');
 });
 
 QUnit.test('constructor throws if the playlist url is empty or undefined', function(assert) {
@@ -1353,31 +1527,6 @@ QUnit.test('handleSidxResponse_: errors if request for sidx fails', function(ass
     'error object is filled out correctly'
   );
   assert.strictEqual(errors, 1, 'triggered an error event');
-});
-
-QUnit.test('requestSidx_: creates an XHR request for a sidx range', function(assert) {
-  const sidxInfo = {
-    resolvedUri: 'sidx.mp4',
-    byterange: {
-      offset: 0,
-      length: 10
-    }
-  };
-  const playlist = {
-    uri: 'fakeplaylist',
-    segments: [sidxInfo],
-    sidx: sidxInfo
-  };
-  const callback = sinon.stub();
-  const request = requestSidx_(sidxInfo, playlist, this.fakeHls.xhr, callback);
-
-  assert.ok(request, 'a request was returned');
-  assert.strictEqual(request.headers.Range, 'bytes=0-9', 'byterange is correctly requested');
-  assert.strictEqual(request.uri, sidxInfo.resolvedUri, 'uri requested is correct');
-  assert.strictEqual(this.requests.length, 1, 'one xhr request');
-
-  this.standardXHRResponse(this.requests.shift());
-  assert.strictEqual(callback.callCount, 1, 'callback was called');
 });
 
 QUnit.test('setupChildLoader: sets masterPlaylistLoader and ' +
