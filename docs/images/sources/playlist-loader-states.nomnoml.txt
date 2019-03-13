@@ -15,10 +15,8 @@
 #stroke: #33322E
 #zoom: 1
 
-#.topic: align=center fill=#fff dashed bold
 #.label: align=center visual=none italic
 
-[<topic> Playlist Loader States]
 [HAVE_NOTHING] load()-> [HAVE_MASTER]
 [HAVE_MASTER] media()-> [SWITCHING_MEDIA]
 [SWITCHING_MEDIA] media()/ start()-> [HAVE_METADATA]
