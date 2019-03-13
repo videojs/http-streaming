@@ -17,18 +17,20 @@ The [DashPlaylistLoader][dpl] (DPL) is responsible for requesting MPDs, parsing 
 
 The [DPL] is written to be as similar as possible to the [PlaylistLoader][pl]. This means that majority of the public API for these two classes are the same, and so are the states they go through and events that they trigger.
 
+### States
+
+![DashPlaylistLoader States](images/dash-playlist-loader-states.nomnoml.svg)
+
+- `HAVE_NOTHING` the state before the MPD is received and parsed.
+- `HAVE_MASTER` the state before a media stream is setup but the MPD has been parsed.
+- `HAVE_METADATA` the state after a media stream is setup.
+
 ### API
 
 - `load()` this will either start or kick the loader during playback.
 - `start()` this will start the [DPL] and request the MPD.
 - `parseMasterXml()` this will parse the MPD manifest and return the result.
 - `media()` this will return the currently active media stream or set a new active media stream.
-
-### States
-
-- `HAVE_NOTHING` the state before the MPD is received and parsed.
-- `HAVE_MASTER` the state before a media stream is setup but the MPD has been parsed.
-- `HAVE_METADATA` the state after a media stream is setup.
 
 ### Events
 
