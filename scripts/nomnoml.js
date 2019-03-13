@@ -20,6 +20,8 @@ module.exports = {
         const generated = nomnoml.renderSvg(fileContents);
         const newFilePath = path.join(docImageDir, basename) + 'svg';
         const outFile = fs.createWriteStream(newFilePath);
+
+        console.log(`wrote file ${newFilePath}`);
         outFile.write(generated);
       }
     }
