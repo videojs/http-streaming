@@ -38,6 +38,10 @@ The [PlaylistLoader][pl] (PL) is responsible for requesting m3u8s, parsing them 
 - `mediachanging` signals that the currently active media stream is going to be changed.
 - `mediachange` signals that the new media stream has been updated.
 
+### Interaction with Other Modules
+
+![PL with MPC and MG](images/playlist-loader-mpc-mg-sequence.plantuml.png)
+
 [pl]: ../src/playlist-loader.js
 [sl]: ../src/segment-loader.js
 [vhs]: intro.md

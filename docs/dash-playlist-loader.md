@@ -42,6 +42,26 @@ The [DPL] is written to be as similar as possible to the [PlaylistLoader][pl]. T
 - `mediachanging` signals that the currently active media stream is going to be changed.
 - `mediachange` signals that the new media stream has been updated.
 
+### Interaction with Other Modules
+
+![DPL with MPC and MG](images/dash-playlist-loader-mpc-mg-sequence.plantuml.png)
+
+### Special Features
+
+There are a few features of [DPL] that are different from [PL] due to fundamental differences between HLS and DASH standards.
+
+#### MinimumUpdatePeriod
+
+This is a time period specified in the MPD after which the MPD should be re-requested and parsed. There could be any number of changes to the MPD between these update periods.
+
+#### SyncClientServerClock
+
+There is a UTCTiming node in the MPD that allows the client clock to be synced with a clock on the server. This may affect the results of parsing the MPD.
+
+#### Requesting `sidx` Boxes
+
+To be filled out.
+
 ### Previous Behavior
 
 Until version 1.9.0 of [VHS], we thought that [DPL] could skip the `HAVE_NOTHING` and `HAVE_MASTER` states, as no other XHR requests are needed once the MPD has been downloaded and parsed. However, this is incorrect as there are some Presentations that signal the use of a "Segment Index box" or `sidx`. This `sidx` references specific byte ranges in a file that could contain media or potentially other `sidx` boxes.
