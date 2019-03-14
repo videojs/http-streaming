@@ -436,6 +436,8 @@ QUnit.module('SegmentLoader: M2TS', function(hooks) {
                   'segment-metadata track empty when no segments appended');
 
         // Start appending some segments
+        // Add parsed custom tag data to the segment
+        playlist.segments[0].custom = { data: true };
         probeResponse = { start: 0, end: 9.5 };
         this.requests[0].response = new Uint8Array(10).buffer;
         this.requests.shift().respond(200, null, '');
@@ -452,7 +454,8 @@ QUnit.module('SegmentLoader: M2TS', function(hooks) {
           codecs: 'mp4a.40.5,avc1.42001e',
           byteLength: 10,
           dateTimeObject: undefined,
-          dateTimeString: undefined
+          dateTimeString: undefined,
+          custom: { data: true }
         };
 
         assert.equal(track.cues.length, 1, 'one cue added for segment');
@@ -475,7 +478,8 @@ QUnit.module('SegmentLoader: M2TS', function(hooks) {
           codecs: 'mp4a.40.5,avc1.42001e',
           byteLength: 10,
           dateTimeObject: undefined,
-          dateTimeString: undefined
+          dateTimeString: undefined,
+          custom: undefined
         };
 
         assert.equal(track.cues.length, 2, 'one cue added for segment');
@@ -498,7 +502,8 @@ QUnit.module('SegmentLoader: M2TS', function(hooks) {
           codecs: 'mp4a.40.5,avc1.42001e',
           byteLength: 10,
           dateTimeObject: undefined,
-          dateTimeString: undefined
+          dateTimeString: undefined,
+          custom: undefined
         };
 
         assert.equal(track.cues.length, 3, 'one cue added for segment');
@@ -523,7 +528,8 @@ QUnit.module('SegmentLoader: M2TS', function(hooks) {
           codecs: 'mp4a.40.5,avc1.42001e',
           byteLength: 10,
           dateTimeObject: undefined,
-          dateTimeString: undefined
+          dateTimeString: undefined,
+          custom: undefined
         };
 
         assert.equal(track.cues.length, 3, 'overlapped cue removed, new one added');
