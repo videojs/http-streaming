@@ -1413,6 +1413,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     const Cue = window.WebKitDataCue || window.VTTCue;
     const value = {
+      custom: segment.custom,
       dateTimeObject: segment.dateTimeObject,
       dateTimeString: segment.dateTimeString,
       bandwidth: segmentInfo.playlist.attributes.BANDWIDTH,
