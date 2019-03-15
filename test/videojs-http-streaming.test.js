@@ -1662,6 +1662,90 @@ QUnit.test('if withCredentials global option is used, withCredentials is set on 
   videojs.options.hls = hlsOptions;
 });
 
+QUnit.test('if handleManifestRedirects global option is used, it should be passed to PlaylistLoader', function(assert) {
+  let hlsOptions = videojs.options.hls;
+
+  this.player.dispose();
+  videojs.options.hls = {
+    handleManifestRedirects: true
+  };
+  this.player = createPlayer();
+  this.player.src({
+    src: 'http://example.com/media.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  assert.ok(this.player.tech_.hls.masterPlaylistController_.masterPlaylistLoader_.handleManifestRedirects,
+    'handleManifestRedirects is set correctly');
+
+  videojs.options.hls = hlsOptions;
+});
+
+QUnit.test('the handleManifestRedirects source option overrides the global default', function(assert) {
+  let hlsOptions = videojs.options.hls;
+
+  this.player.dispose();
+  videojs.options.hls = {
+    handleManifestRedirects: true
+  };
+  this.player = createPlayer();
+  this.player.src({
+    src: 'http://example.com/media.m3u8',
+    type: 'application/vnd.apple.mpegurl',
+    handleManifestRedirects: false
+  });
+
+  this.clock.tick(1);
+
+  assert.notOk(this.player.tech_.hls.masterPlaylistController_.masterPlaylistLoader_.handleManifestRedirects,
+    'handleManifestRedirects is set correctly');
+
+  videojs.options.hls = hlsOptions;
+});
+
+QUnit.test('if handleManifestRedirects global option is used, it should be passed to DashPlaylistLoader', function(assert) {
+  let hlsOptions = videojs.options.hls;
+
+  this.player.dispose();
+  videojs.options.hls = {
+    handleManifestRedirects: true
+  };
+  this.player = createPlayer();
+  this.player.src({
+    src: 'http://example.com/media.mpd',
+    type: 'application/dash+xml'
+  });
+
+  this.clock.tick(1);
+
+  assert.ok(this.player.tech_.hls.masterPlaylistController_.masterPlaylistLoader_.handleManifestRedirects);
+
+  videojs.options.hls = hlsOptions;
+});
+
+QUnit.test('the handleManifestRedirects in DashPlaylistLoader option overrides the global default', function(assert) {
+  let hlsOptions = videojs.options.hls;
+
+  this.player.dispose();
+  videojs.options.hls = {
+    handleManifestRedirects: true
+  };
+  this.player = createPlayer();
+  this.player.src({
+    src: 'http://example.com/media.mpd',
+    type: 'application/dash+xml',
+    handleManifestRedirects: false
+  });
+
+  this.clock.tick(1);
+
+  assert.notOk(this.player.tech_.hls.masterPlaylistController_.masterPlaylistLoader_.handleManifestRedirects);
+
+  videojs.options.hls = hlsOptions;
+});
+
 QUnit.test('the withCredentials option overrides the global default', function(assert) {
   let hlsOptions = videojs.options.hls;
 
@@ -2913,6 +2997,52 @@ QUnit.test('configures eme if present on selectedinitialmedia', function(assert)
       }
     }
   }, 'set source eme options');
+});
+
+QUnit.test('integration: configures eme if present on selectedinitialmedia', function(assert) {
+  const done = assert.async();
+
+  assert.timeout(3000);
+
+  this.player.eme = {
+    options: {
+      previousSetting: 1
+    }
+  };
+  this.player.src({
+    src: 'dash.mpd',
+    type: 'application/dash+xml',
+    keySystems: {
+      keySystem1: {
+        url: 'url1'
+      }
+    }
+  });
+  this.clock.tick(1);
+
+  this.player.tech_.hls.masterPlaylistController_.on('selectedinitialmedia', () => {
+    assert.deepEqual(this.player.eme.options, {
+      previousSetting: 1
+    }, 'did not modify plugin options');
+
+    assert.deepEqual(this.player.currentSource(), {
+      src: 'dash.mpd',
+      type: 'application/dash+xml',
+      keySystems: {
+        keySystem1: {
+          url: 'url1',
+          audioContentType: 'audio/mp4; codecs="mp4a.40.2"',
+          videoContentType: 'video/mp4; codecs="avc1.420015"'
+        }
+      }
+    }, 'set source eme options');
+
+    done();
+  });
+
+  this.standardXHRResponse(this.requests[0]);
+  // this allows the audio playlist loader to load
+  this.clock.tick(1);
 });
 
 QUnit.test('does not set source keySystems if keySystems not provided by source', function(assert) {

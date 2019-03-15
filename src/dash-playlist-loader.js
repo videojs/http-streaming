@@ -7,7 +7,7 @@ import {
   updateMaster as updatePlaylist,
   forEachMediaGroup
 } from './playlist-loader';
-import resolveUrl from './resolve-url';
+import { resolveUrl, resolveManifestRedirect } from './resolve-url';
 import window from 'global/window';
 
 const { EventTarget, mergeOptions } = videojs;
@@ -25,6 +25,7 @@ const { EventTarget, mergeOptions } = videojs;
  *         playlists merged in
  */
 export const updateMaster = (oldMaster, newMaster) => {
+  let noChanges;
   let update = mergeOptions(oldMaster, {
     // These are top level properties that can be updated
     duration: newMaster.duration,
@@ -37,6 +38,8 @@ export const updateMaster = (oldMaster, newMaster) => {
 
     if (playlistUpdate) {
       update = playlistUpdate;
+    } else {
+      noChanges = true;
     }
   }
 
@@ -50,9 +53,14 @@ export const updateMaster = (oldMaster, newMaster) => {
         update = playlistUpdate;
         // update the playlist reference within media groups
         update.mediaGroups[type][group][label].playlists[0] = update.playlists[uri];
+        noChanges = false;
       }
     }
   });
+
+  if (noChanges) {
+    return null;
+  }
 
   return update;
 };
@@ -61,11 +69,14 @@ export default class DashPlaylistLoader extends EventTarget {
   // DashPlaylistLoader must accept either a src url or a playlist because subsequent
   // playlist loader setups from media groups will expect to be able to pass a playlist
   // (since there aren't external URLs to media playlists with DASH)
-  constructor(srcUrlOrPlaylist, hls, withCredentials, masterPlaylistLoader) {
+  constructor(srcUrlOrPlaylist, hls, options = { }, masterPlaylistLoader) {
     super();
+
+    const { withCredentials = false, handleManifestRedirects = false } = options;
 
     this.hls_ = hls;
     this.withCredentials = withCredentials;
+    this.handleManifestRedirects = handleManifestRedirects;
 
     if (!srcUrlOrPlaylist) {
       throw new Error('A non-empty playlist URL or playlist is required');
@@ -81,28 +92,32 @@ export default class DashPlaylistLoader extends EventTarget {
       this.refreshMedia_();
     });
 
+    this.state = 'HAVE_NOTHING';
+    this.loadedPlaylists_ = {};
+
     // initialize the loader state
+    // The masterPlaylistLoader will be created with a string
     if (typeof srcUrlOrPlaylist === 'string') {
       this.srcUrl = srcUrlOrPlaylist;
-      this.state = 'HAVE_NOTHING';
       return;
     }
 
-    this.masterPlaylistLoader_ = masterPlaylistLoader;
+    this.setupChildLoader(masterPlaylistLoader, srcUrlOrPlaylist);
+  }
 
-    this.state = 'HAVE_METADATA';
-    this.started = true;
-    // we only should have one playlist so select it
-    this.media(srcUrlOrPlaylist);
-    // trigger async to mimic behavior of HLS, where it must request a playlist
-    window.setTimeout(() => {
-      this.trigger('loadedmetadata');
-    }, 0);
+  setupChildLoader(masterPlaylistLoader, playlist) {
+    this.masterPlaylistLoader_ = masterPlaylistLoader;
+    this.childPlaylist_ = playlist;
   }
 
   dispose() {
     this.stopRequest();
+    this.loadedPlaylists_ = {};
     window.clearTimeout(this.mediaUpdateTimeout);
+  }
+
+  hasPendingRequest() {
+    return this.request || this.mediaRequest_;
   }
 
   stopRequest() {
@@ -138,7 +153,20 @@ export default class DashPlaylistLoader extends EventTarget {
 
     const mediaChange = !this.media_ || playlist.uri !== this.media_.uri;
 
-    this.state = 'HAVE_METADATA';
+    // switch to previously loaded playlists immediately
+    if (mediaChange &&
+        this.loadedPlaylists_[playlist.uri] &&
+        this.loadedPlaylists_[playlist.uri].endList) {
+      this.state = 'HAVE_METADATA';
+      this.media_ = playlist;
+
+      // trigger media change if the active media has been updated
+      if (mediaChange) {
+        this.trigger('mediachanging');
+        this.trigger('mediachange');
+      }
+      return;
+    }
 
     // switching to the active playlist is a no-op
     if (!mediaChange) {
@@ -150,12 +178,31 @@ export default class DashPlaylistLoader extends EventTarget {
       this.trigger('mediachanging');
     }
 
-    this.media_ = playlist;
+    // TODO: check for sidx here
 
+    // Continue asynchronously if there is no sidx
+    // wait one tick to allow haveMaster to run first on a child loader
+    this.mediaRequest_ = window.setTimeout(
+      this.haveMetadata.bind(this, { startingState, playlist }),
+      0
+    );
+  }
+
+  haveMetadata({startingState, playlist}) {
+    this.state = 'HAVE_METADATA';
+    this.media_ = playlist;
+    this.loadedPlaylists_[playlist.uri] = playlist;
+    this.mediaRequest_ = null;
+
+    // This will trigger loadedplaylist
     this.refreshMedia_();
 
-    // trigger media change if the active media has been updated
-    if (startingState !== 'HAVE_MASTER') {
+    // fire loadedmetadata the first time a media playlist is loaded
+    // to resolve setup of media groups
+    if (startingState === 'HAVE_MASTER') {
+      this.trigger('loadedmetadata');
+    } else {
+      // trigger media change if the active media has been updated
       this.trigger('mediachange');
     }
   }
@@ -238,6 +285,16 @@ export default class DashPlaylistLoader extends EventTarget {
   start() {
     this.started = true;
 
+    // We don't need to request the master manifest again
+    // Call this asynchronously to match the xhr request behavior below
+    if (this.masterPlaylistLoader_) {
+      this.mediaRequest_ = window.setTimeout(
+        this.haveMaster_.bind(this),
+        0
+      );
+      return;
+    }
+
     // request the specified URL
     this.request = this.hls_.xhr({
       uri: this.srcUrl,
@@ -272,6 +329,8 @@ export default class DashPlaylistLoader extends EventTarget {
       } else {
         this.masterLoaded_ = Date.now();
       }
+
+      this.srcUrl = resolveManifestRedirect(this.handleManifestRedirects, this.srcUrl, req);
 
       this.syncClientServerClock_(this.onClientServerClockSync_.bind(this));
     });
@@ -336,27 +395,34 @@ export default class DashPlaylistLoader extends EventTarget {
     });
   }
 
+  haveMaster_() {
+    this.state = 'HAVE_MASTER';
+    // clear media request
+    this.mediaRequest_ = null;
+
+    if (!this.masterPlaylistLoader_) {
+      this.master = this.parseMasterXml();
+      // We have the master playlist at this point, so
+      // trigger this to allow MasterPlaylistController
+      // to make an initial playlist selection
+      this.trigger('loadedplaylist');
+    } else if (!this.media_) {
+      // no media playlist was specifically selected so select
+      // the one the child playlist loader was created with
+      this.media(this.childPlaylist_);
+    }
+  }
+
   /**
    * Handler for after client/server clock synchronization has happened. Sets up
    * xml refresh timer if specificed by the manifest.
    */
   onClientServerClockSync_() {
-    this.master = this.parseMasterXml();
+    this.haveMaster_();
 
-    this.state = 'HAVE_MASTER';
-
-    this.trigger('loadedplaylist');
-
-    if (!this.media_) {
-      // no media playlist was specifically selected so start
-      // from the first listed one
+    if (!this.hasPendingRequest() && !this.media_) {
       this.media(this.master.playlists[0]);
     }
-    // trigger loadedmetadata to resolve setup of media groups
-    // trigger async to mimic behavior of HLS, where it must request a playlist
-    window.setTimeout(() => {
-      this.trigger('loadedmetadata');
-    }, 0);
 
     // TODO: minimumUpdatePeriod can have a value of 0. Currently the manifest will not
     // be refreshed when this is the case. The inter-op guide says that when the
@@ -364,7 +430,7 @@ export default class DashPlaylistLoader extends EventTarget {
     // segments, but future segments may require an update. I think a good solution
     // would be to update the manifest at the same rate that the media playlists
     // are "refreshed", i.e. every targetDuration.
-    if (this.master.minimumUpdatePeriod) {
+    if (this.master && this.master.minimumUpdatePeriod) {
       window.setTimeout(() => {
         this.trigger('minimumUpdatePeriod');
       }, this.master.minimumUpdatePeriod);
@@ -376,6 +442,8 @@ export default class DashPlaylistLoader extends EventTarget {
    * TODO: Does the client offset need to be recalculated when the xml is refreshed?
    */
   refreshXml_() {
+    // The srcUrl here *may* need to pass through handleManifestsRedirects when
+    // sidx is implemented
     this.request = this.hls_.xhr({
       uri: this.srcUrl,
       withCredentials: this.withCredentials
@@ -405,8 +473,11 @@ export default class DashPlaylistLoader extends EventTarget {
       this.masterXml_ = req.responseText;
 
       const newMaster = this.parseMasterXml();
+      const updatedMaster = updateMaster(this.master, newMaster);
 
-      this.master = updateMaster(this.master, newMaster);
+      if (updatedMaster) {
+        this.master = updatedMaster;
+      }
 
       window.setTimeout(() => {
         this.trigger('minimumUpdatePeriod');
