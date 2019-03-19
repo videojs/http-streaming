@@ -1,6 +1,6 @@
 /**
  * @videojs/http-streaming
- * @version 1.9.0
+ * @version 1.9.2
  * @copyright 2019 Brightcove, Inc
  * @license Apache-2.0
  */
@@ -216,7 +216,7 @@
 	var window_1 = win;
 
 	/**
-	 * @file resolve-url.js
+	 * @file resolve-url.js - Handling how URLs are resolved and manipulated
 	 */
 
 	var resolveUrl = function resolveUrl(baseURL, relativeURL) {
@@ -231,6 +231,28 @@
 	  }
 
 	  return urlToolkit.buildAbsoluteURL(baseURL, relativeURL);
+	};
+
+	/**
+	 * Checks whether xhr request was redirected and returns correct url depending
+	 * on `handleManifestRedirects` option
+	 *
+	 * @api private
+	 *
+	 * @param  {String} url - an url being requested
+	 * @param  {XMLHttpRequest} req - xhr request result
+	 *
+	 * @return {String}
+	 */
+	var resolveManifestRedirect = function resolveManifestRedirect(handleManifestRedirect, url, req) {
+	  // To understand how the responseURL below is set and generated:
+	  // - https://fetch.spec.whatwg.org/#concept-response-url
+	  // - https://fetch.spec.whatwg.org/#atomic-http-redirect-handling
+	  if (handleManifestRedirect && req.responseURL && url !== req.responseURL) {
+	    return req.responseURL;
+	  }
+
+	  return url;
 	};
 
 	/*! @name m3u8-parser @version 4.3.0 @license Apache-2.0 */
@@ -1779,19 +1801,27 @@
 	var PlaylistLoader = function (_EventTarget) {
 	  inherits(PlaylistLoader, _EventTarget);
 
-	  function PlaylistLoader(srcUrl, hls, withCredentials) {
+	  function PlaylistLoader(srcUrl, hls) {
+	    var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
 	    classCallCheck(this, PlaylistLoader);
 
 	    var _this = possibleConstructorReturn(this, (PlaylistLoader.__proto__ || Object.getPrototypeOf(PlaylistLoader)).call(this));
 
+	    var _options$withCredenti = options.withCredentials,
+	        withCredentials = _options$withCredenti === undefined ? false : _options$withCredenti,
+	        _options$handleManife = options.handleManifestRedirects,
+	        handleManifestRedirects = _options$handleManife === undefined ? false : _options$handleManife;
+
+
 	    _this.srcUrl = srcUrl;
 	    _this.hls_ = hls;
 	    _this.withCredentials = withCredentials;
+	    _this.handleManifestRedirects = handleManifestRedirects;
 
-	    var options = hls.options_;
+	    var hlsOptions = hls.options_;
 
-	    _this.customTagParsers = options && options.customTagParsers || [];
-	    _this.customTagMappers = options && options.customTagMappers || [];
+	    _this.customTagParsers = hlsOptions && hlsOptions.customTagParsers || [];
+	    _this.customTagMappers = hlsOptions && hlsOptions.customTagMappers || [];
 
 	    if (!_this.srcUrl) {
 	      throw new Error('A non-empty playlist URL is required');
@@ -1994,7 +2024,7 @@
 
 	      // there is already an outstanding playlist request
 	      if (this.request) {
-	        if (resolveUrl(this.master.uri, playlist.uri) === this.request.url) {
+	        if (playlist.resolvedUri === this.request.url) {
 	          // requesting to switch to the same playlist multiple times
 	          // has no effect after the first
 	          return;
@@ -2010,13 +2040,15 @@
 	      }
 
 	      this.request = this.hls_.xhr({
-	        uri: resolveUrl(this.master.uri, playlist.uri),
+	        uri: playlist.resolvedUri,
 	        withCredentials: this.withCredentials
 	      }, function (error, req) {
 	        // disposed
 	        if (!_this3.request) {
 	          return;
 	        }
+
+	        playlist.resolvedUri = resolveManifestRedirect(_this3.handleManifestRedirects, playlist.resolvedUri, req);
 
 	        if (error) {
 	          return _this3.playlistRequestError(_this3.request, playlist.uri, startingState);
@@ -2151,6 +2183,8 @@
 
 	        _this5.state = 'HAVE_MASTER';
 
+	        _this5.srcUrl = resolveManifestRedirect(_this5.handleManifestRedirects, _this5.srcUrl, req);
+
 	        parser.manifest.uri = _this5.srcUrl;
 
 	        // loaded a master playlist
@@ -2181,14 +2215,14 @@
 	          uri: window_1.location.href,
 	          playlists: [{
 	            uri: _this5.srcUrl,
-	            id: 0
+	            id: 0,
+	            resolvedUri: _this5.srcUrl,
+	            // m3u8-parser does not attach an attributes property to media playlists so make
+	            // sure that the property is attached to avoid undefined reference errors
+	            attributes: {}
 	          }]
 	        };
 	        _this5.master.playlists[_this5.srcUrl] = _this5.master.playlists[0];
-	        _this5.master.playlists[0].resolvedUri = _this5.srcUrl;
-	        // m3u8-parser does not attach an attributes property to media playlists so make
-	        // sure that the property is attached to avoid undefined reference errors
-	        _this5.master.playlists[0].attributes = _this5.master.playlists[0].attributes || {};
 	        _this5.haveMetadata(req, _this5.srcUrl);
 	        return _this5.trigger('loadedmetadata');
 	      });
@@ -14519,6 +14553,7 @@
 	 */
 
 	var updateMaster$1 = function updateMaster$$1(oldMaster, newMaster) {
+	  var noChanges = void 0;
 	  var update = mergeOptions$2(oldMaster, {
 	    // These are top level properties that can be updated
 	    duration: newMaster.duration,
@@ -14531,6 +14566,8 @@
 
 	    if (playlistUpdate) {
 	      update = playlistUpdate;
+	    } else {
+	      noChanges = true;
 	    }
 	  }
 
@@ -14544,9 +14581,14 @@
 	        update = _playlistUpdate;
 	        // update the playlist reference within media groups
 	        update.mediaGroups[type][group][label].playlists[0] = update.playlists[uri];
+	        noChanges = false;
 	      }
 	    }
 	  });
+
+	  if (noChanges) {
+	    return null;
+	  }
 
 	  return update;
 	};
@@ -14557,13 +14599,22 @@
 	  // DashPlaylistLoader must accept either a src url or a playlist because subsequent
 	  // playlist loader setups from media groups will expect to be able to pass a playlist
 	  // (since there aren't external URLs to media playlists with DASH)
-	  function DashPlaylistLoader(srcUrlOrPlaylist, hls, withCredentials, masterPlaylistLoader) {
+	  function DashPlaylistLoader(srcUrlOrPlaylist, hls) {
+	    var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+	    var masterPlaylistLoader = arguments[3];
 	    classCallCheck(this, DashPlaylistLoader);
 
 	    var _this = possibleConstructorReturn(this, (DashPlaylistLoader.__proto__ || Object.getPrototypeOf(DashPlaylistLoader)).call(this));
 
+	    var _options$withCredenti = options.withCredentials,
+	        withCredentials = _options$withCredenti === undefined ? false : _options$withCredenti,
+	        _options$handleManife = options.handleManifestRedirects,
+	        handleManifestRedirects = _options$handleManife === undefined ? false : _options$handleManife;
+
+
 	    _this.hls_ = hls;
 	    _this.withCredentials = withCredentials;
+	    _this.handleManifestRedirects = handleManifestRedirects;
 
 	    if (!srcUrlOrPlaylist) {
 	      throw new Error('A non-empty playlist URL or playlist is required');
@@ -14579,31 +14630,37 @@
 	      _this.refreshMedia_();
 	    });
 
+	    _this.state = 'HAVE_NOTHING';
+	    _this.loadedPlaylists_ = {};
+
 	    // initialize the loader state
+	    // The masterPlaylistLoader will be created with a string
 	    if (typeof srcUrlOrPlaylist === 'string') {
 	      _this.srcUrl = srcUrlOrPlaylist;
-	      _this.state = 'HAVE_NOTHING';
 	      return possibleConstructorReturn(_this);
 	    }
 
-	    _this.masterPlaylistLoader_ = masterPlaylistLoader;
-
-	    _this.state = 'HAVE_METADATA';
-	    _this.started = true;
-	    // we only should have one playlist so select it
-	    _this.media(srcUrlOrPlaylist);
-	    // trigger async to mimic behavior of HLS, where it must request a playlist
-	    window_1.setTimeout(function () {
-	      _this.trigger('loadedmetadata');
-	    }, 0);
+	    _this.setupChildLoader(masterPlaylistLoader, srcUrlOrPlaylist);
 	    return _this;
 	  }
 
 	  createClass(DashPlaylistLoader, [{
+	    key: 'setupChildLoader',
+	    value: function setupChildLoader(masterPlaylistLoader, playlist) {
+	      this.masterPlaylistLoader_ = masterPlaylistLoader;
+	      this.childPlaylist_ = playlist;
+	    }
+	  }, {
 	    key: 'dispose',
 	    value: function dispose() {
 	      this.stopRequest();
+	      this.loadedPlaylists_ = {};
 	      window_1.clearTimeout(this.mediaUpdateTimeout);
+	    }
+	  }, {
+	    key: 'hasPendingRequest',
+	    value: function hasPendingRequest() {
+	      return this.request || this.mediaRequest_;
 	    }
 	  }, {
 	    key: 'stopRequest',
@@ -14641,7 +14698,18 @@
 
 	      var mediaChange = !this.media_ || playlist.uri !== this.media_.uri;
 
-	      this.state = 'HAVE_METADATA';
+	      // switch to previously loaded playlists immediately
+	      if (mediaChange && this.loadedPlaylists_[playlist.uri] && this.loadedPlaylists_[playlist.uri].endList) {
+	        this.state = 'HAVE_METADATA';
+	        this.media_ = playlist;
+
+	        // trigger media change if the active media has been updated
+	        if (mediaChange) {
+	          this.trigger('mediachanging');
+	          this.trigger('mediachange');
+	        }
+	        return;
+	      }
 
 	      // switching to the active playlist is a no-op
 	      if (!mediaChange) {
@@ -14653,12 +14721,32 @@
 	        this.trigger('mediachanging');
 	      }
 
-	      this.media_ = playlist;
+	      // TODO: check for sidx here
 
+	      // Continue asynchronously if there is no sidx
+	      // wait one tick to allow haveMaster to run first on a child loader
+	      this.mediaRequest_ = window_1.setTimeout(this.haveMetadata.bind(this, { startingState: startingState, playlist: playlist }), 0);
+	    }
+	  }, {
+	    key: 'haveMetadata',
+	    value: function haveMetadata(_ref) {
+	      var startingState = _ref.startingState,
+	          playlist = _ref.playlist;
+
+	      this.state = 'HAVE_METADATA';
+	      this.media_ = playlist;
+	      this.loadedPlaylists_[playlist.uri] = playlist;
+	      this.mediaRequest_ = null;
+
+	      // This will trigger loadedplaylist
 	      this.refreshMedia_();
 
-	      // trigger media change if the active media has been updated
-	      if (startingState !== 'HAVE_MASTER') {
+	      // fire loadedmetadata the first time a media playlist is loaded
+	      // to resolve setup of media groups
+	      if (startingState === 'HAVE_MASTER') {
+	        this.trigger('loadedmetadata');
+	      } else {
+	        // trigger media change if the active media has been updated
 	        this.trigger('mediachange');
 	      }
 	    }
@@ -14753,6 +14841,13 @@
 
 	      this.started = true;
 
+	      // We don't need to request the master manifest again
+	      // Call this asynchronously to match the xhr request behavior below
+	      if (this.masterPlaylistLoader_) {
+	        this.mediaRequest_ = window_1.setTimeout(this.haveMaster_.bind(this), 0);
+	        return;
+	      }
+
 	      // request the specified URL
 	      this.request = this.hls_.xhr({
 	        uri: this.srcUrl,
@@ -14787,6 +14882,8 @@
 	        } else {
 	          _this3.masterLoaded_ = Date.now();
 	        }
+
+	        _this3.srcUrl = resolveManifestRedirect(_this3.handleManifestRedirects, _this3.srcUrl, req);
 
 	        _this3.syncClientServerClock_(_this3.onClientServerClockSync_.bind(_this3));
 	      });
@@ -14855,6 +14952,25 @@
 	        done();
 	      });
 	    }
+	  }, {
+	    key: 'haveMaster_',
+	    value: function haveMaster_() {
+	      this.state = 'HAVE_MASTER';
+	      // clear media request
+	      this.mediaRequest_ = null;
+
+	      if (!this.masterPlaylistLoader_) {
+	        this.master = this.parseMasterXml();
+	        // We have the master playlist at this point, so
+	        // trigger this to allow MasterPlaylistController
+	        // to make an initial playlist selection
+	        this.trigger('loadedplaylist');
+	      } else if (!this.media_) {
+	        // no media playlist was specifically selected so select
+	        // the one the child playlist loader was created with
+	        this.media(this.childPlaylist_);
+	      }
+	    }
 
 	    /**
 	     * Handler for after client/server clock synchronization has happened. Sets up
@@ -14866,22 +14982,11 @@
 	    value: function onClientServerClockSync_() {
 	      var _this5 = this;
 
-	      this.master = this.parseMasterXml();
+	      this.haveMaster_();
 
-	      this.state = 'HAVE_MASTER';
-
-	      this.trigger('loadedplaylist');
-
-	      if (!this.media_) {
-	        // no media playlist was specifically selected so start
-	        // from the first listed one
+	      if (!this.hasPendingRequest() && !this.media_) {
 	        this.media(this.master.playlists[0]);
 	      }
-	      // trigger loadedmetadata to resolve setup of media groups
-	      // trigger async to mimic behavior of HLS, where it must request a playlist
-	      window_1.setTimeout(function () {
-	        _this5.trigger('loadedmetadata');
-	      }, 0);
 
 	      // TODO: minimumUpdatePeriod can have a value of 0. Currently the manifest will not
 	      // be refreshed when this is the case. The inter-op guide says that when the
@@ -14889,7 +14994,7 @@
 	      // segments, but future segments may require an update. I think a good solution
 	      // would be to update the manifest at the same rate that the media playlists
 	      // are "refreshed", i.e. every targetDuration.
-	      if (this.master.minimumUpdatePeriod) {
+	      if (this.master && this.master.minimumUpdatePeriod) {
 	        window_1.setTimeout(function () {
 	          _this5.trigger('minimumUpdatePeriod');
 	        }, this.master.minimumUpdatePeriod);
@@ -14906,6 +15011,8 @@
 	    value: function refreshXml_() {
 	      var _this6 = this;
 
+	      // The srcUrl here *may* need to pass through handleManifestsRedirects when
+	      // sidx is implemented
 	      this.request = this.hls_.xhr({
 	        uri: this.srcUrl,
 	        withCredentials: this.withCredentials
@@ -14935,8 +15042,11 @@
 	        _this6.masterXml_ = req.responseText;
 
 	        var newMaster = _this6.parseMasterXml();
+	        var updatedMaster = updateMaster$1(_this6.master, newMaster);
 
-	        _this6.master = updateMaster$1(_this6.master, newMaster);
+	        if (updatedMaster) {
+	          _this6.master = updatedMaster;
+	        }
 
 	        window_1.setTimeout(function () {
 	          _this6.trigger('minimumUpdatePeriod');
@@ -15189,7 +15299,10 @@
 	  }, {
 	    key: 'updating',
 	    value: function updating() {
-	      return !this.sourceBuffer_ || this.sourceBuffer_.updating || this.pendingCallback_;
+	      // we are updating if the sourcebuffer is updating or
+	      return !this.sourceBuffer_ || this.sourceBuffer_.updating ||
+	      // if we have a pending callback that is not our internal noop
+	      !!this.pendingCallback_ && this.pendingCallback_ !== noop;
 	    }
 
 	    /**
@@ -23096,9 +23209,17 @@
 	        };
 	      }
 
-	      var oldId = oldPlaylist ? oldPlaylist.id : null;
+	      var oldId = null;
 
-	      this.logger_('playlist update [' + oldId + ' => ' + newPlaylist.id + ']');
+	      if (oldPlaylist) {
+	        if (oldPlaylist.id) {
+	          oldId = oldPlaylist.id;
+	        } else if (oldPlaylist.uri) {
+	          oldId = oldPlaylist.uri;
+	        }
+	      }
+
+	      this.logger_('playlist update [' + oldId + ' => ' + (newPlaylist.id || newPlaylist.uri) + ']');
 
 	      // in VOD, this is always a rendition switch (or we updated our syncInfo above)
 	      // in LIVE, we always want to update with new playlists (including refreshes)
@@ -23337,9 +23458,7 @@
 	        return;
 	      }
 
-	      var isEndOfStream = detectEndOfStream(this.playlist_, this.mediaSource_, segmentInfo.mediaIndex);
-
-	      if (isEndOfStream) {
+	      if (this.isEndOfStream_(segmentInfo.mediaIndex)) {
 	        this.endOfStream();
 	        return;
 	      }
@@ -23362,6 +23481,22 @@
 	      }
 
 	      this.loadSegment_(segmentInfo);
+	    }
+
+	    /**
+	     * Determines if this segment loader is at the end of it's stream.
+	     *
+	     * @param {Number} mediaIndex the index of segment we last appended
+	     * @param {Object} [playlist=this.playlist_] a media playlist object
+	     * @returns {Boolean} true if at end of stream, false otherwise.
+	     */
+
+	  }, {
+	    key: 'isEndOfStream_',
+	    value: function isEndOfStream_(mediaIndex) {
+	      var playlist = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this.playlist_;
+
+	      return detectEndOfStream(playlist, this.mediaSource_, mediaIndex) && !this.sourceUpdater_.updating();
 	    }
 
 	    /**
@@ -24000,9 +24135,7 @@
 	      // any time an update finishes and the last segment is in the
 	      // buffer, end the stream. this ensures the "ended" event will
 	      // fire if playback reaches that point.
-	      var isEndOfStream = detectEndOfStream(segmentInfo.playlist, this.mediaSource_, segmentInfo.mediaIndex + 1);
-
-	      if (isEndOfStream) {
+	      if (this.isEndOfStream_(segmentInfo.mediaIndex + 1, segmentInfo.playlist)) {
 	        this.endOfStream();
 	      }
 
@@ -24066,6 +24199,7 @@
 
 	      var Cue = window_1.WebKitDataCue || window_1.VTTCue;
 	      var value = {
+	        custom: segment.custom,
 	        dateTimeObject: segment.dateTimeObject,
 	        dateTimeString: segment.dateTimeString,
 	        bandwidth: segmentInfo.playlist.attributes.BANDWIDTH,
@@ -27029,7 +27163,7 @@
 	    var hls = settings.hls,
 	        sourceType = settings.sourceType,
 	        segmentLoader = settings.segmentLoaders[type],
-	        withCredentials = settings.requestOptions.withCredentials,
+	        requestOptions = settings.requestOptions,
 	        _settings$master = settings.master,
 	        mediaGroups = _settings$master.mediaGroups,
 	        playlists = _settings$master.playlists,
@@ -27072,9 +27206,9 @@
 	        var playlistLoader = void 0;
 
 	        if (properties.resolvedUri) {
-	          playlistLoader = new PlaylistLoader(properties.resolvedUri, hls, withCredentials);
+	          playlistLoader = new PlaylistLoader(properties.resolvedUri, hls, requestOptions);
 	        } else if (properties.playlists && sourceType === 'dash') {
-	          playlistLoader = new DashPlaylistLoader(properties.playlists[0], hls, withCredentials, masterPlaylistLoader);
+	          playlistLoader = new DashPlaylistLoader(properties.playlists[0], hls, requestOptions, masterPlaylistLoader);
 	        } else {
 	          // no resolvedUri means the audio is muxed with the video when using this
 	          // audio track
@@ -27119,7 +27253,7 @@
 	        hls = settings.hls,
 	        sourceType = settings.sourceType,
 	        segmentLoader = settings.segmentLoaders[type],
-	        withCredentials = settings.requestOptions.withCredentials,
+	        requestOptions = settings.requestOptions,
 	        mediaGroups = settings.master.mediaGroups,
 	        _settings$mediaTypes$2 = settings.mediaTypes[type],
 	        groups = _settings$mediaTypes$2.groups,
@@ -27150,9 +27284,9 @@
 	        var playlistLoader = void 0;
 
 	        if (sourceType === 'hls') {
-	          playlistLoader = new PlaylistLoader(properties.resolvedUri, hls, withCredentials);
+	          playlistLoader = new PlaylistLoader(properties.resolvedUri, hls, requestOptions);
 	        } else if (sourceType === 'dash') {
-	          playlistLoader = new DashPlaylistLoader(properties.playlists[0], hls, withCredentials, masterPlaylistLoader);
+	          playlistLoader = new DashPlaylistLoader(properties.playlists[0], hls, requestOptions, masterPlaylistLoader);
 	        }
 
 	        properties = videojs.mergeOptions({
@@ -27481,6 +27615,7 @@
 	    var _this = possibleConstructorReturn(this, (MasterPlaylistController.__proto__ || Object.getPrototypeOf(MasterPlaylistController)).call(this));
 
 	    var url = options.url,
+	        handleManifestRedirects = options.handleManifestRedirects,
 	        withCredentials = options.withCredentials,
 	        tech = options.tech,
 	        bandwidth = options.bandwidth,
@@ -27512,7 +27647,8 @@
 	    }
 
 	    _this.requestOptions_ = {
-	      withCredentials: _this.withCredentials,
+	      withCredentials: withCredentials,
+	      handleManifestRedirects: handleManifestRedirects,
 	      timeout: null
 	    };
 
@@ -27563,7 +27699,7 @@
 	      inbandTextTracks: _this.inbandTextTracks_
 	    };
 
-	    _this.masterPlaylistLoader_ = _this.sourceType_ === 'dash' ? new DashPlaylistLoader(url, _this.hls_, _this.withCredentials) : new PlaylistLoader(url, _this.hls_, _this.withCredentials);
+	    _this.masterPlaylistLoader_ = _this.sourceType_ === 'dash' ? new DashPlaylistLoader(url, _this.hls_, _this.requestOptions_) : new PlaylistLoader(url, _this.hls_, _this.requestOptions_);
 	    _this.setupMasterPlaylistLoaderListeners_();
 
 	    // setup segment loaders
@@ -27610,7 +27746,7 @@
 
 	      this.masterPlaylistLoader_.on('loadedmetadata', function () {
 	        var media = _this2.masterPlaylistLoader_.media();
-	        var requestTimeout = _this2.masterPlaylistLoader_.targetDuration * 1.5 * 1000;
+	        var requestTimeout = media.targetDuration * 1.5 * 1000;
 
 	        // If we don't have any more available playlists, we don't want to
 	        // timeout the request.
@@ -27653,7 +27789,16 @@
 	        }
 	        _this2.setupFirstPlay();
 
-	        _this2.trigger('selectedinitialmedia');
+	        if (!_this2.mediaTypes_.AUDIO.activePlaylistLoader || _this2.mediaTypes_.AUDIO.activePlaylistLoader.media()) {
+	          _this2.trigger('selectedinitialmedia');
+	        } else {
+	          // We must wait for the active audio playlist loader to
+	          // finish setting up before triggering this event so the
+	          // representations API and EME setup is correct
+	          _this2.mediaTypes_.AUDIO.activePlaylistLoader.one('loadedmetadata', function () {
+	            _this2.trigger('selectedinitialmedia');
+	          });
+	        }
 	      });
 
 	      this.masterPlaylistLoader_.on('loadedplaylist', function () {
@@ -27736,7 +27881,7 @@
 
 	      this.masterPlaylistLoader_.on('mediachange', function () {
 	        var media = _this2.masterPlaylistLoader_.media();
-	        var requestTimeout = _this2.masterPlaylistLoader_.targetDuration * 1.5 * 1000;
+	        var requestTimeout = media.targetDuration * 1.5 * 1000;
 
 	        // If we don't have any more available playlists, we don't want to
 	        // timeout the request.
@@ -28157,6 +28302,7 @@
 	        return;
 	      }
 
+	      this.logger_('calling mediaSource.endOfStream()');
 	      // on chrome calling endOfStream can sometimes cause an exception,
 	      // even when the media source is in a valid state.
 	      try {
@@ -28405,6 +28551,14 @@
 	        }
 	      }
 
+	      var oldEnd = void 0;
+	      var oldStart = void 0;
+
+	      if (this.seekable_ && this.seekable_.length) {
+	        oldEnd = this.seekable_.end(0);
+	        oldStart = this.seekable_.start(0);
+	      }
+
 	      if (!audioSeekable) {
 	        // seekable has been calculated based on buffering video data so it
 	        // can be returned directly
@@ -28414,6 +28568,13 @@
 	        this.seekable_ = mainSeekable;
 	      } else {
 	        this.seekable_ = videojs.createTimeRanges([[audioSeekable.start(0) > mainSeekable.start(0) ? audioSeekable.start(0) : mainSeekable.start(0), audioSeekable.end(0) < mainSeekable.end(0) ? audioSeekable.end(0) : mainSeekable.end(0)]]);
+	      }
+
+	      // seekable is the same as last time
+	      if (this.seekable_ && this.seekable_.length) {
+	        if (this.seekable_.end(0) === oldEnd && this.seekable_.start(0) === oldStart) {
+	          return;
+	        }
 	      }
 
 	      this.logger_('seekable updated [' + printableRange(this.seekable_) + ']');
@@ -28437,6 +28598,7 @@
 	        // on firefox setting the duration may sometimes cause an exception
 	        // even if the media source is open and source buffers are not
 	        // updating, something about the media source being in an invalid state.
+	        _this6.logger_('Setting duration from ' + _this6.mediaSource.duration + ' => ' + newDuration);
 	        try {
 	          _this6.mediaSource.duration = newDuration;
 	        } catch (e) {
@@ -29339,7 +29501,7 @@
 	  initPlugin(this, options);
 	};
 
-	var version$2 = "1.9.0";
+	var version$2 = "1.9.2";
 
 	// since VHS handles HLS and DASH (and in the future, more types), use * to capture all
 	videojs.use('*', function (player) {
@@ -29369,7 +29531,7 @@
 	    // then triggers a play event.
 	    play: function play() {
 	      if (player.vhs && player.currentSource().src === player.vhs.source_.src) {
-	        player.vhs.setCurrentTime(player.currentTime());
+	        player.vhs.setCurrentTime(player.tech_.currentTime());
 	      }
 	    }
 	  };
@@ -29704,7 +29866,7 @@
 
 	    // Handle seeking when looping - middleware doesn't handle this seek event from the tech
 	    _this.on(_this.tech_, 'seeking', function () {
-	      if (this.tech_.seeking() && this.tech_.currentTime() === 0 && this.tech_.player_.loop()) {
+	      if (this.tech_.currentTime() === 0 && this.tech_.player_.loop()) {
 	        this.setCurrentTime(0);
 	      }
 	    });
@@ -29726,6 +29888,7 @@
 
 	      // defaults
 	      this.options_.withCredentials = this.options_.withCredentials || false;
+	      this.options_.handleManifestRedirects = this.options_.handleManifestRedirects || false;
 	      this.options_.limitRenditionByPlayerDimensions = this.options_.limitRenditionByPlayerDimensions === false ? false : true;
 	      this.options_.smoothQualityChange = this.options_.smoothQualityChange || false;
 	      this.options_.useBandwidthFromLocalStorage = typeof this.source_.useBandwidthFromLocalStorage !== 'undefined' ? this.source_.useBandwidthFromLocalStorage : this.options_.useBandwidthFromLocalStorage || false;
@@ -29761,7 +29924,7 @@
 	      this.options_.enableLowInitialPlaylist = this.options_.enableLowInitialPlaylist && this.options_.bandwidth === Config.INITIAL_BANDWIDTH;
 
 	      // grab options passed to player.src
-	      ['withCredentials', 'limitRenditionByPlayerDimensions', 'bandwidth', 'smoothQualityChange', 'customTagParsers', 'customTagMappers'].forEach(function (option) {
+	      ['withCredentials', 'limitRenditionByPlayerDimensions', 'bandwidth', 'smoothQualityChange', 'customTagParsers', 'customTagMappers', 'handleManifestRedirects'].forEach(function (option) {
 	        if (typeof _this2.source_[option] !== 'undefined') {
 	          _this2.options_[option] = _this2.source_[option];
 	        }
