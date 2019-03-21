@@ -17,18 +17,20 @@ The [DashPlaylistLoader][dpl] (DPL) is responsible for requesting MPDs, parsing 
 
 The [DPL] is written to be as similar as possible to the [PlaylistLoader][pl]. This means that majority of the public API for these two classes are the same, and so are the states they go through and events that they trigger.
 
+### States
+
+![DashPlaylistLoader States](images/dash-playlist-loader-states.nomnoml.svg)
+
+- `HAVE_NOTHING` the state before the MPD is received and parsed.
+- `HAVE_MASTER` the state before a media stream is setup but the MPD has been parsed.
+- `HAVE_METADATA` the state after a media stream is setup.
+
 ### API
 
 - `load()` this will either start or kick the loader during playback.
 - `start()` this will start the [DPL] and request the MPD.
 - `parseMasterXml()` this will parse the MPD manifest and return the result.
 - `media()` this will return the currently active media stream or set a new active media stream.
-
-### States
-
-- `HAVE_NOTHING` the state before the MPD is received and parsed.
-- `HAVE_MASTER` the state before a media stream is setup but the MPD has been parsed.
-- `HAVE_METADATA` the state after a media stream is setup.
 
 ### Events
 
@@ -39,6 +41,26 @@ The [DPL] is written to be as similar as possible to the [PlaylistLoader][pl]. T
 - `mediaupdatetimeout` signals that a live MPD and media stream must be refreshed.
 - `mediachanging` signals that the currently active media stream is going to be changed.
 - `mediachange` signals that the new media stream has been updated.
+
+### Interaction with Other Modules
+
+![DPL with MPC and MG](images/dash-playlist-loader-mpc-mg-sequence.plantuml.png)
+
+### Special Features
+
+There are a few features of [DPL] that are different from [PL] due to fundamental differences between HLS and DASH standards.
+
+#### MinimumUpdatePeriod
+
+This is a time period specified in the MPD after which the MPD should be re-requested and parsed. There could be any number of changes to the MPD between these update periods.
+
+#### SyncClientServerClock
+
+There is a UTCTiming node in the MPD that allows the client clock to be synced with a clock on the server. This may affect the results of parsing the MPD.
+
+#### Requesting `sidx` Boxes
+
+To be filled out.
 
 ### Previous Behavior
 
