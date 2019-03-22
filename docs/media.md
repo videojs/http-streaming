@@ -5,15 +5,15 @@ When we talk about video, we normally think about it as one monolithic thing. If
 
 Containers formats are probably the most recongnizable of the video components because they get the honor of determining the file extension. You've probably heard of MP4, MOV, and WMV, all of which are container formats. Containers specify how to serialize audio, video, and metadata streams into a sequential series of bits and how to unpack them for decoding. Containers are basically a box that can hold video information and timed media data:
 
-![Containers](containers.png)
+![Containers](images/containers.png)
 
 - codecs
 - containers, multiplexing
 
 # MPEG2-TS
-![MPEG2-TS Structure](mp2t-structure.png)
+![MPEG2-TS Structure](images/mp2t-structure.png)
 
-![MPEG2-TS Packet Types](mp2t-packet-types.png)
+![MPEG2-TS Packet Types](images/mp2t-packet-types.png)
 
 - streaming vs storage
 - program table
