@@ -178,7 +178,7 @@ You can deploy a single HLS stream, code against the
 regular HTML5 video APIs, and create a fast, high-quality video
 experience across all the big web device categories.
 
-Check out the [full documentation](docs/intro.md) for details on how HLS works
+Check out the [full documentation](docs/README.md) for details on how HLS works
 and advanced configuration. A description of the [adaptive switching
 behavior](docs/bitrate-switching.md) is available, too.
 
