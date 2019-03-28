@@ -422,6 +422,7 @@ Similar to `customTagParsers`, with `customTagMappers` you can pass an array of 
 
 ##### cacheEncryptionKeys
 * Type: `boolean`
+* can be used as a source option
 * can be used as an initialization option
 
 This option forces the player to cache AES-128 encryption keys internally instead of requesting the key alongside every segment request.
