@@ -372,23 +372,31 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @return {Object}
    *         Key object for desired key
    */
-   segmentKey(key, set = false) {
-     if (!key) {
-       return null;
-     }
+  segmentKey(key, set = false) {
+    if (!key) {
+      return null;
+    }
 
-     const id = segmentKeyId(key);
-     let storedKey = this.keyCache_[id];
+    const id = segmentKeyId(key);
+    let storedKey = this.keyCache_[id];
 
-     if (this.cacheEncryptionKeys_ && set && !storedKey && key.bytes) {
-       this.keyCache_[id] = storedKey = {
-         resolvedUri: key.resolvedUri,
-         bytes: key.bytes
-       };
-     }
+    if (this.cacheEncryptionKeys_ && set && !storedKey && key.bytes) {
+      this.keyCache_[id] = storedKey = {
+        resolvedUri: key.resolvedUri,
+        bytes: key.bytes
+      };
+    }
 
-     return storedKey || { resolvedUri: key.resolvedUri };
-   }
+    const result = {
+      resolvedUri: (storedKey || key).resolvedUri
+    };
+
+    if (storedKey) {
+      result.bytes = storedKey.bytes;
+    }
+
+    return result;
+  }
 
   /**
    * Returns true if all configuration required for loading is present, otherwise false.
