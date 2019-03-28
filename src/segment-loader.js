@@ -7,7 +7,7 @@ import SourceUpdater from './source-updater';
 import Config from './config';
 import window from 'global/window';
 import { removeCuesFromTrack } from './mse/remove-cues-from-track';
-import { initSegmentId } from './bin-utils';
+import { initSegmentId, segmentKeyId } from './bin-utils';
 import { mediaSegmentRequest, REQUEST_ERRORS } from './media-segment-request';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
@@ -183,6 +183,11 @@ export default class SegmentLoader extends videojs.EventTarget {
     // Fragmented mp4 playback
     this.activeInitSegmentId_ = null;
     this.initSegments_ = {};
+
+    // HLSe playback
+    this.cacheEncryptionKeys_ = settings.cacheEncryptionKeys;
+    this.keyCache_ = {};
+
     // Fmp4 CaptionParser
     this.captionParser_ = new CaptionParser();
 
@@ -354,6 +359,34 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     return storedMap || map;
   }
+
+  /**
+   * Gets and sets key for the provided key
+   *
+   * @param {Object} key
+   *        The key object representing the key to get or set
+   * @param {Boolean=} set
+   *        If true, the key for the provided key should be saved
+   * @return {Object}
+   *         Key object for desired key
+   */
+   segmentKey(key, set = false) {
+     if (!key) {
+       return null;
+     }
+
+     const id = segmentKeyId(key);
+     let storedKey = this.keyCache_[id];
+
+     if (this.cacheEncryptionKeys_ && set && !storedKey && key.bytes) {
+       this.keyCache_[id] = storedKey = {
+         resolvedUri: key.resolvedUri,
+         bytes: key.bytes
+       };
+     }
+
+     return storedKey || { resolvedUri: key.resolvedUri };
+   }
 
   /**
    * Returns true if all configuration required for loading is present, otherwise false.
@@ -1048,10 +1081,8 @@ export default class SegmentLoader extends videojs.EventTarget {
         0, 0, 0, segmentInfo.mediaIndex + segmentInfo.playlist.mediaSequence
       ]);
 
-      simpleSegment.key = {
-        resolvedUri: segment.key.resolvedUri,
-        iv
-      };
+      simpleSegment.key = this.segmentKey(segment.key);
+      simpleSegment.key.iv = iv;
     }
 
     if (segment.map) {
@@ -1136,6 +1167,11 @@ export default class SegmentLoader extends videojs.EventTarget {
       simpleSegment.map = this.initSegment(simpleSegment.map, true);
     }
 
+    // if this request included a segment key, save that data in the cache
+    if (simpleSegment.key) {
+      this.segmentKey(simpleSegment.key, true);
+    }
+
     this.processSegmentResponse_(simpleSegment);
   }
 
@@ -1152,6 +1188,9 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (simpleSegment.map) {
       segmentInfo.segment.map.bytes = simpleSegment.map.bytes;
     }
+    // if (simpleSegment.key) {
+    //   segmentInfo.segment.key.bytes = simpleSegment.key.bytes;
+    // }
 
     segmentInfo.endOfAllRequests = simpleSegment.endOfAllRequests;
 

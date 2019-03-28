@@ -76,6 +76,13 @@ export const initSegmentId = function(initSegment) {
 };
 
 /**
+ *
+ */
+export const segmentKeyId = function(key) {
+  return key.resolvedUri;
+};
+
+/**
  * utils to help dump binary data to the console
  */
 export const hexDump = (data) => {
