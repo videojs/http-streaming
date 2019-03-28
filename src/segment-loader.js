@@ -1188,9 +1188,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (simpleSegment.map) {
       segmentInfo.segment.map.bytes = simpleSegment.map.bytes;
     }
-    // if (simpleSegment.key) {
-    //   segmentInfo.segment.key.bytes = simpleSegment.key.bytes;
-    // }
 
     segmentInfo.endOfAllRequests = simpleSegment.endOfAllRequests;
 

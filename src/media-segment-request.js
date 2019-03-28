@@ -434,7 +434,7 @@ export const mediaSegmentRequest = (xhr,
   const finishProcessingFn = waitForCompletion(activeXhrs, decryptionWorker, doneFn);
 
   // optionally, request the decryption key
-  if (segment.key && ! segment.key.bytes) {
+  if (segment.key && !segment.key.bytes) {
     const keyRequestOptions = videojs.mergeOptions(xhrOptions, {
       uri: segment.key.resolvedUri,
       responseType: 'arraybuffer'
