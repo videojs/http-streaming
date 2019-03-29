@@ -969,12 +969,12 @@ export class MasterPlaylistController extends videojs.EventTarget {
     }
 
     this.seekStartedAt_ = new Date();
-    // never upswitch during a seek
-    if (nextPlaylist && nextPlaylist.playlist.attributes.BANDWIDTH > media.attributes.BANDWIDTH) {
-      nextPlaylist = null;
-    }
 
-    if (nextPlaylist && media.uri !== nextPlaylist.playlist.uri) {
+    if (nextPlaylist && media.uri !== nextPlaylist.playlist.uri &&
+        // don't downswitch during the initial seek for live feeds
+        this.hasPlayed_() &&
+        // never upswitch during a seek
+        nextPlaylist.playlist.attributes.BANDWIDTH > media.attributes.BANDWIDTH) {
       this.fastQualityChange_(nextPlaylist.playlist);
       // If we need to load a different playlist to meet the seek deadline,
       // don't start the segment loaders immediately. The playlist switch
