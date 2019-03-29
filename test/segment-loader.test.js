@@ -252,7 +252,7 @@ QUnit.module('SegmentLoader: M2TS', function(hooks) {
                    'segment end time not shifted by mp4 start time');
     });
 
-    QUnit.test('segmentKey will cache new encrypted keys', function(assert) {
+    QUnit.test('segmentKey will cache new encrypted keys with cacheEncryptionKeys true', function(assert) {
       const newLoader = new SegmentLoader(LoaderCommonSettings.call(this, {
         loaderType: 'main',
         segmentMetadataTrack: this.segmentMetadataTrack,
@@ -296,6 +296,40 @@ QUnit.module('SegmentLoader: M2TS', function(hooks) {
       );
     });
 
+    QUnit.test('segmentKey will not cache encrypted keys with cacheEncryptionKeys false', function(assert) {
+      const newLoader = new SegmentLoader(LoaderCommonSettings.call(this, {
+        loaderType: 'main',
+        segmentMetadataTrack: this.segmentMetadataTrack,
+        cacheEncryptionKeys: false
+      }), {});
+
+      newLoader.playlist(playlistWithDuration(10), { isEncrypted: true });
+      newLoader.mimeType(this.mimeType);
+      newLoader.load();
+      this.clock.tick(1);
+
+      assert.strictEqual(
+        Object.keys(newLoader.keyCache_).length,
+        0,
+        'no keys have been cached'
+      );
+
+      newLoader.segmentKey(
+        {
+          resolvedUri: 'key.php',
+          bytes: new Uint32Array([1, 2, 3, 4])
+        },
+        // set = true
+        true
+      );
+
+      assert.strictEqual(
+        Object.keys(newLoader.keyCache_).length,
+        0,
+        'no keys have been cached since cacheEncryptionKeys is false'
+      );
+    });
+
     QUnit.test('new segment requests will use cached keys', function(assert) {
       const done = assert.async();
       const newLoader = new SegmentLoader(LoaderCommonSettings.call(this, {
@@ -326,6 +360,8 @@ QUnit.module('SegmentLoader: M2TS', function(hooks) {
       standardXHRResponse(this.requests.shift(), new Uint32Array([1, 5, 0, 1]));
       this.clock.tick(1);
 
+      // As the Decrypter is in a web worker, the last function in SegmentLoader is
+      // the easiest way to listen for the decrypted response
       const origHandleSegment = newLoader.handleSegment_.bind(newLoader);
 
       newLoader.handleSegment_ = () => {

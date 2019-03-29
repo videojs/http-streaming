@@ -2315,6 +2315,8 @@ QUnit.test('keys are not requested when cached key available', function(assert) 
   this.standardXHRResponse(this.requests.shift());
   this.clock.tick(1);
 
+  // As the Decrypter is in a web worker, the last function in SegmentLoader is
+  // the easiest way to listen for the decrypted response
   const mainSegmentLoader = this.player.vhs.masterPlaylistController_.mainSegmentLoader_;
   const origHandleSegment = mainSegmentLoader.handleSegment_;
 
