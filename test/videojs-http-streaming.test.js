@@ -2313,7 +2313,7 @@ QUnit.test('keys are not requested when cached key available', function(assert) 
   this.standardXHRResponse(this.requests.shift(), new Uint32Array([1, 2, 3, 4]));
   // segment response
   this.standardXHRResponse(this.requests.shift());
-  this.clock.tick(4);
+  this.clock.tick(1);
 
   const mainSegmentLoader = this.player.vhs.masterPlaylistController_.mainSegmentLoader_;
   const origHandleSegment = mainSegmentLoader.handleSegment_;
