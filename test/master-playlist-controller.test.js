@@ -161,6 +161,41 @@ QUnit.test('creates appropriate PlaylistLoader for sourceType', function(assert)
             'created a dash playlist loader');
 });
 
+QUnit.test('passes options to SegmentLoader', function(assert) {
+  const options = {
+    url: 'test',
+    tech: this.player.tech_
+  };
+
+  let controller = new MasterPlaylistController(options);
+
+  assert.notOk(controller.mainSegmentLoader_.bandwidth, "bandwidth won't be set by default");
+  assert.notOk(controller.mainSegmentLoader_.sourceType_, "sourceType won't be set by default");
+  assert.notOk(controller.mainSegmentLoader_.cacheEncryptionKeys_, "cacheEncryptionKeys won't be set by default");
+
+  controller = new MasterPlaylistController(Object.assign({
+    bandwidth: 3,
+    cacheEncryptionKeys: true,
+    sourceType: 'fake-type'
+  }, options));
+
+  assert.strictEqual(
+    controller.mainSegmentLoader_.bandwidth,
+    3,
+    'bandwidth will be set'
+  );
+  assert.strictEqual(
+    controller.mainSegmentLoader_.sourceType_,
+    'fake-type',
+    'sourceType will be set'
+  );
+  assert.strictEqual(
+    controller.mainSegmentLoader_.cacheEncryptionKeys_,
+    true,
+    'cacheEncryptionKeys will be set'
+  );
+});
+
 QUnit.test('resets SegmentLoader when seeking out of buffer',
   function(assert) {
     let resets = 0;

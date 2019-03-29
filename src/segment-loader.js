@@ -347,8 +347,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     const id = initSegmentId(map);
     let storedMap = this.initSegments_[id];
 
-    // TODO: We should use the HTTP Expires header to invalidate our cache per
-    // https://tools.ietf.org/html/draft-pantos-http-live-streaming-23#section-6.2.3
     if (set && !storedMap && map.bytes) {
       this.initSegments_[id] = storedMap = {
         resolvedUri: map.resolvedUri,
@@ -380,6 +378,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     const id = segmentKeyId(key);
     let storedKey = this.keyCache_[id];
 
+    // TODO: We should use the HTTP Expires header to invalidate our cache per
+    // https://tools.ietf.org/html/draft-pantos-http-live-streaming-23#section-6.2.3
     if (this.cacheEncryptionKeys_ && set && !storedKey && key.bytes) {
       this.keyCache_[id] = storedKey = {
         resolvedUri: key.resolvedUri,

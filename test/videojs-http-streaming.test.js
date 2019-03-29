@@ -2275,6 +2275,137 @@ QUnit.test('keys are resolved relative to their containing playlist', function(a
                'resolves multiple relative paths');
 });
 
+QUnit.test('keys are not requested when cached key available, cacheEncryptionKeys:true', function(assert) {
+  const done = assert.async();
+
+  this.player.src({
+    src: 'video/media-encrypted.m3u8',
+    type: 'application/vnd.apple.mpegurl',
+    cacheEncryptionKeys: true
+  });
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  this.requests.shift().respond(200, null,
+    '#EXTM3U\n' +
+    '#EXT-X-TARGETDURATION:15\n' +
+    '#EXT-X-KEY:METHOD=AES-128,URI="keys/key.php",IV=0x00000000000000000000000000000000\n' +
+    '#EXTINF:2.833,\n' +
+    'http://media.example.com/fileSequence1.ts\n' +
+    '#EXTINF:2.833,\n' +
+    'http://media.example.com/fileSequence2.ts\n' +
+    '#EXT-X-ENDLIST\n');
+  this.clock.tick(1);
+
+  assert.equal(this.requests.length, 2, 'requested a key');
+  assert.equal(
+    this.requests[0].url,
+    absoluteUrl('video/keys/key.php'),
+    'requested the key'
+  );
+  assert.equal(
+    this.requests[1].url,
+    'http://media.example.com/fileSequence1.ts',
+    'requested the segment'
+  );
+
+  // key response
+  this.standardXHRResponse(this.requests.shift(), new Uint32Array([1, 2, 3, 4]));
+  // segment response
+  this.standardXHRResponse(this.requests.shift());
+  this.clock.tick(1);
+
+  // As the Decrypter is in a web worker, the last function in SegmentLoader is
+  // the easiest way to listen for the decrypted response
+  const mainSegmentLoader = this.player.vhs.masterPlaylistController_.mainSegmentLoader_;
+  const origHandleSegment = mainSegmentLoader.handleSegment_;
+
+  mainSegmentLoader.handleSegment_ = () => {
+    origHandleSegment.call(mainSegmentLoader);
+
+    this.player.tech_.hls.mediaSource.sourceBuffers[0].trigger('updateend');
+    this.clock.tick(1);
+
+    assert.equal(this.requests.length, 1, 'requested a segment, not a key');
+    assert.equal(
+      this.requests[0].url,
+      absoluteUrl('http://media.example.com/fileSequence2.ts'),
+      'requested the segment only'
+    );
+
+    mainSegmentLoader.handleSegment_ = origHandleSegment;
+    done();
+  };
+});
+
+QUnit.test('keys are requested per segment, cacheEncryptionKeys:false', function(assert) {
+  const done = assert.async();
+
+  this.player.src({
+    src: 'video/media-encrypted.m3u8',
+    type: 'application/vnd.apple.mpegurl',
+    cacheEncryptionKeys: false
+  });
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  this.requests.shift().respond(200, null,
+    '#EXTM3U\n' +
+    '#EXT-X-TARGETDURATION:15\n' +
+    '#EXT-X-KEY:METHOD=AES-128,URI="keys/key.php",IV=0x00000000000000000000000000000000\n' +
+    '#EXTINF:2.833,\n' +
+    'http://media.example.com/fileSequence1.ts\n' +
+    '#EXTINF:2.833,\n' +
+    'http://media.example.com/fileSequence2.ts\n' +
+    '#EXT-X-ENDLIST\n');
+  this.clock.tick(1);
+
+  assert.equal(this.requests.length, 2, 'requested a key and segment');
+  assert.equal(
+    this.requests[0].url,
+    absoluteUrl('video/keys/key.php'),
+    'requested the key'
+  );
+  assert.equal(
+    this.requests[1].url,
+    'http://media.example.com/fileSequence1.ts',
+    'requested the segment'
+  );
+
+  // key response
+  this.standardXHRResponse(this.requests.shift(), new Uint32Array([1, 2, 3, 4]));
+  // segment response
+  this.standardXHRResponse(this.requests.shift());
+  this.clock.tick(1);
+
+  // As the Decrypter is in a web worker, the last function in SegmentLoader is
+  // the easiest way to listen for the decrypted response
+  const mainSegmentLoader = this.player.vhs.masterPlaylistController_.mainSegmentLoader_;
+  const origHandleSegment = mainSegmentLoader.handleSegment_;
+
+  mainSegmentLoader.handleSegment_ = () => {
+    origHandleSegment.call(mainSegmentLoader);
+
+    this.player.tech_.hls.mediaSource.sourceBuffers[0].trigger('updateend');
+    this.clock.tick(1);
+
+    assert.equal(this.requests.length, 2, 'requested a segment and a key');
+    assert.equal(
+      this.requests[0].url,
+      absoluteUrl('video/keys/key.php'),
+      'requested the key again'
+    );
+    assert.equal(
+      this.requests[1].url,
+      absoluteUrl('http://media.example.com/fileSequence2.ts'),
+      'requested the segment'
+    );
+
+    mainSegmentLoader.handleSegment_ = origHandleSegment;
+    done();
+  };
+});
+
 QUnit.test('seeking should abort an outstanding key request and create a new one', function(assert) {
   this.player.src({
     src: 'https://example.com/encrypted.m3u8',
