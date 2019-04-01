@@ -178,7 +178,7 @@ You can deploy a single HLS stream, code against the
 regular HTML5 video APIs, and create a fast, high-quality video
 experience across all the big web device categories.
 
-Check out the [full documentation](docs/intro.md) for details on how HLS works
+Check out the [full documentation](docs/README.md) for details on how HLS works
 and advanced configuration. A description of the [adaptive switching
 behavior](docs/bitrate-switching.md) is available, too.
 
@@ -257,6 +257,16 @@ headers require the addition of `Access-Control-Allow-Credentials` header which
 is set to `true`.
 See html5rocks's [article](http://www.html5rocks.com/en/tutorials/cors/)
 for more info.
+
+##### handleManifestRedirects
+* Type: `boolean`
+* Default: `false`
+* can be used as a source option
+* can be used as an initialization option
+
+When the `handleManifestRedirects` property is set to `true`, manifest requests
+which are redirected will have their URL updated to the new URL for future
+requests.
 
 ##### useCueTags
 * Type: `boolean`

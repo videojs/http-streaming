@@ -107,11 +107,21 @@ export default class SourceUpdater {
    * @param {Function} done the function to call when done
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-appendBuffer-void-ArrayBuffer-data
    */
-  appendBuffer(bytes, done) {
+  appendBuffer(config, done) {
     this.processedAppend_ = true;
     this.queueCallback_(() => {
-      this.sourceBuffer_.appendBuffer(bytes);
-    }, done);
+      if (config.videoSegmentTimingInfoCallback) {
+        this.sourceBuffer_.addEventListener(
+          'videoSegmentTimingInfo', config.videoSegmentTimingInfoCallback);
+      }
+      this.sourceBuffer_.appendBuffer(config.bytes);
+    }, () => {
+      if (config.videoSegmentTimingInfoCallback) {
+        this.sourceBuffer_.removeEventListener(
+          'videoSegmentTimingInfo', config.videoSegmentTimingInfoCallback);
+      }
+      done();
+    });
   }
 
   /**
@@ -150,7 +160,10 @@ export default class SourceUpdater {
    * @return {Boolean} the updating status of the SourceBuffer
    */
   updating() {
-    return !this.sourceBuffer_ || this.sourceBuffer_.updating || this.pendingCallback_;
+    // we are updating if the sourcebuffer is updating or
+    return !this.sourceBuffer_ || this.sourceBuffer_.updating ||
+      // if we have a pending callback that is not our internal noop
+      (!!this.pendingCallback_ && this.pendingCallback_ !== noop);
   }
 
   /**

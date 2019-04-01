@@ -445,9 +445,17 @@ export default class SegmentLoader extends videojs.EventTarget {
       };
     }
 
-    const oldId = oldPlaylist ? oldPlaylist.id : null;
+    let oldId = null;
 
-    this.logger_(`playlist update [${oldId} => ${newPlaylist.id}]`);
+    if (oldPlaylist) {
+      if (oldPlaylist.id) {
+        oldId = oldPlaylist.id;
+      } else if (oldPlaylist.uri) {
+        oldId = oldPlaylist.uri;
+      }
+    }
+
+    this.logger_(`playlist update [${oldId} => ${newPlaylist.id || newPlaylist.uri}]`);
 
     // in VOD, this is always a rendition switch (or we updated our syncInfo above)
     // in LIVE, we always want to update with new playlists (including refreshes)
@@ -665,11 +673,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    let isEndOfStream = detectEndOfStream(this.playlist_,
-                                          this.mediaSource_,
-                                          segmentInfo.mediaIndex);
-
-    if (isEndOfStream) {
+    if (this.isEndOfStream_(segmentInfo.mediaIndex)) {
       this.endOfStream();
       return;
     }
@@ -696,6 +700,21 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     this.loadSegment_(segmentInfo);
+  }
+
+  /**
+   * Determines if this segment loader is at the end of it's stream.
+   *
+   * @param {Number} mediaIndex the index of segment we last appended
+   * @param {Object} [playlist=this.playlist_] a media playlist object
+   * @returns {Boolean} true if at end of stream, false otherwise.
+   */
+  isEndOfStream_(mediaIndex, playlist = this.playlist_) {
+    return detectEndOfStream(
+      playlist,
+      this.mediaSource_,
+      mediaIndex
+    ) && !this.sourceUpdater_.updating();
   }
 
   /**
@@ -1231,7 +1250,9 @@ export default class SegmentLoader extends videojs.EventTarget {
           this.activeInitSegmentId_ !== initId) {
         const initSegment = this.initSegment(segment.map);
 
-        this.sourceUpdater_.appendBuffer(initSegment.bytes, () => {
+        this.sourceUpdater_.appendBuffer({
+          bytes: initSegment.bytes
+        }, () => {
           this.activeInitSegmentId_ = initId;
         });
       }
@@ -1246,8 +1267,33 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     this.logger_(segmentInfoString(segmentInfo));
 
-    this.sourceUpdater_.appendBuffer(segmentInfo.bytes,
-                                     this.handleUpdateEnd_.bind(this));
+    this.sourceUpdater_.appendBuffer({
+      bytes: segmentInfo.bytes,
+      videoSegmentTimingInfoCallback:
+        this.handleVideoSegmentTimingInfo_.bind(this, segmentInfo.requestId)
+    }, this.handleUpdateEnd_.bind(this));
+  }
+
+  handleVideoSegmentTimingInfo_(requestId, event) {
+    if (!this.pendingSegment_ || requestId !== this.pendingSegment_.requestId) {
+      return;
+    }
+
+    const segment = this.pendingSegment_.segment;
+
+    if (!segment.videoTimingInfo) {
+      segment.videoTimingInfo = {};
+    }
+
+    segment.videoTimingInfo.transmuxerPrependedSeconds =
+      event.videoSegmentTimingInfo.prependedContentDuration || 0;
+    segment.videoTimingInfo.transmuxedPresentationStart =
+      event.videoSegmentTimingInfo.start.presentation;
+    segment.videoTimingInfo.transmuxedPresentationEnd =
+      event.videoSegmentTimingInfo.end.presentation;
+    // mainly used as a reference for debugging
+    segment.videoTimingInfo.baseMediaDecodeTime =
+      event.videoSegmentTimingInfo.baseMediaDecodeTime;
   }
 
   /**
@@ -1306,11 +1352,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // any time an update finishes and the last segment is in the
     // buffer, end the stream. this ensures the "ended" event will
     // fire if playback reaches that point.
-    const isEndOfStream = detectEndOfStream(segmentInfo.playlist,
-                                            this.mediaSource_,
-                                            segmentInfo.mediaIndex + 1);
-
-    if (isEndOfStream) {
+    if (this.isEndOfStream_(segmentInfo.mediaIndex + 1, segmentInfo.playlist)) {
       this.endOfStream();
     }
 
@@ -1371,6 +1413,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     const Cue = window.WebKitDataCue || window.VTTCue;
     const value = {
+      custom: segment.custom,
       dateTimeObject: segment.dateTimeObject,
       dateTimeString: segment.dateTimeString,
       bandwidth: segmentInfo.playlist.attributes.BANDWIDTH,

@@ -4,6 +4,7 @@ import videojs from 'video.js';
 /* eslint-disable no-unused-vars */
 // needed so MediaSource can be registered with videojs
 import { MediaSource } from '../src/mse/index';
+import URLToolkit from 'url-toolkit';
 /* eslint-enable */
 import testDataManifests from './test-manifests.js';
 import xhrFactory from '../src/xhr';
@@ -42,9 +43,9 @@ class MockSourceBuffer extends videojs.EventTarget {
     });
   }
 
-  appendBuffer(bytes) {
+  appendBuffer(config) {
     this.updates_.push({
-      append: bytes
+      append: config
     });
     this.updating = true;
   }
@@ -103,6 +104,11 @@ export class MockTextTrack {
     }
   }
 }
+
+// return an absolute version of a page-relative URL
+export const absoluteUrl = function(relativeUrl) {
+  return URLToolkit.buildAbsoluteURL(window.location.href, relativeUrl);
+};
 
 export const useFakeMediaSource = function() {
   let RealMediaSource = videojs.MediaSource;
@@ -192,6 +198,15 @@ export const useFakeEnvironment = function(assert) {
                                                rawEventData,
                                                rawEventData.target));
   };
+
+  // add support for xhr.responseURL
+  XMLHttpRequest.prototype.open = (function(origFn) {
+    return function() {
+      this.responseURL = absoluteUrl(arguments[1]);
+
+      return origFn.apply(this, arguments);
+    };
+  }(XMLHttpRequest.prototype.open));
 
   fakeEnvironment.requests.length = 0;
   fakeEnvironment.xhr.onCreate = function(xhr) {
@@ -355,18 +370,6 @@ export const standardXHRResponse = function(request, data) {
   request.respond(200,
                   { 'Content-Type': contentType },
                   data instanceof Uint8Array ? '' : data);
-};
-
-// return an absolute version of a page-relative URL
-export const absoluteUrl = function(relativeUrl) {
-  return window.location.protocol + '//' +
-    window.location.host +
-    (window.location.pathname
-        .split('/')
-        .slice(0, -1)
-        .concat(relativeUrl)
-        .join('/')
-    );
 };
 
 export const playlistWithDuration = function(time, conf) {
