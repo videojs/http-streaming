@@ -184,7 +184,7 @@ QUnit.test('loops', function(assert) {
         done();
       });
     });
-    player.currentTime(player.duration());
+    player.currentTime(player.duration() - 1);
   });
   player.play();
 });
