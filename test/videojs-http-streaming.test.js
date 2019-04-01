@@ -1237,6 +1237,45 @@ QUnit.test('segment 404 should trigger blacklisting of media', function(assert) 
   assert.equal(this.player.tech_.hls.stats.bandwidth, 20000, 'bandwidth set above');
 });
 
+QUnit.test('unsupported playlist should not be re-included when excluding last playlist', function(assert) {
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+
+  this.player.tech_.hls.bandwidth = 1;
+  // master
+  this.requests.shift()
+    .respond(200, null,
+             '#EXTM3U\n' +
+             '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.2"\n' +
+             'media.m3u8\n' +
+             '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400d,not-an-audio-codec"\n' +
+             'media1.m3u8\n');
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  let master = this.player.tech_.hls.playlists.master;
+  let media = this.player.tech_.hls.playlists.media_;
+
+  // segment
+  this.requests.shift().respond(400);
+
+  assert.ok(master.playlists[0].excludeUntil > 0, 'original media excluded for some time');
+  assert.strictEqual(master.playlists[1].excludeUntil,
+                     Infinity,
+                     'blacklisted invalid audio codec');
+
+  assert.equal(this.env.log.warn.calls, 2, 'warning logged for blacklist');
+  assert.equal(this.env.log.warn.args[0],
+              'Removing all playlists from the blacklist because the last rendition is about to be blacklisted.',
+              'log generic error message');
+});
+
 QUnit.test('playlist 404 should blacklist media', function(assert) {
   let media;
   let url;
