@@ -8,7 +8,8 @@ import videojs from 'video.js';
 import mp4probe from 'mux.js/lib/mp4/probe';
 import {
   playlistWithDuration,
-  MockTextTrack
+  MockTextTrack,
+  standardXHRResponse
 } from './test-helpers.js';
 import {
   LoaderCommonHooks,
@@ -249,6 +250,146 @@ QUnit.module('SegmentLoader: M2TS', function(hooks) {
       assert.equal(playlist.segments[0].end,
                    10,
                    'segment end time not shifted by mp4 start time');
+    });
+
+    QUnit.test('segmentKey will cache new encrypted keys with cacheEncryptionKeys true', function(assert) {
+      const newLoader = new SegmentLoader(LoaderCommonSettings.call(this, {
+        loaderType: 'main',
+        segmentMetadataTrack: this.segmentMetadataTrack,
+        cacheEncryptionKeys: true
+      }), {});
+
+      newLoader.playlist(playlistWithDuration(10), { isEncrypted: true });
+      newLoader.mimeType(this.mimeType);
+      newLoader.load();
+      this.clock.tick(1);
+
+      assert.strictEqual(
+        Object.keys(newLoader.keyCache_).length,
+        0,
+        'no keys have been cached'
+      );
+
+      const result = newLoader.segmentKey({
+        resolvedUri: 'key.php',
+        bytes: new Uint32Array([1, 2, 3, 4])
+      });
+
+      assert.deepEqual(
+        result,
+        { resolvedUri: 'key.php' },
+        'gets by default'
+      );
+
+      newLoader.segmentKey(
+        {
+          resolvedUri: 'key.php',
+          bytes: new Uint32Array([1, 2, 3, 4])
+        },
+        true
+      );
+
+      assert.deepEqual(
+        newLoader.keyCache_['key.php'].bytes,
+        new Uint32Array([1, 2, 3, 4]),
+        'key has been cached'
+      );
+    });
+
+    QUnit.test('segmentKey will not cache encrypted keys with cacheEncryptionKeys false', function(assert) {
+      const newLoader = new SegmentLoader(LoaderCommonSettings.call(this, {
+        loaderType: 'main',
+        segmentMetadataTrack: this.segmentMetadataTrack,
+        cacheEncryptionKeys: false
+      }), {});
+
+      newLoader.playlist(playlistWithDuration(10), { isEncrypted: true });
+      newLoader.mimeType(this.mimeType);
+      newLoader.load();
+      this.clock.tick(1);
+
+      assert.strictEqual(
+        Object.keys(newLoader.keyCache_).length,
+        0,
+        'no keys have been cached'
+      );
+
+      newLoader.segmentKey(
+        {
+          resolvedUri: 'key.php',
+          bytes: new Uint32Array([1, 2, 3, 4])
+        },
+        // set = true
+        true
+      );
+
+      assert.strictEqual(
+        Object.keys(newLoader.keyCache_).length,
+        0,
+        'no keys have been cached since cacheEncryptionKeys is false'
+      );
+    });
+
+    QUnit.test('new segment requests will use cached keys', function(assert) {
+      const done = assert.async();
+      const newLoader = new SegmentLoader(LoaderCommonSettings.call(this, {
+        loaderType: 'main',
+        segmentMetadataTrack: this.segmentMetadataTrack,
+        cacheEncryptionKeys: true
+      }), {});
+
+      newLoader.playlist(playlistWithDuration(20, { isEncrypted: true }));
+      // make the keys the same
+      newLoader.playlist_.segments[1].key =
+        videojs.mergeOptions({}, newLoader.playlist_.segments[0].key);
+      // give 2nd key an iv
+      newLoader.playlist_.segments[1].key.iv = new Uint32Array([0, 1, 2, 3]);
+
+      newLoader.mimeType(this.mimeType);
+      newLoader.load();
+      this.clock.tick(1);
+
+      assert.strictEqual(this.requests.length, 2, 'two requests');
+      assert.strictEqual(this.requests[0].uri, '0-key.php', 'key request');
+      assert.strictEqual(this.requests[1].uri, '0.ts', 'segment request');
+
+      // key response
+      standardXHRResponse(this.requests.shift(), new Uint32Array([1, 1, 1, 1]));
+      this.clock.tick(1);
+      // segment
+      standardXHRResponse(this.requests.shift(), new Uint32Array([1, 5, 0, 1]));
+      this.clock.tick(1);
+
+      // As the Decrypter is in a web worker, the last function in SegmentLoader is
+      // the easiest way to listen for the decrypted response
+      const origHandleSegment = newLoader.handleSegment_.bind(newLoader);
+
+      newLoader.handleSegment_ = () => {
+        origHandleSegment();
+        this.updateend();
+        assert.deepEqual(
+          newLoader.keyCache_['0-key.php'],
+          {
+            resolvedUri: '0-key.php',
+            bytes: new Uint32Array([16777216, 16777216, 16777216, 16777216])
+          },
+        'previous key was cached');
+
+        this.clock.tick(1);
+        assert.deepEqual(
+          newLoader.pendingSegment_.segment.key,
+          {
+            resolvedUri: '0-key.php',
+            uri: '0-key.php',
+            iv: new Uint32Array([0, 1, 2, 3])
+          },
+          'used cached key for request and own initialization vector'
+        );
+
+        assert.strictEqual(this.requests.length, 1, 'one request');
+        assert.strictEqual(this.requests[0].uri, '1.ts', 'only segment request');
+        done();
+      };
     });
 
     QUnit.test('triggers syncinfoupdate before attempting a resync', function(assert) {

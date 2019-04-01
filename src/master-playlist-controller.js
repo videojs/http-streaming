@@ -64,7 +64,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       blacklistDuration,
       enableLowInitialPlaylist,
       sourceType,
-      seekTo
+      seekTo,
+      cacheEncryptionKeys
     } = options;
 
     if (!url) {
@@ -125,7 +126,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       syncController: this.syncController_,
       decrypter: this.decrypter_,
       sourceType: this.sourceType_,
-      inbandTextTracks: this.inbandTextTracks_
+      inbandTextTracks: this.inbandTextTracks_,
+      cacheEncryptionKeys
     };
 
     this.masterPlaylistLoader_ = this.sourceType_ === 'dash' ?
