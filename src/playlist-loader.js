@@ -192,17 +192,17 @@ export const refreshDelay = (media, update) => {
  *
  * @class PlaylistLoader
  * @extends Stream
- * @param {String} srcUrl the url to start with
+ * @param {String|Object} src url or object of manifest
  * @param {Boolean} withCredentials the withCredentials xhr option
  * @constructor
  */
 export default class PlaylistLoader extends EventTarget {
-  constructor(srcUrl, hls, options = { }) {
+  constructor(src, hls, options = { }) {
     super();
 
     const { withCredentials = false, handleManifestRedirects = false } = options;
 
-    this.srcUrl = srcUrl;
+    this.src = src;
     this.hls_ = hls;
     this.withCredentials = withCredentials;
     this.handleManifestRedirects = handleManifestRedirects;
@@ -212,8 +212,8 @@ export default class PlaylistLoader extends EventTarget {
     this.customTagParsers = (hlsOptions && hlsOptions.customTagParsers) || [];
     this.customTagMappers = (hlsOptions && hlsOptions.customTagMappers) || [];
 
-    if (!this.srcUrl) {
-      throw new Error('A non-empty playlist URL is required');
+    if (!this.src) {
+      throw new Error('A non-empty playlist URL or object is required');
     }
 
     // initialize the loader state
@@ -495,7 +495,7 @@ export default class PlaylistLoader extends EventTarget {
 
     // request the specified URL
     this.request = this.hls_.xhr({
-      uri: this.srcUrl,
+      uri: this.src,
       withCredentials: this.withCredentials
     }, (error, req) => {
       // disposed
@@ -509,7 +509,7 @@ export default class PlaylistLoader extends EventTarget {
       if (error) {
         this.error = {
           status: req.status,
-          message: 'HLS playlist request error at URL: ' + this.srcUrl,
+          message: 'HLS playlist request error at URL: ' + this.src,
           responseText: req.responseText,
           // MEDIA_ERR_NETWORK
           code: 2
@@ -533,9 +533,9 @@ export default class PlaylistLoader extends EventTarget {
 
       this.state = 'HAVE_MASTER';
 
-      this.srcUrl = resolveManifestRedirect(this.handleManifestRedirects, this.srcUrl, req);
+      this.src = resolveManifestRedirect(this.handleManifestRedirects, this.src, req);
 
-      parser.manifest.uri = this.srcUrl;
+      parser.manifest.uri = this.src;
 
       // loaded a master playlist
       if (parser.manifest.playlists) {
@@ -564,16 +564,16 @@ export default class PlaylistLoader extends EventTarget {
         },
         uri: window.location.href,
         playlists: [{
-          uri: this.srcUrl,
+          uri: this.src,
           id: 0,
-          resolvedUri: this.srcUrl,
+          resolvedUri: this.src,
           // m3u8-parser does not attach an attributes property to media playlists so make
           // sure that the property is attached to avoid undefined reference errors
           attributes: {}
         }]
       };
-      this.master.playlists[this.srcUrl] = this.master.playlists[0];
-      this.haveMetadata(req, this.srcUrl);
+      this.master.playlists[this.src] = this.master.playlists[0];
+      this.haveMetadata(req, this.src);
       return this.trigger('loadedmetadata');
     });
   }

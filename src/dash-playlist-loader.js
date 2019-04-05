@@ -65,6 +65,49 @@ export const updateMaster = (oldMaster, newMaster) => {
   return update;
 };
 
+/**
+ * Parses the master xml string and updates playlist uri references
+ *
+ * @return {Object}
+ *         The parsed mpd manifest object
+ */
+export const parseMasterXml = ({ masterXml, srcUrl, clientOffset }) => {
+  const master = parseMpd(masterXml, {
+    manifestUri: srcUrl,
+    clientOffset
+  });
+
+  master.uri = srcUrl;
+
+  // Set up phony URIs for the playlists since we won't have external URIs for DASH
+  // but reference playlists by their URI throughout the project
+  // TODO: Should we create the dummy uris in mpd-parser as well (leaning towards yes).
+  for (let i = 0; i < master.playlists.length; i++) {
+    const phonyUri = `placeholder-uri-${i}`;
+
+    master.playlists[i].uri = phonyUri;
+    // set up by URI references
+    master.playlists[phonyUri] = master.playlists[i];
+  }
+
+  // set up phony URIs for the media group playlists since we won't have external
+  // URIs for DASH but reference playlists by their URI throughout the project
+  forEachMediaGroup(master, (properties, mediaType, groupKey, labelKey) => {
+    if (properties.playlists && properties.playlists.length) {
+      const phonyUri = `placeholder-uri-${mediaType}-${groupKey}-${labelKey}`;
+
+      properties.playlists[0].uri = phonyUri;
+      // setup URI references
+      master.playlists[phonyUri] = properties.playlists[0];
+    }
+  });
+
+  setupMediaPlaylists(master);
+  resolveMediaGroupUris(master);
+
+  return master;
+};
+
 export default class DashPlaylistLoader extends EventTarget {
   // DashPlaylistLoader must accept either a src url or a playlist because subsequent
   // playlist loader setups from media groups will expect to be able to pass a playlist
@@ -239,49 +282,6 @@ export default class DashPlaylistLoader extends EventTarget {
     this.trigger('loadedplaylist');
   }
 
-  /**
-   * Parses the master xml string and updates playlist uri references
-   *
-   * @return {Object}
-   *         The parsed mpd manifest object
-   */
-  parseMasterXml() {
-    const master = parseMpd(this.masterXml_, {
-      manifestUri: this.srcUrl,
-      clientOffset: this.clientOffset_
-    });
-
-    master.uri = this.srcUrl;
-
-    // Set up phony URIs for the playlists since we won't have external URIs for DASH
-    // but reference playlists by their URI throughout the project
-    // TODO: Should we create the dummy uris in mpd-parser as well (leaning towards yes).
-    for (let i = 0; i < master.playlists.length; i++) {
-      const phonyUri = `placeholder-uri-${i}`;
-
-      master.playlists[i].uri = phonyUri;
-      // set up by URI references
-      master.playlists[phonyUri] = master.playlists[i];
-    }
-
-    // set up phony URIs for the media group playlists since we won't have external
-    // URIs for DASH but reference playlists by their URI throughout the project
-    forEachMediaGroup(master, (properties, mediaType, groupKey, labelKey) => {
-      if (properties.playlists && properties.playlists.length) {
-        const phonyUri = `placeholder-uri-${mediaType}-${groupKey}-${labelKey}`;
-
-        properties.playlists[0].uri = phonyUri;
-        // setup URI references
-        master.playlists[phonyUri] = properties.playlists[0];
-      }
-    });
-
-    setupMediaPlaylists(master);
-    resolveMediaGroupUris(master);
-
-    return master;
-  }
-
   start() {
     this.started = true;
 
@@ -401,7 +401,11 @@ export default class DashPlaylistLoader extends EventTarget {
     this.mediaRequest_ = null;
 
     if (!this.masterPlaylistLoader_) {
-      this.master = this.parseMasterXml();
+      this.master = parseMasterXml({
+        masterXml: this.masterXml_,
+        srcUrl: this.srcUrl,
+        clientOffset: this.clientOffset_
+      });
       // We have the master playlist at this point, so
       // trigger this to allow MasterPlaylistController
       // to make an initial playlist selection
@@ -472,7 +476,11 @@ export default class DashPlaylistLoader extends EventTarget {
 
       this.masterXml_ = req.responseText;
 
-      const newMaster = this.parseMasterXml();
+      const newMaster = parseMasterXml({
+        masterXml: this.masterXml_,
+        srcUrl: this.srcUrl,
+        clientOffset: this.clientOffset_
+      });
       const updatedMaster = updateMaster(this.master, newMaster);
 
       if (updatedMaster) {
@@ -496,10 +504,18 @@ export default class DashPlaylistLoader extends EventTarget {
 
     if (this.masterPlaylistLoader_) {
       oldMaster = this.masterPlaylistLoader_.master;
-      newMaster = this.masterPlaylistLoader_.parseMasterXml();
+      newMaster = parseMasterXml({
+        masterXml: this.masterPlaylistLoader_.masterXml_,
+        srcUrl: this.masterPlaylistLoader_.srcUrl,
+        clientOffset: this.masterPlaylistLoader_.clientOffset_
+      });
     } else {
       oldMaster = this.master;
-      newMaster = this.parseMasterXml();
+      newMaster = parseMasterXml({
+        masterXml: this.masterXml_,
+        srcUrl: this.srcUrl,
+        clientOffset: this.clientOffset_
+      });
     }
 
     const updatedMaster = updateMaster(oldMaster, newMaster);

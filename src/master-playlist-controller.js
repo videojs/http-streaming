@@ -54,7 +54,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     super();
 
     let {
-      url,
+      src,
       handleManifestRedirects,
       withCredentials,
       tech,
@@ -67,8 +67,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       seekTo
     } = options;
 
-    if (!url) {
-      throw new Error('A non-empty playlist URL is required');
+    if (!src) {
+      throw new Error('A non-empty playlist or playlist URL is required');
     }
 
     Hls = externHls;
@@ -128,9 +128,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
       inbandTextTracks: this.inbandTextTracks_
     };
 
+    // also covers the case where the src is an object (instead of a URL)
+    // mime type will be different from either DASH or HLS
     this.masterPlaylistLoader_ = this.sourceType_ === 'dash' ?
-      new DashPlaylistLoader(url, this.hls_, this.requestOptions_) :
-      new PlaylistLoader(url, this.hls_, this.requestOptions_);
+      new DashPlaylistLoader(src, this.hls_, this.requestOptions_) :
+      new PlaylistLoader(src, this.hls_, this.requestOptions_);
     this.setupMasterPlaylistLoaderListeners_();
 
     // setup segment loaders

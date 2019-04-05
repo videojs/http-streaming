@@ -65,16 +65,16 @@ QUnit.module('MasterPlaylistController', {
 
 QUnit.test('throws error when given an empty URL', function(assert) {
   let options = {
-    url: 'test',
+    src: 'test',
     tech: this.player.tech_
   };
 
   assert.ok(new MasterPlaylistController(options), 'can create with options');
 
-  options.url = '';
+  options.src = '';
   assert.throws(() => {
     new MasterPlaylistController(options); // eslint-disable-line no-new
-  }, /A non-empty playlist URL is required/, 'requires a non empty url');
+  }, /A non-empty playlist or playlist URL is required/, 'requires a non empty url');
 });
 
 QUnit.test('obeys none preload option', function(assert) {
@@ -109,7 +109,7 @@ QUnit.test('obeys auto preload option', function(assert) {
 
 QUnit.test('passes options to PlaylistLoader', function(assert) {
   const options = {
-    url: 'test',
+    src: 'test',
     tech: this.player.tech_
   };
 
@@ -144,7 +144,7 @@ QUnit.test('obeys metadata preload option', function(assert) {
 
 QUnit.test('creates appropriate PlaylistLoader for sourceType', function(assert) {
   let options = {
-    url: 'test',
+    src: 'test',
     tech: this.player.tech_,
     sourceType: 'hls'
   };
