@@ -249,7 +249,7 @@ export default class DashPlaylistLoader extends EventTarget {
         this.error = {
           status: request.status,
           message: 'DASH playlist request error at URL: ' + playlist.uri,
-          responseText: request.responseText,
+          response: request.response,
           // MEDIA_ERR_NETWORK
           code: 2
         };
