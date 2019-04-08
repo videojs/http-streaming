@@ -1508,9 +1508,8 @@ QUnit.test('handleSidxResponse_: errors if request for sidx fails', function(ass
   const stubDone = sinon.stub();
   const handleSidxResponse = loader.handleSidxResponse_(fakePlaylist, fakeMaster, 'HAVE_MASTER', stubDone);
   const fakeRequest = {
-    response: sidxResponse(),
-    status: 400,
-    response: 'fake error msg'
+    response: 'fake error msg',
+    status: 400
   };
   let errors = 0;
 
