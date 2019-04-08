@@ -1510,7 +1510,7 @@ QUnit.test('handleSidxResponse_: errors if request for sidx fails', function(ass
   const fakeRequest = {
     response: sidxResponse(),
     status: 400,
-    responseText: 'fake error msg'
+    response: 'fake error msg'
   };
   let errors = 0;
 
@@ -1527,7 +1527,7 @@ QUnit.test('handleSidxResponse_: errors if request for sidx fails', function(ass
     {
       status: fakeRequest.status,
       message: 'DASH playlist request error at URL: fakeplaylist',
-      responseText: fakeRequest.responseText,
+      response: fakeRequest.response,
       code: 2
     },
     'error object is filled out correctly'
