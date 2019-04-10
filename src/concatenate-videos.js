@@ -7,7 +7,8 @@ import { parseCodecs } from './util/codecs.js';
 import {
   setupMediaPlaylists,
   resolveMediaGroupUris,
-  resolveSegmentUris
+  resolveSegmentUris,
+  parseManifest as parseHlsManifest
 } from './playlist-loader';
 import { parseMasterXml } from './dash-playlist-loader';
 import { resolveUrl } from './resolve-url';
@@ -68,19 +69,9 @@ const parseManifest = ({ url, manifestString, mimeType }) => {
     });
   }
 
-  const parser = new M3u8Parser();
-
-  parser.push(manifestString);
-  parser.end();
-
-  const manifest = parser.manifest;
-
-  // TODO reuse logic from playlist-loader
+  const manifest = parseHlsManifest({ manifestString });
 
   if (manifest.playlists) {
-    setupMediaPlaylists(manifest);
-    resolveMediaGroupUris(manifest);
-
     manifest.playlists.forEach((playlist) => {
       playlist.resolvedUri = resolveUrl(url, playlist.uri);
 

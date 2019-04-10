@@ -189,8 +189,8 @@ export const refreshDelay = (media, update) => {
 
 export const parseManifest = ({
   manifestString,
-  customTagParsers,
-  customTagMappers,
+  customTagParsers = [],
+  customTagMappers = [],
   srcUrl
 }) => {
   const parser = new M3u8Parser();
