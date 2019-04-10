@@ -469,15 +469,10 @@ class HlsHandler extends Component {
     this.setOptions_();
     // add master playlist controller options
     //
-    // TODO
-    //
-    // In order to support passing a pre-parsed manifest object, a vhsObject property is
-    // provided in the source options. This may be the best approach, however, the naming
-    // should probably be improved. Note, however, that vhs-json as a type, and
-    // application/vnd.vhs.json still need to be handled, as it's a separate case from
-    // both HLS and DASH (we don't want to consider native support for either).
-    this.options_.src = this.source_.vhsObject ?
-      this.source_.vhsObject : this.source_.src;
+    // if the manifestObject property is provided in the source options, use that as the
+    // pre-parsed manifest
+    this.options_.src = this.source_.manifestObject ?
+      this.source_.manifestObject : this.source_.src;
     this.options_.tech = this.tech_;
     this.options_.externHls = Hls;
     this.options_.sourceType = simpleTypeFromSourceType(type);

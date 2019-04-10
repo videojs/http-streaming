@@ -75,7 +75,7 @@ const parseManifest = ({ url, manifestString, mimeType }) => {
 
   const manifest = parser.manifest;
 
-  // TODO resuse logic from playlist-loader
+  // TODO reuse logic from playlist-loader
 
   if (manifest.playlists) {
     setupMediaPlaylists(manifest);
