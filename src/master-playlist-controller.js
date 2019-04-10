@@ -253,53 +253,16 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
         this.initialMedia_ = selectedMedia;
         this.masterPlaylistLoader_.media(this.initialMedia_);
+
+        // loadedplaylist won't fire again since the playlist was preloaded from the
+        // provided source object, so the playlist handler must be called
+        if (this.sourceType_ === 'vhs-json' && this.initialMedia_.segments) {
+          this.handleNewPlaylist(this.initialMedia_);
+        }
         return;
       }
 
-      if (this.useCueTags_) {
-        this.updateAdCues_(updatedPlaylist);
-      }
-
-      // TODO: Create a new event on the PlaylistLoader that signals
-      // that the segments have changed in some way and use that to
-      // update the SegmentLoader instead of doing it twice here and
-      // on `mediachange`
-      this.mainSegmentLoader_.playlist(updatedPlaylist, this.requestOptions_);
-      this.updateDuration();
-
-      // If the player isn't paused, ensure that the segment loader is running,
-      // as it is possible that it was temporarily stopped while waiting for
-      // a playlist (e.g., in case the playlist errored and we re-requested it).
-      if (!this.tech_.paused()) {
-        this.mainSegmentLoader_.load();
-        if (this.audioSegmentLoader_) {
-          this.audioSegmentLoader_.load();
-        }
-      }
-
-      if (!updatedPlaylist.endList) {
-        let addSeekableRange = () => {
-          let seekable = this.seekable();
-
-          if (seekable.length !== 0) {
-            this.mediaSource.addSeekableRange_(seekable.start(0), seekable.end(0));
-          }
-        };
-
-        if (this.duration() !== Infinity) {
-          let onDurationchange = () => {
-            if (this.duration() === Infinity) {
-              addSeekableRange();
-            } else {
-              this.tech_.one('durationchange', onDurationchange);
-            }
-          };
-
-          this.tech_.one('durationchange', onDurationchange);
-        } else {
-          addSeekableRange();
-        }
-      }
+      this.handleNewPlaylist(updatedPlaylist);
     });
 
     this.masterPlaylistLoader_.on('error', () => {
@@ -361,6 +324,53 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.masterPlaylistLoader_.on('renditionenabled', () => {
       this.tech_.trigger({type: 'usage', name: 'hls-rendition-enabled'});
     });
+  }
+
+  handleNewPlaylist(updatedPlaylist) {
+    if (this.useCueTags_) {
+      this.updateAdCues_(updatedPlaylist);
+    }
+
+    // TODO: Create a new event on the PlaylistLoader that signals
+    // that the segments have changed in some way and use that to
+    // update the SegmentLoader instead of doing it twice here and
+    // on `mediachange`
+    this.mainSegmentLoader_.playlist(updatedPlaylist, this.requestOptions_);
+    this.updateDuration();
+
+    // If the player isn't paused, ensure that the segment loader is running,
+    // as it is possible that it was temporarily stopped while waiting for
+    // a playlist (e.g., in case the playlist errored and we re-requested it).
+    if (!this.tech_.paused()) {
+      this.mainSegmentLoader_.load();
+      if (this.audioSegmentLoader_) {
+        this.audioSegmentLoader_.load();
+      }
+    }
+
+    if (!updatedPlaylist.endList) {
+      let addSeekableRange = () => {
+        let seekable = this.seekable();
+
+        if (seekable.length !== 0) {
+          this.mediaSource.addSeekableRange_(seekable.start(0), seekable.end(0));
+        }
+      };
+
+      if (this.duration() !== Infinity) {
+        let onDurationchange = () => {
+          if (this.duration() === Infinity) {
+            addSeekableRange();
+          } else {
+            this.tech_.one('durationchange', onDurationchange);
+          }
+        };
+
+        this.tech_.one('durationchange', onDurationchange);
+      } else {
+        addSeekableRange();
+      }
+    }
   }
 
   /**

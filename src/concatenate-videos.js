@@ -10,6 +10,7 @@ import {
   resolveSegmentUris
 } from './playlist-loader';
 import { parseMasterXml } from './dash-playlist-loader';
+import { resolveUrl } from './resolve-url';
 
 const requestAll = (urls, callback) => {
   let requestsRemaining = urls.length;
@@ -56,14 +57,13 @@ const requestAll = (urls, callback) => {
   });
 };
 
-const parseManifest = ({ manifestString, mimeType }) => {
+const parseManifest = ({ url, manifestString, mimeType }) => {
   const type = simpleTypeFromSourceType(mimeType);
 
   if (type === 'dash') {
     return parseMasterXml({
       masterXml: manifestString,
-      // placeholder URI, same as used in VHS when no master
-      srcUrl: window.location.href,
+      srcUrl: url,
       clientOffset: 0
     });
   }
@@ -82,15 +82,17 @@ const parseManifest = ({ manifestString, mimeType }) => {
     resolveMediaGroupUris(manifest);
 
     manifest.playlists.forEach((playlist) => {
+      playlist.resolvedUri = resolveUrl(url, playlist.uri);
+
       playlist.segments.forEach((segment) => {
         resolveSegmentUris(segment, playlist.resolvedUri);
       });
     });
   } else {
     manifest.attributes = {};
-    manifest.resolvedUri = window.location.href;
+    manifest.resolvedUri = url;
     manifest.segments.forEach((segment) => {
-      segment.resolvedUri = segment.uri;
+      resolveSegmentUris(segment, manifest.resolvedUri);
     });
   }
 
@@ -140,6 +142,10 @@ const combinePlaylists = (playlists) => {
     segments: []
   });
 
+  // TODO instead of relying on the attributes object of the first playlist, either
+  // merge the playlist attributes, or, better, pick and choose only relevant
+  // properties
+  combinedPlaylist.attributes = playlists[0].attributes;
   combinedPlaylist.uri = 'combined-playlist';
   combinedPlaylist.playlistType = 'VOD';
   combinedPlaylist.targetDuration = combinedPlaylist.segments.reduce((acc, segment) => {
@@ -166,6 +172,12 @@ const combinePlaylists = (playlists) => {
 };
 
 const constructMasterManifest = (playlists) => {
+  // VHS playlist arrays have properties with the playlist URI in addition to the standard
+  // indices. This must be maintained for compatibility.
+  playlists.forEach((playlist) => {
+    playlists[playlist.uri] = playlist;
+  });
+
   const master = {
     mediaGroups: {
       'AUDIO': {},
@@ -232,6 +244,7 @@ const checkForIncompatibility = (manifestObjects) => {
 
 const concatenateManifests = ({ manifests, targetVerticalResolution }) => {
   const manifestObjects = manifests.map((manifestObject) => parseManifest({
+    url: manifestObject.url,
     manifestString: manifestObject.response,
     mimeType: manifestObject.mimeType
   }));

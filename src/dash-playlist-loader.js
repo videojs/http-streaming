@@ -330,7 +330,11 @@ export default class DashPlaylistLoader extends EventTarget {
         this.masterLoaded_ = Date.now();
       }
 
-      this.srcUrl = resolveManifestRedirect(this.handleManifestRedirects, this.srcUrl, req);
+      this.srcUrl = resolveManifestRedirect(
+        this.handleManifestRedirects,
+        this.srcUrl,
+        req.responseURL
+      );
 
       this.syncClientServerClock_(this.onClientServerClockSync_.bind(this));
     });

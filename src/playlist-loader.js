@@ -187,6 +187,34 @@ export const refreshDelay = (media, update) => {
   return delay;
 };
 
+export const parseManifest = ({
+  manifestString,
+  customTagParsers,
+  customTagMappers,
+  srcUrl
+}) => {
+  const parser = new M3u8Parser();
+
+  // adding custom tag parsers
+  customTagParsers.forEach(customParser => parser.addParser(customParser));
+
+  // adding custom tag mappers
+  customTagMappers.forEach(mapper => parser.addTagMapper(mapper));
+
+  parser.push(manifestString);
+  parser.end();
+
+  parser.manifest.uri = srcUrl;
+
+  // loaded a master playlist
+  if (parser.manifest.playlists) {
+    setupMediaPlaylists(parser.manifest);
+    resolveMediaGroupUris(parser.manifest);
+  }
+
+  return parser.manifest;
+};
+
 /**
  * Load a playlist from a remote location
  *
@@ -242,7 +270,7 @@ export default class PlaylistLoader extends EventTarget {
             this.request, this.media().uri, 'HAVE_METADATA');
         }
 
-        this.haveMetadata(this.request, this.media().uri);
+        this.haveMetadata(this.request.responseText, this.media().uri);
       });
     });
   }
@@ -268,34 +296,42 @@ export default class PlaylistLoader extends EventTarget {
 
   // update the playlist loader's state in response to a new or
   // updated playlist.
-  haveMetadata(xhr, url) {
+  haveMetadata(playlist, url) {
     // any in-flight request is now finished
     this.request = null;
     this.state = 'HAVE_METADATA';
 
-    const parser = new M3u8Parser();
+    let manifest;
 
-    // adding custom tag parsers
-    this.customTagParsers.forEach(customParser => parser.addParser(customParser));
+    if (typeof playlist === 'string') {
+      const parser = new M3u8Parser();
 
-    // adding custom tag mappers
-    this.customTagMappers.forEach(mapper => parser.addTagMapper(mapper));
+      // adding custom tag parsers
+      this.customTagParsers.forEach(customParser => parser.addParser(customParser));
 
-    parser.push(xhr.responseText);
-    parser.end();
-    parser.manifest.uri = url;
-    // m3u8-parser does not attach an attributes property to media playlists so make
-    // sure that the property is attached to avoid undefined reference errors
-    parser.manifest.attributes = parser.manifest.attributes || {};
+      // adding custom tag mappers
+      this.customTagMappers.forEach(mapper => parser.addTagMapper(mapper));
+
+      parser.push(playlist);
+      parser.end();
+      parser.manifest.uri = url;
+      // m3u8-parser does not attach an attributes property to media playlists so make
+      // sure that the property is attached to avoid undefined reference errors
+      parser.manifest.attributes = parser.manifest.attributes || {};
+
+      manifest = parser.manifest;
+    } else {
+      manifest = playlist;
+    }
 
     // merge this playlist into the master
-    const update = updateMaster(this.master, parser.manifest);
+    const update = updateMaster(this.master, manifest);
 
-    this.targetDuration = parser.manifest.targetDuration;
+    this.targetDuration = manifest.targetDuration;
 
     if (update) {
       this.master = update;
-      this.media_ = this.master.playlists[parser.manifest.uri];
+      this.media_ = this.master.playlists[manifest.uri];
     } else {
       this.trigger('playlistunchanged');
     }
@@ -417,13 +453,17 @@ export default class PlaylistLoader extends EventTarget {
         return;
       }
 
-      playlist.resolvedUri = resolveManifestRedirect(this.handleManifestRedirects, playlist.resolvedUri, req);
+      playlist.resolvedUri = resolveManifestRedirect(
+        this.handleManifestRedirects,
+        playlist.resolvedUri,
+        req.responseURL
+      );
 
       if (error) {
         return this.playlistRequestError(this.request, playlist.uri, startingState);
       }
 
-      this.haveMetadata(req, playlist.uri);
+      this.haveMetadata(req.responseText, playlist.uri);
 
       // fire loadedmetadata the first time a media playlist is loaded
       if (startingState === 'HAVE_MASTER') {
@@ -493,6 +533,16 @@ export default class PlaylistLoader extends EventTarget {
   start() {
     this.started = true;
 
+    if (typeof this.src === 'object') {
+      // other sections of VHS assume this action is always asynchronous (e.g.,
+      // HlsHandler setting some references on MasterPlaylistController), therefore,
+      // even if the object is provided, let the other actions process first
+      setTimeout(() => {
+        this.setupInitialPlaylist(this.src);
+      }, 0);
+      return;
+    }
+
     // request the specified URL
     this.request = this.hls_.xhr({
       uri: this.src,
@@ -520,61 +570,59 @@ export default class PlaylistLoader extends EventTarget {
         return this.trigger('error');
       }
 
-      const parser = new M3u8Parser();
+      this.src = resolveManifestRedirect(
+        this.handleManifestRedirects,
+        this.src,
+        req.responseURL
+      );
 
-      // adding custom tag parsers
-      this.customTagParsers.forEach(customParser => parser.addParser(customParser));
+      const manifest = parseManifest({
+        manifestString: req.responseText,
+        customTagParsers: this.customTagParsers,
+        customTagMappers: this.customTagMappers,
+        srcUrl: this.src
+      });
 
-      // adding custom tag mappers
-      this.customTagMappers.forEach(mapper => parser.addTagMapper(mapper));
-
-      parser.push(req.responseText);
-      parser.end();
-
-      this.state = 'HAVE_MASTER';
-
-      this.src = resolveManifestRedirect(this.handleManifestRedirects, this.src, req);
-
-      parser.manifest.uri = this.src;
-
-      // loaded a master playlist
-      if (parser.manifest.playlists) {
-        this.master = parser.manifest;
-
-        setupMediaPlaylists(this.master);
-        resolveMediaGroupUris(this.master);
-
-        this.trigger('loadedplaylist');
-        if (!this.request) {
-          // no media playlist was specifically selected so start
-          // from the first listed one
-          this.media(parser.manifest.playlists[0]);
-        }
-        return;
-      }
-
-      // loaded a media playlist
-      // infer a master playlist if none was previously requested
-      this.master = {
-        mediaGroups: {
-          'AUDIO': {},
-          'VIDEO': {},
-          'CLOSED-CAPTIONS': {},
-          'SUBTITLES': {}
-        },
-        uri: window.location.href,
-        playlists: [{
-          uri: this.src,
-          id: 0,
-          resolvedUri: this.src,
-          // m3u8-parser does not attach an attributes property to media playlists so make
-          // sure that the property is attached to avoid undefined reference errors
-          attributes: {}
-        }]
-      };
-      this.master.playlists[this.src] = this.master.playlists[0];
-      this.haveMetadata(req, this.src);
-      return this.trigger('loadedmetadata');
+      this.setupInitialPlaylist(manifest);
     });
+  }
+
+  setupInitialPlaylist(manifest) {
+    this.state = 'HAVE_MASTER';
+
+    if (manifest.playlists) {
+      this.master = manifest;
+      this.trigger('loadedplaylist');
+      if (!this.request) {
+        // no media playlist was specifically selected so start
+        // from the first listed one
+        this.media(this.master.playlists[0]);
+      }
+      return;
+    }
+
+    // loaded a media playlist
+    // infer a master playlist if none was previously requested
+    this.master = {
+      mediaGroups: {
+        'AUDIO': {},
+        'VIDEO': {},
+        'CLOSED-CAPTIONS': {},
+        'SUBTITLES': {}
+      },
+      uri: window.location.href,
+      playlists: [{
+        uri: this.src,
+        id: 0,
+        resolvedUri: this.src,
+        // m3u8-parser does not attach an attributes property to media playlists so make
+        // sure that the property is attached to avoid undefined reference errors
+        attributes: {}
+      }]
+    };
+
+    this.master.playlists[this.src] = this.master.playlists[0];
+    this.haveMetadata(manifest, this.src);
+    return this.trigger('loadedmetadata');
   }
 }
