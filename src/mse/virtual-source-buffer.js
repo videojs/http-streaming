@@ -311,7 +311,7 @@ export default class VirtualSourceBuffer extends videojs.EventTarget {
             if (t === 'audio' && this.audioDisabled_) {
               return true;
             }
-            // if the other type if updating we don't trigger
+            // if the other type is updating we don't trigger
             if (type !== t &&
                 this[`${t}Buffer_`] &&
                 this[`${t}Buffer_`].updating) {
