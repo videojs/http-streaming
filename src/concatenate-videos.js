@@ -13,6 +13,14 @@ import {
 import { parseMasterXml } from './dash-playlist-loader';
 import { resolveUrl } from './resolve-url';
 
+/**
+ * Requests all of the urls provided, then calls back.
+ *
+ * @param {string[]} urls
+ *        An array of urls
+ * @param {function(Object, Object)} callback
+ *        Callback function with error and object containing url to response text entries
+ */
 const requestAll = (urls, callback) => {
   let requestsRemaining = urls.length;
   let responses = {};
@@ -58,6 +66,20 @@ const requestAll = (urls, callback) => {
   });
 };
 
+/**
+ * Parses a manifest string into a VHS supported manifest object.
+ *
+ * @param {Object} config
+ * @param {string} config.url
+ *        URL to the manifest
+ * @param {string} config.manifestString
+ *        The manifest itself
+ * @param {string} config..mimeType
+ *        Mime type of the manifest
+ *
+ * @returns {Object}
+ *          A VHS manifest object
+ */
 const parseManifest = ({ url, manifestString, mimeType }) => {
   const type = simpleTypeFromSourceType(mimeType);
 
@@ -90,6 +112,20 @@ const parseManifest = ({ url, manifestString, mimeType }) => {
   return manifest;
 };
 
+
+/**
+ * Selects the closest matching video playlist to the provided vertical resolution from
+ * an array of manifest objects. If the playlists do not include resolution information,
+ * the function will match based on VHS' INITIAL_BANDWIDTH config property.
+ *
+ * @param {Object[]} manifestObjects
+ *        An array of manifest objects (in the format used by VHS)
+ * @param {number} targetVerticalResolution
+ *        The vertical resolution to search for among playlists within each manifest
+ *
+ * @returns {Object[]}
+ *          An array of playlist objects, one from each of the provided manifests
+ */
 const chooseVideoPlaylists = (manifestObjects, targetVerticalResolution) => {
   return manifestObjects.map((manifestObject) => {
     // if the manifest is not a master, then it is the only rendition to use
@@ -116,6 +152,18 @@ const chooseVideoPlaylists = (manifestObjects, targetVerticalResolution) => {
   });
 };
 
+/**
+ * Joins the segments of each playlist together into one, with a discontinuity on the
+ * start of each new section of video. Playlist will include basic properties necessary
+ * for VHS to play back the playlist.
+ *
+ * @param {Object[]} playlists
+ *        An array of playlist objects (in the format used by VHS)
+ *
+ * @returns {Object}
+ *          A single playlist containing the combined elements (and joined segments) of
+ *          all of the provided playlists
+ */
 const combinePlaylists = (playlists) => {
   const combinedPlaylist = playlists.reduce((acc, playlist) => {
     const firstNewSegmentIndex = acc.segments.length;
@@ -133,9 +181,9 @@ const combinePlaylists = (playlists) => {
     segments: []
   });
 
-  // TODO instead of relying on the attributes object of the first playlist, either
-  // merge the playlist attributes, or, better, pick and choose only relevant
-  // properties
+  // TODO instead of relying on the attributes object of the first playlist, use a subset
+  // of relevant properties to ensure they accurately reflect the content (can't assume
+  // the first playlist has the same attributes as the others)
   combinedPlaylist.attributes = playlists[0].attributes;
   combinedPlaylist.uri = 'combined-playlist';
   combinedPlaylist.playlistType = 'VOD';
@@ -162,6 +210,16 @@ const combinePlaylists = (playlists) => {
   return combinedPlaylist;
 };
 
+/**
+ * Constructs a basic (only the essential information) master manifest given an array of
+ * playlists.
+ *
+ * @param {Object[]} playlists
+ *        An array of playlist objects (in the format used by VHS)
+ *
+ * @returns {Object}
+ *          A master manifest object containing the playlists
+ */
 const constructMasterManifest = (playlists) => {
   // VHS playlist arrays have properties with the playlist URI in addition to the standard
   // indices. This must be maintained for compatibility.
@@ -233,6 +291,31 @@ const checkForIncompatibility = (manifestObjects) => {
   return null;
 };
 
+/**
+ * Returns a single rendition VHS formatted master playlist object given a list of
+ * manifest strings, their URLs, their mime types, and a target vertical resolution.
+ *
+ * As of now, only DASH and HLS are supported.
+ *
+ * This function will select the closest rendition (absolute value difference) to the
+ * target vertical resolution. If resolution information is not available as part of the
+ * manifest, then it will fall back to the INITIAL_BANDWIDTH config value from VHS.
+ *
+ * @param {Object} config
+ * @param {Object[]} config.manifests
+ * @param {string} config.manifests[].url
+ *        URL to a manifest
+ * @param {string} config.manifests[].manifestString
+ *        The manifest itself
+ * @param {string} config.manifests[].mimeType
+ *        Mime type of the manifest
+ * @param {number} config.targetVerticalResolution
+ *        The vertical resolution to search for among playlists within each manifest
+ *
+ * @returns {Object} The concatenated manifest object (in the format used by VHS)
+ *
+ * @throws Will throw if there are incompatibility errors between the playlists
+ */
 const concatenateManifests = ({ manifests, targetVerticalResolution }) => {
   const manifestObjects = manifests.map((manifestObject) => parseManifest({
     url: manifestObject.url,
@@ -260,6 +343,8 @@ const concatenateManifests = ({ manifests, targetVerticalResolution }) => {
   // UI). Therefore, a rendition must maintain a consistent playback scheme (as either
   // demuxed or muxed) throughout the its entire stream.
   //
+  // Might be as easy as choosing the default audio rendition for each video playlist.
+  //
   // const altAudioPlaylists = chooseAudioPlaylists(manifestObjects, videoPlaylists)
 
   const combinedPlaylist = combinePlaylists(videoPlaylists);
@@ -268,8 +353,8 @@ const concatenateManifests = ({ manifests, targetVerticalResolution }) => {
 };
 
 /**
- * Returns a single rendition VHS formatted master playlist object given a list of URLs
- * and their mime types as well as a target vertical resolution.
+ * Calls back with a single rendition VHS formatted master playlist object given a list of
+ * URLs and their mime types as well as a target vertical resolution.
  *
  * As of now, only DASH and HLS are supported.
  *
@@ -285,7 +370,7 @@ const concatenateManifests = ({ manifests, targetVerticalResolution }) => {
  *        Mime type of the manifest
  * @param {number} config.targetVerticalResolution
  *        The vertical resolution to search for among playlists within each manifest
- * @param {function(Object, Object)} config.callback.
+ * @param {function(Object, Object)} config.callback
  *        Callback function with error and concatenated manifest parameters
  */
 export const concatenateVideos = ({ manifests, targetVerticalResolution, callback }) => {
