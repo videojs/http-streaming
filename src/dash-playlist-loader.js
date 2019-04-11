@@ -82,14 +82,18 @@ export const generateSidxKey = (sidxInfo) => {
     sidxByteRangeEnd;
 };
 
+// SIDX should be equivalent if the URI and byteranges of the SIDX match.
+// If the SIDXs have maps, the two maps should match,
+// both `a` and `b` missing SIDXs is considered matching.
+// If `a` or `b` but not both have a map, they aren't matching.
 const equivalentSidx = (a, b) => {
-  let equivalentMap = true;
+  const neitherMap = Boolean(!a.map && !b.map);
 
-  if (a.map && b.map) {
-    equivalentMap = a.map && b.map &&
-      a.map.byterange.offset === b.map.byterange.offset &&
-      a.map.byterange.length === b.map.byterange.length;
-  }
+  const equivalentMap = neitherMap || Boolean(
+    a.map && b.map &&
+    a.map.byterange.offset === b.map.byterange.offset &&
+    a.map.byterange.length === b.map.byterange.length
+  );
 
   return equivalentMap &&
     a.uri === b.uri &&
