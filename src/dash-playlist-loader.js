@@ -316,54 +316,57 @@ export default class DashPlaylistLoader extends EventTarget {
       this.trigger('mediachanging');
     }
 
-    if (playlist.sidx) {
-      let oldMaster;
-      let sidxMapping;
-
-      // sidxMapping is used when parsing the masterXml, so store
-      // it on the masterPlaylistLoader
-      if (this.masterPlaylistLoader_) {
-        oldMaster = this.masterPlaylistLoader_.master;
-        sidxMapping = this.masterPlaylistLoader_.sidxMapping_;
-      } else {
-        oldMaster = this.master;
-        sidxMapping = this.sidxMapping_;
-      }
-
-      const sidxKey = generateSidxKey(playlist.sidx);
-
-      sidxMapping[sidxKey] = {
-        sidxInfo: playlist.sidx
-      };
-
-      this.request = requestSidx_(
-        playlist.sidx,
-        playlist,
-        this.hls_.xhr,
-        { handleManifestRedirects: this.handleManifestRedirects },
-        this.handleSidxResponse_(playlist, oldMaster, startingState, (newMaster, sidx) => {
-          if (!newMaster || !sidx) {
-            throw new Error('failed to request sidx');
-          }
-
-          // update loader's sidxMapping with parsed sidx box
-          sidxMapping[sidxKey].sidx = sidx;
-
-          // everything is ready just continue to haveMetadata
-          this.haveMetadata({
-            startingState,
-            playlist: newMaster.playlists[playlist.uri]
-          });
-        })
+    if (!playlist.sidx) {
+      // Continue asynchronously if there is no sidx
+      // wait one tick to allow haveMaster to run first on a child loader
+      this.mediaRequest_ = window.setTimeout(
+        this.haveMetadata.bind(this, { startingState, playlist }),
+        0
       );
+
+      // exit early and don't do sidx work
       return;
     }
 
-    // Continue asynchronously if there is no sidx
-    // wait one tick to allow haveMaster to run first on a child loader
-    this.mediaRequest_ = window.setTimeout(
-      this.haveMetadata.bind(this, { startingState, playlist }),
-      0
+    // we have sidx mappings
+    let oldMaster;
+    let sidxMapping;
+
+    // sidxMapping is used when parsing the masterXml, so store
+    // it on the masterPlaylistLoader
+    if (this.masterPlaylistLoader_) {
+      oldMaster = this.masterPlaylistLoader_.master;
+      sidxMapping = this.masterPlaylistLoader_.sidxMapping_;
+    } else {
+      oldMaster = this.master;
+      sidxMapping = this.sidxMapping_;
+    }
+
+    const sidxKey = generateSidxKey(playlist.sidx);
+
+    sidxMapping[sidxKey] = {
+      sidxInfo: playlist.sidx
+    };
+
+    this.request = requestSidx_(
+      playlist.sidx,
+      playlist,
+      this.hls_.xhr,
+      { handleManifestRedirects: this.handleManifestRedirects },
+      this.handleSidxResponse_(playlist, oldMaster, startingState, (newMaster, sidx) => {
+        if (!newMaster || !sidx) {
+          throw new Error('failed to request sidx');
+        }
+
+        // update loader's sidxMapping with parsed sidx box
+        sidxMapping[sidxKey].sidx = sidx;
+
+        // everything is ready just continue to haveMetadata
+        this.haveMetadata({
+          startingState,
+          playlist: newMaster.playlists[playlist.uri]
+        });
+      })
     );
   }
 
