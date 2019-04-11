@@ -14,24 +14,24 @@ below. Whenever a new segment is downloaded, we calculate the download
 bitrate based on the size of the segment and the time it took to
 download:
 
-![New bitrate info is available](bitrate-switching-1.png)
+![New bitrate info is available](images/bitrate-switching-1.png)
 
 First, we filter out all the renditions that have a higher bitrate
 than the new measurement:
 
-![Bitrate filtering](bitrate-switching-2.png)
+![Bitrate filtering](images/bitrate-switching-2.png)
 
 Then we get rid of any renditions that are bigger than the current
 player dimensions:
 
-![Resolution filtering](bitrate-switching-3.png)
+![Resolution filtering](images/bitrate-switching-3.png)
 
 We don't want to signficant quality drop just because your player is
 one pixel too small, so we add back in the next highest
 resolution. The highest bitrate rendition that remains is the one that
 gets used:
 
-![Final selection](bitrate-switching-4.png)
+![Final selection](images/bitrate-switching-4.png)
 
 If it turns out no rendition is acceptable based on the filtering
 described above, the first encoding listed in the master playlist will

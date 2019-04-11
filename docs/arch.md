@@ -8,7 +8,7 @@ This project has three primary duties:
 ### Playlist Management
 The [playlist loader](../src/playlist-loader.js) handles all of the details of requesting, parsing, updating, and switching playlists at runtime. It's operation is described by this state diagram:
 
-![Playlist Loader States](playlist-loader-states.png)
+![Playlist Loader States](images/playlist-loader-states.png)
 
 During VOD playback, the loader will move quickly to the HAVE_METADATA state and then stay there unless a quality switch request sends it to SWITCHING_MEDIA while it fetches an alternate playlist. The loader enters the HAVE_CURRENT_METADATA when a live stream is detected and it's time to refresh the current media playlist to find out about new video segments.
 

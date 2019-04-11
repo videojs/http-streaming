@@ -260,3 +260,25 @@ QUnit.test('supports timestampOffset', function(assert) {
   sourceBuffer.trigger('updateend');
   assert.equal(sourceBuffer.timestampOffset, 14, 'applied the update');
 });
+
+QUnit.test('abort on dispose waits until after a remove has finished', function(assert) {
+  let updater = new SourceUpdater(this.mediaSource, 'video/mp2t');
+  let sourceBuffer;
+
+  this.mediaSource.trigger('sourceopen');
+  updater.appendBuffer({
+    bytes: new Uint8Array([0])
+  }, () => {});
+
+  sourceBuffer = this.mediaSource.sourceBuffers[0];
+  sourceBuffer.trigger('updateend');
+  updater.remove(0, 10);
+  updater.dispose();
+
+  assert.deepEqual(sourceBuffer.updates_[1].remove, [0, 10], 'remove called');
+  assert.equal(sourceBuffer.updates_.length, 2, 'abort not called before updateend');
+
+  sourceBuffer.trigger('updateend');
+
+  assert.ok(sourceBuffer.updates_[2].abort, 'aborted the source buffer');
+});
