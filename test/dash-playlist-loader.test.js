@@ -319,7 +319,7 @@ QUnit.test('generateSidxKey: generates correct key', function(assert) {
   );
 });
 
-QUnit.test('compareSidxEntry: will will not add new sidx info to a mapping', function(assert) {
+QUnit.test('compareSidxEntry: will not add new sidx info to a mapping', function(assert) {
   const playlists = {
     0: {
       sidx: {
