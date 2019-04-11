@@ -1439,7 +1439,7 @@ QUnit.test('refreshXml_: requests the sidx if it changed', function(assert) {
   );
 });
 
-QUnit.test('handleSidxResponse_: updates master with sidx information', function(assert) {
+QUnit.test('sidxRequestFinished_: updates master with sidx information', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
   const fakePlaylist = {
     segments: [],
@@ -1459,7 +1459,7 @@ QUnit.test('handleSidxResponse_: updates master with sidx information', function
     }
   };
   const stubDone = sinon.stub();
-  const handleSidxResponse = loader.handleSidxResponse_(fakePlaylist, fakeMaster, 'HAVE_MASTER', stubDone);
+  const handleSidxResponse = loader.sidxRequestFinished_(fakePlaylist, fakeMaster, 'HAVE_MASTER', stubDone);
   const fakeRequest = {
     response: sidxResponse()
   };
@@ -1483,7 +1483,7 @@ QUnit.test('handleSidxResponse_: updates master with sidx information', function
   );
 });
 
-QUnit.test('handleSidxResponse_: errors if request for sidx fails', function(assert) {
+QUnit.test('sidxRequestFinished_: errors if request for sidx fails', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
   const fakePlaylist = {
     segments: [{
@@ -1506,7 +1506,7 @@ QUnit.test('handleSidxResponse_: errors if request for sidx fails', function(ass
     }
   };
   const stubDone = sinon.stub();
-  const handleSidxResponse = loader.handleSidxResponse_(fakePlaylist, fakeMaster, 'HAVE_MASTER', stubDone);
+  const handleSidxResponse = loader.sidxRequestFinished_(fakePlaylist, fakeMaster, 'HAVE_MASTER', stubDone);
   const fakeRequest = {
     response: 'fake error msg',
     status: 400

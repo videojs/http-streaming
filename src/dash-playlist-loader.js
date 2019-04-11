@@ -248,7 +248,7 @@ export default class DashPlaylistLoader extends EventTarget {
     }
   }
 
-  handleSidxResponse_(playlist, master, startingState, doneFn) {
+  sidxRequestFinished_(playlist, master, startingState, doneFn) {
     return (err, request) => {
       // disposed
       if (!this.request) {
@@ -366,7 +366,7 @@ export default class DashPlaylistLoader extends EventTarget {
       playlist,
       this.hls_.xhr,
       { handleManifestRedirects: this.handleManifestRedirects },
-      this.handleSidxResponse_(playlist, oldMaster, startingState, (newMaster, sidx) => {
+      this.sidxRequestFinished_(playlist, oldMaster, startingState, (newMaster, sidx) => {
         if (!newMaster || !sidx) {
           throw new Error('failed to request sidx');
         }
@@ -690,7 +690,7 @@ export default class DashPlaylistLoader extends EventTarget {
             playlist,
             this.hls_.xhr,
             { handleManifestRedirects: this.handleManifestRedirects },
-            this.handleSidxResponse_(playlist, master, this.state, (newMaster, sidx) => {
+            this.sidxRequestFinished_(playlist, master, this.state, (newMaster, sidx) => {
               if (!newMaster || !sidx) {
                 throw new Error('failed to request sidx on minimumUpdatePeriod');
               }
