@@ -127,8 +127,17 @@ export const compareSidxEntry = (playlists, oldSidxMapping) => {
   return newSidxMapping;
 };
 
-// exported for testing
-export const filterSidxMapping = (masterXml, srcUrl, clientOffset, oldSidxMapping) => {
+/**
+ *  A function that filters out changed items as they need to be requested separately.
+ *
+ *  The method is exported for testing
+ *
+ *  @param {Object} masterXml the mpd XML
+ *  @param {string} srcUrl the mpd url
+ *  @param {Date} clientOffset a time difference between server and client (passed through and not used)
+ *  @param {Object} oldSidxMapping the SIDX to compare against
+ */
+export const filterChangedSidxMappings = (masterXml, srcUrl, clientOffset, oldSidxMapping) => {
   // Don't pass current sidx mapping
   const master = parseMpd(masterXml, {
     manifestUri: srcUrl,
@@ -659,7 +668,7 @@ export default class DashPlaylistLoader extends EventTarget {
       this.masterXml_ = req.responseText;
 
       // This will filter out updated sidx info from the mapping
-      this.sidxMapping_ = filterSidxMapping(
+      this.sidxMapping_ = filterChangedSidxMappings(
         this.masterXml_,
         this.srcUrl,
         this.clientOffset_,

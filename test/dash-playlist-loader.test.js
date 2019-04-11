@@ -6,7 +6,7 @@ import {
   requestSidx_,
   generateSidxKey,
   compareSidxEntry,
-  filterSidxMapping
+  filterChangedSidxMappings
 } from '../src/dash-playlist-loader';
 import xhrFactory from '../src/xhr';
 import {
@@ -381,7 +381,7 @@ QUnit.test('compareSidxEntry: will remove non-matching sidxes from a mapping', f
   assert.strictEqual(Object.keys(result).length, 0, 'no sidxes in mapping');
 });
 
-QUnit.test('filterSidxMapping: removes change sidx info from mapping', function(assert) {
+QUnit.test('filterChangedSidxMappings: removes change sidx info from mapping', function(assert) {
   const loader = new DashPlaylistLoader('dash-sidx.mpd', this.fakeHls);
   let childPlaylist;
   let childLoader;
@@ -397,7 +397,7 @@ QUnit.test('filterSidxMapping: removes change sidx info from mapping', function(
   this.standardXHRResponse(this.requests.shift());
 
   const oldSidxMapping = loader.sidxMapping_;
-  let newSidxMapping = filterSidxMapping(
+  let newSidxMapping = filterChangedSidxMappings(
     loader.masterXml_,
     loader.srcUrl,
     loader.clientOffset_,
@@ -415,7 +415,7 @@ QUnit.test('filterSidxMapping: removes change sidx info from mapping', function(
 
   // should change the video playlist
   masterXml = loader.masterXml_.replace(/(indexRange)=\"\d+-\d+\"/, '$1="201-400"');
-  newSidxMapping = filterSidxMapping(
+  newSidxMapping = filterChangedSidxMappings(
     masterXml,
     loader.srcUrl,
     loader.clientOffset_,
@@ -438,7 +438,7 @@ QUnit.test('filterSidxMapping: removes change sidx info from mapping', function(
 
   // should change the English audio group
   masterXml = masterXml.replace(/(indexRange)=\"\d+-\d+\"/g, '$1="201-400"');
-  newSidxMapping = filterSidxMapping(
+  newSidxMapping = filterChangedSidxMappings(
     masterXml,
     loader.srcUrl,
     loader.clientOffset_,
