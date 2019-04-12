@@ -26,7 +26,7 @@ module.exports = {
       const file = path.resolve(segmentsDir, files.shift());
       const extname = path.extname(file);
 
-      if (extname === '.ts') {
+      if (extname === '.ts' || extname === '.mp4') {
         // read the file directly as a buffer before converting to base64
         const base64Segment = fs.readFileSync(file).toString('base64');
 
