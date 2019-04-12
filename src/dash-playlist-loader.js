@@ -1,5 +1,8 @@
 import videojs from 'video.js';
-import { parse as parseMpd, parseUTCTiming } from 'mpd-parser';
+import {
+  parse as parseMpd,
+  parseUTCTiming
+} from 'mpd-parser';
 import {
   refreshDelay,
   setupMediaPlaylists,
@@ -8,6 +11,8 @@ import {
   forEachMediaGroup
 } from './playlist-loader';
 import { resolveUrl, resolveManifestRedirect } from './resolve-url';
+import mp4Inspector from 'mux.js/lib/tools/mp4-inspector';
+import { segmentXhrHeaders } from './xhr';
 import window from 'global/window';
 
 const { EventTarget, mergeOptions } = videojs;
@@ -65,6 +70,116 @@ export const updateMaster = (oldMaster, newMaster) => {
   return update;
 };
 
+export const generateSidxKey = (sidxInfo) => {
+  // should be non-inclusive
+  const sidxByteRangeEnd =
+    sidxInfo.byterange.offset +
+    sidxInfo.byterange.length -
+    1;
+
+  return sidxInfo.uri + '-' +
+    sidxInfo.byterange.offset + '-' +
+    sidxByteRangeEnd;
+};
+
+// SIDX should be equivalent if the URI and byteranges of the SIDX match.
+// If the SIDXs have maps, the two maps should match,
+// both `a` and `b` missing SIDXs is considered matching.
+// If `a` or `b` but not both have a map, they aren't matching.
+const equivalentSidx = (a, b) => {
+  const neitherMap = Boolean(!a.map && !b.map);
+
+  const equivalentMap = neitherMap || Boolean(
+    a.map && b.map &&
+    a.map.byterange.offset === b.map.byterange.offset &&
+    a.map.byterange.length === b.map.byterange.length
+  );
+
+  return equivalentMap &&
+    a.uri === b.uri &&
+    a.byterange.offset === b.byterange.offset &&
+    a.byterange.length === b.byterange.length;
+};
+
+// exported for testing
+export const compareSidxEntry = (playlists, oldSidxMapping) => {
+  const newSidxMapping = {};
+
+  for (const uri in playlists) {
+    const playlist = playlists[uri];
+    const currentSidxInfo = playlist.sidx;
+
+    if (currentSidxInfo) {
+      const key = generateSidxKey(currentSidxInfo);
+
+      if (!oldSidxMapping[key]) {
+        break;
+      }
+
+      const savedSidxInfo = oldSidxMapping[key].sidxInfo;
+
+      if (equivalentSidx(savedSidxInfo, currentSidxInfo)) {
+        newSidxMapping[key] = oldSidxMapping[key];
+      }
+    }
+  }
+
+  return newSidxMapping;
+};
+
+/**
+ *  A function that filters out changed items as they need to be requested separately.
+ *
+ *  The method is exported for testing
+ *
+ *  @param {Object} masterXml the mpd XML
+ *  @param {string} srcUrl the mpd url
+ *  @param {Date} clientOffset a time difference between server and client (passed through and not used)
+ *  @param {Object} oldSidxMapping the SIDX to compare against
+ */
+export const filterChangedSidxMappings = (masterXml, srcUrl, clientOffset, oldSidxMapping) => {
+  // Don't pass current sidx mapping
+  const master = parseMpd(masterXml, {
+    manifestUri: srcUrl,
+    clientOffset
+  });
+
+  const videoSidx = compareSidxEntry(master.playlists, oldSidxMapping);
+  let mediaGroupSidx = videoSidx;
+
+  forEachMediaGroup(master, (properties, mediaType, groupKey, labelKey) => {
+    if (properties.playlists && properties.playlists.length) {
+      const playlists = properties.playlists;
+
+      mediaGroupSidx = mergeOptions(
+        mediaGroupSidx,
+        compareSidxEntry(playlists, oldSidxMapping)
+      );
+    }
+  });
+
+  return mediaGroupSidx;
+};
+
+// exported for testing
+export const requestSidx_ = (sidxRange, playlist, xhr, options, finishProcessingFn) => {
+  const sidxInfo = {
+    // resolve the segment URL relative to the playlist
+    uri: resolveManifestRedirect(options.handleManifestRedirects, sidxRange.resolvedUri),
+    // resolvedUri: sidxRange.resolvedUri,
+    byterange: sidxRange.byterange,
+    // the segment's playlist
+    playlist
+  };
+
+  const sidxRequestOptions = videojs.mergeOptions(sidxInfo, {
+    responseType: 'arraybuffer',
+    headers: segmentXhrHeaders(sidxInfo)
+  });
+
+  return xhr(sidxRequestOptions, finishProcessingFn);
+};
+
 export default class DashPlaylistLoader extends EventTarget {
   // DashPlaylistLoader must accept either a src url or a playlist because subsequent
   // playlist loader setups from media groups will expect to be able to pass a playlist
@@ -89,7 +204,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
     // live playlist staleness timeout
     this.on('mediaupdatetimeout', () => {
-      this.refreshMedia_();
+      this.refreshMedia_(this.media().uri);
     });
 
     this.state = 'HAVE_NOTHING';
@@ -99,6 +214,9 @@ export default class DashPlaylistLoader extends EventTarget {
     // The masterPlaylistLoader will be created with a string
     if (typeof srcUrlOrPlaylist === 'string') {
       this.srcUrl = srcUrlOrPlaylist;
+      // TODO: reset sidxMapping between period changes
+      // once multi-period is refactored
+      this.sidxMapping_ = {};
       return;
     }
 
@@ -128,6 +246,39 @@ export default class DashPlaylistLoader extends EventTarget {
       oldRequest.onreadystatechange = null;
       oldRequest.abort();
     }
+  }
+
+  sidxRequestFinished_(playlist, master, startingState, doneFn) {
+    return (err, request) => {
+      // disposed
+      if (!this.request) {
+        return;
+      }
+
+      // pending request is cleared
+      this.request = null;
+
+      if (err) {
+        this.error = {
+          status: request.status,
+          message: 'DASH playlist request error at URL: ' + playlist.uri,
+          response: request.response,
+          // MEDIA_ERR_NETWORK
+          code: 2
+        };
+        if (startingState) {
+          this.state = startingState;
+        }
+
+        this.trigger('error');
+        return doneFn(master, null);
+      }
+
+      const bytes = new Uint8Array(request.response);
+      const sidx = mp4Inspector.parseSidx(bytes.subarray(8));
+
+      return doneFn(master, sidx);
+    };
   }
 
   media(playlist) {
@@ -178,24 +329,67 @@ export default class DashPlaylistLoader extends EventTarget {
       this.trigger('mediachanging');
     }
 
-    // TODO: check for sidx here
+    if (!playlist.sidx) {
+      // Continue asynchronously if there is no sidx
+      // wait one tick to allow haveMaster to run first on a child loader
+      this.mediaRequest_ = window.setTimeout(
+        this.haveMetadata.bind(this, { startingState, playlist }),
+        0
+      );
 
-    // Continue asynchronously if there is no sidx
-    // wait one tick to allow haveMaster to run first on a child loader
-    this.mediaRequest_ = window.setTimeout(
-      this.haveMetadata.bind(this, { startingState, playlist }),
-      0
+      // exit early and don't do sidx work
+      return;
+    }
+
+    // we have sidx mappings
+    let oldMaster;
+    let sidxMapping;
+
+    // sidxMapping is used when parsing the masterXml, so store
+    // it on the masterPlaylistLoader
+    if (this.masterPlaylistLoader_) {
+      oldMaster = this.masterPlaylistLoader_.master;
+      sidxMapping = this.masterPlaylistLoader_.sidxMapping_;
+    } else {
+      oldMaster = this.master;
+      sidxMapping = this.sidxMapping_;
+    }
+
+    const sidxKey = generateSidxKey(playlist.sidx);
+
+    sidxMapping[sidxKey] = {
+      sidxInfo: playlist.sidx
+    };
+
+    this.request = requestSidx_(
+      playlist.sidx,
+      playlist,
+      this.hls_.xhr,
+      { handleManifestRedirects: this.handleManifestRedirects },
+      this.sidxRequestFinished_(playlist, oldMaster, startingState, (newMaster, sidx) => {
+        if (!newMaster || !sidx) {
+          throw new Error('failed to request sidx');
+        }
+
+        // update loader's sidxMapping with parsed sidx box
+        sidxMapping[sidxKey].sidx = sidx;
+
+        // everything is ready just continue to haveMetadata
+        this.haveMetadata({
+          startingState,
+          playlist: newMaster.playlists[playlist.uri]
+        });
+      })
     );
   }
 
   haveMetadata({startingState, playlist}) {
     this.state = 'HAVE_METADATA';
-    this.media_ = playlist;
     this.loadedPlaylists_[playlist.uri] = playlist;
     this.mediaRequest_ = null;
 
     // This will trigger loadedplaylist
-    this.refreshMedia_();
+    this.refreshMedia_(playlist.uri);
 
     // fire loadedmetadata the first time a media playlist is loaded
     // to resolve setup of media groups
@@ -248,7 +442,8 @@ export default class DashPlaylistLoader extends EventTarget {
   parseMasterXml() {
     const master = parseMpd(this.masterXml_, {
       manifestUri: this.srcUrl,
-      clientOffset: this.clientOffset_
+      clientOffset: this.clientOffset_,
+      sidxMapping: this.sidxMapping_
     });
 
     master.uri = this.srcUrl;
@@ -472,11 +667,51 @@ export default class DashPlaylistLoader extends EventTarget {
 
       this.masterXml_ = req.responseText;
 
-      const newMaster = this.parseMasterXml();
-      const updatedMaster = updateMaster(this.master, newMaster);
+      // This will filter out updated sidx info from the mapping
+      this.sidxMapping_ = filterChangedSidxMappings(
+        this.masterXml_,
+        this.srcUrl,
+        this.clientOffset_,
+        this.sidxMapping_
+      );
+
+      const master = this.parseMasterXml();
+      const updatedMaster = updateMaster(this.master, master);
 
       if (updatedMaster) {
-        this.master = updatedMaster;
+        const sidxKey = generateSidxKey(this.media().sidx);
+
+        // the sidx was updated, so the previous mapping was removed
+        if (!this.sidxMapping_[sidxKey]) {
+          const playlist = this.media();
+
+          this.request = requestSidx_(
+            playlist.sidx,
+            playlist,
+            this.hls_.xhr,
+            { handleManifestRedirects: this.handleManifestRedirects },
+            this.sidxRequestFinished_(playlist, master, this.state, (newMaster, sidx) => {
+              if (!newMaster || !sidx) {
+                throw new Error('failed to request sidx on minimumUpdatePeriod');
+              }
+
+              // update loader's sidxMapping with parsed sidx box
+              this.sidxMapping_[sidxKey].sidx = sidx;
+
+              window.setTimeout(() => {
+                this.trigger('minimumUpdatePeriod');
+              }, this.master.minimumUpdatePeriod);
+
+              // TODO: do we need to reload the current playlist?
+              this.refreshMedia_(this.media().uri);
+
+              return;
+            })
+          );
+        } else {
+
+          this.master = updatedMaster;
+        }
       }
 
       window.setTimeout(() => {
@@ -490,7 +725,11 @@ export default class DashPlaylistLoader extends EventTarget {
    * references. If this is an alternate loader, the updated parsed manifest is retrieved
    * from the master loader.
    */
-  refreshMedia_() {
+  refreshMedia_(mediaUri) {
+    if (!mediaUri) {
+      throw new Error('refreshMedia_ must take a media uri');
+    }
+
     let oldMaster;
     let newMaster;
 
@@ -510,13 +749,14 @@ export default class DashPlaylistLoader extends EventTarget {
       } else {
         this.master = updatedMaster;
       }
-      this.media_ = updatedMaster.playlists[this.media_.uri];
+      this.media_ = updatedMaster.playlists[mediaUri];
     } else {
+      this.media_ = newMaster.playlists[mediaUri];
       this.trigger('playlistunchanged');
     }
 
     if (!this.media().endList) {
-      this.mediaUpdateTimeout = window.setTimeout(()=> {
+      this.mediaUpdateTimeout = window.setTimeout(() => {
         this.trigger('mediaupdatetimeout');
       }, refreshDelay(this.media(), !!updatedMaster));
     }

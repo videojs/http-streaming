@@ -166,6 +166,68 @@ QUnit.test('Live DASH', function(assert) {
   });
 });
 
+QUnit.test('DASH sidx', function(assert) {
+  let done = assert.async();
+  let player = this.player;
+
+  playFor(player, 2, function() {
+    assert.ok(true, 'played for at least two seconds');
+    assert.equal(player.error(), null, 'no errors');
+
+    player.one('ended', () => {
+      assert.ok(true, 'triggered ended event');
+      done();
+    });
+
+    // Firefox sometimes won't loop if seeking directly to the duration, or to too close
+    // to the duration (e.g., 10ms from duration). 100ms seems to work.
+    player.currentTime(player.duration() - 0.1);
+  });
+
+  player.src({
+    src: 'https://dash.akamaized.net/dash264/TestCases/10a/1/iis_forest_short_poem_multi_lang_480p_single_adapt_aaclc_sidx.mpd',
+    type: 'application/dash+xml'
+  });
+});
+
+// This is a potentially existing issue where a combination of things
+// results in no ended event. We should fix this and start running this
+// test with 100% pass rate after that.
+QUnit.skip('DASH sidx with alt audio should end', function(assert) {
+  assert.timeout(20000);
+
+  let done = assert.async();
+  let player = this.player;
+
+  player.one('ended', () => {
+    assert.ok(true, 'triggered ended');
+    assert.equal(player.error(), null, 'no errors');
+    done();
+  });
+
+  playFor(player, 1, () => {
+    player.currentTime(18);
+
+    playFor(player, 1, () => {
+      player.currentTime(25);
+
+      playFor(player, 1, () => {
+        // switch audio playlist
+        player.audioTracks()[1].enabled = true;
+
+        playFor(player, 1, () => {
+          player.currentTime(player.duration() - 5);
+        });
+      });
+    });
+  });
+
+  player.src({
+    src: 'https://dash.akamaized.net/dash264/TestCases/10a/1/iis_forest_short_poem_multi_lang_480p_single_adapt_aaclc_sidx.mpd',
+    type: 'application/dash+xml'
+  });
+});
+
 QUnit.test('loops', function(assert) {
   assert.timeout(5000);
   let done = assert.async();
