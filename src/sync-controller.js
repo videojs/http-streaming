@@ -37,7 +37,6 @@ export const syncPointStrategies = [
 
       let segments = playlist.segments || [];
       let syncPoint = null;
-      let lastDistance = null;
 
       currentTime = currentTime || 0;
 
@@ -47,15 +46,7 @@ export const syncPointStrategies = [
         if (segment.dateTimeObject) {
           let segmentTime = segment.dateTimeObject.getTime() / 1000;
           let segmentStart = segmentTime + syncController.datetimeToDisplayTime;
-          let distance = Math.abs(currentTime - segmentStart);
 
-          // Once the distance begins to increase, we have passed
-          // currentTime and can stop looking for better candidates
-          if (lastDistance !== null && lastDistance < distance) {
-            break;
-          }
-
-          lastDistance = distance;
           syncPoint = {
             time: segmentStart,
             segmentIndex: i
