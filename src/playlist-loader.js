@@ -402,7 +402,11 @@ export default class PlaylistLoader extends EventTarget {
     const mediaChange = !this.media_ || playlist.uri !== this.media_.uri;
 
     // switch to fully loaded playlists immediately
-    if (this.master.playlists[playlist.uri].endList) {
+    if (this.master.playlists[playlist.uri].endList ||
+        // handle the case of a playlist object pre-loaded (e.g., if using the
+        // manifestObject VHS source option and demuxed audio, where the playlist will
+        // be within mediaGroups)
+        (playlist.endList && playlist.segments.length)) {
       // abort outstanding playlist requests
       if (this.request) {
         this.request.onreadystatechange = null;
@@ -539,6 +543,7 @@ export default class PlaylistLoader extends EventTarget {
       // even if the object is provided, let the other actions process first
       setTimeout(() => {
         this.setupInitialPlaylist(this.src);
+        this.trigger('loadedmetadata');
       }, 0);
       return;
     }
@@ -621,7 +626,10 @@ export default class PlaylistLoader extends EventTarget {
       }]
     };
 
-    this.master.playlists[this.src] = this.master.playlists[0];
+    // handle playlists passed as objects
+    const playlistId = typeof this.src === 'string' ? this.src : this.src.resolvedUri;
+
+    this.master.playlists[playlistId] = this.master.playlists[0];
     this.haveMetadata(manifest, this.src);
     return this.trigger('loadedmetadata');
   }

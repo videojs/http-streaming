@@ -405,6 +405,14 @@ export const initialize = {
           playlistLoader = new PlaylistLoader(properties.resolvedUri,
                                               hls,
                                               requestOptions);
+        // if manifest object was provided as part of the source, assume that the
+        // media group playlists are also resolved
+        } else if (sourceType === 'vhs-json' && properties.playlists) {
+          playlistLoader = new PlaylistLoader(
+            properties.playlists[0],
+            hls,
+            requestOptions
+          );
         } else if (properties.playlists && sourceType === 'dash') {
           playlistLoader = new DashPlaylistLoader(properties.playlists[0],
                                                   hls,
