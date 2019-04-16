@@ -334,7 +334,6 @@ export default class DashPlaylistLoader extends EventTarget {
     if (!playlist.sidx) {
       // Continue asynchronously if there is no sidx
       // wait one tick to allow haveMaster to run first on a child loader
-      window.clearTimeout(this.mediaRequest_);
       this.mediaRequest_ = window.setTimeout(
         this.haveMetadata.bind(this, { startingState, playlist }),
         0
@@ -407,6 +406,7 @@ export default class DashPlaylistLoader extends EventTarget {
   pause() {
     this.stopRequest();
     window.clearTimeout(this.mediaUpdateTimeout);
+    window.clearTimeout(this.minimumUpdatePeriodTimeout_);
     if (this.state === 'HAVE_NOTHING') {
       // If we pause the loader before any data has been retrieved, its as if we never
       // started, so reset to an unstarted state.
@@ -416,6 +416,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
   load(isFinalRendition) {
     window.clearTimeout(this.mediaUpdateTimeout);
+    window.clearTimeout(this.minimumUpdatePeriodTimeout_);
 
     const media = this.media();
 
@@ -630,7 +631,6 @@ export default class DashPlaylistLoader extends EventTarget {
     // would be to update the manifest at the same rate that the media playlists
     // are "refreshed", i.e. every targetDuration.
     if (this.master && this.master.minimumUpdatePeriod) {
-      window.clearTimeout(this.minimumUpdatePeriodTimeout_);
       this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
         this.trigger('minimumUpdatePeriod');
       }, this.master.minimumUpdatePeriod);
