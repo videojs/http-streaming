@@ -334,6 +334,7 @@ export default class DashPlaylistLoader extends EventTarget {
     if (!playlist.sidx) {
       // Continue asynchronously if there is no sidx
       // wait one tick to allow haveMaster to run first on a child loader
+      window.clearTimeout(this.mediaRequest_);
       this.mediaRequest_ = window.setTimeout(
         this.haveMetadata.bind(this, { startingState, playlist }),
         0
@@ -485,6 +486,7 @@ export default class DashPlaylistLoader extends EventTarget {
     // We don't need to request the master manifest again
     // Call this asynchronously to match the xhr request behavior below
     if (this.masterPlaylistLoader_) {
+      window.clearTimeout(this.mediaRequest_);
       this.mediaRequest_ = window.setTimeout(
         this.haveMaster_.bind(this),
         0
@@ -628,6 +630,7 @@ export default class DashPlaylistLoader extends EventTarget {
     // would be to update the manifest at the same rate that the media playlists
     // are "refreshed", i.e. every targetDuration.
     if (this.master && this.master.minimumUpdatePeriod) {
+      window.clearTimeout(this.minimumUpdatePeriodTimeout_);
       this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
         this.trigger('minimumUpdatePeriod');
       }, this.master.minimumUpdatePeriod);
@@ -700,6 +703,7 @@ export default class DashPlaylistLoader extends EventTarget {
               // update loader's sidxMapping with parsed sidx box
               this.sidxMapping_[sidxKey].sidx = sidx;
 
+              window.clearTimeout(this.minimumUpdatePeriodTimeout_);
               this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
                 this.trigger('minimumUpdatePeriod');
               }, this.master.minimumUpdatePeriod);
@@ -716,6 +720,7 @@ export default class DashPlaylistLoader extends EventTarget {
         }
       }
 
+      window.clearTimeout(this.minimumUpdatePeriodTimeout_);
       this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
         this.trigger('minimumUpdatePeriod');
       }, this.master.minimumUpdatePeriod);
