@@ -231,6 +231,8 @@ export default class DashPlaylistLoader extends EventTarget {
   dispose() {
     this.stopRequest();
     this.loadedPlaylists_ = {};
+    window.clearTimeout(this.minimumUpdatePeriodTimeout_);
+    window.clearTimeout(this.mediaRequest_);
     window.clearTimeout(this.mediaUpdateTimeout);
   }
 
@@ -626,7 +628,7 @@ export default class DashPlaylistLoader extends EventTarget {
     // would be to update the manifest at the same rate that the media playlists
     // are "refreshed", i.e. every targetDuration.
     if (this.master && this.master.minimumUpdatePeriod) {
-      window.setTimeout(() => {
+      this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
         this.trigger('minimumUpdatePeriod');
       }, this.master.minimumUpdatePeriod);
     }
@@ -698,7 +700,7 @@ export default class DashPlaylistLoader extends EventTarget {
               // update loader's sidxMapping with parsed sidx box
               this.sidxMapping_[sidxKey].sidx = sidx;
 
-              window.setTimeout(() => {
+              this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
                 this.trigger('minimumUpdatePeriod');
               }, this.master.minimumUpdatePeriod);
 
@@ -714,7 +716,7 @@ export default class DashPlaylistLoader extends EventTarget {
         }
       }
 
-      window.setTimeout(() => {
+      this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
         this.trigger('minimumUpdatePeriod');
       }, this.master.minimumUpdatePeriod);
     });
