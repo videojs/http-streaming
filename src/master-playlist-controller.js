@@ -789,35 +789,15 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     let isFinalRendition =
       this.masterPlaylistLoader_.master.playlists.filter(isEnabled).length === 1;
-    let playlists = this.masterPlaylistLoader_.master.playlists;
 
-    if (playlists.length === 1) {
-      // Never blacklisting this playlist because it's the only playlist
+    if (isFinalRendition) {
+      // Never blacklisting this playlist because it's final rendition
       videojs.log.warn('Problem encountered with the current ' +
-                       'HLS playlist. Trying again since it is the only playlist.');
+                       'HLS playlist. Trying again since it is the final playlist.');
 
       this.tech_.trigger('retryplaylist');
       return this.masterPlaylistLoader_.load(isFinalRendition);
     }
-
-    if (isFinalRendition) {
-      // Since we're on the final non-blacklisted playlist, and we're about to blacklist
-      // it, instead of erring the player or retrying this playlist, clear out the current
-      // blacklist. This allows other playlists to be attempted in case any have been
-      // fixed.
-      videojs.log.warn('Removing all playlists from the blacklist because the last ' +
-                       'rendition is about to be blacklisted.');
-      playlists.forEach((playlist) => {
-        if (playlist.excludeUntil !== Infinity) {
-          delete playlist.excludeUntil;
-        }
-      });
-      // Technically we are retrying a playlist, in that we are simply retrying a previous
-      // playlist. This is needed for users relying on the retryplaylist event to catch a
-      // case where the player might be stuck and looping through "dead" playlists.
-      this.tech_.trigger('retryplaylist');
-    }
-
     // Blacklist this playlist
     currentPlaylist.excludeUntil = Date.now() + (blacklistDuration * 1000);
     this.tech_.trigger('blacklistplaylist');
@@ -829,7 +809,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
                      (error.message ? ' ' + error.message : '') +
                      ' Switching to another playlist.');
 
-    return this.masterPlaylistLoader_.media(nextPlaylist, isFinalRendition);
+    return this.masterPlaylistLoader_.media(nextPlaylist);
   }
 
   /**
