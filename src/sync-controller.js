@@ -39,18 +39,28 @@ export const syncPointStrategies = [
       let syncPoint = null;
 
       currentTime = currentTime || 0;
+      let i = segments.length;
 
-      for (let i = 0; i < segments.length; i++) {
+      while (i--) {
         let segment = segments[i];
 
-        if (segment.dateTimeObject) {
-          let segmentTime = segment.dateTimeObject.getTime() / 1000;
-          let segmentStart = segmentTime + syncController.datetimeToDisplayTime;
+        if (!segment.dateTimeObject) {
+          continue;
+        }
 
-          syncPoint = {
-            time: segmentStart,
-            segmentIndex: i
-          };
+        let segmentTime = segment.dateTimeObject.getTime() / 1000;
+        let segmentStart = segmentTime + syncController.datetimeToDisplayTime;
+
+        syncPoint = {
+          time: segmentStart,
+          segmentIndex: i
+        };
+
+        // As this segments start time minus current time is less than 0
+        // then we have moved to a segment directly behind the currentTime
+        // and can stop searching
+        if ((segmentStart - currentTime) < 0) {
+          break;
         }
       }
       return syncPoint;
