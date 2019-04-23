@@ -99,6 +99,13 @@ QUnit.test('ProgramDateTime strategy finds nearest segment for sync', function(a
     time: 160,
     segmentIndex: 15
   }, 'syncpoint found for ProgramDateTime set');
+
+  syncPoint = strategy.run(this.syncController, newPlaylist, duration, timeline, 0);
+
+  assert.deepEqual(syncPoint, {
+    time: 10,
+    segmentIndex: 0
+  }, 'syncpoint found for ProgramDateTime set at 0');
 });
 
 QUnit.test('Does not set date time mapping if date time info not on first segment',
