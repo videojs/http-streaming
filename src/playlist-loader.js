@@ -317,6 +317,7 @@ export default class PlaylistLoader extends EventTarget {
   dispose() {
     this.stopRequest();
     window.clearTimeout(this.mediaUpdateTimeout);
+    window.clearTimeout(this.finalRenditionTimeout);
   }
 
   stopRequest() {
