@@ -21,8 +21,6 @@ import {
 import { createMediaTypes, setupMediaGroups } from './media-groups';
 import logger from './util/logger';
 
-const ABORT_EARLY_BLACKLIST_SECONDS = 60 * 2;
-
 let Hls;
 
 // SegmentLoader stats that need to have each loader's
@@ -62,6 +60,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       externHls,
       useCueTags,
       blacklistDuration,
+      abortEarlyBlacklistDuration,
       enableLowInitialPlaylist,
       sourceType,
       seekTo,
@@ -81,6 +80,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.sourceType_ = sourceType;
     this.useCueTags_ = useCueTags;
     this.blacklistDuration = blacklistDuration;
+    this.abortEarlyBlacklistDuration = abortEarlyBlacklistDuration;
     this.enableLowInitialPlaylist = enableLowInitialPlaylist;
     if (this.useCueTags_) {
       this.cueTagsTrack_ = this.tech_.addTextTrack('metadata',
@@ -469,7 +469,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       this.blacklistCurrentPlaylist({
         message: 'Aborted early because there isn\'t enough bandwidth to complete the ' +
           'request without rebuffering.'
-      }, ABORT_EARLY_BLACKLIST_SECONDS);
+      }, this.abortEarlyBlacklistDuration);
     });
 
     this.mainSegmentLoader_.on('reseteverything', () => {

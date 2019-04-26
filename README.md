@@ -44,6 +44,7 @@ Video.js Compatibility: 6.0, 7.0
       - [useCueTags](#usecuetags)
       - [overrideNative](#overridenative)
       - [blacklistDuration](#blacklistduration)
+      - [abortEarlyBlacklistDuration](#abortearlyblacklistduration)
       - [bandwidth](#bandwidth)
       - [useBandwidthFromLocalStorage](#usebandwidthfromlocalstorage)
       - [enableLowInitialPlaylist](#enablelowinitialplaylist)
@@ -337,10 +338,18 @@ player.src({
 * Type: `number`
 * can be used as an initialization option
 
-When the `blacklistDuration` property is set to a time duration in seconds,
-if a playlist is blacklisted, it will be blacklisted for a period of that
-customized duration. This enables the blacklist duration to be configured
-by the user.
+A playlist will be blacklisted for `blacklistDuration` seconds if it is live
+and no longer updating, if an error was encountered when downloading it, or
+if an error was encountered when downloading one of its media segments. This
+setting is `300` by default.
+
+##### abortEarlyBlacklistDuration
+* Type: `number`
+* can be used as an initialization option
+
+A playlist will be blacklisted for `abortEarlyBlacklistDuration` seconds if
+one of its segments is being downloaded but won't finish before the buffer
+runs out. This setting is `120` by default.
 
 ##### bandwidth
 * Type: `number`

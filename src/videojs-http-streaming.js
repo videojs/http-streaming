@@ -410,6 +410,10 @@ class HlsHandler extends Component {
       this.options_.blacklistDuration = 5 * 60;
     }
 
+    if (typeof this.options_.abortEarlyBlacklistDuration !== 'number') {
+      this.options_.abortEarlyBlacklistDuration = 2 * 60;
+    }
+
     if (typeof this.options_.bandwidth !== 'number') {
       if (this.options_.useBandwidthFromLocalStorage) {
         const storedObject = getVhsLocalStorage();
