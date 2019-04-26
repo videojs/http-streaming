@@ -170,6 +170,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.sourceType_ = settings.sourceType;
     this.inbandTextTracks_ = settings.inbandTextTracks;
     this.state_ = 'INIT';
+    this.baseOffset_ = null;
 
     // private instance variables
     this.checkBufferTimeout_ = null;
@@ -750,6 +751,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       if (this.captionParser_) {
         this.captionParser_.clearAllCaptions();
       }
+      this.baseOffset_ = null;
     }
 
     this.loadSegment_(segmentInfo);
@@ -1281,14 +1283,22 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    if (segmentInfo.timestampOffset !== null &&
-        segmentInfo.timestampOffset !== this.sourceUpdater_.timestampOffset()) {
-      this.sourceUpdater_.timestampOffset(segmentInfo.timestampOffset);
+    const timelineMapping = this.syncController_.mappingForTimeline(segmentInfo.timeline);
+
+    if (this.baseOffset_ === null) {
+      if (segmentInfo.segment.map) {
+        this.baseOffset_ = timelineMapping;
+      } else {
+        this.baseOffset_ = segmentInfo.segment.start;
+      }
+      this.logger_('baseOffset: ', this.baseOffset_);
+    }
+
+    if (this.baseOffset_ !== this.sourceUpdater_.timestampOffset()) {
+      this.sourceUpdater_.timestampOffset(this.baseOffset_);
       // fired when a timestamp offset is set in HLS (can also identify discontinuities)
       this.trigger('timestampoffset');
     }
-
-    const timelineMapping = this.syncController_.mappingForTimeline(segmentInfo.timeline);
 
     if (timelineMapping !== null) {
       this.trigger({

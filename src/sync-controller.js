@@ -504,7 +504,7 @@ export default class SyncController extends videojs.EventTarget {
     let segment = segmentInfo.segment;
     let mappingObj = this.timelines[segmentInfo.timeline];
 
-    if (segmentInfo.timestampOffset !== null) {
+    if (!mappingObj && segmentInfo.startOfSegment !== null) {
       mappingObj = {
         time: segmentInfo.startOfSegment,
         mapping: segmentInfo.startOfSegment - timingInfo.start
