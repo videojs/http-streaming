@@ -131,6 +131,24 @@ QUnit.test('runs the next callback after updateend fires', function(assert) {
                   'appended the bytes');
 });
 
+QUnit.test('runs the next callback after calling timestampOffset', function(assert) {
+  let updater = new SourceUpdater(this.mediaSource, 'video/mp2t');
+  let sourceBuffer;
+
+  updater.timestampOffset(10);
+  updater.appendBuffer({
+    bytes: new Uint8Array([0, 1, 2])
+  }, () => {});
+
+  this.mediaSource.trigger('sourceopen');
+  sourceBuffer = this.mediaSource.sourceBuffers[0];
+
+  assert.equal(sourceBuffer.timestampOffset, 10, 'offset correctly set');
+  assert.equal(sourceBuffer.updates_.length, 1, 'updated once');
+  assert.deepEqual(sourceBuffer.updates_[0].append, new Uint8Array([0, 1, 2]),
+                  'appended the bytes');
+});
+
 QUnit.test('runs only one callback at a time', function(assert) {
   let updater = new SourceUpdater(this.mediaSource, 'video/mp2t');
   let sourceBuffer;
