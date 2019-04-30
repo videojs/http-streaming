@@ -6,7 +6,7 @@ import videojs from 'video.js';
 import SourceUpdater from './source-updater';
 import Config from './config';
 import window from 'global/window';
-import { removeCuesFromTrack } from './mse/remove-cues-from-track';
+import { removeCuesFromTrack } from './util/text-tracks.js';
 import { initSegmentId, segmentKeyId } from './bin-utils';
 import { mediaSegmentRequest, REQUEST_ERRORS } from './media-segment-request';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';

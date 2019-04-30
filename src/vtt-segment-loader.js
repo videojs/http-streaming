@@ -4,7 +4,7 @@
 import SegmentLoader from './segment-loader';
 import videojs from 'video.js';
 import window from 'global/window';
-import { removeCuesFromTrack } from './mse/remove-cues-from-track';
+import { removeCuesFromTrack } from './util/text-tracks.js';
 import { initSegmentId } from './bin-utils';
 import { uint8ToUtf8 } from './util/string';
 
