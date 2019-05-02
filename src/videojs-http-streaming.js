@@ -12,8 +12,8 @@ import xhrFactory from './xhr';
 import { Decrypter, AsyncStream, decrypt } from 'aes-decrypter';
 import * as utils from './bin-utils';
 import {
-  getStreamTime,
-  seekToStreamTime
+  getProgramTime,
+  seekToProgramTime
 } from './util/time';
 import { timeRangesToArray } from './ranges';
 import videojs from 'video.js';
@@ -395,6 +395,7 @@ class HlsHandler extends Component {
   setOptions_() {
     // defaults
     this.options_.withCredentials = this.options_.withCredentials || false;
+    this.options_.handleManifestRedirects = this.options_.handleManifestRedirects || false;
     this.options_.limitRenditionByPlayerDimensions = this.options_.limitRenditionByPlayerDimensions === false ? false : true;
     this.options_.smoothQualityChange = this.options_.smoothQualityChange || false;
     this.options_.useBandwidthFromLocalStorage =
@@ -441,7 +442,8 @@ class HlsHandler extends Component {
       'bandwidth',
       'smoothQualityChange',
       'customTagParsers',
-      'customTagMappers'
+      'customTagMappers',
+      'handleManifestRedirects'
     ].forEach((option) => {
       if (typeof this.source_[option] !== 'undefined') {
         this.options_[option] = this.source_[option];
@@ -770,8 +772,8 @@ class HlsHandler extends Component {
     super.dispose();
   }
 
-  convertToStreamTime(time, callback) {
-    return getStreamTime({
+  convertToProgramTime(time, callback) {
+    return getProgramTime({
       playlist: this.masterPlaylistController_.media(),
       time,
       callback
@@ -779,9 +781,9 @@ class HlsHandler extends Component {
   }
 
   // the player must be playing before calling this
-  seekToStreamTime(streamTime, callback, pauseAfterSeek = true, retryCount = 2) {
-    return seekToStreamTime({
-      streamTime,
+  seekToProgramTime(programTime, callback, pauseAfterSeek = true, retryCount = 2) {
+    return seekToProgramTime({
+      programTime,
       playlist: this.masterPlaylistController_.media(),
       retryCount,
       pauseAfterSeek,
