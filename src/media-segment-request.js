@@ -474,16 +474,18 @@ const decryptSegment = ({
 
   decryptionWorker.addEventListener('message', decryptionHandler);
 
+  const keyBytes = segment.key.bytes.slice();
+
   // this is an encrypted segment
   // incrementally decrypt the segment
   decryptionWorker.postMessage(createTransferableMessage({
     source: segment.requestId,
     encrypted: segment.encryptedBytes,
-    key: segment.key.bytes,
+    key: keyBytes,
     iv: segment.key.iv
   }), [
     segment.encryptedBytes.buffer,
-    segment.key.bytes.buffer
+    keyBytes.buffer
   ]);
 };
 
@@ -723,7 +725,7 @@ export const mediaSegmentRequest = ({
   });
 
   // optionally, request the decryption key
-  if (segment.key) {
+  if (segment.key && !segment.key.bytes) {
     const keyRequestOptions = videojs.mergeOptions(xhrOptions, {
       uri: segment.key.resolvedUri,
       responseType: 'arraybuffer'
