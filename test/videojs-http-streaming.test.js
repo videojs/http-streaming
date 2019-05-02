@@ -1803,6 +1803,90 @@ function(assert) {
   videojs.options.hls = hlsOptions;
 });
 
+QUnit.test('if handleManifestRedirects global option is used, it should be passed to PlaylistLoader', function(assert) {
+  let hlsOptions = videojs.options.hls;
+
+  this.player.dispose();
+  videojs.options.hls = {
+    handleManifestRedirects: true
+  };
+  this.player = createPlayer();
+  this.player.src({
+    src: 'http://example.com/media.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  assert.ok(this.player.tech_.hls.masterPlaylistController_.masterPlaylistLoader_.handleManifestRedirects,
+    'handleManifestRedirects is set correctly');
+
+  videojs.options.hls = hlsOptions;
+});
+
+QUnit.test('the handleManifestRedirects source option overrides the global default', function(assert) {
+  let hlsOptions = videojs.options.hls;
+
+  this.player.dispose();
+  videojs.options.hls = {
+    handleManifestRedirects: true
+  };
+  this.player = createPlayer();
+  this.player.src({
+    src: 'http://example.com/media.m3u8',
+    type: 'application/vnd.apple.mpegurl',
+    handleManifestRedirects: false
+  });
+
+  this.clock.tick(1);
+
+  assert.notOk(this.player.tech_.hls.masterPlaylistController_.masterPlaylistLoader_.handleManifestRedirects,
+    'handleManifestRedirects is set correctly');
+
+  videojs.options.hls = hlsOptions;
+});
+
+QUnit.test('if handleManifestRedirects global option is used, it should be passed to DashPlaylistLoader', function(assert) {
+  let hlsOptions = videojs.options.hls;
+
+  this.player.dispose();
+  videojs.options.hls = {
+    handleManifestRedirects: true
+  };
+  this.player = createPlayer();
+  this.player.src({
+    src: 'http://example.com/media.mpd',
+    type: 'application/dash+xml'
+  });
+
+  this.clock.tick(1);
+
+  assert.ok(this.player.tech_.hls.masterPlaylistController_.masterPlaylistLoader_.handleManifestRedirects);
+
+  videojs.options.hls = hlsOptions;
+});
+
+QUnit.test('the handleManifestRedirects in DashPlaylistLoader option overrides the global default', function(assert) {
+  let hlsOptions = videojs.options.hls;
+
+  this.player.dispose();
+  videojs.options.hls = {
+    handleManifestRedirects: true
+  };
+  this.player = createPlayer();
+  this.player.src({
+    src: 'http://example.com/media.mpd',
+    type: 'application/dash+xml',
+    handleManifestRedirects: false
+  });
+
+  this.clock.tick(1);
+
+  assert.notOk(this.player.tech_.hls.masterPlaylistController_.masterPlaylistLoader_.handleManifestRedirects);
+
+  videojs.options.hls = hlsOptions;
+});
+
 QUnit.test('the withCredentials option overrides the global default', function(assert) {
   let hlsOptions = videojs.options.hls;
 
@@ -3140,6 +3224,52 @@ QUnit.test('configures eme if present on selectedinitialmedia', function(assert)
   }, 'set source eme options');
 });
 
+QUnit.test('integration: configures eme if present on selectedinitialmedia', function(assert) {
+  const done = assert.async();
+
+  assert.timeout(3000);
+
+  this.player.eme = {
+    options: {
+      previousSetting: 1
+    }
+  };
+  this.player.src({
+    src: 'dash.mpd',
+    type: 'application/dash+xml',
+    keySystems: {
+      keySystem1: {
+        url: 'url1'
+      }
+    }
+  });
+  this.clock.tick(1);
+
+  this.player.tech_.hls.masterPlaylistController_.on('selectedinitialmedia', () => {
+    assert.deepEqual(this.player.eme.options, {
+      previousSetting: 1
+    }, 'did not modify plugin options');
+
+    assert.deepEqual(this.player.currentSource(), {
+      src: 'dash.mpd',
+      type: 'application/dash+xml',
+      keySystems: {
+        keySystem1: {
+          url: 'url1',
+          audioContentType: 'audio/mp4; codecs="mp4a.40.2"',
+          videoContentType: 'video/mp4; codecs="avc1.420015"'
+        }
+      }
+    }, 'set source eme options');
+
+    done();
+  });
+
+  this.standardXHRResponse(this.requests[0]);
+  // this allows the audio playlist loader to load
+  this.clock.tick(1);
+});
+
 QUnit.test('does not set source keySystems if keySystems not provided by source',
 function(assert) {
   this.player.src({
@@ -3438,7 +3568,8 @@ function(assert) {
   videojs.options.hls = origHlsOptions;
 });
 
-QUnit.test('convertToStreamTime will return error if time is not buffered', function(assert) {
+QUnit.test('convertToProgramTime will return error if time is not buffered',
+function(assert) {
   const done = assert.async();
 
   this.player.src({
@@ -3454,12 +3585,13 @@ QUnit.test('convertToStreamTime will return error if time is not buffered', func
   // ts
   this.standardXHRResponse(this.requests.shift());
 
-  this.player.vhs.convertToStreamTime(3, (err, streamTime) => {
+  this.player.vhs.convertToProgramTime(3, (err, programTime) => {
     assert.deepEqual(
       err,
       {
         message:
-          'Accurate streamTime could not be determined. Please seek to e.seekTime and try again',
+          'Accurate programTime could not be determined.' +
+          ' Please seek to e.seekTime and try again',
         seekTime: 0
       },
       'error is returned as time is not buffered'
@@ -3495,21 +3627,51 @@ async function(assert) {
     clock: this.clock
   });
 
+  /* ======
+  More from: https://github.com/videojs/http-streaming/commit/41df5c08f01670f6e40cf2ed772aa4ac33d02010#diff-121cd087f9c3ee7ac621cbf02aca0e23
+  =========
+
+  const videoBuffer =
+    this.player.vhs.masterPlaylistController_.mediaSource.sourceBuffers[0];
+
+  // since we don't run through the transmuxer, we have to manually trigger the timing
+  // info callback
+  videoBuffer.trigger({
+    type: 'videoSegmentTimingInfo',
+    videoSegmentTimingInfo: {
+      prependedGopDuration: 0,
+      start: {
+        presentation: 0
+      },
+      end: {
+        presentation: 1
+      }
+    }
+  });
+
+  // source buffer is mocked, so must manually trigger the video buffer
+  // video buffer is the first buffer created
+  videoBuffer.trigger('updateend');
+  this.clock.tick(1);
+
+  */
+
   // ts
   this.standardXHRResponse(this.requests[3], muxedSegment());
 
-  this.player.vhs.convertToStreamTime(0.01, (err, streamTime) => {
+  this.player.vhs.convertToProgramTime(0.01, (err, programTime) => {
     assert.notOk(err, 'no errors');
     assert.equal(
-      streamTime.mediaSeconds,
+      programTime.mediaSeconds,
       0.01,
-      'returned the streamTime of the source'
+      'returned the stream time of the source'
     );
     done();
   });
 });
 
-QUnit.test('seekToStreamTime will error if live stream has not started', function(assert) {
+QUnit.test('seekToProgramTime will error if live stream has not started',
+function(assert) {
   this.player.src({
     src: 'manifest/program-date-time.m3u8',
     type: 'application/x-mpegurl'
@@ -3520,7 +3682,7 @@ QUnit.test('seekToStreamTime will error if live stream has not started', functio
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  this.player.vhs.seekToStreamTime(
+  this.player.vhs.seekToProgramTime(
     '2018-10-12T22:33:49.037+00:00',
     (err, newTime) => {
       assert.equal(
@@ -3539,7 +3701,7 @@ QUnit.test('seekToStreamTime will error if live stream has not started', functio
   // ts
   this.standardXHRResponse(this.requests.shift(), muxedSegment());
 
-  this.player.vhs.seekToStreamTime(
+  this.player.vhs.seekToProgramTime(
     '2018-10-12T22:33:49.037+00:00',
     (err, newTime) => {
       assert.equal(
@@ -3579,7 +3741,36 @@ QUnit.test('seekToStreamTime will seek to time if buffered', async function(asse
     clock: this.clock
   });
 
-  this.player.vhs.seekToStreamTime(
+  /**========
+   More From: https://github.com/videojs/http-streaming/commit/41df5c08f01670f6e40cf2ed772aa4ac33d02010#diff-121cd087f9c3ee7ac621cbf02aca0e23
+   ==========
+  // ts
+  this.standardXHRResponse(this.requests.shift(), muxedSegment());
+
+  const videoBuffer =
+    this.player.vhs.masterPlaylistController_.mediaSource.sourceBuffers[0];
+
+  // must fake the call to videoTimingInfo as the segment isn't transmuxed in the test
+  videoBuffer.trigger({
+    type: 'videoSegmentTimingInfo',
+    videoSegmentTimingInfo: {
+      start: {
+        presentation: 0
+      },
+      end: {
+        presentation: 0.3333
+      },
+      baseMediaDecodeTime: 0,
+      prependedContentDuration: 0
+    }
+  });
+  // source buffer is mocked, so must manually trigger the video buffer
+  // video buffer is the first buffer created
+  videoBuffer.trigger('updateend');
+  this.clock.tick(1);
+  */
+
+  this.player.vhs.seekToProgramTime(
     '2018-10-12T22:33:49.037+00:00',
     (err, newTime) => {
       assert.notOk(

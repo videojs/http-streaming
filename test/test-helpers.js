@@ -1,6 +1,11 @@
 import document from 'global/document';
 import sinon from 'sinon';
 import videojs from 'video.js';
+/* eslint-disable no-unused-vars */
+// needed so MediaSource can be registered with videojs
+import { MediaSource } from '../src/mse/index';
+import URLToolkit from 'url-toolkit';
+/* eslint-enable */
 import testDataManifests from './test-manifests.js';
 import xhrFactory from '../src/xhr';
 import { isLikelyFmp4Data } from '../src/util/codecs';
@@ -43,9 +48,9 @@ class MockSourceBuffer extends videojs.EventTarget {
     });
   }
 
-  appendBuffer(bytes) {
+  appendBuffer(config) {
     this.updates_.push({
-      append: bytes
+      append: config
     });
     this.updating = true;
   }
@@ -123,6 +128,11 @@ export class MockTextTrack {
     }
   }
 }
+
+// return an absolute version of a page-relative URL
+export const absoluteUrl = function(relativeUrl) {
+  return URLToolkit.buildAbsoluteURL(window.location.href, relativeUrl);
+};
 
 export const useFakeMediaSource = function() {
   window.MediaSource = MockMediaSource;
@@ -218,6 +228,15 @@ export const useFakeEnvironment = function(assert) {
   XMLHttpRequest.prototype.overrideMimeType = function overrideMimeType(mimeType) {
     this.mimeTypeOverride = mimeType;
   };
+
+  // add support for xhr.responseURL
+  XMLHttpRequest.prototype.open = (function(origFn) {
+    return function() {
+      this.responseURL = absoluteUrl(arguments[1]);
+
+      return origFn.apply(this, arguments);
+    };
+  }(XMLHttpRequest.prototype.open));
 
   fakeEnvironment.requests.length = 0;
   fakeEnvironment.xhr.onCreate = function(xhr) {
@@ -385,18 +404,6 @@ export const standardXHRResponse = function(request, data) {
     { 'Content-Type': contentType },
     data instanceof Uint8Array ? '' : data
   );
-};
-
-// return an absolute version of a page-relative URL
-export const absoluteUrl = function(relativeUrl) {
-  return window.location.protocol + '//' +
-    window.location.host +
-    (window.location.pathname
-        .split('/')
-        .slice(0, -1)
-        .concat(relativeUrl)
-        .join('/')
-    );
 };
 
 export const playlistWithDuration = function(time, conf) {

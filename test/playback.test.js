@@ -168,7 +168,6 @@ QUnit.test('Live DASH', function(assert) {
 
 QUnit.test('loops', function(assert) {
   assert.timeout(5000);
-
   let done = assert.async();
   let player = this.player;
 
@@ -184,7 +183,10 @@ QUnit.test('loops', function(assert) {
         done();
       });
     });
-    player.currentTime(player.duration());
+
+    // Firefox sometimes won't loop if seeking directly to the duration, or to too close
+    // to the duration (e.g., 10ms from duration). 100ms seems to work.
+    player.currentTime(player.duration() - 0.1);
   });
   player.play();
 });
