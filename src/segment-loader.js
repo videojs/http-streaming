@@ -224,7 +224,11 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.keyCache_ = {};
 
     // Fmp4 CaptionParser
-    this.captionParser_ = new CaptionParser();
+    if (this.loaderType_ === 'main') {
+      this.captionParser_ = new CaptionParser();
+    } else {
+      this.captionParser_ = null;
+    }
 
     this.decrypter_ = settings.decrypter;
 
@@ -315,7 +319,9 @@ export default class SegmentLoader extends videojs.EventTarget {
       segmentTransmuxer.dispose();
     }
     this.resetStats_();
-    this.captionParser_.reset();
+    if (this.captionParser_) {
+      this.captionParser_.reset();
+    }
   }
 
   setAudio(enable) {
@@ -679,7 +685,9 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.resetLoader();
     this.remove(0, this.duration_(), done);
     // clears fmp4 captions
-    this.captionParser_.clearAllCaptions();
+    if (this.captionParser_) {
+      this.captionParser_.clearAllCaptions();
+    }
   }
 
   /**
@@ -850,7 +858,9 @@ export default class SegmentLoader extends videojs.EventTarget {
       // time 0 for the new content.
       segmentInfo.timestampOffset =
         buffered.length ? buffered.end(buffered.length - 1) : segmentInfo.startOfSegment;
-      this.captionParser_.clearAllCaptions();
+      if (this.captionParser_) {
+        this.captionParser_.clearAllCaptions();
+      }
     }
 
     this.loadSegment_(segmentInfo);
@@ -1274,7 +1284,9 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // Reset stored captions since we added parsed
     // captions to a text track at this point
-    this.captionParser_.clearParsedCaptions();
+    if (this.captionParser_) {
+      this.captionParser_.clearParsedCaptions();
+    }
   }
 
   handleId3_(simpleSegment, id3Frames, dispatchType) {

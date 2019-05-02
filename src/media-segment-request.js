@@ -166,7 +166,7 @@ const handleInitSegmentResponse =
   segment.map.bytes = new Uint8Array(request.response);
 
   // Initialize CaptionParser if it hasn't been yet
-  if (!captionParser.isInitialized()) {
+  if (captionParser && !captionParser.isInitialized()) {
     captionParser.init();
   }
 
@@ -356,7 +356,7 @@ const handleSegmentBytes = ({
 
     // Run through the CaptionParser in case there are captions.
     // Initialize CaptionParser if it hasn't been yet
-    if (!captionParser.isInitialized()) {
+    if (captionParser && !captionParser.isInitialized()) {
       captionParser.init();
     }
 
