@@ -376,6 +376,66 @@ export default class SyncController extends videojs.EventTarget {
     }
   }
 
+  /**
+   * Probe an fmp4 or an mpeg2-ts segment to determine the start of the segment
+   * in it's internal "media time".
+   *
+   * @private
+   * @param {SegmentInfo} segmentInfo - The current active request information
+   * @return {object} The start and end time of the current segment in "media time"
+   */
+  probeMp4Segment_(segmentInfo) {
+    let segment = segmentInfo.segment;
+    let timescales = mp4probe.timescale(segment.map.bytes);
+    let startTime = mp4probe.startTime(timescales, segmentInfo.bytes);
+
+    if (segmentInfo.timestampOffset !== null) {
+      segmentInfo.timestampOffset -= startTime;
+    }
+
+    return {
+      start: startTime,
+      end: startTime + segment.duration
+    };
+  }
+
+  /**
+   * Probe an mpeg2-ts segment to determine the start and end of the segment
+   * in it's internal "media time".
+   *
+   * @private
+   * @param {SegmentInfo} segmentInfo - The current active request information
+   * @return {object} The start and end time of the current segment in "media time"
+   */
+  probeTsSegment_(segmentInfo) {
+    let timeInfo = tsprobe(segmentInfo.bytes, this.inspectCache_);
+    let segmentStartTime;
+    let segmentEndTime;
+
+    if (!timeInfo) {
+      return null;
+    }
+
+    if (timeInfo.video && timeInfo.video.length === 2) {
+      this.inspectCache_ = timeInfo.video[1].dts;
+      segmentStartTime = timeInfo.video[0].dtsTime;
+      segmentEndTime = timeInfo.video[1].dtsTime;
+    } else if (timeInfo.audio && timeInfo.audio.length === 2) {
+      this.inspectCache_ = timeInfo.audio[1].dts;
+      segmentStartTime = timeInfo.audio[0].dtsTime;
+      segmentEndTime = timeInfo.audio[1].dtsTime;
+    }
+
+    const probedInfo = {
+      start: segmentStartTime,
+      end: segmentEndTime,
+      containsVideo: timeInfo.video && timeInfo.video.length === 2,
+      containsAudio: timeInfo.audio && timeInfo.audio.length === 2
+    };
+
+    return probedInfo;
+  }
+
   timestampOffsetForTimeline(timeline) {
     if (typeof this.timelines[timeline] === 'undefined') {
       return null;
