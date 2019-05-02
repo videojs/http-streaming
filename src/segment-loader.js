@@ -6,6 +6,7 @@ import videojs from 'video.js';
 import SourceUpdater from './source-updater';
 import Config from './config';
 import window from 'global/window';
+import * as Ranges from './ranges';
 import { removeCuesFromTrack } from './mse/remove-cues-from-track';
 import { initSegmentId, segmentKeyId } from './bin-utils';
 import { mediaSegmentRequest, REQUEST_ERRORS } from './media-segment-request';
@@ -180,6 +181,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.mimeType_ = null;
     this.sourceUpdater_ = null;
     this.xhrOptions_ = null;
+    this.waiting_ = true;
 
     // Fragmented mp4 playback
     this.activeInitSegmentId_ = null;
@@ -1384,7 +1386,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     const segment = segmentInfo.segment;
     const isWalkingForward = this.mediaIndex !== null;
 
-    this.pendingSegment_ = null;
     this.recordThroughput_(segmentInfo);
     this.addSegmentMetadataCue_(segmentInfo);
 
@@ -1410,6 +1411,22 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
+    const isEndOfStream = this.isEndOfStream_(segmentInfo.mediaIndex + 1, segmentInfo.playlist);
+    let buffered = this.buffered_();
+
+    if (this.waiting_) {
+      if (isEndOfStream || (buffered.length &&
+          (buffered.end(0) - this.currentTime_()) >= (this.roundTrip / 1000) + 1)) {
+        this.waiting_ = false;
+        this.trigger({
+          loader: this.loaderType_,
+          type: 'buffered'
+        });
+      }
+    }
+
+    this.pendingSegment_ = null;
+
     // Don't do a rendition switch unless we have enough time to get a sync segment
     // and conservatively guess
     if (isWalkingForward) {
@@ -1420,13 +1437,31 @@ export default class SegmentLoader extends videojs.EventTarget {
     // any time an update finishes and the last segment is in the
     // buffer, end the stream. this ensures the "ended" event will
     // fire if playback reaches that point.
-    if (this.isEndOfStream_(segmentInfo.mediaIndex + 1, segmentInfo.playlist)) {
+    if (isEndOfStream) {
       this.endOfStream();
     }
 
     if (!this.paused()) {
       this.monitorBuffer_();
     }
+  }
+
+  onWaiting(currentTime) {
+    let buffered = Ranges.findRange(this.buffered_(), currentTime);
+
+    if (buffered.length && ((buffered.end(0) >= this.duration_() - Ranges.SAFE_TIME_DELTA) ||
+      ((buffered.end(0) - currentTime) >= (this.roundTrip / 1000) + 1))) {
+      if (this.waiting_ && this.pendingSegment_ !== null) {
+        this.logger_('avoiding race condition');
+        return true;
+      }
+      this.waiting_ = false;
+      this.logger_('waiting: false');
+    } else {
+      this.waiting_ = true;
+      this.logger_('waiting: true');
+    }
+    return this.waiting_;
   }
 
   /**

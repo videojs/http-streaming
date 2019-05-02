@@ -103,6 +103,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.seekable_ = videojs.createTimeRanges();
     this.hasPlayed_ = () => false;
+    this.bufferedEvents_ = {main: false};
 
     this.syncController_ = new SyncController(options);
     this.segmentMetadataTrack_ = tech.addRemoteTextTrack({
@@ -208,6 +209,12 @@ export class MasterPlaylistController extends videojs.EventTarget {
         mediaTypes: this.mediaTypes_,
         blacklistCurrentPlaylist: this.blacklistCurrentPlaylist.bind(this)
       });
+      if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
+        this.bufferedEvents_.audio = false;
+      }
+      if (this.mediaTypes_.AUDIO.subtitlePlaylistLoader) {
+        this.bufferedEvents_.subtitle = false;
+      }
 
       this.triggerPresenceUsage_(this.master(), media);
 
@@ -490,6 +497,56 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.audioSegmentLoader_.on('ended', () => {
       this.onEndOfStream();
     });
+
+    this.mainSegmentLoader_.on('buffered', this.onBuffered.bind(this));
+    this.audioSegmentLoader_.on('buffered', this.onBuffered.bind(this));
+    this.subtitleSegmentLoader_.on('buffered', this.onBuffered.bind(this));
+
+    this.onWaiting_ = this.onWaiting.bind(this);
+    this.tech_.on('waiting', this.onWaiting_);
+  }
+
+  // TODO: jsdocs
+  onBuffered(event) {
+    if (event) {
+      this.logger_(event.loader + ' has buffered');
+      this.bufferedEvents_[event.loader] = true;
+    }
+
+    let isBuffered = Object.keys(this.bufferedEvents_).reduce((acc, cur) => {
+      return acc && this.bufferedEvents_[cur];
+    }, true);
+
+    this.logger_(this.bufferedEvents_, isBuffered);
+    if (isBuffered) {
+      this.logger_('buffered sufficient data for playback');
+      this.logger_('setting playback rate to', this.lastPlaybackRate_ || this.tech_.playbackRate());
+      this.tech_.setPlaybackRate(this.lastPlaybackRate_ || this.tech_.playbackRate());
+      this.tech_.trigger('buffered');
+    }
+  }
+
+  onWaiting() {
+    let loaders = [this.mainSegmentLoader_];
+
+    if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
+      loaders.push(this.audioSegmentLoader_);
+    }
+    if (this.mediaTypes_.SUBTITLES.activePlaylistLoader) {
+      loaders.push(this.subtitleSegmentLoader_);
+    }
+    loaders.forEach(cur => this.bufferedEvents_[cur.loaderType_] = !cur.onWaiting(this.tech_.currentTime()));
+    let isBuffered = Object.keys(this.bufferedEvents_).reduce((acc, cur) => {
+      return acc && this.bufferedEvents_[cur];
+    }, true);
+
+    if (!isBuffered) {
+      this.lastPlaybackRate_ = this.tech_.playbackRate() || this.lastPlaybackRate_;
+      this.logger_('setting playback rate to 0');
+      this.tech_.setPlaybackRate(0);
+    } else {
+      this.onBuffered();
+    }
   }
 
   mediaSecondsLoaded_() {
@@ -865,24 +922,48 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return 0;
     }
 
+    this.bufferedEvents_.main = !this.mainSegmentLoader_.onWaiting(currentTime);
+    if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
+      this.bufferedEvents_.audio = !this.audioSegmentLoader_.onWaiting(currentTime);
+    }
+    if (this.mediaTypes_.SUBTITLES.activePlaylistLoader) {
+      this.bufferedEvents_.subtitle = !this.subtitleSegmentLoader_.onWaiting(currentTime);
+    }
+
     // In flash playback, the segment loaders should be reset on every seek, even
     // in buffer seeks. If the seek location is already buffered, continue buffering as
     // usual
     // TODO: redo this comment
     if (buffered && buffered.length) {
+      this.logger_(`seeking into buffered range ${buffered.start(0)} -> ${buffered.end(0)}`);
+      let isBuffered = Object.keys(this.bufferedEvents_).reduce((acc, cur) => {
+        return acc && this.bufferedEvents_[cur];
+      }, true);
+
+      if (isBuffered) {
+        this.onBuffered();
+      } else {
+        this.tech_.trigger('waiting');
+      }
       return currentTime;
     }
 
     // cancel outstanding requests so we begin buffering at the new
     // location
-    this.mainSegmentLoader_.resetEverything();
+    this.mainSegmentLoader_.resetEverything(() => {
+      this.bufferedEvents_.main = !this.mainSegmentLoader_.onWaiting(currentTime);
+    });
     this.mainSegmentLoader_.abort();
     if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
-      this.audioSegmentLoader_.resetEverything();
+      this.audioSegmentLoader_.resetEverything(() => {
+        this.bufferedEvents_.audio = !this.audioSegmentLoader_.onWaiting(currentTime);
+      });
       this.audioSegmentLoader_.abort();
     }
     if (this.mediaTypes_.SUBTITLES.activePlaylistLoader) {
-      this.subtitleSegmentLoader_.resetEverything();
+      this.subtitleSegmentLoader_.resetEverything(() => {
+        this.bufferedEvents_.subtitle = !this.subtitleSegmentLoader_.onWaiting(currentTime);
+      });
       this.subtitleSegmentLoader_.abort();
     }
 
@@ -1037,6 +1118,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * that it controls
    */
   dispose() {
+    this.tech_.off('waiting', this.onWaiting_);
     this.decrypter_.terminate();
     this.masterPlaylistLoader_.dispose();
     this.mainSegmentLoader_.dispose();

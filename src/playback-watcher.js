@@ -42,17 +42,28 @@ export default class PlaybackWatcher {
     this.timer_ = null;
     this.checkCurrentTimeTimeout_ = null;
     this.logger_ = logger('PlaybackWatcher');
+    this._waiting_ = false;
 
     this.logger_('initialize');
 
-    let canPlayHandler = () => this.monitorCurrentTime_();
-    let waitingHandler = () => this.techWaiting_();
+    let canPlayHandler = () => {
+      this.logger_('canPlayHandler');
+      this._waiting_ = false;
+      this.monitorCurrentTime_();
+    };
+    let waitingHandler = () => {
+      this.logger_('waitingHandler');
+      this.lastRecordedTime = null;
+      this._waiting_ = true;
+      this.techWaiting_();
+    };
     let cancelTimerHandler = () => this.cancelTimer_();
     let fixesBadSeeksHandler = () => this.fixesBadSeeks_();
 
     this.tech_.on('seekablechanged', fixesBadSeeksHandler);
     this.tech_.on('waiting', waitingHandler);
     this.tech_.on(timerCancelEvents, cancelTimerHandler);
+    this.tech_.on('buffered', canPlayHandler);
     this.tech_.on('canplay', canPlayHandler);
 
     // Define the dispose function to clean up our events
@@ -61,6 +72,7 @@ export default class PlaybackWatcher {
       this.tech_.off('seekablechanged', fixesBadSeeksHandler);
       this.tech_.off('waiting', waitingHandler);
       this.tech_.off(timerCancelEvents, cancelTimerHandler);
+      this.tech_.off('buffered', canPlayHandler);
       this.tech_.off('canplay', canPlayHandler);
       if (this.checkCurrentTimeTimeout_) {
         window.clearTimeout(this.checkCurrentTimeTimeout_);
@@ -100,7 +112,7 @@ export default class PlaybackWatcher {
       return;
     }
 
-    if (this.tech_.paused() || this.tech_.seeking()) {
+    if (this.tech_.paused() || this._waiting_) {
       return;
     }
 
@@ -115,7 +127,8 @@ export default class PlaybackWatcher {
       // should fire a `waiting` event in this scenario, but due to browser and tech
       // inconsistencies. Calling `techWaiting_` here allows us to simulate
       // responding to a native `waiting` event when the tech fails to emit one.
-      return this.techWaiting_();
+      this.logger_('triggering waiting event');
+      this.tech_.trigger('waiting');
     }
 
     if (this.consecutiveUpdates >= 5 &&
@@ -251,7 +264,7 @@ export default class PlaybackWatcher {
       return true;
     }
 
-    if (this.tech_.seeking() || this.timer_ !== null) {
+    if (this._waiting_ || this.tech_.playbackRate() === 0 || this.timer_ !== null) {
       // Tech is seeking or already waiting on another action, no action needed
       return true;
     }
