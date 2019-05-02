@@ -653,13 +653,11 @@ class HlsHandler extends Component {
     this.tech_.one('canplay',
       this.masterPlaylistController_.setupFirstPlay.bind(this.masterPlaylistController_));
 
-    // since replays are handled internal to the video element, and don't go through the
-    // middlware for setting current time, use the first seek after each ended event to
-    // determine replays
-    this.tech_.on('ended', () => {
-      this.tech_.one('seeking', () => {
-        this.masterPlaylistController_.handleReplay();
-      });
+    // Handle seeking when looping - middleware doesn't handle this seek event from the tech
+    this.on(this.tech_, 'seeking', function() {
+      if (this.tech_.currentTime() === 0 && this.tech_.player_.loop()) {
+        this.setCurrentTime(0);
+      }
     });
 
     this.tech_.on('bandwidthupdate', () => {
