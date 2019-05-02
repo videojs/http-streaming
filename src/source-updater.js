@@ -71,6 +71,7 @@ export default class SourceUpdater {
       let pendingCallback = this.pendingCallback_;
 
       this.pendingCallback_ = null;
+      this.sourceBuffer_.removing = false;
 
       this.logger_(`buffered [${printableRange(this.buffered())}]`);
 
@@ -149,6 +150,7 @@ export default class SourceUpdater {
     if (this.processedAppend_) {
       this.queueCallback_(() => {
         this.logger_(`remove [${start} => ${end}]`);
+        this.sourceBuffer_.removing = true;
         this.sourceBuffer_.remove(start, end);
       }, done);
     }
@@ -175,6 +177,7 @@ export default class SourceUpdater {
     if (typeof offset !== 'undefined') {
       this.queueCallback_(() => {
         this.sourceBuffer_.timestampOffset = offset;
+        this.runCallback_();
       });
       this.timestampOffset_ = offset;
     }
@@ -208,9 +211,18 @@ export default class SourceUpdater {
    * dispose of the source updater and the underlying sourceBuffer
    */
   dispose() {
+    const disposeFn = () => {
+      if (this.sourceBuffer_ && this.mediaSource.readyState === 'open') {
+        this.sourceBuffer_.abort();
+      }
+      this.sourceBuffer_.removeEventListener('updateend', disposeFn);
+    };
+
     this.sourceBuffer_.removeEventListener('updateend', this.onUpdateendCallback_);
-    if (this.sourceBuffer_ && this.mediaSource.readyState === 'open') {
-      this.sourceBuffer_.abort();
+    if (this.sourceBuffer_.removing) {
+      this.sourceBuffer_.addEventListener('updateend', disposeFn);
+    } else {
+      disposeFn();
     }
   }
 }

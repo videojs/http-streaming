@@ -358,18 +358,22 @@ export const standardXHRResponse = function(request, data) {
     contentType = 'video/MP2T';
   } else if (/\.mpd/.test(request.url)) {
     contentType = 'application/dash+xml';
+  } else if (request.responseType === 'arraybuffer') {
+    contentType = 'binary/octet-stream';
   }
 
   if (!data) {
     data = testDataManifests[manifestName];
   }
 
+  const isTypedBuffer = data instanceof Uint8Array || data instanceof Uint32Array;
+
   request.response =
     // if segment data was passed, use that, otherwise use a placeholder
-    data instanceof Uint8Array ? data.buffer : new Uint8Array(1024).buffer;
+    isTypedBuffer ? data.buffer : new Uint8Array(1024).buffer;
   request.respond(200,
                   { 'Content-Type': contentType },
-                  data instanceof Uint8Array ? '' : data);
+                  isTypedBuffer ? '' : data);
 };
 
 export const playlistWithDuration = function(time, conf) {

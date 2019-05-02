@@ -7,7 +7,7 @@ import SourceUpdater from './source-updater';
 import Config from './config';
 import window from 'global/window';
 import { removeCuesFromTrack } from './mse/remove-cues-from-track';
-import { initSegmentId } from './bin-utils';
+import { initSegmentId, segmentKeyId } from './bin-utils';
 import { mediaSegmentRequest, REQUEST_ERRORS } from './media-segment-request';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
 import { maxBandwidthForDeadlineSelector } from './playlist-selectors';
@@ -185,8 +185,17 @@ export default class SegmentLoader extends videojs.EventTarget {
     // Fragmented mp4 playback
     this.activeInitSegmentId_ = null;
     this.initSegments_ = {};
+
+    // HLSe playback
+    this.cacheEncryptionKeys_ = settings.cacheEncryptionKeys;
+    this.keyCache_ = {};
+
     // Fmp4 CaptionParser
-    this.captionParser_ = new CaptionParser();
+    if (this.loaderType_ === 'main') {
+      this.captionParser_ = new CaptionParser();
+    } else {
+      this.captionParser_ = null;
+    }
 
     this.decrypter_ = settings.decrypter;
 
@@ -247,7 +256,9 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.sourceUpdater_.dispose();
     }
     this.resetStats_();
-    this.captionParser_.reset();
+    if (this.captionParser_) {
+      this.captionParser_.reset();
+    }
   }
 
   /**
@@ -355,6 +366,44 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     return storedMap || map;
+  }
+
+  /**
+   * Gets and sets key for the provided key
+   *
+   * @param {Object} key
+   *        The key object representing the key to get or set
+   * @param {Boolean=} set
+   *        If true, the key for the provided key should be saved
+   * @return {Object}
+   *         Key object for desired key
+   */
+  segmentKey(key, set = false) {
+    if (!key) {
+      return null;
+    }
+
+    const id = segmentKeyId(key);
+    let storedKey = this.keyCache_[id];
+
+    // TODO: We should use the HTTP Expires header to invalidate our cache per
+    // https://tools.ietf.org/html/draft-pantos-http-live-streaming-23#section-6.2.3
+    if (this.cacheEncryptionKeys_ && set && !storedKey && key.bytes) {
+      this.keyCache_[id] = storedKey = {
+        resolvedUri: key.resolvedUri,
+        bytes: key.bytes
+      };
+    }
+
+    const result = {
+      resolvedUri: (storedKey || key).resolvedUri
+    };
+
+    if (storedKey) {
+      result.bytes = storedKey.bytes;
+    }
+
+    return result;
   }
 
   /**
@@ -565,7 +614,9 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.resetLoader();
     this.remove(0, this.duration_(), done);
     // clears fmp4 captions
-    this.captionParser_.clearAllCaptions();
+    if (this.captionParser_) {
+      this.captionParser_.clearAllCaptions();
+    }
     this.trigger('reseteverything');
   }
 
@@ -698,7 +749,9 @@ export default class SegmentLoader extends videojs.EventTarget {
         segmentInfo.startOfSegment < this.sourceUpdater_.timestampOffset())) {
       this.syncController_.reset();
       segmentInfo.timestampOffset = segmentInfo.startOfSegment;
-      this.captionParser_.clearAllCaptions();
+      if (this.captionParser_) {
+        this.captionParser_.clearAllCaptions();
+      }
     }
 
     this.loadSegment_(segmentInfo);
@@ -1058,10 +1111,8 @@ export default class SegmentLoader extends videojs.EventTarget {
         0, 0, 0, segmentInfo.mediaIndex + segmentInfo.playlist.mediaSequence
       ]);
 
-      simpleSegment.key = {
-        resolvedUri: segment.key.resolvedUri,
-        iv
-      };
+      simpleSegment.key = this.segmentKey(segment.key);
+      simpleSegment.key.iv = iv;
     }
 
     if (segment.map) {
@@ -1146,6 +1197,11 @@ export default class SegmentLoader extends videojs.EventTarget {
       simpleSegment.map = this.initSegment(simpleSegment.map, true);
     }
 
+    // if this request included a segment key, save that data in the cache
+    if (simpleSegment.key) {
+      this.segmentKey(simpleSegment.key, true);
+    }
+
     this.processSegmentResponse_(simpleSegment);
   }
 
@@ -1179,7 +1235,9 @@ export default class SegmentLoader extends videojs.EventTarget {
       });
       // Reset stored captions since we added parsed
       // captions to a text track at this point
-      this.captionParser_.clearParsedCaptions();
+      if (this.captionParser_) {
+        this.captionParser_.clearParsedCaptions();
+      }
     }
 
     this.handleSegment_();

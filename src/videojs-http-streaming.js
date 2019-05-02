@@ -404,6 +404,7 @@ class HlsHandler extends Component {
         this.options_.useBandwidthFromLocalStorage || false;
     this.options_.customTagParsers = this.options_.customTagParsers || [];
     this.options_.customTagMappers = this.options_.customTagMappers || [];
+    this.options_.cacheEncryptionKeys = this.options_.cacheEncryptionKeys || false;
 
     if (typeof this.options_.blacklistDuration !== 'number') {
       this.options_.blacklistDuration = 5 * 60;
@@ -443,7 +444,8 @@ class HlsHandler extends Component {
       'smoothQualityChange',
       'customTagParsers',
       'customTagMappers',
-      'handleManifestRedirects'
+      'handleManifestRedirects',
+      'cacheEncryptionKeys'
     ].forEach((option) => {
       if (typeof this.source_[option] !== 'undefined') {
         this.options_[option] = this.source_[option];

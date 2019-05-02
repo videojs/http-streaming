@@ -59,6 +59,10 @@ const options = [{
       return `#FOO`;
     }
   }]
+}, {
+  name: 'cacheEncryptionKeys',
+  default: false,
+  test: true
 }];
 
 const CONFIG_KEYS = Object.keys(Config);

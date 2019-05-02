@@ -258,7 +258,7 @@ export default class PlaylistLoader extends EventTarget {
     this.error = {
       playlist: this.master.playlists[url],
       status: xhr.status,
-      message: 'HLS playlist request error at URL: ' + url,
+      message: `HLS playlist request error at URL: ${url}.`,
       responseText: xhr.responseText,
       code: (xhr.status >= 500) ? 4 : 2
     };
@@ -317,6 +317,7 @@ export default class PlaylistLoader extends EventTarget {
   dispose() {
     this.stopRequest();
     window.clearTimeout(this.mediaUpdateTimeout);
+    window.clearTimeout(this.finalRenditionTimeout);
   }
 
   stopRequest() {
@@ -339,9 +340,11 @@ export default class PlaylistLoader extends EventTarget {
     *
     * @param {Object=} playlist the parsed media playlist
     * object to switch to
+    * @param {Boolean=} is this the last available playlist
+    *
     * @return {Playlist} the current loaded media
     */
-  media(playlist) {
+  media(playlist, isFinalRendition) {
     // getter
     if (!playlist) {
       return this.media_;
@@ -352,8 +355,6 @@ export default class PlaylistLoader extends EventTarget {
       throw new Error('Cannot switch media playlist from ' + this.state);
     }
 
-    const startingState = this.state;
-
     // find the playlist object if the target playlist has been
     // specified by URI
     if (typeof playlist === 'string') {
@@ -363,6 +364,17 @@ export default class PlaylistLoader extends EventTarget {
       playlist = this.master.playlists[playlist];
     }
 
+    window.clearTimeout(this.finalRenditionTimeout);
+
+    if (isFinalRendition) {
+      const delay = (playlist.targetDuration / 2) * 1000 || 5 * 1000;
+
+      this.finalRenditionTimeout =
+        window.setTimeout(this.media.bind(this, playlist, false), delay);
+      return;
+    }
+
+    const startingState = this.state;
     const mediaChange = !this.media_ || playlist.uri !== this.media_.uri;
 
     // switch to fully loaded playlists immediately
@@ -509,7 +521,7 @@ export default class PlaylistLoader extends EventTarget {
       if (error) {
         this.error = {
           status: req.status,
-          message: 'HLS playlist request error at URL: ' + this.srcUrl,
+          message: `HLS playlist request error at URL: ${this.srcUrl}.`,
           responseText: req.responseText,
           // MEDIA_ERR_NETWORK
           code: 2

@@ -1,44 +1,12 @@
 import videojs from 'video.js';
 import { createTransferableMessage } from './bin-utils';
 import mp4probe from 'mux.js/lib/mp4/probe';
+import { segmentXhrHeaders } from './xhr';
 
 export const REQUEST_ERRORS = {
   FAILURE: 2,
   TIMEOUT: -101,
   ABORTED: -102
-};
-
-/**
- * Turns segment byterange into a string suitable for use in
- * HTTP Range requests
- *
- * @param {Object} byterange - an object with two values defining the start and end
- *                             of a byte-range
- */
-const byterangeStr = function(byterange) {
-  let byterangeStart;
-  let byterangeEnd;
-
-  // `byterangeEnd` is one less than `offset + length` because the HTTP range
-  // header uses inclusive ranges
-  byterangeEnd = byterange.offset + byterange.length - 1;
-  byterangeStart = byterange.offset;
-  return 'bytes=' + byterangeStart + '-' + byterangeEnd;
-};
-
-/**
- * Defines headers for use in the xhr request for a particular segment.
- *
- * @param {Object} segment - a simplified copy of the segmentInfo object
- *                           from SegmentLoader
- */
-const segmentXhrHeaders = function(segment) {
-  let headers = {};
-
-  if (segment.byterange) {
-    headers.Range = byterangeStr(segment.byterange);
-  }
-  return headers;
 };
 
 /**
@@ -193,7 +161,7 @@ const handleInitSegmentResponse = (segment, captionParser, finishProcessingFn) =
   segment.map.bytes = new Uint8Array(request.response);
 
   // Initialize CaptionParser if it hasn't been yet
-  if (!captionParser.isInitialized()) {
+  if (captionParser && !captionParser.isInitialized()) {
     captionParser.init();
   }
 
@@ -242,7 +210,7 @@ const handleSegmentResponse = (segment, captionParser, finishProcessingFn) => (e
 
   // This is likely an FMP4 and has the init segment.
   // Run through the CaptionParser in case there are captions.
-  if (segment.map && segment.map.bytes) {
+  if (captionParser && segment.map && segment.map.bytes) {
     // Initialize CaptionParser if it hasn't been yet
     if (!captionParser.isInitialized()) {
       captionParser.init();
@@ -285,16 +253,18 @@ const decryptSegment = (decrypter, segment, doneFn) => {
 
   decrypter.addEventListener('message', decryptionHandler);
 
+  const keyBytes = segment.key.bytes.slice();
+
   // this is an encrypted segment
   // incrementally decrypt the segment
   decrypter.postMessage(createTransferableMessage({
     source: segment.requestId,
     encrypted: segment.encryptedBytes,
-    key: segment.key.bytes,
+    key: keyBytes,
     iv: segment.key.iv
   }), [
     segment.encryptedBytes.buffer,
-    segment.key.bytes.buffer
+    keyBytes.buffer
   ]);
 };
 
@@ -432,7 +402,7 @@ export const mediaSegmentRequest = (xhr,
   const finishProcessingFn = waitForCompletion(activeXhrs, decryptionWorker, doneFn);
 
   // optionally, request the decryption key
-  if (segment.key) {
+  if (segment.key && !segment.key.bytes) {
     const keyRequestOptions = videojs.mergeOptions(xhrOptions, {
       uri: segment.key.resolvedUri,
       responseType: 'arraybuffer'

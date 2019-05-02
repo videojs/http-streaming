@@ -294,7 +294,6 @@ QUnit.test('the key response is converted to the correct format', function(asser
 QUnit.test('segment with key has bytes decrypted', function(assert) {
   const done = assert.async();
 
-  assert.expect(8);
   mediaSegmentRequest(
     this.xhr,
     this.xhrOptions,
@@ -313,6 +312,12 @@ QUnit.test('segment with key has bytes decrypted', function(assert) {
     (error, segmentData) => {
       assert.notOk(error, 'there are no errors');
       assert.ok(segmentData.bytes, 'decrypted bytes in segment');
+      assert.ok(segmentData.key.bytes, 'key bytes in segment');
+      assert.equal(
+        segmentData.key.bytes.buffer.byteLength,
+        16,
+        'key bytes are readable'
+      );
 
       // verify stats
       assert.equal(segmentData.stats.bytesReceived, 8, '8 bytes');
@@ -331,6 +336,52 @@ QUnit.test('segment with key has bytes decrypted', function(assert) {
   segmentReq.respond(200, null, '');
   keyReq.response = new Uint32Array([0, 1, 2, 3]).buffer;
   keyReq.respond(200, null, '');
+
+  // Allow the decrypter to decrypt
+  this.clock.tick(100);
+});
+
+QUnit.test('segment with key bytes does not request key again', function(assert) {
+  const done = assert.async();
+
+  mediaSegmentRequest(
+    this.xhr,
+    this.xhrOptions,
+    this.realDecrypter,
+    this.noop,
+    {
+      resolvedUri: '0-test.ts',
+      key: {
+        resolvedUri: '0-key.php',
+        bytes: new Uint32Array([0, 2, 3, 1]),
+        iv: {
+          bytes: new Uint32Array([0, 0, 0, 1])
+        }
+      }
+    },
+    this.noop,
+    (error, segmentData) => {
+      assert.notOk(error, 'there are no errors');
+      assert.ok(segmentData.bytes, 'decrypted bytes in segment');
+      assert.ok(segmentData.key.bytes, 'key bytes in segment');
+      assert.equal(
+        segmentData.key.bytes.buffer.byteLength,
+        16,
+        'key bytes are readable'
+      );
+
+      // verify stats
+      assert.equal(segmentData.stats.bytesReceived, 8, '8 bytes');
+      done();
+    });
+
+  assert.equal(this.requests.length, 1, 'there is one request');
+  const segmentReq = this.requests.shift();
+
+  assert.equal(segmentReq.uri, '0-test.ts', 'the second request is for a segment');
+
+  segmentReq.response = new Uint8Array(8).buffer;
+  segmentReq.respond(200, null, '');
 
   // Allow the decrypter to decrypt
   this.clock.tick(100);

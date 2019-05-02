@@ -570,7 +570,7 @@ function(assert) {
 
     assert.equal(error.code, 2, 'error has correct code');
     assert.equal(error.message,
-                 'HLS playlist request error at URL: manifest/master.m3u8',
+                 'HLS playlist request error at URL: manifest/master.m3u8.',
                  'error has correct message');
     assert.equal(errLogs.length, 1, 'logged an error');
 
@@ -1237,6 +1237,45 @@ QUnit.test('segment 404 should trigger blacklisting of media', function(assert) 
   assert.equal(this.player.tech_.hls.stats.bandwidth, 20000, 'bandwidth set above');
 });
 
+QUnit.test('unsupported playlist should not be re-included when excluding last playlist', function(assert) {
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+
+  this.player.tech_.hls.bandwidth = 1;
+  // master
+  this.requests.shift()
+    .respond(200, null,
+             '#EXTM3U\n' +
+             '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.2"\n' +
+             'media.m3u8\n' +
+             '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400d,not-an-audio-codec"\n' +
+             'media1.m3u8\n');
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  let master = this.player.tech_.hls.playlists.master;
+  let media = this.player.tech_.hls.playlists.media_;
+
+  // segment
+  this.requests.shift().respond(400);
+
+  assert.ok(master.playlists[0].excludeUntil > 0, 'original media excluded for some time');
+  assert.strictEqual(master.playlists[1].excludeUntil,
+                     Infinity,
+                     'blacklisted invalid audio codec');
+
+  assert.equal(this.env.log.warn.calls, 2, 'warning logged for blacklist');
+  assert.equal(this.env.log.warn.args[0],
+              'Removing all playlists from the blacklist because the last rendition is about to be blacklisted.',
+              'log generic error message');
+});
+
 QUnit.test('playlist 404 should blacklist media', function(assert) {
   let media;
   let url;
@@ -1281,7 +1320,7 @@ QUnit.test('playlist 404 should blacklist media', function(assert) {
   assert.ok(media.excludeUntil > 0, 'original media blacklisted for some time');
   assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
   assert.equal(this.env.log.warn.args[0],
-              'Problem encountered with the current HLS playlist. HLS playlist request error at URL: media.m3u8 Switching to another playlist.',
+              'Problem encountered with the current HLS playlist. HLS playlist request error at URL: media.m3u8. Switching to another playlist.',
               'log generic error message');
   assert.equal(blacklistplaylist, 1, 'there is one blacklisted playlist');
   assert.equal(hlsRenditionBlacklistedEvents, 1, 'an hls-rendition-blacklisted event was fired');
@@ -1292,27 +1331,36 @@ QUnit.test('playlist 404 should blacklist media', function(assert) {
   url = this.requests[2].url.slice(this.requests[2].url.lastIndexOf('/') + 1);
   media = this.player.tech_.hls.playlists.master.playlists[url];
 
-  // media wasn't blacklisted because it's final rendition
-  assert.ok(!media.excludeUntil, 'media not blacklisted after playlist 404');
-  assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
+  assert.ok(media.excludeUntil > 0, 'second media was blacklisted after playlist 404');
+  assert.equal(this.env.log.warn.calls, 2, 'warning logged for blacklist');
   assert.equal(this.env.log.warn.args[1],
-              'Problem encountered with the current HLS playlist. Trying again since it is the final playlist.',
-              'log specific error message for final playlist');
-  assert.equal(retryplaylist, 1, 'retried final playlist for once');
-  assert.equal(blacklistplaylist, 1, 'there is one blacklisted playlist');
-  assert.equal(hlsRenditionBlacklistedEvents, 1, 'an hls-rendition-blacklisted event was fired');
+              'Removing all playlists from the blacklist because the last rendition is about to be blacklisted.',
+              'log generic error message');
+  assert.equal(this.env.log.warn.args[2],
+              'Problem encountered with the current HLS playlist. HLS playlist request error at URL: media1.m3u8. ' +
+              'Switching to another playlist.',
+              'log generic error message');
+  assert.equal(retryplaylist, 1, 'fired a retryplaylist event');
+  assert.equal(blacklistplaylist, 2, 'media1 is blacklisted');
 
   this.clock.tick(2 * 1000);
   // no new request was made since it hasn't been half the segment duration
   assert.strictEqual(3, this.requests.length, 'no new request was made');
 
   this.clock.tick(3 * 1000);
-  // continue loading the final remaining playlist after it wasn't blacklisted
+  // loading the first playlist since the blacklist duration was cleared
   // when half the segment duaration passed
+
   assert.strictEqual(4, this.requests.length, 'one more request was made');
 
+  url = this.requests[3].url.slice(this.requests[3].url.lastIndexOf('/') + 1);
+  media = this.player.tech_.hls.playlists.master.playlists[url];
+
+  // the first media was unblacklisted after a refresh delay
+  assert.ok(!media.excludeUntil, 'removed first media from blacklist');
+
   assert.strictEqual(this.requests[3].url,
-                     absoluteUrl('manifest/media1.m3u8'),
+                     absoluteUrl('manifest/media.m3u8'),
                      'media playlist requested');
 
   // verify stats
@@ -1390,11 +1438,11 @@ QUnit.test('never blacklist the playlist if it is the only playlist', function(a
   this.requests.shift().respond(404);
   media = this.player.tech_.hls.playlists.media();
 
-  // media wasn't blacklisted because it's final rendition
+  // media wasn't blacklisted because it's the only rendition
   assert.ok(!media.excludeUntil, 'media was not blacklisted after playlist 404');
   assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
   assert.equal(this.env.log.warn.args[0],
-              'Problem encountered with the current HLS playlist. Trying again since it is the final playlist.',
+              'Problem encountered with the current HLS playlist. Trying again since it is the only playlist.',
               'log specific error message for final playlist');
 });
 
@@ -1417,12 +1465,12 @@ QUnit.test('error on the first playlist request does not trigger an error ' +
   let url = this.requests[1].url.slice(this.requests[1].url.lastIndexOf('/') + 1);
   let media = this.player.tech_.hls.playlists.master.playlists[url];
 
-  // media wasn't blacklisted because it's final rendition
+  // media wasn't blacklisted because it's only rendition
   assert.ok(!media.excludeUntil, 'media was not blacklisted after playlist 404');
   assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
   assert.equal(this.env.log.warn.args[0],
-              'Problem encountered with the current HLS playlist. Trying again since it is the final playlist.',
-              'log specific error message for final playlist');
+              'Problem encountered with the current HLS playlist. Trying again since it is the only playlist.',
+              'log specific error message for the only playlist');
 });
 
 QUnit.test('seeking in an empty playlist is a non-erroring noop', function(assert) {
@@ -1797,15 +1845,16 @@ QUnit.test('playlist blacklisting duration is set through options', function(ass
   assert.ok(media.excludeUntil > 0, 'original media blacklisted for some time');
   assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
   assert.equal(this.env.log.warn.args[0],
-              'Problem encountered with the current HLS playlist. HLS playlist request error at URL: media.m3u8 Switching to another playlist.',
+              'Problem encountered with the current HLS playlist. HLS playlist request error at URL: media.m3u8. Switching to another playlist.',
               'log generic error message');
+  // this takes one millisecond
+  this.standardXHRResponse(this.requests[2]);
 
-  this.clock.tick(2 * 60 * 1000);
+  this.clock.tick(2 * 60 * 1000 - 1);
   assert.ok(media.excludeUntil - Date.now() > 0, 'original media still be blacklisted');
 
   this.clock.tick(1 * 60 * 1000);
   assert.equal(media.excludeUntil, Date.now(), 'media\'s exclude time reach to the current time');
-  assert.equal(this.env.log.warn.calls, 3, 'warning logged for blacklist');
 
   videojs.options.hls = hlsOptions;
 });
@@ -2273,6 +2322,137 @@ QUnit.test('keys are resolved relative to their containing playlist', function(a
   assert.equal(this.requests[0].url,
                absoluteUrl('video/keys/key.php'),
                'resolves multiple relative paths');
+});
+
+QUnit.test('keys are not requested when cached key available, cacheEncryptionKeys:true', function(assert) {
+  const done = assert.async();
+
+  this.player.src({
+    src: 'video/media-encrypted.m3u8',
+    type: 'application/vnd.apple.mpegurl',
+    cacheEncryptionKeys: true
+  });
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  this.requests.shift().respond(200, null,
+    '#EXTM3U\n' +
+    '#EXT-X-TARGETDURATION:15\n' +
+    '#EXT-X-KEY:METHOD=AES-128,URI="keys/key.php",IV=0x00000000000000000000000000000000\n' +
+    '#EXTINF:2.833,\n' +
+    'http://media.example.com/fileSequence1.ts\n' +
+    '#EXTINF:2.833,\n' +
+    'http://media.example.com/fileSequence2.ts\n' +
+    '#EXT-X-ENDLIST\n');
+  this.clock.tick(1);
+
+  assert.equal(this.requests.length, 2, 'requested a key');
+  assert.equal(
+    this.requests[0].url,
+    absoluteUrl('video/keys/key.php'),
+    'requested the key'
+  );
+  assert.equal(
+    this.requests[1].url,
+    'http://media.example.com/fileSequence1.ts',
+    'requested the segment'
+  );
+
+  // key response
+  this.standardXHRResponse(this.requests.shift(), new Uint32Array([1, 2, 3, 4]));
+  // segment response
+  this.standardXHRResponse(this.requests.shift());
+  this.clock.tick(1);
+
+  // As the Decrypter is in a web worker, the last function in SegmentLoader is
+  // the easiest way to listen for the decrypted response
+  const mainSegmentLoader = this.player.vhs.masterPlaylistController_.mainSegmentLoader_;
+  const origHandleSegment = mainSegmentLoader.handleSegment_;
+
+  mainSegmentLoader.handleSegment_ = () => {
+    origHandleSegment.call(mainSegmentLoader);
+
+    this.player.tech_.hls.mediaSource.sourceBuffers[0].trigger('updateend');
+    this.clock.tick(1);
+
+    assert.equal(this.requests.length, 1, 'requested a segment, not a key');
+    assert.equal(
+      this.requests[0].url,
+      absoluteUrl('http://media.example.com/fileSequence2.ts'),
+      'requested the segment only'
+    );
+
+    mainSegmentLoader.handleSegment_ = origHandleSegment;
+    done();
+  };
+});
+
+QUnit.test('keys are requested per segment, cacheEncryptionKeys:false', function(assert) {
+  const done = assert.async();
+
+  this.player.src({
+    src: 'video/media-encrypted.m3u8',
+    type: 'application/vnd.apple.mpegurl',
+    cacheEncryptionKeys: false
+  });
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  this.requests.shift().respond(200, null,
+    '#EXTM3U\n' +
+    '#EXT-X-TARGETDURATION:15\n' +
+    '#EXT-X-KEY:METHOD=AES-128,URI="keys/key.php",IV=0x00000000000000000000000000000000\n' +
+    '#EXTINF:2.833,\n' +
+    'http://media.example.com/fileSequence1.ts\n' +
+    '#EXTINF:2.833,\n' +
+    'http://media.example.com/fileSequence2.ts\n' +
+    '#EXT-X-ENDLIST\n');
+  this.clock.tick(1);
+
+  assert.equal(this.requests.length, 2, 'requested a key and segment');
+  assert.equal(
+    this.requests[0].url,
+    absoluteUrl('video/keys/key.php'),
+    'requested the key'
+  );
+  assert.equal(
+    this.requests[1].url,
+    'http://media.example.com/fileSequence1.ts',
+    'requested the segment'
+  );
+
+  // key response
+  this.standardXHRResponse(this.requests.shift(), new Uint32Array([1, 2, 3, 4]));
+  // segment response
+  this.standardXHRResponse(this.requests.shift());
+  this.clock.tick(1);
+
+  // As the Decrypter is in a web worker, the last function in SegmentLoader is
+  // the easiest way to listen for the decrypted response
+  const mainSegmentLoader = this.player.vhs.masterPlaylistController_.mainSegmentLoader_;
+  const origHandleSegment = mainSegmentLoader.handleSegment_;
+
+  mainSegmentLoader.handleSegment_ = () => {
+    origHandleSegment.call(mainSegmentLoader);
+
+    this.player.tech_.hls.mediaSource.sourceBuffers[0].trigger('updateend');
+    this.clock.tick(1);
+
+    assert.equal(this.requests.length, 2, 'requested a segment and a key');
+    assert.equal(
+      this.requests[0].url,
+      absoluteUrl('video/keys/key.php'),
+      'requested the key again'
+    );
+    assert.equal(
+      this.requests[1].url,
+      absoluteUrl('http://media.example.com/fileSequence2.ts'),
+      'requested the segment'
+    );
+
+    mainSegmentLoader.handleSegment_ = origHandleSegment;
+    done();
+  };
 });
 
 QUnit.test('seeking should abort an outstanding key request and create a new one', function(assert) {
@@ -3002,9 +3182,8 @@ QUnit.test('configures eme if present on selectedinitialmedia', function(assert)
 });
 
 QUnit.test('integration: configures eme if present on selectedinitialmedia', function(assert) {
-  const done = assert.async();
-
   assert.timeout(3000);
+  const done = assert.async();
 
   this.player.eme = {
     options: {
