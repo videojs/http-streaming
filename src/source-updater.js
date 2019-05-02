@@ -26,7 +26,11 @@ const actions = {
     callback();
   },
   duration: (duration) => (sourceUpdater) => {
-    sourceUpdater.mediaSource.duration = duration;
+    try {
+      sourceUpdater.mediaSource.duration = duration;
+    } catch (e) {
+      videojs.log.warn('Failed to set media source duration', e);
+    }
   }
 };
 
@@ -245,16 +249,63 @@ export default class SourceUpdater extends videojs.EventTarget {
    * @param {Function} done the function to call when done
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-appendBuffer-void-ArrayBuffer-data
    */
-  appendBuffer(type, bytes, doneFn) {
+  appendBuffer({type, bytes, videoSegmentTimingInfoCallback}, doneFn) {
     this.processedAppend_ = true;
+    let originalAction = action = actions.appendBuffer(bytes);
+    let originalDoneFn = doneFn;
+
+    if (videoSegmentTimingInfoCallback) {
+      action = (type, sourceUpdater) => {
+        if (type === 'video' && this.videoBuffer) {
+          this.videoBuffer.addEventListener('videoSegmentTimingInfo', videoSegmentTimingInfoCallback);
+        }
+        originalAction(type, sourceUpdater);
+      };
+
+      doneFn = (err) => {
+        if (this.videoBuffer) {
+          this.videoBuffer.removeEventListener('videoSegmentTimingInfo', videoSegmentTimingInfoCallback);
+        }
+        originalDoneFn(err);
+      };
+    }
+
+
     pushQueue({
       type,
       sourceUpdater: this,
-      action: actions.appendBuffer(bytes),
+      action,
       doneFn,
       name: 'appendBuffer'
     });
   }
+
+  /********
+  -------
+  This chunk is related to https://github.com/videojs/http-streaming/pull/371
+  The interface here is different from the one above, as well
+  as how things are appended (pushqueue vs doing things on the sourcebuffer)
+  sall related calls will need to be modified as well.
+  -------
+   *
+   *
+  appendBuffer(config, done) {
+    this.processedAppend_ = true;
+    this.queueCallback_(() => {
+      if (config.videoSegmentTimingInfoCallback) {
+        this.sourceBuffer_.addEventListener(
+          'videoSegmentTimingInfo', config.videoSegmentTimingInfoCallback);
+      }
+      this.sourceBuffer_.appendBuffer(config.bytes);
+    }, () => {
+      if (config.videoSegmentTimingInfoCallback) {
+        this.sourceBuffer_.removeEventListener(
+          'videoSegmentTimingInfo', config.videoSegmentTimingInfoCallback);
+      }
+      done();
+    });
+  }
+  */
 
   audioBuffered() {
     return this.audioBuffer && this.audioBuffer.buffered ? this.audioBuffer.buffered :
@@ -338,15 +389,22 @@ export default class SourceUpdater extends videojs.EventTarget {
    * @return {Boolean} the updating status of the SourceBuffer
    */
   updating() {
+    // we are updating if:
+    // the audio source buffer is updating
     if (this.audioBuffer && this.audioBuffer.updating) {
       return true;
     }
+
+    // the video source buffer is updating
     if (this.videoBuffer && this.videoBuffer.updating) {
       return true;
     }
-    if (this.pendingCallback_) {
+
+    // or we have a pending callback that is not our internal noop
+    if (this.pendingCallback_ && this.pendingCallback_ !== noop) {
       return true;
     }
+
     return false;
   }
 
