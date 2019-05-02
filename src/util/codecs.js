@@ -13,6 +13,19 @@ const defaultCodecs = {
   audioProfile: '2'
 };
 
+export const translateLegacyCodec = function(codec) {
+  if (!codec) {
+    return codec;
+  }
+
+  return codec.replace(/avc1\.(\d+)\.(\d+)/i, function(orig, profile, avcLevel) {
+    let profileHex = ('00' + Number(profile).toString(16)).slice(-2);
+    let avcLevelHex = ('00' + Number(avcLevel).toString(16)).slice(-2);
+
+    return 'avc1.' + profileHex + '00' + avcLevelHex;
+  });
+};
+
 /**
  * Replace the old apple-style `avc1.<dd>.<dd>` codec string with the standard
  * `avc1.<hhhhhh>`
@@ -22,14 +35,7 @@ const defaultCodecs = {
  * @private
  */
 export const translateLegacyCodecs = function(codecs) {
-  return codecs.map((codec) => {
-    return codec.replace(/avc1\.(\d+)\.(\d+)/i, function(orig, profile, avcLevel) {
-      let profileHex = ('00' + Number(profile).toString(16)).slice(-2);
-      let avcLevelHex = ('00' + Number(avcLevel).toString(16)).slice(-2);
-
-      return 'avc1.' + profileHex + '00' + avcLevelHex;
-    });
-  });
+  return codecs.map(translateLegacyCodec);
 };
 
 /**
