@@ -5,7 +5,7 @@
  * M3U8 playlists.
  *
  */
-import resolveUrl from './resolve-url';
+import { resolveUrl, resolveManifestRedirect } from './resolve-url';
 import videojs from 'video.js';
 import { Parser as M3u8Parser } from 'm3u8-parser';
 import window from 'global/window';
@@ -92,11 +92,12 @@ export const updateMaster = (master, media) => {
     return null;
   }
 
-  // consider the playlist unchanged if the number of segments is equal and the media
-  // sequence number is unchanged
+  // consider the playlist unchanged if the number of segments is equal, the media
+  // sequence number is unchanged, and this playlist hasn't become the end of the playlist
   if (playlist.segments &&
       media.segments &&
       playlist.segments.length === media.segments.length &&
+      playlist.endList === media.endList &&
       playlist.mediaSequence === media.mediaSequence) {
     return null;
   }
@@ -196,17 +197,20 @@ export const refreshDelay = (media, update) => {
  * @constructor
  */
 export default class PlaylistLoader extends EventTarget {
-  constructor(srcUrl, hls, withCredentials) {
+  constructor(srcUrl, hls, options = { }) {
     super();
+
+    const { withCredentials = false, handleManifestRedirects = false } = options;
 
     this.srcUrl = srcUrl;
     this.hls_ = hls;
     this.withCredentials = withCredentials;
+    this.handleManifestRedirects = handleManifestRedirects;
 
-    const options = hls.options_;
+    const hlsOptions = hls.options_;
 
-    this.customTagParsers = (options && options.customTagParsers) || [];
-    this.customTagMappers = (options && options.customTagMappers) || [];
+    this.customTagParsers = (hlsOptions && hlsOptions.customTagParsers) || [];
+    this.customTagMappers = (hlsOptions && hlsOptions.customTagMappers) || [];
 
     if (!this.srcUrl) {
       throw new Error('A non-empty playlist URL is required');
@@ -389,7 +393,7 @@ export default class PlaylistLoader extends EventTarget {
 
     // there is already an outstanding playlist request
     if (this.request) {
-      if (resolveUrl(this.master.uri, playlist.uri) === this.request.url) {
+      if (playlist.resolvedUri === this.request.url) {
         // requesting to switch to the same playlist multiple times
         // has no effect after the first
         return;
@@ -405,13 +409,15 @@ export default class PlaylistLoader extends EventTarget {
     }
 
     this.request = this.hls_.xhr({
-      uri: resolveUrl(this.master.uri, playlist.uri),
+      uri: playlist.resolvedUri,
       withCredentials: this.withCredentials
     }, (error, req) => {
       // disposed
       if (!this.request) {
         return;
       }
+
+      playlist.resolvedUri = resolveManifestRedirect(this.handleManifestRedirects, playlist.resolvedUri, req);
 
       if (error) {
         return this.playlistRequestError(this.request, playlist.uri, startingState);
@@ -527,6 +533,8 @@ export default class PlaylistLoader extends EventTarget {
 
       this.state = 'HAVE_MASTER';
 
+      this.srcUrl = resolveManifestRedirect(this.handleManifestRedirects, this.srcUrl, req);
+
       parser.manifest.uri = this.srcUrl;
 
       // loaded a master playlist
@@ -557,14 +565,14 @@ export default class PlaylistLoader extends EventTarget {
         uri: window.location.href,
         playlists: [{
           uri: this.srcUrl,
-          id: 0
+          id: 0,
+          resolvedUri: this.srcUrl,
+          // m3u8-parser does not attach an attributes property to media playlists so make
+          // sure that the property is attached to avoid undefined reference errors
+          attributes: {}
         }]
       };
       this.master.playlists[this.srcUrl] = this.master.playlists[0];
-      this.master.playlists[0].resolvedUri = this.srcUrl;
-      // m3u8-parser does not attach an attributes property to media playlists so make
-      // sure that the property is attached to avoid undefined reference errors
-      this.master.playlists[0].attributes = this.master.playlists[0].attributes || {};
       this.haveMetadata(req, this.srcUrl);
       return this.trigger('loadedmetadata');
     });
