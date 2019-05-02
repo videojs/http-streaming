@@ -15,6 +15,8 @@ const actions = {
   remove: (start, end) => (type, sourceUpdater) => {
     const sourceBuffer = sourceUpdater[`${type}Buffer`];
 
+    sourceBuffer.removing = true;
+
     sourceBuffer.remove(start, end);
   },
   timestampOffset: (offset) => (type, sourceUpdater) => {
@@ -204,12 +206,14 @@ export default class SourceUpdater extends videojs.EventTarget {
     if (codecs.audio) {
       this.audioBuffer = this.mediaSource.addSourceBuffer(
         `audio/mp4;codecs="${codecs.audio}"`);
+      this.audioBuffer.removing = false;
       this.logger_(`created SourceBuffer audio/mp4;codecs="${codecs.audio}`);
     }
 
     if (codecs.video) {
       this.videoBuffer = this.mediaSource.addSourceBuffer(
         `video/mp4;codecs="${codecs.video}"`);
+      this.videoBuffer.removing = false;
       this.logger_(`created SourceBuffer video/mp4;codecs="${codecs.video}"`);
     }
 
@@ -279,33 +283,6 @@ export default class SourceUpdater extends videojs.EventTarget {
       name: 'appendBuffer'
     });
   }
-
-  /********
-  -------
-  This chunk is related to https://github.com/videojs/http-streaming/pull/371
-  The interface here is different from the one above, as well
-  as how things are appended (pushqueue vs doing things on the sourcebuffer)
-  sall related calls will need to be modified as well.
-  -------
-   *
-   *
-  appendBuffer(config, done) {
-    this.processedAppend_ = true;
-    this.queueCallback_(() => {
-      if (config.videoSegmentTimingInfoCallback) {
-        this.sourceBuffer_.addEventListener(
-          'videoSegmentTimingInfo', config.videoSegmentTimingInfoCallback);
-      }
-      this.sourceBuffer_.appendBuffer(config.bytes);
-    }, () => {
-      if (config.videoSegmentTimingInfoCallback) {
-        this.sourceBuffer_.removeEventListener(
-          'videoSegmentTimingInfo', config.videoSegmentTimingInfoCallback);
-      }
-      done();
-    });
-  }
-  */
 
   audioBuffered() {
     return this.audioBuffer && this.audioBuffer.buffered ? this.audioBuffer.buffered :
@@ -476,22 +453,38 @@ export default class SourceUpdater extends videojs.EventTarget {
    * dispose of the source updater and the underlying sourceBuffer
    */
   dispose() {
-    // Abort then remove each source buffer. Removing is important for idempotency.
-    if (this.audioBuffer) {
+    const audioDisposeFn = () => {
       if (this.mediaSource.readyState === 'open') {
         this.audioBuffer.abort();
       }
       this.audioBuffer.removeEventListener('updateend', this.onAudioUpdateEnd_);
       this.audioBuffer.removeEventListener('error', this.onAudioError_);
       this.audioBuffer = null;
-    }
-    if (this.videoBuffer) {
+    };
+    const videoDisposeFn = () => {
       if (this.mediaSource.readyState === 'open') {
         this.videoBuffer.abort();
       }
       this.videoBuffer.removeEventListener('updateend', this.onVideoUpdateEnd_);
       this.videoBuffer.removeEventListener('error', this.onVideoError_);
+      this.videoBuffer.removeEventListener('updateend', videoDisposeFn);
       this.videoBuffer = null;
+    };
+
+    if (this.audioBuffer) {
+      if (this.audioBuffer.removing) {
+        this.audioBuffer.addEventListener('updateend', audioDisposeFn);
+      } else {
+        audioDisposeFn();
+      }
+    }
+
+    if (this.videoBuffer) {
+      if (this.videoBuffer.removing) {
+        this.videoBuffer.addEventListener('updateend', videoDisposeFn);
+      } else {
+        videoDisposeFn();
+      }
     }
 
     this.mediaSource.removeEventListener('sourceopen', this.sourceopenListener_);

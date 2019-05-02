@@ -875,19 +875,6 @@ function(assert) {
   assert.ok(Number.isNaN(this.mediaSource.duration), 'duration set to NaN at start');
 });
 
-/*=========
- Should be in https://github.com/videojs/http-streaming/blob/41df5c08f01670f6e40cf2ed772aa4ac33d02010/test/source-updater.test.js#L253
- but this test seems to not exist here... *spooky*
-
-
-  updater.appendBuffer({
-    bytes: new Uint8Array(2)
-  }, () => {});
-  updater.timestampOffset(14);
-  assert.equal(updater.timestampOffset(), 14, 'reflects changes immediately');
-  assert.equal(sourceBuffer.timestampOffset, 21, 'queues application after updates');
-*/
-
 QUnit.test('dispose removes sourceopen listener', function(assert) {
   // create fake media source so we can detect event listeners being added and removed
   const addEventListenerCalls = [];
@@ -923,4 +910,49 @@ QUnit.test('dispose removes sourceopen listener', function(assert) {
     removeEventListenerCalls[0].callback,
     addEventListenerCalls[0].callback,
     'removed sourceopen listener with correct callback');
+});
+
+QUnit.test('supports timestampOffset', function(assert) {
+  let updater = new SourceUpdater(this.mediaSource, 'video/mp2t');
+  let sourceBuffer;
+
+  this.mediaSource.trigger('sourceopen');
+  sourceBuffer = this.mediaSource.sourceBuffers[0];
+
+  assert.equal(updater.timestampOffset(), 0, 'intialized to zero');
+  updater.timestampOffset(21);
+  assert.equal(updater.timestampOffset(), 21, 'reflects changes immediately');
+  assert.equal(sourceBuffer.timestampOffset, 21, 'applied the update');
+
+  updater.appendBuffer({
+    bytes: new Uint8Array(2)
+  }, () => {});
+  updater.timestampOffset(14);
+  assert.equal(updater.timestampOffset(), 14, 'reflects changes immediately');
+  assert.equal(sourceBuffer.timestampOffset, 21, 'queues application after updates');
+
+  sourceBuffer.trigger('updateend');
+  assert.equal(sourceBuffer.timestampOffset, 14, 'applied the update');
+});
+
+QUnit.test('abort on dispose waits until after a remove has finished', function(assert) {
+  let updater = new SourceUpdater(this.mediaSource, 'video/mp2t');
+  let sourceBuffer;
+
+  this.mediaSource.trigger('sourceopen');
+  updater.appendBuffer({
+    bytes: new Uint8Array([0])
+  }, () => {});
+
+  sourceBuffer = this.mediaSource.sourceBuffers[0];
+  sourceBuffer.trigger('updateend');
+  updater.remove(0, 10);
+  updater.dispose();
+
+  assert.deepEqual(sourceBuffer.updates_[1].remove, [0, 10], 'remove called');
+  assert.equal(sourceBuffer.updates_.length, 2, 'abort not called before updateend');
+
+  sourceBuffer.trigger('updateend');
+
+  assert.ok(sourceBuffer.updates_[2].abort, 'aborted the source buffer');
 });
