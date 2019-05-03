@@ -1,3 +1,5 @@
+import { ONE_SECOND_IN_TS } from 'mux.js/lib/utils/clock';
+
 /**
  * Returns a list of gops in the buffer that have a pts value of 3 seconds or more in
  * front of current time.
@@ -17,7 +19,7 @@ export const gopsSafeToAlignWith = (buffer, currentTime, mapping) => {
   }
 
   // pts value for current time + 3 seconds to give a bit more wiggle room
-  const currentTimePts = Math.ceil((currentTime - mapping + 3) * 90000);
+  const currentTimePts = Math.ceil((currentTime - mapping + 3) * ONE_SECOND_IN_TS);
 
   let i;
 
@@ -83,8 +85,8 @@ export const updateGopBuffer = (buffer, gops, replace) => {
  *        Offset to map display time to stream presentation time
  */
 export const removeGopBuffer = (buffer, start, end, mapping) => {
-  const startPts = Math.ceil((start - mapping) * 90000);
-  const endPts = Math.ceil((end - mapping) * 90000);
+  const startPts = Math.ceil((start - mapping) * ONE_SECOND_IN_TS);
+  const endPts = Math.ceil((end - mapping) * ONE_SECOND_IN_TS);
   const updatedBuffer = buffer.slice();
 
   let i = buffer.length;

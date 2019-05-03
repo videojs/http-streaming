@@ -1,6 +1,6 @@
 import QUnit from 'qunit';
 import videojs from 'video.js';
-/* eslint-disable no-unused-vars */
+import document from 'global/document';
 import '../src/videojs-http-streaming';
 
 let when = function(element, type, cb, condition) {
@@ -19,20 +19,22 @@ let playFor = function(player, time, cb) {
 };
 
 QUnit.module('Playback', {
-  before() {
+  before(assert) {
     this.fixture = document.createElement('div');
     document.body.appendChild(this.fixture);
   },
   beforeEach(assert) {
+    assert.timeout(50000);
     let done = assert.async();
-    let video = document.createElement('video');
+    let video = document.createElement('video-js');
+
+    video.style = 'display: none;';
 
     video.width = 600;
     video.height = 300;
     this.fixture.appendChild(video);
     this.player = videojs(video, {
-      muted: true,
-      autoplay: true
+      autoplay: 'muted'
     });
     this.player.ready(done);
   },
@@ -55,7 +57,7 @@ QUnit.test('Advanced Bip Bop', function(assert) {
   });
 
   player.src({
-    src: 'http://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8',
+    src: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8',
     type: 'application/x-mpegURL'
   });
 });
@@ -83,7 +85,7 @@ QUnit.test('replay', function(assert) {
   });
 
   player.src({
-    src: 'http://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8',
+    src: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8',
     type: 'application/x-mpegURL'
   });
 });
@@ -123,7 +125,7 @@ QUnit.test('Advanced Bip Bop preload=none', function(assert) {
   });
 
   player.src({
-    src: 'http://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8',
+    src: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8',
     type: 'application/x-mpegURL'
   });
 });
@@ -194,7 +196,6 @@ QUnit.test('DASH sidx', function(assert) {
 // results in no ended event. We should fix this and start running this
 // test with 100% pass rate after that.
 QUnit.skip('DASH sidx with alt audio should end', function(assert) {
-  assert.timeout(20000);
 
   let done = assert.async();
   let player = this.player;
@@ -229,18 +230,17 @@ QUnit.skip('DASH sidx with alt audio should end', function(assert) {
 });
 
 QUnit.test('loops', function(assert) {
-  assert.timeout(5000);
   let done = assert.async();
   let player = this.player;
 
   player.loop(true);
   player.src({
-    src: 'http://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8',
+    src: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8',
     type: 'application/x-mpegURL'
   });
   player.one('playing', function() {
-    player.vhs.mediaSource.one('sourceended', () => {
-      player.vhs.mediaSource.on('sourceopen', () => {
+    player.vhs.mediaSource.addEventListener('sourceended', () => {
+      player.vhs.mediaSource.addEventListener('sourceopen', () => {
         assert.ok(true, 'sourceopen triggered after ending stream');
         done();
       });

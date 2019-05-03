@@ -1,5 +1,3 @@
-/* eslint-disable max-len */
-
 import QUnit from 'qunit';
 import RenditionMixin from '../src/rendition-mixin.js';
 import videojs from 'video.js';

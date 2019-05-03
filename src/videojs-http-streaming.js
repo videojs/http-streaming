@@ -5,6 +5,7 @@
  * License: https://github.com/videojs/videojs-http-streaming/blob/master/LICENSE
  */
 import document from 'global/document';
+import window from 'global/window';
 import PlaylistLoader from './playlist-loader';
 import Playlist from './playlist';
 import xhrFactory from './xhr';
@@ -15,7 +16,6 @@ import {
   seekToProgramTime
 } from './util/time';
 import { timeRangesToArray } from './ranges';
-import { MediaSource, URL } from './mse/index';
 import videojs from 'video.js';
 import { MasterPlaylistController } from './master-playlist-controller';
 import Config from './config';
@@ -686,7 +686,7 @@ class HlsHandler extends Component {
       return;
     }
 
-    this.tech_.src(videojs.URL.createObjectURL(
+    this.tech_.src(window.URL.createObjectURL(
       this.masterPlaylistController_.mediaSource));
   }
 
@@ -823,14 +823,19 @@ const HlsSourceHandler = {
   }
 };
 
-if (typeof videojs.MediaSource === 'undefined' ||
-    typeof videojs.URL === 'undefined') {
-  videojs.MediaSource = MediaSource;
-  videojs.URL = URL;
-}
+/**
+ * Check to see if the native MediaSource object exists and supports
+ * an MP4 container with both H.264 video and AAC-LC audio.
+ *
+ * @return {Boolean} if  native media sources are supported
+ */
+const supportsNativeMediaSources = () => {
+  return !!window.MediaSource && !!window.MediaSource.isTypeSupported &&
+    window.MediaSource.isTypeSupported('video/mp4;codecs="avc1.4d400d,mp4a.40.2"');
+};
 
 // register source handlers with the appropriate techs
-if (MediaSource.supportsNativeMediaSources()) {
+if (supportsNativeMediaSources()) {
   videojs.getTech('Html5').registerSourceHandler(HlsSourceHandler, 0);
 }
 

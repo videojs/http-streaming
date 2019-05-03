@@ -1,14 +1,15 @@
 import document from 'global/document';
 import sinon from 'sinon';
 import videojs from 'video.js';
-/* eslint-disable no-unused-vars */
-// needed so MediaSource can be registered with videojs
-import { MediaSource } from '../src/mse/index';
 import URLToolkit from 'url-toolkit';
-/* eslint-enable */
 import testDataManifests from './test-manifests.js';
 import xhrFactory from '../src/xhr';
+import { isLikelyFmp4Data } from '../src/util/codecs';
 import window from 'global/window';
+import { muxed as muxedSegment } from './test-segments';
+
+const RealMediaSource = window.MediaSource;
+const realCreateObjectURL = window.URL.createObjectURL;
 
 // a SourceBuffer that tracks updates but otherwise is a noop
 class MockSourceBuffer extends videojs.EventTarget {
@@ -65,9 +66,26 @@ class MockMediaSource extends videojs.EventTarget {
       this.readyState = 'open';
     });
 
-    this.sourceBuffers = [];
-    this.duration = NaN;
+    this.activeSourceBuffers = [];
+    // this.activeSourceBuffers.onaddsourcebuffer: null,
+    // this.activeSourceBuffers.onremovesourcebuffer: null
+    this.sourceBuffers = this.activeSourceBuffers;
+    this.duration_ = NaN;
     this.seekable = videojs.createTimeRange();
+    this.onsourceclose = null;
+    this.onsourceended = null;
+    this.onsourceopen = null;
+    this.nativeMediaSource_ = new RealMediaSource();
+
+    Object.defineProperty(this, 'duration', {
+      get() {
+        return this.duration_;
+      },
+      set(duration) {
+        this.duration_ = duration;
+        this.trigger('durationchange');
+      }
+    });
   }
 
   addSeekableRange_(start, end) {
@@ -87,6 +105,8 @@ class MockMediaSource extends videojs.EventTarget {
     this.error_ = error;
   }
 }
+
+MockMediaSource.isTypeSupported = RealMediaSource.isTypeSupported;
 
 export class MockTextTrack {
   constructor() {
@@ -111,22 +131,14 @@ export const absoluteUrl = function(relativeUrl) {
 };
 
 export const useFakeMediaSource = function() {
-  let RealMediaSource = videojs.MediaSource;
-  let realCreateObjectURL = videojs.URL.createObjectURL;
-  let id = 0;
-
-  videojs.MediaSource = MockMediaSource;
-  videojs.MediaSource.supportsNativeMediaSources =
-    RealMediaSource.supportsNativeMediaSources;
-  videojs.URL.createObjectURL = function() {
-    id++;
-    return 'blob:videojs-http-streaming-mock-url' + id;
-  };
+  window.MediaSource = MockMediaSource;
+  window.URL.createObjectURL = (object) => realCreateObjectURL(
+    object instanceof MockMediaSource ? object.nativeMediaSource_ : object);
 
   return {
     restore() {
-      videojs.MediaSource = RealMediaSource;
-      videojs.URL.createObjectURL = realCreateObjectURL;
+      window.MediaSource = RealMediaSource;
+      window.URL.createObjectURL = realCreateObjectURL;
     }
   };
 };
@@ -194,9 +206,23 @@ export const useFakeEnvironment = function(assert) {
   };
 
   XMLHttpRequest.prototype.downloadProgress = function downloadProgress(rawEventData) {
+    // `responseText` we only really use when we’re requesting as text
+    // so that we can see data on progress events.
+    // `downloadProgress` should be called with 0 bytes
+    // and then add new bytes each progress event
+    if (this.mimeTypeOverride === 'text/plain; charset=x-user-defined') {
+      this.responseText = rawEventData.toString();
+    }
+
     this.dispatchEvent(new sinon.ProgressEvent('progress',
                                                rawEventData,
-                                               rawEventData.target));
+                                               this));
+  };
+
+  // used for treating the response however we want, instead of the browser deciding
+  // responses we don't have to worry about the browser changing responses
+  XMLHttpRequest.prototype.overrideMimeType = function overrideMimeType(mimeType) {
+    this.mimeTypeOverride = mimeType;
   };
 
   // add support for xhr.responseURL
@@ -371,16 +397,20 @@ export const standardXHRResponse = function(request, data) {
   request.response =
     // if segment data was passed, use that, otherwise use a placeholder
     isTypedBuffer ? data.buffer : new Uint8Array(1024).buffer;
-  request.respond(200,
-                  { 'Content-Type': contentType },
-                  isTypedBuffer ? '' : data);
+
+  // `response` will get the full value after the request finishes
+  request.respond(
+    200,
+    { 'Content-Type': contentType },
+    isTypedBuffer ? '' : data
+  );
 };
 
 export const playlistWithDuration = function(time, conf) {
   let result = {
     targetDuration: 10,
     mediaSequence: conf && conf.mediaSequence ? conf.mediaSequence : 0,
-    discontinuityStarts: [],
+    discontinuityStarts: conf && conf.discontinuityStarts ? conf.discontinuityStarts : [],
     segments: [],
     endList: conf && typeof conf.endList !== 'undefined' ? !!conf.endList : true,
     uri: conf && typeof conf.uri !== 'undefined' ? conf.uri : 'playlist.m3u8',
@@ -393,13 +423,21 @@ export const playlistWithDuration = function(time, conf) {
   let i;
   let isEncrypted = conf && conf.isEncrypted;
   let extension = conf && conf.extension ? conf.extension : '.ts';
+  let timeline = result.discontinuitySequence;
+  let discontinuityStartsIndex = 0;
 
   for (i = 0; i < count; i++) {
+    if (result.discontinuityStarts &&
+        result.discontinuityStarts[discontinuityStartsIndex] === i) {
+      timeline++;
+      discontinuityStartsIndex++;
+    }
+
     result.segments.push({
       uri: i + extension,
       resolvedUri: i + extension,
       duration: 10,
-      timeline: result.discontinuitySequence
+      timeline
     });
     if (isEncrypted) {
       result.segments[i].key = {
@@ -426,4 +464,136 @@ export const urlTo = function(path) {
     .slice(0, -1)
     .concat([path])
     .join('/');
+};
+
+export const createResponseText = function(length) {
+  let responseText = '';
+
+  for (let i = 0; i < length; i++) {
+    responseText += '0';
+  }
+
+  return responseText;
+};
+
+/*
+ * Helper method to request and append a segment (from XHR to source buffers).
+ *
+ * @param {Object} request the mocked request
+ * @param {Uint8Array} [segment=muxed segment] segment bytes to response with
+ * @param {Object} segmentLoader the segment loader
+ * @param {Object} clock the mocked clock
+ * @param {Number} [bandwidth] bandwidth to use in bits/s
+ *                             (takes precedence over requestDurationMillis)
+ * @param {Number} [throughput] throughput to use in bits/s
+ * @param {Number} [requestDurationMillis=1000] duration of request to tick the clock, in
+ *                                              milliseconds
+ * @param {Boolean} [isOnlyAudio] segment and append should only be for audio
+ * @param {Boolean} [isOnlyVideo] segment and append should only be for video
+ * @param {Boolean} [tickClock=true] tick clock after updateend to allow for next
+ *                                   asynchronous request
+ */
+export const requestAndAppendSegment = function({
+  request,
+  initSegmentRequest,
+  segment,
+  initSegment,
+  segmentLoader,
+  clock,
+  bandwidth,
+  throughput,
+  requestDurationMillis,
+  isOnlyAudio,
+  isOnlyVideo,
+  tickClock
+}) {
+  segment = segment || muxedSegment();
+  tickClock = typeof tickClock === 'undefined' ? true : tickClock;
+
+  // record now since the bytes will be lost during processing
+  const segmentByteLength = segment.byteLength;
+
+  if (bandwidth) {
+    requestDurationMillis = ((segmentByteLength * 8) / bandwidth) * 1000;
+  }
+
+  // one second default
+  requestDurationMillis = requestDurationMillis || 1000;
+
+  return new Promise((resolve, reject) => {
+    clock.tick(requestDurationMillis);
+    if (initSegmentRequest) {
+      standardXHRResponse(initSegmentRequest, initSegment);
+    }
+    standardXHRResponse(request, segment);
+
+    // fmp4 segments don't need to be transmuxed, therefore will execute synchronously
+    if (!isLikelyFmp4Data(segment)) {
+      segmentLoader.one('appending', resolve);
+      segmentLoader.one('error', reject);
+    } else {
+      resolve();
+    }
+  }).then(function() {
+    if (throughput) {
+      const appendMillis = ((segmentByteLength * 8) / throughput) * 1000;
+
+      clock.tick(appendMillis - (tickClock ? 1 : 0));
+    }
+
+    if (segmentLoader.sourceUpdater_.audioBuffer instanceof MockSourceBuffer ||
+      segmentLoader.sourceUpdater_.videoBuffer instanceof MockSourceBuffer) {
+      // source buffers are mocked, so must manually trigger update ends on buffers,
+      // since they don't actually do any appends
+      if (isOnlyAudio) {
+        segmentLoader.sourceUpdater_.audioBuffer.trigger('updateend');
+      } else if (isOnlyVideo) {
+        segmentLoader.sourceUpdater_.videoBuffer.trigger('updateend');
+      } else {
+        segmentLoader.sourceUpdater_.audioBuffer.trigger('updateend');
+        segmentLoader.sourceUpdater_.videoBuffer.trigger('updateend');
+      }
+    }
+
+    if (tickClock) {
+      clock.tick(1);
+    }
+  });
+};
+
+export const disposePlaybackWatcher = (player) => {
+  player.vhs.playbackWatcher_.dispose();
+};
+
+export const setupMediaSource = (mediaSource, sourceUpdater, options) => {
+  // this can be a valid case, for instance, for the vtt loader
+  if (!mediaSource) {
+    return Promise.resolve();
+  }
+
+  // must attach a media source to a video element
+  const videoEl =
+    (options && options.videoEl) ? options.videoEl : document.createElement('video');
+
+  videoEl.src = window.URL.createObjectURL(mediaSource);
+
+  return new Promise((resolve, reject) => {
+    mediaSource.addEventListener('sourceopen', () => {
+      const codecs = {};
+
+      if (!options || !options.isVideoOnly) {
+        codecs.audio = 'mp4a.40.2';
+      }
+      if (!options || !options.isAudioOnly) {
+        codecs.video = 'avc1.4d001e';
+      }
+
+      sourceUpdater.createSourceBuffers(codecs);
+      resolve();
+    });
+
+    mediaSource.addEventListener('error', (e) => {
+      reject(e);
+    });
+  });
 };

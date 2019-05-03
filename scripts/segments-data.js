@@ -17,6 +17,16 @@ const base64ToUint8Array = (base64) => {
   return uint8Array;
 };
 
+const utf16CharCodesToString = (typedArray) => {
+  let val = '';
+
+  typedArray.forEach((x) => {
+    val += String.fromCharCode(x);
+  });
+
+  return val;
+};
+
 module.exports = {
   build() {
     const files = fs.readdirSync(segmentsDir);
@@ -26,7 +36,7 @@ module.exports = {
       const file = path.resolve(segmentsDir, files.shift());
       const extname = path.extname(file);
 
-      if (extname === '.ts' || extname === '.mp4') {
+      if (extname === '.ts' || extname === '.mp4' || extname === '.key') {
         // read the file directly as a buffer before converting to base64
         const base64Segment = fs.readFileSync(file).toString('base64');
 
@@ -39,11 +49,15 @@ module.exports = {
     const segmentDataExportStrings = Object.keys(segmentData).reduce((acc, key) => {
       // use a function since the segment may be cleared out on usage
       acc.push(`export const ${key} = () => base64ToUint8Array('${segmentData[key]}');`);
+      // strings can be used to fake responseText in progress events
+      // when testing partial appends of data
+      acc.push(`export const ${key}String = () => utf16CharCodesToString(${key}());`);
       return acc;
     }, []);
 
     let segmentsFile =
       `const base64ToUint8Array = ${base64ToUint8Array.toString()};\n` +
+      `const utf16CharCodesToString = ${utf16CharCodesToString.toString()};\n` +
       segmentDataExportStrings.join('\n');
 
     fs.writeFileSync(segmentsFilepath, segmentsFile);

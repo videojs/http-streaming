@@ -41,6 +41,7 @@ const externals = [
   'mux.js/lib/mp4/probe',
   'mux.js/lib/tools/mp4-inspector',
   'mux.js/lib/tools/ts-inspector.js',
+  'mux.js/lib/utils/clock',
   'url-toolkit',
   'video.js'
 ];
