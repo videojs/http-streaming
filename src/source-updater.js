@@ -255,8 +255,9 @@ export default class SourceUpdater extends videojs.EventTarget {
    */
   appendBuffer({type, bytes, videoSegmentTimingInfoCallback}, doneFn) {
     this.processedAppend_ = true;
-    let originalAction = action = actions.appendBuffer(bytes);
-    let originalDoneFn = doneFn;
+    const originalAction = actions.appendBuffer(bytes);
+    const originalDoneFn = doneFn;
+    let action = originalAction;
 
     if (videoSegmentTimingInfoCallback) {
       action = (type, sourceUpdater) => {
@@ -377,6 +378,7 @@ export default class SourceUpdater extends videojs.EventTarget {
       return true;
     }
 
+    // TODO TODO: is this relevant?
     // or we have a pending callback that is not our internal noop
     if (this.pendingCallback_ && this.pendingCallback_ !== noop) {
       return true;

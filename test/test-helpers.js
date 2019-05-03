@@ -1,11 +1,7 @@
 import document from 'global/document';
 import sinon from 'sinon';
 import videojs from 'video.js';
-/* eslint-disable no-unused-vars */
-// needed so MediaSource can be registered with videojs
-import { MediaSource } from '../src/mse/index';
 import URLToolkit from 'url-toolkit';
-/* eslint-enable */
 import testDataManifests from './test-manifests.js';
 import xhrFactory from '../src/xhr';
 import { isLikelyFmp4Data } from '../src/util/codecs';
@@ -497,7 +493,7 @@ export const createResponseText = function(length) {
  * @param {Boolean} [tickClock=true] tick clock after updateend to allow for next
  *                                   asynchronous request
  */
-export const requestAndAppendSegment = async ({
+export const requestAndAppendSegment = async function({
   request,
   initSegmentRequest,
   segment,
@@ -510,7 +506,7 @@ export const requestAndAppendSegment = async ({
   isOnlyAudio,
   isOnlyVideo,
   tickClock
-}) => {
+}) {
   segment = segment || muxedSegment();
   tickClock = typeof tickClock === 'undefined' ? true : tickClock;
 

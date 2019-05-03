@@ -1017,8 +1017,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
     }
 
     // seekable is the same as last time
-    if (this.seekable && this.seekable_.length) {
-      if (this.seekable_.end(0) === oldEnd && this.seekable.start(0) === oldStart) {
+    if (this.seekable_ && this.seekable_.length) {
+      if (this.seekable_.end(0) === oldEnd && this.seekable_.start(0) === oldStart) {
         return;
       }
     }
