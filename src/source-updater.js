@@ -6,58 +6,10 @@ import logger from './util/logger';
 import noop from './util/noop';
 import { buffered } from './util/buffer';
 
-const actions = {
-  appendBuffer: (bytes) => (type, sourceUpdater) => {
-    const sourceBuffer = sourceUpdater[`${type}Buffer`];
-
-    sourceBuffer.appendBuffer(bytes);
-  },
-  remove: (start, end) => (type, sourceUpdater) => {
-    const sourceBuffer = sourceUpdater[`${type}Buffer`];
-
-    sourceBuffer.removing = true;
-
-    sourceBuffer.remove(start, end);
-  },
-  timestampOffset: (offset) => (type, sourceUpdater) => {
-    const sourceBuffer = sourceUpdater[`${type}Buffer`];
-
-    sourceBuffer.timestampOffset = offset;
-  },
-  callback: (callback) => (type, sourceUpdater) => {
-    callback();
-  },
-  duration: (duration) => (sourceUpdater) => {
-    try {
-      sourceUpdater.mediaSource.duration = duration;
-    } catch (e) {
-      videojs.log.warn('Failed to set media source duration', e);
-    }
-  }
-};
-
 const updating = (type, sourceUpdater) => {
   const sourceBuffer = sourceUpdater[`${type}Buffer`];
 
   return (sourceBuffer && sourceBuffer.updating) || sourceUpdater.queuePending[type];
-};
-
-const nextQueueIndexOfType = (type, queue) => {
-  for (let i = 0; i < queue.length; i++) {
-    const queueEntry = queue[i];
-
-    if (queueEntry.type === 'mediaSource') {
-      // If the next entry is a media source entry (uses multiple source buffers), block
-      // processing to allow it to go through first.
-      return null;
-    }
-
-    if (queueEntry.type === type) {
-      return i;
-    }
-  }
-
-  return null;
 };
 
 const shiftQueue = (type, sourceUpdater) => {
@@ -130,6 +82,57 @@ const shiftQueue = (type, sourceUpdater) => {
   // asynchronous operation, so keep a record that this source buffer type is in use
   sourceUpdater.queuePending[type] = queueEntry;
 };
+
+const actions = {
+  appendBuffer: (bytes) => (type, sourceUpdater) => {
+    const sourceBuffer = sourceUpdater[`${type}Buffer`];
+
+    sourceBuffer.appendBuffer(bytes);
+  },
+  remove: (start, end) => (type, sourceUpdater) => {
+    const sourceBuffer = sourceUpdater[`${type}Buffer`];
+
+    sourceBuffer.removing = true;
+
+    sourceBuffer.remove(start, end);
+  },
+  timestampOffset: (offset) => (type, sourceUpdater) => {
+    const sourceBuffer = sourceUpdater[`${type}Buffer`];
+
+    shiftQueue(type, sourceUpdater)
+
+    sourceBuffer.timestampOffset = offset;
+  },
+  callback: (callback) => (type, sourceUpdater) => {
+    callback();
+  },
+  duration: (duration) => (sourceUpdater) => {
+    try {
+      sourceUpdater.mediaSource.duration = duration;
+    } catch (e) {
+      videojs.log.warn('Failed to set media source duration', e);
+    }
+  }
+};
+
+const nextQueueIndexOfType = (type, queue) => {
+  for (let i = 0; i < queue.length; i++) {
+    const queueEntry = queue[i];
+
+    if (queueEntry.type === 'mediaSource') {
+      // If the next entry is a media source entry (uses multiple source buffers), block
+      // processing to allow it to go through first.
+      return null;
+    }
+
+    if (queueEntry.type === type) {
+      return i;
+    }
+  }
+
+  return null;
+};
+
 
 const pushQueue = ({type, sourceUpdater, action, doneFn, name}) => {
   sourceUpdater.queue.push({
@@ -367,20 +370,13 @@ export default class SourceUpdater extends videojs.EventTarget {
    * @return {Boolean} the updating status of the SourceBuffer
    */
   updating() {
-    // we are updating if:
     // the audio source buffer is updating
-    if (this.audioBuffer && this.audioBuffer.updating) {
+    if (updating('audio', this)) {
       return true;
     }
 
     // the video source buffer is updating
-    if (this.videoBuffer && this.videoBuffer.updating) {
-      return true;
-    }
-
-    // TODO TODO: is this relevant?
-    // or we have a pending callback that is not our internal noop
-    if (this.pendingCallback_ && this.pendingCallback_ !== noop) {
+    if (updating('video', this)) {
       return true;
     }
 
