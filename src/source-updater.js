@@ -99,9 +99,9 @@ const actions = {
   timestampOffset: (offset) => (type, sourceUpdater) => {
     const sourceBuffer = sourceUpdater[`${type}Buffer`];
 
-    shiftQueue(type, sourceUpdater)
-
     sourceBuffer.timestampOffset = offset;
+
+    shiftQueue(type, sourceUpdater)
   },
   callback: (callback) => (type, sourceUpdater) => {
     callback();
