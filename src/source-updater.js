@@ -152,6 +152,7 @@ const onUpdateend = (type, sourceUpdater) => (e) => {
   // if we encounter an updateend without a corresponding pending action from our queue
   // for that source buffer type, process the next action.
   if (sourceUpdater.queuePending[type]) {
+    sourceUpdater[`${type}Buffer`].removing = false;
     const doneFn = sourceUpdater.queuePending[type].doneFn;
 
     sourceUpdater.queuePending[type] = null;
