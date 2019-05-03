@@ -102,7 +102,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.mediaSource.addEventListener('sourceopen', this.handleSourceOpen_.bind(this));
 
     this.seekable_ = videojs.createTimeRanges();
-    this.hasPlayed_ = () => false;
+    this.hasPlayed_ = () => this.tech_.played().length > 0;
 
     this.syncController_ = new SyncController(options);
     this.segmentMetadataTrack_ = tech.addRemoteTextTrack({
@@ -624,7 +624,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
         this.tech_.one('loadedmetadata', () => {
           this.trigger('firstplay');
           this.seekTo_(seekable.end(0));
-          this.hasPlayed_ = () => true;
         });
 
         return false;
@@ -636,7 +635,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
       this.seekTo_(seekable.end(0));
     }
 
-    this.hasPlayed_ = () => true;
     // we can begin loading now that everything is ready
     this.load();
     return true;
