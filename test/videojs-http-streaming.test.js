@@ -3715,6 +3715,46 @@ QUnit.test('seekToProgramTime will seek to time if buffered', function(assert) {
   this.clock.tick(2);
 });
 
+QUnit.test('have a default syncpoint if switching renditions before one is selected', function(assert) {
+  assert.timeout(3000);
+  const done = assert.async();
+
+  this.player.src({
+    src: 'master-live.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+
+  // make sure play() is called *after* the media source opens
+  openMediaSource(this.player, this.clock);
+
+  this.player.tech_.hls.masterPlaylistController_.on('selectedinitialmedia', () => {
+    this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.syncPoint_
+
+    const levels = this.player.qualityLevels();
+
+    levels.one('change', () => {
+      assert.notEqual(this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.syncPoint_, null);
+      done();
+    });
+
+    Array.from(levels).forEach((lvl) => {
+      lvl.enabled = false;
+    });
+
+    this.requests.length = 0;
+    levels[0].enabled = true;
+
+    this.standardXHRResponse(this.requests.shift());
+    this.clock.tick(1);
+  });
+
+  this.standardXHRResponse(this.requests.shift());
+  this.standardXHRResponse(this.requests.shift());
+
+  // this.clock.tick(1);
+});
+
 QUnit.module('HLS Integration', {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
