@@ -196,15 +196,6 @@ export default class SyncController extends videojs.EventTarget {
                                            currentTime);
 
     if (!syncPoints.length) {
-      // if currentTimeline is -1, assume we're refetching a playlist from the beginning
-      // and thus create a new syncpoint of 0, 0
-      if (currentTimeline === -1) {
-        return {
-          segmentIndex: 0,
-          time: 0
-        };
-      }
-
       // Signal that we need to attempt to get a sync-point manually
       // by fetching a segment in the playlist and constructing
       // a sync-point from that information
