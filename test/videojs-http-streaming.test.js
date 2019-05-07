@@ -3744,7 +3744,8 @@ QUnit.test('have a default syncpoint if switching renditions before one is selec
       lvl.enabled = false;
     });
 
-    this.requests.length = 0;
+
+    this.requests = this.env.requests = [];
     levels[0].enabled = true;
 
     this.standardXHRResponse(this.requests.shift());
@@ -3753,8 +3754,6 @@ QUnit.test('have a default syncpoint if switching renditions before one is selec
 
   this.standardXHRResponse(this.requests.shift());
   this.standardXHRResponse(this.requests.shift());
-
-  // this.clock.tick(1);
 });
 
 QUnit.module('HLS Integration', {
