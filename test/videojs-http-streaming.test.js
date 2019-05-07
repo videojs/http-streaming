@@ -3744,7 +3744,6 @@ QUnit.test('have a default syncpoint if switching renditions before one is selec
       lvl.enabled = false;
     });
 
-
     this.requests = this.env.requests = [];
     levels[0].enabled = true;
 
