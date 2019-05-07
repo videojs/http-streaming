@@ -3719,21 +3719,23 @@ QUnit.test('have a default syncpoint if switching renditions before one is selec
   assert.timeout(3000);
   const done = assert.async();
 
+  this.player.muted(true);
   this.player.src({
-    src: 'master-live.m3u8',
+    src: 'live.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
+  this.clock.tick(1);
+  this.player.play();
   this.clock.tick(1);
 
   // make sure play() is called *after* the media source opens
   openMediaSource(this.player, this.clock);
 
   this.player.tech_.hls.masterPlaylistController_.on('selectedinitialmedia', () => {
-    this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.syncPoint_
-
     const levels = this.player.qualityLevels();
 
     levels.one('change', () => {
+      this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.fillBuffer_();
       assert.notEqual(this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.syncPoint_, null);
       done();
     });
