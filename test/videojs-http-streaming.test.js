@@ -3737,6 +3737,8 @@ QUnit.test('have a default syncpoint if switching renditions before one is selec
     levels.one('change', () => {
       this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.fillBuffer_();
       assert.notEqual(this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.syncPoint_, null);
+      // ignore warnings
+      this.env.log.warn.reset();
       done();
     });
 
