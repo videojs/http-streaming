@@ -742,9 +742,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // - The "timestampOffset" for the start of this segment is less than
     //   the currently set timestampOffset
     // Also, clear captions if we are crossing a discontinuity boundary
-    if (segmentInfo.timeline !== this.currentTimeline_ ||
-        ((segmentInfo.startOfSegment !== null) &&
-        segmentInfo.startOfSegment < this.sourceUpdater_.timestampOffset())) {
+    if (segmentInfo.timeline !== this.currentTimeline_) {
       this.syncController_.reset();
       segmentInfo.timestampOffset = segmentInfo.startOfSegment;
       if (this.captionParser_) {
