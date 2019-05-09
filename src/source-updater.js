@@ -177,6 +177,7 @@ export default class SourceUpdater {
     if (typeof offset !== 'undefined') {
       this.queueCallback_(() => {
         this.sourceBuffer_.timestampOffset = offset;
+        this.runCallback_();
       });
       this.timestampOffset_ = offset;
     }
