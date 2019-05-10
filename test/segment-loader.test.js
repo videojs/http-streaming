@@ -891,45 +891,6 @@ QUnit.module('SegmentLoader', function(hooks) {
       });
     });
 
-    QUnit.test('endOfStream does not happen while sourceUpdater is updating', function(assert) {
-      let endOfStreams = 0;
-      let bandwidthupdates = 0;
-
-      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
-
-        loader.on('ended', () => endOfStreams++);
-
-        loader.on('bandwidthupdate', () => {
-          bandwidthupdates++;
-          // Simulate a rendition switch
-          loader.resetEverything();
-        });
-
-        loader.playlist(playlistWithDuration(20));
-        loader.load();
-        this.clock.tick(1);
-
-        standardXHRResponse(this.requests.shift(), muxedSegment());
-        return new Promise((resolve, reject) => {
-          loader.one('appended', resolve);
-          loader.one('error', reject);
-        });
-      }).then(() => {
-        this.clock.tick(10);
-
-        loader.sourceUpdater_.updating = () => true;
-        standardXHRResponse(this.requests.shift(), muxedSegment());
-
-        return new Promise((resolve, reject) => {
-          loader.one('appended', resolve);
-          loader.one('error', reject);
-        });
-      }).then(() => {
-        assert.equal(bandwidthupdates, 1, 'triggered bandwidthupdate');
-        assert.equal(endOfStreams, 0, 'triggered ended');
-      });
-    });
-
     QUnit.test('live playlists do not trigger ended', function(assert) {
       let endOfStreams = 0;
 

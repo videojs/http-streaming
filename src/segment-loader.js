@@ -25,36 +25,6 @@ import { gopsSafeToAlignWith, removeGopBuffer, updateGopBuffer } from './util/go
 
 // in ms
 const CHECK_BUFFER_DELAY = 500;
-
-/**
- * Determines if we should call endOfStream on the media source based
- * on the state of the buffer or if appened segment was the final
- * segment in the playlist.
- *
- * @param {Object} playlist a media playlist object
- * @param {Object} mediaSource the MediaSource object
- * @param {Number} segmentIndex the index of segment we last appended
- * @returns {Boolean} do we need to call endOfStream on the MediaSource
- */
-const detectEndOfStream = function(playlist, mediaSource, segmentIndex) {
-  if (!playlist || !mediaSource) {
-    return false;
-  }
-
-  let segments = playlist.segments;
-
-  // determine a few boolean values to help make the branch below easier
-  // to read
-  let appendedLastSegment = segmentIndex === segments.length;
-
-  // if we've buffered to the end of the video, we need to call endOfStream
-  // so that MediaSources can trigger the `ended` event when it runs out of
-  // buffered data instead of waiting for me
-  return playlist.endList &&
-    mediaSource.readyState === 'open' &&
-    appendedLastSegment;
-};
-
 const finite = (num) => typeof num === 'number' && isFinite(num);
 
 export const illegalMediaSwitch = (loaderType, startingMedia, trackInfo) => {
@@ -246,7 +216,9 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.syncController_.on('syncinfoupdate', () => this.trigger('syncinfoupdate'));
 
     this.mediaSource_.addEventListener('sourceopen', () => {
-      this.ended_ = false;
+      if (!this.isEndOfStream_()) {
+        this.ended_ = false;
+      }
     });
 
     // ...for determining the fetch location
@@ -836,11 +808,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    if (this.isEndOfStream_(segmentInfo.mediaIndex)) {
-      this.endOfStream();
-      return;
-    }
-
     if (segmentInfo.mediaIndex === this.playlist_.segments.length - 1 &&
         this.mediaSource_.readyState === 'ended' &&
         !this.seeking_()) {
@@ -885,18 +852,26 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   /**
-   * Determines if this segment loader is at the end of it's stream.
+   * Determines if we should call endOfStream on the media source based
+   * on the state of the buffer or if appened segment was the final
+   * segment in the playlist.
    *
-   * @param {Number} mediaIndex the index of segment we last appended
-   * @param {Object} [playlist=this.playlist_] a media playlist object
-   * @returns {Boolean} true if at end of stream, false otherwise.
+   * @param {Number} [mediaIndex] the media index of segment we last appended
+   * @param {Object} [playlist] a media playlist object
+   * @returns {Boolean} do we need to call endOfStream on the MediaSource
    */
-  isEndOfStream_(mediaIndex, playlist = this.playlist_) {
-    return detectEndOfStream(
-      playlist,
-      this.mediaSource_,
-      mediaIndex
-    ) && !this.sourceUpdater_.updating();
+  isEndOfStream_(mediaIndex = this.mediaIndex, playlist = this.playlist_) {
+    if (!playlist || !this.mediaSource_) {
+      return false;
+    }
+
+    // mediaIndex is zero based but length is 1 based
+    const appendedLastSegment = (mediaIndex + 1) === playlist.segments.length;
+
+    // if we've buffered to the end of the video, we need to call endOfStream
+    // so that MediaSources can trigger the `ended` event when it runs out of
+    // buffered data instead of waiting for me
+    return playlist.endList && this.mediaSource_.readyState === 'open' && appendedLastSegment;
   }
 
   /**
@@ -1842,9 +1817,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // state away from loading until we are officially done loading the segment data.
     this.state = 'APPENDING';
 
-    const isEndOfStream = detectEndOfStream(segmentInfo.playlist,
-                                            this.mediaSource_,
-                                            segmentInfo.mediaIndex + 1);
+    const isEndOfStream = this.isEndOfStream_(segmentInfo.mediaIndex, segmentInfo.playlist);
     const isWalkingForward = this.mediaIndex !== null;
     const isDiscontinuity = segmentInfo.timeline !== this.currentTimeline_ &&
       // TODO verify this behavior
@@ -2107,13 +2080,6 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     const isWalkingForward = this.mediaIndex !== null;
 
-    // any time an update finishes and the last segment is in the
-    // buffer, end the stream. this ensures the "ended" event will
-    // fire if playback reaches that point.
-    if (this.isEndOfStream_(segmentInfo.mediaIndex + 1, segmentInfo.playlist)) {
-      this.endOfStream();
-    }
-
     // Don't do a rendition switch unless we have enough time to get a sync segment
     // and conservatively guess
     if (isWalkingForward) {
@@ -2122,6 +2088,13 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.trigger('progress');
 
     this.mediaIndex = segmentInfo.mediaIndex;
+
+    // any time an update finishes and the last segment is in the
+    // buffer, end the stream. this ensures the "ended" event will
+    // fire if playback reaches that point.
+    if (this.isEndOfStream_(segmentInfo.mediaIndex, segmentInfo.playlist)) {
+      this.endOfStream();
+    }
 
     // used for testing
     this.trigger('appended');

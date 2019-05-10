@@ -451,6 +451,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     this.mainSegmentLoader_.on('ended', () => {
+      this.logger_('main segment loader ended');
       this.onEndOfStream();
     });
 
@@ -484,6 +485,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     this.audioSegmentLoader_.on('ended', () => {
+      this.logger_('audioSegmentLoader ended');
       this.onEndOfStream();
     });
   }
@@ -651,7 +653,12 @@ export class MasterPlaylistController extends videojs.EventTarget {
       this.tryToCreateSourceBuffers_();
     } catch (e) {
       videojs.log.warn('Failed to create Source Buffers', e);
-      return this.mediaSource.endOfStream('decode');
+      if (this.mediaSource.readyState !== 'open') {
+        this.trigger('error');
+      } else {
+        this.sourceUpdater_.endOfStream('decode');
+      }
+      return;
     }
 
     // if autoplay is enabled, begin playback. This is duplicative of
@@ -721,14 +728,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    this.logger_(`calling mediaSource.endOfStream()`);
-    // on chrome calling endOfStream can sometimes cause an exception,
-    // even when the media source is in a valid state.
-    try {
-      this.mediaSource.endOfStream();
-    } catch (e) {
-      videojs.log.warn('Failed to call media source endOfStream', e);
-    }
+    this.sourceUpdater_.endOfStream();
   }
 
   /**
@@ -798,11 +798,13 @@ export class MasterPlaylistController extends videojs.EventTarget {
     if (!currentPlaylist) {
       this.error = error;
 
-      try {
-        return this.mediaSource.endOfStream('network');
-      } catch (e) {
-        return this.trigger('error');
+      if (this.mediaSource.readyState !== 'open') {
+        this.trigger('error');
+      } else {
+        this.sourceUpdater_.endOfStream('network');
       }
+
+      return;
     }
 
     let isFinalRendition =
@@ -1184,7 +1186,12 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
       videojs.log.warn(error);
       this.error = error;
-      return this.mediaSource.endOfStream('decode');
+
+      if (this.mediaSource.readyState !== 'open') {
+        this.trigger('error');
+      } else {
+        this.sourceUpdater_.endOfStream('decode');
+      }
     }
 
     try {
@@ -1194,7 +1201,12 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
       videojs.log.warn(error);
       this.error = error;
-      return this.mediaSource.endOfStream('decode');
+      if (this.mediaSource.readyState !== 'open') {
+        this.trigger('error');
+      } else {
+        this.sourceUpdater_.endOfStream('decode');
+      }
+      return;
     }
 
     this.excludeIncompatibleVariants_(media);

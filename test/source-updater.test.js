@@ -845,6 +845,116 @@ function(assert) {
   assert.ok(Number.isNaN(this.mediaSource.duration), 'duration set to NaN at start');
 });
 
+QUnit.test('endOfStream processes immediately if not waiting on source buffers',
+function(assert) {
+  this.sourceUpdater.createSourceBuffers({
+    audio: 'mp4a.40.2',
+    video: 'avc1.4D001E'
+  });
+
+  assert.equal(this.mediaSource.readyState, 'open', 'media source is open');
+  this.sourceUpdater.endOfStream();
+  assert.equal(this.mediaSource.readyState, 'ended', 'media source is ended');
+});
+
+QUnit.test('endOfStream can be called with an error string',
+function(assert) {
+  this.sourceUpdater.createSourceBuffers({
+    audio: 'mp4a.40.2',
+    video: 'avc1.4D001E'
+  });
+
+  assert.equal(this.mediaSource.readyState, 'open', 'media source is open');
+  this.sourceUpdater.endOfStream('network');
+  // some browsers mark it as ended, others as closed
+  assert.ok((/^ended|closed$/).test(this.mediaSource.readyState), 'media source is ended');
+});
+
+QUnit.test('endOfStream waits for audio buffer to finish updating', function(assert) {
+  const done = assert.async();
+
+  assert.expect(5);
+
+  this.sourceUpdater.createSourceBuffers({
+    audio: 'mp4a.40.2',
+    video: 'avc1.4D001E'
+  });
+
+  assert.notOk(this.sourceUpdater.updating(), 'not updating by default');
+
+  this.sourceUpdater.appendBuffer({type: 'audio', bytes: mp4Audio()}, () => {
+    assert.equal(this.mediaSource.readyState, 'open', 'media source is open');
+  });
+  this.sourceUpdater.endOfStream(null, () => {
+    assert.equal(this.mediaSource.readyState, 'ended', 'media source is ended');
+    done();
+  });
+
+  assert.equal(this.mediaSource.readyState, 'open', 'media source is open');
+  assert.ok(this.sourceUpdater.updating(), 'updating during appends');
+});
+
+QUnit.test('endOfStream waits for video buffer to finish updating', function(assert) {
+  const done = assert.async();
+
+  assert.expect(5);
+
+  this.sourceUpdater.createSourceBuffers({
+    audio: 'mp4a.40.2',
+    video: 'avc1.4D001E'
+  });
+
+  assert.notOk(this.sourceUpdater.updating(), 'not updating by default');
+
+  this.sourceUpdater.appendBuffer({type: 'video', bytes: mp4Video()}, () => {
+    assert.equal(this.mediaSource.readyState, 'open', 'media source is open');
+  });
+  this.sourceUpdater.endOfStream(null, () => {
+    assert.equal(this.mediaSource.readyState, 'ended', 'media source is ended');
+    done();
+  });
+
+  assert.equal(this.mediaSource.readyState, 'open', 'media source is open');
+  assert.ok(this.sourceUpdater.updating(), 'updating during appends');
+});
+
+QUnit.test('endOfStream waits for both audio and video buffers to finish updating',
+function(assert) {
+  const done = assert.async();
+  let appendsFinished = 0;
+
+  assert.expect(7);
+
+  this.sourceUpdater.createSourceBuffers({
+    audio: 'mp4a.40.2',
+    video: 'avc1.4D001E'
+  });
+
+  assert.notOk(this.sourceUpdater.updating(), 'not updating by default');
+
+  const checkDuration = () => {
+    assert.equal(this.mediaSource.readyState, 'open', 'media source is open');
+
+    if (appendsFinished === 0) {
+      this.sourceUpdater.endOfStream(null, () => {
+        assert.equal(this.mediaSource.readyState, 'ended', 'media source is ended');
+        done();
+      });
+    }
+
+    appendsFinished++;
+  };
+
+  this.sourceUpdater.appendBuffer({type: 'video', bytes: mp4Video()}, checkDuration);
+  this.sourceUpdater.appendBuffer({type: 'audio', bytes: mp4Audio()}, checkDuration);
+  this.sourceUpdater.endOfStream(null, () => {
+    assert.equal(this.mediaSource.readyState, 'ended', 'media source is ended');
+  });
+
+  assert.equal(this.mediaSource.readyState, 'open', 'media source is open');
+  assert.ok(this.sourceUpdater.updating(), 'updating during appends');
+});
+
 QUnit.test('dispose removes sourceopen listener', function(assert) {
   // create fake media source so we can detect event listeners being added and removed
   const addEventListenerCalls = [];
