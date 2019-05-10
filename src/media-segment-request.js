@@ -253,7 +253,13 @@ const decryptSegment = (decrypter, segment, doneFn) => {
 
   decrypter.addEventListener('message', decryptionHandler);
 
-  const keyBytes = segment.key.bytes.slice();
+  let keyBytes;
+
+  if (segment.key.bytes.slice) {
+    keyBytes = segment.key.bytes.slice();
+  } else {
+    keyBytes = new Uint32Array(Array.prototype.slice.call(segment.key.bytes));
+  }
 
   // this is an encrypted segment
   // incrementally decrypt the segment
