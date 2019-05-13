@@ -453,8 +453,6 @@ QUnit.module('SegmentLoader: M2TS', function(hooks) {
 
       loader.buffered_ = () => buffered;
 
-      // debugger;
-      // playlist.segments[0].end = 11;
       loader.playlist(playlist);
       loader.mimeType(this.mimeType);
       loader.load();
