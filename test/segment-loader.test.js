@@ -463,13 +463,15 @@ QUnit.module('SegmentLoader: M2TS', function(hooks) {
       this.requests.shift().respond(200, null, '');
       buffered = videojs.createTimeRanges([[0, 10]]);
       this.updateend();
+
+      // set up the test condition here
+      loader.sourceUpdater_.timestampOffset_ = 11;
       this.clock.tick(1);
 
       assert.equal(hlsTimestampOffsetEvents, 0,
         'no hls-timestamp-offset event was fired');
       this.requests[0].response = new Uint8Array(10).buffer;
       this.requests.shift().respond(200, null, '');
-      loader.sourceUpdater_.timestampOffset_ = 11;
 
       // verify stats
       assert.equal(loader.mediaBytesTransferred, 20, '20 bytes');
