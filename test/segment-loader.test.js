@@ -464,7 +464,11 @@ QUnit.module('SegmentLoader: M2TS', function(hooks) {
       buffered = videojs.createTimeRanges([[0, 10]]);
       this.updateend();
 
-      // set up the test condition here
+      // Change the timestampOffset manually so that we'd end up in a condition
+      // where the segment start time is less than the timestampOffset.
+      // Previously, we updated the timestampOffset in that case but
+      // we no longer wish to do it. This test verifies this case doesn't get
+      // re-introduced
       loader.sourceUpdater_.timestampOffset_ = 11;
       this.clock.tick(1);
 
