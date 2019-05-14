@@ -588,7 +588,10 @@ export const setupMediaSource = (mediaSource, sourceUpdater, options) => {
         codecs.video = 'avc1.4d001e';
       }
 
-      sourceUpdater.createSourceBuffers(codecs);
+      if (!options || !options.dontCreateSourceBuffers) {
+        sourceUpdater.createSourceBuffers(codecs);
+      }
+
       resolve();
     });
 

@@ -228,7 +228,7 @@ export default class SourceUpdater extends videojs.EventTarget {
       this.audioBuffer = this.mediaSource.addSourceBuffer(
         `audio/mp4;codecs="${codecs.audio}"`);
       this.audioBuffer.removing = false;
-      this.logger_(`created SourceBuffer audio/mp4;codecs="${codecs.audio}`);
+      this.logger_(`created SourceBuffer audio/mp4;codecs="${codecs.audio}"`);
     }
 
     if (codecs.video) {

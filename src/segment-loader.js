@@ -144,13 +144,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.mediaSource_ = settings.mediaSource;
     this.hls_ = settings.hls;
     this.loaderType_ = settings.loaderType;
-    // we always know the starting media for audio segment loaders (by definition),
-    // however, the main segment loader can be any combination, so we must wait for track
-    // info to determine the starting media
-    this.startingMedia_ = this.loaderType_ === 'audio' ? {
-      hasAudio: true,
-      hasVideo: false
-    } : void 0;
+    this.startingMedia_ = void 0;
     this.segmentMetadataTrack_ = settings.segmentMetadataTrack;
     this.goalBufferLength_ = settings.goalBufferLength;
     this.sourceType_ = settings.sourceType;
@@ -371,6 +365,7 @@ export default class SegmentLoader extends videojs.EventTarget {
    */
   error(error) {
     if (typeof error !== 'undefined') {
+      this.logger_('error occurred:', error);
       this.error_ = error;
     }
 
@@ -432,8 +427,8 @@ export default class SegmentLoader extends videojs.EventTarget {
         resolvedUri: map.resolvedUri,
         byterange: map.byterange,
         bytes: map.bytes,
-        timescales: map.timescales,
-        videoTrackIds: map.videoTrackIds
+        tracks: map.tracks,
+        timescales: map.timescales
       };
     }
 
@@ -1184,14 +1179,10 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     // When we have track info, determine what media types this loader is dealing with.
-    if (typeof this.startingMedia_ === 'undefined' &&
-        // Guard against cases where we're not getting track info at all until we are
-        // certain that all streams will provide it.
-        (trackInfo.hasAudio || trackInfo.hasVideo)) {
-      this.startingMedia_ = {
-        hasAudio: trackInfo.hasAudio,
-        hasVideo: trackInfo.hasVideo
-      };
+    // Guard against cases where we're not getting track info at all until we are
+    // certain that all streams will provide it.
+    if (typeof this.startingMedia_ === 'undefined' && (trackInfo.hasAudio || trackInfo.hasVideo)) {
+      this.startingMedia_ = trackInfo;
     }
 
     this.trigger('trackinfo');
@@ -1207,19 +1198,13 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    if (!mediaType) {
-      // If media type isn't set, that means it's not being parsed from the content. This
-      // can happen in the case of fmp4, since we don't parse the media type (yet). In
-      // this case, just use the loader type, since fmp4 should always be demuxed.
-      mediaType =
-        this.loaderType_ === 'main' && this.startingMedia_.hasVideo ? 'video' : 'audio';
-    }
-
     const segmentInfo = this.pendingSegment_;
     const timingInfoProperty = timingInfoPropertyForMedia(mediaType);
 
     segmentInfo[timingInfoProperty] = segmentInfo[timingInfoProperty] || {};
     segmentInfo[timingInfoProperty][timeType] = time;
+
+    this.logger_(`timinginfo: ${mediaType} - ${timeType} - ${time}`);
 
     // check if any calls were waiting on the timing info
     if (this.hasEnoughInfoToAppend_()) {
@@ -1327,20 +1312,19 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     const segmentInfo = this.pendingSegment_;
 
-    if (!segmentInfo) {
+    if (!segmentInfo || !this.startingMedia_) {
       // no segment to append any data for
       return false;
     }
 
-    if (this.loaderType_ === 'main' &&
-        !this.handlePartialData_ &&
-        !segmentInfo.videoTimingInfo) {
-      // video timing info is needed before an append can happen, since video time is the
-      // "source of truth"
-      // TODO handle the case where there's no video in the segment, but there is video in
-      // the rendition (this case has only been noticed once before, and content is not
-      // usually configured this way)
-      return false;
+    if (!this.handlePartialData_) {
+      if (this.startingMedia_.hasVideo && !segmentInfo.videoTimingInfo) {
+        return false;
+      }
+
+      if (this.startingMedia_.hasAudio && !segmentInfo.audioTimingInfo) {
+        return false;
+      }
     }
 
     return true;
@@ -1390,17 +1374,11 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.segmentKey(simpleSegment.key, true);
     }
 
-    if (simpleSegment.isFmp4) {
-      this.trigger('fmp4');
-    }
-
     segmentInfo.isFmp4 = simpleSegment.isFmp4;
     segmentInfo.timingInfo = segmentInfo.timingInfo || {};
 
     if (segmentInfo.isFmp4) {
-      // for fmp4 the loader type is used to determine whether audio or video (fmp4 is
-      // always considered demuxed)
-      result.type = this.loaderType_ === 'main' ? 'video' : 'audio';
+      this.trigger('fmp4');
 
       segmentInfo.timingInfo.start =
         segmentInfo[timingInfoPropertyForMedia(result.type)].start;
@@ -1535,7 +1513,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     this.sourceUpdater_.appendBuffer({type, bytes, videoSegmentTimingInfoCallback}, (error) => {
       if (error) {
-        this.error(error);
+        this.error(`appenderror for ${type} append with ${bytes.length} bytes`);
         // If an append errors, we can't recover.
         // (see https://w3c.github.io/media-source/#sourcebuffer-append-error).
         // Trigger a special error so that it can be handled separately from normal,
@@ -2011,6 +1989,7 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   updateTimingInfoEnd_(segmentInfo) {
+    segmentInfo.timingInfo = segmentInfo.timingInfo || {};
     const useVideoTimingInfo =
       this.loaderType_ === 'main' && this.startingMedia_.hasVideo;
     const prioritizedTimingInfo = useVideoTimingInfo && segmentInfo.videoTimingInfo ?

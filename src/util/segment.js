@@ -35,8 +35,8 @@ export const probeTsSegment = (bytes, baseStartTime) => {
 
   const result = {
     // each type's time info comes back as an array of 2 times, start and end
-    hasVideo: timeInfo.video && timeInfo.video.length === 2,
-    hasAudio: timeInfo.audio && timeInfo.audio.length === 2
+    hasVideo: timeInfo.video && timeInfo.video.length === 2 || false,
+    hasAudio: timeInfo.audio && timeInfo.audio.length === 2 || false
   };
 
   if (result.hasVideo) {
