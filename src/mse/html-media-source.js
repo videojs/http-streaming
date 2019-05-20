@@ -5,7 +5,7 @@ import window from 'global/window';
 import document from 'global/document';
 import videojs from 'video.js';
 import VirtualSourceBuffer from './virtual-source-buffer';
-import {durationOfVideo} from './add-text-track-data';
+import {durationOfVideo} from '../util/text-tracks.js';
 import {
   isAudioCodec,
   isVideoCodec,
