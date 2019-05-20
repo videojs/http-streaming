@@ -5,7 +5,7 @@ import videojs from 'video.js';
 import { createTextTracksIfNecessary } from '../util/text-tracks.js';
 import { removeCuesFromTrack } from '../util/text-tracks.js';
 import { addTextTrackData } from '../util/text-tracks.js';
-import TransmuxWorker from 'worker!./transmuxer-worker.worker.js';
+import TransmuxWorker from 'worker!../transmuxer-worker.worker.js';
 import { isAudioCodec, isVideoCodec } from '../util/codecs';
 import {
   gopsSafeToAlignWith,
