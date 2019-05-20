@@ -8,6 +8,8 @@ import {
   standardXHRResponse
 } from './test-helpers.js';
 import PlaybackWatcher from '../src/playback-watcher';
+// needed for plugin registration
+import '../src/videojs-http-streaming';
 
 let monitorCurrentTime_;
 
@@ -640,7 +642,11 @@ QUnit.module('PlaybackWatcher isolated functions', {
     this.playbackWatcher = new PlaybackWatcher({
       tech: {
         on: () => {},
-        off: () => {}
+        off: () => {},
+        // needed to construct a playback watcher
+        options_: {
+          playerId: 'mock-player-id'
+        }
       }
     });
   },

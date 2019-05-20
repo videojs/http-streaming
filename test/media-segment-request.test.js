@@ -1,8 +1,22 @@
 import QUnit from 'qunit';
+import sinon from 'sinon';
 import {mediaSegmentRequest, REQUEST_ERRORS} from '../src/media-segment-request';
 import xhrFactory from '../src/xhr';
-import {useFakeEnvironment} from './test-helpers';
+import { useFakeEnvironment, standardXHRResponse } from './test-helpers';
+import TransmuxWorker from 'worker!../src/transmuxer-worker.worker.js';
 import Decrypter from 'worker!../src/decrypter-worker.worker.js';
+import {
+  mp4Video,
+  mp4VideoInit,
+  muxed as muxedSegment,
+  muxedString as muxedSegmentString,
+  caption as captionSegment,
+  captionString as captionSegmentString,
+  id3String as id3SegmentString,
+  id3 as id3Segment
+} from './test-segments';
+// needed for plugin registration
+import '../src/videojs-http-streaming';
 
 QUnit.module('Media Segment Request', {
   beforeEach(assert) {
@@ -39,16 +53,58 @@ QUnit.module('Media Segment Request', {
       },
       parse(segment, videoTrackIds, timescales) {
         this.parsed = true;
+
+        return {
+          captions: [{
+            startTime: 0,
+            endTime: 1,
+            text: 'test caption',
+            stream: 'CC1'
+          }],
+          captionStreams: {
+            CC1: true
+          }
+        };
       }
     };
     this.xhrOptions = {
       timeout: 1000
     };
     this.noop = () => {};
+
+    this.standardXHRResponse = (request, data) => {
+      standardXHRResponse(request, data);
+
+      // Because SegmentLoader#fillBuffer_ is now scheduled asynchronously
+      // we have to use clock.tick to get the expected side effects of
+      // SegmentLoader#handleAppendsDone_
+      this.clock.tick(1);
+    };
+
+    this.createTransmuxer = (isPartial) => {
+      const transmuxer = new TransmuxWorker();
+
+      transmuxer.postMessage({
+        action: 'init',
+        options: {
+          remux: false,
+          keepOriginalTimestamps: true,
+          handlePartialData: isPartial
+        }
+      });
+
+      return transmuxer;
+    };
+
+    this.transmuxer = null;
   },
   afterEach(assert) {
     this.realDecrypter.terminate();
     this.env.restore();
+
+    if (this.transmuxer) {
+      this.transmuxer.terminate();
+    }
   }
 });
 
@@ -57,14 +113,14 @@ QUnit.test('cancels outstanding segment request on abort', function(assert) {
 
   assert.expect(7);
 
-  const abort = mediaSegmentRequest(
-    this.xhr,
-    this.xhrOptions,
-    this.noop,
-    this.noop,
-    { resolvedUri: '0-test.ts' },
-    this.noop,
-    (error, segmentData) => {
+  const abort = mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.noop,
+    captionParser: this.noop,
+    segment: { resolvedUri: '0-test.ts' },
+    progressFn: this.noop,
+    doneFn: (error, segmentData) => {
       assert.equal(this.requests.length, 1, 'there is only one request');
       assert.equal(this.requests[0].uri, '0-test.ts', 'the request is for a segment');
       assert.ok(this.requests[0].aborted, 'aborted the first request');
@@ -72,7 +128,8 @@ QUnit.test('cancels outstanding segment request on abort', function(assert) {
       assert.equal(error.code, REQUEST_ERRORS.ABORTED, 'request was aborted');
 
       done();
-    });
+    }
+  });
 
   // Simulate Firefox's handling of aborted segments -
   // Firefox sets the response to an empty array buffer if the xhr type is 'arraybuffer'
@@ -88,24 +145,25 @@ QUnit.test('cancels outstanding key requests on abort', function(assert) {
 
   assert.expect(7);
 
-  const abort = mediaSegmentRequest(
-    this.xhr,
-    this.xhrOptions,
-    this.noop,
-    this.noop,
-    {
+  const abort = mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.noop,
+    captionParser: this.noop,
+    segment: {
       resolvedUri: '0-test.ts',
       key: {
         resolvedUri: '0-key.php'
       }
     },
-    this.noop,
-    (error, segmentData) => {
+    progressFn: this.noop,
+    doneFn: (error, segmentData) => {
       assert.ok(keyReq.aborted, 'aborted the key request');
       assert.equal(error.code, REQUEST_ERRORS.ABORTED, 'key request was aborted');
 
       done();
-    });
+    }
+  });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
 
@@ -127,24 +185,25 @@ QUnit.test('cancels outstanding key requests on failure', function(assert) {
   const done = assert.async();
 
   assert.expect(7);
-  mediaSegmentRequest(
-    this.xhr,
-    this.xhrOptions,
-    this.noop,
-    this.noop,
-    {
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.noop,
+    captionParser: this.noop,
+    segment: {
       resolvedUri: '0-test.ts',
       key: {
         resolvedUri: '0-key.php'
       }
     },
-    this.noop,
-    (error, segmentData) => {
+    progressFn: this.noop,
+    doneFn: (error, segmentData) => {
       assert.ok(keyReq.aborted, 'aborted the key request');
       assert.equal(error.code, REQUEST_ERRORS.FAILURE, 'segment request failed');
 
       done();
-    });
+    }
+  });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
 
@@ -163,24 +222,25 @@ QUnit.test('cancels outstanding key requests on timeout', function(assert) {
   const done = assert.async();
 
   assert.expect(7);
-  mediaSegmentRequest(
-    this.xhr,
-    this.xhrOptions,
-    this.noop,
-    this.noop,
-    {
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.noop,
+    captionParser: this.noop,
+    segment: {
       resolvedUri: '0-test.ts',
       key: {
         resolvedUri: '0-key.php'
       }
     },
-    this.noop,
-    (error, segmentData) => {
+    progressFn: this.noop,
+    doneFn: (error, segmentData) => {
       assert.ok(keyReq.aborted, 'aborted the key request');
       assert.equal(error.code, REQUEST_ERRORS.TIMEOUT, 'key request failed');
 
       done();
-    });
+    }
+  });
   assert.equal(this.requests.length, 2, 'there are two requests');
 
   keyReq = this.requests.shift();
@@ -200,25 +260,26 @@ function(assert) {
   const done = assert.async();
 
   assert.expect(8);
-  mediaSegmentRequest(
-    this.xhr,
-    this.xhrOptions,
-    this.noop,
-    this.noop,
-    {
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.noop,
+    captionParser: this.noop,
+    segment: {
       resolvedUri: '0-test.ts',
       key: {
         resolvedUri: '0-key.php'
       }
     },
-    this.noop,
-    (error, segmentData) => {
+    progressFn: this.noop,
+    doneFn: (error, segmentData) => {
       assert.notOk(keyReq.aborted, 'did not run original abort function');
       assert.ok(abortedKeyReq, 'ran overridden abort function');
       assert.equal(error.code, REQUEST_ERRORS.FAILURE, 'request failed');
 
       done();
-    });
+    }
+  });
   assert.equal(this.requests.length, 2, 'there are two requests');
 
   keyReq = this.requests.shift();
@@ -254,20 +315,20 @@ QUnit.test('the key response is converted to the correct format', function(asser
     postMessage.call(this.mockDecrypter, message);
   };
 
-  mediaSegmentRequest(
-    this.xhr,
-    this.xhrOptions,
-    this.mockDecrypter,
-    this.noop,
-    {
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.mockDecrypter,
+    captionParser: this.noop,
+    segment: {
       resolvedUri: '0-test.ts',
       key: {
         resolvedUri: '0-key.php',
         IV: [0, 0, 0, 1]
       }
     },
-    this.noop,
-    (error, segmentData) => {
+    progressFn: this.noop,
+    doneFn: (error, segmentData) => {
       assert.notOk(error, 'there are no errors');
       assert.equal(this.mockDecrypter.listeners.length,
                    0,
@@ -275,7 +336,8 @@ QUnit.test('the key response is converted to the correct format', function(asser
       // verify stats
       assert.equal(segmentData.stats.bytesReceived, 10, '10 bytes');
       done();
-    });
+    }
+  });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
 
@@ -294,12 +356,12 @@ QUnit.test('the key response is converted to the correct format', function(asser
 QUnit.test('segment with key has bytes decrypted', function(assert) {
   const done = assert.async();
 
-  mediaSegmentRequest(
-    this.xhr,
-    this.xhrOptions,
-    this.realDecrypter,
-    this.noop,
-    {
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.realDecrypter,
+    captionParser: this.noop,
+    segment: {
       resolvedUri: '0-test.ts',
       key: {
         resolvedUri: '0-key.php',
@@ -308,8 +370,8 @@ QUnit.test('segment with key has bytes decrypted', function(assert) {
         }
       }
     },
-    this.noop,
-    (error, segmentData) => {
+    progressFn: this.noop,
+    doneFn: (error, segmentData) => {
       assert.notOk(error, 'there are no errors');
       assert.ok(segmentData.bytes, 'decrypted bytes in segment');
       assert.ok(segmentData.key.bytes, 'key bytes in segment');
@@ -322,7 +384,8 @@ QUnit.test('segment with key has bytes decrypted', function(assert) {
       // verify stats
       assert.equal(segmentData.stats.bytesReceived, 8, '8 bytes');
       done();
-    });
+    }
+  });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
 
@@ -344,12 +407,12 @@ QUnit.test('segment with key has bytes decrypted', function(assert) {
 QUnit.test('segment with key bytes does not request key again', function(assert) {
   const done = assert.async();
 
-  mediaSegmentRequest(
-    this.xhr,
-    this.xhrOptions,
-    this.realDecrypter,
-    this.noop,
-    {
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.realDecrypter,
+    captionParser: this.noop,
+    segment: {
       resolvedUri: '0-test.ts',
       key: {
         resolvedUri: '0-key.php',
@@ -359,8 +422,8 @@ QUnit.test('segment with key bytes does not request key again', function(assert)
         }
       }
     },
-    this.noop,
-    (error, segmentData) => {
+    processFn: this.noop,
+    doneFn: (error, segmentData) => {
       assert.notOk(error, 'there are no errors');
       assert.ok(segmentData.bytes, 'decrypted bytes in segment');
       assert.ok(segmentData.key.bytes, 'key bytes in segment');
@@ -373,7 +436,7 @@ QUnit.test('segment with key bytes does not request key again', function(assert)
       // verify stats
       assert.equal(segmentData.stats.bytesReceived, 8, '8 bytes');
       done();
-    });
+    }});
 
   assert.equal(this.requests.length, 1, 'there is one request');
   const segmentReq = this.requests.shift();
@@ -387,17 +450,105 @@ QUnit.test('segment with key bytes does not request key again', function(assert)
   this.clock.tick(100);
 });
 
+QUnit.test('key 404 calls back with error', function(assert) {
+  const done = assert.async();
+  let segmentReq;
+
+  assert.expect(11);
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.realDecrypter,
+    captionParser: this.noop,
+    segment: {
+      resolvedUri: '0-test.ts',
+      key: {
+        resolvedUri: '0-key.php',
+        iv: {
+          bytes: new Uint32Array([0, 0, 0, 1])
+        }
+      }
+    },
+    progressFn: this.noop,
+    doneFn: (error, segmentData) => {
+      assert.ok(segmentReq.aborted, 'segment request aborted');
+
+      assert.ok(error, 'there is an error');
+      assert.equal(error.status, 404, 'error status matches response code');
+      assert.equal(error.code, REQUEST_ERRORS.FAILURE, 'error code set to FAILURE');
+      assert.notOk(segmentData.bytes, 'no bytes in segment');
+      done();
+    }
+  });
+
+  assert.equal(this.requests.length, 2, 'there are two requests');
+
+  const keyReq = this.requests.shift();
+
+  segmentReq = this.requests.shift();
+
+  assert.equal(keyReq.uri, '0-key.php', 'the first request is for a key');
+  assert.equal(segmentReq.uri, '0-test.ts', 'the second request is for a segment');
+  assert.notOk(segmentReq.aborted, 'segment request not aborted');
+
+  keyReq.respond(404, null, '');
+});
+
+QUnit.test('key 500 calls back with error', function(assert) {
+  const done = assert.async();
+  let segmentReq;
+
+  assert.expect(11);
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.realDecrypter,
+    captionParser: this.noop,
+    segment: {
+      resolvedUri: '0-test.ts',
+      key: {
+        resolvedUri: '0-key.php',
+        iv: {
+          bytes: new Uint32Array([0, 0, 0, 1])
+        }
+      }
+    },
+    progressFn: this.noop,
+    doneFn: (error, segmentData) => {
+      assert.ok(segmentReq.aborted, 'segment request aborted');
+
+      assert.ok(error, 'there is an error');
+      assert.equal(error.status, 500, 'error status matches response code');
+      assert.equal(error.code, REQUEST_ERRORS.FAILURE, 'error code set to FAILURE');
+      assert.notOk(segmentData.bytes, 'no bytes in segment');
+      done();
+    }
+  });
+
+  assert.equal(this.requests.length, 2, 'there are two requests');
+
+  const keyReq = this.requests.shift();
+
+  segmentReq = this.requests.shift();
+
+  assert.equal(keyReq.uri, '0-key.php', 'the first request is for a key');
+  assert.equal(segmentReq.uri, '0-test.ts', 'the second request is for a segment');
+  assert.notOk(segmentReq.aborted, 'segment request not aborted');
+
+  keyReq.respond(500, null, '');
+});
+
 QUnit.test('waits for every request to finish before the callback is run',
 function(assert) {
   const done = assert.async();
 
   assert.expect(10);
-  mediaSegmentRequest(
-    this.xhr,
-    this.xhrOptions,
-    this.realDecrypter,
-    this.mockCaptionParser,
-    {
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.realDecrypter,
+    captionParser: this.mockCaptionParser,
+    segment: {
       resolvedUri: '0-test.ts',
       key: {
         resolvedUri: '0-key.php',
@@ -409,8 +560,8 @@ function(assert) {
         resolvedUri: '0-init.dat'
       }
     },
-    this.noop,
-    (error, segmentData) => {
+    progressFn: this.noop,
+    doneFn: (error, segmentData) => {
       assert.notOk(error, 'there are no errors');
       assert.ok(segmentData.bytes, 'decrypted bytes in segment');
       assert.ok(segmentData.map.bytes, 'init segment bytes in map');
@@ -418,7 +569,8 @@ function(assert) {
       // verify stats
       assert.equal(segmentData.stats.bytesReceived, 8, '8 bytes');
       done();
-    });
+    }
+  });
 
   assert.equal(this.requests.length, 3, 'there are three requests');
 
@@ -447,131 +599,366 @@ function(assert) {
 
 QUnit.test('non-TS segment will get parsed for captions', function(assert) {
   const done = assert.async();
+  let gotCaption = false;
+  let gotData = false;
 
-  mediaSegmentRequest(
-    this.xhr,
-    this.xhrOptions,
-    this.mockDecrypter,
-    this.mockCaptionParser,
-    {
-      resolvedUri: '0-test.m4s',
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.mockDecrypter,
+    captionParser: this.mockCaptionParser,
+    segment: {
+      resolvedUri: 'mp4Video.mp4',
       map: {
-        resolvedUri: '0-init.mp4'
-      }
+        resolvedUri: 'mp4VideoInit.mp4'
+      },
+      isFmp4: true
     },
-    this.noop,
-    (error, segmentData) => {
-      assert.notOk(error, 'there are no errors');
-      assert.ok(segmentData.map.bytes, 'init segment bytes in map');
+    progressFn: this.noop,
+    trackInfoFn: this.noop,
+    timingInfoFn: this.noop,
+    id3Fn: this.noop,
+    captionsFn: (segment, captions) => {
+      gotCaption = true;
 
-      // verify stats
-      assert.equal(segmentData.stats.bytesReceived, 8, '8 bytes');
-      // verify cached map
-      assert.ok(segmentData.map.timescales, 'looked for timescales');
-      assert.ok(segmentData.map.videoTrackIds, 'looked for videoTrackIds');
       // verify the caption parser
       assert.equal(this.mockCaptionParser.parsed, true, 'tried to parse captions');
+      assert.deepEqual(captions, this.mockCaptionParser.parse().captions, 'returned the expected captions');
+    },
+    dataFn: (segment, segmentData) => {
+      gotData = true;
+
+      assert.ok(segment.map.bytes, 'init segment bytes in map');
+      assert.ok(segment.map.timescales, 'looked for timescales');
+      assert.ok(segment.map.videoTrackIds, 'looked for videoTrackIds');
+    },
+    doneFn: () => {
+      assert.ok(gotCaption, 'received caption event');
+      assert.ok(gotData, 'received data event');
       done();
-    });
+    },
+    handlePartialData: false
+  });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
 
   const initReq = this.requests.shift();
   const segmentReq = this.requests.shift();
 
-  assert.equal(initReq.uri, '0-init.mp4', 'the first request is for the init segment');
-  assert.equal(segmentReq.uri, '0-test.m4s', 'the second request is for a segment');
+  assert.equal(initReq.uri, 'mp4VideoInit.mp4', 'the first request is for the init segment');
+  assert.equal(segmentReq.uri, 'mp4Video.mp4', 'the second request is for a segment');
 
-  initReq.response = new Uint32Array([0, 1, 2, 3]).buffer;
-  initReq.respond(200, null, '');
-  this.clock.tick(200);
-
-  segmentReq.response = new Uint8Array(8).buffer;
-  segmentReq.respond(200, null, '');
-  this.clock.tick(200);
+  this.standardXHRResponse(initReq, mp4VideoInit());
+  this.standardXHRResponse(segmentReq, mp4Video());
 });
 
 QUnit.test('non-TS segment will get parsed for captions on next segment request if init is late', function(assert) {
   const done = assert.async();
-  let initBytes;
+  let gotCaption = 0;
+  let gotData = 0;
 
-  mediaSegmentRequest(
-    this.xhr,
-    this.xhrOptions,
-    this.mockDecrypter,
-    this.mockCaptionParser,
-    {
-      resolvedUri: '0-test.m4s',
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.mockDecrypter,
+    captionParser: this.mockCaptionParser,
+    segment: {
+      resolvedUri: 'mp4Video.mp4',
       map: {
-        resolvedUri: '0-init.mp4'
+        resolvedUri: 'mp4VideoInit.mp4'
       }
     },
-    this.noop,
-    (error, segmentData) => {
-      assert.notOk(error, 'there are no errors');
-      assert.ok(segmentData.map.bytes, 'init segment bytes in map');
-      initBytes = segmentData.map.bytes;
+    progressFn: this.noop,
+    trackInfoFn: this.noop,
+    timingInfoFn: this.noop,
+    id3Fn: this.noop,
+    captionsFn: (segment, captions) => {
+      gotCaption++;
 
-      // verify stats
-      assert.equal(segmentData.stats.bytesReceived, 8, '8 bytes');
-      // verify cached map
-      assert.ok(segmentData.map.timescales, 'looked for timescales');
-      assert.ok(segmentData.map.videoTrackIds, 'looked for videoTrackIds');
       // verify the caption parser
-      assert.equal(this.mockCaptionParser.parsed, false, 'tried to parse captions');
-    });
+      assert.equal(
+        this.mockCaptionParser.parsed,
+        true,
+        'should have parsed captions even though init was received late');
+      assert.deepEqual(
+        captions,
+        this.mockCaptionParser.parse().captions,
+        'the expected captions were received'
+      );
+    },
+    dataFn: (segment, segmentData) => {
+      gotData++;
+
+      assert.ok(segmentData, 'init segment bytes in map');
+      assert.ok(segment.map.timescales, 'looked for timescales');
+      assert.ok(segment.map.videoTrackIds, 'looked for videoTrackIds');
+    },
+    doneFn: () => {
+      assert.equal(gotCaption, 1, 'received caption event');
+      assert.equal(gotData, 1, 'received data event');
+      done();
+    },
+    handlePartialData: false
+  });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
 
   let initReq = this.requests.shift();
   let segmentReq = this.requests.shift();
 
-  assert.equal(initReq.uri, '0-init.mp4', 'the first request is for the init segment');
-  assert.equal(segmentReq.uri, '0-test.m4s', 'the second request is for a segment');
+  assert.equal(initReq.uri, 'mp4VideoInit.mp4', 'the first request is for the init segment');
+  assert.equal(segmentReq.uri, 'mp4Video.mp4', 'the second request is for a segment');
 
-  segmentReq.response = new Uint8Array(8).buffer;
-  segmentReq.respond(200, null, '');
-  this.clock.tick(200);
+  // Simulate receiving the media first
+  this.standardXHRResponse(segmentReq, mp4Video());
+  // Simulate receiving the init segment after the media
+  this.standardXHRResponse(initReq, mp4VideoInit());
+});
 
-  initReq.response = new Uint32Array([0, 1, 2, 3]).buffer;
-  initReq.respond(200, null, '');
-  this.clock.tick(200);
+QUnit.test('callbacks fire for TS segment with partial data', function(assert) {
+  const progressSpy = sinon.spy();
+  const trackInfoSpy = sinon.spy();
+  const timingInfoSpy = sinon.spy();
+  const dataSpy = sinon.spy();
+  const done = assert.async();
 
-  mediaSegmentRequest(
-    this.xhr,
-    this.xhrOptions,
-    this.mockDecrypter,
-    this.mockCaptionParser,
-    {
-      resolvedUri: '1-test.m4s',
-      map: {
-        resolvedUri: '0-init.mp4',
-        bytes: initBytes,
-        timescales: {},
-        videoTrackIds: [1]
-      }
+  this.transmuxer = this.createTransmuxer(true);
+
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.mockDecrypter,
+    captionParser: this.mockCaptionParser,
+    segment: {
+      resolvedUri: 'muxed.ts',
+      transmuxer: this.transmuxer
     },
-    this.noop,
-    (error, segmentData) => {
-      assert.notOk(error, 'there are no errors');
-      assert.ok(segmentData.map.bytes, 'init segment bytes in map');
-
-      // verify stats
-      assert.equal(segmentData.stats.bytesReceived, 8, '8 bytes');
-      // verify cached map
-      assert.ok(segmentData.map.timescales, 'looked for timescales');
-      assert.ok(segmentData.map.videoTrackIds, 'looked for videoTrackIds');
-      // verify the caption parser
-      assert.equal(this.mockCaptionParser.parsed, true, 'tried to parse captions');
+    progressFn: progressSpy,
+    trackInfoFn: trackInfoSpy,
+    timingInfoFn: timingInfoSpy,
+    id3Fn: this.noop,
+    captionsFn: this.noop,
+    dataFn: dataSpy,
+    doneFn: () => {
+      assert.strictEqual(progressSpy.callCount, 1, 'saw 1 progress event');
+      assert.ok(trackInfoSpy.callCount, 'got trackInfo');
+      assert.ok(timingInfoSpy.callCount, 'got timingInfo');
+      assert.ok(dataSpy.callCount, 'got data event');
       done();
-    });
+    },
+    handlePartialData: true
+  });
 
-  assert.equal(this.requests.length, 1, 'there is one request');
+  const request = this.requests.shift();
+  // Need to take enough of the segment to trigger a data event
+  const partialResponse = muxedSegmentString().substring(0, 1700);
 
-  segmentReq = this.requests.shift();
-  assert.equal(segmentReq.uri, '1-test.m4s', 'the next request is for a segment');
+  // simulates progress event
+  request.downloadProgress(partialResponse);
+  this.standardXHRResponse(request, muxedSegment());
+});
 
-  segmentReq.response = new Uint8Array(8).buffer;
-  segmentReq.respond(200, null, '');
-  this.clock.tick(200);
+QUnit.test('data callback does not fire if too little partial data', function(assert) {
+  const progressSpy = sinon.spy();
+  const dataSpy = sinon.spy();
+  const done = assert.async();
+
+  this.transmuxer = this.createTransmuxer(true);
+
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.mockDecrypter,
+    captionParser: this.mockCaptionParser,
+    segment: {
+      resolvedUri: 'muxed.ts',
+      transmuxer: this.transmuxer
+    },
+    progressFn: progressSpy,
+    trackInfoFn: this.noop,
+    timingInfoFn: this.noop,
+    id3Fn: this.noop,
+    captionsFn: this.noop,
+    dataFn: dataSpy,
+    doneFn: () => {
+      assert.strictEqual(progressSpy.callCount, 1, 'saw 1 progress event');
+      assert.notOk(dataSpy.callCount, 'did not get data event');
+      done();
+    },
+    handlePartialData: true
+  });
+
+  const request = this.requests.shift();
+  // less data than needed for a data event to be fired
+  const partialResponse = muxedSegmentString().substring(0, 1000);
+
+  // simulates progress event
+  request.downloadProgress(partialResponse);
+  this.standardXHRResponse(request, muxedSegment());
+});
+
+QUnit.test('caption callback fires for TS segment with partial data', function(assert) {
+  const progressSpy = sinon.spy();
+  const captionSpy = sinon.spy();
+  const dataSpy = sinon.spy();
+  const done = assert.async();
+
+  this.transmuxer = this.createTransmuxer(true);
+
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.mockDecrypter,
+    captionParser: this.mockCaptionParser,
+    segment: {
+      resolvedUri: 'caption.ts',
+      transmuxer: this.transmuxer
+    },
+    progressFn: progressSpy,
+    trackInfoFn: this.noop,
+    timingInfoFn: this.noop,
+    id3Fn: this.noop,
+    captionsFn: captionSpy,
+    dataFn: dataSpy,
+    doneFn: () => {
+      assert.strictEqual(progressSpy.callCount, 1, 'saw 1 progress event');
+      assert.strictEqual(captionSpy.callCount, 1, 'got one caption back');
+      assert.ok(dataSpy.callCount, 'got data event');
+      done();
+    },
+    handlePartialData: true
+  });
+
+  const request = this.requests.shift();
+  // Need to take enough of the segment to trigger
+  // a data and caption event
+  const partialResponse = captionSegmentString().substring(0, 190000);
+
+  // simulates progress event
+  request.downloadProgress(partialResponse);
+  this.standardXHRResponse(request, captionSegment());
+});
+
+QUnit.test('caption callback does not fire if partial data has no captions', function(assert) {
+  const progressSpy = sinon.spy();
+  const captionSpy = sinon.spy();
+  const dataSpy = sinon.spy();
+  const done = assert.async();
+
+  this.transmuxer = this.createTransmuxer(true);
+
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.mockDecrypter,
+    captionParser: this.mockCaptionParser,
+    segment: {
+      resolvedUri: 'caption.ts',
+      transmuxer: this.transmuxer
+    },
+    progressFn: progressSpy,
+    trackInfoFn: this.noop,
+    timingInfoFn: this.noop,
+    id3Fn: this.noop,
+    captionsFn: captionSpy,
+    dataFn: dataSpy,
+    doneFn: () => {
+      assert.strictEqual(progressSpy.callCount, 1, 'saw 1 progress event');
+      assert.strictEqual(captionSpy.callCount, 0, 'got no caption back');
+      assert.ok(dataSpy.callCount, 'got data event');
+      done();
+    },
+    handlePartialData: true
+  });
+
+  const request = this.requests.shift();
+  // Need to take enough of the segment to trigger a data event
+  const partialResponse = muxedSegmentString().substring(0, 1700);
+
+  // simulates progress event
+  request.downloadProgress(partialResponse);
+  this.standardXHRResponse(request, muxedSegment());
+});
+
+QUnit.test('id3 callback fires for TS segment with partial data', function(assert) {
+  const progressSpy = sinon.spy();
+  const id3Spy = sinon.spy();
+  const dataSpy = sinon.spy();
+  const done = assert.async();
+
+  this.transmuxer = this.createTransmuxer(true);
+
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.mockDecrypter,
+    captionParser: this.mockCaptionParser,
+    segment: {
+      resolvedUri: 'id3.ts',
+      transmuxer: this.transmuxer
+    },
+    progressFn: progressSpy,
+    trackInfoFn: this.noop,
+    timingInfoFn: this.noop,
+    id3Fn: id3Spy,
+    captionsFn: this.noop,
+    dataFn: dataSpy,
+    doneFn: () => {
+      assert.strictEqual(progressSpy.callCount, 1, 'saw 1 progress event');
+      assert.strictEqual(id3Spy.callCount, 1, 'got one id3Frame back');
+      assert.ok(dataSpy.callCount, 'got data event');
+      done();
+    },
+    handlePartialData: true
+  });
+
+  const request = this.requests.shift();
+  // Need to take enough of the segment to trigger
+  // a data and id3Frame event
+  const partialResponse = id3SegmentString().substring(0, 900);
+
+  // simulates progress event
+  request.downloadProgress(partialResponse);
+  this.standardXHRResponse(request, id3Segment());
+});
+
+QUnit.test('id3 callback does not fire if partial data has no ID3 tags', function(assert) {
+  const progressSpy = sinon.spy();
+  const id3Spy = sinon.spy();
+  const dataSpy = sinon.spy();
+  const done = assert.async();
+
+  this.transmuxer = this.createTransmuxer(true);
+
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.mockDecrypter,
+    captionParser: this.mockCaptionParser,
+    segment: {
+      resolvedUri: 'id3.ts',
+      transmuxer: this.transmuxer
+    },
+    progressFn: progressSpy,
+    trackInfoFn: this.noop,
+    timingInfoFn: this.noop,
+    id3Fn: id3Spy,
+    captionsFn: this.noop,
+    dataFn: dataSpy,
+    doneFn: () => {
+      assert.strictEqual(progressSpy.callCount, 1, 'saw 1 progress event');
+      assert.strictEqual(id3Spy.callCount, 0, 'got no id3Frames back');
+      assert.ok(dataSpy.callCount, 'got data event');
+      done();
+    },
+    handlePartialData: true
+  });
+
+  const request = this.requests.shift();
+  // Need to take enough of the segment to trigger a data event
+  const partialResponse = muxedSegmentString().substring(0, 1700);
+
+  // simulates progress event
+  request.downloadProgress(partialResponse);
+  this.standardXHRResponse(request, muxedSegment());
 });

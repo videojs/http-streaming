@@ -5,11 +5,24 @@ import Config from '../src/config';
 import {
   playlistWithDuration,
   useFakeEnvironment,
-  useFakeMediaSource
+  createResponseText,
+  standardXHRResponse,
+  setupMediaSource
 } from './test-helpers.js';
 import { MasterPlaylistController } from '../src/master-playlist-controller';
+import SourceUpdater from '../src/source-updater';
 import SyncController from '../src/sync-controller';
 import Decrypter from 'worker!../src/decrypter-worker.worker.js';
+import window from 'global/window';
+/* eslint-disable no-unused-vars */
+// we need this so that it can register hls with videojs
+import { Hls } from '../src/videojs-http-streaming';
+/* eslint-enable no-unused-vars */
+import {
+  muxed as muxedSegment,
+  mp4Video as mp4VideoSegment,
+  mp4VideoInit as mp4VideoInitSegment
+} from './test-segments';
 
 /**
  * beforeEach and afterEach hooks that should be run segment loader tests regardless of
@@ -20,7 +33,6 @@ export const LoaderCommonHooks = {
     this.env = useFakeEnvironment(assert);
     this.clock = this.env.clock;
     this.requests = this.env.requests;
-    this.mse = useFakeMediaSource();
     this.currentTime = 0;
     this.seekable = {
       length: 0
@@ -34,21 +46,24 @@ export const LoaderCommonHooks = {
       tech_: {
         paused: () => this.paused,
         playbackRate: () => this.playbackRate,
-        currentTime: () => this.currentTime
+        currentTime: () => this.currentTime,
+        textTracks: () => {},
+        addRemoteTextTrack: () => {},
+        trigger: () => {}
       }
     };
     this.tech_ = this.fakeHls.tech_;
     this.goalBufferLength =
       MasterPlaylistController.prototype.goalBufferLength.bind(this);
-    this.mediaSource = new videojs.MediaSource();
-    this.mediaSource.trigger('sourceopen');
+    this.mediaSource = new window.MediaSource();
+    this.sourceUpdater = new SourceUpdater(this.mediaSource);
     this.syncController = new SyncController();
     this.decrypter = new Decrypter();
   },
   afterEach(assert) {
     this.env.restore();
-    this.mse.restore();
     this.decrypter.terminate();
+    this.sourceUpdater.dispose();
   }
 };
 
@@ -72,6 +87,7 @@ export const LoaderCommonSettings = function(settings) {
     duration: () => this.mediaSource.duration,
     goalBufferLength: () => this.goalBufferLength(),
     mediaSource: this.mediaSource,
+    sourceUpdater: this.sourceUpdater,
     syncController: this.syncController,
     decrypter: this.decrypter
   }, settings);
@@ -91,7 +107,8 @@ export const LoaderCommonSettings = function(settings) {
  */
 export const LoaderCommonFactory = (LoaderConstructor,
                                     loaderSettings,
-                                    loaderBeforeEach) => {
+                                    loaderBeforeEach,
+                                    usesAsyncAppends = true) => {
   let loader;
 
   QUnit.module('Loader Common', function(hooks) {
@@ -100,14 +117,13 @@ export const LoaderCommonFactory = (LoaderConstructor,
 
       loader = new LoaderConstructor(LoaderCommonSettings.call(this, loaderSettings), {});
 
-      loaderBeforeEach(loader);
+      if (loaderBeforeEach) {
+        loaderBeforeEach(loader);
+      }
+    });
 
-      // shim updateend trigger to be a noop if the loader has no media source
-      this.updateend = function() {
-        if (loader.mediaSource_) {
-          loader.mediaSource_.sourceBuffers[0].trigger('updateend');
-        }
-      };
+    hooks.afterEach(function(assert) {
+      loader.dispose();
     });
 
     QUnit.test('fails without required initialization options', function(assert) {
@@ -142,119 +158,141 @@ export const LoaderCommonFactory = (LoaderConstructor,
       // some time passes and a response is received
       this.clock.tick(100);
       this.requests[0].response = new Uint8Array(10).buffer;
-      this.requests.shift().respond(200, null, '');
+      this.requests.shift().respond(200, null, createResponseText(10));
       loader.load();
       assert.equal(this.requests.length, 0, 'load has no effect');
-
-      // verify stats
-      assert.equal(loader.mediaBytesTransferred, 10, '10 bytes');
-      assert.equal(loader.mediaTransferDuration, 100, '100 ms (clock above)');
-      assert.equal(loader.mediaRequests, 1, '1 request');
     });
 
     QUnit.test('calling load should unpause', function(assert) {
-      loader.playlist(playlistWithDuration(20));
-      loader.pause();
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        loader.playlist(playlistWithDuration(20));
+        loader.pause();
 
-      loader.load();
-      this.clock.tick(1);
-      assert.equal(loader.paused(), false, 'loading unpauses');
+        loader.load();
+        this.clock.tick(1);
+        assert.equal(loader.paused(), false, 'loading unpauses');
 
-      loader.pause();
-      this.clock.tick(1);
-      this.requests[0].response = new Uint8Array(10).buffer;
-      this.requests.shift().respond(200, null, '');
+        loader.pause();
+        this.clock.tick(1);
 
-      assert.equal(loader.paused(), true, 'stayed paused');
-      loader.load();
-      assert.equal(loader.paused(), false, 'unpaused during processing');
+        standardXHRResponse(this.requests.shift(), muxedSegment());
 
-      loader.pause();
+        assert.equal(loader.paused(), true, 'stayed paused');
+        loader.load();
+        assert.equal(loader.paused(), false, 'unpaused during processing');
 
-      this.updateend();
+        if (usesAsyncAppends) {
+          return new Promise((resolve, reject) => {
+            loader.one('appending', loader.pause);
+            loader.one('appended', resolve);
+            loader.one('error', reject);
+          });
+        }
 
-      assert.equal(loader.state, 'READY', 'finished processing');
-      assert.ok(loader.paused(), 'stayed paused');
+        loader.pause();
+        return Promise.resolve();
+      }).then(() => {
 
-      loader.load();
-      assert.equal(loader.paused(), false, 'unpaused');
+        assert.equal(loader.state, 'READY', 'finished processing');
+        assert.ok(loader.paused(), 'stayed paused');
 
-      // verify stats
-      assert.equal(loader.mediaBytesTransferred, 10, '10 bytes');
-      assert.equal(loader.mediaTransferDuration, 1, '1 ms (clock above)');
-      assert.equal(loader.mediaRequests, 1, '1 request');
+        loader.load();
+        assert.equal(loader.paused(), false, 'unpaused');
+      });
     });
 
     QUnit.test('regularly checks the buffer while unpaused', function(assert) {
-      loader.playlist(playlistWithDuration(90));
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
 
-      loader.load();
-      this.clock.tick(1);
+        loader.playlist(playlistWithDuration(90));
 
-      // fill the buffer
-      this.clock.tick(1);
-      this.requests[0].response = new Uint8Array(10).buffer;
-      this.requests.shift().respond(200, null, '');
+        loader.load();
+        this.clock.tick(1);
 
-      loader.buffered_ = () => videojs.createTimeRanges([[
-        0, Config.GOAL_BUFFER_LENGTH
-      ]]);
+        // fill the buffer
+        this.clock.tick(1);
+        standardXHRResponse(this.requests.shift(), muxedSegment());
 
-      this.updateend();
+        loader.buffered_ = () => videojs.createTimeRanges([[
+          0, Config.GOAL_BUFFER_LENGTH
+        ]]);
 
-      assert.equal(this.requests.length, 0, 'no outstanding requests');
+        if (usesAsyncAppends) {
+          return new Promise((resolve, reject) => {
+            loader.one('appended', resolve);
+            loader.one('error', reject);
+          });
+        }
 
-      // play some video to drain the buffer
-      this.currentTime = Config.GOAL_BUFFER_LENGTH;
-      this.clock.tick(10 * 1000);
-      assert.equal(this.requests.length, 1, 'requested another segment');
+        return Promise.resolve();
+      }).then(() => {
+        assert.equal(this.requests.length, 0, 'no outstanding requests');
 
-      // verify stats
-      assert.equal(loader.mediaBytesTransferred, 10, '10 bytes');
-      assert.equal(loader.mediaTransferDuration, 1, '1 ms (clock above)');
-      assert.equal(loader.mediaRequests, 1, '1 request');
+        // play some video to drain the buffer
+        this.currentTime = Config.GOAL_BUFFER_LENGTH;
+        this.clock.tick(10 * 1000);
+        assert.equal(this.requests.length, 1, 'requested another segment');
+      });
     });
 
     QUnit.test('does not check the buffer while paused', function(assert) {
-      loader.playlist(playlistWithDuration(90));
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        loader.playlist(playlistWithDuration(90));
 
-      loader.load();
-      this.clock.tick(1);
+        loader.load();
+        this.clock.tick(1);
 
-      loader.pause();
-      this.clock.tick(1);
-      this.requests[0].response = new Uint8Array(10).buffer;
-      this.requests.shift().respond(200, null, '');
+        loader.pause();
+        this.clock.tick(1);
+        standardXHRResponse(this.requests.shift(), muxedSegment());
 
-      this.updateend();
+        if (usesAsyncAppends) {
+          return new Promise((resolve, reject) => {
+            loader.one('appended', resolve);
+            loader.one('error', reject);
+          });
+        }
 
-      this.clock.tick(10 * 1000);
-      assert.equal(this.requests.length, 0, 'did not make a request');
-
-      // verify stats
-      assert.equal(loader.mediaBytesTransferred, 10, '10 bytes');
-      assert.equal(loader.mediaTransferDuration, 1, '1 ms (clock above)');
-      assert.equal(loader.mediaRequests, 1, '1 request');
+        return Promise.resolve();
+      }).then(() => {
+        this.clock.tick(10 * 1000);
+        assert.equal(this.requests.length, 0, 'did not make a request');
+      });
     });
 
     QUnit.test('calculates bandwidth after downloading a segment', function(assert) {
-      loader.playlist(playlistWithDuration(10));
+      const segment = muxedSegment();
+      const segmentBytes = segment.byteLength;
 
-      loader.load();
-      this.clock.tick(1);
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
 
-      // some time passes and a response is received
-      this.clock.tick(100);
-      this.requests[0].response = new Uint8Array(10).buffer;
-      this.requests.shift().respond(200, null, '');
+        loader.playlist(playlistWithDuration(10));
 
-      assert.equal(loader.bandwidth, (10 / 100) * 8 * 1000, 'calculated bandwidth');
-      assert.equal(loader.roundTrip, 100, 'saves request round trip time');
+        loader.load();
+        this.clock.tick(1);
 
-      // TODO: Bandwidth Stat will be stale??
-      // verify stats
-      assert.equal(loader.mediaBytesTransferred, 10, '10 bytes');
-      assert.equal(loader.mediaTransferDuration, 100, '100 ms (clock above)');
+        // some time passes and a response is received
+        this.clock.tick(100);
+        standardXHRResponse(this.requests.shift(), segment);
+
+        if (usesAsyncAppends) {
+          return new Promise((resolve, reject) => {
+            loader.one('appended', resolve);
+            loader.one('error', reject);
+          });
+        }
+
+        return Promise.resolve();
+      }).then(() => {
+        assert.equal(loader.bandwidth,
+          (segmentBytes / 100) * 8 * 1000,
+          'calculated bandwidth');
+        assert.equal(loader.roundTrip, 100, 'saves request round trip time');
+        assert.equal(loader.mediaBytesTransferred,
+          segmentBytes,
+          'saved mediaBytesTransferred');
+        assert.equal(loader.mediaTransferDuration, 100, '100 ms (clock above)');
+      });
     });
 
     QUnit.test('segment request timeouts reset bandwidth', function(assert) {
@@ -282,6 +320,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       loader.load();
       this.clock.tick(1);
 
+      this.requests[0].responseText = '';
       this.requests[0].dispatchEvent({ type: 'progress', target: this.requests[0] });
       assert.equal(progressEvents, 1, 'triggered progress');
     });
@@ -335,6 +374,9 @@ export const LoaderCommonFactory = (LoaderConstructor,
 
       this.clock.tick(1);
 
+      // TODO, probably want to repeat this test for
+      // both partial appends and full segment playback
+      this.requests[0].responseText = '';
       this.requests[0].dispatchEvent({
         type: 'progress',
         target: this.requests[0],
@@ -378,34 +420,44 @@ export const LoaderCommonFactory = (LoaderConstructor,
       loader.on('bandwidthupdate', function() {
         progresses++;
       });
-      loader.playlist(playlistWithDuration(20));
 
-      loader.load();
-      this.clock.tick(1);
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
 
-      // some time passes and a response is received
-      this.requests[0].response = new Uint8Array(10).buffer;
-      this.requests.shift().respond(200, null, '');
+        loader.playlist(playlistWithDuration(20));
+        loader.load();
 
-      this.updateend();
+        this.clock.tick(1);
 
-      assert.equal(progresses, 0, 'no bandwidthupdate fired');
+        standardXHRResponse(this.requests.shift(), muxedSegment());
 
-      this.clock.tick(2);
-      // if mediaIndex is set, then the SegmentLoader is in walk-forward mode
-      loader.mediaIndex = 1;
+        if (usesAsyncAppends) {
+          return new Promise((resolve, reject) => {
+            loader.one('appended', resolve);
+            loader.one('error', reject);
+          });
+        }
 
-      // some time passes and a response is received
-      this.requests[0].response = new Uint8Array(10).buffer;
-      this.requests.shift().respond(200, null, '');
+        return Promise.resolve();
+      }).then(() => {
+        assert.equal(progresses, 0, 'no bandwidthupdate fired');
 
-      this.updateend();
+        this.clock.tick(2);
+        // if mediaIndex is set, then the SegmentLoader is in walk-forward mode
+        loader.mediaIndex = 1;
 
-      assert.equal(progresses, 1, 'fired bandwidthupdate');
+        standardXHRResponse(this.requests.shift(), muxedSegment());
 
-      // verify stats
-      assert.equal(loader.mediaBytesTransferred, 20, '20 bytes');
-      assert.equal(loader.mediaRequests, 2, '2 request');
+        if (usesAsyncAppends) {
+          return new Promise((resolve, reject) => {
+            loader.one('appended', resolve);
+            loader.one('error', reject);
+          });
+        }
+
+        return Promise.resolve();
+      }).then(function() {
+        assert.equal(progresses, 1, 'fired bandwidthupdate');
+      });
     });
 
     QUnit.test('only requests one segment at a time', function(assert) {
@@ -420,109 +472,103 @@ export const LoaderCommonFactory = (LoaderConstructor,
     });
 
     QUnit.test('downloads init segments if specified', function(assert) {
-      let playlist = playlistWithDuration(20);
-      let map = {
-        resolvedUri: 'mainInitSegment',
-        byterange: {
-          length: 20,
-          offset: 0
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {isVideoOnly: true}).then(() => {
+        let playlist = playlistWithDuration(20);
+        let map = {
+          resolvedUri: 'mainInitSegment',
+          byterange: {
+            length: 20,
+            offset: 0
+          }
+        };
+
+        playlist.segments[0].map = map;
+        playlist.segments[1].map = map;
+        loader.playlist(playlist);
+
+        loader.load();
+        this.clock.tick(1);
+
+        assert.equal(this.requests.length, 2, 'made requests');
+        assert.equal(this.requests[0].url, 'mainInitSegment', 'requested the init segment');
+
+        standardXHRResponse(this.requests.shift(), mp4VideoInitSegment());
+
+        assert.equal(this.requests[0].url, '0.ts', 'requested the segment');
+
+        standardXHRResponse(this.requests.shift(), mp4VideoSegment());
+
+        if (usesAsyncAppends) {
+          return new Promise((resolve, reject) => {
+            loader.one('appended', resolve);
+            loader.one('error', reject);
+          });
         }
-      };
 
-      let buffered = videojs.createTimeRanges();
+        return Promise.resolve();
+      }).then(() => {
+        this.clock.tick(1);
 
-      loader.buffered_ = () => buffered;
-
-      playlist.segments[0].map = map;
-      playlist.segments[1].map = map;
-      loader.playlist(playlist);
-
-      loader.load();
-      this.clock.tick(1);
-
-      assert.equal(this.requests.length, 2, 'made requests');
-
-      // init segment response
-      this.clock.tick(1);
-      assert.equal(this.requests[0].url, 'mainInitSegment', 'requested the init segment');
-      this.requests[0].response = new Uint8Array(20).buffer;
-      this.requests.shift().respond(200, null, '');
-      // 0.ts response
-      this.clock.tick(1);
-      assert.equal(this.requests[0].url, '0.ts',
-                  'requested the segment');
-      this.requests[0].response = new Uint8Array(20).buffer;
-      this.requests.shift().respond(200, null, '');
-
-      // append the init segment
-      buffered = videojs.createTimeRanges([]);
-      this.updateend();
-
-      // append the segment
-      buffered = videojs.createTimeRanges([[0, 10]]);
-      this.updateend();
-      this.clock.tick(1);
-
-      assert.equal(this.requests.length, 1, 'made a request');
-      assert.equal(this.requests[0].url, '1.ts',
-                  'did not re-request the init segment');
+        assert.equal(this.requests.length, 1, 'made a request');
+        assert.equal(this.requests[0].url, '1.ts',
+                    'did not re-request the init segment');
+      });
     });
 
     QUnit.test('detects init segment changes and downloads it', function(assert) {
-      let playlist = playlistWithDuration(20);
-      let buffered = videojs.createTimeRanges();
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {isVideoOnly: true}).then(() => {
+        const playlist = playlistWithDuration(20);
+        let buffered = videojs.createTimeRanges();
 
-      playlist.segments[0].map = {
-        resolvedUri: 'init0',
-        byterange: {
-          length: 20,
-          offset: 0
+        playlist.segments[0].map = {
+          resolvedUri: 'init0',
+          byterange: {
+            length: 20,
+            offset: 0
+          }
+        };
+        playlist.segments[1].map = {
+          resolvedUri: 'init0',
+          byterange: {
+            length: 20,
+            offset: 20
+          }
+        };
+
+        loader.buffered_ = () => buffered;
+        loader.playlist(playlist);
+
+        loader.load();
+        this.clock.tick(1);
+
+        assert.equal(this.requests.length, 2, 'made requests');
+
+        assert.equal(this.requests[0].url, 'init0', 'requested the init segment');
+        assert.equal(this.requests[0].headers.Range, 'bytes=0-19',
+          'requested the init segment byte range');
+        standardXHRResponse(this.requests.shift(), mp4VideoInitSegment());
+        assert.equal(this.requests[0].url, '0.ts',
+          'requested the segment');
+        standardXHRResponse(this.requests.shift(), mp4VideoSegment());
+
+        if (usesAsyncAppends) {
+          return new Promise((resolve, reject) => {
+            loader.one('appended', resolve);
+            loader.one('error', reject);
+          });
         }
-      };
-      playlist.segments[1].map = {
-        resolvedUri: 'init0',
-        byterange: {
-          length: 20,
-          offset: 20
-        }
-      };
 
-      loader.buffered_ = () => buffered;
-      loader.playlist(playlist);
+        return Promise.resolve();
+      }).then(() => {
+        this.clock.tick(1);
 
-      loader.load();
-      this.clock.tick(1);
-
-      assert.equal(this.requests.length, 2, 'made requests');
-
-      // init segment response
-      this.clock.tick(1);
-      assert.equal(this.requests[0].url, 'init0', 'requested the init segment');
-      assert.equal(this.requests[0].headers.Range, 'bytes=0-19',
-                  'requested the init segment byte range');
-      this.requests[0].response = new Uint8Array(20).buffer;
-      this.requests.shift().respond(200, null, '');
-      // 0.ts response
-      this.clock.tick(1);
-      assert.equal(this.requests[0].url, '0.ts',
-                  'requested the segment');
-      this.requests[0].response = new Uint8Array(20).buffer;
-      this.requests.shift().respond(200, null, '');
-
-      // append the init segment
-      buffered = videojs.createTimeRanges([]);
-      this.updateend();
-      // append the segment
-      buffered = videojs.createTimeRanges([[0, 10]]);
-      this.updateend();
-      this.clock.tick(1);
-
-      assert.equal(this.requests.length, 2, 'made requests');
-      assert.equal(this.requests[0].url, 'init0', 'requested the init segment');
-      assert.equal(this.requests[0].headers.Range, 'bytes=20-39',
-                  'requested the init segment byte range');
-      assert.equal(this.requests[1].url, '1.ts',
-                  'did not re-request the init segment');
+        assert.equal(this.requests.length, 2, 'made requests');
+        assert.equal(this.requests[0].url, 'init0', 'requested the init segment');
+        assert.equal(this.requests[0].headers.Range, 'bytes=20-39',
+                    'requested the init segment byte range');
+        assert.equal(this.requests[1].url, '1.ts',
+                    'did not re-request the init segment');
+      });
     });
 
     QUnit.test('request error increments mediaRequestsErrored stat', function(assert) {
@@ -565,123 +611,152 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(loader.mediaRequestsAborted, 1, '1 aborted request');
     });
 
-    QUnit.test('SegmentLoader.mediaIndex is adjusted when live playlist is updated',
-    function(assert) {
-      loader.playlist(playlistWithDuration(50, {
-        mediaSequence: 0,
-        endList: false
-      }));
+    QUnit.test('SegmentLoader.mediaIndex is adjusted when live playlist is updated', function(assert) {
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
 
-      loader.load();
-      // Start at mediaIndex 2 which means that the next segment we request
-      // should mediaIndex 3
-      loader.mediaIndex = 2;
-      this.clock.tick(1);
+        loader.playlist(playlistWithDuration(50, {
+          mediaSequence: 0,
+          endList: false
+        }));
 
-      assert.equal(loader.mediaIndex, 2, 'SegmentLoader.mediaIndex starts at 2');
-      assert.equal(this.requests[0].url,
-                   '3.ts',
-                   'requesting the segment at mediaIndex 3');
+        loader.load();
+        // Start at mediaIndex 2 which means that the next segment we request
+        // should mediaIndex 3
+        loader.mediaIndex = 2;
+        this.clock.tick(1);
 
-      this.requests[0].response = new Uint8Array(10).buffer;
-      this.requests.shift().respond(200, null, '');
-      this.clock.tick(1);
-      this.updateend();
+        assert.equal(loader.mediaIndex, 2, 'SegmentLoader.mediaIndex starts at 2');
+        assert.equal(this.requests[0].url,
+          '3.ts',
+          'requesting the segment at mediaIndex 3');
+        standardXHRResponse(this.requests.shift(), muxedSegment());
 
-      assert.equal(loader.mediaIndex, 3, 'mediaIndex ends at 3');
+        if (usesAsyncAppends) {
+          return new Promise((resolve, reject) => {
+            loader.one('appended', resolve);
+            loader.one('error', reject);
+          });
+        }
 
-      this.clock.tick(1);
+        return Promise.resolve();
+      }).then(() => {
+        assert.equal(loader.mediaIndex, 3, 'mediaIndex ends at 3');
 
-      assert.equal(loader.mediaIndex, 3, 'SegmentLoader.mediaIndex starts at 3');
-      assert.equal(this.requests[0].url,
-                   '4.ts',
-                   'requesting the segment at mediaIndex 4');
+        this.clock.tick(1);
 
-      // Update the playlist shifting the mediaSequence by 2 which will result
-      // in a decrement of the mediaIndex by 2 to 1
-      loader.playlist(playlistWithDuration(50, {
-        mediaSequence: 2,
-        endList: false
-      }));
+        assert.equal(loader.mediaIndex, 3, 'SegmentLoader.mediaIndex starts at 3');
+        assert.equal(this.requests[0].url,
+          '4.ts',
+          'requesting the segment at mediaIndex 4');
 
-      assert.equal(loader.mediaIndex, 1, 'SegmentLoader.mediaIndex is updated to 1');
+        // Update the playlist shifting the mediaSequence by 2 which will result
+        // in a decrement of the mediaIndex by 2 to 1
+        loader.playlist(playlistWithDuration(50, {
+          mediaSequence: 2,
+          endList: false
+        }));
 
-      this.requests[0].response = new Uint8Array(10).buffer;
-      this.requests.shift().respond(200, null, '');
-      this.clock.tick(1);
-      this.updateend();
+        assert.equal(loader.mediaIndex, 1, 'SegmentLoader.mediaIndex is updated to 1');
 
-      assert.equal(loader.mediaIndex, 2, 'SegmentLoader.mediaIndex ends at 2');
+        standardXHRResponse(this.requests.shift(), muxedSegment());
+
+        if (usesAsyncAppends) {
+          return new Promise((resolve, reject) => {
+            loader.one('appended', resolve);
+            loader.one('error', reject);
+          });
+        }
+
+        return Promise.resolve();
+      }).then(() => {
+        assert.equal(loader.mediaIndex, 2, 'SegmentLoader.mediaIndex ends at 2');
+      });
     });
 
-    QUnit.test('segmentInfo.mediaIndex is adjusted when live playlist is updated',
-    function(assert) {
-      const handleUpdateEnd_ = loader.handleUpdateEnd_.bind(loader);
+    QUnit.test('segmentInfo.mediaIndex is adjusted when live playlist is updated', function(assert) {
       let expectedLoaderIndex = 3;
+      const handleAppendsDone_ = loader.handleAppendsDone_.bind(loader);
 
-      loader.handleUpdateEnd_ = function() {
-        handleUpdateEnd_();
+      loader.handleAppendsDone_ = function() {
+        handleAppendsDone_();
 
         assert.equal(loader.mediaIndex,
-                     expectedLoaderIndex,
-                     'SegmentLoader.mediaIndex ends at' + expectedLoaderIndex);
+          expectedLoaderIndex,
+          'SegmentLoader.mediaIndex ends at ' + expectedLoaderIndex);
         loader.mediaIndex = null;
         loader.fetchAtBuffer_ = false;
         // remove empty flag that may be added by vtt loader
-        loader.playlist_.segments.forEach(segment => segment.empty = false);
+        loader.playlist_.segments.forEach(segment => {
+          segment.empty = false;
+        });
       };
 
-      // Setting currentTime to 31 so that we start requesting at segment #3
-      this.currentTime = 31;
-      loader.playlist(playlistWithDuration(50, {
-        mediaSequence: 0,
-        endList: false
-      }));
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
 
-      loader.load();
-      // Start at mediaIndex null which means that the next segment we request
-      // should be based on currentTime (mediaIndex 3)
-      loader.mediaIndex = null;
-      loader.syncPoint_ = {
-        segmentIndex: 0,
-        time: 0
-      };
-      this.clock.tick(1);
+        // Setting currentTime to 31 so that we start requesting at segment #3
+        this.currentTime = 31;
+        loader.playlist(playlistWithDuration(50, {
+          mediaSequence: 0,
+          endList: false
+        }));
 
-      let segmentInfo = loader.pendingSegment_;
+        loader.load();
+        // Start at mediaIndex null which means that the next segment we request
+        // should be based on currentTime (mediaIndex 3)
+        loader.mediaIndex = null;
+        loader.syncPoint_ = {
+          segmentIndex: 0,
+          time: 0
+        };
+        this.clock.tick(1);
 
-      assert.equal(segmentInfo.mediaIndex, 3, 'segmentInfo.mediaIndex starts at 3');
-      assert.equal(this.requests[0].url,
-                   '3.ts',
-                   'requesting the segment at mediaIndex 3');
+        let segmentInfo = loader.pendingSegment_;
 
-      this.requests[0].response = new Uint8Array(10).buffer;
-      this.requests.shift().respond(200, null, '');
-      this.clock.tick(1);
-      this.updateend();
+        assert.equal(segmentInfo.mediaIndex, 3, 'segmentInfo.mediaIndex starts at 3');
+        assert.equal(this.requests[0].url,
+          '3.ts',
+          'requesting the segment at mediaIndex 3');
+        standardXHRResponse(this.requests.shift(), muxedSegment());
 
-      this.clock.tick(1);
-      segmentInfo = loader.pendingSegment_;
+        if (usesAsyncAppends) {
+          return new Promise((resolve, reject) => {
+            loader.one('appended', resolve);
+            loader.one('error', reject);
+          });
+        }
 
-      assert.equal(segmentInfo.mediaIndex, 3, 'segmentInfo.mediaIndex starts at 3');
-      assert.equal(this.requests[0].url,
-                   '3.ts',
-                   'requesting the segment at mediaIndex 3');
+        return Promise.resolve();
+      }).then(() => {
+        this.clock.tick(1);
 
-      // Update the playlist shifting the mediaSequence by 2 which will result
-      // in a decrement of the mediaIndex by 2 to 1
-      loader.playlist(playlistWithDuration(50, {
-        mediaSequence: 2,
-        endList: false
-      }));
+        let segmentInfo = loader.pendingSegment_;
 
-      assert.equal(segmentInfo.mediaIndex, 1, 'segmentInfo.mediaIndex is updated to 1');
+        assert.equal(segmentInfo.mediaIndex, 3, 'segmentInfo.mediaIndex starts at 3');
+        assert.equal(this.requests[0].url,
+          '3.ts',
+          'requesting the segment at mediaIndex 3');
 
-      expectedLoaderIndex = 1;
-      this.requests[0].response = new Uint8Array(10).buffer;
-      this.requests.shift().respond(200, null, '');
-      this.clock.tick(1);
-      this.updateend();
+        // Update the playlist shifting the mediaSequence by 2 which will result
+        // in a decrement of the mediaIndex by 2 to 1
+        loader.playlist(playlistWithDuration(50, {
+          mediaSequence: 2,
+          endList: false
+        }));
+
+        assert.equal(segmentInfo.mediaIndex, 1, 'segmentInfo.mediaIndex is updated to 1');
+        expectedLoaderIndex = 1;
+
+        standardXHRResponse(this.requests.shift(), muxedSegment());
+
+        if (usesAsyncAppends) {
+          return new Promise((resolve, reject) => {
+            loader.one('appended', resolve);
+            loader.one('error', reject);
+          });
+        }
+
+        return Promise.resolve();
+      });
     });
 
     QUnit.test('segment 404s should trigger an error', function(assert) {
@@ -755,23 +830,17 @@ export const LoaderCommonFactory = (LoaderConstructor,
     });
 
     QUnit.test('dispose cleans up outstanding work', function(assert) {
-      loader.playlist(playlistWithDuration(20));
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
 
-      loader.load();
-      this.clock.tick(1);
+        loader.playlist(playlistWithDuration(20));
 
-      loader.dispose();
-      assert.ok(this.requests[0].aborted, 'aborted segment request');
-      assert.equal(this.requests.length, 1, 'did not open another request');
+        loader.load();
+        this.clock.tick(1);
+        loader.dispose();
 
-      // Check that media source was properly cleaned up if it exists on the loader
-      if (loader.mediaSource_) {
-        loader.mediaSource_.sourceBuffers.forEach((sourceBuffer, i) => {
-          let lastOperation = sourceBuffer.updates_.slice(-1)[0];
-
-          assert.ok(lastOperation.abort, 'aborted source buffer ' + i);
-        });
-      }
+        assert.ok(this.requests[0].aborted, 'aborted segment request');
+        assert.equal(this.requests.length, 1, 'did not open another request');
+      });
     });
 
     // ----------
@@ -812,7 +881,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(this.requests.length, 2, 'did not open another request');
     });
 
-    QUnit.test('key 404s should trigger an error', function(assert) {
+    QUnit.test('key 404s pauses the loader and triggers error', function(assert) {
       let errors = [];
 
       loader.playlist(playlistWithDuration(10, {isEncrypted: true}));
@@ -835,7 +904,7 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(loader.state, 'READY', 'returned to the ready state');
     });
 
-    QUnit.test('key 5xx status codes trigger an error', function(assert) {
+    QUnit.test('key 500 status code pauses loader and triggers error', function(assert) {
       let errors = [];
 
       loader.playlist(playlistWithDuration(10, {isEncrypted: true}));
@@ -899,109 +968,128 @@ export const LoaderCommonFactory = (LoaderConstructor,
     QUnit.test(
       'does not skip over segment if live playlist update occurs while processing',
     function(assert) {
-      let playlist = playlistWithDuration(40);
-      let buffered = videojs.createTimeRanges();
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        let playlist = playlistWithDuration(40);
 
-      loader.buffered_ = () => buffered;
+        playlist.endList = false;
 
-      playlist.endList = false;
+        loader.playlist(playlist);
 
-      loader.playlist(playlist);
+        loader.load();
+        this.clock.tick(1);
 
-      loader.load();
-      this.clock.tick(1);
+        assert.equal(loader.pendingSegment_.uri, '0.ts', 'retrieving first segment');
+        assert.equal(loader.pendingSegment_.segment.uri,
+          '0.ts',
+          'correct segment reference');
+        assert.equal(loader.state, 'WAITING', 'waiting for response');
 
-      assert.equal(loader.pendingSegment_.uri, '0.ts', 'retrieving first segment');
-      assert.equal(loader.pendingSegment_.segment.uri,
-                   '0.ts',
-                   'correct segment reference');
-      assert.equal(loader.state, 'WAITING', 'waiting for response');
+        standardXHRResponse(this.requests.shift(), muxedSegment());
+        // playlist updated during append
+        let playlistUpdated = playlistWithDuration(40);
 
-      this.requests[0].response = new Uint8Array(10).buffer;
-      this.requests.shift().respond(200, null, '');
-      // playlist updated during append
-      let playlistUpdated = playlistWithDuration(40);
+        playlistUpdated.segments.shift();
+        playlistUpdated.mediaSequence++;
+        loader.playlist(playlistUpdated);
+        // finish append
+        if (usesAsyncAppends) {
+          return new Promise((resolve, reject) => {
+            loader.one('appended', resolve);
+            loader.one('error', reject);
+          });
+        }
 
-      playlistUpdated.segments.shift();
-      playlistUpdated.mediaSequence++;
-      loader.playlist(playlistUpdated);
-      // finish append
-      buffered = videojs.createTimeRanges([[0, 10]]);
-      this.updateend();
-      this.clock.tick(1);
+        return Promise.resolve();
+      }).then(() => {
+        this.clock.tick(1);
 
-      assert.equal(loader.pendingSegment_.uri, '1.ts', 'retrieving second segment');
-      assert.equal(loader.pendingSegment_.segment.uri,
-                   '1.ts',
-                   'correct segment reference');
-      assert.equal(loader.state, 'WAITING', 'waiting for response');
+        assert.equal(loader.pendingSegment_.uri, '1.ts', 'retrieving second segment');
+        assert.equal(loader.pendingSegment_.segment.uri,
+          '1.ts',
+          'correct segment reference');
+        assert.equal(loader.state, 'WAITING', 'waiting for response');
+      });
     });
 
-    QUnit.test('processing segment reachable even after playlist update removes it',
-    function(assert) {
-      const handleUpdateEnd_ = loader.handleUpdateEnd_.bind(loader);
+    QUnit.test('processing segment reachable even after playlist update removes it', function(assert) {
+      const handleAppendsDone_ = loader.handleAppendsDone_.bind(loader);
       let expectedURI = '0.ts';
-      let playlist = playlistWithDuration(40);
-      let buffered = videojs.createTimeRanges();
 
-      loader.handleUpdateEnd_ = () => {
+      loader.handleAppendsDone_ = () => {
         // we need to check for the right state, as normally handleResponse would throw an
         // error under failing cases, but sinon swallows it as part of fake XML HTTP
         // request's response
         assert.equal(loader.state, 'APPENDING', 'moved to appending state');
         assert.equal(loader.pendingSegment_.uri, expectedURI, 'correct pending segment');
         assert.equal(loader.pendingSegment_.segment.uri,
-                     expectedURI,
-                     'correct segment reference');
+          expectedURI,
+          'correct segment reference');
 
-        handleUpdateEnd_();
+        handleAppendsDone_();
       };
 
-      loader.buffered_ = () => buffered;
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
 
-      playlist.endList = false;
+        let playlist = playlistWithDuration(40);
 
-      loader.playlist(playlist);
+        playlist.endList = false;
 
-      loader.load();
-      this.clock.tick(1);
+        loader.playlist(playlist);
 
-      assert.equal(loader.state, 'WAITING', 'in waiting state');
-      assert.equal(loader.pendingSegment_.uri, '0.ts', 'first segment pending');
-      assert.equal(loader.pendingSegment_.segment.uri,
-                   '0.ts',
-                   'correct segment reference');
+        loader.load();
+        this.clock.tick(1);
 
-      // wrap up the first request to set mediaIndex and start normal live streaming
-      this.requests[0].response = new Uint8Array(10).buffer;
-      this.requests.shift().respond(200, null, '');
-      buffered = videojs.createTimeRanges([[0, 10]]);
-      this.updateend();
-      this.clock.tick(1);
+        assert.equal(loader.state, 'WAITING', 'in waiting state');
+        assert.equal(loader.pendingSegment_.uri, '0.ts', 'first segment pending');
+        assert.equal(loader.pendingSegment_.segment.uri,
+          '0.ts',
+          'correct segment reference');
 
-      assert.equal(loader.state, 'WAITING', 'in waiting state');
-      assert.equal(loader.pendingSegment_.uri, '1.ts', 'second segment pending');
-      assert.equal(loader.pendingSegment_.segment.uri,
-                   '1.ts',
-                   'correct segment reference');
+        // wrap up the first request to set mediaIndex and start normal live streaming
+        standardXHRResponse(this.requests.shift(), muxedSegment());
 
-      // playlist updated during waiting
-      let playlistUpdated = playlistWithDuration(40);
+        if (usesAsyncAppends) {
+          return new Promise((resolve, reject) => {
+            loader.one('appended', resolve);
+            loader.one('error', reject);
+          });
+        }
 
-      playlistUpdated.segments.shift();
-      playlistUpdated.segments.shift();
-      playlistUpdated.mediaSequence += 2;
-      loader.playlist(playlistUpdated);
+        return Promise.resolve();
+      }).then(() => {
+        this.clock.tick(1);
 
-      assert.equal(loader.pendingSegment_.uri, '1.ts', 'second segment still pending');
-      assert.equal(loader.pendingSegment_.segment.uri,
-                   '1.ts',
-                   'correct segment reference');
+        assert.equal(loader.state, 'WAITING', 'in waiting state');
+        assert.equal(loader.pendingSegment_.uri, '1.ts', 'second segment pending');
+        assert.equal(loader.pendingSegment_.segment.uri,
+          '1.ts',
+          'correct segment reference');
 
-      expectedURI = '1.ts';
-      this.requests[0].response = new Uint8Array(10).buffer;
-      this.requests.shift().respond(200, null, '');
-      this.updateend();
+        // playlist updated during waiting
+        let playlistUpdated = playlistWithDuration(40);
+
+        playlistUpdated.segments.shift();
+        playlistUpdated.segments.shift();
+        playlistUpdated.mediaSequence += 2;
+        loader.playlist(playlistUpdated);
+
+        assert.equal(loader.pendingSegment_.uri, '1.ts', 'second segment still pending');
+        assert.equal(loader.pendingSegment_.segment.uri,
+          '1.ts',
+          'correct segment reference');
+
+        expectedURI = '1.ts';
+        standardXHRResponse(this.requests.shift(), muxedSegment());
+
+        if (usesAsyncAppends) {
+          return new Promise((resolve, reject) => {
+            loader.one('appended', resolve);
+            loader.one('error', reject);
+          });
+        }
+
+        return Promise.resolve();
+      });
     });
 
     QUnit.test('new playlist always triggers syncinfoupdate', function(assert) {

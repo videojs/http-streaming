@@ -1,9 +1,7 @@
 import QUnit from 'qunit';
 import {
   createPlayer,
-  useFakeEnvironment,
-  openMediaSource,
-  useFakeMediaSource
+  useFakeEnvironment
 } from './test-helpers.js';
 import videojs from 'video.js';
 
@@ -56,7 +54,7 @@ const options = [{
   test: [{
     expression: /#MAPPER/,
     map(line) {
-      return `#FOO`;
+      return '#FOO';
     }
   }]
 }, {
@@ -71,11 +69,12 @@ QUnit.module('Configuration - Deprication', {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
     this.requests = this.env.requests;
-    this.mse = useFakeMediaSource();
     this.clock = this.env.clock;
     this.old = {};
 
-    CONFIG_KEYS.forEach((key) => this.old[key] = Config[key]);
+    CONFIG_KEYS.forEach((key) => {
+      this.old[key] = Config[key];
+    });
 
     // force the HLS tech to run
     this.old.NativeHlsSupport = videojs.Hls.supportsNativeHls;
@@ -83,10 +82,11 @@ QUnit.module('Configuration - Deprication', {
   },
 
   afterEach() {
-    CONFIG_KEYS.forEach((key) => Config[key] = this.old[key]);
+    CONFIG_KEYS.forEach((key) => {
+      Config[key] = this.old[key];
+    });
 
     this.env.restore();
-    this.mse.restore();
     videojs.Hls.supportsNativeHls = this.old.NativeHlsSupport;
   }
 });
@@ -263,7 +263,6 @@ QUnit.module('Configuration - Options', {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
     this.requests = this.env.requests;
-    this.mse = useFakeMediaSource();
     this.clock = this.env.clock;
     this.old = {};
 
@@ -274,7 +273,6 @@ QUnit.module('Configuration - Options', {
 
   afterEach() {
     this.env.restore();
-    this.mse.restore();
     videojs.Hls.supportsNativeHls = this.old.NativeHlsSupport;
 
     this.player.dispose();
@@ -290,8 +288,7 @@ options.forEach((opt) => {
       src: 'http://example.com/media.m3u8',
       type: 'application/vnd.apple.mpegurl'
     });
-
-    openMediaSource(this.player, this.clock);
+    this.clock.tick(1);
 
     let hls = this.player.tech_.hls;
 
@@ -307,9 +304,7 @@ options.forEach((opt) => {
       src: 'http://example.com/media.m3u8',
       type: 'application/vnd.apple.mpegurl'
     });
-
-    openMediaSource(this.player, this.clock);
-
+    this.clock.tick(1);
     let hls = this.player.tech_.hls;
 
     assert.equal(hls.options_[opt.name],
@@ -326,8 +321,7 @@ options.forEach((opt) => {
       src: 'http://example.com/media.m3u8',
       type: 'application/vnd.apple.mpegurl'
     });
-
-    openMediaSource(this.player, this.clock);
+    this.clock.tick(1);
 
     let hls = this.player.tech_.hls;
 
@@ -345,8 +339,7 @@ options.forEach((opt) => {
     srcOptions[opt.name] = opt.test;
     this.player = createPlayer();
     this.player.src(srcOptions);
-
-    openMediaSource(this.player, this.clock);
+    this.clock.tick(1);
 
     let hls = this.player.tech_.hls;
 
@@ -365,8 +358,7 @@ options.forEach((opt) => {
       src: 'http://example.com/media.m3u8',
       type: 'application/vnd.apple.mpegurl'
     });
-
-    openMediaSource(this.player, this.clock);
+    this.clock.tick(1);
 
     let hls = this.player.tech_.hls;
 
@@ -386,8 +378,7 @@ options.forEach((opt) => {
     srcOptions[opt.name] = opt.test;
     this.player = createPlayer(sourceHandlerOptions);
     this.player.src(srcOptions);
-
-    openMediaSource(this.player, this.clock);
+    this.clock.tick(1);
 
     let hls = this.player.tech_.hls;
 

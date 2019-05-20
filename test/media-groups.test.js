@@ -360,17 +360,23 @@ function(assert) {
 QUnit.test('onTrackChanged updates active playlist loader and resets segment loader',
 function(assert) {
   let mainSegmentLoaderResetCalls = 0;
+  let mainSegmentLoaderSetAudioCalls = [];
   let segmentLoaderResetCalls = 0;
+  let segmentLoaderSetAudioCalls = [];
   let segmentLoaderPauseCalls = 0;
   let segmentLoaderTrack;
 
   const type = 'AUDIO';
   const media = { attributes: { AUDIO: 'main' } };
-  const mainSegmentLoader = { resetEverything: () => mainSegmentLoaderResetCalls++ };
+  const mainSegmentLoader = {
+    setAudio: (enable) => mainSegmentLoaderSetAudioCalls.push(enable),
+    resetEverything: () => mainSegmentLoaderResetCalls++
+  };
   const segmentLoader = {
     abort() {},
     pause: () => segmentLoaderPauseCalls++,
     playlist() {},
+    setAudio: (enable) => segmentLoaderSetAudioCalls.push(enable),
     resetEverything: () => segmentLoaderResetCalls++
   };
   const mockPlaylistLoader = () => {
@@ -410,7 +416,10 @@ function(assert) {
 
   assert.equal(segmentLoaderPauseCalls, 1, 'loaders paused on track change');
   assert.equal(mainSegmentLoaderResetCalls, 0, 'no main reset when no active group');
+  assert.equal(
+    mainSegmentLoaderSetAudioCalls.length, 0, 'no main setAudio when no active group');
   assert.equal(segmentLoaderResetCalls, 0, 'no reset when no active group');
+  assert.equal(segmentLoaderSetAudioCalls.length, 0, 'no setAudio when no active group');
 
   tracks.en.enabled = true;
 
@@ -418,9 +427,14 @@ function(assert) {
 
   assert.equal(segmentLoaderPauseCalls, 2, 'loaders paused on track change');
   assert.equal(mainSegmentLoaderResetCalls, 1,
-    'main reset changing to group with no playlist loader');
+    'main reset when changing to group with no playlist loader');
+  assert.equal(mainSegmentLoaderSetAudioCalls.length, 1,
+    'main audio set when changing to group with no playlist loader');
+  assert.ok(mainSegmentLoaderSetAudioCalls[0], 'main audio set to true');
   assert.equal(segmentLoaderResetCalls, 0,
     'no reset changing to group with no playlist loader');
+  assert.equal(segmentLoaderSetAudioCalls.length, 0,
+    'no audio set when changing to group with no playlist loader');
 
   tracks.en.enabled = false;
   tracks.fr.enabled = true;
@@ -431,8 +445,13 @@ function(assert) {
   assert.equal(segmentLoaderPauseCalls, 3, 'loaders paused on track change');
   assert.equal(mainSegmentLoaderResetCalls, 1,
     'no main reset changing to group with playlist loader');
+  assert.equal(mainSegmentLoaderSetAudioCalls.length, 2,
+    'main audio set when changing to group with playlist loader');
+  assert.notOk(mainSegmentLoaderSetAudioCalls[1], 'main audio set to true');
   assert.equal(segmentLoaderResetCalls, 0,
     'no reset when active group hasn\'t changed');
+  assert.equal(segmentLoaderSetAudioCalls.length, 1, 'set audio on track change');
+  assert.ok(segmentLoaderSetAudioCalls[0], 'enabled audio on track change');
   assert.strictEqual(mediaType.activePlaylistLoader, groups.main[1].playlistLoader,
     'sets the correct active playlist loader');
 
@@ -443,15 +462,22 @@ function(assert) {
   assert.equal(segmentLoaderPauseCalls, 4, 'loaders paused on track change');
   assert.equal(mainSegmentLoaderResetCalls, 1,
     'no main reset changing to group with playlist loader');
-  assert.equal(segmentLoaderResetCalls, 1,
-    'reset on track change');
+  assert.equal(mainSegmentLoaderSetAudioCalls.length, 3,
+    'main audio set when changing to group with playlist loader');
+  assert.notOk(mainSegmentLoaderSetAudioCalls[2],
+    'main audio set to false when changing to group with playlist loader');
+  assert.equal(segmentLoaderSetAudioCalls.length, 2, 'audio set on track change');
+  assert.ok(segmentLoaderSetAudioCalls[1], 'audio enabled on track change');
+  assert.equal(segmentLoaderResetCalls, 1, 'reset on track change');
   assert.strictEqual(mediaType.activePlaylistLoader, groups.main[1].playlistLoader,
     'sets the correct active playlist loader');
 
   // setting the track on the segment loader only applies to the SUBTITLES case.
   // even though this test is testing type AUDIO, aside from this difference of setting
   // the track, the functionality between the types is the same.
-  segmentLoader.track = (track) => segmentLoaderTrack = track;
+  segmentLoader.track = (track) => {
+    segmentLoaderTrack = track;
+  };
   mediaType.activePlaylistLoader = groups.main[2].playlistLoader;
 
   onTrackChanged();
@@ -459,6 +485,12 @@ function(assert) {
   assert.equal(segmentLoaderPauseCalls, 5, 'loaders paused on track change');
   assert.equal(mainSegmentLoaderResetCalls, 1,
     'no main reset changing to group with playlist loader');
+  assert.equal(mainSegmentLoaderSetAudioCalls.length, 4,
+    'main audio set when changing to group with playlist loader');
+  assert.notOk(mainSegmentLoaderSetAudioCalls[3],
+    'main audio set to false when changing to group with playlist loader');
+  assert.equal(segmentLoaderSetAudioCalls.length, 3, 'audio set on track change');
+  assert.ok(segmentLoaderSetAudioCalls[2], 'audio enabled on track change');
   assert.equal(segmentLoaderResetCalls, 2,
     'reset on track change');
   assert.strictEqual(mediaType.activePlaylistLoader, groups.main[1].playlistLoader,

@@ -182,7 +182,10 @@ export default class PlaybackWatcher {
 
       // sync to the beginning of the live window
       // provide a buffer of .1 seconds to handle rounding/imprecise numbers
-      seekTo = seekableStart + Ranges.SAFE_TIME_DELTA;
+      seekTo = seekableStart +
+        // if the playlist is too short and the seekable range is an exact time (can
+        // happen in live with a 3 segment playlist), then don't use a time delta
+        (seekableStart === seekable.end(0) ? 0 : Ranges.SAFE_TIME_DELTA);
     }
 
     if (typeof seekTo !== 'undefined') {
@@ -226,7 +229,7 @@ export default class PlaybackWatcher {
 
       this.logger_(`Stopped at ${currentTime} while inside a buffered region ` +
         `[${currentRange.start(0)} -> ${currentRange.end(0)}]. Attempting to resume ` +
-        `playback by seeking to the current time.`);
+        'playback by seeking to the current time.');
 
       // unknown waiting corrections may be useful for monitoring QoS
       this.tech_.trigger({type: 'usage', name: 'hls-unknown-waiting'});

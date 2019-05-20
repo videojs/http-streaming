@@ -12,7 +12,20 @@
  * transmuxer running inside of a WebWorker by exposing a simple
  * message-based interface to a Transmuxer object.
  */
-import mp4 from 'mux.js/lib/mp4';
+
+import fullMux from 'mux.js/lib/mp4';
+import partialMux from 'mux.js/lib/partial';
+import {
+  secondsToVideoTs,
+  videoTsToSeconds
+} from 'mux.js/lib/utils/clock';
+
+const typeFromStreamString = (streamString) => {
+  if (streamString === 'AudioSegmentStream') {
+    return 'audio';
+  }
+  return streamString === 'VideoSegmentStream' ? 'video' : '';
+};
 
 /**
  * Re-emits transmuxer events by converting them into messages to the
@@ -21,7 +34,7 @@ import mp4 from 'mux.js/lib/mp4';
  * @param {Object} transmuxer the transmuxer to wire events on
  * @private
  */
-const wireTransmuxerEvents = function(self, transmuxer) {
+const wireFullTransmuxerEvents = function(self, transmuxer) {
   transmuxer.on('data', function(segment) {
     // transfer ownership of the underlying ArrayBuffer
     // instead of doing a copy to save memory
@@ -46,15 +59,6 @@ const wireTransmuxerEvents = function(self, transmuxer) {
     }, [segment.data]);
   });
 
-  if (transmuxer.captionStream) {
-    transmuxer.captionStream.on('data', function(caption) {
-      self.postMessage({
-        action: 'caption',
-        data: caption
-      });
-    });
-  }
-
   transmuxer.on('done', function(data) {
     self.postMessage({ action: 'done' });
   });
@@ -70,6 +74,165 @@ const wireTransmuxerEvents = function(self, transmuxer) {
     self.postMessage({
       action: 'videoSegmentTimingInfo',
       videoSegmentTimingInfo
+    });
+  });
+
+  transmuxer.on('id3Frame', function(id3Frame) {
+    self.postMessage({
+      action: 'id3Frame',
+      id3Frame
+    });
+  });
+
+  transmuxer.on('caption', function(caption) {
+    self.postMessage({
+      action: 'caption',
+      caption
+    });
+  });
+
+  transmuxer.on('trackinfo', function(trackInfo) {
+    self.postMessage({
+      action: 'trackinfo',
+      trackInfo
+    });
+  });
+
+  transmuxer.on('audioTimingInfo', function(audioTimingInfo) {
+    // convert to video TS since we prioritize video time over audio
+    self.postMessage({
+      action: 'audioTimingInfo',
+      audioTimingInfo: {
+        start: videoTsToSeconds(audioTimingInfo.start),
+        end: videoTsToSeconds(audioTimingInfo.end)
+      }
+    });
+  });
+
+  transmuxer.on('videoTimingInfo', function(videoTimingInfo) {
+    self.postMessage({
+      action: 'videoTimingInfo',
+      videoTimingInfo: {
+        start: videoTsToSeconds(videoTimingInfo.start),
+        end: videoTsToSeconds(videoTimingInfo.end)
+      }
+    });
+  });
+};
+
+const wirePartialTransmuxerEvents = function(self, transmuxer) {
+  transmuxer.on('data', function(event) {
+    // transfer ownership of the underlying ArrayBuffer
+    // instead of doing a copy to save memory
+    // ArrayBuffers are transferable but generic TypedArrays are not
+    // @link https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers#Passing_data_by_transferring_ownership_(transferable_objects)
+
+    const initSegment = {
+      data: event.data.track.initSegment.buffer,
+      byteOffset: event.data.track.initSegment.byteOffset,
+      byteLength: event.data.track.initSegment.byteLength
+    };
+    const boxes = {
+      data: event.data.boxes.buffer,
+      byteOffset: event.data.boxes.byteOffset,
+      byteLength: event.data.boxes.byteLength
+    };
+    const segment = {
+      boxes,
+      initSegment,
+      type: event.type,
+      sequence: event.data.sequence
+    };
+
+    if (typeof event.data.videoFrameDts !== 'undefined') {
+      segment.videoFrameDtsTime = videoTsToSeconds(event.data.videoFrameDts);
+    }
+
+    self.postMessage({
+      action: 'data',
+      segment
+    }, [ segment.boxes.data, segment.initSegment.data ]);
+  });
+
+  transmuxer.on('id3Frame', function(id3Frame) {
+    self.postMessage({
+      action: 'id3Frame',
+      id3Frame
+    });
+  });
+
+  transmuxer.on('caption', function(caption) {
+    self.postMessage({
+      action: 'caption',
+      caption
+    });
+  });
+
+  transmuxer.on('done', function(data) {
+    self.postMessage({
+      action: 'done',
+      type: typeFromStreamString(data)
+    });
+  });
+
+  transmuxer.on('partialdone', function(data) {
+    self.postMessage({
+      action: 'partialdone',
+      type: typeFromStreamString(data)
+    });
+  });
+
+  transmuxer.on('endedsegment', function(data) {
+    self.postMessage({
+      action: 'endedSegment',
+      type: typeFromStreamString(data)
+    });
+  });
+
+  transmuxer.on('trackinfo', function(trackInfo) {
+    self.postMessage({ action: 'trackinfo', trackInfo });
+  });
+
+  transmuxer.on('audioTimingInfo', function(audioTimingInfo) {
+    // This can happen if flush is called when no
+    // audio has been processed. This should be an
+    // unusual case, but if it does occur should not
+    // result in valid data being returned
+    if (audioTimingInfo.start === null) {
+      self.postMessage({
+        action: 'audioTimingInfo',
+        audioTimingInfo
+      });
+      return;
+    }
+
+    // convert to video TS since we prioritize video time over audio
+    const timingInfoInSeconds = {
+      start: videoTsToSeconds(audioTimingInfo.start)
+    };
+
+    if (audioTimingInfo.end) {
+      timingInfoInSeconds.end = videoTsToSeconds(audioTimingInfo.end);
+    }
+
+    self.postMessage({
+      action: 'audioTimingInfo',
+      audioTimingInfo: timingInfoInSeconds
+    });
+  });
+
+  transmuxer.on('videoTimingInfo', function(videoTimingInfo) {
+    const timingInfoInSeconds = {
+      start: videoTsToSeconds(videoTimingInfo.start)
+    };
+
+    if (videoTimingInfo.end) {
+      timingInfoInSeconds.end = videoTsToSeconds(videoTimingInfo.end);
+    }
+
+    self.postMessage({
+      action: 'videoTimingInfo',
+      videoTimingInfo: timingInfoInSeconds
     });
   });
 };
@@ -95,8 +258,15 @@ class MessageHandlers {
     if (this.transmuxer) {
       this.transmuxer.dispose();
     }
-    this.transmuxer = new mp4.Transmuxer(this.options);
-    wireTransmuxerEvents(this.self, this.transmuxer);
+    this.transmuxer = this.options.handlePartialData ?
+      new partialMux.Transmuxer(this.options) :
+      new fullMux.Transmuxer(this.options);
+
+    if (this.options.handlePartialData) {
+      wirePartialTransmuxerEvents(this.self, this.transmuxer);
+    } else {
+      wireFullTransmuxerEvents(this.self, this.transmuxer);
+    }
   }
 
   /**
@@ -117,7 +287,7 @@ class MessageHandlers {
    * start with a fresh transmuxer.
    */
   reset() {
-    this.init();
+    this.transmuxer.reset();
   }
 
   /**
@@ -130,11 +300,11 @@ class MessageHandlers {
   setTimestampOffset(data) {
     let timestampOffset = data.timestampOffset || 0;
 
-    this.transmuxer.setBaseMediaDecodeTime(Math.round(timestampOffset * 90000));
+    this.transmuxer.setBaseMediaDecodeTime(Math.round(secondsToVideoTs(timestampOffset)));
   }
 
   setAudioAppendStart(data) {
-    this.transmuxer.setAudioAppendStart(Math.ceil(data.appendStart * 90000));
+    this.transmuxer.setAudioAppendStart(Math.ceil(secondsToVideoTs(data.appendStart)));
   }
 
   /**
@@ -145,10 +315,30 @@ class MessageHandlers {
    */
   flush(data) {
     this.transmuxer.flush();
+    // transmuxed done action is fired after both audio/video pipelines are flushed
+    self.postMessage({
+      action: 'done',
+      type: 'transmuxed'
+    });
   }
 
-  resetCaptions() {
-    this.transmuxer.resetCaptions();
+  partialFlush(data) {
+    this.transmuxer.partialFlush();
+    // transmuxed partialdone action is fired after both audio/video pipelines are flushed
+    self.postMessage({
+      action: 'partialdone',
+      type: 'transmuxed'
+    });
+  }
+
+  endTimeline() {
+    this.transmuxer.endTimeline();
+    // transmuxed endedtimeline action is fired after both audio/video pipelines end their
+    // timelines
+    self.postMessage({
+      action: 'endedtimeline',
+      type: 'transmuxed'
+    });
   }
 
   alignGopsWith(data) {
@@ -157,7 +347,7 @@ class MessageHandlers {
 }
 
 /**
- * Our web wroker interface so that things can talk to mux.js
+ * Our web worker interface so that things can talk to mux.js
  * that will be running in a web worker. the scope is passed to this by
  * webworkify.
  *
