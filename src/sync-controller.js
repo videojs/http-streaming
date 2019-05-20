@@ -49,9 +49,9 @@ export const syncPointStrategies = [
           let segmentStart = segmentTime + syncController.datetimeToDisplayTime;
           let distance = Math.abs(currentTime - segmentStart);
 
-          // Once the distance begins to increase, we have passed
+          // Once the distance begins to increase, or if distance is 0, we have passed
           // currentTime and can stop looking for better candidates
-          if (lastDistance !== null && lastDistance < distance) {
+          if (lastDistance !== null && (distance === 0 || lastDistance < distance)) {
             break;
           }
 

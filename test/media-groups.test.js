@@ -831,7 +831,7 @@ function(assert) {
                'no playlist loader when misconfigured');
 });
 
-QUnit.test('initialize audio does not create playlist loader for alternate tracks with' +
+QUnit.skip('initialize audio does not create playlist loader for alternate tracks with' +
 ' main stream as URI attribute', function(assert) {
   this.master.mediaGroups.AUDIO.aud1 = {
     en: { default: true, language: 'en', resolvedUri: 'main.m3u8' },

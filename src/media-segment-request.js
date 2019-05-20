@@ -161,7 +161,7 @@ const handleInitSegmentResponse = (segment, captionParser, finishProcessingFn) =
   segment.map.bytes = new Uint8Array(request.response);
 
   // Initialize CaptionParser if it hasn't been yet
-  if (!captionParser.isInitialized()) {
+  if (captionParser && !captionParser.isInitialized()) {
     captionParser.init();
   }
 
@@ -210,7 +210,7 @@ const handleSegmentResponse = (segment, captionParser, finishProcessingFn) => (e
 
   // This is likely an FMP4 and has the init segment.
   // Run through the CaptionParser in case there are captions.
-  if (segment.map && segment.map.bytes) {
+  if (captionParser && segment.map && segment.map.bytes) {
     // Initialize CaptionParser if it hasn't been yet
     if (!captionParser.isInitialized()) {
       captionParser.init();
@@ -253,7 +253,13 @@ const decryptSegment = (decrypter, segment, doneFn) => {
 
   decrypter.addEventListener('message', decryptionHandler);
 
-  const keyBytes = segment.key.bytes.slice();
+  let keyBytes;
+
+  if (segment.key.bytes.slice) {
+    keyBytes = segment.key.bytes.slice();
+  } else {
+    keyBytes = new Uint32Array(Array.prototype.slice.call(segment.key.bytes));
+  }
 
   // this is an encrypted segment
   // incrementally decrypt the segment

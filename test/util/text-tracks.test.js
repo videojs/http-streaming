@@ -1,5 +1,5 @@
 import Qunit from 'qunit';
-import { addTextTrackData } from '../../src/mse/add-text-track-data';
+import { addTextTrackData } from '../../src/util/text-tracks.js';
 
 const { module, test } = Qunit;
 

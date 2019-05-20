@@ -4,7 +4,7 @@
 import SegmentLoader from './segment-loader';
 import videojs from 'video.js';
 import window from 'global/window';
-import { removeCuesFromTrack } from './mse/remove-cues-from-track';
+import { removeCuesFromTrack } from './util/text-tracks.js';
 import { initSegmentId } from './bin-utils';
 import { uint8ToUtf8 } from './util/string';
 
@@ -236,13 +236,8 @@ export default class VTTSegmentLoader extends SegmentLoader {
         this.subtitlesTrack_ &&
         this.subtitlesTrack_.tech_) {
 
-      const loadHandler = () => {
-        this.handleSegment_();
-      };
-
-      this.state = 'WAITING_ON_VTTJS';
-      this.subtitlesTrack_.tech_.one('vttjsloaded', loadHandler);
-      this.subtitlesTrack_.tech_.one('vttjserror', () => {
+      let loadHandler;
+      const errorHandler = () => {
         this.subtitlesTrack_.tech_.off('vttjsloaded', loadHandler);
         this.error({
           message: 'Error loading vtt.js'
@@ -250,7 +245,16 @@ export default class VTTSegmentLoader extends SegmentLoader {
         this.state = 'READY';
         this.pause();
         this.trigger('error');
-      });
+      };
+
+      loadHandler = () => {
+        this.subtitlesTrack_.tech_.off('vttjserror', errorHandler);
+        this.handleSegment_();
+      };
+
+      this.state = 'WAITING_ON_VTTJS';
+      this.subtitlesTrack_.tech_.one('vttjsloaded', loadHandler);
+      this.subtitlesTrack_.tech_.one('vttjserror', errorHandler);
 
       return;
     }
