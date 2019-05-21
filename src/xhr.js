@@ -38,6 +38,18 @@ const xhrFactory = function() {
     let request = videojsXHR(options, function(error, response) {
       let reqResponse = request.response;
 
+      // Allow an optional user-specified function to modify the option
+      // do something when data arrive
+      let beforeReceive = XhrFunction.beforeReceive || videojs.Hls.xhr.beforeReceive;
+
+      if (beforeReceive && typeof beforeReceive === 'function') {
+        let newrReqResponse = beforeReceive(reqResponse, options);
+  
+        if (newrReqResponse) {
+          reqResponse = newrReqResponse;
+        }
+      }
+
       if (!error && reqResponse) {
         request.responseTime = Date.now();
         request.roundTripTime = request.responseTime - request.requestTime;
