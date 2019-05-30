@@ -2,7 +2,8 @@ import QUnit from 'qunit';
 import {
   default as SegmentLoader,
   illegalMediaSwitch,
-  safeBackBufferTrimTime
+  safeBackBufferTrimTime,
+  timestampOffsetForSegment
 } from '../src/segment-loader';
 import segmentTransmuxer from '../src/segment-transmuxer';
 import videojs from 'video.js';
@@ -146,6 +147,56 @@ QUnit.test('illegalMediaSwitch detects illegal media switches', function(assert)
                ' To get rid of this message, please add codec information to the' +
                ' manifest.',
     'error when video only to audio only'
+  );
+});
+
+QUnit.module('timestampOffsetForSegment');
+
+QUnit.test('returns startOfSegment when timeline changes and the buffer is empty', function(assert) {
+  assert.equal(
+    timestampOffsetForSegment({
+      segmentTimeline: 1,
+      currentTimeline: 0,
+      startOfSegment: 3,
+      buffered: videojs.createTimeRanges()
+    }),
+    3,
+    'returned startOfSegment'
+  );
+});
+
+QUnit.test('returns buffered end when timeline changes and there exists buffered content', function(assert) {
+  assert.equal(
+    timestampOffsetForSegment({
+      segmentTimeline: 1,
+      currentTimeline: 0,
+      startOfSegment: 3,
+      buffered: videojs.createTimeRanges([[1, 5], [7, 8]])
+    }),
+    8,
+    'returned buffered end'
+  );
+});
+
+QUnit.test('returns null when timeline does not change', function(assert) {
+  assert.ok(
+    timestampOffsetForSegment({
+      segmentTimeline: 0,
+      currentTimeline: 0,
+      startOfSegment: 3,
+      buffered: videojs.createTimeRanges([[1, 5], [7, 8]])
+    }) === null,
+    'returned null'
+  );
+
+  assert.ok(
+    timestampOffsetForSegment({
+      segmentTimeline: 1,
+      currentTimeline: 1,
+      startOfSegment: 3,
+      buffered: videojs.createTimeRanges([[1, 5], [7, 8]])
+    }) === null,
+    'returned null'
   );
 });
 

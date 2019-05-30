@@ -111,6 +111,46 @@ const segmentInfoString = (segmentInfo) => {
 const timingInfoPropertyForMedia = (mediaType) => `${mediaType}TimingInfo`;
 
 /**
+ * Returns the timestamp offset to use for the segment.
+ *
+ * @param {number} segmentTimeline
+ *        The timeline of the segment
+ * @param {number} currentTimeline
+ *        The timeline currently being followed by the loader
+ * @param {number} startOfSegment
+ *        The estimated segment start
+ * @param {TimeRange[]} buffered
+ *        The loader's buffer
+ *
+ * @return {number|null}
+ *         Either a number representing a new timestamp offset, or null if the segment is
+ *         part of the same timeline
+ */
+export const timestampOffsetForSegment = ({
+  segmentTimeline,
+  currentTimeline,
+  startOfSegment,
+  buffered
+}) => {
+  // Check to see if we are crossing a discontinuity to see if we need to set the
+  // timestamp offset on the transmuxer and source buffer.
+  //
+  // Previously, we changed the timestampOffset if the start of this segment was less than
+  // the currently set timestampOffset, but this isn't desirable as it can produce bad
+  // behavior, especially around long running live streams.
+  if (segmentTimeline === currentTimeline) {
+    return null;
+  }
+
+  // segmentInfo.startOfSegment used to be used as the timestamp offset, however, that
+  // value uses the end of the last segment if it is available. While this value
+  // should often be correct, it's better to rely on the buffered end, as the new
+  // content post discontinuity should line up with the buffered end as if it were
+  // time 0 for the new content.
+  return buffered.length ? buffered.end(buffered.length - 1) : startOfSegment;
+};
+
+/**
  * An object that manages segment loading and appending.
  *
  * @class SegmentLoader
@@ -842,41 +882,14 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    // check to see if we are crossing a discontinuity or requesting a segment that starts
-    // earlier than the last set timestamp offset to see if we need to set the timestamp
-    // offset on the transmuxer and source buffer
-    if (segmentInfo.timeline !== this.currentTimeline_ ||
-        this.startsBeforeSourceBufferTimestampOffset(segmentInfo)) {
-      // segmentInfo.startOfSegment used to be used as the timestamp offset, however, that
-      // value uses the end of the last segment if it is available. While this value
-      // should often be correct, it's better to rely on the buffered end, as the new
-      // content post discontinuity should line up with the buffered end as if it were
-      // time 0 for the new content.
-      segmentInfo.timestampOffset =
-        buffered.length ? buffered.end(buffered.length - 1) : segmentInfo.startOfSegment;
-      if (this.captionParser_) {
-        this.captionParser_.clearAllCaptions();
-      }
-    }
+    segmentInfo.timestampOffset = timestampOffsetForSegment({
+      segmentTimeline: segmentInfo.timeline,
+      currentTimeline: this.currentTimeline_,
+      startOfSegment: segmentInfo.startOfSegment,
+      buffered
+    });
 
     this.loadSegment_(segmentInfo);
-  }
-
-  startsBeforeSourceBufferTimestampOffset(segmentInfo) {
-    if (segmentInfo.startOfSegment === null) {
-      return false;
-    }
-
-    if (this.loaderType_ === 'main' &&
-        segmentInfo.startOfSegment < this.sourceUpdater_.videoTimestampOffset()) {
-      return true;
-    }
-
-    if (this.audioDisabled_) {
-      return false;
-    }
-
-    return segmentInfo.startOfSegment < this.sourceUpdater_.audioTimestampOffset();
   }
 
   /**
@@ -1644,6 +1657,12 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.state = 'WAITING';
     this.pendingSegment_ = segmentInfo;
     this.trimBackBuffer_(segmentInfo);
+
+    if (typeof segmentInfo.timestampOffset === 'number') {
+      if (this.captionParser_) {
+        this.captionParser_.clearAllCaptions();
+      }
+    }
 
     // We'll update the source buffer's timestamp offset once we have transmuxed data, but
     // the transmuxer still needs to be updated before then.
