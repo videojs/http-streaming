@@ -60,6 +60,7 @@
   <script>
     (function(window, videojs) {
       var player = window.player = videojs('videojs-http-streaming-player', {
+        liveui: true,
         html5: {
           hls: {
             overrideNative: !videojs.browser.IS_SAFARI

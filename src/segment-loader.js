@@ -735,16 +735,17 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    // We will need to change timestampOffset of the sourceBuffer if either of
-    // the following conditions are true:
+    // We will need to change timestampOffset of the sourceBuffer if:
     // - The segment.timeline !== this.currentTimeline
     //   (we are crossing a discontinuity somehow)
     // - The "timestampOffset" for the start of this segment is less than
     //   the currently set timestampOffset
     // Also, clear captions if we are crossing a discontinuity boundary
-    if (segmentInfo.timeline !== this.currentTimeline_ ||
-        ((segmentInfo.startOfSegment !== null) &&
-        segmentInfo.startOfSegment < this.sourceUpdater_.timestampOffset())) {
+    // Previously, we changed the timestampOffset if the start of this segment
+    // is less than the currently set timestampOffset but this isn't wanted
+    // as it can produce bad behavior, especially around long running
+    // live streams
+    if (segmentInfo.timeline !== this.currentTimeline_) {
       this.syncController_.reset();
       segmentInfo.timestampOffset = segmentInfo.startOfSegment;
       if (this.captionParser_) {

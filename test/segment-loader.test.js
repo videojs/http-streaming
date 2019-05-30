@@ -442,6 +442,48 @@ QUnit.module('SegmentLoader: M2TS', function(hooks) {
       assert.equal(loader.mediaRequests, 1, '1 request');
     });
 
+    QUnit.test('sets the timestampOffset on timeline change but not if startOfSegment is early', function(assert) {
+      let playlist = playlistWithDuration(40);
+      let buffered = videojs.createTimeRanges();
+      let hlsTimestampOffsetEvents = 0;
+
+      loader.on('timestampoffset', () => {
+        hlsTimestampOffsetEvents++;
+      });
+
+      loader.buffered_ = () => buffered;
+
+      loader.playlist(playlist);
+      loader.mimeType(this.mimeType);
+      loader.load();
+      this.clock.tick(1);
+
+      // segment 0
+      this.requests[0].response = new Uint8Array(10).buffer;
+      this.requests.shift().respond(200, null, '');
+      buffered = videojs.createTimeRanges([[0, 10]]);
+      this.updateend();
+
+      // Change the timestampOffset manually so that we'd end up in a condition
+      // where the segment start time is less than the timestampOffset.
+      // Previously, we updated the timestampOffset in that case but
+      // we no longer wish to do it. This test verifies this case doesn't get
+      // re-introduced
+      loader.sourceUpdater_.timestampOffset_ = 11;
+      this.clock.tick(1);
+
+      assert.equal(hlsTimestampOffsetEvents, 0,
+        'no hls-timestamp-offset event was fired');
+      this.requests[0].response = new Uint8Array(10).buffer;
+      this.requests.shift().respond(200, null, '');
+
+      // verify stats
+      assert.equal(loader.mediaBytesTransferred, 20, '20 bytes');
+      assert.equal(loader.mediaRequests, 2, '2 requests');
+      assert.equal(hlsTimestampOffsetEvents, 0,
+        'no hls-timestamp-offset event was fired, still');
+    });
+
     QUnit.test('sets the timestampOffset on timeline change', function(assert) {
       let playlist = playlistWithDuration(40);
       let buffered = videojs.createTimeRanges();
