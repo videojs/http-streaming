@@ -1,3 +1,14 @@
+<a name="1.10.3"></a>
+## [1.10.3](https://github.com/videojs/http-streaming/compare/v1.10.2...v1.10.3) (2019-05-30)
+
+### Bug Fixes
+
+* only reset syncController if we passed a discontinuity ([#502](https://github.com/videojs/http-streaming/issues/502)) ([409634f](https://github.com/videojs/http-streaming/commit/409634f))
+
+### Chores
+
+* **package:** update mux.js to version 5.1.3 🚀 ([#510](https://github.com/videojs/http-streaming/issues/510)) ([55d764a](https://github.com/videojs/http-streaming/commit/55d764a))
+
 <a name="1.10.2"></a>
 ## [1.10.2](https://github.com/videojs/http-streaming/compare/v1.10.1...v1.10.2) (2019-05-13)
 
