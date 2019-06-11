@@ -53,6 +53,7 @@ Video.js Compatibility: 6.0, 7.0
       - [customTagParsers](#customtagparsers)
       - [customTagMappers](#customtagmappers)
       - [cacheEncryptionKeys](#cacheencryptionkeys)
+      - [handlePartialData](#handlepartialdata)
   - [Runtime Properties](#runtime-properties)
     - [hls.playlists.master](#hlsplaylistsmaster)
     - [hls.playlists.media](#hlsplaylistsmedia)
@@ -429,6 +430,11 @@ Similar to `customTagParsers`, with `customTagMappers` you can pass an array of 
 
 This option forces the player to cache AES-128 encryption keys internally instead of requesting the key alongside every segment request.
 This option defaults to `false`.
+
+##### handlePartialData
+* Type: `boolean`,
+* Default: `false`
+* Use partial appends in the transmuxer and segment loader
 
 ### Runtime Properties
 Runtime properties are attached to the tech object when HLS is in

@@ -1873,6 +1873,84 @@ QUnit.test('if handleManifestRedirects global option is used, it should be passe
   videojs.options.hls = hlsOptions;
 });
 
+QUnit.test(
+'if handlePartialData global option is used, it is set on audio/main loader but not subtitle',
+function(assert) {
+  let hlsOptions = videojs.options.hls;
+
+  this.player.dispose();
+  videojs.options.hls = {
+    handlePartialData: true
+  };
+  this.player = createPlayer();
+  this.player.src({
+    src: 'http://example.com/media.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  const {mainSegmentLoader_, subtitleSegmentLoader_, audioSegmentLoader_} =
+    this.player.vhs.masterPlaylistController_;
+
+  assert.equal(mainSegmentLoader_.handlePartialData_, true, 'is set on main');
+  assert.equal(audioSegmentLoader_.handlePartialData_, true, 'is set on audio');
+  assert.equal(subtitleSegmentLoader_.handlePartialData_, false, 'is not set on subtitle');
+  videojs.options.hls = hlsOptions;
+});
+
+QUnit.test(
+'if handlePartialData source option is used, it is set on audio/main loader but not subtitle',
+function(assert) {
+  let hlsOptions = videojs.options.hls;
+
+  this.player.dispose();
+  this.player = createPlayer();
+  this.player.src({
+    src: 'http://example.com/media.m3u8',
+    type: 'application/vnd.apple.mpegurl',
+    handlePartialData: true
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  const {mainSegmentLoader_, subtitleSegmentLoader_, audioSegmentLoader_} =
+    this.player.vhs.masterPlaylistController_;
+
+  assert.equal(mainSegmentLoader_.handlePartialData_, true, 'is set on main');
+  assert.equal(audioSegmentLoader_.handlePartialData_, true, 'is set on audio');
+  assert.equal(subtitleSegmentLoader_.handlePartialData_, false, 'is not set on subtitle');
+  videojs.options.hls = hlsOptions;
+});
+
+QUnit.test('the handlePartialData source option overrides the global default', function(assert) {
+  let hlsOptions = videojs.options.hls;
+
+  this.player.dispose();
+  videojs.options.hls = {
+    handlePartialData: true
+  };
+  this.player = createPlayer();
+  this.player.src({
+    src: 'http://example.com/media.m3u8',
+    type: 'application/vnd.apple.mpegurl',
+    handlePartialData: false
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  const {mainSegmentLoader_, subtitleSegmentLoader_, audioSegmentLoader_} =
+    this.player.vhs.masterPlaylistController_;
+
+  assert.equal(mainSegmentLoader_.handlePartialData_, false, 'is set on main');
+  assert.equal(audioSegmentLoader_.handlePartialData_, false, 'is set on audio');
+  assert.equal(subtitleSegmentLoader_.handlePartialData_, false, 'is not set on subtitle');
+  videojs.options.hls = hlsOptions;
+});
+
 QUnit.test('the handleManifestRedirects source option overrides the global default', function(assert) {
   let hlsOptions = videojs.options.hls;
 

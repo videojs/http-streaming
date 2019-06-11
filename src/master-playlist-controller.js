@@ -70,7 +70,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       enableLowInitialPlaylist,
       sourceType,
       seekTo,
-      cacheEncryptionKeys
+      cacheEncryptionKeys,
+      handlePartialData
     } = options;
 
     if (!url) {
@@ -140,6 +141,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       sourceType: this.sourceType_,
       inbandTextTracks: this.inbandTextTracks_,
       cacheEncryptionKeys,
+      handlePartialData,
       sourceUpdater: this.sourceUpdater_
     };
 
