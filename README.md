@@ -784,12 +784,15 @@ Until we've implemented a full fix, it is recommended to set the
 that include an audio-only rate; it should always select the lowest-bandwidth
 audio+video playlist for its first playlist.
 
-It's also worth mentioning that Apple no longer recommends having an
-audio-only rate; instead, they recommend a very-low-bitrate audio+video rate.
-Removing the audio-only rate would of course eliminate this problem since
-there would be only audio+video playlists to choose from.
+It's also worth mentioning that Apple no longer requires having an audio-only
+rate; instead, they require a 192kbps audio+video rate (see Apple's current
+[HLS Authoring Specification]). Removing the audio-only rate would of course
+eliminate this problem since there would be only audio+video playlists to
+choose from.
 
 Follow progress on this in issue [#175](https://github.com/videojs/http-streaming/issues/175).
+
+[HLS Authoring Specification]: https://developer.apple.com/documentation/http_live_streaming/hls_authoring_specification_for_apple_devices
 
 ### DASH Assets with `$Time` Interpolation and `SegmentTimeline`s with No `t`
 
