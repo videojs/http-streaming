@@ -759,15 +759,46 @@ available](http://enable-cors.org/server.html) for popular webservers
 and most CDNs should have no trouble turning CORS on for your account.
 
 
-## Known Issues
+## Known Issues and Workarounds
 Issues that are currenty known. If you want to
 help find a solution that would be appreciated!
 
 ### Fragmented MP4 Support
 Edge has native support for HLS but only in the MPEG2-TS container. If
-you attempt to play an HLS stream with fragmented MP4 segments, Edge
-will stall. Fragmented MP4s are only supported on browser that have
+you attempt to play an HLS stream with fragmented MP4 segments (without
+[overriding native playback](#overridenative)), Edge will stall.
+Fragmented MP4s are only supported on browsers that have
 [Media Source Extensions](http://caniuse.com/#feat=mediasource) available.
+
+### Assets with an Audio-Only Rate Get Stuck in Audio-Only
+Some assets which have an audio-only rate and the lowest-bandwidth
+audio + video rate isn't that low get stuck in audio-only mode. This is
+because the initial bandwidth calculation thinks it there's insufficient
+bandwidth for selecting the lowest-quality audio+video playlist, so it picks
+the only-audio one, which unfortunately locks it to being audio-only forever,
+preventing a switch to the audio+video playlist when it gets a better
+estimation of bandwidth.
+
+Until we've implemented a full fix, it is recommended to set the
+[`enableLowInitialPlaylist` option](#enablelowinitialplaylist) for any assets
+that include an audio-only rate; it should always select the lowest-bandwidth
+audio+video playlist for its first playlist.
+
+It's also worth mentioning that Apple no longer recommends having an
+audio-only rate; instead, they recommend a very-low-bitrate audio+video rate.
+Removing the audio-only rate would of course eliminate this problem since
+there would be only audio+video playlists to choose from.
+
+Follow progress on this in issue [#175](https://github.com/videojs/http-streaming/issues/175).
+
+### DASH Assets with `$Time` Interpolation and `SegmentTimeline`s with No `t`
+
+DASH assets which use `$Time` in a `SegmentTemplate`, and also have a
+`SegmentTimeline` where only the first `S` has a `t` and the rest only have a
+`d`, do not load currently.
+
+There is currently no workaround for this, but you can track progress on this
+in issue [#256](https://github.com/videojs/http-streaming/issues/256).
 
 ## Testing
 
