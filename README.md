@@ -71,8 +71,10 @@ Video.js Compatibility: 6.0, 7.0
   - [In-Band Metadata](#in-band-metadata)
   - [Segment Metadata](#segment-metadata)
 - [Hosting Considerations](#hosting-considerations)
-- [Known Issues](#known-issues)
+- [Known Issues and Workarounds](#known-issues-and-workarounds)
   - [Fragmented MP4 Support](#fragmented-mp4-support)
+  - [Assets with an Audio-Only Rate Get Stuck in Audio-Only](#assets-with-an-audio-only-rate-get-stuck-in-audio-only)
+  - [DASH Assets with `$Time` Interpolation and `SegmentTimeline`s with No `t`](#dash-assets-with-time-interpolation-and-segmenttimelines-with-no-t)
 - [Testing](#testing)
 - [Debugging](#debugging)
 - [Release History](#release-history)
@@ -786,7 +788,7 @@ audio+video playlist for its first playlist.
 
 It's also worth mentioning that Apple no longer requires having an audio-only
 rate; instead, they require a 192kbps audio+video rate (see Apple's current
-[HLS Authoring Specification]). Removing the audio-only rate would of course
+[HLS Authoring Specification][]). Removing the audio-only rate would of course
 eliminate this problem since there would be only audio+video playlists to
 choose from.
 
