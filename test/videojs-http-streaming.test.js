@@ -1973,7 +1973,6 @@ QUnit.test('the handleManifestRedirects source option overrides the global defau
   videojs.options.hls = hlsOptions;
 });
 
-
 QUnit.test('if handleManifestRedirects global option is used, it should be passed to DashPlaylistLoader', function(assert) {
   let hlsOptions = videojs.options.hls;
 

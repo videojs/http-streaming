@@ -449,8 +449,6 @@ work across all the media types that video.js supports. If you're
 deploying videojs-http-streaming on your own website and want to make a
 couple tweaks though, go for it!
 
-
-
 #### hls.playlists.master
 Type: `object`
 
