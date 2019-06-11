@@ -630,16 +630,10 @@ function(assert) {
   });
   openMediaSource(this.player, this.clock);
 
-  this.player.tech_.hls.masterPlaylistController_.mediaSource.endOfStream = (type) => {
-    endOfStreams.push(type);
-    throw new Error();
-  };
+  this.player.tech_.hls.masterPlaylistController_.mediaSource.readyState = 'closed';
 
   this.player.on('error', () => {
     const error = this.player.error();
-
-    assert.equal(endOfStreams.length, 1, 'one endOfStream called');
-    assert.equal(endOfStreams[0], 'network', 'endOfStream called with network');
 
     assert.equal(error.code, 2, 'error has correct code');
     assert.equal(error.message,

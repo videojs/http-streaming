@@ -28,6 +28,7 @@ QUnit.module('Playback', {
     let done = assert.async();
     let video = document.createElement('video-js');
 
+    videojs.log.level('debug');
     video.style = 'display: none;';
 
     video.width = 600;
@@ -192,10 +193,7 @@ QUnit.test('DASH sidx', function(assert) {
   });
 });
 
-// This is a potentially existing issue where a combination of things
-// results in no ended event. We should fix this and start running this
-// test with 100% pass rate after that.
-QUnit.skip('DASH sidx with alt audio should end', function(assert) {
+QUnit.test('DASH sidx with alt audio should end', function(assert) {
 
   let done = assert.async();
   let player = this.player;

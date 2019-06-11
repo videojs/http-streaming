@@ -105,6 +105,8 @@ const actions = {
   appendBuffer: (bytes) => (type, sourceUpdater) => {
     const sourceBuffer = sourceUpdater[`${type}Buffer`];
 
+    sourceUpdater.logger_(`Appending ${bytes.length} to ${type}Buffer`);
+
     sourceBuffer.appendBuffer(bytes);
   },
   remove: (start, end) => (type, sourceUpdater) => {
@@ -112,17 +114,33 @@ const actions = {
 
     sourceBuffer.removing = true;
 
+    sourceUpdater.logger_(`Removing ${start} to ${end} from ${type}Buffer`);
     sourceBuffer.remove(start, end);
   },
   timestampOffset: (offset) => (type, sourceUpdater) => {
     const sourceBuffer = sourceUpdater[`${type}Buffer`];
+
+    sourceUpdater.logger_(`Setting ${type}timestampOffset to ${offset}`);
 
     sourceBuffer.timestampOffset = offset;
   },
   callback: (callback) => (type, sourceUpdater) => {
     callback();
   },
+  endOfStream: (error) => (sourceUpdater) => {
+    if (sourceUpdater.mediaSource.readyState !== 'open') {
+      return;
+    }
+    sourceUpdater.logger_(`Calling mediaSource endOfStream(${error || ''})`);
+
+    try {
+      sourceUpdater.mediaSource.endOfStream(error);
+    } catch (e) {
+      videojs.log.warn('Failed to call media source endOfStream', e);
+    }
+  },
   duration: (duration) => (sourceUpdater) => {
+    sourceUpdater.logger_(`Setting mediaSource duration to ${duration}`);
     try {
       sourceUpdater.mediaSource.duration = duration;
     } catch (e) {
@@ -309,6 +327,23 @@ export default class SourceUpdater extends videojs.EventTarget {
       sourceUpdater: this,
       action: actions.duration(duration),
       name: 'duration',
+      doneFn
+    });
+  }
+
+  endOfStream(error = null, doneFn = noop) {
+    if (typeof error !== 'string') {
+      error = undefined;
+    }
+    // In order to set the duration on the media source, it's necessary to wait for all
+    // source buffers to no longer be updating. "If the updating attribute equals true on
+    // any SourceBuffer in sourceBuffers, then throw an InvalidStateError exception and
+    // abort these steps." (source: https://www.w3.org/TR/media-source/#attributes).
+    pushQueue({
+      type: 'mediaSource',
+      sourceUpdater: this,
+      action: actions.endOfStream(error),
+      name: 'endOfStream',
       doneFn
     });
   }
