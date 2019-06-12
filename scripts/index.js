@@ -23,7 +23,7 @@
     var event
 
     if (typeof window.Event === 'function') {
-      event = new window.Event('submit');
+      event = new window.Event(name);
     } else {
       event = document.createEvent('Event');
       event.initEvent(name, true, true);
