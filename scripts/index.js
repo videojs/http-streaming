@@ -150,6 +150,7 @@
       var urls = [
         'node_modules/video.js/dist/alt/video.core',
         'node_modules/videojs-contrib-eme/dist/videojs-contrib-eme',
+        'node_modules/videojs-contrib-quality-levels/dist/videojs-contrib-quality-levels',
         'dist/videojs-http-streaming'
       ].map(function(url) {
         return url + (event.target.checked ? '.min' : '') + '.js';
