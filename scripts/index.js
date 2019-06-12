@@ -1,22 +1,35 @@
 /* eslint-disable no-var, object-shorthand, no-console */
 (function(window) {
   // all relevant elements
-  var urlForm = document.getElementById('load-url');
+  var urlButton = document.getElementById('load-url');
   var sources = document.getElementById('load-source');
   var stateEls = {};
 
-  ['debug', 'autoplay', 'muted', 'minified', 'partial', 'url'].forEach(function(name) {
+  ['debug', 'autoplay', 'muted', 'minified', 'partial', 'url', 'type'].forEach(function(name) {
     stateEls[name] = document.getElementById(name);
   });
 
   var getInputValue = function(el) {
-    if (el.type === 'url') {
+    if (el.type === 'url' || el.type === 'text') {
       return el.value;
     } else if (el.type === 'checkbox') {
       return el.checked;
     }
 
     console.warn('unhandled input type ' + el.type);
+  };
+
+  var newEvent = function(name) {
+    var event
+
+    if (typeof window.Event === 'function') {
+      event = new window.Event(name);
+    } else {
+      event = document.createEvent('Event');
+      event.initEvent(name, true, true);
+    }
+
+    return event;
   };
 
   // taken from video.js
@@ -49,7 +62,7 @@
       query += symbol + elName + '=' + getInputValue(stateEls[elName]);
     });
 
-    window.history.replaceState(null, null, query);
+    window.history.replaceState({}, 'vhs demo', query);
   };
 
   var loadState = function() {
@@ -174,7 +187,7 @@
         videoEl.className = 'vjs-default-skin';
         fixture.appendChild(videoEl);
 
-        stateEls.partial.dispatchEvent(new CustomEvent('change'));
+        stateEls.partial.dispatchEvent(newEvent('change'));
 
         player = window.player = window.videojs(videoEl, {
           html5: {
@@ -184,26 +197,38 @@
           }
         });
 
+        player.width(640);
+        player.height(264);
+
         // configure videojs-contrib-eme
         player.eme();
 
-        stateEls.debug.dispatchEvent(new CustomEvent('change'));
-        stateEls.muted.dispatchEvent(new CustomEvent('change'));
-        stateEls.autoplay.dispatchEvent(new CustomEvent('change'));
+        stateEls.debug.dispatchEvent(newEvent('change'));
+        stateEls.muted.dispatchEvent(newEvent('change'));
+        stateEls.autoplay.dispatchEvent(newEvent('change'));
 
         // run the load url handler for the intial source
-        urlForm.dispatchEvent(new CustomEvent('submit'));
+        if (stateEls.url.value) {
+          urlButton.dispatchEvent(newEvent('click'));
+        } else {
+          sources.dispatchEvent(newEvent('change'));
+        }
         cb(player);
       });
     });
 
-    urlForm.addEventListener('submit', function(event) {
-      var type = 'application/x-mpegURL';
+    const urlButtonClick = function(event) {
+      var ext;
+      var type = stateEls.type.value;
 
-      event.preventDefault();
+      if (!type.trim()) {
+        ext = getFileExtension(stateEls.url.value);
 
-      if (getFileExtension(stateEls.url.value) === 'mpd') {
-        type = 'application/dash+xml';
+        if (ext === 'mpd') {
+          type = 'application/dash+xml';
+        } else if (ext === 'm3u8') {
+          type = 'application/x-mpegURL';
+        }
       }
 
       saveState();
@@ -212,17 +237,21 @@
         src: stateEls.url.value,
         type: type
       });
-      return false;
-    });
+    };
+
+    urlButton.addEventListener('click', urlButtonClick);
+    urlButton.addEventListener('tap', urlButtonClick);
 
     sources.addEventListener('change', function(event) {
-      event.preventDefault();
-      stateEls.url.value = sources.options[sources.selectedIndex].value;
-      urlForm.dispatchEvent(new CustomEvent('submit'));
-      return false;
+      var src = sources.options[sources.selectedIndex].value;
+
+      stateEls.url.value = src;
+      stateEls.type.value = '';
+
+      urlButton.dispatchEvent(newEvent('click'));
     });
 
     // run the change handler for the first time
-    stateEls.minified.dispatchEvent(new CustomEvent('change'));
+    stateEls.minified.dispatchEvent(newEvent('change'));
   };
 }(window));

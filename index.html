@@ -18,11 +18,11 @@
     }
     label {
       display: block;
+      width: 700px;
+      margin-top: 4px;
     }
-    input, select {
-      min-width: 450px;
-      margin: 0;
-      padding: 0;
+    input[type=url], select {
+      min-width: 600px;
     }
     h3 {
       margin-bottom: 5px;
@@ -57,10 +57,11 @@
   </label>
 
   <h3>Load a URL</h3>
-  <form id=load-url>
-    <input id=url type=url value="https://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8">
-    <button type=submit>Load</button>
-  </form>
+  <label>Url:</label>
+  <input id=url type=url>
+  <label>Type: (uses url extension if blank)</label>
+  <input id=type type=text>
+  <button id=load-url type=button>Load</button>
   <h3>Load a Source</h3>
   <select id=load-source>
     <optgroup label="hls">
@@ -92,7 +93,6 @@
   <script>
     window.startDemo(function(player) {
       // do something with setup player
-
     });
   </script>
   </body>
