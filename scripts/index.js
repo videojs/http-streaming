@@ -221,8 +221,6 @@
       var ext;
       var type = stateEls.type.value;
 
-      event.preventDefault();
-
       if (!type.trim()) {
         ext = getFileExtension(stateEls.url.value);
 
@@ -239,7 +237,6 @@
         src: stateEls.url.value,
         type: type
       });
-      return false;
     };
 
     urlButton.addEventListener('click', urlButtonClick);
@@ -248,12 +245,10 @@
     sources.addEventListener('change', function(event) {
       var src = sources.options[sources.selectedIndex].value;
 
-      event.preventDefault();
       stateEls.url.value = src;
       stateEls.type.value = '';
 
       urlButton.dispatchEvent(newEvent('click'));
-      return false;
     });
 
     // run the change handler for the first time
