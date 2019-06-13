@@ -1,13 +1,14 @@
 const path = require('path');
 const sh = require('shelljs');
-const fs = require('fs');
 
-const vjs = 'node_modules/video.js/dist/alt/video.core.js';
-const vjsCss = 'node_modules/video.js/dist/video-js.css';
-const eme = 'node_modules/videojs-contrib-eme/dist/videojs-contrib-eme.js';
-const indexScript = 'scripts/index.js';
 const deployDir = 'deploy';
-const files = [vjs, vjsCss, eme, indexScript];
+const files = [
+  'node_modules/video.js/dist/video-js.css',
+  'node_modules/video.js/dist/alt/video.core.js',
+  'node_modules/videojs-contrib-eme/dist/videojs-contrib-eme.js',
+  'node_modules/videojs-contrib-quality-levels/dist/videojs-contrib-quality-levels.js',
+  'scripts/index.js'
+];
 
 // cleanup previous deploy
 sh.rm('-rf', deployDir);
