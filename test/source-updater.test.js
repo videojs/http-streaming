@@ -1056,3 +1056,28 @@ QUnit.test('dispose removes sourceopen listener', function(assert) {
   });
 });
 
+QUnit.test('audio appends are delayed until video append for the first append', function(assert) {
+  const done = assert.async();
+
+  assert.timeout(5000);
+
+  let audioAppend = false;
+  let videoAppend = false;
+
+  this.sourceUpdater.createSourceBuffers({
+    audio: 'mp4a.40.2',
+    video: 'avc1.4D001E'
+  });
+  this.sourceUpdater.appendBuffer({type: 'audio', bytes: mp4Audio()}, () => {
+    assert.ok(videoAppend, 'video appended first');
+    audioAppend = true;
+    this.sourceUpdater.appendBuffer({type: 'audio', bytes: mp4Audio()}, () => {
+      assert.ok(true, 'second audio append happens right away');
+      done();
+    });
+  });
+  this.sourceUpdater.appendBuffer({type: 'video', bytes: mp4Video()}, () => {
+    videoAppend = true;
+    assert.ok(!audioAppend, 'audio has not appended yet');
+  });
+});
