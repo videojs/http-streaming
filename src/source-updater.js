@@ -295,7 +295,7 @@ export default class SourceUpdater extends videojs.EventTarget {
       };
     }
 
-    if (type === 'audio' && this.videoBuffer && !this.videoBuffer.appendQueued) {
+    if (type === 'audio' && this.videoBuffer && !this.videoAppendQueued) {
       this.delayedAudioAppendQueue_.push([{type, bytes, videoSegmentTimingInfoCallback}, doneFn]);
       this.logger_(`delayed audio append of ${bytes.length} until video append`);
       return;
@@ -310,7 +310,7 @@ export default class SourceUpdater extends videojs.EventTarget {
     });
 
     if (type === 'video') {
-      this.videoBuffer.appendQueued = true;
+      this.videoAppendQueued = true;
       if (!this.delayedAudioAppendQueue_.length) {
         return;
       }
@@ -536,6 +536,9 @@ export default class SourceUpdater extends videojs.EventTarget {
         videoDisposeFn();
       }
     }
+
+    this.videoAppendQueued = false;
+    this.delayedAudioAppendQueue_.length = 0;
 
     this.mediaSource.removeEventListener('sourceopen', this.sourceopenListener_);
   }
