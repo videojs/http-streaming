@@ -5,7 +5,7 @@ import {
   openMediaSource,
   standardXHRResponse,
 } from '../../test/test-helpers';
-import {Hls} from '../../';
+import {Hls} from '../../src/videojs-http-streaming.js';
 
 let simulationDefaults = {
   // number of seconds of video in each segment

@@ -6,8 +6,14 @@ import uglify from 'rollup-plugin-uglify';
 import worker from '@gkatsev/rollup-plugin-bundle-worker';
 import { minify } from 'uglify-es';
 import pkg from '../package.json';
+import path from 'path';
+import presetEnv from 'babel-preset-env';
+import externalHelpers from 'babel-plugin-external-helpers';
 
 const date = new Date();
+
+/* to prevent going into a screen during rollup */
+process.stderr.isTTY = false;
 
 const banner =
   `/**
@@ -28,7 +34,21 @@ const umdPlugins = [
   commonjs({
     sourceMap: false
   }),
-  babel(),
+  babel({
+    babelrc: false,
+    exclude: path.join(process.cwd(), 'node_modules/**'),
+    presets: [
+      [presetEnv, {
+        loose: true,
+        modules: false,
+        exclude: ['transform-es2015-typeof-symbol'],
+        targets: {
+          browsers: ['defaults', 'ie 11']
+        }
+      }]
+    ],
+    plugins: [externalHelpers]
+  })
 ];
 
 const externals = [
@@ -56,7 +76,16 @@ const onwarn = (warning) => {
   console.warn(warning.message);
 };
 
-export default [
+let isWatch = false;
+
+for (let i = 0; i < process.argv.length; i++) {
+  if ((/^-w|--watch$/).test(process.argv[i])) {
+    isWatch = true;
+    break;
+  }
+}
+
+const builds = [
   /**
    * Rollup configuration for packaging the plugin in a module that is consumable
    * as the `src` of a `script` tag or via AMD or similar client-side loading.
@@ -76,24 +105,6 @@ export default [
     },
     external: ['video.js'],
     plugins: umdPlugins
-  }, {
-    input: 'src/videojs-http-streaming.js',
-    output: {
-      name: 'videojsHttpStreaming',
-      file: 'dist/videojs-http-streaming.min.js',
-      format: 'umd',
-      globals: {
-        'video.js': 'videojs'
-      },
-      banner,
-    },
-    external: ['video.js'],
-    plugins: umdPlugins
-      .concat([uglify({
-        output: {
-          comments: 'some'
-        }
-      }, minify)])
   },
 
   /**
@@ -108,7 +119,21 @@ export default [
     plugins: [
       json(),
       worker(),
-      babel()
+      babel({
+        babelrc: false,
+        exclude: path.join(process.cwd(), 'node_modules/**'),
+        presets: [
+          [presetEnv, {
+            loose: true,
+            modules: false,
+            exclude: ['transform-es2015-typeof-symbol'],
+            targets: {
+              browsers: ['defaults', 'ie 11']
+            }
+          }]
+        ],
+        plugins: [externalHelpers]
+      })
     ],
     output: [{
       name: 'videojsHttpStreaming',
@@ -125,7 +150,21 @@ export default [
         preferConst: true
       }),
       worker(),
-      babel()
+      babel({
+        babelrc: false,
+        exclude: path.join(process.cwd(), 'node_modules/**'),
+        presets: [
+          [presetEnv, {
+            loose: true,
+            modules: false,
+            exclude: ['transform-es2015-typeof-symbol'],
+            targets: {
+              browsers: ['defaults', 'ie 11']
+            }
+          }]
+        ],
+        plugins: [externalHelpers]
+      })
     ],
     output: [{
       name: 'videojsHttpStreaming',
@@ -137,3 +176,27 @@ export default [
     onwarn
   }
 ];
+
+if (!isWatch) {
+  builds.push({
+    input: 'src/videojs-http-streaming.js',
+    output: {
+      name: 'videojsHttpStreaming',
+      file: 'dist/videojs-http-streaming.min.js',
+      format: 'umd',
+      globals: {
+        'video.js': 'videojs'
+      },
+      banner
+    },
+    external: ['video.js'],
+    plugins: umdPlugins
+    .concat([uglify({
+      output: {
+        comments: 'some'
+      }
+    }, minify)])
+  });
+}
+
+export default builds;
