@@ -356,10 +356,10 @@ QUnit.test('removeAudio does not remove video buffer', function(assert) {
     video: 'avc1.4D001E'
   });
 
-  this.sourceUpdater.appendBuffer({type: 'audio', bytes: mp4Audio()}, () => {
-    assert.ok(this.sourceUpdater.audioBuffered().end(0) > 0, 'buffered audio content');
-    this.sourceUpdater.appendBuffer({type: 'video', bytes: mp4Video()}, () => {
-      assert.ok(this.sourceUpdater.videoBuffered().end(0) > 0, 'buffered video content');
+  this.sourceUpdater.appendBuffer({type: 'video', bytes: mp4Video()}, () => {
+    assert.ok(this.sourceUpdater.videoBuffered().end(0) > 0, 'buffered audio content');
+    this.sourceUpdater.appendBuffer({type: 'audio', bytes: mp4Audio()}, () => {
+      assert.ok(this.sourceUpdater.audioBuffered().end(0) > 0, 'buffered video content');
       this.sourceUpdater.removeAudio(0, Infinity, () => {
         assert.equal(
           this.sourceUpdater.audioBuffered().length, 0, 'removed audio content');
@@ -381,10 +381,10 @@ QUnit.test('removeVideo does not remove audio buffer', function(assert) {
     video: 'avc1.4D001E'
   });
 
-  this.sourceUpdater.appendBuffer({type: 'audio', bytes: mp4Audio()}, () => {
-    assert.ok(this.sourceUpdater.audioBuffered().end(0) > 0, 'buffered audio content');
-    this.sourceUpdater.appendBuffer({type: 'video', bytes: mp4Video()}, () => {
-      assert.ok(this.sourceUpdater.videoBuffered().end(0) > 0, 'buffered video content');
+  this.sourceUpdater.appendBuffer({type: 'video', bytes: mp4Video()}, () => {
+    assert.ok(this.sourceUpdater.videoBuffered().end(0) > 0, 'buffered audio content');
+    this.sourceUpdater.appendBuffer({type: 'audio', bytes: mp4Audio()}, () => {
+      assert.ok(this.sourceUpdater.audioBuffered().end(0) > 0, 'buffered video content');
       this.sourceUpdater.removeVideo(0, Infinity, () => {
         assert.equal(
           this.sourceUpdater.videoBuffered().length, 0, 'removed video content');
@@ -504,22 +504,25 @@ function(assert) {
   let executedVideoCallback = false;
   let appendedAudio = false;
 
-  this.sourceUpdater.appendBuffer({type: 'audio', bytes: mp4Audio()}, () => {
-    appendedAudio = true;
-    assert.notOk(executedVideoCallback, 'haven\'t executed callback');
-    setTimeout(() => {
+  // we have to append video
+  this.sourceUpdater.appendBuffer({type: 'video', bytes: mp4Video()}, () => {
+    this.sourceUpdater.appendBuffer({type: 'audio', bytes: mp4Audio()}, () => {
+      appendedAudio = true;
       assert.notOk(executedVideoCallback, 'haven\'t executed callback');
-      done();
-    }, 0);
-  });
+      setTimeout(() => {
+        assert.notOk(executedVideoCallback, 'haven\'t executed callback');
+        done();
+      }, 0);
+    });
 
-  // add a video queue entry so that the video queue callback doesn't immediately run
-  this.sourceUpdater.queuePending.video = {};
+    // add a video queue entry so that the video queue callback doesn't immediately run
+    this.sourceUpdater.queuePending.video = {};
 
-  assert.notOk(appendedAudio, 'haven\'t appended audio before callback is queued');
+    assert.notOk(appendedAudio, 'haven\'t appended audio before callback is queued');
 
-  this.sourceUpdater.videoQueueCallback(() => {
-    executedVideoCallback = true;
+    this.sourceUpdater.videoQueueCallback(() => {
+      executedVideoCallback = true;
+    });
   });
 });
 
@@ -719,8 +722,7 @@ QUnit.test('setDuration waits for audio buffer to finish updating', function(ass
   assert.expect(5);
 
   this.sourceUpdater.createSourceBuffers({
-    audio: 'mp4a.40.2',
-    video: 'avc1.4D001E'
+    audio: 'mp4a.40.2'
   });
 
   assert.notOk(this.sourceUpdater.updating(), 'not updating by default');
@@ -876,8 +878,7 @@ QUnit.test('endOfStream waits for audio buffer to finish updating', function(ass
   assert.expect(5);
 
   this.sourceUpdater.createSourceBuffers({
-    audio: 'mp4a.40.2',
-    video: 'avc1.4D001E'
+    audio: 'mp4a.40.2'
   });
 
   assert.notOk(this.sourceUpdater.updating(), 'not updating by default');
@@ -1055,3 +1056,28 @@ QUnit.test('dispose removes sourceopen listener', function(assert) {
   });
 });
 
+QUnit.test('audio appends are delayed until video append for the first append', function(assert) {
+  const done = assert.async();
+
+  assert.timeout(5000);
+
+  let audioAppend = false;
+  let videoAppend = false;
+
+  this.sourceUpdater.createSourceBuffers({
+    audio: 'mp4a.40.2',
+    video: 'avc1.4D001E'
+  });
+  this.sourceUpdater.appendBuffer({type: 'audio', bytes: mp4Audio()}, () => {
+    assert.ok(videoAppend, 'video appended first');
+    audioAppend = true;
+    this.sourceUpdater.appendBuffer({type: 'audio', bytes: mp4Audio()}, () => {
+      assert.ok(true, 'second audio append happens right away');
+      done();
+    });
+  });
+  this.sourceUpdater.appendBuffer({type: 'video', bytes: mp4Video()}, () => {
+    videoAppend = true;
+    assert.ok(!audioAppend, 'audio has not appended yet');
+  });
+});

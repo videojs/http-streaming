@@ -204,6 +204,8 @@ export default class SourceUpdater extends videojs.EventTarget {
       audio: null,
       video: null
     };
+    this.delayedAudioAppendQueue_ = [];
+    this.videoAppendQueued_ = false;
   }
 
   ready() {
@@ -294,6 +296,12 @@ export default class SourceUpdater extends videojs.EventTarget {
       };
     }
 
+    if (type === 'audio' && this.videoBuffer && !this.videoAppendQueued_) {
+      this.delayedAudioAppendQueue_.push([{type, bytes, videoSegmentTimingInfoCallback}, doneFn]);
+      this.logger_(`delayed audio append of ${bytes.length} until video append`);
+      return;
+    }
+
     pushQueue({
       type,
       sourceUpdater: this,
@@ -301,6 +309,21 @@ export default class SourceUpdater extends videojs.EventTarget {
       doneFn,
       name: 'appendBuffer'
     });
+
+    if (type === 'video') {
+      this.videoAppendQueued_ = true;
+      if (!this.delayedAudioAppendQueue_.length) {
+        return;
+      }
+      const queue = this.delayedAudioAppendQueue_.slice();
+
+      this.logger_(`queuing delayed audio ${queue.length} appendBuffers`);
+
+      this.delayedAudioAppendQueue_.length = 0;
+      queue.forEach((que) => {
+        this.appendBuffer.apply(this, que);
+      });
+    }
   }
 
   audioBuffered() {
@@ -514,6 +537,9 @@ export default class SourceUpdater extends videojs.EventTarget {
         videoDisposeFn();
       }
     }
+
+    this.videoAppendQueued_ = false;
+    this.delayedAudioAppendQueue_.length = 0;
 
     this.mediaSource.removeEventListener('sourceopen', this.sourceopenListener_);
   }
