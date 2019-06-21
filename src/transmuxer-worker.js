@@ -307,6 +307,10 @@ class MessageHandlers {
     this.transmuxer.setAudioAppendStart(Math.ceil(secondsToVideoTs(data.appendStart)));
   }
 
+  setRemux(data) {
+    this.transmuxer.setRemux(data.remux);
+  }
+
   /**
    * Forces the pipeline to finish processing the last segment and emit it's
    * results.

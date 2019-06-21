@@ -1515,6 +1515,10 @@ export default class SegmentLoader extends videojs.EventTarget {
       // the segment has a map
       this.appendInitSegment_[type] = map ? true : false;
 
+      // we need to clear out the fmp4 active init segment id, since
+      // we are appending the muxer init segment
+      this.activeInitSegmentId_ = null;
+
       return initSegment;
     }
 
@@ -1594,7 +1598,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       type,
       initSegment: result.initSegment,
       playlist: segmentInfo.playlist,
-      map: segmentInfo.segment.map
+      map: segmentInfo.isFmp4 ? segmentInfo.segment.map : null
     });
 
     this.appendToSourceBuffer_({ segmentInfo, type, initSegment, data });
