@@ -1243,27 +1243,29 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.sourceUpdater_.audioTimestampOffset() :
       this.sourceUpdater_.videoTimestampOffset();
 
-    const tracks = {};
+    const captionTracks = {};
 
     // get total start/end and captions for each track/stream
     captionData.forEach((caption) => {
       // caption.stream is actually a track name...
       // set to the existing values in tracks or default values
-      tracks[caption.stream] = tracks[caption.stream] || {
+      captionTracks[caption.stream] = captionTracks[caption.stream] || {
+        // Infinity, as any other value will be less than this
         startTime: Infinity,
         captions: [],
+        // 0 as an other value will be more than this
         endTime: 0
       };
 
-      const track = tracks[caption.stream];
+      const captionTrack = captionTracks[caption.stream];
 
-      track.startTime = Math.min(track.startTime, (caption.startTime + timestampOffset));
-      track.endTime = Math.max(track.endTime, (caption.endTime + timestampOffset));
-      track.captions.push(caption);
+      captionTrack.startTime = Math.min(captionTrack.startTime, (caption.startTime + timestampOffset));
+      captionTrack.endTime = Math.max(captionTrack.endTime, (caption.endTime + timestampOffset));
+      captionTrack.captions.push(caption);
     });
 
-    Object.keys(tracks).forEach((trackName) => {
-      const {startTime, endTime, captions} = tracks[trackName];
+    Object.keys(captionTracks).forEach((trackName) => {
+      const {startTime, endTime, captions} = captionTracks[trackName];
       const inbandTextTracks = this.inbandTextTracks_;
 
       this.logger_(`adding cues from ${startTime} -> ${endTime} for ${trackName}`);
