@@ -465,10 +465,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     this.mainSegmentLoader_.on('trackinfo', () => {
-      if (this.sourceUpdater_.ready()) {
-        // already configured source buffers
-        return;
-      }
       this.tryToCreateSourceBuffers_();
     });
 
@@ -489,6 +485,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.audioSegmentLoader_.on('ended', () => {
       this.logger_('audioSegmentLoader ended');
       this.onEndOfStream();
+    });
+
+    this.audioSegmentLoader_.on('trackinfo', () => {
+      this.tryToCreateSourceBuffers_();
     });
   }
 
@@ -1148,38 +1148,39 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * @private
    */
   tryToCreateSourceBuffers_() {
+    // media source is not ready yet
     if (this.mediaSource.readyState !== 'open') {
       return;
     }
 
-    // Because a URI is required for EXT-X-STREAM-INF tags (therefore, there must always
-    // be a playlist, even for audio only playlists with alt audio), a segment will always
-    // be downloaded for the main segment loader, and the track info parsed from it.
-    // Therefore we must always wait for the main segment loader's track info.
-    if (!this.mainSegmentLoader_.startingMedia_) {
+    // source buffers are already created
+    if (this.sourceUpdater_.ready()) {
       return;
     }
 
-    // We don't need to wait for the audio loader, since if it isn't active we rely on the
-    // main only, and if it is active the starting media always has audio (and only
-    // audio). In the future, we may parse codec info from the segments, but for now, we
-    // rely on the manifest or defaults, so don't have to wait for the alt audio segment.
+    const mainStartingMedia = this.mainSegmentLoader_.startingMedia_;
+    const hasAltAudio = !!this.mediaTypes_.AUDIO.activePlaylistLoader;
 
-    const hasVideo = this.mainSegmentLoader_.startingMedia_.hasVideo;
-    const hasAudio = this.mainSegmentLoader_.startingMedia_.hasAudio ||
-      // alt audio always has audio
-      this.mediaTypes_.AUDIO.activePlaylistLoader;
+    // Because a URI is required for EXT-X-STREAM-INF tags (therefore, there must always
+    // be a playlist, even for audio only playlists with alt audio), a segment will always
+    // be downloaded for the main segment loader, and the track info parsed from it.
+    // Therefore we must always wait for the segment loader's track info.
+    if (!mainStartingMedia || (hasAltAudio && !this.audioSegmentLoader_.startingMedia_)) {
+      return;
+    }
+    const audioStartingMedia = this.audioSegmentLoader_ && this.audioSegmentLoader_.startingMedia_;
     const media = this.masterPlaylistLoader_.media();
-    // get the manifest specified codecs (if there are any) for the selected stream and
-    // alt audio from its audio group (if applicable)
     const playlistCodecs = codecsForPlaylist(this.masterPlaylistLoader_.master, media);
     const codecs = {};
 
-    if (hasVideo) {
-      codecs.video = translateLegacyCodec(playlistCodecs.video) || DEFAULT_VIDEO_CODEC;
+    if (mainStartingMedia.hasAudio || hasAltAudio) {
+      codecs.audio = mainStartingMedia.audioCodec || (audioStartingMedia || {}).audioCodec ||
+        translateLegacyCodec(playlistCodecs.audio) || DEFAULT_AUDIO_CODEC;
     }
-    if (hasAudio) {
-      codecs.audio = translateLegacyCodec(playlistCodecs.audio) || DEFAULT_AUDIO_CODEC;
+
+    if (mainStartingMedia.hasVideo) {
+      codecs.video = mainStartingMedia.videoCodec ||
+        translateLegacyCodec(playlistCodecs.video) || DEFAULT_VIDEO_CODEC;
     }
 
     if (!codecs.video && !codecs.audio) {

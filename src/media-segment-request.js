@@ -2,7 +2,7 @@ import videojs from 'video.js';
 import { createTransferableMessage } from './bin-utils';
 import { stringToArrayBuffer } from './util/string-to-array-buffer';
 import { transmux } from './segment-transmuxer';
-import { probeMp4StartTime, probeTsSegment } from './util/segment';
+import { probeTsSegment } from './util/segment';
 import { isLikelyFmp4Data } from './util/codecs';
 import mp4probe from 'mux.js/lib/mp4/probe';
 import { segmentXhrHeaders } from './xhr';
@@ -165,13 +165,23 @@ const handleInitSegmentResponse =
 
   segment.map.bytes = new Uint8Array(request.response);
 
-  // Initialize CaptionParser if it hasn't been yet
-  if (captionParser && !captionParser.isInitialized()) {
-    captionParser.init();
-  }
+  const tracks = mp4probe.tracks(segment.map.bytes);
 
-  segment.map.timescales = mp4probe.timescale(segment.map.bytes);
-  segment.map.videoTrackIds = mp4probe.videoTrackIds(segment.map.bytes);
+  tracks.forEach(function(track) {
+    segment.map.tracks = segment.map.tracks || {};
+
+    // only support one track of each type for now
+    if (segment.map.tracks[track.type]) {
+      return;
+    }
+
+    segment.map.tracks[track.type] = track;
+
+    if (track.id && track.timescale) {
+      segment.map.timescales = segment.map.timescales || {};
+      segment.map.timescales[track.id] = track.timescale;
+    }
+  });
 
   return finishProcessingFn(null, segment);
 };
@@ -188,8 +198,6 @@ const handleInitSegmentResponse =
  */
 const handleSegmentResponse = ({
   segment,
-  captionParser,
-  captionsFn,
   finishProcessingFn,
   responseType
 }) => (error, request) => {
@@ -219,24 +227,6 @@ const handleSegmentResponse = ({
     segment.encryptedBytes = new Uint8Array(newBytes);
   } else {
     segment.bytes = new Uint8Array(newBytes);
-  }
-
-  // This is likely an FMP4 and has the init segment.
-  // Run through the CaptionParser in case there are captions.
-  if (captionParser && segment.map && segment.map.bytes) {
-    // Initialize CaptionParser if it hasn't been yet
-    if (!captionParser.isInitialized()) {
-      captionParser.init();
-    }
-
-    const parsed = captionParser.parse(
-      segment.bytes,
-      segment.map.videoTrackIds,
-      segment.map.timescales);
-
-    if (parsed && parsed.captions && parsed.captions.length > 0) {
-      captionsFn(segment, parsed.captions);
-    }
   }
 
   return finishProcessingFn(null, segment);
@@ -350,38 +340,63 @@ const handleSegmentBytes = ({
 }) => {
   const bytesAsUint8Array = new Uint8Array(bytes);
 
-  segment.isFmp4 =
-    // only set the property the first time we see some bytes so that partial appends
-    // don't try to check every section of bytes (since the check should only consider the
-    // first bytes in the segment)
-    typeof segment.isFmp4 === 'boolean' ? segment.isFmp4 : isLikelyFmp4Data(bytesAsUint8Array);
+  if (isLikelyFmp4Data(bytesAsUint8Array)) {
+    segment.isFmp4 = true;
+    const {tracks} = segment.map;
 
-  if (segment.isFmp4) {
+    const trackInfo = {
+      hasVideo: !!tracks.video,
+      hasAudio: !!tracks.audio
+    };
+
+    if (tracks.audio && tracks.audio.codec) {
+      trackInfo.audioCodec = tracks.audio.codec;
+    }
+
+    if (tracks.video && tracks.video.codec) {
+      trackInfo.videoCodec = tracks.video.codec;
+    }
+
+    // if an init segment has both audio and video is muxed
+    // set hasAudio to false and merge the audio codec info.
+    if (tracks.video && tracks.audio) {
+      trackInfo.hasAudio = false;
+      if (trackInfo.audioCodec) {
+        trackInfo.videoCodec += `,${trackInfo.audioCodec}`;
+        delete trackInfo.audioCodec;
+      }
+    }
 
     // since we don't support appending fmp4 data on progress, we know we have the full
     // segment here
-    const startTime = probeMp4StartTime(bytesAsUint8Array, segment.map.bytes);
-
-    // we don't parse fmp4 (yet), so we can't provide any track info, however, the
-    // track info callback should still be called before the dataFn is called
-    trackInfoFn(segment, null);
-    // use null for the media type since we don't technically know whether it's audio or
-    // video
+    trackInfoFn(segment, trackInfo);
     // the probe doesn't provide the segment end time, so only callback with the start
     // (the end time can be roughly calculated by the receiver using the duration)
-    timingInfoFn(segment, null, 'start', startTime);
-    dataFn(segment, { data: bytes });
+    const timingInfo = mp4probe.startTime(segment.map.timescales, bytesAsUint8Array);
+
+    if (trackInfo.hasAudio) {
+      timingInfoFn(segment, 'audio', 'start', timingInfo);
+    }
+
+    if (trackInfo.hasVideo) {
+      timingInfoFn(segment, 'video', 'start', timingInfo);
+    }
+
+    // if the track still has audio at this point it is only possible
+    // for it to be audio only. See `tracks.video && tracks.audio` if statement
+    // above.
+    dataFn(segment, {data: bytes, type: trackInfo.hasAudio ? 'audio' : 'video'});
 
     // Run through the CaptionParser in case there are captions.
     // Initialize CaptionParser if it hasn't been yet
-    if (captionParser && segment.map && segment.map.bytes) {
+    if (captionParser && tracks.video) {
       if (!captionParser.isInitialized()) {
         captionParser.init();
       }
 
       const parsed = captionParser.parse(
         segment.bytes,
-        segment.map.videoTrackIds,
+        [tracks.video.id],
         segment.map.timescales);
 
       if (parsed && parsed.captions && parsed.captions.length > 0) {
@@ -731,8 +746,7 @@ export const mediaSegmentRequest = ({
   }
 
   // optionally, request the associated media init segment
-  if (segment.map &&
-    !segment.map.bytes) {
+  if (segment.map && !segment.map.bytes) {
     const initSegmentOptions = videojs.mergeOptions(xhrOptions, {
       uri: segment.map.resolvedUri,
       responseType: 'arraybuffer',
@@ -767,8 +781,6 @@ export const mediaSegmentRequest = ({
 
   const segmentRequestCallback = handleSegmentResponse({
     segment,
-    captionParser,
-    captionsFn,
     finishProcessingFn,
     responseType: segmentRequestOptions.responseType
   });

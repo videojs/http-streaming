@@ -28,6 +28,8 @@ import {
   muxed as muxedSegment,
   audio as audioSegment,
   video as videoSegment,
+  mp4MuxedInit as mp4MuxedInitSegment,
+  mp4Muxed as mp4MuxedSegment,
   mp4VideoInit as mp4VideoInitSegment,
   mp4Video as mp4VideoSegment,
   mp4AudioInit as mp4AudioInitSegment,
@@ -2327,9 +2329,7 @@ QUnit.test('only triggers a single fmp4 usage event', function(assert) {
   assert.equal(hlsFmp4Events, 1, 'did not fire usage event');
 });
 
-// TODO currently this test is skipped because audio only fmp4 isn't supported. Once
-// support is added, this test can be unskipped.
-QUnit.skip('trigger event when an audio fMP4 stream is detected', function(assert) {
+QUnit.test('trigger event when an audio fMP4 stream is detected', function(assert) {
   // use real media sources to allow segment loader to naturally detect fmp4
   this.mse.restore();
   this.requests.length = 0;
@@ -2375,6 +2375,183 @@ QUnit.skip('trigger event when an audio fMP4 stream is detected', function(asser
     });
   }).then(() => {
     assert.equal(hlsFmp4Events, 1, 'an fMP4 stream is detected');
+  });
+});
+
+QUnit.test('parses codec from audio only fmp4 init segment', function(assert) {
+  // use real media sources to allow segment loader to naturally detect fmp4
+  this.mse.restore();
+  this.requests.length = 0;
+  this.player.dispose();
+  this.player = createPlayer();
+  this.player.src({
+    src: 'prog_index.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+
+  const createSourceBufferCalls = [];
+  const mpc = this.player.vhs.masterPlaylistController_;
+  const origCreateSourceBuffers =
+    mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
+
+  mpc.sourceUpdater_.createSourceBuffers = (codecs) => {
+    createSourceBufferCalls.push(codecs);
+    origCreateSourceBuffers(codecs);
+  };
+
+  const loader = mpc.mainSegmentLoader_;
+
+  return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {
+    videoEl: this.player.tech_.el_,
+    dontCreateSourceBuffers: true
+  }).then(() => {
+    // media
+    this.standardXHRResponse(this.requests.shift());
+
+    const initSegmentRequest = this.requests.shift();
+    const segmentRequest = this.requests.shift();
+
+    return requestAndAppendSegment({
+      request: segmentRequest,
+      initSegmentRequest,
+      segmentLoader: mpc.mainSegmentLoader_,
+      initSegment: mp4AudioInitSegment(),
+      segment: mp4AudioSegment(),
+      isOnlyAudio: true,
+      clock: this.clock
+    });
+  }).then(() => {
+    assert.equal(createSourceBufferCalls.length, 1, 'called to create source buffers');
+    assert.deepEqual(
+      createSourceBufferCalls[0],
+      {
+        audio: 'mp4a.40.2'
+      },
+      'parsed audio codec');
+    assert.deepEqual(loader.startingMedia_, {
+      audioCodec: 'mp4a.40.2',
+      hasAudio: true,
+      hasVideo: false
+    }, 'starting media as expected');
+  });
+});
+
+QUnit.test('parses codec from video only fmp4 init segment', function(assert) {
+  // use real media sources to allow segment loader to naturally detect fmp4
+  this.mse.restore();
+  this.requests.length = 0;
+  this.player.dispose();
+  this.player = createPlayer();
+  this.player.src({
+    src: 'prog_index.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+
+  const createSourceBufferCalls = [];
+  const mpc = this.player.vhs.masterPlaylistController_;
+  const origCreateSourceBuffers =
+    mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
+
+  mpc.sourceUpdater_.createSourceBuffers = (codecs) => {
+    createSourceBufferCalls.push(codecs);
+    origCreateSourceBuffers(codecs);
+  };
+
+  const loader = mpc.mainSegmentLoader_;
+
+  return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {
+    videoEl: this.player.tech_.el_,
+    dontCreateSourceBuffers: true
+  }).then(() => {
+    // media
+    this.standardXHRResponse(this.requests.shift());
+
+    const initSegmentRequest = this.requests.shift();
+    const segmentRequest = this.requests.shift();
+
+    return requestAndAppendSegment({
+      request: segmentRequest,
+      initSegmentRequest,
+      segmentLoader: mpc.mainSegmentLoader_,
+      initSegment: mp4VideoInitSegment(),
+      segment: mp4VideoSegment(),
+      isOnlyVideo: true,
+      clock: this.clock
+    });
+  }).then(() => {
+    assert.equal(createSourceBufferCalls.length, 1, 'called to create source buffers');
+    assert.deepEqual(
+      createSourceBufferCalls[0],
+      {
+        video: 'avc1.64001e'
+      },
+      'parsed video codec');
+    assert.deepEqual(loader.startingMedia_, {
+      hasAudio: false,
+      hasVideo: true,
+      videoCodec: 'avc1.64001e'
+    }, 'starting media as expected');
+  });
+});
+
+QUnit.test('parses codec from muxed fmp4 init segment', function(assert) {
+  // use real media sources to allow segment loader to naturally detect fmp4
+  this.mse.restore();
+  this.requests.length = 0;
+  this.player.dispose();
+  this.player = createPlayer();
+  this.player.src({
+    src: 'prog_index.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+
+  const createSourceBufferCalls = [];
+  const mpc = this.player.vhs.masterPlaylistController_;
+  const origCreateSourceBuffers =
+    mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
+
+  mpc.sourceUpdater_.createSourceBuffers = (codecs) => {
+    createSourceBufferCalls.push(codecs);
+    origCreateSourceBuffers(codecs);
+  };
+
+  const loader = mpc.mainSegmentLoader_;
+
+  return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {
+    videoEl: this.player.tech_.el_,
+    dontCreateSourceBuffers: true
+  }).then(() => {
+    // media
+    this.standardXHRResponse(this.requests.shift());
+
+    const initSegmentRequest = this.requests.shift();
+    const segmentRequest = this.requests.shift();
+
+    return requestAndAppendSegment({
+      request: segmentRequest,
+      initSegmentRequest,
+      segmentLoader: mpc.mainSegmentLoader_,
+      initSegment: mp4MuxedInitSegment(),
+      segment: mp4MuxedSegment(),
+      isOnlyVideo: true,
+      clock: this.clock
+    });
+  }).then(() => {
+    assert.equal(createSourceBufferCalls.length, 1, 'called to create source buffers');
+    assert.deepEqual(
+      createSourceBufferCalls[0],
+      {
+        video: 'avc1.42c00d,mp4a.40.2'
+      },
+      'parsed video codec');
+    assert.deepEqual(loader.startingMedia_, {
+      hasAudio: false,
+      hasVideo: true,
+      videoCodec: 'avc1.42c00d,mp4a.40.2'
+    }, 'starting media as expected');
   });
 });
 
@@ -2966,11 +3143,9 @@ QUnit.test('creates source buffers after first main segment if video only', func
   });
 });
 
-// Right now we only get codec information from the manifest, not the content itself. As
-// such, if there's alternate audio, we know it'll either use the manifest provided codec
-// info or the default. Either way, we don't need to wait for the audio segment to create
-// the source buffers.
-QUnit.test('creates source buffers after first main segment if demuxed', function(assert) {
+QUnit.test('creates source buffers after second trackinfo if demuxed', function(assert) {
+  const done = assert.async();
+
   this.requests.length = 0;
   this.player.dispose();
   this.player = createPlayer();
@@ -2999,7 +3174,7 @@ QUnit.test('creates source buffers after first main segment if demuxed', functio
     '#EXTM3U\n' +
     '#EXT-X-VERSION:4\n' +
     '#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="en",DEFAULT=YES,AUTOSELECT=YES,' +
-      'LANGUAGE="en",URI="audio.m3u8"\n' +
+      'LANGUAGE="en",URI="media.m3u8"\n' +
     '#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=1,AUDIO="audio"\n' +
     'media.m3u8\n');
   // video media
@@ -3009,13 +3184,13 @@ QUnit.test('creates source buffers after first main segment if demuxed', functio
 
   assert.equal(createSourceBufferCalls.length, 0, 'have not created source buffers yet');
 
-  return requestAndAppendSegment({
-    request: this.requests.shift(),
-    segmentLoader: mpc.mainSegmentLoader_,
-    segment: videoSegment(),
-    isOnlyVideo: true,
-    clock: this.clock
-  }).then(() => {
+  let trackinfo = 0;
+
+  const onTrackInfo = function() {
+    trackinfo++;
+    if (trackinfo !== 2) {
+      return;
+    }
     assert.equal(createSourceBufferCalls.length, 1, 'called to create source buffers');
     assert.deepEqual(
       createSourceBufferCalls[0],
@@ -3024,7 +3199,15 @@ QUnit.test('creates source buffers after first main segment if demuxed', functio
         audio: DEFAULT_AUDIO_CODEC
       },
       'passed default codecs');
-  });
+    done();
+  };
+
+  mpc.mainSegmentLoader_.on('trackinfo', onTrackInfo);
+  mpc.audioSegmentLoader_.on('trackinfo', onTrackInfo);
+
+  this.standardXHRResponse(this.requests.shift(), videoSegment());
+  this.standardXHRResponse(this.requests.shift(), audioSegment());
+
 });
 
 QUnit.test('uses codec info from manifest for source buffer creation', function(assert) {
@@ -3173,6 +3356,8 @@ QUnit.test('uses default codec strings when provided are invalid', function(asse
 });
 
 QUnit.test('uses codec info from manifest for source buffer creation even when demuxed', function(assert) {
+  const done = assert.async();
+
   this.requests.length = 0;
   this.player.dispose();
   this.player = createPlayer();
@@ -3194,28 +3379,32 @@ QUnit.test('uses codec info from manifest for source buffer creation even when d
 
   openMediaSource(this.player, this.clock);
 
-  // master
   this.requests.shift().respond(
-    200,
-    null,
-    '#EXTM3U\n' +
-    '#EXT-X-VERSION:4\n' +
-    '#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="en",DEFAULT=YES,AUTOSELECT=YES,' +
-      'LANGUAGE="en",URI="audio.m3u8"\n' +
-    '#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=1,AUDIO="audio",' +
-      'CODECS="mp4a.40.e, avc1.deadbeef"\n' +
-    'media.m3u8\n');
+      200,
+      null,
+      '#EXTM3U\n' +
+      '#EXT-X-VERSION:4\n' +
+      '#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="en",DEFAULT=YES,AUTOSELECT=YES,' +
+        'LANGUAGE="en",URI="media.m3u8"\n' +
+      '#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=1,AUDIO="audio",' +
+        'CODECS="mp4a.40.e, avc1.deadbeef"\n' +
+      'media.m3u8\n');
+
   // video media
   this.standardXHRResponse(this.requests.shift());
   // audio media
   this.standardXHRResponse(this.requests.shift());
-  return requestAndAppendSegment({
-    request: this.requests.shift(),
-    segment: videoSegment(),
-    isOnlyVideo: true,
-    segmentLoader: mpc.mainSegmentLoader_,
-    clock: this.clock
-  }).then(() => {
+
+  assert.equal(createSourceBufferCalls.length, 0, 'have not created source buffers yet');
+
+  let trackinfo = 0;
+
+  const onTrackInfo = function() {
+    trackinfo++;
+    if (trackinfo !== 2) {
+      return;
+    }
+
     assert.equal(createSourceBufferCalls.length, 1, 'called to create source buffers');
     assert.deepEqual(
       createSourceBufferCalls[0],
@@ -3224,7 +3413,14 @@ QUnit.test('uses codec info from manifest for source buffer creation even when d
         video: 'avc1.deadbeef'
       },
       'passed manifest specified codecs');
-  });
+    done();
+  };
+
+  mpc.mainSegmentLoader_.on('trackinfo', onTrackInfo);
+  mpc.audioSegmentLoader_.on('trackinfo', onTrackInfo);
+
+  this.standardXHRResponse(this.requests.shift(), videoSegment());
+  this.standardXHRResponse(this.requests.shift(), audioSegment());
 });
 
 QUnit.test('uses codec info from manifest for source buffer creation for audio only', function(assert) {

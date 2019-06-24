@@ -629,8 +629,8 @@ QUnit.test('non-TS segment will get parsed for captions', function(assert) {
       gotData = true;
 
       assert.ok(segment.map.bytes, 'init segment bytes in map');
-      assert.ok(segment.map.timescales, 'looked for timescales');
-      assert.ok(segment.map.videoTrackIds, 'looked for videoTrackIds');
+      assert.ok(segment.map.tracks, 'added tracks');
+      assert.ok(segment.map.tracks.video, 'added video track');
     },
     doneFn: () => {
       assert.ok(gotCaption, 'received caption event');
@@ -690,8 +690,8 @@ QUnit.test('non-TS segment will get parsed for captions on next segment request 
       gotData++;
 
       assert.ok(segmentData, 'init segment bytes in map');
-      assert.ok(segment.map.timescales, 'looked for timescales');
-      assert.ok(segment.map.videoTrackIds, 'looked for videoTrackIds');
+      assert.ok(segment.map.tracks, 'added tracks');
+      assert.ok(segment.map.tracks.video, 'added video track');
     },
     doneFn: () => {
       assert.equal(gotCaption, 1, 'received caption event');

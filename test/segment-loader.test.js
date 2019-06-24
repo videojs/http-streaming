@@ -1288,7 +1288,6 @@ QUnit.module('SegmentLoader', function(hooks) {
     });
 
     QUnit.test('triggers appenderror when append errors', function(assert) {
-      const error = { message: 'this is an error' };
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
         const playlist = playlistWithDuration(40);
@@ -1301,7 +1300,7 @@ QUnit.module('SegmentLoader', function(hooks) {
         // 1) work across browsers
         // 2) won't cause an error in the transmuxer first
         loader.sourceUpdater_.appendBuffer = ({type, bytes}, callback) => {
-          callback(error);
+          callback({type: 'error'});
         };
 
         standardXHRResponse(this.requests.shift(), muxedSegment());
@@ -1311,7 +1310,7 @@ QUnit.module('SegmentLoader', function(hooks) {
           loader.one('error', reject);
         });
       }).then(() => {
-        assert.deepEqual(loader.error_, error, 'loader triggered and saved the appenderror');
+        assert.deepEqual(loader.error_, 'appenderror for video append with 2944 bytes', 'loader triggered and saved the appenderror');
       });
     });
 
