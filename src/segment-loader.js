@@ -690,6 +690,10 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.metadataQueue_.id3 = [];
     this.metadataQueue_.caption = [];
     this.abort();
+
+    if (this.captionParser_) {
+      this.captionParser_.clearParsedCaptions();
+    }
   }
 
   /**
@@ -1212,7 +1216,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
   }
 
-  handleCaptions_(simpleSegment, captions) {
+  handleCaptions_(simpleSegment, captionData) {
     if (this.checkForAbort_(simpleSegment.requestId) ||
       this.abortRequestEarly_(simpleSegment.stats)) {
       return;
@@ -1220,7 +1224,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // This could only happen with fmp4 segments, but
     // should still not happen in general
-    if (captions.length === 0) {
+    if (captionData.length === 0) {
       this.logger_('SegmentLoader received no captions from a caption event');
       return;
     }
@@ -1231,7 +1235,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // can be adjusted by the timestamp offset
     if (!segmentInfo.hasAppendedData_) {
       this.metadataQueue_.caption.push(
-        this.handleCaptions_.bind(this, simpleSegment, captions));
+        this.handleCaptions_.bind(this, simpleSegment, captionData));
       return;
     }
 
@@ -1239,14 +1243,41 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.sourceUpdater_.audioTimestampOffset() :
       this.sourceUpdater_.videoTimestampOffset();
 
-    captions.forEach((caption) => {
-      createCaptionsTrackIfNotExists(
-        this.inbandTextTracks_, this.hls_.tech_, caption.stream);
-      addCaptionData({
-        captionArray: [caption],
-        inbandTextTracks: this.inbandTextTracks_,
-        timestampOffset
-      });
+    const captionTracks = {};
+
+    // get total start/end and captions for each track/stream
+    captionData.forEach((caption) => {
+      // caption.stream is actually a track name...
+      // set to the existing values in tracks or default values
+      captionTracks[caption.stream] = captionTracks[caption.stream] || {
+        // Infinity, as any other value will be less than this
+        startTime: Infinity,
+        captions: [],
+        // 0 as an other value will be more than this
+        endTime: 0
+      };
+
+      const captionTrack = captionTracks[caption.stream];
+
+      captionTrack.startTime = Math.min(captionTrack.startTime, (caption.startTime + timestampOffset));
+      captionTrack.endTime = Math.max(captionTrack.endTime, (caption.endTime + timestampOffset));
+      captionTrack.captions.push(caption);
+    });
+
+    Object.keys(captionTracks).forEach((trackName) => {
+      const {startTime, endTime, captions} = captionTracks[trackName];
+      const inbandTextTracks = this.inbandTextTracks_;
+
+      this.logger_(`adding cues from ${startTime} -> ${endTime} for ${trackName}`);
+
+      createCaptionsTrackIfNotExists(inbandTextTracks, this.hls_.tech_, trackName);
+      // clear out any cues that start and end at the same time period for the same track.
+      // We do this because a rendition change that also changes the timescale for captions
+      // will result in captions being re-parsed for certain segments. If we add them again
+      // without clearing we will have two of the same captions visible.
+      removeCuesFromTrack(startTime, endTime, inbandTextTracks[trackName]);
+
+      addCaptionData({captionArray: captions, inbandTextTracks, timestampOffset});
     });
 
     // Reset stored captions since we added parsed

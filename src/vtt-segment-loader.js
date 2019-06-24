@@ -32,6 +32,8 @@ export default class VTTSegmentLoader extends SegmentLoader {
     this.mediaSource_ = null;
 
     this.subtitlesTrack_ = null;
+
+    this.loaderType_ = 'subtitle';
   }
 
   createTransmuxer_() {
