@@ -1856,7 +1856,7 @@ QUnit.module('SegmentLoader: FMP4', function(hooks) {
         loader.fillBuffer_();
         assert.ok(this.inbandTextTracks.CC1, 'text track created');
         assert.equal(this.inbandTextTracks.CC1.cues.length, 1, 'cue added');
-        assert.equal(mockCaptionParserClearParsedCaptions.callCount, 1, 'captions cleared after adding to text track');
+        assert.equal(mockCaptionParserClearParsedCaptions.callCount, 3, 'captions cleared after adding to text track');
         loader.pendingSegment_ = originalPendingSegment;
 
         // Dispose the loader
