@@ -681,9 +681,10 @@ export default class DashPlaylistLoader extends EventTarget {
 
       const master = this.parseMasterXml();
       const updatedMaster = updateMaster(this.master, master);
+      const currentSidxInfo = this.media().sidx;
 
-      if (updatedMaster) {
-        const sidxKey = generateSidxKey(this.media().sidx);
+      if (updatedMaster && currentSidxInfo) {
+        const sidxKey = generateSidxKey(currentSidxInfo);
 
         // the sidx was updated, so the previous mapping was removed
         if (!this.sidxMapping_[sidxKey]) {
