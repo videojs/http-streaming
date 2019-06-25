@@ -3,25 +3,22 @@ import videojs from 'video.js';
 import document from 'global/document';
 import '../src/videojs-http-streaming';
 
-let when = function(element, type, cb, condition) {
-  element.on(type, function func() {
-    if (condition()) {
-      element.off(type, func);
-      cb();
-    }
-  });
-};
-
 const playFor = function(player, time, cb) {
   if (player.paused()) {
     player.play();
   }
-  window.setTimeout(() => {
-    if (player.currentTime() <= time) {
-      return playFor(player, time, cb);
-    }
-    cb();
-  }, 10);
+  let targetTime = player.currentTime() + time;
+
+  const checkPlayerTime = function() {
+    window.setTimeout(() => {
+      if (player.currentTime() <= targetTime) {
+        return checkPlayerTime();
+      }
+      cb();
+    }, 10);
+  };
+
+  checkPlayerTime();
 };
 
 QUnit.module('Playback', {
@@ -35,10 +32,10 @@ QUnit.module('Playback', {
     let video = document.createElement('video-js');
 
     // videojs.log.level('debug');
-    video.style = 'display: none;';
+    // video.style = 'display: none;';
 
-    video.setAttribute('controls', '')
-    video.setAttribute('muted', '')
+    video.setAttribute('controls', '');
+    video.setAttribute('muted', '');
     video.width = 600;
     video.height = 300;
     video.defaultPlaybackRate = 16;
@@ -55,6 +52,27 @@ QUnit.module('Playback', {
   after() {
     document.body.removeChild(this.fixture);
   }
+});
+
+QUnit.test('Advanced Bip Bop default speed', function(assert) {
+  let done = assert.async();
+
+  this.player.defaultPlaybackRate(1);
+
+  assert.expect(2);
+  let player = this.player;
+
+  playFor(player, 2, function() {
+    assert.ok(true, 'played for at least two seconds');
+    assert.equal(player.error(), null, 'has no player errors');
+
+    done();
+  });
+
+  player.src({
+    src: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8',
+    type: 'application/x-mpegURL'
+  });
 });
 
 QUnit.test('Advanced Bip Bop', function(assert) {
@@ -74,7 +92,6 @@ QUnit.test('Advanced Bip Bop', function(assert) {
     src: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8',
     type: 'application/x-mpegURL'
   });
-
 });
 
 QUnit.test('replay', function(assert) {
@@ -249,7 +266,6 @@ QUnit.test('loops', function(assert) {
       player.vhs.mediaSource.addEventListener('sourceopen', () => {
         assert.ok(true, 'sourceopen triggered after ending stream');
         done();
-        player.loop(false);
       });
     });
 
