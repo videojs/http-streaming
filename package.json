@@ -70,7 +70,7 @@
   "dependencies": {
     "aes-decrypter": "3.0.0",
     "global": "^4.3.0",
-    "m3u8-parser": "4.3.0",
+    "m3u8-parser": "4.4.0",
     "mpd-parser": "0.8.1",
     "mux.js": "^5.2.0-2",
     "url-toolkit": "^2.1.3",
