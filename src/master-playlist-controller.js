@@ -1173,14 +1173,20 @@ export class MasterPlaylistController extends videojs.EventTarget {
     const playlistCodecs = codecsForPlaylist(this.masterPlaylistLoader_.master, media);
     const codecs = {};
 
+    // priorty of codecs: playlist -> mux.js parsed codecs -> default
     if (mainStartingMedia.hasAudio || hasAltAudio) {
-      codecs.audio = mainStartingMedia.audioCodec || (audioStartingMedia || {}).audioCodec ||
-        translateLegacyCodec(playlistCodecs.audio) || DEFAULT_AUDIO_CODEC;
+      codecs.audio =
+        translateLegacyCodec(playlistCodecs.audio) ||
+        mainStartingMedia.audioCodec ||
+        (audioStartingMedia || {}).audioCodec ||
+        DEFAULT_AUDIO_CODEC;
     }
 
     if (mainStartingMedia.hasVideo) {
-      codecs.video = mainStartingMedia.videoCodec ||
-        translateLegacyCodec(playlistCodecs.video) || DEFAULT_VIDEO_CODEC;
+      codecs.video =
+        translateLegacyCodec(playlistCodecs.video) ||
+        mainStartingMedia.videoCodec ||
+        DEFAULT_VIDEO_CODEC;
     }
 
     if (!codecs.video && !codecs.audio) {
