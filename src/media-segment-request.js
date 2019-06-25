@@ -244,7 +244,7 @@ const transmuxAndNotify = ({
   doneFn
 }) => {
   const fmp4Tracks = segment.map && segment.map.tracks || {};
-  const isMuxed = !!(fmp4Tracks.audio && fmp4Tracks.video);
+  const isMuxed = Boolean(fmp4Tracks.audio && fmp4Tracks.video);
 
   // Keep references to each function so we can null them out after we're done with them.
   // One reason for this is that in the case of full segments, we want to trust start
