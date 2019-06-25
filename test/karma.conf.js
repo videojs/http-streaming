@@ -81,15 +81,13 @@ module.exports = function(config) {
       // detect what browsers are installed on the system and
       // use headless mode and flags to allow for playback
       postDetection: function(browsers) {
-        /*
         if (process.env.BROWSER_STACK_ACCESS_KEY) {
           return [ 'ChromeBrowserStack', 'FirefoxBrowserStack' ];
         }
-        */
 
         var newBrowsers = [];
         if (browsers.indexOf('Chrome') !== -1) {
-          newBrowsers.push('ChromeHeadlessWithFlags');
+          newBrowsers.push('Chrome');
         }
 
         if (browsers.indexOf('Firefox') !== -1) {
