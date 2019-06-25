@@ -22,17 +22,17 @@ const playFor = function(player, time, cb) {
 };
 
 QUnit.module('Playback', {
-  before() {
-    this.fixture = document.createElement('div');
-    document.body.appendChild(this.fixture);
-  },
   beforeEach(assert) {
     assert.timeout(50000);
+
+    this.fixture = document.getElementById('qunit-fixture');
+
     let done = assert.async();
     let video = document.createElement('video-js');
 
+    // uncomment these lines when deugging
     // videojs.log.level('debug');
-    // video.style = 'display: none;';
+    // this.fixture.style = 'position: inherit;';
 
     video.setAttribute('controls', '');
     video.setAttribute('muted', '');
@@ -47,10 +47,6 @@ QUnit.module('Playback', {
   },
   afterEach() {
     this.player.dispose();
-
-  },
-  after() {
-    document.body.removeChild(this.fixture);
   }
 });
 
