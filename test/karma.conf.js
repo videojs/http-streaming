@@ -81,13 +81,15 @@ module.exports = function(config) {
       // detect what browsers are installed on the system and
       // use headless mode and flags to allow for playback
       postDetection: function(browsers) {
+        /*
         if (process.env.BROWSER_STACK_ACCESS_KEY) {
           return [ 'ChromeBrowserStack', 'FirefoxBrowserStack' ];
         }
+        */
 
         var newBrowsers = [];
         if (browsers.indexOf('Chrome') !== -1) {
-          newBrowsers.push('Chrome');
+          newBrowsers.push('ChromeHeadlessWithFlags');
         }
 
         if (browsers.indexOf('Firefox') !== -1) {
@@ -97,12 +99,12 @@ module.exports = function(config) {
         return newBrowsers;
       }
     },
-    reporters: ['spec'],
+    reporters: ['dots'],
     port: 9876,
     colors: true,
     autoWatch: false,
     singleRun: true,
-    concurrency: 1,
+    concurrency: Infinity,
     captureTimeout: 300000,
     browserNoActivityTimeout: 300000,
     browserDisconnectTimeout: 300000,
