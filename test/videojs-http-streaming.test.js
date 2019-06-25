@@ -4119,6 +4119,7 @@ QUnit.skip('detects fullscreen and triggers a smooth quality change', function(a
   Events.trigger(document, 'fullscreenchange');
 
   assert.equal(qualityChanges, 1, 'did not make another quality change');
+  hls.dispose();
 });
 
 QUnit.test('downloads additional playlists if required', function(assert) {
@@ -4169,6 +4170,7 @@ QUnit.test('downloads additional playlists if required', function(assert) {
 
     // verify stats
     assert.equal(hls.stats.bandwidth, 3000000, 'updated bandwidth');
+    hls.dispose();
   });
 });
 
@@ -4220,6 +4222,7 @@ QUnit.test('waits to download new segments until the media playlist is stable', 
 
     // verify stats
     assert.equal(hls.stats.bandwidth, Infinity, 'bandwidth is set to infinity');
+    hls.dispose();
   });
 });
 
@@ -4260,6 +4263,7 @@ QUnit.test('live playlist starts three target durations before live', function(a
                hls.seekable().end(0),
                'seeked to the seekable end');
   assert.equal(this.requests.length, 1, 'begins buffering');
+  hls.dispose();
 });
 
 QUnit.test('uses user defined selectPlaylist from HlsHandler if specified',
@@ -4284,6 +4288,8 @@ function(assert) {
 
   HlsHandler.prototype.selectPlaylist = newSelectPlaylist;
 
+  hls.dispose();
+
   hls = HlsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -4306,6 +4312,7 @@ function(assert) {
 
   Hls.STANDARD_PLAYLIST_SELECTOR = origStandardPlaylistSelector;
   delete HlsHandler.prototype.selectPlaylist;
+  hls.dispose();
 });
 
 QUnit.module('HLS - Encryption', {

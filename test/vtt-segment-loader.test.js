@@ -64,6 +64,10 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
       this.track = new MockTextTrack();
     });
 
+    nestedHooks.afterEach(function(assert) {
+      loader.dispose();
+    });
+
     QUnit.test('load waits until a playlist and track are specified to proceed',
     function(assert) {
       loader.load();
