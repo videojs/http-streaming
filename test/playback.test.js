@@ -12,14 +12,20 @@ let when = function(element, type, cb, condition) {
   });
 };
 
-let playFor = function(player, time, cb) {
-  let targetTime = player.currentTime() + time;
-
-  when(player, 'timeupdate', cb, () => player.currentTime() >= targetTime);
+const playFor = function(player, time, cb) {
+  if (player.paused()) {
+    player.play();
+  }
+  window.setTimeout(() => {
+    if (player.currentTime() <= time) {
+      return playFor(player, time, cb);
+    }
+    cb();
+  }, 10);
 };
 
 QUnit.module('Playback', {
-  before(assert) {
+  before() {
     this.fixture = document.createElement('div');
     document.body.appendChild(this.fixture);
   },
@@ -31,17 +37,23 @@ QUnit.module('Playback', {
     // videojs.log.level('debug');
     video.style = 'display: none;';
 
+    video.setAttribute('controls', '')
+    video.setAttribute('muted', '')
     video.width = 600;
     video.height = 300;
+    video.defaultPlaybackRate = 16;
+
     this.fixture.appendChild(video);
-    this.player = videojs(video, {
-      muted: true,
-      autoplay: 'muted'
-    });
-    this.player.ready(done);
+    this.player = videojs(video);
+
+    this.player.ready(done, true);
   },
   afterEach() {
     this.player.dispose();
+
+  },
+  after() {
+    document.body.removeChild(this.fixture);
   }
 });
 
@@ -62,6 +74,7 @@ QUnit.test('Advanced Bip Bop', function(assert) {
     src: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8',
     type: 'application/x-mpegURL'
   });
+
 });
 
 QUnit.test('replay', function(assert) {
@@ -106,7 +119,7 @@ QUnit.test('playlist with fmp4 segments', function(assert) {
   });
 
   player.src({
-    src: 'https://storage.googleapis.com/shaka-demo-assets/angel-one-hls/hls.m3u8',
+    src: 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_adv_example_hevc/master.m3u8',
     type: 'application/x-mpegURL'
   });
 });
@@ -207,19 +220,11 @@ QUnit.test('DASH sidx with alt audio should end', function(assert) {
 
   /* eslint-disable max-nested-callbacks */
   playFor(player, 1, () => {
-    player.currentTime(18);
+    // switch audio playlist
+    player.audioTracks()[1].enabled = true;
 
     playFor(player, 1, () => {
-      player.currentTime(25);
-
-      playFor(player, 1, () => {
-        // switch audio playlist
-        player.audioTracks()[1].enabled = true;
-
-        playFor(player, 1, () => {
-          player.currentTime(player.duration() - 5);
-        });
-      });
+      player.currentTime(player.duration() - 5);
     });
   });
   /* eslint-enable max-nested-callbacks */
@@ -244,6 +249,7 @@ QUnit.test('loops', function(assert) {
       player.vhs.mediaSource.addEventListener('sourceopen', () => {
         assert.ok(true, 'sourceopen triggered after ending stream');
         done();
+        player.loop(false);
       });
     });
 

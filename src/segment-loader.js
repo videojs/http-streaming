@@ -1396,8 +1396,11 @@ export default class SegmentLoader extends videojs.EventTarget {
     // to the initSegment cache
     if (simpleSegment.map) {
       simpleSegment.map = this.initSegmentForMap(simpleSegment.map, true);
-      // move the map bytes onto the segment loader's segment state object
+      // move over media segment request init segment additions
       segmentInfo.segment.map.bytes = simpleSegment.map.bytes;
+      segmentInfo.segment.map.tracks = Object.assign({}, simpleSegment.map.tracks);
+      segmentInfo.segment.map.timescales = Object.assign({}, simpleSegment.map.timescales);
+
     }
 
     // if this request included a segment key, save that data in the cache
