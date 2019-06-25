@@ -164,7 +164,7 @@ QUnit.test('activeTrack returns the correct subtitle track', function(assert) {
   assert.equal(activeTrack(), null, 'returns null when empty track list');
 
   tracks.track1 = { id: 'track1', mode: 'disabled' };
-  tracks.track2 = { id: 'track2', mode: 'hidden' };
+  tracks.track2 = { id: 'track2', mode: 'disabled' };
   tracks.track3 = { id: 'track3', mode: 'disabled' };
 
   assert.equal(activeTrack(), null, 'returns null when no active tracks');
@@ -183,7 +183,12 @@ QUnit.test('activeTrack returns the correct subtitle track', function(assert) {
 
   assert.strictEqual(activeTrack(), tracks.track3, 'returns active track');
 
-  tracks.track3.mode = 'hidden';
+  tracks.track2.mode = 'hidden';
+  tracks.track3.mode = 'disabled';
+
+  assert.equal(activeTrack(), tracks.track2, 'returns hidden active track');
+
+  tracks.track2.mode = 'disabled';
 
   assert.equal(activeTrack(), null, 'returns null when no active tracks');
 });
