@@ -33,9 +33,9 @@ module.exports = function(config) {
       project: 'videojs-http-streaming',
       name: browserstackName,
       build: browserstackName,
-      pollingTimeout: 30000,
-      captureTimeout: 600,
-      timeout: 600
+      // pollingTimeout: 30000,
+      // captureTimeout: 600,
+      // timeout: 600
     },
     customLaunchers: {
       ChromeHeadlessWithFlags: {
