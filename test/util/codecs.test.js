@@ -67,10 +67,7 @@ const testMimeTypes = function(assert, isFMP4) {
       hasAudioCodec: false,
       isFMP4
     })),
-    {
-      audio: 'mp4a.40.2',
-      video: 'avc1.4d400d'
-    },
+    {},
     'no MAAT, codecs: none');
 
   assert.deepEqual(
@@ -122,10 +119,7 @@ const testMimeTypes = function(assert, isFMP4) {
       hasAudioCodec: false,
       isFMP4
     })),
-    {
-      audio: 'mp4a.40.2',
-      video: 'avc1.4d400d'
-    },
+    {},
     'MAAT, demuxed, codecs: none');
 
   assert.deepEqual(
@@ -137,7 +131,6 @@ const testMimeTypes = function(assert, isFMP4) {
       isFMP4
     })),
     {
-      audio: 'mp4a.40.2',
       video: 'avc1.deadbeef'
     },
     'MAAT, demuxed, codecs: video');
@@ -178,10 +171,7 @@ const testMimeTypes = function(assert, isFMP4) {
       hasAudioCodec: false,
       isFMP4
     })),
-    {
-      audio: 'mp4a.40.2',
-      video: 'avc1.4d400d'
-    },
+    {},
     'MAAT, muxed, codecs: none');
 
   assert.deepEqual(
@@ -193,7 +183,6 @@ const testMimeTypes = function(assert, isFMP4) {
       isFMP4
     })),
     {
-      audio: 'mp4a.40.2',
       video: 'avc1.deadbeef'
     },
     'MAAT, muxed, codecs: video');
@@ -330,7 +319,6 @@ function(assert) {
   assert.deepEqual(
     codecsForPlaylist(master, media),
     {
-      audio: 'mp4a.40.2',
       video: 'avc1.deadbeef'
     },
     'uses default audio codec');

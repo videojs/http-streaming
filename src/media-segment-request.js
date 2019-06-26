@@ -363,14 +363,9 @@ const handleSegmentBytes = ({
       trackInfo.videoCodec = tracks.video.codec;
     }
 
-    // if an init segment has both audio and video is muxed
-    // set hasAudio to false and merge the audio codec info.
     if (tracks.video && tracks.audio) {
+      trackInfo.isMuxed = true;
       trackInfo.hasAudio = false;
-      if (trackInfo.audioCodec) {
-        trackInfo.videoCodec += `,${trackInfo.audioCodec}`;
-        delete trackInfo.audioCodec;
-      }
     }
 
     // since we don't support appending fmp4 data on progress, we know we have the full

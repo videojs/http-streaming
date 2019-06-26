@@ -97,7 +97,6 @@ const getCodecs = function(media) {
   if (mediaAttributes.CODECS) {
     return parseCodecs(mediaAttributes.CODECS);
   }
-  return defaultCodecs;
 };
 
 const audioProfileFromDefault = (master, audioGroupId) => {
@@ -166,7 +165,7 @@ export const isMuxed = (master, media) => {
  */
 export const codecsForPlaylist = function(master, media) {
   const mediaAttributes = media.attributes || {};
-  const codecInfo = getCodecs(media);
+  const codecInfo = getCodecs(media) || {};
 
   // HLS with multiple-audio tracks must always get an audio codec.
   // Put another way, there is no way to have a video-only multiple-audio HLS!
@@ -177,23 +176,16 @@ export const codecsForPlaylist = function(master, media) {
       // video are always separate (and separately specified).
       codecInfo.audioProfile = audioProfileFromDefault(master, mediaAttributes.AUDIO);
     }
-
-    if (!codecInfo.audioProfile) {
-      videojs.log.warn(
-        'Multiple audio tracks present but no audio codec string is specified. ' +
-        'Attempting to use the default audio codec (mp4a.40.2)');
-      codecInfo.audioProfile = defaultCodecs.audioProfile;
-    }
   }
 
   const codecs = {};
 
   if (codecInfo.videoCodec) {
-    codecs.video = `${codecInfo.videoCodec}${codecInfo.videoObjectTypeIndicator}`;
+    codecs.video = translateLegacyCodec(`${codecInfo.videoCodec}${codecInfo.videoObjectTypeIndicator}`);
   }
 
   if (codecInfo.audioProfile) {
-    codecs.audio = `mp4a.40.${codecInfo.audioProfile}`;
+    codecs.audio = translateLegacyCodec(`mp4a.40.${codecInfo.audioProfile}`);
   }
 
   return codecs;

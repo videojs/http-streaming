@@ -2550,7 +2550,9 @@ QUnit.test('parses codec from muxed fmp4 init segment', function(assert) {
     assert.deepEqual(loader.startingMedia_, {
       hasAudio: false,
       hasVideo: true,
-      videoCodec: 'avc1.42c00d,mp4a.40.2'
+      videoCodec: 'avc1.42c00d',
+      audioCodec: 'mp4a.40.2',
+      isMuxed: true
     }, 'starting media as expected');
   });
 });
