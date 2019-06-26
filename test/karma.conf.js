@@ -33,7 +33,7 @@ module.exports = function(config) {
       project: 'videojs-http-streaming',
       name: browserstackName,
       build: browserstackName,
-      pollingTimeout: 30000,
+      pollingTimeout: 600,
       captureTimeout: 600,
       timeout: 600
     },
@@ -48,32 +48,32 @@ module.exports = function(config) {
         browser: 'chrome',
         os: 'Windows',
         os_version: '10',
-				'browserstack.local': 'false',
-				'browserstack.video': 'false'
+        //'browserstack.local': 'false',
+        'browserstack.video': 'false'
       },
       SafariBrowserStack: {
         base: 'BrowserStack',
         browser: 'safari',
         os: 'OS X',
         os_version: 'High Sierra',
-				'browserstack.local': 'false',
-				'browserstack.video': 'false'
+        //'browserstack.local': 'false',
+        'browserstack.video': 'false'
       },
       FirefoxBrowserStack: {
         base: 'BrowserStack',
         browser: 'firefox',
         os: 'Windows',
         os_version: '10',
-				'browserstack.local': 'false',
-				'browserstack.video': 'false'
+        //'browserstack.local': 'false',
+        'browserstack.video': 'false'
       },
       EdgeBrowserStack: {
         base: 'BrowserStack',
         browser: 'edge',
         os: 'Windows',
         os_version: '10',
-				'browserstack.local': 'false',
-				'browserstack.video': 'false'
+        //'browserstack.local': 'false',
+        'browserstack.video': 'false'
       },
       IE11BrowserStack: {
         base: 'BrowserStack',
@@ -81,8 +81,8 @@ module.exports = function(config) {
         browser_version: '11',
         os: 'Windows',
         os_version: '10',
-        'browserstack.local': 'false',
-				'browserstack.video': 'false'
+        //'browserstack.local': 'false',
+        'browserstack.video': 'false'
       }
     },
     detectBrowsers: {
