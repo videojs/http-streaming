@@ -13,8 +13,6 @@ addons:
   chrome: stable
   apt:
     update: true
-  # pulseaudio is needed for dockerized chrome since it has a dummy sink and
-  # the dummy audio ALSA kernel module isn't loaded by Travis
   # libav-tools is needed by firefox for h.264 support
     packages:
       - libav-tools
