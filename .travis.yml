@@ -15,11 +15,10 @@ after_script:
 addons:
   firefox: latest
   chrome: stable
-  apt:
-    update: true
-    packages:
-      - pulseaudio
-      - libavcodec54
+  #  apt:
+  #    update: true
+  #    packages:
+  #      - pulseaudio
 
 services:
   - xvfb
