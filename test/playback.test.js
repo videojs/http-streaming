@@ -5,7 +5,13 @@ import '../src/videojs-http-streaming';
 
 const playFor = function(player, time, cb) {
   if (player.paused()) {
-    player.play();
+    const playPromise = player.play();
+
+    // Catch/silence error when a pause interrupts a play request
+    // on browsers which return a promise
+    if (typeof playPromise !== 'undefined' && typeof playPromise.then === 'function') {
+      playPromise.then(null, (e) => {});
+    }
   }
   let targetTime = player.currentTime() + time;
 
