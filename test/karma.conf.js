@@ -124,6 +124,7 @@ module.exports = function(config) {
     singleRun: true,
     concurrency: Infinity,
     captureTimeout: 300000,
+    logLevel: config.LOG_DEBUG,
     browserNoActivityTimeout: 300000,
     browserDisconnectTimeout: 300000,
     browserDisconnectTolerance: 3
