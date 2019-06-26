@@ -33,7 +33,7 @@ module.exports = function(config) {
       project: 'videojs-http-streaming',
       name: browserstackName,
       build: browserstackName,
-      pollingTimeout: 600,
+      pollingTimeout: 30000,
       captureTimeout: 600,
       timeout: 600
     },
@@ -91,14 +91,17 @@ module.exports = function(config) {
       // detect what browsers are installed on the system and
       // use headless mode and flags to allow for playback
       postDetection: function(browsers) {
-        /*
         if (process.env.BROWSER_STACK_ACCESS_KEY) {
           return [ 'ChromeBrowserStack', 'FirefoxBrowserStack' ];
-        }*/
+        }
+
+        if (process.env.TRAVIS) {
+          return [ 'ChromeHeadlessWithFlags', 'FirefoxHeadless' ];
+        }
 
         var newBrowsers = [];
         if (browsers.indexOf('Chrome') !== -1) {
-          newBrowsers.push('ChromeHeadlessWithFlags');
+          newBrowsers.push('Chrome');
         }
 
         if (browsers.indexOf('Firefox') !== -1) {
