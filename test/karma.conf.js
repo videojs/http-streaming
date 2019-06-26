@@ -1,13 +1,19 @@
 module.exports = function(config) {
-  // build out a name for browserstack
-  // {TRAVIS_BUILD_NUMBER} [{TRAVIS_PULL_REQUEST} {PR_BRANCH}] {TRAVIS_BRANCH}
-  var browserstackName = process.env.TRAVIS_BUILD_NUMBER;
 
-  if (process.env.TRAVIS_PULL_REQUEST !== 'false') {
-    browserstackName += ' ' + process.env.TRAVIS_PULL_REQUEST + ' ' + process.env.TRAVIS_PULL_REQUEST_BRANCH;
+  var browserstackName;
+
+  // if running on travis
+  if (process.env.TRAVIS) {
+    browserstackName = process.env.TRAVIS_BUILD_NUMBER || process.env.BUILD_NUMBER;
+    if (process.env.TRAVIS_PULL_REQUEST !== 'false') {
+      browserstackName += ' ';
+      browserstackName += process.env.TRAVIS_PULL_REQUEST;
+      browserstackName += ' ';
+      browserstackName += process.env.TRAVIS_PULL_REQUEST_BRANCH;
+    }
   }
 
-  browserstackName +=  ' ' + process.env.TRAVIS_BRANCH;
+  browserstackName += ' ' + process.env.TRAVIS_BRANCH;
 
   config.set({
     basePath: '..',
@@ -33,9 +39,9 @@ module.exports = function(config) {
       project: 'videojs-http-streaming',
       name: browserstackName,
       build: browserstackName,
-      // pollingTimeout: 30000,
-      // captureTimeout: 600,
-      // timeout: 600
+      pollingTimeout: 30000,
+      captureTimeout: 600,
+      timeout: 600
     },
     customLaunchers: {
       ChromeHeadlessWithFlags: {
