@@ -1,5 +1,3 @@
-var crypto = require('crypto');
-
 module.exports = function(config) {
 
   var browserstackName;
@@ -39,7 +37,6 @@ module.exports = function(config) {
     },
     browserStack: {
       project: 'videojs-http-streaming',
-      tunnelIdentifier: crypto.randomBytes(36).toString('hex'),
       name: browserstackName,
       build: browserstackName,
       pollingTimeout: 30000,
