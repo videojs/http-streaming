@@ -6,7 +6,7 @@ before_install:
   - npm install -g greenkeeper-lockfile@1
 before_script:
   # libav-tools is needed by firefox for h.264 support
-  - sudo apt-get update && sudo apt-get install libav-tools
+  - test -z BROWSER_STACK_ACCESS_KEY && sudo apt-get update && sudo apt-get install libav-tools || echo "skipping"
   - greenkeeper-lockfile-update
 after_script:
   - greenkeeper-lockfile-upload
