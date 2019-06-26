@@ -3,16 +3,7 @@
  * codec strings, or translating codec strings into objects that can be examined.
  */
 
-import videojs from 'video.js';
 import {findBox} from 'mux.js/lib/mp4/probe';
-
-// Default codec parameters if none were provided for video and/or audio
-const defaultCodecs = {
-  videoCodec: 'avc1',
-  videoObjectTypeIndicator: '.4d400d',
-  // AAC-LC
-  audioProfile: '2'
-};
 
 export const translateLegacyCodec = function(codec) {
   if (!codec) {

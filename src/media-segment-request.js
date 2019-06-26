@@ -355,11 +355,15 @@ const handleSegmentBytes = ({
       hasAudio: !!tracks.audio
     };
 
-    if (tracks.audio && tracks.audio.codec) {
+    // if we have a audio track, with a codec that is not set to
+    // encrypted audio
+    if (tracks.audio && tracks.audio.codec && tracks.audio.codec !== 'enca') {
       trackInfo.audioCodec = tracks.audio.codec;
     }
 
-    if (tracks.video && tracks.video.codec) {
+    // if we have a video track, with a codec that is not set to
+    // encrypted video
+    if (tracks.video && tracks.video.codec && tracks.audio.codec !== 'encv') {
       trackInfo.videoCodec = tracks.video.codec;
     }
 
