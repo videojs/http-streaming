@@ -67,6 +67,7 @@ export const processTransmux = ({
   audioAppendStart,
   gopsToAlignWith,
   isPartial,
+  remux,
   onData,
   onTrackInfo,
   onAudioTimingInfo,
@@ -138,6 +139,13 @@ export const processTransmux = ({
     transmuxer.postMessage({
       action: 'alignGopsWith',
       gopsToAlignWith
+    });
+  }
+
+  if (typeof remux !== 'undefined') {
+    transmuxer.postMessage({
+      action: 'setRemux',
+      remux
     });
   }
 
