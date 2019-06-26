@@ -363,7 +363,7 @@ const handleSegmentBytes = ({
 
     // if we have a video track, with a codec that is not set to
     // encrypted video
-    if (tracks.video && tracks.video.codec && tracks.audio.codec !== 'encv') {
+    if (tracks.video && tracks.video.codec && tracks.video.codec !== 'encv') {
       trackInfo.videoCodec = tracks.video.codec;
     }
 
