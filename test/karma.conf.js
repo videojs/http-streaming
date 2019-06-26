@@ -1,13 +1,19 @@
 module.exports = function(config) {
-  // build out a name for browserstack
-  // {TRAVIS_BUILD_NUMBER} [{TRAVIS_PULL_REQUEST} {PR_BRANCH}] {TRAVIS_BRANCH}
-  var browserstackName = process.env.TRAVIS_BUILD_NUMBER;
 
-  if (process.env.TRAVIS_PULL_REQUEST !== 'false') {
-    browserstackName += ' ' + process.env.TRAVIS_PULL_REQUEST + ' ' + process.env.TRAVIS_PULL_REQUEST_BRANCH;
+  var browserstackName;
+
+  // if running on travis
+  if (process.env.TRAVIS) {
+    browserstackName = process.env.TRAVIS_BUILD_NUMBER || process.env.BUILD_NUMBER;
+    if (process.env.TRAVIS_PULL_REQUEST !== 'false') {
+      browserstackName += ' ';
+      browserstackName += process.env.TRAVIS_PULL_REQUEST;
+      browserstackName += ' ';
+      browserstackName += process.env.TRAVIS_PULL_REQUEST_BRANCH;
+    }
   }
 
-  browserstackName +=  ' ' + process.env.TRAVIS_BRANCH;
+  browserstackName += ' ' + process.env.TRAVIS_BRANCH;
 
   config.set({
     basePath: '..',
@@ -47,32 +53,42 @@ module.exports = function(config) {
         flags: [ '--no-sandbox' ],
         browser: 'chrome',
         os: 'Windows',
-        os_version: '10'
+        os_version: '10',
+        'browserstack.local': 'false',
+        'browserstack.video': 'false'
       },
       SafariBrowserStack: {
         base: 'BrowserStack',
         browser: 'safari',
         os: 'OS X',
-        os_version: 'High Sierra'
+        os_version: 'High Sierra',
+        'browserstack.local': 'false',
+        'browserstack.video': 'false'
       },
       FirefoxBrowserStack: {
         base: 'BrowserStack',
         browser: 'firefox',
         os: 'Windows',
-        os_version: '10'
+        os_version: '10',
+        'browserstack.local': 'false',
+        'browserstack.video': 'false'
       },
       EdgeBrowserStack: {
         base: 'BrowserStack',
         browser: 'edge',
         os: 'Windows',
-        os_version: '10'
+        os_version: '10',
+        'browserstack.local': 'false',
+        'browserstack.video': 'false'
       },
       IE11BrowserStack: {
         base: 'BrowserStack',
         browser: 'ie',
         browser_version: '11',
         os: 'Windows',
-        os_version: '10'
+        os_version: '10',
+        'browserstack.local': 'false',
+        'browserstack.video': 'false'
       }
     },
     detectBrowsers: {
@@ -83,6 +99,10 @@ module.exports = function(config) {
       postDetection: function(browsers) {
         if (process.env.BROWSER_STACK_ACCESS_KEY) {
           return [ 'ChromeBrowserStack', 'FirefoxBrowserStack' ];
+        }
+
+        if (process.env.TRAVIS) {
+          return [ 'ChromeHeadlessWithFlags', 'FirefoxHeadless' ];
         }
 
         var newBrowsers = [];
@@ -97,12 +117,12 @@ module.exports = function(config) {
         return newBrowsers;
       }
     },
-    reporters: ['spec'],
+    reporters: ['dots'],
     port: 9876,
     colors: true,
     autoWatch: false,
     singleRun: true,
-    concurrency: 1,
+    concurrency: Infinity,
     captureTimeout: 300000,
     browserNoActivityTimeout: 300000,
     browserDisconnectTimeout: 300000,

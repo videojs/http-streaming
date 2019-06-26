@@ -1,22 +1,17 @@
-sudo: false
-dist: trusty
+dist: xenial
 language: node_js
-cache:
-  directories:
-    - node_modules
+# node version is specified using the .nvmrc file
+cache: npm
 before_install:
   - npm install -g greenkeeper-lockfile@1
 before_script:
-  # pulseaudio is needed for dockerized chrome since it has a dummy sink and
-  # the dummy audio ALSA kernel module isn't loaded by Travis
-  # libavcodec54 is needed by firefox for h.264 support
-  - sudo apt-get install --no-install-recommends pulseaudio libavcodec54
-  - pulseaudio -D
+  # libav-tools is needed by firefox for h.264 support
+  - test -z BROWSER_STACK_ACCESS_KEY && sudo apt-get update && sudo apt-get install libav-tools || echo "skipping"
   - greenkeeper-lockfile-update
-  - export CHROME_BIN=/usr/bin/google-chrome
-  - export DISPLAY=:99.0
-  - sh -e /etc/init.d/xvfb start
-after_script: greenkeeper-lockfile-upload
+after_script:
+  - greenkeeper-lockfile-upload
 addons:
-  chrome: stable
   firefox: latest
+  chrome: stable
+services:
+  - xvfb

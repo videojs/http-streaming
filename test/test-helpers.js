@@ -287,7 +287,15 @@ export const mockTech = function(tech) {
 
   tech.play_ = tech.play;
   tech.play = function() {
-    tech.play_();
+
+    const playPromise = tech.play_();
+
+    // Catch/silence error when a pause interrupts a play request
+    // on browsers which return a promise
+    if (typeof playPromise !== 'undefined' && typeof playPromise.then === 'function') {
+      playPromise.then(null, (e) => {});
+    }
+
     tech.paused_ = false;
     tech.trigger('play');
   };
