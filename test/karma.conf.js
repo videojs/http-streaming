@@ -48,7 +48,7 @@ module.exports = function(config) {
         browser: 'chrome',
         os: 'Windows',
         os_version: '10',
-        //'browserstack.local': 'false',
+        'browserstack.local': 'false',
         'browserstack.video': 'false'
       },
       SafariBrowserStack: {
@@ -56,7 +56,7 @@ module.exports = function(config) {
         browser: 'safari',
         os: 'OS X',
         os_version: 'High Sierra',
-        //'browserstack.local': 'false',
+        'browserstack.local': 'false',
         'browserstack.video': 'false'
       },
       FirefoxBrowserStack: {
@@ -64,7 +64,7 @@ module.exports = function(config) {
         browser: 'firefox',
         os: 'Windows',
         os_version: '10',
-        //'browserstack.local': 'false',
+        'browserstack.local': 'false',
         'browserstack.video': 'false'
       },
       EdgeBrowserStack: {
@@ -72,7 +72,7 @@ module.exports = function(config) {
         browser: 'edge',
         os: 'Windows',
         os_version: '10',
-        //'browserstack.local': 'false',
+        'browserstack.local': 'false',
         'browserstack.video': 'false'
       },
       IE11BrowserStack: {
@@ -81,7 +81,7 @@ module.exports = function(config) {
         browser_version: '11',
         os: 'Windows',
         os_version: '10',
-        //'browserstack.local': 'false',
+        'browserstack.local': 'false',
         'browserstack.video': 'false'
       }
     },
