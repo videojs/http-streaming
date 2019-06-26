@@ -47,32 +47,42 @@ module.exports = function(config) {
         flags: [ '--no-sandbox' ],
         browser: 'chrome',
         os: 'Windows',
-        os_version: '10'
+        os_version: '10',
+				'browserstack.local': 'false',
+				'browserstack.video': 'false'
       },
       SafariBrowserStack: {
         base: 'BrowserStack',
         browser: 'safari',
         os: 'OS X',
-        os_version: 'High Sierra'
+        os_version: 'High Sierra',
+				'browserstack.local': 'false',
+				'browserstack.video': 'false'
       },
       FirefoxBrowserStack: {
         base: 'BrowserStack',
         browser: 'firefox',
         os: 'Windows',
-        os_version: '10'
+        os_version: '10',
+				'browserstack.local': 'false',
+				'browserstack.video': 'false'
       },
       EdgeBrowserStack: {
         base: 'BrowserStack',
         browser: 'edge',
         os: 'Windows',
-        os_version: '10'
+        os_version: '10',
+				'browserstack.local': 'false',
+				'browserstack.video': 'false'
       },
       IE11BrowserStack: {
         base: 'BrowserStack',
         browser: 'ie',
         browser_version: '11',
         os: 'Windows',
-        os_version: '10'
+        os_version: '10',
+        'browserstack.local': 'false',
+				'browserstack.video': 'false'
       }
     },
     detectBrowsers: {
@@ -97,7 +107,6 @@ module.exports = function(config) {
         return newBrowsers;
       }
     },
-    logLevel: config.LOG_DEBUG,
     reporters: ['dots'],
     port: 9876,
     colors: true,
