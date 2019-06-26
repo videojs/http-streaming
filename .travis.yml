@@ -5,7 +5,6 @@ cache: npm
 before_install:
   - npm install -g greenkeeper-lockfile@1
 before_script:
-  - pulseaudio -D
   - greenkeeper-lockfile-update
 after_script:
   - greenkeeper-lockfile-upload
@@ -16,9 +15,8 @@ addons:
     update: true
   # pulseaudio is needed for dockerized chrome since it has a dummy sink and
   # the dummy audio ALSA kernel module isn't loaded by Travis
-  # libavcodec54 is needed by firefox for h.264 support
+  # libav-tools is needed by firefox for h.264 support
     packages:
-      - pulseaudio
       - libav-tools
 services:
   - xvfb
