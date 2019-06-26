@@ -3,46 +3,78 @@ import videojs from 'video.js';
 import document from 'global/document';
 import '../src/videojs-http-streaming';
 
-let when = function(element, type, cb, condition) {
-  element.on(type, function func() {
-    if (condition()) {
-      element.off(type, func);
-      cb();
-    }
-  });
-};
+const playFor = function(player, time, cb) {
+  if (player.paused()) {
+    const playPromise = player.play();
 
-let playFor = function(player, time, cb) {
+    // Catch/silence error when a pause interrupts a play request
+    // on browsers which return a promise
+    if (typeof playPromise !== 'undefined' && typeof playPromise.then === 'function') {
+      playPromise.then(null, (e) => {});
+    }
+  }
   let targetTime = player.currentTime() + time;
 
-  when(player, 'timeupdate', cb, () => player.currentTime() >= targetTime);
+  const checkPlayerTime = function() {
+    window.setTimeout(() => {
+      if (player.currentTime() <= targetTime) {
+        return checkPlayerTime();
+      }
+      cb();
+    }, 10);
+  };
+
+  checkPlayerTime();
 };
 
 QUnit.module('Playback', {
-  before(assert) {
-    this.fixture = document.createElement('div');
-    document.body.appendChild(this.fixture);
-  },
   beforeEach(assert) {
     assert.timeout(50000);
+
+    this.fixture = document.getElementById('qunit-fixture');
+
     let done = assert.async();
     let video = document.createElement('video-js');
 
+    // uncomment these lines when deugging
     // videojs.log.level('debug');
-    video.style = 'display: none;';
+    // this.fixture.style = 'position: inherit;';
 
+    video.setAttribute('controls', '');
+    video.setAttribute('muted', '');
     video.width = 600;
     video.height = 300;
+    video.defaultPlaybackRate = 16;
+
     this.fixture.appendChild(video);
-    this.player = videojs(video, {
-      muted: true,
-      autoplay: 'muted'
-    });
-    this.player.ready(done);
+    this.player = videojs(video);
+
+    this.player.ready(done, true);
   },
   afterEach() {
     this.player.dispose();
   }
+});
+
+QUnit.test('Advanced Bip Bop default speed', function(assert) {
+  let done = assert.async();
+
+  this.player.defaultPlaybackRate(1);
+
+  assert.expect(2);
+  let player = this.player;
+
+  playFor(player, 2, function() {
+    assert.ok(true, 'played for at least two seconds');
+    assert.equal(player.error(), null, 'has no player errors');
+
+    done();
+  });
+
+  player.src({
+    src: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8',
+    type: 'application/x-mpegURL'
+  });
 });
 
 QUnit.test('Advanced Bip Bop', function(assert) {
@@ -106,7 +138,7 @@ QUnit.test('playlist with fmp4 segments', function(assert) {
   });
 
   player.src({
-    src: 'https://storage.googleapis.com/shaka-demo-assets/angel-one-hls/hls.m3u8',
+    src: 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_adv_example_hevc/master.m3u8',
     type: 'application/x-mpegURL'
   });
 });
@@ -226,19 +258,11 @@ QUnit.test('DASH sidx with alt audio should end', function(assert) {
 
   /* eslint-disable max-nested-callbacks */
   playFor(player, 1, () => {
-    player.currentTime(18);
+    // switch audio playlist
+    player.audioTracks()[1].enabled = true;
 
     playFor(player, 1, () => {
-      player.currentTime(25);
-
-      playFor(player, 1, () => {
-        // switch audio playlist
-        player.audioTracks()[1].enabled = true;
-
-        playFor(player, 1, () => {
-          player.currentTime(player.duration() - 5);
-        });
-      });
+      player.currentTime(player.duration() - 5);
     });
   });
   /* eslint-enable max-nested-callbacks */
