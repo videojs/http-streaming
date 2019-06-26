@@ -97,6 +97,7 @@ module.exports = function(config) {
         return newBrowsers;
       }
     },
+    logLevel: config.LOG_DEBUG,
     reporters: ['dots'],
     port: 9876,
     colors: true,
