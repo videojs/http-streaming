@@ -16,7 +16,8 @@ import {
   processTransmux,
   handleGopInfo_,
   handleDone_,
-  handleData_
+  handleData_,
+  dispose
 } from '../src/segment-transmuxer';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
@@ -53,6 +54,7 @@ QUnit.module('Segment Transmuxer', {
     assert.timeout(5000);
   },
   afterEach(assert) {
+    dispose();
     if (this.transmuxer) {
       this.transmuxer.terminate();
     }
