@@ -1,3 +1,5 @@
+var crypto = require('crypto');
+
 module.exports = function(config) {
 
   var browserstackName;
@@ -37,6 +39,7 @@ module.exports = function(config) {
     },
     browserStack: {
       project: 'videojs-http-streaming',
+      tunnelIdentifier: crypto.randomBytes(36).toString('hex'),
       name: browserstackName,
       build: browserstackName,
       pollingTimeout: 30000,
@@ -97,10 +100,9 @@ module.exports = function(config) {
       // detect what browsers are installed on the system and
       // use headless mode and flags to allow for playback
       postDetection: function(browsers) {
-        /*
         if (process.env.BROWSER_STACK_ACCESS_KEY) {
           return [ 'ChromeBrowserStack', 'FirefoxBrowserStack' ];
-        }*/
+        }
 
         if (process.env.TRAVIS) {
           return [ 'ChromeHeadlessWithFlags', 'FirefoxHeadless' ];
