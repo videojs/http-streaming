@@ -97,9 +97,10 @@ module.exports = function(config) {
       // detect what browsers are installed on the system and
       // use headless mode and flags to allow for playback
       postDetection: function(browsers) {
+        /*
         if (process.env.BROWSER_STACK_ACCESS_KEY) {
           return [ 'ChromeBrowserStack', 'FirefoxBrowserStack' ];
-        }
+        }*/
 
         if (process.env.TRAVIS) {
           return [ 'ChromeHeadlessWithFlags', 'FirefoxHeadless' ];
@@ -124,7 +125,6 @@ module.exports = function(config) {
     singleRun: true,
     concurrency: Infinity,
     captureTimeout: 300000,
-    logLevel: config.LOG_DEBUG,
     browserNoActivityTimeout: 300000,
     browserDisconnectTimeout: 300000,
     browserDisconnectTolerance: 3
