@@ -89,11 +89,9 @@ export const generateSidxKey = (sidxInfo) => {
 const equivalentSidx = (a, b) => {
   const neitherMap = Boolean(!a.map && !b.map);
 
-  const equivalentMap = neitherMap || Boolean(
-    a.map && b.map &&
+  const equivalentMap = neitherMap || Boolean(a.map && b.map &&
     a.map.byterange.offset === b.map.byterange.offset &&
-    a.map.byterange.length === b.map.byterange.length
-  );
+    a.map.byterange.length === b.map.byterange.length);
 
   return equivalentMap &&
     a.uri === b.uri &&

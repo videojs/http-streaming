@@ -25,18 +25,18 @@ const xhrFactory = function() {
 
     // Allow an optional user-specified function to modify the option
     // object before we construct the xhr request
-    let beforeRequest = XhrFunction.beforeRequest || videojs.Hls.xhr.beforeRequest;
+    const beforeRequest = XhrFunction.beforeRequest || videojs.Hls.xhr.beforeRequest;
 
     if (beforeRequest && typeof beforeRequest === 'function') {
-      let newOptions = beforeRequest(options);
+      const newOptions = beforeRequest(options);
 
       if (newOptions) {
         options = newOptions;
       }
     }
 
-    let request = videojsXHR(options, function(error, response) {
-      let reqResponse = request.response;
+    const request = videojsXHR(options, function(error, response) {
+      const reqResponse = request.response;
 
       if (!error && reqResponse) {
         request.responseTime = Date.now();
@@ -95,13 +95,11 @@ const xhrFactory = function() {
  *                             of a byte-range
  */
 const byterangeStr = function(byterange) {
-  let byterangeStart;
-  let byterangeEnd;
-
   // `byterangeEnd` is one less than `offset + length` because the HTTP range
   // header uses inclusive ranges
-  byterangeEnd = byterange.offset + byterange.length - 1;
-  byterangeStart = byterange.offset;
+  const byterangeEnd = byterange.offset + byterange.length - 1;
+  const byterangeStart = byterange.offset;
+
   return 'bytes=' + byterangeStart + '-' + byterangeEnd;
 };
 
@@ -112,7 +110,7 @@ const byterangeStr = function(byterange) {
  *                           from SegmentLoader
  */
 const segmentXhrHeaders = function(segment) {
-  let headers = {};
+  const headers = {};
 
   if (segment.byterange) {
     headers.Range = byterangeStr(segment.byterange);

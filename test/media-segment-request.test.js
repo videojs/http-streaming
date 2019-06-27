@@ -253,65 +253,70 @@ QUnit.test('cancels outstanding key requests on timeout', function(assert) {
   this.clock.tick(2000);
 });
 
-QUnit.test('does not wait for other requests to finish when one request errors',
-function(assert) {
-  let keyReq;
-  let abortedKeyReq = false;
-  const done = assert.async();
+QUnit.test(
+  'does not wait for other requests to finish when one request errors',
+  function(assert) {
+    let keyReq;
+    let abortedKeyReq = false;
+    const done = assert.async();
 
-  assert.expect(8);
-  mediaSegmentRequest({
-    xhr: this.xhr,
-    xhrOptions: this.xhrOptions,
-    decryptionWorker: this.noop,
-    captionParser: this.noop,
-    segment: {
-      resolvedUri: '0-test.ts',
-      key: {
-        resolvedUri: '0-key.php'
+    assert.expect(8);
+    mediaSegmentRequest({
+      xhr: this.xhr,
+      xhrOptions: this.xhrOptions,
+      decryptionWorker: this.noop,
+      captionParser: this.noop,
+      segment: {
+        resolvedUri: '0-test.ts',
+        key: {
+          resolvedUri: '0-key.php'
+        }
+      },
+      progressFn: this.noop,
+      doneFn: (error, segmentData) => {
+        assert.notOk(keyReq.aborted, 'did not run original abort function');
+        assert.ok(abortedKeyReq, 'ran overridden abort function');
+        assert.equal(error.code, REQUEST_ERRORS.FAILURE, 'request failed');
+
+        done();
       }
-    },
-    progressFn: this.noop,
-    doneFn: (error, segmentData) => {
-      assert.notOk(keyReq.aborted, 'did not run original abort function');
-      assert.ok(abortedKeyReq, 'ran overridden abort function');
-      assert.equal(error.code, REQUEST_ERRORS.FAILURE, 'request failed');
+    });
+    assert.equal(this.requests.length, 2, 'there are two requests');
 
-      done();
-    }
-  });
-  assert.equal(this.requests.length, 2, 'there are two requests');
+    keyReq = this.requests.shift();
+    // Typically, an abort will run the error algorithm for an XHR, however, in certain
+    // cases (e.g., if the request is unsent), the error algorithm will not be run and
+    // the request will never "finish." In order to mimic this behavior, override the
+    // default abort function so that it doesn't finish.
+    keyReq.abort = () => {
+      abortedKeyReq = true;
+    };
+    const segmentReq = this.requests.shift();
 
-  keyReq = this.requests.shift();
-  // Typically, an abort will run the error algorithm for an XHR, however, in certain
-  // cases (e.g., if the request is unsent), the error algorithm will not be run and
-  // the request will never "finish." In order to mimic this behavior, override the
-  // default abort function so that it doesn't finish.
-  keyReq.abort = () => {
-    abortedKeyReq = true;
-  };
-  const segmentReq = this.requests.shift();
+    assert.equal(keyReq.uri, '0-key.php', 'the first request is for a key');
+    assert.equal(segmentReq.uri, '0-test.ts', 'the second request is for a segment');
 
-  assert.equal(keyReq.uri, '0-key.php', 'the first request is for a key');
-  assert.equal(segmentReq.uri, '0-test.ts', 'the second request is for a segment');
-
-  segmentReq.respond(500, null, '');
-});
+    segmentReq.respond(500, null, '');
+  }
+);
 
 QUnit.test('the key response is converted to the correct format', function(assert) {
-  let keyReq;
   const done = assert.async();
   const postMessage = this.mockDecrypter.postMessage;
 
   assert.expect(9);
   this.mockDecrypter.postMessage = (message) => {
-    const key = new Uint32Array(message.key.bytes,
+    const key = new Uint32Array(
+      message.key.bytes,
       message.key.byteOffset,
-      message.key.byteLength / 4);
+      message.key.byteLength / 4
+    );
 
-    assert.deepEqual(key,
-                     new Uint32Array([0, 0x01000000, 0x02000000, 0x03000000]),
-                     'passed the specified segment key');
+    assert.deepEqual(
+      key,
+      new Uint32Array([0, 0x01000000, 0x02000000, 0x03000000]),
+      'passed the specified segment key'
+    );
     postMessage.call(this.mockDecrypter, message);
   };
 
@@ -330,9 +335,11 @@ QUnit.test('the key response is converted to the correct format', function(asser
     progressFn: this.noop,
     doneFn: (error, segmentData) => {
       assert.notOk(error, 'there are no errors');
-      assert.equal(this.mockDecrypter.listeners.length,
-                   0,
-                   'all decryption webworker listeners are unbound');
+      assert.equal(
+        this.mockDecrypter.listeners.length,
+        0,
+        'all decryption webworker listeners are unbound'
+      );
       // verify stats
       assert.equal(segmentData.stats.bytesReceived, 10, '10 bytes');
       done();
@@ -341,7 +348,7 @@ QUnit.test('the key response is converted to the correct format', function(asser
 
   assert.equal(this.requests.length, 2, 'there are two requests');
 
-  keyReq = this.requests.shift();
+  const keyReq = this.requests.shift();
   const segmentReq = this.requests.shift();
 
   assert.equal(keyReq.uri, '0-key.php', 'the first request is for a key');
@@ -407,8 +414,7 @@ QUnit.test('segment with key has bytes decrypted', function(assert) {
 QUnit.test('segment with key bytes does not request key again', function(assert) {
   const done = assert.async();
 
-  mediaSegmentRequest({
-    xhr: this.xhr,
+  mediaSegmentRequest({xhr: this.xhr,
     xhrOptions: this.xhrOptions,
     decryptionWorker: this.realDecrypter,
     captionParser: this.noop,
@@ -538,64 +544,66 @@ QUnit.test('key 500 calls back with error', function(assert) {
   keyReq.respond(500, null, '');
 });
 
-QUnit.test('waits for every request to finish before the callback is run',
-function(assert) {
-  const done = assert.async();
+QUnit.test(
+  'waits for every request to finish before the callback is run',
+  function(assert) {
+    const done = assert.async();
 
-  assert.expect(10);
-  mediaSegmentRequest({
-    xhr: this.xhr,
-    xhrOptions: this.xhrOptions,
-    decryptionWorker: this.realDecrypter,
-    captionParser: this.mockCaptionParser,
-    segment: {
-      resolvedUri: '0-test.ts',
-      key: {
-        resolvedUri: '0-key.php',
-        iv: {
-          bytes: new Uint32Array([0, 0, 0, 1])
+    assert.expect(10);
+    mediaSegmentRequest({
+      xhr: this.xhr,
+      xhrOptions: this.xhrOptions,
+      decryptionWorker: this.realDecrypter,
+      captionParser: this.mockCaptionParser,
+      segment: {
+        resolvedUri: '0-test.ts',
+        key: {
+          resolvedUri: '0-key.php',
+          iv: {
+            bytes: new Uint32Array([0, 0, 0, 1])
+          }
+        },
+        map: {
+          resolvedUri: '0-init.dat'
         }
       },
-      map: {
-        resolvedUri: '0-init.dat'
+      progressFn: this.noop,
+      doneFn: (error, segmentData) => {
+        assert.notOk(error, 'there are no errors');
+        assert.ok(segmentData.bytes, 'decrypted bytes in segment');
+        assert.ok(segmentData.map.bytes, 'init segment bytes in map');
+
+        // verify stats
+        assert.equal(segmentData.stats.bytesReceived, 8, '8 bytes');
+        done();
       }
-    },
-    progressFn: this.noop,
-    doneFn: (error, segmentData) => {
-      assert.notOk(error, 'there are no errors');
-      assert.ok(segmentData.bytes, 'decrypted bytes in segment');
-      assert.ok(segmentData.map.bytes, 'init segment bytes in map');
+    });
 
-      // verify stats
-      assert.equal(segmentData.stats.bytesReceived, 8, '8 bytes');
-      done();
-    }
-  });
+    assert.equal(this.requests.length, 3, 'there are three requests');
 
-  assert.equal(this.requests.length, 3, 'there are three requests');
+    const keyReq = this.requests.shift();
+    const initReq = this.requests.shift();
+    const segmentReq = this.requests.shift();
 
-  const keyReq = this.requests.shift();
-  const initReq = this.requests.shift();
-  const segmentReq = this.requests.shift();
+    assert.equal(keyReq.uri, '0-key.php', 'the first request is for a key');
+    assert.equal(initReq.uri, '0-init.dat', 'the second request is for the init segment');
+    assert.equal(segmentReq.uri, '0-test.ts', 'the third request is for a segment');
 
-  assert.equal(keyReq.uri, '0-key.php', 'the first request is for a key');
-  assert.equal(initReq.uri, '0-init.dat', 'the second request is for the init segment');
-  assert.equal(segmentReq.uri, '0-test.ts', 'the third request is for a segment');
+    segmentReq.response = new Uint8Array(8).buffer;
+    segmentReq.respond(200, null, '');
+    this.clock.tick(200);
 
-  segmentReq.response = new Uint8Array(8).buffer;
-  segmentReq.respond(200, null, '');
-  this.clock.tick(200);
+    initReq.response = new Uint32Array([0, 1, 2, 3]).buffer;
+    initReq.respond(200, null, '');
+    this.clock.tick(200);
 
-  initReq.response = new Uint32Array([0, 1, 2, 3]).buffer;
-  initReq.respond(200, null, '');
-  this.clock.tick(200);
+    keyReq.response = new Uint32Array([0, 1, 2, 3]).buffer;
+    keyReq.respond(200, null, '');
 
-  keyReq.response = new Uint32Array([0, 1, 2, 3]).buffer;
-  keyReq.respond(200, null, '');
-
-  // Allow the decrypter to decrypt
-  this.clock.tick(100);
-});
+    // Allow the decrypter to decrypt
+    this.clock.tick(100);
+  }
+);
 
 QUnit.test('non-TS segment will get parsed for captions', function(assert) {
   const done = assert.async();
@@ -679,7 +687,8 @@ QUnit.test('non-TS segment will get parsed for captions on next segment request 
       assert.equal(
         this.mockCaptionParser.parsed,
         true,
-        'should have parsed captions even though init was received late');
+        'should have parsed captions even though init was received late'
+      );
       assert.deepEqual(
         captions,
         this.mockCaptionParser.parse().captions,
@@ -703,8 +712,8 @@ QUnit.test('non-TS segment will get parsed for captions on next segment request 
 
   assert.equal(this.requests.length, 2, 'there are two requests');
 
-  let initReq = this.requests.shift();
-  let segmentReq = this.requests.shift();
+  const initReq = this.requests.shift();
+  const segmentReq = this.requests.shift();
 
   assert.equal(initReq.uri, 'mp4VideoInit.mp4', 'the first request is for the init segment');
   assert.equal(segmentReq.uri, 'mp4Video.mp4', 'the second request is for a segment');

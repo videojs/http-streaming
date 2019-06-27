@@ -27,8 +27,9 @@ const timerCancelEvents = [
 export default class PlaybackWatcher {
   /**
    * Represents an PlaybackWatcher object.
-   * @constructor
-   * @param {object} options an object that includes the tech and settings
+   *
+   * @class
+   * @param {Object} options an object that includes the tech and settings
    */
   constructor(options) {
     this.tech_ = options.tech;
@@ -45,10 +46,10 @@ export default class PlaybackWatcher {
 
     this.logger_('initialize');
 
-    let canPlayHandler = () => this.monitorCurrentTime_();
-    let waitingHandler = () => this.techWaiting_();
-    let cancelTimerHandler = () => this.cancelTimer_();
-    let fixesBadSeeksHandler = () => this.fixesBadSeeks_();
+    const canPlayHandler = () => this.monitorCurrentTime_();
+    const waitingHandler = () => this.techWaiting_();
+    const cancelTimerHandler = () => this.cancelTimer_();
+    const fixesBadSeeksHandler = () => this.fixesBadSeeks_();
 
     this.tech_.on('seekablechanged', fixesBadSeeksHandler);
     this.tech_.on('waiting', waitingHandler);
@@ -104,8 +105,8 @@ export default class PlaybackWatcher {
       return;
     }
 
-    let currentTime = this.tech_.currentTime();
-    let buffered = this.tech_.buffered();
+    const currentTime = this.tech_.currentTime();
+    const buffered = this.tech_.buffered();
 
     if (this.lastRecordedTime === currentTime &&
         (!buffered.length ||
@@ -150,7 +151,7 @@ export default class PlaybackWatcher {
   /**
    * Fixes situations where there's a bad seek
    *
-   * @return {Boolean} whether an action was taken to fix the seek
+   * @return {boolean} whether an action was taken to fix the seek
    * @private
    */
   fixesBadSeeks_() {
@@ -211,9 +212,9 @@ export default class PlaybackWatcher {
     }
 
     // All tech waiting checks failed. Use last resort correction
-    let currentTime = this.tech_.currentTime();
-    let buffered = this.tech_.buffered();
-    let currentRange = Ranges.findRange(buffered, currentTime);
+    const currentTime = this.tech_.currentTime();
+    const buffered = this.tech_.buffered();
+    const currentRange = Ranges.findRange(buffered, currentTime);
 
     // Sometimes the player can stall for unknown reasons within a contiguous buffered
     // region with no indication that anything is amiss (seen in Firefox). Seeking to
@@ -240,14 +241,14 @@ export default class PlaybackWatcher {
   /**
    * Handler for situations when the tech fires a `waiting` event
    *
-   * @return {Boolean}
+   * @return {boolean}
    *         True if an action (or none) was needed to correct the waiting. False if no
    *         checks passed
    * @private
    */
   techWaiting_() {
-    let seekable = this.seekable();
-    let currentTime = this.tech_.currentTime();
+    const seekable = this.seekable();
+    const currentTime = this.tech_.currentTime();
 
     if (this.tech_.seeking() && this.fixesBadSeeks_()) {
       // Tech is seeking or bad seek fixed, no action needed
@@ -260,7 +261,7 @@ export default class PlaybackWatcher {
     }
 
     if (this.beforeSeekableWindow_(seekable, currentTime)) {
-      let livePoint = seekable.end(seekable.length - 1);
+      const livePoint = seekable.end(seekable.length - 1);
 
       this.logger_(`Fell out of live window at time ${currentTime}. Seeking to ` +
                    `live point (seekable end) ${livePoint}`);
@@ -272,8 +273,8 @@ export default class PlaybackWatcher {
       return true;
     }
 
-    let buffered = this.tech_.buffered();
-    let nextRange = Ranges.findNextRange(buffered, currentTime);
+    const buffered = this.tech_.buffered();
+    const nextRange = Ranges.findNextRange(buffered, currentTime);
 
     if (this.videoUnderflow_(nextRange, buffered, currentTime)) {
       // Even though the video underflowed and was stuck in a gap, the audio overplayed
@@ -290,15 +291,16 @@ export default class PlaybackWatcher {
 
     // check for gap
     if (nextRange.length > 0) {
-      let difference = nextRange.start(0) - currentTime;
+      const difference = nextRange.start(0) - currentTime;
 
-      this.logger_(
-        `Stopped at ${currentTime}, setting timer for ${difference}, seeking ` +
+      this.logger_(`Stopped at ${currentTime}, setting timer for ${difference}, seeking ` +
         `to ${nextRange.start(0)}`);
 
-      this.timer_ = setTimeout(this.skipTheGap_.bind(this),
-                               difference * 1000,
-                               currentTime);
+      this.timer_ = setTimeout(
+        this.skipTheGap_.bind(this),
+        difference * 1000,
+        currentTime
+      );
       return true;
     }
 
@@ -306,8 +308,7 @@ export default class PlaybackWatcher {
     return false;
   }
 
-  afterSeekableWindow_(
-    seekable, currentTime, playlist, allowSeeksWithinUnsafeLiveWindow = false) {
+  afterSeekableWindow_(seekable, currentTime, playlist, allowSeeksWithinUnsafeLiveWindow = false) {
     if (!seekable.length) {
       // we can't make a solid case if there's no seekable, default to false
       return false;
@@ -342,7 +343,7 @@ export default class PlaybackWatcher {
     if (nextRange.length === 0) {
       // Even if there is no available next range, there is still a possibility we are
       // stuck in a gap due to video underflow.
-      let gap = this.gapFromVideoUnderflow_(buffered, currentTime);
+      const gap = this.gapFromVideoUnderflow_(buffered, currentTime);
 
       if (gap) {
         this.logger_(`Encountered a gap in video from ${gap.start} to ${gap.end}. ` +
@@ -362,9 +363,9 @@ export default class PlaybackWatcher {
    * @private
    */
   skipTheGap_(scheduledCurrentTime) {
-    let buffered = this.tech_.buffered();
-    let currentTime = this.tech_.currentTime();
-    let nextRange = Ranges.findNextRange(buffered, currentTime);
+    const buffered = this.tech_.buffered();
+    const currentTime = this.tech_.currentTime();
+    const nextRange = Ranges.findNextRange(buffered, currentTime);
 
     this.cancelTimer_();
 
@@ -373,10 +374,12 @@ export default class PlaybackWatcher {
       return;
     }
 
-    this.logger_('skipTheGap_:',
-                 'currentTime:', currentTime,
-                 'scheduled currentTime:', scheduledCurrentTime,
-                 'nextRange start:', nextRange.start(0));
+    this.logger_(
+      'skipTheGap_:',
+      'currentTime:', currentTime,
+      'scheduled currentTime:', scheduledCurrentTime,
+      'nextRange start:', nextRange.start(0)
+    );
 
     // only seek if we still have not played
     this.seekTo(nextRange.start(0) + Ranges.TIME_FUDGE_FACTOR);
@@ -407,11 +410,11 @@ export default class PlaybackWatcher {
     //
     // To check for this issue, we see if there is a gap that starts somewhere within
     // a 3 second range (3 seconds +/- 1 second) back from our current time.
-    let gaps = Ranges.findGaps(buffered);
+    const gaps = Ranges.findGaps(buffered);
 
     for (let i = 0; i < gaps.length; i++) {
-      let start = gaps.start(i);
-      let end = gaps.end(i);
+      const start = gaps.start(i);
+      const end = gaps.end(i);
 
       // gap is starts no more than 4 seconds back
       if (currentTime - start < 4 && currentTime - start > 2) {

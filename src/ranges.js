@@ -18,16 +18,17 @@ export const SAFE_TIME_DELTA = TIME_FUDGE_FACTOR * 3;
 
 /**
  * Clamps a value to within a range
- * @param {Number} num - the value to clamp
- * @param {Number} start - the start of the range to clamp within, inclusive
- * @param {Number} end - the end of the range to clamp within, inclusive
- * @return {Number}
+ *
+ * @param {number} num - the value to clamp
+ * @param {number} start - the start of the range to clamp within, inclusive
+ * @param {number} end - the end of the range to clamp within, inclusive
+ * @return {number}
  */
 const clamp = function(num, [start, end]) {
   return Math.min(Math.max(start, num), end);
 };
 const filterRanges = function(timeRanges, predicate) {
-  let results = [];
+  const results = [];
   let i;
 
   if (timeRanges && timeRanges.length) {
@@ -45,9 +46,10 @@ const filterRanges = function(timeRanges, predicate) {
 /**
  * Attempts to find the buffered TimeRange that contains the specified
  * time.
+ *
  * @param {TimeRanges} buffered - the TimeRanges object to query
  * @param {number} time  - the time to filter on.
- * @returns {TimeRanges} a new TimeRanges object
+ * @return {TimeRanges} a new TimeRanges object
  */
 export const findRange = function(buffered, time) {
   return filterRanges(buffered, function(start, end) {
@@ -58,9 +60,10 @@ export const findRange = function(buffered, time) {
 
 /**
  * Returns the TimeRanges that begin later than the specified time.
+ *
  * @param {TimeRanges} timeRanges - the TimeRanges object to query
  * @param {number} time - the time to filter on.
- * @returns {TimeRanges} a new TimeRanges object.
+ * @return {TimeRanges} a new TimeRanges object.
  */
 export const findNextRange = function(timeRanges, time) {
   return filterRanges(timeRanges, function(start) {
@@ -70,6 +73,7 @@ export const findNextRange = function(timeRanges, time) {
 
 /**
  * Returns gaps within a list of TimeRanges
+ *
  * @param {TimeRanges} buffered - the TimeRanges object
  * @return {TimeRanges} a TimeRanges object of gaps
  */
@@ -78,11 +82,11 @@ export const findGaps = function(buffered) {
     return videojs.createTimeRanges();
   }
 
-  let ranges = [];
+  const ranges = [];
 
   for (let i = 1; i < buffered.length; i++) {
-    let start = buffered.end(i - 1);
-    let end = buffered.start(i);
+    const start = buffered.end(i - 1);
+    const end = buffered.start(i);
 
     ranges.push([start, end]);
   }
@@ -94,17 +98,18 @@ export const findGaps = function(buffered) {
  * Search for a likely end time for the segment that was just appened
  * based on the state of the `buffered` property before and after the
  * append. If we fin only one such uncommon end-point return it.
+ *
  * @param {TimeRanges} original - the buffered time ranges before the update
  * @param {TimeRanges} update - the buffered time ranges after the update
- * @returns {Number|null} the end time added between `original` and `update`,
+ * @return {number|null} the end time added between `original` and `update`,
  * or null if one cannot be unambiguously determined.
  */
 export const findSoleUncommonTimeRangesEnd = function(original, update) {
   let i;
   let start;
   let end;
-  let result = [];
-  let edges = [];
+  const result = [];
+  const edges = [];
 
   // In order to qualify as a possible candidate, the end point must:
   //  1) Not have already existed in the `original` ranges
@@ -152,16 +157,17 @@ export const findSoleUncommonTimeRangesEnd = function(original, update) {
 
 /**
  * Calculate the intersection of two TimeRanges
+ *
  * @param {TimeRanges} bufferA
  * @param {TimeRanges} bufferB
- * @returns {TimeRanges} The interesection of `bufferA` with `bufferB`
+ * @return {TimeRanges} The interesection of `bufferA` with `bufferB`
  */
 const bufferIntersection = function(bufferA, bufferB) {
   let start = null;
   let end = null;
   let arity = 0;
-  let extents = [];
-  let ranges = [];
+  const extents = [];
+  const ranges = [];
 
   if (!bufferA || !bufferA.length || !bufferB || !bufferB.length) {
     return videojs.createTimeRange();
@@ -221,24 +227,27 @@ const bufferIntersection = function(bufferA, bufferB) {
 /**
  * Calculates the percentage of `segmentRange` that overlaps the
  * `buffered` time ranges.
+ *
  * @param {TimeRanges} segmentRange - the time range that the segment
  * covers adjusted according to currentTime
  * @param {TimeRanges} referenceRange - the original time range that the
  * segment covers
- * @param {Number} currentTime - time in seconds where the current playback
+ * @param {number} currentTime - time in seconds where the current playback
  * is at
  * @param {TimeRanges} buffered - the currently buffered time ranges
- * @returns {Number} percent of the segment currently buffered
+ * @return {number} percent of the segment currently buffered
  */
-const calculateBufferedPercent = function(adjustedRange,
-                                          referenceRange,
-                                          currentTime,
-                                          buffered) {
-  let referenceDuration = referenceRange.end(0) - referenceRange.start(0);
-  let adjustedDuration = adjustedRange.end(0) - adjustedRange.start(0);
-  let bufferMissingFromAdjusted = referenceDuration - adjustedDuration;
-  let adjustedIntersection = bufferIntersection(adjustedRange, buffered);
-  let referenceIntersection = bufferIntersection(referenceRange, buffered);
+const calculateBufferedPercent = function(
+  adjustedRange,
+  referenceRange,
+  currentTime,
+  buffered
+) {
+  const referenceDuration = referenceRange.end(0) - referenceRange.start(0);
+  const adjustedDuration = adjustedRange.end(0) - adjustedRange.start(0);
+  const bufferMissingFromAdjusted = referenceDuration - adjustedDuration;
+  const adjustedIntersection = bufferIntersection(adjustedRange, buffered);
+  const referenceIntersection = bufferIntersection(referenceRange, buffered);
   let adjustedOverlap = 0;
   let referenceOverlap = 0;
 
@@ -274,22 +283,24 @@ const calculateBufferedPercent = function(adjustedRange,
  * Return the amount of a range specified by the startOfSegment and segmentDuration
  * overlaps the current buffered content.
  *
- * @param {Number} startOfSegment - the time where the segment begins
- * @param {Number} segmentDuration - the duration of the segment in seconds
- * @param {Number} currentTime - time in seconds where the current playback
+ * @param {number} startOfSegment - the time where the segment begins
+ * @param {number} segmentDuration - the duration of the segment in seconds
+ * @param {number} currentTime - time in seconds where the current playback
  * is at
  * @param {TimeRanges} buffered - the state of the buffer
- * @returns {Number} percentage of the segment's time range that is
+ * @return {number} percentage of the segment's time range that is
  * already in `buffered`
  */
-export const getSegmentBufferedPercent = function(startOfSegment,
-                                           segmentDuration,
-                                           currentTime,
-                                           buffered) {
-  let endOfSegment = startOfSegment + segmentDuration;
+export const getSegmentBufferedPercent = function(
+  startOfSegment,
+  segmentDuration,
+  currentTime,
+  buffered
+) {
+  const endOfSegment = startOfSegment + segmentDuration;
 
   // The entire time range of the segment
-  let originalSegmentRange = videojs.createTimeRanges([[
+  const originalSegmentRange = videojs.createTimeRanges([[
     startOfSegment,
     endOfSegment
   ]]);
@@ -300,7 +311,7 @@ export const getSegmentBufferedPercent = function(startOfSegment,
   // for that and the function will still return 100% if a only half of a
   // segment is actually in the buffer as long as the currentTime is also
   // half-way through the segment
-  let adjustedSegmentRange = videojs.createTimeRanges([[
+  const adjustedSegmentRange = videojs.createTimeRanges([[
     clamp(startOfSegment, [currentTime, endOfSegment]),
     endOfSegment
   ]]);
@@ -311,10 +322,12 @@ export const getSegmentBufferedPercent = function(startOfSegment,
     return 0;
   }
 
-  let percent = calculateBufferedPercent(adjustedSegmentRange,
-                                         originalSegmentRange,
-                                         currentTime,
-                                         buffered);
+  const percent = calculateBufferedPercent(
+    adjustedSegmentRange,
+    originalSegmentRange,
+    currentTime,
+    buffered
+  );
 
   // If the segment is reported as having a zero duration, return 0%
   // since it is likely that we will need to fetch the segment
@@ -329,10 +342,10 @@ export const getSegmentBufferedPercent = function(startOfSegment,
  * Gets a human readable string for a TimeRange
  *
  * @param {TimeRange} range
- * @returns {String} a human readable string
+ * @return {string} a human readable string
  */
 export const printableRange = (range) => {
-  let strArr = [];
+  const strArr = [];
 
   if (!range || !range.length) {
     return '';
@@ -353,9 +366,9 @@ export const printableRange = (range) => {
  *        The state of the buffer
  * @param {Numnber} currentTime
  *        The current time of the player
- * @param {Number} playbackRate
+ * @param {number} playbackRate
  *        The current playback rate of the player. Defaults to 1.
- * @return {Number}
+ * @return {number}
  *         Time until the player has to start rebuffering in seconds.
  * @function timeUntilRebuffer
  */
@@ -367,8 +380,9 @@ export const timeUntilRebuffer = function(buffered, currentTime, playbackRate = 
 
 /**
  * Converts a TimeRanges object into an array representation
+ *
  * @param {TimeRanges} timeRanges
- * @returns {Array}
+ * @return {Array}
  */
 export const timeRangesToArray = (timeRanges) => {
   const timeRangesList = [];

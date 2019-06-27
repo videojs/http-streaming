@@ -18,109 +18,161 @@ QUnit.module('MediaGroups', {
   }
 });
 
-QUnit.test('createMediaTypes creates skeleton object for all supported media groups',
-function(assert) {
-  const noopToString = noop.toString();
-  const result = MediaGroups.createMediaTypes();
+QUnit.test(
+  'createMediaTypes creates skeleton object for all supported media groups',
+  function(assert) {
+    const noopToString = noop.toString();
+    const result = MediaGroups.createMediaTypes();
 
-  assert.ok(result.AUDIO, 'created AUDIO media group object');
-  assert.deepEqual(result.AUDIO.groups, {},
-    'created empty object for AUDIO groups');
-  assert.deepEqual(result.AUDIO.tracks, {},
-    'created empty object for AUDIO tracks');
-  assert.equal(result.AUDIO.activePlaylistLoader, null,
-    'AUDIO activePlaylistLoader is null');
-  assert.equal(result.AUDIO.activeGroup.toString(), noopToString,
-    'created noop function for AUDIO activeGroup');
-  assert.equal(result.AUDIO.activeTrack.toString(), noopToString,
-    'created noop function for AUDIO activeTrack');
-  assert.equal(result.AUDIO.onGroupChanged.toString(), noopToString,
-    'created noop function for AUDIO onGroupChanged');
-  assert.equal(result.AUDIO.onTrackChanged.toString(), noopToString,
-    'created noop function for AUDIO onTrackChanged');
+    assert.ok(result.AUDIO, 'created AUDIO media group object');
+    assert.deepEqual(
+      result.AUDIO.groups, {},
+      'created empty object for AUDIO groups'
+    );
+    assert.deepEqual(
+      result.AUDIO.tracks, {},
+      'created empty object for AUDIO tracks'
+    );
+    assert.equal(
+      result.AUDIO.activePlaylistLoader, null,
+      'AUDIO activePlaylistLoader is null'
+    );
+    assert.equal(
+      result.AUDIO.activeGroup.toString(), noopToString,
+      'created noop function for AUDIO activeGroup'
+    );
+    assert.equal(
+      result.AUDIO.activeTrack.toString(), noopToString,
+      'created noop function for AUDIO activeTrack'
+    );
+    assert.equal(
+      result.AUDIO.onGroupChanged.toString(), noopToString,
+      'created noop function for AUDIO onGroupChanged'
+    );
+    assert.equal(
+      result.AUDIO.onTrackChanged.toString(), noopToString,
+      'created noop function for AUDIO onTrackChanged'
+    );
 
-  assert.ok(result.SUBTITLES, 'created SUBTITLES media group object');
-  assert.deepEqual(result.SUBTITLES.groups, {},
-    'created empty object for SUBTITLES groups');
-  assert.deepEqual(result.SUBTITLES.tracks, {},
-    'created empty object for SUBTITLES tracks');
-  assert.equal(result.SUBTITLES.activePlaylistLoader, null,
-    'SUBTITLES activePlaylistLoader is null');
-  assert.equal(result.SUBTITLES.activeGroup.toString(), noopToString,
-    'created noop function for SUBTITLES activeGroup');
-  assert.equal(result.SUBTITLES.activeTrack.toString(), noopToString,
-    'created noop function for SUBTITLES activeTrack');
-  assert.equal(result.SUBTITLES.onGroupChanged.toString(), noopToString,
-    'created noop function for SUBTITLES onGroupChanged');
-  assert.equal(result.SUBTITLES.onTrackChanged.toString(), noopToString,
-    'created noop function for SUBTITLES onTrackChanged');
+    assert.ok(result.SUBTITLES, 'created SUBTITLES media group object');
+    assert.deepEqual(
+      result.SUBTITLES.groups, {},
+      'created empty object for SUBTITLES groups'
+    );
+    assert.deepEqual(
+      result.SUBTITLES.tracks, {},
+      'created empty object for SUBTITLES tracks'
+    );
+    assert.equal(
+      result.SUBTITLES.activePlaylistLoader, null,
+      'SUBTITLES activePlaylistLoader is null'
+    );
+    assert.equal(
+      result.SUBTITLES.activeGroup.toString(), noopToString,
+      'created noop function for SUBTITLES activeGroup'
+    );
+    assert.equal(
+      result.SUBTITLES.activeTrack.toString(), noopToString,
+      'created noop function for SUBTITLES activeTrack'
+    );
+    assert.equal(
+      result.SUBTITLES.onGroupChanged.toString(), noopToString,
+      'created noop function for SUBTITLES onGroupChanged'
+    );
+    assert.equal(
+      result.SUBTITLES.onTrackChanged.toString(), noopToString,
+      'created noop function for SUBTITLES onTrackChanged'
+    );
 
-  assert.ok(result['CLOSED-CAPTIONS'], 'created CLOSED-CAPTIONS media group object');
-  assert.deepEqual(result['CLOSED-CAPTIONS'].groups, {},
-    'created empty object for CLOSED-CAPTIONS groups');
-  assert.deepEqual(result['CLOSED-CAPTIONS'].tracks, {},
-    'created empty object for CLOSED-CAPTIONS tracks');
-  assert.equal(result['CLOSED-CAPTIONS'].activePlaylistLoader, null,
-    'CLOSED-CAPTIONS activePlaylistLoader is null');
-  assert.equal(result['CLOSED-CAPTIONS'].activeGroup.toString(), noopToString,
-    'created noop function for CLOSED-CAPTIONS activeGroup');
-  assert.equal(result['CLOSED-CAPTIONS'].activeTrack.toString(), noopToString,
-    'created noop function for CLOSED-CAPTIONS activeTrack');
-  assert.equal(result['CLOSED-CAPTIONS'].onGroupChanged.toString(), noopToString,
-    'created noop function for CLOSED-CAPTIONS onGroupChanged');
-  assert.equal(result['CLOSED-CAPTIONS'].onTrackChanged.toString(), noopToString,
-    'created noop function for CLOSED-CAPTIONS onTrackChanged');
-});
+    assert.ok(result['CLOSED-CAPTIONS'], 'created CLOSED-CAPTIONS media group object');
+    assert.deepEqual(
+      result['CLOSED-CAPTIONS'].groups, {},
+      'created empty object for CLOSED-CAPTIONS groups'
+    );
+    assert.deepEqual(
+      result['CLOSED-CAPTIONS'].tracks, {},
+      'created empty object for CLOSED-CAPTIONS tracks'
+    );
+    assert.equal(
+      result['CLOSED-CAPTIONS'].activePlaylistLoader, null,
+      'CLOSED-CAPTIONS activePlaylistLoader is null'
+    );
+    assert.equal(
+      result['CLOSED-CAPTIONS'].activeGroup.toString(), noopToString,
+      'created noop function for CLOSED-CAPTIONS activeGroup'
+    );
+    assert.equal(
+      result['CLOSED-CAPTIONS'].activeTrack.toString(), noopToString,
+      'created noop function for CLOSED-CAPTIONS activeTrack'
+    );
+    assert.equal(
+      result['CLOSED-CAPTIONS'].onGroupChanged.toString(), noopToString,
+      'created noop function for CLOSED-CAPTIONS onGroupChanged'
+    );
+    assert.equal(
+      result['CLOSED-CAPTIONS'].onTrackChanged.toString(), noopToString,
+      'created noop function for CLOSED-CAPTIONS onTrackChanged'
+    );
+  }
+);
 
-QUnit.test('stopLoaders pauses segment loader and playlist loader when available',
-function(assert) {
-  let segmentLoaderAbortCalls = 0;
-  let segmentLoaderPauseCalls = 0;
-  let playlistLoaderPauseCalls = 0;
+QUnit.test(
+  'stopLoaders pauses segment loader and playlist loader when available',
+  function(assert) {
+    let segmentLoaderAbortCalls = 0;
+    let segmentLoaderPauseCalls = 0;
+    let playlistLoaderPauseCalls = 0;
 
-  const segmentLoader = {
-    abort: () => segmentLoaderAbortCalls++,
-    pause: () => segmentLoaderPauseCalls++
-  };
-  const playlistLoader = {
-    pause: () => playlistLoaderPauseCalls++
-  };
-  const mediaType = { activePlaylistLoader: null };
+    const segmentLoader = {
+      abort: () => segmentLoaderAbortCalls++,
+      pause: () => segmentLoaderPauseCalls++
+    };
+    const playlistLoader = {
+      pause: () => playlistLoaderPauseCalls++
+    };
+    const mediaType = { activePlaylistLoader: null };
 
-  MediaGroups.stopLoaders(segmentLoader, mediaType);
+    MediaGroups.stopLoaders(segmentLoader, mediaType);
 
-  assert.equal(segmentLoaderAbortCalls, 1, 'aborted segment loader');
-  assert.equal(segmentLoaderPauseCalls, 1, 'paused segment loader');
-  assert.equal(playlistLoaderPauseCalls, 0, 'no pause when no active playlist loader');
+    assert.equal(segmentLoaderAbortCalls, 1, 'aborted segment loader');
+    assert.equal(segmentLoaderPauseCalls, 1, 'paused segment loader');
+    assert.equal(playlistLoaderPauseCalls, 0, 'no pause when no active playlist loader');
 
-  mediaType.activePlaylistLoader = playlistLoader;
+    mediaType.activePlaylistLoader = playlistLoader;
 
-  MediaGroups.stopLoaders(segmentLoader, mediaType);
+    MediaGroups.stopLoaders(segmentLoader, mediaType);
 
-  assert.equal(segmentLoaderAbortCalls, 2, 'aborted segment loader');
-  assert.equal(segmentLoaderPauseCalls, 2, 'paused segment loader');
-  assert.equal(playlistLoaderPauseCalls, 1, 'pause active playlist loader');
-  assert.equal(mediaType.activePlaylistLoader, null,
-    'clears active playlist loader for media group');
-});
+    assert.equal(segmentLoaderAbortCalls, 2, 'aborted segment loader');
+    assert.equal(segmentLoaderPauseCalls, 2, 'paused segment loader');
+    assert.equal(playlistLoaderPauseCalls, 1, 'pause active playlist loader');
+    assert.equal(
+      mediaType.activePlaylistLoader, null,
+      'clears active playlist loader for media group'
+    );
+  }
+);
 
-QUnit.test('startLoaders starts playlist loader when appropriate',
-function(assert) {
-  let playlistLoaderLoadCalls = 0;
-  let media = null;
+QUnit.test(
+  'startLoaders starts playlist loader when appropriate',
+  function(assert) {
+    let playlistLoaderLoadCalls = 0;
+    const media = null;
 
-  const playlistLoader = {
-    load: () => playlistLoaderLoadCalls++,
-    media: () => media
-  };
-  const mediaType = { activePlaylistLoader: null };
+    const playlistLoader = {
+      load: () => playlistLoaderLoadCalls++,
+      media: () => media
+    };
+    const mediaType = { activePlaylistLoader: null };
 
-  MediaGroups.startLoaders(playlistLoader, mediaType);
+    MediaGroups.startLoaders(playlistLoader, mediaType);
 
-  assert.equal(playlistLoaderLoadCalls, 1, 'called load on playlist loader');
-  assert.strictEqual(mediaType.activePlaylistLoader, playlistLoader,
-    'set active playlist loader for media group');
-});
+    assert.equal(playlistLoaderLoadCalls, 1, 'called load on playlist loader');
+    assert.strictEqual(
+      mediaType.activePlaylistLoader, playlistLoader,
+      'set active playlist loader for media group'
+    );
+  }
+);
 
 QUnit.test('activeTrack returns the correct audio track', function(assert) {
   const type = 'AUDIO';
@@ -207,25 +259,33 @@ QUnit.test('activeGroup returns the correct audio group', function(assert) {
   media = { attributes: { } };
   groups.main = [{ id: 'en' }, { id: 'fr' }];
 
-  assert.strictEqual(activeGroup(), groups.main,
-    'defaults to main audio group when media does not specify audio group');
+  assert.strictEqual(
+    activeGroup(), groups.main,
+    'defaults to main audio group when media does not specify audio group'
+  );
 
   groups.audio = [{ id: 'en'}, { id: 'fr' }];
   media.attributes.AUDIO = 'audio';
 
-  assert.strictEqual(activeGroup(), groups.audio,
-    'returns list of variants in active audio group');
+  assert.strictEqual(
+    activeGroup(), groups.audio,
+    'returns list of variants in active audio group'
+  );
 
   tracks.en = { id: 'en', enabled: false };
   tracks.fr = { id: 'fr', enabled: false };
 
-  assert.equal(activeGroup(activeTrack()), null,
-    'returns null when an active track is specified, but there is no active track');
+  assert.equal(
+    activeGroup(activeTrack()), null,
+    'returns null when an active track is specified, but there is no active track'
+  );
 
   tracks.fr.enabled = true;
 
-  assert.strictEqual(activeGroup(activeTrack()), groups.audio[1],
-    'returned the active group corresponding to the active track');
+  assert.strictEqual(
+    activeGroup(activeTrack()), groups.audio[1],
+    'returned the active group corresponding to the active track'
+  );
 });
 
 QUnit.test('activeGroup returns the correct subtitle group', function(assert) {
@@ -252,305 +312,366 @@ QUnit.test('activeGroup returns the correct subtitle group', function(assert) {
   groups.subs = [{ id: 'en'}, { id: 'fr' }];
   media.attributes.SUBTITLES = 'subs';
 
-  assert.strictEqual(activeGroup(), groups.subs,
-    'returns list of variants in active subtitle group');
+  assert.strictEqual(
+    activeGroup(), groups.subs,
+    'returns list of variants in active subtitle group'
+  );
 
   tracks.en = { id: 'en', mode: 'disabled' };
   tracks.fr = { id: 'fr', mode: 'disabled' };
 
-  assert.equal(activeGroup(activeTrack()), null,
-    'returns null when an active track is specified, but there is no active track');
+  assert.equal(
+    activeGroup(activeTrack()), null,
+    'returns null when an active track is specified, but there is no active track'
+  );
 
   tracks.fr.mode = 'showing';
 
-  assert.strictEqual(activeGroup(activeTrack()), groups.subs[1],
-    'returned the active group corresponding to the active track');
+  assert.strictEqual(
+    activeGroup(activeTrack()), groups.subs[1],
+    'returned the active group corresponding to the active track'
+  );
 });
 
-QUnit.test('onGroupChanged updates active playlist loader and resyncs segment loader',
-function(assert) {
-  let mainSegmentLoaderResetCalls = 0;
-  let segmentLoaderResyncCalls = 0;
-  let segmentLoaderPauseCalls = 0;
+QUnit.test(
+  'onGroupChanged updates active playlist loader and resyncs segment loader',
+  function(assert) {
+    let mainSegmentLoaderResetCalls = 0;
+    let segmentLoaderResyncCalls = 0;
+    let segmentLoaderPauseCalls = 0;
 
-  const type = 'AUDIO';
-  const media = { attributes: { AUDIO: 'main' } };
-  const mainSegmentLoader = { resetEverything: () => mainSegmentLoaderResetCalls++ };
-  const segmentLoader = {
-    abort() {},
-    pause: () => segmentLoaderPauseCalls++,
-    load() {},
-    playlist() {},
-    resyncLoader: () => segmentLoaderResyncCalls++
-  };
-  const mockPlaylistLoader = () => {
-    return {
-      media: () => media,
+    const type = 'AUDIO';
+    const media = { attributes: { AUDIO: 'main' } };
+    const mainSegmentLoader = { resetEverything: () => mainSegmentLoaderResetCalls++ };
+    const segmentLoader = {
+      abort() {},
+      pause: () => segmentLoaderPauseCalls++,
       load() {},
-      pause() {}
+      playlist() {},
+      resyncLoader: () => segmentLoaderResyncCalls++
     };
-  };
-  const masterPlaylistLoader = mockPlaylistLoader();
-  const settings = {
-    segmentLoaders: {
-      AUDIO: segmentLoader,
-      main: mainSegmentLoader
-    },
-    mediaTypes: MediaGroups.createMediaTypes(),
-    masterPlaylistLoader
-  };
-  const mediaType = settings.mediaTypes[type];
-  const groups = mediaType.groups;
-  const tracks = mediaType.tracks;
-
-  groups.main = [
-    { id: 'en', playlistLoader: null },
-    { id: 'fr', playlistLoader: mockPlaylistLoader() },
-    { id: 'es', playlistLoader: mockPlaylistLoader() }
-  ];
-  tracks.en = { id: 'en', enabled: false };
-  tracks.fr = { id: 'fr', enabled: false };
-  tracks.es = { id: 'es', enabled: false };
-  mediaType.activeTrack = MediaGroups.activeTrack[type](type, settings);
-  mediaType.activeGroup = MediaGroups.activeGroup(type, settings);
-
-  const onGroupChanged = MediaGroups.onGroupChanged(type, settings);
-
-  onGroupChanged();
-
-  assert.equal(segmentLoaderPauseCalls, 1, 'loaders paused on group change');
-  assert.equal(mainSegmentLoaderResetCalls, 0, 'no reset when no active group');
-  assert.equal(segmentLoaderResyncCalls, 0, 'no resync when no active group');
-
-  tracks.en.enabled = true;
-
-  onGroupChanged();
-
-  assert.equal(segmentLoaderPauseCalls, 2, 'loaders paused on group change');
-  assert.equal(mainSegmentLoaderResetCalls, 0,
-    'no reset changing from no active playlist loader to group with no playlist loader');
-  assert.equal(segmentLoaderResyncCalls, 0,
-    'no resync changing to group with no playlist loader');
-
-  mediaType.activePlaylistLoader = groups.main[1].playlistLoader;
-
-  onGroupChanged();
-
-  assert.equal(segmentLoaderPauseCalls, 3, 'loaders paused on group change');
-  assert.equal(mainSegmentLoaderResetCalls, 1,
-    'reset changing from active playlist loader to group with no playlist loader');
-  assert.equal(segmentLoaderResyncCalls, 0,
-    'no resync changing to group with no playlist loader');
-
-  tracks.en.enabled = false;
-  tracks.fr.enabled = true;
-  mediaType.activePlaylistLoader = groups.main[2].playlistLoader;
-
-  onGroupChanged();
-
-  assert.equal(segmentLoaderPauseCalls, 4, 'loaders paused on group change');
-  assert.equal(mainSegmentLoaderResetCalls, 1,
-    'no reset changing to group with playlist loader');
-  assert.equal(segmentLoaderResyncCalls, 1,
-    'resync changing to group with playlist loader');
-  assert.strictEqual(mediaType.activePlaylistLoader, groups.main[1].playlistLoader,
-    'sets the correct active playlist loader');
-});
-
-QUnit.test('onTrackChanged updates active playlist loader and resets segment loader',
-function(assert) {
-  let mainSegmentLoaderResetCalls = 0;
-  let mainSegmentLoaderSetAudioCalls = [];
-  let segmentLoaderResetCalls = 0;
-  let segmentLoaderSetAudioCalls = [];
-  let segmentLoaderPauseCalls = 0;
-  let segmentLoaderTrack;
-
-  const type = 'AUDIO';
-  const media = { attributes: { AUDIO: 'main' } };
-  const mainSegmentLoader = {
-    setAudio: (enable) => mainSegmentLoaderSetAudioCalls.push(enable),
-    resetEverything: () => mainSegmentLoaderResetCalls++
-  };
-  const segmentLoader = {
-    abort() {},
-    pause: () => segmentLoaderPauseCalls++,
-    playlist() {},
-    setAudio: (enable) => segmentLoaderSetAudioCalls.push(enable),
-    resetEverything: () => segmentLoaderResetCalls++
-  };
-  const mockPlaylistLoader = () => {
-    return {
-      media: () => media,
-      load() {},
-      pause() {}
+    const mockPlaylistLoader = () => {
+      return {
+        media: () => media,
+        load() {},
+        pause() {}
+      };
     };
-  };
-  const masterPlaylistLoader = mockPlaylistLoader();
-  const settings = {
-    segmentLoaders: {
-      AUDIO: segmentLoader,
-      main: mainSegmentLoader
-    },
-    mediaTypes: MediaGroups.createMediaTypes(),
-    masterPlaylistLoader
-  };
-  const mediaType = settings.mediaTypes[type];
-  const groups = mediaType.groups;
-  const tracks = mediaType.tracks;
+    const masterPlaylistLoader = mockPlaylistLoader();
+    const settings = {
+      segmentLoaders: {
+        AUDIO: segmentLoader,
+        main: mainSegmentLoader
+      },
+      mediaTypes: MediaGroups.createMediaTypes(),
+      masterPlaylistLoader
+    };
+    const mediaType = settings.mediaTypes[type];
+    const groups = mediaType.groups;
+    const tracks = mediaType.tracks;
 
-  groups.main = [
-    { id: 'en', playlistLoader: null },
-    { id: 'fr', playlistLoader: mockPlaylistLoader() },
-    { id: 'es', playlistLoader: mockPlaylistLoader() }
-  ];
-  tracks.en = { id: 'en', enabled: false };
-  tracks.fr = { id: 'fr', enabled: false };
-  tracks.es = { id: 'es', enabled: false };
-  mediaType.activeTrack = MediaGroups.activeTrack[type](type, settings);
-  mediaType.activeGroup = MediaGroups.activeGroup(type, settings);
+    groups.main = [
+      { id: 'en', playlistLoader: null },
+      { id: 'fr', playlistLoader: mockPlaylistLoader() },
+      { id: 'es', playlistLoader: mockPlaylistLoader() }
+    ];
+    tracks.en = { id: 'en', enabled: false };
+    tracks.fr = { id: 'fr', enabled: false };
+    tracks.es = { id: 'es', enabled: false };
+    mediaType.activeTrack = MediaGroups.activeTrack[type](type, settings);
+    mediaType.activeGroup = MediaGroups.activeGroup(type, settings);
 
-  const onTrackChanged = MediaGroups.onTrackChanged(type, settings);
+    const onGroupChanged = MediaGroups.onGroupChanged(type, settings);
 
-  onTrackChanged();
+    onGroupChanged();
 
-  assert.equal(segmentLoaderPauseCalls, 1, 'loaders paused on track change');
-  assert.equal(mainSegmentLoaderResetCalls, 0, 'no main reset when no active group');
-  assert.equal(
-    mainSegmentLoaderSetAudioCalls.length, 0, 'no main setAudio when no active group');
-  assert.equal(segmentLoaderResetCalls, 0, 'no reset when no active group');
-  assert.equal(segmentLoaderSetAudioCalls.length, 0, 'no setAudio when no active group');
+    assert.equal(segmentLoaderPauseCalls, 1, 'loaders paused on group change');
+    assert.equal(mainSegmentLoaderResetCalls, 0, 'no reset when no active group');
+    assert.equal(segmentLoaderResyncCalls, 0, 'no resync when no active group');
 
-  tracks.en.enabled = true;
+    tracks.en.enabled = true;
 
-  onTrackChanged();
+    onGroupChanged();
 
-  assert.equal(segmentLoaderPauseCalls, 2, 'loaders paused on track change');
-  assert.equal(mainSegmentLoaderResetCalls, 1,
-    'main reset when changing to group with no playlist loader');
-  assert.equal(mainSegmentLoaderSetAudioCalls.length, 1,
-    'main audio set when changing to group with no playlist loader');
-  assert.ok(mainSegmentLoaderSetAudioCalls[0], 'main audio set to true');
-  assert.equal(segmentLoaderResetCalls, 0,
-    'no reset changing to group with no playlist loader');
-  assert.equal(segmentLoaderSetAudioCalls.length, 0,
-    'no audio set when changing to group with no playlist loader');
+    assert.equal(segmentLoaderPauseCalls, 2, 'loaders paused on group change');
+    assert.equal(
+      mainSegmentLoaderResetCalls, 0,
+      'no reset changing from no active playlist loader to group with no playlist loader'
+    );
+    assert.equal(
+      segmentLoaderResyncCalls, 0,
+      'no resync changing to group with no playlist loader'
+    );
 
-  tracks.en.enabled = false;
-  tracks.fr.enabled = true;
-  mediaType.activePlaylistLoader = groups.main[1].playlistLoader;
+    mediaType.activePlaylistLoader = groups.main[1].playlistLoader;
 
-  onTrackChanged();
+    onGroupChanged();
 
-  assert.equal(segmentLoaderPauseCalls, 3, 'loaders paused on track change');
-  assert.equal(mainSegmentLoaderResetCalls, 1,
-    'no main reset changing to group with playlist loader');
-  assert.equal(mainSegmentLoaderSetAudioCalls.length, 2,
-    'main audio set when changing to group with playlist loader');
-  assert.notOk(mainSegmentLoaderSetAudioCalls[1], 'main audio set to true');
-  assert.equal(segmentLoaderResetCalls, 0,
-    'no reset when active group hasn\'t changed');
-  assert.equal(segmentLoaderSetAudioCalls.length, 1, 'set audio on track change');
-  assert.ok(segmentLoaderSetAudioCalls[0], 'enabled audio on track change');
-  assert.strictEqual(mediaType.activePlaylistLoader, groups.main[1].playlistLoader,
-    'sets the correct active playlist loader');
+    assert.equal(segmentLoaderPauseCalls, 3, 'loaders paused on group change');
+    assert.equal(
+      mainSegmentLoaderResetCalls, 1,
+      'reset changing from active playlist loader to group with no playlist loader'
+    );
+    assert.equal(
+      segmentLoaderResyncCalls, 0,
+      'no resync changing to group with no playlist loader'
+    );
 
-  mediaType.activePlaylistLoader = groups.main[2].playlistLoader;
+    tracks.en.enabled = false;
+    tracks.fr.enabled = true;
+    mediaType.activePlaylistLoader = groups.main[2].playlistLoader;
 
-  onTrackChanged();
+    onGroupChanged();
 
-  assert.equal(segmentLoaderPauseCalls, 4, 'loaders paused on track change');
-  assert.equal(mainSegmentLoaderResetCalls, 1,
-    'no main reset changing to group with playlist loader');
-  assert.equal(mainSegmentLoaderSetAudioCalls.length, 3,
-    'main audio set when changing to group with playlist loader');
-  assert.notOk(mainSegmentLoaderSetAudioCalls[2],
-    'main audio set to false when changing to group with playlist loader');
-  assert.equal(segmentLoaderSetAudioCalls.length, 2, 'audio set on track change');
-  assert.ok(segmentLoaderSetAudioCalls[1], 'audio enabled on track change');
-  assert.equal(segmentLoaderResetCalls, 1, 'reset on track change');
-  assert.strictEqual(mediaType.activePlaylistLoader, groups.main[1].playlistLoader,
-    'sets the correct active playlist loader');
+    assert.equal(segmentLoaderPauseCalls, 4, 'loaders paused on group change');
+    assert.equal(
+      mainSegmentLoaderResetCalls, 1,
+      'no reset changing to group with playlist loader'
+    );
+    assert.equal(
+      segmentLoaderResyncCalls, 1,
+      'resync changing to group with playlist loader'
+    );
+    assert.strictEqual(
+      mediaType.activePlaylistLoader, groups.main[1].playlistLoader,
+      'sets the correct active playlist loader'
+    );
+  }
+);
 
-  // setting the track on the segment loader only applies to the SUBTITLES case.
-  // even though this test is testing type AUDIO, aside from this difference of setting
-  // the track, the functionality between the types is the same.
-  segmentLoader.track = (track) => {
-    segmentLoaderTrack = track;
-  };
-  mediaType.activePlaylistLoader = groups.main[2].playlistLoader;
+QUnit.test(
+  'onTrackChanged updates active playlist loader and resets segment loader',
+  function(assert) {
+    let mainSegmentLoaderResetCalls = 0;
+    const mainSegmentLoaderSetAudioCalls = [];
+    let segmentLoaderResetCalls = 0;
+    const segmentLoaderSetAudioCalls = [];
+    let segmentLoaderPauseCalls = 0;
+    let segmentLoaderTrack;
 
-  onTrackChanged();
+    const type = 'AUDIO';
+    const media = { attributes: { AUDIO: 'main' } };
+    const mainSegmentLoader = {
+      setAudio: (enable) => mainSegmentLoaderSetAudioCalls.push(enable),
+      resetEverything: () => mainSegmentLoaderResetCalls++
+    };
+    const segmentLoader = {
+      abort() {},
+      pause: () => segmentLoaderPauseCalls++,
+      playlist() {},
+      setAudio: (enable) => segmentLoaderSetAudioCalls.push(enable),
+      resetEverything: () => segmentLoaderResetCalls++
+    };
+    const mockPlaylistLoader = () => {
+      return {
+        media: () => media,
+        load() {},
+        pause() {}
+      };
+    };
+    const masterPlaylistLoader = mockPlaylistLoader();
+    const settings = {
+      segmentLoaders: {
+        AUDIO: segmentLoader,
+        main: mainSegmentLoader
+      },
+      mediaTypes: MediaGroups.createMediaTypes(),
+      masterPlaylistLoader
+    };
+    const mediaType = settings.mediaTypes[type];
+    const groups = mediaType.groups;
+    const tracks = mediaType.tracks;
 
-  assert.equal(segmentLoaderPauseCalls, 5, 'loaders paused on track change');
-  assert.equal(mainSegmentLoaderResetCalls, 1,
-    'no main reset changing to group with playlist loader');
-  assert.equal(mainSegmentLoaderSetAudioCalls.length, 4,
-    'main audio set when changing to group with playlist loader');
-  assert.notOk(mainSegmentLoaderSetAudioCalls[3],
-    'main audio set to false when changing to group with playlist loader');
-  assert.equal(segmentLoaderSetAudioCalls.length, 3, 'audio set on track change');
-  assert.ok(segmentLoaderSetAudioCalls[2], 'audio enabled on track change');
-  assert.equal(segmentLoaderResetCalls, 2,
-    'reset on track change');
-  assert.strictEqual(mediaType.activePlaylistLoader, groups.main[1].playlistLoader,
-    'sets the correct active playlist loader');
-  assert.strictEqual(segmentLoaderTrack, tracks.fr,
-    'set the correct track on the segment loader');
-});
+    groups.main = [
+      { id: 'en', playlistLoader: null },
+      { id: 'fr', playlistLoader: mockPlaylistLoader() },
+      { id: 'es', playlistLoader: mockPlaylistLoader() }
+    ];
+    tracks.en = { id: 'en', enabled: false };
+    tracks.fr = { id: 'fr', enabled: false };
+    tracks.es = { id: 'es', enabled: false };
+    mediaType.activeTrack = MediaGroups.activeTrack[type](type, settings);
+    mediaType.activeGroup = MediaGroups.activeGroup(type, settings);
 
-QUnit.test('switches to default audio track when an error is encountered',
-function(assert) {
-  let blacklistCurrentPlaylistCalls = 0;
-  let onTrackChangedCalls = 0;
+    const onTrackChanged = MediaGroups.onTrackChanged(type, settings);
 
-  const type = 'AUDIO';
-  const segmentLoader = { abort() {}, pause() {} };
-  const masterPlaylistLoader = {
-    media() {
-      return { attributes: { AUDIO: 'main' } };
-    }
-  };
-  const settings = {
-    segmentLoaders: { AUDIO: segmentLoader },
-    mediaTypes: MediaGroups.createMediaTypes(),
-    blacklistCurrentPlaylist: () => blacklistCurrentPlaylistCalls++,
-    masterPlaylistLoader
-  };
-  const mediaType = settings.mediaTypes[type];
-  const groups = mediaType.groups;
-  const tracks = mediaType.tracks;
+    onTrackChanged();
 
-  mediaType.activeTrack = MediaGroups.activeTrack[type](type, settings);
-  mediaType.activeGroup = MediaGroups.activeGroup(type, settings);
-  mediaType.onTrackChanged = () => onTrackChangedCalls++;
+    assert.equal(segmentLoaderPauseCalls, 1, 'loaders paused on track change');
+    assert.equal(mainSegmentLoaderResetCalls, 0, 'no main reset when no active group');
+    assert.equal(mainSegmentLoaderSetAudioCalls.length, 0, 'no main setAudio when no active group');
+    assert.equal(segmentLoaderResetCalls, 0, 'no reset when no active group');
+    assert.equal(segmentLoaderSetAudioCalls.length, 0, 'no setAudio when no active group');
 
-  const onError = MediaGroups.onError[type](type, settings);
+    tracks.en.enabled = true;
 
-  groups.main = [ { id: 'en', default: true }, { id: 'fr'}, { id: 'es'} ];
-  tracks.en = { id: 'en', enabed: false };
-  tracks.fr = { id: 'fr', enabed: true };
-  tracks.es = { id: 'es', enabed: false };
+    onTrackChanged();
 
-  onError();
+    assert.equal(segmentLoaderPauseCalls, 2, 'loaders paused on track change');
+    assert.equal(
+      mainSegmentLoaderResetCalls, 1,
+      'main reset when changing to group with no playlist loader'
+    );
+    assert.equal(
+      mainSegmentLoaderSetAudioCalls.length, 1,
+      'main audio set when changing to group with no playlist loader'
+    );
+    assert.ok(mainSegmentLoaderSetAudioCalls[0], 'main audio set to true');
+    assert.equal(
+      segmentLoaderResetCalls, 0,
+      'no reset changing to group with no playlist loader'
+    );
+    assert.equal(
+      segmentLoaderSetAudioCalls.length, 0,
+      'no audio set when changing to group with no playlist loader'
+    );
 
-  assert.equal(blacklistCurrentPlaylistCalls, 0, 'did not blacklist current playlist');
-  assert.equal(onTrackChangedCalls, 1, 'called onTrackChanged after changing to default');
-  assert.equal(tracks.en.enabled, true, 'enabled default track');
-  assert.equal(tracks.fr.enabled, false, 'disabled active track');
-  assert.equal(tracks.es.enabled, false, 'disabled track still disabled');
-  assert.equal(this.env.log.warn.callCount, 1, 'logged a warning');
-  this.env.log.warn.callCount = 0;
+    tracks.en.enabled = false;
+    tracks.fr.enabled = true;
+    mediaType.activePlaylistLoader = groups.main[1].playlistLoader;
 
-  onError();
+    onTrackChanged();
 
-  assert.equal(blacklistCurrentPlaylistCalls, 1, 'blacklist current playlist');
-  assert.equal(onTrackChangedCalls, 1, 'did not call onTrackChanged after blacklist');
-  assert.equal(tracks.en.enabled, true, 'default track still enabled');
-  assert.equal(tracks.fr.enabled, false, 'disabled track still disabled');
-  assert.equal(tracks.es.enabled, false, 'disabled track still disabled');
-  assert.equal(this.env.log.warn.callCount, 0, 'no warning logged');
-});
+    assert.equal(segmentLoaderPauseCalls, 3, 'loaders paused on track change');
+    assert.equal(
+      mainSegmentLoaderResetCalls, 1,
+      'no main reset changing to group with playlist loader'
+    );
+    assert.equal(
+      mainSegmentLoaderSetAudioCalls.length, 2,
+      'main audio set when changing to group with playlist loader'
+    );
+    assert.notOk(mainSegmentLoaderSetAudioCalls[1], 'main audio set to true');
+    assert.equal(
+      segmentLoaderResetCalls, 0,
+      'no reset when active group hasn\'t changed'
+    );
+    assert.equal(segmentLoaderSetAudioCalls.length, 1, 'set audio on track change');
+    assert.ok(segmentLoaderSetAudioCalls[0], 'enabled audio on track change');
+    assert.strictEqual(
+      mediaType.activePlaylistLoader, groups.main[1].playlistLoader,
+      'sets the correct active playlist loader'
+    );
+
+    mediaType.activePlaylistLoader = groups.main[2].playlistLoader;
+
+    onTrackChanged();
+
+    assert.equal(segmentLoaderPauseCalls, 4, 'loaders paused on track change');
+    assert.equal(
+      mainSegmentLoaderResetCalls, 1,
+      'no main reset changing to group with playlist loader'
+    );
+    assert.equal(
+      mainSegmentLoaderSetAudioCalls.length, 3,
+      'main audio set when changing to group with playlist loader'
+    );
+    assert.notOk(
+      mainSegmentLoaderSetAudioCalls[2],
+      'main audio set to false when changing to group with playlist loader'
+    );
+    assert.equal(segmentLoaderSetAudioCalls.length, 2, 'audio set on track change');
+    assert.ok(segmentLoaderSetAudioCalls[1], 'audio enabled on track change');
+    assert.equal(segmentLoaderResetCalls, 1, 'reset on track change');
+    assert.strictEqual(
+      mediaType.activePlaylistLoader, groups.main[1].playlistLoader,
+      'sets the correct active playlist loader'
+    );
+
+    // setting the track on the segment loader only applies to the SUBTITLES case.
+    // even though this test is testing type AUDIO, aside from this difference of setting
+    // the track, the functionality between the types is the same.
+    segmentLoader.track = (track) => {
+      segmentLoaderTrack = track;
+    };
+    mediaType.activePlaylistLoader = groups.main[2].playlistLoader;
+
+    onTrackChanged();
+
+    assert.equal(segmentLoaderPauseCalls, 5, 'loaders paused on track change');
+    assert.equal(
+      mainSegmentLoaderResetCalls, 1,
+      'no main reset changing to group with playlist loader'
+    );
+    assert.equal(
+      mainSegmentLoaderSetAudioCalls.length, 4,
+      'main audio set when changing to group with playlist loader'
+    );
+    assert.notOk(
+      mainSegmentLoaderSetAudioCalls[3],
+      'main audio set to false when changing to group with playlist loader'
+    );
+    assert.equal(segmentLoaderSetAudioCalls.length, 3, 'audio set on track change');
+    assert.ok(segmentLoaderSetAudioCalls[2], 'audio enabled on track change');
+    assert.equal(
+      segmentLoaderResetCalls, 2,
+      'reset on track change'
+    );
+    assert.strictEqual(
+      mediaType.activePlaylistLoader, groups.main[1].playlistLoader,
+      'sets the correct active playlist loader'
+    );
+    assert.strictEqual(
+      segmentLoaderTrack, tracks.fr,
+      'set the correct track on the segment loader'
+    );
+  }
+);
+
+QUnit.test(
+  'switches to default audio track when an error is encountered',
+  function(assert) {
+    let blacklistCurrentPlaylistCalls = 0;
+    let onTrackChangedCalls = 0;
+
+    const type = 'AUDIO';
+    const segmentLoader = { abort() {}, pause() {} };
+    const masterPlaylistLoader = {
+      media() {
+        return { attributes: { AUDIO: 'main' } };
+      }
+    };
+    const settings = {
+      segmentLoaders: { AUDIO: segmentLoader },
+      mediaTypes: MediaGroups.createMediaTypes(),
+      blacklistCurrentPlaylist: () => blacklistCurrentPlaylistCalls++,
+      masterPlaylistLoader
+    };
+    const mediaType = settings.mediaTypes[type];
+    const groups = mediaType.groups;
+    const tracks = mediaType.tracks;
+
+    mediaType.activeTrack = MediaGroups.activeTrack[type](type, settings);
+    mediaType.activeGroup = MediaGroups.activeGroup(type, settings);
+    mediaType.onTrackChanged = () => onTrackChangedCalls++;
+
+    const onError = MediaGroups.onError[type](type, settings);
+
+    groups.main = [ { id: 'en', default: true }, { id: 'fr'}, { id: 'es'} ];
+    tracks.en = { id: 'en', enabed: false };
+    tracks.fr = { id: 'fr', enabed: true };
+    tracks.es = { id: 'es', enabed: false };
+
+    onError();
+
+    assert.equal(blacklistCurrentPlaylistCalls, 0, 'did not blacklist current playlist');
+    assert.equal(onTrackChangedCalls, 1, 'called onTrackChanged after changing to default');
+    assert.equal(tracks.en.enabled, true, 'enabled default track');
+    assert.equal(tracks.fr.enabled, false, 'disabled active track');
+    assert.equal(tracks.es.enabled, false, 'disabled track still disabled');
+    assert.equal(this.env.log.warn.callCount, 1, 'logged a warning');
+    this.env.log.warn.callCount = 0;
+
+    onError();
+
+    assert.equal(blacklistCurrentPlaylistCalls, 1, 'blacklist current playlist');
+    assert.equal(onTrackChangedCalls, 1, 'did not call onTrackChanged after blacklist');
+    assert.equal(tracks.en.enabled, true, 'default track still enabled');
+    assert.equal(tracks.fr.enabled, false, 'disabled track still disabled');
+    assert.equal(tracks.es.enabled, false, 'disabled track still disabled');
+    assert.equal(this.env.log.warn.callCount, 0, 'no warning logged');
+  }
+);
 
 QUnit.test('disables subtitle track when an error is encountered', function(assert) {
   let onTrackChangedCalls = 0;
@@ -660,64 +781,79 @@ QUnit.module('MediaGroups - initialize', {
   }
 });
 
-QUnit.test('initialize audio forces default track when no audio groups provided',
-function(assert) {
-  const type = 'AUDIO';
+QUnit.test(
+  'initialize audio forces default track when no audio groups provided',
+  function(assert) {
+    const type = 'AUDIO';
 
-  MediaGroups.initialize[type](type, this.settings);
+    MediaGroups.initialize[type](type, this.settings);
 
-  assert.deepEqual(this.master.mediaGroups[type],
-    { main: { default: { default: true } } }, 'forced default audio group');
-  assert.deepEqual(this.mediaTypes[type].groups,
-    { main: [ { id: 'default', playlistLoader: null, default: true } ] },
-    'creates group properties and no playlist loader');
-  assert.ok(this.mediaTypes[type].tracks.default, 'created default track');
-});
+    assert.deepEqual(
+      this.master.mediaGroups[type],
+      { main: { default: { default: true } } }, 'forced default audio group'
+    );
+    assert.deepEqual(
+      this.mediaTypes[type].groups,
+      { main: [ { id: 'default', playlistLoader: null, default: true } ] },
+      'creates group properties and no playlist loader'
+    );
+    assert.ok(this.mediaTypes[type].tracks.default, 'created default track');
+  }
+);
 
-QUnit.test('initialize audio correctly generates tracks and playlist loaders',
-function(assert) {
-  const type = 'AUDIO';
+QUnit.test(
+  'initialize audio correctly generates tracks and playlist loaders',
+  function(assert) {
+    const type = 'AUDIO';
 
-  this.master.mediaGroups[type].aud1 = {
-    en: { default: true, language: 'en' },
-    fr: { default: false, language: 'fr', resolvedUri: 'aud1/fr.m3u8' }
-  };
-  this.master.mediaGroups[type].aud2 = {
-    en: { default: true, language: 'en' },
-    fr: { default: false, language: 'fr', resolvedUri: 'aud2/fr.m3u8' }
-  };
+    this.master.mediaGroups[type].aud1 = {
+      en: { default: true, language: 'en' },
+      fr: { default: false, language: 'fr', resolvedUri: 'aud1/fr.m3u8' }
+    };
+    this.master.mediaGroups[type].aud2 = {
+      en: { default: true, language: 'en' },
+      fr: { default: false, language: 'fr', resolvedUri: 'aud2/fr.m3u8' }
+    };
 
-  MediaGroups.initialize[type](type, this.settings);
+    MediaGroups.initialize[type](type, this.settings);
 
-  assert.notOk(this.master.mediaGroups[type].main, 'no default main group added');
-  assert.deepEqual(this.mediaTypes[type].groups,
-    {
-      aud1: [
-        { id: 'en', default: true, language: 'en', playlistLoader: null },
-        { id: 'fr', default: false, language: 'fr', resolvedUri: 'aud1/fr.m3u8',
+    assert.notOk(this.master.mediaGroups[type].main, 'no default main group added');
+    assert.deepEqual(
+      this.mediaTypes[type].groups,
+      {
+        aud1: [
+          { id: 'en', default: true, language: 'en', playlistLoader: null },
+          { id: 'fr', default: false, language: 'fr', resolvedUri: 'aud1/fr.m3u8',
           // just so deepEqual passes since there is no other way to get the object
           // reference for the playlist loader. Assertions below will confirm that this is
           // not null.
-          playlistLoader: this.mediaTypes[type].groups.aud1[1].playlistLoader }
-      ],
-      aud2: [
-        { id: 'en', default: true, language: 'en', playlistLoader: null },
-        { id: 'fr', default: false, language: 'fr', resolvedUri: 'aud2/fr.m3u8',
+            playlistLoader: this.mediaTypes[type].groups.aud1[1].playlistLoader }
+        ],
+        aud2: [
+          { id: 'en', default: true, language: 'en', playlistLoader: null },
+          { id: 'fr', default: false, language: 'fr', resolvedUri: 'aud2/fr.m3u8',
           // just so deepEqual passes since there is no other way to get the object
           // reference for the playlist loader. Assertions below will confirm that this is
           // not null.
-          playlistLoader: this.mediaTypes[type].groups.aud2[1].playlistLoader }
-      ]
-    }, 'creates group properties');
-  assert.ok(this.mediaTypes[type].groups.aud1[1].playlistLoader,
-    'playlistLoader created for non muxed audio group');
-  assert.ok(this.mediaTypes[type].groups.aud2[1].playlistLoader,
-    'playlistLoader created for non muxed audio group');
-  assert.ok(this.mediaTypes[type].tracks.en, 'created audio track');
-  assert.ok(this.mediaTypes[type].tracks.fr, 'created audio track');
-});
+            playlistLoader: this.mediaTypes[type].groups.aud2[1].playlistLoader }
+        ]
+      }, 'creates group properties'
+    );
+    assert.ok(
+      this.mediaTypes[type].groups.aud1[1].playlistLoader,
+      'playlistLoader created for non muxed audio group'
+    );
+    assert.ok(
+      this.mediaTypes[type].groups.aud2[1].playlistLoader,
+      'playlistLoader created for non muxed audio group'
+    );
+    assert.ok(this.mediaTypes[type].tracks.en, 'created audio track');
+    assert.ok(this.mediaTypes[type].tracks.fr, 'created audio track');
+  }
+);
 
-QUnit.test('initialize subtitles correctly generates tracks and playlist loaders',
+QUnit.test(
+  'initialize subtitles correctly generates tracks and playlist loaders',
   function(assert) {
     const type = 'SUBTITLES';
 
@@ -734,7 +870,8 @@ QUnit.test('initialize subtitles correctly generates tracks and playlist loaders
 
     MediaGroups.initialize[type](type, this.settings);
 
-    assert.deepEqual(this.mediaTypes[type].groups,
+    assert.deepEqual(
+      this.mediaTypes[type].groups,
       {
         sub1: [
           { id: 'en', language: 'en', default: true, resolvedUri: 'sub1/en.m3u8',
@@ -748,21 +885,32 @@ QUnit.test('initialize subtitles correctly generates tracks and playlist loaders
           { id: 'fr', language: 'fr', resolvedUri: 'sub2/fr.m3u8',
             playlistLoader: this.mediaTypes[type].groups.sub2[1].playlistLoader }
         ]
-      }, 'creates group properties');
-    assert.ok(this.mediaTypes[type].groups.sub1[0].playlistLoader,
-      'playlistLoader created');
-    assert.ok(this.mediaTypes[type].groups.sub1[1].playlistLoader,
-      'playlistLoader created');
-    assert.ok(this.mediaTypes[type].groups.sub2[0].playlistLoader,
-      'playlistLoader created');
-    assert.ok(this.mediaTypes[type].groups.sub2[1].playlistLoader,
-      'playlistLoader created');
+      }, 'creates group properties'
+    );
+    assert.ok(
+      this.mediaTypes[type].groups.sub1[0].playlistLoader,
+      'playlistLoader created'
+    );
+    assert.ok(
+      this.mediaTypes[type].groups.sub1[1].playlistLoader,
+      'playlistLoader created'
+    );
+    assert.ok(
+      this.mediaTypes[type].groups.sub2[0].playlistLoader,
+      'playlistLoader created'
+    );
+    assert.ok(
+      this.mediaTypes[type].groups.sub2[1].playlistLoader,
+      'playlistLoader created'
+    );
     assert.ok(this.mediaTypes[type].tracks.en, 'created text track');
     assert.equal(this.mediaTypes[type].tracks.en.default, undefined, 'No autoselect, no default');
     assert.ok(this.mediaTypes[type].tracks.fr, 'created text track');
-  });
+  }
+);
 
-QUnit.test('initialize subtitles correctly with auto select',
+QUnit.test(
+  'initialize subtitles correctly with auto select',
   function(assert) {
     const type = 'SUBTITLES';
 
@@ -780,32 +928,37 @@ QUnit.test('initialize subtitles correctly with auto select',
     MediaGroups.initialize[type](type, this.settings);
 
     assert.equal(this.mediaTypes[type].tracks.en.default, true, 'en track auto selected');
-  });
+  }
+);
 
-QUnit.test('initialize closed-captions correctly generates tracks and NO loaders',
-function(assert) {
-  const type = 'CLOSED-CAPTIONS';
+QUnit.test(
+  'initialize closed-captions correctly generates tracks and NO loaders',
+  function(assert) {
+    const type = 'CLOSED-CAPTIONS';
 
-  this.master.mediaGroups[type].CCs = {
-    en608: { language: 'en', default: true, autoselect: true, instreamId: 'CC1' },
-    en708: { language: 'en', instreamId: 'SERVICE1' },
-    fr608: { language: 'fr', instreamId: 'CC3' },
-    fr708: { language: 'fr', instreamId: 'SERVICE3' }
-  };
+    this.master.mediaGroups[type].CCs = {
+      en608: { language: 'en', default: true, autoselect: true, instreamId: 'CC1' },
+      en708: { language: 'en', instreamId: 'SERVICE1' },
+      fr608: { language: 'fr', instreamId: 'CC3' },
+      fr708: { language: 'fr', instreamId: 'SERVICE3' }
+    };
 
-  MediaGroups.initialize[type](type, this.settings);
+    MediaGroups.initialize[type](type, this.settings);
 
-  assert.deepEqual(this.mediaTypes[type].groups,
-    {
-      CCs: [
-        { id: 'en608', default: true, autoselect: true, language: 'en', instreamId: 'CC1' },
-        { id: 'fr608', language: 'fr', instreamId: 'CC3' }
-      ]
-    }, 'creates group properties');
-  assert.ok(this.mediaTypes[type].tracks.en608, 'created text track');
-  assert.ok(this.mediaTypes[type].tracks.fr608, 'created text track');
-  assert.equal(this.mediaTypes[type].tracks.en608.default, true, 'en608 track auto selected');
-});
+    assert.deepEqual(
+      this.mediaTypes[type].groups,
+      {
+        CCs: [
+          { id: 'en608', default: true, autoselect: true, language: 'en', instreamId: 'CC1' },
+          { id: 'fr608', language: 'fr', instreamId: 'CC3' }
+        ]
+      }, 'creates group properties'
+    );
+    assert.ok(this.mediaTypes[type].tracks.en608, 'created text track');
+    assert.ok(this.mediaTypes[type].tracks.fr608, 'created text track');
+    assert.equal(this.mediaTypes[type].tracks.en608.default, true, 'en608 track auto selected');
+  }
+);
 
 QUnit.test('initialize audio correctly uses HLS source type', function(assert) {
   this.master.mediaGroups.AUDIO.aud1 = {
@@ -816,10 +969,14 @@ QUnit.test('initialize audio correctly uses HLS source type', function(assert) {
 
   MediaGroups.initialize.AUDIO('AUDIO', this.settings);
 
-  assert.notOk(this.mediaTypes.AUDIO.groups.aud1[0].playlistLoader,
-            'no playlist loader because muxed (no URI)');
-  assert.ok(this.mediaTypes.AUDIO.groups.aud1[1].playlistLoader instanceof PlaylistLoader,
-            'playlist loader is an HLS playlist loader');
+  assert.notOk(
+    this.mediaTypes.AUDIO.groups.aud1[0].playlistLoader,
+    'no playlist loader because muxed (no URI)'
+  );
+  assert.ok(
+    this.mediaTypes.AUDIO.groups.aud1[1].playlistLoader instanceof PlaylistLoader,
+    'playlist loader is an HLS playlist loader'
+  );
 });
 
 QUnit.test('initialize audio correctly uses DASH source type', function(assert) {
@@ -839,29 +996,37 @@ QUnit.test('initialize audio correctly uses DASH source type', function(assert) 
 
   assert.ok(
     this.mediaTypes.AUDIO.groups.aud1[0].playlistLoader instanceof DashPlaylistLoader,
-    'playlist loader is a DASH playlist loader');
+    'playlist loader is a DASH playlist loader'
+  );
   assert.ok(
     this.mediaTypes.AUDIO.groups.aud1[1].playlistLoader instanceof DashPlaylistLoader,
-    'playlist loader is a DASH playlist loader');
+    'playlist loader is a DASH playlist loader'
+  );
 
   done();
 });
 
-QUnit.test('initialize audio does not create DASH playlist loader if no playlists',
-function(assert) {
-  this.master.mediaGroups.AUDIO.aud1 = {
-    en: { default: true, language: 'en' },
-    fr: { default: false, language: 'fr' }
-  };
-  this.settings.sourceType = 'dash';
+QUnit.test(
+  'initialize audio does not create DASH playlist loader if no playlists',
+  function(assert) {
+    this.master.mediaGroups.AUDIO.aud1 = {
+      en: { default: true, language: 'en' },
+      fr: { default: false, language: 'fr' }
+    };
+    this.settings.sourceType = 'dash';
 
-  MediaGroups.initialize.AUDIO('AUDIO', this.settings);
+    MediaGroups.initialize.AUDIO('AUDIO', this.settings);
 
-  assert.notOk(this.mediaTypes.AUDIO.groups.aud1[0].playlistLoader,
-               'no playlist loader when misconfigured');
-  assert.notOk(this.mediaTypes.AUDIO.groups.aud1[1].playlistLoader,
-               'no playlist loader when misconfigured');
-});
+    assert.notOk(
+      this.mediaTypes.AUDIO.groups.aud1[0].playlistLoader,
+      'no playlist loader when misconfigured'
+    );
+    assert.notOk(
+      this.mediaTypes.AUDIO.groups.aud1[1].playlistLoader,
+      'no playlist loader when misconfigured'
+    );
+  }
+);
 
 QUnit.skip('initialize audio does not create playlist loader for alternate tracks with' +
 ' main stream as URI attribute', function(assert) {
@@ -876,12 +1041,18 @@ QUnit.skip('initialize audio does not create playlist loader for alternate track
 
   MediaGroups.initialize.AUDIO('AUDIO', this.settings);
 
-  assert.notOk(this.mediaTypes.AUDIO.groups.aud1[0].resolvedUri,
-    'resolvedUri proeprty deleted');
-  assert.notOk(this.mediaTypes.AUDIO.groups.aud1[0].playlistLoader,
-    'no playlist loader for alternate audio in main stream');
-  assert.ok(this.mediaTypes.AUDIO.groups.aud1[1].playlistLoader instanceof PlaylistLoader,
-    'playlist loader for alternate audio not in main stream');
+  assert.notOk(
+    this.mediaTypes.AUDIO.groups.aud1[0].resolvedUri,
+    'resolvedUri proeprty deleted'
+  );
+  assert.notOk(
+    this.mediaTypes.AUDIO.groups.aud1[0].playlistLoader,
+    'no playlist loader for alternate audio in main stream'
+  );
+  assert.ok(
+    this.mediaTypes.AUDIO.groups.aud1[1].playlistLoader instanceof PlaylistLoader,
+    'playlist loader for alternate audio not in main stream'
+  );
 });
 
 QUnit.test('initialize subtitles correctly uses HLS source type', function(assert) {
@@ -895,10 +1066,12 @@ QUnit.test('initialize subtitles correctly uses HLS source type', function(asser
 
   assert.ok(
     this.mediaTypes.SUBTITLES.groups.sub1[0].playlistLoader instanceof PlaylistLoader,
-    'playlist loader is an HLS playlist loader');
+    'playlist loader is an HLS playlist loader'
+  );
   assert.ok(
     this.mediaTypes.SUBTITLES.groups.sub1[1].playlistLoader instanceof PlaylistLoader,
-    'playlist loader is an HLS playlist loader');
+    'playlist loader is an HLS playlist loader'
+  );
 });
 
 QUnit.test('initialize subtitles correctly uses DASH source type', function(assert) {
@@ -920,10 +1093,12 @@ QUnit.test('initialize subtitles correctly uses DASH source type', function(asse
 
   assert.ok(
     this.mediaTypes.SUBTITLES.groups.sub1[0].playlistLoader instanceof DashPlaylistLoader,
-    'playlist loader is a DASH playlist loader');
+    'playlist loader is a DASH playlist loader'
+  );
   assert.ok(
     this.mediaTypes.SUBTITLES.groups.sub1[1].playlistLoader instanceof DashPlaylistLoader,
-    'playlist loader is a DASH playlist loader');
+    'playlist loader is a DASH playlist loader'
+  );
 
   done();
 });

@@ -153,18 +153,20 @@ export const processTransmux = ({
     const buffer = bytes instanceof ArrayBuffer ? bytes : bytes.buffer;
     const byteOffset = bytes instanceof ArrayBuffer ? 0 : bytes.byteOffset;
 
-    transmuxer.postMessage({
-      action: 'push',
-      // Send the typed-array of data as an ArrayBuffer so that
-      // it can be sent as a "Transferable" and avoid the costly
-      // memory copy
-      data: buffer,
-      // To recreate the original typed-array, we need information
-      // about what portion of the ArrayBuffer it was a view into
-      byteOffset,
-      byteLength: bytes.byteLength
-    },
-    [ buffer ]);
+    transmuxer.postMessage(
+      {
+        action: 'push',
+        // Send the typed-array of data as an ArrayBuffer so that
+        // it can be sent as a "Transferable" and avoid the costly
+        // memory copy
+        data: buffer,
+        // To recreate the original typed-array, we need information
+        // about what portion of the ArrayBuffer it was a view into
+        byteOffset,
+        byteLength: bytes.byteLength
+      },
+      [ buffer ]
+    );
   }
 
   // even if we didn't push any bytes, we have to make sure we flush in case we reached

@@ -21,7 +21,7 @@ const SEGMENT_END_FUDGE_PERCENT = 0.25;
  *
  * For more details, see [this doc](../../docs/program-time-from-player-time.md).
  *
- * @param {Number} playerTime the player time
+ * @param {number} playerTime the player time
  * @param {Object} segment the segment which contains the player time
  * @return {Date} program time
  */
@@ -52,7 +52,7 @@ export const originalSegmentVideoDuration = (videoTimingInfo) => {
  * Finds a segment that contains the time requested given as an ISO-8601 string. The
  * returned segment might be an estimate or an accurate match.
  *
- * @param {String} programTime The ISO-8601 programTime to find a match for
+ * @param {string} programTime The ISO-8601 programTime to find a match for
  * @param {Object} playlist A playlist object to search within
  */
 export const findSegmentForProgramTime = (programTime, playlist) => {
@@ -125,7 +125,7 @@ export const findSegmentForProgramTime = (programTime, playlist) => {
 /**
  * Finds a segment that contains the given player time(in seconds).
  *
- * @param {Number} time The player time to find a match for
+ * @param {number} time The player time to find a match for
  * @param {Object} playlist A playlist object to search within
  */
 export const findSegmentForPlayerTime = (time, playlist) => {
@@ -196,9 +196,9 @@ export const findSegmentForPlayerTime = (time, playlist) => {
  * comparisonTimestamp.
  * If the offset is negative, the programTime occurs before the comparisonTimestamp.
  *
- * @param {String} comparisonTimeStamp An ISO-8601 timestamp to compare against
- * @param {String} programTime The programTime as an ISO-8601 string
- * @return {Number} offset
+ * @param {string} comparisonTimeStamp An ISO-8601 timestamp to compare against
+ * @param {string} programTime The programTime as an ISO-8601 string
+ * @return {number} offset
  */
 export const getOffsetFromTimestamp = (comparisonTimeStamp, programTime) => {
   let segmentDateTime;
@@ -246,12 +246,12 @@ export const verifyProgramDateTimeTags = (playlist) => {
  *
  * @param {Object} args
  * @param {Object} args.playlist A playlist object to search within
- * @param {Number} time A playerTime in seconds
+ * @param {number} time A playerTime in seconds
  * @param {Function} callback(err, programTime)
- * @returns {String} err.message A detailed error message
- * @returns {Object} programTime
- * @returns {Number} programTime.mediaSeconds The streamTime in seconds
- * @returns {String} programTime.programDateTime The programTime as an ISO-8601 String
+ * @return {string} err.message A detailed error message
+ * @return {Object} programTime
+ * @return {number} programTime.mediaSeconds The streamTime in seconds
+ * @return {string} programTime.programDateTime The programTime as an ISO-8601 String
  */
 export const getProgramTime = ({
   playlist,
@@ -302,15 +302,15 @@ export const getProgramTime = ({
  * Seeks in the player to a time that matches the given programTime ISO-8601 string.
  *
  * @param {Object} args
- * @param {String} args.programTime A programTime to seek to as an ISO-8601 String
+ * @param {string} args.programTime A programTime to seek to as an ISO-8601 String
  * @param {Object} args.playlist A playlist to look within
- * @param {Number} args.retryCount The number of times to try for an accurate seek. Default is 2.
+ * @param {number} args.retryCount The number of times to try for an accurate seek. Default is 2.
  * @param {Function} args.seekTo A method to perform a seek
- * @param {Boolean} args.pauseAfterSeek Whether to end in a paused state after seeking. Default is true.
+ * @param {boolean} args.pauseAfterSeek Whether to end in a paused state after seeking. Default is true.
  * @param {Object} args.tech The tech to seek on
  * @param {Function} args.callback(err, newTime) A callback to return the new time to
- * @returns {String} err.message A detailed error message
- * @returns {Number} newTime The exact time that was seeked to in seconds
+ * @return {string} err.message A detailed error message
+ * @return {number} newTime The exact time that was seeked to in seconds
  */
 export const seekToProgramTime = ({
   programTime,

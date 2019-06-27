@@ -1,8 +1,9 @@
+/* eslint-disable no-console */
 const fs = require('fs');
 const path = require('path');
 
-const basePath  = path.resolve(__dirname, '..');
-const testDataDir = path.join(basePath,'test');
+const basePath = path.resolve(__dirname, '..');
+const testDataDir = path.join(basePath, 'test');
 const manifestDir = path.join(basePath, 'utils', 'manifest');
 const manifestFilepath = path.join(testDataDir, 'test-manifests.js');
 
@@ -11,6 +12,7 @@ module.exports = {
     let manifests = 'export default {\n';
 
     const files = fs.readdirSync(manifestDir);
+
     while (files.length > 0) {
       const file = path.resolve(manifestDir, files.shift());
       const extname = path.extname(file);
@@ -51,7 +53,7 @@ module.exports = {
     if (fs.existsSync(manifestFilepath)) {
       try {
         fs.unlinkSync(manifestFilepath);
-      } catch(e) {
+      } catch (e) {
         console.log(e);
       }
     }

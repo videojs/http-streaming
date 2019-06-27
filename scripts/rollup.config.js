@@ -191,11 +191,11 @@ if (!isWatch) {
     },
     external: ['video.js'],
     plugins: umdPlugins
-    .concat([uglify({
-      output: {
-        comments: 'some'
-      }
-    }, minify)])
+      .concat([uglify({
+        output: {
+          comments: 'some'
+        }
+      }, minify)])
   });
 }
 

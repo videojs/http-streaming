@@ -46,104 +46,136 @@ QUnit.test('illegalMediaSwitch detects illegal media switches', function(assert)
   let startingMedia = { hasAudio: true, hasVideo: true };
   let newSegmentMedia = { hasAudio: true, hasVideo: true };
 
-  assert.notOk(illegalMediaSwitch('main', startingMedia, newSegmentMedia),
-               'no error when muxed to muxed');
+  assert.notOk(
+    illegalMediaSwitch('main', startingMedia, newSegmentMedia),
+    'no error when muxed to muxed'
+  );
 
   startingMedia = { hasAudio: true, hasVideo: true };
   newSegmentMedia = { hasAudio: false, hasVideo: false };
-  assert.notOk(illegalMediaSwitch('audio', startingMedia, newSegmentMedia),
-               'no error when not main loader type');
+  assert.notOk(
+    illegalMediaSwitch('audio', startingMedia, newSegmentMedia),
+    'no error when not main loader type'
+  );
 
   startingMedia = { hasAudio: true, hasVideo: false };
   newSegmentMedia = { hasAudio: true, hasVideo: false };
-  assert.notOk(illegalMediaSwitch('main', startingMedia, newSegmentMedia),
-               'no error when audio only to audio only');
+  assert.notOk(
+    illegalMediaSwitch('main', startingMedia, newSegmentMedia),
+    'no error when audio only to audio only'
+  );
 
   startingMedia = { hasAudio: false, hasVideo: true };
   newSegmentMedia = { hasAudio: false, hasVideo: true };
-  assert.notOk(illegalMediaSwitch('main', startingMedia, newSegmentMedia),
-               'no error when video only to video only');
+  assert.notOk(
+    illegalMediaSwitch('main', startingMedia, newSegmentMedia),
+    'no error when video only to video only'
+  );
 
   startingMedia = { hasAudio: false, hasVideo: true };
   newSegmentMedia = { hasAudio: true, hasVideo: true };
-  assert.notOk(illegalMediaSwitch('main', startingMedia, newSegmentMedia),
-               'no error when video only to muxed');
+  assert.notOk(
+    illegalMediaSwitch('main', startingMedia, newSegmentMedia),
+    'no error when video only to muxed'
+  );
 
   startingMedia = { hasAudio: true, hasVideo: true };
   newSegmentMedia = { hasAudio: false, hasVideo: false };
-  assert.equal(illegalMediaSwitch('main', startingMedia, newSegmentMedia),
-               'Neither audio nor video found in segment.',
-               'error when neither audio nor video');
+  assert.equal(
+    illegalMediaSwitch('main', startingMedia, newSegmentMedia),
+    'Neither audio nor video found in segment.',
+    'error when neither audio nor video'
+  );
 
   startingMedia = { hasAudio: true, hasVideo: false };
   newSegmentMedia = { hasAudio: false, hasVideo: false };
-  assert.equal(illegalMediaSwitch('main', startingMedia, newSegmentMedia),
-               'Neither audio nor video found in segment.',
-               'error when audio only to neither audio nor video');
+  assert.equal(
+    illegalMediaSwitch('main', startingMedia, newSegmentMedia),
+    'Neither audio nor video found in segment.',
+    'error when audio only to neither audio nor video'
+  );
 
   startingMedia = { hasAudio: false, hasVideo: true };
   newSegmentMedia = { hasAudio: false, hasVideo: false };
-  assert.equal(illegalMediaSwitch('main', startingMedia, newSegmentMedia),
-               'Neither audio nor video found in segment.',
-               'error when video only to neither audio nor video');
+  assert.equal(
+    illegalMediaSwitch('main', startingMedia, newSegmentMedia),
+    'Neither audio nor video found in segment.',
+    'error when video only to neither audio nor video'
+  );
 
   startingMedia = { hasAudio: true, hasVideo: false };
   newSegmentMedia = { hasAudio: true, hasVideo: true };
-  assert.equal(illegalMediaSwitch('main', startingMedia, newSegmentMedia),
-               'Video found in segment when we expected only audio.' +
+  assert.equal(
+    illegalMediaSwitch('main', startingMedia, newSegmentMedia),
+    'Video found in segment when we expected only audio.' +
                ' We can\'t switch to a stream with video from an audio only stream.' +
                ' To get rid of this message, please add codec information to the' +
                ' manifest.',
-               'error when audio only to muxed');
+    'error when audio only to muxed'
+  );
 
   startingMedia = { hasAudio: true, hasVideo: true };
   newSegmentMedia = { hasAudio: true, hasVideo: false };
-  assert.equal(illegalMediaSwitch('main', startingMedia, newSegmentMedia),
-               'Only audio found in segment when we expected video.' +
+  assert.equal(
+    illegalMediaSwitch('main', startingMedia, newSegmentMedia),
+    'Only audio found in segment when we expected video.' +
                ' We can\'t switch to audio only from a stream that had video.' +
                ' To get rid of this message, please add codec information to the' +
                ' manifest.',
-               'error when muxed to audio only');
+    'error when muxed to audio only'
+  );
 
   startingMedia = { hasAudio: true, hasVideo: false };
   newSegmentMedia = { hasAudio: false, hasVideo: true };
-  assert.equal(illegalMediaSwitch('main', startingMedia, newSegmentMedia),
-               'Video found in segment when we expected only audio.' +
+  assert.equal(
+    illegalMediaSwitch('main', startingMedia, newSegmentMedia),
+    'Video found in segment when we expected only audio.' +
                ' We can\'t switch to a stream with video from an audio only stream.' +
                ' To get rid of this message, please add codec information to the' +
                ' manifest.',
-               'error when audio only to video only');
+    'error when audio only to video only'
+  );
 
   startingMedia = { hasAudio: false, hasVideo: true };
   newSegmentMedia = { hasAudio: true, hasVideo: false };
-  assert.equal(illegalMediaSwitch('main', startingMedia, newSegmentMedia),
-               'Only audio found in segment when we expected video.' +
+  assert.equal(
+    illegalMediaSwitch('main', startingMedia, newSegmentMedia),
+    'Only audio found in segment when we expected video.' +
                ' We can\'t switch to audio only from a stream that had video.' +
                ' To get rid of this message, please add codec information to the' +
                ' manifest.',
-               'error when video only to audio only');
+    'error when video only to audio only'
+  );
 });
 
-QUnit.test('safeBackBufferTrimTime determines correct safe removeToTime',
-function(assert) {
-  let seekable = videojs.createTimeRanges([[75, 120]]);
-  let targetDuration = 10;
-  let currentTime = 70;
+QUnit.test(
+  'safeBackBufferTrimTime determines correct safe removeToTime',
+  function(assert) {
+    const seekable = videojs.createTimeRanges([[75, 120]]);
+    const targetDuration = 10;
+    let currentTime = 70;
 
-  assert.equal(safeBackBufferTrimTime(seekable, currentTime, targetDuration), 40,
-    'uses 30s before current time if currentTime is before seekable start');
+    assert.equal(
+      safeBackBufferTrimTime(seekable, currentTime, targetDuration), 40,
+      'uses 30s before current time if currentTime is before seekable start'
+    );
 
-  currentTime = 110;
+    currentTime = 110;
 
-  assert.equal(safeBackBufferTrimTime(seekable, currentTime, targetDuration), 75,
-    'uses seekable start if currentTime is after seekable start');
+    assert.equal(
+      safeBackBufferTrimTime(seekable, currentTime, targetDuration), 75,
+      'uses seekable start if currentTime is after seekable start'
+    );
 
-  currentTime = 80;
+    currentTime = 80;
 
-  assert.equal(safeBackBufferTrimTime(seekable, currentTime, targetDuration), 70,
-    'uses target duration before currentTime if currentTime is after seekable but' +
-    'within target duration');
-});
+    assert.equal(
+      safeBackBufferTrimTime(seekable, currentTime, targetDuration), 70,
+      'uses target duration before currentTime if currentTime is after seekable but' +
+    'within target duration'
+    );
+  }
+);
 
 QUnit.module('SegmentLoader', function(hooks) {
   hooks.beforeEach(LoaderCommonHooks.beforeEach);
@@ -203,7 +235,7 @@ QUnit.module('SegmentLoader', function(hooks) {
     });
 
     QUnit.test('updates timestamps when segments do not start at zero', function(assert) {
-      let playlist = playlistWithDuration(10);
+      const playlist = playlistWithDuration(10);
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {isVideoOnly: true}).then(() => {
 
@@ -230,14 +262,17 @@ QUnit.module('SegmentLoader', function(hooks) {
         });
       }).then(() => {
 
+        assert.equal(loader.sourceUpdater_.videoTimestampOffset(), -11, 'set timestampOffset');
         assert.equal(
-          loader.sourceUpdater_.videoTimestampOffset(), -11, 'set timestampOffset');
-        assert.equal(playlist.segments[0].start,
+          playlist.segments[0].start,
           0,
-          'segment start time not shifted by mp4 start time');
-        assert.equal(playlist.segments[0].end,
+          'segment start time not shifted by mp4 start time'
+        );
+        assert.equal(
+          playlist.segments[0].end,
           10,
-          'segment end time not shifted by mp4 start time');
+          'segment end time not shifted by mp4 start time'
+        );
       });
     });
 
@@ -486,11 +521,13 @@ QUnit.module('SegmentLoader', function(hooks) {
         assert.equal(
           loader.sourceUpdater_.videoBuffer.timestampOffset,
           0 - 3,
-          'timestampoffset set on source buffer');
+          'timestampoffset set on source buffer'
+        );
         assert.equal(
           setTimestampOffsetMessages.length,
           0,
-          'timestampoffset was not set in transmuxer');
+          'timestampoffset was not set in transmuxer'
+        );
 
         buffered = videojs.createTimeRanges([[0, 10]]);
         playlist.segments[0].end = 10;
@@ -501,12 +538,14 @@ QUnit.module('SegmentLoader', function(hooks) {
         assert.equal(
           loader.sourceUpdater_.videoBuffer.timestampOffset,
           0 - 3,
-          'timestampoffset not changed on source buffer');
+          'timestampoffset not changed on source buffer'
+        );
         // still at 0
         assert.equal(
           setTimestampOffsetMessages.length,
           0,
-          'timestampoffset was not set in transmuxer');
+          'timestampoffset was not set in transmuxer'
+        );
 
         // video start time changed for the next segment (1), but the timestamp offset on
         // the source buffer shouldn't change
@@ -523,11 +562,13 @@ QUnit.module('SegmentLoader', function(hooks) {
         assert.equal(
           loader.sourceUpdater_.videoBuffer.timestampOffset,
           0 - 3,
-          'timestampoffset not changed on source buffer');
+          'timestampoffset not changed on source buffer'
+        );
         assert.equal(
           setTimestampOffsetMessages.length,
           0,
-          'timestampoffset was not set in transmuxer');
+          'timestampoffset was not set in transmuxer'
+        );
 
         buffered = videojs.createTimeRanges([[10, 20]]);
         playlist.segments[1].end = 20;
@@ -538,15 +579,18 @@ QUnit.module('SegmentLoader', function(hooks) {
         assert.equal(
           loader.sourceUpdater_.videoBuffer.timestampOffset,
           0 - 3,
-          'timestampoffset not changed on source buffer');
+          'timestampoffset not changed on source buffer'
+        );
         assert.equal(
           setTimestampOffsetMessages.length,
           1,
-          'timestampoffset was set in transmuxer');
+          'timestampoffset was set in transmuxer'
+        );
         assert.equal(
           setTimestampOffsetMessages[0].timestampOffset,
           20,
-          'transmuxer timestampoffset set to 20');
+          'transmuxer timestampoffset set to 20'
+        );
 
         videoSegmentStartTime = 101;
         videoSegmentEndTime = 111;
@@ -562,16 +606,18 @@ QUnit.module('SegmentLoader', function(hooks) {
         assert.equal(
           loader.sourceUpdater_.videoBuffer.timestampOffset,
           20 - 101,
-          'timestampoffset changed on source buffer');
+          'timestampoffset changed on source buffer'
+        );
         assert.equal(
           setTimestampOffsetMessages.length,
           1,
-          'timestampoffset unchanged in transmuxer');
+          'timestampoffset unchanged in transmuxer'
+        );
       });
     });
 
     QUnit.test('tracks segment end times as they are buffered', function(assert) {
-      let playlist = playlistWithDuration(20);
+      const playlist = playlistWithDuration(20);
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
 
@@ -814,8 +860,7 @@ QUnit.module('SegmentLoader', function(hooks) {
 
         loader.on('appended', () => {
 
-          assert.ok(
-            Object.keys(loader.inbandTextTracks_.metadataTrack_), 'created a metadata track');
+          assert.ok(Object.keys(loader.inbandTextTracks_.metadataTrack_), 'created a metadata track');
           assert.strictEqual(addCueSpy.callCount, 1, 'created one cue');
 
           assert.strictEqual(
@@ -824,7 +869,7 @@ QUnit.module('SegmentLoader', function(hooks) {
             'in-band metadata track dispatch type correctly set'
           );
 
-          let cue = addCueSpy.getCall(0).args[0];
+          const cue = addCueSpy.getCall(0).args[0];
 
           assert.strictEqual(cue.value.data, 'This is a priv tag', 'included the text');
           done();
@@ -895,7 +940,7 @@ QUnit.module('SegmentLoader', function(hooks) {
       let endOfStreams = 0;
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
-        let playlist = playlistWithDuration(10);
+        const playlist = playlistWithDuration(10);
 
         loader.on('ended', () => endOfStreams++);
 
@@ -918,8 +963,8 @@ QUnit.module('SegmentLoader', function(hooks) {
 
     QUnit.test('saves segment info to new segment after playlist refresh', function(assert) {
       // playlist updated during waiting
-      let playlistUpdated = playlistWithDuration(40);
-      let playlist = playlistWithDuration(40);
+      const playlistUpdated = playlistWithDuration(40);
+      const playlist = playlistWithDuration(40);
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
 
@@ -931,9 +976,11 @@ QUnit.module('SegmentLoader', function(hooks) {
 
         assert.equal(loader.state, 'WAITING', 'in waiting state');
         assert.equal(loader.pendingSegment_.uri, '0.ts', 'first segment pending');
-        assert.equal(loader.pendingSegment_.segment.uri,
+        assert.equal(
+          loader.pendingSegment_.segment.uri,
           '0.ts',
-          'correct segment reference');
+          'correct segment reference'
+        );
 
         // wrap up the first request to set mediaIndex and start normal live streaming
         standardXHRResponse(this.requests.shift(), muxedSegment());
@@ -947,18 +994,22 @@ QUnit.module('SegmentLoader', function(hooks) {
 
         assert.equal(loader.state, 'WAITING', 'in waiting state');
         assert.equal(loader.pendingSegment_.uri, '1.ts', 'second segment pending');
-        assert.equal(loader.pendingSegment_.segment.uri,
+        assert.equal(
+          loader.pendingSegment_.segment.uri,
           '1.ts',
-          'correct segment reference');
+          'correct segment reference'
+        );
 
         playlistUpdated.segments.shift();
         playlistUpdated.mediaSequence++;
         loader.playlist(playlistUpdated);
 
         assert.equal(loader.pendingSegment_.uri, '1.ts', 'second segment still pending');
-        assert.equal(loader.pendingSegment_.segment.uri,
+        assert.equal(
+          loader.pendingSegment_.segment.uri,
           '1.ts',
-          'correct segment reference');
+          'correct segment reference'
+        );
 
         standardXHRResponse(this.requests.shift(), muxedSegment());
         return new Promise((resolve, reject) => {
@@ -966,21 +1017,17 @@ QUnit.module('SegmentLoader', function(hooks) {
           loader.one('error', reject);
         });
       }).then(() => {
-        assert.equal(
-          playlistUpdated.segments[0].start, 0, 'set start on segment of new playlist');
-        assert.ok(
-          playlistUpdated.segments[0].end, 'set end on segment of new playlist');
-        assert.notOk(
-          playlist.segments[1].start, 'did not set start on segment of old playlist');
-        assert.notOk(
-          playlist.segments[1].end, 'did not set end on segment of old playlist');
+        assert.equal(playlistUpdated.segments[0].start, 0, 'set start on segment of new playlist');
+        assert.ok(playlistUpdated.segments[0].end, 'set end on segment of new playlist');
+        assert.notOk(playlist.segments[1].start, 'did not set start on segment of old playlist');
+        assert.notOk(playlist.segments[1].end, 'did not set end on segment of old playlist');
       });
     });
 
     QUnit.test('saves segment info to old segment after playlist refresh if segment fell off', function(assert) {
-      let playlist = playlistWithDuration(40);
+      const playlist = playlistWithDuration(40);
       // playlist updated during waiting
-      let playlistUpdated = playlistWithDuration(40);
+      const playlistUpdated = playlistWithDuration(40);
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
         playlist.endList = false;
@@ -991,9 +1038,11 @@ QUnit.module('SegmentLoader', function(hooks) {
 
         assert.equal(loader.state, 'WAITING', 'in waiting state');
         assert.equal(loader.pendingSegment_.uri, '0.ts', 'first segment pending');
-        assert.equal(loader.pendingSegment_.segment.uri,
+        assert.equal(
+          loader.pendingSegment_.segment.uri,
           '0.ts',
-          'correct segment reference');
+          'correct segment reference'
+        );
 
         // wrap up the first request to set mediaIndex and start normal live streaming
         standardXHRResponse(this.requests.shift(), muxedSegment());
@@ -1006,9 +1055,11 @@ QUnit.module('SegmentLoader', function(hooks) {
 
         assert.equal(loader.state, 'WAITING', 'in waiting state');
         assert.equal(loader.pendingSegment_.uri, '1.ts', 'second segment pending');
-        assert.equal(loader.pendingSegment_.segment.uri,
+        assert.equal(
+          loader.pendingSegment_.segment.uri,
           '1.ts',
-          'correct segment reference');
+          'correct segment reference'
+        );
 
         playlistUpdated.segments.shift();
         playlistUpdated.segments.shift();
@@ -1016,9 +1067,11 @@ QUnit.module('SegmentLoader', function(hooks) {
         loader.playlist(playlistUpdated);
 
         assert.equal(loader.pendingSegment_.uri, '1.ts', 'second segment still pending');
-        assert.equal(loader.pendingSegment_.segment.uri,
+        assert.equal(
+          loader.pendingSegment_.segment.uri,
           '1.ts',
-          'correct segment reference');
+          'correct segment reference'
+        );
 
         standardXHRResponse(this.requests.shift(), muxedSegment());
         return new Promise((resolve, reject) => {
@@ -1030,10 +1083,12 @@ QUnit.module('SegmentLoader', function(hooks) {
         assert.ok(playlist.segments[1].end, 'set end on segment of old playlist');
         assert.notOk(
           playlistUpdated.segments[0].start,
-          'no start info for first segment of new playlist');
+          'no start info for first segment of new playlist'
+        );
         assert.notOk(
           playlistUpdated.segments[0].end,
-          'no end info for first segment of new playlist');
+          'no end info for first segment of new playlist'
+        );
       });
     });
 
@@ -1063,12 +1118,14 @@ QUnit.module('SegmentLoader', function(hooks) {
         standardXHRResponse(this.requests.shift(), audioSegment());
 
         assert.equal(errors.length, 1, 'one error');
-        assert.equal(errors[0].message,
+        assert.equal(
+          errors[0].message,
           'Only audio found in segment when we expected video.' +
           ' We can\'t switch to audio only from a stream that had video.' +
           ' To get rid of this message, please add codec information to the' +
           ' manifest.',
-          'correct error message');
+          'correct error message'
+        );
       });
     });
 
@@ -1099,12 +1156,14 @@ QUnit.module('SegmentLoader', function(hooks) {
         standardXHRResponse(this.requests.shift(), muxedSegment());
 
         assert.equal(errors.length, 1, 'one error');
-        assert.equal(errors[0].message,
+        assert.equal(
+          errors[0].message,
           'Video found in segment when we expected only audio.' +
           ' We can\'t switch to a stream with video from an audio only stream.' +
           ' To get rid of this message, please add codec information to the' +
           ' manifest.',
-          'correct error message');
+          'correct error message'
+        );
       });
     });
 
@@ -1189,7 +1248,7 @@ QUnit.module('SegmentLoader', function(hooks) {
       }).then(() => {
         this.clock.tick(1);
 
-        let removedCues = [];
+        const removedCues = [];
 
         loader.inbandTextTracks_ = {
           CC1: {
@@ -1269,8 +1328,8 @@ QUnit.module('SegmentLoader', function(hooks) {
 
         loader.setAudio(false);
 
-        let audioRemoves = [];
-        let videoRemoves = [];
+        const audioRemoves = [];
+        const videoRemoves = [];
 
         loader.sourceUpdater_.removeAudio = (start, end) => {
           audioRemoves.push({start, end});
@@ -1641,7 +1700,8 @@ QUnit.module('SegmentLoader', function(hooks) {
         assert.notEqual(
           appends[0].initSegment,
           appends[1].initSegment,
-          'appended a different init segment');
+          'appended a different init segment'
+        );
 
         // no init segment request, as it should be the same (and cached) segment
         standardXHRResponse(this.requests.shift(), mp4AudioSegment());
@@ -1657,7 +1717,8 @@ QUnit.module('SegmentLoader', function(hooks) {
         assert.equal(
           appends[0].initSegment,
           appends[2].initSegment,
-          'reused the init segment');
+          'reused the init segment'
+        );
       });
     });
 
@@ -1725,7 +1786,8 @@ QUnit.module('SegmentLoader', function(hooks) {
         assert.notEqual(
           appends[0].initSegment,
           appends[1].initSegment,
-          'appended a different init segment');
+          'appended a different init segment'
+        );
 
         // no init segment request, as it should be the same (and cached) segment
         standardXHRResponse(this.requests.shift(), mp4VideoSegment());
@@ -1741,7 +1803,8 @@ QUnit.module('SegmentLoader', function(hooks) {
         assert.equal(
           appends[0].initSegment,
           appends[2].initSegment,
-          'reused the init segment');
+          'reused the init segment'
+        );
       });
     });
   });
@@ -1778,18 +1841,11 @@ QUnit.module('SegmentLoader: FMP4', function(hooks) {
 
     QUnit.test('CaptionParser is handled as expected', function(assert) {
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
-        let mockCaptionParserReset;
-        let mockCaptionParserClear;
-        let mockCaptionParserClearParsedCaptions;
-        let originalCurrentTimeline;
-        let originalPendingSegment;
-        let segment;
-
         assert.ok(loader.captionParser_, 'there is a captions parser');
 
-        mockCaptionParserReset = sinon.stub(loader.captionParser_, 'reset');
-        mockCaptionParserClear = sinon.stub(loader.captionParser_, 'clearAllCaptions');
-        mockCaptionParserClearParsedCaptions = sinon.stub(loader.captionParser_, 'clearParsedCaptions');
+        const mockCaptionParserReset = sinon.stub(loader.captionParser_, 'reset');
+        const mockCaptionParserClear = sinon.stub(loader.captionParser_, 'clearAllCaptions');
+        const mockCaptionParserClearParsedCaptions = sinon.stub(loader.captionParser_, 'clearParsedCaptions');
 
         loader.load();
         loader.playlist(playlistWithDuration(10, 'm4s'));
@@ -1804,7 +1860,8 @@ QUnit.module('SegmentLoader: FMP4', function(hooks) {
         assert.equal(mockCaptionParserClear.callCount, 3, 'captions cleared on rendition switch');
 
         // Simulate a discontinuity
-        originalCurrentTimeline = loader.currentTimeline_;
+        const originalCurrentTimeline = loader.currentTimeline_;
+
         loader.currentTimeline_ = originalCurrentTimeline + 1;
         assert.equal(mockCaptionParserClear.callCount, 3, 'captions cleared on discontinuity');
         loader.currentTimeline_ = originalCurrentTimeline;
@@ -1822,7 +1879,7 @@ QUnit.module('SegmentLoader: FMP4', function(hooks) {
 
         // Check that captions are added to track when found in the segment
         // and then captionParser is cleared
-        segment = {
+        const segment = {
           resolvedUri: '0.m4s',
           bytes: new Uint8Array([0, 0, 1]),
           map: {
@@ -1833,7 +1890,8 @@ QUnit.module('SegmentLoader: FMP4', function(hooks) {
             CC1: true
           }
         };
-        originalPendingSegment = loader.pendingSegment_;
+        const originalPendingSegment = loader.pendingSegment_;
+
         loader.pendingSegment_ = {
           segment,
           playlist: {

@@ -266,7 +266,8 @@ QUnit.test('processTransmux posts all actions', function(assert) {
     onDone: noop
   });
 
-  assert.deepEqual(this.transmuxer.postMessage.args[0][0],
+  assert.deepEqual(
+    this.transmuxer.postMessage.args[0][0],
     {
       action: 'setAudioAppendStart',
       appendStart: [0]
@@ -342,70 +343,72 @@ QUnit.test('handleDone_ modifies transmuxedData and passes it to the callback', 
   );
 });
 
-QUnit.test('handleData_ passes initSegment and segment data to callback',
-function(assert) {
-  const callback = sinon.spy();
-  const event = {
-    data: {
-      segment: {
-        type: 'video',
-        initSegment: {
-          data: [],
-          byteOffset: 0,
-          byteLength: 0
-        },
-        boxes: {
-          data: [],
-          byteOffset: 0,
-          byteLength: 0
-        },
-        captions: [{
-          text: 'a',
-          startTime: 1,
-          endTime: 2
-        }],
-        captionStreams: {
-          CC1: true
-        },
-        metadata: [{
-          cueTime: 1,
-          frames: [{
-            data: 'example'
-          }]
-        }],
-        videoFrameDtsTime: 1
+QUnit.test(
+  'handleData_ passes initSegment and segment data to callback',
+  function(assert) {
+    const callback = sinon.spy();
+    const event = {
+      data: {
+        segment: {
+          type: 'video',
+          initSegment: {
+            data: [],
+            byteOffset: 0,
+            byteLength: 0
+          },
+          boxes: {
+            data: [],
+            byteOffset: 0,
+            byteLength: 0
+          },
+          captions: [{
+            text: 'a',
+            startTime: 1,
+            endTime: 2
+          }],
+          captionStreams: {
+            CC1: true
+          },
+          metadata: [{
+            cueTime: 1,
+            frames: [{
+              data: 'example'
+            }]
+          }],
+          videoFrameDtsTime: 1
+        }
       }
-    }
-  };
-  const transmuxedData = {
-    isPartial: false,
-    buffer: []
-  };
+    };
+    const transmuxedData = {
+      isPartial: false,
+      buffer: []
+    };
 
-  handleData_(event, transmuxedData, callback);
+    handleData_(event, transmuxedData, callback);
 
-  assert.deepEqual(
-    transmuxedData,
-    {
-      buffer: [{
-        captions: event.data.segment.captions,
-        captionStreams: event.data.segment.captionStreams,
-        metadata: event.data.segment.metadata
-      }],
-      isPartial: false
-    },
-    'captions and metadata are added to transmuxedData buffer'
-  );
-  assert.deepEqual(callback.callCount, 1, 'callback ran');
-  assert.deepEqual(
-    callback.args[0][0],
-    {
-      type: 'video',
-      // cast ArrayBuffer to TypedArray
-      data: new Uint8Array(new ArrayBuffer(0), 0, 0),
-      initSegment: new Uint8Array(new ArrayBuffer(0), 0, 0),
-      videoFrameDtsTime: 1
-    },
-    'callback passed the bytes for the segment and initSegment'
-  );
-});
+    assert.deepEqual(
+      transmuxedData,
+      {
+        buffer: [{
+          captions: event.data.segment.captions,
+          captionStreams: event.data.segment.captionStreams,
+          metadata: event.data.segment.metadata
+        }],
+        isPartial: false
+      },
+      'captions and metadata are added to transmuxedData buffer'
+    );
+    assert.deepEqual(callback.callCount, 1, 'callback ran');
+    assert.deepEqual(
+      callback.args[0][0],
+      {
+        type: 'video',
+        // cast ArrayBuffer to TypedArray
+        data: new Uint8Array(new ArrayBuffer(0), 0, 0),
+        initSegment: new Uint8Array(new ArrayBuffer(0), 0, 0),
+        videoFrameDtsTime: 1
+      },
+      'callback passed the bytes for the segment and initSegment'
+    );
+  }
+);

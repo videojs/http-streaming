@@ -60,7 +60,7 @@ export const startLoaders = (playlistLoader, mediaType) => {
  * change of group is merely a rendition switch of the same content at another encoding,
  * rather than a change of content, such as switching audio from English to Spanish.
  *
- * @param {String} type
+ * @param {string} type
  *        MediaGroup type
  * @param {Object} settings
  *        Object containing required information for media groups
@@ -110,7 +110,7 @@ export const onGroupChanged = (type, settings) => () => {
  * destructive reset of the SegmentLoader to ensure we start loading as close to
  * currentTime as possible.
  *
- * @param {String} type
+ * @param {string} type
  *        MediaGroup type
  * @param {Object} settings
  *        Object containing required information for media groups
@@ -181,7 +181,7 @@ export const onError = {
    * Returns a function to be called when a SegmentLoader or PlaylistLoader encounters
    * an error.
    *
-   * @param {String} type
+   * @param {string} type
    *        MediaGroup type
    * @param {Object} settings
    *        Object containing required information for media groups
@@ -217,7 +217,7 @@ export const onError = {
     videojs.log.warn('Problem encountered loading the alternate audio track.' +
                        'Switching back to default.');
 
-    for (let trackId in mediaType.tracks) {
+    for (const trackId in mediaType.tracks) {
       mediaType.tracks[trackId].enabled = mediaType.tracks[trackId] === defaultTrack;
     }
 
@@ -227,7 +227,7 @@ export const onError = {
    * Returns a function to be called when a SegmentLoader or PlaylistLoader encounters
    * an error.
    *
-   * @param {String} type
+   * @param {string} type
    *        MediaGroup type
    * @param {Object} settings
    *        Object containing required information for media groups
@@ -260,7 +260,7 @@ export const setupListeners = {
   /**
    * Setup event listeners for audio playlist loader
    *
-   * @param {String} type
+   * @param {string} type
    *        MediaGroup type
    * @param {PlaylistLoader|null} playlistLoader
    *        PlaylistLoader to register listeners on
@@ -306,7 +306,7 @@ export const setupListeners = {
   /**
    * Setup event listeners for subtitle playlist loader
    *
-   * @param {String} type
+   * @param {string} type
    *        MediaGroup type
    * @param {PlaylistLoader|null} playlistLoader
    *        PlaylistLoader to register listeners on
@@ -352,7 +352,7 @@ export const initialize = {
   /**
    * Setup PlaylistLoaders and AudioTracks for the audio groups
    *
-   * @param {String} type
+   * @param {string} type
    *        MediaGroup type
    * @param {Object} settings
    *        Object containing required information for media groups
@@ -380,7 +380,7 @@ export const initialize = {
       mediaGroups[type] = { main: { default: { default: true } } };
     }
 
-    for (let groupId in mediaGroups[type]) {
+    for (const groupId in mediaGroups[type]) {
       if (!groups[groupId]) {
         groups[groupId] = [];
       }
@@ -388,27 +388,33 @@ export const initialize = {
       // List of playlists that have an AUDIO attribute value matching the current
       // group ID
 
-      for (let variantLabel in mediaGroups[type][groupId]) {
+      for (const variantLabel in mediaGroups[type][groupId]) {
         let properties = mediaGroups[type][groupId][variantLabel];
         let playlistLoader;
 
         if (properties.resolvedUri) {
-          playlistLoader = new PlaylistLoader(properties.resolvedUri,
-                                              hls,
-                                              requestOptions);
+          playlistLoader = new PlaylistLoader(
+            properties.resolvedUri,
+            hls,
+            requestOptions
+          );
         } else if (properties.playlists && sourceType === 'dash') {
-          playlistLoader = new DashPlaylistLoader(properties.playlists[0],
-                                                  hls,
-                                                  requestOptions,
-                                                  masterPlaylistLoader);
+          playlistLoader = new DashPlaylistLoader(
+            properties.playlists[0],
+            hls,
+            requestOptions,
+            masterPlaylistLoader
+          );
         } else {
           // no resolvedUri means the audio is muxed with the video when using this
           // audio track
           playlistLoader = null;
         }
 
-        properties = videojs.mergeOptions({ id: variantLabel, playlistLoader },
-                                          properties);
+        properties = videojs.mergeOptions(
+          { id: variantLabel, playlistLoader },
+          properties
+        );
 
         setupListeners[type](type, properties.playlistLoader, settings);
 
@@ -435,7 +441,7 @@ export const initialize = {
   /**
    * Setup PlaylistLoaders and TextTracks for the subtitle groups
    *
-   * @param {String} type
+   * @param {string} type
    *        MediaGroup type
    * @param {Object} settings
    *        Object containing required information for media groups
@@ -458,12 +464,12 @@ export const initialize = {
       masterPlaylistLoader
     } = settings;
 
-    for (let groupId in mediaGroups[type]) {
+    for (const groupId in mediaGroups[type]) {
       if (!groups[groupId]) {
         groups[groupId] = [];
       }
 
-      for (let variantLabel in mediaGroups[type][groupId]) {
+      for (const variantLabel in mediaGroups[type][groupId]) {
         if (mediaGroups[type][groupId][variantLabel].forced) {
           // Subtitle playlists with the forced attribute are not selectable in Safari.
           // According to Apple's HLS Authoring Specification:
@@ -484,10 +490,12 @@ export const initialize = {
           playlistLoader =
             new PlaylistLoader(properties.resolvedUri, hls, requestOptions);
         } else if (sourceType === 'dash') {
-          playlistLoader = new DashPlaylistLoader(properties.playlists[0],
-                                                  hls,
-                                                  requestOptions,
-                                                  masterPlaylistLoader);
+          playlistLoader = new DashPlaylistLoader(
+            properties.playlists[0],
+            hls,
+            requestOptions,
+            masterPlaylistLoader
+          );
         }
 
         properties = videojs.mergeOptions({
@@ -537,13 +545,13 @@ export const initialize = {
       }
     } = settings;
 
-    for (let groupId in mediaGroups[type]) {
+    for (const groupId in mediaGroups[type]) {
       if (!groups[groupId]) {
         groups[groupId] = [];
       }
 
-      for (let variantLabel in mediaGroups[type][groupId]) {
-        let properties = mediaGroups[type][groupId][variantLabel];
+      for (const variantLabel in mediaGroups[type][groupId]) {
+        const properties = mediaGroups[type][groupId][variantLabel];
 
         // We only support CEA608 captions for now, so ignore anything that
         // doesn't use a CCx INSTREAM-ID
@@ -574,7 +582,7 @@ export const initialize = {
 /**
  * Returns a function used to get the active group of the provided type
  *
- * @param {String} type
+ * @param {string} type
  *        MediaGroup type
  * @param {Object} settings
  *        Object containing required information for media groups
@@ -622,7 +630,7 @@ export const activeTrack = {
   /**
    * Returns a function used to get the active track of type provided
    *
-   * @param {String} type
+   * @param {string} type
    *        MediaGroup type
    * @param {Object} settings
    *        Object containing required information for media groups
@@ -634,7 +642,7 @@ export const activeTrack = {
   AUDIO: (type, settings) => () => {
     const { mediaTypes: { [type]: { tracks } } } = settings;
 
-    for (let id in tracks) {
+    for (const id in tracks) {
       if (tracks[id].enabled) {
         return tracks[id];
       }
@@ -645,7 +653,7 @@ export const activeTrack = {
   /**
    * Returns a function used to get the active track of type provided
    *
-   * @param {String} type
+   * @param {string} type
    *        MediaGroup type
    * @param {Object} settings
    *        Object containing required information for media groups
@@ -657,7 +665,7 @@ export const activeTrack = {
   SUBTITLES: (type, settings) => () => {
     const { mediaTypes: { [type]: { tracks } } } = settings;
 
-    for (let id in tracks) {
+    for (const id in tracks) {
       if (tracks[id].mode === 'showing') {
         return tracks[id];
       }
@@ -728,19 +736,23 @@ export const setupMediaGroups = (settings) => {
   };
 
   tech.audioTracks().addEventListener('change', onAudioTrackChanged);
-  tech.remoteTextTracks().addEventListener('change',
-    mediaTypes.SUBTITLES.onTrackChanged);
+  tech.remoteTextTracks().addEventListener(
+    'change',
+    mediaTypes.SUBTITLES.onTrackChanged
+  );
 
   hls.on('dispose', () => {
     tech.audioTracks().removeEventListener('change', onAudioTrackChanged);
-    tech.remoteTextTracks().removeEventListener('change',
-      mediaTypes.SUBTITLES.onTrackChanged);
+    tech.remoteTextTracks().removeEventListener(
+      'change',
+      mediaTypes.SUBTITLES.onTrackChanged
+    );
   });
 
   // clear existing audio tracks and add the ones we just created
   tech.clearTracks('audio');
 
-  for (let id in mediaTypes.AUDIO.tracks) {
+  for (const id in mediaTypes.AUDIO.tracks) {
     tech.audioTracks().addTrack(mediaTypes.AUDIO.tracks[id]);
   }
 };

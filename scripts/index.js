@@ -1,13 +1,10 @@
+/* global window document */
 /* eslint-disable no-var, object-shorthand, no-console */
 (function(window) {
   // all relevant elements
   var urlButton = document.getElementById('load-url');
   var sources = document.getElementById('load-source');
   var stateEls = {};
-
-  ['debug', 'autoplay', 'muted', 'minified', 'partial', 'url', 'type'].forEach(function(name) {
-    stateEls[name] = document.getElementById(name);
-  });
 
   var getInputValue = function(el) {
     if (el.type === 'url' || el.type === 'text') {
@@ -20,7 +17,7 @@
   };
 
   var newEvent = function(name) {
-    var event
+    var event;
 
     if (typeof window.Event === 'function') {
       event = new window.Event(name);
@@ -110,6 +107,10 @@
 
     onload();
   };
+
+  ['debug', 'autoplay', 'muted', 'minified', 'partial', 'url', 'type'].forEach(function(name) {
+    stateEls[name] = document.getElementById(name);
+  });
 
   window.startDemo = function(cb) {
     var state = loadState();

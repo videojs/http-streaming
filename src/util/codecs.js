@@ -11,8 +11,8 @@ export const translateLegacyCodec = function(codec) {
   }
 
   return codec.replace(/avc1\.(\d+)\.(\d+)/i, function(orig, profile, avcLevel) {
-    let profileHex = ('00' + Number(profile).toString(16)).slice(-2);
-    let avcLevelHex = ('00' + Number(avcLevel).toString(16)).slice(-2);
+    const profileHex = ('00' + Number(profile).toString(16)).slice(-2);
+    const avcLevelHex = ('00' + Number(avcLevel).toString(16)).slice(-2);
 
     return 'avc1.' + profileHex + '00' + avcLevelHex;
   });
@@ -36,16 +36,16 @@ export const translateLegacyCodecs = function(codecs) {
  */
 
 export const parseCodecs = function(codecs = '') {
-  let result = {
+  const result = {
     codecCount: 0
   };
-  let parsed;
 
   result.codecCount = codecs.split(',').length;
   result.codecCount = result.codecCount || 2;
 
   // parse the video codec
-  parsed = (/(^|\s|,)+(avc[13])([^ ,]*)/i).exec(codecs);
+  const parsed = (/(^|\s|,)+(avc[13])([^ ,]*)/i).exec(codecs);
+
   if (parsed) {
     result.videoCodec = parsed[2];
     result.videoObjectTypeIndicator = parsed[3];
@@ -64,7 +64,7 @@ export const parseCodecs = function(codecs = '') {
  * standard `avc1.<hhhhhh>`.
  *
  * @param codecString {String} the codec string
- * @return {String} the codec string with old apple-style codecs replaced
+ * @return {string} the codec string with old apple-style codecs replaced
  *
  * @private
  */
@@ -77,13 +77,14 @@ export const mapLegacyAvcCodecs = function(codecString) {
 /**
  * Returns a set of codec strings parsed from the playlist or the default
  * codec strings if no codecs were specified in the playlist
+ *
  * @param {Playlist} media the current media playlist
  * @return {Object} an object with the video and audio codecs
  */
 const getCodecs = function(media) {
   // if the codecs were explicitly specified, use them instead of the
   // defaults
-  let mediaAttributes = media.attributes || {};
+  const mediaAttributes = media.attributes || {};
 
   if (mediaAttributes.CODECS) {
     return parseCodecs(mediaAttributes.CODECS);
@@ -101,7 +102,7 @@ const audioProfileFromDefault = (master, audioGroupId) => {
     return null;
   }
 
-  for (let name in audioGroup) {
+  for (const name in audioGroup) {
     const audioType = audioGroup[name];
 
     if (audioType.default && audioType.playlists) {
@@ -129,7 +130,7 @@ export const isMuxed = (master, media) => {
   const mediaAttributes = media.attributes || {};
   const audioGroup = master.mediaGroups.AUDIO[mediaAttributes.AUDIO];
 
-  for (let groupId in audioGroup) {
+  for (const groupId in audioGroup) {
     // If an audio group has a URI (the case for HLS, as HLS will use external playlists),
     // or there are listed playlists (the case for DASH, as the manifest will have already
     // provided all of the details necessary to generate the audio playlist, as opposed to

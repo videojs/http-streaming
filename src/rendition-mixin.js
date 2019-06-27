@@ -4,11 +4,11 @@ import { isIncompatible, isEnabled } from './playlist.js';
  * Returns a function that acts as the Enable/disable playlist function.
  *
  * @param {PlaylistLoader} loader - The master playlist loader
- * @param {String} playlistUri - uri of the playlist
+ * @param {string} playlistUri - uri of the playlist
  * @param {Function} changePlaylistFn - A function to be called after a
  * playlist's enabled-state has been changed. Will NOT be called if a
  * playlist's enabled-state is unchanged
- * @param {Boolean=} enable - Value to set the playlist enabled-state to
+ * @param {boolean=} enable - Value to set the playlist enabled-state to
  * or if undefined returns the current enabled-state for the playlist
  * @return {Function} Function for setting/getting enabled
  */
@@ -72,20 +72,23 @@ class Representation {
 
     // Partially-apply the enableFunction to create a playlist-
     // specific variant
-    this.enabled = enableFunction(hlsHandler.playlists,
-                                  playlist.uri,
-                                  qualityChangeFunction);
+    this.enabled = enableFunction(
+      hlsHandler.playlists,
+      playlist.uri,
+      qualityChangeFunction
+    );
   }
 }
 
 /**
  * A mixin function that adds the `representations` api to an instance
  * of the HlsHandler class
+ *
  * @param {HlsHandler} hlsHandler - An instance of HlsHandler to add the
  * representation API into
  */
-let renditionSelectionMixin = function(hlsHandler) {
-  let playlists = hlsHandler.playlists;
+const renditionSelectionMixin = function(hlsHandler) {
+  const playlists = hlsHandler.playlists;
 
   // Add a single API-specific function to the HlsHandler instance
   hlsHandler.representations = () => {

@@ -32,8 +32,10 @@ QUnit.test('gopsSafeToAlignWith returns correct list', function(assert) {
     { pts: pts(currentTime + safetyNet + 3) }
   ];
   actual = gopsSafeToAlignWith(buffer, currentTime, mapping);
-  assert.deepEqual(actual, expected,
-    'entire buffer considered safe when all gops come after currentTime + safetyNet');
+  assert.deepEqual(
+    actual, expected,
+    'entire buffer considered safe when all gops come after currentTime + safetyNet'
+  );
 
   buffer = [
     { pts: pts(currentTime + safetyNet) },
@@ -66,8 +68,10 @@ QUnit.test('gopsSafeToAlignWith returns correct list', function(assert) {
   currentTime = 20;
   expected = [];
   actual = gopsSafeToAlignWith(buffer, currentTime, mapping);
-  assert.deepEqual(actual, expected,
-    'empty array when no gops in buffer come after currentTime');
+  assert.deepEqual(
+    actual, expected,
+    'empty array when no gops in buffer come after currentTime'
+  );
 });
 
 QUnit.test('updateGopBuffer correctly processes new gop information', function(assert) {
@@ -102,8 +106,10 @@ QUnit.test('updateGopBuffer correctly processes new gop information', function(a
   gops = [{ pts: 250 }, { pts: 300 }, { pts: 350 }];
   expected = [{ pts: 100 }, { pts: 200 }, { pts: 250 }, { pts: 300 }, { pts: 350 }];
   actual = updateGopBuffer(buffer, gops, replace);
-  assert.deepEqual(actual, expected,
-    'slices buffer at point of overlap and appends new gops');
+  assert.deepEqual(
+    actual, expected,
+    'slices buffer at point of overlap and appends new gops'
+  );
 
   buffer = [{ pts: 100 }, { pts: 200 }, { pts: 300 }, { pts: 400 }];
   gops = [{ pts: 200 }, { pts: 300 }, { pts: 350 }];
@@ -115,8 +121,10 @@ QUnit.test('updateGopBuffer correctly processes new gop information', function(a
   gops = [{ pts: 100 }, { pts: 200 }, { pts: 250 }];
   expected = [{ pts: 100 }, { pts: 200 }, { pts: 250 }];
   actual = updateGopBuffer(buffer, gops, replace);
-  assert.deepEqual(actual, expected,
-    'completely replaces buffer with new gops when all gops come before buffer');
+  assert.deepEqual(
+    actual, expected,
+    'completely replaces buffer with new gops when all gops come before buffer'
+  );
 });
 
 QUnit.test('removeGopBuffer correctly removes range from buffer', function(assert) {
@@ -124,7 +132,7 @@ QUnit.test('removeGopBuffer correctly removes range from buffer', function(asser
   let buffer = [];
   let start = 0;
   let end = 0;
-  let mapping = -5;
+  const mapping = -5;
   let actual;
   let expected;
 
@@ -143,8 +151,10 @@ QUnit.test('removeGopBuffer correctly removes range from buffer', function(asser
     { pts: pts(20 - mapping) }
   ];
   actual = removeGopBuffer(buffer, start, end, mapping);
-  assert.deepEqual(actual, expected,
-    'no removal when remove range comes before start of buffer');
+  assert.deepEqual(
+    actual, expected,
+    'no removal when remove range comes before start of buffer'
+  );
 
   start = 22;
   end = 30;
@@ -164,8 +174,10 @@ QUnit.test('removeGopBuffer correctly removes range from buffer', function(asser
     { pts: pts(18 - mapping) }
   ];
   actual = removeGopBuffer(buffer, start, end, mapping);
-  assert.deepEqual(actual, expected,
-    'removes last gop when remove range is after end of buffer');
+  assert.deepEqual(
+    actual, expected,
+    'removes last gop when remove range is after end of buffer'
+  );
 
   start = 0;
   end = 10;
@@ -407,8 +419,10 @@ QUnit.test('removeGopBuffer correctly removes range from buffer', function(asser
   ];
   expected = [];
   actual = removeGopBuffer(buffer, start, end, mapping);
-  assert.deepEqual(actual, expected,
-    'removes entire buffer when buffer inside remove range');
+  assert.deepEqual(
+    actual, expected,
+    'removes entire buffer when buffer inside remove range'
+  );
 
   start = 0;
   end = 30;
@@ -422,6 +436,8 @@ QUnit.test('removeGopBuffer correctly removes range from buffer', function(asser
   ];
   expected = [];
   actual = removeGopBuffer(buffer, start, end, mapping);
-  assert.deepEqual(actual, expected,
-    'removes entire buffer when buffer inside remove range');
+  assert.deepEqual(
+    actual, expected,
+    'removes entire buffer when buffer inside remove range'
+  );
 });

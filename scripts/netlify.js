@@ -17,10 +17,10 @@ sh.mkdir('-p', deployDir);
 
 // create nested directories
 files
-.map((file) => path.dirname(file))
-.forEach((dir) => sh.mkdir('-p', path.join(deployDir, dir)));
+  .map((file) => path.dirname(file))
+  .forEach((dir) => sh.mkdir('-p', path.join(deployDir, dir)));
 
 // copy over files, dist, and html files
 files
-.concat('dist', 'index.html')
-.forEach((file) => sh.cp('-r', file, path.join(deployDir, file)));
+  .concat('dist', 'index.html')
+  .forEach((file) => sh.cp('-r', file, path.join(deployDir, file)));
