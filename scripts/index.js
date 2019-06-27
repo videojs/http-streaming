@@ -6,7 +6,6 @@
   var sources = document.getElementById('load-source');
   var stateEls = {};
 
-
   var getInputValue = function(el) {
     if (el.type === 'url' || el.type === 'text') {
       return el.value;
@@ -108,7 +107,6 @@
 
     onload();
   };
-
 
   ['debug', 'autoplay', 'muted', 'minified', 'partial', 'url', 'type'].forEach(function(name) {
     stateEls[name] = document.getElementById(name);

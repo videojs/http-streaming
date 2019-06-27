@@ -123,6 +123,7 @@ const intervalDuration = function(playlist, endSequence, expired) {
   // walk forward to see if a precise duration estimate can be made
   // that way
   const forward = forwardDuration(playlist, endSequence);
+
   if (forward.precise) {
     // we found a segment that has been buffered and so it's
     // position is known precisely
