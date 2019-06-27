@@ -1204,7 +1204,7 @@ QUnit.module('SegmentLoader', function(hooks) {
           }
         };
 
-        loader.remove(3, 10);
+        loader.remove(10, 20);
 
         assert.strictEqual(
           loader.inbandTextTracks_.CC1.cues.length,
