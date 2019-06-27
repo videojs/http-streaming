@@ -29,13 +29,12 @@
     <p>The video below is an <a href="https://developer.apple.com/library/ios/documentation/networkinginternet/conceptual/streamingmediaguide/Introduction/Introduction.html#//apple_ref/doc/uid/TP40008332-CH1-SW1">HTTP Live Stream</a>.</p>
   </div>
   <video-js id="videojs-http-streaming-player" class="vjs-default-skin" controls>
-    <source src="https://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8" type="application/x-mpegURL">
   </video-js>
 
   <form id=load-url>
     <label>
       Video URL:
-      <input id=url type=url value="https://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8">
+      <input id=url type=url value="https://d2zihajmogu5jn.cloudfront.net/ts-fmp4/index.m3u8">
     </label><br/>
     <label>
       MimeType:
@@ -44,7 +43,7 @@
         <option>application/dash+xml</option>
       </select>
     </label>
-    <button type=submit>Load</button>
+    <button id='shrug' type=submit>Load</button>
   </form>
   <ul>
     <li><a href="index.min.html">Use minified JavaScript.</a></li>
@@ -59,7 +58,9 @@
   <script src="dist/videojs-http-streaming.js"></script>
   <script>
     (function(window, videojs) {
+      // videojs.log.level('debug');
       var player = window.player = videojs('videojs-http-streaming-player', {
+        muted: true,
         liveui: true,
         html5: {
           hls: {
@@ -83,6 +84,9 @@
         });
         return false;
       });
+
+      document.getElementById('shrug').click();
+
     }(window, window.videojs));
   </script>
 </body>

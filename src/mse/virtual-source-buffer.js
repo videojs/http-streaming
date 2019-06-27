@@ -72,7 +72,7 @@ export default class VirtualSourceBuffer extends videojs.EventTarget {
     this.safeAppend_ = videojs.browser.IE_VERSION >= 11;
 
     let options = {
-      remux: false,
+      remux: true,
       alignGopsAtEnd: this.safeAppend_
     };
 
@@ -284,7 +284,7 @@ export default class VirtualSourceBuffer extends videojs.EventTarget {
         buffer.updating = false;
       } else {
         const codecProperty = `${type}Codec_`;
-        const mimeType = `${type}/mp4;codecs="${this[codecProperty]}"`;
+        const mimeType = `${type}/mp4;codecs="${this.codecs_.join(',')}"`;
 
         buffer = makeWrappedSourceBuffer(this.mediaSource_.nativeMediaSource_, mimeType);
 
@@ -338,6 +338,14 @@ export default class VirtualSourceBuffer extends videojs.EventTarget {
    * @param {Uint8Array} segment the segment to append to the buffer
    */
   appendBuffer(segment) {
+    if (!segment.transmux) {
+
+      segment.type = 'video';
+      this.data_({data: {segment, byteOffset: segment.byteOffset, byteLength: segment.byteLength}});
+      this.done_();
+      return;
+    }
+    debugger;
     // Start the internal "updating" state
     this.bufferUpdating_ = true;
 
@@ -446,7 +454,7 @@ export default class VirtualSourceBuffer extends videojs.EventTarget {
     // Sort segments into separate video/audio arrays and
     // keep track of their total byte lengths
     sortedSegments = this.pendingBuffers_.reduce(function(segmentObj, segment) {
-      let type = segment.type;
+      let type = segment.type === 'combined' ? 'video' : segment.type;
       let data = segment.data;
       let initSegment = segment.initSegment;
 

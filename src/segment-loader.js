@@ -1304,17 +1304,18 @@ export default class SegmentLoader extends videojs.EventTarget {
     // before the content segment
     if (segment.map) {
       const initId = initSegmentId(segment.map);
+      let initSegment;
 
       if (!this.activeInitSegmentId_ ||
           this.activeInitSegmentId_ !== initId) {
-        const initSegment = this.initSegment(segment.map);
-
-        this.sourceUpdater_.appendBuffer({
-          bytes: initSegment.bytes
-        }, () => {
-          this.activeInitSegmentId_ = initId;
-        });
+        initSegment = this.initSegment(segment.map).bytes;
+        this.activeInitSegmentId_ = initId;
+      } else {
+        initSegment = new Uint8Array();
       }
+
+      segmentInfo.bytes.data = segmentInfo.bytes;
+      segmentInfo.bytes.initSegment = {data: initSegment, byteOffset: initSegment.byteOffset, byteLength: initSegment.byteLength};
     }
 
     segmentInfo.byteLength = segmentInfo.bytes.byteLength;
@@ -1325,6 +1326,11 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     this.logger_(segmentInfoString(segmentInfo));
+    segmentInfo.bytes.transmux = segment.uri === 'media_00001.ts';
+
+    if (segmentInfo.bytes.transmux) {
+      this.activeInitSegmentId_ = null;
+    }
 
     this.sourceUpdater_.appendBuffer({
       bytes: segmentInfo.bytes,
