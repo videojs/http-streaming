@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const basePath  = path.resolve(__dirname, '..');
+const basePath = path.resolve(__dirname, '..');
 const testDir = path.join(basePath, 'test');
 const segmentsDir = path.join(testDir, 'segments');
 const segmentsFilepath = path.join(testDir, 'test-segments.js');
@@ -10,7 +10,7 @@ const base64ToUint8Array = (base64) => {
   const decoded = window.atob(base64);
   const uint8Array = new Uint8Array(new ArrayBuffer(decoded.length));
 
-  for(let i = 0; i < decoded.length; i++) {
+  for (let i = 0; i < decoded.length; i++) {
     uint8Array[i] = decoded.charCodeAt(i);
   }
 
@@ -55,7 +55,7 @@ module.exports = {
       return acc;
     }, []);
 
-    let segmentsFile =
+    const segmentsFile =
       `const base64ToUint8Array = ${base64ToUint8Array.toString()};\n` +
       `const utf16CharCodesToString = ${utf16CharCodesToString.toString()};\n` +
       segmentDataExportStrings.join('\n');
@@ -76,7 +76,7 @@ module.exports = {
     if (fs.existsSync(segmentsFilepath)) {
       try {
         fs.unlinkSync(segmentsFilepath);
-      } catch(e) {
+      } catch (e) {
         console.log(e);
       }
     }

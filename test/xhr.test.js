@@ -18,7 +18,7 @@ QUnit.module('xhr', {
 });
 
 QUnit.test('xhr respects beforeRequest', function(assert) {
-  let defaultOptions = {
+  const defaultOptions = {
     url: 'default'
   };
 

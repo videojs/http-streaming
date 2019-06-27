@@ -13,7 +13,7 @@ const playFor = function(player, time, cb) {
       playPromise.then(null, (e) => {});
     }
   }
-  let targetTime = player.currentTime() + time;
+  const targetTime = player.currentTime() + time;
 
   const checkPlayerTime = function() {
     window.setTimeout(() => {
@@ -33,8 +33,8 @@ QUnit.module('Playback', {
 
     this.fixture = document.getElementById('qunit-fixture');
 
-    let done = assert.async();
-    let video = document.createElement('video-js');
+    const done = assert.async();
+    const video = document.createElement('video-js');
 
     // uncomment these lines when deugging
     // videojs.log.level('debug');
@@ -57,12 +57,12 @@ QUnit.module('Playback', {
 });
 
 QUnit.test('Advanced Bip Bop default speed', function(assert) {
-  let done = assert.async();
+  const done = assert.async();
 
   this.player.defaultPlaybackRate(1);
 
   assert.expect(2);
-  let player = this.player;
+  const player = this.player;
 
   playFor(player, 2, function() {
     assert.ok(true, 'played for at least two seconds');
@@ -78,10 +78,10 @@ QUnit.test('Advanced Bip Bop default speed', function(assert) {
 });
 
 QUnit.test('Advanced Bip Bop', function(assert) {
-  let done = assert.async();
+  const done = assert.async();
 
   assert.expect(2);
-  let player = this.player;
+  const player = this.player;
 
   playFor(player, 2, function() {
     assert.ok(true, 'played for at least two seconds');
@@ -97,10 +97,10 @@ QUnit.test('Advanced Bip Bop', function(assert) {
 });
 
 QUnit.test('replay', function(assert) {
-  let done = assert.async();
+  const done = assert.async();
 
   assert.expect(2);
-  let player = this.player;
+  const player = this.player;
 
   // seek to near the end of the video
   playFor(player, 1, function() {
@@ -125,10 +125,10 @@ QUnit.test('replay', function(assert) {
 });
 
 QUnit.test('playlist with fmp4 segments', function(assert) {
-  let done = assert.async();
+  const done = assert.async();
 
   assert.expect(2);
-  let player = this.player;
+  const player = this.player;
 
   playFor(player, 6, function() {
     assert.ok(true, 'played for at least six seconds to hit the change in container format');
@@ -144,10 +144,10 @@ QUnit.test('playlist with fmp4 segments', function(assert) {
 });
 
 QUnit.test('playlist with fmp4 and ts segments', function(assert) {
-  let done = assert.async();
+  const done = assert.async();
 
   assert.expect(2);
-  let player = this.player;
+  const player = this.player;
 
   playFor(player, 6, function() {
     assert.ok(true, 'played for at least six seconds to hit the change in container format');
@@ -163,10 +163,10 @@ QUnit.test('playlist with fmp4 and ts segments', function(assert) {
 });
 
 QUnit.test('Advanced Bip Bop preload=none', function(assert) {
-  let done = assert.async();
+  const done = assert.async();
 
   assert.expect(2);
-  let player = this.player;
+  const player = this.player;
 
   player.preload('none');
 
@@ -184,10 +184,10 @@ QUnit.test('Advanced Bip Bop preload=none', function(assert) {
 });
 
 QUnit.test('Big Buck Bunny', function(assert) {
-  let done = assert.async();
+  const done = assert.async();
 
   assert.expect(2);
-  let player = this.player;
+  const player = this.player;
 
   playFor(player, 2, function() {
     assert.ok(true, 'played for at least two seconds');
@@ -203,10 +203,10 @@ QUnit.test('Big Buck Bunny', function(assert) {
 });
 
 QUnit.test('Live DASH', function(assert) {
-  let done = assert.async();
+  const done = assert.async();
 
   assert.expect(2);
-  let player = this.player;
+  const player = this.player;
 
   playFor(player, 2, function() {
     assert.ok(true, 'played for at least two seconds');
@@ -222,8 +222,8 @@ QUnit.test('Live DASH', function(assert) {
 });
 
 QUnit.test('DASH sidx', function(assert) {
-  let done = assert.async();
-  let player = this.player;
+  const done = assert.async();
+  const player = this.player;
 
   playFor(player, 2, function() {
     assert.ok(true, 'played for at least two seconds');
@@ -247,8 +247,8 @@ QUnit.test('DASH sidx', function(assert) {
 
 QUnit.test('DASH sidx with alt audio should end', function(assert) {
 
-  let done = assert.async();
-  let player = this.player;
+  const done = assert.async();
+  const player = this.player;
 
   player.one('ended', () => {
     assert.ok(true, 'triggered ended');
@@ -274,8 +274,8 @@ QUnit.test('DASH sidx with alt audio should end', function(assert) {
 });
 
 QUnit.test('loops', function(assert) {
-  let done = assert.async();
-  let player = this.player;
+  const done = assert.async();
+  const player = this.player;
 
   player.loop(true);
   player.src({

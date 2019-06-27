@@ -13,8 +13,10 @@ QUnit.test('the environment is sane', function(assert) {
   assert.strictEqual(typeof window.MediaSource, 'function', 'MediaSource is a function');
   assert.strictEqual(typeof window.URL, 'function', 'URL is a function');
   assert.strictEqual(typeof videojs.Hls, 'object', 'Hls is an object');
-  assert.strictEqual(typeof videojs.HlsSourceHandler,
-                     'object',
-                     'HlsSourceHandler is a function');
+  assert.strictEqual(
+    typeof videojs.HlsSourceHandler,
+    'object',
+    'HlsSourceHandler is a function'
+  );
   assert.strictEqual(typeof videojs.HlsHandler, 'function', 'HlsHandler is a function');
 });

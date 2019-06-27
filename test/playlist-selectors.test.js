@@ -64,68 +64,71 @@ test('Exponential moving average has a configurable decay parameter', function(a
   assert.equal(playlist.attributes.BANDWIDTH, 50, 'selected the middle playlist');
 });
 
-test('minRebufferMaxBandwidthSelector picks highest rendition without rebuffering',
-function(assert) {
-  let master = this.hls.playlists.master;
-  let currentTime = 0;
-  let bandwidth = 2000;
-  let duration = 100;
-  let segmentDuration = 10;
-  let timeUntilRebuffer = 5;
-  let currentTimeline = 0;
-  let syncController = {
-    getSyncPoint: (playlist) => playlist.syncPoint
-  };
-
-  const settings = () => {
-    return {
-      master,
-      currentTime,
-      bandwidth,
-      duration,
-      segmentDuration,
-      timeUntilRebuffer,
-      currentTimeline,
-      syncController
+test(
+  'minRebufferMaxBandwidthSelector picks highest rendition without rebuffering',
+  function(assert) {
+    const master = this.hls.playlists.master;
+    const currentTime = 0;
+    let bandwidth = 2000;
+    const duration = 100;
+    const segmentDuration = 10;
+    let timeUntilRebuffer = 5;
+    const currentTimeline = 0;
+    const syncController = {
+      getSyncPoint: (playlist) => playlist.syncPoint
     };
-  };
 
-  master.playlists = [
-    { attributes: { BANDWIDTH: 100 }, syncPoint: false },
-    { attributes: { BANDWIDTH: 500 }, syncPoint: false },
-    { attributes: { BANDWIDTH: 1000 }, syncPoint: false },
-    { attributes: { BANDWIDTH: 2000 }, syncPoint: true },
-    { attributes: { BANDWIDTH: 5000 }, syncPoint: false }
-  ];
+    const settings = () => {
+      return {
+        master,
+        currentTime,
+        bandwidth,
+        duration,
+        segmentDuration,
+        timeUntilRebuffer,
+        currentTimeline,
+        syncController
+      };
+    };
 
-  let result = minRebufferMaxBandwidthSelector(settings());
+    master.playlists = [
+      { attributes: { BANDWIDTH: 100 }, syncPoint: false },
+      { attributes: { BANDWIDTH: 500 }, syncPoint: false },
+      { attributes: { BANDWIDTH: 1000 }, syncPoint: false },
+      { attributes: { BANDWIDTH: 2000 }, syncPoint: true },
+      { attributes: { BANDWIDTH: 5000 }, syncPoint: false }
+    ];
 
-  assert.equal(result.playlist, master.playlists[1], 'selected the correct playlist');
-  assert.equal(result.rebufferingImpact, 0, 'impact on rebuffering is 0');
+    let result = minRebufferMaxBandwidthSelector(settings());
 
-  master.playlists = [
-    { attributes: { BANDWIDTH: 100 }, syncPoint: false },
-    { attributes: { BANDWIDTH: 500 }, syncPoint: false },
-    { attributes: { BANDWIDTH: 1000 }, syncPoint: true },
-    { attributes: { BANDWIDTH: 2000 }, syncPoint: true },
-    { attributes: { BANDWIDTH: 5000 }, syncPoint: false }
-  ];
+    assert.equal(result.playlist, master.playlists[1], 'selected the correct playlist');
+    assert.equal(result.rebufferingImpact, 0, 'impact on rebuffering is 0');
 
-  result = minRebufferMaxBandwidthSelector(settings());
+    master.playlists = [
+      { attributes: { BANDWIDTH: 100 }, syncPoint: false },
+      { attributes: { BANDWIDTH: 500 }, syncPoint: false },
+      { attributes: { BANDWIDTH: 1000 }, syncPoint: true },
+      { attributes: { BANDWIDTH: 2000 }, syncPoint: true },
+      { attributes: { BANDWIDTH: 5000 }, syncPoint: false }
+    ];
 
-  assert.equal(result.playlist, master.playlists[2], 'selected the corerct playlist');
-  assert.equal(result.rebufferingImpact, 0, 'impact on rebuffering is 0');
+    result = minRebufferMaxBandwidthSelector(settings());
 
-  bandwidth = 500;
-  timeUntilRebuffer = 3;
+    assert.equal(result.playlist, master.playlists[2], 'selected the corerct playlist');
+    assert.equal(result.rebufferingImpact, 0, 'impact on rebuffering is 0');
 
-  result = minRebufferMaxBandwidthSelector(settings());
+    bandwidth = 500;
+    timeUntilRebuffer = 3;
 
-  assert.equal(result.playlist, master.playlists[0], 'selected the correct playlist');
-  assert.equal(result.rebufferingImpact, 1, 'impact on rebuffering is 1 second');
-});
+    result = minRebufferMaxBandwidthSelector(settings());
 
-test('lowestBitrateCompatibleVariantSelector picks lowest non-audio playlist',
+    assert.equal(result.playlist, master.playlists[0], 'selected the correct playlist');
+    assert.equal(result.rebufferingImpact, 1, 'impact on rebuffering is 1 second');
+  }
+);
+
+test(
+  'lowestBitrateCompatibleVariantSelector picks lowest non-audio playlist',
   function(assert) {
     // Set this up out of order to make sure that the function sorts all
     // playlists by bandwidth
@@ -138,11 +141,15 @@ test('lowestBitrateCompatibleVariantSelector picks lowest non-audio playlist',
     const expectedPlaylist = this.hls.playlists.master.playlists[2];
     const testPlaylist = lowestBitrateCompatibleVariantSelector.call(this.hls);
 
-    assert.equal(testPlaylist, expectedPlaylist,
-      'Selected lowest compatible playlist with video assets');
-  });
+    assert.equal(
+      testPlaylist, expectedPlaylist,
+      'Selected lowest compatible playlist with video assets'
+    );
+  }
+);
 
-test('lowestBitrateCompatibleVariantSelector return null if no video exists',
+test(
+  'lowestBitrateCompatibleVariantSelector return null if no video exists',
   function(assert) {
     this.hls.playlists.master.playlists = [
       { attributes: { BANDWIDTH: 50, CODECS: 'mp4a.40.2' } },
@@ -152,12 +159,15 @@ test('lowestBitrateCompatibleVariantSelector return null if no video exists',
 
     const testPlaylist = lowestBitrateCompatibleVariantSelector.call(this.hls);
 
-    assert.equal(testPlaylist, null,
-      'Returned null playlist since no video assets exist');
-  });
+    assert.equal(
+      testPlaylist, null,
+      'Returned null playlist since no video assets exist'
+    );
+  }
+);
 
 test('simpleSelector switches up even without resolution information', function(assert) {
-  let master = this.hls.playlists.master;
+  const master = this.hls.playlists.master;
 
   master.playlists = [
     { attributes: { BANDWIDTH: 100 } },
@@ -182,7 +192,7 @@ const trickyPlaylists = [
 ];
 
 test('simpleSelector limits using resolution information when it exists', function(assert) {
-  let master = this.hls.playlists.master;
+  const master = this.hls.playlists.master;
 
   master.playlists = trickyPlaylists;
 
@@ -192,7 +202,7 @@ test('simpleSelector limits using resolution information when it exists', functi
 });
 
 test('simpleSelector can not limit based on resolution information', function(assert) {
-  let master = this.hls.playlists.master;
+  const master = this.hls.playlists.master;
 
   master.playlists = trickyPlaylists;
 

@@ -250,9 +250,9 @@ const transmuxAndNotify = ({
   // One reason for this is that in the case of full segments, we want to trust start
   // times from the probe, rather than the transmuxer.
   let audioStartFn = timingInfoFn.bind(null, segment, 'audio', 'start');
-  let audioEndFn = timingInfoFn.bind(null, segment, 'audio', 'end');
+  const audioEndFn = timingInfoFn.bind(null, segment, 'audio', 'end');
   let videoStartFn = timingInfoFn.bind(null, segment, 'video', 'start');
-  let videoEndFn = timingInfoFn.bind(null, segment, 'video', 'end');
+  const videoEndFn = timingInfoFn.bind(null, segment, 'video', 'end');
 
   // Check to see if we are appending a full segment.
   if (!isPartial && !segment.lastReachedChar) {
@@ -402,7 +402,8 @@ const handleSegmentBytes = ({
       const parsed = captionParser.parse(
         segment.bytes,
         [tracks.video.id],
-        segment.map.timescales);
+        segment.map.timescales
+      );
 
       if (parsed && parsed.captions && parsed.captions.length > 0) {
         captionsFn(segment, parsed.captions);
@@ -461,9 +462,11 @@ const decryptSegment = ({
       decryptionWorker.removeEventListener('message', decryptionHandler);
       const decrypted = event.data.decrypted;
 
-      segment.bytes = new Uint8Array(decrypted.bytes,
-                                     decrypted.byteOffset,
-                                     decrypted.byteLength);
+      segment.bytes = new Uint8Array(
+        decrypted.bytes,
+        decrypted.byteOffset,
+        decrypted.byteLength
+      );
 
       handleSegmentBytes({
         segment,
@@ -627,8 +630,7 @@ const handleProgress = ({
   // don't support encrypted segments or fmp4 for now
   // in order to determine if it's an fmp4 we need at least 8 bytes
   if (handlePartialData && !segment.key && request.responseText.length >= 8) {
-    const newBytes = stringToArrayBuffer(
-      request.responseText.substring(segment.lastReachedChar || 0));
+    const newBytes = stringToArrayBuffer(request.responseText.substring(segment.lastReachedChar || 0));
 
     if (segment.lastReachedChar || !isLikelyFmp4Data(new Uint8Array(newBytes))) {
       segment.lastReachedChar = request.responseText.length;
@@ -707,7 +709,7 @@ const handleProgress = ({
  *                            request, transmuxed if needed
  * @param {Function} doneFn - a callback that is executed only once all requests have
  *                            succeeded or failed
- * @returns {Function} a function that, when invoked, immediately aborts all
+ * @return {Function} a function that, when invoked, immediately aborts all
  *                     outstanding requests
  */
 export const mediaSegmentRequest = ({
@@ -802,7 +804,8 @@ export const mediaSegmentRequest = ({
       captionsFn,
       dataFn,
       handlePartialData
-    }));
+    })
+  );
   activeXhrs.push(segmentXhr);
 
   return () => abortAll(activeXhrs);

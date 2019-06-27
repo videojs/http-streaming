@@ -6,7 +6,7 @@
  * convert a TimeRange to text
  *
  * @param {TimeRange} range the timerange to use for conversion
- * @param {Number} i the iterator on the range to convert
+ * @param {number} i the iterator on the range to convert
  */
 const textRange = function(range, i) {
   return range.start(i) + '-' + range.end(i);
@@ -15,11 +15,11 @@ const textRange = function(range, i) {
 /**
  * format a number as hex string
  *
- * @param {Number} e The number
- * @param {Number} i the iterator
+ * @param {number} e The number
+ * @param {number} i the iterator
  */
 const formatHexString = function(e, i) {
-  let value = e.toString(16);
+  const value = e.toString(16);
 
   return '00'.substring(0, 2 - value.length) + value + (i % 2 ? ' ' : '');
 };
@@ -65,7 +65,7 @@ export const createTransferableMessage = function(message) {
  * segment.
  */
 export const initSegmentId = function(initSegment) {
-  let byterange = initSegment.byterange || {
+  const byterange = initSegment.byterange || {
     length: Infinity,
     offset: 0
   };
@@ -86,8 +86,8 @@ export const segmentKeyId = function(key) {
  * utils to help dump binary data to the console
  */
 export const hexDump = (data) => {
-  let bytes = Array.prototype.slice.call(data);
-  let step = 16;
+  const bytes = Array.prototype.slice.call(data);
+  const step = 16;
   let result = '';
   let hex;
   let ascii;

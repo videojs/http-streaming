@@ -102,21 +102,31 @@ test('creates cues for 608 captions with "stream" property in ccX', function(ass
       stream: 'CC4'
     }]
   });
-  assert.strictEqual(this.inbandTextTracks.CC1.cues.length,
-                     1,
-                     'added one 608 cue to CC1');
-  assert.strictEqual(this.inbandTextTracks.CC2.cues.length,
-                     1,
-                     'added one 608 cue to CC2');
-  assert.strictEqual(this.inbandTextTracks.CC3.cues.length,
-                     1,
-                     'added one 608 cue to CC3');
-  assert.strictEqual(this.inbandTextTracks.CC4.cues.length,
-                     1,
-                     'added one 608 cue to CC4');
-  assert.strictEqual(this.inbandTextTracks.metadataTrack_.cues.length,
-                     0,
-                     'added no metadata cues');
+  assert.strictEqual(
+    this.inbandTextTracks.CC1.cues.length,
+    1,
+    'added one 608 cue to CC1'
+  );
+  assert.strictEqual(
+    this.inbandTextTracks.CC2.cues.length,
+    1,
+    'added one 608 cue to CC2'
+  );
+  assert.strictEqual(
+    this.inbandTextTracks.CC3.cues.length,
+    1,
+    'added one 608 cue to CC3'
+  );
+  assert.strictEqual(
+    this.inbandTextTracks.CC4.cues.length,
+    1,
+    'added one 608 cue to CC4'
+  );
+  assert.strictEqual(
+    this.inbandTextTracks.metadataTrack_.cues.length,
+    0,
+    'added no metadata cues'
+  );
 });
 
 test('use existing tracks with id equal to CC#', function(assert) {
@@ -156,8 +166,8 @@ test('use existing tracks with id equal to CC#', function(assert) {
   assert.strictEqual(CC2.track.cues.length, 1, 'CC2 contains 1 cue');
   assert.strictEqual(
     CC2.track.cues[0].text,
-   'This is an in-band caption in CC2',
-   'CC2 contains the right cue'
+    'This is an in-band caption in CC2',
+    'CC2 contains the right cue'
   );
 });
 
@@ -264,26 +274,32 @@ test('adds cues for each metadata frame seen', function(assert) {
   assert.strictEqual(
     metadataTrack.cues[1].text,
     'This is a text tag',
-    'included the text');
+    'included the text'
+  );
   assert.strictEqual(
     metadataTrack.cues[1].startTime,
     2 + 10,
-    'started at 12');
+    'started at 12'
+  );
   assert.strictEqual(
     metadataTrack.cues[1].endTime,
     14 + 10,
-    'ended at the startTime of next cue(24)');
+    'ended at the startTime of next cue(24)'
+  );
 
   assert.strictEqual(
     metadataTrack.cues[2].text,
     'This is a priv tag',
-    'included the text');
+    'included the text'
+  );
   assert.strictEqual(
     metadataTrack.cues[2].startTime,
     14 + 10,
-    'started at 24');
+    'started at 24'
+  );
   assert.strictEqual(
     metadataTrack.cues[2].endTime,
     videoDuration,
-    'ended at duration 20');
+    'ended at duration 20'
+  );
 });

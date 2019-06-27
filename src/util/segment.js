@@ -9,7 +9,7 @@ import { ONE_SECOND_IN_TS } from 'mux.js/lib/utils/clock';
  * @private
  * @param {Uint8Array} segmentBytes - segment bytes
  * @param {Uint8Array} mapBytes - map bytes
- * @return {object} The start and end time of the current segment in "media time"
+ * @return {Object} The start and end time of the current segment in "media time"
  */
 export const probeMp4StartTime = (segmentBytes, mapBytes) => {
   const timescales = mp4probe.timescale(mapBytes);
@@ -23,11 +23,11 @@ export const probeMp4StartTime = (segmentBytes, mapBytes) => {
  *
  * @private
  * @param {Uint8Array} bytes - segment bytes
- * @return {object} The start time of the current segment in "media time" as well as
+ * @return {Object} The start time of the current segment in "media time" as well as
  *                  whether it contains video and/or audio
  */
 export const probeTsSegment = (bytes, baseStartTime) => {
-  let timeInfo = tsInspector.inspect(bytes, baseStartTime * ONE_SECOND_IN_TS);
+  const timeInfo = tsInspector.inspect(bytes, baseStartTime * ONE_SECOND_IN_TS);
 
   if (!timeInfo) {
     return null;

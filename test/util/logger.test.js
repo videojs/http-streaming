@@ -18,7 +18,8 @@ QUnit.test('Logger includes source', function(assert) {
   assert.strictEqual(
     msg,
     `VHS: ${source} > test`,
-    'log message includes the source');
+    'log message includes the source'
+  );
 
   // Reset
   videojs.log.debug = originalLogDebug;

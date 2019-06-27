@@ -189,7 +189,7 @@ const onUpdateend = (type, sourceUpdater) => (e) => {
  *
  * @class SourceUpdater
  * @param {MediaSource} mediaSource the MediaSource to create the SourceBuffer from
- * @param {String} mimeType the desired MIME type of the underlying SourceBuffer
+ * @param {string} mimeType the desired MIME type of the underlying SourceBuffer
  */
 export default class SourceUpdater extends videojs.EventTarget {
   constructor(mediaSource) {
@@ -225,15 +225,13 @@ export default class SourceUpdater extends videojs.EventTarget {
     }
 
     if (codecs.audio) {
-      this.audioBuffer = this.mediaSource.addSourceBuffer(
-        `audio/mp4;codecs="${codecs.audio}"`);
+      this.audioBuffer = this.mediaSource.addSourceBuffer(`audio/mp4;codecs="${codecs.audio}"`);
       this.audioBuffer.removing = false;
       this.logger_(`created SourceBuffer audio/mp4;codecs="${codecs.audio}"`);
     }
 
     if (codecs.video) {
-      this.videoBuffer = this.mediaSource.addSourceBuffer(
-        `video/mp4;codecs="${codecs.video}"`);
+      this.videoBuffer = this.mediaSource.addSourceBuffer(`video/mp4;codecs="${codecs.video}"`);
       this.videoBuffer.removing = false;
       this.logger_(`created SourceBuffer video/mp4;codecs="${codecs.video}"`);
     }
@@ -374,8 +372,8 @@ export default class SourceUpdater extends videojs.EventTarget {
   /**
    * Queue an update to remove a time range from the buffer.
    *
-   * @param {Number} start where to start the removal
-   * @param {Number} end where to end the removal
+   * @param {number} start where to start the removal
+   * @param {number} end where to end the removal
    * @param {Function} [done=noop] optional callback to be executed when the remove
    * operation is complete
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-remove-void-double-start-unrestricted-double-end
@@ -398,8 +396,8 @@ export default class SourceUpdater extends videojs.EventTarget {
   /**
    * Queue an update to remove a time range from the buffer.
    *
-   * @param {Number} start where to start the removal
-   * @param {Number} end where to end the removal
+   * @param {number} start where to start the removal
+   * @param {number} end where to end the removal
    * @param {Function} [done=noop] optional callback to be executed when the remove
    * operation is complete
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-remove-void-double-start-unrestricted-double-end
@@ -422,7 +420,7 @@ export default class SourceUpdater extends videojs.EventTarget {
   /**
    * Whether the underlying sourceBuffer is updating or not
    *
-   * @return {Boolean} the updating status of the SourceBuffer
+   * @return {boolean} the updating status of the SourceBuffer
    */
   updating() {
     // the audio/video source buffer is updating
@@ -436,7 +434,7 @@ export default class SourceUpdater extends videojs.EventTarget {
   /**
    * Set/get the timestampoffset on the audio SourceBuffer
    *
-   * @return {Number} the timestamp offset
+   * @return {number} the timestamp offset
    */
   audioTimestampOffset(offset) {
     if (typeof offset !== 'undefined' &&
@@ -457,7 +455,7 @@ export default class SourceUpdater extends videojs.EventTarget {
   /**
    * Set/get the timestampoffset on the video SourceBuffer
    *
-   * @return {Number} the timestamp offset
+   * @return {number} the timestamp offset
    */
   videoTimestampOffset(offset) {
     if (typeof offset !== 'undefined' &&

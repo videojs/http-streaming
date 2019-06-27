@@ -93,7 +93,7 @@ class MockMediaSource extends videojs.EventTarget {
   }
 
   addSourceBuffer(mime) {
-    let sourceBuffer = new MockSourceBuffer();
+    const sourceBuffer = new MockSourceBuffer();
 
     sourceBuffer.mimeType_ = mime;
     this.sourceBuffers.push(sourceBuffer);
@@ -132,8 +132,7 @@ export const absoluteUrl = function(relativeUrl) {
 
 export const useFakeMediaSource = function() {
   window.MediaSource = MockMediaSource;
-  window.URL.createObjectURL = (object) => realCreateObjectURL(
-    object instanceof MockMediaSource ? object.nativeMediaSource_ : object);
+  window.URL.createObjectURL = (object) => realCreateObjectURL(object instanceof MockMediaSource ? object.nativeMediaSource_ : object);
 
   return {
     restore() {
@@ -144,9 +143,9 @@ export const useFakeMediaSource = function() {
 };
 
 export const useFakeEnvironment = function(assert) {
-  let realXMLHttpRequest = videojs.xhr.XMLHttpRequest;
+  const realXMLHttpRequest = videojs.xhr.XMLHttpRequest;
 
-  let fakeEnvironment = {
+  const fakeEnvironment = {
     requests: [],
     restore() {
       this.clock.restore();
@@ -155,13 +154,15 @@ export const useFakeEnvironment = function(assert) {
       ['warn', 'error'].forEach((level) => {
         if (this.log && this.log[level] && this.log[level].restore) {
           if (assert) {
-            let calls = (this.log[level].args || []).map((args) => {
+            const calls = (this.log[level].args || []).map((args) => {
               return args.join(', ');
             }).join('\n  ');
 
-            assert.equal(this.log[level].callCount,
-                        0,
-                        'no unexpected logs at level "' + level + '":\n  ' + calls);
+            assert.equal(
+              this.log[level].callCount,
+              0,
+              'no unexpected logs at level "' + level + '":\n  ' + calls
+            );
           }
           this.log[level].restore();
         }
@@ -177,7 +178,7 @@ export const useFakeEnvironment = function(assert) {
     Object.defineProperty(videojs.log[level], 'calls', {
       get() {
         // reset callCount to 0 so they don't have to
-        let callCount = this.callCount;
+        const callCount = this.callCount;
 
         this.callCount = 0;
         return callCount;
@@ -214,9 +215,11 @@ export const useFakeEnvironment = function(assert) {
       this.responseText = rawEventData.toString();
     }
 
-    this.dispatchEvent(new sinon.ProgressEvent('progress',
-                                               rawEventData,
-                                               this));
+    this.dispatchEvent(new sinon.ProgressEvent(
+      'progress',
+      rawEventData,
+      this
+    ));
   };
 
   // used for treating the response however we want, instead of the browser deciding
@@ -328,7 +331,7 @@ export const createPlayer = function(options, src, clock) {
     if (typeof src === 'string') {
       video.src = src;
     } else if (src.src) {
-      let source = document.createElement('source');
+      const source = document.createElement('source');
 
       source.src = src.src;
       if (src.type) {
@@ -415,7 +418,7 @@ export const standardXHRResponse = function(request, data) {
 };
 
 export const playlistWithDuration = function(time, conf) {
-  let result = {
+  const result = {
     targetDuration: 10,
     mediaSequence: conf && conf.mediaSequence ? conf.mediaSequence : 0,
     discontinuityStarts: conf && conf.discontinuityStarts ? conf.discontinuityStarts : [],
@@ -426,11 +429,11 @@ export const playlistWithDuration = function(time, conf) {
       conf && conf.discontinuitySequence ? conf.discontinuitySequence : 0,
     attributes: conf && typeof conf.attributes !== 'undefined' ? conf.attributes : {}
   };
-  let count = Math.floor(time / 10);
-  let remainder = time % 10;
+  const count = Math.floor(time / 10);
+  const remainder = time % 10;
   let i;
-  let isEncrypted = conf && conf.isEncrypted;
-  let extension = conf && conf.extension ? conf.extension : '.ts';
+  const isEncrypted = conf && conf.isEncrypted;
+  const extension = conf && conf.extension ? conf.extension : '.ts';
   let timeline = result.discontinuitySequence;
   let discontinuityStartsIndex = 0;
 

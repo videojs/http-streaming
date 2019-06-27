@@ -4,8 +4,8 @@ export const buffered = (videoBuffer, audioBuffer, audioDisabled) => {
   let start = null;
   let end = null;
   let arity = 0;
-  let extents = [];
-  let ranges = [];
+  const extents = [];
+  const ranges = [];
 
   // neither buffer has been created yet
   if (!videoBuffer && !audioBuffer) {
@@ -33,8 +33,8 @@ export const buffered = (videoBuffer, audioBuffer, audioDisabled) => {
 
   // Handle the case where we have both buffers and create an
   // intersection of the two
-  let videoBuffered = videoBuffer.buffered;
-  let audioBuffered = audioBuffer.buffered;
+  const videoBuffered = videoBuffer.buffered;
+  const audioBuffered = audioBuffer.buffered;
   let count = videoBuffered.length;
 
   // A) Gather up all start and end times

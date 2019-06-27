@@ -13,7 +13,8 @@ import {
 
 QUnit.module('Time');
 
-QUnit.test('verifyProgramDateTimeTags only returns true when all segments have programDateTime tags',
+QUnit.test(
+  'verifyProgramDateTimeTags only returns true when all segments have programDateTime tags',
   function(assert) {
     const emptyPlaylist = {};
     const emptySegments = {
@@ -65,7 +66,8 @@ QUnit.test('verifyProgramDateTimeTags only returns true when all segments have p
       true,
       'true if all segments have programDateTime'
     );
-  });
+  }
+);
 
 QUnit.test('findSegmentForPlayerTime returns nothing if a match cannot be found', function(assert) {
   assert.equal(
@@ -170,33 +172,34 @@ QUnit.test('findSegmentForPlayerTime returns accurate last segment', function(as
 });
 
 QUnit.test(
-'findSegmentForPlayerTime returns null if beyond last segment and segment transmuxed',
-function(assert) {
-  const playlist = {
-    mediaSequence: 0,
-    segments: [{
-      videoTimingInfo: {
-        transmuxerPrependedSeconds: 0,
-        transmuxedPresentationStart: 0,
-        transmuxedPresentationEnd: 1
-      },
-      duration: 1
-    }, {
-      videoTimingInfo: {
-        transmuxerPrependedSeconds: 0,
-        transmuxedPresentationStart: 1,
-        transmuxedPresentationEnd: 2
-      },
-      duration: 1
-    }]
-  };
+  'findSegmentForPlayerTime returns null if beyond last segment and segment transmuxed',
+  function(assert) {
+    const playlist = {
+      mediaSequence: 0,
+      segments: [{
+        videoTimingInfo: {
+          transmuxerPrependedSeconds: 0,
+          transmuxedPresentationStart: 0,
+          transmuxedPresentationEnd: 1
+        },
+        duration: 1
+      }, {
+        videoTimingInfo: {
+          transmuxerPrependedSeconds: 0,
+          transmuxedPresentationStart: 1,
+          transmuxedPresentationEnd: 2
+        },
+        duration: 1
+      }]
+    };
 
-  assert.equal(
-    findSegmentForPlayerTime(2.1, playlist),
-    null,
-    'returns null if beyond the transmuxed last segment'
-  );
-});
+    assert.equal(
+      findSegmentForPlayerTime(2.1, playlist),
+      null,
+      'returns null if beyond the transmuxed last segment'
+    );
+  }
+);
 
 QUnit.test('findSegmentForPlayerTime returns estimated last segment', function(assert) {
   const playlist = {
@@ -227,131 +230,140 @@ QUnit.test('findSegmentForPlayerTime returns estimated last segment', function(a
 });
 
 QUnit.test(
-'findSegmentForPlayerTime returns null if beyond last segment and segment not transmuxed',
-function(assert) {
-  const playlist = {
-    mediaSequence: 0,
-    segments: [{
-      videoTimingInfo: {
-        transmuxerPrependedSeconds: 0,
-        transmuxedPresentationStart: 0,
-        transmuxedPresentationEnd: 1
-      },
-      duration: 1
-    }, {
-      duration: 1
-    }]
-  };
-
-  assert.equal(
-    // must account for fudge factor for estimated timing
-    findSegmentForPlayerTime(2.26, playlist),
-    null,
-    'returns null if beyond the non transmuxed last segment'
-  );
-});
-
-QUnit.test('findSegmentForProgramTime returns nothing if a match cannot be found',
-function(assert) {
-  assert.equal(
-    findSegmentForProgramTime('2018-11-10T19:39:57.158Z', {}),
-    null,
-    'returns nothing if empty playlist'
-  );
-  assert.equal(
-    findSegmentForProgramTime('2018-11-10T19:39:57.158Z', {
-      segments: [],
-      targetDuration: 1
-    }),
-    null,
-    'returns nothing if empty segment list'
-  );
-  assert.equal(
-    findSegmentForProgramTime('2018-11-10T19:40:57.158Z', {
+  'findSegmentForPlayerTime returns null if beyond last segment and segment not transmuxed',
+  function(assert) {
+    const playlist = {
+      mediaSequence: 0,
       segments: [{
         videoTimingInfo: {
           transmuxerPrependedSeconds: 0,
           transmuxedPresentationStart: 0,
           transmuxedPresentationEnd: 1
         },
-        duration: 1,
-        dateTimeObject: new Date('2018-11-10T19:39:57.158Z')
-      }],
-      targetDuration: 1
-    }),
-    null,
-    'returns nothing if requested time is not available'
-  );
-});
+        duration: 1
+      }, {
+        duration: 1
+      }]
+    };
 
-QUnit.test('findSegmentForProgramTime returns estimate if last segment and not buffered',
-function(assert) {
-  const segment = {
-    duration: 1,
-    dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
-  };
+    assert.equal(
+    // must account for fudge factor for estimated timing
+      findSegmentForPlayerTime(2.26, playlist),
+      null,
+      'returns null if beyond the non transmuxed last segment'
+    );
+  }
+);
 
-  assert.deepEqual(
-    findSegmentForProgramTime('2018-11-10T19:38:57.200Z', {
-      segments: [segment]
-    }),
-    {
-      type: 'estimate',
-      segment,
-      estimatedStart: 0
-    },
-    'returns estimate'
-  );
-});
+QUnit.test(
+  'findSegmentForProgramTime returns nothing if a match cannot be found',
+  function(assert) {
+    assert.equal(
+      findSegmentForProgramTime('2018-11-10T19:39:57.158Z', {}),
+      null,
+      'returns nothing if empty playlist'
+    );
+    assert.equal(
+      findSegmentForProgramTime('2018-11-10T19:39:57.158Z', {
+        segments: [],
+        targetDuration: 1
+      }),
+      null,
+      'returns nothing if empty segment list'
+    );
+    assert.equal(
+      findSegmentForProgramTime('2018-11-10T19:40:57.158Z', {
+        segments: [{
+          videoTimingInfo: {
+            transmuxerPrependedSeconds: 0,
+            transmuxedPresentationStart: 0,
+            transmuxedPresentationEnd: 1
+          },
+          duration: 1,
+          dateTimeObject: new Date('2018-11-10T19:39:57.158Z')
+        }],
+        targetDuration: 1
+      }),
+      null,
+      'returns nothing if requested time is not available'
+    );
+  }
+);
 
-QUnit.test('findSegmentForProgramTime returns estimate if not buffered',
-function(assert) {
-  const segment1 = {
-    duration: 1,
-    dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
-  };
-  const segment2 = {
-    duration: 1,
-    dateTimeObject: new Date('2018-11-10T19:38:58.158Z')
-  };
+QUnit.test(
+  'findSegmentForProgramTime returns estimate if last segment and not buffered',
+  function(assert) {
+    const segment = {
+      duration: 1,
+      dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
+    };
 
-  assert.deepEqual(
-    findSegmentForProgramTime('2018-11-10T19:38:57.200Z', {
-      segments: [segment1, segment2]
-    }),
-    {
-      type: 'estimate',
-      segment: segment1,
-      estimatedStart: 0
-    },
-    'returns estimate'
-  );
-});
+    assert.deepEqual(
+      findSegmentForProgramTime('2018-11-10T19:38:57.200Z', {
+        segments: [segment]
+      }),
+      {
+        type: 'estimate',
+        segment,
+        estimatedStart: 0
+      },
+      'returns estimate'
+    );
+  }
+);
 
-QUnit.test('findSegmentForProgramTime returns accurate match if buffered',
-function(assert) {
-  const segment = {
-    videoTimingInfo: {
-      transmuxerPrependedSeconds: 0,
-      transmuxedPresentationStart: 0,
-      transmuxedPresentationEnd: 1
-    },
-    duration: 1,
-    dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
-  };
+QUnit.test(
+  'findSegmentForProgramTime returns estimate if not buffered',
+  function(assert) {
+    const segment1 = {
+      duration: 1,
+      dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
+    };
+    const segment2 = {
+      duration: 1,
+      dateTimeObject: new Date('2018-11-10T19:38:58.158Z')
+    };
 
-  assert.deepEqual(
-    findSegmentForProgramTime('2018-11-10T19:38:57.200Z', {
-      segments: [segment]
-    }),
-    {
-      type: 'accurate',
-      segment,
-      estimatedStart: 0
-    },
-    'returns accurate match if segment buffered'
-  );
-});
+    assert.deepEqual(
+      findSegmentForProgramTime('2018-11-10T19:38:57.200Z', {
+        segments: [segment1, segment2]
+      }),
+      {
+        type: 'estimate',
+        segment: segment1,
+        estimatedStart: 0
+      },
+      'returns estimate'
+    );
+  }
+);
+
+QUnit.test(
+  'findSegmentForProgramTime returns accurate match if buffered',
+  function(assert) {
+    const segment = {
+      videoTimingInfo: {
+        transmuxerPrependedSeconds: 0,
+        transmuxedPresentationStart: 0,
+        transmuxedPresentationEnd: 1
+      },
+      duration: 1,
+      dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
+    };
+
+    assert.deepEqual(
+      findSegmentForProgramTime('2018-11-10T19:38:57.200Z', {
+        segments: [segment]
+      }),
+      {
+        type: 'accurate',
+        segment,
+        estimatedStart: 0
+      },
+      'returns accurate match if segment buffered'
+    );
+  }
+);
 
 QUnit.test('findSegmentForProgramTime returns accurate last segment', function(assert) {
   const playlist = {
@@ -387,35 +399,36 @@ QUnit.test('findSegmentForProgramTime returns accurate last segment', function(a
 });
 
 QUnit.test(
-'findSegmentForProgramTime returns null if beyond last segment and segment transmuxed',
-function(assert) {
-  const playlist = {
-    mediaSequence: 0,
-    segments: [{
-      videoTimingInfo: {
-        transmuxerPrependedSeconds: 0,
-        transmuxedPresentationStart: 0,
-        transmuxedPresentationEnd: 1
-      },
-      duration: 1,
-      dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
-    }, {
-      videoTimingInfo: {
-        transmuxerPrependedSeconds: 0,
-        transmuxedPresentationStart: 1,
-        transmuxedPresentationEnd: 2
-      },
-      duration: 1,
-      dateTimeObject: new Date('2018-11-10T19:38:58.158Z')
-    }]
-  };
+  'findSegmentForProgramTime returns null if beyond last segment and segment transmuxed',
+  function(assert) {
+    const playlist = {
+      mediaSequence: 0,
+      segments: [{
+        videoTimingInfo: {
+          transmuxerPrependedSeconds: 0,
+          transmuxedPresentationStart: 0,
+          transmuxedPresentationEnd: 1
+        },
+        duration: 1,
+        dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
+      }, {
+        videoTimingInfo: {
+          transmuxerPrependedSeconds: 0,
+          transmuxedPresentationStart: 1,
+          transmuxedPresentationEnd: 2
+        },
+        duration: 1,
+        dateTimeObject: new Date('2018-11-10T19:38:58.158Z')
+      }]
+    };
 
-  assert.deepEqual(
-    findSegmentForProgramTime('2018-11-10T19:38:59.200Z', playlist),
-    null,
-    'returns null if beyond the transmuxed last segment'
-  );
-});
+    assert.deepEqual(
+      findSegmentForProgramTime('2018-11-10T19:38:59.200Z', playlist),
+      null,
+      'returns null if beyond the transmuxed last segment'
+    );
+  }
+);
 
 QUnit.test('findSegmentForProgramTime returns estimated last segment', function(assert) {
   const playlist = {
@@ -451,35 +464,36 @@ QUnit.test('findSegmentForProgramTime returns estimated last segment', function(
 });
 
 QUnit.test(
-'findSegmentForProgramTime returns null if beyond last segment and' +
+  'findSegmentForProgramTime returns null if beyond last segment and' +
 ' segment not transmuxed',
-function(assert) {
-  const playlist = {
-    mediaSequence: 0,
-    segments: [{
-      videoTimingInfo: {
-        transmuxerPrependedSeconds: 0,
-        transmuxedPresentationStart: 0,
-        transmuxedPresentationEnd: 1
-      },
-      duration: 1,
-      dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
-    }, {
-      duration: 1,
-      dateTimeObject: new Date('2018-11-10T19:38:58.158Z')
-    }]
-  };
+  function(assert) {
+    const playlist = {
+      mediaSequence: 0,
+      segments: [{
+        videoTimingInfo: {
+          transmuxerPrependedSeconds: 0,
+          transmuxedPresentationStart: 0,
+          transmuxedPresentationEnd: 1
+        },
+        duration: 1,
+        dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
+      }, {
+        duration: 1,
+        dateTimeObject: new Date('2018-11-10T19:38:58.158Z')
+      }]
+    };
 
-  // just over allowed fudge of 25%
-  const programTime =
+    // just over allowed fudge of 25%
+    const programTime =
     new Date(playlist.segments[1].dateTimeObject.getTime() + 1.26 * 1000);
 
-  assert.equal(
-    findSegmentForProgramTime(programTime.toISOString(), playlist),
-    null,
-    'returns null if beyond the non transmuxed last segment'
-  );
-});
+    assert.equal(
+      findSegmentForProgramTime(programTime.toISOString(), playlist),
+      null,
+      'returns null if beyond the non transmuxed last segment'
+    );
+  }
+);
 
 QUnit.test('getOffsetFromTimestamp will calculate second differences in timestamps', function(assert) {
   assert.equal(
@@ -502,18 +516,19 @@ QUnit.test('getOffsetFromTimestamp will calculate second differences in timestam
 });
 
 QUnit.test(
-'originalSegmentVideoDuration uses transmuxed end and start to determine duration',
-function(assert) {
-  assert.equal(
-    originalSegmentVideoDuration({
-      transmuxedPresentationEnd: 11,
-      transmuxedPresentationStart: 4,
-      transmuxerPrependedSeconds: 0
-    }),
-    7,
-    'determined original segment video duration'
-  );
-});
+  'originalSegmentVideoDuration uses transmuxed end and start to determine duration',
+  function(assert) {
+    assert.equal(
+      originalSegmentVideoDuration({
+        transmuxedPresentationEnd: 11,
+        transmuxedPresentationStart: 4,
+        transmuxerPrependedSeconds: 0
+      }),
+      7,
+      'determined original segment video duration'
+    );
+  }
+);
 
 QUnit.test('playerTimeToProgramTime returns null if no dateTimeObject', function(assert) {
   assert.equal(
@@ -530,26 +545,27 @@ QUnit.test('playerTimeToProgramTime returns null if no dateTimeObject', function
 });
 
 QUnit.test(
-'playerTimeToProgramTime converts a player time to a stream time based on segment' +
+  'playerTimeToProgramTime converts a player time to a stream time based on segment' +
 ' program date time',
-function(assert) {
+  function(assert) {
   // UTC: Sun, 11 Nov 2018 00:00:00 GMT
-  const dateTimeObject = new Date(1541894400000);
+    const dateTimeObject = new Date(1541894400000);
 
-  assert.deepEqual(
-    playerTimeToProgramTime(7, {
-      dateTimeObject,
-      videoTimingInfo: {
-        transmuxedPresentationEnd: 11,
-        transmuxedPresentationStart: 4,
-        transmuxerPrependedSeconds: 0
-      }
-    }).toISOString(),
-    // 7 seconds into the stream, segment starts at 4 seconds
-    (new Date(dateTimeObject.getTime() + 3 * 1000)).toISOString(),
-    'returns stream time based on segment program date time'
-  );
-});
+    assert.deepEqual(
+      playerTimeToProgramTime(7, {
+        dateTimeObject,
+        videoTimingInfo: {
+          transmuxedPresentationEnd: 11,
+          transmuxedPresentationStart: 4,
+          transmuxerPrependedSeconds: 0
+        }
+      }).toISOString(),
+      // 7 seconds into the stream, segment starts at 4 seconds
+      (new Date(dateTimeObject.getTime() + 3 * 1000)).toISOString(),
+      'returns stream time based on segment program date time'
+    );
+  }
+);
 
 QUnit.test('playerTimeToProgramTime accounts for prepended content', function(assert) {
   // UTC: Sun, 11 Nov 2018 00:00:00 GMT
@@ -571,18 +587,20 @@ QUnit.test('playerTimeToProgramTime accounts for prepended content', function(as
   );
 });
 
-QUnit.test('originalSegmentVideoDuration accounts for prepended content',
-function(assert) {
-  assert.equal(
-    originalSegmentVideoDuration({
-      transmuxedPresentationEnd: 11,
-      transmuxedPresentationStart: 4,
-      transmuxerPrependedSeconds: 3
-    }),
-    4,
-    'determined original segment video duration'
-  );
-});
+QUnit.test(
+  'originalSegmentVideoDuration accounts for prepended content',
+  function(assert) {
+    assert.equal(
+      originalSegmentVideoDuration({
+        transmuxedPresentationEnd: 11,
+        transmuxedPresentationStart: 4,
+        transmuxerPrependedSeconds: 3
+      }),
+      4,
+      'determined original segment video duration'
+    );
+  }
+);
 
 QUnit.module('Time: getProgramTime', {
   beforeEach(assert) {
@@ -649,86 +667,90 @@ QUnit.test('throws error if no callback is provided', function(assert) {
   );
 });
 
-QUnit.test('returns info to accept callback if accurate value can be returned',
-function(assert) {
-  const done = assert.async();
+QUnit.test(
+  'returns info to accept callback if accurate value can be returned',
+  function(assert) {
+    const done = assert.async();
 
-  getProgramTime({
-    playlist: this.playlist,
-    time: 6,
-    callback: (err, programTime) => {
-      assert.notOk(
-        err,
-        'should not fail when accurate segment times are available'
-      );
-      assert.equal(
-        typeof programTime,
-        'object',
-        'should return an object to onsuccess callback'
-      );
-      assert.ok(
-        programTime.mediaSeconds !== undefined,
-        'mediaSeconds is passed to onsuccess'
-      );
-      assert.ok(
-        programTime.programDateTime !== undefined,
-        'programDateTime is passed to onsuccess'
-      );
+    getProgramTime({
+      playlist: this.playlist,
+      time: 6,
+      callback: (err, programTime) => {
+        assert.notOk(
+          err,
+          'should not fail when accurate segment times are available'
+        );
+        assert.equal(
+          typeof programTime,
+          'object',
+          'should return an object to onsuccess callback'
+        );
+        assert.ok(
+          programTime.mediaSeconds !== undefined,
+          'mediaSeconds is passed to onsuccess'
+        );
+        assert.ok(
+          programTime.programDateTime !== undefined,
+          'programDateTime is passed to onsuccess'
+        );
 
-      // offset into start of stream by time passed in
-      const expectedDateTime =
+        // offset into start of stream by time passed in
+        const expectedDateTime =
         new Date(this.playlist.segments[0].dateTimeObject.getTime() + 6 * 1000);
 
-      assert.equal(
-        programTime.programDateTime,
-        expectedDateTime.toISOString(),
-        'uses programDateTime found in media segments'
-      );
-      done();
-    }
-  });
-});
-
-QUnit.test('return a seek time to reject callback if accurate value cannot be returned',
-function(assert) {
-  const done = assert.async();
-  const playlist = {
-    mediaSequence: 0,
-    segments: [
-      {
-        duration: 1,
-        // UTC: Sun, 11 Nov 2018 00:00:00 GMT
-        dateTimeObject: new Date(1541894400000),
-        dateTimeString: '2018-11-11T00:00:00.000Z'
-      },
-      {
-        duration: 2,
-        // UTC: Sun, 11 Nov 2018 00:00:00 GMT
-        dateTimeObject: new Date(1541894400000),
-        dateTimeString: '2018-11-11T00:00:00.000Z'
+        assert.equal(
+          programTime.programDateTime,
+          expectedDateTime.toISOString(),
+          'uses programDateTime found in media segments'
+        );
+        done();
       }
-    ]
-  };
+    });
+  }
+);
 
-  getProgramTime({
-    playlist,
-    time: 2,
-    callback: (err, programTime) => {
-      assert.equal(
-        err.message,
-        'Accurate programTime could not be determined.' +
+QUnit.test(
+  'return a seek time to reject callback if accurate value cannot be returned',
+  function(assert) {
+    const done = assert.async();
+    const playlist = {
+      mediaSequence: 0,
+      segments: [
+        {
+          duration: 1,
+          // UTC: Sun, 11 Nov 2018 00:00:00 GMT
+          dateTimeObject: new Date(1541894400000),
+          dateTimeString: '2018-11-11T00:00:00.000Z'
+        },
+        {
+          duration: 2,
+          // UTC: Sun, 11 Nov 2018 00:00:00 GMT
+          dateTimeObject: new Date(1541894400000),
+          dateTimeString: '2018-11-11T00:00:00.000Z'
+        }
+      ]
+    };
+
+    getProgramTime({
+      playlist,
+      time: 2,
+      callback: (err, programTime) => {
+        assert.equal(
+          err.message,
+          'Accurate programTime could not be determined.' +
         ' Please seek to e.seekTime and try again',
-        'error message is returned for seekTime'
-      );
-      assert.equal(
-        err.seekTime,
-        1,
-        'returns the approximate start time of the segment containing the time requested'
-      );
-      done();
-    }
-  });
-});
+          'error message is returned for seekTime'
+        );
+        assert.equal(
+          err.seekTime,
+          1,
+          'returns the approximate start time of the segment containing the time requested'
+        );
+        done();
+      }
+    });
+  }
+);
 
 QUnit.test('returns time if no modifications', function(assert) {
   const done = assert.async();
@@ -875,66 +897,68 @@ QUnit.test('throws error if no callback is provided', function(assert) {
   );
 });
 
-QUnit.test('returns error if any playlist segments do not include programDateTime tags',
-function(assert) {
-  const done = assert.async();
-  const done2 = assert.async();
+QUnit.test(
+  'returns error if any playlist segments do not include programDateTime tags',
+  function(assert) {
+    const done = assert.async();
+    const done2 = assert.async();
 
-  seekToProgramTime({
-    programTime: 1,
-    playlist: {
-      segments: [],
-      resolvedUri: 'test'
-    },
-    seekTo: this.seekTo,
-    tech: this.tech,
-    callback: (err, newTime) => {
-      assert.equal(
-        err.message,
-        'programDateTime tags must be provided in the manifest test',
-        'returns error when there are no segments'
-      );
-      assert.equal(
-        newTime,
-        null,
-        'valid newTime value is not returned'
-      );
-      done();
-    }
-  });
+    seekToProgramTime({
+      programTime: 1,
+      playlist: {
+        segments: [],
+        resolvedUri: 'test'
+      },
+      seekTo: this.seekTo,
+      tech: this.tech,
+      callback: (err, newTime) => {
+        assert.equal(
+          err.message,
+          'programDateTime tags must be provided in the manifest test',
+          'returns error when there are no segments'
+        );
+        assert.equal(
+          newTime,
+          null,
+          'valid newTime value is not returned'
+        );
+        done();
+      }
+    });
 
-  seekToProgramTime({
-    programTime: 1,
-    playlist: {
-      segments: [
-        {
+    seekToProgramTime({
+      programTime: 1,
+      playlist: {
+        segments: [
+          {
           // UTC: Sun, 11 Nov 2018 00:00:00 GMT
-          programDateTime: '2018-11-11T00:00:00.000Z',
-          duration: 10
-        },
-        {
-          duration: 10
-        }
-      ],
-      resolvedUri: 'test2'
-    },
-    seekTo: this.seekTo,
-    tech: this.tech,
-    callback: (err, newTime) => {
-      assert.equal(
-        err.message,
-        'programDateTime tags must be provided in the manifest test2',
-        'returns error when there are any segments without a programDateTime tag'
-      );
-      assert.equal(
-        newTime,
-        null,
-        'valid newTime value is not returned'
-      );
-      done2();
-    }
-  });
-});
+            programDateTime: '2018-11-11T00:00:00.000Z',
+            duration: 10
+          },
+          {
+            duration: 10
+          }
+        ],
+        resolvedUri: 'test2'
+      },
+      seekTo: this.seekTo,
+      tech: this.tech,
+      callback: (err, newTime) => {
+        assert.equal(
+          err.message,
+          'programDateTime tags must be provided in the manifest test2',
+          'returns error when there are any segments without a programDateTime tag'
+        );
+        assert.equal(
+          newTime,
+          null,
+          'valid newTime value is not returned'
+        );
+        done2();
+      }
+    });
+  }
+);
 
 QUnit.test('returns error if live stream has not started', function(assert) {
   const done = assert.async();

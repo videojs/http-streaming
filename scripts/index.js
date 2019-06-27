@@ -20,7 +20,7 @@
   };
 
   var newEvent = function(name) {
-    var event
+    var event;
 
     if (typeof window.Event === 'function') {
       event = new window.Event(name);

@@ -11,5 +11,6 @@ QUnit.assert.timeRangesEqual = function(timeRange1, timeRange2, message) {
 QUnit.assert.bandwidthWithinTolerance = function(actual, expected, message) {
   this.ok(
     Math.abs(actual - expected) < (expected * BANDWIDTH_TOLERANCE),
-    `${message}: expected ${actual} to be within ${BANDWIDTH_TOLERANCE} of ${expected}`);
+    `${message}: expected ${actual} to be within ${BANDWIDTH_TOLERANCE} of ${expected}`
+  );
 };

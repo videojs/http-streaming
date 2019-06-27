@@ -1,6 +1,6 @@
 module.exports = function(config) {
 
-  var browserstackName;
+  let browserstackName;
 
   // if running on travis
   if (process.env.TRAVIS) {
@@ -49,44 +49,44 @@ module.exports = function(config) {
         flags: [ '--no-sandbox' ]
       },
       ChromeBrowserStack: {
-        base: 'BrowserStack',
-        flags: [ '--no-sandbox' ],
-        browser: 'chrome',
-        os: 'Windows',
-        os_version: '10',
+        'base': 'BrowserStack',
+        'flags': [ '--no-sandbox' ],
+        'browser': 'chrome',
+        'os': 'Windows',
+        'os_version': '10',
         'browserstack.local': 'false',
         'browserstack.video': 'false'
       },
       SafariBrowserStack: {
-        base: 'BrowserStack',
-        browser: 'safari',
-        os: 'OS X',
-        os_version: 'High Sierra',
+        'base': 'BrowserStack',
+        'browser': 'safari',
+        'os': 'OS X',
+        'os_version': 'High Sierra',
         'browserstack.local': 'false',
         'browserstack.video': 'false'
       },
       FirefoxBrowserStack: {
-        base: 'BrowserStack',
-        browser: 'firefox',
-        os: 'Windows',
-        os_version: '10',
+        'base': 'BrowserStack',
+        'browser': 'firefox',
+        'os': 'Windows',
+        'os_version': '10',
         'browserstack.local': 'false',
         'browserstack.video': 'false'
       },
       EdgeBrowserStack: {
-        base: 'BrowserStack',
-        browser: 'edge',
-        os: 'Windows',
-        os_version: '10',
+        'base': 'BrowserStack',
+        'browser': 'edge',
+        'os': 'Windows',
+        'os_version': '10',
         'browserstack.local': 'false',
         'browserstack.video': 'false'
       },
       IE11BrowserStack: {
-        base: 'BrowserStack',
-        browser: 'ie',
-        browser_version: '11',
-        os: 'Windows',
-        os_version: '10',
+        'base': 'BrowserStack',
+        'browser': 'ie',
+        'browser_version': '11',
+        'os': 'Windows',
+        'os_version': '10',
         'browserstack.local': 'false',
         'browserstack.video': 'false'
       }
@@ -96,7 +96,7 @@ module.exports = function(config) {
 
       // detect what browsers are installed on the system and
       // use headless mode and flags to allow for playback
-      postDetection: function(browsers) {
+      postDetection(browsers) {
         if (process.env.BROWSER_STACK_ACCESS_KEY) {
           return [ 'ChromeBrowserStack', 'FirefoxBrowserStack' ];
         }
@@ -105,7 +105,8 @@ module.exports = function(config) {
           return [ 'ChromeHeadlessWithFlags', 'FirefoxHeadless' ];
         }
 
-        var newBrowsers = [];
+        const newBrowsers = [];
+
         if (browsers.indexOf('Chrome') !== -1) {
           newBrowsers.push('Chrome');
         }
