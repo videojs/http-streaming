@@ -733,13 +733,9 @@ export default class SegmentLoader extends videojs.EventTarget {
     for (let track in this.inbandTextTracks_) {
       removeCuesFromTrack(start, end, this.inbandTextTracks_[track]);
     }
+
     removeCuesFromTrack(start, end, this.segmentMetadataTrack_);
 
-    if (this.inbandTextTracks_) {
-      for (let id in this.inbandTextTracks_) {
-        removeCuesFromTrack(start, end, this.inbandTextTracks_[id]);
-      }
-    }
     // finished this function's removes
     removeFinished();
   }
