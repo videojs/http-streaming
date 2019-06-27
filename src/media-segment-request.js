@@ -355,22 +355,21 @@ const handleSegmentBytes = ({
       hasAudio: !!tracks.audio
     };
 
-    if (tracks.audio && tracks.audio.codec) {
+    // if we have a audio track, with a codec that is not set to
+    // encrypted audio
+    if (tracks.audio && tracks.audio.codec && tracks.audio.codec !== 'enca') {
       trackInfo.audioCodec = tracks.audio.codec;
     }
 
-    if (tracks.video && tracks.video.codec) {
+    // if we have a video track, with a codec that is not set to
+    // encrypted video
+    if (tracks.video && tracks.video.codec && tracks.video.codec !== 'encv') {
       trackInfo.videoCodec = tracks.video.codec;
     }
 
-    // if an init segment has both audio and video is muxed
-    // set hasAudio to false and merge the audio codec info.
     if (tracks.video && tracks.audio) {
+      trackInfo.isMuxed = true;
       trackInfo.hasAudio = false;
-      if (trackInfo.audioCodec) {
-        trackInfo.videoCodec += `,${trackInfo.audioCodec}`;
-        delete trackInfo.audioCodec;
-      }
     }
 
     // since we don't support appending fmp4 data on progress, we know we have the full

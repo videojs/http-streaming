@@ -17,8 +17,7 @@ import Config from './config';
 import {
   parseCodecs,
   mapLegacyAvcCodecs,
-  codecsForPlaylist,
-  translateLegacyCodec
+  codecsForPlaylist
 } from './util/codecs.js';
 import { createMediaTypes, setupMediaGroups } from './media-groups';
 import logger from './util/logger';
@@ -1168,19 +1167,34 @@ export class MasterPlaylistController extends videojs.EventTarget {
     if (!mainStartingMedia || (hasAltAudio && !this.audioSegmentLoader_.startingMedia_)) {
       return;
     }
-    const audioStartingMedia = this.audioSegmentLoader_ && this.audioSegmentLoader_.startingMedia_;
+    const audioStartingMedia = this.audioSegmentLoader_ && this.audioSegmentLoader_.startingMedia_ || {};
     const media = this.masterPlaylistLoader_.media();
     const playlistCodecs = codecsForPlaylist(this.masterPlaylistLoader_.master, media);
     const codecs = {};
 
-    if (mainStartingMedia.hasAudio || hasAltAudio) {
-      codecs.audio = mainStartingMedia.audioCodec || (audioStartingMedia || {}).audioCodec ||
-        translateLegacyCodec(playlistCodecs.audio) || DEFAULT_AUDIO_CODEC;
-    }
+    // priority of codecs: playlist -> mux.js parsed codecs -> default
+    if (mainStartingMedia.isMuxed) {
+      codecs.video = playlistCodecs.video || mainStartingMedia.videoCodec || DEFAULT_VIDEO_CODEC;
+      codecs.video += ',' + (playlistCodecs.audio || mainStartingMedia.audioCodec || DEFAULT_AUDIO_CODEC);
+      if (hasAltAudio) {
+        codecs.audio = playlistCodecs.audio ||
+          audioStartingMedia.audioCodec ||
+          DEFAULT_AUDIO_CODEC;
+      }
+    } else {
+      if (mainStartingMedia.hasAudio || hasAltAudio) {
+        codecs.audio = playlistCodecs.audio ||
+          mainStartingMedia.audioCodec ||
+          audioStartingMedia.audioCodec ||
+          DEFAULT_AUDIO_CODEC;
+      }
 
-    if (mainStartingMedia.hasVideo) {
-      codecs.video = mainStartingMedia.videoCodec ||
-        translateLegacyCodec(playlistCodecs.video) || DEFAULT_VIDEO_CODEC;
+      if (mainStartingMedia.hasVideo) {
+        codecs.video =
+          playlistCodecs.video ||
+          mainStartingMedia.videoCodec ||
+          DEFAULT_VIDEO_CODEC;
+      }
     }
 
     if (!codecs.video && !codecs.audio) {
