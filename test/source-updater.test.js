@@ -810,7 +810,7 @@ function(assert) {
 
 QUnit.test('setDuration blocks audio and video queue entries until it finishes',
 function(assert) {
-  const done = assert.async();
+  const done = assert.async(2);
 
   assert.expect(6);
 
@@ -835,6 +835,7 @@ function(assert) {
       this.mediaSource.duration,
       11,
       'video append processed post duration set');
+    done();
   });
   this.sourceUpdater.appendBuffer({type: 'audio', bytes: mp4Audio()}, () => {
     assert.equal(
