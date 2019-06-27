@@ -1841,18 +1841,11 @@ QUnit.module('SegmentLoader: FMP4', function(hooks) {
 
     QUnit.test('CaptionParser is handled as expected', function(assert) {
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
-        let mockCaptionParserReset;
-        let mockCaptionParserClear;
-        let mockCaptionParserClearParsedCaptions;
-        let originalCurrentTimeline;
-        let originalPendingSegment;
-        let segment;
-
         assert.ok(loader.captionParser_, 'there is a captions parser');
 
-        mockCaptionParserReset = sinon.stub(loader.captionParser_, 'reset');
-        mockCaptionParserClear = sinon.stub(loader.captionParser_, 'clearAllCaptions');
-        mockCaptionParserClearParsedCaptions = sinon.stub(loader.captionParser_, 'clearParsedCaptions');
+        const mockCaptionParserReset = sinon.stub(loader.captionParser_, 'reset');
+        const mockCaptionParserClear = sinon.stub(loader.captionParser_, 'clearAllCaptions');
+        const mockCaptionParserClearParsedCaptions = sinon.stub(loader.captionParser_, 'clearParsedCaptions');
 
         loader.load();
         loader.playlist(playlistWithDuration(10, 'm4s'));
@@ -1867,7 +1860,8 @@ QUnit.module('SegmentLoader: FMP4', function(hooks) {
         assert.equal(mockCaptionParserClear.callCount, 3, 'captions cleared on rendition switch');
 
         // Simulate a discontinuity
-        originalCurrentTimeline = loader.currentTimeline_;
+        const originalCurrentTimeline = loader.currentTimeline_;
+
         loader.currentTimeline_ = originalCurrentTimeline + 1;
         assert.equal(mockCaptionParserClear.callCount, 3, 'captions cleared on discontinuity');
         loader.currentTimeline_ = originalCurrentTimeline;
@@ -1885,7 +1879,7 @@ QUnit.module('SegmentLoader: FMP4', function(hooks) {
 
         // Check that captions are added to track when found in the segment
         // and then captionParser is cleared
-        segment = {
+        const segment = {
           resolvedUri: '0.m4s',
           bytes: new Uint8Array([0, 0, 1]),
           map: {
@@ -1896,7 +1890,8 @@ QUnit.module('SegmentLoader: FMP4', function(hooks) {
             CC1: true
           }
         };
-        originalPendingSegment = loader.pendingSegment_;
+        const originalPendingSegment = loader.pendingSegment_;
+
         loader.pendingSegment_ = {
           segment,
           playlist: {

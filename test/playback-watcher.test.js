@@ -388,7 +388,6 @@ QUnit.test('fires notifications when activated', function(assert) {
   let currentTime = 0;
   let hlsLiveResyncEvents = 0;
   let hlsVideoUnderflowEvents = 0;
-  let playbackWatcher;
 
   this.player.src({
     src: 'liveStart30sBefore.m3u8',
@@ -410,7 +409,8 @@ QUnit.test('fires notifications when activated', function(assert) {
       }
     };
   };
-  playbackWatcher = this.player.tech_.hls.playbackWatcher_;
+  const playbackWatcher = this.player.tech_.hls.playbackWatcher_;
+
   playbackWatcher.seekable = function() {
     return {
       length: seekable.length,

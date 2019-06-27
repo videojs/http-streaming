@@ -95,13 +95,11 @@ const xhrFactory = function() {
  *                             of a byte-range
  */
 const byterangeStr = function(byterange) {
-  let byterangeStart;
-  let byterangeEnd;
-
   // `byterangeEnd` is one less than `offset + length` because the HTTP range
   // header uses inclusive ranges
-  byterangeEnd = byterange.offset + byterange.length - 1;
-  byterangeStart = byterange.offset;
+  const byterangeEnd = byterange.offset + byterange.length - 1;
+  const byterangeStart = byterange.offset;
+
   return 'bytes=' + byterangeStart + '-' + byterangeEnd;
 };
 

@@ -301,7 +301,6 @@ QUnit.test(
 );
 
 QUnit.test('the key response is converted to the correct format', function(assert) {
-  let keyReq;
   const done = assert.async();
   const postMessage = this.mockDecrypter.postMessage;
 
@@ -349,7 +348,7 @@ QUnit.test('the key response is converted to the correct format', function(asser
 
   assert.equal(this.requests.length, 2, 'there are two requests');
 
-  keyReq = this.requests.shift();
+  const keyReq = this.requests.shift();
   const segmentReq = this.requests.shift();
 
   assert.equal(keyReq.uri, '0-key.php', 'the first request is for a key');

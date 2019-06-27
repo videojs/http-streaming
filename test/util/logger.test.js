@@ -6,13 +6,13 @@ QUnit.test('Logger includes source', function(assert) {
   const source = 'testsource';
   const originalLogDebug = videojs.log.debug;
   let msg;
-  let logger_;
 
   videojs.log.debug = (...args) => {
     msg = args.join(' ');
   };
 
-  logger_ = logger(source);
+  const logger_ = logger(source);
+
   logger_('test');
 
   assert.strictEqual(

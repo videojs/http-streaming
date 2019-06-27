@@ -102,9 +102,6 @@ const forwardDuration = function(playlist, endSequence) {
   * and end index.
   */
 const intervalDuration = function(playlist, endSequence, expired) {
-  let backward;
-  let forward;
-
   if (typeof endSequence === 'undefined') {
     endSequence = playlist.mediaSequence + playlist.segments.length;
   }
@@ -114,7 +111,8 @@ const intervalDuration = function(playlist, endSequence, expired) {
   }
 
   // do a backward walk to estimate the duration
-  backward = backwardDuration(playlist, endSequence);
+  const backward = backwardDuration(playlist, endSequence);
+
   if (backward.precise) {
     // if we were able to base our duration estimate on timing
     // information provided directly from the Media Source, return
@@ -124,7 +122,7 @@ const intervalDuration = function(playlist, endSequence, expired) {
 
   // walk forward to see if a precise duration estimate can be made
   // that way
-  forward = forwardDuration(playlist, endSequence);
+  const forward = forwardDuration(playlist, endSequence);
   if (forward.precise) {
     // we found a segment that has been buffered and so it's
     // position is known precisely

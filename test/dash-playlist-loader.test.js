@@ -386,15 +386,15 @@ QUnit.test('compareSidxEntry: will remove non-matching sidxes from a mapping', f
 
 QUnit.test('filterChangedSidxMappings: removes change sidx info from mapping', function(assert) {
   const loader = new DashPlaylistLoader('dash-sidx.mpd', this.fakeHls);
-  let childPlaylist;
-  let childLoader;
   let masterXml;
 
   loader.load();
   this.standardXHRResponse(this.requests.shift());
   this.standardXHRResponse(this.requests.shift());
-  childPlaylist = loader.master.mediaGroups.AUDIO.audio.en.playlists[0];
-  childLoader = new DashPlaylistLoader(childPlaylist, this.fakeHls, false, loader);
+  const childPlaylist = loader.master.mediaGroups.AUDIO.audio.en.playlists[0];
+
+  const childLoader = new DashPlaylistLoader(childPlaylist, this.fakeHls, false, loader);
+
   childLoader.load();
   this.clock.tick(1);
   this.standardXHRResponse(this.requests.shift());
@@ -1169,16 +1169,14 @@ QUnit.test('haveMaster: triggers loadedplaylist for loader', function(assert) {
 
 QUnit.test('haveMaster: sets media on child loader', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
-  let mediaStub;
-  let childLoader;
-  let childPlaylist;
 
   loader.load();
   this.standardXHRResponse(this.requests.shift());
-  childPlaylist = loader.master.playlists['placeholder-uri-AUDIO-audio-main'];
-  childLoader = new DashPlaylistLoader(childPlaylist, this.fakeHls, false, loader);
+  const childPlaylist = loader.master.playlists['placeholder-uri-AUDIO-audio-main'];
+  const childLoader = new DashPlaylistLoader(childPlaylist, this.fakeHls, false, loader);
 
-  mediaStub = sinon.stub(childLoader, 'media');
+  const mediaStub = sinon.stub(childLoader, 'media');
+
   childLoader.haveMaster_();
   assert.strictEqual(mediaStub.callCount, 1, 'calls media on childLoader');
   assert.deepEqual(
@@ -1327,7 +1325,6 @@ QUnit.test('refreshMedia: triggers playlistunchanged for master loader' +
 
 QUnit.test('refreshMedia: updates master and media playlists for child loader', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
-  let childLoader;
   let loadedPlaylists = 0;
   let playlistUnchanged = 0;
 
@@ -1335,7 +1332,8 @@ QUnit.test('refreshMedia: updates master and media playlists for child loader', 
   this.standardXHRResponse(this.requests.shift());
   loader.media(loader.master.playlists[0]);
   this.clock.tick(1);
-  childLoader = new DashPlaylistLoader(loader.master.playlists[0], this.fakeHls, false, loader);
+  const childLoader = new DashPlaylistLoader(loader.master.playlists[0], this.fakeHls, false, loader);
+
   childLoader.load();
   this.clock.tick(1);
 
@@ -1365,7 +1363,6 @@ QUnit.test('refreshMedia: updates master and media playlists for child loader', 
 QUnit.test('refreshMedia: triggers playlistunchanged for child loader' +
   ' if master stays the same', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
-  let childLoader;
   let loadedPlaylists = 0;
   let playlistUnchanged = 0;
 
@@ -1373,7 +1370,8 @@ QUnit.test('refreshMedia: triggers playlistunchanged for child loader' +
   this.standardXHRResponse(this.requests.shift());
   loader.media(loader.master.playlists[0]);
   this.clock.tick(1);
-  childLoader = new DashPlaylistLoader(loader.master.playlists[0], this.fakeHls, false, loader);
+  const childLoader = new DashPlaylistLoader(loader.master.playlists[0], this.fakeHls, false, loader);
+
   childLoader.load();
   this.clock.tick(1);
 
@@ -1597,13 +1595,12 @@ QUnit.test('hasPendingRequest: returns true if async code is running in master l
 
 QUnit.test('hasPendingRequest: returns true if async code is running in child loader', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
-  let childLoader;
-  let childPlaylist;
 
   loader.load();
   this.standardXHRResponse(this.requests.shift());
-  childPlaylist = loader.master.playlists['placeholder-uri-AUDIO-audio-main'];
-  childLoader = new DashPlaylistLoader(childPlaylist, this.fakeHls, false, loader);
+  const childPlaylist = loader.master.playlists['placeholder-uri-AUDIO-audio-main'];
+  const childLoader = new DashPlaylistLoader(childPlaylist, this.fakeHls, false, loader);
+
   assert.notOk(childLoader.hasPendingRequest(), 'no pending requests on construction');
 
   childLoader.load();
@@ -1773,13 +1770,11 @@ QUnit.test('child loader moves to HAVE_METADATA when initialized with a master p
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
   let loadedPlaylist = 0;
   let loadedMetadata = 0;
-  let childLoader;
-  let playlist;
 
   loader.load();
   this.standardXHRResponse(this.requests.shift());
-  playlist = loader.master.playlists['placeholder-uri-AUDIO-audio-main'];
-  childLoader = new DashPlaylistLoader(playlist, this.fakeHls, false, loader);
+  const playlist = loader.master.playlists['placeholder-uri-AUDIO-audio-main'];
+  const childLoader = new DashPlaylistLoader(playlist, this.fakeHls, false, loader);
 
   childLoader.on('loadedplaylist', function() {
     loadedPlaylist++;
@@ -1808,13 +1803,11 @@ QUnit.test('child playlist moves to HAVE_METADATA when initialized with a live m
   const loader = new DashPlaylistLoader('dash-live.mpd', this.fakeHls);
   let loadedPlaylist = 0;
   let loadedMetadata = 0;
-  let childLoader;
-  let playlist;
 
   loader.load();
   this.standardXHRResponse(this.requests.shift());
-  playlist = loader.master.playlists['placeholder-uri-AUDIO-audio-main'];
-  childLoader = new DashPlaylistLoader(playlist, this.fakeHls, false, loader);
+  const playlist = loader.master.playlists['placeholder-uri-AUDIO-audio-main'];
+  const childLoader = new DashPlaylistLoader(playlist, this.fakeHls, false, loader);
 
   childLoader.on('loadedplaylist', function() {
     loadedPlaylist++;

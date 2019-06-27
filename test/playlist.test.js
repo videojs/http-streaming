@@ -135,9 +135,8 @@ QUnit.test(
         uri: '1.ts'
       }]
     };
-    let duration;
+    const duration = Playlist.duration(playlist, playlist.mediaSequence);
 
-    duration = Playlist.duration(playlist, playlist.mediaSequence);
     assert.equal(duration, 120.5 - 9 - 10, 'used segment end time');
   }
 );
@@ -1007,7 +1006,6 @@ QUnit.module('Playlist isAes', {
 });
 
 QUnit.test('determine if playlist is an AES encrypted HLS stream', function(assert) {
-  let media;
   const loader = new PlaylistLoader('media.m3u8', this.fakeHls);
 
   loader.load();
@@ -1022,7 +1020,7 @@ QUnit.test('determine if playlist is an AES encrypted HLS stream', function(asse
     '#EXT-X-ENDLIST\n'
   );
 
-  media = loader.media();
+  const media = loader.media();
 
   assert.ok(Playlist.isAes(media), 'media is an AES encrypted HLS stream');
 });
@@ -1044,7 +1042,6 @@ QUnit.module('Playlist Media Index For Time', {
 QUnit.test(
   'can get media index by playback position for non-live videos',
   function(assert) {
-    let media;
     const loader = new PlaylistLoader('media.m3u8', this.fakeHls);
 
     loader.load();
@@ -1062,7 +1059,7 @@ QUnit.test(
     '#EXT-X-ENDLIST\n'
     );
 
-    media = loader.media();
+    const media = loader.media();
 
     assert.equal(
       Playlist.getMediaInfoForTime(media, -1, 0, 0).mediaIndex, 0,
@@ -1090,7 +1087,6 @@ QUnit.test(
 QUnit.test(
   'returns the lower index when calculating for a segment boundary',
   function(assert) {
-    let media;
     const loader = new PlaylistLoader('media.m3u8', this.fakeHls);
 
     loader.load();
@@ -1106,7 +1102,7 @@ QUnit.test(
     '#EXT-X-ENDLIST\n'
     );
 
-    media = loader.media();
+    const media = loader.media();
 
     assert.equal(
       Playlist.getMediaInfoForTime(media, 4, 0, 0).mediaIndex, 0,
@@ -1126,7 +1122,6 @@ QUnit.test(
 QUnit.test(
   'accounts for non-zero starting segment time when calculating media index',
   function(assert) {
-    let media;
     const loader = new PlaylistLoader('media.m3u8', this.fakeHls);
 
     loader.load();
@@ -1141,7 +1136,7 @@ QUnit.test(
     '1002.ts\n'
     );
 
-    media = loader.media();
+    const media = loader.media();
 
     assert.equal(
       Playlist.getMediaInfoForTime(media, 45, 0, 150).mediaIndex,

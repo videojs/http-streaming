@@ -1494,7 +1494,6 @@ QUnit.test(
 
 QUnit.test('preserves segment metadata across playlist refreshes', function(assert) {
   const loader = new PlaylistLoader('live.m3u8', this.fakeHls);
-  let segment;
 
   loader.load();
 
@@ -1510,7 +1509,8 @@ QUnit.test('preserves segment metadata across playlist refreshes', function(asse
                               '2.ts\n'
   );
   // add PTS info to 1.ts
-  segment = loader.media().segments[1];
+  const segment = loader.media().segments[1];
+
   segment.minVideoPts = 14;
   segment.maxAudioPts = 27;
   segment.preciseDuration = 10.045;

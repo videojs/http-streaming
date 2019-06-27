@@ -39,13 +39,13 @@ export const parseCodecs = function(codecs = '') {
   let result = {
     codecCount: 0
   };
-  let parsed;
 
   result.codecCount = codecs.split(',').length;
   result.codecCount = result.codecCount || 2;
 
   // parse the video codec
-  parsed = (/(^|\s|,)+(avc[13])([^ ,]*)/i).exec(codecs);
+  const parsed = (/(^|\s|,)+(avc[13])([^ ,]*)/i).exec(codecs);
+
   if (parsed) {
     result.videoCodec = parsed[2];
     result.videoObjectTypeIndicator = parsed[3];

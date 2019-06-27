@@ -191,8 +191,8 @@ export const useFakeEnvironment = function(assert) {
   // Sinon 1.10.2 handles abort incorrectly (triggering the error event)
   // Later versions fixed this but broke the ability to set the response
   // to an arbitrary object (in our case, a typed array).
-  XMLHttpRequest.prototype = Object.create(XMLHttpRequest.prototype);
-  XMLHttpRequest.prototype.abort = function abort() {
+  window.XMLHttpRequest.prototype = Object.create(window.XMLHttpRequest.prototype);
+  window.XMLHttpRequest.prototype.abort = function abort() {
     this.response = this.responseText = '';
     this.errorFlag = true;
     this.requestHeaders = {};
@@ -206,7 +206,7 @@ export const useFakeEnvironment = function(assert) {
     this.readyState = 0;
   };
 
-  XMLHttpRequest.prototype.downloadProgress = function downloadProgress(rawEventData) {
+  window.XMLHttpRequest.prototype.downloadProgress = function downloadProgress(rawEventData) {
     // `responseText` we only really use when we’re requesting as text
     // so that we can see data on progress events.
     // `downloadProgress` should be called with 0 bytes
@@ -224,18 +224,18 @@ export const useFakeEnvironment = function(assert) {
 
   // used for treating the response however we want, instead of the browser deciding
   // responses we don't have to worry about the browser changing responses
-  XMLHttpRequest.prototype.overrideMimeType = function overrideMimeType(mimeType) {
+  window.XMLHttpRequest.prototype.overrideMimeType = function overrideMimeType(mimeType) {
     this.mimeTypeOverride = mimeType;
   };
 
   // add support for xhr.responseURL
-  XMLHttpRequest.prototype.open = (function(origFn) {
+  window.XMLHttpRequest.prototype.open = (function(origFn) {
     return function() {
       this.responseURL = absoluteUrl(arguments[1]);
 
       return origFn.apply(this, arguments);
     };
-  }(XMLHttpRequest.prototype.open));
+  }(window.XMLHttpRequest.prototype.open));
 
   fakeEnvironment.requests.length = 0;
   fakeEnvironment.xhr.onCreate = function(xhr) {
@@ -322,10 +322,8 @@ export const mockTech = function(tech) {
 };
 
 export const createPlayer = function(options, src, clock) {
-  let video;
-  let player;
+  const video = document.createElement('video');
 
-  video = document.createElement('video');
   video.className = 'video-js';
   if (src) {
     if (typeof src === 'string') {
@@ -341,7 +339,7 @@ export const createPlayer = function(options, src, clock) {
     }
   }
   document.querySelector('#qunit-fixture').appendChild(video);
-  player = videojs(video, options || {});
+  const player = videojs(video, options || {});
 
   player.buffered = function() {
     return videojs.createTimeRange(0, 0);

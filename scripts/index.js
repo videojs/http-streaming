@@ -1,3 +1,4 @@
+/* global window document */
 /* eslint-disable no-var, object-shorthand, no-console */
 (function(window) {
   // all relevant elements
@@ -5,9 +6,6 @@
   var sources = document.getElementById('load-source');
   var stateEls = {};
 
-  ['debug', 'autoplay', 'muted', 'minified', 'partial', 'url', 'type'].forEach(function(name) {
-    stateEls[name] = document.getElementById(name);
-  });
 
   var getInputValue = function(el) {
     if (el.type === 'url' || el.type === 'text') {
@@ -110,6 +108,11 @@
 
     onload();
   };
+
+
+  ['debug', 'autoplay', 'muted', 'minified', 'partial', 'url', 'type'].forEach(function(name) {
+    stateEls[name] = document.getElementById(name);
+  });
 
   window.startDemo = function(cb) {
     var state = loadState();

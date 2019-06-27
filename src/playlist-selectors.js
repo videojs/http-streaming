@@ -16,13 +16,12 @@ import { parseCodecs } from './util/codecs.js';
  * @param {string} the proprety to get the style for
  */
 const safeGetComputedStyle = function(el, property) {
-  let result;
-
   if (!el) {
     return '';
   }
 
-  result = window.getComputedStyle(el);
+  const result = window.getComputedStyle(el);
+
   if (!result) {
     return '';
   }
@@ -140,12 +139,10 @@ export const simpleSelector = function(
 ) {
   // convert the playlists to an intermediary representation to make comparisons easier
   let sortedPlaylistReps = master.playlists.map((playlist) => {
-    let width;
-    let height;
     let bandwidth;
+    const width = playlist.attributes.RESOLUTION && playlist.attributes.RESOLUTION.width;
+    const height = playlist.attributes.RESOLUTION && playlist.attributes.RESOLUTION.height;
 
-    width = playlist.attributes.RESOLUTION && playlist.attributes.RESOLUTION.width;
-    height = playlist.attributes.RESOLUTION && playlist.attributes.RESOLUTION.height;
     bandwidth = playlist.attributes.BANDWIDTH;
 
     bandwidth = bandwidth || window.Number.MAX_VALUE;

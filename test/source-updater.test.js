@@ -1026,7 +1026,9 @@ QUnit.test('dispose removes sourceopen listener', function(assert) {
     let appendBufferCalled = false;
 
     this.sourceUpdater.createSourceBuffers(options);
-    this.sourceUpdater[`${type}Buffer`].appendBuffer = () => appendBufferCalled = true;
+    this.sourceUpdater[`${type}Buffer`].appendBuffer = () => {
+      appendBufferCalled = true;
+    };
 
     this.sourceUpdater[`${type}TimestampOffset`](10);
     this.sourceUpdater.appendBuffer({type, bytes});

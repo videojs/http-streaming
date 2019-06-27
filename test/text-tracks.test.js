@@ -143,14 +143,13 @@ test('use existing tracks with id equal to CC#', function(assert) {
     endTime: 3,
     text: 'This is an in-band caption in CC2'
   }];
-  let addRemoteTextTrackSpy;
 
   this.timestampOffset = 10;
 
   // Wrap the addRemoteTextTrack method after adding tracks
   // to the tech to ensure that any calls on the spy are the
   // result of createCaptionsTrackIfNotExists
-  addRemoteTextTrackSpy = sinon.spy(tech, 'addRemoteTextTrack');
+  const addRemoteTextTrackSpy = sinon.spy(tech, 'addRemoteTextTrack');
 
   createCaptionsTrackIfNotExists(inbandTextTracks, tech, 'CC2');
   assert.strictEqual(inbandTextTracks.CC2, CC2.track);

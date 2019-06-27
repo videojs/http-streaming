@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+/* global window */
 const fs = require('fs');
 const path = require('path');
 

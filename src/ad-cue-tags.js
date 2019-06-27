@@ -73,12 +73,9 @@ export const updateAdCues = function(media, track, offset = 0) {
 
       if ('cueOutCont' in segment) {
         // Entered into the middle of an ad cue
-        let adOffset;
-        let adTotal;
-
         // Assumes tag formate to be
         // #EXT-X-CUE-OUT-CONT:10/30
-        [adOffset, adTotal] = segment.cueOutCont.split('/').map(parseFloat);
+        const [adOffset, adTotal] = segment.cueOutCont.split('/').map(parseFloat);
 
         cue = new window.VTTCue(
           mediaTime,

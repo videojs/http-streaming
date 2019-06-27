@@ -1,3 +1,4 @@
+/* global self */
 import { Decrypter } from 'aes-decrypter';
 import { createTransferableMessage } from './bin-utils';
 

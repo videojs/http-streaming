@@ -992,14 +992,13 @@ export const LoaderCommonFactory = (
       function(assert) {
         const playlist = playlistWithDuration(20);
         const defaultGoal = Config.GOAL_BUFFER_LENGTH;
-        let segmentInfo;
 
         Config.GOAL_BUFFER_LENGTH = 1;
         loader.playlist(playlist);
 
         loader.load();
 
-        segmentInfo = loader.checkBuffer_(
+        const segmentInfo = loader.checkBuffer_(
           videojs.createTimeRanges([[0, 1]]),
           playlist,
           null,
@@ -1007,6 +1006,7 @@ export const LoaderCommonFactory = (
           0,
           null
         );
+
         assert.ok(!segmentInfo, 'no request generated');
         Config.GOAL_BUFFER_LENGTH = defaultGoal;
       }
@@ -1216,13 +1216,10 @@ export const LoaderCommonFactory = (
     QUnit.test(
       'does not download the next segment if the buffer is full',
       function(assert) {
-        let buffered;
-        let segmentInfo;
-
-        buffered = videojs.createTimeRanges([
+        const buffered = videojs.createTimeRanges([
           [0, 30 + Config.GOAL_BUFFER_LENGTH]
         ]);
-        segmentInfo = loader.checkBuffer_(
+        const segmentInfo = loader.checkBuffer_(
           buffered,
           playlistWithDuration(30),
           null,
@@ -1238,14 +1235,12 @@ export const LoaderCommonFactory = (
     QUnit.test(
       'downloads the next segment if the buffer is getting low',
       function(assert) {
-        let buffered;
-        let segmentInfo;
         const playlist = playlistWithDuration(30);
 
         loader.playlist(playlist);
 
-        buffered = videojs.createTimeRanges([[0, 19.999]]);
-        segmentInfo = loader.checkBuffer_(
+        const buffered = videojs.createTimeRanges([[0, 19.999]]);
+        const segmentInfo = loader.checkBuffer_(
           buffered,
           playlist,
           1,
@@ -1260,11 +1255,8 @@ export const LoaderCommonFactory = (
     );
 
     QUnit.test('stops downloading segments at the end of the playlist', function(assert) {
-      let buffered;
-      let segmentInfo;
-
-      buffered = videojs.createTimeRanges([[0, 60]]);
-      segmentInfo = loader.checkBuffer_(
+      const buffered = videojs.createTimeRanges([[0, 60]]);
+      const segmentInfo = loader.checkBuffer_(
         buffered,
         playlistWithDuration(60),
         null,
@@ -1279,14 +1271,12 @@ export const LoaderCommonFactory = (
     QUnit.test(
       'stops downloading segments if buffered past reported end of the playlist',
       function(assert) {
-        let buffered;
-        let segmentInfo;
-        let playlist;
 
-        buffered = videojs.createTimeRanges([[0, 59.9]]);
-        playlist = playlistWithDuration(60);
+        const buffered = videojs.createTimeRanges([[0, 59.9]]);
+        const playlist = playlistWithDuration(60);
+
         playlist.segments[playlist.segments.length - 1].end = 59.9;
-        segmentInfo = loader.checkBuffer_(
+        const segmentInfo = loader.checkBuffer_(
           buffered,
           playlist,
           playlist.segments.length - 1,

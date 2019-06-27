@@ -1,3 +1,4 @@
+/* global self */
 /**
  * @file transmuxer-worker.js
  */

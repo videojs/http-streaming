@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const nomnoml = require('nomnoml');
 const fs = require('fs');
 const path = require('path');
@@ -12,7 +13,6 @@ module.exports = {
 
     while (files.length > 0) {
       const file = path.resolve(nomnomlSourceDir, files.shift());
-      const extname = path.extname(file);
       const basename = path.basename(file, 'txt');
 
       if (/.nomnoml/.test(basename)) {

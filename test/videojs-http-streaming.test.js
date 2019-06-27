@@ -497,8 +497,6 @@ QUnit.test('estimates individual segment durations if needed', function(assert) 
 QUnit.test(
   'translates seekable by the starting time for live playlists',
   function(assert) {
-    let seekable;
-
     this.player.src({
       src: 'media.m3u8',
       type: 'application/vnd.apple.mpegurl'
@@ -522,7 +520,8 @@ QUnit.test(
                                 '3.ts\n'
     );
 
-    seekable = this.player.seekable();
+    const seekable = this.player.seekable();
+
     assert.equal(seekable.length, 1, 'one seekable range');
     assert.equal(seekable.start(0), 0, 'the earliest possible position is at zero');
     assert.equal(seekable.end(0), 10, 'end is relative to the start');
@@ -574,9 +573,7 @@ QUnit.test('starts downloading a segment on loadedmetadata', function(assert) {
 });
 
 QUnit.test('re-initializes the handler for each source', function(assert) {
-  let firstPlaylists;
   let secondPlaylists;
-  let firstMSE;
   let secondMSE;
 
   this.player.src({
@@ -587,8 +584,9 @@ QUnit.test('re-initializes the handler for each source', function(assert) {
   this.clock.tick(1);
 
   openMediaSource(this.player, this.clock);
-  firstPlaylists = this.player.tech_.hls.playlists;
-  firstMSE = this.player.tech_.hls.mediaSource;
+  const firstPlaylists = this.player.tech_.hls.playlists;
+  const firstMSE = this.player.tech_.hls.mediaSource;
+
   // master
   this.standardXHRResponse(this.requests.shift());
   // media
@@ -980,8 +978,6 @@ QUnit.test('buffer checks are noops when only the master is ready', function(ass
 });
 
 QUnit.test('selects a playlist below the current bandwidth', function(assert) {
-  let playlist;
-
   this.player.src({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -999,7 +995,8 @@ QUnit.test('selects a playlist below the current bandwidth', function(assert) {
   // but the detected client bandwidth is really low
   this.player.tech_.hls.bandwidth = 10;
 
-  playlist = this.player.tech_.hls.selectPlaylist();
+  const playlist = this.player.tech_.hls.selectPlaylist();
+
   assert.strictEqual(
     playlist,
     this.player.tech_.hls.playlists.master.playlists[1],
@@ -1091,8 +1088,6 @@ QUnit.test('allows initial bandwidth to be provided', function(assert) {
 });
 
 QUnit.test('raises the minimum bitrate for a stream proportionially', function(assert) {
-  let playlist;
-
   this.player.src({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -1110,7 +1105,7 @@ QUnit.test('raises the minimum bitrate for a stream proportionially', function(a
 
   // 9.9 * 1.1 < 11
   this.player.tech_.hls.playlists.master.playlists[1].attributes.BANDWIDTH = 9.9;
-  playlist = this.player.tech_.hls.selectPlaylist();
+  const playlist = this.player.tech_.hls.selectPlaylist();
 
   assert.strictEqual(
     playlist,
@@ -1123,7 +1118,6 @@ QUnit.test('raises the minimum bitrate for a stream proportionially', function(a
 });
 
 QUnit.test('uses the lowest bitrate if no other is suitable', function(assert) {
-  let playlist;
 
   this.player.src({
     src: 'manifest/master.m3u8',
@@ -1138,7 +1132,7 @@ QUnit.test('uses the lowest bitrate if no other is suitable', function(assert) {
 
   // the lowest bitrate playlist is much greater than 1b/s
   this.player.tech_.hls.bandwidth = 1;
-  playlist = this.player.tech_.hls.selectPlaylist();
+  const playlist = this.player.tech_.hls.selectPlaylist();
 
   // playlist 1 has the lowest advertised bitrate
   assert.strictEqual(
@@ -1153,7 +1147,6 @@ QUnit.test('uses the lowest bitrate if no other is suitable', function(assert) {
 
 QUnit.test('selects the correct rendition by tech dimensions', function(assert) {
   let playlist;
-  let hls;
 
   this.player.src({
     src: 'manifest/master.m3u8',
@@ -1165,7 +1158,7 @@ QUnit.test('selects the correct rendition by tech dimensions', function(assert) 
   openMediaSource(this.player, this.clock);
   this.standardXHRResponse(this.requests[0]);
 
-  hls = this.player.tech_.hls;
+  const hls = this.player.tech_.hls;
 
   this.player.width(640);
   this.player.height(360);
@@ -1239,7 +1232,6 @@ QUnit.test('selects the correct rendition by tech dimensions', function(assert) 
 
 QUnit.test('selects the highest bitrate playlist when the player dimensions are ' +
      'larger than any of the variants', function(assert) {
-  let playlist;
 
   this.player.src({
     src: 'manifest/master.m3u8',
@@ -1265,7 +1257,7 @@ QUnit.test('selects the highest bitrate playlist when the player dimensions are 
   this.player.width(1024);
   this.player.height(768);
 
-  playlist = this.player.tech_.hls.selectPlaylist();
+  const playlist = this.player.tech_.hls.selectPlaylist();
 
   assert.equal(
     playlist.attributes.BANDWIDTH,
@@ -1325,8 +1317,6 @@ QUnit.test('filters playlists that are currently excluded', function(assert) {
 });
 
 QUnit.test('does not blacklist compatible H.264 codec strings', function(assert) {
-  let master;
-
   this.player.src({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -1350,7 +1340,8 @@ QUnit.test('does not blacklist compatible H.264 codec strings', function(assert)
 
   // media
   this.standardXHRResponse(this.requests.shift());
-  master = this.player.tech_.hls.playlists.master;
+  const master = this.player.tech_.hls.playlists.master;
+
   assert.strictEqual(
     typeof master.playlists[0].excludeUntil,
     'undefined',
@@ -1497,8 +1488,6 @@ QUnit.test('unsupported playlist should not be re-included when excluding last p
 });
 
 QUnit.test('segment 404 should trigger blacklisting of media', function(assert) {
-  let media;
-
   this.player.src({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -1514,7 +1503,7 @@ QUnit.test('segment 404 should trigger blacklisting of media', function(assert) 
   // media
   this.standardXHRResponse(this.requests[1]);
 
-  media = this.player.tech_.hls.playlists.media_;
+  const media = this.player.tech_.hls.playlists.media_;
 
   // segment
   this.requests[2].respond(400);
@@ -1703,8 +1692,6 @@ QUnit.test('blacklists playlist if it has stopped being updated', function(asser
 });
 
 QUnit.test('never blacklist the playlist if it is the only playlist', function(assert) {
-  let media;
-
   this.player.src({
     src: 'manifest/media.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -1720,7 +1707,7 @@ QUnit.test('never blacklist the playlist if it is the only playlist', function(a
 
   this.clock.tick(10 * 1000);
   this.requests.shift().respond(404);
-  media = this.player.tech_.hls.playlists.media();
+  const media = this.player.tech_.hls.playlists.media();
 
   // media wasn't blacklisted because it's the only rendition
   assert.ok(!media.excludeUntil, 'media was not blacklisted after playlist 404');
@@ -1769,8 +1756,6 @@ QUnit.test(
 );
 
 QUnit.test('seeking in an empty playlist is a non-erroring noop', function(assert) {
-  let requestsLength;
-
   this.player.src({
     src: 'manifest/empty-live.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -1782,7 +1767,8 @@ QUnit.test('seeking in an empty playlist is a non-erroring noop', function(asser
 
   this.requests.shift().respond(200, null, '#EXTM3U\n');
 
-  requestsLength = this.requests.length;
+  const requestsLength = this.requests.length;
+
   this.player.tech_.setCurrentTime(183);
   this.clock.tick(1);
 
@@ -2236,8 +2222,6 @@ QUnit.test('the withCredentials option overrides the global default', function(a
 
 QUnit.test('playlist blacklisting duration is set through options', function(assert) {
   const hlsOptions = videojs.options.hls;
-  let url;
-  let media;
 
   this.player.dispose();
   videojs.options.hls = {
@@ -2260,8 +2244,9 @@ QUnit.test('playlist blacklisting duration is set through options', function(ass
   );
   this.requests[1].respond(404);
   // media
-  url = this.requests[1].url.slice(this.requests[1].url.lastIndexOf('/') + 1);
-  media = this.player.tech_.hls.playlists.master.playlists[url];
+  const url = this.requests[1].url.slice(this.requests[1].url.lastIndexOf('/') + 1);
+  const media = this.player.tech_.hls.playlists.master.playlists[url];
+
   assert.ok(media.excludeUntil > 0, 'original media blacklisted for some time');
   assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
   assert.equal(
@@ -2440,10 +2425,9 @@ QUnit.test('resets the switching algorithm if a request times out', function(ass
 
 QUnit.test('disposes the playlist loader', function(assert) {
   let disposes = 0;
-  let player;
-  let loaderDispose;
 
-  player = createPlayer();
+  const player = createPlayer();
+
   player.src({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -2452,7 +2436,8 @@ QUnit.test('disposes the playlist loader', function(assert) {
   this.clock.tick(1);
 
   openMediaSource(player, this.clock);
-  loaderDispose = player.tech_.hls.playlists.dispose;
+  const loaderDispose = player.tech_.hls.playlists.dispose;
+
   player.tech_.hls.playlists.dispose = function() {
     disposes++;
     loaderDispose.call(player.tech_.hls.playlists);
@@ -2463,10 +2448,9 @@ QUnit.test('disposes the playlist loader', function(assert) {
 });
 
 QUnit.test('remove event handlers on dispose', function(assert) {
-  let player;
   let unscoped = 0;
 
-  player = createPlayer();
+  const player = createPlayer();
 
   const origPlayerOn = player.on.bind(player);
   const origPlayerOff = player.off.bind(player);
@@ -2552,11 +2536,11 @@ QUnit.test(
 QUnit.test('has no effect if native HLS is available', function(assert) {
   const Html5 = videojs.getTech('Html5');
   const oldHtml5CanPlaySource = Html5.canPlaySource;
-  let player;
 
   Html5.canPlaySource = () => true;
   Hls.supportsNativeHls = true;
-  player = createPlayer();
+  const player = createPlayer();
+
   player.src({
     src: 'http://example.com/manifest/master.m3u8',
     type: 'application/x-mpegURL'
@@ -2976,7 +2960,6 @@ QUnit.test(
 
 QUnit.test('switching playlists with an outstanding key request aborts request and ' +
            'loads segment', function(assert) {
-  let keyXhr;
   const media = '#EXTM3U\n' +
       '#EXT-X-MEDIA-SEQUENCE:5\n' +
       '#EXT-X-KEY:METHOD=AES-128,URI="https://priv.example.com/key.php?r=52"\n' +
@@ -3007,7 +2990,8 @@ QUnit.test('switching playlists with an outstanding key request aborts request a
   this.standardXHRResponse(this.requests.pop());
 
   assert.equal(this.requests.length, 1, 'key request only one outstanding');
-  keyXhr = this.requests.shift();
+  const keyXhr = this.requests.shift();
+
   assert.ok(!keyXhr.aborted, 'key request outstanding');
 
   this.player.tech_.hls.playlists.trigger('mediachanging');
