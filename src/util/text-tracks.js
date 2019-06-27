@@ -246,7 +246,7 @@ export const removeCuesFromTrack = function(start, end, track) {
     cue = track.cues[i];
 
     // Remove any overlapping cue
-    if (cue.startTime <= end && cue.endTime >= start) {
+    if (cue.startTime >= start && cue.endTime <= end) {
       track.removeCue(cue);
     }
   }
