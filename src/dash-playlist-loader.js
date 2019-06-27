@@ -308,8 +308,8 @@ export default class DashPlaylistLoader extends EventTarget {
 
     // switch to previously loaded playlists immediately
     if (mediaChange &&
-        this.loadedPlaylists_[playlist.uri] &&
-        this.loadedPlaylists_[playlist.uri].endList) {
+      this.loadedPlaylists_[playlist.uri] &&
+      this.loadedPlaylists_[playlist.uri].endList) {
       this.state = 'HAVE_METADATA';
       this.media_ = playlist;
 
@@ -681,37 +681,40 @@ export default class DashPlaylistLoader extends EventTarget {
 
       const master = this.parseMasterXml();
       const updatedMaster = updateMaster(this.master, master);
+      const currentSidxInfo = this.media().sidx;
 
       if (updatedMaster) {
-        const sidxKey = generateSidxKey(this.media().sidx);
+        if (currentSidxInfo) {
+          const sidxKey = generateSidxKey(currentSidxInfo);
 
-        // the sidx was updated, so the previous mapping was removed
-        if (!this.sidxMapping_[sidxKey]) {
-          const playlist = this.media();
+          // the sidx was updated, so the previous mapping was removed
+          if (!this.sidxMapping_[sidxKey]) {
+            const playlist = this.media();
 
-          this.request = requestSidx_(
-            playlist.sidx,
-            playlist,
-            this.hls_.xhr,
-            { handleManifestRedirects: this.handleManifestRedirects },
-            this.sidxRequestFinished_(playlist, master, this.state, (newMaster, sidx) => {
-              if (!newMaster || !sidx) {
-                throw new Error('failed to request sidx on minimumUpdatePeriod');
-              }
+            this.request = requestSidx_(
+              playlist.sidx,
+              playlist,
+              this.hls_.xhr,
+              { handleManifestRedirects: this.handleManifestRedirects },
+              this.sidxRequestFinished_(playlist, master, this.state, (newMaster, sidx) => {
+                if (!newMaster || !sidx) {
+                  throw new Error('failed to request sidx on minimumUpdatePeriod');
+                }
 
-              // update loader's sidxMapping with parsed sidx box
-              this.sidxMapping_[sidxKey].sidx = sidx;
+                // update loader's sidxMapping with parsed sidx box
+                this.sidxMapping_[sidxKey].sidx = sidx;
 
-              this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
-                this.trigger('minimumUpdatePeriod');
-              }, this.master.minimumUpdatePeriod);
+                this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
+                  this.trigger('minimumUpdatePeriod');
+                }, this.master.minimumUpdatePeriod);
 
-              // TODO: do we need to reload the current playlist?
-              this.refreshMedia_(this.media().uri);
+                // TODO: do we need to reload the current playlist?
+                this.refreshMedia_(this.media().uri);
 
-              return;
-            })
-          );
+                return;
+              })
+            );
+          }
         } else {
 
           this.master = updatedMaster;
