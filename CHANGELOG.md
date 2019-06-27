@@ -1,3 +1,14 @@
+<a name="1.10.4"></a>
+## [1.10.4](https://github.com/videojs/http-streaming/compare/v1.10.3...v1.10.4) (2019-06-27)
+
+### Bug Fixes
+
+* verify sidx is present before doing anything related to it ([#561](https://github.com/videojs/http-streaming/issues/561)) ([15d753c](https://github.com/videojs/http-streaming/commit/15d753c)), closes [#457](https://github.com/videojs/http-streaming/issues/457) [#557](https://github.com/videojs/http-streaming/issues/557)
+
+### Chores
+
+* update package-lock ([1559930](https://github.com/videojs/http-streaming/commit/1559930))
+
 <a name="1.10.3"></a>
 ## [1.10.3](https://github.com/videojs/http-streaming/compare/v1.10.2...v1.10.3) (2019-05-30)
 
