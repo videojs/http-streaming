@@ -6,6 +6,7 @@ const worker = require('@gkatsev/rollup-plugin-bundle-worker');
 const options = {
   input: 'src/videojs-http-streaming.js',
   testInput: ['test/custom-assertions.js', 'test/**/*.test.js'],
+  distName: 'videojs-http-streaming',
   externals(defaults) {
     return Object.assign(defaults, {
       module: defaults.module.concat([
