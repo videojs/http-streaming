@@ -19,6 +19,8 @@ module.exports = function(config) {
     browserstackLaunchers(defaults) {
       delete defaults.bsSafariMojave;
       delete defaults.bsSafariElCapitan;
+      delete defaults.bsEdgeWin10;
+      delete defaults.bsIE11Win10;
 
       return defaults;
     },
