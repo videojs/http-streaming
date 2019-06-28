@@ -6,6 +6,12 @@ module.exports = function(config) {
   // for options
   const options = {
     coverage: false,
+    browserstackLaunchers(defaults) {
+      delete defaults.bsSafariMojave;
+      delete defaults.bsSafariElCapitan;
+
+      return defaults;
+    },
     serverBrowsers() {
       return [];
     }
