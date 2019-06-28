@@ -3,7 +3,7 @@ import window from 'global/window';
 import QUnit from 'qunit';
 import videojs from 'video.js';
 import SourceUpdater from '../src/source-updater';
-import { mp4Video, mp4Audio } from './test-segments';
+import { mp4Video, mp4Audio } from './dist/test-segments';
 
 QUnit.module('Source Updater', {
   beforeEach() {

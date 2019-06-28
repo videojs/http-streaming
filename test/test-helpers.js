@@ -2,11 +2,11 @@ import document from 'global/document';
 import sinon from 'sinon';
 import videojs from 'video.js';
 import URLToolkit from 'url-toolkit';
-import testDataManifests from './test-manifests.js';
+import testDataManifests from './dist/test-manifests.js';
 import xhrFactory from '../src/xhr';
 import { isLikelyFmp4Data } from '../src/util/codecs';
 import window from 'global/window';
-import { muxed as muxedSegment } from './test-segments';
+import { muxed as muxedSegment } from './dist/test-segments';
 
 const RealMediaSource = window.MediaSource;
 const realCreateObjectURL = window.URL.createObjectURL;

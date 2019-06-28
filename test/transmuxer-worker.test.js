@@ -4,7 +4,7 @@ import {
   muxed as muxedSegment,
   oneSecond as oneSecondSegment,
   caption as captionSegment
-} from './test-segments';
+} from './dist/test-segments';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
 
