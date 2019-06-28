@@ -59,8 +59,7 @@
     "docs/",
     "index.html",
     "scripts/",
-    "src/",
-    "test/"
+    "src/"
   ],
   "dependencies": {
     "aes-decrypter": "3.0.0",
