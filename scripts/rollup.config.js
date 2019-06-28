@@ -27,6 +27,7 @@ const options = {
     defaults.browser.splice(2, 0, 'worker');
     defaults.test.splice(3, 0, 'worker');
 
+    // istanbul is only in the list for regular builds and not watch
     if (defaults.test.indexOf('istanbul') !== -1) {
       defaults.test.splice(defaults.test.indexOf('istanbul'), 1);
     }
@@ -35,8 +36,7 @@ const options = {
   },
   primedPlugins(defaults) {
     return Object.assign(defaults, {
-      worker: worker(),
-      istanbul: null
+      worker: worker()
     });
   },
   babel(defaults) {

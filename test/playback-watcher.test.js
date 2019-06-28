@@ -23,6 +23,7 @@ QUnit.module('PlaybackWatcher', {
 
     // setup a player
     this.player = createPlayer();
+    this.player.muted(true);
     this.player.autoplay(true);
   },
 

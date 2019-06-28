@@ -75,6 +75,8 @@
     "@gkatsev/rollup-plugin-bundle-worker": "^1.0.2",
     "@videojs/generator-helpers": "~1.1.1",
     "d3": "^3.4.8",
+    "es5-shim": "^4.5.13",
+    "es6-shim": "^0.35.5",
     "jsdoc": "BrandonOCasey/jsdoc#feat/plugin-from-cli",
     "karma": "^4.0.0",
     "lodash": "^4.17.4",
@@ -86,7 +88,7 @@
     "videojs-contrib-eme": "^3.2.0",
     "videojs-contrib-quality-levels": "^2.0.4",
     "videojs-generate-karma-config": "~5.2.0",
-    "videojs-generate-rollup-config": "~3.2.0",
+    "videojs-generate-rollup-config": "~3.2.1",
     "videojs-generator-verify": "~1.2.0",
     "videojs-standard": "^8.0.3"
   },
