@@ -6,6 +6,12 @@ module.exports = function(config) {
   // for options
   const options = {
     coverage: false,
+    preferHeadless: false,
+    browsers(aboutToRun) {
+      return aboutToRun.filter(function(launcherName) {
+        return launcherName !== 'Safari';
+      });
+    },
     files(defaults) {
 
       defaults.splice(

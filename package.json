@@ -27,7 +27,6 @@
     "start": "npm-run-all -p server watch",
     "pretest": "npm-run-all lint build",
     "test": "npm-run-all test:*",
-    "posttest": "shx cat test/dist/coverage/text.txt",
     "test:unit": "karma start scripts/karma.conf.js",
     "test:verify": "vjsverify --verbose",
     "update-changelog": "conventional-changelog -p videojs -i CHANGELOG.md -s",
