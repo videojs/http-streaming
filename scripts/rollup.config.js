@@ -27,12 +27,16 @@ const options = {
     defaults.browser.splice(2, 0, 'worker');
     defaults.test.splice(3, 0, 'worker');
 
-    defaults.test.splice(defaults.test.indexOf('istanbul'), 1);
+    if (defaults.test.indexOf('istanbul') !== -1) {
+      defaults.test.splice(defaults.test.indexOf('istanbul'), 1);
+    }
+
     return defaults;
   },
   primedPlugins(defaults) {
     return Object.assign(defaults, {
-      worker: worker()
+      worker: worker(),
+      istanbul: null
     });
   },
   babel(defaults) {
