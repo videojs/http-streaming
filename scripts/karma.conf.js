@@ -6,6 +6,16 @@ module.exports = function(config) {
   // for options
   const options = {
     coverage: false,
+    files(defaults) {
+
+      defaults.splice(
+        defaults.indexOf('node_modules/video.js/dist/video.js'),
+        1,
+        'node_modules/video.js/dist/alt/video.core.js'
+      );
+
+      return defaults;
+    },
     browserstackLaunchers(defaults) {
       delete defaults.bsSafariMojave;
       delete defaults.bsSafariElCapitan;
