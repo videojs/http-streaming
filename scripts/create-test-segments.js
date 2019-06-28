@@ -20,7 +20,7 @@ const base64ToUint8Array = (base64) => {
 const utf16CharCodesToString = (typedArray) => {
   let val = '';
 
-  typedArray.forEach((x) => {
+  Array.prototype.forEach.call(typedArray, (x) => {
     val += String.fromCharCode(x);
   });
 

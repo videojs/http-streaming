@@ -39,7 +39,7 @@ QUnit.module('Playback', {
 
     // uncomment these lines when deugging
     // videojs.log.level('debug');
-    // this.fixture.style = 'position: inherit;';
+    this.fixture.style = 'position: inherit;';
 
     video.setAttribute('controls', '');
     video.setAttribute('muted', '');
@@ -48,7 +48,13 @@ QUnit.module('Playback', {
     video.defaultPlaybackRate = 16;
 
     this.fixture.appendChild(video);
-    this.player = videojs(video);
+    this.player = videojs(video, {
+      html5: {
+        hls: {
+          overrideNative: true
+        }
+      }
+    });
 
     this.player.ready(done, true);
   },

@@ -680,7 +680,7 @@ QUnit.test('audio source buffer error passed in done callback', function(assert)
   const corruptVideoSegment = mp4Video();
 
   // throw some bad data in the segment
-  corruptVideoSegment.fill(5, 100, 500);
+  Array.prototype.fill.call(corruptVideoSegment, 5, 100, 500);
 
   // errors when appending video to an audio buffer
   this.sourceUpdater.appendBuffer({type: 'audio', bytes: corruptVideoSegment}, (error) => {
@@ -699,7 +699,7 @@ QUnit.test('video source buffer error passed in done callback', function(assert)
   const corruptAudioSegment = mp4Audio();
 
   // throw some bad data in the segment
-  corruptAudioSegment.fill(5, 100, 500);
+  Array.prototype.fill.call(corruptAudioSegment, 5, 100, 500);
 
   // errors when appending audio to a video buffer
   this.sourceUpdater.appendBuffer({type: 'video', bytes: corruptAudioSegment}, (error) => {

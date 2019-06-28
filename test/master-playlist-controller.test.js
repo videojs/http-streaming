@@ -548,7 +548,7 @@ QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', fun
       seeks++;
     });
 
-    const timeBeforeSwitch = this.player.currentTime();
+    let timeBeforeSwitch = this.player.currentTime();
 
     // mock buffered values so removes are processed
     segmentLoader.sourceUpdater_.audioBuffer.buffered = videojs.createTimeRanges([[0, 10]]);
@@ -560,6 +560,10 @@ QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', fun
     segmentLoader.sourceUpdater_.videoBuffer.trigger('updateend');
     this.clock.tick(1);
 
+    // we seek an additional 0.04s on edge and ie
+    if (videojs.browser.IS_EDGE || videojs.browser.IE_VERSION) {
+      timeBeforeSwitch += 0.04;
+    }
     assert.equal(
       this.player.currentTime(),
       timeBeforeSwitch,
