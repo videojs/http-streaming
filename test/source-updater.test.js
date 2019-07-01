@@ -8,7 +8,7 @@ import { timeRangesEqual } from './custom-assertions.js';
 
 const checkIntialDuration = function({duration}) {
   // ie sometimes sets duration to infinity earlier then expected
-  if (videojs.browser.IE_VERSION) {
+  if (videojs.browser.IS_EDGE || videojs.browser.IE_VERSION) {
     QUnit.assert.ok(Number.isNaN(duration) || !Number.isFinite(duration), 'starting duration as expected');
   } else {
     QUnit.assert.ok(Number.isNaN(duration), 'starting duration as expected');
@@ -1089,9 +1089,6 @@ QUnit.test('dispose removes sourceopen listener', function(assert) {
 
 QUnit.test('audio appends are delayed until video append for the first append', function(assert) {
   const done = assert.async();
-
-  assert.timeout(5000);
-
   let audioAppend = false;
   let videoAppend = false;
 

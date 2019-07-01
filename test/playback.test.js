@@ -45,7 +45,7 @@ QUnit.module('Playback', {
 
     // uncomment these lines when deugging
     // videojs.log.level('debug');
-    this.fixture.style.position = 'inherit';
+    // this.fixture.style.position = 'inherit';
 
     video.setAttribute('controls', '');
     video.setAttribute('muted', '');
