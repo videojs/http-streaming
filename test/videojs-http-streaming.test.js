@@ -250,9 +250,9 @@ QUnit.test('autoplay seeks to the live point after playlist load', function(asse
   let currentTime = 0;
 
   this.player.autoplay(true);
-  this.player.on('seeking', () => {
-    currentTime = this.player.currentTime();
-  });
+  this.player.tech_.currentTime = (ct) => {
+    currentTime = ct;
+  };
   this.player.src({
     src: 'liveStart30sBefore.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -261,6 +261,7 @@ QUnit.test('autoplay seeks to the live point after playlist load', function(asse
   this.clock.tick(1);
 
   openMediaSource(this.player, this.clock);
+  this.player.tech_.readyState = () => 4;
   this.player.tech_.trigger('play');
   this.standardXHRResponse(this.requests.shift());
   this.clock.tick(1);
@@ -272,13 +273,14 @@ QUnit.test('autoplay seeks to the live point after media source open', function(
   let currentTime = 0;
 
   this.player.autoplay(true);
-  this.player.on('seeking', () => {
-    currentTime = this.player.currentTime();
-  });
+  this.player.tech_.setCurrentTime = (ct) => {
+    currentTime = ct;
+  };
   this.player.src({
     src: 'liveStart30sBefore.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
+  this.player.tech_.readyState = () => 4;
 
   this.clock.tick(1);
 
@@ -1869,7 +1871,12 @@ QUnit.test('live playlist starts with correct currentTime value', function(asser
   openMediaSource(this.player, this.clock);
 
   this.standardXHRResponse(this.requests[0]);
+  let currentTime = 0;
 
+  this.player.tech_.setCurrentTime = (ct) => {
+    currentTime = ct;
+  };
+  this.player.tech_.readyState = () => 4;
   this.player.tech_.hls.playlists.trigger('loadedmetadata');
 
   this.player.tech_.paused = function() {
@@ -1881,7 +1888,7 @@ QUnit.test('live playlist starts with correct currentTime value', function(asser
   const media = this.player.tech_.hls.playlists.media();
 
   assert.strictEqual(
-    this.player.currentTime(),
+    currentTime,
     Hls.Playlist.seekable(media).end(0),
     'currentTime is updated at playback'
   );
@@ -3168,6 +3175,7 @@ QUnit.test('cleans up the buffer when loading live segments', function(assert) {
   };
 
   this.player.tech_.hls.bandwidth = 20e10;
+  this.player.tech_.readyState = () => 4;
   this.player.tech_.triggerReady();
   // media
   this.standardXHRResponse(this.requests[0]);
@@ -3249,6 +3257,7 @@ QUnit.test('cleans up the buffer based on currentTime when loading a live segmen
     return seekable;
   };
 
+  this.player.tech_.readyState = () => 4;
   this.player.tech_.hls.bandwidth = 20e10;
   this.player.tech_.triggerReady();
   // media
@@ -4558,7 +4567,7 @@ QUnit.test('live playlist starts three target durations before live', function(a
 
   this.tech.readyState = () => 4;
   this.tech.trigger('play');
-  this.clock.tick(10);
+  this.clock.tick(1);
 
   assert.equal(
     hls.seekable().end(0),
