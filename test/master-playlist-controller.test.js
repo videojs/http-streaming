@@ -35,6 +35,10 @@ import {
   mp4AudioInit as mp4AudioInitSegment,
   mp4Audio as mp4AudioSegment
 } from './dist/test-segments';
+import {
+  timeRangesEqual,
+  bandwidthWithinTolerance
+} from './custom-assertions.js';
 
 QUnit.module('MasterPlaylistController', {
   beforeEach(assert) {
@@ -1876,7 +1880,7 @@ QUnit.test('does not get stuck in a loop due to inconsistent network/caching', f
     segmentRequest = this.requests[0];
 
     // walking forwards, still need two segments before trying to change rendition
-    assert.bandwidthWithinTolerance(segmentLoader.bandwidth, 80000, 'bandwidth is correct');
+    bandwidthWithinTolerance(segmentLoader.bandwidth, 80000, 'bandwidth is correct');
     assert.equal(mediaChanges.length, 2, 'did not change media');
     assert.equal(
       segmentRequest.uri.substring(segmentRequest.uri.length - 4),
@@ -1896,7 +1900,7 @@ QUnit.test('does not get stuck in a loop due to inconsistent network/caching', f
   }).then(() => {
     // Media may be changed, but it should be changed to the same media. In the future, this
     // can safely not be changed.
-    assert.bandwidthWithinTolerance(segmentLoader.bandwidth, 88000, 'bandwidth is correct');
+    bandwidthWithinTolerance(segmentLoader.bandwidth, 88000, 'bandwidth is correct');
     assert.equal(mediaChanges.length, 3, 'changed media');
     assert.equal(mediaChanges[2].uri, 'media.m3u8', 'media remains unchanged');
 
@@ -2105,11 +2109,11 @@ QUnit.test(
       return videojs.createTimeRanges(audioTimeRanges);
     };
 
-    assert.timeRangesEqual(mpc.seekable(), videojs.createTimeRanges(), 'empty when main empty');
+    timeRangesEqual(mpc.seekable(), videojs.createTimeRanges(), 'empty when main empty');
     mainTimeRanges = [[0, 10]];
     mpc.seekable_ = videojs.createTimeRanges();
     mpc.onSyncInfoUpdate_();
-    assert.timeRangesEqual(mpc.seekable(), videojs.createTimeRanges([[0, 10]]), 'main when no audio');
+    timeRangesEqual(mpc.seekable(), videojs.createTimeRanges([[0, 10]]), 'main when no audio');
 
     mpc.mediaTypes_.AUDIO.activePlaylistLoader = {
       media: () => audioMedia,
@@ -2120,45 +2124,45 @@ QUnit.test(
     mpc.seekable_ = videojs.createTimeRanges();
     mpc.onSyncInfoUpdate_();
 
-    assert.timeRangesEqual(mpc.seekable(), videojs.createTimeRanges(), 'empty when both empty');
+    timeRangesEqual(mpc.seekable(), videojs.createTimeRanges(), 'empty when both empty');
     mainTimeRanges = [[0, 10]];
     mpc.seekable_ = videojs.createTimeRanges();
     mpc.onSyncInfoUpdate_();
-    assert.timeRangesEqual(mpc.seekable(), videojs.createTimeRanges(), 'empty when audio empty');
+    timeRangesEqual(mpc.seekable(), videojs.createTimeRanges(), 'empty when audio empty');
     mainTimeRanges = [];
     audioTimeRanges = [[0, 10]];
     mpc.seekable_ = videojs.createTimeRanges();
     mpc.onSyncInfoUpdate_();
-    assert.timeRangesEqual(mpc.seekable(), videojs.createTimeRanges(), 'empty when main empty');
+    timeRangesEqual(mpc.seekable(), videojs.createTimeRanges(), 'empty when main empty');
     mainTimeRanges = [[0, 10]];
     audioTimeRanges = [[0, 10]];
     mpc.seekable_ = videojs.createTimeRanges();
     mpc.onSyncInfoUpdate_();
-    assert.timeRangesEqual(mpc.seekable(), videojs.createTimeRanges([[0, 10]]), 'ranges equal');
+    timeRangesEqual(mpc.seekable(), videojs.createTimeRanges([[0, 10]]), 'ranges equal');
     mainTimeRanges = [[5, 10]];
     mpc.seekable_ = videojs.createTimeRanges();
     mpc.onSyncInfoUpdate_();
-    assert.timeRangesEqual(mpc.seekable(), videojs.createTimeRanges([[5, 10]]), 'main later start');
+    timeRangesEqual(mpc.seekable(), videojs.createTimeRanges([[5, 10]]), 'main later start');
     mainTimeRanges = [[0, 10]];
     audioTimeRanges = [[5, 10]];
     mpc.seekable_ = videojs.createTimeRanges();
     mpc.onSyncInfoUpdate_();
-    assert.timeRangesEqual(mpc.seekable(), videojs.createTimeRanges([[5, 10]]), 'audio later start');
+    timeRangesEqual(mpc.seekable(), videojs.createTimeRanges([[5, 10]]), 'audio later start');
     mainTimeRanges = [[0, 9]];
     audioTimeRanges = [[0, 10]];
     mpc.seekable_ = videojs.createTimeRanges();
     mpc.onSyncInfoUpdate_();
-    assert.timeRangesEqual(mpc.seekable(), videojs.createTimeRanges([[0, 9]]), 'main earlier end');
+    timeRangesEqual(mpc.seekable(), videojs.createTimeRanges([[0, 9]]), 'main earlier end');
     mainTimeRanges = [[0, 10]];
     audioTimeRanges = [[0, 9]];
     mpc.seekable_ = videojs.createTimeRanges();
     mpc.onSyncInfoUpdate_();
-    assert.timeRangesEqual(mpc.seekable(), videojs.createTimeRanges([[0, 9]]), 'audio earlier end');
+    timeRangesEqual(mpc.seekable(), videojs.createTimeRanges([[0, 9]]), 'audio earlier end');
     mainTimeRanges = [[1, 10]];
     audioTimeRanges = [[0, 9]];
     mpc.seekable_ = videojs.createTimeRanges();
     mpc.onSyncInfoUpdate_();
-    assert.timeRangesEqual(
+    timeRangesEqual(
       mpc.seekable(),
       videojs.createTimeRanges([[1, 9]]),
       'main later start, audio earlier end'
@@ -2167,7 +2171,7 @@ QUnit.test(
     audioTimeRanges = [[1, 10]];
     mpc.seekable_ = videojs.createTimeRanges();
     mpc.onSyncInfoUpdate_();
-    assert.timeRangesEqual(
+    timeRangesEqual(
       mpc.seekable(),
       videojs.createTimeRanges([[1, 9]]),
       'audio later start, main earlier end'
@@ -2175,7 +2179,7 @@ QUnit.test(
     mainTimeRanges = [[2, 9]];
     mpc.seekable_ = videojs.createTimeRanges();
     mpc.onSyncInfoUpdate_();
-    assert.timeRangesEqual(
+    timeRangesEqual(
       mpc.seekable(),
       videojs.createTimeRanges([[2, 9]]),
       'main later start, main earlier end'
@@ -2184,7 +2188,7 @@ QUnit.test(
     audioTimeRanges = [[2, 9]];
     mpc.seekable_ = videojs.createTimeRanges();
     mpc.onSyncInfoUpdate_();
-    assert.timeRangesEqual(
+    timeRangesEqual(
       mpc.seekable(),
       videojs.createTimeRanges([[2, 9]]),
       'audio later start, audio earlier end'
@@ -2193,7 +2197,7 @@ QUnit.test(
     audioTimeRanges = [[11, 20]];
     mpc.seekable_ = videojs.createTimeRanges();
     mpc.onSyncInfoUpdate_();
-    assert.timeRangesEqual(
+    timeRangesEqual(
       mpc.seekable(),
       videojs.createTimeRanges([[1, 10]]),
       'no intersection, audio later'
@@ -2202,7 +2206,7 @@ QUnit.test(
     audioTimeRanges = [[1, 10]];
     mpc.seekable_ = videojs.createTimeRanges();
     mpc.onSyncInfoUpdate_();
-    assert.timeRangesEqual(
+    timeRangesEqual(
       mpc.seekable(),
       videojs.createTimeRanges([[11, 20]]),
       'no intersection, main later'
