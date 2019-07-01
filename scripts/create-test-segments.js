@@ -34,9 +34,6 @@ for (let i = 0; i < process.argv.length; i++) {
   if ((/^-w|--watch$/).test(process.argv[i])) {
     fn = 'watch';
     break;
-  } else if ((/^-c|--clean$/).test(process.argv[i])) {
-    fn = 'clean';
-    break;
   }
 }
 
