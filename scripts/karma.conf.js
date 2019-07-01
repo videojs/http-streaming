@@ -9,7 +9,7 @@ module.exports = function(config) {
     preferHeadless: false,
     browsers(aboutToRun) {
       return aboutToRun.filter(function(launcherName) {
-        return launcherName !== 'Safari';
+        return !(/^Safari/).test(launcherName);
       });
     },
     files(defaults) {
