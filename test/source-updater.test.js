@@ -6,11 +6,21 @@ import SourceUpdater from '../src/source-updater';
 import { mp4Video, mp4Audio } from './dist/test-segments';
 import { timeRangesEqual } from './custom-assertions.js';
 
+const checkIntialDuration = function({duration}) {
+  // ie sometimes sets duration to infinity earlier then expected
+  if (videojs.browser.IE_VERSION) {
+    QUnit.assert.ok(Number.isNaN(duration) || !Number.isFinite(duration), 'starting duration as expected');
+  } else {
+    QUnit.assert.ok(Number.isNaN(duration), 'starting duration as expected');
+  }
+};
+
 QUnit.module('Source Updater', {
   beforeEach() {
     const video = document.createElement('video');
 
     this.mediaSource = new window.MediaSource();
+
     // need to attach the real media source to a video element for the media source to
     // change to an open ready state
     video.src = URL.createObjectURL(this.mediaSource);
@@ -716,7 +726,7 @@ QUnit.test(
       video: 'avc1.4D001E'
     });
 
-    assert.ok(Number.isNaN(this.mediaSource.duration), 'duration set to NaN at start');
+    checkIntialDuration(this.mediaSource);
     this.sourceUpdater.setDuration(11);
     assert.equal(this.mediaSource.duration, 11, 'set duration on media source');
   }
@@ -743,7 +753,7 @@ QUnit.test('setDuration waits for audio buffer to finish updating', function(ass
     done();
   });
 
-  assert.ok(Number.isNaN(this.mediaSource.duration), 'duration set to NaN at start');
+  checkIntialDuration(this.mediaSource);
   assert.ok(this.sourceUpdater.updating(), 'updating during appends');
 });
 
@@ -769,7 +779,7 @@ QUnit.test('setDuration waits for video buffer to finish updating', function(ass
     done();
   });
 
-  assert.ok(Number.isNaN(this.mediaSource.duration), 'duration set to NaN at start');
+  checkIntialDuration(this.mediaSource);
   assert.ok(this.sourceUpdater.updating(), 'updating during appends');
 });
 
@@ -811,7 +821,7 @@ QUnit.test(
       assert.equal(this.mediaSource.duration, 11, 'set duration on media source');
     });
 
-    assert.ok(Number.isNaN(this.mediaSource.duration), 'duration set to NaN at start');
+    checkIntialDuration(this.mediaSource);
     assert.ok(this.sourceUpdater.updating(), 'updating during appends');
   }
 );
@@ -856,7 +866,7 @@ QUnit.test(
       done();
     });
 
-    assert.ok(Number.isNaN(this.mediaSource.duration), 'duration set to NaN at start');
+    checkIntialDuration(this.mediaSource);
   }
 );
 

@@ -4550,16 +4550,23 @@ QUnit.test('live playlist starts three target durations before live', function(a
   this.tech.paused = function() {
     return false;
   };
+  let techCurrentTime = 0;
 
+  this.tech.setCurrentTime = function(ct) {
+    techCurrentTime = ct;
+  };
+
+  this.tech.readyState = () => 4;
   this.tech.trigger('play');
-  this.clock.tick(1);
+  this.clock.tick(10);
+
   assert.equal(
     hls.seekable().end(0),
     20,
     'seekable end is three target durations from playlist end'
   );
   assert.equal(
-    this.tech.currentTime(),
+    techCurrentTime,
     hls.seekable().end(0),
     'seeked to the seekable end'
   );
