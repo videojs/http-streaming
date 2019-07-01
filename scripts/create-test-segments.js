@@ -3,10 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const basePath = path.resolve(__dirname, '..');
-const testDir = path.join(basePath, 'test');
-const segmentsDir = path.join(testDir, 'segments');
-const segmentsFilepath = path.join(testDir, 'test-segments.js');
+const segmentsDir = path.join(__dirname, '..', 'test', 'segments');
+const segmentsFilepath = path.join(__dirname, '..', 'test', 'dist', 'test-segments.js');
 
 const base64ToUint8Array = (base64) => {
   const decoded = window.atob(base64);
@@ -29,7 +27,17 @@ const utf16CharCodesToString = (typedArray) => {
   return val;
 };
 
-module.exports = {
+let fn = 'build';
+
+// parse args
+for (let i = 0; i < process.argv.length; i++) {
+  if ((/^-w|--watch$/).test(process.argv[i])) {
+    fn = 'watch';
+    break;
+  }
+}
+
+const createTestSegments = {
   build() {
     const files = fs.readdirSync(segmentsDir);
     const segmentData = {};
@@ -72,15 +80,7 @@ module.exports = {
       console.log('files in segments dir were changed rebuilding segments data');
       this.build();
     });
-  },
-
-  clean() {
-    if (fs.existsSync(segmentsFilepath)) {
-      try {
-        fs.unlinkSync(segmentsFilepath);
-      } catch (e) {
-        console.log(e);
-      }
-    }
   }
 };
+
+createTestSegments[fn]();

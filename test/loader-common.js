@@ -22,7 +22,7 @@ import {
   muxed as muxedSegment,
   mp4Video as mp4VideoSegment,
   mp4VideoInit as mp4VideoInitSegment
-} from './test-segments';
+} from './dist/test-segments';
 
 /**
  * beforeEach and afterEach hooks that should be run segment loader tests regardless of

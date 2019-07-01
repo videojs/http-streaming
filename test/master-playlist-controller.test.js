@@ -10,7 +10,7 @@ import {
   requestAndAppendSegment,
   setupMediaSource
 } from './test-helpers.js';
-import manifests from './test-manifests.js';
+import manifests from './dist/test-manifests.js';
 import {
   MasterPlaylistController,
   DEFAULT_AUDIO_CODEC,
@@ -34,7 +34,7 @@ import {
   mp4Video as mp4VideoSegment,
   mp4AudioInit as mp4AudioInitSegment,
   mp4Audio as mp4AudioSegment
-} from './test-segments';
+} from './dist/test-segments';
 
 QUnit.module('MasterPlaylistController', {
   beforeEach(assert) {

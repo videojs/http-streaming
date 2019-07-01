@@ -2,12 +2,12 @@ import document from 'global/document';
 import videojs from 'video.js';
 import Events from 'video.js';
 import QUnit from 'qunit';
-import testDataManifests from './test-manifests.js';
+import testDataManifests from './dist/test-manifests.js';
 import {
   muxed as muxedSegment,
   encryptionKey,
   encrypted as encryptedSegment
-} from './test-segments';
+} from './dist/test-segments';
 import {
   useFakeEnvironment,
   useFakeMediaSource,

@@ -7,7 +7,7 @@ const basePath = path.resolve(__dirname, '..');
 const docImageDir = path.join(basePath, 'docs/images');
 const nomnomlSourceDir = path.join(basePath, 'docs/images/sources');
 
-module.exports = {
+const buildImages = {
   build() {
     const files = fs.readdirSync(nomnomlSourceDir);
 
@@ -27,3 +27,5 @@ module.exports = {
     }
   }
 };
+
+buildImages.build();

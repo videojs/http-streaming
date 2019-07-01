@@ -12,37 +12,31 @@
     "prenetlify": "npm run build",
     "netlify": "node scripts/netlify.js",
     "prebuild": "npm run clean",
-    "build": "run-s build:webworker build:js",
+    "build": "npm-run-all -p build:*",
     "build:js": "rollup -c scripts/rollup.config.js",
-    "build:webworker": "rollup -c scripts/webworker.rollup.config.js",
-    "clean": "run-p clean:dist clean:test",
-    "clean:dist": "rimraf dist dist-test",
-    "clean:test": "node scripts/clean-tests.js",
-    "postclean": "mkdirp dist",
-    "docs": "run-p docs:*",
-    "docs:api": "jsdoc src -r -d docs/api",
-    "docs:toc": "doctoc README.md",
-    "docs:nomnoml:build": "node -e \"var b=require('./scripts/nomnoml.js'); b.build();\"",
+    "clean": "shx rm -rf ./dist ./test/dist",
+    "postclean": "shx mkdir -p ./dist ./test/dist",
+    "build:test-manifests": "node ./scripts/create-test-manifests.js",
+    "build:test-segments": "node ./scripts/create-test-segments.js",
+    "docs": "npm-run-all docs:*",
+    "docs:api": "jsdoc src -g plugins/markdown -r -d docs/api",
+    "docs:toc": "doctoc --notitle README.md",
+    "docs:images": "node ./scripts/create-docs-images.js",
     "lint": "vjsstandard",
-    "start": "run-p start:server watch",
-    "start:server": "node scripts/server.js",
-    "pretest": "run-s lint build:test:js",
-    "test": "karma start test/karma.conf.js",
-    "prebuild:test:js": "run-s build:webworker build:test:manifest build:test:segments",
-    "build:test:js": "rollup -c scripts/test.rollup.config.js",
-    "build:test:manifest": "node -e \"var b=require('./scripts/manifest-data.js'); b.build();\"",
-    "build:test:segments": "node -e \"var b=require('./scripts/segments-data.js'); b.build();\"",
-    "prewatch": "npm run clean",
-    "watch": "run-p watch:webworker watch:js watch:test:manifest watch:test:segments watch:test:js",
-    "watch:js": "rollup -c scripts/rollup.config.js -w",
-    "watch:webworker": "rollup -c scripts/webworker.rollup.config.js -w",
-    "prewatch:test:js": "run-p build:test:manifest build:test:segments",
-    "watch:test:js": "rollup -c scripts/test.rollup.config.js -w",
-    "watch:test:manifest": "node -e \"var b=require('./scripts/manifest-data.js'); b.watch();\"",
-    "watch:test:segments": "node -e \"var b=require('./scripts/segments-data.js'); b.watch();\"",
+    "server": "karma start scripts/karma.conf.js --singleRun=false --auto-watch",
+    "start": "npm-run-all -p server watch",
+    "pretest": "npm-run-all lint build",
+    "test": "npm-run-all test:*",
+    "test:unit": "karma start scripts/karma.conf.js",
+    "test:verify": "vjsverify --verbose",
+    "update-changelog": "conventional-changelog -p videojs -i CHANGELOG.md -s",
     "preversion": "npm test",
-    "version": "node scripts/version.js",
-    "prepublish": "in-publish && npm run build || not-in-publish"
+    "version": "is-prerelease || npm run update-changelog && git add CHANGELOG.md",
+    "watch": "npm-run-all -p watch:*",
+    "watch:test-manifests": "npm run build:test-manifests -- --watch",
+    "watch:test-segments": "npm run build:test-segments -- --watch",
+    "watch:js": "npm run build:js -- -w",
+    "prepublishOnly": "npm-run-all build test:verify"
   },
   "keywords": [
     "videojs",
@@ -53,71 +47,74 @@
   "vjsstandard": {
     "ignore": [
       "dist",
-      "dist-test",
       "docs",
+      "test/dist",
       "utils",
-      "test/test-manifests.js",
-      "test/test-segments.js",
       "src/*.worker.js"
     ]
   },
   "files": [
-    "dist/"
+    "CONTRIBUTING.md",
+    "dist/",
+    "docs/",
+    "index.html",
+    "scripts/",
+    "src/"
   ],
   "dependencies": {
     "aes-decrypter": "3.0.0",
-    "global": "^4.3.0",
+    "global": "^4.3.2",
     "m3u8-parser": "4.4.0",
     "mpd-parser": "0.8.1",
     "mux.js": "5.2.0-3",
     "url-toolkit": "^2.1.3",
-    "video.js": "^6.8.0 || ^7.0.0"
+    "video.js": "^6 || ^7"
   },
   "devDependencies": {
     "@gkatsev/rollup-plugin-bundle-worker": "^1.0.2",
-    "babel-core": "^6.26.0",
-    "babel-plugin-external-helpers": "^6.22.0",
-    "babel-preset-env": "^1.6.1",
-    "chg": "^0.3.3",
-    "connect": "^3.6.6",
-    "conventional-changelog-cli": "^1.3.20",
-    "conventional-changelog-videojs": "^3.0.0",
-    "cowsay": "^1.3.0",
+    "@videojs/generator-helpers": "~1.1.1",
     "d3": "^3.4.8",
-    "doctoc": "^0.15.0",
-    "in-publish": "^2.0.0",
-    "jsdoc": "^3.4.0",
-    "karma": "^4.1.0",
-    "karma-browserstack-launcher": "~1.4.0",
-    "karma-chrome-launcher": "^2.2.0",
-    "karma-coverage": "^1.1.1",
-    "karma-detect-browsers": "^2.2.6",
-    "karma-firefox-launcher": "^1.1.0",
-    "karma-qunit": "^3.1.2",
-    "karma-safari-launcher": "^1.0.0",
-    "karma-safaritechpreview-launcher": "0.0.6",
-    "karma-spec-reporter": "0.0.32",
+    "es5-shim": "^4.5.13",
+    "es6-shim": "^0.35.5",
+    "jsdoc": "BrandonOCasey/jsdoc#feat/plugin-from-cli",
+    "karma": "^4.0.0",
     "lodash": "^4.17.4",
     "lodash-compat": "^3.10.0",
     "nomnoml": "^0.3.0",
-    "npm-run-all": "^4.1.5",
-    "portscanner": "^2.1.1",
-    "qunit": "^2.9.2",
-    "rollup": "^0.57.1",
-    "rollup-plugin-babel": "^3.0.3",
-    "rollup-plugin-commonjs": "^9.1.0",
-    "rollup-plugin-json": "^2.3.0",
-    "rollup-plugin-multi-entry": "^2.0.2",
-    "rollup-plugin-node-resolve": "^3.3.0",
-    "rollup-plugin-uglify": "^3.0.0",
-    "rollup-watch": "^4.3.1",
-    "semver": "^5.5.0",
-    "serve-static": "^1.13.2",
+    "rollup": "^1.10.0",
     "shelljs": "^0.8.2",
     "sinon": "1.10.3",
-    "uglify-es": "^3.3.9",
     "videojs-contrib-eme": "^3.2.0",
     "videojs-contrib-quality-levels": "^2.0.4",
+    "videojs-generate-karma-config": "~5.2.0",
+    "videojs-generate-rollup-config": "~3.2.1",
+    "videojs-generator-verify": "~1.2.0",
     "videojs-standard": "^8.0.3"
+  },
+  "generator-videojs-plugin": {
+    "version": "7.6.3"
+  },
+  "browserslist": [
+    "defaults",
+    "ie 11"
+  ],
+  "engines": {
+    "node": ">=8",
+    "npm": ">=5"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.js": [
+      "vjsstandard --fix",
+      "git add"
+    ],
+    "README.md": [
+      "doctoc --notitle",
+      "git add"
+    ]
   }
 }

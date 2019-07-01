@@ -28,7 +28,7 @@ import {
   mp4AudioInit as mp4AudioInitSegment,
   encrypted as encryptedSegment,
   encryptionKey
-} from './test-segments';
+} from './dist/test-segments';
 import sinon from 'sinon';
 
 /* TODO
