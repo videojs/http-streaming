@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 const fs = require('fs');
 const path = require('path');
-const manifestDir = path.join(__dirname, '..', 'utils', 'manifest');
+const manifestDir = path.join(__dirname, '..', 'test', 'manifests');
 const manifestFilepath = path.join(__dirname, '..', 'test', 'dist', 'test-manifests.js');
 let fn = 'build';
 
