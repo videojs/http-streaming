@@ -109,7 +109,8 @@ export const LoaderCommonFactory = (
   LoaderConstructor,
   loaderSettings,
   loaderBeforeEach,
-  usesAsyncAppends = true
+  usesAsyncAppends = true,
+  testData = muxedSegment
 ) => {
   let loader;
 
@@ -177,7 +178,7 @@ export const LoaderCommonFactory = (
         loader.pause();
         this.clock.tick(1);
 
-        standardXHRResponse(this.requests.shift(), muxedSegment());
+        standardXHRResponse(this.requests.shift(), testData());
 
         assert.equal(loader.paused(), true, 'stayed paused');
         loader.load();
@@ -213,7 +214,7 @@ export const LoaderCommonFactory = (
 
         // fill the buffer
         this.clock.tick(1);
-        standardXHRResponse(this.requests.shift(), muxedSegment());
+        standardXHRResponse(this.requests.shift(), testData());
 
         loader.buffered_ = () => videojs.createTimeRanges([[
           0, Config.GOAL_BUFFER_LENGTH
@@ -247,7 +248,7 @@ export const LoaderCommonFactory = (
 
         loader.pause();
         this.clock.tick(1);
-        standardXHRResponse(this.requests.shift(), muxedSegment());
+        standardXHRResponse(this.requests.shift(), testData());
 
         if (usesAsyncAppends) {
           return new Promise((resolve, reject) => {
@@ -264,7 +265,7 @@ export const LoaderCommonFactory = (
     });
 
     QUnit.test('calculates bandwidth after downloading a segment', function(assert) {
-      const segment = muxedSegment();
+      const segment = testData();
       const segmentBytes = segment.byteLength;
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
@@ -439,7 +440,7 @@ export const LoaderCommonFactory = (
 
           this.clock.tick(1);
 
-          standardXHRResponse(this.requests.shift(), muxedSegment());
+          standardXHRResponse(this.requests.shift(), testData());
 
           if (usesAsyncAppends) {
             return new Promise((resolve, reject) => {
@@ -456,7 +457,7 @@ export const LoaderCommonFactory = (
           // if mediaIndex is set, then the SegmentLoader is in walk-forward mode
           loader.mediaIndex = 1;
 
-          standardXHRResponse(this.requests.shift(), muxedSegment());
+          standardXHRResponse(this.requests.shift(), testData());
 
           if (usesAsyncAppends) {
             return new Promise((resolve, reject) => {
@@ -653,7 +654,7 @@ export const LoaderCommonFactory = (
           '3.ts',
           'requesting the segment at mediaIndex 3'
         );
-        standardXHRResponse(this.requests.shift(), muxedSegment());
+        standardXHRResponse(this.requests.shift(), testData());
 
         if (usesAsyncAppends) {
           return new Promise((resolve, reject) => {
@@ -684,7 +685,7 @@ export const LoaderCommonFactory = (
 
         assert.equal(loader.mediaIndex, 1, 'SegmentLoader.mediaIndex is updated to 1');
 
-        standardXHRResponse(this.requests.shift(), muxedSegment());
+        standardXHRResponse(this.requests.shift(), testData());
 
         if (usesAsyncAppends) {
           return new Promise((resolve, reject) => {
@@ -746,7 +747,7 @@ export const LoaderCommonFactory = (
           '3.ts',
           'requesting the segment at mediaIndex 3'
         );
-        standardXHRResponse(this.requests.shift(), muxedSegment());
+        standardXHRResponse(this.requests.shift(), testData());
 
         if (usesAsyncAppends) {
           return new Promise((resolve, reject) => {
@@ -778,7 +779,7 @@ export const LoaderCommonFactory = (
         assert.equal(segmentInfo.mediaIndex, 1, 'segmentInfo.mediaIndex is updated to 1');
         expectedLoaderIndex = 1;
 
-        standardXHRResponse(this.requests.shift(), muxedSegment());
+        standardXHRResponse(this.requests.shift(), testData());
 
         if (usesAsyncAppends) {
           return new Promise((resolve, reject) => {
@@ -1034,7 +1035,7 @@ export const LoaderCommonFactory = (
           );
           assert.equal(loader.state, 'WAITING', 'waiting for response');
 
-          standardXHRResponse(this.requests.shift(), muxedSegment());
+          standardXHRResponse(this.requests.shift(), testData());
           // playlist updated during append
           const playlistUpdated = playlistWithDuration(40);
 
@@ -1103,7 +1104,7 @@ export const LoaderCommonFactory = (
         );
 
         // wrap up the first request to set mediaIndex and start normal live streaming
-        standardXHRResponse(this.requests.shift(), muxedSegment());
+        standardXHRResponse(this.requests.shift(), testData());
 
         if (usesAsyncAppends) {
           return new Promise((resolve, reject) => {
@@ -1140,7 +1141,7 @@ export const LoaderCommonFactory = (
         );
 
         expectedURI = '1.ts';
-        standardXHRResponse(this.requests.shift(), muxedSegment());
+        standardXHRResponse(this.requests.shift(), testData());
 
         if (usesAsyncAppends) {
           return new Promise((resolve, reject) => {
