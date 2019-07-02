@@ -58,6 +58,9 @@ QUnit.module('HLS', {
     this.old.NativeHlsSupport = videojs.Hls.supportsNativeHls;
     videojs.Hls.supportsNativeHls = false;
 
+    this.old.NativeDashSupport = videojs.Hls.supportsNativeDash;
+    videojs.Hls.supportsNativeDash = false;
+
     this.old.Decrypt = videojs.Hls.Decrypter;
     videojs.Hls.Decrypter = function() {};
 
@@ -86,6 +89,7 @@ QUnit.module('HLS', {
     merge(videojs.options, this.old.GlobalOptions);
 
     videojs.Hls.supportsNativeHls = this.old.NativeHlsSupport;
+    videojs.Hls.supportsNativeDash = this.old.NativeDashSupport;
     videojs.Hls.Decrypter = this.old.Decrypt;
     videojs.browser = this.old.browser;
 
