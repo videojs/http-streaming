@@ -31,7 +31,7 @@ const playFor = function(player, time, cb) {
 let testFn = 'test';
 
 // TODO: get these tests working, right now we just one the one basic test
-if (videojs.browser.IE_VERSION) {
+if (videojs.browser.IE_VERSION || videojs.browser.IS_EDGE) {
   testFn = 'skip';
 }
 
