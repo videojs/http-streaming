@@ -48,6 +48,7 @@
     "ignore": [
       "dist",
       "docs",
+      "deploy",
       "test/dist",
       "utils",
       "src/*.worker.js"
