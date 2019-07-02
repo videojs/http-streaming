@@ -54,13 +54,14 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
     window.WebVTT = oldVTT;
   });
 
-  LoaderCommonFactory(
-    VTTSegmentLoader,
-    {loaderType: 'vtt'},
-    (loader) => loader.track(new MockTextTrack()),
-    false,
-    () => new Uint8Array(testData.split('').map(char => char.charCodeAt(0)))
-  );
+  LoaderCommonFactory({
+    LoaderConstructor: VTTSegmentLoader,
+    loaderSettings: {loaderType: 'vtt'},
+    loaderBeforeEach: (loader) => loader.track(new MockTextTrack()),
+    usesAsyncAppends: false,
+    initSegments: false,
+    testData: () => new Uint8Array(testData.split('').map(char => char.charCodeAt(0)))
+  });
 
   // Tests specific to the vtt loader go in this module
   QUnit.module('Loader VTT', function(nestedHooks) {

@@ -105,13 +105,15 @@ export const LoaderCommonSettings = function(settings) {
  *        Function to be run in the beforeEach after loader creation. Takes one parameter,
  *        the loader for custom modifications to the loader object.
  */
-export const LoaderCommonFactory = (
+
+export const LoaderCommonFactory = ({
   LoaderConstructor,
   loaderSettings,
   loaderBeforeEach,
   usesAsyncAppends = true,
+  initSegments = true,
   testData = muxedSegment
-) => {
+}) => {
   let loader;
 
   QUnit.module('Loader Common', function(hooks) {
@@ -484,115 +486,117 @@ export const LoaderCommonFactory = (
       assert.equal(this.requests.length, 1, 'only one request was made');
     });
 
-    QUnit.test('downloads init segments if specified', function(assert) {
-      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {isVideoOnly: true}).then(() => {
-        const playlist = playlistWithDuration(20);
-        const map = {
-          resolvedUri: 'mainInitSegment',
-          byterange: {
-            length: 20,
-            offset: 0
+    if (initSegments) {
+      QUnit.test('downloads init segments if specified', function(assert) {
+        return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {isVideoOnly: true}).then(() => {
+          const playlist = playlistWithDuration(20);
+          const map = {
+            resolvedUri: 'mainInitSegment',
+            byterange: {
+              length: 20,
+              offset: 0
+            }
+          };
+
+          playlist.segments[0].map = map;
+          playlist.segments[1].map = map;
+          loader.playlist(playlist);
+
+          loader.load();
+          this.clock.tick(1);
+
+          assert.equal(this.requests.length, 2, 'made requests');
+          assert.equal(this.requests[0].url, 'mainInitSegment', 'requested the init segment');
+
+          standardXHRResponse(this.requests.shift(), mp4VideoInitSegment());
+
+          assert.equal(this.requests[0].url, '0.ts', 'requested the segment');
+
+          standardXHRResponse(this.requests.shift(), mp4VideoSegment());
+
+          if (usesAsyncAppends) {
+            return new Promise((resolve, reject) => {
+              loader.one('appended', resolve);
+              loader.one('error', reject);
+            });
           }
-        };
 
-        playlist.segments[0].map = map;
-        playlist.segments[1].map = map;
-        loader.playlist(playlist);
+          return Promise.resolve();
+        }).then(() => {
+          this.clock.tick(1);
 
-        loader.load();
-        this.clock.tick(1);
-
-        assert.equal(this.requests.length, 2, 'made requests');
-        assert.equal(this.requests[0].url, 'mainInitSegment', 'requested the init segment');
-
-        standardXHRResponse(this.requests.shift(), mp4VideoInitSegment());
-
-        assert.equal(this.requests[0].url, '0.ts', 'requested the segment');
-
-        standardXHRResponse(this.requests.shift(), mp4VideoSegment());
-
-        if (usesAsyncAppends) {
-          return new Promise((resolve, reject) => {
-            loader.one('appended', resolve);
-            loader.one('error', reject);
-          });
-        }
-
-        return Promise.resolve();
-      }).then(() => {
-        this.clock.tick(1);
-
-        assert.equal(this.requests.length, 1, 'made a request');
-        assert.equal(
-          this.requests[0].url, '1.ts',
-          'did not re-request the init segment'
-        );
+          assert.equal(this.requests.length, 1, 'made a request');
+          assert.equal(
+            this.requests[0].url, '1.ts',
+            'did not re-request the init segment'
+          );
+        });
       });
-    });
 
-    QUnit.test('detects init segment changes and downloads it', function(assert) {
-      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {isVideoOnly: true}).then(() => {
-        const playlist = playlistWithDuration(20);
-        const buffered = videojs.createTimeRanges();
+      QUnit.test('detects init segment changes and downloads it', function(assert) {
+        return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {isVideoOnly: true}).then(() => {
+          const playlist = playlistWithDuration(20);
+          const buffered = videojs.createTimeRanges();
 
-        playlist.segments[0].map = {
-          resolvedUri: 'init0',
-          byterange: {
-            length: 20,
-            offset: 0
+          playlist.segments[0].map = {
+            resolvedUri: 'init0',
+            byterange: {
+              length: 20,
+              offset: 0
+            }
+          };
+          playlist.segments[1].map = {
+            resolvedUri: 'init0',
+            byterange: {
+              length: 20,
+              offset: 20
+            }
+          };
+
+          loader.buffered_ = () => buffered;
+          loader.playlist(playlist);
+
+          loader.load();
+          this.clock.tick(1);
+
+          assert.equal(this.requests.length, 2, 'made requests');
+
+          assert.equal(this.requests[0].url, 'init0', 'requested the init segment');
+          assert.equal(
+            this.requests[0].headers.Range, 'bytes=0-19',
+            'requested the init segment byte range'
+          );
+          standardXHRResponse(this.requests.shift(), mp4VideoInitSegment());
+          assert.equal(
+            this.requests[0].url, '0.ts',
+            'requested the segment'
+          );
+          standardXHRResponse(this.requests.shift(), mp4VideoSegment());
+
+          if (usesAsyncAppends) {
+            return new Promise((resolve, reject) => {
+              loader.one('appended', resolve);
+              loader.one('error', reject);
+            });
           }
-        };
-        playlist.segments[1].map = {
-          resolvedUri: 'init0',
-          byterange: {
-            length: 20,
-            offset: 20
-          }
-        };
 
-        loader.buffered_ = () => buffered;
-        loader.playlist(playlist);
+          return Promise.resolve();
+        }).then(() => {
+          this.clock.tick(1);
 
-        loader.load();
-        this.clock.tick(1);
-
-        assert.equal(this.requests.length, 2, 'made requests');
-
-        assert.equal(this.requests[0].url, 'init0', 'requested the init segment');
-        assert.equal(
-          this.requests[0].headers.Range, 'bytes=0-19',
-          'requested the init segment byte range'
-        );
-        standardXHRResponse(this.requests.shift(), mp4VideoInitSegment());
-        assert.equal(
-          this.requests[0].url, '0.ts',
-          'requested the segment'
-        );
-        standardXHRResponse(this.requests.shift(), mp4VideoSegment());
-
-        if (usesAsyncAppends) {
-          return new Promise((resolve, reject) => {
-            loader.one('appended', resolve);
-            loader.one('error', reject);
-          });
-        }
-
-        return Promise.resolve();
-      }).then(() => {
-        this.clock.tick(1);
-
-        assert.equal(this.requests.length, 2, 'made requests');
-        assert.equal(this.requests[0].url, 'init0', 'requested the init segment');
-        assert.equal(
-          this.requests[0].headers.Range, 'bytes=20-39',
-          'requested the init segment byte range'
-        );
-        assert.equal(
-          this.requests[1].url, '1.ts',
-          'did not re-request the init segment'
-        );
+          assert.equal(this.requests.length, 2, 'made requests');
+          assert.equal(this.requests[0].url, 'init0', 'requested the init segment');
+          assert.equal(
+            this.requests[0].headers.Range, 'bytes=20-39',
+            'requested the init segment byte range'
+          );
+          assert.equal(
+            this.requests[1].url, '1.ts',
+            'did not re-request the init segment'
+          );
+        });
       });
-    });
+    }
 
     QUnit.test('request error increments mediaRequestsErrored stat', function(assert) {
       loader.playlist(playlistWithDuration(20));
