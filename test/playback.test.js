@@ -28,10 +28,11 @@ const playFor = function(player, time, cb) {
   checkPlayerTime();
 };
 
-let testfn = 'test';
+let testFn = 'test';
 
-if (videojs.browser.IE_VERSION || videojs.browser.IS_EDGE) {
-  testfn = 'skip';
+// TODO: get these tests working, right now we just one the one basic test
+if (videojs.browser.IE_VERSION) {
+  testFn = 'skip';
 }
 
 QUnit.module('Playback', {
@@ -69,7 +70,7 @@ QUnit.module('Playback', {
   }
 });
 
-QUnit[testfn]('Advanced Bip Bop default speed', function(assert) {
+QUnit.test('Advanced Bip Bop default speed', function(assert) {
   const done = assert.async();
 
   this.player.defaultPlaybackRate(1);
@@ -90,7 +91,7 @@ QUnit[testfn]('Advanced Bip Bop default speed', function(assert) {
   });
 });
 
-QUnit[testfn]('Advanced Bip Bop', function(assert) {
+QUnit[testFn]('Advanced Bip Bop', function(assert) {
   const done = assert.async();
 
   assert.expect(2);
@@ -109,7 +110,7 @@ QUnit[testfn]('Advanced Bip Bop', function(assert) {
   });
 });
 
-QUnit[testfn]('replay', function(assert) {
+QUnit[testFn]('replay', function(assert) {
   const done = assert.async();
 
   assert.expect(2);
@@ -137,7 +138,7 @@ QUnit[testfn]('replay', function(assert) {
   });
 });
 
-QUnit[testfn]('playlist with fmp4 segments', function(assert) {
+QUnit[testFn]('playlist with fmp4 segments', function(assert) {
   const done = assert.async();
 
   assert.expect(2);
@@ -156,7 +157,7 @@ QUnit[testfn]('playlist with fmp4 segments', function(assert) {
   });
 });
 
-QUnit[testfn]('playlist with fmp4 and ts segments', function(assert) {
+QUnit[testFn]('playlist with fmp4 and ts segments', function(assert) {
   const done = assert.async();
 
   assert.expect(2);
@@ -175,7 +176,7 @@ QUnit[testfn]('playlist with fmp4 and ts segments', function(assert) {
   });
 });
 
-QUnit[testfn]('Advanced Bip Bop preload=none', function(assert) {
+QUnit[testFn]('Advanced Bip Bop preload=none', function(assert) {
   const done = assert.async();
 
   assert.expect(2);
@@ -196,7 +197,7 @@ QUnit[testfn]('Advanced Bip Bop preload=none', function(assert) {
   });
 });
 
-QUnit[testfn]('Big Buck Bunny', function(assert) {
+QUnit[testFn]('Big Buck Bunny', function(assert) {
   const done = assert.async();
 
   assert.expect(2);
@@ -215,7 +216,7 @@ QUnit[testfn]('Big Buck Bunny', function(assert) {
   });
 });
 
-QUnit[testfn]('Live DASH', function(assert) {
+QUnit[testFn]('Live DASH', function(assert) {
   const done = assert.async();
 
   assert.expect(2);
@@ -234,7 +235,7 @@ QUnit[testfn]('Live DASH', function(assert) {
   });
 });
 
-QUnit[testfn]('DASH sidx', function(assert) {
+QUnit[testFn]('DASH sidx', function(assert) {
   const done = assert.async();
   const player = this.player;
 
@@ -258,7 +259,7 @@ QUnit[testfn]('DASH sidx', function(assert) {
   });
 });
 
-QUnit[testfn]('DASH sidx with alt audio should end', function(assert) {
+QUnit[testFn]('DASH sidx with alt audio should end', function(assert) {
 
   const done = assert.async();
   const player = this.player;
@@ -286,7 +287,7 @@ QUnit[testfn]('DASH sidx with alt audio should end', function(assert) {
   });
 });
 
-QUnit[testfn]('loops', function(assert) {
+QUnit[testFn]('loops', function(assert) {
   const done = assert.async();
   const player = this.player;
 

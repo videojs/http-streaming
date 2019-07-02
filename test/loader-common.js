@@ -228,6 +228,7 @@ export const LoaderCommonFactory = (
 
         return Promise.resolve();
       }).then(() => {
+        assert.notOk(loader.error(), 'loader has no error');
         assert.equal(this.requests.length, 0, 'no outstanding requests');
 
         // play some video to drain the buffer
