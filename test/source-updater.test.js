@@ -4,6 +4,7 @@ import QUnit from 'qunit';
 import videojs from 'video.js';
 import SourceUpdater from '../src/source-updater';
 import { mp4Video, mp4Audio } from './dist/test-segments';
+import { timeRangesEqual } from './custom-assertions.js';
 
 QUnit.module('Source Updater', {
   beforeEach() {
@@ -299,7 +300,7 @@ QUnit.test('buffered returns intersection of audio and video buffers', function(
     buffered: videojs.createTimeRanges([[1.25, 1.5], [5.1, 6.1], [10.5, 10.9]])
   };
 
-  assert.timeRangesEqual(
+  timeRangesEqual(
     this.sourceUpdater.buffered(),
     videojs.createTimeRanges([[1.25, 1.5], [5.5, 5.6], [10.5, 10.9]]),
     'buffered is intersection'
