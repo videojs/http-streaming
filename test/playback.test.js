@@ -91,7 +91,7 @@ QUnit.test('Advanced Bip Bop default speed', function(assert) {
   });
 });
 
-QUnit[testFn]('Advanced Bip Bop', function(assert) {
+QUnit.test('Advanced Bip Bop', function(assert) {
   const done = assert.async();
 
   assert.expect(2);
