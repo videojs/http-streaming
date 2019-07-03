@@ -64,6 +64,10 @@ class Representation {
       this.height = resolution.height;
     }
 
+    if (playlist.attributes.NAME) {
+      this.name = playlist.attributes.NAME;
+    }
+
     this.bandwidth = playlist.attributes.BANDWIDTH;
 
     // The id is simply the ordinality of the media playlist
