@@ -501,7 +501,13 @@ export default class SourceUpdater extends videojs.EventTarget {
   dispose() {
     const audioDisposeFn = () => {
       if (this.mediaSource.readyState === 'open') {
-        this.audioBuffer.abort();
+        // ie 11 likes to throw on abort with InvalidAccessError or InvalidStateError
+        // dom exceptions
+        try {
+          this.audioBuffer.abort();
+        } catch (e) {
+          videojs.log.warn('Failed to call abort on audio buffer', e);
+        }
       }
       this.audioBuffer.removeEventListener('updateend', this.onAudioUpdateEnd_);
       this.audioBuffer.removeEventListener('updateend', audioDisposeFn);
@@ -510,7 +516,13 @@ export default class SourceUpdater extends videojs.EventTarget {
     };
     const videoDisposeFn = () => {
       if (this.mediaSource.readyState === 'open') {
-        this.videoBuffer.abort();
+        // ie 11 likes to throw on abort with InvalidAccessError or InvalidStateError
+        // dom exceptions
+        try {
+          this.videoBuffer.abort();
+        } catch (e) {
+          videojs.log.warn('Failed to call abort on video buffer', e);
+        }
       }
       this.videoBuffer.removeEventListener('updateend', this.onVideoUpdateEnd_);
       this.videoBuffer.removeEventListener('error', this.onVideoError_);

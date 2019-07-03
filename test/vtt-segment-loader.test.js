@@ -18,6 +18,13 @@ const playlistWithDuration = function(time, conf) {
   return oldPlaylistWithDuration(time, videojs.mergeOptions({ extension: '.vtt' }, conf));
 };
 
+const testData = `
+  WEBVTT
+
+  00:00:05.000 --> 00:00:06.000
+  <b>GOOD CUE</b>
+`;
+
 QUnit.module('VTTSegmentLoader', function(hooks) {
   hooks.beforeEach(function(assert) {
     LoaderCommonHooks.beforeEach.call(this);
@@ -47,12 +54,14 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
     window.WebVTT = oldVTT;
   });
 
-  LoaderCommonFactory(
-    VTTSegmentLoader,
-    {loaderType: 'vtt'},
-    (loader) => loader.track(new MockTextTrack()),
-    false
-  );
+  LoaderCommonFactory({
+    LoaderConstructor: VTTSegmentLoader,
+    loaderSettings: {loaderType: 'vtt'},
+    loaderBeforeEach: (loader) => loader.track(new MockTextTrack()),
+    usesAsyncAppends: false,
+    initSegments: false,
+    testData: () => new Uint8Array(testData.split('').map(char => char.charCodeAt(0)))
+  });
 
   // Tests specific to the vtt loader go in this module
   QUnit.module('Loader VTT', function(nestedHooks) {

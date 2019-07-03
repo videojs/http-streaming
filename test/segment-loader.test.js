@@ -181,7 +181,10 @@ QUnit.module('SegmentLoader', function(hooks) {
   hooks.beforeEach(LoaderCommonHooks.beforeEach);
   hooks.afterEach(LoaderCommonHooks.afterEach);
 
-  LoaderCommonFactory(SegmentLoader, {loaderType: 'main'});
+  LoaderCommonFactory({
+    LoaderConstructor: SegmentLoader,
+    loaderSettings: {loaderType: 'main'}
+  });
 
   // Tests specific to the main segment loader go in this module
   QUnit.module('Main', function(nestedHooks) {
@@ -1814,7 +1817,10 @@ QUnit.module('SegmentLoader: FMP4', function(hooks) {
   hooks.beforeEach(LoaderCommonHooks.beforeEach);
   hooks.afterEach(LoaderCommonHooks.afterEach);
 
-  LoaderCommonFactory(SegmentLoader, { loaderType: 'main' });
+  LoaderCommonFactory({
+    LoaderConstructor: SegmentLoader,
+    loaderSettings: {loaderType: 'main'}
+  });
 
   // Tests specific to the main segment loader go in this module
   QUnit.module('Loader Main', function(nestedHooks) {
