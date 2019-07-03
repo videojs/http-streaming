@@ -22,7 +22,11 @@ QUnit.module('PlaybackWatcher', {
     this.old = {};
 
     // setup a player
-    this.player = createPlayer();
+    this.player = createPlayer({html5: {
+      hls: {
+        overrideNative: true
+      }
+    }});
     this.player.muted(true);
     this.player.autoplay(true);
   },
