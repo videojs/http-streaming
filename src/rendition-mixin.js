@@ -1,5 +1,18 @@
 import { isIncompatible, isEnabled } from './playlist.js';
 
+// See https://tools.ietf.org/html/rfc8216#section-4.3.4.2
+const optionalPlaylistAttrs = [
+  'AVERAGE-BANDWIDTH',
+  'CODECS',
+  'RESOLUTION',
+  'FRAME-RATE',
+  'HDCP-LEVEL',
+  'AUDIO',
+  'VIDEO',
+  'SUBTITLES',
+  'CLOSED-CAPTIONS'
+];
+
 /**
  * Returns a function that acts as the Enable/disable playlist function.
  *
@@ -56,19 +69,28 @@ class Representation {
     const changeType = smoothQualityChange ? 'smooth' : 'fast';
     const qualityChangeFunction = mpc[`${changeType}QualityChange_`].bind(mpc);
 
-    // some playlist attributes are optional
-    if (playlist.attributes.RESOLUTION) {
-      const resolution = playlist.attributes.RESOLUTION;
-
-      this.width = resolution.width;
-      this.height = resolution.height;
-    }
-
-    if (playlist.attributes.NAME) {
-      this.name = playlist.attributes.NAME;
-    }
-
+    // required attributes first
     this.bandwidth = playlist.attributes.BANDWIDTH;
+
+    this.extras = {};
+
+    for (const attr in playlist.attributes) {
+      if (playlist.attributes.hasOwnProperty(attr)) {
+        if (optionalPlaylistAttrs.indexOf(attr) > -1) {
+          // Special treatment for RESOLUTION
+          if (attr === 'RESOLUTION') {
+            const resolution = playlist.attributes.RESOLUTION;
+
+            this.width = resolution.width;
+            this.height = resolution.height;
+          } else {
+            this[attr.toLowerCase()] = playlist.attributes[attr];
+          }
+        } else if (Object.keys(this).indexOf(attr.toLowerCase()) === -1) {
+          this.extras[attr.toLowerCase()] = playlist.attributes[attr];
+        }
+      }
+    }
 
     // The id is simply the ordinality of the media playlist
     // within the master playlist
