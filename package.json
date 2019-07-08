@@ -14,8 +14,6 @@
     "build-test": "cross-env-shell TEST_BUNDLE_ONLY=1 'npm run build'",
     "build-prod": "cross-env-shell NO_TEST_BUNDLE=1 'npm run build'",
     "build": "npm-run-all -s clean -p build:*",
-    "build:test-manifests": "node ./scripts/create-test-manifests.js",
-    "build:test-segments": "node ./scripts/create-test-segments.js",
     "build:js": "rollup -c scripts/rollup.config.js",
     "docs": "npm-run-all docs:*",
     "docs:api": "jsdoc src -g plugins/markdown -r -d docs/api",
@@ -31,8 +29,6 @@
     "version": "is-prerelease || npm run update-changelog && git add CHANGELOG.md",
     "update-changelog": "conventional-changelog -p videojs -i CHANGELOG.md -s",
     "watch": "npm-run-all -p watch:*",
-    "watch:test-manifests": "npm run build:test-manifests -- --watch",
-    "watch:test-segments": "npm run build:test-segments -- --watch",
     "watch:js": "npm run build:js -- -w"
   },
   "keywords": [

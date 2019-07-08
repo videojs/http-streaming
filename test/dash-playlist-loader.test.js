@@ -17,8 +17,8 @@ import {
 } from './test-helpers';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
-import testDataManifests from './dist/test-manifests.js';
-import { sidx as sidxResponse } from './dist/test-segments';
+import testDataManifests from 'create-test-data!manifests';
+import { sidx as sidxResponse } from 'create-test-data!segments';
 
 QUnit.module('DASH Playlist Loader: unit', {
   beforeEach(assert) {
