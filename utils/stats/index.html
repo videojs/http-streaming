@@ -114,6 +114,10 @@
         <dd class="video-bitrate-stat">0 kbps</dd>
         <dt>Measured Bitrate:</dt>
         <dd class="measured-bitrate-stat">0 kbps</dd>
+        <dt>Video Timestamp Offset</dt>
+        <dd class="video-timestampoffset">0</dd>
+        <dt>Audio Timestamp Offset</dt>
+        <dd class="audio-timestampoffset">0</dd>
       </dl>
     </div>
     <div class="event-counts">
@@ -292,6 +296,8 @@
         var seekableEndStat = document.querySelector('.seekable-end-stat');
         var videoBitrateState = document.querySelector('.video-bitrate-stat');
         var measuredBitrateStat = document.querySelector('.measured-bitrate-stat');
+        var videoTimestampOffset = document.querySelector('.video-timestampoffset');
+        var audioTimestampOffset = document.querySelector('.audio-timestampoffset');
         var qualityButtons = document.querySelector('.quality-buttons');
 
         player.on('timeupdate', function() {
@@ -323,8 +329,15 @@
           }
           audioBufferedStat.textContent = audioBuffer;
 
+          if (player.vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer) {
+            audioTimestampOffset.textContent = player.vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer.timestampOffset;
+          } else if (player.vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer) {
+            audioTimestampOffset.textContent = player.vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer.timestampOffset;
+          }
 
-
+          if (player.vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer) {
+            videoTimestampOffset.textContent = player.vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer.timestampOffset;
+          }
 
           // seekable
           var seekable = player.seekable();
