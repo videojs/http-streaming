@@ -263,6 +263,11 @@
 
     function getBuffered(buffered) {
       var bufferedText = '';
+
+      if (!buffered) {
+        return bufferedText;
+      }
+
       if (buffered.length) {
         bufferedText += buffered.start(0) + ' - ' + buffered.end(0);
       }
@@ -299,17 +304,20 @@
           // buffered
           bufferedStat.textContent = getBuffered(player.buffered());
           videoBufferedStat.textContent = getBuffered(
+            player.vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer &&
             player.vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer.buffered
           );
 
           // demuxed audio
           var audioBuffer = getBuffered(
+            player.vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer &&
             player.vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer.buffered
           );
 
           // muxed audio
           if (!audioBuffer) {
             audioBuffer = getBuffered(
+              player.vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer &&
               player.vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer.buffered
             );
           }
