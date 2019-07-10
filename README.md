@@ -136,18 +136,26 @@ Is it recommended to use the `<video-js>` element or load a source with `player.
 
 ## Compatibility
 
-### Via MSE
+The [Media Source Extensions](http://caniuse.com/#feat=mediasource) API is required for http-streaming to play HLS or MPEG-DASH.
+
+### Browsers which support MSE
+
 - Chrome
 - Firefox
 - Internet Explorer 11 Windows 10 or 8.1
 
-Using the [overrideNative](#overridenative) option
+These browsers have some level of native HLS support, which will be used unless the [overrideNative](#overridenative) option is used:
+
 - Chrome Android
+- Firefox Android
 - Edge
 
 ### Native only
+
 - Mac Safari
 - iOS Safari
+
+Mac Safari does have MSE support, but native HLS is recommended 
 
 ### Flash Support
 This plugin does not support Flash playback. Instead, it is recommended that users use the [videojs-flashls-source-handler](https://github.com/brightcove/videojs-flashls-source-handler) plugin as a fallback option for browsers that don't have a native
@@ -316,25 +324,21 @@ is true, if the platform supports Media Source Extensions
 videojs-http-streaming will take over HLS playback to provide a more
 consistent experience.
 
+If `overrideNative` is set to `true`, then `nativeAudioTracks` and `nativeVideoTracks` should be set to `false`.
+
 ```javascript
 // via the constructor
 var player = videojs('playerId', {
   html5: {
     hls: {
       overrideNative: true
-    }
+    },
+    nativeAudioTracks: false,
+    nativeVideoTracks: false
   }
 });
 
-// via the source
-var player = videojs('playerId');
-
-player.src({
-  src: 'https://example.com/index.m3u8',
-  type: 'application/x-mpegURL',
-  overrideNative: true
-});
-```
+Since MSE playback may be desirable on all browsers with some native support other than Safari, `overrideNative: !videojs.browser.IS_SAFARI` could be used.
 
 ##### blacklistDuration
 * Type: `number`
