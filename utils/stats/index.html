@@ -126,7 +126,7 @@
       </dl>
     </div>
     <div id="quality-levels">
-      <h2>Quality Levels:</h2>
+      <h2 title="Click on the buttons to toggle the level">Quality Levels:</h2>
       <ul class="quality-buttons">
       </ul>
     </div>
@@ -154,6 +154,7 @@
 
       button.innerHTML = qualityLevel.id + ': ' + qualityLevel.bitrate + ' kbps';
       button.id = 'quality-level-' + qualityLevel.id;
+      button.title = "Click to toggle";
 
       button.onclick = function() {
         var old = qualityLevel.enabled;
