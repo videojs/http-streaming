@@ -49,6 +49,15 @@ h3.bitrate-switching {
 }
 
 
+.quality-buttons {
+  list-style: none;
+}
+
+.quality-buttons button {
+  padding: 0.5em;
+  margin: 0.5em;
+}
+
 .quality-buttons button.enabled {
   background: SkyBlue;
 }
