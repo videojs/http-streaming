@@ -104,6 +104,10 @@
         <dd class="current-time-stat">0</dd>
         <dt>Buffered:</dt>
         <dd class="buffered-stat">-</dd>
+        <dt>Video Buffered:</dt>
+        <dd class="video-buffered-stat">-</dd>
+        <dt>Audio Buffered:</dt>
+        <dd class="audio-buffered-stat">-</dd>
         <dt>Seekable:</dt>
         <dd><span class="seekable-start-stat">-</span> - <span class="seekable-end-stat">-</span></dd>
         <dt>Video Bitrate:</dt>
@@ -257,6 +261,17 @@
       }
     }
 
+    function getBuffered(buffered) {
+      var bufferedText = '';
+      if (buffered.length) {
+        bufferedText += buffered.start(0) + ' - ' + buffered.end(0);
+      }
+      for (i = 1; i < buffered.length; i++) {
+        bufferedText += ', ' + buffered.start(i) + ' - ' + buffered.end(i);
+      }
+      return bufferedText;
+    }
+
     function setup(player) {
       player.ready(function() {
 
@@ -266,6 +281,8 @@
 
         var currentTimeStat = document.querySelector('.current-time-stat');
         var bufferedStat = document.querySelector('.buffered-stat');
+        var videoBufferedStat = document.querySelector('.video-buffered-stat');
+        var audioBufferedStat = document.querySelector('.audio-buffered-stat');
         var seekableStartStat = document.querySelector('.seekable-start-stat');
         var seekableEndStat = document.querySelector('.seekable-end-stat');
         var videoBitrateState = document.querySelector('.video-bitrate-stat');
@@ -280,14 +297,26 @@
           var bufferedText = '', oldStart, oldEnd, i;
 
           // buffered
-          var buffered = player.buffered();
-          if (buffered.length) {
-            bufferedText += buffered.start(0) + ' - ' + buffered.end(0);
+          bufferedStat.textContent = getBuffered(player.buffered());
+          videoBufferedStat.textContent = getBuffered(
+            player.vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer.buffered
+          );
+
+          // demuxed audio
+          var audioBuffer = getBuffered(
+            player.vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer.buffered
+          );
+
+          // muxed audio
+          if (!audioBuffer) {
+            audioBuffer = getBuffered(
+              player.vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer.buffered
+            );
           }
-          for (i = 1; i < buffered.length; i++) {
-            bufferedText += ', ' + buffered.start(i) + ' - ' + buffered.end(i);
-          }
-          bufferedStat.textContent = bufferedText;
+          audioBufferedStat.textContent = audioBuffer;
+
+
+
 
           // seekable
           var seekable = player.seekable();
@@ -315,7 +344,7 @@
               maximumFractionDigits: 1
             }) + ' kbps';
           }
-        }, 1000);
+        }, 100);
 
         var trackEventCount = function(eventName, selector) {
           var count = 0, element = document.querySelector(selector);
