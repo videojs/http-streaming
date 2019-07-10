@@ -51,6 +51,7 @@ h3.bitrate-switching {
 
 .quality-buttons {
   list-style: none;
+  padding: 0;
 }
 
 .quality-buttons button {
