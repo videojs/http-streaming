@@ -45,7 +45,12 @@
     };
     var width = 600 - margin.left - margin.right;
     var height = 300 - margin.top - margin.bottom;
-    var svg = d3.select(element)
+    var selected = d3.select(element);
+
+    // clear out the element
+    selected.selectAll('*').remove();
+
+    var svg = selected
         .append('svg')
         .attr('width', width + margin.left + margin.right)
         .attr('height', height + margin.top + margin.bottom)
@@ -208,8 +213,13 @@
     var media = player.tech_.hls.playlists.media();
     var segments = media.segments; // media.segments.slice(0, count);
 
+    var selected = d3.select(container);
+
+    // clear out the container
+    selected.selectAll('*').remove();
+
     // setup the display
-    var svg = d3.select(container)
+    var svg = selected
         .append('svg')
           .attr('width', width + margin.left + margin.right)
           .attr('height', height + margin.top + margin.bottom)
