@@ -105,7 +105,7 @@ const actions = {
   appendBuffer: (bytes, segmentInfo) => (type, sourceUpdater) => {
     const sourceBuffer = sourceUpdater[`${type}Buffer`];
 
-    sourceUpdater.logger_(`Appending ${bytes.length} to ${type}Buffer`);
+    sourceUpdater.logger_(`Appending segment ${segmentInfo.mediaIndex}'s ${bytes.length} bytes to ${type}Buffer`);
 
     sourceBuffer.appendBuffer(bytes);
   },
