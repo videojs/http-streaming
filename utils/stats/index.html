@@ -20,7 +20,7 @@
 
   <!-- player stats visualization -->
   <link href="stats.css" rel="stylesheet">
-  <script src="/node_modules/d3/d3.min.js"></script>
+  <script src="../../node_modules/d3/d3.min.js"></script>
 
   <style>
     body {
@@ -47,13 +47,17 @@
     <p>The video below is an <a href="https://developer.apple.com/library/ios/documentation/networkinginternet/conceptual/streamingmediaguide/Introduction/Introduction.html#//apple_ref/doc/uid/TP40008332-CH1-SW1">HTTP Live Stream</a>.</p>
   </div>
 
-  <div id="fixture">
+  <div class="container">
+    <div id="fixture"></div>
+    <ul id="segment-metadata"></ul>
   </div>
 
   <form id="load-url">
     <label>
       URL to Load:
-      <input id="url-to-load" type="url" value="https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8">
+      <input id="url-to-load" type="url"
+      value="https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8"
+      >
     </label>
     <br>
     <label>
@@ -104,12 +108,20 @@
         <dd class="current-time-stat">0</dd>
         <dt>Buffered:</dt>
         <dd class="buffered-stat">-</dd>
+        <dt>Video Buffered:</dt>
+        <dd class="video-buffered-stat">-</dd>
+        <dt>Audio Buffered:</dt>
+        <dd class="audio-buffered-stat">-</dd>
         <dt>Seekable:</dt>
         <dd><span class="seekable-start-stat">-</span> - <span class="seekable-end-stat">-</span></dd>
         <dt>Video Bitrate:</dt>
         <dd class="video-bitrate-stat">0 kbps</dd>
         <dt>Measured Bitrate:</dt>
         <dd class="measured-bitrate-stat">0 kbps</dd>
+        <dt>Video Timestamp Offset</dt>
+        <dd class="video-timestampoffset">0</dd>
+        <dt>Audio Timestamp Offset</dt>
+        <dd class="audio-timestampoffset">0</dd>
       </dl>
     </div>
     <div class="event-counts">
@@ -126,7 +138,7 @@
       </dl>
     </div>
     <div id="quality-levels">
-      <h2>Quality Levels:</h2>
+      <h2 title="Click on the buttons to toggle the level">Quality Levels:</h2>
       <ul class="quality-buttons">
       </ul>
     </div>
@@ -154,6 +166,7 @@
 
       button.innerHTML = qualityLevel.id + ': ' + qualityLevel.bitrate + ' kbps';
       button.id = 'quality-level-' + qualityLevel.id;
+      button.title = "Click to toggle";
 
       button.onclick = function() {
         var old = qualityLevel.enabled;
@@ -256,6 +269,22 @@
       }
     }
 
+    function getBuffered(buffered) {
+      var bufferedText = '';
+
+      if (!buffered) {
+        return bufferedText;
+      }
+
+      if (buffered.length) {
+        bufferedText += buffered.start(0) + ' - ' + buffered.end(0);
+      }
+      for (i = 1; i < buffered.length; i++) {
+        bufferedText += ', ' + buffered.start(i) + ' - ' + buffered.end(i);
+      }
+      return bufferedText;
+    }
+
     function setup(player) {
       player.ready(function() {
 
@@ -265,10 +294,14 @@
 
         var currentTimeStat = document.querySelector('.current-time-stat');
         var bufferedStat = document.querySelector('.buffered-stat');
+        var videoBufferedStat = document.querySelector('.video-buffered-stat');
+        var audioBufferedStat = document.querySelector('.audio-buffered-stat');
         var seekableStartStat = document.querySelector('.seekable-start-stat');
         var seekableEndStat = document.querySelector('.seekable-end-stat');
         var videoBitrateState = document.querySelector('.video-bitrate-stat');
         var measuredBitrateStat = document.querySelector('.measured-bitrate-stat');
+        var videoTimestampOffset = document.querySelector('.video-timestampoffset');
+        var audioTimestampOffset = document.querySelector('.audio-timestampoffset');
         var qualityButtons = document.querySelector('.quality-buttons');
 
         player.on('timeupdate', function() {
@@ -279,14 +312,36 @@
           var bufferedText = '', oldStart, oldEnd, i;
 
           // buffered
-          var buffered = player.buffered();
-          if (buffered.length) {
-            bufferedText += buffered.start(0) + ' - ' + buffered.end(0);
+          bufferedStat.textContent = getBuffered(player.buffered());
+          videoBufferedStat.textContent = getBuffered(
+            player.vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer &&
+            player.vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer.buffered
+          );
+
+          // demuxed audio
+          var audioBuffer = getBuffered(
+            player.vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer &&
+            player.vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer.buffered
+          );
+
+          // muxed audio
+          if (!audioBuffer) {
+            audioBuffer = getBuffered(
+              player.vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer &&
+              player.vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer.buffered
+            );
           }
-          for (i = 1; i < buffered.length; i++) {
-            bufferedText += ', ' + buffered.start(i) + ' - ' + buffered.end(i);
+          audioBufferedStat.textContent = audioBuffer;
+
+          if (player.vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer) {
+            audioTimestampOffset.textContent = player.vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer.timestampOffset;
+          } else if (player.vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer) {
+            audioTimestampOffset.textContent = player.vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer.timestampOffset;
           }
-          bufferedStat.textContent = bufferedText;
+
+          if (player.vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer) {
+            videoTimestampOffset.textContent = player.vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer.timestampOffset;
+          }
 
           // seekable
           var seekable = player.seekable();
@@ -314,7 +369,7 @@
               maximumFractionDigits: 1
             }) + ' kbps';
           }
-        }, 1000);
+        }, 100);
 
         var trackEventCount = function(eventName, selector) {
           var count = 0, element = document.querySelector(selector);
@@ -331,6 +386,7 @@
         videojs.Hls.displayStats(document.querySelector('.switching-stats'), player);
         videojs.Hls.displayCues(document.querySelector('.segment-timeline'), player);
 
+        // setup quality levels
         player.ready(function() {
           var qualityLevels = player.qualityLevels();
 
@@ -351,6 +407,48 @@
             button.classList.add('selected');
           });
         });
+
+        // setup segment metadata
+        var segmentMetadata = document.querySelector('#segment-metadata');
+
+        player.one('loadedmetadata', function() {
+          var tracks = player.textTracks();
+          var segmentMetadataTrack;
+          var i = 0;
+
+          for (i = 0; i < tracks.length; i++) {
+            if (tracks[i].label === 'segment-metadata') {
+              segmentMetadataTrack = tracks[i];
+            }
+          }
+
+          while (segmentMetadata.children.length) {
+            segmentMetadata.removeChild(segmentMetadata.firstChild);
+          }
+
+          if (segmentMetadataTrack) {
+            segmentMetadataTrack.addEventListener('cuechange', function() {
+              var cues = segmentMetadataTrack.activeCues || [];
+              var i;
+
+              while (segmentMetadata.children.length) {
+                segmentMetadata.removeChild(segmentMetadata.firstChild);
+              }
+
+              for (i = 0; i < cues.length; i++) {
+                var text = JSON.stringify(JSON.parse(cues[i].text), null, 2);
+
+                var li = document.createElement('li')
+                var pre = document.createElement('pre');
+                pre.textContent = text;
+                li.appendChild(pre);
+                segmentMetadata.appendChild(li);
+              }
+
+            });
+          }
+        });
+
       });
     }
 
