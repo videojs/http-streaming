@@ -274,7 +274,7 @@ export default class SourceUpdater extends videojs.EventTarget {
    */
   appendBuffer({segmentInfo, type, bytes, videoSegmentTimingInfoCallback}, doneFn) {
     this.processedAppend_ = true;
-    const originalAction = actions.appendBuffer(bytes, segmentInfo);
+    const originalAction = actions.appendBuffer(bytes, segmentInfo || {mediaIndex: -1});
     const originalDoneFn = doneFn;
     let action = originalAction;
 
