@@ -1999,9 +1999,7 @@ export default class SegmentLoader extends videojs.EventTarget {
         // priority, timing-wise, so we must wait
         typeof segmentInfo.timingInfo.start !== 'number' ||
         // already updated the timestamp offset for this segment
-        segmentInfo.changedTimestampOffset ||
-        // the alt audio loader should not be responsible for setting the timestamp offset
-        this.loaderType_ !== 'main') {
+        segmentInfo.changedTimestampOffset) {
       return;
     }
 
