@@ -47,13 +47,17 @@
     <p>The video below is an <a href="https://developer.apple.com/library/ios/documentation/networkinginternet/conceptual/streamingmediaguide/Introduction/Introduction.html#//apple_ref/doc/uid/TP40008332-CH1-SW1">HTTP Live Stream</a>.</p>
   </div>
 
-  <div id="fixture">
+  <div class="container">
+    <div id="fixture"></div>
+    <ul id="segment-metadata"></ul>
   </div>
 
   <form id="load-url">
     <label>
       URL to Load:
-      <input id="url-to-load" type="url" value="https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8">
+      <input id="url-to-load" type="url"
+      value="https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8"
+      >
     </label>
     <br>
     <label>
@@ -382,6 +386,7 @@
         videojs.Hls.displayStats(document.querySelector('.switching-stats'), player);
         videojs.Hls.displayCues(document.querySelector('.segment-timeline'), player);
 
+        // setup quality levels
         player.ready(function() {
           var qualityLevels = player.qualityLevels();
 
@@ -402,6 +407,48 @@
             button.classList.add('selected');
           });
         });
+
+        // setup segment metadata
+        var segmentMetadata = document.querySelector('#segment-metadata');
+
+        player.one('loadedmetadata', function() {
+          var tracks = player.textTracks();
+          var segmentMetadataTrack;
+          var i = 0;
+
+          for (i = 0; i < tracks.length; i++) {
+            if (tracks[i].label === 'segment-metadata') {
+              segmentMetadataTrack = tracks[i];
+            }
+          }
+
+          while (segmentMetadata.children.length) {
+            segmentMetadata.removeChild(segmentMetadata.firstChild);
+          }
+
+          if (segmentMetadataTrack) {
+            segmentMetadataTrack.addEventListener('cuechange', function() {
+              var cues = segmentMetadataTrack.activeCues || [];
+              var i;
+
+              while (segmentMetadata.children.length) {
+                segmentMetadata.removeChild(segmentMetadata.firstChild);
+              }
+
+              for (i = 0; i < cues.length; i++) {
+                var text = JSON.stringify(JSON.parse(cues[i].text), null, 2);
+
+                var li = document.createElement('li')
+                var pre = document.createElement('pre');
+                pre.textContent = text;
+                li.appendChild(pre);
+                segmentMetadata.appendChild(li);
+              }
+
+            });
+          }
+        });
+
       });
     }
 
