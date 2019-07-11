@@ -659,7 +659,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     };
     this.resetLoader();
     this.remove(0, this.duration_(), done);
-
     // clears fmp4 captions
     if (this.captionParser_) {
       this.captionParser_.clearAllCaptions();
@@ -849,7 +848,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       return false;
     }
 
-    if (this.loaderType_ === 'main' &&
+    if (this.loaderType === 'main' &&
         segmentInfo.startOfSegment < this.sourceUpdater_.videoTimestampOffset()) {
       return true;
     }
@@ -1558,7 +1557,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     const videoSegmentTimingInfoCallback =
       this.handleVideoSegmentTimingInfo_.bind(this, segmentInfo.requestId);
 
-    this.sourceUpdater_.appendBuffer({segmentInfo, type, bytes, videoSegmentTimingInfoCallback}, (error) => {
+    this.sourceUpdater_.appendBuffer({type, bytes, videoSegmentTimingInfoCallback}, (error) => {
       if (error) {
         this.error(`appenderror for ${type} append with ${bytes.length} bytes`);
         // If an append errors, we can't recover.

@@ -269,13 +269,9 @@ const transmuxAndNotify = ({
       });
       trackInfoFn = null;
 
-      if (probeResult.hasAudio) {
-        audioStartFn(probeResult.audioStart);
-      }
-      if (probeResult.hasVideo) {
-        videoStartFn(probeResult.videoStart);
-      }
+      audioStartFn(probeResult.audioStart);
       audioStartFn = null;
+      videoStartFn(probeResult.videoStart);
       videoStartFn = null;
     }
   }

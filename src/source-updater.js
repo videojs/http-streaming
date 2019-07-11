@@ -102,7 +102,7 @@ const shiftQueue = (type, sourceUpdater) => {
 };
 
 const actions = {
-  appendBuffer: (bytes, segmentInfo) => (type, sourceUpdater) => {
+  appendBuffer: (bytes) => (type, sourceUpdater) => {
     const sourceBuffer = sourceUpdater[`${type}Buffer`];
 
     sourceUpdater.logger_(`Appending ${bytes.length} to ${type}Buffer`);
@@ -272,9 +272,9 @@ export default class SourceUpdater extends videojs.EventTarget {
    * @param {Function} done the function to call when done
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-appendBuffer-void-ArrayBuffer-data
    */
-  appendBuffer({segmentInfo, type, bytes, videoSegmentTimingInfoCallback}, doneFn) {
+  appendBuffer({type, bytes, videoSegmentTimingInfoCallback}, doneFn) {
     this.processedAppend_ = true;
-    const originalAction = actions.appendBuffer(bytes, segmentInfo);
+    const originalAction = actions.appendBuffer(bytes);
     const originalDoneFn = doneFn;
     let action = originalAction;
 
