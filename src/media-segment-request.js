@@ -238,6 +238,7 @@ const transmuxAndNotify = ({
   isPartial,
   trackInfoFn,
   timingInfoFn,
+  videoSegmentTimingInfoFn,
   id3Fn,
   captionsFn,
   dataFn,
@@ -318,6 +319,9 @@ const transmuxAndNotify = ({
         videoEndFn(videoTimingInfo.end);
       }
     },
+    onVideoSegmentTimingInfo: (videoSegmentTimingInfo) => {
+      videoSegmentTimingInfoFn(videoSegmentTimingInfo);
+    },
     onId3: (id3Frames, dispatchType) => {
       id3Fn(segment, id3Frames, dispatchType);
     },
@@ -343,6 +347,7 @@ const handleSegmentBytes = ({
   captionParser,
   trackInfoFn,
   timingInfoFn,
+  videoSegmentTimingInfoFn,
   id3Fn,
   captionsFn,
   dataFn,
@@ -431,6 +436,7 @@ const handleSegmentBytes = ({
     isPartial,
     trackInfoFn,
     timingInfoFn,
+    videoSegmentTimingInfoFn,
     id3Fn,
     captionsFn,
     dataFn,
@@ -620,6 +626,7 @@ const handleProgress = ({
   progressFn,
   trackInfoFn,
   timingInfoFn,
+  videoSegmentTimingInfoFn,
   id3Fn,
   captionsFn,
   dataFn,
@@ -725,6 +732,7 @@ export const mediaSegmentRequest = ({
   progressFn,
   trackInfoFn,
   timingInfoFn,
+  videoSegmentTimingInfoFn,
   id3Fn,
   captionsFn,
   dataFn,
@@ -804,6 +812,7 @@ export const mediaSegmentRequest = ({
       progressFn,
       trackInfoFn,
       timingInfoFn,
+      videoSegmentTimingInfoFn,
       id3Fn,
       captionsFn,
       dataFn,

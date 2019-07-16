@@ -72,6 +72,7 @@ export const processTransmux = ({
   onTrackInfo,
   onAudioTimingInfo,
   onVideoTimingInfo,
+  onVideoSegmentTimingInfo,
   onId3,
   onCaptions,
   onDone
@@ -101,6 +102,9 @@ export const processTransmux = ({
     }
     if (event.data.action === 'videoTimingInfo') {
       onVideoTimingInfo(event.data.videoTimingInfo);
+    }
+    if (event.data.action === 'videoSegmentTimingInfo') {
+      onVideoSegmentTimingInfo(event.data.videoSegmentTimingInfo);
     }
     if (event.data.action === 'id3Frame') {
       onId3([event.data.id3Frame], event.data.id3Frame.dispatchType);

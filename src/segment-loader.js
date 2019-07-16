@@ -1555,10 +1555,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       segments
     });
 
-    const videoSegmentTimingInfoCallback =
-      this.handleVideoSegmentTimingInfo_.bind(this, segmentInfo.requestId);
-
-    this.sourceUpdater_.appendBuffer({segmentInfo, type, bytes, videoSegmentTimingInfoCallback}, (error) => {
+    this.sourceUpdater_.appendBuffer(type, bytes, (error) => {
       if (error) {
         this.error(`appenderror for ${type} append with ${bytes.length} bytes`);
         // If an append errors, we can't recover.
@@ -1570,7 +1567,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     });
   }
 
-  handleVideoSegmentTimingInfo_(requestId, event) {
+  handleVideoSegmentTimingInfo_(requestId, videoSegmentTimingInfo) {
     if (!this.pendingSegment_ || requestId !== this.pendingSegment_.requestId) {
       return;
     }
@@ -1582,14 +1579,14 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     segment.videoTimingInfo.transmuxerPrependedSeconds =
-      event.videoSegmentTimingInfo.prependedContentDuration || 0;
+      videoSegmentTimingInfo.prependedContentDuration || 0;
     segment.videoTimingInfo.transmuxedPresentationStart =
-      event.videoSegmentTimingInfo.start.presentation;
+      videoSegmentTimingInfo.start.presentation;
     segment.videoTimingInfo.transmuxedPresentationEnd =
-      event.videoSegmentTimingInfo.end.presentation;
+      videoSegmentTimingInfo.end.presentation;
     // mainly used as a reference for debugging
     segment.videoTimingInfo.baseMediaDecodeTime =
-      event.videoSegmentTimingInfo.baseMediaDecodeTime;
+      videoSegmentTimingInfo.baseMediaDecodeTime;
   }
 
   appendData_(segmentInfo, result) {
@@ -1658,6 +1655,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       progressFn: this.handleProgress_.bind(this),
       trackInfoFn: this.handleTrackInfo_.bind(this),
       timingInfoFn: this.handleTimingInfo_.bind(this),
+      videoSegmentTimingInfoFn: this.handleVideoSegmentTimingInfo_.bind(this, segmentInfo.requestId),
       captionsFn: this.handleCaptions_.bind(this),
       id3Fn: this.handleId3_.bind(this),
 
