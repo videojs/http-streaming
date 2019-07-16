@@ -39,7 +39,6 @@ QUnit.module('Source Updater', {
   beforeEach() {
     const video = document.createElement('video');
 
-    videojs.log.level('debug');
     this.mediaSource = new window.MediaSource();
 
     // need to attach the real media source to a video element for the media source to
