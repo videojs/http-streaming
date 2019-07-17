@@ -118,7 +118,7 @@
     Object.keys(state).forEach(function(elName) {
       var el = stateEls[elName];
 
-      if (el.type === 'url') {
+      if (el.type === 'url' || el.type === 'text') {
         el.value = state[elName];
       } else {
         el.checked = state[elName] === 'true' ? true : false;
