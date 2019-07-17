@@ -7,7 +7,7 @@ const files = [
   'node_modules/video.js/dist/alt/video.core.js',
   'node_modules/videojs-contrib-eme/dist/videojs-contrib-eme.js',
   'node_modules/videojs-contrib-quality-levels/dist/videojs-contrib-quality-levels.js',
-  'scripts/index.js'
+  'scripts/index-demo-page.js'
 ];
 
 // cleanup previous deploy
