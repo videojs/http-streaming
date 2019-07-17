@@ -8,12 +8,21 @@
 
   var getInputValue = function(el) {
     if (el.type === 'url' || el.type === 'text') {
-      return el.value;
+      return encodeURIComponent(el.value);
     } else if (el.type === 'checkbox') {
       return el.checked;
     }
 
     console.warn('unhandled input type ' + el.type);
+  };
+
+  var setInputValue = function(el, value) {
+    if (el.type === 'url' || el.type === 'text') {
+      el.value = decodeURIComponent(value);
+    } else {
+      el.checked = value === 'true' ? true : false;
+    }
+
   };
 
   var newEvent = function(name) {
@@ -116,13 +125,7 @@
     var state = loadState();
 
     Object.keys(state).forEach(function(elName) {
-      var el = stateEls[elName];
-
-      if (el.type === 'url' || el.type === 'text') {
-        el.value = state[elName];
-      } else {
-        el.checked = state[elName] === 'true' ? true : false;
-      }
+      setInputValue(stateEls[elName], state[elName]);
     });
 
     // if there is a "url" param in the query params set url
