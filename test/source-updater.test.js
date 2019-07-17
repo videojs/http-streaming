@@ -1107,7 +1107,13 @@ QUnit.test('dispose removes sourceopen listener', function(assert) {
   });
 });
 
-QUnit.test('audio appends are delayed until video append for the first append', function(assert) {
+let testOrSkip = 'test';
+
+if (videojs.browser.IS_EDGE || videojs.browser.IE_VERSION) {
+  testOrSkip = 'skip';
+}
+
+QUnit[testOrSkip]('audio appends are delayed until video append for the first append', function(assert) {
   const done = assert.async();
   let audioAppend = false;
   let videoAppend = false;
