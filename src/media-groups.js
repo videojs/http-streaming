@@ -269,10 +269,10 @@ export const setupListeners = {
       segmentLoaders: { [type]: segmentLoader }
     } = settings;
 
-    playlistLoader.on('loadedmetadata', () => {
+    // only start to append segments to source buffers after
+    // the main segment loader has already appended
+    settings.segmentLoaders.main.one('appended', () => {
       const media = playlistLoader.media();
-
-      segmentLoader.playlist(media, requestOptions);
 
       // if the video is already playing, or if this isn't a live video and preload
       // permits, start downloading segments
@@ -281,15 +281,11 @@ export const setupListeners = {
       }
     });
 
-    playlistLoader.on('loadedplaylist', () => {
+    const loadPlaylist = () => {
+      playlistLoader.off(['loadedmetadata', 'loadedplaylist'], loadPlaylist);
       segmentLoader.playlist(playlistLoader.media(), requestOptions);
-
-      // If the player isn't paused, ensure that the segment loader is running
-      if (!tech.paused()) {
-        segmentLoader.load();
-      }
-    });
-
+    };
+    playlistLoader.one(['loadedmetadata', 'loadedplaylist'], loadPlaylist);
     playlistLoader.on('error', onError[type](type, settings));
   },
   /**
