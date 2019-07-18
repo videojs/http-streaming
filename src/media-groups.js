@@ -276,7 +276,7 @@ export const setupListeners = {
 
       // if the video is already playing, or if this isn't a live video and preload
       // permits, start downloading segments
-      if (!tech.paused() || (media.endList && tech.preload() !== 'none')) {
+      if (!tech.paused() || (media && media.endList && tech.preload() !== 'none')) {
         segmentLoader.load();
       }
     });
