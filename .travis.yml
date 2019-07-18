@@ -5,13 +5,16 @@ cache: npm
 before_install:
   - npm install -g greenkeeper-lockfile@1
 before_script:
-  # libav-tools is needed by firefox for h.264 support
-  - test -z BROWSER_STACK_ACCESS_KEY && sudo apt-get update && sudo apt-get install libav-tools || echo "skipping"
   - greenkeeper-lockfile-update
 after_script:
   - greenkeeper-lockfile-upload
 addons:
   firefox: latest
   chrome: stable
+  apt:
+    update: true
+    # libav-tools is needed by firefox for h.264 support on linux
+    packages:
+      libav-tools
 services:
   - xvfb
