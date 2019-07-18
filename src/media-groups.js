@@ -285,6 +285,7 @@ export const setupListeners = {
       playlistLoader.off(['loadedmetadata', 'loadedplaylist'], loadPlaylist);
       segmentLoader.playlist(playlistLoader.media(), requestOptions);
     };
+
     playlistLoader.one(['loadedmetadata', 'loadedplaylist'], loadPlaylist);
     playlistLoader.on('error', onError[type](type, settings));
   },
