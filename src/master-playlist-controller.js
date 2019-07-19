@@ -863,8 +863,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // * It is not too early for tech to have a buffer
     // * The seek requested is not already buffered
     if (media && segments.length  && buffered.length && !ctBuffered.length) {
-      console.log('reset');
-
       // cancel outstanding requests so we begin buffering at the new
       // location
       this.mainSegmentLoader_.resetEverything();
