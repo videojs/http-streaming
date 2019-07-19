@@ -852,42 +852,37 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * @return {TimeRange} the current time
    */
   setCurrentTime(currentTime) {
-    let buffered = Ranges.findRange(this.tech_.buffered(), currentTime);
+    const media = this.masterPlaylistLoader_ && this.masterPlaylistLoader_.media();
+    const segments = media && media.segments || [];
+    const buffered = this.tech_.buffered();
+    const ctBuffered = Ranges.findRange(this.tech_.buffered(), currentTime);
 
-    if (!(this.masterPlaylistLoader_ && this.masterPlaylistLoader_.media())) {
-      // return immediately if the metadata is not ready yet
-      return 0;
+    // Start segment loaders at the new location if:
+    // * master media is ready
+    // * master media has segments
+    // * It is not too early for tech to have a buffer
+    // * The seek requested is not already buffered
+    if (media && segments.length  && buffered.length && !ctBuffered.length) {
+      console.log('reset');
+
+      // cancel outstanding requests so we begin buffering at the new
+      // location
+      this.mainSegmentLoader_.resetEverything();
+      this.mainSegmentLoader_.abort();
+      if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
+        this.audioSegmentLoader_.resetEverything();
+        this.audioSegmentLoader_.abort();
+      }
+      if (this.mediaTypes_.SUBTITLES.activePlaylistLoader) {
+        this.subtitleSegmentLoader_.resetEverything();
+        this.subtitleSegmentLoader_.abort();
+      }
+
+      // start segment loader loading in case they are paused
+      this.load();
     }
 
-    // it's clearly an edge-case but don't thrown an error if asked to
-    // seek within an empty playlist
-    if (!this.masterPlaylistLoader_.media().segments) {
-      return 0;
-    }
-
-    // In flash playback, the segment loaders should be reset on every seek, even
-    // in buffer seeks. If the seek location is already buffered, continue buffering as
-    // usual
-    // TODO: redo this comment
-    if (buffered && buffered.length) {
-      return currentTime;
-    }
-
-    // cancel outstanding requests so we begin buffering at the new
-    // location
-    this.mainSegmentLoader_.resetEverything();
-    this.mainSegmentLoader_.abort();
-    if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
-      this.audioSegmentLoader_.resetEverything();
-      this.audioSegmentLoader_.abort();
-    }
-    if (this.mediaTypes_.SUBTITLES.activePlaylistLoader) {
-      this.subtitleSegmentLoader_.resetEverything();
-      this.subtitleSegmentLoader_.abort();
-    }
-
-    // start segment loader loading in case they are paused
-    this.load();
+    return currentTime;
   }
 
   /**
