@@ -31,6 +31,20 @@ const umdPlugins = [
   babel(),
 ];
 
+const externals = [
+  'aes-decrypter',
+  'global/document',
+  'global/window',
+  'm3u8-parser',
+  'mpd-parser',
+  'mux.js/lib/mp4',
+  'mux.js/lib/mp4/probe',
+  'mux.js/lib/tools/mp4-inspector',
+  'mux.js/lib/tools/ts-inspector.js',
+  'url-toolkit',
+  'video.js'
+];
+
 const onwarn = (warning) => {
   if (warning.code === 'UNUSED_EXTERNAL_IMPORT' ||
       warning.code === 'UNRESOLVED_IMPORT') {
@@ -101,6 +115,7 @@ export default [
       format: 'cjs',
       banner
     }],
+    external: externals,
     onwarn
   }, {
     input: 'src/videojs-http-streaming.js',
@@ -117,6 +132,7 @@ export default [
       format: 'es',
       banner
     }],
+    external: externals,
     onwarn
   }
 ];

@@ -337,10 +337,6 @@ export const setupListeners = {
   }
 };
 
-const byGroupId = (type, groupId) => (playlist) => playlist.attributes[type] === groupId;
-
-const byResolvedUri = (resolvedUri) => (playlist) => playlist.resolvedUri === resolvedUri;
-
 export const initialize = {
   /**
    * Setup PlaylistLoaders and AudioTracks for the audio groups
@@ -357,7 +353,7 @@ export const initialize = {
       sourceType,
       segmentLoaders: { [type]: segmentLoader },
       requestOptions,
-      master: { mediaGroups, playlists },
+      master: { mediaGroups },
       mediaTypes: {
         [type]: {
           groups,
@@ -380,25 +376,9 @@ export const initialize = {
 
       // List of playlists that have an AUDIO attribute value matching the current
       // group ID
-      const groupPlaylists = playlists.filter(byGroupId(type, groupId));
 
       for (let variantLabel in mediaGroups[type][groupId]) {
         let properties = mediaGroups[type][groupId][variantLabel];
-
-        // List of playlists for the current group ID that have a matching uri with
-        // this alternate audio variant
-        const matchingPlaylists =
-          groupPlaylists.filter(byResolvedUri(properties.resolvedUri));
-
-        if (matchingPlaylists.length) {
-          // If there is a playlist that has the same uri as this audio variant, assume
-          // that the playlist is audio only. We delete the resolvedUri property here
-          // to prevent a playlist loader from being created so that we don't have
-          // both the main and audio segment loaders loading the same audio segments
-          // from the same playlist.
-          delete properties.resolvedUri;
-        }
-
         let playlistLoader;
 
         if (properties.resolvedUri) {

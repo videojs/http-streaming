@@ -6,6 +6,39 @@ import window from 'global/window';
 
 const STANDARD_HEADERS = { 'Content-Type': 'text/plain' };
 
+const hlsMasterPlaylist = ({
+  numPlaylists = 1,
+  playlistPrefix = 'playlist',
+  includeDemuxedAudio = false
+}) => {
+  const playlists = [];
+
+  for (let i = 0; i < numPlaylists; i++) {
+    const playlistPath = `${playlistPrefix}${i}.m3u8`;
+    const audioAttribute = includeDemuxedAudio ? ',AUDIO="audio"' : '';
+
+    playlists.push(`
+      #EXT-X-STREAM-INF:BANDWIDTH=${i}${audioAttribute}
+      ${playlistPath}
+    `);
+  }
+
+  const audioGroup = includeDemuxedAudio ?
+    '#EXT-X-MEDIA:TYPE=AUDIO' +
+      ',GROUP-ID="audio",LANGUAGE="en",NAME="English"' +
+      ',AUTOSELECT=YES,DEFAULT=YES' +
+      `,URI="${playlistPrefix}-audio.m3u8"` :
+    '';
+
+  return `
+    #EXTM3U
+    #EXT-X-VERSION:3
+    ${audioGroup}
+
+    ${playlists.join('\n')}
+  `;
+};
+
 const hlsMediaPlaylist = ({
   numSegments,
   segmentPrefix = '',
@@ -15,9 +48,11 @@ const hlsMediaPlaylist = ({
   const segments = [];
 
   for (let i = 0; i < numSegments; i++) {
+    const segmentPath = `${segmentPrefix}${i}.ts`;
+
     segments.push(`
       #EXTINF:${segmentDuration}
-      ${segmentPrefix}${i}.ts
+      ${segmentPath}
     `);
   }
 
@@ -83,7 +118,7 @@ const dashPlaylist = ({
               media="segment-$Number$.mp4"
               initialization="$RepresentationID$-init.mp4"
               duration="${segmentDuration}"
-              timescale="10"
+              timescale="1"
               startNumber="0" />
           </Representation>
         </AdaptationSet>
@@ -158,7 +193,9 @@ QUnit.test('concatenates multiple videos into one', function(assert) {
           'SUBTITLES': {}
         },
         playlists: [{
+          attributes: {},
           uri: 'combined-playlist',
+          resolvedUri: 'combined-playlist',
           endList: true,
           mediaSequence: 0,
           discontinuitySequence: 0,
@@ -169,13 +206,13 @@ QUnit.test('concatenates multiple videos into one', function(assert) {
             duration: 10,
             timeline: 0,
             uri: '0.ts',
-            resolvedUri: `0.ts`
+            resolvedUri: `${window.location.origin}/0.ts`
           }, {
             duration: 10,
             discontinuity: true,
             timeline: 1,
             uri: 'm2s0.ts',
-            resolvedUri: `m2s0.ts`
+            resolvedUri: `${window.location.origin}/m2s0.ts`
           }]
         }]
       },
@@ -198,13 +235,66 @@ QUnit.test('concatenates HLS and DASH sources together', function(assert) {
   this.server.respondWith(
     'GET',
     manifests[0].url,
+    [
+      200,
+      STANDARD_HEADERS,
+      hlsMasterPlaylist({
+        includeDemuxedAudio: true
+      })
+    ]
+  );
+  this.server.respondWith(
+    'GET',
+    manifests[0].url,
+    [200, STANDARD_HEADERS, hlsMasterPlaylist({ includeDemuxedAudio: true })]
+  );
+  this.server.respondWith(
+    'GET',
+    '/playlist0.m3u8',
     [200, STANDARD_HEADERS, hlsMediaPlaylist({ numSegments: 1 })]
+  );
+  this.server.respondWith(
+    'GET',
+    '/playlist-audio.m3u8',
+    [200, STANDARD_HEADERS, hlsMediaPlaylist({ numSegments: 1, segmentPrefix: 'audio' })]
   );
   this.server.respondWith(
     'GET',
     manifests[1].url,
     [200, STANDARD_HEADERS, dashPlaylist({ numSegments: 1 })]
   );
+
+  const expectedAudioPlaylist = {
+    attributes: {},
+    discontinuitySequence: 0,
+    discontinuityStarts: [1],
+    endList: true,
+    mediaSequence: 0,
+    playlistType: 'VOD',
+    uri: 'combined-playlist-audio',
+    resolvedUri: 'combined-playlist-audio',
+    targetDuration: 10,
+    segments: [{
+      duration: 10,
+      resolvedUri: `${window.location.origin}/audio0.ts`,
+      timeline: 0,
+      uri: 'audio0.ts'
+    }, {
+      discontinuity: true,
+      duration: 10,
+      map: {
+        uri: 'audio-init.mp4',
+        resolvedUri: `${window.location.origin}/main/audio/720/audio-init.mp4`
+      },
+      number: 0,
+      timeline: 1,
+      uri: 'segment-0.mp4',
+      resolvedUri: `${window.location.origin}/main/audio/720/segment-0.mp4`
+    }]
+  };
+  const expectedAudioPlaylists = [expectedAudioPlaylist];
+
+  expectedAudioPlaylists['combined-playlist-audio'] = expectedAudioPlaylist;
 
   concatenateVideosPromise({
     manifests,
@@ -215,13 +305,29 @@ QUnit.test('concatenates HLS and DASH sources together', function(assert) {
       {
         uri: window.location.href,
         mediaGroups: {
-          'AUDIO': {},
+          'AUDIO': {
+            audio: {
+              default: {
+                autoselect: true,
+                default: true,
+                language: '',
+                playlists: expectedAudioPlaylists,
+                uri: 'combined-audio-playlists'
+              }
+            }
+          },
           'VIDEO': {},
           'CLOSED-CAPTIONS': {},
           'SUBTITLES': {}
         },
         playlists: [{
+          attributes: {
+            AUDIO: 'audio',
+            // TODO?
+            BANDWIDTH: 0
+          },
           uri: 'combined-playlist',
+          resolvedUri: 'combined-playlist',
           endList: true,
           mediaSequence: 0,
           discontinuitySequence: 0,
@@ -232,7 +338,7 @@ QUnit.test('concatenates HLS and DASH sources together', function(assert) {
             duration: 10,
             timeline: 0,
             uri: '0.ts',
-            resolvedUri: `0.ts`
+            resolvedUri: `${window.location.origin}/0.ts`
           }, {
             duration: 10,
             discontinuity: true,
@@ -269,8 +375,7 @@ QUnit.test('calls back with an error when no manifests passed in', function(asse
   });
 });
 
-QUnit.test('calls back with an error when a manifest doesn\'t include a URL',
-function(assert) {
+QUnit.test('calls back with error when a manifest doesn\'t include a URL', function(assert) {
   const done = assert.async();
 
   concatenateVideosPromise({
@@ -291,8 +396,7 @@ function(assert) {
   });
 });
 
-QUnit.test('calls back with an error when a manifest doesn\'t include a mime type',
-function(assert) {
+QUnit.test('calls back with an error when a manifest doesn\'t include a mime type', function(assert) {
   const done = assert.async();
 
   concatenateVideosPromise({

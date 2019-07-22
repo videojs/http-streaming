@@ -81,6 +81,14 @@ export const addTextTrackData = function(sourceHandler, captionArray, metadataAr
     metadataArray.forEach(function(metadata) {
       let time = metadata.cueTime + this.timestampOffset;
 
+      // if time isn't a finite number between 0 and Infinity, like NaN,
+      // ignore this bit of metadata.
+      // This likely occurs when you have an non-timed ID3 tag like TIT2,
+      // which is the "Title/Songname/Content description" frame
+      if (typeof time !== 'number' || window.isNaN(time) || time < 0 || !(time < Infinity)) {
+        return;
+      }
+
       metadata.frames.forEach(function(frame) {
         let cue = new Cue(
           time,

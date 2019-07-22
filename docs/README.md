@@ -9,7 +9,7 @@ This project supports both [HLS][hls] and [MPEG-DASH][dash] playback in the vide
 
 A standard HLS stream consists of a *Master Playlist* which references one or more *Media Playlists*. Each Media Playlist contains one or more sequential video segments. All these components form a logical hierarchy that informs the player of the different quality levels of the video available and how to address the individual segments of video at each of those levels:
 
-![HLS Format](hls-format.png)
+![HLS Format](images/hls-format.png)
 
 HLS streams can be delivered in two different modes: a "static" mode for videos that can be played back from any point, often referred to as video-on-demand (VOD); or a "live" mode where later portions of the video become available as time goes by. In the static mode, the Master and Media playlists are fixed. The player is guaranteed that the set of video segments referenced by those playlists will not change over time.
 

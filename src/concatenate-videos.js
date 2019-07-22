@@ -1,12 +1,12 @@
 import videojs from 'video.js';
-import { Parser as M3u8Parser } from 'm3u8-parser';
+// import { Parser as M3u8Parser } from 'm3u8-parser';
 import window from 'global/window';
 import config from './config';
 import { simpleTypeFromSourceType } from './videojs-http-streaming';
 import { parseCodecs } from './util/codecs.js';
 import {
-  setupMediaPlaylists,
-  resolveMediaGroupUris,
+  // setupMediaPlaylists,
+  // resolveMediaGroupUris,
   resolveSegmentUris,
   parseManifest as parseHlsManifest
 } from './playlist-loader';
@@ -23,7 +23,7 @@ import { resolveUrl } from './resolve-url';
  */
 const requestAll = (urls, callback) => {
   let requestsRemaining = urls.length;
-  let responses = {};
+  const responses = {};
 
   urls.forEach((url) => {
     const request = videojs.xhr(url, (err, response) => {
@@ -77,7 +77,7 @@ const requestAll = (urls, callback) => {
  * @param {string} config..mimeType
  *        Mime type of the manifest
  *
- * @returns {Object}
+ * @return {Object}
  *          A VHS manifest object
  */
 const parseManifest = ({ url, manifestString, mimeType }) => {
@@ -93,7 +93,7 @@ const parseManifest = ({ url, manifestString, mimeType }) => {
 
   const manifest = parseHlsManifest({
     manifestString,
-    srcUrl: url
+    src: url
   });
 
   if (manifest.playlists) {
@@ -116,7 +116,6 @@ const parseManifest = ({ url, manifestString, mimeType }) => {
   return manifest;
 };
 
-
 /**
  * Selects the closest matching video playlist to the provided vertical resolution from
  * an array of manifest objects. If the playlists do not include resolution information,
@@ -127,7 +126,7 @@ const parseManifest = ({ url, manifestString, mimeType }) => {
  * @param {number} targetVerticalResolution
  *        The vertical resolution to search for among playlists within each manifest
  *
- * @returns {Object[]}
+ * @return {Object[]}
  *          An array of playlist objects, one from each of the provided manifests
  */
 const chooseVideoPlaylists = (manifestObjects, targetVerticalResolution) => {
@@ -163,12 +162,16 @@ const chooseVideoPlaylists = (manifestObjects, targetVerticalResolution) => {
  * Note that the manifest objects and video playlists must be the same lengths and in the
  * same order.
  *
+ * Only one audio playlist will be selected for each video playlist, and only if the audio
+ * playlist has the DEFAULT attribute set to YES. This means that alternate audio is not
+ * supported.
+ *
  * @param {Object[]} manifestObjects
  *        An array of manifest objects (in the format used by VHS)
  * @param {Object[]} videoPlaylists
  *        An array of video playlists
  *
- * @returns {Object[]}
+ * @return {Object[]}
  *          An array of audio playlist objects, one for each of the provided video
  *          playlists
  */
@@ -205,7 +208,8 @@ const chooseAudioPlaylists = (manifestObjects, videoPlaylists) => {
           // those (note that resolvedUri should handle the HLS case, presence of
           // playlists the DASH case)
           (audioPlaylist.resolvedUri || audioPlaylist.playlists)) {
-        audioPlaylists.push(audioPlaylist.playlists[0]);
+        audioPlaylists.push(audioPlaylist.playlists ?
+          audioPlaylist.playlists[0] : audioPlaylist);
         break;
       }
     }
@@ -231,7 +235,7 @@ const chooseAudioPlaylists = (manifestObjects, videoPlaylists) => {
  *        using demuxed audio, as if the generated URI matches a video playlist's
  *        generated URI, the rendition will be considered audio only by VHS.
  *
- * @returns {Object}
+ * @return {Object}
  *          A single playlist containing the combined elements (and joined segments) of
  *          all of the provided playlists
  */
@@ -257,7 +261,7 @@ const combinePlaylists = ({ playlists, uriSuffix = '' }) => {
   // TODO instead of relying on the attributes object of the first playlist, use a subset
   // of relevant properties to ensure they accurately reflect the content (can't assume
   // the first playlist has the same attributes as the others)
-  combinedPlaylist.attributes = playlists[0].attributes;
+  combinedPlaylist.attributes = playlists[0].attributes || {};
   combinedPlaylist.uri = `combined-playlist${uriSuffix}`;
   combinedPlaylist.resolvedUri = combinedPlaylist.uri;
   combinedPlaylist.playlistType = 'VOD';
@@ -294,7 +298,7 @@ const combinePlaylists = ({ playlists, uriSuffix = '' }) => {
  * @param {Object} config.audioPlaylist
  *        An audio playlist object (in the format used by VHS)
  *
- * @returns {Object}
+ * @return {Object}
  *          A master manifest object containing the playlists
  */
 const constructMasterManifest = ({ videoPlaylist, audioPlaylist }) => {
@@ -326,11 +330,13 @@ const constructMasterManifest = ({ videoPlaylist, audioPlaylist }) => {
       default: {
         autoselect: true,
         default: true,
+        // language is not included to avoid having to verify default languages between
+        // concatenated playlists
         language: '',
-        uri: '',
+        uri: 'combined-audio-playlists',
         playlists: audioPlaylists
       }
-    }
+    };
     master.playlists[0].attributes.AUDIO = 'audio';
   }
 
@@ -355,7 +361,7 @@ const constructMasterManifest = ({ videoPlaylist, audioPlaylist }) => {
  * @param {Object[]} manifestObjects
  *        An array of manifest objects (in the format used by VHS)
  *
- * @returns {(null|string)}
+ * @return {(null|string)}
  *          null if no errors or a string with an error if one was detected
  */
 const checkForIncompatibility = (manifestObjects) => {
@@ -478,7 +484,7 @@ const resolvePlaylists = ({ playlists, mimeTypes, callback }) => {
  * @param {function(Object, Object)} config.callback
  *        Callback function with error and concatenated manifest parameters
  *
- * @returns {Object} The concatenated manifest object (in the format used by VHS)
+ * @return {Object} The concatenated manifest object (in the format used by VHS)
  *
  * @throws Will throw if there are incompatibility errors between the playlists
  */
@@ -506,12 +512,21 @@ const concatenateManifests = ({ manifests, targetVerticalResolution, callback })
   // except due to user interaction (e.g., clicking an alternate audio playlist in the
   // UI). Therefore, a rendition must maintain a consistent playback scheme (as either
   // demuxed or muxed) throughout the its entire stream.
-  const audioPlaylists = chooseAudioPlaylists(manifestObjects, videoPlaylists)
+  const audioPlaylists = chooseAudioPlaylists(manifestObjects, videoPlaylists);
   const allPlaylists = videoPlaylists.concat(audioPlaylists);
+  // To correctly set the mime types for all playlists, we have to use the mime types
+  // provided by the manifests for the associated playlists. Since  videoPlaylists and
+  // audioPlaylists are associated 1:1, and the manifests to videoPlaylists are 1:1, the
+  // manifest mime types may be reused for both.
+  const mimeTypes = manifests.map((manifest) => manifest.mimeType);
+
+  for (let i = 0; i < audioPlaylists.length; i++) {
+    mimeTypes.push(mimeTypes[i]);
+  }
 
   resolvePlaylists({
     playlists: allPlaylists,
-    mimeTypes: manifests.map((manifest) => manifest.mimeType),
+    mimeTypes,
     callback: (err, resolvedPlaylistsMap) => {
       if (err) {
         callback(err);

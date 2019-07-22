@@ -40,6 +40,7 @@ Video.js Compatibility: 6.0, 7.0
       - [Source](#source)
     - [List](#list)
       - [withCredentials](#withcredentials)
+      - [handleManifestRedirects](#handlemanifestredirects)
       - [useCueTags](#usecuetags)
       - [overrideNative](#overridenative)
       - [blacklistDuration](#blacklistduration)
@@ -51,6 +52,7 @@ Video.js Compatibility: 6.0, 7.0
       - [allowSeeksWithinUnsafeLiveWindow](#allowseekswithinunsafelivewindow)
       - [customTagParsers](#customtagparsers)
       - [customTagMappers](#customtagmappers)
+      - [cacheEncryptionKeys](#cacheencryptionkeys)
   - [Runtime Properties](#runtime-properties)
     - [hls.playlists.master](#hlsplaylistsmaster)
     - [hls.playlists.media](#hlsplaylistsmedia)
@@ -178,7 +180,7 @@ You can deploy a single HLS stream, code against the
 regular HTML5 video APIs, and create a fast, high-quality video
 experience across all the big web device categories.
 
-Check out the [full documentation](docs/intro.md) for details on how HLS works
+Check out the [full documentation](docs/README.md) for details on how HLS works
 and advanced configuration. A description of the [adaptive switching
 behavior](docs/bitrate-switching.md) is available, too.
 
@@ -417,6 +419,14 @@ With `customTagParsers` you can pass an array of custom m3u8 tag parser objects.
 * can be used as a source option
 
 Similar to `customTagParsers`, with `customTagMappers` you can pass an array of custom m3u8 tag mapper objects. See https://github.com/videojs/m3u8-parser#custom-parsers
+
+##### cacheEncryptionKeys
+* Type: `boolean`
+* can be used as a source option
+* can be used as an initialization option
+
+This option forces the player to cache AES-128 encryption keys internally instead of requesting the key alongside every segment request.
+This option defaults to `false`.
 
 ### Runtime Properties
 Runtime properties are attached to the tech object when HLS is in

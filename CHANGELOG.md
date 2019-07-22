@@ -1,3 +1,82 @@
+<a name="1.10.4"></a>
+## [1.10.4](https://github.com/videojs/http-streaming/compare/v1.10.3...v1.10.4) (2019-06-27)
+
+### Bug Fixes
+
+* verify sidx is present before doing anything related to it ([#561](https://github.com/videojs/http-streaming/issues/561)) ([15d753c](https://github.com/videojs/http-streaming/commit/15d753c)), closes [#457](https://github.com/videojs/http-streaming/issues/457) [#557](https://github.com/videojs/http-streaming/issues/557)
+
+### Chores
+
+* update package-lock ([1559930](https://github.com/videojs/http-streaming/commit/1559930))
+
+<a name="1.10.3"></a>
+## [1.10.3](https://github.com/videojs/http-streaming/compare/v1.10.2...v1.10.3) (2019-05-30)
+
+### Bug Fixes
+
+* only reset syncController if we passed a discontinuity ([#502](https://github.com/videojs/http-streaming/issues/502)) ([409634f](https://github.com/videojs/http-streaming/commit/409634f))
+
+### Chores
+
+* **package:** update mux.js to version 5.1.3 🚀 ([#510](https://github.com/videojs/http-streaming/issues/510)) ([55d764a](https://github.com/videojs/http-streaming/commit/55d764a))
+
+<a name="1.10.2"></a>
+## [1.10.2](https://github.com/videojs/http-streaming/compare/v1.10.1...v1.10.2) (2019-05-13)
+
+### Bug Fixes
+
+* clear the blacklist for other playlists if final rendition errors ([#479](https://github.com/videojs/http-streaming/issues/479)) ([fe3b378](https://github.com/videojs/http-streaming/commit/fe3b378)), closes [#396](https://github.com/videojs/http-streaming/issues/396) [#471](https://github.com/videojs/http-streaming/issues/471)
+* **development:** rollup watch, via `npm run watch`, should work for es/cjs ([#484](https://github.com/videojs/http-streaming/issues/484)) ([ad6f292](https://github.com/videojs/http-streaming/commit/ad6f292))
+* **HLSe:** slice keys properly on IE11 ([#506](https://github.com/videojs/http-streaming/issues/506)) ([681cd6f](https://github.com/videojs/http-streaming/commit/681cd6f))
+* **package:** update mpd-parser to version 0.8.1 🚀 ([#490](https://github.com/videojs/http-streaming/issues/490)) ([a49ad3a](https://github.com/videojs/http-streaming/commit/a49ad3a))
+* **package:** update mux.js to version 5.1.2 🚀 ([#477](https://github.com/videojs/http-streaming/issues/477)) ([57a38e9](https://github.com/videojs/http-streaming/commit/57a38e9)), closes [#503](https://github.com/videojs/http-streaming/issues/503) [#504](https://github.com/videojs/http-streaming/issues/504)
+* **source-updater:** run callbacks after setting timestampOffset ([#480](https://github.com/videojs/http-streaming/issues/480)) ([6ecf859](https://github.com/videojs/http-streaming/commit/6ecf859))
+* livestream timeout issues ([#469](https://github.com/videojs/http-streaming/issues/469)) ([cf3fafc](https://github.com/videojs/http-streaming/commit/cf3fafc)), closes [segment#16](https://github.com/segment/issues/16) [segment#15](https://github.com/segment/issues/15) [segment#16](https://github.com/segment/issues/16) [segment#15](https://github.com/segment/issues/15) [segment#16](https://github.com/segment/issues/16)
+* remove both vttjs listeners to prevent leaking one of them ([#495](https://github.com/videojs/http-streaming/issues/495)) ([1db1e72](https://github.com/videojs/http-streaming/commit/1db1e72))
+
+### Performance Improvements
+
+* don't enable captionParser for audio or subtitle loaders ([#487](https://github.com/videojs/http-streaming/issues/487)) ([358877f](https://github.com/videojs/http-streaming/commit/358877f))
+
+<a name="1.10.1"></a>
+## [1.10.1](https://github.com/videojs/http-streaming/compare/v1.10.0...v1.10.1) (2019-04-16)
+
+### Bug Fixes
+
+* **dash-playlist-loader:** clear out timers on dispose ([#472](https://github.com/videojs/http-streaming/issues/472)) ([2f1c222](https://github.com/videojs/http-streaming/commit/2f1c222))
+
+### Reverts
+
+* "fix: clear the blacklist for other playlists if final rendition errors ([#396](https://github.com/videojs/http-streaming/issues/396))" ([#471](https://github.com/videojs/http-streaming/issues/471)) ([dd55028](https://github.com/videojs/http-streaming/commit/dd55028))
+
+<a name="1.10.0"></a>
+# [1.10.0](https://github.com/videojs/http-streaming/compare/v1.9.3...v1.10.0) (2019-04-12)
+
+### Features
+
+* add option to cache encrpytion keys in the player ([#446](https://github.com/videojs/http-streaming/issues/446)) ([599b94d](https://github.com/videojs/http-streaming/commit/599b94d)), closes [#140](https://github.com/videojs/http-streaming/issues/140)
+* add support for dash manifests describing sidx boxes ([#455](https://github.com/videojs/http-streaming/issues/455)) ([80dde16](https://github.com/videojs/http-streaming/commit/80dde16))
+
+### Bug Fixes
+
+* clear the blacklist for other playlists if final rendition errors ([#396](https://github.com/videojs/http-streaming/issues/396)) ([6e6c8c2](https://github.com/videojs/http-streaming/commit/6e6c8c2))
+* on dispose, don't call abort on SourceBuffer until after remove() has finished ([3806750](https://github.com/videojs/http-streaming/commit/3806750))
+
+### Documentation
+
+* **README:** update broken link to full docs ([#440](https://github.com/videojs/http-streaming/issues/440)) ([fbd615c](https://github.com/videojs/http-streaming/commit/fbd615c))
+
+<a name="1.9.3"></a>
+## [1.9.3](https://github.com/videojs/http-streaming/compare/v1.9.2...v1.9.3) (2019-03-21)
+
+### Bug Fixes
+
+* **id3:** ignore unsupported id3 frames ([#437](https://github.com/videojs/http-streaming/issues/437)) ([7040b7d](https://github.com/videojs/http-streaming/commit/7040b7d)), closes [videojs/video.js#5823](https://github.com/videojs/video.js/issues/5823)
+
+### Documentation
+
+* add diagrams for playlist loaders ([#426](https://github.com/videojs/http-streaming/issues/426)) ([52201f9](https://github.com/videojs/http-streaming/commit/52201f9))
+
 <a name="1.9.2"></a>
 ## [1.9.2](https://github.com/videojs/http-streaming/compare/v1.9.1...v1.9.2) (2019-03-14)
 
