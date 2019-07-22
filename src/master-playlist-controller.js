@@ -39,6 +39,7 @@ const sumLoaderStat = function(stat) {
   return this.audioSegmentLoader_[stat] +
          this.mainSegmentLoader_[stat];
 };
+const isBuffered = (buffer, time) => buffer && Ranges.findRange(buffer, time).length !== 0;
 
 /**
  * the master playlist controller controller all interactons
@@ -854,31 +855,32 @@ export class MasterPlaylistController extends videojs.EventTarget {
   setCurrentTime(currentTime) {
     const media = this.masterPlaylistLoader_ && this.masterPlaylistLoader_.media();
     const segments = media && media.segments || [];
-    const {audioBuffer_, videoBuffer_} = this.mediaSource;
-    const ctBuffered = Ranges.findRange(this.tech_.buffered(), currentTime);
 
-    // Start segment loaders at the new location if:
-    // * master media is ready
-    // * master media has segments
-    // * It is not too early to have an audio or video source buffer
-    // * The seek requested is not already buffered
-    if (media && segments.length && (audioBuffer_ || videoBuffer_) && !ctBuffered.length) {
-      // cancel outstanding requests so we begin buffering at the new
-      // location
-      this.mainSegmentLoader_.resetEverything();
-      this.mainSegmentLoader_.abort();
-      if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
-        this.audioSegmentLoader_.resetEverything();
-        this.audioSegmentLoader_.abort();
-      }
-      if (this.mediaTypes_.SUBTITLES.activePlaylistLoader) {
-        this.subtitleSegmentLoader_.resetEverything();
-        this.subtitleSegmentLoader_.abort();
-      }
-
-      // start segment loader loading in case they are paused
-      this.load();
+    // Don't start segment loaders at the new location if:
+    // * master media is not ready
+    // * master media has no segments
+    if (!media || !segments.length) {
+      return currentTime;
     }
+
+    ['audio', 'subtitle', 'main'].forEach(function(type) {
+      // main segment loader is always active
+      // subtitle and audio segment loaders need to check
+      // for an activePlaylistLoader in mediaTypes_
+      if (type !== 'main' && !this.mediaTypes_[type.toUpperCase()].activePlaylistLoader) {
+        return;
+      }
+
+      const loader = this[`${type}SegmentLoader_`];
+
+      // if this loader does not have the requested time buffered
+      // reset it, abort current requests, and load at the new location.
+      if (!isBuffered(loader.buffered_(), currentTime)) {
+        loader.resetEverything();
+        loader.abort();
+        loader.load();
+      }
+    });
 
     return currentTime;
   }
