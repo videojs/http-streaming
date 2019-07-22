@@ -337,6 +337,7 @@ var player = videojs('playerId', {
     nativeVideoTracks: false
   }
 });
+```
 
 Since MSE playback may be desirable on all browsers with some native support other than Safari, `overrideNative: !videojs.browser.IS_SAFARI` could be used.
 
