@@ -854,15 +854,15 @@ export class MasterPlaylistController extends videojs.EventTarget {
   setCurrentTime(currentTime) {
     const media = this.masterPlaylistLoader_ && this.masterPlaylistLoader_.media();
     const segments = media && media.segments || [];
-    const buffered = this.tech_.buffered();
+    const {audioBuffer_, videoBuffer_} = this.mediaSource;
     const ctBuffered = Ranges.findRange(this.tech_.buffered(), currentTime);
 
     // Start segment loaders at the new location if:
     // * master media is ready
     // * master media has segments
-    // * It is not too early for tech to have a buffer
+    // * It is not too early to have an audio or video source buffer
     // * The seek requested is not already buffered
-    if (media && segments.length  && buffered.length && !ctBuffered.length) {
+    if (media && segments.length && (audioBuffer_ || videoBuffer_) && !ctBuffered.length) {
       // cancel outstanding requests so we begin buffering at the new
       // location
       this.mainSegmentLoader_.resetEverything();

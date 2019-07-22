@@ -273,7 +273,7 @@ export const setupListeners = {
     const loadPlaylist = () => {
       const media = playlistLoader.media();
 
-      segmentLoader.playlist(playlistLoader.media(), requestOptions);
+      segmentLoader.playlist(media, requestOptions);
 
       if (!mainSegmentLoader.hasAppended_) {
         return;
