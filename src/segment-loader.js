@@ -1363,8 +1363,6 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @private
    */
   handleUpdateEnd_() {
-    this.hasAppended_ = true;
-    this.trigger('appended');
     if (!this.pendingSegment_) {
       this.state = 'READY';
       if (!this.paused()) {
