@@ -254,7 +254,7 @@ QUnit.test('loops', function(assert) {
 });
 
 QUnit.test('zero-length id3 segment', function(assert) {
-  assert.timeout(1000);
+  assert.timeout(5000);
   let done = assert.async();
   let player = this.player;
 
