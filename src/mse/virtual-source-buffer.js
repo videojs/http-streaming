@@ -443,6 +443,13 @@ export default class VirtualSourceBuffer extends videojs.EventTarget {
       metadata: []
     };
 
+    if (!this.pendingBuffers_.length) {
+      // We are no longer in the internal "updating" state
+      this.trigger('updateend');
+      this.bufferUpdating_ = false;
+      return;
+    }
+
     // Sort segments into separate video/audio arrays and
     // keep track of their total byte lengths
     sortedSegments = this.pendingBuffers_.reduce(function(segmentObj, segment) {
