@@ -20,6 +20,9 @@ module.exports = function(config) {
       }
     },
     files: [
+      { pattern: 'utils/manifest/zero-length.m3u8', included: false, nocache: true },
+      { pattern: 'utils/zero-length.ts', included: false, nocache: true },
+      { pattern: 'utils/bipbop0.ts', included: false, nocache: true },
       'node_modules/sinon/pkg/sinon.js',
       'node_modules/video.js/dist/alt/video.core.js',
       'node_modules/video.js/dist/video-js.css',
@@ -96,6 +99,9 @@ module.exports = function(config) {
 
         return newBrowsers;
       }
+    },
+    proxies: {
+      '/utils/': '/base/utils/'
     },
     reporters: ['spec'],
     port: 9876,
