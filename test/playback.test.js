@@ -252,3 +252,22 @@ QUnit.test('loops', function(assert) {
   });
   player.play();
 });
+
+QUnit.test('zero-length id3 segment', function(assert) {
+  let done = assert.async();
+  let player = this.player;
+
+  player.src({
+    src: '../utils/manifest/zero-length.m3u8',
+    type: 'application/x-mpegURL'
+  });
+
+  player.on('loadedmetadata', function() {
+    assert.equal(
+      player.textTracks()[1].cues[0].text,
+      'test zero length',
+      'we got a cue point with the correct text value'
+    );
+    done();
+  });
+});
