@@ -39,6 +39,7 @@ const sumLoaderStat = function(stat) {
   return this.audioSegmentLoader_[stat] +
          this.mainSegmentLoader_[stat];
 };
+const isBuffered = (buffers, time) => buffers.some((buffer) => buffer && Ranges.findRange(buffer, time).length !== 0);
 
 /**
  * the master playlist controller controller all interactons
@@ -852,42 +853,36 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * @return {TimeRange} the current time
    */
   setCurrentTime(currentTime) {
-    let buffered = Ranges.findRange(this.tech_.buffered(), currentTime);
+    const media = this.masterPlaylistLoader_ && this.masterPlaylistLoader_.media();
+    const segments = media && media.segments || [];
 
-    if (!(this.masterPlaylistLoader_ && this.masterPlaylistLoader_.media())) {
-      // return immediately if the metadata is not ready yet
-      return 0;
-    }
-
-    // it's clearly an edge-case but don't thrown an error if asked to
-    // seek within an empty playlist
-    if (!this.masterPlaylistLoader_.media().segments) {
-      return 0;
-    }
-
-    // In flash playback, the segment loaders should be reset on every seek, even
-    // in buffer seeks. If the seek location is already buffered, continue buffering as
-    // usual
-    // TODO: redo this comment
-    if (buffered && buffered.length) {
+    // Don't start segment loaders at the new location if:
+    // * master media is not ready
+    // * master media has no segments
+    if (!media || !segments.length) {
       return currentTime;
     }
 
-    // cancel outstanding requests so we begin buffering at the new
-    // location
-    this.mainSegmentLoader_.resetEverything();
-    this.mainSegmentLoader_.abort();
-    if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
-      this.audioSegmentLoader_.resetEverything();
-      this.audioSegmentLoader_.abort();
-    }
-    if (this.mediaTypes_.SUBTITLES.activePlaylistLoader) {
-      this.subtitleSegmentLoader_.resetEverything();
-      this.subtitleSegmentLoader_.abort();
-    }
+    const {AUDIO, SUBTITLES} = this.mediaTypes_;
+    const ctSourceBuffered = isBuffered(this.mediaSource.sourceBuffers.map((s) => s.buffered), currentTime);
+    const ctSubtitleBuffered = isBuffered([this.subtitleSegmentLoader_.buffered_()], currentTime);
 
-    // start segment loader loading in case they are paused
-    this.load();
+
+    const loadersToReset = {
+      main: ctSourceBuffered,
+      audio: Boolean(AUDIO.activePlaylistLoader) && ctSourceBuffered,
+      subtitle: Boolean(SUBTITLES.activePlaylistLoader) && ctSubtitleBuffered,
+    };
+
+    Object.keys(loadersToReset).forEach((k) => {
+      const loader = this[`${k}SegmentLoader_`];
+
+      loader.resetEverything();
+      loader.abort();
+      loader.load();
+    });
+
+    return currentTime;
   }
 
   /**
