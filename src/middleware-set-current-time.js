@@ -19,6 +19,17 @@ videojs.use('*', (player) => {
       }
 
       return time;
+    },
+
+    // Sync VHS after play requests.
+    // This specifically handles replay where the order of actions is
+    // play, video element will seek to 0 (skipping the setCurrentTime middleware)
+    // then triggers a play event.
+    play() {
+      if (player.vhs &&
+          player.currentSource().src === player.vhs.source_.src) {
+        player.vhs.setCurrentTime(player.tech_.currentTime());
+      }
     }
   };
 });
