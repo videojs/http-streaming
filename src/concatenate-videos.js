@@ -176,9 +176,6 @@ const chooseVideoPlaylists = (manifestObjects, targetVerticalResolution) => {
  *          playlists
  */
 const chooseAudioPlaylists = (manifestObjects, videoPlaylists) => {
-  // TODO check for no audio
-  // TODO handle included segments vs resolvedUri
-
   if (manifestObjects.length !== videoPlaylists.length) {
     throw new Error('Invalid number of video playlists for provided manifests');
   }
@@ -215,6 +212,8 @@ const chooseAudioPlaylists = (manifestObjects, videoPlaylists) => {
     }
   }
 
+  // This should cover multiple cases. For instance, if a manifest was video only or if
+  // a manifest only had muxed default audio.
   if (audioPlaylists.length > 0 && audioPlaylists.length !== numExpectedPlaylists) {
     throw new Error('Did not find matching audio playlists for all video playlists');
   }
@@ -356,7 +355,7 @@ const constructMasterManifest = ({ videoPlaylist, audioPlaylist }) => {
  *   (media source extensions)
  *
  * Note that the function will short circuit with the first error detected, meaning that
- * the playlists may have multiple incompatibility errors.
+ * the playlists may have multiple incompatibilities.
  *
  * @param {Object[]} manifestObjects
  *        An array of manifest objects (in the format used by VHS)
@@ -367,7 +366,8 @@ const constructMasterManifest = ({ videoPlaylist, audioPlaylist }) => {
 const checkForIncompatibility = (manifestObjects) => {
   let expectedNumberOfCodecs = 2;
 
-  // TODO
+  // TODO all checks
+
   // Add all video/audio codecs into a map, and add 1 if a playlist exists in the
   // manifestObject (only 1 for each playlist)
   manifestObjects.map((manifestObject) => {
