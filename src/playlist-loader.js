@@ -187,6 +187,23 @@ export const refreshDelay = (media, update) => {
   return delay;
 };
 
+/**
+ * Given an m3u8 manifest string, parses it, then sets up the media playlists and groups
+ * to prepare it for use in VHS.
+ *
+ * This function is exported to allow others to reuse the same logic for constructing a
+ * VHS manifest object from an HLS manifest string. It provides for consistent resolution
+ * of playlists, media groups, and URIs as is done internally for VHS-downloaded
+ * manifests. This is particularly useful in cases where a user may want to manipulate a
+ * manifest object before passing it in as the source to VHS.
+ *
+ * @param {String} manifestString
+ *        The downloaded manifest string
+ * @param {Function[]} customTagParsers
+ *        An array of custom tag parsers for the m3u8-parser instance
+ * @return {Function[]} customTagMappers
+ *         An array of custom tag mappers for the m3u8-parser instance
+ */
 export const parseManifest = ({
   manifestString,
   customTagParsers = [],
@@ -604,6 +621,23 @@ export default class PlaylistLoader extends EventTarget {
     });
   }
 
+  /**
+   * Given a manifest object that's either a master or media playlist, trigger the proper
+   * events and set the state of the playlist loader.
+   *
+   * If the manifest object represents a master playlist, `loadedplaylist` will be
+   * triggered to allow listeners to select a playlist, or, the loader will default to the
+   * first one.
+   *
+   * If the manifest object represents a media playlist, `loadedplaylist` will be
+   * triggered followed by `loadedmetadata`, as the only available playlist is loaded.
+   *
+   * In the case of a media playlist, a master playlist object wrapper with one playlist
+   * will be created so that all logic can handle playlists in the same fashion.
+   *
+   * @param {Object} manifest
+   *        The parsed manifest object
+   */
   setupInitialPlaylist(manifest) {
     this.state = 'HAVE_MASTER';
 
@@ -638,7 +672,9 @@ export default class PlaylistLoader extends EventTarget {
       }]
     };
 
-    // handle playlists passed as objects
+    // In the case where a media playlist was passed in as an object, use the playlist's
+    // resolved URI attribute (since there's no reference to the source URI otherwise). It
+    // may also just be a placeholder.
     const playlistId = typeof this.src === 'string' ? this.src : this.src.resolvedUri;
 
     this.master.playlists[playlistId] = this.master.playlists[0];

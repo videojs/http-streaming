@@ -73,6 +73,12 @@ export const updateMaster = (oldMaster, newMaster) => {
 /**
  * Parses the master xml string and updates playlist uri references
  *
+ * This function is exported to allow others to reuse the same logic for constructing a
+ * VHS manifest object from a DASH manifest XML string. It provides for consistent
+ * resolution of playlists, media groups, and placeholder URIs as is done internally for
+ * VHS-downloaded manifests. This is particularly useful in cases where a user may want to
+ * manipulate a manifest object before passing it in as the source to VHS.
+ *
  * @return {Object}
  *         The parsed mpd manifest object
  */

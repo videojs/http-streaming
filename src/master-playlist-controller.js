@@ -130,8 +130,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
       cacheEncryptionKeys
     };
 
-    // also covers the case where the src is an object (instead of a URL)
-    // mime type will be different from either DASH or HLS
+    // The source type check not only determines whether we should be using a special DASH
+    // playlist loader, but also covers the case where the provided src is an pre-parsed
+    // manifest object (instead of just a URL). In this case the mime type, and thus
+    // resultant source type, will be different from either DASH or HLS, and will default
+    // to the standard playlist loader.
     this.masterPlaylistLoader_ = this.sourceType_ === 'dash' ?
       new DashPlaylistLoader(src, this.hls_, this.requestOptions_) :
       new PlaylistLoader(src, this.hls_, this.requestOptions_);
@@ -256,8 +259,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
         this.initialMedia_ = selectedMedia;
         this.masterPlaylistLoader_.media(this.initialMedia_);
 
-        // loadedplaylist won't fire again since the playlist was preloaded from the
-        // provided source object, so the playlist handler must be called
+        // Under the standard case where a source URL is provided, loadedplaylist will
+        // fire again since the playlist will be requested. In the case of vhs-json
+        // (where the pre-parsed manifest object is provided) when the segments are
+        // already loaded, loadedplaylist won't fire again, so the playlist handler must
+        // be called.
         if (this.sourceType_ === 'vhs-json' && this.initialMedia_.segments) {
           this.handleNewPlaylist(this.initialMedia_);
         }

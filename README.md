@@ -244,6 +244,9 @@ player.src({
 });
 ```
 
+In addition, there are some special cases that only function when provided as a source
+option. For instance, `manifestObject`. See [Object as Source](#object-as-source).
+
 #### List
 ##### withCredentials
 * Type: `boolean`
@@ -746,6 +749,32 @@ if (segmentMetadataTrack) {
     }
   });
 }
+```
+
+### Object as Source
+
+VHS not only accepts a source URL as the source, but also provides a method to sidecar a
+pre-parsed manifest object as the source. This is useful for cases where the manifest has
+already been downloaded (to prevent another request), to manipulate the manifest object
+before passing it along to VHS, or for testing a specific case. *Note* that this is an
+advanced use-case, and may be more fragile for production environments, as the schema for
+a VHS object and how it's used internally are not set in stone and may change in future
+releases.
+
+The option to provide a sidecar manifest object is `manifestObject`, and may be used as
+follows:
+
+```javascript
+var player = videojs('some-video-id');
+
+player.src({
+  src: 'some-placeholder-uri',
+  // the media type here is specific to providing the manifestObject, and is required
+  type: 'application/vnd.vhs+json',
+  // object that follows the VHS manifest object schema provided in
+  // https://github.com/videojs/m3u8-parser and https://github.com/videojs/mpd-parser
+  manifestObject: {}
+});
 ```
 
 ## Hosting Considerations

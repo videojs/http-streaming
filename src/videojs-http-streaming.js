@@ -91,7 +91,13 @@ const simpleTypeFromSourceType = (type) => {
     return 'dash';
   }
 
-  if (type === 'application/vnd.vhs.json') {
+  // Denotes the special case of a pre-parsed manifest object passed in instead of the
+  // traditional source URL.
+  //
+  // See https://en.wikipedia.org/wiki/Media_type for details on specifying media types.
+  // But in this case, vnd is for vendor, VHS, is for this project, and the +json suffix
+  // identifies the structure of the media type.
+  if (type === 'application/vnd.vhs+json') {
     return 'vhs-json';
   }
 
@@ -471,8 +477,9 @@ class HlsHandler extends Component {
     this.setOptions_();
     // add master playlist controller options
     //
-    // if the manifestObject property is provided in the source options, use that as the
-    // pre-parsed manifest
+    // If the manifestObject property is provided in the source options, use that as the
+    // pre-parsed manifest. The src property set here can function as either a string
+    // (URL) or object (manifest).
     this.options_.src = this.source_.manifestObject ?
       this.source_.manifestObject : this.source_.src;
     this.options_.tech = this.tech_;
