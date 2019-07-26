@@ -53,8 +53,8 @@ const filterRanges = function(timeRanges, predicate) {
  */
 export const findRange = function(buffered, time) {
   return filterRanges(buffered, function(start, end) {
-    return start - TIME_FUDGE_FACTOR <= time &&
-      end + TIME_FUDGE_FACTOR >= time;
+    return start - SAFE_TIME_DELTA <= time &&
+      end + SAFE_TIME_DELTA >= time;
   });
 };
 
