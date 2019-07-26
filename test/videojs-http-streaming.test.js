@@ -32,6 +32,13 @@ import window from 'global/window';
 // we need this so the plugin registers itself
 import 'videojs-contrib-quality-levels';
 
+let testOrSkip = 'test';
+
+// some tests just don't work reliably on ie11 or edge
+if (videojs.browser.IS_EDGE || videojs.browser.IE_VERSION) {
+  testOrSkip = 'skip';
+}
+
 const ogHlsHandlerSetupQualityLevels = videojs.HlsHandler.prototype.setupQualityLevels_;
 
 // do a shallow copy of the properties of source onto the target object
@@ -3846,7 +3853,7 @@ QUnit.test(
   }
 );
 
-QUnit.test(
+QUnit[testOrSkip](
   'stores bandwidth and throughput in localStorage when global option is true',
   function(assert) {
     videojs.options.hls = {
@@ -3875,7 +3882,7 @@ QUnit.test(
   }
 );
 
-QUnit.test(
+QUnit[testOrSkip](
   'stores bandwidth and throughput in localStorage when player option is true',
   function(assert) {
     this.player.dispose();
@@ -3910,7 +3917,7 @@ QUnit.test(
   }
 );
 
-QUnit.test(
+QUnit[testOrSkip](
   'stores bandwidth and throughput in localStorage when source option is true',
   function(assert) {
     this.player.dispose();
@@ -3940,7 +3947,7 @@ QUnit.test(
   }
 );
 
-QUnit.test(
+QUnit[testOrSkip](
   'source localStorage option takes priority over player option',
   function(assert) {
     this.player.dispose();
@@ -3976,7 +3983,7 @@ QUnit.test(
   }
 );
 
-QUnit.test(
+QUnit[testOrSkip](
   'does not store bandwidth and throughput in localStorage by default',
   function(assert) {
     this.player = createPlayer();
@@ -4001,7 +4008,7 @@ QUnit.test(
   }
 );
 
-QUnit.test('retrieves bandwidth and throughput from localStorage', function(assert) {
+QUnit[testOrSkip]('retrieves bandwidth and throughput from localStorage', function(assert) {
   window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({
     bandwidth: 33,
     throughput: 44
@@ -4061,7 +4068,7 @@ QUnit.test('retrieves bandwidth and throughput from localStorage', function(asse
   videojs.options.hls = origHlsOptions;
 });
 
-QUnit.test(
+QUnit[testOrSkip](
   'does not retrieve bandwidth and throughput from localStorage when stored value is not as expected',
   function(assert) {
   // bad value

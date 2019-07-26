@@ -15,6 +15,13 @@ const checkIntialDuration = function({duration}) {
   }
 };
 
+let testOrSkip = 'test';
+
+// some tests just don't work reliably on ie11 or edge
+if (videojs.browser.IS_EDGE || videojs.browser.IE_VERSION) {
+  testOrSkip = 'skip';
+}
+
 const concatSegments = (...segments) => {
   let byteLength = segments.reduce((acc, cv) => {
     acc += cv.byteLength;
@@ -752,7 +759,7 @@ QUnit.test(
   }
 );
 
-QUnit.test('setDuration waits for audio buffer to finish updating', function(assert) {
+QUnit[testOrSkip]('setDuration waits for audio buffer to finish updating', function(assert) {
   const done = assert.async();
 
   assert.expect(5);
@@ -1106,12 +1113,6 @@ QUnit.test('dispose removes sourceopen listener', function(assert) {
     });
   });
 });
-
-let testOrSkip = 'test';
-
-if (videojs.browser.IS_EDGE || videojs.browser.IE_VERSION) {
-  testOrSkip = 'skip';
-}
 
 QUnit[testOrSkip]('audio appends are delayed until video append for the first append', function(assert) {
   const done = assert.async();
