@@ -1284,6 +1284,17 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     if (segmentInfo.timestampOffset !== null &&
         segmentInfo.timestampOffset !== this.sourceUpdater_.timestampOffset()) {
+      const buffered = this.buffered_();
+
+      // Update the timestampOffset with more accurate timing info from the
+      // current buffered range and results of the probe, if it is available
+      if (buffered.length && timingInfo.segmentTimestampInfo) {
+        const ptsStartTime = timingInfo.segmentTimestampInfo[0].ptsTime;
+        const dtsStartTime = timingInfo.segmentTimestampInfo[0].dtsTime;
+
+        segmentInfo.timestampOffset = buffered.end(buffered.length - 1) - (ptsStartTime - dtsStartTime);
+      }
+
       this.sourceUpdater_.timestampOffset(segmentInfo.timestampOffset);
       // fired when a timestamp offset is set in HLS (can also identify discontinuities)
       this.trigger('timestampoffset');
