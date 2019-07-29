@@ -44,7 +44,7 @@ export const parseCodecs = function(codecs = '') {
   result.codecCount = result.codecCount || 2;
 
   // parse the video codec
-  const parsed = (/(^|\s|,)+(avc[13])([^ ,]*)/i).exec(codecs);
+  const parsed = (/(^|\s|,)+(avc[13]|vp09|av01)([^ ,]*)/i).exec(codecs);
 
   if (parsed) {
     result.videoCodec = parsed[2];
