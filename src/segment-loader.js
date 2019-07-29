@@ -1288,7 +1288,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
       // Update the timestampOffset with more accurate timing info from the
       // current buffered range and results of the probe, if it is available
-      if (buffered.length && timingInfo.segmentTimestampInfo) {
+      if (buffered.length && timingInfo && timingInfo.segmentTimestampInfo) {
         const ptsStartTime = timingInfo.segmentTimestampInfo[0].ptsTime;
         const dtsStartTime = timingInfo.segmentTimestampInfo[0].dtsTime;
 
