@@ -188,8 +188,8 @@ export const refreshDelay = (media, update) => {
 };
 
 /**
- * Given an m3u8 manifest string, parses it, then sets up the media playlists and groups
- * to prepare it for use in VHS.
+ * Parses a given m3u8 playlist, then sets up the media playlists and groups to prepare it
+ * for use in VHS.
  *
  * This function is exported to allow others to reuse the same logic for constructing a
  * VHS manifest object from an HLS manifest string. It provides for consistent resolution
@@ -221,15 +221,21 @@ export const parseManifest = ({
   parser.push(manifestString);
   parser.end();
 
-  parser.manifest.uri = src;
+  const manifest = parser.manifest;
+
+  manifest.uri = src;
 
   // loaded a master playlist
-  if (parser.manifest.playlists) {
-    setupMediaPlaylists(parser.manifest);
-    resolveMediaGroupUris(parser.manifest);
+  if (manifest.playlists) {
+    setupMediaPlaylists(manifest);
+    resolveMediaGroupUris(manifest);
+  } else {
+    // m3u8-parser does not attach an attributes property to media playlists so make
+    // sure that the property is attached to avoid undefined reference errors
+    manifest.attributes = manifest.attributes || {};
   }
 
-  return parser.manifest;
+  return manifest;
 };
 
 /**
@@ -318,28 +324,13 @@ export default class PlaylistLoader extends EventTarget {
     this.request = null;
     this.state = 'HAVE_METADATA';
 
-    let manifest;
-
-    if (typeof playlist === 'string') {
-      const parser = new M3u8Parser();
-
-      // adding custom tag parsers
-      this.customTagParsers.forEach(customParser => parser.addParser(customParser));
-
-      // adding custom tag mappers
-      this.customTagMappers.forEach(mapper => parser.addTagMapper(mapper));
-
-      parser.push(playlist);
-      parser.end();
-      parser.manifest.uri = url;
-      // m3u8-parser does not attach an attributes property to media playlists so make
-      // sure that the property is attached to avoid undefined reference errors
-      parser.manifest.attributes = parser.manifest.attributes || {};
-
-      manifest = parser.manifest;
-    } else {
-      manifest = playlist;
-    }
+    const manifest = typeof playlist === 'string' ?
+      parseManifest({
+        manifestString: playlist,
+        customTagParsers: this.customTagParsers,
+        customTagMappers: this.customTagMappers,
+        src: url
+      }) : playlist;
 
     // merge this playlist into the master
     const update = updateMaster(this.master, manifest);
@@ -567,12 +558,18 @@ export default class PlaylistLoader extends EventTarget {
     this.started = true;
 
     if (typeof this.src === 'object') {
-      // other sections of VHS assume this action is always asynchronous (e.g.,
-      // HlsHandler setting some references on MasterPlaylistController), therefore,
-      // even if the object is provided, let the other actions process first
+      // Since a manifest object was passed in as the source (instead of a URL), the first
+      // request can be skipped (since the top level of the manifest, at a minimum, is
+      // already available as a parsed manifest object. However, it's still possible, if
+      // the manifest object represents a master playlist, that some media playlists will
+      // need to be resolved before the starting segment list is available. Therefore,
+      // go directly to setup of the initial playlist, and let the normal flow continue
+      // from there.
+      //
+      // Note that the call to setup is asynchronous, as other sections of VHS may assume
+      // that the first request is asynchronous.
       setTimeout(() => {
         this.setupInitialPlaylist(this.src);
-        this.trigger('loadedmetadata');
       }, 0);
       return;
     }

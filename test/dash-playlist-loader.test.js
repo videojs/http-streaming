@@ -1186,7 +1186,6 @@ QUnit.test('parseMasterXml: setup phony playlists and resolves uris', function(a
   loader.load();
   this.standardXHRResponse(this.requests.shift());
 
-  // TODO possibly fix test to better make use of new exposed function
   const masterPlaylist = parseMasterXml({
     masterXml: loader.masterXml_,
     srcUrl: loader.srcUrl,
@@ -1213,7 +1212,7 @@ QUnit.test('parseMasterXml: includes sidx info if available and matches playlist
 
   loader.load();
   this.standardXHRResponse(this.requests.shift());
-  // TODO possibly fix test to better make use of new exposed function
+
   const origParsedMaster = parseMasterXml({
     masterXml: loader.masterXml_,
     srcUrl: loader.srcUrl,
@@ -1223,7 +1222,6 @@ QUnit.test('parseMasterXml: includes sidx info if available and matches playlist
 
   loader.sidxMapping_ = {};
   assert.deepEqual(
-    // TODO possibly fix test to better make use of new exposed function
     parseMasterXml({
       masterXml: loader.masterXml_,
       srcUrl: loader.srcUrl,
@@ -1250,7 +1248,7 @@ QUnit.test('parseMasterXml: includes sidx info if available and matches playlist
       }]
     }
   };
-  // TODO possibly fix test to better make use of new exposed function
+
   const newMaster = parseMasterXml({
     masterXml: loader.masterXml_,
     srcUrl: loader.srcUrl,
@@ -1435,7 +1433,6 @@ QUnit.test('refreshXml_: requests the sidx if it changed', function(assert) {
   // child playlist
   this.standardXHRResponse(this.requests.shift());
 
-  // TODO possibly fix test to better make use of new exposed function
   const oldMaster = parseMasterXml({
     masterXml: loader.masterXml_,
     srcUrl: loader.srcUrl,
@@ -1452,7 +1449,7 @@ QUnit.test('refreshXml_: requests the sidx if it changed', function(assert) {
     },
     'sidx is the original in the xml'
   );
-  // TODO possibly fix test to better make use of new exposed function
+
   let newMaster = parseMasterXml({
     masterXml: loader.masterXml_,
     srcUrl: loader.srcUrl,
@@ -1467,7 +1464,6 @@ QUnit.test('refreshXml_: requests the sidx if it changed', function(assert) {
   );
   loader.refreshXml_();
 
-  // TODO possibly fix test to better make use of new exposed function
   newMaster = parseMasterXml({
     masterXml: loader.masterXml_,
     srcUrl: loader.srcUrl,

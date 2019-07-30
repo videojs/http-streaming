@@ -31,6 +31,7 @@ import {
 import { version } from '../package.json';
 // import needed to register middleware
 import './middleware-set-current-time';
+import { concatenateVideos } from './concatenate-videos';
 
 const Hls = {
   PlaylistLoader,
@@ -856,6 +857,8 @@ if (!videojs.use) {
   videojs.registerComponent('Hls', Hls);
 }
 videojs.options.hls = videojs.options.hls || {};
+
+videojs.Hls.concatenateVideos = concatenateVideos;
 
 if (videojs.registerPlugin) {
   videojs.registerPlugin('reloadSourceOnError', reloadSourceOnError);

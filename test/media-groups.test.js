@@ -6,6 +6,8 @@ import * as MediaGroups from '../src/media-groups';
 import PlaylistLoader from '../src/playlist-loader';
 import DashPlaylistLoader from '../src/dash-playlist-loader';
 import noop from '../src/util/noop';
+import testDataManifests from './test-manifests.js';
+import { parseManifest } from '../src/playlist-loader';
 
 QUnit.module('MediaGroups', {
   beforeEach(assert) {
@@ -850,6 +852,32 @@ QUnit.skip('initialize audio does not create playlist loader for alternate track
     'no playlist loader for alternate audio in main stream');
   assert.ok(this.mediaTypes.AUDIO.groups.aud1[1].playlistLoader instanceof PlaylistLoader,
     'playlist loader for alternate audio not in main stream');
+});
+
+QUnit.test('initialize audio correctly uses vhs-json source type', function(assert) {
+  const manifestString = testDataManifests.media;
+  const audioPlaylist = parseManifest({
+    manifestString,
+    src: 'media.m3u8'
+  });
+
+  this.master.mediaGroups.AUDIO.aud1 = {
+    en: {
+      default: true,
+      language: 'en',
+      playlists: [audioPlaylist]
+    }
+  };
+  this.settings.sourceType = 'vhs-json';
+
+  MediaGroups.initialize.AUDIO('AUDIO', this.settings);
+
+  const playlistLoader = this.mediaTypes.AUDIO.groups.aud1[0].playlistLoader;
+
+  assert.ok(
+    playlistLoader instanceof PlaylistLoader,
+    'playlist loader is a standard playlist loader');
+  assert.deepEqual(playlistLoader.src, audioPlaylist, 'passed the audio playlist');
 });
 
 QUnit.test('initialize subtitles correctly uses HLS source type', function(assert) {

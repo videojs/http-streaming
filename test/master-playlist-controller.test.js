@@ -18,6 +18,8 @@ import Config from '../src/config';
 import PlaylistLoader from '../src/playlist-loader';
 import DashPlaylistLoader from '../src/dash-playlist-loader';
 import { muxed as muxedSegment } from './test-segments';
+import testDataManifests from './test-manifests.js';
+import { parseManifest } from '../src/playlist-loader';
 
 QUnit.module('MasterPlaylistController', {
   beforeEach(assert) {
@@ -159,6 +161,12 @@ QUnit.test('creates appropriate PlaylistLoader for sourceType', function(assert)
 
   assert.ok(mpc.masterPlaylistLoader_ instanceof DashPlaylistLoader,
             'created a dash playlist loader');
+
+  options.sourceType = 'vhs-json';
+  mpc = new MasterPlaylistController(options);
+
+  assert.ok(mpc.masterPlaylistLoader_ instanceof PlaylistLoader,
+            'created a standard playlist loader for vhs-json source type');
 });
 
 QUnit.test('passes options to SegmentLoader', function(assert) {
@@ -2740,4 +2748,41 @@ QUnit.test('Exception in play promise should be caught', function(assert) {
   mpc.handleSourceOpen_();
 
   assert.ok(true, 'rejects dom exception');
+});
+
+QUnit.test('when playlist with segments are provided, state is updated without a playlist request', function(assert) {
+  this.requests.length = 0;
+  // must recreate player for new mock media source to open
+  this.player = createPlayer();
+
+  const manifestString = testDataManifests.playlist;
+  const manifestObject = parseManifest({
+    manifestString,
+    src: 'playlist.m3u8'
+  });
+
+  // TODO it may be important to add resolvedUri to parseManifest
+  manifestObject.resolvedUri = 'playlist.m3u8';
+
+  this.player.src({
+    src: 'placeholder-url',
+    type: 'application/vnd.vhs+json',
+    manifestObject
+  });
+  // media source must be open for duration to be set
+  openMediaSource(this.player, this.clock);
+
+  this.masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+
+  // a duration update indicates a master playlist controller state update from the media
+  // playlist
+  assert.equal(this.masterPlaylistController.duration(), 161.4167, 'duration set');
+
+  // segment loader loading has started, not waiting on any playlist requests
+  assert.equal(this.requests.length, 1, 'one request');
+  assert.equal(
+    this.requests[0].uri,
+    `${window.location.origin}/hls_450k_video.ts`,
+    'requested first segment'
+  );
 });

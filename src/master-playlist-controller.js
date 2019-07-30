@@ -261,16 +261,17 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
         // Under the standard case where a source URL is provided, loadedplaylist will
         // fire again since the playlist will be requested. In the case of vhs-json
-        // (where the pre-parsed manifest object is provided) when the segments are
-        // already loaded, loadedplaylist won't fire again, so the playlist handler must
-        // be called.
+        // (where the pre-parsed manifest object is provided), when the media playlist's
+        // segments list is already available, a media playlist won't be requested, and
+        // loadedplaylist won't fire again, so the playlist handler must be called on its
+        // own here.
         if (this.sourceType_ === 'vhs-json' && this.initialMedia_.segments) {
-          this.handleNewPlaylist(this.initialMedia_);
+          this.handleUpdatedMediaPlaylist(this.initialMedia_);
         }
         return;
       }
 
-      this.handleNewPlaylist(updatedPlaylist);
+      this.handleUpdatedMediaPlaylist(updatedPlaylist);
     });
 
     this.masterPlaylistLoader_.on('error', () => {
@@ -334,7 +335,16 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
   }
 
-  handleNewPlaylist(updatedPlaylist) {
+  /**
+   * Given an updated media playlist (whether it was loaded for the first time, or
+   * refreshed for live playlists), update any relevant properties and state to reflect
+   * changes in the media that should be accounted for (e.g., cues and duration).
+   *
+   * @param {Object} updatedPlaylist the updated media playlist object
+   *
+   * @private
+   */
+  handleUpdatedMediaPlaylist(updatedPlaylist) {
     if (this.useCueTags_) {
       this.updateAdCues_(updatedPlaylist);
     }

@@ -25,6 +25,7 @@ import {
   LOCAL_STORAGE_KEY
 } from '../src/videojs-http-streaming';
 import window from 'global/window';
+import { parseManifest } from '../src/playlist-loader';
 // we need this so the plugin registers itself
 import 'videojs-contrib-quality-levels';
 
@@ -3715,6 +3716,47 @@ QUnit.test('seekToProgramTime will seek to time if buffered', function(assert) {
   this.clock.tick(2);
 });
 
+QUnit.test('manifestObject used as source if passed in source options', function(assert) {
+  this.player.src({
+    src: 'placeholder-source',
+    type: 'application/x-mpegurl'
+  });
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+
+  // no manifestObject was provided, so a request is made for the source
+  assert.equal(this.requests.length, 1, 'one request');
+  assert.equal(this.requests[0].url, 'placeholder-source', 'requested src url');
+
+  this.requests.length = 0;
+
+  const manifestString = testDataManifests.playlist;
+  const manifestObject = parseManifest({
+    manifestString,
+    src: 'playlist.m3u8'
+  });
+
+  // TODO it may be important to add resolvedUri to parseManifest
+  manifestObject.resolvedUri = 'playlist.m3u8';
+
+  this.player.src({
+    src: 'placeholder-source',
+    type: 'application/x-mpegurl',
+    manifestObject
+  });
+
+  openMediaSource(this.player, this.clock);
+
+  // manifestObject was provided, so a request is made just for the segment
+  assert.equal(this.requests.length, 1, 'one request');
+  assert.equal(
+    this.requests[0].uri,
+    `${window.location.origin}/hls_450k_video.ts`,
+    'requested first segment'
+  );
+});
+
 QUnit.module('HLS Integration', {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
@@ -4212,4 +4254,12 @@ QUnit.test('simpleTypeFromSourceType does not convert non HLS/DASH mime types',
 function(assert) {
   assert.notOk(simpleTypeFromSourceType('video/mp4'), 'does not support video/mp4');
   assert.notOk(simpleTypeFromSourceType('video/x-flv'), 'does not support video/x-flv');
+});
+
+QUnit.test('simpleTypeFromSourceType converts VHS media type to vhs-json', function(assert) {
+  assert.equal(
+    simpleTypeFromSourceType('application/vnd.vhs+json'),
+    'vhs-json',
+    'supports support application/vnd.vhs+json'
+  );
 });
