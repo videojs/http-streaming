@@ -272,10 +272,12 @@ export default class SourceUpdater extends videojs.EventTarget {
    * @param {Function} done the function to call when done
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-appendBuffer-void-ArrayBuffer-data
    */
-  appendBuffer({segmentInfo, type, bytes}, doneFn) {
+  appendBuffer(options, doneFn) {
+    const {segmentInfo, type, bytes} = options;
+
     this.processedAppend_ = true;
     if (type === 'audio' && this.videoBuffer && !this.videoAppendQueued_) {
-      this.delayedAudioAppendQueue_.push([{type, bytes}, doneFn]);
+      this.delayedAudioAppendQueue_.push([options, doneFn]);
       this.logger_(`delayed audio append of ${bytes.length} until video append`);
       return;
     }
