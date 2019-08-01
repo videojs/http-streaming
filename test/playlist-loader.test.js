@@ -3,13 +3,19 @@ import {
   default as PlaylistLoader,
   updateSegments,
   updateMaster,
-  setupMediaPlaylists,
+  setupMasterMediaPlaylists,
   resolveMediaGroupUris,
-  refreshDelay
+  refreshDelay,
+  parseManifest
 } from '../src/playlist-loader';
 import xhrFactory from '../src/xhr';
 import { useFakeEnvironment, urlTo } from './test-helpers';
 import window from 'global/window';
+import testDataManifests from './test-manifests.js';
+/* eslint-disable no-unused-vars */
+// needed to register hls with videojs
+import { Hls } from '../src/videojs-http-streaming';
+/* eslint-enable no-unused-vars */
 
 QUnit.module('Playlist Loader', {
   beforeEach(assert) {
@@ -598,19 +604,22 @@ QUnit.test('updateMaster resolves key and map URIs', function(assert) {
     'resolves key and map URIs');
 });
 
-QUnit.test('setupMediaPlaylists does nothing if no playlists', function(assert) {
+QUnit.test('setupMasterMediaPlaylists does nothing if no playlists', function(assert) {
   const master = {
     playlists: []
   };
 
-  setupMediaPlaylists(master);
+  setupMasterMediaPlaylists({
+    playlists: master.playlists,
+    masterUri: master.src
+  });
 
   assert.deepEqual(master, {
     playlists: []
   }, 'master remains unchanged');
 });
 
-QUnit.test('setupMediaPlaylists adds URI keys for each playlist', function(assert) {
+QUnit.test('setupMasterMediaPlaylists adds URI keys for each playlist', function(assert) {
   const master = {
     uri: 'master-uri',
     playlists: [{
@@ -632,7 +641,10 @@ QUnit.test('setupMediaPlaylists adds URI keys for each playlist', function(asser
     id: 1
   };
 
-  setupMediaPlaylists(master);
+  setupMasterMediaPlaylists({
+    playlists: master.playlists,
+    masterUri: master.uri
+  });
 
   assert.deepEqual(master.playlists[0], expectedPlaylist0, 'retained playlist indices');
   assert.deepEqual(master.playlists[1], expectedPlaylist1, 'retained playlist indices');
@@ -648,7 +660,7 @@ QUnit.test('setupMediaPlaylists adds URI keys for each playlist', function(asser
     'logged a warning');
 });
 
-QUnit.test('setupMediaPlaylists adds attributes objects if missing', function(assert) {
+QUnit.test('setupMasterMediaPlaylists adds attributes objects if missing', function(assert) {
   const master = {
     uri: 'master-uri',
     playlists: [{
@@ -658,7 +670,10 @@ QUnit.test('setupMediaPlaylists adds attributes objects if missing', function(as
     }]
   };
 
-  setupMediaPlaylists(master);
+  setupMasterMediaPlaylists({
+    playlists: master.playlists,
+    masterUri: master.uri
+  });
 
   assert.ok(master.playlists[0].attributes, 'added attributes object');
   assert.ok(master.playlists[1].attributes, 'added attributes object');
@@ -672,7 +687,7 @@ QUnit.test('setupMediaPlaylists adds attributes objects if missing', function(as
     'logged a warning');
 });
 
-QUnit.test('setupMediaPlaylists resolves playlist URIs', function(assert) {
+QUnit.test('setupMasterMediaPlaylists resolves playlist URIs', function(assert) {
   const master = {
     uri: 'master-uri',
     playlists: [{
@@ -684,7 +699,10 @@ QUnit.test('setupMediaPlaylists resolves playlist URIs', function(assert) {
     }]
   };
 
-  setupMediaPlaylists(master);
+  setupMasterMediaPlaylists({
+    playlists: master.playlists,
+    masterUri: master.uri
+  });
 
   assert.equal(master.playlists[0].resolvedUri, urlTo('uri-0'), 'resolves URI');
   assert.equal(master.playlists[1].resolvedUri, urlTo('uri-1'), 'resolves URI');
@@ -975,6 +993,33 @@ function(assert) {
   assert.strictEqual(loader.state, 'HAVE_METADATA', 'the state is correct');
   assert.strictEqual(this.requests.length, 0, 'no more requests are made');
   assert.strictEqual(loadedmetadatas, 1, 'fired one loadedmetadata');
+});
+
+QUnit.test(
+'moves to HAVE_METADATA without a request when initialized with a media playlist object',
+function(assert) {
+  let loadedmetadataEvents = 0;
+  const mediaPlaylist = parseManifest({
+    manifestString: testDataManifests.media,
+    src: 'media.m3u8'
+  });
+
+  const loader = new PlaylistLoader(mediaPlaylist, this.fakeHls);
+
+  loader.on('loadedmetadata', () => loadedmetadataEvents++);
+  loader.load();
+
+  assert.equal(this.requests.length, 0, 'no requests');
+  assert.equal(loadedmetadataEvents, 0, 'no loadedmetadata events');
+
+  // preparing of manifest by playlist loader is still asynchronous for source objects
+  this.clock.tick(1);
+
+  assert.equal(this.requests.length, 0, 'no requests');
+  assert.equal(loadedmetadataEvents, 1, 'one loadedmetadata event');
+  assert.ok(loader.master, 'inferred a master playlist');
+  assert.deepEqual(mediaPlaylist, loader.media(), 'set the media playlist');
+  assert.equal(loader.state, 'HAVE_METADATA', 'state is HAVE_METADATA');
 });
 
 QUnit.test('resolves relative media playlist URIs', function(assert) {
@@ -1892,4 +1937,143 @@ function(assert) {
                                 'low-0.ts\n' +
                                 '#EXT-X-ENDLIST');
   assert.ok(loader.media().endList, 'flushed the final line of input');
+});
+
+QUnit.module('parseManifest');
+
+QUnit.test('parses media manifest string into object', function(assert) {
+  assert.deepEqual(
+    parseManifest({
+      manifestString: testDataManifests.media,
+      src: 'media.m3u8'
+    }), {
+      attributes: {},
+      allowCache: true,
+      uri: 'media.m3u8',
+      endList: true,
+      mediaSequence: 0,
+      discontinuitySequence: 0,
+      playlistType: 'VOD',
+      targetDuration: 10,
+      discontinuityStarts: [],
+      id: 0,
+      segments: [{
+        duration: 10,
+        timeline: 0,
+        uri: 'media-00001.ts'
+      }, {
+        duration: 10,
+        timeline: 0,
+        uri: 'media-00002.ts'
+      }, {
+        duration: 10,
+        timeline: 0,
+        uri: 'media-00003.ts'
+      }, {
+        duration: 10,
+        timeline: 0,
+        uri: 'media-00004.ts'
+      }]
+    },
+    'parsed media manifest string into correct object'
+  );
+});
+
+QUnit.test('parses master manifest string into object', function(assert) {
+  assert.deepEqual(
+    parseManifest({
+      manifestString: testDataManifests.master,
+      src: 'master.m3u8'
+    }),
+    {
+      allowCache: true,
+      discontinuityStarts: [],
+      mediaGroups: {
+        'AUDIO': {},
+        'CLOSED-CAPTIONS': {},
+        'SUBTITLES': {},
+        'VIDEO': {}
+      },
+      uri: 'master.m3u8',
+      segments: [],
+      playlists: [{
+        attributes: {
+          'BANDWIDTH': 240000,
+          'RESOLUTION': {
+            width: 396,
+            height: 224
+          },
+          'PROGRAM-ID': 1
+        },
+        id: 0,
+        uri: 'media.m3u8',
+        resolvedUri: `${window.location.origin}/media.m3u8`,
+        timeline: 0
+      }, {
+        attributes: {
+          'BANDWIDTH': 40000,
+          'PROGRAM-ID': 1
+        },
+        id: 1,
+        uri: 'media1.m3u8',
+        resolvedUri: `${window.location.origin}/media1.m3u8`,
+        timeline: 0
+      }, {
+        attributes: {
+          'BANDWIDTH': 440000,
+          'RESOLUTION': {
+            width: 396,
+            height: 224
+          },
+          'PROGRAM-ID': 1
+        },
+        id: 2,
+        uri: 'media2.m3u8',
+        resolvedUri: `${window.location.origin}/media2.m3u8`,
+        timeline: 0
+      }, {
+        attributes: {
+          'BANDWIDTH': 1928000,
+          'RESOLUTION': {
+            width: 960,
+            height: 540
+          },
+          'PROGRAM-ID': 1
+        },
+        id: 3,
+        uri: 'media3.m3u8',
+        resolvedUri: `${window.location.origin}/media3.m3u8`,
+        timeline: 0
+      }]
+    },
+    'parsed master manifest string into correct object'
+  );
+});
+
+QUnit.test('uses custom tag parsers and mappers', function(assert) {
+  const manifestObject = parseManifest({
+    manifestString: testDataManifests.media,
+    src: 'media.m3u8',
+    // Zen total duration is provided in the media manifest, i.e.,
+    // #ZEN-TOTAL-DURATION:57.9911
+    customTagMappers: [{
+      expression: /^#ZEN-TOTAL-DURATION/,
+      map(line) {
+        return `#TOTAL-DURATION:${parseFloat(line.split(':')[1])}`;
+      }
+    }],
+    customTagParsers: [{
+      expression: /#TOTAL-DURATION/,
+      customType: 'totalDuration',
+      dataParser(line) {
+        return parseFloat(line.split(':')[1]);
+      }
+    }]
+  });
+
+  assert.deepEqual(
+    manifestObject.custom,
+    { totalDuration: 57.9911 },
+    'used custom tag parsers and mappers'
+  );
 });

@@ -2761,9 +2761,6 @@ QUnit.test('when playlist with segments are provided, state is updated without a
     src: 'playlist.m3u8'
   });
 
-  // TODO it may be important to add resolvedUri to parseManifest
-  manifestObject.resolvedUri = 'playlist.m3u8';
-
   this.player.src({
     src: 'placeholder-url',
     type: 'application/vnd.vhs+json',

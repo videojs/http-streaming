@@ -3737,9 +3737,6 @@ QUnit.test('manifestObject used as source if passed in source options', function
     src: 'playlist.m3u8'
   });
 
-  // TODO it may be important to add resolvedUri to parseManifest
-  manifestObject.resolvedUri = 'playlist.m3u8';
-
   this.player.src({
     src: 'placeholder-source',
     type: 'application/x-mpegurl',

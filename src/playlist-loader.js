@@ -131,27 +131,69 @@ export const updateMaster = (master, media) => {
   return result;
 };
 
-export const setupMediaPlaylists = (master) => {
+/*
+ * Adds properties expected by VHS for consistency. For instance, m3u8-parser doesn't add
+ * an attributes object to media playlists that aren't a part of a master playlist. This
+ * function will add an empty object, if one is not provided, to allow VHS' code to expect
+ * media playlists to have the same form whether they are from a master or media playlist,
+ * and no matter what source type provided the media.
+ *
+ * @param {Object} config
+ * @param {Object} config.playlist
+ *        The media playlist
+ * @param {string} [config.masterUri]
+ *        URI of the master playlist containing the media playlist (if applicable)
+ * @param {number} [config.index=0]
+ *        Index of the media playlist within the master playlist list (if applicable)
+ */
+export const setupMediaPlaylist = ({ playlist, masterUri, index = 0 }) => {
+  // media playlist URIs were resolved at the time of the response (to handle redirects),
+  // therefore, only media playlists within a master must be resolved
+  if (masterUri) {
+    playlist.resolvedUri = resolveUrl(masterUri, playlist.uri);
+  }
+  playlist.id = index;
+
+  // Although the spec states an #EXT-X-STREAM-INF tag MUST have a
+  // BANDWIDTH attribute, we can play the stream without it. This means a poorly
+  // formatted master playlist may not have an attribute list. An attributes
+  // property is added here to prevent undefined references when we encounter
+  // this scenario.
+  //
+  // In addition, m3u8-parser does not attach an attributes property to media
+  // playlists so make sure that the property is attached to avoid the same undefined
+  // reference errors.
+  playlist.attributes = playlist.attributes || {};
+};
+
+/*
+ * Adds properties expected by VHS for consistency to the media playlists contained within
+ * a master manifest. Also issues warnings if any issues are seen with the playlists.
+ *
+ * @param {Object} config
+ * @param {Object[]} config.playlists
+ *        The media playlists from a master manifest
+ * @param {string} [config.masterUri]
+ *        URI of the master playlist containing the media playlists
+ */
+export const setupMasterMediaPlaylists = ({ playlists, masterUri }) => {
   // setup by-URI lookups and resolve media playlist URIs
-  let i = master.playlists.length;
+  let i = playlists.length;
 
   while (i--) {
-    let playlist = master.playlists[i];
+    let playlist = playlists[i];
 
-    master.playlists[playlist.uri] = playlist;
-    playlist.resolvedUri = resolveUrl(master.uri, playlist.uri);
-    playlist.id = i;
+    playlists[playlist.uri] = playlist;
 
     if (!playlist.attributes) {
-      // Although the spec states an #EXT-X-STREAM-INF tag MUST have a
-      // BANDWIDTH attribute, we can play the stream without it. This means a poorly
-      // formatted master playlist may not have an attribute list. An attributes
-      // property is added here to prevent undefined references when we encounter
-      // this scenario.
-      playlist.attributes = {};
-
       log.warn('Invalid playlist STREAM-INF detected. Missing BANDWIDTH attribute.');
     }
+
+    setupMediaPlaylist({
+      playlist,
+      masterUri,
+      index: i
+    });
   }
 };
 
@@ -199,9 +241,9 @@ export const refreshDelay = (media, update) => {
  *
  * @param {String} manifestString
  *        The downloaded manifest string
- * @param {Function[]} customTagParsers
+ * @param {Object[]} customTagParsers
  *        An array of custom tag parsers for the m3u8-parser instance
- * @return {Function[]} customTagMappers
+ * @param {Object[]} customTagMappers
  *         An array of custom tag mappers for the m3u8-parser instance
  */
 export const parseManifest = ({
@@ -225,14 +267,18 @@ export const parseManifest = ({
 
   manifest.uri = src;
 
-  // loaded a master playlist
   if (manifest.playlists) {
-    setupMediaPlaylists(manifest);
+    // loaded a master playlist
     resolveMediaGroupUris(manifest);
+    setupMasterMediaPlaylists({
+      playlists: manifest.playlists,
+      masterUri: manifest.uri
+    });
   } else {
-    // m3u8-parser does not attach an attributes property to media playlists so make
-    // sure that the property is attached to avoid undefined reference errors
-    manifest.attributes = manifest.attributes || {};
+    // loaded a media playlist
+    setupMediaPlaylist({
+      playlist: manifest
+    });
   }
 
   return manifest;
@@ -558,6 +604,9 @@ export default class PlaylistLoader extends EventTarget {
     this.started = true;
 
     if (typeof this.src === 'object') {
+      // uri is expected to be part of the object, but resolvedUri is added on internally
+      this.src.resolvedUri = this.src.uri;
+
       // Since a manifest object was passed in as the source (instead of a URL), the first
       // request can be skipped (since the top level of the manifest, at a minimum, is
       // already available as a parsed manifest object. However, it's still possible, if
@@ -613,6 +662,9 @@ export default class PlaylistLoader extends EventTarget {
         customTagMappers: this.customTagMappers,
         src: this.src
       });
+
+      manifest.uri = this.src;
+      manifest.resolvedUri = this.src;
 
       this.setupInitialPlaylist(manifest);
     });

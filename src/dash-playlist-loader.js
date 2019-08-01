@@ -5,7 +5,7 @@ import {
 } from 'mpd-parser';
 import {
   refreshDelay,
-  setupMediaPlaylists,
+  setupMasterMediaPlaylists,
   resolveMediaGroupUris,
   updateMaster as updatePlaylist,
   forEachMediaGroup
@@ -114,7 +114,10 @@ export const parseMasterXml = ({ masterXml, srcUrl, clientOffset, sidxMapping })
     }
   });
 
-  setupMediaPlaylists(master);
+  setupMasterMediaPlaylists({
+    playlists: master.playlists,
+    masterUri: master.uri
+  });
   resolveMediaGroupUris(master);
 
   return master;
