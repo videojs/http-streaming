@@ -2040,6 +2040,9 @@ export default class SegmentLoader extends videojs.EventTarget {
     const prioritizedTimingInfo = useVideoTimingInfo && segmentInfo.videoTimingInfo ?
       segmentInfo.videoTimingInfo : segmentInfo.audioTimingInfo;
 
+    if (!prioritizedTimingInfo) {
+      return;
+    }
     segmentInfo.timingInfo.end = typeof prioritizedTimingInfo.end === 'number' ?
       // End time may not exist in a case where we aren't parsing the full segment (one
       // current example is the case of fmp4), so use the rough duration to calculate an
