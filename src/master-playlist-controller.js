@@ -131,8 +131,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
     };
 
     // The source type check not only determines whether we should be using a special DASH
-    // playlist loader, but also covers the case where the provided src is an pre-parsed
-    // manifest object (instead of just a URL). In this case the mime type, and thus
+    // playlist loader, but also covers the case where the provided src is a pre-parsed
+    // manifest object (instead of just a URL). In this case the media type, and thus the
     // resultant source type, will be different from either DASH or HLS, and will default
     // to the standard playlist loader.
     this.masterPlaylistLoader_ = this.sourceType_ === 'dash' ?

@@ -381,18 +381,18 @@ export const initialize = {
         let properties = mediaGroups[type][groupId][variantLabel];
         let playlistLoader;
 
-        if (properties.resolvedUri) {
-          playlistLoader = new PlaylistLoader(properties.resolvedUri,
-                                              hls,
-                                              requestOptions);
-        // if manifest object was provided as part of the source, assume that the
-        // media group playlists are also resolved
-        } else if (sourceType === 'vhs-json' && properties.playlists) {
+        // if manifest object was provided as part of the source, and the media playlist
+        // was resolved, use the resolved media playlist object
+        if (sourceType === 'vhs-json' && properties.playlists) {
           playlistLoader = new PlaylistLoader(
             properties.playlists[0],
             hls,
             requestOptions
           );
+        } else if (properties.resolvedUri) {
+          playlistLoader = new PlaylistLoader(properties.resolvedUri,
+                                              hls,
+                                              requestOptions);
         } else if (properties.playlists && sourceType === 'dash') {
           playlistLoader = new DashPlaylistLoader(properties.playlists[0],
                                                   hls,
@@ -485,6 +485,14 @@ export const initialize = {
                                                   hls,
                                                   requestOptions,
                                                   masterPlaylistLoader);
+        } else if (sourceType === 'vhs-json') {
+          playlistLoader = new PlaylistLoader(
+            // if the manifest object included the media playlist, use the media playlist
+            // as provided, otherwise use the resolved URI to load the playlist
+            properties.playlists ? properties.playlists[0] : properties.resolvedUri,
+            hls,
+            requestOptions
+          );
         }
 
         properties = videojs.mergeOptions({

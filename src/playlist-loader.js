@@ -485,7 +485,17 @@ export default class PlaylistLoader extends EventTarget {
       // trigger media change if the active media has been updated
       if (mediaChange) {
         this.trigger('mediachanging');
-        this.trigger('mediachange');
+
+        if (startingState === 'HAVE_MASTER') {
+          // The initial playlist was a master manifest, and the first media selected was
+          // also provided as part of the source object (rather than just a URL).
+          // Therefore, since the media playlist doesn't need to be requested, it won't
+          // trigger loadedmetadata as part of the normal flow, and needs an explicit
+          // trigger.
+          this.trigger('loadedmetadata');
+        } else {
+          this.trigger('mediachange');
+        }
       }
       return;
     }

@@ -244,8 +244,9 @@ player.src({
 });
 ```
 
-In addition, there are some special cases that only function when provided as a source
-option. For instance, `manifestObject`. See [Object as Source](#object-as-source).
+In addition, there are some options that only function when provided as part of the
+source. For instance, `manifestObject`. See [Object as Source](#object-as-source) for more
+details on this option.
 
 #### List
 ##### withCredentials
@@ -753,16 +754,15 @@ if (segmentMetadataTrack) {
 
 ### Object as Source
 
-VHS not only accepts a source URL as the source, but also provides a method to sidecar a
-pre-parsed manifest object as the source. This is useful for cases where the manifest has
-already been downloaded (to prevent another request), to manipulate the manifest object
-before passing it along to VHS, or for testing a specific case. *Note* that this is an
-advanced use-case, and may be more fragile for production environments, as the schema for
-a VHS object and how it's used internally are not set in stone and may change in future
-releases.
+VHS not only accepts a URL as the source, but also has an option to provide a pre-parsed
+manifest object as the source. This can be useful for specific use-cases, e.g., when the
+manifest has already been downloaded (to prevent another request), to manipulate the
+manifest object before passing it along to VHS, or for testing a specific case. *Note*
+that this is an advanced use-case, and may be more fragile for production environments, as
+the schema for a VHS object and how it's used internally are not set in stone and may
+change in future releases.
 
-The option to provide a sidecar manifest object is `manifestObject`, and may be used as
-follows:
+The option to provide a manifest object is `manifestObject`, and may be used as follows:
 
 ```javascript
 var player = videojs('some-video-id');

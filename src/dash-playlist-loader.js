@@ -71,7 +71,7 @@ export const updateMaster = (oldMaster, newMaster) => {
 };
 
 /**
- * Parses the master xml string and updates playlist uri references
+ * Parses the master XML string and updates playlist URI references.
  *
  * This function is exported to allow others to reuse the same logic for constructing a
  * VHS manifest object from a DASH manifest XML string. It provides for consistent
@@ -79,6 +79,15 @@ export const updateMaster = (oldMaster, newMaster) => {
  * VHS-downloaded manifests. This is particularly useful in cases where a user may want to
  * manipulate a manifest object before passing it in as the source to VHS.
  *
+ * @param {Object} config
+ * @param {string} config.masterXml
+ *        The mpd XML
+ * @param {string} config.srcUrl
+ *        The mpd URL
+ * @param {Date} config.clientOffset
+ *         A time difference between server and client
+ * @param {Object} config.sidxMapping
+ *        SIDX mappings for moof/mdat URIs and byte ranges
  * @return {Object}
  *         The parsed mpd manifest object
  */
