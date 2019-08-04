@@ -84,7 +84,7 @@
     "nomnoml": "^0.3.0",
     "rollup": "^1.10.0",
     "shelljs": "^0.8.2",
-    "sinon": "1.10.3",
+    "sinon": "7.4.0",
     "videojs-contrib-eme": "^3.2.0",
     "videojs-contrib-quality-levels": "^2.0.4",
     "videojs-generate-karma-config": "~5.2.0",
