@@ -3,6 +3,7 @@ import {
   default as PlaylistLoader,
   updateSegments,
   updateMaster,
+  setupMediaPlaylist,
   setupMasterMediaPlaylists,
   resolveMediaGroupUris,
   refreshDelay,
@@ -604,6 +605,66 @@ QUnit.test('updateMaster resolves key and map URIs', function(assert) {
     'resolves key and map URIs');
 });
 
+QUnit.test('setupMediaPlaylist sets attributes property if not set', function(assert) {
+  const playlist = {};
+
+  setupMediaPlaylist({ playlist });
+
+  assert.deepEqual(playlist.attributes, {}, 'set empty object for attributes');
+});
+
+QUnit.test('setupMediaPlaylist does not overwrite attributes', function(assert) {
+  const playlist = {
+    attributes: {
+      test: 1
+    }
+  };
+
+  setupMediaPlaylist({ playlist });
+
+  assert.deepEqual(playlist.attributes, { test: 1 }, 'did not overwrite attributes');
+});
+
+QUnit.test('setupMediaPlaylist defaults to id of 0', function(assert) {
+  const playlist = {};
+
+  setupMediaPlaylist({ playlist });
+
+  assert.equal(playlist.id, 0, 'defaulted to id of 0');
+});
+
+QUnit.test('setupMediaPlaylist uses provided index as id', function(assert) {
+  const playlist = {};
+
+  setupMediaPlaylist({ playlist, index: 33 });
+
+  assert.equal(playlist.id, 33, 'used provided index as id');
+});
+
+QUnit.test('setupMediaPlaylist does not set resolvedUri if no master URI', function(assert) {
+  const playlist = {
+    uri: 'test'
+  };
+
+  setupMediaPlaylist({ playlist });
+
+  assert.notOk('resolvedUri' in playlist, 'did not set resolvedUri');
+});
+
+QUnit.test('setupMediaPlaylist resolves URI based on master URI', function(assert) {
+  const playlist = {
+    uri: 'test'
+  };
+
+  setupMediaPlaylist({ playlist, masterUri: 'http://test.com' });
+
+  assert.equal(
+    playlist.resolvedUri,
+    'http://test.com/test',
+    'set resolvedUri based on masterUri'
+  );
+});
+
 QUnit.test('setupMasterMediaPlaylists does nothing if no playlists', function(assert) {
   const master = {
     playlists: []
@@ -866,13 +927,17 @@ QUnit.test('uses last segment duration for refresh delay', function(assert) {
     'used half targetDuration when update is false');
 });
 
-QUnit.test('throws if the playlist url is empty or undefined', function(assert) {
-  assert.throws(function() {
-    PlaylistLoader();
-  }, 'requires an argument');
-  assert.throws(function() {
-    PlaylistLoader('');
-  }, 'does not accept the empty string');
+QUnit.test('throws if the playlist src is empty or undefined', function(assert) {
+  assert.throws(
+    () => new PlaylistLoader(),
+    /A non-empty playlist URL or object is required/,
+    'requires an argument'
+  );
+  assert.throws(
+    () => new PlaylistLoader(''),
+    /A non-empty playlist URL or object is required/,
+    'does not accept the empty string'
+  );
 });
 
 QUnit.test('starts without any metadata', function(assert) {

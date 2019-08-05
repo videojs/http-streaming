@@ -923,3 +923,33 @@ QUnit.test('initialize subtitles correctly uses DASH source type', function(asse
 
   done();
 });
+
+QUnit.test('initialize subtitles correctly uses vhs-json source type', function(assert) {
+  const manifestString = testDataManifests.subtitles;
+  const subtitlesPlaylist = parseManifest({
+    manifestString,
+    src: 'subtitles.m3u8'
+  });
+
+  this.master.mediaGroups.SUBTITLES.sub1 = {
+    en: {
+      language: 'en',
+      playlists: [subtitlesPlaylist]
+    }
+  };
+  this.settings.sourceType = 'vhs-json';
+
+  MediaGroups.initialize.SUBTITLES('SUBTITLES', this.settings);
+
+  const playlistLoader = this.mediaTypes.SUBTITLES.groups.sub1[0].playlistLoader;
+
+  assert.ok(
+    playlistLoader instanceof PlaylistLoader,
+    'playlist loader is a standard playlist loader'
+  );
+  assert.deepEqual(
+    playlistLoader.src,
+    subtitlesPlaylist,
+    'passed the subtitles playlist'
+  );
+});

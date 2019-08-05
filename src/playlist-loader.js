@@ -254,10 +254,7 @@ export const parseManifest = ({
 }) => {
   const parser = new M3u8Parser();
 
-  // adding custom tag parsers
   customTagParsers.forEach(customParser => parser.addParser(customParser));
-
-  // adding custom tag mappers
   customTagMappers.forEach(mapper => parser.addTagMapper(mapper));
 
   parser.push(manifestString);
@@ -297,6 +294,10 @@ export default class PlaylistLoader extends EventTarget {
   constructor(src, hls, options = { }) {
     super();
 
+    if (!src) {
+      throw new Error('A non-empty playlist URL or object is required');
+    }
+
     const { withCredentials = false, handleManifestRedirects = false } = options;
 
     this.src = src;
@@ -308,10 +309,6 @@ export default class PlaylistLoader extends EventTarget {
 
     this.customTagParsers = (hlsOptions && hlsOptions.customTagParsers) || [];
     this.customTagMappers = (hlsOptions && hlsOptions.customTagMappers) || [];
-
-    if (!this.src) {
-      throw new Error('A non-empty playlist URL or object is required');
-    }
 
     // initialize the loader state
     this.state = 'HAVE_NOTHING';
