@@ -40,10 +40,10 @@ export const probeTsSegment = (bytes, baseStartTime) => {
   };
 
   if (result.hasVideo) {
-    result.videoStart = timeInfo.video[0].dtsTime;
+    result.videoStart = timeInfo.video[0].ptsTime;
   }
   if (result.hasAudio) {
-    result.audioStart = timeInfo.audio[0].dtsTime;
+    result.audioStart = timeInfo.audio[0].ptsTime;
   }
 
   return result;

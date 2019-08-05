@@ -20,6 +20,7 @@ import {
 } from './loader-common.js';
 import {
   muxed as muxedSegment,
+  oneSecond as oneSecondSegment,
   audio as audioSegment,
   video as videoSegment,
   mp4Video as mp4VideoSegment,
@@ -423,7 +424,7 @@ QUnit.module('SegmentLoader', function(hooks) {
           this.currentTime = 210;
         });
 
-        standardXHRResponse(this.requests.shift(), muxedSegment());
+        standardXHRResponse(this.requests.shift(), oneSecondSegment());
         // the appended event will not fire, as segment-loader will realize that its guess
         // was off and will reset everything to load at the new point, therefore, wait for
         // the syncinfoupdate event rather than the appended event
@@ -630,7 +631,7 @@ QUnit.module('SegmentLoader', function(hooks) {
 
         assert.notOk(playlist.segments[0].end, 'does not start with duration');
 
-        standardXHRResponse(this.requests.shift(), muxedSegment());
+        standardXHRResponse(this.requests.shift(), oneSecondSegment());
 
         return new Promise((resolve, reject) => {
           loader.one('appended', resolve);
@@ -986,7 +987,7 @@ QUnit.module('SegmentLoader', function(hooks) {
         );
 
         // wrap up the first request to set mediaIndex and start normal live streaming
-        standardXHRResponse(this.requests.shift(), muxedSegment());
+        standardXHRResponse(this.requests.shift(), oneSecondSegment());
         return new Promise((resolve, reject) => {
           loader.one('appended', resolve);
           loader.one('error', reject);
@@ -1020,7 +1021,7 @@ QUnit.module('SegmentLoader', function(hooks) {
           loader.one('error', reject);
         });
       }).then(() => {
-        assert.equal(playlistUpdated.segments[0].start, 0, 'set start on segment of new playlist');
+        assert.equal(playlistUpdated.segments[0].start, 0.11072222222222239, 'set start on segment of new playlist');
         assert.ok(playlistUpdated.segments[0].end, 'set end on segment of new playlist');
         assert.notOk(playlist.segments[1].start, 'did not set start on segment of old playlist');
         assert.notOk(playlist.segments[1].end, 'did not set end on segment of old playlist');
@@ -1048,7 +1049,7 @@ QUnit.module('SegmentLoader', function(hooks) {
         );
 
         // wrap up the first request to set mediaIndex and start normal live streaming
-        standardXHRResponse(this.requests.shift(), muxedSegment());
+        standardXHRResponse(this.requests.shift(), oneSecondSegment());
         return new Promise((resolve, reject) => {
           loader.one('appended', resolve);
           loader.one('error', reject);
@@ -1082,7 +1083,7 @@ QUnit.module('SegmentLoader', function(hooks) {
           loader.one('error', reject);
         });
       }).then(() => {
-        assert.equal(playlist.segments[1].start, 0, 'set start on segment of old playlist');
+        assert.equal(playlist.segments[1].start, 0.11072222222222239, 'set start on segment of old playlist');
         assert.ok(playlist.segments[1].end, 'set end on segment of old playlist');
         assert.notOk(
           playlistUpdated.segments[0].start,
