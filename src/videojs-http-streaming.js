@@ -31,6 +31,7 @@ import {
 import { version } from '../package.json';
 // import needed to register middleware
 import './middleware-set-current-time';
+import { isAudioCodec, isVideoCodec } from './util/codecs';
 
 const Hls = {
   PlaylistLoader,
@@ -145,13 +146,38 @@ const emeKeySystems = (keySystemOptions, videoPlaylist, audioPlaylist) => {
     return keySystemOptions;
   }
 
+  const splitCodecs = videoPlaylist.attributes.CODECS.split(',');
+  let videoCodec;
+  let audioCodec;
+
+  // If there are comma delimited codecs, we are dealing with HLS
+  if (splitCodecs.length > 1) {
+    splitCodecs.forEach(codec => {
+      if (isAudioCodec(codec)) {
+        audioCodec = codec;
+      } else if (isVideoCodec(codec)) {
+        videoCodec = codec;
+      }
+    });
+  // If there aren't, we are dealing with DASH which specifies an individual
+  // codec per playlist
+  } else {
+      videoCodec = videoPlaylist.attributes.CODECS;
+      audioCodec = audioPlaylist && audioPlaylist.attributes.CODECS;
+  }
+
+  if (!videoCodec || !audioCodec) {
+    videojs.log.warn('Insufficient codec information in the manifest.' +
+      ' There may be problems playing encrypted content');
+  }
+
   // upsert the content types based on the selected playlist
   const keySystemContentTypes = {};
 
   for (let keySystem in keySystemOptions) {
     keySystemContentTypes[keySystem] = {
-      audioContentType: `audio/mp4; codecs="${audioPlaylist.attributes.CODECS}"`,
-      videoContentType: `video/mp4; codecs="${videoPlaylist.attributes.CODECS}"`
+      audioContentType: `audio/mp4; codecs="${audioCodec}"`,
+      videoContentType: `video/mp4; codecs="${videoCodec}"`
     };
 
     if (videoPlaylist.contentProtection &&
@@ -172,16 +198,20 @@ const emeKeySystems = (keySystemOptions, videoPlaylist, audioPlaylist) => {
 };
 
 const setupEmeOptions = (hlsHandler) => {
-  if (hlsHandler.options_.sourceType !== 'dash') {
-    return;
-  }
+  const videoPlaylist = hlsHandler.playlists.media();
+
+  // DASH sources are always unmuxed, but HLS sources may be either muxed or unmuxed,
+  // so we need to check whether an audio playlist exists
+  const audioPlaylist = hlsHandler.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader
+    ? hlsHandler.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader.media() : null;
+
   const player = videojs.players[hlsHandler.tech_.options_.playerId];
 
   if (player.eme) {
     const sourceOptions = emeKeySystems(
       hlsHandler.source_.keySystems,
-      hlsHandler.playlists.media(),
-      hlsHandler.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader.media()
+      videoPlaylist,
+      audioPlaylist
     );
 
     if (sourceOptions) {
