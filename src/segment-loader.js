@@ -822,11 +822,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (mediaIndex !== null) {
       let segment = playlist.segments[mediaIndex];
 
-      if (segment && segment.end) {
-        startOfSegment = segment.end;
-      } else {
-        startOfSegment = lastBufferedEnd;
-      }
+      startOfSegment = lastBufferedEnd;
+
       return this.generateSegmentInfo_(playlist, mediaIndex + 1, startOfSegment, false);
     }
 
@@ -1284,6 +1281,17 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     if (segmentInfo.timestampOffset !== null &&
         segmentInfo.timestampOffset !== this.sourceUpdater_.timestampOffset()) {
+
+      // Subtract any difference between the PTS and DTS times of the first frame
+      // from the timeStampOffset (which currently equals the buffered.end) to prevent
+      // creating any gaps in the buffer
+      if (timingInfo && timingInfo.segmentTimestampInfo) {
+        const ptsStartTime = timingInfo.segmentTimestampInfo[0].ptsTime;
+        const dtsStartTime = timingInfo.segmentTimestampInfo[0].dtsTime;
+
+        segmentInfo.timestampOffset -= ptsStartTime - dtsStartTime;
+      }
+
       this.sourceUpdater_.timestampOffset(segmentInfo.timestampOffset);
       // fired when a timestamp offset is set in HLS (can also identify discontinuities)
       this.trigger('timestampoffset');

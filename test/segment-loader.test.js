@@ -525,6 +525,62 @@ QUnit.module('SegmentLoader: M2TS', function(hooks) {
         'an hls-timestamp-offset event was fired');
     });
 
+    QUnit.test('sets the timestampOffset value based on probe timing info', function(assert) {
+      let playlist = playlistWithDuration(40);
+      let buffered = videojs.createTimeRanges();
+      let hlsTimestampOffsetEvents = 0;
+
+      loader.on('timestampoffset', () => {
+        hlsTimestampOffsetEvents++;
+      });
+
+      loader.buffered_ = () => buffered;
+
+      playlist.discontinuityStarts = [1];
+      playlist.segments[1].timeline = 1;
+      loader.playlist(playlist);
+      loader.mimeType(this.mimeType);
+      loader.load();
+      this.clock.tick(1);
+
+      // segment 0
+      this.requests[0].response = new Uint8Array(10).buffer;
+      this.requests.shift().respond(200, null, '');
+      buffered = videojs.createTimeRanges([[0, 10]]);
+      this.updateend();
+      this.clock.tick(1);
+
+      // .08 should be subtracted from the buffered end value to give us
+      // the timestampOffset
+      loader.syncController_.probeTsSegment_ = function(segmentInfo) {
+        return {
+          start: 0,
+          end: 10,
+          segmentTimestampInfo: [
+            {
+              ptsTime: .08,
+              dtsTime: 0
+            }
+          ]
+        };
+      };
+
+      assert.equal(hlsTimestampOffsetEvents, 0,
+        'no hls-timestamp-offset event was fired');
+      // segment 1, discontinuity
+      this.requests[0].response = new Uint8Array(10).buffer;
+      this.requests.shift().respond(200, null, '');
+      assert.equal(loader.mediaSource_.sourceBuffers[0].timestampOffset,
+                   9.92,
+                   'set timestampOffset');
+
+      // verify stats
+      assert.equal(loader.mediaBytesTransferred, 20, '20 bytes');
+      assert.equal(loader.mediaRequests, 2, '2 requests');
+      assert.equal(hlsTimestampOffsetEvents, 1,
+        'an hls-timestamp-offset event was fired');
+    });
+
     QUnit.test('tracks segment end times as they are buffered', function(assert) {
       let playlist = playlistWithDuration(20);
 

@@ -36,6 +36,17 @@ QUnit.test('finds the overlapping time range', function(assert) {
   assert.equal(range.end(0), 12, 'inside the second buffered region');
 });
 
+QUnit.test('finds overlapping time ranges when off by SAFE_TIME_DELTA', function(assert) {
+  let range = Ranges.findRange(createTimeRanges([[0 + Ranges.SAFE_TIME_DELTA, 5], [6, 12]]), 3);
+
+  assert.equal(range.length, 1, 'found one range');
+  assert.equal(range.end(0), 5, 'inside the first buffered region');
+
+  range = Ranges.findRange(createTimeRanges([[0, 5], [6, 12]]), 12 + Ranges.SAFE_TIME_DELTA);
+  assert.equal(range.length, 1, 'found one range');
+  assert.equal(range.end(0), 12, 'inside the second buffered region');
+});
+
 QUnit.module('Buffer Inpsection');
 
 QUnit.test('detects time range end-point changed by updates', function(assert) {
