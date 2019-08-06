@@ -1076,6 +1076,7 @@ function(assert) {
 
   assert.equal(this.requests.length, 0, 'no requests');
   assert.equal(loadedmetadataEvents, 0, 'no loadedmetadata events');
+  assert.equal(loader.state, 'HAVE_NOTHING', 'state is HAVE_NOTHING');
 
   // preparing of manifest by playlist loader is still asynchronous for source objects
   this.clock.tick(1);
@@ -1083,6 +1084,74 @@ function(assert) {
   assert.equal(this.requests.length, 0, 'no requests');
   assert.equal(loadedmetadataEvents, 1, 'one loadedmetadata event');
   assert.ok(loader.master, 'inferred a master playlist');
+  assert.deepEqual(mediaPlaylist, loader.media(), 'set the media playlist');
+  assert.equal(loader.state, 'HAVE_METADATA', 'state is HAVE_METADATA');
+});
+
+QUnit.test(
+'stays at HAVE_MASTER and makes a request when initialized with a master playlist ' +
+  ' without resolved media playlists',
+function(assert) {
+  const masterPlaylist = parseManifest({
+    manifestString: testDataManifests.master,
+    src: 'master.m3u8'
+  });
+
+  const loader = new PlaylistLoader(masterPlaylist, this.fakeHls);
+
+  let loadedmetadataEvents = 0;
+
+  loader.on('loadedmetadata', () => loadedmetadataEvents++);
+  loader.load();
+
+  assert.equal(this.requests.length, 0, 'no requests');
+  assert.equal(loadedmetadataEvents, 0, 'no loadedmetadata events');
+  assert.equal(loader.state, 'HAVE_NOTHING', 'state is HAVE_NOTHING');
+
+  // preparing of manifest by playlist loader is still asynchronous for source objects
+  this.clock.tick(1);
+
+  assert.equal(this.requests.length, 1, 'one request');
+  assert.equal(loadedmetadataEvents, 0, 'no loadedmetadata event');
+  assert.deepEqual(loader.master, masterPlaylist, 'set the master playlist');
+  assert.equal(loader.state, 'SWITCHING_MEDIA', 'state is SWITCHING_MEDIA');
+});
+
+QUnit.test(
+'moves to HAVE_METADATA without a request when initialized with a master playlist ' +
+  ' object with resolved media playlists',
+function(assert) {
+  const masterPlaylist = parseManifest({
+    manifestString: testDataManifests.master,
+    src: 'master.m3u8'
+  });
+  const mediaPlaylist = parseManifest({
+    manifestString: testDataManifests.media,
+    src: 'media.m3u8'
+  });
+
+  // If no playlist is selected after the first loadedplaylist event, then playlist loader
+  // should default to the first playlist. Here it's already resolved, so loadedmetadata
+  // should fire immediately.
+  masterPlaylist.playlists[0] = mediaPlaylist;
+
+  const loader = new PlaylistLoader(masterPlaylist, this.fakeHls);
+
+  let loadedmetadataEvents = 0;
+
+  loader.on('loadedmetadata', () => loadedmetadataEvents++);
+  loader.load();
+
+  assert.equal(this.requests.length, 0, 'no requests');
+  assert.equal(loadedmetadataEvents, 0, 'no loadedmetadata events');
+  assert.equal(loader.state, 'HAVE_NOTHING', 'state is HAVE_NOTHING');
+
+  // preparing of manifest by playlist loader is still asynchronous for source objects
+  this.clock.tick(1);
+
+  assert.equal(this.requests.length, 0, 'no requests');
+  assert.equal(loadedmetadataEvents, 1, 'one loadedmetadata event');
+  assert.deepEqual(loader.master, masterPlaylist, 'set the master playlist');
   assert.deepEqual(mediaPlaylist, loader.media(), 'set the media playlist');
   assert.equal(loader.state, 'HAVE_METADATA', 'state is HAVE_METADATA');
 });
