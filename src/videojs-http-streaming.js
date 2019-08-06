@@ -9,6 +9,7 @@ import window from 'global/window';
 import PlaylistLoader from './playlist-loader';
 import Playlist from './playlist';
 import xhrFactory from './xhr';
+import { Decrypter, AsyncStream, decrypt } from 'aes-decrypter';
 import * as utils from './bin-utils';
 import {
   getProgramTime,
@@ -34,6 +35,9 @@ import './middleware-set-current-time';
 const Hls = {
   PlaylistLoader,
   Playlist,
+  Decrypter,
+  AsyncStream,
+  decrypt,
   utils,
 
   STANDARD_PLAYLIST_SELECTOR: lastBandwidthSelector,
