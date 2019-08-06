@@ -70,6 +70,7 @@ Video.js Compatibility: 6.0, 7.0
     - [Use Stats](#use-stats)
   - [In-Band Metadata](#in-band-metadata)
   - [Segment Metadata](#segment-metadata)
+  - [Object as Source](#object-as-source)
 - [Hosting Considerations](#hosting-considerations)
 - [Known Issues](#known-issues)
   - [Fragmented MP4 Support](#fragmented-mp4-support)

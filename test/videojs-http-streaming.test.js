@@ -3725,7 +3725,7 @@ QUnit.test('manifestObject used as source if passed in source options', function
 
   openMediaSource(this.player, this.clock);
 
-  // no manifestObject was provided, so a request is made for the source
+  // no manifestObject was provided, so a request is made for the source manifest
   assert.equal(this.requests.length, 1, 'one request');
   assert.equal(this.requests[0].url, 'placeholder-source', 'requested src url');
 
@@ -3745,7 +3745,7 @@ QUnit.test('manifestObject used as source if passed in source options', function
 
   openMediaSource(this.player, this.clock);
 
-  // manifestObject was provided, so a request is made just for the segment
+  // manifestObject was provided, so a request is made for the segment
   assert.equal(this.requests.length, 1, 'one request');
   assert.equal(
     this.requests[0].uri,
@@ -4257,6 +4257,6 @@ QUnit.test('simpleTypeFromSourceType converts VHS media type to vhs-json', funct
   assert.equal(
     simpleTypeFromSourceType('application/vnd.vhs+json'),
     'vhs-json',
-    'supports support application/vnd.vhs+json'
+    'supports application/vnd.vhs+json'
   );
 });

@@ -2750,7 +2750,10 @@ QUnit.test('Exception in play promise should be caught', function(assert) {
   assert.ok(true, 'rejects dom exception');
 });
 
-QUnit.test('when playlist with segments are provided, state is updated without a playlist request', function(assert) {
+QUnit.test(
+'when manifestObject is a media playlist with segments resolved, ' +
+  ' state is updated without a playlist request',
+function(assert) {
   this.requests.length = 0;
   // must recreate player for new mock media source to open
   this.player = createPlayer();
@@ -2775,7 +2778,7 @@ QUnit.test('when playlist with segments are provided, state is updated without a
   // playlist
   assert.equal(this.masterPlaylistController.duration(), 161.4167, 'duration set');
 
-  // segment loader loading has started, not waiting on any playlist requests
+  // segment loader has started, not waiting on any playlist requests
   assert.equal(this.requests.length, 1, 'one request');
   assert.equal(
     this.requests[0].uri,

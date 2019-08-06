@@ -147,8 +147,9 @@ export const updateMaster = (master, media) => {
  *        Index of the media playlist within the master playlist list (if applicable)
  */
 export const setupMediaPlaylist = ({ playlist, masterUri, index = 0 }) => {
-  // media playlist URIs were resolved at the time of the response (to handle redirects),
-  // therefore, only media playlists within a master must be resolved
+  // For media playlist sources, the URI is resolved at the time of the response (to
+  // handle redirects), therefore, only media playlists within a master must be resolved
+  // here.
   if (masterUri) {
     playlist.resolvedUri = resolveUrl(masterUri, playlist.uri);
   }
@@ -156,7 +157,7 @@ export const setupMediaPlaylist = ({ playlist, masterUri, index = 0 }) => {
 
   // Although the spec states an #EXT-X-STREAM-INF tag MUST have a
   // BANDWIDTH attribute, we can play the stream without it. This means a poorly
-  // formatted master playlist may not have an attribute list. An attributes
+  // formatted master playlist may not have an attributes list. An attributes
   // property is added here to prevent undefined references when we encounter
   // this scenario.
   //
@@ -167,8 +168,10 @@ export const setupMediaPlaylist = ({ playlist, masterUri, index = 0 }) => {
 };
 
 /*
- * Adds properties expected by VHS for consistency to the media playlists contained within
- * a master manifest. Also issues warnings if any issues are seen with the playlists.
+ * For a consistent object schema, add properties expected by VHS to the media playlists
+ * within a master manifest.
+ *
+ * Also logs warnings if any issues are seen with the playlists.
  *
  * @param {Object} config
  * @param {Object[]} config.playlists
@@ -241,9 +244,9 @@ export const refreshDelay = (media, update) => {
  *
  * @param {String} manifestString
  *        The downloaded manifest string
- * @param {Object[]} customTagParsers
+ * @param {Object[]} [customTagParsers]
  *        An array of custom tag parsers for the m3u8-parser instance
- * @param {Object[]} customTagMappers
+ * @param {Object[]} [customTagMappers]
  *         An array of custom tag mappers for the m3u8-parser instance
  */
 export const parseManifest = ({
@@ -485,10 +488,10 @@ export default class PlaylistLoader extends EventTarget {
 
         if (startingState === 'HAVE_MASTER') {
           // The initial playlist was a master manifest, and the first media selected was
-          // also provided as part of the source object (rather than just a URL).
-          // Therefore, since the media playlist doesn't need to be requested, it won't
-          // trigger loadedmetadata as part of the normal flow, and needs an explicit
-          // trigger.
+          // also provided (in the form of a resolved playlist object) as part of the
+          // source object (rather than just a URL).  Therefore, since the media playlist
+          // doesn't need to be requested, loadedmetadata won't trigger as part of the
+          // normal flow, and needs an explicit trigger here.
           this.trigger('loadedmetadata');
         } else {
           this.trigger('mediachange');
@@ -689,7 +692,8 @@ export default class PlaylistLoader extends EventTarget {
    * triggered followed by `loadedmetadata`, as the only available playlist is loaded.
    *
    * In the case of a media playlist, a master playlist object wrapper with one playlist
-   * will be created so that all logic can handle playlists in the same fashion.
+   * will be created so that all logic can handle playlists in the same fashion (as an
+   * assumed manifest object schema).
    *
    * @param {Object} manifest
    *        The parsed manifest object
@@ -708,8 +712,7 @@ export default class PlaylistLoader extends EventTarget {
       return;
     }
 
-    // loaded a media playlist
-    // infer a master playlist if none was previously requested
+    // loaded a media playlist, infer a master playlist
     this.master = {
       mediaGroups: {
         'AUDIO': {},
@@ -729,8 +732,8 @@ export default class PlaylistLoader extends EventTarget {
     };
 
     // In the case where a media playlist was passed in as an object, use the playlist's
-    // resolved URI attribute (since there's no reference to the source URI otherwise). It
-    // may also just be a placeholder.
+    // resolved URI attribute (since there's no reference to the source URI otherwise).
+    // It's fine if it's just a placeholder string.
     const playlistId = typeof this.src === 'string' ? this.src : this.src.resolvedUri;
 
     this.master.playlists[playlistId] = this.master.playlists[0];

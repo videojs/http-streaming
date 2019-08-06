@@ -1063,13 +1063,13 @@ function(assert) {
 QUnit.test(
 'moves to HAVE_METADATA without a request when initialized with a media playlist object',
 function(assert) {
-  let loadedmetadataEvents = 0;
   const mediaPlaylist = parseManifest({
     manifestString: testDataManifests.media,
     src: 'media.m3u8'
   });
 
   const loader = new PlaylistLoader(mediaPlaylist, this.fakeHls);
+  let loadedmetadataEvents = 0;
 
   loader.on('loadedmetadata', () => loadedmetadataEvents++);
   loader.load();
@@ -1098,7 +1098,6 @@ function(assert) {
   });
 
   const loader = new PlaylistLoader(masterPlaylist, this.fakeHls);
-
   let loadedmetadataEvents = 0;
 
   loader.on('loadedmetadata', () => loadedmetadataEvents++);
@@ -1131,12 +1130,11 @@ function(assert) {
   });
 
   // If no playlist is selected after the first loadedplaylist event, then playlist loader
-  // should default to the first playlist. Here it's already resolved, so loadedmetadata
-  // should fire immediately.
+  // defaults to the first playlist. Here it's already resolved, so loadedmetadata should
+  // fire immediately.
   masterPlaylist.playlists[0] = mediaPlaylist;
 
   const loader = new PlaylistLoader(masterPlaylist, this.fakeHls);
-
   let loadedmetadataEvents = 0;
 
   loader.on('loadedmetadata', () => loadedmetadataEvents++);
