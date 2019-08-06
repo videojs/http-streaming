@@ -141,43 +141,62 @@ Hls.canPlaySource = function() {
     'your player\'s techOrder.');
 };
 
-const emeKeySystems = (keySystemOptions, videoPlaylist, audioPlaylist) => {
+const emeKeySystems = (keySystemOptions, mainSegmentLoader, audioSegmentLoader) => {
   if (!keySystemOptions) {
     return keySystemOptions;
   }
 
-  const splitCodecs = videoPlaylist.attributes.CODECS.split(',');
-  let videoCodec;
-  let audioCodec;
+  let videoMimeAndCodec;
+  let audioMimeAndCodec;
 
-  // If there are comma delimited codecs, we are dealing with HLS
-  if (splitCodecs.length > 1) {
-    splitCodecs.forEach(codec => {
+  // if there is a mimeType associated with the audioSegmentLoader, then the audio
+  // and video mimeType and codec strings are already in the format we need to
+  // pass with the other key systems
+  if (audioSegmentLoader.mimeType_) {
+    videoMimeAndCodec = mainSegmentLoader.mimeType_;
+    audioMimeAndCodec = audioSegmentLoader.mimeType_;
+
+  // if there is no audioSegmentLoader mimeType, then we have to create the
+  // the audio and video mimeType/codec strings from information extrapolated
+  // from the mainSegmentLoader mimeType (ex. 'video/mp4; codecs="mp4, avc1"' -->
+  // 'video/mp4; codecs="avc1"' and 'audio/mp4; codecs="mp4"')
+  } else {
+    const splitMime = mainSegmentLoader.mimeType_.split(';');
+    const subtype = splitMime[0].split('/')[1];
+    const parameter = splitMime[1].trim();
+    const splitParameter = parameter.split('"')[1];
+    const codecs = splitParameter.split(',');
+    codecs[1] = codecs[1].trim();
+
+    let audioCodec;
+    let videoCodec;
+
+    codecs.forEach(codec => {
       if (isAudioCodec(codec)) {
         audioCodec = codec;
       } else if (isVideoCodec(codec)) {
         videoCodec = codec;
       }
     });
-  // If there aren't, we are dealing with DASH which specifies an individual
-  // codec per playlist
-  } else {
-      videoCodec = videoPlaylist.attributes.CODECS;
-      audioCodec = audioPlaylist && audioPlaylist.attributes.CODECS;
+
+    if (!videoCodec || !audioCodec) {
+      videojs.log.warn('Insufficient codec information in the manifest.' +
+        ' There may be problems playing encrypted content');
+    }
+
+    videoMimeAndCodec = `video/${subtype}; codecs="${videoCodec}"`;
+    audioMimeAndCodec = `audio/${subtype}; codecs="${audioCodec}"`;
   }
 
-  if (!videoCodec || !audioCodec) {
-    videojs.log.warn('Insufficient codec information in the manifest.' +
-      ' There may be problems playing encrypted content');
-  }
 
   // upsert the content types based on the selected playlist
   const keySystemContentTypes = {};
+  const videoPlaylist = mainSegmentLoader.playlist_;
 
   for (let keySystem in keySystemOptions) {
     keySystemContentTypes[keySystem] = {
-      audioContentType: `audio/mp4; codecs="${audioCodec}"`,
-      videoContentType: `video/mp4; codecs="${videoCodec}"`
+      audioContentType: audioMimeAndCodec,
+      videoContentType: videoMimeAndCodec
     };
 
     if (videoPlaylist.contentProtection &&
@@ -198,20 +217,16 @@ const emeKeySystems = (keySystemOptions, videoPlaylist, audioPlaylist) => {
 };
 
 const setupEmeOptions = (hlsHandler) => {
-  const videoPlaylist = hlsHandler.playlists.media();
-
-  // DASH sources are always unmuxed, but HLS sources may be either muxed or unmuxed,
-  // so we need to check whether an audio playlist exists
-  const audioPlaylist = hlsHandler.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader
-    ? hlsHandler.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader.media() : null;
+  const mainSegmentLoader = hlsHandler.masterPlaylistController_.mainSegmentLoader_;
+  const audioSegmentLoader = hlsHandler.masterPlaylistController_.audioSegmentLoader_;
 
   const player = videojs.players[hlsHandler.tech_.options_.playerId];
 
   if (player.eme) {
     const sourceOptions = emeKeySystems(
       hlsHandler.source_.keySystems,
-      videoPlaylist,
-      audioPlaylist
+      mainSegmentLoader,
+      audioSegmentLoader
     );
 
     if (sourceOptions) {
