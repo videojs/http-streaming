@@ -14,8 +14,8 @@
  * message-based interface to a Transmuxer object.
  */
 
-import fullMux from 'mux.js/lib/mp4';
-import partialMux from 'mux.js/lib/partial';
+import fullMux from 'mux.js/lib/mp4/transmuxer';
+import partialMux from 'mux.js/lib/partial/transmuxer';
 import {
   secondsToVideoTs,
   videoTsToSeconds
