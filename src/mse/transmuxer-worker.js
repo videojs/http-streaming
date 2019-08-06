@@ -12,7 +12,7 @@
  * transmuxer running inside of a WebWorker by exposing a simple
  * message-based interface to a Transmuxer object.
  */
-import mp4 from 'mux.js/lib/mp4';
+import mp4 from 'mux.js/lib/mp4/transmuxer';
 
 /**
  * Re-emits transmuxer events by converting them into messages to the
