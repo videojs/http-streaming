@@ -3109,7 +3109,7 @@ QUnit.skip('populates quality levels list when available', function(assert) {
   assert.ok(this.player.tech_.hls.qualityLevels_, 'added quality levels from video with source');
 });
 
-QUnit.test('configures eme if present on selectedinitialmedia', function(assert) {
+QUnit.test('configures eme for DASH if present on selectedinitialmedia', function(assert) {
   this.player.eme = {
     options: {
       previousSetting: 1
@@ -3127,38 +3127,21 @@ QUnit.test('configures eme if present on selectedinitialmedia', function(assert)
 
   this.clock.tick(1);
 
-  this.player.tech_.hls.playlists = {
-    media: () => {
-      return {
-        attributes: {
-          CODECS: 'video-codec'
-        },
-        contentProtection: {
-          keySystem1: {
-            pssh: 'test'
-          }
-        }
-      };
-    },
-    // mocked for renditions mixin
-    master: {
-      playlists: []
-    }
-  };
-  this.player.tech_.hls.masterPlaylistController_.mediaTypes_ = {
-    SUBTITLES: {},
-    AUDIO: {
-      activePlaylistLoader: {
-        media: () => {
-          return {
-            attributes: {
-              CODECS: 'audio-codec'
-            }
-          };
+  this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_ = {
+    playlist_: {
+      contentProtection: {
+        keySystem1: {
+          pssh: 'test'
         }
       }
-    }
+    },
+    mimeType_: 'video/mp4; codecs="video-codec"'
   };
+
+  this.player.tech_.hls.masterPlaylistController_.audioSegmentLoader_ = {
+    mimeType_: 'audio/mp4; codecs="audio-codec"'
+  };
+
   this.player.tech_.hls.masterPlaylistController_.trigger('selectedinitialmedia');
 
   assert.deepEqual(this.player.eme.options, {
@@ -3173,6 +3156,59 @@ QUnit.test('configures eme if present on selectedinitialmedia', function(assert)
         url: 'url1',
         audioContentType: 'audio/mp4; codecs="audio-codec"',
         videoContentType: 'video/mp4; codecs="video-codec"',
+        pssh: 'test'
+      }
+    }
+  }, 'set source eme options');
+});
+
+QUnit.test('configures eme for HLS if present on selectedinitialmedia', function(assert) {
+  this.player.eme = {
+    options: {
+      previousSetting: 1
+    }
+  };
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/x-mpegURL',
+    keySystems: {
+      keySystem1: {
+        url: 'url1'
+      }
+    }
+  });
+
+  this.clock.tick(1);
+
+  this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_ = {
+    playlist_: {
+      contentProtection: {
+        keySystem1: {
+          pssh: 'test'
+        }
+      }
+    },
+    mimeType_: 'video/mp4; codecs="avc1.420015, mp4a.40.2c"'
+  };
+
+  this.player.tech_.hls.masterPlaylistController_.audioSegmentLoader_ = {
+    mimeType_: null
+  };
+
+  this.player.tech_.hls.masterPlaylistController_.trigger('selectedinitialmedia');
+
+  assert.deepEqual(this.player.eme.options, {
+    previousSetting: 1
+  }, 'did not modify plugin options');
+
+  assert.deepEqual(this.player.currentSource(), {
+    src: 'manifest/master.m3u8',
+    type: 'application/x-mpegURL',
+    keySystems: {
+      keySystem1: {
+        url: 'url1',
+        audioContentType: 'audio/mp4; codecs="mp4a.40.2c"',
+        videoContentType: 'video/mp4; codecs="avc1.420015"',
         pssh: 'test'
       }
     }
@@ -3197,6 +3233,7 @@ QUnit.test('integration: configures eme if present on selectedinitialmedia', fun
       }
     }
   });
+
   this.clock.tick(1);
 
   this.player.tech_.hls.masterPlaylistController_.on('selectedinitialmedia', () => {
@@ -3219,8 +3256,12 @@ QUnit.test('integration: configures eme if present on selectedinitialmedia', fun
     done();
   });
 
+  // open the source so the loader mime types are configured
+  openMediaSource(this.player, this.clock);
+
   this.standardXHRResponse(this.requests[0]);
   // this allows the audio playlist loader to load
+
   this.clock.tick(1);
 });
 
@@ -3720,7 +3761,7 @@ QUnit.module('HLS Integration', {
     this.env = useFakeEnvironment(assert);
     this.requests = this.env.requests;
     this.mse = useFakeMediaSource();
-    this.tech = new (videojs.getTech('Html5'))({});
+    this.player = createPlayer();
     this.clock = this.env.clock;
 
     this.standardXHRResponse = (request, data) => {
@@ -3738,6 +3779,7 @@ QUnit.module('HLS Integration', {
     this.env.restore();
     this.mse.restore();
     window.localStorage.clear();
+    this.player.dispose();
     videojs.HlsHandler.prototype.setupQualityLevels_ = ogHlsHandlerSetupQualityLevels;
   }
 });
@@ -3748,7 +3790,7 @@ QUnit.test('does not error when MediaSource is not defined', function(assert) {
   let hls = HlsSourceHandler.handleSource({
     src: 'manifest/alternateAudio.m3u8',
     type: 'application/vnd.apple.mpegurl'
-  }, this.tech);
+  }, this.player.tech_);
 
   hls.mediaSource.trigger('sourceopen');
   // master
@@ -3763,7 +3805,7 @@ QUnit.test('aborts all in-flight work when disposed', function(assert) {
   let hls = HlsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
-  }, this.tech);
+  }, this.player.tech_);
 
   hls.mediaSource.trigger('sourceopen');
   // master
@@ -3784,7 +3826,7 @@ QUnit.test('stats are reset on dispose', function(assert) {
   let hls = HlsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
-  }, this.tech);
+  }, this.player.tech_);
 
   hls.mediaSource.trigger('sourceopen');
   // master
@@ -3807,7 +3849,7 @@ QUnit.skip('detects fullscreen and triggers a smooth quality change', function(a
   let hls = HlsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
-  }, this.tech);
+  }, this.player.tech_);
   let fullscreenElementName;
 
   ['fullscreenElement', 'webkitFullscreenElement',
@@ -3823,7 +3865,7 @@ QUnit.skip('detects fullscreen and triggers a smooth quality change', function(a
   };
 
   // take advantage of capability detection to mock fullscreen activation
-  document[fullscreenElementName] = this.tech.el();
+  document[fullscreenElementName] = this.player.tech_.el();
   Events.trigger(document, 'fullscreenchange');
 
   assert.equal(qualityChanges, 1, 'made a fast quality change');
@@ -3841,7 +3883,7 @@ QUnit.test('downloads additional playlists if required', function(assert) {
   let hls = HlsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
-  }, this.tech);
+  }, this.player.tech_);
 
   // Make segment metadata noop since most test segments dont have real data
   hls.masterPlaylistController_.mainSegmentLoader_.addSegmentMetadataCue_ = () => {};
@@ -3861,7 +3903,7 @@ QUnit.test('downloads additional playlists if required', function(assert) {
   this.standardXHRResponse(this.requests[2]);
   // update the buffer to reflect the appended segment, and have enough buffer to
   // change playlist
-  this.tech.buffered = () => videojs.createTimeRanges([[0, 30]]);
+  this.player.tech_.buffered = () => videojs.createTimeRanges([[0, 30]]);
   hls.mediaSource.sourceBuffers[0].trigger('updateend');
 
   // new media
@@ -3885,7 +3927,7 @@ QUnit.test('waits to download new segments until the media playlist is stable', 
   let hls = HlsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
-  }, this.tech);
+  }, this.player.tech_);
 
   hls.masterPlaylistController_.mainSegmentLoader_.addSegmentMetadataCue_ = () => {};
 
@@ -3907,7 +3949,7 @@ QUnit.test('waits to download new segments until the media playlist is stable', 
   this.standardXHRResponse(this.requests.shift());
   // update the buffer to reflect the appended segment, and have enough buffer to
   // change playlist
-  this.tech.buffered = () => videojs.createTimeRanges([[0, 30]]);
+  this.player.tech_.buffered = () => videojs.createTimeRanges([[0, 30]]);
   // no time has elapsed, so bandwidth is really high and we'll switch
   // playlists
   sourceBuffer.trigger('updateend');
@@ -3931,7 +3973,7 @@ QUnit.test('live playlist starts three target durations before live', function(a
   let hls = HlsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
-  }, this.tech);
+  }, this.player.tech_);
 
   hls.mediaSource.trigger('sourceopen');
   this.requests.shift().respond(200, null,
@@ -3950,12 +3992,12 @@ QUnit.test('live playlist starts three target durations before live', function(a
 
   assert.equal(this.requests.length, 0, 'no outstanding segment request');
 
-  this.tech.paused = function() {
+  this.player.tech_.paused = function() {
     return false;
   };
-  this.tech.trigger('play');
+  this.player.tech_.trigger('play');
   this.clock.tick(1);
-  assert.equal(this.tech.currentTime(),
+  assert.equal(this.player.tech_.currentTime(),
               hls.seekable().end(0),
               'seeked to the seekable end');
 
@@ -3972,7 +4014,7 @@ QUnit.test('uses user defined selectPlaylist from HlsHandler if specified', func
   let hls = HlsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
-  }, this.tech);
+  }, this.player.tech_);
 
   hls.masterPlaylistController_.selectPlaylist();
   assert.equal(defaultSelectPlaylistCount, 1, 'uses default playlist selector');
@@ -3987,7 +4029,7 @@ QUnit.test('uses user defined selectPlaylist from HlsHandler if specified', func
   hls = HlsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
-  }, this.tech);
+  }, this.player.tech_);
 
   hls.masterPlaylistController_.selectPlaylist();
   assert.equal(defaultSelectPlaylistCount, 0, 'standard playlist selector not run');
@@ -4013,7 +4055,7 @@ QUnit.module('HLS - Encryption', {
     this.env = useFakeEnvironment(assert);
     this.requests = this.env.requests;
     this.mse = useFakeMediaSource();
-    this.tech = new (videojs.getTech('Html5'))({});
+    this.player = createPlayer();
     this.clock = this.env.clock;
 
     this.standardXHRResponse = (request, data) => {
@@ -4039,7 +4081,7 @@ QUnit.test('blacklists playlist if key requests fail', function(assert) {
   let hls = HlsSourceHandler.handleSource({
     src: 'manifest/encrypted-master.m3u8',
     type: 'application/vnd.apple.mpegurl'
-  }, this.tech);
+  }, this.player.tech_);
 
   hls.mediaSource.trigger('sourceopen');
   this.requests.shift()
@@ -4079,7 +4121,7 @@ QUnit.test('treats invalid keys as a key request failure and blacklists playlist
   let hls = HlsSourceHandler.handleSource({
     src: 'manifest/encrypted-master.m3u8',
     type: 'application/vnd.apple.mpegurl'
-  }, this.tech);
+  }, this.player.tech_);
 
   hls.mediaSource.trigger('sourceopen');
   this.requests.shift()
@@ -4126,46 +4168,101 @@ QUnit.test('treats invalid keys as a key request failure and blacklists playlist
 QUnit.module('videojs-contrib-hls isolated functions');
 
 QUnit.test('emeKeySystems adds content types for all keySystems', function(assert) {
+  // muxed content
+  const mainSegmentLoader = {
+    mimeType_: 'video/mp4; codecs="avc1.420015, mp4a.40.2c"',
+    playlist_: {}
+  };
+
+  const audioSegmentLoader = {
+    mimeType_: null
+  };
+
   assert.deepEqual(
     emeKeySystems(
       { keySystem1: {}, keySystem2: {} },
-      { attributes: { CODECS: 'some-video-codec' } },
-      { attributes: { CODECS: 'some-audio-codec' } }),
+      mainSegmentLoader,
+      audioSegmentLoader),
     {
       keySystem1: {
-        audioContentType: 'audio/mp4; codecs="some-audio-codec"',
-        videoContentType: 'video/mp4; codecs="some-video-codec"'
+        audioContentType: 'audio/mp4; codecs="mp4a.40.2c"',
+        videoContentType: 'video/mp4; codecs="avc1.420015"'
       },
       keySystem2: {
-        audioContentType: 'audio/mp4; codecs="some-audio-codec"',
-        videoContentType: 'video/mp4; codecs="some-video-codec"'
+        audioContentType: 'audio/mp4; codecs="mp4a.40.2c"',
+        videoContentType: 'video/mp4; codecs="avc1.420015"'
       }
     },
     'added content types');
+
+    // unmuxed content
+    const mainSegmentLoader2 = {
+      mimeType_: 'video/mp4; codecs="avc1.420015"',
+      playlist_: {}
+    };
+
+    const audioSegmentLoader2 = {
+      mimeType_: 'audio/mp4; codecs="mp4a.40.2c"'
+    };
+
+    assert.deepEqual(
+      emeKeySystems(
+        { keySystem1: {}, keySystem2: {} },
+        mainSegmentLoader2,
+        audioSegmentLoader2),
+      {
+        keySystem1: {
+          audioContentType: 'audio/mp4; codecs="mp4a.40.2c"',
+          videoContentType: 'video/mp4; codecs="avc1.420015"'
+        },
+        keySystem2: {
+          audioContentType: 'audio/mp4; codecs="mp4a.40.2c"',
+          videoContentType: 'video/mp4; codecs="avc1.420015"'
+        }
+      },
+      'added content types');
 });
 
 QUnit.test('emeKeySystems retains non content type properties', function(assert) {
+  const mainSegmentLoader = {
+    mimeType_: 'video/mp4; codecs="avc1.420015, mp4a.40.2c"',
+    playlist_: {}
+  };
+
+  const audioSegmentLoader = {
+    mimeType_: null
+  };
+
   assert.deepEqual(
     emeKeySystems(
       { keySystem1: { url: '1' }, keySystem2: { url: '2'} },
-      { attributes: { CODECS: 'some-video-codec' } },
-      { attributes: { CODECS: 'some-audio-codec' } }),
+      mainSegmentLoader,
+      audioSegmentLoader),
     {
       keySystem1: {
         url: '1',
-        audioContentType: 'audio/mp4; codecs="some-audio-codec"',
-        videoContentType: 'video/mp4; codecs="some-video-codec"'
+        audioContentType: 'audio/mp4; codecs="mp4a.40.2c"',
+        videoContentType: 'video/mp4; codecs="avc1.420015"'
       },
       keySystem2: {
         url: '2',
-        audioContentType: 'audio/mp4; codecs="some-audio-codec"',
-        videoContentType: 'video/mp4; codecs="some-video-codec"'
+        audioContentType: 'audio/mp4; codecs="mp4a.40.2c"',
+        videoContentType: 'video/mp4; codecs="avc1.420015"'
       }
     },
     'retained options');
 });
 
 QUnit.test('emeKeySystems overwrites content types', function(assert) {
+  const mainSegmentLoader = {
+    mimeType_: 'video/mp4; codecs="avc1.420015, mp4a.40.2c"',
+    playlist_: {}
+  };
+
+  const audioSegmentLoader = {
+    mimeType_: null
+  };
+
   assert.deepEqual(
     emeKeySystems(
       {
@@ -4178,16 +4275,16 @@ QUnit.test('emeKeySystems overwrites content types', function(assert) {
           videoContentType: 'd'
         }
       },
-      { attributes: { CODECS: 'some-video-codec' } },
-      { attributes: { CODECS: 'some-audio-codec' } }),
+      mainSegmentLoader,
+      audioSegmentLoader),
     {
       keySystem1: {
-        audioContentType: 'audio/mp4; codecs="some-audio-codec"',
-        videoContentType: 'video/mp4; codecs="some-video-codec"'
+        audioContentType: 'audio/mp4; codecs="mp4a.40.2c"',
+        videoContentType: 'video/mp4; codecs="avc1.420015"'
       },
       keySystem2: {
-        audioContentType: 'audio/mp4; codecs="some-audio-codec"',
-        videoContentType: 'video/mp4; codecs="some-video-codec"'
+        audioContentType: 'audio/mp4; codecs="mp4a.40.2c"',
+        videoContentType: 'video/mp4; codecs="avc1.420015"'
       }
     },
     'overwrote content types');

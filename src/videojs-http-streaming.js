@@ -179,15 +179,9 @@ const emeKeySystems = (keySystemOptions, mainSegmentLoader, audioSegmentLoader) 
       }
     });
 
-    if (!videoCodec || !audioCodec) {
-      videojs.log.warn('Insufficient codec information in the manifest.' +
-        ' There may be problems playing encrypted content');
-    }
-
     videoMimeAndCodec = `video/${subtype}; codecs="${videoCodec}"`;
     audioMimeAndCodec = `audio/${subtype}; codecs="${audioCodec}"`;
   }
-
 
   // upsert the content types based on the selected playlist
   const keySystemContentTypes = {};
