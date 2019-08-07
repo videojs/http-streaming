@@ -1036,6 +1036,35 @@ QUnit.test('executes custom parsers and mappers', function(assert) {
   delete this.fakeHls.options_;
 });
 
+QUnit.test(
+'adds properties to playlists array when given a master playlist object',
+function(assert) {
+  // JSON does not support properties in arrays, so even though parseManifest will add
+  // the references to playlists by their URI to the playlists array, this should remove
+  // those properties. It's a good test for using the data URI attribute to pass the JSON
+  // of a manifest object, where those properties will be removed, and should be re-added
+  // by playlist-loader.
+  const masterPlaylist = JSON.parse(JSON.stringify(parseManifest({
+    manifestString: testDataManifests.master,
+    src: 'master.m3u8'
+  })));
+  const firstPlaylistUri = masterPlaylist.playlists[0].uri;
+
+  assert.notOk(
+    firstPlaylistUri in masterPlaylist.playlists,
+    'parsed manifest playlists array does not contain playlist URI properties'
+  );
+
+  const loader = new PlaylistLoader(masterPlaylist, this.fakeHls);
+
+  loader.load();
+
+  assert.ok(
+    firstPlaylistUri in masterPlaylist.playlists,
+    'parsed manifest playlists array contains playlist URI properties'
+  );
+});
+
 QUnit.test('jumps to HAVE_METADATA when initialized with a media playlist',
 function(assert) {
   let loadedmetadatas = 0;

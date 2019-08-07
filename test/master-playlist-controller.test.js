@@ -2751,7 +2751,7 @@ QUnit.test('Exception in play promise should be caught', function(assert) {
 });
 
 QUnit.test(
-'when manifestObject is a media playlist with segments resolved, ' +
+'when data URI is a media playlist with segments resolved, ' +
   ' state is updated without a playlist request',
 function(assert) {
   this.requests.length = 0;
@@ -2765,9 +2765,8 @@ function(assert) {
   });
 
   this.player.src({
-    src: 'placeholder-url',
-    type: 'application/vnd.vhs+json',
-    manifestObject
+    src: `data:application/vnd.vhs+json,${JSON.stringify(manifestObject)}`,
+    type: 'application/vnd.vhs+json'
   });
   // media source must be open for duration to be set
   openMediaSource(this.player, this.clock);

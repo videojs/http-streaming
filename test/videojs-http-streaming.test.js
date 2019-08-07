@@ -22,7 +22,8 @@ import {
   Hls,
   emeKeySystems,
   simpleTypeFromSourceType,
-  LOCAL_STORAGE_KEY
+  LOCAL_STORAGE_KEY,
+  expandDataUri
 } from '../src/videojs-http-streaming';
 import window from 'global/window';
 import { parseManifest } from '../src/playlist-loader';
@@ -3738,9 +3739,8 @@ QUnit.test('manifestObject used as source if passed in source options', function
   });
 
   this.player.src({
-    src: 'placeholder-source',
-    type: 'application/x-mpegurl',
-    manifestObject
+    src: `data:application/vnd.vhs+json,${JSON.stringify(manifestObject)}`,
+    type: 'application/vnd.vhs+json',
   });
 
   openMediaSource(this.player, this.clock);
@@ -4258,5 +4258,28 @@ QUnit.test('simpleTypeFromSourceType converts VHS media type to vhs-json', funct
     simpleTypeFromSourceType('application/vnd.vhs+json'),
     'vhs-json',
     'supports application/vnd.vhs+json'
+  );
+});
+
+QUnit.test('expandDataUri parses JSON for VHS media type', function(assert) {
+  const manifestObject = {
+    test: 'manifest',
+    object: ['here']
+  };
+  const manifestString = JSON.stringify(manifestObject);
+  const dataUriString = ``;
+  const xMpegDataUriString =
+    `data:application/x-mpegURL,${JSON.stringify(manifestObject)}`;
+
+  assert.deepEqual(
+    expandDataUri(xMpegDataUriString),
+    xMpegDataUriString,
+    'does not parse JSON for non VHS media type'
+  );
+
+  assert.deepEqual(
+    expandDataUri(`data:application/vnd.vhs+json,${JSON.stringify(manifestObject)}`),
+    manifestObject,
+    'parsed JSON from data URI for VHS media type'
   );
 });

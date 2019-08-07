@@ -232,6 +232,33 @@ export const refreshDelay = (media, update) => {
   return delay;
 };
 
+/*
+ * Adds properties to the manifest that may not have been provided by the parser or object
+ * provider.
+ *
+ * @param {Object} manifest
+ *                 The manifest object
+ * @param {string=} srcUri
+ *                  The manifest's URI
+ */
+export const addPropertiesToParsedManifest = ({ manifest, srcUri }) => {
+  if (srcUri) {
+    manifest.uri = srcUri;
+  }
+
+  if (manifest.playlists) {
+    resolveMediaGroupUris(manifest);
+    setupMasterMediaPlaylists({
+      playlists: manifest.playlists,
+      masterUri: manifest.uri
+    });
+  } else {
+    setupMediaPlaylist({
+      playlist: manifest
+    });
+  }
+};
+
 /**
  * Parses a given m3u8 playlist, then sets up the media playlists and groups to prepare it
  * for use in VHS.
@@ -265,21 +292,7 @@ export const parseManifest = ({
 
   const manifest = parser.manifest;
 
-  manifest.uri = src;
-
-  if (manifest.playlists) {
-    // loaded a master playlist
-    resolveMediaGroupUris(manifest);
-    setupMasterMediaPlaylists({
-      playlists: manifest.playlists,
-      masterUri: manifest.uri
-    });
-  } else {
-    // loaded a media playlist
-    setupMediaPlaylist({
-      playlist: manifest
-    });
-  }
+  addPropertiesToParsedManifest({ manifest, srcUri: src });
 
   return manifest;
 };
@@ -617,6 +630,16 @@ export default class PlaylistLoader extends EventTarget {
       // uri is expected to be part of the object, but resolvedUri is added on internally
       this.src.resolvedUri = this.src.uri;
 
+      // Although a user may have provided an already VHS-processed manifest object as the
+      // source, since JSON can't represent certain attributes used by VHS (namely, in the
+      // playlists array VHS will add named properties), processing the manifest object
+      // through our property adding function should provide those non-representable
+      // attributes.
+      addPropertiesToParsedManifest({
+        manifest: this.src,
+        srcUri: this.src.uri
+      });
+
       // Since a manifest object was passed in as the source (instead of a URL), the first
       // request can be skipped (since the top level of the manifest, at a minimum, is
       // already available as a parsed manifest object. However, it's still possible, if
@@ -733,7 +756,6 @@ export default class PlaylistLoader extends EventTarget {
 
     // In the case where a media playlist was passed in as an object, use the playlist's
     // resolved URI attribute (since there's no reference to the source URI otherwise).
-    // It's fine if it's just a placeholder string.
     const playlistId = typeof this.src === 'string' ? this.src : this.src.resolvedUri;
 
     this.master.playlists[playlistId] = this.master.playlists[0];

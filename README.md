@@ -245,10 +245,6 @@ player.src({
 });
 ```
 
-In addition, there are some options that only function when provided as part of the
-source. For instance, `manifestObject`. See [Object as Source](#object-as-source) for more
-details on this option.
-
 #### List
 ##### withCredentials
 * Type: `boolean`
@@ -756,25 +752,28 @@ if (segmentMetadataTrack) {
 ### Object as Source
 
 VHS not only accepts a URL as the source, but also has an option to provide a pre-parsed
-manifest object as the source. This can be useful for specific use-cases, e.g., when the
-manifest has already been downloaded (to prevent another request), to manipulate the
-manifest object before passing it along to VHS, or for testing a specific case. *Note*
-that this is an advanced use-case, and may be more fragile for production environments, as
-the schema for a VHS object and how it's used internally are not set in stone and may
-change in future releases.
+manifest object as the source via a
+[data URI](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs).
+This can be useful for specific use-cases, e.g., when the manifest has already been
+downloaded (to prevent another request), to manipulate the manifest object before passing
+it along to VHS, or for testing. *Note* that this is an advanced use-case, and may be more
+fragile for production environments, as the schema for a VHS object and how it's used
+internally are not set in stone and may change in future releases.
 
-The option to provide a manifest object is `manifestObject`, and may be used as follows:
+The "vnd.vhs+json" media type is required both as the source type, and in the data URI,
+when providing an object as the source.
+
+The manifest object should follow the "VHS manifest object schema" provided in
+[m3u8-parser](https://github.com/videojs/m3u8-parser) and
+[mpd-parser](https://github.com/videojs/mpd-parser).
 
 ```javascript
 var player = videojs('some-video-id');
+var manifestObject = { /* the VHS manifest object */ };
 
 player.src({
-  src: 'some-placeholder-uri',
-  // the media type here is specific to providing the manifestObject, and is required
-  type: 'application/vnd.vhs+json',
-  // object that follows the VHS manifest object schema provided in
-  // https://github.com/videojs/m3u8-parser and https://github.com/videojs/mpd-parser
-  manifestObject: {}
+  src: 'data:application/vnd.vhs+json,' + JSON.stringify(manifestObject),
+  type: 'application/vnd.vhs+json'
 });
 ```
 
