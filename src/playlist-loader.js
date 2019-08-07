@@ -482,9 +482,9 @@ export default class PlaylistLoader extends EventTarget {
 
     // switch to fully loaded playlists immediately
     if (this.master.playlists[playlist.uri].endList ||
-        // handle the case of a playlist object pre-loaded (e.g., if using the
-        // manifestObject VHS source option and demuxed audio, where the playlist will
-        // be within mediaGroups)
+        // handle the case of a playlist object pre-loaded (e.g., if using the a data URI
+        // with a manifest object and demuxed audio, where the playlist will be within
+        // mediaGroups)
         (playlist.endList && playlist.segments.length)) {
       // abort outstanding playlist requests
       if (this.request) {
