@@ -3,7 +3,7 @@
  * codec strings, or translating codec strings into objects that can be examined.
  */
 
-import {findBox} from 'mux.js/lib/mp4/probe';
+import {findBox} from 'mux.js/module/mp4/probe';
 
 export const translateLegacyCodec = function(codec) {
   if (!codec) {

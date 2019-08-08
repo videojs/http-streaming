@@ -4,7 +4,7 @@ import { stringToArrayBuffer } from './util/string-to-array-buffer';
 import { transmux } from './segment-transmuxer';
 import { probeTsSegment } from './util/segment';
 import { isLikelyFmp4Data } from './util/codecs';
-import mp4probe from 'mux.js/lib/mp4/probe';
+import {tracks as mp4Tracks, startTime as mp4StartTime} from 'mux.js/module/mp4/probe';
 import { segmentXhrHeaders } from './xhr';
 
 export const REQUEST_ERRORS = {
@@ -165,7 +165,7 @@ const handleInitSegmentResponse =
 
   segment.map.bytes = new Uint8Array(request.response);
 
-  const tracks = mp4probe.tracks(segment.map.bytes);
+  const tracks = mp4Tracks(segment.map.bytes);
 
   tracks.forEach(function(track) {
     segment.map.tracks = segment.map.tracks || {};
@@ -381,7 +381,7 @@ const handleSegmentBytes = ({
     trackInfoFn(segment, trackInfo);
     // the probe doesn't provide the segment end time, so only callback with the start
     // (the end time can be roughly calculated by the receiver using the duration)
-    const timingInfo = mp4probe.startTime(segment.map.timescales, bytesAsUint8Array);
+    const timingInfo = mp4StartTime(segment.map.timescales, bytesAsUint8Array);
 
     if (trackInfo.hasAudio) {
       timingInfoFn(segment, 'audio', 'start', timingInfo);

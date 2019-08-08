@@ -8,7 +8,7 @@ import { removeCuesFromTrack } from './util/text-tracks';
 import { initSegmentId } from './bin-utils';
 import { uint8ToUtf8 } from './util/string';
 import { REQUEST_ERRORS } from './media-segment-request';
-import { ONE_SECOND_IN_TS } from 'mux.js/lib/utils/clock';
+import { ONE_SECOND_IN_TS } from 'mux.js/module/utils/clock';
 
 const VTT_LINE_TERMINATORS =
   new Uint8Array('\n\n'.split('').map(char => char.charCodeAt(0)));

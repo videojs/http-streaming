@@ -1,4 +1,4 @@
-import { ONE_SECOND_IN_TS } from 'mux.js/lib/utils/clock';
+import { ONE_SECOND_IN_TS } from 'mux.js/module/utils/clock';
 
 /**
  * Returns a list of gops in the buffer that have a pts value of 3 seconds or more in

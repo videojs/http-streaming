@@ -6,7 +6,7 @@ import {
 } from '../src/segment-loader';
 import segmentTransmuxer from '../src/segment-transmuxer';
 import videojs from 'video.js';
-import mp4probe from 'mux.js/lib/mp4/probe';
+import mp4probe from 'mux.js/module/mp4/probe';
 import {
   playlistWithDuration,
   standardXHRResponse,

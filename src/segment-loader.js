@@ -11,7 +11,7 @@ import TransmuxWorker from 'worker!./transmuxer-worker.worker.js';
 import segmentTransmuxer from './segment-transmuxer';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
-import { CaptionParser } from 'mux.js/lib/mp4';
+import CaptionParser from 'mux.js/module/mp4/caption-parser';
 import logger from './util/logger';
 import { concatSegments } from './util/segment';
 import {
