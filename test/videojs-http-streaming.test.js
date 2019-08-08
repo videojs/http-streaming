@@ -3717,7 +3717,7 @@ QUnit.test('seekToProgramTime will seek to time if buffered', function(assert) {
   this.clock.tick(2);
 });
 
-QUnit.test('manifestObject used as source if passed in source options', function(assert) {
+QUnit.test('manifest object used as source if provided as data URI', function(assert) {
   this.player.src({
     src: 'placeholder-source',
     type: 'application/x-mpegurl'
