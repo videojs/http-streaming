@@ -1,5 +1,5 @@
 import QUnit from 'qunit';
-import TransmuxWorker from 'worker!../src/transmuxer-worker.worker.js';
+import createTransmuxerWorker from 'worker!../src/transmuxer-worker.worker.js';
 import {
   muxed as muxedSegment,
   oneSecond as oneSecondSegment,
@@ -9,7 +9,7 @@ import {
 import '../src/videojs-http-streaming';
 
 const createTransmuxer = (isPartial) => {
-  const transmuxer = new TransmuxWorker();
+  const transmuxer = createTransmuxerWorker();
 
   transmuxer.postMessage({
     action: 'init',

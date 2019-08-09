@@ -1,6 +1,6 @@
 import QUnit from 'qunit';
 import sinon from 'sinon';
-import TransmuxWorker from 'worker!../src/transmuxer-worker.worker.js';
+import createTransmuxerWorker from 'worker!../src/transmuxer-worker.worker.js';
 import {
   muxed as muxedSegment,
   caption as captionSegment,
@@ -25,7 +25,7 @@ import '../src/videojs-http-streaming';
 const noop = () => {};
 
 const createTransmuxer = (isPartial) => {
-  const transmuxer = new TransmuxWorker();
+  const transmuxer = createTransmuxerWorker();
 
   transmuxer.postMessage({
     action: 'init',

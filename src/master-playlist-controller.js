@@ -12,7 +12,7 @@ import * as Ranges from './ranges';
 import videojs from 'video.js';
 import { updateAdCues } from './ad-cue-tags';
 import SyncController from './sync-controller';
-import Decrypter from 'worker!./decrypter-worker.worker.js';
+import createDecrypterWorker from 'worker!./decrypter-worker.worker.js';
 import Config from './config';
 import {
   parseCodecs,
@@ -123,7 +123,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       label: 'segment-metadata'
     }, false).track;
 
-    this.decrypter_ = new Decrypter();
+    this.decrypter_ = createDecrypterWorker();
     this.sourceUpdater_ = new SourceUpdater(this.mediaSource);
     this.inbandTextTracks_ = {};
 

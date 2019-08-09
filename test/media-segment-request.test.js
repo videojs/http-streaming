@@ -3,8 +3,8 @@ import sinon from 'sinon';
 import {mediaSegmentRequest, REQUEST_ERRORS} from '../src/media-segment-request';
 import xhrFactory from '../src/xhr';
 import { useFakeEnvironment, standardXHRResponse } from './test-helpers';
-import TransmuxWorker from 'worker!../src/transmuxer-worker.worker.js';
-import Decrypter from 'worker!../src/decrypter-worker.worker.js';
+import createTransmuxerWorker from 'worker!../src/transmuxer-worker.worker.js';
+import createDecrypterWorker from 'worker!../src/decrypter-worker.worker.js';
 import {
   mp4Video,
   mp4VideoInit,
@@ -24,7 +24,9 @@ QUnit.module('Media Segment Request', {
     this.clock = this.env.clock;
     this.requests = this.env.requests;
     this.xhr = xhrFactory();
-    this.realDecrypter = new Decrypter();
+
+    this.realDecrypter = createDecrypterWorker();
+
     this.mockDecrypter = {
       listeners: [],
       postMessage(message) {
@@ -82,7 +84,7 @@ QUnit.module('Media Segment Request', {
     };
 
     this.createTransmuxer = (isPartial) => {
-      const transmuxer = new TransmuxWorker();
+      const transmuxer = createTransmuxerWorker();
 
       transmuxer.postMessage({
         action: 'init',

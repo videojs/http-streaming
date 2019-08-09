@@ -35,7 +35,7 @@ const options = {
   },
   primedPlugins(defaults) {
     return Object.assign(defaults, {
-      worker: worker()
+      worker: worker({lazy: true})
     });
   },
   babel(defaults) {

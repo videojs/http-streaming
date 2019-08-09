@@ -72,7 +72,7 @@
     "video.js": "^6 || ^7"
   },
   "devDependencies": {
-    "@gkatsev/rollup-plugin-bundle-worker": "^1.0.2",
+    "@gkatsev/rollup-plugin-bundle-worker": "github:brandonocasey/rollup-plugin-bundle-worker#feat/lazy-worker",
     "@videojs/generator-helpers": "~1.1.1",
     "d3": "^3.4.8",
     "es5-shim": "^4.5.13",

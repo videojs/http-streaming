@@ -7,7 +7,7 @@ import Config from './config';
 import window from 'global/window';
 import { initSegmentId, segmentKeyId } from './bin-utils';
 import { mediaSegmentRequest, REQUEST_ERRORS } from './media-segment-request';
-import TransmuxWorker from 'worker!./transmuxer-worker.worker.js';
+import createTransmuxerWorker from 'worker!./transmuxer-worker.worker.js';
 import segmentTransmuxer from './segment-transmuxer';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
@@ -242,7 +242,7 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   createTransmuxer_() {
-    const transmuxer = new TransmuxWorker();
+    const transmuxer = createTransmuxerWorker();
 
     transmuxer.postMessage({
       action: 'init',
