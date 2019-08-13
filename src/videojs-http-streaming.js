@@ -28,7 +28,11 @@ import {
   comparePlaylistBandwidth,
   comparePlaylistResolution
 } from './playlist-selectors.js';
-import { version } from '../package.json';
+import {version as vhsVersion} from '../package.json';
+import {version as muxVersion} from 'mux.js/package.json';
+import {version as mpdVersion} from 'mpd-parser/package.json';
+import {version as m3u8Version} from 'm3u8-parser/package.json';
+import {version as aesVersion} from 'aes-decrypter/package.json';
 // import needed to register middleware
 import './middleware-set-current-time';
 
@@ -717,14 +721,20 @@ class HlsHandler extends Component {
    * return the version
    */
   static version() {
-    return version;
+    return {
+      '@videojs/http-streaming': vhsVersion,
+      'mux.js': muxVersion,
+      'mpd-parser': mpdVersion,
+      'm3u8-parser': m3u8Version,
+      'aes-decrypter': aesVersion
+    };
   }
 
   /**
    * return the version
    */
   version() {
-    return version;
+    return this.constructor.version();
   }
 
   /**
@@ -813,7 +823,7 @@ class HlsHandler extends Component {
  */
 const HlsSourceHandler = {
   name: 'videojs-http-streaming',
-  VERSION: version,
+  VERSION: vhsVersion,
   canHandleSource(srcObj, options = {}) {
     const localOptions = videojs.mergeOptions(videojs.options, options);
 
