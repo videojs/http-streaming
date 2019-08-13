@@ -714,6 +714,20 @@ class HlsHandler extends Component {
   }
 
   /**
+   * return the version
+   */
+  static version() {
+    return version;
+  }
+
+  /**
+   * return the version
+   */
+  version() {
+    return version;
+  }
+
+  /**
    * Begin playing the video.
    */
   play() {
