@@ -253,7 +253,11 @@ QUnit.test('loops', function(assert) {
   player.play();
 });
 
-QUnit.test('zero-length id3 segment', function(assert) {
+// TODO: regenerate zero-length.ts for this test, right now it has an invalid
+// pts value and tries to add the cue at -6s into the video which does not work.
+// previously it worked due to a bug in mux.js. See:
+// https://github.com/videojs/mux.js/pull/293
+QUnit.skip('zero-length id3 segment', function(assert) {
   assert.timeout(5000);
   let done = assert.async();
   let player = this.player;
