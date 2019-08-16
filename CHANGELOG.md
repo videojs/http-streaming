@@ -1,3 +1,14 @@
+<a name="1.10.5"></a>
+## [1.10.5](https://github.com/videojs/http-streaming/compare/v1.10.5-1...v1.10.5) (2019-08-16)
+
+### Chores
+
+* **package:** update to mux.js 5.2.0 ([#636](https://github.com/videojs/http-streaming/issues/636)) ([0a793b0](https://github.com/videojs/http-streaming/commit/0a793b0))
+
+### Tests
+
+* **zero-length:** update segment and unskip test ([#635](https://github.com/videojs/http-streaming/issues/635)) ([665b526](https://github.com/videojs/http-streaming/commit/665b526))
+
 <a name="1.10.4"></a>
 ## [1.10.4](https://github.com/videojs/http-streaming/compare/v1.10.3...v1.10.4) (2019-06-27)
 
