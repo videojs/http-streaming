@@ -14,8 +14,8 @@
  * message-based interface to a Transmuxer object.
  */
 
-import fullMux from 'mux.js/lib/mp4';
-import partialMux from 'mux.js/lib/partial';
+import {Transmuxer as FullMux} from 'mux.js/lib/mp4/transmuxer';
+import PartialMux from 'mux.js/lib/partial/transmuxer';
 import {
   secondsToVideoTs,
   videoTsToSeconds
@@ -260,8 +260,8 @@ class MessageHandlers {
       this.transmuxer.dispose();
     }
     this.transmuxer = this.options.handlePartialData ?
-      new partialMux.Transmuxer(this.options) :
-      new fullMux.Transmuxer(this.options);
+      new PartialMux(this.options) :
+      new FullMux(this.options);
 
     if (this.options.handlePartialData) {
       wirePartialTransmuxerEvents(this.self, this.transmuxer);
