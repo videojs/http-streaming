@@ -12,7 +12,7 @@ import { mediaSegmentRequest, REQUEST_ERRORS } from './media-segment-request';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
 import { addCaptionData, createCaptionsTrackIfNotExists } from './util/text-tracks';
-import { CaptionParser } from 'mux.js/lib/mp4';
+import CaptionParser from 'mux.js/lib/mp4/caption-parser';
 import logger from './util/logger';
 
 // in ms
