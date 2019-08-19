@@ -4192,22 +4192,18 @@ QUnit.test('convertToProgramTime will return stream time if buffered', function(
   this.standardXHRResponse(this.requests[1]);
 
   const mpc = this.player.vhs.masterPlaylistController_;
+  const mainSegmentLoader_ = mpc.mainSegmentLoader_;
 
-  mpc.mainSegmentLoader_.one('appending', () => {
-    const videoBuffer = mpc.sourceUpdater_.videoBuffer;
-
+  mainSegmentLoader_.one('appending', () => {
     // since we don't run through the transmuxer, we have to manually trigger the timing
     // info callback
-    videoBuffer.trigger({
-      type: 'videoSegmentTimingInfo',
-      videoSegmentTimingInfo: {
-        prependedGopDuration: 0,
-        start: {
-          presentation: 0
-        },
-        end: {
-          presentation: 1
-        }
+    mainSegmentLoader_.handleVideoSegmentTimingInfo_(mainSegmentLoader_.pendingSegment_.requestId, {
+      prependedGopDuration: 0,
+      start: {
+        presentation: 0
+      },
+      end: {
+        presentation: 1
       }
     });
   });

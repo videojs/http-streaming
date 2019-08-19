@@ -67,6 +67,7 @@ QUnit.test('transmux returns data for full appends', function(assert) {
   const trackInfoFn = sinon.spy();
   const audioTimingFn = sinon.spy();
   const videoTimingFn = sinon.spy();
+  const videoSegmentTimingInfoFn = sinon.spy();
 
   this.transmuxer = createTransmuxer(false);
 
@@ -80,6 +81,7 @@ QUnit.test('transmux returns data for full appends', function(assert) {
     onTrackInfo: trackInfoFn,
     onAudioTimingInfo: audioTimingFn,
     onVideoTimingInfo: videoTimingFn,
+    onVideoSegmentTimingInfo: videoSegmentTimingInfoFn,
     onId3: noop,
     onCaptions: noop,
     onDone: () => {
@@ -87,6 +89,7 @@ QUnit.test('transmux returns data for full appends', function(assert) {
       assert.ok(trackInfoFn.callCount, 'got trackInfo events');
       assert.ok(audioTimingFn.callCount, 'got audioTimingInfo events');
       assert.ok(videoTimingFn.callCount, 'got videoTimingInfo events');
+      assert.ok(videoSegmentTimingInfoFn.callCount, 'got videoSegmentTimingInfo events');
       done();
     }
   });
@@ -109,6 +112,7 @@ QUnit.test('transmux returns captions for full appends', function(assert) {
     onTrackInfo: noop,
     onAudioTimingInfo: noop,
     onVideoTimingInfo: noop,
+    onVideoSegmentTimingInfo: noop,
     onId3: noop,
     onCaptions: captionsFn,
     onDone: () => {
@@ -125,6 +129,7 @@ QUnit.test('transmux returns data for partial appends', function(assert) {
   const trackInfoFn = sinon.spy();
   const audioTimingFn = sinon.spy();
   const videoTimingFn = sinon.spy();
+  const videoSegmentTimingInfoFn = sinon.spy();
 
   this.transmuxer = createTransmuxer(true);
 
@@ -136,6 +141,8 @@ QUnit.test('transmux returns data for partial appends', function(assert) {
     isPartial: true,
     onData: () => {
       dataFn();
+      // TODO: parial appends don't current fire this
+      // assert.ok(videoSegmentTimingInfoFn.callCount, 'got videoSegmentTimingInfoFn event');
       assert.ok(trackInfoFn.callCount, 'got trackInfo event');
       assert.ok(videoTimingFn.callCount, 'got videoTimingInfo event');
 
@@ -147,6 +154,7 @@ QUnit.test('transmux returns data for partial appends', function(assert) {
     onTrackInfo: trackInfoFn,
     onAudioTimingInfo: audioTimingFn,
     onVideoTimingInfo: videoTimingFn,
+    onVideoSegmentTimingInfo: videoSegmentTimingInfoFn,
     onId3: noop,
     onCaptions: noop,
     // This will be called on partialdone events,

@@ -71,7 +71,22 @@ const wireFullTransmuxerEvents = function(self, transmuxer) {
     });
   });
 
-  transmuxer.on('videoSegmentTimingInfo', function(videoSegmentTimingInfo) {
+  transmuxer.on('videoSegmentTimingInfo', function(timingInfo) {
+    const videoSegmentTimingInfo = {
+      start: {
+        decode: videoTsToSeconds(timingInfo.start.dts),
+        presentation: videoTsToSeconds(timingInfo.start.pts)
+      },
+      end: {
+        decode: videoTsToSeconds(timingInfo.end.dts),
+        presentation: videoTsToSeconds(timingInfo.end.pts)
+      },
+      baseMediaDecodeTime: videoTsToSeconds(timingInfo.baseMediaDecodeTime)
+    };
+
+    if (timingInfo.prependedContentDuration) {
+      videoSegmentTimingInfo.prependedContentDuration = videoTsToSeconds(timingInfo.prependedContentDuration);
+    }
     self.postMessage({
       action: 'videoSegmentTimingInfo',
       videoSegmentTimingInfo

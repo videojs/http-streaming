@@ -6,7 +6,7 @@ import SourceUpdater from '../src/source-updater';
 import {mp4VideoInit, mp4AudioInit, mp4Video, mp4Audio} from './dist/test-segments';
 import { timeRangesEqual } from './custom-assertions.js';
 
-const checkIntialDuration = function({duration}) {
+const checkInitialDuration = function({duration}) {
   // ie sometimes sets duration to infinity earlier then expected
   if (videojs.browser.IS_EDGE || videojs.browser.IE_VERSION) {
     QUnit.assert.ok(Number.isNaN(duration) || !Number.isFinite(duration), 'starting duration as expected');
@@ -753,7 +753,7 @@ QUnit.test(
       video: 'avc1.4D001E'
     });
 
-    checkIntialDuration(this.mediaSource);
+    checkInitialDuration(this.mediaSource);
     this.sourceUpdater.setDuration(11);
     assert.equal(this.mediaSource.duration, 11, 'set duration on media source');
   }
@@ -780,7 +780,7 @@ QUnit[testOrSkip]('setDuration waits for audio buffer to finish updating', funct
     done();
   });
 
-  checkIntialDuration(this.mediaSource);
+  checkInitialDuration(this.mediaSource);
   assert.ok(this.sourceUpdater.updating(), 'updating during appends');
 });
 
@@ -806,7 +806,7 @@ QUnit.test('setDuration waits for video buffer to finish updating', function(ass
     done();
   });
 
-  checkIntialDuration(this.mediaSource);
+  checkInitialDuration(this.mediaSource);
   assert.ok(this.sourceUpdater.updating(), 'updating during appends');
 });
 
@@ -848,7 +848,7 @@ QUnit.test(
       assert.equal(this.mediaSource.duration, 11, 'set duration on media source');
     });
 
-    checkIntialDuration(this.mediaSource);
+    checkInitialDuration(this.mediaSource);
     assert.ok(this.sourceUpdater.updating(), 'updating during appends');
   }
 );
@@ -893,7 +893,7 @@ QUnit.test(
       done();
     });
 
-    checkIntialDuration(this.mediaSource);
+    checkInitialDuration(this.mediaSource);
   }
 );
 

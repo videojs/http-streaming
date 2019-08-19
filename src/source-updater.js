@@ -272,30 +272,12 @@ export default class SourceUpdater extends videojs.EventTarget {
    * @param {Function} done the function to call when done
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-appendBuffer-void-ArrayBuffer-data
    */
-  appendBuffer({segmentInfo, type, bytes, videoSegmentTimingInfoCallback}, doneFn) {
+  appendBuffer(options, doneFn) {
+    const {segmentInfo, type, bytes} = options;
+
     this.processedAppend_ = true;
-    const originalAction = actions.appendBuffer(bytes, segmentInfo || {mediaIndex: -1});
-    const originalDoneFn = doneFn;
-    let action = originalAction;
-
-    if (videoSegmentTimingInfoCallback) {
-      action = (_type, sourceUpdater) => {
-        if (_type === 'video' && this.videoBuffer) {
-          this.videoBuffer.addEventListener('videoSegmentTimingInfo', videoSegmentTimingInfoCallback);
-        }
-        originalAction(type, sourceUpdater);
-      };
-
-      doneFn = (err) => {
-        if (this.videoBuffer) {
-          this.videoBuffer.removeEventListener('videoSegmentTimingInfo', videoSegmentTimingInfoCallback);
-        }
-        originalDoneFn(err);
-      };
-    }
-
     if (type === 'audio' && this.videoBuffer && !this.videoAppendQueued_) {
-      this.delayedAudioAppendQueue_.push([{type, bytes, videoSegmentTimingInfoCallback}, doneFn]);
+      this.delayedAudioAppendQueue_.push([options, doneFn]);
       this.logger_(`delayed audio append of ${bytes.length} until video append`);
       return;
     }
@@ -303,7 +285,7 @@ export default class SourceUpdater extends videojs.EventTarget {
     pushQueue({
       type,
       sourceUpdater: this,
-      action,
+      action: actions.appendBuffer(bytes, segmentInfo || {mediaIndex: -1}),
       doneFn,
       name: 'appendBuffer'
     });
