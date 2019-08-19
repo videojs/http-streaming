@@ -32,6 +32,12 @@ import window from 'global/window';
 // we need this so the plugin registers itself
 import 'videojs-contrib-quality-levels';
 
+import {version as vhsVersion} from '../package.json';
+import {version as muxVersion} from 'mux.js/package.json';
+import {version as mpdVersion} from 'mpd-parser/package.json';
+import {version as m3u8Version} from 'm3u8-parser/package.json';
+import {version as aesVersion} from 'aes-decrypter/package.json';
+
 let testOrSkip = 'test';
 
 // some tests just don't work reliably on ie11 or edge
@@ -104,6 +110,27 @@ QUnit.module('HLS', {
 
     this.player.dispose();
   }
+});
+
+QUnit.test('version is exported', function(assert) {
+  this.player.src({
+    src: 'manifest/playlist.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  assert.ok(this.player.vhs.version, 'version function');
+  assert.ok(videojs.HlsHandler.version, 'version function');
+
+  assert.deepEqual(this.player.vhs.version(), {
+    '@videojs/http-streaming': vhsVersion,
+    'mux.js': muxVersion,
+    'mpd-parser': mpdVersion,
+    'm3u8-parser': m3u8Version,
+    'aes-decrypter': aesVersion
+  }, 'version is correct');
+
 });
 
 QUnit.test('deprecation warning is show when using player.hls', function(assert) {
