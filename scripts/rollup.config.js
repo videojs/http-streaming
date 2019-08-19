@@ -1,5 +1,6 @@
 const generate = require('videojs-generate-rollup-config');
 const worker = require('@gkatsev/rollup-plugin-bundle-worker');
+const {terser} = require('rollup-plugin-terser');
 
 // see https://github.com/videojs/videojs-generate-rollup-config
 // for options
@@ -35,7 +36,8 @@ const options = {
   },
   primedPlugins(defaults) {
     return Object.assign(defaults, {
-      worker: worker()
+      worker: worker(),
+      uglify: terser({output: {comments: 'some'}, compress: {passes: 2}})
     });
   },
   babel(defaults) {
