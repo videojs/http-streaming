@@ -67,7 +67,7 @@
     "global": "^4.3.2",
     "m3u8-parser": "4.4.0",
     "mpd-parser": "0.8.1",
-    "mux.js": "github:videojs/mux.js",
+    "mux.js": "5.2.0",
     "url-toolkit": "^2.1.3",
     "video.js": "^6 || ^7"
   },
