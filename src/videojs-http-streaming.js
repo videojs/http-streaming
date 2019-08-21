@@ -31,7 +31,7 @@ import {
 import { version } from '../package.json';
 // import needed to register middleware
 import './middleware-set-current-time';
-import { isAudioCodec, isVideoCodec } from './util/codecs';
+import { isAudioCodec, isVideoCodec, parseContentType } from './util/codecs';
 
 const Hls = {
   PlaylistLoader,
@@ -146,27 +146,23 @@ const emeKeySystems = (keySystemOptions, mainSegmentLoader, audioSegmentLoader) 
     return keySystemOptions;
   }
 
-  let videoMimeAndCodec;
-  let audioMimeAndCodec;
+  let videoMimeType;
+  let audioMimeType;
 
   // if there is a mimeType associated with the audioSegmentLoader, then the audio
   // and video mimeType and codec strings are already in the format we need to
   // pass with the other key systems
   if (audioSegmentLoader.mimeType_) {
-    videoMimeAndCodec = mainSegmentLoader.mimeType_;
-    audioMimeAndCodec = audioSegmentLoader.mimeType_;
+    videoMimeType = mainSegmentLoader.mimeType_;
+    audioMimeType = audioSegmentLoader.mimeType_;
 
   // if there is no audioSegmentLoader mimeType, then we have to create the
   // the audio and video mimeType/codec strings from information extrapolated
   // from the mainSegmentLoader mimeType (ex. 'video/mp4; codecs="mp4, avc1"' -->
   // 'video/mp4; codecs="avc1"' and 'audio/mp4; codecs="mp4"')
   } else {
-    const splitMime = mainSegmentLoader.mimeType_.split(';');
-    const subtype = splitMime[0].split('/')[1];
-    const parameter = splitMime[1].trim();
-    const splitParameter = parameter.split('"')[1];
-    const codecs = splitParameter.split(',');
-    codecs[1] = codecs[1].trim();
+    const parsedMimeType = parseContentType(mainSegmentLoader.mimeType_);
+    const codecs = parsedMimeType.parameters.codecs.split(',').map(codec => codec.trim());
 
     let audioCodec;
     let videoCodec;
@@ -179,8 +175,8 @@ const emeKeySystems = (keySystemOptions, mainSegmentLoader, audioSegmentLoader) 
       }
     });
 
-    videoMimeAndCodec = `video/${subtype}; codecs="${videoCodec}"`;
-    audioMimeAndCodec = `audio/${subtype}; codecs="${audioCodec}"`;
+    videoMimeType = `${parsedMimeType.type}; codecs="${videoCodec}"`;
+    audioMimeType = `${parsedMimeType.type.replace('video', 'audio')}; codecs="${audioCodec}"`;
   }
 
   // upsert the content types based on the selected playlist
@@ -189,8 +185,8 @@ const emeKeySystems = (keySystemOptions, mainSegmentLoader, audioSegmentLoader) 
 
   for (let keySystem in keySystemOptions) {
     keySystemContentTypes[keySystem] = {
-      audioContentType: audioMimeAndCodec,
-      videoContentType: videoMimeAndCodec
+      audioContentType: audioMimeType,
+      videoContentType: videoMimeType
     };
 
     if (videoPlaylist.contentProtection &&
