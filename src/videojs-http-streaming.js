@@ -162,12 +162,14 @@ const emeKeySystems = (keySystemOptions, mainSegmentLoader, audioSegmentLoader) 
   // 'video/mp4; codecs="avc1"' and 'audio/mp4; codecs="mp4"')
   } else {
     const parsedMimeType = parseContentType(mainSegmentLoader.mimeType_);
-    const codecs = parsedMimeType.parameters.codecs.split(',').map(codec => codec.trim());
+    const codecs = parsedMimeType.parameters.codecs.split(',');
 
     let audioCodec;
     let videoCodec;
 
     codecs.forEach(codec => {
+      codec = codec.trim();
+
       if (isAudioCodec(codec)) {
         audioCodec = codec;
       } else if (isVideoCodec(codec)) {
