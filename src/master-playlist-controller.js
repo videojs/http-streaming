@@ -1098,6 +1098,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * that it controls
    */
   dispose() {
+    this.trigger('dispose');
     this.decrypter_.terminate();
     this.masterPlaylistLoader_.dispose();
     this.mainSegmentLoader_.dispose();
@@ -1117,6 +1118,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.audioSegmentLoader_.dispose();
     this.subtitleSegmentLoader_.dispose();
     this.sourceUpdater_.dispose();
+    this.off();
   }
 
   /**
@@ -1327,4 +1329,5 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     return Math.min(initial + currentTime * rate, max);
   }
+
 }

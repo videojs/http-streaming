@@ -314,9 +314,12 @@ export default class PlaylistLoader extends EventTarget {
     * Abort any outstanding work and clean up.
     */
   dispose() {
+    this.trigger('dispose');
     this.stopRequest();
     window.clearTimeout(this.mediaUpdateTimeout);
     window.clearTimeout(this.finalRenditionTimeout);
+
+    this.off();
   }
 
   stopRequest() {
@@ -588,4 +591,5 @@ export default class PlaylistLoader extends EventTarget {
       return this.trigger('loadedmetadata');
     });
   }
+
 }

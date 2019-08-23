@@ -227,11 +227,14 @@ export default class DashPlaylistLoader extends EventTarget {
   }
 
   dispose() {
+    this.trigger('dispose');
     this.stopRequest();
     this.loadedPlaylists_ = {};
     window.clearTimeout(this.minimumUpdatePeriodTimeout_);
     window.clearTimeout(this.mediaRequest_);
     window.clearTimeout(this.mediaUpdateTimeout);
+
+    this.off();
   }
 
   hasPendingRequest() {
