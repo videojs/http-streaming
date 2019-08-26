@@ -67,10 +67,12 @@ export const processTransmux = ({
   audioAppendStart,
   gopsToAlignWith,
   isPartial,
+  remux,
   onData,
   onTrackInfo,
   onAudioTimingInfo,
   onVideoTimingInfo,
+  onVideoSegmentTimingInfo,
   onId3,
   onCaptions,
   onDone
@@ -100,6 +102,9 @@ export const processTransmux = ({
     }
     if (event.data.action === 'videoTimingInfo') {
       onVideoTimingInfo(event.data.videoTimingInfo);
+    }
+    if (event.data.action === 'videoSegmentTimingInfo') {
+      onVideoSegmentTimingInfo(event.data.videoSegmentTimingInfo);
     }
     if (event.data.action === 'id3Frame') {
       onId3([event.data.id3Frame], event.data.id3Frame.dispatchType);
@@ -141,22 +146,31 @@ export const processTransmux = ({
     });
   }
 
+  if (typeof remux !== 'undefined') {
+    transmuxer.postMessage({
+      action: 'setRemux',
+      remux
+    });
+  }
+
   if (bytes.byteLength) {
     const buffer = bytes instanceof ArrayBuffer ? bytes : bytes.buffer;
     const byteOffset = bytes instanceof ArrayBuffer ? 0 : bytes.byteOffset;
 
-    transmuxer.postMessage({
-      action: 'push',
-      // Send the typed-array of data as an ArrayBuffer so that
-      // it can be sent as a "Transferable" and avoid the costly
-      // memory copy
-      data: buffer,
-      // To recreate the original typed-array, we need information
-      // about what portion of the ArrayBuffer it was a view into
-      byteOffset,
-      byteLength: bytes.byteLength
-    },
-    [ buffer ]);
+    transmuxer.postMessage(
+      {
+        action: 'push',
+        // Send the typed-array of data as an ArrayBuffer so that
+        // it can be sent as a "Transferable" and avoid the costly
+        // memory copy
+        data: buffer,
+        // To recreate the original typed-array, we need information
+        // about what portion of the ArrayBuffer it was a view into
+        byteOffset,
+        byteLength: bytes.byteLength
+      },
+      [ buffer ]
+    );
   }
 
   // even if we didn't push any bytes, we have to make sure we flush in case we reached

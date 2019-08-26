@@ -24,20 +24,26 @@ QUnit.test('update tag cues', function(assert) {
 
   updateAdCues({}, this.track);
 
-  assert.equal(this.track.cues.length,
-              1,
-              'does not change cues if media does not have segment property');
-  assert.equal(this.track.cues[0],
-              testCue,
-              'does not change cues if media does not have segment property');
+  assert.equal(
+    this.track.cues.length,
+    1,
+    'does not change cues if media does not have segment property'
+  );
+  assert.equal(
+    this.track.cues[0],
+    testCue,
+    'does not change cues if media does not have segment property'
+  );
 
   updateAdCues({
     segments: []
   }, this.track);
 
-  assert.equal(this.track.cues.length,
-              1,
-              'does not remove cues even if no segments in playlist');
+  assert.equal(
+    this.track.cues.length,
+    1,
+    'does not remove cues even if no segments in playlist'
+  );
 
   this.track.clearTrack();
 
@@ -75,8 +81,10 @@ QUnit.test('update tag cues', function(assert) {
     }]
   }, this.track);
 
-  assert.equal(this.track.cues.length, 1,
-    'adds a single cue for entire ad when entering mid cue-out-cont');
+  assert.equal(
+    this.track.cues.length, 1,
+    'adds a single cue for entire ad when entering mid cue-out-cont'
+  );
 
   testCue = this.track.cues[0];
   assert.equal(testCue.startTime, 0, 'cue starts at 0');
@@ -101,7 +109,7 @@ QUnit.test('update incomplete cue in live playlist situation', function(assert) 
 
   assert.equal(this.track.cues.length, 1, 'adds a single cue for new ad');
 
-  let testCue = this.track.cues[0];
+  const testCue = this.track.cues[0];
 
   assert.equal(testCue.startTime, 10, 'cue starts at 10');
   assert.equal(testCue.endTime, 30, 'cue ends at start time plus segment durations');
@@ -169,7 +177,7 @@ QUnit.test('adjust cue end time in event of early CUE-IN', function(assert) {
 
   assert.equal(this.track.cues.length, 1, 'adds a single cue for new ad');
 
-  let testCue = this.track.cues[0];
+  const testCue = this.track.cues[0];
 
   assert.equal(testCue.startTime, 10, 'cue starts at 10');
   assert.equal(testCue.endTime, 40, 'cue ends at start time plus segment durations');
@@ -197,8 +205,10 @@ QUnit.test('adjust cue end time in event of early CUE-IN', function(assert) {
   assert.equal(testCue.startTime, 10, 'cue still starts at 10');
   assert.equal(testCue.endTime, 30, 'cue end updated to 30');
   assert.equal(testCue.adStartTime, 10, 'cue ad still starts at 10');
-  assert.equal(testCue.adEndTime, 30,
-    'cue ad end updated to 30 to account for early cueIn');
+  assert.equal(
+    testCue.adEndTime, 30,
+    'cue ad end updated to 30 to account for early cueIn'
+  );
 });
 
 QUnit.test('correctly handle multiple ad cues', function(assert) {

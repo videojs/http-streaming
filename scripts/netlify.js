@@ -7,7 +7,7 @@ const files = [
   'node_modules/video.js/dist/alt/video.core.js',
   'node_modules/videojs-contrib-eme/dist/videojs-contrib-eme.js',
   'node_modules/videojs-contrib-quality-levels/dist/videojs-contrib-quality-levels.js',
-  'scripts/index.js'
+  'scripts/index-demo-page.js'
 ];
 
 // cleanup previous deploy
@@ -17,10 +17,10 @@ sh.mkdir('-p', deployDir);
 
 // create nested directories
 files
-.map((file) => path.dirname(file))
-.forEach((dir) => sh.mkdir('-p', path.join(deployDir, dir)));
+  .map((file) => path.dirname(file))
+  .forEach((dir) => sh.mkdir('-p', path.join(deployDir, dir)));
 
 // copy over files, dist, and html files
 files
-.concat('dist', 'index.html')
-.forEach((file) => sh.cp('-r', file, path.join(deployDir, file)));
+  .concat('dist', 'index.html')
+  .forEach((file) => sh.cp('-r', file, path.join(deployDir, file)));

@@ -15,7 +15,7 @@ import videojs from 'video.js';
 export const createCaptionsTrackIfNotExists = function(inbandTextTracks, tech, captionStream) {
   if (!inbandTextTracks[captionStream]) {
     tech.trigger({type: 'usage', name: 'hls-608'});
-    let track = tech.textTracks().getTrackById(captionStream);
+    const track = tech.textTracks().getTrackById(captionStream);
 
     if (track) {
       // Resuse an existing track with a CC# id because this was
@@ -39,7 +39,7 @@ export const createCaptionsTrackIfNotExists = function(inbandTextTracks, tech, c
  *
  * @param {Object}
  *   @param {Object} inbandTextTracks the inband text tracks
- *   @param {Number} timestampOffset the timestamp offset of the source buffer
+ *   @param {number} timestampOffset the timestamp offset of the source buffer
  *   @param {Array} captionArray an array of caption data
  * @private
  */
@@ -57,12 +57,11 @@ export const addCaptionData = function({
   captionArray.forEach((caption) => {
     const track = caption.stream;
 
-    inbandTextTracks[track].addCue(
-      new Cue(
-        caption.startTime + timestampOffset,
-        caption.endTime + timestampOffset,
-        caption.text
-      ));
+    inbandTextTracks[track].addCue(new Cue(
+      caption.startTime + timestampOffset,
+      caption.endTime + timestampOffset,
+      caption.text
+    ));
   });
 };
 
@@ -78,25 +77,19 @@ const deprecateOldCue = function(cue) {
   Object.defineProperties(cue.frame, {
     id: {
       get() {
-        videojs.log.warn(
-          'cue.frame.id is deprecated. Use cue.value.key instead.'
-        );
+        videojs.log.warn('cue.frame.id is deprecated. Use cue.value.key instead.');
         return cue.value.key;
       }
     },
     value: {
       get() {
-        videojs.log.warn(
-          'cue.frame.value is deprecated. Use cue.value.data instead.'
-        );
+        videojs.log.warn('cue.frame.value is deprecated. Use cue.value.data instead.');
         return cue.value.data;
       }
     },
     privateData: {
       get() {
-        videojs.log.warn(
-          'cue.frame.privateData is deprecated. Use cue.value.data instead.'
-        );
+        videojs.log.warn('cue.frame.privateData is deprecated. Use cue.value.data instead.');
         return cue.value.data;
       }
     }
@@ -109,8 +102,8 @@ const deprecateOldCue = function(cue) {
  * @param {Object}
  *   @param {Object} inbandTextTracks the inband text tracks
  *   @param {Array} metadataArray an array of meta data
- *   @param {Number} timestampOffset the timestamp offset of the source buffer
- *   @param {Number} videoDuration the duration of the video
+ *   @param {number} timestampOffset the timestamp offset of the source buffer
+ *   @param {number} videoDuration the duration of the video
  * @private
  */
 export const addMetadata = ({
@@ -131,7 +124,7 @@ export const addMetadata = ({
   }
 
   metadataArray.forEach((metadata) => {
-    let time = metadata.cueTime + timestampOffset;
+    const time = metadata.cueTime + timestampOffset;
 
     // if time isn't a finite number between 0 and Infinity, like NaN,
     // ignore this bit of metadata.
@@ -142,10 +135,11 @@ export const addMetadata = ({
     }
 
     metadata.frames.forEach((frame) => {
-      let cue = new Cue(
+      const cue = new Cue(
         time,
         time,
-        frame.value || frame.url || frame.data || '');
+        frame.value || frame.url || frame.data || ''
+      );
 
       cue.frame = frame;
       cue.value = frame;
@@ -162,8 +156,8 @@ export const addMetadata = ({
   // Updating the metadeta cues so that
   // the endTime of each cue is the startTime of the next cue
   // the endTime of last cue is the duration of the video
-  let cues = metadataTrack.cues;
-  let cuesArray = [];
+  const cues = metadataTrack.cues;
+  const cuesArray = [];
 
   // Create a copy of the TextTrackCueList...
   // ...disregarding cues with a falsey value
@@ -174,8 +168,8 @@ export const addMetadata = ({
   }
 
   // Group cues by their startTime value
-  let cuesGroupedByStartTime = cuesArray.reduce((obj, cue) => {
-    let timeSlot = obj[cue.startTime] || [];
+  const cuesGroupedByStartTime = cuesArray.reduce((obj, cue) => {
+    const timeSlot = obj[cue.startTime] || [];
 
     timeSlot.push(cue);
     obj[cue.startTime] = timeSlot;
@@ -184,13 +178,13 @@ export const addMetadata = ({
   }, {});
 
   // Sort startTimes by ascending order
-  let sortedStartTimes = Object.keys(cuesGroupedByStartTime)
-                               .sort((a, b) => Number(a) - Number(b));
+  const sortedStartTimes = Object.keys(cuesGroupedByStartTime)
+    .sort((a, b) => Number(a) - Number(b));
 
   // Map each cue group's endTime to the next group's startTime
   sortedStartTimes.forEach((startTime, idx) => {
-    let cueGroup = cuesGroupedByStartTime[startTime];
-    let nextTime = Number(sortedStartTimes[idx + 1]) || videoDuration;
+    const cueGroup = cuesGroupedByStartTime[startTime];
+    const nextTime = Number(sortedStartTimes[idx + 1]) || videoDuration;
 
     // Map each cue's endTime the next group's startTime
     cueGroup.forEach((cue) => {
@@ -203,7 +197,7 @@ export const addMetadata = ({
  * Create metadata text track on video.js if it does not exist
  *
  * @param {Object} inbandTextTracks a reference to current inbandTextTracks
- * @param {String} dispatchType the inband metadata track dispatch type
+ * @param {string} dispatchType the inband metadata track dispatch type
  * @param {Object} tech the video.js tech
  * @private
  */
@@ -246,7 +240,7 @@ export const removeCuesFromTrack = function(start, end, track) {
     cue = track.cues[i];
 
     // Remove any overlapping cue
-    if (cue.startTime <= end && cue.endTime >= start) {
+    if (cue.startTime >= start && cue.endTime <= end) {
       track.removeCue(cue);
     }
   }

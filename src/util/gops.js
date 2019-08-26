@@ -6,7 +6,7 @@ import { ONE_SECOND_IN_TS } from 'mux.js/lib/utils/clock';
  *
  * @param {Array} buffer
  *        The current buffer of gop information
- * @param {Number} currentTime
+ * @param {number} currentTime
  *        The current time
  * @param {Double} mapping
  *        Offset to map display time to stream presentation time

@@ -102,10 +102,10 @@ const shiftQueue = (type, sourceUpdater) => {
 };
 
 const actions = {
-  appendBuffer: (bytes) => (type, sourceUpdater) => {
+  appendBuffer: (bytes, segmentInfo) => (type, sourceUpdater) => {
     const sourceBuffer = sourceUpdater[`${type}Buffer`];
 
-    sourceUpdater.logger_(`Appending ${bytes.length} to ${type}Buffer`);
+    sourceUpdater.logger_(`Appending segment ${segmentInfo.mediaIndex}'s ${bytes.length} bytes to ${type}Buffer`);
 
     sourceBuffer.appendBuffer(bytes);
   },
@@ -189,7 +189,7 @@ const onUpdateend = (type, sourceUpdater) => (e) => {
  *
  * @class SourceUpdater
  * @param {MediaSource} mediaSource the MediaSource to create the SourceBuffer from
- * @param {String} mimeType the desired MIME type of the underlying SourceBuffer
+ * @param {string} mimeType the desired MIME type of the underlying SourceBuffer
  */
 export default class SourceUpdater extends videojs.EventTarget {
   constructor(mediaSource) {
@@ -225,15 +225,13 @@ export default class SourceUpdater extends videojs.EventTarget {
     }
 
     if (codecs.audio) {
-      this.audioBuffer = this.mediaSource.addSourceBuffer(
-        `audio/mp4;codecs="${codecs.audio}"`);
+      this.audioBuffer = this.mediaSource.addSourceBuffer(`audio/mp4;codecs="${codecs.audio}"`);
       this.audioBuffer.removing = false;
       this.logger_(`created SourceBuffer audio/mp4;codecs="${codecs.audio}"`);
     }
 
     if (codecs.video) {
-      this.videoBuffer = this.mediaSource.addSourceBuffer(
-        `video/mp4;codecs="${codecs.video}"`);
+      this.videoBuffer = this.mediaSource.addSourceBuffer(`video/mp4;codecs="${codecs.video}"`);
       this.videoBuffer.removing = false;
       this.logger_(`created SourceBuffer video/mp4;codecs="${codecs.video}"`);
     }
@@ -274,30 +272,12 @@ export default class SourceUpdater extends videojs.EventTarget {
    * @param {Function} done the function to call when done
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-appendBuffer-void-ArrayBuffer-data
    */
-  appendBuffer({type, bytes, videoSegmentTimingInfoCallback}, doneFn) {
+  appendBuffer(options, doneFn) {
+    const {segmentInfo, type, bytes} = options;
+
     this.processedAppend_ = true;
-    const originalAction = actions.appendBuffer(bytes);
-    const originalDoneFn = doneFn;
-    let action = originalAction;
-
-    if (videoSegmentTimingInfoCallback) {
-      action = (_type, sourceUpdater) => {
-        if (_type === 'video' && this.videoBuffer) {
-          this.videoBuffer.addEventListener('videoSegmentTimingInfo', videoSegmentTimingInfoCallback);
-        }
-        originalAction(type, sourceUpdater);
-      };
-
-      doneFn = (err) => {
-        if (this.videoBuffer) {
-          this.videoBuffer.removeEventListener('videoSegmentTimingInfo', videoSegmentTimingInfoCallback);
-        }
-        originalDoneFn(err);
-      };
-    }
-
     if (type === 'audio' && this.videoBuffer && !this.videoAppendQueued_) {
-      this.delayedAudioAppendQueue_.push([{type, bytes, videoSegmentTimingInfoCallback}, doneFn]);
+      this.delayedAudioAppendQueue_.push([options, doneFn]);
       this.logger_(`delayed audio append of ${bytes.length} until video append`);
       return;
     }
@@ -305,7 +285,7 @@ export default class SourceUpdater extends videojs.EventTarget {
     pushQueue({
       type,
       sourceUpdater: this,
-      action,
+      action: actions.appendBuffer(bytes, segmentInfo || {mediaIndex: -1}),
       doneFn,
       name: 'appendBuffer'
     });
@@ -374,8 +354,8 @@ export default class SourceUpdater extends videojs.EventTarget {
   /**
    * Queue an update to remove a time range from the buffer.
    *
-   * @param {Number} start where to start the removal
-   * @param {Number} end where to end the removal
+   * @param {number} start where to start the removal
+   * @param {number} end where to end the removal
    * @param {Function} [done=noop] optional callback to be executed when the remove
    * operation is complete
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-remove-void-double-start-unrestricted-double-end
@@ -398,8 +378,8 @@ export default class SourceUpdater extends videojs.EventTarget {
   /**
    * Queue an update to remove a time range from the buffer.
    *
-   * @param {Number} start where to start the removal
-   * @param {Number} end where to end the removal
+   * @param {number} start where to start the removal
+   * @param {number} end where to end the removal
    * @param {Function} [done=noop] optional callback to be executed when the remove
    * operation is complete
    * @see http://www.w3.org/TR/media-source/#widl-SourceBuffer-remove-void-double-start-unrestricted-double-end
@@ -422,7 +402,7 @@ export default class SourceUpdater extends videojs.EventTarget {
   /**
    * Whether the underlying sourceBuffer is updating or not
    *
-   * @return {Boolean} the updating status of the SourceBuffer
+   * @return {boolean} the updating status of the SourceBuffer
    */
   updating() {
     // the audio/video source buffer is updating
@@ -436,7 +416,7 @@ export default class SourceUpdater extends videojs.EventTarget {
   /**
    * Set/get the timestampoffset on the audio SourceBuffer
    *
-   * @return {Number} the timestamp offset
+   * @return {number} the timestamp offset
    */
   audioTimestampOffset(offset) {
     if (typeof offset !== 'undefined' &&
@@ -457,7 +437,7 @@ export default class SourceUpdater extends videojs.EventTarget {
   /**
    * Set/get the timestampoffset on the video SourceBuffer
    *
-   * @return {Number} the timestamp offset
+   * @return {number} the timestamp offset
    */
   videoTimestampOffset(offset) {
     if (typeof offset !== 'undefined' &&
@@ -503,7 +483,13 @@ export default class SourceUpdater extends videojs.EventTarget {
   dispose() {
     const audioDisposeFn = () => {
       if (this.mediaSource.readyState === 'open') {
-        this.audioBuffer.abort();
+        // ie 11 likes to throw on abort with InvalidAccessError or InvalidStateError
+        // dom exceptions
+        try {
+          this.audioBuffer.abort();
+        } catch (e) {
+          videojs.log.warn('Failed to call abort on audio buffer', e);
+        }
       }
       this.audioBuffer.removeEventListener('updateend', this.onAudioUpdateEnd_);
       this.audioBuffer.removeEventListener('updateend', audioDisposeFn);
@@ -512,7 +498,13 @@ export default class SourceUpdater extends videojs.EventTarget {
     };
     const videoDisposeFn = () => {
       if (this.mediaSource.readyState === 'open') {
-        this.videoBuffer.abort();
+        // ie 11 likes to throw on abort with InvalidAccessError or InvalidStateError
+        // dom exceptions
+        try {
+          this.videoBuffer.abort();
+        } catch (e) {
+          videojs.log.warn('Failed to call abort on video buffer', e);
+        }
       }
       this.videoBuffer.removeEventListener('updateend', this.onVideoUpdateEnd_);
       this.videoBuffer.removeEventListener('error', this.onVideoError_);

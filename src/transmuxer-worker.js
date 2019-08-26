@@ -1,3 +1,4 @@
+/* global self */
 /**
  * @file transmuxer-worker.js
  */
@@ -13,8 +14,8 @@
  * message-based interface to a Transmuxer object.
  */
 
-import fullMux from 'mux.js/lib/mp4';
-import partialMux from 'mux.js/lib/partial';
+import {Transmuxer as FullMux} from 'mux.js/lib/mp4/transmuxer';
+import PartialMux from 'mux.js/lib/partial/transmuxer';
 import {
   secondsToVideoTs,
   videoTsToSeconds
@@ -40,7 +41,7 @@ const wireFullTransmuxerEvents = function(self, transmuxer) {
     // instead of doing a copy to save memory
     // ArrayBuffers are transferable but generic TypedArrays are not
     // @link https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers#Passing_data_by_transferring_ownership_(transferable_objects)
-    let initArray = segment.initSegment;
+    const initArray = segment.initSegment;
 
     segment.initSegment = {
       data: initArray.buffer,
@@ -48,7 +49,7 @@ const wireFullTransmuxerEvents = function(self, transmuxer) {
       byteLength: initArray.byteLength
     };
 
-    let typedArray = segment.data;
+    const typedArray = segment.data;
 
     segment.data = typedArray.buffer;
     self.postMessage({
@@ -70,7 +71,22 @@ const wireFullTransmuxerEvents = function(self, transmuxer) {
     });
   });
 
-  transmuxer.on('videoSegmentTimingInfo', function(videoSegmentTimingInfo) {
+  transmuxer.on('videoSegmentTimingInfo', function(timingInfo) {
+    const videoSegmentTimingInfo = {
+      start: {
+        decode: videoTsToSeconds(timingInfo.start.dts),
+        presentation: videoTsToSeconds(timingInfo.start.pts)
+      },
+      end: {
+        decode: videoTsToSeconds(timingInfo.end.dts),
+        presentation: videoTsToSeconds(timingInfo.end.pts)
+      },
+      baseMediaDecodeTime: videoTsToSeconds(timingInfo.baseMediaDecodeTime)
+    };
+
+    if (timingInfo.prependedContentDuration) {
+      videoSegmentTimingInfo.prependedContentDuration = videoTsToSeconds(timingInfo.prependedContentDuration);
+    }
     self.postMessage({
       action: 'videoSegmentTimingInfo',
       videoSegmentTimingInfo
@@ -259,8 +275,8 @@ class MessageHandlers {
       this.transmuxer.dispose();
     }
     this.transmuxer = this.options.handlePartialData ?
-      new partialMux.Transmuxer(this.options) :
-      new fullMux.Transmuxer(this.options);
+      new PartialMux(this.options) :
+      new FullMux(this.options);
 
     if (this.options.handlePartialData) {
       wirePartialTransmuxerEvents(this.self, this.transmuxer);
@@ -277,7 +293,7 @@ class MessageHandlers {
    */
   push(data) {
     // Cast array buffer to correct type for transmuxer
-    let segment = new Uint8Array(data.data, data.byteOffset, data.byteLength);
+    const segment = new Uint8Array(data.data, data.byteOffset, data.byteLength);
 
     this.transmuxer.push(segment);
   }
@@ -298,13 +314,17 @@ class MessageHandlers {
    * @param {Object} data used to set the timestamp offset in the muxer
    */
   setTimestampOffset(data) {
-    let timestampOffset = data.timestampOffset || 0;
+    const timestampOffset = data.timestampOffset || 0;
 
     this.transmuxer.setBaseMediaDecodeTime(Math.round(secondsToVideoTs(timestampOffset)));
   }
 
   setAudioAppendStart(data) {
     this.transmuxer.setAudioAppendStart(Math.ceil(secondsToVideoTs(data.appendStart)));
+  }
+
+  setRemux(data) {
+    this.transmuxer.setRemux(data.remux);
   }
 
   /**

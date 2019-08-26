@@ -1,16 +1,24 @@
+/* eslint-disable no-console */
 const fs = require('fs');
 const path = require('path');
+const manifestDir = path.join(__dirname, '..', 'test', 'manifests');
+const manifestFilepath = path.join(__dirname, '..', 'test', 'dist', 'test-manifests.js');
+let fn = 'build';
 
-const basePath  = path.resolve(__dirname, '..');
-const testDataDir = path.join(basePath,'test');
-const manifestDir = path.join(basePath, 'utils', 'manifest');
-const manifestFilepath = path.join(testDataDir, 'test-manifests.js');
+// parse args
+for (let i = 0; i < process.argv.length; i++) {
+  if ((/^-w|--watch$/).test(process.argv[i])) {
+    fn = 'watch';
+    break;
+  }
+}
 
-module.exports = {
+const createTestManifest = {
   build() {
     let manifests = 'export default {\n';
 
     const files = fs.readdirSync(manifestDir);
+
     while (files.length > 0) {
       const file = path.resolve(manifestDir, files.shift());
       const extname = path.extname(file);
@@ -45,16 +53,8 @@ module.exports = {
       console.log('files in manifest dir were changed rebuilding manifest data');
       this.build();
     });
-  },
-
-  clean() {
-    if (fs.existsSync(manifestFilepath)) {
-      try {
-        fs.unlinkSync(manifestFilepath);
-      } catch(e) {
-        console.log(e);
-      }
-    }
   }
 };
+
+createTestManifest[fn]();
 

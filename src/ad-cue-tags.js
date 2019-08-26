@@ -7,10 +7,10 @@ import window from 'global/window';
  * Searches for an ad cue that overlaps with the given mediaTime
  */
 export const findAdCue = function(track, mediaTime) {
-  let cues = track.cues;
+  const cues = track.cues;
 
   for (let i = 0; i < cues.length; i++) {
-    let cue = cues[i];
+    const cue = cues[i];
 
     if (mediaTime >= cue.adStartTime && mediaTime <= cue.adEndTime) {
       return cue;
@@ -28,7 +28,7 @@ export const updateAdCues = function(media, track, offset = 0) {
   let cue;
 
   for (let i = 0; i < media.segments.length; i++) {
-    let segment = media.segments[i];
+    const segment = media.segments[i];
 
     if (!cue) {
       // Since the cues will span for at least the segment duration, adding a fudge
@@ -59,9 +59,11 @@ export const updateAdCues = function(media, track, offset = 0) {
 
     } else {
       if ('cueOut' in segment) {
-        cue = new window.VTTCue(mediaTime,
-                                mediaTime + segment.duration,
-                                segment.cueOut);
+        cue = new window.VTTCue(
+          mediaTime,
+          mediaTime + segment.duration,
+          segment.cueOut
+        );
         cue.adStartTime = mediaTime;
         // Assumes tag format to be
         // #EXT-X-CUE-OUT:30
@@ -71,16 +73,15 @@ export const updateAdCues = function(media, track, offset = 0) {
 
       if ('cueOutCont' in segment) {
         // Entered into the middle of an ad cue
-        let adOffset;
-        let adTotal;
-
         // Assumes tag formate to be
         // #EXT-X-CUE-OUT-CONT:10/30
-        [adOffset, adTotal] = segment.cueOutCont.split('/').map(parseFloat);
+        const [adOffset, adTotal] = segment.cueOutCont.split('/').map(parseFloat);
 
-        cue = new window.VTTCue(mediaTime,
-                                mediaTime + segment.duration,
-                                '');
+        cue = new window.VTTCue(
+          mediaTime,
+          mediaTime + segment.duration,
+          ''
+        );
         cue.adStartTime = mediaTime - adOffset;
         cue.adEndTime = cue.adStartTime + adTotal;
         track.addCue(cue);

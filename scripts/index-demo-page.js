@@ -1,3 +1,4 @@
+/* global window document */
 /* eslint-disable no-var, object-shorthand, no-console */
 (function(window) {
   // all relevant elements
@@ -5,13 +6,9 @@
   var sources = document.getElementById('load-source');
   var stateEls = {};
 
-  ['debug', 'autoplay', 'muted', 'minified', 'partial', 'url', 'type'].forEach(function(name) {
-    stateEls[name] = document.getElementById(name);
-  });
-
   var getInputValue = function(el) {
     if (el.type === 'url' || el.type === 'text') {
-      return el.value;
+      return encodeURIComponent(el.value);
     } else if (el.type === 'checkbox') {
       return el.checked;
     }
@@ -19,8 +16,17 @@
     console.warn('unhandled input type ' + el.type);
   };
 
+  var setInputValue = function(el, value) {
+    if (el.type === 'url' || el.type === 'text') {
+      el.value = decodeURIComponent(value);
+    } else {
+      el.checked = value === 'true' ? true : false;
+    }
+
+  };
+
   var newEvent = function(name) {
-    var event
+    var event;
 
     if (typeof window.Event === 'function') {
       event = new window.Event(name);
@@ -111,17 +117,15 @@
     onload();
   };
 
+  ['debug', 'autoplay', 'muted', 'minified', 'partial', 'url', 'type'].forEach(function(name) {
+    stateEls[name] = document.getElementById(name);
+  });
+
   window.startDemo = function(cb) {
     var state = loadState();
 
     Object.keys(state).forEach(function(elName) {
-      var el = stateEls[elName];
-
-      if (el.type === 'url') {
-        el.value = state[elName];
-      } else {
-        el.checked = state[elName] === 'true' ? true : false;
-      }
+      setInputValue(stateEls[elName], state[elName]);
     });
 
     // if there is a "url" param in the query params set url

@@ -3,6 +3,25 @@
   display: block;
 }
 
+.container {
+  display: flex;
+  align-content: stretch;
+}
+#fixture {
+  flex: 1 1 66%;
+}
+#segment-metadata {
+  list-style: none;
+  flex: 0 1 33%;
+  padding: 0;
+  max-width: 33%;
+}
+#segment-metadata pre {
+  overflow: scroll;
+  background-color: lightgray;
+  padding: 0.5em;
+}
+
 .player-stats, .event-counts, #quality-levels {
   box-sizing: border-box;
   padding: 8px;
@@ -48,6 +67,16 @@ h3.bitrate-switching {
   stroke-dasharray: 2,2;
 }
 
+
+.quality-buttons {
+  list-style: none;
+  padding: 0;
+}
+
+.quality-buttons button {
+  padding: 0.5em;
+  margin: 0.5em;
+}
 
 .quality-buttons button.enabled {
   background: SkyBlue;

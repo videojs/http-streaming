@@ -1,0 +1,9 @@
+#EXTM3U
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXT-X-TARGETDURATION:10
+#EXT-X-DISCONTINUITY
+#EXTINF:0,
+../segments/zeroLength.ts
+#EXTINF:10,
+../segments/muxed.ts
+#EXT-X-ENDLIST

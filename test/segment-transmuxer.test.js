@@ -5,7 +5,7 @@ import {
   muxed as muxedSegment,
   caption as captionSegment,
   oneSecond as oneSecondSegment
-} from './test-segments';
+} from './dist/test-segments';
 import {
   transmux,
   reset,
@@ -16,7 +16,8 @@ import {
   processTransmux,
   handleGopInfo_,
   handleDone_,
-  handleData_
+  handleData_,
+  dispose
 } from '../src/segment-transmuxer';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
@@ -53,6 +54,7 @@ QUnit.module('Segment Transmuxer', {
     assert.timeout(5000);
   },
   afterEach(assert) {
+    dispose();
     if (this.transmuxer) {
       this.transmuxer.terminate();
     }
@@ -65,6 +67,7 @@ QUnit.test('transmux returns data for full appends', function(assert) {
   const trackInfoFn = sinon.spy();
   const audioTimingFn = sinon.spy();
   const videoTimingFn = sinon.spy();
+  const videoSegmentTimingInfoFn = sinon.spy();
 
   this.transmuxer = createTransmuxer(false);
 
@@ -78,6 +81,7 @@ QUnit.test('transmux returns data for full appends', function(assert) {
     onTrackInfo: trackInfoFn,
     onAudioTimingInfo: audioTimingFn,
     onVideoTimingInfo: videoTimingFn,
+    onVideoSegmentTimingInfo: videoSegmentTimingInfoFn,
     onId3: noop,
     onCaptions: noop,
     onDone: () => {
@@ -85,6 +89,7 @@ QUnit.test('transmux returns data for full appends', function(assert) {
       assert.ok(trackInfoFn.callCount, 'got trackInfo events');
       assert.ok(audioTimingFn.callCount, 'got audioTimingInfo events');
       assert.ok(videoTimingFn.callCount, 'got videoTimingInfo events');
+      assert.ok(videoSegmentTimingInfoFn.callCount, 'got videoSegmentTimingInfo events');
       done();
     }
   });
@@ -107,6 +112,7 @@ QUnit.test('transmux returns captions for full appends', function(assert) {
     onTrackInfo: noop,
     onAudioTimingInfo: noop,
     onVideoTimingInfo: noop,
+    onVideoSegmentTimingInfo: noop,
     onId3: noop,
     onCaptions: captionsFn,
     onDone: () => {
@@ -123,6 +129,7 @@ QUnit.test('transmux returns data for partial appends', function(assert) {
   const trackInfoFn = sinon.spy();
   const audioTimingFn = sinon.spy();
   const videoTimingFn = sinon.spy();
+  const videoSegmentTimingInfoFn = sinon.spy();
 
   this.transmuxer = createTransmuxer(true);
 
@@ -134,6 +141,8 @@ QUnit.test('transmux returns data for partial appends', function(assert) {
     isPartial: true,
     onData: () => {
       dataFn();
+      // TODO: parial appends don't current fire this
+      // assert.ok(videoSegmentTimingInfoFn.callCount, 'got videoSegmentTimingInfoFn event');
       assert.ok(trackInfoFn.callCount, 'got trackInfo event');
       assert.ok(videoTimingFn.callCount, 'got videoTimingInfo event');
 
@@ -145,6 +154,7 @@ QUnit.test('transmux returns data for partial appends', function(assert) {
     onTrackInfo: trackInfoFn,
     onAudioTimingInfo: audioTimingFn,
     onVideoTimingInfo: videoTimingFn,
+    onVideoSegmentTimingInfo: videoSegmentTimingInfoFn,
     onId3: noop,
     onCaptions: noop,
     // This will be called on partialdone events,
@@ -264,7 +274,8 @@ QUnit.test('processTransmux posts all actions', function(assert) {
     onDone: noop
   });
 
-  assert.deepEqual(this.transmuxer.postMessage.args[0][0],
+  assert.deepEqual(
+    this.transmuxer.postMessage.args[0][0],
     {
       action: 'setAudioAppendStart',
       appendStart: [0]
@@ -340,70 +351,72 @@ QUnit.test('handleDone_ modifies transmuxedData and passes it to the callback', 
   );
 });
 
-QUnit.test('handleData_ passes initSegment and segment data to callback',
-function(assert) {
-  const callback = sinon.spy();
-  const event = {
-    data: {
-      segment: {
-        type: 'video',
-        initSegment: {
-          data: [],
-          byteOffset: 0,
-          byteLength: 0
-        },
-        boxes: {
-          data: [],
-          byteOffset: 0,
-          byteLength: 0
-        },
-        captions: [{
-          text: 'a',
-          startTime: 1,
-          endTime: 2
-        }],
-        captionStreams: {
-          CC1: true
-        },
-        metadata: [{
-          cueTime: 1,
-          frames: [{
-            data: 'example'
-          }]
-        }],
-        videoFrameDtsTime: 1
+QUnit.test(
+  'handleData_ passes initSegment and segment data to callback',
+  function(assert) {
+    const callback = sinon.spy();
+    const event = {
+      data: {
+        segment: {
+          type: 'video',
+          initSegment: {
+            data: [],
+            byteOffset: 0,
+            byteLength: 0
+          },
+          boxes: {
+            data: [],
+            byteOffset: 0,
+            byteLength: 0
+          },
+          captions: [{
+            text: 'a',
+            startTime: 1,
+            endTime: 2
+          }],
+          captionStreams: {
+            CC1: true
+          },
+          metadata: [{
+            cueTime: 1,
+            frames: [{
+              data: 'example'
+            }]
+          }],
+          videoFrameDtsTime: 1
+        }
       }
-    }
-  };
-  const transmuxedData = {
-    isPartial: false,
-    buffer: []
-  };
+    };
+    const transmuxedData = {
+      isPartial: false,
+      buffer: []
+    };
 
-  handleData_(event, transmuxedData, callback);
+    handleData_(event, transmuxedData, callback);
 
-  assert.deepEqual(
-    transmuxedData,
-    {
-      buffer: [{
-        captions: event.data.segment.captions,
-        captionStreams: event.data.segment.captionStreams,
-        metadata: event.data.segment.metadata
-      }],
-      isPartial: false
-    },
-    'captions and metadata are added to transmuxedData buffer'
-  );
-  assert.deepEqual(callback.callCount, 1, 'callback ran');
-  assert.deepEqual(
-    callback.args[0][0],
-    {
-      type: 'video',
-      // cast ArrayBuffer to TypedArray
-      data: new Uint8Array(new ArrayBuffer(0), 0, 0),
-      initSegment: new Uint8Array(new ArrayBuffer(0), 0, 0),
-      videoFrameDtsTime: 1
-    },
-    'callback passed the bytes for the segment and initSegment'
-  );
-});
+    assert.deepEqual(
+      transmuxedData,
+      {
+        buffer: [{
+          captions: event.data.segment.captions,
+          captionStreams: event.data.segment.captionStreams,
+          metadata: event.data.segment.metadata
+        }],
+        isPartial: false
+      },
+      'captions and metadata are added to transmuxedData buffer'
+    );
+    assert.deepEqual(callback.callCount, 1, 'callback ran');
+    assert.deepEqual(
+      callback.args[0][0],
+      {
+        type: 'video',
+        // cast ArrayBuffer to TypedArray
+        data: new Uint8Array(new ArrayBuffer(0), 0, 0),
+        initSegment: new Uint8Array(new ArrayBuffer(0), 0, 0),
+        videoFrameDtsTime: 1
+      },
+      'callback passed the bytes for the segment and initSegment'
+    );
+  }
+);

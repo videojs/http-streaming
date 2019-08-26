@@ -1,16 +1,16 @@
+/* eslint-disable no-console */
+/* global window */
 const fs = require('fs');
 const path = require('path');
 
-const basePath  = path.resolve(__dirname, '..');
-const testDir = path.join(basePath, 'test');
-const segmentsDir = path.join(testDir, 'segments');
-const segmentsFilepath = path.join(testDir, 'test-segments.js');
+const segmentsDir = path.join(__dirname, '..', 'test', 'segments');
+const segmentsFilepath = path.join(__dirname, '..', 'test', 'dist', 'test-segments.js');
 
 const base64ToUint8Array = (base64) => {
   const decoded = window.atob(base64);
   const uint8Array = new Uint8Array(new ArrayBuffer(decoded.length));
 
-  for(let i = 0; i < decoded.length; i++) {
+  for (let i = 0; i < decoded.length; i++) {
     uint8Array[i] = decoded.charCodeAt(i);
   }
 
@@ -20,14 +20,24 @@ const base64ToUint8Array = (base64) => {
 const utf16CharCodesToString = (typedArray) => {
   let val = '';
 
-  typedArray.forEach((x) => {
+  Array.prototype.forEach.call(typedArray, (x) => {
     val += String.fromCharCode(x);
   });
 
   return val;
 };
 
-module.exports = {
+let fn = 'build';
+
+// parse args
+for (let i = 0; i < process.argv.length; i++) {
+  if ((/^-w|--watch$/).test(process.argv[i])) {
+    fn = 'watch';
+    break;
+  }
+}
+
+const createTestSegments = {
   build() {
     const files = fs.readdirSync(segmentsDir);
     const segmentData = {};
@@ -48,14 +58,25 @@ module.exports = {
 
     const segmentDataExportStrings = Object.keys(segmentData).reduce((acc, key) => {
       // use a function since the segment may be cleared out on usage
-      acc.push(`export const ${key} = () => base64ToUint8Array('${segmentData[key]}');`);
+      acc.push(`export const ${key} = () => {
+        cache.${key} = cache.${key} || base64ToUint8Array('${segmentData[key]}');
+
+        const dest = new Uint8Array(cache.${key}.byteLength);
+
+        dest.set(cache.${key});
+        return dest;
+      };`);
       // strings can be used to fake responseText in progress events
       // when testing partial appends of data
-      acc.push(`export const ${key}String = () => utf16CharCodesToString(${key}());`);
+      acc.push(`export const ${key}String = () => {
+        cache.${key}String = cache.${key}String || utf16CharCodesToString(${key}());
+        return cache.${key}String;
+      };`);
       return acc;
     }, []);
 
-    let segmentsFile =
+    const segmentsFile =
+      'const cache = {};\n' +
       `const base64ToUint8Array = ${base64ToUint8Array.toString()};\n` +
       `const utf16CharCodesToString = ${utf16CharCodesToString.toString()};\n` +
       segmentDataExportStrings.join('\n');
@@ -70,15 +91,7 @@ module.exports = {
       console.log('files in segments dir were changed rebuilding segments data');
       this.build();
     });
-  },
-
-  clean() {
-    if (fs.existsSync(segmentsFilepath)) {
-      try {
-        fs.unlinkSync(segmentsFilepath);
-      } catch(e) {
-        console.log(e);
-      }
-    }
   }
 };
+
+createTestSegments[fn]();

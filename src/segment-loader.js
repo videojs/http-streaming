@@ -11,7 +11,7 @@ import TransmuxWorker from 'worker!./transmuxer-worker.worker.js';
 import segmentTransmuxer from './segment-transmuxer';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
-import { CaptionParser } from 'mux.js/lib/mp4';
+import CaptionParser from 'mux.js/lib/mp4/caption-parser';
 import logger from './util/logger';
 import { concatSegments } from './util/segment';
 import {
@@ -59,11 +59,11 @@ export const illegalMediaSwitch = (loaderType, startingMedia, trackInfo) => {
  *
  * @param {TimeRange} seekable
  *        The current seekable range
- * @param {Number} currentTime
+ * @param {number} currentTime
  *        The current time of the player
- * @param {Number} targetDuration
+ * @param {number} targetDuration
  *        The target duration of the current playlist
- * @return {Number}
+ * @return {number}
  *         Time that is safe to remove from the back buffer without interupting playback
  */
 export const safeBackBufferTrimTime = (seekable, currentTime, targetDuration) => {
@@ -409,7 +409,7 @@ export default class SegmentLoader extends videojs.EventTarget {
    *
    * @param {Object} map
    *        The map object representing the init segment to get or set
-   * @param {Boolean=} set
+   * @param {boolean=} set
    *        If true, the init segment for the provided map should be saved
    * @return {Object}
    *         map object for desired init segment
@@ -440,7 +440,7 @@ export default class SegmentLoader extends videojs.EventTarget {
    *
    * @param {Object} key
    *        The key object representing the key to get or set
-   * @param {Boolean=} set
+   * @param {boolean=} set
    *        If true, the key for the provided key should be saved
    * @return {Object}
    *         Key object for desired key
@@ -476,7 +476,7 @@ export default class SegmentLoader extends videojs.EventTarget {
   /**
    * Returns true if all configuration required for loading is present, otherwise false.
    *
-   * @return {Boolean} True if the all configuration is ready for loading
+   * @return {boolean} True if the all configuration is ready for loading
    * @private
    */
   couldBeginLoading_() {
@@ -540,8 +540,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    let oldPlaylist = this.playlist_;
-    let segmentInfo = this.pendingSegment_;
+    const oldPlaylist = this.playlist_;
+    const segmentInfo = this.pendingSegment_;
 
     this.playlist_ = newPlaylist;
     this.xhrOptions_ = options;
@@ -594,7 +594,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // we reloaded the same playlist so we are in a live scenario
     // and we will likely need to adjust the mediaIndex
-    let mediaSequenceDiff = newPlaylist.mediaSequence - oldPlaylist.mediaSequence;
+    const mediaSequenceDiff = newPlaylist.mediaSequence - oldPlaylist.mediaSequence;
 
     this.logger_(`live window shift [${mediaSequenceDiff}]`);
 
@@ -647,6 +647,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
   /**
    * Delete all the buffered data and reset the SegmentLoader
+   *
    * @param {Function} [done] an optional callback to be executed when the remove
    * operation is complete
    */
@@ -658,6 +659,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     };
     this.resetLoader();
     this.remove(0, this.duration_(), done);
+
     // clears fmp4 captions
     if (this.captionParser_) {
       this.captionParser_.clearAllCaptions();
@@ -698,8 +700,9 @@ export default class SegmentLoader extends videojs.EventTarget {
 
   /**
    * Remove any data in the source buffer between start and end times
-   * @param {Number} start - the start time of the region to remove from the buffer
-   * @param {Number} end - the end time of the region to remove from the buffer
+   *
+   * @param {number} start - the start time of the region to remove from the buffer
+   * @param {number} end - the end time of the region to remove from the buffer
    * @param {Function} [done] - an optional callback to be executed when the remove
    * operation is complete
    */
@@ -730,16 +733,12 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     // remove any captions and ID3 tags
-    for (let track in this.inbandTextTracks_) {
+    for (const track in this.inbandTextTracks_) {
       removeCuesFromTrack(start, end, this.inbandTextTracks_[track]);
     }
+
     removeCuesFromTrack(start, end, this.segmentMetadataTrack_);
 
-    if (this.inbandTextTracks_) {
-      for (let id in this.inbandTextTracks_) {
-        removeCuesFromTrack(start, end, this.inbandTextTracks_[id]);
-      }
-    }
     // finished this function's removes
     removeFinished();
   }
@@ -772,8 +771,10 @@ export default class SegmentLoader extends videojs.EventTarget {
       window.clearTimeout(this.checkBufferTimeout_);
     }
 
-    this.checkBufferTimeout_ = window.setTimeout(this.monitorBufferTick_.bind(this),
-                                                 CHECK_BUFFER_DELAY);
+    this.checkBufferTimeout_ = window.setTimeout(
+      this.monitorBufferTick_.bind(this),
+      CHECK_BUFFER_DELAY
+    );
   }
 
   /**
@@ -793,21 +794,25 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     if (!this.syncPoint_) {
-      this.syncPoint_ = this.syncController_.getSyncPoint(this.playlist_,
-                                                          this.duration_(),
-                                                          this.currentTimeline_,
-                                                          this.currentTime_());
+      this.syncPoint_ = this.syncController_.getSyncPoint(
+        this.playlist_,
+        this.duration_(),
+        this.currentTimeline_,
+        this.currentTime_()
+      );
     }
 
     const buffered = this.buffered_();
 
     // see if we need to begin loading immediately
-    let segmentInfo = this.checkBuffer_(buffered,
-                                        this.playlist_,
-                                        this.mediaIndex,
-                                        this.hasPlayed_(),
-                                        this.currentTime_(),
-                                        this.syncPoint_);
+    const segmentInfo = this.checkBuffer_(
+      buffered,
+      this.playlist_,
+      this.mediaIndex,
+      this.hasPlayed_(),
+      this.currentTime_(),
+      this.syncPoint_
+    );
 
     if (!segmentInfo) {
       return;
@@ -844,7 +849,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       return false;
     }
 
-    if (this.loaderType === 'main' &&
+    if (this.loaderType_ === 'main' &&
         segmentInfo.startOfSegment < this.sourceUpdater_.videoTimestampOffset()) {
       return true;
     }
@@ -861,9 +866,9 @@ export default class SegmentLoader extends videojs.EventTarget {
    * on the state of the buffer or if appened segment was the final
    * segment in the playlist.
    *
-   * @param {Number} [mediaIndex] the media index of segment we last appended
+   * @param {number} [mediaIndex] the media index of segment we last appended
    * @param {Object} [playlist] a media playlist object
-   * @returns {Boolean} do we need to call endOfStream on the MediaSource
+   * @return {boolean} do we need to call endOfStream on the MediaSource
    */
   isEndOfStream_(mediaIndex = this.mediaIndex, playlist = this.playlist_) {
     if (!playlist || !this.mediaSource_) {
@@ -885,11 +890,11 @@ export default class SegmentLoader extends videojs.EventTarget {
    *
    * @param {TimeRanges} buffered - the state of the buffer
    * @param {Object} playlist - the playlist object to fetch segments from
-   * @param {Number} mediaIndex - the previous mediaIndex fetched or null
-   * @param {Boolean} hasPlayed - a flag indicating whether we have played or not
-   * @param {Number} currentTime - the playback position in seconds
+   * @param {number} mediaIndex - the previous mediaIndex fetched or null
+   * @param {boolean} hasPlayed - a flag indicating whether we have played or not
+   * @param {number} currentTime - the playback position in seconds
    * @param {Object} syncPoint - a segment info object that describes the
-   * @returns {Object} a segment request object that describes the segment to load
+   * @return {Object} a segment request object that describes the segment to load
    */
   checkBuffer_(buffered, playlist, mediaIndex, hasPlayed, currentTime, syncPoint) {
     let lastBufferedEnd = 0;
@@ -899,7 +904,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       lastBufferedEnd = buffered.end(buffered.length - 1);
     }
 
-    let bufferedTime = Math.max(0, lastBufferedEnd - currentTime);
+    const bufferedTime = Math.max(0, lastBufferedEnd - currentTime);
 
     if (!playlist.segments.length) {
       return null;
@@ -928,7 +933,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // Under normal playback conditions fetching is a simple walk forward
     if (mediaIndex !== null) {
-      let segment = playlist.segments[mediaIndex];
+      const segment = playlist.segments[mediaIndex];
 
       if (segment && segment.end) {
         startOfSegment = segment.end;
@@ -943,19 +948,23 @@ export default class SegmentLoader extends videojs.EventTarget {
     // fetch
     if (this.fetchAtBuffer_) {
       // Find the segment containing the end of the buffer
-      let mediaSourceInfo = Playlist.getMediaInfoForTime(playlist,
-                                                         lastBufferedEnd,
-                                                         syncPoint.segmentIndex,
-                                                         syncPoint.time);
+      const mediaSourceInfo = Playlist.getMediaInfoForTime(
+        playlist,
+        lastBufferedEnd,
+        syncPoint.segmentIndex,
+        syncPoint.time
+      );
 
       mediaIndex = mediaSourceInfo.mediaIndex;
       startOfSegment = mediaSourceInfo.startTime;
     } else {
       // Find the segment containing currentTime
-      let mediaSourceInfo = Playlist.getMediaInfoForTime(playlist,
-                                                         currentTime,
-                                                         syncPoint.segmentIndex,
-                                                         syncPoint.time);
+      const mediaSourceInfo = Playlist.getMediaInfoForTime(
+        playlist,
+        currentTime,
+        syncPoint.segmentIndex,
+        syncPoint.time
+      );
 
       mediaIndex = mediaSourceInfo.mediaIndex;
       startOfSegment = mediaSourceInfo.startTime;
@@ -971,14 +980,14 @@ export default class SegmentLoader extends videojs.EventTarget {
    * for that process.
    *
    * @param {Object} playlist - the playlist object to look for a
-   * @returns {Number} An index of a segment from the playlist to load
+   * @return {number} An index of a segment from the playlist to load
    */
   getSyncSegmentCandidate_(playlist) {
     if (this.currentTimeline_ === -1) {
       return 0;
     }
 
-    let segmentIndexArray = playlist.segments
+    const segmentIndexArray = playlist.segments
       .map((s, i) => {
         return {
           timeline: s.timeline,
@@ -998,7 +1007,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       return null;
     }
 
-    let segment = playlist.segments[mediaIndex];
+    const segment = playlist.segments[mediaIndex];
     const audioBuffered = this.sourceUpdater_.audioBuffered();
     const videoBuffered = this.sourceUpdater_.videoBuffered();
     let audioAppendStart;
@@ -1017,7 +1026,8 @@ export default class SegmentLoader extends videojs.EventTarget {
         // since the transmuxer is using the actual timing values, but the time is
         // adjusted by the timestmap offset, we must adjust the value here
         this.currentTime_() - this.sourceUpdater_.videoTimestampOffset(),
-        this.timeMapping_);
+        this.timeMapping_
+      );
     }
 
     return {
@@ -1059,7 +1069,7 @@ export default class SegmentLoader extends videojs.EventTarget {
    *
    * @param {Object} stats
    *        Object containing stats about the request timing and size
-   * @return {Boolean} True if the request was aborted, false otherwise
+   * @return {boolean} True if the request was aborted, false otherwise
    * @private
    */
   abortRequestEarly_(stats) {
@@ -1085,17 +1095,21 @@ export default class SegmentLoader extends videojs.EventTarget {
     const segmentDuration = this.pendingSegment_.duration;
 
     const requestTimeRemaining =
-      Playlist.estimateSegmentRequestTime(segmentDuration,
-                                          measuredBandwidth,
-                                          this.playlist_,
-                                          stats.bytesReceived);
+      Playlist.estimateSegmentRequestTime(
+        segmentDuration,
+        measuredBandwidth,
+        this.playlist_,
+        stats.bytesReceived
+      );
 
     // Subtract 1 from the timeUntilRebuffer so we still consider an early abort
     // if we are only left with less than 1 second when the request completes.
     // A negative timeUntilRebuffering indicates we are already rebuffering
-    const timeUntilRebuffer = timeUntilRebuffer_(this.buffered_(),
-                                                 currentTime,
-                                                 this.hls_.tech_.playbackRate()) - 1;
+    const timeUntilRebuffer = timeUntilRebuffer_(
+      this.buffered_(),
+      currentTime,
+      this.hls_.tech_.playbackRate()
+    ) - 1;
 
     // Only consider aborting early if the estimated time to finish the download
     // is larger than the estimated time until the player runs out of forward buffer
@@ -1234,8 +1248,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // Wait until we have some video data so that caption timing
     // can be adjusted by the timestamp offset
     if (!segmentInfo.hasAppendedData_) {
-      this.metadataQueue_.caption.push(
-        this.handleCaptions_.bind(this, simpleSegment, captionData));
+      this.metadataQueue_.caption.push(this.handleCaptions_.bind(this, simpleSegment, captionData));
       return;
     }
 
@@ -1297,8 +1310,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // we need to have appended data in order for the timestamp offset to be set
     if (!segmentInfo.hasAppendedData_) {
-      this.metadataQueue_.id3.push(
-        this.handleId3_.bind(this, simpleSegment, id3Frames, dispatchType));
+      this.metadataQueue_.id3.push(this.handleId3_.bind(this, simpleSegment, id3Frames, dispatchType));
       return;
     }
 
@@ -1396,8 +1408,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     // to the initSegment cache
     if (simpleSegment.map) {
       simpleSegment.map = this.initSegmentForMap(simpleSegment.map, true);
-      // move the map bytes onto the segment loader's segment state object
-      segmentInfo.segment.map.bytes = simpleSegment.map.bytes;
+      // move over init segment properties to media request
+      segmentInfo.segment.map = simpleSegment.map;
     }
 
     // if this request included a segment key, save that data in the cache
@@ -1515,6 +1527,10 @@ export default class SegmentLoader extends videojs.EventTarget {
       // the segment has a map
       this.appendInitSegment_[type] = map ? true : false;
 
+      // we need to clear out the fmp4 active init segment id, since
+      // we are appending the muxer init segment
+      this.activeInitSegmentId_ = null;
+
       return initSegment;
     }
 
@@ -1539,10 +1555,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       segments
     });
 
-    const videoSegmentTimingInfoCallback =
-      this.handleVideoSegmentTimingInfo_.bind(this, segmentInfo.requestId);
-
-    this.sourceUpdater_.appendBuffer({type, bytes, videoSegmentTimingInfoCallback}, (error) => {
+    this.sourceUpdater_.appendBuffer({type, bytes}, (error) => {
       if (error) {
         this.error(`appenderror for ${type} append with ${bytes.length} bytes`);
         // If an append errors, we can't recover.
@@ -1554,7 +1567,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     });
   }
 
-  handleVideoSegmentTimingInfo_(requestId, event) {
+  handleVideoSegmentTimingInfo_(requestId, videoSegmentTimingInfo) {
     if (!this.pendingSegment_ || requestId !== this.pendingSegment_.requestId) {
       return;
     }
@@ -1566,14 +1579,14 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     segment.videoTimingInfo.transmuxerPrependedSeconds =
-      event.videoSegmentTimingInfo.prependedContentDuration || 0;
+      videoSegmentTimingInfo.prependedContentDuration || 0;
     segment.videoTimingInfo.transmuxedPresentationStart =
-      event.videoSegmentTimingInfo.start.presentation;
+      videoSegmentTimingInfo.start.presentation;
     segment.videoTimingInfo.transmuxedPresentationEnd =
-      event.videoSegmentTimingInfo.end.presentation;
+      videoSegmentTimingInfo.end.presentation;
     // mainly used as a reference for debugging
     segment.videoTimingInfo.baseMediaDecodeTime =
-      event.videoSegmentTimingInfo.baseMediaDecodeTime;
+      videoSegmentTimingInfo.baseMediaDecodeTime;
   }
 
   appendData_(segmentInfo, result) {
@@ -1594,7 +1607,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       type,
       initSegment: result.initSegment,
       playlist: segmentInfo.playlist,
-      map: segmentInfo.segment.map
+      map: segmentInfo.isFmp4 ? segmentInfo.segment.map : null
     });
 
     this.appendToSourceBuffer_({ segmentInfo, type, initSegment, data });
@@ -1642,6 +1655,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       progressFn: this.handleProgress_.bind(this),
       trackInfoFn: this.handleTrackInfo_.bind(this),
       timingInfoFn: this.handleTimingInfo_.bind(this),
+      videoSegmentTimingInfoFn: this.handleVideoSegmentTimingInfo_.bind(this, segmentInfo.requestId),
       captionsFn: this.handleCaptions_.bind(this),
       id3Fn: this.handleId3_.bind(this),
 
@@ -1659,9 +1673,11 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @param {Object} segmentInfo - the current segment
    */
   trimBackBuffer_(segmentInfo) {
-    const removeToTime = safeBackBufferTrimTime(this.seekable_(),
-                                                this.currentTime_(),
-                                                this.playlist_.targetDuration || 10);
+    const removeToTime = safeBackBufferTrimTime(
+      this.seekable_(),
+      this.currentTime_(),
+      this.playlist_.targetDuration || 10
+    );
 
     // Chrome has a hard limit of 150MB of
     // buffer and a very conservative "garbage collector"
@@ -1681,7 +1697,7 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @private
    *
    * @param {Object} segmentInfo - the current segment
-   * @returns {Object} a simplified segment object copy
+   * @return {Object} a simplified segment object copy
    */
   createSimplifiedSegmentObj_(segmentInfo) {
     const segment = segmentInfo.segment;
@@ -1763,8 +1779,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // data, and can continue even if the source buffers are not set up and we didn't get
     // any data from the segment
     if (this.callQueue_.length) {
-      this.callQueue_.push(
-        this.segmentRequestFinished_.bind(this, error, simpleSegment, result));
+      this.callQueue_.push(this.segmentRequestFinished_.bind(this, error, simpleSegment, result));
       return;
     }
 
@@ -1824,8 +1839,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     segmentInfo.endOfAllRequests = simpleSegment.endOfAllRequests;
 
     if (result.gopInfo) {
-      this.gopBuffer_ = updateGopBuffer(
-        this.gopBuffer_, result.gopInfo, this.safeAppend_);
+      this.gopBuffer_ = updateGopBuffer(this.gopBuffer_, result.gopInfo, this.safeAppend_);
     }
 
     // Although we may have already started appending on progress, we shouldn't switch the
@@ -1943,12 +1957,10 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     if (waitForVideo) {
-      this.sourceUpdater_.videoQueueCallback(
-        this.checkAppendsDone_.bind(this, segmentInfo));
+      this.sourceUpdater_.videoQueueCallback(this.checkAppendsDone_.bind(this, segmentInfo));
     }
     if (waitForAudio) {
-      this.sourceUpdater_.audioQueueCallback(
-        this.checkAppendsDone_.bind(this, segmentInfo));
+      this.sourceUpdater_.audioQueueCallback(this.checkAppendsDone_.bind(this, segmentInfo));
     }
   }
 
@@ -2026,6 +2038,9 @@ export default class SegmentLoader extends videojs.EventTarget {
     const prioritizedTimingInfo = useVideoTimingInfo && segmentInfo.videoTimingInfo ?
       segmentInfo.videoTimingInfo : segmentInfo.audioTimingInfo;
 
+    if (!prioritizedTimingInfo) {
+      return;
+    }
     segmentInfo.timingInfo.end = typeof prioritizedTimingInfo.end === 'number' ?
       // End time may not exist in a case where we aren't parsing the full segment (one
       // current example is the case of fmp4), so use the rough duration to calculate an
