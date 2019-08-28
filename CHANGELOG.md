@@ -1,3 +1,14 @@
+<a name="1.10.6"></a>
+## [1.10.6](https://github.com/videojs/http-streaming/compare/v1.10.5...v1.10.6) (2019-08-28)
+
+### Bug Fixes
+
+* fix anamorphic video with chrome ([#648](https://github.com/videojs/http-streaming/issues/648)) ([50b5992](https://github.com/videojs/http-streaming/commit/50b5992)), closes [#312](https://github.com/videojs/http-streaming/issues/312)
+
+### Performance Improvements
+
+* save 15430 gzipped bytes with better mux.js imports ([#628](https://github.com/videojs/http-streaming/issues/628)) ([4e69d21](https://github.com/videojs/http-streaming/commit/4e69d21))
+
 <a name="1.10.5"></a>
 ## [1.10.5](https://github.com/videojs/http-streaming/compare/v1.10.5-1...v1.10.5) (2019-08-16)
 
