@@ -131,27 +131,72 @@ export const updateMaster = (master, media) => {
   return result;
 };
 
-export const setupMediaPlaylists = (master) => {
+/*
+ * Adds properties expected by VHS for consistency. For instance, m3u8-parser doesn't add
+ * an attributes object to media playlists that aren't a part of a master playlist. This
+ * function will add an empty object, if one is not provided, to allow VHS' code to expect
+ * media playlists to have the same form whether they are from a master or media playlist,
+ * and no matter what source type provided the media.
+ *
+ * @param {Object} config
+ * @param {Object} config.playlist
+ *        The media playlist
+ * @param {string} [config.masterUri]
+ *        URI of the master playlist containing the media playlist (if applicable)
+ * @param {number} [config.index=0]
+ *        Index of the media playlist within the master playlist list (if applicable)
+ */
+export const setupMediaPlaylist = ({ playlist, masterUri, index = 0 }) => {
+  // For media playlist sources, the URI is resolved at the time of the response (to
+  // handle redirects), therefore, only media playlists within a master must be resolved
+  // here.
+  if (masterUri) {
+    playlist.resolvedUri = resolveUrl(masterUri, playlist.uri);
+  }
+  playlist.id = index;
+
+  // Although the spec states an #EXT-X-STREAM-INF tag MUST have a
+  // BANDWIDTH attribute, we can play the stream without it. This means a poorly
+  // formatted master playlist may not have an attributes list. An attributes
+  // property is added here to prevent undefined references when we encounter
+  // this scenario.
+  //
+  // In addition, m3u8-parser does not attach an attributes property to media
+  // playlists so make sure that the property is attached to avoid the same undefined
+  // reference errors.
+  playlist.attributes = playlist.attributes || {};
+};
+
+/*
+ * For a consistent object schema, add properties expected by VHS to the media playlists
+ * within a master manifest.
+ *
+ * Also logs warnings if any issues are seen with the playlists.
+ *
+ * @param {Object} config
+ * @param {Object[]} config.playlists
+ *        The media playlists from a master manifest
+ * @param {string} [config.masterUri]
+ *        URI of the master playlist containing the media playlists
+ */
+export const setupMasterMediaPlaylists = ({ playlists, masterUri }) => {
   // setup by-URI lookups and resolve media playlist URIs
-  let i = master.playlists.length;
+  let i = playlists.length;
 
   while (i--) {
-    const playlist = master.playlists[i];
+    const playlist = playlists[i];
 
-    master.playlists[playlist.uri] = playlist;
-    playlist.resolvedUri = resolveUrl(master.uri, playlist.uri);
-    playlist.id = i;
+    playlists[playlist.uri] = playlist;
 
     if (!playlist.attributes) {
-      // Although the spec states an #EXT-X-STREAM-INF tag MUST have a
-      // BANDWIDTH attribute, we can play the stream without it. This means a poorly
-      // formatted master playlist may not have an attribute list. An attributes
-      // property is added here to prevent undefined references when we encounter
-      // this scenario.
-      playlist.attributes = {};
-
       log.warn('Invalid playlist STREAM-INF detected. Missing BANDWIDTH attribute.');
     }
+
+    setupMediaPlaylist({
+      playlist,
+      masterUri,
+      index: i
+    });
   }
 };
 
@@ -187,22 +232,91 @@ export const refreshDelay = (media, update) => {
   return delay;
 };
 
+/*
+ * Adds properties to the manifest that may not have been provided by the parser or object
+ * provider.
+ *
+ * @param {Object} manifest
+ *                 The manifest object
+ * @param {string=} srcUri
+ *                  The manifest's URI
+ */
+export const addPropertiesToParsedManifest = ({ manifest, srcUri }) => {
+  if (srcUri) {
+    manifest.uri = srcUri;
+  }
+
+  if (manifest.playlists) {
+    resolveMediaGroupUris(manifest);
+    setupMasterMediaPlaylists({
+      playlists: manifest.playlists,
+      masterUri: manifest.uri
+    });
+  } else {
+    setupMediaPlaylist({
+      playlist: manifest
+    });
+  }
+};
+
+/**
+ * Parses a given m3u8 playlist, then sets up the media playlists and groups to prepare it
+ * for use in VHS.
+ *
+ * This function is exported to allow others to reuse the same logic for constructing a
+ * VHS manifest object from an HLS manifest string. It provides for consistent resolution
+ * of playlists, media groups, and URIs as is done internally for VHS-downloaded
+ * manifests. This is particularly useful in cases where a user may want to manipulate a
+ * manifest object before passing it in as the source to VHS.
+ *
+ * @param {string} manifestString
+ *        The downloaded manifest string
+ * @param {Object[]} [customTagParsers]
+ *        An array of custom tag parsers for the m3u8-parser instance
+ * @param {Object[]} [customTagMappers]
+ *         An array of custom tag mappers for the m3u8-parser instance
+ */
+export const parseManifest = ({
+  manifestString,
+  customTagParsers = [],
+  customTagMappers = [],
+  src
+}) => {
+  const parser = new M3u8Parser();
+
+  customTagParsers.forEach(customParser => parser.addParser(customParser));
+  customTagMappers.forEach(mapper => parser.addTagMapper(mapper));
+
+  parser.push(manifestString);
+  parser.end();
+
+  const manifest = parser.manifest;
+
+  addPropertiesToParsedManifest({ manifest, srcUri: src });
+
+  return manifest;
+};
+
 /**
  * Load a playlist from a remote location
  *
  * @class PlaylistLoader
  * @extends Stream
- * @param {string} srcUrl the url to start with
+ * @param {string|Object} src url or object of manifest
  * @param {boolean} withCredentials the withCredentials xhr option
  * @class
  */
 export default class PlaylistLoader extends EventTarget {
-  constructor(srcUrl, hls, options = { }) {
+  constructor(src, hls, options = { }) {
     super();
+
+    if (!src) {
+      throw new Error('A non-empty playlist URL or object is required');
+    }
 
     const { withCredentials = false, handleManifestRedirects = false } = options;
 
-    this.srcUrl = srcUrl;
+    this.src = src;
     this.hls_ = hls;
     this.withCredentials = withCredentials;
     this.handleManifestRedirects = handleManifestRedirects;
@@ -211,10 +325,6 @@ export default class PlaylistLoader extends EventTarget {
 
     this.customTagParsers = (hlsOptions && hlsOptions.customTagParsers) || [];
     this.customTagMappers = (hlsOptions && hlsOptions.customTagMappers) || [];
-
-    if (!this.srcUrl) {
-      throw new Error('A non-empty playlist URL is required');
-    }
 
     // initialize the loader state
     this.state = 'HAVE_NOTHING';
@@ -241,7 +351,7 @@ export default class PlaylistLoader extends EventTarget {
           return this.playlistRequestError(this.request, this.media().uri, 'HAVE_METADATA');
         }
 
-        this.haveMetadata(this.request, this.media().uri);
+        this.haveMetadata(this.request.responseText, this.media().uri);
       });
     });
   }
@@ -267,34 +377,27 @@ export default class PlaylistLoader extends EventTarget {
 
   // update the playlist loader's state in response to a new or
   // updated playlist.
-  haveMetadata(xhr, url) {
+  haveMetadata(playlist, url) {
     // any in-flight request is now finished
     this.request = null;
     this.state = 'HAVE_METADATA';
 
-    const parser = new M3u8Parser();
-
-    // adding custom tag parsers
-    this.customTagParsers.forEach(customParser => parser.addParser(customParser));
-
-    // adding custom tag mappers
-    this.customTagMappers.forEach(mapper => parser.addTagMapper(mapper));
-
-    parser.push(xhr.responseText);
-    parser.end();
-    parser.manifest.uri = url;
-    // m3u8-parser does not attach an attributes property to media playlists so make
-    // sure that the property is attached to avoid undefined reference errors
-    parser.manifest.attributes = parser.manifest.attributes || {};
+    const manifest = typeof playlist === 'string' ?
+      parseManifest({
+        manifestString: playlist,
+        customTagParsers: this.customTagParsers,
+        customTagMappers: this.customTagMappers,
+        src: url
+      }) : playlist;
 
     // merge this playlist into the master
-    const update = updateMaster(this.master, parser.manifest);
+    const update = updateMaster(this.master, manifest);
 
-    this.targetDuration = parser.manifest.targetDuration;
+    this.targetDuration = manifest.targetDuration;
 
     if (update) {
       this.master = update;
-      this.media_ = this.master.playlists[parser.manifest.uri];
+      this.media_ = this.master.playlists[manifest.uri];
     } else {
       this.trigger('playlistunchanged');
     }
@@ -377,7 +480,11 @@ export default class PlaylistLoader extends EventTarget {
     const mediaChange = !this.media_ || playlist.uri !== this.media_.uri;
 
     // switch to fully loaded playlists immediately
-    if (this.master.playlists[playlist.uri].endList) {
+    if (this.master.playlists[playlist.uri].endList ||
+        // handle the case of a playlist object pre-loaded (e.g., if using the a data URI
+        // with a manifest object and demuxed audio, where the playlist will be within
+        // mediaGroups)
+        (playlist.endList && playlist.segments.length)) {
       // abort outstanding playlist requests
       if (this.request) {
         this.request.onreadystatechange = null;
@@ -390,7 +497,17 @@ export default class PlaylistLoader extends EventTarget {
       // trigger media change if the active media has been updated
       if (mediaChange) {
         this.trigger('mediachanging');
-        this.trigger('mediachange');
+
+        if (startingState === 'HAVE_MASTER') {
+          // The initial playlist was a master manifest, and the first media selected was
+          // also provided (in the form of a resolved playlist object) as part of the
+          // source object (rather than just a URL).  Therefore, since the media playlist
+          // doesn't need to be requested, loadedmetadata won't trigger as part of the
+          // normal flow, and needs an explicit trigger here.
+          this.trigger('loadedmetadata');
+        } else {
+          this.trigger('mediachange');
+        }
       }
       return;
     }
@@ -428,13 +545,17 @@ export default class PlaylistLoader extends EventTarget {
         return;
       }
 
-      playlist.resolvedUri = resolveManifestRedirect(this.handleManifestRedirects, playlist.resolvedUri, req);
+      playlist.resolvedUri = resolveManifestRedirect(
+        this.handleManifestRedirects,
+        playlist.resolvedUri,
+        req.responseURL
+      );
 
       if (error) {
         return this.playlistRequestError(this.request, playlist.uri, startingState);
       }
 
-      this.haveMetadata(req, playlist.uri);
+      this.haveMetadata(req.responseText, playlist.uri);
 
       // fire loadedmetadata the first time a media playlist is loaded
       if (startingState === 'HAVE_MASTER') {
@@ -504,9 +625,39 @@ export default class PlaylistLoader extends EventTarget {
   start() {
     this.started = true;
 
+    if (typeof this.src === 'object') {
+      // uri is expected to be part of the object, but resolvedUri is added on internally
+      this.src.resolvedUri = this.src.uri;
+
+      // Although a user may have provided an already VHS-processed manifest object as the
+      // source, since JSON can't represent certain attributes used by VHS (namely, in the
+      // playlists array VHS will add named properties), processing the manifest object
+      // through our property adding function should provide those non-representable
+      // attributes.
+      addPropertiesToParsedManifest({
+        manifest: this.src,
+        srcUri: this.src.uri
+      });
+
+      // Since a manifest object was passed in as the source (instead of a URL), the first
+      // request can be skipped (since the top level of the manifest, at a minimum, is
+      // already available as a parsed manifest object. However, it's still possible, if
+      // the manifest object represents a master playlist, that some media playlists will
+      // need to be resolved before the starting segment list is available. Therefore,
+      // go directly to setup of the initial playlist, and let the normal flow continue
+      // from there.
+      //
+      // Note that the call to setup is asynchronous, as other sections of VHS may assume
+      // that the first request is asynchronous.
+      setTimeout(() => {
+        this.setupInitialPlaylist(this.src);
+      }, 0);
+      return;
+    }
+
     // request the specified URL
     this.request = this.hls_.xhr({
-      uri: this.srcUrl,
+      uri: this.src,
       withCredentials: this.withCredentials
     }, (error, req) => {
       // disposed
@@ -520,7 +671,7 @@ export default class PlaylistLoader extends EventTarget {
       if (error) {
         this.error = {
           status: req.status,
-          message: `HLS playlist request error at URL: ${this.srcUrl}.`,
+          message: `HLS playlist request error at URL: ${this.src}.`,
           responseText: req.responseText,
           // MEDIA_ERR_NETWORK
           code: 2
@@ -531,61 +682,83 @@ export default class PlaylistLoader extends EventTarget {
         return this.trigger('error');
       }
 
-      const parser = new M3u8Parser();
+      this.src = resolveManifestRedirect(
+        this.handleManifestRedirects,
+        this.src,
+        req.responseURL
+      );
 
-      // adding custom tag parsers
-      this.customTagParsers.forEach(customParser => parser.addParser(customParser));
+      const manifest = parseManifest({
+        manifestString: req.responseText,
+        customTagParsers: this.customTagParsers,
+        customTagMappers: this.customTagMappers,
+        src: this.src
+      });
 
-      // adding custom tag mappers
-      this.customTagMappers.forEach(mapper => parser.addTagMapper(mapper));
+      manifest.uri = this.src;
+      manifest.resolvedUri = this.src;
 
-      parser.push(req.responseText);
-      parser.end();
-
-      this.state = 'HAVE_MASTER';
-
-      this.srcUrl = resolveManifestRedirect(this.handleManifestRedirects, this.srcUrl, req);
-
-      parser.manifest.uri = this.srcUrl;
-
-      // loaded a master playlist
-      if (parser.manifest.playlists) {
-        this.master = parser.manifest;
-
-        setupMediaPlaylists(this.master);
-        resolveMediaGroupUris(this.master);
-
-        this.trigger('loadedplaylist');
-        if (!this.request) {
-          // no media playlist was specifically selected so start
-          // from the first listed one
-          this.media(parser.manifest.playlists[0]);
-        }
-        return;
-      }
-
-      // loaded a media playlist
-      // infer a master playlist if none was previously requested
-      this.master = {
-        mediaGroups: {
-          'AUDIO': {},
-          'VIDEO': {},
-          'CLOSED-CAPTIONS': {},
-          'SUBTITLES': {}
-        },
-        uri: window.location.href,
-        playlists: [{
-          uri: this.srcUrl,
-          id: 0,
-          resolvedUri: this.srcUrl,
-          // m3u8-parser does not attach an attributes property to media playlists so make
-          // sure that the property is attached to avoid undefined reference errors
-          attributes: {}
-        }]
-      };
-      this.master.playlists[this.srcUrl] = this.master.playlists[0];
-      this.haveMetadata(req, this.srcUrl);
-      return this.trigger('loadedmetadata');
+      this.setupInitialPlaylist(manifest);
     });
+  }
+
+  /**
+   * Given a manifest object that's either a master or media playlist, trigger the proper
+   * events and set the state of the playlist loader.
+   *
+   * If the manifest object represents a master playlist, `loadedplaylist` will be
+   * triggered to allow listeners to select a playlist, or, the loader will default to the
+   * first one.
+   *
+   * If the manifest object represents a media playlist, `loadedplaylist` will be
+   * triggered followed by `loadedmetadata`, as the only available playlist is loaded.
+   *
+   * In the case of a media playlist, a master playlist object wrapper with one playlist
+   * will be created so that all logic can handle playlists in the same fashion (as an
+   * assumed manifest object schema).
+   *
+   * @param {Object} manifest
+   *        The parsed manifest object
+   */
+  setupInitialPlaylist(manifest) {
+    this.state = 'HAVE_MASTER';
+
+    if (manifest.playlists) {
+      this.master = manifest;
+      this.trigger('loadedplaylist');
+      if (!this.request) {
+        // no media playlist was specifically selected so start
+        // from the first listed one
+        this.media(this.master.playlists[0]);
+      }
+      return;
+    }
+
+    // loaded a media playlist, infer a master playlist
+    this.master = {
+      mediaGroups: {
+        'AUDIO': {},
+        'VIDEO': {},
+        'CLOSED-CAPTIONS': {},
+        'SUBTITLES': {}
+      },
+      uri: window.location.href,
+      playlists: [{
+        uri: this.src,
+        id: 0,
+        resolvedUri: this.src,
+        // m3u8-parser does not attach an attributes property to media playlists so make
+        // sure that the property is attached to avoid undefined reference errors
+        attributes: {}
+      }]
+    };
+
+    // In the case where a media playlist was passed in as an object, use the playlist's
+    // resolved URI attribute (since there's no reference to the source URI otherwise).
+    const playlistId = typeof this.src === 'string' ? this.src : this.src.resolvedUri;
+
+    this.master.playlists[playlistId] = this.master.playlists[0];
+    this.haveMetadata(manifest, this.src);
+    return this.trigger('loadedmetadata');
   }
 }

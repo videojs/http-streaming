@@ -24,6 +24,7 @@ import Playlist from '../src/playlist';
 import Config from '../src/config';
 import PlaylistLoader from '../src/playlist-loader';
 import DashPlaylistLoader from '../src/dash-playlist-loader';
+import { parseManifest } from '../src/playlist-loader';
 import {
   muxed as muxedSegment,
   audio as audioSegment,
@@ -86,20 +87,19 @@ QUnit.module('MasterPlaylistController', {
 
 QUnit.test('throws error when given an empty URL', function(assert) {
   const options = {
-    url: 'test',
+    src: 'test',
     tech: this.player.tech_
   };
-
   const controller = new MasterPlaylistController(options);
 
   assert.ok(controller, 'can create with options');
 
   controller.dispose();
 
-  options.url = '';
+  options.src = '';
   assert.throws(() => {
     new MasterPlaylistController(options); // eslint-disable-line no-new
-  }, /A non-empty playlist URL is required/, 'requires a non empty url');
+  }, /A non-empty playlist or playlist URL is required/, 'requires a non empty url');
 });
 
 QUnit.test('obeys none preload option', function(assert) {
@@ -134,7 +134,7 @@ QUnit.test('obeys auto preload option', function(assert) {
 
 QUnit.test('passes options to PlaylistLoader', function(assert) {
   const options = {
-    url: 'test',
+    src: 'test',
     tech: this.player.tech_
   };
 
@@ -172,11 +172,10 @@ QUnit.test('obeys metadata preload option', function(assert) {
 
 QUnit.test('creates appropriate PlaylistLoader for sourceType', function(assert) {
   const options = {
-    url: 'test',
+    src: 'test',
     tech: this.player.tech_,
     sourceType: 'hls'
   };
-
   let mpc = new MasterPlaylistController(options);
 
   assert.ok(
@@ -192,12 +191,20 @@ QUnit.test('creates appropriate PlaylistLoader for sourceType', function(assert)
     mpc.masterPlaylistLoader_ instanceof DashPlaylistLoader,
     'created a dash playlist loader'
   );
+
   mpc.dispose();
+  options.sourceType = 'vhs-json';
+  mpc = new MasterPlaylistController(options);
+
+  assert.ok(
+    mpc.masterPlaylistLoader_ instanceof PlaylistLoader,
+    'created a standard playlist loader for vhs-json source type'
+  );
 });
 
 QUnit.test('passes options to SegmentLoader', function(assert) {
   const options = {
-    url: 'test',
+    src: 'test',
     tech: this.player.tech_
   };
 
@@ -3894,6 +3901,43 @@ QUnit.test('Exception in play promise should be caught', function(assert) {
 
   assert.ok(true, 'rejects dom exception');
 });
+
+QUnit.test(
+  'when data URI is a media playlist with segments resolved, ' +
+  ' state is updated without a playlist request',
+  function(assert) {
+    this.requests.length = 0;
+    // must recreate player for new mock media source to open
+    this.player = createPlayer();
+
+    const manifestString = manifests.playlist;
+    const manifestObject = parseManifest({
+      manifestString,
+      src: 'playlist.m3u8'
+    });
+
+    this.player.src({
+      src: `data:application/vnd.vhs+json,${JSON.stringify(manifestObject)}`,
+      type: 'application/vnd.vhs+json'
+    });
+    // media source must be open for duration to be set
+    openMediaSource(this.player, this.clock);
+
+    this.masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+
+    // a duration update indicates a master playlist controller state update from the media
+    // playlist
+    assert.equal(this.masterPlaylistController.duration(), 161.4167, 'duration set');
+
+    // segment loader has started, not waiting on any playlist requests
+    assert.equal(this.requests.length, 1, 'one request');
+    assert.equal(
+      this.requests[0].uri,
+      `${window.location.origin}/test/hls_450k_video.ts`,
+      'requested first segment'
+    );
+  }
+);
 
 QUnit.test('adds duration to media source after loading playlist', function(assert) {
   openMediaSource(this.player, this.clock);

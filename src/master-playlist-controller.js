@@ -58,7 +58,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     super();
 
     const {
-      url,
+      src,
       handleManifestRedirects,
       withCredentials,
       tech,
@@ -73,8 +73,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       handlePartialData
     } = options;
 
-    if (!url) {
-      throw new Error('A non-empty playlist URL is required');
+    if (!src) {
+      throw new Error('A non-empty playlist or playlist URL is required');
     }
 
     Hls = externHls;
@@ -146,9 +146,14 @@ export class MasterPlaylistController extends videojs.EventTarget {
       sourceUpdater: this.sourceUpdater_
     };
 
+    // The source type check not only determines whether we should be using a special DASH
+    // playlist loader, but also covers the case where the provided src is a pre-parsed
+    // manifest object (instead of just a URL). In this case the media type, and thus the
+    // resultant source type, will be different from either DASH or HLS, and will default
+    // to the standard playlist loader.
     this.masterPlaylistLoader_ = this.sourceType_ === 'dash' ?
-      new DashPlaylistLoader(url, this.hls_, this.requestOptions_) :
-      new PlaylistLoader(url, this.hls_, this.requestOptions_);
+      new DashPlaylistLoader(src, this.hls_, this.requestOptions_) :
+      new PlaylistLoader(src, this.hls_, this.requestOptions_);
     this.setupMasterPlaylistLoaderListeners_();
 
     // setup segment loaders
@@ -262,29 +267,20 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
         this.initialMedia_ = selectedMedia;
         this.masterPlaylistLoader_.media(this.initialMedia_);
+
+        // Under the standard case where a source URL is provided, loadedplaylist will
+        // fire again since the playlist will be requested. In the case of vhs-json
+        // (where the pre-parsed manifest object is provided), when the media playlist's
+        // segments list is already available, a media playlist won't be requested, and
+        // loadedplaylist won't fire again, so the playlist handler must be called on its
+        // own here.
+        if (this.sourceType_ === 'vhs-json' && this.initialMedia_.segments) {
+          this.handleUpdatedMediaPlaylist(this.initialMedia_);
+        }
         return;
       }
 
-      if (this.useCueTags_) {
-        this.updateAdCues_(updatedPlaylist);
-      }
-
-      // TODO: Create a new event on the PlaylistLoader that signals
-      // that the segments have changed in some way and use that to
-      // update the SegmentLoader instead of doing it twice here and
-      // on `mediachange`
-      this.mainSegmentLoader_.playlist(updatedPlaylist, this.requestOptions_);
-      this.updateDuration(!updatedPlaylist.endList);
-
-      // If the player isn't paused, ensure that the segment loader is running,
-      // as it is possible that it was temporarily stopped while waiting for
-      // a playlist (e.g., in case the playlist errored and we re-requested it).
-      if (!this.tech_.paused()) {
-        this.mainSegmentLoader_.load();
-        if (this.audioSegmentLoader_) {
-          this.audioSegmentLoader_.load();
-        }
-      }
+      this.handleUpdatedMediaPlaylist(updatedPlaylist);
     });
 
     this.masterPlaylistLoader_.on('error', () => {
@@ -345,6 +341,38 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.masterPlaylistLoader_.on('renditionenabled', () => {
       this.tech_.trigger({type: 'usage', name: 'hls-rendition-enabled'});
     });
+  }
+
+  /**
+   * Given an updated media playlist (whether it was loaded for the first time, or
+   * refreshed for live playlists), update any relevant properties and state to reflect
+   * changes in the media that should be accounted for (e.g., cues and duration).
+   *
+   * @param {Object} updatedPlaylist the updated media playlist object
+   *
+   * @private
+   */
+  handleUpdatedMediaPlaylist(updatedPlaylist) {
+    if (this.useCueTags_) {
+      this.updateAdCues_(updatedPlaylist);
+    }
+
+    // TODO: Create a new event on the PlaylistLoader that signals
+    // that the segments have changed in some way and use that to
+    // update the SegmentLoader instead of doing it twice here and
+    // on `mediachange`
+    this.mainSegmentLoader_.playlist(updatedPlaylist, this.requestOptions_);
+    this.updateDuration(!updatedPlaylist.endList);
+
+    // If the player isn't paused, ensure that the segment loader is running,
+    // as it is possible that it was temporarily stopped while waiting for
+    // a playlist (e.g., in case the playlist errored and we re-requested it).
+    if (!this.tech_.paused()) {
+      this.mainSegmentLoader_.load();
+      if (this.audioSegmentLoader_) {
+        this.audioSegmentLoader_.load();
+      }
+    }
   }
 
   /**

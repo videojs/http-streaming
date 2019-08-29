@@ -25,19 +25,18 @@ export const resolveUrl = function(baseURL, relativeURL) {
  *
  * @api private
  *
- * @param  {string} url - an url being requested
- * @param  {XMLHttpRequest} req - xhr request result
+ * @param {boolean} handleManifestRedirect - whether to handle redirects
+ * @param {string} url - url being requested
+ * @param {string} responseUrl - xhr response url result
  *
  * @return {string}
  */
-export const resolveManifestRedirect = (handleManifestRedirect, url, req) => {
+export const resolveManifestRedirect = (handleManifestRedirect, url, responseUrl) => {
   // To understand how the responseURL below is set and generated:
   // - https://fetch.spec.whatwg.org/#concept-response-url
   // - https://fetch.spec.whatwg.org/#atomic-http-redirect-handling
-  if (handleManifestRedirect && req.responseURL &&
-    url !== req.responseURL
-  ) {
-    return req.responseURL;
+  if (handleManifestRedirect && responseUrl && url !== responseUrl) {
+    return responseUrl;
   }
 
   return url;

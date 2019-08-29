@@ -6,7 +6,8 @@ import {
   requestSidx_,
   generateSidxKey,
   compareSidxEntry,
-  filterChangedSidxMappings
+  filterChangedSidxMappings,
+  parseMasterXml
 } from '../src/dash-playlist-loader';
 import xhrFactory from '../src/xhr';
 import {
@@ -1192,7 +1193,12 @@ QUnit.test('parseMasterXml: setup phony playlists and resolves uris', function(a
   loader.load();
   this.standardXHRResponse(this.requests.shift());
 
-  const masterPlaylist = loader.parseMasterXml();
+  const masterPlaylist = parseMasterXml({
+    masterXml: loader.masterXml_,
+    srcUrl: loader.srcUrl,
+    clientOffset: loader.clientOffset_,
+    sidxMapping: loader.sidxMapping_
+  });
 
   assert.strictEqual(masterPlaylist.uri, loader.srcUrl, 'master playlist uri set correctly');
   assert.strictEqual(masterPlaylist.playlists[0].uri, 'placeholder-uri-0');
@@ -1213,11 +1219,22 @@ QUnit.test('parseMasterXml: includes sidx info if available and matches playlist
 
   loader.load();
   this.standardXHRResponse(this.requests.shift());
-  const origParsedMaster = loader.parseMasterXml();
+
+  const origParsedMaster = parseMasterXml({
+    masterXml: loader.masterXml_,
+    srcUrl: loader.srcUrl,
+    clientOffset: loader.clientOffset_,
+    sidxMapping: loader.sidxMapping_
+  });
 
   loader.sidxMapping_ = {};
   assert.deepEqual(
-    loader.parseMasterXml(),
+    parseMasterXml({
+      masterXml: loader.masterXml_,
+      srcUrl: loader.srcUrl,
+      clientOffset: loader.clientOffset_,
+      sidxMapping: loader.sidxMapping_
+    }),
     origParsedMaster,
     'empty sidxMapping will not affect master xml parsing'
   );
@@ -1238,7 +1255,13 @@ QUnit.test('parseMasterXml: includes sidx info if available and matches playlist
       }]
     }
   };
-  const newMaster = loader.parseMasterXml();
+
+  const newMaster = parseMasterXml({
+    masterXml: loader.masterXml_,
+    srcUrl: loader.srcUrl,
+    clientOffset: loader.clientOffset_,
+    sidxMapping: loader.sidxMapping_
+  });
 
   assert.deepEqual(
     newMaster.playlists[0].segments[0].byterange,
@@ -1415,7 +1438,12 @@ QUnit.test('refreshXml_: requests the sidx if it changed', function(assert) {
   // child playlist
   this.standardXHRResponse(this.requests.shift());
 
-  const oldMaster = loader.parseMasterXml();
+  const oldMaster = parseMasterXml({
+    masterXml: loader.masterXml_,
+    srcUrl: loader.srcUrl,
+    clientOffset: loader.clientOffset_,
+    sidxMapping: loader.sidxMapping_
+  });
   const newMasterXml = loader.masterXml_.replace(/(indexRange)=\"\d+-\d+\"/g, '$1="400-599"');
 
   loader.masterXml_ = newMasterXml;
@@ -1426,16 +1454,31 @@ QUnit.test('refreshXml_: requests the sidx if it changed', function(assert) {
     },
     'sidx is the original in the xml'
   );
+
+  let newMaster = parseMasterXml({
+    masterXml: loader.masterXml_,
+    srcUrl: loader.srcUrl,
+    clientOffset: loader.clientOffset_,
+    sidxMapping: loader.sidxMapping_
+  });
+
   assert.notEqual(
-    loader.parseMasterXml().playlists[0].sidx.byterange.offset,
+    newMaster.playlists[0].sidx.byterange.offset,
     oldMaster.playlists[0].sidx.byterange.offset,
     'the sidx has been changed'
   );
   loader.refreshXml_();
 
+  newMaster = parseMasterXml({
+    masterXml: loader.masterXml_,
+    srcUrl: loader.srcUrl,
+    clientOffset: loader.clientOffset_,
+    sidxMapping: loader.sidxMapping_
+  });
+
   assert.strictEqual(this.requests.length, 1, 'manifest is being requested');
   assert.deepEqual(
-    loader.parseMasterXml().playlists[0].sidx.byterange,
+    newMaster.playlists[0].sidx.byterange,
     {
       offset: 400,
       length: 200

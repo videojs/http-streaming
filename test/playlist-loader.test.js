@@ -3,13 +3,16 @@ import {
   default as PlaylistLoader,
   updateSegments,
   updateMaster,
-  setupMediaPlaylists,
+  setupMediaPlaylist,
+  setupMasterMediaPlaylists,
   resolveMediaGroupUris,
-  refreshDelay
+  refreshDelay,
+  parseManifest
 } from '../src/playlist-loader';
 import xhrFactory from '../src/xhr';
 import { useFakeEnvironment, urlTo } from './test-helpers';
 import window from 'global/window';
+import manifests from './dist/test-manifests.js';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
 
@@ -615,19 +618,82 @@ QUnit.test('updateMaster resolves key and map URIs', function(assert) {
   );
 });
 
-QUnit.test('setupMediaPlaylists does nothing if no playlists', function(assert) {
+QUnit.test('setupMediaPlaylist sets attributes property if not set', function(assert) {
+  const playlist = {};
+
+  setupMediaPlaylist({ playlist });
+
+  assert.deepEqual(playlist.attributes, {}, 'set empty object for attributes');
+});
+
+QUnit.test('setupMediaPlaylist does not overwrite attributes', function(assert) {
+  const playlist = {
+    attributes: {
+      test: 1
+    }
+  };
+
+  setupMediaPlaylist({ playlist });
+
+  assert.deepEqual(playlist.attributes, { test: 1 }, 'did not overwrite attributes');
+});
+
+QUnit.test('setupMediaPlaylist defaults to id of 0', function(assert) {
+  const playlist = {};
+
+  setupMediaPlaylist({ playlist });
+
+  assert.equal(playlist.id, 0, 'defaulted to id of 0');
+});
+
+QUnit.test('setupMediaPlaylist uses provided index as id', function(assert) {
+  const playlist = {};
+
+  setupMediaPlaylist({ playlist, index: 33 });
+
+  assert.equal(playlist.id, 33, 'used provided index as id');
+});
+
+QUnit.test('setupMediaPlaylist does not set resolvedUri if no master URI', function(assert) {
+  const playlist = {
+    uri: 'test'
+  };
+
+  setupMediaPlaylist({ playlist });
+
+  assert.notOk('resolvedUri' in playlist, 'did not set resolvedUri');
+});
+
+QUnit.test('setupMediaPlaylist resolves URI based on master URI', function(assert) {
+  const playlist = {
+    uri: 'test'
+  };
+
+  setupMediaPlaylist({ playlist, masterUri: 'http://test.com' });
+
+  assert.equal(
+    playlist.resolvedUri,
+    'http://test.com/test',
+    'set resolvedUri based on masterUri'
+  );
+});
+
+QUnit.test('setupMasterMediaPlaylists does nothing if no playlists', function(assert) {
   const master = {
     playlists: []
   };
 
-  setupMediaPlaylists(master);
+  setupMasterMediaPlaylists({
+    playlists: master.playlists,
+    masterUri: master.src
+  });
 
   assert.deepEqual(master, {
     playlists: []
   }, 'master remains unchanged');
 });
 
-QUnit.test('setupMediaPlaylists adds URI keys for each playlist', function(assert) {
+QUnit.test('setupMasterMediaPlaylists adds URI keys for each playlist', function(assert) {
   const master = {
     uri: 'master-uri',
     playlists: [{
@@ -649,7 +715,10 @@ QUnit.test('setupMediaPlaylists adds URI keys for each playlist', function(asser
     id: 1
   };
 
-  setupMediaPlaylists(master);
+  setupMasterMediaPlaylists({
+    playlists: master.playlists,
+    masterUri: master.uri
+  });
 
   assert.deepEqual(master.playlists[0], expectedPlaylist0, 'retained playlist indices');
   assert.deepEqual(master.playlists[1], expectedPlaylist1, 'retained playlist indices');
@@ -669,7 +738,7 @@ QUnit.test('setupMediaPlaylists adds URI keys for each playlist', function(asser
   );
 });
 
-QUnit.test('setupMediaPlaylists adds attributes objects if missing', function(assert) {
+QUnit.test('setupMasterMediaPlaylists adds attributes objects if missing', function(assert) {
   const master = {
     uri: 'master-uri',
     playlists: [{
@@ -679,7 +748,10 @@ QUnit.test('setupMediaPlaylists adds attributes objects if missing', function(as
     }]
   };
 
-  setupMediaPlaylists(master);
+  setupMasterMediaPlaylists({
+    playlists: master.playlists,
+    masterUri: master.uri
+  });
 
   assert.ok(master.playlists[0].attributes, 'added attributes object');
   assert.ok(master.playlists[1].attributes, 'added attributes object');
@@ -697,7 +769,7 @@ QUnit.test('setupMediaPlaylists adds attributes objects if missing', function(as
   );
 });
 
-QUnit.test('setupMediaPlaylists resolves playlist URIs', function(assert) {
+QUnit.test('setupMasterMediaPlaylists resolves playlist URIs', function(assert) {
   const master = {
     uri: 'master-uri',
     playlists: [{
@@ -709,7 +781,10 @@ QUnit.test('setupMediaPlaylists resolves playlist URIs', function(assert) {
     }]
   };
 
-  setupMediaPlaylists(master);
+  setupMasterMediaPlaylists({
+    playlists: master.playlists,
+    masterUri: master.uri
+  });
 
   assert.equal(master.playlists[0].resolvedUri, urlTo('uri-0'), 'resolves URI');
   assert.equal(master.playlists[1].resolvedUri, urlTo('uri-1'), 'resolves URI');
@@ -879,13 +954,17 @@ QUnit.test('uses last segment duration for refresh delay', function(assert) {
   );
 });
 
-QUnit.test('throws if the playlist url is empty or undefined', function(assert) {
-  assert.throws(function() {
-    PlaylistLoader();
-  }, 'requires an argument');
-  assert.throws(function() {
-    PlaylistLoader('');
-  }, 'does not accept the empty string');
+QUnit.test('throws if the playlist src is empty or undefined', function(assert) {
+  assert.throws(
+    () => new PlaylistLoader(),
+    /A non-empty playlist URL or object is required/,
+    'requires an argument'
+  );
+  assert.throws(
+    () => new PlaylistLoader(''),
+    /A non-empty playlist URL or object is required/,
+    'does not accept the empty string'
+  );
 });
 
 QUnit.test('starts without any metadata', function(assert) {
@@ -997,6 +1076,36 @@ QUnit.test('executes custom parsers and mappers', function(assert) {
 });
 
 QUnit.test(
+  'adds properties to playlists array when given a master playlist object',
+  function(assert) {
+    // JSON does not support properties in arrays, so even though parseManifest will add
+    // the references to playlists by their URI to the playlists array, this should remove
+    // those properties. It's a good test for using the data URI attribute to pass the JSON
+    // of a manifest object, where those properties will be removed, and should be re-added
+    // by playlist-loader.
+    const masterPlaylist = JSON.parse(JSON.stringify(parseManifest({
+      manifestString: manifests.master,
+      src: 'master.m3u8'
+    })));
+    const firstPlaylistUri = masterPlaylist.playlists[0].uri;
+
+    assert.notOk(
+      firstPlaylistUri in masterPlaylist.playlists,
+      'parsed manifest playlists array does not contain playlist URI properties'
+    );
+
+    const loader = new PlaylistLoader(masterPlaylist, this.fakeHls);
+
+    loader.load();
+
+    assert.ok(
+      firstPlaylistUri in masterPlaylist.playlists,
+      'parsed manifest playlists array contains playlist URI properties'
+    );
+  }
+);
+
+QUnit.test(
   'jumps to HAVE_METADATA when initialized with a media playlist',
   function(assert) {
     let loadedmetadatas = 0;
@@ -1021,6 +1130,104 @@ QUnit.test(
     assert.strictEqual(loader.state, 'HAVE_METADATA', 'the state is correct');
     assert.strictEqual(this.requests.length, 0, 'no more requests are made');
     assert.strictEqual(loadedmetadatas, 1, 'fired one loadedmetadata');
+  }
+);
+
+QUnit.test(
+  'moves to HAVE_METADATA without a request when initialized with a media playlist' +
+    ' object',
+  function(assert) {
+    const mediaPlaylist = parseManifest({
+      manifestString: manifests.media,
+      src: 'media.m3u8'
+    });
+
+    const loader = new PlaylistLoader(mediaPlaylist, this.fakeHls);
+    let loadedmetadataEvents = 0;
+
+    loader.on('loadedmetadata', () => loadedmetadataEvents++);
+    loader.load();
+
+    assert.equal(this.requests.length, 0, 'no requests');
+    assert.equal(loadedmetadataEvents, 0, 'no loadedmetadata events');
+    assert.equal(loader.state, 'HAVE_NOTHING', 'state is HAVE_NOTHING');
+
+    // preparing of manifest by playlist loader is still asynchronous for source objects
+    this.clock.tick(1);
+
+    assert.equal(this.requests.length, 0, 'no requests');
+    assert.equal(loadedmetadataEvents, 1, 'one loadedmetadata event');
+    assert.ok(loader.master, 'inferred a master playlist');
+    assert.deepEqual(mediaPlaylist, loader.media(), 'set the media playlist');
+    assert.equal(loader.state, 'HAVE_METADATA', 'state is HAVE_METADATA');
+  }
+);
+
+QUnit.test(
+  'stays at HAVE_MASTER and makes a request when initialized with a master playlist ' +
+    ' without resolved media playlists',
+  function(assert) {
+    const masterPlaylist = parseManifest({
+      manifestString: manifests.master,
+      src: 'master.m3u8'
+    });
+
+    const loader = new PlaylistLoader(masterPlaylist, this.fakeHls);
+    let loadedmetadataEvents = 0;
+
+    loader.on('loadedmetadata', () => loadedmetadataEvents++);
+    loader.load();
+
+    assert.equal(this.requests.length, 0, 'no requests');
+    assert.equal(loadedmetadataEvents, 0, 'no loadedmetadata events');
+    assert.equal(loader.state, 'HAVE_NOTHING', 'state is HAVE_NOTHING');
+
+    // preparing of manifest by playlist loader is still asynchronous for source objects
+    this.clock.tick(1);
+
+    assert.equal(this.requests.length, 1, 'one request');
+    assert.equal(loadedmetadataEvents, 0, 'no loadedmetadata event');
+    assert.deepEqual(loader.master, masterPlaylist, 'set the master playlist');
+    assert.equal(loader.state, 'SWITCHING_MEDIA', 'state is SWITCHING_MEDIA');
+  }
+);
+
+QUnit.test(
+  'moves to HAVE_METADATA without a request when initialized with a master playlist ' +
+    ' object with resolved media playlists',
+  function(assert) {
+    const masterPlaylist = parseManifest({
+      manifestString: manifests.master,
+      src: 'master.m3u8'
+    });
+    const mediaPlaylist = parseManifest({
+      manifestString: manifests.media,
+      src: 'media.m3u8'
+    });
+
+    // If no playlist is selected after the first loadedplaylist event, then playlist loader
+    // defaults to the first playlist. Here it's already resolved, so loadedmetadata should
+    // fire immediately.
+    masterPlaylist.playlists[0] = mediaPlaylist;
+
+    const loader = new PlaylistLoader(masterPlaylist, this.fakeHls);
+    let loadedmetadataEvents = 0;
+
+    loader.on('loadedmetadata', () => loadedmetadataEvents++);
+    loader.load();
+
+    assert.equal(this.requests.length, 0, 'no requests');
+    assert.equal(loadedmetadataEvents, 0, 'no loadedmetadata events');
+    assert.equal(loader.state, 'HAVE_NOTHING', 'state is HAVE_NOTHING');
+
+    // preparing of manifest by playlist loader is still asynchronous for source objects
+    this.clock.tick(1);
+
+    assert.equal(this.requests.length, 0, 'no requests');
+    assert.equal(loadedmetadataEvents, 1, 'one loadedmetadata event');
+    assert.deepEqual(loader.master, masterPlaylist, 'set the master playlist');
+    assert.deepEqual(mediaPlaylist, loader.media(), 'set the media playlist');
+    assert.equal(loader.state, 'HAVE_METADATA', 'state is HAVE_METADATA');
   }
 );
 
@@ -2131,3 +2338,142 @@ QUnit.test(
     assert.ok(loader.media().endList, 'flushed the final line of input');
   }
 );
+
+QUnit.module('parseManifest');
+
+QUnit.test('parses media manifest string into object', function(assert) {
+  assert.deepEqual(
+    parseManifest({
+      manifestString: manifests.media,
+      src: 'media.m3u8'
+    }), {
+      attributes: {},
+      allowCache: true,
+      uri: 'media.m3u8',
+      endList: true,
+      mediaSequence: 0,
+      discontinuitySequence: 0,
+      playlistType: 'VOD',
+      targetDuration: 10,
+      discontinuityStarts: [],
+      id: 0,
+      segments: [{
+        duration: 10,
+        timeline: 0,
+        uri: 'media-00001.ts'
+      }, {
+        duration: 10,
+        timeline: 0,
+        uri: 'media-00002.ts'
+      }, {
+        duration: 10,
+        timeline: 0,
+        uri: 'media-00003.ts'
+      }, {
+        duration: 10,
+        timeline: 0,
+        uri: 'media-00004.ts'
+      }]
+    },
+    'parsed media manifest string into correct object'
+  );
+});
+
+QUnit.test('parses master manifest string into object', function(assert) {
+  assert.deepEqual(
+    parseManifest({
+      manifestString: manifests.master,
+      src: 'master.m3u8'
+    }),
+    {
+      allowCache: true,
+      discontinuityStarts: [],
+      mediaGroups: {
+        'AUDIO': {},
+        'CLOSED-CAPTIONS': {},
+        'SUBTITLES': {},
+        'VIDEO': {}
+      },
+      uri: 'master.m3u8',
+      segments: [],
+      playlists: [{
+        attributes: {
+          'BANDWIDTH': 240000,
+          'RESOLUTION': {
+            width: 396,
+            height: 224
+          },
+          'PROGRAM-ID': 1
+        },
+        id: 0,
+        uri: 'media.m3u8',
+        resolvedUri: `${window.location.origin}/test/media.m3u8`,
+        timeline: 0
+      }, {
+        attributes: {
+          'BANDWIDTH': 40000,
+          'PROGRAM-ID': 1
+        },
+        id: 1,
+        uri: 'media1.m3u8',
+        resolvedUri: `${window.location.origin}/test/media1.m3u8`,
+        timeline: 0
+      }, {
+        attributes: {
+          'BANDWIDTH': 440000,
+          'RESOLUTION': {
+            width: 396,
+            height: 224
+          },
+          'PROGRAM-ID': 1
+        },
+        id: 2,
+        uri: 'media2.m3u8',
+        resolvedUri: `${window.location.origin}/test/media2.m3u8`,
+        timeline: 0
+      }, {
+        attributes: {
+          'BANDWIDTH': 1928000,
+          'RESOLUTION': {
+            width: 960,
+            height: 540
+          },
+          'PROGRAM-ID': 1
+        },
+        id: 3,
+        uri: 'media3.m3u8',
+        resolvedUri: `${window.location.origin}/test/media3.m3u8`,
+        timeline: 0
+      }]
+    },
+    'parsed master manifest string into correct object'
+  );
+});
+
+QUnit.test('uses custom tag parsers and mappers', function(assert) {
+  const manifestObject = parseManifest({
+    manifestString: manifests.media,
+    src: 'media.m3u8',
+    // Zen total duration is provided in the media manifest, i.e.,
+    // #ZEN-TOTAL-DURATION:57.9911
+    customTagMappers: [{
+      expression: /^#ZEN-TOTAL-DURATION/,
+      map(line) {
+        return `#TOTAL-DURATION:${parseFloat(line.split(':')[1])}`;
+      }
+    }],
+    customTagParsers: [{
+      expression: /#TOTAL-DURATION/,
+      customType: 'totalDuration',
+      dataParser(line) {
+        return parseFloat(line.split(':')[1]);
+      }
+    }]
+  });
+
+  assert.deepEqual(
+    manifestObject.custom,
+    { totalDuration: 57.9911 },
+    'used custom tag parsers and mappers'
+  );
+});
