@@ -392,8 +392,8 @@ export const initialize = {
         let properties = mediaGroups[type][groupId][variantLabel];
         let playlistLoader;
 
-        // if manifest object was provided as part of the source, and the media playlist
-        // was resolved, use the resolved media playlist object
+        // if a manifest object was provided as the source, and the media playlist was
+        // resolved, use the resolved media playlist object
         if (sourceType === 'vhs-json' && properties.playlists) {
           playlistLoader = new PlaylistLoader(
             properties.playlists[0],

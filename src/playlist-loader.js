@@ -134,9 +134,9 @@ export const updateMaster = (master, media) => {
 /*
  * Adds properties expected by VHS for consistency. For instance, m3u8-parser doesn't add
  * an attributes object to media playlists that aren't a part of a master playlist. This
- * function will add an empty object, if one is not provided, to allow VHS' code to expect
- * media playlists to have the same form whether they are from a master or media playlist,
- * and no matter what source type provided the media.
+ * function will add an empty object, if one is not provided, to allow VHS' code to assume
+ * media playlists maintain a consistent structure, whether the original source was a
+ * master or media playlist,
  *
  * @param {Object} config
  * @param {Object} config.playlist
@@ -144,7 +144,8 @@ export const updateMaster = (master, media) => {
  * @param {string} [config.masterUri]
  *        URI of the master playlist containing the media playlist (if applicable)
  * @param {number} [config.index=0]
- *        Index of the media playlist within the master playlist list (if applicable)
+ *        Index of the media playlist within the master object's playlists array (if
+ *        applicable)
  */
 export const setupMediaPlaylist = ({ playlist, masterUri, index = 0 }) => {
   // For media playlist sources, the URI is resolved at the time of the response (to
@@ -481,9 +482,9 @@ export default class PlaylistLoader extends EventTarget {
 
     // switch to fully loaded playlists immediately
     if (this.master.playlists[playlist.uri].endList ||
-        // handle the case of a playlist object pre-loaded (e.g., if using the a data URI
-        // with a manifest object and demuxed audio, where the playlist will be within
-        // mediaGroups)
+        // handle the case of a pre-loaded playlist object (e.g., if using a data URI with
+        // a manifest object and a pre-resolved media playlist or pre-resolved audio media
+        // group playlist for the case of demuxed audio)
         (playlist.endList && playlist.segments.length)) {
       // abort outstanding playlist requests
       if (this.request) {
@@ -501,7 +502,7 @@ export default class PlaylistLoader extends EventTarget {
         if (startingState === 'HAVE_MASTER') {
           // The initial playlist was a master manifest, and the first media selected was
           // also provided (in the form of a resolved playlist object) as part of the
-          // source object (rather than just a URL).  Therefore, since the media playlist
+          // source object (rather than just a URL). Therefore, since the media playlist
           // doesn't need to be requested, loadedmetadata won't trigger as part of the
           // normal flow, and needs an explicit trigger here.
           this.trigger('loadedmetadata');
@@ -627,6 +628,8 @@ export default class PlaylistLoader extends EventTarget {
 
     if (typeof this.src === 'object') {
       // uri is expected to be part of the object, but resolvedUri is added on internally
+      // after the initial request. Since there's no request for pre-resolved manifests,
+      // add on resolvedUri here.
       this.src.resolvedUri = this.src.uri;
 
       // Although a user may have provided an already VHS-processed manifest object as the
@@ -641,11 +644,10 @@ export default class PlaylistLoader extends EventTarget {
 
       // Since a manifest object was passed in as the source (instead of a URL), the first
       // request can be skipped (since the top level of the manifest, at a minimum, is
-      // already available as a parsed manifest object. However, it's still possible, if
-      // the manifest object represents a master playlist, that some media playlists will
-      // need to be resolved before the starting segment list is available. Therefore,
-      // go directly to setup of the initial playlist, and let the normal flow continue
-      // from there.
+      // already available as a parsed manifest object. However, if the manifest object
+      // represents a master playlist, some media playlists may need to be resolved before
+      // the starting segment list is available. Therefore, go directly to setup of the
+      // initial playlist, and let the normal flow continue from there.
       //
       // Note that the call to setup is asynchronous, as other sections of VHS may assume
       // that the first request is asynchronous.
@@ -707,8 +709,8 @@ export default class PlaylistLoader extends EventTarget {
    * events and set the state of the playlist loader.
    *
    * If the manifest object represents a master playlist, `loadedplaylist` will be
-   * triggered to allow listeners to select a playlist, or, the loader will default to the
-   * first one.
+   * triggered to allow listeners to select a playlist. If none is selected, the loader
+   * will default to the first one in the playlists array.
    *
    * If the manifest object represents a media playlist, `loadedplaylist` will be
    * triggered followed by `loadedmetadata`, as the only available playlist is loaded.

@@ -99,7 +99,8 @@ const simpleTypeFromSourceType = (type) => {
   // traditional source URL.
   //
   // See https://en.wikipedia.org/wiki/Media_type for details on specifying media types.
-  // But in this case, vnd is for vendor, VHS is for this project, and the +json suffix
+  //
+  // In this case, vnd is for vendor, VHS is for this project, and the +json suffix
   // identifies the structure of the media type.
   if (type === 'application/vnd.vhs+json') {
     return 'vhs-json';
