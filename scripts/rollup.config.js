@@ -7,6 +7,11 @@ const {terser} = require('rollup-plugin-terser');
 const options = {
   input: 'src/videojs-http-streaming.js',
   distName: 'videojs-http-streaming',
+  globals(defaults) {
+    defaults.browser.xmldom = 'window';
+    defaults.test.xmldom = 'window';
+    return defaults;
+  },
   externals(defaults) {
     return Object.assign(defaults, {
       module: defaults.module.concat([
