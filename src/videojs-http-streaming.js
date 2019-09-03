@@ -31,6 +31,7 @@ import {
 import { version } from '../package.json';
 // import needed to register middleware
 import './middleware-set-current-time';
+import { isAudioCodec, isVideoCodec, parseContentType } from './util/codecs';
 
 const Hls = {
   PlaylistLoader,
@@ -140,18 +141,54 @@ Hls.canPlaySource = function() {
     'your player\'s techOrder.');
 };
 
-const emeKeySystems = (keySystemOptions, videoPlaylist, audioPlaylist) => {
+const emeKeySystems = (keySystemOptions, mainSegmentLoader, audioSegmentLoader) => {
   if (!keySystemOptions) {
     return keySystemOptions;
   }
 
+  let videoMimeType;
+  let audioMimeType;
+
+  // if there is a mimeType associated with the audioSegmentLoader, then the audio
+  // and video mimeType and codec strings are already in the format we need to
+  // pass with the other key systems
+  if (audioSegmentLoader.mimeType_) {
+    videoMimeType = mainSegmentLoader.mimeType_;
+    audioMimeType = audioSegmentLoader.mimeType_;
+
+  // if there is no audioSegmentLoader mimeType, then we have to create the
+  // the audio and video mimeType/codec strings from information extrapolated
+  // from the mainSegmentLoader mimeType (ex. 'video/mp4; codecs="mp4, avc1"' -->
+  // 'video/mp4; codecs="avc1"' and 'audio/mp4; codecs="mp4"')
+  } else {
+    const parsedMimeType = parseContentType(mainSegmentLoader.mimeType_);
+    const codecs = parsedMimeType.parameters.codecs.split(',');
+
+    let audioCodec;
+    let videoCodec;
+
+    codecs.forEach(codec => {
+      codec = codec.trim();
+
+      if (isAudioCodec(codec)) {
+        audioCodec = codec;
+      } else if (isVideoCodec(codec)) {
+        videoCodec = codec;
+      }
+    });
+
+    videoMimeType = `${parsedMimeType.type}; codecs="${videoCodec}"`;
+    audioMimeType = `${parsedMimeType.type.replace('video', 'audio')}; codecs="${audioCodec}"`;
+  }
+
   // upsert the content types based on the selected playlist
   const keySystemContentTypes = {};
+  const videoPlaylist = mainSegmentLoader.playlist_;
 
   for (let keySystem in keySystemOptions) {
     keySystemContentTypes[keySystem] = {
-      audioContentType: `audio/mp4; codecs="${audioPlaylist.attributes.CODECS}"`,
-      videoContentType: `video/mp4; codecs="${videoPlaylist.attributes.CODECS}"`
+      audioContentType: audioMimeType,
+      videoContentType: videoMimeType
     };
 
     if (videoPlaylist.contentProtection &&
@@ -172,16 +209,16 @@ const emeKeySystems = (keySystemOptions, videoPlaylist, audioPlaylist) => {
 };
 
 const setupEmeOptions = (hlsHandler) => {
-  if (hlsHandler.options_.sourceType !== 'dash') {
-    return;
-  }
+  const mainSegmentLoader = hlsHandler.masterPlaylistController_.mainSegmentLoader_;
+  const audioSegmentLoader = hlsHandler.masterPlaylistController_.audioSegmentLoader_;
+
   const player = videojs.players[hlsHandler.tech_.options_.playerId];
 
   if (player.eme) {
     const sourceOptions = emeKeySystems(
       hlsHandler.source_.keySystems,
-      hlsHandler.playlists.media(),
-      hlsHandler.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader.media()
+      mainSegmentLoader,
+      audioSegmentLoader
     );
 
     if (sourceOptions) {
