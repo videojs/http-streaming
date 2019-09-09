@@ -36,6 +36,9 @@ module.exports = function(config) {
   };
 
   config = generate(config, options);
+  config.preprocessors = {
+    '**/*.js': ['sourcemap']
+  };
 
   // any other custom stuff not supported by options here!
 };

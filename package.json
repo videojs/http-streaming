@@ -77,6 +77,7 @@
     "es6-shim": "^0.35.5",
     "jsdoc": "BrandonOCasey/jsdoc#feat/plugin-from-cli",
     "karma": "^4.0.0",
+    "karma-sourcemap-loader": "^0.3.7",
     "lodash": "^4.17.4",
     "lodash-compat": "^3.10.0",
     "nomnoml": "^0.3.0",
