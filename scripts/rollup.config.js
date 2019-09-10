@@ -56,10 +56,6 @@ const options = {
 };
 const config = generate(options);
 
-if (config.builds.test) {
-  config.builds.test.output[0].sourcemap = 'inline';
-}
-
 // Add additonal builds/customization here!
 
 // export the builds to rollup
