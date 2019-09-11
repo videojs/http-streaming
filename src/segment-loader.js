@@ -1948,6 +1948,20 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     segmentInfo.waitingOnAppends = 0;
 
+    // segments with no data
+    if (!segmentInfo.hasAppendedData_) {
+      // override settings for metadata only segments
+      segmentInfo.timestampOffset = segmentInfo.startOfSegment;
+      segmentInfo.timingInfo = {start: 0};
+      segmentInfo.waitingOnAppends++;
+
+      // update the timestampoffset
+      this.updateSourceBufferTimestampOffset_(segmentInfo);
+      // append is "done" instantly with no data.
+      this.checkAppendsDone_(segmentInfo);
+      return;
+    }
+
     // Since source updater could call back synchronously, do the increments first.
     if (waitForVideo) {
       segmentInfo.waitingOnAppends++;
