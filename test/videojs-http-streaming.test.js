@@ -3757,23 +3757,22 @@ QUnit.test('configures eme for DASH if present on selectedinitialmedia', functio
 
   this.clock.tick(1);
 
-  const masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
-
-  masterPlaylistController.sourceUpdater_.codecs = {
+  this.player.tech_.hls.masterPlaylistController_.sourceUpdater_.codecs = {
     audio: 'audio-codec',
     video: 'video-codec'
   };
-  masterPlaylistController.mainSegmentLoader_ = {
-    playlist_: {
+
+  this.player.tech_.hls.playlists = {
+    media: () => ({
       contentProtection: {
         keySystem1: {
           pssh: 'test'
         }
       }
-    }
+    })
   };
 
-  masterPlaylistController.trigger('selectedinitialmedia');
+  this.player.tech_.hls.masterPlaylistController_.trigger('selectedinitialmedia');
 
   assert.deepEqual(this.player.eme.options, {
     previousSetting: 1
@@ -3811,19 +3810,18 @@ QUnit.test('configures eme for HLS if present on selectedinitialmedia', function
 
   this.clock.tick(1);
 
-  const masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
-
-  masterPlaylistController.sourceUpdater_.codecs = {
+  this.player.tech_.hls.masterPlaylistController_.sourceUpdater_.codecs = {
     video: 'avc1.420015, mp4a.40.2c'
   };
-  masterPlaylistController.mainSegmentLoader_ = {
-    playlist_: {
+
+  this.player.tech_.hls.playlists = {
+    media: () => ({
       contentProtection: {
         keySystem1: {
           pssh: 'test'
         }
       }
-    }
+    })
   };
 
   this.player.tech_.hls.masterPlaylistController_.trigger('selectedinitialmedia');
