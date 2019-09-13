@@ -7,18 +7,19 @@ const {terser} = require('rollup-plugin-terser');
 const options = {
   input: 'src/videojs-http-streaming.js',
   distName: 'videojs-http-streaming',
+  globals(defaults) {
+    defaults.browser.xmldom = 'window';
+    defaults.test.xmldom = 'window';
+    return defaults;
+  },
   externals(defaults) {
     return Object.assign(defaults, {
       module: defaults.module.concat([
         'aes-decrypter',
         'm3u8-parser',
         'mpd-parser',
-        'mux.js/lib/mp4',
-        'mux.js/lib/mp4/probe',
-        'mux.js/lib/tools/mp4-inspector',
-        'mux.js/lib/tools/ts-inspector.js',
-        'mux.js/lib/utils/clock',
-        'url-toolkit'
+        'mux.js',
+        '@videojs/vhs-utils'
       ])
     });
   },
@@ -37,7 +38,11 @@ const options = {
   primedPlugins(defaults) {
     return Object.assign(defaults, {
       worker: worker(),
-      uglify: terser({output: {comments: 'some'}, compress: {passes: 2}})
+      uglify: terser({
+        output: {comments: 'some'},
+        compress: {passes: 2},
+        include: [/^.+\.min\.js$/]
+      })
     });
   },
   babel(defaults) {
@@ -55,7 +60,7 @@ const config = generate(options);
 
 // export the builds to rollup
 export default [
-  config.makeBuild('module', {
+  config.makeBuild('browser', {
     input: 'src/decrypter-worker.js',
     output: {
       format: 'iife',
@@ -65,7 +70,7 @@ export default [
     external: []
   }),
 
-  config.makeBuild('module', {
+  config.makeBuild('browser', {
     input: 'src/transmuxer-worker.js',
     output: {
       format: 'iife',

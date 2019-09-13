@@ -810,48 +810,50 @@ QUnit.test('setDuration waits for video buffer to finish updating', function(ass
   assert.ok(this.sourceUpdater.updating(), 'updating during appends');
 });
 
-QUnit.test(
-  'setDuration waits for both audio and video buffers to finish updating',
-  function(assert) {
-    const done = assert.async();
-    let appendsFinished = 0;
+if (!videojs.browser.IS_EDGE) {
+  QUnit.test(
+    'setDuration waits for both audio and video buffers to finish updating',
+    function(assert) {
+      const done = assert.async();
+      let appendsFinished = 0;
 
-    assert.expect(7);
+      assert.expect(7);
 
-    this.sourceUpdater.createSourceBuffers({
-      audio: 'mp4a.40.2',
-      video: 'avc1.4D001E'
-    });
+      this.sourceUpdater.createSourceBuffers({
+        audio: 'mp4a.40.2',
+        video: 'avc1.4D001E'
+      });
 
-    assert.notOk(this.sourceUpdater.updating(), 'not updating by default');
+      assert.notOk(this.sourceUpdater.updating(), 'not updating by default');
 
-    const checkDuration = () => {
-    // duration is set to infinity if content is appended before an explicit duration is
-    // set https://w3c.github.io/media-source/#sourcebuffer-init-segment-received
-      assert.equal(this.mediaSource.duration, Infinity, 'duration not set on media source');
+      const checkDuration = () => {
+        // duration is set to infinity if content is appended before an explicit duration is
+        // set https://w3c.github.io/media-source/#sourcebuffer-init-segment-received
+        assert.equal(this.mediaSource.duration, Infinity, 'duration not set on media source');
 
-      if (appendsFinished === 0) {
-      // try to set the duration while one of the buffers is still updating, this should
-      // happen after the other setDuration call
-        this.sourceUpdater.setDuration(12, () => {
-          assert.equal(this.mediaSource.duration, 12, 'set duration on media source');
-          done();
-        });
-      }
+        if (appendsFinished === 0) {
+          // try to set the duration while one of the buffers is still updating, this should
+          // happen after the other setDuration call
+          this.sourceUpdater.setDuration(12, () => {
+            assert.equal(this.mediaSource.duration, 12, 'set duration on media source');
+            done();
+          });
+        }
 
-      appendsFinished++;
-    };
+        appendsFinished++;
+      };
 
-    this.sourceUpdater.appendBuffer({type: 'video', bytes: mp4VideoTotal()}, checkDuration);
-    this.sourceUpdater.appendBuffer({type: 'audio', bytes: mp4AudioTotal()}, checkDuration);
-    this.sourceUpdater.setDuration(11, () => {
-      assert.equal(this.mediaSource.duration, 11, 'set duration on media source');
-    });
+      this.sourceUpdater.appendBuffer({type: 'video', bytes: mp4VideoTotal()}, checkDuration);
+      this.sourceUpdater.appendBuffer({type: 'audio', bytes: mp4AudioTotal()}, checkDuration);
+      this.sourceUpdater.setDuration(11, () => {
+        assert.equal(this.mediaSource.duration, 11, 'set duration on media source');
+      });
 
-    checkInitialDuration(this.mediaSource);
-    assert.ok(this.sourceUpdater.updating(), 'updating during appends');
-  }
-);
+      checkInitialDuration(this.mediaSource);
+      assert.ok(this.sourceUpdater.updating(), 'updating during appends');
+    }
+  );
+}
 
 QUnit.test(
   'setDuration blocks audio and video queue entries until it finishes',
