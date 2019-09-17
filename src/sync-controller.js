@@ -4,6 +4,7 @@
 
 import mp4probe from 'mux.js/lib/mp4/probe';
 import tsInspector from 'mux.js/lib/tools/ts-inspector.js';
+import { parseTraf } from 'mux.js/lib/tools/mp4-inspector.js';
 import { sumDurations } from './playlist';
 import videojs from 'video.js';
 import logger from './util/logger';
@@ -415,25 +416,55 @@ export default class SyncController extends videojs.EventTarget {
   }
 
   /**
-   * Probe an fmp4 or an mpeg2-ts segment to determine the start of the segment
-   * in it's internal "media time".
+   * Probe an fmp4 segment to determine the start of the segment
+   * in it's internal "composition time", which is equal to the base
+   * media decode time plus the composition time offset value
    *
    * @private
    * @param {SegmentInfo} segmentInfo - The current active request information
-   * @return {object} The start and end time of the current segment in "media time"
+   * @return {object} The start and end time of the current segment in "composition time"
    */
   probeMp4Segment_(segmentInfo) {
     let segment = segmentInfo.segment;
     let timescales = mp4probe.timescale(segment.map.bytes);
-    let startTime = mp4probe.startTime(timescales, segmentInfo.bytes);
+    let trafBoxes = mp4probe.findBox(segmentInfo.bytes, ['moof', 'traf']);
+    let baseMediaDecodeTime = 0;
+    let compositionTimeOffset = 0;
+    let trackId;
+    let timescale;
+    let compositionStartTime;
+
+    if (trafBoxes && trafBoxes.length) {
+      // The spec states that track run samples contained within a `traf` box are contiguous, but
+      // it does not explicitly state whether the `traf` boxes themselves are contiguous.
+      // We will assume that they are, so we only need the first to calculate start time.
+      const parsedTraf = parseTraf(trafBoxes[0]);
+
+      for (var i = 0; i < parsedTraf.boxes.length; i++) {
+        if (parsedTraf.boxes[i].type === 'tfhd') {
+          trackId = parsedTraf.boxes[i].trackId;
+        } else if (parsedTraf.boxes[i].type === 'tfdt') {
+          baseMediaDecodeTime = parsedTraf.boxes[i].baseMediaDecodeTime;
+        } else if (parsedTraf.boxes[i].type === 'trun' && parsedTraf.boxes[i].samples.length) {
+          compositionTimeOffset = parsedTraf.boxes[i].samples[0].compositionTimeOffset || 0;
+        }
+      }
+    }
+
+    // Assume a 90kHz clock if no timescale was specified. This assumption comes from
+    // mux.js (https://github.com/videojs/mux.js/blob/master/lib/mp4/probe.js#L153-L154)
+    // so we use it here for consistency
+    timescale = timescales[trackId] || 90e3;
+
+    compositionStartTime = (baseMediaDecodeTime + compositionTimeOffset) / timescale;
 
     if (segmentInfo.timestampOffset !== null) {
-      segmentInfo.timestampOffset -= startTime;
+      segmentInfo.timestampOffset -= compositionStartTime;
     }
 
     return {
-      start: startTime,
-      end: startTime + segment.duration
+      start: compositionStartTime,
+      end: compositionStartTime + segment.duration
     };
   }
 
