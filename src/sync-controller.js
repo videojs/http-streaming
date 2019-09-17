@@ -456,6 +456,7 @@ export default class SyncController extends videojs.EventTarget {
     // so we use it here for consistency
     timescale = timescales[trackId] || 90e3;
 
+    // calculate the composition start time, in seconds
     compositionStartTime = (baseMediaDecodeTime + compositionTimeOffset) / timescale;
 
     if (segmentInfo.timestampOffset !== null) {
