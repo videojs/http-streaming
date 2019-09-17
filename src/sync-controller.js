@@ -425,14 +425,14 @@ export default class SyncController extends videojs.EventTarget {
    * @return {object} The start and end time of the current segment in "composition time"
    */
   probeMp4Segment_(segmentInfo) {
-    let segment = segmentInfo.segment;
-    let timescales = mp4probe.timescale(segment.map.bytes);
-    let trafBoxes = mp4probe.findBox(segmentInfo.bytes, ['moof', 'traf']);
+    const segment = segmentInfo.segment;
+    // get timescales from init segment
+    const timescales = mp4probe.timescale(segment.map.bytes);
+    // get `traf` boxes from the media segment
+    const trafBoxes = mp4probe.findBox(segmentInfo.bytes, ['moof', 'traf']);
     let baseMediaDecodeTime = 0;
     let compositionTimeOffset = 0;
     let trackId;
-    let timescale;
-    let compositionStartTime;
 
     if (trafBoxes && trafBoxes.length) {
       // The spec states that track run samples contained within a `traf` box are contiguous, but
@@ -451,13 +451,14 @@ export default class SyncController extends videojs.EventTarget {
       }
     }
 
-    // Assume a 90kHz clock if no timescale was specified. This assumption comes from
-    // mux.js (https://github.com/videojs/mux.js/blob/master/lib/mp4/probe.js#L153-L154)
+    // Get timescale for this specific track. Assume a 90kHz clock if no timescale was
+    // specified. This assumption comes from mux.js
+    // (https://github.com/videojs/mux.js/blob/master/lib/mp4/probe.js#L153-L154)
     // so we use it here for consistency
-    timescale = timescales[trackId] || 90e3;
+    const timescale = timescales[trackId] || 90e3;
 
     // calculate the composition start time, in seconds
-    compositionStartTime = (baseMediaDecodeTime + compositionTimeOffset) / timescale;
+    const compositionStartTime = (baseMediaDecodeTime + compositionTimeOffset) / timescale;
 
     if (segmentInfo.timestampOffset !== null) {
       segmentInfo.timestampOffset -= compositionStartTime;
