@@ -4,7 +4,7 @@
 
 import mp4probe from 'mux.js/lib/mp4/probe';
 import tsInspector from 'mux.js/lib/tools/ts-inspector.js';
-import { parseTraf } from 'mux.js/lib/tools/mp4-inspector.js';
+import mp4Inspector from 'mux.js/lib/tools/mp4-inspector.js';
 import { sumDurations } from './playlist';
 import videojs from 'video.js';
 import logger from './util/logger';
@@ -438,7 +438,7 @@ export default class SyncController extends videojs.EventTarget {
       // The spec states that track run samples contained within a `traf` box are contiguous, but
       // it does not explicitly state whether the `traf` boxes themselves are contiguous.
       // We will assume that they are, so we only need the first to calculate start time.
-      const parsedTraf = parseTraf(trafBoxes[0]);
+      const parsedTraf = mp4Inspector.parseTraf(trafBoxes[0]);
 
       for (var i = 0; i < parsedTraf.boxes.length; i++) {
         if (parsedTraf.boxes[i].type === 'tfhd') {
