@@ -6,6 +6,7 @@ import {
 } from '../src/segment-loader';
 import videojs from 'video.js';
 import mp4probe from 'mux.js/lib/mp4/probe';
+import mp4Inspector from 'mux.js/lib/tools/mp4-inspector.js';
 import {
   playlistWithDuration,
   MockTextTrack,
@@ -144,7 +145,6 @@ QUnit.module('SegmentLoader: M2TS', function(hooks) {
 
     nestedHooks.beforeEach(function(assert) {
       this.segmentMetadataTrack = new MockTextTrack();
-      this.startTime = sinon.stub(mp4probe, 'startTime');
       this.mimeType = 'video/mp2t';
 
       loader = new SegmentLoader(LoaderCommonSettings.call(this, {
@@ -158,10 +158,6 @@ QUnit.module('SegmentLoader: M2TS', function(hooks) {
           loader.mediaSource_.sourceBuffers[0].trigger('updateend');
         }
       };
-    });
-
-    nestedHooks.afterEach(function(assert) {
-      this.startTime.restore();
     });
 
     QUnit.test(`load waits until a playlist and mime type are specified to proceed`,
@@ -233,7 +229,35 @@ QUnit.module('SegmentLoader: M2TS', function(hooks) {
       loader.mimeType(this.mimeType);
       loader.load();
 
-      this.startTime.returns(11);
+      mp4probe.timescale = function() {
+        return {1: 1};
+      };
+
+      // for tersting purposes, just return an array with length > 0
+      mp4probe.findBox = function() {
+        return [1, 2, 3];
+      };
+
+      mp4Inspector.parseTraf = function() {
+        return {
+          boxes: [
+            {
+              type: 'tfhd',
+              trackId: 1
+            },
+            {
+              type: 'tfdt',
+              baseMediaDecodeTime: 0
+            },
+            {
+              type: 'trun',
+              samples: [{
+                compositionTimeOffset: 11
+              }]
+            }
+          ]
+        }
+      };
 
       this.clock.tick(100);
       // init
