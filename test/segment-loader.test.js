@@ -233,7 +233,7 @@ QUnit.module('SegmentLoader: M2TS', function(hooks) {
         return {1: 1};
       };
 
-      // for tersting purposes, just return an array with length > 0
+      // for testing purposes, just return an array with length > 0
       mp4probe.findBox = function() {
         return [1, 2, 3];
       };
