@@ -6,7 +6,6 @@ import {
 } from '../src/segment-loader';
 import videojs from 'video.js';
 import mp4probe from 'mux.js/lib/mp4/probe';
-import mp4Inspector from 'mux.js/lib/tools/mp4-inspector.js';
 import {
   playlistWithDuration,
   MockTextTrack,
