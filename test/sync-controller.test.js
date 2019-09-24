@@ -3,8 +3,6 @@ import {
   default as SyncController,
   syncPointStrategies as strategies } from '../src/sync-controller.js';
 import { playlistWithDuration } from './test-helpers.js';
-import mp4probe from 'mux.js/lib/mp4/probe';
-import mp4Inspector from 'mux.js/lib/tools/mp4-inspector.js';
 
 function getStrategy(name) {
   for (let i = 0; i < strategies.length; i++) {
@@ -526,107 +524,4 @@ QUnit.test('Correctly calculates expired time', function(assert) {
   expired = this.syncController.getExpiredTime(playlist, 50);
 
   assert.equal(expired, 0, 'estimated expired time using segmentSync');
-});
-
-QUnit.test('mp4 probe calculates correct composition start time and timestampOffset', function(assert) {
-  assert.expect(9);
-
-  let segmentInfo = {
-    segment: {
-      map: {
-        bytes: null
-      },
-      duration: 5
-    },
-    timestampOffset: 0,
-    bytes: null
-  };
-
-  mp4probe.timescale = function() {
-    return {
-      1: 1,
-      2: 60
-    };
-  };
-
-  // for testing purposes, just return an array with length > 0 to ensure we follow
-  // the right code path
-  mp4probe.findBox = function() {
-    return [1, 2, 3];
-  };
-
-  mp4Inspector.parseTraf = function() {
-    return {
-      boxes: [
-        {
-          type: 'tfhd',
-          trackId: 1
-        },
-        {
-          type: 'tfdt',
-          baseMediaDecodeTime: 0
-        },
-        {
-          type: 'trun',
-          samples: [{
-            compositionTimeOffset: 11
-          }]
-        }
-      ]
-    }
-  };
-
-  let result = this.syncController.probeMp4Segment_(segmentInfo);
-
-  assert.equal(segmentInfo.timestampOffset, -11, 'mp4 probe adjusts segment\'s timeStampOffset');
-  assert.equal(result.start, 11, 'mp4 probe returns segment\'s compsoition start time');
-  assert.equal(result.end, 16, 'mp4 probe returns segment\'s compsoition end time');
-
-  // what if there is no `traf` box
-  mp4probe.findBox = function() {
-    return [];
-  };
-
-  // reset offset value to 0
-  segmentInfo.timestampOffset = 0;
-
-  result = this.syncController.probeMp4Segment_(segmentInfo);
-
-  assert.equal(segmentInfo.timestampOffset, 0, 'if no traf box, composition start time defaults to 0')
-  assert.equal(result.start, 0, 'if no traf box, start time defaults to 0');
-  assert.equal(result.end, 5, 'if no traf box, segment end defaults to the duration');
-
-  // there is a `traf` box again
-  mp4probe.findBox = function() {
-    return [1, 2, 3];
-  };
-
-  // but what if the `trun` has no samples
-  mp4Inspector.parseTraf = function() {
-    return {
-      boxes: [
-        {
-          type: 'tfhd',
-          trackId: 1
-        },
-        {
-          type: 'tfdt',
-          baseMediaDecodeTime: 2
-        },
-        {
-          type: 'trun',
-          samples: []
-        }
-      ]
-    }
-  };
-
-  // reset offset value to 0
-  segmentInfo.timestampOffset = 0;
-
-  result = this.syncController.probeMp4Segment_(segmentInfo);
-
-  assert.equal(segmentInfo.timestampOffset, -2, 'if no trun samples, calculate composition start from decode start')
-  assert.equal(result.start, 2, 'if no trun samples, start time comes from decode time');
-  assert.equal(result.end, 7, 'if no trun samples, segment end comes from decode time and segment duration');
 });
