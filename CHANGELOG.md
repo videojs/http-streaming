@@ -1,3 +1,6 @@
+<a name="1.11.0"></a>
+# [1.11.0](https://github.com/videojs/http-streaming/compare/v1.11.0-0...v1.11.0) (2019-09-25)
+
 <a name="1.10.6"></a>
 ## [1.10.6](https://github.com/videojs/http-streaming/compare/v1.10.5...v1.10.6) (2019-08-28)
 
