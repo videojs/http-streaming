@@ -45,8 +45,9 @@ export const syncPointStrategies = [
           const segmentTime = segment.dateTimeObject.getTime() / 1000;
           let segmentStart = segmentTime + syncController.datetimeToDisplayTime;
 
-          if (segment.discontinuity) {
-            segmentStart = segmentStart > totalSegmentTime ? totalSegmentTime : segmentStart;
+          // make sure segment start time is not higher than total segment time
+          if (segment.discontinuity && segmentStart > totalSegmentTime) {
+            segmentStart = totalSegmentTime;
           }
           const distance = Math.abs(currentTime - segmentStart);
 
