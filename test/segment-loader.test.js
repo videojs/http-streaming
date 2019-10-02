@@ -144,7 +144,7 @@ QUnit.module('SegmentLoader: M2TS', function(hooks) {
 
     nestedHooks.beforeEach(function(assert) {
       this.segmentMetadataTrack = new MockTextTrack();
-      this.startTime = sinon.stub(mp4probe, 'startTime');
+      this.compositionStartTime = sinon.stub(mp4probe, 'compositionStartTime');
       this.mimeType = 'video/mp2t';
 
       loader = new SegmentLoader(LoaderCommonSettings.call(this, {
@@ -161,7 +161,7 @@ QUnit.module('SegmentLoader: M2TS', function(hooks) {
     });
 
     nestedHooks.afterEach(function(assert) {
-      this.startTime.restore();
+      this.compositionStartTime.restore();
     });
 
     QUnit.test(`load waits until a playlist and mime type are specified to proceed`,
@@ -233,7 +233,7 @@ QUnit.module('SegmentLoader: M2TS', function(hooks) {
       loader.mimeType(this.mimeType);
       loader.load();
 
-      this.startTime.returns(11);
+      this.compositionStartTime.returns(11);
 
       this.clock.tick(100);
       // init

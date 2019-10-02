@@ -415,25 +415,29 @@ export default class SyncController extends videojs.EventTarget {
   }
 
   /**
-   * Probe an fmp4 or an mpeg2-ts segment to determine the start of the segment
-   * in it's internal "media time".
+   * Probe an fmp4 segment to determine the start of the segment
+   * in it's internal "composition time", which is equal to the base
+   * media decode time plus the composition time offset value
    *
    * @private
    * @param {SegmentInfo} segmentInfo - The current active request information
-   * @return {object} The start and end time of the current segment in "media time"
+   * @return {object} The start and end time of the current segment in "composition time"
    */
   probeMp4Segment_(segmentInfo) {
-    let segment = segmentInfo.segment;
-    let timescales = mp4probe.timescale(segment.map.bytes);
-    let startTime = mp4probe.startTime(timescales, segmentInfo.bytes);
+    const segment = segmentInfo.segment;
+    // get timescales from init segment
+    const timescales = mp4probe.timescale(segment.map.bytes);
+    // calculate composition start time using the timescales and information
+    // contained within the media segment
+    const compositionStartTime = mp4probe.compositionStartTime(timescales, segmentInfo.bytes);
 
     if (segmentInfo.timestampOffset !== null) {
-      segmentInfo.timestampOffset -= startTime;
+      segmentInfo.timestampOffset -= compositionStartTime;
     }
 
     return {
-      start: startTime,
-      end: startTime + segment.duration
+      start: compositionStartTime,
+      end: compositionStartTime + segment.duration
     };
   }
 
