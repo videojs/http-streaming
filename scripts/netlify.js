@@ -5,8 +5,11 @@ const deployDir = 'deploy';
 const files = [
   'node_modules/video.js/dist/video-js.css',
   'node_modules/video.js/dist/alt/video.core.js',
+  'node_modules/video.js/dist/alt/video.core.min.js',
   'node_modules/videojs-contrib-eme/dist/videojs-contrib-eme.js',
+  'node_modules/videojs-contrib-eme/dist/videojs-contrib-eme.min.js',
   'node_modules/videojs-contrib-quality-levels/dist/videojs-contrib-quality-levels.js',
+  'node_modules/videojs-contrib-quality-levels/dist/videojs-contrib-quality-levels.min.js',
   'scripts/index-demo-page.js'
 ];
 
