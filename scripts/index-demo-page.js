@@ -117,7 +117,7 @@
     onload();
   };
 
-  ['debug', 'autoplay', 'muted', 'minified', 'partial', 'url', 'type'].forEach(function(name) {
+  ['debug', 'autoplay', 'muted', 'minified', 'liveui', 'partial', 'url', 'type'].forEach(function(name) {
     stateEls[name] = document.getElementById(name);
   });
 
@@ -163,6 +163,12 @@
       }
     });
 
+    stateEls.liveui.addEventListener('change', function(event) {
+      saveState();
+
+      stateEls.minified.dispatchEvent(newEvent('change'));
+    });
+
     stateEls.minified.addEventListener('change', function(event) {
       var urls = [
         'node_modules/video.js/dist/alt/video.core',
@@ -195,6 +201,7 @@
         stateEls.partial.dispatchEvent(newEvent('change'));
 
         player = window.player = window.videojs(videoEl, {
+          liveui: stateEls.liveui.checked,
           html5: {
             hls: {
               overrideNative: !window.videojs.browser.IS_SAFARI
