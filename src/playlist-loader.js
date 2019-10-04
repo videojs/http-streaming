@@ -86,7 +86,7 @@ export const resolveSegmentUris = (segment, baseUri) => {
   */
 export const updateMaster = (master, media) => {
   const result = mergeOptions(master, {});
-  const playlist = result.playlists[media.uri];
+  const playlist = result.playlists[media.id];
 
   if (!playlist) {
     return null;
@@ -122,13 +122,17 @@ export const updateMaster = (master, media) => {
   // that is referenced by index, and one by URI. The index reference may no longer be
   // necessary.
   for (let i = 0; i < result.playlists.length; i++) {
-    if (result.playlists[i].uri === media.uri) {
+    if (result.playlists[i].id === media.id) {
       result.playlists[i] = mergedPlaylist;
     }
   }
-  result.playlists[media.uri] = mergedPlaylist;
+  result.playlists[media.id] = mergedPlaylist;
 
   return result;
+};
+
+export const createPlaylistID = (index, uri) => {
+  return `${index}-${uri}`;
 };
 
 export const setupMediaPlaylists = (master) => {
@@ -138,9 +142,10 @@ export const setupMediaPlaylists = (master) => {
   while (i--) {
     const playlist = master.playlists[i];
 
-    master.playlists[playlist.uri] = playlist;
     playlist.resolvedUri = resolveUrl(master.uri, playlist.uri);
-    playlist.id = i;
+    playlist.id = createPlaylistID(i, playlist.uri);
+
+    master.playlists[playlist.id] = playlist;
 
     if (!playlist.attributes) {
       // Although the spec states an #EXT-X-STREAM-INF tag MUST have a
@@ -241,7 +246,7 @@ export default class PlaylistLoader extends EventTarget {
           return this.playlistRequestError(this.request, this.media().uri, 'HAVE_METADATA');
         }
 
-        this.haveMetadata(this.request, this.media().uri);
+        this.haveMetadata(this.request, this.media().uri, this.media().id);
       });
     });
   }
@@ -267,7 +272,7 @@ export default class PlaylistLoader extends EventTarget {
 
   // update the playlist loader's state in response to a new or
   // updated playlist.
-  haveMetadata(xhr, url) {
+  haveMetadata(xhr, url, id) {
     // any in-flight request is now finished
     this.request = null;
     this.state = 'HAVE_METADATA';
@@ -283,6 +288,7 @@ export default class PlaylistLoader extends EventTarget {
     parser.push(xhr.responseText);
     parser.end();
     parser.manifest.uri = url;
+    parser.manifest.id = id;
     // m3u8-parser does not attach an attributes property to media playlists so make
     // sure that the property is attached to avoid undefined reference errors
     parser.manifest.attributes = parser.manifest.attributes || {};
@@ -294,7 +300,7 @@ export default class PlaylistLoader extends EventTarget {
 
     if (update) {
       this.master = update;
-      this.media_ = this.master.playlists[parser.manifest.uri];
+      this.media_ = this.master.playlists[id];
     } else {
       this.trigger('playlistunchanged');
     }
@@ -374,10 +380,10 @@ export default class PlaylistLoader extends EventTarget {
     }
 
     const startingState = this.state;
-    const mediaChange = !this.media_ || playlist.uri !== this.media_.uri;
+    const mediaChange = !this.media_ || playlist.id !== this.media_.id;
 
     // switch to fully loaded playlists immediately
-    if (this.master.playlists[playlist.uri].endList) {
+    if (this.master.playlists[playlist.id].endList) {
       // abort outstanding playlist requests
       if (this.request) {
         this.request.onreadystatechange = null;
@@ -434,7 +440,7 @@ export default class PlaylistLoader extends EventTarget {
         return this.playlistRequestError(this.request, playlist.uri, startingState);
       }
 
-      this.haveMetadata(req, playlist.uri);
+      this.haveMetadata(req, playlist.uri, playlist.id);
 
       // fire loadedmetadata the first time a media playlist is loaded
       if (startingState === 'HAVE_MASTER') {
@@ -564,6 +570,8 @@ export default class PlaylistLoader extends EventTarget {
         return;
       }
 
+      const id = createPlaylistID(0, this.srcUrl);
+
       // loaded a media playlist
       // infer a master playlist if none was previously requested
       this.master = {
@@ -576,15 +584,15 @@ export default class PlaylistLoader extends EventTarget {
         uri: window.location.href,
         playlists: [{
           uri: this.srcUrl,
-          id: 0,
+          id,
           resolvedUri: this.srcUrl,
           // m3u8-parser does not attach an attributes property to media playlists so make
           // sure that the property is attached to avoid undefined reference errors
           attributes: {}
         }]
       };
-      this.master.playlists[this.srcUrl] = this.master.playlists[0];
-      this.haveMetadata(req, this.srcUrl);
+      this.master.playlists[id] = this.master.playlists[0];
+      this.haveMetadata(req, this.srcUrl, id);
       return this.trigger('loadedmetadata');
     });
   }

@@ -110,7 +110,7 @@ const handleHlsMediaChange = function(qualityLevels, playlistLoader) {
   let selectedIndex = -1;
 
   for (let i = 0; i < qualityLevels.length; i++) {
-    if (qualityLevels[i].id === newPlaylist.uri) {
+    if (qualityLevels[i].id === newPlaylist.id) {
       selectedIndex = i;
       break;
     }
