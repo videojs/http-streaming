@@ -52,13 +52,13 @@ export const updateMaster = (oldMaster, newMaster) => {
   // Then update media group playlists
   forEachMediaGroup(newMaster, (properties, type, group, label) => {
     if (properties.playlists && properties.playlists.length) {
-      const uri = properties.playlists[0].uri;
+      const id = properties.playlists[0].id;
       const playlistUpdate = updatePlaylist(update, properties.playlists[0]);
 
       if (playlistUpdate) {
         update = playlistUpdate;
         // update the playlist reference within media groups
-        update.mediaGroups[type][group][label].playlists[0] = update.playlists[uri];
+        update.mediaGroups[type][group][label].playlists[0] = update.playlists[id];
         noChanges = false;
       }
     }
@@ -733,7 +733,7 @@ export default class DashPlaylistLoader extends EventTarget {
    */
   refreshMedia_(mediaID) {
     if (!mediaID) {
-      throw new Error('refreshMedia_ must take a media uri');
+      throw new Error('refreshMedia_ must take a media id');
     }
 
     let oldMaster;

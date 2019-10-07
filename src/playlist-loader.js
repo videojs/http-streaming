@@ -243,7 +243,7 @@ export default class PlaylistLoader extends EventTarget {
         }
 
         if (error) {
-          return this.playlistRequestError(this.request, this.media().uri, 'HAVE_METADATA');
+          return this.playlistRequestError(this.request, this.media(), 'HAVE_METADATA');
         }
 
         this.haveMetadata(this.request, this.media().uri, this.media().id);
@@ -251,7 +251,12 @@ export default class PlaylistLoader extends EventTarget {
     });
   }
 
-  playlistRequestError(xhr, url, startingState) {
+  playlistRequestError(xhr, playlist, startingState) {
+    const {
+      uri,
+      id
+    } = playlist;
+
     // any in-flight request is now finished
     this.request = null;
 
@@ -260,9 +265,9 @@ export default class PlaylistLoader extends EventTarget {
     }
 
     this.error = {
-      playlist: this.master.playlists[url],
+      playlist: this.master.playlists[id],
       status: xhr.status,
-      message: `HLS playlist request error at URL: ${url}.`,
+      message: `HLS playlist request error at URL: ${uri}.`,
       responseText: xhr.responseText,
       code: (xhr.status >= 500) ? 4 : 2
     };
@@ -437,7 +442,7 @@ export default class PlaylistLoader extends EventTarget {
       playlist.resolvedUri = resolveManifestRedirect(this.handleManifestRedirects, playlist.resolvedUri, req);
 
       if (error) {
-        return this.playlistRequestError(this.request, playlist.uri, startingState);
+        return this.playlistRequestError(this.request, playlist, startingState);
       }
 
       this.haveMetadata(req, playlist.uri, playlist.id);

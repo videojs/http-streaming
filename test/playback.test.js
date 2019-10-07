@@ -260,7 +260,6 @@ QUnit[testFn]('DASH sidx', function(assert) {
 });
 
 QUnit[testFn]('DASH sidx with alt audio should end', function(assert) {
-
   const done = assert.async();
   const player = this.player;
 

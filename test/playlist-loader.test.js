@@ -127,6 +127,7 @@ QUnit.test('updateMaster returns null when no change', function(assert) {
         BANDWIDTH: 9
       },
       uri: 'playlist-0-uri',
+      id: 'playlist-0-uri',
       resolvedUri: urlTo('playlist-0-uri'),
       segments: [{
         duration: 10,
@@ -141,6 +142,7 @@ QUnit.test('updateMaster returns null when no change', function(assert) {
       BANDWIDTH: 9
     },
     uri: 'playlist-0-uri',
+    id: 'playlist-0-uri',
     segments: [{
       duration: 10,
       uri: 'segment-0-uri'
@@ -158,6 +160,7 @@ QUnit.test('updateMaster updates master when new media sequence', function(asser
         BANDWIDTH: 9
       },
       uri: 'playlist-0-uri',
+      id: 'playlist-0-uri',
       resolvedUri: urlTo('playlist-0-uri'),
       segments: [{
         duration: 10,
@@ -172,13 +175,14 @@ QUnit.test('updateMaster updates master when new media sequence', function(asser
       BANDWIDTH: 9
     },
     uri: 'playlist-0-uri',
+    id: 'playlist-0-uri',
     segments: [{
       duration: 10,
       uri: 'segment-0-uri'
     }]
   };
 
-  master.playlists[media.uri] = master.playlists[0];
+  master.playlists[media.id] = master.playlists[0];
 
   assert.deepEqual(
     updateMaster(master, media),
@@ -189,6 +193,7 @@ QUnit.test('updateMaster updates master when new media sequence', function(asser
           BANDWIDTH: 9
         },
         uri: 'playlist-0-uri',
+        id: 'playlist-0-uri',
         resolvedUri: urlTo('playlist-0-uri'),
         segments: [{
           duration: 10,
@@ -209,6 +214,7 @@ QUnit.test('updateMaster updates master when endList changes', function(assert) 
       attributes: {
         BANDWIDTH: 9
       },
+      id: 'playlist-0-uri',
       uri: 'playlist-0-uri',
       resolvedUri: urlTo('playlist-0-uri'),
       segments: [{
@@ -224,6 +230,7 @@ QUnit.test('updateMaster updates master when endList changes', function(assert) 
     attributes: {
       BANDWIDTH: 9
     },
+    id: 'playlist-0-uri',
     uri: 'playlist-0-uri',
     segments: [{
       duration: 10,
@@ -231,7 +238,7 @@ QUnit.test('updateMaster updates master when endList changes', function(assert) 
     }]
   };
 
-  master.playlists[media.uri] = master.playlists[0];
+  master.playlists[media.id] = master.playlists[0];
 
   assert.deepEqual(
     updateMaster(master, media),
@@ -242,6 +249,7 @@ QUnit.test('updateMaster updates master when endList changes', function(assert) 
         attributes: {
           BANDWIDTH: 9
         },
+        id: 'playlist-0-uri',
         uri: 'playlist-0-uri',
         resolvedUri: urlTo('playlist-0-uri'),
         segments: [{
@@ -270,6 +278,7 @@ QUnit.test('updateMaster retains top level values in master', function(assert) {
       attributes: {
         BANDWIDTH: 9
       },
+      id: 'playlist-0-uri',
       uri: 'playlist-0-uri',
       resolvedUri: urlTo('playlist-0-uri'),
       segments: [{
@@ -284,6 +293,7 @@ QUnit.test('updateMaster retains top level values in master', function(assert) {
     attributes: {
       BANDWIDTH: 9
     },
+    id: 'playlist-0-uri',
     uri: 'playlist-0-uri',
     segments: [{
       duration: 10,
@@ -291,7 +301,7 @@ QUnit.test('updateMaster retains top level values in master', function(assert) {
     }]
   };
 
-  master.playlists[media.uri] = master.playlists[0];
+  master.playlists[media.id] = master.playlists[0];
 
   assert.deepEqual(
     updateMaster(master, media),
@@ -309,6 +319,7 @@ QUnit.test('updateMaster retains top level values in master', function(assert) {
         attributes: {
           BANDWIDTH: 9
         },
+        id: 'playlist-0-uri',
         uri: 'playlist-0-uri',
         resolvedUri: urlTo('playlist-0-uri'),
         segments: [{
@@ -337,6 +348,7 @@ QUnit.test('updateMaster adds new segments to master', function(assert) {
       attributes: {
         BANDWIDTH: 9
       },
+      id: 'playlist-0-uri',
       uri: 'playlist-0-uri',
       resolvedUri: urlTo('playlist-0-uri'),
       segments: [{
@@ -351,6 +363,7 @@ QUnit.test('updateMaster adds new segments to master', function(assert) {
     attributes: {
       BANDWIDTH: 9
     },
+    id: 'playlist-0-uri',
     uri: 'playlist-0-uri',
     segments: [{
       duration: 10,
@@ -361,7 +374,7 @@ QUnit.test('updateMaster adds new segments to master', function(assert) {
     }]
   };
 
-  master.playlists[media.uri] = master.playlists[0];
+  master.playlists[media.id] = master.playlists[0];
 
   assert.deepEqual(
     updateMaster(master, media),
@@ -379,6 +392,7 @@ QUnit.test('updateMaster adds new segments to master', function(assert) {
         attributes: {
           BANDWIDTH: 9
         },
+        id: 'playlist-0-uri',
         uri: 'playlist-0-uri',
         resolvedUri: urlTo('playlist-0-uri'),
         segments: [{
@@ -411,6 +425,7 @@ QUnit.test('updateMaster changes old values', function(assert) {
       attributes: {
         BANDWIDTH: 9
       },
+      id: 'playlist-0-uri',
       uri: 'playlist-0-uri',
       resolvedUri: urlTo('playlist-0-uri'),
       segments: [{
@@ -426,6 +441,7 @@ QUnit.test('updateMaster changes old values', function(assert) {
       BANDWIDTH: 8,
       newField: 1
     },
+    id: 'playlist-0-uri',
     uri: 'playlist-0-uri',
     segments: [{
       duration: 8,
@@ -436,7 +452,7 @@ QUnit.test('updateMaster changes old values', function(assert) {
     }]
   };
 
-  master.playlists[media.uri] = master.playlists[0];
+  master.playlists[media.id] = master.playlists[0];
 
   assert.deepEqual(
     updateMaster(master, media),
@@ -455,6 +471,7 @@ QUnit.test('updateMaster changes old values', function(assert) {
           BANDWIDTH: 8,
           newField: 1
         },
+        id: 'playlist-0-uri',
         uri: 'playlist-0-uri',
         resolvedUri: urlTo('playlist-0-uri'),
         segments: [{
@@ -476,6 +493,7 @@ QUnit.test('updateMaster retains saved segment values', function(assert) {
   const master = {
     playlists: [{
       mediaSequence: 0,
+      id: 'playlist-0-uri',
       uri: 'playlist-0-uri',
       resolvedUri: urlTo('playlist-0-uri'),
       segments: [{
@@ -489,6 +507,7 @@ QUnit.test('updateMaster retains saved segment values', function(assert) {
   };
   const media = {
     mediaSequence: 0,
+    id: 'playlist-0-uri',
     uri: 'playlist-0-uri',
     segments: [{
       duration: 8,
@@ -499,13 +518,14 @@ QUnit.test('updateMaster retains saved segment values', function(assert) {
     }]
   };
 
-  master.playlists[media.uri] = master.playlists[0];
+  master.playlists[media.id] = master.playlists[0];
 
   assert.deepEqual(
     updateMaster(master, media),
     {
       playlists: [{
         mediaSequence: 0,
+        id: 'playlist-0-uri',
         uri: 'playlist-0-uri',
         resolvedUri: urlTo('playlist-0-uri'),
         segments: [{
@@ -532,6 +552,7 @@ QUnit.test('updateMaster resolves key and map URIs', function(assert) {
       attributes: {
         BANDWIDTH: 9
       },
+      id: 'playlist-0-uri',
       uri: 'playlist-0-uri',
       resolvedUri: urlTo('playlist-0-uri'),
       segments: [{
@@ -550,6 +571,7 @@ QUnit.test('updateMaster resolves key and map URIs', function(assert) {
     attributes: {
       BANDWIDTH: 9
     },
+    id: 'playlist-0-uri',
     uri: 'playlist-0-uri',
     segments: [{
       duration: 9,
@@ -572,7 +594,7 @@ QUnit.test('updateMaster resolves key and map URIs', function(assert) {
     }]
   };
 
-  master.playlists[media.uri] = master.playlists[0];
+  master.playlists[media.id] = master.playlists[0];
 
   assert.deepEqual(
     updateMaster(master, media),
@@ -583,6 +605,7 @@ QUnit.test('updateMaster resolves key and map URIs', function(assert) {
           BANDWIDTH: 9
         },
         uri: 'playlist-0-uri',
+        id: 'playlist-0-uri',
         resolvedUri: urlTo('playlist-0-uri'),
         segments: [{
           duration: 9,
@@ -640,21 +663,21 @@ QUnit.test('setupMediaPlaylists adds URI keys for each playlist', function(asser
     attributes: {},
     resolvedUri: urlTo('uri-0'),
     uri: 'uri-0',
-    id: 0
+    id: '0-uri-0'
   };
   const expectedPlaylist1 = {
     attributes: {},
     resolvedUri: urlTo('uri-1'),
     uri: 'uri-1',
-    id: 1
+    id: '1-uri-1'
   };
 
   setupMediaPlaylists(master);
 
   assert.deepEqual(master.playlists[0], expectedPlaylist0, 'retained playlist indices');
   assert.deepEqual(master.playlists[1], expectedPlaylist1, 'retained playlist indices');
-  assert.deepEqual(master.playlists['uri-0'], expectedPlaylist0, 'added playlist key');
-  assert.deepEqual(master.playlists['uri-1'], expectedPlaylist1, 'added playlist key');
+  assert.deepEqual(master.playlists['0-uri-0'], expectedPlaylist0, 'added playlist key');
+  assert.deepEqual(master.playlists['1-uri-1'], expectedPlaylist1, 'added playlist key');
 
   assert.equal(this.env.log.warn.calls, 2, 'logged two warnings');
   assert.equal(
@@ -735,6 +758,7 @@ QUnit.test('resolveMediaGroupUris resolves media group URIs', function(assert) {
     uri: 'master-uri',
     playlists: [{
       attributes: { BANDWIDTH: 10 },
+      id: 'playlist-0',
       uri: 'playlist-0'
     }],
     mediaGroups: {
@@ -794,6 +818,7 @@ QUnit.test('resolveMediaGroupUris resolves media group URIs', function(assert) {
     uri: 'master-uri',
     playlists: [{
       attributes: { BANDWIDTH: 10 },
+      id: 'playlist-0',
       uri: 'playlist-0'
     }],
     mediaGroups: {
@@ -1558,7 +1583,7 @@ QUnit.test('clears the update timeout when switching quality', function(assert) 
                               'low-0.ts\n'
   );
   // change to a higher quality playlist
-  loader.media('live-high.m3u8');
+  loader.media('1-live-high.m3u8');
   this.requests.pop().respond(
     200, null,
     '#EXTM3U\n' +
@@ -1676,7 +1701,7 @@ QUnit.test(
     loader.load();
 
     loader.on('loadedplaylist', function() {
-      loader.media('high.m3u8');
+      loader.media('1-high.m3u8');
     });
     this.requests.pop().respond(
       200, null,
@@ -1690,7 +1715,7 @@ QUnit.test(
   }
 );
 
-QUnit.test('can switch media playlists based on URI', function(assert) {
+QUnit.test('can switch media playlists based on ID', function(assert) {
   const loader = new PlaylistLoader('master.m3u8', this.fakeHls);
 
   loader.load();
@@ -1711,7 +1736,7 @@ QUnit.test('can switch media playlists based on URI', function(assert) {
                               'low-0.ts\n'
   );
 
-  loader.media('high.m3u8');
+  loader.media('1-high.m3u8');
   assert.strictEqual(loader.state, 'SWITCHING_MEDIA', 'updated the state');
 
   this.requests.pop().respond(
@@ -1750,7 +1775,7 @@ QUnit.test('aborts in-flight playlist refreshes when switching', function(assert
                               'low-0.ts\n'
   );
   this.clock.tick(10 * 1000);
-  loader.media('high.m3u8');
+  loader.media('1-high.m3u8');
   assert.strictEqual(this.requests[0].aborted, true, 'aborted refresh request');
   assert.ok(
     !this.requests[0].onreadystatechange,
@@ -1784,7 +1809,7 @@ QUnit.test('switching to the active playlist is a no-op', function(assert) {
                               'low-0.ts\n' +
                               '#EXT-X-ENDLIST\n'
   );
-  loader.media('low.m3u8');
+  loader.media('0-low.m3u8');
 
   assert.strictEqual(this.requests.length, 0, 'no requests are sent');
 });
@@ -1809,7 +1834,7 @@ QUnit.test('switching to the active live playlist is a no-op', function(assert) 
                               '#EXTINF:10,\n' +
                               'low-0.ts\n'
   );
-  loader.media('low.m3u8');
+  loader.media('0-low.m3u8');
 
   assert.strictEqual(this.requests.length, 0, 'no requests are sent');
 });
@@ -1837,7 +1862,7 @@ QUnit.test(
                               'low-0.ts\n' +
                               '#EXT-X-ENDLIST\n'
     );
-    loader.media('high.m3u8');
+    loader.media('1-high.m3u8');
     this.requests.pop().respond(
       200, null,
       '#EXTM3U\n' +
@@ -1846,7 +1871,7 @@ QUnit.test(
                               'high-0.ts\n' +
                               '#EXT-X-ENDLIST\n'
     );
-    loader.media('low.m3u8');
+    loader.media('0-low.m3u8');
 
     assert.strictEqual(this.requests.length, 0, 'no outstanding requests');
     assert.strictEqual(loader.state, 'HAVE_METADATA', 'returned to loaded playlist');
@@ -1876,8 +1901,8 @@ QUnit.test(
                               'low-0.ts\n' +
                               '#EXT-X-ENDLIST\n'
     );
-    loader.media('high.m3u8');
-    loader.media('low.m3u8');
+    loader.media('1-high.m3u8');
+    loader.media('0-low.m3u8');
 
     assert.strictEqual(
       this.requests.length,
@@ -1928,8 +1953,8 @@ QUnit.test(
                               'low-0.ts\n' +
                               '#EXT-X-ENDLIST\n'
     );
-    loader.media('high.m3u8');
-    loader.media('high.m3u8');
+    loader.media('1-high.m3u8');
+    loader.media('1-high.m3u8');
 
     assert.strictEqual(this.requests.length, 1, 'made only one request');
     assert.ok(!this.requests[0].aborted, 'request not aborted');
@@ -1942,7 +1967,7 @@ QUnit.test('throws an error if a media switch is initiated too early', function(
   loader.load();
 
   assert.throws(function() {
-    loader.media('high.m3u8');
+    loader.media('1-high.m3u8');
   }, 'threw an error from HAVE_NOTHING');
 
   this.requests.pop().respond(
@@ -2076,7 +2101,7 @@ QUnit.test('triggers an event when the active media changes', function(assert) {
   assert.strictEqual(loadedPlaylists, 2, 'two loadedplaylists');
   assert.strictEqual(loadedMetadata, 1, 'fired loadedMetadata');
 
-  loader.media('high.m3u8');
+  loader.media('1-high.m3u8');
   assert.strictEqual(mediaChangings, 1, 'mediachanging fires immediately');
   assert.strictEqual(mediaChanges, 0, 'mediachange does not fire immediately');
   assert.strictEqual(loadedPlaylists, 2, 'still two loadedplaylists');
@@ -2096,7 +2121,7 @@ QUnit.test('triggers an event when the active media changes', function(assert) {
   assert.strictEqual(loadedMetadata, 1, 'still one loadedmetadata');
 
   // switch back to an already loaded playlist
-  loader.media('low.m3u8');
+  loader.media('0-low.m3u8');
   assert.strictEqual(this.requests.length, 0, 'no requests made');
   assert.strictEqual(mediaChangings, 2, 'mediachanging fires');
   assert.strictEqual(mediaChanges, 2, 'fired a mediachange');
@@ -2104,7 +2129,7 @@ QUnit.test('triggers an event when the active media changes', function(assert) {
   assert.strictEqual(loadedMetadata, 1, 'still one loadedmetadata');
 
   // trigger a no-op switch
-  loader.media('low.m3u8');
+  loader.media('0-low.m3u8');
   assert.strictEqual(this.requests.length, 0, 'no requests made');
   assert.strictEqual(mediaChangings, 2, 'mediachanging ignored the no-op');
   assert.strictEqual(mediaChanges, 2, 'ignored a no-op media change');

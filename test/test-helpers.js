@@ -427,6 +427,9 @@ export const playlistWithDuration = function(time, conf) {
       conf && conf.discontinuitySequence ? conf.discontinuitySequence : 0,
     attributes: conf && typeof conf.attributes !== 'undefined' ? conf.attributes : {}
   };
+
+  result.id = result.uri;
+
   const count = Math.floor(time / 10);
   const remainder = time % 10;
   let i;
