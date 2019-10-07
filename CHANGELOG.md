@@ -1,3 +1,10 @@
+<a name="1.11.1"></a>
+## [1.11.1](https://github.com/videojs/http-streaming/compare/v1.11.0...v1.11.1) (2019-10-07)
+
+### Bug Fixes
+
+* improve timestampOffset calculation for fmp4s ([#666](https://github.com/videojs/http-streaming/issues/666)) ([bedc824](https://github.com/videojs/http-streaming/commit/bedc824))
+
 <a name="1.11.0"></a>
 # [1.11.0](https://github.com/videojs/http-streaming/compare/v1.11.0-0...v1.11.0) (2019-09-25)
 
