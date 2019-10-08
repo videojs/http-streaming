@@ -1373,7 +1373,7 @@ QUnit.module('SegmentLoader', function(hooks) {
           loader.one('error', reject);
         });
       }).then(() => {
-        assert.deepEqual(loader.error_, 'appenderror for video append with 2944 bytes', 'loader triggered and saved the appenderror');
+        assert.deepEqual(loader.error_, 'appenderror for video append with 2960 bytes', 'loader triggered and saved the appenderror');
       });
     });
 
