@@ -1432,7 +1432,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
       if (useVideoTimingInfo) {
         firstVideoFrameTimeForData = this.handlePartialData_ ?
-          result.videoFrameDtsTime : segmentInfo.videoTimingInfo.start;
+          result.videoFramePtsTime : segmentInfo.videoTimingInfo.start;
       }
 
       // Segment loader knows more about segment timing than the transmuxer (in certain
