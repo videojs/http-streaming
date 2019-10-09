@@ -34,8 +34,11 @@ export const syncPointStrategies = [
       const segments = playlist.segments || [];
       let syncPoint = null;
       let lastDistance = null;
-      let totalSegmentTime = 0;
+      let datetimeToDisplayTime = syncController.datetimeToDisplayTime;
 
+      if (segments.length && segments[0].dateTimeObject) {
+        datetimeToDisplayTime -= segments[0].dateTimeObject.getTime() / 1000 + datetimeToDisplayTime;
+      }
       currentTime = currentTime || 0;
 
       for (let i = 0; i < segments.length; i++) {
@@ -43,12 +46,7 @@ export const syncPointStrategies = [
 
         if (segment.dateTimeObject) {
           const segmentTime = segment.dateTimeObject.getTime() / 1000;
-          let segmentStart = segmentTime + syncController.datetimeToDisplayTime;
-
-          // make sure segment start time is not higher than total segment time
-          if (segment.discontinuity && segmentStart > totalSegmentTime) {
-            segmentStart = totalSegmentTime;
-          }
+          const segmentStart = segmentTime + syncController.datetimeToDisplayTime - (segmentTime + datetimeToDisplayTime);
           const distance = Math.abs(currentTime - segmentStart);
 
           // Once the distance begins to increase, or if distance is 0, we have passed
@@ -63,7 +61,7 @@ export const syncPointStrategies = [
             segmentIndex: i
           };
         }
-        totalSegmentTime += segment.duration;
+        datetimeToDisplayTime -= segment.duration;
       }
       return syncPoint;
     }
