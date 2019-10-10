@@ -2156,3 +2156,29 @@ QUnit.test(
     assert.ok(loader.media().endList, 'flushed the final line of input');
   }
 );
+
+QUnit.test('Supports multiple STREAM-INF with the same URI', function(assert) {
+  const loader = new PlaylistLoader('master.m3u8', this.fakeHls);
+
+  loader.load();
+
+  this.requests.shift().respond(
+    200, null,
+    '#EXTM3U\n' +
+                                '#EXT-X-STREAM-INF:BANDWIDTH=1,AUDIO="aud0"\n' +
+                                'video/media.m3u8\n' +
+                                '#EXT-X-STREAM-INF:BANDWIDTH=2,AUDIO="aud1"\n' +
+                                'video/media.m3u8\n'
+  );
+  assert.equal(
+    loader.master.playlists['0-video/media.m3u8'].id,
+    loader.master.playlists[0].id,
+    'created key based on playlist id'
+  );
+
+  assert.equal(
+    loader.master.playlists['1-video/media.m3u8'].id,
+    loader.master.playlists[1].id,
+    'created key based on playlist id'
+  );
+});
