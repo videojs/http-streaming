@@ -388,8 +388,11 @@ export const playlistWithDuration = function(time, conf) {
       conf && conf.discontinuitySequence ? conf.discontinuitySequence : 0,
     attributes: conf && typeof conf.attributes !== 'undefined' ? conf.attributes : {}
   };
-  let count = Math.floor(time / 10);
-  let remainder = time % 10;
+
+  result.id = result.uri;
+
+  const count = Math.floor(time / 10);
+  const remainder = time % 10;
   let i;
   let isEncrypted = conf && conf.isEncrypted;
   let extension = conf && conf.extension ? conf.extension : '.ts';

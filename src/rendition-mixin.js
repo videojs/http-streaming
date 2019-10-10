@@ -4,7 +4,8 @@ import { isIncompatible, isEnabled } from './playlist.js';
  * Returns a function that acts as the Enable/disable playlist function.
  *
  * @param {PlaylistLoader} loader - The master playlist loader
- * @param {String} playlistUri - uri of the playlist
+
+ * @param {string} playlistID - id of the playlist
  * @param {Function} changePlaylistFn - A function to be called after a
  * playlist's enabled-state has been changed. Will NOT be called if a
  * playlist's enabled-state is unchanged
@@ -12,8 +13,8 @@ import { isIncompatible, isEnabled } from './playlist.js';
  * or if undefined returns the current enabled-state for the playlist
  * @return {Function} Function for setting/getting enabled
  */
-const enableFunction = (loader, playlistUri, changePlaylistFn) => (enable) => {
-  const playlist = loader.master.playlists[playlistUri];
+const enableFunction = (loader, playlistID, changePlaylistFn) => (enable) => {
+  const playlist = loader.master.playlists[playlistID];
   const incompatible = isIncompatible(playlist);
   const currentlyEnabled = isEnabled(playlist);
 
@@ -72,9 +73,11 @@ class Representation {
 
     // Partially-apply the enableFunction to create a playlist-
     // specific variant
-    this.enabled = enableFunction(hlsHandler.playlists,
-                                  playlist.uri,
-                                  qualityChangeFunction);
+    this.enabled = enableFunction(
+      hlsHandler.playlists,
+      playlist.id,
+      qualityChangeFunction
+    );
   }
 }
 
@@ -93,7 +96,7 @@ let renditionSelectionMixin = function(hlsHandler) {
       .master
       .playlists
       .filter((media) => !isIncompatible(media))
-      .map((e, i) => new Representation(hlsHandler, e, e.uri));
+      .map((e, i) => new Representation(hlsHandler, e, e.id));
   };
 };
 
