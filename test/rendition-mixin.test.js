@@ -1,4 +1,5 @@
 import QUnit from 'qunit';
+import { createPlaylistID } from '../src/playlist-loader.js';
 import RenditionMixin from '../src/rendition-mixin.js';
 import videojs from 'video.js';
 
@@ -64,7 +65,10 @@ const makeMockHlsHandler = function(playlistOptions, handlerOptions) {
     hlsHandler.playlists.master.playlists[i] = makeMockPlaylist(playlist);
 
     if (playlist.uri) {
-      hlsHandler.playlists.master.playlists[playlist.uri] =
+      const id = createPlaylistID(i, playlist.uri);
+
+      hlsHandler.playlists.master.playlists[i].id = id;
+      hlsHandler.playlists.master.playlists[id] =
         hlsHandler.playlists.master.playlists[i];
     }
   });
@@ -185,10 +189,10 @@ QUnit.test(
     const renditions = hlsHandler.representations();
 
     assert.equal(renditions.length, 4, 'incompatible rendition not added');
-    assert.equal(renditions[0].id, 'media1.m3u8', 'rendition is enabled');
-    assert.equal(renditions[1].id, 'media2.m3u8', 'rendition is enabled');
-    assert.equal(renditions[2].id, 'media3.m3u8', 'rendition is enabled');
-    assert.equal(renditions[3].id, 'media4.m3u8', 'rendition is enabled');
+    assert.equal(renditions[0].id, '1-media1.m3u8', 'rendition is enabled');
+    assert.equal(renditions[1].id, '2-media2.m3u8', 'rendition is enabled');
+    assert.equal(renditions[2].id, '3-media3.m3u8', 'rendition is enabled');
+    assert.equal(renditions[3].id, '4-media4.m3u8', 'rendition is enabled');
   }
 );
 

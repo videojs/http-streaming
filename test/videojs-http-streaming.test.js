@@ -18,6 +18,7 @@ import {
   requestAndAppendSegment,
   disposePlaybackWatcher
 } from './test-helpers.js';
+import { createPlaylistID } from '../src/playlist-loader.js';
 /* eslint-disable no-unused-vars */
 // we need this so that it can register hls with videojs
 import {
@@ -1557,6 +1558,7 @@ QUnit.test('segment 404 should trigger blacklisting of media', function(assert) 
 QUnit.test('playlist 404 should blacklist media', function(assert) {
   let media;
   let url;
+  let index;
   let blacklistplaylist = 0;
   let retryplaylist = 0;
   let hlsRenditionBlacklistedEvents = 0;
@@ -1602,7 +1604,13 @@ QUnit.test('playlist 404 should blacklist media', function(assert) {
   // media
   this.requests[1].respond(404);
   url = this.requests[1].url.slice(this.requests[1].url.lastIndexOf('/') + 1);
-  media = this.player.tech_.hls.playlists.master.playlists[url];
+
+  if (url === 'media.m3u8') {
+    index = 0;
+  } else {
+    index = 1;
+  }
+  media = this.player.tech_.hls.playlists.master.playlists[createPlaylistID(index, url)];
 
   assert.ok(media.excludeUntil > 0, 'original media blacklisted for some time');
   assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
@@ -1622,7 +1630,13 @@ QUnit.test('playlist 404 should blacklist media', function(assert) {
   // request for the final available media
   this.requests[2].respond(404);
   url = this.requests[2].url.slice(this.requests[2].url.lastIndexOf('/') + 1);
-  media = this.player.tech_.hls.playlists.master.playlists[url];
+  if (url === 'media.m3u8') {
+    index = 0;
+  } else {
+    index = 1;
+  }
+
+  media = this.player.tech_.hls.playlists.master.playlists[createPlaylistID(index, url)];
 
   assert.ok(media.excludeUntil > 0, 'second media was blacklisted after playlist 404');
   assert.equal(this.env.log.warn.calls, 2, 'warning logged for blacklist');
@@ -1650,7 +1664,12 @@ QUnit.test('playlist 404 should blacklist media', function(assert) {
 
   assert.strictEqual(4, this.requests.length, 'one more request was made');
   url = this.requests[3].url.slice(this.requests[3].url.lastIndexOf('/') + 1);
-  media = this.player.tech_.hls.playlists.master.playlists[url];
+  if (url === 'media.m3u8') {
+    index = 0;
+  } else {
+    index = 1;
+  }
+  media = this.player.tech_.hls.playlists.master.playlists[createPlaylistID(index, url)];
 
   // the first media was unblacklisted after a refresh delay
   assert.ok(!media.excludeUntil, 'removed first media from blacklist');
@@ -1781,7 +1800,7 @@ QUnit.test(
     this.requests[1].respond(404);
 
     const url = this.requests[1].url.slice(this.requests[1].url.lastIndexOf('/') + 1);
-    const media = this.player.tech_.hls.playlists.master.playlists[url];
+    const media = this.player.tech_.hls.playlists.master.playlists[createPlaylistID(0, url)];
 
     // media wasn't blacklisted because it's the only rendition
     assert.ok(!media.excludeUntil, 'media was not blacklisted after playlist 404');
@@ -1832,7 +1851,7 @@ QUnit.test('fire loadedmetadata once we successfully load a playlist', function(
   hls.masterPlaylistController_.masterPlaylistLoader_.on('loadedmetadata', function() {
     count += 1;
   });
-  // master
+  // masters
   this.standardXHRResponse(this.requests.shift());
   assert.equal(
     count, 0,
@@ -2290,7 +2309,14 @@ QUnit.test('playlist blacklisting duration is set through options', function(ass
   this.requests[1].respond(404);
   // media
   const url = this.requests[1].url.slice(this.requests[1].url.lastIndexOf('/') + 1);
-  const media = this.player.tech_.hls.playlists.master.playlists[url];
+  let index;
+
+  if (url === 'media.m3u8') {
+    index = 0;
+  } else {
+    index = 1;
+  }
+  const media = this.player.tech_.hls.playlists.master.playlists[createPlaylistID(index, url)];
 
   assert.ok(media.excludeUntil > 0, 'original media blacklisted for some time');
   assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');

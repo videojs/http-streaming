@@ -2196,7 +2196,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       byteLength: segmentInfo.byteLength,
       uri: segmentInfo.uri,
       timeline: segmentInfo.timeline,
-      playlist: segmentInfo.playlist.uri,
+      playlist: segmentInfo.playlist.id,
       start,
       end
     };
