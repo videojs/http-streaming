@@ -1860,7 +1860,7 @@ QUnit.test('playlist blacklisting duration is set through options', function(ass
                            'media1.m3u8\n');
   this.requests[1].respond(404);
   // media
-  const url = this.requests[1].url.slice(this.requests[1].url.lastIndexOf('/') + 1);
+  url = this.requests[1].url.slice(this.requests[1].url.lastIndexOf('/') + 1);
   let index;
 
   if (url === 'media.m3u8') {
@@ -1868,7 +1868,7 @@ QUnit.test('playlist blacklisting duration is set through options', function(ass
   } else {
     index = 1;
   }
-  const media = this.player.tech_.hls.playlists.master.playlists[createPlaylistID(index, url)];
+  media = this.player.tech_.hls.playlists.master.playlists[createPlaylistID(index, url)];
 
   assert.ok(media.excludeUntil > 0, 'original media blacklisted for some time');
   assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
