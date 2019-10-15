@@ -127,6 +127,8 @@ export const updateMaster = (master, media) => {
     }
   }
   result.playlists[media.id] = mergedPlaylist;
+  // URI reference added for backwards compatibility
+  result.playlists[media.uri] = mergedPlaylist;
 
   return result;
 };
@@ -146,6 +148,8 @@ export const setupMediaPlaylists = (master) => {
     playlist.id = createPlaylistID(i, playlist.uri);
 
     master.playlists[playlist.id] = playlist;
+    // URI reference added for backwards compatibility
+    master.playlists[playlist.uri] = playlist;
 
     if (!playlist.attributes) {
       // Although the spec states an #EXT-X-STREAM-INF tag MUST have a
@@ -597,6 +601,9 @@ export default class PlaylistLoader extends EventTarget {
         }]
       };
       this.master.playlists[id] = this.master.playlists[0];
+      // URI reference added for backwards compatibility
+      this.master.playlists[this.srcUrl] = this.master.playlists[0];
+
       this.haveMetadata(req, this.srcUrl, id);
       return this.trigger('loadedmetadata');
     });
