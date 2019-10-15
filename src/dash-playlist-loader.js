@@ -471,7 +471,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
         properties.playlists[0].uri = phonyUri;
         properties.playlists[0].id = id;
-        // setup ID and URI references (URI for backwards compatability)
+        // setup ID and URI references (URI for backwards compatibility)
         master.playlists[id] = properties.playlists[0];
         master.playlists[phonyUri] = properties.playlists[0];
       }
