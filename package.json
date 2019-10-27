@@ -79,7 +79,7 @@
     "karma": "^4.0.0",
     "lodash": "^4.17.4",
     "lodash-compat": "^3.10.0",
-    "nomnoml": "^0.3.0",
+    "nomnoml": "^0.6.2",
     "rollup": "^1.19.4",
     "shelljs": "^0.8.2",
     "sinon": "1.10.3",
