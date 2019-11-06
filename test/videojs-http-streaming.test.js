@@ -18,7 +18,7 @@ import {
   requestAndAppendSegment,
   disposePlaybackWatcher
 } from './test-helpers.js';
-import { createPlaylistID } from '../src/playlist-loader.js';
+import { createPlaylistID } from '../src/manifest.js';
 /* eslint-disable no-unused-vars */
 // we need this so that it can register hls with videojs
 import {
