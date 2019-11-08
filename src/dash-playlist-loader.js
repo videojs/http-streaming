@@ -13,7 +13,7 @@ import { segmentXhrHeaders } from './xhr';
 import window from 'global/window';
 import {
   forEachMediaGroup,
-  addPropertiesToManifest
+  addPropertiesToMaster
 } from './manifest';
 
 const { EventTarget, mergeOptions } = videojs;
@@ -41,7 +41,7 @@ export const parseMasterXml = ({ masterXml, srcUrl, clientOffset, sidxMapping })
     sidxMapping
   });
 
-  addPropertiesToManifest(master, srcUrl);
+  addPropertiesToMaster(master, srcUrl);
 
   return master;
 };

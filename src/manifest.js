@@ -1,6 +1,7 @@
 import videojs from 'video.js';
 import window from 'global/window';
 import { resolveUrl } from './resolve-url';
+
 const { log } = videojs;
 
 export const createPlaylistID = (index, uri) => {
@@ -29,50 +30,43 @@ export const forEachMediaGroup = (master, callback) => {
 };
 
 /**
- * Adds ID, resolvedUri, and attributes properties to the playlist, where necessary. In
- * addition, if a master playlist is provided, the playlist ID to playlist reference is
- * added to the playlists array.
+ * Adds properties and attributes to the playlist to keep consistent functionality for
+ * playlists throughout VHS.
  *
  * @param {Object} config
  *        Arguments object
  * @param {Object} config.playlist
  *        The media playlist
- * @param {Object} [config.master]
- *        The master playlist containing this media playlist (if applicable)
+ * @param {string} [config.uri]
+ *        The uri to the media playlist (if media playlist is not from within a master
+ *        playlist)
  * @param {string} id
  *        ID to use for the playlist
  */
-export const setupMediaPlaylist = ({ playlist, master, id }) => {
+export const setupMediaPlaylist = ({ playlist, uri, id }) => {
   playlist.id = id;
 
-  // For media playlist sources, the URI is resolved at the time of the response (to
-  // handle redirects), therefore, only media playlists within a master must be resolved
-  // here.
-  if (master) {
-    playlist.resolvedUri = resolveUrl(master.uri, playlist.uri);
-    master.playlists[playlist.id] = playlist;
+  if (uri) {
+    // For media playlists, m3u8-parser does not have access to a URI, as HLS media
+    // playlists do not contain their own source URI, but one is needed for consistency in
+    // VHS.
+    playlist.uri = uri;
   }
 
-  if (!playlist.attributes) {
-    // Although the spec states an #EXT-X-STREAM-INF tag MUST have a BANDWIDTH attribute,
-    // the stream can be played without it. This means a poorly formatted master playlist
-    // may not have an attribute list. An attributes property is added here to prevent
-    // undefined references when this scenario is encountered.
-    //
-    // In addition, m3u8-parser does not attach an attributes property to media playlists,
-    // so ensure that the property is attached to avoid undefined reference errors
-    playlist.attributes = {};
-
-    if (master) {
-      log.warn('Invalid playlist STREAM-INF detected. Missing BANDWIDTH attribute.');
-    }
-  }
+  // For HLS master playlists, even though certain attributes MUST be defined, the
+  // stream may still be played without them.
+  // For HLS media playlists, m3u8-parser does not attach an attributes object to the
+  // manifest.
+  //
+  // To avoid undefined reference errors through the project, and make the code easier
+  // to write/read, add an empty attributes object for these cases.
+  playlist.attributes = playlist.attributes || {};
 };
 
 /**
  * Adds ID, resolvedUri, and attributes properties to each playlist of the master, where
  * necessary. In addition, creates playlist IDs for each playlist and adds playlist ID to
- * playlist references is to the playlists array.
+ * playlist references to the playlists array.
  *
  * @param {Object} master
  *        The master playlist
@@ -86,9 +80,18 @@ export const setupMediaPlaylists = (master) => {
 
     setupMediaPlaylist({
       playlist,
-      master,
       id: createPlaylistID(i, playlist.uri)
     });
+    playlist.resolvedUri = resolveUrl(master.uri, playlist.uri);
+    master.playlists[playlist.id] = playlist;
+
+    // Although the spec states an #EXT-X-STREAM-INF tag MUST have a BANDWIDTH attribute,
+    // the stream can be played without it. Although an attributes property may have been
+    // added to the playlist to prevent undefined references, issue a warning to fix the
+    // manifest.
+    if (!playlist.attributes.BANDWIDTH) {
+      log.warn('Invalid playlist STREAM-INF detected. Missing BANDWIDTH attribute.');
+    }
   }
 };
 
@@ -107,16 +110,18 @@ export const resolveMediaGroupUris = (master) => {
 };
 
 /**
- * Creates a master playlist warapper to insert a sole media playlist into.
+ * Creates a master playlist wrapper to insert a sole media playlist into.
  *
  * @param {Object} media
  *        Media playlist
+ * @param {string} uri
+ *        The media URI
  *
  * @return {Object}
  *         Master playlist
  */
-export const masterForMedia = (media) => {
-  const id = createPlaylistID(0, media.uri);
+export const masterForMedia = (media, uri) => {
+  const id = createPlaylistID(0, uri);
   const master = {
     mediaGroups: {
       'AUDIO': {},
@@ -126,38 +131,35 @@ export const masterForMedia = (media) => {
     },
     uri: window.location.href,
     playlists: [{
-      uri: media.uri,
+      uri,
       id,
-      resolvedUri: media.uri,
-      // m3u8-parser does not attach an attributes property to media playlists so make
-      // sure that the property is attached to avoid undefined reference errors
+      resolvedUri: uri,
       attributes: {}
     }]
   };
 
-  master.playlists[id] = media;
+  // set up ID reference
+  master.playlists[id] = master.playlists[0];
 
   return master;
 };
 
 /**
  * Does an in-place update of the master manifest to add updated playlist URI references
- * as well as other properties needed by VHS that aren't included by mpd-parser.
+ * as well as other properties needed by VHS that aren't included by the parser.
  *
- * @param {Object} manifest
- *        Manifest object returned from parser
- * @param {string} srcUrl
- *        The mpd URL
+ * @param {Object} master
+ *        Master manifest object
+ * @param {string} uri
+ *        The source URI
  */
-export const addPropertiesToManifest = (manifest, srcUrl) => {
-  manifest.uri = srcUrl;
-
-  const master = manifest.playlists ? manifest : masterForMedia(manifest, srcUrl);
+export const addPropertiesToMaster = (master, uri) => {
+  master.uri = uri;
 
   for (let i = 0; i < master.playlists.length; i++) {
     if (!master.playlists[i].uri) {
-      // Set up phony URIs for the playlists since we won't have external URIs for DASH
-      // but reference playlists by their URI throughout the project
+      // Set up phony URIs for the playlists since playlists are referenced by their URIs
+      // throughout VHS, but some formats (e.g., DASH) don't have external URIs
       // TODO: consider adding dummy URIs in mpd-parser
       const phonyUri = `placeholder-uri-${i}`;
 
@@ -169,20 +171,18 @@ export const addPropertiesToManifest = (manifest, srcUrl) => {
     if (properties.playlists &&
         properties.playlists.length &&
         !properties.playlists[0].uri) {
-      // set up phony URIs for the media group playlists since we won't have external
-      // URIs for DASH but reference playlists by their URI throughout the project
+      // Set up phony URIs for the media group playlists since playlists are referenced by
+      // their URIs throughout VHS, but some formats (e.g., DASH) don't have external URIs
       const phonyUri = `placeholder-uri-${mediaType}-${groupKey}-${labelKey}`;
       const id = createPlaylistID(0, phonyUri);
 
       properties.playlists[0].uri = phonyUri;
       properties.playlists[0].id = id;
-      // setup URI references
+      // set up ID references
       master.playlists[id] = properties.playlists[0];
     }
   });
 
   setupMediaPlaylists(master);
   resolveMediaGroupUris(master);
-
-  return master;
 };

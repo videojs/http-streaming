@@ -10,7 +10,8 @@ import videojs from 'video.js';
 import { Parser as M3u8Parser } from 'm3u8-parser';
 import window from 'global/window';
 import {
-  addPropertiesToManifest,
+  addPropertiesToMaster,
+  masterForMedia,
   setupMediaPlaylist
 } from './manifest';
 
@@ -238,7 +239,11 @@ export default class PlaylistLoader extends EventTarget {
 
     parser.push(xhr.responseText);
     parser.end();
-    setupMediaPlaylist({ playlist: parser.manifest, id });
+    setupMediaPlaylist({
+      playlist: parser.manifest,
+      uri: url,
+      id
+    });
 
     // merge this playlist into the master
     const update = updateMaster(this.master, parser.manifest);
@@ -499,21 +504,19 @@ export default class PlaylistLoader extends EventTarget {
 
       this.srcUrl = resolveManifestRedirect(this.handleManifestRedirects, this.srcUrl, req);
 
-      const downloadedManifestIsMaster = parser.manifest.playlists;
-      const master = addPropertiesToManifest(parser.manifest, this.srcUrl);
-
-      this.master = master;
-
-      if (downloadedManifestIsMaster) {
+      if (parser.manifest.playlists) {
+        this.master = parser.manifest;
+        addPropertiesToMaster(this.master, this.srcUrl);
         this.trigger('loadedplaylist');
         if (!this.request) {
           // no media playlist was specifically selected so start
           // from the first listed one
-          this.media(master.playlists[0]);
+          this.media(this.master.playlists[0]);
         }
         return;
       }
 
+      this.master = masterForMedia(parser.manifest, this.srcUrl);
       this.haveMetadata(req, this.srcUrl, this.master.playlists[0].id);
       return this.trigger('loadedmetadata');
     });
