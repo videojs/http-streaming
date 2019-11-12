@@ -270,27 +270,35 @@ QUnit.module('masterForMedia');
 QUnit.test('creates a skeleton of a master playlist', function(assert) {
   const master = masterForMedia({}, 'some-uri');
 
-  assert.deepEqual(master, {
-    mediaGroups: {
-      'AUDIO': {},
-      'VIDEO': {},
-      'CLOSED-CAPTIONS': {},
-      'SUBTITLES': {}
+  assert.deepEqual(
+    master,
+    {
+      mediaGroups: {
+        'AUDIO': {},
+        'VIDEO': {},
+        'CLOSED-CAPTIONS': {},
+        'SUBTITLES': {}
+      },
+      uri: window.location.href,
+      playlists: [{
+        uri: 'some-uri',
+        id: '0-some-uri',
+        resolvedUri: 'some-uri',
+        attributes: {}
+      }]
     },
-    uri: window.location.href,
-    playlists: [{
-      uri: 'some-uri',
-      id: '0-some-uri',
-      resolvedUri: 'some-uri',
-      attributes: {}
-    }]
-  });
+    'created master playlist skeleton'
+  );
 });
 
 QUnit.test('adds by ID reference to playlists array', function(assert) {
   const master = masterForMedia({}, 'some-uri');
 
-  assert.equal(master.playlists['0-some-uri'], master.playlists[0]);
+  assert.equal(
+    master.playlists['0-some-uri'],
+    master.playlists[0],
+    'added by ID reference to playlists array'
+  );
 });
 
 QUnit.module('addPropertiesToMaster');
