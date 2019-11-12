@@ -1,3 +1,10 @@
+<a name="1.11.2"></a>
+## [1.11.2](https://github.com/videojs/http-streaming/compare/v1.11.1...v1.11.2) (2019-11-12)
+
+### Bug Fixes
+
+* only do ondemand eme key initialization on non-ie11 browsers ([#682](https://github.com/videojs/http-streaming/issues/682)) ([fbfe68f](https://github.com/videojs/http-streaming/commit/fbfe68f))
+
 <a name="1.11.1"></a>
 ## [1.11.1](https://github.com/videojs/http-streaming/compare/v1.11.0...v1.11.1) (2019-10-07)
 
