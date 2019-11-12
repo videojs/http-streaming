@@ -72,7 +72,6 @@ export const setupMediaPlaylist = ({ playlist, uri, id }) => {
  *        The master playlist
  */
 export const setupMediaPlaylists = (master) => {
-  // setup by-URI lookups and resolve media playlist URIs
   let i = master.playlists.length;
 
   while (i--) {

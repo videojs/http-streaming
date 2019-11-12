@@ -1,7 +1,10 @@
 import QUnit from 'qunit';
+import window from 'global/window';
 import {
   setupMediaPlaylists,
-  resolveMediaGroupUris
+  resolveMediaGroupUris,
+  masterForMedia,
+  addPropertiesToMaster
 } from '../src/manifest';
 import {
   useFakeEnvironment,
@@ -260,4 +263,121 @@ QUnit.test('resolveMediaGroupUris resolves media group URIs', function(assert) {
       }
     }
   }, 'resolved URIs of certain media groups');
+});
+
+QUnit.module('masterForMedia');
+
+QUnit.test('creates a skeleton of a master playlist', function(assert) {
+  const master = masterForMedia({}, 'some-uri');
+
+  assert.deepEqual(master, {
+    mediaGroups: {
+      'AUDIO': {},
+      'VIDEO': {},
+      'CLOSED-CAPTIONS': {},
+      'SUBTITLES': {}
+    },
+    uri: window.location.href,
+    playlists: [{
+      uri: 'some-uri',
+      id: '0-some-uri',
+      resolvedUri: 'some-uri',
+      attributes: {}
+    }]
+  });
+});
+
+QUnit.test('adds by ID reference to playlists array', function(assert) {
+  const master = masterForMedia({}, 'some-uri');
+
+  assert.equal(master.playlists['0-some-uri'], master.playlists[0]);
+});
+
+QUnit.module('addPropertiesToMaster');
+
+QUnit.test('adds uri to master', function(assert) {
+  const master = {
+    mediaGroups: {},
+    playlists: []
+  };
+
+  addPropertiesToMaster(master, 'some-uri');
+
+  assert.equal(master.uri, 'some-uri', 'added uri to master');
+});
+
+QUnit.test('adds placeholder URIs to playlists if necessary', function(assert) {
+  const master = {
+    mediaGroups: {},
+    playlists: [{
+      uri: 'playlist-0-uri',
+      attributes: {}
+    }, {
+      attributes: {}
+    }]
+  };
+
+  addPropertiesToMaster(master, 'some-uri');
+
+  assert.equal(master.playlists[0].uri, 'playlist-0-uri', 'did not overwrite uri');
+  assert.equal(master.playlists[1].uri, 'placeholder-uri-1', 'added placeholder uri');
+});
+
+QUnit.test('adds placeholder URIs to media groups if necessary', function(assert) {
+  const master = {
+    mediaGroups: {
+      AUDIO: {
+        default: {
+          en: {
+            playlists: [{
+              uri: 'audio-default-uri'
+            }]
+          },
+          es: {
+            playlists: [{}]
+          }
+        }
+      }
+    },
+    playlists: []
+  };
+
+  addPropertiesToMaster(master, 'some-uri');
+
+  assert.equal(
+    master.mediaGroups.AUDIO.default.en.playlists[0].uri,
+    'audio-default-uri',
+    'did not overwrite uri'
+  );
+  assert.equal(
+    master.mediaGroups.AUDIO.default.es.playlists[0].uri,
+    'placeholder-uri-AUDIO-default-es',
+    'added placeholder uri'
+  );
+});
+
+QUnit.test('adds resolvedUri for media group URIs', function(assert) {
+  const master = {
+    mediaGroups: {
+      AUDIO: {
+        default: {
+          en: { uri: 'audio-default-uri' },
+          es: {}
+        }
+      }
+    },
+    playlists: []
+  };
+
+  addPropertiesToMaster(master, 'some-uri');
+
+  assert.equal(
+    master.mediaGroups.AUDIO.default.en.resolvedUri,
+    urlTo('audio-default-uri'),
+    'added resolvedUri'
+  );
+  assert.notOk(
+    master.mediaGroups.AUDIO.default.es.resolvedUri,
+    'did not add resolvedUri when no uri'
+  );
 });
