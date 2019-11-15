@@ -6,6 +6,8 @@ import * as MediaGroups from '../src/media-groups';
 import PlaylistLoader from '../src/playlist-loader';
 import DashPlaylistLoader from '../src/dash-playlist-loader';
 import noop from '../src/util/noop';
+import { parseManifest } from '../src/manifest.js';
+import manifests from './dist/test-manifests.js';
 
 QUnit.module('MediaGroups', {
   beforeEach(assert) {
@@ -1074,6 +1076,30 @@ QUnit.test('initialize subtitles correctly uses HLS source type', function(asser
   );
 });
 
+QUnit.test('initialize audio correctly uses vhs-json source type', function(assert) {
+  const manifestString = manifests.media;
+  const audioPlaylist = parseManifest({ manifestString });
+
+  this.master.mediaGroups.AUDIO.aud1 = {
+    en: {
+      default: true,
+      language: 'en',
+      playlists: [audioPlaylist]
+    }
+  };
+  this.settings.sourceType = 'vhs-json';
+
+  MediaGroups.initialize.AUDIO('AUDIO', this.settings);
+
+  const playlistLoader = this.mediaTypes.AUDIO.groups.aud1[0].playlistLoader;
+
+  assert.ok(
+    playlistLoader instanceof PlaylistLoader,
+    'playlist loader is a standard playlist loader'
+  );
+  assert.deepEqual(playlistLoader.src, audioPlaylist, 'passed the audio playlist');
+});
+
 QUnit.test('initialize subtitles correctly uses DASH source type', function(assert) {
   // allow async methods to resolve before next test
   const done = assert.async();
@@ -1101,4 +1127,31 @@ QUnit.test('initialize subtitles correctly uses DASH source type', function(asse
   );
 
   done();
+});
+
+QUnit.test('initialize subtitles correctly uses vhs-json source type', function(assert) {
+  const manifestString = manifests.subtitles;
+  const subtitlesPlaylist = parseManifest({ manifestString });
+
+  this.master.mediaGroups.SUBTITLES.sub1 = {
+    en: {
+      language: 'en',
+      playlists: [subtitlesPlaylist]
+    }
+  };
+  this.settings.sourceType = 'vhs-json';
+
+  MediaGroups.initialize.SUBTITLES('SUBTITLES', this.settings);
+
+  const playlistLoader = this.mediaTypes.SUBTITLES.groups.sub1[0].playlistLoader;
+
+  assert.ok(
+    playlistLoader instanceof PlaylistLoader,
+    'playlist loader is a standard playlist loader'
+  );
+  assert.deepEqual(
+    playlistLoader.src,
+    subtitlesPlaylist,
+    'passed the subtitles playlist'
+  );
 });

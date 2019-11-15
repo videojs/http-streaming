@@ -17,7 +17,7 @@ Video.js Compatibility: 6.0, 7.0
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
 
 - [Installation](#installation)
   - [NPM](#npm)
@@ -71,6 +71,7 @@ Video.js Compatibility: 6.0, 7.0
     - [Use Stats](#use-stats)
   - [In-Band Metadata](#in-band-metadata)
   - [Segment Metadata](#segment-metadata)
+  - [Object as Source](#object-as-source)
 - [Hosting Considerations](#hosting-considerations)
 - [Known Issues and Workarounds](#known-issues-and-workarounds)
   - [Fragmented MP4 Support](#fragmented-mp4-support)
@@ -754,6 +755,35 @@ if (segmentMetadataTrack) {
     }
   });
 }
+```
+
+### Object as Source
+
+VHS not only accepts a URL as the source, but also has the option to provide a parsed
+manifest object as the source via a
+[data URI](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs).
+This can be useful for specific use-cases, e.g., when the manifest has already been
+downloaded (to prevent another request), to manipulate the manifest object before passing
+it along to VHS, or for testing. *Note* that this is an advanced use-case, and may be more
+fragile for production environments, as the schema for a VHS object and how it's used
+internally are not set in stone and may change in future releases.
+
+When providing an object as the source, the "vnd.vhs+json" media type is required both as
+the source type and in the data URI.
+
+The manifest object should follow the "VHS manifest object schema" provided in
+[m3u8-parser](https://github.com/videojs/m3u8-parser) and
+[mpd-parser](https://github.com/videojs/mpd-parser). This may be referred to in the
+project as `vhs-json`.
+
+```javascript
+var player = videojs('some-video-id');
+var manifestObject = { /* the VHS manifest object */ };
+
+player.src({
+  src: 'data:application/vnd.vhs+json,' + JSON.stringify(manifestObject),
+  type: 'application/vnd.vhs+json'
+});
 ```
 
 ## Hosting Considerations

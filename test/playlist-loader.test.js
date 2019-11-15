@@ -10,6 +10,11 @@ import { useFakeEnvironment, urlTo } from './test-helpers';
 import window from 'global/window';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
+import {
+  createPlaylistID,
+  parseManifest
+} from '../src/manifest.js';
+import manifests from './dist/test-manifests.js';
 
 QUnit.module('Playlist Loader', {
   beforeEach(assert) {
@@ -659,13 +664,17 @@ QUnit.test('uses last segment duration for refresh delay', function(assert) {
   );
 });
 
-QUnit.test('throws if the playlist url is empty or undefined', function(assert) {
-  assert.throws(function() {
-    PlaylistLoader();
-  }, 'requires an argument');
-  assert.throws(function() {
-    PlaylistLoader('');
-  }, 'does not accept the empty string');
+QUnit.test('throws if the playlist src is empty or undefined', function(assert) {
+  assert.throws(
+    () => new PlaylistLoader(),
+    /A non-empty playlist URL or object is required/,
+    'requires an argument'
+  );
+  assert.throws(
+    () => new PlaylistLoader(''),
+    /A non-empty playlist URL or object is required/,
+    'does not accept the empty string'
+  );
 });
 
 QUnit.test('starts without any metadata', function(assert) {
@@ -777,6 +786,32 @@ QUnit.test('executes custom parsers and mappers', function(assert) {
 });
 
 QUnit.test(
+  'adds properties to playlists array when given a master playlist object',
+  function(assert) {
+    const masterPlaylist = JSON.parse(JSON.stringify(parseManifest({
+      manifestString: manifests.master
+    })));
+    const firstPlaylistId = createPlaylistID(0, masterPlaylist.playlists[0].uri);
+
+    assert.notOk(
+      firstPlaylistId in masterPlaylist.playlists,
+      'parsed manifest playlists array does not contain playlist ID property'
+    );
+
+    const loader = new PlaylistLoader(masterPlaylist, this.fakeHls);
+
+    loader.load();
+    // even for vhs-json manifest objects, load is an async operation
+    this.clock.tick(1);
+
+    assert.ok(
+      firstPlaylistId in masterPlaylist.playlists,
+      'parsed manifest playlists array contains playlist ID property'
+    );
+  }
+);
+
+QUnit.test(
   'jumps to HAVE_METADATA when initialized with a media playlist',
   function(assert) {
     let loadedmetadatas = 0;
@@ -801,6 +836,97 @@ QUnit.test(
     assert.strictEqual(loader.state, 'HAVE_METADATA', 'the state is correct');
     assert.strictEqual(this.requests.length, 0, 'no more requests are made');
     assert.strictEqual(loadedmetadatas, 1, 'fired one loadedmetadata');
+  }
+);
+
+QUnit.test(
+  'moves to HAVE_METADATA without a request when initialized with a media playlist' +
+    ' object',
+  function(assert) {
+    const mediaPlaylist = parseManifest({ manifestString: manifests.media });
+
+    const loader = new PlaylistLoader(mediaPlaylist, this.fakeHls);
+    let loadedmetadataEvents = 0;
+
+    loader.on('loadedmetadata', () => loadedmetadataEvents++);
+    loader.load();
+
+    assert.equal(this.requests.length, 0, 'no requests');
+    assert.equal(loadedmetadataEvents, 0, 'no loadedmetadata events');
+    assert.equal(loader.state, 'HAVE_NOTHING', 'state is HAVE_NOTHING');
+
+    // preparing of manifest by playlist loader is still asynchronous for source objects
+    this.clock.tick(1);
+
+    assert.equal(this.requests.length, 0, 'no requests');
+    assert.equal(loadedmetadataEvents, 1, 'one loadedmetadata event');
+    assert.ok(loader.master, 'inferred a master playlist');
+    assert.deepEqual(mediaPlaylist, loader.media(), 'set the media playlist');
+    assert.equal(loader.state, 'HAVE_METADATA', 'state is HAVE_METADATA');
+  }
+);
+
+QUnit.test(
+  'stays at HAVE_MASTER and makes a request when initialized with a master playlist ' +
+    'without resolved media playlists',
+  function(assert) {
+    const masterPlaylist = parseManifest({ manifestString: manifests.master });
+
+    const loader = new PlaylistLoader(masterPlaylist, this.fakeHls);
+    let loadedmetadataEvents = 0;
+
+    loader.on('loadedmetadata', () => loadedmetadataEvents++);
+    loader.load();
+
+    assert.equal(this.requests.length, 0, 'no requests');
+    assert.equal(loadedmetadataEvents, 0, 'no loadedmetadata events');
+    assert.equal(loader.state, 'HAVE_NOTHING', 'state is HAVE_NOTHING');
+
+    // preparing of manifest by playlist loader is still asynchronous for source objects
+    this.clock.tick(1);
+
+    assert.equal(this.requests.length, 1, 'one request');
+    assert.equal(loadedmetadataEvents, 0, 'no loadedmetadata event');
+    assert.deepEqual(loader.master, masterPlaylist, 'set the master playlist');
+    assert.equal(loader.state, 'SWITCHING_MEDIA', 'state is SWITCHING_MEDIA');
+  }
+);
+
+QUnit.test(
+  'moves to HAVE_METADATA without a request when initialized with a master playlist ' +
+    'object with resolved media playlists',
+  function(assert) {
+    const masterPlaylist = parseManifest({ manifestString: manifests.master });
+    const mediaPlaylist = parseManifest({ manifestString: manifests.media });
+
+    // since the playlist is getting overwritten in the master (to fake a resolved media
+    // playlist), attributes should be copied over to prevent warnings or errors due to
+    // a missing BANDWIDTH attribute
+    mediaPlaylist.attributes = masterPlaylist.playlists[0].attributes;
+
+    // If no playlist is selected after the first loadedplaylist event, then playlist loader
+    // defaults to the first playlist. Here it's already resolved, so loadedmetadata should
+    // fire immediately.
+    masterPlaylist.playlists[0] = mediaPlaylist;
+
+    const loader = new PlaylistLoader(masterPlaylist, this.fakeHls);
+    let loadedmetadataEvents = 0;
+
+    loader.on('loadedmetadata', () => loadedmetadataEvents++);
+    loader.load();
+
+    assert.equal(this.requests.length, 0, 'no requests');
+    assert.equal(loadedmetadataEvents, 0, 'no loadedmetadata events');
+    assert.equal(loader.state, 'HAVE_NOTHING', 'state is HAVE_NOTHING');
+
+    // preparing of manifest by playlist loader is still asynchronous for source objects
+    this.clock.tick(1);
+
+    assert.equal(this.requests.length, 0, 'no requests');
+    assert.equal(loadedmetadataEvents, 1, 'one loadedmetadata event');
+    assert.deepEqual(loader.master, masterPlaylist, 'set the master playlist');
+    assert.deepEqual(mediaPlaylist, loader.media(), 'set the media playlist');
+    assert.equal(loader.state, 'HAVE_METADATA', 'state is HAVE_METADATA');
   }
 );
 

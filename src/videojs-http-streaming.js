@@ -95,6 +95,17 @@ const simpleTypeFromSourceType = (type) => {
     return 'dash';
   }
 
+  // Denotes the special case of a pre-parsed manifest object passed in instead of the
+  // traditional source URL.
+  //
+  // See https://en.wikipedia.org/wiki/Media_type for details on specifying media types.
+  //
+  // In this case, vnd is for vendor, VHS is for this project, and the +json suffix
+  // identifies the structure of the media type.
+  if (type === 'application/vnd.vhs+json') {
+    return 'vhs-json';
+  }
+
   return null;
 };
 
@@ -238,6 +249,26 @@ const updateVhsLocalStorage = (options) => {
   }
 
   return objectToStore;
+};
+
+/**
+ * Parses VHS-supported media types from data URIs. See
+ * https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs
+ * for information on data URIs.
+ *
+ * @param {string} dataUri
+ *        The data URI
+ *
+ * @return {string|Object}
+ *         The parsed object/string, or the original string if no supported media type
+ *         was found
+ */
+const expandDataUri = (dataUri) => {
+  if ((/^data:application\/vnd\.vhs\+json/i).test(dataUri)) {
+    return JSON.parse(dataUri.substring(dataUri.indexOf(',') + 1));
+  }
+  // no known case for this data URI, return the string as-is
+  return dataUri;
 };
 
 /**
@@ -471,7 +502,8 @@ class HlsHandler extends Component {
     }
     this.setOptions_();
     // add master playlist controller options
-    this.options_.url = this.source_.src;
+    this.options_.src = (this.source_.src && (/^data:/i).test(this.source_.src)) ?
+      expandDataUri(this.source_.src) : this.source_.src;
     this.options_.tech = this.tech_;
     this.options_.externHls = Hls;
     this.options_.sourceType = simpleTypeFromSourceType(type);
@@ -883,5 +915,6 @@ export {
   HlsHandler,
   HlsSourceHandler,
   emeKeySystems,
-  simpleTypeFromSourceType
+  simpleTypeFromSourceType,
+  expandDataUri
 };

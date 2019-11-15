@@ -18,7 +18,10 @@ import {
   requestAndAppendSegment,
   disposePlaybackWatcher
 } from './test-helpers.js';
-import { createPlaylistID } from '../src/manifest.js';
+import {
+  createPlaylistID,
+  parseManifest
+} from '../src/manifest.js';
 /* eslint-disable no-unused-vars */
 // we need this so that it can register hls with videojs
 import {
@@ -27,7 +30,8 @@ import {
   Hls,
   emeKeySystems,
   simpleTypeFromSourceType,
-  LOCAL_STORAGE_KEY
+  LOCAL_STORAGE_KEY,
+  expandDataUri
 } from '../src/videojs-http-streaming';
 import window from 'global/window';
 // we need this so the plugin registers itself
@@ -4367,6 +4371,40 @@ QUnit.test('seekToProgramTime seek to time if buffered', function(assert) {
   });
 });
 
+QUnit.test('manifest object used as source if provided as data URI', function(assert) {
+  this.player.src({
+    src: 'placeholder-source',
+    type: 'application/x-mpegurl'
+  });
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+
+  // no manifestObject was provided, so a request is made for the source manifest
+  assert.equal(this.requests.length, 1, 'one request');
+  assert.equal(this.requests[0].url, 'placeholder-source', 'requested src url');
+
+  this.requests.length = 0;
+
+  const manifestString = testDataManifests.playlist;
+  const manifestObject = parseManifest({ manifestString });
+
+  this.player.src({
+    src: `data:application/vnd.vhs+json,${JSON.stringify(manifestObject)}`,
+    type: 'application/vnd.vhs+json'
+  });
+
+  openMediaSource(this.player, this.clock);
+
+  // manifestObject was provided, so a request is made for the segment
+  assert.equal(this.requests.length, 1, 'one request');
+  assert.equal(
+    this.requests[0].uri,
+    `${window.location.origin}/test/hls_450k_video.ts`,
+    'requested first segment'
+  );
+});
+
 QUnit.module('HLS Integration', {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
@@ -4930,3 +4968,32 @@ QUnit.test(
     assert.notOk(simpleTypeFromSourceType('video/x-flv'), 'does not support video/x-flv');
   }
 );
+
+QUnit.test('simpleTypeFromSourceType converts VHS media type to vhs-json', function(assert) {
+  assert.equal(
+    simpleTypeFromSourceType('application/vnd.vhs+json'),
+    'vhs-json',
+    'supports application/vnd.vhs+json'
+  );
+});
+
+QUnit.test('expandDataUri parses JSON for VHS media type', function(assert) {
+  const manifestObject = {
+    test: 'manifest',
+    object: ['here']
+  };
+  const xMpegDataUriString =
+    `data:application/x-mpegURL,${JSON.stringify(manifestObject)}`;
+
+  assert.deepEqual(
+    expandDataUri(xMpegDataUriString),
+    xMpegDataUriString,
+    'does not parse JSON for non VHS media type'
+  );
+
+  assert.deepEqual(
+    expandDataUri(`data:application/vnd.vhs+json,${JSON.stringify(manifestObject)}`),
+    manifestObject,
+    'parsed JSON from data URI for VHS media type'
+  );
+});
