@@ -24,7 +24,10 @@ import Playlist from '../src/playlist';
 import Config from '../src/config';
 import PlaylistLoader from '../src/playlist-loader';
 import DashPlaylistLoader from '../src/dash-playlist-loader';
-import { parseManifest } from '../src/manifest.js';
+import {
+  parseManifest,
+  addPropertiesToMaster
+} from '../src/manifest.js';
 import {
   muxed as muxedSegment,
   audio as audioSegment,
@@ -3908,15 +3911,14 @@ QUnit.test('Exception in play promise should be caught', function(assert) {
 });
 
 QUnit.test(
-  'when data URI is a media playlist with segments resolved, ' +
-  ' state is updated without a playlist request',
+  'when data URI is a resolved media playlist, ' +
+  'state is updated without a playlist request',
   function(assert) {
     this.requests.length = 0;
     // must recreate player for new mock media source to open
     this.player = createPlayer();
 
-    const manifestString = manifests.playlist;
-    const manifestObject = parseManifest({ manifestString });
+    const manifestObject = parseManifest({ manifestString: manifests.media });
 
     this.player.src({
       src: `data:application/vnd.vhs+json,${JSON.stringify(manifestObject)}`,
@@ -3929,14 +3931,84 @@ QUnit.test(
 
     // a duration update indicates a master playlist controller state update from the media
     // playlist
-    assert.equal(this.masterPlaylistController.duration(), 161.4167, 'duration set');
+    assert.equal(this.masterPlaylistController.duration(), 40, 'duration set');
 
     // segment loader has started, not waiting on any playlist requests
     assert.equal(this.requests.length, 1, 'one request');
     assert.equal(
       this.requests[0].uri,
-      `${window.location.origin}/test/hls_450k_video.ts`,
+      `${window.location.origin}/test/media-00001.ts`,
       'requested first segment'
+    );
+  }
+);
+
+QUnit.test(
+  'when data URI is a master playlist with media playlists resolved, ' +
+  'state is updated without a playlist request',
+  function(assert) {
+    this.requests.length = 0;
+    // must recreate player for new mock media source to open
+    this.player = createPlayer();
+
+    const manifestObject = parseManifest({ manifestString: manifests.master });
+    const mediaObject = parseManifest({ manifestString: manifests.media });
+
+    // prevent warnings for no BANDWIDTH attribute as media playlists within a master
+    // should always have the property
+    mediaObject.attributes = { BANDWIDTH: 1000 };
+
+    manifestObject.playlists = [mediaObject, mediaObject, mediaObject];
+    // placeholder master URI
+    addPropertiesToMaster(manifestObject, 'master.m3u8');
+
+    this.player.src({
+      src: `data:application/vnd.vhs+json,${JSON.stringify(manifestObject)}`,
+      type: 'application/vnd.vhs+json'
+    });
+    // media source must be open for duration to be set
+    openMediaSource(this.player, this.clock);
+
+    this.masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+
+    // a duration update indicates a master playlist controller state update from the media
+    // playlist
+    assert.equal(this.masterPlaylistController.duration(), 40, 'duration set');
+
+    // segment loader has started, not waiting on any playlist requests
+    assert.equal(this.requests.length, 1, 'one request');
+    assert.equal(
+      this.requests[0].uri,
+      `${window.location.origin}/test/media-00001.ts`,
+      'requested first segment'
+    );
+  }
+);
+
+QUnit.test(
+  'when data URI is a master playlist without media playlists resolved, ' +
+  'a media playlist request is the first request',
+  function(assert) {
+    this.requests.length = 0;
+    // must recreate player for new mock media source to open
+    this.player = createPlayer();
+
+    const manifestObject = parseManifest({ manifestString: manifests.master });
+
+    this.player.src({
+      src: `data:application/vnd.vhs+json,${JSON.stringify(manifestObject)}`,
+      type: 'application/vnd.vhs+json'
+    });
+    // media source must be open for duration to be set
+    openMediaSource(this.player, this.clock);
+
+    this.masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+
+    assert.equal(this.requests.length, 1, 'one request');
+    assert.equal(
+      this.requests[0].uri,
+      `${window.location.origin}/test/media2.m3u8`,
+      'requested media playlist'
     );
   }
 );
