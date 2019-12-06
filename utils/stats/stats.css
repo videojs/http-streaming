@@ -3,6 +3,11 @@
   display: block;
 }
 
+/* make radio buttons work the same way in Firefox and Chrome */
+[type="radio"] {
+  min-width: 0;
+}
+
 .player-stats, .event-counts, #quality-levels {
   box-sizing: border-box;
   padding: 8px;
