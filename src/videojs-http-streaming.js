@@ -10,6 +10,7 @@ import PlaylistLoader from './playlist-loader';
 import Playlist from './playlist';
 import xhrFactory from './xhr';
 import { Decrypter, AsyncStream, decrypt } from 'aes-decrypter';
+import { simpleTypeFromSourceType } from '@videojs/vhs-utils/dist/media-types.js';
 import * as utils from './bin-utils';
 import {
   getProgramTime,
@@ -81,22 +82,6 @@ const Hls = {
 });
 
 export const LOCAL_STORAGE_KEY = 'videojs-vhs';
-
-const simpleTypeFromSourceType = (type) => {
-  const mpegurlRE = /^(audio|video|application)\/(x-|vnd\.apple\.)?mpegurl/i;
-
-  if (mpegurlRE.test(type)) {
-    return 'hls';
-  }
-
-  const dashRE = /^application\/dash\+xml/i;
-
-  if (dashRE.test(type)) {
-    return 'dash';
-  }
-
-  return null;
-};
 
 /**
  * Updates the selectedIndex of the QualityLevelList when a mediachange happens in hls.

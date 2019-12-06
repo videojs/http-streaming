@@ -1,7 +1,7 @@
 import window from 'global/window';
 import Config from './config';
 import Playlist from './playlist';
-import { parseCodecs } from './util/codecs.js';
+import { parseCodecs } from '@videojs/vhs-utils/dist/codecs.js';
 
 // Utilities
 
