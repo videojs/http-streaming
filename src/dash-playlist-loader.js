@@ -8,7 +8,8 @@ import {
   setupMediaPlaylists,
   resolveMediaGroupUris,
   updateMaster as updatePlaylist,
-  forEachMediaGroup
+  forEachMediaGroup,
+  createPlaylistID
 } from './playlist-loader';
 import { resolveUrl, resolveManifestRedirect } from './resolve-url';
 import mp4Inspector from 'mux.js/lib/tools/mp4-inspector';
@@ -51,13 +52,13 @@ export const updateMaster = (oldMaster, newMaster) => {
   // Then update media group playlists
   forEachMediaGroup(newMaster, (properties, type, group, label) => {
     if (properties.playlists && properties.playlists.length) {
-      const uri = properties.playlists[0].uri;
+      const id = properties.playlists[0].id;
       const playlistUpdate = updatePlaylist(update, properties.playlists[0]);
 
       if (playlistUpdate) {
         update = playlistUpdate;
         // update the playlist reference within media groups
-        update.mediaGroups[type][group][label].playlists[0] = update.playlists[uri];
+        update.mediaGroups[type][group][label].playlists[0] = update.playlists[id];
         noChanges = false;
       }
     }
@@ -105,8 +106,8 @@ const equivalentSidx = (a, b) => {
 export const compareSidxEntry = (playlists, oldSidxMapping) => {
   const newSidxMapping = {};
 
-  for (const uri in playlists) {
-    const playlist = playlists[uri];
+  for (const id in playlists) {
+    const playlist = playlists[id];
     const currentSidxInfo = playlist.sidx;
 
     if (currentSidxInfo) {
@@ -204,7 +205,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
     // live playlist staleness timeout
     this.on('mediaupdatetimeout', () => {
-      this.refreshMedia_(this.media().uri);
+      this.refreshMedia_(this.media().id);
     });
 
     this.state = 'HAVE_NOTHING';
@@ -304,12 +305,12 @@ export default class DashPlaylistLoader extends EventTarget {
       playlist = this.master.playlists[playlist];
     }
 
-    const mediaChange = !this.media_ || playlist.uri !== this.media_.uri;
+    const mediaChange = !this.media_ || playlist.id !== this.media_.id;
 
     // switch to previously loaded playlists immediately
     if (mediaChange &&
-      this.loadedPlaylists_[playlist.uri] &&
-      this.loadedPlaylists_[playlist.uri].endList) {
+      this.loadedPlaylists_[playlist.id] &&
+      this.loadedPlaylists_[playlist.id].endList) {
       this.state = 'HAVE_METADATA';
       this.media_ = playlist;
 
@@ -379,7 +380,7 @@ export default class DashPlaylistLoader extends EventTarget {
         // everything is ready just continue to haveMetadata
         this.haveMetadata({
           startingState,
-          playlist: newMaster.playlists[playlist.uri]
+          playlist: newMaster.playlists[playlist.id]
         });
       })
     );
@@ -387,11 +388,11 @@ export default class DashPlaylistLoader extends EventTarget {
 
   haveMetadata({startingState, playlist}) {
     this.state = 'HAVE_METADATA';
-    this.loadedPlaylists_[playlist.uri] = playlist;
+    this.loadedPlaylists_[playlist.id] = playlist;
     this.mediaRequest_ = null;
 
     // This will trigger loadedplaylist
-    this.refreshMedia_(playlist.uri);
+    this.refreshMedia_(playlist.id);
 
     // fire loadedmetadata the first time a media playlist is loaded
     // to resolve setup of media groups
@@ -459,8 +460,6 @@ export default class DashPlaylistLoader extends EventTarget {
       const phonyUri = `placeholder-uri-${i}`;
 
       master.playlists[i].uri = phonyUri;
-      // set up by URI references
-      master.playlists[phonyUri] = master.playlists[i];
     }
 
     // set up phony URIs for the media group playlists since we won't have external
@@ -468,9 +467,12 @@ export default class DashPlaylistLoader extends EventTarget {
     forEachMediaGroup(master, (properties, mediaType, groupKey, labelKey) => {
       if (properties.playlists && properties.playlists.length) {
         const phonyUri = `placeholder-uri-${mediaType}-${groupKey}-${labelKey}`;
+        const id = createPlaylistID(0, phonyUri);
 
         properties.playlists[0].uri = phonyUri;
-        // setup URI references
+        properties.playlists[0].id = id;
+        // setup ID and URI references (URI for backwards compatibility)
+        master.playlists[id] = properties.playlists[0];
         master.playlists[phonyUri] = properties.playlists[0];
       }
     });
@@ -709,7 +711,7 @@ export default class DashPlaylistLoader extends EventTarget {
                 }, this.master.minimumUpdatePeriod);
 
                 // TODO: do we need to reload the current playlist?
-                this.refreshMedia_(this.media().uri);
+                this.refreshMedia_(this.media().id);
 
                 return;
               })
@@ -732,9 +734,9 @@ export default class DashPlaylistLoader extends EventTarget {
    * references. If this is an alternate loader, the updated parsed manifest is retrieved
    * from the master loader.
    */
-  refreshMedia_(mediaUri) {
-    if (!mediaUri) {
-      throw new Error('refreshMedia_ must take a media uri');
+  refreshMedia_(mediaID) {
+    if (!mediaID) {
+      throw new Error('refreshMedia_ must take a media id');
     }
 
     let oldMaster;
@@ -756,9 +758,9 @@ export default class DashPlaylistLoader extends EventTarget {
       } else {
         this.master = updatedMaster;
       }
-      this.media_ = updatedMaster.playlists[mediaUri];
+      this.media_ = updatedMaster.playlists[mediaID];
     } else {
-      this.media_ = newMaster.playlists[mediaUri];
+      this.media_ = newMaster.playlists[mediaID];
       this.trigger('playlistunchanged');
     }
 
