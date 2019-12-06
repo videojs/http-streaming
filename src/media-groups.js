@@ -646,8 +646,8 @@ export const activeTrack = {
   SUBTITLES: (type, settings) => () => {
     const { mediaTypes: { [type]: { tracks } } } = settings;
 
-    for (let id in tracks) {
-      if (tracks[id].mode === 'showing') {
+    for (const id in tracks) {
+      if (tracks[id].mode === 'showing' || tracks[id].mode === 'hidden') {
         return tracks[id];
       }
     }
