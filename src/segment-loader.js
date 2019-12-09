@@ -109,6 +109,57 @@ const segmentInfoString = (segmentInfo) => {
 const timingInfoPropertyForMedia = (mediaType) => `${mediaType}TimingInfo`;
 
 /**
+ * Updates the audio and video source buffer timestamp offsets if necessary based on the
+ * loader type and timestamp offset values.
+ *
+ * @param {Object} config
+ *        Object containing arguments
+ * @param {string} config.loaderType
+ *        The loader type
+ * @param {number} config.timestampOffset
+ *        The timestamp offset to check/set
+ * @param {Object} config.sourceUpdater
+ *        The source updater
+ * @return {boolean}
+ *         Whether or not any source buffer timestamp offset was changed
+ */
+export const updateSourceBufferTimestampOffset = ({
+  loaderType,
+  timestampOffset,
+  sourceUpdater
+}) => {
+  if (loaderType === 'audio') {
+    // When using demuxed audio, the audio loader should configure its own source buffer's
+    // timestamp offset. This is for a couple of reasons:
+    //
+    // 1. The video and audio playlists may be segmented differently, and therefore have
+    //    different start and end times.
+    // 2. When seeking, even if the playlists have matching segments, the segments chosen
+    //    and downloaded may not be a matching set. This means the timestamp offset should
+    //    be different between audio and video.
+    if (timestampOffset !== sourceUpdater.audioTimestampOffset()) {
+      sourceUpdater.audioTimestampOffset(timestampOffset);
+      return true;
+    }
+    return false;
+  }
+
+  let didChange = false;
+
+  if (timestampOffset !== sourceUpdater.videoTimestampOffset()) {
+    sourceUpdater.videoTimestampOffset(timestampOffset);
+    didChange = true;
+  }
+
+  if (timestampOffset !== sourceUpdater.audioTimestampOffset()) {
+    sourceUpdater.audioTimestampOffset(timestampOffset);
+    didChange = true;
+  }
+
+  return didChange;
+};
+
+/**
  * An object that manages segment loading and appending.
  *
  * @class SegmentLoader
@@ -1454,10 +1505,13 @@ export default class SegmentLoader extends videojs.EventTarget {
     // that data is about to be appended, we can check the final cases to determine
     // whether we should append an init segment.
     this.updateAppendInitSegmentStatus(segmentInfo, result.type);
-    // Timestamp offset should be updated once we get new data and have its timing info,
-    // as we use the start of the segment to offset the best guess (playlist provided)
-    // timestamp offset.
-    this.updateSourceBufferTimestampOffset_(segmentInfo);
+
+    this.updateTimestampOffset({
+      segmentInfo,
+      loaderType: this.loaderType_,
+      sourceUpdater: this.sourceUpdater_
+    });
+
     // Save some state so that in the future anything waiting on first append (and/or
     // timestamp offset(s)) can process immediately. While the extra state isn't optimal,
     // we need some notion of whether the timestamp offset or other relevant information
@@ -1467,6 +1521,61 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.processMetadataQueue_();
 
     this.appendData_(segmentInfo, result);
+  }
+
+  /**
+   * If necessary, updates the segment's timestamp offset, audio/video source buffers, and
+   * triggers a `timestampoffset` event
+   *
+   * @param {Object} config
+   *        Object containing arguments
+   * @param {Object} config.segmentInfo
+   *        Segment info object containing timestamp offset and timing info
+   * @param {string} config.loaderType
+   *        The loader type
+   * @param {Object} config.sourceUpdater
+   *        The source updater
+   */
+  updateTimestampOffset({ segmentInfo, loaderType, sourceUpdater }) {
+    if (
+      segmentInfo.timestampOffset === null ||
+      // we don't yet have the start for whatever media type (video or audio) has
+      // priority, timing-wise, so we must wait
+      typeof segmentInfo.timingInfo.start !== 'number' ||
+      // already updated the timestamp offset for this segment
+      segmentInfo.changedTimestampOffset
+    ) {
+      return;
+    }
+
+    // For muxed content:
+    //
+    // Primary timing goes by video, and audio is trimmed in the transmuxer, meaning that
+    // the timing info here comes from video. In the event that the audio is longer than
+    // the video, this will trim the start of the audio.
+    //
+    // For both muxed and demuxed content:
+    //
+    // This trims any offset from 0 at the beginning of the media.
+    this.logger_(`Subtracting timing info start time ${segmentInfo.timingInfo.start}` +
+      ` from timestamp offset ${segmentInfo.timestampOffset}`);
+    segmentInfo.timestampOffset -= segmentInfo.timingInfo.start;
+
+    // The source buffer timestamp offsets should be updated since the start of the
+    // segment is used to offset the best guess (playlist provided) timestamp offset.
+    const didUpdate = updateSourceBufferTimestampOffset({
+      timestampOffset: segmentInfo.timestampOffset,
+      loaderType,
+      sourceUpdater
+    });
+
+    if (didUpdate) {
+      // In the event that there are partial segment downloads, each will try to update the
+      // timestamp offset. Retaining this bit of state prevents future data calls (from
+      // the same segment) changing the timestamp offset again.
+      segmentInfo.changedTimestampOffset = true;
+      this.trigger('timestampoffset');
+    }
   }
 
   updateAppendInitSegmentStatus(segmentInfo, type) {
@@ -1990,45 +2099,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     return false;
-  }
-
-  updateSourceBufferTimestampOffset_(segmentInfo) {
-    if (segmentInfo.timestampOffset === null ||
-        // we don't yet have the start for whatever media type (video or audio) has
-        // priority, timing-wise, so we must wait
-        typeof segmentInfo.timingInfo.start !== 'number' ||
-        // already updated the timestamp offset for this segment
-        segmentInfo.changedTimestampOffset ||
-        // the alt audio loader should not be responsible for setting the timestamp offset
-        this.loaderType_ !== 'main') {
-      return;
-    }
-
-    let didChange = false;
-
-    // Primary timing goes by video, and audio is trimmed in the transmuxer, meaning that
-    // the timing info here comes from video. In the event that the audio is longer than
-    // the video, this will trim the start of the audio.
-    // This also trims any offset from 0 at the beginning of the media
-    segmentInfo.timestampOffset -= segmentInfo.timingInfo.start;
-    // In the event that there are partial segment downloads, each will try to update the
-    // timestamp offset. Retaining this bit of state prevents us from updating in the
-    // future (within the same segment), however, there may be a better way to handle it.
-    segmentInfo.changedTimestampOffset = true;
-
-    if (segmentInfo.timestampOffset !== this.sourceUpdater_.videoTimestampOffset()) {
-      this.sourceUpdater_.videoTimestampOffset(segmentInfo.timestampOffset);
-      didChange = true;
-    }
-
-    if (segmentInfo.timestampOffset !== this.sourceUpdater_.audioTimestampOffset()) {
-      this.sourceUpdater_.audioTimestampOffset(segmentInfo.timestampOffset);
-      didChange = true;
-    }
-
-    if (didChange) {
-      this.trigger('timestampoffset');
-    }
   }
 
   updateTimingInfoEnd_(segmentInfo) {

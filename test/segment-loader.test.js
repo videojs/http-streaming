@@ -2,7 +2,8 @@ import QUnit from 'qunit';
 import {
   default as SegmentLoader,
   illegalMediaSwitch,
-  safeBackBufferTrimTime
+  safeBackBufferTrimTime,
+  updateSourceBufferTimestampOffset
 } from '../src/segment-loader';
 import segmentTransmuxer from '../src/segment-transmuxer';
 import videojs from 'video.js';
@@ -177,6 +178,156 @@ QUnit.test(
   }
 );
 
+QUnit.module('updateSourceBufferTimestampOffset');
+
+QUnit.test('for audio loader, does nothing if timestampOffset same as source buffer\'s', function(assert) {
+  let audioTimestampOffset = 10;
+  let videoTimestampOffset;
+  const mockSourceUpdater = {
+    audioTimestampOffset: (timestampOffset) => {
+      if (typeof timestampOffset !== 'number') {
+        return audioTimestampOffset;
+      }
+      audioTimestampOffset = timestampOffset;
+    },
+    videoTimestampOffset: (timestampOffset) => {
+      if (typeof timestampOffset !== 'number') {
+        return videoTimestampOffset;
+      }
+      videoTimestampOffset = timestampOffset;
+    }
+  };
+
+  const didUpdate = updateSourceBufferTimestampOffset({
+    loaderType: 'audio',
+    timestampOffset: 10,
+    sourceUpdater: mockSourceUpdater
+  });
+
+  assert.notOk(didUpdate, 'did not update source buffer');
+  assert.equal(
+    audioTimestampOffset,
+    10,
+    'audio source buffer timestamp offset unchanged'
+  );
+  assert.equal(
+    typeof videoTimestampOffset,
+    'undefined',
+    'video source buffer timestamp offset unchanged'
+  );
+});
+
+QUnit.test('for audio loader, updates source buffer timestampOffset if different', function(assert) {
+  let audioTimestampOffset = 10;
+  let videoTimestampOffset;
+  const mockSourceUpdater = {
+    audioTimestampOffset: (timestampOffset) => {
+      if (typeof timestampOffset !== 'number') {
+        return audioTimestampOffset;
+      }
+      audioTimestampOffset = timestampOffset;
+    },
+    videoTimestampOffset: (timestampOffset) => {
+      if (typeof timestampOffset !== 'number') {
+        return videoTimestampOffset;
+      }
+      videoTimestampOffset = timestampOffset;
+    }
+  };
+
+  const didUpdate = updateSourceBufferTimestampOffset({
+    loaderType: 'audio',
+    timestampOffset: 7,
+    sourceUpdater: mockSourceUpdater
+  });
+
+  assert.ok(didUpdate, 'updated source buffer');
+  assert.equal(
+    audioTimestampOffset,
+    7,
+    'audio source buffer timestamp offset updated'
+  );
+  assert.equal(
+    typeof videoTimestampOffset,
+    'undefined',
+    'video source buffer timestamp offset unchanged'
+  );
+});
+
+QUnit.test('for main loader, does nothing if timestampOffset same as source buffers\' values', function(assert) {
+  let audioTimestampOffset = 10;
+  let videoTimestampOffset = 10;
+  const mockSourceUpdater = {
+    audioTimestampOffset: (timestampOffset) => {
+      if (typeof timestampOffset !== 'number') {
+        return audioTimestampOffset;
+      }
+      audioTimestampOffset = timestampOffset;
+    },
+    videoTimestampOffset: (timestampOffset) => {
+      if (typeof timestampOffset !== 'number') {
+        return videoTimestampOffset;
+      }
+      videoTimestampOffset = timestampOffset;
+    }
+  };
+
+  const didUpdate = updateSourceBufferTimestampOffset({
+    loaderType: 'main',
+    timestampOffset: 10,
+    sourceUpdater: mockSourceUpdater
+  });
+
+  assert.notOk(didUpdate, 'did not update source buffer');
+  assert.equal(
+    audioTimestampOffset,
+    10,
+    'audio source buffer timestamp offset unchanged'
+  );
+  assert.equal(
+    videoTimestampOffset,
+    10,
+    'video source buffer timestamp offset unchanged'
+  );
+});
+
+QUnit.test('for main loader, updates source buffers\' timestampOffsets if different', function(assert) {
+  let audioTimestampOffset = 10;
+  let videoTimestampOffset = 10;
+  const mockSourceUpdater = {
+    audioTimestampOffset: (timestampOffset) => {
+      if (typeof timestampOffset !== 'number') {
+        return audioTimestampOffset;
+      }
+      audioTimestampOffset = timestampOffset;
+    },
+    videoTimestampOffset: (timestampOffset) => {
+      if (typeof timestampOffset !== 'number') {
+        return videoTimestampOffset;
+      }
+      videoTimestampOffset = timestampOffset;
+    }
+  };
+
+  const didUpdate = updateSourceBufferTimestampOffset({
+    loaderType: 'main',
+    timestampOffset: 7,
+    sourceUpdater: mockSourceUpdater
+  });
+
+  assert.ok(didUpdate, 'updated source buffer');
+  assert.equal(
+    audioTimestampOffset,
+    7,
+    'audio source buffer timestamp offset updated'
+  );
+  assert.equal(
+    videoTimestampOffset,
+    7,
+    'video source buffer timestamp offset updated'
+  );
+});
+
 QUnit.module('SegmentLoader', function(hooks) {
   hooks.beforeEach(LoaderCommonHooks.beforeEach);
   hooks.afterEach(LoaderCommonHooks.afterEach);
@@ -277,6 +428,246 @@ QUnit.module('SegmentLoader', function(hooks) {
           'segment end time not shifted by mp4 start time'
         );
       });
+    });
+
+    QUnit.test('updateTimestampOffset does nothing if no timestamp offset', function(assert) {
+      let audioTimestampOffset;
+      let videoTimestampOffset;
+      const mockSourceUpdater = {
+        audioTimestampOffset: (timestampOffset) => {
+          if (typeof timestampOffset !== 'number') {
+            return audioTimestampOffset;
+          }
+          audioTimestampOffset = timestampOffset;
+        },
+        videoTimestampOffset: (timestampOffset) => {
+          if (typeof timestampOffset !== 'number') {
+            return videoTimestampOffset;
+          }
+          videoTimestampOffset = timestampOffset;
+        }
+      };
+      let timestampoffsetEvents = 0;
+
+      loader.on('timestampoffset', () => timestampoffsetEvents++);
+
+      loader.updateTimestampOffset({
+        segmentInfo: {
+          timestampOffset: null,
+          timingInfo: { start: 5 }
+        },
+        loaderType: 'main',
+        sourceUpdater: mockSourceUpdater
+      });
+
+      assert.equal(timestampoffsetEvents, 0, 'no timestampoffset events');
+      assert.equal(
+        typeof audioTimestampOffset,
+        'undefined',
+        'didn\'t set audioTimestampOffset'
+      );
+      assert.equal(
+        typeof videoTimestampOffset,
+        'undefined',
+        'didn\'t set videoTimestampOffset'
+      );
+    });
+
+    QUnit.test('updateTimestampOffset does nothing if no start timing info', function(assert) {
+      let audioTimestampOffset;
+      let videoTimestampOffset;
+      const mockSourceUpdater = {
+        audioTimestampOffset: (timestampOffset) => {
+          if (typeof timestampOffset !== 'number') {
+            return audioTimestampOffset;
+          }
+          audioTimestampOffset = timestampOffset;
+        },
+        videoTimestampOffset: (timestampOffset) => {
+          if (typeof timestampOffset !== 'number') {
+            return videoTimestampOffset;
+          }
+          videoTimestampOffset = timestampOffset;
+        }
+      };
+      let timestampoffsetEvents = 0;
+
+      loader.on('timestampoffset', () => timestampoffsetEvents++);
+
+      loader.updateTimestampOffset({
+        segmentInfo: {
+          timestampOffset: 10,
+          timingInfo: {}
+        },
+        loaderType: 'main',
+        sourceUpdater: mockSourceUpdater
+      });
+
+      assert.equal(timestampoffsetEvents, 0, 'no timestampoffset events');
+      assert.equal(
+        typeof audioTimestampOffset,
+        'undefined',
+        'didn\'t set audioTimestampOffset'
+      );
+      assert.equal(
+        typeof videoTimestampOffset,
+        'undefined',
+        'didn\'t set videoTimestampOffset'
+      );
+    });
+
+    QUnit.test('updateTimestampOffset triggers timestampoffset when changed', function(assert) {
+      let audioTimestampOffset;
+      let videoTimestampOffset;
+      const mockSourceUpdater = {
+        audioTimestampOffset: (timestampOffset) => {
+          if (typeof timestampOffset !== 'number') {
+            return audioTimestampOffset;
+          }
+          audioTimestampOffset = timestampOffset;
+        },
+        videoTimestampOffset: (timestampOffset) => {
+          if (typeof timestampOffset !== 'number') {
+            return videoTimestampOffset;
+          }
+          videoTimestampOffset = timestampOffset;
+        }
+      };
+      let timestampoffsetEvents = 0;
+
+      loader.on('timestampoffset', () => timestampoffsetEvents++);
+
+      loader.updateTimestampOffset({
+        segmentInfo: {
+          timestampOffset: 10,
+          timingInfo: { start: 0 }
+        },
+        loaderType: 'main',
+        sourceUpdater: mockSourceUpdater
+      });
+
+      assert.equal(timestampoffsetEvents, 1, 'triggered timestampoffset event');
+      assert.equal(audioTimestampOffset, 10, 'set audioTimestampOffset');
+      assert.equal(videoTimestampOffset, 10, 'set videoTimestampOffset');
+    });
+
+    QUnit.test('updateTimestampOffset subtracts timingInfo start from timestampoffset', function(assert) {
+      let audioTimestampOffset;
+      let videoTimestampOffset;
+      const mockSourceUpdater = {
+        audioTimestampOffset: (timestampOffset) => {
+          if (typeof timestampOffset !== 'number') {
+            return audioTimestampOffset;
+          }
+          audioTimestampOffset = timestampOffset;
+        },
+        videoTimestampOffset: (timestampOffset) => {
+          if (typeof timestampOffset !== 'number') {
+            return videoTimestampOffset;
+          }
+          videoTimestampOffset = timestampOffset;
+        }
+      };
+      let timestampoffsetEvents = 0;
+
+      loader.on('timestampoffset', () => timestampoffsetEvents++);
+
+      const segmentInfo = {
+        timestampOffset: 10,
+        timingInfo: { start: 5 }
+      };
+
+      loader.updateTimestampOffset({
+        segmentInfo,
+        loaderType: 'main',
+        sourceUpdater: mockSourceUpdater
+      });
+
+      assert.equal(timestampoffsetEvents, 1, 'one timestampoffset event');
+      assert.equal(
+        audioTimestampOffset,
+        5,
+        'subtracted start from timestampOffset for audio'
+      );
+      assert.equal(
+        videoTimestampOffset,
+        5,
+        'subtracted start from timestampOffset for video'
+      );
+      assert.equal(
+        segmentInfo.timestampOffset,
+        5,
+        'subtracted start from segmentInfo timestampOffset value'
+      );
+    });
+
+    QUnit.test('updateTimestampOffset doesn\'t update value on second call', function(assert) {
+      let audioTimestampOffset;
+      let videoTimestampOffset;
+      const mockSourceUpdater = {
+        audioTimestampOffset: (timestampOffset) => {
+          if (typeof timestampOffset !== 'number') {
+            return audioTimestampOffset;
+          }
+          audioTimestampOffset = timestampOffset;
+        },
+        videoTimestampOffset: (timestampOffset) => {
+          if (typeof timestampOffset !== 'number') {
+            return videoTimestampOffset;
+          }
+          videoTimestampOffset = timestampOffset;
+        }
+      };
+      let timestampoffsetEvents = 0;
+
+      loader.on('timestampoffset', () => timestampoffsetEvents++);
+
+      const segmentInfo = {
+        timestampOffset: 10,
+        timingInfo: { start: 5 }
+      };
+
+      loader.updateTimestampOffset({
+        segmentInfo,
+        loaderType: 'main',
+        sourceUpdater: mockSourceUpdater
+      });
+
+      assert.equal(timestampoffsetEvents, 1, 'one timestampoffset event');
+      assert.equal(
+        audioTimestampOffset,
+        5,
+        'subtracted start from timestampOffset for audio'
+      );
+      assert.equal(
+        videoTimestampOffset,
+        5,
+        'subtracted start from timestampOffset for video'
+      );
+      assert.equal(
+        segmentInfo.timestampOffset,
+        5,
+        'subtracted start from segmentInfo timestampOffset value'
+      );
+
+      loader.updateTimestampOffset({
+        segmentInfo,
+        loaderType: 'main',
+        sourceUpdater: mockSourceUpdater
+      });
+
+      assert.equal(
+        timestampoffsetEvents,
+        1,
+        'did not trigger another timestampoffset event'
+      );
+      assert.equal(audioTimestampOffset, 5, 'did not change audio timestampOffset');
+      assert.equal(videoTimestampOffset, 5, 'did not change video timestampOffset');
+      assert.equal(
+        segmentInfo.timestampOffset,
+        5,
+        'did not change segmentInfo timestampOffset value'
+      );
     });
 
     QUnit.test('segmentKey will cache new encrypted keys with cacheEncryptionKeys true', function(assert) {
