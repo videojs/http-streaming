@@ -237,7 +237,7 @@ export const safeLiveIndex = function(playlist, liveEdgePadding) {
 
   let i = playlist.segments.length - 1;
   let distanceFromEnd = playlist.segments[i].duration || playlist.targetDuration;
-  const safeDistance = liveEdgePadding || distanceFromEnd + playlist.targetDuration * 2;
+  const safeDistance = liveEdgePadding || (distanceFromEnd + playlist.targetDuration * 2);
 
   while (i--) {
     distanceFromEnd += playlist.segments[i].duration;
