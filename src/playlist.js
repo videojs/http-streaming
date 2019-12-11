@@ -223,14 +223,14 @@ export const sumDurations = function(playlist, startIndex, endIndex) {
  *         point.
  * @function safeLiveIndex
  */
-export const safeLiveIndex = function(playlist) {
+export const safeLiveIndex = function(playlist, suggestedPresentationDelay) {
   if (!playlist.segments.length) {
     return 0;
   }
 
   let i = playlist.segments.length - 1;
   let distanceFromEnd = playlist.segments[i].duration || playlist.targetDuration;
-  const safeDistance = distanceFromEnd + playlist.targetDuration * 2;
+  const safeDistance = suggestedPresentationDelay || distanceFromEnd + playlist.targetDuration * 2;
 
   while (i--) {
     distanceFromEnd += playlist.segments[i].duration;
@@ -256,7 +256,7 @@ export const safeLiveIndex = function(playlist) {
  * @returns {Number} the end time of playlist
  * @function playlistEnd
  */
-export const playlistEnd = function(playlist, expired, useSafeLiveEnd) {
+export const playlistEnd = function(playlist, expired, useSafeLiveEnd, suggestedPresentationDelay) {
   if (!playlist || !playlist.segments) {
     return null;
   }
@@ -270,7 +270,7 @@ export const playlistEnd = function(playlist, expired, useSafeLiveEnd) {
 
   expired = expired || 0;
 
-  const endSequence = useSafeLiveEnd ? safeLiveIndex(playlist) : playlist.segments.length;
+  const endSequence = useSafeLiveEnd ? safeLiveIndex(playlist, suggestedPresentationDelay) : playlist.segments.length;
 
   return intervalDuration(playlist,
                           playlist.mediaSequence + endSequence,
@@ -292,10 +292,10 @@ export const playlistEnd = function(playlist, expired, useSafeLiveEnd) {
   * @return {TimeRanges} the periods of time that are valid targets
   * for seeking
   */
-export const seekable = function(playlist, expired) {
+export const seekable = function(playlist, expired, suggestedPresentationDelay) {
   let useSafeLiveEnd = true;
   let seekableStart = expired || 0;
-  let seekableEnd = playlistEnd(playlist, expired, useSafeLiveEnd);
+  let seekableEnd = playlistEnd(playlist, expired, useSafeLiveEnd, suggestedPresentationDelay);
 
   if (seekableEnd === null) {
     return createTimeRange();

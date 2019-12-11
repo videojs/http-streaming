@@ -925,6 +925,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     }
 
     let media = this.masterPlaylistLoader_.media();
+    const suggestedPresentationDelay = this.masterPlaylistLoader_.master.suggestedPresentationDelay
 
     if (!media) {
       return;
@@ -937,7 +938,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    mainSeekable = Hls.Playlist.seekable(media, expired);
+    mainSeekable = Hls.Playlist.seekable(media, expired, suggestedPresentationDelay);
 
     if (mainSeekable.length === 0) {
       return;
@@ -951,7 +952,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
         return;
       }
 
-      audioSeekable = Hls.Playlist.seekable(media, expired);
+      audioSeekable = Hls.Playlist.seekable(media, expired, suggestedPresentationDelay);
 
       if (audioSeekable.length === 0) {
         return;
