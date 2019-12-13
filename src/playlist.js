@@ -237,7 +237,24 @@ export const safeLiveIndex = function(playlist, liveEdgePadding) {
 
   let i = playlist.segments.length - 1;
   let distanceFromEnd = playlist.segments[i].duration || playlist.targetDuration;
-  const safeDistance = liveEdgePadding || (distanceFromEnd + playlist.targetDuration * 2);
+  const safeDistance = distanceFromEnd + playlist.targetDuration * 2;
+
+  if (typeof liveEdgePadding === 'number') {
+
+    i = playlist.segments.length;
+    distanceFromEnd = 0;
+    const safeDistance = liveEdgePadding;
+
+    while (i) {
+      if (distanceFromEnd >= safeDistance) {
+        break;
+      }
+
+      distanceFromEnd += playlist.segments[--i].duration;
+    };
+
+    return Math.max(0, i);
+  }
 
   while (i--) {
     distanceFromEnd += playlist.segments[i].duration;
