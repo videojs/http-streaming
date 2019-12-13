@@ -492,7 +492,7 @@ QUnit.test('safeLiveIndex is 0 when no safe live point', function(assert) {
     'returns media index 0 when playlist has no safe live point');
 });
 
-QUnit.test('safeLiveIndex is accounts for liveEdgePadding', function(assert) {
+QUnit.test('safeLiveIndex is accounts for liveEdgePadding in simple case', function(assert) {
   const playlist = {
     targetDuration: 6,
     mediaSequence: 10,
@@ -522,23 +522,81 @@ QUnit.test('safeLiveIndex is accounts for liveEdgePadding', function(assert) {
     ]
   };
 
-  assert.equal(Playlist.safeLiveIndex(playlist, 30), 0,
+  assert.equal(Playlist.safeLiveIndex(playlist, 36), 0,
     'returns 0 when liveEdgePadding is 30 and duration is 6');
 
-  assert.equal(Playlist.safeLiveIndex(playlist, 24), 1,
-    'returns 1 when liveEdgePadding is 24 and duration is 6');
+  assert.equal(Playlist.safeLiveIndex(playlist, 30), 1,
+    'returns 1 when liveEdgePadding is 30 and duration is 6');
 
-  assert.equal(Playlist.safeLiveIndex(playlist, 18), 2,
-    'returns 2 when liveEdgePadding is 18 and duration is 6');
+  assert.equal(Playlist.safeLiveIndex(playlist, 24), 2,
+    'returns 2 when liveEdgePadding is 24 and duration is 6');
 
-  assert.equal(Playlist.safeLiveIndex(playlist, 12), 3,
-    'returns 3 when liveEdgePadding is 12 and duration is 6');
+  assert.equal(Playlist.safeLiveIndex(playlist, 18), 3,
+    'returns 3 when liveEdgePadding is 18 and duration is 6');
 
-  assert.equal(Playlist.safeLiveIndex(playlist, 6), 4,
-    'returns 4 when liveEdgePadding is 6 and duration is 6');
+  assert.equal(Playlist.safeLiveIndex(playlist, 12), 4,
+    'returns 4 when liveEdgePadding is 12 and duration is 6');
 
-  assert.equal(Playlist.safeLiveIndex(playlist, 0), 5,
-    'returns 5 when liveEdgePadding is 0 and duration is 6');
+  assert.equal(Playlist.safeLiveIndex(playlist, 6), 5,
+    'returns 5 when liveEdgePadding is 6 and duration is 6');
+
+  assert.equal(Playlist.safeLiveIndex(playlist, 0), 6,
+    'returns 6 when liveEdgePadding is 0 and duration is 6');
+});
+
+QUnit.test('safeLiveIndex is accounts for liveEdgePadding in non-simple case', function(assert) {
+  const playlist = {
+    targetDuration: 6,
+    mediaSequence: 10,
+    syncInfo: {
+      time: 0,
+      mediaSequence: 10
+    },
+    segments: [
+      {
+        duration: 3
+      },
+      {
+        duration: 6
+      },
+      {
+        duration: 6
+      },
+      {
+        duration: 3
+      },
+      {
+        duration: 3
+      },
+      {
+        duration: 0.5
+      }
+    ]
+  };
+
+  assert.equal(Playlist.safeLiveIndex(playlist, 24), 0,
+    'returns 0 when liveEdgePadding is 24');
+
+  assert.equal(Playlist.safeLiveIndex(playlist, 18), 1,
+    'returns 1 when liveEdgePadding is 18');
+
+  assert.equal(Playlist.safeLiveIndex(playlist, 12), 2,
+    'returns 2 when liveEdgePadding is 12');
+
+  assert.equal(Playlist.safeLiveIndex(playlist, 6), 3,
+    'returns 3 when liveEdgePadding is 6');
+
+  assert.equal(Playlist.safeLiveIndex(playlist, 4), 3,
+    'returns 4 when liveEdgePadding is 5');
+
+  assert.equal(Playlist.safeLiveIndex(playlist, 1), 4,
+    'returns 5 when liveEdgePadding is 0.5');
+
+  assert.equal(Playlist.safeLiveIndex(playlist, 0.5), 5,
+    'returns 5 when liveEdgePadding is 0.5');
+
+  assert.equal(Playlist.safeLiveIndex(playlist, 0), 6,
+    'returns 6 when liveEdgePadding is 0');
 });
 
 QUnit.test(
