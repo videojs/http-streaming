@@ -235,26 +235,15 @@ export const safeLiveIndex = function(playlist, liveEdgePadding) {
     return 0;
   }
 
-  let i = playlist.segments.length - 1;
-  let distanceFromEnd = playlist.segments[i].duration || playlist.targetDuration;
-  const safeDistance = distanceFromEnd + playlist.targetDuration * 2;
+  let i = playlist.segments.length;
+  let lastSegmentDuration = playlist.segments[i - 1].duration || playlist.targetDuration;
+  const safeDistance = typeof liveEdgePadding === 'number' ? liveEdgePadding : lastSegmentDuration + playlist.targetDuration * 2;
 
-  if (typeof liveEdgePadding === 'number') {
-
-    i = playlist.segments.length;
-    distanceFromEnd = 0;
-    const safeDistance = liveEdgePadding;
-
-    while (i) {
-      if (distanceFromEnd >= safeDistance) {
-        break;
-      }
-
-      distanceFromEnd += playlist.segments[--i].duration;
-    };
-
-    return Math.max(0, i);
+  if (safeDistance === 0) {
+    return i;
   }
+
+  let distanceFromEnd = 0;
 
   while (i--) {
     distanceFromEnd += playlist.segments[i].duration;
