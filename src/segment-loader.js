@@ -157,6 +157,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // private settings
     this.hasPlayed_ = settings.hasPlayed;
+    this.hasPlayedContent_ = settings.hasPlayedContent;
     this.currentTime_ = settings.currentTime;
     this.seekable_ = settings.seekable;
     this.seeking_ = settings.seeking;
@@ -487,7 +488,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // when we haven't started playing yet, the start of a live playlist
     // is always our zero-time so force a sync update each time the playlist
     // is refreshed from the server
-    if (!this.hasPlayed_()) {
+    if (!this.hasPlayedContent_()) {
       newPlaylist.syncInfo = {
         mediaSequence: newPlaylist.mediaSequence,
         time: 0

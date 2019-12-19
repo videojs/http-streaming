@@ -27,6 +27,7 @@ export const LoaderCommonHooks = {
     };
     this.seeking = false;
     this.hasPlayed = true;
+    this.hasPlayedContent = true;
     this.paused = false;
     this.playbackRate = 1;
     this.fakeHls = {
@@ -69,6 +70,7 @@ export const LoaderCommonSettings = function(settings) {
     seekable: () => this.seekable,
     seeking: () => this.seeking,
     hasPlayed: () => this.hasPlayed,
+    hasPlayedContent: () => this.hasPlayedContent,
     duration: () => this.mediaSource.duration,
     goalBufferLength: () => this.goalBufferLength(),
     mediaSource: this.mediaSource,
@@ -1151,6 +1153,45 @@ export const LoaderCommonFactory = (LoaderConstructor,
       assert.equal(this.clock.methods.length,
                    timeoutCount,
                    'timeout count remains the same');
+    });
+
+    QUnit.test('maintains initial sync info if playlist is changed before playback starts', function(assert) {
+      this.hasPlayedContent = false;
+      loader.playlist(playlistWithDuration(50, {
+        mediaSequence: 1,
+        endList: false
+      }));
+
+      assert.deepEqual(
+        loader.playlist_.syncInfo,
+        {
+          mediaSequence: 1,
+          time: 0
+        },
+        'updated sync info to start at media sequence 1 and time 0'
+      );
+
+      loader.playlist(playlistWithDuration(50, {
+        mediaSequence: 2,
+        endList: false
+      }));
+
+      assert.deepEqual(
+        loader.playlist_.syncInfo,
+        {
+          mediaSequence: 2,
+          time: 0
+        },
+        'updated sync info to start at media sequence 2 and time 0'
+      );
+
+      this.hasPlayedContent = true;
+      loader.playlist(playlistWithDuration(50, {
+        mediaSequence: 2,
+        endList: false
+      }));
+
+      assert.notOk(loader.playlist_.syncInfo, 'did not set sync info on new playlist');
     });
   });
 };

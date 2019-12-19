@@ -102,7 +102,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.mediaSource.addEventListener('sourceopen', this.handleSourceOpen_.bind(this));
 
     this.seekable_ = videojs.createTimeRanges();
-    this.hasPlayed_ = () => false;
+    this.hasPlayed_ = false;
 
     this.syncController_ = new SyncController(options);
     this.segmentMetadataTrack_ = tech.addRemoteTextTrack({
@@ -120,7 +120,13 @@ export class MasterPlaylistController extends videojs.EventTarget {
       seekable: () => this.seekable(),
       seeking: () => this.tech_.seeking(),
       duration: () => this.mediaSource.duration,
-      hasPlayed: () => this.hasPlayed_(),
+      hasPlayed: () => this.hasPlayed_,
+      // While hasPlayed is used to determine if play() has been called (by user
+      // interaction, API, autoplay, etc.), hasPlayedContent is used to determine if
+      // the content has started playback. This is an important distinction, as playback
+      // of content entails many actions of setup, buffering, etc. that may or may not
+      // have taken place when hasPlayed has changed.
+      hasPlayedContent: () => this.tech_.el() && this.tech_.played().length > 0,
       goalBufferLength: () => this.goalBufferLength(),
       bandwidth,
       syncController: this.syncController_,
@@ -576,7 +582,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       this.seekTo_(0);
     }
 
-    if (this.hasPlayed_()) {
+    if (this.hasPlayed_) {
       this.load();
     }
 
@@ -603,7 +609,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     //     2) the player is paused
     //     3) the first play has already been setup
     // then exit early
-    if (!media || this.tech_.paused() || this.hasPlayed_()) {
+    if (!media || this.tech_.paused() || this.hasPlayed_) {
       return false;
     }
 
@@ -624,7 +630,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
         this.tech_.one('loadedmetadata', () => {
           this.trigger('firstplay');
           this.seekTo_(seekable.end(0));
-          this.hasPlayed_ = () => true;
+          this.hasPlayed_ = true;
         });
 
         return false;
@@ -636,7 +642,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       this.seekTo_(seekable.end(0));
     }
 
-    this.hasPlayed_ = () => true;
+    this.hasPlayed_ = true;
     // we can begin loading now that everything is ready
     this.load();
     return true;
