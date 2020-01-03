@@ -4,75 +4,11 @@
  */
 
 import {findBox} from 'mux.js/lib/mp4/probe';
-
-export const translateLegacyCodec = function(codec) {
-  if (!codec) {
-    return codec;
-  }
-
-  return codec.replace(/avc1\.(\d+)\.(\d+)/i, function(orig, profile, avcLevel) {
-    const profileHex = ('00' + Number(profile).toString(16)).slice(-2);
-    const avcLevelHex = ('00' + Number(avcLevel).toString(16)).slice(-2);
-
-    return 'avc1.' + profileHex + '00' + avcLevelHex;
-  });
-};
-
-/**
- * Replace the old apple-style `avc1.<dd>.<dd>` codec string with the standard
- * `avc1.<hhhhhh>`
- *
- * @param {Array} codecs an array of codec strings to fix
- * @return {Array} the translated codec array
- * @private
- */
-export const translateLegacyCodecs = function(codecs) {
-  return codecs.map(translateLegacyCodec);
-};
-
-/**
- * Parses a codec string to retrieve the number of codecs specified,
- * the video codec and object type indicator, and the audio profile.
- */
-
-export const parseCodecs = function(codecs = '') {
-  const result = {
-    codecCount: 0
-  };
-
-  result.codecCount = codecs.split(',').length;
-  result.codecCount = result.codecCount || 2;
-
-  // parse the video codec
-  const parsed = (/(^|\s|,)+(avc[13])([^ ,]*)/i).exec(codecs);
-
-  if (parsed) {
-    result.videoCodec = parsed[2];
-    result.videoObjectTypeIndicator = parsed[3];
-  }
-
-  // parse the last field of the audio codec
-  result.audioProfile =
-    (/(^|\s|,)+mp4a.[0-9A-Fa-f]+\.([0-9A-Fa-f]+)/i).exec(codecs);
-  result.audioProfile = result.audioProfile && result.audioProfile[2];
-
-  return result;
-};
-
-/**
- * Replace codecs in the codec string with the old apple-style `avc1.<dd>.<dd>` to the
- * standard `avc1.<hhhhhh>`.
- *
- * @param codecString {String} the codec string
- * @return {string} the codec string with old apple-style codecs replaced
- *
- * @private
- */
-export const mapLegacyAvcCodecs = function(codecString) {
-  return codecString.replace(/avc1\.(\d+)\.(\d+)/i, (match) => {
-    return translateLegacyCodecs([match])[0];
-  });
-};
+import {
+  translateLegacyCodec,
+  parseCodecs,
+  audioProfileFromDefault
+} from '@videojs/vhs-utils/dist/codecs.js';
 
 /**
  * Returns a set of codec strings parsed from the playlist or the default
@@ -89,29 +25,6 @@ const getCodecs = function(media) {
   if (mediaAttributes.CODECS) {
     return parseCodecs(mediaAttributes.CODECS);
   }
-};
-
-const audioProfileFromDefault = (master, audioGroupId) => {
-  if (!master.mediaGroups.AUDIO || !audioGroupId) {
-    return null;
-  }
-
-  const audioGroup = master.mediaGroups.AUDIO[audioGroupId];
-
-  if (!audioGroup) {
-    return null;
-  }
-
-  for (const name in audioGroup) {
-    const audioType = audioGroup[name];
-
-    if (audioType.default && audioType.playlists) {
-      // codec should be the same for all playlists within the audio type
-      return parseCodecs(audioType.playlists[0].attributes.CODECS).audioProfile;
-    }
-  }
-
-  return null;
 };
 
 export const isMaat = (master, media) => {
