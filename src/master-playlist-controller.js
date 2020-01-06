@@ -121,12 +121,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
       seeking: () => this.tech_.seeking(),
       duration: () => this.mediaSource.duration,
       hasPlayed: () => this.hasPlayed_,
-      // While hasPlayed is used to determine if play() has been called (by user
-      // interaction, API, autoplay, etc.), hasPlayedContent is used to determine if
-      // the content has started playback. This is an important distinction, as playback
-      // of content entails many actions of setup, buffering, etc. that may or may not
-      // have taken place when hasPlayed has changed.
-      hasPlayedContent: () => this.tech_.el() && this.tech_.played().length > 0,
       goalBufferLength: () => this.goalBufferLength(),
       bandwidth,
       syncController: this.syncController_,

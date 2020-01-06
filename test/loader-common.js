@@ -27,7 +27,6 @@ export const LoaderCommonHooks = {
     };
     this.seeking = false;
     this.hasPlayed = true;
-    this.hasPlayedContent = true;
     this.paused = false;
     this.playbackRate = 1;
     this.fakeHls = {
@@ -70,7 +69,6 @@ export const LoaderCommonSettings = function(settings) {
     seekable: () => this.seekable,
     seeking: () => this.seeking,
     hasPlayed: () => this.hasPlayed,
-    hasPlayedContent: () => this.hasPlayedContent,
     duration: () => this.mediaSource.duration,
     goalBufferLength: () => this.goalBufferLength(),
     mediaSource: this.mediaSource,
@@ -1156,7 +1154,6 @@ export const LoaderCommonFactory = (LoaderConstructor,
     });
 
     QUnit.test('maintains initial sync info if playlist is changed before playback starts', function(assert) {
-      this.hasPlayedContent = false;
       loader.playlist(playlistWithDuration(50, {
         mediaSequence: 1,
         endList: false
@@ -1185,7 +1182,8 @@ export const LoaderCommonFactory = (LoaderConstructor,
         'updated sync info to start at media sequence 2 and time 0'
       );
 
-      this.hasPlayedContent = true;
+      loader.load();
+
       loader.playlist(playlistWithDuration(50, {
         mediaSequence: 2,
         endList: false
