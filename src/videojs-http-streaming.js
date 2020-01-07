@@ -716,7 +716,7 @@ class HlsHandler extends Component {
       this.tech_.trigger('progress');
     });
 
-    this.tech_.ready(() => this.setupQualityLevels_());
+    this.setupQualityLevels_();
 
     // do nothing if the tech has been disposed already
     // this can occur if someone sets the src in player.ready(), for instance
