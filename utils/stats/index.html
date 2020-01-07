@@ -345,27 +345,23 @@
         videojs.Hls.displayStats(document.querySelector('.switching-stats'), player);
         videojs.Hls.displayCues(document.querySelector('.segment-timeline'), player);
 
-        player.ready(function() {
-          var qualityLevels = player.qualityLevels();
-          var setupLevels = function() {
-            for (var i = 0; i < qualityLevels.length; i++) {
-              var level = qualityLevels[i];
-              var button = document.getElementById('quality-level-' + level.id);
+        var qualityLevels = player.qualityLevels();
 
-              button.classList.remove('selected');
-            }
+        qualityLevels.on('addqualitylevel', function(event) {
+          createQualityButton(event.qualityLevel, qualityButtons);
+        });
 
-            var selected = qualityLevels[qualityLevels.selectedIndex];
-            var button = document.getElementById('quality-level-' + selected.id);
-            button.classList.add('selected');
-          };
+        qualityLevels.on('change', function(event) {
+          for (var i = 0; i < qualityLevels.length; i++) {
+            var level = qualityLevels[i];
+            var button = document.getElementById('quality-level-' + level.id);
 
-          qualityLevels.on('addqualitylevel', function(event) {
-            createQualityButton(event.qualityLevel, qualityButtons);
-          });
+            button.classList.remove('selected');
+          }
 
-          qualityLevels.on('change', setupLevels);
-          setupLevels();
+          var selected = qualityLevels[event.selectedIndex];
+          var button = document.getElementById('quality-level-' + selected.id);
+          button.classList.add('selected');
         });
       });
     }
