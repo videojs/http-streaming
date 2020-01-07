@@ -1,12 +1,14 @@
 const path = require('path');
 const sh = require('shelljs');
-const fs = require('fs');
-
-const vjs = 'node_modules/video.js/dist/alt/video.core.js';
-const vjsCss = 'node_modules/video.js/dist/video-js.css';
-const eme = 'node_modules/videojs-contrib-eme/dist/videojs-contrib-eme.js';
 const deployDir = 'deploy';
-const files = [vjs, vjsCss, eme];
+
+const files = [
+  'node_modules/video.js/dist/video-js.css',
+  'node_modules/video.js/dist/alt/video.core.js',
+  'node_modules/videojs-contrib-eme/dist/videojs-contrib-eme.js',
+  'node_modules/videojs-contrib-quality-levels/dist/videojs-contrib-quality-levels.js',
+  'node_modules/d3/d3.min.js'
+];
 
 // cleanup previous deploy
 sh.rm('-rf', deployDir);
@@ -20,5 +22,5 @@ files
 
 // copy over files, dist, and html files
 files
-.concat('dist', 'index.html', 'index.min.html')
+.concat('dist', 'index.html', 'index.min.html', 'utils')
 .forEach((file) => sh.cp('-r', file, path.join(deployDir, file)));
