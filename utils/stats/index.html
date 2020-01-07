@@ -20,7 +20,7 @@
 
   <!-- player stats visualization -->
   <link href="stats.css" rel="stylesheet">
-  <script src="/node_modules/d3/d3.min.js"></script>
+  <script src="../../node_modules/d3/d3.min.js"></script>
 
   <style>
     body {
@@ -345,25 +345,23 @@
         videojs.Hls.displayStats(document.querySelector('.switching-stats'), player);
         videojs.Hls.displayCues(document.querySelector('.segment-timeline'), player);
 
-        player.ready(function() {
-          var qualityLevels = player.qualityLevels();
+        var qualityLevels = player.qualityLevels();
 
-          qualityLevels.on('addqualitylevel', function(event) {
-            createQualityButton(event.qualityLevel, qualityButtons);
-          });
+        qualityLevels.on('addqualitylevel', function(event) {
+          createQualityButton(event.qualityLevel, qualityButtons);
+        });
 
-          qualityLevels.on('change', function(event) {
-            for (var i = 0; i < qualityLevels.length; i++) {
-              var level = qualityLevels[i];
-              var button = document.getElementById('quality-level-' + level.id);
+        qualityLevels.on('change', function(event) {
+          for (var i = 0; i < qualityLevels.length; i++) {
+            var level = qualityLevels[i];
+            var button = document.getElementById('quality-level-' + level.id);
 
-              button.classList.remove('selected');
-            }
+            button.classList.remove('selected');
+          }
 
-            var selected = qualityLevels[event.selectedIndex];
-            var button = document.getElementById('quality-level-' + selected.id);
-            button.classList.add('selected');
-          });
+          var selected = qualityLevels[event.selectedIndex];
+          var button = document.getElementById('quality-level-' + selected.id);
+          button.classList.add('selected');
         });
       });
     }
