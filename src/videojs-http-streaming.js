@@ -737,17 +737,21 @@ class HlsHandler extends Component {
   setupQualityLevels_() {
     let player = videojs.players[this.tech_.options_.playerId];
 
-    if (player && player.qualityLevels) {
-      this.qualityLevels_ = player.qualityLevels();
-
-      this.masterPlaylistController_.on('selectedinitialmedia', () => {
-        handleHlsLoadedMetadata(this.qualityLevels_, this);
-      });
-
-      this.playlists.on('mediachange', () => {
-        handleHlsMediaChange(this.qualityLevels_, this.playlists);
-      });
+    // if there isn't a player or there isn't a qualityLevels plugin
+    // or qualityLevels_ listeners have already been setup, do nothing.
+    if (!player || !player.qualityLevels || this.qualityLevels_) {
+      return;
     }
+
+    this.qualityLevels_ = player.qualityLevels();
+
+    this.masterPlaylistController_.on('selectedinitialmedia', () => {
+      handleHlsLoadedMetadata(this.qualityLevels_, this);
+    });
+
+    this.playlists.on('mediachange', () => {
+      handleHlsMediaChange(this.qualityLevels_, this.playlists);
+    });
   }
 
   /**
