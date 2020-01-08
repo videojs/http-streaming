@@ -5003,12 +5003,12 @@ QUnit.test('emeKeySystems overwrites content types', function(assert) {
     ),
     {
       keySystem1: {
-        audioContentType: 'audio/mp4; codecs="mp4a.40.2c"',
-        videoContentType: 'video/mp4; codecs="avc1.420015"'
+        audioContentType: 'audio/mp4;codecs="mp4a.40.2c"',
+        videoContentType: 'video/mp4;codecs="avc1.420015"'
       },
       keySystem2: {
-        audioContentType: 'audio/mp4; codecs="mp4a.40.2c"',
-        videoContentType: 'video/mp4; codecs="avc1.420015"'
+        audioContentType: 'audio/mp4;codecs="mp4a.40.2c"',
+        videoContentType: 'video/mp4;codecs="avc1.420015"'
       }
     },
     'overwrote content types'
