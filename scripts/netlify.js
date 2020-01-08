@@ -20,7 +20,7 @@ files
 .map((file) => path.dirname(file))
 .forEach((dir) => sh.mkdir('-p', path.join(deployDir, dir)));
 
-// copy over files, dist, and html files
+// copy files/folders to deploy dir
 files
 .concat('dist', 'index.html', 'index.min.html', 'utils')
 .forEach((file) => sh.cp('-r', file, path.join(deployDir, file)));
