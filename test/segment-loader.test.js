@@ -192,7 +192,7 @@ QUnit.module('SegmentLoader', function(hooks) {
     let loader;
 
     nestedHooks.beforeEach(function(assert) {
-      this.startTime = sinon.stub(mp4probe, 'startTime');
+      this.compositionStartTime = sinon.stub(mp4probe, 'compositionStartTime');
       loader = new SegmentLoader(LoaderCommonSettings.call(this, {
         loaderType: 'main',
         segmentMetadataTrack: this.segmentMetadataTrack
@@ -200,7 +200,7 @@ QUnit.module('SegmentLoader', function(hooks) {
     });
 
     nestedHooks.afterEach(function(assert) {
-      this.startTime.restore();
+      this.compositionStartTime.restore();
       loader.dispose();
     });
 
@@ -252,7 +252,7 @@ QUnit.module('SegmentLoader', function(hooks) {
         loader.playlist(playlist);
         loader.load();
 
-        this.startTime.returns(11);
+        this.compositionStartTime.returns(11);
 
         this.clock.tick(100);
         // init

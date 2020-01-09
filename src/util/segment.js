@@ -1,21 +1,5 @@
-import mp4probe from 'mux.js/lib/mp4/probe';
 import tsInspector from 'mux.js/lib/tools/ts-inspector.js';
 import { ONE_SECOND_IN_TS } from 'mux.js/lib/utils/clock';
-
-/**
- * Probe an fmp4 segment to determine the start of the segment in it's internal
- * "media time".
- *
- * @private
- * @param {Uint8Array} segmentBytes - segment bytes
- * @param {Uint8Array} mapBytes - map bytes
- * @return {Object} The start and end time of the current segment in "media time"
- */
-export const probeMp4StartTime = (segmentBytes, mapBytes) => {
-  const timescales = mp4probe.timescale(mapBytes);
-
-  return mp4probe.startTime(timescales, segmentBytes);
-};
 
 /**
  * Probe an mpeg2-ts segment to determine the start time of the segment in it's
