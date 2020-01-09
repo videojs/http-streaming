@@ -177,7 +177,8 @@ const setupEmeOptions = (hlsHandler) => {
       player.currentSource().keySystems = sourceOptions;
 
       // works around https://bugs.chromium.org/p/chromium/issues/detail?id=895449
-      if (player.eme.initializeMediaKeys) {
+      // in non-IE11 browsers. In IE11 this is too early to initialize media keys
+      if (!(videojs.browser.IE_VERSION === 11) && player.eme.initializeMediaKeys) {
         player.eme.initializeMediaKeys();
       }
     }
