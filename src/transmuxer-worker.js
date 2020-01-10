@@ -164,6 +164,10 @@ const wirePartialTransmuxerEvents = function(self, transmuxer) {
       segment.videoFrameDtsTime = videoTsToSeconds(event.data.videoFrameDts);
     }
 
+    if (typeof event.data.videoFramePts !== 'undefined') {
+      segment.videoFramePtsTime = videoTsToSeconds(event.data.videoFramePts);
+    }
+
     self.postMessage({
       action: 'data',
       segment

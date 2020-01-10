@@ -1432,7 +1432,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
       if (useVideoTimingInfo) {
         firstVideoFrameTimeForData = this.handlePartialData_ ?
-          result.videoFrameDtsTime : segmentInfo.videoTimingInfo.start;
+          result.videoFramePtsTime : segmentInfo.videoTimingInfo.start;
       }
 
       // Segment loader knows more about segment timing than the transmuxer (in certain
@@ -1555,7 +1555,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       segments
     });
 
-    this.sourceUpdater_.appendBuffer({type, bytes}, (error) => {
+    this.sourceUpdater_.appendBuffer({segmentInfo, type, bytes}, (error) => {
       if (error) {
         this.error(`appenderror for ${type} append with ${bytes.length} bytes`);
         // If an append errors, we can't recover.

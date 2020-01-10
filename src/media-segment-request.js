@@ -386,7 +386,7 @@ const handleSegmentBytes = ({
     trackInfoFn(segment, trackInfo);
     // the probe doesn't provide the segment end time, so only callback with the start
     // (the end time can be roughly calculated by the receiver using the duration)
-    const timingInfo = mp4probe.startTime(segment.map.timescales, bytesAsUint8Array);
+    const timingInfo = mp4probe.compositionStartTime(segment.map.timescales, bytesAsUint8Array);
 
     if (trackInfo.hasAudio) {
       timingInfoFn(segment, 'audio', 'start', timingInfo);
