@@ -115,7 +115,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // everything, and the MediaSource should not be detached without a proper disposal
 
     this.seekable_ = videojs.createTimeRanges();
-    this.hasPlayed_ = () => false;
+    this.hasPlayed_ = false;
 
     this.syncController_ = new SyncController(options);
     this.segmentMetadataTrack_ = tech.addRemoteTextTrack({
@@ -134,7 +134,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       seekable: () => this.seekable(),
       seeking: () => this.tech_.seeking(),
       duration: () => this.duration(),
-      hasPlayed: () => this.hasPlayed_(),
+      hasPlayed: () => this.hasPlayed_,
       goalBufferLength: () => this.goalBufferLength(),
       bandwidth,
       syncController: this.syncController_,
@@ -575,7 +575,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       this.seekTo_(0);
     }
 
-    if (this.hasPlayed_()) {
+    if (this.hasPlayed_) {
       this.load();
     }
 
@@ -602,7 +602,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     //     2) the player is paused
     //     3) the first play has already been setup
     // then exit early
-    if (!media || this.tech_.paused() || this.hasPlayed_()) {
+    if (!media || this.tech_.paused() || this.hasPlayed_) {
       return false;
     }
 
@@ -623,7 +623,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
         this.tech_.one('loadedmetadata', () => {
           this.trigger('firstplay');
           this.seekTo_(seekable.end(0));
-          this.hasPlayed_ = () => true;
+          this.hasPlayed_ = true;
         });
 
         return false;
@@ -635,7 +635,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       this.seekTo_(seekable.end(0));
     }
 
-    this.hasPlayed_ = () => true;
+    this.hasPlayed_ = true;
     // we can begin loading now that everything is ready
     this.load();
     return true;

@@ -1326,5 +1326,72 @@ export const LoaderCommonFactory = ({
         );
       }
     );
+
+    QUnit.test('maintains initial sync info if playlist is changed before playback starts', function(assert) {
+      loader.playlist(playlistWithDuration(50, {
+        mediaSequence: 1,
+        endList: false
+      }));
+
+      assert.deepEqual(
+        loader.playlist_.syncInfo,
+        {
+          mediaSequence: 1,
+          time: 0
+        },
+        'updated sync info to start at media sequence 1 and time 0'
+      );
+
+      loader.playlist(playlistWithDuration(50, {
+        mediaSequence: 2,
+        endList: false
+      }));
+
+      assert.deepEqual(
+        loader.playlist_.syncInfo,
+        {
+          mediaSequence: 2,
+          time: 0
+        },
+        'updated sync info to start at media sequence 2 and time 0'
+      );
+
+      loader.load();
+
+      loader.playlist(playlistWithDuration(50, {
+        mediaSequence: 2,
+        endList: false
+      }));
+
+      assert.notOk(loader.playlist_.syncInfo, 'did not set sync info on new playlist');
+    });
+
+    QUnit.test('maintains initial sync info if playlist is changed while segment in-flight', function(assert) {
+      loader.playlist(playlistWithDuration(50, {
+        mediaSequence: 1,
+        endList: false
+      }));
+
+      assert.deepEqual(
+        loader.playlist_.syncInfo,
+        {
+          mediaSequence: 1,
+          time: 0
+        },
+        'updated sync info to start at media sequence 1 and time 0'
+      );
+
+      assert.equal(this.requests.length, 0, 'no in-flight requests');
+      loader.load();
+      this.clock.tick(1);
+      assert.equal(this.requests.length, 1, 'one in-flight requests');
+
+      loader.playlist(playlistWithDuration(50, {
+        mediaSequence: 2,
+        endList: false
+      }));
+
+      assert.notOk(loader.playlist_.syncInfo, 'did not set sync info on new playlist');
+    });
   });
 };

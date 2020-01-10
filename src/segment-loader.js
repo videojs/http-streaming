@@ -549,7 +549,11 @@ export default class SegmentLoader extends videojs.EventTarget {
     // when we haven't started playing yet, the start of a live playlist
     // is always our zero-time so force a sync update each time the playlist
     // is refreshed from the server
-    if (!this.hasPlayed_()) {
+    //
+    // Use the INIT state to determine if playback has started, as the playlist sync info
+    // should be fixed once requests begin (as sync points are generated based on sync
+    // info), but not before then.
+    if (this.state === 'INIT') {
       newPlaylist.syncInfo = {
         mediaSequence: newPlaylist.mediaSequence,
         time: 0
