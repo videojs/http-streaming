@@ -92,6 +92,9 @@ let renditionSelectionMixin = function(hlsHandler) {
 
   // Add a single API-specific function to the HlsHandler instance
   hlsHandler.representations = () => {
+    if (!playlists || !playlists.master || !playlists.master.playlists) {
+      return [];
+    }
     return playlists
       .master
       .playlists
