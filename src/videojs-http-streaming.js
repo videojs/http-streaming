@@ -670,7 +670,7 @@ class HlsHandler extends Component {
       this.tech_.trigger('progress');
     });
 
-    this.tech_.ready(() => this.setupQualityLevels_());
+    this.setupQualityLevels_();
 
     // do nothing if the tech has been disposed already
     // this can occur if someone sets the src in player.ready(), for instance
@@ -690,17 +690,21 @@ class HlsHandler extends Component {
   setupQualityLevels_() {
     const player = videojs.players[this.tech_.options_.playerId];
 
-    if (player && player.qualityLevels) {
-      this.qualityLevels_ = player.qualityLevels();
-
-      this.masterPlaylistController_.on('selectedinitialmedia', () => {
-        handleHlsLoadedMetadata(this.qualityLevels_, this);
-      });
-
-      this.playlists.on('mediachange', () => {
-        handleHlsMediaChange(this.qualityLevels_, this.playlists);
-      });
+    // if there isn't a player or there isn't a qualityLevels plugin
+    // or qualityLevels_ listeners have already been setup, do nothing.
+    if (!player || !player.qualityLevels || this.qualityLevels_) {
+      return;
     }
+
+    this.qualityLevels_ = player.qualityLevels();
+
+    this.masterPlaylistController_.on('selectedinitialmedia', () => {
+      handleHlsLoadedMetadata(this.qualityLevels_, this);
+    });
+
+    this.playlists.on('mediachange', () => {
+      handleHlsMediaChange(this.qualityLevels_, this.playlists);
+    });
   }
 
   /**

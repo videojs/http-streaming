@@ -10,6 +10,7 @@ const files = [
   'node_modules/videojs-contrib-eme/dist/videojs-contrib-eme.min.js',
   'node_modules/videojs-contrib-quality-levels/dist/videojs-contrib-quality-levels.js',
   'node_modules/videojs-contrib-quality-levels/dist/videojs-contrib-quality-levels.min.js',
+  'node_modules/d3/d3.min.js',
   'scripts/index-demo-page.js'
 ];
 
@@ -23,7 +24,7 @@ files
   .map((file) => path.dirname(file))
   .forEach((dir) => sh.mkdir('-p', path.join(deployDir, dir)));
 
-// copy over files, dist, and html files
+// copy files/folders to deploy dir
 files
-  .concat('dist', 'index.html')
+  .concat('dist', 'index.html', 'utils')
   .forEach((file) => sh.cp('-r', file, path.join(deployDir, file)));
