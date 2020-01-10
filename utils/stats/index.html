@@ -387,25 +387,23 @@
         videojs.Hls.displayCues(document.querySelector('.segment-timeline'), player);
 
         // setup quality levels
-        player.ready(function() {
-          var qualityLevels = player.qualityLevels();
+        var qualityLevels = player.qualityLevels();
 
-          qualityLevels.on('addqualitylevel', function(event) {
-            createQualityButton(event.qualityLevel, qualityButtons);
-          });
+        qualityLevels.on('addqualitylevel', function(event) {
+          createQualityButton(event.qualityLevel, qualityButtons);
+        });
 
-          qualityLevels.on('change', function(event) {
-            for (var i = 0; i < qualityLevels.length; i++) {
-              var level = qualityLevels[i];
-              var button = document.getElementById('quality-level-' + level.id);
+        qualityLevels.on('change', function(event) {
+          for (var i = 0; i < qualityLevels.length; i++) {
+            var level = qualityLevels[i];
+            var button = document.getElementById('quality-level-' + level.id);
 
-              button.classList.remove('selected');
-            }
+            button.classList.remove('selected');
+          }
 
-            var selected = qualityLevels[event.selectedIndex];
-            var button = document.getElementById('quality-level-' + selected.id);
-            button.classList.add('selected');
-          });
+          var selected = qualityLevels[event.selectedIndex];
+          var button = document.getElementById('quality-level-' + selected.id);
+          button.classList.add('selected');
         });
 
         // setup segment metadata
