@@ -61,12 +61,12 @@
   ],
   "dependencies": {
     "@babel/runtime": "^7.5.5",
-    "@videojs/vhs-utils": "^1.0.0",
+    "@videojs/vhs-utils": "^1.2.0",
     "aes-decrypter": "3.0.1",
     "global": "^4.3.2",
     "m3u8-parser": "4.4.2",
     "mpd-parser": "0.9.0",
-    "mux.js": "5.2.0",
+    "mux.js": "5.5.1",
     "video.js": "^6 || ^7"
   },
   "devDependencies": {

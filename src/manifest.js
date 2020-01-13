@@ -83,6 +83,8 @@ export const setupMediaPlaylists = (master) => {
     });
     playlist.resolvedUri = resolveUrl(master.uri, playlist.uri);
     master.playlists[playlist.id] = playlist;
+    // URI reference added for backwards compatibility
+    master.playlists[playlist.uri] = playlist;
 
     // Although the spec states an #EXT-X-STREAM-INF tag MUST have a BANDWIDTH attribute,
     // the stream can be played without it. Although an attributes property may have been
@@ -139,6 +141,8 @@ export const masterForMedia = (media, uri) => {
 
   // set up ID reference
   master.playlists[id] = master.playlists[0];
+  // URI reference added for backwards compatibility
+  master.playlists[uri] = master.playlists[0];
 
   return master;
 };
@@ -177,8 +181,9 @@ export const addPropertiesToMaster = (master, uri) => {
 
       properties.playlists[0].uri = phonyUri;
       properties.playlists[0].id = id;
-      // set up ID references
+      // setup ID and URI references (URI for backwards compatibility)
       master.playlists[id] = properties.playlists[0];
+      master.playlists[phonyUri] = properties.playlists[0];
     }
   });
 

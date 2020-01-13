@@ -8,7 +8,8 @@ export const handleData_ = (event, transmuxedData, callback) => {
     captions,
     captionStreams,
     metadata,
-    videoFrameDtsTime
+    videoFrameDtsTime,
+    videoFramePtsTime
   } = event.data.segment;
 
   transmuxedData.buffer.push({
@@ -37,8 +38,12 @@ export const handleData_ = (event, transmuxedData, callback) => {
     )
   };
 
-  if (videoFrameDtsTime) {
+  if (typeof videoFrameDtsTime !== 'undefined') {
     result.videoFrameDtsTime = videoFrameDtsTime;
+  }
+
+  if (typeof videoFramePtsTime !== 'undefined') {
+    result.videoFramePtsTime = videoFramePtsTime;
   }
 
   callback(result);
