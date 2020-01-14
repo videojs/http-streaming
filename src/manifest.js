@@ -112,6 +112,8 @@ export const setupMediaPlaylists = (master) => {
     });
     playlist.resolvedUri = resolveUrl(master.uri, playlist.uri);
     master.playlists[playlist.id] = playlist;
+    // URI reference added for backwards compatibility
+    master.playlists[playlist.uri] = playlist;
 
     // Although the spec states an #EXT-X-STREAM-INF tag MUST have a BANDWIDTH attribute,
     // the stream can be played without it. Although an attributes property may have been
@@ -163,12 +165,16 @@ export const masterForMedia = (media, uri) => {
       uri,
       id,
       resolvedUri: uri,
+      // m3u8-parser does not attach an attributes property to media playlists so make
+      // sure that the property is attached to avoid undefined reference errors
       attributes: {}
     }]
   };
 
   // set up ID reference
   master.playlists[id] = master.playlists[0];
+  // URI reference added for backwards compatibility
+  master.playlists[uri] = master.playlists[0];
 
   return master;
 };
@@ -197,19 +203,22 @@ export const addPropertiesToMaster = (master, uri) => {
   }
 
   forEachMediaGroup(master, (properties, mediaType, groupKey, labelKey) => {
-    if (properties.playlists &&
-        properties.playlists.length &&
-        !properties.playlists[0].uri) {
-      // Set up phony URIs for the media group playlists since playlists are referenced by
-      // their URIs throughout VHS, but some formats (e.g., DASH) don't have external URIs
-      const phonyUri = `placeholder-uri-${mediaType}-${groupKey}-${labelKey}`;
-      const id = createPlaylistID(0, phonyUri);
-
-      properties.playlists[0].uri = phonyUri;
-      properties.playlists[0].id = id;
-      // set up ID references
-      master.playlists[id] = properties.playlists[0];
+    if (!properties.playlists ||
+        !properties.playlists.length ||
+        properties.playlists[0].uri) {
+      return;
     }
+
+    // Set up phony URIs for the media group playlists since playlists are referenced by
+    // their URIs throughout VHS, but some formats (e.g., DASH) don't have external URIs
+    const phonyUri = `placeholder-uri-${mediaType}-${groupKey}-${labelKey}`;
+    const id = createPlaylistID(0, phonyUri);
+
+    properties.playlists[0].uri = phonyUri;
+    properties.playlists[0].id = id;
+    // setup ID and URI references (URI for backwards compatibility)
+    master.playlists[id] = properties.playlists[0];
+    master.playlists[phonyUri] = properties.playlists[0];
   });
 
   setupMediaPlaylists(master);

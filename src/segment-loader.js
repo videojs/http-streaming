@@ -549,7 +549,11 @@ export default class SegmentLoader extends videojs.EventTarget {
     // when we haven't started playing yet, the start of a live playlist
     // is always our zero-time so force a sync update each time the playlist
     // is refreshed from the server
-    if (!this.hasPlayed_()) {
+    //
+    // Use the INIT state to determine if playback has started, as the playlist sync info
+    // should be fixed once requests begin (as sync points are generated based on sync
+    // info), but not before then.
+    if (this.state === 'INIT') {
       newPlaylist.syncInfo = {
         mediaSequence: newPlaylist.mediaSequence,
         time: 0
@@ -1432,7 +1436,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
       if (useVideoTimingInfo) {
         firstVideoFrameTimeForData = this.handlePartialData_ ?
-          result.videoFrameDtsTime : segmentInfo.videoTimingInfo.start;
+          result.videoFramePtsTime : segmentInfo.videoTimingInfo.start;
       }
 
       // Segment loader knows more about segment timing than the transmuxer (in certain
@@ -1555,7 +1559,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       segments
     });
 
-    this.sourceUpdater_.appendBuffer({type, bytes}, (error) => {
+    this.sourceUpdater_.appendBuffer({segmentInfo, type, bytes}, (error) => {
       if (error) {
         this.error(`appenderror for ${type} append with ${bytes.length} bytes`);
         // If an append errors, we can't recover.

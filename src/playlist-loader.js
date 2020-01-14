@@ -111,6 +111,8 @@ export const updateMaster = (master, media) => {
     }
   }
   result.playlists[media.id] = mergedPlaylist;
+  // URI reference added for backwards compatibility
+  result.playlists[media.uri] = mergedPlaylist;
 
   return result;
 };
