@@ -18,7 +18,7 @@ import {
   requestAndAppendSegment,
   disposePlaybackWatcher
 } from './test-helpers.js';
-import { createPlaylistID } from '../src/playlist-loader.js';
+import { createPlaylistID } from '../src/manifest.js';
 /* eslint-disable no-unused-vars */
 // we need this so that it can register hls with videojs
 import {
@@ -408,8 +408,8 @@ QUnit.test('codecs are passed to the source buffer', function(assert) {
   this.requests.shift().respond(
     200, null,
     '#EXTM3U\n' +
-                                '#EXT-X-STREAM-INF:CODECS="avc1.dd00dd, mp4a.40.9"\n' +
-                                'media.m3u8\n'
+    '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.dd00dd, mp4a.40.9"\n' +
+    'media.m3u8\n'
   );
   // media
   this.standardXHRResponse(this.requests.shift());

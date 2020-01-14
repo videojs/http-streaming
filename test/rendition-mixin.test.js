@@ -1,5 +1,5 @@
 import QUnit from 'qunit';
-import { createPlaylistID } from '../src/playlist-loader.js';
+import { createPlaylistID } from '../src/manifest';
 import RenditionMixin from '../src/rendition-mixin.js';
 import videojs from 'video.js';
 

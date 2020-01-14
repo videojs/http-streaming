@@ -9,29 +9,13 @@ import { resolveUrl, resolveManifestRedirect } from './resolve-url';
 import videojs from 'video.js';
 import { Parser as M3u8Parser } from 'm3u8-parser';
 import window from 'global/window';
+import {
+  addPropertiesToMaster,
+  masterForMedia,
+  setupMediaPlaylist
+} from './manifest';
 
-const { mergeOptions, EventTarget, log } = videojs;
-
-/**
- * Loops through all supported media groups in master and calls the provided
- * callback for each group
- *
- * @param {Object} master
- *        The parsed master manifest object
- * @param {Function} callback
- *        Callback to call for each media group
- */
-export const forEachMediaGroup = (master, callback) => {
-  ['AUDIO', 'SUBTITLES'].forEach((mediaType) => {
-    for (const groupKey in master.mediaGroups[mediaType]) {
-      for (const labelKey in master.mediaGroups[mediaType][groupKey]) {
-        const mediaProperties = master.mediaGroups[mediaType][groupKey][labelKey];
-
-        callback(mediaProperties, mediaType, groupKey, labelKey);
-      }
-    }
-  });
-};
+const { mergeOptions, EventTarget } = videojs;
 
 /**
   * Returns a new array of segments that is the result of merging
@@ -131,45 +115,6 @@ export const updateMaster = (master, media) => {
   result.playlists[media.uri] = mergedPlaylist;
 
   return result;
-};
-
-export const createPlaylistID = (index, uri) => {
-  return `${index}-${uri}`;
-};
-
-export const setupMediaPlaylists = (master) => {
-  // setup by-URI lookups and resolve media playlist URIs
-  let i = master.playlists.length;
-
-  while (i--) {
-    const playlist = master.playlists[i];
-
-    playlist.resolvedUri = resolveUrl(master.uri, playlist.uri);
-    playlist.id = createPlaylistID(i, playlist.uri);
-
-    master.playlists[playlist.id] = playlist;
-    // URI reference added for backwards compatibility
-    master.playlists[playlist.uri] = playlist;
-
-    if (!playlist.attributes) {
-      // Although the spec states an #EXT-X-STREAM-INF tag MUST have a
-      // BANDWIDTH attribute, we can play the stream without it. This means a poorly
-      // formatted master playlist may not have an attribute list. An attributes
-      // property is added here to prevent undefined references when we encounter
-      // this scenario.
-      playlist.attributes = {};
-
-      log.warn('Invalid playlist STREAM-INF detected. Missing BANDWIDTH attribute.');
-    }
-  }
-};
-
-export const resolveMediaGroupUris = (master) => {
-  forEachMediaGroup(master, (properties) => {
-    if (properties.uri) {
-      properties.resolvedUri = resolveUrl(master.uri, properties.uri);
-    }
-  });
 };
 
 /**
@@ -296,11 +241,11 @@ export default class PlaylistLoader extends EventTarget {
 
     parser.push(xhr.responseText);
     parser.end();
-    parser.manifest.uri = url;
-    parser.manifest.id = id;
-    // m3u8-parser does not attach an attributes property to media playlists so make
-    // sure that the property is attached to avoid undefined reference errors
-    parser.manifest.attributes = parser.manifest.attributes || {};
+    setupMediaPlaylist({
+      playlist: parser.manifest,
+      uri: url,
+      id
+    });
 
     // merge this playlist into the master
     const update = updateMaster(this.master, parser.manifest);
@@ -561,50 +506,20 @@ export default class PlaylistLoader extends EventTarget {
 
       this.srcUrl = resolveManifestRedirect(this.handleManifestRedirects, this.srcUrl, req);
 
-      parser.manifest.uri = this.srcUrl;
-
-      // loaded a master playlist
       if (parser.manifest.playlists) {
         this.master = parser.manifest;
-
-        setupMediaPlaylists(this.master);
-        resolveMediaGroupUris(this.master);
-
+        addPropertiesToMaster(this.master, this.srcUrl);
         this.trigger('loadedplaylist');
         if (!this.request) {
           // no media playlist was specifically selected so start
           // from the first listed one
-          this.media(parser.manifest.playlists[0]);
+          this.media(this.master.playlists[0]);
         }
         return;
       }
 
-      const id = createPlaylistID(0, this.srcUrl);
-
-      // loaded a media playlist
-      // infer a master playlist if none was previously requested
-      this.master = {
-        mediaGroups: {
-          'AUDIO': {},
-          'VIDEO': {},
-          'CLOSED-CAPTIONS': {},
-          'SUBTITLES': {}
-        },
-        uri: window.location.href,
-        playlists: [{
-          uri: this.srcUrl,
-          id,
-          resolvedUri: this.srcUrl,
-          // m3u8-parser does not attach an attributes property to media playlists so make
-          // sure that the property is attached to avoid undefined reference errors
-          attributes: {}
-        }]
-      };
-      this.master.playlists[id] = this.master.playlists[0];
-      // URI reference added for backwards compatibility
-      this.master.playlists[this.srcUrl] = this.master.playlists[0];
-
-      this.haveMetadata(req, this.srcUrl, id);
+      this.master = masterForMedia(parser.manifest, this.srcUrl);
+      this.haveMetadata(req, this.srcUrl, this.master.playlists[0].id);
       return this.trigger('loadedmetadata');
     });
   }
