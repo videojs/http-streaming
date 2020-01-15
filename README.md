@@ -759,32 +759,40 @@ if (segmentMetadataTrack) {
 
 ### Object as Source
 
-VHS not only accepts a URL as the source, but also has the option to provide a parsed
-manifest object as the source via a
-[data URI](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs).
-This can be useful for specific use-cases, e.g., when the manifest has already been
-downloaded (to prevent another request), to manipulate the manifest object before passing
-it along to VHS, or for testing. *Note* that this is an advanced use-case, and may be more
-fragile for production environments, as the schema for a VHS object and how it's used
-internally are not set in stone and may change in future releases.
+*Note* that this is an advanced use-case, and may be more fragile for production
+environments, as the schema for a VHS object and how it's used internally are not set in
+stone and may change in future releases.
 
-When providing an object as the source, the "vnd.vhs+json" media type is required both as
-the source type and in the data URI.
+In normal use, VHS accepts a URL as the source of the video. But VHS also has the ability
+to accept a JSON object as the source.
 
-The manifest object should follow the "VHS manifest object schema" provided in
-[m3u8-parser](https://github.com/videojs/m3u8-parser) and
-[mpd-parser](https://github.com/videojs/mpd-parser). This may be referred to in the
-project as `vhs-json`.
+Passing a JSON object as the source has many uses. A couple of examples include:
+* The manifest has already been downloaded, so there's no need to make another request
+* You want to change some aspect of the manifest, e.g., add a segment, without modifying
+  the manifest itself
 
-```javascript
+In order to pass a JSON object as the source, provide a parsed manifest object in via a
+[data URI](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs),
+and using the "vnd.vhs+json" media type when setting the source type. For instance:
+
+```
 var player = videojs('some-video-id');
-var manifestObject = { /* the VHS manifest object */ };
+const parser = new M3u8Parser();
+
+parser.push(manifestString);
+parser.end();
 
 player.src({
-  src: 'data:application/vnd.vhs+json,' + JSON.stringify(manifestObject),
+  src: `data:application/vnd.vhs+json,${JSON.stringify(parser.manifest)}`,
   type: 'application/vnd.vhs+json'
 });
 ```
+
+The manifest object should follow the "VHS manifest object schema" (a somewhat flexible
+and informally documented structure) provided in the README of
+[m3u8-parser](https://github.com/videojs/m3u8-parser) and
+[mpd-parser](https://github.com/videojs/mpd-parser). This may be referred to in the
+project as `vhs-json`.
 
 ## Hosting Considerations
 Unlike a native HLS implementation, the HLS tech has to comply with
