@@ -773,7 +773,7 @@ Passing a JSON object as the source has many uses. A couple of examples include:
 
 In order to pass a JSON object as the source, provide a parsed manifest object in via a
 [data URI](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs),
-and using the "vnd.vhs+json" media type when setting the source type. For instance:
+and using the "vnd.videojs.vhs+json" media type when setting the source type. For instance:
 
 ```
 var player = videojs('some-video-id');
@@ -783,8 +783,8 @@ parser.push(manifestString);
 parser.end();
 
 player.src({
-  src: `data:application/vnd.vhs+json,${JSON.stringify(parser.manifest)}`,
-  type: 'application/vnd.vhs+json'
+  src: `data:application/vnd.videojs.vhs+json,${JSON.stringify(parser.manifest)}`,
+  type: 'application/vnd.videojs.vhs+json'
 });
 ```
 

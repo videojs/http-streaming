@@ -4388,8 +4388,8 @@ QUnit.test('manifest object used as source if provided as data URI', function(as
   const manifestObject = parseManifest({ manifestString });
 
   this.player.src({
-    src: `data:application/vnd.vhs+json,${JSON.stringify(manifestObject)}`,
-    type: 'application/vnd.vhs+json'
+    src: `data:application/vnd.videojs.vhs+json,${JSON.stringify(manifestObject)}`,
+    type: 'application/vnd.videojs.vhs+json'
   });
 
   openMediaSource(this.player, this.clock);
@@ -4953,7 +4953,7 @@ QUnit.test('expandDataUri parses JSON for VHS media type', function(assert) {
   );
 
   assert.deepEqual(
-    expandDataUri(`data:application/vnd.vhs+json,${JSON.stringify(manifestObject)}`),
+    expandDataUri(`data:application/vnd.videojs.vhs+json,${JSON.stringify(manifestObject)}`),
     manifestObject,
     'parsed JSON from data URI for VHS media type'
   );

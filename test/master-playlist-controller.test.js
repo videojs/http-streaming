@@ -3921,8 +3921,8 @@ QUnit.test(
     const manifestObject = parseManifest({ manifestString: manifests.media });
 
     this.player.src({
-      src: `data:application/vnd.vhs+json,${JSON.stringify(manifestObject)}`,
-      type: 'application/vnd.vhs+json'
+      src: `data:application/vnd.videojs.vhs+json,${JSON.stringify(manifestObject)}`,
+      type: 'application/vnd.videojs.vhs+json'
     });
     // media source must be open for duration to be set
     openMediaSource(this.player, this.clock);
@@ -3963,8 +3963,8 @@ QUnit.test(
     addPropertiesToMaster(manifestObject, 'master.m3u8');
 
     this.player.src({
-      src: `data:application/vnd.vhs+json,${JSON.stringify(manifestObject)}`,
-      type: 'application/vnd.vhs+json'
+      src: `data:application/vnd.videojs.vhs+json,${JSON.stringify(manifestObject)}`,
+      type: 'application/vnd.videojs.vhs+json'
     });
     // media source must be open for duration to be set
     openMediaSource(this.player, this.clock);
@@ -3996,8 +3996,8 @@ QUnit.test(
     const manifestObject = parseManifest({ manifestString: manifests.master });
 
     this.player.src({
-      src: `data:application/vnd.vhs+json,${JSON.stringify(manifestObject)}`,
-      type: 'application/vnd.vhs+json'
+      src: `data:application/vnd.videojs.vhs+json,${JSON.stringify(manifestObject)}`,
+      type: 'application/vnd.videojs.vhs+json'
     });
     // media source must be open for duration to be set
     openMediaSource(this.player, this.clock);
