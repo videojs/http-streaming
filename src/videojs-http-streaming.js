@@ -477,8 +477,7 @@ class HlsHandler extends Component {
     }
     this.setOptions_();
     // add master playlist controller options
-    this.options_.src = (this.source_.src && (/^data:/i).test(this.source_.src)) ?
-      expandDataUri(this.source_.src) : this.source_.src;
+    this.options_.src = expandDataUri(this.source_.src);
     this.options_.tech = this.tech_;
     this.options_.externHls = Hls;
     this.options_.sourceType = simpleTypeFromSourceType(type);
