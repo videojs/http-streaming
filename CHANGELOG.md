@@ -1,3 +1,17 @@
+<a name="1.11.3"></a>
+## [1.11.3](https://github.com/videojs/http-streaming/compare/v1.11.2...v1.11.3) (2020-01-17)
+
+### Bug Fixes
+
+* consider `hidden` tracks as active ([#564](https://github.com/videojs/http-streaming/issues/564)) ([6acdd20](https://github.com/videojs/http-streaming/commit/6acdd20))
+* live startup failures when play happens before playlist is downloaded ([#700](https://github.com/videojs/http-streaming/issues/700)) ([92c93a7](https://github.com/videojs/http-streaming/commit/92c93a7)), closes [#464](https://github.com/videojs/http-streaming/issues/464) [#496](https://github.com/videojs/http-streaming/issues/496) [#500](https://github.com/videojs/http-streaming/issues/500)
+* race condition preventing qualityLevels from being populating ([#707](https://github.com/videojs/http-streaming/issues/707)) ([8c4a11f](https://github.com/videojs/http-streaming/commit/8c4a11f)), closes [#677](https://github.com/videojs/http-streaming/issues/677)
+* support multiple stream-inf with same URI ([#672](https://github.com/videojs/http-streaming/issues/672)) ([095515c](https://github.com/videojs/http-streaming/commit/095515c))
+
+### Chores
+
+* **stats:** add liveui option and various fixes ([#695](https://github.com/videojs/http-streaming/issues/695)) ([a0f6c8b](https://github.com/videojs/http-streaming/commit/a0f6c8b))
+
 <a name="1.11.2"></a>
 ## [1.11.2](https://github.com/videojs/http-streaming/compare/v1.11.1...v1.11.2) (2019-11-12)
 
