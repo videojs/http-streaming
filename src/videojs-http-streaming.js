@@ -239,7 +239,7 @@ const updateVhsLocalStorage = (options) => {
  *         was found
  */
 const expandDataUri = (dataUri) => {
-  if ((/^data:application\/vnd\.videojs\.vhs\+json/i).test(dataUri)) {
+  if (dataUri.toLowerCase().indexOf('data:application/vnd.videojs.vhs+json,') === 0) {
     return JSON.parse(dataUri.substring(dataUri.indexOf(',') + 1));
   }
   // no known case for this data URI, return the string as-is

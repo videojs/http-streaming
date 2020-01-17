@@ -4958,3 +4958,24 @@ QUnit.test('expandDataUri parses JSON for VHS media type', function(assert) {
     'parsed JSON from data URI for VHS media type'
   );
 });
+
+QUnit.test('expandDataUri is case insensitive', function(assert) {
+  const manifestObject = {
+    test: 'manifest',
+    object: ['here']
+  };
+
+  assert.deepEqual(
+    expandDataUri(`DaTa:ApPlIcAtIoN/VnD.ViDeOjS.VhS+JsOn,${JSON.stringify(manifestObject)}`),
+    manifestObject,
+    'parsed JSON from data URI for VHS media type'
+  );
+});
+
+QUnit.test('expandDataUri requires comma to parse', function(assert) {
+  assert.deepEqual(
+    expandDataUri('data:application/vnd.videojs.vhs+json'),
+    'data:application/vnd.videojs.vhs+json',
+    'did not parse when no comma after data URI'
+  );
+});
