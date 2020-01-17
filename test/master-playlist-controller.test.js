@@ -105,8 +105,8 @@ QUnit.test('throws error when given an empty URL', function(assert) {
     () => {
       new MasterPlaylistController(options); // eslint-disable-line no-new
     },
-    /A non-empty playlist URL or playlist is required/,
-    'requires a non empty url or playlist'
+    /A non-empty playlist URL or JSON manifest string is required/,
+    'requires a non empty url or JSON manifest string'
   );
 });
 

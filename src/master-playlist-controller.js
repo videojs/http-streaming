@@ -74,7 +74,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     } = options;
 
     if (!src) {
-      throw new Error('A non-empty playlist URL or playlist is required');
+      throw new Error('A non-empty playlist URL or JSON manifest string is required');
     }
 
     Hls = externHls;
