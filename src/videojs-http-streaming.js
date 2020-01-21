@@ -34,7 +34,6 @@ import {version as muxVersion} from 'mux.js/package.json';
 import {version as mpdVersion} from 'mpd-parser/package.json';
 import {version as m3u8Version} from 'm3u8-parser/package.json';
 import {version as aesVersion} from 'aes-decrypter/package.json';
-import { Parser as M3u8Parser } from 'm3u8-parser';
 // import needed to register middleware
 import './middleware-set-current-time';
 
@@ -45,7 +44,6 @@ const Hls = {
   AsyncStream,
   decrypt,
   utils,
-  M3u8Parser,
 
   STANDARD_PLAYLIST_SELECTOR: lastBandwidthSelector,
   INITIAL_PLAYLIST_SELECTOR: lowestBitrateCompatibleVariantSelector,
