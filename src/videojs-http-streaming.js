@@ -227,6 +227,26 @@ const updateVhsLocalStorage = (options) => {
 };
 
 /**
+ * Parses VHS-supported media types from data URIs. See
+ * https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs
+ * for information on data URIs.
+ *
+ * @param {string} dataUri
+ *        The data URI
+ *
+ * @return {string|Object}
+ *         The parsed object/string, or the original string if no supported media type
+ *         was found
+ */
+const expandDataUri = (dataUri) => {
+  if (dataUri.toLowerCase().indexOf('data:application/vnd.videojs.vhs+json,') === 0) {
+    return JSON.parse(dataUri.substring(dataUri.indexOf(',') + 1));
+  }
+  // no known case for this data URI, return the string as-is
+  return dataUri;
+};
+
+/**
  * Whether the browser has built-in HLS support.
  */
 Hls.supportsNativeHls = (function() {
@@ -457,7 +477,7 @@ class HlsHandler extends Component {
     }
     this.setOptions_();
     // add master playlist controller options
-    this.options_.url = this.source_.src;
+    this.options_.src = expandDataUri(this.source_.src);
     this.options_.tech = this.tech_;
     this.options_.externHls = Hls;
     this.options_.sourceType = simpleTypeFromSourceType(type);
@@ -873,5 +893,6 @@ export {
   HlsHandler,
   HlsSourceHandler,
   emeKeySystems,
-  simpleTypeFromSourceType
+  simpleTypeFromSourceType,
+  expandDataUri
 };

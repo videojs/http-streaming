@@ -280,6 +280,7 @@ QUnit.test('creates a skeleton of a master playlist', function(assert) {
         'SUBTITLES': {}
       },
       uri: window.location.href,
+      resolvedUri: window.location.href,
       playlists: [{
         uri: 'some-uri',
         id: '0-some-uri',

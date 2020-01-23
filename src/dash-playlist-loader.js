@@ -221,7 +221,7 @@ export default class DashPlaylistLoader extends EventTarget {
     this.handleManifestRedirects = handleManifestRedirects;
 
     if (!srcUrlOrPlaylist) {
-      throw new Error('A non-empty playlist URL or playlist is required');
+      throw new Error('A non-empty playlist URL or object is required');
     }
 
     // event naming?

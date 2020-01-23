@@ -1,11 +1,40 @@
 import videojs from 'video.js';
 import window from 'global/window';
+import { Parser as M3u8Parser } from 'm3u8-parser';
 import { resolveUrl } from './resolve-url';
 
 const { log } = videojs;
 
 export const createPlaylistID = (index, uri) => {
   return `${index}-${uri}`;
+};
+
+/**
+ * Parses a given m3u8 playlist
+ *
+ * @param {string} manifestString
+ *        The downloaded manifest string
+ * @param {Object[]} [customTagParsers]
+ *        An array of custom tag parsers for the m3u8-parser instance
+ * @param {Object[]} [customTagMappers]
+ *         An array of custom tag mappers for the m3u8-parser instance
+ * @return {Object}
+ *         The manifest object
+ */
+export const parseManifest = ({
+  manifestString,
+  customTagParsers = [],
+  customTagMappers = []
+}) => {
+  const parser = new M3u8Parser();
+
+  customTagParsers.forEach(customParser => parser.addParser(customParser));
+  customTagMappers.forEach(mapper => parser.addTagMapper(mapper));
+
+  parser.push(manifestString);
+  parser.end();
+
+  return parser.manifest;
 };
 
 /**
@@ -131,6 +160,7 @@ export const masterForMedia = (media, uri) => {
       'SUBTITLES': {}
     },
     uri: window.location.href,
+    resolvedUri: window.location.href,
     playlists: [{
       uri,
       id,
