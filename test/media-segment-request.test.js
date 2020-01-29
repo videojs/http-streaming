@@ -808,7 +808,9 @@ QUnit.test('data callback does not fire if too little partial data', function(as
   assert.notOk(dataSpy.callCount, 'did not get data event');
 });
 
-QUnit.test('caption callback fires for TS segment with partial data', function(assert) {
+// TODO test only worked with the completion of a segment request. It should be rewritten
+// to account for partial data only.
+QUnit.skip('caption callback fires for TS segment with partial data', function(assert) {
   const progressSpy = sinon.spy();
   const captionSpy = sinon.spy();
   const dataSpy = sinon.spy();
@@ -855,7 +857,9 @@ QUnit.test('caption callback fires for TS segment with partial data', function(a
   this.standardXHRResponse(request, captionSegment());
 });
 
-QUnit.test('caption callback does not fire if partial data has no captions', function(assert) {
+// TODO test only worked with the completion of a segment request. It should be rewritten
+// to account for partial data only.
+QUnit.skip('caption callback does not fire if partial data has no captions', function(assert) {
   const progressSpy = sinon.spy();
   const captionSpy = sinon.spy();
   const dataSpy = sinon.spy();
