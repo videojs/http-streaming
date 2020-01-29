@@ -8,7 +8,8 @@ import {
   standardXHRResponse,
   openMediaSource,
   requestAndAppendSegment,
-  setupMediaSource
+  setupMediaSource,
+  downloadProgress
 } from './test-helpers.js';
 import manifests from './dist/test-manifests.js';
 import {
@@ -909,7 +910,8 @@ QUnit.test(
     this.standardXHRResponse(this.requests.shift(), muxedSegment());
 
     this.masterPlaylistController.mainSegmentLoader_.trigger('progress');
-    assert.equal(progressCount, 1, 'fired a progress event');
+    // note that there are two progress events as one is fired on finish
+    assert.equal(progressCount, 2, 'fired a progress event');
   }
 );
 
@@ -1854,19 +1856,10 @@ QUnit.test('does not get stuck in a loop due to inconsistent network/caching', f
     // timeout means we are on the last rendition)
     segmentLoader.xhrOptions_.timeout = 60000;
     // we need to wait 1 second from first byte receieved in order to consider aborting
-    this.requests[0].downloadProgress({
-      target: this.requests[0],
-      total: 100,
-      loaded: 1
-    });
+    downloadProgress(this.requests[0], '0');
     this.clock.tick(1000);
     // should abort request early because we don't have enough bandwidth
-    this.requests[0].downloadProgress({
-      target: this.requests[0],
-      total: 100,
-      // 1 bit per second
-      loaded: 2
-    });
+    downloadProgress(this.requests[0], '00');
     this.clock.tick(1);
 
     // aborted request, so switched back to lowest rendition
@@ -3926,6 +3919,8 @@ QUnit.test(
     });
     // media source must be open for duration to be set
     openMediaSource(this.player, this.clock);
+    // asynchronous setup of initial playlist in playlist loader for JSON sources
+    this.clock.tick(1);
 
     this.masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
 
@@ -3968,6 +3963,8 @@ QUnit.test(
     });
     // media source must be open for duration to be set
     openMediaSource(this.player, this.clock);
+    // asynchronous setup of initial playlist in playlist loader for JSON sources
+    this.clock.tick(1);
 
     this.masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
 
