@@ -221,7 +221,7 @@ export const sumDurations = function(playlist, startIndex, endIndex) {
  *
  * @param {Object} playlist
  *        a media playlist object
- * @param {Number} liveEdgePadding
+ * @param {Number} [liveEdgePadding]
  *        A number in seconds indicating how far from the end we want to be.
  *        If provided, this value is used instead of calculating the safe live index from the target durations.
  *        Corresponds to suggestedPresentationDelay in DASH manifests.
