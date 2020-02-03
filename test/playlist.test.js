@@ -492,7 +492,7 @@ QUnit.test('safeLiveIndex is 0 when no safe live point', function(assert) {
     'returns media index 0 when playlist has no safe live point');
 });
 
-QUnit.test('safeLiveIndex is accounts for liveEdgePadding in simple case', function(assert) {
+QUnit.test('safeLiveIndex accounts for liveEdgePadding in simple case', function(assert) {
   const playlist = {
     targetDuration: 6,
     mediaSequence: 10,
@@ -544,7 +544,7 @@ QUnit.test('safeLiveIndex is accounts for liveEdgePadding in simple case', funct
     'returns 6 when liveEdgePadding is 0 and duration is 6');
 });
 
-QUnit.test('safeLiveIndex is accounts for liveEdgePadding in non-simple case', function(assert) {
+QUnit.test('safeLiveIndex accounts for liveEdgePadding in non-simple case', function(assert) {
   const playlist = {
     targetDuration: 6,
     mediaSequence: 10,
