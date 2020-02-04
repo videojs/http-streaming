@@ -587,13 +587,16 @@ QUnit.test('safeLiveIndex accounts for liveEdgePadding in non-simple case', func
     'returns 3 when liveEdgePadding is 6');
 
   assert.equal(Playlist.safeLiveIndex(playlist, 4), 3,
-    'returns 4 when liveEdgePadding is 5');
+    'returns 3 when liveEdgePadding is 4');
 
   assert.equal(Playlist.safeLiveIndex(playlist, 1), 4,
-    'returns 5 when liveEdgePadding is 0.5');
+    'returns 4 when liveEdgePadding is 1');
 
   assert.equal(Playlist.safeLiveIndex(playlist, 0.5), 5,
     'returns 5 when liveEdgePadding is 0.5');
+
+  assert.equal(Playlist.safeLiveIndex(playlist, 0.25), 5,
+    'returns 5 when liveEdgePadding is 0.25');
 
   assert.equal(Playlist.safeLiveIndex(playlist, 0), 6,
     'returns 6 when liveEdgePadding is 0');
