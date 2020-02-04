@@ -217,21 +217,36 @@ export const sumDurations = function(playlist, startIndex, endIndex) {
  * window which is the duration of the last segment plus 2 target durations from the end
  * of the playlist.
  *
+ * A liveEdgePadding can be provided which will be used instead of calculating the safe live edge.
+ * This corresponds to suggestedPresentationDelay in DASH manifests.
+ *
  * @param {Object} playlist
  *        a media playlist object
+ * @param {number} [liveEdgePadding]
+ *        A number in seconds indicating how far from the end we want to be.
+ *        If provided, this value is used instead of calculating the safe live index from the target durations.
+ *        Corresponds to suggestedPresentationDelay in DASH manifests.
  * @return {number}
  *         The media index of the segment at the safe live point. 0 if there is no "safe"
  *         point.
  * @function safeLiveIndex
  */
-export const safeLiveIndex = function(playlist) {
+export const safeLiveIndex = function(playlist, liveEdgePadding) {
   if (!playlist.segments.length) {
     return 0;
   }
 
-  let i = playlist.segments.length - 1;
-  let distanceFromEnd = playlist.segments[i].duration || playlist.targetDuration;
-  const safeDistance = distanceFromEnd + playlist.targetDuration * 2;
+  let i = playlist.segments.length;
+  const lastSegmentDuration = playlist.segments[i - 1].duration || playlist.targetDuration;
+  const safeDistance = typeof liveEdgePadding === 'number' ?
+    liveEdgePadding :
+    lastSegmentDuration + playlist.targetDuration * 2;
+
+  if (safeDistance === 0) {
+    return i;
+  }
+
+  let distanceFromEnd = 0;
 
   while (i--) {
     distanceFromEnd += playlist.segments[i].duration;
@@ -254,10 +269,16 @@ export const safeLiveIndex = function(playlist) {
  *                        playlist end calculation should consider the safe live end
  *                        (truncate the playlist end by three segments). This is normally
  *                        used for calculating the end of the playlist's seekable range.
+ *                        This takes into account the value of liveEdgePadding.
+ *                        Setting liveEdgePadding to 0 is equivalent to setting this to false.
+ * @param {number} liveEdgePadding a number indicating how far from the end of the playlist we should be in seconds.
+ *                 If this is provided, it is used in the safe live end calculation.
+ *                 Setting useSafeLiveEnd=false or liveEdgePadding=0 are equivalent.
+ *                 Corresponds to suggestedPresentationDelay in DASH manifests.
  * @return {number} the end time of playlist
  * @function playlistEnd
  */
-export const playlistEnd = function(playlist, expired, useSafeLiveEnd) {
+export const playlistEnd = function(playlist, expired, useSafeLiveEnd, liveEdgePadding) {
   if (!playlist || !playlist.segments) {
     return null;
   }
@@ -271,7 +292,7 @@ export const playlistEnd = function(playlist, expired, useSafeLiveEnd) {
 
   expired = expired || 0;
 
-  const endSequence = useSafeLiveEnd ? safeLiveIndex(playlist) : playlist.segments.length;
+  const endSequence = useSafeLiveEnd ? safeLiveIndex(playlist, liveEdgePadding) : playlist.segments.length;
 
   return intervalDuration(
     playlist,
@@ -292,13 +313,15 @@ export const playlistEnd = function(playlist, expired, useSafeLiveEnd) {
   * dropped off the front of the playlist in a live scenario
   * @param {number=} expired the amount of time that has
   * dropped off the front of the playlist in a live scenario
+  * @param {number} liveEdgePadding how far from the end of the playlist we should be in seconds.
+  *        Corresponds to suggestedPresentationDelay in DASH manifests.
   * @return {TimeRanges} the periods of time that are valid targets
   * for seeking
   */
-export const seekable = function(playlist, expired) {
+export const seekable = function(playlist, expired, liveEdgePadding) {
   const useSafeLiveEnd = true;
   const seekableStart = expired || 0;
-  const seekableEnd = playlistEnd(playlist, expired, useSafeLiveEnd);
+  const seekableEnd = playlistEnd(playlist, expired, useSafeLiveEnd, liveEdgePadding);
 
   if (seekableEnd === null) {
     return createTimeRange();
