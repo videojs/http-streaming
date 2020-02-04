@@ -1839,6 +1839,7 @@ function(assert) {
   let mainTimeRanges = [];
   let audioTimeRanges = [];
 
+  this.masterPlaylistController.masterPlaylistLoader_.master = {};
   this.masterPlaylistController.masterPlaylistLoader_.media = () => mainMedia;
   this.masterPlaylistController.syncController_.getExpiredTime = () => 0;
 
@@ -1973,6 +1974,7 @@ function(assert) {
   Playlist.seekable = () => {
     return videojs.createTimeRanges(mainTimeRanges);
   };
+  this.masterPlaylistController.masterPlaylistLoader_.master = {};
   this.masterPlaylistController.masterPlaylistLoader_.media = () => media;
   this.masterPlaylistController.syncController_.getExpiredTime = () => 0;
 
