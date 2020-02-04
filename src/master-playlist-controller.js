@@ -917,7 +917,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
   }
 
   onSyncInfoUpdate_() {
-    let mainSeekable;
     let audioSeekable;
 
     if (!this.masterPlaylistLoader_) {
@@ -937,9 +936,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    const suggestedPresentationDelay = this.masterPlaylistLoader_.master.suggestedPresentationDelay
-
-    mainSeekable = Hls.Playlist.seekable(media, expired, suggestedPresentationDelay);
+    const suggestedPresentationDelay = this.masterPlaylistLoader_.master.suggestedPresentationDelay;
+    const mainSeekable = Hls.Playlist.seekable(media, expired, suggestedPresentationDelay);
 
     if (mainSeekable.length === 0) {
       return;
