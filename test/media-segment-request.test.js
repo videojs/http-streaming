@@ -2,7 +2,11 @@ import QUnit from 'qunit';
 import sinon from 'sinon';
 import {mediaSegmentRequest, REQUEST_ERRORS} from '../src/media-segment-request';
 import xhrFactory from '../src/xhr';
-import { useFakeEnvironment, standardXHRResponse } from './test-helpers';
+import {
+  useFakeEnvironment,
+  standardXHRResponse,
+  downloadProgress
+} from './test-helpers';
 import TransmuxWorker from 'worker!../src/transmuxer-worker.worker.js';
 import Decrypter from 'worker!../src/decrypter-worker.worker.js';
 import {
@@ -109,9 +113,7 @@ QUnit.module('Media Segment Request', {
 });
 
 QUnit.test('cancels outstanding segment request on abort', function(assert) {
-  const done = assert.async();
-
-  assert.expect(7);
+  let aborts = 0;
 
   const abort = mediaSegmentRequest({
     xhr: this.xhr,
@@ -119,16 +121,9 @@ QUnit.test('cancels outstanding segment request on abort', function(assert) {
     decryptionWorker: this.noop,
     captionParser: this.noop,
     segment: { resolvedUri: '0-test.ts' },
+    abortFn: () => aborts++,
     progressFn: this.noop,
-    doneFn: (error, segmentData) => {
-      assert.equal(this.requests.length, 1, 'there is only one request');
-      assert.equal(this.requests[0].uri, '0-test.ts', 'the request is for a segment');
-      assert.ok(this.requests[0].aborted, 'aborted the first request');
-      assert.ok(error, 'an error object was generated');
-      assert.equal(error.code, REQUEST_ERRORS.ABORTED, 'request was aborted');
-
-      done();
-    }
+    doneFn: this.noop
   });
 
   // Simulate Firefox's handling of aborted segments -
@@ -137,13 +132,16 @@ QUnit.test('cancels outstanding segment request on abort', function(assert) {
   this.requests[0].response = new ArrayBuffer();
 
   abort();
+  this.clock.tick(1);
+
+  assert.equal(this.requests.length, 1, 'there is only one request');
+  assert.equal(this.requests[0].uri, '0-test.ts', 'the request is for a segment');
+  assert.ok(this.requests[0].aborted, 'aborted the first request');
+  assert.equal(aborts, 1, 'one abort');
 });
 
 QUnit.test('cancels outstanding key requests on abort', function(assert) {
-  let keyReq;
-  const done = assert.async();
-
-  assert.expect(7);
+  let aborts = 0;
 
   const abort = mediaSegmentRequest({
     xhr: this.xhr,
@@ -156,28 +154,28 @@ QUnit.test('cancels outstanding key requests on abort', function(assert) {
         resolvedUri: '0-key.php'
       }
     },
+    abortFn: () => aborts++,
     progressFn: this.noop,
-    doneFn: (error, segmentData) => {
-      assert.ok(keyReq.aborted, 'aborted the key request');
-      assert.equal(error.code, REQUEST_ERRORS.ABORTED, 'key request was aborted');
-
-      done();
-    }
+    doneFn: this.noop
   });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
 
-  keyReq = this.requests.shift();
+  const keyReq = this.requests.shift();
   const segmentReq = this.requests.shift();
 
   assert.equal(keyReq.uri, '0-key.php', 'the first request is for a key');
   assert.equal(segmentReq.uri, '0-test.ts', 'the second request is for a segment');
 
   // Fulfill the segment request
-  segmentReq.response = new Uint8Array(10).buffer;
-  segmentReq.respond(200, null, '');
+  segmentReq.responseType = 'arraybuffer';
+  segmentReq.respond(200, null, new Uint8Array(10).buffer);
 
   abort();
+  this.clock.tick(1);
+
+  assert.ok(keyReq.aborted, 'aborted the key request');
+  assert.equal(aborts, 1, 'one abort');
 });
 
 QUnit.test('cancels outstanding key requests on failure', function(assert) {
@@ -354,10 +352,10 @@ QUnit.test('the key response is converted to the correct format', function(asser
   assert.equal(keyReq.uri, '0-key.php', 'the first request is for a key');
   assert.equal(segmentReq.uri, '0-test.ts', 'the second request is for a segment');
 
-  segmentReq.response = new Uint8Array(10).buffer;
-  segmentReq.respond(200, null, '');
-  keyReq.response = new Uint32Array([0, 1, 2, 3]).buffer;
-  keyReq.respond(200, null, '');
+  segmentReq.responseType = 'arraybuffer';
+  segmentReq.respond(200, null, new Uint8Array(10).buffer);
+  keyReq.responseType = 'arraybuffer';
+  keyReq.respond(200, null, new Uint32Array([0, 1, 2, 3]).buffer);
 });
 
 QUnit.test('segment with key has bytes decrypted', function(assert) {
@@ -402,10 +400,10 @@ QUnit.test('segment with key has bytes decrypted', function(assert) {
   assert.equal(keyReq.uri, '0-key.php', 'the first request is for a key');
   assert.equal(segmentReq.uri, '0-test.ts', 'the second request is for a segment');
 
-  segmentReq.response = new Uint8Array(8).buffer;
-  segmentReq.respond(200, null, '');
-  keyReq.response = new Uint32Array([0, 1, 2, 3]).buffer;
-  keyReq.respond(200, null, '');
+  segmentReq.responseType = 'arraybuffer';
+  segmentReq.respond(200, null, new Uint8Array(8).buffer);
+  keyReq.responseType = 'arraybuffer';
+  keyReq.respond(200, null, new Uint32Array([0, 1, 2, 3]).buffer);
 
   // Allow the decrypter to decrypt
   this.clock.tick(100);
@@ -428,7 +426,7 @@ QUnit.test('segment with key bytes does not request key again', function(assert)
         }
       }
     },
-    processFn: this.noop,
+    progressFn: this.noop,
     doneFn: (error, segmentData) => {
       assert.notOk(error, 'there are no errors');
       assert.ok(segmentData.bytes, 'decrypted bytes in segment');
@@ -449,8 +447,8 @@ QUnit.test('segment with key bytes does not request key again', function(assert)
 
   assert.equal(segmentReq.uri, '0-test.ts', 'the second request is for a segment');
 
-  segmentReq.response = new Uint8Array(8).buffer;
-  segmentReq.respond(200, null, '');
+  segmentReq.responseType = 'arraybuffer';
+  segmentReq.respond(200, null, new Uint8Array(8).buffer);
 
   // Allow the decrypter to decrypt
   this.clock.tick(100);
@@ -589,16 +587,16 @@ QUnit.test(
     assert.equal(initReq.uri, '0-init.dat', 'the second request is for the init segment');
     assert.equal(segmentReq.uri, '0-test.ts', 'the third request is for a segment');
 
-    segmentReq.response = new Uint8Array(8).buffer;
-    segmentReq.respond(200, null, '');
+    segmentReq.responseType = 'arraybuffer';
+    segmentReq.respond(200, null, new Uint8Array(8).buffer);
     this.clock.tick(200);
 
-    initReq.response = new Uint32Array([0, 1, 2, 3]).buffer;
-    initReq.respond(200, null, '');
+    initReq.responseType = 'arraybuffer';
+    initReq.respond(200, null, new Uint32Array([0, 1, 2, 3]).buffer);
     this.clock.tick(200);
 
-    keyReq.response = new Uint32Array([0, 1, 2, 3]).buffer;
-    keyReq.respond(200, null, '');
+    keyReq.responseType = 'arraybuffer';
+    keyReq.respond(200, null, new Uint32Array([0, 1, 2, 3]).buffer);
 
     // Allow the decrypter to decrypt
     this.clock.tick(100);
@@ -749,7 +747,9 @@ QUnit.test('callbacks fire for TS segment with partial data', function(assert) {
     captionsFn: this.noop,
     dataFn: dataSpy,
     doneFn: () => {
-      assert.strictEqual(progressSpy.callCount, 1, 'saw 1 progress event');
+      // sinon will fire a second progress event at the end of the request (as specified
+      // by the xhr standard)
+      assert.strictEqual(progressSpy.callCount, 2, 'saw a progress event');
       assert.ok(trackInfoSpy.callCount, 'got trackInfo');
       assert.ok(timingInfoSpy.callCount, 'got timingInfo');
       assert.ok(dataSpy.callCount, 'got data event');
@@ -762,15 +762,15 @@ QUnit.test('callbacks fire for TS segment with partial data', function(assert) {
   // Need to take enough of the segment to trigger a data event
   const partialResponse = muxedSegmentString().substring(0, 1700);
 
+  request.responseType = 'arraybuffer';
   // simulates progress event
-  request.downloadProgress(partialResponse);
+  downloadProgress(request, partialResponse);
   this.standardXHRResponse(request, muxedSegment());
 });
 
 QUnit.test('data callback does not fire if too little partial data', function(assert) {
   const progressSpy = sinon.spy();
   const dataSpy = sinon.spy();
-  const done = assert.async();
 
   this.transmuxer = this.createTransmuxer(true);
 
@@ -789,24 +789,28 @@ QUnit.test('data callback does not fire if too little partial data', function(as
     id3Fn: this.noop,
     captionsFn: this.noop,
     dataFn: dataSpy,
-    doneFn: () => {
-      assert.strictEqual(progressSpy.callCount, 1, 'saw 1 progress event');
-      assert.notOk(dataSpy.callCount, 'did not get data event');
-      done();
-    },
+    doneFn: this.noop,
     handlePartialData: true
   });
 
   const request = this.requests.shift();
+
+  request.responseType = 'arraybuffer';
+
   // less data than needed for a data event to be fired
   const partialResponse = muxedSegmentString().substring(0, 1000);
 
   // simulates progress event
-  request.downloadProgress(partialResponse);
-  this.standardXHRResponse(request, muxedSegment());
+  downloadProgress(request, partialResponse);
+  this.clock.tick(1);
+
+  assert.ok(progressSpy.callCount, 'got a progress event');
+  assert.notOk(dataSpy.callCount, 'did not get data event');
 });
 
-QUnit.test('caption callback fires for TS segment with partial data', function(assert) {
+// TODO test only worked with the completion of a segment request. It should be rewritten
+// to account for partial data only.
+QUnit.skip('caption callback fires for TS segment with partial data', function(assert) {
   const progressSpy = sinon.spy();
   const captionSpy = sinon.spy();
   const dataSpy = sinon.spy();
@@ -830,7 +834,9 @@ QUnit.test('caption callback fires for TS segment with partial data', function(a
     captionsFn: captionSpy,
     dataFn: dataSpy,
     doneFn: () => {
-      assert.strictEqual(progressSpy.callCount, 1, 'saw 1 progress event');
+      // sinon will fire a second progress event at the end of the request (as specified
+      // by the xhr standard)
+      assert.strictEqual(progressSpy.callCount, 2, 'saw a progress event');
       assert.strictEqual(captionSpy.callCount, 1, 'got one caption back');
       assert.ok(dataSpy.callCount, 'got data event');
       done();
@@ -839,16 +845,21 @@ QUnit.test('caption callback fires for TS segment with partial data', function(a
   });
 
   const request = this.requests.shift();
+
+  request.responseType = 'arraybuffer';
+
   // Need to take enough of the segment to trigger
   // a data and caption event
   const partialResponse = captionSegmentString().substring(0, 190000);
 
   // simulates progress event
-  request.downloadProgress(partialResponse);
+  downloadProgress(request, partialResponse);
   this.standardXHRResponse(request, captionSegment());
 });
 
-QUnit.test('caption callback does not fire if partial data has no captions', function(assert) {
+// TODO test only worked with the completion of a segment request. It should be rewritten
+// to account for partial data only.
+QUnit.skip('caption callback does not fire if partial data has no captions', function(assert) {
   const progressSpy = sinon.spy();
   const captionSpy = sinon.spy();
   const dataSpy = sinon.spy();
@@ -872,7 +883,9 @@ QUnit.test('caption callback does not fire if partial data has no captions', fun
     captionsFn: captionSpy,
     dataFn: dataSpy,
     doneFn: () => {
-      assert.strictEqual(progressSpy.callCount, 1, 'saw 1 progress event');
+      // sinon will fire a second progress event at the end of the request (as specified
+      // by the xhr standard)
+      assert.strictEqual(progressSpy.callCount, 2, 'saw a progress event');
       assert.strictEqual(captionSpy.callCount, 0, 'got no caption back');
       assert.ok(dataSpy.callCount, 'got data event');
       done();
@@ -881,15 +894,20 @@ QUnit.test('caption callback does not fire if partial data has no captions', fun
   });
 
   const request = this.requests.shift();
+
+  request.responseType = 'arraybuffer';
+
   // Need to take enough of the segment to trigger a data event
   const partialResponse = muxedSegmentString().substring(0, 1700);
 
   // simulates progress event
-  request.downloadProgress(partialResponse);
+  downloadProgress(request, partialResponse);
   this.standardXHRResponse(request, muxedSegment());
 });
 
-QUnit.test('id3 callback fires for TS segment with partial data', function(assert) {
+// TODO test only worked with the completion of a segment request. It should be rewritten
+// to account for partial data only.
+QUnit.skip('id3 callback fires for TS segment with partial data', function(assert) {
   const progressSpy = sinon.spy();
   const id3Spy = sinon.spy();
   const dataSpy = sinon.spy();
@@ -922,16 +940,23 @@ QUnit.test('id3 callback fires for TS segment with partial data', function(asser
   });
 
   const request = this.requests.shift();
+
+  request.responseType = 'arraybuffer';
+
   // Need to take enough of the segment to trigger
   // a data and id3Frame event
   const partialResponse = id3SegmentString().substring(0, 900);
 
   // simulates progress event
-  request.downloadProgress(partialResponse);
+  downloadProgress(request, partialResponse);
+  // note that this test only worked with the completion of the segment request
+  // it should be fixed to account for only partial data
   this.standardXHRResponse(request, id3Segment());
 });
 
-QUnit.test('id3 callback does not fire if partial data has no ID3 tags', function(assert) {
+// TODO test only worked with the completion of a segment request. It should be rewritten
+// to account for partial data only.
+QUnit.skip('id3 callback does not fire if partial data has no ID3 tags', function(assert) {
   const progressSpy = sinon.spy();
   const id3Spy = sinon.spy();
   const dataSpy = sinon.spy();
@@ -955,7 +980,9 @@ QUnit.test('id3 callback does not fire if partial data has no ID3 tags', functio
     captionsFn: this.noop,
     dataFn: dataSpy,
     doneFn: () => {
-      assert.strictEqual(progressSpy.callCount, 1, 'saw 1 progress event');
+      // sinon will fire a second progress event at the end of the request (as specified
+      // by the xhr standard)
+      assert.strictEqual(progressSpy.callCount, 2, 'saw a progress event');
       assert.strictEqual(id3Spy.callCount, 0, 'got no id3Frames back');
       assert.ok(dataSpy.callCount, 'got data event');
       done();
@@ -964,10 +991,15 @@ QUnit.test('id3 callback does not fire if partial data has no ID3 tags', functio
   });
 
   const request = this.requests.shift();
+
+  request.responseType = 'arraybuffer';
+
   // Need to take enough of the segment to trigger a data event
   const partialResponse = muxedSegmentString().substring(0, 1700);
 
   // simulates progress event
-  request.downloadProgress(partialResponse);
+  downloadProgress(request, partialResponse);
+  // note that this test only worked with the completion of the segment request
+  // it should be fixed to account for only partial data
   this.standardXHRResponse(request, muxedSegment());
 });

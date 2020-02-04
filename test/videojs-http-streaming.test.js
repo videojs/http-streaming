@@ -2480,11 +2480,15 @@ QUnit.test('resets the switching algorithm if a request times out', function(ass
   this.standardXHRResponse(this.requests.shift());
   // media.m3u8
   this.standardXHRResponse(this.requests.shift());
-  // simulate a segment timeout
-  this.requests[0].timedout = true;
-  // segment
-  this.requests.shift().abort();
 
+  const segmentRequest = this.requests.shift();
+
+  assert.notOk(segmentRequest.timedout, 'request not timed out');
+  // simulate a segment timeout
+  this.clock.tick(45001);
+  assert.ok(segmentRequest.timedout, 'request timed out');
+
+  // new media
   this.standardXHRResponse(this.requests.shift());
 
   assert.strictEqual(
@@ -3025,10 +3029,6 @@ QUnit.test(
                this.player.tech_.hls.playlists.media().segments[1].key.uri,
       'urls should match'
     );
-
-    // verify stats
-    assert.equal(this.player.tech_.hls.stats.mediaBytesTransferred, 1024, '1024 bytes');
-    assert.equal(this.player.tech_.hls.stats.mediaRequests, 1, '1 request');
   }
 );
 
@@ -3084,9 +3084,6 @@ QUnit.test('switching playlists with an outstanding key request aborts request a
     'http://media.example.com/fileSequence52-A.ts',
     'requested the segment'
   );
-  // verify stats
-  assert.equal(this.player.tech_.hls.stats.mediaBytesTransferred, 1024, '1024 bytes');
-  assert.equal(this.player.tech_.hls.stats.mediaRequests, 1, '1 request');
 });
 
 QUnit.test('does not download segments if preload option set to none', function(assert) {
@@ -4377,6 +4374,8 @@ QUnit.test('manifest object used as source if provided as data URI', function(as
   this.clock.tick(1);
 
   openMediaSource(this.player, this.clock);
+  // asynchronous setup of initial playlist in playlist loader for JSON sources
+  this.clock.tick(1);
 
   // no manifestObject was provided, so a request is made for the source manifest
   assert.equal(this.requests.length, 1, 'one request');
@@ -4393,6 +4392,8 @@ QUnit.test('manifest object used as source if provided as data URI', function(as
   });
 
   openMediaSource(this.player, this.clock);
+  // asynchronous setup of initial playlist in playlist loader for JSON sources
+  this.clock.tick(1);
 
   // manifestObject was provided, so a request is made for the segment
   assert.equal(this.requests.length, 1, 'one request');
@@ -4568,8 +4569,6 @@ QUnit.test('downloads additional playlists if required', function(assert) {
     );
     assert.ok(hls.playlists.media().segments, 'segments are now available');
 
-    // verify stats
-    assert.equal(hls.stats.bandwidth, 3000000, 'updated bandwidth');
     hls.dispose();
   });
 });

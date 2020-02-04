@@ -142,6 +142,23 @@ export const useFakeMediaSource = function() {
   };
 };
 
+export const downloadProgress = (xhr, rawEventData) => {
+  const text = rawEventData.toString();
+
+  // `responseText` primarily used when requesting as text so that data can be seen on
+  // progress events.
+  if (xhr.mimeTypeOverride === 'text/plain; charset=x-user-defined') {
+    xhr.responseText = text;
+  }
+
+  // although text.length won't provide an exact byte length in all cases, it is close
+  // enough
+  //
+  // note that the `total` property isn't provided since it isn't needed by our code
+  // (right now)
+  xhr.downloadProgress({ loaded: text.length });
+};
+
 export const useFakeEnvironment = function(assert) {
   const realXMLHttpRequest = videojs.xhr.XMLHttpRequest;
 
@@ -188,39 +205,7 @@ export const useFakeEnvironment = function(assert) {
   fakeEnvironment.clock = sinon.useFakeTimers();
   fakeEnvironment.xhr = sinon.useFakeXMLHttpRequest();
 
-  // Sinon 1.10.2 handles abort incorrectly (triggering the error event)
-  // Later versions fixed this but broke the ability to set the response
-  // to an arbitrary object (in our case, a typed array).
   window.XMLHttpRequest.prototype = Object.create(window.XMLHttpRequest.prototype);
-  window.XMLHttpRequest.prototype.abort = function abort() {
-    this.response = this.responseText = '';
-    this.errorFlag = true;
-    this.requestHeaders = {};
-    this.responseHeaders = {};
-
-    if (this.readyState > 0 && this.sendFlag) {
-      this.readyStateChange(4);
-      this.sendFlag = false;
-    }
-
-    this.readyState = 0;
-  };
-
-  window.XMLHttpRequest.prototype.downloadProgress = function downloadProgress(rawEventData) {
-    // `responseText` we only really use when we’re requesting as text
-    // so that we can see data on progress events.
-    // `downloadProgress` should be called with 0 bytes
-    // and then add new bytes each progress event
-    if (this.mimeTypeOverride === 'text/plain; charset=x-user-defined') {
-      this.responseText = rawEventData.toString();
-    }
-
-    this.dispatchEvent(new sinon.ProgressEvent(
-      'progress',
-      rawEventData,
-      this
-    ));
-  };
 
   // used for treating the response however we want, instead of the browser deciding
   // responses we don't have to worry about the browser changing responses
@@ -402,17 +387,19 @@ export const standardXHRResponse = function(request, data) {
   }
 
   const isTypedBuffer = data instanceof Uint8Array || data instanceof Uint32Array;
+  let response;
 
-  request.response =
-    // if segment data was passed, use that, otherwise use a placeholder
-    isTypedBuffer ? data.buffer : new Uint8Array(1024).buffer;
+  if (isTypedBuffer) {
+    response = data.buffer;
+  } else if (!data) {
+    // A placeholder is used for some old tests. This may be a good target to clean up in
+    // the future.
+    response = new Uint8Array(1024).buffer;
+  } else {
+    response = data;
+  }
 
-  // `response` will get the full value after the request finishes
-  request.respond(
-    200,
-    { 'Content-Type': contentType },
-    isTypedBuffer ? '' : data
-  );
+  request.respond(200, { 'Content-Type': contentType }, response);
 };
 
 export const playlistWithDuration = function(time, conf) {

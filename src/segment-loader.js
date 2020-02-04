@@ -1165,6 +1165,10 @@ export default class SegmentLoader extends videojs.EventTarget {
     return true;
   }
 
+  handleAbort_() {
+    this.mediaRequestsAborted += 1;
+  }
+
   /**
    * XHR `progress` event handler
    *
@@ -1656,6 +1660,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       captionParser: this.captionParser_,
       segment: simpleSegment,
       handlePartialData: this.handlePartialData_,
+      abortFn: this.handleAbort_.bind(this),
       progressFn: this.handleProgress_.bind(this),
       trackInfoFn: this.handleTrackInfo_.bind(this),
       timingInfoFn: this.handleTimingInfo_.bind(this),
@@ -1791,7 +1796,6 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // The request was aborted and the SegmentLoader has already been reset
     if (!this.pendingSegment_) {
-      this.mediaRequestsAborted += 1;
       return;
     }
 
@@ -1808,11 +1812,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.pendingSegment_ = null;
       this.state = 'READY';
 
-      // the requests were aborted just record the aborted stat and exit
-      // this is not a true error condition and nothing corrective needs
-      // to be done
+      // aborts are not a true error condition and nothing corrective needs to be done
       if (error.code === REQUEST_ERRORS.ABORTED) {
-        this.mediaRequestsAborted += 1;
         return;
       }
 
