@@ -1,3 +1,10 @@
+<a name="1.12.0"></a>
+# [1.12.0](https://github.com/videojs/http-streaming/compare/v1.11.3...v1.12.0) (2020-02-04)
+
+### Features
+
+* support suggestedPresentationDelay in DASH manifests ([#698](https://github.com/videojs/http-streaming/issues/698)) ([c14fb43](https://github.com/videojs/http-streaming/commit/c14fb43))
+
 <a name="1.11.3"></a>
 ## [1.11.3](https://github.com/videojs/http-streaming/compare/v1.11.2...v1.11.3) (2020-01-17)
 
