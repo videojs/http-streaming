@@ -481,6 +481,7 @@ export default class SourceUpdater extends videojs.EventTarget {
    * dispose of the source updater and the underlying sourceBuffer
    */
   dispose() {
+    this.trigger('dispose');
     const audioDisposeFn = () => {
       if (this.mediaSource.readyState === 'open') {
         // ie 11 likes to throw on abort with InvalidAccessError or InvalidStateError
@@ -534,5 +535,7 @@ export default class SourceUpdater extends videojs.EventTarget {
     this.delayedAudioAppendQueue_.length = 0;
 
     this.mediaSource.removeEventListener('sourceopen', this.sourceopenListener_);
+
+    this.off();
   }
 }

@@ -207,7 +207,8 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     this.transmuxer_ = this.createTransmuxer_();
 
-    this.syncController_.on('syncinfoupdate', () => this.trigger('syncinfoupdate'));
+    this.triggerSyncInfoUpdate_ = () => this.trigger('syncinfoupdate');
+    this.syncController_.on('syncinfoupdate', this.triggerSyncInfoUpdate_);
 
     this.mediaSource_.addEventListener('sourceopen', () => {
       if (!this.isEndOfStream_()) {
@@ -276,6 +277,7 @@ export default class SegmentLoader extends videojs.EventTarget {
    * dispose of the SegmentLoader and reset to the default state
    */
   dispose() {
+    this.trigger('dispose');
     this.state = 'DISPOSED';
     this.pause();
     this.abort_();
@@ -289,6 +291,16 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (this.captionParser_) {
       this.captionParser_.reset();
     }
+
+    if (this.checkBufferTimeout_) {
+      window.clearTimeout(this.checkBufferTimeout_);
+    }
+
+    if (this.syncController_ && this.triggerSyncInfoUpdate_) {
+      this.syncController_.off('syncinfoupdate', this.triggerSyncInfoUpdate_);
+    }
+
+    this.off();
   }
 
   setAudio(enable) {
