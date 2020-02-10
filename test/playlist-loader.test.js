@@ -14,7 +14,7 @@ import {
   createPlaylistID,
   parseManifest
 } from '../src/manifest.js';
-import manifests from './dist/test-manifests.js';
+import manifests from 'create-test-data!manifests';
 
 QUnit.module('Playlist Loader', {
   beforeEach(assert) {
