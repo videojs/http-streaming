@@ -1,3 +1,14 @@
+<a name="1.12.1"></a>
+## [1.12.1](https://github.com/videojs/http-streaming/compare/v1.12.0...v1.12.1) (2020-02-11)
+
+### Bug Fixes
+
+* update to mux.js 5.5.1 ([#733](https://github.com/videojs/http-streaming/issues/733)) ([aa22f31](https://github.com/videojs/http-streaming/commit/aa22f31))
+
+### Code Refactoring
+
+* add semicolon and move variable closer to usage ([#729](https://github.com/videojs/http-streaming/issues/729)) ([675b1e9](https://github.com/videojs/http-streaming/commit/675b1e9))
+
 <a name="1.12.0"></a>
 # [1.12.0](https://github.com/videojs/http-streaming/compare/v1.11.3...v1.12.0) (2020-02-04)
 
