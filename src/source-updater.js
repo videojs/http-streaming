@@ -199,7 +199,6 @@ export default class SourceUpdater extends videojs.EventTarget {
     // initial timestamp offset is 0
     this.audioTimestampOffset_ = 0;
     this.videoTimestampOffset_ = 0;
-    this.codecs = {};
     this.queue = [];
     this.queuePending = {
       audio: null,
@@ -218,7 +217,6 @@ export default class SourceUpdater extends videojs.EventTarget {
       // already created them before
       return;
     }
-    this.codecs = codecs;
 
     if (this.mediaSource.readyState === 'closed') {
       this.sourceopenListener_ = this.createSourceBuffers.bind(this, codecs);

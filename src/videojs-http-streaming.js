@@ -130,12 +130,15 @@ Hls.canPlaySource = function() {
     'your player\'s techOrder.');
 };
 
-const emeKeySystems = (keySystemOptions, videoPlaylist, sourceUpdater) => {
+const emeKeySystems = (keySystemOptions, videoPlaylist, audioPlaylist) => {
   if (!keySystemOptions) {
     return keySystemOptions;
   }
 
-  const codecs = Object.assign({}, sourceUpdater.codecs);
+  const codecs = {
+    video: videoPlaylist && videoPlaylist.attributes && videoPlaylist.attributes.CODECS,
+    audio: audioPlaylist && audioPlaylist.attributes && audioPlaylist.attributes.CODECS
+  };
 
   if (!codecs.audio && codecs.video.split(',').length > 1) {
     codecs.video.split(',').forEach(function(codec) {
@@ -175,14 +178,14 @@ const emeKeySystems = (keySystemOptions, videoPlaylist, sourceUpdater) => {
 };
 
 const setupEmeOptions = (hlsHandler) => {
-  const sourceUpdater = hlsHandler.masterPlaylistController_.sourceUpdater_;
   const player = hlsHandler.player_;
 
   if (player.eme) {
+    const audioPlaylistLoader = hlsHandler.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader;
     const sourceOptions = emeKeySystems(
       hlsHandler.source_.keySystems,
       hlsHandler.playlists.media(),
-      sourceUpdater
+      audioPlaylistLoader && audioPlaylistLoader.media()
     );
 
     if (sourceOptions) {
