@@ -600,4 +600,9 @@ export default class VirtualSourceBuffer extends videojs.EventTarget {
     this.pendingBuffers_.length = 0;
     this.bufferUpdating_ = false;
   }
+
+  dispose() {
+    this.trigger('dispose');
+    this.off();
+  }
 }

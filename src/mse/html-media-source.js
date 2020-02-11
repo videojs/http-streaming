@@ -340,4 +340,17 @@ export default class HtmlMediaSource extends videojs.EventTarget {
     this.sourceBuffers.push(buffer);
     return buffer;
   }
+
+  dispose() {
+    this.trigger('dispose');
+    this.off();
+
+    this.sourceBuffers.forEach(function(buffer) {
+      if (buffer.dispose) {
+        buffer.dispose();
+      }
+    });
+
+    this.sourceBuffers.length = 0;
+  }
 }
