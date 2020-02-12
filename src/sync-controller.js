@@ -586,4 +586,9 @@ export default class SyncController extends videojs.EventTarget {
       }
     }
   }
+
+  dispose() {
+    this.trigger('dispose');
+    this.off();
+  }
 }
