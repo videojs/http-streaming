@@ -3,7 +3,7 @@ import window from 'global/window';
 import QUnit from 'qunit';
 import videojs from 'video.js';
 import SourceUpdater from '../src/source-updater';
-import {mp4VideoInit, mp4AudioInit, mp4Video, mp4Audio} from './dist/test-segments';
+import {mp4VideoInit, mp4AudioInit, mp4Video, mp4Audio} from 'create-test-data!segments';
 import { timeRangesEqual } from './custom-assertions.js';
 
 const checkInitialDuration = function({duration}) {

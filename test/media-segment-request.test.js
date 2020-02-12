@@ -18,7 +18,7 @@ import {
   captionString as captionSegmentString,
   id3String as id3SegmentString,
   id3 as id3Segment
-} from './dist/test-segments';
+} from 'create-test-data!segments';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
 

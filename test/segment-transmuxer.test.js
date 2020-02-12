@@ -5,7 +5,7 @@ import {
   muxed as muxedSegment,
   caption as captionSegment,
   oneSecond as oneSecondSegment
-} from './dist/test-segments';
+} from 'create-test-data!segments';
 import {
   transmux,
   reset,
