@@ -3911,7 +3911,7 @@ QUnit.test('integration: configures eme for HLS if present on selectedinitialmed
     }
   };
   this.player.src({
-    src: 'demuxed.m3u8',
+    src: 'demuxed-two.m3u8',
     type: 'application/x-mpegURL',
     keySystems: {
       keySystem1: {
@@ -3927,7 +3927,7 @@ QUnit.test('integration: configures eme for HLS if present on selectedinitialmed
     }, 'did not modify plugin options');
 
     assert.deepEqual(this.player.currentSource(), {
-      src: 'demuxed.m3u8',
+      src: 'demuxed-two.m3u8',
       type: 'application/x-mpegURL',
       keySystems: {
         keySystem1: {
