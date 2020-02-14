@@ -464,7 +464,11 @@ export default class DashPlaylistLoader extends EventTarget {
       return;
     }
 
-    this.trigger('loadedplaylist');
+    if (media && !media.endList) {
+      this.trigger('mediaupdatetimeout');
+    } else {
+      this.trigger('loadedplaylist');
+    }
   }
 
   start() {
