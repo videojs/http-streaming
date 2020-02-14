@@ -2241,3 +2241,42 @@ QUnit.test('child loaders wait for async action before moving to HAVE_MASTER', f
   // media playlist is chosen automatically
   assert.strictEqual(childLoader.state, 'HAVE_METADATA');
 });
+
+QUnit.test('load resumes the media update timer for live playlists', function(assert) {
+  const loader = new DashPlaylistLoader('dash-live.mpd', this.fakeHls);
+
+  loader.load();
+  this.standardXHRResponse(this.requests.shift());
+  this.clock.tick(1);
+
+  const origMediaUpdateTimeout = loader.mediaUpdateTimeout;
+
+  assert.ok(origMediaUpdateTimeout, 'media update timeout set');
+
+  loader.pause();
+  loader.load();
+
+  const newMediaUpdateTimeout = loader.mediaUpdateTimeout;
+
+  assert.ok(newMediaUpdateTimeout, 'media update timeout set');
+  assert.notEqual(
+    origMediaUpdateTimeout,
+    newMediaUpdateTimeout,
+    'media update timeout is different'
+  );
+});
+
+QUnit.test('load does not resume the media update timer for non live playlists', function(assert) {
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+
+  loader.load();
+  this.standardXHRResponse(this.requests.shift());
+  this.clock.tick(1);
+
+  assert.notOk(loader.mediaUpdateTimeout, 'media update timeout not set');
+
+  loader.pause();
+  loader.load();
+
+  assert.notOk(loader.mediaUpdateTimeout, 'media update timeout not set');
+});
