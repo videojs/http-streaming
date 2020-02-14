@@ -1957,6 +1957,11 @@ export default class SegmentLoader extends videojs.EventTarget {
 
       // update the timestampoffset
       this.updateSourceBufferTimestampOffset_(segmentInfo);
+
+      // make sure the metadata queue is processed even though we have
+      // no video/audio data.
+      this.processMetadataQueue_();
+
       // append is "done" instantly with no data.
       this.checkAppendsDone_(segmentInfo);
       return;
