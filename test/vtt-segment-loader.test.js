@@ -266,7 +266,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
         loadedSegment = true;
       };
       loader.checkBuffer_ = () => {
-        return { mediaIndex: 2, timeline: 2, segment: { } };
+        return { mediaIndex: 2, timeline: 2, startOfSegment: 10, segment: { } };
       };
 
       loader.playlist(playlist);
@@ -287,6 +287,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
 
       // simulate the main segment loader finding timeline info for the new timeline
       loader.syncController_.timelines[2] = { time: 20, mapping: -10 };
+      loader.syncController_.lastBufferedSegmentTimestamp = 20;
       loader.syncController_.trigger('timestampoffset');
 
       assert.equal(

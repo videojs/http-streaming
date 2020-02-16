@@ -192,7 +192,7 @@ export default class VTTSegmentLoader extends SegmentLoader {
       return;
     }
 
-    if (this.syncController_.timestampOffsetForTimeline(segmentInfo.timeline) === null) {
+    if (this.syncController_.timestampOffsetForSegment(segmentInfo) === null) {
       // We don't have the timestamp offset that we need to sync subtitles.
       // Rerun on a timestamp offset or user interaction.
       const checkTimestampOffset = () => {
@@ -204,6 +204,7 @@ export default class VTTSegmentLoader extends SegmentLoader {
       };
 
       this.syncController_.one('timestampoffset', checkTimestampOffset);
+      this.syncController_.one('lastbufferedsegmentupdate', checkTimestampOffset);
       this.state = 'WAITING_ON_TIMELINE';
       return;
     }
