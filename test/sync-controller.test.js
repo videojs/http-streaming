@@ -292,6 +292,7 @@ QUnit.test('saves segment timing info', function(assert) {
     syncCon.timelines[0], { time: 0, mapping: -5 },
     'mapping object correct'
   );
+  assert.equal(syncCon.lastBufferedSegmentTimestamp, 0, 'correctly calculated lastBufferedSegmentTimestamp');
   assert.equal(segment.start, 0, 'correctly calculated segment start');
   assert.equal(segment.end, 10, 'correctly calculated segment end');
   assert.ok(syncCon.discontinuities[1], 'created discontinuity info for timeline 1');
@@ -308,6 +309,7 @@ QUnit.test('saves segment timing info', function(assert) {
 
   updateTimingInfo(segmentInfo);
   syncCon.saveSegmentTimingInfo(segmentInfo);
+  assert.equal(syncCon.lastBufferedSegmentTimestamp, 10, 'correctly calculated lastBufferedSegmentTimestamp');
   assert.equal(segment.start, 10, 'correctly calculated segment start');
   assert.equal(segment.end, 20, 'correctly calculated segment end');
   assert.deepEqual(
@@ -329,6 +331,7 @@ QUnit.test('saves segment timing info', function(assert) {
     syncCon.timelines[1], { time: 30, mapping: -11 },
     'mapping object correct'
   );
+  assert.equal(syncCon.lastBufferedSegmentTimestamp, 30, 'correctly calculated lastBufferedSegmentTimestamp');
   assert.equal(segment.start, 30, 'correctly calculated segment start');
   assert.equal(segment.end, 40, 'correctly calculated segment end');
   assert.deepEqual(

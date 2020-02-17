@@ -2980,7 +2980,7 @@ QUnit.test('switches off subtitles on subtitle errors', function(assert) {
   const syncController = masterPlaylistController.subtitleSegmentLoader_.syncController_;
 
   // required for the vtt request to be made
-  syncController.timestampOffsetForTimeline = () => 0;
+  syncController.timestampOffsetForSegment = () => 0;
 
   this.clock.tick(1);
 
