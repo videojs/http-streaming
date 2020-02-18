@@ -1,3 +1,12 @@
+<a name="1.12.2"></a>
+## [1.12.2](https://github.com/videojs/http-streaming/compare/v1.12.1...v1.12.2) (2020-02-18)
+
+### Bug Fixes
+
+* add dispose functions and fix memory leaks [#643](https://github.com/videojs/http-streaming/issues/643) for 1.x ([#734](https://github.com/videojs/http-streaming/issues/734)) ([89ab859](https://github.com/videojs/http-streaming/commit/89ab859))
+* resume live DASH playlist refreshes after pausing and loading DASH playlist loader ([#736](https://github.com/videojs/http-streaming/issues/736)) ([e966e9c](https://github.com/videojs/http-streaming/commit/e966e9c))
+* trim 30s back from playhead even for VOD and LIVE DVR content ([#740](https://github.com/videojs/http-streaming/issues/740)) ([886f592](https://github.com/videojs/http-streaming/commit/886f592))
+
 <a name="1.12.1"></a>
 ## [1.12.1](https://github.com/videojs/http-streaming/compare/v1.12.0...v1.12.1) (2020-02-11)
 
