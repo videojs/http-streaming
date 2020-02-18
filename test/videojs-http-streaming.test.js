@@ -2774,8 +2774,8 @@ QUnit.test('cleans up the buffer when loading live segments', function(assert) {
   assert.equal(this.player.tech_.hls.stats.mediaRequests, 2, '2 requests');
 });
 
-QUnit.test('cleans up the buffer based on currentTime when loading a live segment ' +
-           'if seekable start is after currentTime', function(assert) {
+QUnit.test('cleans up buffer by removing targetDuration from currentTime when loading a ' +
+           'live segment if seekable start is after currentTime', function(assert) {
   let removes = [];
   let seekable = videojs.createTimeRanges([[0, 80]]);
 
@@ -2829,7 +2829,7 @@ QUnit.test('cleans up the buffer based on currentTime when loading a live segmen
 
   // Change seekable so that it starts *after* the currentTime which was set
   // based on the previous seekable range (the end of 80)
-  seekable = videojs.createTimeRanges([[100, 120]]);
+  seekable = videojs.createTimeRanges([[110, 120]]);
 
   this.clock.tick(1);
 
@@ -2838,7 +2838,7 @@ QUnit.test('cleans up the buffer based on currentTime when loading a live segmen
 
   assert.strictEqual(this.requests[0].url, 'liveStart30sBefore.m3u8', 'master playlist requested');
   assert.equal(removes.length, 1, 'remove called');
-  assert.deepEqual(removes[0], [0, 80 - 30], 'remove called with the right range');
+  assert.deepEqual(removes[0], [0, 80 - 10], 'remove called with the right range');
 });
 
 QUnit.test('cleans up the buffer when loading VOD segments', function(assert) {

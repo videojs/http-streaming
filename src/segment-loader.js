@@ -89,22 +89,24 @@ export const illegalMediaSwitch = (loaderType, startingMedia, newSegmentMedia) =
  *         Time that is safe to remove from the back buffer without interupting playback
  */
 export const safeBackBufferTrimTime = (seekable, currentTime, targetDuration) => {
-  let removeToTime;
+  // 30 seconds before the playhead provides a safe default for trimming.
+  //
+  // Choosing a reasonable default is particularly important for high bitrate content and
+  // VOD videos/live streams with large windows, as the buffer may end up overfilled and
+  // throw an APPEND_BUFFER_ERR.
+  let trimTime = currentTime - 30;
 
-  if (seekable.length &&
-      seekable.start(0) > 0 &&
-      seekable.start(0) < currentTime) {
-    // If we have a seekable range use that as the limit for what can be removed safely
-    removeToTime = seekable.start(0);
-  } else {
-    // otherwise remove anything older than 30 seconds before the current play head
-    removeToTime = currentTime - 30;
+  if (seekable.length) {
+    // Some live playlists may have a shorter window of content than the full allowed back
+    // buffer. For these playlists, don't save content that's no longer within the window.
+    trimTime = Math.max(trimTime, seekable.start(0));
   }
 
-  // Don't allow removing from the buffer within target duration of current time
-  // to avoid the possibility of removing the GOP currently being played which could
-  // cause playback stalls.
-  return Math.min(removeToTime, currentTime - targetDuration);
+  // Don't remove within target duration of the current time to avoid the possibility of
+  // removing the GOP currently being played, as removing it can cause playback stalls.
+  const maxTrimTime = currentTime - targetDuration;
+
+  return Math.min(maxTrimTime, trimTime);
 };
 
 const segmentInfoString = (segmentInfo) => {
