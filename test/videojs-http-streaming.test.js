@@ -3308,8 +3308,8 @@ QUnit.test('cleans up the buffer when loading live segments', function(assert) {
   });
 });
 
-QUnit.test('cleans up the buffer based on currentTime when loading a live segment ' +
-           'if seekable start is after currentTime', function(assert) {
+QUnit.test('cleans up buffer by removing targetDuration from currentTime when loading a ' +
+           'live segment if seekable start is after currentTime', function(assert) {
   let seekable = videojs.createTimeRanges([[0, 80]]);
 
   this.player.src({
@@ -3350,7 +3350,7 @@ QUnit.test('cleans up the buffer based on currentTime when loading a live segmen
 
     // Change seekable so that it starts *after* the currentTime which was set
     // based on the previous seekable range (the end of 80)
-    seekable = videojs.createTimeRanges([[100, 120]]);
+    seekable = videojs.createTimeRanges([[110, 120]]);
     this.clock.tick(1);
 
     const audioBuffer = mpc.sourceUpdater_.audioBuffer;
@@ -3388,12 +3388,12 @@ QUnit.test('cleans up the buffer based on currentTime when loading a live segmen
     // segment-loader removes at currentTime - 30
     assert.deepEqual(
       audioRemoves[0],
-      { start: 0, end: 80 - 30 },
+      { start: 0, end: 80 - 10 },
       'removed from audio buffer with right range'
     );
     assert.deepEqual(
       videoRemoves[0],
-      { start: 0, end: 80 - 30 },
+      { start: 0, end: 80 - 10 },
       'removed from video buffer with right range'
     );
   });
