@@ -109,25 +109,86 @@ QUnit.test('illegalMediaSwitch detects illegal media switches', function(assert)
                'error when video only to audio only');
 });
 
-QUnit.test('safeBackBufferTrimTime determines correct safe removeToTime',
-function(assert) {
-  let seekable = videojs.createTimeRanges([[75, 120]]);
-  let targetDuration = 10;
-  let currentTime = 70;
+QUnit.module('safeBackBufferTrimTime');
 
-  assert.equal(safeBackBufferTrimTime(seekable, currentTime, targetDuration), 40,
-    'uses 30s before current time if currentTime is before seekable start');
+QUnit.test('uses 30s before playhead when seekable start is 0', function(assert) {
+  const seekable = videojs.createTimeRanges([[0, 120]]);
+  const targetDuration = 10;
+  const currentTime = 70;
 
-  currentTime = 110;
+  assert.equal(
+    safeBackBufferTrimTime(seekable, currentTime, targetDuration),
+    40,
+    'returned 30 seconds before playhead'
+  );
+});
 
-  assert.equal(safeBackBufferTrimTime(seekable, currentTime, targetDuration), 75,
-    'uses seekable start if currentTime is after seekable start');
+QUnit.test('uses 30s before playhead when seekable start is earlier', function(assert) {
+  const seekable = videojs.createTimeRanges([[30, 120]]);
+  const targetDuration = 10;
+  const currentTime = 70;
 
-  currentTime = 80;
+  assert.equal(
+    safeBackBufferTrimTime(seekable, currentTime, targetDuration),
+    40,
+    'returned 30 seconds before playhead');
+});
 
-  assert.equal(safeBackBufferTrimTime(seekable, currentTime, targetDuration), 70,
-    'uses target duration before currentTime if currentTime is after seekable but' +
-    'within target duration');
+QUnit.test('uses seekable start when within 30s of playhead', function(assert) {
+  const seekable = videojs.createTimeRanges([[41, 120]]);
+  const targetDuration = 10;
+  const currentTime = 70;
+
+  assert.equal(
+    safeBackBufferTrimTime(seekable, currentTime, targetDuration),
+    41,
+    'returned 29 seconds before playhead'
+  );
+});
+
+QUnit.test('uses target duration when seekable range is within target duration', function(assert) {
+  let seekable = videojs.createTimeRanges([[0, 120]]);
+  const targetDuration = 10;
+  let currentTime = 9;
+
+  assert.equal(
+    safeBackBufferTrimTime(seekable, currentTime, targetDuration),
+    -1,
+    'returned 10 seconds before playhead'
+  );
+
+  seekable = videojs.createTimeRanges([[40, 120]]);
+  currentTime = 41;
+
+  assert.equal(
+    safeBackBufferTrimTime(seekable, currentTime, targetDuration),
+    31,
+    'returned 10 seconds before playhead'
+  );
+});
+
+QUnit.test('uses target duration when seekable range is after current time', function(assert) {
+  let seekable = videojs.createTimeRanges([[110, 120]]);
+  const targetDuration = 10;
+  let currentTime = 80;
+
+  assert.equal(
+    safeBackBufferTrimTime(seekable, currentTime, targetDuration),
+    70,
+    'returned 10 seconds before playhead'
+  );
+});
+
+QUnit.test('uses current time when seekable range is well before current time', function(assert) {
+  let seekable = videojs.createTimeRanges([[10, 20]]);
+  const targetDuration = 10;
+  let currentTime = 140;
+
+  assert.equal(
+    safeBackBufferTrimTime(seekable, currentTime, targetDuration),
+    110,
+    'returned 30 seconds before playhead'
+  );
 });
 
 QUnit.module('SegmentLoader: M2TS', function(hooks) {
