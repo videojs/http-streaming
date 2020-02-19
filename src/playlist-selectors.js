@@ -252,11 +252,12 @@ export const simpleSelector = function(
  * bandwidth variance
  */
 export const lastBandwidthSelector = function() {
+  let pixelRatio = window.devicePixelRatio || 1;
   return simpleSelector(
     this.playlists.master,
     this.systemBandwidth,
-    parseInt(safeGetComputedStyle(this.tech_.el(), 'width'), 10),
-    parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10),
+    parseInt(safeGetComputedStyle(this.tech_.el(), 'width'), 10) * pixelRatio,
+    parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10) * pixelRatio,
     this.limitRenditionByPlayerDimensions
   );
 };
@@ -288,11 +289,12 @@ export const movingAverageBandwidthSelector = function(decay) {
     }
 
     average = decay * this.systemBandwidth + (1 - decay) * average;
+    let pixelRatio = window.devicePixelRatio || 1;
     return simpleSelector(
       this.playlists.master,
       average,
-      parseInt(safeGetComputedStyle(this.tech_.el(), 'width'), 10),
-      parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10),
+      parseInt(safeGetComputedStyle(this.tech_.el(), 'width'), 10) * pixelRatio,
+      parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10) * pixelRatio,
       this.limitRenditionByPlayerDimensions
     );
   };
