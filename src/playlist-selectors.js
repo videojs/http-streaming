@@ -252,7 +252,8 @@ export const simpleSelector = function(
  * bandwidth variance
  */
 export const lastBandwidthSelector = function() {
-  let pixelRatio = window.devicePixelRatio || 1;
+  const pixelRatio = window.devicePixelRatio || 1;
+
   return simpleSelector(
     this.playlists.master,
     this.systemBandwidth,
@@ -278,6 +279,7 @@ export const lastBandwidthSelector = function() {
  */
 export const movingAverageBandwidthSelector = function(decay) {
   let average = -1;
+  const pixelRatio = window.devicePixelRatio || 1;
 
   if (decay < 0 || decay > 1) {
     throw new Error('Moving average bandwidth decay must be between 0 and 1.');
@@ -289,7 +291,6 @@ export const movingAverageBandwidthSelector = function(decay) {
     }
 
     average = decay * this.systemBandwidth + (1 - decay) * average;
-    let pixelRatio = window.devicePixelRatio || 1;
     return simpleSelector(
       this.playlists.master,
       average,
