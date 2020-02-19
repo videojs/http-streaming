@@ -8,9 +8,10 @@ import {
   standardXHRResponse,
   openMediaSource,
   requestAndAppendSegment,
-  setupMediaSource
+  setupMediaSource,
+  downloadProgress
 } from './test-helpers.js';
-import manifests from './dist/test-manifests.js';
+import manifests from 'create-test-data!manifests';
 import {
   MasterPlaylistController,
   DEFAULT_AUDIO_CODEC,
@@ -38,7 +39,7 @@ import {
   mp4Video as mp4VideoSegment,
   mp4AudioInit as mp4AudioInitSegment,
   mp4Audio as mp4AudioSegment
-} from './dist/test-segments';
+} from 'create-test-data!segments';
 import {
   timeRangesEqual,
   bandwidthWithinTolerance
@@ -909,7 +910,8 @@ QUnit.test(
     this.standardXHRResponse(this.requests.shift(), muxedSegment());
 
     this.masterPlaylistController.mainSegmentLoader_.trigger('progress');
-    assert.equal(progressCount, 1, 'fired a progress event');
+    // note that there are two progress events as one is fired on finish
+    assert.equal(progressCount, 2, 'fired a progress event');
   }
 );
 
@@ -1854,19 +1856,10 @@ QUnit.test('does not get stuck in a loop due to inconsistent network/caching', f
     // timeout means we are on the last rendition)
     segmentLoader.xhrOptions_.timeout = 60000;
     // we need to wait 1 second from first byte receieved in order to consider aborting
-    this.requests[0].downloadProgress({
-      target: this.requests[0],
-      total: 100,
-      loaded: 1
-    });
+    downloadProgress(this.requests[0], '0');
     this.clock.tick(1000);
     // should abort request early because we don't have enough bandwidth
-    this.requests[0].downloadProgress({
-      target: this.requests[0],
-      total: 100,
-      // 1 bit per second
-      loaded: 2
-    });
+    downloadProgress(this.requests[0], '00');
     this.clock.tick(1);
 
     // aborted request, so switched back to lowest rendition
@@ -2118,6 +2111,7 @@ QUnit.test(
     let mainTimeRanges = [];
     let audioTimeRanges = [];
 
+    this.masterPlaylistController.masterPlaylistLoader_.master = {};
     this.masterPlaylistController.masterPlaylistLoader_.media = () => mainMedia;
     this.masterPlaylistController.syncController_.getExpiredTime = () => 0;
 
@@ -2250,6 +2244,7 @@ QUnit.test(
     Playlist.seekable = () => {
       return videojs.createTimeRanges(mainTimeRanges);
     };
+    this.masterPlaylistController.masterPlaylistLoader_.master = {};
     this.masterPlaylistController.masterPlaylistLoader_.media = () => media;
     this.masterPlaylistController.syncController_.getExpiredTime = () => 0;
 
@@ -3926,6 +3921,8 @@ QUnit.test(
     });
     // media source must be open for duration to be set
     openMediaSource(this.player, this.clock);
+    // asynchronous setup of initial playlist in playlist loader for JSON sources
+    this.clock.tick(1);
 
     this.masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
 
@@ -3968,6 +3965,8 @@ QUnit.test(
     });
     // media source must be open for duration to be set
     openMediaSource(this.player, this.clock);
+    // asynchronous setup of initial playlist in playlist loader for JSON sources
+    this.clock.tick(1);
 
     this.masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
 

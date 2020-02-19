@@ -7,7 +7,7 @@ import PlaylistLoader from '../src/playlist-loader';
 import DashPlaylistLoader from '../src/dash-playlist-loader';
 import noop from '../src/util/noop';
 import { parseManifest } from '../src/manifest.js';
-import manifests from './dist/test-manifests.js';
+import manifests from 'create-test-data!manifests';
 
 QUnit.module('MediaGroups', {
   beforeEach(assert) {

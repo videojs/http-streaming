@@ -2,12 +2,12 @@ import document from 'global/document';
 import videojs from 'video.js';
 import Events from 'video.js';
 import QUnit from 'qunit';
-import testDataManifests from './dist/test-manifests.js';
+import testDataManifests from 'create-test-data!manifests';
 import {
   muxed as muxedSegment,
   encryptionKey,
   encrypted as encryptedSegment
-} from './dist/test-segments';
+} from 'create-test-data!segments';
 import {
   useFakeEnvironment,
   useFakeMediaSource,
@@ -2480,11 +2480,15 @@ QUnit.test('resets the switching algorithm if a request times out', function(ass
   this.standardXHRResponse(this.requests.shift());
   // media.m3u8
   this.standardXHRResponse(this.requests.shift());
-  // simulate a segment timeout
-  this.requests[0].timedout = true;
-  // segment
-  this.requests.shift().abort();
 
+  const segmentRequest = this.requests.shift();
+
+  assert.notOk(segmentRequest.timedout, 'request not timed out');
+  // simulate a segment timeout
+  this.clock.tick(45001);
+  assert.ok(segmentRequest.timedout, 'request timed out');
+
+  // new media
   this.standardXHRResponse(this.requests.shift());
 
   assert.strictEqual(
@@ -3025,10 +3029,6 @@ QUnit.test(
                this.player.tech_.hls.playlists.media().segments[1].key.uri,
       'urls should match'
     );
-
-    // verify stats
-    assert.equal(this.player.tech_.hls.stats.mediaBytesTransferred, 1024, '1024 bytes');
-    assert.equal(this.player.tech_.hls.stats.mediaRequests, 1, '1 request');
   }
 );
 
@@ -3084,9 +3084,6 @@ QUnit.test('switching playlists with an outstanding key request aborts request a
     'http://media.example.com/fileSequence52-A.ts',
     'requested the segment'
   );
-  // verify stats
-  assert.equal(this.player.tech_.hls.stats.mediaBytesTransferred, 1024, '1024 bytes');
-  assert.equal(this.player.tech_.hls.stats.mediaRequests, 1, '1 request');
 });
 
 QUnit.test('does not download segments if preload option set to none', function(assert) {
@@ -3742,7 +3739,7 @@ QUnit.test('populates quality levels list when available', function(assert) {
   );
 });
 
-QUnit.test('configures eme if present on selectedinitialmedia', function(assert) {
+QUnit.test('configures eme for DASH if present on selectedinitialmedia', function(assert) {
   this.player.eme = {
     options: {
       previousSetting: 1
@@ -3761,23 +3758,18 @@ QUnit.test('configures eme if present on selectedinitialmedia', function(assert)
   this.clock.tick(1);
 
   this.player.tech_.hls.playlists = {
-    media: () => {
-      return {
-        attributes: {
-          CODECS: 'video-codec'
-        },
-        contentProtection: {
-          keySystem1: {
-            pssh: 'test'
-          }
+    media: () => ({
+      attributes: {
+        CODECS: 'avc1.420015'
+      },
+      contentProtection: {
+        keySystem1: {
+          pssh: 'test'
         }
-      };
-    },
-    // mocked for renditions mixin
-    master: {
-      playlists: []
-    }
+      }
+    })
   };
+
   this.player.tech_.hls.masterPlaylistController_.mediaTypes_ = {
     SUBTITLES: {},
     AUDIO: {
@@ -3785,13 +3777,14 @@ QUnit.test('configures eme if present on selectedinitialmedia', function(assert)
         media: () => {
           return {
             attributes: {
-              CODECS: 'audio-codec'
+              CODECS: 'mp4a.40.2c'
             }
           };
         }
       }
     }
   };
+
   this.player.tech_.hls.masterPlaylistController_.trigger('selectedinitialmedia');
 
   assert.deepEqual(this.player.eme.options, {
@@ -3804,15 +3797,66 @@ QUnit.test('configures eme if present on selectedinitialmedia', function(assert)
     keySystems: {
       keySystem1: {
         url: 'url1',
-        audioContentType: 'audio/mp4; codecs="audio-codec"',
-        videoContentType: 'video/mp4; codecs="video-codec"',
+        audioContentType: 'audio/mp4;codecs="mp4a.40.2c"',
+        videoContentType: 'video/mp4;codecs="avc1.420015"',
         pssh: 'test'
       }
     }
   }, 'set source eme options');
 });
 
-QUnit.test('integration: configures eme if present on selectedinitialmedia', function(assert) {
+QUnit.test('configures eme for HLS if present on selectedinitialmedia', function(assert) {
+  this.player.eme = {
+    options: {
+      previousSetting: 1
+    }
+  };
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/x-mpegURL',
+    keySystems: {
+      keySystem1: {
+        url: 'url1'
+      }
+    }
+  });
+
+  this.clock.tick(1);
+
+  this.player.tech_.hls.playlists = {
+    media: () => ({
+      attributes: {
+        CODECS: 'avc1.420015, mp4a.40.2c'
+      },
+      contentProtection: {
+        keySystem1: {
+          pssh: 'test'
+        }
+      }
+    })
+  };
+
+  this.player.tech_.hls.masterPlaylistController_.trigger('selectedinitialmedia');
+
+  assert.deepEqual(this.player.eme.options, {
+    previousSetting: 1
+  }, 'did not modify plugin options');
+
+  assert.deepEqual(this.player.currentSource(), {
+    src: 'manifest/master.m3u8',
+    type: 'application/x-mpegURL',
+    keySystems: {
+      keySystem1: {
+        url: 'url1',
+        audioContentType: 'audio/mp4;codecs="mp4a.40.2c"',
+        videoContentType: 'video/mp4;codecs="avc1.420015"',
+        pssh: 'test'
+      }
+    }
+  }, 'set source eme options');
+});
+
+QUnit.test('integration: configures eme for DASH if present on selectedinitialmedia', function(assert) {
   assert.timeout(3000);
   const done = assert.async();
 
@@ -3843,8 +3887,8 @@ QUnit.test('integration: configures eme if present on selectedinitialmedia', fun
       keySystems: {
         keySystem1: {
           url: 'url1',
-          audioContentType: 'audio/mp4; codecs="mp4a.40.2"',
-          videoContentType: 'video/mp4; codecs="avc1.420015"'
+          audioContentType: 'audio/mp4;codecs="mp4a.40.2"',
+          videoContentType: 'video/mp4;codecs="avc1.420015"'
         }
       }
     }, 'set source eme options');
@@ -3853,6 +3897,59 @@ QUnit.test('integration: configures eme if present on selectedinitialmedia', fun
   });
 
   this.standardXHRResponse(this.requests[0]);
+  // this allows the audio playlist loader to load
+  this.clock.tick(1);
+});
+
+QUnit.test('integration: configures eme for HLS if present on selectedinitialmedia', function(assert) {
+  assert.timeout(3000);
+  const done = assert.async();
+
+  this.player.eme = {
+    options: {
+      previousSetting: 1
+    }
+  };
+  this.player.src({
+    src: 'demuxed-two.m3u8',
+    type: 'application/x-mpegURL',
+    keySystems: {
+      keySystem1: {
+        url: 'url1'
+      }
+    }
+  });
+  this.clock.tick(1);
+
+  this.player.tech_.hls.masterPlaylistController_.on('selectedinitialmedia', () => {
+    assert.deepEqual(this.player.eme.options, {
+      previousSetting: 1
+    }, 'did not modify plugin options');
+
+    assert.deepEqual(this.player.currentSource(), {
+      src: 'demuxed-two.m3u8',
+      type: 'application/x-mpegURL',
+      keySystems: {
+        keySystem1: {
+          url: 'url1',
+          audioContentType: 'audio/mp4;codecs="mp4a.40.2"',
+          videoContentType: 'video/mp4;codecs="avc1.420015"'
+        }
+      }
+    }, 'set source eme options');
+
+    done();
+  });
+
+  // master manifest
+  this.standardXHRResponse(this.requests.shift());
+
+  // video manifest
+  this.standardXHRResponse(this.requests.shift());
+
+  // audio manifest
+  this.standardXHRResponse(this.requests.shift());
+
   // this allows the audio playlist loader to load
   this.clock.tick(1);
 });
@@ -4377,6 +4474,8 @@ QUnit.test('manifest object used as source if provided as data URI', function(as
   this.clock.tick(1);
 
   openMediaSource(this.player, this.clock);
+  // asynchronous setup of initial playlist in playlist loader for JSON sources
+  this.clock.tick(1);
 
   // no manifestObject was provided, so a request is made for the source manifest
   assert.equal(this.requests.length, 1, 'one request');
@@ -4393,6 +4492,8 @@ QUnit.test('manifest object used as source if provided as data URI', function(as
   });
 
   openMediaSource(this.player, this.clock);
+  // asynchronous setup of initial playlist in playlist loader for JSON sources
+  this.clock.tick(1);
 
   // manifestObject was provided, so a request is made for the segment
   assert.equal(this.requests.length, 1, 'one request');
@@ -4408,7 +4509,8 @@ QUnit.module('HLS Integration', {
     this.env = useFakeEnvironment(assert);
     this.requests = this.env.requests;
     this.mse = useFakeMediaSource();
-    this.tech = new (videojs.getTech('Html5'))({});
+    this.player = createPlayer();
+    this.tech = this.player.tech_;
     this.clock = this.env.clock;
 
     this.standardXHRResponse = (request, data) => {
@@ -4426,6 +4528,7 @@ QUnit.module('HLS Integration', {
     this.env.restore();
     this.mse.restore();
     window.localStorage.clear();
+    this.player.dispose();
     videojs.HlsHandler.prototype.setupQualityLevels_ = ogHlsHandlerSetupQualityLevels;
   }
 });
@@ -4568,8 +4671,6 @@ QUnit.test('downloads additional playlists if required', function(assert) {
     );
     assert.ok(hls.playlists.media().segments, 'segments are now available');
 
-    // verify stats
-    assert.equal(hls.stats.bandwidth, 3000000, 'updated bandwidth');
     hls.dispose();
   });
 });
@@ -4865,20 +4966,40 @@ QUnit.test(
 QUnit.module('videojs-contrib-hls isolated functions');
 
 QUnit.test('emeKeySystems adds content types for all keySystems', function(assert) {
+  // muxed content
   assert.deepEqual(
     emeKeySystems(
       { keySystem1: {}, keySystem2: {} },
-      { attributes: { CODECS: 'some-video-codec' } },
-      { attributes: { CODECS: 'some-audio-codec' } }
+      { attributes: { CODECS: 'avc1.420015, mp4a.40.2c' } },
     ),
     {
       keySystem1: {
-        audioContentType: 'audio/mp4; codecs="some-audio-codec"',
-        videoContentType: 'video/mp4; codecs="some-video-codec"'
+        audioContentType: 'audio/mp4;codecs="mp4a.40.2c"',
+        videoContentType: 'video/mp4;codecs="avc1.420015"'
       },
       keySystem2: {
-        audioContentType: 'audio/mp4; codecs="some-audio-codec"',
-        videoContentType: 'video/mp4; codecs="some-video-codec"'
+        audioContentType: 'audio/mp4;codecs="mp4a.40.2c"',
+        videoContentType: 'video/mp4;codecs="avc1.420015"'
+      }
+    },
+    'added content types'
+  );
+
+  // unmuxed content
+  assert.deepEqual(
+    emeKeySystems(
+      { keySystem1: {}, keySystem2: {} },
+      { attributes: { CODECS: 'avc1.420015' } },
+      { attributes: { CODECS: 'mp4a.40.2c' } },
+    ),
+    {
+      keySystem1: {
+        audioContentType: 'audio/mp4;codecs="mp4a.40.2c"',
+        videoContentType: 'video/mp4;codecs="avc1.420015"'
+      },
+      keySystem2: {
+        audioContentType: 'audio/mp4;codecs="mp4a.40.2c"',
+        videoContentType: 'video/mp4;codecs="avc1.420015"'
       }
     },
     'added content types'
@@ -4889,19 +5010,18 @@ QUnit.test('emeKeySystems retains non content type properties', function(assert)
   assert.deepEqual(
     emeKeySystems(
       { keySystem1: { url: '1' }, keySystem2: { url: '2'} },
-      { attributes: { CODECS: 'some-video-codec' } },
-      { attributes: { CODECS: 'some-audio-codec' } }
+      { attributes: { CODECS: 'avc1.420015, mp4a.40.2c' } },
     ),
     {
       keySystem1: {
         url: '1',
-        audioContentType: 'audio/mp4; codecs="some-audio-codec"',
-        videoContentType: 'video/mp4; codecs="some-video-codec"'
+        audioContentType: 'audio/mp4;codecs="mp4a.40.2c"',
+        videoContentType: 'video/mp4;codecs="avc1.420015"'
       },
       keySystem2: {
         url: '2',
-        audioContentType: 'audio/mp4; codecs="some-audio-codec"',
-        videoContentType: 'video/mp4; codecs="some-video-codec"'
+        audioContentType: 'audio/mp4;codecs="mp4a.40.2c"',
+        videoContentType: 'video/mp4;codecs="avc1.420015"'
       }
     },
     'retained options'
@@ -4921,17 +5041,16 @@ QUnit.test('emeKeySystems overwrites content types', function(assert) {
           videoContentType: 'd'
         }
       },
-      { attributes: { CODECS: 'some-video-codec' } },
-      { attributes: { CODECS: 'some-audio-codec' } }
+      { attributes: { CODECS: 'avc1.420015, mp4a.40.2c' } },
     ),
     {
       keySystem1: {
-        audioContentType: 'audio/mp4; codecs="some-audio-codec"',
-        videoContentType: 'video/mp4; codecs="some-video-codec"'
+        audioContentType: 'audio/mp4;codecs="mp4a.40.2c"',
+        videoContentType: 'video/mp4;codecs="avc1.420015"'
       },
       keySystem2: {
-        audioContentType: 'audio/mp4; codecs="some-audio-codec"',
-        videoContentType: 'video/mp4; codecs="some-video-codec"'
+        audioContentType: 'audio/mp4;codecs="mp4a.40.2c"',
+        videoContentType: 'video/mp4;codecs="avc1.420015"'
       }
     },
     'overwrote content types'

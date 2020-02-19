@@ -99,3 +99,25 @@ export const codecsForPlaylist = function(master, media) {
 export const isLikelyFmp4Data = (bytes) => {
   return findBox(bytes, ['moof']).length > 0;
 };
+
+/*
+ * Check if a codec string refers to an audio codec.
+ *
+ * @param {String} codec codec string to check
+ * @return {Boolean} if this is an audio codec
+ * @private
+ */
+export const isAudioCodec = function(codec) {
+  return (/mp4a\.\d+.\d+/i).test(codec);
+};
+
+/**
+ * Check if a codec string refers to a video codec.
+ *
+ * @param {string} codec codec string to check
+ * @return {boolean} if this is a video codec
+ * @private
+ */
+export const isVideoCodec = function(codec) {
+  return (/avc1\.[\da-f]+/i).test(codec);
+};

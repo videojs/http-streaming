@@ -14,7 +14,7 @@ import {
   createPlaylistID,
   parseManifest
 } from '../src/manifest.js';
-import manifests from './dist/test-manifests.js';
+import manifests from 'create-test-data!manifests';
 
 QUnit.module('Playlist Loader', {
   beforeEach(assert) {
@@ -1662,11 +1662,7 @@ QUnit.test('aborts in-flight playlist refreshes when switching', function(assert
     !this.requests[0].onreadystatechange,
     'onreadystatechange handlers should be removed on abort'
   );
-  assert.strictEqual(
-    loader.state,
-    'HAVE_METADATA',
-    'the state is set accoring to the startingState'
-  );
+  assert.strictEqual(loader.state, 'SWITCHING_MEDIA', 'updated the state');
 });
 
 QUnit.test('switching to the active playlist is a no-op', function(assert) {

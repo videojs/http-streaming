@@ -137,8 +137,8 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
         );
 
         // wrap up the first request to set mediaIndex and start normal live streaming
-        this.requests[0].response = new Uint8Array(10).buffer;
-        this.requests.shift().respond(200, null, '');
+        this.requests[0].responseType = 'arraybuffer';
+        this.requests.shift().respond(200, null, new Uint8Array(10).buffer);
         buffered = videojs.createTimeRanges([[0, 10]]);
         this.clock.tick(1);
 
@@ -170,8 +170,8 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
           segmentInfo.timestampmap = { MPEGTS: 0, LOCAL: 0 };
         };
 
-        this.requests[0].response = new Uint8Array(10).buffer;
-        this.requests.shift().respond(200, null, '');
+        this.requests[0].responseType = 'arraybuffer';
+        this.requests.shift().respond(200, null, new Uint8Array(10).buffer);
 
         assert.ok(
           playlistUpdated.segments[0].empty,
@@ -208,8 +208,8 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
         );
 
         // wrap up the first request to set mediaIndex and start normal live streaming
-        this.requests[0].response = new Uint8Array(10).buffer;
-        this.requests.shift().respond(200, null, '');
+        this.requests[0].responseType = 'arraybuffer';
+        this.requests.shift().respond(200, null, new Uint8Array(10).buffer);
         buffered = videojs.createTimeRanges([[0, 10]]);
         this.clock.tick(1);
 
@@ -242,8 +242,8 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
           segmentInfo.timestampmap = { MPEGTS: 0, LOCAL: 0 };
         };
 
-        this.requests[0].response = new Uint8Array(10).buffer;
-        this.requests.shift().respond(200, null, '');
+        this.requests[0].responseType = 'arraybuffer';
+        this.requests.shift().respond(200, null, new Uint8Array(10).buffer);
 
         assert.ok(
           playlist.segments[1].empty,
@@ -345,8 +345,8 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
         assert.equal(loader.state, 'WAITING', 'loader is waiting on segment request');
         assert.ok(!parsedCues, 'no cues parsed yet');
 
-        this.requests[0].response = new Uint8Array(10).buffer;
-        this.requests.shift().respond(200, null, '');
+        this.requests[0].responseType = 'arraybuffer';
+        this.requests.shift().respond(200, null, new Uint8Array(10).buffer);
 
         this.clock.tick(1);
 
@@ -460,9 +460,12 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
       `;
 
         // state WAITING for segment response
-        this.requests[0].response =
-        new Uint8Array(vttString.split('').map(char => char.charCodeAt(0)));
-        this.requests.shift().respond(200, null, '');
+        this.requests[0].responseType = 'arraybuffer';
+        this.requests.shift().respond(
+          200,
+          null,
+          new Uint8Array(vttString.split('').map(char => char.charCodeAt(0))).buffer
+        );
 
         this.clock.tick(1);
 
@@ -496,8 +499,8 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
 
         this.clock.tick(1);
 
-        this.requests[0].response = new Uint8Array(10).buffer;
-        this.requests.shift().respond(200, null, '');
+        this.requests[0].responseType = 'arraybuffer';
+        this.requests.shift().respond(200, null, new Uint8Array(10).buffer);
 
         this.clock.tick(1);
 
@@ -510,8 +513,8 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
 
         this.clock.tick(1);
 
-        this.requests[0].response = new Uint8Array(10).buffer;
-        this.requests.shift().respond(200, null, '');
+        this.requests[0].responseType = 'arraybuffer';
+        this.requests.shift().respond(200, null, new Uint8Array(10).buffer);
 
         this.clock.tick(1);
 
@@ -550,8 +553,8 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
           'requesting initial segment guess'
         );
 
-        this.requests[0].response = new Uint8Array(10).buffer;
-        this.requests.shift().respond(200, null, '');
+        this.requests[0].responseType = 'arraybuffer';
+        this.requests.shift().respond(200, null, new Uint8Array(10).buffer);
 
         this.clock.tick(1);
 
@@ -582,8 +585,8 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
       this.clock.tick(1);
 
       // state WAITING for segment response
-      this.requests[0].response = new Uint8Array(10).buffer;
-      this.requests.shift().respond(200, null, '');
+      this.requests[0].responseType = 'arraybuffer';
+      this.requests.shift().respond(200, null, new Uint8Array(10).buffer);
 
       this.clock.tick(1);
 
@@ -627,8 +630,8 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
       assert.equal(loader.state, 'WAITING', 'loader is waiting on segment request');
       assert.equal(errors, 0, 'no errors yet');
 
-      this.requests[0].response = new Uint8Array(10).buffer;
-      this.requests.shift().respond(200, null, '');
+      this.requests[0].responseType = 'arraybuffer';
+      this.requests.shift().respond(200, null, new Uint8Array(10).buffer);
 
       this.clock.tick(1);
 

@@ -36,6 +36,7 @@ import {version as m3u8Version} from 'm3u8-parser/package.json';
 import {version as aesVersion} from 'aes-decrypter/package.json';
 // import needed to register middleware
 import './middleware-set-current-time';
+import {isAudioCodec, isVideoCodec} from './util/codecs';
 
 const Hls = {
   PlaylistLoader,
@@ -134,14 +135,30 @@ const emeKeySystems = (keySystemOptions, videoPlaylist, audioPlaylist) => {
     return keySystemOptions;
   }
 
+  const codecs = {
+    video: videoPlaylist && videoPlaylist.attributes && videoPlaylist.attributes.CODECS,
+    audio: audioPlaylist && audioPlaylist.attributes && audioPlaylist.attributes.CODECS
+  };
+
+  if (!codecs.audio && codecs.video.split(',').length > 1) {
+    codecs.video.split(',').forEach(function(codec) {
+      codec = codec.trim();
+
+      if (isAudioCodec(codec)) {
+        codecs.audio = codec;
+      } else if (isVideoCodec(codec)) {
+        codecs.video = codec;
+      }
+    });
+  }
+  const videoContentType = codecs.video ? `video/mp4;codecs="${codecs.video}"` : null;
+  const audioContentType = codecs.audio ? `audio/mp4;codecs="${codecs.audio}"` : null;
+
   // upsert the content types based on the selected playlist
   const keySystemContentTypes = {};
 
   for (const keySystem in keySystemOptions) {
-    keySystemContentTypes[keySystem] = {
-      audioContentType: `audio/mp4; codecs="${audioPlaylist.attributes.CODECS}"`,
-      videoContentType: `video/mp4; codecs="${videoPlaylist.attributes.CODECS}"`
-    };
+    keySystemContentTypes[keySystem] = {audioContentType, videoContentType};
 
     if (videoPlaylist.contentProtection &&
         videoPlaylist.contentProtection[keySystem] &&
@@ -161,16 +178,14 @@ const emeKeySystems = (keySystemOptions, videoPlaylist, audioPlaylist) => {
 };
 
 const setupEmeOptions = (hlsHandler) => {
-  if (hlsHandler.options_.sourceType !== 'dash') {
-    return;
-  }
-  const player = videojs.players[hlsHandler.tech_.options_.playerId];
+  const player = hlsHandler.player_;
 
   if (player.eme) {
+    const audioPlaylistLoader = hlsHandler.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader;
     const sourceOptions = emeKeySystems(
       hlsHandler.source_.keySystems,
       hlsHandler.playlists.media(),
-      hlsHandler.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader.media()
+      audioPlaylistLoader && audioPlaylistLoader.media()
     );
 
     if (sourceOptions) {

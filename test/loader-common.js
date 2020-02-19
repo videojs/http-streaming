@@ -22,7 +22,7 @@ import {
   muxed as muxedSegment,
   mp4Video as mp4VideoSegment,
   mp4VideoInit as mp4VideoInitSegment
-} from './dist/test-segments';
+} from 'create-test-data!segments';
 
 /**
  * beforeEach and afterEach hooks that should be run segment loader tests regardless of
@@ -634,7 +634,9 @@ export const LoaderCommonFactory = ({
       this.clock.tick(1);
 
       // verify stats
-      assert.equal(loader.mediaRequests, 1, '1 request');
+      // right now, aborted requests are not counted in media requests, but this may be
+      // changed in the future
+      assert.equal(loader.mediaRequests, 0, '0 requests');
       assert.equal(loader.mediaRequestsAborted, 1, '1 aborted request');
     });
 

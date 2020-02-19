@@ -208,8 +208,15 @@ const handleSegmentResponse = ({
     return finishProcessingFn(errorObj, segment);
   }
 
-  const newBytes = responseType === 'arraybuffer' ? request.response :
-    stringToArrayBuffer(request.responseText.substring(segment.lastReachedChar || 0));
+  const newBytes =
+    // although responseText "should" exist, this guard serves to prevent an error being
+    // thrown for two primary cases:
+    // 1. the mime type override stops working, or is not implemented for a specific
+    //    browser
+    // 2. when using mock XHR libraries like sinon that do not allow the override behavior
+    (responseType === 'arraybuffer' || !request.responseText) ?
+      request.response :
+      stringToArrayBuffer(request.responseText.substring(segment.lastReachedChar || 0));
 
   // stop processing if received empty content
   if (response.byteLength === 0) {
@@ -614,6 +621,22 @@ const waitForCompletion = ({
 };
 
 /**
+ * Calls the abort callback if any request within the batch was aborted. Will only call
+ * the callback once per batch of requests, even if multiple were aborted.
+ *
+ * @param {Object} loadendState - state to check to see if the abort function was called
+ * @param {Function} abortFn - callback to call for abort
+ */
+const handleLoadEnd = ({ loadendState, abortFn }) => (event) => {
+  const request = event.target;
+
+  if (request.aborted && abortFn && !loadendState.calledAbortFn) {
+    abortFn();
+    loadendState.calledAbortFn = true;
+  }
+};
+
+/**
  * Simple progress event callback handler that gathers some stats before
  * executing a provided callback with the `segment` object
  *
@@ -644,8 +667,18 @@ const handleProgress = ({
   }
 
   // don't support encrypted segments or fmp4 for now
-  // in order to determine if it's an fmp4 we need at least 8 bytes
-  if (handlePartialData && !segment.key && request.responseText.length >= 8) {
+  if (
+    handlePartialData &&
+    !segment.key &&
+    // although responseText "should" exist, this guard serves to prevent an error being
+    // thrown on the next check for two primary cases:
+    // 1. the mime type override stops working, or is not implemented for a specific
+    //    browser
+    // 2. when using mock XHR libraries like sinon that do not allow the override behavior
+    request.responseText &&
+    // in order to determine if it's an fmp4 we need at least 8 bytes
+    request.responseText.length >= 8
+  ) {
     const newBytes = stringToArrayBuffer(request.responseText.substring(segment.lastReachedChar || 0));
 
     if (segment.lastReachedChar || !isLikelyFmp4Data(new Uint8Array(newBytes))) {
@@ -717,6 +750,8 @@ const handleProgress = ({
  *                                       decryption routines
  * @param {Object} segment - a simplified copy of the segmentInfo object
  *                           from SegmentLoader
+ * @param {Function} abortFn - a callback called (only once) if any piece of a request was
+ *                             aborted
  * @param {Function} progressFn - a callback that receives progress events from the main
  *                                segment's xhr request
  * @param {Function} trackInfoFn - a callback that receives track info
@@ -735,6 +770,7 @@ export const mediaSegmentRequest = ({
   decryptionWorker,
   captionParser,
   segment,
+  abortFn,
   progressFn,
   trackInfoFn,
   timingInfoFn,
@@ -827,6 +863,17 @@ export const mediaSegmentRequest = ({
     })
   );
   activeXhrs.push(segmentXhr);
+
+  // since all parts of the request must be considered, but should not make callbacks
+  // multiple times, provide a shared state object
+  const loadendState = {};
+
+  activeXhrs.forEach((activeXhr) => {
+    activeXhr.addEventListener(
+      'loadend',
+      handleLoadEnd({ loadendState, abortFn })
+    );
+  });
 
   return () => abortAll(activeXhrs);
 };

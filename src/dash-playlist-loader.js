@@ -256,11 +256,14 @@ export default class DashPlaylistLoader extends EventTarget {
   }
 
   dispose() {
+    this.trigger('dispose');
     this.stopRequest();
     this.loadedPlaylists_ = {};
     window.clearTimeout(this.minimumUpdatePeriodTimeout_);
     window.clearTimeout(this.mediaRequest_);
     window.clearTimeout(this.mediaUpdateTimeout);
+
+    this.off();
   }
 
   hasPendingRequest() {
@@ -461,7 +464,11 @@ export default class DashPlaylistLoader extends EventTarget {
       return;
     }
 
-    this.trigger('loadedplaylist');
+    if (media && !media.endList) {
+      this.trigger('mediaupdatetimeout');
+    } else {
+      this.trigger('loadedplaylist');
+    }
   }
 
   start() {
