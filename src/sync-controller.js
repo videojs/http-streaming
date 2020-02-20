@@ -384,8 +384,9 @@ export default class SyncController extends videojs.EventTarget {
   }
 
   timestampOffsetForSegment(segmentInfo) {
-    if (segmentInfo.timeline > 0 &&
-      (!segmentInfo.startOfSegment || segmentInfo.startOfSegment > this.lastBufferedSegmentTimestamp)) {
+    const segmentOccursAfterLastBufferedSegment = (!segmentInfo.startOfSegment || segmentInfo.startOfSegment > this.lastBufferedSegmentTimestamp);
+
+    if (segmentInfo.timeline > 0 && segmentOccursAfterLastBufferedSegment) {
       return null;
     }
     return this.lastBufferedSegmentTimestamp;
