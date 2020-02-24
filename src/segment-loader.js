@@ -121,6 +121,9 @@ const timingInfoPropertyForMedia = (mediaType) => `${mediaType}TimingInfo`;
  *        The estimated segment start
  * @param {TimeRange[]} buffered
  *        The loader's buffer
+ * @param {boolean} overrideCheck
+ *        If true, no checks are made to see if the timestamp offset value should be set,
+ *        but sets it directly to a value.
  *
  * @return {number|null}
  *         Either a number representing a new timestamp offset, or null if the segment is
@@ -130,7 +133,8 @@ export const timestampOffsetForSegment = ({
   segmentTimeline,
   currentTimeline,
   startOfSegment,
-  buffered
+  buffered,
+  overrideCheck
 }) => {
   // Check to see if we are crossing a discontinuity to see if we need to set the
   // timestamp offset on the transmuxer and source buffer.
@@ -138,7 +142,7 @@ export const timestampOffsetForSegment = ({
   // Previously, we changed the timestampOffset if the start of this segment was less than
   // the currently set timestampOffset, but this isn't desirable as it can produce bad
   // behavior, especially around long running live streams.
-  if (segmentTimeline === currentTimeline) {
+  if (!overrideCheck && segmentTimeline === currentTimeline) {
     return null;
   }
 
@@ -203,6 +207,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.xhrOptions_ = null;
     this.pendingSegments_ = [];
     this.audioDisabled_ = false;
+    this.isPendingTimestampOffset_ = false;
     // TODO possibly move gopBuffer and timeMapping info to a separate controller
     this.gopBuffer_ = [];
     this.timeMapping_ = 0;
@@ -746,6 +751,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
     this.mediaIndex = null;
     this.syncPoint_ = null;
+    this.isPendingTimestampOffset_ = false;
     this.callQueue_ = [];
     this.metadataQueue_.id3 = [];
     this.metadataQueue_.caption = [];
@@ -886,8 +892,10 @@ export default class SegmentLoader extends videojs.EventTarget {
       segmentTimeline: segmentInfo.timeline,
       currentTimeline: this.currentTimeline_,
       startOfSegment: segmentInfo.startOfSegment,
-      buffered
+      buffered,
+      overrideCheck: this.isPendingTimestampOffset_
     });
+    this.isPendingTimestampOffset_ = false;
 
     this.loadSegment_(segmentInfo);
   }
@@ -1988,17 +1996,30 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // segments with no data
     if (!segmentInfo.hasAppendedData_) {
+      if (!segmentInfo.timingInfo && typeof segmentInfo.timestampOffset === 'number') {
+        // When there's no audio or video data in the segment, there's no audio or video
+        // timing information.
+        //
+        // If there's no audio or video timing information, then the timestamp offset
+        // can't be adjusted to the appropriate value for the transmuxer and source
+        // buffers.
+        //
+        // Therefore, the next segment should be used to set the timestamp offset.
+        this.isPendingTimestampOffset_ = true;
+      }
+
       // override settings for metadata only segments
-      segmentInfo.timestampOffset = segmentInfo.startOfSegment;
       segmentInfo.timingInfo = {start: 0};
       segmentInfo.waitingOnAppends++;
 
-      // update the timestampoffset
-      this.updateSourceBufferTimestampOffset_(segmentInfo);
+      if (!this.isPendingTimestampOffset_) {
+        // update the timestampoffset
+        this.updateSourceBufferTimestampOffset_(segmentInfo);
 
-      // make sure the metadata queue is processed even though we have
-      // no video/audio data.
-      this.processMetadataQueue_();
+        // make sure the metadata queue is processed even though we have
+        // no video/audio data.
+        this.processMetadataQueue_();
+      }
 
       // append is "done" instantly with no data.
       this.checkAppendsDone_(segmentInfo);
