@@ -1954,6 +1954,8 @@ QUnit.module('SegmentLoader', function(hooks) {
         const origTransmuxerPostMessage =
           loader.transmuxer_.postMessage.bind(loader.transmuxer_);
 
+        // Keep track of appends and changes in timestamp offset to verify the right
+        // number of each were set.
         loader.appendToSourceBuffer_ = (config) => {
           appends.push(config);
           origAppendToSourceBuffer(config);
@@ -1981,6 +1983,10 @@ QUnit.module('SegmentLoader', function(hooks) {
           origTransmuxerPostMessage(message);
         };
 
+        // Load the playlist and the zero length segment. Note that the zero length
+        // segment is the first loaded segment, as it's an easy case for when a timestamp
+        // offset should be set, except in this case, when the first segment has no audio
+        // or video data.
         loader.playlist(playlistWithDuration(20));
         loader.load();
         this.clock.tick(1);
@@ -2009,6 +2015,8 @@ QUnit.module('SegmentLoader', function(hooks) {
           'one transmuxer timestamp offset'
         );
 
+        // Load the second segment, this time with audio and video data, and ensure that
+        // after its append the timestamp offset values are set.
         this.clock.tick(1);
         standardXHRResponse(this.requests.shift(), muxedSegment());
         return new Promise((resolve, reject) => {
@@ -2055,6 +2063,7 @@ QUnit.module('SegmentLoader', function(hooks) {
         const origTransmuxerPostMessage =
           loader.transmuxer_.postMessage.bind(loader.transmuxer_);
 
+        // Keep track of timestamp offsets change to verify the right number were set.
         sourceUpdater.audioTimestampOffset = (offset) => {
           if (!offset) {
             if (timestampOffsetOverride) {
@@ -2084,6 +2093,7 @@ QUnit.module('SegmentLoader', function(hooks) {
           origTransmuxerPostMessage(message);
         };
 
+        // Load the playlist and the first segment, as normal.
         loader.playlist(playlistWithDuration(20));
         loader.load();
         this.clock.tick(1);
@@ -2109,8 +2119,15 @@ QUnit.module('SegmentLoader', function(hooks) {
           'one transmuxer timestamp offset'
         );
 
-        // start of segment will be 10, which is before the overridden timestamp offset of
-        // 11
+        // Mock the buffer and timestamp offset to pretend the first segment had data from
+        // 11 to 21 seconds, normalized to 0 to 10 seconds in player time via a timestamp
+        // offset of 11.
+        //
+        // The next segment will use the buffered end of 10 seconds as its starting value,
+        // which starts before the timestamp offset of 11. However, even though the segment
+        // start is before the timestamp offset, it should be appended without changing the
+        // timestamp offset, as issues were seen when the timestamp offset was changed
+        // without an actual timeline change.
         buffered = videojs.createTimeRanges([[0, 10]]);
         timestampOffsetOverride = 11;
 
