@@ -2,7 +2,8 @@ import QUnit from 'qunit';
 import {
   default as SegmentLoader,
   illegalMediaSwitch,
-  safeBackBufferTrimTime
+  safeBackBufferTrimTime,
+  timestampOffsetForSegment
 } from '../src/segment-loader';
 import segmentTransmuxer from '../src/segment-transmuxer';
 import videojs from 'video.js';
@@ -28,7 +29,8 @@ import {
   mp4Audio as mp4AudioSegment,
   mp4AudioInit as mp4AudioInitSegment,
   encrypted as encryptedSegment,
-  encryptionKey
+  encryptionKey,
+  zeroLength as zeroLengthSegment
 } from 'create-test-data!segments';
 import sinon from 'sinon';
 
@@ -146,6 +148,70 @@ QUnit.test('illegalMediaSwitch detects illegal media switches', function(assert)
                ' To get rid of this message, please add codec information to the' +
                ' manifest.',
     'error when video only to audio only'
+  );
+});
+
+QUnit.module('timestampOffsetForSegment');
+
+QUnit.test('returns startOfSegment when timeline changes and the buffer is empty', function(assert) {
+  assert.equal(
+    timestampOffsetForSegment({
+      segmentTimeline: 1,
+      currentTimeline: 0,
+      startOfSegment: 3,
+      buffered: videojs.createTimeRanges()
+    }),
+    3,
+    'returned startOfSegment'
+  );
+});
+
+QUnit.test('returns buffered end when timeline changes and there exists buffered content', function(assert) {
+  assert.equal(
+    timestampOffsetForSegment({
+      segmentTimeline: 1,
+      currentTimeline: 0,
+      startOfSegment: 3,
+      buffered: videojs.createTimeRanges([[1, 5], [7, 8]])
+    }),
+    8,
+    'returned buffered end'
+  );
+});
+
+QUnit.test('returns null when timeline does not change', function(assert) {
+  assert.ok(
+    timestampOffsetForSegment({
+      segmentTimeline: 0,
+      currentTimeline: 0,
+      startOfSegment: 3,
+      buffered: videojs.createTimeRanges([[1, 5], [7, 8]])
+    }) === null,
+    'returned null'
+  );
+
+  assert.ok(
+    timestampOffsetForSegment({
+      segmentTimeline: 1,
+      currentTimeline: 1,
+      startOfSegment: 3,
+      buffered: videojs.createTimeRanges([[1, 5], [7, 8]])
+    }) === null,
+    'returned null'
+  );
+});
+
+QUnit.test('returns value when overrideCheck is true', function(assert) {
+  assert.equal(
+    timestampOffsetForSegment({
+      segmentTimeline: 0,
+      currentTimeline: 0,
+      startOfSegment: 3,
+      buffered: videojs.createTimeRanges([[1, 5], [7, 8]]),
+      overrideCheck: true
+    }),
+    8,
+    'returned buffered end'
   );
 });
 
@@ -1862,6 +1928,230 @@ QUnit.module('SegmentLoader', function(hooks) {
           appends[0].initSegment,
           appends[2].initSegment,
           'reused the init segment'
+        );
+      });
+    });
+
+    QUnit.test('waits to set source buffer timestamp offsets if zero data segment', function(assert) {
+      const appends = [];
+      const audioTimestampOffsets = [];
+      const videoTimestampOffsets = [];
+      const transmuxerTimestampOffsets = [];
+      const sourceUpdater = loader.sourceUpdater_;
+
+      // Mock text tracks on the mock tech because the segment contains text track data
+      loader.inbandTextTracks_ = {};
+      loader.hls_.tech_.addRemoteTextTrack = () => {
+        return { track: { addCue: () => {} } };
+      };
+
+      return setupMediaSource(loader.mediaSource_, sourceUpdater).then(() => {
+        const origAppendToSourceBuffer = loader.appendToSourceBuffer_.bind(loader);
+        const origAudioTimestampOffset =
+          sourceUpdater.audioTimestampOffset.bind(sourceUpdater);
+        const origVideoTimestampOffset =
+          sourceUpdater.videoTimestampOffset.bind(sourceUpdater);
+        const origTransmuxerPostMessage =
+          loader.transmuxer_.postMessage.bind(loader.transmuxer_);
+
+        // Keep track of appends and changes in timestamp offset to verify the right
+        // number of each were set.
+        loader.appendToSourceBuffer_ = (config) => {
+          appends.push(config);
+          origAppendToSourceBuffer(config);
+        };
+        sourceUpdater.audioTimestampOffset = (offset) => {
+          if (!offset) {
+            return audioTimestampOffsets.length ?
+              audioTimestampOffsets[audioTimestampOffsets.length - 1] : -1;
+          }
+          audioTimestampOffsets.push(offset);
+          origAudioTimestampOffset(offset);
+        };
+        sourceUpdater.videoTimestampOffset = (offset) => {
+          if (!offset) {
+            return videoTimestampOffsets.length ?
+              videoTimestampOffsets[videoTimestampOffsets.length - 1] : -1;
+          }
+          videoTimestampOffsets.push(offset);
+          origVideoTimestampOffset(offset);
+        };
+        loader.transmuxer_.postMessage = (message) => {
+          if (message.action === 'setTimestampOffset') {
+            transmuxerTimestampOffsets.push(message.timestampOffset);
+          }
+          origTransmuxerPostMessage(message);
+        };
+
+        // Load the playlist and the zero length segment. Note that the zero length
+        // segment is the first loaded segment, as it's an easy case for when a timestamp
+        // offset should be set, except in this case, when the first segment has no audio
+        // or video data.
+        loader.playlist(playlistWithDuration(20));
+        loader.load();
+        this.clock.tick(1);
+        standardXHRResponse(this.requests.shift(), zeroLengthSegment());
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        assert.equal(appends.length, 0, 'zero appends');
+        assert.equal(
+          audioTimestampOffsets.length,
+          0,
+          'zero audio source buffer timestamp offsets'
+        );
+        assert.equal(
+          videoTimestampOffsets.length,
+          0,
+          'zero video source buffer timestamp offsets'
+        );
+        // unlike the source buffer, which won't have data appended yet, the transmuxer
+        // timestamp offset should be updated since there may be ID3 data or metadata
+        assert.equal(
+          transmuxerTimestampOffsets.length,
+          1,
+          'one transmuxer timestamp offset'
+        );
+
+        // Load the second segment, this time with audio and video data, and ensure that
+        // after its append the timestamp offset values are set.
+        this.clock.tick(1);
+        standardXHRResponse(this.requests.shift(), muxedSegment());
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        this.clock.tick(1);
+
+        assert.equal(appends.length, 2, 'two appends');
+        assert.equal(
+          audioTimestampOffsets.length,
+          1,
+          'one audio source buffer timestamp offset'
+        );
+        assert.equal(
+          videoTimestampOffsets.length,
+          1,
+          'one video source buffer timestamp offset'
+        );
+        assert.equal(
+          transmuxerTimestampOffsets.length,
+          2,
+          'another transmuxer timestamp offset'
+        );
+      });
+    });
+
+    QUnit.test('sets timestamp offset on timeline changes but not if segment start is early', function(assert) {
+      const audioTimestampOffsets = [];
+      const videoTimestampOffsets = [];
+      const transmuxerTimestampOffsets = [];
+      const sourceUpdater = loader.sourceUpdater_;
+      let buffered = videojs.createTimeRanges();
+      let timestampOffsetOverride;
+
+      loader.buffered_ = () => buffered;
+
+      return setupMediaSource(loader.mediaSource_, sourceUpdater).then(() => {
+        const origAudioTimestampOffset =
+          sourceUpdater.audioTimestampOffset.bind(sourceUpdater);
+        const origVideoTimestampOffset =
+          sourceUpdater.videoTimestampOffset.bind(sourceUpdater);
+        const origTransmuxerPostMessage =
+          loader.transmuxer_.postMessage.bind(loader.transmuxer_);
+
+        // Keep track of timestamp offsets change to verify the right number were set.
+        sourceUpdater.audioTimestampOffset = (offset) => {
+          if (!offset) {
+            if (timestampOffsetOverride) {
+              return timestampOffsetOverride;
+            }
+            return audioTimestampOffsets.length ?
+              audioTimestampOffsets[audioTimestampOffsets.length - 1] : -1;
+          }
+          audioTimestampOffsets.push(offset);
+          origAudioTimestampOffset(offset);
+        };
+        sourceUpdater.videoTimestampOffset = (offset) => {
+          if (!offset) {
+            if (timestampOffsetOverride) {
+              return timestampOffsetOverride;
+            }
+            return videoTimestampOffsets.length ?
+              videoTimestampOffsets[videoTimestampOffsets.length - 1] : -1;
+          }
+          videoTimestampOffsets.push(offset);
+          origVideoTimestampOffset(offset);
+        };
+        loader.transmuxer_.postMessage = (message) => {
+          if (message.action === 'setTimestampOffset') {
+            transmuxerTimestampOffsets.push(message.timestampOffset);
+          }
+          origTransmuxerPostMessage(message);
+        };
+
+        // Load the playlist and the first segment, as normal.
+        loader.playlist(playlistWithDuration(20));
+        loader.load();
+        this.clock.tick(1);
+        standardXHRResponse(this.requests.shift(), muxedSegment());
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        assert.equal(
+          audioTimestampOffsets.length,
+          1,
+          'one audio source buffer timestamp offset'
+        );
+        assert.equal(
+          videoTimestampOffsets.length,
+          1,
+          'one video source buffer timestamp offset'
+        );
+        assert.equal(
+          transmuxerTimestampOffsets.length,
+          1,
+          'one transmuxer timestamp offset'
+        );
+
+        // Mock the buffer and timestamp offset to pretend the first segment had data from
+        // 11 to 21 seconds, normalized to 0 to 10 seconds in player time via a timestamp
+        // offset of 11.
+        //
+        // The next segment will use the buffered end of 10 seconds as its starting value,
+        // which starts before the timestamp offset of 11. However, even though the segment
+        // start is before the timestamp offset, it should be appended without changing the
+        // timestamp offset, as issues were seen when the timestamp offset was changed
+        // without an actual timeline change.
+        buffered = videojs.createTimeRanges([[0, 10]]);
+        timestampOffsetOverride = 11;
+
+        this.clock.tick(1);
+        standardXHRResponse(this.requests.shift(), muxedSegment());
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        assert.equal(
+          audioTimestampOffsets.length,
+          1,
+          'no extra audio source buffer timestamp offset'
+        );
+        assert.equal(
+          videoTimestampOffsets.length,
+          1,
+          'no extra video source buffer timestamp offset'
+        );
+        assert.equal(
+          transmuxerTimestampOffsets.length,
+          1,
+          'no extra transmuxer timestamp offset'
         );
       });
     });
