@@ -154,6 +154,15 @@ export default class VTTSegmentLoader extends SegmentLoader {
    * @param {number} end - the end time of the region to remove from the buffer
    */
   remove(start, end) {
+    // if we only have "one" segment we likely have the entire caption file in a single
+    // and in that case we shouldn't remove cues because they won't get re-added later on.
+    // Also, if we're live, we probably want to remove them still as more segments could be added.
+    if (this.playlist_ &&
+      this.playlist_.endList &&
+      this.playlist_.segments &&
+      this.playlist_.segments.length === 1) {
+      return;
+    }
     removeCuesFromTrack(start, end, this.subtitlesTrack_);
   }
 
