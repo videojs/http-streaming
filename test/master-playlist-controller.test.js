@@ -11,11 +11,13 @@ import {
   setupMediaSource,
   downloadProgress
 } from './test-helpers.js';
-import manifests from 'create-test-data!manifests';
 import {
-  MasterPlaylistController,
   DEFAULT_AUDIO_CODEC,
   DEFAULT_VIDEO_CODEC
+} from '@videojs/vhs-utils/dist/codecs.js';
+import manifests from 'create-test-data!manifests';
+import {
+  MasterPlaylistController
 } from '../src/master-playlist-controller';
 /* eslint-disable no-unused-vars */
 // we need this so that it can register hls with videojs

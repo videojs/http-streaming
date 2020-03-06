@@ -7,7 +7,7 @@ import {findBox} from 'mux.js/lib/mp4/probe';
 import {
   translateLegacyCodec,
   parseCodecs,
-  audioProfileFromDefault
+  codecsFromDefault
 } from '@videojs/vhs-utils/dist/codecs.js';
 
 /**
@@ -74,23 +74,28 @@ export const codecsForPlaylist = function(master, media) {
 
   // HLS with multiple-audio tracks must always get an audio codec.
   // Put another way, there is no way to have a video-only multiple-audio HLS!
-  if (isMaat(master, media) && !codecInfo.audioProfile) {
+  if (isMaat(master, media) && !codecInfo.audioCodec) {
     if (!isMuxed(master, media)) {
       // It is possible for codecs to be specified on the audio media group playlist but
       // not on the rendition playlist. This is mostly the case for DASH, where audio and
       // video are always separate (and separately specified).
-      codecInfo.audioProfile = audioProfileFromDefault(master, mediaAttributes.AUDIO);
+      const defaultCodecs = codecsFromDefault(master, mediaAttributes.AUDIO);
+
+      if (defaultCodecs) {
+        codecInfo.audio = defaultCodecs.audio;
+      }
+
     }
   }
 
   const codecs = {};
 
-  if (codecInfo.videoCodec) {
-    codecs.video = translateLegacyCodec(`${codecInfo.videoCodec}${codecInfo.videoObjectTypeIndicator}`);
+  if (codecInfo.video) {
+    codecs.video = translateLegacyCodec(`${codecInfo.video.type}${codecInfo.video.details}`);
   }
 
-  if (codecInfo.audioProfile) {
-    codecs.audio = translateLegacyCodec(`mp4a.40.${codecInfo.audioProfile}`);
+  if (codecInfo.audio) {
+    codecs.audio = translateLegacyCodec(`${codecInfo.audio.type}${codecInfo.audio.details}`);
   }
 
   return codecs;
@@ -98,26 +103,4 @@ export const codecsForPlaylist = function(master, media) {
 
 export const isLikelyFmp4Data = (bytes) => {
   return findBox(bytes, ['moof']).length > 0;
-};
-
-/*
- * Check if a codec string refers to an audio codec.
- *
- * @param {String} codec codec string to check
- * @return {Boolean} if this is an audio codec
- * @private
- */
-export const isAudioCodec = function(codec) {
-  return (/mp4a\.\d+.\d+/i).test(codec);
-};
-
-/**
- * Check if a codec string refers to a video codec.
- *
- * @param {string} codec codec string to check
- * @return {boolean} if this is a video codec
- * @private
- */
-export const isVideoCodec = function(codec) {
-  return (/avc1\.[\da-f]+/i).test(codec);
 };

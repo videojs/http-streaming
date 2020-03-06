@@ -17,16 +17,16 @@ import Decrypter from 'worker!./decrypter-worker.worker.js';
 import Config from './config';
 import {
   parseCodecs,
-  mapLegacyAvcCodecs
+  browserSupportsCodec,
+  muxerSupportsCodec,
+  DEFAULT_AUDIO_CODEC,
+  DEFAULT_VIDEO_CODEC
 } from '@videojs/vhs-utils/dist/codecs.js';
 import { codecsForPlaylist } from './util/codecs.js';
 import { createMediaTypes, setupMediaGroups } from './media-groups';
 import logger from './util/logger';
 
 const ABORT_EARLY_BLACKLIST_SECONDS = 60 * 2;
-
-export const DEFAULT_AUDIO_CODEC = 'mp4a.40.2';
-export const DEFAULT_VIDEO_CODEC = 'avc1.4d400d';
 
 let Hls;
 
@@ -292,7 +292,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     this.masterPlaylistLoader_.on('loadedplaylist', () => {
-      const updatedPlaylist = this.masterPlaylistLoader_.media();
+      let updatedPlaylist = this.masterPlaylistLoader_.media();
 
       if (!updatedPlaylist) {
         // blacklist any variants that are not supported by the browser before selecting
@@ -318,9 +318,26 @@ export class MasterPlaylistController extends videojs.EventTarget {
         // playlist's `segments` list is already available, a media playlist won't be
         // requested, and loadedplaylist won't fire again, so the playlist handler must be
         // called on its own here.
-        if (this.sourceType_ === 'vhs-json' && this.initialMedia_.segments) {
-          this.handleUpdatedMediaPlaylist(this.initialMedia_);
+        if (this.sourceType_ !== 'vhs-json' && !this.initialMedia_.segments) {
+          return;
         }
+        updatedPlaylist = this.initialMedia_;
+      }
+
+      const codecs = updatedPlaylist.attributes.CODECS;
+      const segments = updatedPlaylist.segments || [];
+
+      // For non-fmp4 segments we also need to blacklist based on what the
+      // muxer supports. As non-fmp4 goes through the muxer
+      // but we have to wait for a playlist to download before
+      // we can know if it is fmp4 or not, so we can only really blacklist just
+      // before a playlist would get choosen
+      if (codecs && !segments[0].map && !muxerSupportsCodec(codecs)) {
+        this.blacklistCurrentPlaylist({
+          playlist: updatedPlaylist,
+          message: `muxer does not support codec ${codecs}`,
+          noWarn: true
+        }, Infinity);
         return;
       }
 
@@ -912,9 +929,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // Select a new playlist
     const nextPlaylist = this.selectPlaylist();
 
-    videojs.log.warn('Problem encountered with the current playlist.' +
+    if (!error.noWarn) {
+      videojs.log.warn('Problem encountered with the current playlist.' +
                      (error.message ? ' ' + error.message : '') +
                      ' Switching to another playlist.');
+    }
 
     return this.masterPlaylistLoader_.media(nextPlaylist, isFinalRendition);
   }
@@ -1302,10 +1321,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
    */
   excludeUnsupportedVariants_() {
     this.master().playlists.forEach(variant => {
-      if (variant.attributes.CODECS &&
-          window.MediaSource &&
-          window.MediaSource.isTypeSupported &&
-          !window.MediaSource.isTypeSupported(`video/mp4; codecs="${mapLegacyAvcCodecs(variant.attributes.CODECS)}"`)) {
+      if (variant.attributes.CODECS && !browserSupportsCodec(variant.attributes.CODECS)) {
         variant.excludeUntil = Infinity;
       }
     });
@@ -1327,34 +1343,36 @@ export class MasterPlaylistController extends videojs.EventTarget {
    */
   excludeIncompatibleVariants_(media) {
     let codecCount = 2;
-    let videoCodec = null;
-    let codecs;
+    let codecs = {video: {}};
 
     if (media.attributes.CODECS) {
       codecs = parseCodecs(media.attributes.CODECS);
-      videoCodec = codecs.videoCodec;
-      codecCount = codecs.codecCount;
+      codecCount = Object.keys(codecs).length;
     }
 
     this.master().playlists.forEach(function(variant) {
-      let variantCodecs = {
-        codecCount: 2,
-        videoCodec: null
-      };
+      let variantCodecCount = 2;
+      let variantCodecs = {video: {}};
 
       if (variant.attributes.CODECS) {
         variantCodecs = parseCodecs(variant.attributes.CODECS);
+        variantCodecCount = Object.keys(variantCodecs).length;
       }
 
-      // if the streams differ in the presence or absence of audio or
-      // video, they are incompatible
-      if (variantCodecs.codecCount !== codecCount) {
+      // The number of streams cannot change
+      if (variantCodecCount !== codecCount) {
         variant.excludeUntil = Infinity;
       }
 
-      // if h.264 is specified on the current playlist, some flavor of
-      // it must be specified on all compatible variants
-      if (variantCodecs.videoCodec !== videoCodec) {
+      // the video codec cannot change
+      if (variantCodecs.video && codecs.video &&
+        variantCodecs.video.type !== codecs.video.type) {
+        variant.excludeUntil = Infinity;
+      }
+
+      // the audio codec cannot change
+      if (variantCodecs.audio && codecs.audio &&
+        variantCodecs.audio.type !== codecs.audio.type) {
         variant.excludeUntil = Infinity;
       }
     });

@@ -36,7 +36,7 @@ import {version as m3u8Version} from 'm3u8-parser/package.json';
 import {version as aesVersion} from 'aes-decrypter/package.json';
 // import needed to register middleware
 import './middleware-set-current-time';
-import {isAudioCodec, isVideoCodec} from './util/codecs';
+import {isAudioCodec, isVideoCodec} from '@videojs/vhs-utils/dist/codecs.js';
 
 const Hls = {
   PlaylistLoader,
