@@ -19,7 +19,13 @@
     label {
       display: block;
       width: 700px;
+      width: fit-content;
       margin-top: 4px;
+    }
+    .options label {
+      background-color: hsl(0, 0%, 90%);
+      padding: 0.25em;
+      margin: 0.25em;
     }
     input[type=url], select {
       min-width: 600px;
@@ -35,30 +41,32 @@
   </div>
   <h3>Options</h3>
 
-  <label>
-    <input id=minified type="checkbox">
-    Minified VHS (reloads player)
-  </label>
-  <label>
-    <input id=liveui type="checkbox">
-    Enable the live UI (reloads player)
-  </label>
-  <label>
-    <input id=debug type="checkbox">
-    Debug Logging
-  </label>
-  <label>
-    <input id=muted type="checkbox">
-    Muted
-  </label>
-  <label>
-    <input id=autoplay type="checkbox">
-    Autoplay
-  </label>
-  <label>
-    <input id=partial type="checkbox">
-    Handle Partial (reloads player)
-  </label>
+  <div class="options">
+    <label>
+      <input id=minified type="checkbox">
+      Minified VHS (reloads player)
+    </label>
+    <label>
+      <input id=liveui type="checkbox">
+      Enable the live UI (reloads player)
+    </label>
+    <label>
+      <input id=debug type="checkbox">
+      Debug Logging
+    </label>
+    <label>
+      <input id=muted type="checkbox">
+      Muted
+    </label>
+    <label>
+      <input id=autoplay type="checkbox">
+      Autoplay
+    </label>
+    <label>
+      <input id=partial type="checkbox">
+      Handle Partial (reloads player)
+    </label>
+  </div>
 
   <h3>Load a URL</h3>
   <label>Url:</label>
