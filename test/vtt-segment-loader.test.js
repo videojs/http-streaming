@@ -483,6 +483,86 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
     );
 
     QUnit.test(
+      'remove() removes all cues if duration_() === end and we have cues beyond duration',
+      function(assert) {
+        loader.dispose();
+
+        loader = new VTTSegmentLoader(LoaderCommonSettings.call(this, {
+          duration() {
+            return 10;
+          },
+          loaderType: 'vtt'
+        }), {});
+
+        const playlist = playlistWithDuration(10);
+
+        window.WebVTT.Parser = () => {
+          this.parserCreated = true;
+          return {
+            oncue() {},
+            onparsingerror() {},
+            onflush() {},
+            parse() {
+            },
+            flush() {}
+          };
+        };
+
+        window.WebVTT = oldVTT;
+
+        loader.playlist(playlist);
+        loader.track(this.track);
+        loader.load();
+
+        this.clock.tick(1);
+
+        const vttString = `
+        WEBVTT
+        X-TIMESTAMP-MAP=LOCAL:00:00:00.000,MPEGTS:0
+
+        00:00:03.000 --> 00:00:05.000
+        first cue
+
+        00:00:05.000 --> 00:00:06.000
+        second cue
+
+        00:00:07.000 --> 00:00:10.000
+        third cue
+
+        00:00:11.000 --> 00:00:15.000
+        fourth cue
+
+        00:00:16.000 --> 00:00:20.000
+        fifth cue
+      `;
+
+        // state WAITING for segment response
+        this.requests[0].responseType = 'arraybuffer';
+        this.requests.shift().respond(
+          200,
+          null,
+          new Uint8Array(vttString.trim().split('').map(char => char.charCodeAt(0))).buffer
+        );
+
+        this.clock.tick(1);
+
+        assert.equal(
+          loader.subtitlesTrack_.cues.length,
+          5,
+          'appended 5 cues'
+        );
+
+        loader.resetEverything();
+        assert.equal(
+          loader.subtitlesTrack_.cues.length,
+          0,
+          'all 5 cues have been removed'
+        );
+
+      }
+    );
+
+    QUnit.test(
       'Cues that overlap segment boundaries',
       function(assert) {
         const playlist = playlistWithDuration(20);
