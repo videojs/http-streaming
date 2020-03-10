@@ -154,6 +154,20 @@ export default class VTTSegmentLoader extends SegmentLoader {
    * @param {number} end - the end time of the region to remove from the buffer
    */
   remove(start, end) {
+    // If we only have "one" segment we likely have the all the captions in a single file,
+    // which is a common configuration for DASH and a possible one for HLS.
+    // It's possible that we have cues that end after the video duration, therefore,
+    // when removing from beginning to duration_(), we want to remove *all* the cues,
+    // and not just those through duration_().
+    // If we won't remove all the cues, checkBuffer_ will assume we're all set and we won't
+    // fill the buffer again with the missing cues.
+    if (this.playlist_ && this.playlist_.endList === true) {
+      const lastCue = this.subtitlesTrack_.cues[this.subtitlesTrack_.cues.length - 1];
+
+      if (end === this.duration_() && lastCue && lastCue.endTime > end) {
+        end = lastCue.endTime;
+      }
+    }
     removeCuesFromTrack(start, end, this.subtitlesTrack_);
   }
 
