@@ -12,6 +12,7 @@ import * as Ranges from './ranges';
 import videojs from 'video.js';
 import { updateAdCues } from './ad-cue-tags';
 import SyncController from './sync-controller';
+import TimelineChangeController from './timeline-change-controller';
 import Decrypter from 'worker!./decrypter-worker.worker.js';
 import Config from './config';
 import {
@@ -143,7 +144,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       inbandTextTracks: this.inbandTextTracks_,
       cacheEncryptionKeys,
       handlePartialData,
-      sourceUpdater: this.sourceUpdater_
+      sourceUpdater: this.sourceUpdater_,
+      timelineChangeController: new TimelineChangeController()
     };
 
     // The source type check not only determines whether a special DASH playlist loader

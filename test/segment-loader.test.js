@@ -1792,6 +1792,14 @@ QUnit.module('SegmentLoader', function(hooks) {
         loader.load();
         this.clock.tick(1);
 
+        // The main loader has to be the first to load a segment, so fake a main timeline
+        // change.
+        this.timelineChangeController.lastTimelineChange({
+          type: 'main',
+          from: -1,
+          to: 0
+        });
+
         // init
         standardXHRResponse(this.requests.shift(), mp4AudioInitSegment());
         // segment
