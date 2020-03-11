@@ -501,13 +501,23 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
   };
 
   const origResetEverything = segmentLoader.resetEverything;
+  const origRemove = segmentLoader.remove;
 
   segmentLoader.resetEverything = () => {
     resets++;
     origResetEverything.call(segmentLoader);
   };
 
-  segmentLoader.remove = function(start, end) {
+  segmentLoader.remove = (start, end) => {
+    assert.equal(end, Infinity, 'on a remove all, end should be Infinity');
+
+    origRemove.call(segmentLoader, start, end);
+  };
+
+  segmentLoader.startingMedia_ = { hasVideo: true };
+  segmentLoader.audioDisabled_ = true;
+
+  segmentLoader.sourceUpdater_.removeVideo = function(start, end) {
     removeFuncArgs = {
       start,
       end
