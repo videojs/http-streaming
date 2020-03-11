@@ -627,8 +627,8 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
 
         this.clock.tick(1);
 
-        this.requests[0].response = new Uint8Array(10).buffer;
-        this.requests.shift().respond(200, null, '');
+        this.requests[0].responseType = 'arraybuffer';
+        this.requests.shift().respond(200, null, new Uint8Array(10).buffer);
 
         this.clock.tick(1);
 
@@ -639,8 +639,8 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
 
         this.clock.tick(1);
 
-        this.requests[0].response = new Uint8Array(10).buffer;
-        this.requests.shift().respond(200, null, '');
+        this.requests[0].responseType = 'arraybuffer';
+        this.requests.shift().respond(200, null, new Uint8Array(10).buffer);
 
         this.clock.tick(1);
 
