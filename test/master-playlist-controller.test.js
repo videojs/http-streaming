@@ -391,11 +391,26 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  let segmentLoader = this.masterPlaylistController.mainSegmentLoader_;
+  const segmentLoader = this.masterPlaylistController.mainSegmentLoader_;
+  const originalResync = segmentLoader.resyncLoader;
+
+  segmentLoader.resyncLoader = function() {
+    resyncs++;
+    originalResync.call(segmentLoader);
+  };
+
+  const origResetEverything = segmentLoader.resetEverything;
+  const origRemove = segmentLoader.remove;
 
   segmentLoader.resyncLoader = () => resyncs++;
 
-  segmentLoader.remove = function(start, end) {
+  segmentLoader.remove = (start, end) => {
+    assert.equal(end, Infinity, 'on a remove all, end should be Infinity');
+
+    origRemove.call(segmentLoader, start, end);
+  };
+
+  segmentLoader.sourceUpdater_.remove = function(start, end) {
     removeFuncArgs = {
       start,
       end

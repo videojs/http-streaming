@@ -628,7 +628,12 @@ export default class SegmentLoader extends videojs.EventTarget {
   resetEverything(done) {
     this.ended_ = false;
     this.resetLoader();
-    this.remove(0, this.duration_(), done);
+
+    // remove from 0, the earliest point, to Infinity, to signify removal of everything.
+    // VTT Segment Loader doesn't need to do anything but in the regular SegmentLoader,
+    // we then clamp the value to duration if necessary.
+    this.remove(0, Infinity, done);
+
     // clears fmp4 captions
     if (this.captionParser_) {
       this.captionParser_.clearAllCaptions();
@@ -665,6 +670,13 @@ export default class SegmentLoader extends videojs.EventTarget {
    * operation is complete
    */
   remove(start, end, done) {
+    // clamp end to duration if we need to remove everything.
+    // This is due to a browser bug that causes issues if we remove to Infinity.
+    // videojs/videojs-contrib-hls#1225
+    if (end === Infinity) {
+      end = this.duration_();
+    }
+
     if (this.sourceUpdater_) {
       this.sourceUpdater_.remove(start, end, done);
     }
