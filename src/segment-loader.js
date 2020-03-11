@@ -775,7 +775,9 @@ export default class SegmentLoader extends videojs.EventTarget {
    * operation is complete
    */
   remove(start, end, done = () => {}) {
-    // clamp end to duration if we need to remove everything
+    // clamp end to duration if we need to remove everything.
+    // This is due to a browser bug that causes issues if we remove to Infinity.
+    // videojs/videojs-contrib-hls#1225
     if (end === Infinity) {
       end = this.duration_();
     }
