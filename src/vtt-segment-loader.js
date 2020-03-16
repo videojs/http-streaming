@@ -27,7 +27,10 @@ export default class VTTSegmentLoader extends SegmentLoader {
     this.mediaSource_ = null;
 
     this.subtitlesTrack_ = null;
+
+    this.featuresNativeTextTracks_ = settings.featuresNativeTextTracks;
   }
+
 
   /**
    * Indicates which time ranges are buffered
@@ -294,7 +297,9 @@ export default class VTTSegmentLoader extends SegmentLoader {
     }
 
     segmentInfo.cues.forEach((cue) => {
-      this.subtitlesTrack_.addCue(cue);
+      this.subtitlesTrack_.addCue(this.featuresNativeTextTracks_ ?
+        new window.VTTCue(cue.startTime, cue.endTime, cue.text) :
+        cue);
     });
 
     this.handleUpdateEnd_();
