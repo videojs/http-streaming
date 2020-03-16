@@ -158,6 +158,81 @@ export const timestampOffsetForSegment = ({
  * Returns whether or not the loader should wait for a timeline change from the timeline
  * change controller before processing the segment.
  *
+ * Primary timing in VHS goes by video. This is different from most media players, as
+ * audio is more often used as the primary timing source. For the foreseeable future, VHS
+ * will continue to use video as the primary timing source, due to the current logic and
+ * expectations built around it.
+
+ * Since the timing follows video, in order to maintain sync, the video loader is
+ * responsible for setting both audio and video source buffer timestamp offsets.
+ *
+ * Setting different values for audio and video source buffers could lead to
+ * desyncing. The following examples demonstrate some of the situations where this
+ * distinction is important. Note that all of these cases involve demuxed content. When
+ * content is muxed, the audio and video are packaged together, therefore syncing
+ * separate media playlists is not an issue.
+ *
+ * CASE 1: Audio prepares to load a new timeline before video:
+ *
+ * Timeline:       0                 1
+ * Audio Segments: 0 1 2 3 4 5 DISCO 6 7 8 9
+ * Audio Loader:                     ^
+ * Video Segments: 0 1 2 3 4 5 DISCO 6 7 8 9
+ * Video Loader              ^
+ *
+ * In the above example, the audio loader is preparing to load the 6th segment, the first
+ * after a discontinuity, while the video loader is still loading the 5th segment, before
+ * the discontinuity.
+ *
+ * If the audio loader goes ahead and loads and appends the 6th segment before the video
+ * loader crosses the discontinuity, then when appended, the 6th audio segment will use
+ * the timestamp offset from timeline 0. This will likely lead to desyncing. In addition,
+ * the audio loader must provide the audioAppendStart value to trim the content in the
+ * transmuxer, and that value relies on the audio timestamp offset. Since the audio
+ * timestamp offset is set by the video (main) loader, the audio loader shouldn't load the
+ * segment until that value is provided.
+ *
+ * CASE 2: Video prepares to load a new timeline before audio:
+ *
+ * Timeline:       0                 1
+ * Audio Segments: 0 1 2 3 4 5 DISCO 6 7 8 9
+ * Audio Loader:             ^
+ * Video Segments: 0 1 2 3 4 5 DISCO 6 7 8 9
+ * Video Loader                      ^
+ *
+ * In the above example, the video loader is preparing to load the 6th segment, the first
+ * after a discontinuity, while the audio loader is still loading the 5th segment, before
+ * the discontinuity.
+ *
+ * If the video loader goes ahead and loads and appends the 6th segment, then once the
+ * segment is loaded and processed, both the video and audio timestamp offsets will be
+ * set, since video is used as the primary timing source. This is to ensure content lines
+ * up appropriately, as any modifications to the video timing are reflected by audio when
+ * the video loader sets the audio and video timestamp offsets to the same value. However,
+ * setting the timestamp offset for audio before audio has had a chance to change
+ * timelines will likely lead to desyncing, as the audio loader will append segment 5 with
+ * a timestamp intended to apply to segments from timeline 1 rather than timeline 0.
+ *
+ * CASE 3: When seeking, audio prepares to load a new timeline before video
+ *
+ * Timeline:       0                 1
+ * Audio Segments: 0 1 2 3 4 5 DISCO 6 7 8 9
+ * Audio Loader:           ^
+ * Video Segments: 0 1 2 3 4 5 DISCO 6 7 8 9
+ * Video Loader            ^
+ *
+ * In the above example, both audio and video loaders are loading segments from timeline
+ * 0, but imagine that the seek originated from timeline 1.
+ *
+ * When seeking to a new timeline, the timestamp offset will be set based on the expected
+ * segment start of the loaded video segment. In order to maintain sync, the audio loader
+ * must wait for the video loader to load its segment and update both the audio and video
+ * timestamp offsets before it may load and append its own segment. This is the case
+ * whether the seek results in a mismatched segment request (e.g., the audio loader
+ * chooses to load segment 3 and the video loader chooses to load segment 4) or the
+ * loaders choose to load the same segment index from each playlist, as the segments may
+ * not be aligned perfectly, even for matching segment indexes.
+ *
  * @param {Object} timelinechangeController
  * @param {number} currentTimeline
  *        The timeline currently being followed by the loader
@@ -182,15 +257,6 @@ export const shouldWaitForTimelineChange = ({
   if (currentTimeline === segmentTimeline) {
     return false;
   }
-
-  // Primary timing goes by video. Audio is traditionally used as the primary timing
-  // source for media players, but this project has long used video, and will continue
-  // to do so for the foreseeable future.
-  //
-  // Since the timing follows video, in order to maintain sync, the video loader is
-  // responsible for setting both audio and video source buffer timestamp offsets.
-  // Setting different values for audio and video source buffers could lead to
-  // desyncing, as the underlying media times should be in sync.
 
   if (loaderType === 'audio') {
     const lastMainTimelineChange = timelineChangeController.lastTimelineChange({
@@ -227,7 +293,7 @@ export const shouldWaitForTimelineChange = ({
     // segments from the previous timeline would be adjusted by the new timestamp offset.
     //
     // This requirement means that video will not cross a timeline until the audio is
-    // about to cross to it, so that way audi and video will always cross the timeline
+    // about to cross to it, so that way audio and video will always cross the timeline
     // together.
     if (pendingAudioTimelineChange && pendingAudioTimelineChange.to === segmentTimeline) {
       return false;
@@ -307,6 +373,12 @@ export default class SegmentLoader extends videojs.EventTarget {
       video: null
     };
     this.callQueue_ = [];
+    // If the segment loader prepares to load a segment, but does not have enough
+    // information yet to start the loading process (e.g., if the audio loader wants to
+    // load a segment from the next timeline but the main loader hasn't yet crossed that
+    // timeline), then the load call will be added to the queue until it is ready to be
+    // processed (as determined by a check of whether there's enough information to append
+    // on an event the loader is listening for).
     this.loadQueue_ = [];
     this.metadataQueue_ = {
       id3: [],
@@ -1518,7 +1590,7 @@ export default class SegmentLoader extends videojs.EventTarget {
   processLoadQueue_() {
     const loadQueue = this.loadQueue_;
 
-    // this also takes care of any places within function calls where callQueue_.length is
+    // this also takes care of any places within function calls where loadQueue_.length is
     // checked
     this.loadQueue_ = [];
     loadQueue.forEach((fun) => fun());
