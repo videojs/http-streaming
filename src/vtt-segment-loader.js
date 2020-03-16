@@ -34,6 +34,8 @@ export default class VTTSegmentLoader extends SegmentLoader {
     this.subtitlesTrack_ = null;
 
     this.loaderType_ = 'subtitle';
+
+    this.featuresNativeTextTracks_ = settings.featuresNativeTextTracks;
   }
 
   createTransmuxer_() {
@@ -361,7 +363,9 @@ export default class VTTSegmentLoader extends SegmentLoader {
     segmentInfo.cues.forEach((cue) => {
       // remove any overlapping cues to prevent doubling
       this.remove(cue.startTime, cue.endTime);
-      this.subtitlesTrack_.addCue(cue);
+      this.subtitlesTrack_.addCue(this.featuresNativeTextTracks_ ?
+        new window.VTTCue(cue.startTime, cue.endTime, cue.text) :
+        cue);
     });
 
     this.handleAppendsDone_();

@@ -171,7 +171,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.subtitleSegmentLoader_ =
       new VTTSegmentLoader(videojs.mergeOptions(segmentLoaderSettings, {
-        loaderType: 'vtt'
+        loaderType: 'vtt',
+        featuresNativeTextTracks: this.tech_.featuresNativeTextTracks
       }), options);
 
     this.setupSegmentLoaderListeners_();
