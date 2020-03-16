@@ -1,3 +1,15 @@
+<a name="1.12.3"></a>
+## [1.12.3](https://github.com/videojs/http-streaming/compare/v1.12.2...v1.12.3) (2020-03-16)
+
+### Bug Fixes
+
+* **segment-loader:** resetEverything should remove through Infinity ([#754](https://github.com/videojs/http-streaming/issues/754)) ([#758](https://github.com/videojs/http-streaming/issues/758)) ([6ba1800](https://github.com/videojs/http-streaming/commit/6ba1800))
+* add native cues when using native text tracks ([#769](https://github.com/videojs/http-streaming/issues/769)) ([10d25d1](https://github.com/videojs/http-streaming/commit/10d25d1)), closes [videojs/video.js#6410](https://github.com/videojs/video.js/issues/6410)
+
+### Tests
+
+* skip flaky test ([#771](https://github.com/videojs/http-streaming/issues/771)) ([99bf807](https://github.com/videojs/http-streaming/commit/99bf807))
+
 <a name="1.12.2"></a>
 ## [1.12.2](https://github.com/videojs/http-streaming/compare/v1.12.1...v1.12.2) (2020-02-18)
 
