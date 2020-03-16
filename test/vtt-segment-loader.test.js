@@ -569,6 +569,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
         assert.ok(loader.subtitlesTrack_.cues.every(c => c instanceof window.VTTCue), 'added native VTTCues');
 
         this.env.log.warn.callCount = 0;
+        this.env.log.error.callCount = 0;
       }
     );
 
