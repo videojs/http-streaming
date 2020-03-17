@@ -3,7 +3,8 @@ import {
   default as SegmentLoader,
   illegalMediaSwitch,
   safeBackBufferTrimTime,
-  timestampOffsetForSegment
+  timestampOffsetForSegment,
+  shouldWaitForTimelineChange
 } from '../src/segment-loader';
 import segmentTransmuxer from '../src/segment-transmuxer';
 import videojs from 'video.js';
@@ -212,6 +213,173 @@ QUnit.test('returns value when overrideCheck is true', function(assert) {
     }),
     8,
     'returned buffered end'
+  );
+});
+
+QUnit.module('shouldWaitForTimelineChange');
+
+QUnit.test('should not wait if timelines are the same', function(assert) {
+  assert.notOk(
+    shouldWaitForTimelineChange({ currentTimeline: 1, segmentTimeline: 1 }),
+    'should not wait'
+  );
+});
+
+QUnit.test('should wait if audio and no main timeline change', function(assert) {
+  assert.ok(
+    shouldWaitForTimelineChange({
+      currentTimeline: 1,
+      segmentTimeline: 2,
+      loaderType: 'audio',
+      timelineChangeController: {
+        lastTimelineChange({ type }) {
+          return void 0;
+        }
+      }
+    }),
+    'should wait'
+  );
+});
+
+QUnit.test('should wait if audio and last main timeline change not audio segment\'s timeline', function(assert) {
+  assert.ok(
+    shouldWaitForTimelineChange({
+      currentTimeline: 1,
+      segmentTimeline: 2,
+      loaderType: 'audio',
+      timelineChangeController: {
+        lastTimelineChange({ type }) {
+          if (type === 'main') {
+            return { from: 0, to: 1 };
+          }
+        }
+      }
+    }),
+    'should wait'
+  );
+});
+
+QUnit.test('should not wait if audio and last main timeline matches audio segment\'s timeline', function(assert) {
+  assert.notOk(
+    shouldWaitForTimelineChange({
+      currentTimeline: 1,
+      segmentTimeline: 2,
+      loaderType: 'audio',
+      timelineChangeController: {
+        lastTimelineChange({ type }) {
+          if (type === 'main') {
+            return { from: 1, to: 2 };
+          }
+        }
+      }
+    }),
+    'should not wait'
+  );
+});
+
+QUnit.test('should not wait if audio and last main timeline matches audio segment\'s timeline', function(assert) {
+  assert.notOk(
+    shouldWaitForTimelineChange({
+      currentTimeline: 1,
+      segmentTimeline: 2,
+      loaderType: 'audio',
+      timelineChangeController: {
+        lastTimelineChange({ type }) {
+          if (type === 'main') {
+            return { from: 1, to: 2 };
+          }
+        }
+      }
+    }),
+    'should not wait'
+  );
+});
+
+QUnit.test('should not wait if main and audio enabled', function(assert) {
+  assert.notOk(
+    shouldWaitForTimelineChange({
+      currentTimeline: 1,
+      segmentTimeline: 2,
+      loaderType: 'main'
+    }),
+    'should not wait'
+  );
+});
+
+QUnit.test('should not wait if main and no audio timeline change', function(assert) {
+  assert.notOk(
+    shouldWaitForTimelineChange({
+      currentTimeline: 1,
+      segmentTimeline: 2,
+      loaderType: 'main',
+      timelineChangeController: {
+        lastTimelineChange({ type }) {
+          return void 0;
+        }
+      }
+    }),
+    'should not wait'
+  );
+});
+
+QUnit.test('should wait if main and no pending audio timeline change', function(assert) {
+  assert.notOk(
+    shouldWaitForTimelineChange({
+      currentTimeline: 1,
+      segmentTimeline: 2,
+      loaderType: 'main',
+      timelineChangeController: {
+        pendingTimelineChange({ type }) {
+          return void 0;
+        },
+        lastTimelineChange({ type }) {
+          return void 0;
+        }
+      }
+    }),
+    'should wait'
+  );
+});
+
+QUnit.test('should wait if main and pending audio timeline change doesn\'t match segment timeline', function(assert) {
+  assert.notOk(
+    shouldWaitForTimelineChange({
+      currentTimeline: 1,
+      segmentTimeline: 2,
+      loaderType: 'main',
+      timelineChangeController: {
+        pendingTimelineChange({ type }) {
+          if (type === 'audio') {
+            return { from: 0, to: 1 };
+          }
+        },
+        lastTimelineChange({ type }) {
+          return void 0;
+        }
+      }
+    }),
+    'should wait'
+  );
+});
+
+QUnit.test('should not wait if main and pending audio timeline change matches segment timeline', function(assert) {
+  assert.notOk(
+    shouldWaitForTimelineChange({
+      currentTimeline: 1,
+      segmentTimeline: 2,
+      loaderType: 'main',
+      timelineChangeController: {
+        pendingTimelineChange({ type }) {
+          if (type === 'audio') {
+            return { from: 1, to: 2 };
+          }
+        },
+        lastTimelineChange({ type }) {
+          return void 0;
+        }
+      }
+    }),
+    'should wait'
   );
 });
 
