@@ -16,75 +16,97 @@
       padding: 0 5px;
       margin: 20px 0;
     }
-    input {
-      margin-top: 15px;
-      min-width: 450px;
-      padding: 5px;
+    label {
+      display: block;
+      width: 700px;
+      width: fit-content;
+      margin-top: 4px;
+    }
+    .options label {
+      background-color: hsl(0, 0%, 90%);
+      padding: 0.25em;
+      margin: 0.25em;
+    }
+    input[type=url], select {
+      min-width: 600px;
+    }
+    h3 {
+      margin-bottom: 5px;
     }
   </style>
 
 </head>
 <body>
-  <div class="info">
-    <p>The video below is an <a href="https://developer.apple.com/library/ios/documentation/networkinginternet/conceptual/streamingmediaguide/Introduction/Introduction.html#//apple_ref/doc/uid/TP40008332-CH1-SW1">HTTP Live Stream</a>.</p>
+  <div id="player-fixture">
   </div>
-  <video-js id="videojs-http-streaming-player" class="vjs-default-skin" controls>
-    <source src="https://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8" type="application/x-mpegURL">
-  </video-js>
+  <h3>Options</h3>
 
-  <form id=load-url>
+  <div class="options">
     <label>
-      Video URL:
-      <input id=url type=url value="https://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8">
-    </label><br/>
-    <label>
-      MimeType:
-      <select id=mimetype>
-        <option>application/x-mpegURL</option>
-        <option>application/dash+xml</option>
-      </select>
+      <input id=minified type="checkbox">
+      Minified VHS (reloads player)
     </label>
-    <button type=submit>Load</button>
-  </form>
+    <label>
+      <input id=liveui type="checkbox">
+      Enable the live UI (reloads player)
+    </label>
+    <label>
+      <input id=debug type="checkbox">
+      Debug Logging
+    </label>
+    <label>
+      <input id=muted type="checkbox">
+      Muted
+    </label>
+    <label>
+      <input id=autoplay type="checkbox">
+      Autoplay
+    </label>
+    <label>
+      <input id=partial type="checkbox">
+      Handle Partial (reloads player)
+    </label>
+  </div>
+
+  <h3>Load a URL</h3>
+  <label>Url:</label>
+  <input id=url type=url>
+  <label>Type: (uses url extension if blank)</label>
+  <input id=type type=text>
+  <button id=load-url type=button>Load</button>
+  <h3>Load a Source</h3>
+  <select id=load-source>
+    <optgroup label="hls">
+      <option value="https://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8">Muxed TS with 1 alt Audio, 5 captions</option>
+      <option value="https://d2zihajmogu5jn.cloudfront.net/ts-fmp4/index.m3u8">FMP4 and ts both muxed</option>
+      <option value="https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8">FMP4 and captions muxed</option>
+      <option value="https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_adv_example_hevc/master.m3u8">FMP4 hevc</option>
+      <option value="https://storage.googleapis.com/shaka-demo-assets/angel-one-hls/hls.m3u8">FMP4 unmuxed, many audio/captions</option>
+      <option value="https://bitdash-a.akamaihd.net/content/MI201109210084_1/m3u8s-fmp4/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.m3u8">FMP4 unmuxed</option>
+      <option value="https://s3.amazonaws.com/bob.jwplayer.com/~alex/121628/new_master.m3u8">ts Audio only</option>
+
+      <option value="https://akamai-axtest.akamaized.net/routes/lapd-v1-acceptance/www_c4/Manifest.m3u8">ts Live</option>
+      <option value="https://playertest.longtailvideo.com/adaptive/oceans_aes/oceans_aes.m3u8">ts Encrypted</option>
+      <option value="https://bitmovin-a.akamaihd.net/content/sintel/hls/playlist.m3u8">ts with audio/subs and a 4k rendtion</option>
+    </optgroup>
+    <optgroup label="dash">
+      <option value="https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd">unmuxed audio/video</option>
+      <option value="https://vm2.dashif.org/livesim/mup_30/testpic_2s/Manifest.mpd">Live</option>
+      <option value="https://dash.akamaized.net/dash264/TestCases/10a/1/iis_forest_short_poem_multi_lang_480p_single_adapt_aaclc_sidx.mpd">Sidx unmuxed, 2 audio</option>
+    </optgroup>
+  </select>
+  <h3>Navigation</h3>
   <ul>
-    <li><a href="index.min.html">Use minified JavaScript.</a></li>
-    <li><a href="test/">Run unit tests in browser.</a></li>
+    <li><a href="test/debug.html">Run unit tests in browser.</a></li>
     <li><a href="docs/api/">Read generated docs.</a></li>
-    <li><a href="examples">Browse Examples</a></li>
     <li><a href="utils/stats/">Stats</a></li>
   </ul>
 
-  <script src="node_modules/video.js/dist/alt/video.core.js"></script>
-  <script src="node_modules/videojs-contrib-eme/dist/videojs-contrib-eme.js"></script>
-
-  <script src="dist/videojs-http-streaming.js"></script>
+  <script src="scripts/index-demo-page.js"></script>
   <script>
-    (function(window, videojs) {
-      var player = window.player = videojs('videojs-http-streaming-player', {
-        liveui: true,
-        html5: {
-          hls: {
-            overrideNative: !videojs.browser.IS_SAFARI
-          }
-        }
-      });
-
-      // configure videojs-contrib-eme
-      player.eme();
-
-      // hook up the video switcher
-      var loadUrl = document.getElementById('load-url');
-      var url = document.getElementById('url');
-      var mimeType = document.getElementById('mimetype');
-      loadUrl.addEventListener('submit', function(event) {
-        event.preventDefault();
-        player.src({
-          src: url.value,
-          type: mimeType.options[mimeType.selectedIndex].innerText
-        });
-        return false;
-      });
-    }(window, window.videojs));
+    window.startDemo(function(player) {
+      // do something with setup player
+    });
   </script>
-</body>
+  </body>
 </html>
