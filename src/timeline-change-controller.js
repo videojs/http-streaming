@@ -19,7 +19,7 @@ export default class TimelineChangeController extends videojs.EventTarget {
 
   clearPendingTimelineChange(type) {
     delete this.pendingTimelineChanges_[type];
-    this.trigger('timelinechange');
+    this.trigger('pendingtimelinechange');
   }
 
   pendingTimelineChange({ type, from, to }) {
