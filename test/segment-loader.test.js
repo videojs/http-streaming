@@ -752,6 +752,197 @@ QUnit.module('SegmentLoader', function(hooks) {
       });
     });
 
+    QUnit.test('audio loader waits to request segment until it has enough info', function(assert) {
+      loader.dispose();
+      loader = new SegmentLoader(LoaderCommonSettings.call(this, {
+        loaderType: 'audio'
+      }), {});
+
+      // Fake the last timeline change for main so audio loader has enough info to append
+      // the first segment. Second segment will involve the test, as that will have a
+      // timeline change for audio before the main loader has reached the change itself.
+      this.timelineChangeController.lastTimelineChange({
+        type: 'main',
+        from: -1,
+        to: 0
+      });
+
+      const playlist = playlistWithDuration(20);
+
+      playlist.discontinuityStarts = [1];
+      playlist.segments[1].timeline = 1;
+
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        loader.playlist(playlist);
+        loader.load();
+        this.clock.tick(1);
+
+        // segment 0
+        standardXHRResponse(this.requests.shift(), audioSegment());
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        this.clock.tick(1);
+
+        assert.equal(loader.state, 'WAITING', 'state is waiting on segment');
+        assert.equal(this.requests.length, 0, 'no requests because not enough info to load');
+        assert.equal(loader.loadQueue_.length, 1, 'one entry in load queue');
+      });
+    });
+
+    // In the event that the loader doesn't have enough info to load, the segment request
+    // will be part of the load queue until there's enough info. This test ensures that
+    // these calls can be successfully aborted.
+    QUnit.test('abort works when waiting to load', function(assert) {
+      loader.dispose();
+      loader = new SegmentLoader(LoaderCommonSettings.call(this, {
+        loaderType: 'audio'
+      }), {});
+
+      // Fake the last timeline change for main so audio loader has enough info to append
+      // the first segment. Second segment will involve the test, as that will have a
+      // timeline change for audio before the main loader has reached the change itself.
+      this.timelineChangeController.lastTimelineChange({
+        type: 'main',
+        from: -1,
+        to: 0
+      });
+
+      const playlist = playlistWithDuration(20);
+
+      playlist.discontinuityStarts = [1];
+      playlist.segments[1].timeline = 1;
+
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        loader.playlist(playlist);
+        loader.load();
+        this.clock.tick(1);
+
+        // segment 0
+        standardXHRResponse(this.requests.shift(), audioSegment());
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        this.clock.tick(1);
+
+        assert.equal(loader.state, 'WAITING', 'state is waiting on segment');
+        assert.equal(this.requests.length, 0, 'no requests because not enough info to load');
+        assert.equal(loader.loadQueue_.length, 1, 'one entry in load queue');
+
+        loader.abort();
+        assert.equal(loader.state, 'READY', 'aborted load');
+        assert.equal(loader.loadQueue_.length, 0, 'cleared load queue');
+      });
+    });
+
+    QUnit.test('processLoadQueue processes the load queue', function(assert) {
+      loader.dispose();
+      loader = new SegmentLoader(LoaderCommonSettings.call(this, {
+        loaderType: 'audio'
+      }), {});
+
+      // Fake the last timeline change for main so audio loader has enough info to append
+      // the first segment. Second segment will involve the test, as that will have a
+      // timeline change for audio before the main loader has reached the change itself.
+      this.timelineChangeController.lastTimelineChange({
+        type: 'main',
+        from: -1,
+        to: 0
+      });
+
+      const playlist = playlistWithDuration(20);
+
+      playlist.discontinuityStarts = [1];
+      playlist.segments[1].timeline = 1;
+
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        loader.playlist(playlist);
+        loader.load();
+        this.clock.tick(1);
+
+        // segment 0
+        standardXHRResponse(this.requests.shift(), audioSegment());
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        this.clock.tick(1);
+
+        assert.equal(loader.state, 'WAITING', 'state is waiting on segment');
+        assert.equal(this.requests.length, 0, 'no requests because not enough info to load');
+        assert.equal(loader.loadQueue_.length, 1, 'one entry in load queue');
+
+        loader.processLoadQueue_();
+
+        assert.equal(loader.state, 'WAITING', 'state is waiting on segment');
+        assert.equal(this.requests.length, 1, 'made a request');
+        assert.equal(loader.loadQueue_.length, 0, 'load queue is empty');
+      });
+    });
+
+    QUnit.test('audio loader checks to process load queue on timeline change', function(assert) {
+      loader.dispose();
+      loader = new SegmentLoader(LoaderCommonSettings.call(this, {
+        loaderType: 'audio'
+      }), {});
+
+      // Fake the last timeline change for main so audio loader has enough info to append
+      // the first segment. Second segment will involve the test, as that will have a
+      // timeline change for audio before the main loader has reached the change itself.
+      this.timelineChangeController.lastTimelineChange({
+        type: 'main',
+        from: -1,
+        to: 0
+      });
+
+      const playlist = playlistWithDuration(20);
+
+      playlist.discontinuityStarts = [1];
+      playlist.segments[1].timeline = 1;
+
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        loader.playlist(playlist);
+        loader.load();
+        this.clock.tick(1);
+
+        // segment 0
+        standardXHRResponse(this.requests.shift(), audioSegment());
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        this.clock.tick(1);
+
+        assert.equal(loader.state, 'WAITING', 'state is waiting on segment');
+        assert.equal(
+          this.requests.length,
+          0,
+          'no requests because not enough info to load'
+        );
+        assert.equal(loader.loadQueue_.length, 1, 'one entry in load queue');
+
+        this.timelineChangeController.lastTimelineChange({
+          type: 'main',
+          from: 0,
+          to: 1
+        });
+
+        assert.equal(loader.state, 'WAITING', 'state is waiting on segment');
+        assert.equal(this.requests.length, 1, 'made a request');
+        assert.equal(
+          loader.loadQueue_.length,
+          0,
+          'load queue is empty after main timeline caught up'
+        );
+      });
+    });
+
     QUnit.test('sets the timestampOffset on timeline change', function(assert) {
       const setTimestampOffsetMessages = [];
       let timestampOffsetEvents = 0;

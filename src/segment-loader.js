@@ -442,20 +442,13 @@ export default class SegmentLoader extends videojs.EventTarget {
     });
 
     this.sourceUpdater_.on('ready', () => {
-      if (this.loaderType_ === 'audio' &&
-          this.pendingSegment_ &&
-          this.hasEnoughInfoToLoad_()) {
-        this.processLoadQueue_();
-      }
       if (this.hasEnoughInfoToAppend_()) {
         this.processCallQueue_();
       }
     });
 
     this.timelineChangeController_.on('timelinechange', () => {
-      if (this.loaderType_ === 'audio' &&
-          this.pendingSegment_ &&
-          this.hasEnoughInfoToLoad_()) {
+      if (this.hasEnoughInfoToLoad_()) {
         this.processLoadQueue_();
       }
       if (this.hasEnoughInfoToAppend_()) {
@@ -1610,6 +1603,12 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     const segmentInfo = this.pendingSegment_;
+
+    // A fill buffer must have already run to establish a pending segment before there's
+    // enough info to load.
+    if (!segmentInfo) {
+      return false;
+    }
 
     // Always can load the first segment, and have to so that source buffers are created
     // together (before appending)
