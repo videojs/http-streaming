@@ -581,12 +581,14 @@ function(assert) {
   playbackWatcher.tech_ = {
     off: () => {},
     seeking: () => seeking,
+    setCurrentTime: (time) => {
+      seeks.push(time);
+    },
     currentTime: () => currentTime,
     // mocked out
     paused: () => false,
     buffered: () => videojs.createTimeRanges()
   };
-  this.player.vhs.setCurrentTime = (time) => seeks.push(time);
 
   playbackWatcher.allowSeeksWithinUnsafeLiveWindow = true;
 
