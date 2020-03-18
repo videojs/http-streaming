@@ -509,6 +509,10 @@ class HlsHandler extends Component {
     this.options_.tech = this.tech_;
     this.options_.externHls = Hls;
     this.options_.sourceType = simpleTypeFromSourceType(type);
+    // Whenever we seek internally, we should update the tech
+    this.options_.seekTo = (time) => {
+      this.tech_.setCurrentTime(time);
+    };
 
     this.masterPlaylistController_ = new MasterPlaylistController(this.options_);
     this.playbackWatcher_ = new PlaybackWatcher(
