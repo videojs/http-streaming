@@ -272,14 +272,6 @@ export const shouldWaitForTimelineChange = ({
 
   // if the audio loader (for demuxed audio) is not active, there's nothing to wait for
   if (loaderType === 'main' && audioDisabled) {
-    const lastAudioTimelineChange = timelineChangeController.lastTimelineChange({
-      type: 'audio'
-    });
-
-    if (!lastAudioTimelineChange) {
-      return false;
-    }
-
     const pendingAudioTimelineChange = timelineChangeController.pendingTimelineChange({
       type: 'audio'
     });
@@ -295,6 +287,10 @@ export const shouldWaitForTimelineChange = ({
     // This requirement means that video will not cross a timeline until the audio is
     // about to cross to it, so that way audio and video will always cross the timeline
     // together.
+    //
+    // Note that this also includes the first segment request to prevent the main loader
+    // from crossing a second timeline before the audio loader has loaded a segment from
+    // the first.
     if (pendingAudioTimelineChange && pendingAudioTimelineChange.to === segmentTimeline) {
       return false;
     }
@@ -447,20 +443,25 @@ export default class SegmentLoader extends videojs.EventTarget {
       }
     });
 
-    this.timelineChangeController_.on('timelinechange', () => {
-      if (this.hasEnoughInfoToLoad_()) {
-        this.processLoadQueue_();
-      }
-      if (this.hasEnoughInfoToAppend_()) {
-        this.processCallQueue_();
-      }
-    });
     // Only the main loader needs to listen for pending timeline changes, as the main
     // loader should wait for audio to be ready to change its timeline so that both main
-    // and audio timelines change together. For more details, see the comment in the
+    // and audio timelines change together. For more details, see the
     // shouldWaitForTimelineChange function.
     if (this.loaderType_ === 'main') {
       this.timelineChangeController_.on('pendingtimelinechange', () => {
+        if (this.hasEnoughInfoToAppend_()) {
+          this.processCallQueue_();
+        }
+      });
+    }
+    // The main loader only listens on pending timeline changes, but the audio loader,
+    // since its loads follow main, needs to listen on timeline changes. For more details,
+    // see the shouldWaitForTimelineChange function.
+    if (this.loaderType_ === 'audio') {
+      this.timelineChangeController_.on('timelinechange', () => {
+        if (this.hasEnoughInfoToLoad_()) {
+          this.processLoadQueue_();
+        }
         if (this.hasEnoughInfoToAppend_()) {
           this.processCallQueue_();
         }
