@@ -119,7 +119,7 @@ QUnit.test('saves pending timeline changes from different types', function(asser
   );
 });
 
-QUnit.test('triggers timelinechange event on timeline change', function(assert) {
+QUnit.test('triggers timelinechange event on timeline changes', function(assert) {
   let timelineChanges = 0;
 
   this.timelineChangeController.on('timelinechange', () => timelineChanges++);
@@ -148,7 +148,7 @@ QUnit.test('triggers timelinechange event on timeline change', function(assert) 
   assert.equal(timelineChanges, 3, 'triggered timelinechange event');
 });
 
-QUnit.test('triggers pendingtimelinechange event on timeline change', function(assert) {
+QUnit.test('triggers pendingtimelinechange event on pending timeline changes', function(assert) {
   let pendingTimelineChanges = 0;
 
   this.timelineChangeController.on(
@@ -209,7 +209,7 @@ QUnit.test('timeline change deletes pending timeline change', function(assert) {
   );
 });
 
-QUnit.test('clear pending deletes and triggers timelinechange', function(assert) {
+QUnit.test('clear pending deletes and triggers pendingtimelinechange', function(assert) {
   let pendingTimelineChanges = 0;
 
   this.timelineChangeController.on(

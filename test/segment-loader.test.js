@@ -379,7 +379,7 @@ QUnit.test('should not wait if main and pending audio timeline change matches se
         }
       }
     }),
-    'should wait'
+    'should not wait'
   );
 });
 
@@ -1232,58 +1232,6 @@ QUnit.module('SegmentLoader', function(hooks) {
           },
           'added last timeline change for audio'
         );
-      });
-    });
-
-    QUnit.test('audio loader checks to process append queue on timeline change', function(assert) {
-      const done = assert.async();
-
-      assert.expect(3);
-      loader.dispose();
-      loader = new SegmentLoader(LoaderCommonSettings.call(this, {
-        loaderType: 'audio'
-      }), {});
-
-      let ranFinish = false;
-
-      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
-        const origFinish = loader.segmentRequestFinished_.bind(loader);
-
-        // Although overriding the internal function isn't the cleanest way to test, it's
-        // difficult to try to catch the moment where the segment is finished and in the
-        // queue, but not yet processed and appending.
-        loader.segmentRequestFinished_ = (error, simpleSegment, result) => {
-          origFinish(error, simpleSegment, result);
-
-          // call queue should have an entry for this function, but only want to run
-          // through this logic once
-          if (ranFinish) {
-            return;
-          }
-
-          ranFinish = true;
-
-          // segment request finished, but the loader is waiting on main to have a
-          // timeline change
-          assert.equal(loader.state, 'WAITING', 'state is waiting');
-
-          // the timeline change should trigger an append
-          loader.on('appending', () => {
-            done();
-          });
-
-          this.timelineChangeController.lastTimelineChange({
-            type: 'main',
-            from: -1,
-            to: 0
-          });
-        };
-
-        loader.playlist(playlistWithDuration(20));
-        loader.load();
-        this.clock.tick(1);
-        // segment 0
-        standardXHRResponse(this.requests.shift(), audioSegment());
       });
     });
 
