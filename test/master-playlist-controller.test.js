@@ -1304,8 +1304,6 @@ QUnit.test('does not select a playlist after segment downloads if only one playl
   // and another
   this.masterPlaylistController.mainSegmentLoader_.trigger('bandwidthupdate');
   assert.strictEqual(calls, 3, 'selects after additional segments');
-  // verify stats
-  assert.equal(this.player.tech_.hls.stats.bandwidth, 4194304, 'default bandwidth');
 });
 
 QUnit.test('re-triggers bandwidthupdate events on the tech', function(assert) {
