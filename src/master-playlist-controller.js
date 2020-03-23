@@ -42,6 +42,11 @@ const sumLoaderStat = function(stat) {
 const shouldSwitchToMedia = function({
   currentPlaylist, nextPlaylist, forwardBuffer, bufferLowWaterLine, duration
 }) {
+  // we have no other playlist to switch to
+  if (!nextPlaylist) {
+    return false;
+  }
+
   // If the playlist is live, then we want to not take low water line into account.
   // This is because in LIVE, the player plays 3 segments from the end of the
   // playlist, and if `BUFFER_LOW_WATER_LINE` is greater than the duration availble
