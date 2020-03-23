@@ -40,10 +40,16 @@ const sumLoaderStat = function(stat) {
          this.mainSegmentLoader_[stat];
 };
 const shouldSwitchToMedia = function({
-  currentPlaylist, nextPlaylist, forwardBuffer, bufferLowWaterLine, duration
+  currentPlaylist,
+  nextPlaylist,
+  forwardBuffer,
+  bufferLowWaterLine,
+  duration,
+  log
 }) {
   // we have no other playlist to switch to
   if (!nextPlaylist) {
+    videojs.log.warn('We received no playlist to switch to. Please check your stream.');
     return false;
   }
 
@@ -465,7 +471,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
             nextPlaylist,
             forwardBuffer,
             bufferLowWaterLine,
-            duration: this.duration()
+            duration: this.duration(),
+            log: this.logger_
           })) {
         this.masterPlaylistLoader_.media(nextPlaylist);
       }

@@ -1284,8 +1284,11 @@ QUnit.test('selects a playlist after main/combined segment downloads', function(
 });
 
 QUnit.test('does not select a playlist after segment downloads if only one playlist', function(assert) {
+  const origWarn = videojs.log.warn;
   let calls = 0;
+  let warnings = [];
 
+  videojs.log.warn = (text) => warnings.push(text);
   this.masterPlaylistController.selectPlaylist = () => {
     calls++;
     return null;
@@ -1301,9 +1304,14 @@ QUnit.test('does not select a playlist after segment downloads if only one playl
   this.masterPlaylistController.mainSegmentLoader_.trigger('bandwidthupdate');
   assert.strictEqual(calls, 2, 'selects after the initial segment');
 
-  // and another
-  this.masterPlaylistController.mainSegmentLoader_.trigger('bandwidthupdate');
-  assert.strictEqual(calls, 3, 'selects after additional segments');
+  assert.equal(warnings.length, 1, 'one warning logged');
+  assert.equal(
+    warnings[0],
+    'We received no playlist to switch to. Please check your stream.',
+    'we logged the correct warning'
+  );
+
+  videojs.log.warn = origWarn;
 });
 
 QUnit.test('re-triggers bandwidthupdate events on the tech', function(assert) {
