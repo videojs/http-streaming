@@ -1283,6 +1283,31 @@ QUnit.test('selects a playlist after main/combined segment downloads', function(
   assert.equal(this.player.tech_.hls.stats.bandwidth, 4194304, 'default bandwidth');
 });
 
+QUnit.test('does not select a playlist after segment downloads if only one playlist', function(assert) {
+  let calls = 0;
+
+  this.masterPlaylistController.selectPlaylist = () => {
+    calls++;
+    return null;
+  };
+  this.masterPlaylistController.mediaSource.trigger('sourceopen');
+
+  // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  // "downloaded" a segment
+  this.masterPlaylistController.mainSegmentLoader_.trigger('bandwidthupdate');
+  assert.strictEqual(calls, 2, 'selects after the initial segment');
+
+  // and another
+  this.masterPlaylistController.mainSegmentLoader_.trigger('bandwidthupdate');
+  assert.strictEqual(calls, 3, 'selects after additional segments');
+  // verify stats
+  assert.equal(this.player.tech_.hls.stats.bandwidth, 4194304, 'default bandwidth');
+});
+
 QUnit.test('re-triggers bandwidthupdate events on the tech', function(assert) {
   this.masterPlaylistController.mediaSource.trigger('sourceopen');
   // master
