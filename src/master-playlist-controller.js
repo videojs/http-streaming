@@ -429,15 +429,16 @@ export class MasterPlaylistController extends videojs.EventTarget {
       // This is because in LIVE, the player plays 3 segments from the end of the
       // playlist, and if `BUFFER_LOW_WATER_LINE` is greater than the duration availble
       // in those segments, a viewer will never experience a rendition upswitch.
-      if (!currentPlaylist.endList ||
-          // For the same reason as LIVE, we ignore the low water line when the VOD
-          // duration is below the max potential low water line
-          this.duration() < Config.MAX_BUFFER_LOW_WATER_LINE ||
-          // we want to switch down to lower resolutions quickly to continue playback, but
-          nextPlaylist.attributes.BANDWIDTH < currentPlaylist.attributes.BANDWIDTH ||
-          // ensure we have some buffer before we switch up to prevent us running out of
-          // buffer while loading a higher rendition.
-          forwardBuffer >= bufferLowWaterLine) {
+      if (nextPlaylist &&
+          (!currentPlaylist.endList ||
+           // For the same reason as LIVE, we ignore the low water line when the VOD
+           // duration is below the max potential low water line
+           this.duration() < Config.MAX_BUFFER_LOW_WATER_LINE ||
+           // we want to switch down to lower resolutions quickly to continue playback, but
+           nextPlaylist.attributes.BANDWIDTH < currentPlaylist.attributes.BANDWIDTH ||
+           // ensure we have some buffer before we switch up to prevent us running out of
+           // buffer while loading a higher rendition.
+           forwardBuffer >= bufferLowWaterLine)) {
         this.masterPlaylistLoader_.media(nextPlaylist);
       }
 
