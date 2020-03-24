@@ -474,13 +474,13 @@ export class MasterPlaylistController extends videojs.EventTarget {
       const bufferLowWaterLine = this.bufferLowWaterLine();
 
       if (shouldSwitchToMedia({
-            currentPlaylist,
-            nextPlaylist,
-            forwardBuffer,
-            bufferLowWaterLine,
-            duration: this.duration(),
-            log: this.logger_
-          })) {
+        currentPlaylist,
+        nextPlaylist,
+        forwardBuffer,
+        bufferLowWaterLine,
+        duration: this.duration(),
+        log: this.logger_
+      })) {
         this.masterPlaylistLoader_.media(nextPlaylist);
       }
 

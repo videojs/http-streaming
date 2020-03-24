@@ -1461,7 +1461,7 @@ QUnit.test('selects a playlist after main/combined segment downloads', function(
 QUnit.test('does not select a playlist after segment downloads if only one playlist', function(assert) {
   const origWarn = videojs.log.warn;
   let calls = 0;
-  let warnings = [];
+  const warnings = [];
 
   videojs.log.warn = (text) => warnings.push(text);
   this.masterPlaylistController.selectPlaylist = () => {
