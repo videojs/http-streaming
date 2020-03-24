@@ -38,7 +38,7 @@ test/dist/
 
 # this file is generated and shouldn't be checked in
 src/decrypter-worker.worker.js
+src/mse/transmuxer-worker.worker.js
 src/transmuxer-worker.worker.js
 
 .eslintcache
-.yo-rc.json

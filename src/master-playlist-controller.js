@@ -43,6 +43,47 @@ const sumLoaderStat = function(stat) {
   return this.audioSegmentLoader_[stat] +
          this.mainSegmentLoader_[stat];
 };
+const shouldSwitchToMedia = function({
+  currentPlaylist,
+  nextPlaylist,
+  forwardBuffer,
+  bufferLowWaterLine,
+  duration,
+  log
+}) {
+  // we have no other playlist to switch to
+  if (!nextPlaylist) {
+    videojs.log.warn('We received no playlist to switch to. Please check your stream.');
+    return false;
+  }
+
+  // If the playlist is live, then we want to not take low water line into account.
+  // This is because in LIVE, the player plays 3 segments from the end of the
+  // playlist, and if `BUFFER_LOW_WATER_LINE` is greater than the duration availble
+  // in those segments, a viewer will never experience a rendition upswitch.
+  if (!currentPlaylist.endList) {
+    return true;
+  }
+
+  // For the same reason as LIVE, we ignore the low water line when the VOD
+  // duration is below the max potential low water line
+  if (duration < Config.MAX_BUFFER_LOW_WATER_LINE) {
+    return true;
+  }
+
+  // we want to switch down to lower resolutions quickly to continue playback, but
+  if (nextPlaylist.attributes.BANDWIDTH < currentPlaylist.attributes.BANDWIDTH) {
+    return true;
+  }
+
+  // ensure we have some buffer before we switch up to prevent us running out of
+  // buffer while loading a higher rendition.
+  if (forwardBuffer >= bufferLowWaterLine) {
+    return true;
+  }
+
+  return false;
+};
 
 /**
  * the master playlist controller controller all interactons
@@ -432,19 +473,14 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
       const bufferLowWaterLine = this.bufferLowWaterLine();
 
-      // If the playlist is live, then we want to not take low water line into account.
-      // This is because in LIVE, the player plays 3 segments from the end of the
-      // playlist, and if `BUFFER_LOW_WATER_LINE` is greater than the duration availble
-      // in those segments, a viewer will never experience a rendition upswitch.
-      if (!currentPlaylist.endList ||
-          // For the same reason as LIVE, we ignore the low water line when the VOD
-          // duration is below the max potential low water line
-          this.duration() < Config.MAX_BUFFER_LOW_WATER_LINE ||
-          // we want to switch down to lower resolutions quickly to continue playback, but
-          nextPlaylist.attributes.BANDWIDTH < currentPlaylist.attributes.BANDWIDTH ||
-          // ensure we have some buffer before we switch up to prevent us running out of
-          // buffer while loading a higher rendition.
-          forwardBuffer >= bufferLowWaterLine) {
+      if (shouldSwitchToMedia({
+        currentPlaylist,
+        nextPlaylist,
+        forwardBuffer,
+        bufferLowWaterLine,
+        duration: this.duration(),
+        log: this.logger_
+      })) {
         this.masterPlaylistLoader_.media(nextPlaylist);
       }
 
