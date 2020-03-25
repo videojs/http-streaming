@@ -654,7 +654,7 @@ a major version change.
 HLS usage events are triggered on the tech with the exception of the 3 hls-reload-error
 events, which are triggered on the player.
 
-To listen for usage events, listen for the event type of `'usage'`:
+To listen for usage events triggered on the tech, listen for the event type of `'usage'`:
 
 ```javascript
 player.on('ready', () => {
@@ -663,6 +663,10 @@ player.on('ready', () => {
   });
 });
 ```
+
+Note that these events are triggered as soon as a case is encountered, and often only
+once. For example, the `hls-demuxed` usage event will be triggered as soon as the master
+manifest is downloaded and parsed, and will not be triggered again.
 
 #### Presence Stats
 
