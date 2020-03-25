@@ -225,7 +225,7 @@ QUnit.test('should not wait if timelines are the same', function(assert) {
   );
 });
 
-QUnit.test('should wait if audio and no main timeline change', function(assert) {
+QUnit.test('audio loader waits if no main timeline change', function(assert) {
   assert.ok(
     shouldWaitForTimelineChange({
       currentTimeline: 1,
@@ -241,7 +241,7 @@ QUnit.test('should wait if audio and no main timeline change', function(assert) 
   );
 });
 
-QUnit.test('should wait if audio and last main timeline change not audio segment\'s timeline', function(assert) {
+QUnit.test('audio loader waits if last main timeline change not on audio segment\'s timeline', function(assert) {
   assert.ok(
     shouldWaitForTimelineChange({
       currentTimeline: 1,
@@ -259,7 +259,7 @@ QUnit.test('should wait if audio and last main timeline change not audio segment
   );
 });
 
-QUnit.test('should not wait if audio and last main timeline matches audio segment\'s timeline', function(assert) {
+QUnit.test('audio loader does not wait if last main timeline matches audio segment\'s timeline', function(assert) {
   assert.notOk(
     shouldWaitForTimelineChange({
       currentTimeline: 1,
@@ -277,7 +277,7 @@ QUnit.test('should not wait if audio and last main timeline matches audio segmen
   );
 });
 
-QUnit.test('should not wait if audio and last main timeline matches audio segment\'s timeline', function(assert) {
+QUnit.test('audio loader does not wait if last main timeline matches audio segment\'s timeline', function(assert) {
   assert.notOk(
     shouldWaitForTimelineChange({
       currentTimeline: 1,
@@ -295,7 +295,7 @@ QUnit.test('should not wait if audio and last main timeline matches audio segmen
   );
 });
 
-QUnit.test('should not wait if main and audio enabled', function(assert) {
+QUnit.test('main loader does not wait if audio enabled', function(assert) {
   assert.notOk(
     shouldWaitForTimelineChange({
       currentTimeline: 1,
@@ -306,7 +306,7 @@ QUnit.test('should not wait if main and audio enabled', function(assert) {
   );
 });
 
-QUnit.test('should not wait if main and no audio timeline change', function(assert) {
+QUnit.test('main loader does not wait if no audio timeline change', function(assert) {
   assert.notOk(
     shouldWaitForTimelineChange({
       currentTimeline: 1,
@@ -322,7 +322,7 @@ QUnit.test('should not wait if main and no audio timeline change', function(asse
   );
 });
 
-QUnit.test('should wait if main and no pending audio timeline change', function(assert) {
+QUnit.test('main loader waits if no pending audio timeline change', function(assert) {
   assert.notOk(
     shouldWaitForTimelineChange({
       currentTimeline: 1,
@@ -341,7 +341,7 @@ QUnit.test('should wait if main and no pending audio timeline change', function(
   );
 });
 
-QUnit.test('should wait if main and pending audio timeline change doesn\'t match segment timeline', function(assert) {
+QUnit.test('main loader waits if pending audio timeline change doesn\'t match segment timeline', function(assert) {
   assert.notOk(
     shouldWaitForTimelineChange({
       currentTimeline: 1,
@@ -362,7 +362,7 @@ QUnit.test('should wait if main and pending audio timeline change doesn\'t match
   );
 });
 
-QUnit.test('should not wait if main and pending audio timeline change matches segment timeline', function(assert) {
+QUnit.test('main loader does not wait if pending audio timeline change matches segment timeline', function(assert) {
   assert.notOk(
     shouldWaitForTimelineChange({
       currentTimeline: 1,
