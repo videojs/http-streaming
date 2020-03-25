@@ -38,4 +38,9 @@ export default class TimelineChangeController extends videojs.EventTarget {
     }
     return this.lastTimelineChanges_[type];
   }
+
+  dispose() {
+    this.trigger('dispose');
+    this.off();
+  }
 }

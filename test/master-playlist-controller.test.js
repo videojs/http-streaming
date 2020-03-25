@@ -4133,3 +4133,15 @@ QUnit.test(
     assert.equal(mpc.mediaSource.duration, 11, 'media source duration set to 11');
   }
 );
+
+QUnit.test('disposes timeline change controller on dispose', function(assert) {
+  let disposes = 0;
+
+  this.masterPlaylistController.timelineChangeController_.on('dispose', () => {
+    disposes++;
+  });
+
+  this.masterPlaylistController.dispose();
+
+  assert.equal(disposes, 1, 'disposed timeline change controller');
+});

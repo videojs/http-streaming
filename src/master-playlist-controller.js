@@ -127,6 +127,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.decrypter_ = new Decrypter();
     this.sourceUpdater_ = new SourceUpdater(this.mediaSource);
     this.inbandTextTracks_ = {};
+    this.timelineChangeController_ = new TimelineChangeController();
 
     const segmentLoaderSettings = {
       hls: this.hls_,
@@ -145,7 +146,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       cacheEncryptionKeys,
       handlePartialData,
       sourceUpdater: this.sourceUpdater_,
-      timelineChangeController: new TimelineChangeController()
+      timelineChangeController: this.timelineChangeController_
     };
 
     // The source type check not only determines whether a special DASH playlist loader
@@ -1148,6 +1149,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.audioSegmentLoader_.dispose();
     this.subtitleSegmentLoader_.dispose();
     this.sourceUpdater_.dispose();
+    this.timelineChangeController_.dispose();
     this.off();
   }
 

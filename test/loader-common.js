@@ -66,6 +66,7 @@ export const LoaderCommonHooks = {
     this.env.restore();
     this.decrypter.terminate();
     this.sourceUpdater.dispose();
+    this.timelineChangeController.dispose();
   }
 };
 
