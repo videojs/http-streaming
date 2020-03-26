@@ -1,3 +1,19 @@
+<a name="1.13.0"></a>
+# [1.13.0](https://github.com/videojs/http-streaming/compare/v1.12.3...v1.13.0) (2020-03-26)
+
+### Bug Fixes
+
+* null check return value of selectPlaylist ([#779](https://github.com/videojs/http-streaming/issues/779)) ([90a0215](https://github.com/videojs/http-streaming/commit/90a0215))
+* take devicePixelRatio into account during ABR  ([#784](https://github.com/videojs/http-streaming/issues/784)) ([bd63e57](https://github.com/videojs/http-streaming/commit/bd63e57)), closes [#744](https://github.com/videojs/http-streaming/issues/744)
+
+### Chores
+
+* port index page from master ([#774](https://github.com/videojs/http-streaming/issues/774)) ([808c3b1](https://github.com/videojs/http-streaming/commit/808c3b1))
+
+### Reverts
+
+* "fix: Use middleware and a wrapped function for seeking instead of relying on unreliable 'seeking' events ([#161](https://github.com/videojs/http-streaming/issues/161))" ([#777](https://github.com/videojs/http-streaming/issues/777)) ([1a4fc1e](https://github.com/videojs/http-streaming/commit/1a4fc1e)), closes [#378](https://github.com/videojs/http-streaming/issues/378) [videojs/video.js#6444](https://github.com/videojs/video.js/issues/6444)
+
 <a name="1.12.3"></a>
 ## [1.12.3](https://github.com/videojs/http-streaming/compare/v1.12.2...v1.12.3) (2020-03-16)
 
