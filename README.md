@@ -29,7 +29,7 @@ Video.js Compatibility: 6.0, 7.0
 - [Talk to us](#talk-to-us)
 - [Getting Started](#getting-started)
 - [Compatibility](#compatibility)
-  - [Via MSE](#via-mse)
+  - [Browsers which support MSE](#browsers-which-support-mse)
   - [Native only](#native-only)
   - [Flash Support](#flash-support)
   - [DRM](#drm)
@@ -653,6 +653,20 @@ a major version change.
 
 HLS usage events are triggered on the tech with the exception of the 3 hls-reload-error
 events, which are triggered on the player.
+
+To listen for usage events triggered on the tech, listen for the event type of `'usage'`:
+
+```javascript
+player.on('ready', () => {
+  player.tech().on('usage', (e) => {
+    console.log(e.name);
+  });
+});
+```
+
+Note that these events are triggered as soon as a case is encountered, and often only
+once. For example, the `hls-demuxed` usage event will be triggered as soon as the master
+manifest is downloaded and parsed, and will not be triggered again.
 
 #### Presence Stats
 
