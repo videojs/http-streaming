@@ -318,26 +318,15 @@ export class MasterPlaylistController extends videojs.EventTarget {
         // playlist's `segments` list is already available, a media playlist won't be
         // requested, and loadedplaylist won't fire again, so the playlist handler must be
         // called on its own here.
-        if (this.sourceType_ !== 'vhs-json' && !this.initialMedia_.segments) {
+        const haveJsonSource = this.sourceType_ === 'vhs-json' && this.initialMedia_.segments;
+
+        if (!haveJsonSource) {
           return;
         }
         updatedPlaylist = this.initialMedia_;
       }
 
-      const codecs = updatedPlaylist.attributes.CODECS;
-      const segments = updatedPlaylist.segments || [];
-
-      // For non-fmp4 segments we also need to blacklist based on what the
-      // muxer supports. As non-fmp4 goes through the muxer
-      // but we have to wait for a playlist to download before
-      // we can know if it is fmp4 or not, so we can only really blacklist just
-      // before a playlist would get choosen
-      if (codecs && !segments[0].map && !muxerSupportsCodec(codecs)) {
-        this.blacklistCurrentPlaylist({
-          playlist: updatedPlaylist,
-          message: `muxer does not support codec ${codecs}`,
-          noWarn: true
-        }, Infinity);
+      if (this.blacklistUnsupportedMuxerCodec(updatedPlaylist)) {
         return;
       }
 
@@ -928,14 +917,37 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     // Select a new playlist
     const nextPlaylist = this.selectPlaylist();
+    const logFn = error.internal ? this.logger_ : videojs.log.warn;
 
-    if (!error.noWarn) {
-      videojs.log.warn('Problem encountered with the current playlist.' +
-                     (error.message ? ' ' + error.message : '') +
-                     ' Switching to another playlist.');
-    }
+    logFn(`${(error.internal ? 'Internal problem' : 'Problem')} encountered with the current playlist.` +
+      `${error.message ? ` ${error.message}` : '' } Switching to another playlist.`);
 
     return this.masterPlaylistLoader_.media(nextPlaylist, isFinalRendition);
+  }
+
+  /**
+   * Segments that are not mp4 are not transmuxed, therfore, playlists that
+   * contain segments which mux.js does not support should be blacklisted. This can only
+   * happen at time of playlist selection, as for some playlists, that is the only time
+   * when the container format for the segments is known.
+   *
+   * @return {boolean}
+   *         Wether the blacklist happened or not
+   */
+  blacklistUnsupportedMuxerCodec(playlist = this.masterPlaylistLoader_.media()) {
+    const codecs = playlist.attributes.CODECS;
+    const segments = playlist.segments || [];
+
+    if (codecs && !segments[0].map && !muxerSupportsCodec(codecs)) {
+      this.blacklistCurrentPlaylist({
+        playlist,
+        message: `muxer does not support codec ${codecs}`,
+        internal: true
+      }, Infinity);
+      return true;
+    }
+
+    return false;
   }
 
   /**
