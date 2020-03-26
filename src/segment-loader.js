@@ -354,6 +354,9 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.audioDisabled_ = !enable;
     if (enable) {
       this.appendInitSegment_.audio = true;
+    } else {
+      // remove current track audio if it gets disabled
+      this.sourceUpdater_.removeAudio(0, this.duration_());
     }
   }
 

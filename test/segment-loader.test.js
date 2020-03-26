@@ -1470,6 +1470,42 @@ QUnit.module('SegmentLoader', function(hooks) {
       });
     });
 
+    QUnit.test('removes audio when audio disabled', function(assert) {
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+
+        const playlist = playlistWithDuration(40);
+
+        loader.playlist(playlist);
+        loader.load();
+        this.clock.tick(1);
+
+        // load a segment as we can't remove if nothing's been appended
+        standardXHRResponse(this.requests.shift(), muxedSegment());
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        this.clock.tick(1);
+
+        const audioRemoves = [];
+        const videoRemoves = [];
+
+        loader.sourceUpdater_.removeAudio = (start, end) => {
+          audioRemoves.push({start, end});
+        };
+        loader.sourceUpdater_.removeVideo = (start, end) => {
+          videoRemoves.push({start, end});
+        };
+
+        loader.setAudio(false);
+        assert.equal(videoRemoves.length, 0, 'no video removes');
+        assert.equal(audioRemoves.length, 1, 'removed audio from the buffer');
+        assert.deepEqual(audioRemoves[0], {start: 0, end: loader.duration_()}, 'removed the right range');
+
+      });
+    });
+
     QUnit.test('triggers appenderror when append errors', function(assert) {
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
