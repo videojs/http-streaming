@@ -29,6 +29,11 @@ const options = [{
   test: false,
   alt: false
 }, {
+  name: 'useDevicePixelRatio',
+  default: false,
+  test: true,
+  alt: false
+}, {
   name: 'bandwidth',
   default: 4194304,
   test: 5,
