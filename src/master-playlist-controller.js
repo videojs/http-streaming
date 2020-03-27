@@ -926,6 +926,20 @@ export class MasterPlaylistController extends videojs.EventTarget {
   }
 
   /**
+   * TODO:
+   * Refactor blacklisting by codec so that it happens after
+   * we download enough of a segment to know wether it is fmp4 or ts.
+   * * If it is fmp4 we check if the browser supports the codec and blacklist
+   *   when it does not, as fmp4 is not transmuxed.
+   * * if it is ts we check if the muxer supports the codec and blacklist
+   *   when it does not, as ts segments will be transmuxed.
+   *
+   * We should probably do this by adding a segmentType handler to mediaSegmentRequest
+   * that calls back with the current segment type and potentially the codec it uses.
+   * Then we check the appropriate support matrix to determine if the playlist should
+   * be blacklisted.
+   */
+  /**
    * Segments that are not mp4 are not transmuxed, therfore, playlists that
    * contain segments which mux.js does not support should be blacklisted. This can only
    * happen at time of playlist selection, as for some playlists, that is the only time
