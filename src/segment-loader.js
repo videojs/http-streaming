@@ -241,7 +241,9 @@ export const timestampOffsetForSegment = ({
  * @param {('main'|'audio')} loaderType
  *        The loader type
  * @param {boolean} audioDisabled
- *        Whether the audio is disabled for the loader
+ *        Whether the audio is disabled for the loader. This should only be true when the
+ *        loader may have muxed audio in its segment, but should not append it, e.g., for
+ *        the main loader when an alternate audio playlist is active.
  *
  * @return {boolean}
  *         Whether the loader should wait for a timeline change from the timeline change
