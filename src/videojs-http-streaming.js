@@ -36,7 +36,7 @@ import {version as m3u8Version} from 'm3u8-parser/package.json';
 import {version as aesVersion} from 'aes-decrypter/package.json';
 // import needed to register middleware
 import './middleware-set-current-time';
-import {isAudioCodec, isVideoCodec} from '@videojs/vhs-utils/dist/codecs.js';
+import {isAudioCodec, isVideoCodec, browserSupportsCodec} from '@videojs/vhs-utils/dist/codecs.js';
 
 const Hls = {
   PlaylistLoader,
@@ -880,8 +880,7 @@ const HlsSourceHandler = {
  * @return {boolean} if  native media sources are supported
  */
 const supportsNativeMediaSources = () => {
-  return !!window.MediaSource && !!window.MediaSource.isTypeSupported &&
-    window.MediaSource.isTypeSupported('video/mp4;codecs="avc1.4d400d,mp4a.40.2"');
+  return browserSupportsCodec('avc1.4d400d,mp4a.40.2');
 };
 
 // register source handlers with the appropriate techs
