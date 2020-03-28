@@ -1,3 +1,10 @@
+<a name="1.13.1"></a>
+## [1.13.1](https://github.com/videojs/http-streaming/compare/v1.13.0...v1.13.1) (2020-03-28)
+
+### Bug Fixes
+
+* put devicePixelRatio behind useDevicePixelRatio option ([#785](https://github.com/videojs/http-streaming/issues/785)) ([57335d9](https://github.com/videojs/http-streaming/commit/57335d9))
+
 <a name="1.13.0"></a>
 # [1.13.0](https://github.com/videojs/http-streaming/compare/v1.12.3...v1.13.0) (2020-03-26)
 
