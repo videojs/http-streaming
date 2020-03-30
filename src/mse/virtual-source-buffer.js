@@ -602,6 +602,9 @@ export default class VirtualSourceBuffer extends videojs.EventTarget {
   }
 
   dispose() {
+    if (this.transmuxer_) {
+      this.transmuxer_.terminate();
+    }
     this.trigger('dispose');
     this.off();
   }
