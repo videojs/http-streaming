@@ -1,3 +1,10 @@
+<a name="1.13.2"></a>
+## [1.13.2](https://github.com/videojs/http-streaming/compare/v1.13.1...v1.13.2) (2020-03-30)
+
+### Bug Fixes
+
+* dispose workers on dispose ([#788](https://github.com/videojs/http-streaming/issues/788)) ([03ddb4e](https://github.com/videojs/http-streaming/commit/03ddb4e))
+
 <a name="1.13.1"></a>
 ## [1.13.1](https://github.com/videojs/http-streaming/compare/v1.13.0...v1.13.1) (2020-03-28)
 
