@@ -12,6 +12,7 @@ import * as Ranges from './ranges';
 import videojs from 'video.js';
 import { updateAdCues } from './ad-cue-tags';
 import SyncController from './sync-controller';
+import TimelineChangeController from './timeline-change-controller';
 import Decrypter from 'worker!./decrypter-worker.worker.js';
 import Config from './config';
 import {
@@ -167,6 +168,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.decrypter_ = new Decrypter();
     this.sourceUpdater_ = new SourceUpdater(this.mediaSource);
     this.inbandTextTracks_ = {};
+    this.timelineChangeController_ = new TimelineChangeController();
 
     const segmentLoaderSettings = {
       hls: this.hls_,
@@ -184,7 +186,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       inbandTextTracks: this.inbandTextTracks_,
       cacheEncryptionKeys,
       handlePartialData,
-      sourceUpdater: this.sourceUpdater_
+      sourceUpdater: this.sourceUpdater_,
+      timelineChangeController: this.timelineChangeController_
     };
 
     // The source type check not only determines whether a special DASH playlist loader
@@ -1183,6 +1186,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.audioSegmentLoader_.dispose();
     this.subtitleSegmentLoader_.dispose();
     this.sourceUpdater_.dispose();
+    this.timelineChangeController_.dispose();
     this.off();
   }
 

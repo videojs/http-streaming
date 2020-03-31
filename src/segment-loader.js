@@ -155,6 +155,161 @@ export const timestampOffsetForSegment = ({
 };
 
 /**
+ * Returns whether or not the loader should wait for a timeline change from the timeline
+ * change controller before processing the segment.
+ *
+ * Primary timing in VHS goes by video. This is different from most media players, as
+ * audio is more often used as the primary timing source. For the foreseeable future, VHS
+ * will continue to use video as the primary timing source, due to the current logic and
+ * expectations built around it.
+
+ * Since the timing follows video, in order to maintain sync, the video loader is
+ * responsible for setting both audio and video source buffer timestamp offsets.
+ *
+ * Setting different values for audio and video source buffers could lead to
+ * desyncing. The following examples demonstrate some of the situations where this
+ * distinction is important. Note that all of these cases involve demuxed content. When
+ * content is muxed, the audio and video are packaged together, therefore syncing
+ * separate media playlists is not an issue.
+ *
+ * CASE 1: Audio prepares to load a new timeline before video:
+ *
+ * Timeline:       0                 1
+ * Audio Segments: 0 1 2 3 4 5 DISCO 6 7 8 9
+ * Audio Loader:                     ^
+ * Video Segments: 0 1 2 3 4 5 DISCO 6 7 8 9
+ * Video Loader              ^
+ *
+ * In the above example, the audio loader is preparing to load the 6th segment, the first
+ * after a discontinuity, while the video loader is still loading the 5th segment, before
+ * the discontinuity.
+ *
+ * If the audio loader goes ahead and loads and appends the 6th segment before the video
+ * loader crosses the discontinuity, then when appended, the 6th audio segment will use
+ * the timestamp offset from timeline 0. This will likely lead to desyncing. In addition,
+ * the audio loader must provide the audioAppendStart value to trim the content in the
+ * transmuxer, and that value relies on the audio timestamp offset. Since the audio
+ * timestamp offset is set by the video (main) loader, the audio loader shouldn't load the
+ * segment until that value is provided.
+ *
+ * CASE 2: Video prepares to load a new timeline before audio:
+ *
+ * Timeline:       0                 1
+ * Audio Segments: 0 1 2 3 4 5 DISCO 6 7 8 9
+ * Audio Loader:             ^
+ * Video Segments: 0 1 2 3 4 5 DISCO 6 7 8 9
+ * Video Loader                      ^
+ *
+ * In the above example, the video loader is preparing to load the 6th segment, the first
+ * after a discontinuity, while the audio loader is still loading the 5th segment, before
+ * the discontinuity.
+ *
+ * If the video loader goes ahead and loads and appends the 6th segment, then once the
+ * segment is loaded and processed, both the video and audio timestamp offsets will be
+ * set, since video is used as the primary timing source. This is to ensure content lines
+ * up appropriately, as any modifications to the video timing are reflected by audio when
+ * the video loader sets the audio and video timestamp offsets to the same value. However,
+ * setting the timestamp offset for audio before audio has had a chance to change
+ * timelines will likely lead to desyncing, as the audio loader will append segment 5 with
+ * a timestamp intended to apply to segments from timeline 1 rather than timeline 0.
+ *
+ * CASE 3: When seeking, audio prepares to load a new timeline before video
+ *
+ * Timeline:       0                 1
+ * Audio Segments: 0 1 2 3 4 5 DISCO 6 7 8 9
+ * Audio Loader:           ^
+ * Video Segments: 0 1 2 3 4 5 DISCO 6 7 8 9
+ * Video Loader            ^
+ *
+ * In the above example, both audio and video loaders are loading segments from timeline
+ * 0, but imagine that the seek originated from timeline 1.
+ *
+ * When seeking to a new timeline, the timestamp offset will be set based on the expected
+ * segment start of the loaded video segment. In order to maintain sync, the audio loader
+ * must wait for the video loader to load its segment and update both the audio and video
+ * timestamp offsets before it may load and append its own segment. This is the case
+ * whether the seek results in a mismatched segment request (e.g., the audio loader
+ * chooses to load segment 3 and the video loader chooses to load segment 4) or the
+ * loaders choose to load the same segment index from each playlist, as the segments may
+ * not be aligned perfectly, even for matching segment indexes.
+ *
+ * @param {Object} timelinechangeController
+ * @param {number} currentTimeline
+ *        The timeline currently being followed by the loader
+ * @param {number} segmentTimeline
+ *        The timeline of the segment being loaded
+ * @param {('main'|'audio')} loaderType
+ *        The loader type
+ * @param {boolean} audioDisabled
+ *        Whether the audio is disabled for the loader. This should only be true when the
+ *        loader may have muxed audio in its segment, but should not append it, e.g., for
+ *        the main loader when an alternate audio playlist is active.
+ *
+ * @return {boolean}
+ *         Whether the loader should wait for a timeline change from the timeline change
+ *         controller before processing the segment
+ */
+export const shouldWaitForTimelineChange = ({
+  timelineChangeController,
+  currentTimeline,
+  segmentTimeline,
+  loaderType,
+  audioDisabled
+}) => {
+  if (currentTimeline === segmentTimeline) {
+    return false;
+  }
+
+  if (loaderType === 'audio') {
+    const lastMainTimelineChange = timelineChangeController.lastTimelineChange({
+      type: 'main'
+    });
+
+    // Audio loader should wait if:
+    //
+    // * main hasn't had a timeline change yet (thus has not loaded its first segment)
+    // * main hasn't yet changed to the timeline audio is looking to load
+    return !lastMainTimelineChange || lastMainTimelineChange.to !== segmentTimeline;
+  }
+
+  // The main loader only needs to wait for timeline changes if there's demuxed audio.
+  // Otherwise, there's nothing to wait for, since audio would be muxed into the main
+  // loader's segments (or the content is audio/video only and handled by the main
+  // loader).
+  if (loaderType === 'main' && audioDisabled) {
+    const pendingAudioTimelineChange = timelineChangeController.pendingTimelineChange({
+      type: 'audio'
+    });
+
+    // Main loader should wait for the audio loader if audio is not pending a timeline
+    // change to the current timeline.
+    //
+    // Since the main loader is responsible for setting the timestamp offset for both
+    // audio and video, the main loader must wait for audio to be about to change to its
+    // timeline before setting the offset, otherwise, if audio is behind in loading,
+    // segments from the previous timeline would be adjusted by the new timestamp offset.
+    //
+    // This requirement means that video will not cross a timeline until the audio is
+    // about to cross to it, so that way audio and video will always cross the timeline
+    // together.
+    //
+    // In addition to normal timeline changes, these rules also apply to the start of a
+    // stream (going from a non-existent timeline, -1, to timeline 0). It's important
+    // that these rules apply to the first timeline change because if they did not, it's
+    // possible that the main loader will cross two timelines before the audio loader has
+    // crossed one. Logic may be implemented to handle the startup as a special case, but
+    // it's easier to simply treat all timeline changes the same.
+    if (pendingAudioTimelineChange && pendingAudioTimelineChange.to === segmentTimeline) {
+      return false;
+    }
+
+    return true;
+  }
+
+  return false;
+};
+
+/**
  * An object that manages segment loading and appending.
  *
  * @class SegmentLoader
@@ -198,6 +353,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.inbandTextTracks_ = settings.inbandTextTracks;
     this.state_ = 'INIT';
     this.handlePartialData_ = settings.handlePartialData;
+    this.timelineChangeController_ = settings.timelineChangeController;
 
     // private instance variables
     this.checkBufferTimeout_ = null;
@@ -221,6 +377,12 @@ export default class SegmentLoader extends videojs.EventTarget {
       video: null
     };
     this.callQueue_ = [];
+    // If the segment loader prepares to load a segment, but does not have enough
+    // information yet to start the loading process (e.g., if the audio loader wants to
+    // load a segment from the next timeline but the main loader hasn't yet crossed that
+    // timeline), then the load call will be added to the queue until it is ready to be
+    // processed.
+    this.loadQueue_ = [];
     this.metadataQueue_ = {
       id3: [],
       caption: []
@@ -282,11 +444,35 @@ export default class SegmentLoader extends videojs.EventTarget {
     });
 
     this.sourceUpdater_.on('ready', () => {
-      // check if any calls were waiting on source buffer creation
       if (this.hasEnoughInfoToAppend_()) {
         this.processCallQueue_();
       }
     });
+
+    // Only the main loader needs to listen for pending timeline changes, as the main
+    // loader should wait for audio to be ready to change its timeline so that both main
+    // and audio timelines change together. For more details, see the
+    // shouldWaitForTimelineChange function.
+    if (this.loaderType_ === 'main') {
+      this.timelineChangeController_.on('pendingtimelinechange', () => {
+        if (this.hasEnoughInfoToAppend_()) {
+          this.processCallQueue_();
+        }
+      });
+    }
+    // The main loader only listens on pending timeline changes, but the audio loader,
+    // since its loads follow main, needs to listen on timeline changes. For more details,
+    // see the shouldWaitForTimelineChange function.
+    if (this.loaderType_ === 'audio') {
+      this.timelineChangeController_.on('timelinechange', () => {
+        if (this.hasEnoughInfoToLoad_()) {
+          this.processLoadQueue_();
+        }
+        if (this.hasEnoughInfoToAppend_()) {
+          this.processCallQueue_();
+        }
+      });
+    }
   }
 
   createTransmuxer_() {
@@ -393,15 +579,17 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @private
    */
   abort_() {
-    if (this.pendingSegment_) {
+    if (this.pendingSegment_ && this.pendingSegment_.abortRequests) {
       this.pendingSegment_.abortRequests();
     }
 
     // clear out the segment being processed
     this.pendingSegment_ = null;
     this.callQueue_ = [];
+    this.loadQueue_ = [];
     this.metadataQueue_.id3 = [];
     this.metadataQueue_.caption = [];
+    this.timelineChangeController_.clearPendingTimelineChange(this.loaderType_);
   }
 
   checkForAbort_(requestId) {
@@ -760,6 +948,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.syncPoint_ = null;
     this.isPendingTimestampOffset_ = false;
     this.callQueue_ = [];
+    this.loadQueue_ = [];
     this.metadataQueue_.id3 = [];
     this.metadataQueue_.caption = [];
     this.abort();
@@ -910,6 +1099,14 @@ export default class SegmentLoader extends videojs.EventTarget {
       overrideCheck: this.isPendingTimestampOffset_
     });
     this.isPendingTimestampOffset_ = false;
+
+    if (typeof segmentInfo.timestampOffset === 'number') {
+      this.timelineChangeController_.pendingTimelineChange({
+        type: this.loaderType_,
+        from: this.currentTimeline_,
+        to: segmentInfo.timeline
+      });
+    }
 
     this.loadSegment_(segmentInfo);
   }
@@ -1398,10 +1595,80 @@ export default class SegmentLoader extends videojs.EventTarget {
   processCallQueue_() {
     const callQueue = this.callQueue_;
 
-    // this also takes care of any places within function calls where callQueue_.length is
-    // checked
+    // Clear out the queue before the queued functions are run, since some of the
+    // functions may check the length of the load queue and default to pushing themselves
+    // back onto the queue.
     this.callQueue_ = [];
     callQueue.forEach((fun) => fun());
+  }
+
+  processLoadQueue_() {
+    const loadQueue = this.loadQueue_;
+
+    // Clear out the queue before the queued functions are run, since some of the
+    // functions may check the length of the load queue and default to pushing themselves
+    // back onto the queue.
+    this.loadQueue_ = [];
+    loadQueue.forEach((fun) => fun());
+  }
+
+  /**
+   * Determines whether the loader has enough info to load the next segment.
+   *
+   * @return {boolean}
+   *         Whether or not the loader has enough info to load the next segment
+   */
+  hasEnoughInfoToLoad_() {
+    // Since primary timing goes by video, only the audio loader potentially needs to wait
+    // to load.
+    if (this.loaderType_ !== 'audio') {
+      return true;
+    }
+
+    const segmentInfo = this.pendingSegment_;
+
+    // A fill buffer must have already run to establish a pending segment before there's
+    // enough info to load.
+    if (!segmentInfo) {
+      return false;
+    }
+
+    // The first segment can and should be loaded immediately so that source buffers are
+    // created together (before appending). Source buffer creation uses the presence of
+    // audio and video data to determine whether to create audio/video source buffers, and
+    // uses processed (transmuxed or parsed) media to determine the types required.
+    if (segmentInfo.timestampOffset === 0) {
+      return true;
+    }
+
+    if (
+      // Technically, instead of waiting to load a segment on timeline changes, a segment
+      // can be requested and downloaded and only wait before it is transmuxed or parsed.
+      // But in practice, there are a few reasons why it is better to wait until a loader
+      // is ready to append that segment before requesting and downloading:
+      //
+      // 1. Because audio and main loaders cross discontinuities together, if this loader
+      //    is waiting for the other to catch up, then instead of requesting another
+      //    segment and using up more bandwidth, by not yet loading, more bandwidth is
+      //    allotted to the loader currently behind.
+      // 2. media-segment-request doesn't have to have logic to consider whether a segment
+      // is ready to be processed or not, isolating the queueing behavior to the loader.
+      // 3. The audio loader bases some of its segment properties on timing information
+      //    provided by the main loader, meaning that, if the logic for waiting on
+      //    processing was in media-segment-request, then it would also need to know how
+      //    to re-generate the segment information after the main loader caught up.
+      shouldWaitForTimelineChange({
+        timelineChangeController: this.timelineChangeController_,
+        currentTimeline: this.currentTimeline_,
+        segmentTimeline: segmentInfo.timeline,
+        loaderType: this.loaderType_,
+        audioDisabled: this.audioDisabled_
+      })
+    ) {
+      return false;
+    }
+
+    return true;
   }
 
   hasEnoughInfoToAppend_() {
@@ -1425,6 +1692,18 @@ export default class SegmentLoader extends videojs.EventTarget {
       if (this.startingMedia_.hasAudio && !segmentInfo.audioTimingInfo) {
         return false;
       }
+    }
+
+    if (
+      shouldWaitForTimelineChange({
+        timelineChangeController: this.timelineChangeController_,
+        currentTimeline: this.currentTimeline_,
+        segmentTimeline: segmentInfo.timeline,
+        loaderType: this.loaderType_,
+        audioDisabled: this.audioDisabled_
+      })
+    ) {
+      return false;
     }
 
     return true;
@@ -1686,6 +1965,52 @@ export default class SegmentLoader extends videojs.EventTarget {
       }
     }
 
+    if (!this.hasEnoughInfoToLoad_()) {
+      this.loadQueue_.push(() => {
+        const buffered = this.buffered_();
+
+        if (typeof segmentInfo.timestampOffset === 'number') {
+          // The timestamp offset needs to be regenerated, as the buffer most likely
+          // changed since the function was added to the queue. This is expected, as the
+          // load is usually pending the main loader appending new segments.
+          //
+          // Note also that the overrideCheck property is set to true. This is because
+          // isPendingTimestampOffset is set back to false after the first set of the
+          // timestamp offset (before it was added to the queue). But the presence of
+          // timestamp offset as a property of segmentInfo serves as enough evidence that
+          // it should be regenerated.
+          segmentInfo.timestampOffset = timestampOffsetForSegment({
+            segmentTimeline: segmentInfo.timeline,
+            currentTimeline: this.currentTimeline_,
+            startOfSegment: segmentInfo.startOfSegment,
+            buffered,
+            overrideCheck: true
+          });
+        }
+
+        delete segmentInfo.audioAppendStart;
+
+        const audioBuffered = this.sourceUpdater_.audioBuffered();
+
+        if (audioBuffered.length) {
+          // Because the audio timestamp offset may have been changed by the main loader,
+          // the audioAppendStart should be regenerated.
+          //
+          // Since the transmuxer is using the actual timing values, but the buffer is
+          // adjusted by the timestamp offset, the value must be adjusted.
+          segmentInfo.audioAppendStart = audioBuffered.end(audioBuffered.length - 1) -
+            this.sourceUpdater_.audioTimestampOffset();
+        }
+
+        this.updateTransmuxerAndRequestSegment_(segmentInfo);
+      });
+      return;
+    }
+
+    this.updateTransmuxerAndRequestSegment_(segmentInfo);
+  }
+
+  updateTransmuxerAndRequestSegment_(segmentInfo) {
     // We'll update the source buffer's timestamp offset once we have transmuxed data, but
     // the transmuxer still needs to be updated before then.
     //
@@ -2181,6 +2506,23 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     this.addSegmentMetadataCue_(segmentInfo);
     this.fetchAtBuffer_ = true;
+    if (this.currentTimeline_ !== segmentInfo.timeline) {
+      this.timelineChangeController_.lastTimelineChange({
+        type: this.loaderType_,
+        from: this.currentTimeline_,
+        to: segmentInfo.timeline
+      });
+      // If audio is not disabled, the main segment loader is responsible for updating
+      // the audio timeline as well. If the content is video only, this won't have any
+      // impact.
+      if (this.loaderType_ === 'main' && !this.audioDisabled_) {
+        this.timelineChangeController_.lastTimelineChange({
+          type: 'audio',
+          from: this.currentTimeline_,
+          to: segmentInfo.timeline
+        });
+      }
+    }
     this.currentTimeline_ = segmentInfo.timeline;
 
     // We must update the syncinfo to recalculate the seekable range before

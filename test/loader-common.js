@@ -12,6 +12,7 @@ import {
 import { MasterPlaylistController } from '../src/master-playlist-controller';
 import SourceUpdater from '../src/source-updater';
 import SyncController from '../src/sync-controller';
+import TimelineChangeController from '../src/timeline-change-controller';
 import Decrypter from 'worker!../src/decrypter-worker.worker.js';
 import window from 'global/window';
 /* eslint-disable no-unused-vars */
@@ -59,11 +60,13 @@ export const LoaderCommonHooks = {
     this.sourceUpdater = new SourceUpdater(this.mediaSource);
     this.syncController = new SyncController();
     this.decrypter = new Decrypter();
+    this.timelineChangeController = new TimelineChangeController();
   },
   afterEach(assert) {
     this.env.restore();
     this.decrypter.terminate();
     this.sourceUpdater.dispose();
+    this.timelineChangeController.dispose();
   }
 };
 
@@ -89,7 +92,8 @@ export const LoaderCommonSettings = function(settings) {
     mediaSource: this.mediaSource,
     sourceUpdater: this.sourceUpdater,
     syncController: this.syncController,
-    decrypter: this.decrypter
+    decrypter: this.decrypter,
+    timelineChangeController: this.timelineChangeController
   }, settings);
 };
 
