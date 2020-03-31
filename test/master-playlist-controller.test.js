@@ -52,6 +52,11 @@ QUnit.module('MasterPlaylistController', {
     this.requests = this.env.requests;
     this.mse = useFakeMediaSource();
 
+    if (!videojs.browser.IE_VERSION) {
+      this.oldDevicePixelRatio = window.devicePixelRatio;
+      window.devicePixelRatio = 1;
+    }
+
     // force the HLS tech to run
     this.origSupportsNativeHls = videojs.Hls.supportsNativeHls;
     videojs.Hls.supportsNativeHls = false;
@@ -84,6 +89,9 @@ QUnit.module('MasterPlaylistController', {
     this.mse.restore();
     videojs.Hls.supportsNativeHls = this.origSupportsNativeHls;
     window.localStorage.clear();
+    if (this.hasOwnProperty('oldDevicePixelRatio')) {
+      window.devicePixelRatio = this.oldDevicePixelRatio;
+    }
     videojs.browser = this.oldBrowser;
     this.player.dispose();
   }
