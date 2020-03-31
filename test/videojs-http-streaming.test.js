@@ -67,6 +67,8 @@ QUnit.module('HLS', {
     this.mse = useFakeMediaSource();
     this.clock = this.env.clock;
     this.old = {};
+    this.old.devicePixelRatio = window.devicePixelRatio;
+    window.devicePixelRatio = 1;
 
     // store functionality that some tests need to mock
     this.old.GlobalOptions = videojs.mergeOptions(videojs.options);
@@ -102,6 +104,8 @@ QUnit.module('HLS', {
   afterEach() {
     this.env.restore();
     this.mse.restore();
+
+    window.devicePixelRatio = this.old.devicePixelRatio;
 
     merge(videojs.options, this.old.GlobalOptions);
 
