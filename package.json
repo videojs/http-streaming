@@ -68,7 +68,7 @@
   "devDependencies": {
     "@gkatsev/rollup-plugin-bundle-worker": "^1.0.2",
     "@videojs/generator-helpers": "~1.2.0",
-    "d3": "^3.4.8",
+    "d3": "^5.15.1",
     "es5-shim": "^4.5.13",
     "es6-shim": "^0.35.5",
     "jsdoc": "BrandonOCasey/jsdoc#feat/plugin-from-cli",
