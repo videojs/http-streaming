@@ -391,9 +391,13 @@ const handleSegmentBytes = ({
     // since we don't support appending fmp4 data on progress, we know we have the full
     // segment here
     trackInfoFn(segment, trackInfo);
-    // the probe doesn't provide the segment end time, so only callback with the start
-    // (the end time can be roughly calculated by the receiver using the duration)
-    const timingInfo = mp4probe.compositionStartTime(segment.map.timescales, bytesAsUint8Array);
+    // The probe doesn't provide the segment end time, so only callback with the start
+    // time. The end time can be roughly calculated by the receiver using the duration.
+    //
+    // Note that the start time returned by the probe reflects the baseMediaDecodeTime, as
+    // that is the true start of the segment (where the playback engine should begin
+    // decoding).
+    const timingInfo = mp4probe.startTime(segment.map.timescales, bytesAsUint8Array);
 
     if (trackInfo.hasAudio) {
       timingInfoFn(segment, 'audio', 'start', timingInfo);
