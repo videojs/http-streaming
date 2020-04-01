@@ -2085,6 +2085,7 @@ QUnit.test(
     videojs.options.hls = {
       withCredentials: true
     };
+    this.player.dispose();
     this.player = createPlayer();
     this.player.src({
       src: 'http://example.com/media.m3u8',
@@ -4145,6 +4146,7 @@ QUnit[testOrSkip](
 QUnit[testOrSkip](
   'does not store bandwidth and throughput in localStorage by default',
   function(assert) {
+    this.player.dispose();
     this.player = createPlayer();
     this.player.src({
       src: 'manifest/master.m3u8',
@@ -4185,6 +4187,7 @@ QUnit[testOrSkip]('retrieves bandwidth and throughput from localStorage', functi
   };
 
   // values must be stored before player is created, otherwise defaults are provided
+  this.player.dispose();
   this.player = createPlayer();
   this.player.tech_.on('usage', usageListener);
   this.player.src({
@@ -4211,6 +4214,7 @@ QUnit[testOrSkip]('retrieves bandwidth and throughput from localStorage', functi
   videojs.options.hls = {
     useBandwidthFromLocalStorage: true
   };
+  this.player.dispose();
   this.player = createPlayer();
   this.player.tech_.on('usage', usageListener);
   this.player.src({
@@ -4909,6 +4913,7 @@ QUnit.test('blacklists playlist if key requests fail', function(assert) {
     'playlist blacklisted'
   );
   assert.equal(this.env.log.warn.calls, 1, 'logged warning for blacklist');
+  hls.dispose();
 });
 
 QUnit.test(
@@ -4967,6 +4972,7 @@ QUnit.test(
     // verify stats
     assert.equal(hls.stats.mediaBytesTransferred, 1024, '1024 bytes');
     assert.equal(hls.stats.mediaRequests, 1, '1 request');
+    hls.dispose();
   }
 );
 

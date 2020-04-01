@@ -217,6 +217,8 @@ QUnit.test('creates appropriate PlaylistLoader for sourceType', function(assert)
     mpc.masterPlaylistLoader_ instanceof PlaylistLoader,
     'created a standard playlist loader for vhs-json source type'
   );
+
+  mpc.dispose();
 });
 
 QUnit.test('passes options to SegmentLoader', function(assert) {
@@ -3960,6 +3962,7 @@ QUnit.test(
   function(assert) {
     this.requests.length = 0;
     // must recreate player for new mock media source to open
+    this.player.dispose();
     this.player = createPlayer();
 
     const manifestObject = parseManifest({ manifestString: manifests.media });
@@ -3995,6 +3998,7 @@ QUnit.test(
   function(assert) {
     this.requests.length = 0;
     // must recreate player for new mock media source to open
+    this.player.dispose();
     this.player = createPlayer();
 
     const manifestObject = parseManifest({ manifestString: manifests.master });
@@ -4039,6 +4043,7 @@ QUnit.test(
   function(assert) {
     this.requests.length = 0;
     // must recreate player for new mock media source to open
+    this.player.dispose();
     this.player = createPlayer();
 
     const manifestObject = parseManifest({ manifestString: manifests.master });
