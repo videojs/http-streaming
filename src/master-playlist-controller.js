@@ -1274,6 +1274,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
         ` does not support ${mainStartingMedia.isFmp4 ? 'fmp4' : 'ts'} codec(s): ` +
         `${!audioSupported ? codecs.audio : ''} ${!videoSupported ? codecs.video : ''}`;
 
+      // reset startingMedia_ for playlists blacklisted
+      this.mainSegmentLoader_.startingMedia_ = void 0;
+
       this.blacklistCurrentPlaylist({
         playlist: media,
         message,
@@ -1341,12 +1344,14 @@ export class MasterPlaylistController extends videojs.EventTarget {
     const codecCount = Object.keys(codecs).length;
 
     this.master().playlists.forEach((variant) => {
-      // cannot blacklist a playlist by codec if we don't know the codec
-      if (!variant.attributes.CODECS) {
-        return;
+      // TODO: should we really assume codecs?
+      let variantCodecs = {};
+      let variantCodecCount = 2;
+
+      if (variant.attributes.CODECS) {
+        variantCodecs = parseCodecs(variant.attributes.CODECS);
+        variantCodecCount = Object.keys(variantCodecs).length;
       }
-      const variantCodecs = parseCodecs(variant.attributes.CODECS);
-      const variantCodecCount = Object.keys(variantCodecs).length;
 
       // The number of streams cannot change
       if (variantCodecCount !== codecCount) {

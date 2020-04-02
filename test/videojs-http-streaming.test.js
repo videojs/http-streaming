@@ -1580,23 +1580,36 @@ QUnit.test('unsupported playlist should not be re-included when excluding last p
 
   const master = this.player.tech_.hls.playlists.master;
   const media = this.player.tech_.hls.playlists.media_;
+  const mpc = this.player.tech_.hls.masterPlaylistController_;
 
-  // segment
-  this.requests.shift().respond(400);
+  return requestAndAppendSegment({
+    request: this.requests.shift(),
+    mediaSource: mpc.mediaSource,
+    segmentLoader: mpc.mainSegmentLoader_,
+    clock: this.clock
+  }).then(() => {
+    assert.strictEqual(
+      master.playlists[1].excludeUntil,
+      Infinity,
+      'blacklisted invalid audio codec'
+    );
 
-  assert.ok(master.playlists[0].excludeUntil > 0, 'original media excluded for some time');
-  assert.strictEqual(
-    master.playlists[1].excludeUntil,
-    Infinity,
-    'blacklisted invalid audio codec'
-  );
+    this.requests.shift().respond(400);
 
-  assert.equal(this.env.log.warn.calls, 2, 'warning logged for blacklist');
-  assert.equal(
-    this.env.log.warn.args[0],
-    'Removing all playlists from the blacklist because the last rendition is about to be blacklisted.',
-    'log generic error message'
-  );
+    assert.ok(master.playlists[0].excludeUntil > 0, 'original media excluded for some time');
+    assert.strictEqual(
+      master.playlists[1].excludeUntil,
+      Infinity,
+      'audio codec still blacklisted'
+    );
+
+    assert.equal(this.env.log.warn.calls, 2, 'warning logged for blacklist');
+    assert.equal(
+      this.env.log.warn.args[0],
+      'Removing all playlists from the blacklist because the last rendition is about to be blacklisted.',
+      'log generic error message'
+    );
+  });
 });
 
 QUnit.test('segment 404 should trigger blacklisting of media', function(assert) {

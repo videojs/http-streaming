@@ -792,7 +792,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     const oldPlaylist = this.playlist_;
     const segmentInfo = this.pendingSegment_;
 
-    this.startingMedia_ = void 0;
     this.playlist_ = newPlaylist;
     this.xhrOptions_ = options;
 
