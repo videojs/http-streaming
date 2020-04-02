@@ -1392,6 +1392,10 @@ QUnit.test('does not blacklist compatible H.264 codec strings', function(assert)
   // media
   this.standardXHRResponse(this.requests.shift());
   const master = this.player.tech_.hls.playlists.master;
+  const loader = this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_;
+
+  loader.startingMedia_ = {hasVideo: true, hasAudio: true};
+  loader.trigger('trackinfo');
 
   assert.strictEqual(
     typeof master.playlists[0].excludeUntil,
@@ -1432,7 +1436,11 @@ QUnit.test('does not blacklist compatible AAC codec strings', function(assert) {
   // media
   this.standardXHRResponse(this.requests.shift());
 
+  const loader = this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_;
   const master = this.player.tech_.hls.playlists.master;
+
+  loader.startingMedia_ = {hasVideo: true, hasAudio: true};
+  loader.trigger('trackinfo');
 
   assert.strictEqual(
     typeof master.playlists[0].excludeUntil,
@@ -1444,6 +1452,59 @@ QUnit.test('does not blacklist compatible AAC codec strings', function(assert) {
     Infinity,
     'blacklisted invalid audio codec'
   );
+});
+
+QUnit.test('blacklists incompatible playlists by codec', function(assert) {
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+
+  const playlistString =
+    '#EXTM3U\n' +
+    // selected playlist
+    '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.2"\n' +
+    'media.m3u8\n' +
+    // compatible with selected playlist
+    '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.2"\n' +
+    'media1.m3u8\n' +
+    // incompatible by audio codec difference
+    '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,ac-3"\n' +
+    'media2.m3u8\n' +
+    // incompable by video codec difference
+    '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="hevc.4d400d,mp4a.40.2"\n' +
+    'media3.m3u8\n' +
+    // incompatible, only audio codec
+    '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="mp4a.40.2"\n' +
+    'media4.m3u8\n' +
+    // incompatible, only video codec
+    '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d"\n' +
+    'media5.m3u8\n';
+
+  // master
+  this.requests.shift().respond(200, null, playlistString);
+
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  const loader = this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_;
+  const master = this.player.tech_.hls.playlists.master;
+
+  loader.startingMedia_ = {hasVideo: true, hasAudio: true};
+  loader.trigger('trackinfo');
+  const playlists = master.playlists;
+
+  assert.strictEqual(playlists.length, 6, 'six playlists total');
+  assert.strictEqual(typeof playlists[0].excludeUntil, 'undefined', 'did not blacklist first playlist');
+  assert.strictEqual(typeof playlists[1].excludeUntil, 'undefined', 'did not blacklist second playlist');
+  assert.strictEqual(playlists[2].excludeUntil, Infinity, 'blacklisted incompatible audio playlist');
+  assert.strictEqual(playlists[3].excludeUntil, Infinity, 'blacklisted incompatible video playlist');
+  assert.strictEqual(playlists[4].excludeUntil, Infinity, 'blacklisted audio only playlist');
+  assert.strictEqual(playlists[5].excludeUntil, Infinity, 'blacklisted video only playlist');
 });
 
 QUnit.test('cancels outstanding XHRs when seeking', function(assert) {

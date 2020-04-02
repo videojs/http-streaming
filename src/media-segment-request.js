@@ -367,6 +367,7 @@ const handleSegmentBytes = ({
     const {tracks} = segment.map;
 
     const trackInfo = {
+      isFmp4: true,
       hasVideo: !!tracks.video,
       hasAudio: !!tracks.audio
     };

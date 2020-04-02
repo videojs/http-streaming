@@ -295,10 +295,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
       let updatedPlaylist = this.masterPlaylistLoader_.media();
 
       if (!updatedPlaylist) {
-        // blacklist any variants that are not supported by the browser before selecting
-        // an initial media as the playlist selectors do not consider browser support
-        this.excludeUnsupportedVariants_();
-
         let selectedMedia;
 
         if (this.enableLowInitialPlaylist) {
@@ -324,10 +320,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
           return;
         }
         updatedPlaylist = this.initialMedia_;
-      }
-
-      if (this.blacklistUnsupportedMuxerCodec(updatedPlaylist)) {
-        return;
       }
 
       this.handleUpdatedMediaPlaylist(updatedPlaylist);
@@ -879,9 +871,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    const isFinalRendition =
-      this.masterPlaylistLoader_.master.playlists.filter(isEnabled).length === 1;
     const playlists = this.masterPlaylistLoader_.master.playlists;
+    const enabledPlaylists = playlists.filter(isEnabled);
+    const isFinalRendition = enabledPlaylists.length === 1 && enabledPlaylists[0] === currentPlaylist;
 
     if (playlists.length === 1) {
       // Never blacklisting this playlist because it's the only playlist
@@ -923,54 +915,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
       `${error.message ? ` ${error.message}` : '' } Switching to another playlist.`);
 
     return this.masterPlaylistLoader_.media(nextPlaylist, isFinalRendition);
-  }
-
-  /**
-   * Segments that are not mp4 are not transmuxed, therefore, playlists that
-   * contain segments which mux.js does not support should be blacklisted. This can only
-   * happen at time of playlist selection, as for some playlists, that is the only time
-   * when the container format for the segments is known.
-   *
-   * @param {Object} playlist
-   *        The playlist object that we should check codecs on for blacklisting.
-   *
-   * @return {boolean}
-   *         Whether the blacklist happened or not
-   */
-  blacklistUnsupportedMuxerCodec(playlist = this.masterPlaylistLoader_.media()) {
-    const codecs = playlist.attributes.CODECS;
-    const segments = playlist.segments || [];
-
-    /**
-     * NOTE: The following check is a shorthand until a larger change can be
-     * taken on. This code will probably have issues with ts playlists that contain
-     * EXT-X-MAP, aka the map property on a segment. See the TODO below for more
-     * information on the change that is needed to get ts playlists with EXT-X-MAP
-     * working.
-     *
-     * TODO:
-     * Refactor blacklisting by codec so that it happens after
-     * we download enough of a segment to know whether it is fmp4 or ts.
-     * * If it is fmp4 we check if the browser supports the codec and blacklist
-     *   when it does not, as fmp4 is not transmuxed.
-     * * if it is ts we check if the muxer supports the codec and blacklist
-     *   when it does not, as ts segments will be transmuxed.
-     *
-     * We should probably do this by adding a segmentType handler to mediaSegmentRequest
-     * that calls back with the current segment type and potentially the codec it uses.
-     * Then we check the appropriate support matrix to determine if the playlist should
-     * be blacklisted.
-     */
-    if (codecs && !segments[0].map && !muxerSupportsCodec(codecs)) {
-      this.blacklistCurrentPlaylist({
-        playlist,
-        message: `muxer does not support codec ${codecs}`,
-        internal: true
-      }, Infinity);
-      return true;
-    }
-
-    return false;
   }
 
   /**
@@ -1319,6 +1263,25 @@ export class MasterPlaylistController extends videojs.EventTarget {
       }
     }
 
+    // fmp4 relies on browser support, while ts relies on muxer support
+    const supportFunction = mainStartingMedia.isFmp4 ? browserSupportsCodec : muxerSupportsCodec;
+    const audioSupported = !codecs.hasOwnProperty('audio') ? true : supportFunction(codecs.audio);
+    const videoSupported = !codecs.hasOwnProperty('video') ? true : supportFunction(codecs.video);
+
+    // make sure both audio and video codecs are supported, if
+    if (!audioSupported || !videoSupported) {
+      const message = `${mainStartingMedia.isFmp4 ? 'browser' : 'muxer'}` +
+        ` does not support ${mainStartingMedia.isFmp4 ? 'fmp4' : 'ts'} codec(s): ` +
+        `${!audioSupported ? codecs.audio : ''} ${!videoSupported ? codecs.video : ''}`;
+
+      this.blacklistCurrentPlaylist({
+        playlist: media,
+        message,
+        internal: true
+      }, Infinity);
+      return;
+    }
+
     if (!codecs.video && !codecs.audio) {
       const error = 'Failed to create SourceBuffers. No compatible SourceBuffer ' +
         'configuration for the variant stream:' + media.resolvedUri;
@@ -1348,18 +1311,15 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    this.excludeIncompatibleVariants_(media);
-  }
+    const codecString = [codecs.video, codecs.audio].filter(Boolean).join(',');
 
-  /**
-   * Blacklists playlists with codecs that are unsupported by the browser.
-   */
-  excludeUnsupportedVariants_() {
-    this.master().playlists.forEach(variant => {
-      if (variant.attributes.CODECS && !browserSupportsCodec(variant.attributes.CODECS)) {
-        variant.excludeUntil = Infinity;
-      }
-    });
+    // TODO:
+    // blacklisting incompatible renditions will have to change
+    // once we add support for `changeType` on source buffers.
+    // We will have to not blacklist any rendition until we try to
+    // switch to it and learn that it is incompatible and if it is compatible
+    // we `changeType` on the sourceBuffer.
+    this.excludeIncompatibleVariants_(codecString);
   }
 
   /**
@@ -1376,23 +1336,17 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * indefinitely.
    * @private
    */
-  excludeIncompatibleVariants_(media) {
-    let codecCount = 2;
-    let codecs = {video: {}};
+  excludeIncompatibleVariants_(codecString) {
+    const codecs = parseCodecs(codecString);
+    const codecCount = Object.keys(codecs).length;
 
-    if (media.attributes.CODECS) {
-      codecs = parseCodecs(media.attributes.CODECS);
-      codecCount = Object.keys(codecs).length;
-    }
-
-    this.master().playlists.forEach(function(variant) {
-      let variantCodecCount = 2;
-      let variantCodecs = {video: {}};
-
-      if (variant.attributes.CODECS) {
-        variantCodecs = parseCodecs(variant.attributes.CODECS);
-        variantCodecCount = Object.keys(variantCodecs).length;
+    this.master().playlists.forEach((variant) => {
+      // cannot blacklist a playlist by codec if we don't know the codec
+      if (!variant.attributes.CODECS) {
+        return;
       }
+      const variantCodecs = parseCodecs(variant.attributes.CODECS);
+      const variantCodecCount = Object.keys(variantCodecs).length;
 
       // The number of streams cannot change
       if (variantCodecCount !== codecCount) {
@@ -1401,14 +1355,18 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
       // the video codec cannot change
       if (variantCodecs.video && codecs.video &&
-        variantCodecs.video.type !== codecs.video.type) {
+        variantCodecs.video.type.toLowerCase() !== codecs.video.type.toLowerCase()) {
         variant.excludeUntil = Infinity;
       }
 
       // the audio codec cannot change
       if (variantCodecs.audio && codecs.audio &&
-        variantCodecs.audio.type !== codecs.audio.type) {
+        variantCodecs.audio.type.toLowerCase() !== codecs.audio.type.toLowerCase()) {
         variant.excludeUntil = Infinity;
+      }
+
+      if (variant.excludeUntil === Infinity) {
+        this.logger_(`blacklisting ${variant.id} as variant codecs ${variant.attributes.CODECS} are incompatible with ${codecString}`);
       }
     });
   }

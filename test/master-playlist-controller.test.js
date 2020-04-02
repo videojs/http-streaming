@@ -1355,34 +1355,6 @@ QUnit.test('does not blacklist switching between playlists with different audio 
   });
 });
 
-QUnit.test(
-  'blacklists playlists with unsupported codecs before initial selection',
-  function(assert) {
-    this.masterPlaylistController.selectPlaylist = () => {
-      assert.equal(
-        this.masterPlaylistController.master().playlists[0].excludeUntil,
-        Infinity,
-        'Blacklists unsupported playlist before initial selection'
-      );
-    };
-
-    openMediaSource(this.player, this.clock);
-
-    // master
-    this.requests.shift().respond(
-      200, null,
-      '#EXTM3U\n' +
-    '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="unsupporte.dc0dec,mp4a.40.5"\n' +
-    'media.m3u8\n' +
-    '#EXT-X-STREAM-INF:BANDWIDTH=10000,CODECS="avc1.4d400d,mp4a.40.2"\n' +
-    'media1.m3u8\n'
-    );
-
-    // media
-    this.standardXHRResponse(this.requests.shift());
-  }
-);
-
 QUnit.test('updates the combined segment loader on media changes', function(assert) {
   const updates = [];
 
@@ -2699,7 +2671,8 @@ QUnit.test('parses codec from audio only fmp4 init segment', function(assert) {
     assert.deepEqual(loader.startingMedia_, {
       audioCodec: 'mp4a.40.2',
       hasAudio: true,
-      hasVideo: false
+      hasVideo: false,
+      isFmp4: true
     }, 'starting media as expected');
   });
 });
@@ -2759,6 +2732,7 @@ QUnit.test('parses codec from video only fmp4 init segment', function(assert) {
     assert.deepEqual(loader.startingMedia_, {
       hasAudio: false,
       hasVideo: true,
+      isFmp4: true,
       videoCodec: 'avc1.64001e'
     }, 'starting media as expected');
   });
@@ -2821,7 +2795,8 @@ QUnit.test('parses codec from muxed fmp4 init segment', function(assert) {
       hasVideo: true,
       videoCodec: 'avc1.42c00d',
       audioCodec: 'mp4a.40.2',
-      isMuxed: true
+      isMuxed: true,
+      isFmp4: true
     }, 'starting media as expected');
   });
 });

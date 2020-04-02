@@ -789,10 +789,10 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (!newPlaylist) {
       return;
     }
-
     const oldPlaylist = this.playlist_;
     const segmentInfo = this.pendingSegment_;
 
+    this.startingMedia_ = void 0;
     this.playlist_ = newPlaylist;
     this.xhrOptions_ = options;
 
@@ -1437,17 +1437,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (this.checkForAbort_(simpleSegment.requestId) ||
         this.abortRequestEarly_(simpleSegment.stats)) {
       return;
-    }
-
-    if (!trackInfo) {
-      // At the moment, the only case we have where we won't have track info is fmp4,
-      // since fmp4 isn't parsed (yet).
-      // Also assume that fmp4 is always demuxed.
-      trackInfo = {
-        hasAudio: this.loaderType_ === 'audio',
-        // TODO fmp4 audio only
-        hasVideo: this.loaderType_ === 'main'
-      };
     }
 
     // When we have track info, determine what media types this loader is dealing with.
