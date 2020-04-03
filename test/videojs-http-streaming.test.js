@@ -1476,7 +1476,7 @@ QUnit.test('blacklists incompatible playlists by codec', function(assert) {
     '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,ac-3"\n' +
     'media2.m3u8\n' +
     // incompable by video codec difference
-    '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="hevc.4d400d,mp4a.40.2"\n' +
+    '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="hvc1.4d400d,mp4a.40.2"\n' +
     'media3.m3u8\n' +
     // incompatible, only audio codec
     '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="mp4a.40.2"\n' +
@@ -1491,7 +1491,8 @@ QUnit.test('blacklists incompatible playlists by codec', function(assert) {
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  const loader = this.player.tech_.hls.masterPlaylistController_.mainSegmentLoader_;
+  const mpc = this.player.tech_.hls.masterPlaylistController_;
+  const loader = mpc.mainSegmentLoader_;
   const master = this.player.tech_.hls.playlists.master;
 
   loader.startingMedia_ = {hasVideo: true, hasAudio: true};
@@ -1505,6 +1506,152 @@ QUnit.test('blacklists incompatible playlists by codec', function(assert) {
   assert.strictEqual(playlists[3].excludeUntil, Infinity, 'blacklisted incompatible video playlist');
   assert.strictEqual(playlists[4].excludeUntil, Infinity, 'blacklisted audio only playlist');
   assert.strictEqual(playlists[5].excludeUntil, Infinity, 'blacklisted video only playlist');
+});
+
+QUnit.test('blacklists fmp4 playlists by browser support', function(assert) {
+  const oldIsTypeSupported = window.MediaSource.isTypeSupported;
+
+  window.MediaSource.isTypeSupported = (t) => (/avc1|mp4a/).test(t);
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+
+  const playlistString =
+    '#EXTM3U\n' +
+    // video not supported
+    '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="hvc1,mp4a.40.2"\n' +
+    'media.m3u8\n' +
+    // audio not supported
+    '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,ac-3"\n' +
+    'media.m3u8\n' +
+    // supported!
+    '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.2"\n' +
+    'media1.m3u8\n';
+
+  // master
+  this.requests.shift().respond(200, null, playlistString);
+
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  const mpc = this.player.tech_.hls.masterPlaylistController_;
+  const playlistLoader = mpc.masterPlaylistLoader_;
+  const loader = mpc.mainSegmentLoader_;
+  const master = this.player.tech_.hls.playlists.master;
+
+  let debugLogs = [];
+
+  mpc.logger_ = (...logs) => {
+    debugLogs = debugLogs.concat(logs);
+  };
+
+  // after blacklist select the next one
+  this.player.tech_.on('blacklistplaylist', () => {
+  });
+
+  const playlists = master.playlists;
+
+  playlistLoader.media = () => playlists[0];
+  loader.mainStartingMedia_ = playlists[0];
+  loader.startingMedia_ = {hasVideo: true, hasAudio: true, isFmp4: true};
+  loader.trigger('trackinfo');
+
+  playlistLoader.media = () => playlists[1];
+  loader.mainStartingMedia_ = playlists[1];
+  loader.startingMedia_ = {hasVideo: true, hasAudio: true, isFmp4: true};
+  loader.trigger('trackinfo');
+
+  playlistLoader.media = () => playlists[2];
+  loader.mainStartingMedia_ = playlists[2];
+  loader.startingMedia_ = {hasVideo: true, hasAudio: true, isFmp4: true};
+  loader.trigger('trackinfo');
+
+  assert.strictEqual(playlists.length, 3, 'three playlists total');
+  assert.strictEqual(playlists[0].excludeUntil, Infinity, 'blacklisted first playlist');
+  assert.strictEqual(playlists[1].excludeUntil, Infinity, 'blacklisted second playlist');
+  assert.strictEqual(typeof playlists[2].excludeUntil, 'undefined', 'did not blacklist second playlist');
+  assert.deepEqual(debugLogs, [
+    'Internal problem encountered with the current playlist. browser does not support fmp4 codec(s): hvc1 Switching to another playlist.',
+    'Internal problem encountered with the current playlist. browser does not support fmp4 codec(s): ac-3 Switching to another playlist.'
+  ], 'debug log as expected');
+
+  window.MediaSource.isTypeSupported = oldIsTypeSupported;
+});
+
+QUnit.test('blacklists ts playlists by muxer support', function(assert) {
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+
+  const playlistString =
+    '#EXTM3U\n' +
+    // video not supported
+    '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="hvc1,mp4a.40.2"\n' +
+    'media.m3u8\n' +
+    // audio not supported
+    '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,ac-3"\n' +
+    'media.m3u8\n' +
+    // supported!
+    '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.2"\n' +
+    'media1.m3u8\n';
+
+  // master
+  this.requests.shift().respond(200, null, playlistString);
+
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  const mpc = this.player.tech_.hls.masterPlaylistController_;
+  const playlistLoader = mpc.masterPlaylistLoader_;
+  const loader = mpc.mainSegmentLoader_;
+  const master = this.player.tech_.hls.playlists.master;
+
+  let debugLogs = [];
+
+  mpc.logger_ = (...logs) => {
+    debugLogs = debugLogs.concat(logs);
+  };
+
+  // after blacklist select the next one
+  this.player.tech_.on('blacklistplaylist', () => {
+  });
+
+  const playlists = master.playlists;
+
+  playlistLoader.media = () => playlists[0];
+  loader.mainStartingMedia_ = playlists[0];
+  loader.startingMedia_ = {hasVideo: true, hasAudio: true};
+  loader.trigger('trackinfo');
+
+  playlistLoader.media = () => playlists[1];
+  loader.mainStartingMedia_ = playlists[1];
+  loader.startingMedia_ = {hasVideo: true, hasAudio: true};
+  loader.trigger('trackinfo');
+
+  playlistLoader.media = () => playlists[2];
+  loader.mainStartingMedia_ = playlists[2];
+  loader.startingMedia_ = {hasVideo: true, hasAudio: true};
+  loader.trigger('trackinfo');
+
+  assert.strictEqual(playlists.length, 3, 'three playlists total');
+  assert.strictEqual(playlists[0].excludeUntil, Infinity, 'blacklisted first playlist');
+  assert.strictEqual(playlists[1].excludeUntil, Infinity, 'blacklisted second playlist');
+  assert.strictEqual(typeof playlists[2].excludeUntil, 'undefined', 'did not blacklist second playlist');
+  assert.deepEqual(debugLogs, [
+    'Internal problem encountered with the current playlist. muxer does not support ts codec(s): hvc1 Switching to another playlist.',
+    'Internal problem encountered with the current playlist. muxer does not support ts codec(s): ac-3 Switching to another playlist.'
+  ], 'debug log as expected');
+
 });
 
 QUnit.test('cancels outstanding XHRs when seeking', function(assert) {

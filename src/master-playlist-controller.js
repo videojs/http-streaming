@@ -1272,7 +1272,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     if (!audioSupported || !videoSupported) {
       const message = `${mainStartingMedia.isFmp4 ? 'browser' : 'muxer'}` +
         ` does not support ${mainStartingMedia.isFmp4 ? 'fmp4' : 'ts'} codec(s): ` +
-        `${!audioSupported ? codecs.audio : ''} ${!videoSupported ? codecs.video : ''}`;
+        `${!audioSupported ? codecs.audio : ''}${!videoSupported ? codecs.video : ''}`;
 
       // reset startingMedia_ for playlists blacklisted
       this.mainSegmentLoader_.startingMedia_ = void 0;
@@ -1344,6 +1344,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
     const codecCount = Object.keys(codecs).length;
 
     this.master().playlists.forEach((variant) => {
+      // skip variants that are already blacklisted forever
+      if (variant.excludeUntil === Infinity) {
+        return;
+      }
       // TODO: should we really assume codecs?
       let variantCodecs = {};
       let variantCodecCount = 2;
