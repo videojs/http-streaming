@@ -912,7 +912,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     const logFn = error.internal ? this.logger_ : videojs.log.warn;
 
     logFn(`${(error.internal ? 'Internal problem' : 'Problem')} encountered with the current playlist.` +
-      `${error.message ? ` ${error.message}` : '' } Switching to another playlist.`);
+      `${error.message ? (' ' + error.message + '.') : '' } Switching to another playlist.`);
 
     return this.masterPlaylistLoader_.media(nextPlaylist, isFinalRendition);
   }
@@ -1265,21 +1265,24 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     // fmp4 relies on browser support, while ts relies on muxer support
     const supportFunction = mainStartingMedia.isFmp4 ? browserSupportsCodec : muxerSupportsCodec;
-    const audioSupported = !codecs.hasOwnProperty('audio') ? true : supportFunction(codecs.audio);
-    const videoSupported = !codecs.hasOwnProperty('video') ? true : supportFunction(codecs.video);
+    const unsupportedCodecs = [];
 
-    // make sure both audio and video codecs are supported, if
-    if (!audioSupported || !videoSupported) {
-      const message = `${mainStartingMedia.isFmp4 ? 'browser' : 'muxer'}` +
-        ` does not support ${mainStartingMedia.isFmp4 ? 'fmp4' : 'ts'} codec(s): ` +
-        `${!audioSupported ? codecs.audio : ''}${!videoSupported ? codecs.video : ''}`;
+    ['audio', 'video'].forEach(function(type) {
+      if (codecs.hasOwnProperty(type) && !supportFunction(codecs[type])) {
+        unsupportedCodecs.push(codecs[type]);
+      }
+    });
 
-      // reset startingMedia_ for playlists blacklisted
+    // if we have any unsupported codecs blacklist this playlist.
+    if (unsupportedCodecs.length) {
+      const supporter = mainStartingMedia.isFmp4 ? 'browser' : 'muxer';
+
+      // reset startingMedia_ when the intial playlist is blacklisted.
       this.mainSegmentLoader_.startingMedia_ = void 0;
 
       this.blacklistCurrentPlaylist({
         playlist: media,
-        message,
+        message: `${supporter} does not support codec(s): "${unsupportedCodecs.join(',')}"`,
         internal: true
       }, Infinity);
       return;
@@ -1348,9 +1351,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
       if (variant.excludeUntil === Infinity) {
         return;
       }
-      // TODO: should we really assume codecs?
+      // TODO: should we really assume codecs
+      // that there will be two codecs?
       let variantCodecs = {};
       let variantCodecCount = 2;
+      const blacklistReasons = [];
 
       if (variant.attributes.CODECS) {
         variantCodecs = parseCodecs(variant.attributes.CODECS);
@@ -1359,12 +1364,14 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
       // The number of streams cannot change
       if (variantCodecCount !== codecCount) {
+        blacklistReasons.push(`codec count "${variantCodecCount}" !== "${codecCount}"`);
         variant.excludeUntil = Infinity;
       }
 
       // the video codec cannot change
       if (variantCodecs.video && codecs.video &&
         variantCodecs.video.type.toLowerCase() !== codecs.video.type.toLowerCase()) {
+        blacklistReasons.push(`video codec "${variantCodecs.video.type}" !== "${codecs.video.type}"`);
         variant.excludeUntil = Infinity;
       }
 
@@ -1372,10 +1379,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
       if (variantCodecs.audio && codecs.audio &&
         variantCodecs.audio.type.toLowerCase() !== codecs.audio.type.toLowerCase()) {
         variant.excludeUntil = Infinity;
+        blacklistReasons.push(`audio codec "${variantCodecs.audio.type}" !== "${codecs.audio.type}"`);
       }
 
-      if (variant.excludeUntil === Infinity) {
-        this.logger_(`blacklisting ${variant.id} as variant codecs ${variant.attributes.CODECS} are incompatible with ${codecString}`);
+      if (blacklistReasons.length) {
+        this.logger_(`blacklisting ${variant.id}: ${blacklistReasons.join(' && ')}`);
       }
     });
   }

@@ -1475,7 +1475,7 @@ QUnit.test('blacklists incompatible playlists by codec', function(assert) {
     // incompatible by audio codec difference
     '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,ac-3"\n' +
     'media2.m3u8\n' +
-    // incompable by video codec difference
+    // incompatble by video codec difference
     '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="hvc1.4d400d,mp4a.40.2"\n' +
     'media3.m3u8\n' +
     // incompatible, only audio codec
@@ -1483,7 +1483,10 @@ QUnit.test('blacklists incompatible playlists by codec', function(assert) {
     'media4.m3u8\n' +
     // incompatible, only video codec
     '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d"\n' +
-    'media5.m3u8\n';
+    'media5.m3u8\n' +
+    // compatible with selected playlist
+    '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1,mp4a"\n' +
+    'media6.m3u8\n';
 
   // master
   this.requests.shift().respond(200, null, playlistString);
@@ -1499,13 +1502,14 @@ QUnit.test('blacklists incompatible playlists by codec', function(assert) {
   loader.trigger('trackinfo');
   const playlists = master.playlists;
 
-  assert.strictEqual(playlists.length, 6, 'six playlists total');
+  assert.strictEqual(playlists.length, 7, 'six playlists total');
   assert.strictEqual(typeof playlists[0].excludeUntil, 'undefined', 'did not blacklist first playlist');
   assert.strictEqual(typeof playlists[1].excludeUntil, 'undefined', 'did not blacklist second playlist');
   assert.strictEqual(playlists[2].excludeUntil, Infinity, 'blacklisted incompatible audio playlist');
   assert.strictEqual(playlists[3].excludeUntil, Infinity, 'blacklisted incompatible video playlist');
   assert.strictEqual(playlists[4].excludeUntil, Infinity, 'blacklisted audio only playlist');
   assert.strictEqual(playlists[5].excludeUntil, Infinity, 'blacklisted video only playlist');
+  assert.strictEqual(typeof playlists[6].excludeUntil, 'undefined', 'did not blacklist seventh playlist');
 });
 
 QUnit.test('blacklists fmp4 playlists by browser support', function(assert) {
@@ -1550,10 +1554,6 @@ QUnit.test('blacklists fmp4 playlists by browser support', function(assert) {
     debugLogs = debugLogs.concat(logs);
   };
 
-  // after blacklist select the next one
-  this.player.tech_.on('blacklistplaylist', () => {
-  });
-
   const playlists = master.playlists;
 
   playlistLoader.media = () => playlists[0];
@@ -1576,8 +1576,8 @@ QUnit.test('blacklists fmp4 playlists by browser support', function(assert) {
   assert.strictEqual(playlists[1].excludeUntil, Infinity, 'blacklisted second playlist');
   assert.strictEqual(typeof playlists[2].excludeUntil, 'undefined', 'did not blacklist second playlist');
   assert.deepEqual(debugLogs, [
-    'Internal problem encountered with the current playlist. browser does not support fmp4 codec(s): hvc1 Switching to another playlist.',
-    'Internal problem encountered with the current playlist. browser does not support fmp4 codec(s): ac-3 Switching to another playlist.'
+    'Internal problem encountered with the current playlist. browser does not support codec(s): "hvc1". Switching to another playlist.',
+    'Internal problem encountered with the current playlist. browser does not support codec(s): "ac-3". Switching to another playlist.'
   ], 'debug log as expected');
 
   window.MediaSource.isTypeSupported = oldIsTypeSupported;
@@ -1622,10 +1622,6 @@ QUnit.test('blacklists ts playlists by muxer support', function(assert) {
     debugLogs = debugLogs.concat(logs);
   };
 
-  // after blacklist select the next one
-  this.player.tech_.on('blacklistplaylist', () => {
-  });
-
   const playlists = master.playlists;
 
   playlistLoader.media = () => playlists[0];
@@ -1648,8 +1644,8 @@ QUnit.test('blacklists ts playlists by muxer support', function(assert) {
   assert.strictEqual(playlists[1].excludeUntil, Infinity, 'blacklisted second playlist');
   assert.strictEqual(typeof playlists[2].excludeUntil, 'undefined', 'did not blacklist second playlist');
   assert.deepEqual(debugLogs, [
-    'Internal problem encountered with the current playlist. muxer does not support ts codec(s): hvc1 Switching to another playlist.',
-    'Internal problem encountered with the current playlist. muxer does not support ts codec(s): ac-3 Switching to another playlist.'
+    'Internal problem encountered with the current playlist. muxer does not support codec(s): "hvc1". Switching to another playlist.',
+    'Internal problem encountered with the current playlist. muxer does not support codec(s): "ac-3". Switching to another playlist.'
   ], 'debug log as expected');
 
 });
