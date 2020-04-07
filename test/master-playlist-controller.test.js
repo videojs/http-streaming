@@ -1350,20 +1350,20 @@ QUnit.test('blacklists switching between playlists with different codecs', funct
     .respond(
       200, null,
       '#EXTM3U\n' +
-             '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5"\n' +
-             'media.m3u8\n' +
-             '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="hvc1,mp4a"\n' +
-             'media1.m3u8\n' +
-             '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400d,ac-3"\n' +
-             'media2.m3u8\n' +
-             '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="hvc1,ac-3"\n' +
-             'media3.m3u8\n' +
-             '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400e,mp4a.40.7"\n' +
-             'media4.m3u8\n' +
-             '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="ac-3"\n' +
-             'media5.m3u8\n' +
-             '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="hvc1"\n' +
-             'media6.m3u8\n'
+      '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5"\n' +
+      'media.m3u8\n' +
+      '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="hvc1,mp4a"\n' +
+      'media1.m3u8\n' +
+      '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400d,ac-3"\n' +
+      'media2.m3u8\n' +
+      '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="hvc1,ac-3"\n' +
+      'media3.m3u8\n' +
+      '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400e,mp4a.40.7"\n' +
+      'media4.m3u8\n' +
+      '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="ac-3"\n' +
+      'media5.m3u8\n' +
+      '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="hvc1"\n' +
+      'media6.m3u8\n'
     );
 
   // media

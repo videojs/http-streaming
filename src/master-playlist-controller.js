@@ -1351,8 +1351,16 @@ export class MasterPlaylistController extends videojs.EventTarget {
       if (variant.excludeUntil === Infinity) {
         return;
       }
-      // TODO: should we really assume codecs
-      // that there will be two codecs?
+      /* TODO: Decide whether two codecs should be assumed here.
+       * Right now, for playlists that don't specify codecs, VHS assumes
+       * that there are two (one for audio and one for video).
+       * Although this is often the case, this may lead to broken behavior
+       * if the playlist only has one codec. It may be better in the future
+       * to decide at time of segment download how many tracks there are and
+       * determine the proper codecs. This will come at a cost of potentially
+       * more bandwidth, but will be a more robust approach than the assumption here.
+       */
+
       let variantCodecs = {};
       let variantCodecCount = 2;
       const blacklistReasons = [];

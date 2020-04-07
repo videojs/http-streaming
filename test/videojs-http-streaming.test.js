@@ -1475,7 +1475,7 @@ QUnit.test('blacklists incompatible playlists by codec', function(assert) {
     // incompatible by audio codec difference
     '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,ac-3"\n' +
     'media2.m3u8\n' +
-    // incompatble by video codec difference
+    // incompatible by video codec difference
     '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="hvc1.4d400d,mp4a.40.2"\n' +
     'media3.m3u8\n' +
     // incompatible, only audio codec
