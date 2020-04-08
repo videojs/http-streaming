@@ -910,9 +910,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // Select a new playlist
     const nextPlaylist = this.selectPlaylist();
     const logFn = error.internal ? this.logger_ : videojs.log.warn;
+    const errorMessage = error.message ? (' ' + error.message) : '';
 
     logFn(`${(error.internal ? 'Internal problem' : 'Problem')} encountered with the current playlist.` +
-      `${error.message ? (' ' + error.message + '.') : '' } Switching to another playlist.`);
+      `${errorMessage} Switching to another playlist.`);
 
     return this.masterPlaylistLoader_.media(nextPlaylist, isFinalRendition);
   }
@@ -1282,7 +1283,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
       this.blacklistCurrentPlaylist({
         playlist: media,
-        message: `${supporter} does not support codec(s): "${unsupportedCodecs.join(',')}"`,
+        message: `${supporter} does not support codec(s): "${unsupportedCodecs.join(',')}".`,
         internal: true
       }, Infinity);
       return;
