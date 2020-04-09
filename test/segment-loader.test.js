@@ -792,6 +792,34 @@ QUnit.module('SegmentLoader', function(hooks) {
       });
     });
 
+    QUnit.test('audio loader does not wait to request segment even if timestamp offset is nonzero', function(assert) {
+      loader.dispose();
+      loader = new SegmentLoader(LoaderCommonSettings.call(this, {
+        loaderType: 'audio'
+      }), {});
+
+      const playlist = playlistWithDuration(100);
+
+      // The normal case this test represents is live, but seeking before start also
+      // represents the same (and a valid) case.
+      loader.currentTime_ = () => 70;
+
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        loader.playlist(playlist);
+        loader.load();
+        this.clock.tick(1);
+
+        assert.equal(
+          loader.pendingSegment_.timestampOffset,
+          60,
+          'timestamp offset is nonzero'
+        );
+        assert.equal(loader.state, 'WAITING', 'state is waiting on segment');
+        assert.equal(this.requests.length, 1, 'one request');
+        assert.equal(loader.loadQueue_.length, 0, 'no entries in load queue');
+      });
+    });
+
     // In the event that the loader doesn't have enough info to load, the segment request
     // will be part of the load queue until there's enough info. This test ensures that
     // these calls can be successfully aborted.
