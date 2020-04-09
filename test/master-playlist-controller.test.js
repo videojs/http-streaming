@@ -1021,6 +1021,8 @@ QUnit.test('waits for both main and audio loaders to finish before calling endOf
   // audio media
   this.standardXHRResponse(this.requests.shift(), audioMedia);
 
+  this.clock.tick(1);
+
   return requestAndAppendSegment({
     request: this.requests.shift(),
     segment: videoSegment(),
