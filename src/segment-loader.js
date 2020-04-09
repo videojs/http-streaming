@@ -1637,7 +1637,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // created together (before appending). Source buffer creation uses the presence of
     // audio and video data to determine whether to create audio/video source buffers, and
     // uses processed (transmuxed or parsed) media to determine the types required.
-    if (segmentInfo.timestampOffset === 0) {
+    if (!this.startingMedia_) {
       return true;
     }
 
