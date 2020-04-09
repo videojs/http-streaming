@@ -71,20 +71,11 @@
     window.history.replaceState({}, 'vhs demo', query);
   };
 
-  window.URLSearchParams = window.URLSearchParams || function(searchString) {
-    // eslint-disable-next-line
-    var self = this;
+  window.URLSearchParams = window.URLSearchParams || function(locationSearch) {
+    this.get = function(name) {
+      var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(locationSearch);
 
-    self.searchString = searchString;
-
-    self.get = function(name) {
-      var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(self.searchString);
-
-      if (results === null) {
-        return null;
-      }
-
-      return decodeURIComponent(results[1]);
+      return results ? decodeURIComponent(results[1]) : null;
     };
   };
 
