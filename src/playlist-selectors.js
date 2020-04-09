@@ -426,7 +426,7 @@ export const lowestBitrateCompatibleVariantSelector = function() {
   //
   // If an entire manifest has no valid videos everything will get filtered
   // out.
-  const playlistsWithVideo = playlists.filter(playlist => parseCodecs(playlist.attributes.CODECS).videoCodec);
+  const playlistsWithVideo = playlists.filter(playlist => !!parseCodecs(playlist.attributes.CODECS).video);
 
   return playlistsWithVideo[0] || null;
 };

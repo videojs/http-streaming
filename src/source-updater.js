@@ -5,6 +5,7 @@ import videojs from 'video.js';
 import logger from './util/logger';
 import noop from './util/noop';
 import { buffered } from './util/buffer';
+import {getMimeForCodec} from '@videojs/vhs-utils/dist/codecs.js';
 
 const updating = (type, sourceUpdater) => {
   const sourceBuffer = sourceUpdater[`${type}Buffer`];
@@ -225,15 +226,19 @@ export default class SourceUpdater extends videojs.EventTarget {
     }
 
     if (codecs.audio) {
-      this.audioBuffer = this.mediaSource.addSourceBuffer(`audio/mp4;codecs="${codecs.audio}"`);
+      const mime = getMimeForCodec(codecs.audio);
+
+      this.audioBuffer = this.mediaSource.addSourceBuffer(mime);
       this.audioBuffer.removing = false;
-      this.logger_(`created SourceBuffer audio/mp4;codecs="${codecs.audio}"`);
+      this.logger_(`created SourceBuffer ${mime}`);
     }
 
     if (codecs.video) {
-      this.videoBuffer = this.mediaSource.addSourceBuffer(`video/mp4;codecs="${codecs.video}"`);
+      const mime = getMimeForCodec(codecs.video);
+
+      this.videoBuffer = this.mediaSource.addSourceBuffer(mime);
       this.videoBuffer.removing = false;
-      this.logger_(`created SourceBuffer video/mp4;codecs="${codecs.video}"`);
+      this.logger_(`created SourceBuffer ${mime}`);
     }
 
     this.trigger('ready');

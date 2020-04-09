@@ -11,11 +11,13 @@ import {
   setupMediaSource,
   downloadProgress
 } from './test-helpers.js';
-import manifests from 'create-test-data!manifests';
 import {
-  MasterPlaylistController,
   DEFAULT_AUDIO_CODEC,
   DEFAULT_VIDEO_CODEC
+} from '@videojs/vhs-utils/dist/codecs.js';
+import manifests from 'create-test-data!manifests';
+import {
+  MasterPlaylistController
 } from '../src/master-playlist-controller';
 /* eslint-disable no-unused-vars */
 // we need this so that it can register hls with videojs
@@ -1021,25 +1023,19 @@ QUnit.test('waits for both main and audio loaders to finish before calling endOf
   // audio media
   this.standardXHRResponse(this.requests.shift(), audioMedia);
 
-  return requestAndAppendSegment({
+  return Promise.all([requestAndAppendSegment({
     request: this.requests.shift(),
     segment: videoSegment(),
     isOnlyVideo: true,
     segmentLoader: MPC.mainSegmentLoader_,
     clock: this.clock
-  }).then(() => {
-    assert.equal(videoEnded, 1, 'main segment loader triggered ended');
-    assert.equal(audioEnded, 0, 'audio segment loader did not trigger ended');
-    assert.equal(MPC.mediaSource.readyState, 'open', 'Media Source not yet ended');
-
-    return requestAndAppendSegment({
-      request: this.requests.shift(),
-      segment: audioSegment(),
-      isOnlyAudio: true,
-      segmentLoader: MPC.audioSegmentLoader_,
-      clock: this.clock
-    });
-  }).then(() => {
+  }), requestAndAppendSegment({
+    request: this.requests.shift(),
+    segment: audioSegment(),
+    isOnlyAudio: true,
+    segmentLoader: MPC.audioSegmentLoader_,
+    clock: this.clock
+  })]).then(() => {
 
     assert.equal(videoEnded, 1, 'main segment loader did not trigger ended again');
     assert.equal(audioEnded, 1, 'audio segment loader triggered ended');
@@ -1207,7 +1203,11 @@ QUnit.test('blacklists switching from video+audio playlists to audio only', func
   this.standardXHRResponse(this.requests.shift());
 
   const mpc = this.masterPlaylistController;
+  let debugLogs = [];
 
+  mpc.logger_ = (...logs) => {
+    debugLogs = debugLogs.concat(logs);
+  };
   // segment must be appended before the blacklist logic runs
   return requestAndAppendSegment({
     request: this.requests.shift(),
@@ -1223,6 +1223,11 @@ QUnit.test('blacklists switching from video+audio playlists to audio only', func
     const audioPlaylist = mpc.masterPlaylistLoader_.master.playlists[0];
 
     assert.equal(audioPlaylist.excludeUntil, Infinity, 'excluded incompatible playlist');
+    assert.notEqual(
+      debugLogs.indexOf('blacklisting 0-media.m3u8: codec count "1" !== "2"'),
+      -1,
+      'debug logs about codec count'
+    );
   });
 });
 
@@ -1245,7 +1250,11 @@ QUnit.test('blacklists switching from audio-only playlists to video+audio', func
   this.standardXHRResponse(this.requests.shift());
 
   const mpc = this.masterPlaylistController;
+  let debugLogs = [];
 
+  mpc.logger_ = (...logs) => {
+    debugLogs = debugLogs.concat(logs);
+  };
   // segment must be appended before the blacklist logic runs
   return requestAndAppendSegment({
     request: this.requests.shift(),
@@ -1266,6 +1275,12 @@ QUnit.test('blacklists switching from audio-only playlists to video+audio', func
       videoAudioPlaylist.excludeUntil,
       Infinity,
       'excluded incompatible playlist'
+    );
+
+    assert.notEqual(
+      debugLogs.indexOf('blacklisting 1-media1.m3u8: codec count "2" !== "1"'),
+      -1,
+      'debug logs about codec count'
     );
   });
 });
@@ -1290,6 +1305,11 @@ QUnit.test('blacklists switching from video-only playlists to video+audio', func
   this.standardXHRResponse(this.requests.shift());
 
   const mpc = this.masterPlaylistController;
+  let debugLogs = [];
+
+  mpc.logger_ = (...logs) => {
+    debugLogs = debugLogs.concat(logs);
+  };
 
   // segment must be appended before the blacklist logic runs
   return requestAndAppendSegment({
@@ -1312,6 +1332,85 @@ QUnit.test('blacklists switching from video-only playlists to video+audio', func
       Infinity,
       'excluded incompatible playlist'
     );
+    assert.notEqual(
+      debugLogs.indexOf('blacklisting 1-media1.m3u8: codec count "2" !== "1"'),
+      -1,
+      'debug logs about codec count'
+    );
+  });
+});
+
+QUnit.test('blacklists switching between playlists with different codecs', function(assert) {
+  openMediaSource(this.player, this.clock);
+
+  this.player.tech_.hls.bandwidth = 1;
+
+  // master
+  this.requests.shift()
+    .respond(
+      200, null,
+      '#EXTM3U\n' +
+      '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5"\n' +
+      'media.m3u8\n' +
+      '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="hvc1,mp4a"\n' +
+      'media1.m3u8\n' +
+      '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400d,ac-3"\n' +
+      'media2.m3u8\n' +
+      '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="hvc1,ac-3"\n' +
+      'media3.m3u8\n' +
+      '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400e,mp4a.40.7"\n' +
+      'media4.m3u8\n' +
+      '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="ac-3"\n' +
+      'media5.m3u8\n' +
+      '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="hvc1"\n' +
+      'media6.m3u8\n'
+    );
+
+  // media
+  this.standardXHRResponse(this.requests.shift());
+  assert.equal(
+    this.masterPlaylistController.masterPlaylistLoader_.media(),
+    this.masterPlaylistController.masterPlaylistLoader_.master.playlists[0],
+    'selected HE-AAC stream'
+  );
+
+  const mpc = this.masterPlaylistController;
+
+  let debugLogs = [];
+
+  mpc.logger_ = (...logs) => {
+    debugLogs = debugLogs.concat(logs);
+  };
+
+  // segment must be appended before the blacklist logic runs
+  return requestAndAppendSegment({
+    request: this.requests.shift(),
+    segmentLoader: mpc.mainSegmentLoader_,
+    clock: this.clock
+  }).then(() => {
+    const playlists = mpc.masterPlaylistLoader_.master.playlists;
+
+    assert.equal(typeof playlists[0].excludeUntil, 'undefined', 'did not blacklist first playlist');
+    assert.equal(playlists[1].excludeUntil, Infinity, 'blacklistlisted second playlist');
+    assert.equal(playlists[2].excludeUntil, Infinity, 'blacklistlisted third playlist');
+    assert.equal(playlists[3].excludeUntil, Infinity, 'blacklistlisted forth playlist');
+    assert.equal(typeof playlists[4].excludeUntil, 'undefined', 'did not blacklist fifth playlist');
+    assert.equal(playlists[5].excludeUntil, Infinity, 'blacklistlisted sixth playlist');
+    assert.equal(playlists[6].excludeUntil, Infinity, 'blacklistlisted seventh playlist');
+
+    [
+      'blacklisting 1-media1.m3u8: video codec "hvc1" !== "avc1"',
+      'blacklisting 2-media2.m3u8: audio codec "ac-3" !== "mp4a"',
+      'blacklisting 3-media3.m3u8: video codec "hvc1" !== "avc1" && audio codec "ac-3" !== "mp4a"',
+      'blacklisting 5-media5.m3u8: codec count "1" !== "2" && audio codec "ac-3" !== "mp4a"',
+      'blacklisting 6-media6.m3u8: codec count "1" !== "2" && video codec "hvc1" !== "avc1"'
+    ].forEach(function(message) {
+      assert.notEqual(
+        debugLogs.indexOf(message),
+        -1,
+        `debug logs ${message}`
+      );
+    });
   });
 });
 
@@ -1352,34 +1451,6 @@ QUnit.test('does not blacklist switching between playlists with different audio 
     assert.equal(alternatePlaylist.excludeUntil, undefined, 'did not exclude playlist');
   });
 });
-
-QUnit.test(
-  'blacklists playlists with unsupported codecs before initial selection',
-  function(assert) {
-    this.masterPlaylistController.selectPlaylist = () => {
-      assert.equal(
-        this.masterPlaylistController.master().playlists[0].excludeUntil,
-        Infinity,
-        'Blacklists unsupported playlist before initial selection'
-      );
-    };
-
-    openMediaSource(this.player, this.clock);
-
-    // master
-    this.requests.shift().respond(
-      200, null,
-      '#EXTM3U\n' +
-    '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="unsupporte.dc0dec,mp4a.40.5"\n' +
-    'media.m3u8\n' +
-    '#EXT-X-STREAM-INF:BANDWIDTH=10000,CODECS="avc1.4d400d,mp4a.40.2"\n' +
-    'media1.m3u8\n'
-    );
-
-    // media
-    this.standardXHRResponse(this.requests.shift());
-  }
-);
 
 QUnit.test('updates the combined segment loader on media changes', function(assert) {
   const updates = [];
@@ -2697,7 +2768,8 @@ QUnit.test('parses codec from audio only fmp4 init segment', function(assert) {
     assert.deepEqual(loader.startingMedia_, {
       audioCodec: 'mp4a.40.2',
       hasAudio: true,
-      hasVideo: false
+      hasVideo: false,
+      isFmp4: true
     }, 'starting media as expected');
   });
 });
@@ -2757,6 +2829,7 @@ QUnit.test('parses codec from video only fmp4 init segment', function(assert) {
     assert.deepEqual(loader.startingMedia_, {
       hasAudio: false,
       hasVideo: true,
+      isFmp4: true,
       videoCodec: 'avc1.64001e'
     }, 'starting media as expected');
   });
@@ -2819,7 +2892,8 @@ QUnit.test('parses codec from muxed fmp4 init segment', function(assert) {
       hasVideo: true,
       videoCodec: 'avc1.42c00d',
       audioCodec: 'mp4a.40.2',
-      isMuxed: true
+      isMuxed: true,
+      isFmp4: true
     }, 'starting media as expected');
   });
 });

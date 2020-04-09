@@ -17,16 +17,16 @@ import Decrypter from 'worker!./decrypter-worker.worker.js';
 import Config from './config';
 import {
   parseCodecs,
-  mapLegacyAvcCodecs
+  browserSupportsCodec,
+  muxerSupportsCodec,
+  DEFAULT_AUDIO_CODEC,
+  DEFAULT_VIDEO_CODEC
 } from '@videojs/vhs-utils/dist/codecs.js';
 import { codecsForPlaylist } from './util/codecs.js';
 import { createMediaTypes, setupMediaGroups } from './media-groups';
 import logger from './util/logger';
 
 const ABORT_EARLY_BLACKLIST_SECONDS = 60 * 2;
-
-export const DEFAULT_AUDIO_CODEC = 'mp4a.40.2';
-export const DEFAULT_VIDEO_CODEC = 'avc1.4d400d';
 
 let Hls;
 
@@ -292,13 +292,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     this.masterPlaylistLoader_.on('loadedplaylist', () => {
-      const updatedPlaylist = this.masterPlaylistLoader_.media();
+      let updatedPlaylist = this.masterPlaylistLoader_.media();
 
       if (!updatedPlaylist) {
-        // blacklist any variants that are not supported by the browser before selecting
-        // an initial media as the playlist selectors do not consider browser support
-        this.excludeUnsupportedVariants_();
-
         let selectedMedia;
 
         if (this.enableLowInitialPlaylist) {
@@ -318,10 +314,12 @@ export class MasterPlaylistController extends videojs.EventTarget {
         // playlist's `segments` list is already available, a media playlist won't be
         // requested, and loadedplaylist won't fire again, so the playlist handler must be
         // called on its own here.
-        if (this.sourceType_ === 'vhs-json' && this.initialMedia_.segments) {
-          this.handleUpdatedMediaPlaylist(this.initialMedia_);
+        const haveJsonSource = this.sourceType_ === 'vhs-json' && this.initialMedia_.segments;
+
+        if (!haveJsonSource) {
+          return;
         }
-        return;
+        updatedPlaylist = this.initialMedia_;
       }
 
       this.handleUpdatedMediaPlaylist(updatedPlaylist);
@@ -873,9 +871,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    const isFinalRendition =
-      this.masterPlaylistLoader_.master.playlists.filter(isEnabled).length === 1;
     const playlists = this.masterPlaylistLoader_.master.playlists;
+    const enabledPlaylists = playlists.filter(isEnabled);
+    const isFinalRendition = enabledPlaylists.length === 1 && enabledPlaylists[0] === currentPlaylist;
 
     if (playlists.length === 1) {
       // Never blacklisting this playlist because it's the only playlist
@@ -911,10 +909,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     // Select a new playlist
     const nextPlaylist = this.selectPlaylist();
+    const logFn = error.internal ? this.logger_ : videojs.log.warn;
+    const errorMessage = error.message ? (' ' + error.message) : '';
 
-    videojs.log.warn('Problem encountered with the current playlist.' +
-                     (error.message ? ' ' + error.message : '') +
-                     ' Switching to another playlist.');
+    logFn(`${(error.internal ? 'Internal problem' : 'Problem')} encountered with the current playlist.` +
+      `${errorMessage} Switching to another playlist.`);
 
     return this.masterPlaylistLoader_.media(nextPlaylist, isFinalRendition);
   }
@@ -1265,6 +1264,31 @@ export class MasterPlaylistController extends videojs.EventTarget {
       }
     }
 
+    // fmp4 relies on browser support, while ts relies on muxer support
+    const supportFunction = mainStartingMedia.isFmp4 ? browserSupportsCodec : muxerSupportsCodec;
+    const unsupportedCodecs = [];
+
+    ['audio', 'video'].forEach(function(type) {
+      if (codecs.hasOwnProperty(type) && !supportFunction(codecs[type])) {
+        unsupportedCodecs.push(codecs[type]);
+      }
+    });
+
+    // if we have any unsupported codecs blacklist this playlist.
+    if (unsupportedCodecs.length) {
+      const supporter = mainStartingMedia.isFmp4 ? 'browser' : 'muxer';
+
+      // reset startingMedia_ when the intial playlist is blacklisted.
+      this.mainSegmentLoader_.startingMedia_ = void 0;
+
+      this.blacklistCurrentPlaylist({
+        playlist: media,
+        message: `${supporter} does not support codec(s): "${unsupportedCodecs.join(',')}".`,
+        internal: true
+      }, Infinity);
+      return;
+    }
+
     if (!codecs.video && !codecs.audio) {
       const error = 'Failed to create SourceBuffers. No compatible SourceBuffer ' +
         'configuration for the variant stream:' + media.resolvedUri;
@@ -1294,21 +1318,15 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    this.excludeIncompatibleVariants_(media);
-  }
+    const codecString = [codecs.video, codecs.audio].filter(Boolean).join(',');
 
-  /**
-   * Blacklists playlists with codecs that are unsupported by the browser.
-   */
-  excludeUnsupportedVariants_() {
-    this.master().playlists.forEach(variant => {
-      if (variant.attributes.CODECS &&
-          window.MediaSource &&
-          window.MediaSource.isTypeSupported &&
-          !window.MediaSource.isTypeSupported(`video/mp4; codecs="${mapLegacyAvcCodecs(variant.attributes.CODECS)}"`)) {
-        variant.excludeUntil = Infinity;
-      }
-    });
+    // TODO:
+    // blacklisting incompatible renditions will have to change
+    // once we add support for `changeType` on source buffers.
+    // We will have to not blacklist any rendition until we try to
+    // switch to it and learn that it is incompatible and if it is compatible
+    // we `changeType` on the sourceBuffer.
+    this.excludeIncompatibleVariants_(codecString);
   }
 
   /**
@@ -1325,37 +1343,56 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * indefinitely.
    * @private
    */
-  excludeIncompatibleVariants_(media) {
-    let codecCount = 2;
-    let videoCodec = null;
-    let codecs;
+  excludeIncompatibleVariants_(codecString) {
+    const codecs = parseCodecs(codecString);
+    const codecCount = Object.keys(codecs).length;
 
-    if (media.attributes.CODECS) {
-      codecs = parseCodecs(media.attributes.CODECS);
-      videoCodec = codecs.videoCodec;
-      codecCount = codecs.codecCount;
-    }
+    this.master().playlists.forEach((variant) => {
+      // skip variants that are already blacklisted forever
+      if (variant.excludeUntil === Infinity) {
+        return;
+      }
+      /* TODO: Decide whether two codecs should be assumed here.
+       * Right now, for playlists that don't specify codecs, VHS assumes
+       * that there are two (one for audio and one for video).
+       * Although this is often the case, this may lead to broken behavior
+       * if the playlist only has one codec. It may be better in the future
+       * to decide at time of segment download how many tracks there are and
+       * determine the proper codecs. This will come at a cost of potentially
+       * more bandwidth, but will be a more robust approach than the assumption here.
+       */
 
-    this.master().playlists.forEach(function(variant) {
-      let variantCodecs = {
-        codecCount: 2,
-        videoCodec: null
-      };
+      let variantCodecs = {};
+      let variantCodecCount = 2;
+      const blacklistReasons = [];
 
       if (variant.attributes.CODECS) {
         variantCodecs = parseCodecs(variant.attributes.CODECS);
+        variantCodecCount = Object.keys(variantCodecs).length;
       }
 
-      // if the streams differ in the presence or absence of audio or
-      // video, they are incompatible
-      if (variantCodecs.codecCount !== codecCount) {
+      // The number of streams cannot change
+      if (variantCodecCount !== codecCount) {
+        blacklistReasons.push(`codec count "${variantCodecCount}" !== "${codecCount}"`);
         variant.excludeUntil = Infinity;
       }
 
-      // if h.264 is specified on the current playlist, some flavor of
-      // it must be specified on all compatible variants
-      if (variantCodecs.videoCodec !== videoCodec) {
+      // the video codec cannot change
+      if (variantCodecs.video && codecs.video &&
+        variantCodecs.video.type.toLowerCase() !== codecs.video.type.toLowerCase()) {
+        blacklistReasons.push(`video codec "${variantCodecs.video.type}" !== "${codecs.video.type}"`);
         variant.excludeUntil = Infinity;
+      }
+
+      // the audio codec cannot change
+      if (variantCodecs.audio && codecs.audio &&
+        variantCodecs.audio.type.toLowerCase() !== codecs.audio.type.toLowerCase()) {
+        variant.excludeUntil = Infinity;
+        blacklistReasons.push(`audio codec "${variantCodecs.audio.type}" !== "${codecs.audio.type}"`);
+      }
+
+      if (blacklistReasons.length) {
+        this.logger_(`blacklisting ${variant.id}: ${blacklistReasons.join(' && ')}`);
       }
     });
   }
