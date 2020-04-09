@@ -1369,12 +1369,6 @@ QUnit.test('refreshMedia: triggers playlistunchanged for master loader' +
 
   assert.equal(master, newMaster, 'master is unchanged');
   assert.equal(media, newMedia, 'media is unchanged');
-  /*
-  assert.ok(
-    newMaster.playlists.indexOf(newMedia.id) > -1,
-    'new master contains new media'
-  );
-  */
 });
 
 QUnit.test('refreshMedia: updates master and media playlists for child loader', function(assert) {
