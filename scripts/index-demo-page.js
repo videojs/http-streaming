@@ -71,14 +71,26 @@
     window.history.replaceState({}, 'vhs demo', query);
   };
 
-  var loadState = function() {
-    var params = {get: function(param) {
-      return null;
-    }};
+  window.URLSearchParams = window.URLSearchParams || function(searchString) {
+    // eslint-disable-next-line
+    var self = this;
 
-    if (window.URLSearchParams) {
-      params = new window.URLSearchParams(window.location.search);
-    }
+    self.searchString = searchString;
+
+    self.get = function(name) {
+      var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(self.searchString);
+
+      if (results === null) {
+        return null;
+      }
+
+      return decodeURIComponent(results[1]);
+    };
+  };
+
+  // eslint-disable-next-line
+  var loadState = function() {
+    var params = new window.URLSearchParams(window.location.search);
 
     return Object.keys(stateEls).reduce(function(acc, elName) {
       acc[elName] = typeof params.get(elName) !== 'object' ? params.get(elName) : getInputValue(stateEls[elName]);
@@ -86,6 +98,7 @@
     }, {});
   };
 
+  // eslint-disable-next-line
   var reloadScripts = function(urls, cb) {
     var el = document.getElementById('reload-scripts');
     var onload = function() {
@@ -261,6 +274,17 @@
       stateEls.type.value = '';
 
       urlButton.dispatchEvent(newEvent('click'));
+    });
+
+    stateEls.url.addEventListener('keyup', function(event) {
+      if (event.key === 'Enter') {
+        urlButton.click();
+      }
+    });
+    stateEls.type.addEventListener('keyup', function(event) {
+      if (event.key === 'Enter') {
+        urlButton.click();
+      }
     });
 
     // run the change handler for the first time
