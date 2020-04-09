@@ -1023,19 +1023,19 @@ QUnit.test('waits for both main and audio loaders to finish before calling endOf
   // audio media
   this.standardXHRResponse(this.requests.shift(), audioMedia);
 
-  return Promise.all([requestAndAppendSegment({
+  return requestAndAppendSegment({
     request: this.requests.shift(),
     segment: videoSegment(),
     isOnlyVideo: true,
     segmentLoader: MPC.mainSegmentLoader_,
     clock: this.clock
-  }), requestAndAppendSegment({
+  }).then(() => requestAndAppendSegment({
     request: this.requests.shift(),
     segment: audioSegment(),
     isOnlyAudio: true,
     segmentLoader: MPC.audioSegmentLoader_,
     clock: this.clock
-  })]).then(() => {
+  })).then(() => {
 
     assert.equal(videoEnded, 1, 'main segment loader did not trigger ended again');
     assert.equal(audioEnded, 1, 'audio segment loader triggered ended');
