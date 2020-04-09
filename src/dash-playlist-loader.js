@@ -716,8 +716,10 @@ export default class DashPlaylistLoader extends EventTarget {
             );
           }
         } else {
-
           this.master = updatedMaster;
+          if (this.media_) {
+            this.media_ = this.master.playlists[this.media_.id];
+          }
         }
       }
 
@@ -768,7 +770,7 @@ export default class DashPlaylistLoader extends EventTarget {
       }
       this.media_ = updatedMaster.playlists[mediaID];
     } else {
-      this.media_ = newMaster.playlists[mediaID];
+      this.media_ = oldMaster.playlists[mediaID];
       this.trigger('playlistunchanged');
     }
 
