@@ -207,8 +207,7 @@
 
         player = window.player = window.videojs(videoEl, {
           plugins: {
-            httpSourceSelector:
-            {
+            httpSourceSelector: {
               default: 'auto'
             }
           },
