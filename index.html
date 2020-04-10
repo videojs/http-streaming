@@ -78,22 +78,23 @@
   <h3>Load a Source</h3>
   <select id=load-source>
     <optgroup label="hls">
-      <option value="https://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8">Muxed TS with 1 alt Audio, 5 captions</option>
+      <option value="https://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8">Bipbop - Muxed TS with 1 alt Audio, 5 captions</option>
       <option value="https://d2zihajmogu5jn.cloudfront.net/ts-fmp4/index.m3u8">FMP4 and ts both muxed</option>
-      <option value="https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8">FMP4 and captions muxed</option>
-      <option value="https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_adv_example_hevc/master.m3u8">FMP4 hevc</option>
-      <option value="https://storage.googleapis.com/shaka-demo-assets/angel-one-hls/hls.m3u8">FMP4 unmuxed, many audio/captions</option>
-      <option value="https://bitdash-a.akamaihd.net/content/MI201109210084_1/m3u8s-fmp4/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.m3u8">FMP4 unmuxed</option>
-      <option value="https://s3.amazonaws.com/bob.jwplayer.com/~alex/121628/new_master.m3u8">ts Audio only</option>
+      <option value="https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8">Advanced Bipbop - FMP4 and captions muxed</option>
+      <option value="https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_adv_example_hevc/master.m3u8">Advanced Bipbop - FMP4 hevc</option>
+      <option value="https://storage.googleapis.com/shaka-demo-assets/angel-one-hls/hls.m3u8">Angel One - FMP4 unmuxed, many audio/captions</option>
+      <option value="https://bitdash-a.akamaihd.net/content/MI201109210084_1/m3u8s-fmp4/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.m3u8">Parkour - FMP4 unmuxed</option>
+      <option value="https://s3.amazonaws.com/qa.jwplayer.com/~alex/121628/new_master.m3u8">Song - ts Audio only</option>
 
-      <option value="https://akamai-axtest.akamaized.net/routes/lapd-v1-acceptance/www_c4/Manifest.m3u8">ts Live</option>
-      <option value="https://playertest.longtailvideo.com/adaptive/oceans_aes/oceans_aes.m3u8">ts Encrypted</option>
-      <option value="https://bitmovin-a.akamaihd.net/content/sintel/hls/playlist.m3u8">ts with audio/subs and a 4k rendtion</option>
+      <option value="https://akamai-axtest.akamaized.net/routes/lapd-v1-acceptance/www_c4/Manifest.m3u8">ts Live - Axinom live stream, may not always be available</option>
+      <option value="https://playertest.longtailvideo.com/adaptive/oceans_aes/oceans_aes.m3u8">Disney's Oceans trailer - HLSe, ts Encrypted</option>
+      <option value="https://bitmovin-a.akamaihd.net/content/sintel/hls/playlist.m3u8">Sintel - ts with audio/subs and a 4k rendtion</option>
     </optgroup>
     <optgroup label="dash">
-      <option value="https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd">unmuxed audio/video</option>
-      <option value="https://vm2.dashif.org/livesim/mup_30/testpic_2s/Manifest.mpd">Live</option>
+      <option value="https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd">Big Buck Bunny - unmuxed audio/video, includes 4K, burns in frame, pts, resolution, bitrate values</option>
       <option value="https://dash.akamaized.net/dash264/TestCases/10a/1/iis_forest_short_poem_multi_lang_480p_single_adapt_aaclc_sidx.mpd">Sidx unmuxed, 2 audio</option>
+      <option value="https://vm2.dashif.org/livesim/mup_30/testpic_2s/Manifest.mpd">Live simulated DASH from DASH IF</option>
+      <option value="https://akamai-axtest.akamaized.net/routes/lapd-v1-acceptance/www_c4/Manifest.mpd">DASH Live - Axinom live stream, may not always be available</option>
     </optgroup>
   </select>
   <h3>Navigation</h3>
