@@ -1357,9 +1357,18 @@ QUnit.test('refreshMedia: triggers playlistunchanged for master loader' +
     playlistUnchanged++;
   });
 
+  const master = loader.master;
+  const media = loader.media();
+
   loader.refreshMedia_(loader.media().id);
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylists');
   assert.strictEqual(playlistUnchanged, 1, 'one playlistunchanged');
+
+  const newMaster = loader.master;
+  const newMedia = loader.media();
+
+  assert.equal(master, newMaster, 'master is unchanged');
+  assert.equal(media, newMedia, 'media is unchanged');
 });
 
 QUnit.test('refreshMedia: updates master and media playlists for child loader', function(assert) {
@@ -1498,6 +1507,37 @@ QUnit.test('refreshXml_: requests the sidx if it changed', function(assert) {
       length: 200
     },
     'the sidx byterange has changed to reflect the new manifest'
+  );
+});
+
+QUnit.test('refreshXml_: updates media playlist reference if master changed', function(assert) {
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+
+  loader.load();
+  this.standardXHRResponse(this.requests.shift());
+
+  const oldMaster = loader.master;
+  const oldMedia = loader.media();
+  const newMasterXml = loader.masterXml_.replace(
+    'mediaPresentationDuration="PT4S"',
+    'mediaPresentationDuration="PT5S"'
+  );
+
+  loader.refreshXml_();
+
+  assert.strictEqual(this.requests.length, 1, 'manifest is being requested');
+
+  this.requests.shift().respond(200, null, newMasterXml);
+
+  const newMaster = loader.master;
+  const newMedia = loader.media();
+
+  assert.notEqual(newMaster, oldMaster, 'master changed');
+  assert.notEqual(newMedia, oldMedia, 'media changed');
+  assert.equal(
+    newMedia,
+    newMaster.playlists[newMedia.id],
+    'media from updated master'
   );
 });
 
