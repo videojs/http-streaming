@@ -1366,8 +1366,15 @@ export class MasterPlaylistController extends videojs.EventTarget {
       let variantCodecCount = 2;
       const blacklistReasons = [];
 
-      if (variant.attributes.CODECS) {
-        variantCodecs = parseCodecs(variant.attributes.CODECS);
+      // get codecs from the playlist for this variant
+      const playlistCodecs = codecsForPlaylist(this.masterPlaylistLoader_.master, variant);
+
+      if (playlistCodecs.audio || playlistCodecs.video) {
+        const variantCodecString = [playlistCodecs.video, playlistCodecs.audio]
+          .filter(Boolean)
+          .join(',');
+
+        variantCodecs = parseCodecs(variantCodecString);
         variantCodecCount = Object.keys(variantCodecs).length;
       }
 
