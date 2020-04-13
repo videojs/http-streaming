@@ -3635,9 +3635,9 @@ QUnit.test('Uses audio codec from audio playlist for demuxed content', function(
 
     const playlists = mpc.master().playlists;
 
-    assert.equal(typeof playlists[0].excludeUntil, undefined, 'did not blacklist the first playlist');
+    assert.equal(typeof playlists[0].excludeUntil, 'undefined', 'did not blacklist the first playlist');
     assert.equal(playlists[1].excludeUntil, Infinity, 'blacklisted the second playlist');
-    assert.equal(typeof playlists[2].excludeUntil, undefined, 'did not blacklist the third playlist');
+    assert.equal(typeof playlists[2].excludeUntil, 'undefined', 'did not blacklist the third playlist');
     assert.equal(playlists[3].excludeUntil, Infinity, 'blacklisted the fourth playlist');
 
     done();
