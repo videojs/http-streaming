@@ -10,18 +10,18 @@
   // get the sources list squared away
   var xhr = new window.XMLHttpRequest();
 
-  xhr.addEventListener('load', () => {
+  xhr.addEventListener('load', function() {
     var sources = JSON.parse(xhr.responseText);
 
-    sources.forEach((source) => {
+    sources.forEach(function(source) {
       const option = document.createElement('option');
 
       option.innerText = source.name;
       option.value = source.uri;
 
-      if (source.features.includes('low-latency')) {
+      if (source.features.indexOf('low-latency') !== -1) {
         llliveOptGroup.appendChild(option);
-      } else if (source.features.includes('live')) {
+      } else if (source.features.indexOf('live') !== -1) {
         liveOptGroup.appendChild(option);
       } else if (source.mimetype === 'application/x-mpegurl') {
         hlsOptGroup.appendChild(option);
