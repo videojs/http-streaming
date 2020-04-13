@@ -1,6 +1,34 @@
 /* global window document */
-/* eslint-disable no-var, object-shorthand, no-console */
+/* eslint-disable vars-on-top, no-var, object-shorthand, no-console */
 (function(window) {
+
+  const hlsOptGroup = document.querySelector('[label="hls"]');
+  const dashOptGroup = document.querySelector('[label="dash"]');
+  const liveOptGroup = document.querySelector('[label="live"]');
+  const llliveOptGroup = document.querySelector('[label="low latency live"]');
+
+  // get the sources list squared away
+  window.fetch('./scripts/sources.json')
+    .then((res) => res.json())
+    .then((sources) => {
+      sources.forEach((source) => {
+        const option = document.createElement('option');
+
+        option.innerText = source.name;
+        option.value = source.uri;
+
+        if (source.features.includes('low-latency')) {
+          llliveOptGroup.appendChild(option);
+        } else if (source.features.includes('live')) {
+          liveOptGroup.appendChild(option);
+        } else if (source.mimetype === 'application/x-mpegurl') {
+          hlsOptGroup.appendChild(option);
+        } else if (source.mimetype === 'application/dash+xml') {
+          dashOptGroup.appendChild(option);
+        }
+      });
+    });
+
   // all relevant elements
   var urlButton = document.getElementById('load-url');
   var sources = document.getElementById('load-source');

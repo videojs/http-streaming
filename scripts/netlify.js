@@ -15,6 +15,7 @@ const files = [
   'node_modules/videojs-http-source-selector/dist/videojs-http-source-selector.min.js',
   'node_modules/d3/d3.min.js',
   'logo.svg',
+  'scripts/sources.json',
   'scripts/index-demo-page.js'
 ];
 
