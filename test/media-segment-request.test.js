@@ -17,7 +17,9 @@ import {
   caption as captionSegment,
   captionString as captionSegmentString,
   id3String as id3SegmentString,
-  id3 as id3Segment
+  id3 as id3Segment,
+  webmVideo,
+  webmVideoInit
 } from 'create-test-data!segments';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
@@ -656,6 +658,59 @@ QUnit.test('non-TS segment will get parsed for captions', function(assert) {
 
   this.standardXHRResponse(initReq, mp4VideoInit());
   this.standardXHRResponse(segmentReq, mp4Video());
+});
+
+QUnit.test('webm segment calls back with error', function(assert) {
+  const done = assert.async();
+  let gotData = false;
+
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.mockDecrypter,
+    captionParser: this.mockCaptionParser,
+    segment: {
+      resolvedUri: 'webmVideo.mp4',
+      map: {
+        resolvedUri: 'webmVideoInit.mp4'
+      },
+      isFmp4: true
+    },
+    progressFn: this.noop,
+    trackInfoFn: this.noop,
+    timingInfoFn: this.noop,
+    id3Fn: this.noop,
+    captionsFn: this.noop,
+    dataFn: (segment, segmentData) => {
+      gotData = true;
+    },
+    doneFn: (error) => {
+      assert.notOk(gotData, 'did not receive data event');
+      assert.equal(error.code, REQUEST_ERRORS.FAILURE, 'receieved error status');
+      assert.equal(
+        error.message,
+        'Found unsupported WebM initialization segment at URL: webmVideoInit.mp4',
+        'receieved error message'
+      );
+      done();
+    },
+    handlePartialData: false
+  });
+
+  assert.equal(this.requests.length, 2, 'there are two requests');
+
+  const initReq = this.requests.shift();
+  const segmentReq = this.requests.shift();
+
+  assert.equal(
+    initReq.uri,
+    'webmVideoInit.mp4',
+    'the first request is for the init segment'
+  );
+  assert.equal(segmentReq.uri, 'webmVideo.mp4', 'the second request is for a segment');
+
+  this.standardXHRResponse(segmentReq, webmVideo());
+  this.standardXHRResponse(initReq, webmVideoInit());
 });
 
 QUnit.test('non-TS segment will get parsed for captions on next segment request if init is late', function(assert) {
