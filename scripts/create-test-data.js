@@ -26,30 +26,29 @@ const utf16CharCodesToString = (typedArray) => {
   return val;
 };
 
+const getManifests = () => (fs.readdirSync(manifestsDir) || [])
+  .filter((f) => ((/\.(m3u8|mpd)/).test(path.extname(f))))
+  .map((f) => path.resolve(manifestsDir, f));
+
+const getSegments = () => (fs.readdirSync(segmentsDir) || [])
+  .filter((f) => ((/\.(ts|mp4|key)/).test(path.extname(f))))
+  .map((f) => path.resolve(segmentsDir, f));
+
 const buildManifestString = function() {
   let manifests = 'export default {\n';
 
-  const files = fs.readdirSync(manifestsDir);
-
-  while (files.length > 0) {
-    const file = path.resolve(manifestsDir, files.shift());
-    const extname = path.extname(file);
-
-    if (extname === '.m3u8' || extname === '.mpd') {
-      // translate this manifest
-      manifests += '  \'' + path.basename(file, extname) + '\': ';
-      manifests += fs.readFileSync(file, 'utf8')
-        .split(/\r\n|\n/)
-      // quote and concatenate
-        .map((line) => '    \'' + line + '\\n\' +\n')
-        .join('')
-      // strip leading spaces and the trailing '+'
-        .slice(4, -3);
-      manifests += ',\n';
-    } else {
-      this.warn(`ignoring non-manifest file ${path.relative(baseDir, file)} for manifest test data`);
-    }
-  }
+  getManifests().forEach((file) => {
+    // translate this manifest
+    manifests += '  \'' + path.basename(file, path.extname(file)) + '\': ';
+    manifests += fs.readFileSync(file, 'utf8')
+      .split(/\r\n|\n/)
+    // quote and concatenate
+      .map((line) => '    \'' + line + '\\n\' +\n')
+      .join('')
+    // strip leading spaces and the trailing '+'
+      .slice(4, -3);
+    manifests += ',\n';
+  });
 
   // clean up and close the objects
   manifests = manifests.slice(0, -2);
@@ -59,22 +58,14 @@ const buildManifestString = function() {
 };
 
 const buildSegmentString = function() {
-  const files = fs.readdirSync(segmentsDir);
   const segmentData = {};
 
-  while (files.length > 0) {
-    const file = path.resolve(segmentsDir, files.shift());
-    const extname = path.extname(file);
+  getSegments().forEach((file) => {
+    // read the file directly as a buffer before converting to base64
+    const base64Segment = fs.readFileSync(file).toString('base64');
 
-    if (extname === '.ts' || extname === '.mp4' || extname === '.key') {
-      // read the file directly as a buffer before converting to base64
-      const base64Segment = fs.readFileSync(file).toString('base64');
-
-      segmentData[path.basename(file, extname)] = base64Segment;
-    } else {
-      this.warn(`ignoring non-segment file ${path.relative(baseDir, file)} for segment test data`);
-    }
-  }
+    segmentData[path.basename(file, path.extname(file))] = base64Segment;
+  });
 
   const segmentDataExportStrings = Object.keys(segmentData).reduce((acc, key) => {
     // use a function since the segment may be cleared out on usage
@@ -112,6 +103,10 @@ module.exports = function() {
     buildStart() {
       this.addWatchFile(segmentsDir);
       this.addWatchFile(manifestsDir);
+
+      [].concat(getSegments())
+        .concat(getManifests())
+        .forEach((file) => this.addWatchFile(file));
     },
     resolveId(importee, importer) {
       // if this is not an id we can resolve return
