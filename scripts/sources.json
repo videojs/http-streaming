@@ -104,43 +104,43 @@
   {
     "name": "Big Buck Bunny - demuxed audio/video, includes 4K, burns in frame, pts, resolution, bitrate values",
     "uri": "https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd",
-    "mimetype": "application/x-mpegurl",
+    "mimetype": "application/dash+xml",
     "features": []
   },
   {
     "name": "Angel One - fmp4, webm, subs, alternate audio tracks",
     "uri": "https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd",
-    "mimetype": "application/x-mpegurl",
+    "mimetype": "application/dash+xml",
     "features": []
   },
   {
     "name": "BBB-CMIF: Big Buck Bunny Dark Truths - demuxed, fmp4",
     "uri": "https://storage.googleapis.com/shaka-demo-assets/bbb-dark-truths/dash.mpd",
-    "mimetype": "application/x-mpegurl",
+    "mimetype": "application/dash+xml",
     "features": []
   },
   {
     "name": "SIDX demuxed, 2 audio",
     "uri": "https://dash.akamaized.net/dash264/TestCases/10a/1/iis_forest_short_poem_multi_lang_480p_single_adapt_aaclc_sidx.mpd",
-    "mimetype": "application/x-mpegurl",
+    "mimetype": "application/dash+xml",
     "features": []
   },
   {
     "name": "SIDX bipbop-like",
     "uri": "https://download.tsi.telecom-paristech.fr/gpac/DASH_CONFORMANCE/TelecomParisTech/mp4-onDemand/mp4-onDemand-mpd-AV.mpd",
-    "mimetype": "application/x-mpegurl",
+    "mimetype": "application/dash+xml",
     "features": []
   },
   {
     "name": "Google self-driving car - SIDX",
     "uri": "https://yt-dash-mse-test.commondatastorage.googleapis.com/media/car-20120827-manifest.mpd",
-    "mimetype": "application/x-mpegurl",
+    "mimetype": "application/dash+xml",
     "features": []
   },
   {
     "name": "Sintel - single rendition",
     "uri": "https://d2zihajmogu5jn.cloudfront.net/sintel_dash/sintel_vod.mpd",
-    "mimetype": "application/x-mpegurl",
+    "mimetype": "application/dash+xml",
     "features": []
   },
   {
