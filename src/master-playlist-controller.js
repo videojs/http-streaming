@@ -1367,10 +1367,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
       const blacklistReasons = [];
 
       // get codecs from the playlist for this variant
-      const playlistCodecs = codecsForPlaylist(this.masterPlaylistLoader_.master, variant);
+      const variantPlaylistCodecs = codecsForPlaylist(this.masterPlaylistLoader_.master, variant);
 
-      if (playlistCodecs.audio || playlistCodecs.video) {
-        const variantCodecString = [playlistCodecs.video, playlistCodecs.audio]
+      if (variantPlaylistCodecs.audio || variantPlaylistCodecs.video) {
+        const variantCodecString = [variantPlaylistCodecs.video, variantPlaylistCodecs.audio]
           .filter(Boolean)
           .join(',');
 
