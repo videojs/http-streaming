@@ -3598,7 +3598,7 @@ QUnit.test('Uses audio codec from audio playlist for demuxed content', function(
   this.player.dispose();
   this.player = createPlayer();
   this.player.src({
-    src: 'manifest/dash-demuxed.mpd',
+    src: 'manifest/dash-many-codecs.mpd',
     type: 'application/dash+xml'
   });
   this.clock.tick(1);
