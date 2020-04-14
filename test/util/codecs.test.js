@@ -3,6 +3,10 @@ import {
   codecsForPlaylist,
   isLikelyWebmData
 } from '../../src/util/codecs';
+import {
+  webmVideoInit,
+  mp4VideoInit
+} from 'create-test-data!segments';
 
 const generateMedia = function({
   isMaat,
@@ -390,6 +394,8 @@ QUnit.test('false when not enough bytes', function(assert) {
     isLikelyWebmData(new Uint8Array([0xFF, 0xFF, 0xFF, 0xFF])),
     'does not detect webm'
   );
+
+  assert.notOk(isLikelyWebmData(mp4VideoInit()), 'does not detect webm');
 });
 
 QUnit.test('detects webm', function(assert) {
@@ -398,4 +404,5 @@ QUnit.test('detects webm', function(assert) {
     isLikelyWebmData(new Uint8Array([0x1A, 0x45, 0xDF, 0xA3, 0xFF, 0x00, 0xFF, 0x00])),
     'detects webm'
   );
+  assert.ok(isLikelyWebmData(webmVideoInit()), 'detects webm');
 });
