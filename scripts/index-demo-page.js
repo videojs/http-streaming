@@ -2,6 +2,8 @@
 /* eslint-disable vars-on-top, no-var, object-shorthand, no-console */
 (function(window) {
 
+  var sourcesLoaded = false;
+  var sourcesLoadedCallback;
   var hlsOptGroup = document.querySelector('[label="hls"]');
   var dashOptGroup = document.querySelector('[label="dash"]');
   var liveOptGroup = document.querySelector('[label="live"]');
@@ -29,6 +31,8 @@
         dashOptGroup.appendChild(option);
       }
     });
+    sourcesLoadedCallback();
+    sourcesLoaded = true;
   });
   xhr.open('GET', './scripts/sources.json');
   xhr.send();
@@ -164,8 +168,23 @@
       setInputValue(stateEls[elName], state[elName]);
     });
 
+    sourcesLoadedCallback = function() {
+      Array.prototype.forEach.call(sources.options, function(s, i) {
+        if (s.value === state.url) {
+          sources.selectedIndex = i;
+        }
+      });
+
+      if (!sources.selectedIndex) {
+        sources.selectedIndex = -1;
+      }
+    };
     // if there is a "url" param in the query params set url
     // and selected index to that
+    if (sourcesLoaded) {
+      sourcesLoadedCallback();
+    }
+
     Array.prototype.forEach.call(sources.options, function(s, i) {
       if (s.value === state.url) {
         sources.selectedIndex = i;
