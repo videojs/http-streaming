@@ -1,6 +1,38 @@
 /* global window document */
-/* eslint-disable no-var, object-shorthand, no-console */
+/* eslint-disable vars-on-top, no-var, object-shorthand, no-console */
 (function(window) {
+
+  var hlsOptGroup = document.querySelector('[label="hls"]');
+  var dashOptGroup = document.querySelector('[label="dash"]');
+  var liveOptGroup = document.querySelector('[label="live"]');
+  var llliveOptGroup = document.querySelector('[label="low latency live"]');
+
+  // get the sources list squared away
+  var xhr = new window.XMLHttpRequest();
+
+  xhr.addEventListener('load', function() {
+    var sources = JSON.parse(xhr.responseText);
+
+    sources.forEach(function(source) {
+      const option = document.createElement('option');
+
+      option.innerText = source.name;
+      option.value = source.uri;
+
+      if (source.features.indexOf('low-latency') !== -1) {
+        llliveOptGroup.appendChild(option);
+      } else if (source.features.indexOf('live') !== -1) {
+        liveOptGroup.appendChild(option);
+      } else if (source.mimetype === 'application/x-mpegurl') {
+        hlsOptGroup.appendChild(option);
+      } else if (source.mimetype === 'application/dash+xml') {
+        dashOptGroup.appendChild(option);
+      }
+    });
+  });
+  xhr.open('GET', './scripts/sources.json');
+  xhr.send();
+
   // all relevant elements
   var urlButton = document.getElementById('load-url');
   var sources = document.getElementById('load-source');
@@ -178,6 +210,7 @@
         'node_modules/video.js/dist/alt/video.core',
         'node_modules/videojs-contrib-eme/dist/videojs-contrib-eme',
         'node_modules/videojs-contrib-quality-levels/dist/videojs-contrib-quality-levels',
+        'node_modules/videojs-http-source-selector/dist/videojs-http-source-selector',
         'dist/videojs-http-streaming'
       ].map(function(url) {
         return url + (event.target.checked ? '.min' : '') + '.js';
@@ -205,6 +238,11 @@
         stateEls.partial.dispatchEvent(newEvent('change'));
 
         player = window.player = window.videojs(videoEl, {
+          plugins: {
+            httpSourceSelector: {
+              default: 'auto'
+            }
+          },
           liveui: stateEls.liveui.checked,
           html5: {
             hls: {

@@ -30,7 +30,7 @@ const getCodecs = function(media) {
 export const isMaat = (master, media) => {
   const mediaAttributes = media.attributes || {};
 
-  return master.mediaGroups.AUDIO &&
+  return master && master.mediaGroups && master.mediaGroups.AUDIO &&
     mediaAttributes.AUDIO &&
     master.mediaGroups.AUDIO[mediaAttributes.AUDIO];
 };
@@ -74,7 +74,7 @@ export const codecsForPlaylist = function(master, media) {
 
   // HLS with multiple-audio tracks must always get an audio codec.
   // Put another way, there is no way to have a video-only multiple-audio HLS!
-  if (isMaat(master, media) && !codecInfo.audioCodec) {
+  if (isMaat(master, media) && !codecInfo.audio) {
     if (!isMuxed(master, media)) {
       // It is possible for codecs to be specified on the audio media group playlist but
       // not on the rendition playlist. This is mostly the case for DASH, where audio and

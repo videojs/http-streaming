@@ -10,7 +10,12 @@ const files = [
   'node_modules/videojs-contrib-eme/dist/videojs-contrib-eme.min.js',
   'node_modules/videojs-contrib-quality-levels/dist/videojs-contrib-quality-levels.js',
   'node_modules/videojs-contrib-quality-levels/dist/videojs-contrib-quality-levels.min.js',
+  'node_modules/videojs-http-source-selector/dist/videojs-http-source-selector.css',
+  'node_modules/videojs-http-source-selector/dist/videojs-http-source-selector.js',
+  'node_modules/videojs-http-source-selector/dist/videojs-http-source-selector.min.js',
   'node_modules/d3/d3.min.js',
+  'logo.svg',
+  'scripts/sources.json',
   'scripts/index-demo-page.js'
 ];
 
