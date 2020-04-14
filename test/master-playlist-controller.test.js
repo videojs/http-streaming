@@ -3587,6 +3587,10 @@ QUnit.test('creates source buffers after second trackinfo if demuxed', function(
 
 QUnit.test('Uses audio codec from audio playlist for demuxed content', function(assert) {
   const done = assert.async();
+  const oldDebug = videojs.log.debug;
+  const messages = [];
+
+  videojs.log.debug = (...args) => messages.push(args.join(' '));
 
   window.MediaSource.isTypeSupported = (type) => (/(mp4a|avc1)/).test(type);
 
@@ -3630,32 +3634,32 @@ QUnit.test('Uses audio codec from audio playlist for demuxed content', function(
         video: 'avc1.foo.bar',
         audio: 'mp4a.foo.bar'
       },
-      'passed default codecs'
+      'passed codecs from playlist'
     );
 
     const playlists = mpc.master().playlists;
 
-    assert.equal(typeof playlists[0].excludeUntil, 'undefined', 'did not blacklist the first playlist');
-    assert.equal(playlists[1].excludeUntil, Infinity, 'blacklisted the second playlist');
-    assert.equal(typeof playlists[2].excludeUntil, 'undefined', 'did not blacklist the third playlist');
-    assert.equal(playlists[3].excludeUntil, Infinity, 'blacklisted the fourth playlist');
+    assert.deepEqual(playlists[0], mpc.media(), '1st selected not blacklisted');
+    assert.equal(playlists[1].excludeUntil, Infinity, 'blacklisted 2nd: codecs incompatible with selected.');
+    assert.notOk(playlists[2].excludeUntil, '3rd not blacklisted: codecs compatable with selected');
+    assert.equal(playlists[3].excludeUntil, Infinity, 'blacklisted 4th: codecs incompatible with selected.');
 
+    const secondBlacklistIndex = messages.indexOf('VHS: MPC > blacklisting 1-placeholder-uri-1: video codec "hvc1" !== "avc1"');
+    const forthBlacklistIndex = messages.indexOf('VHS: MPC > blacklisting 3-placeholder-uri-3: video codec "av01" !== "avc1"');
+
+    assert.notEqual(secondBlacklistIndex, -1, '2nd codec blacklist is logged');
+    assert.notEqual(forthBlacklistIndex, -1, '4th codec blacklist is logged');
+
+    videojs.log.debug = oldDebug;
     done();
   };
 
   mpc.mainSegmentLoader_.on('trackinfo', onTrackInfo);
   mpc.audioSegmentLoader_.on('trackinfo', onTrackInfo);
 
-  // video init segment
   this.standardXHRResponse(this.requests.shift(), mp4VideoInitSegment());
-
-  // video segment
   this.standardXHRResponse(this.requests.shift(), mp4VideoSegment());
-
-  // audio init segment
   this.standardXHRResponse(this.requests.shift(), mp4AudioInitSegment());
-
-  // audio segment
   this.standardXHRResponse(this.requests.shift(), mp4AudioSegment());
 });
 
