@@ -59,6 +59,8 @@ QUnit.module('MasterPlaylistController', {
       window.devicePixelRatio = 1;
     }
 
+    this.oldTypeSupported = window.MediaSource.isTypeSupported;
+
     // force the HLS tech to run
     this.origSupportsNativeHls = videojs.Hls.supportsNativeHls;
     videojs.Hls.supportsNativeHls = false;
@@ -96,6 +98,7 @@ QUnit.module('MasterPlaylistController', {
     }
     videojs.browser = this.oldBrowser;
     this.player.dispose();
+    window.MediaSource.isTypeSupported = this.oldTypeSupported;
   }
 });
 
@@ -3580,6 +3583,84 @@ QUnit.test('creates source buffers after second trackinfo if demuxed', function(
   this.standardXHRResponse(this.requests.shift(), videoSegment());
   this.standardXHRResponse(this.requests.shift(), audioSegment());
 
+});
+
+QUnit.test('Uses audio codec from audio playlist for demuxed content', function(assert) {
+  const done = assert.async();
+  const oldDebug = videojs.log.debug;
+  const messages = [];
+
+  videojs.log.debug = (...args) => messages.push(args.join(' '));
+
+  window.MediaSource.isTypeSupported = (type) => (/(mp4a|avc1)/).test(type);
+
+  this.requests.length = 0;
+  this.player.dispose();
+  this.player = createPlayer();
+  this.player.src({
+    src: 'manifest/dash-many-codecs.mpd',
+    type: 'application/dash+xml'
+  });
+  this.clock.tick(1);
+
+  const createSourceBufferCalls = [];
+  const mpc = this.player.vhs.masterPlaylistController_;
+  const origCreateSourceBuffers =
+    mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
+
+  mpc.sourceUpdater_.createSourceBuffers = (codecs) => {
+    createSourceBufferCalls.push(codecs);
+    origCreateSourceBuffers(codecs);
+  };
+
+  openMediaSource(this.player, this.clock);
+
+  // master
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.equal(createSourceBufferCalls.length, 0, 'have not created source buffers yet');
+
+  let trackinfo = 0;
+
+  const onTrackInfo = function() {
+    trackinfo++;
+    if (trackinfo !== 2) {
+      return;
+    }
+    assert.equal(createSourceBufferCalls.length, 1, 'called to create source buffers');
+    assert.deepEqual(
+      createSourceBufferCalls[0],
+      {
+        video: 'avc1.foo.bar',
+        audio: 'mp4a.foo.bar'
+      },
+      'passed codecs from playlist'
+    );
+
+    const playlists = mpc.master().playlists;
+
+    assert.deepEqual(playlists[0], mpc.media(), '1st selected not blacklisted');
+    assert.equal(playlists[1].excludeUntil, Infinity, 'blacklisted 2nd: codecs incompatible with selected.');
+    assert.notOk(playlists[2].excludeUntil, '3rd not blacklisted: codecs compatable with selected');
+    assert.equal(playlists[3].excludeUntil, Infinity, 'blacklisted 4th: codecs incompatible with selected.');
+
+    const secondBlacklistIndex = messages.indexOf('VHS: MPC > blacklisting 1-placeholder-uri-1: video codec "hvc1" !== "avc1"');
+    const forthBlacklistIndex = messages.indexOf('VHS: MPC > blacklisting 3-placeholder-uri-3: video codec "av01" !== "avc1"');
+
+    assert.notEqual(secondBlacklistIndex, -1, '2nd codec blacklist is logged');
+    assert.notEqual(forthBlacklistIndex, -1, '4th codec blacklist is logged');
+
+    videojs.log.debug = oldDebug;
+    done();
+  };
+
+  mpc.mainSegmentLoader_.on('trackinfo', onTrackInfo);
+  mpc.audioSegmentLoader_.on('trackinfo', onTrackInfo);
+
+  this.standardXHRResponse(this.requests.shift(), mp4VideoInitSegment());
+  this.standardXHRResponse(this.requests.shift(), mp4VideoSegment());
+  this.standardXHRResponse(this.requests.shift(), mp4AudioInitSegment());
+  this.standardXHRResponse(this.requests.shift(), mp4AudioSegment());
 });
 
 QUnit.test('uses codec info from manifest for source buffer creation', function(assert) {

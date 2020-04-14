@@ -1,7 +1,7 @@
 import window from 'global/window';
 import Config from './config';
 import Playlist from './playlist';
-import { parseCodecs } from '@videojs/vhs-utils/dist/codecs.js';
+import { codecsForPlaylist } from './util/codecs.js';
 
 // Utilities
 
@@ -426,7 +426,7 @@ export const lowestBitrateCompatibleVariantSelector = function() {
   //
   // If an entire manifest has no valid videos everything will get filtered
   // out.
-  const playlistsWithVideo = playlists.filter(playlist => !!parseCodecs(playlist.attributes.CODECS).video);
+  const playlistsWithVideo = playlists.filter(playlist => !!codecsForPlaylist(this.playlists.master, playlist).video);
 
   return playlistsWithVideo[0] || null;
 };
