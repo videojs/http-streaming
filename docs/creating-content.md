@@ -98,6 +98,15 @@ Renamed from .m4s to .mp4
 $ ffmpeg -i input.mp4 -f dash out.mpd
 ```
 
+### webmVideoInit.webm and webmVideo.webm
+
+```
+$ cat mp4VideoInit.mp4 mp4Video.mp4 > video.mp4
+$ ffmpeg -i video.mp4 -dash_segment_type webm -c:v libvpx-vp9 -f dash output.mpd
+$ mv init-stream0.webm webmVideoInit.webm
+$ mv chunk-stream0-00001.webm webmVideo.webm
+```
+
 ## Other useful commands
 
 ### Joined (audio and video) initialization segment (for HLS)
