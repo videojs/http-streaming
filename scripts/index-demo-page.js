@@ -175,7 +175,7 @@
         }
       });
 
-      if (!sources.selectedIndex) {
+      if (typeof sources.selectedIndex !== 'number') {
         sources.selectedIndex = -1;
       }
     };
