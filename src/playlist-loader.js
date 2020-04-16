@@ -306,10 +306,10 @@ export default class PlaylistLoader extends EventTarget {
     const update = updateMaster(this.master, parser.manifest);
 
     this.targetDuration = parser.manifest.targetDuration;
+    this.media_ = this.master.playlists[id];
 
     if (update) {
       this.master = update;
-      this.media_ = this.master.playlists[id];
     } else {
       this.trigger('playlistunchanged');
     }
