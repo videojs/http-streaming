@@ -9,6 +9,7 @@ import {
   parseCodecs,
   codecsFromDefault
 } from '@videojs/vhs-utils/dist/codecs.js';
+import { segmentXhrHeaders } from '../xhr';
 
 /**
  * Returns a set of codec strings parsed from the playlist or the default
@@ -120,4 +121,53 @@ export const isLikelyWebmData = (bytes) => {
     (bytes[1] & 0xFF) === 0x45 &&
     (bytes[2] & 0xFF) === 0xDF &&
     (bytes[3] & 0xFF) === 0xA3;
+};
+
+export const isLikelyMp4Data = (bytes) => {
+  // not enough data to determine, in which case it is an invalid mp4 file/fragment anyway
+  if (bytes.length < 8) {
+    return false;
+  }
+
+  // ignore the first 4 bytes (they represent the box length)
+  // ftyp/styp (file type/segment type) should be the first box in an mp4 or mp4 fragment
+  if ((bytes[4] === 'f'.charCodeAt(0) || (bytes[4] === 's'.charCodeAt(0))) &&
+      (bytes[5] === 't'.charCodeAt(0)) &&
+      (bytes[6] === 'y'.charCodeAt(0)) &&
+      (bytes[7] === 'p'.charCodeAt(0))) {
+    return true;
+  }
+
+  return false;
+};
+
+// When not using separate audio media groups, audio and video is   return false;
+
+export const containerTypeForSegment = (uri, xhr, cb) => {
+  const byterange = {offset: 0, length: 8};
+  const options = {
+    responseType: 'arraybuffer',
+    uri,
+    byterange,
+    headers: segmentXhrHeaders({byterange})
+  };
+
+  xhr(options, (err, request) => {
+    if (err) {
+      return cb(err, request);
+    }
+
+    const bytes = new Uint8Array(request.response);
+
+    if (isLikelyWebmData(bytes)) {
+      return cb(null, request, {type: 'webm'});
+    }
+
+    if (isLikelyMp4Data(bytes)) {
+      return cb(null, request, {type: 'mp4'});
+    }
+
+    return cb(null, request, {type: 'unknown'});
+
+  });
 };

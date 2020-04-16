@@ -15,6 +15,7 @@ import {
   forEachMediaGroup,
   addPropertiesToMaster
 } from './manifest';
+import {containerTypeForSegment} from './util/codecs';
 
 const { EventTarget, mergeOptions } = videojs;
 
@@ -189,7 +190,7 @@ export const filterChangedSidxMappings = (masterXml, srcUrl, clientOffset, oldSi
 };
 
 // exported for testing
-export const requestSidx_ = (sidxRange, playlist, xhr, options, finishProcessingFn) => {
+export const requestSidx_ = function(startingState, sidxRange, playlist, xhr, options, finishProcessingFn) {
   const sidxInfo = {
     // resolve the segment URL relative to the playlist
     uri: resolveManifestRedirect(options.handleManifestRedirects, sidxRange.resolvedUri),
@@ -204,7 +205,31 @@ export const requestSidx_ = (sidxRange, playlist, xhr, options, finishProcessing
     headers: segmentXhrHeaders(sidxInfo)
   });
 
-  return xhr(sidxRequestOptions, finishProcessingFn);
+  return containerTypeForSegment(sidxInfo.uri, xhr, (err, request, codecInfo) => {
+    if (err) {
+      return finishProcessingFn(err, request);
+    }
+
+    if (codecInfo && codecInfo.type === 'webm') {
+      this.error = {
+        status: request.status,
+        message: 'Found unsupported WebM sidx segment at URL: ' + request.uri,
+        response: request.response,
+        playlist,
+        blacklistDuration: Infinity,
+        // MEDIA_ERR_NETWORK
+        code: 2
+      };
+      if (startingState) {
+        this.state = startingState;
+      }
+
+      this.trigger('error');
+      return;
+    }
+
+    this.request = xhr(sidxRequestOptions, finishProcessingFn);
+  });
 };
 
 export default class DashPlaylistLoader extends EventTarget {
@@ -305,7 +330,6 @@ export default class DashPlaylistLoader extends EventTarget {
         this.trigger('error');
         return doneFn(master, null);
       }
-
       const bytes = new Uint8Array(request.response);
       const sidx = mp4Inspector.parseSidx(bytes.subarray(8));
 
@@ -393,7 +417,8 @@ export default class DashPlaylistLoader extends EventTarget {
       sidxInfo: playlist.sidx
     };
 
-    this.request = requestSidx_(
+    this.request = requestSidx_.call(
+      this, startingState,
       playlist.sidx,
       playlist,
       this.hls_.xhr,
