@@ -141,8 +141,16 @@ export const isLikelyMp4Data = (bytes) => {
   return false;
 };
 
+export const isLikelyTsData = (bytes) => {
+  if (bytes[0] === 0x47) {
+    return true;
+  }
+};
+
 // When not using separate audio media groups, audio and video is   return false;
 
+// A useful list of file signatures can be found here
+// https://en.wikipedia.org/wiki/List_of_file_signatures
 export const containerTypeForSegment = (uri, xhr, cb) => {
   const byterange = {offset: 0, length: 8};
   const options = {
@@ -165,6 +173,10 @@ export const containerTypeForSegment = (uri, xhr, cb) => {
 
     if (isLikelyMp4Data(bytes)) {
       return cb(null, request, {type: 'mp4'});
+    }
+
+    if (isLikelyTsData(bytes)) {
+      return cb(null, request, {type: 'ts'});
     }
 
     return cb(null, request, {type: 'unknown'});
