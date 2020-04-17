@@ -182,6 +182,8 @@ export const isLikelyOggData = (bytes) =>
 export const toUint8 = (bytes) => (bytes instanceof Uint8Array) ? bytes :
   new Uint8Array(bytes.buffer || bytes, bytes.byteOffset || 0, bytes.byteLength);
 
+// A useful list of file signatures can be found here
+// https://en.wikipedia.org/wiki/List_of_file_signatures
 export const containerTypeForBytes = (bytes) => {
   // auto convert to Uint8Array as needed
   bytes = toUint8(bytes);
@@ -221,10 +223,6 @@ export const containerTypeForBytes = (bytes) => {
   }
 };
 
-// When not using separate audio media groups, audio and video is   return false;
-
-// A useful list of file signatures can be found here
-// https://en.wikipedia.org/wiki/List_of_file_signatures
 export const containerTypeForSegment = (uri, xhr, cb) => {
   const byterange = {offset: 0, length: 10};
   const options = {
