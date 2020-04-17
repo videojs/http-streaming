@@ -210,10 +210,10 @@ export const requestSidx_ = function(startingState, sidxRange, playlist, xhr, op
       return finishProcessingFn(err, request);
     }
 
-    if (codecInfo && codecInfo.type === 'webm') {
+    if (!codecInfo || codecInfo !== 'mp4') {
       this.error = {
         status: request.status,
-        message: 'Found unsupported WebM sidx segment at URL: ' + request.uri,
+        message: `Unsupported ${codecInfo || 'unknown'} container type for sidx segment at URL: ${request.uri}`,
         response: request.response,
         playlist,
         blacklistDuration: Infinity,
@@ -715,8 +715,11 @@ export default class DashPlaylistLoader extends EventTarget {
           // the sidx was updated, so the previous mapping was removed
           if (!this.sidxMapping_[sidxKey]) {
             const playlist = this.media();
+            const startingState = this.state;
 
-            this.request = requestSidx_(
+            this.request = requestSidx_.call(
+              this,
+              startingState,
               playlist.sidx,
               playlist,
               this.hls_.xhr,

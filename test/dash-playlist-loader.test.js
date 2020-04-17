@@ -19,6 +19,7 @@ import {
 import '../src/videojs-http-streaming';
 import testDataManifests from 'create-test-data!manifests';
 import { sidx as sidxResponse } from 'create-test-data!segments';
+import {mp4VideoInit as mp4VideoInitSegment} from 'create-test-data!segments';
 
 QUnit.module('DASH Playlist Loader: unit', {
   beforeEach(assert) {
@@ -482,7 +483,9 @@ QUnit.test('requestSidx_: creates an XHR request for a sidx range', function(ass
     sidx: sidxInfo
   };
   const callback = sinon.stub();
-  const request = requestSidx_(
+  const request = requestSidx_.call(
+    this,
+    {},
     sidxInfo,
     playlist,
     this.fakeHls.xhr,
@@ -495,6 +498,7 @@ QUnit.test('requestSidx_: creates an XHR request for a sidx range', function(ass
   assert.strictEqual(request.uri, sidxInfo.resolvedUri, 'uri requested is correct');
   assert.strictEqual(this.requests.length, 1, 'one xhr request');
 
+  this.standardXHRResponse(this.requests.shift(), new Uint8Array(mp4VideoInitSegment().subarray(0, 10)));
   this.standardXHRResponse(this.requests.shift());
   assert.strictEqual(callback.callCount, 1, 'callback was called');
 });
@@ -1257,6 +1261,7 @@ QUnit.test('parseMasterXml: includes sidx info if available and matches playlist
   );
 
   // Allow sidx request to finish
+  this.standardXHRResponse(this.requests.shift(), new Uint8Array(mp4VideoInitSegment().subarray(0, 10)));
   this.standardXHRResponse(this.requests.shift());
   const key = generateSidxKey(loader.media().sidx);
 
@@ -2253,6 +2258,7 @@ QUnit.test('requests sidx if master xml includes it', function(assert) {
   assert.strictEqual(this.requests.length, 1, 'one request for sidx has been made');
   assert.notOk(loader.media(), 'media playlist is not yet set');
 
+  this.standardXHRResponse(this.requests.shift(), new Uint8Array(mp4VideoInitSegment().subarray(0, 10)));
   this.standardXHRResponse(this.requests.shift(), sidxResponse());
   assert.strictEqual(loader.state, 'HAVE_METADATA', 'state is HAVE_METADATA');
   assert.ok(loader.media(), 'media playlist is set');
