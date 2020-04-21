@@ -15,7 +15,7 @@ import {
   forEachMediaGroup,
   addPropertiesToMaster
 } from './manifest';
-import {containerTypeForSegment} from './util/codecs';
+import {requestAndDetectSegmentContainer} from '@videojs/vhs-utils/dist/container';
 
 const { EventTarget, mergeOptions } = videojs;
 
@@ -205,7 +205,7 @@ export const requestSidx_ = function(startingState, sidxRange, playlist, xhr, op
     headers: segmentXhrHeaders(sidxInfo)
   });
 
-  return containerTypeForSegment(sidxInfo.uri, xhr, (err, request, codecInfo) => {
+  return requestAndDetectSegmentContainer(sidxInfo.uri, xhr, (err, request, codecInfo) => {
     if (err) {
       return finishProcessingFn(err, request);
     }
@@ -330,6 +330,7 @@ export default class DashPlaylistLoader extends EventTarget {
         this.trigger('error');
         return doneFn(master, null);
       }
+
       const bytes = new Uint8Array(request.response);
       const sidx = mp4Inspector.parseSidx(bytes.subarray(8));
 
