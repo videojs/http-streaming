@@ -36,6 +36,10 @@ export default class VTTSegmentLoader extends SegmentLoader {
     this.loaderType_ = 'subtitle';
 
     this.featuresNativeTextTracks_ = settings.featuresNativeTextTracks;
+
+    // The VTT segment will have its own time mappings. Saving VTT segment timing info in
+    // the sync controller leads to improper behavior.
+    this.shouldSaveSegmentTimingInfo_ = false;
   }
 
   createTransmuxer_() {

@@ -354,6 +354,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.state_ = 'INIT';
     this.handlePartialData_ = settings.handlePartialData;
     this.timelineChangeController_ = settings.timelineChangeController;
+    this.shouldSaveSegmentTimingInfo_ = true;
 
     // private instance variables
     this.checkBufferTimeout_ = null;
@@ -2477,7 +2478,9 @@ export default class SegmentLoader extends videojs.EventTarget {
     // best to wait until all appends are done so we're sure that the primary media is
     // finished (and we have its end time).
     this.updateTimingInfoEnd_(segmentInfo);
-    this.syncController_.saveSegmentTimingInfo(segmentInfo);
+    if (this.shouldSaveSegmentTimingInfo_) {
+      this.syncController_.saveSegmentTimingInfo(segmentInfo);
+    }
 
     this.logger_(segmentInfoString(segmentInfo));
 
