@@ -265,6 +265,10 @@ const expandDataUri = (dataUri) => {
  * Whether the browser has built-in HLS support.
  */
 Hls.supportsNativeHls = (function() {
+  if (!document || !document.createElement) {
+    return false;
+  }
+  
   const video = document.createElement('video');
 
   // native HLS is definitely not supported if HTML5 video isn't
@@ -294,7 +298,7 @@ Hls.supportsNativeHls = (function() {
 }());
 
 Hls.supportsNativeDash = (function() {
-  if (!videojs.getTech('Html5').isSupported()) {
+  if (!document || !document.createElement || !videojs.getTech('Html5').isSupported()) {
     return false;
   }
 
