@@ -1,3 +1,10 @@
+<a name="1.13.3"></a>
+## [1.13.3](https://github.com/videojs/http-streaming/compare/v1.13.2...v1.13.3) (2020-04-22)
+
+### Chores
+
+* **package:** update muxjs to 5.5.3 ([#803](https://github.com/videojs/http-streaming/issues/803)) ([717324d](https://github.com/videojs/http-streaming/commit/717324d))
+
 <a name="1.13.2"></a>
 ## [1.13.2](https://github.com/videojs/http-streaming/compare/v1.13.1...v1.13.2) (2020-03-30)
 
