@@ -1419,6 +1419,35 @@ QUnit.module('SegmentLoader', function(hooks) {
       });
     });
 
+    QUnit.test('saves segment timing info', function(assert) {
+      const playlist = playlistWithDuration(20);
+      const syncController = loader.syncController_;
+      let saveSegmentTimingInfoCalls = 0;
+      const origSaveSegmentTimingInfo =
+        syncController.saveSegmentTimingInfo.bind(syncController);
+
+      syncController.saveSegmentTimingInfo = (segmentInfo) => {
+        saveSegmentTimingInfoCalls++;
+        origSaveSegmentTimingInfo(segmentInfo);
+      };
+
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        loader.playlist(playlist);
+        loader.load();
+        this.clock.tick(1);
+        standardXHRResponse(this.requests.shift(), muxedSegment());
+
+        assert.equal(saveSegmentTimingInfoCalls, 0, 'no calls to save timing info');
+
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        assert.equal(saveSegmentTimingInfoCalls, 1, 'called to save timing info');
+      });
+    });
+
     QUnit.test('tracks segment end times as they are buffered', function(assert) {
       const playlist = playlistWithDuration(20);
 

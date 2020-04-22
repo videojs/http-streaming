@@ -772,5 +772,30 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
       assert.equal(errors, 1, 'loader triggered error when vtt.js load triggers error');
     });
 
+    QUnit.test('does not save segment timing info', function(assert) {
+      const playlist = playlistWithDuration(20);
+      const syncController = loader.syncController_;
+      let saveSegmentTimingInfoCalls = 0;
+      const origSaveSegmentTimingInfo =
+        syncController.saveSegmentTimingInfo.bind(syncController);
+
+      syncController.saveSegmentTimingInfo = (segmentInfo) => {
+        saveSegmentTimingInfoCalls++;
+        origSaveSegmentTimingInfo(segmentInfo);
+      };
+
+      loader.playlist(playlist);
+      loader.track(this.track);
+      loader.load();
+
+      this.clock.tick(1);
+
+      this.requests[0].responseType = 'arraybuffer';
+      this.requests.shift().respond(200, null, new Uint8Array(10).buffer);
+
+      this.clock.tick(1);
+
+      assert.equal(saveSegmentTimingInfoCalls, 0, 'no calls to save timing info');
+    });
   });
 });
