@@ -21,6 +21,10 @@
       option.innerText = source.name;
       option.value = source.uri;
 
+      if (source.keySystems) {
+        option.setAttribute('data-key-systems', JSON.stringify(source.keySystems, null, 2));
+      }
+
       if (source.features.indexOf('low-latency') !== -1) {
         llliveOptGroup.appendChild(option);
       } else if (source.features.indexOf('live') !== -1) {
@@ -43,17 +47,18 @@
   var stateEls = {};
 
   var getInputValue = function(el) {
-    if (el.type === 'url' || el.type === 'text') {
+    if (el.type === 'url' || el.type === 'text' || el.nodeName.toLowerCase() === 'textarea') {
       return encodeURIComponent(el.value);
     } else if (el.type === 'checkbox') {
       return el.checked;
     }
 
     console.warn('unhandled input type ' + el.type);
+    return '';
   };
 
   var setInputValue = function(el, value) {
-    if (el.type === 'url' || el.type === 'text') {
+    if (el.type === 'url' || el.type === 'text' || el.nodeName.toLowerCase() === 'textarea') {
       el.value = decodeURIComponent(value);
     } else {
       el.checked = value === 'true' ? true : false;
@@ -157,7 +162,7 @@
     onload();
   };
 
-  ['debug', 'autoplay', 'muted', 'minified', 'liveui', 'partial', 'url', 'type'].forEach(function(name) {
+  ['debug', 'autoplay', 'muted', 'minified', 'liveui', 'partial', 'url', 'type', 'keysystems'].forEach(function(name) {
     stateEls[name] = document.getElementById(name);
   });
 
@@ -308,7 +313,8 @@
 
       window.player.src({
         src: stateEls.url.value,
-        type: type
+        type: type,
+        keySystems: JSON.parse(stateEls.keysystems.value)
       });
     };
 
@@ -316,10 +322,12 @@
     urlButton.addEventListener('tap', urlButtonClick);
 
     sources.addEventListener('change', function(event) {
-      var src = sources.options[sources.selectedIndex].value;
+      var selectedOption = sources.options[sources.selectedIndex];
+      var src = selectedOption.value;
 
       stateEls.url.value = src;
       stateEls.type.value = '';
+      stateEls.keysystems.value = selectedOption.getAttribute('data-key-systems');
 
       urlButton.dispatchEvent(newEvent('click'));
     });
