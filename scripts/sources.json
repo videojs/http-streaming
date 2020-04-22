@@ -180,7 +180,7 @@
     "features": ["live", "low-latency"]
   },
   {
-    "name": "Axinom Multi DRM - DASH, 4k, Playready, Widevine",
+    "name": "Axinom Multi DRM - DASH, 4k, HEVC, Playready, Widevine",
     "uri": "https://media.axprod.net/TestVectors/v7-MultiDRM-SingleKey/Manifest.mpd",
     "mimetype": "application/dash+xml",
     "features": [],
