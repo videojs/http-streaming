@@ -3,12 +3,10 @@ import { createTransferableMessage } from './bin-utils';
 import { stringToArrayBuffer } from './util/string-to-array-buffer';
 import { transmux } from './segment-transmuxer';
 import { probeTsSegment } from './util/segment';
-import {
-  isLikelyFmp4Data,
-  isLikelyWebmData
-} from './util/codecs';
+import {isLikelyFmp4Data} from './util/codecs';
 import mp4probe from 'mux.js/lib/mp4/probe';
 import { segmentXhrHeaders } from './xhr';
+import {detectContainerForBytes} from '@videojs/vhs-utils/dist/containers';
 
 export const REQUEST_ERRORS = {
   FAILURE: 2,
@@ -168,10 +166,12 @@ const handleInitSegmentResponse =
 
   segment.map.bytes = new Uint8Array(request.response);
 
-  if (isLikelyWebmData(segment.map.bytes)) {
+  const type = detectContainerForBytes(segment.map.bytes);
+
+  if (type !== 'mp4') {
     return finishProcessingFn({
       status: request.status,
-      message: 'Found unsupported WebM initialization segment at URL: ' + request.uri,
+      message: `Found unsupported ${type || 'unknown'} container for initialization segment at URL: ${request.uri}`,
       code: REQUEST_ERRORS.FAILURE,
       xhr: request
     }, segment);

@@ -16,6 +16,45 @@ const {
   mergeOptions
 } = videojs;
 
+const callbackWrapper = function(request, error, response, callback) {
+  const reqResponse = request.response || request.responseText;
+
+  if (!error && reqResponse) {
+    request.responseTime = Date.now();
+    request.roundTripTime = request.responseTime - request.requestTime;
+    request.bytesReceived = reqResponse.byteLength || reqResponse.length;
+    if (!request.bandwidth) {
+      request.bandwidth =
+        Math.floor((request.bytesReceived / request.roundTripTime) * 8 * 1000);
+    }
+  }
+
+  if (response.headers) {
+    request.responseHeaders = response.headers;
+  }
+
+  // videojs.xhr now uses a specific code on the error
+  // object to signal that a request has timed out instead
+  // of setting a boolean on the request object
+  if (error && error.code === 'ETIMEDOUT') {
+    request.timedout = true;
+  }
+
+  // videojs.xhr no longer considers status codes outside of 200 and 0
+  // (for file uris) to be errors, but the old XHR did, so emulate that
+  // behavior. Status 206 may be used in response to byterange requests.
+  if (!error &&
+    !request.aborted &&
+    response.statusCode !== 200 &&
+    response.statusCode !== 206 &&
+    response.statusCode !== 0) {
+    error = new Error('XHR Failed with a response of: ' +
+                      (request && (reqResponse || request.responseText)));
+  }
+
+  callback(error, request);
+};
+
 const xhrFactory = function() {
   const xhr = function XhrFunction(options, callback) {
     // Add a default timeout for all hls requests
@@ -36,42 +75,7 @@ const xhrFactory = function() {
     }
 
     const request = videojsXHR(options, function(error, response) {
-      const reqResponse = request.response;
-
-      if (!error && reqResponse) {
-        request.responseTime = Date.now();
-        request.roundTripTime = request.responseTime - request.requestTime;
-        request.bytesReceived = reqResponse.byteLength || reqResponse.length;
-        if (!request.bandwidth) {
-          request.bandwidth =
-            Math.floor((request.bytesReceived / request.roundTripTime) * 8 * 1000);
-        }
-      }
-
-      if (response.headers) {
-        request.responseHeaders = response.headers;
-      }
-
-      // videojs.xhr now uses a specific code on the error
-      // object to signal that a request has timed out instead
-      // of setting a boolean on the request object
-      if (error && error.code === 'ETIMEDOUT') {
-        request.timedout = true;
-      }
-
-      // videojs.xhr no longer considers status codes outside of 200 and 0
-      // (for file uris) to be errors, but the old XHR did, so emulate that
-      // behavior. Status 206 may be used in response to byterange requests.
-      if (!error &&
-          !request.aborted &&
-          response.statusCode !== 200 &&
-          response.statusCode !== 206 &&
-          response.statusCode !== 0) {
-        error = new Error('XHR Failed with a response of: ' +
-                          (request && (reqResponse || request.responseText)));
-      }
-
-      callback(error, request);
+      return callbackWrapper(request, error, response, callback);
     });
     const originalAbort = request.abort;
 
@@ -118,6 +122,6 @@ const segmentXhrHeaders = function(segment) {
   return headers;
 };
 
-export { segmentXhrHeaders };
+export {segmentXhrHeaders, callbackWrapper, xhrFactory};
 
 export default xhrFactory;

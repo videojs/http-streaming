@@ -15,7 +15,7 @@ import {
   forEachMediaGroup,
   addPropertiesToMaster
 } from './manifest';
-import {requestAndDetectSegmentContainer} from '@videojs/vhs-utils/dist/container';
+import {requestAndDetectSegmentContainer} from './util/container-request.js';
 
 const { EventTarget, mergeOptions } = videojs;
 
