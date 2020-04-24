@@ -15,7 +15,7 @@ import {
   forEachMediaGroup,
   addPropertiesToMaster
 } from './manifest';
-import {requestAndDetectSegmentContainer} from './util/container-request.js';
+import containerRequest from './util/container-request.js';
 import {toUint8} from '@videojs/vhs-utils/dist/byte-helpers';
 
 const { EventTarget, mergeOptions } = videojs;
@@ -206,7 +206,7 @@ export const requestSidx_ = function(startingState, sidxRange, playlist, xhr, op
     headers: segmentXhrHeaders(sidxInfo)
   });
 
-  return requestAndDetectSegmentContainer(sidxInfo.uri, xhr, (err, request, container, bytes) => {
+  return containerRequest(sidxInfo.uri, xhr, (err, request, container, bytes) => {
     if (err) {
       return finishProcessingFn(err, request);
     }

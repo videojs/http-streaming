@@ -2,7 +2,7 @@ import {detectContainerForBytes, getId3Offset} from '@videojs/vhs-utils/dist/con
 import {stringToBytes, toUint8} from '@videojs/vhs-utils/dist/byte-helpers';
 import {callbackWrapper} from '../xhr';
 
-export const requestAndDetectSegmentContainer = (uri, xhr, cb) => {
+const containerRequest = (uri, xhr, cb) => {
   let bytes;
   let id3Offset;
 
@@ -47,3 +47,5 @@ export const requestAndDetectSegmentContainer = (uri, xhr, cb) => {
 
   return xhr(options, () => {});
 };
+
+export default containerRequest;
