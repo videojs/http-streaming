@@ -3,10 +3,9 @@ import { createTransferableMessage } from './bin-utils';
 import { stringToArrayBuffer } from './util/string-to-array-buffer';
 import { transmux } from './segment-transmuxer';
 import { probeTsSegment } from './util/segment';
-import {isLikelyFmp4Data} from './util/codecs';
 import mp4probe from 'mux.js/lib/mp4/probe';
 import { segmentXhrHeaders } from './xhr';
-import {detectContainerForBytes} from '@videojs/vhs-utils/dist/containers';
+import {detectContainerForBytes, isLikelyFmp4} from '@videojs/vhs-utils/dist/containers';
 
 export const REQUEST_ERRORS = {
   FAILURE: 2,
@@ -379,7 +378,7 @@ const handleSegmentBytes = ({
   // to check if something is fmp4. This will allow us to save bandwidth
   // because we can only blacklist a playlist and abort requests
   // by codec after trackinfo triggers.
-  if (isLikelyFmp4Data(bytesAsUint8Array)) {
+  if (isLikelyFmp4(bytesAsUint8Array)) {
     segment.isFmp4 = true;
     const {tracks} = segment.map;
 
@@ -703,7 +702,7 @@ const handleProgress = ({
   ) {
     const newBytes = stringToArrayBuffer(request.responseText.substring(segment.lastReachedChar || 0));
 
-    if (segment.lastReachedChar || !isLikelyFmp4Data(new Uint8Array(newBytes))) {
+    if (segment.lastReachedChar || !isLikelyFmp4(new Uint8Array(newBytes))) {
       segment.lastReachedChar = request.responseText.length;
 
       handleSegmentBytes({

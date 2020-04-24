@@ -3,7 +3,6 @@
  * codec strings, or translating codec strings into objects that can be examined.
  */
 
-import {findBox} from 'mux.js/lib/mp4/probe';
 import {
   translateLegacyCodec,
   parseCodecs,
@@ -99,9 +98,5 @@ export const codecsForPlaylist = function(master, media) {
   }
 
   return codecs;
-};
-
-export const isLikelyFmp4Data = (bytes) => {
-  return findBox(bytes, ['moof']).length > 0;
 };
 

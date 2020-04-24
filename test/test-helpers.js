@@ -4,10 +4,10 @@ import videojs from 'video.js';
 import URLToolkit from 'url-toolkit';
 import testDataManifests from 'create-test-data!manifests';
 import xhrFactory from '../src/xhr';
-import { isLikelyFmp4Data } from '../src/util/codecs';
 import window from 'global/window';
 import { muxed as muxedSegment } from 'create-test-data!segments';
 import {bytesToString, isTypedArray} from '@videojs/vhs-utils/dist/byte-helpers';
+import {isLikelyFmp4} from '@videojs/vhs-utils/dist/containers';
 
 const RealMediaSource = window.MediaSource;
 const realCreateObjectURL = window.URL.createObjectURL;
@@ -526,7 +526,7 @@ export const requestAndAppendSegment = function({
     standardXHRResponse(request, segment);
 
     // fmp4 segments don't need to be transmuxed, therefore will execute synchronously
-    if (!isLikelyFmp4Data(segment)) {
+    if (!isLikelyFmp4(segment)) {
       segmentLoader.one('appending', resolve);
       segmentLoader.one('error', reject);
     } else {
