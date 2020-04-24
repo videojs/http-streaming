@@ -575,7 +575,11 @@ QUnit.test('requestSidx_: triggers error on invalid container', function(assert)
   assert.equal(this.requests.length, 0, 'no more requests');
   assert.strictEqual(callback.callCount, 0, 'callback was not called');
   assert.deepEqual(triggers, ['error'], 'one error triggered');
-  assert.equal(fakeLoader.error.message, '', 'error message as expected');
+  assert.equal(
+    fakeLoader.error.message,
+    'Unsupported unknown container type for sidx segment at URL: sidx.mp4',
+    'error message as expected'
+  );
 });
 
 QUnit.test('constructor throws if the playlist url is empty or undefined', function(assert) {
