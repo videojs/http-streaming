@@ -7,6 +7,7 @@ import xhrFactory from '../src/xhr';
 import { isLikelyFmp4Data } from '../src/util/codecs';
 import window from 'global/window';
 import { muxed as muxedSegment } from 'create-test-data!segments';
+import {bytesToString, isTypedArray} from '@videojs/vhs-utils/dist/byte-helpers';
 
 const RealMediaSource = window.MediaSource;
 const realCreateObjectURL = window.URL.createObjectURL;
@@ -372,13 +373,15 @@ export const standardXHRResponse = function(request, data) {
     manifestName = request.url;
   }
 
+  const isContainerRequest = request.mimeTypeOverride === 'text/plain; charset=x-user-defined';
+
   if (/\.m3u8?/.test(request.url)) {
     contentType = 'application/vnd.apple.mpegurl';
   } else if (/\.ts/.test(request.url)) {
     contentType = 'video/MP2T';
   } else if (/\.mpd/.test(request.url)) {
     contentType = 'application/dash+xml';
-  } else if (request.responseType === 'arraybuffer') {
+  } else if (request.responseType === 'arraybuffer' || isContainerRequest) {
     contentType = 'binary/octet-stream';
   }
 
@@ -386,17 +389,13 @@ export const standardXHRResponse = function(request, data) {
     data = testDataManifests[manifestName];
   }
 
-  const isTypedBuffer = data instanceof Uint8Array || data instanceof Uint32Array;
-  let response;
+  // default to a uint8array for some old tests.
+  // This may be a good target to clean up in the future.
+  let response = data || new Uint8Array(1024);
 
-  if (isTypedBuffer) {
-    response = data.buffer;
-  } else if (!data) {
-    // A placeholder is used for some old tests. This may be a good target to clean up in
-    // the future.
-    response = new Uint8Array(1024).buffer;
-  } else {
-    response = data;
+  if (isTypedArray(response)) {
+    // a string for container requests or a buffer for non-container requests
+    response = isContainerRequest ? bytesToString(response) : response.buffer;
   }
 
   request.respond(200, { 'Content-Type': contentType }, response);

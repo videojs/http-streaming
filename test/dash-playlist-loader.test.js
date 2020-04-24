@@ -472,7 +472,7 @@ QUnit.test('requestSidx_: creates an XHR request for a sidx range', function(ass
   const sidxInfo = {
     resolvedUri: 'sidx.mp4',
     byterange: {
-      offset: 0,
+      offset: 10,
       length: 10
     }
   };
@@ -494,11 +494,10 @@ QUnit.test('requestSidx_: creates an XHR request for a sidx range', function(ass
   );
 
   assert.ok(request, 'a request was returned');
-  assert.strictEqual(request.headers.Range, 'bytes=0-9', 'byterange is correctly requested');
   assert.strictEqual(request.uri, sidxInfo.resolvedUri, 'uri requested is correct');
   assert.strictEqual(this.requests.length, 1, 'one xhr request');
 
-  this.standardXHRResponse(this.requests.shift(), new Uint8Array(mp4VideoInitSegment().subarray(0, 10)));
+  this.standardXHRResponse(this.requests.shift(), mp4VideoInitSegment().subarray(0, 10));
   this.standardXHRResponse(this.requests.shift());
   assert.strictEqual(callback.callCount, 1, 'callback was called');
 });
@@ -1261,7 +1260,7 @@ QUnit.test('parseMasterXml: includes sidx info if available and matches playlist
   );
 
   // Allow sidx request to finish
-  this.standardXHRResponse(this.requests.shift(), new Uint8Array(mp4VideoInitSegment().subarray(0, 10)));
+  this.standardXHRResponse(this.requests.shift(), mp4VideoInitSegment().subarray(0, 10));
   this.standardXHRResponse(this.requests.shift());
   const key = generateSidxKey(loader.media().sidx);
 
@@ -2258,7 +2257,7 @@ QUnit.test('requests sidx if master xml includes it', function(assert) {
   assert.strictEqual(this.requests.length, 1, 'one request for sidx has been made');
   assert.notOk(loader.media(), 'media playlist is not yet set');
 
-  this.standardXHRResponse(this.requests.shift(), new Uint8Array(mp4VideoInitSegment().subarray(0, 10)));
+  this.standardXHRResponse(this.requests.shift(), mp4VideoInitSegment().subarray(0, 10));
   this.standardXHRResponse(this.requests.shift(), sidxResponse());
   assert.strictEqual(loader.state, 'HAVE_METADATA', 'state is HAVE_METADATA');
   assert.ok(loader.media(), 'media playlist is set');
