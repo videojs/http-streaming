@@ -16,6 +16,7 @@ import {
   addPropertiesToMaster
 } from './manifest';
 import {requestAndDetectSegmentContainer} from './util/container-request.js';
+import {toUint8} from '@videojs/vhs-utils/dist/byte-helpers';
 
 const { EventTarget, mergeOptions } = videojs;
 
@@ -205,17 +206,18 @@ export const requestSidx_ = function(startingState, sidxRange, playlist, xhr, op
     headers: segmentXhrHeaders(sidxInfo)
   });
 
-  return requestAndDetectSegmentContainer(sidxInfo.uri, xhr, (err, request, codecInfo) => {
+  return requestAndDetectSegmentContainer(sidxInfo.uri, xhr, (err, request, container, bytes) => {
     if (err) {
       return finishProcessingFn(err, request);
     }
 
-    if (!codecInfo || codecInfo !== 'mp4') {
+    if (!container || container !== 'mp4') {
       this.error = {
         status: request.status,
-        message: `Unsupported ${codecInfo || 'unknown'} container type for sidx segment at URL: ${request.uri}`,
+        message: `Unsupported ${container || 'unknown'} container type for sidx segment at URL: ${request.uri}`,
         response: request.response,
         playlist,
+        internal: true,
         blacklistDuration: Infinity,
         // MEDIA_ERR_NETWORK
         code: 2
@@ -228,6 +230,18 @@ export const requestSidx_ = function(startingState, sidxRange, playlist, xhr, op
       return;
     }
 
+    // if we already downloaded the sidx bytes in the container request, use them
+    const {offset, length} = sidxInfo.byterange;
+
+    if (bytes.length >= (length + offset)) {
+      return finishProcessingFn(err, {
+        response: bytes.subarray(offset, offset + length),
+        status: request.status,
+        uri: request.uri
+      });
+    }
+
+    // otherwise request sidx bytes
     this.request = xhr(sidxRequestOptions, finishProcessingFn);
   });
 };
@@ -331,7 +345,7 @@ export default class DashPlaylistLoader extends EventTarget {
         return doneFn(master, null);
       }
 
-      const bytes = new Uint8Array(request.response);
+      const bytes = toUint8(request.response);
       const sidx = mp4Inspector.parseSidx(bytes.subarray(8));
 
       return doneFn(master, sidx);
@@ -419,7 +433,8 @@ export default class DashPlaylistLoader extends EventTarget {
     };
 
     this.request = requestSidx_.call(
-      this, startingState,
+      this,
+      startingState,
       playlist.sidx,
       playlist,
       this.hls_.xhr,
