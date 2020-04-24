@@ -268,7 +268,7 @@ Hls.supportsNativeHls = (function() {
   if (!document || !document.createElement) {
     return false;
   }
-  
+
   const video = document.createElement('video');
 
   // native HLS is definitely not supported if HTML5 video isn't
