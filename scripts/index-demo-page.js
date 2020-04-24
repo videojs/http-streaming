@@ -311,11 +311,16 @@
 
       saveState();
 
-      window.player.src({
+      var source = {
         src: stateEls.url.value,
-        type: type,
-        keySystems: JSON.parse(stateEls.keysystems.value)
-      });
+        type: type
+      };
+
+      if (stateEls.keysystems.value) {
+        source.keySystems = JSON.parse(stateEls.keysystems.value);
+      }
+
+      window.player.src(source);
     };
 
     urlButton.addEventListener('click', urlButtonClick);
