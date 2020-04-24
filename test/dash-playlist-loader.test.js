@@ -502,6 +502,82 @@ QUnit.test('requestSidx_: creates an XHR request for a sidx range', function(ass
   assert.strictEqual(callback.callCount, 1, 'callback was called');
 });
 
+QUnit.test('requestSidx_: does not re-request bytes from container request', function(assert) {
+  const sidxInfo = {
+    resolvedUri: 'sidx.mp4',
+    byterange: {
+      offset: 0,
+      length: 10
+    }
+  };
+  const playlist = {
+    uri: 'fakeplaylist',
+    id: 'fakeplaylist',
+    segments: [sidxInfo],
+    sidx: sidxInfo
+  };
+  const callback = sinon.stub();
+  const request = requestSidx_.call(
+    this,
+    {},
+    sidxInfo,
+    playlist,
+    this.fakeHls.xhr,
+    { handleManifestRedirects: false },
+    callback
+  );
+
+  assert.ok(request, 'a request was returned');
+  assert.strictEqual(request.uri, sidxInfo.resolvedUri, 'uri requested is correct');
+  assert.strictEqual(this.requests.length, 1, 'one xhr request');
+
+  this.standardXHRResponse(this.requests.shift(), mp4VideoInitSegment().subarray(0, 10));
+
+  assert.equal(this.requests.length, 0, 'no more requests');
+  assert.strictEqual(callback.callCount, 1, 'callback was called');
+});
+
+QUnit.test('requestSidx_: triggers error on invalid container', function(assert) {
+  const sidxInfo = {
+    resolvedUri: 'sidx.mp4',
+    byterange: {
+      offset: 0,
+      length: 10
+    }
+  };
+  const playlist = {
+    uri: 'fakeplaylist',
+    id: 'fakeplaylist',
+    segments: [sidxInfo],
+    sidx: sidxInfo
+  };
+  const triggers = [];
+  const fakeLoader = {trigger(name) {
+    triggers.push(name);
+  }};
+  const callback = sinon.stub();
+  const request = requestSidx_.call(
+    fakeLoader,
+    {},
+    sidxInfo,
+    playlist,
+    this.fakeHls.xhr,
+    { handleManifestRedirects: false },
+    callback
+  );
+
+  assert.ok(request, 'a request was returned');
+  assert.strictEqual(request.uri, sidxInfo.resolvedUri, 'uri requested is correct');
+  assert.strictEqual(this.requests.length, 1, 'one xhr request');
+
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.equal(this.requests.length, 0, 'no more requests');
+  assert.strictEqual(callback.callCount, 0, 'callback was not called');
+  assert.deepEqual(triggers, ['error'], 'one error triggered');
+  assert.equal(fakeLoader.error.message, '', 'error message as expected');
+});
+
 QUnit.test('constructor throws if the playlist url is empty or undefined', function(assert) {
   assert.throws(function() {
     DashPlaylistLoader();
