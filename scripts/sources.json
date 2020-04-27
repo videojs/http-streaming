@@ -236,5 +236,23 @@
     "uri": "https://livesim.dashif.org/livesim/testpic_2s/Manifest.mpd",
     "mimetype": "application/dash+xml",
     "features": ["live"]
+  },
+  {
+    "name": "Tears of Steal - Widevine (Unified Streaming)",
+    "uri": "https://demo.unified-streaming.com/video/tears-of-steel/tears-of-steel-dash-widevine.ism/.mpd",
+    "mimetype": "application/dash+xml",
+    "features": [],
+    "keySystems": {
+      "com.widevine.alpha": "https://widevine-proxy.appspot.com/proxy"
+    }
+  },
+  {
+    "name": "Tears of Steal - PlayReady (Unified Streaming)",
+    "uri": "https://demo.unified-streaming.com/video/tears-of-steel/tears-of-steel-dash-playready.ism/.mpd",
+    "mimetype": "application/dash+xml",
+    "features": [],
+    "keySystems": {
+      "com.widevine.alpha": "https://test.playready.microsoft.com/service/rightsmanager.asmx"
+    }
   }
 ]
