@@ -230,5 +230,11 @@
     "uri": "https://media.axprod.net/TestVectors/v7-Clear/Manifest_MultiPeriod.mpd",
     "mimetype": "application/dash+xml",
     "features": []
+  },
+  {
+    "name": "DASH-IF simulated live",
+    "uri": "https://livesim.dashif.org/livesim/sts_1587996555/sid_c614f58a/utc_head/testpic_2s/Manifest.mpd",
+    "mimetype": "application/dash+xml",
+    "features": ["live"]
   }
 ]
