@@ -254,5 +254,17 @@
     "keySystems": {
       "com.widevine.alpha": "https://test.playready.microsoft.com/service/rightsmanager.asmx"
     }
+  },
+  {
+    "name": "Unified Streaming Live DASH",
+    "uri": "https://live.unified-streaming.com/scte35/scte35.isml/.mpd",
+    "mimetype": "application/dash+xml",
+    "features": ["live"]
+  },
+  {
+    "name": "Unified Streaming Live HLS",
+    "uri": "https://live.unified-streaming.com/scte35/scte35.isml/.m3u8",
+    "mimetype": "application/x-mpegurl",
+    "features": ["live"]
   }
 ]
