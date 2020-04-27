@@ -17,7 +17,7 @@ const {
 } = videojs;
 
 const callbackWrapper = function(request, error, response, callback) {
-  const reqResponse = request.response || request.responseText;
+  const reqResponse = request.responseType === 'arraybuffer' ? request.response : request.responseText;
 
   if (!error && reqResponse) {
     request.responseTime = Date.now();
