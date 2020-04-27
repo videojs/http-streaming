@@ -114,6 +114,15 @@
     "features": []
   },
   {
+    "name": "Angel One - Widevine, fmp4, webm, subs, alternate audio tracks",
+    "uri": "https://storage.googleapis.com/shaka-demo-assets/angel-one-widevine/dash.mpd",
+    "mimetype": "application/dash+xml",
+    "features": [],
+    "keySystems": {
+      "com.widevine.alpha": "https://cwip-shaka-proxy.appspot.com/no_auth"
+    }
+  },
+  {
     "name": "BBB-CMIF: Big Buck Bunny Dark Truths - demuxed, fmp4",
     "uri": "https://storage.googleapis.com/shaka-demo-assets/bbb-dark-truths/dash.mpd",
     "mimetype": "application/dash+xml",
