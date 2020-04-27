@@ -6,6 +6,7 @@
   var sourcesLoadedCallback;
   var hlsOptGroup = document.querySelector('[label="hls"]');
   var dashOptGroup = document.querySelector('[label="dash"]');
+  var drmOptGroup = document.querySelector('[label="drm"]');
   var liveOptGroup = document.querySelector('[label="live"]');
   var llliveOptGroup = document.querySelector('[label="low latency live"]');
 
@@ -29,6 +30,8 @@
         llliveOptGroup.appendChild(option);
       } else if (source.features.indexOf('live') !== -1) {
         liveOptGroup.appendChild(option);
+      } else if (source.keySystems) {
+        drmOptGroup.appendChild(option);
       } else if (source.mimetype === 'application/x-mpegurl') {
         hlsOptGroup.appendChild(option);
       } else if (source.mimetype === 'application/dash+xml') {
