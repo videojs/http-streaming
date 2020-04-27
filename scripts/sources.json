@@ -268,13 +268,13 @@
     "features": ["live"]
   },
   {
-    "name": "Bayerrischer Rundfunk Recorded Loop - DASH, may not always be available",
+    "name": "DOESN'T WORK - Bayerrischer Rundfunk Recorded Loop - DASH, may not always be available",
     "uri": "https://irtdashreference-i.akamaihd.net/dash/live/901161/keepixo1/manifestBR2.mpd",
     "mimetype": "application/dash+xml",
     "features": ["live"]
   },
   {
-    "name": "Bayerrischer Rundfunk Recorded Loop - HLS, may not always be available",
+    "name": "DOESN'T WORK - Bayerrischer Rundfunk Recorded Loop - HLS, may not always be available",
     "uri": "https://irtdashreference-i.akamaihd.net/dash/live/901161/keepixo1/playlistBR2.m3u8",
     "mimetype": "application/dash+xml",
     "features": ["live"]
