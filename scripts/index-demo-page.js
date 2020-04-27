@@ -85,7 +85,7 @@
     var pathParts;
 
     if (typeof path === 'string') {
-      splitPathRe = /^(\/?)([\s\S]*?)((?:\.{1,2}|[^\/]+?)(\.([^\.\/\?]+)))(?:[\/]*|[\?].*)$/i;
+      splitPathRe = /^(\/?)([\s\S]*?)((?:\.{1,2}|[^\/]*?)(\.([^\.\/\?]+)))(?:[\/]*|[\?].*)$/i;
       pathParts = splitPathRe.exec(path);
 
       if (pathParts) {
