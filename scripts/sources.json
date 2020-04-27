@@ -114,6 +114,15 @@
     "features": []
   },
   {
+    "name": "Angel One - Widevine, fmp4, webm, subs, alternate audio tracks",
+    "uri": "https://storage.googleapis.com/shaka-demo-assets/angel-one-widevine/dash.mpd",
+    "mimetype": "application/dash+xml",
+    "features": [],
+    "keySystems": {
+      "com.widevine.alpha": "https://cwip-shaka-proxy.appspot.com/no_auth"
+    }
+  },
+  {
     "name": "BBB-CMIF: Big Buck Bunny Dark Truths - demuxed, fmp4",
     "uri": "https://storage.googleapis.com/shaka-demo-assets/bbb-dark-truths/dash.mpd",
     "mimetype": "application/dash+xml",
@@ -178,5 +187,115 @@
     "uri": "https://ll-hls-test.apple.com/cmaf/master.m3u8",
     "mimetype": "application/x-mpegurl",
     "features": ["live", "low-latency"]
+  },
+  {
+    "name": "Axinom Multi DRM - DASH, 4k, HEVC, Playready, Widevine",
+    "uri": "https://media.axprod.net/TestVectors/v7-MultiDRM-SingleKey/Manifest.mpd",
+    "mimetype": "application/dash+xml",
+    "features": [],
+    "keySystems": {
+      "com.microsoft.playready": {
+        "url": "https://drm-widevine-licensing.axtest.net/AcquireLicense",
+        "licenseHeaders": {
+          "X-AxDRM-Message": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2ZXJzaW9uIjoxLCJjb21fa2V5X2lkIjoiYjMzNjRlYjUtNTFmNi00YWUzLThjOTgtMzNjZWQ1ZTMxYzc4IiwibWVzc2FnZSI6eyJ0eXBlIjoiZW50aXRsZW1lbnRfbWVzc2FnZSIsImtleXMiOlt7ImlkIjoiOWViNDA1MGQtZTQ0Yi00ODAyLTkzMmUtMjdkNzUwODNlMjY2IiwiZW5jcnlwdGVkX2tleSI6ImxLM09qSExZVzI0Y3Iya3RSNzRmbnc9PSJ9XX19.4lWwW46k-oWcah8oN18LPj5OLS5ZU-_AQv7fe0JhNjA"
+        }
+      },
+      "com.widevine.alpha": {
+        "url": "https://drm-widevine-licensing.axtest.net/AcquireLicense",
+        "licenseHeaders": {
+          "X-AxDRM-Message": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2ZXJzaW9uIjoxLCJjb21fa2V5X2lkIjoiYjMzNjRlYjUtNTFmNi00YWUzLThjOTgtMzNjZWQ1ZTMxYzc4IiwibWVzc2FnZSI6eyJ0eXBlIjoiZW50aXRsZW1lbnRfbWVzc2FnZSIsImtleXMiOlt7ImlkIjoiOWViNDA1MGQtZTQ0Yi00ODAyLTkzMmUtMjdkNzUwODNlMjY2IiwiZW5jcnlwdGVkX2tleSI6ImxLM09qSExZVzI0Y3Iya3RSNzRmbnc9PSJ9XX19.4lWwW46k-oWcah8oN18LPj5OLS5ZU-_AQv7fe0JhNjA"
+        }
+      }
+    }
+  },
+  {
+    "name": "Axinom Multi DRM, Multi Period - DASH, 4k, HEVC, Playready, Widevine",
+    "uri": "https://media.axprod.net/TestVectors/v7-MultiDRM-MultiKey-MultiPeriod/Manifest.mpd",
+    "mimetype": "application/dash+xml",
+    "features": [],
+    "keySystems": {
+      "com.microsoft.playready": {
+        "url": "https://drm-widevine-licensing.axtest.net/AcquireLicense",
+        "licenseHeaders": {
+          "X-AxDRM-Message": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2ZXJzaW9uIjoxLCJjb21fa2V5X2lkIjoiYjMzNjRlYjUtNTFmNi00YWUzLThjOTgtMzNjZWQ1ZTMxYzc4IiwibWVzc2FnZSI6eyJ0eXBlIjoiZW50aXRsZW1lbnRfbWVzc2FnZSIsImtleXMiOlt7ImlkIjoiMDg3Mjc4NmUtZjllNy00NjVmLWEzYTItNGU1YjBlZjhmYTQ1IiwiZW5jcnlwdGVkX2tleSI6IlB3NitlRVlOY3ZqWWJmc2gzWDNmbWc9PSJ9LHsiaWQiOiJjMTRmMDcwOS1mMmI5LTQ0MjctOTE2Yi02MWI1MjU4NjUwNmEiLCJlbmNyeXB0ZWRfa2V5IjoiLzErZk5paDM4bXFSdjR5Y1l6bnQvdz09In0seyJpZCI6IjhiMDI5ZTUxLWQ1NmEtNDRiZC05MTBmLWQ0YjVmZDkwZmJhMiIsImVuY3J5cHRlZF9rZXkiOiJrcTBKdVpFanBGTjhzYVRtdDU2ME9nPT0ifSx7ImlkIjoiMmQ2ZTkzODctNjBjYS00MTQ1LWFlYzItYzQwODM3YjRiMDI2IiwiZW5jcnlwdGVkX2tleSI6IlRjUlFlQld4RW9IT0tIcmFkNFNlVlE9PSJ9LHsiaWQiOiJkZTAyZjA3Zi1hMDk4LTRlZTAtYjU1Ni05MDdjMGQxN2ZiYmMiLCJlbmNyeXB0ZWRfa2V5IjoicG9lbmNTN0dnbWVHRmVvSjZQRUFUUT09In0seyJpZCI6IjkxNGU2OWY0LTBhYjMtNDUzNC05ZTlmLTk4NTM2MTVlMjZmNiIsImVuY3J5cHRlZF9rZXkiOiJlaUkvTXNsbHJRNHdDbFJUL0xObUNBPT0ifSx7ImlkIjoiZGE0NDQ1YzItZGI1ZS00OGVmLWIwOTYtM2VmMzQ3YjE2YzdmIiwiZW5jcnlwdGVkX2tleSI6IjJ3K3pkdnFycERWM3hSMGJKeTR1Z3c9PSJ9LHsiaWQiOiIyOWYwNWU4Zi1hMWFlLTQ2ZTQtODBlOS0yMmRjZDQ0Y2Q3YTEiLCJlbmNyeXB0ZWRfa2V5IjoiL3hsU0hweHdxdTNnby9nbHBtU2dhUT09In0seyJpZCI6IjY5ZmU3MDc3LWRhZGQtNGI1NS05NmNkLWMzZWRiMzk5MTg1MyIsImVuY3J5cHRlZF9rZXkiOiJ6dTZpdXpOMnBzaTBaU3hRaUFUa1JRPT0ifV19fQ.BXr93Et1krYMVs-CUnf7F3ywJWFRtxYdkR7Qn4w3-to"
+        }
+      },
+      "com.widevine.alpha": {
+        "url": "https://drm-widevine-licensing.axtest.net/AcquireLicense",
+        "licenseHeaders": {
+          "X-AxDRM-Message": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2ZXJzaW9uIjoxLCJjb21fa2V5X2lkIjoiYjMzNjRlYjUtNTFmNi00YWUzLThjOTgtMzNjZWQ1ZTMxYzc4IiwibWVzc2FnZSI6eyJ0eXBlIjoiZW50aXRsZW1lbnRfbWVzc2FnZSIsImtleXMiOlt7ImlkIjoiMDg3Mjc4NmUtZjllNy00NjVmLWEzYTItNGU1YjBlZjhmYTQ1IiwiZW5jcnlwdGVkX2tleSI6IlB3NitlRVlOY3ZqWWJmc2gzWDNmbWc9PSJ9LHsiaWQiOiJjMTRmMDcwOS1mMmI5LTQ0MjctOTE2Yi02MWI1MjU4NjUwNmEiLCJlbmNyeXB0ZWRfa2V5IjoiLzErZk5paDM4bXFSdjR5Y1l6bnQvdz09In0seyJpZCI6IjhiMDI5ZTUxLWQ1NmEtNDRiZC05MTBmLWQ0YjVmZDkwZmJhMiIsImVuY3J5cHRlZF9rZXkiOiJrcTBKdVpFanBGTjhzYVRtdDU2ME9nPT0ifSx7ImlkIjoiMmQ2ZTkzODctNjBjYS00MTQ1LWFlYzItYzQwODM3YjRiMDI2IiwiZW5jcnlwdGVkX2tleSI6IlRjUlFlQld4RW9IT0tIcmFkNFNlVlE9PSJ9LHsiaWQiOiJkZTAyZjA3Zi1hMDk4LTRlZTAtYjU1Ni05MDdjMGQxN2ZiYmMiLCJlbmNyeXB0ZWRfa2V5IjoicG9lbmNTN0dnbWVHRmVvSjZQRUFUUT09In0seyJpZCI6IjkxNGU2OWY0LTBhYjMtNDUzNC05ZTlmLTk4NTM2MTVlMjZmNiIsImVuY3J5cHRlZF9rZXkiOiJlaUkvTXNsbHJRNHdDbFJUL0xObUNBPT0ifSx7ImlkIjoiZGE0NDQ1YzItZGI1ZS00OGVmLWIwOTYtM2VmMzQ3YjE2YzdmIiwiZW5jcnlwdGVkX2tleSI6IjJ3K3pkdnFycERWM3hSMGJKeTR1Z3c9PSJ9LHsiaWQiOiIyOWYwNWU4Zi1hMWFlLTQ2ZTQtODBlOS0yMmRjZDQ0Y2Q3YTEiLCJlbmNyeXB0ZWRfa2V5IjoiL3hsU0hweHdxdTNnby9nbHBtU2dhUT09In0seyJpZCI6IjY5ZmU3MDc3LWRhZGQtNGI1NS05NmNkLWMzZWRiMzk5MTg1MyIsImVuY3J5cHRlZF9rZXkiOiJ6dTZpdXpOMnBzaTBaU3hRaUFUa1JRPT0ifV19fQ.BXr93Et1krYMVs-CUnf7F3ywJWFRtxYdkR7Qn4w3-to"
+        }
+      }
+    }
+  },
+  {
+    "name": "Axinom Clear - DASH, 4k, HEVC",
+    "uri": "https://media.axprod.net/TestVectors/v7-Clear/Manifest.mpd",
+    "mimetype": "application/dash+xml",
+    "features": []
+  },
+  {
+    "name": "Axinom Clear MultiPeriod - DASH, 4k, HEVC",
+    "uri": "https://media.axprod.net/TestVectors/v7-Clear/Manifest_MultiPeriod.mpd",
+    "mimetype": "application/dash+xml",
+    "features": []
+  },
+  {
+    "name": "DASH-IF simulated live",
+    "uri": "https://livesim.dashif.org/livesim/testpic_2s/Manifest.mpd",
+    "mimetype": "application/dash+xml",
+    "features": ["live"]
+  },
+  {
+    "name": "Tears of Steal - Widevine (Unified Streaming)",
+    "uri": "https://demo.unified-streaming.com/video/tears-of-steel/tears-of-steel-dash-widevine.ism/.mpd",
+    "mimetype": "application/dash+xml",
+    "features": [],
+    "keySystems": {
+      "com.widevine.alpha": "https://widevine-proxy.appspot.com/proxy"
+    }
+  },
+  {
+    "name": "Tears of Steal - PlayReady (Unified Streaming)",
+    "uri": "https://demo.unified-streaming.com/video/tears-of-steel/tears-of-steel-dash-playready.ism/.mpd",
+    "mimetype": "application/dash+xml",
+    "features": [],
+    "keySystems": {
+      "com.widevine.alpha": "https://test.playready.microsoft.com/service/rightsmanager.asmx"
+    }
+  },
+  {
+    "name": "Unified Streaming Live DASH",
+    "uri": "https://live.unified-streaming.com/scte35/scte35.isml/.mpd",
+    "mimetype": "application/dash+xml",
+    "features": ["live"]
+  },
+  {
+    "name": "Unified Streaming Live HLS",
+    "uri": "https://live.unified-streaming.com/scte35/scte35.isml/.m3u8",
+    "mimetype": "application/x-mpegurl",
+    "features": ["live"]
+  },
+  {
+    "name": "DOESN'T WORK - Bayerrischer Rundfunk Recorded Loop - DASH, may not always be available",
+    "uri": "https://irtdashreference-i.akamaihd.net/dash/live/901161/keepixo1/manifestBR2.mpd",
+    "mimetype": "application/dash+xml",
+    "features": ["live"]
+  },
+  {
+    "name": "DOESN'T WORK - Bayerrischer Rundfunk Recorded Loop - HLS, may not always be available",
+    "uri": "https://irtdashreference-i.akamaihd.net/dash/live/901161/keepixo1/playlistBR2.m3u8",
+    "mimetype": "application/dash+xml",
+    "features": ["live"]
+  },
+  {
+    "name": "Big Buck Bunny - Azure - DASH, Widevine, PlayReady - need to set mimetype manually",
+    "uri": "https://amssamples.streaming.mediaservices.windows.net/622b189f-ec39-43f2-93a2-201ac4e31ce1/BigBuckBunny.ism/manifest(format=mpd-time-csf)",
+    "mimetype": "application/dash+xml",
+    "features": [],
+    "keySystems": {
+      "com.widevine.alpha": "https://amssamples.keydelivery.mediaservices.windows.net/Widevine/?KID=1ab45440-532c-4399-94dc-5c5ad9584bac",
+      "com.microsoft.playready": "https://amssamples.keydelivery.mediaservices.windows.net/PlayReady/"
+    }
   }
 ]

@@ -6,6 +6,7 @@
   var sourcesLoadedCallback;
   var hlsOptGroup = document.querySelector('[label="hls"]');
   var dashOptGroup = document.querySelector('[label="dash"]');
+  var drmOptGroup = document.querySelector('[label="drm"]');
   var liveOptGroup = document.querySelector('[label="live"]');
   var llliveOptGroup = document.querySelector('[label="low latency live"]');
 
@@ -21,10 +22,16 @@
       option.innerText = source.name;
       option.value = source.uri;
 
+      if (source.keySystems) {
+        option.setAttribute('data-key-systems', JSON.stringify(source.keySystems, null, 2));
+      }
+
       if (source.features.indexOf('low-latency') !== -1) {
         llliveOptGroup.appendChild(option);
       } else if (source.features.indexOf('live') !== -1) {
         liveOptGroup.appendChild(option);
+      } else if (source.keySystems) {
+        drmOptGroup.appendChild(option);
       } else if (source.mimetype === 'application/x-mpegurl') {
         hlsOptGroup.appendChild(option);
       } else if (source.mimetype === 'application/dash+xml') {
@@ -43,17 +50,18 @@
   var stateEls = {};
 
   var getInputValue = function(el) {
-    if (el.type === 'url' || el.type === 'text') {
+    if (el.type === 'url' || el.type === 'text' || el.nodeName.toLowerCase() === 'textarea') {
       return encodeURIComponent(el.value);
     } else if (el.type === 'checkbox') {
       return el.checked;
     }
 
     console.warn('unhandled input type ' + el.type);
+    return '';
   };
 
   var setInputValue = function(el, value) {
-    if (el.type === 'url' || el.type === 'text') {
+    if (el.type === 'url' || el.type === 'text' || el.nodeName.toLowerCase() === 'textarea') {
       el.value = decodeURIComponent(value);
     } else {
       el.checked = value === 'true' ? true : false;
@@ -80,7 +88,7 @@
     var pathParts;
 
     if (typeof path === 'string') {
-      splitPathRe = /^(\/?)([\s\S]*?)((?:\.{1,2}|[^\/]+?)(\.([^\.\/\?]+)))(?:[\/]*|[\?].*)$/i;
+      splitPathRe = /^(\/?)([\s\S]*?)((?:\.{1,2}|[^\/]*?)(\.([^\.\/\?]+)))(?:[\/]*|[\?].*)$/i;
       pathParts = splitPathRe.exec(path);
 
       if (pathParts) {
@@ -157,7 +165,7 @@
     onload();
   };
 
-  ['debug', 'autoplay', 'muted', 'minified', 'liveui', 'partial', 'url', 'type'].forEach(function(name) {
+  ['debug', 'autoplay', 'muted', 'minified', 'liveui', 'partial', 'url', 'type', 'keysystems'].forEach(function(name) {
     stateEls[name] = document.getElementById(name);
   });
 
@@ -306,20 +314,28 @@
 
       saveState();
 
-      window.player.src({
+      var source = {
         src: stateEls.url.value,
         type: type
-      });
+      };
+
+      if (stateEls.keysystems.value) {
+        source.keySystems = JSON.parse(stateEls.keysystems.value);
+      }
+
+      window.player.src(source);
     };
 
     urlButton.addEventListener('click', urlButtonClick);
     urlButton.addEventListener('tap', urlButtonClick);
 
     sources.addEventListener('change', function(event) {
-      var src = sources.options[sources.selectedIndex].value;
+      var selectedOption = sources.options[sources.selectedIndex];
+      var src = selectedOption.value;
 
       stateEls.url.value = src;
       stateEls.type.value = '';
+      stateEls.keysystems.value = selectedOption.getAttribute('data-key-systems');
 
       urlButton.dispatchEvent(newEvent('click'));
     });
