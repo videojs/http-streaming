@@ -233,7 +233,7 @@
   },
   {
     "name": "DASH-IF simulated live",
-    "uri": "https://livesim.dashif.org/livesim/sts_1587996555/sid_c614f58a/utc_head/testpic_2s/Manifest.mpd",
+    "uri": "https://livesim.dashif.org/livesim/testpic_2s/Manifest.mpd",
     "mimetype": "application/dash+xml",
     "features": ["live"]
   }
