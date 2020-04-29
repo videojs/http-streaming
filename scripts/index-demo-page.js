@@ -26,6 +26,10 @@
         option.setAttribute('data-key-systems', JSON.stringify(source.keySystems, null, 2));
       }
 
+      if (source.mimetype) {
+        option.setAttribute('data-mimetype', source.mimetype);
+      }
+
       if (source.features.indexOf('low-latency') !== -1) {
         llliveOptGroup.appendChild(option);
       } else if (source.features.indexOf('live') !== -1) {
@@ -176,23 +180,6 @@
       setInputValue(stateEls[elName], state[elName]);
     });
 
-    sourcesLoadedCallback = function() {
-      Array.prototype.forEach.call(sources.options, function(s, i) {
-        if (s.value === state.url) {
-          sources.selectedIndex = i;
-        }
-      });
-
-      if (typeof sources.selectedIndex !== 'number') {
-        sources.selectedIndex = -1;
-      }
-    };
-    // if there is a "url" param in the query params set url
-    // and selected index to that
-    if (sourcesLoaded) {
-      sourcesLoadedCallback();
-    }
-
     Array.prototype.forEach.call(sources.options, function(s, i) {
       if (s.value === state.url) {
         sources.selectedIndex = i;
@@ -323,6 +310,20 @@
         source.keySystems = JSON.parse(stateEls.keysystems.value);
       }
 
+      sources.selectedIndex = -1;
+
+      Array.prototype.forEach.call(sources.options, function(s, i) {
+        if (s.value === stateEls.url.value) {
+          sources.selectedIndex = i;
+        }
+      });
+
+      // if there is a "url" param in the query params set url
+      // and selected index to that
+      if (sourcesLoaded) {
+        sourcesLoadedCallback();
+      }
+
       window.player.src(source);
     };
 
@@ -334,7 +335,7 @@
       var src = selectedOption.value;
 
       stateEls.url.value = src;
-      stateEls.type.value = '';
+      stateEls.type.value = selectedOption.getAttribute('data-mimetype');
       stateEls.keysystems.value = selectedOption.getAttribute('data-key-systems');
 
       urlButton.dispatchEvent(newEvent('click'));
