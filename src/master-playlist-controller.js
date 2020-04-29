@@ -222,6 +222,12 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.setupSegmentLoaderListeners_();
 
     // Create SegmentLoader stat-getters
+    // mediaRequests_
+    // mediaRequestsAborted_
+    // mediaRequestsTimedout_
+    // mediaRequestsErrored_
+    // mediaTransferDuration_
+    // mediaBytesTransferred_
     loaderStats.forEach((stat) => {
       this[stat + '_'] = sumLoaderStat.bind(this, stat);
     });
