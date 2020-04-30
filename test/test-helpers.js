@@ -394,7 +394,7 @@ export const standardXHRResponse = function(request, data) {
   let response = data || new Uint8Array(1024);
 
   if (isTypedArray(response)) {
-    // a string for container requests or a buffer for non-container requests
+    // a string for partial requests or a buffer for non-partial requests
     response = isPartialRequest ? bytesToString(response) : response.buffer;
   }
 

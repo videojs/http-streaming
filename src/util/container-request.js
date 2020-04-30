@@ -27,16 +27,34 @@ const containerRequest = (uri, xhr, cb) => {
     temp.set(newBytes, currentLength);
     bytes = temp;
 
-    if (!id3Offset) {
-      id3Offset = getId3Offset(bytes);
-    }
-
-    // not enough data to determine type yet
-    if (bytes.length < id3Offset + 2) {
+    // we need at least 10 bytes to determine a type
+    if (bytes.length < 10) {
       return;
     }
-    request.abort();
+
+    id3Offset = id3Offset || getId3Offset(bytes);
+
+    // if we have an id3 offset we are dealing with aac/mp3 and we
+    // need 2 bytes after the id3 offset to determine which on it is.
+    if ((id3Offset && bytes.length < id3Offset + 2)) {
+      return;
+    }
     const type = detectContainerForBytes(bytes);
+
+    // if this looks like a ts segment but we don't have enough data
+    // to see the second sync byte, wait until we have enough data
+    // before declaring it ts
+    if (type === 'ts' && bytes.length < 188) {
+      return;
+    }
+
+    // this may be an unsynced ts segment
+    // wait for 376 bytes before detecting no container
+    if (!type && bytes.length < 376) {
+      return;
+    }
+
+    request.abort();
 
     cb(null, request, type, bytes);
   };

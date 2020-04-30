@@ -171,7 +171,7 @@ const handleInitSegmentResponse =
   const type = detectContainerForBytes(segment.map.bytes);
 
   // TODO: We should also handle ts init segments here, but we
-  // only know how to parse ts maps at the moment
+  // only know how to parse mp4 init segments at the moment
   if (type !== 'mp4') {
     return finishProcessingFn({
       status: request.status,

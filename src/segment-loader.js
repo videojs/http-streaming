@@ -2316,7 +2316,7 @@ export default class SegmentLoader extends videojs.EventTarget {
   waitForAppendsToComplete_(segmentInfo) {
     if (!this.startingMedia_) {
       this.error({
-        message: 'No starting media returned, we dont support this media format.',
+        message: 'No starting media returned, likely due to an unsupported media format.',
         blacklistDuration: Infinity
       });
       this.trigger('error');
@@ -2448,7 +2448,7 @@ export default class SegmentLoader extends videojs.EventTarget {
   updateTimingInfoEnd_(segmentInfo) {
     segmentInfo.timingInfo = segmentInfo.timingInfo || {};
     const useVideoTimingInfo =
-      this.loaderType_ === 'main' && this.startingMedia_ && this.startingMedia_.hasVideo;
+      this.loaderType_ === 'main' && this.startingMedia_.hasVideo;
     const prioritizedTimingInfo = useVideoTimingInfo && segmentInfo.videoTimingInfo ?
       segmentInfo.videoTimingInfo : segmentInfo.audioTimingInfo;
 
