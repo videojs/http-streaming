@@ -191,7 +191,7 @@ export const filterChangedSidxMappings = (masterXml, srcUrl, clientOffset, oldSi
 };
 
 // exported for testing
-export const requestSidx_ = function(startingState, sidxRange, playlist, xhr, options, finishProcessingFn) {
+export const requestSidx_ = function(loader, sidxRange, playlist, xhr, options, finishProcessingFn) {
   const sidxInfo = {
     // resolve the segment URL relative to the playlist
     uri: resolveManifestRedirect(options.handleManifestRedirects, sidxRange.resolvedUri),
@@ -212,22 +212,18 @@ export const requestSidx_ = function(startingState, sidxRange, playlist, xhr, op
     }
 
     if (!container || container !== 'mp4') {
-      this.error = {
+      return finishProcessingFn({
         status: request.status,
-        message: `Unsupported ${container || 'unknown'} container type for sidx segment at URL: ${request.uri}`,
-        response: request.response,
+        message: `Unsupported ${container || 'unknown'} container type for sidx segment at URL: ${sidxInfo.uri}`,
+        // response is just bytes in this case
+        // but we really don't want to return that.
+        response: '',
         playlist,
         internal: true,
         blacklistDuration: Infinity,
         // MEDIA_ERR_NETWORK
         code: 2
-      };
-      if (startingState) {
-        this.state = startingState;
-      }
-
-      this.trigger('error');
-      return;
+      }, request);
     }
 
     // if we already downloaded the sidx bytes in the container request, use them
@@ -242,7 +238,7 @@ export const requestSidx_ = function(startingState, sidxRange, playlist, xhr, op
     }
 
     // otherwise request sidx bytes
-    this.request = xhr(sidxRequestOptions, finishProcessingFn);
+    loader.request = xhr(sidxRequestOptions, finishProcessingFn);
   });
 };
 
@@ -330,7 +326,10 @@ export default class DashPlaylistLoader extends EventTarget {
       this.request = null;
 
       if (err) {
-        this.error = {
+        // use the provided error or create one
+        // see requestSidx_ for the container request
+        // that can cause this.
+        this.error = typeof err === 'object' ? err : {
           status: request.status,
           message: 'DASH playlist request error at URL: ' + playlist.uri,
           response: request.response,
@@ -342,7 +341,7 @@ export default class DashPlaylistLoader extends EventTarget {
         }
 
         this.trigger('error');
-        return doneFn(master, null);
+        return;
       }
 
       const bytes = toUint8(request.response);
@@ -432,9 +431,8 @@ export default class DashPlaylistLoader extends EventTarget {
       sidxInfo: playlist.sidx
     };
 
-    this.request = requestSidx_.call(
+    this.request = requestSidx_(
       this,
-      startingState,
       playlist.sidx,
       playlist,
       this.hls_.xhr,
@@ -731,11 +729,9 @@ export default class DashPlaylistLoader extends EventTarget {
           // the sidx was updated, so the previous mapping was removed
           if (!this.sidxMapping_[sidxKey]) {
             const playlist = this.media();
-            const startingState = this.state;
 
-            this.request = requestSidx_.call(
+            this.request = requestSidx_(
               this,
-              startingState,
               playlist.sidx,
               playlist,
               this.hls_.xhr,

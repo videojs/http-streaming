@@ -373,7 +373,7 @@ export const standardXHRResponse = function(request, data) {
     manifestName = request.url;
   }
 
-  const isContainerRequest = request.mimeTypeOverride === 'text/plain; charset=x-user-defined';
+  const isPartialRequest = request.mimeTypeOverride === 'text/plain; charset=x-user-defined';
 
   if (/\.m3u8?/.test(request.url)) {
     contentType = 'application/vnd.apple.mpegurl';
@@ -381,7 +381,7 @@ export const standardXHRResponse = function(request, data) {
     contentType = 'video/MP2T';
   } else if (/\.mpd/.test(request.url)) {
     contentType = 'application/dash+xml';
-  } else if (request.responseType === 'arraybuffer' || isContainerRequest) {
+  } else if (request.responseType === 'arraybuffer' || isPartialRequest) {
     contentType = 'binary/octet-stream';
   }
 
@@ -395,7 +395,7 @@ export const standardXHRResponse = function(request, data) {
 
   if (isTypedArray(response)) {
     // a string for container requests or a buffer for non-container requests
-    response = isContainerRequest ? bytesToString(response) : response.buffer;
+    response = isPartialRequest ? bytesToString(response) : response.buffer;
   }
 
   request.respond(200, { 'Content-Type': contentType }, response);

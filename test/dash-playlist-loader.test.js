@@ -483,8 +483,7 @@ QUnit.test('requestSidx_: creates an XHR request for a sidx range', function(ass
     sidx: sidxInfo
   };
   const callback = sinon.stub();
-  const request = requestSidx_.call(
-    this,
+  const request = requestSidx_(
     {},
     sidxInfo,
     playlist,
@@ -517,8 +516,7 @@ QUnit.test('requestSidx_: does not re-request bytes from container request', fun
     sidx: sidxInfo
   };
   const callback = sinon.stub();
-  const request = requestSidx_.call(
-    this,
+  const request = requestSidx_(
     {},
     sidxInfo,
     playlist,
@@ -537,7 +535,7 @@ QUnit.test('requestSidx_: does not re-request bytes from container request', fun
   assert.strictEqual(callback.callCount, 1, 'callback was called');
 });
 
-QUnit.test('requestSidx_: triggers error on invalid container', function(assert) {
+QUnit.test('requestSidx_: callsback with error on invalid container', function(assert) {
   const sidxInfo = {
     resolvedUri: 'sidx.mp4',
     byterange: {
@@ -551,13 +549,8 @@ QUnit.test('requestSidx_: triggers error on invalid container', function(assert)
     segments: [sidxInfo],
     sidx: sidxInfo
   };
-  const triggers = [];
-  const fakeLoader = {trigger(name) {
-    triggers.push(name);
-  }};
   const callback = sinon.stub();
-  const request = requestSidx_.call(
-    fakeLoader,
+  const request = requestSidx_(
     {},
     sidxInfo,
     playlist,
@@ -573,13 +566,16 @@ QUnit.test('requestSidx_: triggers error on invalid container', function(assert)
   this.standardXHRResponse(this.requests.shift());
 
   assert.equal(this.requests.length, 0, 'no more requests');
-  assert.strictEqual(callback.callCount, 0, 'callback was not called');
-  assert.deepEqual(triggers, ['error'], 'one error triggered');
-  assert.equal(
-    fakeLoader.error.message,
-    'Unsupported unknown container type for sidx segment at URL: sidx.mp4',
-    'error message as expected'
-  );
+  assert.strictEqual(callback.callCount, 1, 'callback was called');
+  assert.deepEqual(callback.args[0][0], {
+    blacklistDuration: Infinity,
+    code: 2,
+    internal: true,
+    message: 'Unsupported unknown container type for sidx segment at URL: sidx.mp4',
+    playlist,
+    response: '',
+    status: 200
+  }, 'error as expected');
 });
 
 QUnit.test('constructor throws if the playlist url is empty or undefined', function(assert) {
@@ -1717,6 +1713,64 @@ QUnit.test('sidxRequestFinished_: errors if request for sidx fails', function(as
       response: fakeRequest.response,
       code: 2
     },
+    'error object is filled out correctly'
+  );
+  assert.strictEqual(errors, 1, 'triggered an error event');
+});
+
+QUnit.test('sidxRequestFinished_: uses given error object', function(assert) {
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const fakePlaylist = {
+    segments: [{
+      uri: 'fake-segment',
+      duration: 15360
+    }],
+    id: 'fakeplaylist',
+    uri: 'fakeplaylist',
+    sidx: {
+      byterange: {
+        offset: 0,
+        length: sidxResponse().byteLength
+      },
+      resolvedUri: 'sidx.mp4'
+    }
+  };
+  const fakeMaster = {
+    playlists: {
+      0: fakePlaylist,
+      fakeplaylist: fakePlaylist
+    }
+  };
+  const stubDone = sinon.stub();
+  const handleSidxResponse = loader.sidxRequestFinished_(fakePlaylist, fakeMaster, 'HAVE_MASTER', stubDone);
+  const fakeRequest = {
+    response: '',
+    status: 200
+  };
+  let errors = 0;
+
+  loader.on('error', () => {
+    errors++;
+  });
+
+  // fake xhr request being active
+  loader.request = true;
+  const error = {
+    status: fakeRequest.status,
+    message: 'Unsupported webm container type for sidx segment at URL: sidx.mp4',
+    playlist: fakePlaylist,
+    internal: true,
+    response: '',
+    blacklistDuration: Infinity,
+    // MEDIA_ERR_NETWORK
+    code: 2
+  };
+
+  handleSidxResponse(error, fakeRequest);
+  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state is returned to state passed in');
+  assert.deepEqual(
+    loader.error,
+    error,
     'error object is filled out correctly'
   );
   assert.strictEqual(errors, 1, 'triggered an error event');

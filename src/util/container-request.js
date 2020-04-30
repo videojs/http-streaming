@@ -13,6 +13,12 @@ const containerRequest = (uri, xhr, cb) => {
     const currentLength = bytes && bytes.length || 0;
     const contentPart = request.responseText.substring(currentLength, request.responseText.length);
     const newBytes = toUint8(stringToBytes(contentPart, true));
+
+    // we use a "temp" Uint8array here because we want to set bytes
+    // to the old bytes plus the new bytes, but we don't want to go through
+    // converting the old bytes that we have from a string to bytes again.
+    // Instead we create a Uint8array and share the new/old bytes
+    // to this object. Then set bytes equal to temp.
     const temp = new Uint8Array(currentLength + newBytes.length);
 
     if (bytes) {
@@ -38,6 +44,7 @@ const containerRequest = (uri, xhr, cb) => {
   const options = {
     uri,
     beforeSend(request) {
+      // this forces the browser to pass the bytes to us unprocessed
       request.overrideMimeType('text/plain; charset=x-user-defined');
       request.addEventListener('progress', function(event) {
         return callbackWrapper(request, null, {statusCode: request.status}, progressListener);
