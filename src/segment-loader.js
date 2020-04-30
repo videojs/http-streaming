@@ -2314,11 +2314,19 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   waitForAppendsToComplete_(segmentInfo) {
+    if (!this.startingMedia_) {
+      this.error({
+        message: 'No starting media returned, we dont support this media format.',
+        blacklistDuration: Infinity
+      });
+      this.trigger('error');
+      return;
+    }
     // Although transmuxing is done, appends may not yet be finished. Throw a marker
     // on each queue this loader is responsible for to ensure that the appends are
     // complete.
-    const waitForVideo = this.loaderType_ === 'main' && this.startingMedia_ && this.startingMedia_.hasVideo;
-    const waitForAudio = !this.audioDisabled_ && this.startingMedia_ && this.startingMedia_.hasAudio;
+    const waitForVideo = this.loaderType_ === 'main' && this.startingMedia_.hasVideo;
+    const waitForAudio = !this.audioDisabled_ && this.startingMedia_.hasAudio;
 
     segmentInfo.waitingOnAppends = 0;
 
