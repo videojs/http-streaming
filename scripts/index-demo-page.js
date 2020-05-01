@@ -2,8 +2,6 @@
 /* eslint-disable vars-on-top, no-var, object-shorthand, no-console */
 (function(window) {
 
-  var sourcesLoaded = false;
-  var sourcesLoadedCallback;
   var hlsOptGroup = document.querySelector('[label="hls"]');
   var dashOptGroup = document.querySelector('[label="dash"]');
   var drmOptGroup = document.querySelector('[label="drm"]');
@@ -42,8 +40,6 @@
         dashOptGroup.appendChild(option);
       }
     });
-    sourcesLoadedCallback();
-    sourcesLoaded = true;
   });
   xhr.open('GET', './scripts/sources.json');
   xhr.send();
@@ -317,12 +313,6 @@
           sources.selectedIndex = i;
         }
       });
-
-      // if there is a "url" param in the query params set url
-      // and selected index to that
-      if (sourcesLoaded) {
-        sourcesLoadedCallback();
-      }
 
       window.player.src(source);
     };
