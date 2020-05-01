@@ -954,7 +954,7 @@ QUnit.test(
     // init segment
     this.standardXHRResponse(this.requests.shift());
     // video segment
-    this.standardXHRResponse(this.requests.shift());
+    this.standardXHRResponse(this.requests.shift(), mp4VideoInitSegment());
     // audio media
     this.standardXHRResponse(this.requests.shift());
     // ignore audio segment requests

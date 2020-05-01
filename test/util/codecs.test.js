@@ -1,12 +1,7 @@
 import QUnit from 'qunit';
 import {
-  codecsForPlaylist,
-  isLikelyWebmData
+  codecsForPlaylist
 } from '../../src/util/codecs';
-import {
-  webmVideoInit,
-  mp4VideoInit
-} from 'create-test-data!segments';
 
 const generateMedia = function({
   isMaat,
@@ -378,31 +373,4 @@ QUnit.test('parses codecs regardless of codec order', function(assert) {
     },
     'parses audio first'
   );
-});
-
-QUnit.module('isLikelyWebmData');
-
-QUnit.test('false when not enough bytes', function(assert) {
-  assert.notOk(isLikelyWebmData(new Uint8Array([0x1A])), 'does not detect webm');
-  assert.notOk(isLikelyWebmData(new Uint8Array([0x1A, 0x45])), 'does not detect webm');
-  assert.notOk(isLikelyWebmData(new Uint8Array([0x11])), 'does not detect webm');
-  assert.notOk(
-    isLikelyWebmData(new Uint8Array([0x00, 0x00, 0x00, 0x00])),
-    'does not detect webm'
-  );
-  assert.notOk(
-    isLikelyWebmData(new Uint8Array([0xFF, 0xFF, 0xFF, 0xFF])),
-    'does not detect webm'
-  );
-
-  assert.notOk(isLikelyWebmData(mp4VideoInit()), 'does not detect webm');
-});
-
-QUnit.test('detects webm', function(assert) {
-  assert.ok(isLikelyWebmData(new Uint8Array([0x1A, 0x45, 0xDF, 0xA3])), 'detects webm');
-  assert.ok(
-    isLikelyWebmData(new Uint8Array([0x1A, 0x45, 0xDF, 0xA3, 0xFF, 0x00, 0xFF, 0x00])),
-    'detects webm'
-  );
-  assert.ok(isLikelyWebmData(webmVideoInit()), 'detects webm');
 });

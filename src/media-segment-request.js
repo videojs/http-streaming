@@ -3,12 +3,12 @@ import { createTransferableMessage } from './bin-utils';
 import { stringToArrayBuffer } from './util/string-to-array-buffer';
 import { transmux } from './segment-transmuxer';
 import { probeTsSegment } from './util/segment';
-import {
-  isLikelyFmp4Data,
-  isLikelyWebmData
-} from './util/codecs';
 import mp4probe from 'mux.js/lib/mp4/probe';
 import { segmentXhrHeaders } from './xhr';
+import {
+  detectContainerForBytes,
+  isLikelyFmp4MediaSegment
+} from '@videojs/vhs-utils/dist/containers';
 
 export const REQUEST_ERRORS = {
   FAILURE: 2,
@@ -168,11 +168,16 @@ const handleInitSegmentResponse =
 
   segment.map.bytes = new Uint8Array(request.response);
 
-  if (isLikelyWebmData(segment.map.bytes)) {
+  const type = detectContainerForBytes(segment.map.bytes);
+
+  // TODO: We should also handle ts init segments here, but we
+  // only know how to parse mp4 init segments at the moment
+  if (type !== 'mp4') {
     return finishProcessingFn({
       status: request.status,
-      message: 'Found unsupported WebM initialization segment at URL: ' + request.uri,
+      message: `Found unsupported ${type || 'unknown'} container for initialization segment at URL: ${request.uri}`,
       code: REQUEST_ERRORS.FAILURE,
+      internal: true,
       xhr: request
     }, segment);
   }
@@ -379,7 +384,7 @@ const handleSegmentBytes = ({
   // to check if something is fmp4. This will allow us to save bandwidth
   // because we can only blacklist a playlist and abort requests
   // by codec after trackinfo triggers.
-  if (isLikelyFmp4Data(bytesAsUint8Array)) {
+  if (isLikelyFmp4MediaSegment(bytesAsUint8Array)) {
     segment.isFmp4 = true;
     const {tracks} = segment.map;
 
@@ -703,7 +708,7 @@ const handleProgress = ({
   ) {
     const newBytes = stringToArrayBuffer(request.responseText.substring(segment.lastReachedChar || 0));
 
-    if (segment.lastReachedChar || !isLikelyFmp4Data(new Uint8Array(newBytes))) {
+    if (segment.lastReachedChar || !isLikelyFmp4MediaSegment(new Uint8Array(newBytes))) {
       segment.lastReachedChar = request.responseText.length;
 
       handleSegmentBytes({

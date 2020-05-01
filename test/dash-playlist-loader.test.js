@@ -19,6 +19,7 @@ import {
 import '../src/videojs-http-streaming';
 import testDataManifests from 'create-test-data!manifests';
 import { sidx as sidxResponse } from 'create-test-data!segments';
+import {mp4VideoInit as mp4VideoInitSegment} from 'create-test-data!segments';
 
 QUnit.module('DASH Playlist Loader: unit', {
   beforeEach(assert) {
@@ -471,6 +472,39 @@ QUnit.test('requestSidx_: creates an XHR request for a sidx range', function(ass
   const sidxInfo = {
     resolvedUri: 'sidx.mp4',
     byterange: {
+      offset: 10,
+      length: 10
+    }
+  };
+  const playlist = {
+    uri: 'fakeplaylist',
+    id: 'fakeplaylist',
+    segments: [sidxInfo],
+    sidx: sidxInfo
+  };
+  const callback = sinon.stub();
+  const request = requestSidx_(
+    {},
+    sidxInfo,
+    playlist,
+    this.fakeHls.xhr,
+    { handleManifestRedirects: false },
+    callback
+  );
+
+  assert.ok(request, 'a request was returned');
+  assert.strictEqual(request.uri, sidxInfo.resolvedUri, 'uri requested is correct');
+  assert.strictEqual(this.requests.length, 1, 'one xhr request');
+
+  this.standardXHRResponse(this.requests.shift(), mp4VideoInitSegment().subarray(0, 10));
+  this.standardXHRResponse(this.requests.shift());
+  assert.strictEqual(callback.callCount, 1, 'callback was called');
+});
+
+QUnit.test('requestSidx_: does not re-request bytes from container request', function(assert) {
+  const sidxInfo = {
+    resolvedUri: 'sidx.mp4',
+    byterange: {
       offset: 0,
       length: 10
     }
@@ -483,6 +517,7 @@ QUnit.test('requestSidx_: creates an XHR request for a sidx range', function(ass
   };
   const callback = sinon.stub();
   const request = requestSidx_(
+    {},
     sidxInfo,
     playlist,
     this.fakeHls.xhr,
@@ -491,12 +526,56 @@ QUnit.test('requestSidx_: creates an XHR request for a sidx range', function(ass
   );
 
   assert.ok(request, 'a request was returned');
-  assert.strictEqual(request.headers.Range, 'bytes=0-9', 'byterange is correctly requested');
+  assert.strictEqual(request.uri, sidxInfo.resolvedUri, 'uri requested is correct');
+  assert.strictEqual(this.requests.length, 1, 'one xhr request');
+
+  this.standardXHRResponse(this.requests.shift(), mp4VideoInitSegment().subarray(0, 10));
+
+  assert.equal(this.requests.length, 0, 'no more requests');
+  assert.strictEqual(callback.callCount, 1, 'callback was called');
+});
+
+QUnit.test('requestSidx_: callsback with error on invalid container', function(assert) {
+  const sidxInfo = {
+    resolvedUri: 'sidx.mp4',
+    byterange: {
+      offset: 0,
+      length: 10
+    }
+  };
+  const playlist = {
+    uri: 'fakeplaylist',
+    id: 'fakeplaylist',
+    segments: [sidxInfo],
+    sidx: sidxInfo
+  };
+  const callback = sinon.stub();
+  const request = requestSidx_(
+    {},
+    sidxInfo,
+    playlist,
+    this.fakeHls.xhr,
+    { handleManifestRedirects: false },
+    callback
+  );
+
+  assert.ok(request, 'a request was returned');
   assert.strictEqual(request.uri, sidxInfo.resolvedUri, 'uri requested is correct');
   assert.strictEqual(this.requests.length, 1, 'one xhr request');
 
   this.standardXHRResponse(this.requests.shift());
+
+  assert.equal(this.requests.length, 0, 'no more requests');
   assert.strictEqual(callback.callCount, 1, 'callback was called');
+  assert.deepEqual(callback.args[0][0], {
+    blacklistDuration: Infinity,
+    code: 2,
+    internal: true,
+    message: 'Unsupported unknown container type for sidx segment at URL: sidx.mp4',
+    playlist,
+    response: '',
+    status: 200
+  }, 'error as expected');
 });
 
 QUnit.test('constructor throws if the playlist url is empty or undefined', function(assert) {
@@ -1257,6 +1336,7 @@ QUnit.test('parseMasterXml: includes sidx info if available and matches playlist
   );
 
   // Allow sidx request to finish
+  this.standardXHRResponse(this.requests.shift(), mp4VideoInitSegment().subarray(0, 10));
   this.standardXHRResponse(this.requests.shift());
   const key = generateSidxKey(loader.media().sidx);
 
@@ -1633,6 +1713,64 @@ QUnit.test('sidxRequestFinished_: errors if request for sidx fails', function(as
       response: fakeRequest.response,
       code: 2
     },
+    'error object is filled out correctly'
+  );
+  assert.strictEqual(errors, 1, 'triggered an error event');
+});
+
+QUnit.test('sidxRequestFinished_: uses given error object', function(assert) {
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeHls);
+  const fakePlaylist = {
+    segments: [{
+      uri: 'fake-segment',
+      duration: 15360
+    }],
+    id: 'fakeplaylist',
+    uri: 'fakeplaylist',
+    sidx: {
+      byterange: {
+        offset: 0,
+        length: sidxResponse().byteLength
+      },
+      resolvedUri: 'sidx.mp4'
+    }
+  };
+  const fakeMaster = {
+    playlists: {
+      0: fakePlaylist,
+      fakeplaylist: fakePlaylist
+    }
+  };
+  const stubDone = sinon.stub();
+  const handleSidxResponse = loader.sidxRequestFinished_(fakePlaylist, fakeMaster, 'HAVE_MASTER', stubDone);
+  const fakeRequest = {
+    response: '',
+    status: 200
+  };
+  let errors = 0;
+
+  loader.on('error', () => {
+    errors++;
+  });
+
+  // fake xhr request being active
+  loader.request = true;
+  const error = {
+    status: fakeRequest.status,
+    message: 'Unsupported webm container type for sidx segment at URL: sidx.mp4',
+    playlist: fakePlaylist,
+    internal: true,
+    response: '',
+    blacklistDuration: Infinity,
+    // MEDIA_ERR_NETWORK
+    code: 2
+  };
+
+  handleSidxResponse(error, fakeRequest);
+  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state is returned to state passed in');
+  assert.deepEqual(
+    loader.error,
+    error,
     'error object is filled out correctly'
   );
   assert.strictEqual(errors, 1, 'triggered an error event');
@@ -2253,6 +2391,7 @@ QUnit.test('requests sidx if master xml includes it', function(assert) {
   assert.strictEqual(this.requests.length, 1, 'one request for sidx has been made');
   assert.notOk(loader.media(), 'media playlist is not yet set');
 
+  this.standardXHRResponse(this.requests.shift(), mp4VideoInitSegment().subarray(0, 10));
   this.standardXHRResponse(this.requests.shift(), sidxResponse());
   assert.strictEqual(loader.state, 'HAVE_METADATA', 'state is HAVE_METADATA');
   assert.ok(loader.media(), 'media playlist is set');

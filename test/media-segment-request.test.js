@@ -594,7 +594,7 @@ QUnit.test(
     this.clock.tick(200);
 
     initReq.responseType = 'arraybuffer';
-    initReq.respond(200, null, new Uint32Array([0, 1, 2, 3]).buffer);
+    initReq.respond(200, null, mp4VideoInit().buffer);
     this.clock.tick(200);
 
     keyReq.responseType = 'arraybuffer';
@@ -689,7 +689,7 @@ QUnit.test('webm segment calls back with error', function(assert) {
       assert.equal(error.code, REQUEST_ERRORS.FAILURE, 'receieved error status');
       assert.equal(
         error.message,
-        'Found unsupported WebM initialization segment at URL: webmVideoInit.mp4',
+        'Found unsupported webm container for initialization segment at URL: webmVideoInit.mp4',
         'receieved error message'
       );
       done();

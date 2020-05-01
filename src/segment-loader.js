@@ -993,7 +993,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.sourceUpdater_.removeAudio(start, end, removeFinished);
     }
 
-    if (this.loaderType_ === 'main' && this.startingMedia_.hasVideo) {
+    if (this.loaderType_ === 'main' && this.startingMedia_ && this.startingMedia_.hasVideo) {
       this.gopBuffer_ = removeGopBuffer(this.gopBuffer_, start, end, this.timeMapping_);
       removesRemaining++;
       this.sourceUpdater_.removeVideo(start, end, removeFinished);
@@ -2314,6 +2314,14 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   waitForAppendsToComplete_(segmentInfo) {
+    if (!this.startingMedia_) {
+      this.error({
+        message: 'No starting media returned, likely due to an unsupported media format.',
+        blacklistDuration: Infinity
+      });
+      this.trigger('error');
+      return;
+    }
     // Although transmuxing is done, appends may not yet be finished. Throw a marker
     // on each queue this loader is responsible for to ensure that the appends are
     // complete.

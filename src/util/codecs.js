@@ -3,7 +3,6 @@
  * codec strings, or translating codec strings into objects that can be examined.
  */
 
-import {findBox} from 'mux.js/lib/mp4/probe';
 import {
   translateLegacyCodec,
   parseCodecs,
@@ -101,23 +100,3 @@ export const codecsForPlaylist = function(master, media) {
   return codecs;
 };
 
-export const isLikelyFmp4Data = (bytes) => {
-  return findBox(bytes, ['moof']).length > 0;
-};
-
-/*
- * Check to see if the bytes are part of a WebM media file.
- *
- * @param {Uint8Array} bytes
- *        The starting bytes of the file, generally from the map, or media initialization
- *        section, of the file.
- * @return {Boolean}
- *         Whether the bytes likely come from a WebM media file.
- * @see https://en.wikipedia.org/wiki/List_of_file_signatures
- */
-export const isLikelyWebmData = (bytes) => {
-  return (bytes[0] & 0xFF) === 0x1A &&
-    (bytes[1] & 0xFF) === 0x45 &&
-    (bytes[2] & 0xFF) === 0xDF &&
-    (bytes[3] & 0xFF) === 0xA3;
-};

@@ -15,6 +15,8 @@ import {
   forEachMediaGroup,
   addPropertiesToMaster
 } from './manifest';
+import containerRequest from './util/container-request.js';
+import {toUint8} from '@videojs/vhs-utils/dist/byte-helpers';
 
 const { EventTarget, mergeOptions } = videojs;
 
@@ -189,7 +191,7 @@ export const filterChangedSidxMappings = (masterXml, srcUrl, clientOffset, oldSi
 };
 
 // exported for testing
-export const requestSidx_ = (sidxRange, playlist, xhr, options, finishProcessingFn) => {
+export const requestSidx_ = (loader, sidxRange, playlist, xhr, options, finishProcessingFn) => {
   const sidxInfo = {
     // resolve the segment URL relative to the playlist
     uri: resolveManifestRedirect(options.handleManifestRedirects, sidxRange.resolvedUri),
@@ -204,7 +206,40 @@ export const requestSidx_ = (sidxRange, playlist, xhr, options, finishProcessing
     headers: segmentXhrHeaders(sidxInfo)
   });
 
-  return xhr(sidxRequestOptions, finishProcessingFn);
+  return containerRequest(sidxInfo.uri, xhr, (err, request, container, bytes) => {
+    if (err) {
+      return finishProcessingFn(err, request);
+    }
+
+    if (!container || container !== 'mp4') {
+      return finishProcessingFn({
+        status: request.status,
+        message: `Unsupported ${container || 'unknown'} container type for sidx segment at URL: ${sidxInfo.uri}`,
+        // response is just bytes in this case
+        // but we really don't want to return that.
+        response: '',
+        playlist,
+        internal: true,
+        blacklistDuration: Infinity,
+        // MEDIA_ERR_NETWORK
+        code: 2
+      }, request);
+    }
+
+    // if we already downloaded the sidx bytes in the container request, use them
+    const {offset, length} = sidxInfo.byterange;
+
+    if (bytes.length >= (length + offset)) {
+      return finishProcessingFn(err, {
+        response: bytes.subarray(offset, offset + length),
+        status: request.status,
+        uri: request.uri
+      });
+    }
+
+    // otherwise request sidx bytes
+    loader.request = xhr(sidxRequestOptions, finishProcessingFn);
+  });
 };
 
 export default class DashPlaylistLoader extends EventTarget {
@@ -291,7 +326,10 @@ export default class DashPlaylistLoader extends EventTarget {
       this.request = null;
 
       if (err) {
-        this.error = {
+        // use the provided error or create one
+        // see requestSidx_ for the container request
+        // that can cause this.
+        this.error = typeof err === 'object' ? err : {
           status: request.status,
           message: 'DASH playlist request error at URL: ' + playlist.uri,
           response: request.response,
@@ -303,10 +341,10 @@ export default class DashPlaylistLoader extends EventTarget {
         }
 
         this.trigger('error');
-        return doneFn(master, null);
+        return;
       }
 
-      const bytes = new Uint8Array(request.response);
+      const bytes = toUint8(request.response);
       const sidx = mp4Inspector.parseSidx(bytes.subarray(8));
 
       return doneFn(master, sidx);
@@ -394,6 +432,7 @@ export default class DashPlaylistLoader extends EventTarget {
     };
 
     this.request = requestSidx_(
+      this,
       playlist.sidx,
       playlist,
       this.hls_.xhr,
@@ -692,6 +731,7 @@ export default class DashPlaylistLoader extends EventTarget {
             const playlist = this.media();
 
             this.request = requestSidx_(
+              this,
               playlist.sidx,
               playlist,
               this.hls_.xhr,
