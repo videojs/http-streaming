@@ -779,9 +779,12 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
       const origSaveSegmentTimingInfo =
         syncController.saveSegmentTimingInfo.bind(syncController);
 
-      syncController.saveSegmentTimingInfo = (segmentInfo) => {
+      syncController.saveSegmentTimingInfo = ({
+        segmentInfo,
+        shouldSaveTimelineMapping
+      }) => {
         saveSegmentTimingInfoCalls++;
-        origSaveSegmentTimingInfo(segmentInfo);
+        origSaveSegmentTimingInfo({ segmentInfo, shouldSaveTimelineMapping });
       };
 
       loader.playlist(playlist);
