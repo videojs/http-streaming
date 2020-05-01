@@ -5,9 +5,14 @@ import {callbackWrapper} from '../xhr';
 const containerRequest = (uri, xhr, cb) => {
   let bytes;
   let id3Offset;
+  let finished = false;
 
   const progressListener = function(error, request) {
+    if (finished) {
+      return;
+    }
     if (error) {
+      finished = true;
       return cb(error, request, '', bytes);
     }
     const currentLength = bytes && bytes.length || 0;
@@ -56,7 +61,8 @@ const containerRequest = (uri, xhr, cb) => {
 
     request.abort();
 
-    cb(null, request, type, bytes);
+    finished = true;
+    return cb(null, request, type, bytes);
   };
 
   const options = {
@@ -70,7 +76,18 @@ const containerRequest = (uri, xhr, cb) => {
     }
   };
 
-  return xhr(options, () => {});
+  const request = xhr(options, function(error, response) {
+    // if progress listeners are not supported, or
+    // for some reason we get here and are not finished,
+    // complete container checking with all of the data.
+    if (finished) {
+      return;
+    }
+
+    return callbackWrapper(request, error, response, progressListener);
+  });
+
+  return request;
 };
 
 export default containerRequest;
