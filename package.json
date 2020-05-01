@@ -57,7 +57,7 @@
   ],
   "dependencies": {
     "@babel/runtime": "^7.5.5",
-    "@videojs/vhs-utils": "^2.1.0",
+    "@videojs/vhs-utils": "^2.2.0",
     "aes-decrypter": "3.0.1",
     "global": "^4.3.2",
     "m3u8-parser": "4.4.2",

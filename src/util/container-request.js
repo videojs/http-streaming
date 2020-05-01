@@ -16,7 +16,7 @@ const containerRequest = (uri, xhr, cb) => {
   let id3Offset;
   let finished = false;
 
-  const callback = function(err, req, type, _bytes) {
+  const endRequestAndCallback = function(err, req, type, _bytes) {
     req.abort();
     finished = true;
     return cb(err, req, type, _bytes);
@@ -27,7 +27,7 @@ const containerRequest = (uri, xhr, cb) => {
       return;
     }
     if (error) {
-      return callback(error, request, '', bytes);
+      return endRequestAndCallback(error, request, '', bytes);
     }
 
     // grap the new part of content that was just downloaded
@@ -43,7 +43,7 @@ const containerRequest = (uri, xhr, cb) => {
     // we need at least 10 bytes to determine a type
     // or we need at least two bytes after an id3Offset
     if (bytes.length < 10 || (id3Offset && bytes.length < id3Offset + 2)) {
-      return callbackOnCompleted(request, () => callback(error, request, '', bytes));
+      return callbackOnCompleted(request, () => endRequestAndCallback(error, request, '', bytes));
     }
 
     const type = detectContainerForBytes(bytes);
@@ -52,16 +52,16 @@ const containerRequest = (uri, xhr, cb) => {
     // to see the second sync byte, wait until we have enough data
     // before declaring it ts
     if (type === 'ts' && bytes.length < 188) {
-      return callbackOnCompleted(request, () => callback(error, request, '', bytes));
+      return callbackOnCompleted(request, () => endRequestAndCallback(error, request, '', bytes));
     }
 
     // this may be an unsynced ts segment
     // wait for 376 bytes before detecting no container
     if (!type && bytes.length < 376) {
-      return callbackOnCompleted(request, () => callback(error, request, '', bytes));
+      return callbackOnCompleted(request, () => endRequestAndCallback(error, request, '', bytes));
     }
 
-    return callback(null, request, type, bytes);
+    return endRequestAndCallback(null, request, type, bytes);
   };
 
   const options = {
