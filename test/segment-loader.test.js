@@ -1426,9 +1426,12 @@ QUnit.module('SegmentLoader', function(hooks) {
       const origSaveSegmentTimingInfo =
         syncController.saveSegmentTimingInfo.bind(syncController);
 
-      syncController.saveSegmentTimingInfo = (segmentInfo) => {
+      syncController.saveSegmentTimingInfo = ({
+        segmentInfo,
+        shouldSaveTimelineMapping
+      }) => {
         saveSegmentTimingInfoCalls++;
-        origSaveSegmentTimingInfo(segmentInfo);
+        origSaveSegmentTimingInfo({ segmentInfo, shouldSaveTimelineMapping });
       };
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
@@ -1445,6 +1448,55 @@ QUnit.module('SegmentLoader', function(hooks) {
         });
       }).then(() => {
         assert.equal(saveSegmentTimingInfoCalls, 1, 'called to save timing info');
+      });
+    });
+
+    QUnit.test('main loader saves timeline mapping', function(assert) {
+      const syncController = loader.syncController_;
+
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        loader.playlist(playlistWithDuration(20));
+        loader.load();
+        this.clock.tick(1);
+        standardXHRResponse(this.requests.shift(), muxedSegment());
+
+        assert.notOk(syncController.mappingForTimeline(0), 'no mapping for timeline 0');
+
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        assert.ok(syncController.mappingForTimeline(0), 'saved mapping for timeline 0');
+      });
+    });
+
+    QUnit.test('audio loader doesn\'t save timeline mapping', function(assert) {
+      loader.dispose();
+      loader = new SegmentLoader(LoaderCommonSettings.call(this, {
+        loaderType: 'audio'
+      }), {});
+
+      // Fake the last timeline change for main so audio loader has enough info to append
+      // the first segment.
+      this.timelineChangeController.lastTimelineChange({ type: 'main', from: -1, to: 0 });
+
+      const syncController = loader.syncController_;
+
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        loader.playlist(playlistWithDuration(20));
+        loader.load();
+        this.clock.tick(1);
+        standardXHRResponse(this.requests.shift(), audioSegment());
+
+        assert.notOk(syncController.mappingForTimeline(0), 'no mapping for timeline 0');
+
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        assert.notOk(syncController.mappingForTimeline(0), 'no mapping for timeline 0');
       });
     });
 

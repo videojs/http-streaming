@@ -7,7 +7,10 @@ import {
   openMediaSource,
   standardXHRResponse
 } from './test-helpers.js';
-import PlaybackWatcher from '../src/playback-watcher';
+import {
+  default as PlaybackWatcher,
+  closeToBufferedContent
+} from '../src/playback-watcher';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
 
@@ -475,7 +478,8 @@ QUnit.test('fixes bad seeks', function(assert) {
   playbackWatcher.tech_ = {
     off: () => {},
     seeking: () => seeking,
-    currentTime: () => currentTime
+    currentTime: () => currentTime,
+    buffered: () => videojs.createTimeRanges()
   };
   this.player.vhs.setCurrentTime = (time) => seeks.push(time);
 
@@ -672,6 +676,70 @@ QUnit.test('calls fixesBadSeeks_ on seekablechanged', function(assert) {
   this.player.tech_.trigger('seekablechanged');
 
   assert.equal(fixesBadSeeks_, 1, 'fixesBadSeeks_ was called');
+});
+
+QUnit.test('jumps to buffered content if seeking just before', function(assert) {
+  // target duration is 10 for this manifest
+  this.player.src({
+    src: 'liveStart30sBefore.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  // start playback normally
+  this.player.tech_.triggerReady();
+  this.clock.tick(1);
+  standardXHRResponse(this.requests.shift());
+  openMediaSource(this.player, this.clock);
+  this.player.tech_.trigger('play');
+  this.player.tech_.trigger('playing');
+  this.clock.tick(1);
+
+  const playbackWatcher = this.player.tech_.hls.playbackWatcher_;
+  const seeks = [];
+  let currentTime;
+  let buffered;
+
+  playbackWatcher.seekable = () => videojs.createTimeRanges([[10, 100]]);
+  playbackWatcher.tech_ = {
+    off: () => {},
+    seeking: () => true,
+    currentTime: () => currentTime,
+    buffered: () => buffered
+  };
+  this.player.vhs.setCurrentTime = (time) => seeks.push(time);
+
+  currentTime = 10;
+  // target duration is 10
+  buffered = videojs.createTimeRanges([[20, 39]]);
+  assert.notOk(playbackWatcher.fixesBadSeeks_(), 'does nothing when too far from buffer');
+  assert.equal(seeks.length, 0, 'did not seek');
+
+  buffered = videojs.createTimeRanges([[19, 38.9]]);
+  assert.notOk(playbackWatcher.fixesBadSeeks_(), 'does nothing when not enough buffer');
+  assert.equal(seeks.length, 0, 'did not seek');
+
+  buffered = videojs.createTimeRanges([[19, 39]]);
+  assert.ok(
+    playbackWatcher.fixesBadSeeks_(),
+    'acts when close enough to, and enough, buffer'
+  );
+  assert.equal(seeks.length, 1, 'seeked');
+  assert.equal(seeks[0], 19.1, 'player seeked to start of buffer');
+
+  currentTime = 20;
+  assert.notOk(
+    playbackWatcher.fixesBadSeeks_(),
+    'does nothing when current time after buffer start'
+  );
+  assert.equal(seeks.length, 1, 'did not seek');
+
+  // defers to fixing the bad seek over seeking into the buffer when seeking outside of
+  // seekable range
+  currentTime = 10;
+  playbackWatcher.seekable = () => videojs.createTimeRanges([[11, 100]]);
+  assert.ok(playbackWatcher.fixesBadSeeks_(), 'fixed bad seek');
+  assert.equal(seeks.length, 2, 'seeked');
+  assert.equal(seeks[1], 11.1, 'seeked to seekable range');
 });
 
 QUnit.module('PlaybackWatcher isolated functions', {
@@ -975,5 +1043,62 @@ QUnit.test('respects allowSeeksWithinUnsafeLiveWindow flag', function(assert) {
   assert.notOk(
     afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), 10, playlist, true),
     'false if within seekable range'
+  );
+});
+
+QUnit.module('closeToBufferedContent');
+
+QUnit.test('false if no buffer', function(assert) {
+  assert.notOk(
+    closeToBufferedContent({
+      buffered: videojs.createTimeRanges(),
+      targetDuration: 4,
+      currentTime: 10
+    }),
+    'returned false'
+  );
+});
+
+QUnit.test('false if buffer less than two times target duration', function(assert) {
+  assert.notOk(
+    closeToBufferedContent({
+      buffered: videojs.createTimeRanges([[11, 18.9]]),
+      targetDuration: 4,
+      currentTime: 10
+    }),
+    'returned false'
+  );
+});
+
+QUnit.test('false if buffer is beyond target duration from current time', function(assert) {
+  assert.notOk(
+    closeToBufferedContent({
+      buffered: videojs.createTimeRanges([[14.1, 30]]),
+      targetDuration: 4,
+      currentTime: 10
+    }),
+    'returned false'
+  );
+});
+
+QUnit.test('true if enough buffer and close to current time', function(assert) {
+  assert.ok(
+    closeToBufferedContent({
+      buffered: videojs.createTimeRanges([[13.9, 22]]),
+      targetDuration: 4,
+      currentTime: 10
+    }),
+    'returned true'
+  );
+});
+
+QUnit.test('false if current time beyond buffer start', function(assert) {
+  assert.notOk(
+    closeToBufferedContent({
+      buffered: videojs.createTimeRanges([[13.9, 22]]),
+      targetDuration: 4,
+      currentTime: 14
+    }),
+    'returned false'
   );
 });

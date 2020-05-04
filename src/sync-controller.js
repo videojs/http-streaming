@@ -367,8 +367,26 @@ export default class SyncController extends videojs.EventTarget {
     }
   }
 
-  saveSegmentTimingInfo(segmentInfo) {
-    if (this.calculateSegmentTimeMapping_(segmentInfo, segmentInfo.timingInfo)) {
+  /**
+   * Calculates and saves timeline mappings, playlist sync info, and segment timing values
+   * based on the latest timing information.
+   *
+   * @param {Object} options
+   *        Options object
+   * @param {SegmentInfo} options.segmentInfo
+   *        The current active request information
+   * @param {boolean} options.shouldSaveTimelineMapping
+   *        If there's a timeline change, determines if the timeline mapping should be
+   *        saved in timelines.
+   */
+  saveSegmentTimingInfo({ segmentInfo, shouldSaveTimelineMapping }) {
+    const didCalculateSegmentTimeMapping = this.calculateSegmentTimeMapping_(
+      segmentInfo,
+      segmentInfo.timingInfo,
+      shouldSaveTimelineMapping
+    );
+
+    if (didCalculateSegmentTimeMapping) {
       this.saveDiscontinuitySyncInfo_(segmentInfo);
 
       // If the playlist does not have sync information yet, record that information
@@ -405,10 +423,13 @@ export default class SyncController extends videojs.EventTarget {
    *        The current active request information
    * @param {Object} timingInfo
    *        The start and end time of the current segment in "media time"
+   * @param {boolean} shouldSaveTimelineMapping
+   *        If there's a timeline change, determines if the timeline mapping should be
+   *        saved in timelines.
    * @return {boolean}
    *          Returns false if segment time mapping could not be calculated
    */
-  calculateSegmentTimeMapping_(segmentInfo, timingInfo) {
+  calculateSegmentTimeMapping_(segmentInfo, timingInfo, shouldSaveTimelineMapping) {
     const segment = segmentInfo.segment;
     let mappingObj = this.timelines[segmentInfo.timeline];
 
@@ -417,11 +438,13 @@ export default class SyncController extends videojs.EventTarget {
         time: segmentInfo.startOfSegment,
         mapping: segmentInfo.startOfSegment - timingInfo.start
       };
-      this.timelines[segmentInfo.timeline] = mappingObj;
-      this.trigger('timestampoffset');
+      if (shouldSaveTimelineMapping) {
+        this.timelines[segmentInfo.timeline] = mappingObj;
+        this.trigger('timestampoffset');
 
-      this.logger_(`time mapping for timeline ${segmentInfo.timeline}: ` +
-        `[time: ${mappingObj.time}] [mapping: ${mappingObj.mapping}]`);
+        this.logger_(`time mapping for timeline ${segmentInfo.timeline}: ` +
+          `[time: ${mappingObj.time}] [mapping: ${mappingObj.mapping}]`);
+      }
 
       segment.start = segmentInfo.startOfSegment;
       segment.end = timingInfo.end + mappingObj.mapping;

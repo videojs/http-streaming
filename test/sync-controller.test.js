@@ -286,7 +286,7 @@ QUnit.test('saves segment timing info', function(assert) {
   };
 
   updateTimingInfo(segmentInfo);
-  syncCon.saveSegmentTimingInfo(segmentInfo);
+  syncCon.saveSegmentTimingInfo({ segmentInfo, shouldSaveTimelineMapping: true });
   assert.ok(syncCon.timelines[0], 'created mapping object for timeline 0');
   assert.deepEqual(
     syncCon.timelines[0], { time: 0, mapping: -5 },
@@ -307,7 +307,7 @@ QUnit.test('saves segment timing info', function(assert) {
   segmentInfo.segment = segment;
 
   updateTimingInfo(segmentInfo);
-  syncCon.saveSegmentTimingInfo(segmentInfo);
+  syncCon.saveSegmentTimingInfo({ segmentInfo, shouldSaveTimelineMapping: true });
   assert.equal(segment.start, 10, 'correctly calculated segment start');
   assert.equal(segment.end, 20, 'correctly calculated segment end');
   assert.deepEqual(
@@ -323,7 +323,7 @@ QUnit.test('saves segment timing info', function(assert) {
   segmentInfo.segment = segment;
 
   updateTimingInfo(segmentInfo);
-  syncCon.saveSegmentTimingInfo(segmentInfo);
+  syncCon.saveSegmentTimingInfo({ segmentInfo, shouldSaveTimelineMapping: true });
   assert.ok(syncCon.timelines[1], 'created mapping object for timeline 1');
   assert.deepEqual(
     syncCon.timelines[1], { time: 30, mapping: -11 },

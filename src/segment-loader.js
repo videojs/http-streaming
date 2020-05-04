@@ -2487,7 +2487,27 @@ export default class SegmentLoader extends videojs.EventTarget {
     // finished (and we have its end time).
     this.updateTimingInfoEnd_(segmentInfo);
     if (this.shouldSaveSegmentTimingInfo_) {
-      this.syncController_.saveSegmentTimingInfo(segmentInfo);
+      // Timeline mappings should only be saved for the main loader. This is for multiple
+      // reasons:
+      //
+      // 1) Only one mapping is saved per timeline, meaning that if both the audio loader
+      //    and the main loader try to save the timeline mapping, whichever comes later
+      //    will overwrite the first. In theory this is OK, as the mappings should be the
+      //    same, however, it breaks for (2)
+      // 2) In the event of a live stream, the initial live point will make for a somewhat
+      //    arbitrary mapping. If audio and video streams are not perfectly in-sync, then
+      //    the mapping will be off for one of the streams, dependent on which one was
+      //    first saved (see (1)).
+      // 3) Primary timing goes by video in VHS, so the mapping should be video.
+      //
+      // Since the audio loader will wait for the main loader to load the first segment,
+      // the main loader will save the first timeline mapping, and ensure that there won't
+      // be a case where audio loads two segments without saving a mapping (thus leading
+      // to missing segment timing info).
+      this.syncController_.saveSegmentTimingInfo({
+        segmentInfo,
+        shouldSaveTimelineMapping: this.loaderType_ === 'main'
+      });
     }
 
     this.logger_(segmentInfoString(segmentInfo));
