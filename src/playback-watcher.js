@@ -22,6 +22,45 @@ const timerCancelEvents = [
 ];
 
 /**
+ * Returns whether or not the current time should be considered close to buffered content,
+ * taking into consideration whether there's enough buffered content for proper playback.
+ *
+ * @param {Object} options
+ *        Options object
+ * @param {TimeRange} options.buffered
+ *        Current buffer
+ * @param {number} options.targetDuration
+ *        The active playlist's target duration
+ * @param {number} options.currentTime
+ *        The current time of the player
+ * @return {boolean}
+ *         Whether the current time should be considered close to the buffer
+ */
+export const closeToBufferedContent = ({ buffered, targetDuration, currentTime }) => {
+  if (!buffered.length) {
+    return false;
+  }
+
+  // At least two to three segments worth of content should be buffered before there's a
+  // full enough buffer to consider taking any actions.
+  if (buffered.end(0) - buffered.start(0) < targetDuration * 2) {
+    return false;
+  }
+
+  // It's possible that, on seek, a remove hasn't completed and the buffered range is
+  // somewhere past the current time. In that event, don't consider the buffered content
+  // close.
+  if (currentTime > buffered.start(0)) {
+    return false;
+  }
+
+  // Since target duration generally represents the max (or close to max) duration of a
+  // segment, if the buffer is within a segment of the current time, the gap probably
+  // won't be closed, and current time should be considered close to buffered content.
+  return buffered.start(0) - currentTime < targetDuration;
+};
+
+/**
  * @class PlaybackWatcher
  */
 export default class PlaybackWatcher {
@@ -193,6 +232,23 @@ export default class PlaybackWatcher {
       this.logger_(`Trying to seek outside of seekable at time ${currentTime} with ` +
                   `seekable range ${Ranges.printableRange(seekable)}. Seeking to ` +
                   `${seekTo}.`);
+
+      this.seekTo(seekTo);
+      return true;
+    }
+
+    const buffered = this.tech_.buffered();
+
+    if (
+      closeToBufferedContent({
+        buffered,
+        targetDuration: this.media().targetDuration,
+        currentTime
+      })
+    ) {
+      seekTo = buffered.start(0) + Ranges.SAFE_TIME_DELTA;
+      this.logger_(`Buffered region starts (${buffered.start(0)}) ` +
+                   ` just beyond seek point (${currentTime}). Seeking to ${seekTo}.`);
 
       this.seekTo(seekTo);
       return true;
