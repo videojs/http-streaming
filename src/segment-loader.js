@@ -833,6 +833,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     if (!oldPlaylist || oldPlaylist.uri !== newPlaylist.uri) {
+      this.trigger('playlist-update');
       if (this.mediaIndex !== null || this.handlePartialData_) {
         // we must "resync" the segment loader when we switch renditions and
         // the segment loader is already synced to the previous rendition
@@ -2470,6 +2471,7 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @private
    */
   handleAppendsDone_() {
+    this.trigger('updateend');
     if (!this.pendingSegment_) {
       this.state = 'READY';
       // TODO should this move into this.checkForAbort to speed up requests post abort in
