@@ -47,6 +47,41 @@ QUnit.test('finds overlapping time ranges when off by SAFE_TIME_DELTA', function
   assert.equal(range.end(0), 12, 'inside the second buffered region');
 });
 
+QUnit.test('detects when time ranges differ', function(assert) {
+  const isDifferent = Ranges.isRangeDifferent;
+  const same = createTimeRanges([[0, 1]]);
+
+  assert.notOk(isDifferent(same, same), 'same object is not different');
+  assert.notOk(
+    isDifferent(null, null),
+    'null and null are not different'
+  );
+  assert.ok(
+    isDifferent(createTimeRanges([[0, 1], [1, 2]]), null),
+    'valid and null are different'
+  );
+
+  assert.ok(
+    isDifferent(createTimeRanges([[0, 1]]), createTimeRanges([[0, 1], [1, 2]])),
+    'objects with different length are different'
+  );
+
+  assert.ok(
+    isDifferent(createTimeRanges([[1, 2], [1, 2]]), createTimeRanges([[0, 1], [1, 2]])),
+    'objects with different values are different'
+  );
+
+  assert.ok(
+    isDifferent(null, createTimeRanges([[0, 1], [1, 2]])),
+    'null object and valid are different'
+  );
+
+  assert.ok(
+    isDifferent(createTimeRanges([[0, 1], [1, 2]]), null),
+    'valid and null are different'
+  );
+});
+
 QUnit.module('Buffer Inpsection');
 
 QUnit.test('detects time range end-point changed by updates', function(assert) {

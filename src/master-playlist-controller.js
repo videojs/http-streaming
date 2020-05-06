@@ -143,6 +143,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       timeout: null
     };
 
+    this.on('error', this.pauseLoading);
+
     this.mediaTypes_ = createMediaTypes();
 
     this.mediaSource = new window.MediaSource();
@@ -881,10 +883,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
     const enabledPlaylists = playlists.filter(isEnabled);
     const isFinalRendition = enabledPlaylists.length === 1 && enabledPlaylists[0] === currentPlaylist;
 
-    if (playlists.length === 1) {
-      // Never blacklisting this playlist because it's the only playlist
-      videojs.log.warn('Problem encountered with the current ' +
-                       'playlist. Trying again since it is the only playlist.');
+    // Don't blacklist the only playlist unless it was blacklisted
+    // forever
+    if (playlists.length === 1 && blacklistDuration !== Infinity) {
+      videojs.log.warn(`Problem encountered with playlist ${currentPlaylist.id}. ` +
+                       'Trying again since it is the only playlist.');
 
       this.tech_.trigger('retryplaylist');
       return this.masterPlaylistLoader_.load(isFinalRendition);
@@ -895,17 +898,30 @@ export class MasterPlaylistController extends videojs.EventTarget {
       // it, instead of erring the player or retrying this playlist, clear out the current
       // blacklist. This allows other playlists to be attempted in case any have been
       // fixed.
-      videojs.log.warn('Removing all playlists from the blacklist because the last ' +
-                       'rendition is about to be blacklisted.');
+      let reincluded = false;
+
       playlists.forEach((playlist) => {
-        if (playlist.excludeUntil !== Infinity) {
+        // skip current playlist which is about to be blacklisted
+        if (playlist === currentPlaylist) {
+          return;
+        }
+        const excludeUntil = playlist.excludeUntil;
+
+        // a playlist cannot be reincluded if it wasn't excluded to begin with.
+        if (typeof excludeUntil !== 'undefined' && excludeUntil !== Infinity) {
+          reincluded = true;
           delete playlist.excludeUntil;
         }
       });
-      // Technically we are retrying a playlist, in that we are simply retrying a previous
-      // playlist. This is needed for users relying on the retryplaylist event to catch a
-      // case where the player might be stuck and looping through "dead" playlists.
-      this.tech_.trigger('retryplaylist');
+
+      if (reincluded) {
+        videojs.log.warn('Removing other playlists from the exclusion list because the last ' +
+                         'rendition is about to be excluded.');
+        // Technically we are retrying a playlist, in that we are simply retrying a previous
+        // playlist. This is needed for users relying on the retryplaylist event to catch a
+        // case where the player might be stuck and looping through "dead" playlists.
+        this.tech_.trigger('retryplaylist');
+      }
     }
 
     // Blacklist this playlist
@@ -915,19 +931,26 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     // Select a new playlist
     const nextPlaylist = this.selectPlaylist();
+
+    if (!nextPlaylist) {
+      this.error = 'Playback cannot continue. No available working or supported playlists.';
+      this.trigger('error');
+      return;
+    }
     const logFn = error.internal ? this.logger_ : videojs.log.warn;
     const errorMessage = error.message ? (' ' + error.message) : '';
 
-    logFn(`${(error.internal ? 'Internal problem' : 'Problem')} encountered with the current playlist.` +
-      `${errorMessage} Switching to another playlist.`);
+    logFn(`${(error.internal ? 'Internal problem' : 'Problem')} encountered with playlist ${currentPlaylist.id}.` +
+      `${errorMessage} Switching to playlist ${nextPlaylist.id}.`);
 
     return this.masterPlaylistLoader_.media(nextPlaylist, isFinalRendition);
   }
 
   /**
-   * Pause all segment loaders
+   * Pause all segment/playlist loaders
    */
   pauseLoading() {
+    // pause all segment loaders
     this.mainSegmentLoader_.pause();
     if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
       this.audioSegmentLoader_.pause();
@@ -935,6 +958,14 @@ export class MasterPlaylistController extends videojs.EventTarget {
     if (this.mediaTypes_.SUBTITLES.activePlaylistLoader) {
       this.subtitleSegmentLoader_.pause();
     }
+
+    // pause all playlist loaders
+    this.masterPlaylistLoader_.pause();
+    Object.keys(this.mediaTypes_).forEach((type) => {
+      if (this.mediaTypes_[type].activePlaylistLoader) {
+        this.mediaTypes_[type].activePlaylistLoader.pause();
+      }
+    });
   }
 
   /**

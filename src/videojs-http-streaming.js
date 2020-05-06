@@ -511,13 +511,21 @@ class HlsHandler extends Component {
     this.masterPlaylistController_ = new MasterPlaylistController(this.options_);
     this.playbackWatcher_ = new PlaybackWatcher(videojs.mergeOptions(this.options_, {
       seekable: () => this.seekable(),
-      media: () => this.masterPlaylistController_.media()
+      media: () => this.masterPlaylistController_.media(),
+      masterPlaylistController: this.masterPlaylistController_
     }));
 
     this.masterPlaylistController_.on('error', () => {
       const player = videojs.players[this.tech_.options_.playerId];
+      let error = this.masterPlaylistController_.error;
 
-      player.error(this.masterPlaylistController_.error);
+      if (typeof error === 'object' && !error.code) {
+        error.code = 3;
+      } else if (typeof error === 'string') {
+        error = {message: error, code: 3};
+      }
+
+      player.error(error);
     });
 
     // `this` in selectPlaylist should be the HlsHandler for backwards

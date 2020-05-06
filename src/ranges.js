@@ -396,3 +396,44 @@ export const timeRangesToArray = (timeRanges) => {
 
   return timeRangesList;
 };
+
+/**
+ * Determines if two time range objects are different.
+ *
+ * @param {TimeRange} a
+ *        the first time range object to check
+ *
+ * @param {TimeRange} b
+ *        the second time range object to check
+ *
+ * @return {Boolean}
+ *         Whether the time range objects differ
+ */
+
+export const isRangeDifferent = function(a, b) {
+  // same object
+  if (a === b) {
+    return false;
+  }
+
+  // one or the other is undefined
+  if (!a && b || (!b && a)) {
+    return true;
+  }
+
+  // length is different
+  if (a.length !== b.length) {
+    return true;
+  }
+
+  // see if any start/end pair is different
+  for (let i = 0; i < a.length; i++) {
+    if (a.start(i) !== b.start(i) || a.end(i) !== b.end(i)) {
+      return true;
+    }
+  }
+
+  // if the length and every pair is the same
+  // this is the same time range
+  return false;
+};

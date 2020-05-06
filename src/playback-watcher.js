@@ -11,6 +11,7 @@
 import window from 'global/window';
 import * as Ranges from './ranges';
 import logger from './util/logger';
+import videojs from 'video.js';
 
 // Set of events that reset the playback-watcher time check logic and clear the timeout
 const timerCancelEvents = [
@@ -71,6 +72,7 @@ export default class PlaybackWatcher {
    * @param {Object} options an object that includes the tech and settings
    */
   constructor(options) {
+    this.masterPlaylistController_ = options.masterPlaylistController;
     this.tech_ = options.tech;
     this.seekable = options.seekable;
     this.seekTo = options.seekTo;
@@ -90,6 +92,29 @@ export default class PlaybackWatcher {
     const cancelTimerHandler = () => this.cancelTimer_();
     const fixesBadSeeksHandler = () => this.fixesBadSeeks_();
 
+    const mpc = this.masterPlaylistController_;
+
+    const loaderTypes = ['main', 'subtitle', 'audio'];
+    const loaderChecks = {};
+
+    loaderTypes.forEach((type) => {
+      loaderChecks[type] = {
+        reset: () => this.resetSegmentDownloads_(type),
+        updateend: () => this.checkSegmentDownloads_(type)
+      };
+
+      mpc[`${type}SegmentLoader_`].on('appendsdone', loaderChecks[type].updateend);
+      // If a rendition switch happens during a playback stall where the buffer
+      // isn't changing we want to reset. We cannot assume that the new rendition
+      // will also be stalled, until after new appends.
+      mpc[`${type}SegmentLoader_`].on('playlistupdate', loaderChecks[type].reset);
+      // Playback stalls should not be detected right after seeking.
+      // This prevents one segment playlists (single vtt or single segment content)
+      // from being detected as stalling. As the buffer will not change in those cases, since
+      // the buffer is the entire video duration.
+      this.tech_.on(['seeked', 'seeking'], loaderChecks[type].reset);
+    });
+
     this.tech_.on('seekablechanged', fixesBadSeeksHandler);
     this.tech_.on('waiting', waitingHandler);
     this.tech_.on(timerCancelEvents, cancelTimerHandler);
@@ -102,6 +127,12 @@ export default class PlaybackWatcher {
       this.tech_.off('waiting', waitingHandler);
       this.tech_.off(timerCancelEvents, cancelTimerHandler);
       this.tech_.off('canplay', canPlayHandler);
+
+      loaderTypes.forEach((type) => {
+        mpc[`${type}SegmentLoader_`].off('appendsdone', loaderChecks[type].updateend);
+        mpc[`${type}SegmentLoader_`].off('playlistupdate', loaderChecks[type].reset);
+        this.tech_.off(['seeked', 'seeking'], loaderChecks[type].reset);
+      });
       if (this.checkCurrentTimeTimeout_) {
         window.clearTimeout(this.checkCurrentTimeTimeout_);
       }
@@ -124,6 +155,86 @@ export default class PlaybackWatcher {
     // 42 = 24 fps // 250 is what Webkit uses // FF uses 15
     this.checkCurrentTimeTimeout_ =
       window.setTimeout(this.monitorCurrentTime_.bind(this), 250);
+  }
+
+  /**
+   * Reset stalled download stats for a specific type of loader
+   *
+   * @param {string} type
+   *        The segment loader type to check.
+   *
+   * @listens SegmentLoader#playlistupdate
+   * @listens Tech#seeking
+   * @listens Tech#seeked
+   */
+  resetSegmentDownloads_(type) {
+    const loader = this.masterPlaylistController_[`${type}SegmentLoader_`];
+
+    if (this[`${type}StalledDownloads_`] > 0) {
+      this.logger_(`resetting stalled downloads for ${type} loader`);
+    }
+    this[`${type}StalledDownloads_`] = 0;
+    this[`${type}Buffered_`] = loader.buffered_();
+  }
+
+  /**
+   * Checks on every segment `appendsdone` to see
+   * if segment appends are making progress. If they are not
+   * and we are still downloading bytes. We blacklist the playlist.
+   *
+   * @param {string} type
+   *        The segment loader type to check.
+   *
+   * @listens SegmentLoader#appendsdone
+   */
+  checkSegmentDownloads_(type) {
+    const mpc = this.masterPlaylistController_;
+    const loader = mpc[`${type}SegmentLoader_`];
+    const buffered = loader.buffered_();
+    const isBufferedDifferent = Ranges.isRangeDifferent(this[`${type}Buffered_`], buffered);
+
+    this[`${type}Buffered_`] = buffered;
+
+    // if another watcher is going to fix the issue or
+    // the buffered value for this loader changed
+    // appends are working
+    if (isBufferedDifferent) {
+      this.resetSegmentDownloads_(type);
+      return;
+    }
+
+    this[`${type}StalledDownloads_`]++;
+
+    this.logger_(`found stalled download #${this[`${type}StalledDownloads_`]} for ${type} loader`);
+    // We will technically get past this on the fourth bad append
+    // rather than the third. As the first will almost always cause
+    // buffered to change which means that StalledDownloads_ will
+    // not be incremented
+    if (this[`${type}StalledDownloads_`] < 3) {
+      return;
+    }
+
+    this.logger_(`${type} loader download exclusion`);
+    this.resetSegmentDownloads_(type);
+    this.tech_.trigger({type: 'usage', name: `vhs-${type}-download-exclusion`});
+
+    if (type === 'subtitle') {
+      // TODO: Is there anything else that we can do here?
+      // removing the track and disabling could have accesiblity implications.
+      const track = loader.track();
+      const label = track.label || track.language || 'Unknown';
+
+      videojs.log.warn(`Text track "${label}" is not working correctly. It will be disabled and excluded.`);
+      track.mode = 'disabled';
+      this.tech_.textTracks().removeTrack(track);
+      return;
+    }
+
+    // TODO: should we exclude audio tracks rather than main tracks
+    // when type is audio?
+    mpc.blacklistCurrentPlaylist({
+      message: `Excessive ${type} segment downloading detected.`
+    }, Infinity);
   }
 
   /**
@@ -351,6 +462,8 @@ export default class PlaybackWatcher {
 
       this.logger_(`Stopped at ${currentTime}, setting timer for ${difference}, seeking ` +
         `to ${nextRange.start(0)}`);
+
+      this.cancelTimer_();
 
       this.timer_ = setTimeout(
         this.skipTheGap_.bind(this),

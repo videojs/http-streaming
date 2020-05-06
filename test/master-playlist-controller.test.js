@@ -1840,9 +1840,9 @@ QUnit.test('blacklists playlist on earlyabort', function(assert) {
   assert.equal(warnings.length, 1, 'one warning logged');
   assert.equal(
     warnings[0],
-    'Problem encountered with the current playlist. ' +
+    `Problem encountered with playlist ${currentMedia.id}. ` +
                  'Aborted early because there isn\'t enough bandwidth to complete the ' +
-                 'request without rebuffering. Switching to another playlist.',
+                 `request without rebuffering. Switching to playlist ${mediaChanges[0].id}.`,
     'warning message is correct'
   );
 
@@ -4353,4 +4353,47 @@ QUnit.test('disposes timeline change controller on dispose', function(assert) {
   this.masterPlaylistController.dispose();
 
   assert.equal(disposes, 1, 'disposed timeline change controller');
+});
+
+QUnit.test('on error all segment and playlist loaders are paused', function(assert) {
+  const paused = {
+    audioSegment: false,
+    subtitleSegment: false,
+    mainSegment: false,
+    masterPlaylist: false
+  };
+
+  Object.keys(this.masterPlaylistController.mediaTypes_).forEach((type) => {
+    const key = `${type.toLowerCase()}Playlist`;
+
+    paused[key] = false;
+
+    this.masterPlaylistController.mediaTypes_[type].activePlaylistLoader = {
+      pause() {
+        paused[key] = true;
+      }
+    };
+  });
+
+  this.masterPlaylistController.audioSegmentLoader_.pause = () => {
+    paused.audioSegment = true;
+  };
+
+  this.masterPlaylistController.subtitleSegmentLoader_.pause = () => {
+    paused.subtitleSegment = true;
+  };
+
+  this.masterPlaylistController.mainSegmentLoader_.pause = () => {
+    paused.mainSegment = true;
+  };
+
+  this.masterPlaylistController.masterPlaylistLoader_.pause = () => {
+    paused.masterPlaylist = true;
+  };
+
+  this.masterPlaylistController.trigger('error');
+
+  Object.keys(paused).forEach(function(name) {
+    assert.ok(paused[name], `${name} was paused on error`);
+  });
 });
