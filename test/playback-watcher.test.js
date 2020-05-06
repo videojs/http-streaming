@@ -910,7 +910,7 @@ loaderTypes.forEach(function(type) {
 
         if (otherPlaylistsLeft) {
           const message = `Problem encountered with playlist ${oldPlaylist.id}.` +
-            ` Infinite ${type} segment downloading detected.` +
+            ` Excessive ${type} segment downloading detected.` +
             ` Switching to playlist ${this.mpc.media().id}.`;
 
           assert.equal(this.mpcErrors, 0, 'no mpc error');

@@ -233,7 +233,7 @@ export default class PlaybackWatcher {
     // TODO: should we exclude audio tracks rather than main tracks
     // when type is audio?
     mpc.blacklistCurrentPlaylist({
-      message: `Infinite ${type} segment downloading detected.`
+      message: `Excessive ${type} segment downloading detected.`
     }, Infinity);
   }
 
