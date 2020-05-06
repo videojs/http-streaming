@@ -517,8 +517,15 @@ class HlsHandler extends Component {
 
     this.masterPlaylistController_.on('error', () => {
       const player = videojs.players[this.tech_.options_.playerId];
+      let error = this.masterPlaylistController_.error;
 
-      player.error(this.masterPlaylistController_.error);
+      if (typeof error === 'object' && !error.code) {
+        error.code = 3;
+      } else if (typeof error === 'string') {
+        error = {message: error, code: 3};
+      }
+
+      player.error(error);
     });
 
     // `this` in selectPlaylist should be the HlsHandler for backwards
