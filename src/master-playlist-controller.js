@@ -1290,7 +1290,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     }
 
     // source buffers are already created
-    if (this.sourceUpdater_.ready()) {
+    if (this.sourceUpdater_.ready() && !this.sourceUpdater_.canChangeType()) {
       return;
     }
 
@@ -1373,29 +1373,31 @@ export class MasterPlaylistController extends videojs.EventTarget {
       }
     }
 
-    try {
-      this.sourceUpdater_.createSourceBuffers(codecs);
-    } catch (e) {
-      const error = 'Failed to create SourceBuffers: ' + e;
+    if (this.sourceUpdater_.ready()) {
+      this.sourceUpdater_.changeType(codecs);
+    } else {
+      try {
+        this.sourceUpdater_.createSourceBuffers(codecs);
+      } catch (e) {
+        const error = 'Failed to create SourceBuffers: ' + e;
 
-      videojs.log.warn(error);
-      this.error = error;
-      if (this.mediaSource.readyState !== 'open') {
-        this.trigger('error');
-      } else {
-        this.sourceUpdater_.endOfStream('decode');
+        videojs.log.warn(error);
+        this.error = error;
+        if (this.mediaSource.readyState !== 'open') {
+          this.trigger('error');
+        } else {
+          this.sourceUpdater_.endOfStream('decode');
+        }
+        return;
       }
+    }
+
+    if (this.sourceUpdater_.canChangeType()) {
       return;
     }
 
     const codecString = [codecs.video, codecs.audio].filter(Boolean).join(',');
 
-    // TODO:
-    // blacklisting incompatible renditions will have to change
-    // once we add support for `changeType` on source buffers.
-    // We will have to not blacklist any rendition until we try to
-    // switch to it and learn that it is incompatible and if it is compatible
-    // we `changeType` on the sourceBuffer.
     this.excludeIncompatibleVariants_(codecString);
   }
 

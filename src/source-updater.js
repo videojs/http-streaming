@@ -147,6 +147,13 @@ const actions = {
     } catch (e) {
       videojs.log.warn('Failed to set media source duration', e);
     }
+  },
+  changeType: (codec) => (type, sourceUpdater) => {
+    const sourceBuffer = sourceUpdater[`${type}Buffer`];
+
+    sourceUpdater.logger_(`changing ${type} codec from ${sourceUpdater.codecs[type]} to ${codec}`);
+
+    sourceBuffer.changeType(codec);
   }
 };
 
@@ -241,8 +248,58 @@ export default class SourceUpdater extends videojs.EventTarget {
       this.logger_(`created SourceBuffer ${mime}`);
     }
 
+    this.codecs = codecs;
+
     this.trigger('ready');
     this.start_();
+  }
+
+  canChangeType() {
+    if (!this.ready()) {
+      return;
+    }
+
+    if (this.videoBuffer && typeof this.videoBuffer.changeType !== 'function') {
+      return false;
+    }
+
+    if (this.audioBuffer && typeof this.audioBuffer.changeType !== 'function') {
+      return false;
+    }
+
+    return true;
+  }
+
+  changeType(codecs) {
+    if (!this.ready() || !this.canChangeType()) {
+      return;
+    }
+
+    if (!codecs || typeof codecs !== 'object') {
+      return;
+    }
+
+    if (codecs.audio && codecs.audio !== this.codecs.audio) {
+      pushQueue({
+        type: 'audio',
+        sourceUpdater: this,
+        action: actions.changeType(getMimeForCodec(codecs.audio)),
+        name: 'changeType'
+      });
+    }
+
+    if (codecs.video && codecs.video !== this.codecs.video) {
+      pushQueue({
+        type: 'video',
+        sourceUpdater: this,
+        action: actions.changeType(getMimeForCodec(codecs.video)),
+        name: 'changeType'
+      });
+    }
+
+    this.codecs = codecs;
+
+    return codecs;
   }
 
   start_() {

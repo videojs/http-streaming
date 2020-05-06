@@ -104,6 +104,12 @@
   <script src="scripts/index-demo-page.js"></script>
   <script>
     window.startDemo(function(player) {
+
+      window.changeRep = (i) => {
+        player.vhs.representations().forEach(function(rep, index) {
+          rep.enabled(i === index);
+        });
+      };
       // do something with setup player
     });
   </script>
