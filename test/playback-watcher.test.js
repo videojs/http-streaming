@@ -756,14 +756,13 @@ QUnit.module('PlaybackWatcher download detection', {
     this.respondToPlaylists_ = () => {
       const regex = (/\.(m3u8|mpd)/i);
 
-      while (this.requests.some((r) => regex.test(r.uri))) {
-        for (let i = this.requests.length - 1; i >= 0; i--) {
-          const r = this.requests[i];
+      for (let i = 0; i < this.requests.length; i++) {
+        const r = this.requests[i];
 
-          if (regex.test(r.uri)) {
-            this.requests.splice(i, 1);
-            standardXHRResponse(r);
-          }
+        if (regex.test(r.uri)) {
+          this.requests.splice(i, 1);
+          standardXHRResponse(r);
+          i--;
         }
       }
     };
@@ -775,10 +774,7 @@ QUnit.module('PlaybackWatcher download detection', {
           overrideNative: true
         }
       }});
-      this.player.muted(true);
-      this.player.autoplay(true);
 
-      // set an arbitrary source
       this.player.src(src);
 
       // start playback normally
@@ -835,19 +831,16 @@ loaderTypes.forEach(function(type) {
     }
 
     this.setBuffered(videojs.createTimeRanges([[0, 30]]));
-    loader.trigger('updateend');
+    loader.trigger('appendsdone');
     assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, '1st append 0 stalled downloads');
-    assert.deepEqual(this.usageEvents, {}, 'no usage events');
 
-    loader.trigger('updateend');
+    loader.trigger('appendsdone');
     assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 1, '2nd append 1 stalled downloads');
-    assert.deepEqual(this.usageEvents, {}, 'no usage events');
 
-    loader.trigger('updateend');
+    loader.trigger('appendsdone');
     assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 2, '3rd append 2 stalled downloads');
-    assert.deepEqual(this.usageEvents, {}, 'no usage events');
 
-    loader.trigger('updateend');
+    loader.trigger('appendsdone');
     assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, '4th append 0 stalled downloads');
 
     const expectedUsage = {};
@@ -892,17 +885,15 @@ loaderTypes.forEach(function(type) {
       const loader = this.mpc[`${type}SegmentLoader_`];
       const playlists = this.mpc.master().playlists;
       const excludeAndVerify = () => {
-        loader.trigger('updateend');
+        loader.trigger('appendsdone');
         assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 1, '1st append 1 stalled downloads');
-        assert.deepEqual(this.usageEvents, {}, 'no usage events');
 
-        loader.trigger('updateend');
+        loader.trigger('appendsdone');
         assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 2, '2nd append 1 stalled downloads');
-        assert.deepEqual(this.usageEvents, {}, 'no usage events');
 
         const oldPlaylist = this.mpc.media();
 
-        loader.trigger('updateend');
+        loader.trigger('appendsdone');
         assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, '3rd append 0 stalled downloads');
 
         const expectedUsage = {};
@@ -943,9 +934,8 @@ loaderTypes.forEach(function(type) {
       };
 
       this.setBuffered(videojs.createTimeRanges([[0, 30]]));
-      loader.trigger('updateend');
+      loader.trigger('appendsdone');
       assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, 'initial append 0 stalled downloads');
-      assert.deepEqual(this.usageEvents, {}, 'no usage events');
       let i = playlists.length;
 
       // exclude all playlists and verify
@@ -956,53 +946,44 @@ loaderTypes.forEach(function(type) {
     });
   }
 
-  QUnit.test(`resets ${type} exclusion on playlist-update, tech seeking, tech seeked`, function(assert) {
+  QUnit.test(`resets ${type} exclusion on playlistupdate, tech seeking, tech seeked`, function(assert) {
     this.setup();
     const loader = this.mpc[`${type}SegmentLoader_`];
 
     this.setBuffered(videojs.createTimeRanges([[0, 30]]));
-    loader.trigger('updateend');
+    loader.trigger('appendsdone');
     assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, '1st append 0 stalled downloads');
-    assert.deepEqual(this.usageEvents, {}, 'no usage events');
 
-    loader.trigger('updateend');
+    loader.trigger('appendsdone');
     assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 1, '2nd append 1 stalled downloads');
-    assert.deepEqual(this.usageEvents, {}, 'no usage events');
 
-    loader.trigger('playlist-update');
-    assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, '0 stalled downloads after playlist-update');
-    assert.deepEqual(this.usageEvents, {}, 'no usage events');
+    loader.trigger('playlistupdate');
+    assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, '0 stalled downloads after playlistupdate');
 
-    loader.trigger('updateend');
+    loader.trigger('appendsdone');
     assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 1, '1st append 1 stalled downloads');
-    assert.deepEqual(this.usageEvents, {}, 'no usage events');
 
-    loader.trigger('updateend');
+    loader.trigger('appendsdone');
     assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 2, '2nd append 2 stalled downloads');
-    assert.deepEqual(this.usageEvents, {}, 'no usage events');
 
     this.player.tech_.trigger('seeking');
-    assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, '0 stalled downloads after playlist-update');
-    assert.deepEqual(this.usageEvents, {}, 'no usage events');
+    assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, '0 stalled downloads after seeking');
 
-    loader.trigger('updateend');
+    loader.trigger('appendsdone');
     assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 1, '1st append 1 stalled downloads');
-    assert.deepEqual(this.usageEvents, {}, 'no usage events');
 
-    loader.trigger('updateend');
+    loader.trigger('appendsdone');
     assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 2, '2nd append 2 stalled downloads');
-    assert.deepEqual(this.usageEvents, {}, 'no usage events');
 
     this.player.tech_.trigger('seeked');
-    assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, '0 stalled downloads after playlist-update');
-    assert.deepEqual(this.usageEvents, {}, 'no usage events');
+    assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, '0 stalled downloads after seeked');
 
-    loader.trigger('updateend');
+    loader.trigger('appendsdone');
     assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 1, '1st append 1 stalled downloads');
-    assert.deepEqual(this.usageEvents, {}, 'no usage events');
 
-    loader.trigger('updateend');
+    loader.trigger('appendsdone');
     assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 2, '2nd append 2 stalled downloads');
+
     assert.deepEqual(this.usageEvents, {}, 'no usage events');
   });
 
@@ -1011,22 +992,18 @@ loaderTypes.forEach(function(type) {
     const loader = this.mpc[`${type}SegmentLoader_`];
 
     this.setBuffered(videojs.createTimeRanges([[0, 30]]));
-    loader.trigger('updateend');
+    loader.trigger('appendsdone');
     assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, '1st append 0 stalled downloads');
-    assert.deepEqual(this.usageEvents, {}, 'no usage events');
 
-    loader.trigger('updateend');
+    loader.trigger('appendsdone');
     assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 1, '2nd append 1 stalled downloads');
-    assert.deepEqual(this.usageEvents, {}, 'no usage events');
 
     this.setBuffered(videojs.createTimeRanges([[0, 31]]));
-    loader.trigger('updateend');
+    loader.trigger('appendsdone');
     assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, '1st append 0 stalled downloads');
-    assert.deepEqual(this.usageEvents, {}, 'no usage events');
 
-    loader.trigger('updateend');
+    loader.trigger('appendsdone');
     assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 1, '2nd append 1 stalled downloads');
-    assert.deepEqual(this.usageEvents, {}, 'no usage events');
   });
 });
 

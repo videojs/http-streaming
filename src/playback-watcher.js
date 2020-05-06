@@ -103,8 +103,15 @@ export default class PlaybackWatcher {
         updateend: () => this.checkSegmentDownloads_(type)
       };
 
-      mpc[`${type}SegmentLoader_`].on('updateend', loaderChecks[type].updateend);
-      mpc[`${type}SegmentLoader_`].on('playlist-update', loaderChecks[type].reset);
+      mpc[`${type}SegmentLoader_`].on('appendsdone', loaderChecks[type].updateend);
+      // If a rendition switch happens during a playback stall where the buffer
+      // isn't changing we want to reset. We cannot assume that the new rendition
+      // will also be stalled, until after new appends.
+      mpc[`${type}SegmentLoader_`].on('playlistupdate', loaderChecks[type].reset);
+      // Playback stalls should not be detected right after seeking.
+      // This prevents one segment playlists (single vtt or single segment content)
+      // from being detected as stalling. As the buffer will not change in those cases, since
+      // the buffer is the entire video duration.
       this.tech_.on(['seeked', 'seeking'], loaderChecks[type].reset);
     });
 
@@ -122,8 +129,8 @@ export default class PlaybackWatcher {
       this.tech_.off('canplay', canPlayHandler);
 
       loaderTypes.forEach((type) => {
-        mpc[`${type}SegmentLoader_`].off('updateend', loaderChecks[type].updateend);
-        mpc[`${type}SegmentLoader_`].off('playlist-update', loaderChecks[type].reset);
+        mpc[`${type}SegmentLoader_`].off('appendsdone', loaderChecks[type].updateend);
+        mpc[`${type}SegmentLoader_`].off('playlistupdate', loaderChecks[type].reset);
         this.tech_.off(['seeked', 'seeking'], loaderChecks[type].reset);
       });
       if (this.checkCurrentTimeTimeout_) {
@@ -154,25 +161,31 @@ export default class PlaybackWatcher {
    * Reset stalled download stats for a specific type of loader
    *
    * @param {string} type
-   *        Whether to check the audio or main segment loader.
+   *        The segment loader type to check.
+   *
+   * @listens SegmentLoader#playlistupdate
+   * @listens Tech#seeking
+   * @listens Tech#seeked
    */
   resetSegmentDownloads_(type) {
     const loader = this.masterPlaylistController_[`${type}SegmentLoader_`];
 
     if (this[`${type}StalledDownloads_`] > 0) {
-      this.logger_(`reseting stalled downloads for ${type} loader`);
+      this.logger_(`resetting stalled downloads for ${type} loader`);
     }
     this[`${type}StalledDownloads_`] = 0;
     this[`${type}Buffered_`] = loader.buffered_();
   }
 
   /**
-   * Checks on every main/audio segment `appended` to see
+   * Checks on every segment `appendsdone` to see
    * if segment appends are making progress. If they are not
    * and we are still downloading bytes. We blacklist the playlist.
    *
    * @param {string} type
-   *        Whether to check the audio or main segment loader.
+   *        The segment loader type to check.
+   *
+   * @listens SegmentLoader#appendsdone
    */
   checkSegmentDownloads_(type) {
     const mpc = this.masterPlaylistController_;
@@ -205,18 +218,23 @@ export default class PlaybackWatcher {
     this.resetSegmentDownloads_(type);
     this.tech_.trigger({type: 'usage', name: `vhs-${type}-download-exclusion`});
 
-    if (type !== 'subtitle') {
-      mpc.blacklistCurrentPlaylist({
-        message: `Infinite ${type} segment downloading detected.`
-      }, Infinity);
-    } else {
+    if (type === 'subtitle') {
+      // TODO: Is there anything else that we can do here?
+      // removing the track and disabling could have accesiblity implications.
       const track = loader.track();
       const label = track.label || track.language || 'Unknown';
 
       videojs.log.warn(`Text track "${label}" is not working correctly. It will be disabled and excluded.`);
       track.mode = 'disabled';
       this.tech_.textTracks().removeTrack(track);
+      return;
     }
+
+    // TODO: should we exclude audio tracks rather than main tracks
+    // when type is audio?
+    mpc.blacklistCurrentPlaylist({
+      message: `Infinite ${type} segment downloading detected.`
+    }, Infinity);
   }
 
   /**

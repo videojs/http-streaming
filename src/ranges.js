@@ -401,10 +401,10 @@ export const timeRangesToArray = (timeRanges) => {
  * Determines if two time range objects are different.
  *
  * @param {TimeRange} a
- *        the first buffered object to check
+ *        the first time range object to check
  *
  * @param {TimeRange} b
- *        the second buffered object to check
+ *        the second time range object to check
  *
  * @return {Boolean}
  *         Whether the time range objects differ
@@ -434,6 +434,6 @@ export const isRangeDifferent = function(a, b) {
   }
 
   // if the length and every pair is the same
-  // this is the same buffered
+  // this is the same time range
   return false;
 };
