@@ -646,13 +646,23 @@ export default class SegmentLoader extends videojs.EventTarget {
       return videojs.createTimeRanges();
     }
 
-    if (this.startingMedia_.hasAudio && this.startingMedia_.hasVideo) {
-      return this.sourceUpdater_.buffered();
-    } else if (this.startingMedia_.hasAudio) {
-      return this.sourceUpdater_.audioBuffered();
+    if (this.loaderType_ === 'main') {
+      if (
+        this.startingMedia_.hasVideo &&
+        this.startingMedia_.hasAudio &&
+        !this.audioDisabled_
+      ) {
+        return this.sourceUpdater_.buffered();
+      }
+
+      if (this.startingMedia_.hasVideo) {
+        return this.sourceUpdater_.videoBuffered();
+      }
     }
 
-    return this.sourceUpdater_.videoBuffered();
+    // One case that can be ignored for now is audio only with alt audio,
+    // as we don't yet have proper support for that.
+    return this.sourceUpdater_.audioBuffered();
   }
 
   /**

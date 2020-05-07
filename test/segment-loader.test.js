@@ -34,6 +34,7 @@ import {
   zeroLength as zeroLengthSegment
 } from 'create-test-data!segments';
 import sinon from 'sinon';
+import { timeRangesEqual } from './custom-assertions.js';
 
 /* TODO
 // noop addSegmentMetadataCue_ since most test segments dont have real timing information
@@ -485,6 +486,16 @@ QUnit.module('SegmentLoader', function(hooks) {
         loaderType: 'main',
         segmentMetadataTrack: this.segmentMetadataTrack
       }), {});
+
+      this.fakeMainTimelineChange = () => {
+        // Fake the last timeline change for main so audio loader has enough info to
+        // append the first segment.
+        this.timelineChangeController.lastTimelineChange({
+          type: 'main',
+          from: -1,
+          to: 0
+        });
+      };
     });
 
     nestedHooks.afterEach(function(assert) {
@@ -758,14 +769,9 @@ QUnit.module('SegmentLoader', function(hooks) {
         loaderType: 'audio'
       }), {});
 
-      // Fake the last timeline change for main so audio loader has enough info to append
-      // the first segment. Second segment will involve the test, as that will have a
-      // timeline change for audio before the main loader has reached the change itself.
-      this.timelineChangeController.lastTimelineChange({
-        type: 'main',
-        from: -1,
-        to: 0
-      });
+      // Second segment will involve the test, as that will have a timeline change for
+      // audio before the main loader has reached the change itself.
+      this.fakeMainTimelineChange();
 
       const playlist = playlistWithDuration(20);
 
@@ -829,14 +835,9 @@ QUnit.module('SegmentLoader', function(hooks) {
         loaderType: 'audio'
       }), {});
 
-      // Fake the last timeline change for main so audio loader has enough info to append
-      // the first segment. Second segment will involve the test, as that will have a
-      // timeline change for audio before the main loader has reached the change itself.
-      this.timelineChangeController.lastTimelineChange({
-        type: 'main',
-        from: -1,
-        to: 0
-      });
+      // Second segment will involve the test, as that will have a timeline change for
+      // audio before the main loader has reached the change itself.
+      this.fakeMainTimelineChange();
 
       const playlist = playlistWithDuration(20);
 
@@ -873,14 +874,9 @@ QUnit.module('SegmentLoader', function(hooks) {
         loaderType: 'audio'
       }), {});
 
-      // Fake the last timeline change for main so audio loader has enough info to append
-      // the first segment. Second segment will involve the test, as that will have a
-      // timeline change for audio before the main loader has reached the change itself.
-      this.timelineChangeController.lastTimelineChange({
-        type: 'main',
-        from: -1,
-        to: 0
-      });
+      // Second segment will involve the test, as that will have a timeline change for
+      // audio before the main loader has reached the change itself.
+      this.fakeMainTimelineChange();
 
       const playlist = playlistWithDuration(20);
 
@@ -919,14 +915,9 @@ QUnit.module('SegmentLoader', function(hooks) {
         loaderType: 'audio'
       }), {});
 
-      // Fake the last timeline change for main so audio loader has enough info to append
-      // the first segment. Second segment will involve the test, as that will have a
-      // timeline change for audio before the main loader has reached the change itself.
-      this.timelineChangeController.lastTimelineChange({
-        type: 'main',
-        from: -1,
-        to: 0
-      });
+      // Second segment will involve the test, as that will have a timeline change for
+      // audio before the main loader has reached the change itself.
+      this.fakeMainTimelineChange();
 
       const playlist = playlistWithDuration(20);
 
@@ -1217,13 +1208,7 @@ QUnit.module('SegmentLoader', function(hooks) {
         loaderType: 'audio'
       }), {});
 
-      // Fake the last timeline change for main so audio loader has enough info to append
-      // the first segment.
-      this.timelineChangeController.lastTimelineChange({
-        type: 'main',
-        from: -1,
-        to: 0
-      });
+      this.fakeMainTimelineChange();
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
         loader.playlist(playlistWithDuration(20));
@@ -1477,9 +1462,7 @@ QUnit.module('SegmentLoader', function(hooks) {
         loaderType: 'audio'
       }), {});
 
-      // Fake the last timeline change for main so audio loader has enough info to append
-      // the first segment.
-      this.timelineChangeController.lastTimelineChange({ type: 'main', from: -1, to: 0 });
+      this.fakeMainTimelineChange();
 
       const syncController = loader.syncController_;
 
@@ -2956,6 +2939,194 @@ QUnit.module('SegmentLoader', function(hooks) {
           transmuxerTimestampOffsets.length,
           1,
           'no extra transmuxer timestamp offset'
+        );
+      });
+    });
+
+    QUnit.test('main buffered uses video buffer when audio disabled', function(assert) {
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        const playlist = playlistWithDuration(40);
+
+        loader.playlist(playlist);
+        loader.load();
+        this.clock.tick(1);
+
+        // need to load content to have starting media
+        standardXHRResponse(this.requests.shift(), muxedSegment());
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        // mock the buffered values (easiest solution to test that segment-loader is
+        // calling the correct functions)
+        loader.sourceUpdater_.audioBuffered =
+          () => videojs.createTimeRanges([[2, 3], [5, 7]]);
+        loader.sourceUpdater_.videoBuffered =
+          () => videojs.createTimeRanges([[2, 6]]);
+        loader.sourceUpdater_.buffered =
+          () => videojs.createTimeRanges([[2, 3], [5, 6]]);
+
+        timeRangesEqual(
+          loader.buffered_(),
+          videojs.createTimeRanges([[2, 3], [5, 6]]),
+          'buffered reports intersection of audio and video buffers'
+        );
+        loader.setAudio(false);
+        timeRangesEqual(
+          loader.buffered_(),
+          videojs.createTimeRanges([[2, 6]]),
+          'buffered reports video buffered'
+        );
+      });
+    });
+
+    QUnit.test('main buffered uses video buffer when video only', function(assert) {
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        const playlist = playlistWithDuration(40);
+
+        loader.playlist(playlist);
+        loader.load();
+        this.clock.tick(1);
+
+        // need to load content to have starting media
+        standardXHRResponse(this.requests.shift(), videoSegment());
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        // mock the buffered values (easiest solution to test that segment-loader is
+        // calling the correct functions)
+        loader.sourceUpdater_.audioBuffered =
+          () => videojs.createTimeRanges([[2, 3], [5, 7]]);
+        loader.sourceUpdater_.videoBuffered =
+          () => videojs.createTimeRanges([[2, 6]]);
+        loader.sourceUpdater_.buffered =
+          () => videojs.createTimeRanges([[2, 3], [5, 6]]);
+
+        timeRangesEqual(
+          loader.buffered_(),
+          videojs.createTimeRanges([[2, 6]]),
+          'buffered reports video buffered'
+        );
+        loader.setAudio(false);
+        timeRangesEqual(
+          loader.buffered_(),
+          videojs.createTimeRanges([[2, 6]]),
+          'buffered reports video buffered'
+        );
+      });
+    });
+
+    QUnit.test('main buffered uses audio buffer when audio only', function(assert) {
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        const playlist = playlistWithDuration(40);
+
+        loader.playlist(playlist);
+        loader.load();
+        this.clock.tick(1);
+
+        // need to load content to have starting media
+        standardXHRResponse(this.requests.shift(), audioSegment());
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        // mock the buffered values (easiest solution to test that segment-loader is
+        // calling the correct functions)
+        loader.sourceUpdater_.audioBuffered =
+          () => videojs.createTimeRanges([[2, 3], [5, 7]]);
+        loader.sourceUpdater_.videoBuffered =
+          () => videojs.createTimeRanges([[2, 6]]);
+        loader.sourceUpdater_.buffered =
+          () => videojs.createTimeRanges([[2, 3], [5, 6]]);
+
+        timeRangesEqual(
+          loader.buffered_(),
+          videojs.createTimeRanges([[2, 3], [5, 7]]),
+          'buffered reports audio buffered'
+        );
+        // note that there currently is no proper support for audio only with alt audio,
+        // so the setAudio(false) test can be skipped
+      });
+    });
+
+    QUnit.test('audio buffered uses audio buffer', function(assert) {
+      loader.dispose();
+      loader = new SegmentLoader(LoaderCommonSettings.call(this, {
+        loaderType: 'audio'
+      }), {});
+
+      this.fakeMainTimelineChange();
+
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        const playlist = playlistWithDuration(40);
+
+        loader.playlist(playlist);
+        loader.load();
+        this.clock.tick(1);
+
+        // need to load content to have starting media
+        standardXHRResponse(this.requests.shift(), audioSegment());
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        // mock the buffered values (easiest solution to test that segment-loader is
+        // calling the correct functions)
+        loader.sourceUpdater_.audioBuffered =
+          () => videojs.createTimeRanges([[2, 3], [5, 7]]);
+        loader.sourceUpdater_.videoBuffered =
+          () => videojs.createTimeRanges([[2, 6]]);
+        loader.sourceUpdater_.buffered =
+          () => videojs.createTimeRanges([[2, 3], [5, 6]]);
+
+        timeRangesEqual(
+          loader.buffered_(),
+          videojs.createTimeRanges([[2, 3], [5, 7]]),
+          'buffered reports audio buffered'
+        );
+      });
+    });
+
+    QUnit.test('audio buffered uses audio buffer even when muxed', function(assert) {
+      loader.dispose();
+      loader = new SegmentLoader(LoaderCommonSettings.call(this, {
+        loaderType: 'audio'
+      }), {});
+
+      this.fakeMainTimelineChange();
+
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        const playlist = playlistWithDuration(40);
+
+        loader.playlist(playlist);
+        loader.load();
+        this.clock.tick(1);
+
+        // need to load content to have starting media
+        standardXHRResponse(this.requests.shift(), muxedSegment());
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        // mock the buffered values (easiest solution to test that segment-loader is
+        // calling the correct functions)
+        loader.sourceUpdater_.audioBuffered =
+          () => videojs.createTimeRanges([[2, 3], [5, 7]]);
+        loader.sourceUpdater_.videoBuffered =
+          () => videojs.createTimeRanges([[2, 6]]);
+        loader.sourceUpdater_.buffered =
+          () => videojs.createTimeRanges([[2, 3], [5, 6]]);
+
+        timeRangesEqual(
+          loader.buffered_(),
+          videojs.createTimeRanges([[2, 3], [5, 7]]),
+          'buffered reports audio buffered'
         );
       });
     });
