@@ -830,7 +830,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     if (!oldPlaylist || oldPlaylist.uri !== newPlaylist.uri) {
-      if (this.sourceUpdater_.canChangeType()) {
+      if (this.sourceUpdater_.canCodecSwitch()) {
         // codecs may change on playlist change
         this.startingMedia_ = null;
       }

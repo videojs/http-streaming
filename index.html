@@ -105,7 +105,7 @@
   <script>
     window.startDemo(function(player) {
 
-      window.changeRep = (i) => {
+      window.changeRep = function(i) {
         player.vhs.representations().forEach(function(rep, index) {
           rep.enabled(i === index);
         });

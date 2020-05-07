@@ -1290,7 +1290,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     }
 
     // source buffers are already created
-    if (this.sourceUpdater_.ready() && !this.sourceUpdater_.canChangeType()) {
+    if (this.sourceUpdater_.ready() && !this.sourceUpdater_.canCodecSwitch()) {
       return;
     }
 
@@ -1359,6 +1359,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
+    // TODO: we should set codecs to the output codecs of the muxer
+    // rather than the playlist codecs, when using the muxer.
+
     if (!codecs.video && !codecs.audio) {
       const error = 'Failed to create SourceBuffers. No compatible SourceBuffer ' +
         'configuration for the variant stream:' + media.resolvedUri;
@@ -1374,7 +1377,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     }
 
     if (this.sourceUpdater_.ready()) {
-      this.sourceUpdater_.changeType(codecs);
+      this.sourceUpdater_.codecSwitch(codecs);
     } else {
       try {
         this.sourceUpdater_.createSourceBuffers(codecs);
@@ -1392,7 +1395,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       }
     }
 
-    if (this.sourceUpdater_.canChangeType()) {
+    if (this.sourceUpdater_.canCodecSwitch()) {
       return;
     }
 

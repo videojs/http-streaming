@@ -6,6 +6,19 @@ import logger from './util/logger';
 import noop from './util/noop';
 import { bufferIntersection } from './ranges.js';
 import {getMimeForCodec} from '@videojs/vhs-utils/dist/codecs.js';
+import window from 'global/window';
+
+const bufferTypes = [
+  'video',
+  'audio'
+];
+const toTitleCase = function(string) {
+  if (typeof string !== 'string') {
+    return string;
+  }
+
+  return string.replace(/./, (w) => w.toUpperCase());
+};
 
 const updating = (type, sourceUpdater) => {
   const sourceBuffer = sourceUpdater[`${type}Buffer`];
@@ -102,9 +115,33 @@ const shiftQueue = (type, sourceUpdater) => {
   sourceUpdater.queuePending[type] = queueEntry;
 };
 
+const cleanupBuffer = (type, sourceUpdater) => {
+  const buffer = sourceUpdater[`${type}Buffer`];
+  const titleType = toTitleCase(type);
+
+  if (!buffer) {
+    return;
+  }
+
+  buffer.removeEventListener('updateend', sourceUpdater[`on${titleType}UpdateEnd_`]);
+  buffer.removeEventListener('error', sourceUpdater[`on${titleType}Error_`]);
+
+  sourceUpdater.codecs[type] = null;
+  sourceUpdater[`${type}Buffer`] = null;
+};
+
+const inSourceBuffers = (mediaSource, sourceBuffer) => mediaSource && sourceBuffer &&
+  Array.prototype.indexOf.call(mediaSource.sourceBuffers, sourceBuffer) !== -1;
+
 const actions = {
   appendBuffer: (bytes, segmentInfo) => (type, sourceUpdater) => {
     const sourceBuffer = sourceUpdater[`${type}Buffer`];
+
+    // can't do anything if the media source / source buffer is null
+    // or the media source does not contain this source buffer.
+    if (!inSourceBuffers(sourceUpdater.mediaSource, sourceBuffer)) {
+      return;
+    }
 
     sourceUpdater.logger_(`Appending segment ${segmentInfo.mediaIndex}'s ${bytes.length} bytes to ${type}Buffer`);
 
@@ -113,13 +150,23 @@ const actions = {
   remove: (start, end) => (type, sourceUpdater) => {
     const sourceBuffer = sourceUpdater[`${type}Buffer`];
 
-    sourceBuffer.removing = true;
+    // can't do anything if the media source / source buffer is null
+    // or the media source does not contain this source buffer.
+    if (!inSourceBuffers(sourceUpdater.mediaSource, sourceBuffer)) {
+      return;
+    }
 
     sourceUpdater.logger_(`Removing ${start} to ${end} from ${type}Buffer`);
     sourceBuffer.remove(start, end);
   },
   timestampOffset: (offset) => (type, sourceUpdater) => {
     const sourceBuffer = sourceUpdater[`${type}Buffer`];
+
+    // can't do anything if the media source / source buffer is null
+    // or the media source does not contain this source buffer.
+    if (!inSourceBuffers(sourceUpdater.mediaSource, sourceBuffer)) {
+      return;
+    }
 
     sourceUpdater.logger_(`Setting ${type}timestampOffset to ${offset}`);
 
@@ -148,12 +195,62 @@ const actions = {
       videojs.log.warn('Failed to set media source duration', e);
     }
   },
-  changeType: (codec) => (type, sourceUpdater) => {
+  abort: () => (type, sourceUpdater) => {
     const sourceBuffer = sourceUpdater[`${type}Buffer`];
 
-    sourceUpdater.logger_(`changing ${type} codec from ${sourceUpdater.codecs[type]} to ${codec}`);
+    // can't do anything if the media source / source buffer is null
+    // or the media source does not contain this source buffer.
+    if (!inSourceBuffers(sourceUpdater.mediaSource, sourceBuffer)) {
+      return;
+    }
 
-    sourceBuffer.changeType(codec);
+    sourceUpdater.logger_(`calling abort on ${type}Buffer`);
+    try {
+      sourceBuffer.abort();
+    } catch (e) {
+      videojs.log.warn(`Failed to abort on ${type}Buffer`, e);
+    }
+  },
+  addSourceBuffer: (type, codec) => (sourceUpdater) => {
+    const titleType = toTitleCase(type);
+    const mime = getMimeForCodec(codec);
+
+    sourceUpdater.logger_(`Adding ${type}Buffer with codec ${codec} to mediaSource`);
+
+    sourceUpdater[`${type}Buffer`] = sourceUpdater.mediaSource.addSourceBuffer(mime);
+    sourceUpdater[`${type}Buffer`].addEventListener('updateend', sourceUpdater[`on${titleType}UpdateEnd_`]);
+    sourceUpdater[`${type}Buffer`].addEventListener('error', sourceUpdater[`on${titleType}Error_`]);
+    sourceUpdater.codecs[type] = codec;
+  },
+  removeSourceBuffer: (type) => (sourceUpdater) => {
+    const sourceBuffer = sourceUpdater[`${type}Buffer`];
+
+    cleanupBuffer(type, sourceUpdater);
+
+    // can't do anything if the media source / source buffer is null
+    // or the media source does not contain this source buffer.
+    if (!inSourceBuffers(sourceUpdater.mediaSource, sourceBuffer)) {
+      return;
+    }
+
+    sourceUpdater.logger_(`Removing ${type}Buffer with codec ${sourceUpdater.codecs[type]} from mediaSource`);
+
+    sourceUpdater.mediaSource.removeSourceBuffer(sourceBuffer);
+  },
+  changeType: (codec) => (type, sourceUpdater) => {
+    const sourceBuffer = sourceUpdater[`${type}Buffer`];
+    const mime = getMimeForCodec(codec);
+
+    // can't do anything if the media source / source buffer is null
+    // or the media source does not contain this source buffer.
+    if (!inSourceBuffers(sourceUpdater.mediaSource, sourceBuffer)) {
+      return;
+    }
+
+    sourceUpdater.logger_(`changing ${type}Buffer codec from ${sourceUpdater.codecs[type]} to ${codec}`);
+
+    sourceBuffer.changeType(mime);
+    sourceUpdater.codecs[type] = codec;
   }
 };
 
@@ -175,7 +272,6 @@ const onUpdateend = (type, sourceUpdater) => (e) => {
   // if we encounter an updateend without a corresponding pending action from our queue
   // for that source buffer type, process the next action.
   if (sourceUpdater.queuePending[type]) {
-    sourceUpdater[`${type}Buffer`].removing = false;
     const doneFn = sourceUpdater.queuePending[type].doneFn;
 
     sourceUpdater.queuePending[type] = null;
@@ -214,6 +310,17 @@ export default class SourceUpdater extends videojs.EventTarget {
     };
     this.delayedAudioAppendQueue_ = [];
     this.videoAppendQueued_ = false;
+    this.codecs = {audio: null, video: null};
+    this.onVideoUpdateEnd_ = onUpdateend('video', this);
+    this.onAudioUpdateEnd_ = onUpdateend('audio', this);
+    this.onVideoError_ = (e) => {
+      // used for debugging
+      this.videoError_ = e;
+    };
+    this.onAudioError_ = (e) => {
+      // used for debugging
+      this.audioError_ = e;
+    };
   }
 
   ready() {
@@ -232,98 +339,194 @@ export default class SourceUpdater extends videojs.EventTarget {
       return;
     }
 
-    if (codecs.audio) {
-      const mime = getMimeForCodec(codecs.audio);
-
-      this.audioBuffer = this.mediaSource.addSourceBuffer(mime);
-      this.audioBuffer.removing = false;
-      this.logger_(`created SourceBuffer ${mime}`);
-    }
-
-    if (codecs.video) {
-      const mime = getMimeForCodec(codecs.video);
-
-      this.videoBuffer = this.mediaSource.addSourceBuffer(mime);
-      this.videoBuffer.removing = false;
-      this.logger_(`created SourceBuffer ${mime}`);
-    }
-
-    this.codecs = codecs;
-
-    this.trigger('ready');
-    this.start_();
+    // the intial codecSwitch will always be
+    // two add buffers.
+    this.codecSwitch(codecs, () => {
+      this.started_ = true;
+      this.trigger('ready');
+    });
   }
 
+  /**
+   * Add a type of source buffer to the media source.
+   *
+   * @param {string} type
+   *        The type of source buffer to add.
+   *
+   * @param {string} codec
+   *        The codec to add the source buffer with.
+   *
+   * @param {Function} [doneFn=noop]
+   *        The callback to run when addSourceBuffer is
+   *        complete
+   */
+  addSourceBuffer(type, codec, doneFn = noop) {
+    pushQueue({
+      type: 'mediaSource',
+      sourceUpdater: this,
+      action: actions.addSourceBuffer(type, codec),
+      name: 'addSourceBuffer',
+      doneFn
+    });
+  }
+
+  /**
+   * call abort on a source buffer.
+   *
+   * @param {string} type
+   *        The type of source buffer to call abort on.
+   */
+  abort(type) {
+    pushQueue({
+      type,
+      sourceUpdater: this,
+      action: actions.abort(type),
+      name: 'abort'
+    });
+  }
+
+  /**
+   * Call removeSourceBuffer and remove a specific type
+   * of source buffer on the mediaSource.
+   *
+   * @param {string} type
+   *        The type of source buffer to remove.
+   *
+   * @param {Function} [doneFn=noop]
+   *        The function to call when removeSourceBuffer is
+   *        complete.
+   */
+  removeSourceBuffer(type, doneFn = noop) {
+    if (!this.canRemoveSourceBuffer()) {
+      throw new Error('removeSourceBuffer is not supported!');
+    }
+
+    pushQueue({
+      type: 'mediaSource',
+      sourceUpdater: this,
+      action: actions.removeSourceBuffer(type),
+      name: 'removeSourceBuffer',
+      doneFn
+    });
+  }
+
+  /**
+   * Whether or not the removeSourceBuffer function is supported
+   * on the mediaSource.
+   *
+   * @return {boolean}
+   *          if removeSourceBuffer can be called.
+   */
+  canRemoveSourceBuffer() {
+    return window.MediaSource &&
+      window.MediaSource.prototype &&
+      typeof window.MediaSource.prototype.removeSourceBuffer === 'function';
+  }
+
+  /**
+   * Whether or not the changeType function is supported
+   * on our SourceBuffers.
+   *
+   * @return {boolean}
+   *         if changeType can be called.
+   */
   canChangeType() {
-    if (!this.ready()) {
-      return;
-    }
-
-    if (this.videoBuffer && typeof this.videoBuffer.changeType !== 'function') {
-      return false;
-    }
-
-    if (this.audioBuffer && typeof this.audioBuffer.changeType !== 'function') {
-      return false;
-    }
-
-    return true;
+    return window.SourceBuffer &&
+        window.SourceBuffer.prototype &&
+        typeof window.SourceBuffer.prototype.changeType === 'function';
   }
 
-  changeType(codecs) {
-    if (!this.ready() || !this.canChangeType()) {
-      return;
+  /**
+   * Call the changeType function on a source buffer, given the code and type.
+   *
+   * @param {string} type
+   *        The type of source buffer to call changeType on.
+   *
+   * @param {string} codec
+   *        The codec string to change type with on the source buffer.
+   *
+   * @param {Function} [doneFn=noop]
+   *        The function to call when changeType is complete.
+   */
+  changeType(type, codec, doneFn = noop) {
+    if (!this.canChangeType()) {
+      throw new Error('changeType is not supported!');
     }
 
+    pushQueue({
+      type,
+      sourceUpdater: this,
+      action: actions.changeType(codec),
+      name: 'changeType',
+      doneFn
+    });
+  }
+
+  /**
+   * Whether or not the codecSwitch function is supported.
+   *
+   * @return {boolean}
+   *         if codecSwitch can be called
+   */
+  canCodecSwitch() {
+    return this.canChangeType() || this.canRemoveSourceBuffer();
+  }
+
+  /**
+   * Switch the codecs on the source buffers using
+   * changeType or removeSourceBuffer/addSourceBuffer
+   *
+   * @param {Object} codecs
+   *        Codecs to switch to
+   *
+   * @param {Function} [doneFn=noop]
+   *        Function to call when codec switching is complete
+   */
+  codecSwitch(codecs, doneFn = noop) {
     if (!codecs || typeof codecs !== 'object') {
       return;
     }
+    let expected = 0;
+    let completed = 0;
+    const callbackWhenDone = () => {
+      completed++;
 
-    if (codecs.audio && codecs.audio !== this.codecs.audio) {
-      pushQueue({
-        type: 'audio',
-        sourceUpdater: this,
-        action: actions.changeType(getMimeForCodec(codecs.audio)),
-        name: 'changeType'
-      });
-    }
+      if (completed >= expected) {
+        doneFn();
+      }
+    };
 
-    if (codecs.video && codecs.video !== this.codecs.video) {
-      pushQueue({
-        type: 'video',
-        sourceUpdater: this,
-        action: actions.changeType(getMimeForCodec(codecs.video)),
-        name: 'changeType'
-      });
-    }
+    const types = [];
 
-    this.codecs = codecs;
+    // calculate expected callbacks first as some will
+    // run synchronously.
+    bufferTypes.forEach((type) => {
+      if (!codecs[type] || codecs[type] === this.codecs[type]) {
+        return;
+      }
+      types.push(type);
+      // if we already have a buffer and cannot change its type
+      // we have to removeSourceBuffer and then addSourceBuffer
+      // which takes two callbacks
+      expected += (this[`${type}Buffer`] && !this.canChangeType()) ? 2 : 1;
+    });
 
-    return codecs;
-  }
+    types.forEach((type) => {
+      const buffer = this[`${type}Buffer`];
+      const codec = codecs[type];
 
-  start_() {
-    this.started_ = true;
+      if (!buffer) {
+        this.addSourceBuffer(type, codec, callbackWhenDone);
+      } else if (buffer && this.canChangeType()) {
+        this.changeType(type, codec, callbackWhenDone);
+      } else if (buffer && this.canRemoveSourceBuffer()) {
+        this.removeSourceBuffer(type, callbackWhenDone);
+        this.addSourceBuffer(type, codec, callbackWhenDone);
+      }
+    });
 
-    if (this.audioBuffer) {
-      this.onAudioUpdateEnd_ = onUpdateend('audio', this);
-      this.audioBuffer.addEventListener('updateend', this.onAudioUpdateEnd_);
-      this.onAudioError_ = (e) => {
-        // used for debugging
-        this.audioError_ = e;
-      };
-      this.audioBuffer.addEventListener('error', this.onAudioError_);
-      shiftQueue('audio', this);
-    }
-    if (this.videoBuffer) {
-      this.onVideoUpdateEnd_ = onUpdateend('video', this);
-      this.videoBuffer.addEventListener('updateend', this.onVideoUpdateEnd_);
-      this.onVideoError_ = (e) => {
-        // used for debugging
-        this.videoError_ = e;
-      };
-      this.videoBuffer.addEventListener('error', this.onVideoError_);
-      shiftQueue('video', this);
+    if (expected === 0) {
+      doneFn();
     }
   }
 
@@ -368,28 +571,69 @@ export default class SourceUpdater extends videojs.EventTarget {
     }
   }
 
+  /**
+   * Get the video buffers buffered timerange.
+   *
+   * @return {TimeRange}
+   *         The video buffers buffered time range
+   */
   audioBuffered() {
-    return this.audioBuffer && this.audioBuffer.buffered ? this.audioBuffer.buffered :
+    // no media source/source buffer or it isn't in the media sources
+    // source buffer list
+    if (!inSourceBuffers(this.mediaSource, this.audioBuffer)) {
+      return videojs.createTimeRange();
+    }
+
+    return this.audioBuffer.buffered ? this.audioBuffer.buffered :
       videojs.createTimeRange();
   }
 
+  /**
+   * Get the video buffers buffered timerange.
+   *
+   * @return {TimeRange}
+   *         The video buffers buffered time range
+   */
   videoBuffered() {
-    return this.videoBuffer && this.videoBuffer.buffered ? this.videoBuffer.buffered :
+    // no media source/source buffer or it isn't in the media sources
+    // source buffer list
+    if (!inSourceBuffers(this.mediaSource, this.videoBuffer)) {
+      return videojs.createTimeRange();
+    }
+    return this.videoBuffer.buffered ? this.videoBuffer.buffered :
       videojs.createTimeRange();
   }
 
+  /**
+   * Get a combined video/audio buffers buffered timerange.
+   *
+   * @return {TimeRange}
+   *         the combined time range
+   */
   buffered() {
-    if (this.audioBuffer && !this.videoBuffer) {
+    const video = inSourceBuffers(this.mediaSource, this.videoBuffer) ? this.videoBuffer : null;
+    const audio = inSourceBuffers(this.mediaSource, this.audioBuffer) ? this.audioBuffer : null;
+
+    if (audio && !video) {
       return this.audioBuffered();
     }
 
-    if (this.videoBuffer && !this.audioBuffer) {
+    if (video && !audio) {
       return this.videoBuffered();
     }
 
     return bufferIntersection(this.audioBuffered(), this.videoBuffered());
   }
 
+  /**
+   * Add a callback to the queue that will set druation on the mediaSource.
+   *
+   * @param {number} duration
+   *        The duration to set
+   *
+   * @param {Function} [doneFn]
+   *        function to run after duration has been set.
+   */
   setDuration(duration, doneFn = noop) {
     // In order to set the duration on the media source, it's necessary to wait for all
     // source buffers to no longer be updating. "If the updating attribute equals true on
@@ -404,6 +648,16 @@ export default class SourceUpdater extends videojs.EventTarget {
     });
   }
 
+  /**
+   * Add a mediaSource endOfStream call to the queue
+   *
+   * @param {Error} [error]
+   *        Call endOfStream with an error
+   *
+   * @param {Function} [doneFn]
+   *        A function that should be called when the
+   *        endOfStream call has finished.
+   */
   endOfStream(error = null, doneFn = noop) {
     if (typeof error !== 'string') {
       error = undefined;
@@ -525,26 +779,36 @@ export default class SourceUpdater extends videojs.EventTarget {
     return this.videoTimestampOffset_;
   }
 
+  /**
+   * Add a function to the queue that will be called
+   * when it is it's turn to run in the audio queue.
+   *
+   * @param {Function} callback
+   *        The callback to queue.
+   */
   audioQueueCallback(callback) {
-    if (this.audioBuffer) {
-      pushQueue({
-        type: 'audio',
-        sourceUpdater: this,
-        action: actions.callback(callback),
-        name: 'callback'
-      });
-    }
+    pushQueue({
+      type: 'audio',
+      sourceUpdater: this,
+      action: actions.callback(callback),
+      name: 'callback'
+    });
   }
 
+  /**
+   * Add a function to the queue that will be called
+   * when it is it's turn to run in the video queue.
+   *
+   * @param {Function} callback
+   *        The callback to queue.
+   */
   videoQueueCallback(callback) {
-    if (this.videoBuffer) {
-      pushQueue({
-        type: 'video',
-        sourceUpdater: this,
-        action: actions.callback(callback),
-        name: 'callback'
-      });
-    }
+    pushQueue({
+      type: 'video',
+      sourceUpdater: this,
+      action: actions.callback(callback),
+      name: 'callback'
+    });
   }
 
   /**
@@ -552,54 +816,14 @@ export default class SourceUpdater extends videojs.EventTarget {
    */
   dispose() {
     this.trigger('dispose');
-    const audioDisposeFn = () => {
-      if (this.mediaSource.readyState === 'open') {
-        // ie 11 likes to throw on abort with InvalidAccessError or InvalidStateError
-        // dom exceptions
-        try {
-          this.audioBuffer.abort();
-        } catch (e) {
-          videojs.log.warn('Failed to call abort on audio buffer', e);
-        }
-      }
-      this.audioBuffer.removeEventListener('updateend', this.onAudioUpdateEnd_);
-      this.audioBuffer.removeEventListener('updateend', audioDisposeFn);
-      this.audioBuffer.removeEventListener('error', this.onAudioError_);
-      this.audioBuffer = null;
-    };
-    const videoDisposeFn = () => {
-      if (this.mediaSource.readyState === 'open') {
-        // ie 11 likes to throw on abort with InvalidAccessError or InvalidStateError
-        // dom exceptions
-        try {
-          this.videoBuffer.abort();
-        } catch (e) {
-          videojs.log.warn('Failed to call abort on video buffer', e);
-        }
-      }
-      this.videoBuffer.removeEventListener('updateend', this.onVideoUpdateEnd_);
-      this.videoBuffer.removeEventListener('error', this.onVideoError_);
-      this.videoBuffer.removeEventListener('updateend', videoDisposeFn);
-      this.videoBuffer = null;
-    };
-
-    // TODO: can we just use "updating" rather than removing?
-    //       this was implemented in https://github.com/videojs/http-streaming/pull/442
-    if (this.audioBuffer) {
-      if (this.audioBuffer.removing) {
-        this.audioBuffer.addEventListener('updateend', audioDisposeFn);
+    bufferTypes.forEach((type) => {
+      this.abort(type);
+      if (this.canRemoveSourceBuffer()) {
+        this.removeSourceBuffer(type);
       } else {
-        audioDisposeFn();
+        this[`${type}QueueCallback`](() => cleanupBuffer(type, this));
       }
-    }
-
-    if (this.videoBuffer) {
-      if (this.videoBuffer.removing) {
-        this.videoBuffer.addEventListener('updateend', videoDisposeFn);
-      } else {
-        videoDisposeFn();
-      }
-    }
+    });
 
     this.videoAppendQueued_ = false;
     this.delayedAudioAppendQueue_.length = 0;
