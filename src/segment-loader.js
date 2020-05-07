@@ -646,9 +646,9 @@ export default class SegmentLoader extends videojs.EventTarget {
       return videojs.createTimeRanges();
     }
 
-    const { hasAudio, hasVideo } = this.startingMedia_;
-
     if (this.loaderType_ === 'main') {
+      const { hasAudio, hasVideo } = this.startingMedia_;
+
       if (hasVideo && hasAudio && !this.audioDisabled_) {
         return this.sourceUpdater_.buffered();
       }
