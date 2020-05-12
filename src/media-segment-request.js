@@ -384,6 +384,7 @@ const handleSegmentBytes = ({
   // because we can only blacklist a playlist and abort requests
   // by codec after trackinfo triggers.
   if (isLikelyFmp4MediaSegment(bytesAsUint8Array)) {
+
     segment.isFmp4 = true;
     const {tracks} = segment.map;
 

@@ -237,7 +237,7 @@ const actions = {
 
     sourceUpdater.mediaSource.removeSourceBuffer(sourceBuffer);
   },
-  changeType: (codec) => (type, sourceUpdater) => {
+  changeType: (type, codec) => (sourceUpdater) => {
     const sourceBuffer = sourceUpdater[`${type}Buffer`];
     const mime = getMimeForCodec(codec);
 
@@ -324,7 +324,7 @@ export default class SourceUpdater extends videojs.EventTarget {
   }
 
   ready() {
-    return !!(this.audioBuffer || this.videoBuffer);
+    return this.started_;
   }
 
   createSourceBuffers(codecs) {
@@ -334,7 +334,14 @@ export default class SourceUpdater extends videojs.EventTarget {
     }
 
     if (this.mediaSource.readyState === 'closed') {
-      this.sourceopenListener_ = this.createSourceBuffers.bind(this, codecs);
+      if (this.sourceopenListener_) {
+        this.mediaSource.removeEventListener('sourceopen', this.sourceopenListener_);
+      }
+      this.sourceopenListener_ = () => {
+        this.sourceopenListener_ = null;
+        this.mediaSource.removeEventListener('sourceopen', this.sourceopenListener_);
+        this.createSourceBuffers(this, codecs);
+      };
       this.mediaSource.addEventListener('sourceopen', this.sourceopenListener_);
       return;
     }
@@ -452,11 +459,14 @@ export default class SourceUpdater extends videojs.EventTarget {
     if (!this.canChangeType()) {
       throw new Error('changeType is not supported!');
     }
+    if (!codec || codec === this.codecs[type]) {
+      return doneFn();
+    }
 
     pushQueue({
-      type,
+      type: 'mediaSource',
       sourceUpdater: this,
-      action: actions.changeType(codec),
+      action: actions.changeType(type, codec),
       name: 'changeType',
       doneFn
     });
@@ -469,7 +479,7 @@ export default class SourceUpdater extends videojs.EventTarget {
    *         if codecSwitch can be called
    */
   canCodecSwitch() {
-    return this.canChangeType() || this.canRemoveSourceBuffer();
+    return this.canChangeType();
   }
 
   /**
@@ -483,10 +493,10 @@ export default class SourceUpdater extends videojs.EventTarget {
    *        Function to call when codec switching is complete
    */
   codecSwitch(codecs, doneFn = noop) {
-    if (!codecs || typeof codecs !== 'object') {
-      return;
+    if (!codecs || typeof codecs !== 'object' || Object.keys(codecs).length === 0) {
+      return doneFn();
     }
-    let expected = 0;
+    const expected = Object.keys(codecs).length;
     let completed = 0;
     const callbackWhenDone = () => {
       completed++;
@@ -496,38 +506,17 @@ export default class SourceUpdater extends videojs.EventTarget {
       }
     };
 
-    const types = [];
-
-    // calculate expected callbacks first as some will
-    // run synchronously.
-    bufferTypes.forEach((type) => {
-      if (!codecs[type] || codecs[type] === this.codecs[type]) {
-        return;
-      }
-      types.push(type);
-      // if we already have a buffer and cannot change its type
-      // we have to removeSourceBuffer and then addSourceBuffer
-      // which takes two callbacks
-      expected += (this[`${type}Buffer`] && !this.canChangeType()) ? 2 : 1;
-    });
-
-    types.forEach((type) => {
-      const buffer = this[`${type}Buffer`];
+    Object.keys(codecs).forEach((type) => {
       const codec = codecs[type];
 
-      if (!buffer) {
-        this.addSourceBuffer(type, codec, callbackWhenDone);
-      } else if (buffer && this.canChangeType()) {
+      if (!this.ready()) {
+        return this.addSourceBuffer(type, codec, callbackWhenDone);
+      }
+
+      if (this.canChangeType()) {
         this.changeType(type, codec, callbackWhenDone);
-      } else if (buffer && this.canRemoveSourceBuffer()) {
-        this.removeSourceBuffer(type, callbackWhenDone);
-        this.addSourceBuffer(type, codec, callbackWhenDone);
       }
     });
-
-    if (expected === 0) {
-      doneFn();
-    }
   }
 
   /**
@@ -828,7 +817,9 @@ export default class SourceUpdater extends videojs.EventTarget {
     this.videoAppendQueued_ = false;
     this.delayedAudioAppendQueue_.length = 0;
 
-    this.mediaSource.removeEventListener('sourceopen', this.sourceopenListener_);
+    if (this.sourceopenListener_) {
+      this.mediaSource.removeEventListener('sourceopen', this.sourceopenListener_);
+    }
 
     this.off();
   }

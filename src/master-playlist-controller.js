@@ -306,6 +306,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       if (!updatedPlaylist) {
         let selectedMedia;
 
+        this.excludeUnsupportedVariants_();
+
         if (this.enableLowInitialPlaylist) {
           selectedMedia = this.selectInitialPlaylist();
         }
@@ -545,9 +547,23 @@ export class MasterPlaylistController extends videojs.EventTarget {
       }, ABORT_EARLY_BLACKLIST_SECONDS);
     });
 
-    this.mainSegmentLoader_.on('trackinfo', () => {
-      this.tryToCreateSourceBuffers_();
-    });
+    const updateCodecs = () => {
+      if (!this.sourceUpdater_.ready()) {
+        return this.tryToCreateSourceBuffers_();
+      }
+
+      const codecs = this.getCodecsOrExclude_();
+
+      // no codecs, excluded
+      if (!codecs) {
+        return;
+      }
+
+      this.sourceUpdater_.codecSwitch(codecs);
+    };
+
+    this.mainSegmentLoader_.on('trackinfo', updateCodecs);
+    this.audioSegmentLoader_.on('trackinfo', updateCodecs);
 
     this.mainSegmentLoader_.on('fmp4', () => {
       if (!this.triggeredFmp4Usage) {
@@ -568,10 +584,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.audioSegmentLoader_.on('ended', () => {
       this.logger_('audioSegmentLoader ended');
       this.onEndOfStream();
-    });
-
-    this.audioSegmentLoader_.on('trackinfo', () => {
-      this.tryToCreateSourceBuffers_();
     });
   }
 
@@ -732,17 +744,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // Only attempt to create the source buffer if none already exist.
     // handleSourceOpen is also called when we are "re-opening" a source buffer
     // after `endOfStream` has been called (in response to a seek for instance)
-    try {
-      this.tryToCreateSourceBuffers_();
-    } catch (e) {
-      videojs.log.warn('Failed to create Source Buffers', e);
-      if (this.mediaSource.readyState !== 'open') {
-        this.trigger('error');
-      } else {
-        this.sourceUpdater_.endOfStream('decode');
-      }
-      return;
-    }
+    this.tryToCreateSourceBuffers_();
 
     // if autoplay is enabled, begin playback. This is duplicative of
     // code in video.js but is required because play() must be invoked
@@ -1278,64 +1280,42 @@ export class MasterPlaylistController extends videojs.EventTarget {
     return this.masterPlaylistLoader_.media() || this.initialMedia_;
   }
 
-  /**
-   * Create source buffers and exlude any incompatible renditions.
-   *
-   * @private
-   */
-  tryToCreateSourceBuffers_() {
-    // media source is not ready yet
-    if (this.mediaSource.readyState !== 'open') {
-      return;
-    }
+  isMediaReady_(type) {
+    return !!this[`${type}SegmentLoader_`].startingMedia_;
+  }
 
-    // source buffers are already created
-    if (this.sourceUpdater_.ready() && !this.sourceUpdater_.canCodecSwitch()) {
-      return;
-    }
-
-    const mainStartingMedia = this.mainSegmentLoader_.startingMedia_;
-    const hasAltAudio = !!this.mediaTypes_.AUDIO.activePlaylistLoader;
-
-    // Because a URI is required for EXT-X-STREAM-INF tags (therefore, there must always
-    // be a playlist, even for audio only playlists with alt audio), a segment will always
-    // be downloaded for the main segment loader, and the track info parsed from it.
-    // Therefore we must always wait for the segment loader's track info.
-    if (!mainStartingMedia || (hasAltAudio && !this.audioSegmentLoader_.startingMedia_)) {
-      return;
-    }
-    const audioStartingMedia = this.audioSegmentLoader_ && this.audioSegmentLoader_.startingMedia_ || {};
-    const media = this.masterPlaylistLoader_.media();
-    const playlistCodecs = codecsForPlaylist(this.masterPlaylistLoader_.master, media);
+  getCodecsOrExclude_() {
+    const mainMedia = this.mainSegmentLoader_.startingMedia_ || {};
+    const audioMedia = this.audioSegmentLoader_.startingMedia_ || {};
+    const isFmp4 = mainMedia.isFmp4 || audioMedia.isFmp4;
+    const playlistCodecs = codecsForPlaylist(this.master(), this.media());
     const codecs = {};
+    const usingAudioLoader = !!this.mediaTypes_.AUDIO.activePlaylistLoader;
 
-    // priority of codecs: playlist -> mux.js parsed codecs -> default
-    if (mainStartingMedia.isMuxed) {
-      codecs.video = playlistCodecs.video || mainStartingMedia.videoCodec || DEFAULT_VIDEO_CODEC;
-      codecs.video += ',' + (playlistCodecs.audio || mainStartingMedia.audioCodec || DEFAULT_AUDIO_CODEC);
-      if (hasAltAudio) {
-        codecs.audio = playlistCodecs.audio ||
-          audioStartingMedia.audioCodec ||
-          DEFAULT_AUDIO_CODEC;
-      }
-    } else {
-      if (mainStartingMedia.hasAudio || hasAltAudio) {
-        codecs.audio = playlistCodecs.audio ||
-          mainStartingMedia.audioCodec ||
-          audioStartingMedia.audioCodec ||
-          DEFAULT_AUDIO_CODEC;
-      }
+    if (mainMedia.hasVideo) {
+      codecs.video = playlistCodecs.video || mainMedia.videoCodec || DEFAULT_VIDEO_CODEC;
+    }
 
-      if (mainStartingMedia.hasVideo) {
-        codecs.video =
-          playlistCodecs.video ||
-          mainStartingMedia.videoCodec ||
-          DEFAULT_VIDEO_CODEC;
-      }
+    if (mainMedia.isMuxed) {
+      codecs.video += `,${playlistCodecs.audio || mainMedia.audioCodec || DEFAULT_AUDIO_CODEC}`;
+    }
+
+    if ((mainMedia.hasAudio && !mainMedia.isMuxed) || audioMedia.hasAudio) {
+      codecs.audio = playlistCodecs.audio || mainMedia.audioCodec || audioMedia.audioCodec || DEFAULT_AUDIO_CODEC;
+    }
+
+    // no codecs, no playback.
+    if (!codecs.audio && !codecs.video) {
+      this.blacklistCurrentPlaylist({
+        message: 'Could not determine codecs for playlist.',
+        blacklistDuration: Infinity
+      });
+
+      return;
     }
 
     // fmp4 relies on browser support, while ts relies on muxer support
-    const supportFunction = mainStartingMedia.isFmp4 ? browserSupportsCodec : muxerSupportsCodec;
+    const supportFunction = isFmp4 ? browserSupportsCodec : muxerSupportsCodec;
     const unsupportedCodecs = [];
 
     ['audio', 'video'].forEach(function(type) {
@@ -1344,60 +1324,83 @@ export class MasterPlaylistController extends videojs.EventTarget {
       }
     });
 
+    if (usingAudioLoader && unsupportedCodecs.indexOf(codecs.audio) !== -1) {
+      const audioGroup = this.media().attributes.AUDIO;
+
+      if (audioGroup) {
+        let count = 0;
+
+        this.master().playlists.forEach(variant => {
+          const _audioGroup = variant.attributes && variant.attributes.AUDIO;
+
+          if (_audioGroup === audioGroup) {
+            variant.excludeUntil = Infinity;
+            count++;
+          }
+        });
+
+        this.logger_(`excluding ${count} playlists using audio group ${audioGroup} and unsupported codec ${codecs.audio}`);
+      }
+    }
+
     // if we have any unsupported codecs blacklist this playlist.
     if (unsupportedCodecs.length) {
-      const supporter = mainStartingMedia.isFmp4 ? 'browser' : 'muxer';
-
-      // reset startingMedia_ when the intial playlist is blacklisted.
-      this.mainSegmentLoader_.startingMedia_ = void 0;
+      const supporter = isFmp4 ? 'browser' : 'muxer';
 
       this.blacklistCurrentPlaylist({
-        playlist: media,
         message: `${supporter} does not support codec(s): "${unsupportedCodecs.join(',')}".`,
-        internal: true
-      }, Infinity);
+        blacklistDuration: Infinity
+      });
       return;
     }
 
-    // TODO: we should set codecs to the output codecs of the muxer
-    // rather than the playlist codecs, when using the muxer.
+    return codecs;
+  }
 
-    if (!codecs.video && !codecs.audio) {
-      const error = 'Failed to create SourceBuffers. No compatible SourceBuffer ' +
-        'configuration for the variant stream:' + media.resolvedUri;
+  /**
+   * Blacklists playlists with codecs that are unsupported by the browser and muxer.
+   */
+  excludeUnsupportedVariants_() {
+    this.master().playlists.forEach(variant => {
+      const codecs = variant.attributes && variant.attributes.CODECS;
 
-      videojs.log.warn(error);
-      this.error = error;
-
-      if (this.mediaSource.readyState !== 'open') {
-        this.trigger('error');
-      } else {
-        this.sourceUpdater_.endOfStream('decode');
+      // codec cannot be supported, as neither the browser or muxer supports it
+      if (codecs && !browserSupportsCodec(codecs) && !muxerSupportsCodec(codecs)) {
+        variant.excludeUntil = Infinity;
+        this.logger_(`excluding ${variant.id}: codec(s) "${codecs}" are not supported by the muxer or browser`);
       }
-    }
+    });
+  }
 
-    if (this.sourceUpdater_.ready()) {
-      this.sourceUpdater_.codecSwitch(codecs);
-    } else {
-      try {
-        this.sourceUpdater_.createSourceBuffers(codecs);
-      } catch (e) {
-        const error = 'Failed to create SourceBuffers: ' + e;
-
-        videojs.log.warn(error);
-        this.error = error;
-        if (this.mediaSource.readyState !== 'open') {
-          this.trigger('error');
-        } else {
-          this.sourceUpdater_.endOfStream('decode');
-        }
-        return;
-      }
-    }
-
-    if (this.sourceUpdater_.canCodecSwitch()) {
+  /**
+   * Create source buffers and exlude any incompatible renditions.
+   *
+   * @private
+   */
+  tryToCreateSourceBuffers_() {
+    // media source is not ready yet or sourceBuffers are already
+    // created.
+    if (this.mediaSource.readyState !== 'open' || this.sourceUpdater_.ready()) {
       return;
     }
+
+    const usingAudioLoader = !!this.mediaTypes_.AUDIO.activePlaylistLoader;
+
+    // one or both loaders has not loaded sufficently to load
+    // starting media information so that be can create
+    // source buffers when we don't have a codec on the playlist.
+    if (!this.isMediaReady_('main') || (usingAudioLoader && !this.isMediaReady_('audio'))) {
+      return;
+    }
+
+    const codecs = this.getCodecsOrExclude_();
+
+    // playlist was excluded, do nothing.
+    if (!codecs) {
+      return;
+    }
+
+    this.sourceUpdater_.createSourceBuffers(codecs);
 
     const codecString = [codecs.video, codecs.audio].filter(Boolean).join(',');
 
@@ -1419,6 +1422,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * @private
    */
   excludeIncompatibleVariants_(codecString) {
+    // Do not exclude incompatible variants by codec
+    // if we can switch codecs on the sourcebuffer
+    if (this.sourceUpdater_.canCodecSwitch()) {
+      return;
+    }
     const codecs = parseCodecs(codecString);
     const codecCount = Object.keys(codecs).length;
 
