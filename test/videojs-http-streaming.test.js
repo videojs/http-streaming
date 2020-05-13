@@ -2839,6 +2839,52 @@ QUnit.test(
   }
 );
 
+QUnit.test('has no effect if native HLS is available and browser is Safari', function(assert) {
+  const Html5 = videojs.getTech('Html5');
+  const oldHtml5CanPlaySource = Html5.canPlaySource;
+  const origIsAnySafari = videojs.browser.IS_ANY_SAFARI;
+
+  videojs.browser.IS_ANY_SAFARI = true;
+  Html5.canPlaySource = () => true;
+  Hls.supportsNativeHls = true;
+  const player = createPlayer();
+
+  player.src({
+    src: 'http://example.com/manifest/master.m3u8',
+    type: 'application/x-mpegURL'
+  });
+
+  this.clock.tick(1);
+
+  assert.ok(!player.tech_.hls, 'did not load hls tech');
+  player.dispose();
+  Html5.canPlaySource = oldHtml5CanPlaySource;
+  videojs.browser.IS_ANY_SAFARI = origIsAnySafari;
+});
+
+QUnit.test('loads if native HLS is available but browser is not Safari', function(assert) {
+  const Html5 = videojs.getTech('Html5');
+  const oldHtml5CanPlaySource = Html5.canPlaySource;
+  const origIsAnySafari = videojs.browser.IS_ANY_SAFARI;
+
+  videojs.browser.IS_ANY_SAFARI = false;
+  Html5.canPlaySource = () => true;
+  Hls.supportsNativeHls = true;
+  const player = createPlayer();
+
+  player.src({
+    src: 'http://example.com/manifest/master.m3u8',
+    type: 'application/x-mpegURL'
+  });
+
+  this.clock.tick(1);
+
+  assert.ok(player.tech_.hls, 'did not load hls tech');
+  player.dispose();
+  Html5.canPlaySource = oldHtml5CanPlaySource;
+  videojs.browser.IS_ANY_SAFARI = origIsAnySafari;
+});
+
 QUnit.test(
   'loads if native HLS is available and override is set locally',
   function(assert) {
