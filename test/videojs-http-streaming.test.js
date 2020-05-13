@@ -2879,7 +2879,7 @@ QUnit.test('loads if native HLS is available but browser is not Safari', functio
 
   this.clock.tick(1);
 
-  assert.ok(player.tech_.hls, 'did not load hls tech');
+  assert.ok(player.tech_.hls, 'loaded hls tech');
   player.dispose();
   Html5.canPlaySource = oldHtml5CanPlaySource;
   videojs.browser.IS_ANY_SAFARI = origIsAnySafari;
