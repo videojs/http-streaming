@@ -2839,26 +2839,6 @@ QUnit.test(
   }
 );
 
-QUnit.test('has no effect if native HLS is available', function(assert) {
-  const Html5 = videojs.getTech('Html5');
-  const oldHtml5CanPlaySource = Html5.canPlaySource;
-
-  Html5.canPlaySource = () => true;
-  Hls.supportsNativeHls = true;
-  const player = createPlayer();
-
-  player.src({
-    src: 'http://example.com/manifest/master.m3u8',
-    type: 'application/x-mpegURL'
-  });
-
-  this.clock.tick(1);
-
-  assert.ok(!player.tech_.hls, 'did not load hls tech');
-  player.dispose();
-  Html5.canPlaySource = oldHtml5CanPlaySource;
-});
-
 QUnit.test(
   'loads if native HLS is available and override is set locally',
   function(assert) {
