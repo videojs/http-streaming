@@ -306,8 +306,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
       if (!updatedPlaylist) {
         let selectedMedia;
 
-        this.excludeUnsupportedVariants_();
-
         if (this.enableLowInitialPlaylist) {
           selectedMedia = this.selectInitialPlaylist();
         }
@@ -1307,10 +1305,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // no codecs, no playback.
     if (!codecs.audio && !codecs.video) {
       this.blacklistCurrentPlaylist({
+        playlist: this.media(),
         message: 'Could not determine codecs for playlist.',
         blacklistDuration: Infinity
       });
-
       return;
     }
 
@@ -1338,8 +1336,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
             count++;
           }
         });
-
-        this.logger_(`excluding ${count} playlists using audio group ${audioGroup} and unsupported codec ${codecs.audio}`);
+        this.logger_(`excluding ${count} playlists using audio group ${audioGroup} and unsupported codec "${codecs.audio}"`);
       }
     }
 
@@ -1348,28 +1345,41 @@ export class MasterPlaylistController extends videojs.EventTarget {
       const supporter = isFmp4 ? 'browser' : 'muxer';
 
       this.blacklistCurrentPlaylist({
+        playlist: this.media(),
+        internal: true,
         message: `${supporter} does not support codec(s): "${unsupportedCodecs.join(',')}".`,
         blacklistDuration: Infinity
       });
       return;
     }
+    if (this.sourceUpdater_.ready() && !this.sourceUpdater_.canCodecSwitch()) {
+      const switchMessages = [];
 
-    return codecs;
-  }
+      ['audio', 'video'].forEach((type) => {
+        // since codecs on sourceUpdater default to null
+        // we have to set them to undefined for === with
+        // codecs that we are switching to.
+        const newCodec = parseCodecs(this.sourceUpdater_.codecs[type]).type;
+        const oldCodec = parseCodecs(codecs[type]).type;
 
-  /**
-   * Blacklists playlists with codecs that are unsupported by the browser and muxer.
-   */
-  excludeUnsupportedVariants_() {
-    this.master().playlists.forEach(variant => {
-      const codecs = variant.attributes && variant.attributes.CODECS;
+        if (newCodec && oldCodec && newCodec.toLowerCase() !== oldCodec.toLowerCase()) {
+          switchMessages.push(`"${this.sourceUpdater_.codecs[type]}" -> "${codecs[type]}"`);
+        }
+      });
 
-      // codec cannot be supported, as neither the browser or muxer supports it
-      if (codecs && !browserSupportsCodec(codecs) && !muxerSupportsCodec(codecs)) {
-        variant.excludeUntil = Infinity;
-        this.logger_(`excluding ${variant.id}: codec(s) "${codecs}" are not supported by the muxer or browser`);
+      if (switchMessages.length) {
+        this.blacklistCurrentPlaylist({
+          message: `Browser does not support codec switching from: ${switchMessages.join(', ')}.`,
+          blacklistDuration: Infinity,
+          internal: true
+        });
+        return;
       }
-    });
+    }
+
+    // TODO: when using the muxer shouldn't we just return
+    // the codecs that the muxer outputs?
+    return codecs;
   }
 
   /**
@@ -1397,6 +1407,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     // playlist was excluded, do nothing.
     if (!codecs) {
+      this.mainSegmentLoader_.startingMedia_ = void 0;
+      this.mainSegmentLoader_.startingMedia_ = void 0;
       return;
     }
 
@@ -1422,11 +1434,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * @private
    */
   excludeIncompatibleVariants_(codecString) {
-    // Do not exclude incompatible variants by codec
-    // if we can switch codecs on the sourcebuffer
-    if (this.sourceUpdater_.canCodecSwitch()) {
-      return;
-    }
     const codecs = parseCodecs(codecString);
     const codecCount = Object.keys(codecs).length;
 
@@ -1461,24 +1468,30 @@ export class MasterPlaylistController extends videojs.EventTarget {
         variantCodecCount = Object.keys(variantCodecs).length;
       }
 
+      // TODO: we can support this by removing the
+      // old media source and creating a new one, but it will take some work.
       // The number of streams cannot change
       if (variantCodecCount !== codecCount) {
         blacklistReasons.push(`codec count "${variantCodecCount}" !== "${codecCount}"`);
         variant.excludeUntil = Infinity;
       }
 
-      // the video codec cannot change
-      if (variantCodecs.video && codecs.video &&
-        variantCodecs.video.type.toLowerCase() !== codecs.video.type.toLowerCase()) {
-        blacklistReasons.push(`video codec "${variantCodecs.video.type}" !== "${codecs.video.type}"`);
-        variant.excludeUntil = Infinity;
-      }
+      // only exclude playlsits by codec change, if codecs cannot switch
+      // during playback.
+      if (!this.sourceUpdater_.canCodecSwitch()) {
+        // the video codec cannot change
+        if (variantCodecs.video && codecs.video &&
+          variantCodecs.video.type.toLowerCase() !== codecs.video.type.toLowerCase()) {
+          blacklistReasons.push(`video codec "${variantCodecs.video.type}" !== "${codecs.video.type}"`);
+          variant.excludeUntil = Infinity;
+        }
 
-      // the audio codec cannot change
-      if (variantCodecs.audio && codecs.audio &&
-        variantCodecs.audio.type.toLowerCase() !== codecs.audio.type.toLowerCase()) {
-        variant.excludeUntil = Infinity;
-        blacklistReasons.push(`audio codec "${variantCodecs.audio.type}" !== "${codecs.audio.type}"`);
+        // the audio codec cannot change
+        if (variantCodecs.audio && codecs.audio &&
+          variantCodecs.audio.type.toLowerCase() !== codecs.audio.type.toLowerCase()) {
+          variant.excludeUntil = Infinity;
+          blacklistReasons.push(`audio codec "${variantCodecs.audio.type}" !== "${codecs.audio.type}"`);
+        }
       }
 
       if (blacklistReasons.length) {

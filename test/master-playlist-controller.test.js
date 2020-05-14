@@ -60,6 +60,7 @@ QUnit.module('MasterPlaylistController', {
     }
 
     this.oldTypeSupported = window.MediaSource.isTypeSupported;
+    this.oldChangeType = window.SourceBuffer.prototype.changeType;
 
     // force the HLS tech to run
     this.origSupportsNativeHls = videojs.Vhs.supportsNativeHls;
@@ -99,6 +100,7 @@ QUnit.module('MasterPlaylistController', {
     videojs.browser = this.oldBrowser;
     this.player.dispose();
     window.MediaSource.isTypeSupported = this.oldTypeSupported;
+    window.SourceBuffer.prototype.changeType = this.oldChangeType;
   }
 });
 
@@ -1343,6 +1345,7 @@ QUnit.test('blacklists switching from video-only playlists to video+audio', func
   });
 });
 
+// TODO: MOAR TEST
 QUnit.test('blacklists switching between playlists with different codecs', function(assert) {
   openMediaSource(this.player, this.clock);
 
@@ -1378,6 +1381,8 @@ QUnit.test('blacklists switching between playlists with different codecs', funct
   );
 
   const mpc = this.masterPlaylistController;
+
+  mpc.sourceUpdater_.canCodecSwitch = () => false;
 
   let debugLogs = [];
 
@@ -3670,25 +3675,11 @@ QUnit.test('Uses audio codec from audio playlist for demuxed content', function(
     assert.deepEqual(
       createSourceBufferCalls[0],
       {
-        video: 'avc1.foo.bar',
-        audio: 'mp4a.foo.bar'
+        video: 'avc1.4d400d',
+        audio: 'mp4a.40.2'
       },
       'passed codecs from playlist'
     );
-
-    const playlists = mpc.master().playlists;
-
-    assert.deepEqual(playlists[0], mpc.media(), '1st selected not blacklisted');
-    assert.equal(playlists[1].excludeUntil, Infinity, 'blacklisted 2nd: codecs incompatible with selected.');
-    assert.notOk(playlists[2].excludeUntil, '3rd not blacklisted: codecs compatable with selected');
-    assert.equal(playlists[3].excludeUntil, Infinity, 'blacklisted 4th: codecs incompatible with selected.');
-
-    const secondBlacklistIndex = messages.indexOf('VHS: MPC > blacklisting 1-placeholder-uri-1: video codec "hvc1" !== "avc1"');
-    const forthBlacklistIndex = messages.indexOf('VHS: MPC > blacklisting 3-placeholder-uri-3: video codec "av01" !== "avc1"');
-
-    assert.notEqual(secondBlacklistIndex, -1, '2nd codec blacklist is logged');
-    assert.notEqual(forthBlacklistIndex, -1, '4th codec blacklist is logged');
-
     videojs.log.debug = oldDebug;
     done();
   };

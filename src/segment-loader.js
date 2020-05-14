@@ -1481,21 +1481,21 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
+    if (this.checkForIllegalMediaSwitch(trackInfo)) {
+      return;
+    }
+
+    trackInfo = trackInfo || {};
+
     // When we have track info, determine what media types this loader is dealing with.
     // Guard against cases where we're not getting track info at all until we are
     // certain that all streams will provide it.
-    if (trackInfo && !shallowEqual(this.startingMedia_, trackInfo)) {
-      if (this.loaderType_ === 'main') {
-        this.sourceUpdater_.videoAppendQueued_ = false;
-      }
+    if ((trackInfo.hasVideo || trackInfo.hasAudio) && !shallowEqual(this.startingMedia_, trackInfo)) {
       this.logger_('trackinfo update', trackInfo);
       this.startingMedia_ = trackInfo;
       this.trigger('trackinfo');
     }
 
-    if (this.checkForIllegalMediaSwitch(trackInfo)) {
-      return;
-    }
   }
 
   handleTimingInfo_(simpleSegment, mediaType, timeType, time) {
@@ -1748,7 +1748,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
   handleData_(simpleSegment, result) {
     if (this.checkForAbort_(simpleSegment.requestId) ||
-        this.abortRequestEarly_(simpleSegment.stats) || !this.startingMedia_) {
+        this.abortRequestEarly_(simpleSegment.stats)) {
       return;
     }
 

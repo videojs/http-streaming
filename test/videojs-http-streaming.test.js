@@ -670,14 +670,14 @@ QUnit.test('codecs are passed to the source buffer', function(assert) {
   this.player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.one('appending', () => {
     // always create separate audio and video source buffers
     assert.equal(codecs.length, 2, 'created two source buffers');
-    assert.equal(
-      codecs[0],
-      'audio/mp4;codecs="mp4a.40.9"',
+    assert.notEqual(
+      codecs.indexOf('audio/mp4;codecs="mp4a.40.9"'),
+      -1,
       'specified the audio codec'
     );
-    assert.equal(
-      codecs[1],
-      'video/mp4;codecs="avc1.dd00dd"',
+    assert.notEqual(
+      codecs.indexOf('video/mp4;codecs="avc1.dd00dd"'),
+      -1,
       'specified the video codec'
     );
     done();
@@ -1692,7 +1692,7 @@ QUnit.test('does not blacklist compatible AAC codec strings', function(assert) {
   );
 });
 
-QUnit.test('blacklists incompatible playlists by codec', function(assert) {
+QUnit.test('blacklists incompatible playlists by codec, without codec switching', function(assert) {
   this.player.src({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -1736,6 +1736,8 @@ QUnit.test('blacklists incompatible playlists by codec', function(assert) {
   const loader = mpc.mainSegmentLoader_;
   const master = this.player.tech_.vhs.playlists.master;
 
+  mpc.sourceUpdater_.canCodecSwitch = () => false;
+
   loader.startingMedia_ = {hasVideo: true, hasAudio: true};
   loader.trigger('trackinfo');
   const playlists = master.playlists;
@@ -1745,6 +1747,66 @@ QUnit.test('blacklists incompatible playlists by codec', function(assert) {
   assert.strictEqual(typeof playlists[1].excludeUntil, 'undefined', 'did not blacklist second playlist');
   assert.strictEqual(playlists[2].excludeUntil, Infinity, 'blacklisted incompatible audio playlist');
   assert.strictEqual(playlists[3].excludeUntil, Infinity, 'blacklisted incompatible video playlist');
+  assert.strictEqual(playlists[4].excludeUntil, Infinity, 'blacklisted audio only playlist');
+  assert.strictEqual(playlists[5].excludeUntil, Infinity, 'blacklisted video only playlist');
+  assert.strictEqual(typeof playlists[6].excludeUntil, 'undefined', 'did not blacklist seventh playlist');
+});
+
+QUnit.test('does not blacklist incompatible codecs with codec switching', function(assert) {
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+
+  const playlistString =
+    '#EXTM3U\n' +
+    // selected playlist
+    '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.2"\n' +
+    'media.m3u8\n' +
+    // compatible with selected playlist
+    '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.2"\n' +
+    'media1.m3u8\n' +
+    // incompatible by audio codec difference
+    '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,ac-3"\n' +
+    'media2.m3u8\n' +
+    // incompatible by video codec difference
+    '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="hvc1.4d400d,mp4a.40.2"\n' +
+    'media3.m3u8\n' +
+    // incompatible, only audio codec
+    '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="mp4a.40.2"\n' +
+    'media4.m3u8\n' +
+    // incompatible, only video codec
+    '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d"\n' +
+    'media5.m3u8\n' +
+    // compatible with selected playlist
+    '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1,mp4a"\n' +
+    'media6.m3u8\n';
+
+  // master
+  this.requests.shift().respond(200, null, playlistString);
+
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  const mpc = this.player.tech_.hls.masterPlaylistController_;
+  const loader = mpc.mainSegmentLoader_;
+  const master = this.player.tech_.hls.playlists.master;
+
+  mpc.sourceUpdater_.canCodecSwitch = () => true;
+
+  loader.startingMedia_ = {hasVideo: true, hasAudio: true};
+  loader.trigger('trackinfo');
+  const playlists = master.playlists;
+
+  assert.strictEqual(playlists.length, 7, 'six playlists total');
+  assert.strictEqual(typeof playlists[0].excludeUntil, 'undefined', 'did not blacklist first playlist');
+  assert.strictEqual(typeof playlists[1].excludeUntil, 'undefined', 'did not blacklist second playlist');
+  assert.strictEqual(typeof playlists[2].excludeUntil, 'undefined', 'blacklisted incompatible audio playlist');
+  assert.strictEqual(typeof playlists[3].excludeUntil, 'undefined', 'blacklisted incompatible video playlist');
   assert.strictEqual(playlists[4].excludeUntil, Infinity, 'blacklisted audio only playlist');
   assert.strictEqual(playlists[5].excludeUntil, Infinity, 'blacklisted video only playlist');
   assert.strictEqual(typeof playlists[6].excludeUntil, 'undefined', 'did not blacklist seventh playlist');
@@ -1880,7 +1942,7 @@ QUnit.test('blacklists ts playlists by muxer support', function(assert) {
   assert.strictEqual(playlists.length, 3, 'three playlists total');
   assert.strictEqual(playlists[0].excludeUntil, Infinity, 'blacklisted first playlist');
   assert.strictEqual(playlists[1].excludeUntil, Infinity, 'blacklisted second playlist');
-  assert.strictEqual(typeof playlists[2].excludeUntil, 'undefined', 'did not blacklist second playlist');
+  assert.strictEqual(typeof playlists[2].excludeUntil, 'undefined', 'did not blacklist third playlist');
   assert.deepEqual(debugLogs, [
     `Internal problem encountered with playlist ${playlists[0].id}. muxer does not support codec(s): "hvc1". Switching to playlist ${playlists[1].id}.`,
     `Internal problem encountered with playlist ${playlists[1].id}. muxer does not support codec(s): "ac-3". Switching to playlist ${playlists[2].id}.`

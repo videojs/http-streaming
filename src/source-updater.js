@@ -23,7 +23,8 @@ const toTitleCase = function(string) {
 const updating = (type, sourceUpdater) => {
   const sourceBuffer = sourceUpdater[`${type}Buffer`];
 
-  return (sourceBuffer && sourceBuffer.updating) || sourceUpdater.queuePending[type];
+  return (sourceBuffer && sourceBuffer.updating) ||
+    sourceUpdater.queuePending[type];
 };
 
 const nextQueueIndexOfType = (type, queue) => {
@@ -53,7 +54,7 @@ const shiftQueue = (type, sourceUpdater) => {
   let queueEntry = sourceUpdater.queue[queueIndex];
 
   if (queueEntry.type === 'mediaSource') {
-    if (!sourceUpdater.updating()) {
+    if (!sourceUpdater.updating() && sourceUpdater.mediaSource.readyState !== 'closed') {
       sourceUpdater.queue.shift();
       queueEntry.action(sourceUpdater);
 
@@ -85,7 +86,7 @@ const shiftQueue = (type, sourceUpdater) => {
   // Media source queue entries don't need to consider whether the source updater is
   // started (i.e., source buffers are created) as they don't need the source buffers, but
   // source buffer queue entries do.
-  if (!sourceUpdater.started_ || updating(type, sourceUpdater)) {
+  if (!sourceUpdater.started_ || sourceUpdater.mediaSource.readyState === 'closed' || updating(type, sourceUpdater)) {
     return;
   }
 
@@ -196,6 +197,9 @@ const actions = {
     }
   },
   abort: () => (type, sourceUpdater) => {
+    if (sourceUpdater.mediaSource.readyState !== 'open') {
+      return;
+    }
     const sourceBuffer = sourceUpdater[`${type}Buffer`];
 
     // can't do anything if the media source / source buffer is null
@@ -299,6 +303,8 @@ export default class SourceUpdater extends videojs.EventTarget {
   constructor(mediaSource) {
     super();
     this.mediaSource = mediaSource;
+    this.sourceopenListener_ = () => shiftQueue('mediaSource', this);
+    this.mediaSource.addEventListener('sourceopen', this.sourceopenListener_);
     this.logger_ = logger('SourceUpdater');
     // initial timestamp offset is 0
     this.audioTimestampOffset_ = 0;
@@ -321,6 +327,7 @@ export default class SourceUpdater extends videojs.EventTarget {
       // used for debugging
       this.audioError_ = e;
     };
+    this.started_ = false;
   }
 
   ready() {
@@ -330,19 +337,6 @@ export default class SourceUpdater extends videojs.EventTarget {
   createSourceBuffers(codecs) {
     if (this.ready()) {
       // already created them before
-      return;
-    }
-
-    if (this.mediaSource.readyState === 'closed') {
-      if (this.sourceopenListener_) {
-        this.mediaSource.removeEventListener('sourceopen', this.sourceopenListener_);
-      }
-      this.sourceopenListener_ = () => {
-        this.sourceopenListener_ = null;
-        this.mediaSource.removeEventListener('sourceopen', this.sourceopenListener_);
-        this.createSourceBuffers(this, codecs);
-      };
-      this.mediaSource.addEventListener('sourceopen', this.sourceopenListener_);
       return;
     }
 
@@ -776,6 +770,9 @@ export default class SourceUpdater extends videojs.EventTarget {
    *        The callback to queue.
    */
   audioQueueCallback(callback) {
+    if (!this.audioBuffer) {
+      return;
+    }
     pushQueue({
       type: 'audio',
       sourceUpdater: this,
@@ -792,6 +789,9 @@ export default class SourceUpdater extends videojs.EventTarget {
    *        The callback to queue.
    */
   videoQueueCallback(callback) {
+    if (!this.videoBuffer) {
+      return;
+    }
     pushQueue({
       type: 'video',
       sourceUpdater: this,
