@@ -1407,8 +1407,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     // playlist was excluded, do nothing.
     if (!codecs) {
-      this.mainSegmentLoader_.startingMedia_ = void 0;
-      this.mainSegmentLoader_.startingMedia_ = void 0;
       return;
     }
 

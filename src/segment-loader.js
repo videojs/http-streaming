@@ -482,6 +482,12 @@ export default class SegmentLoader extends videojs.EventTarget {
       }
     });
 
+    this.on('trackinfo', () => {
+      if (this.hasEnoughInfoToAppend_()) {
+        this.processCallQueue_();
+      }
+    });
+
     // Only the main loader needs to listen for pending timeline changes, as the main
     // loader should wait for audio to be ready to change its timeline so that both main
     // and audio timelines change together. For more details, see the
@@ -870,7 +876,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     if (!oldPlaylist || oldPlaylist.uri !== newPlaylist.uri) {
-      this.trigger('playlistupdate');
       if (this.mediaIndex !== null || this.handlePartialData_) {
         // we must "resync" the segment loader when we switch renditions and
         // the segment loader is already synced to the previous rendition
@@ -879,6 +884,10 @@ export default class SegmentLoader extends videojs.EventTarget {
         // out before we start adding more data
         this.resyncLoader();
       }
+      // make sure that we fire a new trackinfo for playlist change
+      // just in case codecs change.
+      // this.startingMedia_ = void 0;
+      this.trigger('playlistupdate');
 
       // the rest of this function depends on `oldPlaylist` being defined
       return;
