@@ -241,13 +241,18 @@ const actions = {
 
     sourceUpdater.mediaSource.removeSourceBuffer(sourceBuffer);
   },
-  changeType: (type, codec) => (sourceUpdater) => {
+  changeType: (codec) => (type, sourceUpdater) => {
     const sourceBuffer = sourceUpdater[`${type}Buffer`];
     const mime = getMimeForCodec(codec);
 
     // can't do anything if the media source / source buffer is null
     // or the media source does not contain this source buffer.
     if (!inSourceBuffers(sourceUpdater.mediaSource, sourceBuffer)) {
+      return;
+    }
+
+    // do not update codec if we don't need to.
+    if (sourceUpdater.codecs[type] === codec) {
       return;
     }
 
@@ -342,10 +347,9 @@ export default class SourceUpdater extends videojs.EventTarget {
 
     // the intial codecSwitch will always be
     // two add buffers.
-    this.codecSwitch(codecs, () => {
-      this.started_ = true;
-      this.trigger('ready');
-    });
+    this.codecSwitch(codecs);
+    this.started_ = true;
+    this.trigger('ready');
   }
 
   /**
@@ -356,18 +360,13 @@ export default class SourceUpdater extends videojs.EventTarget {
    *
    * @param {string} codec
    *        The codec to add the source buffer with.
-   *
-   * @param {Function} [doneFn=noop]
-   *        The callback to run when addSourceBuffer is
-   *        complete
    */
-  addSourceBuffer(type, codec, doneFn = noop) {
+  addSourceBuffer(type, codec) {
     pushQueue({
       type: 'mediaSource',
       sourceUpdater: this,
       action: actions.addSourceBuffer(type, codec),
-      name: 'addSourceBuffer',
-      doneFn
+      name: 'addSourceBuffer'
     });
   }
 
@@ -392,12 +391,8 @@ export default class SourceUpdater extends videojs.EventTarget {
    *
    * @param {string} type
    *        The type of source buffer to remove.
-   *
-   * @param {Function} [doneFn=noop]
-   *        The function to call when removeSourceBuffer is
-   *        complete.
    */
-  removeSourceBuffer(type, doneFn = noop) {
+  removeSourceBuffer(type) {
     if (!this.canRemoveSourceBuffer()) {
       throw new Error('removeSourceBuffer is not supported!');
     }
@@ -406,8 +401,7 @@ export default class SourceUpdater extends videojs.EventTarget {
       type: 'mediaSource',
       sourceUpdater: this,
       action: actions.removeSourceBuffer(type),
-      name: 'removeSourceBuffer',
-      doneFn
+      name: 'removeSourceBuffer'
     });
   }
 
@@ -445,24 +439,17 @@ export default class SourceUpdater extends videojs.EventTarget {
    *
    * @param {string} codec
    *        The codec string to change type with on the source buffer.
-   *
-   * @param {Function} [doneFn=noop]
-   *        The function to call when changeType is complete.
    */
-  changeType(type, codec, doneFn = noop) {
+  changeType(type, codec) {
     if (!this.canChangeType()) {
       throw new Error('changeType is not supported!');
     }
-    if (!codec || codec === this.codecs[type]) {
-      return doneFn();
-    }
 
     pushQueue({
-      type: 'mediaSource',
+      type,
       sourceUpdater: this,
-      action: actions.changeType(type, codec),
-      name: 'changeType',
-      doneFn
+      action: actions.changeType(codec),
+      name: 'changeType'
     });
   }
 
@@ -482,33 +469,21 @@ export default class SourceUpdater extends videojs.EventTarget {
    *
    * @param {Object} codecs
    *        Codecs to switch to
-   *
-   * @param {Function} [doneFn=noop]
-   *        Function to call when codec switching is complete
    */
-  codecSwitch(codecs, doneFn = noop) {
+  codecSwitch(codecs) {
     if (!codecs || typeof codecs !== 'object' || Object.keys(codecs).length === 0) {
-      return doneFn();
+      return;
     }
-    const expected = Object.keys(codecs).length;
-    let completed = 0;
-    const callbackWhenDone = () => {
-      completed++;
-
-      if (completed >= expected) {
-        doneFn();
-      }
-    };
 
     Object.keys(codecs).forEach((type) => {
       const codec = codecs[type];
 
       if (!this.ready()) {
-        return this.addSourceBuffer(type, codec, callbackWhenDone);
+        return this.addSourceBuffer(type, codec);
       }
 
       if (this.canChangeType()) {
-        this.changeType(type, codec, callbackWhenDone);
+        this.changeType(type, codec);
       }
     });
   }
