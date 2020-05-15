@@ -1356,11 +1356,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       const switchMessages = [];
 
       ['audio', 'video'].forEach((type) => {
-        // since codecs on sourceUpdater default to null
-        // we have to set them to undefined for === with
-        // codecs that we are switching to.
-        const newCodec = parseCodecs(this.sourceUpdater_.codecs[type]).type;
-        const oldCodec = parseCodecs(codecs[type]).type;
+        const newCodec = parseCodecs(this.sourceUpdater_.codecs[type] || '').type;
+        const oldCodec = parseCodecs(codecs[type] || '').type;
 
         if (newCodec && oldCodec && newCodec.toLowerCase() !== oldCodec.toLowerCase()) {
           switchMessages.push(`"${this.sourceUpdater_.codecs[type]}" -> "${codecs[type]}"`);

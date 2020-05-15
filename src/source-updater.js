@@ -316,7 +316,7 @@ export default class SourceUpdater extends videojs.EventTarget {
     };
     this.delayedAudioAppendQueue_ = [];
     this.videoAppendQueued_ = false;
-    this.codecs = {audio: null, video: null};
+    this.codecs = {};
     this.onVideoUpdateEnd_ = onUpdateend('video', this);
     this.onAudioUpdateEnd_ = onUpdateend('audio', this);
     this.onVideoError_ = (e) => {
