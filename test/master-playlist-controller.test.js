@@ -5053,9 +5053,177 @@ QUnit.test('excludes on codec switch if codec switching not supported', function
   assert.deepEqual(codecs, void 0, 'codecs returned');
 });
 
-/*
-// TODO:
-* codecs can change with additional 'trackinfo'
-* `trackinfo` triggers on any valid `trackinfo` change
-* `trackinfo` causes appends to happen≠
-*/
+QUnit.test('does not exclude on codec switch between the same base codec', function(assert) {
+  this.contentSetup({
+    mainStartingMedia: {
+      videoCodec: 'avc1.4d400e',
+      hasVideo: true,
+      hasAudio: false,
+      isFmp4: true
+    },
+    audioStartingMedia: {
+      hasVideo: false,
+      hasAudio: true,
+      audioCodec: 'mp4a.40.5',
+      isFmp4: true
+    },
+    mainPlaylist: {attributes: {AUDIO: 'low-quality'}},
+    audioPlaylist: {attributes: {}}
+  });
+
+  // sourceUpdater_ already setup
+  this.mpc.sourceUpdater_.ready = () => true;
+  this.mpc.sourceUpdater_.canCodecSwitch = () => false;
+  this.mpc.sourceUpdater_.codecs = {
+    audio: 'mp4a.40.2',
+    video: 'avc1.4c400d'
+  };
+
+  // support all types
+  window.MediaSource.isTypeSupported = (type) => true;
+
+  const codecs = this.mpc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.blacklists, []);
+  assert.deepEqual(codecs, {video: 'avc1.4d400e', audio: 'mp4a.40.5'}, 'codecs returned');
+});
+
+QUnit.test('main loader only trackinfo works as expected', function(assert) {
+  this.mpc.mediaSource.readyState = 'open';
+  let createBuffers = 0;
+  let switchBuffers = 0;
+  let expectedCodecs;
+
+  this.mpc.sourceUpdater_.createSourceBuffers = (codecs) => {
+    assert.deepEqual(codecs, expectedCodecs, 'create source buffers codecs as expected');
+    createBuffers++;
+  };
+  this.mpc.sourceUpdater_.codecSwitch = (codecs) => {
+    assert.deepEqual(codecs, expectedCodecs, 'codec switch as expected');
+    switchBuffers++;
+  };
+
+  this.contentSetup({
+    mainStartingMedia: {
+      videoCodec: 'avc1.4d400e',
+      hasVideo: true,
+      hasAudio: true,
+      audioCodec: 'mp4a.40.2'
+    },
+    mainPlaylist: {attributes: {}}
+  });
+
+  expectedCodecs = {
+    video: 'avc1.4d400e',
+    audio: 'mp4a.40.2'
+  };
+  this.mpc.mainSegmentLoader_.trigger('trackinfo');
+
+  assert.equal(createBuffers, 1, 'createSourceBuffers called');
+  assert.equal(switchBuffers, 0, 'codecSwitch not called');
+
+  this.mpc.sourceUpdater_.ready = () => true;
+  this.mpc.canCodecSwitch = () => true;
+
+  this.contentSetup({
+    mainStartingMedia: {
+      videoCodec: 'avc1.4c400e',
+      hasVideo: true,
+      hasAudio: true,
+      audioCodec: 'mp4a.40.5'
+    },
+    mainPlaylist: {attributes: {}}
+  });
+
+  expectedCodecs = {
+    video: 'avc1.4c400e',
+    audio: 'mp4a.40.5'
+  };
+
+  this.mpc.mainSegmentLoader_.trigger('trackinfo');
+
+  assert.equal(createBuffers, 1, 'createBuffers not called');
+  assert.equal(switchBuffers, 1, 'codecSwitch called');
+});
+
+QUnit.test('main & audio loader only trackinfo works as expected', function(assert) {
+  this.mpc.mediaSource.readyState = 'open';
+  let createBuffers = 0;
+  let switchBuffers = 0;
+  let expectedCodecs;
+
+  this.mpc.sourceUpdater_.createSourceBuffers = (codecs) => {
+    assert.deepEqual(codecs, expectedCodecs, 'create source buffers codecs as expected');
+    createBuffers++;
+  };
+  this.mpc.sourceUpdater_.codecSwitch = (codecs) => {
+    assert.deepEqual(codecs, expectedCodecs, 'codec switch as expected');
+    switchBuffers++;
+  };
+
+  this.contentSetup({
+    mainStartingMedia: {
+      videoCodec: 'avc1.4d400e',
+      hasVideo: true,
+      hasAudio: false
+    },
+    mainPlaylist: {attributes: {}},
+    audioPlaylist: {attributes: {}}
+  });
+
+  expectedCodecs = {
+    video: 'avc1.4d400e',
+    audio: 'mp4a.40.2'
+  };
+
+  this.mpc.mainSegmentLoader_.trigger('trackinfo');
+
+  assert.equal(createBuffers, 0, 'createSourceBuffers not called');
+  assert.equal(switchBuffers, 0, 'codecSwitch not called');
+
+  this.mpc.audioSegmentLoader_.startingMedia_ = {
+    hasVideo: false,
+    hasAudio: true,
+    audioCodec: 'mp4a.40.2'
+  };
+
+  this.mpc.audioSegmentLoader_.trigger('trackinfo');
+
+  assert.equal(createBuffers, 1, 'createSourceBuffers called');
+  assert.equal(switchBuffers, 0, 'codecSwitch not called');
+
+  this.mpc.sourceUpdater_.ready = () => true;
+  this.mpc.canCodecSwitch = () => true;
+
+  this.mpc.mainSegmentLoader_.currentMedia_ = {
+    videoCodec: 'avc1.4c400e',
+    hasVideo: true,
+    hasAudio: false
+  };
+
+  expectedCodecs = {
+    video: 'avc1.4c400e',
+    audio: 'mp4a.40.2'
+  };
+
+  this.mpc.mainSegmentLoader_.trigger('trackinfo');
+
+  assert.equal(createBuffers, 1, 'createBuffers not called');
+  assert.equal(switchBuffers, 1, 'codecSwitch called');
+
+  this.mpc.audioSegmentLoader_.startingMedia_ = {
+    hasVideo: false,
+    hasAudio: true,
+    audioCodec: 'mp4a.40.5'
+  };
+
+  expectedCodecs = {
+    video: 'avc1.4c400e',
+    audio: 'mp4a.40.5'
+  };
+
+  this.mpc.audioSegmentLoader_.trigger('trackinfo');
+
+  assert.equal(createBuffers, 1, 'createBuffers not called');
+  assert.equal(switchBuffers, 2, 'codecSwitch called');
+});
