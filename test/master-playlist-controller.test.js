@@ -52,6 +52,7 @@ const sharedHooks = {
     this.env = useFakeEnvironment(assert);
     this.clock = this.env.clock;
     this.requests = this.env.requests;
+    this.oldTypeSupported = window.MediaSource.isTypeSupported;
     this.mse = useFakeMediaSource();
 
     if (!videojs.browser.IE_VERSION) {
@@ -59,7 +60,6 @@ const sharedHooks = {
       window.devicePixelRatio = 1;
     }
 
-    this.oldTypeSupported = window.MediaSource.isTypeSupported;
     this.oldChangeType = window.SourceBuffer.prototype.changeType;
 
     // force the HLS tech to run
