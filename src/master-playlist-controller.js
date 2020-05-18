@@ -1375,8 +1375,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       const switchMessages = [];
 
       ['video', 'audio'].forEach((type) => {
-        const newCodec = parseCodecs(this.sourceUpdater_.codecs[type] || '')[type].type;
-        const oldCodec = parseCodecs(codecs[type] || '')[type].type;
+        const newCodec = (parseCodecs(this.sourceUpdater_.codecs[type] || '')[type] || {}).type;
+        const oldCodec = (parseCodecs(codecs[type] || '')[type] || {}).type;
 
         if (newCodec && oldCodec && newCodec.toLowerCase() !== oldCodec.toLowerCase()) {
           switchMessages.push(`"${this.sourceUpdater_.codecs[type]}" -> "${codecs[type]}"`);
