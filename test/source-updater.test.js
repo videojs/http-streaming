@@ -65,6 +65,149 @@ QUnit.module('Source Updater', {
   }
 });
 
+QUnit.test('verifies that sourcebuffer is in source buffers list before attempting actions', function(assert) {
+  this.sourceUpdater.dispose();
+  const actionCalls = {
+    videoRemoveSourceBuffer: 0,
+    videoAppendBuffer: 0,
+    videoRemove: 0,
+    videoTimestampOffset: 0,
+    videoBuffered: 0,
+    videoAbort: 0,
+    videoChangeType: 0,
+    audioRemoveSourceBuffer: 0,
+    audioAppendBuffer: 0,
+    audioRemove: 0,
+    audioTimestampOffset: 0,
+    audioBuffered: 0,
+    audioAbort: 0,
+    audioChangeType: 0
+  };
+
+  const createMediaSource = () => {
+
+    const mediaSource = new videojs.EventTarget();
+
+    mediaSource.readyState = 'open';
+    mediaSource.sourceBuffers = [];
+    mediaSource.removeSourceBuffer = (sb) => {
+      if (sb.type_ === 'video') {
+        actionCalls.videoRemoveSourceBuffer++;
+      } else {
+        actionCalls.audioRemoveSourceBuffer++;
+      }
+    };
+
+    mediaSource.addSourceBuffer = (mime) => {
+      const type = (/^audio/).test(mime) ? 'audio' : 'video';
+
+      const sb = new videojs.EventTarget();
+
+      sb.appendBuffer = () => {
+        actionCalls[`${type}AppendBuffer`]++;
+      };
+      sb.remove = () => {
+        actionCalls[`${type}Remove`]++;
+      };
+      sb.abort = () => {
+        actionCalls[`${type}Abort`]++;
+      };
+      sb.changeType = () => {
+        actionCalls[`${type}ChangeType`]++;
+      };
+      sb.type_ = type;
+      Object.defineProperty(sb, 'buffered', {
+        get: () => {
+          actionCalls[`${type}Buffered`]++;
+          return videojs.createTimeRanges([0, 15]);
+        }
+      });
+
+      Object.defineProperty(sb, 'timestampOffset', {
+        get: () => {
+          return 444;
+        },
+        set: () => {
+          actionCalls[`${type}TimestampOffset`]++;
+        }
+      });
+      return sb;
+    };
+
+    return mediaSource;
+  };
+
+  const runTestFunctions = () => {
+    this.sourceUpdater.appendBuffer({type: 'video', bytes: []});
+    this.sourceUpdater.videoBuffer.trigger('updateend');
+    this.sourceUpdater.appendBuffer({type: 'audio', bytes: []});
+    this.sourceUpdater.audioBuffer.trigger('updateend');
+    this.sourceUpdater.audioBuffered();
+    this.sourceUpdater.videoBuffered();
+    this.sourceUpdater.buffered();
+    this.sourceUpdater.removeVideo(0, 1);
+    this.sourceUpdater.videoBuffer.trigger('updateend');
+    this.sourceUpdater.removeAudio(0, 1);
+    this.sourceUpdater.audioBuffer.trigger('updateend');
+    this.sourceUpdater.changeType('audio', 'foo');
+    this.sourceUpdater.changeType('video', 'bar');
+    this.sourceUpdater.abort('audio');
+    this.sourceUpdater.abort('video');
+    this.sourceUpdater.audioTimestampOffset(123);
+    this.sourceUpdater.videoTimestampOffset(123);
+    this.sourceUpdater.removeSourceBuffer('video');
+    this.sourceUpdater.removeSourceBuffer('audio');
+  };
+
+  this.sourceUpdater = new SourceUpdater(createMediaSource());
+  this.sourceUpdater.createSourceBuffers({
+    audio: 'mp4a.40.2',
+    video: 'avc1.4d400d'
+  });
+
+  assert.ok(this.sourceUpdater.videoBuffer, 'has video buffer');
+  assert.ok(this.sourceUpdater.audioBuffer, 'has audio buffer');
+
+  this.sourceUpdater.mediaSource.sourceBuffers = [];
+  runTestFunctions();
+
+  Object.keys(actionCalls).forEach((name) => {
+    assert.equal(actionCalls[name], 0, `no ${name} without sourcebuffer in list`);
+  });
+
+  this.sourceUpdater.dispose();
+  this.sourceUpdater = new SourceUpdater(createMediaSource());
+  this.sourceUpdater.createSourceBuffers({
+    audio: 'mp4a.40.2',
+    video: 'avc1.4d400d'
+  });
+
+  assert.ok(this.sourceUpdater.videoBuffer, 'has video buffer');
+  assert.ok(this.sourceUpdater.audioBuffer, 'has audio buffer');
+
+  this.sourceUpdater.mediaSource.sourceBuffers = [
+    this.sourceUpdater.videoBuffer,
+    this.sourceUpdater.audioBuffer
+  ];
+  runTestFunctions();
+  assert.deepEqual(actionCalls, {
+    audioAbort: 1,
+    audioAppendBuffer: 1,
+    audioBuffered: 7,
+    audioChangeType: 1,
+    audioRemove: 1,
+    audioRemoveSourceBuffer: 1,
+    audioTimestampOffset: 1,
+    videoAbort: 1,
+    videoAppendBuffer: 1,
+    videoBuffered: 8,
+    videoChangeType: 1,
+    videoRemove: 1,
+    videoRemoveSourceBuffer: 1,
+    videoTimestampOffset: 1
+  }, 'calls functions correctly with sourcebuffer in list');
+});
+
 QUnit.test('waits for sourceopen to create source buffers', function(assert) {
   this.sourceUpdater.dispose();
   const video = document.createElement('video');

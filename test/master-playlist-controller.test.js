@@ -47,7 +47,7 @@ import {
   bandwidthWithinTolerance
 } from './custom-assertions.js';
 
-QUnit.module('MasterPlaylistController', {
+const sharedHooks = {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
     this.clock = this.env.clock;
@@ -102,7 +102,10 @@ QUnit.module('MasterPlaylistController', {
     window.MediaSource.isTypeSupported = this.oldTypeSupported;
     window.SourceBuffer.prototype.changeType = this.oldChangeType;
   }
-});
+
+};
+
+QUnit.module('MasterPlaylistController', sharedHooks);
 
 QUnit.test('throws error when given an empty URL', function(assert) {
   const options = {
@@ -4535,3 +4538,524 @@ QUnit.test('can pass or select a playlist for smoothQualityChange_', function(as
     resyncLoader: 2
   }, 'calls expected function when not passed a playlist');
 });
+=======
+QUnit.module('MasterPlaylistController codecs', {
+  beforeEach(assert) {
+    sharedHooks.beforeEach.call(this, assert);
+    this.mpc = this.masterPlaylistController;
+
+    this.blacklists = [];
+    this.mpc.blacklistCurrentPlaylist = (blacklist) => this.blacklists.push(blacklist);
+
+    this.contentSetup = (options) => {
+      const {
+        audioStartingMedia,
+        mainStartingMedia,
+        audioCurrentMedia,
+        mainCurrentMedia,
+        audioPlaylist,
+        mainPlaylist
+      } = options;
+
+      if (mainStartingMedia) {
+        this.mpc.mainSegmentLoader_.startingMedia_ = mainStartingMedia;
+      }
+
+      if (mainCurrentMedia) {
+        this.mpc.mainSegmentLoader_.currentMedia_ = mainCurrentMedia;
+      }
+
+      if (audioStartingMedia) {
+        this.mpc.audioSegmentLoader_.startingMedia_ = audioStartingMedia;
+      }
+
+      if (audioCurrentMedia) {
+        this.mpc.audioSegmentLoader_.currentMedia_ = audioCurrentMedia;
+      }
+
+      this.master = {mediaGroups: {AUDIO: {}}, playlists: []};
+
+      this.mpc.master = () => this.master;
+
+      if (mainPlaylist) {
+        this.mpc.media = () => mainPlaylist;
+        this.master.playlists.push(mainPlaylist);
+      }
+
+      if (audioPlaylist) {
+        const mainAudioGroup = mainPlaylist && mainPlaylist.attributes.AUDIO;
+
+        if (mainAudioGroup) {
+          this.master.mediaGroups.AUDIO[mainAudioGroup] = {
+            english: {
+              default: true,
+              playlists: [audioPlaylist]
+            }
+          };
+        }
+        this.master.playlists.push(audioPlaylist);
+        this.mpc.mediaTypes_.AUDIO.activePlaylistLoader = {};
+      }
+    };
+  },
+  afterEach(assert) {
+    sharedHooks.afterEach.call(this, assert);
+  }
+});
+
+QUnit.test('can get demuxed codecs from the video/main', function(assert) {
+  this.contentSetup({
+    audioStartingMedia: {hasAudio: true, hasVideo: false},
+    mainStartingMedia: {hasVideo: true, hasAudio: false},
+    audioPlaylist: {attributes: {}},
+    mainPlaylist: {attributes: {CODECS: 'avc1.4c400d,mp4a.40.5', AUDIO: 'low-quality'}}
+  });
+
+  const codecs = this.mpc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(codecs, {audio: 'mp4a.40.5', video: 'avc1.4c400d'}, 'codecs returned');
+});
+
+QUnit.test('can get demuxed codecs from the video/main playlist and audio playlist', function(assert) {
+  this.contentSetup({
+    audioStartingMedia: {hasAudio: true, hasVideo: false},
+    mainStartingMedia: {hasVideo: true, hasAudio: false},
+    audioPlaylist: {attributes: {CODECS: 'mp4a.40.5'}},
+    mainPlaylist: {attributes: {CODECS: 'avc1.4c400d', AUDIO: 'low-quality'}}
+  });
+
+  const codecs = this.mpc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(codecs, {audio: 'mp4a.40.5', video: 'avc1.4c400d'}, 'codecs returned');
+});
+
+QUnit.test('can get demuxed codecs from the main and audio loaders', function(assert) {
+  this.contentSetup({
+    audioStartingMedia: {hasAudio: true, hasVideo: false, audioCodec: 'mp4a.40.5'},
+    mainStartingMedia: {hasVideo: true, hasAudio: false, videoCodec: 'avc1.4c400d'},
+    audioPlaylist: {attributes: {}},
+    mainPlaylist: {attributes: {}}
+  });
+
+  const codecs = this.mpc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(codecs, {audio: 'mp4a.40.5', video: 'avc1.4c400d'}, 'codecs returned');
+});
+
+QUnit.test('can get demuxed codecs from the main loader', function(assert) {
+  this.contentSetup({
+    mainStartingMedia: {hasVideo: true, hasAudio: true, videoCodec: 'avc1.4c400d', audioCodec: 'mp4a.40.5'},
+    audioPlaylist: {attributes: {}},
+    mainPlaylist: {attributes: {}}
+  });
+
+  const codecs = this.mpc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(codecs, {audio: 'mp4a.40.5', video: 'avc1.4c400d'}, 'codecs returned');
+});
+
+QUnit.test('can get muxed codecs from video/main playlist', function(assert) {
+  this.contentSetup({
+    mainStartingMedia: {hasVideo: true, hasAudio: true, isMuxed: true},
+    mainPlaylist: {attributes: {CODECS: 'avc1.4c400d,mp4a.40.5'}}
+  });
+
+  const codecs = this.mpc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(codecs, {video: 'avc1.4c400d,mp4a.40.5'}, 'codecs returned');
+});
+
+QUnit.test('can get muxed codecs from video/main loader', function(assert) {
+  this.contentSetup({
+    mainStartingMedia: {
+      hasVideo: true,
+      hasAudio: true,
+      isMuxed: true,
+      videoCodec: 'avc1.4c400d',
+      audioCodec: 'mp4a.40.5'
+    },
+    mainPlaylist: {attributes: {}}
+  });
+
+  const codecs = this.mpc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(codecs, {video: 'avc1.4c400d,mp4a.40.5'}, 'codecs returned');
+});
+
+QUnit.test('can get audio only codecs from main playlist ', function(assert) {
+  this.contentSetup({
+    mainStartingMedia: {hasVideo: false, hasAudio: true},
+    mainPlaylist: {attributes: {CODECS: 'mp4a.40.5'}}
+  });
+
+  const codecs = this.mpc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(codecs, {audio: 'mp4a.40.5'}, 'codecs returned');
+});
+
+QUnit.test('can get audio only codecs from main loader ', function(assert) {
+  this.contentSetup({
+    mainStartingMedia: {hasVideo: false, hasAudio: true, audioCodec: 'mp4a.40.5'},
+    mainPlaylist: {attributes: {}}
+  });
+
+  const codecs = this.mpc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(codecs, {audio: 'mp4a.40.5'}, 'codecs returned');
+});
+
+QUnit.test('can get video only codecs from main playlist', function(assert) {
+  this.contentSetup({
+    mainStartingMedia: {hasVideo: true, hasAudio: false},
+    mainPlaylist: {attributes: {CODECS: 'avc1.4c400d'}}
+  });
+
+  const codecs = this.mpc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(codecs, {video: 'avc1.4c400d'}, 'codecs returned');
+});
+
+QUnit.test('can get video only codecs from main loader', function(assert) {
+  this.contentSetup({
+    mainStartingMedia: {hasVideo: true, hasAudio: false, videoCodec: 'avc1.4c400d'},
+    mainPlaylist: {attributes: {}}
+  });
+
+  const codecs = this.mpc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(codecs, {video: 'avc1.4c400d'}, 'codecs returned');
+});
+
+QUnit.test('can get codecs from startingMedia', function(assert) {
+  this.contentSetup({
+    mainStartingMedia: {videoCodec: 'avc1.4c400d', hasVideo: true, hasAudio: false},
+    audioStartingMedia: {audioCodec: 'mp4a.40.5', hasVideo: false, hasAudio: true},
+    mainPlaylist: {attributes: {}},
+    audioPlaylist: {attributes: {}}
+  });
+
+  const codecs = this.mpc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(codecs, {video: 'avc1.4c400d', audio: 'mp4a.40.5'}, 'codecs returned');
+});
+
+QUnit.test('can get codecs from currentMedia', function(assert) {
+  this.contentSetup({
+    mainCurrentMedia: {videoCodec: 'avc1.4c400d', hasVideo: true, hasAudio: false},
+    audioCurrentMedia: {audioCodec: 'mp4a.40.5', hasVideo: false, hasAudio: true},
+    mainPlaylist: {attributes: {}},
+    audioPlaylist: {attributes: {}}
+  });
+
+  const codecs = this.mpc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(codecs, {video: 'avc1.4c400d', audio: 'mp4a.40.5'}, 'codecs returned');
+});
+
+QUnit.test('playlist codecs take priority over others', function(assert) {
+  this.contentSetup({
+    mainStartingMedia: {videoCodec: 'avc1.4c400d', hasVideo: true, hasAudio: false},
+    audioStartingMedia: {audioCodec: 'mp4a.40.5', hasVideo: false, hasAudio: true},
+    mainPlaylist: {attributes: {CODECS: 'avc1.4b400d', AUDIO: 'low-quality'}},
+    audioPlaylist: {attributes: {CODECS: 'mp4a.40.20'}}
+  });
+
+  const codecs = this.mpc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(codecs, {video: 'avc1.4b400d', audio: 'mp4a.40.20'}, 'codecs returned');
+});
+
+QUnit.test('currentMedia codecs take priority over startingMedia codecs', function(assert) {
+  this.contentSetup({
+    mainStartingMedia: {videoCodec: 'avc1.4c400d', hasVideo: true, hasAudio: false},
+    audioStartingMedia: {audioCodec: 'mp4a.40.5', hasVideo: false, hasAudio: true},
+    mainCurrentMedia: {videoCodec: 'avc1.4b400d', hasVideo: true, hasAudio: false},
+    audioCurrentMedia: {audioCodec: 'mp4a.40.20', hasVideo: false, hasAudio: true},
+    mainPlaylist: {attributes: {}},
+    audioPlaylist: {attributes: {}}
+  });
+
+  const codecs = this.mpc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(codecs, {video: 'avc1.4b400d', audio: 'mp4a.40.20'}, 'codecs returned');
+});
+
+QUnit.test('uses default codecs if no codecs are found', function(assert) {
+  this.contentSetup({
+    mainStartingMedia: {hasVideo: true, hasAudio: false},
+    audioStartingMedia: {hasVideo: false, hasAudio: true},
+    mainPlaylist: {attributes: {}},
+    audioPlaylist: {attributes: {}}
+  });
+
+  const codecs = this.mpc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(codecs, {video: 'avc1.4d400d', audio: 'mp4a.40.2'}, 'codecs returned');
+});
+
+QUnit.test('excludes playlist without detected audio/video', function(assert) {
+  this.contentSetup({
+    mainPlaylist: {attributes: {}}
+  });
+
+  const codecs = this.mpc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.blacklists, [{
+    blacklistDuration: Infinity,
+    message: 'Could not determine codecs for playlist.',
+    playlist: {attributes: {}}
+  }], 'blacklisted playlist');
+  assert.deepEqual(codecs, void 0, 'no codecs returned');
+});
+
+QUnit.test('excludes unsupported muxer codecs for ts', function(assert) {
+  this.contentSetup({
+    mainStartingMedia: {
+      videoCodec: 'hvc1.2.4.L123.B0',
+      hasVideo: true,
+      hasAudio: true,
+      audioCodec: 'ac-3'
+    },
+    mainPlaylist: {attributes: {}}
+  });
+
+  const codecs = this.mpc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.blacklists, [{
+    blacklistDuration: Infinity,
+    playlist: {attributes: {}},
+    internal: true,
+    message: 'muxer does not support codec(s): "hvc1.2.4.L123.B0,ac-3".'
+  }], 'blacklisted playlist');
+  assert.deepEqual(codecs, void 0, 'codecs returned');
+});
+
+QUnit.test('excludes unsupported browser codecs for muxed fmp4', function(assert) {
+  this.contentSetup({
+    mainStartingMedia: {
+      videoCodec: 'hvc1.2.4.L123.B0',
+      hasVideo: true,
+      hasAudio: true,
+      isFmp4: true,
+      isMuxed: true,
+      audioCodec: 'ac-3'
+    },
+    mainPlaylist: {attributes: {}}
+  });
+
+  window.MediaSource.isTypeSupported = (type) => (/(mp4a|avc1)/).test(type);
+
+  const codecs = this.mpc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.blacklists, [{
+    blacklistDuration: Infinity,
+    playlist: {attributes: {}},
+    internal: true,
+    message: 'browser does not support codec(s): "hvc1.2.4.L123.B0,ac-3".'
+  }], 'blacklisted playlist');
+  assert.deepEqual(codecs, void 0, 'codecs returned');
+});
+
+QUnit.test('excludes unsupported muxer codecs for muxed ts', function(assert) {
+  this.contentSetup({
+    mainStartingMedia: {
+      videoCodec: 'hvc1.2.4.L123.B0',
+      hasVideo: true,
+      hasAudio: true,
+      isMuxed: true,
+      audioCodec: 'ac-3'
+    },
+    mainPlaylist: {attributes: {}}
+  });
+
+  const codecs = this.mpc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.blacklists, [{
+    blacklistDuration: Infinity,
+    playlist: {attributes: {}},
+    internal: true,
+    message: 'muxer does not support codec(s): "hvc1.2.4.L123.B0,ac-3".'
+  }], 'blacklisted playlist');
+  assert.deepEqual(codecs, void 0, 'codecs returned');
+});
+
+QUnit.test('excludes unsupported browser codecs for fmp4', function(assert) {
+  this.contentSetup({
+    mainStartingMedia: {
+      videoCodec: 'hvc1.2.4.L123.B0',
+      hasVideo: true,
+      hasAudio: true,
+      audioCodec: 'ac-3',
+      isFmp4: true
+    },
+    mainPlaylist: {attributes: {}}
+  });
+
+  window.MediaSource.isTypeSupported = (type) => (/(mp4a|avc1)/).test(type);
+
+  const codecs = this.mpc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.blacklists, [{
+    blacklistDuration: Infinity,
+    playlist: {attributes: {}},
+    internal: true,
+    message: 'browser does not support codec(s): "hvc1.2.4.L123.B0,ac-3".'
+  }], 'blacklisted playlist');
+  assert.deepEqual(codecs, void 0, 'codecs returned');
+});
+
+QUnit.test('excludes unsupported codecs video ts, audio fmp4', function(assert) {
+  this.contentSetup({
+    mainStartingMedia: {
+      videoCodec: 'hvc1.2.4.L123.B0',
+      hasVideo: true,
+      hasAudio: false
+    },
+    audioStartingMedia: {
+      hasVideo: false,
+      hasAudio: true,
+      audioCodec: 'ac-3',
+      isFmp4: true
+    },
+    mainPlaylist: {attributes: {AUDIO: 'low-quality'}},
+    audioPlaylist: {attributes: {}}
+  });
+
+  window.MediaSource.isTypeSupported = (type) => (/(mp4a|avc1)/).test(type);
+
+  const codecs = this.mpc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.blacklists, [{
+    blacklistDuration: Infinity,
+    playlist: {attributes: {AUDIO: 'low-quality'}},
+    internal: true,
+    message: 'muxer does not support codec(s): "hvc1.2.4.L123.B0", browser does not support codec(s): "ac-3".'
+  }], 'blacklisted playlist');
+  assert.deepEqual(codecs, void 0, 'codecs returned');
+});
+
+QUnit.test('excludes unsupported codecs video fmp4, audio ts', function(assert) {
+  this.contentSetup({
+    mainStartingMedia: {
+      videoCodec: 'hvc1.2.4.L123.B0',
+      hasVideo: true,
+      hasAudio: false,
+      isFmp4: true
+    },
+    audioStartingMedia: {
+      hasVideo: false,
+      hasAudio: true,
+      audioCodec: 'ac-3'
+    },
+    mainPlaylist: {attributes: {AUDIO: 'low-quality'}},
+    audioPlaylist: {attributes: {}}
+  });
+
+  window.MediaSource.isTypeSupported = (type) => (/(mp4a|avc1)/).test(type);
+
+  const codecs = this.mpc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.blacklists, [{
+    blacklistDuration: Infinity,
+    playlist: {attributes: {AUDIO: 'low-quality'}},
+    internal: true,
+    message: 'browser does not support codec(s): "hvc1.2.4.L123.B0", muxer does not support codec(s): "ac-3".'
+  }], 'blacklisted playlist');
+  assert.deepEqual(codecs, void 0, 'codecs returned');
+});
+
+QUnit.test('excludes all of audio group on unsupported audio', function(assert) {
+  this.contentSetup({
+    mainStartingMedia: {
+      videoCodec: 'hvc1.2.4.L123.B0',
+      hasVideo: true,
+      hasAudio: false
+    },
+    audioStartingMedia: {
+      hasVideo: false,
+      hasAudio: true,
+      audioCodec: 'ac-3'
+    },
+    mainPlaylist: {id: 'bar', attributes: {AUDIO: 'low-quality'}},
+    audioPlaylist: {attributes: {}}
+  });
+
+  this.master.playlists.push({id: 'foo', attributes: {AUDIO: 'low-quality'}});
+  this.master.playlists.push({id: 'baz', attributes: {AUDIO: 'low-quality'}});
+
+  const codecs = this.mpc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.blacklists, [{
+    blacklistDuration: Infinity,
+    playlist: {attributes: {AUDIO: 'low-quality'}, id: 'bar'},
+    internal: true,
+    message: 'muxer does not support codec(s): "hvc1.2.4.L123.B0,ac-3".'
+  }], 'blacklisted playlist');
+  assert.deepEqual(codecs, void 0, 'codecs returned');
+  assert.equal(this.master.playlists[2].id, 'foo', 'playlist 3 is the one we added');
+  assert.equal(this.master.playlists[2].excludeUntil, Infinity, 'playlist 3 with same audio group excluded');
+  assert.equal(this.master.playlists[3].id, 'baz', 'playlist 4 is the one we added');
+  assert.equal(this.master.playlists[3].excludeUntil, Infinity, 'playlist 4 with same audio group excluded');
+});
+
+QUnit.test('excludes on codec switch if codec switching not supported', function(assert) {
+  this.contentSetup({
+    mainStartingMedia: {
+      videoCodec: 'hvc1.2.4.L123.B0',
+      hasVideo: true,
+      hasAudio: false,
+      isFmp4: true
+    },
+    audioStartingMedia: {
+      hasVideo: false,
+      hasAudio: true,
+      audioCodec: 'ac-3',
+      isFmp4: true
+    },
+    mainPlaylist: {attributes: {AUDIO: 'low-quality'}},
+    audioPlaylist: {attributes: {}}
+  });
+
+  // sourceUpdater_ already setup
+  this.mpc.sourceUpdater_.ready = () => true;
+  this.mpc.sourceUpdater_.canCodecSwitch = () => false;
+  this.mpc.sourceUpdater_.codecs = {
+    audio: 'mp4a.40.2',
+    video: 'avc1.4c400d'
+  };
+
+  // support all types
+  window.MediaSource.isTypeSupported = (type) => true;
+
+  const codecs = this.mpc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.blacklists, [{
+    blacklistDuration: Infinity,
+    playlist: {attributes: {AUDIO: 'low-quality'}},
+    internal: true,
+    message: 'Codec switching not supported: "avc1.4c400d" -> "hvc1.2.4.L123.B0", "mp4a.40.2" -> "ac-3".'
+  }], 'blacklisted playlist');
+  assert.deepEqual(codecs, void 0, 'codecs returned');
+});
+
+/*
+// TODO:
+* codecs can change with additional 'trackinfo'
+* `trackinfo` triggers on any valid `trackinfo` change
+* `trackinfo` causes appends to happen≠
+*/

@@ -1283,23 +1283,29 @@ export class MasterPlaylistController extends videojs.EventTarget {
   }
 
   getCodecsOrExclude_() {
-    const mainMedia = this.mainSegmentLoader_.currentMedia_ || this.mainSegmentLoader_.startingMedia_ || {};
-    const audioMedia = this.audioSegmentLoader_.currentMedia_ || this.audioSegmentLoader_.startingMedia_ || {};
-    const isFmp4 = mainMedia.isFmp4 || audioMedia.isFmp4;
+    const media = {
+      main: this.mainSegmentLoader_.currentMedia_ || this.mainSegmentLoader_.startingMedia_ || {},
+      audio: this.audioSegmentLoader_.currentMedia_ || this.audioSegmentLoader_.startingMedia_ || {}
+    };
+
+    // set "main" media equal to video
+    media.video = media.main;
     const playlistCodecs = codecsForPlaylist(this.master(), this.media());
     const codecs = {};
     const usingAudioLoader = !!this.mediaTypes_.AUDIO.activePlaylistLoader;
 
-    if (mainMedia.hasVideo) {
-      codecs.video = playlistCodecs.video || mainMedia.videoCodec || DEFAULT_VIDEO_CODEC;
+    if (media.main.hasVideo) {
+      codecs.video = playlistCodecs.video || media.main.videoCodec || DEFAULT_VIDEO_CODEC;
     }
 
-    if (mainMedia.isMuxed) {
-      codecs.video += `,${playlistCodecs.audio || mainMedia.audioCodec || DEFAULT_AUDIO_CODEC}`;
+    if (media.main.isMuxed) {
+      codecs.video += `,${playlistCodecs.audio || media.main.audioCodec || DEFAULT_AUDIO_CODEC}`;
     }
 
-    if ((mainMedia.hasAudio && !mainMedia.isMuxed) || audioMedia.hasAudio) {
-      codecs.audio = playlistCodecs.audio || mainMedia.audioCodec || audioMedia.audioCodec || DEFAULT_AUDIO_CODEC;
+    if ((media.main.hasAudio && !media.main.isMuxed) || media.audio.hasAudio) {
+      codecs.audio = playlistCodecs.audio || media.main.audioCodec || media.audio.audioCodec || DEFAULT_AUDIO_CODEC;
+      // set audio isFmp4 so we use the correct "supports" function below
+      media.audio.isFmp4 = (media.main.hasAudio && !media.main.isMuxed) ? media.main.isFmp4 : media.audio.isFmp4;
     }
 
     // no codecs, no playback.
@@ -1313,51 +1319,64 @@ export class MasterPlaylistController extends videojs.EventTarget {
     }
 
     // fmp4 relies on browser support, while ts relies on muxer support
-    const supportFunction = isFmp4 ? browserSupportsCodec : muxerSupportsCodec;
-    const unsupportedCodecs = [];
+    const supportFunction = (isFmp4, codec) => (isFmp4 ? browserSupportsCodec(codec) : muxerSupportsCodec(codec));
+    const unsupportedCodecs = {};
+    let unsupportedAudio;
 
-    ['audio', 'video'].forEach(function(type) {
-      if (codecs.hasOwnProperty(type) && !supportFunction(codecs[type])) {
-        unsupportedCodecs.push(codecs[type]);
+    ['video', 'audio'].forEach(function(type) {
+      if (codecs.hasOwnProperty(type) && !supportFunction(media[type].isFmp4, codecs[type])) {
+        const supporter = media[type].isFmp4 ? 'browser' : 'muxer';
+
+        unsupportedCodecs[supporter] = unsupportedCodecs[supporter] || [];
+        unsupportedCodecs[supporter].push(codecs[type]);
+
+        if (type === 'audio') {
+          unsupportedAudio = supporter;
+        }
       }
     });
 
-    if (usingAudioLoader && unsupportedCodecs.indexOf(codecs.audio) !== -1) {
+    if (usingAudioLoader && unsupportedAudio && this.media().attributes.AUDIO) {
       const audioGroup = this.media().attributes.AUDIO;
 
-      if (audioGroup) {
-        let count = 0;
+      this.master().playlists.forEach(variant => {
+        const _audioGroup = variant.attributes && variant.attributes.AUDIO;
 
-        this.master().playlists.forEach(variant => {
-          const _audioGroup = variant.attributes && variant.attributes.AUDIO;
-
-          if (_audioGroup === audioGroup) {
-            variant.excludeUntil = Infinity;
-            count++;
-          }
-        });
-        this.logger_(`excluding ${count} playlists using audio group ${audioGroup} and unsupported codec "${codecs.audio}"`);
-      }
+        if (_audioGroup === audioGroup && variant !== this.media()) {
+          variant.excludeUntil = Infinity;
+        }
+      });
+      this.logger_(`excluding audio group ${audioGroup} as ${unsupportedAudio} does not support codec(s): "${codecs.audio}"`);
     }
 
     // if we have any unsupported codecs blacklist this playlist.
-    if (unsupportedCodecs.length) {
-      const supporter = isFmp4 ? 'browser' : 'muxer';
+    if (Object.keys(unsupportedCodecs).length) {
+      const message = Object.keys(unsupportedCodecs).reduce((acc, supporter) => {
+
+        if (acc) {
+          acc += ', ';
+        }
+
+        acc += `${supporter} does not support codec(s): "${unsupportedCodecs[supporter].join(',')}"`;
+
+        return acc;
+      }, '') + '.';
 
       this.blacklistCurrentPlaylist({
         playlist: this.media(),
         internal: true,
-        message: `${supporter} does not support codec(s): "${unsupportedCodecs.join(',')}".`,
+        message,
         blacklistDuration: Infinity
       });
       return;
     }
+    // check if codec switching is happening
     if (this.sourceUpdater_.ready() && !this.sourceUpdater_.canCodecSwitch()) {
       const switchMessages = [];
 
-      ['audio', 'video'].forEach((type) => {
-        const newCodec = parseCodecs(this.sourceUpdater_.codecs[type] || '').type;
-        const oldCodec = parseCodecs(codecs[type] || '').type;
+      ['video', 'audio'].forEach((type) => {
+        const newCodec = parseCodecs(this.sourceUpdater_.codecs[type] || '')[type].type;
+        const oldCodec = parseCodecs(codecs[type] || '')[type].type;
 
         if (newCodec && oldCodec && newCodec.toLowerCase() !== oldCodec.toLowerCase()) {
           switchMessages.push(`"${this.sourceUpdater_.codecs[type]}" -> "${codecs[type]}"`);
@@ -1366,7 +1385,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
       if (switchMessages.length) {
         this.blacklistCurrentPlaylist({
-          message: `Browser does not support codec switching from: ${switchMessages.join(', ')}.`,
+          playlist: this.media(),
+          message: `Codec switching not supported: ${switchMessages.join(', ')}.`,
           blacklistDuration: Infinity,
           internal: true
         });
