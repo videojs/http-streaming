@@ -23,8 +23,7 @@ const toTitleCase = function(string) {
 const updating = (type, sourceUpdater) => {
   const sourceBuffer = sourceUpdater[`${type}Buffer`];
 
-  return (sourceBuffer && sourceBuffer.updating) ||
-    sourceUpdater.queuePending[type];
+  return (sourceBuffer && sourceBuffer.updating) || sourceUpdater.queuePending[type];
 };
 
 const nextQueueIndexOfType = (type, queue) => {
