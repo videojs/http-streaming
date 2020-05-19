@@ -240,7 +240,11 @@ const actions = {
 
     sourceUpdater.logger_(`Removing ${type}Buffer with codec ${sourceUpdater.codecs[type]} from mediaSource`);
 
-    sourceUpdater.mediaSource.removeSourceBuffer(sourceBuffer);
+    try {
+      sourceUpdater.mediaSource.removeSourceBuffer(sourceBuffer);
+    } catch (e) {
+      videojs.log.warn(`Failed to removeSourceBuffer ${type}Buffer`, e);
+    }
   },
   changeType: (codec) => (type, sourceUpdater) => {
     const sourceBuffer = sourceUpdater[`${type}Buffer`];
@@ -395,7 +399,8 @@ export default class SourceUpdater extends videojs.EventTarget {
    */
   removeSourceBuffer(type) {
     if (!this.canRemoveSourceBuffer()) {
-      throw new Error('removeSourceBuffer is not supported!');
+      videojs.log.error('removeSourceBuffer is not supported!');
+      return;
     }
 
     pushQueue({
@@ -443,7 +448,8 @@ export default class SourceUpdater extends videojs.EventTarget {
    */
   changeType(type, codec) {
     if (!this.canChangeType()) {
-      throw new Error('changeType is not supported!');
+      videojs.log.error('changeType is not supported!');
+      return;
     }
 
     pushQueue({
