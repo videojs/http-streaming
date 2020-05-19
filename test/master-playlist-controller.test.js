@@ -5123,7 +5123,7 @@ QUnit.test('main loader only trackinfo works as expected', function(assert) {
   assert.equal(switchBuffers, 0, 'codecSwitch not called');
 
   this.mpc.sourceUpdater_.ready = () => true;
-  this.mpc.canCodecSwitch = () => true;
+  this.mpc.sourceUpdater_.canCodecSwitch = () => true;
 
   this.contentSetup({
     mainStartingMedia: {
@@ -5193,7 +5193,7 @@ QUnit.test('main & audio loader only trackinfo works as expected', function(asse
   assert.equal(switchBuffers, 0, 'codecSwitch not called');
 
   this.mpc.sourceUpdater_.ready = () => true;
-  this.mpc.canCodecSwitch = () => true;
+  this.mpc.sourceUpdater_.canCodecSwitch = () => true;
 
   this.mpc.mainSegmentLoader_.currentMedia_ = {
     videoCodec: 'avc1.4c400e',

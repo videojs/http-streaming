@@ -221,10 +221,12 @@ const actions = {
 
     sourceUpdater.logger_(`Adding ${type}Buffer with codec ${codec} to mediaSource`);
 
-    sourceUpdater[`${type}Buffer`] = sourceUpdater.mediaSource.addSourceBuffer(mime);
-    sourceUpdater[`${type}Buffer`].addEventListener('updateend', sourceUpdater[`on${titleType}UpdateEnd_`]);
-    sourceUpdater[`${type}Buffer`].addEventListener('error', sourceUpdater[`on${titleType}Error_`]);
+    const sourceBuffer = sourceUpdater.mediaSource.addSourceBuffer(mime);
+
+    sourceBuffer.addEventListener('updateend', sourceUpdater[`on${titleType}UpdateEnd_`]);
+    sourceBuffer.addEventListener('error', sourceUpdater[`on${titleType}Error_`]);
     sourceUpdater.codecs[type] = codec;
+    sourceUpdater[`${type}Buffer`] = sourceBuffer;
   },
   removeSourceBuffer: (type) => (sourceUpdater) => {
     const sourceBuffer = sourceUpdater[`${type}Buffer`];
