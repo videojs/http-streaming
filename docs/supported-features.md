@@ -59,8 +59,8 @@ not meant serve as an exhaustive list.
 * Any browser supported resolution (e.g., 4k)
 * Any browser supported framerate (e.g., 60fps)
 * [DRM] via [videojs-contrib-eme]
-* Audio only
-* Video only
+* Audio only (non DRM)
+* Video only (non DRM)
 * In-manifest [WebVTT] subtitles are automatically translated into standard HTML5 subtitle
   tracks
 * [AES-128] and SAMPLE-AES segment encryption
@@ -94,6 +94,10 @@ supported when packaged within [TS].
 * [Dolby Vision] (DVHE)
 * [Dolby Digital] Audio (AC-3)
 * [Dolby Digital Plus] (E-AC-3)
+
+### General Missing Features
+
+* Audio/video only DRM streams
 
 ### HLS Missing Features
 
