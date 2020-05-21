@@ -1,4 +1,5 @@
 import { isIncompatible, isEnabled } from './playlist.js';
+import { codecsForPlaylist } from './util/codecs.js';
 
 /**
  * Returns a function that acts as the Enable/disable playlist function.
@@ -66,9 +67,7 @@ class Representation {
 
     this.bandwidth = playlist.attributes.BANDWIDTH;
 
-    if (playlist.attributes.CODECS) {
-      this.codecs = playlist.attributes.CODECS;
-    }
+    this.codecs = codecsForPlaylist(mpc.master(), playlist);
 
     this.playlist = playlist;
 
