@@ -66,6 +66,12 @@ class Representation {
 
     this.bandwidth = playlist.attributes.BANDWIDTH;
 
+    if (playlist.attributes.CODECS) {
+      this.codecs = playlist.attributes.CODECS;
+    }
+
+    this.playlist = playlist;
+
     // The id is simply the ordinality of the media playlist
     // within the master playlist
     this.id = id;
