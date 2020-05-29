@@ -54,7 +54,7 @@ export const illegalMediaSwitch = (loaderType, startingMedia, trackInfo) => {
 };
 
 /**
- * Calculates a time value that is safe to remove from the back buffer without interupting
+ * Calculates a time value that is safe to remove from the back buffer without interrupting
  * playback.
  *
  * @param {TimeRange} seekable
@@ -64,7 +64,7 @@ export const illegalMediaSwitch = (loaderType, startingMedia, trackInfo) => {
  * @param {number} targetDuration
  *        The target duration of the current playlist
  * @return {number}
- *         Time that is safe to remove from the back buffer without interupting playback
+ *         Time that is safe to remove from the back buffer without interrupting playback
  */
 export const safeBackBufferTrimTime = (seekable, currentTime, targetDuration) => {
   // 30 seconds before the playhead provides a safe default for trimming.
@@ -72,7 +72,7 @@ export const safeBackBufferTrimTime = (seekable, currentTime, targetDuration) =>
   // Choosing a reasonable default is particularly important for high bitrate content and
   // VOD videos/live streams with large windows, as the buffer may end up overfilled and
   // throw an APPEND_BUFFER_ERR.
-  let trimTime = currentTime - 30;
+  let trimTime = currentTime - Config.BACK_BUFFER_LENGTH;
 
   if (seekable.length) {
     // Some live playlists may have a shorter window of content than the full allowed back
