@@ -38,7 +38,7 @@ import {version as aesVersion} from 'aes-decrypter/package.json';
 import './middleware-set-current-time';
 import {isAudioCodec, isVideoCodec, browserSupportsCodec} from '@videojs/vhs-utils/dist/codecs.js';
 
-const Hls = {
+const Vhs = {
   PlaylistLoader,
   Playlist,
   Decrypter,
@@ -64,16 +64,16 @@ const Hls = {
   'BUFFER_LOW_WATER_LINE_RATE',
   'BANDWIDTH_VARIANCE'
 ].forEach((prop) => {
-  Object.defineProperty(Hls, prop, {
+  Object.defineProperty(Vhs, prop, {
     get() {
-      videojs.log.warn(`using Hls.${prop} is UNSAFE be sure you know what you are doing`);
+      videojs.log.warn(`using Vhs.${prop} is UNSAFE be sure you know what you are doing`);
       return Config[prop];
     },
     set(value) {
-      videojs.log.warn(`using Hls.${prop} is UNSAFE be sure you know what you are doing`);
+      videojs.log.warn(`using Vhs.${prop} is UNSAFE be sure you know what you are doing`);
 
       if (typeof value !== 'number' || value < 0) {
-        videojs.log.warn(`value of Hls.${prop} must be greater than or equal to 0`);
+        videojs.log.warn(`value of Vhs.${prop} must be greater than or equal to 0`);
         return;
       }
 
@@ -89,9 +89,9 @@ export const LOCAL_STORAGE_KEY = 'videojs-vhs';
  *
  * @param {QualityLevelList} qualityLevels The QualityLevelList to update.
  * @param {PlaylistLoader} playlistLoader PlaylistLoader containing the new media info.
- * @function handleHlsMediaChange
+ * @function handleVhsMediaChange
  */
-const handleHlsMediaChange = function(qualityLevels, playlistLoader) {
+const handleVhsMediaChange = function(qualityLevels, playlistLoader) {
   const newPlaylist = playlistLoader.media();
   let selectedIndex = -1;
 
@@ -113,19 +113,19 @@ const handleHlsMediaChange = function(qualityLevels, playlistLoader) {
  * Adds quality levels to list once playlist metadata is available
  *
  * @param {QualityLevelList} qualityLevels The QualityLevelList to attach events to.
- * @param {Object} hls Hls object to listen to for media events.
- * @function handleHlsLoadedMetadata
+ * @param {Object} vhs Vhs object to listen to for media events.
+ * @function handleVhsLoadedMetadata
  */
-const handleHlsLoadedMetadata = function(qualityLevels, hls) {
-  hls.representations().forEach((rep) => {
+const handleVhsLoadedMetadata = function(qualityLevels, vhs) {
+  vhs.representations().forEach((rep) => {
     qualityLevels.addQualityLevel(rep);
   });
-  handleHlsMediaChange(qualityLevels, hls.playlists);
+  handleVhsMediaChange(qualityLevels, vhs.playlists);
 };
 
 // HLS is a source handler, not a tech. Make sure attempts to use it
 // as one do not cause exceptions.
-Hls.canPlaySource = function() {
+Vhs.canPlaySource = function() {
   return videojs.log.warn('HLS is no longer a tech. Please remove it from ' +
     'your player\'s techOrder.');
 };
@@ -264,7 +264,7 @@ const expandDataUri = (dataUri) => {
 /**
  * Whether the browser has built-in HLS support.
  */
-Hls.supportsNativeHls = (function() {
+Vhs.supportsNativeHls = (function() {
   if (!document || !document.createElement) {
     return false;
   }
@@ -297,7 +297,7 @@ Hls.supportsNativeHls = (function() {
   });
 }());
 
-Hls.supportsNativeDash = (function() {
+Vhs.supportsNativeDash = (function() {
   if (!document || !document.createElement || !videojs.getTech('Html5').isSupported()) {
     return false;
   }
@@ -305,13 +305,13 @@ Hls.supportsNativeDash = (function() {
   return (/maybe|probably/i).test(document.createElement('video').canPlayType('application/dash+xml'));
 }());
 
-Hls.supportsTypeNatively = (type) => {
+Vhs.supportsTypeNatively = (type) => {
   if (type === 'hls') {
-    return Hls.supportsNativeHls;
+    return Vhs.supportsNativeHls;
   }
 
   if (type === 'dash') {
-    return Hls.supportsNativeDash;
+    return Vhs.supportsNativeDash;
   }
 
   return false;
@@ -321,7 +321,7 @@ Hls.supportsTypeNatively = (type) => {
  * HLS is a source handler, not a tech. Make sure attempts to use it
  * as one do not cause exceptions.
  */
-Hls.isSupported = function() {
+Vhs.isSupported = function() {
   return videojs.log.warn('HLS is no longer a tech. Please remove it from ' +
     'your player\'s techOrder.');
 };
@@ -329,17 +329,18 @@ Hls.isSupported = function() {
 const Component = videojs.getComponent('Component');
 
 /**
- * The Hls Handler object, where we orchestrate all of the parts
+ * The Vhs Handler object, where we orchestrate all of the parts
  * of HLS to interact with video.js
  *
- * @class HlsHandler
+ * @class VhsHandler
  * @extends videojs.Component
  * @param {Object} source the soruce object
  * @param {Tech} tech the parent tech object
  * @param {Object} options optional and required options
  */
-class HlsHandler extends Component {
+class VhsHandler extends Component {
   constructor(source, tech, options) {
+    // TODO
     super(tech, options.hls);
 
     // tech.player() is deprecated but setup a reference to HLS for
@@ -350,7 +351,7 @@ class HlsHandler extends Component {
       if (!_player.hasOwnProperty('hls')) {
         Object.defineProperty(_player, 'hls', {
           get: () => {
-            videojs.log.warn('player.hls is deprecated. Use player.tech().hls instead.');
+            videojs.log.warn('player.hls is deprecated. Use player.tech().vhs instead.');
             tech.trigger({ type: 'usage', name: 'hls-player-access' });
             return this;
           },
@@ -358,13 +359,13 @@ class HlsHandler extends Component {
         });
       }
 
-      // Set up a reference to the HlsHandler from player.vhs. This allows users to start
-      // migrating from player.tech_.hls... to player.vhs... for API access. Although this
+      // Set up a reference to the VhsHandler from player.vhs. This allows users to start
+      // migrating from player.tech_.vhs... to player.vhs... for API access. Although this
       // isn't the most appropriate form of reference for video.js (since all APIs should
       // be provided through core video.js), it is a common pattern for plugins, and vhs
       // will act accordingly.
       _player.vhs = this;
-      // deprecated, for backwards compatibility
+      // TODO deprecated, for backwards compatibility
       _player.dash = this;
 
       this.player_ = _player;
@@ -501,7 +502,9 @@ class HlsHandler extends Component {
     // add master playlist controller options
     this.options_.src = expandDataUri(this.source_.src);
     this.options_.tech = this.tech_;
-    this.options_.externHls = Hls;
+    this.options_.externVhs = Vhs;
+    // TODO deprecated
+    this.options_.externHls = Vhs;
     this.options_.sourceType = simpleTypeFromSourceType(type);
     // Whenever we seek internally, we should update both the tech and call our own
     // setCurrentTime function. This is needed because "seeking" events aren't always
@@ -531,14 +534,14 @@ class HlsHandler extends Component {
       player.error(error);
     });
 
-    // `this` in selectPlaylist should be the HlsHandler for backwards
+    // `this` in selectPlaylist should be the VhsHandler for backwards
     // compatibility with < v2
     this.masterPlaylistController_.selectPlaylist =
       this.selectPlaylist ?
-        this.selectPlaylist.bind(this) : Hls.STANDARD_PLAYLIST_SELECTOR.bind(this);
+        this.selectPlaylist.bind(this) : Vhs.STANDARD_PLAYLIST_SELECTOR.bind(this);
 
     this.masterPlaylistController_.selectInitialPlaylist =
-      Hls.INITIAL_PLAYLIST_SELECTOR.bind(this);
+      Vhs.INITIAL_PLAYLIST_SELECTOR.bind(this);
 
     // re-expose some internal objects for backwards compatibility with < v2
     this.playlists = this.masterPlaylistController_.masterPlaylistLoader_;
@@ -709,7 +712,7 @@ class HlsHandler extends Component {
     });
 
     this.masterPlaylistController_.on('selectedinitialmedia', () => {
-      // Add the manual rendition mix-in to HlsHandler
+      // Add the manual rendition mix-in to VhsHandler
       renditionSelectionMixin(this);
       setupEmeOptions(this);
     });
@@ -749,11 +752,11 @@ class HlsHandler extends Component {
     this.qualityLevels_ = player.qualityLevels();
 
     this.masterPlaylistController_.on('selectedinitialmedia', () => {
-      handleHlsLoadedMetadata(this.qualityLevels_, this);
+      handleVhsLoadedMetadata(this.qualityLevels_, this);
     });
 
     this.playlists.on('mediachange', () => {
-      handleHlsMediaChange(this.qualityLevels_, this.playlists);
+      handleVhsMediaChange(this.qualityLevels_, this.playlists);
     });
   }
 
@@ -825,6 +828,10 @@ class HlsHandler extends Component {
       delete this.player_.hls;
     }
 
+    if (this.tech_ && this.tech_.vhs) {
+      delete this.tech_.vhs;
+    }
+
     if (this.tech_ && this.tech_.hls) {
       delete this.tech_.hls;
     }
@@ -861,28 +868,30 @@ class HlsHandler extends Component {
  * the browser it is running in. It is not necessary to use or modify
  * this object in normal usage.
  */
-const HlsSourceHandler = {
+const VhsSourceHandler = {
   name: 'videojs-http-streaming',
   VERSION: vhsVersion,
   canHandleSource(srcObj, options = {}) {
     const localOptions = videojs.mergeOptions(videojs.options, options);
 
-    return HlsSourceHandler.canPlayType(srcObj.type, localOptions);
+    return VhsSourceHandler.canPlayType(srcObj.type, localOptions);
   },
   handleSource(source, tech, options = {}) {
     const localOptions = videojs.mergeOptions(videojs.options, options);
 
-    tech.hls = new HlsHandler(source, tech, localOptions);
-    tech.hls.xhr = xhrFactory();
+    tech.vhs = new VhsHandler(source, tech, localOptions);
+    // TODO deprecated
+    tech.hls = tech.vhs;
+    tech.vhs.xhr = xhrFactory();
 
-    tech.hls.src(source.src, source.type);
-    return tech.hls;
+    tech.vhs.src(source.src, source.type);
+    return tech.vhs;
   },
   canPlayType(type, options = {}) {
     const { hls: { overrideNative } } = videojs.mergeOptions(videojs.options, options);
     const supportedType = simpleTypeFromSourceType(type);
     const canUseMsePlayback = supportedType &&
-      (!Hls.supportsTypeNatively(supportedType) || overrideNative);
+      (!Vhs.supportsTypeNatively(supportedType) || overrideNative);
 
     return canUseMsePlayback ? 'maybe' : '';
   }
@@ -900,15 +909,24 @@ const supportsNativeMediaSources = () => {
 
 // register source handlers with the appropriate techs
 if (supportsNativeMediaSources()) {
-  videojs.getTech('Html5').registerSourceHandler(HlsSourceHandler, 0);
+  videojs.getTech('Html5').registerSourceHandler(VhsSourceHandler, 0);
 }
 
-videojs.HlsHandler = HlsHandler;
-videojs.HlsSourceHandler = HlsSourceHandler;
-videojs.Hls = Hls;
+videojs.VhsHandler = VhsHandler;
+// TODO deprecated
+videojs.HlsHandler = VhsHandler;
+videojs.VhsSourceHandler = VhsSourceHandler;
+// TODO deprecated
+videojs.HlsSourceHandler = VhsSourceHandler;
+videojs.Vhs = Vhs;
+// TODO deprecated
+videojs.Hls = Vhs;
 if (!videojs.use) {
-  videojs.registerComponent('Hls', Hls);
+  // TODO
+  videojs.registerComponent('Hls', Vhs);
+  videojs.registerComponent('Vhs', Vhs);
 }
+videojs.options.vhs = videojs.options.vhs || {};
 videojs.options.hls = videojs.options.hls || {};
 
 if (videojs.registerPlugin) {
@@ -918,9 +936,9 @@ if (videojs.registerPlugin) {
 }
 
 export {
-  Hls,
-  HlsHandler,
-  HlsSourceHandler,
+  Vhs,
+  VhsHandler,
+  VhsSourceHandler,
   emeKeySystems,
   simpleTypeFromSourceType,
   expandDataUri

@@ -48,6 +48,7 @@ Video.js Compatibility: 6.0, 7.0
       - [useBandwidthFromLocalStorage](#usebandwidthfromlocalstorage)
       - [enableLowInitialPlaylist](#enablelowinitialplaylist)
       - [limitRenditionByPlayerDimensions](#limitrenditionbyplayerdimensions)
+      - [useDevicePixelRatio](#usedevicepixelratio)
       - [smoothQualityChange](#smoothqualitychange)
       - [allowSeeksWithinUnsafeLiveWindow](#allowseekswithinunsafelivewindow)
       - [customTagParsers](#customtagparsers)
@@ -55,15 +56,15 @@ Video.js Compatibility: 6.0, 7.0
       - [cacheEncryptionKeys](#cacheencryptionkeys)
       - [handlePartialData](#handlepartialdata)
   - [Runtime Properties](#runtime-properties)
-    - [hls.playlists.master](#hlsplaylistsmaster)
-    - [hls.playlists.media](#hlsplaylistsmedia)
-    - [hls.systemBandwidth](#hlssystembandwidth)
-    - [hls.bandwidth](#hlsbandwidth)
-    - [hls.throughput](#hlsthroughput)
-    - [hls.selectPlaylist](#hlsselectplaylist)
-    - [hls.representations](#hlsrepresentations)
-    - [hls.xhr](#hlsxhr)
-    - [hls.stats](#hlsstats)
+    - [vhs.playlists.master](#vhsplaylistsmaster)
+    - [vhs.playlists.media](#vhsplaylistsmedia)
+    - [vhs.systemBandwidth](#vhssystembandwidth)
+    - [vhs.bandwidth](#vhsbandwidth)
+    - [vhs.throughput](#vhsthroughput)
+    - [vhs.selectPlaylist](#vhsselectplaylist)
+    - [vhs.representations](#vhsrepresentations)
+    - [vhs.xhr](#vhsxhr)
+    - [vhs.stats](#vhsstats)
   - [Events](#events)
     - [loadedmetadata](#loadedmetadata)
   - [HLS Usage Events](#hls-usage-events)
@@ -234,7 +235,7 @@ parts of video.js:
 // html5 for html hls
 videojs(video, {
   html5: {
-    hls: {
+    vhs: {
       withCredentials: true
     }
   }
@@ -242,7 +243,7 @@ videojs(video, {
 ```
 
 ##### Source
-Some options, such as `withCredentials` can be passed in to hls during
+Some options, such as `withCredentials` can be passed in to vhs during
 `player.src`
 
 ```javascript
@@ -329,7 +330,7 @@ consistent experience.
 // via the constructor
 var player = videojs('playerId', {
   html5: {
-    hls: {
+    vhs: {
       overrideNative: true
     },
     nativeAudioTracks: false,
@@ -393,7 +394,7 @@ This setting is `true` by default.
 * can be used as an initialization option
 
 When the `smoothQualityChange` property is set to `true`, a manual quality
-change triggered via the [representations API](#hlsrepresentations) will use
+change triggered via the [representations API](#vhsrepresentations) will use
 smooth quality switching rather than the default fast (buffer-ejecting)
 quality switching. Using smooth quality switching will mean no loading spinner
 will appear during quality switches, but will cause quality switches to only
@@ -449,10 +450,10 @@ This option defaults to `false`.
 
 ### Runtime Properties
 Runtime properties are attached to the tech object when HLS is in
-use. You can get a reference to the HLS source handler like this:
+use. You can get a reference to the VHS source handler like this:
 
 ```javascript
-var hls = player.tech().hls;
+var vhs = player.tech().vhs;
 ```
 
 If you *were* thinking about modifying runtime properties in a
@@ -462,14 +463,14 @@ work across all the media types that video.js supports. If you're
 deploying videojs-http-streaming on your own website and want to make a
 couple tweaks though, go for it!
 
-#### hls.playlists.master
+#### vhs.playlists.master
 Type: `object`
 
 An object representing the parsed master playlist. If a media playlist
 is loaded directly, a master playlist with only one entry will be
 created.
 
-#### hls.playlists.media
+#### vhs.playlists.media
 Type: `function`
 
 A function that can be used to retrieve or modify the currently active
@@ -482,7 +483,7 @@ will kick off an asynchronous load of the specified media
 playlist. Once it has been retreived, it will become the active media
 playlist.
 
-#### hls.systemBandwidth
+#### vhs.systemBandwidth
 Type: `number`
 
 `systemBandwidth` is a combination of two serial processes' bitrates. The first
@@ -494,7 +495,7 @@ to select an appropriate bitrate to play.
 Since the two process are serial, the overall system bandwidth is given by:
 `systemBandwidth = 1 / (1 / bandwidth + 1 / throughput)`
 
-#### hls.bandwidth
+#### vhs.bandwidth
 Type: `number`
 
 The number of bits downloaded per second in the last segment download.
@@ -505,26 +506,26 @@ have a more accurate source of bandwidth information, you can override
 this value as soon as the HLS tech has loaded to provide an initial
 bandwidth estimate.
 
-#### hls.throughput
+#### vhs.throughput
 Type: `number`
 
 The number of bits decrypted, transmuxed, and appended per second as a cumulative average across active processing time.
 
-#### hls.selectPlaylist
+#### vhs.selectPlaylist
 Type: `function`
 
 A function that returns the media playlist object to use to download
 the next segment. It is invoked by the tech immediately before a new
 segment is downloaded. You can override this function to provide your
 adaptive streaming logic. You must, however, be sure to return a valid
-media playlist object that is present in `player.hls.master`.
+media playlist object that is present in `player.vhs.master`.
 
 Overridding this function with your own is very powerful but is overkill
 for many purposes. Most of the time, you should use the much simpler
 function below to selectively enable or disable a playlist from the
 adaptive streaming logic.
 
-#### hls.representations
+#### vhs.representations
 Type: `function`
 
 It is recommended to include the [videojs-contrib-quality-levels](https://github.com/videojs/videojs-contrib-quality-levels) plugin to your page so that videojs-http-streaming will automatically populate the QualityLevelList exposed on the player by the plugin. You can access this list by calling `player.qualityLevels()`. See the [videojs-contrib-quality-levels project page](https://github.com/videojs/videojs-contrib-quality-levels) for more information on how to use the api.
@@ -544,10 +545,10 @@ for (var i = 0; i < qualityLevels.length; i++) {
 }
 ```
 
-If including [videojs-contrib-quality-levels](https://github.com/videojs/videojs-contrib-quality-levels) is not an option, you can use the representations api. To get all of the available representations, call the `representations()` method on `player.hls`. This will return a list of plain objects, each with `width`, `height`, `bandwidth`, and `id` properties, and an `enabled()` method.
+If including [videojs-contrib-quality-levels](https://github.com/videojs/videojs-contrib-quality-levels) is not an option, you can use the representations api. To get all of the available representations, call the `representations()` method on `player.vhs`. This will return a list of plain objects, each with `width`, `height`, `bandwidth`, and `id` properties, and an `enabled()` method.
 
 ```javascript
-player.hls.representations();
+player.vhs.representations();
 ```
 
 To see whether the representation is enabled or disabled, call its `enabled()` method with no arguments. To set whether it is enabled/disabled, call its `enabled()` method and pass in a boolean value. Calling `<representation>.enabled(true)` will allow the adaptive bitrate algorithm to select the representation while calling `<representation>.enabled(false)` will disallow any selection of that representation.
@@ -555,7 +556,7 @@ To see whether the representation is enabled or disabled, call its `enabled()` m
 Example, only enabling representations with a width greater than or equal to 720:
 
 ```javascript
-player.hls.representations().forEach(function(rep) {
+player.vhs.representations().forEach(function(rep) {
   if (rep.width >= 720) {
     rep.enabled(true);
   } else {
@@ -564,11 +565,11 @@ player.hls.representations().forEach(function(rep) {
 });
 ```
 
-#### hls.xhr
+#### vhs.xhr
 Type: `function`
 
 The xhr function that is used by HLS internally is exposed on the per-
-player `hls` object. While it is possible, we do not recommend replacing
+player `vhs` object. While it is possible, we do not recommend replacing
 the function with your own implementation. Instead, the `xhr` provides
 the ability to specify a `beforeRequest` function that will be called
 with an object containing the options that will be used to create the
@@ -576,7 +577,7 @@ xhr request.
 
 Example:
 ```javascript
-player.hls.xhr.beforeRequest = function(options) {
+player.vhs.xhr.beforeRequest = function(options) {
   options.uri = options.uri.replace('example.com', 'foo.com');
 
   return options;
@@ -611,7 +612,7 @@ player.ready(function() {
 For information on the type of options that you can modify see the
 documentation at [https://github.com/Raynos/xhr](https://github.com/Raynos/xhr).
 
-#### hls.stats
+#### vhs.stats
 Type: `object`
 
 This object contains a summary of HLS and player related stats.
@@ -631,10 +632,10 @@ This object contains a summary of HLS and player related stats.
 | currentSource         | object | The source object. Has the structure `{src: 'url', type: 'mimetype'}` |
 | currentTech           | string | The name of the tech in use |
 | duration              | number | Duration of the video in seconds |
-| master                | object | The [master playlist object](#hlsplaylistsmaster) |
+| master                | object | The [master playlist object](#vhsplaylistsmaster) |
 | playerDimensions      | object | Contains the width and height of the player |
 | seekable              | array  | List of time ranges that the player can seek to |
-| timestamp             | number | Timestamp of when `hls.stats` was accessed |
+| timestamp             | number | Timestamp of when `vhs.stats` was accessed |
 | videoPlaybackQuality  | object | Media playback quality metrics as specified by the [W3C's Media Playback Quality API](https://wicg.github.io/media-playback-quality/) |
 
 
@@ -697,7 +698,7 @@ Each of the following usage events are fired per use:
 | Name          | Description   |
 | ------------- | ------------- |
 | hls-gap-skip  | player skipped a gap in the buffer |
-| hls-player-access | player.hls was accessed |
+| hls-player-access | player.vhs was accessed |
 | hls-audio-change | a user selected an alternate audio stream |
 | hls-rendition-disabled | a rendition was disabled |
 | hls-rendition-enabled | a rendition was enabled |
@@ -886,8 +887,8 @@ by setting the log level to `debug` using `videojs.log.level('debug')`. You can 
 history of the logs using `videojs.log.history()`. This history is maintained even when the
 log level is not set to `debug`.
 
-`hls.stats` can also be helpful when debugging. Accessing this object will give you
-a snapshot summary of various HLS and player stats. See [hls.stats](#hlsstats) for details
+`vhs.stats` can also be helpful when debugging. Accessing this object will give you
+a snapshot summary of various HLS and player stats. See [vhs.stats](#vhsstats) for details
 about what this object contains.
 
 __NOTE__: The `debug` level is only available in video.js v6.6.0+. With earlier versions of
