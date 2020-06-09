@@ -4610,6 +4610,8 @@ QUnit.test(
         );
       }
     );
+    // allows ie to start loading segments, from setupFirstPlay
+    this.player.tech_.readyState = () => 4;
 
     this.player.play();
     // trigger playing with non-existent content
