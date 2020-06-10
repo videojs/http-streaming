@@ -914,7 +914,7 @@ const VhsSourceHandler = {
     return tech.vhs;
   },
   canPlayType(type, options = {}) {
-    const { vhs: { overrideNative } } = videojs.mergeOptions(videojs.options, options);
+    const { vhs: { overrideNative = !videojs.browser.IS_ANY_SAFARI } } = videojs.mergeOptions(videojs.options, options);
     const supportedType = simpleTypeFromSourceType(type);
     const canUseMsePlayback = supportedType &&
       (!Vhs.supportsTypeNatively(supportedType) || overrideNative);

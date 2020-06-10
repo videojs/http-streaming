@@ -223,6 +223,9 @@ are some highlights:
 
 [0]: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/track
 
+For a more complete list of supported and missing features, refer to
+[this doc](docs/supported-features.md).
+
 ### Options
 #### How to use
 
