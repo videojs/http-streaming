@@ -879,7 +879,7 @@ const HlsSourceHandler = {
     return tech.hls;
   },
   canPlayType(type, options = {}) {
-    const { hls: { overrideNative } } = videojs.mergeOptions(videojs.options, options);
+    const { hls: { overrideNative = !videojs.browser.IS_ANY_SAFARI } } = videojs.mergeOptions(videojs.options, options);
     const supportedType = simpleTypeFromSourceType(type);
     const canUseMsePlayback = supportedType &&
       (!Hls.supportsTypeNatively(supportedType) || overrideNative);
