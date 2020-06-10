@@ -363,11 +363,9 @@ class VhsHandler extends Component {
         });
       }
 
-      // Set up a reference to the VhsHandler from player.vhs. This allows users to start
-      // migrating from player.tech_.vhs... to player.vhs... for API access. Although this
-      // isn't the most appropriate form of reference for video.js (since all APIs should
-      // be provided through core video.js), it is a common pattern for plugins, and vhs
-      // will act accordingly.
+      // Set up a reference to the VhsHandler from player.vhs. Although this isn't the
+      // most appropriate form of reference for video.js (since all APIs should be
+      // provided through core video.js), it is a common pattern for plugins.
       if (!_player.hasOwnProperty('vhs')) {
         Object.defineProperty(_player, 'vhs', {
           get: () => {
@@ -852,6 +850,7 @@ class VhsHandler extends Component {
       delete this.tech_.vhs;
     }
 
+    // don't check this.tech_.hls as it will log a deprecated warning
     if (this.tech_) {
       delete this.tech_.hls;
     }
@@ -957,7 +956,6 @@ Object.defineProperty(videojs, 'HlsSourceHandler', {
   configurable: true
 });
 videojs.Vhs = Vhs;
-videojs.Hls = Vhs;
 Object.defineProperty(videojs, 'Hls', {
   get: () => {
     videojs.log.warn('videojs.Hls is deprecated. Use videojs.Vhs instead.');
