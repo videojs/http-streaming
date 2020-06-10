@@ -67,7 +67,7 @@ Video.js Compatibility: 6.0, 7.0
     - [vhs.stats](#vhsstats)
   - [Events](#events)
     - [loadedmetadata](#loadedmetadata)
-  - [HLS Usage Events](#hls-usage-events)
+  - [VHS Usage Events](#vhs-usage-events)
     - [Presence Stats](#presence-stats)
     - [Use Stats](#use-stats)
   - [In-Band Metadata](#in-band-metadata)
@@ -453,7 +453,7 @@ Runtime properties are attached to the tech object when HLS is in
 use. You can get a reference to the VHS source handler like this:
 
 ```javascript
-var vhs = player.tech().vhs;
+var vhs = player.vhs;
 ```
 
 If you *were* thinking about modifying runtime properties in a
@@ -584,7 +584,7 @@ player.vhs.xhr.beforeRequest = function(options) {
 };
 ```
 
-The global `videojs.Hls` also exposes an `xhr` property. Specifying a
+The global `videojs.Vhs` also exposes an `xhr` property. Specifying a
 `beforeRequest` function on that will allow you to intercept the options
 for *all* requests in every player on a page. For consistency across
 browsers the video source should be set at runtime once the video player
@@ -592,7 +592,7 @@ is ready.
 
 Example
 ```javascript
-videojs.Hls.xhr.beforeRequest = function(options) {
+videojs.Vhs.xhr.beforeRequest = function(options) {
   /*
    * Modifications to requests that will affect every player.
    */
@@ -648,7 +648,7 @@ are triggered on the player object.
 Fired after the first segment is downloaded for a playlist. This will not happen
 until playback if video.js's `metadata` setting is `none`
 
-### HLS Usage Events
+### VHS Usage Events
 
 Usage tracking events are fired when we detect a certain HLS feature, encoding setting,
 or API is used. These can be helpful for analytics, and to pinpoint the cause of HLS errors.
@@ -659,7 +659,7 @@ debugging the error.
 Note that although these usage events are listed below, they may change at any time without
 a major version change.
 
-HLS usage events are triggered on the tech with the exception of the 3 hls-reload-error
+VHS usage events are triggered on the tech with the exception of the 3 vhs-reload-error
 events, which are triggered on the player.
 
 To listen for usage events triggered on the tech, listen for the event type of `'usage'`:
@@ -673,7 +673,7 @@ player.on('ready', () => {
 ```
 
 Note that these events are triggered as soon as a case is encountered, and often only
-once. For example, the `hls-demuxed` usage event will be triggered as soon as the master
+once. For example, the `vhs-demuxed` usage event will be triggered as soon as the master
 manifest is downloaded and parsed, and will not be triggered again.
 
 #### Presence Stats
@@ -682,14 +682,14 @@ Each of the following usage events are fired once per source if (and when) detec
 
 | Name          | Description   |
 | ------------- | ------------- |
-| hls-webvtt    | master manifest has at least one segmented WebVTT playlist |
-| hls-aes       | a playlist is AES encrypted |
-| hls-fmp4      | a playlist used fMP4 segments |
-| hls-demuxed   | audio and video are demuxed by default |
-| hls-alternate-audio | alternate audio available in the master manifest |
-| hls-playlist-cue-tags | a playlist used cue tags (see useCueTags(#usecuetags) for details) |
-| hls-bandwidth-from-local-storage | starting bandwidth was retrieved from local storage (see useBandwidthFromLocalStorage(#useBandwidthFromLocalStorage) for details) |
-| hls-throughput-from-local-storage | starting throughput was retrieved from local storage (see useBandwidthFromLocalStorage(#useBandwidthFromLocalStorage) for details) |
+| vhs-webvtt    | master manifest has at least one segmented WebVTT playlist |
+| vhs-aes       | a playlist is AES encrypted |
+| vhs-fmp4      | a playlist used fMP4 segments |
+| vhs-demuxed   | audio and video are demuxed by default |
+| vhs-alternate-audio | alternate audio available in the master manifest |
+| vhs-playlist-cue-tags | a playlist used cue tags (see useCueTags(#usecuetags) for details) |
+| vhs-bandwidth-from-local-storage | starting bandwidth was retrieved from local storage (see useBandwidthFromLocalStorage(#useBandwidthFromLocalStorage) for details) |
+| vhs-throughput-from-local-storage | starting throughput was retrieved from local storage (see useBandwidthFromLocalStorage(#useBandwidthFromLocalStorage) for details) |
 
 #### Use Stats
 
@@ -697,19 +697,19 @@ Each of the following usage events are fired per use:
 
 | Name          | Description   |
 | ------------- | ------------- |
-| hls-gap-skip  | player skipped a gap in the buffer |
-| hls-player-access | player.vhs was accessed |
-| hls-audio-change | a user selected an alternate audio stream |
-| hls-rendition-disabled | a rendition was disabled |
-| hls-rendition-enabled | a rendition was enabled |
-| hls-rendition-blacklisted | a rendition was blacklisted |
-| hls-timestamp-offset | a timestamp offset was set in HLS (can identify discontinuities) |
-| hls-unknown-waiting | the player stopped for an unknown reason and we seeked to current time try to address it |
-| hls-live-resync | playback fell off the back of a live playlist and we resynced to the live point |
-| hls-video-underflow | we seeked to current time to address video underflow |
-| hls-error-reload-initialized | the reloadSourceOnError plugin was initialized |
-| hls-error-reload | the reloadSourceOnError plugin reloaded a source |
-| hls-error-reload-canceled | an error occurred too soon after the last reload, so we didn't reload again (to prevent error loops) |
+| vhs-gap-skip  | player skipped a gap in the buffer |
+| vhs-player-access | player.vhs was accessed |
+| vhs-audio-change | a user selected an alternate audio stream |
+| vhs-rendition-disabled | a rendition was disabled |
+| vhs-rendition-enabled | a rendition was enabled |
+| vhs-rendition-blacklisted | a rendition was blacklisted |
+| vhs-timestamp-offset | a timestamp offset was set in HLS (can identify discontinuities) |
+| vhs-unknown-waiting | the player stopped for an unknown reason and we seeked to current time try to address it |
+| vhs-live-resync | playback fell off the back of a live playlist and we resynced to the live point |
+| vhs-video-underflow | we seeked to current time to address video underflow |
+| vhs-error-reload-initialized | the reloadSourceOnError plugin was initialized |
+| vhs-error-reload | the reloadSourceOnError plugin reloaded a source |
+| vhs-error-reload-canceled | an error occurred too soon after the last reload, so we didn't reload again (to prevent error loops) |
 
 
 ### In-Band Metadata

@@ -57,7 +57,7 @@ QUnit.module('Playback', {
     this.fixture.appendChild(video);
     this.player = videojs(video, {
       html5: {
-        hls: {
+        vhs: {
           overrideNative: true
         }
       }

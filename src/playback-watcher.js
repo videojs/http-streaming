@@ -400,6 +400,7 @@ export default class PlaybackWatcher {
         'playback by seeking to the current time.');
 
       // unknown waiting corrections may be useful for monitoring QoS
+      this.tech_.trigger({type: 'usage', name: 'vhs-unknown-waiting'});
       this.tech_.trigger({type: 'usage', name: 'hls-unknown-waiting'});
       return;
     }
@@ -436,6 +437,7 @@ export default class PlaybackWatcher {
       this.seekTo(livePoint);
 
       // live window resyncs may be useful for monitoring QoS
+      this.tech_.trigger({type: 'usage', name: 'vhs-live-resync'});
       this.tech_.trigger({type: 'usage', name: 'hls-live-resync'});
       return true;
     }
@@ -452,6 +454,7 @@ export default class PlaybackWatcher {
       this.seekTo(currentTime);
 
       // video underflow may be useful for monitoring QoS
+      this.tech_.trigger({type: 'usage', name: 'vhs-video-underflow'});
       this.tech_.trigger({type: 'usage', name: 'hls-video-underflow'});
       return true;
     }
@@ -553,6 +556,7 @@ export default class PlaybackWatcher {
     // only seek if we still have not played
     this.seekTo(nextRange.start(0) + Ranges.TIME_FUDGE_FACTOR);
 
+    this.tech_.trigger({type: 'usage', name: 'vhs-gap-skip'});
     this.tech_.trigger({type: 'usage', name: 'hls-gap-skip'});
   }
 

@@ -245,7 +245,7 @@ export const simpleSelector = function(
  * Chooses the appropriate media playlist based on the most recent
  * bandwidth estimate and the player size.
  *
- * Expects to be called within the context of an instance of HlsHandler
+ * Expects to be called within the context of an instance of VhsHandler
  *
  * @return {Playlist} the highest bitrate playlist less than the
  * currently detected bandwidth, accounting for some amount of
@@ -268,7 +268,7 @@ export const lastBandwidthSelector = function() {
  * exponential-weighted moving average of the bandwidth after
  * filtering for player size.
  *
- * Expects to be called within the context of an instance of HlsHandler
+ * Expects to be called within the context of an instance of VhsHandler
  *
  * @param {number} decay - a number between 0 and 1. Higher values of
  * this parameter will cause previous bandwidth estimates to lose
@@ -404,7 +404,7 @@ export const minRebufferMaxBandwidthSelector = function(settings) {
  * Chooses the appropriate media playlist, which in this case is the lowest bitrate
  * one with video.  If no renditions with video exist, return the lowest audio rendition.
  *
- * Expects to be called within the context of an instance of HlsHandler
+ * Expects to be called within the context of an instance of VhsHandler
  *
  * @return {Object|null}
  *         {Object} return.playlist

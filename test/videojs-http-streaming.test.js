@@ -60,7 +60,7 @@ const merge = function(target, source) {
   }
 };
 
-QUnit.module('HLS', {
+QUnit.module('VHS', {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
     this.requests = this.env.requests;
@@ -144,10 +144,10 @@ QUnit.test('version is exported', function(assert) {
 
 });
 
-// TODO
 QUnit.test('deprecation warning is show when using player.hls', function(assert) {
   const oldWarn = videojs.log.warn;
   let warning = '';
+  let vhsPlayerAccessEvents = 0;
   let hlsPlayerAccessEvents = 0;
 
   this.player.src({
@@ -158,6 +158,9 @@ QUnit.test('deprecation warning is show when using player.hls', function(assert)
   this.clock.tick(1);
 
   this.player.tech_.on('usage', (event) => {
+    if (event.name === 'vhs-player-access') {
+      vhsPlayerAccessEvents++;
+    }
     if (event.name === 'hls-player-access') {
       hlsPlayerAccessEvents++;
     }
@@ -166,13 +169,15 @@ QUnit.test('deprecation warning is show when using player.hls', function(assert)
   videojs.log.warn = (text) => {
     warning = text;
   };
+  assert.equal(vhsPlayerAccessEvents, 0, 'no vhs-player-access event was fired');
   assert.equal(hlsPlayerAccessEvents, 0, 'no hls-player-access event was fired');
   const hls = this.player.hls;
 
+  assert.equal(vhsPlayerAccessEvents, 1, 'a vhs-player-access event was fired');
   assert.equal(hlsPlayerAccessEvents, 1, 'an hls-player-access event was fired');
   assert.equal(
     warning,
-    'player.hls is deprecated. Use player.tech().hls instead.',
+    'player.hls is deprecated. Use player.vhs instead.',
     'warning would have been shown'
   );
   assert.ok(hls, 'an instance of hls is returned by player.hls');
@@ -180,20 +185,27 @@ QUnit.test('deprecation warning is show when using player.hls', function(assert)
 });
 
 QUnit.test('the VhsHandler instance is referenced by player.vhs', function(assert) {
+  let vhsPlayerAccessEvents = 0;
+
   this.player.src({
     src: 'manifest/playlist.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
   this.clock.tick(1);
 
-  assert.ok(
-    this.player.vhs instanceof VhsHandler,
-    'player.vhs references an instance of VhsHandler'
-  );
+  this.player.tech_.on('usage', (event) => {
+    if (event.name === 'vhs-player-access') {
+      vhsPlayerAccessEvents++;
+    }
+  });
+
+  const vhs = this.player.vhs;
+
+  assert.ok(vhs instanceof VhsHandler, 'player.vhs references an instance of VhsHandler');
+  assert.equal(vhsPlayerAccessEvents, 1, 'a vhs-player-access event was fired');
 });
 
-// deprecated, for backwards compatibility
-QUnit.test('the VhsHandler instance is referenced by player.dash', function(assert) {
+QUnit.test('a deprecation notice is shown when using player.dash', function(assert) {
   this.player.src({
     src: 'manifest/playlist.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -204,8 +216,154 @@ QUnit.test('the VhsHandler instance is referenced by player.dash', function(asse
     this.player.dash instanceof VhsHandler,
     'player.dash references an instance of VhsHandler'
   );
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged');
+  assert.equal(
+    this.env.log.warn.args[0][0],
+    'player.dash is deprecated. Use player.vhs instead.',
+    'logged deprecation'
+  );
 });
 
+QUnit.test('VhsHandler is referenced by player.tech().vhs', function(assert) {
+  this.player.src({
+    src: 'manifest/playlist.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+
+  assert.ok(
+    this.player.tech().vhs instanceof VhsHandler,
+    'player.tech().vhs references an instance of VhsHandler'
+  );
+
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged');
+  assert.equal(
+    this.env.log.warn.args[0][0],
+    'Using the tech directly can be dangerous. I hope you know what you\'re doing.\n' +
+    'See https://github.com/videojs/video.js/issues/2617 for more info.\n',
+    'logged warning'
+  );
+});
+
+QUnit.test('logs deprecation notice when using player.tech().hls', function(assert) {
+  this.player.src({
+    src: 'manifest/playlist.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+
+  assert.ok(
+    this.player.tech().hls instanceof VhsHandler,
+    'player.tech().hls references an instance of VhsHandler'
+  );
+  assert.equal(this.env.log.warn.calls, 2, 'warning logged');
+  assert.equal(
+    this.env.log.warn.args[0][0],
+    'Using the tech directly can be dangerous. I hope you know what you\'re doing.\n' +
+    'See https://github.com/videojs/video.js/issues/2617 for more info.\n',
+    'logged warning'
+  );
+  assert.equal(
+    this.env.log.warn.args[1][0],
+    'player.tech().hls is deprecated. Use player.vhs instead.',
+    'logged deprecation'
+  );
+});
+
+QUnit.test('logs deprecation notice when using hls for options', function(assert) {
+  this.player.dispose();
+  this.player = createPlayer({ html5: { hls: { bandwidth: 0 } } });
+
+  this.player.src({
+    src: 'http://example.com/media.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+  openMediaSource(this.player, this.clock);
+
+  assert.equal(this.player.tech_.vhs.bandwidth, 0, 'set bandwidth to 0');
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged');
+  assert.equal(
+    this.env.log.warn.args[0][0],
+    'Using hls options is deprecated. Use vhs instead.',
+  );
+});
+
+QUnit.test('logs deprecation notice when using hls for global options', function(assert) {
+  const origHlsOptions = videojs.options.hls;
+
+  this.player.dispose();
+  videojs.options.hls = {
+    bandwidth: 0
+  };
+  this.player = createPlayer();
+
+  this.player.src({
+    src: 'http://example.com/media.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+  openMediaSource(this.player, this.clock);
+
+  assert.equal(this.player.tech_.vhs.bandwidth, 0, 'set bandwidth to 0');
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged');
+  assert.equal(
+    this.env.log.warn.args[0][0],
+    'Using hls options is deprecated. Use vhs instead.',
+  );
+
+  videojs.options.hls = origHlsOptions;
+});
+
+QUnit.test('logs deprecation notice when using videojs.Hls', function(assert) {
+  assert.equal(videojs.Hls, Vhs, 'can get Vhs object from videojs.Hls');
+
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged');
+  assert.equal(
+    this.env.log.warn.args[0][0],
+    'videojs.Hls is deprecated. Use videojs.Vhs instead.'
+  );
+});
+
+QUnit.test('logs deprecation notice when using videojs.HlsHandler', function(assert) {
+  this.player.src({
+    src: 'http://example.com/media.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+
+  assert.equal(
+    videojs.HlsHandler,
+    VhsHandler,
+    'can get VhsHandler from videojs.HlsHandler'
+  );
+
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged');
+  assert.equal(
+    this.env.log.warn.args[0][0],
+    'videojs.HlsHandler is deprecated. Use videojs.VhsHandler instead.'
+  );
+});
+
+QUnit.test('logs deprecation notice when using videojs.HlsSourceHandler', function(assert) {
+  this.player.src({
+    src: 'http://example.com/media.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+
+  assert.equal(
+    videojs.HlsSourceHandler,
+    VhsSourceHandler,
+    'can get VhsSourceHandler from videojs.HlsSourceHandler'
+  );
+
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged');
+  assert.equal(
+    this.env.log.warn.args[0][0],
+    'videojs.HlsSourceHandler is deprecated. Use videojs.VhsSourceHandler instead.'
+  );
+});
 QUnit.test('starts playing if autoplay is specified', function(assert) {
   this.player.autoplay(true);
   this.player.src({
@@ -1790,6 +1948,7 @@ QUnit.test('playlist 404 should blacklist media', function(assert) {
   let index;
   let blacklistplaylist = 0;
   let retryplaylist = 0;
+  let vhsRenditionBlacklistedEvents = 0;
   let hlsRenditionBlacklistedEvents = 0;
 
   this.player.src({
@@ -1803,6 +1962,9 @@ QUnit.test('playlist 404 should blacklist media', function(assert) {
   this.player.tech_.on('blacklistplaylist', () => blacklistplaylist++);
   this.player.tech_.on('retryplaylist', () => retryplaylist++);
   this.player.tech_.on('usage', (event) => {
+    if (event.name === 'vhs-rendition-blacklisted') {
+      vhsRenditionBlacklistedEvents++;
+    }
     if (event.name === 'hls-rendition-blacklisted') {
       hlsRenditionBlacklistedEvents++;
     }
@@ -1825,6 +1987,11 @@ QUnit.test('playlist 404 should blacklist media', function(assert) {
   );
 
   assert.equal(blacklistplaylist, 0, 'there is no blacklisted playlist');
+  assert.equal(
+    vhsRenditionBlacklistedEvents,
+    0,
+    'no vhs-rendition-blacklisted event was fired'
+  );
   assert.equal(
     hlsRenditionBlacklistedEvents,
     0,
@@ -1849,6 +2016,11 @@ QUnit.test('playlist 404 should blacklist media', function(assert) {
     'log generic error message'
   );
   assert.equal(blacklistplaylist, 1, 'there is one blacklisted playlist');
+  assert.equal(
+    vhsRenditionBlacklistedEvents,
+    1,
+    'a vhs-rendition-blacklisted event was fired'
+  );
   assert.equal(
     hlsRenditionBlacklistedEvents,
     1,
@@ -2845,7 +3017,7 @@ QUnit.test('has no effect if native HLS is available', function(assert) {
   const oldHtml5CanPlaySource = Html5.canPlaySource;
 
   Html5.canPlaySource = () => true;
-  Vhs.supportsNativeVhs = true;
+  Vhs.supportsNativeHls = true;
   const player = createPlayer();
 
   player.src({
@@ -3713,6 +3885,7 @@ QUnit.test('cleans up the buffer when loading VOD segments', function(assert) {
 });
 
 QUnit.test('when mediaGroup changes enabled track should not change', function(assert) {
+  let vhsAudioChangeEvents = 0;
   let hlsAudioChangeEvents = 0;
 
   this.player.src({
@@ -3725,6 +3898,9 @@ QUnit.test('when mediaGroup changes enabled track should not change', function(a
   openMediaSource(this.player, this.clock);
 
   this.player.tech_.on('usage', (event) => {
+    if (event.name === 'vhs-audio-change') {
+      vhsAudioChangeEvents++;
+    }
     if (event.name === 'hls-audio-change') {
       hlsAudioChangeEvents++;
     }
@@ -3738,6 +3914,7 @@ QUnit.test('when mediaGroup changes enabled track should not change', function(a
   const mpc = vhs.masterPlaylistController_;
   let audioTracks = this.player.audioTracks();
 
+  assert.equal(vhsAudioChangeEvents, 0, 'no vhs-audio-change event was fired');
   assert.equal(hlsAudioChangeEvents, 0, 'no hls-audio-change event was fired');
   assert.equal(audioTracks.length, 3, 'three audio tracks after load');
   assert.equal(audioTracks[0].enabled, true, 'track one enabled after load');
@@ -3787,6 +3964,7 @@ QUnit.test('when mediaGroup changes enabled track should not change', function(a
   );
   audioTracks = this.player.audioTracks();
 
+  assert.equal(vhsAudioChangeEvents, 1, 'a vhs-audio-change event was fired');
   assert.equal(hlsAudioChangeEvents, 1, 'an hls-audio-change event was fired');
   assert.equal(audioTracks.length, 3, 'three audio tracks after reverting mediaGroup');
   assert.notOk(audioTracks[0].enabled, 'the default track is still disabled');
@@ -4396,14 +4574,22 @@ QUnit[testOrSkip]('retrieves bandwidth and throughput from localStorage', functi
     throughput: 44
   }));
 
-  let bandwidthUsageEvents = 0;
-  let throughputUsageEvents = 0;
+  let vhsBandwidthUsageEvents = 0;
+  let vhsThroughputUsageEvents = 0;
+  let hlsBandwidthUsageEvents = 0;
+  let hlsThroughputUsageEvents = 0;
   const usageListener = (event) => {
+    if (event.name === 'vhs-bandwidth-from-local-storage') {
+      vhsBandwidthUsageEvents++;
+    }
+    if (event.name === 'vhs-throughput-from-local-storage') {
+      vhsThroughputUsageEvents++;
+    }
     if (event.name === 'hls-bandwidth-from-local-storage') {
-      bandwidthUsageEvents++;
+      hlsBandwidthUsageEvents++;
     }
     if (event.name === 'hls-throughput-from-local-storage') {
-      throughputUsageEvents++;
+      hlsThroughputUsageEvents++;
     }
   };
 
@@ -4427,8 +4613,10 @@ QUnit[testOrSkip]('retrieves bandwidth and throughput from localStorage', functi
     'no throughput when no option to use stored throughput'
   );
 
-  assert.equal(bandwidthUsageEvents, 0, 'no bandwidth usage event');
-  assert.equal(throughputUsageEvents, 0, 'no throughput usage event');
+  assert.equal(vhsBandwidthUsageEvents, 0, 'no bandwidth usage event');
+  assert.equal(vhsThroughputUsageEvents, 0, 'no throughput usage event');
+  assert.equal(hlsBandwidthUsageEvents, 0, 'no bandwidth usage event');
+  assert.equal(hlsThroughputUsageEvents, 0, 'no throughput usage event');
 
   const origVhsOptions = videojs.options.vhs;
 
@@ -4446,8 +4634,10 @@ QUnit[testOrSkip]('retrieves bandwidth and throughput from localStorage', functi
 
   assert.equal(this.player.tech_.vhs.bandwidth, 33, 'retrieved stored bandwidth');
   assert.equal(this.player.tech_.vhs.throughput, 44, 'retrieved stored throughput');
-  assert.equal(bandwidthUsageEvents, 1, 'one bandwidth usage event');
-  assert.equal(throughputUsageEvents, 1, 'one throughput usage event');
+  assert.equal(vhsBandwidthUsageEvents, 1, 'one bandwidth usage event');
+  assert.equal(vhsThroughputUsageEvents, 1, 'one throughput usage event');
+  assert.equal(hlsBandwidthUsageEvents, 1, 'one bandwidth usage event');
+  assert.equal(hlsThroughputUsageEvents, 1, 'one throughput usage event');
 
   videojs.options.vhs = origVhsOptions;
 });
@@ -4458,14 +4648,22 @@ QUnit[testOrSkip](
   // bad value
     window.localStorage.setItem(LOCAL_STORAGE_KEY, 'a');
 
-    let bandwidthUsageEvents = 0;
-    let throughputUsageEvents = 0;
+    let vhsBandwidthUsageEvents = 0;
+    let vhsThroughputUsageEvents = 0;
+    let hlsBandwidthUsageEvents = 0;
+    let hlsThroughputUsageEvents = 0;
     const usageListener = (event) => {
+      if (event.name === 'vhs-bandwidth-from-local-storage') {
+        vhsBandwidthUsageEvents++;
+      }
+      if (event.name === 'vhs-throughput-from-local-storage') {
+        vhsThroughputUsageEvents++;
+      }
       if (event.name === 'hls-bandwidth-from-local-storage') {
-        bandwidthUsageEvents++;
+        hlsBandwidthUsageEvents++;
       }
       if (event.name === 'hls-throughput-from-local-storage') {
-        throughputUsageEvents++;
+        hlsThroughputUsageEvents++;
       }
     };
 
@@ -4490,8 +4688,10 @@ QUnit[testOrSkip](
     );
     assert.notOk(this.player.tech_.vhs.throughput, 'no throughput value retrieved');
 
-    assert.equal(bandwidthUsageEvents, 0, 'no bandwidth usage event');
-    assert.equal(throughputUsageEvents, 0, 'no throughput usage event');
+    assert.equal(vhsBandwidthUsageEvents, 0, 'no bandwidth usage event');
+    assert.equal(vhsThroughputUsageEvents, 0, 'no throughput usage event');
+    assert.equal(hlsBandwidthUsageEvents, 0, 'no bandwidth usage event');
+    assert.equal(hlsThroughputUsageEvents, 0, 'no throughput usage event');
 
     videojs.options.vhs = origVhsOptions;
   }

@@ -253,7 +253,7 @@
         }
       }
 
-      videojs.options.hls.overrideNative = overrideNative === 'on';
+      videojs.options.vhs.overrideNative = overrideNative === 'on';
 
       var type = document.getElementById('url-content-type').value;
       // use the form data to add a src to the player
@@ -372,14 +372,14 @@
           }
 
           // bitrates
-          var playlist = player.tech_.hls.playlists.media();
+          var playlist = player.tech_.vhs.playlists.media();
           if (playlist && playlist.attributes && playlist.attributes.BANDWIDTH) {
             videoBitrateState.textContent = (playlist.attributes.BANDWIDTH / 1024).toLocaleString(undefined, {
               maximumFractionDigits: 1
             }) + ' kbps';
           }
-          if (player.tech_.hls.bandwidth) {
-            measuredBitrateStat.textContent = (player.tech_.hls.bandwidth / 1024).toLocaleString(undefined, {
+          if (player.tech_.vhs.bandwidth) {
+            measuredBitrateStat.textContent = (player.tech_.vhs.bandwidth / 1024).toLocaleString(undefined, {
               maximumFractionDigits: 1
             }) + ' kbps';
           }
@@ -397,8 +397,8 @@
         trackEventCount('seeking', '.seeking-count');
         trackEventCount('seeked', '.seeked-count');
 
-        videojs.Hls.displayStats(document.querySelector('.switching-stats'), player);
-        videojs.Hls.displayCues(document.querySelector('.segment-timeline'), player);
+        videojs.Vhs.displayStats(document.querySelector('.switching-stats'), player);
+        videojs.Vhs.displayCues(document.querySelector('.segment-timeline'), player);
 
         // setup quality levels
         var qualityLevels = player.qualityLevels();

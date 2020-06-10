@@ -40,7 +40,7 @@ const makeMockPlaylist = function(options) {
   return playlist;
 };
 
-const makeMockHlsHandler = function(playlistOptions, handlerOptions) {
+const makeMockVhsHandler = function(playlistOptions, handlerOptions) {
   const mcp = {
     fastQualityChange_: () => {
       mcp.fastQualityChange_.calls++;
@@ -53,58 +53,58 @@ const makeMockHlsHandler = function(playlistOptions, handlerOptions) {
   mcp.fastQualityChange_.calls = 0;
   mcp.smoothQualityChange_.calls = 0;
 
-  const hlsHandler = {
+  const vhsHandler = {
     masterPlaylistController_: mcp,
     options_: handlerOptions || {}
   };
 
-  hlsHandler.playlists = new videojs.EventTarget();
-  hlsHandler.playlists.master = { playlists: [] };
+  vhsHandler.playlists = new videojs.EventTarget();
+  vhsHandler.playlists.master = { playlists: [] };
 
   playlistOptions.forEach((playlist, i) => {
-    hlsHandler.playlists.master.playlists[i] = makeMockPlaylist(playlist);
+    vhsHandler.playlists.master.playlists[i] = makeMockPlaylist(playlist);
 
     if (playlist.uri) {
       const id = createPlaylistID(i, playlist.uri);
 
-      hlsHandler.playlists.master.playlists[i].id = id;
-      hlsHandler.playlists.master.playlists[id] =
-        hlsHandler.playlists.master.playlists[i];
+      vhsHandler.playlists.master.playlists[i].id = id;
+      vhsHandler.playlists.master.playlists[id] =
+        vhsHandler.playlists.master.playlists[i];
     }
   });
 
-  return hlsHandler;
+  return vhsHandler;
 };
 
 QUnit.module('Rendition Selector API Mixin');
 
-QUnit.test('adds the representations API to HlsHandler', function(assert) {
-  const hlsHandler = makeMockHlsHandler([
+QUnit.test('adds the representations API to VhsHandler', function(assert) {
+  const vhsHandler = makeMockVhsHandler([
     {}
   ]);
 
-  RenditionMixin(hlsHandler);
+  RenditionMixin(vhsHandler);
 
   assert.equal(
-    typeof hlsHandler.representations, 'function',
+    typeof vhsHandler.representations, 'function',
     'added the representations API'
   );
 });
 
 QUnit.test('returns proper number of representations', function(assert) {
-  const hlsHandler = makeMockHlsHandler([
+  const vhsHandler = makeMockVhsHandler([
     {}, {}, {}
   ]);
 
-  RenditionMixin(hlsHandler);
+  RenditionMixin(vhsHandler);
 
-  const renditions = hlsHandler.representations();
+  const renditions = vhsHandler.representations();
 
   assert.equal(renditions.length, 3, 'number of renditions is 3');
 });
 
 QUnit.test('returns representations in playlist order', function(assert) {
-  const hlsHandler = makeMockHlsHandler([
+  const vhsHandler = makeMockVhsHandler([
     {
       bandwidth: 10
     },
@@ -116,9 +116,9 @@ QUnit.test('returns representations in playlist order', function(assert) {
     }
   ]);
 
-  RenditionMixin(hlsHandler);
+  RenditionMixin(vhsHandler);
 
-  const renditions = hlsHandler.representations();
+  const renditions = vhsHandler.representations();
 
   assert.equal(renditions[0].bandwidth, 10, 'rendition has bandwidth 10');
   assert.equal(renditions[1].bandwidth, 20, 'rendition has bandwidth 20');
@@ -126,7 +126,7 @@ QUnit.test('returns representations in playlist order', function(assert) {
 });
 
 QUnit.test('returns representations with width and height if present', function(assert) {
-  const hlsHandler = makeMockHlsHandler([
+  const vhsHandler = makeMockVhsHandler([
     {
       bandwidth: 10,
       width: 100,
@@ -142,9 +142,9 @@ QUnit.test('returns representations with width and height if present', function(
     }
   ]);
 
-  RenditionMixin(hlsHandler);
+  RenditionMixin(vhsHandler);
 
-  const renditions = hlsHandler.representations();
+  const renditions = vhsHandler.representations();
 
   assert.equal(renditions[0].width, 100, 'rendition has a width of 100');
   assert.equal(renditions[0].height, 200, 'rendition has a height of 200');
@@ -157,7 +157,7 @@ QUnit.test('returns representations with width and height if present', function(
 QUnit.test(
   'incompatible playlists are not included in the representations list',
   function(assert) {
-    const hlsHandler = makeMockHlsHandler([
+    const vhsHandler = makeMockVhsHandler([
       {
         bandwidth: 0,
         excludeUntil: Infinity,
@@ -184,9 +184,9 @@ QUnit.test(
       }
     ]);
 
-    RenditionMixin(hlsHandler);
+    RenditionMixin(vhsHandler);
 
-    const renditions = hlsHandler.representations();
+    const renditions = vhsHandler.representations();
 
     assert.equal(renditions.length, 4, 'incompatible rendition not added');
     assert.equal(renditions[0].id, '1-media1.m3u8', 'rendition is enabled');
@@ -200,7 +200,7 @@ QUnit.test(
   'setting a representation to disabled sets disabled to true',
   function(assert) {
     let renditiondisabled = 0;
-    const hlsHandler = makeMockHlsHandler([
+    const vhsHandler = makeMockVhsHandler([
       {
         bandwidth: 0,
         excludeUntil: 0,
@@ -212,15 +212,15 @@ QUnit.test(
         uri: 'media1.m3u8'
       }
     ]);
-    const playlists = hlsHandler.playlists.master.playlists;
+    const playlists = vhsHandler.playlists.master.playlists;
 
-    hlsHandler.playlists.on('renditiondisabled', function() {
+    vhsHandler.playlists.on('renditiondisabled', function() {
       renditiondisabled++;
     });
 
-    RenditionMixin(hlsHandler);
+    RenditionMixin(vhsHandler);
 
-    const renditions = hlsHandler.representations();
+    const renditions = vhsHandler.representations();
 
     assert.equal(renditiondisabled, 0, 'renditiondisabled event has not been triggered');
     renditions[0].enabled(false);
@@ -243,7 +243,7 @@ QUnit.test(
   'changing the enabled state of a representation calls fastQualityChange_ by default',
   function(assert) {
     let renditionEnabledEvents = 0;
-    const hlsHandler = makeMockHlsHandler([
+    const vhsHandler = makeMockVhsHandler([
       {
         bandwidth: 0,
         disabled: true,
@@ -254,15 +254,15 @@ QUnit.test(
         uri: 'media1.m3u8'
       }
     ]);
-    const mpc = hlsHandler.masterPlaylistController_;
+    const mpc = vhsHandler.masterPlaylistController_;
 
-    hlsHandler.playlists.on('renditionenabled', function() {
+    vhsHandler.playlists.on('renditionenabled', function() {
       renditionEnabledEvents++;
     });
 
-    RenditionMixin(hlsHandler);
+    RenditionMixin(vhsHandler);
 
-    const renditions = hlsHandler.representations();
+    const renditions = vhsHandler.representations();
 
     assert.equal(mpc.fastQualityChange_.calls, 0, 'fastQualityChange_ was never called');
     assert.equal(
@@ -289,7 +289,7 @@ QUnit.test(
   'when the flag is set',
   function(assert) {
     let renditionEnabledEvents = 0;
-    const hlsHandler = makeMockHlsHandler([
+    const vhsHandler = makeMockVhsHandler([
       {
         bandwidth: 0,
         disabled: true,
@@ -302,15 +302,15 @@ QUnit.test(
     ], {
       smoothQualityChange: true
     });
-    const mpc = hlsHandler.masterPlaylistController_;
+    const mpc = vhsHandler.masterPlaylistController_;
 
-    hlsHandler.playlists.on('renditionenabled', function() {
+    vhsHandler.playlists.on('renditionenabled', function() {
       renditionEnabledEvents++;
     });
 
-    RenditionMixin(hlsHandler);
+    RenditionMixin(vhsHandler);
 
-    const renditions = hlsHandler.representations();
+    const renditions = vhsHandler.representations();
 
     assert.equal(mpc.smoothQualityChange_.calls, 0, 'smoothQualityChange_ was never called');
     assert.equal(

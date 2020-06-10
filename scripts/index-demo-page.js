@@ -201,8 +201,8 @@
       saveState();
 
       window.videojs.options = window.videojs.options || {};
-      window.videojs.options.hls = window.videojs.options.hls || {};
-      window.videojs.options.hls.handlePartialData = event.target.checked;
+      window.videojs.options.vhs = window.videojs.options.vhs || {};
+      window.videojs.options.vhs.handlePartialData = event.target.checked;
 
       if (window.player) {
         window.player.src(window.player.currentSource());
@@ -255,7 +255,7 @@
           },
           liveui: stateEls.liveui.checked,
           html5: {
-            hls: {
+            vhs: {
               overrideNative: true
             }
           }

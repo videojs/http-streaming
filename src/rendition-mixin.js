@@ -47,11 +47,11 @@ const enableFunction = (loader, playlistID, changePlaylistFn) => (enable) => {
  * @class Representation
  */
 class Representation {
-  constructor(hlsHandler, playlist, id) {
+  constructor(vhsHandler, playlist, id) {
     const {
       masterPlaylistController_: mpc,
       options_: { smoothQualityChange }
-    } = hlsHandler;
+    } = vhsHandler;
     // Get a reference to a bound version of the quality change function
     const changeType = smoothQualityChange ? 'smooth' : 'fast';
     const qualityChangeFunction = mpc[`${changeType}QualityChange_`].bind(mpc);
@@ -73,7 +73,7 @@ class Representation {
     // Partially-apply the enableFunction to create a playlist-
     // specific variant
     this.enabled = enableFunction(
-      hlsHandler.playlists,
+      vhsHandler.playlists,
       playlist.id,
       qualityChangeFunction
     );
@@ -82,16 +82,16 @@ class Representation {
 
 /**
  * A mixin function that adds the `representations` api to an instance
- * of the HlsHandler class
+ * of the VhsHandler class
  *
- * @param {HlsHandler} hlsHandler - An instance of HlsHandler to add the
+ * @param {VhsHandler} vhsHandler - An instance of VhsHandler to add the
  * representation API into
  */
-const renditionSelectionMixin = function(hlsHandler) {
-  const playlists = hlsHandler.playlists;
+const renditionSelectionMixin = function(vhsHandler) {
+  const playlists = vhsHandler.playlists;
 
-  // Add a single API-specific function to the HlsHandler instance
-  hlsHandler.representations = () => {
+  // Add a single API-specific function to the VhsHandler instance
+  vhsHandler.representations = () => {
     if (!playlists || !playlists.master || !playlists.master.playlists) {
       return [];
     }
@@ -99,7 +99,7 @@ const renditionSelectionMixin = function(hlsHandler) {
       .master
       .playlists
       .filter((media) => !isIncompatible(media))
-      .map((e, i) => new Representation(hlsHandler, e, e.id));
+      .map((e, i) => new Representation(vhsHandler, e, e.id));
   };
 };
 

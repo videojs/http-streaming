@@ -23,6 +23,7 @@ const initPlugin = function(player, options) {
   const localOptions = videojs.mergeOptions(defaultOptions, options);
 
   player.ready(() => {
+    player.trigger({type: 'usage', name: 'vhs-error-reload-initialized'});
     player.trigger({type: 'usage', name: 'hls-error-reload-initialized'});
   });
 
@@ -53,6 +54,7 @@ const initPlugin = function(player, options) {
     player.one('loadedmetadata', loadedMetadataHandler);
 
     player.src(sourceObj);
+    player.trigger({type: 'usage', name: 'vhs-error-reload'});
     player.trigger({type: 'usage', name: 'hls-error-reload'});
     player.play();
   };
@@ -67,6 +69,7 @@ const initPlugin = function(player, options) {
     // Do not attempt to reload the source if a source-reload occurred before
     // 'errorInterval' time has elapsed since the last source-reload
     if (Date.now() - lastCalled < localOptions.errorInterval * 1000) {
+      player.trigger({type: 'usage', name: 'vhs-error-reload-canceled'});
       player.trigger({type: 'usage', name: 'hls-error-reload-canceled'});
       return;
     }

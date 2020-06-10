@@ -360,7 +360,7 @@ export const initialize = {
    */
   'AUDIO': (type, settings) => {
     const {
-      hls,
+      vhs,
       sourceType,
       segmentLoaders: { [type]: segmentLoader },
       requestOptions,
@@ -397,19 +397,19 @@ export const initialize = {
         if (sourceType === 'vhs-json' && properties.playlists) {
           playlistLoader = new PlaylistLoader(
             properties.playlists[0],
-            hls,
+            vhs,
             requestOptions
           );
         } else if (properties.resolvedUri) {
           playlistLoader = new PlaylistLoader(
             properties.resolvedUri,
-            hls,
+            vhs,
             requestOptions
           );
         } else if (properties.playlists && sourceType === 'dash') {
           playlistLoader = new DashPlaylistLoader(
             properties.playlists[0],
-            hls,
+            vhs,
             requestOptions,
             masterPlaylistLoader
           );
@@ -458,7 +458,7 @@ export const initialize = {
   'SUBTITLES': (type, settings) => {
     const {
       tech,
-      hls,
+      vhs,
       sourceType,
       segmentLoaders: { [type]: segmentLoader },
       requestOptions,
@@ -496,11 +496,11 @@ export const initialize = {
 
         if (sourceType === 'hls') {
           playlistLoader =
-            new PlaylistLoader(properties.resolvedUri, hls, requestOptions);
+            new PlaylistLoader(properties.resolvedUri, vhs, requestOptions);
         } else if (sourceType === 'dash') {
           playlistLoader = new DashPlaylistLoader(
             properties.playlists[0],
-            hls,
+            vhs,
             requestOptions,
             masterPlaylistLoader
           );
@@ -509,7 +509,7 @@ export const initialize = {
             // if the vhs-json object included the media playlist, use the media playlist
             // as provided, otherwise use the resolved URI to load the playlist
             properties.playlists ? properties.playlists[0] : properties.resolvedUri,
-            hls,
+            vhs,
             requestOptions
           );
         }
@@ -703,8 +703,8 @@ export const activeTrack = {
  *        XHR request options used by the segment loaders
  * @param {PlaylistLoader} settings.masterPlaylistLoader
  *        PlaylistLoader for the master source
- * @param {HlsHandler} settings.hls
- *        HLS SourceHandler
+ * @param {VhsHandler} settings.vhs
+ *        VHS SourceHandler
  * @param {Object} settings.master
  *        The parsed master manifest
  * @param {Object} settings.mediaTypes
@@ -722,7 +722,7 @@ export const setupMediaGroups = (settings) => {
     mediaTypes,
     masterPlaylistLoader,
     tech,
-    hls
+    vhs
   } = settings;
 
   // setup active group and track getters and change event handlers
@@ -748,6 +748,7 @@ export const setupMediaGroups = (settings) => {
   // custom audio track change event handler for usage event
   const onAudioTrackChanged = () => {
     mediaTypes.AUDIO.onTrackChanged();
+    tech.trigger({ type: 'usage', name: 'vhs-audio-change' });
     tech.trigger({ type: 'usage', name: 'hls-audio-change' });
   };
 
@@ -757,7 +758,7 @@ export const setupMediaGroups = (settings) => {
     mediaTypes.SUBTITLES.onTrackChanged
   );
 
-  hls.on('dispose', () => {
+  vhs.on('dispose', () => {
     tech.audioTracks().removeEventListener('change', onAudioTrackChanged);
     tech.remoteTextTracks().removeEventListener(
       'change',

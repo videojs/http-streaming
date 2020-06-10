@@ -33,7 +33,7 @@ QUnit.test('xhr respects beforeRequest', function(assert) {
   this.xhr(defaultOptions);
   assert.equal(this.requests.shift().url, 'player', 'url changed with player override');
 
-  videojs.Hls.xhr.beforeRequest = (options) => {
+  videojs.Vhs.xhr.beforeRequest = (options) => {
     options.url = 'global';
     return options;
   };

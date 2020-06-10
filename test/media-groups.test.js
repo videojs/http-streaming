@@ -769,7 +769,7 @@ QUnit.module('MediaGroups - initialize', {
     };
     this.settings = {
       mode: 'html5',
-      hls: {},
+      vhs: {},
       tech: {
         addRemoteTextTrack(track) {
           return { track };
