@@ -1,4 +1,5 @@
 import QUnit from 'qunit';
+import videojs from 'video.js';
 import sinon from 'sinon';
 import {mediaSegmentRequest, REQUEST_ERRORS} from '../src/media-segment-request';
 import xhrFactory from '../src/xhr';
@@ -46,31 +47,6 @@ QUnit.module('Media Segment Request', {
       },
       removeEventListener(event, listener) {
         this.listeners = this.listeners.filter((fn)=>fn !== listener);
-      }
-    };
-    this.mockCaptionParser = {
-      initialized: false,
-      parsed: false,
-      isInitialized() {
-        return this.initialized;
-      },
-      init() {
-        this.initialized = true;
-      },
-      parse(segment, videoTrackIds, timescales) {
-        this.parsed = true;
-
-        return {
-          captions: [{
-            startTime: 0,
-            endTime: 1,
-            text: 'test caption',
-            stream: 'CC1'
-          }],
-          captionStreams: {
-            CC1: true
-          }
-        };
       }
     };
     this.xhrOptions = {
@@ -121,7 +97,6 @@ QUnit.test('cancels outstanding segment request on abort', function(assert) {
     xhr: this.xhr,
     xhrOptions: this.xhrOptions,
     decryptionWorker: this.noop,
-    captionParser: this.noop,
     segment: { resolvedUri: '0-test.ts' },
     abortFn: () => aborts++,
     progressFn: this.noop,
@@ -149,7 +124,6 @@ QUnit.test('cancels outstanding key requests on abort', function(assert) {
     xhr: this.xhr,
     xhrOptions: this.xhrOptions,
     decryptionWorker: this.noop,
-    captionParser: this.noop,
     segment: {
       resolvedUri: '0-test.ts',
       key: {
@@ -189,7 +163,6 @@ QUnit.test('cancels outstanding key requests on failure', function(assert) {
     xhr: this.xhr,
     xhrOptions: this.xhrOptions,
     decryptionWorker: this.noop,
-    captionParser: this.noop,
     segment: {
       resolvedUri: '0-test.ts',
       key: {
@@ -226,7 +199,6 @@ QUnit.test('cancels outstanding key requests on timeout', function(assert) {
     xhr: this.xhr,
     xhrOptions: this.xhrOptions,
     decryptionWorker: this.noop,
-    captionParser: this.noop,
     segment: {
       resolvedUri: '0-test.ts',
       key: {
@@ -265,7 +237,6 @@ QUnit.test(
       xhr: this.xhr,
       xhrOptions: this.xhrOptions,
       decryptionWorker: this.noop,
-      captionParser: this.noop,
       segment: {
         resolvedUri: '0-test.ts',
         key: {
@@ -324,7 +295,6 @@ QUnit.test('the key response is converted to the correct format', function(asser
     xhr: this.xhr,
     xhrOptions: this.xhrOptions,
     decryptionWorker: this.mockDecrypter,
-    captionParser: this.noop,
     segment: {
       resolvedUri: '0-test.ts',
       key: {
@@ -367,7 +337,6 @@ QUnit.test('segment with key has bytes decrypted', function(assert) {
     xhr: this.xhr,
     xhrOptions: this.xhrOptions,
     decryptionWorker: this.realDecrypter,
-    captionParser: this.noop,
     segment: {
       resolvedUri: '0-test.ts',
       key: {
@@ -417,7 +386,6 @@ QUnit.test('segment with key bytes does not request key again', function(assert)
   mediaSegmentRequest({xhr: this.xhr,
     xhrOptions: this.xhrOptions,
     decryptionWorker: this.realDecrypter,
-    captionParser: this.noop,
     segment: {
       resolvedUri: '0-test.ts',
       key: {
@@ -465,7 +433,6 @@ QUnit.test('key 404 calls back with error', function(assert) {
     xhr: this.xhr,
     xhrOptions: this.xhrOptions,
     decryptionWorker: this.realDecrypter,
-    captionParser: this.noop,
     segment: {
       resolvedUri: '0-test.ts',
       key: {
@@ -509,7 +476,6 @@ QUnit.test('key 500 calls back with error', function(assert) {
     xhr: this.xhr,
     xhrOptions: this.xhrOptions,
     decryptionWorker: this.realDecrypter,
-    captionParser: this.noop,
     segment: {
       resolvedUri: '0-test.ts',
       key: {
@@ -554,7 +520,6 @@ QUnit.test(
       xhr: this.xhr,
       xhrOptions: this.xhrOptions,
       decryptionWorker: this.realDecrypter,
-      captionParser: this.mockCaptionParser,
       segment: {
         resolvedUri: '0-test.ts',
         key: {
@@ -609,13 +574,29 @@ QUnit.test('non-TS segment will get parsed for captions', function(assert) {
   const done = assert.async();
   let gotCaption = false;
   let gotData = false;
+  const captions = [{foo: 'bar'}];
+
+  const transmuxer = new videojs.EventTarget();
+
+  transmuxer.postMessage = (event) => {
+    if (event.action === 'pushMp4Captions') {
+      transmuxer.trigger({
+        type: 'message',
+        data: {
+          action: 'mp4Captions',
+          data: event.data,
+          captions
+        }
+      });
+    }
+  };
 
   mediaSegmentRequest({
     xhr: this.xhr,
     xhrOptions: this.xhrOptions,
     decryptionWorker: this.mockDecrypter,
-    captionParser: this.mockCaptionParser,
     segment: {
+      transmuxer,
       resolvedUri: 'mp4Video.mp4',
       map: {
         resolvedUri: 'mp4VideoInit.mp4'
@@ -626,12 +607,9 @@ QUnit.test('non-TS segment will get parsed for captions', function(assert) {
     trackInfoFn: this.noop,
     timingInfoFn: this.noop,
     id3Fn: this.noop,
-    captionsFn: (segment, captions) => {
+    captionsFn: (segment, _captions) => {
       gotCaption = true;
-
-      // verify the caption parser
-      assert.equal(this.mockCaptionParser.parsed, true, 'tried to parse captions');
-      assert.deepEqual(captions, this.mockCaptionParser.parse().captions, 'returned the expected captions');
+      assert.equal(captions, _captions, 'captions as expected');
     },
     dataFn: (segment, segmentData) => {
       gotData = true;
@@ -643,6 +621,7 @@ QUnit.test('non-TS segment will get parsed for captions', function(assert) {
     doneFn: () => {
       assert.ok(gotCaption, 'received caption event');
       assert.ok(gotData, 'received data event');
+      transmuxer.off();
       done();
     },
     handlePartialData: false
@@ -668,7 +647,6 @@ QUnit.test('webm segment calls back with error', function(assert) {
     xhr: this.xhr,
     xhrOptions: this.xhrOptions,
     decryptionWorker: this.mockDecrypter,
-    captionParser: this.mockCaptionParser,
     segment: {
       resolvedUri: 'webmVideo.mp4',
       map: {
@@ -717,13 +695,28 @@ QUnit.test('non-TS segment will get parsed for captions on next segment request 
   const done = assert.async();
   let gotCaption = 0;
   let gotData = 0;
+  const captions = [{foo: 'bar'}];
+  const transmuxer = new videojs.EventTarget();
+
+  transmuxer.postMessage = (event) => {
+    if (event.action === 'pushMp4Captions') {
+      transmuxer.trigger({
+        type: 'message',
+        data: {
+          action: 'mp4Captions',
+          data: event.data,
+          captions
+        }
+      });
+    }
+  };
 
   mediaSegmentRequest({
     xhr: this.xhr,
     xhrOptions: this.xhrOptions,
     decryptionWorker: this.mockDecrypter,
-    captionParser: this.mockCaptionParser,
     segment: {
+      transmuxer,
       resolvedUri: 'mp4Video.mp4',
       map: {
         resolvedUri: 'mp4VideoInit.mp4'
@@ -733,18 +726,13 @@ QUnit.test('non-TS segment will get parsed for captions on next segment request 
     trackInfoFn: this.noop,
     timingInfoFn: this.noop,
     id3Fn: this.noop,
-    captionsFn: (segment, captions) => {
+    captionsFn: (segment, _captions) => {
       gotCaption++;
 
       // verify the caption parser
-      assert.equal(
-        this.mockCaptionParser.parsed,
-        true,
-        'should have parsed captions even though init was received late'
-      );
       assert.deepEqual(
         captions,
-        this.mockCaptionParser.parse().captions,
+        _captions,
         'the expected captions were received'
       );
     },
@@ -758,6 +746,7 @@ QUnit.test('non-TS segment will get parsed for captions on next segment request 
     doneFn: () => {
       assert.equal(gotCaption, 1, 'received caption event');
       assert.equal(gotData, 1, 'received data event');
+      transmuxer.off();
       done();
     },
     handlePartialData: false
@@ -790,7 +779,6 @@ QUnit.test('callbacks fire for TS segment with partial data', function(assert) {
     xhr: this.xhr,
     xhrOptions: this.xhrOptions,
     decryptionWorker: this.mockDecrypter,
-    captionParser: this.mockCaptionParser,
     segment: {
       resolvedUri: 'muxed.ts',
       transmuxer: this.transmuxer
@@ -833,7 +821,6 @@ QUnit.test('data callback does not fire if too little partial data', function(as
     xhr: this.xhr,
     xhrOptions: this.xhrOptions,
     decryptionWorker: this.mockDecrypter,
-    captionParser: this.mockCaptionParser,
     segment: {
       resolvedUri: 'muxed.ts',
       transmuxer: this.transmuxer
@@ -877,7 +864,6 @@ QUnit.skip('caption callback fires for TS segment with partial data', function(a
     xhr: this.xhr,
     xhrOptions: this.xhrOptions,
     decryptionWorker: this.mockDecrypter,
-    captionParser: this.mockCaptionParser,
     segment: {
       resolvedUri: 'caption.ts',
       transmuxer: this.transmuxer
@@ -926,7 +912,6 @@ QUnit.skip('caption callback does not fire if partial data has no captions', fun
     xhr: this.xhr,
     xhrOptions: this.xhrOptions,
     decryptionWorker: this.mockDecrypter,
-    captionParser: this.mockCaptionParser,
     segment: {
       resolvedUri: 'caption.ts',
       transmuxer: this.transmuxer
@@ -974,7 +959,6 @@ QUnit.skip('id3 callback fires for TS segment with partial data', function(asser
     xhr: this.xhr,
     xhrOptions: this.xhrOptions,
     decryptionWorker: this.mockDecrypter,
-    captionParser: this.mockCaptionParser,
     segment: {
       resolvedUri: 'id3.ts',
       transmuxer: this.transmuxer
@@ -1023,7 +1007,6 @@ QUnit.skip('id3 callback does not fire if partial data has no ID3 tags', functio
     xhr: this.xhr,
     xhrOptions: this.xhrOptions,
     decryptionWorker: this.mockDecrypter,
-    captionParser: this.mockCaptionParser,
     segment: {
       resolvedUri: 'id3.ts',
       transmuxer: this.transmuxer

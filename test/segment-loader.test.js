@@ -3165,13 +3165,16 @@ QUnit.module('SegmentLoader: FMP4', function(hooks) {
       loader.dispose();
     });
 
-    QUnit.test('CaptionParser is handled as expected', function(assert) {
+    QUnit.test('CaptionParser messages sent as expected', function(assert) {
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
-        assert.ok(loader.captionParser_, 'there is a captions parser');
+        const actions = {};
 
-        const mockCaptionParserReset = sinon.stub(loader.captionParser_, 'reset');
-        const mockCaptionParserClear = sinon.stub(loader.captionParser_, 'clearAllCaptions');
-        const mockCaptionParserClearParsedCaptions = sinon.stub(loader.captionParser_, 'clearParsedCaptions');
+        loader.transmuxer_.postMessage = ({action}) => {
+          if (/Mp4Captions/.test(action)) {
+            actions[action] = actions[action] || 0;
+            actions[action]++;
+          }
+        };
 
         loader.load();
         loader.playlist(playlistWithDuration(10, 'm4s'));
@@ -3179,17 +3182,26 @@ QUnit.module('SegmentLoader: FMP4', function(hooks) {
 
         this.clock.tick(1);
         assert.equal(this.requests.length, 1, 'made a request');
-        assert.equal(mockCaptionParserClear.callCount, 2, 'captions cleared on load and mimeType');
+        assert.deepEqual(actions, {
+          clearParsedMp4Captions: 1,
+          clearAllMp4Captions: 2
+        }, 'caption parser cleared as expected on load');
 
         // Simulate a rendition switch
         loader.resetEverything();
-        assert.equal(mockCaptionParserClear.callCount, 3, 'captions cleared on rendition switch');
+        assert.deepEqual(actions, {
+          clearParsedMp4Captions: 2,
+          clearAllMp4Captions: 3
+        }, 'caption parser cleared as expected on resetEverything');
 
         // Simulate a discontinuity
         const originalCurrentTimeline = loader.currentTimeline_;
 
         loader.currentTimeline_ = originalCurrentTimeline + 1;
-        assert.equal(mockCaptionParserClear.callCount, 3, 'captions cleared on discontinuity');
+        assert.deepEqual(actions, {
+          clearParsedMp4Captions: 2,
+          clearAllMp4Captions: 3
+        }, 'caption parser cleared as expected after timeline change');
         loader.currentTimeline_ = originalCurrentTimeline;
 
         // Add to the inband text track, then call remove
@@ -3240,12 +3252,14 @@ QUnit.module('SegmentLoader: FMP4', function(hooks) {
         loader.fillBuffer_();
         assert.ok(this.inbandTextTracks.CC1, 'text track created');
         assert.equal(this.inbandTextTracks.CC1.cues.length, 1, 'cue added');
-        assert.equal(mockCaptionParserClearParsedCaptions.callCount, 3, 'captions cleared after adding to text track');
+        assert.deepEqual(actions, {
+          clearParsedMp4Captions: 3,
+          clearAllMp4Captions: 3
+        }, 'caption parser cleared as expected after load');
         loader.pendingSegment_ = originalPendingSegment;
 
         // Dispose the loader
         loader.dispose();
-        assert.equal(mockCaptionParserReset.callCount, 1, 'CaptionParser reset');
       });
     });
   });

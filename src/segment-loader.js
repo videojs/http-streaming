@@ -11,7 +11,6 @@ import TransmuxWorker from 'worker!./transmuxer-worker.worker.js';
 import segmentTransmuxer from './segment-transmuxer';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
-import CaptionParser from 'mux.js/lib/mp4/caption-parser';
 import logger from './util/logger';
 import { concatSegments } from './util/segment';
 import {
@@ -397,13 +396,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.cacheEncryptionKeys_ = settings.cacheEncryptionKeys;
     this.keyCache_ = {};
 
-    // Fmp4 CaptionParser
-    if (this.loaderType_ === 'main') {
-      this.captionParser_ = new CaptionParser();
-    } else {
-      this.captionParser_ = null;
-    }
-
     this.decrypter_ = settings.decrypter;
 
     // Manages the tracking and generation of sync-points, mappings
@@ -522,9 +514,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       segmentTransmuxer.dispose();
     }
     this.resetStats_();
-    if (this.captionParser_) {
-      this.captionParser_.reset();
-    }
 
     if (this.checkBufferTimeout_) {
       window.clearTimeout(this.checkBufferTimeout_);
@@ -928,8 +917,10 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.remove(0, Infinity, done);
 
     // clears fmp4 captions
-    if (this.captionParser_) {
-      this.captionParser_.clearAllCaptions();
+    if (this.transmuxer_) {
+      this.transmuxer_.postMessage({
+        action: 'clearAllMp4Captions'
+      });
     }
   }
 
@@ -962,8 +953,10 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.metadataQueue_.caption = [];
     this.abort();
 
-    if (this.captionParser_) {
-      this.captionParser_.clearParsedCaptions();
+    if (this.transmuxer_) {
+      this.transmuxer_.postMessage({
+        action: 'clearParsedMp4Captions'
+      });
     }
   }
 
@@ -1547,8 +1540,11 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // Reset stored captions since we added parsed
     // captions to a text track at this point
-    if (this.captionParser_) {
-      this.captionParser_.clearParsedCaptions();
+
+    if (this.transmuxer_) {
+      this.transmuxer_.postMessage({
+        action: 'clearParsedMp4Captions'
+      });
     }
   }
 
@@ -1958,8 +1954,10 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.trimBackBuffer_(segmentInfo);
 
     if (typeof segmentInfo.timestampOffset === 'number') {
-      if (this.captionParser_) {
-        this.captionParser_.clearAllCaptions();
+      if (this.transmuxer_) {
+        this.transmuxer_.postMessage({
+          action: 'clearAllMp4Captions'
+        });
       }
     }
 
@@ -2035,7 +2033,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       xhr: this.hls_.xhr,
       xhrOptions: this.xhrOptions_,
       decryptionWorker: this.decrypter_,
-      captionParser: this.captionParser_,
       segment: simpleSegment,
       handlePartialData: this.handlePartialData_,
       abortFn: this.handleAbort_.bind(this),
