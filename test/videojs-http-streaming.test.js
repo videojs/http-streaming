@@ -3697,12 +3697,19 @@ QUnit.test('cleans up the buffer when loading VOD segments', function(assert) {
       clock: this.clock
     });
   }).then(() => {
+
     assert.ok(audioRemoves.length, 'audio removes');
     assert.ok(videoRemoves.length, 'video removes');
-    // segment-loader removes at currentTime - 30
+    // the default manifest is 4 segments that are 10s each.
     assert.deepEqual(audioRemoves, [
+      // The first remove comes from the setCurrentTime call,
+      // caused by player.currentTime(120)
       { start: 0, end: 40 },
+      // The second remove comes from trimBackBuffer_ and is based on currentTime
       { start: 0, end: 120 - 30 },
+      // the final remove comes after our final requestAndAppendSegment
+      // and happens because our guess to append to a buffered ranged near
+      // currentTime is incorrect.
       { start: 0, end: 40 }
     ], 'removed from audio buffer with right range');
     assert.deepEqual(videoRemoves, [
