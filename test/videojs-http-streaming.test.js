@@ -3680,14 +3680,8 @@ QUnit.test('cleans up the buffer when loading VOD segments', function(assert) {
     request: this.requests[2],
     mediaSource: mpc.mediaSource,
     segmentLoader: mpc.mainSegmentLoader_,
-    clock: this.clock,
-    tickClock: false
+    clock: this.clock
   }).then(() => {
-
-    // the seek will have removed everything to the duration of the video, so we want to
-    // only start tracking removes after the seek, once the next segment request is made
-    this.player.currentTime(120);
-
     const audioBuffer = mpc.sourceUpdater_.audioBuffer;
     const videoBuffer = mpc.sourceUpdater_.videoBuffer;
     const origAudioRemove = audioBuffer.remove.bind(audioBuffer);
@@ -3695,12 +3689,18 @@ QUnit.test('cleans up the buffer when loading VOD segments', function(assert) {
 
     audioBuffer.remove = (start, end) => {
       audioRemoves.push({start, end});
+      window.setTimeout(() => audioBuffer.trigger('updateend'), 1);
       origAudioRemove();
     };
     videoBuffer.remove = (start, end) => {
       videoRemoves.push({start, end});
+      window.setTimeout(() => videoBuffer.trigger('updateend'), 1);
       origVideoRemove();
     };
+
+    // the seek will have removed everything to the duration of the video, so we want to
+    // only start tracking removes after the seek, once the next segment request is made
+    this.player.currentTime(120);
 
     // since source buffers are mocked, must fake that there's buffered data, or else we
     // don't bother processing removes
@@ -3713,27 +3713,36 @@ QUnit.test('cleans up the buffer when loading VOD segments', function(assert) {
     // tick.
     this.clock.tick(2);
 
+    assert.ok(this.requests[3].aborted, 'request aborted during seek');
+
     // request second segment, and give enough time for the source buffer to process removes
     return requestAndAppendSegment({
-      request: this.requests[3],
+      request: this.requests[4],
       mediaSource: mpc.mediaSource,
       segmentLoader: mpc.mainSegmentLoader_,
       clock: this.clock
     });
   }).then(() => {
-    assert.equal(audioRemoves.length, 1, 'one audio remove');
-    assert.equal(videoRemoves.length, 1, 'one video remove');
-    // segment-loader removes at currentTime - 30
-    assert.deepEqual(
-      audioRemoves[0],
+
+    assert.ok(audioRemoves.length, 'audio removes');
+    assert.ok(videoRemoves.length, 'video removes');
+    // the default manifest is 4 segments that are 10s each.
+    assert.deepEqual(audioRemoves, [
+      // The first remove comes from the setCurrentTime call,
+      // caused by player.currentTime(120)
+      { start: 0, end: 40 },
+      // The second remove comes from trimBackBuffer_ and is based on currentTime
       { start: 0, end: 120 - 30 },
-      'removed from audio buffer with right range'
-    );
-    assert.deepEqual(
-      videoRemoves[0],
+      // the final remove comes after our final requestAndAppendSegment
+      // and happens because our guess to append to a buffered ranged near
+      // currentTime is incorrect.
+      { start: 0, end: 40 }
+    ], 'removed from audio buffer with right range');
+    assert.deepEqual(videoRemoves, [
+      { start: 0, end: 40 },
       { start: 0, end: 120 - 30 },
-      'removed from video buffer with right range'
-    );
+      { start: 0, end: 40 }
+    ], 'removed from audio buffer with right range');
   });
 });
 
@@ -4634,6 +4643,8 @@ QUnit.test(
         );
       }
     );
+    // allows ie to start loading segments, from setupFirstPlay
+    this.player.tech_.readyState = () => 4;
 
     this.player.play();
     // trigger playing with non-existent content
@@ -4668,6 +4679,9 @@ QUnit.test('seekToProgramTime seek to time if buffered', function(assert) {
   openMediaSource(this.player, this.clock);
   // media
   this.standardXHRResponse(this.requests.shift());
+
+  // allows ie to start loading segments, from setupFirstPlay
+  this.player.tech_.readyState = () => 4;
 
   this.player.play();
   // trigger playing with non-existent content
