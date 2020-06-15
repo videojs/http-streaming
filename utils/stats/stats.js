@@ -95,13 +95,13 @@
 
     var measuredBitrateKbps = [{
       time: new Date(),
-      value: player.vhs.bandwidth || 0
+      value: player.tech(true).vhs.bandwidth || 0
     }];
 
     player.on('progress', function() {
       measuredBitrateKbps.push({
         time: new Date(),
-        value: player.vhs.bandwidth || 0
+        value: player.tech(true).vhs.bandwidth || 0
       });
       x.domain([x.domain()[0], new Date()]);
       y.domain([0, d3.max(measuredBitrateKbps, function(bitrate) {
@@ -136,8 +136,8 @@
 
   var mediaDomain = function(media, player) {
     var segments = media.segments;
-    var end = player.vhs.playlists.expiredPreDiscontinuity_;
-    end += player.vhs.playlists.expiredPostDiscontinuity_;
+    var end = player.tech(true).vhs.playlists.expiredPreDiscontinuity_;
+    end += player.tech(true).vhs.playlists.expiredPostDiscontinuity_;
     end += Playlist.duration(media,
                              media.mediaSequence,
                              media.mediaSequence + segments.length);
@@ -210,7 +210,7 @@
       .call(ptsAxis);
   };
   var svgRenderSegmentTimeline = function(container, player) {
-    var media = player.vhs.playlists.media();
+    var media = player.tech(true).vhs.playlists.media();
     var segments = media.segments; // media.segments.slice(0, count);
 
     var selected = d3.select(container);
@@ -251,7 +251,7 @@
 
     // update everything on progress
     player.on('progress', function() {
-      var updatedMedia = player.vhs.playlists.media();
+      var updatedMedia = player.tech(true).vhs.playlists.media();
       var segments = updatedMedia.segments; // updatedMedia.segments.slice(currentIndex, currentIndex + count);
 
       if (updatedMedia.mediaSequence !== media.mediaSequence) {
@@ -275,7 +275,7 @@
   };
 
   var displayCues = function(container, player) {
-    var media = player.vhs.playlists.media();
+    var media = player.tech(true).vhs.playlists.media();
     if (media && media.segments) {
       svgRenderSegmentTimeline(container, player);
     } else {
