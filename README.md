@@ -456,7 +456,7 @@ Runtime properties are attached to the tech object when HLS is in
 use. You can get a reference to the VHS source handler like this:
 
 ```javascript
-var vhs = player.vhs;
+var vhs = player.tech().vhs;
 ```
 
 If you *were* thinking about modifying runtime properties in a
@@ -521,7 +521,7 @@ A function that returns the media playlist object to use to download
 the next segment. It is invoked by the tech immediately before a new
 segment is downloaded. You can override this function to provide your
 adaptive streaming logic. You must, however, be sure to return a valid
-media playlist object that is present in `player.vhs.master`.
+media playlist object that is present in `player.tech().vhs.master`.
 
 Overridding this function with your own is very powerful but is overkill
 for many purposes. Most of the time, you should use the much simpler
@@ -548,10 +548,10 @@ for (var i = 0; i < qualityLevels.length; i++) {
 }
 ```
 
-If including [videojs-contrib-quality-levels](https://github.com/videojs/videojs-contrib-quality-levels) is not an option, you can use the representations api. To get all of the available representations, call the `representations()` method on `player.vhs`. This will return a list of plain objects, each with `width`, `height`, `bandwidth`, and `id` properties, and an `enabled()` method.
+If including [videojs-contrib-quality-levels](https://github.com/videojs/videojs-contrib-quality-levels) is not an option, you can use the representations api. To get all of the available representations, call the `representations()` method on `player.tech().vhs`. This will return a list of plain objects, each with `width`, `height`, `bandwidth`, and `id` properties, and an `enabled()` method.
 
 ```javascript
-player.vhs.representations();
+player.tech().vhs.representations();
 ```
 
 To see whether the representation is enabled or disabled, call its `enabled()` method with no arguments. To set whether it is enabled/disabled, call its `enabled()` method and pass in a boolean value. Calling `<representation>.enabled(true)` will allow the adaptive bitrate algorithm to select the representation while calling `<representation>.enabled(false)` will disallow any selection of that representation.
@@ -559,7 +559,7 @@ To see whether the representation is enabled or disabled, call its `enabled()` m
 Example, only enabling representations with a width greater than or equal to 720:
 
 ```javascript
-player.vhs.representations().forEach(function(rep) {
+player.tech().vhs.representations().forEach(function(rep) {
   if (rep.width >= 720) {
     rep.enabled(true);
   } else {
@@ -580,7 +580,7 @@ xhr request.
 
 Example:
 ```javascript
-player.vhs.xhr.beforeRequest = function(options) {
+player.tech().vhs.xhr.beforeRequest = function(options) {
   options.uri = options.uri.replace('example.com', 'foo.com');
 
   return options;
