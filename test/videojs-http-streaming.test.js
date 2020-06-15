@@ -298,7 +298,7 @@ QUnit.test('logs deprecation notice when using player.tech().hls', function(asse
   );
   assert.equal(
     this.env.log.warn.args[1][0],
-    'player.tech().hls is deprecated. Use player.vhs instead.',
+    'player.tech().hls is deprecated. Use player.tech().vhs instead.',
     'logged deprecation'
   );
 });

@@ -899,7 +899,7 @@ const VhsSourceHandler = {
     if (!videojs.hasOwnProperty('hls')) {
       Object.defineProperty(tech, 'hls', {
         get: () => {
-          videojs.log.warn('player.tech().hls is deprecated. Use player.vhs instead.');
+          videojs.log.warn('player.tech().hls is deprecated. Use player.tech().vhs instead.');
           return tech.vhs;
         },
         configurable: true
