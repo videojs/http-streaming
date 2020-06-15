@@ -2630,7 +2630,7 @@ QUnit.test('trigger event when a video fMP4 stream is detected', function(assert
     }
   });
 
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const loader = mpc.mainSegmentLoader_;
 
   return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {
@@ -2673,7 +2673,7 @@ QUnit.test('only triggers a single fmp4 usage event', function(assert) {
     }
   });
 
-  const mainSegmentLoader = this.player.vhs.masterPlaylistController_.mainSegmentLoader_;
+  const mainSegmentLoader = this.player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_;
 
   mainSegmentLoader.trigger('fmp4');
 
@@ -2686,7 +2686,7 @@ QUnit.test('only triggers a single fmp4 usage event', function(assert) {
   assert.equal(hlsFmp4Events, 1, 'did not fire usage event');
 
   const audioSegmentLoader =
-    this.player.vhs.masterPlaylistController_.audioSegmentLoader_;
+    this.player.tech(true).vhs.masterPlaylistController_.audioSegmentLoader_;
 
   audioSegmentLoader.trigger('fmp4');
 
@@ -2718,7 +2718,7 @@ QUnit.test('trigger event when an audio fMP4 stream is detected', function(asser
     }
   });
 
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const loader = mpc.mainSegmentLoader_;
 
   return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {
@@ -2762,7 +2762,7 @@ QUnit.test('parses codec from audio only fmp4 init segment', function(assert) {
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -2823,7 +2823,7 @@ QUnit.test('parses codec from video only fmp4 init segment', function(assert) {
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -2884,7 +2884,7 @@ QUnit.test('parses codec from muxed fmp4 init segment', function(assert) {
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -3426,7 +3426,7 @@ QUnit.test('creates source buffers after first main segment if muxed content', f
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -3472,7 +3472,7 @@ QUnit.test('creates source buffers after first main segment if audio only', func
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -3519,7 +3519,7 @@ QUnit.test('creates source buffers after first main segment if video only', func
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -3568,7 +3568,7 @@ QUnit.test('creates source buffers after second trackinfo if demuxed', function(
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -3643,7 +3643,7 @@ QUnit.test('Uses audio codec from audio playlist for demuxed content', function(
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -3713,7 +3713,7 @@ QUnit.test('uses codec info from manifest for source buffer creation', function(
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -3764,7 +3764,7 @@ QUnit.test('translates old-school apple codec strings from manifest to modern st
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -3814,7 +3814,7 @@ QUnit.test('uses default codec strings when provided are invalid', function(asse
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -3866,7 +3866,7 @@ QUnit.test('uses codec info from manifest for source buffer creation even when d
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -3934,7 +3934,7 @@ QUnit.test('uses codec info from manifest for source buffer creation for audio o
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -3985,7 +3985,7 @@ QUnit.test('uses codec info from manifest for source buffer creation for video o
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -4039,7 +4039,7 @@ QUnit.test('uses available audio codec info from manifest plus video default for
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -4094,7 +4094,7 @@ QUnit.test('uses available video codec info from manifest plus audio default for
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 

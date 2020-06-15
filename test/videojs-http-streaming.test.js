@@ -131,10 +131,10 @@ QUnit.test('version is exported', function(assert) {
 
   this.clock.tick(1);
 
-  assert.ok(this.player.vhs.version, 'version function');
+  assert.ok(this.player.tech(true).vhs.version, 'version function');
   assert.ok(videojs.VhsHandler.version, 'version function');
 
-  assert.deepEqual(this.player.vhs.version(), {
+  assert.deepEqual(this.player.tech(true).vhs.version(), {
     '@videojs/http-streaming': vhsVersion,
     'mux.js': muxVersion,
     'mpd-parser': mpdVersion,
@@ -403,7 +403,7 @@ QUnit.test('stats are reset on each new source', function(assert) {
   // segment 0
   this.standardXHRResponse(this.requests.shift(), segment);
 
-  this.player.vhs.masterPlaylistController_.mainSegmentLoader_.one('appending', () => {
+  this.player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.one('appending', () => {
     assert.equal(
       this.player.tech_.vhs.stats.mediaBytesTransferred,
       segmentByteLength,
@@ -588,7 +588,7 @@ QUnit.test('codecs are passed to the source buffer', function(assert) {
   this.standardXHRResponse(this.requests.shift(), muxedSegment());
 
   // source buffer won't be created until we have our first segment
-  this.player.vhs.masterPlaylistController_.mainSegmentLoader_.one('appending', () => {
+  this.player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.one('appending', () => {
     // always create separate audio and video source buffers
     assert.equal(codecs.length, 2, 'created two source buffers');
     assert.equal(
@@ -770,7 +770,7 @@ QUnit.test('starts downloading a segment on loadedmetadata', function(assert) {
     'the first segment is requested'
   );
 
-  this.player.vhs.masterPlaylistController_.mainSegmentLoader_.one('appending', () => {
+  this.player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.one('appending', () => {
     // verify stats
     assert.equal(
       this.player.tech_.vhs.stats.mediaBytesTransferred,
@@ -949,7 +949,7 @@ QUnit.test('downloads media playlists after loading the master', function(assert
     'first segment requested'
   );
 
-  this.player.vhs.masterPlaylistController_.mainSegmentLoader_.one('appending', () => {
+  this.player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.one('appending', () => {
     // verify stats
     assert.equal(
       this.player.tech_.vhs.stats.mediaBytesTransferred,
@@ -2304,18 +2304,18 @@ QUnit.test('sets seekable and duration for live playlists', function(assert) {
     3.ts
   `);
 
-  assert.equal(this.player.vhs.seekable().length, 1, 'set one seekable range');
-  assert.equal(this.player.vhs.seekable().start(0), 0, 'set seekable start');
-  assert.equal(this.player.vhs.seekable().end(0), 5, 'set seekable end');
+  assert.equal(this.player.tech(true).vhs.seekable().length, 1, 'set one seekable range');
+  assert.equal(this.player.tech(true).vhs.seekable().start(0), 0, 'set seekable start');
+  assert.equal(this.player.tech(true).vhs.seekable().end(0), 5, 'set seekable end');
 
   assert.strictEqual(
-    this.player.vhs.duration(),
+    this.player.tech(true).vhs.duration(),
     Infinity,
     'duration reported by VHS is infinite'
   );
   assert.strictEqual(
-    this.player.vhs.mediaSource.duration,
-    this.player.vhs.seekable().end(0),
+    this.player.tech(true).vhs.mediaSource.duration,
+    this.player.tech(true).vhs.seekable().end(0),
     'duration on the mediaSource is seekable end'
   );
 });
@@ -2538,7 +2538,7 @@ QUnit.test(
 
     openMediaSource(this.player, this.clock);
     const {mainSegmentLoader_, subtitleSegmentLoader_, audioSegmentLoader_} =
-    this.player.vhs.masterPlaylistController_;
+    this.player.tech(true).vhs.masterPlaylistController_;
 
     assert.equal(mainSegmentLoader_.handlePartialData_, true, 'is set on main');
     assert.equal(audioSegmentLoader_.handlePartialData_, true, 'is set on audio');
@@ -2564,7 +2564,7 @@ QUnit.test(
 
     openMediaSource(this.player, this.clock);
     const {mainSegmentLoader_, subtitleSegmentLoader_, audioSegmentLoader_} =
-    this.player.vhs.masterPlaylistController_;
+    this.player.tech(true).vhs.masterPlaylistController_;
 
     assert.equal(mainSegmentLoader_.handlePartialData_, true, 'is set on main');
     assert.equal(audioSegmentLoader_.handlePartialData_, true, 'is set on audio');
@@ -2591,7 +2591,7 @@ QUnit.test('the handlePartialData source option overrides the global default', f
 
   openMediaSource(this.player, this.clock);
   const {mainSegmentLoader_, subtitleSegmentLoader_, audioSegmentLoader_} =
-    this.player.vhs.masterPlaylistController_;
+    this.player.tech(true).vhs.masterPlaylistController_;
 
   assert.equal(mainSegmentLoader_.handlePartialData_, false, 'is set on main');
   assert.equal(audioSegmentLoader_.handlePartialData_, false, 'is set on audio');
@@ -3211,7 +3211,7 @@ QUnit.test('calling play() at the end of a video replays', function(assert) {
   // segment 0
   this.standardXHRResponse(this.requests.shift(), segment);
 
-  this.player.vhs.masterPlaylistController_.mainSegmentLoader_.one('appending', () => {
+  this.player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.one('appending', () => {
     this.player.tech_.ended = function() {
       return true;
     };
@@ -4750,7 +4750,7 @@ QUnit.test(
     // ts
     this.standardXHRResponse(this.requests.shift());
 
-    this.player.vhs.convertToProgramTime(3, (err, programTime) => {
+    this.player.tech(true).vhs.convertToProgramTime(3, (err, programTime) => {
       assert.deepEqual(
         err,
         {
@@ -4783,7 +4783,7 @@ QUnit.test('convertToProgramTime will return stream time if buffered', function(
   // media.m3u8
   this.standardXHRResponse(this.requests[1]);
 
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const mainSegmentLoader_ = mpc.mainSegmentLoader_;
 
   mainSegmentLoader_.one('appending', () => {
@@ -4809,7 +4809,7 @@ QUnit.test('convertToProgramTime will return stream time if buffered', function(
     // ts
     this.standardXHRResponse(this.requests[3], muxedSegment());
 
-    this.player.vhs.convertToProgramTime(0.01, (err, programTime) => {
+    this.player.tech(true).vhs.convertToProgramTime(0.01, (err, programTime) => {
       assert.notOk(err, 'no errors');
       assert.equal(
         programTime.mediaSeconds,
@@ -4834,7 +4834,7 @@ QUnit.test(
     // media
     this.standardXHRResponse(this.requests.shift());
 
-    this.player.vhs.seekToProgramTime(
+    this.player.tech(true).vhs.seekToProgramTime(
       '2018-10-12T22:33:49.037+00:00',
       (err, newTime) => {
         assert.equal(
@@ -4855,7 +4855,7 @@ QUnit.test(
     // ts
     this.standardXHRResponse(this.requests.shift(), muxedSegment());
 
-    this.player.vhs.seekToProgramTime(
+    this.player.tech(true).vhs.seekToProgramTime(
       '2018-10-12T22:33:49.037+00:00',
       (err, newTime) => {
         assert.equal(
@@ -4890,7 +4890,7 @@ QUnit.test('seekToProgramTime seek to time if buffered', function(assert) {
   // wait for playlist refresh
   this.clock.tick(2 * 1000 + 1);
 
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
 
   mpc.mainSegmentLoader_.one('appending', () => {
     const videoBuffer = mpc.sourceUpdater_.videoBuffer;
@@ -4917,7 +4917,7 @@ QUnit.test('seekToProgramTime seek to time if buffered', function(assert) {
     segmentLoader: mpc.mainSegmentLoader_,
     clock: this.clock
   }).then(() => {
-    this.player.vhs.seekToProgramTime(
+    this.player.tech(true).vhs.seekToProgramTime(
       '2018-10-12T22:33:49.037+00:00',
       (err, newTime) => {
         assert.notOk(

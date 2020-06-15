@@ -560,7 +560,7 @@ export const requestAndAppendSegment = function({
 };
 
 export const disposePlaybackWatcher = (player) => {
-  player.vhs.playbackWatcher_.dispose();
+  player.tech(true).vhs.playbackWatcher_.dispose();
 };
 
 export const setupMediaSource = (mediaSource, sourceUpdater, options) => {

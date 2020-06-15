@@ -748,7 +748,7 @@ QUnit.test('jumps to buffered content if seeking just before', function(assert) 
     currentTime: () => currentTime,
     buffered: () => buffered
   };
-  this.player.vhs.setCurrentTime = (time) => seeks.push(time);
+  this.player.tech(true).vhs.setCurrentTime = (time) => seeks.push(time);
 
   currentTime = 10;
   // target duration is 10
@@ -832,8 +832,8 @@ QUnit.module('PlaybackWatcher download detection', {
       this.usageEvents = {};
       this.mpcErrors = 0;
 
-      this.playbackWatcher = this.player.vhs.playbackWatcher_;
-      this.mpc = this.player.vhs.masterPlaylistController_;
+      this.playbackWatcher = this.player.tech(true).vhs.playbackWatcher_;
+      this.mpc = this.player.tech(true).vhs.masterPlaylistController_;
       this.mpc.on('error', () => this.mpcErrors++);
 
       this.player.tech_.on('usage', (event) => {
