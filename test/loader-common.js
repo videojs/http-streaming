@@ -16,8 +16,8 @@ import TimelineChangeController from '../src/timeline-change-controller';
 import Decrypter from 'worker!../src/decrypter-worker.worker.js';
 import window from 'global/window';
 /* eslint-disable no-unused-vars */
-// we need this so that it can register hls with videojs
-import { Hls } from '../src/videojs-http-streaming';
+// we need this so that it can register VHS with videojs
+import { Vhs } from '../src/videojs-http-streaming';
 /* eslint-enable no-unused-vars */
 import {
   muxed as muxedSegment,
@@ -42,7 +42,7 @@ export const LoaderCommonHooks = {
     this.hasPlayed = true;
     this.paused = false;
     this.playbackRate = 1;
-    this.fakeHls = {
+    this.fakeVhs = {
       xhr: xhrFactory(),
       tech_: {
         paused: () => this.paused,
@@ -53,7 +53,7 @@ export const LoaderCommonHooks = {
         trigger: () => {}
       }
     };
-    this.tech_ = this.fakeHls.tech_;
+    this.tech_ = this.fakeVhs.tech_;
     this.goalBufferLength =
       MasterPlaylistController.prototype.goalBufferLength.bind(this);
     this.mediaSource = new window.MediaSource();
@@ -82,7 +82,7 @@ export const LoaderCommonHooks = {
  */
 export const LoaderCommonSettings = function(settings) {
   return videojs.mergeOptions({
-    hls: this.fakeHls,
+    vhs: this.fakeVhs,
     currentTime: () => this.currentTime,
     seekable: () => this.seekable,
     seeking: () => this.seeking,
@@ -357,7 +357,7 @@ export const LoaderCommonFactory = ({
         playlist3.attributes.BANDWIDTH = 8888;
         playlist4.attributes.BANDWIDTH = 7777;
 
-        loader.hls_.playlists = {
+        loader.vhs_.playlists = {
           master: {
             playlists: [
               playlist1,

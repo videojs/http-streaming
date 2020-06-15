@@ -57,14 +57,14 @@ const callbackWrapper = function(request, error, response, callback) {
 
 const xhrFactory = function() {
   const xhr = function XhrFunction(options, callback) {
-    // Add a default timeout for all hls requests
+    // Add a default timeout
     options = mergeOptions({
       timeout: 45e3
     }, options);
 
     // Allow an optional user-specified function to modify the option
     // object before we construct the xhr request
-    const beforeRequest = XhrFunction.beforeRequest || videojs.Hls.xhr.beforeRequest;
+    const beforeRequest = XhrFunction.beforeRequest || videojs.Vhs.xhr.beforeRequest;
 
     if (beforeRequest && typeof beforeRequest === 'function') {
       const newOptions = beforeRequest(options);

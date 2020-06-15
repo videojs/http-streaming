@@ -1607,7 +1607,7 @@ QUnit.module('SegmentLoader', function(hooks) {
         this.clock.tick(1);
 
         // Mock text tracks and addRemoteTextTrack on the mock tech
-        sinon.stub(loader.hls_.tech_, 'addRemoteTextTrack')
+        sinon.stub(loader.vhs_.tech_, 'addRemoteTextTrack')
           .returns({
             track: {
               addCue: addCueSpy
@@ -1641,7 +1641,7 @@ QUnit.module('SegmentLoader', function(hooks) {
 
     QUnit.test('translates caption events into WebVTT cues', function(assert) {
       const done = assert.async();
-      const textTrackStub = sinon.stub(loader.hls_.tech_, 'textTracks');
+      const textTrackStub = sinon.stub(loader.vhs_.tech_, 'textTracks');
       const captions = [{
         startTime: 0,
         endTime: 1,
@@ -1661,7 +1661,7 @@ QUnit.module('SegmentLoader', function(hooks) {
         textTrackStub.returns({
           getTrackById: () => null
         });
-        sinon.stub(loader.hls_.tech_, 'addRemoteTextTrack')
+        sinon.stub(loader.vhs_.tech_, 'addRemoteTextTrack')
           .returns({
             track: {
               addCue: addCueSpy
@@ -1688,7 +1688,7 @@ QUnit.module('SegmentLoader', function(hooks) {
 
     QUnit.test('translates metadata events from audio-only stream into WebVTT cues', function(assert) {
       const done = assert.async();
-      const textTrackStub = sinon.stub(loader.hls_.tech_, 'textTracks');
+      const textTrackStub = sinon.stub(loader.vhs_.tech_, 'textTracks');
       const metadata = [{
         cueTime: 12,
         frames: [{
@@ -1709,7 +1709,7 @@ QUnit.module('SegmentLoader', function(hooks) {
         textTrackStub.returns({
           getTrackById: () => null
         });
-        sinon.stub(loader.hls_.tech_, 'addRemoteTextTrack')
+        sinon.stub(loader.vhs_.tech_, 'addRemoteTextTrack')
           .returns({
             track: {
               addCue: addCueSpy
@@ -2728,7 +2728,7 @@ QUnit.module('SegmentLoader', function(hooks) {
 
       // Mock text tracks on the mock tech because the segment contains text track data
       loader.inbandTextTracks_ = {};
-      loader.hls_.tech_.addRemoteTextTrack = () => {
+      loader.vhs_.tech_.addRemoteTextTrack = () => {
         return { track: { addCue: () => {} } };
       };
 

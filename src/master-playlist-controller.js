@@ -28,7 +28,7 @@ import logger from './util/logger';
 
 const ABORT_EARLY_BLACKLIST_SECONDS = 60 * 2;
 
-let Hls;
+let Vhs;
 
 // SegmentLoader stats that need to have each loader's
 // values summed to calculate the final value
@@ -105,7 +105,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       withCredentials,
       tech,
       bandwidth,
-      externHls,
+      externVhs,
       useCueTags,
       blacklistDuration,
       enableLowInitialPlaylist,
@@ -118,11 +118,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
       throw new Error('A non-empty playlist URL or JSON manifest string is required');
     }
 
-    Hls = externHls;
+    Vhs = externVhs;
 
     this.withCredentials = withCredentials;
     this.tech_ = tech;
-    this.hls_ = tech.hls;
+    this.vhs_ = tech.vhs;
     this.sourceType_ = sourceType;
     this.useCueTags_ = useCueTags;
     this.blacklistDuration = blacklistDuration;
@@ -171,7 +171,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.timelineChangeController_ = new TimelineChangeController();
 
     const segmentLoaderSettings = {
-      hls: this.hls_,
+      vhs: this.vhs_,
       mediaSource: this.mediaSource,
       currentTime: this.tech_.currentTime.bind(this.tech_),
       seekable: () => this.seekable(),
@@ -195,8 +195,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // manifest object (instead of a URL). In the case of vhs-json, the default
     // PlaylistLoader should be used.
     this.masterPlaylistLoader_ = this.sourceType_ === 'dash' ?
-      new DashPlaylistLoader(src, this.hls_, this.requestOptions_) :
-      new PlaylistLoader(src, this.hls_, this.requestOptions_);
+      new DashPlaylistLoader(src, this.vhs_, this.requestOptions_) :
+      new PlaylistLoader(src, this.vhs_, this.requestOptions_);
     this.setupMasterPlaylistLoaderListeners_();
 
     // setup segment loaders
@@ -274,7 +274,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
         tech: this.tech_,
         requestOptions: this.requestOptions_,
         masterPlaylistLoader: this.masterPlaylistLoader_,
-        hls: this.hls_,
+        vhs: this.vhs_,
         master: this.master(),
         mediaTypes: this.mediaTypes_,
         blacklistCurrentPlaylist: this.blacklistCurrentPlaylist.bind(this)
@@ -384,9 +384,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     this.masterPlaylistLoader_.on('renditiondisabled', () => {
+      this.tech_.trigger({type: 'usage', name: 'vhs-rendition-disabled'});
       this.tech_.trigger({type: 'usage', name: 'hls-rendition-disabled'});
     });
     this.masterPlaylistLoader_.on('renditionenabled', () => {
+      this.tech_.trigger({type: 'usage', name: 'vhs-rendition-enabled'});
       this.tech_.trigger({type: 'usage', name: 'hls-rendition-enabled'});
     });
   }
@@ -444,23 +446,28 @@ export class MasterPlaylistController extends videojs.EventTarget {
     }
 
     if (defaultDemuxed) {
+      this.tech_.trigger({type: 'usage', name: 'vhs-demuxed'});
       this.tech_.trigger({type: 'usage', name: 'hls-demuxed'});
     }
 
     if (Object.keys(mediaGroups.SUBTITLES).length) {
+      this.tech_.trigger({type: 'usage', name: 'vhs-webvtt'});
       this.tech_.trigger({type: 'usage', name: 'hls-webvtt'});
     }
 
-    if (Hls.Playlist.isAes(media)) {
+    if (Vhs.Playlist.isAes(media)) {
+      this.tech_.trigger({type: 'usage', name: 'vhs-aes'});
       this.tech_.trigger({type: 'usage', name: 'hls-aes'});
     }
 
     if (audioGroupKeys.length &&
         Object.keys(mediaGroups.AUDIO[audioGroupKeys[0]]).length > 1) {
+      this.tech_.trigger({type: 'usage', name: 'vhs-alternate-audio'});
       this.tech_.trigger({type: 'usage', name: 'hls-alternate-audio'});
     }
 
     if (this.useCueTags_) {
+      this.tech_.trigger({type: 'usage', name: 'vhs-playlist-cue-tags'});
       this.tech_.trigger({type: 'usage', name: 'hls-playlist-cue-tags'});
     }
   }
@@ -511,6 +518,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     this.mainSegmentLoader_.on('timestampoffset', () => {
+      this.tech_.trigger({type: 'usage', name: 'vhs-timestamp-offset'});
       this.tech_.trigger({type: 'usage', name: 'hls-timestamp-offset'});
     });
     this.audioSegmentLoader_.on('syncinfoupdate', () => {
@@ -540,6 +548,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.mainSegmentLoader_.on('fmp4', () => {
       if (!this.triggeredFmp4Usage) {
+        this.tech_.trigger({type: 'usage', name: 'vhs-fmp4'});
         this.tech_.trigger({type: 'usage', name: 'hls-fmp4'});
         this.triggeredFmp4Usage = true;
       }
@@ -547,6 +556,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.audioSegmentLoader_.on('fmp4', () => {
       if (!this.triggeredFmp4Usage) {
+        this.tech_.trigger({type: 'usage', name: 'vhs-fmp4'});
         this.tech_.trigger({type: 'usage', name: 'hls-fmp4'});
         this.triggeredFmp4Usage = true;
       }
@@ -826,7 +836,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     // does not use the safe live end to calculate playlist end, since we
     // don't want to say we are stuck while there is still content
-    const absolutePlaylistEnd = Hls.Playlist.playlistEnd(playlist, expired);
+    const absolutePlaylistEnd = Vhs.Playlist.playlistEnd(playlist, expired);
     const currentTime = this.tech_.currentTime();
     const buffered = this.tech_.buffered();
 
@@ -925,6 +935,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // Blacklist this playlist
     currentPlaylist.excludeUntil = Date.now() + (blacklistDuration * 1000);
     this.tech_.trigger('blacklistplaylist');
+    this.tech_.trigger({type: 'usage', name: 'vhs-rendition-blacklisted'});
     this.tech_.trigger({type: 'usage', name: 'hls-rendition-blacklisted'});
 
     // Select a new playlist
@@ -1046,7 +1057,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return this.mediaSource.duration;
     }
 
-    return Hls.Playlist.duration(media);
+    return Vhs.Playlist.duration(media);
   }
 
   /**
@@ -1079,7 +1090,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     }
 
     const suggestedPresentationDelay = this.masterPlaylistLoader_.master.suggestedPresentationDelay;
-    const mainSeekable = Hls.Playlist.seekable(media, expired, suggestedPresentationDelay);
+    const mainSeekable = Vhs.Playlist.seekable(media, expired, suggestedPresentationDelay);
 
     if (mainSeekable.length === 0) {
       return;
@@ -1093,7 +1104,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
         return;
       }
 
-      audioSeekable = Hls.Playlist.seekable(media, expired, suggestedPresentationDelay);
+      audioSeekable = Vhs.Playlist.seekable(media, expired, suggestedPresentationDelay);
 
       if (audioSeekable.length === 0) {
         return;
@@ -1184,7 +1195,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     }
 
     const buffered = this.tech_.buffered();
-    let duration = Hls.Playlist.duration(this.masterPlaylistLoader_.media());
+    let duration = Vhs.Playlist.duration(this.masterPlaylistLoader_.media());
 
     if (buffered.length > 0) {
       duration = Math.max(duration, buffered.end(buffered.length - 1));

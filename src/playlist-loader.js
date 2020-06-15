@@ -151,7 +151,7 @@ export const refreshDelay = (media, update) => {
  * @class
  */
 export default class PlaylistLoader extends EventTarget {
-  constructor(src, hls, options = { }) {
+  constructor(src, vhs, options = { }) {
     super();
 
     if (!src) {
@@ -161,14 +161,14 @@ export default class PlaylistLoader extends EventTarget {
     const { withCredentials = false, handleManifestRedirects = false } = options;
 
     this.src = src;
-    this.hls_ = hls;
+    this.vhs_ = vhs;
     this.withCredentials = withCredentials;
     this.handleManifestRedirects = handleManifestRedirects;
 
-    const hlsOptions = hls.options_;
+    const vhsOptions = vhs.options_;
 
-    this.customTagParsers = (hlsOptions && hlsOptions.customTagParsers) || [];
-    this.customTagMappers = (hlsOptions && hlsOptions.customTagMappers) || [];
+    this.customTagParsers = (vhsOptions && vhsOptions.customTagParsers) || [];
+    this.customTagMappers = (vhsOptions && vhsOptions.customTagMappers) || [];
 
     // initialize the loader state
     this.state = 'HAVE_NOTHING';
@@ -182,7 +182,7 @@ export default class PlaylistLoader extends EventTarget {
 
       this.state = 'HAVE_CURRENT_METADATA';
 
-      this.request = this.hls_.xhr({
+      this.request = this.vhs_.xhr({
         uri: resolveUrl(this.master.uri, this.media().uri),
         withCredentials: this.withCredentials
       }, (error, req) => {
@@ -405,7 +405,7 @@ export default class PlaylistLoader extends EventTarget {
       this.trigger('mediachanging');
     }
 
-    this.request = this.hls_.xhr({
+    this.request = this.vhs_.xhr({
       uri: playlist.resolvedUri,
       withCredentials: this.withCredentials
     }, (error, req) => {
@@ -521,7 +521,7 @@ export default class PlaylistLoader extends EventTarget {
     }
 
     // request the specified URL
-    this.request = this.hls_.xhr({
+    this.request = this.vhs_.xhr({
       uri: this.src,
       withCredentials: this.withCredentials
     }, (error, req) => {

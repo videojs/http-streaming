@@ -346,11 +346,11 @@ export const openMediaSource = function(player, clock) {
   // mock the tech *after* it has finished loading so that we don't
   // mock a tech that will be unloaded on the next tick
   mockTech(player.tech_);
-  if (player.tech_.hls) {
-    player.tech_.hls.xhr = xhrFactory();
+  if (player.tech_.vhs) {
+    player.tech_.vhs.xhr = xhrFactory();
     // simulate the sourceopen event
-    player.tech_.hls.mediaSource.readyState = 'open';
-    player.tech_.hls.mediaSource.dispatchEvent({
+    player.tech_.vhs.mediaSource.readyState = 'open';
+    player.tech_.vhs.mediaSource.dispatchEvent({
       type: 'sourceopen',
       swfId: player.tech_.el() && player.tech_.el().id
     });
@@ -560,7 +560,7 @@ export const requestAndAppendSegment = function({
 };
 
 export const disposePlaybackWatcher = (player) => {
-  player.vhs.playbackWatcher_.dispose();
+  player.tech(true).vhs.playbackWatcher_.dispose();
 };
 
 export const setupMediaSource = (mediaSource, sourceUpdater, options) => {

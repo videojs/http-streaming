@@ -20,8 +20,8 @@ import {
   MasterPlaylistController
 } from '../src/master-playlist-controller';
 /* eslint-disable no-unused-vars */
-// we need this so that it can register hls with videojs
-import { Hls } from '../src/videojs-http-streaming';
+// we need this so that it can register vhs with videojs
+import { Vhs } from '../src/videojs-http-streaming';
 /* eslint-enable no-unused-vars */
 import Playlist from '../src/playlist';
 import Config from '../src/config';
@@ -62,8 +62,8 @@ QUnit.module('MasterPlaylistController', {
     this.oldTypeSupported = window.MediaSource.isTypeSupported;
 
     // force the HLS tech to run
-    this.origSupportsNativeHls = videojs.Hls.supportsNativeHls;
-    videojs.Hls.supportsNativeHls = false;
+    this.origSupportsNativeHls = videojs.Vhs.supportsNativeHls;
+    videojs.Vhs.supportsNativeHls = false;
     this.oldBrowser = videojs.browser;
     videojs.browser = videojs.mergeOptions({}, videojs.browser);
     this.player = createPlayer();
@@ -83,7 +83,7 @@ QUnit.module('MasterPlaylistController', {
       this.clock.tick(1);
     };
 
-    this.masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+    this.masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
 
     // Make segment metadata noop since most test segments dont have real data
     this.masterPlaylistController.mainSegmentLoader_.addSegmentMetadataCue_ = () => {};
@@ -91,7 +91,7 @@ QUnit.module('MasterPlaylistController', {
   afterEach() {
     this.env.restore();
     this.mse.restore();
-    videojs.Hls.supportsNativeHls = this.origSupportsNativeHls;
+    videojs.Vhs.supportsNativeHls = this.origSupportsNativeHls;
     window.localStorage.clear();
     if (this.hasOwnProperty('oldDevicePixelRatio')) {
       window.devicePixelRatio = this.oldDevicePixelRatio;
@@ -136,7 +136,7 @@ QUnit.test('obeys none preload option', function(assert) {
   assert.equal(this.requests.length, 0, 'no segment requests');
 
   // verify stats
-  assert.equal(this.player.tech_.hls.stats.bandwidth, 4194304, 'default bandwidth');
+  assert.equal(this.player.tech_.vhs.stats.bandwidth, 4194304, 'default bandwidth');
 });
 
 QUnit.test('obeys auto preload option', function(assert) {
@@ -151,7 +151,7 @@ QUnit.test('obeys auto preload option', function(assert) {
   assert.equal(this.requests.length, 1, '1 segment request');
 
   // verify stats
-  assert.equal(this.player.tech_.hls.stats.bandwidth, 4194304, 'default bandwidth');
+  assert.equal(this.player.tech_.vhs.stats.bandwidth, 4194304, 'default bandwidth');
 });
 
 QUnit.test('passes options to PlaylistLoader', function(assert) {
@@ -189,7 +189,7 @@ QUnit.test('obeys metadata preload option', function(assert) {
   assert.equal(this.requests.length, 1, '1 segment request');
 
   // verify stats
-  assert.equal(this.player.tech_.hls.stats.bandwidth, 4194304, 'default bandwidth');
+  assert.equal(this.player.tech_.vhs.stats.bandwidth, 4194304, 'default bandwidth');
 });
 
 QUnit.test('creates appropriate PlaylistLoader for sourceType', function(assert) {
@@ -313,7 +313,7 @@ QUnit.test(
     // beforeEach function
     this.requests.length = 0;
     this.player.dispose();
-    this.player = createPlayer({ html5: { hls: { enableLowInitialPlaylist: true } } });
+    this.player = createPlayer({ html5: { vhs: { enableLowInitialPlaylist: true } } });
 
     this.player.src({
       src: 'manifest/master.m3u8',
@@ -322,7 +322,7 @@ QUnit.test(
 
     this.clock.tick(1);
 
-    this.masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+    this.masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
 
     let numCallsToSelectInitialPlaylistCalls = 0;
     let numCallsToSelectPlaylist = 0;
@@ -382,7 +382,7 @@ QUnit.test('resyncs SegmentLoader for a smooth quality change', function(assert)
   assert.equal(resyncs, 1, 'resynced the segmentLoader');
 
   // verify stats
-  assert.equal(this.player.tech_.hls.stats.bandwidth, 4194304, 'default bandwidth');
+  assert.equal(this.player.tech_.vhs.stats.bandwidth, 4194304, 'default bandwidth');
 });
 
 QUnit.test(
@@ -408,7 +408,7 @@ QUnit.test(
 
     assert.equal(resyncs, 0, 'did not resync the segmentLoader');
     // verify stats
-    assert.equal(this.player.tech_.hls.stats.bandwidth, 4194304, 'default bandwidth');
+    assert.equal(this.player.tech_.vhs.stats.bandwidth, 4194304, 'default bandwidth');
   }
 );
 
@@ -423,7 +423,7 @@ QUnit.test('smooth quality change resyncs audio segment loader', function(assert
 
   this.clock.tick(1);
 
-  const masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+  const masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
 
   masterPlaylistController.selectPlaylist = () => {
     return masterPlaylistController.master().playlists[0];
@@ -733,7 +733,7 @@ QUnit.test('audio segment loader is reset on audio track change', function(asser
 
   this.clock.tick(1);
 
-  const masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+  const masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
 
   masterPlaylistController.selectPlaylist = () => {
     return masterPlaylistController.master().playlists[0];
@@ -807,7 +807,7 @@ QUnit.test('if buffered, will request second segment byte range', function(asser
 
   this.clock.tick(1);
 
-  this.masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+  this.masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
   // Make segment metadata noop since most test segments dont have real data
   this.masterPlaylistController.mainSegmentLoader_.addSegmentMetadataCue_ = () => {};
 
@@ -860,7 +860,7 @@ QUnit.test(
 
     this.clock.tick(1);
 
-    this.masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+    this.masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
     // Make segment metadata noop since most test segments dont have real data
     this.masterPlaylistController.mainSegmentLoader_.addSegmentMetadataCue_ = () => {};
 
@@ -910,7 +910,7 @@ QUnit.test(
     this.masterPlaylistController.masterPlaylistLoader_.trigger('loadedplaylist');
     assert.equal(updates.length, 1, 'updated the segment list');
     // verify stats
-    assert.equal(this.player.tech_.hls.stats.bandwidth, 4194304, 'default bandwidth');
+    assert.equal(this.player.tech_.vhs.stats.bandwidth, 4194304, 'default bandwidth');
   }
 );
 
@@ -1112,11 +1112,11 @@ QUnit.test('Segment loaders are unpaused when seeking after player has ended', f
 });
 
 QUnit.test('detects if the player is stuck at the playlist end', function(assert) {
-  const playlistCopy = Hls.Playlist.playlistEnd;
+  const playlistCopy = Vhs.Playlist.playlistEnd;
 
   this.masterPlaylistController.mediaSource.trigger('sourceopen');
   this.standardXHRResponse(this.requests.shift());
-  const playlist = this.player.tech_.hls.selectPlaylist();
+  const playlist = this.player.tech_.vhs.selectPlaylist();
 
   // not stuck at playlist end when no seekable, even if empty buffer
   // and positive currentTime
@@ -1150,7 +1150,7 @@ QUnit.test('detects if the player is stuck at the playlist end', function(assert
   this.masterPlaylistController.syncController_.getExpiredTime = () => 0;
   this.player.tech_.setCurrentTime(50);
   this.player.tech_.buffered = () => videojs.createTimeRange();
-  Hls.Playlist.playlistEnd = () => 130;
+  Vhs.Playlist.playlistEnd = () => 130;
   assert.ok(
     !this.masterPlaylistController.stuckAtPlaylistEnd_(playlist),
     'not stuck at playlist end'
@@ -1160,7 +1160,7 @@ QUnit.test('detects if the player is stuck at the playlist end', function(assert
   // and current time is in the buffered range
   this.player.tech_.setCurrentTime(159);
   this.player.tech_.buffered = () => videojs.createTimeRange(0, 160);
-  Hls.Playlist.playlistEnd = () => 160;
+  Vhs.Playlist.playlistEnd = () => 160;
   assert.ok(
     !this.masterPlaylistController.stuckAtPlaylistEnd_(playlist),
     'not stuck at playlist end'
@@ -1179,19 +1179,19 @@ QUnit.test('detects if the player is stuck at the playlist end', function(assert
   this.masterPlaylistController.seekable = () => videojs.createTimeRange(90, 130);
   this.player.tech_.buffered = () => videojs.createTimeRange(0, 170);
   this.player.tech_.setCurrentTime(170);
-  Hls.Playlist.playlistEnd = () => 170;
+  Vhs.Playlist.playlistEnd = () => 170;
   assert.ok(
     this.masterPlaylistController.stuckAtPlaylistEnd_(playlist),
     'stuck at playlist end'
   );
 
-  Hls.Playlist.playlistEnd = playlistCopy;
+  Vhs.Playlist.playlistEnd = playlistCopy;
 });
 
 QUnit.test('blacklists switching from video+audio playlists to audio only', function(assert) {
   openMediaSource(this.player, this.clock);
 
-  this.player.tech_.hls.bandwidth = 1e10;
+  this.player.tech_.vhs.bandwidth = 1e10;
 
   // master
   this.requests.shift().respond(
@@ -1237,7 +1237,7 @@ QUnit.test('blacklists switching from video+audio playlists to audio only', func
 QUnit.test('blacklists switching from audio-only playlists to video+audio', function(assert) {
   openMediaSource(this.player, this.clock);
 
-  this.player.tech_.hls.bandwidth = 1;
+  this.player.tech_.vhs.bandwidth = 1;
 
   // master
   this.requests.shift().respond(
@@ -1291,7 +1291,7 @@ QUnit.test('blacklists switching from audio-only playlists to video+audio', func
 QUnit.test('blacklists switching from video-only playlists to video+audio', function(assert) {
   openMediaSource(this.player, this.clock);
 
-  this.player.tech_.hls.bandwidth = 1;
+  this.player.tech_.vhs.bandwidth = 1;
 
   // master
   this.requests.shift()
@@ -1346,7 +1346,7 @@ QUnit.test('blacklists switching from video-only playlists to video+audio', func
 QUnit.test('blacklists switching between playlists with different codecs', function(assert) {
   openMediaSource(this.player, this.clock);
 
-  this.player.tech_.hls.bandwidth = 1;
+  this.player.tech_.vhs.bandwidth = 1;
 
   // master
   this.requests.shift()
@@ -1420,7 +1420,7 @@ QUnit.test('blacklists switching between playlists with different codecs', funct
 QUnit.test('does not blacklist switching between playlists with different audio profiles', function(assert) {
   openMediaSource(this.player, this.clock);
 
-  this.player.tech_.hls.bandwidth = 1;
+  this.player.tech_.vhs.bandwidth = 1;
 
   // master
   this.requests.shift()
@@ -1504,13 +1504,13 @@ QUnit.test('updates the combined segment loader on media changes', function(asse
     // verify stats
     // request duration was 1ms, giving a bandwidth of bytes / 1 * 8 * 1000
     assert.equal(
-      this.player.tech_.hls.stats.bandwidth,
+      this.player.tech_.vhs.stats.bandwidth,
       segmentByteLength / 1 * 8 * 1000,
       'stats has the right bandwidth'
     );
-    assert.equal(this.player.tech_.hls.stats.mediaRequests, 1, '1 segment request');
+    assert.equal(this.player.tech_.vhs.stats.mediaRequests, 1, '1 segment request');
     assert.equal(
-      this.player.tech_.hls.stats.mediaBytesTransferred,
+      this.player.tech_.vhs.stats.mediaBytesTransferred,
       segmentByteLength,
       'stats has the right number of bytes transferred'
     );
@@ -1539,7 +1539,7 @@ QUnit.test('selects a playlist after main/combined segment downloads', function(
   this.masterPlaylistController.mainSegmentLoader_.trigger('bandwidthupdate');
   assert.strictEqual(calls, 3, 'selects after additional segments');
   // verify stats
-  assert.equal(this.player.tech_.hls.stats.bandwidth, 4194304, 'default bandwidth');
+  assert.equal(this.player.tech_.vhs.stats.bandwidth, 4194304, 'default bandwidth');
 });
 
 QUnit.test('does not select a playlist after segment downloads if only one playlist', function(assert) {
@@ -2104,13 +2104,13 @@ QUnit.test('updates the duration after switching playlists', function(assert) {
     // verify stats
     // request duration was 1ms, giving a bandwidth of bytes / 1 * 8 * 1000
     assert.equal(
-      this.player.tech_.hls.stats.bandwidth,
+      this.player.tech_.vhs.stats.bandwidth,
       segmentByteLength / 1 * 8 * 1000,
       'stats has the right bandwidth'
     );
-    assert.equal(this.player.tech_.hls.stats.mediaRequests, 1, '1 segment request');
+    assert.equal(this.player.tech_.vhs.stats.mediaRequests, 1, '1 segment request');
     assert.equal(
-      this.player.tech_.hls.stats.mediaBytesTransferred,
+      this.player.tech_.vhs.stats.mediaBytesTransferred,
       segmentByteLength,
       'stats has the right number of bytes transferred'
     );
@@ -2214,7 +2214,7 @@ QUnit.test(
 
     this.clock.tick(1);
 
-    this.masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+    this.masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
 
     // media
     this.standardXHRResponse(this.requests.shift());
@@ -2383,9 +2383,9 @@ QUnit.test(
 );
 
 QUnit.test('calls to update cues on new media', function(assert) {
-  const origHlsOptions = videojs.options.hls;
+  const origVhsOptions = videojs.options.vhs;
 
-  videojs.options.hls = {
+  videojs.options.vhs = {
     useCueTags: true
   };
 
@@ -2399,7 +2399,7 @@ QUnit.test('calls to update cues on new media', function(assert) {
 
   this.clock.tick(1);
 
-  this.masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+  this.masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
 
   let callCount = 0;
 
@@ -2421,7 +2421,7 @@ QUnit.test('calls to update cues on new media', function(assert) {
 
   assert.equal(callCount, 2, 'calls to update cues on subsequent media');
 
-  videojs.options.hls = origHlsOptions;
+  videojs.options.vhs = origVhsOptions;
 });
 
 QUnit.test('calls to update cues on media when no master', function(assert) {
@@ -2434,7 +2434,7 @@ QUnit.test('calls to update cues on media when no master', function(assert) {
 
   this.clock.tick(1);
 
-  this.masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+  this.masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
   this.masterPlaylistController.useCueTags_ = true;
 
   let callCount = 0;
@@ -2452,10 +2452,11 @@ QUnit.test('calls to update cues on media when no master', function(assert) {
 });
 
 QUnit.test('respects useCueTags option', function(assert) {
-  const origHlsOptions = videojs.options.hls;
+  const origVhsOptions = videojs.options.vhs;
+  let vhsPlaylistCueTagsEvents = 0;
   let hlsPlaylistCueTagsEvents = 0;
 
-  videojs.options.hls = {
+  videojs.options.vhs = {
     useCueTags: true
   };
 
@@ -2463,6 +2464,9 @@ QUnit.test('respects useCueTags option', function(assert) {
   this.player.dispose();
   this.player = createPlayer();
   this.player.tech_.on('usage', (event) => {
+    if (event.name === 'vhs-playlist-cue-tags') {
+      vhsPlaylistCueTagsEvents++;
+    }
     if (event.name === 'hls-playlist-cue-tags') {
       hlsPlaylistCueTagsEvents++;
     }
@@ -2474,10 +2478,11 @@ QUnit.test('respects useCueTags option', function(assert) {
 
   this.clock.tick(1);
 
-  this.masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+  this.masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
   this.standardXHRResponse(this.requests.shift());
   this.standardXHRResponse(this.requests.shift());
 
+  assert.equal(vhsPlaylistCueTagsEvents, 1, 'cue tags event has been triggered once');
   assert.equal(hlsPlaylistCueTagsEvents, 1, 'cue tags event has been triggered once');
   assert.ok(
     this.masterPlaylistController.cueTagsTrack_,
@@ -2493,7 +2498,7 @@ QUnit.test('respects useCueTags option', function(assert) {
     'adds cueTagsTrack as a text track if useCueTags is truthy'
   );
 
-  videojs.options.hls = origHlsOptions;
+  videojs.options.vhs = origVhsOptions;
 });
 
 QUnit.test('correctly sets alternate audio track kinds', function(assert) {
@@ -2542,6 +2547,7 @@ QUnit.test('correctly sets alternate audio track kinds', function(assert) {
 });
 
 QUnit.test('trigger events when video and audio is demuxed by default', function(assert) {
+  let vhsDemuxedEvents = 0;
   let hlsDemuxedEvents = 0;
 
   this.requests.length = 0;
@@ -2553,6 +2559,9 @@ QUnit.test('trigger events when video and audio is demuxed by default', function
   });
 
   this.player.tech_.on('usage', (event) => {
+    if (event.name === 'vhs-demuxed') {
+      vhsDemuxedEvents++;
+    }
     if (event.name === 'hls-demuxed') {
       hlsDemuxedEvents++;
     }
@@ -2564,18 +2573,23 @@ QUnit.test('trigger events when video and audio is demuxed by default', function
   // media
   this.standardXHRResponse(this.requests.shift());
 
+  assert.equal(vhsDemuxedEvents, 1, 'video and audio is demuxed by default');
   assert.equal(hlsDemuxedEvents, 1, 'video and audio is demuxed by default');
 });
 
 QUnit.test('trigger events when an AES is detected', function(assert) {
+  let vhsAesEvents = 0;
   let hlsAesEvents = 0;
-  const isAesCopy = Hls.Playlist.isAes;
+  const isAesCopy = Vhs.Playlist.isAes;
 
-  Hls.Playlist.isAes = (media) => {
+  Vhs.Playlist.isAes = (media) => {
     return true;
   };
 
   this.player.tech_.on('usage', (event) => {
+    if (event.name === 'vhs-aes') {
+      vhsAesEvents++;
+    }
     if (event.name === 'hls-aes') {
       hlsAesEvents++;
     }
@@ -2587,8 +2601,9 @@ QUnit.test('trigger events when an AES is detected', function(assert) {
   this.standardXHRResponse(this.requests.shift());
   this.masterPlaylistController.mediaSource.trigger('sourceopen');
 
+  assert.equal(vhsAesEvents, 1, 'an AES HLS stream is detected');
   assert.equal(hlsAesEvents, 1, 'an AES HLS stream is detected');
-  Hls.Playlist.isAes = isAesCopy;
+  Vhs.Playlist.isAes = isAesCopy;
 });
 
 QUnit.test('trigger event when a video fMP4 stream is detected', function(assert) {
@@ -2603,15 +2618,19 @@ QUnit.test('trigger event when a video fMP4 stream is detected', function(assert
   });
   this.clock.tick(1);
 
+  let vhsFmp4Events = 0;
   let hlsFmp4Events = 0;
 
   this.player.tech_.on('usage', (event) => {
+    if (event.name === 'vhs-fmp4') {
+      vhsFmp4Events++;
+    }
     if (event.name === 'hls-fmp4') {
       hlsFmp4Events++;
     }
   });
 
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const loader = mpc.mainSegmentLoader_;
 
   return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {
@@ -2636,34 +2655,42 @@ QUnit.test('trigger event when a video fMP4 stream is detected', function(assert
       clock: this.clock
     });
   }).then(() => {
+    assert.equal(vhsFmp4Events, 1, 'an fMP4 stream is detected');
     assert.equal(hlsFmp4Events, 1, 'an fMP4 stream is detected');
   });
 });
 
 QUnit.test('only triggers a single fmp4 usage event', function(assert) {
+  let vhsFmp4Events = 0;
   let hlsFmp4Events = 0;
 
   this.player.tech_.on('usage', (event) => {
+    if (event.name === 'vhs-fmp4') {
+      vhsFmp4Events++;
+    }
     if (event.name === 'hls-fmp4') {
       hlsFmp4Events++;
     }
   });
 
-  const mainSegmentLoader = this.player.vhs.masterPlaylistController_.mainSegmentLoader_;
+  const mainSegmentLoader = this.player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_;
 
   mainSegmentLoader.trigger('fmp4');
 
+  assert.equal(vhsFmp4Events, 1, 'fired fMP4 usage event');
   assert.equal(hlsFmp4Events, 1, 'fired fMP4 usage event');
 
   mainSegmentLoader.trigger('fmp4');
 
+  assert.equal(vhsFmp4Events, 1, 'did not fire usage event');
   assert.equal(hlsFmp4Events, 1, 'did not fire usage event');
 
   const audioSegmentLoader =
-    this.player.vhs.masterPlaylistController_.audioSegmentLoader_;
+    this.player.tech(true).vhs.masterPlaylistController_.audioSegmentLoader_;
 
   audioSegmentLoader.trigger('fmp4');
 
+  assert.equal(vhsFmp4Events, 1, 'did not fire usage event');
   assert.equal(hlsFmp4Events, 1, 'did not fire usage event');
 });
 
@@ -2679,15 +2706,19 @@ QUnit.test('trigger event when an audio fMP4 stream is detected', function(asser
   });
   this.clock.tick(1);
 
+  let vhsFmp4Events = 0;
   let hlsFmp4Events = 0;
 
   this.player.tech_.on('usage', (event) => {
+    if (event.name === 'vhs-fmp4') {
+      vhsFmp4Events++;
+    }
     if (event.name === 'hls-fmp4') {
       hlsFmp4Events++;
     }
   });
 
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const loader = mpc.mainSegmentLoader_;
 
   return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {
@@ -2697,6 +2728,7 @@ QUnit.test('trigger event when an audio fMP4 stream is detected', function(asser
     // media
     this.standardXHRResponse(this.requests.shift());
 
+    assert.equal(vhsFmp4Events, 0, 'an fMP4 stream is not detected');
     assert.equal(hlsFmp4Events, 0, 'an fMP4 stream is not detected');
 
     const initSegmentRequest = this.requests.shift();
@@ -2712,6 +2744,7 @@ QUnit.test('trigger event when an audio fMP4 stream is detected', function(asser
       clock: this.clock
     });
   }).then(() => {
+    assert.equal(vhsFmp4Events, 1, 'an fMP4 stream is detected');
     assert.equal(hlsFmp4Events, 1, 'an fMP4 stream is detected');
   });
 });
@@ -2729,7 +2762,7 @@ QUnit.test('parses codec from audio only fmp4 init segment', function(assert) {
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -2790,7 +2823,7 @@ QUnit.test('parses codec from video only fmp4 init segment', function(assert) {
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -2851,7 +2884,7 @@ QUnit.test('parses codec from muxed fmp4 init segment', function(assert) {
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -2915,7 +2948,7 @@ QUnit.test(
     // wait for async player.src to complete
     this.clock.tick(1);
 
-    const masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+    const masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
 
     assert.equal(this.player.textTracks().length, 1, 'one text track to start');
     assert.equal(
@@ -2970,6 +3003,7 @@ QUnit.test(
 );
 
 QUnit.test('adds subtitle tracks when a media playlist is loaded', function(assert) {
+  let vhsWebvttEvents = 0;
   let hlsWebvttEvents = 0;
 
   this.requests.length = 0;
@@ -2983,13 +3017,17 @@ QUnit.test('adds subtitle tracks when a media playlist is loaded', function(asse
   this.clock.tick(1);
 
   this.player.tech_.on('usage', (event) => {
+    if (event.name === 'vhs-webvtt') {
+      vhsWebvttEvents++;
+    }
     if (event.name === 'hls-webvtt') {
       hlsWebvttEvents++;
     }
   });
 
-  const masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+  const masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
 
+  assert.equal(vhsWebvttEvents, 0, 'there is no webvtt detected');
   assert.equal(hlsWebvttEvents, 0, 'there is no webvtt detected');
   assert.equal(this.player.textTracks().length, 1, 'one text track to start');
   assert.equal(
@@ -3021,6 +3059,7 @@ QUnit.test('adds subtitle tracks when a media playlist is loaded', function(asse
   assert.equal(textTracks.length, 3, 'non-forced text tracks were added');
   assert.equal(textTracks[1].mode, 'disabled', 'track starts disabled');
   assert.equal(textTracks[2].mode, 'disabled', 'track starts disabled');
+  assert.equal(vhsWebvttEvents, 1, 'there is webvtt detected in the rendition');
   assert.equal(hlsWebvttEvents, 1, 'there is webvtt detected in the rendition');
 
   // change source to make sure tracks are cleaned up
@@ -3045,7 +3084,7 @@ QUnit.test('switches off subtitles on subtitle errors', function(assert) {
 
   this.clock.tick(1);
 
-  const masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+  const masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
 
   // sets up listener for text track changes
   masterPlaylistController.trigger('sourceopen');
@@ -3130,7 +3169,7 @@ QUnit.test('pauses subtitle segment loader on tech errors', function(assert) {
 
   this.clock.tick(1);
 
-  const masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+  const masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
 
   // sets up listener for text track changes
   masterPlaylistController.trigger('sourceopen');
@@ -3170,7 +3209,7 @@ QUnit.test('disposes subtitle loaders on dispose', function(assert) {
 
   this.clock.tick(1);
 
-  let masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+  let masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
 
   assert.notOk(
     masterPlaylistController.mediaTypes_.SUBTITLES.activePlaylistLoader,
@@ -3200,7 +3239,7 @@ QUnit.test('disposes subtitle loaders on dispose', function(assert) {
 
   this.clock.tick(1);
 
-  masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+  masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
 
   // sets up listener for text track changes
   masterPlaylistController.trigger('sourceopen');
@@ -3255,7 +3294,7 @@ QUnit.test('subtitle segment loader resets on seeks', function(assert) {
 
   this.clock.tick(1);
 
-  const masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+  const masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
 
   // sets up listener for text track changes
   masterPlaylistController.trigger('sourceopen');
@@ -3387,7 +3426,7 @@ QUnit.test('creates source buffers after first main segment if muxed content', f
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -3433,7 +3472,7 @@ QUnit.test('creates source buffers after first main segment if audio only', func
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -3480,7 +3519,7 @@ QUnit.test('creates source buffers after first main segment if video only', func
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -3529,7 +3568,7 @@ QUnit.test('creates source buffers after second trackinfo if demuxed', function(
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -3604,7 +3643,7 @@ QUnit.test('Uses audio codec from audio playlist for demuxed content', function(
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -3674,7 +3713,7 @@ QUnit.test('uses codec info from manifest for source buffer creation', function(
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -3725,7 +3764,7 @@ QUnit.test('translates old-school apple codec strings from manifest to modern st
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -3775,7 +3814,7 @@ QUnit.test('uses default codec strings when provided are invalid', function(asse
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -3827,7 +3866,7 @@ QUnit.test('uses codec info from manifest for source buffer creation even when d
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -3895,7 +3934,7 @@ QUnit.test('uses codec info from manifest for source buffer creation for audio o
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -3946,7 +3985,7 @@ QUnit.test('uses codec info from manifest for source buffer creation for video o
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -4000,7 +4039,7 @@ QUnit.test('uses available audio codec info from manifest plus video default for
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -4055,7 +4094,7 @@ QUnit.test('uses available video codec info from manifest plus audio default for
   this.clock.tick(1);
 
   const createSourceBufferCalls = [];
-  const mpc = this.player.vhs.masterPlaylistController_;
+  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const origCreateSourceBuffers =
     mpc.sourceUpdater_.createSourceBuffers.bind(mpc.sourceUpdater_);
 
@@ -4131,7 +4170,7 @@ QUnit.test(
     // asynchronous setup of initial playlist in playlist loader for JSON sources
     this.clock.tick(1);
 
-    this.masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+    this.masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
 
     // a duration update indicates a master playlist controller state update from the media
     // playlist
@@ -4176,7 +4215,7 @@ QUnit.test(
     // asynchronous setup of initial playlist in playlist loader for JSON sources
     this.clock.tick(1);
 
-    this.masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+    this.masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
 
     // a duration update indicates a master playlist controller state update from the media
     // playlist
@@ -4210,7 +4249,7 @@ QUnit.test(
     // media source must be open for duration to be set
     openMediaSource(this.player, this.clock);
 
-    this.masterPlaylistController = this.player.tech_.hls.masterPlaylistController_;
+    this.masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
 
     assert.equal(this.requests.length, 1, 'one request');
     assert.equal(

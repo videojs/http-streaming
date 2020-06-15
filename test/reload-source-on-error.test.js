@@ -115,28 +115,46 @@ QUnit.test('doesn\'t seek to currentTime in live', function(assert) {
 });
 
 QUnit.test('by default, only allows a retry once every 30 seconds', function(assert) {
+  let vhsErrorReloadInitializedEvents = 0;
+  let vhsErrorReloadEvents = 0;
+  let vhsErrorReloadCanceledEvents = 0;
   let hlsErrorReloadInitializedEvents = 0;
   let hlsErrorReloadEvents = 0;
   let hlsErrorReloadCanceledEvents = 0;
 
   this.player.on('usage', (event) => {
+    if (event.name === 'vhs-error-reload-initialized') {
+      vhsErrorReloadInitializedEvents++;
+    }
     if (event.name === 'hls-error-reload-initialized') {
       hlsErrorReloadInitializedEvents++;
     }
   });
 
   this.player.on('usage', (event) => {
+    if (event.name === 'vhs-error-reload') {
+      vhsErrorReloadEvents++;
+    }
     if (event.name === 'hls-error-reload') {
       hlsErrorReloadEvents++;
     }
   });
 
   this.player.on('usage', (event) => {
+    if (event.name === 'vhs-error-reload-canceled') {
+      vhsErrorReloadCanceledEvents++;
+    }
     if (event.name === 'hls-error-reload-canceled') {
       hlsErrorReloadCanceledEvents++;
     }
   });
 
+  assert.equal(vhsErrorReloadInitializedEvents, 0, 'the plugin has not been initialized');
+  assert.equal(vhsErrorReloadEvents, 0, 'no source was set');
+  assert.equal(
+    vhsErrorReloadCanceledEvents, 0,
+    'reload canceled event has not been triggered'
+  );
   assert.equal(hlsErrorReloadInitializedEvents, 0, 'the plugin has not been initialized');
   assert.equal(hlsErrorReloadEvents, 0, 'no source was set');
   assert.equal(
@@ -148,6 +166,8 @@ QUnit.test('by default, only allows a retry once every 30 seconds', function(ass
   this.player.trigger('error', -2);
   this.player.trigger('loadedmetadata');
 
+  assert.equal(vhsErrorReloadInitializedEvents, 1, 'the plugin has been initialized');
+  assert.equal(vhsErrorReloadEvents, 1, 'src was set after an error caused the reload');
   assert.equal(hlsErrorReloadInitializedEvents, 1, 'the plugin has been initialized');
   assert.equal(hlsErrorReloadEvents, 1, 'src was set after an error caused the reload');
   assert.equal(this.player.src.calledWith.length, 1, 'player.src was only called once');
@@ -164,6 +184,10 @@ QUnit.test('by default, only allows a retry once every 30 seconds', function(ass
   this.player.trigger('error', -2);
   this.player.trigger('loadedmetadata');
 
+  assert.equal(
+    vhsErrorReloadCanceledEvents, 1,
+    'did not reload the source because not enough time has elapsed'
+  );
   assert.equal(
     hlsErrorReloadCanceledEvents, 1,
     'did not reload the source because not enough time has elapsed'

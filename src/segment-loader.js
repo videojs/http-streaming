@@ -343,7 +343,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.seeking_ = settings.seeking;
     this.duration_ = settings.duration;
     this.mediaSource_ = settings.mediaSource;
-    this.hls_ = settings.hls;
+    this.vhs_ = settings.vhs;
     this.loaderType_ = settings.loaderType;
     this.startingMedia_ = void 0;
     this.segmentMetadataTrack_ = settings.segmentMetadataTrack;
@@ -1332,7 +1332,7 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @private
    */
   abortRequestEarly_(stats) {
-    if (this.hls_.tech_.paused() ||
+    if (this.vhs_.tech_.paused() ||
         // Don't abort if the current playlist is on the lowestEnabledRendition
         // TODO: Replace using timeout with a boolean indicating whether this playlist is
         //       the lowestEnabledRendition.
@@ -1367,7 +1367,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     const timeUntilRebuffer = timeUntilRebuffer_(
       this.buffered_(),
       currentTime,
-      this.hls_.tech_.playbackRate()
+      this.vhs_.tech_.playbackRate()
     ) - 1;
 
     // Only consider aborting early if the estimated time to finish the download
@@ -1377,7 +1377,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     const switchCandidate = minRebufferMaxBandwidthSelector({
-      master: this.hls_.playlists.master,
+      master: this.vhs_.playlists.master,
       currentTime,
       bandwidth: measuredBandwidth,
       duration: this.duration_(),
@@ -1535,7 +1535,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
       this.logger_(`adding cues from ${startTime} -> ${endTime} for ${trackName}`);
 
-      createCaptionsTrackIfNotExists(inbandTextTracks, this.hls_.tech_, trackName);
+      createCaptionsTrackIfNotExists(inbandTextTracks, this.vhs_.tech_, trackName);
       // clear out any cues that start and end at the same time period for the same track.
       // We do this because a rendition change that also changes the timescale for captions
       // will result in captions being re-parsed for certain segments. If we add them again
@@ -1573,7 +1573,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // There's potentially an issue where we could double add metadata if there's a muxed
     // audio/video source with a metadata track, and an alt audio with a metadata track.
     // However, this probably won't happen, and if it does it can be handled then.
-    createMetadataTrackIfNotExists(this.inbandTextTracks_, dispatchType, this.hls_.tech_);
+    createMetadataTrackIfNotExists(this.inbandTextTracks_, dispatchType, this.vhs_.tech_);
     addMetadata({
       inbandTextTracks: this.inbandTextTracks_,
       metadataArray: id3Frames,
@@ -2032,7 +2032,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     const simpleSegment = this.createSimplifiedSegmentObj_(segmentInfo);
 
     segmentInfo.abortRequests = mediaSegmentRequest({
-      xhr: this.hls_.xhr,
+      xhr: this.vhs_.xhr,
       xhrOptions: this.xhrOptions_,
       decryptionWorker: this.decrypter_,
       captionParser: this.captionParser_,

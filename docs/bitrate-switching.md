@@ -41,4 +41,4 @@ If you'd like your player to use a different set of priorities, it's
 possible to completely replace the rendition selection logic. For 
 instance, you could always choose the most appropriate rendition by 
 resolution, even though this might mean more stalls during playback.
-See the documentation on `player.hls.selectPlaylist` for more details.
+See the documentation on `player.vhs.selectPlaylist` for more details.

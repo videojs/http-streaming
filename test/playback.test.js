@@ -57,7 +57,7 @@ QUnit.module('Playback', {
     this.fixture.appendChild(video);
     this.player = videojs(video, {
       html5: {
-        hls: {
+        vhs: {
           overrideNative: true
         }
       }
@@ -299,8 +299,8 @@ if (!videojs.browser.IS_FIREFOX) {
       type: 'application/x-mpegURL'
     });
     player.one('playing', function() {
-      player.vhs.mediaSource.addEventListener('sourceended', () => {
-        player.vhs.mediaSource.addEventListener('sourceopen', () => {
+      player.tech(true).vhs.mediaSource.addEventListener('sourceended', () => {
+        player.tech(true).vhs.mediaSource.addEventListener('sourceopen', () => {
           assert.ok(true, 'sourceopen triggered after ending stream');
           done();
         });

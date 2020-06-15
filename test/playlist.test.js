@@ -1138,7 +1138,7 @@ QUnit.module('Playlist isAes', {
     this.env = useFakeEnvironment(assert);
     this.clock = this.env.clock;
     this.requests = this.env.requests;
-    this.fakeHls = {
+    this.fakeVhs = {
       xhr: xhrFactory()
     };
   },
@@ -1148,7 +1148,7 @@ QUnit.module('Playlist isAes', {
 });
 
 QUnit.test('determine if playlist is an AES encrypted HLS stream', function(assert) {
-  const loader = new PlaylistLoader('media.m3u8', this.fakeHls);
+  const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
 
   loader.load();
   this.requests.shift().respond(
@@ -1172,7 +1172,7 @@ QUnit.module('Playlist Media Index For Time', {
     this.env = useFakeEnvironment(assert);
     this.clock = this.env.clock;
     this.requests = this.env.requests;
-    this.fakeHls = {
+    this.fakeVhs = {
       xhr: xhrFactory()
     };
   },
@@ -1184,7 +1184,7 @@ QUnit.module('Playlist Media Index For Time', {
 QUnit.test(
   'can get media index by playback position for non-live videos',
   function(assert) {
-    const loader = new PlaylistLoader('media.m3u8', this.fakeHls);
+    const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
 
     loader.load();
 
@@ -1229,7 +1229,7 @@ QUnit.test(
 QUnit.test(
   'returns the lower index when calculating for a segment boundary',
   function(assert) {
-    const loader = new PlaylistLoader('media.m3u8', this.fakeHls);
+    const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
 
     loader.load();
 
@@ -1264,7 +1264,7 @@ QUnit.test(
 QUnit.test(
   'accounts for non-zero starting segment time when calculating media index',
   function(assert) {
-    const loader = new PlaylistLoader('media.m3u8', this.fakeHls);
+    const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
 
     loader.load();
 

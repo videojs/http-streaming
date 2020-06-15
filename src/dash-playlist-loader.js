@@ -246,12 +246,12 @@ export default class DashPlaylistLoader extends EventTarget {
   // DashPlaylistLoader must accept either a src url or a playlist because subsequent
   // playlist loader setups from media groups will expect to be able to pass a playlist
   // (since there aren't external URLs to media playlists with DASH)
-  constructor(srcUrlOrPlaylist, hls, options = { }, masterPlaylistLoader) {
+  constructor(srcUrlOrPlaylist, vhs, options = { }, masterPlaylistLoader) {
     super();
 
     const { withCredentials = false, handleManifestRedirects = false } = options;
 
-    this.hls_ = hls;
+    this.vhs_ = vhs;
     this.withCredentials = withCredentials;
     this.handleManifestRedirects = handleManifestRedirects;
 
@@ -435,7 +435,7 @@ export default class DashPlaylistLoader extends EventTarget {
       this,
       playlist.sidx,
       playlist,
-      this.hls_.xhr,
+      this.vhs_.xhr,
       { handleManifestRedirects: this.handleManifestRedirects },
       this.sidxRequestFinished_(playlist, oldMaster, startingState, (newMaster, sidx) => {
         if (!newMaster || !sidx) {
@@ -524,7 +524,7 @@ export default class DashPlaylistLoader extends EventTarget {
     }
 
     // request the specified URL
-    this.request = this.hls_.xhr({
+    this.request = this.vhs_.xhr({
       uri: this.srcUrl,
       withCredentials: this.withCredentials
     }, (error, req) => {
@@ -586,7 +586,7 @@ export default class DashPlaylistLoader extends EventTarget {
       return done();
     }
 
-    this.request = this.hls_.xhr({
+    this.request = this.vhs_.xhr({
       uri: resolveUrl(this.srcUrl, utcTiming.value),
       method: utcTiming.method,
       withCredentials: this.withCredentials
@@ -677,7 +677,7 @@ export default class DashPlaylistLoader extends EventTarget {
   refreshXml_() {
     // The srcUrl here *may* need to pass through handleManifestsRedirects when
     // sidx is implemented
-    this.request = this.hls_.xhr({
+    this.request = this.vhs_.xhr({
       uri: this.srcUrl,
       withCredentials: this.withCredentials
     }, (error, req) => {
@@ -734,7 +734,7 @@ export default class DashPlaylistLoader extends EventTarget {
               this,
               playlist.sidx,
               playlist,
-              this.hls_.xhr,
+              this.vhs_.xhr,
               { handleManifestRedirects: this.handleManifestRedirects },
               this.sidxRequestFinished_(playlist, master, this.state, (newMaster, sidx) => {
                 if (!newMaster || !sidx) {

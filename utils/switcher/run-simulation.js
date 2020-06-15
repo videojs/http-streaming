@@ -110,7 +110,7 @@ const runSimulation = function(options, done) {
   let currentTime = 0;
   let player = window.player = createPlayer();
   let poptions = player.options();
-  poptions.hls.debug = true;
+  poptions.vhs.debug = true;
   player.options(poptions);
   document.querySelector('#qunit-fixture').style = 'display: none;';
   player.src({
@@ -132,7 +132,7 @@ const runSimulation = function(options, done) {
   };
   player.tech_.buffered = getBuffer;
 
-  player.hls.playbackWatcher_.dispose();
+  player.tech(true).vhs.playbackWatcher_.dispose();
 
   Object.defineProperty(player.tech_, 'time_', {
     get: () => currentTime
@@ -145,7 +145,7 @@ const runSimulation = function(options, done) {
   let playlistRequest = requests.shift();
   playlistRequest.respond(200, null, playlistResponse(playlistRequest, simulationParams));
 
-  let sourceBuffer = player.tech_.hls.mediaSource.sourceBuffers[0];
+  let sourceBuffer = player.tech(true).vhs.mediaSource.sourceBuffers[0];
   Object.defineProperty(sourceBuffer, 'buffered', {
     get: getBuffer
   });
@@ -153,9 +153,9 @@ const runSimulation = function(options, done) {
   // record the measured bandwidth for the playlist requests
   results.effectiveBandwidth.push({
     time: 0,
-    bandwidth: player.tech_.hls.bandwidth
+    bandwidth: player.tech(true).vhs.bandwidth
   });
-  player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.segmentMetadataTrack_ = null;
+  player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.segmentMetadataTrack_ = null;
   player.play();
 
   let t = 0;
@@ -256,7 +256,7 @@ const runSimulation = function(options, done) {
           });
           results.effectiveBandwidth.push({
             time: (segmentStartTime + tInSeconds) / 2,
-            bandwidth: player.tech_.hls.bandwidth
+            bandwidth: player.tech(true).vhs.bandwidth
           });
           segmentDelay = 0;
           segmentRequest = null;
@@ -275,7 +275,7 @@ const runSimulation = function(options, done) {
           });
           results.effectiveBandwidth.push({
             time: (segmentStartTime + tInSeconds) / 2,
-            bandwidth: player.tech_.hls.bandwidth
+            bandwidth: player.tech(true).vhs.bandwidth
           });
           segmentDelay = 0;
           segmentRequest = null;
@@ -286,7 +286,7 @@ const runSimulation = function(options, done) {
 
         if (segmentDownloaded > segmentSize) {
           if (!currentTime ||
-               player.tech_.hls.masterPlaylistController_.mainSegmentLoader_.mediaIndex !== null) {
+               player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.mediaIndex !== null) {
             buffered += simulationParams.segmentDuration;
             s++;
           } else {
@@ -311,7 +311,7 @@ const runSimulation = function(options, done) {
           });
           results.effectiveBandwidth.push({
             time: (segmentStartTime + tInSeconds) / 2,
-            bandwidth: player.tech_.hls.bandwidth
+            bandwidth: player.tech(true).vhs.bandwidth
           });
 
           segmentRequest = null;
