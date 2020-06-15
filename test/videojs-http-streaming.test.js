@@ -173,7 +173,7 @@ QUnit.test('deprecation warning is show when using player.hls', function(assert)
   assert.equal(hlsPlayerAccessEvents, 0, 'no hls-player-access event was fired');
   const hls = this.player.hls;
 
-  assert.equal(vhsPlayerAccessEvents, 0, 'a vhs-player-access event was fired');
+  assert.equal(vhsPlayerAccessEvents, 0, 'no vhs-player-access event was fired');
   assert.equal(hlsPlayerAccessEvents, 1, 'an hls-player-access event was fired');
   assert.equal(
     warning,
