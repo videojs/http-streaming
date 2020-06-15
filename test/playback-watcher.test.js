@@ -192,7 +192,9 @@ QUnit.test('skips over gap in Chrome due to video underflow', function(assert) {
 
   const seeks = [];
 
-  this.player.vhs.setCurrentTime = (time) => seeks.push(time);
+  this.player.tech_.setCurrentTime = (time) => {
+    seeks.push(time);
+  };
 
   this.player.tech_.trigger('waiting');
 
@@ -509,9 +511,11 @@ QUnit.test('fixes bad seeks', function(assert) {
     off: () => {},
     seeking: () => seeking,
     currentTime: () => currentTime,
+    setCurrentTime: (time) => {
+      seeks.push(time);
+    },
     buffered: () => videojs.createTimeRanges()
   };
-  this.player.vhs.setCurrentTime = (time) => seeks.push(time);
 
   currentTime = 50;
   seekable = videojs.createTimeRanges([[1, 45]]);
@@ -560,12 +564,14 @@ QUnit.test('corrects seek outside of seekable', function(assert) {
   playbackWatcher.tech_ = {
     off: () => {},
     seeking: () => seeking,
+    setCurrentTime: (time) => {
+      seeks.push(time);
+    },
     currentTime: () => currentTime,
     // mocked out
     paused: () => false,
     buffered: () => videojs.createTimeRanges()
   };
-  this.player.vhs.setCurrentTime = (time) => seeks.push(time);
 
   // waiting
 
@@ -649,12 +655,15 @@ QUnit.test(
     playbackWatcher.tech_ = {
       off: () => {},
       seeking: () => seeking,
+      setCurrentTime: (time) => {
+        seeks.push(time);
+      },
+
       currentTime: () => currentTime,
       // mocked out
       paused: () => false,
       buffered: () => videojs.createTimeRanges()
     };
-    this.player.vhs.setCurrentTime = (time) => seeks.push(time);
 
     playbackWatcher.allowSeeksWithinUnsafeLiveWindow = true;
 
@@ -733,6 +742,9 @@ QUnit.test('jumps to buffered content if seeking just before', function(assert) 
   playbackWatcher.tech_ = {
     off: () => {},
     seeking: () => true,
+    setCurrentTime: (time) => {
+      seeks.push(time);
+    },
     currentTime: () => currentTime,
     buffered: () => buffered
   };
