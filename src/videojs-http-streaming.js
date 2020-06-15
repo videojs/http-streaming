@@ -356,9 +356,6 @@ class VhsHandler extends Component {
         });
       }
 
-      // Set up a reference to the VhsHandler from player.vhs. Although this isn't the
-      // most appropriate form of reference for video.js (since all APIs should be
-      // provided through core video.js), it is a common pattern for plugins.
       if (!_player.hasOwnProperty('vhs')) {
         Object.defineProperty(_player, 'vhs', {
           get: () => {
