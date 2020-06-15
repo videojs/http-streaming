@@ -349,7 +349,6 @@ class VhsHandler extends Component {
         Object.defineProperty(_player, 'hls', {
           get: () => {
             videojs.log.warn('player.hls is deprecated. Use player.tech().vhs instead.');
-            tech.trigger({ type: 'usage', name: 'vhs-player-access' });
             tech.trigger({ type: 'usage', name: 'hls-player-access' });
             return this;
           },
@@ -363,6 +362,7 @@ class VhsHandler extends Component {
       if (!_player.hasOwnProperty('vhs')) {
         Object.defineProperty(_player, 'vhs', {
           get: () => {
+            videojs.log.warn('player.vhs is deprecated. Use player.tech().vhs instead.');
             tech.trigger({ type: 'usage', name: 'vhs-player-access' });
             return this;
           },
