@@ -443,38 +443,38 @@ const handleSegmentBytes = ({
 
     // Run through the CaptionParser in case there are captions.
     // Initialize CaptionParser if it hasn't been yet
-    if (tracks.video && bytes.byteLength && segment.transmuxer) {
-      const buffer = bytes instanceof ArrayBuffer ? bytes : bytes.buffer;
-      const byteOffset = bytes instanceof ArrayBuffer ? 0 : bytes.byteOffset;
-      const listenForCaptions = (event) => {
-        if (event.data.action !== 'mp4Captions') {
-          return;
-        }
-        segment.transmuxer.removeEventListener('message', listenForCaptions);
-
-        const data = event.data.data;
-
-        // transfer ownership of bytes back to us.
-        segment.bytes = bytes = new Uint8Array(data, data.byteOffset || 0, data.byteLength);
-
-        finishLoading(event.data.captions);
-      };
-
-      segment.transmuxer.addEventListener('message', listenForCaptions);
-
-      // transfer ownership of bytes to worker.
-      segment.transmuxer.postMessage({
-        action: 'pushMp4Captions',
-        timescales: segment.map.timescales,
-        trackIds: [tracks.video.id],
-        data: buffer,
-        byteOffset,
-        byteLength: bytes.byteLength
-      }, [ buffer ]);
+    if (!tracks.video || !bytes.byteLength || !segment.transmuxer) {
+      finishLoading();
       return;
     }
-    finishLoading();
 
+    const buffer = bytes instanceof ArrayBuffer ? bytes : bytes.buffer;
+    const byteOffset = bytes instanceof ArrayBuffer ? 0 : bytes.byteOffset;
+    const listenForCaptions = (event) => {
+      if (event.data.action !== 'mp4Captions') {
+        return;
+      }
+      segment.transmuxer.removeEventListener('message', listenForCaptions);
+
+      const data = event.data.data;
+
+      // transfer ownership of bytes back to us.
+      segment.bytes = bytes = new Uint8Array(data, data.byteOffset || 0, data.byteLength);
+
+      finishLoading(event.data.captions);
+    };
+
+    segment.transmuxer.addEventListener('message', listenForCaptions);
+
+    // transfer ownership of bytes to worker.
+    segment.transmuxer.postMessage({
+      action: 'pushMp4Captions',
+      timescales: segment.map.timescales,
+      trackIds: [tracks.video.id],
+      data: buffer,
+      byteOffset,
+      byteLength: bytes.byteLength
+    }, [ buffer ]);
     return;
   }
 
