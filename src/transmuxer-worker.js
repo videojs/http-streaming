@@ -16,6 +16,7 @@
 
 import {Transmuxer as FullMux} from 'mux.js/lib/mp4/transmuxer';
 import PartialMux from 'mux.js/lib/partial/transmuxer';
+import CaptionParser from 'mux.js/lib/mp4/caption-parser';
 import {
   secondsToVideoTs,
   videoTsToSeconds
@@ -134,6 +135,7 @@ const wireFullTransmuxerEvents = function(self, transmuxer) {
       }
     });
   });
+
 };
 
 const wirePartialTransmuxerEvents = function(self, transmuxer) {
@@ -286,6 +288,38 @@ class MessageHandlers {
       wirePartialTransmuxerEvents(this.self, this.transmuxer);
     } else {
       wireFullTransmuxerEvents(this.self, this.transmuxer);
+    }
+
+  }
+
+  pushMp4Captions(data) {
+    if (!this.captionParser) {
+      this.captionParser = new CaptionParser();
+      this.captionParser.init();
+    }
+    const segment = new Uint8Array(data.data, data.byteOffset, data.byteLength);
+    const parsed = this.captionParser.parse(
+      segment,
+      data.trackIds,
+      data.timescales
+    );
+
+    this.self.postMessage({
+      action: 'mp4Captions',
+      captions: parsed.captions,
+      data: segment.buffer
+    }, [segment.buffer]);
+  }
+
+  clearAllMp4Captions() {
+    if (this.captionParser) {
+      this.captionParser.clearAllCaptions();
+    }
+  }
+
+  clearParsedMp4Captions() {
+    if (this.captionParser) {
+      this.captionParser.clearParsedCaptions();
     }
   }
 

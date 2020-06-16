@@ -8,7 +8,7 @@ import {
   updateMaster as updatePlaylist
 } from './playlist-loader';
 import { resolveUrl, resolveManifestRedirect } from './resolve-url';
-import mp4Inspector from 'mux.js/lib/tools/mp4-inspector';
+import parseSidx from 'mux.js/lib/tools/parse-sidx';
 import { segmentXhrHeaders } from './xhr';
 import window from 'global/window';
 import {
@@ -345,7 +345,7 @@ export default class DashPlaylistLoader extends EventTarget {
       }
 
       const bytes = toUint8(request.response);
-      const sidx = mp4Inspector.parseSidx(bytes.subarray(8));
+      const sidx = parseSidx(bytes.subarray(8));
 
       return doneFn(master, sidx);
     };

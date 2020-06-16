@@ -148,7 +148,7 @@ const handleKeyResponse = (segment, finishProcessingFn) => (error, request) => {
  *                                        this request
  */
 const handleInitSegmentResponse =
-({segment, captionParser, finishProcessingFn}) => (error, request) => {
+({segment, finishProcessingFn}) => (error, request) => {
   const response = request.response;
   const errorObj = handleErrors(error, request);
 
@@ -368,7 +368,6 @@ const handleSegmentBytes = ({
   segment,
   bytes,
   isPartial,
-  captionParser,
   trackInfoFn,
   timingInfoFn,
   videoSegmentTimingInfoFn,
@@ -430,30 +429,52 @@ const handleSegmentBytes = ({
       timingInfoFn(segment, 'video', 'start', timingInfo);
     }
 
-    // if the track still has audio at this point it is only possible
-    // for it to be audio only. See `tracks.video && tracks.audio` if statement
-    // above.
-    dataFn(segment, {data: bytes, type: trackInfo.hasAudio ? 'audio' : 'video'});
+    const finishLoading = (captions) => {
+      // if the track still has audio at this point it is only possible
+      // for it to be audio only. See `tracks.video && tracks.audio` if statement
+      // above.
+      // we make sure to use segment.bytes here as that
+      dataFn(segment, {data: bytes, type: trackInfo.hasAudio ? 'audio' : 'video'});
+      if (captions && captions.length) {
+        captionsFn(segment, captions);
+      }
+      doneFn(null, segment, {});
+    };
 
     // Run through the CaptionParser in case there are captions.
     // Initialize CaptionParser if it hasn't been yet
-    if (captionParser && tracks.video) {
-      if (!captionParser.isInitialized()) {
-        captionParser.init();
-      }
-
-      const parsed = captionParser.parse(
-        segment.bytes,
-        [tracks.video.id],
-        segment.map.timescales
-      );
-
-      if (parsed && parsed.captions && parsed.captions.length > 0) {
-        captionsFn(segment, parsed.captions);
-      }
+    if (!tracks.video || !bytes.byteLength || !segment.transmuxer) {
+      finishLoading();
+      return;
     }
 
-    doneFn(null, segment, {});
+    const buffer = bytes instanceof ArrayBuffer ? bytes : bytes.buffer;
+    const byteOffset = bytes instanceof ArrayBuffer ? 0 : bytes.byteOffset;
+    const listenForCaptions = (event) => {
+      if (event.data.action !== 'mp4Captions') {
+        return;
+      }
+      segment.transmuxer.removeEventListener('message', listenForCaptions);
+
+      const data = event.data.data;
+
+      // transfer ownership of bytes back to us.
+      segment.bytes = bytes = new Uint8Array(data, data.byteOffset || 0, data.byteLength);
+
+      finishLoading(event.data.captions);
+    };
+
+    segment.transmuxer.addEventListener('message', listenForCaptions);
+
+    // transfer ownership of bytes to worker.
+    segment.transmuxer.postMessage({
+      action: 'pushMp4Captions',
+      timescales: segment.map.timescales,
+      trackIds: [tracks.video.id],
+      data: buffer,
+      byteOffset,
+      byteLength: bytes.byteLength
+    }, [ buffer ]);
     return;
   }
 
@@ -493,7 +514,6 @@ const handleSegmentBytes = ({
 const decryptSegment = ({
   decryptionWorker,
   segment,
-  captionParser,
   trackInfoFn,
   timingInfoFn,
   videoSegmentTimingInfoFn,
@@ -517,7 +537,6 @@ const decryptSegment = ({
         segment,
         bytes: segment.bytes,
         isPartial: false,
-        captionParser,
         trackInfoFn,
         timingInfoFn,
         videoSegmentTimingInfoFn,
@@ -573,7 +592,6 @@ const decryptSegment = ({
 const waitForCompletion = ({
   activeXhrs,
   decryptionWorker,
-  captionParser,
   trackInfoFn,
   timingInfoFn,
   videoSegmentTimingInfoFn,
@@ -619,7 +637,6 @@ const waitForCompletion = ({
         return decryptSegment({
           decryptionWorker,
           segment,
-          captionParser,
           trackInfoFn,
           timingInfoFn,
           videoSegmentTimingInfoFn,
@@ -634,7 +651,6 @@ const waitForCompletion = ({
         segment,
         bytes: segment.bytes,
         isPartial: false,
-        captionParser,
         trackInfoFn,
         timingInfoFn,
         videoSegmentTimingInfoFn,
@@ -795,7 +811,6 @@ export const mediaSegmentRequest = ({
   xhr,
   xhrOptions,
   decryptionWorker,
-  captionParser,
   segment,
   abortFn,
   progressFn,
@@ -812,7 +827,6 @@ export const mediaSegmentRequest = ({
   const finishProcessingFn = waitForCompletion({
     activeXhrs,
     decryptionWorker,
-    captionParser,
     trackInfoFn,
     timingInfoFn,
     videoSegmentTimingInfoFn,
@@ -843,7 +857,6 @@ export const mediaSegmentRequest = ({
     });
     const initSegmentRequestCallback = handleInitSegmentResponse({
       segment,
-      captionParser,
       finishProcessingFn
     });
     const initSegmentXhr = xhr(initSegmentOptions, initSegmentRequestCallback);
