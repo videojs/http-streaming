@@ -1,3 +1,34 @@
+<a name="2.0.0"></a>
+# [2.0.0](https://github.com/videojs/http-streaming/compare/v2.0.0-rc.2...v2.0.0) (2020-06-16)
+
+### Features
+
+* add external vhs properties and deprecate hls and dash references ([#859](https://github.com/videojs/http-streaming/issues/859)) ([22af0b2](https://github.com/videojs/http-streaming/commit/22af0b2))
+* Use VHS playback on any non-Safari browser ([#843](https://github.com/videojs/http-streaming/issues/843)) ([225d127](https://github.com/videojs/http-streaming/commit/225d127))
+
+### Chores
+
+* fix demo page on firefox, always use vhs on safari ([#851](https://github.com/videojs/http-streaming/issues/851)) ([d567b7d](https://github.com/videojs/http-streaming/commit/d567b7d))
+* **stats:** update vhs usage in the stats page ([#867](https://github.com/videojs/http-streaming/issues/867)) ([4dda42a](https://github.com/videojs/http-streaming/commit/4dda42a))
+
+### Code Refactoring
+
+* Move caption parser to webworker, saving 5732b offloading work ([#863](https://github.com/videojs/http-streaming/issues/863)) ([491d194](https://github.com/videojs/http-streaming/commit/491d194))
+* remove aes-decrypter objects from Hls saving 1415gz bytes ([#860](https://github.com/videojs/http-streaming/issues/860)) ([a4f8302](https://github.com/videojs/http-streaming/commit/a4f8302))
+
+### Documentation
+
+* add supported features doc ([#848](https://github.com/videojs/http-streaming/issues/848)) ([38f5860](https://github.com/videojs/http-streaming/commit/38f5860))
+
+### Reverts
+
+* "fix: Use middleware and a wrapped function for seeking instead of relying on unreliable 'seeking' events ([#161](https://github.com/videojs/http-streaming/issues/161))"([#856](https://github.com/videojs/http-streaming/issues/856)) ([1165f8e](https://github.com/videojs/http-streaming/commit/1165f8e))
+
+
+### BREAKING CHANGES
+
+* The Hls object which was exposed on videojs no longer has Decrypter, AsyncStream, and decrypt from aes-decrypter.
+
 <a name="1.10.2"></a>
 ## [1.10.2](https://github.com/videojs/http-streaming/compare/v1.10.1...v1.10.2) (2019-05-13)
 
