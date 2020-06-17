@@ -38,4 +38,4 @@ const shallowEqual = function(a, b) {
   return true;
 };
 
-module.exports = shallowEqual;
+export default shallowEqual;
