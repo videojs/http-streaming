@@ -552,7 +552,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
       const codecs = this.getCodecsOrExclude_();
 
-      // no codecs, excluded
+      // no codecs means that the playlist was excluded
       if (!codecs || !this.sourceUpdater_.canChangeType()) {
         return;
       }
@@ -1416,7 +1416,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     const usingAudioLoader = !!this.mediaTypes_.AUDIO.activePlaylistLoader;
 
     // one or both loaders has not loaded sufficently to load
-    // starting media information so that be can create
+    // starting media information so that we can create
     // source buffers when we don't have a codec on the playlist.
     if (!this.isMediaReady_('main') || (usingAudioLoader && !this.isMediaReady_('audio'))) {
       return;
@@ -1424,7 +1424,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     const codecs = this.getCodecsOrExclude_();
 
-    // playlist was excluded, do nothing.
+    // no codecs means that the playlist was excluded
     if (!codecs) {
       this.mainSegmentLoader_.startingMedia_ = void 0;
       this.audioSegmentLoader_.startingMedia_ = void 0;
@@ -1495,7 +1495,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
         variant.excludeUntil = Infinity;
       }
 
-      // only exclude playlsits by codec change, if codecs cannot switch
+      // only exclude playlists by codec change, if codecs cannot switch
       // during playback.
       if (!this.sourceUpdater_.canChangeType()) {
         // the video codec cannot change

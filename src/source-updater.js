@@ -527,10 +527,10 @@ export default class SourceUpdater extends videojs.EventTarget {
   }
 
   /**
-   * Get the video buffers buffered timerange.
+   * Get the audio buffer's buffered timerange.
    *
    * @return {TimeRange}
-   *         The video buffers buffered time range
+   *         The audio buffer's buffered time range
    */
   audioBuffered() {
     // no media source/source buffer or it isn't in the media sources
@@ -544,10 +544,10 @@ export default class SourceUpdater extends videojs.EventTarget {
   }
 
   /**
-   * Get the video buffers buffered timerange.
+   * Get the video buffer's buffered timerange.
    *
    * @return {TimeRange}
-   *         The video buffers buffered time range
+   *         The video buffer's buffered time range
    */
   videoBuffered() {
     // no media source/source buffer or it isn't in the media sources
@@ -560,7 +560,7 @@ export default class SourceUpdater extends videojs.EventTarget {
   }
 
   /**
-   * Get a combined video/audio buffers buffered timerange.
+   * Get a combined video/audio buffer's buffered timerange.
    *
    * @return {TimeRange}
    *         the combined time range
@@ -581,7 +581,7 @@ export default class SourceUpdater extends videojs.EventTarget {
   }
 
   /**
-   * Add a callback to the queue that will set druation on the mediaSource.
+   * Add a callback to the queue that will set duration on the mediaSource.
    *
    * @param {number} duration
    *        The duration to set
@@ -736,7 +736,7 @@ export default class SourceUpdater extends videojs.EventTarget {
 
   /**
    * Add a function to the queue that will be called
-   * when it is it's turn to run in the audio queue.
+   * when it is its turn to run in the audio queue.
    *
    * @param {Function} callback
    *        The callback to queue.
@@ -755,7 +755,7 @@ export default class SourceUpdater extends videojs.EventTarget {
 
   /**
    * Add a function to the queue that will be called
-   * when it is it's turn to run in the video queue.
+   * when it is its turn to run in the video queue.
    *
    * @param {Function} callback
    *        The callback to queue.
