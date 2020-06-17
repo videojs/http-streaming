@@ -1181,7 +1181,7 @@ QUnit.test('dispose removes sourceopen listener', function(assert) {
 
   // need to call createSourceBuffers before the source updater will check that the media
   // source is opened
-  sourceUpdater.createSourceBuffers({});
+  sourceUpdater.createSourceBuffers({audio: 'mp4a.40.2'});
 
   assert.equal(addEventListenerCalls.length, 1, 'added one event listener');
   assert.equal(addEventListenerCalls[0].type, 'sourceopen', 'added sourceopen listener');
