@@ -350,9 +350,9 @@ export default class SourceUpdater extends videojs.EventTarget {
       return;
     }
 
-    // the intial codecSwitch will always be
+    // the intial addOrChangeSourceBuffers will always be
     // two add buffers.
-    this.codecSwitch(codecs);
+    this.addOrChangeSourceBuffers(codecs);
     this.started_ = true;
     this.trigger('ready');
   }
@@ -461,25 +461,15 @@ export default class SourceUpdater extends videojs.EventTarget {
   }
 
   /**
-   * Whether or not the codecSwitch function is supported.
-   *
-   * @return {boolean}
-   *         if codecSwitch can be called
-   */
-  canCodecSwitch() {
-    return this.canChangeType();
-  }
-
-  /**
-   * Switch the codecs on the source buffers using
-   * changeType or removeSourceBuffer/addSourceBuffer
+   * Add source buffers with a codec or, if they are already created,
+   * call changeType on source buffers using changeType.
    *
    * @param {Object} codecs
    *        Codecs to switch to
    */
-  codecSwitch(codecs) {
+  addOrChangeSourceBuffers(codecs) {
     if (!codecs || typeof codecs !== 'object' || Object.keys(codecs).length === 0) {
-      return;
+      throw new Error('Cannot addOrChangeSourceBuffers to undefined codecs');
     }
 
     Object.keys(codecs).forEach((type) => {
