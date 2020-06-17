@@ -1280,7 +1280,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     return this.masterPlaylistLoader_.media() || this.initialMedia_;
   }
 
-  isMediaReady_(type) {
+  areMediaTypesKnown_(type) {
     return !!this[`${type}SegmentLoader_`].startingMedia_;
   }
 
@@ -1342,9 +1342,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
       const audioGroup = this.media().attributes.AUDIO;
 
       this.master().playlists.forEach(variant => {
-        const _audioGroup = variant.attributes && variant.attributes.AUDIO;
+        const variantAudioGroup = variant.attributes && variant.attributes.AUDIO;
 
-        if (_audioGroup === audioGroup && variant !== this.media()) {
+        if (variantAudioGroup === audioGroup && variant !== this.media()) {
           variant.excludeUntil = Infinity;
         }
       });
@@ -1418,7 +1418,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // one or both loaders has not loaded sufficently to load
     // starting media information so that we can create
     // source buffers when we don't have a codec on the playlist.
-    if (!this.isMediaReady_('main') || (usingAudioLoader && !this.isMediaReady_('audio'))) {
+    if (!this.areMediaTypesKnown_('main') || (usingAudioLoader && !this.areMediaTypesKnown_('audio'))) {
       return;
     }
 

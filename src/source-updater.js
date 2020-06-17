@@ -7,18 +7,12 @@ import noop from './util/noop';
 import { bufferIntersection } from './ranges.js';
 import {getMimeForCodec} from '@videojs/vhs-utils/dist/codecs.js';
 import window from 'global/window';
+import toTitleCase from './util/to-title-case.js';
 
 const bufferTypes = [
   'video',
   'audio'
 ];
-const toTitleCase = function(string) {
-  if (typeof string !== 'string') {
-    return string;
-  }
-
-  return string.replace(/./, (w) => w.toUpperCase());
-};
 
 const updating = (type, sourceUpdater) => {
   const sourceBuffer = sourceUpdater[`${type}Buffer`];
