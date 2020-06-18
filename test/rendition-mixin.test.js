@@ -343,6 +343,33 @@ QUnit.test(
   }
 );
 
+QUnit.test('playlist is exposed on renditions', function(assert) {
+  const vhsHandler = makeMockVhsHandler([
+    {
+      bandwidth: 0,
+      uri: 'media0.m3u8',
+      codecs: 'mp4a.40.2'
+    },
+    {
+      bandwidth: 0,
+      uri: 'media1.m3u8',
+      codecs: 'mp4a.40.5'
+    },
+    {
+      bandwidth: 0,
+      uri: 'media2.m3u8'
+    }
+  ]);
+
+  RenditionMixin(vhsHandler);
+
+  const renditions = vhsHandler.representations();
+
+  assert.deepEqual(renditions[0].playlist, vhsHandler.playlists.master.playlists[0], 'rendition 1 has correct codec');
+  assert.deepEqual(renditions[1].playlist, vhsHandler.playlists.master.playlists[1], 'rendition 2 has correct codec');
+  assert.deepEqual(renditions[2].playlist, vhsHandler.playlists.master.playlists[2], 'rendition 3 has no codec');
+});
+
 QUnit.test('codecs attribute is exposed on renditions when available', function(assert) {
   const vhsHandler = makeMockVhsHandler([
     {
@@ -359,9 +386,7 @@ QUnit.test('codecs attribute is exposed on renditions when available', function(
       bandwidth: 0,
       uri: 'media2.m3u8'
     }
-  ], {
-    smoothQualityChange: true
-  });
+  ]);
 
   RenditionMixin(vhsHandler);
 
@@ -379,9 +404,7 @@ QUnit.test('codecs attribute gets codecs from master', function(assert) {
       uri: 'media0.m3u8',
       audio: 'a1'
     }
-  ], {
-    smoothQualityChange: true
-  });
+  ]);
   const mpc = vhsHandler.masterPlaylistController_;
 
   mpc.master = () => {
