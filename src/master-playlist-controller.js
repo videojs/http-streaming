@@ -147,12 +147,15 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.mediaSource = new window.MediaSource();
 
-    this.mediaSource.addEventListener('durationchange', () => {
-      this.tech_.trigger('durationchange');
-    });
+    this.handleDurationChange_ = this.handleDurationChange_.bind(this);
+    this.handleSourceOpen_ = this.handleSourceOpen_.bind(this);
+    this.handleSourceEnded_ = this.handleSourceEnded_.bind(this);
+
+    this.mediaSource.addEventListener('durationchange', this.handleDurationChange_);
+
     // load the media source into the player
-    this.mediaSource.addEventListener('sourceopen', this.handleSourceOpen_.bind(this));
-    this.mediaSource.addEventListener('sourceended', this.handleSourceEnded_.bind(this));
+    this.mediaSource.addEventListener('sourceopen', this.handleSourceOpen_);
+    this.mediaSource.addEventListener('sourceended', this.handleSourceEnded_);
     // we don't have to handle sourceclose since dispose will handle termination of
     // everything, and the MediaSource should not be detached without a proper disposal
 
@@ -782,6 +785,15 @@ export class MasterPlaylistController extends videojs.EventTarget {
   }
 
   /**
+   * handle the durationchange event on the MediaSource
+   *
+   * @private
+   */
+  handleDurationChange_() {
+    this.tech_.trigger('durationchange');
+  }
+
+  /**
    * Calls endOfStream on the media source when all active stream types have called
    * endOfStream
    *
@@ -1152,8 +1164,13 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * Update the player duration
    */
   updateDuration(isLive) {
+    if (this.updateDuration_) {
+      this.mediaSource.removeEventListener('sourceopen', this.updateDuration_);
+      this.updateDuration_ = null;
+    }
     if (this.mediaSource.readyState !== 'open') {
-      this.mediaSource.addEventListener('sourceopen', this.updateDuration.bind(this, isLive));
+      this.updateDuration_ = this.updateDuration.bind(this, isLive);
+      this.mediaSource.addEventListener('sourceopen', this.updateDuration_);
       return;
     }
 
@@ -1232,6 +1249,15 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.subtitleSegmentLoader_.dispose();
     this.sourceUpdater_.dispose();
     this.timelineChangeController_.dispose();
+    if (this.updateDuration_) {
+      this.mediaSource.removeEventListener('sourceopen', this.updateDuration_);
+    }
+
+    this.mediaSource.removeEventListener('durationchange', this.handleDurationChange_);
+
+    // load the media source into the player
+    this.mediaSource.removeEventListener('sourceopen', this.handleSourceOpen_);
+    this.mediaSource.removeEventListener('sourceended', this.handleSourceEnded_);
     this.off();
   }
 
