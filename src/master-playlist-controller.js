@@ -1280,11 +1280,22 @@ export class MasterPlaylistController extends videojs.EventTarget {
     return this.masterPlaylistLoader_.media() || this.initialMedia_;
   }
 
-  areMediaTypesKnown_(type) {
-    return !!this[`${type}SegmentLoader_`].startingMedia_;
+  areMediaTypesKnown_() {
+    const usingAudioLoader = !!this.mediaTypes_.AUDIO.activePlaylistLoader;
+
+    // one or both loaders has not loaded sufficently to get codecs
+    if (!this.mainSegmentLoader_.startingMedia_ || (usingAudioLoader && !this.audioSegmentLoader_.startingMedia_)) {
+      return false;
+    }
+
+    return true;
   }
 
   getCodecsOrExclude_() {
+    if (!this.areMediaTypesKnown_()) {
+      return;
+    }
+
     const media = {
       main: this.mainSegmentLoader_.currentMedia_ || this.mainSegmentLoader_.startingMedia_ || {},
       audio: this.audioSegmentLoader_.currentMedia_ || this.audioSegmentLoader_.startingMedia_ || {}
@@ -1413,21 +1424,17 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    const usingAudioLoader = !!this.mediaTypes_.AUDIO.activePlaylistLoader;
-
-    // one or both loaders has not loaded sufficently to load
-    // starting media information so that we can create
-    // source buffers when we don't have a codec on the playlist.
-    if (!this.areMediaTypesKnown_('main') || (usingAudioLoader && !this.areMediaTypesKnown_('audio'))) {
-      return;
-    }
-
     const codecs = this.getCodecsOrExclude_();
 
     // no codecs means that the playlist was excluded
+    // or areMediaTypesKnown_ is false.
     if (!codecs) {
-      this.mainSegmentLoader_.startingMedia_ = void 0;
-      this.audioSegmentLoader_.startingMedia_ = void 0;
+      // reset starting media if media types were
+      // known aka the starting playlist was excluded.
+      if (this.areMediaTypesKnown_()) {
+        this.mainSegmentLoader_.startingMedia_ = void 0;
+        this.audioSegmentLoader_.startingMedia_ = void 0;
+      }
       return;
     }
 
