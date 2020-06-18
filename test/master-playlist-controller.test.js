@@ -4436,3 +4436,111 @@ QUnit.test('on error all segment and playlist loaders are paused', function(asse
     assert.ok(paused[name], `${name} was paused on error`);
   });
 });
+
+QUnit.test('can pass or select a playlist for fastQualityChange', function(assert) {
+  const calls = {
+    resetEverything: 0,
+    resyncLoader: 0,
+    media: 0,
+    selectPlaylist: 0
+  };
+
+  const mpc = this.masterPlaylistController;
+
+  mpc.mediaSource.trigger('sourceopen');
+  // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  // media is changed
+  mpc.selectPlaylist = () => {
+    calls.selectPlaylist++;
+    return mpc.master().playlists[1];
+  };
+  mpc.masterPlaylistLoader_.media = (playlist) => {
+    if (!playlist) {
+      return mpc.master().playlists[0];
+    }
+    assert.equal(mpc.master().playlists[1], playlist, 'switching to passed in playlist');
+    calls.media++;
+  };
+
+  mpc.mainSegmentLoader_.resyncLoader = function() {
+    calls.resyncLoader++;
+  };
+
+  mpc.mainSegmentLoader_.resetEverything = () => {
+    calls.resetEverything++;
+  };
+
+  mpc.fastQualityChange_(mpc.master().playlists[1]);
+  assert.deepEqual(calls, {
+    resetEverything: 1,
+    media: 1,
+    selectPlaylist: 0,
+    resyncLoader: 0
+  }, 'calls expected function when passed a playlist');
+
+  mpc.fastQualityChange_();
+  assert.deepEqual(calls, {
+    resetEverything: 2,
+    media: 2,
+    selectPlaylist: 1,
+    resyncLoader: 0
+  }, 'calls expected function when not passed a playlist');
+});
+
+QUnit.test('can pass or select a playlist for smoothQualityChange_', function(assert) {
+  const calls = {
+    resetEverything: 0,
+    resyncLoader: 0,
+    media: 0,
+    selectPlaylist: 0
+  };
+
+  const mpc = this.masterPlaylistController;
+
+  mpc.mediaSource.trigger('sourceopen');
+  // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  // media is changed
+  mpc.selectPlaylist = () => {
+    calls.selectPlaylist++;
+    return mpc.master().playlists[1];
+  };
+  mpc.masterPlaylistLoader_.media = (playlist) => {
+    if (!playlist) {
+      return mpc.master().playlists[0];
+    }
+    assert.equal(mpc.master().playlists[1], playlist, 'switching to passed in playlist');
+    calls.media++;
+  };
+
+  mpc.mainSegmentLoader_.resyncLoader = function() {
+    calls.resyncLoader++;
+  };
+
+  mpc.mainSegmentLoader_.resetEverything = () => {
+    calls.resetEverything++;
+  };
+
+  mpc.smoothQualityChange_(mpc.master().playlists[1]);
+  assert.deepEqual(calls, {
+    resetEverything: 0,
+    media: 1,
+    selectPlaylist: 0,
+    resyncLoader: 1
+  }, 'calls expected function when passed a playlist');
+
+  mpc.smoothQualityChange_();
+  assert.deepEqual(calls, {
+    resetEverything: 0,
+    media: 2,
+    selectPlaylist: 1,
+    resyncLoader: 2
+  }, 'calls expected function when not passed a playlist');
+});
