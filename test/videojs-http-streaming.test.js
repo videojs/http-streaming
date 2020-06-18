@@ -123,6 +123,46 @@ QUnit.module('VHS', {
   }
 });
 
+QUnit.test('mse urls are created and revoked', function(assert) {
+  const old = {
+    createObjectURL: window.URL.createObjectURL,
+    revokeObjectURL: window.URL.revokeObjectURL
+  };
+  const ids = [];
+
+  window.URL.createObjectURL = (...args) => {
+    const id = old.createObjectURL.apply(window.URL, args);
+
+    ids.push(id);
+    return id;
+  };
+
+  window.URL.revokeObjectURL = (...args) => {
+    const index = ids.indexOf(args[0]);
+
+    if (index !== -1) {
+      ids.splice(index, 1);
+    }
+    return old.revokeObjectURL.apply(window.URL, args);
+  };
+
+  this.player.src({
+    src: 'manifest/playlist.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  assert.ok(ids.length > 0, 'object urls created');
+
+  this.player.dispose();
+
+  assert.equal(ids.length, 0, 'all object urls removed');
+
+  window.URL.createObjectURL = old.createObjectURL;
+  window.URL.revokeObjectURL = old.revokeObjectURL;
+});
+
 QUnit.test('version is exported', function(assert) {
   this.player.src({
     src: 'manifest/playlist.m3u8',
