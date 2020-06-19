@@ -744,9 +744,11 @@ export default class DashPlaylistLoader extends EventTarget {
                 // update loader's sidxMapping with parsed sidx box
                 this.sidxMapping_[sidxKey].sidx = sidx;
 
-                this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
-                  this.trigger('minimumUpdatePeriod');
-                }, this.master.minimumUpdatePeriod);
+                if (this.master.minimumUpdatePeriod) {
+                  this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
+                    this.trigger('minimumUpdatePeriod');
+                  }, this.master.minimumUpdatePeriod);
+                }
 
                 // TODO: do we need to reload the current playlist?
                 this.refreshMedia_(this.media().id);
@@ -763,9 +765,11 @@ export default class DashPlaylistLoader extends EventTarget {
         }
       }
 
-      this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
-        this.trigger('minimumUpdatePeriod');
-      }, this.master.minimumUpdatePeriod);
+      if (this.master.minimumUpdatePeriod) {
+        this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
+          this.trigger('minimumUpdatePeriod');
+        }, this.master.minimumUpdatePeriod);
+      }
     });
   }
 
