@@ -365,9 +365,9 @@ QUnit.test('playlist is exposed on renditions', function(assert) {
 
   const renditions = vhsHandler.representations();
 
-  assert.deepEqual(renditions[0].playlist, vhsHandler.playlists.master.playlists[0], 'rendition 1 has correct codec');
-  assert.deepEqual(renditions[1].playlist, vhsHandler.playlists.master.playlists[1], 'rendition 2 has correct codec');
-  assert.deepEqual(renditions[2].playlist, vhsHandler.playlists.master.playlists[2], 'rendition 3 has no codec');
+  assert.deepEqual(renditions[0].playlist, vhsHandler.playlists.master.playlists[0], 'rendition 1 has correct playlist');
+  assert.deepEqual(renditions[1].playlist, vhsHandler.playlists.master.playlists[1], 'rendition 2 has correct playlist');
+  assert.deepEqual(renditions[2].playlist, vhsHandler.playlists.master.playlists[2], 'rendition 3 has no playlist');
 });
 
 QUnit.test('codecs attribute is exposed on renditions when available', function(assert) {
