@@ -48,10 +48,11 @@ const Vhs = {
   xhr: xhrFactory()
 };
 
-// Define getter/setters for config properites
+// Define getter/setters for config properties
 [
   'GOAL_BUFFER_LENGTH',
   'MAX_GOAL_BUFFER_LENGTH',
+  'BACK_BUFFER_LENGTH',
   'GOAL_BUFFER_LENGTH_RATE',
   'BUFFER_LOW_WATER_LINE',
   'MAX_BUFFER_LOW_WATER_LINE',
