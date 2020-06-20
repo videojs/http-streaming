@@ -744,6 +744,8 @@ export default class DashPlaylistLoader extends EventTarget {
                 // update loader's sidxMapping with parsed sidx box
                 this.sidxMapping_[sidxKey].sidx = sidx;
 
+                // Clear & reset timeout with new minimumUpdatePeriod
+                window.clearTimeout(this.minimumUpdatePeriodTimeout_);
                 if (this.master.minimumUpdatePeriod) {
                   this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
                     this.trigger('minimumUpdatePeriod');
@@ -765,6 +767,8 @@ export default class DashPlaylistLoader extends EventTarget {
         }
       }
 
+      // Clear & reset timeout with new minimumUpdatePeriod
+      window.clearTimeout(this.minimumUpdatePeriodTimeout_);
       if (this.master.minimumUpdatePeriod) {
         this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
           this.trigger('minimumUpdatePeriod');

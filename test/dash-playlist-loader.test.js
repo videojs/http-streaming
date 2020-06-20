@@ -2300,16 +2300,50 @@ QUnit.test('refreshes the xml if there is a minimumUpdatePeriod', function(asser
   loader.on('minimumUpdatePeriod', () => minimumUpdatePeriods++);
 
   loader.load();
-  assert.equal(minimumUpdatePeriods, 0, 'no refreshs to start');
+  assert.equal(minimumUpdatePeriods, 0, 'no refreshes to start');
 
   this.standardXHRResponse(this.requests.shift());
-  assert.equal(minimumUpdatePeriods, 0, 'no refreshs immediately after response');
+  assert.equal(minimumUpdatePeriods, 0, 'no refreshes immediately after response');
 
   this.clock.tick(4 * 1000);
 
   assert.equal(this.requests.length, 1, 'refreshed manifest');
   assert.equal(this.requests[0].uri, 'dash-live.mpd', 'refreshed manifest');
   assert.equal(minimumUpdatePeriods, 1, 'refreshed manifest');
+});
+
+QUnit.test('stop xml refresh if minimumUpdatePeriod changes from `mUP > 0` to `mUP == 0`', function(assert) {
+  const loader = new DashPlaylistLoader('dash-live.mpd', this.fakeVhs);
+  let minimumUpdatePeriods = 0;
+
+  loader.on('minimumUpdatePeriod', () => minimumUpdatePeriods++);
+
+  loader.load();
+
+  // Start Request
+  assert.equal(minimumUpdatePeriods, 0, 'no refreshes to start');
+  this.standardXHRResponse(this.requests.shift());
+  assert.equal(minimumUpdatePeriods, 0, 'no refreshes immediately after response');
+
+  // First Refresh Tick
+  this.clock.tick(4 * 1000);
+  this.standardXHRResponse(this.requests[0], loader.masterXml_);
+  assert.equal(this.requests.length, 1, 'refreshed manifest');
+  assert.equal(this.requests[0].uri, 'dash-live.mpd', 'refreshed manifest');
+  assert.equal(minimumUpdatePeriods, 1, 'total minimumUpdatePeriods');
+
+  // Second Refresh Tick: MinimumUpdatePeriod Removed
+  this.clock.tick(4 * 1000);
+  this.standardXHRResponse(this.requests[1], loader.masterXml_.replace('minimumUpdatePeriod="PT4S"', ''));
+  this.clock.tick(4 * 1000);
+  this.standardXHRResponse(this.requests[2]);
+  assert.equal(this.requests.length, 3, 'final manifest refresh');
+  assert.equal(minimumUpdatePeriods, 3, 'final minimumUpdatePeriods');
+
+  // Third Refresh Tick: No Additional Requests Expected
+  this.clock.tick(4 * 1000);
+  assert.equal(this.requests.length, 3, 'final manifest refresh');
+  assert.equal(minimumUpdatePeriods, 3, 'final minimumUpdatePeriods');
 });
 
 QUnit.test('media playlists "refresh" by re-parsing master xml', function(assert) {
