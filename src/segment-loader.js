@@ -1465,6 +1465,10 @@ export default class SegmentLoader extends videojs.EventTarget {
         changed = true;
       }
 
+      // Note: if mux.js reports only audio or
+      // only video for a segment, when they are muxed
+      // we may trigger a trackinfo update that is only
+      // audio/video
       if (changed) {
         this.logger_('trackinfo update', trackInfo);
         this.trigger('trackinfo');
