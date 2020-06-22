@@ -4647,6 +4647,7 @@ QUnit.test('can get demuxed codecs from the main and audio loaders', function(as
 
 QUnit.test('can get demuxed codecs from the main loader', function(assert) {
   this.contentSetup({
+    audioStartingMedia: {},
     mainStartingMedia: {hasVideo: true, hasAudio: true, videoCodec: 'avc1.4c400d', audioCodec: 'mp4a.40.5'},
     audioPlaylist: {attributes: {}},
     mainPlaylist: {attributes: {}}
@@ -4752,6 +4753,8 @@ QUnit.test('can get codecs from startingMedia', function(assert) {
 
 QUnit.test('can get codecs from currentMedia', function(assert) {
   this.contentSetup({
+    mainStartingMedia: {videoCodec: 'avc1.4c400c', hasVideo: true, hasAudio: false},
+    audioStartingMedia: {audioCodec: 'mp4a.40.2', hasVideo: false, hasAudio: true},
     mainCurrentMedia: {videoCodec: 'avc1.4c400d', hasVideo: true, hasAudio: false},
     audioCurrentMedia: {audioCodec: 'mp4a.40.5', hasVideo: false, hasAudio: true},
     mainPlaylist: {attributes: {}},
@@ -4810,6 +4813,8 @@ QUnit.test('uses default codecs if no codecs are found', function(assert) {
 
 QUnit.test('excludes playlist without detected audio/video', function(assert) {
   this.contentSetup({
+    mainStartingMedia: {},
+    audioStartingMedia: {},
     mainPlaylist: {attributes: {}}
   });
 
