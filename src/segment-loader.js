@@ -346,7 +346,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.vhs_ = settings.vhs;
     this.loaderType_ = settings.loaderType;
     this.startingMedia_ = void 0;
-    this.currentMedia_ = void 0;
     this.segmentMetadataTrack_ = settings.segmentMetadataTrack;
     this.goalBufferLength_ = settings.goalBufferLength;
     this.sourceType_ = settings.sourceType;
@@ -840,7 +839,7 @@ export default class SegmentLoader extends videojs.EventTarget {
         // out before we start adding more data
         this.resyncLoader();
       }
-      this.currentMedia_ = void 0;
+      this.startingMedia_ = void 0;
       this.trigger('playlistupdate');
 
       // the rest of this function depends on `oldPlaylist` being defined
@@ -1453,26 +1452,10 @@ export default class SegmentLoader extends videojs.EventTarget {
     // When we have track info, determine what media types this loader is dealing with.
     // Guard against cases where we're not getting track info at all until we are
     // certain that all streams will provide it.
-    if ((trackInfo.hasVideo || trackInfo.hasAudio)) {
-      let changed = false;
-
-      if (!this.startingMedia_) {
-        changed = true;
-        this.startingMedia_ = trackInfo;
-      }
-      if (!shallowEqual(this.currentMedia_, trackInfo)) {
-        this.currentMedia_ = trackInfo;
-        changed = true;
-      }
-
-      // Note: if mux.js reports only audio or
-      // only video for a segment, when they are muxed
-      // we may trigger a trackinfo update that is only
-      // audio/video
-      if (changed) {
-        this.logger_('trackinfo update', trackInfo);
-        this.trigger('trackinfo');
-      }
+    if ((trackInfo.hasVideo || trackInfo.hasAudio) && !shallowEqual(this.startingMedia_, trackInfo)) {
+      this.startingMedia_ = trackInfo;
+      this.logger_('trackinfo update', trackInfo);
+      this.trigger('trackinfo');
     }
 
   }

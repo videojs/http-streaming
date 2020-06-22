@@ -1031,20 +1031,19 @@ QUnit.test('waits for both main and audio loaders to finish before calling endOf
   // audio media
   this.standardXHRResponse(this.requests.shift(), audioMedia);
 
-  return requestAndAppendSegment({
+  return Promise.all([requestAndAppendSegment({
     request: this.requests.shift(),
     segment: videoSegment(),
     isOnlyVideo: true,
     segmentLoader: MPC.mainSegmentLoader_,
     clock: this.clock
-  }).then(() => requestAndAppendSegment({
+  }), requestAndAppendSegment({
     request: this.requests.shift(),
     segment: audioSegment(),
     isOnlyAudio: true,
     segmentLoader: MPC.audioSegmentLoader_,
     clock: this.clock
-  })).then(() => {
-
+  })]).then(() => {
     assert.equal(videoEnded, 1, 'main segment loader did not trigger ended again');
     assert.equal(audioEnded, 1, 'audio segment loader triggered ended');
     assert.equal(MPC.mediaSource.readyState, 'ended', 'Media Source ended');
@@ -1348,7 +1347,6 @@ QUnit.test('blacklists switching from video-only playlists to video+audio', func
   });
 });
 
-// TODO: MOAR TEST
 QUnit.test('blacklists switching between playlists with different codecs', function(assert) {
   openMediaSource(this.player, this.clock);
 
@@ -4551,8 +4549,6 @@ QUnit.module('MasterPlaylistController codecs', {
       const {
         audioStartingMedia,
         mainStartingMedia,
-        audioCurrentMedia,
-        mainCurrentMedia,
         audioPlaylist,
         mainPlaylist
       } = options;
@@ -4561,16 +4557,8 @@ QUnit.module('MasterPlaylistController codecs', {
         this.mpc.mainSegmentLoader_.startingMedia_ = mainStartingMedia;
       }
 
-      if (mainCurrentMedia) {
-        this.mpc.mainSegmentLoader_.currentMedia_ = mainCurrentMedia;
-      }
-
       if (audioStartingMedia) {
         this.mpc.audioSegmentLoader_.startingMedia_ = audioStartingMedia;
-      }
-
-      if (audioCurrentMedia) {
-        this.mpc.audioSegmentLoader_.currentMedia_ = audioCurrentMedia;
       }
 
       this.master = {mediaGroups: {AUDIO: {}}, playlists: []};
@@ -4594,7 +4582,7 @@ QUnit.module('MasterPlaylistController codecs', {
           };
         }
         this.master.playlists.push(audioPlaylist);
-        this.mpc.mediaTypes_.AUDIO.activePlaylistLoader = {};
+        this.mpc.mediaTypes_.AUDIO.activePlaylistLoader = {pause() {}};
       }
     };
   },
@@ -4751,44 +4739,12 @@ QUnit.test('can get codecs from startingMedia', function(assert) {
   assert.deepEqual(codecs, {video: 'avc1.4c400d', audio: 'mp4a.40.5'}, 'codecs returned');
 });
 
-QUnit.test('can get codecs from currentMedia', function(assert) {
-  this.contentSetup({
-    mainStartingMedia: {videoCodec: 'avc1.4c400c', hasVideo: true, hasAudio: false},
-    audioStartingMedia: {audioCodec: 'mp4a.40.2', hasVideo: false, hasAudio: true},
-    mainCurrentMedia: {videoCodec: 'avc1.4c400d', hasVideo: true, hasAudio: false},
-    audioCurrentMedia: {audioCodec: 'mp4a.40.5', hasVideo: false, hasAudio: true},
-    mainPlaylist: {attributes: {}},
-    audioPlaylist: {attributes: {}}
-  });
-
-  const codecs = this.mpc.getCodecsOrExclude_();
-
-  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
-  assert.deepEqual(codecs, {video: 'avc1.4c400d', audio: 'mp4a.40.5'}, 'codecs returned');
-});
-
 QUnit.test('playlist codecs take priority over others', function(assert) {
   this.contentSetup({
     mainStartingMedia: {videoCodec: 'avc1.4c400d', hasVideo: true, hasAudio: false},
     audioStartingMedia: {audioCodec: 'mp4a.40.5', hasVideo: false, hasAudio: true},
     mainPlaylist: {attributes: {CODECS: 'avc1.4b400d', AUDIO: 'low-quality'}},
     audioPlaylist: {attributes: {CODECS: 'mp4a.40.20'}}
-  });
-
-  const codecs = this.mpc.getCodecsOrExclude_();
-
-  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
-  assert.deepEqual(codecs, {video: 'avc1.4b400d', audio: 'mp4a.40.20'}, 'codecs returned');
-});
-
-QUnit.test('currentMedia codecs take priority over startingMedia codecs', function(assert) {
-  this.contentSetup({
-    mainStartingMedia: {videoCodec: 'avc1.4c400d', hasVideo: true, hasAudio: false},
-    audioStartingMedia: {audioCodec: 'mp4a.40.5', hasVideo: false, hasAudio: true},
-    mainCurrentMedia: {videoCodec: 'avc1.4b400d', hasVideo: true, hasAudio: false},
-    audioCurrentMedia: {audioCodec: 'mp4a.40.20', hasVideo: false, hasAudio: true},
-    mainPlaylist: {attributes: {}},
-    audioPlaylist: {attributes: {}}
   });
 
   const codecs = this.mpc.getCodecsOrExclude_();
@@ -5200,7 +5156,7 @@ QUnit.test('main & audio loader only trackinfo works as expected', function(asse
   this.mpc.sourceUpdater_.ready = () => true;
   this.mpc.sourceUpdater_.canChangeType = () => true;
 
-  this.mpc.mainSegmentLoader_.currentMedia_ = {
+  this.mpc.mainSegmentLoader_.startingMedia_ = {
     videoCodec: 'avc1.4c400e',
     hasVideo: true,
     hasAudio: false

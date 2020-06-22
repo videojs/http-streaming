@@ -553,7 +553,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       const codecs = this.getCodecsOrExclude_();
 
       // no codecs means that the playlist was excluded
-      if (!codecs || !this.sourceUpdater_.canChangeType()) {
+      if (!codecs) {
         return;
       }
 
@@ -1290,13 +1290,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
   }
 
   getCodecsOrExclude_() {
-    if (!this.areMediaTypesKnown_()) {
-      return;
-    }
-
     const media = {
-      main: this.mainSegmentLoader_.currentMedia_ || this.mainSegmentLoader_.startingMedia_ || {},
-      audio: this.audioSegmentLoader_.currentMedia_ || this.audioSegmentLoader_.startingMedia_ || {}
+      main: this.mainSegmentLoader_.startingMedia_ || {},
+      audio: this.audioSegmentLoader_.startingMedia_ || {}
     };
 
     // set "main" media equal to video
@@ -1350,6 +1346,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
     if (usingAudioLoader && unsupportedAudio && this.media().attributes.AUDIO) {
       const audioGroup = this.media().attributes.AUDIO;
 
+      this.mediaTypes_.AUDIO.activePlaylistLoader.pause();
+      this.audioSegmentLoader_.pause();
+      this.audioSegmentLoader_.abort();
       this.master().playlists.forEach(variant => {
         const variantAudioGroup = variant.attributes && variant.attributes.AUDIO;
 
@@ -1422,17 +1421,14 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
+    if (!this.areMediaTypesKnown_()) {
+      return;
+    }
+
     const codecs = this.getCodecsOrExclude_();
 
     // no codecs means that the playlist was excluded
-    // or areMediaTypesKnown_ is false.
     if (!codecs) {
-      // reset starting media if media types were
-      // known aka the starting playlist was excluded.
-      if (this.areMediaTypesKnown_()) {
-        this.mainSegmentLoader_.startingMedia_ = void 0;
-        this.audioSegmentLoader_.startingMedia_ = void 0;
-      }
       return;
     }
 
