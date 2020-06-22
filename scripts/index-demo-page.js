@@ -277,6 +277,12 @@
         } else {
           sources.dispatchEvent(newEvent('change'));
         }
+        player.ready(() => {
+          if (player.vhs) {
+            window.vhs = player.tech_.vhs;
+            window.mpc = player.tech_.vhs.masterPlaylistController_;
+          }
+        });
         cb(player);
       });
     });
