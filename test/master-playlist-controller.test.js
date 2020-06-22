@@ -4538,7 +4538,7 @@ QUnit.test('can pass or select a playlist for smoothQualityChange_', function(as
     resyncLoader: 2
   }, 'calls expected function when not passed a playlist');
 });
-=======
+
 QUnit.module('MasterPlaylistController codecs', {
   beforeEach(assert) {
     sharedHooks.beforeEach.call(this, assert);

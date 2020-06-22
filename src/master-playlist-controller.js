@@ -610,15 +610,15 @@ export class MasterPlaylistController extends videojs.EventTarget {
    *
    * @private
    */
-  smoothQualityChange_() {
-    const media = this.selectPlaylist();
-
-    if (media !== this.masterPlaylistLoader_.media()) {
-      this.masterPlaylistLoader_.media(media);
-
-      this.mainSegmentLoader_.resetLoader();
-      // don't need to reset audio as it is reset when media changes
+  smoothQualityChange_(media = this.selectPlaylist()) {
+    if (media === this.masterPlaylistLoader_.media()) {
+      return;
     }
+
+    this.masterPlaylistLoader_.media(media);
+
+    this.mainSegmentLoader_.resetLoader();
+    // don't need to reset audio as it is reset when media changes
   }
 
   /**
@@ -629,9 +629,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
    *
    * @private
    */
-  fastQualityChange_() {
-    const media = this.selectPlaylist();
-
+  fastQualityChange_(media = this.selectPlaylist()) {
     if (media === this.masterPlaylistLoader_.media()) {
       return;
     }
