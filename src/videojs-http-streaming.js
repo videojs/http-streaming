@@ -724,6 +724,9 @@ class VhsHandler extends Component {
     this.masterPlaylistController_.on('selectedinitialmedia', () => {
       // Add the manual rendition mix-in to VhsHandler
       renditionSelectionMixin(this);
+    });
+
+    this.masterPlaylistController_.sourceUpdater_.on('ready', () => {
       setupEmeOptions(this);
     });
 

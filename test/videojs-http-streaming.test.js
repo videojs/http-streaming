@@ -6,7 +6,13 @@ import testDataManifests from 'create-test-data!manifests';
 import {
   muxed as muxedSegment,
   encryptionKey,
-  encrypted as encryptedSegment
+  encrypted as encryptedSegment,
+  audio as audioSegment,
+  video as videoSegment,
+  mp4VideoInit as mp4VideoInitSegment,
+  mp4Video as mp4VideoSegment,
+  mp4AudioInit as mp4AudioInitSegment,
+  mp4Audio as mp4AudioSegment
 } from 'create-test-data!segments';
 import {
   useFakeEnvironment,
@@ -4254,7 +4260,7 @@ QUnit.test('populates quality levels list when available', function(assert) {
   );
 });
 
-QUnit.test('configures eme for DASH if present on selectedinitialmedia', function(assert) {
+QUnit.test('configures eme for DASH if present on sourceUpdater ready', function(assert) {
   this.player.eme = {
     options: {
       previousSetting: 1
@@ -4300,7 +4306,7 @@ QUnit.test('configures eme for DASH if present on selectedinitialmedia', functio
     }
   };
 
-  this.player.tech_.vhs.masterPlaylistController_.trigger('selectedinitialmedia');
+  this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.trigger('ready');
 
   assert.deepEqual(this.player.eme.options, {
     previousSetting: 1
@@ -4320,7 +4326,7 @@ QUnit.test('configures eme for DASH if present on selectedinitialmedia', functio
   }, 'set source eme options');
 });
 
-QUnit.test('configures eme for HLS if present on selectedinitialmedia', function(assert) {
+QUnit.test('configures eme for HLS if present on sourceUpdater ready', function(assert) {
   this.player.eme = {
     options: {
       previousSetting: 1
@@ -4351,7 +4357,7 @@ QUnit.test('configures eme for HLS if present on selectedinitialmedia', function
     })
   };
 
-  this.player.tech_.vhs.masterPlaylistController_.trigger('selectedinitialmedia');
+  this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.trigger('ready');
 
   assert.deepEqual(this.player.eme.options, {
     previousSetting: 1
@@ -4371,7 +4377,7 @@ QUnit.test('configures eme for HLS if present on selectedinitialmedia', function
   }, 'set source eme options');
 });
 
-QUnit.test('integration: configures eme for DASH if present on selectedinitialmedia', function(assert) {
+QUnit.test('integration: configures eme for DASH if present on sourceUpdater ready', function(assert) {
   assert.timeout(3000);
   const done = assert.async();
 
@@ -4389,9 +4395,9 @@ QUnit.test('integration: configures eme for DASH if present on selectedinitialme
       }
     }
   });
-  this.clock.tick(1);
+  openMediaSource(this.player, this.clock);
 
-  this.player.tech_.vhs.masterPlaylistController_.on('selectedinitialmedia', () => {
+  this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.on('ready', () => {
     assert.deepEqual(this.player.eme.options, {
       previousSetting: 1
     }, 'did not modify plugin options');
@@ -4414,9 +4420,15 @@ QUnit.test('integration: configures eme for DASH if present on selectedinitialme
   this.standardXHRResponse(this.requests[0]);
   // this allows the audio playlist loader to load
   this.clock.tick(1);
+
+  // respond to segement request to get trackinfo
+  this.standardXHRResponse(this.requests[1], mp4VideoInitSegment());
+  this.standardXHRResponse(this.requests[2], mp4VideoSegment());
+  this.standardXHRResponse(this.requests[3], mp4AudioInitSegment());
+  this.standardXHRResponse(this.requests[4], mp4AudioSegment());
 });
 
-QUnit.test('integration: configures eme for HLS if present on selectedinitialmedia', function(assert) {
+QUnit.test('integration: configures eme for HLS if present on sourceUpdater ready', function(assert) {
   assert.timeout(3000);
   const done = assert.async();
 
@@ -4434,9 +4446,9 @@ QUnit.test('integration: configures eme for HLS if present on selectedinitialmed
       }
     }
   });
-  this.clock.tick(1);
+  openMediaSource(this.player, this.clock);
 
-  this.player.tech_.vhs.masterPlaylistController_.on('selectedinitialmedia', () => {
+  this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.on('ready', () => {
     assert.deepEqual(this.player.eme.options, {
       previousSetting: 1
     }, 'did not modify plugin options');
@@ -4467,6 +4479,10 @@ QUnit.test('integration: configures eme for HLS if present on selectedinitialmed
 
   // this allows the audio playlist loader to load
   this.clock.tick(1);
+
+  // respond to segement request to get trackinfo
+  this.standardXHRResponse(this.requests.shift(), videoSegment());
+  this.standardXHRResponse(this.requests.shift(), audioSegment());
 });
 
 QUnit.test(
@@ -4511,7 +4527,7 @@ QUnit.test(
         }
       }
     };
-    this.player.tech_.vhs.masterPlaylistController_.trigger('selectedinitialmedia');
+    this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.trigger('ready');
 
     assert.deepEqual(this.player.currentSource(), {
       src: 'manifest/master.mpd',
