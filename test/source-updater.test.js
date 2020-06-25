@@ -347,6 +347,42 @@ QUnit.test('buffered returns intersection of audio and video buffers', function(
   this.sourceUpdater.videoBuffer = origVideoBuffer;
 });
 
+QUnit.test('buffered returns audio buffered if no video buffer', function(assert) {
+  const origAudioBuffer = this.sourceUpdater.audioBuffer;
+
+  // mocking the buffered ranges in this test because it's tough to know how much each
+  // browser will actually buffer
+  this.sourceUpdater.audioBuffer = {
+    buffered: videojs.createTimeRanges([[1, 2], [5.5, 5.6], [10.5, 11]])
+  };
+
+  timeRangesEqual(
+    this.sourceUpdater.buffered(),
+    this.sourceUpdater.audioBuffered(),
+    'buffered is audio'
+  );
+
+  this.sourceUpdater.audioBuffer = origAudioBuffer;
+});
+
+QUnit.test('buffered returns video buffered if no audio buffer', function(assert) {
+  const origVideoBuffer = this.sourceUpdater.videoBuffer;
+
+  // mocking the buffered ranges in this test because it's tough to know how much each
+  // browser will actually buffer
+  this.sourceUpdater.videoBuffer = {
+    buffered: videojs.createTimeRanges([[1.25, 1.5], [5.1, 6.1], [10.5, 10.9]])
+  };
+
+  timeRangesEqual(
+    this.sourceUpdater.buffered(),
+    this.sourceUpdater.videoBuffered(),
+    'buffered is video'
+  );
+
+  this.sourceUpdater.videoBuffer = origVideoBuffer;
+});
+
 QUnit.test('removeAudio removes audio buffer', function(assert) {
   const done = assert.async();
 
