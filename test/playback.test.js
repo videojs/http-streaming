@@ -288,50 +288,50 @@ QUnit[testFn]('DASH sidx with alt audio should end', function(assert) {
   });
 });
 
-QUnit[testFn]('DRM Dash', function(assert) {
-  const done = assert.async();
-  const player = this.player;
+if (!videojs.browser.IS_FIREFOX) {
+  QUnit[testFn]('DRM Dash', function(assert) {
+    const done = assert.async();
+    const player = this.player;
 
-  player.one('ended', () => {
-    assert.ok(true, 'triggered ended');
-    assert.equal(player.error(), null, 'no errors');
-    done();
-  });
-
-  /* eslint-disable max-nested-callbacks */
-  playFor(player, 1, () => {
-    // switch audio playlist
-    player.audioTracks()[1].enabled = true;
-
-    playFor(player, 1, () => {
-      player.currentTime(player.duration() - 5);
+    player.one('ended', () => {
+      assert.ok(true, 'triggered ended');
+      assert.equal(player.error(), null, 'no errors');
+      done();
     });
-  });
-  /* eslint-enable max-nested-callbacks */
 
-  player.src({
-    src: 'https://media.axprod.net/TestVectors/v7-MultiDRM-SingleKey/Manifest.mpd',
-    type: 'application/dash+xml',
-    keySystems: {
-      'com.microsoft.playready': {
-        url: 'https://drm-widevine-licensing.axtest.net/AcquireLicense',
-        licenseHeaders: {
-          'X-AxDRM-Message': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2ZXJzaW9uIjoxLCJjb21fa2V5X2lkIjoiYjMzNjRlYjUtNTFmNi00YWUzLThjOTgtMzNjZWQ1ZTMxYzc4IiwibWVzc2FnZSI6eyJ0eXBlIjoiZW50aXRsZW1lbnRfbWVzc2FnZSIsImtleXMiOlt7ImlkIjoiOWViNDA1MGQtZTQ0Yi00ODAyLTkzMmUtMjdkNzUwODNlMjY2IiwiZW5jcnlwdGVkX2tleSI6ImxLM09qSExZVzI0Y3Iya3RSNzRmbnc9PSJ9XX19.4lWwW46k-oWcah8oN18LPj5OLS5ZU-_AQv7fe0JhNjA'
-        }
-      },
-      'com.widevine.alpha': {
-        url: 'https://drm-widevine-licensing.axtest.net/AcquireLicense',
-        licenseHeaders: {
-          'X-AxDRM-Message': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2ZXJzaW9uIjoxLCJjb21fa2V5X2lkIjoiYjMzNjRlYjUtNTFmNi00YWUzLThjOTgtMzNjZWQ1ZTMxYzc4IiwibWVzc2FnZSI6eyJ0eXBlIjoiZW50aXRsZW1lbnRfbWVzc2FnZSIsImtleXMiOlt7ImlkIjoiOWViNDA1MGQtZTQ0Yi00ODAyLTkzMmUtMjdkNzUwODNlMjY2IiwiZW5jcnlwdGVkX2tleSI6ImxLM09qSExZVzI0Y3Iya3RSNzRmbnc9PSJ9XX19.4lWwW46k-oWcah8oN18LPj5OLS5ZU-_AQv7fe0JhNjA'
+    /* eslint-disable max-nested-callbacks */
+    playFor(player, 1, () => {
+      // switch audio playlist
+      player.audioTracks()[1].enabled = true;
+
+      playFor(player, 1, () => {
+        player.currentTime(player.duration() - 5);
+      });
+    });
+    /* eslint-enable max-nested-callbacks */
+
+    player.src({
+      src: 'https://media.axprod.net/TestVectors/v7-MultiDRM-SingleKey/Manifest.mpd',
+      type: 'application/dash+xml',
+      keySystems: {
+        'com.microsoft.playready': {
+          url: 'https://drm-widevine-licensing.axtest.net/AcquireLicense',
+          licenseHeaders: {
+            'X-AxDRM-Message': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2ZXJzaW9uIjoxLCJjb21fa2V5X2lkIjoiYjMzNjRlYjUtNTFmNi00YWUzLThjOTgtMzNjZWQ1ZTMxYzc4IiwibWVzc2FnZSI6eyJ0eXBlIjoiZW50aXRsZW1lbnRfbWVzc2FnZSIsImtleXMiOlt7ImlkIjoiOWViNDA1MGQtZTQ0Yi00ODAyLTkzMmUtMjdkNzUwODNlMjY2IiwiZW5jcnlwdGVkX2tleSI6ImxLM09qSExZVzI0Y3Iya3RSNzRmbnc9PSJ9XX19.4lWwW46k-oWcah8oN18LPj5OLS5ZU-_AQv7fe0JhNjA'
+          }
+        },
+        'com.widevine.alpha': {
+          url: 'https://drm-widevine-licensing.axtest.net/AcquireLicense',
+          licenseHeaders: {
+            'X-AxDRM-Message': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2ZXJzaW9uIjoxLCJjb21fa2V5X2lkIjoiYjMzNjRlYjUtNTFmNi00YWUzLThjOTgtMzNjZWQ1ZTMxYzc4IiwibWVzc2FnZSI6eyJ0eXBlIjoiZW50aXRsZW1lbnRfbWVzc2FnZSIsImtleXMiOlt7ImlkIjoiOWViNDA1MGQtZTQ0Yi00ODAyLTkzMmUtMjdkNzUwODNlMjY2IiwiZW5jcnlwdGVkX2tleSI6ImxLM09qSExZVzI0Y3Iya3RSNzRmbnc9PSJ9XX19.4lWwW46k-oWcah8oN18LPj5OLS5ZU-_AQv7fe0JhNjA'
+          }
         }
       }
-    }
+    });
   });
-});
 
-// TODO: why does this make the next test
-// throw an "The operation was aborted." on firefox
-if (!videojs.browser.IS_FIREFOX) {
+  // TODO: why does this make the next test
+  // throw an "The operation was aborted." on firefox
   QUnit[testFn]('loops', function(assert) {
     const done = assert.async();
     const player = this.player;
