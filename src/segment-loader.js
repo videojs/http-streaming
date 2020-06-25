@@ -21,6 +21,7 @@ import {
   removeCuesFromTrack
 } from './util/text-tracks';
 import { gopsSafeToAlignWith, removeGopBuffer, updateGopBuffer } from './util/gops';
+import shallowEqual from './util/shallow-equal.js';
 
 // in ms
 const CHECK_BUFFER_DELAY = 500;
@@ -830,7 +831,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     if (!oldPlaylist || oldPlaylist.uri !== newPlaylist.uri) {
-      this.trigger('playlistupdate');
       if (this.mediaIndex !== null || this.handlePartialData_) {
         // we must "resync" the segment loader when we switch renditions and
         // the segment loader is already synced to the previous rendition
@@ -839,6 +839,8 @@ export default class SegmentLoader extends videojs.EventTarget {
         // out before we start adding more data
         this.resyncLoader();
       }
+      this.startingMedia_ = void 0;
+      this.trigger('playlistupdate');
 
       // the rest of this function depends on `oldPlaylist` being defined
       return;
@@ -1441,18 +1443,21 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    // When we have track info, determine what media types this loader is dealing with.
-    // Guard against cases where we're not getting track info at all until we are
-    // certain that all streams will provide it.
-    if (typeof this.startingMedia_ === 'undefined' && (trackInfo.hasAudio || trackInfo.hasVideo)) {
-      this.startingMedia_ = trackInfo;
-    }
-
-    this.trigger('trackinfo');
-
     if (this.checkForIllegalMediaSwitch(trackInfo)) {
       return;
     }
+
+    trackInfo = trackInfo || {};
+
+    // When we have track info, determine what media types this loader is dealing with.
+    // Guard against cases where we're not getting track info at all until we are
+    // certain that all streams will provide it.
+    if ((trackInfo.hasVideo || trackInfo.hasAudio) && !shallowEqual(this.startingMedia_, trackInfo)) {
+      this.startingMedia_ = trackInfo;
+      this.logger_('trackinfo update', trackInfo);
+      this.trigger('trackinfo');
+    }
+
   }
 
   handleTimingInfo_(simpleSegment, mediaType, timeType, time) {
