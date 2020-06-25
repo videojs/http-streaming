@@ -195,7 +195,7 @@ QUnit.test('verifies that sourcebuffer is in source buffers list before attempti
   assert.deepEqual(actionCalls, {
     audioAbort: 1,
     audioAppendBuffer: 1,
-    audioBuffered: 7,
+    audioBuffered: 8,
     audioChangeType: 1,
     audioRemove: 1,
     audioRemoveSourceBuffer: 1,
