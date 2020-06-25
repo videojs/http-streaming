@@ -4,7 +4,7 @@
 import videojs from 'video.js';
 import logger from './util/logger';
 import noop from './util/noop';
-import { buffered } from './util/buffer';
+import { bufferIntersection } from './ranges.js';
 import {getMimeForCodec} from '@videojs/vhs-utils/dist/codecs.js';
 
 const updating = (type, sourceUpdater) => {
@@ -322,7 +322,15 @@ export default class SourceUpdater extends videojs.EventTarget {
   }
 
   buffered() {
-    return buffered(this.videoBuffer, this.audioBuffer);
+    if (this.audioBuffer && !this.videoBuffer) {
+      return this.audioBuffered();
+    }
+
+    if (this.videoBuffer && !this.audioBuffer) {
+      return this.videoBuffered();
+    }
+
+    return bufferIntersection(this.audioBuffered(), this.videoBuffered());
   }
 
   setDuration(duration, doneFn = noop) {

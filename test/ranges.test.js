@@ -496,3 +496,52 @@ QUnit.test('converts time ranges to an array', function(assert) {
     'formats ranges correctly'
   );
 });
+
+QUnit.module('bufferIntersection');
+
+QUnit.test('returns intersection of two buffers', function(assert) {
+  const a = createTimeRanges([[0, 5], [12, 100]]);
+  const b = createTimeRanges([[4, 5], [10, 101]]);
+
+  assert.ok(
+    rangesEqual(Ranges.bufferIntersection(a, b), createTimeRanges([[4, 5], [12, 100]])),
+    'returns intersection'
+  );
+});
+
+QUnit.test('returns empty when no buffers', function(assert) {
+  assert.ok(
+    rangesEqual(Ranges.bufferIntersection(null, null), createTimeRanges()),
+    'returns empty'
+  );
+});
+
+QUnit.test('returns empty when buffers are empty', function(assert) {
+  const a = createTimeRanges();
+  const b = createTimeRanges();
+
+  assert.ok(
+    rangesEqual(Ranges.bufferIntersection(a, b), createTimeRanges()),
+    'returns empty'
+  );
+});
+
+QUnit.test('returns empty when one buffer is empty', function(assert) {
+  const a = createTimeRanges([[0, 1], [2, 3]]);
+  const b = createTimeRanges();
+
+  assert.ok(
+    rangesEqual(Ranges.bufferIntersection(a, b), createTimeRanges()),
+    'returns empty'
+  );
+});
+
+QUnit.test('returns empty when other buffer empty', function(assert) {
+  const a = createTimeRanges();
+  const b = createTimeRanges([[0, 1], [2, 3]]);
+
+  assert.ok(
+    rangesEqual(Ranges.bufferIntersection(a, b), createTimeRanges()),
+    'returns empty'
+  );
+});
