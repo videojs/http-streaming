@@ -48,10 +48,11 @@ const Vhs = {
   xhr: xhrFactory()
 };
 
-// Define getter/setters for config properites
+// Define getter/setters for config properties
 [
   'GOAL_BUFFER_LENGTH',
   'MAX_GOAL_BUFFER_LENGTH',
+  'BACK_BUFFER_LENGTH',
   'GOAL_BUFFER_LENGTH_RATE',
   'BUFFER_LOW_WATER_LINE',
   'MAX_BUFFER_LOW_WATER_LINE',
@@ -727,7 +728,9 @@ class VhsHandler extends Component {
     this.masterPlaylistController_.on('selectedinitialmedia', () => {
       // Add the manual rendition mix-in to VhsHandler
       renditionSelectionMixin(this);
+    });
 
+    this.masterPlaylistController_.sourceUpdater_.on('ready', () => {
       const audioPlaylistLoader =
         this.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader;
 
@@ -759,7 +762,9 @@ class VhsHandler extends Component {
       return;
     }
 
-    this.tech_.src(window.URL.createObjectURL(this.masterPlaylistController_.mediaSource));
+    this.mediaSourceUrl_ = window.URL.createObjectURL(this.masterPlaylistController_.mediaSource);
+
+    this.tech_.src(this.mediaSourceUrl_);
   }
 
   /**
@@ -863,6 +868,11 @@ class VhsHandler extends Component {
     // don't check this.tech_.hls as it will log a deprecated warning
     if (this.tech_) {
       delete this.tech_.hls;
+    }
+
+    if (this.mediaSourceUrl_ && window.URL.revokeObjectURL) {
+      window.URL.revokeObjectURL(this.mediaSourceUrl_);
+      this.mediaSourceUrl_ = null;
     }
 
     super.dispose();

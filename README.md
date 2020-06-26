@@ -927,7 +927,7 @@ npm run <command>
 
 [slack-icon]: http://slack.videojs.com/badge.svg
 [slack-link]: http://slack.videojs.com
-[travis-icon]: https://travis-ci.org/videojs/http-streaming.svg?branch=master
+[travis-icon]: https://travis-ci.org/videojs/http-streaming.svg?branch=main
 [travis-link]: https://travis-ci.org/videojs/http-streaming
 [issue-stats-link]: http://issuestats.com/github/videojs/http-streaming
 [issue-stats-pr-icon]: http://issuestats.com/github/videojs/http-streaming/badge/pr

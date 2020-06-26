@@ -152,6 +152,34 @@ QUnit.test('MAX_GOAL_BUFFER_LENGTH set warning and invalid', function(assert) {
   assert.equal(Config.MAX_GOAL_BUFFER_LENGTH, 60, 'default');
 });
 
+QUnit.test('BACK_BUFFER_LENGTH get warning', function(assert) {
+  assert.equal(
+    Vhs.BACK_BUFFER_LENGTH,
+    Config.BACK_BUFFER_LENGTH,
+    'Vhs.BACK_BUFFER_LENGTH returns the default'
+  );
+  assert.equal(this.env.log.warn.calls, 1, 'logged a warning');
+});
+
+QUnit.test('BACK_BUFFER_LENGTH set warning', function(assert) {
+  Vhs.BACK_BUFFER_LENGTH = 10;
+  assert.equal(this.env.log.warn.calls, 1, 'logged a warning');
+
+  assert.equal(Config.BACK_BUFFER_LENGTH, 10, 'returns what we set it to');
+});
+
+QUnit.test('BACK_BUFFER_LENGTH set warning and invalid', function(assert) {
+  Vhs.BACK_BUFFER_LENGTH = 'nope';
+  assert.equal(this.env.log.warn.calls, 2, 'logged two warnings');
+
+  assert.equal(Config.BACK_BUFFER_LENGTH, 30, 'default');
+
+  Vhs.BACK_BUFFER_LENGTH = -1;
+  assert.equal(this.env.log.warn.calls, 2, 'logged two warnings');
+
+  assert.equal(Config.BACK_BUFFER_LENGTH, 30, 'default');
+});
+
 QUnit.test('GOAL_BUFFER_LENGTH_RATE get warning', function(assert) {
   assert.equal(
     Vhs.GOAL_BUFFER_LENGTH_RATE,
@@ -390,7 +418,7 @@ options.forEach((opt) => {
     assert.deepEqual(
       vhs.options_[opt.name],
       opt.test,
-      `${opt.name} should be equal to sourchHandler option`
+      `${opt.name} should be equal to sourceHandler option`
     );
   });
 
@@ -412,7 +440,7 @@ options.forEach((opt) => {
     assert.deepEqual(
       vhs.options_[opt.name],
       opt.test,
-      `${opt.name} should be equal to sourchHandler option`
+      `${opt.name} should be equal to sourceHandler option`
     );
   });
 });

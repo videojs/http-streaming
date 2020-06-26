@@ -162,7 +162,7 @@ export const findSoleUncommonTimeRangesEnd = function(original, update) {
  * @param {TimeRanges} bufferB
  * @return {TimeRanges} The interesection of `bufferA` with `bufferB`
  */
-const bufferIntersection = function(bufferA, bufferB) {
+export const bufferIntersection = function(bufferA, bufferB) {
   let start = null;
   let end = null;
   let arity = 0;

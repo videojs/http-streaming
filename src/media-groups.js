@@ -736,10 +736,13 @@ export const setupMediaGroups = (settings) => {
   // DO NOT enable the default subtitle or caption track.
   // DO enable the default audio track
   const audioGroup = mediaTypes.AUDIO.activeGroup();
-  const groupId = (audioGroup.filter(group => group.default)[0] || audioGroup[0]).id;
 
-  mediaTypes.AUDIO.tracks[groupId].enabled = true;
-  mediaTypes.AUDIO.onTrackChanged();
+  if (audioGroup) {
+    const groupId = (audioGroup.filter(group => group.default)[0] || audioGroup[0]).id;
+
+    mediaTypes.AUDIO.tracks[groupId].enabled = true;
+    mediaTypes.AUDIO.onTrackChanged();
+  }
 
   masterPlaylistLoader.on('mediachange', () => {
     ['AUDIO', 'SUBTITLES'].forEach(type => mediaTypes[type].onGroupChanged());

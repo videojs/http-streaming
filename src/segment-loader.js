@@ -21,6 +21,7 @@ import {
   removeCuesFromTrack
 } from './util/text-tracks';
 import { gopsSafeToAlignWith, removeGopBuffer, updateGopBuffer } from './util/gops';
+import shallowEqual from './util/shallow-equal.js';
 
 // in ms
 const CHECK_BUFFER_DELAY = 500;
@@ -53,7 +54,7 @@ export const illegalMediaSwitch = (loaderType, startingMedia, trackInfo) => {
 };
 
 /**
- * Calculates a time value that is safe to remove from the back buffer without interupting
+ * Calculates a time value that is safe to remove from the back buffer without interrupting
  * playback.
  *
  * @param {TimeRange} seekable
@@ -63,7 +64,7 @@ export const illegalMediaSwitch = (loaderType, startingMedia, trackInfo) => {
  * @param {number} targetDuration
  *        The target duration of the current playlist
  * @return {number}
- *         Time that is safe to remove from the back buffer without interupting playback
+ *         Time that is safe to remove from the back buffer without interrupting playback
  */
 export const safeBackBufferTrimTime = (seekable, currentTime, targetDuration) => {
   // 30 seconds before the playhead provides a safe default for trimming.
@@ -71,7 +72,7 @@ export const safeBackBufferTrimTime = (seekable, currentTime, targetDuration) =>
   // Choosing a reasonable default is particularly important for high bitrate content and
   // VOD videos/live streams with large windows, as the buffer may end up overfilled and
   // throw an APPEND_BUFFER_ERR.
-  let trimTime = currentTime - 30;
+  let trimTime = currentTime - Config.BACK_BUFFER_LENGTH;
 
   if (seekable.length) {
     // Some live playlists may have a shorter window of content than the full allowed back
@@ -830,7 +831,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     if (!oldPlaylist || oldPlaylist.uri !== newPlaylist.uri) {
-      this.trigger('playlistupdate');
       if (this.mediaIndex !== null || this.handlePartialData_) {
         // we must "resync" the segment loader when we switch renditions and
         // the segment loader is already synced to the previous rendition
@@ -839,6 +839,8 @@ export default class SegmentLoader extends videojs.EventTarget {
         // out before we start adding more data
         this.resyncLoader();
       }
+      this.startingMedia_ = void 0;
+      this.trigger('playlistupdate');
 
       // the rest of this function depends on `oldPlaylist` being defined
       return;
@@ -1441,18 +1443,21 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    // When we have track info, determine what media types this loader is dealing with.
-    // Guard against cases where we're not getting track info at all until we are
-    // certain that all streams will provide it.
-    if (typeof this.startingMedia_ === 'undefined' && (trackInfo.hasAudio || trackInfo.hasVideo)) {
-      this.startingMedia_ = trackInfo;
-    }
-
-    this.trigger('trackinfo');
-
     if (this.checkForIllegalMediaSwitch(trackInfo)) {
       return;
     }
+
+    trackInfo = trackInfo || {};
+
+    // When we have track info, determine what media types this loader is dealing with.
+    // Guard against cases where we're not getting track info at all until we are
+    // certain that all streams will provide it.
+    if ((trackInfo.hasVideo || trackInfo.hasAudio) && !shallowEqual(this.startingMedia_, trackInfo)) {
+      this.startingMedia_ = trackInfo;
+      this.logger_('trackinfo update', trackInfo);
+      this.trigger('trackinfo');
+    }
+
   }
 
   handleTimingInfo_(simpleSegment, mediaType, timeType, time) {

@@ -52,6 +52,8 @@ class MockSourceBuffer extends videojs.EventTarget {
     this.updating = true;
   }
 
+  changeType() {}
+
   remove(start, end) {
     this.updates_.push({
       remove: [start, end]
@@ -99,6 +101,14 @@ class MockMediaSource extends videojs.EventTarget {
     sourceBuffer.mimeType_ = mime;
     this.sourceBuffers.push(sourceBuffer);
     return sourceBuffer;
+  }
+
+  removeSourceBuffer(sourceBuffer) {
+    const index = this.sourceBuffers.indexOf(sourceBuffer);
+
+    if (index !== -1) {
+      this.sourceBuffers.splice(index, 1);
+    }
   }
 
   endOfStream(error) {
