@@ -277,10 +277,13 @@
         } else {
           sources.dispatchEvent(newEvent('change'));
         }
-        player.ready(() => {
+        player.on('loadedmetadata', () => {
           if (player.vhs) {
             window.vhs = player.tech_.vhs;
             window.mpc = player.tech_.vhs.masterPlaylistController_;
+          } else {
+            window.vhs = null;
+            window.mpc = null;
           }
         });
         cb(player);
