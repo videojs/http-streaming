@@ -170,7 +170,7 @@ export default class PlaybackWatcher {
     const loader = this.masterPlaylistController_[`${type}SegmentLoader_`];
 
     if (this[`${type}StalledDownloads_`] > 0) {
-      this.logger_(`resetting stalled downloads for ${type} loader`);
+      this.logger_(`resetting possible stalled download count for ${type} loader`);
     }
     this[`${type}StalledDownloads_`] = 0;
     this[`${type}Buffered_`] = loader.buffered_();
@@ -204,16 +204,18 @@ export default class PlaybackWatcher {
 
     this[`${type}StalledDownloads_`]++;
 
-    this.logger_(`found stalled download #${this[`${type}StalledDownloads_`]} for ${type} loader`);
-    // We will technically get past this on the fourth bad append
-    // rather than the third. As the first will almost always cause
-    // buffered to change which means that StalledDownloads_ will
-    // not be incremented
-    if (this[`${type}StalledDownloads_`] < 3) {
+    this.logger_(`found #${this[`${type}StalledDownloads_`]} ${type} appends that did not increase buffer (possible stalled download)`, {
+      playlistId: loader.playlist_ && loader.playlist_.id,
+      buffered: Ranges.timeRangesToArray(buffered)
+
+    });
+
+    // after 5 possibly stalled appends with no reset, exclude
+    if (this[`${type}StalledDownloads_`] < 5) {
       return;
     }
 
-    this.logger_(`${type} loader download exclusion`);
+    this.logger_(`${type} loader stalled download exclusion`);
     this.resetSegmentDownloads_(type);
     this.tech_.trigger({type: 'usage', name: `vhs-${type}-download-exclusion`});
 
