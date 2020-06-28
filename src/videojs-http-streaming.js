@@ -26,6 +26,7 @@ import reloadSourceOnError from './reload-source-on-error';
 import {
   lastBandwidthSelector,
   lowestBitrateCompatibleVariantSelector,
+  movingAverageBandwidthSelector,
   comparePlaylistBandwidth,
   comparePlaylistResolution
 } from './playlist-selectors.js';
@@ -43,6 +44,8 @@ const Vhs = {
 
   STANDARD_PLAYLIST_SELECTOR: lastBandwidthSelector,
   INITIAL_PLAYLIST_SELECTOR: lowestBitrateCompatibleVariantSelector,
+  lastBandwidthSelector,
+  movingAverageBandwidthSelector,
   comparePlaylistBandwidth,
   comparePlaylistResolution,
 
@@ -642,9 +645,11 @@ class VhsHandler extends Component {
 
     // `this` in selectPlaylist should be the VhsHandler for backwards
     // compatibility with < v2
+    // Use movingAverageBandwidthSelector by default with a decay of 0.55
     this.masterPlaylistController_.selectPlaylist =
       this.selectPlaylist ?
-        this.selectPlaylist.bind(this) : Vhs.STANDARD_PLAYLIST_SELECTOR.bind(this);
+        this.selectPlaylist.bind(this) :
+        Vhs.movingAverageBandwidthSelector.bind(this, 0.55);
 
     this.masterPlaylistController_.selectInitialPlaylist =
       Vhs.INITIAL_PLAYLIST_SELECTOR.bind(this);
