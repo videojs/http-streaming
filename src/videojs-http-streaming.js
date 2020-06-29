@@ -649,7 +649,7 @@ class VhsHandler extends Component {
     this.masterPlaylistController_.selectPlaylist =
       this.selectPlaylist ?
         this.selectPlaylist.bind(this) :
-        Vhs.movingAverageBandwidthSelector.bind(this, 0.55);
+        Vhs.movingAverageBandwidthSelector(0.55).bind(this);
 
     this.masterPlaylistController_.selectInitialPlaylist =
       Vhs.INITIAL_PLAYLIST_SELECTOR.bind(this);
