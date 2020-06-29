@@ -10,6 +10,8 @@ export default {
   BANDWIDTH_VARIANCE: 1.2,
   // How much of the buffer must be filled before we consider upswitching
   BUFFER_LOW_WATER_LINE: 0,
-  MAX_BUFFER_LOW_WATER_LINE: 30,
-  BUFFER_LOW_WATER_LINE_RATE: 1
+  MAX_BUFFER_LOW_WATER_LINE: 16,
+  BUFFER_LOW_WATER_LINE_RATE: 1,
+  // If the buffer is greater than the high water line, we won't switch down
+  BUFFER_HIGH_WATER_LINE: 30
 };

@@ -49,6 +49,7 @@ const shouldSwitchToMedia = function({
   nextPlaylist,
   forwardBuffer,
   bufferLowWaterLine,
+  bufferHighWaterLine,
   duration,
   log
 }) {
@@ -72,14 +73,17 @@ const shouldSwitchToMedia = function({
     return true;
   }
 
-  // we want to switch down to lower resolutions quickly to continue playback, but
-  if (nextPlaylist.attributes.BANDWIDTH < currentPlaylist.attributes.BANDWIDTH) {
+  // when switching down, if our buffer is lower than the high water line,
+  // we can switch down
+  if (nextPlaylist.attributes.BANDWIDTH < currentPlaylist.attributes.BANDWIDTH &&
+      forwardBuffer < bufferHighWaterLine) {
     return true;
   }
 
-  // ensure we have some buffer before we switch up to prevent us running out of
-  // buffer while loading a higher rendition.
-  if (forwardBuffer >= bufferLowWaterLine) {
+  // and if our buffer is higher than the low water line,
+  // we can switch up
+  if (nextPlaylist.attributes.BANDWIDTH > currentPlaylist.attributes.BANDWIDTH &&
+    forwardBuffer >= bufferLowWaterLine) {
     return true;
   }
 
@@ -319,6 +323,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
         }
 
         this.initialMedia_ = selectedMedia;
+        // TODO should we use shouldSwitchToMedia here?
         this.masterPlaylistLoader_.media(this.initialMedia_);
 
         // Under the standard case where a source URL is provided, loadedplaylist will
@@ -493,12 +498,14 @@ export class MasterPlaylistController extends videojs.EventTarget {
         buffered.end(buffered.length - 1) - this.tech_.currentTime() : 0;
 
       const bufferLowWaterLine = this.bufferLowWaterLine();
+      const bufferHighWaterLine = this.bufferHighWaterLine();
 
       if (shouldSwitchToMedia({
         currentPlaylist,
         nextPlaylist,
         forwardBuffer,
         bufferLowWaterLine,
+        bufferHighWaterLine,
         duration: this.duration(),
         log: this.logger_
       })) {
@@ -619,6 +626,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
+    // TODO should we use shouldSwitchToMedia here?
     this.masterPlaylistLoader_.media(media);
 
     this.mainSegmentLoader_.resetLoader();
@@ -1635,6 +1643,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
     const max = Math.max(initial, Config.MAX_BUFFER_LOW_WATER_LINE);
 
     return Math.min(initial + currentTime * rate, max);
+  }
+
+  bufferHighWaterLine() {
+    return Config.BUFFER_HIGH_WATER_LINE;
   }
 
 }
