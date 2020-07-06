@@ -2639,13 +2639,13 @@ QUnit.test('trigger event when a video fMP4 stream is detected', function(assert
   const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const loader = mpc.mainSegmentLoader_;
 
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
   return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {
     videoEl: this.player.tech_.el_,
     isVideoOnly: true
   }).then(() => {
-    // media
-    this.standardXHRResponse(this.requests.shift());
-
     assert.equal(hlsFmp4Events, 0, 'an fMP4 stream is not detected');
 
     const initSegmentRequest = this.requests.shift();
@@ -2727,13 +2727,13 @@ QUnit.test('trigger event when an audio fMP4 stream is detected', function(asser
   const mpc = this.player.tech(true).vhs.masterPlaylistController_;
   const loader = mpc.mainSegmentLoader_;
 
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
   return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {
     videoEl: this.player.tech_.el_,
     isAudioOnly: true
   }).then(() => {
-    // media
-    this.standardXHRResponse(this.requests.shift());
-
     assert.equal(vhsFmp4Events, 0, 'an fMP4 stream is not detected');
     assert.equal(hlsFmp4Events, 0, 'an fMP4 stream is not detected');
 
