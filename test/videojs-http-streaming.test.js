@@ -36,7 +36,8 @@ import {
   Vhs,
   emeKeySystems,
   LOCAL_STORAGE_KEY,
-  expandDataUri
+  expandDataUri,
+  setupEmeOptions
 } from '../src/videojs-http-streaming';
 import window from 'global/window';
 // we need this so the plugin registers itself
@@ -5722,4 +5723,147 @@ QUnit.test('expandDataUri requires comma to parse', function(assert) {
     'data:application/vnd.videojs.vhs+json',
     'did not parse when no comma after data URI'
   );
+});
+
+QUnit.module('setupEmeOptions', {
+  beforeEach() {
+    this.origBrowser = videojs.browser;
+    // IE11 is a special case and should be tested separately
+    videojs.browser = videojs.mergeOptions(videojs.browser, { IE_VERSION: null });
+  },
+  afterEach() {
+    videojs.browser = this.origBrowser;
+  }
+});
+
+QUnit.test('no error if no eme', function(assert) {
+  const player = {};
+  const sourceKeySystems = {};
+  const media = {};
+  const audioMedia = {};
+
+  setupEmeOptions({ player, sourceKeySystems, media, audioMedia });
+
+  assert.ok(true, 'no exception');
+});
+
+QUnit.test('no initialize calls if no source key systems', function(assert) {
+  let numInitializeCalls = 0;
+  const player = { eme: { initializeMediaKeys: () => numInitializeCalls++ } };
+  const sourceKeySystems = null;
+  const media = {
+    attributes: { CODECS: 'avc1.4d400d,mp4a.40.2' },
+    contentProtection: { 'com.widevine.alpha': { pssh: new Uint8Array() } }
+  };
+  const audioMedia = null;
+
+  setupEmeOptions({ player, sourceKeySystems, media, audioMedia });
+
+  assert.equal(numInitializeCalls, 0, 'no initialize calls');
+});
+
+QUnit.test('initializes for muxed playlist', function(assert) {
+  let numInitializeCalls = 0;
+  const player = {
+    eme: { initializeMediaKeys: () => numInitializeCalls++ },
+    currentSource: () => {
+      return {};
+    }
+  };
+  const sourceKeySystems = {
+    'com.widevine.alpha': {
+      url: 'license-url'
+    }
+  };
+  const media = {
+    attributes: { CODECS: 'avc1.4d400d,mp4a.40.2' },
+    contentProtection: { 'com.widevine.alpha': { pssh: new Uint8Array() } }
+  };
+  const audioMedia = null;
+
+  setupEmeOptions({ player, sourceKeySystems, media, audioMedia });
+
+  assert.equal(numInitializeCalls, 1, 'one initialize call');
+});
+
+QUnit.test('initializes for demuxed playlist', function(assert) {
+  let numInitializeCalls = 0;
+  const player = {
+    eme: { initializeMediaKeys: () => numInitializeCalls++ },
+    currentSource: () => {
+      return {};
+    }
+  };
+  const sourceKeySystems = {
+    'com.widevine.alpha': {
+      url: 'license-url'
+    }
+  };
+  const media = {
+    attributes: { CODECS: 'avc1.4d400d,mp4a.40.2' },
+    contentProtection: { 'com.widevine.alpha': { pssh: new Uint8Array() } }
+  };
+  const audioMedia = {
+    attributes: {},
+    contentProtection: { 'com.widevine.alpha': { pssh: new Uint8Array() } }
+  };
+
+  setupEmeOptions({ player, sourceKeySystems, media, audioMedia });
+
+  assert.equal(numInitializeCalls, 1, 'one initialize call');
+});
+
+QUnit.test('does not initialize if IE11', function(assert) {
+  videojs.browser.IE_VERSION = 11;
+  let numInitializeCalls = 0;
+  const player = {
+    eme: { initializeMediaKeys: () => numInitializeCalls++ },
+    currentSource: () => {
+      return {};
+    }
+  };
+  const sourceKeySystems = {
+    'com.widevine.alpha': {
+      url: 'license-url'
+    }
+  };
+  const media = {
+    attributes: { CODECS: 'avc1.4d400d,mp4a.40.2' },
+    contentProtection: { 'com.widevine.alpha': { pssh: new Uint8Array() } }
+  };
+  const audioMedia = {
+    attributes: {},
+    contentProtection: { 'com.widevine.alpha': { pssh: new Uint8Array() } }
+  };
+
+  setupEmeOptions({ player, sourceKeySystems, media, audioMedia });
+
+  assert.equal(numInitializeCalls, 0, 'no initialize calls');
+});
+
+QUnit.test('only initializes once even for different pssh values', function(assert) {
+  let numInitializeCalls = 0;
+  const player = {
+    eme: { initializeMediaKeys: () => numInitializeCalls++ },
+    currentSource: () => {
+      return {};
+    }
+  };
+  const sourceKeySystems = {
+    'com.widevine.alpha': {
+      url: 'license-url'
+    }
+  };
+  const media = {
+    attributes: { CODECS: 'avc1.4d400d,mp4a.40.2' },
+    contentProtection: { 'com.widevine.alpha': { pssh: new Uint8Array([0]) } }
+  };
+  const audioMedia = {
+    attributes: {},
+    contentProtection: { 'com.widevine.alpha': { pssh: new Uint8Array([1]) } }
+  };
+
+  setupEmeOptions({ player, sourceKeySystems, media, audioMedia });
+
+  assert.equal(numInitializeCalls, 1, 'one initialize call');
 });

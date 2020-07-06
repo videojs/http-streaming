@@ -172,27 +172,31 @@ const emeKeySystems = (keySystemOptions, videoPlaylist, audioPlaylist) => {
   return videojs.mergeOptions(keySystemOptions, keySystemContentTypes);
 };
 
-const setupEmeOptions = (vhsHandler) => {
-  const player = vhsHandler.player_;
-
-  if (player.eme) {
-    const audioPlaylistLoader = vhsHandler.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader;
-    const sourceOptions = emeKeySystems(
-      vhsHandler.source_.keySystems,
-      vhsHandler.playlists.media(),
-      audioPlaylistLoader && audioPlaylistLoader.media()
-    );
-
-    if (sourceOptions) {
-      player.currentSource().keySystems = sourceOptions;
-
-      // works around https://bugs.chromium.org/p/chromium/issues/detail?id=895449
-      // in non-IE11 browsers. In IE11 this is too early to initialize media keys
-      if (!(videojs.browser.IE_VERSION === 11) && player.eme.initializeMediaKeys) {
-        player.eme.initializeMediaKeys();
-      }
-    }
+const setupEmeOptions = ({
+  player,
+  sourceKeySystems,
+  media,
+  audioMedia
+}) => {
+  if (!player.eme) {
+    return;
   }
+
+  const sourceOptions = emeKeySystems(sourceKeySystems, media, audioMedia);
+
+  if (!sourceOptions) {
+    return;
+  }
+
+  player.currentSource().keySystems = sourceOptions;
+
+  // works around https://bugs.chromium.org/p/chromium/issues/detail?id=895449
+  // in non-IE11 browsers. In IE11 this is too early to initialize media keys
+  if (videojs.browser.IE_VERSION === 11 || !player.eme.initializeMediaKeys) {
+    return;
+  }
+
+  player.eme.initializeMediaKeys();
 };
 
 const getVhsLocalStorage = () => {
@@ -727,7 +731,15 @@ class VhsHandler extends Component {
     });
 
     this.masterPlaylistController_.sourceUpdater_.on('ready', () => {
-      setupEmeOptions(this);
+      const audioPlaylistLoader =
+        this.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader;
+
+      setupEmeOptions({
+        player: this.player_,
+        sourceKeySystems: this.source_.keySystems,
+        media: this.playlists.media(),
+        audioMedia: audioPlaylistLoader && audioPlaylistLoader.media()
+      });
     });
 
     // the bandwidth of the primary segment loader is our best
@@ -990,5 +1002,6 @@ export {
   VhsSourceHandler,
   emeKeySystems,
   simpleTypeFromSourceType,
-  expandDataUri
+  expandDataUri,
+  setupEmeOptions
 };
