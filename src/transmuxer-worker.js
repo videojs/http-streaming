@@ -306,7 +306,7 @@ class MessageHandlers {
 
     this.self.postMessage({
       action: 'mp4Captions',
-      captions: parsed.captions,
+      captions: parsed && parsed.captions || [],
       data: segment.buffer
     }, [segment.buffer]);
   }
