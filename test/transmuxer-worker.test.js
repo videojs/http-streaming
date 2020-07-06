@@ -1,6 +1,7 @@
 import QUnit from 'qunit';
 import TransmuxWorker from 'worker!../src/transmuxer-worker.worker.js';
 import {
+  mp4Captions as mp4CaptionsSegment,
   muxed as muxedSegment,
   oneSecond as oneSecondSegment,
   caption as captionSegment
@@ -318,6 +319,64 @@ QUnit.test('caption events are returned', function(assert) {
   });
   this.transmuxer.postMessage({
     action: 'flush'
+  });
+});
+
+QUnit.test('can parse mp4 captions', function(assert) {
+  const done = assert.async();
+  const data = mp4CaptionsSegment();
+
+  this.transmuxer = createTransmuxer(false);
+  this.transmuxer.onmessage = (e) => {
+    const message = e.data;
+
+    assert.equal(message.action, 'mp4Captions', 'returned mp4Captions event');
+    assert.deepEqual(message.captions.length, 2, 'two captions');
+    assert.deepEqual(
+      new Uint8Array(message.data),
+      data,
+      'data returned to main thread'
+    );
+
+    done();
+  };
+
+  this.transmuxer.postMessage({
+    action: 'pushMp4Captions',
+    data,
+    timescales: 30000,
+    trackIds: [1],
+    byteLength: data.byteLength,
+    byteOffset: 0
+  });
+});
+
+QUnit.test('returns empty array without mp4 captions', function(assert) {
+  const done = assert.async();
+  const data = muxedSegment();
+
+  this.transmuxer = createTransmuxer(false);
+  this.transmuxer.onmessage = (e) => {
+    const message = e.data;
+
+    assert.equal(message.action, 'mp4Captions', 'returned mp4Captions event');
+    assert.deepEqual(message.captions, [], 'no captions');
+    assert.deepEqual(
+      new Uint8Array(message.data),
+      data,
+      'data returned to main thread'
+    );
+
+    done();
+  };
+
+  this.transmuxer.postMessage({
+    action: 'pushMp4Captions',
+    data,
+    timescales: 30000,
+    trackIds: [1],
+    byteLength: data.byteLength,
+    byteOffset: 0
   });
 });
 
