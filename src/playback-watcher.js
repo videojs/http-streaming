@@ -210,8 +210,8 @@ export default class PlaybackWatcher {
 
     });
 
-    // after 5 possibly stalled appends with no reset, exclude
-    if (this[`${type}StalledDownloads_`] < 5) {
+    // after 10 possibly stalled appends with no reset, exclude
+    if (this[`${type}StalledDownloads_`] < 10) {
       return;
     }
 
