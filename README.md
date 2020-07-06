@@ -335,9 +335,7 @@ var player = videojs('playerId', {
   html5: {
     vhs: {
       overrideNative: true
-    },
-    nativeAudioTracks: false,
-    nativeVideoTracks: false
+    }
   }
 });
 ```
