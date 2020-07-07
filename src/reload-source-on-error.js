@@ -3,10 +3,7 @@ import videojs from 'video.js';
 const defaultOptions = {
   errorInterval: 30,
   getSource(next) {
-    const tech = this.tech({ IWillNotUseThisInPlugins: true });
-    const sourceObj = tech.currentSource_;
-
-    return next(sourceObj);
+    return next(this.currentSource());
   }
 };
 
