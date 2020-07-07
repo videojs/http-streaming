@@ -172,11 +172,75 @@ const emeKeySystems = (keySystemOptions, videoPlaylist, audioPlaylist) => {
   return videojs.mergeOptions(keySystemOptions, keySystemContentTypes);
 };
 
+/**
+ * @typedef {Object} KeySystems
+ *
+ * keySystems configuration for https://github.com/videojs/videojs-contrib-eme
+ * Note: not all options are listed here.
+ *
+ * @property {Uint8Array} [pssh]
+ *           Protection System Specific Header
+ */
+
+/**
+ * Goes through all the playlists and collects an array of KeySystems options objects
+ * containing each playlist's keySystems and their pssh values, if available.
+ *
+ * @param {Object[]} playlists
+ *        The playlists to look through
+ * @param {string[]} keySystems
+ *        The keySystems to collect pssh values for
+ *
+ * @return {KeySystems[]}
+ *         An array of KeySystems objects containing available key systems and their
+ *         pssh values
+ */
+const getAllPsshKeySystemsOptions = (playlists, keySystems) => {
+  return playlists.reduce((keySystemsArr, playlist) => {
+    if (!playlist.contentProtection) {
+      return keySystemsArr;
+    }
+
+    const keySystemsOptions = keySystems.reduce((keySystemsObj, keySystem) => {
+      const keySystemOptions = playlist.contentProtection[keySystem];
+
+      if (keySystemOptions && keySystemOptions.pssh) {
+        keySystemsObj[keySystem] = { pssh: keySystemOptions.pssh };
+      }
+
+      return keySystemsObj;
+    }, {});
+
+    if (Object.keys(keySystemsOptions).length) {
+      keySystemsArr.push(keySystemsOptions);
+    }
+
+    return keySystemsArr;
+  }, []);
+};
+
+/**
+ * If the [eme](https://github.com/videojs/videojs-contrib-eme) plugin is available, and
+ * there are keySystems on the source, sets up source options to prepare the source for
+ * eme and tries to initialize it early via eme's initializeMediaKeys API (if available).
+ *
+ * @param {Object} player
+ *        The player instance
+ * @param {Object[]} sourceKeySystems
+ *        The key systems options from the player source
+ * @param {Object} media
+ *        The active media playlist
+ * @param {Object} [audioMedia]
+ *        The active audio media playlist (optional)
+ * @param {Object[]} mainPlaylists
+ *        The playlists found on the master playlist object
+ */
 const setupEmeOptions = ({
   player,
   sourceKeySystems,
   media,
-  audioMedia
+  audioMedia,
+  mainPlaylists
 }) => {
   if (!player.eme) {
     return;
@@ -196,7 +260,31 @@ const setupEmeOptions = ({
     return;
   }
 
-  player.eme.initializeMediaKeys();
+  // TODO should all audio PSSH values be initialized for DRM?
+  //
+  // All unique video rendition pssh values are initialized for DRM, but here only
+  // the initial audio playlist license is initialized. In theory, an encrypted
+  // event should be fired if the user switches to an alternative audio playlist
+  // where a license is required, but this case hasn't yet been tested. In addition, there
+  // may be many alternate audio playlists unlikely to be used (e.g., multiple different
+  // languages).
+  const playlists = audioMedia ? mainPlaylists.concat([audioMedia]) : mainPlaylists;
+
+  const keySystemsOptionsArr = getAllPsshKeySystemsOptions(
+    playlists,
+    Object.keys(sourceKeySystems)
+  );
+
+  // Since PSSH values are interpreted as initData, EME will dedupe any duplicates. The
+  // only place where it should not be deduped is for ms-prefixed APIs, but the early
+  // return for IE11 above, and the existence of modern EME APIs in addition to
+  // ms-prefixed APIs on Edge should prevent this from being a concern.
+  // initializeMediaKeys also won't use the webkit-prefixed APIs.
+  keySystemsOptionsArr.forEach((keySystemsOptions) => {
+    player.eme.initializeMediaKeys({
+      keySystems: keySystemsOptions
+    });
+  });
 };
 
 const getVhsLocalStorage = () => {
@@ -738,7 +826,8 @@ class VhsHandler extends Component {
         player: this.player_,
         sourceKeySystems: this.source_.keySystems,
         media: this.playlists.media(),
-        audioMedia: audioPlaylistLoader && audioPlaylistLoader.media()
+        audioMedia: audioPlaylistLoader && audioPlaylistLoader.media(),
+        mainPlaylists: this.playlists.master.playlists
       });
     });
 
@@ -1003,5 +1092,6 @@ export {
   emeKeySystems,
   simpleTypeFromSourceType,
   expandDataUri,
-  setupEmeOptions
+  setupEmeOptions,
+  getAllPsshKeySystemsOptions
 };
