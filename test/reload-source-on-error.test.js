@@ -82,7 +82,7 @@ QUnit.test('triggers on player error', function(assert) {
   );
 });
 
-QUnit.test('triggers on player error, uses player.currentSource() is tech.currentSource_ is not set', function(assert) {
+QUnit.test('triggers on player error, uses player.currentSource() if tech.currentSource_ is not set', function(assert) {
   const oldsrc = this.tech.currentSource_;
   const src = {
     src: 'thisisanothersource.m3u8',
