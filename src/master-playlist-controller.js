@@ -1346,6 +1346,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
     if (usingAudioLoader && unsupportedAudio && this.media().attributes.AUDIO) {
       const audioGroup = this.media().attributes.AUDIO;
 
+      this.mediaTypes_.AUDIO.activePlaylistLoader.pause();
+      this.audioSegmentLoader_.pause();
+      this.audioSegmentLoader_.abort();
       this.master().playlists.forEach(variant => {
         const variantAudioGroup = variant.attributes && variant.attributes.AUDIO;
 
