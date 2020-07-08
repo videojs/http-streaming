@@ -340,6 +340,32 @@ QUnit.test('activeGroup returns the correct subtitle group', function(assert) {
   );
 });
 
+QUnit.test('onGroupChanging aborts and pauses segment loaders', function(assert) {
+  const calls = {
+    abort: 0,
+    pause: 0
+  };
+  const segmentLoader = {
+    abort: () => calls.abort++,
+    pause: () => calls.pause++
+  };
+
+  const settings = {
+    segmentLoaders: {
+      AUDIO: segmentLoader
+    }
+  };
+  const type = 'AUDIO';
+
+  const onGroupChanging = MediaGroups.onGroupChanging(type, settings);
+
+  assert.deepEqual(calls, {abort: 0, pause: 0}, 'no calls yet');
+
+  onGroupChanging();
+
+  assert.deepEqual(calls, {abort: 1, pause: 1}, 'one abort one pause');
+});
+
 QUnit.test(
   'onGroupChanged updates active playlist loader and resyncs segment loader',
   function(assert) {

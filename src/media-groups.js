@@ -105,7 +105,7 @@ export const onGroupChanged = (type, settings) => () => {
   startLoaders(activeGroup.playlistLoader, mediaType);
 };
 
-const onGroupChanging = (type, settings) => () => {
+export const onGroupChanging = (type, settings) => () => {
   const {
     segmentLoaders: {
       [type]: segmentLoader
