@@ -78,7 +78,34 @@ QUnit.test('triggers on player error', function(assert) {
   assert.deepEqual(
     this.player.src.calledWith[0],
     this.tech.currentSource_,
+    'player.src was called with tech.currentSource_'
+  );
+});
+
+QUnit.test('triggers on player error, uses player.currentSource() if tech.currentSource_ is not set', function(assert) {
+  const oldsrc = this.tech.currentSource_;
+  const src = {
+    src: 'thisisanothersource.m3u8',
+    type: 'video/mp4'
+  };
+
+  this.tech.currentSource_ = null;
+  this.player.currentSource = () => src;
+
+  this.player.reloadSourceOnError();
+  this.player.trigger('error', -2);
+
+  assert.equal(this.player.src.calledWith.length, 1, 'player.src was only called once');
+  assert.deepEqual(
+    this.player.src.calledWith[0],
+    src,
     'player.src was called with player.currentSource'
+  );
+
+  assert.notDeepEqual(
+    this.player.src.calledWith[0],
+    oldsrc,
+    'player.src was called with player.currentSource() and not tech.currentSource_'
   );
 });
 
