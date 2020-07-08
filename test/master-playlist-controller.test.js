@@ -856,7 +856,7 @@ QUnit.test(
     // playlist
     this.standardXHRResponse(this.requests.shift());
     // segment
-    this.standardXHRResponse(this.requests.shift());
+    this.standardXHRResponse(this.requests.shift(), muxedSegment());
     // change the source
     this.player.src({
       src: 'manifest/master.m3u8',
@@ -3100,7 +3100,7 @@ QUnit.test('switches off subtitles on subtitle errors', function(assert) {
   // media
   this.standardXHRResponse(this.requests.shift());
   // media segment
-  this.standardXHRResponse(this.requests.shift());
+  this.standardXHRResponse(this.requests.shift(), muxedSegment());
 
   const textTracks = this.player.textTracks();
 

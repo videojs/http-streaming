@@ -488,9 +488,11 @@ const handleSegmentBytes = ({
     return;
   }
 
-  const container = detectContainerForBytes(bytesAsUint8Array);
+  if (typeof segment.container === 'undefined') {
+    segment.container = detectContainerForBytes(bytesAsUint8Array);
+  }
 
-  if (container !== 'ts' && container !== 'aac') {
+  if (segment.container !== 'ts' && segment.container !== 'aac') {
     trackInfoFn(segment, {hasAudio: true, hasVideo: false});
     doneFn(null, segment, {});
     return;

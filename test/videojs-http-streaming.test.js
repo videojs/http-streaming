@@ -4230,7 +4230,7 @@ QUnit.test('Allows overriding the global beforeRequest function', function(asser
   // media
   this.standardXHRResponse(this.requests.shift());
   // ts
-  this.standardXHRResponse(this.requests.shift());
+  this.standardXHRResponse(this.requests.shift(), muxedSegment());
 
   assert.equal(beforeLocalRequestCalled, 2, 'local beforeRequest was called twice ' +
                                            'for the media playlist and media');
