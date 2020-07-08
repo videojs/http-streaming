@@ -289,7 +289,7 @@ const transmuxAndNotify = ({
 
     if (probeResult) {
       trackInfoFn(segment, {
-        hasAudio: probeResult.hasAudio,
+        hasAudio: !isMuxed && probeResult.hasAudio,
         hasVideo: probeResult.hasVideo,
         isMuxed
       });
@@ -321,6 +321,7 @@ const transmuxAndNotify = ({
       if (trackInfoFn) {
         if (isMuxed) {
           trackInfo.isMuxed = true;
+          trackInfo.hasAudio = false;
         }
         trackInfoFn(segment, trackInfo);
       }
