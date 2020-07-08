@@ -637,9 +637,9 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     if (this.loaderType_ === 'main') {
-      const { hasAudio, hasVideo } = this.startingMedia_;
+      const { hasAudio, hasVideo, isMuxed } = this.startingMedia_;
 
-      if (hasVideo && hasAudio && !this.audioDisabled_) {
+      if (hasVideo && hasAudio && !this.audioDisabled_ && !isMuxed) {
         return this.sourceUpdater_.buffered();
       }
 
@@ -1684,11 +1684,13 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     if (!this.handlePartialData_) {
-      if (this.startingMedia_.hasVideo && !segmentInfo.videoTimingInfo) {
+      const {hasAudio, hasVideo, isMuxed} = this.startingMedia_;
+
+      if (hasVideo && !segmentInfo.videoTimingInfo) {
         return false;
       }
 
-      if (this.startingMedia_.hasAudio && !segmentInfo.audioTimingInfo) {
+      if (hasAudio && !this.audioDisabled_ && !isMuxed && !segmentInfo.audioTimingInfo) {
         return false;
       }
     }
@@ -2336,8 +2338,9 @@ export default class SegmentLoader extends videojs.EventTarget {
     // Although transmuxing is done, appends may not yet be finished. Throw a marker
     // on each queue this loader is responsible for to ensure that the appends are
     // complete.
-    const waitForVideo = this.loaderType_ === 'main' && this.startingMedia_.hasVideo;
-    const waitForAudio = !this.audioDisabled_ && this.startingMedia_.hasAudio;
+    const {hasAudio, hasVideo, isMuxed} = this.startingMedia_;
+    const waitForVideo = this.loaderType_ === 'main' && hasVideo;
+    const waitForAudio = !this.audioDisabled_ && hasAudio && !isMuxed;
 
     segmentInfo.waitingOnAppends = 0;
 

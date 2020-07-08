@@ -289,13 +289,13 @@ const transmuxAndNotify = ({
 
     if (probeResult) {
       trackInfoFn(segment, {
-        hasAudio: !isMuxed && probeResult.hasAudio,
+        hasAudio: probeResult.hasAudio,
         hasVideo: probeResult.hasVideo,
         isMuxed
       });
       trackInfoFn = null;
 
-      if (probeResult.hasAudio) {
+      if (probeResult.hasAudio && !isMuxed) {
         audioStartFn(probeResult.audioStart);
       }
       if (probeResult.hasVideo) {
@@ -321,7 +321,6 @@ const transmuxAndNotify = ({
       if (trackInfoFn) {
         if (isMuxed) {
           trackInfo.isMuxed = true;
-          trackInfo.hasAudio = false;
         }
         trackInfoFn(segment, trackInfo);
       }
@@ -412,7 +411,6 @@ const handleSegmentBytes = ({
 
     if (tracks.video && tracks.audio) {
       trackInfo.isMuxed = true;
-      trackInfo.hasAudio = false;
     }
 
     // since we don't support appending fmp4 data on progress, we know we have the full
@@ -426,7 +424,7 @@ const handleSegmentBytes = ({
     // decoding).
     const timingInfo = mp4probe.startTime(segment.map.timescales, bytesAsUint8Array);
 
-    if (trackInfo.hasAudio) {
+    if (trackInfo.hasAudio && !trackInfo.isMuxed) {
       timingInfoFn(segment, 'audio', 'start', timingInfo);
     }
 
@@ -439,7 +437,7 @@ const handleSegmentBytes = ({
       // for it to be audio only. See `tracks.video && tracks.audio` if statement
       // above.
       // we make sure to use segment.bytes here as that
-      dataFn(segment, {data: bytes, type: trackInfo.hasAudio ? 'audio' : 'video'});
+      dataFn(segment, {data: bytes, type: trackInfo.hasAudio && !trackInfo.isMuxed ? 'audio' : 'video'});
       if (captions && captions.length) {
         captionsFn(segment, captions);
       }
