@@ -793,6 +793,9 @@ QUnit.module('SegmentLoader', function(hooks) {
 
         loader.sourceUpdater_.videoBuffer.addEventListener('updateend', () => {
           loader.sourceUpdater_.videoQueueCallback(finish);
+        });
+
+        loader.sourceUpdater_.audioBuffer.addEventListener('updateend', () => {
           loader.sourceUpdater_.audioQueueCallback(finish);
         });
       });
