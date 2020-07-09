@@ -786,6 +786,8 @@ QUnit.test('jumps to buffered content if seeking just before', function(assert) 
 
 const loaderTypes = ['audio', 'main', 'subtitle'];
 
+const EXCLUDE_APPEND_COUNT = 10;
+
 QUnit.module('PlaybackWatcher download detection', {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
@@ -872,17 +874,15 @@ loaderTypes.forEach(function(type) {
     }
 
     this.setBuffered(videojs.createTimeRanges([[0, 30]]));
-    loader.trigger('appendsdone');
-    assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, '1st append 0 stalled downloads');
 
-    loader.trigger('appendsdone');
-    assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 1, '2nd append 1 stalled downloads');
-
-    loader.trigger('appendsdone');
-    assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 2, '3rd append 2 stalled downloads');
-
-    loader.trigger('appendsdone');
-    assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, '4th append 0 stalled downloads');
+    for (let i = 0; i <= EXCLUDE_APPEND_COUNT; i++) {
+      loader.trigger('appendsdone');
+      if (i === EXCLUDE_APPEND_COUNT) {
+        assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, `append #${i} resets stalled downloads to 0`);
+      } else {
+        assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], i, `append #${i + 1} ${i} stalled downloads`);
+      }
+    }
 
     const expectedUsage = {};
 
@@ -927,16 +927,18 @@ loaderTypes.forEach(function(type) {
       const loader = this.mpc[`${type}SegmentLoader_`];
       const playlists = this.mpc.master().playlists;
       const excludeAndVerify = () => {
-        loader.trigger('appendsdone');
-        assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 1, '1st append 1 stalled downloads');
+        let oldPlaylist;
+        // this test only needs 9 appends, since we do an intial append
 
-        loader.trigger('appendsdone');
-        assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 2, '2nd append 1 stalled downloads');
-
-        const oldPlaylist = this.mpc.media();
-
-        loader.trigger('appendsdone');
-        assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, '3rd append 0 stalled downloads');
+        for (let i = 0; i < EXCLUDE_APPEND_COUNT; i++) {
+          oldPlaylist = this.mpc.media();
+          loader.trigger('appendsdone');
+          if (i === EXCLUDE_APPEND_COUNT - 1) {
+            assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, `append #${i} resets stalled downloads to 0`);
+          } else {
+            assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], i + 1, `append #${i + 1} ${i + 1} stalled downloads`);
+          }
+        }
 
         const expectedUsage = {};
 
