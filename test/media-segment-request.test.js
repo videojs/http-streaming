@@ -11,10 +11,10 @@ import {
 import TransmuxWorker from 'worker!../src/transmuxer-worker.worker.js';
 import Decrypter from 'worker!../src/decrypter-worker.worker.js';
 import {
-//  aac as aacSegment,
+  aacWithoutId3 as aacWithoutId3Segment,
   aacWithId3 as aacWithId3Segment,
   ac3WithId3 as ac3WithId3Segment,
-  ac3 as ac3Segment,
+  ac3WithoutId3 as ac3WithoutId3Segment,
   video as videoSegment,
   audio as audioSegment,
   mp4Video,
@@ -1053,6 +1053,7 @@ QUnit.skip('id3 callback does not fire if partial data has no ID3 tags', functio
 
 QUnit.module('Media Segment Request - make it to transmuxer', {
   beforeEach(assert) {
+    assert.timeout(50000);
     sharedHooks.beforeEach.call(this, assert);
 
     this.calls = {};
@@ -1085,6 +1086,7 @@ QUnit.module('Media Segment Request - make it to transmuxer', {
     sharedHooks.afterEach.call(this, assert);
   }
 });
+
 QUnit.test('ac3 without id3 segments will not make it to the transmuxer', function(assert) {
   const done = assert.async();
 
@@ -1106,7 +1108,7 @@ QUnit.test('ac3 without id3 segments will not make it to the transmuxer', functi
   mediaSegmentRequest(this.options);
 
   assert.equal(this.requests[0].uri, 'foo.ac3', 'segment-request');
-  this.standardXHRResponse(this.requests[0], ac3Segment());
+  this.standardXHRResponse(this.requests[0], ac3WithoutId3Segment());
 });
 
 QUnit.test('ac3 with id3 segments will not make it to the transmuxer', function(assert) {
@@ -1229,8 +1231,7 @@ QUnit.test('aac with id3 will make it to the transmuxer', function(assert) {
   this.standardXHRResponse(this.requests[0], aacWithId3Segment());
 });
 
-/** TODO: fix this case in mux.js
-QUnit.test('aac without id3 will make it to the transmuxer', function(assert) {
+QUnit.skip('aac without id3 will make it to the transmuxer', function(assert) {
   const done = assert.async();
 
   this.options.segment.transmuxer = this.createTransmuxer();
@@ -1251,9 +1252,8 @@ QUnit.test('aac without id3 will make it to the transmuxer', function(assert) {
   mediaSegmentRequest(this.options);
 
   assert.equal(this.requests[0].uri, 'foo.aac', 'segment-request');
-  this.standardXHRResponse(this.requests[0], aacSegment());
+  this.standardXHRResponse(this.requests[0], aacWithoutId3Segment());
 });
-**/
 
 QUnit.test('ac3 without id3 segments will not make it to the partial transmuxer', function(assert) {
   const done = assert.async();
@@ -1276,7 +1276,7 @@ QUnit.test('ac3 without id3 segments will not make it to the partial transmuxer'
   mediaSegmentRequest(this.options);
 
   assert.equal(this.requests[0].uri, 'foo.ac3', 'segment-request');
-  this.standardXHRResponse(this.requests[0], ac3Segment());
+  this.standardXHRResponse(this.requests[0], ac3WithoutId3Segment());
 });
 
 QUnit.test('ac3 with id3 segments will not make it to the partial transmuxer', function(assert) {
@@ -1399,8 +1399,7 @@ QUnit.test('aac with id3 will make it to the partial transmuxer', function(asser
   this.standardXHRResponse(this.requests[0], aacWithId3Segment());
 });
 
-/** TODO: fix this case in mux.js
-QUnit.test('aac without id3 will make it to the partial transmuxer', function(assert) {
+QUnit.skip('aac without id3 will make it to the partial transmuxer', function(assert) {
   const done = assert.async();
 
   this.options.segment.transmuxer = this.createTransmuxer(true);
@@ -1421,6 +1420,5 @@ QUnit.test('aac without id3 will make it to the partial transmuxer', function(as
   mediaSegmentRequest(this.options);
 
   assert.equal(this.requests[0].uri, 'foo.aac', 'segment-request');
-  this.standardXHRResponse(this.requests[0], aacSegment());
+  this.standardXHRResponse(this.requests[0], aacWithoutId3Segment());
 });
- **/
