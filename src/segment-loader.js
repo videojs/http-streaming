@@ -1690,6 +1690,7 @@ export default class SegmentLoader extends videojs.EventTarget {
         return false;
       }
 
+      // muxed content only relies on video timeing information for now.
       if (hasAudio && !this.audioDisabled_ && !isMuxed && !segmentInfo.audioTimingInfo) {
         return false;
       }
@@ -2340,6 +2341,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // complete.
     const {hasAudio, hasVideo, isMuxed} = this.startingMedia_;
     const waitForVideo = this.loaderType_ === 'main' && hasVideo;
+    // TODO: does this break partial support for muxed content?
     const waitForAudio = !this.audioDisabled_ && hasAudio && !isMuxed;
 
     segmentInfo.waitingOnAppends = 0;
