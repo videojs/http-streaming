@@ -105,6 +105,17 @@ export const onGroupChanged = (type, settings) => () => {
   startLoaders(activeGroup.playlistLoader, mediaType);
 };
 
+export const onGroupChanging = (type, settings) => () => {
+  const {
+    segmentLoaders: {
+      [type]: segmentLoader
+    }
+  } = settings;
+
+  segmentLoader.abort();
+  segmentLoader.pause();
+};
+
 /**
  * Returns a function to be called when the media track changes. It performs a
  * destructive reset of the SegmentLoader to ensure we start loading as close to
@@ -730,6 +741,7 @@ export const setupMediaGroups = (settings) => {
     mediaTypes[type].activeGroup = activeGroup(type, settings);
     mediaTypes[type].activeTrack = activeTrack[type](type, settings);
     mediaTypes[type].onGroupChanged = onGroupChanged(type, settings);
+    mediaTypes[type].onGroupChanging = onGroupChanging(type, settings);
     mediaTypes[type].onTrackChanged = onTrackChanged(type, settings);
   });
 
@@ -746,6 +758,10 @@ export const setupMediaGroups = (settings) => {
 
   masterPlaylistLoader.on('mediachange', () => {
     ['AUDIO', 'SUBTITLES'].forEach(type => mediaTypes[type].onGroupChanged());
+  });
+
+  masterPlaylistLoader.on('mediachanging', () => {
+    ['AUDIO', 'SUBTITLES'].forEach(type => mediaTypes[type].onGroupChanging());
   });
 
   // custom audio track change event handler for usage event
