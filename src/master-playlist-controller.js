@@ -1309,7 +1309,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       codecs.video += `,${playlistCodecs.audio || media.main.audioCodec || DEFAULT_AUDIO_CODEC}`;
     }
 
-    if ((media.main.hasAudio && !media.main.isMuxed) || media.audio.hasAudio) {
+    if ((media.main.hasAudio && !media.main.isMuxed) || media.audio.hasAudio || usingAudioLoader) {
       codecs.audio = playlistCodecs.audio || media.main.audioCodec || media.audio.audioCodec || DEFAULT_AUDIO_CODEC;
       // set audio isFmp4 so we use the correct "supports" function below
       media.audio.isFmp4 = (media.main.hasAudio && !media.main.isMuxed) ? media.main.isFmp4 : media.audio.isFmp4;

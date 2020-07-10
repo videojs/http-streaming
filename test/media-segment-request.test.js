@@ -11,6 +11,12 @@ import {
 import TransmuxWorker from 'worker!../src/transmuxer-worker.worker.js';
 import Decrypter from 'worker!../src/decrypter-worker.worker.js';
 import {
+  aacWithoutId3 as aacWithoutId3Segment,
+  aacWithId3 as aacWithId3Segment,
+  ac3WithId3 as ac3WithId3Segment,
+  ac3WithoutId3 as ac3WithoutId3Segment,
+  video as videoSegment,
+  audio as audioSegment,
   mp4Video,
   mp4VideoInit,
   muxed as muxedSegment,
@@ -25,7 +31,7 @@ import {
 // needed for plugin registration
 import '../src/videojs-http-streaming';
 
-QUnit.module('Media Segment Request', {
+const sharedHooks = {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
     this.clock = this.env.clock;
@@ -77,8 +83,6 @@ QUnit.module('Media Segment Request', {
 
       return transmuxer;
     };
-
-    this.transmuxer = null;
   },
   afterEach(assert) {
     this.realDecrypter.terminate();
@@ -87,6 +91,385 @@ QUnit.module('Media Segment Request', {
     if (this.transmuxer) {
       this.transmuxer.terminate();
     }
+  }
+
+};
+
+QUnit.module('Media Segment Request - make it to transmuxer', {
+  beforeEach(assert) {
+    sharedHooks.beforeEach.call(this, assert);
+
+    this.calls = {};
+    this.options = {
+      xhr: this.xhr,
+      xhrOptions: this.xhrOptions,
+      decryptionWorker: this.mockDecrypter,
+      segment: {},
+      handlePartialData: false
+    };
+
+    [
+      'progress',
+      'trackInfo',
+      'timingInfo',
+      'id3',
+      'captions',
+      'data',
+      'videoSegmentTimingInfo'
+    ].forEach((name) => {
+      this.calls[name] = 0;
+      this.options[`${name}Fn`] = () => this.calls[name]++;
+    });
+
+  },
+  afterEach(assert) {
+    this.transmuxer = this.options.segment.transmuxer;
+    sharedHooks.afterEach.call(this, assert);
+  }
+});
+
+QUnit.test('ac3 without id3 segments will not make it to the transmuxer', function(assert) {
+  const done = assert.async();
+
+  this.options.segment.transmuxer = this.createTransmuxer();
+  this.options.segment.resolvedUri = 'foo.ac3';
+  this.options.doneFn = () => {
+    assert.deepEqual(this.calls, {
+      data: 0,
+      trackInfo: 1,
+      progress: 1,
+      timingInfo: 0,
+      captions: 0,
+      id3: 0,
+      videoSegmentTimingInfo: 0
+    }, 'calls as expected');
+    done();
+  };
+
+  mediaSegmentRequest(this.options);
+
+  assert.equal(this.requests[0].uri, 'foo.ac3', 'segment-request');
+  this.standardXHRResponse(this.requests[0], ac3WithoutId3Segment());
+});
+
+QUnit.test('ac3 with id3 segments will not make it to the transmuxer', function(assert) {
+  const done = assert.async();
+
+  this.options.segment.transmuxer = this.createTransmuxer();
+  this.options.segment.resolvedUri = 'foo.ac3';
+  this.options.doneFn = () => {
+    assert.deepEqual(this.calls, {
+      data: 0,
+      trackInfo: 1,
+      progress: 1,
+      timingInfo: 0,
+      captions: 0,
+      id3: 0,
+      videoSegmentTimingInfo: 0
+    }, 'calls as expected');
+    done();
+  };
+
+  mediaSegmentRequest(this.options);
+
+  assert.equal(this.requests[0].uri, 'foo.ac3', 'segment-request');
+  this.standardXHRResponse(this.requests[0], ac3WithId3Segment());
+});
+
+QUnit.test('muxed ts segments will make it to the transmuxer', function(assert) {
+  const done = assert.async();
+
+  this.options.segment.transmuxer = this.createTransmuxer();
+  this.options.segment.resolvedUri = 'foo.ts';
+  this.options.doneFn = () => {
+    assert.deepEqual(this.calls, {
+      data: 2,
+      trackInfo: 1,
+      progress: 1,
+      timingInfo: 4,
+      captions: 0,
+      id3: 0,
+      videoSegmentTimingInfo: 1
+    }, 'calls as expected');
+    done();
+  };
+
+  mediaSegmentRequest(this.options);
+
+  assert.equal(this.requests[0].uri, 'foo.ts', 'segment-request');
+  this.standardXHRResponse(this.requests[0], muxedSegment());
+});
+
+QUnit.test('video ts segments will make it to the transmuxer', function(assert) {
+  const done = assert.async();
+
+  this.options.segment.transmuxer = this.createTransmuxer();
+  this.options.segment.resolvedUri = 'foo.ts';
+  this.options.doneFn = () => {
+    assert.deepEqual(this.calls, {
+      data: 1,
+      trackInfo: 1,
+      progress: 1,
+      timingInfo: 2,
+      captions: 0,
+      id3: 0,
+      videoSegmentTimingInfo: 1
+    }, 'calls as expected');
+    done();
+  };
+
+  mediaSegmentRequest(this.options);
+
+  assert.equal(this.requests[0].uri, 'foo.ts', 'segment-request');
+  this.standardXHRResponse(this.requests[0], videoSegment());
+});
+
+QUnit.test('audio ts segments will make it to the transmuxer', function(assert) {
+  const done = assert.async();
+
+  this.options.segment.transmuxer = this.createTransmuxer();
+  this.options.segment.resolvedUri = 'foo.ts';
+  this.options.doneFn = () => {
+    assert.deepEqual(this.calls, {
+      data: 1,
+      trackInfo: 1,
+      progress: 1,
+      timingInfo: 2,
+      captions: 0,
+      id3: 0,
+      videoSegmentTimingInfo: 0
+    }, 'calls as expected');
+    done();
+  };
+
+  mediaSegmentRequest(this.options);
+
+  assert.equal(this.requests[0].uri, 'foo.ts', 'segment-request');
+  this.standardXHRResponse(this.requests[0], audioSegment());
+});
+
+QUnit.test('aac with id3 will make it to the transmuxer', function(assert) {
+  const done = assert.async();
+
+  this.options.segment.transmuxer = this.createTransmuxer();
+  this.options.segment.resolvedUri = 'foo.aac';
+  this.options.doneFn = () => {
+    assert.deepEqual(this.calls, {
+      data: 1,
+      trackInfo: 48,
+      progress: 1,
+      timingInfo: 2,
+      captions: 0,
+      id3: 0,
+      videoSegmentTimingInfo: 0
+    }, 'calls as expected');
+    done();
+  };
+
+  mediaSegmentRequest(this.options);
+
+  assert.equal(this.requests[0].uri, 'foo.aac', 'segment-request');
+  this.standardXHRResponse(this.requests[0], aacWithId3Segment());
+});
+
+QUnit.skip('aac without id3 will make it to the transmuxer', function(assert) {
+  const done = assert.async();
+
+  this.options.segment.transmuxer = this.createTransmuxer();
+  this.options.segment.resolvedUri = 'foo.aac';
+  this.options.doneFn = () => {
+    assert.deepEqual(this.calls, {
+      data: 1,
+      trackInfo: 47,
+      progress: 1,
+      timingInfo: 2,
+      captions: 0,
+      id3: 0,
+      videoSegmentTimingInfo: 0
+    }, 'calls as expected');
+    done();
+  };
+
+  mediaSegmentRequest(this.options);
+
+  assert.equal(this.requests[0].uri, 'foo.aac', 'segment-request');
+  this.standardXHRResponse(this.requests[0], aacWithoutId3Segment());
+});
+
+QUnit.test('ac3 without id3 segments will not make it to the partial transmuxer', function(assert) {
+  const done = assert.async();
+
+  this.options.segment.transmuxer = this.createTransmuxer(true);
+  this.options.segment.resolvedUri = 'foo.ac3';
+  this.options.doneFn = () => {
+    assert.deepEqual(this.calls, {
+      data: 0,
+      trackInfo: 1,
+      progress: 1,
+      timingInfo: 0,
+      captions: 0,
+      id3: 0,
+      videoSegmentTimingInfo: 0
+    }, 'calls as expected');
+    done();
+  };
+
+  mediaSegmentRequest(this.options);
+
+  assert.equal(this.requests[0].uri, 'foo.ac3', 'segment-request');
+  this.standardXHRResponse(this.requests[0], ac3WithoutId3Segment());
+});
+
+QUnit.test('ac3 with id3 segments will not make it to the partial transmuxer', function(assert) {
+  const done = assert.async();
+
+  this.options.segment.transmuxer = this.createTransmuxer(true);
+  this.options.segment.resolvedUri = 'foo.ac3';
+  this.options.doneFn = () => {
+    assert.deepEqual(this.calls, {
+      data: 0,
+      trackInfo: 1,
+      progress: 1,
+      timingInfo: 0,
+      captions: 0,
+      id3: 0,
+      videoSegmentTimingInfo: 0
+    }, 'calls as expected');
+    done();
+  };
+
+  mediaSegmentRequest(this.options);
+
+  assert.equal(this.requests[0].uri, 'foo.ac3', 'segment-request');
+  this.standardXHRResponse(this.requests[0], ac3WithId3Segment());
+});
+
+QUnit.test('muxed ts segments will make it to the partial transmuxer', function(assert) {
+  const done = assert.async();
+
+  this.options.segment.transmuxer = this.createTransmuxer(true);
+  this.options.segment.resolvedUri = 'foo.ts';
+  this.options.doneFn = () => {
+    assert.deepEqual(this.calls, {
+      data: 3,
+      trackInfo: 1,
+      progress: 1,
+      timingInfo: 4,
+      captions: 0,
+      id3: 0,
+      videoSegmentTimingInfo: 0
+    }, 'calls as expected');
+    done();
+  };
+
+  mediaSegmentRequest(this.options);
+
+  assert.equal(this.requests[0].uri, 'foo.ts', 'segment-request');
+  this.standardXHRResponse(this.requests[0], muxedSegment());
+});
+
+QUnit.test('video ts segments will make it to the partial transmuxer', function(assert) {
+  const done = assert.async();
+
+  this.options.segment.transmuxer = this.createTransmuxer(true);
+  this.options.segment.resolvedUri = 'foo.ts';
+  this.options.doneFn = () => {
+    assert.deepEqual(this.calls, {
+      data: 2,
+      trackInfo: 1,
+      progress: 1,
+      timingInfo: 2,
+      captions: 0,
+      id3: 0,
+      videoSegmentTimingInfo: 0
+    }, 'calls as expected');
+    done();
+  };
+
+  mediaSegmentRequest(this.options);
+
+  assert.equal(this.requests[0].uri, 'foo.ts', 'segment-request');
+  this.standardXHRResponse(this.requests[0], videoSegment());
+});
+
+QUnit.test('audio ts segments will make it to the partial transmuxer', function(assert) {
+  const done = assert.async();
+
+  this.options.segment.transmuxer = this.createTransmuxer(true);
+  this.options.segment.resolvedUri = 'foo.aac';
+  this.options.doneFn = () => {
+    assert.deepEqual(this.calls, {
+      data: 1,
+      trackInfo: 1,
+      progress: 1,
+      timingInfo: 2,
+      captions: 0,
+      id3: 0,
+      videoSegmentTimingInfo: 0
+    }, 'calls as expected');
+    done();
+  };
+
+  mediaSegmentRequest(this.options);
+
+  assert.equal(this.requests[0].uri, 'foo.aac', 'segment-request');
+  this.standardXHRResponse(this.requests[0], audioSegment());
+});
+
+QUnit.test('aac with id3 will make it to the partial transmuxer', function(assert) {
+  const done = assert.async();
+
+  this.options.segment.transmuxer = this.createTransmuxer(true);
+  this.options.segment.resolvedUri = 'foo.aac';
+  this.options.doneFn = () => {
+    assert.deepEqual(this.calls, {
+      data: 1,
+      trackInfo: 1,
+      progress: 1,
+      timingInfo: 2,
+      captions: 0,
+      id3: 0,
+      videoSegmentTimingInfo: 0
+    }, 'calls as expected');
+    done();
+  };
+
+  mediaSegmentRequest(this.options);
+
+  assert.equal(this.requests[0].uri, 'foo.aac', 'segment-request');
+  this.standardXHRResponse(this.requests[0], aacWithId3Segment());
+});
+
+QUnit.skip('aac without id3 will make it to the partial transmuxer', function(assert) {
+  const done = assert.async();
+
+  this.options.segment.transmuxer = this.createTransmuxer(true);
+  this.options.segment.resolvedUri = 'foo.aac';
+  this.options.doneFn = () => {
+    assert.deepEqual(this.calls, {
+      data: 1,
+      trackInfo: 1,
+      progress: 1,
+      timingInfo: 2,
+      captions: 0,
+      id3: 0,
+      videoSegmentTimingInfo: 0
+    }, 'calls as expected');
+    done();
+  };
+
+  mediaSegmentRequest(this.options);
+
+  assert.equal(this.requests[0].uri, 'foo.aac', 'segment-request');
+  this.standardXHRResponse(this.requests[0], aacWithoutId3Segment());
+});
+
+QUnit.module('Media Segment Request', {
+  beforeEach(assert) {
+    sharedHooks.beforeEach.call(this, assert);
+  },
+  afterEach(assert) {
+    sharedHooks.afterEach.call(this, assert);
   }
 });
 
@@ -811,6 +1194,7 @@ QUnit.test('callbacks fire for TS segment with partial data', function(assert) {
   this.standardXHRResponse(request, muxedSegment());
 });
 
+// TODO: tests after this one appear to fail
 QUnit.test('data callback does not fire if too little partial data', function(assert) {
   const progressSpy = sinon.spy();
   const dataSpy = sinon.spy();
@@ -1041,3 +1425,4 @@ QUnit.skip('id3 callback does not fire if partial data has no ID3 tags', functio
   // it should be fixed to account for only partial data
   this.standardXHRResponse(request, muxedSegment());
 });
+

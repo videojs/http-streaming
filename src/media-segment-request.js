@@ -487,6 +487,16 @@ const handleSegmentBytes = ({
     return;
   }
 
+  if (typeof segment.container === 'undefined') {
+    segment.container = detectContainerForBytes(bytesAsUint8Array);
+  }
+
+  if (segment.container !== 'ts' && segment.container !== 'aac') {
+    trackInfoFn(segment, {hasAudio: false, hasVideo: false});
+    doneFn(null, segment, {});
+    return;
+  }
+
   // ts or aac
   transmuxAndNotify({
     segment,
