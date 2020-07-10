@@ -256,7 +256,7 @@ QUnit.test('aac with id3 will make it to the transmuxer', function(assert) {
   this.options.doneFn = () => {
     assert.deepEqual(this.calls, {
       data: 1,
-      trackInfo: 48,
+      trackInfo: 1,
       progress: 1,
       timingInfo: 2,
       captions: 0,
@@ -272,7 +272,7 @@ QUnit.test('aac with id3 will make it to the transmuxer', function(assert) {
   this.standardXHRResponse(this.requests[0], aacWithId3Segment());
 });
 
-QUnit.skip('aac without id3 will make it to the transmuxer', function(assert) {
+QUnit.test('aac without id3 will make it to the transmuxer', function(assert) {
   const done = assert.async();
 
   this.options.segment.transmuxer = this.createTransmuxer();
@@ -280,7 +280,7 @@ QUnit.skip('aac without id3 will make it to the transmuxer', function(assert) {
   this.options.doneFn = () => {
     assert.deepEqual(this.calls, {
       data: 1,
-      trackInfo: 47,
+      trackInfo: 1,
       progress: 1,
       timingInfo: 2,
       captions: 0,
@@ -440,7 +440,7 @@ QUnit.test('aac with id3 will make it to the partial transmuxer', function(asser
   this.standardXHRResponse(this.requests[0], aacWithId3Segment());
 });
 
-QUnit.skip('aac without id3 will make it to the partial transmuxer', function(assert) {
+QUnit.test('aac without id3 will make it to the partial transmuxer', function(assert) {
   const done = assert.async();
 
   this.options.segment.transmuxer = this.createTransmuxer(true);
