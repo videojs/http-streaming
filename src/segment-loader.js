@@ -1690,7 +1690,7 @@ export default class SegmentLoader extends videojs.EventTarget {
         return false;
       }
 
-      // muxed content only relies on video timeing information for now.
+      // muxed content only relies on video timing information for now.
       if (hasAudio && !this.audioDisabled_ && !isMuxed && !segmentInfo.audioTimingInfo) {
         return false;
       }
