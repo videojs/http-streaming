@@ -2930,7 +2930,7 @@ QUnit.test('parses codec from muxed fmp4 init segment', function(assert) {
       'parsed video codec'
     );
     assert.deepEqual(loader.startingMedia_, {
-      hasAudio: false,
+      hasAudio: true,
       hasVideo: true,
       videoCodec: 'avc1.42c00d',
       audioCodec: 'mp4a.40.2',
