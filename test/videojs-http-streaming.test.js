@@ -4907,7 +4907,7 @@ QUnit.test(
     // media
     this.standardXHRResponse(this.requests.shift());
     // ts
-    this.standardXHRResponse(this.requests.shift());
+    this.standardXHRResponse(this.requests.shift(), muxedSegment());
 
     this.player.tech(true).vhs.convertToProgramTime(3, (err, programTime) => {
       assert.deepEqual(

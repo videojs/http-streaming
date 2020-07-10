@@ -97,7 +97,6 @@ const sharedHooks = {
 
 QUnit.module('Media Segment Request - make it to transmuxer', {
   beforeEach(assert) {
-    assert.timeout(50000);
     sharedHooks.beforeEach.call(this, assert);
 
     this.calls = {};

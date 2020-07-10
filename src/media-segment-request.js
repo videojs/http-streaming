@@ -493,7 +493,7 @@ const handleSegmentBytes = ({
   }
 
   if (segment.container !== 'ts' && segment.container !== 'aac') {
-    trackInfoFn(segment, {hasAudio: true, hasVideo: false});
+    trackInfoFn(segment, {hasAudio: false, hasVideo: false});
     doneFn(null, segment, {});
     return;
   }
