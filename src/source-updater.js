@@ -413,7 +413,7 @@ export default class SourceUpdater extends videojs.EventTarget {
    *          if removeSourceBuffer can be called.
    */
   canRemoveSourceBuffer() {
-    return !videojs.IE_VERSION && window.MediaSource &&
+    return !videojs.browser.IE_VERSION && window.MediaSource &&
       window.MediaSource.prototype &&
       typeof window.MediaSource.prototype.removeSourceBuffer === 'function';
   }
