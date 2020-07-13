@@ -948,6 +948,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.tech_.trigger({type: 'usage', name: 'vhs-rendition-blacklisted'});
     this.tech_.trigger({type: 'usage', name: 'hls-rendition-blacklisted'});
 
+    if (currentPlaylist.id !== this.media().id) {
+      return;
+    }
+
     // Select a new playlist
     const nextPlaylist = this.selectPlaylist();
 
@@ -957,12 +961,23 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    this.pauseLoading();
     const logFn = error.internal ? this.logger_ : videojs.log.warn;
     const errorMessage = error.message ? (' ' + error.message) : '';
 
     logFn(`${(error.internal ? 'Internal problem' : 'Problem')} encountered with playlist ${currentPlaylist.id}.` +
       `${errorMessage} Switching to playlist ${nextPlaylist.id}.`);
+
+    // if audio group changed reset audio loaders
+    if (nextPlaylist.attributes.AUDIO !== currentPlaylist.attributes.AUDIO) {
+      this.delegateLoaders_('audio', ['abort', 'pause']);
+    }
+
+    // if subtitle group changed reset subtitle loaders
+    if (nextPlaylist.attributes.SUBTITLES !== currentPlaylist.attributes.SUBTITLES) {
+      this.delegateLoaders_('subtitle', ['abort', 'pause']);
+    }
+
+    this.delegateLoaders_('main', ['abort', 'pause']);
 
     return this.masterPlaylistLoader_.media(nextPlaylist, isFinalRendition);
   }
@@ -971,41 +986,54 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * Pause all segment/playlist loaders
    */
   pauseLoading() {
-    this.delegateLoaders_(['abort', 'pause']);
+    this.delegateLoaders_('all', ['abort', 'pause']);
   }
 
   /**
    * Call a set of functions in order on playlist loaders, segment loaders,
    * or both types of loaders.
    *
+   * @param {string} filter
+   *        Filter loaders that should call fnNames using a string. Can be:
+   *        * all - run on all loaders
+   *        * playlist - run on all playlist loaders
+   *        * segment - run on all segment loaders
+   *        * audio - run on all audio loaders
+   *        * subtitle - run on all subtitle loaders
+   *        * video/main - run on the main/master loaders
+   *
    * @param {Array|string} fnNames
    *        A string or array of function names to call.
-   *
-   * @param {string} [type=all]
-   *        A string of 'all', 'playlist', or 'segment' to determine what
-   *        loaders to call `fnNames` on.
    */
-  delegateLoaders_(fnNames, type = 'all') {
+  delegateLoaders_(filter, fnNames) {
+    this.logger_(`running ${fnNames.join(', ')} on ${filter} loaders`);
+    if (filter === 'video') {
+      filter = 'main';
+    }
     const objects = [];
 
     fnNames = [].concat(fnNames);
 
-    if (type === 'playlist' || type === 'all') {
-      objects.push(this.masterPlaylistLoader_);
+    if (filter !== 'segment') {
+      if (filter === 'all' || filter === 'main') {
+        objects.push(this.masterPlaylistLoader_);
+      }
 
-      Object.keys(this.mediaTypes_).forEach((mediaType) => {
+      ['AUDIO', 'SUBTITLES'].forEach((mediaType) => {
         const loader = this.mediaTypes_[mediaType].activePlaylistLoader;
 
-        if (loader) {
+        if (loader && (mediaType.toLowerCase() === filter || filter === 'playlist' || filter === 'all')) {
           objects.push(loader);
         }
       });
     }
 
-    if (type === 'segment' || type === 'all') {
-      ['mainSegmentLoader_', 'audioSegmentLoader_', 'subtitleSegmentLoader_'].forEach((name) => {
-        if (this[name]) {
-          objects.push(this[name]);
+    if (filter !== 'playlist') {
+      ['main', 'audio', 'subtitle'].forEach((name) => {
+        const loader = this[`${name}SegmentLoader_`];
+
+        if (loader && (filter === name || filter === 'segment' || filter === 'all')) {
+          objects.push(loader);
         }
       });
     }
