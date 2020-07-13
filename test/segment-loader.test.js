@@ -767,36 +767,14 @@ QUnit.module('SegmentLoader', function(hooks) {
       const done = assert.async();
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
-        let appendsdone = false;
-
         loader.playlist(playlistWithDuration(20));
         loader.load();
         this.clock.tick(1);
 
         standardXHRResponse(this.requests.shift(), muxedSegment());
         loader.one('appendsdone', () => {
-          appendsdone = true;
-        });
-
-        let appends = 0;
-
-        const finish = function() {
-          appends++;
-
-          if (appends < 2) {
-            return;
-          }
-
-          assert.ok(appendsdone, 'appendsdone triggered');
+          assert.ok(true, 'appendsdone triggered');
           done();
-        };
-
-        loader.sourceUpdater_.videoBuffer.addEventListener('updateend', () => {
-          loader.sourceUpdater_.videoQueueCallback(finish);
-        });
-
-        loader.sourceUpdater_.audioBuffer.addEventListener('updateend', () => {
-          loader.sourceUpdater_.audioQueueCallback(finish);
         });
       });
     });
@@ -816,10 +794,6 @@ QUnit.module('SegmentLoader', function(hooks) {
           appendsdone = true;
         });
 
-        loader.one('appending', () => {
-          loader.abort();
-        });
-
         let appends = 0;
 
         const finish = function() {
@@ -833,7 +807,8 @@ QUnit.module('SegmentLoader', function(hooks) {
           done();
         };
 
-        loader.sourceUpdater_.videoBuffer.addEventListener('updateend', () => {
+        loader.one('appending', () => {
+          loader.abort();
           loader.sourceUpdater_.videoQueueCallback(finish);
           loader.sourceUpdater_.audioQueueCallback(finish);
         });
