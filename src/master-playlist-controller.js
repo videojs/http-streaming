@@ -956,6 +956,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       this.trigger('error');
       return;
     }
+
+    this.pauseLoading();
     const logFn = error.internal ? this.logger_ : videojs.log.warn;
     const errorMessage = error.message ? (' ' + error.message) : '';
 
@@ -969,22 +971,50 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * Pause all segment/playlist loaders
    */
   pauseLoading() {
-    // pause all segment loaders
-    this.mainSegmentLoader_.pause();
-    if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
-      this.audioSegmentLoader_.pause();
-    }
-    if (this.mediaTypes_.SUBTITLES.activePlaylistLoader) {
-      this.subtitleSegmentLoader_.pause();
+    this.delegateLoaders_(['abort', 'pause']);
+  }
+
+  /**
+   * Call a set of functions in order on playlist loaders, segment loaders,
+   * or both types of loaders.
+   *
+   * @param {Array|string} fnNames
+   *        A string or array of function names to call.
+   *
+   * @param {string} [type=all]
+   *        A string of 'all', 'playlist', or 'segment' to determine what
+   *        loaders to call `fnNames` on.
+   */
+  delegateLoaders_(fnNames, type = 'all') {
+    const objects = [];
+
+    fnNames = [].concat(fnNames);
+
+    if (type === 'playlist' || type === 'all') {
+      objects.push(this.masterPlaylistLoader_);
+
+      Object.keys(this.mediaTypes_).forEach((mediaType) => {
+        const loader = this.mediaTypes_[mediaType].activePlaylistLoader;
+
+        if (loader) {
+          objects.push(loader);
+        }
+      });
     }
 
-    // pause all playlist loaders
-    this.masterPlaylistLoader_.pause();
-    Object.keys(this.mediaTypes_).forEach((type) => {
-      if (this.mediaTypes_[type].activePlaylistLoader) {
-        this.mediaTypes_[type].activePlaylistLoader.pause();
+    if (type === 'segment' || type === 'all') {
+      ['mainSegmentLoader_', 'audioSegmentLoader_', 'subtitleSegmentLoader_'].forEach((name) => {
+        if (this[name]) {
+          objects.push(this[name]);
+        }
+      });
+    }
+
+    objects.forEach((object) => fnNames.forEach((fnName) => {
+      if (typeof object[fnName] === 'function') {
+        object[fnName]();
       }
-    });
+    }));
   }
 
   /**
