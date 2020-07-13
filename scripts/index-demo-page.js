@@ -18,9 +18,10 @@
     var id = selectedOption.value;
 
     window.vhs.representations().forEach(function(rep) {
-      rep.enabled(rep.id === id);
+      rep.playlist.disabled = rep.id !== id;
     });
 
+    window.mpc.smoothQualityChange_();
   });
   var hlsOptGroup = document.querySelector('[label="hls"]');
   var dashOptGroup = document.querySelector('[label="dash"]');
@@ -331,9 +332,7 @@
           if (player.vhs) {
             window.vhs = player.tech_.vhs;
             window.mpc = player.tech_.vhs.masterPlaylistController_;
-            window.mpc.masterPlaylistLoader_.on('mediachange', function() {
-              regenerateRepresentations();
-            });
+            window.mpc.masterPlaylistLoader_.on('mediachange', regenerateRepresentations);
             regenerateRepresentations();
 
           } else {
