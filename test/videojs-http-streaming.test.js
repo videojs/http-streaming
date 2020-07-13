@@ -1839,13 +1839,17 @@ QUnit.test('blacklists fmp4 playlists by browser support', function(assert) {
     '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.2"\n' +
     'media1.m3u8\n';
 
+  const mpc = this.player.tech_.vhs.masterPlaylistController_;
+
+  // do not exclude incompatible so that we can run this test.
+  mpc.excludeUnsupportedVariants_ = () => {};
+
   // master
   this.requests.shift().respond(200, null, playlistString);
 
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  const mpc = this.player.tech_.vhs.masterPlaylistController_;
   const playlistLoader = mpc.masterPlaylistLoader_;
   const loader = mpc.mainSegmentLoader_;
   const master = this.player.tech_.vhs.playlists.master;

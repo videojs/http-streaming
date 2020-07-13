@@ -1352,6 +1352,13 @@ QUnit.test('blacklists switching between playlists with different codecs', funct
 
   this.player.tech_.vhs.bandwidth = 1;
 
+  const mpc = this.masterPlaylistController;
+
+  // don't exclude unsupported variants now so we can
+  // keep them until until later on.
+  mpc.excludeUnsupportedVariants_ = () => {};
+  mpc.sourceUpdater_.canChangeType = () => false;
+
   // master
   this.requests.shift()
     .respond(
@@ -1380,10 +1387,6 @@ QUnit.test('blacklists switching between playlists with different codecs', funct
     this.masterPlaylistController.masterPlaylistLoader_.master.playlists[0],
     'selected HE-AAC stream'
   );
-
-  const mpc = this.masterPlaylistController;
-
-  mpc.sourceUpdater_.canChangeType = () => false;
 
   let debugLogs = [];
 
