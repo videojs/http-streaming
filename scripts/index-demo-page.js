@@ -1,7 +1,27 @@
 /* global window document */
 /* eslint-disable vars-on-top, no-var, object-shorthand, no-console */
 (function(window) {
+  var representationsEl = document.getElementById('representations');
 
+  representationsEl.addEventListener('change', function() {
+    var selectedIndex = representationsEl.selectedIndex;
+
+    if (!selectedIndex || selectedIndex < 1 || !window.vhs) {
+      return;
+    }
+    var selectedOption = representationsEl.options[representationsEl.selectedIndex];
+
+    if (!selectedOption) {
+      return;
+    }
+
+    var id = selectedOption.value;
+
+    window.vhs.representations().forEach(function(rep) {
+      rep.enabled(rep.id === id);
+    });
+
+  });
   var hlsOptGroup = document.querySelector('[label="hls"]');
   var dashOptGroup = document.querySelector('[label="dash"]');
   var drmOptGroup = document.querySelector('[label="drm"]');
@@ -165,6 +185,36 @@
     onload();
   };
 
+  var regenerateRepresentations = function() {
+    while (representationsEl.firstChild) {
+      representationsEl.removeChild(representationsEl.firstChild);
+    }
+
+    var selectedIndex;
+
+    window.vhs.representations().forEach(function(rep, i) {
+      var option = document.createElement('option');
+
+      option.value = rep.id;
+      option.innerText = JSON.stringify({
+        id: rep.id,
+        videoCodec: rep.codecs.video,
+        audioCodec: rep.codecs.audio,
+        bandwidth: rep.bandwidth,
+        heigth: rep.heigth,
+        width: rep.width
+      });
+
+      if (window.mpc.media().id === rep.id) {
+        selectedIndex = i;
+      }
+
+      representationsEl.appendChild(option);
+    });
+
+    representationsEl.selectedIndex = selectedIndex;
+  };
+
   ['debug', 'autoplay', 'muted', 'minified', 'liveui', 'partial', 'url', 'type', 'keysystems'].forEach(function(name) {
     stateEls[name] = document.getElementById(name);
   });
@@ -277,10 +327,15 @@
         } else {
           sources.dispatchEvent(newEvent('change'));
         }
-        player.on('loadedmetadata', () => {
+        player.on('loadedmetadata', function() {
           if (player.vhs) {
             window.vhs = player.tech_.vhs;
             window.mpc = player.tech_.vhs.masterPlaylistController_;
+            window.mpc.masterPlaylistLoader_.on('mediachange', function() {
+              regenerateRepresentations();
+            });
+            regenerateRepresentations();
+
           } else {
             window.vhs = null;
             window.mpc = null;
