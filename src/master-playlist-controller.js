@@ -1000,30 +1000,39 @@ export class MasterPlaylistController extends videojs.EventTarget {
    *        * segment - run on all segment loaders
    *        * audio - run on all audio loaders
    *        * subtitle - run on all subtitle loaders
-   *        * video/main - run on the main/master loaders
+   *        * main - run on the main/master loaders
    *
    * @param {Array|string} fnNames
    *        A string or array of function names to call.
    */
   delegateLoaders_(filter, fnNames) {
     this.logger_(`running ${fnNames.join(', ')} on ${filter} loaders`);
-    if (filter === 'video') {
-      filter = 'main';
-    }
-    const objects = [];
-
-    fnNames = [].concat(fnNames);
+    const loaders = [];
 
     if (filter !== 'segment') {
-      if (filter === 'all' || filter === 'main') {
-        objects.push(this.masterPlaylistLoader_);
+      const dontFilterPlaylist = filter === 'all' || filter === 'playlist';
+
+      if (dontFilterPlaylist || filter === 'main') {
+        loaders.push(this.masterPlaylistLoader_);
       }
 
-      ['AUDIO', 'SUBTITLES'].forEach((mediaType) => {
-        const loader = this.mediaTypes_[mediaType].activePlaylistLoader;
+      const mediaTypes = [];
 
-        if (loader && (mediaType.toLowerCase() === filter || filter === 'playlist' || filter === 'all')) {
-          objects.push(loader);
+      if (dontFilterPlaylist || filter === 'audio') {
+        mediaTypes.push('AUDIO');
+      }
+
+      if (dontFilterPlaylist || filter === 'subtitle') {
+        mediaTypes.push('CLOSED-CAPTIONS');
+        mediaTypes.push('SUBTITLES');
+      }
+
+      mediaTypes.forEach((mediaType) => {
+        const loader = this.mediaTypes_[mediaType] &&
+                       this.mediaTypes_[mediaType].activePlaylistLoader;
+
+        if (loader) {
+          loaders.push(loader);
         }
       });
     }
@@ -1033,14 +1042,14 @@ export class MasterPlaylistController extends videojs.EventTarget {
         const loader = this[`${name}SegmentLoader_`];
 
         if (loader && (filter === name || filter === 'segment' || filter === 'all')) {
-          objects.push(loader);
+          loaders.push(loader);
         }
       });
     }
 
-    objects.forEach((object) => fnNames.forEach((fnName) => {
-      if (typeof object[fnName] === 'function') {
-        object[fnName]();
+    loaders.forEach((loader) => fnNames.forEach((fnName) => {
+      if (typeof loader[fnName] === 'function') {
+        loader[fnName]();
       }
     }));
   }

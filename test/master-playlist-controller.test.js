@@ -4386,47 +4386,42 @@ QUnit.test('disposes timeline change controller on dispose', function(assert) {
   assert.equal(disposes, 1, 'disposed timeline change controller');
 });
 
-QUnit.test('on error all segment and playlist loaders are paused', function(assert) {
-  const paused = {
-    audioSegment: false,
-    subtitleSegment: false,
-    mainSegment: false,
-    masterPlaylist: false
-  };
+QUnit.test('on error all segment and playlist loaders are paused and aborted', function(assert) {
+  const mpc = this.masterPlaylistController;
+  const calls = {};
+  const expected = {};
 
   Object.keys(this.masterPlaylistController.mediaTypes_).forEach((type) => {
     const key = `${type.toLowerCase()}Playlist`;
 
-    paused[key] = false;
+    calls[`${key}Abort`] = 0;
+    calls[`${key}Pause`] = 0;
+    expected[`${key}Abort`] = 1;
+    expected[`${key}Pause`] = 1;
 
     this.masterPlaylistController.mediaTypes_[type].activePlaylistLoader = {
-      pause() {
-        paused[key] = true;
-      }
+      pause: () => calls[`${key}Pause`]++,
+      abort: () => calls[`${key}Abort`]++
     };
   });
 
-  this.masterPlaylistController.audioSegmentLoader_.pause = () => {
-    paused.audioSegment = true;
-  };
-
-  this.masterPlaylistController.subtitleSegmentLoader_.pause = () => {
-    paused.subtitleSegment = true;
-  };
-
-  this.masterPlaylistController.mainSegmentLoader_.pause = () => {
-    paused.mainSegment = true;
-  };
-
-  this.masterPlaylistController.masterPlaylistLoader_.pause = () => {
-    paused.masterPlaylist = true;
-  };
+  [
+    'audioSegmentLoader',
+    'subtitleSegmentLoader',
+    'mainSegmentLoader',
+    'masterPlaylistLoader'
+  ].forEach(function(key) {
+    calls[`${key}Abort`] = 0;
+    calls[`${key}Pause`] = 0;
+    expected[`${key}Abort`] = 1;
+    expected[`${key}Pause`] = 1;
+    mpc[`${key}_`].pause = () => calls[`${key}Pause`]++;
+    mpc[`${key}_`].abort = () => calls[`${key}Abort`]++;
+  });
 
   this.masterPlaylistController.trigger('error');
 
-  Object.keys(paused).forEach(function(name) {
-    assert.ok(paused[name], `${name} was paused on error`);
-  });
+  assert.deepEqual(calls, expected, 'calls as expected');
 });
 
 QUnit.test('can pass or select a playlist for fastQualityChange', function(assert) {
@@ -5187,4 +5182,314 @@ QUnit.test('main & audio loader only trackinfo works as expected', function(asse
 
   assert.equal(createBuffers, 1, 'createBuffers not called');
   assert.equal(switchBuffers, 2, 'addOrChangeSourceBuffers called');
+});
+
+QUnit.module('MasterPlaylistController - exclusion behavior', sharedHooks);
+
+QUnit.test('exclusions that dont change playlist do not abort/pause', function(assert) {
+  openMediaSource(this.player, this.clock);
+
+  this.player.tech_.vhs.bandwidth = 1;
+
+  // master
+  this.requests.shift()
+    .respond(
+      200, null,
+      '#EXTM3U\n' +
+      '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5"\n' +
+      'media.m3u8\n' +
+      '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400d,mp4a.40.2"\n' +
+      'media1.m3u8\n'
+    );
+
+  // media
+  this.standardXHRResponse(this.requests.shift());
+  const mpc = this.masterPlaylistController;
+  const delegateLoaders = [];
+
+  assert.equal(mpc.media(), mpc.master().playlists[0], 'selected first playlist');
+
+  mpc.delegateLoaders_ = (filter, fnNames) => {
+    delegateLoaders.push({filter, fnNames});
+  };
+
+  mpc.blacklistCurrentPlaylist({
+    internal: true,
+    playlist: mpc.master().playlists[1],
+    blacklistDuration: Infinity
+  });
+
+  assert.equal(mpc.master().playlists[1].excludeUntil, Infinity, 'exclusion happened');
+  assert.deepEqual(delegateLoaders, [], 'called delegateLoaders');
+});
+
+QUnit.test('exclusions that change playlist pause/abort main/master loaders', function(assert) {
+  openMediaSource(this.player, this.clock);
+
+  this.player.tech_.vhs.bandwidth = 1;
+
+  // master
+  this.requests.shift()
+    .respond(
+      200, null,
+      '#EXTM3U\n' +
+      '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5"\n' +
+      'media.m3u8\n' +
+      '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400d,mp4a.40.2"\n' +
+      'media1.m3u8\n'
+    );
+
+  // media
+  this.standardXHRResponse(this.requests.shift());
+  const mpc = this.masterPlaylistController;
+  const delegateLoaders = [];
+
+  assert.equal(mpc.media(), mpc.master().playlists[0], 'selected first playlist');
+
+  mpc.delegateLoaders_ = (filter, fnNames) => {
+    delegateLoaders.push({filter, fnNames});
+  };
+
+  mpc.blacklistCurrentPlaylist({
+    internal: true,
+    playlist: mpc.master().playlists[0],
+    blacklistDuration: Infinity
+  });
+
+  assert.equal(mpc.master().playlists[0].excludeUntil, Infinity, 'exclusion happened');
+  assert.deepEqual(delegateLoaders, [
+    {filter: 'main', fnNames: ['abort', 'pause']}
+  ], 'called delegateLoaders');
+});
+
+QUnit.test('exclusions that change audio group abort/pause main/audio loaders', function(assert) {
+  openMediaSource(this.player, this.clock);
+
+  this.player.tech_.vhs.bandwidth = 1;
+
+  // master
+  this.requests.shift()
+    .respond(
+      200, null,
+      '#EXTM3U\n' +
+      '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5",AUDIO="foo"\n' +
+      'media.m3u8\n' +
+      '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400d,mp4a.40.2"\n' +
+      'media1.m3u8\n'
+    );
+
+  // media
+  this.standardXHRResponse(this.requests.shift());
+  const mpc = this.masterPlaylistController;
+  const delegateLoaders = [];
+
+  assert.equal(mpc.media(), mpc.master().playlists[0], 'selected first playlist');
+
+  mpc.delegateLoaders_ = (filter, fnNames) => {
+    delegateLoaders.push({filter, fnNames});
+  };
+
+  mpc.blacklistCurrentPlaylist({
+    internal: true,
+    playlist: mpc.master().playlists[0],
+    blacklistDuration: Infinity
+  });
+
+  assert.equal(mpc.master().playlists[0].excludeUntil, Infinity, 'exclusion happened');
+  assert.deepEqual(delegateLoaders, [
+    {filter: 'audio', fnNames: ['abort', 'pause']},
+    {filter: 'main', fnNames: ['abort', 'pause']}
+  ], 'called delegateLoaders');
+});
+
+QUnit.test('exclusions that change subtitle group abort/pause main/subtitle loaders', function(assert) {
+  openMediaSource(this.player, this.clock);
+
+  this.player.tech_.vhs.bandwidth = 1;
+
+  // master
+  this.requests.shift()
+    .respond(
+      200, null,
+      '#EXTM3U\n' +
+      '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5",SUBTITLES="foo"\n' +
+      'media.m3u8\n' +
+      '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400d,mp4a.40.2"\n' +
+      'media1.m3u8\n'
+    );
+
+  // media
+  this.standardXHRResponse(this.requests.shift());
+  const mpc = this.masterPlaylistController;
+  const delegateLoaders = [];
+
+  assert.equal(mpc.media(), mpc.master().playlists[0], 'selected first playlist');
+
+  mpc.delegateLoaders_ = (filter, fnNames) => {
+    delegateLoaders.push({filter, fnNames});
+  };
+
+  mpc.blacklistCurrentPlaylist({
+    internal: true,
+    playlist: mpc.master().playlists[0],
+    blacklistDuration: Infinity
+  });
+
+  assert.equal(mpc.master().playlists[0].excludeUntil, Infinity, 'exclusion happened');
+  assert.deepEqual(delegateLoaders, [
+    {filter: 'subtitle', fnNames: ['abort', 'pause']},
+    {filter: 'main', fnNames: ['abort', 'pause']}
+  ], 'called delegateLoaders');
+});
+
+QUnit.test('exclusions that change all groups abort/pause main/subtitle loaders', function(assert) {
+  openMediaSource(this.player, this.clock);
+
+  this.player.tech_.vhs.bandwidth = 1;
+
+  // master
+  this.requests.shift()
+    .respond(
+      200, null,
+      '#EXTM3U\n' +
+      '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5",AUDIO="foo",SUBTITLES="bar"\n' +
+      'media.m3u8\n' +
+      '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400d,mp4a.40.2"\n' +
+      'media1.m3u8\n'
+    );
+
+  // media
+  this.standardXHRResponse(this.requests.shift());
+  const mpc = this.masterPlaylistController;
+  const delegateLoaders = [];
+
+  assert.equal(mpc.media(), mpc.master().playlists[0], 'selected first playlist');
+
+  mpc.delegateLoaders_ = (filter, fnNames) => {
+    delegateLoaders.push({filter, fnNames});
+  };
+
+  mpc.blacklistCurrentPlaylist({
+    internal: true,
+    playlist: mpc.master().playlists[0],
+    blacklistDuration: Infinity
+  });
+
+  assert.equal(mpc.master().playlists[0].excludeUntil, Infinity, 'exclusion happened');
+  assert.deepEqual(delegateLoaders, [
+    {filter: 'audio', fnNames: ['abort', 'pause']},
+    {filter: 'subtitle', fnNames: ['abort', 'pause']},
+    {filter: 'main', fnNames: ['abort', 'pause']}
+  ], 'called delegateLoaders');
+});
+
+QUnit.module('MasterPlaylistController delegate loaders', {
+  beforeEach(assert) {
+    sharedHooks.beforeEach.call(this, assert);
+
+    this.mpc = this.masterPlaylistController;
+    this.calls = {};
+    this.expected = {};
+
+    Object.keys(this.mpc.mediaTypes_).forEach((type) => {
+      const key = `${type.toLowerCase()}Playlist`;
+
+      this.calls[`${key}Abort`] = 0;
+      this.calls[`${key}Pause`] = 0;
+      this.expected[`${key}Abort`] = 0;
+      this.expected[`${key}Pause`] = 0;
+
+      this.mpc.mediaTypes_[type].activePlaylistLoader = {
+        abort: () => this.calls[`${key}Abort`]++,
+        pause: () => this.calls[`${key}Pause`]++
+      };
+    });
+
+    [
+      'audioSegmentLoader',
+      'subtitleSegmentLoader',
+      'mainSegmentLoader',
+      'masterPlaylistLoader'
+    ].forEach((key) => {
+      this.calls[`${key}Abort`] = 0;
+      this.calls[`${key}Pause`] = 0;
+      this.expected[`${key}Abort`] = 0;
+      this.expected[`${key}Pause`] = 0;
+      this.mpc[`${key}_`].abort = () => this.calls[`${key}Abort`]++;
+      this.mpc[`${key}_`].pause = () => this.calls[`${key}Pause`]++;
+    });
+  },
+  afterEach(assert) {
+    sharedHooks.afterEach.call(this, assert);
+  }
+});
+
+QUnit.test('filter all works', function(assert) {
+  this.mpc.delegateLoaders_('all', ['abort', 'pause']);
+
+  Object.keys(this.expected).forEach((key) => {
+    this.expected[key] = 1;
+  });
+
+  assert.deepEqual(this.calls, this.expected, 'calls as expected');
+});
+
+QUnit.test('filter segment works', function(assert) {
+  this.mpc.delegateLoaders_('segment', ['abort', 'pause']);
+
+  Object.keys(this.expected).forEach((key) => {
+    if ((/Segment/).test(key)) {
+      this.expected[key] = 1;
+    }
+  });
+
+  assert.deepEqual(this.calls, this.expected, 'calls as expected');
+});
+
+QUnit.test('filter playlist works', function(assert) {
+  this.mpc.delegateLoaders_('playlist', ['abort', 'pause']);
+
+  Object.keys(this.expected).forEach((key) => {
+    if ((/Playlist/).test(key)) {
+      this.expected[key] = 1;
+    }
+  });
+
+  assert.deepEqual(this.calls, this.expected, 'calls as expected');
+});
+
+QUnit.test('filter main works', function(assert) {
+  this.mpc.delegateLoaders_('main', ['abort', 'pause']);
+
+  Object.keys(this.expected).forEach((key) => {
+    if ((/^(master|main)/).test(key)) {
+      this.expected[key] = 1;
+    }
+  });
+
+  assert.deepEqual(this.calls, this.expected, 'calls as expected');
+});
+
+QUnit.test('filter audio works', function(assert) {
+  this.mpc.delegateLoaders_('audio', ['abort', 'pause']);
+
+  Object.keys(this.expected).forEach((key) => {
+    if ((/^audio/).test(key)) {
+      this.expected[key] = 1;
+    }
+  });
+
+  assert.deepEqual(this.calls, this.expected, 'calls as expected');
+});
+
+QUnit.test('filter subtitle works', function(assert) {
+  this.mpc.delegateLoaders_('subtitle', ['abort', 'pause']);
+
+  Object.keys(this.expected).forEach((key) => {
+    if ((/^(subtitle|closed-captions)/).test(key)) {
+      this.expected[key] = 1;
+    }
+  });
+
+  assert.deepEqual(this.calls, this.expected, 'calls as expected');
 });
