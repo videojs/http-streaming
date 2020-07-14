@@ -948,6 +948,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.tech_.trigger({type: 'usage', name: 'vhs-rendition-blacklisted'});
     this.tech_.trigger({type: 'usage', name: 'hls-rendition-blacklisted'});
 
+    // Do not select another playlist if this playlist is not the one
+    // currently in use.
     if (currentPlaylist.id !== this.media().id) {
       return;
     }
