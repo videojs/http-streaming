@@ -304,7 +304,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       let updatedPlaylist = this.masterPlaylistLoader_.media();
 
       if (!updatedPlaylist) {
-        // blacklist any variants that are not supported by the browser before selecting
+        // exclude any variants that are not supported by the browser before selecting
         // an initial media as the playlist selectors do not consider browser support
         this.excludeUnsupportedVariants_();
 
