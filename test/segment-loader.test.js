@@ -803,7 +803,7 @@ QUnit.module('SegmentLoader', function(hooks) {
             return;
           }
 
-          assert.notOk(appendsdone, 'appendsdone triggered');
+          assert.notOk(appendsdone, 'appendsdone not triggered');
           done();
         };
 
