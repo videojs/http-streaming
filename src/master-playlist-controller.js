@@ -1008,7 +1008,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
    *        A string or array of function names to call.
    */
   delegateLoaders_(filter, fnNames) {
-    this.logger_(`running ${fnNames.join(', ')} on ${filter} loaders`);
     const loaders = [];
 
     if (filter !== 'segment') {
