@@ -1441,7 +1441,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
   }
 
   /**
-   * Blacklists playlists with codecs that are unsupported by the muxer and browser.
+   * Excludes playlists with codecs that are unsupported by the muxer and browser.
    */
   excludeUnsupportedVariants_() {
     this.master().playlists.forEach(variant => {
