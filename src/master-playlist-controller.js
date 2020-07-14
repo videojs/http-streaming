@@ -948,12 +948,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.tech_.trigger({type: 'usage', name: 'vhs-rendition-blacklisted'});
     this.tech_.trigger({type: 'usage', name: 'hls-rendition-blacklisted'});
 
-    // Do not select another playlist if this playlist is not the one
-    // currently in use.
-    if (currentPlaylist.id !== this.media().id) {
-      return;
-    }
-
+    // TODO: should we select a new playlist if this blacklist wasn't for the currentPlaylist?
+    // Would be something like media().id !=== currentPlaylist.id and we  would need something
+    // like `pendingMedia` in playlist loaders to check against that too. This will prevent us
+    // from loading a new playlist on any blacklist.
     // Select a new playlist
     const nextPlaylist = this.selectPlaylist();
 

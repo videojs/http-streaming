@@ -5186,44 +5186,7 @@ QUnit.test('main & audio loader only trackinfo works as expected', function(asse
 
 QUnit.module('MasterPlaylistController - exclusion behavior', sharedHooks);
 
-QUnit.test('exclusions that dont change playlist do not abort/pause', function(assert) {
-  openMediaSource(this.player, this.clock);
-
-  this.player.tech_.vhs.bandwidth = 1;
-
-  // master
-  this.requests.shift()
-    .respond(
-      200, null,
-      '#EXTM3U\n' +
-      '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5"\n' +
-      'media.m3u8\n' +
-      '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400d,mp4a.40.2"\n' +
-      'media1.m3u8\n'
-    );
-
-  // media
-  this.standardXHRResponse(this.requests.shift());
-  const mpc = this.masterPlaylistController;
-  const delegateLoaders = [];
-
-  assert.equal(mpc.media(), mpc.master().playlists[0], 'selected first playlist');
-
-  mpc.delegateLoaders_ = (filter, fnNames) => {
-    delegateLoaders.push({filter, fnNames});
-  };
-
-  mpc.blacklistCurrentPlaylist({
-    internal: true,
-    playlist: mpc.master().playlists[1],
-    blacklistDuration: Infinity
-  });
-
-  assert.equal(mpc.master().playlists[1].excludeUntil, Infinity, 'exclusion happened');
-  assert.deepEqual(delegateLoaders, [], 'called delegateLoaders');
-});
-
-QUnit.test('exclusions that change playlist pause/abort main/master loaders', function(assert) {
+QUnit.test('exclusions always pause/abort main/master loaders', function(assert) {
   openMediaSource(this.player, this.clock);
 
   this.player.tech_.vhs.bandwidth = 1;
