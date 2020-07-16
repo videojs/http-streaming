@@ -952,6 +952,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.tech_.trigger({type: 'usage', name: 'vhs-rendition-blacklisted'});
     this.tech_.trigger({type: 'usage', name: 'hls-rendition-blacklisted'});
 
+    // TODO: should we select a new playlist if this blacklist wasn't for the currentPlaylist?
+    // Would be something like media().id !=== currentPlaylist.id and we  would need something
+    // like `pendingMedia` in playlist loaders to check against that too. This will prevent us
+    // from loading a new playlist on any blacklist.
     // Select a new playlist
     const nextPlaylist = this.selectPlaylist();
 
@@ -960,11 +964,24 @@ export class MasterPlaylistController extends videojs.EventTarget {
       this.trigger('error');
       return;
     }
+
     const logFn = error.internal ? this.logger_ : videojs.log.warn;
     const errorMessage = error.message ? (' ' + error.message) : '';
 
     logFn(`${(error.internal ? 'Internal problem' : 'Problem')} encountered with playlist ${currentPlaylist.id}.` +
       `${errorMessage} Switching to playlist ${nextPlaylist.id}.`);
+
+    // if audio group changed reset audio loaders
+    if (nextPlaylist.attributes.AUDIO !== currentPlaylist.attributes.AUDIO) {
+      this.delegateLoaders_('audio', ['abort', 'pause']);
+    }
+
+    // if subtitle group changed reset subtitle loaders
+    if (nextPlaylist.attributes.SUBTITLES !== currentPlaylist.attributes.SUBTITLES) {
+      this.delegateLoaders_('subtitle', ['abort', 'pause']);
+    }
+
+    this.delegateLoaders_('main', ['abort', 'pause']);
 
     return this.masterPlaylistLoader_.media(nextPlaylist, isFinalRendition);
   }
@@ -973,22 +990,65 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * Pause all segment/playlist loaders
    */
   pauseLoading() {
-    // pause all segment loaders
-    this.mainSegmentLoader_.pause();
-    if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
-      this.audioSegmentLoader_.pause();
-    }
-    if (this.mediaTypes_.SUBTITLES.activePlaylistLoader) {
-      this.subtitleSegmentLoader_.pause();
+    this.delegateLoaders_('all', ['abort', 'pause']);
+  }
+
+  /**
+   * Call a set of functions in order on playlist loaders, segment loaders,
+   * or both types of loaders.
+   *
+   * @param {string} filter
+   *        Filter loaders that should call fnNames using a string. Can be:
+   *        * all - run on all loaders
+   *        * audio - run on all audio loaders
+   *        * subtitle - run on all subtitle loaders
+   *        * main - run on the main/master loaders
+   *
+   * @param {Array|string} fnNames
+   *        A string or array of function names to call.
+   */
+  delegateLoaders_(filter, fnNames) {
+    const loaders = [];
+
+    const dontFilterPlaylist = filter === 'all';
+
+    if (dontFilterPlaylist || filter === 'main') {
+      loaders.push(this.masterPlaylistLoader_);
     }
 
-    // pause all playlist loaders
-    this.masterPlaylistLoader_.pause();
-    Object.keys(this.mediaTypes_).forEach((type) => {
-      if (this.mediaTypes_[type].activePlaylistLoader) {
-        this.mediaTypes_[type].activePlaylistLoader.pause();
+    const mediaTypes = [];
+
+    if (dontFilterPlaylist || filter === 'audio') {
+      mediaTypes.push('AUDIO');
+    }
+
+    if (dontFilterPlaylist || filter === 'subtitle') {
+      mediaTypes.push('CLOSED-CAPTIONS');
+      mediaTypes.push('SUBTITLES');
+    }
+
+    mediaTypes.forEach((mediaType) => {
+      const loader = this.mediaTypes_[mediaType] &&
+        this.mediaTypes_[mediaType].activePlaylistLoader;
+
+      if (loader) {
+        loaders.push(loader);
       }
     });
+
+    ['main', 'audio', 'subtitle'].forEach((name) => {
+      const loader = this[`${name}SegmentLoader_`];
+
+      if (loader && (filter === name || filter === 'all')) {
+        loaders.push(loader);
+      }
+    });
+
+    loaders.forEach((loader) => fnNames.forEach((fnName) => {
+      if (typeof loader[fnName] === 'function') {
+        loader[fnName]();
+      }
+    }));
   }
 
   /**
