@@ -897,6 +897,31 @@ QUnit.test(
   }
 );
 
+QUnit.test('excludes playlists with unsupported codecs before initial selection', function(assert) {
+  this.masterPlaylistController.selectPlaylist = () => {
+    assert.equal(
+      this.masterPlaylistController.master().playlists[0].excludeUntil,
+      Infinity,
+      'excludes unsupported playlist before initial selection'
+    );
+  };
+
+  openMediaSource(this.player, this.clock);
+
+  // master
+  this.requests.shift().respond(
+    200, null,
+    '#EXTM3U\n' +
+    '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="theora,mp4a.40.5"\n' +
+    'media.m3u8\n' +
+    '#EXT-X-STREAM-INF:BANDWIDTH=10000,CODECS="avc1.4d400d,mp4a.40.2"\n' +
+    'media1.m3u8\n'
+  );
+
+  // media
+  this.standardXHRResponse(this.requests.shift());
+});
+
 QUnit.test(
   'updates the combined segment loader on live playlist refreshes',
   function(assert) {
