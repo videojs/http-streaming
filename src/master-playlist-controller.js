@@ -996,8 +996,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * @param {string} filter
    *        Filter loaders that should call fnNames using a string. Can be:
    *        * all - run on all loaders
-   *        * playlist - run on all playlist loaders
-   *        * segment - run on all segment loaders
    *        * audio - run on all audio loaders
    *        * subtitle - run on all subtitle loaders
    *        * main - run on the main/master loaders
@@ -1008,43 +1006,39 @@ export class MasterPlaylistController extends videojs.EventTarget {
   delegateLoaders_(filter, fnNames) {
     const loaders = [];
 
-    if (filter !== 'segment') {
-      const dontFilterPlaylist = filter === 'all' || filter === 'playlist';
+    const dontFilterPlaylist = filter === 'all';
 
-      if (dontFilterPlaylist || filter === 'main') {
-        loaders.push(this.masterPlaylistLoader_);
-      }
-
-      const mediaTypes = [];
-
-      if (dontFilterPlaylist || filter === 'audio') {
-        mediaTypes.push('AUDIO');
-      }
-
-      if (dontFilterPlaylist || filter === 'subtitle') {
-        mediaTypes.push('CLOSED-CAPTIONS');
-        mediaTypes.push('SUBTITLES');
-      }
-
-      mediaTypes.forEach((mediaType) => {
-        const loader = this.mediaTypes_[mediaType] &&
-                       this.mediaTypes_[mediaType].activePlaylistLoader;
-
-        if (loader) {
-          loaders.push(loader);
-        }
-      });
+    if (dontFilterPlaylist || filter === 'main') {
+      loaders.push(this.masterPlaylistLoader_);
     }
 
-    if (filter !== 'playlist') {
-      ['main', 'audio', 'subtitle'].forEach((name) => {
-        const loader = this[`${name}SegmentLoader_`];
+    const mediaTypes = [];
 
-        if (loader && (filter === name || filter === 'segment' || filter === 'all')) {
-          loaders.push(loader);
-        }
-      });
+    if (dontFilterPlaylist || filter === 'audio') {
+      mediaTypes.push('AUDIO');
     }
+
+    if (dontFilterPlaylist || filter === 'subtitle') {
+      mediaTypes.push('CLOSED-CAPTIONS');
+      mediaTypes.push('SUBTITLES');
+    }
+
+    mediaTypes.forEach((mediaType) => {
+      const loader = this.mediaTypes_[mediaType] &&
+        this.mediaTypes_[mediaType].activePlaylistLoader;
+
+      if (loader) {
+        loaders.push(loader);
+      }
+    });
+
+    ['main', 'audio', 'subtitle'].forEach((name) => {
+      const loader = this[`${name}SegmentLoader_`];
+
+      if (loader && (filter === name || filter === 'all')) {
+        loaders.push(loader);
+      }
+    });
 
     loaders.forEach((loader) => fnNames.forEach((fnName) => {
       if (typeof loader[fnName] === 'function') {

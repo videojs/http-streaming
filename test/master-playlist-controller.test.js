@@ -5184,166 +5184,216 @@ QUnit.test('main & audio loader only trackinfo works as expected', function(asse
   assert.equal(switchBuffers, 2, 'addOrChangeSourceBuffers called');
 });
 
-QUnit.module('MasterPlaylistController - exclusion behavior', sharedHooks);
+QUnit.module('MasterPlaylistController - exclusion behavior', {
+  beforeEach(assert) {
+    sharedHooks.beforeEach.call(this, assert);
+
+    this.mpc = this.masterPlaylistController;
+
+    openMediaSource(this.player, this.clock);
+
+    this.player.tech_.vhs.bandwidth = 1;
+
+    this.delegateLoaders = [];
+    this.mpc.delegateLoaders_ = (filter, fnNames) => {
+      this.delegateLoaders.push({filter, fnNames});
+    };
+
+    this.runTest = (master, expectedDelegates) => {
+      // master
+      this.requests.shift()
+        .respond(200, null, master);
+
+      // media
+      this.standardXHRResponse(this.requests.shift());
+
+      assert.equal(this.mpc.media(), this.mpc.master().playlists[0], 'selected first playlist');
+
+      this.mpc.blacklistCurrentPlaylist({
+        internal: true,
+        playlist: this.mpc.master().playlists[0],
+        blacklistDuration: Infinity
+      });
+
+      assert.equal(this.mpc.master().playlists[0].excludeUntil, Infinity, 'exclusion happened');
+      assert.deepEqual(this.delegateLoaders, expectedDelegates, 'called delegateLoaders');
+    };
+  },
+  afterEach(assert) {
+    sharedHooks.afterEach.call(this, assert);
+  }
+});
 
 QUnit.test('exclusions always pause/abort main/master loaders', function(assert) {
-  openMediaSource(this.player, this.clock);
+  const master = `
+    #EXTM3U
+    #EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5"
+    media.m3u8
+    #EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400d,mp4a.40.2"
+    media1.m3u8
+  `;
 
-  this.player.tech_.vhs.bandwidth = 1;
-
-  // master
-  this.requests.shift()
-    .respond(
-      200, null,
-      '#EXTM3U\n' +
-      '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5"\n' +
-      'media.m3u8\n' +
-      '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400d,mp4a.40.2"\n' +
-      'media1.m3u8\n'
-    );
-
-  // media
-  this.standardXHRResponse(this.requests.shift());
-  const mpc = this.masterPlaylistController;
-  const delegateLoaders = [];
-
-  assert.equal(mpc.media(), mpc.master().playlists[0], 'selected first playlist');
-
-  mpc.delegateLoaders_ = (filter, fnNames) => {
-    delegateLoaders.push({filter, fnNames});
-  };
-
-  mpc.blacklistCurrentPlaylist({
-    internal: true,
-    playlist: mpc.master().playlists[0],
-    blacklistDuration: Infinity
-  });
-
-  assert.equal(mpc.master().playlists[0].excludeUntil, Infinity, 'exclusion happened');
-  assert.deepEqual(delegateLoaders, [
+  const expectedDelegates = [
     {filter: 'main', fnNames: ['abort', 'pause']}
-  ], 'called delegateLoaders');
+  ];
+
+  this.runTest(master, expectedDelegates);
+});
+
+QUnit.test('exclusions that remove audio group abort/pause main/audio loaders', function(assert) {
+  const master = `
+    #EXTM3U
+    #EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5",AUDIO="foo"
+    media.m3u8'
+    #EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400d,mp4a.40.2"
+    media1.m3u8
+  `;
+
+  const expectedDelegates = [
+    {filter: 'audio', fnNames: ['abort', 'pause']},
+    {filter: 'main', fnNames: ['abort', 'pause']}
+  ];
+
+  this.runTest(master, expectedDelegates);
 });
 
 QUnit.test('exclusions that change audio group abort/pause main/audio loaders', function(assert) {
-  openMediaSource(this.player, this.clock);
+  const master = `
+    #EXTM3U
+    #EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5",AUDIO="foo"
+    media.m3u8'
+    #EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400d,mp4a.40.2",AUDIO="bar"
+    media1.m3u8
+  `;
 
-  this.player.tech_.vhs.bandwidth = 1;
-
-  // master
-  this.requests.shift()
-    .respond(
-      200, null,
-      '#EXTM3U\n' +
-      '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5",AUDIO="foo"\n' +
-      'media.m3u8\n' +
-      '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400d,mp4a.40.2"\n' +
-      'media1.m3u8\n'
-    );
-
-  // media
-  this.standardXHRResponse(this.requests.shift());
-  const mpc = this.masterPlaylistController;
-  const delegateLoaders = [];
-
-  assert.equal(mpc.media(), mpc.master().playlists[0], 'selected first playlist');
-
-  mpc.delegateLoaders_ = (filter, fnNames) => {
-    delegateLoaders.push({filter, fnNames});
-  };
-
-  mpc.blacklistCurrentPlaylist({
-    internal: true,
-    playlist: mpc.master().playlists[0],
-    blacklistDuration: Infinity
-  });
-
-  assert.equal(mpc.master().playlists[0].excludeUntil, Infinity, 'exclusion happened');
-  assert.deepEqual(delegateLoaders, [
+  const expectedDelegates = [
     {filter: 'audio', fnNames: ['abort', 'pause']},
     {filter: 'main', fnNames: ['abort', 'pause']}
-  ], 'called delegateLoaders');
+  ];
+
+  this.runTest(master, expectedDelegates);
 });
 
-QUnit.test('exclusions that change subtitle group abort/pause main/subtitle loaders', function(assert) {
-  openMediaSource(this.player, this.clock);
+QUnit.test('exclusions that add audio group abort/pause main/audio loaders', function(assert) {
+  const master = `
+    #EXTM3U
+    #EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5"
+    media.m3u8'
+    #EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400d,mp4a.40.2",AUDIO="bar"
+    media1.m3u8
+  `;
 
-  this.player.tech_.vhs.bandwidth = 1;
+  const expectedDelegates = [
+    {filter: 'audio', fnNames: ['abort', 'pause']},
+    {filter: 'main', fnNames: ['abort', 'pause']}
+  ];
 
-  // master
-  this.requests.shift()
-    .respond(
-      200, null,
-      '#EXTM3U\n' +
-      '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5",SUBTITLES="foo"\n' +
-      'media.m3u8\n' +
-      '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400d,mp4a.40.2"\n' +
-      'media1.m3u8\n'
-    );
+  this.runTest(master, expectedDelegates);
+});
 
-  // media
-  this.standardXHRResponse(this.requests.shift());
-  const mpc = this.masterPlaylistController;
-  const delegateLoaders = [];
+QUnit.test('exclusions that add subtitles group abort/pause main/subtitles loaders', function(assert) {
+  const master = `
+    #EXTM3U
+    #EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5"
+    media.m3u8'
+    #EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400d,mp4a.40.2",SUBTITLES="foo
+    media1.m3u8
+  `;
 
-  assert.equal(mpc.media(), mpc.master().playlists[0], 'selected first playlist');
-
-  mpc.delegateLoaders_ = (filter, fnNames) => {
-    delegateLoaders.push({filter, fnNames});
-  };
-
-  mpc.blacklistCurrentPlaylist({
-    internal: true,
-    playlist: mpc.master().playlists[0],
-    blacklistDuration: Infinity
-  });
-
-  assert.equal(mpc.master().playlists[0].excludeUntil, Infinity, 'exclusion happened');
-  assert.deepEqual(delegateLoaders, [
+  const expectedDelegates = [
     {filter: 'subtitle', fnNames: ['abort', 'pause']},
     {filter: 'main', fnNames: ['abort', 'pause']}
-  ], 'called delegateLoaders');
+  ];
+
+  this.runTest(master, expectedDelegates);
 });
 
-QUnit.test('exclusions that change all groups abort/pause main/subtitle loaders', function(assert) {
-  openMediaSource(this.player, this.clock);
+QUnit.test('exclusions that remove subtitles group abort/pause main/subtitles loaders', function(assert) {
+  const master = `
+    #EXTM3U
+    #EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5",SUBTITLES="foo"
+    media.m3u8'
+    #EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400d,mp4a.40.2"
+    media1.m3u8
+  `;
 
-  this.player.tech_.vhs.bandwidth = 1;
+  const expectedDelegates = [
+    {filter: 'subtitle', fnNames: ['abort', 'pause']},
+    {filter: 'main', fnNames: ['abort', 'pause']}
+  ];
 
-  // master
-  this.requests.shift()
-    .respond(
-      200, null,
-      '#EXTM3U\n' +
-      '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5",AUDIO="foo",SUBTITLES="bar"\n' +
-      'media.m3u8\n' +
-      '#EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400d,mp4a.40.2"\n' +
-      'media1.m3u8\n'
-    );
+  this.runTest(master, expectedDelegates);
+});
 
-  // media
-  this.standardXHRResponse(this.requests.shift());
-  const mpc = this.masterPlaylistController;
-  const delegateLoaders = [];
+QUnit.test('exclusions that change subtitles group abort/pause main/subtitles loaders', function(assert) {
+  const master = `
+    #EXTM3U
+    #EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5",SUBTITLES="foo"
+    media.m3u8'
+    #EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400d,mp4a.40.2",SUBTITLES="bar"
+    media1.m3u8
+  `;
 
-  assert.equal(mpc.media(), mpc.master().playlists[0], 'selected first playlist');
+  const expectedDelegates = [
+    {filter: 'subtitle', fnNames: ['abort', 'pause']},
+    {filter: 'main', fnNames: ['abort', 'pause']}
+  ];
 
-  mpc.delegateLoaders_ = (filter, fnNames) => {
-    delegateLoaders.push({filter, fnNames});
-  };
+  this.runTest(master, expectedDelegates);
+});
 
-  mpc.blacklistCurrentPlaylist({
-    internal: true,
-    playlist: mpc.master().playlists[0],
-    blacklistDuration: Infinity
-  });
+QUnit.test('exclusions that change all groups abort/pause all loaders', function(assert) {
+  const master = `
+    #EXTM3U
+    #EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5",AUDIO="foo",SUBTITLES="foo"
+    media.m3u8'
+    #EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400d,mp4a.40.2",AUDIO="bar",SUBTITLES="bar"
+    media1.m3u8
+  `;
 
-  assert.equal(mpc.master().playlists[0].excludeUntil, Infinity, 'exclusion happened');
-  assert.deepEqual(delegateLoaders, [
+  const expectedDelegates = [
     {filter: 'audio', fnNames: ['abort', 'pause']},
     {filter: 'subtitle', fnNames: ['abort', 'pause']},
     {filter: 'main', fnNames: ['abort', 'pause']}
-  ], 'called delegateLoaders');
+  ];
+
+  this.runTest(master, expectedDelegates);
+});
+
+QUnit.test('exclusions that remove all groups abort/pause all loaders', function(assert) {
+  const master = `
+    #EXTM3U
+    #EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5",AUDIO="foo",SUBTITLES="foo"
+    media.m3u8'
+    #EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400d,mp4a.40.2"
+    media1.m3u8
+  `;
+
+  const expectedDelegates = [
+    {filter: 'audio', fnNames: ['abort', 'pause']},
+    {filter: 'subtitle', fnNames: ['abort', 'pause']},
+    {filter: 'main', fnNames: ['abort', 'pause']}
+  ];
+
+  this.runTest(master, expectedDelegates);
+});
+
+QUnit.test('exclusions that add all groups abort/pause all loaders', function(assert) {
+  const master = `
+    #EXTM3U
+    #EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5"
+    media.m3u8'
+    #EXT-X-STREAM-INF:BANDWIDTH=10,CODECS="avc1.4d400d,mp4a.40.2",AUDIO="foo",SUBTITLES="foo"
+    media1.m3u8
+  `;
+
+  const expectedDelegates = [
+    {filter: 'audio', fnNames: ['abort', 'pause']},
+    {filter: 'subtitle', fnNames: ['abort', 'pause']},
+    {filter: 'main', fnNames: ['abort', 'pause']}
+  ];
+
+  this.runTest(master, expectedDelegates);
 });
 
 QUnit.module('MasterPlaylistController delegate loaders', {
@@ -5392,30 +5442,6 @@ QUnit.test('filter all works', function(assert) {
 
   Object.keys(this.expected).forEach((key) => {
     this.expected[key] = 1;
-  });
-
-  assert.deepEqual(this.calls, this.expected, 'calls as expected');
-});
-
-QUnit.test('filter segment works', function(assert) {
-  this.mpc.delegateLoaders_('segment', ['abort', 'pause']);
-
-  Object.keys(this.expected).forEach((key) => {
-    if ((/Segment/).test(key)) {
-      this.expected[key] = 1;
-    }
-  });
-
-  assert.deepEqual(this.calls, this.expected, 'calls as expected');
-});
-
-QUnit.test('filter playlist works', function(assert) {
-  this.mpc.delegateLoaders_('playlist', ['abort', 'pause']);
-
-  Object.keys(this.expected).forEach((key) => {
-    if ((/Playlist/).test(key)) {
-      this.expected[key] = 1;
-    }
   });
 
   assert.deepEqual(this.calls, this.expected, 'calls as expected');
