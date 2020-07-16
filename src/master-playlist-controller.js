@@ -304,6 +304,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
       let updatedPlaylist = this.masterPlaylistLoader_.media();
 
       if (!updatedPlaylist) {
+        // exclude any variants that are not supported by the browser before selecting
+        // an initial media as the playlist selectors do not consider browser support
+        this.excludeUnsupportedVariants_();
+
         let selectedMedia;
 
         if (this.enableLowInitialPlaylist) {
@@ -1434,6 +1438,23 @@ export class MasterPlaylistController extends videojs.EventTarget {
     const codecString = [codecs.video, codecs.audio].filter(Boolean).join(',');
 
     this.excludeIncompatibleVariants_(codecString);
+  }
+
+  /**
+   * Excludes playlists with codecs that are unsupported by the muxer and browser.
+   */
+  excludeUnsupportedVariants_() {
+    this.master().playlists.forEach(variant => {
+      const codecs = codecsForPlaylist(this.master, variant);
+
+      if (codecs.audio && !muxerSupportsCodec(codecs.audio) && !browserSupportsCodec(codecs.audio)) {
+        variant.excludeUntil = Infinity;
+      }
+
+      if (codecs.video && !muxerSupportsCodec(codecs.video) && !browserSupportsCodec(codecs.video)) {
+        variant.excludeUntil = Infinity;
+      }
+    });
   }
 
   /**
