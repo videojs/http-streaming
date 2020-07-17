@@ -192,6 +192,24 @@ QUnit.test('version is exported', function(assert) {
 
 });
 
+QUnit.test('canChangeType is exported', function(assert) {
+  this.player.src({
+    src: 'manifest/playlist.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  assert.ok(this.player.tech(true).vhs.canChangeType, 'canChangeType function');
+
+  const canChangeType = window.SourceBuffer &&
+        window.SourceBuffer.prototype &&
+        typeof window.SourceBuffer.prototype.changeType === 'function';
+  const assertion = canChangeType ? 'ok' : 'notOk';
+
+  assert[assertion](this.player.tech(true).vhs.canChangeType(), 'canChangeType is correct');
+});
+
 QUnit.test('deprecation warning is show when using player.hls', function(assert) {
   const oldWarn = videojs.log.warn;
   let warning = '';

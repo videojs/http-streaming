@@ -21,6 +21,7 @@ import { MasterPlaylistController } from './master-playlist-controller';
 import Config from './config';
 import renditionSelectionMixin from './rendition-mixin';
 import PlaybackWatcher from './playback-watcher';
+import SourceUpdater from './source-updater';
 import reloadSourceOnError from './reload-source-on-error';
 import {
   lastBandwidthSelector,
@@ -900,6 +901,10 @@ class VhsHandler extends Component {
    */
   version() {
     return this.constructor.version();
+  }
+
+  canChangeType() {
+    return SourceUpdater.canChangeType();
   }
 
   /**
