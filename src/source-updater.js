@@ -428,10 +428,21 @@ export default class SourceUpdater extends videojs.EventTarget {
    * @return {boolean}
    *         if changeType can be called.
    */
-  canChangeType() {
+  static canChangeType() {
     return window.SourceBuffer &&
         window.SourceBuffer.prototype &&
         typeof window.SourceBuffer.prototype.changeType === 'function';
+  }
+
+  /**
+   * Whether or not the changeType function is supported
+   * on our SourceBuffers.
+   *
+   * @return {boolean}
+   *         if changeType can be called.
+   */
+  canChangeType() {
+    return this.constructor.canChangeType();
   }
 
   /**
