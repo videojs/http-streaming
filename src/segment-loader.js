@@ -1453,11 +1453,30 @@ export default class SegmentLoader extends videojs.EventTarget {
     // Guard against cases where we're not getting track info at all until we are
     // certain that all streams will provide it.
     if (!shallowEqual(this.startingMedia_, trackInfo)) {
+      this.appendInitSegment_ = {
+        audio: true,
+        video: true
+      };
+
       this.startingMedia_ = trackInfo;
       this.logger_('trackinfo update', trackInfo);
       this.trigger('trackinfo');
     }
 
+    // trackinfo may cause an abort
+    if (this.checkForAbort_(simpleSegment.requestId) ||
+        this.abortRequestEarly_(simpleSegment.stats)) {
+      return;
+    }
+
+    // set trackinfo on the pending segment so that
+    // it can append.
+    this.pendingSegment_.trackInfo = trackInfo;
+
+    // check if any calls were waiting on the track info
+    if (this.hasEnoughInfoToAppend_()) {
+      this.processCallQueue_();
+    }
   }
 
   handleTimingInfo_(simpleSegment, mediaType, timeType, time) {
@@ -1678,7 +1697,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     const segmentInfo = this.pendingSegment_;
 
-    if (!segmentInfo || !this.startingMedia_) {
+    if (!segmentInfo || !segmentInfo.trackInfo) {
       // no segment to append any data for
       return false;
     }
@@ -1895,7 +1914,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     this.sourceUpdater_.appendBuffer({segmentInfo, type, bytes}, (error) => {
       if (error) {
-        this.error(`appenderror for ${type} append with ${bytes.length} bytes`);
+        this.error(`append of ${bytes.length} failed for ${type} data of segment #${segmentInfo.mediaIndex} for playlist ${segmentInfo.playlist.id}`);
         // If an append errors, we can't recover.
         // (see https://w3c.github.io/media-source/#sourcebuffer-append-error).
         // Trigger a special error so that it can be handled separately from normal,
