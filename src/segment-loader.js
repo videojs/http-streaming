@@ -1914,7 +1914,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     this.sourceUpdater_.appendBuffer({segmentInfo, type, bytes}, (error) => {
       if (error) {
-        this.error(`append of ${bytes.length} failed for ${type} data of segment #${segmentInfo.mediaIndex} for playlist ${segmentInfo.playlist.id}`);
+        this.error(`${type} append of ${bytes.length}b failed for segment #${segmentInfo.mediaIndex} in playlist ${segmentInfo.playlist.id}`);
         // If an append errors, we can't recover.
         // (see https://w3c.github.io/media-source/#sourcebuffer-append-error).
         // Trigger a special error so that it can be handled separately from normal,

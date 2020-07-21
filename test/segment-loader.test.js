@@ -2324,7 +2324,11 @@ QUnit.module('SegmentLoader', function(hooks) {
           loader.one('error', reject);
         });
       }).then(() => {
-        assert.deepEqual(loader.error_, 'appenderror for video append with 2960 bytes', 'loader triggered and saved the appenderror');
+        assert.deepEqual(
+          loader.error_,
+          'video append of 2960b failed for segment #0 in playlist playlist.m3u8',
+          'loader triggered and saved the appenderror'
+        );
       });
     });
 
@@ -2562,6 +2566,57 @@ QUnit.module('SegmentLoader', function(hooks) {
         });
       }).then(() => {
 
+        this.clock.tick(1);
+
+        assert.equal(appends.length, 2, 'two appends');
+        assert.equal(appends[0].type, 'video', 'appended to video buffer');
+        assert.ok(appends[0].initSegment, 'appended video init segment');
+        assert.equal(appends[1].type, 'audio', 'appended to audio buffer');
+        assert.ok(appends[1].initSegment, 'appended audio init segment');
+
+        standardXHRResponse(this.requests.shift(), muxedSegment());
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        this.clock.tick(1);
+
+        assert.equal(appends.length, 4, 'two more appends');
+        assert.equal(appends[2].type, 'video', 'appended to video buffer');
+        assert.ok(appends[2].initSegment, 'appended video init segment');
+        assert.equal(appends[3].type, 'audio', 'appended to audio buffer');
+        assert.ok(appends[3].initSegment, 'appended audio init segment');
+      });
+    });
+
+    QUnit.test('re-appends init segments after different trackinfo', function(assert) {
+      const appends = [];
+      const oldTrackInfo = loader.handleTrackInfo_;
+
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        const origAppendToSourceBuffer = loader.appendToSourceBuffer_.bind(loader);
+
+        loader.appendToSourceBuffer_ = (config) => {
+          appends.push(config);
+          origAppendToSourceBuffer(config);
+        };
+
+        loader.playlist(playlistWithDuration(20));
+        loader.load();
+        this.clock.tick(1);
+        standardXHRResponse(this.requests.shift(), muxedSegment());
+
+        loader.handleTrackInfo_ = (simpleSegment, trackInfo) => {
+          trackInfo.foo = true;
+          return oldTrackInfo.call(loader, simpleSegment, trackInfo);
+        };
+
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
         this.clock.tick(1);
 
         assert.equal(appends.length, 2, 'two appends');
