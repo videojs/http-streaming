@@ -1463,7 +1463,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.trigger('trackinfo');
     }
 
-    // trackinfo may cause an abort
+    // trackinfo may cause an abort if the trackinfo
+    // causes a codec change to an unsupported codec.
     if (this.checkForAbort_(simpleSegment.requestId) ||
         this.abortRequestEarly_(simpleSegment.stats)) {
       return;
@@ -1697,8 +1698,10 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     const segmentInfo = this.pendingSegment_;
 
+    // no segment to append any data for or
+    // we do not have information on this specific
+    // segment yet
     if (!segmentInfo || !segmentInfo.trackInfo) {
-      // no segment to append any data for
       return false;
     }
 
