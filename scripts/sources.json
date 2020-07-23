@@ -261,7 +261,7 @@
     "mimetype": "application/dash+xml",
     "features": [],
     "keySystems": {
-      "com.widevine.alpha": "https://test.playready.microsoft.com/service/rightsmanager.asmx"
+      "com.microsoft.playready": "https://test.playready.microsoft.com/service/rightsmanager.asmx"
     }
   },
   {
