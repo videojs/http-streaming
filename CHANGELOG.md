@@ -1,3 +1,47 @@
+<a name="2.1.0"></a>
+# [2.1.0](https://github.com/videojs/http-streaming/compare/v2.0.0...v2.1.0) (2020-07-28)
+
+### Features
+
+* Easier manual playlist switching, add codecs to renditions ([#850](https://github.com/videojs/http-streaming/issues/850)) ([f60fa1f](https://github.com/videojs/http-streaming/commit/f60fa1f))
+* exclude all incompatable browser/muxer codecs ([#903](https://github.com/videojs/http-streaming/issues/903)) ([2d0f0d7](https://github.com/videojs/http-streaming/commit/2d0f0d7))
+* expose canChangeType on the VHS property ([#911](https://github.com/videojs/http-streaming/issues/911)) ([a4ab285](https://github.com/videojs/http-streaming/commit/a4ab285))
+* let back buffer be configurable ([8c96e6c](https://github.com/videojs/http-streaming/commit/8c96e6c))
+* Support codecs switching when possible via sourceBuffer.changeType  ([#841](https://github.com/videojs/http-streaming/issues/841)) ([267cc34](https://github.com/videojs/http-streaming/commit/267cc34))
+
+### Bug Fixes
+
+* always append init segment after trackinfo change ([#913](https://github.com/videojs/http-streaming/issues/913)) ([ea3650a](https://github.com/videojs/http-streaming/commit/ea3650a))
+* cleanup mediasource listeners on dispose ([#871](https://github.com/videojs/http-streaming/issues/871)) ([e50f4c9](https://github.com/videojs/http-streaming/commit/e50f4c9))
+* do not try to use unsupported audio ([#896](https://github.com/videojs/http-streaming/issues/896)) ([7711b26](https://github.com/videojs/http-streaming/commit/7711b26))
+* do not use remove source buffer on ie 11 ([#904](https://github.com/videojs/http-streaming/issues/904)) ([1ab0f07](https://github.com/videojs/http-streaming/commit/1ab0f07))
+* do not wait for audio appends for muxed segments ([#894](https://github.com/videojs/http-streaming/issues/894)) ([406cbcd](https://github.com/videojs/http-streaming/commit/406cbcd))
+* Fixed issue with MPEG-Dash MPD Playlist Finalisation during Live Play. ([#874](https://github.com/videojs/http-streaming/issues/874)) ([c807930](https://github.com/videojs/http-streaming/commit/c807930))
+* handle null return value from CaptionParser.parse ([#890](https://github.com/videojs/http-streaming/issues/890)) ([7b8fff2](https://github.com/videojs/http-streaming/commit/7b8fff2)), closes [#863](https://github.com/videojs/http-streaming/issues/863)
+* have reloadSourceOnError get src from player ([#893](https://github.com/videojs/http-streaming/issues/893)) ([1e50bc5](https://github.com/videojs/http-streaming/commit/1e50bc5)), closes [videojs/video.js#6744](https://github.com/videojs/video.js/issues/6744)
+* initialize EME for all playlists and PSSH values ([#872](https://github.com/videojs/http-streaming/issues/872)) ([e0e497f](https://github.com/videojs/http-streaming/commit/e0e497f))
+* more conservative stalled download check, better logging ([#884](https://github.com/videojs/http-streaming/issues/884)) ([615e77f](https://github.com/videojs/http-streaming/commit/615e77f))
+* pause/abort loaders before an exclude, preventing bad appends ([#902](https://github.com/videojs/http-streaming/issues/902)) ([c9126e1](https://github.com/videojs/http-streaming/commit/c9126e1))
+* stop alt loaders on main mediachanging to prevent append race ([#895](https://github.com/videojs/http-streaming/issues/895)) ([8690c78](https://github.com/videojs/http-streaming/commit/8690c78))
+* Support aac data with or without id3 tags by using mux.js[@5](https://github.com/5).6.6 ([#899](https://github.com/videojs/http-streaming/issues/899)) ([9c742ce](https://github.com/videojs/http-streaming/commit/9c742ce))
+* Use revokeObjectURL dispose for created MSE blob urls ([#849](https://github.com/videojs/http-streaming/issues/849)) ([ca73cac](https://github.com/videojs/http-streaming/commit/ca73cac))
+* Wait for sourceBuffer creation so drm setup uses valid codecs ([#878](https://github.com/videojs/http-streaming/issues/878)) ([f879563](https://github.com/videojs/http-streaming/commit/f879563))
+
+### Chores
+
+* Add vhs & mpc (vhs.masterPlaylistController_) to window of index.html ([#875](https://github.com/videojs/http-streaming/issues/875)) ([bab61d6](https://github.com/videojs/http-streaming/commit/bab61d6))
+* **demo:** add a representations selector to the demo page ([#901](https://github.com/videojs/http-streaming/issues/901)) ([0a54ae2](https://github.com/videojs/http-streaming/commit/0a54ae2))
+* fix tears of steal playready on the demo page ([#915](https://github.com/videojs/http-streaming/issues/915)) ([29a10d0](https://github.com/videojs/http-streaming/commit/29a10d0))
+* keep window vhs/mpc up to date on source switch ([#883](https://github.com/videojs/http-streaming/issues/883)) ([3ba85fd](https://github.com/videojs/http-streaming/commit/3ba85fd))
+* update DASH stream urls ([#918](https://github.com/videojs/http-streaming/issues/918)) ([902c2a5](https://github.com/videojs/http-streaming/commit/902c2a5))
+* update local video.js ([#876](https://github.com/videojs/http-streaming/issues/876)) ([c2cc9aa](https://github.com/videojs/http-streaming/commit/c2cc9aa))
+* use playready license server ([#916](https://github.com/videojs/http-streaming/issues/916)) ([6728837](https://github.com/videojs/http-streaming/commit/6728837))
+
+### Code Refactoring
+
+* remove duplicate bufferIntersection code in util/buffer.js ([#880](https://github.com/videojs/http-streaming/issues/880)) ([0ca43bd](https://github.com/videojs/http-streaming/commit/0ca43bd))
+* simplify setupEmeOptions and add tests ([#869](https://github.com/videojs/http-streaming/issues/869)) ([e3921ed](https://github.com/videojs/http-streaming/commit/e3921ed))
+
 <a name="2.0.0"></a>
 # [2.0.0](https://github.com/videojs/http-streaming/compare/v2.0.0-rc.2...v2.0.0) (2020-06-16)
 
