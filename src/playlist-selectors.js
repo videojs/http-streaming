@@ -289,7 +289,7 @@ export const simpleSelector = function(
     }
 
     logFn(`choosing ${representationToString(chosenRep)} using ${type} with options`, options);
-    return chosenRep;
+    return chosenRep.playlist;
   }
   logFn('could not choose a playlist with options', options);
   return null;
