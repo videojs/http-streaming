@@ -2,6 +2,23 @@ import window from 'global/window';
 import Config from './config';
 import Playlist from './playlist';
 import { codecsForPlaylist } from './util/codecs.js';
+import logger from './util/logger';
+
+const logFn = logger('PlaylistSelector');
+const representationToString = function(representation) {
+  if (!representation || !representation.playlist) {
+    return;
+  }
+  const playlist = representation.playlist;
+
+  return JSON.stringify({
+    id: playlist.id,
+    bandwidth: representation.bandwidth,
+    width: representation.width,
+    height: representation.height,
+    codecs: playlist.attributes && playlist.attributes.CODECS || ''
+  });
+};
 
 // Utilities
 
@@ -137,6 +154,13 @@ export const simpleSelector = function(
   playerHeight,
   limitRenditionByPlayerDimensions
 ) {
+
+  const options = {
+    bandwidth: playerBandwidth,
+    width: playerWidth,
+    height: playerHeight,
+    limitRenditionByPlayerDimensions
+  };
   // convert the playlists to an intermediary representation to make comparisons easier
   let sortedPlaylistReps = master.playlists.map((playlist) => {
     let bandwidth;
@@ -191,7 +215,22 @@ export const simpleSelector = function(
       sortedPlaylistReps[0]
     );
 
-    return chosenRep ? chosenRep.playlist : null;
+    if (chosenRep && chosenRep.playlist) {
+      let type = 'sortedPlaylistReps';
+
+      if (bandwidthBestRep) {
+        type = 'bandwidthBestRep';
+      }
+      if (enabledPlaylistReps[0]) {
+        type = 'enabledPlaylistReps';
+      }
+      logFn(`choosing ${representationToString(chosenRep)} using ${type} with options`, options);
+
+      return chosenRep.playlist;
+    }
+
+    logFn('could not choose a playlist with options', options);
+    return null;
   }
 
   // filter out playlists without resolution information
@@ -236,7 +275,24 @@ export const simpleSelector = function(
     sortedPlaylistReps[0]
   );
 
-  return chosenRep ? chosenRep.playlist : null;
+  if (chosenRep && chosenRep.playlist) {
+    let type = 'sortedPlaylistReps';
+
+    if (resolutionPlusOneRep) {
+      type = 'resolutionPlusOneRep';
+    } else if (resolutionBestRep) {
+      type = 'resolutionBestRep';
+    } else if (bandwidthBestRep) {
+      type = 'bandwidthBestRep';
+    } else if (enabledPlaylistReps[0]) {
+      type = 'enabledPlaylistReps';
+    }
+
+    logFn(`choosing ${representationToString(chosenRep)} using ${type} with options`, options);
+    return chosenRep.playlist;
+  }
+  logFn('could not choose a playlist with options', options);
+  return null;
 };
 
 // Playlist Selectors
