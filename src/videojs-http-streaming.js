@@ -592,7 +592,10 @@ class VhsHandler extends Component {
       'customTagMappers',
       'handleManifestRedirects',
       'cacheEncryptionKeys',
-      'handlePartialData'
+      'handlePartialData',
+      'playlistSelector',
+      'initialPlaylistSelector',
+      'bufferWaterLineSelector'
     ].forEach((option) => {
       if (typeof this.source_[option] !== 'undefined') {
         this.options_[option] = this.source_[option];
@@ -618,6 +621,7 @@ class VhsHandler extends Component {
     this.options_.tech = this.tech_;
     this.options_.externVhs = Vhs;
     this.options_.sourceType = simpleTypeFromSourceType(type);
+
     // Whenever we seek internally, we should update the tech
     this.options_.seekTo = (time) => {
       this.tech_.setCurrentTime(time);
@@ -643,13 +647,14 @@ class VhsHandler extends Component {
       player.error(error);
     });
 
+    const defaultSelector = this.options_.bufferWaterLineSelector ?
+      Vhs.movingAverageBandwidthSelector(0.55) : Vhs.STANDARD_PLAYLIST_SELECTOR;
+
     // `this` in selectPlaylist should be the VhsHandler for backwards
     // compatibility with < v2
-    // Use movingAverageBandwidthSelector by default with a decay of 0.55
-    this.masterPlaylistController_.selectPlaylist =
-      this.selectPlaylist ?
-        this.selectPlaylist.bind(this) :
-        Vhs.movingAverageBandwidthSelector(0.55).bind(this);
+    this.masterPlaylistController_.selectPlaylist = this.selectPlaylist ?
+      this.selectPlaylist.bind(this) :
+      defaultSelector.bind(this);
 
     this.masterPlaylistController_.selectInitialPlaylist =
       Vhs.INITIAL_PLAYLIST_SELECTOR.bind(this);

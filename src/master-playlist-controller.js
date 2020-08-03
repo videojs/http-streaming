@@ -51,6 +51,7 @@ const shouldSwitchToMedia = function({
   bufferLowWaterLine,
   bufferHighWaterLine,
   duration,
+  useBufferWaterLines,
   log
 }) {
   // we have no other playlist to switch to
@@ -76,14 +77,14 @@ const shouldSwitchToMedia = function({
   // when switching down, if our buffer is lower than the high water line,
   // we can switch down
   if (nextPlaylist.attributes.BANDWIDTH < currentPlaylist.attributes.BANDWIDTH &&
-      forwardBuffer < bufferHighWaterLine) {
+      (!useBufferWaterLines || forwardBuffer < bufferHighWaterLine)) {
     return true;
   }
 
   // and if our buffer is higher than the low water line,
   // we can switch up
   if (nextPlaylist.attributes.BANDWIDTH > currentPlaylist.attributes.BANDWIDTH &&
-    forwardBuffer >= bufferLowWaterLine) {
+    (!useBufferWaterLines || forwardBuffer >= bufferLowWaterLine)) {
     return true;
   }
 
@@ -115,7 +116,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       enableLowInitialPlaylist,
       sourceType,
       cacheEncryptionKeys,
-      handlePartialData
+      handlePartialData,
+      bufferWaterLineSelector
     } = options;
 
     if (!src) {
@@ -124,6 +126,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     Vhs = externVhs;
 
+    this.useBufferWaterLines = Boolean(bufferWaterLineSelector);
     this.withCredentials = withCredentials;
     this.tech_ = tech;
     this.vhs_ = tech.vhs;
@@ -507,6 +510,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
         bufferLowWaterLine,
         bufferHighWaterLine,
         duration: this.duration(),
+        useBufferWaterLines: this.useBufferWaterLines,
         log: this.logger_
       })) {
         this.masterPlaylistLoader_.media(nextPlaylist);
