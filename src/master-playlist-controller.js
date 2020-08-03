@@ -51,8 +51,7 @@ const shouldSwitchToMedia = function({
   bufferLowWaterLine,
   bufferHighWaterLine,
   duration,
-  useBufferWaterLines,
-  log
+  useBufferWaterLines
 }) {
   // we have no other playlist to switch to
   if (!nextPlaylist) {
@@ -64,7 +63,7 @@ const shouldSwitchToMedia = function({
   // This is because in LIVE, the player plays 3 segments from the end of the
   // playlist, and if `BUFFER_LOW_WATER_LINE` is greater than the duration availble
   // in those segments, a viewer will never experience a rendition upswitch.
-  if (!currentPlaylist.endList) {
+  if (!currentPlaylist || !currentPlaylist.endList) {
     return true;
   }
 
@@ -325,8 +324,12 @@ export class MasterPlaylistController extends videojs.EventTarget {
           selectedMedia = this.selectPlaylist();
         }
 
+        if (!this.shouldSwitchToMedia_(selectedMedia)) {
+          return;
+        }
+
         this.initialMedia_ = selectedMedia;
-        // TODO should we use shouldSwitchToMedia here?
+
         this.masterPlaylistLoader_.media(this.initialMedia_);
 
         // Under the standard case where a source URL is provided, loadedplaylist will
@@ -486,6 +489,26 @@ export class MasterPlaylistController extends videojs.EventTarget {
       this.tech_.trigger({type: 'usage', name: 'hls-playlist-cue-tags'});
     }
   }
+
+  shouldSwitchToMedia_(nextPlaylist) {
+    const currentPlaylist = this.masterPlaylistLoader_.media();
+    const buffered = this.tech_.buffered();
+    const forwardBuffer = buffered.length ?
+      buffered.end(buffered.length - 1) - this.tech_.currentTime() : 0;
+
+    const bufferLowWaterLine = this.bufferLowWaterLine();
+    const bufferHighWaterLine = this.bufferHighWaterLine();
+
+    return shouldSwitchToMedia({
+      currentPlaylist,
+      nextPlaylist,
+      forwardBuffer,
+      bufferLowWaterLine,
+      bufferHighWaterLine,
+      duration: this.duration(),
+      useBufferWaterLines: this.useBufferWaterLines
+    });
+  }
   /**
    * Register event handlers on the segment loaders. A helper function
    * for construction time.
@@ -495,24 +518,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
   setupSegmentLoaderListeners_() {
     this.mainSegmentLoader_.on('bandwidthupdate', () => {
       const nextPlaylist = this.selectPlaylist();
-      const currentPlaylist = this.masterPlaylistLoader_.media();
-      const buffered = this.tech_.buffered();
-      const forwardBuffer = buffered.length ?
-        buffered.end(buffered.length - 1) - this.tech_.currentTime() : 0;
 
-      const bufferLowWaterLine = this.bufferLowWaterLine();
-      const bufferHighWaterLine = this.bufferHighWaterLine();
-
-      if (shouldSwitchToMedia({
-        currentPlaylist,
-        nextPlaylist,
-        forwardBuffer,
-        bufferLowWaterLine,
-        bufferHighWaterLine,
-        duration: this.duration(),
-        useBufferWaterLines: this.useBufferWaterLines,
-        log: this.logger_
-      })) {
+      if (this.shouldSwitchToMedia_(nextPlaylist)) {
         this.masterPlaylistLoader_.media(nextPlaylist);
       }
 
