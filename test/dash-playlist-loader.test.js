@@ -2293,6 +2293,18 @@ QUnit.test(
   }
 );
 
+QUnit.test('use MPD.Location when refreshing the xml', function(assert) {
+  const loader = new DashPlaylistLoader('location.mpd', this.fakeVhs);
+
+  loader.load();
+  this.standardXHRResponse(this.requests.shift());
+
+  this.clock.tick(4 * 1000);
+
+  assert.equal(this.requests.length, 1, 'refreshed manifest');
+  assert.equal(this.requests[0].uri, 'newlocation/', 'refreshed manifest');
+});
+
 QUnit.test('refreshes the xml if there is a minimumUpdatePeriod', function(assert) {
   const loader = new DashPlaylistLoader('dash-live.mpd', this.fakeVhs);
   let minimumUpdatePeriods = 0;
