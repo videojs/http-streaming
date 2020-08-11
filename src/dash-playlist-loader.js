@@ -629,7 +629,7 @@ export default class DashPlaylistLoader extends EventTarget {
     this.mediaRequest_ = null;
 
     if (!this.masterPlaylistLoader_) {
-      this.updateMaster_(parseMasterXml({
+      this.updateMainManifest_(parseMasterXml({
         masterXml: this.masterXml_,
         srcUrl: this.srcUrl,
         clientOffset: this.clientOffset_,
@@ -671,14 +671,22 @@ export default class DashPlaylistLoader extends EventTarget {
   }
 
   /**
-   * Given a new manifest, update our pointer to it and update the srcUrl based on the location element of the manifest, if exists.
+   * Given a new manifest, update our pointer to it and update the srcUrl based on the location elements of the manifest, if they exist.
    *
-   * @param {Object} updatedMaster the manifest to update to
+   * @param {Object} updatedManifest the manifest to update to
    */
-  updateMaster_(updatedMaster) {
-    this.master = updatedMaster;
-    if (this.master.location && this.master.location !== this.srcUrl) {
-      this.srcUrl = this.master.location;
+  updateMainManifest_(updatedManifest) {
+    this.master = updatedManifest;
+
+    // if locations isn't set or is an empty array, exist early
+    if (!this.master.locations || this.master.locations && !this.master.locations.length) {
+      return;
+    }
+
+    const location = this.master.locations[0];
+
+    if (location !== this.srcUrl) {
+      this.srcUrl = location;
     }
   }
 
@@ -772,7 +780,7 @@ export default class DashPlaylistLoader extends EventTarget {
             );
           }
         } else {
-          this.updateMaster_(updatedMaster);
+          this.updateMainManifest_(updatedMaster);
           if (this.media_) {
             this.media_ = this.master.playlists[this.media_.id];
           }
