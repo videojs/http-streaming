@@ -151,7 +151,6 @@ simply take on their default values (in the case where they have valid defaults)
   * @maxSegmentDuration
   * @maxSubsegmentDuration
   * ProgramInformation
-  * Location
   * Metrics
 * Period
   * @xlink:href
