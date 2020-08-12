@@ -678,7 +678,7 @@ export default class DashPlaylistLoader extends EventTarget {
   updateMainManifest_(updatedManifest) {
     this.master = updatedManifest;
 
-    // if locations isn't set or is an empty array, exist early
+    // if locations isn't set or is an empty array, exits early
     if (!this.master.locations || this.master.locations && !this.master.locations.length) {
       return;
     }
