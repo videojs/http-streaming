@@ -1346,7 +1346,7 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @return {boolean} True if the request was aborted, false otherwise
    * @private
    */
-  abortRequestEarly_(stats) {
+  earlyAbortWhenNeeded_(stats) {
     if (this.vhs_.tech_.paused() ||
         // Don't abort if the current playlist is on the lowestEnabledRendition
         // TODO: Replace using timeout with a boolean indicating whether this playlist is
@@ -1354,14 +1354,14 @@ export default class SegmentLoader extends videojs.EventTarget {
         !this.xhrOptions_.timeout ||
         // Don't abort if we have no bandwidth information to estimate segment sizes
         !(this.playlist_.attributes.BANDWIDTH)) {
-      return false;
+      return;
     }
 
     // Wait at least 1 second since the first byte of data has been received before
     // using the calculated bandwidth from the progress event to allow the bitrate
     // to stabilize
     if (Date.now() - (stats.firstBytesReceivedAt || Date.now()) < 1000) {
-      return false;
+      return;
     }
 
     const currentTime = this.currentTime_();
@@ -1388,7 +1388,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // Only consider aborting early if the estimated time to finish the download
     // is larger than the estimated time until the player runs out of forward buffer
     if (requestTimeRemaining <= timeUntilRebuffer) {
-      return false;
+      return;
     }
 
     const switchCandidate = minRebufferMaxBandwidthSelector({
@@ -1422,7 +1422,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (!switchCandidate.playlist ||
         switchCandidate.playlist.uri === this.playlist_.uri ||
         timeSavedBySwitching < minimumTimeSaving) {
-      return false;
+      return;
     }
 
     // set the bandwidth to that of the desired playlist being sure to scale by
@@ -1430,9 +1430,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // don't trigger a bandwidthupdate as the bandwidth is artifial
     this.bandwidth =
       switchCandidate.playlist.attributes.BANDWIDTH * Config.BANDWIDTH_VARIANCE + 1;
-    this.abort();
-    this.trigger('earlyabort');
-    return true;
+    this.trigger({type: 'earlyabort', playlist: switchCandidate.playlist});
   }
 
   handleAbort_() {
@@ -1449,8 +1447,9 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @private
    */
   handleProgress_(event, simpleSegment) {
-    if (this.checkForAbort_(simpleSegment.requestId) ||
-        this.abortRequestEarly_(simpleSegment.stats)) {
+    this.earlyAbortWhenNeeded_(simpleSegment.stats);
+
+    if (this.checkForAbort_(simpleSegment.requestId)) {
       return;
     }
 
@@ -1458,8 +1457,9 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   handleTrackInfo_(simpleSegment, trackInfo) {
-    if (this.checkForAbort_(simpleSegment.requestId) ||
-        this.abortRequestEarly_(simpleSegment.stats)) {
+    this.earlyAbortWhenNeeded_(simpleSegment.stats);
+
+    if (this.checkForAbort_(simpleSegment.requestId)) {
       return;
     }
 
@@ -1486,8 +1486,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // trackinfo may cause an abort if the trackinfo
     // causes a codec change to an unsupported codec.
-    if (this.checkForAbort_(simpleSegment.requestId) ||
-        this.abortRequestEarly_(simpleSegment.stats)) {
+    if (this.checkForAbort_(simpleSegment.requestId)) {
       return;
     }
 
@@ -1502,8 +1501,8 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   handleTimingInfo_(simpleSegment, mediaType, timeType, time) {
-    if (this.checkForAbort_(simpleSegment.requestId) ||
-        this.abortRequestEarly_(simpleSegment.stats)) {
+    this.earlyAbortWhenNeeded_(simpleSegment.stats);
+    if (this.checkForAbort_(simpleSegment.requestId)) {
       return;
     }
 
@@ -1522,8 +1521,9 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   handleCaptions_(simpleSegment, captionData) {
-    if (this.checkForAbort_(simpleSegment.requestId) ||
-      this.abortRequestEarly_(simpleSegment.stats)) {
+    this.earlyAbortWhenNeeded_(simpleSegment.stats);
+
+    if (this.checkForAbort_(simpleSegment.requestId)) {
       return;
     }
 
@@ -1595,8 +1595,9 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   handleId3_(simpleSegment, id3Frames, dispatchType) {
-    if (this.checkForAbort_(simpleSegment.requestId) ||
-        this.abortRequestEarly_(simpleSegment.stats)) {
+    this.earlyAbortWhenNeeded_(simpleSegment.stats);
+
+    if (this.checkForAbort_(simpleSegment.requestId)) {
       return;
     }
 
@@ -1755,8 +1756,9 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   handleData_(simpleSegment, result) {
-    if (this.checkForAbort_(simpleSegment.requestId) ||
-        this.abortRequestEarly_(simpleSegment.stats)) {
+    this.earlyAbortWhenNeeded_(simpleSegment.stats);
+
+    if (this.checkForAbort_(simpleSegment.requestId)) {
       return;
     }
 

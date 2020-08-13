@@ -265,15 +265,17 @@ QUnit.test('MAX_BUFFER_LOW_WATER_LINE set warning', function(assert) {
 });
 
 QUnit.test('MAX_BUFFER_LOW_WATER_LINE set warning and invalid', function(assert) {
+  const defaultValue = Config.MAX_BUFFER_LOW_WATER_LINE;
+
   Vhs.MAX_BUFFER_LOW_WATER_LINE = 'nope';
   assert.equal(this.env.log.warn.calls, 2, 'logged two warnings');
 
-  assert.equal(Config.MAX_BUFFER_LOW_WATER_LINE, 30, 'default');
+  assert.equal(Config.MAX_BUFFER_LOW_WATER_LINE, defaultValue, 'default');
 
   Vhs.MAX_BUFFER_LOW_WATER_LINE = -1;
   assert.equal(this.env.log.warn.calls, 2, 'logged two warnings');
 
-  assert.equal(Config.MAX_BUFFER_LOW_WATER_LINE, 30, 'default');
+  assert.equal(Config.MAX_BUFFER_LOW_WATER_LINE, defaultValue, 'default');
 });
 
 QUnit.test('BUFFER_LOW_WATER_LINE_RATE get warning', function(assert) {

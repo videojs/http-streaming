@@ -340,7 +340,7 @@ export const LoaderCommonFactory = ({
     });
 
     QUnit.test(
-      'aborts request at progress events if bandwidth is too low',
+      'triggers earlyabort at progress events if bandwidth is too low',
       function(assert) {
         const playlist1 = playlistWithDuration(10, { uri: 'playlist1.m3u8' });
         const playlist2 = playlistWithDuration(10, { uri: 'playlist2.m3u8' });
@@ -425,7 +425,7 @@ export const LoaderCommonFactory = ({
         });
 
         assert.equal(bandwidthupdates, 0, 'bandwidth not updated');
-        assert.ok(this.requests[0].aborted, 'request aborted');
+        assert.ok(!this.requests[0].aborted, 'request not aborted');
         assert.equal(earlyAborts, 1, 'earlyabort event triggered');
       }
     );

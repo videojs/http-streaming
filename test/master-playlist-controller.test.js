@@ -1643,12 +1643,14 @@ QUnit.test(
     let currentTime = 0;
     let endList = true;
     let duration = 100;
+    let id = 0;
 
     this.masterPlaylistController.tech_.currentTime = () => currentTime;
     this.masterPlaylistController.tech_.buffered = () => videojs.createTimeRanges(buffered);
     this.masterPlaylistController.duration = () => duration;
     this.masterPlaylistController.selectPlaylist = () => {
       return {
+        id: id++,
         attributes: {
           BANDWIDTH: nextPlaylistBandwidth
         },
@@ -1658,6 +1660,7 @@ QUnit.test(
     this.masterPlaylistController.masterPlaylistLoader_.media = (media) => {
       if (!media) {
         return {
+          id: id++,
           attributes: {
             BANDWIDTH: currentPlaylistBandwidth
           },
@@ -2069,11 +2072,9 @@ QUnit.test('does not get stuck in a loop due to inconsistent network/caching', f
       bandwidth: 88000
     });
   }).then(() => {
-    // Media may be changed, but it should be changed to the same media. In the future, this
-    // can safely not be changed.
     bandwidthWithinTolerance(segmentLoader.bandwidth, 88000, 'bandwidth is correct');
-    assert.equal(mediaChanges.length, 3, 'changed media');
-    assert.equal(mediaChanges[2].uri, 'media.m3u8', 'media remains unchanged');
+    assert.equal(mediaChanges.length, 2, 'did not change media');
+    assert.equal(mediaChanges[1].uri, 'media.m3u8', 'media remains unchanged');
 
     segmentRequest = this.requests[0];
     assert.equal(

@@ -51,7 +51,8 @@ const shouldSwitchToMedia = function({
   bufferLowWaterLine,
   bufferHighWaterLine,
   duration,
-  useBufferWaterLines
+  useBufferWaterLines,
+  log
 }) {
   // we have no other playlist to switch to
   if (!nextPlaylist) {
@@ -59,33 +60,60 @@ const shouldSwitchToMedia = function({
     return false;
   }
 
+  const sharedLogLine = `allowing switch ${currentPlaylist && currentPlaylist.id || 'null'} -> ${nextPlaylist.id}`;
+
   // If the playlist is live, then we want to not take low water line into account.
   // This is because in LIVE, the player plays 3 segments from the end of the
   // playlist, and if `BUFFER_LOW_WATER_LINE` is greater than the duration availble
   // in those segments, a viewer will never experience a rendition upswitch.
   if (!currentPlaylist || !currentPlaylist.endList) {
+    log(`${sharedLogLine} as current playlist ` + (!currentPlaylist ? 'is not set' : 'is live'));
     return true;
   }
+
+  // no need to switch playlist is the same
+  if (nextPlaylist.id === currentPlaylist.id) {
+    return false;
+  }
+
+  const maxBufferLowWaterLine = useBufferWaterLines ?
+    Config.MAX_BUFFER_LOW_WATER_LINE_NEW : Config.MAX_BUFFER_LOW_WATER_LINE;
 
   // For the same reason as LIVE, we ignore the low water line when the VOD
   // duration is below the max potential low water line
-  if (duration < Config.MAX_BUFFER_LOW_WATER_LINE) {
+  if (duration < maxBufferLowWaterLine) {
+    log(`${sharedLogLine} as duration < max low water line (${duration} < ${maxBufferLowWaterLine})`);
     return true;
   }
 
+  const nextBandwidth = nextPlaylist.attributes.BANDWIDTH;
+  const currBandwidth = currentPlaylist.attributes.BANDWIDTH;
+
   // when switching down, if our buffer is lower than the high water line,
   // we can switch down
-  if (nextPlaylist.attributes.BANDWIDTH < currentPlaylist.attributes.BANDWIDTH &&
-      (!useBufferWaterLines || forwardBuffer < bufferHighWaterLine)) {
+  if (nextBandwidth < currBandwidth && (!useBufferWaterLines || forwardBuffer < bufferHighWaterLine)) {
+    let logLine = `${sharedLogLine} as next bandwidth < current bandwidth (${nextBandwidth} < ${currBandwidth})`;
+
+    if (useBufferWaterLines) {
+      logLine += ` and forwardBuffer < bufferHighWaterLine (${forwardBuffer} < ${bufferHighWaterLine})`;
+    }
+    log(logLine);
     return true;
   }
 
   // and if our buffer is higher than the low water line,
   // we can switch up
-  if (nextPlaylist.attributes.BANDWIDTH > currentPlaylist.attributes.BANDWIDTH &&
-    (!useBufferWaterLines || forwardBuffer >= bufferLowWaterLine)) {
+  if ((!useBufferWaterLines || nextBandwidth > currBandwidth) && forwardBuffer >= bufferLowWaterLine) {
+    let logLine = `${sharedLogLine} as forwardBuffer >= bufferLowWaterLine (${forwardBuffer} >= ${bufferLowWaterLine})`;
+
+    if (useBufferWaterLines) {
+      logLine += ` and next bandwidth > current bandwidth (${nextBandwidth} > ${currBandwidth})`;
+    }
+    log(logLine);
     return true;
   }
+
+  log(`not ${sharedLogLine} as no switching criteria met`);
 
   return false;
 };
@@ -324,7 +352,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
           selectedMedia = this.selectPlaylist();
         }
 
-        if (!this.shouldSwitchToMedia_(selectedMedia)) {
+        if (!selectedMedia || !this.shouldSwitchToMedia_(selectedMedia)) {
           return;
         }
 
@@ -506,7 +534,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       bufferLowWaterLine,
       bufferHighWaterLine,
       duration: this.duration(),
-      useBufferWaterLines: this.useBufferWaterLines
+      useBufferWaterLines: this.useBufferWaterLines,
+      log: this.logger_
     });
   }
   /**
@@ -525,7 +554,16 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
       this.tech_.trigger('bandwidthupdate');
     });
+
     this.mainSegmentLoader_.on('progress', () => {
+      if (this.useBufferWaterLines) {
+        const nextPlaylist = this.selectPlaylist();
+
+        if (this.shouldSwitchToMedia_(nextPlaylist)) {
+          this.masterPlaylistLoader_.media(nextPlaylist);
+        }
+      }
+
       this.trigger('progress');
     });
 
@@ -560,11 +598,31 @@ export class MasterPlaylistController extends videojs.EventTarget {
       this.onEndOfStream();
     });
 
-    this.mainSegmentLoader_.on('earlyabort', () => {
-      this.blacklistCurrentPlaylist({
+    this.mainSegmentLoader_.on('earlyabort', (event) => {
+      const excludeObject = {
         message: 'Aborted early because there isn\'t enough bandwidth to complete the ' +
-          'request without rebuffering.'
-      }, ABORT_EARLY_BLACKLIST_SECONDS);
+        'request without rebuffering.',
+        blacklistDuration: ABORT_EARLY_BLACKLIST_SECONDS
+      };
+
+      if (this.useBufferWaterLines) {
+        const currentPlaylist = this.masterPlaylistLoader_.media();
+
+        currentPlaylist.excludeUntil = ABORT_EARLY_BLACKLIST_SECONDS;
+
+        const nextPlaylist = this.selectPlaylist();
+
+        currentPlaylist.excludeUntil = null;
+
+        this.logger_(`earlyabort triggered, but we will not be switching from ${currentPlaylist.id} -> ${nextPlaylist.id}.`);
+        if (!this.shouldSwitchToMedia_(nextPlaylist)) {
+          return;
+        }
+        excludeObject.nextPlaylist = nextPlaylist;
+
+        return;
+      }
+      this.blacklistCurrentPlaylist(excludeObject);
     });
 
     const updateCodecs = () => {
