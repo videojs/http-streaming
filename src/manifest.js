@@ -105,14 +105,16 @@ export const setupMediaPlaylists = (master) => {
 
   while (i--) {
     const playlist = master.playlists[i];
+    const id = createPlaylistID(i, playlist.uri);
 
     setupMediaPlaylist({
       playlist,
       // DASH Representations can change order across refreshes which can make referring to them by index not work
       // Instead, use the provided id, available via the NAME attribute.
-      id: playlist.attributes && playlist.attributes.NAME || createPlaylistID(i, playlist.uri)
+      id: playlist.attributes && playlist.attributes.NAME || id
     });
     playlist.resolvedUri = resolveUrl(master.uri, playlist.uri);
+    master.playlists[id] = playlist;
     master.playlists[playlist.id] = playlist;
     // URI reference added for backwards compatibility
     master.playlists[playlist.uri] = playlist;
