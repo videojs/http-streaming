@@ -100,21 +100,27 @@ export const setupMediaPlaylist = ({ playlist, uri, id }) => {
  * @param {Object} master
  *        The master playlist
  */
-export const setupMediaPlaylists = (master) => {
+export const setupMediaPlaylists = (master, type) => {
   let i = master.playlists.length;
 
   while (i--) {
     const playlist = master.playlists[i];
-    const id = createPlaylistID(i, playlist.uri);
+    const createId = createPlaylistID(i, playlist.uri);
+    let id = createId;
+
+    // DASH Representations can change order across refreshes which can make referring to them by index not work
+    // Instead, use the provided id, available via the NAME attribute.
+    if (type === 'dash') {
+      id = playlist.attributes && playlist.attributes.NAME || id;
+    }
 
     setupMediaPlaylist({
       playlist,
-      // DASH Representations can change order across refreshes which can make referring to them by index not work
-      // Instead, use the provided id, available via the NAME attribute.
-      id: playlist.attributes && playlist.attributes.NAME || id
+      id
     });
     playlist.resolvedUri = resolveUrl(master.uri, playlist.uri);
-    master.playlists[id] = playlist;
+    // make sure that if a DASH is used, the old "createId" id is also available
+    master.playlists[createId] = playlist;
     master.playlists[playlist.id] = playlist;
     // URI reference added for backwards compatibility
     master.playlists[playlist.uri] = playlist;
@@ -192,7 +198,7 @@ export const masterForMedia = (media, uri) => {
  * @param {string} uri
  *        The source URI
  */
-export const addPropertiesToMaster = (master, uri) => {
+export const addPropertiesToMaster = (master, uri, type) => {
   master.uri = uri;
 
   for (let i = 0; i < master.playlists.length; i++) {
@@ -225,6 +231,6 @@ export const addPropertiesToMaster = (master, uri) => {
     master.playlists[phonyUri] = properties.playlists[0];
   });
 
-  setupMediaPlaylists(master);
+  setupMediaPlaylists(master, type);
   resolveMediaGroupUris(master);
 };
