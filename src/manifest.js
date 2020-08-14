@@ -108,7 +108,9 @@ export const setupMediaPlaylists = (master) => {
 
     setupMediaPlaylist({
       playlist,
-      id: createPlaylistID(i, playlist.uri)
+      // DASH Representations can change order across refreshes which can make referring to them by index not work
+      // Instead, use the provided id, available via the NAME attribute.
+      id: playlist.attributes && playlist.attributes.NAME || createPlaylistID(i, playlist.uri)
     });
     playlist.resolvedUri = resolveUrl(master.uri, playlist.uri);
     master.playlists[playlist.id] = playlist;
