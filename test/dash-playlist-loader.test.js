@@ -1295,7 +1295,12 @@ QUnit.test('parseMasterXml: setup phony playlists and resolves uris', function(a
 
   assert.strictEqual(masterPlaylist.uri, loader.srcUrl, 'master playlist uri set correctly');
   assert.strictEqual(masterPlaylist.playlists[0].uri, 'placeholder-uri-0');
-  assert.strictEqual(masterPlaylist.playlists[0].id, '0-placeholder-uri-0');
+  assert.strictEqual(masterPlaylist.playlists[0].id, '1080p');
+  assert.strictEqual(
+    masterPlaylist.playlists['1080p'],
+    masterPlaylist.playlists['0-placeholder-uri-0'],
+    'available via old and new ids'
+  );
   assert.deepEqual(
     masterPlaylist.playlists['0-placeholder-uri-0'],
     masterPlaylist.playlists[0],
@@ -2258,8 +2263,13 @@ QUnit.test(
       'setup phony uri for media playlist'
     );
     assert.equal(
-      loader.master.playlists[0].id, '0-placeholder-uri-0',
+      loader.master.playlists[0].id, '1080p',
       'setup phony id for media playlist'
+    );
+    assert.strictEqual(
+      loader.master.playlists['1080p'],
+      loader.master.playlists['0-placeholder-uri-0'],
+      'reference by NAME and old id'
     );
     assert.strictEqual(
       loader.master.playlists['0-placeholder-uri-0'],
@@ -2270,8 +2280,13 @@ QUnit.test(
       'setup phony uri for media playlist'
     );
     assert.equal(
-      loader.master.playlists[1].id, '1-placeholder-uri-1',
+      loader.master.playlists[1].id, '720p',
       'setup phony id for media playlist'
+    );
+    assert.strictEqual(
+      loader.master.playlists['720p'],
+      loader.master.playlists['1-placeholder-uri-1'],
+      'reference by NAME and old id'
     );
     assert.strictEqual(
       loader.master.playlists['1-placeholder-uri-1'],
