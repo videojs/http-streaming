@@ -67,7 +67,7 @@ const sharedHooks = {
     videojs.Vhs.supportsNativeHls = false;
     this.oldBrowser = videojs.browser;
     videojs.browser = videojs.mergeOptions({}, videojs.browser);
-    this.player = createPlayer();
+    this.player = createPlayer(videojs.mergeOptions({}, this.playerOptions));
     this.player.src({
       src: 'manifest/master.m3u8',
       type: 'application/vnd.apple.mpegurl'
@@ -5510,4 +5510,237 @@ QUnit.test('filter subtitle works', function(assert) {
   });
 
   assert.deepEqual(this.calls, this.expected, 'calls as expected');
+});
+
+QUnit.module('MasterPlaylistController bufferWaterLineSelector', {
+  beforeEach(assert) {
+    this.playerOptions = {
+      html5: {
+        vhs: {
+          bufferWaterLineSelector: true
+        }
+      }
+    };
+    sharedHooks.beforeEach.call(this, assert);
+    this.mpc = this.masterPlaylistController;
+
+  },
+  afterEach(assert) {
+    sharedHooks.afterEach.call(this, assert);
+  }
+});
+
+QUnit.test('Determines if playlist should be aborted on earlyabort', function(assert) {
+  this.masterPlaylistController.mediaSource.trigger('sourceopen');
+  // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  const mediaChanges = [];
+  const playlistLoader = this.masterPlaylistController.masterPlaylistLoader_;
+  const currentMedia = playlistLoader.media();
+  const origMedia = playlistLoader.media.bind(playlistLoader);
+  const origWarn = videojs.log.warn;
+  const warnings = [];
+
+  this.masterPlaylistController.masterPlaylistLoader_.media = (media) => {
+    if (media) {
+      mediaChanges.push(media);
+    }
+    return origMedia(media);
+  };
+
+  videojs.log.warn = (text) => warnings.push(text);
+
+  assert.notOk(currentMedia.excludeUntil > 0, 'playlist not blacklisted');
+  assert.equal(mediaChanges.length, 0, 'no media change');
+
+  this.masterPlaylistController.shouldSwitchToMedia_ = () => false;
+  this.masterPlaylistController.mainSegmentLoader_.trigger('earlyabort');
+
+  assert.notOk(currentMedia.excludeUntil > 0, 'no exclusions if we should not switch');
+  assert.equal(mediaChanges.length, 0, 'no media change if we should not switch');
+
+  this.masterPlaylistController.shouldSwitchToMedia_ = () => true;
+  this.masterPlaylistController.mainSegmentLoader_.trigger('earlyabort');
+  assert.equal(mediaChanges.length, 1, 'one media change');
+  assert.equal(warnings.length, 1, 'one warning logged');
+  assert.equal(
+    warnings[0],
+    `Problem encountered with playlist ${currentMedia.id}. ` +
+                 'Aborted early because there isn\'t enough bandwidth to complete the ' +
+                 `request without rebuffering. Switching to playlist ${mediaChanges[0].id}.`,
+    'warning message is correct'
+  );
+
+  videojs.log.warn = origWarn;
+});
+
+QUnit.test('Determines if playlist should change on bandwidthupdate/progress from segment loader', function(assert) {
+  let calls = 0;
+
+  this.masterPlaylistController.selectPlaylist = () => {
+    calls++;
+    return this.masterPlaylistController.masterPlaylistLoader_.master.playlists[0];
+  };
+  this.masterPlaylistController.mediaSource.trigger('sourceopen');
+
+  // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  // progress for a segment download
+  this.masterPlaylistController.mainSegmentLoader_.trigger('progress');
+  assert.strictEqual(calls, 2, 'selects after segment progress');
+
+  // "downloaded" a segment
+  this.masterPlaylistController.mainSegmentLoader_.trigger('bandwidthupdate');
+  assert.strictEqual(calls, 3, 'selects after segment download');
+
+  // verify stats
+  assert.equal(this.player.tech_.vhs.stats.bandwidth, 4194304, 'default bandwidth');
+});
+
+QUnit.module('MasterPlaylistController shouldSwitchToMedia', sharedHooks);
+
+QUnit.test('true if a no current playlist', function(assert) {
+  const mpc = this.masterPlaylistController;
+
+  mpc.masterPlaylistLoader_.media = () => null;
+  const nextPlaylist = {id: 'foo', endList: true};
+
+  assert.ok(mpc.shouldSwitchToMedia_(nextPlaylist), 'should switch without currentPlaylist');
+});
+
+QUnit.test('true if current playlist is live', function(assert) {
+  const mpc = this.masterPlaylistController;
+
+  mpc.masterPlaylistLoader_.media = () => ({endList: false, id: 'bar'});
+  const nextPlaylist = {id: 'foo', endList: true};
+
+  assert.ok(mpc.shouldSwitchToMedia_(nextPlaylist), 'should switch with live currentPlaylist');
+});
+
+QUnit.test('true if duration < 30', function(assert) {
+  const mpc = this.masterPlaylistController;
+  const nextPlaylist = {id: 'foo', endList: true};
+
+  mpc.duration = () => 20;
+  mpc.masterPlaylistLoader_.media = () => ({endList: true, id: 'bar'});
+
+  assert.ok(mpc.shouldSwitchToMedia_(nextPlaylist), 'should switch');
+});
+
+QUnit.test('true duration < 16 with bufferWaterLineSelector', function(assert) {
+  const mpc = this.masterPlaylistController;
+  const nextPlaylist = {id: 'foo', endList: true};
+
+  mpc.bufferWaterLineSelector = true;
+
+  mpc.duration = () => 15;
+  mpc.masterPlaylistLoader_.media = () => ({endList: true, id: 'bar'});
+
+  assert.ok(mpc.shouldSwitchToMedia_(nextPlaylist), 'should switch');
+});
+
+QUnit.test('true if bandwidth decreases', function(assert) {
+  const mpc = this.masterPlaylistController;
+  const nextPlaylist = {id: 'foo', endList: true, attributes: {BANDWIDTH: 1}};
+
+  mpc.duration = () => 40;
+  mpc.masterPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
+
+  assert.ok(mpc.shouldSwitchToMedia_(nextPlaylist), 'should switch');
+});
+
+QUnit.test('true if bandwidth decreases, bufferWaterLineSelector, and forwardBuffer < bufferHighWaterLine', function(assert) {
+  const mpc = this.masterPlaylistController;
+  const nextPlaylist = {id: 'foo', endList: true, attributes: {BANDWIDTH: 1}};
+
+  // 0 forward buffer
+  mpc.tech_.buffered = () => videojs.createTimeRange();
+  mpc.tech_.currentTime = () => 0;
+  mpc.bufferWaterLineSelector = true;
+  mpc.duration = () => 40;
+  mpc.masterPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
+
+  assert.ok(mpc.shouldSwitchToMedia_(nextPlaylist), 'should switch');
+});
+
+QUnit.test('true if forwardBuffer >= bufferLowWaterLine', function(assert) {
+  const mpc = this.masterPlaylistController;
+  const nextPlaylist = {id: 'foo', endList: true, attributes: {BANDWIDTH: 2}};
+
+  // zero forward buffer and zero buffer low water line
+  mpc.tech_.buffered = () => videojs.createTimeRange();
+  mpc.tech_.currentTime = () => 0;
+  mpc.duration = () => 40;
+  mpc.masterPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
+
+  assert.ok(mpc.shouldSwitchToMedia_(nextPlaylist), 'should switch');
+});
+
+QUnit.test('true if forwardBuffer >= bufferLowWaterLine, bufferWaterLineSelector, and bandwidth increase', function(assert) {
+  const mpc = this.masterPlaylistController;
+  const nextPlaylist = {id: 'foo', endList: true, attributes: {BANDWIDTH: 3}};
+
+  // zero forward buffer and zero buffer low water line
+  mpc.tech_.buffered = () => videojs.createTimeRange();
+  mpc.tech_.currentTime = () => 0;
+  mpc.bufferWaterLineSelector = true;
+  mpc.duration = () => 40;
+  mpc.masterPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
+
+  assert.ok(mpc.shouldSwitchToMedia_(nextPlaylist), 'should switch');
+});
+
+QUnit.test('false if nextPlaylist bandwidth lower, bufferWaterLineSelector, and forwardBuffer > bufferHighWaterLine', function(assert) {
+  const mpc = this.masterPlaylistController;
+  const nextPlaylist = {id: 'foo', endList: true, attributes: {BANDWIDTH: 1}};
+
+  // 31s forwardBuffer
+  mpc.tech_.buffered = () => videojs.createTimeRange(0, 31);
+  mpc.tech_.currentTime = () => 0;
+  mpc.bufferWaterLineSelector = true;
+  mpc.duration = () => 40;
+  mpc.masterPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
+
+  assert.notOk(mpc.shouldSwitchToMedia_(nextPlaylist), 'should not switch');
+});
+
+QUnit.test('false if nextPlaylist bandwidth same, bufferWaterLineSelector, and forwardBuffer >= bufferLowWaterLine', function(assert) {
+  const mpc = this.masterPlaylistController;
+  const nextPlaylist = {id: 'foo', endList: true, attributes: {BANDWIDTH: 2}};
+
+  // 31s forwardBuffer
+  mpc.tech_.buffered = () => videojs.createTimeRange();
+  mpc.tech_.currentTime = () => 0;
+  mpc.bufferWaterLineSelector = true;
+  mpc.duration = () => 40;
+  mpc.masterPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
+
+  assert.notOk(mpc.shouldSwitchToMedia_(nextPlaylist), 'should not switch');
+});
+
+QUnit.test('false if nextPlaylist is currentPlaylist', function(assert) {
+  const mpc = this.masterPlaylistController;
+  const nextPlaylist = {id: 'foo', endList: true};
+
+  mpc.masterPlaylistLoader_.media = () => nextPlaylist;
+
+  assert.notOk(mpc.shouldSwitchToMedia_(nextPlaylist), 'should not switch');
+});
+
+QUnit.test('false without nextPlaylist', function(assert) {
+  const mpc = this.masterPlaylistController;
+
+  mpc.masterPlaylistLoader_.media = () => ({endList: true, id: 'bar'});
+
+  assert.notOk(mpc.shouldSwitchToMedia_(null), 'should not switch');
+
+  assert.equal(this.env.log.warn.callCount, 1, 'logged a warning');
+
+  this.env.log.warn.callCount = 0;
 });
