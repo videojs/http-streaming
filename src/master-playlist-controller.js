@@ -599,12 +599,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     this.mainSegmentLoader_.on('earlyabort', (event) => {
-      const excludeObject = {
-        message: 'Aborted early because there isn\'t enough bandwidth to complete the ' +
-        'request without rebuffering.',
-        blacklistDuration: ABORT_EARLY_BLACKLIST_SECONDS
-      };
-
       if (this.bufferWaterLineSelector) {
         const currentPlaylist = this.masterPlaylistLoader_.media();
 
@@ -618,11 +612,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
         if (!this.shouldSwitchToMedia_(nextPlaylist)) {
           return;
         }
-        excludeObject.nextPlaylist = nextPlaylist;
-
-        return;
       }
-      this.blacklistCurrentPlaylist(excludeObject);
+      this.blacklistCurrentPlaylist({
+        message: 'Aborted early because there isn\'t enough bandwidth to complete the ' +
+          'request without rebuffering.'
+      }, ABORT_EARLY_BLACKLIST_SECONDS);
     });
 
     const updateCodecs = () => {
@@ -695,7 +689,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    // TODO should we use shouldSwitchToMedia here?
     this.masterPlaylistLoader_.media(media);
 
     this.mainSegmentLoader_.resetLoader();
