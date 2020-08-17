@@ -1430,7 +1430,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // don't trigger a bandwidthupdate as the bandwidth is artifial
     this.bandwidth =
       switchCandidate.playlist.attributes.BANDWIDTH * Config.BANDWIDTH_VARIANCE + 1;
-    this.trigger({type: 'earlyabort', playlist: switchCandidate.playlist});
+    this.trigger('earlyabort');
   }
 
   handleAbort_() {
