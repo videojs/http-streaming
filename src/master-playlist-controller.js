@@ -51,7 +51,7 @@ const shouldSwitchToMedia = function({
   bufferLowWaterLine,
   bufferHighWaterLine,
   duration,
-  useBufferWaterLines,
+  bufferWaterLineSelector,
   log
 }) {
   // we have no other playlist to switch to
@@ -76,7 +76,7 @@ const shouldSwitchToMedia = function({
     return false;
   }
 
-  const maxBufferLowWaterLine = useBufferWaterLines ?
+  const maxBufferLowWaterLine = bufferWaterLineSelector ?
     Config.MAX_BUFFER_LOW_WATER_LINE_NEW : Config.MAX_BUFFER_LOW_WATER_LINE;
 
   // For the same reason as LIVE, we ignore the low water line when the VOD
@@ -91,10 +91,10 @@ const shouldSwitchToMedia = function({
 
   // when switching down, if our buffer is lower than the high water line,
   // we can switch down
-  if (nextBandwidth < currBandwidth && (!useBufferWaterLines || forwardBuffer < bufferHighWaterLine)) {
+  if (nextBandwidth < currBandwidth && (!bufferWaterLineSelector || forwardBuffer < bufferHighWaterLine)) {
     let logLine = `${sharedLogLine} as next bandwidth < current bandwidth (${nextBandwidth} < ${currBandwidth})`;
 
-    if (useBufferWaterLines) {
+    if (bufferWaterLineSelector) {
       logLine += ` and forwardBuffer < bufferHighWaterLine (${forwardBuffer} < ${bufferHighWaterLine})`;
     }
     log(logLine);
@@ -103,10 +103,10 @@ const shouldSwitchToMedia = function({
 
   // and if our buffer is higher than the low water line,
   // we can switch up
-  if ((!useBufferWaterLines || nextBandwidth > currBandwidth) && forwardBuffer >= bufferLowWaterLine) {
+  if ((!bufferWaterLineSelector || nextBandwidth > currBandwidth) && forwardBuffer >= bufferLowWaterLine) {
     let logLine = `${sharedLogLine} as forwardBuffer >= bufferLowWaterLine (${forwardBuffer} >= ${bufferLowWaterLine})`;
 
-    if (useBufferWaterLines) {
+    if (bufferWaterLineSelector) {
       logLine += ` and next bandwidth > current bandwidth (${nextBandwidth} > ${currBandwidth})`;
     }
     log(logLine);
@@ -153,7 +153,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     Vhs = externVhs;
 
-    this.useBufferWaterLines = Boolean(bufferWaterLineSelector);
+    this.bufferWaterLineSelector = Boolean(bufferWaterLineSelector);
     this.withCredentials = withCredentials;
     this.tech_ = tech;
     this.vhs_ = tech.vhs;
@@ -534,7 +534,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       bufferLowWaterLine,
       bufferHighWaterLine,
       duration: this.duration(),
-      useBufferWaterLines: this.useBufferWaterLines,
+      bufferWaterLineSelector: this.bufferWaterLineSelector,
       log: this.logger_
     });
   }
@@ -556,7 +556,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     this.mainSegmentLoader_.on('progress', () => {
-      if (this.useBufferWaterLines) {
+      if (this.bufferWaterLineSelector) {
         const nextPlaylist = this.selectPlaylist();
 
         if (this.shouldSwitchToMedia_(nextPlaylist)) {
@@ -605,7 +605,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
         blacklistDuration: ABORT_EARLY_BLACKLIST_SECONDS
       };
 
-      if (this.useBufferWaterLines) {
+      if (this.bufferWaterLineSelector) {
         const currentPlaylist = this.masterPlaylistLoader_.media();
 
         currentPlaylist.excludeUntil = ABORT_EARLY_BLACKLIST_SECONDS;
