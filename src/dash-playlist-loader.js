@@ -43,7 +43,7 @@ export const parseMasterXml = ({ masterXml, srcUrl, clientOffset, sidxMapping })
     sidxMapping
   });
 
-  addPropertiesToMaster(master, srcUrl, 'dash');
+  addPropertiesToMaster(master, srcUrl);
 
   return master;
 };
