@@ -194,7 +194,7 @@ export const filterChangedSidxMappings = (masterXml, srcUrl, clientOffset, oldSi
 export const requestSidx_ = (loader, sidxRange, playlist, xhr, options, finishProcessingFn) => {
   const sidxInfo = {
     // resolve the segment URL relative to the playlist
-    uri: resolveManifestRedirect(options.handleManifestRedirects, sidxRange.resolvedUri),
+    uri: resolveManifestRedirect(options.handleManifestRedirects, sidxRange.resolvedUri, xhr),
     // resolvedUri: sidxRange.resolvedUri,
     byterange: sidxRange.byterange,
     // the segment's playlist
