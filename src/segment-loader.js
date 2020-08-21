@@ -1257,9 +1257,13 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   generateSegmentInfo_(playlist, mediaIndex, startOfSegment, isSyncRequest) {
-    if (mediaIndex < 0 || mediaIndex >= playlist.segments.length) {
+    if (mediaIndex >= playlist.segments.length) {
       return null;
     }
+    // if media index is negative, it means the segment loader is trying to
+    // load an item expired (abs(mediaIndex) * segment duration) ago. So it might 
+    // be worthwhile to skip to the first item on the playlist
+    mediaIndex = Math.max(0, mediaIndex);
 
     const segment = playlist.segments[mediaIndex];
     const audioBuffered = this.sourceUpdater_.audioBuffered();
