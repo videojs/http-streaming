@@ -1261,7 +1261,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       return null;
     }
     // if media index is negative, it means the segment loader is trying to
-    // load an item expired (abs(mediaIndex) * segment duration) ago. So it might 
+    // load an item expired (abs(mediaIndex) * segment duration) ago. So it might
     // be worthwhile to skip to the first item on the playlist
     mediaIndex = Math.max(0, mediaIndex);
 
