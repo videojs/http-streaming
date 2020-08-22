@@ -119,7 +119,7 @@ const segmentInfoString = (segmentInfo) => {
  * @return {number}
  *        A number representing the amount buffered 
  */
-const bufferedTimeBeyondCurrentTime = (buffered, currentTime) = {
+const bufferedTimeBeyondCurrentTime = (buffered, currentTime) => {
   if (!buffered || !buffered.length || isNaN(currentTime)) {
     return 0;
   }
@@ -134,7 +134,7 @@ const bufferedTimeBeyondCurrentTime = (buffered, currentTime) = {
     }
   }
   return Math.max(0, totalBufferedTime);
-}
+};
 
 /**
  * Returns the timestamp offset to use for the segment.
@@ -1184,7 +1184,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       return null;
     }
 
-    const bufferedTime = bufferedTimeBeyondCurrentTime(buffered, currentTime)
+    const bufferedTime = bufferedTimeBeyondCurrentTime(buffered, currentTime);
     // if there is plenty of content buffered, and the video has
     // been played before relax for awhile
     if (bufferedTime >= this.goalBufferLength_()) {
