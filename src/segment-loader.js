@@ -109,21 +109,22 @@ const segmentInfoString = (segmentInfo) => {
 };
 
 /**
- * Returns the buffered time beyond current time 
+ * Returns the buffered time beyond current time
  *
  * @param {TimeRange[]} buffered
  *        The loader's buffer
- * @param {number} currentTime 
- *        The player's currentTime 
+ * @param {number} currentTime
+ *        The player's currentTime
  *
  * @return {number}
- *        A number representing the amount buffered 
+ *        A number representing the amount buffered
  */
 const bufferedTimeBeyondCurrentTime = (buffered, currentTime) => {
   if (!buffered || !buffered.length || isNaN(currentTime)) {
     return 0;
   }
   let totalBufferedTime = 0;
+
   for (let i = 0; i < buffered.length; i++) {
     // case where currentTime falls within the buffered interval
     if (buffered.start(i) <= currentTime && currentTime <= buffered.end(i)) {
@@ -1182,6 +1183,10 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     if (!playlist.segments.length) {
       return null;
+    }
+
+    if (buffered.length) {
+      lastBufferedEnd = buffered.end(buffered.length - 1);
     }
 
     const bufferedTime = bufferedTimeBeyondCurrentTime(buffered, currentTime);
