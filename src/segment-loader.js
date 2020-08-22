@@ -1190,6 +1190,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     const bufferedTime = bufferedTimeBeyondCurrentTime(buffered, currentTime);
+
     // if there is plenty of content buffered, and the video has
     // been played before relax for awhile
     if (bufferedTime >= this.goalBufferLength_()) {
