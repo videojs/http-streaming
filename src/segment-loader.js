@@ -108,6 +108,8 @@ const segmentInfoString = (segmentInfo) => {
   ].join(' ');
 };
 
+const timingInfoPropertyForMedia = (mediaType) => `${mediaType}TimingInfo`;
+
 /**
  * Returns the buffered time beyond current time
  *
