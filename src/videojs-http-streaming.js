@@ -136,7 +136,7 @@ const emeKeySystems = (keySystemOptions, videoPlaylist, audioPlaylist) => {
     audio: audioPlaylist && audioPlaylist.attributes && audioPlaylist.attributes.CODECS
   };
 
-  if (!codecs.audio && codecs.video.split(',').length > 1) {
+  if (!codecs.audio && codecs.video && codecs.video.split(',').length > 1) {
     codecs.video.split(',').forEach(function(codec) {
       codec = codec.trim();
 
