@@ -243,13 +243,12 @@ const setupEmeOptions = ({
   audioMedia,
   mainPlaylists
 }) => {
-  if (!player.eme) {
-    return;
-  }
-
   const sourceOptions = emeKeySystems(sourceKeySystems, media, audioMedia);
 
-  if (!sourceOptions) {
+  if (!player.eme || !sourceOptions) {
+    if (sourceOptions) {
+      player.error({code: 5, message: 'DRM encrypted source cannot be decrypted without DRM plugin'});
+    }
     return;
   }
 
@@ -825,7 +824,8 @@ class VhsHandler extends Component {
 
       setupEmeOptions({
         player: this.player_,
-        sourceKeySystems: this.source_.keySystems,
+        // eslint-disable-next-line
+        sourceKeySystems: this.source_.keySystems || this.source_.key_systems,
         media: this.playlists.media(),
         audioMedia: audioPlaylistLoader && audioPlaylistLoader.media(),
         mainPlaylists: this.playlists.master.playlists
