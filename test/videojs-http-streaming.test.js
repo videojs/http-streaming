@@ -5766,7 +5766,7 @@ QUnit.module('setupEmeOptions', {
 });
 
 QUnit.test('no error if no eme', function(assert) {
-  const player = {};
+  const player = {error: () => {}};
   const sourceKeySystems = {};
   const media = {};
   const audioMedia = {};
