@@ -247,7 +247,8 @@ const setupEmeOptions = ({
 
   if (!player.eme || !sourceOptions) {
     if (sourceOptions) {
-      player.error({code: 5, message: 'DRM encrypted source cannot be decrypted without DRM plugin'});
+      videojs.log.error('DRM encrypted source cannot be decrypted without a DRM plugin');
+      player.error({code: 5});
     }
     return;
   }
