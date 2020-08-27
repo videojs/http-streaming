@@ -7,7 +7,7 @@ Briefly describe the issue.
 Include a [reduced test case](https://css-tricks.com/reduced-test-cases/), we have a [starter template](https://jsbin.com/gejugat/edit?html,output) on JSBin you can use.
 
 ## Sources
-Is a certain source or a certain segment affected? please provide a public (accesible over the internet) link to it below.
+Is a certain source or a certain segment affected? please provide a public (accessible over the internet) link to it below.
 
 ## Steps to reproduce
 Explain in detail the exact steps necessary to reproduce the issue.
