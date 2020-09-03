@@ -633,12 +633,12 @@ export default class DashPlaylistLoader extends EventTarget {
     this.mediaRequest_ = null;
 
     if (!this.masterPlaylistLoader_) {
-      this.master = parseMasterXml({
+      this.updateMainManifest_(parseMasterXml({
         masterXml: this.masterXml_,
         srcUrl: this.srcUrl,
         clientOffset: this.clientOffset_,
         sidxMapping: this.sidxMapping_
-      });
+      }));
       // We have the master playlist at this point, so
       // trigger this to allow MasterPlaylistController
       // to make an initial playlist selection
@@ -665,6 +665,26 @@ export default class DashPlaylistLoader extends EventTarget {
       this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
         this.trigger('minimumUpdatePeriod');
       }, this.master.minimumUpdatePeriod || this.media().targetDuration * 1000);
+    }
+  }
+
+  /**
+   * Given a new manifest, update our pointer to it and update the srcUrl based on the location elements of the manifest, if they exist.
+   *
+   * @param {Object} updatedManifest the manifest to update to
+   */
+  updateMainManifest_(updatedManifest) {
+    this.master = updatedManifest;
+
+    // if locations isn't set or is an empty array, exit early
+    if (!this.master.locations || !this.master.locations.length) {
+      return;
+    }
+
+    const location = this.master.locations[0];
+
+    if (location !== this.srcUrl) {
+      this.srcUrl = location;
     }
   }
 
@@ -759,7 +779,7 @@ export default class DashPlaylistLoader extends EventTarget {
             );
           }
         } else {
-          this.master = updatedMaster;
+          this.updateMainManifest_(updatedMaster);
           if (this.media_) {
             this.media_ = this.master.playlists[this.media_.id];
           }
