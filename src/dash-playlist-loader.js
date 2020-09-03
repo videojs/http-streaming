@@ -94,6 +94,10 @@ export const updateMaster = (oldMaster, newMaster) => {
     }
   });
 
+  if (newMaster.minimumUpdatePeriod !== oldMaster.minimumUpdatePeriod) {
+    noChanges = false;
+  }
+
   if (noChanges) {
     return null;
   }
@@ -657,16 +661,10 @@ export default class DashPlaylistLoader extends EventTarget {
       this.media(this.master.playlists[0]);
     }
 
-    // TODO: minimumUpdatePeriod can have a value of 0. Currently the manifest will not
-    // be refreshed when this is the case. The inter-op guide says that when the
-    // minimumUpdatePeriod is 0, the manifest should outline all currently available
-    // segments, but future segments may require an update. I think a good solution
-    // would be to update the manifest at the same rate that the media playlists
-    // are "refreshed", i.e. every targetDuration.
-    if (this.master && this.master.minimumUpdatePeriod) {
+    if (this.master && this.master.minimumUpdatePeriod >= 0) {
       this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
         this.trigger('minimumUpdatePeriod');
-      }, this.master.minimumUpdatePeriod);
+      }, this.master.minimumUpdatePeriod || this.media().targetDuration * 1000);
     }
   }
 
@@ -746,10 +744,11 @@ export default class DashPlaylistLoader extends EventTarget {
 
                 // Clear & reset timeout with new minimumUpdatePeriod
                 window.clearTimeout(this.minimumUpdatePeriodTimeout_);
-                if (this.master.minimumUpdatePeriod) {
+
+                if (this.master.minimumUpdatePeriod >= 0) {
                   this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
                     this.trigger('minimumUpdatePeriod');
-                  }, this.master.minimumUpdatePeriod);
+                  }, this.master.minimumUpdatePeriod || playlist.targetDuration * 1000);
                 }
 
                 // TODO: do we need to reload the current playlist?
@@ -769,10 +768,11 @@ export default class DashPlaylistLoader extends EventTarget {
 
       // Clear & reset timeout with new minimumUpdatePeriod
       window.clearTimeout(this.minimumUpdatePeriodTimeout_);
-      if (this.master.minimumUpdatePeriod) {
+
+      if (this.master.minimumUpdatePeriod >= 0) {
         this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
           this.trigger('minimumUpdatePeriod');
-        }, this.master.minimumUpdatePeriod);
+        }, this.master.minimumUpdatePeriod || this.media().targetDuration * 1000);
       }
     });
   }
