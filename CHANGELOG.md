@@ -1,3 +1,11 @@
+<a name="1.13.4"></a>
+## [1.13.4](https://github.com/videojs/http-streaming/compare/v1.13.3...v1.13.4) (2020-09-09)
+
+### Chores
+
+* **package:** update muxjs to 5.6.1 fix various issues ([#833](https://github.com/videojs/http-streaming/issues/833)) ([3baf4f1](https://github.com/videojs/http-streaming/commit/3baf4f1))
+* remove engine check in pkcs7, update live dash url ([#946](https://github.com/videojs/http-streaming/issues/946)) ([59f8ca2](https://github.com/videojs/http-streaming/commit/59f8ca2))
+
 <a name="1.13.3"></a>
 ## [1.13.3](https://github.com/videojs/http-streaming/compare/v1.13.2...v1.13.3) (2020-04-22)
 
