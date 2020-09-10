@@ -21,7 +21,10 @@ export const resolveManifestRedirect = (handleManifestRedirect, url, req) => {
   // To understand how the responseURL below is set and generated:
   // - https://fetch.spec.whatwg.org/#concept-response-url
   // - https://fetch.spec.whatwg.org/#atomic-http-redirect-handling
-  if (handleManifestRedirect && req.responseURL &&
+  if (
+    handleManifestRedirect &&
+    req &&
+    req.responseURL &&
     url !== req.responseURL
   ) {
     return req.responseURL;
