@@ -63,7 +63,7 @@ not meant serve as an exhaustive list.
 * Video only (non DRM)
 * In-manifest [WebVTT] subtitles are automatically translated into standard HTML5 subtitle
   tracks
-* [AES-128] and SAMPLE-AES segment encryption
+* [AES-128] segment encryption
 
 ## Notable Missing Features
 
@@ -126,6 +126,7 @@ not yet been implemented. VHS currently supports everything in the
 * Use of AVERAGE-BANDWIDTH in [EXT-X-STREAM-INF] (value parsed but not used)
 * Use of FRAME-RATE in [EXT-X-STREAM-INF] (value parsed but not used)
 * Use of HDCP-LEVEL in [EXT-X-STREAM-INF]
+* SAMPLE-AES segment encryption
 
 In the event of encoding changes within a playlist (see
 https://tools.ietf.org/html/draft-pantos-http-live-streaming-23#section-6.3.3), the
