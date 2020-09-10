@@ -1343,7 +1343,6 @@ export default class SegmentLoader extends videojs.EventTarget {
    *
    * @param {Object} stats
    *        Object containing stats about the request timing and size
-   * @return {boolean} True if the request was aborted, false otherwise
    * @private
    */
   earlyAbortWhenNeeded_(stats) {

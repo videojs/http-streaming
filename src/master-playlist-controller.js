@@ -602,14 +602,19 @@ export class MasterPlaylistController extends videojs.EventTarget {
       if (this.bufferWaterLineSelector) {
         const currentPlaylist = this.masterPlaylistLoader_.media();
 
+        // temporarily exclude the current playlist so that we can
+        // determine the next playlist that would be selected
+        // if this playlist were to be blacklisted.
         currentPlaylist.excludeUntil = ABORT_EARLY_BLACKLIST_SECONDS;
 
         const nextPlaylist = this.selectPlaylist();
 
+        // un-exclude the current playlist for now
         currentPlaylist.excludeUntil = null;
 
-        this.logger_(`earlyabort triggered, but we will not be switching from ${currentPlaylist.id} -> ${nextPlaylist.id}.`);
+        // if we shouldn't switch to the next playlist, do nothing
         if (!this.shouldSwitchToMedia_(nextPlaylist)) {
+          this.logger_(`earlyabort triggered, but we will not be switching from ${currentPlaylist.id} -> ${nextPlaylist.id}.`);
           return;
         }
       }
