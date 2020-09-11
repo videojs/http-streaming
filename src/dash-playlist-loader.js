@@ -650,6 +650,16 @@ export default class DashPlaylistLoader extends EventTarget {
     }
   }
 
+  updateMinimumUpdatePeriodTimeout_() {
+    const minimumUpdatePeriod = this.master && this.master.minimumUpdatePeriod;
+
+    if (minimumUpdatePeriod >= 0) {
+      this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
+        this.trigger('minimumUpdatePeriod');
+      }, minimumUpdatePeriod || this.media().targetDuration * 1000);
+    }
+  }
+
   /**
    * Handler for after client/server clock synchronization has happened. Sets up
    * xml refresh timer if specificed by the manifest.
@@ -661,11 +671,7 @@ export default class DashPlaylistLoader extends EventTarget {
       this.media(this.master.playlists[0]);
     }
 
-    if (this.master && this.master.minimumUpdatePeriod >= 0) {
-      this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
-        this.trigger('minimumUpdatePeriod');
-      }, this.master.minimumUpdatePeriod || this.media().targetDuration * 1000);
-    }
+    this.updateMinimumUpdatePeriodTimeout_();
   }
 
   /**
@@ -765,11 +771,7 @@ export default class DashPlaylistLoader extends EventTarget {
                 // Clear & reset timeout with new minimumUpdatePeriod
                 window.clearTimeout(this.minimumUpdatePeriodTimeout_);
 
-                if (this.master.minimumUpdatePeriod >= 0) {
-                  this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
-                    this.trigger('minimumUpdatePeriod');
-                  }, this.master.minimumUpdatePeriod || playlist.targetDuration * 1000);
-                }
+                this.updateMinimumUpdatePeriodTimeout_();
 
                 // TODO: do we need to reload the current playlist?
                 this.refreshMedia_(this.media().id);
@@ -789,11 +791,7 @@ export default class DashPlaylistLoader extends EventTarget {
       // Clear & reset timeout with new minimumUpdatePeriod
       window.clearTimeout(this.minimumUpdatePeriodTimeout_);
 
-      if (this.master.minimumUpdatePeriod >= 0) {
-        this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
-          this.trigger('minimumUpdatePeriod');
-        }, this.master.minimumUpdatePeriod || this.media().targetDuration * 1000);
-      }
+      this.updateMinimumUpdatePeriodTimeout_();
     });
   }
 
