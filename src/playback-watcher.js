@@ -446,8 +446,8 @@ export default class PlaybackWatcher {
     const sourceUpdater = this.tech_.vhs.masterPlaylistController_.sourceUpdater_;
     const buffered = this.tech_.buffered();
     const videoUnderflow = this.videoUnderflow_({
-      audioBuffered: sourceUpdater.audioBuffer && sourceUpdater.audioBuffered() || null,
-      videoBuffered: sourceUpdater.videoBuffer && sourceUpdater.videoBuffered() || null,
+      audioBuffered: sourceUpdater.audioBuffered(),
+      videoBuffered: sourceUpdater.videoBuffered(),
       currentTime
     });
 
@@ -519,12 +519,17 @@ export default class PlaybackWatcher {
   }
 
   videoUnderflow_({videoBuffered, audioBuffered, currentTime}) {
+    // audio only content will not have video underflor :)
     if (!videoBuffered) {
       return;
     }
     let gap;
 
+    // find a gap in demuxed content.
     if (videoBuffered.length && audioBuffered.length) {
+      // in Chrome audio will continue to play for ~3 when we run out of video
+      // so we have to check that the video buffer did have some buffer in the
+      // past.
       const lastVideoRange = Ranges.findRange(videoBuffered, currentTime - 3);
       const videoRange = Ranges.findRange(videoBuffered, currentTime);
       const audioRange = Ranges.findRange(audioBuffered, currentTime);
@@ -533,8 +538,9 @@ export default class PlaybackWatcher {
         gap = {start: lastVideoRange.end(0), end: audioRange.end(0)};
       }
 
+    // find a gap in muxed content.
     } else {
-      const nextRange = Ranges.findNextRange(audioBuffered, currentTime);
+      const nextRange = Ranges.findNextRange(videoBuffered, currentTime);
 
       // Even if there is no available next range, there is still a possibility we are
       // stuck in a gap due to video underflow.

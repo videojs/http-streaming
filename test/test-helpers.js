@@ -183,13 +183,24 @@ export const useFakeEnvironment = function(assert) {
         if (this.log && this.log[level] && this.log[level].restore) {
           if (assert) {
             const calls = (this.log[level].args || []).map((args) => {
-              return args.join(', ');
+              return args.reduce((acc, val) => {
+                if (acc) {
+                  acc += ', ';
+                }
+
+                acc += val;
+
+                if (val.stack) {
+                  acc += '\n' + val.stack;
+                }
+                return acc;
+              }, '');
             }).join('\n  ');
 
             assert.equal(
               this.log[level].callCount,
               0,
-              'no unexpected logs at level "' + level + '":\n  ' + calls
+              'no unexpected logs at level "' + level + '":\n' + calls
             );
           }
           this.log[level].restore();

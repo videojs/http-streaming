@@ -151,7 +151,7 @@ QUnit.test('skips over gap in chrome without waiting event', function(assert) {
   assert.equal(hlsGapSkipEvents, 1, 'there is one skipped gap');
 });
 
-QUnit.test('skips over gap in Chrome due to video underflow', function(assert) {
+QUnit.test('skips over gap in Chrome due to muxed video underflow', function(assert) {
   let vhsVideoUnderflowEvents = 0;
   let hlsVideoUnderflowEvents = 0;
 
@@ -165,10 +165,6 @@ QUnit.test('skips over gap in Chrome due to video underflow', function(assert) {
       hlsVideoUnderflowEvents++;
     }
   });
-
-  this.player.tech_.buffered = () => {
-    return videojs.createTimeRanges([[0, 10], [10.1, 20]]);
-  };
 
   // set an arbitrary source
   this.player.src({
@@ -188,6 +184,12 @@ QUnit.test('skips over gap in Chrome due to video underflow', function(assert) {
   assert.equal(vhsVideoUnderflowEvents, 0, 'no video underflow event got triggered');
   assert.equal(hlsVideoUnderflowEvents, 0, 'no video underflow event got triggered');
 
+  const mpc = this.player.tech_.vhs.masterPlaylistController_;
+
+  mpc.sourceUpdater_.videoBuffered = () => {
+    return videojs.createTimeRanges([[0, 10], [10.1, 20]]);
+  };
+
   this.player.currentTime(13);
 
   const seeks = [];
@@ -200,6 +202,65 @@ QUnit.test('skips over gap in Chrome due to video underflow', function(assert) {
 
   assert.equal(seeks.length, 1, 'one seek');
   assert.equal(seeks[0], 13, 'player seeked to current time');
+  assert.equal(vhsVideoUnderflowEvents, 1, 'triggered a video underflow event');
+  assert.equal(hlsVideoUnderflowEvents, 1, 'triggered a video underflow event');
+});
+
+QUnit.test('skips over gap in Chrome due to demuxed video underflow', function(assert) {
+  let vhsVideoUnderflowEvents = 0;
+  let hlsVideoUnderflowEvents = 0;
+
+  this.player.autoplay(true);
+
+  this.player.tech_.on('usage', (event) => {
+    if (event.name === 'vhs-video-underflow') {
+      vhsVideoUnderflowEvents++;
+    }
+    if (event.name === 'hls-video-underflow') {
+      hlsVideoUnderflowEvents++;
+    }
+  });
+
+  // set an arbitrary source
+  this.player.src({
+    src: 'master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  // start playback normally
+  this.player.tech_.triggerReady();
+  this.clock.tick(1);
+  standardXHRResponse(this.requests.shift());
+  openMediaSource(this.player, this.clock);
+  this.player.tech_.trigger('play');
+  this.player.tech_.trigger('playing');
+  this.clock.tick(1);
+
+  assert.equal(vhsVideoUnderflowEvents, 0, 'no video underflow event got triggered');
+  assert.equal(hlsVideoUnderflowEvents, 0, 'no video underflow event got triggered');
+
+  const mpc = this.player.tech_.vhs.masterPlaylistController_;
+
+  mpc.sourceUpdater_.videoBuffered = () => {
+    return videojs.createTimeRanges([[0, 10], [10, 15]]);
+  };
+
+  mpc.sourceUpdater_.audioBuffered = () => {
+    return videojs.createTimeRanges([[0, 10], [10, 20]]);
+  };
+
+  this.player.currentTime(18);
+
+  const seeks = [];
+
+  this.player.tech_.setCurrentTime = (time) => {
+    seeks.push(time);
+  };
+
+  this.player.tech_.trigger('waiting');
+
+  assert.equal(seeks.length, 1, 'one seek');
+  assert.equal(seeks[0], 18, 'player seeked to current time');
   assert.equal(vhsVideoUnderflowEvents, 1, 'triggered a video underflow event');
   assert.equal(hlsVideoUnderflowEvents, 1, 'triggered a video underflow event');
 });
@@ -429,7 +490,7 @@ QUnit.test('fires notifications when activated', function(assert) {
   this.player.tech_.currentTime = function() {
     return currentTime;
   };
-  this.player.tech_.buffered = function() {
+  this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.videoBuffered = function() {
     return {
       length: buffered.length,
       start(i) {
@@ -570,7 +631,16 @@ QUnit.test('corrects seek outside of seekable', function(assert) {
     currentTime: () => currentTime,
     // mocked out
     paused: () => false,
-    buffered: () => videojs.createTimeRanges()
+    buffered: () => videojs.createTimeRanges(),
+    trigger: () => {},
+    vhs: {
+      masterPlaylistController_: {
+        sourceUpdater_: {
+          videoBuffered: () => {},
+          audioBuffered: () => {}
+        }
+      }
+    }
   };
 
   // waiting
@@ -1078,7 +1148,7 @@ QUnit.module('PlaybackWatcher isolated functions', {
   }
 });
 
-QUnit.test('skips gap from video underflow', function(assert) {
+QUnit.test('skips gap from muxed video underflow', function(assert) {
   assert.equal(
     this.playbackWatcher.gapFromVideoUnderflow_(videojs.createTimeRanges(), 0),
     null,
