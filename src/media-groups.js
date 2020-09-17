@@ -375,7 +375,7 @@ export const initialize = {
       sourceType,
       segmentLoaders: { [type]: segmentLoader },
       requestOptions,
-      master: { mediaGroups },
+      master: { mediaGroups, playlists },
       mediaTypes: {
         [type]: {
           groups,
@@ -398,10 +398,30 @@ export const initialize = {
 
       // List of playlists that have an AUDIO attribute value matching the current
       // group ID
+      const groupPlaylists = playlists.filter(playlist => {
+        return playlist.attributes[type] === groupId;
+      });
 
+      // List of playlists that have an AUDIO attribute value matching the current
+      // group ID
       for (const variantLabel in mediaGroups[type][groupId]) {
         let properties = mediaGroups[type][groupId][variantLabel];
         let playlistLoader;
+
+        // List of playlists for the current group ID that have a matching uri with
+        // this alternate audio variant
+        const matchingPlaylists = groupPlaylists.filter(playlist => {
+          return playlist.resolvedUri === properties.resolvedUri;
+        });
+
+        if (matchingPlaylists.length) {
+          // If there is a playlist that has the same uri as this audio variant, assume
+          // that the playlist is audio only. We delete the resolvedUri property here
+          // to prevent a playlist loader from being created so that we don't have
+          // both the main and audio segment loaders loading the same audio segments
+          // from the same playlist.
+          delete properties.resolvedUri;
+        }
 
         // if vhs-json was provided as the source, and the media playlist was resolved,
         // use the resolved media playlist object

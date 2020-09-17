@@ -297,5 +297,11 @@
       "com.widevine.alpha": "https://amssamples.keydelivery.mediaservices.windows.net/Widevine/?KID=1ab45440-532c-4399-94dc-5c5ad9584bac",
       "com.microsoft.playready": "https://amssamples.keydelivery.mediaservices.windows.net/PlayReady/"
     }
+  },
+  {
+    "name": "Big Buck Bunny Audio only, groups have same uri as renditons",
+    "uri": "https://d2zihajmogu5jn.cloudfront.net/audio-only-dupe-groups/prog_index.m3u8",
+    "mimetype": "application/x-mpegurl",
+    "features": []
   }
 ]

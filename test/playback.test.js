@@ -218,6 +218,25 @@ QUnit[testFn]('Big Buck Bunny', function(assert) {
   });
 });
 
+QUnit[testFn]('Big Buck Bunny audio only, groups & renditions same uri', function(assert) {
+  const done = assert.async();
+
+  assert.expect(2);
+  const player = this.player;
+
+  playFor(player, 2, function() {
+    assert.ok(true, 'played for at least two seconds');
+    assert.equal(player.error(), null, 'has no player errors');
+
+    done();
+  });
+
+  player.src({
+    src: 'https://d2zihajmogu5jn.cloudfront.net/audio-only-dupe-groups/prog_index.m3u8',
+    type: 'application/x-mpegURL'
+  });
+});
+
 QUnit[testFn]('Live DASH', function(assert) {
   const done = assert.async();
 
