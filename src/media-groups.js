@@ -402,11 +402,8 @@ export const initialize = {
         return playlist.attributes[type] === groupId;
       });
 
-      // List of playlists that have an AUDIO attribute value matching the current
-      // group ID
       for (const variantLabel in mediaGroups[type][groupId]) {
         let properties = mediaGroups[type][groupId][variantLabel];
-        let playlistLoader;
 
         // List of playlists for the current group ID that have a matching uri with
         // this alternate audio variant
@@ -422,6 +419,8 @@ export const initialize = {
           // from the same playlist.
           delete properties.resolvedUri;
         }
+
+        let playlistLoader;
 
         // if vhs-json was provided as the source, and the media playlist was resolved,
         // use the resolved media playlist object
