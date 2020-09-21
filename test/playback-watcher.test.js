@@ -242,11 +242,11 @@ QUnit.test('skips over gap in Chrome due to demuxed video underflow', function(a
   const mpc = this.player.tech_.vhs.masterPlaylistController_;
 
   mpc.sourceUpdater_.videoBuffered = () => {
-    return videojs.createTimeRanges([[0, 10], [10, 15]]);
+    return videojs.createTimeRanges([[0, 15]]);
   };
 
   mpc.sourceUpdater_.audioBuffered = () => {
-    return videojs.createTimeRanges([[0, 10], [10, 20]]);
+    return videojs.createTimeRanges([[0, 20]]);
   };
 
   this.player.currentTime(18);
