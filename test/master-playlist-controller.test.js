@@ -3620,14 +3620,14 @@ QUnit.test('creates source buffers after second trackinfo if demuxed', function(
     '#EXTM3U\n' +
     '#EXT-X-VERSION:4\n' +
     '#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="en",DEFAULT=YES,AUTOSELECT=YES,' +
-      'LANGUAGE="en",URI="media.m3u8"\n' +
+      'LANGUAGE="en",URI="media-audio.m3u8"\n' +
     '#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=1,AUDIO="audio"\n' +
     'media.m3u8\n'
   );
   // video media
   this.standardXHRResponse(this.requests.shift());
   // audio media
-  this.standardXHRResponse(this.requests.shift());
+  this.standardXHRResponse(this.requests.shift(), manifests.media);
 
   assert.equal(createSourceBufferCalls.length, 0, 'have not created source buffers yet');
 
@@ -3903,7 +3903,7 @@ QUnit.test('uses codec info from manifest for source buffer creation even when d
     '#EXTM3U\n' +
       '#EXT-X-VERSION:4\n' +
       '#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio",NAME="en",DEFAULT=YES,AUTOSELECT=YES,' +
-        'LANGUAGE="en",URI="media.m3u8"\n' +
+        'LANGUAGE="en",URI="media-audio.m3u8"\n' +
       '#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=1,AUDIO="audio",' +
         'CODECS="mp4a.40.e, avc1.deadbeef"\n' +
       'media.m3u8\n'
@@ -3912,7 +3912,7 @@ QUnit.test('uses codec info from manifest for source buffer creation even when d
   // video media
   this.standardXHRResponse(this.requests.shift());
   // audio media
-  this.standardXHRResponse(this.requests.shift());
+  this.standardXHRResponse(this.requests.shift(), manifests.media);
 
   assert.equal(createSourceBufferCalls.length, 0, 'have not created source buffers yet');
 
