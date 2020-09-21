@@ -1652,7 +1652,7 @@ QUnit.test('does not blacklist compatible H.264 codec strings', function(assert)
   const master = this.player.tech_.vhs.playlists.master;
   const loader = this.player.tech_.vhs.masterPlaylistController_.mainSegmentLoader_;
 
-  loader.startingMedia_ = {hasVideo: true, hasAudio: true};
+  loader.currentMediaInfo_ = {hasVideo: true, hasAudio: true};
   loader.trigger('trackinfo');
 
   assert.strictEqual(
@@ -1697,7 +1697,7 @@ QUnit.test('does not blacklist compatible AAC codec strings', function(assert) {
   const loader = this.player.tech_.vhs.masterPlaylistController_.mainSegmentLoader_;
   const master = this.player.tech_.vhs.playlists.master;
 
-  loader.startingMedia_ = {hasVideo: true, hasAudio: true};
+  loader.currentMediaInfo_ = {hasVideo: true, hasAudio: true};
   loader.trigger('trackinfo');
 
   assert.strictEqual(
@@ -1758,7 +1758,7 @@ QUnit.test('blacklists incompatible playlists by codec, without codec switching'
 
   mpc.sourceUpdater_.canChangeType = () => false;
 
-  loader.startingMedia_ = {hasVideo: true, hasAudio: true};
+  loader.currentMediaInfo_ = {hasVideo: true, hasAudio: true};
   loader.trigger('trackinfo');
   const playlists = master.playlists;
 
@@ -1818,7 +1818,7 @@ QUnit.test('does not blacklist incompatible codecs with codec switching', functi
 
   mpc.sourceUpdater_.canChangeType = () => true;
 
-  loader.startingMedia_ = {hasVideo: true, hasAudio: true};
+  loader.currentMediaInfo_ = {hasVideo: true, hasAudio: true};
   loader.trigger('trackinfo');
   const playlists = master.playlists;
 
@@ -1882,17 +1882,17 @@ QUnit.test('blacklists fmp4 playlists by browser support', function(assert) {
 
   playlistLoader.media = () => playlists[0];
   loader.mainStartingMedia_ = playlists[0];
-  loader.startingMedia_ = {hasVideo: true, hasAudio: true, isFmp4: true};
+  loader.currentMediaInfo_ = {hasVideo: true, hasAudio: true, isFmp4: true};
   loader.trigger('trackinfo');
 
   playlistLoader.media = () => playlists[1];
   loader.mainStartingMedia_ = playlists[1];
-  loader.startingMedia_ = {hasVideo: true, hasAudio: true, isFmp4: true};
+  loader.currentMediaInfo_ = {hasVideo: true, hasAudio: true, isFmp4: true};
   loader.trigger('trackinfo');
 
   playlistLoader.media = () => playlists[2];
   loader.mainStartingMedia_ = playlists[2];
-  loader.startingMedia_ = {hasVideo: true, hasAudio: true, isFmp4: true};
+  loader.currentMediaInfo_ = {hasVideo: true, hasAudio: true, isFmp4: true};
   loader.trigger('trackinfo');
 
   assert.strictEqual(playlists.length, 3, 'three playlists total');
@@ -1950,17 +1950,17 @@ QUnit.test('blacklists ts playlists by muxer support', function(assert) {
 
   playlistLoader.media = () => playlists[0];
   loader.mainStartingMedia_ = playlists[0];
-  loader.startingMedia_ = {hasVideo: true, hasAudio: true};
+  loader.currentMediaInfo_ = {hasVideo: true, hasAudio: true};
   loader.trigger('trackinfo');
 
   playlistLoader.media = () => playlists[1];
   loader.mainStartingMedia_ = playlists[1];
-  loader.startingMedia_ = {hasVideo: true, hasAudio: true};
+  loader.currentMediaInfo_ = {hasVideo: true, hasAudio: true};
   loader.trigger('trackinfo');
 
   playlistLoader.media = () => playlists[2];
   loader.mainStartingMedia_ = playlists[2];
-  loader.startingMedia_ = {hasVideo: true, hasAudio: true};
+  loader.currentMediaInfo_ = {hasVideo: true, hasAudio: true};
   loader.trigger('trackinfo');
 
   assert.strictEqual(playlists.length, 3, 'three playlists total');
