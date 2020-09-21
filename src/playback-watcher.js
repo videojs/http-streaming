@@ -519,7 +519,7 @@ export default class PlaybackWatcher {
   }
 
   videoUnderflow_({videoBuffered, audioBuffered, currentTime}) {
-    // audio only content will not have video underflor :)
+    // audio only content will not have video underflow :)
     if (!videoBuffered) {
       return;
     }
@@ -527,7 +527,7 @@ export default class PlaybackWatcher {
 
     // find a gap in demuxed content.
     if (videoBuffered.length && audioBuffered.length) {
-      // in Chrome audio will continue to play for ~3 when we run out of video
+      // in Chrome audio will continue to play for ~3s when we run out of video
       // so we have to check that the video buffer did have some buffer in the
       // past.
       const lastVideoRange = Ranges.findRange(videoBuffered, currentTime - 3);
