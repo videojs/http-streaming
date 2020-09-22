@@ -108,11 +108,12 @@ export const setupMediaPlaylists = (master, useNameForId) => {
 
   while (i--) {
     const playlist = master.playlists[i];
-    const createId = createPlaylistID(i, playlist.uri);
-    let id = createId;
+    const createdId = createPlaylistID(i, playlist.uri);
+    let id = createdId;
 
-    // DASH Representations can change order across refreshes which can make referring to them by index not work
-    // Instead, use the provided id, available via the NAME attribute.
+    // If useNameForId is set, use the NAME attribute for the ID.
+    // Generally, this will be used for DASH because
+    // DASH Representations can change order across refreshes which can make referring to them by index not work.
     if (useNameForId) {
       id = playlist.attributes && playlist.attributes.NAME || id;
     }
@@ -122,8 +123,8 @@ export const setupMediaPlaylists = (master, useNameForId) => {
       id
     });
     playlist.resolvedUri = resolveUrl(master.uri, playlist.uri);
-    // make sure that if a DASH is used, the old "createId" id is also available
-    master.playlists[createId] = playlist;
+    // make sure that if a useNameForId is true, the old "createdId" id is also available
+    master.playlists[createdId] = playlist;
     master.playlists[playlist.id] = playlist;
     // URI reference added for backwards compatibility
     master.playlists[playlist.uri] = playlist;
