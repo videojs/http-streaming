@@ -5,6 +5,7 @@
  */
 import videojs from 'video.js';
 import window from 'global/window';
+import {TIME_FUDGE_FACTOR} from './ranges.js';
 
 const {createTimeRange} = videojs;
 
@@ -329,32 +330,6 @@ export const seekable = function(playlist, expired, liveEdgePadding) {
   return createTimeRange(seekableStart, seekableEnd);
 };
 
-const isWholeNumber = function(num) {
-  return (num - Math.floor(num)) === 0;
-};
-
-const roundSignificantDigit = function(increment, num) {
-  // If we have a whole number, just add 1 to it
-  if (isWholeNumber(num)) {
-    return num + (increment * 0.1);
-  }
-
-  const numDecimalDigits = num.toString().split('.')[1].length;
-
-  for (let i = 1; i <= numDecimalDigits; i++) {
-    const scale = Math.pow(10, i);
-    const temp = num * scale;
-
-    if (isWholeNumber(temp) ||
-        i === numDecimalDigits) {
-      return (temp + increment) / scale;
-    }
-  }
-};
-
-const ceilLeastSignificantDigit = roundSignificantDigit.bind(null, 1);
-const floorLeastSignificantDigit = roundSignificantDigit.bind(null, -1);
-
 /**
  * Determine the index and estimated starting time of the segment that
  * contains a specified playback position in a media playlist.
@@ -384,7 +359,7 @@ export const getMediaInfoForTime = function(
     if (startIndex > 0) {
       for (i = startIndex - 1; i >= 0; i--) {
         segment = playlist.segments[i];
-        time += floorLeastSignificantDigit(segment.duration);
+        time += (segment.duration + TIME_FUDGE_FACTOR);
         if (time > 0) {
           return {
             mediaIndex: i,
@@ -421,7 +396,7 @@ export const getMediaInfoForTime = function(
   // until we find a segment that contains `time` and return it
   for (i = startIndex; i < numSegments; i++) {
     segment = playlist.segments[i];
-    time -= ceilLeastSignificantDigit(segment.duration);
+    time -= segment.duration + TIME_FUDGE_FACTOR;
     if (time < 0) {
       return {
         mediaIndex: i,
