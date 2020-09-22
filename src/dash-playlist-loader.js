@@ -61,7 +61,7 @@ export const parseMasterXml = ({ masterXml, srcUrl, clientOffset, sidxMapping })
  *         playlists merged in
  */
 export const updateMaster = (oldMaster, newMaster) => {
-  let noChanges;
+  let noChanges = true;
   let update = mergeOptions(oldMaster, {
     // These are top level properties that can be updated
     duration: newMaster.duration,
@@ -74,8 +74,7 @@ export const updateMaster = (oldMaster, newMaster) => {
 
     if (playlistUpdate) {
       update = playlistUpdate;
-    } else {
-      noChanges = true;
+      noChanges = false;
     }
   }
 

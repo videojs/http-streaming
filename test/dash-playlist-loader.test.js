@@ -80,10 +80,15 @@ QUnit.test('updateMaster: returns falsy when there are no changes', function(ass
 
 QUnit.test('updateMaster: updates playlists', function(assert) {
   const master = {
-    playlists: {
-      length: 1,
-      0: { uri: '0', id: '0' }
+    playlists: [{
+      uri: '0',
+      id: '0'
     },
+    {
+      uri: '1',
+      id: '1',
+      segments: []
+    }],
     mediaGroups: {
       AUDIO: {},
       SUBTITLES: {}
@@ -92,15 +97,18 @@ QUnit.test('updateMaster: updates playlists', function(assert) {
     minimumUpdatePeriod: 0
   };
 
+  // Only the first playlist is changed
   const update = {
-    playlists: {
-      length: 1,
-      0: {
-        id: '0',
-        uri: '0',
-        segments: []
-      }
+    playlists: [{
+      id: '0',
+      uri: '0',
+      segments: []
     },
+    {
+      uri: '1',
+      id: '1',
+      segments: []
+    }],
     mediaGroups: {
       AUDIO: {},
       SUBTITLES: {}
@@ -112,14 +120,16 @@ QUnit.test('updateMaster: updates playlists', function(assert) {
   assert.deepEqual(
     updateMaster(master, update),
     {
-      playlists: {
-        length: 1,
-        0: {
-          id: '0',
-          uri: '0',
-          segments: []
-        }
+      playlists: [{
+        id: '0',
+        uri: '0',
+        segments: []
       },
+      {
+        uri: '1',
+        id: '1',
+        segments: []
+      }],
       mediaGroups: {
         AUDIO: {},
         SUBTITLES: {}
