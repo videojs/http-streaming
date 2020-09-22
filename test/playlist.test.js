@@ -1226,6 +1226,98 @@ QUnit.test(
   }
 );
 
+QUnit.test('rounding down works', function(assert) {
+  const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
+
+  loader.load();
+
+  this.requests.shift().respond(
+    200, null,
+    '#EXTM3U\n' +
+    '#EXT-X-MEDIA-SEQUENCE:0\n' +
+    '#EXTINF:2,\n' +
+    '0.ts\n' +
+    '#EXTINF:2,\n' +
+    '1.ts\n' +
+    '#EXTINF:2,\n' +
+    '2.ts\n' +
+    '#EXTINF:2,\n' +
+    '3.ts\n' +
+    '#EXTINF:2,\n' +
+    '4.ts\n' +
+    '#EXTINF:2,\n' +
+    '5.ts\n' +
+    '#EXT-X-ENDLIST\n'
+  );
+
+  const media = loader.media();
+  const fn = Playlist.getMediaInfoForTime;
+
+  // 1 segment away
+  assert.equal(fn(media, 2.1, 0, 0).mediaIndex, 1, '1 away 2 is correct');
+  assert.equal(fn(media, 4.1, 1, 2).mediaIndex, 2, '1 away 3 is correct ');
+  assert.equal(fn(media, 6.1, 2, 4).mediaIndex, 3, '1 away 4 is correct');
+  assert.equal(fn(media, 8.1, 3, 6).mediaIndex, 4, '1 away 5 is correct');
+  assert.equal(fn(media, 10.1, 4, 8).mediaIndex, 5, '1 away 6 is correct');
+
+  // 2 segment away
+  assert.equal(fn(media, 4.1, 0, 0).mediaIndex, 2, '2 away 3 is correct ');
+  assert.equal(fn(media, 6.1, 1, 2).mediaIndex, 3, '2 away 4 is correct');
+  assert.equal(fn(media, 8.1, 2, 4).mediaIndex, 4, '2 away 5 is correct');
+  assert.equal(fn(media, 10.1, 3, 6).mediaIndex, 5, '2 away 6 is correct');
+
+  // 3 segments away
+  assert.equal(fn(media, 6.1, 0, 0).mediaIndex, 3, '3 away 4 is correct');
+  assert.equal(fn(media, 8.1, 1, 2).mediaIndex, 4, '3 away 5 is correct');
+  assert.equal(fn(media, 10.1, 2, 4).mediaIndex, 5, '3 away 6 is correct');
+});
+
+QUnit.test('rounding up works', function(assert) {
+  const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
+
+  loader.load();
+
+  this.requests.shift().respond(
+    200, null,
+    '#EXTM3U\n' +
+    '#EXT-X-MEDIA-SEQUENCE:0\n' +
+    '#EXTINF:2,\n' +
+    '0.ts\n' +
+    '#EXTINF:2,\n' +
+    '1.ts\n' +
+    '#EXTINF:2,\n' +
+    '2.ts\n' +
+    '#EXTINF:2,\n' +
+    '3.ts\n' +
+    '#EXTINF:2,\n' +
+    '4.ts\n' +
+    '#EXTINF:2,\n' +
+    '5.ts\n' +
+    '#EXT-X-ENDLIST\n'
+  );
+
+  const media = loader.media();
+  const fn = Playlist.getMediaInfoForTime;
+
+  // 1 segment away
+  assert.equal(fn(media, 0, 1, 2).mediaIndex, 0, '1 away 1 is correct');
+  assert.equal(fn(media, 2.1, 2, 4).mediaIndex, 1, '1 away 2 is correct');
+  assert.equal(fn(media, 4.1, 3, 6).mediaIndex, 2, '1 away 3 is correct');
+  assert.equal(fn(media, 6.1, 4, 8).mediaIndex, 3, '1 away 4 is correct');
+  assert.equal(fn(media, 8.1, 5, 10).mediaIndex, 4, '1 away 5 is correct');
+
+  // 2 segment away
+  assert.equal(fn(media, 0, 2, 4).mediaIndex, 0, '2 away 1 is correct');
+  assert.equal(fn(media, 2.1, 3, 6).mediaIndex, 1, '2 away 2 is correct');
+  assert.equal(fn(media, 4.1, 4, 8).mediaIndex, 2, '2 away 3 is correct');
+  assert.equal(fn(media, 6.1, 5, 10).mediaIndex, 3, '2 away 4 is correct');
+
+  // 3 segments away
+  assert.equal(fn(media, 0, 3, 6).mediaIndex, 0, '3 away 1 is correct');
+  assert.equal(fn(media, 2.1, 4, 8).mediaIndex, 1, '3 away 2 is correct');
+  assert.equal(fn(media, 4.1, 5, 10).mediaIndex, 2, '3 away 3 is correct');
+});
+
 QUnit.test(
   'returns the lower index when calculating for a segment boundary',
   function(assert) {
