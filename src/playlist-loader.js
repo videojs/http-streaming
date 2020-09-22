@@ -586,7 +586,7 @@ export default class PlaylistLoader extends EventTarget {
 
     if (manifest.playlists) {
       this.master = manifest;
-      addPropertiesToMaster(this.master, this.srcUri(), 'hls');
+      addPropertiesToMaster(this.master, this.srcUri());
       // If the initial master playlist has playlists wtih segments already resolved,
       // then resolve URIs in advance, as they are usually done after a playlist request,
       // which may not happen if the playlist is resolved.

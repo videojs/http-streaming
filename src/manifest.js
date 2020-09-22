@@ -99,8 +99,11 @@ export const setupMediaPlaylist = ({ playlist, uri, id }) => {
  *
  * @param {Object} master
  *        The master playlist
+ * @param {boolean} [useNameForId=false]
+ *        Whether we should use the NAME property for ID.
+ *        Generally only used for DASH and defaults to false.
  */
-export const setupMediaPlaylists = (master, type) => {
+export const setupMediaPlaylists = (master, useNameForId) => {
   let i = master.playlists.length;
 
   while (i--) {
@@ -110,7 +113,7 @@ export const setupMediaPlaylists = (master, type) => {
 
     // DASH Representations can change order across refreshes which can make referring to them by index not work
     // Instead, use the provided id, available via the NAME attribute.
-    if (type === 'dash') {
+    if (useNameForId) {
       id = playlist.attributes && playlist.attributes.NAME || id;
     }
 
@@ -197,8 +200,11 @@ export const masterForMedia = (media, uri) => {
  *        Master manifest object
  * @param {string} uri
  *        The source URI
+ * @param {boolean} [useNameForId=false]
+ *        Whether we should use the NAME property for ID.
+ *        Generally only used for DASH and defaults to false.
  */
-export const addPropertiesToMaster = (master, uri, type) => {
+export const addPropertiesToMaster = (master, uri, useNameForId = false) => {
   master.uri = uri;
 
   for (let i = 0; i < master.playlists.length; i++) {
@@ -231,6 +237,6 @@ export const addPropertiesToMaster = (master, uri, type) => {
     master.playlists[phonyUri] = properties.playlists[0];
   });
 
-  setupMediaPlaylists(master, type);
+  setupMediaPlaylists(master, useNameForId);
   resolveMediaGroupUris(master);
 };
