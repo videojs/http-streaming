@@ -3366,8 +3366,8 @@ QUnit.module('SegmentLoader: FMP4', function(hooks) {
           endTime: 2,
           text: 'test'
         });
-        // set startingMedia_
-        loader.startingMedia_ = {hasVideo: true, hasAudio: true};
+        // set currentMediaInfo_
+        loader.currentMediaInfo_ = {hasVideo: true, hasAudio: true};
         loader.remove(0, 2);
         assert.equal(this.inbandTextTracks.CC1.cues.length, 0, 'all cues have been removed');
 

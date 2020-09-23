@@ -534,7 +534,7 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
     origRemove.call(segmentLoader, start, end);
   };
 
-  segmentLoader.startingMedia_ = { hasVideo: true };
+  segmentLoader.currentMediaInfo_ = { hasVideo: true };
   segmentLoader.audioDisabled_ = true;
 
   segmentLoader.sourceUpdater_.removeVideo = function(start, end) {
@@ -1044,8 +1044,8 @@ QUnit.test('waits for both main and audio loaders to finish before calling endOf
   MPC.mainSegmentLoader_.on('ended', () => videoEnded++);
   MPC.audioSegmentLoader_.on('ended', () => audioEnded++);
 
-  MPC.mainSegmentLoader_.startingMedia_ = { hasVideo: true };
-  MPC.audioSegmentLoader_.startingMedia_ = { hasAudio: true };
+  MPC.mainSegmentLoader_.currentMediaInfo_ = { hasVideo: true };
+  MPC.audioSegmentLoader_.currentMediaInfo_ = { hasAudio: true };
 
   // master
   this.standardXHRResponse(this.requests.shift(), manifests.demuxed);
@@ -2835,7 +2835,7 @@ QUnit.test('parses codec from audio only fmp4 init segment', function(assert) {
       },
       'parsed audio codec'
     );
-    assert.deepEqual(loader.startingMedia_, {
+    assert.deepEqual(loader.currentMediaInfo_, {
       audioCodec: 'mp4a.40.2',
       hasAudio: true,
       hasVideo: false,
@@ -2896,7 +2896,7 @@ QUnit.test('parses codec from video only fmp4 init segment', function(assert) {
       },
       'parsed video codec'
     );
-    assert.deepEqual(loader.startingMedia_, {
+    assert.deepEqual(loader.currentMediaInfo_, {
       hasAudio: false,
       hasVideo: true,
       isFmp4: true,
@@ -2957,7 +2957,7 @@ QUnit.test('parses codec from muxed fmp4 init segment', function(assert) {
       },
       'parsed video codec'
     );
-    assert.deepEqual(loader.startingMedia_, {
+    assert.deepEqual(loader.currentMediaInfo_, {
       hasAudio: true,
       hasVideo: true,
       videoCodec: 'avc1.42c00d',
@@ -4577,11 +4577,11 @@ QUnit.module('MasterPlaylistController codecs', {
       } = options;
 
       if (mainStartingMedia) {
-        this.mpc.mainSegmentLoader_.startingMedia_ = mainStartingMedia;
+        this.mpc.mainSegmentLoader_.currentMediaInfo_ = mainStartingMedia;
       }
 
       if (audioStartingMedia) {
-        this.mpc.audioSegmentLoader_.startingMedia_ = audioStartingMedia;
+        this.mpc.audioSegmentLoader_.currentMediaInfo_ = audioStartingMedia;
       }
 
       this.master = {mediaGroups: {AUDIO: {}}, playlists: []};
@@ -5165,7 +5165,7 @@ QUnit.test('main & audio loader only trackinfo works as expected', function(asse
   assert.equal(createBuffers, 0, 'createSourceBuffers not called');
   assert.equal(switchBuffers, 0, 'addOrChangeSourceBuffers not called');
 
-  this.mpc.audioSegmentLoader_.startingMedia_ = {
+  this.mpc.audioSegmentLoader_.currentMediaInfo_ = {
     hasVideo: false,
     hasAudio: true,
     audioCodec: 'mp4a.40.2'
@@ -5179,7 +5179,7 @@ QUnit.test('main & audio loader only trackinfo works as expected', function(asse
   this.mpc.sourceUpdater_.ready = () => true;
   this.mpc.sourceUpdater_.canChangeType = () => true;
 
-  this.mpc.mainSegmentLoader_.startingMedia_ = {
+  this.mpc.mainSegmentLoader_.currentMediaInfo_ = {
     videoCodec: 'avc1.4c400e',
     hasVideo: true,
     hasAudio: false
@@ -5195,7 +5195,7 @@ QUnit.test('main & audio loader only trackinfo works as expected', function(asse
   assert.equal(createBuffers, 1, 'createBuffers not called');
   assert.equal(switchBuffers, 1, 'addOrChangeSourceBuffers called');
 
-  this.mpc.audioSegmentLoader_.startingMedia_ = {
+  this.mpc.audioSegmentLoader_.currentMediaInfo_ = {
     hasVideo: false,
     hasAudio: true,
     audioCodec: 'mp4a.40.5'
