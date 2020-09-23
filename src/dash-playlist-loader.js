@@ -93,6 +93,10 @@ export const updateMaster = (oldMaster, newMaster) => {
     }
   });
 
+  if (newMaster.minimumUpdatePeriod !== oldMaster.minimumUpdatePeriod) {
+    noChanges = false;
+  }
+
   if (noChanges) {
     return null;
   }
@@ -645,6 +649,22 @@ export default class DashPlaylistLoader extends EventTarget {
     }
   }
 
+  updateMinimumUpdatePeriodTimeout_() {
+    // Clear existing timeout
+    window.clearTimeout(this.minimumUpdatePeriodTimeout_);
+
+    const minimumUpdatePeriod = this.master && this.master.minimumUpdatePeriod;
+
+    if (minimumUpdatePeriod >= 0) {
+      this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
+        this.trigger('minimumUpdatePeriod');
+      // We use the target duration here because a minimumUpdatePeriod value of 0
+      // indicates that the current MPD has no future validity, so a new one will
+      // need to be acquired when new media segments are to be made available
+      }, minimumUpdatePeriod || this.media().targetDuration * 1000);
+    }
+  }
+
   /**
    * Handler for after client/server clock synchronization has happened. Sets up
    * xml refresh timer if specificed by the manifest.
@@ -656,17 +676,7 @@ export default class DashPlaylistLoader extends EventTarget {
       this.media(this.master.playlists[0]);
     }
 
-    // TODO: minimumUpdatePeriod can have a value of 0. Currently the manifest will not
-    // be refreshed when this is the case. The inter-op guide says that when the
-    // minimumUpdatePeriod is 0, the manifest should outline all currently available
-    // segments, but future segments may require an update. I think a good solution
-    // would be to update the manifest at the same rate that the media playlists
-    // are "refreshed", i.e. every targetDuration.
-    if (this.master && this.master.minimumUpdatePeriod) {
-      this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
-        this.trigger('minimumUpdatePeriod');
-      }, this.master.minimumUpdatePeriod);
-    }
+    this.updateMinimumUpdatePeriodTimeout_();
   }
 
   /**
@@ -763,13 +773,7 @@ export default class DashPlaylistLoader extends EventTarget {
                 // update loader's sidxMapping with parsed sidx box
                 this.sidxMapping_[sidxKey].sidx = sidx;
 
-                // Clear & reset timeout with new minimumUpdatePeriod
-                window.clearTimeout(this.minimumUpdatePeriodTimeout_);
-                if (this.master.minimumUpdatePeriod) {
-                  this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
-                    this.trigger('minimumUpdatePeriod');
-                  }, this.master.minimumUpdatePeriod);
-                }
+                this.updateMinimumUpdatePeriodTimeout_();
 
                 // TODO: do we need to reload the current playlist?
                 this.refreshMedia_(this.media().id);
@@ -786,13 +790,7 @@ export default class DashPlaylistLoader extends EventTarget {
         }
       }
 
-      // Clear & reset timeout with new minimumUpdatePeriod
-      window.clearTimeout(this.minimumUpdatePeriodTimeout_);
-      if (this.master.minimumUpdatePeriod) {
-        this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
-          this.trigger('minimumUpdatePeriod');
-        }, this.master.minimumUpdatePeriod);
-      }
+      this.updateMinimumUpdatePeriodTimeout_();
     });
   }
 
