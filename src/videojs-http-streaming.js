@@ -136,7 +136,7 @@ const emeKeySystems = (keySystemOptions, videoPlaylist, audioPlaylist) => {
     audio: audioPlaylist && audioPlaylist.attributes && audioPlaylist.attributes.CODECS
   };
 
-  if (!codecs.audio && codecs.video.split(',').length > 1) {
+  if (!codecs.audio && codecs.video && codecs.video.split(',').length > 1) {
     codecs.video.split(',').forEach(function(codec) {
       codec = codec.trim();
 
@@ -243,10 +243,6 @@ const setupEmeOptions = ({
   audioMedia,
   mainPlaylists
 }) => {
-  if (!player.eme) {
-    return;
-  }
-
   const sourceOptions = emeKeySystems(sourceKeySystems, media, audioMedia);
 
   if (!sourceOptions) {
@@ -254,6 +250,13 @@ const setupEmeOptions = ({
   }
 
   player.currentSource().keySystems = sourceOptions;
+
+  // eme handles the rest of the setup, so if it is missing
+  // do nothing.
+  if (sourceOptions && !player.eme) {
+    videojs.log.warn('DRM encrypted source cannot be decrypted without a DRM plugin');
+    return;
+  }
 
   // works around https://bugs.chromium.org/p/chromium/issues/detail?id=895449
   // in non-IE11 browsers. In IE11 this is too early to initialize media keys
