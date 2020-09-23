@@ -3237,6 +3237,55 @@ QUnit.module('SegmentLoader', function(hooks) {
         );
       });
     });
+
+    QUnit.test('can get buffered between playlists', function(assert) {
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        const playlist = playlistWithDuration(40);
+
+        loader.playlist(playlist);
+        loader.load();
+        this.clock.tick(1);
+
+        // need to load content to have starting media
+        standardXHRResponse(this.requests.shift(), muxedSegment());
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        // mock the buffered values (easiest solution to test that segment-loader is
+        // calling the correct functions)
+        loader.sourceUpdater_.audioBuffered =
+          () => videojs.createTimeRanges([[2, 3], [5, 7]]);
+        loader.sourceUpdater_.videoBuffered =
+          () => videojs.createTimeRanges([[2, 6]]);
+        loader.sourceUpdater_.buffered =
+          () => videojs.createTimeRanges([[2, 3], [5, 6]]);
+
+        timeRangesEqual(
+          loader.buffered_(),
+          videojs.createTimeRanges([[2, 3], [5, 6]]),
+          'buffered reports intersection of audio and video buffers'
+        );
+        const playlist2 = playlistWithDuration(40, {uri: 'playlist2.m3u8'});
+
+        loader.playlist(playlist2);
+
+        timeRangesEqual(
+          loader.buffered_(),
+          videojs.createTimeRanges([[2, 3], [5, 6]]),
+          'buffered reports intersection of audio and video buffers'
+        );
+
+        loader.load();
+
+        timeRangesEqual(
+          loader.buffered_(),
+          videojs.createTimeRanges([[2, 3], [5, 6]]),
+          'buffered reports intersection of audio and video buffers'
+        );
+      });
+    });
   });
 });
 
