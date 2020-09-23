@@ -5778,11 +5778,12 @@ QUnit.test('no error if no eme and no key systems', function(assert) {
 });
 
 QUnit.test('log error if no eme and we have key systems', function(assert) {
-  const player = {};
   const sourceKeySystems = {};
   const media = {};
   const audioMedia = {};
   const mainPlaylists = [];
+  const src = {};
+  const player = {currentSource: () => src};
 
   let logWarn;
   const origWarn = videojs.log.warn;
@@ -5794,6 +5795,7 @@ QUnit.test('log error if no eme and we have key systems', function(assert) {
   setupEmeOptions({ player, sourceKeySystems, media, audioMedia, mainPlaylists });
 
   assert.equal(logWarn, 'DRM encrypted source cannot be decrypted without a DRM plugin', 'logs expected error');
+  assert.ok(src.hasOwnProperty('keySystems'), 'source key systems was set');
 
   videojs.log.warn = origWarn;
 });
