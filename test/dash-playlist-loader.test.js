@@ -1305,7 +1305,12 @@ QUnit.test('parseMasterXml: setup phony playlists and resolves uris', function(a
 
   assert.strictEqual(masterPlaylist.uri, loader.srcUrl, 'master playlist uri set correctly');
   assert.strictEqual(masterPlaylist.playlists[0].uri, 'placeholder-uri-0');
-  assert.strictEqual(masterPlaylist.playlists[0].id, '0-placeholder-uri-0');
+  assert.strictEqual(masterPlaylist.playlists[0].id, '1080p');
+  assert.strictEqual(
+    masterPlaylist.playlists['1080p'],
+    masterPlaylist.playlists['0-placeholder-uri-0'],
+    'available via old and new ids'
+  );
   assert.deepEqual(
     masterPlaylist.playlists['0-placeholder-uri-0'],
     masterPlaylist.playlists[0],
@@ -1628,6 +1633,43 @@ QUnit.test('refreshXml_: updates media playlist reference if master changed', fu
     newMedia,
     newMaster.playlists[newMedia.id],
     'media from updated master'
+  );
+});
+
+QUnit.test('refreshXml_: keep reference to same playlist by id across mpd updates', function(assert) {
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeVhs);
+
+  loader.load();
+  this.standardXHRResponse(this.requests.shift());
+
+  const oldMaster = loader.master;
+  const oldMedia = loader.media();
+
+  loader.refreshXml_();
+
+  assert.strictEqual(this.requests.length, 1, 'manifest is being requested');
+
+  this.requests.shift().respond(200, null, testDataManifests['dash-swapped']);
+
+  const newMaster = loader.master;
+  const newMedia = loader.media();
+
+  assert.notEqual(newMaster, oldMaster, 'master changed');
+  assert.notEqual(newMedia, oldMedia, 'media changed');
+  assert.equal(
+    newMedia,
+    newMaster.playlists[newMedia.id],
+    'media from updated master'
+  );
+
+  // given that the only thing that changed in the new manifest is
+  // the mediaPresentationDuration and order of representations
+  // the old media and the new media should be equivalent.
+  // Comparing the attributes is an easy way to check.
+  assert.deepEqual(
+    newMedia.attributes,
+    oldMedia.attributes,
+    'old media and new media references by same id'
   );
 });
 
@@ -2268,8 +2310,13 @@ QUnit.test(
       'setup phony uri for media playlist'
     );
     assert.equal(
-      loader.master.playlists[0].id, '0-placeholder-uri-0',
+      loader.master.playlists[0].id, '1080p',
       'setup phony id for media playlist'
+    );
+    assert.strictEqual(
+      loader.master.playlists['1080p'],
+      loader.master.playlists['0-placeholder-uri-0'],
+      'reference by NAME and old id'
     );
     assert.strictEqual(
       loader.master.playlists['0-placeholder-uri-0'],
@@ -2280,8 +2327,13 @@ QUnit.test(
       'setup phony uri for media playlist'
     );
     assert.equal(
-      loader.master.playlists[1].id, '1-placeholder-uri-1',
+      loader.master.playlists[1].id, '720p',
       'setup phony id for media playlist'
+    );
+    assert.strictEqual(
+      loader.master.playlists['720p'],
+      loader.master.playlists['1-placeholder-uri-1'],
+      'reference by NAME and old id'
     );
     assert.strictEqual(
       loader.master.playlists['1-placeholder-uri-1'],

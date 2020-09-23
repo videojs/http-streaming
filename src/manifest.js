@@ -99,18 +99,32 @@ export const setupMediaPlaylist = ({ playlist, uri, id }) => {
  *
  * @param {Object} master
  *        The master playlist
+ * @param {boolean} [useNameForId=false]
+ *        Whether we should use the NAME property for ID.
+ *        Generally only used for DASH and defaults to false.
  */
-export const setupMediaPlaylists = (master) => {
+export const setupMediaPlaylists = (master, useNameForId) => {
   let i = master.playlists.length;
 
   while (i--) {
     const playlist = master.playlists[i];
+    const createdId = createPlaylistID(i, playlist.uri);
+    let id = createdId;
+
+    // If useNameForId is set, use the NAME attribute for the ID.
+    // Generally, this will be used for DASH because
+    // DASH Representations can change order across refreshes which can make referring to them by index not work.
+    if (useNameForId) {
+      id = playlist.attributes && playlist.attributes.NAME || id;
+    }
 
     setupMediaPlaylist({
       playlist,
-      id: createPlaylistID(i, playlist.uri)
+      id
     });
     playlist.resolvedUri = resolveUrl(master.uri, playlist.uri);
+    // make sure that if a useNameForId is true, the old "createdId" id is also available
+    master.playlists[createdId] = playlist;
     master.playlists[playlist.id] = playlist;
     // URI reference added for backwards compatibility
     master.playlists[playlist.uri] = playlist;
@@ -187,8 +201,11 @@ export const masterForMedia = (media, uri) => {
  *        Master manifest object
  * @param {string} uri
  *        The source URI
+ * @param {boolean} [useNameForId=false]
+ *        Whether we should use the NAME property for ID.
+ *        Generally only used for DASH and defaults to false.
  */
-export const addPropertiesToMaster = (master, uri) => {
+export const addPropertiesToMaster = (master, uri, useNameForId = false) => {
   master.uri = uri;
 
   for (let i = 0; i < master.playlists.length; i++) {
@@ -221,6 +238,6 @@ export const addPropertiesToMaster = (master, uri) => {
     master.playlists[phonyUri] = properties.playlists[0];
   });
 
-  setupMediaPlaylists(master);
+  setupMediaPlaylists(master, useNameForId);
   resolveMediaGroupUris(master);
 };
