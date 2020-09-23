@@ -651,11 +651,17 @@ export default class DashPlaylistLoader extends EventTarget {
   }
 
   updateMinimumUpdatePeriodTimeout_() {
+    // Clear existing timeout
+    window.clearTimeout(this.minimumUpdatePeriodTimeout_);
+
     const minimumUpdatePeriod = this.master && this.master.minimumUpdatePeriod;
 
     if (minimumUpdatePeriod >= 0) {
       this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
         this.trigger('minimumUpdatePeriod');
+      // We use the target duration here because a minimumUpdatePeriod value of 0
+      // indicates that the current MPD has no future validity, so a new one will
+      // need to be acquired when new media segments are to be made available
       }, minimumUpdatePeriod || this.media().targetDuration * 1000);
     }
   }
@@ -768,9 +774,6 @@ export default class DashPlaylistLoader extends EventTarget {
                 // update loader's sidxMapping with parsed sidx box
                 this.sidxMapping_[sidxKey].sidx = sidx;
 
-                // Clear & reset timeout with new minimumUpdatePeriod
-                window.clearTimeout(this.minimumUpdatePeriodTimeout_);
-
                 this.updateMinimumUpdatePeriodTimeout_();
 
                 // TODO: do we need to reload the current playlist?
@@ -787,9 +790,6 @@ export default class DashPlaylistLoader extends EventTarget {
           }
         }
       }
-
-      // Clear & reset timeout with new minimumUpdatePeriod
-      window.clearTimeout(this.minimumUpdatePeriodTimeout_);
 
       this.updateMinimumUpdatePeriodTimeout_();
     });
