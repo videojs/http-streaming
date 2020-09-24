@@ -653,15 +653,31 @@ export default class DashPlaylistLoader extends EventTarget {
     // Clear existing timeout
     window.clearTimeout(this.minimumUpdatePeriodTimeout_);
 
-    const minimumUpdatePeriod = this.master && this.master.minimumUpdatePeriod;
-
-    if (minimumUpdatePeriod >= 0) {
+    const createMUPTimeout = (mup) => {
       this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
         this.trigger('minimumUpdatePeriod');
-      // We use the target duration here because a minimumUpdatePeriod value of 0
-      // indicates that the current MPD has no future validity, so a new one will
-      // need to be acquired when new media segments are to be made available
-      }, minimumUpdatePeriod || this.media().targetDuration * 1000);
+      }, mup);
+    };
+
+    const minimumUpdatePeriod = this.master && this.master.minimumUpdatePeriod;
+
+    if (minimumUpdatePeriod > 0) {
+      createMUPTimeout(minimumUpdatePeriod);
+
+    // If the minimumUpdatePeriod has a value of 0, that indicates that the current
+    // MPD has no future validity, so a new one will need to be acquired when new
+    // media segments are to be made available. Thus, we use the target duration
+    // in this case
+    } else if (minimumUpdatePeriod === 0) {
+      // If we haven't yet selected a playlist, wait until then so we know the
+      // target duration
+      if (!this.media()) {
+        this.one('loadedplaylist', () => {
+          createMUPTimeout(this.media().targetDuration * 1000);
+        });
+      } else {
+        createMUPTimeout(this.media().targetDuration * 1000);
+      }
     }
   }
 
