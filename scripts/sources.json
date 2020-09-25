@@ -108,7 +108,7 @@
     "features": []
   },
   {
-    "name": "Angel One - fmp4, webm, subs, alternate audio tracks",
+    "name": "Angel One - fmp4, webm, subs (TODO: subs are broken), alternate audio tracks",
     "uri": "https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd",
     "mimetype": "application/dash+xml",
     "features": []
