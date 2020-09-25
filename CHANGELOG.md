@@ -1,3 +1,36 @@
+<a name="2.2.0"></a>
+# [2.2.0](https://github.com/videojs/http-streaming/compare/v2.1.0...v2.2.0) (2020-09-25)
+
+### Features
+
+* default handleManfiestRedirect to true ([#927](https://github.com/videojs/http-streaming/issues/927)) ([556321f](https://github.com/videojs/http-streaming/commit/556321f))
+* support MPD.Location ([#926](https://github.com/videojs/http-streaming/issues/926)) ([c4a43d7](https://github.com/videojs/http-streaming/commit/c4a43d7))
+* Update minimumUpdatePeriod handling ([#942](https://github.com/videojs/http-streaming/issues/942)) ([8648e76](https://github.com/videojs/http-streaming/commit/8648e76))
+
+### Bug Fixes
+
+* audio groups with the same uri as media do not count ([#952](https://github.com/videojs/http-streaming/issues/952)) ([3927c0c](https://github.com/videojs/http-streaming/commit/3927c0c))
+* dash manifest not refreshed if only some playlists are updated ([#949](https://github.com/videojs/http-streaming/issues/949)) ([31d3441](https://github.com/videojs/http-streaming/commit/31d3441))
+* detect demuxed video underflow gaps ([#948](https://github.com/videojs/http-streaming/issues/948)) ([d0ef298](https://github.com/videojs/http-streaming/commit/d0ef298))
+* MPD not refreshed if minimumUpdatePeriod is 0 ([#954](https://github.com/videojs/http-streaming/issues/954)) ([3a0682f](https://github.com/videojs/http-streaming/commit/3a0682f)), closes [#942](https://github.com/videojs/http-streaming/issues/942)
+* noop vtt segment loader handle data ([#959](https://github.com/videojs/http-streaming/issues/959)) ([d1dcd7b](https://github.com/videojs/http-streaming/commit/d1dcd7b))
+* report the correct buffered regardless of playlist change ([#950](https://github.com/videojs/http-streaming/issues/950)) ([043ccc6](https://github.com/videojs/http-streaming/commit/043ccc6))
+* Throw a player error when trying to play DRM content without eme ([#938](https://github.com/videojs/http-streaming/issues/938)) ([ce4d6fd](https://github.com/videojs/http-streaming/commit/ce4d6fd))
+* use playlist NAME when available as its ID ([#929](https://github.com/videojs/http-streaming/issues/929)) ([2269464](https://github.com/videojs/http-streaming/commit/2269464))
+* use TIME_FUDGE_FACTOR rather than rounding by decimal digits ([#881](https://github.com/videojs/http-streaming/issues/881)) ([7eb112d](https://github.com/videojs/http-streaming/commit/7eb112d))
+
+### Chores
+
+* **package:** remove engine check in pkcs7 ([#947](https://github.com/videojs/http-streaming/issues/947)) ([89392fa](https://github.com/videojs/http-streaming/commit/89392fa))
+* mark angel one dash subs as broken ([#956](https://github.com/videojs/http-streaming/issues/956)) ([56a0970](https://github.com/videojs/http-streaming/commit/56a0970))
+* mediaConfig_ -> staringMediaInfo_, startingMedia_ -> currentMediaInfo_ ([#953](https://github.com/videojs/http-streaming/issues/953)) ([8801d1c](https://github.com/videojs/http-streaming/commit/8801d1c))
+* playlist selector logging ([#921](https://github.com/videojs/http-streaming/issues/921)) ([ccdbaef](https://github.com/videojs/http-streaming/commit/ccdbaef))
+* update m3u8-parser to v4.4.3 ([#928](https://github.com/videojs/http-streaming/issues/928)) ([af5b4ee](https://github.com/videojs/http-streaming/commit/af5b4ee))
+
+### Reverts
+
+* fix: use playlist NAME when available as its ID ([#929](https://github.com/videojs/http-streaming/issues/929)) ([#957](https://github.com/videojs/http-streaming/issues/957)) ([fe8376b](https://github.com/videojs/http-streaming/commit/fe8376b))
+
 <a name="2.1.0"></a>
 # [2.1.0](https://github.com/videojs/http-streaming/compare/v2.0.0...v2.1.0) (2020-07-28)
 
