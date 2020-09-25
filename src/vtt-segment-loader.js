@@ -375,6 +375,10 @@ export default class VTTSegmentLoader extends SegmentLoader {
     this.handleAppendsDone_();
   }
 
+  handleData_() {
+    // noop as we shouldn't be getting video/audio data captions
+    // that we do not support here.
+  }
   updateTimingInfoEnd_() {
     // noop
   }
