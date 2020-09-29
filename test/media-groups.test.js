@@ -943,6 +943,33 @@ QUnit.test(
 );
 
 QUnit.test(
+  'initialize subtitles no playlist loaders or tracks for groups with unsupported codec playlists',
+  function(assert) {
+    const type = 'SUBTITLES';
+
+    this.master.mediaGroups[type].sub1 = {
+      en: { language: 'en', default: true, resolvedUri: 'sub1/en.m3u8', playlists: [{attributes: {CODECS: 'foo'}}] }
+    };
+    this.master.mediaGroups[type].sub2 = {
+      en: { language: 'en', resolvedUri: 'sub2/en.m3u8' }
+    };
+
+    this.settings.sourceType = 'dash';
+
+    MediaGroups.initialize[type](type, this.settings);
+
+    assert.deepEqual(
+      this.mediaTypes[type].groups,
+      {
+        sub1: [],
+        sub2: []
+      }, 'creates group properties'
+    );
+    assert.notOk(this.mediaTypes[type].tracks.en, 'created text track');
+  }
+);
+
+QUnit.test(
   'initialize subtitles correctly with auto select',
   function(assert) {
     const type = 'SUBTITLES';
