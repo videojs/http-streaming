@@ -326,10 +326,6 @@ export const setupListeners = {
    * @function setupListeners.SUBTITLES
    */
   SUBTITLES: (type, playlistLoader, settings) => {
-    if (!playlistLoader) {
-      // no playlist loader means audio will be muxed with the video
-      return;
-    }
     const {
       tech,
       requestOptions,
@@ -526,17 +522,12 @@ export const initialize = {
 
         let properties = mediaGroups[type][groupId][variantLabel];
 
-        // TODO: we should filter for hls as well.
-        // Filter out unsupport playlists.
-        if (properties.playlists) {
-          properties.playlists = properties.playlists.filter((p) => !p.attributes || !p.attributes.CODECS);
-        }
         let playlistLoader;
 
         if (sourceType === 'hls') {
           playlistLoader =
             new PlaylistLoader(properties.resolvedUri, vhs, requestOptions);
-        } else if (sourceType === 'dash' && properties.playlists && properties.playlists.length) {
+        } else if (sourceType === 'dash') {
           playlistLoader = new DashPlaylistLoader(
             properties.playlists[0],
             vhs,
@@ -551,10 +542,6 @@ export const initialize = {
             vhs,
             requestOptions
           );
-        }
-
-        if (!playlistLoader) {
-          continue;
         }
 
         properties = videojs.mergeOptions({

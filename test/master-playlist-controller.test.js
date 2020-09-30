@@ -904,6 +904,18 @@ QUnit.test('excludes playlists with unsupported codecs before initial selection'
       Infinity,
       'excludes unsupported playlist before initial selection'
     );
+
+    assert.equal(
+      this.masterPlaylistController.master().playlists[2].excludeUntil,
+      Infinity,
+      'excludes unsupported playlist before initial selection'
+    );
+
+    assert.equal(
+      this.masterPlaylistController.master().playlists[3].excludeUntil,
+      Infinity,
+      'excludes unsupported playlist before initial selection'
+    );
   };
 
   openMediaSource(this.player, this.clock);
@@ -915,7 +927,11 @@ QUnit.test('excludes playlists with unsupported codecs before initial selection'
     '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="theora,mp4a.40.5"\n' +
     'media.m3u8\n' +
     '#EXT-X-STREAM-INF:BANDWIDTH=10000,CODECS="avc1.4d400d,mp4a.40.2"\n' +
-    'media1.m3u8\n'
+    'media1.m3u8\n' +
+    '#EXT-X-STREAM-INF:BANDWIDTH=10000,CODECS="avc1.4d400d,mp3"\n' +
+    'media2.m3u8\n' +
+    '#EXT-X-STREAM-INF:BANDWIDTH=10000,CODECS="stpp.ttml.im1t"\n' +
+    'media3.m3u8\n'
   );
 
   // media
