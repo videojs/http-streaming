@@ -605,7 +605,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
         // temporarily exclude the current playlist so that we can
         // determine the next playlist that would be selected
         // if this playlist were to be excluded.
-        currentPlaylist.excludeUntil = ABORT_EARLY_BLACKLIST_SECONDS;
+        currentPlaylist.excludeUntil = Infinity;
 
         const nextPlaylist = this.selectPlaylist();
 
