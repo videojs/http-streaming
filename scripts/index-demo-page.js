@@ -216,7 +216,7 @@
     representationsEl.selectedIndex = selectedIndex;
   };
 
-  ['debug', 'autoplay', 'muted', 'minified', 'liveui', 'partial', 'url', 'type', 'keysystems'].forEach(function(name) {
+  ['debug', 'autoplay', 'muted', 'minified', 'liveui', 'partial', 'url', 'type', 'keysystems', 'buffer-water'].forEach(function(name) {
     stateEls[name] = document.getElementById(name);
   });
 
@@ -251,13 +251,15 @@
     stateEls.partial.addEventListener('change', function(event) {
       saveState();
 
-      window.videojs.options = window.videojs.options || {};
-      window.videojs.options.vhs = window.videojs.options.vhs || {};
-      window.videojs.options.vhs.handlePartialData = event.target.checked;
+      // reload the player and scripts
+      stateEls.minified.dispatchEvent(newEvent('change'));
+    });
 
-      if (window.player) {
-        window.player.src(window.player.currentSource());
-      }
+    stateEls['buffer-water'].addEventListener('change', function(event) {
+      saveState();
+
+      // reload the player and scripts
+      stateEls.minified.dispatchEvent(newEvent('change'));
     });
 
     stateEls.liveui.addEventListener('change', function(event) {
@@ -296,8 +298,6 @@
         videoEl.className = 'vjs-default-skin';
         fixture.appendChild(videoEl);
 
-        stateEls.partial.dispatchEvent(newEvent('change'));
-
         player = window.player = window.videojs(videoEl, {
           plugins: {
             httpSourceSelector: {
@@ -307,7 +307,9 @@
           liveui: stateEls.liveui.checked,
           html5: {
             vhs: {
-              overrideNative: true
+              overrideNative: true,
+              handlePartialData: getInputValue(stateEls.partial),
+              experimentalBufferBasedABR: getInputValue(stateEls['buffer-water'])
             }
           }
         });
@@ -329,7 +331,7 @@
           sources.dispatchEvent(newEvent('change'));
         }
         player.on('loadedmetadata', function() {
-          if (player.vhs) {
+          if (player.tech_.vhs) {
             window.vhs = player.tech_.vhs;
             window.mpc = player.tech_.vhs.masterPlaylistController_;
             window.mpc.masterPlaylistLoader_.on('mediachange', regenerateRepresentations);
