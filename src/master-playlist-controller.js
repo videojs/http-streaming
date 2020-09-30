@@ -1708,8 +1708,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
     const initial = Config.BUFFER_LOW_WATER_LINE;
     const rate = Config.BUFFER_LOW_WATER_LINE_RATE;
     const max = Math.max(initial, Config.MAX_BUFFER_LOW_WATER_LINE);
+    const newMax = Math.max(initial, Config.MAX_BUFFER_LOW_WATER_LINE_NEW);
 
-    return Math.min(initial + currentTime * rate, max);
+    return Math.min(initial + currentTime * rate, this.bufferWaterLineSelector ? newMax : max);
   }
 
   bufferHighWaterLine() {
