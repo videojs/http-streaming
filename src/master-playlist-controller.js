@@ -51,7 +51,7 @@ const shouldSwitchToMedia = function({
   bufferLowWaterLine,
   bufferHighWaterLine,
   duration,
-  bufferWaterLineSelector,
+  experimentalBufferBasedABR,
   log
 }) {
   // we have no other playlist to switch to
@@ -76,7 +76,7 @@ const shouldSwitchToMedia = function({
     return false;
   }
 
-  const maxBufferLowWaterLine = bufferWaterLineSelector ?
+  const maxBufferLowWaterLine = experimentalBufferBasedABR ?
     Config.MAX_BUFFER_LOW_WATER_LINE_NEW : Config.MAX_BUFFER_LOW_WATER_LINE;
 
   // For the same reason as LIVE, we ignore the low water line when the VOD
@@ -91,10 +91,10 @@ const shouldSwitchToMedia = function({
 
   // when switching down, if our buffer is lower than the high water line,
   // we can switch down
-  if (nextBandwidth < currBandwidth && (!bufferWaterLineSelector || forwardBuffer < bufferHighWaterLine)) {
+  if (nextBandwidth < currBandwidth && (!experimentalBufferBasedABR || forwardBuffer < bufferHighWaterLine)) {
     let logLine = `${sharedLogLine} as next bandwidth < current bandwidth (${nextBandwidth} < ${currBandwidth})`;
 
-    if (bufferWaterLineSelector) {
+    if (experimentalBufferBasedABR) {
       logLine += ` and forwardBuffer < bufferHighWaterLine (${forwardBuffer} < ${bufferHighWaterLine})`;
     }
     log(logLine);
@@ -103,10 +103,10 @@ const shouldSwitchToMedia = function({
 
   // and if our buffer is higher than the low water line,
   // we can switch up
-  if ((!bufferWaterLineSelector || nextBandwidth > currBandwidth) && forwardBuffer >= bufferLowWaterLine) {
+  if ((!experimentalBufferBasedABR || nextBandwidth > currBandwidth) && forwardBuffer >= bufferLowWaterLine) {
     let logLine = `${sharedLogLine} as forwardBuffer >= bufferLowWaterLine (${forwardBuffer} >= ${bufferLowWaterLine})`;
 
-    if (bufferWaterLineSelector) {
+    if (experimentalBufferBasedABR) {
       logLine += ` and next bandwidth > current bandwidth (${nextBandwidth} > ${currBandwidth})`;
     }
     log(logLine);
@@ -144,7 +144,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       sourceType,
       cacheEncryptionKeys,
       handlePartialData,
-      bufferWaterLineSelector
+      experimentalBufferBasedABR
     } = options;
 
     if (!src) {
@@ -153,7 +153,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     Vhs = externVhs;
 
-    this.bufferWaterLineSelector = Boolean(bufferWaterLineSelector);
+    this.experimentalBufferBasedABR = Boolean(experimentalBufferBasedABR);
     this.withCredentials = withCredentials;
     this.tech_ = tech;
     this.vhs_ = tech.vhs;
@@ -534,7 +534,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       bufferLowWaterLine,
       bufferHighWaterLine,
       duration: this.duration(),
-      bufferWaterLineSelector: this.bufferWaterLineSelector,
+      experimentalBufferBasedABR: this.experimentalBufferBasedABR,
       log: this.logger_
     });
   }
@@ -556,7 +556,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     this.mainSegmentLoader_.on('progress', () => {
-      if (this.bufferWaterLineSelector) {
+      if (this.experimentalBufferBasedABR) {
         const nextPlaylist = this.selectPlaylist();
 
         if (this.shouldSwitchToMedia_(nextPlaylist)) {
@@ -599,7 +599,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     this.mainSegmentLoader_.on('earlyabort', (event) => {
-      if (this.bufferWaterLineSelector) {
+      if (this.experimentalBufferBasedABR) {
         const currentPlaylist = this.masterPlaylistLoader_.media();
 
         // temporarily exclude the current playlist so that we can
@@ -1710,7 +1710,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     const max = Math.max(initial, Config.MAX_BUFFER_LOW_WATER_LINE);
     const newMax = Math.max(initial, Config.MAX_BUFFER_LOW_WATER_LINE_NEW);
 
-    return Math.min(initial + currentTime * rate, this.bufferWaterLineSelector ? newMax : max);
+    return Math.min(initial + currentTime * rate, this.experimentalBufferBasedABR ? newMax : max);
   }
 
   bufferHighWaterLine() {

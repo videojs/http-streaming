@@ -5512,12 +5512,12 @@ QUnit.test('filter subtitle works', function(assert) {
   assert.deepEqual(this.calls, this.expected, 'calls as expected');
 });
 
-QUnit.module('MasterPlaylistController bufferWaterLineSelector', {
+QUnit.module('MasterPlaylistController experimentalBufferBasedABR', {
   beforeEach(assert) {
     this.playerOptions = {
       html5: {
         vhs: {
-          bufferWaterLineSelector: true
+          experimentalBufferBasedABR: true
         }
       }
     };
@@ -5633,11 +5633,11 @@ QUnit.test('true if duration < 30', function(assert) {
   assert.ok(mpc.shouldSwitchToMedia_(nextPlaylist), 'should switch');
 });
 
-QUnit.test('true duration < 16 with bufferWaterLineSelector', function(assert) {
+QUnit.test('true duration < 16 with experimentalBufferBasedABR', function(assert) {
   const mpc = this.masterPlaylistController;
   const nextPlaylist = {id: 'foo', endList: true};
 
-  mpc.bufferWaterLineSelector = true;
+  mpc.experimentalBufferBasedABR = true;
 
   mpc.duration = () => 15;
   mpc.masterPlaylistLoader_.media = () => ({endList: true, id: 'bar'});
@@ -5655,14 +5655,14 @@ QUnit.test('true if bandwidth decreases', function(assert) {
   assert.ok(mpc.shouldSwitchToMedia_(nextPlaylist), 'should switch');
 });
 
-QUnit.test('true if bandwidth decreases, bufferWaterLineSelector, and forwardBuffer < bufferHighWaterLine', function(assert) {
+QUnit.test('true if bandwidth decreases, experimentalBufferBasedABR, and forwardBuffer < bufferHighWaterLine', function(assert) {
   const mpc = this.masterPlaylistController;
   const nextPlaylist = {id: 'foo', endList: true, attributes: {BANDWIDTH: 1}};
 
   // 0 forward buffer
   mpc.tech_.buffered = () => videojs.createTimeRange();
   mpc.tech_.currentTime = () => 0;
-  mpc.bufferWaterLineSelector = true;
+  mpc.experimentalBufferBasedABR = true;
   mpc.duration = () => 40;
   mpc.masterPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
 
@@ -5682,42 +5682,42 @@ QUnit.test('true if forwardBuffer >= bufferLowWaterLine', function(assert) {
   assert.ok(mpc.shouldSwitchToMedia_(nextPlaylist), 'should switch');
 });
 
-QUnit.test('true if forwardBuffer >= bufferLowWaterLine, bufferWaterLineSelector, and bandwidth increase', function(assert) {
+QUnit.test('true if forwardBuffer >= bufferLowWaterLine, experimentalBufferBasedABR, and bandwidth increase', function(assert) {
   const mpc = this.masterPlaylistController;
   const nextPlaylist = {id: 'foo', endList: true, attributes: {BANDWIDTH: 3}};
 
   // zero forward buffer and zero buffer low water line
   mpc.tech_.buffered = () => videojs.createTimeRange();
   mpc.tech_.currentTime = () => 0;
-  mpc.bufferWaterLineSelector = true;
+  mpc.experimentalBufferBasedABR = true;
   mpc.duration = () => 40;
   mpc.masterPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
 
   assert.ok(mpc.shouldSwitchToMedia_(nextPlaylist), 'should switch');
 });
 
-QUnit.test('false if nextPlaylist bandwidth lower, bufferWaterLineSelector, and forwardBuffer > bufferHighWaterLine', function(assert) {
+QUnit.test('false if nextPlaylist bandwidth lower, experimentalBufferBasedABR, and forwardBuffer > bufferHighWaterLine', function(assert) {
   const mpc = this.masterPlaylistController;
   const nextPlaylist = {id: 'foo', endList: true, attributes: {BANDWIDTH: 1}};
 
   // 31s forwardBuffer
   mpc.tech_.buffered = () => videojs.createTimeRange(0, 31);
   mpc.tech_.currentTime = () => 0;
-  mpc.bufferWaterLineSelector = true;
+  mpc.experimentalBufferBasedABR = true;
   mpc.duration = () => 40;
   mpc.masterPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
 
   assert.notOk(mpc.shouldSwitchToMedia_(nextPlaylist), 'should not switch');
 });
 
-QUnit.test('false if nextPlaylist bandwidth same, bufferWaterLineSelector, and forwardBuffer >= bufferLowWaterLine', function(assert) {
+QUnit.test('false if nextPlaylist bandwidth same, experimentalBufferBasedABR, and forwardBuffer >= bufferLowWaterLine', function(assert) {
   const mpc = this.masterPlaylistController;
   const nextPlaylist = {id: 'foo', endList: true, attributes: {BANDWIDTH: 2}};
 
   // 31s forwardBuffer
   mpc.tech_.buffered = () => videojs.createTimeRange();
   mpc.tech_.currentTime = () => 0;
-  mpc.bufferWaterLineSelector = true;
+  mpc.experimentalBufferBasedABR = true;
   mpc.duration = () => 40;
   mpc.masterPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
 

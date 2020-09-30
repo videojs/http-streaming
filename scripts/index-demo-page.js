@@ -309,7 +309,7 @@
             vhs: {
               overrideNative: true,
               handlePartialData: getInputValue(stateEls.partial),
-              bufferWaterLineSelector: getInputValue(stateEls['buffer-water'])
+              experimentalBufferBasedABR: getInputValue(stateEls['buffer-water'])
             }
           }
         });

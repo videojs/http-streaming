@@ -596,7 +596,7 @@ class VhsHandler extends Component {
       'handlePartialData',
       'playlistSelector',
       'initialPlaylistSelector',
-      'bufferWaterLineSelector'
+      'experimentalBufferBasedABR'
     ].forEach((option) => {
       if (typeof this.source_[option] !== 'undefined') {
         this.options_[option] = this.source_[option];
@@ -648,7 +648,7 @@ class VhsHandler extends Component {
       player.error(error);
     });
 
-    const defaultSelector = this.options_.bufferWaterLineSelector ?
+    const defaultSelector = this.options_.experimentalBufferBasedABR ?
       Vhs.movingAverageBandwidthSelector(0.55) : Vhs.STANDARD_PLAYLIST_SELECTOR;
 
     // `this` in selectPlaylist should be the VhsHandler for backwards
