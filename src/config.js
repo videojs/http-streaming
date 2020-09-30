@@ -13,7 +13,7 @@ export default {
   MAX_BUFFER_LOW_WATER_LINE: 30,
 
   // TODO: Remove this when useBufferWaterLines is removed
-  MAX_BUFFER_LOW_WATER_LINE_NEW: 16,
+  EXPERIMENTAL_MAX_BUFFER_LOW_WATER_LINE: 16,
 
   BUFFER_LOW_WATER_LINE_RATE: 1,
   // If the buffer is greater than the high water line, we won't switch down
