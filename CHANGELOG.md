@@ -1,3 +1,10 @@
+<a name="2.2.1"></a>
+## [2.2.1](https://github.com/videojs/http-streaming/compare/v2.2.0...v2.2.1) (2020-10-02)
+
+### Bug Fixes
+
+* check tech error before pause loaders ([#969](https://github.com/videojs/http-streaming/issues/969)) ([248ee82](https://github.com/videojs/http-streaming/commit/248ee82))
+
 <a name="2.2.0"></a>
 # [2.2.0](https://github.com/videojs/http-streaming/compare/v2.1.0...v2.2.0) (2020-09-25)
 
