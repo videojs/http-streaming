@@ -304,6 +304,36 @@ QUnit.test('the VhsHandler instance is referenced by player.vhs', function(asser
   assert.equal(this.env.log.warn.calls, 1, 'warning logged');
 });
 
+QUnit.test('tech error may pause loading', function(assert) {
+  this.player.src({
+    src: 'manifest/playlist.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+
+  const vhs = this.player.tech_.vhs;
+  const mpc = vhs.masterPlaylistController_;
+  let pauseCalled = false;
+
+  mpc.pauseLoading = () => {
+    pauseCalled = true;
+  };
+
+  this.player.tech_.error = () => null;
+  this.player.tech_.trigger('error');
+
+  assert.notOk(pauseCalled, 'no video el error attribute, no pause loading');
+
+  this.player.tech_.error = () => 'foo';
+  this.player.tech_.trigger('error');
+
+  assert.ok(pauseCalled, 'video el error and trigger pauses loading');
+
+  assert.equal(this.env.log.error.calls, 1, '1 media error logged');
+  this.env.log.error.reset();
+
+});
+
 QUnit.test('a deprecation notice is shown when using player.dash', function(assert) {
   this.player.src({
     src: 'manifest/playlist.m3u8',
