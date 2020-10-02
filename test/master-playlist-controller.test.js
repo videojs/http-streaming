@@ -3227,9 +3227,13 @@ QUnit.test('pauses subtitle segment loader on tech errors', function(assert) {
 
   masterPlaylistController.subtitleSegmentLoader_.pause = () => pauseCount++;
 
+  this.player.tech_.error = () => 'foo';
   this.player.tech_.trigger('error');
 
   assert.equal(pauseCount, 1, 'paused subtitle segment loader');
+
+  assert.equal(this.env.log.error.calls, 1, '1 media error logged');
+  this.env.log.error.reset();
 });
 
 QUnit.test('disposes subtitle loaders on dispose', function(assert) {
