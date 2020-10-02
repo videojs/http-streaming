@@ -526,7 +526,7 @@ class VhsHandler extends Component {
     });
 
     this.on(this.tech_, 'error', function() {
-      if (this.masterPlaylistController_) {
+      if (this.tech_.error() && this.masterPlaylistController_) {
         this.masterPlaylistController_.pauseLoading();
       }
     });
