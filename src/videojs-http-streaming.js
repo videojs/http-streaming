@@ -522,7 +522,9 @@ class VhsHandler extends Component {
     });
 
     this.on(this.tech_, 'error', function() {
-      if (this.masterPlaylistController_) {
+      // verify that the error was real and we are loaded
+      // enough to have mpc loaded.
+      if (this.tech_.error() && this.masterPlaylistController_) {
         this.masterPlaylistController_.pauseLoading();
       }
     });
