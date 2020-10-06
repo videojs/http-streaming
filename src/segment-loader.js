@@ -2530,6 +2530,11 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @private
    */
   handleAppendsDone_() {
+    // appendsdone can cause an abort
+    if (this.pendingSegment_) {
+      this.trigger('appendsdone');
+    }
+
     if (!this.pendingSegment_) {
       this.state = 'READY';
       // TODO should this move into this.checkForAbort to speed up requests post abort in
@@ -2539,8 +2544,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       }
       return;
     }
-
-    this.trigger('appendsdone');
 
     const segmentInfo = this.pendingSegment_;
 
