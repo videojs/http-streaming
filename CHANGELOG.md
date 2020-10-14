@@ -1,3 +1,10 @@
+<a name="2.2.3"></a>
+## [2.2.3](https://github.com/videojs/http-streaming/compare/v2.2.2...v2.2.3) (2020-10-14)
+
+### Bug Fixes
+
+* inline json version ([#967](https://github.com/videojs/http-streaming/issues/967)) ([c4477be](https://github.com/videojs/http-streaming/commit/c4477be))
+
 <a name="2.2.2"></a>
 ## [2.2.2](https://github.com/videojs/http-streaming/compare/v2.2.1...v2.2.2) (2020-10-06)
 
