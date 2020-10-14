@@ -359,6 +359,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // private instance variables
     this.checkBufferTimeout_ = null;
+    this.earlyabortTimer_ = null;
     this.error_ = void 0;
     this.currentTimeline_ = -1;
     this.pendingSegment_ = null;
@@ -520,6 +521,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (this.checkBufferTimeout_) {
       window.clearTimeout(this.checkBufferTimeout_);
     }
+    window.clearTimeout(this.earlyabortTimer_);
 
     if (this.syncController_ && this.triggerSyncInfoUpdate_) {
       this.syncController_.off('syncinfoupdate', this.triggerSyncInfoUpdate_);

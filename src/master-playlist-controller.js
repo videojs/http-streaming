@@ -1372,6 +1372,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * that it controls
    */
   dispose() {
+    window.clearTimeout(this.mainSegmentLoader_.earlyabortTimer_);
+
     this.trigger('dispose');
     this.decrypter_.terminate();
     this.masterPlaylistLoader_.dispose();
