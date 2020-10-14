@@ -2,6 +2,12 @@ const generate = require('videojs-generate-rollup-config');
 const worker = require('@gkatsev/rollup-plugin-bundle-worker');
 const {terser} = require('rollup-plugin-terser');
 const createTestData = require('./create-test-data.js');
+const vhs = require('../package.json');
+const mux = require('mux.js/package.json');
+const mpd = require('mpd-parser/package.json');
+const m3u8 = require('m3u8-parser/package.json');
+const aes = require('aes-decrypter/package.json');
+const replace = require('@rollup/plugin-replace');
 
 // see https://github.com/videojs/videojs-generate-rollup-config
 // for options
@@ -28,6 +34,10 @@ const options = {
     defaults.module.splice(2, 0, 'worker');
     defaults.browser.splice(2, 0, 'worker');
     defaults.test.splice(3, 0, 'worker');
+
+    defaults.module.unshift('replace');
+    defaults.browser.unshift('replace');
+    defaults.test.unshift('replace');
     defaults.test.splice(0, 0, 'createTestData');
 
     // istanbul is only in the list for regular builds and not watch
@@ -44,6 +54,14 @@ const options = {
         output: {comments: 'some'},
         compress: {passes: 2},
         include: [/^.+\.min\.js$/]
+      }),
+      replace: replace({
+        "import {version as vhsVersion} from '../package.json';": `const vhsVersion = '${vhs.version}';`,
+        "import {version as muxVersion} from 'mux.js/package.json';": `const muxVersion = '${mux.version}';`,
+        "import {version as mpdVersion} from 'mpd-parser/package.json';": `const mpdVersion = '${mpd.version}';`,
+        "import {version as m3u8Version} from 'm3u8-parser/package.json';": `const m3u8Version = '${m3u8.version}';`,
+        "import {version as aesVersion} from 'aes-decrypter/package.json';": `const aesVersion = '${aes.version}';`,
+        'delimiters': ['', '']
       }),
       createTestData: createTestData()
     });
