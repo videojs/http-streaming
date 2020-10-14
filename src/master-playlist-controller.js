@@ -556,9 +556,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     this.mainSegmentLoader_.on('progress', () => {
-      if (this.mainSegmentLoader_.earlyabortTimer) {
-        window.clearTimeout(this.mainSegmentLoader_.earlyabortTimer);
-        this.mainSegmentLoader_.earlyabortTimer = null;
+      if (this.mainSegmentLoader_.earlyabortTimer_) {
+        window.clearTimeout(this.mainSegmentLoader_.earlyabortTimer_);
+        this.mainSegmentLoader_.earlyabortTimer_ = null;
       }
       if (this.experimentalBufferBasedABR) {
         const nextPlaylist = this.selectPlaylist();
@@ -619,7 +619,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
         // if we shouldn't switch to the next playlist, do nothing
         if (!this.shouldSwitchToMedia_(nextPlaylist)) {
           this.logger_(`earlyabort triggered, but we will not be switching from ${currentPlaylist.id} -> ${nextPlaylist.id}.`);
-          this.mainSegmentLoader_.earlyabortTimer = window.setTimeout(() => {
+          this.mainSegmentLoader_.earlyabortTimer_ = window.setTimeout(() => {
             this.mainSegmentLoader_.trigger('earlyabort');
           }, 10 * 1000);
           return;
