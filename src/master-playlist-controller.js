@@ -619,9 +619,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
         // if we shouldn't switch to the next playlist, do nothing
         if (!this.shouldSwitchToMedia_(nextPlaylist)) {
           this.logger_(`earlyabort triggered, but we will not be switching from ${currentPlaylist.id} -> ${nextPlaylist.id}.`);
+          // try again in half the target duration to make sure that we
+          // have an opportunity to switch
           this.mainSegmentLoader_.earlyabortTimer_ = window.setTimeout(() => {
             this.mainSegmentLoader_.trigger('earlyabort');
-          }, 10 * 1000);
+          }, (this.media().targetDuration / 2) * 1000);
           return;
         }
       }
