@@ -67,6 +67,7 @@
   },
   "devDependencies": {
     "@gkatsev/rollup-plugin-bundle-worker": "^1.0.2",
+    "@rollup/plugin-replace": "^2.3.3",
     "@videojs/generator-helpers": "~1.2.0",
     "d3": "^3.4.8",
     "es5-shim": "^4.5.13",

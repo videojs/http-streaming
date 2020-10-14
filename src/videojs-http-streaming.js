@@ -29,12 +29,17 @@ import {
   comparePlaylistBandwidth,
   comparePlaylistResolution
 } from './playlist-selectors.js';
+import {isAudioCodec, isVideoCodec, browserSupportsCodec} from '@videojs/vhs-utils/dist/codecs.js';
+
+// IMPORTANT:
+// keep these at the bottom they are replaced at build time
+// because webpack and rollup without plugins do not support json
+// and we do not want to break our users
 import {version as vhsVersion} from '../package.json';
 import {version as muxVersion} from 'mux.js/package.json';
 import {version as mpdVersion} from 'mpd-parser/package.json';
 import {version as m3u8Version} from 'm3u8-parser/package.json';
 import {version as aesVersion} from 'aes-decrypter/package.json';
-import {isAudioCodec, isVideoCodec, browserSupportsCodec} from '@videojs/vhs-utils/dist/codecs.js';
 
 const Vhs = {
   PlaylistLoader,
