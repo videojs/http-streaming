@@ -556,10 +556,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     this.mainSegmentLoader_.on('progress', () => {
-      if (this.mainSegmentLoader_.earlyabortTimer_) {
-        window.clearTimeout(this.mainSegmentLoader_.earlyabortTimer_);
-        this.mainSegmentLoader_.earlyabortTimer_ = null;
-      }
       if (this.experimentalBufferBasedABR) {
         const nextPlaylist = this.selectPlaylist();
 
@@ -627,6 +623,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
           return;
         }
       }
+
       this.blacklistCurrentPlaylist({
         message: 'Aborted early because there isn\'t enough bandwidth to complete the ' +
           'request without rebuffering.'
