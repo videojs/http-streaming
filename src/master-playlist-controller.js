@@ -209,6 +209,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     const segmentLoaderSettings = {
       vhs: this.vhs_,
+      experimentalBufferBasedABR,
       mediaSource: this.mediaSource,
       currentTime: this.tech_.currentTime.bind(this.tech_),
       seekable: () => this.seekable(),
@@ -599,25 +600,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     this.mainSegmentLoader_.on('earlyabort', (event) => {
-      if (this.experimentalBufferBasedABR) {
-        const currentPlaylist = this.masterPlaylistLoader_.media();
-
-        // temporarily exclude the current playlist so that we can
-        // determine the next playlist that would be selected
-        // if this playlist were to be excluded.
-        currentPlaylist.excludeUntil = Infinity;
-
-        const nextPlaylist = this.selectPlaylist();
-
-        // un-exclude the current playlist for now
-        currentPlaylist.excludeUntil = null;
-
-        // if we shouldn't switch to the next playlist, do nothing
-        if (!this.shouldSwitchToMedia_(nextPlaylist)) {
-          this.logger_(`earlyabort triggered, but we will not be switching from ${currentPlaylist.id} -> ${nextPlaylist.id}.`);
-          return;
-        }
-      }
       this.blacklistCurrentPlaylist({
         message: 'Aborted early because there isn\'t enough bandwidth to complete the ' +
           'request without rebuffering.'

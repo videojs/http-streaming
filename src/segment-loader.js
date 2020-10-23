@@ -337,6 +337,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.mediaIndex = null;
 
     // private settings
+    this.experimentalBufferBasedABR = settings.experimentalBufferBasedABR;
     this.hasPlayed_ = settings.hasPlayed;
     this.currentTime_ = settings.currentTime;
     this.seekable_ = settings.seekable;
@@ -1346,6 +1347,11 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @private
    */
   earlyAbortWhenNeeded_(stats) {
+    // never try to early abort with the new ABR algorithm
+    if (this.experimentalBufferBasedABR) {
+      return;
+    }
+
     if (this.vhs_.tech_.paused() ||
         // Don't abort if the current playlist is on the lowestEnabledRendition
         // TODO: Replace using timeout with a boolean indicating whether this playlist is
