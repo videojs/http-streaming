@@ -259,6 +259,12 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.setupSegmentLoaderListeners_();
 
+    if (this.experimentalBufferBasedABR) {
+      this.startABRTimer_();
+      this.tech_.on('pause', () => this.stopABRTimer_());
+      this.tech_.on('play', () => this.startABRTimer_());
+    }
+
     // Create SegmentLoader stat-getters
     // mediaRequests_
     // mediaRequestsAborted_
@@ -274,6 +280,40 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.triggeredFmp4Usage = false;
     this.masterPlaylistLoader_.load();
+  }
+
+  /**
+   * Run selectPlaylist and switch to the new playlist if we should
+   *
+   * @private
+   *
+   */
+  checkABR_() {
+    const nextPlaylist = this.selectPlaylist();
+
+    if (this.shouldSwitchToMedia_(nextPlaylist)) {
+      this.masterPlaylistLoader_.media(nextPlaylist);
+    }
+  }
+
+  /**
+   * Start a timer that periodically calls checkABR_
+   *
+   * @private
+   */
+  startABRTimer_() {
+    this.stopABRTimer_();
+    this.abrTimer_ = window.setInterval(() => this.checkABR_(), 250);
+  }
+
+  /**
+   * Stop the timer that periodically calls checkABR_
+   *
+   * @private
+   */
+  stopABRTimer_() {
+    window.clearInterval(this.abrTimer_);
+    this.abrTimer_ = null;
   }
 
   /**
@@ -546,27 +586,29 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * @private
    */
   setupSegmentLoaderListeners_() {
-    this.mainSegmentLoader_.on('bandwidthupdate', () => {
-      const nextPlaylist = this.selectPlaylist();
-
-      if (this.shouldSwitchToMedia_(nextPlaylist)) {
-        this.masterPlaylistLoader_.media(nextPlaylist);
-      }
-
-      this.tech_.trigger('bandwidthupdate');
-    });
-
-    this.mainSegmentLoader_.on('progress', () => {
-      if (this.experimentalBufferBasedABR) {
+    if (!this.experimentalBufferBasedABR) {
+      this.mainSegmentLoader_.on('bandwidthupdate', () => {
         const nextPlaylist = this.selectPlaylist();
 
         if (this.shouldSwitchToMedia_(nextPlaylist)) {
           this.masterPlaylistLoader_.media(nextPlaylist);
         }
-      }
 
-      this.trigger('progress');
-    });
+        this.tech_.trigger('bandwidthupdate');
+      });
+
+      this.mainSegmentLoader_.on('progress', () => {
+        if (this.experimentalBufferBasedABR) {
+          const nextPlaylist = this.selectPlaylist();
+
+          if (this.shouldSwitchToMedia_(nextPlaylist)) {
+            this.masterPlaylistLoader_.media(nextPlaylist);
+          }
+        }
+
+        this.trigger('progress');
+      });
+    }
 
     this.mainSegmentLoader_.on('error', () => {
       this.blacklistCurrentPlaylist(this.mainSegmentLoader_.error());
@@ -881,6 +923,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
+    this.abrTimer_();
     this.sourceUpdater_.endOfStream();
   }
 
@@ -1048,6 +1091,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
    */
   pauseLoading() {
     this.delegateLoaders_('all', ['abort', 'pause']);
+    this.stopABRTimer_();
   }
 
   /**
@@ -1368,6 +1412,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.subtitleSegmentLoader_.dispose();
     this.sourceUpdater_.dispose();
     this.timelineChangeController_.dispose();
+
+    this.stopABRTimer_();
+
     if (this.updateDuration_) {
       this.mediaSource.removeEventListener('sourceopen', this.updateDuration_);
     }
