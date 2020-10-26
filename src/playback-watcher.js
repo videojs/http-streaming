@@ -11,7 +11,6 @@
 import window from 'global/window';
 import * as Ranges from './ranges';
 import logger from './util/logger';
-import videojs from 'video.js';
 
 // Set of events that reset the playback-watcher time check logic and clear the timeout
 const timerCancelEvents = [
@@ -218,18 +217,6 @@ export default class PlaybackWatcher {
     this.logger_(`${type} loader stalled download exclusion`);
     this.resetSegmentDownloads_(type);
     this.tech_.trigger({type: 'usage', name: `vhs-${type}-download-exclusion`});
-
-    if (type === 'subtitle') {
-      // TODO: Is there anything else that we can do here?
-      // removing the track and disabling could have accesiblity implications.
-      const track = loader.track();
-      const label = track.label || track.language || 'Unknown';
-
-      videojs.log.warn(`Text track "${label}" is not working correctly. It will be disabled and excluded.`);
-      track.mode = 'disabled';
-      this.tech_.textTracks().removeTrack(track);
-      return;
-    }
 
     // TODO: should we exclude audio tracks rather than main tracks
     // when type is audio?
