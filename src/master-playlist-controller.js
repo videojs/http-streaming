@@ -923,7 +923,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    this.abrTimer_();
+    this.stopABRTimer_();
     this.sourceUpdater_.endOfStream();
   }
 
