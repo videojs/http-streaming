@@ -5550,11 +5550,16 @@ QUnit.test('Determines if playlist should change on bandwidthupdate/progress fro
 
   // progress for a segment download
   this.masterPlaylistController.mainSegmentLoader_.trigger('progress');
-  assert.strictEqual(calls, 2, 'selects after segment progress');
+  assert.strictEqual(calls, 1, 'does not select after segment progress');
 
   // "downloaded" a segment
   this.masterPlaylistController.mainSegmentLoader_.trigger('bandwidthupdate');
-  assert.strictEqual(calls, 3, 'selects after segment download');
+  assert.strictEqual(calls, 1, 'does not select after segment download');
+
+  this.clock.tick(250);
+  assert.strictEqual(calls, 2, 'selects after clock tick');
+  this.clock.tick(1000);
+  assert.strictEqual(calls, 6, 'selects after clock tick, 1000 is 4x250');
 
   // verify stats
   assert.equal(this.player.tech_.vhs.stats.bandwidth, 4194304, 'default bandwidth');
