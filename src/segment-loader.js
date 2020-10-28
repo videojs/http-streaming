@@ -143,7 +143,7 @@ export const timestampOffsetForSegment = ({
   // the currently set timestampOffset, but this isn't desirable as it can produce bad
   // behavior, especially around long running live streams.
   if (!overrideCheck && segmentTimeline === currentTimeline) {
-    return null;
+    // return null;
   }
 
   // segmentInfo.startOfSegment used to be used as the timestamp offset, however, that
@@ -2472,9 +2472,7 @@ export default class SegmentLoader extends videojs.EventTarget {
         // priority, timing-wise, so we must wait
         typeof segmentInfo.timingInfo.start !== 'number' ||
         // already updated the timestamp offset for this segment
-        segmentInfo.changedTimestampOffset ||
-        // the alt audio loader should not be responsible for setting the timestamp offset
-        this.loaderType_ !== 'main') {
+        segmentInfo.changedTimestampOffset) {
       return;
     }
 
@@ -2490,12 +2488,12 @@ export default class SegmentLoader extends videojs.EventTarget {
     // future (within the same segment), however, there may be a better way to handle it.
     segmentInfo.changedTimestampOffset = true;
 
-    if (segmentInfo.timestampOffset !== this.sourceUpdater_.videoTimestampOffset()) {
+    if (this.currentMediaInfo_.hasVideo && segmentInfo.timestampOffset !== this.sourceUpdater_.videoTimestampOffset()) {
       this.sourceUpdater_.videoTimestampOffset(segmentInfo.timestampOffset);
       didChange = true;
     }
 
-    if (segmentInfo.timestampOffset !== this.sourceUpdater_.audioTimestampOffset()) {
+    if (this.currentMediaInfo_.hasAudio && segmentInfo.timestampOffset !== this.sourceUpdater_.audioTimestampOffset()) {
       this.sourceUpdater_.audioTimestampOffset(segmentInfo.timestampOffset);
       didChange = true;
     }
