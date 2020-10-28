@@ -405,18 +405,18 @@ export const initialize = {
       for (const variantLabel in mediaGroups[type][groupId]) {
         let properties = mediaGroups[type][groupId][variantLabel];
 
-        // List of playlists for the current group ID that have a matching uri with
-        // this alternate audio variant
-        const matchingPlaylists = groupPlaylists.filter(playlist => {
-          return playlist.resolvedUri === properties.resolvedUri;
+        // List of playlists for the current group ID that do not have a matching uri
+        // with this alternate audio variant
+        const unmatchingPlaylists = groupPlaylists.filter(playlist => {
+          return playlist.resolvedUri !== properties.resolvedUri;
         });
 
-        if (matchingPlaylists.length) {
-          // If there is a playlist that has the same uri as this audio variant, assume
-          // that the playlist is audio only. We delete the resolvedUri property here
-          // to prevent a playlist loader from being created so that we don't have
-          // both the main and audio segment loaders loading the same audio segments
-          // from the same playlist.
+        // If there are no playlists using this audio group other than ones
+        // that match it's uri. Then playlist is audio only. We delete the resolvedUri
+        // property here to prevent a playlist loader from being created so that we don't have
+        // both the main and audio segment loaders loading the same audio segments
+        // from the same playlist.
+        if (!unmatchingPlaylists.length) {
           delete properties.resolvedUri;
         }
 
