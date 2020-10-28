@@ -218,6 +218,10 @@ export default class PlaybackWatcher {
     this.resetSegmentDownloads_(type);
     this.tech_.trigger({type: 'usage', name: `vhs-${type}-download-exclusion`});
 
+    if (type === 'subtitle') {
+      return;
+    }
+
     // TODO: should we exclude audio tracks rather than main tracks
     // when type is audio?
     mpc.blacklistCurrentPlaylist({
