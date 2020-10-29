@@ -412,7 +412,7 @@ export const initialize = {
         });
 
         // If there are no playlists using this audio group other than ones
-        // that match it's uri. Then playlist is audio only. We delete the resolvedUri
+        // that match it's uri, then the playlist is audio only. We delete the resolvedUri
         // property here to prevent a playlist loader from being created so that we don't have
         // both the main and audio segment loaders loading the same audio segments
         // from the same playlist.
