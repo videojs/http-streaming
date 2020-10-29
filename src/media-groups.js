@@ -416,7 +416,7 @@ export const initialize = {
         // property here to prevent a playlist loader from being created so that we don't have
         // both the main and audio segment loaders loading the same audio segments
         // from the same playlist.
-        if (!unmatchingPlaylists.length) {
+        if (!unmatchingPlaylists.length && groupPlaylists.length) {
           delete properties.resolvedUri;
         }
 

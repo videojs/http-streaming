@@ -303,5 +303,11 @@
     "uri": "https://d2zihajmogu5jn.cloudfront.net/audio-only-dupe-groups/prog_index.m3u8",
     "mimetype": "application/x-mpegurl",
     "features": []
+  },
+  {
+    "name": "Big Buck Bunny Demuxed av, audio only rendition same as group",
+    "uri": "https://d2zihajmogu5jn.cloudfront.net/demuxed-ts-with-audio-only-rendition/master.m3u8",
+    "mimetype": "application/x-mpegurl",
+    "features": []
   }
 ]
