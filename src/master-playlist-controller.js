@@ -209,7 +209,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     const segmentLoaderSettings = {
       vhs: this.vhs_,
-      experimentalBufferBasedABR,
       mediaSource: this.mediaSource,
       currentTime: this.tech_.currentTime.bind(this.tech_),
       seekable: () => this.seekable(),
@@ -634,6 +633,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     this.mainSegmentLoader_.on('earlyabort', (event) => {
+      // never try to early abort with the new ABR algorithm
+      if (this.experimentalBufferBasedABR) {
+        return;
+      }
+
       this.blacklistCurrentPlaylist({
         message: 'Aborted early because there isn\'t enough bandwidth to complete the ' +
           'request without rebuffering.'
