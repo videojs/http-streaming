@@ -598,14 +598,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
       });
 
       this.mainSegmentLoader_.on('progress', () => {
-        if (this.experimentalBufferBasedABR) {
-          const nextPlaylist = this.selectPlaylist();
-
-          if (this.shouldSwitchToMedia_(nextPlaylist)) {
-            this.masterPlaylistLoader_.media(nextPlaylist);
-          }
-        }
-
         this.trigger('progress');
       });
     }
