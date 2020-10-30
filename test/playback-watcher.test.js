@@ -933,64 +933,64 @@ QUnit.module('PlaybackWatcher download detection', {
 });
 
 loaderTypes.forEach(function(type) {
-  QUnit.test(`detects ${type} appends without buffer changes and excludes`, function(assert) {
-    this.setup();
-    const loader = this.mpc[`${type}SegmentLoader_`];
-    const track = {label: 'foobar', mode: 'showing'};
-
-    if (type === 'subtitle') {
-      loader.track = () => track;
-      sinon.stub(this.player.tech_.textTracks(), 'removeTrack');
-    }
-
-    this.setBuffered(videojs.createTimeRanges([[0, 30]]));
-
-    for (let i = 0; i <= EXCLUDE_APPEND_COUNT; i++) {
-      loader.trigger('appendsdone');
-      if (i === EXCLUDE_APPEND_COUNT) {
-        assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, `append #${i} resets stalled downloads to 0`);
-      } else {
-        assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], i, `append #${i + 1} ${i} stalled downloads`);
-      }
-    }
-
-    const expectedUsage = {};
-
-    expectedUsage[`vhs-${type}-download-exclusion`] = 1;
-
-    if (type !== 'subtitle') {
-      expectedUsage['vhs-rendition-blacklisted'] = 1;
-      expectedUsage['hls-rendition-blacklisted'] = 1;
-    }
-
-    assert.deepEqual(this.usageEvents, expectedUsage, 'usage as expected');
-
-    if (type !== 'subtitle') {
-      const message = 'Playback cannot continue. No available working or supported playlists.';
-
-      assert.equal(this.mpcErrors, 1, 'one mpc error');
-      assert.equal(this.mpc.error, message, 'mpc error set');
-      assert.equal(this.player.error().message, message, 'player error set');
-      assert.equal(this.env.log.error.callCount, 1, 'player error logged');
-      assert.equal(this.env.log.error.args[0][1], message, 'error message as expected');
-
-      this.env.log.error.resetHistory();
-    } else {
-      const message = 'Text track "foobar" is not working correctly. It will be disabled and excluded.';
-
-      assert.equal(this.mpcErrors, 0, 'no mpc error set');
-      assert.notOk(this.player.error(), 'no player error set');
-      assert.equal(this.player.textTracks().removeTrack.callCount, 1, 'text track remove called');
-      assert.equal(this.player.textTracks().removeTrack.args[0][0], track, 'text track remove called with expected');
-      assert.equal(track.mode, 'disabled', 'mode set to disabled now');
-      assert.equal(this.env.log.warn.callCount, 1, 'warning logged');
-      assert.equal(this.env.log.warn.args[0][0], message, 'warning message as expected');
-
-      this.env.log.warn.resetHistory();
-    }
-  });
-
   if (type !== 'subtitle') {
+    QUnit.test(`detects ${type} appends without buffer changes and excludes`, function(assert) {
+      this.setup();
+      const loader = this.mpc[`${type}SegmentLoader_`];
+      const track = {label: 'foobar', mode: 'showing'};
+
+      if (type === 'subtitle') {
+        loader.track = () => track;
+        sinon.stub(this.player.tech_.textTracks(), 'removeTrack');
+      }
+
+      this.setBuffered(videojs.createTimeRanges([[0, 30]]));
+
+      for (let i = 0; i <= EXCLUDE_APPEND_COUNT; i++) {
+        loader.trigger('appendsdone');
+        if (i === EXCLUDE_APPEND_COUNT) {
+          assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, `append #${i} resets stalled downloads to 0`);
+        } else {
+          assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], i, `append #${i + 1} ${i} stalled downloads`);
+        }
+      }
+
+      const expectedUsage = {};
+
+      expectedUsage[`vhs-${type}-download-exclusion`] = 1;
+
+      if (type !== 'subtitle') {
+        expectedUsage['vhs-rendition-blacklisted'] = 1;
+        expectedUsage['hls-rendition-blacklisted'] = 1;
+      }
+
+      assert.deepEqual(this.usageEvents, expectedUsage, 'usage as expected');
+
+      if (type !== 'subtitle') {
+        const message = 'Playback cannot continue. No available working or supported playlists.';
+
+        assert.equal(this.mpcErrors, 1, 'one mpc error');
+        assert.equal(this.mpc.error, message, 'mpc error set');
+        assert.equal(this.player.error().message, message, 'player error set');
+        assert.equal(this.env.log.error.callCount, 1, 'player error logged');
+        assert.equal(this.env.log.error.args[0][1], message, 'error message as expected');
+
+        this.env.log.error.resetHistory();
+      } else {
+        const message = 'Text track "foobar" is not working correctly. It will be disabled and excluded.';
+
+        assert.equal(this.mpcErrors, 0, 'no mpc error set');
+        assert.notOk(this.player.error(), 'no player error set');
+        assert.equal(this.player.textTracks().removeTrack.callCount, 1, 'text track remove called');
+        assert.equal(this.player.textTracks().removeTrack.args[0][0], track, 'text track remove called with expected');
+        assert.equal(track.mode, 'disabled', 'mode set to disabled now');
+        assert.equal(this.env.log.warn.callCount, 1, 'warning logged');
+        assert.equal(this.env.log.warn.args[0][0], message, 'warning message as expected');
+
+        this.env.log.warn.resetHistory();
+      }
+    });
+
     QUnit.test(`detects ${type} appends without buffer changes and excludes many playlists`, function(assert) {
       this.setup({src: 'multipleAudioGroupsCombinedMain.m3u8', type: 'application/vnd.apple.mpegurl'});
 
