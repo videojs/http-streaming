@@ -1012,6 +1012,43 @@ QUnit.test('initialize audio correctly uses HLS source type', function(assert) {
   );
 });
 
+QUnit.test('no audio loader for audio only with duplicated audio groups', function(assert) {
+  this.master.mediaGroups.AUDIO.aud1 = {
+    en: { default: true, language: 'en', resolvedUri: 'en.m3u8' }
+  };
+
+  this.settings.sourceType = 'hls';
+
+  this.settings.master.playlists = [
+    {resolvedUri: 'en.m3u8', attributes: {AUDIO: 'aud1'}}
+  ];
+  MediaGroups.initialize.AUDIO('AUDIO', this.settings);
+
+  assert.notOk(
+    this.mediaTypes.AUDIO.groups.aud1[0].playlistLoader,
+    'no loader as audio group is the same as main renditions'
+  );
+});
+
+QUnit.test('audio loader created with audio group duplicated as audio only rendition', function(assert) {
+  this.master.mediaGroups.AUDIO.aud1 = {
+    en: { default: true, language: 'en', resolvedUri: 'en.m3u8' }
+  };
+
+  this.settings.sourceType = 'hls';
+
+  this.settings.master.playlists = [
+    {resolvedUri: 'video/en.m3u8', attributes: {AUDIO: 'aud1'}},
+    {resolvedUri: 'en.m3u8', attributes: {AUDIO: 'aud1'}}
+  ];
+  MediaGroups.initialize.AUDIO('AUDIO', this.settings);
+
+  assert.ok(
+    this.mediaTypes.AUDIO.groups.aud1[0].playlistLoader,
+    'audio loader created'
+  );
+});
+
 QUnit.test('initialize audio correctly uses DASH source type', function(assert) {
   // allow async methods to resolve before next test
   const done = assert.async();
