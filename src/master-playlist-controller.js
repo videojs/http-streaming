@@ -311,6 +311,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * @private
    */
   stopABRTimer_() {
+    // if we're scrubbing, we don't need to pause.
+    // This getter will be added to Video.js in version 7.11.
+    if (this.tech_.scrubbing && this.tech_.scrubbing()) {
+      return;
+    }
     window.clearInterval(this.abrTimer_);
     this.abrTimer_ = null;
   }
