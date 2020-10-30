@@ -258,6 +258,12 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.setupSegmentLoaderListeners_();
 
+    if (this.experimentalBufferBasedABR) {
+      this.startABRTimer_();
+      this.tech_.on('pause', () => this.stopABRTimer_());
+      this.tech_.on('play', () => this.startABRTimer_());
+    }
+
     // Create SegmentLoader stat-getters
     // mediaRequests_
     // mediaRequestsAborted_
@@ -273,6 +279,45 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.triggeredFmp4Usage = false;
     this.masterPlaylistLoader_.load();
+  }
+
+  /**
+   * Run selectPlaylist and switch to the new playlist if we should
+   *
+   * @private
+   *
+   */
+  checkABR_() {
+    const nextPlaylist = this.selectPlaylist();
+
+    if (this.shouldSwitchToMedia_(nextPlaylist)) {
+      this.masterPlaylistLoader_.media(nextPlaylist);
+    }
+  }
+
+  /**
+   * Start a timer that periodically calls checkABR_
+   *
+   * @private
+   */
+  startABRTimer_() {
+    this.stopABRTimer_();
+    this.abrTimer_ = window.setInterval(() => this.checkABR_(), 250);
+  }
+
+  /**
+   * Stop the timer that periodically calls checkABR_
+   *
+   * @private
+   */
+  stopABRTimer_() {
+    // if we're scrubbing, we don't need to pause.
+    // This getter will be added to Video.js in version 7.11.
+    if (this.tech_.scrubbing && this.tech_.scrubbing()) {
+      return;
+    }
+    window.clearInterval(this.abrTimer_);
+    this.abrTimer_ = null;
   }
 
   /**
@@ -545,27 +590,21 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * @private
    */
   setupSegmentLoaderListeners_() {
-    this.mainSegmentLoader_.on('bandwidthupdate', () => {
-      const nextPlaylist = this.selectPlaylist();
-
-      if (this.shouldSwitchToMedia_(nextPlaylist)) {
-        this.masterPlaylistLoader_.media(nextPlaylist);
-      }
-
-      this.tech_.trigger('bandwidthupdate');
-    });
-
-    this.mainSegmentLoader_.on('progress', () => {
-      if (this.experimentalBufferBasedABR) {
+    if (!this.experimentalBufferBasedABR) {
+      this.mainSegmentLoader_.on('bandwidthupdate', () => {
         const nextPlaylist = this.selectPlaylist();
 
         if (this.shouldSwitchToMedia_(nextPlaylist)) {
           this.masterPlaylistLoader_.media(nextPlaylist);
         }
-      }
 
-      this.trigger('progress');
-    });
+        this.tech_.trigger('bandwidthupdate');
+      });
+
+      this.mainSegmentLoader_.on('progress', () => {
+        this.trigger('progress');
+      });
+    }
 
     this.mainSegmentLoader_.on('error', () => {
       this.blacklistCurrentPlaylist(this.mainSegmentLoader_.error());
@@ -599,25 +638,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     this.mainSegmentLoader_.on('earlyabort', (event) => {
+      // never try to early abort with the new ABR algorithm
       if (this.experimentalBufferBasedABR) {
-        const currentPlaylist = this.masterPlaylistLoader_.media();
-
-        // temporarily exclude the current playlist so that we can
-        // determine the next playlist that would be selected
-        // if this playlist were to be excluded.
-        currentPlaylist.excludeUntil = Infinity;
-
-        const nextPlaylist = this.selectPlaylist();
-
-        // un-exclude the current playlist for now
-        currentPlaylist.excludeUntil = null;
-
-        // if we shouldn't switch to the next playlist, do nothing
-        if (!this.shouldSwitchToMedia_(nextPlaylist)) {
-          this.logger_(`earlyabort triggered, but we will not be switching from ${currentPlaylist.id} -> ${nextPlaylist.id}.`);
-          return;
-        }
+        return;
       }
+
       this.blacklistCurrentPlaylist({
         message: 'Aborted early because there isn\'t enough bandwidth to complete the ' +
           'request without rebuffering.'
@@ -899,6 +924,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
+    this.stopABRTimer_();
     this.sourceUpdater_.endOfStream();
   }
 
@@ -1066,6 +1092,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
    */
   pauseLoading() {
     this.delegateLoaders_('all', ['abort', 'pause']);
+    this.stopABRTimer_();
   }
 
   /**
@@ -1386,6 +1413,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.subtitleSegmentLoader_.dispose();
     this.sourceUpdater_.dispose();
     this.timelineChangeController_.dispose();
+
+    this.stopABRTimer_();
+
     if (this.updateDuration_) {
       this.mediaSource.removeEventListener('sourceopen', this.updateDuration_);
     }

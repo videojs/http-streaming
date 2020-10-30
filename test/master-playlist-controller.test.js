@@ -5534,53 +5534,6 @@ QUnit.module('MasterPlaylistController experimentalBufferBasedABR', {
   }
 });
 
-QUnit.test('Determines if playlist should be aborted on earlyabort', function(assert) {
-  this.masterPlaylistController.mediaSource.trigger('sourceopen');
-  // master
-  this.standardXHRResponse(this.requests.shift());
-  // media
-  this.standardXHRResponse(this.requests.shift());
-
-  const mediaChanges = [];
-  const playlistLoader = this.masterPlaylistController.masterPlaylistLoader_;
-  const currentMedia = playlistLoader.media();
-  const origMedia = playlistLoader.media.bind(playlistLoader);
-  const origWarn = videojs.log.warn;
-  const warnings = [];
-
-  this.masterPlaylistController.masterPlaylistLoader_.media = (media) => {
-    if (media) {
-      mediaChanges.push(media);
-    }
-    return origMedia(media);
-  };
-
-  videojs.log.warn = (text) => warnings.push(text);
-
-  assert.notOk(currentMedia.excludeUntil > 0, 'playlist not blacklisted');
-  assert.equal(mediaChanges.length, 0, 'no media change');
-
-  this.masterPlaylistController.shouldSwitchToMedia_ = () => false;
-  this.masterPlaylistController.mainSegmentLoader_.trigger('earlyabort');
-
-  assert.notOk(currentMedia.excludeUntil > 0, 'no exclusions if we should not switch');
-  assert.equal(mediaChanges.length, 0, 'no media change if we should not switch');
-
-  this.masterPlaylistController.shouldSwitchToMedia_ = () => true;
-  this.masterPlaylistController.mainSegmentLoader_.trigger('earlyabort');
-  assert.equal(mediaChanges.length, 1, 'one media change');
-  assert.equal(warnings.length, 1, 'one warning logged');
-  assert.equal(
-    warnings[0],
-    `Problem encountered with playlist ${currentMedia.id}. ` +
-                 'Aborted early because there isn\'t enough bandwidth to complete the ' +
-                 `request without rebuffering. Switching to playlist ${mediaChanges[0].id}.`,
-    'warning message is correct'
-  );
-
-  videojs.log.warn = origWarn;
-});
-
 QUnit.test('Determines if playlist should change on bandwidthupdate/progress from segment loader', function(assert) {
   let calls = 0;
 
@@ -5597,11 +5550,16 @@ QUnit.test('Determines if playlist should change on bandwidthupdate/progress fro
 
   // progress for a segment download
   this.masterPlaylistController.mainSegmentLoader_.trigger('progress');
-  assert.strictEqual(calls, 2, 'selects after segment progress');
+  assert.strictEqual(calls, 1, 'does not select after segment progress');
 
   // "downloaded" a segment
   this.masterPlaylistController.mainSegmentLoader_.trigger('bandwidthupdate');
-  assert.strictEqual(calls, 3, 'selects after segment download');
+  assert.strictEqual(calls, 1, 'does not select after segment download');
+
+  this.clock.tick(250);
+  assert.strictEqual(calls, 2, 'selects after clock tick');
+  this.clock.tick(1000);
+  assert.strictEqual(calls, 6, 'selects after clock tick, 1000 is 4x250');
 
   // verify stats
   assert.equal(this.player.tech_.vhs.stats.bandwidth, 4194304, 'default bandwidth');
