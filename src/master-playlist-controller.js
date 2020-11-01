@@ -140,6 +140,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       externVhs,
       useCueTags,
       blacklistDuration,
+      maxFinalRenditionRetries,
       enableLowInitialPlaylist,
       sourceType,
       cacheEncryptionKeys,
@@ -161,6 +162,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.useCueTags_ = useCueTags;
     this.blacklistDuration = blacklistDuration;
     this.enableLowInitialPlaylist = enableLowInitialPlaylist;
+    this.maxFinalRenditionRetries = maxFinalRenditionRetries;
+
+    this.finalRenditionRetries_ = 0;
+
     if (this.useCueTags_) {
       this.cueTagsTrack_ = this.tech_.addTextTrack(
         'metadata',
@@ -1018,7 +1023,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return this.masterPlaylistLoader_.load(isFinalRendition);
     }
 
-    if (isFinalRendition) {
+    if (isFinalRendition && this.finalRenditionRetries_ < this.maxFinalRenditionRetries) {
       // Since we're on the final non-blacklisted playlist, and we're about to blacklist
       // it, instead of erring the player or retrying this playlist, clear out the current
       // blacklist. This allows other playlists to be attempted in case any have been
@@ -1031,12 +1036,19 @@ export class MasterPlaylistController extends videojs.EventTarget {
           return;
         }
         const excludeUntil = playlist.excludeUntil;
-
         // a playlist cannot be reincluded if it wasn't excluded to begin with.
+
         if (typeof excludeUntil !== 'undefined' && excludeUntil !== Infinity) {
           reincluded = true;
           delete playlist.excludeUntil;
         }
+      });
+
+      this.finalRenditionRetries_++;
+
+      // Once a segment has been appended, we can assume that no error occurred while fetching the segment
+      this.mainSegmentLoader_.one('appendsdone', () => {
+        this.finalRenditionRetries_ = 0;
       });
 
       if (reincluded) {

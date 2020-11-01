@@ -2137,6 +2137,392 @@ QUnit.test('segment 404 should trigger blacklisting of media', function(assert) 
   assert.equal(this.player.tech_.vhs.stats.bandwidth, 20000, 'bandwidth set above');
 });
 
+QUnit.test('Retries after blacklist can be disabled', function(assert) {
+  let media;
+  let url;
+  let index;
+  let blacklistplaylist = 0;
+  let retryplaylist = 0;
+  let vhsRenditionBlacklistedEvents = 0;
+  let hlsRenditionBlacklistedEvents = 0;
+
+  this.player = createPlayer({ html5: { vhs: { maxFinalRenditionRetries: 0 } } });
+
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  this.player.tech_.on('blacklistplaylist', () => blacklistplaylist++);
+  this.player.tech_.on('retryplaylist', () => retryplaylist++);
+  this.player.tech_.on('usage', (event) => {
+    if (event.name === 'vhs-rendition-blacklisted') {
+      vhsRenditionBlacklistedEvents++;
+    }
+    if (event.name === 'hls-rendition-blacklisted') {
+      hlsRenditionBlacklistedEvents++;
+    }
+  });
+
+  this.player.tech_.vhs.bandwidth = 1e10;
+  // master
+  this.requests[0].respond(
+    200, null,
+    '#EXTM3U\n' +
+                           '#EXT-X-STREAM-INF:BANDWIDTH=1000\n' +
+                           'media.m3u8\n' +
+                           '#EXT-X-STREAM-INF:BANDWIDTH=1\n' +
+                           'media1.m3u8\n'
+  );
+  assert.equal(
+    typeof this.player.tech_.vhs.playlists.media_,
+    'undefined',
+    'no media is initially set'
+  );
+
+  assert.equal(blacklistplaylist, 0, 'there is no blacklisted playlist');
+  assert.equal(
+    vhsRenditionBlacklistedEvents,
+    0,
+    'no vhs-rendition-blacklisted event was fired'
+  );
+  assert.equal(
+    hlsRenditionBlacklistedEvents,
+    0,
+    'no hls-rendition-blacklisted event was fired'
+  );
+  // media
+  this.requests[1].respond(404);
+  url = this.requests[1].url.slice(this.requests[1].url.lastIndexOf('/') + 1);
+
+  if (url === 'media.m3u8') {
+    index = 0;
+  } else {
+    index = 1;
+  }
+  media = this.player.tech_.vhs.playlists.master.playlists[createPlaylistID(index, url)];
+
+  assert.ok(media.excludeUntil > 0, 'original media blacklisted for some time');
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
+  assert.equal(
+    this.env.log.warn.args[0],
+    `Problem encountered with playlist ${media.id}. HLS playlist request error at URL: media.m3u8. Switching to playlist 1-media1.m3u8.`,
+    'log generic error message'
+  );
+  assert.equal(blacklistplaylist, 1, 'there is one blacklisted playlist');
+  assert.equal(
+    vhsRenditionBlacklistedEvents,
+    1,
+    'a vhs-rendition-blacklisted event was fired'
+  );
+  assert.equal(
+    hlsRenditionBlacklistedEvents,
+    1,
+    'an hls-rendition-blacklisted event was fired'
+  );
+  assert.equal(retryplaylist, 0, 'haven\'t retried any playlist');
+
+  // request for the final available media
+  this.requests[2].respond(404);
+  url = this.requests[2].url.slice(this.requests[2].url.lastIndexOf('/') + 1);
+  if (url === 'media.m3u8') {
+    index = 0;
+  } else {
+    index = 1;
+  }
+
+  media = this.player.tech_.vhs.playlists.master.playlists[createPlaylistID(index, url)];
+
+  assert.ok(media.excludeUntil > 0, 'second media was blacklisted after playlist 404');
+  assert.equal(retryplaylist, 0, 'Did not fire a retryplaylist event');
+  assert.equal(blacklistplaylist, 2, 'media1 is blacklisted');
+
+  this.clock.tick(2 * 1000);
+  // no new request was made since it hasn't been half the segment duration
+  assert.strictEqual(3, this.requests.length, 'no new request was made');
+
+  this.clock.tick(3 * 1000);
+  // loading the first playlist since the blacklist duration was cleared
+  // when half the segment duaration passed
+
+  assert.strictEqual(4, this.requests.length, 'one more request was made');
+
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
+
+  assert.equal(
+    this.env.log.warn.args[1],
+    'Problem encountered with playlist 1-media1.m3u8. HLS playlist request error at URL: media1.m3u8. Switching to playlist 0-media.m3u8.',
+    'log generic error message'
+  );
+});
+
+QUnit.test('Number of retry attempts reset after segment has loaded', function(assert) {
+  let media;
+  let url;
+  let index;
+  let blacklistplaylist = 0;
+  let retryplaylist = 0;
+  let vhsRenditionBlacklistedEvents = 0;
+  let hlsRenditionBlacklistedEvents = 0;
+
+  this.player = createPlayer({ html5: { vhs: { maxFinalRenditionRetries: 1 } } });
+
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  this.player.tech_.on('blacklistplaylist', () => blacklistplaylist++);
+  this.player.tech_.on('retryplaylist', () => retryplaylist++);
+  this.player.tech_.on('usage', (event) => {
+    if (event.name === 'vhs-rendition-blacklisted') {
+      vhsRenditionBlacklistedEvents++;
+    }
+    if (event.name === 'hls-rendition-blacklisted') {
+      hlsRenditionBlacklistedEvents++;
+    }
+  });
+
+  this.player.tech_.vhs.bandwidth = 1e10;
+  // master
+  this.requests[0].respond(
+    200, null,
+    '#EXTM3U\n' +
+                           '#EXT-X-STREAM-INF:BANDWIDTH=1000\n' +
+                           'media.m3u8\n' +
+                           '#EXT-X-STREAM-INF:BANDWIDTH=1\n' +
+                           'media1.m3u8\n'
+  );
+  assert.equal(
+    typeof this.player.tech_.vhs.playlists.media_,
+    'undefined',
+    'no media is initially set'
+  );
+
+  assert.equal(blacklistplaylist, 0, 'there is no blacklisted playlist');
+  assert.equal(
+    vhsRenditionBlacklistedEvents,
+    0,
+    'no vhs-rendition-blacklisted event was fired'
+  );
+  assert.equal(
+    hlsRenditionBlacklistedEvents,
+    0,
+    'no hls-rendition-blacklisted event was fired'
+  );
+  // media
+  this.requests[1].respond(404);
+  url = this.requests[1].url.slice(this.requests[1].url.lastIndexOf('/') + 1);
+
+  if (url === 'media.m3u8') {
+    index = 0;
+  } else {
+    index = 1;
+  }
+  media = this.player.tech_.vhs.playlists.master.playlists[createPlaylistID(index, url)];
+
+  assert.ok(media.excludeUntil > 0, 'original media blacklisted for some time');
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
+  assert.equal(
+    this.env.log.warn.args[0],
+    `Problem encountered with playlist ${media.id}. HLS playlist request error at URL: media.m3u8. Switching to playlist 1-media1.m3u8.`,
+    'log generic error message'
+  );
+  assert.equal(blacklistplaylist, 1, 'there is one blacklisted playlist');
+  assert.equal(
+    vhsRenditionBlacklistedEvents,
+    1,
+    'a vhs-rendition-blacklisted event was fired'
+  );
+  assert.equal(
+    hlsRenditionBlacklistedEvents,
+    1,
+    'an hls-rendition-blacklisted event was fired'
+  );
+  assert.equal(retryplaylist, 0, 'haven\'t retried any playlist');
+
+  // request for the final available media
+  const { mainSegmentLoader_ } =
+    this.player.tech(true).vhs.masterPlaylistController_;
+
+  mainSegmentLoader_.trigger('appendsdone');
+  this.requests[2].respond(404);
+
+  assert.equal(
+    this.env.log.warn.args[1],
+    'Removing other playlists from the exclusion list because the last rendition is about to be excluded.',
+    'log generic error message'
+  );
+
+  assert.equal(
+    this.env.log.warn.args[2],
+    'Problem encountered with playlist 1-media1.m3u8. HLS playlist request error at URL: media1.m3u8. Switching to playlist 0-media.m3u8.',
+    'log generic error message'
+  );
+
+  url = this.requests[2].url.slice(this.requests[2].url.lastIndexOf('/') + 1);
+  if (url === 'media.m3u8') {
+    index = 0;
+  } else {
+    index = 1;
+  }
+
+  media = this.player.tech_.vhs.playlists.master.playlists[createPlaylistID(index, url)];
+
+  assert.ok(media.excludeUntil > 0, 'second media was blacklisted after playlist 404');
+  assert.equal(retryplaylist, 1, 'Fired a retryplaylist event because the finalRenditionRetries value was reset');
+  assert.equal(blacklistplaylist, 2, 'media1 is blacklisted');
+  assert.equal(this.env.log.warn.calls, 2, 'warning logged for blacklist');
+});
+
+QUnit.test('Blacklisted playlists are retried by default', function(assert) {
+  let media;
+  let url;
+  let index;
+  let blacklistplaylist = 0;
+  let retryplaylist = 0;
+  let vhsRenditionBlacklistedEvents = 0;
+  let hlsRenditionBlacklistedEvents = 0;
+
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  this.player.tech_.on('blacklistplaylist', () => blacklistplaylist++);
+  this.player.tech_.on('retryplaylist', () => retryplaylist++);
+  this.player.tech_.on('usage', (event) => {
+    if (event.name === 'vhs-rendition-blacklisted') {
+      vhsRenditionBlacklistedEvents++;
+    }
+    if (event.name === 'hls-rendition-blacklisted') {
+      hlsRenditionBlacklistedEvents++;
+    }
+  });
+
+  this.player.tech_.vhs.bandwidth = 1e10;
+  // master
+  this.requests[0].respond(
+    200, null,
+    '#EXTM3U\n' +
+                           '#EXT-X-STREAM-INF:BANDWIDTH=1000\n' +
+                           'media.m3u8\n' +
+                           '#EXT-X-STREAM-INF:BANDWIDTH=1\n' +
+                           'media1.m3u8\n'
+  );
+  assert.equal(
+    typeof this.player.tech_.vhs.playlists.media_,
+    'undefined',
+    'no media is initially set'
+  );
+
+  assert.equal(blacklistplaylist, 0, 'there is no blacklisted playlist');
+  assert.equal(
+    vhsRenditionBlacklistedEvents,
+    0,
+    'no vhs-rendition-blacklisted event was fired'
+  );
+  assert.equal(
+    hlsRenditionBlacklistedEvents,
+    0,
+    'no hls-rendition-blacklisted event was fired'
+  );
+  // media
+  this.requests[1].respond(404);
+  url = this.requests[1].url.slice(this.requests[1].url.lastIndexOf('/') + 1);
+
+  if (url === 'media.m3u8') {
+    index = 0;
+  } else {
+    index = 1;
+  }
+  media = this.player.tech_.vhs.playlists.master.playlists[createPlaylistID(index, url)];
+
+  assert.ok(media.excludeUntil > 0, 'original media blacklisted for some time');
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
+  assert.equal(
+    this.env.log.warn.args[0],
+    `Problem encountered with playlist ${media.id}. HLS playlist request error at URL: media.m3u8. Switching to playlist 1-media1.m3u8.`,
+    'log generic error message'
+  );
+  assert.equal(blacklistplaylist, 1, 'there is one blacklisted playlist');
+  assert.equal(
+    vhsRenditionBlacklistedEvents,
+    1,
+    'a vhs-rendition-blacklisted event was fired'
+  );
+  assert.equal(
+    hlsRenditionBlacklistedEvents,
+    1,
+    'an hls-rendition-blacklisted event was fired'
+  );
+  assert.equal(retryplaylist, 0, 'haven\'t retried any playlist');
+
+  // request for the final available media
+  this.requests[2].respond(404);
+  url = this.requests[2].url.slice(this.requests[2].url.lastIndexOf('/') + 1);
+  if (url === 'media.m3u8') {
+    index = 0;
+  } else {
+    index = 1;
+  }
+
+  media = this.player.tech_.vhs.playlists.master.playlists[createPlaylistID(index, url)];
+
+  assert.ok(media.excludeUntil > 0, 'second media was blacklisted after playlist 404');
+  assert.equal(this.env.log.warn.calls, 2, 'warning logged for blacklist');
+  assert.equal(
+    this.env.log.warn.args[1],
+    'Removing other playlists from the exclusion list because the last rendition is about to be excluded.',
+    'log generic error message'
+  );
+  assert.equal(
+    this.env.log.warn.args[2],
+    `Problem encountered with playlist ${media.id}. HLS playlist request error at URL: media1.m3u8. ` +
+              'Switching to playlist 0-media.m3u8.',
+    'log generic error message'
+  );
+  assert.equal(retryplaylist, 1, 'fired a retryplaylist event');
+  assert.equal(blacklistplaylist, 2, 'media1 is blacklisted');
+
+  this.clock.tick(2 * 1000);
+  // no new request was made since it hasn't been half the segment duration
+  assert.strictEqual(3, this.requests.length, 'no new request was made');
+
+  this.clock.tick(3 * 1000);
+  // loading the first playlist since the blacklist duration was cleared
+  // when half the segment duaration passed
+
+  assert.strictEqual(4, this.requests.length, 'one more request was made');
+
+  this.requests[3].respond(404);
+
+  assert.equal(this.env.log.warn.calls, 2, 'warning logged for blacklist');
+
+  assert.equal(
+    this.env.log.warn.args[3],
+    'Removing other playlists from the exclusion list because the last rendition is about to be excluded.',
+    'log generic error message'
+  );
+
+  assert.equal(
+    this.env.log.warn.args[4],
+    'Problem encountered with playlist 0-media.m3u8. HLS playlist request error at URL: media.m3u8. Switching to playlist 1-media1.m3u8.',
+    'log generic error message'
+  );
+
+  assert.equal(retryplaylist, 2, 'fired a second retryplaylist event');
+});
+
 QUnit.test('playlist 404 should blacklist media', function(assert) {
   let media;
   let url;

@@ -44,6 +44,7 @@ Video.js Compatibility: 6.0, 7.0
       - [useCueTags](#usecuetags)
       - [overrideNative](#overridenative)
       - [blacklistDuration](#blacklistduration)
+      - [maxFinalRenditionRetries](#maxfinalrenditionretries)
       - [bandwidth](#bandwidth)
       - [useBandwidthFromLocalStorage](#usebandwidthfromlocalstorage)
       - [enableLowInitialPlaylist](#enablelowinitialplaylist)
@@ -346,12 +347,20 @@ Since MSE playback may be desirable on all browsers with some native support oth
 
 ##### blacklistDuration
 * Type: `number`
+* Default: `300`
 * can be used as an initialization option
 
 When the `blacklistDuration` property is set to a time duration in seconds,
 if a playlist is blacklisted, it will be blacklisted for a period of that
 customized duration. This enables the blacklist duration to be configured
 by the user.
+
+##### maxFinalRenditionRetries
+* Type: `number`
+* Default: `Infinity`
+* can be used as an initialization option
+
+The `maxFinalRenditionRetries` property is used to limit the number of times that the player will attempt to reload a blacklisted playlist. Once the number of reload attempts has reached `maxFinalRenditionRetries`, the player will stop attempting to load blacklisted playlists. Setting this property to `0` will result in the player never attempting to reload a blacklisted playlist.
 
 ##### bandwidth
 * Type: `number`

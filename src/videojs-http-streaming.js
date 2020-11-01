@@ -556,6 +556,11 @@ class VhsHandler extends Component {
     this.options_.customTagMappers = this.options_.customTagMappers || [];
     this.options_.cacheEncryptionKeys = this.options_.cacheEncryptionKeys || false;
     this.options_.handlePartialData = this.options_.handlePartialData || false;
+    this.options_.maxFinalRenditionRetries = this.options_.maxFinalRenditionRetries === 'undefined' ? Infinity : this.options_.maxFinalRenditionRetries;
+
+    if (typeof this.options_.maxFinalRenditionRetries !== 'number') {
+      this.options_.maxFinalRenditionRetries = Infinity;
+    }
 
     if (typeof this.options_.blacklistDuration !== 'number') {
       this.options_.blacklistDuration = 5 * 60;
