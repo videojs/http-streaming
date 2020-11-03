@@ -13,7 +13,6 @@ import {
 } from '../src/playback-watcher';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
-import sinon from 'sinon';
 
 let monitorCurrentTime_;
 
@@ -933,134 +932,6 @@ QUnit.module('PlaybackWatcher download detection', {
 });
 
 loaderTypes.forEach(function(type) {
-  if (type !== 'subtitle') {
-    QUnit.test(`detects ${type} appends without buffer changes and excludes`, function(assert) {
-      this.setup();
-      const loader = this.mpc[`${type}SegmentLoader_`];
-      const track = {label: 'foobar', mode: 'showing'};
-
-      if (type === 'subtitle') {
-        loader.track = () => track;
-        sinon.stub(this.player.tech_.textTracks(), 'removeTrack');
-      }
-
-      this.setBuffered(videojs.createTimeRanges([[0, 30]]));
-
-      for (let i = 0; i <= EXCLUDE_APPEND_COUNT; i++) {
-        loader.trigger('appendsdone');
-        if (i === EXCLUDE_APPEND_COUNT) {
-          assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, `append #${i} resets stalled downloads to 0`);
-        } else {
-          assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], i, `append #${i + 1} ${i} stalled downloads`);
-        }
-      }
-
-      const expectedUsage = {};
-
-      expectedUsage[`vhs-${type}-download-exclusion`] = 1;
-
-      if (type !== 'subtitle') {
-        expectedUsage['vhs-rendition-blacklisted'] = 1;
-        expectedUsage['hls-rendition-blacklisted'] = 1;
-      }
-
-      assert.deepEqual(this.usageEvents, expectedUsage, 'usage as expected');
-
-      if (type !== 'subtitle') {
-        const message = 'Playback cannot continue. No available working or supported playlists.';
-
-        assert.equal(this.mpcErrors, 1, 'one mpc error');
-        assert.equal(this.mpc.error, message, 'mpc error set');
-        assert.equal(this.player.error().message, message, 'player error set');
-        assert.equal(this.env.log.error.callCount, 1, 'player error logged');
-        assert.equal(this.env.log.error.args[0][1], message, 'error message as expected');
-
-        this.env.log.error.resetHistory();
-      } else {
-        const message = 'Text track "foobar" is not working correctly. It will be disabled and excluded.';
-
-        assert.equal(this.mpcErrors, 0, 'no mpc error set');
-        assert.notOk(this.player.error(), 'no player error set');
-        assert.equal(this.player.textTracks().removeTrack.callCount, 1, 'text track remove called');
-        assert.equal(this.player.textTracks().removeTrack.args[0][0], track, 'text track remove called with expected');
-        assert.equal(track.mode, 'disabled', 'mode set to disabled now');
-        assert.equal(this.env.log.warn.callCount, 1, 'warning logged');
-        assert.equal(this.env.log.warn.args[0][0], message, 'warning message as expected');
-
-        this.env.log.warn.resetHistory();
-      }
-    });
-
-    QUnit.test(`detects ${type} appends without buffer changes and excludes many playlists`, function(assert) {
-      this.setup({src: 'multipleAudioGroupsCombinedMain.m3u8', type: 'application/vnd.apple.mpegurl'});
-
-      const loader = this.mpc[`${type}SegmentLoader_`];
-      const playlists = this.mpc.master().playlists;
-      const excludeAndVerify = () => {
-        let oldPlaylist;
-        // this test only needs 9 appends, since we do an intial append
-
-        for (let i = 0; i < EXCLUDE_APPEND_COUNT; i++) {
-          oldPlaylist = this.mpc.media();
-          loader.trigger('appendsdone');
-          if (i === EXCLUDE_APPEND_COUNT - 1) {
-            assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, `append #${i} resets stalled downloads to 0`);
-          } else {
-            assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], i + 1, `append #${i + 1} ${i + 1} stalled downloads`);
-          }
-        }
-
-        const expectedUsage = {};
-
-        expectedUsage[`vhs-${type}-download-exclusion`] = 1;
-        expectedUsage['vhs-rendition-blacklisted'] = 1;
-        expectedUsage['hls-rendition-blacklisted'] = 1;
-
-        assert.deepEqual(this.usageEvents, expectedUsage, 'usage as expected');
-        this.usageEvents = {};
-
-        this.respondToPlaylists_();
-
-        const otherPlaylistsLeft = this.mpc.master().playlists.some((p) => p.excludeUntil !== Infinity);
-
-        if (otherPlaylistsLeft) {
-          const message = `Problem encountered with playlist ${oldPlaylist.id}.` +
-            ` Excessive ${type} segment downloading detected.` +
-            ` Switching to playlist ${this.mpc.media().id}.`;
-
-          assert.equal(this.mpcErrors, 0, 'no mpc error');
-          assert.notOk(this.mpc.error, 'no mpc error set');
-          assert.notOk(this.player.error(), 'player error not set');
-          assert.equal(this.env.log.warn.callCount, 1, 'player warning logged');
-          assert.equal(this.env.log.warn.args[0][0], message, 'warning message as expected');
-
-          this.env.log.warn.resetHistory();
-        } else {
-          const message = 'Playback cannot continue. No available working or supported playlists.';
-
-          assert.equal(this.mpcErrors, 1, 'one mpc error');
-          assert.equal(this.mpc.error, message, 'mpc error set');
-          assert.equal(this.player.error().message, message, 'player error set');
-          assert.equal(this.env.log.error.callCount, 1, 'player error logged');
-          assert.equal(this.env.log.error.args[0][1], message, 'error message as expected');
-
-          this.env.log.error.resetHistory();
-        }
-      };
-
-      this.setBuffered(videojs.createTimeRanges([[0, 30]]));
-      loader.trigger('appendsdone');
-      assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, 'initial append 0 stalled downloads');
-      let i = playlists.length;
-
-      // exclude all playlists and verify
-      while (i--) {
-        excludeAndVerify();
-      }
-
-    });
-  }
-
   QUnit.test(`resets ${type} exclusion on playlistupdate, tech seeking, tech seeked`, function(assert) {
     this.setup();
     const loader = this.mpc[`${type}SegmentLoader_`];
@@ -1119,6 +990,115 @@ loaderTypes.forEach(function(type) {
 
     loader.trigger('appendsdone');
     assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 1, '2nd append 1 stalled downloads');
+  });
+
+  // the following two tests do not apply to the subtitle loader
+  if (type === 'subtitle') {
+    return;
+  }
+
+  QUnit.test(`detects ${type} appends without buffer changes and excludes`, function(assert) {
+    this.setup();
+    const loader = this.mpc[`${type}SegmentLoader_`];
+
+    this.setBuffered(videojs.createTimeRanges([[0, 30]]));
+
+    for (let i = 0; i <= EXCLUDE_APPEND_COUNT; i++) {
+      loader.trigger('appendsdone');
+      if (i === EXCLUDE_APPEND_COUNT) {
+        assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, `append #${i} resets stalled downloads to 0`);
+      } else {
+        assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], i, `append #${i + 1} ${i} stalled downloads`);
+      }
+    }
+
+    const expectedUsage = {};
+
+    expectedUsage[`vhs-${type}-download-exclusion`] = 1;
+
+    expectedUsage['vhs-rendition-blacklisted'] = 1;
+    expectedUsage['hls-rendition-blacklisted'] = 1;
+
+    assert.deepEqual(this.usageEvents, expectedUsage, 'usage as expected');
+
+    const message = 'Playback cannot continue. No available working or supported playlists.';
+
+    assert.equal(this.mpcErrors, 1, 'one mpc error');
+    assert.equal(this.mpc.error, message, 'mpc error set');
+    assert.equal(this.player.error().message, message, 'player error set');
+    assert.equal(this.env.log.error.callCount, 1, 'player error logged');
+    assert.equal(this.env.log.error.args[0][1], message, 'error message as expected');
+
+    this.env.log.error.resetHistory();
+  });
+
+  QUnit.test(`detects ${type} appends without buffer changes and excludes many playlists`, function(assert) {
+    this.setup({src: 'multipleAudioGroupsCombinedMain.m3u8', type: 'application/vnd.apple.mpegurl'});
+
+    const loader = this.mpc[`${type}SegmentLoader_`];
+    const playlists = this.mpc.master().playlists;
+    const excludeAndVerify = () => {
+      let oldPlaylist;
+      // this test only needs 9 appends, since we do an intial append
+
+      for (let i = 0; i < EXCLUDE_APPEND_COUNT; i++) {
+        oldPlaylist = this.mpc.media();
+        loader.trigger('appendsdone');
+        if (i === EXCLUDE_APPEND_COUNT - 1) {
+          assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, `append #${i} resets stalled downloads to 0`);
+        } else {
+          assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], i + 1, `append #${i + 1} ${i + 1} stalled downloads`);
+        }
+      }
+
+      const expectedUsage = {};
+
+      expectedUsage[`vhs-${type}-download-exclusion`] = 1;
+      expectedUsage['vhs-rendition-blacklisted'] = 1;
+      expectedUsage['hls-rendition-blacklisted'] = 1;
+
+      assert.deepEqual(this.usageEvents, expectedUsage, 'usage as expected');
+      this.usageEvents = {};
+
+      this.respondToPlaylists_();
+
+      const otherPlaylistsLeft = this.mpc.master().playlists.some((p) => p.excludeUntil !== Infinity);
+
+      if (otherPlaylistsLeft) {
+        const message = `Problem encountered with playlist ${oldPlaylist.id}.` +
+          ` Excessive ${type} segment downloading detected.` +
+          ` Switching to playlist ${this.mpc.media().id}.`;
+
+        assert.equal(this.mpcErrors, 0, 'no mpc error');
+        assert.notOk(this.mpc.error, 'no mpc error set');
+        assert.notOk(this.player.error(), 'player error not set');
+        assert.equal(this.env.log.warn.callCount, 1, 'player warning logged');
+        assert.equal(this.env.log.warn.args[0][0], message, 'warning message as expected');
+
+        this.env.log.warn.resetHistory();
+      } else {
+        const message = 'Playback cannot continue. No available working or supported playlists.';
+
+        assert.equal(this.mpcErrors, 1, 'one mpc error');
+        assert.equal(this.mpc.error, message, 'mpc error set');
+        assert.equal(this.player.error().message, message, 'player error set');
+        assert.equal(this.env.log.error.callCount, 1, 'player error logged');
+        assert.equal(this.env.log.error.args[0][1], message, 'error message as expected');
+
+        this.env.log.error.resetHistory();
+      }
+    };
+
+    this.setBuffered(videojs.createTimeRanges([[0, 30]]));
+    loader.trigger('appendsdone');
+    assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, 'initial append 0 stalled downloads');
+    let i = playlists.length;
+
+    // exclude all playlists and verify
+    while (i--) {
+      excludeAndVerify();
+    }
+
   });
 });
 
