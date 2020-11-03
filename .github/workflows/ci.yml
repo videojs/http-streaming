@@ -1,0 +1,62 @@
+name: ci
+
+on: [push, pull_request]
+
+jobs:
+  ci:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Cache dependencies
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.npm
+          **/node_modules
+        key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-npm-
+          ${{ runner.os }}-
+
+    - name: Read .nvmrc
+      run: echo ::set-output name=NVMRC::$(cat .nvmrc)
+      shell: bash
+      id: nvm
+
+    - name: Install ffmpeg for firefox
+      run: sudo apt-get install ffmpeg pulseaudio
+      if: ${{ startsWith(matrix.os, 'ubuntu') }}
+
+    - name: start pulseaudio for firefox
+      run: pulseaudio -D
+      if: ${{ startsWith(matrix.os, 'ubuntu') }}
+
+    - name: Setup node
+      uses: actions/setup-node@v1
+      with:
+        node-version: '${{ steps.nvm.outputs.NVMRC }}'
+    - run: npm i --prefer-offline --no-audit
+
+    # run safari, chrome, firefox on macos
+    - name: Run Mac test
+      run: npm run test
+      if: ${{ startsWith(matrix.os, 'macos') }}
+
+    # only run ie 11 on windows
+    - name: Run Windows test
+      run: npm run test
+      if: ${{ startsWith(matrix.os, 'windows') }}
+
+    # run chrome/firefox in linux
+    - name: Run linux test
+      uses: GabrielBB/xvfb-action@v1
+      with:
+        run: npm test
+      if: ${{ startsWith(matrix.os, 'ubuntu') }}
+      env:
+        BROWSER_STACK_USERNAME: ${{ secrets.BROWSER_STACK_USERNAME }}
+        BROWSER_STACK_ACCESS_KEY: ${{ secrets.BROWSER_STACK_ACCESS_KEY }}
