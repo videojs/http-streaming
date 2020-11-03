@@ -1,3 +1,18 @@
+<a name="2.2.4"></a>
+## [2.2.4](https://github.com/videojs/http-streaming/compare/v2.2.3...v2.2.4) (2020-11-03)
+
+### Bug Fixes
+
+* **playback-watcher:** ignore subtitles ([#980](https://github.com/videojs/http-streaming/issues/980)) ([8987194](https://github.com/videojs/http-streaming/commit/8987194))
+
+### Chores
+
+* **package:** update aes-decrypter, m3u8 and mpd parser for vhs-utils ([#988](https://github.com/videojs/http-streaming/issues/988)) ([2702b27](https://github.com/videojs/http-streaming/commit/2702b27))
+
+### Tests
+
+* **playback-watcher:** subtitle test refactor ([#986](https://github.com/videojs/http-streaming/issues/986)) ([57ddce3](https://github.com/videojs/http-streaming/commit/57ddce3)), closes [#980](https://github.com/videojs/http-streaming/issues/980)
+
 <a name="2.2.3"></a>
 ## [2.2.3](https://github.com/videojs/http-streaming/compare/v2.2.2...v2.2.3) (2020-10-14)
 
