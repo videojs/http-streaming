@@ -1,3 +1,27 @@
+<a name="2.3.0"></a>
+# [2.3.0](https://github.com/videojs/http-streaming/compare/v2.2.0...v2.3.0) (2020-11-05)
+
+### Features
+
+* add experimental buffer based ABR ([#886](https://github.com/videojs/http-streaming/issues/886)) ([a05d032](https://github.com/videojs/http-streaming/commit/a05d032))
+
+### Bug Fixes
+
+* appendsdone abort and handle multiple id3 sections. ([#971](https://github.com/videojs/http-streaming/issues/971)) ([329d50a](https://github.com/videojs/http-streaming/commit/329d50a))
+* check tech error before pause loaders ([#969](https://github.com/videojs/http-streaming/issues/969)) ([0c7b2cb](https://github.com/videojs/http-streaming/commit/0c7b2cb))
+* inline json version ([#967](https://github.com/videojs/http-streaming/issues/967)) ([326ce1c](https://github.com/videojs/http-streaming/commit/326ce1c))
+* **experimentalBufferBasedABR:** call selectPlaylist and change media on an interval ([#978](https://github.com/videojs/http-streaming/issues/978)) ([200c87b](https://github.com/videojs/http-streaming/commit/200c87b)), closes [#886](https://github.com/videojs/http-streaming/issues/886) [#966](https://github.com/videojs/http-streaming/issues/966) [#964](https://github.com/videojs/http-streaming/issues/964)
+* only prevent audio group creation if no other playlists are using it ([#981](https://github.com/videojs/http-streaming/issues/981)) ([645e979](https://github.com/videojs/http-streaming/commit/645e979))
+* **playback-watcher:** ignore subtitles ([#980](https://github.com/videojs/http-streaming/issues/980)) ([ca7655e](https://github.com/videojs/http-streaming/commit/ca7655e))
+
+### Chores
+
+* **package:** update aes-decrypter, m3u8 and mpd parser for vhs-utils ([#988](https://github.com/videojs/http-streaming/issues/988)) ([c31dee2](https://github.com/videojs/http-streaming/commit/c31dee2))
+
+### Tests
+
+* **playback-watcher:** subtitle test refactor ([#986](https://github.com/videojs/http-streaming/issues/986)) ([0f66d8e](https://github.com/videojs/http-streaming/commit/0f66d8e)), closes [#980](https://github.com/videojs/http-streaming/issues/980)
+
 <a name="2.2.0"></a>
 # [2.2.0](https://github.com/videojs/http-streaming/compare/v2.1.0...v2.2.0) (2020-09-25)
 
