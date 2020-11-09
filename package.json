@@ -83,7 +83,7 @@
     "url-toolkit": "^2.1.3",
     "videojs-contrib-eme": "^3.2.0",
     "videojs-contrib-quality-levels": "^2.0.4",
-    "videojs-generate-karma-config": "https://github.com/videojs/videojs-generate-karma-config#feat/support-any-ci",
+    "videojs-generate-karma-config": "~7.0.0",
     "videojs-generate-rollup-config": "~5.0.1",
     "videojs-generator-verify": "~2.0.0",
     "videojs-http-source-selector": "^1.1.6",
