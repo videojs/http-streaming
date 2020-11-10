@@ -19,7 +19,7 @@ const playFor = function(player, time, cb) {
 
   const checkPlayerTime = function() {
     window.setTimeout(() => {
-      if (player.currentTime() <= targetTime) {
+      if (player.tech_ && player.tech_.el_ && player.currentTime() <= targetTime) {
         return checkPlayerTime();
       }
       cb();
