@@ -252,6 +252,11 @@ export default class DashPlaylistLoader extends EventTarget {
   constructor(srcUrlOrPlaylist, vhs, options = { }, masterPlaylistLoader) {
     super();
 
+    if (!masterPlaylistLoader) {
+      this.masterPlaylistLoader_ = this;
+      this.isMaster_ = true;
+    }
+
     const { withCredentials = false, handleManifestRedirects = false } = options;
 
     this.vhs_ = vhs;
@@ -277,20 +282,15 @@ export default class DashPlaylistLoader extends EventTarget {
 
     // initialize the loader state
     // The masterPlaylistLoader will be created with a string
-    if (typeof srcUrlOrPlaylist === 'string') {
+    if (this.isMaster_) {
       this.srcUrl = srcUrlOrPlaylist;
       // TODO: reset sidxMapping between period changes
       // once multi-period is refactored
       this.sidxMapping_ = {};
-      return;
+    } else {
+      this.masterPlaylistLoader_ = masterPlaylistLoader;
+      this.childPlaylist_ = srcUrlOrPlaylist;
     }
-
-    this.setupChildLoader(masterPlaylistLoader, srcUrlOrPlaylist);
-  }
-
-  setupChildLoader(masterPlaylistLoader, playlist) {
-    this.masterPlaylistLoader_ = masterPlaylistLoader;
-    this.childPlaylist_ = playlist;
   }
 
   dispose() {
@@ -414,20 +414,10 @@ export default class DashPlaylistLoader extends EventTarget {
       return;
     }
 
-    // we have sidx mappings
-    let oldMaster;
-    let sidxMapping;
-
     // sidxMapping is used when parsing the masterXml, so store
     // it on the masterPlaylistLoader
-    if (this.masterPlaylistLoader_) {
-      oldMaster = this.masterPlaylistLoader_.master;
-      sidxMapping = this.masterPlaylistLoader_.sidxMapping_;
-    } else {
-      oldMaster = this.master;
-      sidxMapping = this.sidxMapping_;
-    }
-
+    const oldMaster = this.masterPlaylistLoader_.master;
+    const sidxMapping = this.masterPlaylistLoader_.sidxMapping_;
     const sidxKey = generateSidxKey(playlist.sidx);
 
     sidxMapping[sidxKey] = {
@@ -518,7 +508,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
     // We don't need to request the master manifest again
     // Call this asynchronously to match the xhr request behavior below
-    if (this.masterPlaylistLoader_) {
+    if (!this.isMaster_) {
       this.mediaRequest_ = window.setTimeout(
         this.haveMaster_.bind(this),
         0
@@ -631,7 +621,7 @@ export default class DashPlaylistLoader extends EventTarget {
     // clear media request
     this.mediaRequest_ = null;
 
-    if (!this.masterPlaylistLoader_) {
+    if (this.isMaster_) {
       this.updateMainManifest_(parseMasterXml({
         masterXml: this.masterXml_,
         srcUrl: this.srcUrl,
@@ -820,35 +810,18 @@ export default class DashPlaylistLoader extends EventTarget {
       throw new Error('refreshMedia_ must take a media id');
     }
 
-    let oldMaster;
-    let newMaster;
-
-    if (this.masterPlaylistLoader_) {
-      oldMaster = this.masterPlaylistLoader_.master;
-      newMaster = parseMasterXml({
-        masterXml: this.masterPlaylistLoader_.masterXml_,
-        srcUrl: this.masterPlaylistLoader_.srcUrl,
-        clientOffset: this.masterPlaylistLoader_.clientOffset_,
-        sidxMapping: this.masterPlaylistLoader_.sidxMapping_
-      });
-    } else {
-      oldMaster = this.master;
-      newMaster = parseMasterXml({
-        masterXml: this.masterXml_,
-        srcUrl: this.srcUrl,
-        clientOffset: this.clientOffset_,
-        sidxMapping: this.sidxMapping_
-      });
-    }
+    const oldMaster = this.masterPlaylistLoader_.master;
+    const newMaster = parseMasterXml({
+      masterXml: this.masterPlaylistLoader_.masterXml_,
+      srcUrl: this.masterPlaylistLoader_.srcUrl,
+      clientOffset: this.masterPlaylistLoader_.clientOffset_,
+      sidxMapping: this.masterPlaylistLoader_.sidxMapping_
+    });
 
     const updatedMaster = updateMaster(oldMaster, newMaster);
 
     if (updatedMaster) {
-      if (this.masterPlaylistLoader_) {
-        this.masterPlaylistLoader_.master = updatedMaster;
-      } else {
-        this.master = updatedMaster;
-      }
+      this.masterPlaylistLoader_.master = updatedMaster;
       this.media_ = updatedMaster.playlists[mediaID];
     } else {
       this.media_ = oldMaster.playlists[mediaID];
