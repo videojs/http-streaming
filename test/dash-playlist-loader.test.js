@@ -467,7 +467,6 @@ QUnit.test('compareSidxEntry: will remove non-matching sidxes from a mapping', f
 
 QUnit.test('filterChangedSidxMappings: removes change sidx info from mapping', function(assert) {
   const loader = new DashPlaylistLoader('dash-sidx.mpd', this.fakeVhs);
-  let masterXml;
 
   loader.load();
   this.standardXHRResponse(this.requests.shift());
@@ -482,9 +481,7 @@ QUnit.test('filterChangedSidxMappings: removes change sidx info from mapping', f
 
   const oldSidxMapping = loader.sidxMapping_;
   let newSidxMapping = filterChangedSidxMappings(
-    loader.masterXml_,
-    loader.srcUrl,
-    loader.clientOffset_,
+    loader.master,
     loader.sidxMapping_
   );
 
@@ -497,12 +494,16 @@ QUnit.test('filterChangedSidxMappings: removes change sidx info from mapping', f
   const oldVideoKey = generateSidxKey(playlists['0-placeholder-uri-0'].sidx);
   const oldAudioEnKey = generateSidxKey(playlists['0-placeholder-uri-AUDIO-audio-en'].sidx);
 
+  let masterXml = loader.masterXml_.replace(/(indexRange)=\"\d+-\d+\"/, '$1="201-400"');
   // should change the video playlist
-  masterXml = loader.masterXml_.replace(/(indexRange)=\"\d+-\d+\"/, '$1="201-400"');
-  newSidxMapping = filterChangedSidxMappings(
+  let newMaster = parseMasterXml({
     masterXml,
-    loader.srcUrl,
-    loader.clientOffset_,
+    srcUrl: loader.srcUrl,
+    clientOffset: loader.clientOffset_
+  });
+
+  newSidxMapping = filterChangedSidxMappings(
+    newMaster,
     loader.sidxMapping_
   );
   const newVideoKey = `${playlists['0-placeholder-uri-0'].sidx.uri}-201-400`;
@@ -521,11 +522,14 @@ QUnit.test('filterChangedSidxMappings: removes change sidx info from mapping', f
   );
 
   // should change the English audio group
-  masterXml = masterXml.replace(/(indexRange)=\"\d+-\d+\"/g, '$1="201-400"');
-  newSidxMapping = filterChangedSidxMappings(
+  masterXml = loader.masterXml_.replace(/(indexRange)=\"\d+-\d+\"/g, '$1="201-400"');
+  newMaster = parseMasterXml({
     masterXml,
-    loader.srcUrl,
-    loader.clientOffset_,
+    srcUrl: loader.srcUrl,
+    clientOffset: loader.clientOffset_
+  });
+  newSidxMapping = filterChangedSidxMappings(
+    newMaster,
     loader.sidxMapping_
   );
   assert.notOk(
