@@ -4376,7 +4376,7 @@ QUnit.test('populates quality levels list when available', function(assert) {
   );
 });
 
-QUnit.test('configures eme for DASH if present on sourceUpdater ready', function(assert) {
+QUnit.test('configures eme for DASH on source buffer creation', function(assert) {
   this.player.eme = {
     options: {
       previousSetting: 1
@@ -4425,7 +4425,7 @@ QUnit.test('configures eme for DASH if present on sourceUpdater ready', function
     }
   };
 
-  this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.trigger('ready');
+  this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.trigger('createdsourcebuffers');
 
   assert.deepEqual(this.player.eme.options, {
     previousSetting: 1
@@ -4445,7 +4445,7 @@ QUnit.test('configures eme for DASH if present on sourceUpdater ready', function
   }, 'set source eme options');
 });
 
-QUnit.test('configures eme for HLS if present on sourceUpdater ready', function(assert) {
+QUnit.test('configures eme for HLS on source buffer creation', function(assert) {
   this.player.eme = {
     options: {
       previousSetting: 1
@@ -4479,7 +4479,7 @@ QUnit.test('configures eme for HLS if present on sourceUpdater ready', function(
     media: () => media
   };
 
-  this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.trigger('ready');
+  this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.trigger('createdsourcebuffers');
 
   assert.deepEqual(this.player.eme.options, {
     previousSetting: 1
@@ -4499,7 +4499,7 @@ QUnit.test('configures eme for HLS if present on sourceUpdater ready', function(
   }, 'set source eme options');
 });
 
-QUnit.test('integration: configures eme for DASH if present on sourceUpdater ready', function(assert) {
+QUnit.test('integration: configures eme for DASH on source buffer creation', function(assert) {
   assert.timeout(3000);
   const done = assert.async();
 
@@ -4519,25 +4519,28 @@ QUnit.test('integration: configures eme for DASH if present on sourceUpdater rea
   });
   openMediaSource(this.player, this.clock);
 
-  this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.on('ready', () => {
-    assert.deepEqual(this.player.eme.options, {
-      previousSetting: 1
-    }, 'did not modify plugin options');
+  this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.on(
+    'createdsourcebuffers',
+    () => {
+      assert.deepEqual(this.player.eme.options, {
+        previousSetting: 1
+      }, 'did not modify plugin options');
 
-    assert.deepEqual(this.player.currentSource(), {
-      src: 'dash.mpd',
-      type: 'application/dash+xml',
-      keySystems: {
-        keySystem1: {
-          url: 'url1',
-          audioContentType: 'audio/mp4;codecs="mp4a.40.2"',
-          videoContentType: 'video/mp4;codecs="avc1.420015"'
+      assert.deepEqual(this.player.currentSource(), {
+        src: 'dash.mpd',
+        type: 'application/dash+xml',
+        keySystems: {
+          keySystem1: {
+            url: 'url1',
+            audioContentType: 'audio/mp4;codecs="mp4a.40.2"',
+            videoContentType: 'video/mp4;codecs="avc1.420015"'
+          }
         }
-      }
-    }, 'set source eme options');
+      }, 'set source eme options');
 
-    done();
-  });
+      done();
+    }
+  );
 
   this.standardXHRResponse(this.requests[0]);
   // this allows the audio playlist loader to load
@@ -4550,7 +4553,7 @@ QUnit.test('integration: configures eme for DASH if present on sourceUpdater rea
   this.standardXHRResponse(this.requests[4], mp4AudioSegment());
 });
 
-QUnit.test('integration: configures eme for HLS if present on sourceUpdater ready', function(assert) {
+QUnit.test('integration: configures eme for HLS on source buffer creation', function(assert) {
   assert.timeout(3000);
   const done = assert.async();
 
@@ -4570,25 +4573,28 @@ QUnit.test('integration: configures eme for HLS if present on sourceUpdater read
   });
   openMediaSource(this.player, this.clock);
 
-  this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.on('ready', () => {
-    assert.deepEqual(this.player.eme.options, {
-      previousSetting: 1
-    }, 'did not modify plugin options');
+  this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.on(
+    'createdsourcebuffers',
+    () => {
+      assert.deepEqual(this.player.eme.options, {
+        previousSetting: 1
+      }, 'did not modify plugin options');
 
-    assert.deepEqual(this.player.currentSource(), {
-      src: 'demuxed-two.m3u8',
-      type: 'application/x-mpegURL',
-      keySystems: {
-        keySystem1: {
-          url: 'url1',
-          audioContentType: 'audio/mp4;codecs="mp4a.40.2"',
-          videoContentType: 'video/mp4;codecs="avc1.420015"'
+      assert.deepEqual(this.player.currentSource(), {
+        src: 'demuxed-two.m3u8',
+        type: 'application/x-mpegURL',
+        keySystems: {
+          keySystem1: {
+            url: 'url1',
+            audioContentType: 'audio/mp4;codecs="mp4a.40.2"',
+            videoContentType: 'video/mp4;codecs="avc1.420015"'
+          }
         }
-      }
-    }, 'set source eme options');
+      }, 'set source eme options');
 
-    done();
-  });
+      done();
+    }
+  );
 
   // master manifest
   this.standardXHRResponse(this.requests.shift());

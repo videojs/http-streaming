@@ -650,7 +650,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     const updateCodecs = () => {
-      if (!this.sourceUpdater_.ready()) {
+      if (!this.sourceUpdater_.hasCreatedSourceBuffers()) {
         return this.tryToCreateSourceBuffers_();
       }
 
@@ -1547,7 +1547,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
     // check if codec switching is happening
-    if (this.sourceUpdater_.ready() && !this.sourceUpdater_.canChangeType()) {
+    if (
+      this.sourceUpdater_.hasCreatedSourceBuffers() &&
+      !this.sourceUpdater_.canChangeType()
+    ) {
       const switchMessages = [];
 
       ['video', 'audio'].forEach((type) => {
@@ -1583,7 +1586,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
   tryToCreateSourceBuffers_() {
     // media source is not ready yet or sourceBuffers are already
     // created.
-    if (this.mediaSource.readyState !== 'open' || this.sourceUpdater_.ready()) {
+    if (
+      this.mediaSource.readyState !== 'open' ||
+      this.sourceUpdater_.hasCreatedSourceBuffers()
+    ) {
       return;
     }
 

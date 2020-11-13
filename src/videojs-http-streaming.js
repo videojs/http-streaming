@@ -31,6 +31,7 @@ import {
   comparePlaylistResolution
 } from './playlist-selectors.js';
 import {isAudioCodec, isVideoCodec, browserSupportsCodec} from '@videojs/vhs-utils/dist/codecs.js';
+import logger from './util/logger';
 
 // IMPORTANT:
 // keep these at the bottom they are replaced at build time
@@ -230,47 +231,35 @@ const getAllPsshKeySystemsOptions = (playlists, keySystems) => {
 };
 
 /**
- * If the [eme](https://github.com/videojs/videojs-contrib-eme) plugin is available, and
- * there are keySystems on the source, sets up source options to prepare the source for
- * eme and tries to initialize it early via eme's initializeMediaKeys API (if available).
+ * Returns a promise that waits for the
+ * [eme plugin](https://github.com/videojs/videojs-contrib-eme) to create a key session.
+ *
+ * This is particularly important for Chrome, where, if unencrypted content is appended
+ * before encrypted content and the key session has not been created, a MEDIA_ERR_DECODE
+ * will be thrown once the encrypted content is reached during playback.
  *
  * @param {Object} player
  *        The player instance
  * @param {Object[]} sourceKeySystems
  *        The key systems options from the player source
- * @param {Object} media
- *        The active media playlist
  * @param {Object} [audioMedia]
  *        The active audio media playlist (optional)
  * @param {Object[]} mainPlaylists
  *        The playlists found on the master playlist object
+ *
+ * @return {Object}
+ *         Promise that resolves when the key session has been created
  */
-const setupEmeOptions = ({
+export const waitForKeySessionCreation = ({
   player,
   sourceKeySystems,
-  media,
   audioMedia,
   mainPlaylists
 }) => {
-  const sourceOptions = emeKeySystems(sourceKeySystems, media, audioMedia);
-
-  if (!sourceOptions) {
-    return;
-  }
-
-  player.currentSource().keySystems = sourceOptions;
-
-  // eme handles the rest of the setup, so if it is missing
-  // do nothing.
-  if (sourceOptions && !player.eme) {
-    videojs.log.warn('DRM encrypted source cannot be decrypted without a DRM plugin');
-    return;
-  }
-
   // works around https://bugs.chromium.org/p/chromium/issues/detail?id=895449
   // in non-IE11 browsers. In IE11 this is too early to initialize media keys
   if (videojs.browser.IE_VERSION === 11 || !player.eme.initializeMediaKeys) {
-    return;
+    return Promise.resolve();
   }
 
   // TODO should all audio PSSH values be initialized for DRM?
@@ -288,15 +277,90 @@ const setupEmeOptions = ({
     Object.keys(sourceKeySystems)
   );
 
+  const initializationFinishedPromises = [];
+  const keySessionCreatedPromises = [];
+
   // Since PSSH values are interpreted as initData, EME will dedupe any duplicates. The
   // only place where it should not be deduped is for ms-prefixed APIs, but the early
   // return for IE11 above, and the existence of modern EME APIs in addition to
   // ms-prefixed APIs on Edge should prevent this from being a concern.
   // initializeMediaKeys also won't use the webkit-prefixed APIs.
   keySystemsOptionsArr.forEach((keySystemsOptions) => {
-    player.eme.initializeMediaKeys({
-      keySystems: keySystemsOptions
-    });
+    keySessionCreatedPromises.push(new Promise((resolve, reject) => {
+      player.tech_.one('keysessioncreated', () => {
+        resolve();
+      });
+    }));
+
+    initializationFinishedPromises.push(new Promise((resolve, reject) => {
+      player.eme.initializeMediaKeys({
+        keySystems: keySystemsOptions
+      }, (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve();
+      });
+    }));
+  });
+
+  return Promise.any([
+    // if a session was previously created, these will all finish resolving without
+    // creating a new session, otherwise it will take until the end of all license
+    // requests, which is why the key session check is used (to make setup much faster)
+    Promise.all(initializationFinishedPromises),
+    // once a single session is created, the browser knows DRM will be used
+    Promise.any(keySessionCreatedPromises)
+  ]);
+};
+
+/**
+ * If the [eme](https://github.com/videojs/videojs-contrib-eme) plugin is available, and
+ * there are keySystems on the source, sets up source options to prepare the source for
+ * eme and tries to initialize it early via eme's initializeMediaKeys API (if available).
+ *
+ * @param {Object} player
+ *        The player instance
+ * @param {Object[]} sourceKeySystems
+ *        The key systems options from the player source
+ * @param {Object} media
+ *        The active media playlist
+ * @param {Object} [audioMedia]
+ *        The active audio media playlist (optional)
+ * @param {Object[]} mainPlaylists
+ *        The playlists found on the master playlist object
+ *
+ * @return {Object}
+ *         Promise that resolves when EME has been configured (if necessary)
+ */
+const setupEmeOptions = ({
+  player,
+  sourceKeySystems,
+  media,
+  audioMedia,
+  mainPlaylists
+}) => {
+  const sourceOptions = emeKeySystems(sourceKeySystems, media, audioMedia);
+
+  if (!sourceOptions) {
+    return Promise.resolve();
+  }
+
+  player.currentSource().keySystems = sourceOptions;
+
+  // eme handles the rest of the setup, so if it is missing
+  // do nothing.
+  if (sourceOptions && !player.eme) {
+    videojs.log.warn('DRM encrypted source cannot be decrypted without a DRM plugin');
+    return Promise.resolve();
+  }
+
+  return waitForKeySessionCreation({
+    player,
+    sourceKeySystems,
+    audioMedia,
+    mainPlaylists
   });
 };
 
@@ -445,6 +509,8 @@ class VhsHandler extends Component {
     if (options.hls && Object.keys(options.hls).length) {
       videojs.log.warn('Using hls options is deprecated. Use vhs instead.');
     }
+
+    this.logger_ = logger('VhsHandler');
 
     // tech.player() is deprecated but setup a reference to HLS for
     // backwards-compatibility
@@ -840,16 +906,26 @@ class VhsHandler extends Component {
       renditionSelectionMixin(this);
     });
 
-    this.masterPlaylistController_.sourceUpdater_.on('ready', () => {
+    this.masterPlaylistController_.sourceUpdater_.on('createdsourcebuffers', () => {
       const audioPlaylistLoader =
         this.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader;
 
+      this.logger_('setting up EME options');
       setupEmeOptions({
         player: this.player_,
         sourceKeySystems: this.source_.keySystems,
         media: this.playlists.media(),
         audioMedia: audioPlaylistLoader && audioPlaylistLoader.media(),
         mainPlaylists: this.playlists.master.playlists
+      }).then(() => {
+        this.logger_('set up EME options');
+        this.masterPlaylistController_.sourceUpdater_.initializedEme();
+      }).catch((err) => {
+        this.logger_('error while setting up EME options', err);
+        this.player_.player.error({
+          message: 'Failed to initialize media keys for EME',
+          code: 3
+        });
       });
     });
 
