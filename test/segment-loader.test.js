@@ -2182,7 +2182,7 @@ QUnit.module('SegmentLoader', function(hooks) {
           }
         };
 
-        loader.remove(10, 20);
+        loader.remove(3, 10);
 
         assert.strictEqual(
           loader.inbandTextTracks_.CC1.cues.length,

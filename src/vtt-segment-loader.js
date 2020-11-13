@@ -364,9 +364,12 @@ export default class VTTSegmentLoader extends SegmentLoader {
 
     this.mediaSecondsLoaded += segment.duration;
 
-    segmentInfo.cues.forEach((cue) => {
+    if (segmentInfo.cues.length) {
       // remove any overlapping cues to prevent doubling
-      this.remove(cue.startTime, cue.endTime);
+      this.remove(segmentInfo.cues[0].endTime, segmentInfo.cues[segmentInfo.cues.length - 1].endTime);
+    }
+
+    segmentInfo.cues.forEach((cue) => {
       this.subtitlesTrack_.addCue(this.featuresNativeTextTracks_ ?
         new window.VTTCue(cue.startTime, cue.endTime, cue.text) :
         cue);
