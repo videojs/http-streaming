@@ -55,6 +55,7 @@ Video.js Compatibility: 6.0, 7.0
       - [customTagMappers](#customtagmappers)
       - [cacheEncryptionKeys](#cacheencryptionkeys)
       - [handlePartialData](#handlepartialdata)
+      - [liveRangeSafeTimeDelta](#liverangesafetimedelta)
   - [Runtime Properties](#runtime-properties)
     - [vhs.playlists.master](#vhsplaylistsmaster)
     - [vhs.playlists.media](#vhsplaylistsmedia)
@@ -450,6 +451,11 @@ This option defaults to `false`.
 * Type: `boolean`,
 * Default: `false`
 * Use partial appends in the transmuxer and segment loader
+
+##### liveRangeSafeTimeDelta
+* Type: `boolean`,
+* Default: `false`
+* Allow to re-define length (in seconds) of time delta when you compare current time and the end of the buffered range.
 
 ### Runtime Properties
 Runtime properties are attached to the tech object when HLS is in
