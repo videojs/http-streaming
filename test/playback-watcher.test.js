@@ -1222,6 +1222,23 @@ QUnit.test('detects live window falloff', function(assert) {
   );
 });
 
+QUnit.test('respects liveRangeSafeTimeDelta flag', function(assert) {
+  this.playbackWatcher.liveRangeSafeTimeDelta = 1;
+
+  const beforeSeekableWindow_ =
+    this.playbackWatcher.beforeSeekableWindow_.bind(this.playbackWatcher);
+
+  assert.ok(
+    beforeSeekableWindow_(videojs.createTimeRanges([[12, 20]]), 10),
+    'true if playlist live and current time before seekable'
+  );
+
+  assert.ok(
+    !beforeSeekableWindow_(videojs.createTimeRanges([]), 10),
+    'false if no seekable range'
+  );
+});
+
 QUnit.test('detects beyond seekable window for VOD', function(assert) {
   const playlist = {
     endList: true,
