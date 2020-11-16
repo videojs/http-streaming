@@ -3,7 +3,6 @@ import sinon from 'sinon';
 import {
   default as DashPlaylistLoader,
   updateMaster,
-  requestSidx_,
   generateSidxKey,
   compareSidxEntry,
   filterChangedSidxMappings,
@@ -538,7 +537,8 @@ QUnit.test('filterChangedSidxMappings: removes change sidx info from mapping', f
   );
 });
 
-QUnit.test('requestSidx_: creates an XHR request for a sidx range', function(assert) {
+QUnit.test('addSidxSegments_: creates an XHR request for a sidx range', function(assert) {
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeVhs);
   const sidxInfo = {
     resolvedUri: 'sidx.mp4',
     byterange: {
@@ -553,25 +553,50 @@ QUnit.test('requestSidx_: creates an XHR request for a sidx range', function(ass
     sidx: sidxInfo
   };
   const callback = sinon.stub();
-  const request = requestSidx_(
-    {},
-    sidxInfo,
-    playlist,
-    this.fakeVhs.xhr,
-    { handleManifestRedirects: false },
-    callback
-  );
 
-  assert.ok(request, 'a request was returned');
-  assert.strictEqual(request.uri, sidxInfo.resolvedUri, 'uri requested is correct');
-  assert.strictEqual(this.requests.length, 1, 'one xhr request');
+  loader.addSidxSegments_(playlist, loader.state, callback);
 
+  assert.strictEqual(this.requests[0].uri, sidxInfo.resolvedUri, 'uri requested is correct');
   this.standardXHRResponse(this.requests.shift(), mp4VideoInitSegment().subarray(0, 10));
+
+  assert.strictEqual(this.requests[0].uri, sidxInfo.resolvedUri, 'uri requested is correct');
   this.standardXHRResponse(this.requests.shift());
   assert.strictEqual(callback.callCount, 1, 'callback was called');
 });
 
-QUnit.test('requestSidx_: does not re-request bytes from container request', function(assert) {
+QUnit.test('addSidxSegments_: does not re-request bytes from container request', function(assert) {
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeVhs);
+  const sidxInfo = {
+    resolvedUri: 'sidx.mp4',
+    byterange: {
+      offset: 0,
+      length: 600
+    }
+  };
+  const playlist = {
+    uri: 'fakeplaylist',
+    id: 'fakeplaylist',
+    segments: [sidxInfo],
+    sidx: sidxInfo
+  };
+  const callback = sinon.stub();
+
+  loader.addSidxSegments_(playlist, loader.state, callback);
+  assert.strictEqual(this.requests[0].uri, sidxInfo.resolvedUri, 'uri requested is correct');
+  assert.strictEqual(this.requests.length, 1, 'one xhr request');
+
+  const data = new Uint8Array(600);
+
+  data.set(mp4VideoInitSegment().subarray(0, 10));
+
+  this.standardXHRResponse(this.requests.shift(), data);
+
+  assert.equal(this.requests.length, 0, 'no more requests');
+  assert.strictEqual(callback.callCount, 1, 'callback was called');
+});
+
+QUnit.test('addSidxSegments_: adds/triggers error on invalid container', function(assert) {
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeVhs);
   const sidxInfo = {
     resolvedUri: 'sidx.mp4',
     byterange: {
@@ -585,59 +610,23 @@ QUnit.test('requestSidx_: does not re-request bytes from container request', fun
     segments: [sidxInfo],
     sidx: sidxInfo
   };
+  let triggeredError = false;
   const callback = sinon.stub();
-  const request = requestSidx_(
-    {},
-    sidxInfo,
-    playlist,
-    this.fakeVhs.xhr,
-    { handleManifestRedirects: false },
-    callback
-  );
 
-  assert.ok(request, 'a request was returned');
-  assert.strictEqual(request.uri, sidxInfo.resolvedUri, 'uri requested is correct');
-  assert.strictEqual(this.requests.length, 1, 'one xhr request');
+  loader.on('error', () => {
+    triggeredError = true;
+  });
+  loader.addSidxSegments_(playlist, loader.state, callback);
 
-  this.standardXHRResponse(this.requests.shift(), mp4VideoInitSegment().subarray(0, 10));
-
-  assert.equal(this.requests.length, 0, 'no more requests');
-  assert.strictEqual(callback.callCount, 1, 'callback was called');
-});
-
-QUnit.test('requestSidx_: callsback with error on invalid container', function(assert) {
-  const sidxInfo = {
-    resolvedUri: 'sidx.mp4',
-    byterange: {
-      offset: 0,
-      length: 10
-    }
-  };
-  const playlist = {
-    uri: 'fakeplaylist',
-    id: 'fakeplaylist',
-    segments: [sidxInfo],
-    sidx: sidxInfo
-  };
-  const callback = sinon.stub();
-  const request = requestSidx_(
-    {},
-    sidxInfo,
-    playlist,
-    this.fakeVhs.xhr,
-    { handleManifestRedirects: false },
-    callback
-  );
-
-  assert.ok(request, 'a request was returned');
-  assert.strictEqual(request.uri, sidxInfo.resolvedUri, 'uri requested is correct');
+  assert.strictEqual(this.requests[0].uri, sidxInfo.resolvedUri, 'uri requested is correct');
   assert.strictEqual(this.requests.length, 1, 'one xhr request');
 
   this.standardXHRResponse(this.requests.shift());
 
   assert.equal(this.requests.length, 0, 'no more requests');
-  assert.strictEqual(callback.callCount, 1, 'callback was called');
-  assert.deepEqual(callback.args[0][0], {
+  assert.ok(triggeredError, 'triggered an error');
+
+  assert.deepEqual(loader.error, {
     blacklistDuration: Infinity,
     code: 2,
     internal: true,
@@ -1554,6 +1543,7 @@ QUnit.test('refreshMedia: updates master and media playlists for child loader', 
   const newMasterXml = testDataManifests['dash-live'];
 
   loader.masterXml_ = newMasterXml;
+  loader.handleMaster_();
   childLoader.refreshMedia_(loader.media().id);
 
   assert.notEqual(loader.master, oldMaster, 'new master set on master loader');
@@ -1694,8 +1684,9 @@ QUnit.test('refreshXml_: updates media playlist reference if master changed', fu
   );
 });
 
-QUnit.test('sidxRequestFinished_: updates master with sidx information', function(assert) {
+QUnit.test('addSidxSegments_: updates master with sidx information', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeVhs);
+  const sidxData = sidxResponse();
   const fakePlaylist = {
     segments: [],
     id: 'fakeplaylist',
@@ -1703,43 +1694,40 @@ QUnit.test('sidxRequestFinished_: updates master with sidx information', functio
     sidx: {
       byterange: {
         offset: 0,
-        length: sidxResponse().byteLength
+        length: sidxData.byteLength
       },
+      duration: 1024,
       resolvedUri: 'sidx.mp4'
     }
   };
-  const fakeMaster = {
+
+  loader.masterPlaylistLoader_.master = {
     playlists: {
       0: fakePlaylist,
       fakeplaylist: fakePlaylist
     }
   };
   const stubDone = sinon.stub();
-  const handleSidxResponse = loader.sidxRequestFinished_(fakePlaylist, fakeMaster, 'HAVE_MASTER', stubDone);
-  const fakeRequest = {
-    response: sidxResponse()
-  };
+  const sidxMapping = loader.masterPlaylistLoader_.sidxMapping_;
 
-  // fake the loader active request for sidx
-  loader.request = true;
-  handleSidxResponse(null, fakeRequest);
+  assert.deepEqual(sidxMapping, {}, 'no sidx mapping');
+  loader.addSidxSegments_(fakePlaylist, 'HAVE_MASTER', stubDone);
+
+  this.standardXHRResponse(this.requests.shift(), mp4VideoInitSegment().subarray(0, 10));
+  this.standardXHRResponse(this.requests.shift(), sidxData);
+
   assert.strictEqual(stubDone.callCount, 1, 'callback was called');
-  assert.ok(
-    stubDone.getCall(0).args[0].playlists,
-    'returned master playlist object'
-  );
-  assert.ok(
-    stubDone.getCall(0).args[1].references,
-    'returned a parsed sidx box'
-  );
-  assert.strictEqual(
-    stubDone.getCall(0).args[1].references[0].referencedSize,
+  assert.ok(stubDone.getCall(0).args[0], 'sidx segments were added');
+  assert.ok(fakePlaylist.segments.length, 'added a parsed sidx segment to playlist');
+
+  assert.deepEqual(
+    sidxMapping['undefined-0-43'].sidx.references[0].referencedSize,
     13001,
     'sidx box returned has been parsed'
   );
 });
 
-QUnit.test('sidxRequestFinished_: errors if request for sidx fails', function(assert) {
+QUnit.test('addSidxSegments_: errors if request for sidx fails', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeVhs);
   const fakePlaylist = {
     segments: [{
@@ -1756,94 +1744,28 @@ QUnit.test('sidxRequestFinished_: errors if request for sidx fails', function(as
       resolvedUri: 'sidx.mp4'
     }
   };
-  const fakeMaster = {
-    playlists: {
-      0: fakePlaylist,
-      fakeplaylist: fakePlaylist
-    }
-  };
   const stubDone = sinon.stub();
-  const handleSidxResponse = loader.sidxRequestFinished_(fakePlaylist, fakeMaster, 'HAVE_MASTER', stubDone);
-  const fakeRequest = {
-    response: 'fake error msg',
-    status: 400
-  };
+  const sidxMapping = loader.masterPlaylistLoader_.sidxMapping_;
   let errors = 0;
+
+  assert.deepEqual(sidxMapping, {}, 'no sidx mapping');
+  loader.addSidxSegments_(fakePlaylist, 'HAVE_MASTER', stubDone);
 
   loader.on('error', () => {
     errors++;
   });
 
-  // fake xhr request being active
-  loader.request = true;
-  handleSidxResponse(true, fakeRequest);
+  this.requests.shift().respond(500, null, 'bad request');
+
   assert.strictEqual(loader.state, 'HAVE_MASTER', 'state is returned to state passed in');
   assert.deepEqual(
     loader.error,
     {
-      status: fakeRequest.status,
-      message: 'DASH playlist request error at URL: fakeplaylist',
-      response: fakeRequest.response,
+      status: 500,
+      message: 'DASH request error at URL: sidx.mp4',
+      response: '',
       code: 2
     },
-    'error object is filled out correctly'
-  );
-  assert.strictEqual(errors, 1, 'triggered an error event');
-});
-
-QUnit.test('sidxRequestFinished_: uses given error object', function(assert) {
-  const loader = new DashPlaylistLoader('dash.mpd', this.fakeVhs);
-  const fakePlaylist = {
-    segments: [{
-      uri: 'fake-segment',
-      duration: 15360
-    }],
-    id: 'fakeplaylist',
-    uri: 'fakeplaylist',
-    sidx: {
-      byterange: {
-        offset: 0,
-        length: sidxResponse().byteLength
-      },
-      resolvedUri: 'sidx.mp4'
-    }
-  };
-  const fakeMaster = {
-    playlists: {
-      0: fakePlaylist,
-      fakeplaylist: fakePlaylist
-    }
-  };
-  const stubDone = sinon.stub();
-  const handleSidxResponse = loader.sidxRequestFinished_(fakePlaylist, fakeMaster, 'HAVE_MASTER', stubDone);
-  const fakeRequest = {
-    response: '',
-    status: 200
-  };
-  let errors = 0;
-
-  loader.on('error', () => {
-    errors++;
-  });
-
-  // fake xhr request being active
-  loader.request = true;
-  const error = {
-    status: fakeRequest.status,
-    message: 'Unsupported webm container type for sidx segment at URL: sidx.mp4',
-    playlist: fakePlaylist,
-    internal: true,
-    response: '',
-    blacklistDuration: Infinity,
-    // MEDIA_ERR_NETWORK
-    code: 2
-  };
-
-  handleSidxResponse(error, fakeRequest);
-  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state is returned to state passed in');
-  assert.deepEqual(
-    loader.error,
-    error,
     'error object is filled out correctly'
   );
   assert.strictEqual(errors, 1, 'triggered an error event');
