@@ -12,7 +12,7 @@ export default {
   BUFFER_LOW_WATER_LINE: 0,
   MAX_BUFFER_LOW_WATER_LINE: 30,
 
-  // TODO: Remove this when useBufferWaterLines is removed
+  // TODO: Remove this when experimentalBufferBasedABR is removed
   EXPERIMENTAL_MAX_BUFFER_LOW_WATER_LINE: 16,
 
   BUFFER_LOW_WATER_LINE_RATE: 1,
