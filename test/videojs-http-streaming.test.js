@@ -38,7 +38,8 @@ import {
   LOCAL_STORAGE_KEY,
   expandDataUri,
   setupEmeOptions,
-  getAllPsshKeySystemsOptions
+  getAllPsshKeySystemsOptions,
+  waitForKeySessionCreation
 } from '../src/videojs-http-streaming';
 import window from 'global/window';
 // we need this so the plugin registers itself
@@ -4613,6 +4614,53 @@ QUnit.test('integration: configures eme for HLS on source buffer creation', func
   this.standardXHRResponse(this.requests.shift(), audioSegment());
 });
 
+QUnit.test('integration: updates source updater after eme init', function(assert) {
+  assert.expect(4);
+  assert.timeout(3000);
+  const done = assert.async();
+
+  this.player.src({
+    src: 'demuxed-two.m3u8',
+    type: 'application/x-mpegURL',
+    keySystems: {
+      keySystem1: {
+        url: 'url1'
+      }
+    }
+  });
+  openMediaSource(this.player, this.clock);
+
+  const sourceUpdater = this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_;
+
+  sourceUpdater.on('ready', () => {
+    assert.ok(sourceUpdater.hasInitializedAnyEme(), 'updated source updater');
+    done();
+  });
+
+  sourceUpdater.on(
+    'createdsourcebuffers',
+    () => {
+      assert.notOk(sourceUpdater.hasInitializedAnyEme(), 'has not initialized eme yet');
+    }
+  );
+
+  // master manifest
+  this.standardXHRResponse(this.requests.shift());
+
+  // video manifest
+  this.standardXHRResponse(this.requests.shift());
+
+  // audio manifest
+  this.standardXHRResponse(this.requests.shift());
+
+  // this allows the audio playlist loader to load
+  this.clock.tick(1);
+
+  // respond to segement request to get trackinfo
+  this.standardXHRResponse(this.requests.shift(), videoSegment());
+  this.standardXHRResponse(this.requests.shift(), audioSegment());
+});
+
 QUnit.test(
   'does not set source keySystems if keySystems not provided by source',
   function(assert) {
@@ -6106,4 +6154,128 @@ QUnit.test('returns all key systems and pssh values', function(assert) {
     }],
     'returned key systems and pssh values without other properties'
   );
+});
+
+QUnit.module('waitForKeySessionCreation', {
+  beforeEach(assert) {
+    const listeners = [];
+
+    this.player = {
+      eme: {
+        initializeMediaKeys(options, callback) {
+          callback();
+        }
+      },
+      tech_: {
+        one(eventName, callback) {
+          listeners.push({ eventName, callback });
+        },
+        listeners
+      }
+    };
+    this.completeOptions = {
+      player: this.player,
+      sourceKeySystems: {
+        'com.widevine.alpha': {
+          url: 'license-url'
+        }
+      },
+      audioMedia: null,
+      mainPlaylists: [{
+        contentProtection: {
+          'com.widevine.alpha': { pssh: new Uint8Array() }
+        }
+      }]
+    };
+
+    // since IE doesn't allow for finally in promises, manage the version
+    // outside of the tests that need to use it
+    this.origBrowser = videojs.mergeOptions(videojs.browser, { IE_VERSION: null });
+  },
+  afterEach(assert) {
+    videojs.browser = this.origBrowser;
+  }
+});
+
+QUnit.test('resolves on initializeMediaKeys', function(assert) {
+  const done = assert.async();
+
+  return waitForKeySessionCreation(this.completeOptions).then(() => {
+    assert.ok(true, 'resolved promise');
+    done();
+  });
+});
+
+QUnit.test('resolves on all initializeMediaKeys', function(assert) {
+  const done = assert.async();
+  const initializeCalls = [];
+  const initializeCallbacks = [];
+
+  this.completeOptions.mainPlaylists = [{
+    contentProtection: {
+      'com.widevine.alpha': { pssh: new Uint8Array() }
+    }
+  }, {
+    contentProtection: {
+      'com.widevine.alpha': { pssh: new Uint8Array([1, 2, 3]) }
+    }
+  }];
+  this.player.eme.initializeMediaKeys = (options, callback) => {
+    initializeCalls.push(options);
+    initializeCallbacks.push(callback);
+  };
+
+  waitForKeySessionCreation(this.completeOptions).then(() => {
+    assert.deepEqual(
+      initializeCalls,
+      [
+        { keySystems: { 'com.widevine.alpha': { pssh: new Uint8Array() } } },
+        { keySystems: { 'com.widevine.alpha': { pssh: new Uint8Array([1, 2, 3]) } } }
+      ],
+      'waited for both initialize calls to resolve'
+    );
+    done();
+  });
+
+  assert.equal(initializeCallbacks.length, 2, 'two initialize calls');
+  initializeCallbacks[0]();
+  setTimeout(() => {
+    // call the second callback async to ensure the promise waits for resolution
+    initializeCallbacks[1]();
+  }, 1);
+});
+
+QUnit.test('resolves on keysessioncreated', function(assert) {
+  const done = assert.async();
+
+  // never allow initializeMediaKeys to finish
+  this.player.eme.initializeMediaKeys = (options, callback) => {};
+
+  waitForKeySessionCreation(this.completeOptions).then(() => {
+    done();
+  });
+
+  assert.equal(this.player.tech_.listeners.length, 1, 'one listener');
+  assert.equal(this.player.tech_.listeners[0].eventName, 'keysessioncreated');
+  this.player.tech_.listeners[0].callback();
+});
+
+QUnit.test('resolves if no initializeMediaKeys', function(assert) {
+  const done = assert.async();
+
+  delete this.player.eme.initializeMediaKeys;
+
+  return waitForKeySessionCreation(this.completeOptions).then(() => {
+    assert.ok(true, 'resolved promise');
+    done();
+  });
+});
+
+QUnit.test('resolves if IE11', function(assert) {
+  const done = assert.async();
+
+  return waitForKeySessionCreation(this.completeOptions).then(() => {
+    assert.ok(true, 'resolved promise');
+    done();
+  });
 });
