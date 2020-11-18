@@ -236,13 +236,15 @@ export const useFakeEnvironment = function(assert) {
   };
 
   // add support for xhr.responseURL
-  window.XMLHttpRequest.prototype.open = (function(origFn) {
-    return function() {
-      this.responseURL = absoluteUrl(arguments[1]);
+  if (videojs.browser.IE_VERSION) {
+    window.XMLHttpRequest.prototype.open = (function(origFn) {
+      return function() {
+        this.responseURL = absoluteUrl(arguments[1]);
 
-      return origFn.apply(this, arguments);
-    };
-  }(window.XMLHttpRequest.prototype.open));
+        return origFn.apply(this, arguments);
+      };
+    }(window.XMLHttpRequest.prototype.open));
+  }
 
   fakeEnvironment.requests.length = 0;
   fakeEnvironment.xhr.onCreate = function(xhr) {
