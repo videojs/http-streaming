@@ -13,6 +13,7 @@ import {
 } from '../src/playback-watcher';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
+import { SAFE_TIME_DELTA } from '../src/ranges';
 
 let monitorCurrentTime_;
 
@@ -1184,6 +1185,8 @@ QUnit.test('skips gap from muxed video underflow', function(assert) {
 });
 
 QUnit.test('detects live window falloff', function(assert) {
+  this.playbackWatcher.liveRangeSafeTimeDelta = SAFE_TIME_DELTA;
+
   const beforeSeekableWindow_ =
     this.playbackWatcher.beforeSeekableWindow_.bind(this.playbackWatcher);
 
