@@ -9,6 +9,24 @@ import { muxed as muxedSegment } from 'create-test-data!segments';
 import {bytesToString, isTypedArray} from '@videojs/vhs-utils/dist/byte-helpers';
 import {isLikelyFmp4MediaSegment} from '@videojs/vhs-utils/dist/containers';
 
+// return an absolute version of a page-relative URL
+export const absoluteUrl = function(relativeUrl) {
+  return URLToolkit.buildAbsoluteURL(window.location.href, relativeUrl);
+};
+
+const origOpen = sinon.FakeXMLHttpRequest.prototype.open;
+
+sinon.FakeXMLHttpRequest.prototype.open = function() {
+  this.responseURL = absoluteUrl(this.url);
+  return origOpen.apply(this, arguments);
+};
+
+// used for treating the response however we want, instead of the browser deciding
+// responses we don't have to worry about the browser changing responses
+sinon.FakeXMLHttpRequest.prototype.overrideMimeType = function overrideMimeType(mimeType) {
+  this.mimeTypeOverride = mimeType;
+};
+
 const RealMediaSource = window.MediaSource;
 const realCreateObjectURL = window.URL.createObjectURL;
 
@@ -136,11 +154,6 @@ export class MockTextTrack {
   }
 }
 
-// return an absolute version of a page-relative URL
-export const absoluteUrl = function(relativeUrl) {
-  return URLToolkit.buildAbsoluteURL(window.location.href, relativeUrl);
-};
-
 export const useFakeMediaSource = function() {
   window.MediaSource = MockMediaSource;
   window.URL.createObjectURL = (object) => realCreateObjectURL(object instanceof MockMediaSource ? object.nativeMediaSource_ : object);
@@ -171,7 +184,7 @@ export const downloadProgress = (xhr, rawEventData) => {
 };
 
 export const useFakeEnvironment = function(assert) {
-  const realXMLHttpRequest = videojs.xhr.XMLHttpRequest;
+  const realXMLHttpRequest = window.XMLHttpRequest;
 
   const fakeEnvironment = {
     requests: [],
@@ -226,25 +239,6 @@ export const useFakeEnvironment = function(assert) {
   });
   fakeEnvironment.clock = sinon.useFakeTimers();
   fakeEnvironment.xhr = sinon.useFakeXMLHttpRequest();
-
-  window.XMLHttpRequest.prototype = Object.create(window.XMLHttpRequest.prototype);
-
-  // used for treating the response however we want, instead of the browser deciding
-  // responses we don't have to worry about the browser changing responses
-  window.XMLHttpRequest.prototype.overrideMimeType = function overrideMimeType(mimeType) {
-    this.mimeTypeOverride = mimeType;
-  };
-
-  // add support for xhr.responseURL
-  if (videojs.browser.IE_VERSION) {
-    window.XMLHttpRequest.prototype.open = (function(origFn) {
-      return function() {
-        this.responseURL = absoluteUrl(arguments[1]);
-
-        return origFn.apply(this, arguments);
-      };
-    }(window.XMLHttpRequest.prototype.open));
-  }
 
   fakeEnvironment.requests.length = 0;
   fakeEnvironment.xhr.onCreate = function(xhr) {
