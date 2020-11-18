@@ -1185,7 +1185,7 @@ QUnit.test('skips gap from muxed video underflow', function(assert) {
 });
 
 QUnit.test('detects live window falloff', function(assert) {
-  this.playbackWatcher.liveRangeSafeTimeDelta = SAFE_TIME_DELTA;
+  this.playbackWatcher.liveRangeSafeTimeDelta = SAFE_TIME_DELTA; 
 
   const beforeSeekableWindow_ =
     this.playbackWatcher.beforeSeekableWindow_.bind(this.playbackWatcher);
