@@ -44,6 +44,11 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: '${{ steps.nvm.outputs.NVMRC }}'
+    # turn off the default setup-node problem watchers...
+    - run: echo "::remove-matcher owner=eslint-compact::"
+    - run: echo "::remove-matcher owner=eslint-stylish::"
+    - run: echo "::remove-matcher owner=tsc::"
+
     - run: npm i --prefer-offline --no-audit
 
     # run safari on macos
