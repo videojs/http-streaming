@@ -668,7 +668,7 @@ QUnit.test('constructor sets srcUrl and other properties', function(assert) {
   assert.strictEqual(childLoader.state, 'HAVE_NOTHING', 'correct state');
   assert.deepEqual(childLoader.loadedPlaylists_, {}, 'correct loadedPlaylist state');
   assert.ok(childLoader.masterPlaylistLoader_, 'should be a masterPlaylistLoader');
-  assert.notEqual(childLoader.masterPlaylistLoader_, childLoader, 'should be a masterPlaylistLoader');
+  assert.notEqual(childLoader.masterPlaylistLoader_, childLoader, 'should not be a masterPlaylistLoader');
   assert.notOk(childLoader.isMaster_, 'should not be master');
   assert.deepEqual(
     childLoader.childPlaylist_, {},
