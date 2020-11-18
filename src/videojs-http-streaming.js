@@ -639,10 +639,11 @@ class VhsHandler extends Component {
 
     this.masterPlaylistController_ = new MasterPlaylistController(this.options_);
 
-    const playbackWatcherOptions = videojs.mergeOptions({
+    const playbackWatcherOptions = videojs.mergeOptions(
+      {
         liveRangeSafeTimeDelta: SAFE_TIME_DELTA
       },
-      this.options_, 
+      this.options_,
       {
         seekable: () => this.seekable(),
         media: () => this.masterPlaylistController_.media(),
