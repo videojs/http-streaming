@@ -503,7 +503,7 @@ export default class PlaybackWatcher {
     if (seekable.length &&
         // can't fall before 0 and 0 seekable start identifies VOD stream
         seekable.start(0) > 0 &&
-        currentTime < seekable.start(0) - (this.liveRangeSafeTimeDelta || Ranges.SAFE_TIME_DELTA)) {
+        currentTime < seekable.start(0) - this.liveRangeSafeTimeDelta) {
       return true;
     }
 

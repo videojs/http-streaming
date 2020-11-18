@@ -636,11 +636,15 @@ class VhsHandler extends Component {
     };
 
     this.masterPlaylistController_ = new MasterPlaylistController(this.options_);
-    this.playbackWatcher_ = new PlaybackWatcher(videojs.mergeOptions(this.options_, {
+
+    const playbackWatcherOptions = videojs.mergeOptions(this.options_, {
       seekable: () => this.seekable(),
       media: () => this.masterPlaylistController_.media(),
-      masterPlaylistController: this.masterPlaylistController_
-    }));
+      masterPlaylistController: this.masterPlaylistController_,
+      liveRangeSafeTimeDelta: Ranges.SAFE_TIME_DELTA
+    });
+
+    this.playbackWatcher_ = new PlaybackWatcher(playbackWatcherOptions);
 
     this.masterPlaylistController_.on('error', () => {
       const player = videojs.players[this.tech_.options_.playerId];
