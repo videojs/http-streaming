@@ -13,7 +13,7 @@ import {
 } from '../src/playback-watcher';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
-import { SAFE_TIME_DELTA  } from '../src/ranges';
+import { SAFE_TIME_DELTA } from '../src/ranges';
 
 let monitorCurrentTime_;
 
