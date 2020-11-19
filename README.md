@@ -455,7 +455,7 @@ This option defaults to `false`.
 ##### liveRangeSafeTimeDelta
 * Type: `number`,
 * Default: [`SAFE_TIME_DELTA`](https://github.com/videojs/http-streaming/blob/e7cb63af010779108336eddb5c8fd138d6390e95/src/ranges.js#L17)
-* Allow to re-define length (in seconds) of time delta when you compare current time and the end of the buffered range.
+* Allow to  re-define length (in seconds) of time delta when you compare current time and the end of the buffered range.
 
 ### Runtime Properties
 Runtime properties are attached to the tech object when HLS is in
