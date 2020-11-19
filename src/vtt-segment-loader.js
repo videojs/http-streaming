@@ -4,7 +4,7 @@
 import SegmentLoader from './segment-loader';
 import videojs from 'video.js';
 import window from 'global/window';
-import { removeCuesFromTrack } from './util/text-tracks';
+import { removeCuesFromTrack, removeDuplicateCuesFromTrack } from './util/text-tracks';
 import { initSegmentId } from './bin-utils';
 import { uint8ToUtf8 } from './util/string';
 import { REQUEST_ERRORS } from './media-segment-request';
@@ -364,13 +364,19 @@ export default class VTTSegmentLoader extends SegmentLoader {
 
     this.mediaSecondsLoaded += segment.duration;
 
+    // Create VTTCue instances for each cue in the new segment and add them to
+    // the subtitle track
     segmentInfo.cues.forEach((cue) => {
-      // remove any overlapping cues to prevent doubling
-      this.remove(cue.startTime, cue.endTime);
       this.subtitlesTrack_.addCue(this.featuresNativeTextTracks_ ?
         new window.VTTCue(cue.startTime, cue.endTime, cue.text) :
         cue);
     });
+
+    // Remove any duplicate cues from the subtitle track. The WebVTT spec allows
+    // cues to have identical time-intervals, but if the text is also identical
+    // we can safely assume it is a duplicate that can be removed (ex. when a cue
+    // "overlaps" VTT segments)
+    removeDuplicateCuesFromTrack(this.subtitlesTrack_);
 
     this.handleAppendsDone_();
   }
