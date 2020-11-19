@@ -658,7 +658,8 @@ QUnit.test('constructor sets srcUrl and other properties', function(assert) {
 
   assert.strictEqual(loader.state, 'HAVE_NOTHING', 'correct state');
   assert.deepEqual(loader.loadedPlaylists_, {}, 'correct loadedPlaylist state');
-  assert.notOk(loader.masterPlaylistLoader_, 'should be no masterPlaylistLoader');
+  assert.equal(loader.masterPlaylistLoader_, loader, 'masterPlaylistLoader should be self');
+  assert.ok(loader.isMaster_, 'should be set as master');
   assert.notOk(loader.childPlaylist_, 'should be no childPlaylist_');
   assert.strictEqual(loader.srcUrl, 'dash.mpd', 'set the srcUrl');
 
@@ -667,6 +668,8 @@ QUnit.test('constructor sets srcUrl and other properties', function(assert) {
   assert.strictEqual(childLoader.state, 'HAVE_NOTHING', 'correct state');
   assert.deepEqual(childLoader.loadedPlaylists_, {}, 'correct loadedPlaylist state');
   assert.ok(childLoader.masterPlaylistLoader_, 'should be a masterPlaylistLoader');
+  assert.notEqual(childLoader.masterPlaylistLoader_, childLoader, 'should not be a masterPlaylistLoader');
+  assert.notOk(childLoader.isMaster_, 'should not be master');
   assert.deepEqual(
     childLoader.childPlaylist_, {},
     'should be a childPlaylist_'
@@ -1840,38 +1843,6 @@ QUnit.test('sidxRequestFinished_: uses given error object', function(assert) {
     'error object is filled out correctly'
   );
   assert.strictEqual(errors, 1, 'triggered an error event');
-});
-
-QUnit.test('setupChildLoader: sets masterPlaylistLoader and ' +
-  'playlist on child loader', function(assert) {
-  const fakePlaylist = { uri: 'fakeplaylist1', id: 'fakeplaylist1' };
-  const newPlaylist = { uri: 'fakeplaylist2', id: 'fakeplaylist2' };
-  const loader = new DashPlaylistLoader('dash.mpd', this.fakeVhs);
-  const newLoader = new DashPlaylistLoader('dash-sidx.mpd', this.fakeVhs);
-  const childLoader = new DashPlaylistLoader(fakePlaylist, this.fakeVhs, false, loader);
-
-  assert.deepEqual(
-    childLoader.masterPlaylistLoader_,
-    loader,
-    'starts with loader passed into constructor'
-  );
-  assert.deepEqual(
-    childLoader.childPlaylist_,
-    fakePlaylist,
-    'starts with playlist passed in constructor'
-  );
-
-  childLoader.setupChildLoader(newLoader, newPlaylist);
-  assert.deepEqual(
-    childLoader.masterPlaylistLoader_,
-    newLoader,
-    'masterPlaylistLoader correctly set'
-  );
-  assert.deepEqual(
-    childLoader.childPlaylist_,
-    newPlaylist,
-    'child playlist correctly set'
-  );
 });
 
 QUnit.test('hasPendingRequest: returns true if async code is running in master loader', function(assert) {
