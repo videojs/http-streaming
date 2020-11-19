@@ -620,6 +620,7 @@ export default class DashPlaylistLoader extends EventTarget {
       done();
     });
   }
+
   haveMaster_(masterChanged = true) {
     this.state = 'HAVE_MASTER';
     if (this.isMaster_) {
@@ -652,15 +653,15 @@ export default class DashPlaylistLoader extends EventTarget {
     if (this.masterPlaylistLoader_.master) {
       newMaster = updateMaster(
         this.masterPlaylistLoader_.master,
-        newMaster, this.masterPlaylistLoader_.sidxMapping_
+        newMaster,
+        this.masterPlaylistLoader_.sidxMapping_
       );
     }
 
-    // only update master, if we have a new master.
+    // only update master if we have a new master
     this.masterPlaylistLoader_.master = newMaster ? newMaster : this.masterPlaylistLoader_.master;
     const location = this.masterPlaylistLoader_.master.locations && this.masterPlaylistLoader_.master.locations[0];
 
-    // if locations isn't set or is an empty array, exit early
     if (location && location !== this.masterPlaylistLoader_.srcUrl) {
       this.masterPlaylistLoader_.srcUrl = location;
     }
