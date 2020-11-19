@@ -1,3 +1,15 @@
+<a name="2.3.1"></a>
+## [2.3.1](https://github.com/videojs/http-streaming/compare/v2.3.0...v2.3.1) (2020-11-19)
+
+### Bug Fixes
+
+* remove duplicate cues with same time interval and text ([#1005](https://github.com/videojs/http-streaming/issues/1005)) ([fb1c909](https://github.com/videojs/http-streaming/commit/fb1c909))
+
+### Chores
+
+* don't run tests on release ([#1006](https://github.com/videojs/http-streaming/issues/1006)) ([9195470](https://github.com/videojs/http-streaming/commit/9195470))
+* switch from travis to github actions for ci ([#989](https://github.com/videojs/http-streaming/issues/989)) ([922df4e](https://github.com/videojs/http-streaming/commit/922df4e))
+
 <a name="2.3.0"></a>
 # [2.3.0](https://github.com/videojs/http-streaming/compare/v2.2.0...v2.3.0) (2020-11-05)
 
