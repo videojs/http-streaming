@@ -1692,6 +1692,7 @@ QUnit.test('addSidxSegments_: updates master with sidx information', function(as
     id: 'fakeplaylist',
     uri: 'fakeplaylist',
     sidx: {
+      uri: 'sidx.mp4',
       byterange: {
         offset: 0,
         length: sidxData.byteLength
@@ -1721,7 +1722,7 @@ QUnit.test('addSidxSegments_: updates master with sidx information', function(as
   assert.ok(fakePlaylist.segments.length, 'added a parsed sidx segment to playlist');
 
   assert.deepEqual(
-    sidxMapping['undefined-0-43'].sidx.references[0].referencedSize,
+    sidxMapping['sidx.mp4-0-43'].sidx.references[0].referencedSize,
     13001,
     'sidx box returned has been parsed'
   );

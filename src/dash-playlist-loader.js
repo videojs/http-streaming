@@ -252,9 +252,8 @@ export default class DashPlaylistLoader extends EventTarget {
     this.request = null;
 
     if (err) {
-      // use the provided error or create one
-      // see requestSidx_ for the container request
-      // that can cause this.
+      // use the provided error object or create one
+      // based on the request/response
       this.error = typeof err === 'object' && !(err instanceof Error) ? err : {
         status: request.status,
         message: 'DASH request error at URL: ' + request.uri,
@@ -627,7 +626,7 @@ export default class DashPlaylistLoader extends EventTarget {
       newMaster = updateMaster(oldMaster, newMaster, this.masterPlaylistLoader_.sidxMapping_);
     }
 
-    // only update master, if we have a new master.
+    // only update master if we have a new master
     this.masterPlaylistLoader_.master = newMaster ? newMaster : oldMaster;
     const location = this.masterPlaylistLoader_.master.locations && this.masterPlaylistLoader_.master.locations[0];
 
