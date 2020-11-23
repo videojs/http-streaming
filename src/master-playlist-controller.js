@@ -643,6 +643,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
         return;
       }
 
+      this.delegateLoaders_('all', ['abort']);
+
       this.blacklistCurrentPlaylist({
         message: 'Aborted early because there isn\'t enough bandwidth to complete the ' +
           'request without rebuffering.'
