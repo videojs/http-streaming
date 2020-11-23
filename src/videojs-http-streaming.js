@@ -166,6 +166,12 @@ const emeKeySystems = (keySystemOptions, videoPlaylist, audioPlaylist) => {
   for (const keySystem in keySystemOptions) {
     keySystemContentTypes[keySystem] = {audioContentType, videoContentType};
 
+    // Default to using the video playlist's PSSH even though they may be different, as
+    // videojs-contrib-eme will only accept one in the options.
+    //
+    // This shouldn't be an issue for most cases as early intialization will handle all
+    // unique PSSH values, and if they aren't, then encrypted events should have the
+    // specific information needed for the unique license.
     if (videoPlaylist.contentProtection &&
         videoPlaylist.contentProtection[keySystem] &&
         videoPlaylist.contentProtection[keySystem].pssh) {
@@ -234,9 +240,13 @@ const getAllPsshKeySystemsOptions = (playlists, keySystems) => {
  * Returns a promise that waits for the
  * [eme plugin](https://github.com/videojs/videojs-contrib-eme) to create a key session.
  *
- * This is particularly important for Chrome, where, if unencrypted content is appended
- * before encrypted content and the key session has not been created, a MEDIA_ERR_DECODE
- * will be thrown once the encrypted content is reached during playback.
+ * Works around https://bugs.chromium.org/p/chromium/issues/detail?id=895449 in non-IE11
+ * browsers.
+ *
+ * As per the above ticket, this is particularly important for Chrome, where, if
+ * unencrypted content is appended before encrypted content and the key session has not
+ * been created, a MEDIA_ERR_DECODE will be thrown once the encrypted content is reached
+ * during playback.
  *
  * @param {Object} player
  *        The player instance
@@ -256,9 +266,7 @@ export const waitForKeySessionCreation = ({
   audioMedia,
   mainPlaylists
 }) => {
-  // works around https://bugs.chromium.org/p/chromium/issues/detail?id=895449
-  // in non-IE11 browsers. In IE11 this is too early to initialize media keys
-  if (videojs.browser.IE_VERSION === 11 || !player.eme.initializeMediaKeys) {
+  if (!player.eme.initializeMediaKeys) {
     return Promise.resolve();
   }
 
@@ -318,7 +326,7 @@ export const waitForKeySessionCreation = ({
 /**
  * If the [eme](https://github.com/videojs/videojs-contrib-eme) plugin is available, and
  * there are keySystems on the source, sets up source options to prepare the source for
- * eme and tries to initialize it early via eme's initializeMediaKeys API (if available).
+ * eme.
  *
  * @param {Object} player
  *        The player instance
@@ -328,23 +336,20 @@ export const waitForKeySessionCreation = ({
  *        The active media playlist
  * @param {Object} [audioMedia]
  *        The active audio media playlist (optional)
- * @param {Object[]} mainPlaylists
- *        The playlists found on the master playlist object
  *
- * @return {Object}
- *         Promise that resolves when EME has been configured (if necessary)
+ * @return {boolean}
+ *         Whether or not options were configured and EME is available
  */
 const setupEmeOptions = ({
   player,
   sourceKeySystems,
   media,
-  audioMedia,
-  mainPlaylists
+  audioMedia
 }) => {
   const sourceOptions = emeKeySystems(sourceKeySystems, media, audioMedia);
 
   if (!sourceOptions) {
-    return Promise.resolve();
+    return false;
   }
 
   player.currentSource().keySystems = sourceOptions;
@@ -353,15 +358,10 @@ const setupEmeOptions = ({
   // do nothing.
   if (sourceOptions && !player.eme) {
     videojs.log.warn('DRM encrypted source cannot be decrypted without a DRM plugin');
-    return Promise.resolve();
+    return false;
   }
 
-  return waitForKeySessionCreation({
-    player,
-    sourceKeySystems,
-    audioMedia,
-    mainPlaylists
-  });
+  return true;
 };
 
 const getVhsLocalStorage = () => {
@@ -907,26 +907,7 @@ class VhsHandler extends Component {
     });
 
     this.masterPlaylistController_.sourceUpdater_.on('createdsourcebuffers', () => {
-      const audioPlaylistLoader =
-        this.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader;
-
-      this.logger_('setting up EME options');
-      setupEmeOptions({
-        player: this.player_,
-        sourceKeySystems: this.source_.keySystems,
-        media: this.playlists.media(),
-        audioMedia: audioPlaylistLoader && audioPlaylistLoader.media(),
-        mainPlaylists: this.playlists.master.playlists
-      }).then(() => {
-        this.logger_('set up EME options');
-        this.masterPlaylistController_.sourceUpdater_.initializedEme();
-      }).catch((err) => {
-        this.logger_('error while setting up EME options', err);
-        this.player_.player.error({
-          message: 'Failed to initialize media keys for EME',
-          code: 3
-        });
-      });
+      this.setupEme_();
     });
 
     // the bandwidth of the primary segment loader is our best
@@ -952,6 +933,51 @@ class VhsHandler extends Component {
     this.mediaSourceUrl_ = window.URL.createObjectURL(this.masterPlaylistController_.mediaSource);
 
     this.tech_.src(this.mediaSourceUrl_);
+  }
+
+  /**
+   * If necessary and EME is available, sets up EME options and waits for key session
+   * creation.
+   *
+   * This function also updates the source updater so taht it can be used, as for some
+   * browsers, EME must be configured before content is appended (if appending unencrypted
+   * content before encrypted content).
+   */
+  setupEme_() {
+    const audioPlaylistLoader =
+      this.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader;
+
+    const didSetupEmeOptions = setupEmeOptions({
+      player: this.player_,
+      sourceKeySystems: this.source_.keySystems,
+      media: this.playlists.media(),
+      audioMedia: audioPlaylistLoader && audioPlaylistLoader.media()
+    });
+
+    // In IE11 this is too early to initialize media keys, and IE11 does not support
+    // promises.
+    if (videojs.browser.IE_VERSION === 11 || !didSetupEmeOptions) {
+      // If EME options were not set up, we've done all we could to initialize EME.
+      this.masterPlaylistController_.sourceUpdater_.initializedEme();
+      return;
+    }
+
+    this.logger_('waiting for EME key session creation');
+    waitForKeySessionCreation({
+      player: this.player_,
+      sourceKeySystems: this.source_.keySystems,
+      audioMedia: audioPlaylistLoader && audioPlaylistLoader.media(),
+      mainPlaylists: this.playlists.master.playlists
+    }).then(() => {
+      this.logger_('created EME key session');
+      this.masterPlaylistController_.sourceUpdater_.initializedEme();
+    }).catch((err) => {
+      this.logger_('error while creating EME key session', err);
+      this.player_.player.error({
+        message: 'Failed to initialize media keys for EME',
+        code: 3
+      });
+    });
   }
 
   /**

@@ -5838,25 +5838,18 @@ QUnit.test('expandDataUri requires comma to parse', function(assert) {
   );
 });
 
-QUnit.module('setupEmeOptions', {
-  beforeEach() {
-    this.origBrowser = videojs.browser;
-    // IE11 is a special case and should be tested separately
-    videojs.browser = videojs.mergeOptions(videojs.browser, { IE_VERSION: null });
-  },
-  afterEach() {
-    videojs.browser = this.origBrowser;
-  }
-});
+QUnit.module('setupEmeOptions');
 
 QUnit.test('no error if no eme and no key systems', function(assert) {
   const player = {};
   const sourceKeySystems = null;
   const media = {};
   const audioMedia = {};
-  const mainPlaylists = [];
 
-  setupEmeOptions({ player, sourceKeySystems, media, audioMedia, mainPlaylists });
+  assert.notOk(
+    setupEmeOptions({ player, sourceKeySystems, media, audioMedia }),
+    'did not configure EME options'
+  );
 
   assert.ok(true, 'no exception');
 });
@@ -5865,7 +5858,6 @@ QUnit.test('log error if no eme and we have key systems', function(assert) {
   const sourceKeySystems = {};
   const media = {};
   const audioMedia = {};
-  const mainPlaylists = [];
   const src = {};
   const player = {currentSource: () => src};
 
@@ -5876,7 +5868,10 @@ QUnit.test('log error if no eme and we have key systems', function(assert) {
     logWarn = line;
   };
 
-  setupEmeOptions({ player, sourceKeySystems, media, audioMedia, mainPlaylists });
+  assert.notOk(
+    setupEmeOptions({ player, sourceKeySystems, media, audioMedia }),
+    'did not configure EME options'
+  );
 
   assert.equal(logWarn, 'DRM encrypted source cannot be decrypted without a DRM plugin', 'logs expected error');
   assert.ok(src.hasOwnProperty('keySystems'), 'source key systems was set');
@@ -5884,29 +5879,11 @@ QUnit.test('log error if no eme and we have key systems', function(assert) {
   videojs.log.warn = origWarn;
 });
 
-QUnit.test('no initialize calls if no source key systems', function(assert) {
-  let numInitializeCalls = 0;
-  const player = { eme: { initializeMediaKeys: () => numInitializeCalls++ } };
-  const sourceKeySystems = null;
-  const media = {
-    attributes: { CODECS: 'avc1.4d400d,mp4a.40.2' },
-    contentProtection: { 'com.widevine.alpha': { pssh: new Uint8Array() } }
-  };
-  const audioMedia = null;
-  const mainPlaylists = [media];
-
-  setupEmeOptions({ player, sourceKeySystems, media, audioMedia, mainPlaylists });
-
-  assert.equal(numInitializeCalls, 0, 'no initialize calls');
-});
-
-QUnit.test('initializes for muxed playlist', function(assert) {
-  let numInitializeCalls = 0;
+QUnit.test('converts options for muxed playlist', function(assert) {
+  const currentSource = {};
   const player = {
-    eme: { initializeMediaKeys: () => numInitializeCalls++ },
-    currentSource: () => {
-      return {};
-    }
+    eme: {},
+    currentSource: () => currentSource
   };
   const sourceKeySystems = {
     'com.widevine.alpha': {
@@ -5918,159 +5895,68 @@ QUnit.test('initializes for muxed playlist', function(assert) {
     contentProtection: { 'com.widevine.alpha': { pssh: new Uint8Array() } }
   };
   const audioMedia = null;
-  const mainPlaylists = [media];
 
-  setupEmeOptions({ player, sourceKeySystems, media, audioMedia, mainPlaylists });
-
-  assert.equal(numInitializeCalls, 1, 'one initialize call');
-});
-
-QUnit.test('initializes for each playlist for demuxed playlist', function(assert) {
-  let numInitializeCalls = 0;
-  const player = {
-    eme: { initializeMediaKeys: () => numInitializeCalls++ },
-    currentSource: () => {
-      return {};
-    }
-  };
-  const sourceKeySystems = {
-    'com.widevine.alpha': {
-      url: 'license-url'
-    }
-  };
-  const media = {
-    attributes: { CODECS: 'avc1.4d400d,mp4a.40.2' },
-    contentProtection: { 'com.widevine.alpha': { pssh: new Uint8Array() } }
-  };
-  const audioMedia = {
-    attributes: {},
-    contentProtection: { 'com.widevine.alpha': { pssh: new Uint8Array() } }
-  };
-  const mainPlaylists = [media];
-
-  setupEmeOptions({ player, sourceKeySystems, media, audioMedia, mainPlaylists });
-
-  assert.equal(numInitializeCalls, 2, 'two initialize calls');
-});
-
-QUnit.test('does not initialize if IE11', function(assert) {
-  videojs.browser.IE_VERSION = 11;
-  let numInitializeCalls = 0;
-  const player = {
-    eme: { initializeMediaKeys: () => numInitializeCalls++ },
-    currentSource: () => {
-      return {};
-    }
-  };
-  const sourceKeySystems = {
-    'com.widevine.alpha': {
-      url: 'license-url'
-    }
-  };
-  const media = {
-    attributes: { CODECS: 'avc1.4d400d,mp4a.40.2' },
-    contentProtection: { 'com.widevine.alpha': { pssh: new Uint8Array() } }
-  };
-  const audioMedia = {
-    attributes: {},
-    contentProtection: { 'com.widevine.alpha': { pssh: new Uint8Array() } }
-  };
-  const mainPlaylists = [media];
-
-  setupEmeOptions({ player, sourceKeySystems, media, audioMedia, mainPlaylists });
-
-  assert.equal(numInitializeCalls, 0, 'no initialize calls');
-});
-
-QUnit.test('initializes for each playlist', function(assert) {
-  let numInitializeCalls = 0;
-  const player = {
-    eme: { initializeMediaKeys: () => numInitializeCalls++ },
-    currentSource: () => {
-      return {};
-    }
-  };
-  const sourceKeySystems = {
-    'com.widevine.alpha': {
-      url: 'license-url'
-    }
-  };
-  const media = {
-    attributes: { CODECS: 'avc1.4d400d,mp4a.40.2' },
-    contentProtection: { 'com.widevine.alpha': { pssh: new Uint8Array() } }
-  };
-  const media1 = {
-    attributes: { CODECS: 'avc1.4d400d,mp4a.40.2' },
-    contentProtection: { 'com.widevine.alpha': { pssh: new Uint8Array() } }
-  };
-  const audioMedia = {
-    attributes: {},
-    contentProtection: { 'com.widevine.alpha': { pssh: new Uint8Array() } }
-  };
-  const mainPlaylists = [media, media1];
-
-  setupEmeOptions({ player, sourceKeySystems, media, audioMedia, mainPlaylists });
-
-  assert.equal(numInitializeCalls, 3, 'three initialize calls');
-});
-
-QUnit.test('initializes with correct options for each playlist', function(assert) {
-  const initializeCallOptions = [];
-  const player = {
-    eme: { initializeMediaKeys: (options) => initializeCallOptions.push(options) },
-    currentSource: () => {
-      return {};
-    }
-  };
-  const sourceKeySystems = {
-    'com.widevine.alpha': {
-      url: 'license-url'
-    },
-    'com.microsoft.playready': {
-      url: 'license-url'
-    }
-  };
-  const media = {
-    attributes: { CODECS: 'avc1.4d400d,mp4a.40.2' },
-    contentProtection: {
-      'com.widevine.alpha': { pssh: new Uint8Array([0]) },
-      'com.microsoft.playready': { pssh: new Uint8Array([1]) }
-    }
-  };
-  const media1 = {
-    attributes: { CODECS: 'avc1.4d400d,mp4a.40.2' },
-    contentProtection: {
-      'com.widevine.alpha': { pssh: new Uint8Array([2]) },
-      'com.microsoft.playready': { pssh: new Uint8Array([3]) }
-    }
-  };
-  const audioMedia = {
-    attributes: {},
-    contentProtection: {
-      'com.widevine.alpha': { pssh: new Uint8Array([4]) },
-      'com.microsoft.playready': { pssh: new Uint8Array([5]) }
-    }
-  };
-  const mainPlaylists = [media, media1];
-
-  setupEmeOptions({ player, sourceKeySystems, media, audioMedia, mainPlaylists });
+  assert.ok(
+    setupEmeOptions({ player, sourceKeySystems, media, audioMedia }),
+    'configured EME options'
+  );
 
   assert.deepEqual(
-    initializeCallOptions,
-    [{
-      keySystems: media.contentProtection
-    }, {
-      keySystems: media1.contentProtection
-    }, {
-      keySystems: audioMedia.contentProtection
-    }],
-    'called with correct values'
+    currentSource.keySystems,
+    {
+      'com.widevine.alpha': {
+        audioContentType: 'audio/mp4;codecs="mp4a.40.2"',
+        videoContentType: 'video/mp4;codecs="avc1.4d400d"',
+        pssh: new Uint8Array(),
+        url: 'license-url'
+      }
+    },
+    'eme keySystems options are corect'
+  );
+});
+
+QUnit.test('converts options for demuxed playlists', function(assert) {
+  const currentSource = {};
+  const player = {
+    eme: {},
+    currentSource: () => currentSource
+  };
+  const sourceKeySystems = {
+    'com.widevine.alpha': {
+      url: 'license-url'
+    }
+  };
+  const media = {
+    attributes: { CODECS: 'avc1.4d400d,mp4a.40.2' },
+    contentProtection: { 'com.widevine.alpha': { pssh: new Uint8Array([1, 2, 3]) } }
+  };
+  const audioMedia = {
+    attributes: {},
+    contentProtection: { 'com.widevine.alpha': { pssh: new Uint8Array([4, 5, 6]) } }
+  };
+
+  assert.ok(
+    setupEmeOptions({ player, sourceKeySystems, media, audioMedia }),
+    'configured eme options'
+  );
+
+  assert.deepEqual(
+    currentSource.keySystems,
+    {
+      'com.widevine.alpha': {
+        audioContentType: 'audio/mp4;codecs="mp4a.40.2"',
+        videoContentType: 'video/mp4;codecs="avc1.4d400d"',
+        pssh: new Uint8Array([1, 2, 3]),
+        url: 'license-url'
+      }
+    },
+    'eme keySystems options are correct'
   );
 });
 
 QUnit.module('getAllPsshKeySystemsOptions');
 
-QUnit.test('empty array if no content proteciton in playlists', function(assert) {
+QUnit.test('empty array if no content protection in playlists', function(assert) {
   assert.deepEqual(
     getAllPsshKeySystemsOptions(
       [{}, {}],
@@ -6187,13 +6073,6 @@ QUnit.module('waitForKeySessionCreation', {
         }
       }]
     };
-
-    // since IE doesn't allow for finally in promises, manage the version
-    // outside of the tests that need to use it
-    this.origBrowser = videojs.mergeOptions(videojs.browser, { IE_VERSION: null });
-  },
-  afterEach(assert) {
-    videojs.browser = this.origBrowser;
   }
 });
 
@@ -6213,7 +6092,7 @@ QUnit.test('resolves on all initializeMediaKeys', function(assert) {
 
   this.completeOptions.mainPlaylists = [{
     contentProtection: {
-      'com.widevine.alpha': { pssh: new Uint8Array() }
+      'com.widevine.alpha': { pssh: new Uint8Array([0, 0, 0]) }
     }
   }, {
     contentProtection: {
@@ -6229,7 +6108,7 @@ QUnit.test('resolves on all initializeMediaKeys', function(assert) {
     assert.deepEqual(
       initializeCalls,
       [
-        { keySystems: { 'com.widevine.alpha': { pssh: new Uint8Array() } } },
+        { keySystems: { 'com.widevine.alpha': { pssh: new Uint8Array([0, 0, 0]) } } },
         { keySystems: { 'com.widevine.alpha': { pssh: new Uint8Array([1, 2, 3]) } } }
       ],
       'waited for both initialize calls to resolve'
@@ -6240,8 +6119,58 @@ QUnit.test('resolves on all initializeMediaKeys', function(assert) {
   assert.equal(initializeCallbacks.length, 2, 'two initialize calls');
   initializeCallbacks[0]();
   setTimeout(() => {
-    // call the second callback async to ensure the promise waits for resolution
+    // call the second callback async to ensure the promise waits for all
     initializeCallbacks[1]();
+  }, 1);
+});
+
+QUnit.test('resolves on all initializeMediaKeys when demuxed', function(assert) {
+  const done = assert.async();
+  const initializeCalls = [];
+  const initializeCallbacks = [];
+
+  this.completeOptions.mainPlaylists = [{
+    contentProtection: {
+      'com.widevine.alpha': { pssh: new Uint8Array([0, 0, 0]) }
+    }
+  }, {
+    contentProtection: {
+      'com.widevine.alpha': { pssh: new Uint8Array([1, 2, 3]) }
+    }
+  }];
+  this.completeOptions.audioMedia = {
+    contentProtection: {
+      'com.widevine.alpha': { pssh: new Uint8Array([4, 5, 6]) }
+    }
+  };
+
+  this.player.eme.initializeMediaKeys = (options, callback) => {
+    initializeCalls.push(options);
+    initializeCallbacks.push(callback);
+  };
+
+  waitForKeySessionCreation(this.completeOptions).then(() => {
+    assert.deepEqual(
+      initializeCalls,
+      [
+        { keySystems: { 'com.widevine.alpha': { pssh: new Uint8Array([0, 0, 0]) } } },
+        { keySystems: { 'com.widevine.alpha': { pssh: new Uint8Array([1, 2, 3]) } } },
+        { keySystems: { 'com.widevine.alpha': { pssh: new Uint8Array([4, 5, 6]) } } }
+      ],
+      'waited for all video and audio initialize calls to resolve'
+    );
+    done();
+  });
+
+  assert.equal(initializeCallbacks.length, 3, 'three initialize calls');
+  initializeCallbacks[0]();
+  setTimeout(() => {
+    // call the second callback async to ensure the promise waits for all
+    initializeCallbacks[1]();
+    setTimeout(() => {
+      // call the third callback async to ensure the promise waits for all
+      initializeCallbacks[2]();
+    }, 1);
   }, 1);
 });
 
@@ -6264,15 +6193,6 @@ QUnit.test('resolves if no initializeMediaKeys', function(assert) {
   const done = assert.async();
 
   delete this.player.eme.initializeMediaKeys;
-
-  return waitForKeySessionCreation(this.completeOptions).then(() => {
-    assert.ok(true, 'resolved promise');
-    done();
-  });
-});
-
-QUnit.test('resolves if IE11', function(assert) {
-  const done = assert.async();
 
   return waitForKeySessionCreation(this.completeOptions).then(() => {
     assert.ok(true, 'resolved promise');
