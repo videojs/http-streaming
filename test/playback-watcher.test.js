@@ -1225,7 +1225,7 @@ QUnit.test('detects live window falloff', function(assert) {
   );
 });
 
-QUnit.test('respects liveRangeSafeTimeDelta flag', function(assert) {
+QUnit.test('Respects liveRangeSafeTimeDelta flag', function(assert) {
   this.playbackWatcher.liveRangeSafeTimeDelta = 1;
 
   const beforeSeekableWindow_ =
