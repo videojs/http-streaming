@@ -240,9 +240,47 @@ export const removeCuesFromTrack = function(start, end, track) {
   while (i--) {
     cue = track.cues[i];
 
-    // Remove any overlapping cue
+    // Remove any cue within the provided start and end time
     if (cue.startTime >= start && cue.endTime <= end) {
       track.removeCue(cue);
+    }
+  }
+};
+
+/**
+ * Remove duplicate cues from a track on video.js (a cue is considered a
+ * duplicate if it has the same time interval and text as another)
+ *
+ * @param {Object} track the text track to remove the duplicate cues from
+ * @private
+ */
+export const removeDuplicateCuesFromTrack = function(track) {
+  const cues = track.cues;
+
+  if (!cues) {
+    return;
+  }
+
+  for (let i = 0; i < cues.length; i++) {
+    const duplicates = [];
+    let occurrences = 0;
+
+    for (let j = 0; j < cues.length; j++) {
+      if (
+        cues[i].startTime === cues[j].startTime &&
+        cues[i].endTime === cues[j].endTime &&
+        cues[i].text === cues[j].text
+      ) {
+        occurrences++;
+
+        if (occurrences > 1) {
+          duplicates.push(cues[j]);
+        }
+      }
+    }
+
+    if (duplicates.length) {
+      duplicates.forEach(dupe => track.removeCue(dupe));
     }
   }
 };

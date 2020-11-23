@@ -4,7 +4,8 @@ import {
   createCaptionsTrackIfNotExists,
   addCaptionData,
   createMetadataTrackIfNotExists,
-  addMetadata
+  addMetadata,
+  removeDuplicateCuesFromTrack
 } from '../src/util/text-tracks';
 
 const { module, test } = Qunit;
@@ -15,6 +16,11 @@ class MockTextTrack {
   }
   addCue(cue) {
     this.cues.push(cue);
+  }
+  removeCue(cue) {
+    const cueIndex = this.cues.map(c => c.text).indexOf(cue.text);
+
+    this.cues.splice(cueIndex, 1);
   }
 }
 
@@ -301,4 +307,80 @@ test('adds cues for each metadata frame seen', function(assert) {
     videoDuration,
     'ended at duration 20'
   );
+});
+
+test('removeDuplicateCuesFromTrack removes all but one cue with identical startTime, endTime, and text', function(assert) {
+  const track = new MockTextTrack();
+
+  [{
+    startTime: 0,
+    endTime: 1,
+    text: 'CC1 text'
+  }, {
+    startTime: 1,
+    endTime: 2,
+    text: 'Identical'
+  }, {
+    startTime: 1,
+    endTime: 2,
+    text: 'Identical'
+  }, {
+    startTime: 1,
+    endTime: 2,
+    text: 'Identical'
+  }, {
+    startTime: 1,
+    endTime: 2,
+    text: 'Identical'
+  }, {
+    startTime: 2,
+    endTime: 3,
+    text: 'CC3 text'
+  }].forEach((mockCue) => {
+    track.addCue(mockCue);
+  });
+
+  assert.equal(track.cues.length, 6, '6 cues present initially');
+
+  removeDuplicateCuesFromTrack(track);
+
+  assert.equal(track.cues.length, 3, '3 cue remains after duplicates removed');
+});
+
+test('removeDuplicateCuesFromTrack leaves in cues with the same startTime and endTime, but different text-- or vice-versa', function(assert) {
+  const track = new MockTextTrack();
+
+  [{
+    startTime: 0,
+    endTime: 1,
+    text: 'Identical'
+  }, {
+    startTime: 0,
+    endTime: 1,
+    text: 'Identical'
+  }, {
+    startTime: 0,
+    endTime: 1,
+    text: 'CC2 text'
+  }, {
+    startTime: 0,
+    endTime: 1,
+    text: 'CC3 text'
+  }, {
+    startTime: 1,
+    endTime: 2,
+    text: 'Also identical'
+  }, {
+    startTime: 1,
+    endTime: 2,
+    text: 'Also identical'
+  }].forEach((mockCue) => {
+    track.addCue(mockCue);
+  });
+
+  assert.equal(track.cues.length, 6, '6 cues present initially');
+
+  removeDuplicateCuesFromTrack(track);
+
+  assert.equal(track.cues.length, 4, '4 cues remain after duplicates removed');
 });

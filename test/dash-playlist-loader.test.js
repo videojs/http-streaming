@@ -467,7 +467,6 @@ QUnit.test('compareSidxEntry: will remove non-matching sidxes from a mapping', f
 
 QUnit.test('filterChangedSidxMappings: removes change sidx info from mapping', function(assert) {
   const loader = new DashPlaylistLoader('dash-sidx.mpd', this.fakeVhs);
-  let masterXml;
 
   loader.load();
   this.standardXHRResponse(this.requests.shift());
@@ -482,9 +481,7 @@ QUnit.test('filterChangedSidxMappings: removes change sidx info from mapping', f
 
   const oldSidxMapping = loader.sidxMapping_;
   let newSidxMapping = filterChangedSidxMappings(
-    loader.masterXml_,
-    loader.srcUrl,
-    loader.clientOffset_,
+    loader.master,
     loader.sidxMapping_
   );
 
@@ -497,12 +494,16 @@ QUnit.test('filterChangedSidxMappings: removes change sidx info from mapping', f
   const oldVideoKey = generateSidxKey(playlists['0-placeholder-uri-0'].sidx);
   const oldAudioEnKey = generateSidxKey(playlists['0-placeholder-uri-AUDIO-audio-en'].sidx);
 
+  let masterXml = loader.masterXml_.replace(/(indexRange)=\"\d+-\d+\"/, '$1="201-400"');
   // should change the video playlist
-  masterXml = loader.masterXml_.replace(/(indexRange)=\"\d+-\d+\"/, '$1="201-400"');
-  newSidxMapping = filterChangedSidxMappings(
+  let newMaster = parseMasterXml({
     masterXml,
-    loader.srcUrl,
-    loader.clientOffset_,
+    srcUrl: loader.srcUrl,
+    clientOffset: loader.clientOffset_
+  });
+
+  newSidxMapping = filterChangedSidxMappings(
+    newMaster,
     loader.sidxMapping_
   );
   const newVideoKey = `${playlists['0-placeholder-uri-0'].sidx.uri}-201-400`;
@@ -521,11 +522,14 @@ QUnit.test('filterChangedSidxMappings: removes change sidx info from mapping', f
   );
 
   // should change the English audio group
-  masterXml = masterXml.replace(/(indexRange)=\"\d+-\d+\"/g, '$1="201-400"');
-  newSidxMapping = filterChangedSidxMappings(
+  masterXml = loader.masterXml_.replace(/(indexRange)=\"\d+-\d+\"/g, '$1="201-400"');
+  newMaster = parseMasterXml({
     masterXml,
-    loader.srcUrl,
-    loader.clientOffset_,
+    srcUrl: loader.srcUrl,
+    clientOffset: loader.clientOffset_
+  });
+  newSidxMapping = filterChangedSidxMappings(
+    newMaster,
     loader.sidxMapping_
   );
   assert.notOk(
@@ -658,7 +662,8 @@ QUnit.test('constructor sets srcUrl and other properties', function(assert) {
 
   assert.strictEqual(loader.state, 'HAVE_NOTHING', 'correct state');
   assert.deepEqual(loader.loadedPlaylists_, {}, 'correct loadedPlaylist state');
-  assert.notOk(loader.masterPlaylistLoader_, 'should be no masterPlaylistLoader');
+  assert.equal(loader.masterPlaylistLoader_, loader, 'masterPlaylistLoader should be self');
+  assert.ok(loader.isMaster_, 'should be set as master');
   assert.notOk(loader.childPlaylist_, 'should be no childPlaylist_');
   assert.strictEqual(loader.srcUrl, 'dash.mpd', 'set the srcUrl');
 
@@ -667,6 +672,8 @@ QUnit.test('constructor sets srcUrl and other properties', function(assert) {
   assert.strictEqual(childLoader.state, 'HAVE_NOTHING', 'correct state');
   assert.deepEqual(childLoader.loadedPlaylists_, {}, 'correct loadedPlaylist state');
   assert.ok(childLoader.masterPlaylistLoader_, 'should be a masterPlaylistLoader');
+  assert.notEqual(childLoader.masterPlaylistLoader_, childLoader, 'should not be a masterPlaylistLoader');
+  assert.notOk(childLoader.isMaster_, 'should not be master');
   assert.deepEqual(
     childLoader.childPlaylist_, {},
     'should be a childPlaylist_'
@@ -1840,38 +1847,6 @@ QUnit.test('sidxRequestFinished_: uses given error object', function(assert) {
     'error object is filled out correctly'
   );
   assert.strictEqual(errors, 1, 'triggered an error event');
-});
-
-QUnit.test('setupChildLoader: sets masterPlaylistLoader and ' +
-  'playlist on child loader', function(assert) {
-  const fakePlaylist = { uri: 'fakeplaylist1', id: 'fakeplaylist1' };
-  const newPlaylist = { uri: 'fakeplaylist2', id: 'fakeplaylist2' };
-  const loader = new DashPlaylistLoader('dash.mpd', this.fakeVhs);
-  const newLoader = new DashPlaylistLoader('dash-sidx.mpd', this.fakeVhs);
-  const childLoader = new DashPlaylistLoader(fakePlaylist, this.fakeVhs, false, loader);
-
-  assert.deepEqual(
-    childLoader.masterPlaylistLoader_,
-    loader,
-    'starts with loader passed into constructor'
-  );
-  assert.deepEqual(
-    childLoader.childPlaylist_,
-    fakePlaylist,
-    'starts with playlist passed in constructor'
-  );
-
-  childLoader.setupChildLoader(newLoader, newPlaylist);
-  assert.deepEqual(
-    childLoader.masterPlaylistLoader_,
-    newLoader,
-    'masterPlaylistLoader correctly set'
-  );
-  assert.deepEqual(
-    childLoader.childPlaylist_,
-    newPlaylist,
-    'child playlist correctly set'
-  );
 });
 
 QUnit.test('hasPendingRequest: returns true if async code is running in master loader', function(assert) {
