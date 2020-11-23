@@ -318,19 +318,19 @@
   },
   {
     "name": "(Not Working) fmp4 x264/flac no manifest codecs",
-    "uri": "https://d2zihajmogu5jn.cloudfront.net/fmp4-flac-no-manifect-codecs/master.m3u8",
+    "uri": "https://d2zihajmogu5jn.cloudfront.net/fmp4-flac-no-manifest-codecs/master.m3u8",
     "mimetype": "application/x-mpegurl",
     "features": []
   },
   {
     "name": "(Not Working) fmp4 x264/opus no manifest codecs",
-    "uri": "https://d2zihajmogu5jn.cloudfront.net/fmp4-opus-no-manifect-codecs/master.m3u8",
+    "uri": "https://d2zihajmogu5jn.cloudfront.net/fmp4-opus-no-manifest-codecs/master.m3u8",
     "mimetype": "application/x-mpegurl",
     "features": []
   },
   {
     "name": "fmp4 h264/aac no manifest codecs",
-    "uri": "https://d2zihajmogu5jn.cloudfront.net/fmp4-muxed-no-playlist-codecs/master.m3u8",
+    "uri": "https://d2zihajmogu5jn.cloudfront.net/fmp4-muxed-no-playlist-codecs/index.m3u8",
     "mimetype": "application/x-mpegurl",
     "features": []
   },
