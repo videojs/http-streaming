@@ -295,9 +295,7 @@ export const waitForKeySessionCreation = ({
   // initializeMediaKeys also won't use the webkit-prefixed APIs.
   keySystemsOptionsArr.forEach((keySystemsOptions) => {
     keySessionCreatedPromises.push(new Promise((resolve, reject) => {
-      player.tech_.one('keysessioncreated', () => {
-        resolve();
-      });
+      player.tech_.one('keysessioncreated', resolve);
     }));
 
     initializationFinishedPromises.push(new Promise((resolve, reject) => {
