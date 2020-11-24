@@ -44,13 +44,16 @@ const mp4AudioTotal = () => concatSegments(mp4AudioInit(), mp4Audio());
 
 QUnit.module('Source Updater', {
   beforeEach() {
-    const video = document.createElement('video');
+    this.fixture = document.getElementById('qunit-fixture');
+    this.video = document.createElement('video');
+
+    this.fixture.appendChild(this.video);
 
     this.mediaSource = new window.MediaSource();
 
     // need to attach the real media source to a video element for the media source to
     // change to an open ready state
-    video.src = URL.createObjectURL(this.mediaSource);
+    this.video.src = URL.createObjectURL(this.mediaSource);
     this.sourceUpdater = new SourceUpdater(this.mediaSource);
 
     // wait for the source to open (or error) before running through tests
@@ -62,6 +65,8 @@ QUnit.module('Source Updater', {
 
   afterEach() {
     this.sourceUpdater.dispose();
+    this.video.src = '';
+    this.fixture.removeChild(this.video);
   }
 });
 
