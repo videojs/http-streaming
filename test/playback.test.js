@@ -20,8 +20,7 @@ const playFor = function(player, time, cb) {
   if (player.paused()) {
     const playPromise = player.play();
 
-    // Catch/silence error when a pause interrupts a play request
-    // on browsers which return a promise
+    // assert an error on playback failure or check player time after play has started.
     if (typeof playPromise !== 'undefined' && typeof playPromise.then === 'function') {
       playPromise.then(checkPlayerTime).catch((e) => {
         QUnit.assert.notOk(true, 'play promise failed with error', e);
@@ -241,6 +240,9 @@ QUnit[testFn]('Live DASH', function(assert) {
   });
 });
 
+// These videos don't work on firefox consistenly. Seems like
+// firefox has lower performance or more aggressive throttling than chrome
+// which causes a variety of issues.
 if (!videojs.browser.IS_FIREFOX) {
   QUnit[testFn]('Big Buck Bunny audio only, groups & renditions same uri', function(assert) {
     const done = assert.async();

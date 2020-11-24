@@ -18,7 +18,7 @@ const textRange = function(range, i) {
  *
  * @param {number} e The number
  * @param {number} i the iterator
- * @return {string} the hex formated number as a string
+ * @return {string} the hex formatted number as a string
  */
 const formatHexString = function(e, i) {
   const value = e.toString(16);
