@@ -4661,6 +4661,64 @@ QUnit.test('integration: updates source updater after eme init', function(assert
   this.standardXHRResponse(this.requests.shift(), audioSegment());
 });
 
+QUnit.test('player error when key session creation rejects promise', function(assert) {
+  const done = assert.async();
+
+  this.player.error = (errorObject) => {
+    assert.deepEqual(
+      errorObject,
+      {
+        code: 3,
+        message: 'Failed to initialize media keys for EME'
+      },
+      'called player error with correct error'
+    );
+    done();
+  };
+  this.player.eme = {
+    initializeMediaKeys: (keySystems, callback) => {
+      // calling back with an error should lead to promise rejection
+      callback({
+        message: 'this is the error message'
+      });
+    }
+  };
+  this.player.src({
+    src: 'manifest/master.mpd',
+    type: 'application/dash+xml',
+    keySystems: {
+      keySystem1: {
+        url: 'url1'
+      }
+    }
+  });
+
+  this.clock.tick(1);
+
+  const media = {
+    attributes: {
+      CODECS: 'avc1.420015'
+    },
+    contentProtection: {
+      keySystem1: {
+        pssh: 'test'
+      }
+    }
+  };
+
+  this.player.tech_.vhs.playlists = {
+    master: { playlists: [media] },
+    media: () => media
+  };
+
+  this.player.tech_.vhs.masterPlaylistController_.mediaTypes_ = {
+    SUBTITLES: {},
+    AUDIO: {}
+  };
+
+  this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.trigger('createdsourcebuffers');
+});
+
 QUnit.test(
   'does not set source keySystems if keySystems not provided by source',
   function(assert) {

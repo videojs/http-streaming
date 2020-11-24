@@ -313,13 +313,19 @@ export const waitForKeySessionCreation = ({
     }));
   });
 
-  return Promise.any([
-    // if a session was previously created, these will all finish resolving without
+  // The reasons Promise.race is chosen over Promise.any:
+  //
+  // * Promise.any is only available in Safari 14+.
+  // * None of these promises are expected to reject. If they do reject, it might be
+  //   better here for the race to surface the rejection, rather than mask it by using
+  //   Promise.any.
+  return Promise.race([
+    // If a session was previously created, these will all finish resolving without
     // creating a new session, otherwise it will take until the end of all license
-    // requests, which is why the key session check is used (to make setup much faster)
+    // requests, which is why the key session check is used (to make setup much faster).
     Promise.all(initializationFinishedPromises),
-    // once a single session is created, the browser knows DRM will be used
-    Promise.any(keySessionCreatedPromises)
+    // Once a single session is created, the browser knows DRM will be used.
+    Promise.race(keySessionCreatedPromises)
   ]);
 };
 
@@ -973,7 +979,7 @@ class VhsHandler extends Component {
       this.masterPlaylistController_.sourceUpdater_.initializedEme();
     }).catch((err) => {
       this.logger_('error while creating EME key session', err);
-      this.player_.player.error({
+      this.player_.error({
         message: 'Failed to initialize media keys for EME',
         code: 3
       });
