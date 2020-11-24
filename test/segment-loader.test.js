@@ -4,7 +4,10 @@ import {
   illegalMediaSwitch,
   safeBackBufferTrimTime,
   timestampOffsetForSegment,
-  shouldWaitForTimelineChange
+  shouldWaitForTimelineChange,
+  segmentTooLong,
+  mediaDuration,
+  getTroublesomeSegmentDurationMessage
 } from '../src/segment-loader';
 import segmentTransmuxer from '../src/segment-transmuxer';
 import videojs from 'video.js';
@@ -464,6 +467,287 @@ QUnit.test('uses current time when seekable range is well before current time', 
     safeBackBufferTrimTime(seekable, currentTime, targetDuration),
     110,
     'returned 30 seconds before playhead'
+  );
+});
+
+QUnit.module('mediaDuration');
+
+QUnit.test('0 when no timing info', function(assert) {
+  assert.equal(
+    mediaDuration({
+      audioTimingInfo: {},
+      videoTimingInfo: {}
+    }),
+    0,
+    '0 when no timing info'
+  );
+
+  assert.equal(
+    mediaDuration({
+      audioTimingInfo: { start: 1 },
+      videoTimingInfo: { start: 1 }
+    }),
+    0,
+    '0 when no end times'
+  );
+
+  assert.equal(
+    mediaDuration({
+      audioTimingInfo: { end: 1 },
+      videoTimingInfo: { end: 1 }
+    }),
+    0,
+    '0 when no start times'
+  );
+});
+
+QUnit.test('reports audio duration', function(assert) {
+  assert.equal(
+    mediaDuration({
+      audioTimingInfo: { start: 1, end: 2 },
+      videoTimingInfo: {}
+    }),
+    1,
+    'audio duration when no video info'
+  );
+
+  assert.equal(
+    mediaDuration({
+      audioTimingInfo: { start: 1, end: 2 },
+      videoTimingInfo: { start: 1 }
+    }),
+    1,
+    'audio duration when not enough video info'
+  );
+
+  assert.equal(
+    mediaDuration({
+      audioTimingInfo: { start: 1, end: 2 },
+      videoTimingInfo: { end: 3 }
+    }),
+    1,
+    'audio duration when not enough video info'
+  );
+
+  assert.equal(
+    mediaDuration({
+      audioTimingInfo: { start: 1, end: 3 },
+      videoTimingInfo: { start: 1, end: 2 }
+    }),
+    2,
+    'audio duration when audio duration > video duration'
+  );
+});
+
+QUnit.test('reports video duration', function(assert) {
+  assert.equal(
+    mediaDuration({
+      audioTimingInfo: {},
+      videoTimingInfo: { start: 1, end: 2 }
+    }),
+    1,
+    'video duration when no audio info'
+  );
+
+  assert.equal(
+    mediaDuration({
+      audioTimingInfo: { start: 1 },
+      videoTimingInfo: { start: 1, end: 2 }
+    }),
+    1,
+    'video duration when not enough audio info'
+  );
+
+  assert.equal(
+    mediaDuration({
+      audioTimingInfo: { end: 3 },
+      videoTimingInfo: { start: 1, end: 2 }
+    }),
+    1,
+    'video duration when not enough audio info'
+  );
+
+  assert.equal(
+    mediaDuration({
+      audioTimingInfo: { start: 1, end: 2 },
+      videoTimingInfo: { start: 1, end: 3 }
+    }),
+    2,
+    'video duration when video duration > audio duration'
+  );
+});
+
+QUnit.module('segmentTooLong');
+
+QUnit.test('false when no segment duration', function(assert) {
+  assert.notOk(segmentTooLong({ maxDuration: 9 }), 'false when no segment duration');
+  assert.notOk(
+    segmentTooLong({ segmentDuration: 0, maxDuration: 9 }),
+    'false when segment duration is 0'
+  );
+});
+
+QUnit.test('false when duration is within range', function(assert) {
+  assert.notOk(
+    segmentTooLong({
+      segmentDuration: 9,
+      maxDuration: 9
+    }),
+    'false when duration is same'
+  );
+  assert.notOk(
+    segmentTooLong({
+      segmentDuration: 9.49,
+      maxDuration: 9
+    }),
+    'false when duration rounds down to same'
+  );
+});
+
+QUnit.test('true when duration is too long', function(assert) {
+  assert.ok(
+    segmentTooLong({
+      segmentDuration: 9,
+      maxDuration: 8.9
+    }),
+    'true when duration is too long'
+  );
+  assert.ok(
+    segmentTooLong({
+      segmentDuration: 9.5,
+      maxDuration: 9
+    }),
+    'true when duration rounds up to be too long'
+  );
+});
+
+QUnit.module('getTroublesomeSegmentDurationMessage');
+
+QUnit.test('falsey when dash', function(assert) {
+  assert.notOk(
+    getTroublesomeSegmentDurationMessage({
+      audioTimingInfo: { start: 0, end: 10 },
+      videoTimingInfo: { start: 0, end: 10 },
+      targetDuration: 4,
+      sourceType: 'dash',
+      segmentInfo: {
+        mediaIndex: 0,
+        playlist: {
+          id: 'id'
+        },
+        duration: 10
+      }
+    }),
+    'falsey when dash'
+  );
+});
+
+QUnit.test('falsey when segment is within range', function(assert) {
+  assert.notOk(
+    getTroublesomeSegmentDurationMessage({
+      audioTimingInfo: { start: 0, end: 10 },
+      videoTimingInfo: { start: 0, end: 10 },
+      targetDuration: 10,
+      sourceType: 'hls',
+      segmentInfo: {
+        mediaIndex: 0,
+        playlist: {
+          id: 'id'
+        },
+        duration: 10
+      }
+    }),
+    'falsey when segment equal to target duration'
+  );
+
+  assert.notOk(
+    getTroublesomeSegmentDurationMessage({
+      audioTimingInfo: { start: 0, end: 10 },
+      videoTimingInfo: { start: 0, end: 5 },
+      targetDuration: 10,
+      sourceType: 'hls',
+      segmentInfo: {
+        mediaIndex: 0,
+        playlist: {
+          id: 'id'
+        },
+        duration: 10
+      }
+    }),
+    'falsey when segment less than target duration'
+  );
+
+  assert.notOk(
+    getTroublesomeSegmentDurationMessage({
+      audioTimingInfo: { start: 0, end: 5 },
+      videoTimingInfo: { start: 0, end: 5 },
+      targetDuration: 10,
+      sourceType: 'hls',
+      segmentInfo: {
+        mediaIndex: 0,
+        playlist: {
+          id: 'id'
+        },
+        duration: 5
+      }
+    }),
+    'falsey when segment less than target duration'
+  );
+});
+
+QUnit.test('warn when segment is way too long', function(assert) {
+  assert.deepEqual(
+    getTroublesomeSegmentDurationMessage({
+      audioTimingInfo: { start: 0, end: 10 },
+      videoTimingInfo: { start: 0, end: 10 },
+      targetDuration: 4,
+      sourceType: 'hls',
+      segmentInfo: {
+        mediaIndex: 0,
+        playlist: {
+          id: 'id'
+        },
+        duration: 10
+      }
+    }),
+    {
+      severity: 'warn',
+      message:
+        'Segment with index 0 from playlist id has a duration of 10 when the reported ' +
+        'duration is 10 and the target duration is 4. For HLS content, a duration in ' +
+        'excess of the target duration may result in playback issues. See the HLS ' +
+        'specification section on EXT-X-TARGETDURATION for more details: ' +
+        'https://tools.ietf.org/html/draft-pantos-http-live-streaming-23#section-4.3.3.1'
+    },
+    'warn when segment way too long'
+  );
+});
+
+QUnit.test('info segment is bit too long', function(assert) {
+  assert.deepEqual(
+    getTroublesomeSegmentDurationMessage({
+      audioTimingInfo: { start: 0, end: 4.5 },
+      videoTimingInfo: { start: 0, end: 4.5 },
+      targetDuration: 4,
+      sourceType: 'hls',
+      segmentInfo: {
+        mediaIndex: 0,
+        playlist: {
+          id: 'id'
+        },
+        duration: 4.5
+      }
+    }),
+    {
+      severity: 'info',
+      message:
+        'Segment with index 0 from playlist id has a duration of 4.5 when the reported ' +
+        'duration is 4.5 and the target duration is 4. For HLS content, a duration in ' +
+        'excess of the target duration may result in playback issues. See the HLS ' +
+        'specification section on EXT-X-TARGETDURATION for more details: ' +
+        'https://tools.ietf.org/html/draft-pantos-http-live-streaming-23#section-4.3.3.1'
+    },
+    'info when segment is a bit too long'
   );
 });
 
