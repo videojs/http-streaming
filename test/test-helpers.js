@@ -592,6 +592,12 @@ export const setupMediaSource = (mediaSource, sourceUpdater, options) => {
 
   videoEl.src = window.URL.createObjectURL(mediaSource);
 
+  // With the addition of the initialized EME requirement for source-updater start, a lot
+  // of tests which use the media source, but don't start at the top level of the plugin
+  // (where the EME initialization is done) faileddue to the source updatel never
+  // reporting as ready. This direct initialization works around the issue.
+  sourceUpdater.initializedEme();
+
   return new Promise((resolve, reject) => {
     mediaSource.addEventListener('sourceopen', () => {
       const codecs = {};

@@ -1713,7 +1713,6 @@ export default class SegmentLoader extends videojs.EventTarget {
 
   hasEnoughInfoToAppend_() {
     if (!this.sourceUpdater_.ready()) {
-      // waiting on one of the segment loaders to get enough data to create source buffers
       return false;
     }
 
