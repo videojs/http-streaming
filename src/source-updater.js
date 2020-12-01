@@ -370,10 +370,13 @@ export default class SourceUpdater extends videojs.EventTarget {
     // two add buffers.
     this.addOrChangeSourceBuffers(codecs);
     this.createdSourceBuffers_ = true;
-    this.trigger('createdsourcebuffers');
     if (this.ready()) {
       this.trigger('ready');
     }
+    // we trigger 'createdsourcebuffers' after ready as
+    // ie 11 synchronous sets up eme on createdsourcebuffers
+    // and we don't want to trigger ready here and there.
+    this.trigger('createdsourcebuffers');
   }
 
   /**
