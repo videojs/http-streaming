@@ -13,6 +13,7 @@ import {
 } from '../src/playback-watcher';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
+import { SAFE_TIME_DELTA } from '../src/ranges';
 
 let monitorCurrentTime_;
 
@@ -1184,6 +1185,8 @@ QUnit.test('skips gap from muxed video underflow', function(assert) {
 });
 
 QUnit.test('detects live window falloff', function(assert) {
+  this.playbackWatcher.liveRangeSafeTimeDelta = SAFE_TIME_DELTA;
+
   const beforeSeekableWindow_ =
     this.playbackWatcher.beforeSeekableWindow_.bind(this.playbackWatcher);
 
@@ -1219,6 +1222,23 @@ QUnit.test('detects live window falloff', function(assert) {
   assert.ok(
     beforeSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 0),
     'true if current time is 0 and earlier than seekable range'
+  );
+});
+
+QUnit.test('respects liveRangeSafeTimeDelta flag', function(assert) {
+  this.playbackWatcher.liveRangeSafeTimeDelta = 1;
+
+  const beforeSeekableWindow_ =
+    this.playbackWatcher.beforeSeekableWindow_.bind(this.playbackWatcher);
+
+  assert.ok(
+    beforeSeekableWindow_(videojs.createTimeRanges([[12, 20]]), 10),
+    'true if playlist live and current time before seekable'
+  );
+
+  assert.ok(
+    !beforeSeekableWindow_(videojs.createTimeRanges([]), 10),
+    'false if no seekable range'
   );
 });
 

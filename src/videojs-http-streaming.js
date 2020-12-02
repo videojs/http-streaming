@@ -32,6 +32,7 @@ import {
 } from './playlist-selectors.js';
 import {isAudioCodec, isVideoCodec, browserSupportsCodec} from '@videojs/vhs-utils/dist/codecs.js';
 import logger from './util/logger';
+import {SAFE_TIME_DELTA} from './ranges';
 
 // IMPORTANT:
 // keep these at the bottom they are replaced at build time
@@ -673,7 +674,8 @@ class VhsHandler extends Component {
       'handlePartialData',
       'playlistSelector',
       'initialPlaylistSelector',
-      'experimentalBufferBasedABR'
+      'experimentalBufferBasedABR',
+      'liveRangeSafeTimeDelta'
     ].forEach((option) => {
       if (typeof this.source_[option] !== 'undefined') {
         this.options_[option] = this.source_[option];
@@ -706,11 +708,20 @@ class VhsHandler extends Component {
     };
 
     this.masterPlaylistController_ = new MasterPlaylistController(this.options_);
-    this.playbackWatcher_ = new PlaybackWatcher(videojs.mergeOptions(this.options_, {
-      seekable: () => this.seekable(),
-      media: () => this.masterPlaylistController_.media(),
-      masterPlaylistController: this.masterPlaylistController_
-    }));
+
+    const playbackWatcherOptions = videojs.mergeOptions(
+      {
+        liveRangeSafeTimeDelta: SAFE_TIME_DELTA
+      },
+      this.options_,
+      {
+        seekable: () => this.seekable(),
+        media: () => this.masterPlaylistController_.media(),
+        masterPlaylistController: this.masterPlaylistController_
+      }
+    );
+
+    this.playbackWatcher_ = new PlaybackWatcher(playbackWatcherOptions);
 
     this.masterPlaylistController_.on('error', () => {
       const player = videojs.players[this.tech_.options_.playerId];

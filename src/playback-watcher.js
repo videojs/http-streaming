@@ -75,6 +75,7 @@ export default class PlaybackWatcher {
     this.tech_ = options.tech;
     this.seekable = options.seekable;
     this.allowSeeksWithinUnsafeLiveWindow = options.allowSeeksWithinUnsafeLiveWindow;
+    this.liveRangeSafeTimeDelta = options.liveRangeSafeTimeDelta;
     this.media = options.media;
 
     this.consecutiveUpdates = 0;
@@ -502,7 +503,7 @@ export default class PlaybackWatcher {
     if (seekable.length &&
         // can't fall before 0 and 0 seekable start identifies VOD stream
         seekable.start(0) > 0 &&
-        currentTime < seekable.start(0) - Ranges.SAFE_TIME_DELTA) {
+        currentTime < seekable.start(0) - this.liveRangeSafeTimeDelta) {
       return true;
     }
 
