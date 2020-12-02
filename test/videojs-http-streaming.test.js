@@ -4640,7 +4640,14 @@ QUnit.test('integration: updates source updater after eme init', function(assert
   sourceUpdater.on(
     'createdsourcebuffers',
     () => {
-      assert.notOk(sourceUpdater.hasInitializedAnyEme(), 'has not initialized eme yet');
+      let expected = false;
+
+      // IE initializes eme syncronously directly after source buffer
+      // creation
+      if (videojs.browser.IE_VERSION) {
+        expected = true;
+      }
+      assert.equal(sourceUpdater.hasInitializedAnyEme(), expected, 'correct eme state');
     }
   );
 
@@ -4661,7 +4668,7 @@ QUnit.test('integration: updates source updater after eme init', function(assert
   this.standardXHRResponse(this.requests.shift(), audioSegment());
 });
 
-QUnit.test('player error when key session creation rejects promise', function(assert) {
+QUnit[testOrSkip]('player error when key session creation rejects promise', function(assert) {
   const done = assert.async();
 
   this.player.error = (errorObject) => {
