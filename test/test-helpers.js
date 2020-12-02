@@ -9,6 +9,24 @@ import { muxed as muxedSegment } from 'create-test-data!segments';
 import {bytesToString, isTypedArray} from '@videojs/vhs-utils/dist/byte-helpers';
 import {isLikelyFmp4MediaSegment} from '@videojs/vhs-utils/dist/containers';
 
+// return an absolute version of a page-relative URL
+export const absoluteUrl = function(relativeUrl) {
+  return URLToolkit.buildAbsoluteURL(window.location.href, relativeUrl);
+};
+
+const origOpen = sinon.FakeXMLHttpRequest.prototype.open;
+
+sinon.FakeXMLHttpRequest.prototype.open = function() {
+  this.responseURL = absoluteUrl(arguments[1]);
+  return origOpen.apply(this, arguments);
+};
+
+// used for treating the response however we want, instead of the browser deciding
+// responses we don't have to worry about the browser changing responses
+sinon.FakeXMLHttpRequest.prototype.overrideMimeType = function overrideMimeType(mimeType) {
+  this.mimeTypeOverride = mimeType;
+};
+
 const RealMediaSource = window.MediaSource;
 const realCreateObjectURL = window.URL.createObjectURL;
 
@@ -136,11 +154,6 @@ export class MockTextTrack {
   }
 }
 
-// return an absolute version of a page-relative URL
-export const absoluteUrl = function(relativeUrl) {
-  return URLToolkit.buildAbsoluteURL(window.location.href, relativeUrl);
-};
-
 export const useFakeMediaSource = function() {
   window.MediaSource = MockMediaSource;
   window.URL.createObjectURL = (object) => realCreateObjectURL(object instanceof MockMediaSource ? object.nativeMediaSource_ : object);
@@ -226,23 +239,6 @@ export const useFakeEnvironment = function(assert) {
   });
   fakeEnvironment.clock = sinon.useFakeTimers();
   fakeEnvironment.xhr = sinon.useFakeXMLHttpRequest();
-
-  window.XMLHttpRequest.prototype = Object.create(window.XMLHttpRequest.prototype);
-
-  // used for treating the response however we want, instead of the browser deciding
-  // responses we don't have to worry about the browser changing responses
-  window.XMLHttpRequest.prototype.overrideMimeType = function overrideMimeType(mimeType) {
-    this.mimeTypeOverride = mimeType;
-  };
-
-  // add support for xhr.responseURL
-  window.XMLHttpRequest.prototype.open = (function(origFn) {
-    return function() {
-      this.responseURL = absoluteUrl(arguments[1]);
-
-      return origFn.apply(this, arguments);
-    };
-  }(window.XMLHttpRequest.prototype.open));
 
   fakeEnvironment.requests.length = 0;
   fakeEnvironment.xhr.onCreate = function(xhr) {
@@ -595,6 +591,12 @@ export const setupMediaSource = (mediaSource, sourceUpdater, options) => {
     (options && options.videoEl) ? options.videoEl : document.createElement('video');
 
   videoEl.src = window.URL.createObjectURL(mediaSource);
+
+  // With the addition of the initialized EME requirement for source-updater start, a lot
+  // of tests which use the media source, but don't start at the top level of the plugin
+  // (where the EME initialization is done) faileddue to the source updatel never
+  // reporting as ready. This direct initialization works around the issue.
+  sourceUpdater.initializedEme();
 
   return new Promise((resolve, reject) => {
     mediaSource.addEventListener('sourceopen', () => {
