@@ -5021,7 +5021,8 @@ QUnit.test('excludes on codec switch if codec switching not supported', function
   });
 
   // sourceUpdater_ already setup
-  this.mpc.sourceUpdater_.ready = () => true;
+  this.mpc.sourceUpdater_.initializedEme();
+  this.mpc.sourceUpdater_.createdSourceBuffers_ = () => true;
   this.mpc.sourceUpdater_.canChangeType = () => false;
   this.mpc.sourceUpdater_.codecs = {
     audio: 'mp4a.40.2',
@@ -5061,7 +5062,8 @@ QUnit.test('does not exclude on codec switch between the same base codec', funct
   });
 
   // sourceUpdater_ already setup
-  this.mpc.sourceUpdater_.ready = () => true;
+  this.mpc.sourceUpdater_.initializedEme();
+  this.mpc.sourceUpdater_.createdSourceBuffers_ = () => true;
   this.mpc.sourceUpdater_.canChangeType = () => false;
   this.mpc.sourceUpdater_.codecs = {
     audio: 'mp4a.40.2',
@@ -5111,7 +5113,8 @@ QUnit.test('main loader only trackinfo works as expected', function(assert) {
   assert.equal(createBuffers, 1, 'createSourceBuffers called');
   assert.equal(switchBuffers, 0, 'addOrChangeSourceBuffers not called');
 
-  this.mpc.sourceUpdater_.ready = () => true;
+  this.mpc.sourceUpdater_.initializedEme();
+  this.mpc.sourceUpdater_.createdSourceBuffers_ = () => true;
   this.mpc.sourceUpdater_.canChangeType = () => true;
 
   this.contentSetup({
@@ -5181,7 +5184,8 @@ QUnit.test('main & audio loader only trackinfo works as expected', function(asse
   assert.equal(createBuffers, 1, 'createSourceBuffers called');
   assert.equal(switchBuffers, 0, 'addOrChangeSourceBuffers not called');
 
-  this.mpc.sourceUpdater_.ready = () => true;
+  this.mpc.sourceUpdater_.initializedEme();
+  this.mpc.sourceUpdater_.createdSourceBuffers_ = () => true;
   this.mpc.sourceUpdater_.canChangeType = () => true;
 
   this.mpc.mainSegmentLoader_.currentMediaInfo_ = {

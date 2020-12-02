@@ -32,6 +32,10 @@ jobs:
       shell: bash
       id: nvm
 
+    - name: update apt cache on linux w/o browserstack
+      run: sudo apt-get update
+      if: ${{ startsWith(matrix.os, 'ubuntu') && !env.BROWSER_STACK_USERNAME }}
+
     - name: Install ffmpeg/pulseaudio for firefox on linux w/o browserstack
       run: sudo apt-get install ffmpeg pulseaudio
       if: ${{ startsWith(matrix.os, 'ubuntu') && !env.BROWSER_STACK_USERNAME }}
@@ -44,6 +48,11 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: '${{ steps.nvm.outputs.NVMRC }}'
+    # turn off the default setup-node problem watchers...
+    - run: echo "::remove-matcher owner=eslint-compact::"
+    - run: echo "::remove-matcher owner=eslint-stylish::"
+    - run: echo "::remove-matcher owner=tsc::"
+
     - run: npm i --prefer-offline --no-audit
 
     # run safari on macos
