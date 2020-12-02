@@ -337,13 +337,12 @@ export default class SourceUpdater extends videojs.EventTarget {
     };
     this.createdSourceBuffers_ = false;
     this.initializedEme_ = false;
+    this.triggeredReady_ = false;
   }
 
   initializedEme() {
     this.initializedEme_ = true;
-    if (this.ready()) {
-      this.trigger('ready');
-    }
+    this.triggerReady();
   }
 
   hasCreatedSourceBuffers() {
@@ -371,7 +370,18 @@ export default class SourceUpdater extends videojs.EventTarget {
     this.addOrChangeSourceBuffers(codecs);
     this.createdSourceBuffers_ = true;
     this.trigger('createdsourcebuffers');
-    if (this.ready()) {
+    this.triggerReady();
+  }
+
+  triggerReady() {
+    // only allow ready to be triggered once, this prevents the case
+    // where:
+    // 1. we trigger createdsourcebuffers
+    // 2. ie 11 synchronously initializates eme
+    // 3. the synchronous initialization causes us to trigger ready
+    // 4. We go back to the ready check in createSourceBuffers and ready is triggered again.
+    if (this.ready() && !this.triggeredReady_) {
+      this.triggeredReady_ = true;
       this.trigger('ready');
     }
   }
