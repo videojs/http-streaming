@@ -194,7 +194,7 @@ const handleInitSegmentResponse =
 
     segment.map.tracks[track.type] = track;
 
-    if (track.id && track.timescale) {
+    if (typeof track.id === 'number' && track.timescale) {
       segment.map.timescales = segment.map.timescales || {};
       segment.map.timescales[track.id] = track.timescale;
     }
