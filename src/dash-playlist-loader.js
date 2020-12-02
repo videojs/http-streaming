@@ -649,6 +649,7 @@ export default class DashPlaylistLoader extends EventTarget {
     const createMUPTimeout = (mup) => {
       this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
         this.trigger('minimumUpdatePeriod');
+        createMUPTimeout(mup);
       }, mup);
     };
 
