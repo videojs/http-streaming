@@ -44,14 +44,21 @@ const mp4AudioTotal = () => concatSegments(mp4AudioInit(), mp4Audio());
 
 QUnit.module('Source Updater', {
   beforeEach() {
-    const video = document.createElement('video');
+    this.fixture = document.getElementById('qunit-fixture');
+    this.video = document.createElement('video');
+
+    this.fixture.appendChild(this.video);
 
     this.mediaSource = new window.MediaSource();
 
     // need to attach the real media source to a video element for the media source to
     // change to an open ready state
-    video.src = URL.createObjectURL(this.mediaSource);
+    this.video.src = URL.createObjectURL(this.mediaSource);
     this.sourceUpdater = new SourceUpdater(this.mediaSource);
+
+    // This is normally done at the top level of the plugin, but will not happen in
+    // an isolated module.
+    this.sourceUpdater.initializedEme();
 
     // wait for the source to open (or error) before running through tests
     return new Promise((accept, reject) => {
@@ -62,6 +69,8 @@ QUnit.module('Source Updater', {
 
   afterEach() {
     this.sourceUpdater.dispose();
+    this.video.src = '';
+    this.fixture.removeChild(this.video);
   }
 });
 
@@ -162,6 +171,7 @@ QUnit.test('verifies that sourcebuffer is in source buffers list before attempti
   };
 
   this.sourceUpdater = new SourceUpdater(createMediaSource());
+  this.sourceUpdater.initializedEme();
   this.sourceUpdater.createSourceBuffers({
     audio: 'mp4a.40.2',
     video: 'avc1.4d400d'
@@ -179,6 +189,7 @@ QUnit.test('verifies that sourcebuffer is in source buffers list before attempti
 
   this.sourceUpdater.dispose();
   this.sourceUpdater = new SourceUpdater(createMediaSource());
+  this.sourceUpdater.initializedEme();
   this.sourceUpdater.createSourceBuffers({
     audio: 'mp4a.40.2',
     video: 'avc1.4d400d'
@@ -335,13 +346,15 @@ QUnit.test('setting audio timestamp offset without buffer is a noop', function(a
 });
 
 QUnit.test('ready with a video buffer', function(assert) {
+  this.sourceUpdater.initializedEme();
   this.sourceUpdater.createSourceBuffers({
     video: 'avc1.4d400d'
   });
-  assert.ok(this.sourceUpdater.ready(), 'source updater is ready');
+  assert.ok(this.sourceUpdater.ready(), 'source updater has started');
 });
 
 QUnit.test('ready with an audio buffer', function(assert) {
+  this.sourceUpdater.initializedEme();
   this.sourceUpdater.createSourceBuffers({
     audio: 'mp4a.40.2'
   });
@@ -349,10 +362,24 @@ QUnit.test('ready with an audio buffer', function(assert) {
 });
 
 QUnit.test('ready with both an audio and video buffer', function(assert) {
+  this.sourceUpdater.initializedEme();
   this.sourceUpdater.createSourceBuffers({
     video: 'avc1.4d400d',
     audio: 'mp4a.40.2'
   });
+  assert.ok(this.sourceUpdater.ready(), 'source updater is ready');
+});
+
+QUnit.test('ready once source buffers created and eme initialized', function(assert) {
+  // the module initializes by default
+  this.sourceUpdater.initializedEme_ = false;
+  assert.notOk(this.sourceUpdater.ready(), 'source updater is not ready');
+  this.sourceUpdater.createSourceBuffers({
+    video: 'avc1.4d400d',
+    audio: 'mp4a.40.2'
+  });
+  assert.notOk(this.sourceUpdater.ready(), 'source updater is not ready');
+  this.sourceUpdater.initializedEme();
   assert.ok(this.sourceUpdater.ready(), 'source updater is ready');
 });
 

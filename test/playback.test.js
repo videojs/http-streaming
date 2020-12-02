@@ -6,15 +6,6 @@ import '../src/videojs-http-streaming';
 import 'videojs-contrib-eme';
 
 const playFor = function(player, time, cb) {
-  if (player.paused()) {
-    const playPromise = player.play();
-
-    // Catch/silence error when a pause interrupts a play request
-    // on browsers which return a promise
-    if (typeof playPromise !== 'undefined' && typeof playPromise.then === 'function') {
-      playPromise.then(null, (e) => {});
-    }
-  }
   const targetTime = player.currentTime() + time;
 
   const checkPlayerTime = function() {
@@ -23,8 +14,20 @@ const playFor = function(player, time, cb) {
         return checkPlayerTime();
       }
       cb();
-    }, 10);
+    }, 100);
   };
+
+  if (player.paused()) {
+    const playPromise = player.play();
+
+    // assert an error on playback failure or check player time after play has started.
+    if (typeof playPromise !== 'undefined' && typeof playPromise.then === 'function') {
+      playPromise.then(checkPlayerTime).catch((e) => {
+        QUnit.assert.notOk(true, 'play promise failed with error', e);
+      });
+      return;
+    }
+  }
 
   checkPlayerTime();
 };
@@ -218,44 +221,6 @@ QUnit[testFn]('Big Buck Bunny', function(assert) {
   });
 });
 
-QUnit[testFn]('Big Buck Bunny audio only, groups & renditions same uri', function(assert) {
-  const done = assert.async();
-
-  assert.expect(2);
-  const player = this.player;
-
-  playFor(player, 2, function() {
-    assert.ok(true, 'played for at least two seconds');
-    assert.equal(player.error(), null, 'has no player errors');
-
-    done();
-  });
-
-  player.src({
-    src: 'https://d2zihajmogu5jn.cloudfront.net/audio-only-dupe-groups/prog_index.m3u8',
-    type: 'application/x-mpegURL'
-  });
-});
-
-QUnit[testFn]('Big Buck Bunny Demuxed av, audio only rendition same as group', function(assert) {
-  const done = assert.async();
-
-  assert.expect(2);
-  const player = this.player;
-
-  playFor(player, 25, function() {
-    assert.ok(true, 'played for at least 25 seconds');
-    assert.equal(player.error(), null, 'has no player errors');
-
-    done();
-  });
-
-  player.src({
-    src: 'https://d2zihajmogu5jn.cloudfront.net/demuxed-ts-with-audio-only-rendition/master.m3u8',
-    type: 'application/x-mpegURL'
-  });
-});
-
 QUnit[testFn]('Live DASH', function(assert) {
   const done = assert.async();
 
@@ -275,58 +240,99 @@ QUnit[testFn]('Live DASH', function(assert) {
   });
 });
 
-QUnit[testFn]('DASH sidx', function(assert) {
-  const done = assert.async();
-  const player = this.player;
+// These videos don't work on firefox consistenly. Seems like
+// firefox has lower performance or more aggressive throttling than chrome
+// which causes a variety of issues.
+if (!videojs.browser.IS_FIREFOX) {
+  QUnit[testFn]('Big Buck Bunny audio only, groups & renditions same uri', function(assert) {
+    const done = assert.async();
 
-  playFor(player, 2, function() {
-    assert.ok(true, 'played for at least two seconds');
-    assert.equal(player.error(), null, 'no errors');
+    assert.expect(2);
+    const player = this.player;
 
-    player.one('ended', () => {
-      assert.ok(true, 'triggered ended event');
+    playFor(player, 2, function() {
+      assert.ok(true, 'played for at least two seconds');
+      assert.equal(player.error(), null, 'has no player errors');
+
       done();
     });
 
-    // Firefox sometimes won't loop if seeking directly to the duration, or to too close
-    // to the duration (e.g., 10ms from duration). 100ms seems to work.
-    player.currentTime(player.duration() - 0.5);
-  });
-
-  player.src({
-    src: 'https://dash.akamaized.net/dash264/TestCases/10a/1/iis_forest_short_poem_multi_lang_480p_single_adapt_aaclc_sidx.mpd',
-    type: 'application/dash+xml'
-  });
-});
-
-QUnit[testFn]('DASH sidx with alt audio should end', function(assert) {
-  const done = assert.async();
-  const player = this.player;
-
-  player.one('ended', () => {
-    assert.ok(true, 'triggered ended');
-    assert.equal(player.error(), null, 'no errors');
-    done();
-  });
-
-  /* eslint-disable max-nested-callbacks */
-  playFor(player, 1, () => {
-    // switch audio playlist
-    player.audioTracks()[1].enabled = true;
-
-    playFor(player, 1, () => {
-      player.currentTime(player.duration() - 5);
+    player.src({
+      src: 'https://d2zihajmogu5jn.cloudfront.net/audio-only-dupe-groups/prog_index.m3u8',
+      type: 'application/x-mpegURL'
     });
   });
-  /* eslint-enable max-nested-callbacks */
 
-  player.src({
-    src: 'https://dash.akamaized.net/dash264/TestCases/10a/1/iis_forest_short_poem_multi_lang_480p_single_adapt_aaclc_sidx.mpd',
-    type: 'application/dash+xml'
+  QUnit[testFn]('Big Buck Bunny Demuxed av, audio only rendition same as group', function(assert) {
+    const done = assert.async();
+
+    assert.expect(2);
+    const player = this.player;
+
+    playFor(player, 25, function() {
+      assert.ok(true, 'played for at least 25 seconds');
+      assert.equal(player.error(), null, 'has no player errors');
+
+      done();
+    });
+
+    player.src({
+      src: 'https://d2zihajmogu5jn.cloudfront.net/demuxed-ts-with-audio-only-rendition/master.m3u8',
+      type: 'application/x-mpegURL'
+    });
   });
-});
 
-if (!videojs.browser.IS_FIREFOX) {
+  QUnit[testFn]('DASH sidx', function(assert) {
+    const done = assert.async();
+    const player = this.player;
+
+    playFor(player, 2, function() {
+      assert.ok(true, 'played for at least two seconds');
+      assert.equal(player.error(), null, 'no errors');
+
+      player.one('ended', () => {
+        assert.ok(true, 'triggered ended event');
+        done();
+      });
+
+      // Firefox sometimes won't loop if seeking directly to the duration, or to too close
+      // to the duration (e.g., 10ms from duration). 100ms seems to work.
+      player.currentTime(player.duration() - 0.5);
+    });
+
+    player.src({
+      src: 'https://dash.akamaized.net/dash264/TestCases/10a/1/iis_forest_short_poem_multi_lang_480p_single_adapt_aaclc_sidx.mpd',
+      type: 'application/dash+xml'
+    });
+  });
+
+  QUnit[testFn]('DASH sidx with alt audio should end', function(assert) {
+    const done = assert.async();
+    const player = this.player;
+
+    player.one('ended', () => {
+      assert.ok(true, 'triggered ended');
+      assert.equal(player.error(), null, 'no errors');
+      done();
+    });
+
+    /* eslint-disable max-nested-callbacks */
+    playFor(player, 1, () => {
+      // switch audio playlist
+      player.audioTracks()[1].enabled = true;
+
+      playFor(player, 1, () => {
+        player.currentTime(player.duration() - 5);
+      });
+    });
+    /* eslint-enable max-nested-callbacks */
+
+    player.src({
+      src: 'https://dash.akamaized.net/dash264/TestCases/10a/1/iis_forest_short_poem_multi_lang_480p_single_adapt_aaclc_sidx.mpd',
+      type: 'application/dash+xml'
+    });
+  });
+
   QUnit[testFn]('DRM Dash', function(assert) {
     const done = assert.async();
     const player = this.player;

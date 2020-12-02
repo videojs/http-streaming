@@ -25,7 +25,6 @@
     "start": "npm-run-all -p server watch",
     "server": "karma start scripts/karma.conf.js --singleRun=false --auto-watch",
     "test": "npm-run-all lint build-test && karma start scripts/karma.conf.js",
-    "preversion": "npm test",
     "version": "is-prerelease || npm run update-changelog && git add CHANGELOG.md",
     "update-changelog": "conventional-changelog -p videojs -i CHANGELOG.md -s",
     "watch": "npm-run-all -p watch:*",
@@ -62,7 +61,7 @@
     "global": "^4.3.2",
     "m3u8-parser": "4.5.0",
     "mpd-parser": "0.15.0",
-    "mux.js": "5.6.7",
+    "mux.js": "5.7.0",
     "video.js": "^6 || ^7"
   },
   "devDependencies": {
@@ -81,7 +80,7 @@
     "shelljs": "^0.8.2",
     "sinon": "^8.1.1",
     "url-toolkit": "^2.1.3",
-    "videojs-contrib-eme": "^3.2.0",
+    "videojs-contrib-eme": "^3.8.0",
     "videojs-contrib-quality-levels": "^2.0.4",
     "videojs-generate-karma-config": "~7.0.0",
     "videojs-generate-rollup-config": "~5.0.1",
