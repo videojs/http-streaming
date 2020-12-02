@@ -4668,7 +4668,7 @@ QUnit.test('integration: updates source updater after eme init', function(assert
   this.standardXHRResponse(this.requests.shift(), audioSegment());
 });
 
-QUnit.test('player error when key session creation rejects promise', function(assert) {
+QUnit[testOrSkip]('player error when key session creation rejects promise', function(assert) {
   const done = assert.async();
 
   this.player.error = (errorObject) => {
