@@ -3,7 +3,21 @@ name: ci
 on: [push, pull_request]
 
 jobs:
+  should-skip:
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    # Map a step output to a job output
+    outputs:
+      should-skip-job: ${{ steps.skip-check.outputs.should_skip }}
+    steps:
+      - id: skip-check
+        uses: fkirc/skip-duplicate-actions@v2.1.0
+        with:
+          github_token: ${{ github.token }}
+
   ci:
+    needs: should-skip
+    if: ${{ needs.should-skip.outputs.should-skip-job != 'true'}}
     env:
       BROWSER_STACK_USERNAME: ${{ secrets.BROWSER_STACK_USERNAME }}
       BROWSER_STACK_ACCESS_KEY: ${{ secrets.BROWSER_STACK_ACCESS_KEY }}
