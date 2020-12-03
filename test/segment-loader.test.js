@@ -217,6 +217,20 @@ QUnit.test('returns value when overrideCheck is true', function(assert) {
   );
 });
 
+QUnit.test('uses startOfSegment when timeline is before current', function(assert) {
+  assert.equal(
+    timestampOffsetForSegment({
+      segmentTimeline: 0,
+      currentTimeline: 1,
+      startOfSegment: 3,
+      buffered: videojs.createTimeRanges([[1, 5], [7, 8]]),
+      overrideCheck: true
+    }),
+    3,
+    'returned startOfSegment'
+  );
+});
+
 QUnit.module('shouldWaitForTimelineChange');
 
 QUnit.test('should not wait if timelines are the same', function(assert) {
