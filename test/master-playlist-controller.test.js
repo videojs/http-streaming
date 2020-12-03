@@ -928,7 +928,7 @@ QUnit.test('excludes playlists with unsupported codecs before initial selection'
     'media.m3u8\n' +
     '#EXT-X-STREAM-INF:BANDWIDTH=10000,CODECS="avc1.4d400d,mp4a.40.2"\n' +
     'media1.m3u8\n' +
-    '#EXT-X-STREAM-INF:BANDWIDTH=10000,CODECS="avc1.4d400d,mp3"\n' +
+    '#EXT-X-STREAM-INF:BANDWIDTH=10000,CODECS="avc1.4d400d,ec-3"\n' +
     'media2.m3u8\n' +
     '#EXT-X-STREAM-INF:BANDWIDTH=10000,CODECS="stpp.ttml.im1t"\n' +
     'media3.m3u8\n'
