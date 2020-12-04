@@ -898,12 +898,16 @@ QUnit.test(
 );
 
 QUnit.test('excludes playlists with unsupported codecs before initial selection', function(assert) {
+  // only support mp4a/avc1 for testing, this is restored in afterEach
+  window.MediaSource.isTypeSupported = (type) => (/(mp4a|avc1)/).test(type);
+
   this.masterPlaylistController.selectPlaylist = () => {
-    assert.equal(
-      this.masterPlaylistController.master().playlists[0].excludeUntil,
-      Infinity,
-      'excludes unsupported playlist before initial selection'
-    );
+    const playlists = this.masterPlaylistController.master().playlists;
+
+    assert.equal(playlists[0].excludeUntil, Infinity, 'theora excluded');
+    assert.equal(playlists[1].excludeUntil, undefined, 'avc/mp4a not excluded');
+    assert.equal(playlists[2].excludeUntil, Infinity, 'ec-3 excluded');
+    assert.equal(playlists[3].excludeUntil, Infinity, 'stpp.ttml.im1t excluded');
   };
 
   openMediaSource(this.player, this.clock);
@@ -915,7 +919,11 @@ QUnit.test('excludes playlists with unsupported codecs before initial selection'
     '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="theora,mp4a.40.5"\n' +
     'media.m3u8\n' +
     '#EXT-X-STREAM-INF:BANDWIDTH=10000,CODECS="avc1.4d400d,mp4a.40.2"\n' +
-    'media1.m3u8\n'
+    'media1.m3u8\n' +
+    '#EXT-X-STREAM-INF:BANDWIDTH=10000,CODECS="avc1.4d400d,ec-3"\n' +
+    'media2.m3u8\n' +
+    '#EXT-X-STREAM-INF:BANDWIDTH=10000,CODECS="stpp.ttml.im1t"\n' +
+    'media3.m3u8\n'
   );
 
   // media

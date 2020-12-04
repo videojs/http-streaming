@@ -97,6 +97,14 @@ export const codecsForPlaylist = function(master, media) {
     codecs.audio = translateLegacyCodec(`${codecInfo.audio.type}${codecInfo.audio.details}`);
   }
 
+  if (codecInfo.text) {
+    codecs.text = codecInfo.text.type;
+  }
+
+  if (codecInfo.unknown) {
+    codecs.unknown = codecInfo.unknown;
+  }
+
   return codecs;
 };
 

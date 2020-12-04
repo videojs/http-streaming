@@ -1617,15 +1617,41 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * Excludes playlists with codecs that are unsupported by the muxer and browser.
    */
   excludeUnsupportedVariants_() {
-    this.master().playlists.forEach(variant => {
+    const playlists = this.master().playlists;
+    const ids = [];
+
+    // TODO: why don't we have a property to loop through all
+    // playlist? Why did we ever mix indexes and keys?
+    Object.keys(playlists).forEach(key => {
+      const variant = playlists[key];
+
+      // check if we already processed this playlist.
+      if (ids.indexOf(variant.id) !== -1) {
+        return;
+      }
+
+      ids.push(variant.id);
+
       const codecs = codecsForPlaylist(this.master, variant);
+      const unsupported = [];
 
       if (codecs.audio && !muxerSupportsCodec(codecs.audio) && !browserSupportsCodec(codecs.audio)) {
         variant.excludeUntil = Infinity;
+        unsupported.push(`audio codec ${codecs.audio}`);
       }
 
       if (codecs.video && !muxerSupportsCodec(codecs.video) && !browserSupportsCodec(codecs.video)) {
         variant.excludeUntil = Infinity;
+        unsupported.push(`video codec ${codecs.video}`);
+      }
+
+      if (codecs.text && codecs.text === 'stpp.ttml.im1t') {
+        variant.excludeUntil = Infinity;
+        unsupported.push(`text codec ${codecs.text}`);
+      }
+
+      if (unsupported.length) {
+        this.logger_(`excluding ${variant.id} as codecs ${unsupported.join(', ')} are unsupported`);
       }
     });
   }
