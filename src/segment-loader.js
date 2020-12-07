@@ -341,6 +341,93 @@ export const shouldWaitForTimelineChange = ({
   return false;
 };
 
+export const mediaDuration = (audioTimingInfo, videoTimingInfo) => {
+  const audioDuration =
+    audioTimingInfo &&
+    typeof audioTimingInfo.start === 'number' &&
+    typeof audioTimingInfo.end === 'number' ?
+      audioTimingInfo.end - audioTimingInfo.start : 0;
+  const videoDuration =
+    videoTimingInfo &&
+    typeof videoTimingInfo.start === 'number' &&
+    typeof videoTimingInfo.end === 'number' ?
+      videoTimingInfo.end - videoTimingInfo.start : 0;
+
+  return Math.max(audioDuration, videoDuration);
+};
+
+export const segmentTooLong = ({ segmentDuration, maxDuration }) => {
+  // 0 duration segments are most likely due to metadata only segments or a lack of
+  // information.
+  if (!segmentDuration) {
+    return false;
+  }
+
+  // For HLS:
+  //
+  // https://tools.ietf.org/html/draft-pantos-http-live-streaming-23#section-4.3.3.1
+  // The EXTINF duration of each Media Segment in the Playlist
+  // file, when rounded to the nearest integer, MUST be less than or equal
+  // to the target duration; longer segments can trigger playback stalls
+  // or other errors.
+  //
+  // For DASH, the mpd-parser uses the largest reported segment duration as the target
+  // duration. Although that reported duration is occasionally approximate (i.e., not
+  // exact), a strict check may report that a segment is too long more often in DASH.
+  return Math.round(segmentDuration) > maxDuration + TIME_FUDGE_FACTOR;
+};
+
+export const getTroublesomeSegmentDurationMessage = (segmentInfo, sourceType) => {
+  // Right now we aren't following DASH's timing model exactly, so only perform
+  // this check for HLS content.
+  if (sourceType !== 'hls') {
+    return null;
+  }
+
+  const segmentDuration = mediaDuration(
+    segmentInfo.audioTimingInfo,
+    segmentInfo.videoTimingInfo
+  );
+
+  // Don't report if we lack information.
+  //
+  // If the segment has a duration of 0 it is either a lack of information or a
+  // metadata only segment and shouldn't be reported here.
+  if (!segmentDuration) {
+    return null;
+  }
+
+  const targetDuration = segmentInfo.playlist.targetDuration;
+
+  const isSegmentWayTooLong = segmentTooLong({
+    segmentDuration,
+    maxDuration: targetDuration * 2
+  });
+  const isSegmentSlightlyTooLong = segmentTooLong({
+    segmentDuration,
+    maxDuration: targetDuration
+  });
+
+  const segmentTooLongMessage = `Segment with index ${segmentInfo.mediaIndex} ` +
+    `from playlist ${segmentInfo.playlist.id} ` +
+    `has a duration of ${segmentDuration} ` +
+    `when the reported duration is ${segmentInfo.duration} ` +
+    `and the target duration is ${targetDuration}. ` +
+    'For HLS content, a duration in excess of the target duration may result in ' +
+    'playback issues. See the HLS specification section on EXT-X-TARGETDURATION for ' +
+    'more details: ' +
+    'https://tools.ietf.org/html/draft-pantos-http-live-streaming-23#section-4.3.3.1';
+
+  if (isSegmentWayTooLong || isSegmentSlightlyTooLong) {
+    return {
+      severity: isSegmentWayTooLong ? 'warn' : 'info',
+      message: segmentTooLongMessage
+    };
+  }
+
+  return null;
+};
+
 /**
  * An object that manages segment loading and appending.
  *
@@ -2613,6 +2700,17 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     this.logger_(segmentInfoString(segmentInfo));
+
+    const segmentDurationMessage =
+      getTroublesomeSegmentDurationMessage(segmentInfo, this.sourceType_);
+
+    if (segmentDurationMessage) {
+      if (segmentDurationMessage.severity === 'warn') {
+        videojs.log.warn(segmentDurationMessage.message);
+      } else {
+        this.logger_(segmentDurationMessage.message);
+      }
+    }
 
     this.recordThroughput_(segmentInfo);
     this.pendingSegment_ = null;
