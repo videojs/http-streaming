@@ -259,7 +259,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.setupSegmentLoaderListeners_();
 
     if (this.experimentalBufferBasedABR) {
-      this.startABRTimer_();
+      this.masterPlaylistLoader_.one('loadedplaylist', () => this.startABRTimer_());
       this.tech_.on('pause', () => this.stopABRTimer_());
       this.tech_.on('play', () => this.startABRTimer_());
     }
