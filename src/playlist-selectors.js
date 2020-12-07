@@ -155,6 +155,11 @@ export const simpleSelector = function(
   limitRenditionByPlayerDimensions
 ) {
 
+  // If we end up getting called before `master` is available, exit early
+  if (!master) {
+    return;
+  }
+
   const options = {
     bandwidth: playerBandwidth,
     width: playerWidth,
