@@ -1,3 +1,43 @@
+<a name="2.4.0"></a>
+# [2.4.0](https://github.com/videojs/http-streaming/compare/v2.3.0...v2.4.0) (2020-12-07)
+
+### Features
+
+* **playback watcher:** Configurable live seekable window ([#997](https://github.com/videojs/http-streaming/issues/997)) ([ad5c270](https://github.com/videojs/http-streaming/commit/ad5c270))
+* log on mislabeled segment durations for HLS ([#1010](https://github.com/videojs/http-streaming/issues/1010)) ([4109a7f](https://github.com/videojs/http-streaming/commit/4109a7f))
+* update to mux.js 5.7.0 ([#1014](https://github.com/videojs/http-streaming/issues/1014)) ([5f14909](https://github.com/videojs/http-streaming/commit/5f14909)), closes [#1001](https://github.com/videojs/http-streaming/issues/1001) [#909](https://github.com/videojs/http-streaming/issues/909)
+
+### Bug Fixes
+
+* abort all loaders on earlyabort ([#965](https://github.com/videojs/http-streaming/issues/965)) ([e7cb63a](https://github.com/videojs/http-streaming/commit/e7cb63a))
+* don't save bandwidth and throughput for really small segments ([#1024](https://github.com/videojs/http-streaming/issues/1024)) ([a29e241](https://github.com/videojs/http-streaming/commit/a29e241))
+* filter out unsupported subtitles for dash ([#962](https://github.com/videojs/http-streaming/issues/962)) ([124834a](https://github.com/videojs/http-streaming/commit/124834a))
+* keep running the minimumUpdatePeriod unless cancelled or changed ([#1016](https://github.com/videojs/http-streaming/issues/1016)) ([f7b528c](https://github.com/videojs/http-streaming/commit/f7b528c))
+* prevent double source buffer ready on IE11 ([#1015](https://github.com/videojs/http-streaming/issues/1015)) ([b1c2969](https://github.com/videojs/http-streaming/commit/b1c2969))
+* remove duplicate cues with same time interval and text ([#1005](https://github.com/videojs/http-streaming/issues/1005)) ([6db2b6a](https://github.com/videojs/http-streaming/commit/6db2b6a))
+* support tracks with id 0 for fmp4 playlists ([#1018](https://github.com/videojs/http-streaming/issues/1018)) ([bf63692](https://github.com/videojs/http-streaming/commit/bf63692))
+* Wait for EME initialization before appending content ([#1002](https://github.com/videojs/http-streaming/issues/1002)) ([93132b7](https://github.com/videojs/http-streaming/commit/93132b7))
+* when changing renditions over a discontinuity, don't use buffered end as segment start ([#1023](https://github.com/videojs/http-streaming/issues/1023)) ([40caa45](https://github.com/videojs/http-streaming/commit/40caa45))
+* **experimentalBufferBasedABR:** start ABR timer on main playlist load ([#1026](https://github.com/videojs/http-streaming/issues/1026)) ([27de9a5](https://github.com/videojs/http-streaming/commit/27de9a5)), closes [#1025](https://github.com/videojs/http-streaming/issues/1025)
+
+### Chores
+
+* add multiple soon-to-work sources ([#1007](https://github.com/videojs/http-streaming/issues/1007)) ([030469f](https://github.com/videojs/http-streaming/commit/030469f))
+* don't run tests on release ([#1006](https://github.com/videojs/http-streaming/issues/1006)) ([d13b737](https://github.com/videojs/http-streaming/commit/d13b737))
+* skip duplicate ci workflows ([#1021](https://github.com/videojs/http-streaming/issues/1021)) ([20cc4a3](https://github.com/videojs/http-streaming/commit/20cc4a3))
+* switch from travis to github actions for ci ([#989](https://github.com/videojs/http-streaming/issues/989)) ([c9b195b](https://github.com/videojs/http-streaming/commit/c9b195b))
+* **demo page:** add an overrideNative button (default on) ([#1027](https://github.com/videojs/http-streaming/issues/1027)) ([197daab](https://github.com/videojs/http-streaming/commit/197daab))
+
+### Code Refactoring
+
+* Add a better distinction between master and child dash loaders ([#992](https://github.com/videojs/http-streaming/issues/992)) ([56592bc](https://github.com/videojs/http-streaming/commit/56592bc))
+* add sidx segments to playlist object instead of re-parsing xml ([#994](https://github.com/videojs/http-streaming/issues/994)) ([e41f856](https://github.com/videojs/http-streaming/commit/e41f856))
+* unify sidx/master/error request logic ([#998](https://github.com/videojs/http-streaming/issues/998)) ([fe57e60](https://github.com/videojs/http-streaming/commit/fe57e60))
+
+### Tests
+
+* fix tests on firefox 83 ([#1004](https://github.com/videojs/http-streaming/issues/1004)) ([00d9b1d](https://github.com/videojs/http-streaming/commit/00d9b1d))
+
 <a name="2.3.0"></a>
 # [2.3.0](https://github.com/videojs/http-streaming/compare/v2.2.0...v2.3.0) (2020-11-05)
 
