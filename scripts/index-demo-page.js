@@ -85,7 +85,8 @@
     if (el.type === 'url' || el.type === 'text' || el.nodeName.toLowerCase() === 'textarea') {
       el.value = decodeURIComponent(value);
     } else {
-      el.checked = value === 'true' ? true : false;
+      // get the `value` into a Boolean.
+      el.checked = JSON.parse(value);
     }
 
   };
@@ -216,7 +217,7 @@
     representationsEl.selectedIndex = selectedIndex;
   };
 
-  ['debug', 'autoplay', 'muted', 'minified', 'liveui', 'partial', 'url', 'type', 'keysystems', 'buffer-water'].forEach(function(name) {
+  ['debug', 'autoplay', 'muted', 'minified', 'liveui', 'partial', 'url', 'type', 'keysystems', 'buffer-water', 'override-native'].forEach(function(name) {
     stateEls[name] = document.getElementById(name);
   });
 
@@ -256,6 +257,13 @@
     });
 
     stateEls['buffer-water'].addEventListener('change', function(event) {
+      saveState();
+
+      // reload the player and scripts
+      stateEls.minified.dispatchEvent(newEvent('change'));
+    });
+
+    stateEls['override-native'].addEventListener('change', function(event) {
       saveState();
 
       // reload the player and scripts
@@ -307,7 +315,7 @@
           liveui: stateEls.liveui.checked,
           html5: {
             vhs: {
-              overrideNative: true,
+              overrideNative: getInputValue(stateEls['override-native']),
               handlePartialData: getInputValue(stateEls.partial),
               experimentalBufferBasedABR: getInputValue(stateEls['buffer-water'])
             }
