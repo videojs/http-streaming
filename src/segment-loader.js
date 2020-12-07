@@ -146,6 +146,34 @@ export const timestampOffsetForSegment = ({
     return null;
   }
 
+  // When changing renditions, it's possible to request a segment on an older timeline. For
+  // instance, given two renditions with the following:
+  //
+  // #EXTINF:10
+  // segment1
+  // #EXT-X-DISCONTINUITY
+  // #EXTINF:10
+  // segment2
+  // #EXTINF:10
+  // segment3
+  //
+  // And the current player state:
+  //
+  // current time: 8
+  // buffer: 0 => 20
+  //
+  // The next segment on the current rendition would be segment3, filling the buffer from
+  // 20s onwards. However, if a rendition switch happens after segment2 was requested,
+  // then the next segment to be requested will be segment1 from the new rendition in
+  // order to fill time 8 and onwards. Using the buffered end would result in repeated
+  // content (since it would position segment1 of the new rendition starting at 20s). This
+  // case can be identified when the new segment's timeline is a prior value. Instead of
+  // using the buffered end, the startOfSegment can be used, which, hopefully, will be
+  // more accurate to the actual start time of the segment.
+  if (segmentTimeline < currentTimeline) {
+    return startOfSegment;
+  }
+
   // segmentInfo.startOfSegment used to be used as the timestamp offset, however, that
   // value uses the end of the last segment if it is available. While this value
   // should often be correct, it's better to rely on the buffered end, as the new
