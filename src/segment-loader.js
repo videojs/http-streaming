@@ -26,10 +26,10 @@ import shallowEqual from './util/shallow-equal.js';
 // in ms
 const CHECK_BUFFER_DELAY = 500;
 const finite = (num) => typeof num === 'number' && isFinite(num);
-// With most content hovering around 30fps, if a segment has a duration less than
-// one frame, the bandwidth and throughput calculations will not accurately reflect
-// the rest of the content.
-const MIN_SEGMENT_DURATION_TO_SAVE_STATS = 1 / 30;
+// With most content hovering around 30fps, if a segment has a duration less than a half
+// frame at 30fps or one frame at 60fps, the bandwidth and throughput calculations will
+// not accurately reflect the rest of the content.
+const MIN_SEGMENT_DURATION_TO_SAVE_STATS = 1 / 60;
 
 export const illegalMediaSwitch = (loaderType, startingMedia, trackInfo) => {
   // Although these checks should most likely cover non 'main' types, for now it narrows
