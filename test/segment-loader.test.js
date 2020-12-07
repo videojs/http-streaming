@@ -473,67 +473,32 @@ QUnit.test('uses current time when seekable range is well before current time', 
 QUnit.module('mediaDuration');
 
 QUnit.test('0 when no timing info', function(assert) {
-  assert.equal(
-    mediaDuration({
-      audioTimingInfo: {},
-      videoTimingInfo: {}
-    }),
-    0,
-    '0 when no timing info'
-  );
-
-  assert.equal(
-    mediaDuration({
-      audioTimingInfo: { start: 1 },
-      videoTimingInfo: { start: 1 }
-    }),
-    0,
-    '0 when no end times'
-  );
-
-  assert.equal(
-    mediaDuration({
-      audioTimingInfo: { end: 1 },
-      videoTimingInfo: { end: 1 }
-    }),
-    0,
-    '0 when no start times'
-  );
+  assert.equal(mediaDuration({}, {}), 0, '0 when no timing info');
+  assert.equal(mediaDuration({ start: 1 }, { start: 1 }), 0, '0 when no end times');
+  assert.equal(mediaDuration({ end: 1 }, { end: 1 }), 0, '0 when no start times');
 });
 
 QUnit.test('reports audio duration', function(assert) {
   assert.equal(
-    mediaDuration({
-      audioTimingInfo: { start: 1, end: 2 },
-      videoTimingInfo: {}
-    }),
+    mediaDuration({ start: 1, end: 2 }, {}),
     1,
     'audio duration when no video info'
   );
 
   assert.equal(
-    mediaDuration({
-      audioTimingInfo: { start: 1, end: 2 },
-      videoTimingInfo: { start: 1 }
-    }),
+    mediaDuration({ start: 1, end: 2 }, { start: 1 }),
     1,
     'audio duration when not enough video info'
   );
 
   assert.equal(
-    mediaDuration({
-      audioTimingInfo: { start: 1, end: 2 },
-      videoTimingInfo: { end: 3 }
-    }),
+    mediaDuration({ start: 1, end: 2 }, { end: 3 }),
     1,
     'audio duration when not enough video info'
   );
 
   assert.equal(
-    mediaDuration({
-      audioTimingInfo: { start: 1, end: 3 },
-      videoTimingInfo: { start: 1, end: 2 }
-    }),
+    mediaDuration({ start: 1, end: 3 }, { start: 1, end: 2 }),
     2,
     'audio duration when audio duration > video duration'
   );
@@ -541,37 +506,25 @@ QUnit.test('reports audio duration', function(assert) {
 
 QUnit.test('reports video duration', function(assert) {
   assert.equal(
-    mediaDuration({
-      audioTimingInfo: {},
-      videoTimingInfo: { start: 1, end: 2 }
-    }),
+    mediaDuration({}, { start: 1, end: 2 }),
     1,
     'video duration when no audio info'
   );
 
   assert.equal(
-    mediaDuration({
-      audioTimingInfo: { start: 1 },
-      videoTimingInfo: { start: 1, end: 2 }
-    }),
+    mediaDuration({ start: 1 }, { start: 1, end: 2 }),
     1,
     'video duration when not enough audio info'
   );
 
   assert.equal(
-    mediaDuration({
-      audioTimingInfo: { end: 3 },
-      videoTimingInfo: { start: 1, end: 2 }
-    }),
+    mediaDuration({ end: 3 }, { start: 1, end: 2 }),
     1,
     'video duration when not enough audio info'
   );
 
   assert.equal(
-    mediaDuration({
-      audioTimingInfo: { start: 1, end: 2 },
-      videoTimingInfo: { start: 1, end: 3 }
-    }),
+    mediaDuration({ start: 1, end: 2 }, { start: 1, end: 3 }),
     2,
     'video duration when video duration > audio duration'
   );
@@ -625,91 +578,90 @@ QUnit.module('getTroublesomeSegmentDurationMessage');
 
 QUnit.test('falsey when dash', function(assert) {
   assert.notOk(
-    getTroublesomeSegmentDurationMessage({
-      audioTimingInfo: { start: 0, end: 10 },
-      videoTimingInfo: { start: 0, end: 10 },
-      targetDuration: 4,
-      sourceType: 'dash',
-      segmentInfo: {
+    getTroublesomeSegmentDurationMessage(
+      {
+        audioTimingInfo: { start: 0, end: 10 },
+        videoTimingInfo: { start: 0, end: 10 },
         mediaIndex: 0,
         playlist: {
-          id: 'id'
-        },
-        duration: 10
-      }
-    }),
+          id: 'id',
+          targetDuration: 4
+        }
+      },
+      'dash'
+    ),
     'falsey when dash'
   );
 });
 
 QUnit.test('falsey when segment is within range', function(assert) {
   assert.notOk(
-    getTroublesomeSegmentDurationMessage({
-      audioTimingInfo: { start: 0, end: 10 },
-      videoTimingInfo: { start: 0, end: 10 },
-      targetDuration: 10,
-      sourceType: 'hls',
-      segmentInfo: {
+    getTroublesomeSegmentDurationMessage(
+      {
+        audioTimingInfo: { start: 0, end: 10 },
+        videoTimingInfo: { start: 0, end: 10 },
+        duration: 10,
         mediaIndex: 0,
         playlist: {
-          id: 'id'
-        },
-        duration: 10
-      }
-    }),
+          id: 'id',
+          targetDuration: 10
+        }
+      },
+      'hls'
+    ),
     'falsey when segment equal to target duration'
   );
 
   assert.notOk(
-    getTroublesomeSegmentDurationMessage({
-      audioTimingInfo: { start: 0, end: 10 },
-      videoTimingInfo: { start: 0, end: 5 },
-      targetDuration: 10,
-      sourceType: 'hls',
-      segmentInfo: {
+    getTroublesomeSegmentDurationMessage(
+      {
+        audioTimingInfo: { start: 0, end: 10 },
+        videoTimingInfo: { start: 0, end: 5 },
+        duration: 10,
         mediaIndex: 0,
         playlist: {
-          id: 'id'
-        },
-        duration: 10
-      }
-    }),
+          id: 'id',
+          targetDuration: 10
+        }
+      },
+      'hls'
+    ),
     'falsey when segment less than target duration'
   );
 
   assert.notOk(
-    getTroublesomeSegmentDurationMessage({
-      audioTimingInfo: { start: 0, end: 5 },
-      videoTimingInfo: { start: 0, end: 5 },
-      targetDuration: 10,
-      sourceType: 'hls',
-      segmentInfo: {
+    getTroublesomeSegmentDurationMessage(
+      {
+        audioTimingInfo: { start: 0, end: 5 },
+        videoTimingInfo: { start: 0, end: 5 },
         mediaIndex: 0,
+        duration: 5,
         playlist: {
-          id: 'id'
-        },
-        duration: 5
-      }
-    }),
+          id: 'id',
+          targetDuration: 10
+        }
+      },
+      'hls'
+    ),
     'falsey when segment less than target duration'
   );
 });
 
 QUnit.test('warn when segment is way too long', function(assert) {
   assert.deepEqual(
-    getTroublesomeSegmentDurationMessage({
-      audioTimingInfo: { start: 0, end: 10 },
-      videoTimingInfo: { start: 0, end: 10 },
-      targetDuration: 4,
-      sourceType: 'hls',
-      segmentInfo: {
+    getTroublesomeSegmentDurationMessage(
+      {
+        audioTimingInfo: { start: 0, end: 10 },
+        videoTimingInfo: { start: 0, end: 10 },
         mediaIndex: 0,
+        duration: 10,
         playlist: {
+          targetDuration: 4,
           id: 'id'
-        },
-        duration: 10
-      }
-    }),
+        }
+      },
+      'hls'
+    ),
     {
       severity: 'warn',
       message:
@@ -725,19 +677,19 @@ QUnit.test('warn when segment is way too long', function(assert) {
 
 QUnit.test('info segment is bit too long', function(assert) {
   assert.deepEqual(
-    getTroublesomeSegmentDurationMessage({
-      audioTimingInfo: { start: 0, end: 4.5 },
-      videoTimingInfo: { start: 0, end: 4.5 },
-      targetDuration: 4,
-      sourceType: 'hls',
-      segmentInfo: {
+    getTroublesomeSegmentDurationMessage(
+      {
+        audioTimingInfo: { start: 0, end: 4.5 },
+        videoTimingInfo: { start: 0, end: 4.5 },
         mediaIndex: 0,
+        duration: 4.5,
         playlist: {
-          id: 'id'
-        },
-        duration: 4.5
-      }
-    }),
+          id: 'id',
+          targetDuration: 4
+        }
+      },
+      'hls'
+    ),
     {
       severity: 'info',
       message:

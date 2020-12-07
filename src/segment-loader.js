@@ -309,7 +309,7 @@ export const shouldWaitForTimelineChange = ({
   return false;
 };
 
-export const mediaDuration = ({ audioTimingInfo, videoTimingInfo }) => {
+export const mediaDuration = (audioTimingInfo, videoTimingInfo) => {
   const audioDuration =
     audioTimingInfo &&
     typeof audioTimingInfo.start === 'number' &&
@@ -345,23 +345,17 @@ export const segmentTooLong = ({ segmentDuration, maxDuration }) => {
   return Math.round(segmentDuration) > maxDuration + TIME_FUDGE_FACTOR;
 };
 
-export const getTroublesomeSegmentDurationMessage = ({
-  audioTimingInfo,
-  videoTimingInfo,
-  targetDuration,
-  sourceType,
-  segmentInfo
-}) => {
+export const getTroublesomeSegmentDurationMessage = (segmentInfo, sourceType) => {
   // Right now we aren't following DASH's timing model exactly, so only perform
   // this check for HLS content.
   if (sourceType !== 'hls') {
     return null;
   }
 
-  const segmentDuration = mediaDuration({
-    audioTimingInfo,
-    videoTimingInfo
-  });
+  const segmentDuration = mediaDuration(
+    segmentInfo.audioTimingInfo,
+    segmentInfo.videoTimingInfo
+  );
 
   // Don't report if we lack information.
   //
@@ -370,6 +364,8 @@ export const getTroublesomeSegmentDurationMessage = ({
   if (!segmentDuration) {
     return null;
   }
+
+  const targetDuration = segmentInfo.playlist.targetDuration;
 
   const isSegmentWayTooLong = segmentTooLong({
     segmentDuration,
@@ -2667,13 +2663,8 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     this.logger_(segmentInfoString(segmentInfo));
 
-    const segmentDurationMessage = getTroublesomeSegmentDurationMessage({
-      audioTimingInfo: segmentInfo.audioTimingInfo,
-      videoTimingInfo: segmentInfo.videoTimingInfo,
-      targetDuration: segmentInfo.playlist.targetDuration,
-      sourceType: this.sourceType_,
-      segmentInfo
-    });
+    const segmentDurationMessage =
+      getTroublesomeSegmentDurationMessage(segmentInfo, this.sourceType_);
 
     if (segmentDurationMessage) {
       if (segmentDurationMessage.severity === 'warn') {
