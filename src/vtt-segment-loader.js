@@ -281,16 +281,17 @@ export default class VTTSegmentLoader extends SegmentLoader {
       return;
     }
 
+    const segmentInfo = this.pendingSegment_;
+
     // although the VTT segment loader bandwidth isn't really used, it's good to
     // maintain functionality between segment loaders
-    this.saveBandwidthRelatedStats_(simpleSegment.stats);
+    this.saveBandwidthRelatedStats_(segmentInfo.duration, simpleSegment.stats);
 
     this.state = 'APPENDING';
 
     // used for tests
     this.trigger('appending');
 
-    const segmentInfo = this.pendingSegment_;
     const segment = segmentInfo.segment;
 
     if (segment.map) {

@@ -3300,6 +3300,73 @@ QUnit.module('SegmentLoader', function(hooks) {
         );
       });
     });
+
+    QUnit.test('saves bandwidth when segment duration is >= min to record', function(assert) {
+      const stats = {
+        bytesReceived: 100,
+        bandwidth: 101,
+        roundTrip: 102
+      };
+
+      loader.bandwidth = 999;
+      // used for updating byte length
+      loader.pendingSegment_ = {};
+      loader.saveBandwidthRelatedStats_(0.04, stats);
+
+      assert.equal(loader.bandwidth, 101, 'saved bandwidth');
+    });
+
+    QUnit.test('does not save bandwidth when segment duration is < min to record', function(assert) {
+      const stats = {
+        bytesReceived: 100,
+        bandwidth: 101,
+        roundTrip: 102
+      };
+
+      loader.bandwidth = 999;
+      // used for updating byte length
+      loader.pendingSegment_ = {};
+      loader.saveBandwidthRelatedStats_(0.01, stats);
+
+      assert.equal(loader.bandwidth, 999, 'did not save bandwidth');
+    });
+
+    QUnit.test('saves throughput when segment duration is >= min to record', function(assert) {
+      const segmentInfo = {
+        duration: 0.04,
+        rate: 101,
+        endOfAllRequests: Date.now(),
+        byteLength: 100
+      };
+
+      loader.throughput = {
+        rate: 1000,
+        count: 1
+      };
+      loader.recordThroughput_(segmentInfo);
+
+      // easier to assert not equal than deal with mocking dates
+      assert.notEqual(loader.throughput.rate, 1000, 'saved throughput');
+      assert.equal(loader.throughput.count, 2, 'saved throughput');
+    });
+
+    QUnit.test('does not save throughput when segment duration is < min to record', function(assert) {
+      const segmentInfo = {
+        duration: 0.01,
+        rate: 101,
+        endOfAllRequests: Date.now(),
+        byteLength: 100
+      };
+
+      loader.throughput = {
+        rate: 1000,
+        count: 1
+      };
+      loader.recordThroughput_(segmentInfo);
+
+      assert.equal(loader.throughput.rate, 1000, 'did not save throughput');
+      assert.equal(loader.throughput.count, 1, 'did not save throughput');
+    });
   });
 });
 

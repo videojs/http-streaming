@@ -26,6 +26,10 @@ import shallowEqual from './util/shallow-equal.js';
 // in ms
 const CHECK_BUFFER_DELAY = 500;
 const finite = (num) => typeof num === 'number' && isFinite(num);
+// With most content hovering around 30fps, if a segment has a duration less than a half
+// frame at 30fps or one frame at 60fps, the bandwidth and throughput calculations will
+// not accurately reflect the rest of the content.
+const MIN_SEGMENT_DURATION_TO_SAVE_STATS = 1 / 60;
 
 export const illegalMediaSwitch = (loaderType, startingMedia, trackInfo) => {
   // Although these checks should most likely cover non 'main' types, for now it narrows
@@ -2210,14 +2214,20 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
   }
 
-  saveBandwidthRelatedStats_(stats) {
-    this.bandwidth = stats.bandwidth;
-    this.roundTrip = stats.roundTripTime;
-
+  saveBandwidthRelatedStats_(duration, stats) {
     // byteLength will be used for throughput, and should be based on bytes receieved,
     // which we only know at the end of the request and should reflect total bytes
     // downloaded rather than just bytes processed from components of the segment
     this.pendingSegment_.byteLength = stats.bytesReceived;
+
+    if (duration < MIN_SEGMENT_DURATION_TO_SAVE_STATS) {
+      this.logger_(`Ignoring segment's bandwidth because its duration of ${duration}` +
+        ` is less than the min to record ${MIN_SEGMENT_DURATION_TO_SAVE_STATS}`);
+      return;
+    }
+
+    this.bandwidth = stats.bandwidth;
+    this.roundTrip = stats.roundTripTime;
   }
 
   handleTimeout_() {
@@ -2289,11 +2299,11 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
+    const segmentInfo = this.pendingSegment_;
+
     // the response was a success so set any bandwidth stats the request
     // generated for ABR purposes
-    this.saveBandwidthRelatedStats_(simpleSegment.stats);
-
-    const segmentInfo = this.pendingSegment_;
+    this.saveBandwidthRelatedStats_(segmentInfo.duration, simpleSegment.stats);
 
     segmentInfo.endOfAllRequests = simpleSegment.endOfAllRequests;
 
@@ -2690,6 +2700,12 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @param {Object} segmentInfo the object returned by loadSegment
    */
   recordThroughput_(segmentInfo) {
+    if (segmentInfo.duration < MIN_SEGMENT_DURATION_TO_SAVE_STATS) {
+      this.logger_(`Ignoring segment's throughput because its duration of ${segmentInfo.duration}` +
+        ` is less than the min to record ${MIN_SEGMENT_DURATION_TO_SAVE_STATS}`);
+      return;
+    }
+
     const rate = this.throughput.rate;
     // Add one to the time to ensure that we don't accidentally attempt to divide
     // by zero in the case where the throughput is ridiculously high
