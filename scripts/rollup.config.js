@@ -52,8 +52,7 @@ const options = {
       worker: worker(),
       uglify: terser({
         output: {comments: 'some'},
-        compress: {passes: 2},
-        include: [/^.+\.min\.js$/]
+        compress: {passes: 2}
       }),
       replace: replace({
         "import {version as vhsVersion} from '../package.json';": `const vhsVersion = '${vhs.version}';`,
