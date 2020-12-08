@@ -19,6 +19,7 @@ jobs:
     needs: should-skip
     if: ${{ needs.should-skip.outputs.should-skip-job != 'true'}}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest]
         test-type: [unit, playback]
