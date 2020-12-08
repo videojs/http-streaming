@@ -79,7 +79,7 @@ if (process.env.CI_TEST_TYPE) {
   if (process.env.CI_TEST_TYPE === 'playback') {
     options.testInput = 'test/playback.test.js';
   } else {
-    options.testInput = ['!test/playback.test.js', 'test/**/*.test.js'];
+    options.testInput = {include: ['test/**/*.test.js'], exclude: ['test/playback.test.js']};
   }
 }
 const config = generate(options);
