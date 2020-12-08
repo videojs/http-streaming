@@ -39,6 +39,7 @@ jobs:
     steps:
     - name: checkout code
       uses: actions/checkout@v2
+
     - name: Cache dependencies
       uses: actions/cache@v2
       with:
@@ -78,11 +79,11 @@ jobs:
     - run: echo "::remove-matcher owner=tsc::"
 
     - name: npm install
-    - run: npm i --prefer-offline --no-audit
+      run: npm i --prefer-offline --no-audit
 
     # run chrome/firefox or browserstack in linux
-    - name: Run linux test
+    - name: run npm test
+      continue-on-error: ${{matrix.experimental}}
       uses: GabrielBB/xvfb-action@v1
       with:
         run: npm run test -- --browsers ${{matrix.browsers}}
-      continue-on-error: ${{matrix.experimental}}
