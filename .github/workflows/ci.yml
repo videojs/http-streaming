@@ -75,7 +75,6 @@ jobs:
     # run tests, playback tests can fail, without failing tests
     # aka contine-on-error
     - name: run npm test
-      continue-on-error: ${{matrix.test-type == 'playback'}}
       uses: GabrielBB/xvfb-action@v1
       with:
         run: npm run test
