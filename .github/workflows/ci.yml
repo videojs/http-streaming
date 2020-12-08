@@ -18,16 +18,17 @@ jobs:
   ci:
     needs: should-skip
     if: ${{ needs.should-skip.outputs.should-skip-job != 'true'}}
-    env:
-      BROWSER_STACK_USERNAME: ${{ secrets.BROWSER_STACK_USERNAME }}
-      BROWSER_STACK_ACCESS_KEY: ${{ secrets.BROWSER_STACK_ACCESS_KEY }}
-    runs-on: ${{ matrix.os }}
     strategy:
       # TODO: test IE 11, Legacy Edge, and New Edge on windows-latest
       #       test Safari on macos-latest
       matrix:
         os: [ubuntu-latest]
-
+        test-type: [playback, unit]
+    env:
+      BROWSER_STACK_USERNAME: ${{ secrets.BROWSER_STACK_USERNAME }}
+      BROWSER_STACK_ACCESS_KEY: ${{ secrets.BROWSER_STACK_ACCESS_KEY }}
+      CI_TEST_TYPE: ${{matrix.test-type}}
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
     - name: Cache dependencies
@@ -85,4 +86,3 @@ jobs:
       with:
         run: npm test
       if: ${{ startsWith(matrix.os, 'ubuntu') }}
-
