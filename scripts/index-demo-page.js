@@ -413,6 +413,11 @@
         urlButton.click();
       }
     });
+    stateEls.url.addEventListener('input', function(event) {
+      if (stateEls.type.value.length) {
+        stateEls.type.value = '';
+      }
+    });
     stateEls.type.addEventListener('keyup', function(event) {
       if (event.key === 'Enter') {
         urlButton.click();
