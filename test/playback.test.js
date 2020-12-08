@@ -380,11 +380,12 @@ if (!videojs.browser.IS_FIREFOX) {
     const done = assert.async();
     const player = this.player;
 
+    assert.timeout(1000);
     player.loop(true);
-    player.src({
+    /* player.src({
       src: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8',
       type: 'application/x-mpegURL'
-    });
+    });*/
     player.one('playing', function() {
       player.tech(true).vhs.mediaSource.addEventListener('sourceended', () => {
         player.tech(true).vhs.mediaSource.addEventListener('sourceopen', () => {
