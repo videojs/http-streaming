@@ -19,16 +19,12 @@ jobs:
     needs: should-skip
     if: ${{ needs.should-skip.outputs.should-skip-job != 'true'}}
     strategy:
-      # TODO: test IE 11, Legacy Edge, and New Edge on windows-latest
-      #       test Safari on macos-latest
       matrix:
-        browsers: ['Chrome,Firefox']
+        os: [ubuntu-latest]
         include:
-          - os: ubuntu-latest
-            test-type: playback
+          - test-type: playback
             experimental: true
-          - os: ubuntu-latest
-            test-type: unit
+          - test-type: unit
             experimental: false
 
     env:
@@ -86,4 +82,4 @@ jobs:
       continue-on-error: ${{matrix.experimental}}
       uses: GabrielBB/xvfb-action@v1
       with:
-        run: npm run test -- --browsers ${{matrix.browsers}}
+        run: npm run test
