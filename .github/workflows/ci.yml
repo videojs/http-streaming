@@ -21,12 +21,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        test-type: [unit]
-        experimental: [false]
-        include:
-          - os: ubuntu-latest
-            test-type: playback
-            experimental: true
+        test-type: [unit, playback]
     env:
       BROWSER_STACK_USERNAME: ${{secrets.BROWSER_STACK_USERNAME}}
       BROWSER_STACK_ACCESS_KEY: ${{secrets.BROWSER_STACK_ACCESS_KEY}}
@@ -77,8 +72,10 @@ jobs:
     - name: npm install
       run: npm i --prefer-offline --no-audit
 
+    # run tests, playback tests can fail, without failing tests
+    # aka contine-on-error
     - name: run npm test
-      continue-on-error: ${{matrix.experimental}}
+      continue-on-error: ${{matrix.test-type == 'playback'}}
       uses: GabrielBB/xvfb-action@v1
       with:
         run: npm run test
