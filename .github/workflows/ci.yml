@@ -21,12 +21,12 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
+        test-type: [unit]
+        experimental: [false]
         include:
-          - test-type: playback
+          - os: ubuntu-latest
+            test-type: playback
             experimental: true
-          - test-type: unit
-            experimental: false
-
     env:
       BROWSER_STACK_USERNAME: ${{secrets.BROWSER_STACK_USERNAME}}
       BROWSER_STACK_ACCESS_KEY: ${{secrets.BROWSER_STACK_ACCESS_KEY}}
@@ -77,7 +77,6 @@ jobs:
     - name: npm install
       run: npm i --prefer-offline --no-audit
 
-    # run chrome/firefox or browserstack in linux
     - name: run npm test
       continue-on-error: ${{matrix.experimental}}
       uses: GabrielBB/xvfb-action@v1
