@@ -8,12 +8,12 @@ jobs:
     runs-on: ubuntu-latest
     # Map a step output to a job output
     outputs:
-      should-skip-job: ${{ steps.skip-check.outputs.should_skip }}
+      should-skip-job: ${{steps.skip-check.outputs.should_skip}}
     steps:
       - id: skip-check
         uses: fkirc/skip-duplicate-actions@v2.1.0
         with:
-          github_token: ${{ github.token }}
+          github_token: ${{github.token}}
 
   ci:
     needs: should-skip
@@ -32,10 +32,10 @@ jobs:
             experimental: false
 
     env:
-      BROWSER_STACK_USERNAME: ${{ secrets.BROWSER_STACK_USERNAME }}
-      BROWSER_STACK_ACCESS_KEY: ${{ secrets.BROWSER_STACK_ACCESS_KEY }}
+      BROWSER_STACK_USERNAME: ${{secrets.BROWSER_STACK_USERNAME}}
+      BROWSER_STACK_ACCESS_KEY: ${{secrets.BROWSER_STACK_ACCESS_KEY}}
       CI_TEST_TYPE: ${{matrix.test-type}}
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{matrix.os}}
     steps:
     - name: checkout code
       uses: actions/checkout@v2
@@ -45,10 +45,10 @@ jobs:
         path: |
           ~/.npm
           **/node_modules
-        key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+        key: ${{runner.os}}-npm-${{hashFiles('**/package-lock.json')}}
         restore-keys: |
-          ${{ runner.os }}-npm-
-          ${{ runner.os }}-
+          ${{runner.os}}-npm-
+          ${{runner.os}}-
 
     - name: read node version from .nvmrc
       run: echo ::set-output name=NVMRC::$(cat .nvmrc)
@@ -57,15 +57,15 @@ jobs:
 
     - name: update apt cache on linux w/o browserstack
       run: sudo apt-get update
-      if: ${{ startsWith(matrix.os, 'ubuntu') && !env.BROWSER_STACK_USERNAME }}
+      if: ${{startsWith(matrix.os, 'ubuntu') && !env.BROWSER_STACK_USERNAME}}
 
     - name: install ffmpeg/pulseaudio for firefox on linux w/o browserstack
       run: sudo apt-get install ffmpeg pulseaudio
-      if: ${{ startsWith(matrix.os, 'ubuntu') && !env.BROWSER_STACK_USERNAME }}
+      if: ${{startsWith(matrix.os, 'ubuntu') && !env.BROWSER_STACK_USERNAME}}
 
     - name: start pulseaudio for firefox on linux w/o browserstack
       run: pulseaudio -D
-      if: ${{ startsWith(matrix.os, 'ubuntu') && !env.BROWSER_STACK_USERNAME }}
+      if: ${{startsWith(matrix.os, 'ubuntu') && !env.BROWSER_STACK_USERNAME}}
 
     - name: setup node
       uses: actions/setup-node@v1
@@ -85,3 +85,4 @@ jobs:
       uses: GabrielBB/xvfb-action@v1
       with:
         run: npm run test -- --browsers ${{matrix.browsers}}
+      continue-on-error: ${{matrix.experimental}}
