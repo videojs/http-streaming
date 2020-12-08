@@ -1,5 +1,5 @@
 const generate = require('videojs-generate-rollup-config');
-const worker = require('@gkatsev/rollup-plugin-bundle-worker');
+const worker = require('rollup-plugin-worker-factory');
 const {terser} = require('rollup-plugin-terser');
 const createTestData = require('./create-test-data.js');
 const replace = require('@rollup/plugin-replace');
@@ -21,14 +21,15 @@ const options = {
         'm3u8-parser',
         'mpd-parser',
         'mux.js',
-        '@videojs/vhs-utils'
+        '@videojs/vhs-utils',
+        'rollup-plugin-worker-factory'
       ])
     });
   },
   plugins(defaults) {
-    defaults.module.splice(2, 0, 'worker');
-    defaults.browser.splice(2, 0, 'worker');
-    defaults.test.splice(3, 0, 'worker');
+    defaults.module.splice(0, 0, 'worker');
+    defaults.browser.splice(0, 0, 'worker');
+    defaults.test.splice(1, 0, 'worker');
 
     defaults.test.splice(0, 0, 'createTestData');
 
@@ -41,20 +42,27 @@ const options = {
     return defaults;
   },
   primedPlugins(defaults) {
-    return Object.assign(defaults, {
+    defaults = Object.assign(defaults, {
       replace: replace({
         // single quote replace
         "require('@videojs/vhs-utils/es": "require('@videojs/vhs-utils/cjs",
         // double quote replace
         'require("@videojs/vhs-utils/es': 'require("@videojs/vhs-utils/cjs'
       }),
-      worker: worker(),
       uglify: terser({
         output: {comments: 'some'},
         compress: {passes: 2}
       }),
       createTestData: createTestData()
     });
+
+    defaults.worker = worker({plugins: [
+      defaults.resolve,
+      defaults.json,
+      defaults.commonjs
+    ]});
+
+    return defaults;
   },
   babel(defaults) {
     const presetEnvSettings = defaults.presets[0][1];
@@ -78,24 +86,4 @@ const config = generate(options);
 // Add additonal builds/customization here!
 
 // export the builds to rollup
-export default [
-  config.makeBuild('browser', {
-    input: 'src/decrypter-worker.js',
-    output: {
-      format: 'iife',
-      name: 'decrypterWorker',
-      file: 'src/decrypter-worker.worker.js'
-    },
-    external: []
-  }),
-
-  config.makeBuild('browser', {
-    input: 'src/transmuxer-worker.js',
-    output: {
-      format: 'iife',
-      name: 'transmuxerWorker',
-      file: 'src/transmuxer-worker.worker.js'
-    },
-    external: []
-  })
-].concat(Object.values(config.builds));
+export default Object.values(config.builds);
