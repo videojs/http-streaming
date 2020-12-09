@@ -17,7 +17,7 @@ jobs:
 
   ci:
     needs: should-skip
-    if: ${{ needs.should-skip.outputs.should-skip-job != 'true'}}
+    if: ${{needs.should-skip.outputs.should-skip-job != 'true'}}
     strategy:
       fail-fast: false
       matrix:
@@ -63,7 +63,7 @@ jobs:
     - name: setup node
       uses: actions/setup-node@v1
       with:
-        node-version: '${{ steps.nvm.outputs.NVMRC }}'
+        node-version: '${{steps.nvm.outputs.NVMRC}}'
 
     # turn off the default setup-node problem watchers...
     - run: echo "::remove-matcher owner=eslint-compact::"
