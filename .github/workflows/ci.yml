@@ -73,8 +73,6 @@ jobs:
     - name: npm install
       run: npm i --prefer-offline --no-audit
 
-    # run tests, playback tests can fail, without failing tests
-    # aka contine-on-error
     - name: run npm test
       uses: GabrielBB/xvfb-action@v1
       with:
