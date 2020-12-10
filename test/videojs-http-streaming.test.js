@@ -44,6 +44,7 @@ import {
 import window from 'global/window';
 // we need this so the plugin registers itself
 import 'videojs-contrib-quality-levels';
+import 'videojs-contrib-eme';
 
 import {version as vhsVersion} from '../package.json';
 import {version as muxVersion} from 'mux.js/package.json';

@@ -52,8 +52,7 @@ const options = {
       worker: worker(),
       uglify: terser({
         output: {comments: 'some'},
-        compress: {passes: 2},
-        include: [/^.+\.min\.js$/]
+        compress: {passes: 2}
       }),
       replace: replace({
         "import {version as vhsVersion} from '../package.json';": `const vhsVersion = '${vhs.version}';`,
@@ -75,6 +74,14 @@ const options = {
     return defaults;
   }
 };
+
+if (process.env.CI_TEST_TYPE) {
+  if (process.env.CI_TEST_TYPE === 'playback') {
+    options.testInput = 'test/playback.test.js';
+  } else {
+    options.testInput = {include: ['test/**/*.test.js'], exclude: ['test/playback.test.js']};
+  }
+}
 const config = generate(options);
 
 // Add additonal builds/customization here!
