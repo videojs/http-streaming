@@ -311,19 +311,19 @@
     "features": []
   },
   {
-    "name": "(Not Working) sidx v1 dash",
+    "name": "sidx v1 dash",
     "uri": "https://d2zihajmogu5jn.cloudfront.net/sidx-v1-dash/Dog.mpd",
     "mimetype": "application/dash+xml",
     "features": []
   },
   {
-    "name": "(Not Working) fmp4 x264/flac no manifest codecs",
+    "name": "fmp4 x264/flac no manifest codecs",
     "uri": "https://d2zihajmogu5jn.cloudfront.net/fmp4-flac-no-manifest-codecs/master.m3u8",
     "mimetype": "application/x-mpegurl",
     "features": []
   },
   {
-    "name": "(Not Working) fmp4 x264/opus no manifest codecs",
+    "name": "fmp4 x264/opus no manifest codecs",
     "uri": "https://d2zihajmogu5jn.cloudfront.net/fmp4-opus-no-manifest-codecs/master.m3u8",
     "mimetype": "application/x-mpegurl",
     "features": []
@@ -336,7 +336,7 @@
   },
   {
     "name": "(Not Working) ts one valid codec among many invalid",
-    "uri": "https://d2zihajmogu5jn.cloudfront.net/ts-one-valid-many-invalid/master.m3u8",
+    "uri": "https://d2zihajmogu5jn.cloudfront.net/ts-one-valid-many-invalid-codecs/master.m3u8",
     "mimetype": "application/x-mpegurl",
     "features": []
   }
