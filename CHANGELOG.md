@@ -1,3 +1,14 @@
+<a name="2.3.2"></a>
+## [2.3.2](https://github.com/videojs/http-streaming/compare/v2.3.1...v2.3.2) (2020-12-16)
+
+### Bug Fixes
+
+* programmatically create Config getters/setters ([8a1dc4f](https://github.com/videojs/http-streaming/commit/8a1dc4f))
+
+### Tests
+
+* fix tests on firefox 83 ([#1004](https://github.com/videojs/http-streaming/issues/1004)) ([12b0a12](https://github.com/videojs/http-streaming/commit/12b0a12))
+
 <a name="2.3.1"></a>
 ## [2.3.1](https://github.com/videojs/http-streaming/compare/v2.3.0...v2.3.1) (2020-11-19)
 
