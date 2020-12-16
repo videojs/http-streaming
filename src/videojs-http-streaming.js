@@ -60,17 +60,7 @@ const Vhs = {
 };
 
 // Define getter/setters for config properties
-[
-  'GOAL_BUFFER_LENGTH',
-  'MAX_GOAL_BUFFER_LENGTH',
-  'BACK_BUFFER_LENGTH',
-  'GOAL_BUFFER_LENGTH_RATE',
-  'BUFFER_LOW_WATER_LINE',
-  'MAX_BUFFER_LOW_WATER_LINE',
-  'EXPERIMENTAL_MAX_BUFFER_LOW_WATER_LINE',
-  'BUFFER_LOW_WATER_LINE_RATE',
-  'BANDWIDTH_VARIANCE'
-].forEach((prop) => {
+Object.keys(Config).forEach((prop) => {
   Object.defineProperty(Vhs, prop, {
     get() {
       videojs.log.warn(`using Vhs.${prop} is UNSAFE be sure you know what you are doing`);
