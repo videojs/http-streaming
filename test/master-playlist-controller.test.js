@@ -5787,3 +5787,51 @@ QUnit.test('dont exclude only playlist unless it was excluded forever', function
   this.env.log.warn.callCount = 0;
   this.env.log.error.callCount = 0;
 });
+
+QUnit.test('switch playlists if current playlist gets excluded and re-include if final rendition', function(assert) {
+  this.requests.length = 0;
+  this.player.dispose();
+  this.player = createPlayer();
+  this.player.src({
+    src: 'manifest/double.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  this.masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  const mpc = this.masterPlaylistController;
+  const mpl = mpc.masterPlaylistLoader_;
+  const playlist = mpl.master.playlists[0];
+  let playlist2 = mpl.master.playlists[1];
+  let shouldDelay = false;
+
+  mpl.load = (delay) => (shouldDelay = delay);
+
+  mpc.blacklistCurrentPlaylist();
+
+  assert.ok('excludeUntil' in playlist, 'playlist was excluded since there is another playlist');
+  assert.notOk(shouldDelay, 'we do not delay retry since it is not a final rendition');
+  assert.equal(this.env.log.warn.callCount, 1, 'logged a warning');
+
+  // ignore segment request
+  this.requests.shift();
+  // media1
+  this.standardXHRResponse(this.requests.shift());
+  playlist2 = mpl.master.playlists[1];
+
+  mpc.blacklistCurrentPlaylist();
+
+  assert.ok('excludeUntil' in playlist2, 'playlist2 was excluded');
+  assert.notOk('excludeUntil' in playlist, 'playlist was re-included');
+  assert.equal(this.env.log.warn.callCount, 3, 'logged another warning');
+  assert.ok(this.env.log.warn.calledWithMatch('exclusion'), 'we logged a warning that we reincluded playlists');
+
+  this.env.log.warn.callCount = 0;
+});
