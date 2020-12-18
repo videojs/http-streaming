@@ -251,6 +251,8 @@ export default class PlaylistLoader extends EventTarget {
       customTagMappers: this.customTagMappers
     });
 
+    playlist.lastRefresh = Date.now();
+
     setupMediaPlaylist({
       playlist,
       uri: url,
