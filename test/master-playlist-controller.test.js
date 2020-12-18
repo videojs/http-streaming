@@ -5835,3 +5835,46 @@ QUnit.test('switch playlists if current playlist gets excluded and re-include if
 
   this.env.log.warn.callCount = 0;
 });
+
+QUnit.test('should delay loading of new playlist if lastRefresh was less than half target duration', function(assert) {
+  // set time to be not 0
+  // this.clock.tick(100000);
+
+  this.requests.length = 0;
+  this.player.dispose();
+  this.player = createPlayer();
+  this.player.src({
+    src: 'manifest/double.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  this.masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  const mpc = this.masterPlaylistController;
+  const mpl = mpc.masterPlaylistLoader_;
+  const oldMplMedia = mpl.media;
+  const playlist = mpl.master.playlists[0];
+  const playlist2 = mpl.master.playlists[1];
+  let shouldDelay = false;
+
+  mpl.media = (nextPlaylist, delay) => {
+    shouldDelay = delay;
+    return oldMplMedia.call(mpl, nextPlaylist, delay);
+  };
+  playlist2.lastRefresh = Date.now() - 1000;
+
+  mpc.blacklistCurrentPlaylist();
+
+  assert.ok('excludeUntil' in playlist, 'playlist was excluded since there is another playlist');
+  assert.ok(shouldDelay, 'we delay retry since second rendition was loaded less than half target duration ago');
+  assert.equal(this.env.log.warn.callCount, 1, 'logged a warning');
+
+  this.env.log.warn.callCount = 0;
+});
