@@ -312,11 +312,11 @@ export default class PlaylistLoader extends EventTarget {
     *
     * @param {Object=} playlist the parsed media playlist
     * object to switch to
-    * @param {boolean=} is this the last available playlist
+    * @param {boolean=} shouldDelay whether we should delay the request by half target duration
     *
     * @return {Playlist} the current loaded media
     */
-  media(playlist, isFinalRendition) {
+  media(playlist, shouldDelay) {
     // getter
     if (!playlist) {
       return this.media_;
@@ -338,7 +338,7 @@ export default class PlaylistLoader extends EventTarget {
 
     window.clearTimeout(this.finalRenditionTimeout);
 
-    if (isFinalRendition) {
+    if (shouldDelay) {
       const delay = (playlist.targetDuration / 2) * 1000 || 5 * 1000;
 
       this.finalRenditionTimeout =
@@ -466,12 +466,12 @@ export default class PlaylistLoader extends EventTarget {
   /**
    * start loading of the playlist
    */
-  load(isFinalRendition) {
+  load(shouldDelay) {
     window.clearTimeout(this.mediaUpdateTimeout);
 
     const media = this.media();
 
-    if (isFinalRendition) {
+    if (shouldDelay) {
       const delay = media ? (media.targetDuration / 2) * 1000 : 5 * 1000;
 
       this.mediaUpdateTimeout = window.setTimeout(() => this.load(), delay);
