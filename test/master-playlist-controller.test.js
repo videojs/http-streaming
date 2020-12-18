@@ -5718,3 +5718,72 @@ QUnit.test('false without nextPlaylist', function(assert) {
 
   this.env.log.warn.callCount = 0;
 });
+
+QUnit.module('MasterPlaylistController blacklistCurrentPlaylist', sharedHooks);
+
+QUnit.test('dont exclude only playlist unless it was excluded forever', function(assert) {
+  this.requests.length = 0;
+  this.player.dispose();
+  this.player = createPlayer();
+  this.player.src({
+    src: 'manifest/single.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  this.masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  let mpc = this.masterPlaylistController;
+  let mpl = mpc.masterPlaylistLoader_;
+  let playlist = mpl.master.playlists[0];
+  let shouldDelay = false;
+
+  mpl.load = (delay) => (shouldDelay = delay);
+
+  mpc.blacklistCurrentPlaylist();
+
+  assert.notOk('excludeUntil' in playlist, 'playlist was not excluded since excludeDuration was finite');
+  assert.ok(shouldDelay, 'we delay retry since it is a final rendition');
+  assert.equal(this.env.log.warn.callCount, 1, 'logged a warning');
+
+  this.requests.length = 0;
+  // reload source to exclude forever
+  this.player.src({
+    src: 'manifest/single.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  this.masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  mpc = this.masterPlaylistController;
+  mpl = mpc.masterPlaylistLoader_;
+  playlist = mpl.master.playlists[0];
+  shouldDelay = false;
+
+  mpl.load = (delay) => (shouldDelay = delay);
+  mpc.on('error', () => {
+    assert.ok(true, 'we triggered a playback error');
+  });
+
+  // exclude forever
+  mpc.blacklistCurrentPlaylist({}, Infinity);
+
+  assert.ok('excludeUntil' in playlist, 'playlist was excluded');
+  assert.equal(this.env.log.error.callCount, 1, 'logged an error');
+
+  this.env.log.warn.callCount = 0;
+  this.env.log.error.callCount = 0;
+});
