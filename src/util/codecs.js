@@ -55,6 +55,38 @@ export const isMuxed = (master, media) => {
   return false;
 };
 
+export const unwrapCodecList = function(codecList) {
+  const codecs = {};
+
+  codecList.forEach(({mediaType, type, details}) => {
+
+    // TODO: log a warning, something like:
+    // multiple ${mediaType} codecs found for playlist, leaving it to
+    // mux.js to probe content for codecs.
+    if (codecs.hasOwnProperty(mediaType)) {
+      codecs[mediaType] = null;
+      return;
+    }
+    codecs[mediaType] = translateLegacyCodec(`${type}${details}`);
+  });
+
+  return codecs;
+};
+
+export const codecCount = function(codecObj) {
+  let count = 0;
+
+  if (codecObj.audio) {
+    count++;
+  }
+
+  if (codecObj.video) {
+    count++;
+  }
+
+  return count;
+};
+
 /**
  * Calculates the codec strings for a working configuration of
  * SourceBuffers to play variant streams in a master playlist. If
@@ -69,7 +101,7 @@ export const isMuxed = (master, media) => {
  */
 export const codecsForPlaylist = function(master, media) {
   const mediaAttributes = media.attributes || {};
-  const codecInfo = getCodecs(media) || {};
+  const codecInfo = unwrapCodecList(getCodecs(media) || []);
 
   // HLS with multiple-audio tracks must always get an audio codec.
   // Put another way, there is no way to have a video-only multiple-audio HLS!
@@ -78,32 +110,13 @@ export const codecsForPlaylist = function(master, media) {
       // It is possible for codecs to be specified on the audio media group playlist but
       // not on the rendition playlist. This is mostly the case for DASH, where audio and
       // video are always separate (and separately specified).
-      const defaultCodecs = codecsFromDefault(master, mediaAttributes.AUDIO);
+      const defaultCodecs = unwrapCodecList(codecsFromDefault(master, mediaAttributes.AUDIO) || []);
 
-      if (defaultCodecs) {
+      if (defaultCodecs.audio) {
         codecInfo.audio = defaultCodecs.audio;
       }
-
     }
   }
 
-  const codecs = {};
-
-  if (codecInfo.video) {
-    codecs.video = translateLegacyCodec(`${codecInfo.video.type}${codecInfo.video.details}`);
-  }
-
-  if (codecInfo.audio) {
-    codecs.audio = translateLegacyCodec(`${codecInfo.audio.type}${codecInfo.audio.details}`);
-  }
-
-  if (codecInfo.text) {
-    codecs.text = codecInfo.text.type;
-  }
-
-  if (codecInfo.unknown) {
-    codecs.unknown = codecInfo.unknown;
-  }
-
-  return codecs;
+  return codecInfo;
 };

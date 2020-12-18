@@ -1275,6 +1275,7 @@ QUnit.test('blacklists switching from audio-only playlists to video+audio', func
   openMediaSource(this.player, this.clock);
 
   this.player.tech_.vhs.bandwidth = 1;
+  const mpc = this.masterPlaylistController;
 
   // master
   this.requests.shift().respond(
@@ -1282,14 +1283,13 @@ QUnit.test('blacklists switching from audio-only playlists to video+audio', func
     '#EXTM3U\n' +
                                 '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="mp4a.40.2"\n' +
                                 'media.m3u8\n' +
-                                '#EXT-X-STREAM-INF:BANDWIDTH=10,RESOLUTION=1x1\n' +
+                                '#EXT-X-STREAM-INF:BANDWIDTH=10,RESOLUTION=1x1,CODECS="avc1.4d400d,mp4a.40.2"\n' +
                                 'media1.m3u8\n'
   );
 
   // media1
   this.standardXHRResponse(this.requests.shift());
 
-  const mpc = this.masterPlaylistController;
   let debugLogs = [];
 
   mpc.logger_ = (...logs) => {
