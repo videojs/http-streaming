@@ -21,7 +21,7 @@ import {
   muxerSupportsCodec,
   DEFAULT_AUDIO_CODEC,
   DEFAULT_VIDEO_CODEC
-} from '@videojs/vhs-utils/dist/codecs.js';
+} from '@videojs/vhs-utils/es/codecs.js';
 import { codecsForPlaylist } from './util/codecs.js';
 import { createMediaTypes, setupMediaGroups } from './media-groups';
 import logger from './util/logger';

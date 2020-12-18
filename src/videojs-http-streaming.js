@@ -9,7 +9,7 @@ import window from 'global/window';
 import PlaylistLoader from './playlist-loader';
 import Playlist from './playlist';
 import xhrFactory from './xhr';
-import { simpleTypeFromSourceType } from '@videojs/vhs-utils/dist/media-types.js';
+import { simpleTypeFromSourceType } from '@videojs/vhs-utils/es/media-types.js';
 import * as utils from './bin-utils';
 import {
   getProgramTime,
@@ -30,7 +30,7 @@ import {
   comparePlaylistBandwidth,
   comparePlaylistResolution
 } from './playlist-selectors.js';
-import {isAudioCodec, isVideoCodec, browserSupportsCodec} from '@videojs/vhs-utils/dist/codecs.js';
+import {isAudioCodec, isVideoCodec, browserSupportsCodec} from '@videojs/vhs-utils/es/codecs.js';
 import logger from './util/logger';
 import {SAFE_TIME_DELTA} from './ranges';
 

@@ -7,7 +7,7 @@ import {
   translateLegacyCodec,
   parseCodecs,
   codecsFromDefault
-} from '@videojs/vhs-utils/dist/codecs.js';
+} from '@videojs/vhs-utils/es/codecs.js';
 
 /**
  * Returns a set of codec strings parsed from the playlist or the default
@@ -107,4 +107,3 @@ export const codecsForPlaylist = function(master, media) {
 
   return codecs;
 };
-

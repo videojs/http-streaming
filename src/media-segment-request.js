@@ -8,7 +8,7 @@ import { segmentXhrHeaders } from './xhr';
 import {
   detectContainerForBytes,
   isLikelyFmp4MediaSegment
-} from '@videojs/vhs-utils/dist/containers';
+} from '@videojs/vhs-utils/es/containers';
 
 export const REQUEST_ERRORS = {
   FAILURE: 2,

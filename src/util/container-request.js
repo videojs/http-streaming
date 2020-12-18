@@ -1,6 +1,6 @@
-import {getId3Offset} from '@videojs/vhs-utils/dist/id3-helpers';
-import {detectContainerForBytes} from '@videojs/vhs-utils/dist/containers';
-import {stringToBytes, concatTypedArrays} from '@videojs/vhs-utils/dist/byte-helpers';
+import {getId3Offset} from '@videojs/vhs-utils/es/id3-helpers';
+import {detectContainerForBytes} from '@videojs/vhs-utils/es/containers';
+import {stringToBytes, concatTypedArrays} from '@videojs/vhs-utils/es/byte-helpers';
 import {callbackWrapper} from '../xhr';
 
 // calls back if the request is readyState DONE

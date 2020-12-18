@@ -17,7 +17,7 @@ import {
   addPropertiesToMaster
 } from './manifest';
 import containerRequest from './util/container-request.js';
-import {toUint8} from '@videojs/vhs-utils/dist/byte-helpers';
+import {toUint8} from '@videojs/vhs-utils/es/byte-helpers';
 
 const { EventTarget, mergeOptions } = videojs;
 

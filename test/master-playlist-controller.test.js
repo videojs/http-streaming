@@ -14,7 +14,7 @@ import {
 import {
   DEFAULT_AUDIO_CODEC,
   DEFAULT_VIDEO_CODEC
-} from '@videojs/vhs-utils/dist/codecs.js';
+} from '@videojs/vhs-utils/es/codecs.js';
 import manifests from 'create-test-data!manifests';
 import {
   MasterPlaylistController
