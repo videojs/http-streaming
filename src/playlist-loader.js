@@ -416,6 +416,8 @@ export default class PlaylistLoader extends EventTarget {
         return;
       }
 
+      playlist.lastRefresh = Date.now();
+
       playlist.resolvedUri = resolveManifestRedirect(this.handleManifestRedirects, playlist.resolvedUri, req);
 
       if (error) {
