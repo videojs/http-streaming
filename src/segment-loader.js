@@ -2266,10 +2266,15 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     const previousSegment = segmentInfo.playlist.segments[segmentInfo.mediaIndex];
 
-    if (previousSegment &&
-        previousSegment.end &&
-        previousSegment.timeline === segment.timeline) {
-      simpleSegment.baseStartTime = previousSegment.end + segmentInfo.timestampOffset;
+    if (previousSegment && previousSegment.timeline === segment.timeline) {
+      // Since we're keeping original timestamps, use the exact values from the transmuxer
+      if (previousSegment.videoTimingInfo) {
+        simpleSegment.baseStartTime =
+          previousSegment.videoTimingInfo.transmuxedPresentationEnd;
+      } else if (previousSegment.audioTimingInfo) {
+        simpleSegment.baseStartTime =
+          previousSegment.audioTimingInfo.transmuxedPresentationEnd;
+      }
     }
 
     if (segment.key) {
