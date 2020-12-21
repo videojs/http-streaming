@@ -5835,7 +5835,7 @@ QUnit.test('switch playlists if current playlist gets excluded and re-include if
   assert.ok('excludeUntil' in playlist2, 'playlist2 was excluded');
   assert.notOk('excludeUntil' in playlist, 'playlist was re-included');
   assert.equal(this.env.log.warn.callCount, 3, 'logged another warning');
-  assert.ok(this.env.log.warn.calledWithMatch('exclusion'), 'we logged a warning that we reincluded playlists');
+  assert.ok(this.env.log.warn.calledWith('Removing other playlists from the exclusion list because the last rendition is about to be excluded.'), 'we logged a warning that we reincluded playlists');
 
   this.env.log.warn.callCount = 0;
 });
