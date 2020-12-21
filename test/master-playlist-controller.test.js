@@ -5773,7 +5773,10 @@ QUnit.test("don't exclude only playlist unless it was excluded forever", functio
   playlist = mpl.master.playlists[0];
   shouldDelay = false;
 
-  mpl.load = (delay) => (shouldDelay = delay);
+  mpl.load = (delay) => {
+    shouldDelay = delay;
+    assert.ok(false, 'load should not be called in this case');
+  };
   mpc.on('error', () => {
     assert.ok(true, 'we triggered a playback error');
   });
@@ -5782,6 +5785,7 @@ QUnit.test("don't exclude only playlist unless it was excluded forever", functio
   mpc.blacklistCurrentPlaylist({}, Infinity);
 
   assert.ok('excludeUntil' in playlist, 'playlist was excluded');
+  assert.notOk(shouldDelay, 'value was not changed');
   assert.equal(this.env.log.error.callCount, 1, 'logged an error');
 
   this.env.log.warn.callCount = 0;
