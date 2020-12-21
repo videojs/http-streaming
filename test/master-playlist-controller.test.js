@@ -5729,7 +5729,7 @@ QUnit.test("don't exclude only playlist unless it was excluded forever", functio
   this.player.dispose();
   this.player = createPlayer();
   this.player.src({
-    src: 'manifest/single.m3u8',
+    src: 'manifest/one-rendition.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -5758,7 +5758,7 @@ QUnit.test("don't exclude only playlist unless it was excluded forever", functio
   this.requests.length = 0;
   // reload source to exclude forever
   this.player.src({
-    src: 'manifest/single.m3u8',
+    src: 'manifest/one-rendition.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -5800,7 +5800,7 @@ QUnit.test('switch playlists if current playlist gets excluded and re-include if
   this.player.dispose();
   this.player = createPlayer();
   this.player.src({
-    src: 'manifest/double.m3u8',
+    src: 'manifest/two-renditions.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -5839,9 +5839,7 @@ QUnit.test('switch playlists if current playlist gets excluded and re-include if
   assert.notOk('excludeUntil' in playlist, 'playlist was re-included');
   assert.equal(this.env.log.warn.callCount, 3, 'logged another warning');
   assert.ok(
-    this.env.log.warn.calledWith(
-      'Removing other playlists from the exclusion list because the last rendition is about to be excluded.'
-    ),
+    this.env.log.warn.calledWith('Removing other playlists from the exclusion list because the last rendition is about to be excluded.'),
     'we logged a warning that we reincluded playlists'
   );
 
@@ -5853,7 +5851,7 @@ QUnit.test('should delay loading of new playlist if lastRequest was less than ha
   this.player.dispose();
   this.player = createPlayer();
   this.player.src({
-    src: 'manifest/double.m3u8',
+    src: 'manifest/two-renditions.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
