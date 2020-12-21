@@ -5837,9 +5837,6 @@ QUnit.test('switch playlists if current playlist gets excluded and re-include if
 });
 
 QUnit.test('should delay loading of new playlist if lastRefresh was less than half target duration', function(assert) {
-  // set time to be not 0
-  // this.clock.tick(100000);
-
   this.requests.length = 0;
   this.player.dispose();
   this.player = createPlayer();
