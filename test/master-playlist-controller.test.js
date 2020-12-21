@@ -5749,7 +5749,7 @@ QUnit.test("don't exclude only playlist unless it was excluded forever", functio
   mpc.blacklistCurrentPlaylist();
 
   assert.notOk('excludeUntil' in playlist, 'playlist was not excluded since excludeDuration was finite');
-  assert.ok(shouldDelay, 'we delay retry since it is a final rendition');
+  assert.ok(shouldDelay, 'we delay retry since it is the final rendition');
   assert.equal(this.env.log.warn.callCount, 1, 'logged a warning');
 
   this.requests.length = 0;
@@ -5817,7 +5817,7 @@ QUnit.test('switch playlists if current playlist gets excluded and re-include if
   mpc.blacklistCurrentPlaylist();
 
   assert.ok('excludeUntil' in playlist, 'playlist was excluded since there is another playlist');
-  assert.notOk(shouldDelay, 'we do not delay retry since it is not a final rendition');
+  assert.notOk(shouldDelay, 'we do not delay retry since it is not the final rendition');
   assert.equal(this.env.log.warn.callCount, 1, 'logged a warning');
 
   // ignore segment request
