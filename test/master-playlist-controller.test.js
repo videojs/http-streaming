@@ -5721,7 +5721,7 @@ QUnit.test('false without nextPlaylist', function(assert) {
 
 QUnit.module('MasterPlaylistController blacklistCurrentPlaylist', sharedHooks);
 
-QUnit.test('dont exclude only playlist unless it was excluded forever', function(assert) {
+QUnit.test("don't exclude only playlist unless it was excluded forever", function(assert) {
   this.requests.length = 0;
   this.player.dispose();
   this.player = createPlayer();
