@@ -1015,6 +1015,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
                        'Trying again since it is the only playlist.');
 
       this.tech_.trigger('retryplaylist');
+      // if this is a final rendition, we should delay
       return this.masterPlaylistLoader_.load(isFinalRendition);
     }
 
@@ -1086,7 +1087,12 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.delegateLoaders_('main', ['abort', 'pause']);
 
-    return this.masterPlaylistLoader_.media(nextPlaylist, isFinalRendition);
+    const delayDuration = (nextPlaylist.targetDuration / 2) * 1000 || 5 * 1000;
+    const shouldDelay = typeof nextPlaylist.lastRequest === 'number' &&
+      (Date.now() - nextPlaylist.lastRequest) <= delayDuration;
+
+    // delay if it's a final rendition or if the last refresh is sooner than half targetDuration
+    return this.masterPlaylistLoader_.media(nextPlaylist, isFinalRendition || shouldDelay);
   }
 
   /**
