@@ -5843,7 +5843,7 @@ QUnit.test('switch playlists if current playlist gets excluded and re-include if
   this.env.log.warn.callCount = 0;
 });
 
-QUnit.test('should delay loading of new playlist if lastRefresh was less than half target duration', function(assert) {
+QUnit.test('should delay loading of new playlist if lastRequest was less than half target duration', function(assert) {
   this.requests.length = 0;
   this.player.dispose();
   this.player = createPlayer();
@@ -5872,7 +5872,7 @@ QUnit.test('should delay loading of new playlist if lastRefresh was less than ha
     shouldDelay = delay;
     return oldMplMedia.call(mpl, nextPlaylist, delay);
   };
-  playlist2.lastRefresh = Date.now() - 1000;
+  playlist2.lastRequest = Date.now() - 1000;
 
   mpc.blacklistCurrentPlaylist();
 

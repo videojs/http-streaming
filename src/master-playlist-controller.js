@@ -1088,8 +1088,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.delegateLoaders_('main', ['abort', 'pause']);
 
     const delayDuration = (nextPlaylist.targetDuration / 2) * 1000 || 5 * 1000;
-    const shouldDelay = typeof nextPlaylist.lastRefresh === 'number' &&
-      (Date.now() - nextPlaylist.lastRefresh) <= delayDuration;
+    const shouldDelay = typeof nextPlaylist.lastRequest === 'number' &&
+      (Date.now() - nextPlaylist.lastRequest) <= delayDuration;
 
     // delay if it's a final rendition or if the last refresh is sooner than half targetDuration
     return this.masterPlaylistLoader_.media(nextPlaylist, isFinalRendition || shouldDelay);

@@ -251,7 +251,7 @@ export default class PlaylistLoader extends EventTarget {
       customTagMappers: this.customTagMappers
     });
 
-    playlist.lastRefresh = Date.now();
+    playlist.lastRequest = Date.now();
 
     setupMediaPlaylist({
       playlist,
@@ -416,7 +416,7 @@ export default class PlaylistLoader extends EventTarget {
         return;
       }
 
-      playlist.lastRefresh = Date.now();
+      playlist.lastRequest = Date.now();
 
       playlist.resolvedUri = resolveManifestRedirect(this.handleManifestRedirects, playlist.resolvedUri, req);
 
