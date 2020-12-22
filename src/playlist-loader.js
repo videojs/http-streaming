@@ -226,6 +226,14 @@ export default class PlaylistLoader extends EventTarget {
     };
 
     this.trigger('error');
+
+    // refresh live playlists after a target duration passes
+    if (!this.media().endList) {
+      window.clearTimeout(this.mediaUpdateTimeout);
+      this.mediaUpdateTimeout = window.setTimeout(() => {
+        this.trigger('mediaupdatetimeout');
+      }, refreshDelay(this.media(), false));
+    }
   }
 
   /**
