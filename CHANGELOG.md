@@ -1,3 +1,18 @@
+<a name="2.4.1"></a>
+## [2.4.1](https://github.com/videojs/http-streaming/compare/v2.4.0...v2.4.1) (2020-12-22)
+
+### Bug Fixes
+
+* if a playlist was last requested less than half target duration, delay retry ([#1038](https://github.com/videojs/http-streaming/issues/1038)) ([2e237ee](https://github.com/videojs/http-streaming/commit/2e237ee))
+* programmatically create Config getters/setters ([8454da5](https://github.com/videojs/http-streaming/commit/8454da5))
+
+### Chores
+
+* **demo:** clear type on manual source change ([#1030](https://github.com/videojs/http-streaming/issues/1030)) ([d39276d](https://github.com/videojs/http-streaming/commit/d39276d))
+* mark many more sources as working ([#1035](https://github.com/videojs/http-streaming/issues/1035)) ([904153f](https://github.com/videojs/http-streaming/commit/904153f))
+* move playback tests to a separate ci run ([#1028](https://github.com/videojs/http-streaming/issues/1028)) ([f1d9f6e](https://github.com/videojs/http-streaming/commit/f1d9f6e))
+* remove replace and update packages ([#1031](https://github.com/videojs/http-streaming/issues/1031)) ([0976212](https://github.com/videojs/http-streaming/commit/0976212))
+
 <a name="2.4.0"></a>
 # [2.4.0](https://github.com/videojs/http-streaming/compare/v2.3.0...v2.4.0) (2020-12-07)
 
