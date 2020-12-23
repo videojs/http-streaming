@@ -7,6 +7,10 @@ import { ONE_SECOND_IN_TS } from 'mux.js/lib/utils/clock';
  *
  * @private
  * @param {Uint8Array} bytes - segment bytes
+ * @param {number} baseStartTime
+ *        Relative reference timestamp used when adjusting frame timestamps for rollover.
+ *        This value should be in seconds, as it's converted to a 90khz clock within the
+ *        function body.
  * @return {Object} The start time of the current segment in "media time" as well as
  *                  whether it contains video and/or audio
  */

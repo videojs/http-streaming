@@ -2264,10 +2264,17 @@ export default class SegmentLoader extends videojs.EventTarget {
       gopsToAlignWith: segmentInfo.gopsToAlignWith
     };
 
-    const previousSegment = segmentInfo.playlist.segments[segmentInfo.mediaIndex];
+    const previousSegment = segmentInfo.playlist.segments[segmentInfo.mediaIndex - 1];
 
     if (previousSegment && previousSegment.timeline === segment.timeline) {
-      // Since we're keeping original timestamps, use the exact values from the transmuxer
+      // The baseStartTime of a segment is used when probing the TS segment to retrieve
+      // timing information, specifically, to account for rollover. Since the probe only
+      // looks at the media's times (not in relation to the player's timeline), the
+      // baseStartTime should reflect the media time as well. transmuxedPresentationEnd
+      // represents the end time of a segment, in seconds of media time, so should be used
+      // here. The previous segment is used since the end of the previous segment should
+      // represent the beginning of the current segment, so long as they are on the
+      // same timeline.
       if (previousSegment.videoTimingInfo) {
         simpleSegment.baseStartTime =
           previousSegment.videoTimingInfo.transmuxedPresentationEnd;

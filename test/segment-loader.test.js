@@ -28,6 +28,8 @@ import {
   oneSecond as oneSecondSegment,
   audio as audioSegment,
   video as videoSegment,
+  videoLargeOffset as videoLargeOffsetSegment,
+  videoLargeOffset2 as videoLargeOffset2Segment,
   mp4Video as mp4VideoSegment,
   mp4VideoInit as mp4VideoInitSegment,
   mp4Audio as mp4AudioSegment,
@@ -3602,6 +3604,54 @@ QUnit.module('SegmentLoader', function(hooks) {
 
       assert.equal(loader.throughput.rate, 1000, 'did not save throughput');
       assert.equal(loader.throughput.count, 1, 'did not save throughput');
+    });
+
+    QUnit.test('sets correct start time for large PTS value', function(assert) {
+      const playlist = playlistWithDuration(40);
+
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {isVideoOnly: true}).then(() => {
+        loader.playlist(playlist);
+        loader.load();
+
+        this.clock.tick(1);
+        standardXHRResponse(this.requests.shift(), videoLargeOffsetSegment());
+
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        this.clock.tick(1);
+
+        const segment = playlist.segments[0];
+
+        assert.equal(segment.start, 0, 'set start to 0');
+        assert.equal(
+          segment.videoTimingInfo.transmuxedPresentationEnd,
+          // the PTS + segment duration of 6006 (clock cycles), divided by 90khz clock
+          // to return to seconds
+          (4295016000 + 6006) / 90000,
+          'set proper transmuxed presentation end'
+        );
+
+        standardXHRResponse(this.requests.shift(), videoLargeOffset2Segment());
+
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        const segment = playlist.segments[1];
+
+        assert.equal(segment.start.toFixed(6), '0.066733', 'set start to 0.066733');
+        assert.equal(
+          segment.videoTimingInfo.transmuxedPresentationEnd,
+          // the PTS + segment duration of 6006 (clock cycles), times 2 because it's the
+          // second segment, divided by 90khz clock
+          (4295016000 + (6006 * 2)) / 90000,
+          'set proper transmuxed presentation end'
+        );
+      });
     });
   });
 });

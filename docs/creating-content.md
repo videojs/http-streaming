@@ -33,6 +33,22 @@ Copy only the first two video frames, leave out audio.
 $ ffmpeg -i index0.ts -vframes 2 -an -vcodec copy video.ts
 ```
 
+### videoLargeOffset.ts
+
+This segment starts with the video.ts segment but shifts its start time by...a lot. It's intended to be used for testing rollover. The offset here uses the rollover threshhold of 4294967296 found in the rollover handling of mux.js, adds 1 to ensure there aren't any cases where there's an equal match, then divides the value by 90,000 to convert it from media time to seconds, as `output_ts_offset` requires the use of seconds.
+
+```
+$ ffmpeg -i video.ts -output_ts_offset $((4294967297 / 90000)) -vcodec copy videoLargeOffset.ts
+```
+
+### videoLargeOffset2.ts
+
+This takes videoLargeOffset.ts and adds 0.066733 seconds to its offset so that this segment can act as the second in a piece of content.
+
+```
+$ ffmpeg -i videoLargeOffset.ts -output_ts_offset $(((4294967297 / 90000) + 0.066733)) -vcodec copy videoLargeOffset2.ts
+```
+
 ### audio.ts
 
 Copy only the first two audio frames, leave out video.
