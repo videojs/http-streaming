@@ -33,20 +33,42 @@ Copy only the first two video frames, leave out audio.
 $ ffmpeg -i index0.ts -vframes 2 -an -vcodec copy video.ts
 ```
 
-### videoLargeOffset.ts
+### videoMinOffset.ts
 
-This segment starts with the video.ts segment but shifts its start time by...a lot. It's intended to be used for testing rollover. The offset here uses the rollover threshhold of 4294967296 found in the rollover handling of mux.js, adds 1 to ensure there aren't any cases where there's an equal match, then divides the value by 90,000 to convert it from media time to seconds, as `output_ts_offset` requires the use of seconds.
+video.ts but with an offset of 0
 
 ```
-$ ffmpeg -i video.ts -output_ts_offset $((4294967297 / 90000)) -vcodec copy videoLargeOffset.ts
+$ ffmpeg -i video.ts -muxpreload 0 -muxdelay 0 -vcodec copy videoMinOffset.ts
+```
+
+### videoMaxOffset.ts
+
+This segment is the same as videoLargeOffset.ts, but instead of using the rollover threshhold of 2^32, it uses the max timestamp of 2^33 (8589934592) minus the segment duration of 6006 (0.066733 seconds) in order to not rollover mid segment.
+
+(2^33 - 6006) / 90,000 = 95443.6509556
+
+```
+$ ffmpeg -i videoMinOffset.ts -muxdelay 95443.6509556 -muxpreload 95443.6509556 -output_ts_offset 95443.6509556 -vcodec copy videoMaxOffset.ts
+```
+
+### videoLargeOffset.ts
+
+This segment starts with the videoMinOffset.ts segment but shifts its start time by...a lot. It's intended to be used for testing rollover. The offset here uses the rollover threshhold of 2^32 (4294967296) found in the rollover handling of mux.js, adds 1 to ensure there aren't any cases where there's an equal match, then divides the value by 90,000 to convert it from media time to seconds, as `output_ts_offset` requires the use of seconds.
+
+(2^32 + 1) / 90,000 = 47721.8588556
+
+```
+$ ffmpeg -i videoMinOffset.ts -muxdelay 47721.8588556 -muxpreload 47721.8588556 -output_ts_offset 47721.8588556 -vcodec copy videoLargeOffset.ts
 ```
 
 ### videoLargeOffset2.ts
 
-This takes videoLargeOffset.ts and adds 0.066733 seconds to its offset so that this segment can act as the second in a piece of content.
+This takes videoLargeOffset.ts and adds the duration of videoLargeOffset.ts (6006 / 90,000 = 0.066733 seconds) to its offset so that this segment can act as the second in a piece of content.
+
+47721.8588556 + 0.066733 = 47721.9255886
 
 ```
-$ ffmpeg -i videoLargeOffset.ts -output_ts_offset $(((4294967297 / 90000) + 0.066733)) -vcodec copy videoLargeOffset2.ts
+$ ffmpeg -i videoLargeOffset.ts -muxdelay 47721.9255886 -muxpreload 47721.9255886 -output_ts_offset 47721.9255886 -vcodec copy videoLargeOffset2.ts
 ```
 
 ### audio.ts

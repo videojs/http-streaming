@@ -2082,8 +2082,12 @@ export default class SegmentLoader extends videojs.EventTarget {
       videoSegmentTimingInfo.prependedContentDuration || 0;
     segment.videoTimingInfo.transmuxedPresentationStart =
       videoSegmentTimingInfo.start.presentation;
+    segment.videoTimingInfo.transmuxedDecodeStart =
+      videoSegmentTimingInfo.start.decode;
     segment.videoTimingInfo.transmuxedPresentationEnd =
       videoSegmentTimingInfo.end.presentation;
+    segment.videoTimingInfo.transmuxedDecodeEnd =
+      videoSegmentTimingInfo.end.decode;
     // mainly used as a reference for debugging
     segment.videoTimingInfo.baseMediaDecodeTime =
       videoSegmentTimingInfo.baseMediaDecodeTime;
@@ -2269,7 +2273,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (previousSegment && previousSegment.timeline === segment.timeline) {
       // The baseStartTime of a segment is used when probing the TS segment to retrieve
       // timing information, specifically, to account for rollover. Since the probe only
-      // looks at the media's times (not in relation to the player's timeline), the
+      // looks at the media's times (not in relation to the player's time), the
       // baseStartTime should reflect the media time as well. transmuxedPresentationEnd
       // represents the end time of a segment, in seconds of media time, so should be used
       // here. The previous segment is used since the end of the previous segment should
@@ -2277,10 +2281,10 @@ export default class SegmentLoader extends videojs.EventTarget {
       // same timeline.
       if (previousSegment.videoTimingInfo) {
         simpleSegment.baseStartTime =
-          previousSegment.videoTimingInfo.transmuxedPresentationEnd;
+          previousSegment.videoTimingInfo.transmuxedDecodeEnd;
       } else if (previousSegment.audioTimingInfo) {
         simpleSegment.baseStartTime =
-          previousSegment.audioTimingInfo.transmuxedPresentationEnd;
+          previousSegment.audioTimingInfo.transmuxedDecodeEnd;
       }
     }
 
