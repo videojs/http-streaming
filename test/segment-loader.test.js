@@ -3696,8 +3696,8 @@ QUnit.module('SegmentLoader', function(hooks) {
           segment.videoTimingInfo.transmuxedPresentationEnd,
           // Segment's ending DTS (max DTS) divided by 90khz clock to get seconds.
           //
-          // Note that this segment is meant to end exactly at the max DTS of 2^32. The
-          // starting DTS should be 2^32 - 6006 (the segment's duration).
+          // Note that this segment is meant to end exactly at the max DTS of 2^33. The
+          // starting DTS should be 2^33 - 6006 (the segment's duration).
           Math.pow(2, 33) / 90000,
           'set proper transmuxed decode end'
         );
@@ -3720,7 +3720,7 @@ QUnit.module('SegmentLoader', function(hooks) {
         );
         assert.equal(
           segment.videoTimingInfo.transmuxedDecodeEnd,
-          // segment's DTS (max DTS) + duration of this segment (6006),
+          // previous segment's ending DTS (max DTS) + duration of this segment (6006),
           // divided by 90khz clock to get seconds
           //
           // This is verifying that we handled rollover. If we didn't handle rollover, then
