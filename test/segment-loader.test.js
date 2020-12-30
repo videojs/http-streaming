@@ -3693,7 +3693,7 @@ QUnit.module('SegmentLoader', function(hooks) {
 
         assert.equal(segment.start, 0, 'set start to 0');
         assert.equal(
-          segment.videoTimingInfo.transmuxedPresentationEnd,
+          segment.videoTimingInfo.transmuxedDecodeEnd,
           // Segment's ending DTS (max DTS) divided by 90khz clock to get seconds.
           //
           // Note that this segment is meant to end exactly at the max DTS of 2^33. The
