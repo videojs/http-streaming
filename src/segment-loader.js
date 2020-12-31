@@ -2067,30 +2067,31 @@ export default class SegmentLoader extends videojs.EventTarget {
     });
   }
 
-  handleVideoSegmentTimingInfo_(requestId, videoSegmentTimingInfo) {
+  handleSegmentTimingInfo_(type, requestId, segmentTimingInfo) {
     if (!this.pendingSegment_ || requestId !== this.pendingSegment_.requestId) {
       return;
     }
 
     const segment = this.pendingSegment_.segment;
+    const timingInfoProperty = `${type}TimingInfo`;
 
-    if (!segment.videoTimingInfo) {
-      segment.videoTimingInfo = {};
+    if (!segment[timingInfoProperty]) {
+      segment[timingInfoProperty] = {};
     }
 
-    segment.videoTimingInfo.transmuxerPrependedSeconds =
-      videoSegmentTimingInfo.prependedContentDuration || 0;
-    segment.videoTimingInfo.transmuxedPresentationStart =
-      videoSegmentTimingInfo.start.presentation;
-    segment.videoTimingInfo.transmuxedDecodeStart =
-      videoSegmentTimingInfo.start.decode;
-    segment.videoTimingInfo.transmuxedPresentationEnd =
-      videoSegmentTimingInfo.end.presentation;
-    segment.videoTimingInfo.transmuxedDecodeEnd =
-      videoSegmentTimingInfo.end.decode;
+    segment[timingInfoProperty].transmuxerPrependedSeconds =
+      segmentTimingInfo.prependedContentDuration || 0;
+    segment[timingInfoProperty].transmuxedPresentationStart =
+      segmentTimingInfo.start.presentation;
+    segment[timingInfoProperty].transmuxedDecodeStart =
+      segmentTimingInfo.start.decode;
+    segment[timingInfoProperty].transmuxedPresentationEnd =
+      segmentTimingInfo.end.presentation;
+    segment[timingInfoProperty].transmuxedDecodeEnd =
+      segmentTimingInfo.end.decode;
     // mainly used as a reference for debugging
-    segment.videoTimingInfo.baseMediaDecodeTime =
-      videoSegmentTimingInfo.baseMediaDecodeTime;
+    segment[timingInfoProperty].baseMediaDecodeTime =
+      segmentTimingInfo.baseMediaDecodeTime;
   }
 
   appendData_(segmentInfo, result) {
@@ -2213,7 +2214,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       progressFn: this.handleProgress_.bind(this),
       trackInfoFn: this.handleTrackInfo_.bind(this),
       timingInfoFn: this.handleTimingInfo_.bind(this),
-      videoSegmentTimingInfoFn: this.handleVideoSegmentTimingInfo_.bind(this, segmentInfo.requestId),
+      videoSegmentTimingInfoFn: this.handleSegmentTimingInfo_.bind(this, 'video', segmentInfo.requestId),
+      audioSegmentTimingInfoFn: this.handleSegmentTimingInfo_.bind(this, 'audio', segmentInfo.requestId),
       captionsFn: this.handleCaptions_.bind(this),
       id3Fn: this.handleId3_.bind(this),
 
