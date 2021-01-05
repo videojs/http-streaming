@@ -145,7 +145,8 @@ QUnit.test('transmux returns data for partial appends', function(assert) {
     isPartial: true,
     onData: () => {
       dataFn();
-      // TODO: parial appends don't current fire this
+      // TODO: partial appends don't currently fire this
+
       // assert.ok(videoSegmentTimingInfoFn.callCount, 'got videoSegmentTimingInfoFn event');
       // assert.ok(audioSegmentTimingInfoFn.callCount, 'got audioSegmentTimingInfoFn event');
       assert.ok(trackInfoFn.callCount, 'got trackInfo event');
