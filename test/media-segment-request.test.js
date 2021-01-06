@@ -115,7 +115,8 @@ QUnit.module('Media Segment Request - make it to transmuxer', {
       'id3',
       'captions',
       'data',
-      'videoSegmentTimingInfo'
+      'videoSegmentTimingInfo',
+      'audioSegmentTimingInfo'
     ].forEach((name) => {
       this.calls[name] = 0;
       this.options[`${name}Fn`] = () => this.calls[name]++;
@@ -141,7 +142,8 @@ QUnit.test('ac3 without id3 segments will not make it to the transmuxer', functi
       timingInfo: 0,
       captions: 0,
       id3: 0,
-      videoSegmentTimingInfo: 0
+      videoSegmentTimingInfo: 0,
+      audioSegmentTimingInfo: 0
     }, 'calls as expected');
     done();
   };
@@ -165,7 +167,8 @@ QUnit.test('ac3 with id3 segments will not make it to the transmuxer', function(
       timingInfo: 0,
       captions: 0,
       id3: 0,
-      videoSegmentTimingInfo: 0
+      videoSegmentTimingInfo: 0,
+      audioSegmentTimingInfo: 0
     }, 'calls as expected');
     done();
   };
@@ -189,7 +192,8 @@ QUnit.test('muxed ts segments will make it to the transmuxer', function(assert) 
       timingInfo: 4,
       captions: 0,
       id3: 0,
-      videoSegmentTimingInfo: 1
+      videoSegmentTimingInfo: 1,
+      audioSegmentTimingInfo: 1
     }, 'calls as expected');
     done();
   };
@@ -213,7 +217,8 @@ QUnit.test('video ts segments will make it to the transmuxer', function(assert) 
       timingInfo: 2,
       captions: 0,
       id3: 0,
-      videoSegmentTimingInfo: 1
+      videoSegmentTimingInfo: 1,
+      audioSegmentTimingInfo: 0
     }, 'calls as expected');
     done();
   };
@@ -237,7 +242,8 @@ QUnit.test('audio ts segments will make it to the transmuxer', function(assert) 
       timingInfo: 2,
       captions: 0,
       id3: 0,
-      videoSegmentTimingInfo: 0
+      videoSegmentTimingInfo: 0,
+      audioSegmentTimingInfo: 1
     }, 'calls as expected');
     done();
   };
@@ -261,7 +267,8 @@ QUnit.test('aac with id3 will make it to the transmuxer', function(assert) {
       timingInfo: 2,
       captions: 0,
       id3: 0,
-      videoSegmentTimingInfo: 0
+      videoSegmentTimingInfo: 0,
+      audioSegmentTimingInfo: 0
     }, 'calls as expected');
     done();
   };
@@ -285,7 +292,8 @@ QUnit.test('aac without id3 will make it to the transmuxer', function(assert) {
       timingInfo: 2,
       captions: 0,
       id3: 0,
-      videoSegmentTimingInfo: 0
+      videoSegmentTimingInfo: 0,
+      audioSegmentTimingInfo: 0
     }, 'calls as expected');
     done();
   };
@@ -309,7 +317,8 @@ QUnit.test('ac3 without id3 segments will not make it to the partial transmuxer'
       timingInfo: 0,
       captions: 0,
       id3: 0,
-      videoSegmentTimingInfo: 0
+      videoSegmentTimingInfo: 0,
+      audioSegmentTimingInfo: 0
     }, 'calls as expected');
     done();
   };
@@ -333,7 +342,8 @@ QUnit.test('ac3 with id3 segments will not make it to the partial transmuxer', f
       timingInfo: 0,
       captions: 0,
       id3: 0,
-      videoSegmentTimingInfo: 0
+      videoSegmentTimingInfo: 0,
+      audioSegmentTimingInfo: 0
     }, 'calls as expected');
     done();
   };
@@ -357,7 +367,8 @@ QUnit.test('muxed ts segments will make it to the partial transmuxer', function(
       timingInfo: 4,
       captions: 0,
       id3: 0,
-      videoSegmentTimingInfo: 0
+      videoSegmentTimingInfo: 0,
+      audioSegmentTimingInfo: 0
     }, 'calls as expected');
     done();
   };
@@ -381,7 +392,8 @@ QUnit.test('video ts segments will make it to the partial transmuxer', function(
       timingInfo: 2,
       captions: 0,
       id3: 0,
-      videoSegmentTimingInfo: 0
+      videoSegmentTimingInfo: 0,
+      audioSegmentTimingInfo: 0
     }, 'calls as expected');
     done();
   };
@@ -405,7 +417,8 @@ QUnit.test('audio ts segments will make it to the partial transmuxer', function(
       timingInfo: 2,
       captions: 0,
       id3: 0,
-      videoSegmentTimingInfo: 0
+      videoSegmentTimingInfo: 0,
+      audioSegmentTimingInfo: 0
     }, 'calls as expected');
     done();
   };
@@ -429,7 +442,8 @@ QUnit.test('aac with id3 will make it to the partial transmuxer', function(asser
       timingInfo: 2,
       captions: 0,
       id3: 0,
-      videoSegmentTimingInfo: 0
+      videoSegmentTimingInfo: 0,
+      audioSegmentTimingInfo: 0
     }, 'calls as expected');
     done();
   };
@@ -453,7 +467,8 @@ QUnit.test('aac without id3 will make it to the partial transmuxer', function(as
       timingInfo: 2,
       captions: 0,
       id3: 0,
-      videoSegmentTimingInfo: 0
+      videoSegmentTimingInfo: 0,
+      audioSegmentTimingInfo: 0
     }, 'calls as expected');
     done();
   };

@@ -2067,26 +2067,31 @@ export default class SegmentLoader extends videojs.EventTarget {
     });
   }
 
-  handleVideoSegmentTimingInfo_(requestId, videoSegmentTimingInfo) {
+  handleSegmentTimingInfo_(type, requestId, segmentTimingInfo) {
     if (!this.pendingSegment_ || requestId !== this.pendingSegment_.requestId) {
       return;
     }
 
     const segment = this.pendingSegment_.segment;
+    const timingInfoProperty = `${type}TimingInfo`;
 
-    if (!segment.videoTimingInfo) {
-      segment.videoTimingInfo = {};
+    if (!segment[timingInfoProperty]) {
+      segment[timingInfoProperty] = {};
     }
 
-    segment.videoTimingInfo.transmuxerPrependedSeconds =
-      videoSegmentTimingInfo.prependedContentDuration || 0;
-    segment.videoTimingInfo.transmuxedPresentationStart =
-      videoSegmentTimingInfo.start.presentation;
-    segment.videoTimingInfo.transmuxedPresentationEnd =
-      videoSegmentTimingInfo.end.presentation;
+    segment[timingInfoProperty].transmuxerPrependedSeconds =
+      segmentTimingInfo.prependedContentDuration || 0;
+    segment[timingInfoProperty].transmuxedPresentationStart =
+      segmentTimingInfo.start.presentation;
+    segment[timingInfoProperty].transmuxedDecodeStart =
+      segmentTimingInfo.start.decode;
+    segment[timingInfoProperty].transmuxedPresentationEnd =
+      segmentTimingInfo.end.presentation;
+    segment[timingInfoProperty].transmuxedDecodeEnd =
+      segmentTimingInfo.end.decode;
     // mainly used as a reference for debugging
-    segment.videoTimingInfo.baseMediaDecodeTime =
-      videoSegmentTimingInfo.baseMediaDecodeTime;
+    segment[timingInfoProperty].baseMediaDecodeTime =
+      segmentTimingInfo.baseMediaDecodeTime;
   }
 
   appendData_(segmentInfo, result) {
@@ -2209,7 +2214,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       progressFn: this.handleProgress_.bind(this),
       trackInfoFn: this.handleTrackInfo_.bind(this),
       timingInfoFn: this.handleTimingInfo_.bind(this),
-      videoSegmentTimingInfoFn: this.handleVideoSegmentTimingInfo_.bind(this, segmentInfo.requestId),
+      videoSegmentTimingInfoFn: this.handleSegmentTimingInfo_.bind(this, 'video', segmentInfo.requestId),
+      audioSegmentTimingInfoFn: this.handleSegmentTimingInfo_.bind(this, 'audio', segmentInfo.requestId),
       captionsFn: this.handleCaptions_.bind(this),
       id3Fn: this.handleId3_.bind(this),
 
@@ -2264,12 +2270,24 @@ export default class SegmentLoader extends videojs.EventTarget {
       gopsToAlignWith: segmentInfo.gopsToAlignWith
     };
 
-    const previousSegment = segmentInfo.playlist.segments[segmentInfo.mediaIndex];
+    const previousSegment = segmentInfo.playlist.segments[segmentInfo.mediaIndex - 1];
 
-    if (previousSegment &&
-        previousSegment.end &&
-        previousSegment.timeline === segment.timeline) {
-      simpleSegment.baseStartTime = previousSegment.end + segmentInfo.timestampOffset;
+    if (previousSegment && previousSegment.timeline === segment.timeline) {
+      // The baseStartTime of a segment is used to handle rollover when probing the TS
+      // segment to retrieve timing information. Since the probe only looks at the media's
+      // times (e.g., PTS and DTS values of the segment), and doesn't consider the
+      // player's time (e.g., player.currentTime()), baseStartTime should reflect the
+      // media time as well. transmuxedDecodeEnd represents the end time of a segment, in
+      // seconds of media time, so should be used here. The previous segment is used since
+      // the end of the previous segment should represent the beginning of the current
+      // segment, so long as they are on the same timeline.
+      if (previousSegment.videoTimingInfo) {
+        simpleSegment.baseStartTime =
+          previousSegment.videoTimingInfo.transmuxedDecodeEnd;
+      } else if (previousSegment.audioTimingInfo) {
+        simpleSegment.baseStartTime =
+          previousSegment.audioTimingInfo.transmuxedDecodeEnd;
+      }
     }
 
     if (segment.key) {

@@ -41,6 +41,83 @@ Copy only the first two audio frames, leave out video.
 $ ffmpeg -i index0.ts -aframes 2 -vn -acodec copy audio.ts
 ```
 
+### videoMinOffset.ts
+
+video.ts but with an offset of 0
+
+```
+$ ffmpeg -i video.ts -muxpreload 0 -muxdelay 0 -vcodec copy videoMinOffset.ts
+```
+
+### audioMinOffset.ts
+
+audio.ts but with an offset of 0. Note that muxed.ts is used because ffmpeg didn't like
+the use of audio.ts
+
+```
+$ ffmpeg -i muxed.ts -muxpreload 0 -muxdelay 0 -acodec copy -vn audioMinOffset.ts
+```
+
+### videoMaxOffset.ts
+
+This segment offsets content such that it ends at exactly the max timestamp before a rollover occurs. It uses the max timestamp of 2^33 (8589934592) minus the segment duration of 6006 (0.066733 seconds) in order to not rollover mid segment, and divides the value by 90,000 to convert it from media time to seconds.
+
+(2^33 - 6006) / 90,000 = 95443.6509556
+
+```
+$ ffmpeg -i videoMinOffset.ts -muxdelay 95443.6509556 -muxpreload 95443.6509556 -output_ts_offset 95443.6509556 -vcodec copy videoMaxOffset.ts
+```
+
+### audioMaxOffset.ts
+
+This segment offsets content such that it ends at exactly the max timestamp before a rollover occurs. It uses the max timestamp of 2^33 (8589934592) minus the segment duration of 11520 (0.128000 seconds) in order to not rollover mid segment, and divides the value by 90,000 to convert it from media time to seconds.
+
+(2^33 - 11520) / 90,000 = 95443.5896889
+
+```
+$ ffmpeg -i audioMinOffset.ts -muxdelay 95443.5896889 -muxpreload 95443.5896889 -output_ts_offset 95443.5896889 -acodec copy audioMaxOffset.ts
+```
+
+### videoLargeOffset.ts
+
+This segment offsets content by the rollover threshhold of 2^32 (4294967296) found in the rollover handling of mux.js, adds 1 to ensure there aren't any cases where there's an equal match, then divides the value by 90,000 to convert it from media time to seconds.
+
+(2^32 + 1) / 90,000 = 47721.8588556
+
+```
+$ ffmpeg -i videoMinOffset.ts -muxdelay 47721.8588556 -muxpreload 47721.8588556 -output_ts_offset 47721.8588556 -vcodec copy videoLargeOffset.ts
+```
+
+### audioLargeOffset.ts
+
+This segment offsets content by the rollover threshhold of 2^32 (4294967296) found in the rollover handling of mux.js, adds 1 to ensure there aren't any cases where there's an equal match, then divides the value by 90,000 to convert it from media time to seconds.
+
+(2^32 + 1) / 90,000 = 47721.8588556
+
+```
+$ ffmpeg -i audioMinOffset.ts -muxdelay 47721.8588556 -muxpreload 47721.8588556 -output_ts_offset 47721.8588556 -acodec copy audioLargeOffset.ts
+```
+
+### videoLargeOffset2.ts
+
+This takes videoLargeOffset.ts and adds the duration of videoLargeOffset.ts (6006 / 90,000 = 0.066733 seconds) to its offset so that this segment can act as the second in one continuous stream.
+
+47721.8588556 + 0.066733 = 47721.9255886
+
+```
+$ ffmpeg -i videoLargeOffset.ts -muxdelay 47721.9255886 -muxpreload 47721.9255886 -output_ts_offset 47721.9255886 -vcodec copy videoLargeOffset2.ts
+```
+
+### audioLargeOffset2.ts
+
+This takes audioLargeOffset.ts and adds the duration of audioLargeOffset.ts (11520 / 90,000 = 0.128 seconds) to its offset so that this segment can act as the second in one continuous stream.
+
+47721.8588556 + 0.128 = 47721.9868556
+
+```
+$ ffmpeg -i audioLargeOffset.ts -muxdelay 47721.9868556 -muxpreload 47721.9868556 -output_ts_offset 47721.9868556 -acodec copy audioLargeOffset2.ts
+```
+
 ### caption.ts
 
 Copy the first two frames of video out of a ts segment that already includes CEA-608 captions.

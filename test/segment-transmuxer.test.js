@@ -68,6 +68,7 @@ QUnit.test('transmux returns data for full appends', function(assert) {
   const audioTimingFn = sinon.spy();
   const videoTimingFn = sinon.spy();
   const videoSegmentTimingInfoFn = sinon.spy();
+  const audioSegmentTimingInfoFn = sinon.spy();
 
   this.transmuxer = createTransmuxer(false);
 
@@ -82,6 +83,7 @@ QUnit.test('transmux returns data for full appends', function(assert) {
     onAudioTimingInfo: audioTimingFn,
     onVideoTimingInfo: videoTimingFn,
     onVideoSegmentTimingInfo: videoSegmentTimingInfoFn,
+    onAudioSegmentTimingInfo: audioSegmentTimingInfoFn,
     onId3: noop,
     onCaptions: noop,
     onDone: () => {
@@ -90,6 +92,7 @@ QUnit.test('transmux returns data for full appends', function(assert) {
       assert.ok(audioTimingFn.callCount, 'got audioTimingInfo events');
       assert.ok(videoTimingFn.callCount, 'got videoTimingInfo events');
       assert.ok(videoSegmentTimingInfoFn.callCount, 'got videoSegmentTimingInfo events');
+      assert.ok(audioSegmentTimingInfoFn.callCount, 'got audioSegmentTimingInfo events');
       done();
     }
   });
@@ -130,6 +133,7 @@ QUnit.test('transmux returns data for partial appends', function(assert) {
   const audioTimingFn = sinon.spy();
   const videoTimingFn = sinon.spy();
   const videoSegmentTimingInfoFn = sinon.spy();
+  const audioSegmentTimingInfoFn = sinon.spy();
 
   this.transmuxer = createTransmuxer(true);
 
@@ -141,8 +145,10 @@ QUnit.test('transmux returns data for partial appends', function(assert) {
     isPartial: true,
     onData: () => {
       dataFn();
-      // TODO: parial appends don't current fire this
+      // TODO: partial appends don't currently fire this
+
       // assert.ok(videoSegmentTimingInfoFn.callCount, 'got videoSegmentTimingInfoFn event');
+      // assert.ok(audioSegmentTimingInfoFn.callCount, 'got audioSegmentTimingInfoFn event');
       assert.ok(trackInfoFn.callCount, 'got trackInfo event');
       assert.ok(videoTimingFn.callCount, 'got videoTimingInfo event');
 
@@ -155,6 +161,7 @@ QUnit.test('transmux returns data for partial appends', function(assert) {
     onAudioTimingInfo: audioTimingFn,
     onVideoTimingInfo: videoTimingFn,
     onVideoSegmentTimingInfo: videoSegmentTimingInfoFn,
+    onAudioSegmentTimingInfo: audioSegmentTimingInfoFn,
     onId3: noop,
     onCaptions: noop,
     // This will be called on partialdone events,

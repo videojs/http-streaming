@@ -28,6 +28,14 @@ import {
   oneSecond as oneSecondSegment,
   audio as audioSegment,
   video as videoSegment,
+  videoLargeOffset as videoLargeOffsetSegment,
+  videoLargeOffset2 as videoLargeOffset2Segment,
+  videoMaxOffset as videoMaxOffsetSegment,
+  videoMinOffset as videoMinOffsetSegment,
+  audioLargeOffset as audioLargeOffsetSegment,
+  audioLargeOffset2 as audioLargeOffset2Segment,
+  audioMaxOffset as audioMaxOffsetSegment,
+  audioMinOffset as audioMinOffsetSegment,
   mp4Video as mp4VideoSegment,
   mp4VideoInit as mp4VideoInitSegment,
   mp4Audio as mp4AudioSegment,
@@ -3602,6 +3610,262 @@ QUnit.module('SegmentLoader', function(hooks) {
 
       assert.equal(loader.throughput.rate, 1000, 'did not save throughput');
       assert.equal(loader.throughput.count, 1, 'did not save throughput');
+    });
+
+    QUnit.test('sets correct video start time for large DTS value', function(assert) {
+      const playlist = playlistWithDuration(40);
+      const {
+        mediaSource_: mediaSource,
+        sourceUpdater_: sourceUpdater
+      } = loader;
+      const mediaSettings = { isVideoOnly: true };
+
+      return setupMediaSource(mediaSource, sourceUpdater, mediaSettings).then(() => {
+        loader.playlist(playlist);
+        loader.load();
+
+        this.clock.tick(1);
+        standardXHRResponse(this.requests.shift(), videoLargeOffsetSegment());
+
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        this.clock.tick(1);
+
+        const segment = playlist.segments[0];
+
+        assert.equal(segment.start, 0, 'set start to 0');
+        assert.equal(
+          segment.videoTimingInfo.transmuxedDecodeEnd,
+          // the segment's DTS (2^32 + 1) + segment's duration (6006 clock cycles),
+          // divided by 90khz clock to get seconds
+          (Math.pow(2, 32) + 1 + 6006) / 90000,
+          'set proper transmuxed decode end'
+        );
+
+        standardXHRResponse(this.requests.shift(), videoLargeOffset2Segment());
+
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        const segment = playlist.segments[1];
+
+        assert.equal(
+          segment.start.toFixed(6),
+          // since this is the second segment, it should start at the first segment's
+          // duration (6006 clock cycles divided by 90khz clock to get seconds)
+          (6006 / 90000).toFixed(6),
+          'set correct start'
+        );
+        assert.equal(
+          segment.videoTimingInfo.transmuxedDecodeEnd,
+          // the segment's DTS (2^32 + 1 + 6006) + this segment's duration of 6006,
+          // divided by 90khz clock to get seconds
+          (Math.pow(2, 32) + 1 + (6006 * 2)) / 90000,
+          'set proper transmuxed decode end'
+        );
+      });
+    });
+
+    QUnit.test('sets correct video start time with rollover', function(assert) {
+      const playlist = playlistWithDuration(40);
+      const {
+        mediaSource_: mediaSource,
+        sourceUpdater_: sourceUpdater
+      } = loader;
+      const mediaSettings = { isVideoOnly: true };
+
+      return setupMediaSource(mediaSource, sourceUpdater, mediaSettings).then(() => {
+        loader.playlist(playlist);
+        loader.load();
+
+        this.clock.tick(1);
+        standardXHRResponse(this.requests.shift(), videoMaxOffsetSegment());
+
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        this.clock.tick(1);
+
+        const segment = playlist.segments[0];
+
+        assert.equal(segment.start, 0, 'set start to 0');
+        assert.equal(
+          segment.videoTimingInfo.transmuxedDecodeEnd,
+          // Segment's ending DTS (max DTS) divided by 90khz clock to get seconds.
+          //
+          // Note that this segment is meant to end exactly at the max DTS of 2^33. The
+          // starting DTS should be 2^33 - 6006 (the segment's duration).
+          Math.pow(2, 33) / 90000,
+          'set proper transmuxed decode end'
+        );
+
+        standardXHRResponse(this.requests.shift(), videoMinOffsetSegment());
+
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        const segment = playlist.segments[1];
+
+        assert.equal(
+          segment.start.toFixed(6),
+          // since this is the second segment, it should start at the first segment's
+          // duration (6006 clock cycles divided by 90khz clock to get seconds)
+          (6006 / 90000).toFixed(6),
+          'set correct start'
+        );
+        assert.equal(
+          segment.videoTimingInfo.transmuxedDecodeEnd,
+          // previous segment's ending DTS (max DTS) + duration of this segment (6006),
+          // divided by 90khz clock to get seconds
+          //
+          // This is verifying that we handled rollover. If we didn't handle rollover, then
+          // the DTS of this segment would be 0 + 6006, the segment's DTS + duration. These
+          // are the values you'd see when probing the segment alone, without a reference
+          // to a prior segment. But our rollover handling adds the max value of 2^33 to
+          // the timestamp values, since it detected from the prior segment that we reached
+          // the max value for a timestamp of 2^33, and since JavaScript can handle values
+          // larger than 2^33 in value, it does the addition from the player side.
+          (Math.pow(2, 33) + (6006)) / 90000,
+          'set proper transmuxed decode end greater than rollover value'
+        );
+      });
+    });
+
+    QUnit.test('sets correct audio start time for large DTS value', function(assert) {
+      const playlist = playlistWithDuration(40);
+      const {
+        mediaSource_: mediaSource,
+        sourceUpdater_: sourceUpdater
+      } = loader;
+      const mediaSettings = { isAudioOnly: true };
+
+      return setupMediaSource(mediaSource, sourceUpdater, mediaSettings).then(() => {
+        loader.playlist(playlist);
+        loader.load();
+
+        this.clock.tick(1);
+        standardXHRResponse(this.requests.shift(), audioLargeOffsetSegment());
+
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        this.clock.tick(1);
+
+        const segment = playlist.segments[0];
+
+        assert.equal(segment.start, 0, 'set start to 0');
+        assert.equal(
+          segment.audioTimingInfo.transmuxedDecodeEnd.toFixed(4),
+          // the segment's DTS (2^32 + 1) + segment's duration (11520 clock cycles),
+          // divided by 90khz clock to get seconds
+          ((Math.pow(2, 32) + 1 + 11520) / 90000).toFixed(4),
+          'set proper transmuxed decode end'
+        );
+
+        standardXHRResponse(this.requests.shift(), audioLargeOffset2Segment());
+
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        const segment = playlist.segments[1];
+
+        assert.equal(
+          segment.start.toFixed(6),
+          // since this is the second segment, it should start at the first segment's
+          // duration (11520 clock cycles divided by 90khz clock to get seconds)
+          (11520 / 90000).toFixed(6),
+          'set correct start'
+        );
+        assert.equal(
+          segment.audioTimingInfo.transmuxedDecodeEnd.toFixed(4),
+          // the segment's DTS (2^32 + 1 + 11520) + this segment's duration of 11520,
+          // divided by 90khz clock to get seconds
+          ((Math.pow(2, 32) + 1 + (11520 * 2)) / 90000).toFixed(4),
+          'set proper transmuxed decode end'
+        );
+      });
+    });
+
+    QUnit.test('sets correct audio start time with rollover', function(assert) {
+      const playlist = playlistWithDuration(40);
+      const {
+        mediaSource_: mediaSource,
+        sourceUpdater_: sourceUpdater
+      } = loader;
+      const mediaSettings = { isAudioOnly: true };
+
+      return setupMediaSource(mediaSource, sourceUpdater, mediaSettings).then(() => {
+        loader.playlist(playlist);
+        loader.load();
+
+        this.clock.tick(1);
+        standardXHRResponse(this.requests.shift(), audioMaxOffsetSegment());
+
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        this.clock.tick(1);
+
+        const segment = playlist.segments[0];
+
+        assert.equal(segment.start, 0, 'set start to 0');
+        assert.equal(
+          segment.audioTimingInfo.transmuxedDecodeEnd.toFixed(5),
+          // Segment's ending DTS (max DTS) divided by 90khz clock to get seconds.
+          //
+          // Note that this segment is meant to end exactly at the max DTS of 2^33. The
+          // starting DTS should be 2^33 - 11520 (the segment's duration).
+          (Math.pow(2, 33) / 90000).toFixed(5),
+          'set proper transmuxed decode end'
+        );
+
+        standardXHRResponse(this.requests.shift(), audioMinOffsetSegment());
+
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        const segment = playlist.segments[1];
+
+        assert.equal(
+          segment.start.toFixed(6),
+          // since this is the second segment, it should start at the first segment's
+          // duration (11520 clock cycles divided by 90khz clock to get seconds)
+          (11520 / 90000).toFixed(6),
+          'set correct start'
+        );
+        assert.equal(
+          segment.audioTimingInfo.transmuxedDecodeEnd.toFixed(5),
+          // previous segment's ending DTS (max DTS) + duration of this segment (11520),
+          // divided by 90khz clock to get seconds
+          //
+          // This is verifying that we handled rollover. If we didn't handle rollover, then
+          // the DTS of this segment would be 0 + 6006, the segment's DTS + duration. These
+          // are the values you'd see when probing the segment alone, without a reference
+          // to a prior segment. But our rollover handling adds the max value of 2^33 to
+          // the timestamp values, since it detected from the prior segment that we reached
+          // the max value for a timestamp of 2^33, and since JavaScript can handle values
+          // larger than 2^33 in value, it does the addition from the player side.
+          ((Math.pow(2, 33) + (11520)) / 90000).toFixed(5),
+          'set proper transmuxed decode end greater than rollover value'
+        );
+      });
     });
   });
 });

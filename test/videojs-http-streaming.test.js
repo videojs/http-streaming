@@ -5120,7 +5120,7 @@ QUnit.test('convertToProgramTime will return stream time if buffered', function(
   mainSegmentLoader_.one('appending', () => {
     // since we don't run through the transmuxer, we have to manually trigger the timing
     // info callback
-    mainSegmentLoader_.handleVideoSegmentTimingInfo_(mainSegmentLoader_.pendingSegment_.requestId, {
+    mainSegmentLoader_.handleSegmentTimingInfo_('video', mainSegmentLoader_.pendingSegment_.requestId, {
       prependedGopDuration: 0,
       start: {
         presentation: 0

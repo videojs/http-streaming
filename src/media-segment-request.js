@@ -263,6 +263,7 @@ const transmuxAndNotify = ({
   trackInfoFn,
   timingInfoFn,
   videoSegmentTimingInfoFn,
+  audioSegmentTimingInfoFn,
   id3Fn,
   captionsFn,
   dataFn,
@@ -350,6 +351,9 @@ const transmuxAndNotify = ({
     onVideoSegmentTimingInfo: (videoSegmentTimingInfo) => {
       videoSegmentTimingInfoFn(videoSegmentTimingInfo);
     },
+    onAudioSegmentTimingInfo: (audioSegmentTimingInfo) => {
+      audioSegmentTimingInfoFn(audioSegmentTimingInfo);
+    },
     onId3: (id3Frames, dispatchType) => {
       id3Fn(segment, id3Frames, dispatchType);
     },
@@ -375,6 +379,7 @@ const handleSegmentBytes = ({
   trackInfoFn,
   timingInfoFn,
   videoSegmentTimingInfoFn,
+  audioSegmentTimingInfoFn,
   id3Fn,
   captionsFn,
   dataFn,
@@ -505,6 +510,7 @@ const handleSegmentBytes = ({
     trackInfoFn,
     timingInfoFn,
     videoSegmentTimingInfoFn,
+    audioSegmentTimingInfoFn,
     id3Fn,
     captionsFn,
     dataFn,
@@ -520,6 +526,13 @@ const handleSegmentBytes = ({
  * @param {Object} segment - a simplified copy of the segmentInfo object
  *                           from SegmentLoader
  * @param {Function} trackInfoFn - a callback that receives track info
+ * @param {Function} timingInfoFn - a callback that receives timing info
+ * @param {Function} videoSegmentTimingInfoFn
+ *                   a callback that receives video timing info based on media times and
+ *                   any adjustments made by the transmuxer
+ * @param {Function} audioSegmentTimingInfoFn
+ *                   a callback that receives audio timing info based on media times and
+ *                   any adjustments made by the transmuxer
  * @param {Function} dataFn - a callback that is executed when segment bytes are available
  *                            and ready to use
  * @param {Function} doneFn - a callback that is executed after decryption has completed
@@ -530,6 +543,7 @@ const decryptSegment = ({
   trackInfoFn,
   timingInfoFn,
   videoSegmentTimingInfoFn,
+  audioSegmentTimingInfoFn,
   id3Fn,
   captionsFn,
   dataFn,
@@ -553,6 +567,7 @@ const decryptSegment = ({
         trackInfoFn,
         timingInfoFn,
         videoSegmentTimingInfoFn,
+        audioSegmentTimingInfoFn,
         id3Fn,
         captionsFn,
         dataFn,
@@ -595,6 +610,12 @@ const decryptSegment = ({
  *                                       routines
  * @param {Function} trackInfoFn - a callback that receives track info
  * @param {Function} timingInfoFn - a callback that receives timing info
+ * @param {Function} videoSegmentTimingInfoFn
+ *                   a callback that receives video timing info based on media times and
+ *                   any adjustments made by the transmuxer
+ * @param {Function} audioSegmentTimingInfoFn
+ *                   a callback that receives audio timing info based on media times and
+ *                   any adjustments made by the transmuxer
  * @param {Function} id3Fn - a callback that receives ID3 metadata
  * @param {Function} captionsFn - a callback that receives captions
  * @param {Function} dataFn - a callback that is executed when segment bytes are available
@@ -608,6 +629,7 @@ const waitForCompletion = ({
   trackInfoFn,
   timingInfoFn,
   videoSegmentTimingInfoFn,
+  audioSegmentTimingInfoFn,
   id3Fn,
   captionsFn,
   dataFn,
@@ -653,6 +675,7 @@ const waitForCompletion = ({
           trackInfoFn,
           timingInfoFn,
           videoSegmentTimingInfoFn,
+          audioSegmentTimingInfoFn,
           id3Fn,
           captionsFn,
           dataFn,
@@ -667,6 +690,7 @@ const waitForCompletion = ({
         trackInfoFn,
         timingInfoFn,
         videoSegmentTimingInfoFn,
+        audioSegmentTimingInfoFn,
         id3Fn,
         captionsFn,
         dataFn,
@@ -701,6 +725,13 @@ const handleLoadEnd = ({ loadendState, abortFn }) => (event) => {
  * @param {Function} progressFn - a callback that is executed each time a progress event
  *                                is received
  * @param {Function} trackInfoFn - a callback that receives track info
+ * @param {Function} timingInfoFn - a callback that receives timing info
+ * @param {Function} videoSegmentTimingInfoFn
+ *                   a callback that receives video timing info based on media times and
+ *                   any adjustments made by the transmuxer
+ * @param {Function} audioSegmentTimingInfoFn
+ *                   a callback that receives audio timing info based on media times and
+ *                   any adjustments made by the transmuxer
  * @param {Function} dataFn - a callback that is executed when segment bytes are available
  *                            and ready to use
  * @param {Event} event - the progress event object from XMLHttpRequest
@@ -711,6 +742,7 @@ const handleProgress = ({
   trackInfoFn,
   timingInfoFn,
   videoSegmentTimingInfoFn,
+  audioSegmentTimingInfoFn,
   id3Fn,
   captionsFn,
   dataFn,
@@ -747,6 +779,7 @@ const handleProgress = ({
         trackInfoFn,
         timingInfoFn,
         videoSegmentTimingInfoFn,
+        audioSegmentTimingInfoFn,
         id3Fn,
         captionsFn,
         dataFn
@@ -811,6 +844,13 @@ const handleProgress = ({
  * @param {Function} progressFn - a callback that receives progress events from the main
  *                                segment's xhr request
  * @param {Function} trackInfoFn - a callback that receives track info
+ * @param {Function} timingInfoFn - a callback that receives timing info
+ * @param {Function} videoSegmentTimingInfoFn
+ *                   a callback that receives video timing info based on media times and
+ *                   any adjustments made by the transmuxer
+ * @param {Function} audioSegmentTimingInfoFn
+ *                   a callback that receives audio timing info based on media times and
+ *                   any adjustments made by the transmuxer
  * @param {Function} id3Fn - a callback that receives ID3 metadata
  * @param {Function} captionsFn - a callback that receives captions
  * @param {Function} dataFn - a callback that receives data from the main segment's xhr
@@ -830,6 +870,7 @@ export const mediaSegmentRequest = ({
   trackInfoFn,
   timingInfoFn,
   videoSegmentTimingInfoFn,
+  audioSegmentTimingInfoFn,
   id3Fn,
   captionsFn,
   dataFn,
@@ -843,6 +884,7 @@ export const mediaSegmentRequest = ({
     trackInfoFn,
     timingInfoFn,
     videoSegmentTimingInfoFn,
+    audioSegmentTimingInfoFn,
     id3Fn,
     captionsFn,
     dataFn,
@@ -909,6 +951,7 @@ export const mediaSegmentRequest = ({
       trackInfoFn,
       timingInfoFn,
       videoSegmentTimingInfoFn,
+      audioSegmentTimingInfoFn,
       id3Fn,
       captionsFn,
       dataFn,

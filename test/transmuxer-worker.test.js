@@ -93,6 +93,7 @@ QUnit.test('flush should return data from transmuxer', function(assert) {
         'videoSegmentTimingInfo',
         'videoTimingInfo',
         'data',
+        'audioSegmentTimingInfo',
         'audioTimingInfo',
         'data',
         'done',
@@ -127,6 +128,10 @@ QUnit.test('flush should return data from transmuxer', function(assert) {
       data1.segment.type,
       'video',
       'returns video data with the 1st data event'
+    );
+    assert.ok(
+      messages.shift().audioSegmentTimingInfo,
+      'returns timing information with audioSegmentTimingInfo event'
     );
     assert.ok(
       messages.shift().audioTimingInfo,

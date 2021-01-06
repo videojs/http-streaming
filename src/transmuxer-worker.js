@@ -94,6 +94,30 @@ const wireFullTransmuxerEvents = function(self, transmuxer) {
     });
   });
 
+  transmuxer.on('audioSegmentTimingInfo', function(timingInfo) {
+    // Note that all times for [audio/video]SegmentTimingInfo events are in video clock
+    const audioSegmentTimingInfo = {
+      start: {
+        decode: videoTsToSeconds(timingInfo.start.dts),
+        presentation: videoTsToSeconds(timingInfo.start.pts)
+      },
+      end: {
+        decode: videoTsToSeconds(timingInfo.end.dts),
+        presentation: videoTsToSeconds(timingInfo.end.pts)
+      },
+      baseMediaDecodeTime: videoTsToSeconds(timingInfo.baseMediaDecodeTime)
+    };
+
+    if (timingInfo.prependedContentDuration) {
+      audioSegmentTimingInfo.prependedContentDuration =
+        videoTsToSeconds(timingInfo.prependedContentDuration);
+    }
+    self.postMessage({
+      action: 'audioSegmentTimingInfo',
+      audioSegmentTimingInfo
+    });
+  });
+
   transmuxer.on('id3Frame', function(id3Frame) {
     self.postMessage({
       action: 'id3Frame',
