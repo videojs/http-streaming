@@ -1,3 +1,10 @@
+<a name="2.4.2"></a>
+## [2.4.2](https://github.com/videojs/http-streaming/compare/v2.4.1...v2.4.2) (2021-01-07)
+
+### Bug Fixes
+
+* handle rollover and don't set wrong timing info for segments with high PTS/DTS values ([#1040](https://github.com/videojs/http-streaming/issues/1040)) ([9919b85](https://github.com/videojs/http-streaming/commit/9919b85))
+
 <a name="2.4.1"></a>
 ## [2.4.1](https://github.com/videojs/http-streaming/compare/v2.4.0...v2.4.1) (2020-12-22)
 
