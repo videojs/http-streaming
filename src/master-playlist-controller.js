@@ -1642,22 +1642,20 @@ export class MasterPlaylistController extends videojs.EventTarget {
       const unsupported = [];
 
       if (codecs.audio && !muxerSupportsCodec(codecs.audio) && !browserSupportsCodec(codecs.audio)) {
-        variant.excludeUntil = Infinity;
         unsupported.push(`audio codec ${codecs.audio}`);
       }
 
       if (codecs.video && !muxerSupportsCodec(codecs.video) && !browserSupportsCodec(codecs.video)) {
-        variant.excludeUntil = Infinity;
         unsupported.push(`video codec ${codecs.video}`);
       }
 
       if (codecs.text && codecs.text === 'stpp.ttml.im1t') {
-        variant.excludeUntil = Infinity;
         unsupported.push(`text codec ${codecs.text}`);
       }
 
       if (unsupported.length) {
-        this.logger_(`excluding ${variant.id} as codecs ${unsupported.join(', ')} are unsupported`);
+        variant.excludeUntil = Infinity;
+        this.logger_(`excluding ${variant.id} for unsupported codecs: ${unsupported.join(', ')}`);
       }
     });
   }
@@ -1677,16 +1675,23 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * @private
    */
   excludeIncompatibleVariants_(codecString) {
+    const ids = [];
+    const playlists = this.master().playlists;
     const codecs = unwrapCodecList(parseCodecs(codecString));
     const codecCount_ = codecCount(codecs);
     const videoDetails = codecs.video && parseCodecs(codecs.video)[0] || null;
     const audioDetails = codecs.audio && parseCodecs(codecs.audio)[0] || null;
 
-    this.master().playlists.forEach((variant) => {
-      // skip variants that are already blacklisted forever
-      if (variant.excludeUntil === Infinity) {
+    Object.keys(playlists).forEach((key) => {
+      const variant = playlists[key];
+
+      // check if we already processed this playlist.
+      // or it if it is already excluded forever.
+      if (ids.indexOf(variant.id) !== -1 || variant.excludeUntil === Infinity) {
         return;
       }
+
+      ids.push(variant.id);
       const blacklistReasons = [];
 
       // get codecs from the playlist for this variant
@@ -1704,7 +1709,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
       // The number of streams cannot change
       if (variantCodecCount !== codecCount_) {
         blacklistReasons.push(`codec count "${variantCodecCount}" !== "${codecCount_}"`);
-        variant.excludeUntil = Infinity;
       }
 
       // only exclude playlists by codec change, if codecs cannot switch
@@ -1716,17 +1720,16 @@ export class MasterPlaylistController extends videojs.EventTarget {
         // the video codec cannot change
         if (variantVideoDetails && videoDetails && variantVideoDetails.type.toLowerCase() !== videoDetails.type.toLowerCase()) {
           blacklistReasons.push(`video codec "${variantVideoDetails.type}" !== "${videoDetails.type}"`);
-          variant.excludeUntil = Infinity;
         }
 
         // the audio codec cannot change
         if (variantAudioDetails && audioDetails && variantAudioDetails.type.toLowerCase() !== audioDetails.type.toLowerCase()) {
-          variant.excludeUntil = Infinity;
           blacklistReasons.push(`audio codec "${variantAudioDetails.type}" !== "${audioDetails.type}"`);
         }
       }
 
       if (blacklistReasons.length) {
+        variant.excludeUntil = Infinity;
         this.logger_(`blacklisting ${variant.id}: ${blacklistReasons.join(' && ')}`);
       }
     });

@@ -1940,6 +1940,9 @@ QUnit.test('blacklists fmp4 playlists by browser support', function(assert) {
 });
 
 QUnit.test('blacklists ts playlists by muxer support', function(assert) {
+  const oldIsTypeSupported = window.MediaSource.isTypeSupported;
+
+  window.MediaSource.isTypeSupported = (t) => true;
   this.player.src({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -2004,6 +2007,7 @@ QUnit.test('blacklists ts playlists by muxer support', function(assert) {
     `Internal problem encountered with playlist ${playlists[1].id}. muxer does not support codec(s): "ac-3". Switching to playlist ${playlists[2].id}.`
   ], 'debug log as expected');
 
+  window.MediaSource.isTypeSupported = oldIsTypeSupported;
 });
 
 QUnit.test('cancels outstanding XHRs when seeking', function(assert) {

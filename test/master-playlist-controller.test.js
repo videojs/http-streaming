@@ -49,18 +49,18 @@ import {
 
 const sharedHooks = {
   beforeEach(assert) {
+    this.oldTypeSupported = window.MediaSource.isTypeSupported;
+    this.oldChangeType = window.SourceBuffer.prototype.changeType;
+
     this.env = useFakeEnvironment(assert);
     this.clock = this.env.clock;
     this.requests = this.env.requests;
-    this.oldTypeSupported = window.MediaSource.isTypeSupported;
     this.mse = useFakeMediaSource();
 
     if (!videojs.browser.IE_VERSION) {
       this.oldDevicePixelRatio = window.devicePixelRatio;
       window.devicePixelRatio = 1;
     }
-
-    this.oldChangeType = window.SourceBuffer.prototype.changeType;
 
     // force the HLS tech to run
     this.origSupportsNativeHls = videojs.Vhs.supportsNativeHls;
@@ -90,6 +90,8 @@ const sharedHooks = {
     this.masterPlaylistController.mainSegmentLoader_.addSegmentMetadataCue_ = () => {};
   },
   afterEach() {
+    window.MediaSource.isTypeSupported = this.oldTypeSupported;
+    window.SourceBuffer.prototype.changeType = this.oldChangeType;
     this.env.restore();
     this.mse.restore();
     videojs.Vhs.supportsNativeHls = this.origSupportsNativeHls;
@@ -99,8 +101,6 @@ const sharedHooks = {
     }
     videojs.browser = this.oldBrowser;
     this.player.dispose();
-    window.MediaSource.isTypeSupported = this.oldTypeSupported;
-    window.SourceBuffer.prototype.changeType = this.oldChangeType;
   }
 
 };
