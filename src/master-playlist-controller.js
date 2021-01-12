@@ -1655,7 +1655,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
       if (unsupported.length) {
         variant.excludeUntil = Infinity;
-        this.logger_(`excluding ${variant.id} for unsupported codecs: ${unsupported.join(', ')}`);
+        this.logger_(`excluding ${variant.id} for unsupported: ${unsupported.join(', ')}`);
       }
     });
   }
