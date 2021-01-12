@@ -10,6 +10,7 @@ import {
 } from './test-helpers';
 import TransmuxWorker from 'worker!../src/transmuxer-worker.worker.js';
 import Decrypter from 'worker!../src/decrypter-worker.worker.js';
+import {dispose as segmentTransmuxerDispose} from '../src/segment-transmuxer.js';
 import {
   aacWithoutId3 as aacWithoutId3Segment,
   aacWithId3 as aacWithId3Segment,
@@ -91,6 +92,9 @@ const sharedHooks = {
     if (this.transmuxer) {
       this.transmuxer.terminate();
     }
+
+    // clear current transmux on segment transmuxer
+    segmentTransmuxerDispose();
   }
 
 };
@@ -1247,6 +1251,7 @@ QUnit.test('data callback does not fire if too little partial data', function(as
 
   assert.ok(progressSpy.callCount, 'got a progress event');
   assert.notOk(dataSpy.callCount, 'did not get data event');
+  this.standardXHRResponse(request, muxedSegment());
 });
 
 // TODO test only worked with the completion of a segment request. It should be rewritten
