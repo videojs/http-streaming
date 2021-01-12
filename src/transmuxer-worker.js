@@ -1,6 +1,6 @@
 /* global self */
 /**
- * @file transmuxer.js
+ * @file transmuxer-worker.js
  */
 
 /**

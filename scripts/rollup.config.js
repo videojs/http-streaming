@@ -26,11 +26,11 @@ const options = {
     });
   },
   plugins(defaults) {
-    defaults.module.splice(0, 0, 'worker');
-    defaults.browser.splice(0, 0, 'worker');
-    defaults.test.splice(1, 0, 'worker');
-
-    defaults.test.splice(0, 0, 'createTestData');
+    // add worker and createTestData to the front of plugin lists
+    defaults.module.unshift('worker');
+    defaults.browser.unshift('worker');
+    defaults.test.unshift('worker');
+    defaults.test.unshift('createTestData');
 
     // istanbul is only in the list for regular builds and not watch
     if (defaults.test.indexOf('istanbul') !== -1) {
