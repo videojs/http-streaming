@@ -67,10 +67,6 @@ QUnit.module('Playback', {
       }
     });
 
-    this.player.one('loadedmetadata', () => {
-      // eslint-disable-next-line
-      console.log(this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.codecs);
-    });
     this.player.eme();
     this.player.ready(done, true);
   },
