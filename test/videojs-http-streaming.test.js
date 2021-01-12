@@ -1805,6 +1805,9 @@ QUnit.test('blacklists incompatible playlists by codec, without codec switching'
 });
 
 QUnit.test('does not blacklist incompatible codecs with codec switching', function(assert) {
+  const oldIsTypeSupported = window.MediaSource.isTypeSupported;
+
+  window.MediaSource.isTypeSupported = (t) => (/avc1|mp4a/).test(t);
   this.player.src({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -1862,6 +1865,7 @@ QUnit.test('does not blacklist incompatible codecs with codec switching', functi
   assert.strictEqual(playlists[4].excludeUntil, Infinity, 'blacklisted audio only playlist');
   assert.strictEqual(playlists[5].excludeUntil, Infinity, 'blacklisted video only playlist');
   assert.strictEqual(typeof playlists[6].excludeUntil, 'undefined', 'did not blacklist seventh playlist');
+  window.MediaSource.isTypeSupported = oldIsTypeSupported;
 });
 
 QUnit.test('blacklists fmp4 playlists by browser support', function(assert) {
