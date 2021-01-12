@@ -1213,7 +1213,6 @@ QUnit.test('callbacks fire for TS segment with partial data', function(assert) {
   this.standardXHRResponse(request, muxedSegment());
 });
 
-// TODO: tests after this one appear to fail
 QUnit.test('data callback does not fire if too little partial data', function(assert) {
   const progressSpy = sinon.spy();
   const dataSpy = sinon.spy();
@@ -1251,7 +1250,6 @@ QUnit.test('data callback does not fire if too little partial data', function(as
 
   assert.ok(progressSpy.callCount, 'got a progress event');
   assert.notOk(dataSpy.callCount, 'did not get data event');
-  this.standardXHRResponse(request, muxedSegment());
 });
 
 // TODO test only worked with the completion of a segment request. It should be rewritten
