@@ -10,6 +10,7 @@ import {
 } from './test-helpers';
 import TransmuxWorker from 'worker!../src/transmuxer-worker.worker.js';
 import Decrypter from 'worker!../src/decrypter-worker.worker.js';
+import {dispose as segmentTransmuxerDispose} from '../src/segment-transmuxer.js';
 import {
   aacWithoutId3 as aacWithoutId3Segment,
   aacWithId3 as aacWithId3Segment,
@@ -91,6 +92,9 @@ const sharedHooks = {
     if (this.transmuxer) {
       this.transmuxer.terminate();
     }
+
+    // clear current transmux on segment transmuxer
+    segmentTransmuxerDispose();
   }
 
 };
@@ -1209,7 +1213,6 @@ QUnit.test('callbacks fire for TS segment with partial data', function(assert) {
   this.standardXHRResponse(request, muxedSegment());
 });
 
-// TODO: tests after this one appear to fail
 QUnit.test('data callback does not fire if too little partial data', function(assert) {
   const progressSpy = sinon.spy();
   const dataSpy = sinon.spy();
