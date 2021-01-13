@@ -8,9 +8,8 @@ import {
   standardXHRResponse,
   downloadProgress
 } from './test-helpers';
-import TransmuxWorker from 'worker!../src/transmuxer-worker.js';
+import {createTransmuxer as createTransmuxer_} from '../src/segment-transmuxer.js';
 import Decrypter from 'worker!../src/decrypter-worker.js';
-import {dispose as segmentTransmuxerDispose} from '../src/segment-transmuxer.js';
 import {
   aacWithoutId3 as aacWithoutId3Segment,
   aacWithId3 as aacWithId3Segment,
@@ -71,18 +70,11 @@ const sharedHooks = {
     };
 
     this.createTransmuxer = (isPartial) => {
-      const transmuxer = new TransmuxWorker();
-
-      transmuxer.postMessage({
-        action: 'init',
-        options: {
-          remux: false,
-          keepOriginalTimestamps: true,
-          handlePartialData: isPartial
-        }
+      return createTransmuxer_({
+        remux: false,
+        keepOriginalTimestamps: true,
+        handlePartialData: isPartial
       });
-
-      return transmuxer;
     };
   },
   afterEach(assert) {
@@ -92,9 +84,6 @@ const sharedHooks = {
     if (this.transmuxer) {
       this.transmuxer.terminate();
     }
-
-    // clear current transmux on segment transmuxer
-    segmentTransmuxerDispose();
   }
 
 };

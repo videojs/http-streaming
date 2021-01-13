@@ -1,6 +1,5 @@
 import QUnit from 'qunit';
 import sinon from 'sinon';
-import TransmuxWorker from 'worker!../src/transmuxer-worker.js';
 import {
   muxed as muxedSegment,
   caption as captionSegment,
@@ -17,7 +16,7 @@ import {
   handleGopInfo_,
   handleDone_,
   handleData_,
-  dispose
+  createTransmuxer as createTransmuxer_
 } from '../src/segment-transmuxer';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
@@ -25,24 +24,19 @@ import '../src/videojs-http-streaming';
 const noop = () => {};
 
 const createTransmuxer = (isPartial) => {
-  const transmuxer = new TransmuxWorker();
-
-  transmuxer.postMessage({
-    action: 'init',
-    options: {
-      remux: false,
-      keepOriginalTimestamps: true,
-      handlePartialData: isPartial
-    }
+  return createTransmuxer_({
+    remux: false,
+    keepOriginalTimestamps: true,
+    handlePartialData: isPartial
   });
-
-  return transmuxer;
 };
 
 const mockTransmuxer = (isPartial) => {
   const transmuxer = {
     postMessage(event) {},
-    terminate() {}
+    terminate() {},
+    currentTransmux: null,
+    transmuxQueue: []
   };
 
   return transmuxer;
@@ -54,7 +48,6 @@ QUnit.module('Segment Transmuxer', {
     assert.timeout(5000);
   },
   afterEach(assert) {
-    dispose();
     if (this.transmuxer) {
       this.transmuxer.terminate();
     }
@@ -240,7 +233,7 @@ QUnit.test('dequeues and processes action on dequeue()', function(assert) {
     'the transmux() posted `flush` to the transmuxer'
   );
 
-  dequeue();
+  dequeue(this.transmuxer);
   assert.deepEqual(this.transmuxer.postMessage.callCount, 2, 'two actions processed');
   assert.deepEqual(
     this.transmuxer.postMessage.args[1][0],

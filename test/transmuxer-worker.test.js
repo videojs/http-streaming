@@ -1,5 +1,5 @@
 import QUnit from 'qunit';
-import TransmuxWorker from 'worker!../src/transmuxer-worker.js';
+import {createTransmuxer as createTransmuxer_} from '../src/segment-transmuxer.js';
 import {
   mp4Captions as mp4CaptionsSegment,
   muxed as muxedSegment,
@@ -10,18 +10,11 @@ import {
 import '../src/videojs-http-streaming';
 
 const createTransmuxer = (isPartial) => {
-  const transmuxer = new TransmuxWorker();
-
-  transmuxer.postMessage({
-    action: 'init',
-    options: {
-      remux: false,
-      keepOriginalTimestamps: true,
-      handlePartialData: isPartial
-    }
+  return createTransmuxer_({
+    remux: false,
+    keepOriginalTimestamps: true,
+    handlePartialData: isPartial
   });
-
-  return transmuxer;
 };
 
 // The final done message from the Transmux worker
