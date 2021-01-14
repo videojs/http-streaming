@@ -14,7 +14,7 @@ import {
 import {
   DEFAULT_AUDIO_CODEC,
   DEFAULT_VIDEO_CODEC
-} from '@videojs/vhs-utils/dist/codecs.js';
+} from '@videojs/vhs-utils/es/codecs.js';
 import manifests from 'create-test-data!manifests';
 import {
   MasterPlaylistController
@@ -49,18 +49,18 @@ import {
 
 const sharedHooks = {
   beforeEach(assert) {
+    this.oldTypeSupported = window.MediaSource.isTypeSupported;
+    this.oldChangeType = window.SourceBuffer.prototype.changeType;
+
     this.env = useFakeEnvironment(assert);
     this.clock = this.env.clock;
     this.requests = this.env.requests;
-    this.oldTypeSupported = window.MediaSource.isTypeSupported;
     this.mse = useFakeMediaSource();
 
     if (!videojs.browser.IE_VERSION) {
       this.oldDevicePixelRatio = window.devicePixelRatio;
       window.devicePixelRatio = 1;
     }
-
-    this.oldChangeType = window.SourceBuffer.prototype.changeType;
 
     // force the HLS tech to run
     this.origSupportsNativeHls = videojs.Vhs.supportsNativeHls;
@@ -90,6 +90,8 @@ const sharedHooks = {
     this.masterPlaylistController.mainSegmentLoader_.addSegmentMetadataCue_ = () => {};
   },
   afterEach() {
+    window.MediaSource.isTypeSupported = this.oldTypeSupported;
+    window.SourceBuffer.prototype.changeType = this.oldChangeType;
     this.env.restore();
     this.mse.restore();
     videojs.Vhs.supportsNativeHls = this.origSupportsNativeHls;
@@ -99,8 +101,6 @@ const sharedHooks = {
     }
     videojs.browser = this.oldBrowser;
     this.player.dispose();
-    window.MediaSource.isTypeSupported = this.oldTypeSupported;
-    window.SourceBuffer.prototype.changeType = this.oldChangeType;
   }
 
 };
@@ -1275,6 +1275,7 @@ QUnit.test('blacklists switching from audio-only playlists to video+audio', func
   openMediaSource(this.player, this.clock);
 
   this.player.tech_.vhs.bandwidth = 1;
+  const mpc = this.masterPlaylistController;
 
   // master
   this.requests.shift().respond(
@@ -1282,14 +1283,13 @@ QUnit.test('blacklists switching from audio-only playlists to video+audio', func
     '#EXTM3U\n' +
                                 '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="mp4a.40.2"\n' +
                                 'media.m3u8\n' +
-                                '#EXT-X-STREAM-INF:BANDWIDTH=10,RESOLUTION=1x1\n' +
+                                '#EXT-X-STREAM-INF:BANDWIDTH=10,RESOLUTION=1x1,CODECS="avc1.4d400d,mp4a.40.2"\n' +
                                 'media1.m3u8\n'
   );
 
   // media1
   this.standardXHRResponse(this.requests.shift());
 
-  const mpc = this.masterPlaylistController;
   let debugLogs = [];
 
   mpc.logger_ = (...logs) => {

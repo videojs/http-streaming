@@ -335,7 +335,7 @@
     "features": []
   },
   {
-    "name": "(Not Working) ts one valid codec among many invalid",
+    "name": "ts one valid codec among many invalid",
     "uri": "https://d2zihajmogu5jn.cloudfront.net/ts-one-valid-many-invalid-codecs/master.m3u8",
     "mimetype": "application/x-mpegurl",
     "features": []

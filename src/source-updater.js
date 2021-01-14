@@ -5,7 +5,7 @@ import videojs from 'video.js';
 import logger from './util/logger';
 import noop from './util/noop';
 import { bufferIntersection } from './ranges.js';
-import {getMimeForCodec} from '@videojs/vhs-utils/dist/codecs.js';
+import {getMimeForCodec} from '@videojs/vhs-utils/es/codecs.js';
 import window from 'global/window';
 import toTitleCase from './util/to-title-case.js';
 

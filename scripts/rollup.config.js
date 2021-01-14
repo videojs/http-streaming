@@ -2,6 +2,7 @@ const generate = require('videojs-generate-rollup-config');
 const worker = require('@gkatsev/rollup-plugin-bundle-worker');
 const {terser} = require('rollup-plugin-terser');
 const createTestData = require('./create-test-data.js');
+const replace = require('@rollup/plugin-replace');
 
 // see https://github.com/videojs/videojs-generate-rollup-config
 // for options
@@ -35,11 +36,18 @@ const options = {
     if (defaults.test.indexOf('istanbul') !== -1) {
       defaults.test.splice(defaults.test.indexOf('istanbul'), 1);
     }
+    defaults.module.unshift('replace');
 
     return defaults;
   },
   primedPlugins(defaults) {
     return Object.assign(defaults, {
+      replace: replace({
+        // single quote replace
+        "require('@videojs/vhs-utils/es": "require('@videojs/vhs-utils/cjs",
+        // double quote replace
+        'require("@videojs/vhs-utils/es': 'require("@videojs/vhs-utils/cjs'
+      }),
       worker: worker(),
       uglify: terser({
         output: {comments: 'some'},

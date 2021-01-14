@@ -6,8 +6,8 @@ import testDataManifests from 'create-test-data!manifests';
 import xhrFactory from '../src/xhr';
 import window from 'global/window';
 import { muxed as muxedSegment } from 'create-test-data!segments';
-import {bytesToString, isTypedArray} from '@videojs/vhs-utils/dist/byte-helpers';
-import {isLikelyFmp4MediaSegment} from '@videojs/vhs-utils/dist/containers';
+import {bytesToString, isTypedArray} from '@videojs/vhs-utils/es/byte-helpers';
+import {isLikelyFmp4MediaSegment} from '@videojs/vhs-utils/es/containers';
 
 // return an absolute version of a page-relative URL
 export const absoluteUrl = function(relativeUrl) {

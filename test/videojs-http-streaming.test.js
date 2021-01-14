@@ -1805,6 +1805,9 @@ QUnit.test('blacklists incompatible playlists by codec, without codec switching'
 });
 
 QUnit.test('does not blacklist incompatible codecs with codec switching', function(assert) {
+  const oldIsTypeSupported = window.MediaSource.isTypeSupported;
+
+  window.MediaSource.isTypeSupported = (t) => (/avc1|mp4a/).test(t);
   this.player.src({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -1857,11 +1860,12 @@ QUnit.test('does not blacklist incompatible codecs with codec switching', functi
   assert.strictEqual(playlists.length, 7, 'six playlists total');
   assert.strictEqual(typeof playlists[0].excludeUntil, 'undefined', 'did not blacklist first playlist');
   assert.strictEqual(typeof playlists[1].excludeUntil, 'undefined', 'did not blacklist second playlist');
-  assert.strictEqual(typeof playlists[2].excludeUntil, 'undefined', 'blacklisted incompatible audio playlist');
-  assert.strictEqual(typeof playlists[3].excludeUntil, 'undefined', 'blacklisted incompatible video playlist');
+  assert.strictEqual(playlists[2].excludeUntil, Infinity, 'blacklisted incompatible audio playlist');
+  assert.strictEqual(playlists[3].excludeUntil, Infinity, 'blacklisted incompatible video playlist');
   assert.strictEqual(playlists[4].excludeUntil, Infinity, 'blacklisted audio only playlist');
   assert.strictEqual(playlists[5].excludeUntil, Infinity, 'blacklisted video only playlist');
   assert.strictEqual(typeof playlists[6].excludeUntil, 'undefined', 'did not blacklist seventh playlist');
+  window.MediaSource.isTypeSupported = oldIsTypeSupported;
 });
 
 QUnit.test('blacklists fmp4 playlists by browser support', function(assert) {
@@ -1940,6 +1944,9 @@ QUnit.test('blacklists fmp4 playlists by browser support', function(assert) {
 });
 
 QUnit.test('blacklists ts playlists by muxer support', function(assert) {
+  const oldIsTypeSupported = window.MediaSource.isTypeSupported;
+
+  window.MediaSource.isTypeSupported = (t) => true;
   this.player.src({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -2004,6 +2011,7 @@ QUnit.test('blacklists ts playlists by muxer support', function(assert) {
     `Internal problem encountered with playlist ${playlists[1].id}. muxer does not support codec(s): "ac-3". Switching to playlist ${playlists[2].id}.`
   ], 'debug log as expected');
 
+  window.MediaSource.isTypeSupported = oldIsTypeSupported;
 });
 
 QUnit.test('cancels outstanding XHRs when seeking', function(assert) {
