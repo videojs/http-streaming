@@ -475,6 +475,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.handlePartialData_ = settings.handlePartialData;
     this.timelineChangeController_ = settings.timelineChangeController;
     this.shouldSaveSegmentTimingInfo_ = true;
+    this.cc708_ = settings.cc708;
 
     // private instance variables
     this.checkBufferTimeout_ = null;
@@ -595,6 +596,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     transmuxer.postMessage({
       action: 'init',
       options: {
+        cc708: this.cc708_,
         remux: false,
         alignGopsAtEnd: this.safeAppend_,
         keepOriginalTimestamps: true,
