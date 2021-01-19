@@ -209,7 +209,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     const segmentLoaderSettings = {
       vhs: this.vhs_,
-      cc708: options.cc708,
+      parse708captions: options.parse708captions,
       mediaSource: this.mediaSource,
       currentTime: this.tech_.currentTime.bind(this.tech_),
       seekable: () => this.seekable(),
