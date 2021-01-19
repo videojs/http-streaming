@@ -33,6 +33,25 @@ Copy only the first two video frames, leave out audio.
 $ ffmpeg -i index0.ts -vframes 2 -an -vcodec copy video.ts
 ```
 
+### videoOneSecond.ts
+
+Blank video for 1 second, MMS-Small resolution, start at 0 PTS/DTS, 2 frames per second
+
+```
+$ ffmpeg -f lavfi -i color=c=black:s=128x96:r=2:d=1 -muxdelay 0 -c:v libx264 videoOneSecond.ts
+```
+
+### videoOneSecond1.ts through videoOneSecond4.ts
+
+Same as videoOneSecond.ts, but follows timing in sequence, with videoOneSecond.ts acting as the 0 index. Each segment starts at the second that its index indicates (e.g., videoOneSecond2.ts has a start time of 2 seconds).
+
+```
+$ ffmpeg -i videoOneSecond.ts -muxdelay 0 -output_ts_offset 1 -vcodec copy videoOneSecond1.ts
+$ ffmpeg -i videoOneSecond.ts -muxdelay 0 -output_ts_offset 2 -vcodec copy videoOneSecond2.ts
+$ ffmpeg -i videoOneSecond.ts -muxdelay 0 -output_ts_offset 3 -vcodec copy videoOneSecond3.ts
+$ ffmpeg -i videoOneSecond.ts -muxdelay 0 -output_ts_offset 4 -vcodec copy videoOneSecond4.ts
+```
+
 ### audio.ts
 
 Copy only the first two audio frames, leave out video.
