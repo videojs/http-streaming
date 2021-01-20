@@ -22,11 +22,20 @@ export const createPlaylistID = (index, uri) => {
  *         The manifest object
  */
 export const parseManifest = ({
+  onwarn,
+  oninfo,
   manifestString,
   customTagParsers = [],
   customTagMappers = []
 }) => {
   const parser = new M3u8Parser();
+
+  if (onwarn) {
+    parser.on('warn', onwarn);
+  }
+  if (oninfo) {
+    parser.on('info', oninfo);
+  }
 
   customTagParsers.forEach(customParser => parser.addParser(customParser));
   customTagMappers.forEach(mapper => parser.addTagMapper(mapper));
