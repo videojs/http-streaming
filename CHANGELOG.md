@@ -1,3 +1,19 @@
+<a name="2.5.0"></a>
+# [2.5.0](https://github.com/videojs/http-streaming/compare/v2.4.2...v2.5.0) (2021-01-20)
+
+### Features
+
+* add flag to turn off 708 captions ([#1047](https://github.com/videojs/http-streaming/issues/1047)) ([ab5b4dc](https://github.com/videojs/http-streaming/commit/ab5b4dc))
+
+### Chores
+
+* update [@videojs](https://github.com/videojs)/vhs-utils to v3.0.0 ([#1036](https://github.com/videojs/http-streaming/issues/1036)) ([b072c93](https://github.com/videojs/http-streaming/commit/b072c93))
+
+### Tests
+
+* clear segment transmuxer in media segment request tests ([#1043](https://github.com/videojs/http-streaming/issues/1043)) ([83057a8](https://github.com/videojs/http-streaming/commit/83057a8))
+* don't show QUnit UI in regular test runs ([#1044](https://github.com/videojs/http-streaming/issues/1044)) ([25c7f64](https://github.com/videojs/http-streaming/commit/25c7f64))
+
 <a name="2.4.2"></a>
 ## [2.4.2](https://github.com/videojs/http-streaming/compare/v2.4.1...v2.4.2) (2021-01-07)
 
