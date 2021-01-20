@@ -324,7 +324,7 @@ cuesTrack.addEventListener('cuechange', function() {
 * Default: `true`
 * can be used as an initialization option
 
-When provided, 708 captions in the stream are not parsed and will not show up in text track lists or the captions menu.
+When set to `false`, 708 captions in the stream are not parsed and will not show up in text track lists or the captions menu.
 
 ##### overrideNative
 * Type: `boolean`
