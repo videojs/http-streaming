@@ -8,6 +8,7 @@
 import { resolveUrl, resolveManifestRedirect } from './resolve-url';
 import videojs from 'video.js';
 import window from 'global/window';
+import logger from './util/logger';
 import {
   parseManifest,
   addPropertiesToMaster,
@@ -157,6 +158,7 @@ export default class PlaylistLoader extends EventTarget {
     if (!src) {
       throw new Error('A non-empty playlist URL or object is required');
     }
+    this.logger_ = logger('PlaylistLoader');
 
     const { withCredentials = false, handleManifestRedirects = false } = options;
 
@@ -246,6 +248,8 @@ export default class PlaylistLoader extends EventTarget {
     this.state = 'HAVE_METADATA';
 
     const playlist = playlistObject || parseManifest({
+      onwarn: ({message}) => this.logger_(`m3u8-parser warn for ${id}: ${message}`),
+      oninfo: ({message}) => this.logger_(`m3u8-parser info for ${id}: ${message}`),
       manifestString: playlistString,
       customTagParsers: this.customTagParsers,
       customTagMappers: this.customTagMappers
