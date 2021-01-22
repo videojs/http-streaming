@@ -133,30 +133,33 @@ export const comparePlaylistResolution = function(left, right) {
 /**
  * Chooses the appropriate media playlist based on bandwidth and player size
  *
- * @param {Object} main
+ * @param {Object} settings
+ *        Object of information required to use this selector
+ * @param {Object} settings.main
  *        Object representation of the main manifest
- * @param {number} playerBandwidth
+ * @param {number} settings.bandwidth
  *        Current calculated bandwidth of the player
- * @param {number} playerWidth
+ * @param {number} settings.playerWidth
  *        Current width of the player element (should account for the device pixel ratio)
- * @param {number} playerHeight
+ * @param {number} settings.playerHeight
  *        Current height of the player element (should account for the device pixel ratio)
- * @param {boolean} limitRenditionByPlayerDimensions
+ * @param {boolean} settings.limitRenditionByPlayerDimensions
  *        True if the player width and height should be used during the selection, false otherwise
- * @param {Object} playlistController
+ * @param {Object} settings.playlistController
  *        the current playlistController object
  * @return {Playlist} the highest bitrate playlist less than the
  * currently detected bandwidth, accounting for some amount of
  * bandwidth variance
  */
-export let simpleSelector = function(
-  main,
-  playerBandwidth,
-  playerWidth,
-  playerHeight,
-  limitRenditionByPlayerDimensions,
-  playlistController
-) {
+export let simpleSelector = function(settings) {
+  const {
+    main,
+    bandwidth: playerBandwidth,
+    playerWidth,
+    playerHeight,
+    limitRenditionByPlayerDimensions,
+    playlistController
+  } = settings;
 
   // If we end up getting called before `main` is available, exit early
   if (!main) {
@@ -366,14 +369,14 @@ export const TEST_ONLY_SIMPLE_SELECTOR = (newSimpleSelector) => {
 export const lastBandwidthSelector = function() {
   const pixelRatio = this.useDevicePixelRatio ? window.devicePixelRatio || 1 : 1;
 
-  return simpleSelector(
-    this.playlists.main,
-    this.systemBandwidth,
-    parseInt(safeGetComputedStyle(this.tech_.el(), 'width'), 10) * pixelRatio,
-    parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10) * pixelRatio,
-    this.limitRenditionByPlayerDimensions,
-    this.playlistController_
-  );
+  return simpleSelector({
+    main: this.playlists.main,
+    bandwidth: this.systemBandwidth,
+    playerWidth: parseInt(safeGetComputedStyle(this.tech_.el(), 'width'), 10) * pixelRatio,
+    playerHeight: parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10) * pixelRatio,
+    limitRenditionByPlayerDimensions: this.limitRenditionByPlayerDimensions,
+    playlistController: this.playlistController_
+  });
 };
 
 /**
@@ -417,14 +420,14 @@ export const movingAverageBandwidthSelector = function(decay) {
       lastSystemBandwidth = this.systemBandwidth;
     }
 
-    return simpleSelector(
-      this.playlists.main,
-      average,
-      parseInt(safeGetComputedStyle(this.tech_.el(), 'width'), 10) * pixelRatio,
-      parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10) * pixelRatio,
-      this.limitRenditionByPlayerDimensions,
-      this.playlistController_
-    );
+    return simpleSelector({
+      main: this.playlists.main,
+      bandwidth: average,
+      playerWidth: parseInt(safeGetComputedStyle(this.tech_.el(), 'width'), 10) * pixelRatio,
+      playerHeight: parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10) * pixelRatio,
+      limitRenditionByPlayerDimensions: this.limitRenditionByPlayerDimensions,
+      playlistController: this.playlistController_
+    });
   };
 };
 
