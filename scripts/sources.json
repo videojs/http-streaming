@@ -339,5 +339,17 @@
     "uri": "https://d2zihajmogu5jn.cloudfront.net/ts-one-valid-many-invalid-codecs/master.m3u8",
     "mimetype": "application/x-mpegurl",
     "features": []
+  },
+  {
+    "name": "Legacy AVC Codec",
+    "uri": "https://d2zihajmogu5jn.cloudfront.net/legacy-avc-codec/master.m3u8",
+    "mimetype": "application/x-mpegurl",
+    "features": []
+  },
+  {
+    "name": "Apple LL-HLS test stream",
+    "uri": "https://ll-hls-test.apple.com/cmaf/master.m3u8",
+    "mimetype": "application/x-mpegurl",
+    "features": []
   }
 ]
