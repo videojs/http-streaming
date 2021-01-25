@@ -217,7 +217,7 @@
     representationsEl.selectedIndex = selectedIndex;
   };
 
-  ['debug', 'autoplay', 'muted', 'minified', 'liveui', 'partial', 'url', 'type', 'keysystems', 'buffer-water', 'override-native'].forEach(function(name) {
+  ['debug', 'autoplay', 'muted', 'minified', 'sync-workers', 'liveui', 'partial', 'url', 'type', 'keysystems', 'buffer-water', 'override-native'].forEach(function(name) {
     stateEls[name] = document.getElementById(name);
   });
 
@@ -242,6 +242,13 @@
     stateEls.autoplay.addEventListener('change', function(event) {
       saveState();
       window.player.autoplay(event.target.checked);
+    });
+
+    stateEls['sync-workers'].addEventListener('change', function(event) {
+      saveState();
+
+      // reload the player and scripts
+      stateEls.minified.dispatchEvent(newEvent('change'));
     });
 
     stateEls.debug.addEventListener('change', function(event) {
@@ -281,11 +288,16 @@
         'node_modules/video.js/dist/alt/video.core',
         'node_modules/videojs-contrib-eme/dist/videojs-contrib-eme',
         'node_modules/videojs-contrib-quality-levels/dist/videojs-contrib-quality-levels',
-        'node_modules/videojs-http-source-selector/dist/videojs-http-source-selector',
-        'dist/videojs-http-streaming'
+        'node_modules/videojs-http-source-selector/dist/videojs-http-source-selector'
       ].map(function(url) {
         return url + (event.target.checked ? '.min' : '') + '.js';
       });
+
+      if (stateEls['sync-workers'].checked) {
+        urls.push('dist/videojs-http-streaming-sync-workers.js');
+      } else {
+        urls.push('dist/videojs-http-streaming' + (event.target.checked ? '.min' : '') + '.js');
+      }
 
       saveState();
 

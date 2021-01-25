@@ -4,6 +4,7 @@ const {terser} = require('rollup-plugin-terser');
 const createTestData = require('./create-test-data.js');
 const replace = require('@rollup/plugin-replace');
 
+let mockWorker;
 // see https://github.com/videojs/videojs-generate-rollup-config
 // for options
 const options = {
@@ -62,6 +63,13 @@ const options = {
       defaults.babel
     ]});
 
+    mockWorker = worker({type: 'mock', plugins: [
+      defaults.resolve,
+      defaults.json,
+      defaults.commonjs,
+      defaults.babel
+    ]});
+
     return defaults;
   },
   babel(defaults) {
@@ -82,6 +90,18 @@ if (process.env.CI_TEST_TYPE) {
   }
 }
 const config = generate(options);
+
+if (config.builds.browser) {
+  config.builds.syncWorkers = config.makeBuild('browser', {
+    output: {
+      name: 'httpStreaming',
+      format: 'umd',
+      file: 'dist/videojs-http-streaming-sync-workers.js'
+    }
+  });
+
+  config.builds.syncWorkers.plugins[0] = mockWorker;
+}
 
 // Add additonal builds/customization here!
 
