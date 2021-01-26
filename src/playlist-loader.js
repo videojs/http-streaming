@@ -34,19 +34,36 @@ const { mergeOptions, EventTarget } = videojs;
   * @return a list of merged segment objects
   */
 export const updateSegments = (original, update, offset) => {
+  const oldSegments = original.slice();
   const result = update.slice();
 
   offset = offset || 0;
   const length = Math.min(original.length, update.length + offset);
 
   for (let i = offset; i < length; i++) {
-    result[i - offset] = mergeOptions(original[i], result[i - offset]);
+    const newIndex = i - offset;
+
+    // merge parts
+    if (result[newIndex] && result[newIndex].parts && oldSegments[i] && oldSegments[i].parts) {
+      for (let p = 0; p < result[newIndex].parts; p++) {
+        result[newIndex].parts[p] = mergeOptions(oldSegments[i].parts[p], result[newIndex].parts[p]);
+      }
+    }
+
+    // part merging happens above. If the new playlist has no parts for
+    // a segment, they are no longer valid for requsting
+    if (oldSegments[i] && oldSegments[i].parts) {
+      delete oldSegments[i].parts;
+    }
+    result[newIndex] = mergeOptions(original[i], result[i - offset]);
   }
   return result;
 };
 
 export const resolveSegmentUris = (segment, baseUri) => {
-  if (!segment.resolvedUri) {
+  // preloadSegments will not have a uri at all
+  // as the segment isn't actually in the manifest yet, only parts
+  if (!segment.resolvedUri && segment.uri) {
     segment.resolvedUri = resolveUrl(baseUri, segment.uri);
   }
   if (segment.key && !segment.key.resolvedUri) {
@@ -54,6 +71,23 @@ export const resolveSegmentUris = (segment, baseUri) => {
   }
   if (segment.map && !segment.map.resolvedUri) {
     segment.map.resolvedUri = resolveUrl(baseUri, segment.map.uri);
+  }
+  if (segment.parts && segment.parts.length) {
+    segment.parts.forEach((p) => {
+      if (p.resolvedUri) {
+        return;
+      }
+      p.resolvedUri = resolveUrl(baseUri, p.URI);
+    });
+  }
+
+  if (segment.preloadHints && segment.preloadHints.length) {
+    segment.preloadHints.forEach((p) => {
+      if (p.resolvedUri) {
+        return;
+      }
+      p.resolvedUri = resolveUrl(baseUri, p.URI);
+    });
   }
 };
 
@@ -173,6 +207,7 @@ export default class PlaylistLoader extends EventTarget {
 
     this.customTagParsers = (vhsOptions && vhsOptions.customTagParsers) || [];
     this.customTagMappers = (vhsOptions && vhsOptions.customTagMappers) || [];
+    this.llhls = (vhsOptions && vhsOptions.llhls) || false;
 
     // initialize the loader state
     this.state = 'HAVE_NOTHING';
@@ -254,7 +289,8 @@ export default class PlaylistLoader extends EventTarget {
       oninfo: ({message}) => this.logger_(`m3u8-parser info for ${id}: ${message}`),
       manifestString: playlistString,
       customTagParsers: this.customTagParsers,
-      customTagMappers: this.customTagMappers
+      customTagMappers: this.customTagMappers,
+      llhls: this.llhls
     });
 
     playlist.lastRequest = Date.now();
@@ -562,7 +598,8 @@ export default class PlaylistLoader extends EventTarget {
       const manifest = parseManifest({
         manifestString: req.responseText,
         customTagParsers: this.customTagParsers,
-        customTagMappers: this.customTagMappers
+        customTagMappers: this.customTagMappers,
+        llhls: this.llhls
       });
 
       this.setupInitialPlaylist(manifest);

@@ -432,10 +432,14 @@ export const playlistWithDuration = function(time, conf) {
     attributes: conf && typeof conf.attributes !== 'undefined' ? conf.attributes : {}
   };
 
+  if (conf && conf.llhls) {
+    result.partTargetDuration = conf.llhls.partTargetDuration || (targetDuration / 5);
+  }
+
   result.id = result.uri;
 
-  const count = Math.floor(time / targetDuration);
   const remainder = time % targetDuration;
+  const count = Math.floor(time / targetDuration) + (remainder ? 1 : 0);
   let i;
   const isEncrypted = conf && conf.isEncrypted;
   const extension = conf && conf.extension ? conf.extension : '.ts';
@@ -454,7 +458,8 @@ export const playlistWithDuration = function(time, conf) {
     const segment = {
       uri: i + extension,
       resolvedUri: i + extension,
-      duration: targetDuration,
+      // last segment will be less then 10 if duration is uneven
+      duration: (i + 1 === count && remainder) ? remainder : targetDuration,
       timeline
     };
 
@@ -469,15 +474,26 @@ export const playlistWithDuration = function(time, conf) {
       segment.discontinuity = true;
     }
 
+    // add parts for the the last 3 segments in llhls playlists
+    if (conf && conf.llhls && (count - i) <= 3) {
+      segment.parts = [];
+      const partRemainder = segment.duration % result.partTargetDuration;
+      const partCount = Math.floor(segment.duration / result.targetDuration) + (partRemainder ? 1 : 0);
+
+      for (let z = 0; z < partCount; z++) {
+        const uri = `segment${i}.part${z}${extension}`;
+
+        segment.parts.push({
+          uri,
+          resolvedUri: uri,
+          duration: (z + 1 === partCount && partRemainder) ? partRemainder : result.partTargetDuration
+        });
+      }
+    }
+
     result.segments.push(segment);
   }
-  if (remainder) {
-    result.segments.push({
-      uri: i + extension,
-      duration: remainder,
-      timeline: result.discontinuitySequence
-    });
-  }
+
   return result;
 };
 

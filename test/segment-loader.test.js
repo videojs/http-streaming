@@ -1003,6 +1003,7 @@ QUnit.module('SegmentLoader', function(hooks) {
         this.clock.tick(1);
 
         assert.equal(loader.mediaIndex, null, 'mediaIndex reset by seek to seekable');
+        assert.equal(loader.partIndex, null, 'partIndex reset by seek to seekable');
         assert.equal(syncInfoUpdates, 1, 'syncinfoupdate was triggered');
       });
     });

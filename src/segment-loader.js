@@ -453,6 +453,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.roundTrip = NaN;
     this.resetStats_();
     this.mediaIndex = null;
+    this.partIndex = null;
 
     // private settings
     this.hasPlayed_ = settings.hasPlayed;
@@ -975,6 +976,22 @@ export default class SegmentLoader extends videojs.EventTarget {
     // equal to the last appended mediaIndex
     if (this.mediaIndex !== null) {
       this.mediaIndex -= mediaSequenceDiff;
+
+      // mediaIndex is invalid, set it to null
+      if (this.mediaIndex < 0) {
+        this.mediaIndex = null;
+        this.partIndex = null;
+      } else {
+        const segment = this.playlist_.segments[this.mediaIndex];
+
+        // partIndex should remain the same for the same segment
+        // unless parts fell off of the playlist for this segment.
+        // In that case we need to reset partIndex and resync
+        if (this.partIndex && (!segment.parts || !segment.parts.length || !segment.parts[this.partIndex])) {
+          this.logger_(`part fell off on part ${this.partIndex}`);
+          this.resetLoader();
+        }
+      }
     }
 
     // update the mediaIndex on the SegmentInfo object
@@ -988,6 +1005,10 @@ export default class SegmentLoader extends videojs.EventTarget {
       // playlist, we can leave the old reference and just lose the timing info
       if (segmentInfo.mediaIndex >= 0) {
         segmentInfo.segment = newPlaylist.segments[segmentInfo.mediaIndex];
+      }
+
+      if (segmentInfo.partIndex >= 0 && segmentInfo.segment.parts) {
+        segmentInfo.part = segmentInfo.segment.parts[segmentInfo.partIndex];
       }
     }
 
@@ -1065,6 +1086,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       segmentTransmuxer.reset(this.transmuxer_);
     }
     this.mediaIndex = null;
+    this.partIndex = null;
     this.syncPoint_ = null;
     this.isPendingTimestampOffset_ = false;
     this.callQueue_ = [];
@@ -1209,7 +1231,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.mediaIndex,
       this.hasPlayed_(),
       this.currentTime_(),
-      this.syncPoint_
+      this.syncPoint_,
+      this.partIndex
     );
 
     if (!segmentInfo) {
@@ -1245,18 +1268,25 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @param {Object} [playlist] a media playlist object
    * @return {boolean} do we need to call endOfStream on the MediaSource
    */
-  isEndOfStream_(mediaIndex = this.mediaIndex, playlist = this.playlist_) {
+  isEndOfStream_(mediaIndex = this.mediaIndex, playlist = this.playlist_, partIndex = this.partIndex) {
     if (!playlist || !this.mediaSource_) {
       return false;
     }
 
+    const segment = typeof mediaIndex === 'number' && playlist.segments[mediaIndex];
+
     // mediaIndex is zero based but length is 1 based
     const appendedLastSegment = (mediaIndex + 1) === playlist.segments.length;
+    // true if there are no parts, or this is the last part.
+    const appendedLastPart = !segment || !segment.parts || (partIndex + 1) === segment.parts.length;
 
     // if we've buffered to the end of the video, we need to call endOfStream
     // so that MediaSources can trigger the `ended` event when it runs out of
     // buffered data instead of waiting for me
-    return playlist.endList && this.mediaSource_.readyState === 'open' && appendedLastSegment;
+    return playlist.endList &&
+      this.mediaSource_.readyState === 'open' &&
+      appendedLastSegment &&
+      appendedLastPart;
   }
 
   /**
@@ -1271,7 +1301,7 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @param {Object} syncPoint - a segment info object that describes the
    * @return {Object} a segment request object that describes the segment to load
    */
-  checkBuffer_(buffered, playlist, currentMediaIndex, hasPlayed, currentTime, syncPoint) {
+  checkBuffer_(buffered, playlist, currentMediaIndex, hasPlayed, currentTime, syncPoint, currentPartIndex) {
     let lastBufferedEnd = 0;
 
     if (buffered.length) {
@@ -1296,6 +1326,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       return null;
     }
 
+    let nextPartIndex = typeof currentPartIndex === 'number' ? currentPartIndex + 1 : 0;
     let nextMediaIndex = null;
     let startOfSegment;
     let isSyncRequest = false;
@@ -1317,7 +1348,12 @@ export default class SegmentLoader extends videojs.EventTarget {
         startOfSegment = lastBufferedEnd;
       }
 
-      nextMediaIndex = currentMediaIndex + 1;
+      if (!segment || !segment.parts || !segment.parts.length || !segment.parts[nextPartIndex]) {
+        nextMediaIndex = currentMediaIndex + 1;
+        nextPartIndex = 0;
+      } else {
+        nextMediaIndex = currentMediaIndex;
+      }
 
     // There is a sync-point but the lack of a mediaIndex indicates that
     // we need to make a good conservative guess about which segment to
@@ -1346,7 +1382,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       startOfSegment = mediaSourceInfo.startTime;
     }
 
-    const segmentInfo = this.generateSegmentInfo_(playlist, nextMediaIndex, startOfSegment, isSyncRequest);
+    const segmentInfo = this.generateSegmentInfo_(playlist, nextMediaIndex, startOfSegment, isSyncRequest, nextPartIndex);
 
     if (!segmentInfo) {
       return;
@@ -1388,12 +1424,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     const segmentIndexArray = playlist.segments
-      .map((s, i) => {
-        return {
-          timeline: s.timeline,
-          segmentIndex: i
-        };
-      }).filter(s => s.timeline === this.currentTimeline_);
+      .map((s, i) => ({timeline: s.timeline, segmentIndex: i}))
+      .filter(s => s.timeline === this.currentTimeline_);
 
     if (segmentIndexArray.length) {
       return segmentIndexArray[Math.min(segmentIndexArray.length - 1, 1)].segmentIndex;
@@ -1402,12 +1434,19 @@ export default class SegmentLoader extends videojs.EventTarget {
     return Math.max(playlist.segments.length - 1, 0);
   }
 
-  generateSegmentInfo_(playlist, mediaIndex, startOfSegment, isSyncRequest) {
+  generateSegmentInfo_(playlist, mediaIndex, startOfSegment, isSyncRequest, partIndex) {
     if (mediaIndex < 0 || mediaIndex >= playlist.segments.length) {
       return null;
     }
 
     const segment = playlist.segments[mediaIndex];
+
+    if (segment.parts && segment.parts.length && partIndex >= segment.parts.length) {
+      return null;
+    }
+
+    const part = segment.parts && segment.parts.length && segment.parts[partIndex];
+
     const audioBuffered = this.sourceUpdater_.audioBuffered();
     const videoBuffered = this.sourceUpdater_.videoBuffered();
     let audioAppendStart;
@@ -1433,9 +1472,10 @@ export default class SegmentLoader extends videojs.EventTarget {
     return {
       requestId: 'segment-loader-' + Math.random(),
       // resolve the segment URL relative to the playlist
-      uri: segment.resolvedUri,
+      uri: part && part.resolvedUri || segment.resolvedUri,
       // the segment's mediaIndex at the time it was requested
       mediaIndex,
+      partIndex: part ? partIndex : null,
       // whether or not to update the SegmentLoader's state with this
       // segment's mediaIndex
       isSyncRequest,
@@ -1455,6 +1495,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       duration: segment.duration,
       // retain the segment in case the playlist updates while doing an async process
       segment,
+      part,
       byteLength: 0,
       transmuxer: this.transmuxer_,
       audioAppendStart,
@@ -2210,7 +2251,11 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     const simpleSegment = this.createSimplifiedSegmentObj_(segmentInfo);
-    const isEndOfStream = this.isEndOfStream_(segmentInfo.mediaIndex, segmentInfo.playlist);
+    const isEndOfStream = this.isEndOfStream_(
+      segmentInfo.mediaIndex,
+      segmentInfo.playlist,
+      segmentInfo.partIndex
+    );
     const isWalkingForward = this.mediaIndex !== null;
     const isDiscontinuity = segmentInfo.timeline !== this.currentTimeline_ &&
       // currentTimeline starts at -1, so we shouldn't end the timeline switching to 0,
@@ -2279,13 +2324,16 @@ export default class SegmentLoader extends videojs.EventTarget {
    */
   createSimplifiedSegmentObj_(segmentInfo) {
     const segment = segmentInfo.segment;
+    const part = segmentInfo.part;
+
     const simpleSegment = {
-      resolvedUri: segment.resolvedUri,
-      byterange: segment.byterange,
+      resolvedUri: part ? part.resolvedUri : segment.resolvedUri,
+      byterange: part ? part.byterange : segment.byterange,
       requestId: segmentInfo.requestId,
       transmuxer: segmentInfo.transmuxer,
       audioAppendStart: segmentInfo.audioAppendStart,
-      gopsToAlignWith: segmentInfo.gopsToAlignWith
+      gopsToAlignWith: segmentInfo.gopsToAlignWith,
+      part: segmentInfo.part
     };
 
     const previousSegment = segmentInfo.playlist.segments[segmentInfo.mediaIndex - 1];
@@ -2795,11 +2843,12 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.trigger('progress');
 
     this.mediaIndex = segmentInfo.mediaIndex;
+    this.partIndex = segmentInfo.partIndex;
 
     // any time an update finishes and the last segment is in the
     // buffer, end the stream. this ensures the "ended" event will
     // fire if playback reaches that point.
-    if (this.isEndOfStream_(segmentInfo.mediaIndex, segmentInfo.playlist)) {
+    if (this.isEndOfStream_(segmentInfo.mediaIndex, segmentInfo.playlist, segmentInfo.partIndex)) {
       this.endOfStream();
     }
 

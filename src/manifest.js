@@ -26,7 +26,8 @@ export const parseManifest = ({
   oninfo,
   manifestString,
   customTagParsers = [],
-  customTagMappers = []
+  customTagMappers = [],
+  llhls
 }) => {
   const parser = new M3u8Parser();
 
@@ -43,7 +44,35 @@ export const parseManifest = ({
   parser.push(manifestString);
   parser.end();
 
-  return parser.manifest;
+  const manifest = parser.manifest;
+
+  // remove llhls features from the parsed manifest
+  if (!llhls) {
+    [
+      'preloadSegment',
+      'skip',
+      'serverControl',
+      'renditionReports',
+      'partInf',
+      'partTargetDuration'
+    ].forEach(function(k) {
+      if (manifest.hasOwnProperty(k)) {
+        delete manifest[k];
+      }
+    });
+
+    if (manifest.segments) {
+      manifest.segments.forEach(function(segment) {
+        ['parts', 'preloadHints'].forEach(function(k) {
+          if (segment.hasOwnProperty(k)) {
+            delete segment[k];
+          }
+        });
+      });
+    }
+  }
+
+  return manifest;
 };
 
 /**
