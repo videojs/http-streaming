@@ -2205,6 +2205,13 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     const simpleSegment = this.createSimplifiedSegmentObj_(segmentInfo);
+    const isEndOfStream = this.isEndOfStream_(segmentInfo.mediaIndex, segmentInfo.playlist);
+    const isWalkingForward = this.mediaIndex !== null;
+    const isDiscontinuity = segmentInfo.timeline !== this.currentTimeline_ &&
+      // currentTimeline starts at -1, so we shouldn't end the timeline switching to 0,
+      // the first timeline
+      segmentInfo.timeline > 0;
+    const isEndOfTimeline = isEndOfStream || (isWalkingForward && isDiscontinuity);
 
     segmentInfo.abortRequests = mediaSegmentRequest({
       xhr: this.vhs_.xhr,
@@ -2219,6 +2226,10 @@ export default class SegmentLoader extends videojs.EventTarget {
       videoSegmentTimingInfoFn: this.handleSegmentTimingInfo_.bind(this, 'video', segmentInfo.requestId),
       audioSegmentTimingInfoFn: this.handleSegmentTimingInfo_.bind(this, 'audio', segmentInfo.requestId),
       captionsFn: this.handleCaptions_.bind(this),
+      isEndOfTimeline,
+      endedTimelineFn: () => {
+        this.logger_('received endedtimeline callback');
+      },
       id3Fn: this.handleId3_.bind(this),
 
       dataFn: this.handleData_.bind(this),
@@ -2421,19 +2432,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     // Although we may have already started appending on progress, we shouldn't switch the
     // state away from loading until we are officially done loading the segment data.
     this.state = 'APPENDING';
-
-    const isEndOfStream = this.isEndOfStream_(segmentInfo.mediaIndex, segmentInfo.playlist);
-    const isWalkingForward = this.mediaIndex !== null;
-    const isDiscontinuity = segmentInfo.timeline !== this.currentTimeline_ &&
-      // TODO verify this behavior
-      // currentTimeline starts at -1, but we shouldn't end the timeline switching to 0,
-      // the first timeline
-      segmentInfo.timeline > 0;
-
-    if (!segmentInfo.isFmp4 &&
-        (isEndOfStream || (isWalkingForward && isDiscontinuity))) {
-      segmentTransmuxer.endTimeline(this.transmuxer_);
-    }
 
     // used for testing
     this.trigger('appending');
