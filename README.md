@@ -342,7 +342,7 @@ consistent experience.
 // via the constructor
 var player = videojs('playerId', {
   html5: {
-    vhs: {
+    hls: {
       overrideNative: true
     },
     nativeAudioTracks: false,
