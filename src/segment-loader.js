@@ -528,14 +528,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       time: 0
     };
 
-    this.transmuxer_ = segmentTransmuxer.createTransmuxer({
-      remux: false,
-      alignGopsAtEnd: this.safeAppend_,
-      keepOriginalTimestamps: true,
-      handlePartialData: this.handlePartialData_,
-      parse708captions: this.parse708captions_
-    });
-
+    this.transmuxer_ = this.createTransmuxer_();
     this.triggerSyncInfoUpdate_ = () => this.trigger('syncinfoupdate');
     this.syncController_.on('syncinfoupdate', this.triggerSyncInfoUpdate_);
 
@@ -593,6 +586,16 @@ export default class SegmentLoader extends videojs.EventTarget {
         }
       });
     }
+  }
+
+  createTransmuxer_() {
+    return segmentTransmuxer.createTransmuxer({
+      remux: false,
+      alignGopsAtEnd: this.safeAppend_,
+      keepOriginalTimestamps: true,
+      handlePartialData: this.handlePartialData_,
+      parse708captions: this.parse708captions_
+    });
   }
 
   /**
