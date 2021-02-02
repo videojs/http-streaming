@@ -1,4 +1,4 @@
-import TransmuxWorker from 'worker!./transmuxer-worker.worker.js';
+import TransmuxWorker from 'worker!./transmuxer-worker.js';
 
 export const handleData_ = (event, transmuxedData, callback) => {
   const {
