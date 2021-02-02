@@ -30,6 +30,8 @@ const options = {
     // add worker and createTestData to the front of plugin lists
     defaults.module.unshift('worker');
     defaults.browser.unshift('worker');
+    // change this to `syncWorker` for syncronous web worker
+    // during unit tests
     defaults.test.unshift('worker');
     defaults.test.unshift('createTestData');
 
