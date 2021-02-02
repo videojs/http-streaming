@@ -13,7 +13,7 @@ import videojs from 'video.js';
 import { updateAdCues } from './ad-cue-tags';
 import SyncController from './sync-controller';
 import TimelineChangeController from './timeline-change-controller';
-import Decrypter from 'worker!./decrypter-worker.worker.js';
+import Decrypter from 'worker!./decrypter-worker.js';
 import Config from './config';
 import {
   parseCodecs,

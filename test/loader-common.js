@@ -13,7 +13,7 @@ import { MasterPlaylistController } from '../src/master-playlist-controller';
 import SourceUpdater from '../src/source-updater';
 import SyncController from '../src/sync-controller';
 import TimelineChangeController from '../src/timeline-change-controller';
-import Decrypter from 'worker!../src/decrypter-worker.worker.js';
+import Decrypter from 'worker!../src/decrypter-worker.js';
 import window from 'global/window';
 /* eslint-disable no-unused-vars */
 // we need this so that it can register VHS with videojs

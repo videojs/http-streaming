@@ -1,5 +1,5 @@
 import QUnit from 'qunit';
-import TransmuxWorker from 'worker!../src/transmuxer-worker.worker.js';
+import TransmuxWorker from 'worker!../src/transmuxer-worker.js';
 import {
   mp4Captions as mp4CaptionsSegment,
   muxed as muxedSegment,

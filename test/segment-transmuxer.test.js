@@ -1,6 +1,6 @@
 import QUnit from 'qunit';
 import sinon from 'sinon';
-import TransmuxWorker from 'worker!../src/transmuxer-worker.worker.js';
+import TransmuxWorker from 'worker!../src/transmuxer-worker.js';
 import {
   muxed as muxedSegment,
   caption as captionSegment,

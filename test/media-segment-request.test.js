@@ -8,8 +8,8 @@ import {
   standardXHRResponse,
   downloadProgress
 } from './test-helpers';
-import TransmuxWorker from 'worker!../src/transmuxer-worker.worker.js';
-import Decrypter from 'worker!../src/decrypter-worker.worker.js';
+import TransmuxWorker from 'worker!../src/transmuxer-worker.js';
+import Decrypter from 'worker!../src/decrypter-worker.js';
 import {dispose as segmentTransmuxerDispose} from '../src/segment-transmuxer.js';
 import {
   aacWithoutId3 as aacWithoutId3Segment,
@@ -1443,4 +1443,3 @@ QUnit.skip('id3 callback does not fire if partial data has no ID3 tags', functio
   // it should be fixed to account for only partial data
   this.standardXHRResponse(request, muxedSegment());
 });
-
