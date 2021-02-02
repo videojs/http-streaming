@@ -189,7 +189,7 @@ export const processTransmux = (options) => {
 
 export const dequeue = (transmuxer) => {
   transmuxer.currentTransmux = null;
-  if (transmuxer.transmuxQueue && transmuxer.transmuxQueue.length) {
+  if (transmuxer.transmuxQueue.length) {
     transmuxer.currentTransmux = transmuxer.transmuxQueue.shift();
     if (typeof transmuxer.currentTransmux === 'function') {
       transmuxer.currentTransmux();
