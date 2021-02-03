@@ -74,7 +74,9 @@ const xhrFactory = function() {
       }
     }
 
-    const request = videojsXHR(options, function(error, response) {
+    const xhrMethod = videojs.Vhs.xhr.name !== 'XhrFunction' ? videojs.Vhs.xhr : videojsXHR;
+
+    const request = xhrMethod(options, function(error, response) {
       return callbackWrapper(request, error, response, callback);
     });
     const originalAbort = request.abort;

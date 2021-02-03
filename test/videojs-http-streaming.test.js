@@ -4267,6 +4267,36 @@ QUnit.test('Allows specifying the beforeRequest function globally', function(ass
   assert.equal(this.player.tech_.vhs.stats.bandwidth, 4194304, 'default');
 });
 
+QUnit.test('Allows specifying custom xhr() function globally', function(assert) {
+  const originalXhr = videojs.Vhs.xhr;
+  let customXhr = false;
+
+  videojs.Vhs.xhr = function(opts, callback) {
+    customXhr = true;
+    return videojs.xhr(opts, function(err, response, body) {
+      callback(err, response);
+    });
+  };
+
+  this.player.src({
+    src: 'master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  // master
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.ok(customXhr, 'customXhr was called');
+
+  videojs.Vhs.xhr = originalXhr;
+
+  // verify stats
+  assert.equal(this.player.tech_.vhs.stats.bandwidth, 4194304, 'default');
+});
+
 QUnit.test('Allows overriding the global beforeRequest function', function(assert) {
   let beforeGlobalRequestCalled = 0;
   let beforeLocalRequestCalled = 0;
