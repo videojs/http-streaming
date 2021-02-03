@@ -74,7 +74,8 @@ const xhrFactory = function() {
       }
     }
 
-    const xhrMethod = videojs.Vhs.xhr.name !== 'XhrFunction' ? videojs.Vhs.xhr : videojsXHR;
+    // Use the standard videojs.xhr() method unless `videojs.Vhs.xhr` has been overriden
+    const xhrMethod = videojs.Vhs.xhr.original === true ? videojsXHR : videojs.Vhs.xhr;
 
     const request = xhrMethod(options, function(error, response) {
       return callbackWrapper(request, error, response, callback);
@@ -89,6 +90,8 @@ const xhrFactory = function() {
     request.requestTime = Date.now();
     return request;
   };
+
+  xhr.original = true;
 
   return xhr;
 };
