@@ -3909,7 +3909,8 @@ QUnit.module('SegmentLoader', function(hooks) {
       const segment1Start = new Date(segment0Start.getTime() + segmentDurationMs);
       const segment2Start = new Date(segment1Start.getTime() + segmentDurationMs);
       // jump of 0.5 seconds after disco (0.5 seconds of missing real world time, e.g.,
-      // an encoder went down briefly)
+      // an encoder went down briefly), should have a PDT mapping difference of -3.5
+      // seconds from first mapping
       const segment3Start = new Date(segment2Start.getTime() + segmentDurationMs + 500);
 
       [playlist1, playlist2].forEach((playlist) => {
@@ -3975,10 +3976,10 @@ QUnit.module('SegmentLoader', function(hooks) {
         // DISCO
         // 3.ts: 3 => 4
         //
-        // By setting the current time to 3, 2.ts should be chosen, since the closest
+        // By setting the current time to 2.8, 2.ts should be chosen, since the closest
         // sync point will be ProgramDateTime, at a time of 3.5, though this time value is
         // wrong, since the gap in ProgramDateTime was not accounted for.
-        currentTime = 3;
+        currentTime = 2.8;
         loader.playlist(playlist2);
         // smoothQualityChange will reset loader after changing renditions, so need to
         // mimic that behavior here in order for content to be overlayed over already
