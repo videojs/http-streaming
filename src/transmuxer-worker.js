@@ -435,23 +435,19 @@ class MessageHandlers {
  *
  * @param {Object} self the scope for the web worker
  */
-const TransmuxerWorker = function(self) {
-  self.onmessage = function(event) {
-    if (event.data.action === 'init' && event.data.options) {
-      this.messageHandlers = new MessageHandlers(self, event.data.options);
-      return;
-    }
+self.onmessage = function(event) {
+  if (event.data.action === 'init' && event.data.options) {
+    this.messageHandlers = new MessageHandlers(self, event.data.options);
+    return;
+  }
 
-    if (!this.messageHandlers) {
-      this.messageHandlers = new MessageHandlers(self);
-    }
+  if (!this.messageHandlers) {
+    this.messageHandlers = new MessageHandlers(self);
+  }
 
-    if (event.data && event.data.action && event.data.action !== 'init') {
-      if (this.messageHandlers[event.data.action]) {
-        this.messageHandlers[event.data.action](event.data);
-      }
+  if (event.data && event.data.action && event.data.action !== 'init') {
+    if (this.messageHandlers[event.data.action]) {
+      this.messageHandlers[event.data.action](event.data);
     }
-  };
+  }
 };
-
-export default new TransmuxerWorker(self);

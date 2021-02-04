@@ -1,5 +1,4 @@
-const transmuxQueue = [];
-let currentTransmux;
+import TransmuxWorker from 'worker!./transmuxer-worker.js';
 
 export const handleData_ = (event, transmuxedData, callback) => {
   const {
@@ -66,25 +65,26 @@ export const handleGopInfo_ = (event, transmuxedData) => {
   transmuxedData.gopInfo = event.data.gopInfo;
 };
 
-export const processTransmux = ({
-  transmuxer,
-  bytes,
-  audioAppendStart,
-  gopsToAlignWith,
-  isPartial,
-  remux,
-  onData,
-  onTrackInfo,
-  onAudioTimingInfo,
-  onVideoTimingInfo,
-  onVideoSegmentTimingInfo,
-  onAudioSegmentTimingInfo,
-  onId3,
-  onCaptions,
-  onDone,
-  onEndedTimeline,
-  isEndOfTimeline
-}) => {
+export const processTransmux = (options) => {
+  const {
+    transmuxer,
+    bytes,
+    audioAppendStart,
+    gopsToAlignWith,
+    isPartial,
+    remux,
+    onData,
+    onTrackInfo,
+    onAudioTimingInfo,
+    onVideoTimingInfo,
+    onVideoSegmentTimingInfo,
+    onAudioSegmentTimingInfo,
+    onId3,
+    onCaptions,
+    onDone,
+    onEndedTimeline,
+    isEndOfTimeline
+  } = options;
   const transmuxedData = {
     isPartial,
     buffer: []
@@ -92,7 +92,7 @@ export const processTransmux = ({
   let waitForEndedTimelineEvent = isEndOfTimeline;
 
   const handleMessage = (event) => {
-    if (!currentTransmux) {
+    if (transmuxer.currentTransmux !== options) {
       // disposed
       return;
     }
@@ -149,7 +149,7 @@ export const processTransmux = ({
     });
 
     /* eslint-disable no-use-before-define */
-    dequeue();
+    dequeue(transmuxer);
     /* eslint-enable */
   };
 
@@ -206,30 +206,30 @@ export const processTransmux = ({
   }
 };
 
-export const dequeue = () => {
-  currentTransmux = null;
-  if (transmuxQueue.length) {
-    currentTransmux = transmuxQueue.shift();
-    if (typeof currentTransmux === 'function') {
-      currentTransmux();
+export const dequeue = (transmuxer) => {
+  transmuxer.currentTransmux = null;
+  if (transmuxer.transmuxQueue.length) {
+    transmuxer.currentTransmux = transmuxer.transmuxQueue.shift();
+    if (typeof transmuxer.currentTransmux === 'function') {
+      transmuxer.currentTransmux();
     } else {
-      processTransmux(currentTransmux);
+      processTransmux(transmuxer.currentTransmux);
     }
   }
 };
 
 export const processAction = (transmuxer, action) => {
   transmuxer.postMessage({ action });
-  dequeue();
+  dequeue(transmuxer);
 };
 
 export const enqueueAction = (action, transmuxer) => {
-  if (!currentTransmux) {
-    currentTransmux = action;
+  if (!transmuxer.currentTransmux) {
+    transmuxer.currentTransmux = action;
     processAction(transmuxer, action);
     return;
   }
-  transmuxQueue.push(processAction.bind(null, transmuxer, action));
+  transmuxer.transmuxQueue.push(processAction.bind(null, transmuxer, action));
 };
 
 export const reset = (transmuxer) => {
@@ -241,23 +241,35 @@ export const endTimeline = (transmuxer) => {
 };
 
 export const transmux = (options) => {
-  if (!currentTransmux) {
-    currentTransmux = options;
+  if (!options.transmuxer.currentTransmux) {
+    options.transmuxer.currentTransmux = options;
     processTransmux(options);
     return;
   }
-  transmuxQueue.push(options);
+  options.transmuxer.transmuxQueue.push(options);
 };
 
-export const dispose = () => {
-  // clear out module-level references
-  currentTransmux = null;
-  transmuxQueue.length = 0;
+export const createTransmuxer = (options) => {
+  const transmuxer = new TransmuxWorker();
+
+  transmuxer.currentTransmux = null;
+  transmuxer.transmuxQueue = [];
+  const term = transmuxer.terminate;
+
+  transmuxer.terminate = () => {
+    transmuxer.currentTransmux = null;
+    transmuxer.transmuxQueue.length = 0;
+    return term.call(transmuxer);
+  };
+
+  transmuxer.postMessage({action: 'init', options});
+
+  return transmuxer;
 };
 
 export default {
   reset,
-  dispose,
   endTimeline,
-  transmux
+  transmux,
+  createTransmuxer
 };

@@ -7,7 +7,6 @@ import Config from './config';
 import window from 'global/window';
 import { initSegmentId, segmentKeyId } from './bin-utils';
 import { mediaSegmentRequest, REQUEST_ERRORS } from './media-segment-request';
-import TransmuxWorker from 'worker!./transmuxer-worker.worker.js';
 import segmentTransmuxer from './segment-transmuxer';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
@@ -530,7 +529,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     };
 
     this.transmuxer_ = this.createTransmuxer_();
-
     this.triggerSyncInfoUpdate_ = () => this.trigger('syncinfoupdate');
     this.syncController_.on('syncinfoupdate', this.triggerSyncInfoUpdate_);
 
@@ -591,20 +589,13 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   createTransmuxer_() {
-    const transmuxer = new TransmuxWorker();
-
-    transmuxer.postMessage({
-      action: 'init',
-      options: {
-        parse708captions: this.parse708captions_,
-        remux: false,
-        alignGopsAtEnd: this.safeAppend_,
-        keepOriginalTimestamps: true,
-        handlePartialData: this.handlePartialData_
-      }
+    return segmentTransmuxer.createTransmuxer({
+      remux: false,
+      alignGopsAtEnd: this.safeAppend_,
+      keepOriginalTimestamps: true,
+      handlePartialData: this.handlePartialData_,
+      parse708captions: this.parse708captions_
     });
-
-    return transmuxer;
   }
 
   /**
@@ -632,9 +623,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.abort_();
     if (this.transmuxer_) {
       this.transmuxer_.terminate();
-      // Although it isn't an instance of a class, the segment transmuxer must still be
-      // cleaned up.
-      segmentTransmuxer.dispose();
     }
     this.resetStats_();
 

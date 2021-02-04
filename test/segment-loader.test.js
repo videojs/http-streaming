@@ -9,7 +9,6 @@ import {
   mediaDuration,
   getTroublesomeSegmentDurationMessage
 } from '../src/segment-loader';
-import segmentTransmuxer from '../src/segment-transmuxer';
 import videojs from 'video.js';
 import mp4probe from 'mux.js/lib/mp4/probe';
 import {
@@ -2381,21 +2380,14 @@ QUnit.module('SegmentLoader', function(hooks) {
     QUnit.test('dispose cleans up transmuxer', function(assert) {
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
         loader.playlist(playlistWithDuration(20));
+        const transmuxer = loader.transmuxer_;
 
-        const origTransmuxerTerminate =
-          loader.transmuxer_.terminate.bind(loader.transmuxer_);
+        const origTransmuxerTerminate = transmuxer.terminate.bind(transmuxer);
         let transmuxerTerminateCount = 0;
-        const origSegmentTransmuxerDispose =
-          segmentTransmuxer.dispose.bind(segmentTransmuxer);
-        let segmentTransmuxerDisposeCalls = 0;
 
-        loader.transmuxer_.terminate = () => {
+        transmuxer.terminate = () => {
           transmuxerTerminateCount++;
           origTransmuxerTerminate();
-        };
-        segmentTransmuxer.dispose = () => {
-          origSegmentTransmuxerDispose();
-          segmentTransmuxerDisposeCalls++;
         };
 
         loader.load();
@@ -2403,7 +2395,8 @@ QUnit.module('SegmentLoader', function(hooks) {
         loader.dispose();
 
         assert.equal(transmuxerTerminateCount, 1, 'terminated transmuxer');
-        assert.equal(segmentTransmuxerDisposeCalls, 1, 'disposed segment transmuxer');
+        assert.ok(!transmuxer.currentTransmux, 'no current transmux');
+        assert.equal(transmuxer.transmuxQueue.length, 0, 'no queue');
       });
     });
 
