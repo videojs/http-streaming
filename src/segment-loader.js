@@ -867,9 +867,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    // not sure if this is the best place for this
-    this.syncController_.setDateTimeMapping(this.playlist_);
-
     // if all the configuration is ready, initialize and begin loading
     if (this.state === 'INIT' && this.couldBeginLoading_()) {
       return this.init_();
@@ -928,6 +925,17 @@ export default class SegmentLoader extends videojs.EventTarget {
         mediaSequence: newPlaylist.mediaSequence,
         time: 0
       };
+      // Setting the date time mapping means mapping the program date time (if available)
+      // to time 0 on the player's timeline. The playlist's syncInfo serves a similar
+      // purpose, mapping the initial mediaSequence to time zero. Since the syncInfo can
+      // be updated as the playlist is refreshed before the loader starts loading, the
+      // program date time mapping needs to be updated as well.
+      //
+      // This mapping is only done for the main loader because a program date time should
+      // map equivalently between playlists.
+      if (this.loaderType_ === 'main') {
+        this.syncController_.setDateTimeMappingForStart(newPlaylist);
+      }
     }
 
     let oldId = null;

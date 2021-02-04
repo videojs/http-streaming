@@ -444,24 +444,33 @@ export const playlistWithDuration = function(time, conf) {
   let discontinuityStartsIndex = 0;
 
   for (i = 0; i < count; i++) {
-    if (result.discontinuityStarts &&
-        result.discontinuityStarts[discontinuityStartsIndex] === i) {
+    const isDiscontinuity = result.discontinuityStarts &&
+        result.discontinuityStarts[discontinuityStartsIndex] === i;
+
+    if (isDiscontinuity) {
       timeline++;
       discontinuityStartsIndex++;
     }
 
-    result.segments.push({
+    const segment = {
       uri: i + extension,
       resolvedUri: i + extension,
       duration: targetDuration,
       timeline
-    });
+    };
+
     if (isEncrypted) {
-      result.segments[i].key = {
+      segment.key = {
         uri: i + '-key.php',
         resolvedUri: i + '-key.php'
       };
     }
+
+    if (isDiscontinuity) {
+      segment.discontinuity = true;
+    }
+
+    result.segments.push(segment);
   }
   if (remainder) {
     result.segments.push({

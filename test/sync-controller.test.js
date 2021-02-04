@@ -43,11 +43,11 @@ QUnit.test('returns correct sync point for ProgramDateTime strategy', function(a
 
   syncPoint = strategy.run(this.syncController, playlist, duration, timeline);
 
-  assert.equal(syncPoint, null, 'no syncpoint when datetimeToDisplayTime not set');
+  assert.equal(syncPoint, null, 'no syncpoint when no date time to display time mapping');
 
   playlist.segments[0].dateTimeObject = datetime;
 
-  this.syncController.setDateTimeMapping(playlist);
+  this.syncController.setDateTimeMappingForStart(playlist);
 
   const newPlaylist = playlistWithDuration(40);
 
@@ -74,13 +74,13 @@ QUnit.test('ProgramDateTime strategy finds nearest segment for sync', function(a
 
   syncPoint = strategy.run(this.syncController, playlist, duration, timeline, 170);
 
-  assert.equal(syncPoint, null, 'no syncpoint when datetimeToDisplayTime not set');
+  assert.equal(syncPoint, null, 'no syncpoint when no date time to display time mapping');
 
   playlist.segments.forEach((segment, index) => {
     segment.dateTimeObject = new Date(2012, 11, 12, 12, 12, 12 + (index * 10));
   });
 
-  this.syncController.setDateTimeMapping(playlist);
+  this.syncController.setDateTimeMappingForStart(playlist);
 
   const newPlaylist = playlistWithDuration(200);
 
@@ -114,17 +114,117 @@ QUnit.test(
 
     playlist.segments[1].dateTimeObject = new Date(2012, 11, 12, 12, 12, 12);
 
-    this.syncController.setDateTimeMapping(playlist);
+    this.syncController.setDateTimeMappingForStart(playlist);
 
-    assert.notOk(this.syncController.datetimeToDisplayTime, 'did not set datetime mapping');
+    assert.equal(
+      Object.keys(this.syncController.timelineToDatetimeMappings).length,
+      0,
+      'did not set datetime mapping'
+    );
 
     playlist.segments[0].dateTimeObject = new Date(2012, 11, 12, 12, 12, 2);
 
-    this.syncController.setDateTimeMapping(playlist);
+    this.syncController.setDateTimeMappingForStart(playlist);
 
-    assert.ok(this.syncController.datetimeToDisplayTime, 'did set date time mapping');
+    assert.equal(
+      Object.keys(this.syncController.timelineToDatetimeMappings).length,
+      1,
+      'did set datetime mapping'
+    );
   }
 );
+
+QUnit.test('uses separate date time to display time mapping for each timeline', function(assert) {
+  const playlist = playlistWithDuration(40, { discontinuityStarts: [1, 3] });
+
+  playlist.segments[0].dateTimeObject = new Date(2020, 1, 1, 1, 1, 1);
+  // 20 seconds later (10 more than default)
+  playlist.segments[1].dateTimeObject = new Date(2020, 1, 1, 1, 1, 21);
+  playlist.segments[2].dateTimeObject = new Date(2020, 1, 1, 1, 1, 31);
+  // 30 seconds later (20 more than default)
+  playlist.segments[3].dateTimeObject = new Date(2020, 1, 1, 1, 2, 1);
+
+  // after this call, the initial playlist mapping will be provided
+  this.syncController.setDateTimeMappingForStart(playlist);
+
+  // since this segment does not have a discontinuity, there should be no additional or
+  // changed mappings from the initial
+  this.syncController.saveSegmentTimingInfo({
+    segmentInfo: {
+      playlist,
+      segment: playlist.segments[0],
+      timeline: 0,
+      mediaIndex: 0
+    },
+    shouldSaveTimelineMapping: true
+  });
+
+  assert.deepEqual(
+    this.syncController.timelineToDatetimeMappings,
+    {
+      0: -(playlist.segments[0].dateTimeObject.getTime() / 1000)
+    },
+    'has correct mapping for timeline 0'
+  );
+
+  this.syncController.saveSegmentTimingInfo({
+    segmentInfo: {
+      playlist,
+      segment: playlist.segments[1],
+      timeline: 1,
+      mediaIndex: 1
+    },
+    shouldSaveTimelineMapping: true
+  });
+
+  assert.deepEqual(
+    this.syncController.timelineToDatetimeMappings,
+    {
+      0: -(playlist.segments[0].dateTimeObject.getTime() / 1000),
+      1: -(playlist.segments[1].dateTimeObject.getTime() / 1000)
+    },
+    'has correct mapping for timelines 0 and 1'
+  );
+
+  this.syncController.saveSegmentTimingInfo({
+    segmentInfo: {
+      playlist,
+      segment: playlist.segments[2],
+      timeline: 1,
+      mediaIndex: 2
+    },
+    shouldSaveTimelineMapping: true
+  });
+
+  assert.deepEqual(
+    this.syncController.timelineToDatetimeMappings,
+    {
+      0: -(playlist.segments[0].dateTimeObject.getTime() / 1000),
+      1: -(playlist.segments[1].dateTimeObject.getTime() / 1000)
+    },
+    'does not add a new timeline mapping when no disco'
+  );
+
+  this.syncController.saveSegmentTimingInfo({
+    segmentInfo: {
+      playlist,
+      segment: playlist.segments[3],
+      timeline: 2,
+      mediaIndex: 3
+    },
+    shouldSaveTimelineMapping: true
+  });
+
+  assert.deepEqual(
+    this.syncController.timelineToDatetimeMappings,
+    {
+      0: -(playlist.segments[0].dateTimeObject.getTime() / 1000),
+      1: -(playlist.segments[1].dateTimeObject.getTime() / 1000),
+      2: -(playlist.segments[3].dateTimeObject.getTime() / 1000)
+    },
+    'has correct mappings for timelines 0, 1, and 2'
+  );
+});
 
 QUnit.test('returns correct sync point for Segment strategy', function(assert) {
   const strategy = getStrategy('Segment');
