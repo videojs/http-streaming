@@ -81,12 +81,15 @@ export const processTransmux = (options) => {
     onAudioSegmentTimingInfo,
     onId3,
     onCaptions,
-    onDone
+    onDone,
+    onEndedTimeline,
+    isEndOfTimeline
   } = options;
   const transmuxedData = {
     isPartial,
     buffer: []
   };
+  let waitForEndedTimelineEvent = isEndOfTimeline;
 
   const handleMessage = (event) => {
     if (transmuxer.currentTransmux !== options) {
@@ -121,9 +124,21 @@ export const processTransmux = (options) => {
     if (event.data.action === 'caption') {
       onCaptions(event.data.caption);
     }
+    if (event.data.action === 'endedtimeline') {
+      waitForEndedTimelineEvent = false;
+      onEndedTimeline();
+    }
 
     // wait for the transmuxed event since we may have audio and video
     if (event.data.type !== 'transmuxed') {
+      return;
+    }
+
+    // If the "endedtimeline" event has not yet fired, and this segment represents the end
+    // of a timeline, that means there may still be data events before the segment
+    // processing can be considerred complete. In that case, the final event should be
+    // an "endedtimeline" event with the type "transmuxed."
+    if (waitForEndedTimelineEvent) {
       return;
     }
 
@@ -185,6 +200,10 @@ export const processTransmux = (options) => {
   // even if we didn't push any bytes, we have to make sure we flush in case we reached
   // the end of the segment
   transmuxer.postMessage({ action: isPartial ? 'partialFlush' : 'flush' });
+
+  if (isEndOfTimeline) {
+    transmuxer.postMessage({ action: 'endTimeline' });
+  }
 };
 
 export const dequeue = (transmuxer) => {

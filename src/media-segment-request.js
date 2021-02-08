@@ -266,6 +266,8 @@ const transmuxAndNotify = ({
   audioSegmentTimingInfoFn,
   id3Fn,
   captionsFn,
+  isEndOfTimeline,
+  endedTimelineFn,
   dataFn,
   doneFn
 }) => {
@@ -360,6 +362,13 @@ const transmuxAndNotify = ({
     onCaptions: (captions) => {
       captionsFn(segment, [captions]);
     },
+    // if this is a partial transmux, the end of the timeline has not yet been reached
+    // until the last part of the segment is processed (at which point isPartial will
+    // be false)
+    isEndOfTimeline: isEndOfTimeline && !isPartial,
+    onEndedTimeline: () => {
+      endedTimelineFn();
+    },
     onDone: (result) => {
       // To handle partial appends, there won't be a done function passed in (since
       // there's still, potentially, more segment to process), so there's nothing to do.
@@ -382,6 +391,8 @@ const handleSegmentBytes = ({
   audioSegmentTimingInfoFn,
   id3Fn,
   captionsFn,
+  isEndOfTimeline,
+  endedTimelineFn,
   dataFn,
   doneFn
 }) => {
@@ -513,6 +524,8 @@ const handleSegmentBytes = ({
     audioSegmentTimingInfoFn,
     id3Fn,
     captionsFn,
+    isEndOfTimeline,
+    endedTimelineFn,
     dataFn,
     doneFn
   });
@@ -533,6 +546,11 @@ const handleSegmentBytes = ({
  * @param {Function} audioSegmentTimingInfoFn
  *                   a callback that receives audio timing info based on media times and
  *                   any adjustments made by the transmuxer
+ * @param {boolean}  isEndOfTimeline
+ *                   true if this segment represents the last segment in a timeline
+ * @param {Function} endedTimelineFn
+ *                   a callback made when a timeline is ended, will only be called if
+ *                   isEndOfTimeline is true
  * @param {Function} dataFn - a callback that is executed when segment bytes are available
  *                            and ready to use
  * @param {Function} doneFn - a callback that is executed after decryption has completed
@@ -546,6 +564,8 @@ const decryptSegment = ({
   audioSegmentTimingInfoFn,
   id3Fn,
   captionsFn,
+  isEndOfTimeline,
+  endedTimelineFn,
   dataFn,
   doneFn
 }) => {
@@ -570,6 +590,8 @@ const decryptSegment = ({
         audioSegmentTimingInfoFn,
         id3Fn,
         captionsFn,
+        isEndOfTimeline,
+        endedTimelineFn,
         dataFn,
         doneFn
       });
@@ -618,6 +640,11 @@ const decryptSegment = ({
  *                   any adjustments made by the transmuxer
  * @param {Function} id3Fn - a callback that receives ID3 metadata
  * @param {Function} captionsFn - a callback that receives captions
+ * @param {boolean}  isEndOfTimeline
+ *                   true if this segment represents the last segment in a timeline
+ * @param {Function} endedTimelineFn
+ *                   a callback made when a timeline is ended, will only be called if
+ *                   isEndOfTimeline is true
  * @param {Function} dataFn - a callback that is executed when segment bytes are available
  *                            and ready to use
  * @param {Function} doneFn - a callback that is executed after all resources have been
@@ -632,6 +659,8 @@ const waitForCompletion = ({
   audioSegmentTimingInfoFn,
   id3Fn,
   captionsFn,
+  isEndOfTimeline,
+  endedTimelineFn,
   dataFn,
   doneFn
 }) => {
@@ -678,6 +707,8 @@ const waitForCompletion = ({
           audioSegmentTimingInfoFn,
           id3Fn,
           captionsFn,
+          isEndOfTimeline,
+          endedTimelineFn,
           dataFn,
           doneFn
         });
@@ -693,6 +724,8 @@ const waitForCompletion = ({
         audioSegmentTimingInfoFn,
         id3Fn,
         captionsFn,
+        isEndOfTimeline,
+        endedTimelineFn,
         dataFn,
         doneFn
       });
@@ -732,6 +765,11 @@ const handleLoadEnd = ({ loadendState, abortFn }) => (event) => {
  * @param {Function} audioSegmentTimingInfoFn
  *                   a callback that receives audio timing info based on media times and
  *                   any adjustments made by the transmuxer
+ * @param {boolean}  isEndOfTimeline
+ *                   true if this segment represents the last segment in a timeline
+ * @param {Function} endedTimelineFn
+ *                   a callback made when a timeline is ended, will only be called if
+ *                   isEndOfTimeline is true
  * @param {Function} dataFn - a callback that is executed when segment bytes are available
  *                            and ready to use
  * @param {Event} event - the progress event object from XMLHttpRequest
@@ -745,6 +783,8 @@ const handleProgress = ({
   audioSegmentTimingInfoFn,
   id3Fn,
   captionsFn,
+  isEndOfTimeline,
+  endedTimelineFn,
   dataFn,
   handlePartialData
 }) => (event) => {
@@ -782,6 +822,8 @@ const handleProgress = ({
         audioSegmentTimingInfoFn,
         id3Fn,
         captionsFn,
+        isEndOfTimeline,
+        endedTimelineFn,
         dataFn
       });
     }
@@ -853,6 +895,11 @@ const handleProgress = ({
  *                   any adjustments made by the transmuxer
  * @param {Function} id3Fn - a callback that receives ID3 metadata
  * @param {Function} captionsFn - a callback that receives captions
+ * @param {boolean}  isEndOfTimeline
+ *                   true if this segment represents the last segment in a timeline
+ * @param {Function} endedTimelineFn
+ *                   a callback made when a timeline is ended, will only be called if
+ *                   isEndOfTimeline is true
  * @param {Function} dataFn - a callback that receives data from the main segment's xhr
  *                            request, transmuxed if needed
  * @param {Function} doneFn - a callback that is executed only once all requests have
@@ -873,6 +920,8 @@ export const mediaSegmentRequest = ({
   audioSegmentTimingInfoFn,
   id3Fn,
   captionsFn,
+  isEndOfTimeline,
+  endedTimelineFn,
   dataFn,
   doneFn,
   handlePartialData
@@ -887,6 +936,8 @@ export const mediaSegmentRequest = ({
     audioSegmentTimingInfoFn,
     id3Fn,
     captionsFn,
+    isEndOfTimeline,
+    endedTimelineFn,
     dataFn,
     doneFn
   });
@@ -954,6 +1005,8 @@ export const mediaSegmentRequest = ({
       audioSegmentTimingInfoFn,
       id3Fn,
       captionsFn,
+      isEndOfTimeline,
+      endedTimelineFn,
       dataFn,
       handlePartialData
     })
