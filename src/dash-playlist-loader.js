@@ -92,7 +92,7 @@ export const updateMaster = (oldMaster, newMaster, sidxMapping) => {
         addSidxSegmentsToPlaylist(playlist, sidxMapping[sidxKey].sidx, playlist.sidx.resolvedUri);
       }
     }
-    const playlistUpdate = updatePlaylist(update, playlist);
+    const playlistUpdate = updatePlaylist(update, playlist, true);
 
     if (playlistUpdate) {
       update = playlistUpdate;
@@ -104,7 +104,7 @@ export const updateMaster = (oldMaster, newMaster, sidxMapping) => {
   forEachMediaGroup(newMaster, (properties, type, group, label) => {
     if (properties.playlists && properties.playlists.length) {
       const id = properties.playlists[0].id;
-      const playlistUpdate = updatePlaylist(update, properties.playlists[0]);
+      const playlistUpdate = updatePlaylist(update, properties.playlists[0], true);
 
       if (playlistUpdate) {
         update = playlistUpdate;
