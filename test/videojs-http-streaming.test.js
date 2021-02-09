@@ -5397,7 +5397,7 @@ QUnit.test('stats are reset on dispose', function(assert) {
 
 // mocking the fullscreenElement no longer works, find another way to mock
 // fullscreen behavior(without user gesture)
-QUnit.skip('detects fullscreen and triggers a smooth quality change', function(assert) {
+QUnit.skip('detects fullscreen and triggers a fast quality change', function(assert) {
   const vhs = VhsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -5413,7 +5413,7 @@ QUnit.skip('detects fullscreen and triggers a smooth quality change', function(a
     }
   });
 
-  vhs.masterPlaylistController_.smoothQualityChange_ = function() {
+  vhs.masterPlaylistController_.fastQualityChange_ = function() {
     qualityChanges++;
   };
 

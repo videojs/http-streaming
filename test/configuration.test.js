@@ -37,11 +37,6 @@ const options = [{
   test: 5,
   alt: 555
 }, {
-  name: 'smoothQualityChange',
-  default: false,
-  test: true,
-  alt: false
-}, {
   name: 'useBandwidthFromLocalStorage',
   default: false,
   test: true

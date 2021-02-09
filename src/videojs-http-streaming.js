@@ -578,7 +578,7 @@ class VhsHandler extends Component {
         document.msFullscreenElement;
 
       if (fullscreenElement && fullscreenElement.contains(this.tech_.el())) {
-        this.masterPlaylistController_.smoothQualityChange_();
+        this.masterPlaylistController_.fastQualityChange_();
       }
     });
 
@@ -617,6 +617,10 @@ class VhsHandler extends Component {
     this.options_.customTagMappers = this.options_.customTagMappers || [];
     this.options_.cacheEncryptionKeys = this.options_.cacheEncryptionKeys || false;
     this.options_.handlePartialData = this.options_.handlePartialData || false;
+
+    if (this.options_.smoothQualityChange) {
+      videojs.log.warn('smoothQualityChange is deprecated and will be removed in the next major version');
+    }
 
     if (typeof this.options_.blacklistDuration !== 'number') {
       this.options_.blacklistDuration = 5 * 60;
