@@ -3983,7 +3983,7 @@ QUnit.module('SegmentLoader', function(hooks) {
       // In a normal mediaIndex++ situation, the timing values will be OK even though the
       // PDT mapping changes, but when changing renditions over a timeline change, the new
       // mapping will lead to an incorrect value if the different timeline mappings are
-      // not account for.
+      // not accounted for.
       //
       // This is mainly an issue with smooth quality change, as that is when the loader
       // will overlap content.
