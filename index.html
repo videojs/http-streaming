@@ -32,6 +32,9 @@
     input[type=url], select {
       min-width: 600px;
     }
+    #preload {
+      min-width: auto;
+    }
     h3 {
       margin-bottom: 5px;
     }
@@ -85,6 +88,13 @@
       <input id=override-native type="checkbox" checked>
       Override Native (reloads player)
     </label>
+    <label>
+      Preload (reloads player)
+      <select id=preload>
+        <option selected>auto</option>
+        <option>none</option>
+        <option>metadata</option>
+      </select>
   </div>
 
   <h3>Load a URL</h3>
