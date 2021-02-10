@@ -6,7 +6,8 @@ import {
 } from 'mpd-parser';
 import {
   refreshDelay,
-  updateMaster as updatePlaylist
+  updateMaster as updatePlaylist,
+  isPlaylistUnchanged
 } from './playlist-loader';
 import { resolveUrl, resolveManifestRedirect } from './resolve-url';
 import parseSidx from 'mux.js/lib/tools/parse-sidx';
@@ -20,6 +21,67 @@ import containerRequest from './util/container-request.js';
 import {toUint8} from '@videojs/vhs-utils/es/byte-helpers';
 
 const { EventTarget, mergeOptions } = videojs;
+
+const dashPlaylistUnchanged = function(a, b) {
+  if (!isPlaylistUnchanged(a, b)) {
+    return false;
+  }
+
+  // for dash the above check will often return true in scenarios where
+  // the playlist actually has changed because mediaSequence isn't a
+  // dash thing, and we often set it to 1. So if the playlists have the same amount
+  // of segments we return true.
+  // So for dash we need to make sure that the underlying segments are different.
+
+  // if sidx changed then the playlists are different.
+  if (a.sidx && b.sidx && (a.sidx.offset !== b.sidx.offset || a.sidx.length !== b.sidx.length)) {
+    return false;
+  } else if ((!a.sidx && b.sidx) || (a.sidx && !b.sidx)) {
+    return false;
+  }
+
+  // one or the other does not have segments
+  // there was a change.
+  if (a.segments && !b.segments || !a.segments && b.segments) {
+    return false;
+  }
+
+  // neither has segments nothing changed
+  if (!a.segments && !b.segments) {
+    return true;
+  }
+
+  // check segments themselves
+  for (let i = 0; i < a.segments.length; i++) {
+    const aSegment = a.segments[i];
+    const bSegment = b.segments[i];
+
+    // if uris are different between segments there was a change
+    if (aSegment.uri !== bSegment.uri) {
+      return false;
+    }
+
+    // neither segment has a byterange, there will be no byterange change.
+    if (!aSegment.byterange && !bSegment.byterange) {
+      continue;
+    }
+    const aByterange = aSegment.byterange;
+    const bByterange = bSegment.byterange;
+
+    // if byterange only exists on one of the segments, there was a change.
+    if ((aByterange && !bByterange) || (!aByterange && bByterange)) {
+      return false;
+    }
+
+    // if both segments have byterange with different offsets, there was a change.
+    if (aByterange.offset !== bByterange.offset || aByterange.length !== bByterange.length) {
+      return false;
+    }
+  }
+
+  // if everything was the same with segments, this is the same playlist.
+  return true;
+};
 
 /**
  * Parses the master XML string and updates playlist URI references.
@@ -92,7 +154,7 @@ export const updateMaster = (oldMaster, newMaster, sidxMapping) => {
         addSidxSegmentsToPlaylist(playlist, sidxMapping[sidxKey].sidx, playlist.sidx.resolvedUri);
       }
     }
-    const playlistUpdate = updatePlaylist(update, playlist, true);
+    const playlistUpdate = updatePlaylist(update, playlist, dashPlaylistUnchanged);
 
     if (playlistUpdate) {
       update = playlistUpdate;
@@ -104,7 +166,7 @@ export const updateMaster = (oldMaster, newMaster, sidxMapping) => {
   forEachMediaGroup(newMaster, (properties, type, group, label) => {
     if (properties.playlists && properties.playlists.length) {
       const id = properties.playlists[0].id;
-      const playlistUpdate = updatePlaylist(update, properties.playlists[0], true);
+      const playlistUpdate = updatePlaylist(update, properties.playlists[0], dashPlaylistUnchanged);
 
       if (playlistUpdate) {
         update = playlistUpdate;

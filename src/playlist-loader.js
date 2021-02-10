@@ -57,6 +57,14 @@ export const resolveSegmentUris = (segment, baseUri) => {
   }
 };
 
+// consider the playlist unchanged if the playlist object is the same or
+// the number of segments is equal, the media sequence number is unchanged,
+// and this playlist hasn't become the end of the playlist
+export const isPlaylistUnchanged = (a, b) => a === b ||
+  (a.segments && b.segments && a.segments.length === b.segments.length &&
+  a.endList === b.endList &&
+    a.mediaSequence === b.mediaSequence);
+
 /**
   * Returns a new master playlist that is the result of merging an
   * updated media playlist into the original version. If the
@@ -69,7 +77,7 @@ export const resolveSegmentUris = (segment, baseUri) => {
   * master playlist with the updated media playlist merged in, or
   * null if the merge produced no change.
   */
-export const updateMaster = (master, media, dash = false) => {
+export const updateMaster = (master, media, unchangedCheck = isPlaylistUnchanged) => {
   const result = mergeOptions(master, {});
   const playlist = result.playlists[media.id];
 
@@ -77,61 +85,7 @@ export const updateMaster = (master, media, dash = false) => {
     return null;
   }
 
-  // consider the playlist unchanged if the number of segments is equal, the media
-  // sequence number is unchanged, and this playlist hasn't become the end of the playlist
-  let unchanged = playlist.segments &&
-    media.segments &&
-    playlist.segments.length === media.segments.length &&
-    playlist.endList === media.endList &&
-    playlist.mediaSequence === media.mediaSequence;
-
-  // for dash mediaSequence and segment lengths will often match as
-  // mediaSequence is almost always 1 and the number of segments generated for a
-  // given time is often the same. So we need to make sure that the underlying segments are
-  // different.
-  if (dash && unchanged) {
-    const oldSidx = playlist.sidx;
-    const newSidx = media.sidx;
-
-    // if sidx changed then the playlists are different.
-    if (oldSidx && newSidx && (oldSidx.offset !== newSidx.offset || oldSidx.length !== newSidx.length)) {
-      unchanged = false;
-    } else if ((!oldSidx && newSidx) || (oldSidx && !newSidx)) {
-      unchanged = false;
-    } else {
-      for (let i = 0; i < playlist.segments.length; i++) {
-        const oldSegment = playlist.segments[i];
-        const newSegment = media.segments[i];
-
-        // if uris are different between segments there was a change
-        if (oldSegment.uri !== newSegment.uri) {
-          unchanged = false;
-          continue;
-        }
-
-        // neither segment has a byternage, there will be no byterange change.
-        if (!oldSegment.byterange && !newSegment.byterange) {
-          continue;
-        }
-        const oldByterange = oldSegment.byterange;
-        const newByterange = newSegment.byterange;
-
-        // if byterange only exists on one of the segments, there was a change.
-        if ((oldByterange && !newByterange) || (!oldByterange && newByterange)) {
-          unchanged = false;
-          continue;
-        }
-
-        // if both segments have byterange with different offsets, there was a change.
-        if (oldByterange.offset !== newByterange.offset || oldByterange.length !== newByterange.length) {
-          unchanged = false;
-          continue;
-        }
-      }
-    }
-  }
-
-  if (unchanged) {
+  if (unchangedCheck(playlist, media)) {
     return null;
   }
 
