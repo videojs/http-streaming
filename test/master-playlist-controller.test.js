@@ -635,11 +635,11 @@ QUnit.test('audio segment loader is reset on audio track change', function(asser
 
   let resyncs = 0;
   let resets = 0;
-  const realReset = masterPlaylistController.audioSegmentLoader_.resetLoader;
+  const realReset = masterPlaylistController.audioSegmentLoader_.resetEverything;
 
-  masterPlaylistController.audioSegmentLoader_.resetLoader = function() {
+  masterPlaylistController.audioSegmentLoader_.resetEverything = function(done) {
     resets++;
-    realReset.call(this);
+    realReset.call(this, done);
   };
 
   const originalResync = masterPlaylistController.audioSegmentLoader_.resyncLoader;
@@ -672,6 +672,7 @@ QUnit.test('audio segment loader is reset on audio track change', function(asser
   assert.equal(resyncs, 0, 'does not resync the audio segment loader yet');
 
   this.player.audioTracks()[1].enabled = true;
+  this.clock.tick(1);
 
   assert.equal(this.requests.length, 4, 'added a request for new media');
   assert.ok(this.requests[0].aborted, 'aborted old alt audio playlist request');
