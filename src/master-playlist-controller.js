@@ -1299,8 +1299,12 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    const suggestedPresentationDelay = this.masterPlaylistLoader_.master.suggestedPresentationDelay;
-    const mainSeekable = Vhs.Playlist.seekable(media, expired, suggestedPresentationDelay);
+    const master = this.masterPlaylistLoader_.master;
+    const mainSeekable = Vhs.Playlist.seekable(
+      media,
+      expired,
+      Vhs.Playlist.getHoldBack(master, media)
+    );
 
     if (mainSeekable.length === 0) {
       return;
@@ -1314,7 +1318,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
         return;
       }
 
-      audioSeekable = Vhs.Playlist.seekable(media, expired, suggestedPresentationDelay);
+      audioSeekable = Vhs.Playlist.seekable(
+        media,
+        expired,
+        Vhs.Playlist.getHoldBack(master, media)
+      );
 
       if (audioSeekable.length === 0) {
         return;
