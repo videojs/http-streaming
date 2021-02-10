@@ -27,6 +27,10 @@ import {
   oneSecond as oneSecondSegment,
   audio as audioSegment,
   video as videoSegment,
+  videoOneSecond as videoOneSecondSegment,
+  videoOneSecond1 as videoOneSecond1Segment,
+  videoOneSecond2 as videoOneSecond2Segment,
+  videoOneSecond3 as videoOneSecond3Segment,
   videoLargeOffset as videoLargeOffsetSegment,
   videoLargeOffset2 as videoLargeOffset2Segment,
   videoMaxOffset as videoMaxOffsetSegment,
@@ -3857,6 +3861,238 @@ QUnit.module('SegmentLoader', function(hooks) {
           // larger than 2^33 in value, it does the addition from the player side.
           ((Math.pow(2, 33) + (11520)) / 90000).toFixed(5),
           'set proper transmuxed decode end greater than rollover value'
+        );
+      });
+    });
+
+    QUnit.test('PDT mapping updated before loader starts loading', function(assert) {
+      const targetDuration = 1;
+      const playlistOptions = {
+        targetDuration,
+        discontinuityStarts: [2],
+        // make it a live playlist so that removing segments from beginning is allowed
+        endList: false
+      };
+      const playlistDuration = 4;
+      const playlist1 = playlistWithDuration(
+        playlistDuration,
+        // need different URIs to ensure the playlists are considered different
+        videojs.mergeOptions(playlistOptions, { uri: 'playlist1.m3u8' })
+      );
+      const playlist2 = playlistWithDuration(
+        playlistDuration,
+        videojs.mergeOptions(playlistOptions, { uri: 'playlist2.m3u8' })
+      );
+
+      const segmentDurationMs = targetDuration * 1000;
+
+      const playlist1Start = new Date('2021-01-01T00:00:00.000-0500');
+
+      playlist1.segments[0].dateTimeObject = playlist1Start;
+      playlist1.segments[1].dateTimeObject = new Date(playlist1Start.getTime() + segmentDurationMs);
+      // jump of 0.5 seconds after disco (0.5 seconds of missing real world time, e.g.,
+      // an encoder went down briefly), should have a PDT mapping difference of -3.5
+      // seconds from first mapping
+      playlist1.segments[2].dateTimeObject = new Date(playlist1.segments[1].dateTimeObject.getTime() + segmentDurationMs + 500);
+      playlist1.segments[3].dateTimeObject = new Date(playlist1.segments[2].dateTimeObject.getTime() + segmentDurationMs);
+
+      // offset by 0.25 seconds from playlist1
+      const playlist2Start = new Date('2021-01-01T00:00:00.250-0500');
+
+      playlist2.segments[0].dateTimeObject = playlist2Start;
+      playlist2.segments[1].dateTimeObject = new Date(playlist2Start.getTime() + segmentDurationMs);
+      // jump of 0.5 seconds after disco (0.5 seconds of missing real world time, e.g.,
+      // an encoder went down briefly), should have a PDT mapping difference of -3.5
+      // seconds from first mapping
+      playlist2.segments[2].dateTimeObject = new Date(playlist2.segments[1].dateTimeObject.getTime() + segmentDurationMs + 500);
+      playlist2.segments[3].dateTimeObject = new Date(playlist2.segments[2].dateTimeObject.getTime() + segmentDurationMs);
+
+      const {
+        mediaSource_: mediaSource,
+        sourceUpdater_: sourceUpdater
+      } = loader;
+      const mediaSettings = { isVideoOnly: true };
+
+      return setupMediaSource(mediaSource, sourceUpdater, mediaSettings).then(() => {
+        loader.playlist(playlist1);
+
+        // uses private property of sync controller because there isn't a great way
+        // to really check without a whole bunch of other code
+        assert.deepEqual(
+          loader.syncController_.timelineToDatetimeMappings,
+          { 0: -1609477200 },
+          'set date time mapping to start of playlist1'
+        );
+
+        // change of playlist before load should set new 0 point
+        loader.playlist(playlist2);
+
+        assert.deepEqual(
+          loader.syncController_.timelineToDatetimeMappings,
+          // offset of 0.25 seconds
+          { 0: -1609477200.25 },
+          'set date time mapping to start of playlist2'
+        );
+
+        // changes back, because why not
+        loader.playlist(playlist1);
+
+        assert.deepEqual(
+          loader.syncController_.timelineToDatetimeMappings,
+          { 0: -1609477200 },
+          'set date time mapping to start of playlist1'
+        );
+
+        playlist1.segments.shift();
+        playlist1.mediaSequence++;
+        // playlist update, first segment removed
+        loader.playlist(playlist1);
+
+        assert.deepEqual(
+          loader.syncController_.timelineToDatetimeMappings,
+          // 1 second later
+          { 0: -1609477201 },
+          'set date time mapping to new start of playlist1'
+        );
+
+        playlist1.segments.shift();
+        playlist1.mediaSequence++;
+        // playlist update, first two segments now removed
+        loader.playlist(playlist1);
+
+        assert.deepEqual(
+          loader.syncController_.timelineToDatetimeMappings,
+          // 2.5 seconds later, as this is a disco and the PDT jumped
+          // note also the timeline jumped in the mapping key
+          { 1: -1609477202.5 },
+          'set date time mapping to post disco of playlist1'
+        );
+
+        loader.load();
+      });
+    });
+
+    QUnit.test('handles PDT mappings for different timelines', function(assert) {
+      const playlistDuration = 5;
+      const targetDuration = 1;
+      const playlistOptions = {
+        targetDuration,
+        discontinuityStarts: [3]
+      };
+      let currentTime = 0;
+      // In a normal mediaIndex++ situation, the timing values will be OK even though the
+      // PDT mapping changes, but when changing renditions over a timeline change, the new
+      // mapping will lead to an incorrect value if the different timeline mappings are
+      // not accounted for.
+      //
+      // This is mainly an issue with smooth quality change, as that is when the loader
+      // will overlap content.
+      const playlist1 = playlistWithDuration(
+        playlistDuration,
+        // need different URIs to ensure the playlists are considered different
+        videojs.mergeOptions(playlistOptions, { uri: 'playlist1.m3u8' })
+      );
+      const playlist2 = playlistWithDuration(
+        playlistDuration,
+        videojs.mergeOptions(playlistOptions, { uri: 'playlist2.m3u8' })
+      );
+
+      loader.currentTime_ = () => currentTime;
+
+      const segmentDurationMs = targetDuration * 1000;
+      const segment0Start = new Date('2021-01-01T00:00:00.000-0500');
+      const segment1Start = new Date(segment0Start.getTime() + segmentDurationMs);
+      const segment2Start = new Date(segment1Start.getTime() + segmentDurationMs);
+      // jump of 0.5 seconds after disco (0.5 seconds of missing real world time, e.g.,
+      // an encoder went down briefly), should have a PDT mapping difference of -3.5
+      // seconds from first mapping
+      const segment3Start = new Date(segment2Start.getTime() + segmentDurationMs + 500);
+
+      [playlist1, playlist2].forEach((playlist) => {
+        playlist.dateTimeObject = segment0Start;
+        playlist.segments[0].dateTimeObject = segment0Start;
+        playlist.segments[1].dateTimeObject = segment1Start;
+        playlist.segments[2].dateTimeObject = segment2Start;
+        playlist.segments[3].dateTimeObject = segment3Start;
+      });
+
+      const {
+        mediaSource_: mediaSource,
+        sourceUpdater_: sourceUpdater
+      } = loader;
+      const mediaSettings = { isVideoOnly: true };
+
+      return setupMediaSource(mediaSource, sourceUpdater, mediaSettings).then(() => {
+        loader.playlist(playlist1);
+        loader.load();
+
+        this.clock.tick(1);
+        standardXHRResponse(this.requests.shift(), videoOneSecondSegment());
+
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        this.clock.tick(1);
+
+        standardXHRResponse(this.requests.shift(), videoOneSecond1Segment());
+
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        this.clock.tick(1);
+
+        standardXHRResponse(this.requests.shift(), videoOneSecond2Segment());
+
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        this.clock.tick(1);
+
+        // responding with the first segment post discontinuity
+        standardXHRResponse(this.requests.shift(), videoOneSecond3Segment());
+
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        // The time needs to be at a point in time where the ProgramDateTime strategy
+        // is chosen. In this case, the segments go:
+        //
+        // 0.ts: 0 => 1
+        // 1.ts: 1 => 2
+        // 2.ts: 2 => 3
+        // DISCO
+        // 3.ts: 3 => 4
+        //
+        // By setting the current time to 2.8, 2.ts should be chosen, since the closest
+        // sync point will be ProgramDateTime, at a time of 3.5, though this time value is
+        // wrong, since the gap in ProgramDateTime was not accounted for.
+        currentTime = 2.8;
+        loader.playlist(playlist2);
+        // smoothQualityChange will reset loader after changing renditions, so need to
+        // mimic that behavior here in order for content to be overlayed over already
+        // buffered content.
+        loader.resetLoader();
+        this.clock.tick(1);
+
+        standardXHRResponse(this.requests.shift(), videoOneSecond2Segment());
+
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        assert.deepEqual(
+          playlist1.segments[2],
+          playlist2.segments[2],
+          'segments are equal'
         );
       });
     });
