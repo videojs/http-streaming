@@ -345,5 +345,17 @@
     "uri": "https://d2zihajmogu5jn.cloudfront.net/legacy-avc-codec/master.m3u8",
     "mimetype": "application/x-mpegurl",
     "features": []
+  },
+  {
+    "name": "Pseudo-Live PDT test source",
+    "uri": "https://d2zihajmogu5jn.cloudfront.net/pdt-test-source/no-endlist.m3u8",
+    "mimetype": "application/x-mpegurl",
+    "features": ["live"]
+  },
+  {
+    "name": "PDT test source",
+    "uri": "https://d2zihajmogu5jn.cloudfront.net/pdt-test-source/endlist.m3u8",
+    "mimetype": "application/x-mpegurl",
+    "features": []
   }
 ]
