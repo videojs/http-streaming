@@ -716,6 +716,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * removing already buffered content
    *
    * @private
+   * @deprecated
    */
   smoothQualityChange_(media = this.selectPlaylist()) {
     this.fastQualityChange_(media);

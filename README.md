@@ -409,6 +409,8 @@ This setting is `true` by default.
 smoothQualityChange will now call fastQualityChange, which clears the buffer, chooses a
 new rendition, and starts loading content from the current playhead position.
 
+This function is deprecated and will be removed in the next major version of VHS.
+
 ##### allowSeeksWithinUnsafeLiveWindow
 * Type: `boolean`
 * can be used as a source option
