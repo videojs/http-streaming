@@ -3886,7 +3886,7 @@ QUnit.module('SegmentLoader', function(hooks) {
 
       const segmentDurationMs = targetDuration * 1000;
 
-      const playlist1Start = new Date('2021-01-01T00:00:00.000-0500');
+      const playlist1Start = new Date('2021-01-01T00:00:00.000-05:00');
 
       playlist1.segments[0].dateTimeObject = playlist1Start;
       playlist1.segments[1].dateTimeObject = new Date(playlist1Start.getTime() + segmentDurationMs);
@@ -3897,7 +3897,7 @@ QUnit.module('SegmentLoader', function(hooks) {
       playlist1.segments[3].dateTimeObject = new Date(playlist1.segments[2].dateTimeObject.getTime() + segmentDurationMs);
 
       // offset by 0.25 seconds from playlist1
-      const playlist2Start = new Date('2021-01-01T00:00:00.250-0500');
+      const playlist2Start = new Date('2021-01-01T00:00:00.250-05:00');
 
       playlist2.segments[0].dateTimeObject = playlist2Start;
       playlist2.segments[1].dateTimeObject = new Date(playlist2Start.getTime() + segmentDurationMs);
@@ -4000,7 +4000,7 @@ QUnit.module('SegmentLoader', function(hooks) {
       loader.currentTime_ = () => currentTime;
 
       const segmentDurationMs = targetDuration * 1000;
-      const segment0Start = new Date('2021-01-01T00:00:00.000-0500');
+      const segment0Start = new Date('2021-01-01T00:00:00.000-05:00');
       const segment1Start = new Date(segment0Start.getTime() + segmentDurationMs);
       const segment2Start = new Date(segment1Start.getTime() + segmentDurationMs);
       // jump of 0.5 seconds after disco (0.5 seconds of missing real world time, e.g.,
