@@ -74,7 +74,11 @@ const xhrFactory = function() {
       }
     }
 
-    const request = videojsXHR(options, function(error, response) {
+    // Use the standard videojs.xhr() method unless `videojs.Vhs.xhr` has been overriden
+    // TODO: switch back to videojs.Vhs.xhr.name === 'XhrFunction' when we drop IE11
+    const xhrMethod = videojs.Vhs.xhr.original === true ? videojsXHR : videojs.Vhs.xhr;
+
+    const request = xhrMethod(options, function(error, response) {
       return callbackWrapper(request, error, response, callback);
     });
     const originalAbort = request.abort;
@@ -87,6 +91,8 @@ const xhrFactory = function() {
     request.requestTime = Date.now();
     return request;
   };
+
+  xhr.original = true;
 
   return xhr;
 };

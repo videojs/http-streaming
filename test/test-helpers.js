@@ -419,8 +419,10 @@ export const standardXHRResponse = function(request, data) {
 };
 
 export const playlistWithDuration = function(time, conf) {
+  const targetDuration = conf && typeof conf.targetDuration === 'number' ?
+    conf.targetDuration : 10;
   const result = {
-    targetDuration: 10,
+    targetDuration,
     mediaSequence: conf && conf.mediaSequence ? conf.mediaSequence : 0,
     discontinuityStarts: conf && conf.discontinuityStarts ? conf.discontinuityStarts : [],
     segments: [],
@@ -433,8 +435,8 @@ export const playlistWithDuration = function(time, conf) {
 
   result.id = result.uri;
 
-  const count = Math.floor(time / 10);
-  const remainder = time % 10;
+  const count = Math.floor(time / targetDuration);
+  const remainder = time % targetDuration;
   let i;
   const isEncrypted = conf && conf.isEncrypted;
   const extension = conf && conf.extension ? conf.extension : '.ts';
@@ -442,24 +444,33 @@ export const playlistWithDuration = function(time, conf) {
   let discontinuityStartsIndex = 0;
 
   for (i = 0; i < count; i++) {
-    if (result.discontinuityStarts &&
-        result.discontinuityStarts[discontinuityStartsIndex] === i) {
+    const isDiscontinuity = result.discontinuityStarts &&
+        result.discontinuityStarts[discontinuityStartsIndex] === i;
+
+    if (isDiscontinuity) {
       timeline++;
       discontinuityStartsIndex++;
     }
 
-    result.segments.push({
+    const segment = {
       uri: i + extension,
       resolvedUri: i + extension,
-      duration: 10,
+      duration: targetDuration,
       timeline
-    });
+    };
+
     if (isEncrypted) {
-      result.segments[i].key = {
+      segment.key = {
         uri: i + '-key.php',
         resolvedUri: i + '-key.php'
       };
     }
+
+    if (isDiscontinuity) {
+      segment.discontinuity = true;
+    }
+
+    result.segments.push(segment);
   }
   if (remainder) {
     result.segments.push({

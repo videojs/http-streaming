@@ -1,3 +1,32 @@
+<a name="2.6.0"></a>
+# [2.6.0](https://github.com/videojs/http-streaming/compare/v2.5.0...v2.6.0) (2021-02-11)
+
+### Features
+
+* allow xhr override globally, for super advanced use cases only ([#1059](https://github.com/videojs/http-streaming/issues/1059)) ([6279675](https://github.com/videojs/http-streaming/commit/6279675))
+* expose m3u8-parser logging in debug log ([#1048](https://github.com/videojs/http-streaming/issues/1048)) ([0e8bd4b](https://github.com/videojs/http-streaming/commit/0e8bd4b))
+
+### Bug Fixes
+
+* do not request manifests until play when preload is none ([#1060](https://github.com/videojs/http-streaming/issues/1060)) ([49249d5](https://github.com/videojs/http-streaming/commit/49249d5)), closes [#126](https://github.com/videojs/http-streaming/issues/126)
+* store `transmuxQueue` and `currentTransmux` on `transmuxer` instead of globally ([#1045](https://github.com/videojs/http-streaming/issues/1045)) ([a34b4da](https://github.com/videojs/http-streaming/commit/a34b4da))
+* use a separate ProgramDateTime mapping to player time per timeline ([#1063](https://github.com/videojs/http-streaming/issues/1063)) ([5e9b4f1](https://github.com/videojs/http-streaming/commit/5e9b4f1))
+* wait for endedtimeline event from transmuxer when reaching the end of a timeline ([#1058](https://github.com/videojs/http-streaming/issues/1058)) ([b01ab72](https://github.com/videojs/http-streaming/commit/b01ab72))
+
+### Chores
+
+* add legacy avc source ([#1050](https://github.com/videojs/http-streaming/issues/1050)) ([b34a770](https://github.com/videojs/http-streaming/commit/b34a770))
+* add pdt test sources ([#1067](https://github.com/videojs/http-streaming/issues/1067)) ([112148b](https://github.com/videojs/http-streaming/commit/112148b))
+* better worker build and synchronous web worker ([#1033](https://github.com/videojs/http-streaming/issues/1033)) ([f0732af](https://github.com/videojs/http-streaming/commit/f0732af))
+
+### Documentation
+
+* sample-aes encryption isn't currently supported ([#923](https://github.com/videojs/http-streaming/issues/923)) ([30f9b14](https://github.com/videojs/http-streaming/commit/30f9b14))
+
+### Tests
+
+* for IE11, add colon to timezone in Date strings of PDT mapping tests ([#1068](https://github.com/videojs/http-streaming/issues/1068)) ([f81c5a9](https://github.com/videojs/http-streaming/commit/f81c5a9))
+
 <a name="2.5.0"></a>
 # [2.5.0](https://github.com/videojs/http-streaming/compare/v2.4.2...v2.5.0) (2021-01-20)
 

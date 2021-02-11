@@ -3718,7 +3718,7 @@ QUnit.test('switching playlists with an outstanding key request aborts request a
   );
 });
 
-QUnit.test('does not download segments if preload option set to none', function(assert) {
+QUnit.test('does not download anything until play if preload option set to none', function(assert) {
   this.player.preload('none');
   this.player.src({
     src: 'master.m3u8',
@@ -3728,19 +3728,23 @@ QUnit.test('does not download segments if preload option set to none', function(
   this.clock.tick(1);
 
   openMediaSource(this.player, this.clock);
-  // master
-  this.standardXHRResponse(this.requests.shift());
-  // media
-  this.standardXHRResponse(this.requests.shift());
   this.clock.tick(10 * 1000);
 
-  this.requests = this.requests.filter(function(request) {
-    return !(/m3u8$/).test(request.uri);
-  });
   assert.equal(this.requests.length, 0, 'did not download any segments');
 
   // verify stats
   assert.equal(this.player.tech_.vhs.stats.bandwidth, 4194304, 'default');
+
+  this.player.tech_.paused = () => false;
+  this.player.tech_.trigger('play');
+
+  // master
+  this.standardXHRResponse(this.requests.shift());
+
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.equal(this.requests.length, 1, 'requested segment');
 });
 
 // workaround https://bugzilla.mozilla.org/show_bug.cgi?id=548397
@@ -4262,6 +4266,36 @@ QUnit.test('Allows specifying the beforeRequest function globally', function(ass
   assert.ok(beforeRequestCalled, 'beforeRequest was called');
 
   delete videojs.Vhs.xhr.beforeRequest;
+
+  // verify stats
+  assert.equal(this.player.tech_.vhs.stats.bandwidth, 4194304, 'default');
+});
+
+QUnit.test('Allows specifying custom xhr() function globally', function(assert) {
+  const originalXhr = videojs.Vhs.xhr;
+  let customXhr = false;
+
+  videojs.Vhs.xhr = function(opts, callback) {
+    customXhr = true;
+    return videojs.xhr(opts, function(err, response, body) {
+      callback(err, response);
+    });
+  };
+
+  this.player.src({
+    src: 'master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  // master
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.ok(customXhr, 'customXhr was called');
+
+  videojs.Vhs.xhr = originalXhr;
 
   // verify stats
   assert.equal(this.player.tech_.vhs.stats.bandwidth, 4194304, 'default');

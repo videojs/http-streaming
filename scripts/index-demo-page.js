@@ -73,6 +73,8 @@
   var getInputValue = function(el) {
     if (el.type === 'url' || el.type === 'text' || el.nodeName.toLowerCase() === 'textarea') {
       return encodeURIComponent(el.value);
+    } else if (el.type === 'select-one') {
+      return el.options[el.selectedIndex].value;
     } else if (el.type === 'checkbox') {
       return el.checked;
     }
@@ -84,6 +86,12 @@
   var setInputValue = function(el, value) {
     if (el.type === 'url' || el.type === 'text' || el.nodeName.toLowerCase() === 'textarea') {
       el.value = decodeURIComponent(value);
+    } else if (el.type === 'select-one') {
+      for (let i = 0; i < el.options.length; i++) {
+        if (el.options[i].value === value) {
+          el.options[i].selected = true;
+        }
+      }
     } else {
       // get the `value` into a Boolean.
       el.checked = JSON.parse(value);
@@ -217,7 +225,7 @@
     representationsEl.selectedIndex = selectedIndex;
   };
 
-  ['debug', 'autoplay', 'muted', 'minified', 'sync-workers', 'liveui', 'partial', 'url', 'type', 'keysystems', 'buffer-water', 'override-native'].forEach(function(name) {
+  ['debug', 'autoplay', 'muted', 'minified', 'sync-workers', 'liveui', 'partial', 'url', 'type', 'keysystems', 'buffer-water', 'override-native', 'preload'].forEach(function(name) {
     stateEls[name] = document.getElementById(name);
   });
 
@@ -247,6 +255,12 @@
     stateEls['sync-workers'].addEventListener('change', function(event) {
       saveState();
 
+      // reload the player and scripts
+      stateEls.minified.dispatchEvent(newEvent('change'));
+    });
+
+    stateEls.preload.addEventListener('change', function(event) {
+      saveState();
       // reload the player and scripts
       stateEls.minified.dispatchEvent(newEvent('change'));
     });
@@ -315,6 +329,7 @@
         var videoEl = document.createElement('video-js');
 
         videoEl.setAttribute('controls', '');
+        videoEl.setAttribute('preload', stateEls.preload.options[stateEls.preload.selectedIndex].value || 'auto');
         videoEl.className = 'vjs-default-skin';
         fixture.appendChild(videoEl);
 

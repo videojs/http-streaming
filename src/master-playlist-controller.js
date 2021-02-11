@@ -279,7 +279,16 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.logger_ = logger('MPC');
 
     this.triggeredFmp4Usage = false;
-    this.masterPlaylistLoader_.load();
+    if (this.tech_.preload() === 'none') {
+      this.loadOnPlay_ = () => {
+        this.loadOnPlay_ = null;
+        this.masterPlaylistLoader_.load();
+      };
+
+      this.tech_.one('play', this.loadOnPlay_);
+    } else {
+      this.masterPlaylistLoader_.load();
+    }
   }
 
   /**
@@ -381,6 +390,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     this.masterPlaylistLoader_.on('loadedplaylist', () => {
+      if (this.loadOnPlay_) {
+        this.tech_.off('play', this.loadOnPlay_);
+      }
       let updatedPlaylist = this.masterPlaylistLoader_.media();
 
       if (!updatedPlaylist) {
@@ -1399,6 +1411,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.decrypter_.terminate();
     this.masterPlaylistLoader_.dispose();
     this.mainSegmentLoader_.dispose();
+
+    if (this.loadOnPlay_) {
+      this.tech_.off('play', this.loadOnPlay_);
+    }
 
     ['AUDIO', 'SUBTITLES'].forEach((type) => {
       const groups = this.mediaTypes_[type].groups;
