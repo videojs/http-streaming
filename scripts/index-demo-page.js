@@ -225,7 +225,22 @@
     representationsEl.selectedIndex = selectedIndex;
   };
 
-  ['debug', 'autoplay', 'muted', 'minified', 'sync-workers', 'liveui', 'partial', 'url', 'type', 'keysystems', 'buffer-water', 'override-native', 'preload'].forEach(function(name) {
+  [
+    'debug',
+    'autoplay',
+    'muted',
+    'minified',
+    'sync-workers',
+    'liveui',
+    'partial',
+    'url',
+    'type',
+    'keysystems',
+    'buffer-water',
+    'override-native',
+    'preload',
+    'mirror-source'
+  ].forEach(function(name) {
     stateEls[name] = document.getElementById(name);
   });
 
@@ -250,6 +265,13 @@
     stateEls.autoplay.addEventListener('change', function(event) {
       saveState();
       window.player.autoplay(event.target.checked);
+    });
+
+    stateEls['mirror-source'].addEventListener('change', function(event) {
+      saveState();
+
+      // reload the player and scripts
+      stateEls.minified.dispatchEvent(newEvent('change'));
     });
 
     stateEls['sync-workers'].addEventListener('change', function(event) {
@@ -333,6 +355,8 @@
         videoEl.className = 'vjs-default-skin';
         fixture.appendChild(videoEl);
 
+        const mirrorSource = getInputValue(stateEls['mirror-source']);
+
         player = window.player = window.videojs(videoEl, {
           plugins: {
             httpSourceSelector: {
@@ -340,6 +364,7 @@
             }
           },
           liveui: stateEls.liveui.checked,
+          enableSourceset: mirrorSource,
           html5: {
             vhs: {
               overrideNative: getInputValue(stateEls['override-native']),
@@ -347,6 +372,33 @@
               experimentalBufferBasedABR: getInputValue(stateEls['buffer-water'])
             }
           }
+        });
+
+        player.on('sourceset', function() {
+          const source = player.currentSource();
+
+          if (source.keySystems) {
+            const copy = JSON.parse(JSON.stringify(source.keySystems));
+
+            // have to delete pssh as it will often make keySystems too big
+            // for a uri
+            Object.keys(copy).forEach(function(key) {
+              if (copy[key].hasOwnProperty('pssh')) {
+                delete copy[key].pssh;
+              }
+            });
+
+            stateEls.keysystems.value = JSON.stringify(copy, null, 2);
+          }
+
+          if (source.src) {
+            stateEls.url.value = source.src;
+          }
+
+          if (source.type) {
+            stateEls.type.value = source.type;
+          }
+
         });
 
         player.width(640);
