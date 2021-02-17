@@ -2556,6 +2556,44 @@ QUnit.module('SegmentLoader', function(hooks) {
       });
     });
 
+    QUnit.test('does not remove until starting media info', function(assert) {
+      let audioRemoves = 0;
+      let videoRemoves = 0;
+
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        const playlist = playlistWithDuration(40);
+
+        loader.playlist(playlist);
+        loader.load();
+        this.clock.tick(1);
+
+        loader.sourceUpdater_.removeAudio = (start, end) => {
+          audioRemoves++;
+        };
+        loader.sourceUpdater_.removeVideo = (start, end) => {
+          videoRemoves++;
+        };
+
+        // segment is requested but not yet downloaded, therefore there's no starting
+        // media info
+        //
+        // callback won't be called
+        loader.remove(0, 100, () => {});
+        assert.equal(audioRemoves, 0, 'no audio removes');
+        assert.equal(videoRemoves, 0, 'no video removes');
+
+        standardXHRResponse(this.requests.shift(), muxedSegment());
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        loader.remove(0, 100, () => {});
+        assert.equal(audioRemoves, 1, 'one audio remove');
+        assert.equal(videoRemoves, 1, 'one video remove');
+      });
+    });
+
     QUnit.test('triggers appenderror when append errors', function(assert) {
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
@@ -4176,8 +4214,7 @@ QUnit.module('SegmentLoader: FMP4', function(hooks) {
           endTime: 2,
           text: 'test'
         });
-        // set currentMediaInfo_
-        loader.currentMediaInfo_ = {hasVideo: true, hasAudio: true};
+        loader.startingMediaInfo_ = {hasVideo: true, hasAudio: true};
         loader.remove(0, 2);
         assert.equal(this.inbandTextTracks.CC1.cues.length, 0, 'all cues have been removed');
 
