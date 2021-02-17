@@ -623,10 +623,6 @@ class VhsHandler extends Component {
     this.options_.cacheEncryptionKeys = this.options_.cacheEncryptionKeys || false;
     this.options_.handlePartialData = this.options_.handlePartialData || false;
 
-    if (this.options_.smoothQualityChange) {
-      videojs.log.warn('smoothQualityChange is deprecated and will be removed in the next major version');
-    }
-
     if (typeof this.options_.blacklistDuration !== 'number') {
       this.options_.blacklistDuration = 5 * 60;
     }
@@ -705,6 +701,10 @@ class VhsHandler extends Component {
     this.options_.seekTo = (time) => {
       this.tech_.setCurrentTime(time);
     };
+
+    if (this.options_.smoothQualityChange) {
+      videojs.log.warn('smoothQualityChange is deprecated and will be removed in the next major version');
+    }
 
     this.masterPlaylistController_ = new MasterPlaylistController(this.options_);
 
