@@ -4117,7 +4117,11 @@ QUnit.module('SegmentLoader', function(hooks) {
         // smoothQualityChange will reset loader after changing renditions, so need to
         // mimic that behavior here in order for content to be overlayed over already
         // buffered content.
-        loader.resetLoader();
+        //
+        // Now that smoothQualityChange is removed along with resetLoader, this behavior
+        // can be mimicked by setting fetchAtBuffer_ to false and calling resyncLoader.
+        loader.fetchAtBuffer_ = false;
+        loader.resyncLoader();
         this.clock.tick(1);
 
         standardXHRResponse(this.requests.shift(), videoOneSecond2Segment());

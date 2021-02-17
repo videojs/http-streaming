@@ -406,10 +406,11 @@ This setting is `true` by default.
 * can be used as a source option
 * can be used as an initialization option
 
-smoothQualityChange will now call fastQualityChange, which clears the buffer, chooses a
-new rendition, and starts loading content from the current playhead position.
+smoothQualityChange is deprecated and will be removed in the next major version of VHS.
 
-This function is deprecated and will be removed in the next major version of VHS.
+Instead of its prior behavior, smoothQualityChange will now call fastQualityChange, which
+clears the buffer, chooses a new rendition, and starts loading content from the current
+playhead position.
 
 ##### allowSeeksWithinUnsafeLiveWindow
 * Type: `boolean`

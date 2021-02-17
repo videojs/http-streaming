@@ -579,6 +579,11 @@ class VhsHandler extends Component {
 
       if (fullscreenElement && fullscreenElement.contains(this.tech_.el())) {
         this.masterPlaylistController_.fastQualityChange_();
+      } else {
+        // When leaving fullscreen, since the in page pixel dimensions should be smaller
+        // than full screen, see if there should be a rendition switch down to preserve
+        // bandwidth.
+        this.masterPlaylistController_.checkABR_();
       }
     });
 
