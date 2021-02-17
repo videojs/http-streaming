@@ -5457,12 +5457,19 @@ QUnit.skip('detects fullscreen and triggers a fast quality change', function(ass
 
   assert.equal(qualityChanges, 1, 'made a fast quality change');
 
+  let checkABRCalls = 0;
+
+  vhs.masterPlaylistController_.checkABR_ = () => checkABRCalls++;
+
   // don't do a fast quality change when returning from fullscreen;
-  // allow the video element to rescale the already buffered video
+  //
+  // do check the current rendition to see if it should be changed for the next
+  // segment loaded
   document[fullscreenElementName] = null;
   Events.trigger(document, 'fullscreenchange');
 
   assert.equal(qualityChanges, 1, 'did not make another quality change');
+  assert.equal(checkABRCalls, 1, 'called to check the ABR');
   vhs.dispose();
 });
 
