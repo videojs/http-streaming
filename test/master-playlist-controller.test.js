@@ -416,7 +416,7 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
     origRemove.call(segmentLoader, start, end);
   };
 
-  segmentLoader.currentMediaInfo_ = { hasVideo: true };
+  segmentLoader.startingMediaInfo_ = { hasVideo: true };
   segmentLoader.audioDisabled_ = true;
 
   segmentLoader.sourceUpdater_.removeVideo = function(start, end) {

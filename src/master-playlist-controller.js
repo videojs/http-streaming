@@ -744,6 +744,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
    */
   fastQualityChange_(media = this.selectPlaylist()) {
     if (media === this.masterPlaylistLoader_.media()) {
+      this.logger_('skipping fastQualityChange because new media is same as old');
       return;
     }
 

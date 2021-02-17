@@ -1086,7 +1086,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       end = this.duration_();
     }
 
-    if (!this.sourceUpdater_ || !this.currentMediaInfo_) {
+    if (!this.sourceUpdater_ || !this.startingMediaInfo_) {
+      this.logger_('skipping remove because no source updater or starting media info');
       // nothing to remove if we haven't processed any media
       return;
     }
@@ -1105,7 +1106,15 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.sourceUpdater_.removeAudio(start, end, removeFinished);
     }
 
-    if (this.loaderType_ === 'main' && this.currentMediaInfo_ && this.currentMediaInfo_.hasVideo) {
+    // While it would be better to only remove video if the main loader has video, this
+    // should be safe with audio only as removeVideo will call back even if there's no
+    // video buffer.
+    //
+    // In theory we can check to see if there's video before calling the remove, but in
+    // the event that we're switching between renditions and from video to audio only
+    // (when we add support for that), we may need to clear the video contents despite
+    // what the new media will contain.
+    if (this.loaderType_ === 'main') {
       this.gopBuffer_ = removeGopBuffer(this.gopBuffer_, start, end, this.timeMapping_);
       removesRemaining++;
       this.sourceUpdater_.removeVideo(start, end, removeFinished);

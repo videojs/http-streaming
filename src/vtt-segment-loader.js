@@ -54,7 +54,7 @@ export default class VTTSegmentLoader extends SegmentLoader {
    *         TimeRange object representing the current buffered ranges
    */
   buffered_() {
-    if (!this.subtitlesTrack_ || !this.subtitlesTrack_.cues.length) {
+    if (!this.subtitlesTrack_ || !this.subtitlesTrack_.cues || !this.subtitlesTrack_.cues.length) {
       return videojs.createTimeRanges();
     }
 
