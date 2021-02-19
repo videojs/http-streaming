@@ -1,3 +1,21 @@
+<a name="2.6.1"></a>
+## [2.6.1](https://github.com/videojs/http-streaming/compare/v2.6.0...v2.6.1) (2021-02-19)
+
+### Bug Fixes
+
+* allow buffer removes when there's no current media info in loader ([#1070](https://github.com/videojs/http-streaming/issues/1070)) ([97ab712](https://github.com/videojs/http-streaming/commit/97ab712))
+* live dash segment changes should be considered a playlist update ([#1065](https://github.com/videojs/http-streaming/issues/1065)) ([1ce7838](https://github.com/videojs/http-streaming/commit/1ce7838))
+* sometimes subtitlesTrack_.cues is null ([#1073](https://github.com/videojs/http-streaming/issues/1073)) ([6778ca1](https://github.com/videojs/http-streaming/commit/6778ca1))
+* unbreak the minified build by updating rollup-plugin-worker-factory ([#1072](https://github.com/videojs/http-streaming/issues/1072)) ([e583b26](https://github.com/videojs/http-streaming/commit/e583b26))
+
+### Chores
+
+* mirror player.src on the demo page using sourceset ([#1071](https://github.com/videojs/http-streaming/issues/1071)) ([fee7309](https://github.com/videojs/http-streaming/commit/fee7309))
+
+### Documentation
+
+* **README:** fix useBandwidthFromLocalStorage and limitRenditionByPlayerDimensions ([#1075](https://github.com/videojs/http-streaming/issues/1075)) ([cf2efcb](https://github.com/videojs/http-streaming/commit/cf2efcb))
+
 <a name="2.6.0"></a>
 # [2.6.0](https://github.com/videojs/http-streaming/compare/v2.5.0...v2.6.0) (2021-02-11)
 
