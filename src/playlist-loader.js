@@ -57,6 +57,14 @@ export const resolveSegmentUris = (segment, baseUri) => {
   }
 };
 
+// consider the playlist unchanged if the playlist object is the same or
+// the number of segments is equal, the media sequence number is unchanged,
+// and this playlist hasn't become the end of the playlist
+export const isPlaylistUnchanged = (a, b) => a === b ||
+  (a.segments && b.segments && a.segments.length === b.segments.length &&
+   a.endList === b.endList &&
+   a.mediaSequence === b.mediaSequence);
+
 /**
   * Returns a new master playlist that is the result of merging an
   * updated media playlist into the original version. If the
@@ -69,7 +77,7 @@ export const resolveSegmentUris = (segment, baseUri) => {
   * master playlist with the updated media playlist merged in, or
   * null if the merge produced no change.
   */
-export const updateMaster = (master, media) => {
+export const updateMaster = (master, media, unchangedCheck = isPlaylistUnchanged) => {
   const result = mergeOptions(master, {});
   const playlist = result.playlists[media.id];
 
@@ -77,13 +85,7 @@ export const updateMaster = (master, media) => {
     return null;
   }
 
-  // consider the playlist unchanged if the number of segments is equal, the media
-  // sequence number is unchanged, and this playlist hasn't become the end of the playlist
-  if (playlist.segments &&
-      media.segments &&
-      playlist.segments.length === media.segments.length &&
-      playlist.endList === media.endList &&
-      playlist.mediaSequence === media.mediaSequence) {
+  if (unchangedCheck(playlist, media)) {
     return null;
   }
 

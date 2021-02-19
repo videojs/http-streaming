@@ -1684,6 +1684,164 @@ QUnit.test('refreshXml_: updates media playlist reference if master changed', fu
   );
 });
 
+QUnit.test('refreshXml_: updates playlists if segment uri changed, but media sequence did not', function(assert) {
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeVhs);
+
+  loader.load();
+  this.standardXHRResponse(this.requests.shift());
+
+  const oldMaster = loader.master;
+  const oldMedia = loader.media();
+
+  // change segment uris
+  const newMasterXml = loader.masterXml_
+    .replace(/\$RepresentationID\$/g, '$RepresentationID$-foo')
+    .replace('media="segment-$Number$.mp4"', 'media="segment-foo$Number$.mp4"');
+
+  loader.refreshXml_();
+
+  assert.strictEqual(this.requests.length, 1, 'manifest is being requested');
+
+  this.requests.shift().respond(200, null, newMasterXml);
+
+  const newMaster = loader.master;
+  const newMedia = loader.media();
+
+  assert.notEqual(newMaster, oldMaster, 'master changed');
+  assert.notEqual(newMedia, oldMedia, 'media changed');
+  assert.equal(
+    newMedia,
+    newMaster.playlists[newMedia.id],
+    'media from updated master'
+  );
+});
+
+QUnit.test('refreshXml_: updates playlists if sidx changed', function(assert) {
+  const loader = new DashPlaylistLoader('dash-sidx.mpd', this.fakeVhs);
+
+  loader.load();
+  this.standardXHRResponse(this.requests.shift());
+  this.standardXHRResponse(this.requests.shift(), mp4VideoInitSegment().subarray(0, 10));
+  this.standardXHRResponse(this.requests.shift(), sidxResponse());
+
+  const oldMaster = loader.master;
+  const oldMedia = loader.media();
+
+  const newMasterXml = loader.masterXml_
+    .replace(/indexRange="200-399"/g, 'indexRange="500-699"');
+
+  loader.refreshXml_();
+
+  assert.strictEqual(this.requests.length, 1, 'manifest is being requested');
+
+  this.standardXHRResponse(this.requests.shift(), newMasterXml);
+
+  const newMaster = loader.master;
+  const newMedia = loader.media();
+
+  assert.notEqual(newMaster, oldMaster, 'master changed');
+  assert.notEqual(newMedia, oldMedia, 'media changed');
+  assert.equal(
+    newMedia,
+    newMaster.playlists[newMedia.id],
+    'media from updated master'
+  );
+});
+
+QUnit.test('refreshXml_: updates playlists if sidx removed', function(assert) {
+  const loader = new DashPlaylistLoader('dash-sidx.mpd', this.fakeVhs);
+
+  loader.load();
+  this.standardXHRResponse(this.requests.shift());
+  this.standardXHRResponse(this.requests.shift(), mp4VideoInitSegment().subarray(0, 10));
+  this.standardXHRResponse(this.requests.shift(), sidxResponse());
+
+  const oldMaster = loader.master;
+  const oldMedia = loader.media();
+
+  const newMasterXml = loader.masterXml_
+    .replace(/indexRange="200-399"/g, '');
+
+  loader.refreshXml_();
+
+  assert.strictEqual(this.requests.length, 1, 'manifest is being requested');
+
+  this.standardXHRResponse(this.requests.shift(), newMasterXml);
+
+  const newMaster = loader.master;
+  const newMedia = loader.media();
+
+  assert.notEqual(newMaster, oldMaster, 'master changed');
+  assert.notEqual(newMedia, oldMedia, 'media changed');
+  assert.equal(
+    newMedia,
+    newMaster.playlists[newMedia.id],
+    'media from updated master'
+  );
+});
+
+QUnit.test('refreshXml_: updates playlists if only segment byteranges change', function(assert) {
+  const loader = new DashPlaylistLoader('dashByterange.mpd', this.fakeVhs);
+
+  loader.load();
+  this.standardXHRResponse(this.requests.shift());
+
+  const oldMaster = loader.master;
+  const oldMedia = loader.media();
+
+  const newMasterXml = loader.masterXml_
+    .replace('mediaRange="12883295-13124492"', 'mediaRange="12883296-13124492"');
+
+  loader.refreshXml_();
+
+  assert.strictEqual(this.requests.length, 1, 'manifest is being requested');
+
+  this.standardXHRResponse(this.requests.shift(), newMasterXml);
+
+  const newMaster = loader.master;
+  const newMedia = loader.media();
+
+  assert.notEqual(newMaster, oldMaster, 'master changed');
+  assert.notEqual(newMedia, oldMedia, 'media changed');
+  assert.equal(
+    newMedia,
+    newMaster.playlists[newMedia.id],
+    'media from updated master'
+  );
+});
+
+QUnit.test('refreshXml_: updates playlists if sidx removed', function(assert) {
+  const loader = new DashPlaylistLoader('dash-sidx.mpd', this.fakeVhs);
+
+  loader.load();
+  this.standardXHRResponse(this.requests.shift());
+  this.standardXHRResponse(this.requests.shift(), mp4VideoInitSegment().subarray(0, 10));
+  this.standardXHRResponse(this.requests.shift(), sidxResponse());
+
+  const oldMaster = loader.master;
+  const oldMedia = loader.media();
+
+  const newMasterXml = loader.masterXml_
+    .replace(/indexRange="200-399"/g, '');
+
+  loader.refreshXml_();
+
+  assert.strictEqual(this.requests.length, 1, 'manifest is being requested');
+
+  this.standardXHRResponse(this.requests.shift(), newMasterXml);
+
+  const newMaster = loader.master;
+  const newMedia = loader.media();
+
+  assert.notEqual(newMaster, oldMaster, 'master changed');
+  assert.notEqual(newMedia, oldMedia, 'media changed');
+  assert.equal(
+    newMedia,
+    newMaster.playlists[newMedia.id],
+    'media from updated master'
+  );
+});
+
 QUnit.test('addSidxSegments_: updates master with sidx information', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeVhs);
   const sidxData = sidxResponse();
