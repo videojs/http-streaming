@@ -4,6 +4,8 @@ const {terser} = require('rollup-plugin-terser');
 const createTestData = require('./create-test-data.js');
 const replace = require('@rollup/plugin-replace');
 
+const CI_TEST_TYPE = process.env.CI_TEST_TYPE || '';
+
 let syncWorker;
 // see https://github.com/videojs/videojs-generate-rollup-config
 // for options
@@ -34,6 +36,10 @@ const options = {
     // during unit tests
     defaults.test.unshift('worker');
     defaults.test.unshift('createTestData');
+
+    if (CI_TEST_TYPE === 'playback-min') {
+      defaults.test.push('uglify');
+    }
 
     // istanbul is only in the list for regular builds and not watch
     if (defaults.test.indexOf('istanbul') !== -1) {
@@ -84,13 +90,12 @@ const options = {
   }
 };
 
-if (process.env.CI_TEST_TYPE) {
-  if (process.env.CI_TEST_TYPE === 'playback') {
-    options.testInput = 'test/playback.test.js';
-  } else {
-    options.testInput = {include: ['test/**/*.test.js'], exclude: ['test/playback.test.js']};
-  }
+if (CI_TEST_TYPE === 'playback' || CI_TEST_TYPE === 'playback-min') {
+  options.testInput = 'test/playback.test.js';
+} else if (CI_TEST_TYPE === 'unit') {
+  options.testInput = {include: ['test/**/*.test.js'], exclude: ['test/playback.test.js']};
 }
+
 const config = generate(options);
 
 if (config.builds.browser) {
