@@ -705,6 +705,9 @@ export default class DashPlaylistLoader extends EventTarget {
   }
 
   updateMinimumUpdatePeriodTimeout_() {
+    if (!this.isMaster_) {
+      return;
+    }
     // Clear existing timeout
     window.clearTimeout(this.minimumUpdatePeriodTimeout_);
 
@@ -728,7 +731,7 @@ export default class DashPlaylistLoader extends EventTarget {
       // If we haven't yet selected a playlist, wait until then so we know the
       // target duration
       if (!this.media()) {
-        this.one('loadedplaylist', () => {
+        this.one('loadedmetadata', () => {
           createMUPTimeout(this.media().targetDuration * 1000);
         });
       } else {
@@ -791,9 +794,10 @@ export default class DashPlaylistLoader extends EventTarget {
       this.trigger('playlistunchanged');
     }
 
-    if (!this.media().endList) {
+    if (!this.media().endList && !this.mediaUpdateTimeout) {
       this.mediaUpdateTimeout = window.setTimeout(() => {
         this.trigger('mediaupdatetimeout');
+        this.mediaUpdateTimeout = null;
       }, refreshDelay(this.media(), Boolean(mediaChanged)));
     }
 
