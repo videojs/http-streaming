@@ -476,7 +476,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       // ignore unchanged playlists that have already been
       // excluded for not-changing. We likely just have a really slowly updating
       // playlist.
-      if (updatedPlaylist.lastExcludeReason === 'playlist-unchanged') {
+      if (updatedPlaylist.lastExcludeReason_ === 'playlist-unchanged') {
         return;
       }
 
@@ -1076,7 +1076,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // Blacklist this playlist
     currentPlaylist.excludeUntil = Date.now() + (blacklistDuration * 1000);
     if (error.reason) {
-      currentPlaylist.lastExcludeReason = error.reason;
+      currentPlaylist.lastExcludeReason_ = error.reason;
     }
     this.tech_.trigger('blacklistplaylist');
     this.tech_.trigger({type: 'usage', name: 'vhs-rendition-blacklisted'});
