@@ -60,8 +60,8 @@
     "aes-decrypter": "3.1.2",
     "global": "^4.4.0",
     "m3u8-parser": "4.5.2",
-    "mpd-parser": "0.15.2",
-    "mux.js": "5.9.1",
+    "mpd-parser": "0.15.4",
+    "mux.js": "5.9.2",
     "video.js": "^6 || ^7"
   },
   "devDependencies": {
