@@ -794,11 +794,19 @@ export default class DashPlaylistLoader extends EventTarget {
       this.trigger('playlistunchanged');
     }
 
-    if (!this.media().endList && !this.mediaUpdateTimeout) {
-      this.mediaUpdateTimeout = window.setTimeout(() => {
-        this.trigger('mediaupdatetimeout');
-        this.mediaUpdateTimeout = null;
-      }, refreshDelay(this.media(), Boolean(mediaChanged)));
+    if (!this.mediaUpdateTimeout) {
+      const createMediaUpdateTimeout = () => {
+        if (this.media().endList) {
+          return;
+        }
+
+        this.mediaUpdateTimeout = window.setTimeout(() => {
+          this.trigger('mediaupdatetimeout');
+          createMediaUpdateTimeout();
+        }, refreshDelay(this.media(), Boolean(mediaChanged)));
+      };
+
+      createMediaUpdateTimeout();
     }
 
     this.trigger('loadedplaylist');
