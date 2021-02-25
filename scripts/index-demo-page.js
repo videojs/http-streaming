@@ -166,21 +166,6 @@
   // eslint-disable-next-line
   var reloadScripts = function(urls, cb) {
     var el = document.getElementById('reload-scripts');
-    var onload = function() {
-      var script;
-
-      if (!urls.length) {
-        cb();
-        return;
-      }
-
-      script = document.createElement('script');
-
-      script.src = urls.shift();
-      script.onload = onload;
-
-      el.appendChild(script);
-    };
 
     if (!el) {
       el = document.createElement('div');
@@ -192,7 +177,29 @@
       el.removeChild(el.firstChild);
     }
 
-    onload();
+    const loaded = [];
+
+    function checkDone() {
+      if (loaded.length === urls.length) {
+        cb();
+      }
+    }
+
+    urls.forEach((url) => {
+      const script = document.createElement('script');
+      // scripts marked as defer will be loaded asynchronously but will be executed in the order they are in the DOM
+      script.defer = true;
+      // dynamically created scripts are async by default unless otherwise specified
+      // async scripts are loaded asynchronously but also executed as soon as they are loaded
+      // we want to load them in the order they are added therefore we want to turn off async
+      script.async = false;
+      script.src = url;
+      script.onload = () => {
+        loaded.push(url);
+        checkDone();
+      };
+      el.appendChild(script);
+    });
   };
 
   var regenerateRepresentations = function() {
