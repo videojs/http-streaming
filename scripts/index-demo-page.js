@@ -188,7 +188,6 @@
     urls.forEach((url) => {
       const script = document.createElement('script');
       // scripts marked as defer will be loaded asynchronously but will be executed in the order they are in the DOM
-
       script.defer = true;
       // dynamically created scripts are async by default unless otherwise specified
       // async scripts are loaded asynchronously but also executed as soon as they are loaded
