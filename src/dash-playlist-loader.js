@@ -415,6 +415,9 @@ export default class DashPlaylistLoader extends EventTarget {
     window.clearTimeout(this.minimumUpdatePeriodTimeout_);
     window.clearTimeout(this.mediaRequest_);
     window.clearTimeout(this.mediaUpdateTimeout);
+    this.mediaUpdateTimeout = null;
+    this.mediaRequest_ = null;
+    this.minimumUpdatePeriodTimeout_ = null;
 
     this.off();
   }
@@ -507,7 +510,9 @@ export default class DashPlaylistLoader extends EventTarget {
   pause() {
     this.stopRequest();
     window.clearTimeout(this.mediaUpdateTimeout);
-    window.clearTimeout(this.minimumUpdatePeriodTimeout_);
+    window.clearTimeout(this.masterPlaylistLoader_.minimumUpdatePeriodTimeout_);
+    this.masterPlaylistLoader_.minimumUpdatePeriodTimeout_ = null;
+    this.mediaUpdateTimeout = null;
     if (this.state === 'HAVE_NOTHING') {
       // If we pause the loader before any data has been retrieved, its as if we never
       // started, so reset to an unstarted state.
@@ -517,7 +522,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
   load(isFinalRendition) {
     window.clearTimeout(this.mediaUpdateTimeout);
-    window.clearTimeout(this.minimumUpdatePeriodTimeout_);
+    this.mediaUpdateTimeout = null;
 
     const media = this.media();
 
@@ -696,48 +701,46 @@ export default class DashPlaylistLoader extends EventTarget {
       this.masterPlaylistLoader_.srcUrl = location;
     }
 
-    // if the minimumUpdatePeriod was changed, update the minimumUpdatePeriodTimeout_
-    if (!oldMaster || (newMaster && oldMaster.minimumUpdatePeriod !== newMaster.minimumUpdatePeriod)) {
-      this.updateMinimumUpdatePeriodTimeout_();
-    }
+    // create a minimumUpdatePeriodTimeout_ if needed
+    this.updateMinimumUpdatePeriodTimeout_();
 
     return Boolean(newMaster);
   }
 
   updateMinimumUpdatePeriodTimeout_() {
-    if (!this.isMaster_) {
+    const mpl = this.masterPlaylistLoader_;
+
+    if (mpl.minimumUpdatePeriodTimeout_) {
       return;
     }
-    // Clear existing timeout
-    window.clearTimeout(this.minimumUpdatePeriodTimeout_);
+    const createMUPTimeout = () => {
+      let minimumUpdatePeriod = mpl.master && mpl.master.minimumUpdatePeriod;
 
-    const createMUPTimeout = (mup) => {
-      this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
-        this.trigger('minimumUpdatePeriod');
-        createMUPTimeout(mup);
-      }, mup);
+      // If the minimumUpdatePeriod has a value of 0, that indicates that the current
+      // MPD has no future validity, so a new one will need to be acquired when new
+      // media segments are to be made available. Thus, we use the target duration
+      // in this case
+      if (minimumUpdatePeriod === 0) {
+        // If we haven't yet selected a playlist, wait until then so we know the
+        // target duration
+        if (!mpl.media()) {
+          mpl.one('loadedmetadata', createMUPTimeout);
+        } else {
+          minimumUpdatePeriod = mpl.media().targetDuration * 1000;
+        }
+      }
+
+      if (typeof minimumUpdatePeriod !== 'number') {
+        return;
+      }
+
+      mpl.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
+        mpl.trigger('minimumUpdatePeriod');
+        createMUPTimeout();
+      }, minimumUpdatePeriod);
     };
 
-    const minimumUpdatePeriod = this.masterPlaylistLoader_.master && this.masterPlaylistLoader_.master.minimumUpdatePeriod;
-
-    if (minimumUpdatePeriod > 0) {
-      createMUPTimeout(minimumUpdatePeriod);
-
-    // If the minimumUpdatePeriod has a value of 0, that indicates that the current
-    // MPD has no future validity, so a new one will need to be acquired when new
-    // media segments are to be made available. Thus, we use the target duration
-    // in this case
-    } else if (minimumUpdatePeriod === 0) {
-      // If we haven't yet selected a playlist, wait until then so we know the
-      // target duration
-      if (!this.media()) {
-        this.one('loadedmetadata', () => {
-          createMUPTimeout(this.media().targetDuration * 1000);
-        });
-      } else {
-        createMUPTimeout(this.media().targetDuration * 1000);
-      }
-    }
+    createMUPTimeout();
   }
 
   /**
