@@ -419,6 +419,11 @@ export default class DashPlaylistLoader extends EventTarget {
     this.mediaRequest_ = null;
     this.minimumUpdatePeriodTimeout_ = null;
 
+    if (this.masterPlaylistLoader_.createMupOnMedia_) {
+      this.off('loadedmetadata', this.masterPlaylistLoader_.createMupOnMedia_);
+      this.masterPlaylistLoader_.createMupOnMedia_ = null;
+    }
+
     this.off();
   }
 
@@ -508,6 +513,10 @@ export default class DashPlaylistLoader extends EventTarget {
   }
 
   pause() {
+    if (this.masterPlaylistLoader_.createMupOnMedia_) {
+      this.off('loadedmetadata', this.masterPlaylistLoader_.createMupOnMedia_);
+      this.masterPlaylistLoader_.createMupOnMedia_ = null;
+    }
     this.stopRequest();
     window.clearTimeout(this.mediaUpdateTimeout);
     window.clearTimeout(this.masterPlaylistLoader_.minimumUpdatePeriodTimeout_);
@@ -701,8 +710,9 @@ export default class DashPlaylistLoader extends EventTarget {
       this.masterPlaylistLoader_.srcUrl = location;
     }
 
-    // create a minimumUpdatePeriodTimeout_ if needed
-    this.updateMinimumUpdatePeriodTimeout_();
+    if (!oldMaster || (newMaster && newMaster.minimumUpdatePeriod !== oldMaster.minimumUpdatePeriod)) {
+      this.updateMinimumUpdatePeriodTimeout_();
+    }
 
     return Boolean(newMaster);
   }
@@ -710,37 +720,53 @@ export default class DashPlaylistLoader extends EventTarget {
   updateMinimumUpdatePeriodTimeout_() {
     const mpl = this.masterPlaylistLoader_;
 
-    if (mpl.minimumUpdatePeriodTimeout_) {
+    // cancel any pending creation of mup on media
+    // a new one will be added if needed.
+    if (mpl.createMupOnMedia_) {
+      mpl.off('loadedmetadata', mpl.createMupOnMedia_);
+      mpl.createMupOnMedia_ = null;
+    }
+
+    // clear any pending timeouts, master was just updated
+    // so if minimumUpdatePeriodTimeout_ is still valid
+    window.clearTimeout(mpl.minimumUpdatePeriodTimeout_);
+    mpl.minimumUpdatePeriodTimeout_ = null;
+    mpl.createMUPTimeout_();
+  }
+
+  createMUPTimeout_() {
+    const mpl = this.masterPlaylistLoader_;
+    let mup = mpl.master && mpl.master.minimumUpdatePeriod;
+
+    // If the minimumUpdatePeriod has a value of 0, that indicates that the current
+    // MPD has no future validity, so a new one will need to be acquired when new
+    // media segments are to be made available. Thus, we use the target duration
+    // in this case
+    if (mup === 0) {
+      if (mpl.media()) {
+        mup = mpl.media().targetDuration * 1000;
+      } else {
+        mpl.createMupOnMedia_ = mpl.updateMinimumUpdatePeriodTimeout_;
+        mpl.one('loadedmetadata', mpl.createMupOnMedia_);
+      }
+    }
+
+    // if minimumUpdatePeriod is invalid or <= zero skip creating a timeout
+    if (typeof mup !== 'number' || mup <= 0) {
       return;
     }
-    const createMUPTimeout = () => {
-      let minimumUpdatePeriod = mpl.master && mpl.master.minimumUpdatePeriod;
 
-      // If the minimumUpdatePeriod has a value of 0, that indicates that the current
-      // MPD has no future validity, so a new one will need to be acquired when new
-      // media segments are to be made available. Thus, we use the target duration
-      // in this case
-      if (minimumUpdatePeriod === 0) {
-        // If we haven't yet selected a playlist, wait until then so we know the
-        // target duration
-        if (!mpl.media()) {
-          mpl.one('loadedmetadata', createMUPTimeout);
-        } else {
-          minimumUpdatePeriod = mpl.media().targetDuration * 1000;
-        }
-      }
+    mpl.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
+      mpl.minimumUpdatePeriodTimeout_ = null;
+      mpl.createMUPTimeout_();
 
-      if (typeof minimumUpdatePeriod !== 'number') {
-        return;
-      }
-
-      mpl.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
+      // if a minimumUpdatePeriodTimeout_ was created again
+      // then the minimumUpdatePeriod was valid
+      // trigger minimumUpdatePeriod
+      if (mpl.minimumUpdatePeriodTimeout_) {
         mpl.trigger('minimumUpdatePeriod');
-        createMUPTimeout();
-      }, minimumUpdatePeriod);
-    };
-
-    createMUPTimeout();
+      }
+    }, mup);
   }
 
   /**
