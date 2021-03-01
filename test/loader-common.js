@@ -120,6 +120,26 @@ export const LoaderCommonFactory = ({
 }) => {
   let loader;
 
+  const appendPart = function(segmentIndex, partIndex) {
+    this.clock.tick(1);
+
+    QUnit.assert.equal(
+      this.requests[0].url,
+      `segment${segmentIndex}.part${partIndex}.ts`,
+      `requested mediaIndex #${segmentIndex} partIndex #${partIndex}`
+    );
+    standardXHRResponse(this.requests.shift(), testData());
+
+    if (usesAsyncAppends) {
+      return new Promise((resolve, reject) => {
+        loader.one('appended', resolve);
+        loader.one('error', reject);
+      });
+    }
+
+    return Promise.resolve();
+  };
+
   QUnit.module('Loader Common', function(hooks) {
     hooks.beforeEach(function(assert) {
       // Assume this module is nested and the parent module uses CommonHooks.beforeEach
@@ -805,25 +825,6 @@ export const LoaderCommonFactory = ({
     // only main/fmp4 segment loaders use parts/partIndex
     if (usesAsyncAppends) {
       QUnit.test('mediaIndex and partIndex are used', function(assert) {
-        const appendPart = (segmentIndex, partIndex) => {
-          this.clock.tick(1);
-
-          assert.equal(
-            this.requests[0].url,
-            `segment${segmentIndex}.part${partIndex}.ts`,
-            `requested mediaIndex #${segmentIndex} partIndex #${partIndex}`
-          );
-          standardXHRResponse(this.requests.shift(), testData());
-
-          if (usesAsyncAppends) {
-            return new Promise((resolve, reject) => {
-              loader.one('appended', resolve);
-              loader.one('error', reject);
-            });
-          }
-
-          return Promise.resolve();
-        };
 
         return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
           loader.playlist(playlistWithDuration(50, {
@@ -835,35 +836,15 @@ export const LoaderCommonFactory = ({
           loader.load();
           loader.mediaIndex = 2;
           return Promise.resolve();
-        }).then(() => appendPart(2, 0))
-          .then(() => appendPart(2, 1))
-          .then(() => appendPart(2, 2))
-          .then(() => appendPart(2, 3))
-          .then(() => appendPart(2, 4))
-          .then(() => appendPart(3, 0));
+        }).then(() => appendPart.call(this, 2, 0))
+          .then(() => appendPart.call(this, 2, 1))
+          .then(() => appendPart.call(this, 2, 2))
+          .then(() => appendPart.call(this, 2, 3))
+          .then(() => appendPart.call(this, 2, 4))
+          .then(() => appendPart.call(this, 3, 0));
       });
 
       QUnit.test('mediaIndex and partIndex survive playlist change', function(assert) {
-        const appendPart = (segmentIndex, partIndex) => {
-          this.clock.tick(1);
-
-          assert.equal(
-            this.requests[0].url,
-            `segment${segmentIndex}.part${partIndex}.ts`,
-            `requested mediaIndex #${segmentIndex} partIndex #${partIndex}`
-          );
-          standardXHRResponse(this.requests.shift(), testData());
-
-          if (usesAsyncAppends) {
-            return new Promise((resolve, reject) => {
-              loader.one('appended', resolve);
-              loader.one('error', reject);
-            });
-          }
-
-          return Promise.resolve();
-        };
-
         return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
           loader.playlist(playlistWithDuration(50, {
             mediaSequence: 0,
@@ -874,9 +855,9 @@ export const LoaderCommonFactory = ({
           loader.load();
           loader.mediaIndex = 4;
           return Promise.resolve();
-        }).then(() => appendPart(4, 0))
-          .then(() => appendPart(4, 1))
-          .then(() => appendPart(4, 2))
+        }).then(() => appendPart.call(this, 4, 0))
+          .then(() => appendPart.call(this, 4, 1))
+          .then(() => appendPart.call(this, 4, 2))
           .then(() => {
 
             // Update the playlist shifting the mediaSequence by 2 which will result
@@ -887,31 +868,11 @@ export const LoaderCommonFactory = ({
               llhls: true
             }));
             // verify that we still try to append the next part for that segment.
-            return appendPart(2, 3);
-          }).then(() => appendPart(2, 4));
+            return appendPart.call(this, 2, 3);
+          }).then(() => appendPart.call(this, 2, 4));
       });
 
       QUnit.test('drops partIndex if playlist update drops parts', function(assert) {
-        const appendPart = (segmentIndex, partIndex) => {
-          this.clock.tick(1);
-
-          assert.equal(
-            this.requests[0].url,
-            `segment${segmentIndex}.part${partIndex}.ts`,
-            `requested mediaIndex #${segmentIndex} partIndex #${partIndex}`
-          );
-          standardXHRResponse(this.requests.shift(), testData());
-
-          if (usesAsyncAppends) {
-            return new Promise((resolve, reject) => {
-              loader.one('appended', resolve);
-              loader.one('error', reject);
-            });
-          }
-
-          return Promise.resolve();
-        };
-
         return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
           loader.playlist(playlistWithDuration(50, {
             mediaSequence: 0,
@@ -922,13 +883,13 @@ export const LoaderCommonFactory = ({
           loader.load();
           loader.mediaIndex = 4;
           return Promise.resolve();
-        }).then(() => appendPart(4, 0))
-          .then(() => appendPart(4, 1))
-          .then(() => appendPart(4, 2))
+        }).then(() => appendPart.call(this, 4, 0))
+          .then(() => appendPart.call(this, 4, 1))
+          .then(() => appendPart.call(this, 4, 2))
           .then(() => {
 
-            // Update the playlist shifting the mediaSequence by 2 which will result
-            // in a decrement of the mediaIndex by 2 to 1
+            // Update the playlist shifting the mediaSequence by 4 which will result
+            // in a decrement of the mediaIndex by 4 to 0
             loader.playlist(playlistWithDuration(50, {
               mediaSequence: 4,
               endList: false,

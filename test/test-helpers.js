@@ -478,7 +478,7 @@ export const playlistWithDuration = function(time, conf) {
     if (conf && conf.llhls && (count - i) <= 3) {
       segment.parts = [];
       const partRemainder = segment.duration % result.partTargetDuration;
-      const partCount = Math.floor(segment.duration / result.targetDuration) + (partRemainder ? 1 : 0);
+      const partCount = Math.floor(segment.duration / result.partTargetDuration) + (partRemainder ? 1 : 0);
 
       for (let z = 0; z < partCount; z++) {
         const uri = `segment${i}.part${z}${extension}`;

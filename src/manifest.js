@@ -12,12 +12,18 @@ export const createPlaylistID = (index, uri) => {
 /**
  * Parses a given m3u8 playlist
  *
+ * @param {Function} [onwarn]
+ *        a function to call when the parser triggers a warning event.
+ * @param {Function} [oninfo]
+ *        a function to call when the parser triggers an info event.
  * @param {string} manifestString
  *        The downloaded manifest string
  * @param {Object[]} [customTagParsers]
  *        An array of custom tag parsers for the m3u8-parser instance
  * @param {Object[]} [customTagMappers]
- *         An array of custom tag mappers for the m3u8-parser instance
+ *        An array of custom tag mappers for the m3u8-parser instance
+ * @param {boolean} [llhls=false]
+ *        Wether to keep ll-hls features in the manifest after parsing.
  * @return {Object}
  *         The manifest object
  */

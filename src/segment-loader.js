@@ -988,7 +988,7 @@ export default class SegmentLoader extends videojs.EventTarget {
         // unless parts fell off of the playlist for this segment.
         // In that case we need to reset partIndex and resync
         if (this.partIndex && (!segment.parts || !segment.parts.length || !segment.parts[this.partIndex])) {
-          this.logger_(`part fell off on part ${this.partIndex}`);
+          this.logger_(`currently processing part (index ${this.partIndex}) no longer exists.`);
           this.resetLoader();
         }
       }
