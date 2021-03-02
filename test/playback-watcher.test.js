@@ -1202,6 +1202,8 @@ QUnit.module('PlaybackWatcher isolated functions', {
       tech: {
         on: () => {},
         off: () => {},
+        one: () => {},
+        paused: () => true,
         // needed to construct a playback watcher
         options_: {
           playerId: 'mock-player-id'
