@@ -77,7 +77,7 @@ export const resolveSegmentUris = (segment, baseUri) => {
       if (p.resolvedUri) {
         return;
       }
-      p.resolvedUri = resolveUrl(baseUri, p.URI);
+      p.resolvedUri = resolveUrl(baseUri, p.uri);
     });
   }
 
@@ -86,7 +86,7 @@ export const resolveSegmentUris = (segment, baseUri) => {
       if (p.resolvedUri) {
         return;
       }
-      p.resolvedUri = resolveUrl(baseUri, p.URI);
+      p.resolvedUri = resolveUrl(baseUri, p.uri);
     });
   }
 };
