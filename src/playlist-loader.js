@@ -207,7 +207,7 @@ export default class PlaylistLoader extends EventTarget {
 
     this.customTagParsers = (vhsOptions && vhsOptions.customTagParsers) || [];
     this.customTagMappers = (vhsOptions && vhsOptions.customTagMappers) || [];
-    this.llhls = (vhsOptions && vhsOptions.llhls) || false;
+    this.experimentalLLHLS = (vhsOptions && vhsOptions.experimentalLLHLS) || false;
 
     // initialize the loader state
     this.state = 'HAVE_NOTHING';
@@ -290,7 +290,7 @@ export default class PlaylistLoader extends EventTarget {
       manifestString: playlistString,
       customTagParsers: this.customTagParsers,
       customTagMappers: this.customTagMappers,
-      llhls: this.llhls
+      experimentalLLHLS: this.experimentalLLHLS
     });
 
     playlist.lastRequest = Date.now();
