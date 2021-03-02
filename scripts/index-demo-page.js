@@ -36,7 +36,7 @@
     var sources = JSON.parse(xhr.responseText);
 
     sources.forEach(function(source) {
-      const option = document.createElement('option');
+      var option = document.createElement('option');
 
       option.innerText = source.name;
       option.value = source.uri;
@@ -87,7 +87,7 @@
     if (el.type === 'url' || el.type === 'text' || el.nodeName.toLowerCase() === 'textarea') {
       el.value = decodeURIComponent(value);
     } else if (el.type === 'select-one') {
-      for (let i = 0; i < el.options.length; i++) {
+      for (var i = 0; i < el.options.length; i++) {
         if (el.options[i].value === value) {
           el.options[i].selected = true;
         }
@@ -177,16 +177,17 @@
       el.removeChild(el.firstChild);
     }
 
-    const loaded = [];
+    var loaded = [];
 
-    function checkDone() {
+    var checkDone = function() {
       if (loaded.length === urls.length) {
         cb();
       }
-    }
+    };
 
-    urls.forEach((url) => {
-      const script = document.createElement('script');
+    urls.forEach(function(url) {
+      var script = document.createElement('script');
+
       // scripts marked as defer will be loaded asynchronously but will be executed in the order they are in the DOM
       script.defer = true;
       // dynamically created scripts are async by default unless otherwise specified
@@ -194,7 +195,7 @@
       // we want to load them in the order they are added therefore we want to turn off async
       script.async = false;
       script.src = url;
-      script.onload = () => {
+      script.onload = function() {
         loaded.push(url);
         checkDone();
       };
@@ -362,7 +363,7 @@
         videoEl.className = 'vjs-default-skin';
         fixture.appendChild(videoEl);
 
-        const mirrorSource = getInputValue(stateEls['mirror-source']);
+        var mirrorSource = getInputValue(stateEls['mirror-source']);
 
         player = window.player = window.videojs(videoEl, {
           plugins: {
@@ -382,10 +383,10 @@
         });
 
         player.on('sourceset', function() {
-          const source = player.currentSource();
+          var source = player.currentSource();
 
           if (source.keySystems) {
-            const copy = JSON.parse(JSON.stringify(source.keySystems));
+            var copy = JSON.parse(JSON.stringify(source.keySystems));
 
             // have to delete pssh as it will often make keySystems too big
             // for a uri
@@ -441,7 +442,7 @@
       });
     });
 
-    const urlButtonClick = function(event) {
+    var urlButtonClick = function(event) {
       var ext;
       var type = stateEls.type.value;
 
