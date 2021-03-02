@@ -42,6 +42,97 @@ QUnit.module('PlaybackWatcher', {
   }
 });
 
+QUnit.test('skips over gap at beginning of stream if player is paused', function(assert) {
+  let vhsGapSkipEvents = 0;
+  let hlsGapSkipEvents = 0;
+
+  this.player.autoplay(true);
+
+  this.player.tech_.on('usage', (event) => {
+    if (event.name === 'vhs-gap-skip') {
+      vhsGapSkipEvents++;
+    }
+    if (event.name === 'hls-gap-skip') {
+      hlsGapSkipEvents++;
+    }
+  });
+
+  // set an arbitrary source
+  this.player.src({
+    src: 'master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  // start playback normally
+  this.player.tech_.triggerReady();
+  this.clock.tick(1);
+  standardXHRResponse(this.requests.shift());
+  openMediaSource(this.player, this.clock);
+  this.player.tech_.trigger('play');
+  this.player.tech_.trigger('waiting');
+  // create a buffer with a gap of 2 seconds at beginning of stream
+  this.player.tech_.buffered = () => videojs.createTimeRanges([[2, 10]]);
+  // Playback watcher loop runs on a 250ms clock and needs run 6 consecutive stall checks before skipping the gap
+  this.clock.tick(250 * 6);
+  // Need to wait for the duration of the gap
+  this.clock.tick(2000);
+
+  assert.equal(vhsGapSkipEvents, 1, 'there is one skipped gap');
+  assert.equal(hlsGapSkipEvents, 1, 'there is one skipped gap');
+
+  // check that player jumped the gap
+  assert.equal(
+    Math.round(this.player.currentTime()),
+    2, 'Player seeked over gap after timer'
+  );
+});
+
+QUnit.test('Does NOT skip over gap at beginning of stream if player is playing', function(assert) {
+  let vhsGapSkipEvents = 0;
+  let hlsGapSkipEvents = 0;
+
+  this.player.autoplay(true);
+  this.player.tech_.paused = () => false;
+
+  this.player.tech_.on('usage', (event) => {
+    if (event.name === 'vhs-gap-skip') {
+      vhsGapSkipEvents++;
+    }
+    if (event.name === 'hls-gap-skip') {
+      hlsGapSkipEvents++;
+    }
+  });
+
+  // set an arbitrary source
+  this.player.src({
+    src: 'master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  // start playback normally
+  this.player.tech_.triggerReady();
+  this.clock.tick(1);
+  standardXHRResponse(this.requests.shift());
+  openMediaSource(this.player, this.clock);
+  this.player.tech_.trigger('play');
+  this.player.tech_.trigger('waiting');
+  // create a buffer with a gap of 2 seconds at beginning of stream
+  this.player.tech_.buffered = () => videojs.createTimeRanges([[2, 10]]);
+  // Playback watcher loop runs on a 250ms clock and needs run 6 consecutive stall checks before skipping the gap
+  this.clock.tick(250 * 6);
+  // Need to wait for the duration of the gap
+  this.clock.tick(2000);
+
+  assert.equal(vhsGapSkipEvents, 0, 'there is no skipped gap');
+  assert.equal(hlsGapSkipEvents, 0, 'there is no skipped gap');
+
+  // check that player jumped the gap
+  assert.equal(
+    Math.round(this.player.currentTime()),
+    0, 'Player did not seek over gap'
+  );
+});
+
 QUnit.test('skips over gap in firefox with waiting event', function(assert) {
   let vhsGapSkipEvents = 0;
   let hlsGapSkipEvents = 0;
