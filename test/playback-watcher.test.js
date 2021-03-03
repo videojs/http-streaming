@@ -42,11 +42,9 @@ QUnit.module('PlaybackWatcher', {
   }
 });
 
-QUnit.test('skips over gap at beginning of stream if player is paused', function(assert) {
+QUnit.test('skips over gap at beginning of stream if played before content is buffered', function(assert) {
   let vhsGapSkipEvents = 0;
   let hlsGapSkipEvents = 0;
-
-  this.player.autoplay(true);
 
   this.player.tech_.on('usage', (event) => {
     if (event.name === 'vhs-gap-skip') {
@@ -87,12 +85,9 @@ QUnit.test('skips over gap at beginning of stream if player is paused', function
   );
 });
 
-QUnit.test('Does NOT skip over gap at beginning of stream if player is playing', function(assert) {
+QUnit.test('Multiple play events do not cause the gap-skipping logic to be called sooner than expected', function(assert) {
   let vhsGapSkipEvents = 0;
   let hlsGapSkipEvents = 0;
-
-  this.player.autoplay(true);
-  this.player.tech_.paused = () => false;
 
   this.player.tech_.on('usage', (event) => {
     if (event.name === 'vhs-gap-skip') {
@@ -119,17 +114,22 @@ QUnit.test('Does NOT skip over gap at beginning of stream if player is playing',
   // create a buffer with a gap of 2 seconds at beginning of stream
   this.player.tech_.buffered = () => videojs.createTimeRanges([[2, 10]]);
   // Playback watcher loop runs on a 250ms clock and needs run 6 consecutive stall checks before skipping the gap
-  this.clock.tick(250 * 6);
+  // Start with three consecutive playback checks
+  this.clock.tick(250 * 3);
+  // and then simulate the playback monitor being called 'manually' by a new play event
+  this.player.tech_.trigger('play');
+  // Simulate remaining time
+  this.clock.tick(250 * 2);
   // Need to wait for the duration of the gap
   this.clock.tick(2000);
 
   assert.equal(vhsGapSkipEvents, 0, 'there is no skipped gap');
   assert.equal(hlsGapSkipEvents, 0, 'there is no skipped gap');
 
-  // check that player jumped the gap
+  // check that player did not skip the gap
   assert.equal(
     Math.round(this.player.currentTime()),
-    0, 'Player did not seek over gap'
+    0, 'Player seeked over gap after timer'
   );
 });
 

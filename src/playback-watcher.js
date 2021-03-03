@@ -133,6 +133,7 @@ export default class PlaybackWatcher {
       this.tech_.off('waiting', waitingHandler);
       this.tech_.off(timerCancelEvents, cancelTimerHandler);
       this.tech_.off('canplay', canPlayHandler);
+      this.tech_.off('play', playHandler);
 
       loaderTypes.forEach((type) => {
         mpc[`${type}SegmentLoader_`].off('appendsdone', loaderChecks[type].updateend);
