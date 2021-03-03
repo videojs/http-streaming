@@ -119,12 +119,19 @@ export default class PlaybackWatcher {
     this.tech_.on('waiting', waitingHandler);
     this.tech_.on(timerCancelEvents, cancelTimerHandler);
     this.tech_.on('canplay', canPlayHandler);
-    // Catch an edge case that occurs when there is a gap at the start of a stream and no content has buffered by the time the first `waiting` event is emitted.
-    // In this case, a `waiting` event is followed by a `play` event. On first play we need to check that playback has not stalled due to a gap, and skip the gap
-    // if it has
-    if (this.tech_.paused()) {
-      this.tech_.one('play', playHandler);
-    }
+
+    /*
+      An edge case exists that results in gaps not being skipped when they exist at the beginning of a stream. This case
+      is surfaced in one of two ways:
+
+      1)  The `waiting` event is fired before the player has buffered content, making it impossible
+          to find or skip the gap. The `waiting` event is followed by a `play` event. On first play
+          we can check if playback is stalled due to a gap, and skip the gap if necessary.
+      2)  A source with a gap at the beginning of the stream is loaded programatically while the player
+          is in a playing state. To catch this case, it's important that our one-time play listener is setup
+          even if the player is in a playing state
+    */
+    this.tech_.one('play', playHandler);
 
     // Define the dispose function to clean up our events
     this.dispose = () => {

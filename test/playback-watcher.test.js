@@ -26,11 +26,13 @@ QUnit.module('PlaybackWatcher', {
     this.old = {};
 
     // setup a player
-    this.player = createPlayer({html5: {
-      vhs: {
-        overrideNative: true
+    this.player = createPlayer({
+      html5: {
+        vhs: {
+          overrideNative: true
+        }
       }
-    }});
+    });
     this.player.muted(true);
     this.player.autoplay(true);
   },
@@ -105,22 +107,17 @@ QUnit.test('multiple play events do not cause the gap-skipping logic to be calle
     type: 'application/vnd.apple.mpegurl'
   });
 
-  // start playback normally
   this.player.tech_.triggerReady();
   this.clock.tick(1);
   standardXHRResponse(this.requests.shift());
   openMediaSource(this.player, this.clock);
-  this.player.tech_.trigger('play');
-  this.player.tech_.trigger('waiting');
   // create a buffer with a gap of 2 seconds at beginning of stream
   this.player.tech_.buffered = () => videojs.createTimeRanges([[2, 10]]);
   // Playback watcher loop runs on a 250ms clock and needs run 6 consecutive stall checks before skipping the gap
-  // Start with three consecutive playback checks
-  this.clock.tick(250 * 3);
+  // Start with 5 consecutive playback checks
+  this.clock.tick(250 * 5);
   // and then simulate the playback monitor being called 'manually' by a new play event
   this.player.tech_.trigger('play');
-  // Simulate remaining time
-  this.clock.tick(250 * 2);
   // Need to wait for the duration of the gap
   this.clock.tick(2000);
 
@@ -132,6 +129,102 @@ QUnit.test('multiple play events do not cause the gap-skipping logic to be calle
     Math.round(this.player.currentTime()),
     0,
     'Player did not seek over gap'
+  );
+
+  // Simulate remaining time
+  this.clock.tick(250);
+  // Need to wait for the duration of the gap
+  this.clock.tick(2000);
+
+  assert.equal(vhsGapSkipEvents, 1, 'there is one skipped gap');
+  assert.equal(hlsGapSkipEvents, 1, 'there is one skipped gap');
+
+  // check that player did skip the gap after another 250ms has gone by
+  assert.equal(
+    Math.round(this.player.currentTime()),
+    2,
+    'Player did skip the gap'
+  );
+});
+
+QUnit.test('changing sources does not break ability to skip gap at beginning of stream on first play', function(assert) {
+  let vhsGapSkipEvents = 0;
+  let hlsGapSkipEvents = 0;
+
+  this.player = createPlayer({
+    html5: {
+      vhs: {
+        overrideNative: true
+      }
+    },
+    enableSourceset: true
+  });
+
+  this.player.autoplay(true);
+
+  this.player.tech_.on('usage', (event) => {
+    if (event.name === 'vhs-gap-skip') {
+      vhsGapSkipEvents++;
+    }
+    if (event.name === 'hls-gap-skip') {
+      hlsGapSkipEvents++;
+    }
+  });
+
+  // set an arbitrary source
+  this.player.src({
+    src: 'master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  // start playback normally
+  this.player.tech_.triggerReady();
+  this.clock.tick(1);
+  standardXHRResponse(this.requests.shift());
+  openMediaSource(this.player, this.clock);
+  this.player.play();
+  this.player.tech_.trigger('waiting');
+  // create a buffer with a gap of 2 seconds at beginning of stream
+  this.player.tech_.buffered = () => videojs.createTimeRanges([[2, 10]]);
+  // Playback watcher loop runs on a 250ms clock and needs run 6 consecutive stall checks before skipping the gap
+  this.clock.tick(250 * 6);
+  // Need to wait for the duration of the gap
+  this.clock.tick(2000);
+
+  assert.equal(vhsGapSkipEvents, 1, 'there is one skipped gap');
+  assert.equal(hlsGapSkipEvents, 1, 'there is one skipped gap');
+
+  // check that player jumped the gap
+  assert.equal(
+    Math.round(this.player.currentTime()),
+    2,
+    'Player seeked over gap after timer'
+  );
+
+  // Simulate the source changing while the player is in a `playing` state
+  vhsGapSkipEvents = 0;
+  hlsGapSkipEvents = 0;
+  this.player.currentTime(0);
+
+  this.player.src({
+    src: 'new-master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  openMediaSource(this.player, this.clock);
+  this.clock.tick(1);
+
+  // Playback watcher loop runs on a 250ms clock and needs run 6 consecutive stall checks before skipping the gap
+  this.clock.tick(250 * 6);
+  // Need to wait for the duration of the gap
+  this.clock.tick(2000);
+
+  assert.equal(vhsGapSkipEvents, 1, 'there is one skipped gap');
+  assert.equal(hlsGapSkipEvents, 1, 'there is one skipped gap');
+
+  // check that player jumped the gap
+  assert.equal(
+    Math.round(this.player.currentTime()),
+    2,
+    'Player seeked over gap after source changed'
   );
 });
 
