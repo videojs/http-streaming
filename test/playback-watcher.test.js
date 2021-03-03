@@ -81,11 +81,12 @@ QUnit.test('skips over gap at beginning of stream if played before content is bu
   // check that player jumped the gap
   assert.equal(
     Math.round(this.player.currentTime()),
-    2, 'Player seeked over gap after timer'
+    2,
+    'Player seeked over gap after timer'
   );
 });
 
-QUnit.test('Multiple play events do not cause the gap-skipping logic to be called sooner than expected', function(assert) {
+QUnit.test('multiple play events do not cause the gap-skipping logic to be called sooner than expected', function(assert) {
   let vhsGapSkipEvents = 0;
   let hlsGapSkipEvents = 0;
 
@@ -129,7 +130,8 @@ QUnit.test('Multiple play events do not cause the gap-skipping logic to be calle
   // check that player did not skip the gap
   assert.equal(
     Math.round(this.player.currentTime()),
-    0, 'Player seeked over gap after timer'
+    0,
+    'Player did not seek over gap'
   );
 });
 
@@ -1203,7 +1205,7 @@ QUnit.module('PlaybackWatcher isolated functions', {
         on: () => {},
         off: () => {},
         one: () => {},
-        paused: () => true,
+        paused: () => false,
         // needed to construct a playback watcher
         options_: {
           playerId: 'mock-player-id'
