@@ -19,20 +19,50 @@ import {
 const { mergeOptions, EventTarget } = videojs;
 
 /**
-  * Returns a new array of segments that is the result of merging
-  * properties from an older list of segments onto an updated
-  * list. No properties on the updated playlist will be overridden.
-  *
-  * @param {Array} original the outdated list of segments
-  * @param {Array} update the updated list of segments
-  * @param {number=} offset the index of the first update
-  * segment in the original segment list. For non-live playlists,
-  * this should always be zero and does not need to be
-  * specified. For live playlists, it should be the difference
-  * between the media sequence numbers in the original and updated
-  * playlists.
-  * @return a list of merged segment objects
-  */
+ * Returns a new segment object with properties and
+ * the parts array merged.
+ *
+ * @param {Object} a the old segment
+ * @param {Object} b the new segment
+ *
+ * @return {Object} the merged segment
+ */
+export const updateSegment = (a, b) => {
+  const result = mergeOptions(a, b);
+
+  // only the old segment has parts
+  // then the parts are no longer valid
+  if (a.parts && !b.parts) {
+    delete result.parts;
+  // if both segments have parts
+  // copy part propeties from the old segment
+  // to the new one.
+  } else if (a.parts && b.parts) {
+    for (let i = 0; i < b.parts.length; i++) {
+      if (a.parts && a.parts[i]) {
+        result.parts[i] = mergeOptions(a.parts[i], b.parts[i]);
+      }
+    }
+  }
+
+  return result;
+};
+
+/**
+ * Returns a new array of segments that is the result of merging
+ * properties from an older list of segments onto an updated
+ * list. No properties on the updated playlist will be overridden.
+ *
+ * @param {Array} original the outdated list of segments
+ * @param {Array} update the updated list of segments
+ * @param {number=} offset the index of the first update
+ * segment in the original segment list. For non-live playlists,
+ * this should always be zero and does not need to be
+ * specified. For live playlists, it should be the difference
+ * between the media sequence numbers in the original and updated
+ * playlists.
+ * @return {Array} a list of merged segment objects
+ */
 export const updateSegments = (original, update, offset) => {
   const oldSegments = original.slice();
   const result = update.slice();
@@ -43,19 +73,7 @@ export const updateSegments = (original, update, offset) => {
   for (let i = offset; i < length; i++) {
     const newIndex = i - offset;
 
-    // merge parts
-    if (result[newIndex] && result[newIndex].parts && oldSegments[i] && oldSegments[i].parts) {
-      for (let p = 0; p < result[newIndex].parts; p++) {
-        result[newIndex].parts[p] = mergeOptions(oldSegments[i].parts[p], result[newIndex].parts[p]);
-      }
-    }
-
-    // part merging happens above. If the new playlist has no parts for
-    // a segment, they are no longer valid for requesting
-    if (oldSegments[i] && oldSegments[i].parts) {
-      delete oldSegments[i].parts;
-    }
-    result[newIndex] = mergeOptions(original[i], result[newIndex]);
+    result[newIndex] = updateSegment(oldSegments[i], result[newIndex]);
   }
   return result;
 };
