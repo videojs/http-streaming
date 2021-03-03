@@ -977,7 +977,9 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (this.mediaIndex !== null) {
       this.mediaIndex -= mediaSequenceDiff;
 
-      // mediaIndex is invalid, set it to null
+      // this can happen if we are going to load the first segment, but get a playlist
+      // update during that. mediaIndex would go from 0 to -1 if mediaSequence in the
+      // new playlist was incremented by 1.
       if (this.mediaIndex < 0) {
         this.mediaIndex = null;
         this.partIndex = null;
@@ -1342,13 +1344,9 @@ export default class SegmentLoader extends videojs.EventTarget {
     // Under normal playback conditions fetching is a simple walk forward
       const segment = playlist.segments[currentMediaIndex];
 
-      if (segment && segment.end) {
-        startOfSegment = segment.end;
-      } else {
-        startOfSegment = lastBufferedEnd;
-      }
+      startOfSegment = segment.end ? segment.end : lastBufferedEnd;
 
-      if (!segment || !segment.parts || !segment.parts.length || !segment.parts[nextPartIndex]) {
+      if (!segment.parts || !segment.parts.length || !segment.parts[nextPartIndex]) {
         nextMediaIndex = currentMediaIndex + 1;
         nextPartIndex = 0;
       } else {
