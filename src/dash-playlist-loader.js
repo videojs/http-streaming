@@ -727,15 +727,12 @@ export default class DashPlaylistLoader extends EventTarget {
       mpl.createMupOnMedia_ = null;
     }
 
-    // clear any pending timeouts, master was just updated
-    // so if minimumUpdatePeriodTimeout_ is still valid
-    window.clearTimeout(mpl.minimumUpdatePeriodTimeout_);
-    mpl.minimumUpdatePeriodTimeout_ = null;
-    mpl.createMUPTimeout_();
-  }
+    // clear any pending timeouts
+    if (mpl.minimumUpdatePeriodTimeout_) {
+      window.clearTimeout(mpl.minimumUpdatePeriodTimeout_);
+      mpl.minimumUpdatePeriodTimeout_ = null;
+    }
 
-  createMUPTimeout_() {
-    const mpl = this.masterPlaylistLoader_;
     let mup = mpl.master && mpl.master.minimumUpdatePeriod;
 
     // If the minimumUpdatePeriod has a value of 0, that indicates that the current
@@ -751,21 +748,23 @@ export default class DashPlaylistLoader extends EventTarget {
       }
     }
 
-    // if minimumUpdatePeriod is invalid or <= zero skip creating a timeout
+    // if minimumUpdatePeriod is invalid or <= zero, which
+    // can happen when a live video becomes VOD. skip timeout
+    // creation.
     if (typeof mup !== 'number' || mup <= 0) {
       return;
     }
 
+    this.createMUPTimeout_(mup);
+  }
+
+  createMUPTimeout_(mup) {
+    const mpl = this.masterPlaylistLoader_;
+
     mpl.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
       mpl.minimumUpdatePeriodTimeout_ = null;
-      mpl.createMUPTimeout_();
-
-      // if a minimumUpdatePeriodTimeout_ was created again
-      // then the minimumUpdatePeriod was valid
-      // trigger minimumUpdatePeriod
-      if (mpl.minimumUpdatePeriodTimeout_) {
-        mpl.trigger('minimumUpdatePeriod');
-      }
+      mpl.trigger('minimumUpdatePeriod');
+      mpl.createMUPTimeout_(mup);
     }, mup);
   }
 
