@@ -306,6 +306,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
   }
 
   switchMedia_(playlist, delay, cause) {
+    const oldMedia = this.masterPlaylistLoader_.media();
+
+    this.logger_(`switch media ${oldMedia && (oldMedia.id || oldMedia.uri)} -> ${playlist.id || playlist.uri} from ${cause}`);
     this.tech_.trigger({type: 'usage', name: `vhs-rendition-change-${cause}`});
     this.masterPlaylistLoader_.media(playlist);
   }
