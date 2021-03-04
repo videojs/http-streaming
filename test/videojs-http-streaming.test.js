@@ -1937,7 +1937,9 @@ QUnit.test('blacklists fmp4 playlists by browser support', function(assert) {
   assert.strictEqual(typeof playlists[2].excludeUntil, 'undefined', 'did not blacklist second playlist');
   assert.deepEqual(debugLogs, [
     `Internal problem encountered with playlist ${playlists[0].id}. browser does not support codec(s): "hvc1". Switching to playlist ${playlists[1].id}.`,
-    `Internal problem encountered with playlist ${playlists[1].id}. browser does not support codec(s): "ac-3". Switching to playlist ${playlists[2].id}.`
+    `switch media ${playlists[0].id} -> ${playlists[1].id} from exclude`,
+    `Internal problem encountered with playlist ${playlists[1].id}. browser does not support codec(s): "ac-3". Switching to playlist ${playlists[2].id}.`,
+    `switch media ${playlists[1].id} -> ${playlists[2].id} from exclude`
   ], 'debug log as expected');
 
   window.MediaSource.isTypeSupported = oldIsTypeSupported;
@@ -2008,7 +2010,9 @@ QUnit.test('blacklists ts playlists by muxer support', function(assert) {
   assert.strictEqual(typeof playlists[2].excludeUntil, 'undefined', 'did not blacklist third playlist');
   assert.deepEqual(debugLogs, [
     `Internal problem encountered with playlist ${playlists[0].id}. muxer does not support codec(s): "hvc1". Switching to playlist ${playlists[1].id}.`,
-    `Internal problem encountered with playlist ${playlists[1].id}. muxer does not support codec(s): "ac-3". Switching to playlist ${playlists[2].id}.`
+    `switch media ${playlists[0].id} -> ${playlists[1].id} from exclude`,
+    `Internal problem encountered with playlist ${playlists[1].id}. muxer does not support codec(s): "ac-3". Switching to playlist ${playlists[2].id}.`,
+    `switch media ${playlists[1].id} -> ${playlists[2].id} from exclude`
   ], 'debug log as expected');
 
   window.MediaSource.isTypeSupported = oldIsTypeSupported;

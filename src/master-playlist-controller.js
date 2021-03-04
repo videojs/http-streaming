@@ -301,16 +301,20 @@ export class MasterPlaylistController extends videojs.EventTarget {
     const nextPlaylist = this.selectPlaylist();
 
     if (this.shouldSwitchToMedia_(nextPlaylist)) {
-      this.switchMedia_(nextPlaylist, null, 'abr');
+      this.switchMedia_(nextPlaylist, 'abr');
     }
   }
 
-  switchMedia_(playlist, delay, cause) {
-    const oldMedia = this.masterPlaylistLoader_.media();
+  switchMedia_(playlist, cause, delay) {
+    const oldMedia = this.media();
+    const oldId = oldMedia && (oldMedia.id || oldMedia.uri);
+    const newId = playlist.id || playlist.uri;
 
-    this.logger_(`switch media ${oldMedia && (oldMedia.id || oldMedia.uri)} -> ${playlist.id || playlist.uri} from ${cause}`);
-    this.tech_.trigger({type: 'usage', name: `vhs-rendition-change-${cause}`});
-    this.masterPlaylistLoader_.media(playlist);
+    if (oldId && oldId !== newId) {
+      this.logger_(`switch media ${oldId} -> ${newId} from ${cause}`);
+      this.tech_.trigger({type: 'usage', name: `vhs-rendition-change-${cause}`});
+    }
+    this.masterPlaylistLoader_.media(playlist, delay);
   }
 
   /**
@@ -424,7 +428,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
         this.initialMedia_ = selectedMedia;
 
-        this.switchMedia_(this.initialMedia_, null, 'initial');
+        this.switchMedia_(this.initialMedia_, 'initial');
 
         // Under the standard case where a source URL is provided, loadedplaylist will
         // fire again since the playlist will be requested. In the case of vhs-json
@@ -616,7 +620,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
         const nextPlaylist = this.selectPlaylist();
 
         if (this.shouldSwitchToMedia_(nextPlaylist)) {
-          this.switchMedia_(this.initialMedia_, null, 'bandwidthupdate');
+          this.switchMedia_(nextPlaylist, 'bandwidthupdate');
         }
 
         this.tech_.trigger('bandwidthupdate');
@@ -742,7 +746,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    this.switchMedia_(media, null, 'smooth-quality');
+    this.switchMedia_(media, 'smooth-quality');
 
     this.mainSegmentLoader_.resetLoader();
     // don't need to reset audio as it is reset when media changes
@@ -762,7 +766,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    this.switchMedia_(media, null, 'fast-quality');
+    this.switchMedia_(media, 'fast-quality');
 
     // Delete all buffered data to allow an immediate quality switch, then seek to give
     // the browser a kick to remove any cached frames from the previous rendtion (.04 seconds
@@ -1114,7 +1118,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       (Date.now() - nextPlaylist.lastRequest) <= delayDuration;
 
     // delay if it's a final rendition or if the last refresh is sooner than half targetDuration
-    return this.switchMedia_(nextPlaylist, isFinalRendition || shouldDelay, 'exclude');
+    return this.switchMedia_(nextPlaylist, 'exclude', isFinalRendition || shouldDelay);
   }
 
   /**
