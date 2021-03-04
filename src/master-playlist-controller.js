@@ -301,8 +301,13 @@ export class MasterPlaylistController extends videojs.EventTarget {
     const nextPlaylist = this.selectPlaylist();
 
     if (this.shouldSwitchToMedia_(nextPlaylist)) {
-      this.masterPlaylistLoader_.media(nextPlaylist);
+      this.switchMedia_(nextPlaylist, null, 'abr');
     }
+  }
+
+  switchMedia_(playlist, delay, cause) {
+    this.tech_.trigger({type: 'usage', name: `vhs-rendition-change-${cause}`});
+    this.masterPlaylistLoader_.media(playlist);
   }
 
   /**
@@ -416,7 +421,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
         this.initialMedia_ = selectedMedia;
 
-        this.masterPlaylistLoader_.media(this.initialMedia_);
+        this.switchMedia_(this.initialMedia_, null, 'initial');
 
         // Under the standard case where a source URL is provided, loadedplaylist will
         // fire again since the playlist will be requested. In the case of vhs-json
@@ -608,7 +613,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
         const nextPlaylist = this.selectPlaylist();
 
         if (this.shouldSwitchToMedia_(nextPlaylist)) {
-          this.masterPlaylistLoader_.media(nextPlaylist);
+          this.switchMedia_(this.initialMedia_, null, 'bandwidthupdate');
         }
 
         this.tech_.trigger('bandwidthupdate');
@@ -734,7 +739,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    this.masterPlaylistLoader_.media(media);
+    this.switchMedia_(media, null, 'smooth-quality');
 
     this.mainSegmentLoader_.resetLoader();
     // don't need to reset audio as it is reset when media changes
@@ -754,7 +759,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    this.masterPlaylistLoader_.media(media);
+    this.switchMedia_(media, null, 'fast-quality');
 
     // Delete all buffered data to allow an immediate quality switch, then seek to give
     // the browser a kick to remove any cached frames from the previous rendtion (.04 seconds
@@ -1106,7 +1111,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       (Date.now() - nextPlaylist.lastRequest) <= delayDuration;
 
     // delay if it's a final rendition or if the last refresh is sooner than half targetDuration
-    return this.masterPlaylistLoader_.media(nextPlaylist, isFinalRendition || shouldDelay);
+    return this.switchMedia_(nextPlaylist, isFinalRendition || shouldDelay, 'exclude');
   }
 
   /**
