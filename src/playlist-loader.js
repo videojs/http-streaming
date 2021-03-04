@@ -28,6 +28,10 @@ const { mergeOptions, EventTarget } = videojs;
  * @return {Object} the merged segment
  */
 export const updateSegment = (a, b) => {
+  if (!a) {
+    return b;
+  }
+
   const result = mergeOptions(a, b);
 
   // only the old segment has parts

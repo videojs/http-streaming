@@ -1002,15 +1002,20 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (segmentInfo) {
       segmentInfo.mediaIndex -= mediaSequenceDiff;
 
-      // we need to update the referenced segment so that timing information is
-      // saved for the new playlist's segment, however, if the segment fell off the
-      // playlist, we can leave the old reference and just lose the timing info
-      if (segmentInfo.mediaIndex >= 0) {
-        segmentInfo.segment = newPlaylist.segments[segmentInfo.mediaIndex];
-      }
+      if (segmentInfo.mediaIndex < 0) {
+        segmentInfo.mediaIndex = null;
+        segmentInfo.partIndex = null;
+      } else {
+        // we need to update the referenced segment so that timing information is
+        // saved for the new playlist's segment, however, if the segment fell off the
+        // playlist, we can leave the old reference and just lose the timing info
+        if (segmentInfo.mediaIndex >= 0) {
+          segmentInfo.segment = newPlaylist.segments[segmentInfo.mediaIndex];
+        }
 
-      if (segmentInfo.partIndex >= 0 && segmentInfo.segment.parts) {
-        segmentInfo.part = segmentInfo.segment.parts[segmentInfo.partIndex];
+        if (segmentInfo.partIndex >= 0 && segmentInfo.segment.parts) {
+          segmentInfo.part = segmentInfo.segment.parts[segmentInfo.partIndex];
+        }
       }
     }
 
