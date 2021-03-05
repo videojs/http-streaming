@@ -755,7 +755,7 @@ export default class DashPlaylistLoader extends EventTarget {
     // creation.
     if (typeof mup !== 'number' || mup <= 0) {
       if (mup < 0) {
-        this.logger_('minimumUpdatePeriod is less then 0 and invalid');
+        this.logger_(`found invalid minimumUpdatePeriod of ${mup}, not setting a timeout`);
       }
       return;
     }
