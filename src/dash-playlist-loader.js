@@ -19,6 +19,7 @@ import {
 } from './manifest';
 import containerRequest from './util/container-request.js';
 import {toUint8} from '@videojs/vhs-utils/es/byte-helpers';
+import logger from './util/logger';
 
 const { EventTarget, mergeOptions } = videojs;
 
@@ -291,6 +292,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
     this.state = 'HAVE_NOTHING';
     this.loadedPlaylists_ = {};
+    this.logger_ = logger('DashPlaylistLoader');
 
     // initialize the loader state
     // The masterPlaylistLoader will be created with a string
@@ -752,6 +754,9 @@ export default class DashPlaylistLoader extends EventTarget {
     // can happen when a live video becomes VOD. skip timeout
     // creation.
     if (typeof mup !== 'number' || mup <= 0) {
+      if (mup < 0) {
+        this.logger_('minimumUpdatePeriod is less then 0 and invalid');
+      }
       return;
     }
 
