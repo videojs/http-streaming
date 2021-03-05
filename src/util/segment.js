@@ -15,7 +15,10 @@ import { ONE_SECOND_IN_TS } from 'mux.js/lib/utils/clock';
  *                  whether it contains video and/or audio
  */
 export const probeTsSegment = (bytes, baseStartTime) => {
-  const timeInfo = tsInspector.inspect(bytes, baseStartTime * ONE_SECOND_IN_TS);
+  const tsStartTime = (typeof baseStartTime === 'number' && !isNaN(baseStartTime)) ?
+    (baseStartTime * ONE_SECOND_IN_TS) :
+    void 0;
+  const timeInfo = tsInspector.inspect(bytes, tsStartTime);
 
   if (!timeInfo) {
     return null;
