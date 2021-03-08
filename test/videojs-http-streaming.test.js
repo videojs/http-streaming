@@ -5853,6 +5853,61 @@ QUnit.test('emeKeySystems adds content types for all keySystems', function(asser
   );
 });
 
+QUnit.test('emeKeySystems supports audio only', function(assert) {
+  assert.deepEqual(
+    emeKeySystems(
+      { keySystem1: {}, keySystem2: {} },
+      { attributes: { CODECS: 'mp4a.40.2c' } },
+    ),
+    {
+      keySystem1: {
+        audioContentType: 'audio/mp4;codecs="mp4a.40.2c"'
+      },
+      keySystem2: {
+        audioContentType: 'audio/mp4;codecs="mp4a.40.2c"'
+      }
+    },
+    'added content type'
+  );
+});
+
+QUnit.test('emeKeySystems supports external audio only', function(assert) {
+  assert.deepEqual(
+    emeKeySystems(
+      { keySystem1: {}, keySystem2: {} },
+      { attributes: {} },
+      { attributes: { CODECS: 'mp4a.40.2c' } },
+    ),
+    {
+      keySystem1: {
+        audioContentType: 'audio/mp4;codecs="mp4a.40.2c"'
+      },
+      keySystem2: {
+        audioContentType: 'audio/mp4;codecs="mp4a.40.2c"'
+      }
+    },
+    'added content type'
+  );
+});
+
+QUnit.test('emeKeySystems supports video only', function(assert) {
+  assert.deepEqual(
+    emeKeySystems(
+      { keySystem1: {}, keySystem2: {} },
+      { attributes: { CODECS: 'avc1.420015' } },
+    ),
+    {
+      keySystem1: {
+        videoContentType: 'video/mp4;codecs="avc1.420015"'
+      },
+      keySystem2: {
+        videoContentType: 'video/mp4;codecs="avc1.420015"'
+      }
+    },
+    'added content type'
+  );
+});
+
 QUnit.test('emeKeySystems retains non content type properties', function(assert) {
   assert.deepEqual(
     emeKeySystems(
