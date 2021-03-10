@@ -13,7 +13,7 @@ import videojs from 'video.js';
 import { updateAdCues } from './ad-cue-tags';
 import SyncController from './sync-controller';
 import TimelineChangeController from './timeline-change-controller';
-import Decrypter from 'worker!./decrypter-worker.worker.js';
+import Decrypter from 'worker!./decrypter-worker.js';
 import Config from './config';
 import {
   parseCodecs,
@@ -21,8 +21,8 @@ import {
   muxerSupportsCodec,
   DEFAULT_AUDIO_CODEC,
   DEFAULT_VIDEO_CODEC
-} from '@videojs/vhs-utils/dist/codecs.js';
-import { codecsForPlaylist } from './util/codecs.js';
+} from '@videojs/vhs-utils/es/codecs.js';
+import { codecsForPlaylist, unwrapCodecList, codecCount } from './util/codecs.js';
 import { createMediaTypes, setupMediaGroups } from './media-groups';
 import logger from './util/logger';
 
@@ -214,6 +214,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     const segmentLoaderSettings = {
       vhs: this.vhs_,
+      parse708captions: options.parse708captions,
       mediaSource: this.mediaSource,
       currentTime: this.tech_.currentTime.bind(this.tech_),
       seekable: () => this.seekable(),
@@ -264,7 +265,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.setupSegmentLoaderListeners_();
 
     if (this.experimentalBufferBasedABR) {
-      this.startABRTimer_();
+      this.masterPlaylistLoader_.one('loadedplaylist', () => this.startABRTimer_());
       this.tech_.on('pause', () => this.stopABRTimer_());
       this.tech_.on('play', () => this.startABRTimer_());
     }
@@ -283,7 +284,16 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.logger_ = logger('MPC');
 
     this.triggeredFmp4Usage = false;
-    this.masterPlaylistLoader_.load();
+    if (this.tech_.preload() === 'none') {
+      this.loadOnPlay_ = () => {
+        this.loadOnPlay_ = null;
+        this.masterPlaylistLoader_.load();
+      };
+
+      this.tech_.one('play', this.loadOnPlay_);
+    } else {
+      this.masterPlaylistLoader_.load();
+    }
   }
 
   /**
@@ -385,6 +395,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     this.masterPlaylistLoader_.on('loadedplaylist', () => {
+      if (this.loadOnPlay_) {
+        this.tech_.off('play', this.loadOnPlay_);
+      }
       let updatedPlaylist = this.masterPlaylistLoader_.media();
 
       if (!updatedPlaylist) {
@@ -464,6 +477,14 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.masterPlaylistLoader_.on('playlistunchanged', () => {
       const updatedPlaylist = this.masterPlaylistLoader_.media();
+
+      // ignore unchanged playlists that have already been
+      // excluded for not-changing. We likely just have a really slowly updating
+      // playlist.
+      if (updatedPlaylist.lastExcludeReason_ === 'playlist-unchanged') {
+        return;
+      }
+
       const playlistOutdated = this.stuckAtPlaylistEnd_(updatedPlaylist);
 
       if (playlistOutdated) {
@@ -472,7 +493,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
         // one is updating (and give the player a chance to re-adjust to the
         // safe live point).
         this.blacklistCurrentPlaylist({
-          message: 'Playlist no longer updating.'
+          message: 'Playlist no longer updating.',
+          reason: 'playlist-unchanged'
         });
         // useful for monitoring QoS
         this.tech_.trigger('playliststuck');
@@ -657,7 +679,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     const updateCodecs = () => {
-      if (!this.sourceUpdater_.ready()) {
+      if (!this.sourceUpdater_.hasCreatedSourceBuffers()) {
         return this.tryToCreateSourceBuffers_();
       }
 
@@ -742,6 +764,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
    */
   fastQualityChange_(media = this.selectPlaylist()) {
     if (media === this.masterPlaylistLoader_.media()) {
+      this.logger_('skipping fastQualityChange because new media is same as old');
       return;
     }
 
@@ -1020,6 +1043,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
                        'Trying again since it is the only playlist.');
 
       this.tech_.trigger('retryplaylist');
+      // if this is a final rendition, we should delay
       return this.masterPlaylistLoader_.load(isFinalRendition);
     }
 
@@ -1063,6 +1087,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     // Blacklist this playlist
     currentPlaylist.excludeUntil = Date.now() + (blacklistDuration * 1000);
+    if (error.reason) {
+      currentPlaylist.lastExcludeReason_ = error.reason;
+    }
     this.tech_.trigger('blacklistplaylist');
     this.tech_.trigger({type: 'usage', name: 'vhs-rendition-blacklisted'});
     this.tech_.trigger({type: 'usage', name: 'hls-rendition-blacklisted'});
@@ -1098,7 +1125,12 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.delegateLoaders_('main', ['abort', 'pause']);
 
-    return this.masterPlaylistLoader_.media(nextPlaylist, isFinalRendition);
+    const delayDuration = (nextPlaylist.targetDuration / 2) * 1000 || 5 * 1000;
+    const shouldDelay = typeof nextPlaylist.lastRequest === 'number' &&
+      (Date.now() - nextPlaylist.lastRequest) <= delayDuration;
+
+    // delay if it's a final rendition or if the last refresh is sooner than half targetDuration
+    return this.masterPlaylistLoader_.media(nextPlaylist, isFinalRendition || shouldDelay);
   }
 
   /**
@@ -1411,6 +1443,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.masterPlaylistLoader_.dispose();
     this.mainSegmentLoader_.dispose();
 
+    if (this.loadOnPlay_) {
+      this.tech_.off('play', this.loadOnPlay_);
+    }
+
     ['AUDIO', 'SUBTITLES'].forEach((type) => {
       const groups = this.mediaTypes_[type].groups;
 
@@ -1561,12 +1597,15 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
     // check if codec switching is happening
-    if (this.sourceUpdater_.ready() && !this.sourceUpdater_.canChangeType()) {
+    if (
+      this.sourceUpdater_.hasCreatedSourceBuffers() &&
+      !this.sourceUpdater_.canChangeType()
+    ) {
       const switchMessages = [];
 
       ['video', 'audio'].forEach((type) => {
-        const newCodec = (parseCodecs(this.sourceUpdater_.codecs[type] || '')[type] || {}).type;
-        const oldCodec = (parseCodecs(codecs[type] || '')[type] || {}).type;
+        const newCodec = (parseCodecs(this.sourceUpdater_.codecs[type] || '')[0] || {}).type;
+        const oldCodec = (parseCodecs(codecs[type] || '')[0] || {}).type;
 
         if (newCodec && oldCodec && newCodec.toLowerCase() !== oldCodec.toLowerCase()) {
           switchMessages.push(`"${this.sourceUpdater_.codecs[type]}" -> "${codecs[type]}"`);
@@ -1597,7 +1636,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
   tryToCreateSourceBuffers_() {
     // media source is not ready yet or sourceBuffers are already
     // created.
-    if (this.mediaSource.readyState !== 'open' || this.sourceUpdater_.ready()) {
+    if (
+      this.mediaSource.readyState !== 'open' ||
+      this.sourceUpdater_.hasCreatedSourceBuffers()
+    ) {
       return;
     }
 
@@ -1623,15 +1665,39 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * Excludes playlists with codecs that are unsupported by the muxer and browser.
    */
   excludeUnsupportedVariants_() {
-    this.master().playlists.forEach(variant => {
+    const playlists = this.master().playlists;
+    const ids = [];
+
+    // TODO: why don't we have a property to loop through all
+    // playlist? Why did we ever mix indexes and keys?
+    Object.keys(playlists).forEach(key => {
+      const variant = playlists[key];
+
+      // check if we already processed this playlist.
+      if (ids.indexOf(variant.id) !== -1) {
+        return;
+      }
+
+      ids.push(variant.id);
+
       const codecs = codecsForPlaylist(this.master, variant);
+      const unsupported = [];
 
       if (codecs.audio && !muxerSupportsCodec(codecs.audio) && !browserSupportsCodec(codecs.audio)) {
-        variant.excludeUntil = Infinity;
+        unsupported.push(`audio codec ${codecs.audio}`);
       }
 
       if (codecs.video && !muxerSupportsCodec(codecs.video) && !browserSupportsCodec(codecs.video)) {
+        unsupported.push(`video codec ${codecs.video}`);
+      }
+
+      if (codecs.text && codecs.text === 'stpp.ttml.im1t') {
+        unsupported.push(`text codec ${codecs.text}`);
+      }
+
+      if (unsupported.length) {
         variant.excludeUntil = Infinity;
+        this.logger_(`excluding ${variant.id} for unsupported: ${unsupported.join(', ')}`);
       }
     });
   }
@@ -1651,67 +1717,61 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * @private
    */
   excludeIncompatibleVariants_(codecString) {
-    const codecs = parseCodecs(codecString);
-    const codecCount = Object.keys(codecs).length;
+    const ids = [];
+    const playlists = this.master().playlists;
+    const codecs = unwrapCodecList(parseCodecs(codecString));
+    const codecCount_ = codecCount(codecs);
+    const videoDetails = codecs.video && parseCodecs(codecs.video)[0] || null;
+    const audioDetails = codecs.audio && parseCodecs(codecs.audio)[0] || null;
 
-    this.master().playlists.forEach((variant) => {
-      // skip variants that are already blacklisted forever
-      if (variant.excludeUntil === Infinity) {
+    Object.keys(playlists).forEach((key) => {
+      const variant = playlists[key];
+
+      // check if we already processed this playlist.
+      // or it if it is already excluded forever.
+      if (ids.indexOf(variant.id) !== -1 || variant.excludeUntil === Infinity) {
         return;
       }
-      /* TODO: Decide whether two codecs should be assumed here.
-       * Right now, for playlists that don't specify codecs, VHS assumes
-       * that there are two (one for audio and one for video).
-       * Although this is often the case, this may lead to broken behavior
-       * if the playlist only has one codec. It may be better in the future
-       * to decide at time of segment download how many tracks there are and
-       * determine the proper codecs. This will come at a cost of potentially
-       * more bandwidth, but will be a more robust approach than the assumption here.
-       */
 
-      let variantCodecs = {};
-      let variantCodecCount = 2;
+      ids.push(variant.id);
       const blacklistReasons = [];
 
       // get codecs from the playlist for this variant
-      const variantCodecStrings = codecsForPlaylist(this.masterPlaylistLoader_.master, variant);
+      const variantCodecs = codecsForPlaylist(this.masterPlaylistLoader_.master, variant);
+      const variantCodecCount = codecCount(variantCodecs);
 
-      if (variantCodecStrings.audio || variantCodecStrings.video) {
-        const variantCodecString = [variantCodecStrings.video, variantCodecStrings.audio]
-          .filter(Boolean)
-          .join(',');
-
-        variantCodecs = parseCodecs(variantCodecString);
-        variantCodecCount = Object.keys(variantCodecs).length;
+      // if no codecs are listed, we cannot determine that this
+      // variant is incompatible. Wait for mux.js to probe
+      if (!variantCodecs.audio && !variantCodecs.video) {
+        return;
       }
 
       // TODO: we can support this by removing the
       // old media source and creating a new one, but it will take some work.
       // The number of streams cannot change
-      if (variantCodecCount !== codecCount) {
-        blacklistReasons.push(`codec count "${variantCodecCount}" !== "${codecCount}"`);
-        variant.excludeUntil = Infinity;
+      if (variantCodecCount !== codecCount_) {
+        blacklistReasons.push(`codec count "${variantCodecCount}" !== "${codecCount_}"`);
       }
 
       // only exclude playlists by codec change, if codecs cannot switch
       // during playback.
       if (!this.sourceUpdater_.canChangeType()) {
+        const variantVideoDetails = variantCodecs.video && parseCodecs(variantCodecs.video)[0] || null;
+        const variantAudioDetails = variantCodecs.audio && parseCodecs(variantCodecs.audio)[0] || null;
+
         // the video codec cannot change
-        if (variantCodecs.video && codecs.video &&
-          variantCodecs.video.type.toLowerCase() !== codecs.video.type.toLowerCase()) {
-          blacklistReasons.push(`video codec "${variantCodecs.video.type}" !== "${codecs.video.type}"`);
-          variant.excludeUntil = Infinity;
+        if (variantVideoDetails && videoDetails && variantVideoDetails.type.toLowerCase() !== videoDetails.type.toLowerCase()) {
+          blacklistReasons.push(`video codec "${variantVideoDetails.type}" !== "${videoDetails.type}"`);
         }
 
         // the audio codec cannot change
-        if (variantCodecs.audio && codecs.audio &&
-          variantCodecs.audio.type.toLowerCase() !== codecs.audio.type.toLowerCase()) {
-          variant.excludeUntil = Infinity;
-          blacklistReasons.push(`audio codec "${variantCodecs.audio.type}" !== "${codecs.audio.type}"`);
+        if (variantAudioDetails && audioDetails && variantAudioDetails.type.toLowerCase() !== audioDetails.type.toLowerCase()) {
+          blacklistReasons.push(`audio codec "${variantAudioDetails.type}" !== "${audioDetails.type}"`);
         }
       }
 
       if (blacklistReasons.length) {
+        variant.excludeUntil = Infinity;
         this.logger_(`blacklisting ${variant.id}: ${blacklistReasons.join(' && ')}`);
       }
     });

@@ -7,11 +7,18 @@ import { ONE_SECOND_IN_TS } from 'mux.js/lib/utils/clock';
  *
  * @private
  * @param {Uint8Array} bytes - segment bytes
+ * @param {number} baseStartTime
+ *        Relative reference timestamp used when adjusting frame timestamps for rollover.
+ *        This value should be in seconds, as it's converted to a 90khz clock within the
+ *        function body.
  * @return {Object} The start time of the current segment in "media time" as well as
  *                  whether it contains video and/or audio
  */
 export const probeTsSegment = (bytes, baseStartTime) => {
-  const timeInfo = tsInspector.inspect(bytes, baseStartTime * ONE_SECOND_IN_TS);
+  const tsStartTime = (typeof baseStartTime === 'number' && !isNaN(baseStartTime)) ?
+    (baseStartTime * ONE_SECOND_IN_TS) :
+    void 0;
+  const timeInfo = tsInspector.inspect(bytes, tsStartTime);
 
   if (!timeInfo) {
     return null;

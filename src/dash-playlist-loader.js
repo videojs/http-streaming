@@ -6,7 +6,8 @@ import {
 } from 'mpd-parser';
 import {
   refreshDelay,
-  updateMaster as updatePlaylist
+  updateMaster as updatePlaylist,
+  isPlaylistUnchanged
 } from './playlist-loader';
 import { resolveUrl, resolveManifestRedirect } from './resolve-url';
 import parseSidx from 'mux.js/lib/tools/parse-sidx';
@@ -17,9 +18,71 @@ import {
   addPropertiesToMaster
 } from './manifest';
 import containerRequest from './util/container-request.js';
-import {toUint8} from '@videojs/vhs-utils/dist/byte-helpers';
+import {toUint8} from '@videojs/vhs-utils/es/byte-helpers';
+import logger from './util/logger';
 
 const { EventTarget, mergeOptions } = videojs;
+
+const dashPlaylistUnchanged = function(a, b) {
+  if (!isPlaylistUnchanged(a, b)) {
+    return false;
+  }
+
+  // for dash the above check will often return true in scenarios where
+  // the playlist actually has changed because mediaSequence isn't a
+  // dash thing, and we often set it to 1. So if the playlists have the same amount
+  // of segments we return true.
+  // So for dash we need to make sure that the underlying segments are different.
+
+  // if sidx changed then the playlists are different.
+  if (a.sidx && b.sidx && (a.sidx.offset !== b.sidx.offset || a.sidx.length !== b.sidx.length)) {
+    return false;
+  } else if ((!a.sidx && b.sidx) || (a.sidx && !b.sidx)) {
+    return false;
+  }
+
+  // one or the other does not have segments
+  // there was a change.
+  if (a.segments && !b.segments || !a.segments && b.segments) {
+    return false;
+  }
+
+  // neither has segments nothing changed
+  if (!a.segments && !b.segments) {
+    return true;
+  }
+
+  // check segments themselves
+  for (let i = 0; i < a.segments.length; i++) {
+    const aSegment = a.segments[i];
+    const bSegment = b.segments[i];
+
+    // if uris are different between segments there was a change
+    if (aSegment.uri !== bSegment.uri) {
+      return false;
+    }
+
+    // neither segment has a byterange, there will be no byterange change.
+    if (!aSegment.byterange && !bSegment.byterange) {
+      continue;
+    }
+    const aByterange = aSegment.byterange;
+    const bByterange = bSegment.byterange;
+
+    // if byterange only exists on one of the segments, there was a change.
+    if ((aByterange && !bByterange) || (!aByterange && bByterange)) {
+      return false;
+    }
+
+    // if both segments have byterange with different offsets, there was a change.
+    if (aByterange.offset !== bByterange.offset || aByterange.length !== bByterange.length) {
+      return false;
+    }
+  }
+
+  // if everything was the same with segments, this is the same playlist.
+  return true;
+};
 
 /**
  * Parses the master XML string and updates playlist URI references.
@@ -92,7 +155,7 @@ export const updateMaster = (oldMaster, newMaster, sidxMapping) => {
         addSidxSegmentsToPlaylist(playlist, sidxMapping[sidxKey].sidx, playlist.sidx.resolvedUri);
       }
     }
-    const playlistUpdate = updatePlaylist(update, playlist);
+    const playlistUpdate = updatePlaylist(update, playlist, dashPlaylistUnchanged);
 
     if (playlistUpdate) {
       update = playlistUpdate;
@@ -104,7 +167,7 @@ export const updateMaster = (oldMaster, newMaster, sidxMapping) => {
   forEachMediaGroup(newMaster, (properties, type, group, label) => {
     if (properties.playlists && properties.playlists.length) {
       const id = properties.playlists[0].id;
-      const playlistUpdate = updatePlaylist(update, properties.playlists[0]);
+      const playlistUpdate = updatePlaylist(update, properties.playlists[0], dashPlaylistUnchanged);
 
       if (playlistUpdate) {
         update = playlistUpdate;
@@ -229,6 +292,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
     this.state = 'HAVE_NOTHING';
     this.loadedPlaylists_ = {};
+    this.logger_ = logger('DashPlaylistLoader');
 
     // initialize the loader state
     // The masterPlaylistLoader will be created with a string
@@ -353,6 +417,14 @@ export default class DashPlaylistLoader extends EventTarget {
     window.clearTimeout(this.minimumUpdatePeriodTimeout_);
     window.clearTimeout(this.mediaRequest_);
     window.clearTimeout(this.mediaUpdateTimeout);
+    this.mediaUpdateTimeout = null;
+    this.mediaRequest_ = null;
+    this.minimumUpdatePeriodTimeout_ = null;
+
+    if (this.masterPlaylistLoader_.createMupOnMedia_) {
+      this.off('loadedmetadata', this.masterPlaylistLoader_.createMupOnMedia_);
+      this.masterPlaylistLoader_.createMupOnMedia_ = null;
+    }
 
     this.off();
   }
@@ -443,9 +515,15 @@ export default class DashPlaylistLoader extends EventTarget {
   }
 
   pause() {
+    if (this.masterPlaylistLoader_.createMupOnMedia_) {
+      this.off('loadedmetadata', this.masterPlaylistLoader_.createMupOnMedia_);
+      this.masterPlaylistLoader_.createMupOnMedia_ = null;
+    }
     this.stopRequest();
     window.clearTimeout(this.mediaUpdateTimeout);
-    window.clearTimeout(this.minimumUpdatePeriodTimeout_);
+    window.clearTimeout(this.masterPlaylistLoader_.minimumUpdatePeriodTimeout_);
+    this.masterPlaylistLoader_.minimumUpdatePeriodTimeout_ = null;
+    this.mediaUpdateTimeout = null;
     if (this.state === 'HAVE_NOTHING') {
       // If we pause the loader before any data has been retrieved, its as if we never
       // started, so reset to an unstarted state.
@@ -455,7 +533,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
   load(isFinalRendition) {
     window.clearTimeout(this.mediaUpdateTimeout);
-    window.clearTimeout(this.minimumUpdatePeriodTimeout_);
+    this.mediaUpdateTimeout = null;
 
     const media = this.media();
 
@@ -634,8 +712,7 @@ export default class DashPlaylistLoader extends EventTarget {
       this.masterPlaylistLoader_.srcUrl = location;
     }
 
-    // if the minimumUpdatePeriod was changed, update the minimumUpdatePeriodTimeout_
-    if (!oldMaster || (newMaster && oldMaster.minimumUpdatePeriod !== newMaster.minimumUpdatePeriod)) {
+    if (!oldMaster || (newMaster && newMaster.minimumUpdatePeriod !== oldMaster.minimumUpdatePeriod)) {
       this.updateMinimumUpdatePeriodTimeout_();
     }
 
@@ -643,35 +720,57 @@ export default class DashPlaylistLoader extends EventTarget {
   }
 
   updateMinimumUpdatePeriodTimeout_() {
-    // Clear existing timeout
-    window.clearTimeout(this.minimumUpdatePeriodTimeout_);
+    const mpl = this.masterPlaylistLoader_;
 
-    const createMUPTimeout = (mup) => {
-      this.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
-        this.trigger('minimumUpdatePeriod');
-      }, mup);
-    };
+    // cancel any pending creation of mup on media
+    // a new one will be added if needed.
+    if (mpl.createMupOnMedia_) {
+      mpl.off('loadedmetadata', mpl.createMupOnMedia_);
+      mpl.createMupOnMedia_ = null;
+    }
 
-    const minimumUpdatePeriod = this.masterPlaylistLoader_.master && this.masterPlaylistLoader_.master.minimumUpdatePeriod;
+    // clear any pending timeouts
+    if (mpl.minimumUpdatePeriodTimeout_) {
+      window.clearTimeout(mpl.minimumUpdatePeriodTimeout_);
+      mpl.minimumUpdatePeriodTimeout_ = null;
+    }
 
-    if (minimumUpdatePeriod > 0) {
-      createMUPTimeout(minimumUpdatePeriod);
+    let mup = mpl.master && mpl.master.minimumUpdatePeriod;
 
     // If the minimumUpdatePeriod has a value of 0, that indicates that the current
     // MPD has no future validity, so a new one will need to be acquired when new
     // media segments are to be made available. Thus, we use the target duration
     // in this case
-    } else if (minimumUpdatePeriod === 0) {
-      // If we haven't yet selected a playlist, wait until then so we know the
-      // target duration
-      if (!this.media()) {
-        this.one('loadedplaylist', () => {
-          createMUPTimeout(this.media().targetDuration * 1000);
-        });
+    if (mup === 0) {
+      if (mpl.media()) {
+        mup = mpl.media().targetDuration * 1000;
       } else {
-        createMUPTimeout(this.media().targetDuration * 1000);
+        mpl.createMupOnMedia_ = mpl.updateMinimumUpdatePeriodTimeout_;
+        mpl.one('loadedmetadata', mpl.createMupOnMedia_);
       }
     }
+
+    // if minimumUpdatePeriod is invalid or <= zero, which
+    // can happen when a live video becomes VOD. skip timeout
+    // creation.
+    if (typeof mup !== 'number' || mup <= 0) {
+      if (mup < 0) {
+        this.logger_(`found invalid minimumUpdatePeriod of ${mup}, not setting a timeout`);
+      }
+      return;
+    }
+
+    this.createMUPTimeout_(mup);
+  }
+
+  createMUPTimeout_(mup) {
+    const mpl = this.masterPlaylistLoader_;
+
+    mpl.minimumUpdatePeriodTimeout_ = window.setTimeout(() => {
+      mpl.minimumUpdatePeriodTimeout_ = null;
+      mpl.trigger('minimumUpdatePeriod');
+      mpl.createMUPTimeout_(mup);
+    }, mup);
   }
 
   /**
@@ -728,10 +827,19 @@ export default class DashPlaylistLoader extends EventTarget {
       this.trigger('playlistunchanged');
     }
 
-    if (!this.media().endList) {
-      this.mediaUpdateTimeout = window.setTimeout(() => {
-        this.trigger('mediaupdatetimeout');
-      }, refreshDelay(this.media(), Boolean(mediaChanged)));
+    if (!this.mediaUpdateTimeout) {
+      const createMediaUpdateTimeout = () => {
+        if (this.media().endList) {
+          return;
+        }
+
+        this.mediaUpdateTimeout = window.setTimeout(() => {
+          this.trigger('mediaupdatetimeout');
+          createMediaUpdateTimeout();
+        }, refreshDelay(this.media(), Boolean(mediaChanged)));
+      };
+
+      createMediaUpdateTimeout();
     }
 
     this.trigger('loadedplaylist');

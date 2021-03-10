@@ -14,7 +14,7 @@ import {
 import {
   DEFAULT_AUDIO_CODEC,
   DEFAULT_VIDEO_CODEC
-} from '@videojs/vhs-utils/dist/codecs.js';
+} from '@videojs/vhs-utils/es/codecs.js';
 import manifests from 'create-test-data!manifests';
 import {
   MasterPlaylistController
@@ -49,18 +49,18 @@ import {
 
 const sharedHooks = {
   beforeEach(assert) {
+    this.oldTypeSupported = window.MediaSource.isTypeSupported;
+    this.oldChangeType = window.SourceBuffer.prototype.changeType;
+
     this.env = useFakeEnvironment(assert);
     this.clock = this.env.clock;
     this.requests = this.env.requests;
-    this.oldTypeSupported = window.MediaSource.isTypeSupported;
     this.mse = useFakeMediaSource();
 
     if (!videojs.browser.IE_VERSION) {
       this.oldDevicePixelRatio = window.devicePixelRatio;
       window.devicePixelRatio = 1;
     }
-
-    this.oldChangeType = window.SourceBuffer.prototype.changeType;
 
     // force the HLS tech to run
     this.origSupportsNativeHls = videojs.Vhs.supportsNativeHls;
@@ -90,6 +90,8 @@ const sharedHooks = {
     this.masterPlaylistController.mainSegmentLoader_.addSegmentMetadataCue_ = () => {};
   },
   afterEach() {
+    window.MediaSource.isTypeSupported = this.oldTypeSupported;
+    window.SourceBuffer.prototype.changeType = this.oldChangeType;
     this.env.restore();
     this.mse.restore();
     videojs.Vhs.supportsNativeHls = this.origSupportsNativeHls;
@@ -99,8 +101,6 @@ const sharedHooks = {
     }
     videojs.browser = this.oldBrowser;
     this.player.dispose();
-    window.MediaSource.isTypeSupported = this.oldTypeSupported;
-    window.SourceBuffer.prototype.changeType = this.oldChangeType;
   }
 
 };
@@ -534,7 +534,7 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
     origRemove.call(segmentLoader, start, end);
   };
 
-  segmentLoader.currentMediaInfo_ = { hasVideo: true };
+  segmentLoader.startingMediaInfo_ = { hasVideo: true };
   segmentLoader.audioDisabled_ = true;
 
   segmentLoader.sourceUpdater_.removeVideo = function(start, end) {
@@ -898,12 +898,16 @@ QUnit.test(
 );
 
 QUnit.test('excludes playlists with unsupported codecs before initial selection', function(assert) {
+  // only support mp4a/avc1 for testing, this is restored in afterEach
+  window.MediaSource.isTypeSupported = (type) => (/(mp4a|avc1)/).test(type);
+
   this.masterPlaylistController.selectPlaylist = () => {
-    assert.equal(
-      this.masterPlaylistController.master().playlists[0].excludeUntil,
-      Infinity,
-      'excludes unsupported playlist before initial selection'
-    );
+    const playlists = this.masterPlaylistController.master().playlists;
+
+    assert.equal(playlists[0].excludeUntil, Infinity, 'theora excluded');
+    assert.equal(playlists[1].excludeUntil, undefined, 'avc/mp4a not excluded');
+    assert.equal(playlists[2].excludeUntil, Infinity, 'ec-3 excluded');
+    assert.equal(playlists[3].excludeUntil, Infinity, 'stpp.ttml.im1t excluded');
   };
 
   openMediaSource(this.player, this.clock);
@@ -915,7 +919,11 @@ QUnit.test('excludes playlists with unsupported codecs before initial selection'
     '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="theora,mp4a.40.5"\n' +
     'media.m3u8\n' +
     '#EXT-X-STREAM-INF:BANDWIDTH=10000,CODECS="avc1.4d400d,mp4a.40.2"\n' +
-    'media1.m3u8\n'
+    'media1.m3u8\n' +
+    '#EXT-X-STREAM-INF:BANDWIDTH=10000,CODECS="avc1.4d400d,ec-3"\n' +
+    'media2.m3u8\n' +
+    '#EXT-X-STREAM-INF:BANDWIDTH=10000,CODECS="stpp.ttml.im1t"\n' +
+    'media3.m3u8\n'
   );
 
   // media
@@ -1267,6 +1275,7 @@ QUnit.test('blacklists switching from audio-only playlists to video+audio', func
   openMediaSource(this.player, this.clock);
 
   this.player.tech_.vhs.bandwidth = 1;
+  const mpc = this.masterPlaylistController;
 
   // master
   this.requests.shift().respond(
@@ -1274,14 +1283,13 @@ QUnit.test('blacklists switching from audio-only playlists to video+audio', func
     '#EXTM3U\n' +
                                 '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="mp4a.40.2"\n' +
                                 'media.m3u8\n' +
-                                '#EXT-X-STREAM-INF:BANDWIDTH=10,RESOLUTION=1x1\n' +
+                                '#EXT-X-STREAM-INF:BANDWIDTH=10,RESOLUTION=1x1,CODECS="avc1.4d400d,mp4a.40.2"\n' +
                                 'media1.m3u8\n'
   );
 
   // media1
   this.standardXHRResponse(this.requests.shift());
 
-  const mpc = this.masterPlaylistController;
   let debugLogs = [];
 
   mpc.logger_ = (...logs) => {
@@ -5021,7 +5029,8 @@ QUnit.test('excludes on codec switch if codec switching not supported', function
   });
 
   // sourceUpdater_ already setup
-  this.mpc.sourceUpdater_.ready = () => true;
+  this.mpc.sourceUpdater_.initializedEme();
+  this.mpc.sourceUpdater_.createdSourceBuffers_ = () => true;
   this.mpc.sourceUpdater_.canChangeType = () => false;
   this.mpc.sourceUpdater_.codecs = {
     audio: 'mp4a.40.2',
@@ -5061,7 +5070,8 @@ QUnit.test('does not exclude on codec switch between the same base codec', funct
   });
 
   // sourceUpdater_ already setup
-  this.mpc.sourceUpdater_.ready = () => true;
+  this.mpc.sourceUpdater_.initializedEme();
+  this.mpc.sourceUpdater_.createdSourceBuffers_ = () => true;
   this.mpc.sourceUpdater_.canChangeType = () => false;
   this.mpc.sourceUpdater_.codecs = {
     audio: 'mp4a.40.2',
@@ -5111,7 +5121,8 @@ QUnit.test('main loader only trackinfo works as expected', function(assert) {
   assert.equal(createBuffers, 1, 'createSourceBuffers called');
   assert.equal(switchBuffers, 0, 'addOrChangeSourceBuffers not called');
 
-  this.mpc.sourceUpdater_.ready = () => true;
+  this.mpc.sourceUpdater_.initializedEme();
+  this.mpc.sourceUpdater_.createdSourceBuffers_ = () => true;
   this.mpc.sourceUpdater_.canChangeType = () => true;
 
   this.contentSetup({
@@ -5181,7 +5192,8 @@ QUnit.test('main & audio loader only trackinfo works as expected', function(asse
   assert.equal(createBuffers, 1, 'createSourceBuffers called');
   assert.equal(switchBuffers, 0, 'addOrChangeSourceBuffers not called');
 
-  this.mpc.sourceUpdater_.ready = () => true;
+  this.mpc.sourceUpdater_.initializedEme();
+  this.mpc.sourceUpdater_.createdSourceBuffers_ = () => true;
   this.mpc.sourceUpdater_.canChangeType = () => true;
 
   this.mpc.mainSegmentLoader_.currentMediaInfo_ = {
@@ -5702,6 +5714,173 @@ QUnit.test('false without nextPlaylist', function(assert) {
 
   assert.notOk(mpc.shouldSwitchToMedia_(null), 'should not switch');
 
+  assert.equal(this.env.log.warn.callCount, 1, 'logged a warning');
+
+  this.env.log.warn.callCount = 0;
+});
+
+QUnit.module('MasterPlaylistController blacklistCurrentPlaylist', sharedHooks);
+
+QUnit.test("don't exclude only playlist unless it was excluded forever", function(assert) {
+  // expect 9 because we have a failing assertion that shouldn't run unless something is broken
+  assert.expect(9);
+
+  this.requests.length = 0;
+  this.player.dispose();
+  this.player = createPlayer();
+  this.player.src({
+    src: 'manifest/one-rendition.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  this.masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  let mpc = this.masterPlaylistController;
+  let mpl = mpc.masterPlaylistLoader_;
+  let playlist = mpl.master.playlists[0];
+  let shouldDelay = false;
+
+  mpl.load = (delay) => (shouldDelay = delay);
+
+  mpc.blacklistCurrentPlaylist();
+
+  assert.notOk('excludeUntil' in playlist, 'playlist was not excluded since excludeDuration was finite');
+  assert.ok(shouldDelay, 'we delay retry since it is the final rendition');
+  assert.equal(this.env.log.warn.callCount, 1, 'logged a warning');
+
+  this.requests.length = 0;
+  // reload source to exclude forever
+  this.player.src({
+    src: 'manifest/one-rendition.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  this.masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  mpc = this.masterPlaylistController;
+  mpl = mpc.masterPlaylistLoader_;
+  playlist = mpl.master.playlists[0];
+  shouldDelay = false;
+
+  mpl.load = (delay) => {
+    shouldDelay = delay;
+    assert.ok(false, 'load should not be called in this case');
+  };
+  mpc.on('error', () => {
+    assert.ok(true, 'we triggered a playback error');
+  });
+
+  // exclude forever
+  mpc.blacklistCurrentPlaylist({}, Infinity);
+
+  assert.ok('excludeUntil' in playlist, 'playlist was excluded');
+  assert.notOk(shouldDelay, 'value was not changed');
+  assert.equal(this.env.log.error.callCount, 1, 'logged an error');
+
+  this.env.log.warn.callCount = 0;
+  this.env.log.error.callCount = 0;
+});
+
+QUnit.test('switch playlists if current playlist gets excluded and re-include if final rendition', function(assert) {
+  this.requests.length = 0;
+  this.player.dispose();
+  this.player = createPlayer();
+  this.player.src({
+    src: 'manifest/two-renditions.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  this.masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  const mpc = this.masterPlaylistController;
+  const mpl = mpc.masterPlaylistLoader_;
+  const playlist = mpl.master.playlists[0];
+  let playlist2 = mpl.master.playlists[1];
+  let shouldDelay = false;
+
+  mpl.load = (delay) => (shouldDelay = delay);
+
+  mpc.blacklistCurrentPlaylist();
+
+  assert.ok('excludeUntil' in playlist, 'playlist was excluded since there is another playlist');
+  assert.notOk(shouldDelay, 'we do not delay retry since it is not the final rendition');
+  assert.equal(this.env.log.warn.callCount, 1, 'logged a warning');
+
+  // ignore segment request
+  this.requests.shift();
+  // media1
+  this.standardXHRResponse(this.requests.shift());
+  playlist2 = mpl.master.playlists[1];
+
+  mpc.blacklistCurrentPlaylist();
+
+  assert.ok('excludeUntil' in playlist2, 'playlist2 was excluded');
+  assert.notOk('excludeUntil' in playlist, 'playlist was re-included');
+  assert.equal(this.env.log.warn.callCount, 3, 'logged another warning');
+  assert.ok(
+    this.env.log.warn.calledWith('Removing other playlists from the exclusion list because the last rendition is about to be excluded.'),
+    'we logged a warning that we reincluded playlists'
+  );
+
+  this.env.log.warn.callCount = 0;
+});
+
+QUnit.test('should delay loading of new playlist if lastRequest was less than half target duration', function(assert) {
+  this.requests.length = 0;
+  this.player.dispose();
+  this.player = createPlayer();
+  this.player.src({
+    src: 'manifest/two-renditions.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  this.masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  const mpc = this.masterPlaylistController;
+  const mpl = mpc.masterPlaylistLoader_;
+  const oldMplMedia = mpl.media;
+  const playlist = mpl.master.playlists[0];
+  const playlist2 = mpl.master.playlists[1];
+  let shouldDelay = false;
+
+  mpl.media = (nextPlaylist, delay) => {
+    shouldDelay = delay;
+    return oldMplMedia.call(mpl, nextPlaylist, delay);
+  };
+  playlist2.lastRequest = Date.now() - 1000;
+
+  mpc.blacklistCurrentPlaylist();
+
+  assert.ok('excludeUntil' in playlist, 'playlist was excluded since there is another playlist');
+  assert.ok(shouldDelay, 'we delay retry since second rendition was loaded less than half target duration ago');
   assert.equal(this.env.log.warn.callCount, 1, 'logged a warning');
 
   this.env.log.warn.callCount = 0;

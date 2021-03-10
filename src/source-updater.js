@@ -5,7 +5,7 @@ import videojs from 'video.js';
 import logger from './util/logger';
 import noop from './util/noop';
 import { bufferIntersection } from './ranges.js';
-import {getMimeForCodec} from '@videojs/vhs-utils/dist/codecs.js';
+import {getMimeForCodec} from '@videojs/vhs-utils/es/codecs.js';
 import window from 'global/window';
 import toTitleCase from './util/to-title-case.js';
 
@@ -79,7 +79,11 @@ const shiftQueue = (type, sourceUpdater) => {
   // Media source queue entries don't need to consider whether the source updater is
   // started (i.e., source buffers are created) as they don't need the source buffers, but
   // source buffer queue entries do.
-  if (!sourceUpdater.started_ || sourceUpdater.mediaSource.readyState === 'closed' || updating(type, sourceUpdater)) {
+  if (
+    !sourceUpdater.ready() ||
+    sourceUpdater.mediaSource.readyState === 'closed' ||
+    updating(type, sourceUpdater)
+  ) {
     return;
   }
 
@@ -331,15 +335,32 @@ export default class SourceUpdater extends videojs.EventTarget {
       // used for debugging
       this.audioError_ = e;
     };
-    this.started_ = false;
+    this.createdSourceBuffers_ = false;
+    this.initializedEme_ = false;
+    this.triggeredReady_ = false;
+  }
+
+  initializedEme() {
+    this.initializedEme_ = true;
+    this.triggerReady();
+  }
+
+  hasCreatedSourceBuffers() {
+    // if false, likely waiting on one of the segment loaders to get enough data to create
+    // source buffers
+    return this.createdSourceBuffers_;
+  }
+
+  hasInitializedAnyEme() {
+    return this.initializedEme_;
   }
 
   ready() {
-    return this.started_;
+    return this.hasCreatedSourceBuffers() && this.hasInitializedAnyEme();
   }
 
   createSourceBuffers(codecs) {
-    if (this.ready()) {
+    if (this.hasCreatedSourceBuffers()) {
       // already created them before
       return;
     }
@@ -347,8 +368,22 @@ export default class SourceUpdater extends videojs.EventTarget {
     // the intial addOrChangeSourceBuffers will always be
     // two add buffers.
     this.addOrChangeSourceBuffers(codecs);
-    this.started_ = true;
-    this.trigger('ready');
+    this.createdSourceBuffers_ = true;
+    this.trigger('createdsourcebuffers');
+    this.triggerReady();
+  }
+
+  triggerReady() {
+    // only allow ready to be triggered once, this prevents the case
+    // where:
+    // 1. we trigger createdsourcebuffers
+    // 2. ie 11 synchronously initializates eme
+    // 3. the synchronous initialization causes us to trigger ready
+    // 4. We go back to the ready check in createSourceBuffers and ready is triggered again.
+    if (this.ready() && !this.triggeredReady_) {
+      this.triggeredReady_ = true;
+      this.trigger('ready');
+    }
   }
 
   /**
@@ -484,7 +519,7 @@ export default class SourceUpdater extends videojs.EventTarget {
     Object.keys(codecs).forEach((type) => {
       const codec = codecs[type];
 
-      if (!this.ready()) {
+      if (!this.hasCreatedSourceBuffers()) {
         return this.addSourceBuffer(type, codec);
       }
 

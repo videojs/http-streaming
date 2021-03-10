@@ -528,6 +528,11 @@ export const initialize = {
           playlistLoader =
             new PlaylistLoader(properties.resolvedUri, vhs, requestOptions);
         } else if (sourceType === 'dash') {
+          const playlists = properties.playlists.filter((p) => p.excludeUntil !== Infinity);
+
+          if (!playlists.length) {
+            return;
+          }
           playlistLoader = new DashPlaylistLoader(
             properties.playlists[0],
             vhs,

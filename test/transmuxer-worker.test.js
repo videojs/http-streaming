@@ -1,5 +1,5 @@
 import QUnit from 'qunit';
-import TransmuxWorker from 'worker!../src/transmuxer-worker.worker.js';
+import {createTransmuxer as createTransmuxer_} from '../src/segment-transmuxer.js';
 import {
   mp4Captions as mp4CaptionsSegment,
   muxed as muxedSegment,
@@ -10,18 +10,11 @@ import {
 import '../src/videojs-http-streaming';
 
 const createTransmuxer = (isPartial) => {
-  const transmuxer = new TransmuxWorker();
-
-  transmuxer.postMessage({
-    action: 'init',
-    options: {
-      remux: false,
-      keepOriginalTimestamps: true,
-      handlePartialData: isPartial
-    }
+  return createTransmuxer_({
+    remux: false,
+    keepOriginalTimestamps: true,
+    handlePartialData: isPartial
   });
-
-  return transmuxer;
 };
 
 // The final done message from the Transmux worker
@@ -93,6 +86,7 @@ QUnit.test('flush should return data from transmuxer', function(assert) {
         'videoSegmentTimingInfo',
         'videoTimingInfo',
         'data',
+        'audioSegmentTimingInfo',
         'audioTimingInfo',
         'data',
         'done',
@@ -127,6 +121,10 @@ QUnit.test('flush should return data from transmuxer', function(assert) {
       data1.segment.type,
       'video',
       'returns video data with the 1st data event'
+    );
+    assert.ok(
+      messages.shift().audioSegmentTimingInfo,
+      'returns timing information with audioSegmentTimingInfo event'
     );
     assert.ok(
       messages.shift().audioTimingInfo,

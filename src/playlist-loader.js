@@ -8,6 +8,7 @@
 import { resolveUrl, resolveManifestRedirect } from './resolve-url';
 import videojs from 'video.js';
 import window from 'global/window';
+import logger from './util/logger';
 import {
   parseManifest,
   addPropertiesToMaster,
@@ -56,6 +57,14 @@ export const resolveSegmentUris = (segment, baseUri) => {
   }
 };
 
+// consider the playlist unchanged if the playlist object is the same or
+// the number of segments is equal, the media sequence number is unchanged,
+// and this playlist hasn't become the end of the playlist
+export const isPlaylistUnchanged = (a, b) => a === b ||
+  (a.segments && b.segments && a.segments.length === b.segments.length &&
+   a.endList === b.endList &&
+   a.mediaSequence === b.mediaSequence);
+
 /**
   * Returns a new master playlist that is the result of merging an
   * updated media playlist into the original version. If the
@@ -68,7 +77,7 @@ export const resolveSegmentUris = (segment, baseUri) => {
   * master playlist with the updated media playlist merged in, or
   * null if the merge produced no change.
   */
-export const updateMaster = (master, media) => {
+export const updateMaster = (master, media, unchangedCheck = isPlaylistUnchanged) => {
   const result = mergeOptions(master, {});
   const playlist = result.playlists[media.id];
 
@@ -76,13 +85,7 @@ export const updateMaster = (master, media) => {
     return null;
   }
 
-  // consider the playlist unchanged if the number of segments is equal, the media
-  // sequence number is unchanged, and this playlist hasn't become the end of the playlist
-  if (playlist.segments &&
-      media.segments &&
-      playlist.segments.length === media.segments.length &&
-      playlist.endList === media.endList &&
-      playlist.mediaSequence === media.mediaSequence) {
+  if (unchangedCheck(playlist, media)) {
     return null;
   }
 
@@ -157,6 +160,7 @@ export default class PlaylistLoader extends EventTarget {
     if (!src) {
       throw new Error('A non-empty playlist URL or object is required');
     }
+    this.logger_ = logger('PlaylistLoader');
 
     const { withCredentials = false, handleManifestRedirects = false } = options;
 
@@ -246,10 +250,14 @@ export default class PlaylistLoader extends EventTarget {
     this.state = 'HAVE_METADATA';
 
     const playlist = playlistObject || parseManifest({
+      onwarn: ({message}) => this.logger_(`m3u8-parser warn for ${id}: ${message}`),
+      oninfo: ({message}) => this.logger_(`m3u8-parser info for ${id}: ${message}`),
       manifestString: playlistString,
       customTagParsers: this.customTagParsers,
       customTagMappers: this.customTagMappers
     });
+
+    playlist.lastRequest = Date.now();
 
     setupMediaPlaylist({
       playlist,
@@ -312,11 +320,11 @@ export default class PlaylistLoader extends EventTarget {
     *
     * @param {Object=} playlist the parsed media playlist
     * object to switch to
-    * @param {boolean=} is this the last available playlist
+    * @param {boolean=} shouldDelay whether we should delay the request by half target duration
     *
     * @return {Playlist} the current loaded media
     */
-  media(playlist, isFinalRendition) {
+  media(playlist, shouldDelay) {
     // getter
     if (!playlist) {
       return this.media_;
@@ -338,7 +346,7 @@ export default class PlaylistLoader extends EventTarget {
 
     window.clearTimeout(this.finalRenditionTimeout);
 
-    if (isFinalRendition) {
+    if (shouldDelay) {
       const delay = (playlist.targetDuration / 2) * 1000 || 5 * 1000;
 
       this.finalRenditionTimeout =
@@ -414,6 +422,8 @@ export default class PlaylistLoader extends EventTarget {
         return;
       }
 
+      playlist.lastRequest = Date.now();
+
       playlist.resolvedUri = resolveManifestRedirect(this.handleManifestRedirects, playlist.resolvedUri, req);
 
       if (error) {
@@ -464,12 +474,12 @@ export default class PlaylistLoader extends EventTarget {
   /**
    * start loading of the playlist
    */
-  load(isFinalRendition) {
+  load(shouldDelay) {
     window.clearTimeout(this.mediaUpdateTimeout);
 
     const media = this.media();
 
-    if (isFinalRendition) {
+    if (shouldDelay) {
       const delay = media ? (media.targetDuration / 2) * 1000 : 5 * 1000;
 
       this.mediaUpdateTimeout = window.setTimeout(() => this.load(), delay);

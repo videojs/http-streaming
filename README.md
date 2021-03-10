@@ -42,6 +42,7 @@ Video.js Compatibility: 6.0, 7.0
       - [withCredentials](#withcredentials)
       - [handleManifestRedirects](#handlemanifestredirects)
       - [useCueTags](#usecuetags)
+      - [parse708captions](#parse708captions)
       - [overrideNative](#overridenative)
       - [blacklistDuration](#blacklistduration)
       - [maxFinalRenditionRetries](#maxfinalrenditionretries)
@@ -56,6 +57,7 @@ Video.js Compatibility: 6.0, 7.0
       - [customTagMappers](#customtagmappers)
       - [cacheEncryptionKeys](#cacheencryptionkeys)
       - [handlePartialData](#handlepartialdata)
+      - [liveRangeSafeTimeDelta](#liverangesafetimedelta)
   - [Runtime Properties](#runtime-properties)
     - [vhs.playlists.master](#vhsplaylistsmaster)
     - [vhs.playlists.media](#vhsplaylistsmedia)
@@ -318,6 +320,13 @@ cuesTrack.addEventListener('cuechange', function() {
 });
 ```
 
+##### parse708captions
+* Type: `boolean`
+* Default: `true`
+* can be used as an initialization option
+
+When set to `false`, 708 captions in the stream are not parsed and will not show up in text track lists or the captions menu.
+
 ##### overrideNative
 * Type: `boolean`
 * can be used as an initialization option
@@ -373,7 +382,8 @@ information is seen by the player.
 ##### useBandwidthFromLocalStorage
 * Type: `boolean`
 * can be used as an initialization option
- If true, `bandwidth` and `throughput` values are stored in and retrieved from local
+
+If true, `bandwidth` and `throughput` values are stored in and retrieved from local
 storage on startup (for initial rendition selection). This setting is `false` by default.
 
 ##### enableLowInitialPlaylist
@@ -388,17 +398,17 @@ This setting is `false` by default.
 * Type: `boolean`
 * can be used as an initialization option
 
+When `limitRenditionByPlayerDimensions` is set to true, rendition
+selection logic will take into account the player size and rendition
+resolutions when making a decision.
+This setting is `true` by default.
+
 ##### useDevicePixelRatio
 * Type: `boolean`
 * can be used as an initialization option.
 
 If true, this will take the device pixel ratio into account when doing rendition switching. This means that if you have a player with the width of `540px` in a high density display with a device pixel ratio of 2, a rendition of `1080p` will be allowed.
 This setting is `false` by default.
-
-When `limitRenditionByPlayerDimensions` is set to true, rendition
-selection logic will take into account the player size and rendition
-resolutions when making a decision.
-This setting is `true` by default.
 
 ##### smoothQualityChange
 * Type: `boolean`
@@ -459,6 +469,11 @@ This option defaults to `false`.
 * Type: `boolean`,
 * Default: `false`
 * Use partial appends in the transmuxer and segment loader
+
+##### liveRangeSafeTimeDelta
+* Type: `number`,
+* Default: [`SAFE_TIME_DELTA`](https://github.com/videojs/http-streaming/blob/e7cb63af010779108336eddb5c8fd138d6390e95/src/ranges.js#L17)
+* Allow to  re-define length (in seconds) of time delta when you compare current time and the end of the buffered range.
 
 ### Runtime Properties
 Runtime properties are attached to the tech object when HLS is in

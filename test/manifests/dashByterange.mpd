@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MPD xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="urn:mpeg:DASH:schema:MPD:2011"
+    xsi:schemaLocation="urn:mpeg:DASH:schema:MPD:2011"
+    profiles="urn:mpeg:dash:profile:isoff-main:2011"
+    type="static"
+    mediaPresentationDuration="PT0H9M56.46S"
+    minBufferTime="PT15.0S">
+<BaseURL>http://www-itec.uni-klu.ac.at/ftp/datasets/mmsys12/BigBuckBunny/bunny_15s/</BaseURL>
+<Period start="PT0S">
+    <AdaptationSet bitstreamSwitching="true">
+        <Representation id="3" codecs="avc1" mimeType="video/mp4" width="480" height="360" startWithSAP="1" bandwidth="176031">
+            <SegmentList duration="15">
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="868-347185" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="347186-664464" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="664465-1027685" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="1027686-1367784" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="1367785-1677710" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="1677711-2001517" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="2001518-2290173" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="2290174-2634238" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="2634239-2985994" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="2985995-3323725" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="3323726-3650264" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="3650265-3978004" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="3978005-4304349" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="4304350-4629741" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="4629742-4951671" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="4951672-5282910" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="5282911-5629211" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="5629212-5963914" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="5963915-6312646" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="6312647-6612703" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="6612704-6923786" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="6923787-7272547" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="7272548-7590097" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="7590098-7947017" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="7947018-8276044" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="8276045-8551338" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="8551339-8866104" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="8866105-9171839" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="9171840-9515898" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="9515899-9849503" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="9849504-10161047" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="10161048-10494887" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="10494888-10786011" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="10786012-11142570" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="11142571-11503643" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="11503644-11859498" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="11859499-12213313" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="12213314-12578158" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="12578159-12883294" />
+                <SegmentURL media="bunny_15s_200kbit/bunny_200kbit_dashNonSeg.mp4" mediaRange="12883295-13124492" />
+            </SegmentList>
+        </Representation>
+    </AdaptationSet>
+</Period>
+</MPD>

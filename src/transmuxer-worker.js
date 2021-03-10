@@ -94,6 +94,30 @@ const wireFullTransmuxerEvents = function(self, transmuxer) {
     });
   });
 
+  transmuxer.on('audioSegmentTimingInfo', function(timingInfo) {
+    // Note that all times for [audio/video]SegmentTimingInfo events are in video clock
+    const audioSegmentTimingInfo = {
+      start: {
+        decode: videoTsToSeconds(timingInfo.start.dts),
+        presentation: videoTsToSeconds(timingInfo.start.pts)
+      },
+      end: {
+        decode: videoTsToSeconds(timingInfo.end.dts),
+        presentation: videoTsToSeconds(timingInfo.end.pts)
+      },
+      baseMediaDecodeTime: videoTsToSeconds(timingInfo.baseMediaDecodeTime)
+    };
+
+    if (timingInfo.prependedContentDuration) {
+      audioSegmentTimingInfo.prependedContentDuration =
+        videoTsToSeconds(timingInfo.prependedContentDuration);
+    }
+    self.postMessage({
+      action: 'audioSegmentTimingInfo',
+      audioSegmentTimingInfo
+    });
+  });
+
   transmuxer.on('id3Frame', function(id3Frame) {
     self.postMessage({
       action: 'id3Frame',
@@ -411,23 +435,19 @@ class MessageHandlers {
  *
  * @param {Object} self the scope for the web worker
  */
-const TransmuxerWorker = function(self) {
-  self.onmessage = function(event) {
-    if (event.data.action === 'init' && event.data.options) {
-      this.messageHandlers = new MessageHandlers(self, event.data.options);
-      return;
-    }
+self.onmessage = function(event) {
+  if (event.data.action === 'init' && event.data.options) {
+    this.messageHandlers = new MessageHandlers(self, event.data.options);
+    return;
+  }
 
-    if (!this.messageHandlers) {
-      this.messageHandlers = new MessageHandlers(self);
-    }
+  if (!this.messageHandlers) {
+    this.messageHandlers = new MessageHandlers(self);
+  }
 
-    if (event.data && event.data.action && event.data.action !== 'init') {
-      if (this.messageHandlers[event.data.action]) {
-        this.messageHandlers[event.data.action](event.data);
-      }
+  if (event.data && event.data.action && event.data.action !== 'init') {
+    if (this.messageHandlers[event.data.action]) {
+      this.messageHandlers[event.data.action](event.data);
     }
-  };
+  }
 };
-
-export default new TransmuxerWorker(self);

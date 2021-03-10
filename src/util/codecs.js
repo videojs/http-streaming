@@ -7,7 +7,10 @@ import {
   translateLegacyCodec,
   parseCodecs,
   codecsFromDefault
-} from '@videojs/vhs-utils/dist/codecs.js';
+} from '@videojs/vhs-utils/es/codecs.js';
+import logger from './logger.js';
+
+const logFn = logger('CodecUtils');
 
 /**
  * Returns a set of codec strings parsed from the playlist or the default
@@ -55,6 +58,41 @@ export const isMuxed = (master, media) => {
   return false;
 };
 
+export const unwrapCodecList = function(codecList) {
+  const codecs = {};
+
+  codecList.forEach(({mediaType, type, details}) => {
+    codecs[mediaType] = codecs[mediaType] || [];
+    codecs[mediaType].push(translateLegacyCodec(`${type}${details}`));
+  });
+
+  Object.keys(codecs).forEach(function(mediaType) {
+    if (codecs[mediaType].length > 1) {
+      logFn(`multiple ${mediaType} codecs found as attributes: ${codecs[mediaType].join(', ')}. Setting playlist codecs to null so that we wait for mux.js to probe segments for real codecs.`);
+      codecs[mediaType] = null;
+      return;
+    }
+
+    codecs[mediaType] = codecs[mediaType][0];
+  });
+
+  return codecs;
+};
+
+export const codecCount = function(codecObj) {
+  let count = 0;
+
+  if (codecObj.audio) {
+    count++;
+  }
+
+  if (codecObj.video) {
+    count++;
+  }
+
+  return count;
+};
+
 /**
  * Calculates the codec strings for a working configuration of
  * SourceBuffers to play variant streams in a master playlist. If
@@ -69,7 +107,7 @@ export const isMuxed = (master, media) => {
  */
 export const codecsForPlaylist = function(master, media) {
   const mediaAttributes = media.attributes || {};
-  const codecInfo = getCodecs(media) || {};
+  const codecInfo = unwrapCodecList(getCodecs(media) || []);
 
   // HLS with multiple-audio tracks must always get an audio codec.
   // Put another way, there is no way to have a video-only multiple-audio HLS!
@@ -78,25 +116,13 @@ export const codecsForPlaylist = function(master, media) {
       // It is possible for codecs to be specified on the audio media group playlist but
       // not on the rendition playlist. This is mostly the case for DASH, where audio and
       // video are always separate (and separately specified).
-      const defaultCodecs = codecsFromDefault(master, mediaAttributes.AUDIO);
+      const defaultCodecs = unwrapCodecList(codecsFromDefault(master, mediaAttributes.AUDIO) || []);
 
-      if (defaultCodecs) {
+      if (defaultCodecs.audio) {
         codecInfo.audio = defaultCodecs.audio;
       }
-
     }
   }
 
-  const codecs = {};
-
-  if (codecInfo.video) {
-    codecs.video = translateLegacyCodec(`${codecInfo.video.type}${codecInfo.video.details}`);
-  }
-
-  if (codecInfo.audio) {
-    codecs.audio = translateLegacyCodec(`${codecInfo.audio.type}${codecInfo.audio.details}`);
-  }
-
-  return codecs;
+  return codecInfo;
 };
-

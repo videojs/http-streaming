@@ -32,6 +32,9 @@
     input[type=url], select {
       min-width: 600px;
     }
+    #preload {
+      min-width: auto;
+    }
     h3 {
       margin-bottom: 5px;
     }
@@ -52,6 +55,10 @@
     <label>
       <input id=minified type="checkbox">
       Minified VHS (reloads player)
+    </label>
+    <label>
+      <input id=sync-workers type="checkbox">
+      Synchronous Web Workers (reloads player)
     </label>
     <label>
       <input id=liveui type="checkbox">
@@ -77,6 +84,21 @@
       <input id=buffer-water type="checkbox">
       [EXPERIMENTAL] Use Buffer Level for ABR (reloads player)
     </label>
+    <label>
+      <input id=override-native type="checkbox" checked>
+      Override Native (reloads player)
+    </label>
+    <label>
+      <input id=mirror-source type="checkbox" checked>
+      Mirror sources from player.src (reloads player, uses EXPERIMENTAL sourceset option)
+    </label>
+    <label>
+      Preload (reloads player)
+      <select id=preload>
+        <option selected>auto</option>
+        <option>none</option>
+        <option>metadata</option>
+      </select>
   </div>
 
   <h3>Load a URL</h3>

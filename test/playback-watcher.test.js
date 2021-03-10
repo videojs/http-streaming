@@ -13,6 +13,7 @@ import {
 } from '../src/playback-watcher';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
+import { SAFE_TIME_DELTA } from '../src/ranges';
 
 let monitorCurrentTime_;
 
@@ -39,6 +40,99 @@ QUnit.module('PlaybackWatcher', {
     this.mse.restore();
     this.player.dispose();
   }
+});
+
+QUnit.test('skips over gap at beginning of stream if played before content is buffered', function(assert) {
+  let vhsGapSkipEvents = 0;
+  let hlsGapSkipEvents = 0;
+
+  this.player.tech_.on('usage', (event) => {
+    if (event.name === 'vhs-gap-skip') {
+      vhsGapSkipEvents++;
+    }
+    if (event.name === 'hls-gap-skip') {
+      hlsGapSkipEvents++;
+    }
+  });
+
+  // set an arbitrary source
+  this.player.src({
+    src: 'master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  // start playback normally
+  this.player.tech_.triggerReady();
+  this.clock.tick(1);
+  standardXHRResponse(this.requests.shift());
+  openMediaSource(this.player, this.clock);
+  this.player.tech_.trigger('play');
+  this.player.tech_.trigger('waiting');
+  // create a buffer with a gap of 2 seconds at beginning of stream
+  this.player.tech_.buffered = () => videojs.createTimeRanges([[2, 10]]);
+  // Playback watcher loop runs on a 250ms clock and needs run 6 consecutive stall checks before skipping the gap
+  this.clock.tick(250 * 6);
+  // Need to wait for the duration of the gap
+  this.clock.tick(2000);
+
+  assert.equal(vhsGapSkipEvents, 1, 'there is one skipped gap');
+  assert.equal(hlsGapSkipEvents, 1, 'there is one skipped gap');
+
+  // check that player jumped the gap
+  assert.equal(
+    Math.round(this.player.currentTime()),
+    2,
+    'Player seeked over gap after timer'
+  );
+});
+
+QUnit.test('multiple play events do not cause the gap-skipping logic to be called sooner than expected', function(assert) {
+  let vhsGapSkipEvents = 0;
+  let hlsGapSkipEvents = 0;
+
+  this.player.tech_.on('usage', (event) => {
+    if (event.name === 'vhs-gap-skip') {
+      vhsGapSkipEvents++;
+    }
+    if (event.name === 'hls-gap-skip') {
+      hlsGapSkipEvents++;
+    }
+  });
+
+  // set an arbitrary source
+  this.player.src({
+    src: 'master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  // start playback normally
+  this.player.tech_.triggerReady();
+  this.clock.tick(1);
+  standardXHRResponse(this.requests.shift());
+  openMediaSource(this.player, this.clock);
+  this.player.tech_.trigger('play');
+  this.player.tech_.trigger('waiting');
+  // create a buffer with a gap of 2 seconds at beginning of stream
+  this.player.tech_.buffered = () => videojs.createTimeRanges([[2, 10]]);
+  // Playback watcher loop runs on a 250ms clock and needs run 6 consecutive stall checks before skipping the gap
+  // Start with three consecutive playback checks
+  this.clock.tick(250 * 3);
+  // and then simulate the playback monitor being called 'manually' by a new play event
+  this.player.tech_.trigger('play');
+  // Simulate remaining time
+  this.clock.tick(250 * 2);
+  // Need to wait for the duration of the gap
+  this.clock.tick(2000);
+
+  assert.equal(vhsGapSkipEvents, 0, 'there is no skipped gap');
+  assert.equal(hlsGapSkipEvents, 0, 'there is no skipped gap');
+
+  // check that player did not skip the gap
+  assert.equal(
+    Math.round(this.player.currentTime()),
+    0,
+    'Player did not seek over gap'
+  );
 });
 
 QUnit.test('skips over gap in firefox with waiting event', function(assert) {
@@ -1110,6 +1204,8 @@ QUnit.module('PlaybackWatcher isolated functions', {
       tech: {
         on: () => {},
         off: () => {},
+        one: () => {},
+        paused: () => false,
         // needed to construct a playback watcher
         options_: {
           playerId: 'mock-player-id'
@@ -1184,6 +1280,8 @@ QUnit.test('skips gap from muxed video underflow', function(assert) {
 });
 
 QUnit.test('detects live window falloff', function(assert) {
+  this.playbackWatcher.liveRangeSafeTimeDelta = SAFE_TIME_DELTA;
+
   const beforeSeekableWindow_ =
     this.playbackWatcher.beforeSeekableWindow_.bind(this.playbackWatcher);
 
@@ -1219,6 +1317,23 @@ QUnit.test('detects live window falloff', function(assert) {
   assert.ok(
     beforeSeekableWindow_(videojs.createTimeRanges([[11, 20]]), 0),
     'true if current time is 0 and earlier than seekable range'
+  );
+});
+
+QUnit.test('respects liveRangeSafeTimeDelta flag', function(assert) {
+  this.playbackWatcher.liveRangeSafeTimeDelta = 1;
+
+  const beforeSeekableWindow_ =
+    this.playbackWatcher.beforeSeekableWindow_.bind(this.playbackWatcher);
+
+  assert.ok(
+    beforeSeekableWindow_(videojs.createTimeRanges([[12, 20]]), 10),
+    'true if playlist live and current time before seekable'
+  );
+
+  assert.ok(
+    !beforeSeekableWindow_(videojs.createTimeRanges([]), 10),
+    'false if no seekable range'
   );
 });
 

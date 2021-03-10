@@ -75,6 +75,7 @@ export default class PlaybackWatcher {
     this.tech_ = options.tech;
     this.seekable = options.seekable;
     this.allowSeeksWithinUnsafeLiveWindow = options.allowSeeksWithinUnsafeLiveWindow;
+    this.liveRangeSafeTimeDelta = options.liveRangeSafeTimeDelta;
     this.media = options.media;
 
     this.consecutiveUpdates = 0;
@@ -85,6 +86,7 @@ export default class PlaybackWatcher {
 
     this.logger_('initialize');
 
+    const playHandler = () => this.monitorCurrentTime_();
     const canPlayHandler = () => this.monitorCurrentTime_();
     const waitingHandler = () => this.techWaiting_();
     const cancelTimerHandler = () => this.cancelTimer_();
@@ -117,6 +119,12 @@ export default class PlaybackWatcher {
     this.tech_.on('waiting', waitingHandler);
     this.tech_.on(timerCancelEvents, cancelTimerHandler);
     this.tech_.on('canplay', canPlayHandler);
+    // Catch an edge case that occurs when there is a gap at the start of a stream and no content has buffered by the time the first `waiting` event is emitted.
+    // In this case, a `waiting` event is followed by a `play` event. On first play we need to check that playback has not stalled due to a gap, and skip the gap
+    // if it has
+    if (this.tech_.paused()) {
+      this.tech_.one('play', playHandler);
+    }
 
     // Define the dispose function to clean up our events
     this.dispose = () => {
@@ -125,6 +133,7 @@ export default class PlaybackWatcher {
       this.tech_.off('waiting', waitingHandler);
       this.tech_.off(timerCancelEvents, cancelTimerHandler);
       this.tech_.off('canplay', canPlayHandler);
+      this.tech_.off('play', playHandler);
 
       loaderTypes.forEach((type) => {
         mpc[`${type}SegmentLoader_`].off('appendsdone', loaderChecks[type].updateend);
@@ -502,7 +511,7 @@ export default class PlaybackWatcher {
     if (seekable.length &&
         // can't fall before 0 and 0 seekable start identifies VOD stream
         seekable.start(0) > 0 &&
-        currentTime < seekable.start(0) - Ranges.SAFE_TIME_DELTA) {
+        currentTime < seekable.start(0) - this.liveRangeSafeTimeDelta) {
       return true;
     }
 
