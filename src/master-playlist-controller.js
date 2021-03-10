@@ -472,6 +472,14 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.masterPlaylistLoader_.on('playlistunchanged', () => {
       const updatedPlaylist = this.masterPlaylistLoader_.media();
+
+      // ignore unchanged playlists that have already been
+      // excluded for not-changing. We likely just have a really slowly updating
+      // playlist.
+      if (updatedPlaylist.lastExcludeReason_ === 'playlist-unchanged') {
+        return;
+      }
+
       const playlistOutdated = this.stuckAtPlaylistEnd_(updatedPlaylist);
 
       if (playlistOutdated) {
@@ -480,7 +488,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
         // one is updating (and give the player a chance to re-adjust to the
         // safe live point).
         this.blacklistCurrentPlaylist({
-          message: 'Playlist no longer updating.'
+          message: 'Playlist no longer updating.',
+          reason: 'playlist-unchanged'
         });
         // useful for monitoring QoS
         this.tech_.trigger('playliststuck');
@@ -1066,6 +1075,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     // Blacklist this playlist
     currentPlaylist.excludeUntil = Date.now() + (blacklistDuration * 1000);
+    if (error.reason) {
+      currentPlaylist.lastExcludeReason_ = error.reason;
+    }
     this.tech_.trigger('blacklistplaylist');
     this.tech_.trigger({type: 'usage', name: 'vhs-rendition-blacklisted'});
     this.tech_.trigger({type: 'usage', name: 'hls-rendition-blacklisted'});
