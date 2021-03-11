@@ -24,8 +24,8 @@ import shallowEqual from './util/shallow-equal.js';
 import { QUOTA_EXCEEDED_ERR } from './error-codes';
 import { timeRangesToArray } from './ranges';
 
-// In the event of a quota exceeded buffer, keep at least one second of back buffer. This
-// number was arbitrarily chosen and can be updated in the future, but seemed reasonable
+// In the event of a quota exceeded error, keep at least one second of back buffer. This
+// number was arbitrarily chosen and may be updated in the future, but seemed reasonable
 // as a start to prevent any potential issues with removing content too close to the
 // playhead.
 const MIN_BACK_BUFFER = 1;
@@ -516,6 +516,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       id3: [],
       caption: []
     };
+    this.waitingOnRemove_ = false;
     this.quotaExceededErrorRetryTimeout_ = null;
 
     // Fragmented mp4 playback
@@ -700,7 +701,9 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.metadataQueue_.id3 = [];
     this.metadataQueue_.caption = [];
     this.timelineChangeController_.clearPendingTimelineChange(this.loaderType_);
+    this.waitingOnRemove_ = false;
     window.clearTimeout(this.quotaExceededErrorRetryTimeout_);
+    this.quotaExceededErrorRetryTimeout_ = null;
   }
 
   checkForAbort_(requestId) {
@@ -1852,9 +1855,9 @@ export default class SegmentLoader extends videojs.EventTarget {
       return false;
     }
 
-    // If content needs to be removed to resolve a previous append, then no additional
-    // content should be appended until the prior append is resolved.
-    if (this.quotaExceededErrorRetryTimeout_) {
+    // If content needs to be removed or the loader is waiting on an append reattempt,
+    // then no additional content should be appended until the prior append is resolved.
+    if (this.waitingOnRemove_ || this.quotaExceededErrorRetryTimeout_) {
       return false;
     }
 
@@ -2084,8 +2087,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       videoBuffered.end(videoBuffered.length - 1) : 0;
 
     if (
-      (audioBufferEnd - audioBufferStart) < MIN_BACK_BUFFER &&
-      (videoBufferEnd - videoBufferStart) < MIN_BACK_BUFFER
+      (audioBufferEnd - audioBufferStart) <= MIN_BACK_BUFFER &&
+      (videoBufferEnd - videoBufferStart) <= MIN_BACK_BUFFER
     ) {
       // Can't remove enough buffer to make room for new segment (or the browser doesn't
       // allow for appends of segments this size). In the future, it may be possible to
@@ -2099,7 +2102,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.error({
         message: 'Quota exceeded error with append of a single segment of content',
         // To prevent any possible repeated downloads for content we can't actually
-        // append, blacklist forever as a safety precaution.
+        // append, blacklist forever.
         blacklistDuration: Infinity
       });
       this.trigger('error');
@@ -2109,7 +2112,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     // To try to resolve the quota exceeded error, clear back buffer and retry. This means
     // that the segment-loader should block on future events until this one is handled, so
     // that it doesn't keep moving onto further segments. Adding the call to the call
-    // queue will prevent further appends until waitingOnRemove_ is cleared.
+    // queue will prevent further appends until waitingOnRemove_ and
+    // quotaExceededErrorRetryTimeout_ are cleared.
     //
     // Note that this will only block the current loader. In the case of demuxed content,
     // the other load may keep filling as fast as possible. In practice, this should be
@@ -2130,6 +2134,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.logger_(`On QUOTA_EXCEEDED_ERR, removing audio from 0 to ${timeToRemoveUntil}`);
       this.sourceUpdater_.removeAudio(0, timeToRemoveUntil, () => {
         this.logger_(`On QUOTA_EXCEEDED_ERR, retrying append in ${MIN_BACK_BUFFER}s`);
+        this.waitingOnRemove_ = false;
         // wait the length of time alotted in the back buffer to prevent wasted
         // attempts (since we can't clear less than the minimum)
         this.quotaExceededErrorRetryTimeout_ = window.setTimeout(() => {

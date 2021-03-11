@@ -4136,7 +4136,7 @@ QUnit.module('SegmentLoader', function(hooks) {
       });
     });
 
-    QUnit.test('QUOTA_EXCEEDED_ERR no error triggered', function(assert) {
+    QUnit.test('QUOTA_EXCEEDED_ERR no loader error triggered', function(assert) {
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
         const playlist = playlistWithDuration(40);
 
@@ -4208,10 +4208,12 @@ QUnit.module('SegmentLoader', function(hooks) {
         loader.sourceUpdater_.videoBuffered = () => videojs.createTimeRanges([0, 10]);
 
         loader.sourceUpdater_.removeVideo = (start, end, done) => {
+          assert.ok(loader.waitingOnRemove_, 'waiting on buffer removal to complete');
           removeVideoCalls.push({ start, end });
           done();
         };
         loader.sourceUpdater_.removeAudio = (start, end, done) => {
+          assert.ok(loader.waitingOnRemove_, 'waiting on buffer removal to complete');
           removeAudioCalls.push({ start, end });
           done();
         };
@@ -4220,6 +4222,10 @@ QUnit.module('SegmentLoader', function(hooks) {
         loader.sourceUpdater_.appendBuffer = ({type, bytes}, callback) => {
           assert.equal(removeVideoCalls.length, 0, 'no calls to remove video');
           assert.equal(removeAudioCalls.length, 0, 'no calls to remove audio');
+          assert.notOk(
+            loader.waitingOnRemove_,
+            'loader is not waiting on buffer removal'
+          );
           assert.notOk(
             loader.quotaExceededErrorRetryTimeout_,
             'loader is not waiting to retry'
@@ -4237,6 +4243,10 @@ QUnit.module('SegmentLoader', function(hooks) {
             removeAudioCalls,
             [{ start: 0, end: 6 }],
             'removed audio to one second behind playhead'
+          );
+          assert.notOk(
+            loader.waitingOnRemove_,
+            'loader is not waiting on buffer removal'
           );
           assert.ok(
             loader.quotaExceededErrorRetryTimeout_,
@@ -4266,6 +4276,10 @@ QUnit.module('SegmentLoader', function(hooks) {
       }).then(() => {
         // at this point the append should've successfully completed, but it's good to
         // once again check that the old state that was used was cleared out
+        assert.notOk(
+          loader.waitingOnRemove_,
+          'loader is not waiting on buffer removal'
+        );
         assert.notOk(
           loader.quotaExceededErrorRetryTimeout_,
           'loader is not waiting to retry'
