@@ -7,7 +7,6 @@ module.exports = function(config) {
   // for options
   const options = {
     coverage: CI_TEST_TYPE === 'coverage' ? true : false,
-
     preferHeadless: false,
     browsers(aboutToRun) {
       return aboutToRun.filter(function(launcherName) {
@@ -29,6 +28,11 @@ module.exports = function(config) {
     browserstackLaunchers(defaults) {
       delete defaults.bsSafariMojave;
       delete defaults.bsSafariElCapitan;
+
+      // do not run on browserstack for coverage
+      if (CI_TEST_TYPE === 'coverage') {
+        defaults = {};
+      }
 
       return defaults;
     },
