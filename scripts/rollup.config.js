@@ -12,6 +12,13 @@ let syncWorker;
 const options = {
   input: 'src/videojs-http-streaming.js',
   distName: 'videojs-http-streaming',
+  checkWatch: false,
+  excludeCoverage(defaults) {
+    defaults.push(/^rollup-plugin-worker-factory/);
+    defaults.push(/^create-test-data!/);
+
+    return defaults;
+  },
   globals(defaults) {
     defaults.browser.xmldom = 'window';
     defaults.test.xmldom = 'window';
@@ -34,7 +41,11 @@ const options = {
     defaults.browser.unshift('worker');
     // change this to `syncWorker` for syncronous web worker
     // during unit tests
-    defaults.test.unshift('worker');
+    if (CI_TEST_TYPE === 'coverage') {
+      defaults.test.unshift('syncWorker');
+    } else {
+      defaults.test.unshift('worker');
+    }
     defaults.test.unshift('createTestData');
 
     if (CI_TEST_TYPE === 'playback-min') {
@@ -42,7 +53,7 @@ const options = {
     }
 
     // istanbul is only in the list for regular builds and not watch
-    if (defaults.test.indexOf('istanbul') !== -1) {
+    if (CI_TEST_TYPE !== 'coverage' && defaults.test.indexOf('istanbul') !== -1) {
       defaults.test.splice(defaults.test.indexOf('istanbul'), 1);
     }
     defaults.module.unshift('replace');

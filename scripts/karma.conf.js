@@ -1,11 +1,13 @@
 const generate = require('videojs-generate-karma-config');
+const CI_TEST_TYPE = process.env.CI_TEST_TYPE || '';
 
 module.exports = function(config) {
 
   // see https://github.com/videojs/videojs-generate-karma-config
   // for options
   const options = {
-    coverage: false,
+    coverage: CI_TEST_TYPE === 'coverage' ? true : false,
+
     preferHeadless: false,
     browsers(aboutToRun) {
       return aboutToRun.filter(function(launcherName) {
