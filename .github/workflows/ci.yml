@@ -77,3 +77,11 @@ jobs:
       uses: GabrielBB/xvfb-action@v1
       with:
         run: npm run test
+
+    - name: coverage
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{secrets.CODECOV_TOKEN}}
+        files: './test/dist/coverage/coverage-final.json'
+        fail_ci_if_error: true
+      if: ${{startsWith(env.CI_TEST_TYPE, 'coverage')}}

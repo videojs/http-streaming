@@ -103,7 +103,7 @@ const options = {
 
 if (CI_TEST_TYPE === 'playback' || CI_TEST_TYPE === 'playback-min') {
   options.testInput = 'test/playback.test.js';
-} else if (CI_TEST_TYPE === 'unit') {
+} else if (CI_TEST_TYPE === 'unit' || CI_TEST_TYPE === 'coverage') {
   options.testInput = {include: ['test/**/*.test.js'], exclude: ['test/playback.test.js']};
 }
 
