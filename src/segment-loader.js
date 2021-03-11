@@ -21,6 +21,14 @@ import {
 } from './util/text-tracks';
 import { gopsSafeToAlignWith, removeGopBuffer, updateGopBuffer } from './util/gops';
 import shallowEqual from './util/shallow-equal.js';
+import { QUOTA_EXCEEDED_ERR } from './error-codes';
+import { timeRangesToArray } from './ranges';
+
+// In the event of a quota exceeded buffer, keep at least one second of back buffer. This
+// number was arbitrarily chosen and can be updated in the future, but seemed reasonable
+// as a start to prevent any potential issues with removing content too close to the
+// playhead.
+const MIN_BACK_BUFFER = 1;
 
 // in ms
 const CHECK_BUFFER_DELAY = 500;
@@ -508,6 +516,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       id3: [],
       caption: []
     };
+    this.quotaExceededErrorRetryTimeout_ = null;
 
     // Fragmented mp4 playback
     this.activeInitSegmentId_ = null;
@@ -691,6 +700,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.metadataQueue_.id3 = [];
     this.metadataQueue_.caption = [];
     this.timelineChangeController_.clearPendingTimelineChange(this.loaderType_);
+    window.clearTimeout(this.quotaExceededErrorRetryTimeout_);
   }
 
   checkForAbort_(requestId) {
@@ -1842,6 +1852,12 @@ export default class SegmentLoader extends videojs.EventTarget {
       return false;
     }
 
+    // If content needs to be removed to resolve a previous append, then no additional
+    // content should be appended until the prior append is resolved.
+    if (this.quotaExceededErrorRetryTimeout_) {
+      return false;
+    }
+
     const segmentInfo = this.pendingSegment_;
 
     // no segment to append any data for or
@@ -2044,34 +2060,136 @@ export default class SegmentLoader extends videojs.EventTarget {
     return null;
   }
 
-  appendToSourceBuffer_({ segmentInfo, type, initSegment, data }) {
-    const segments = [data];
-    let byteLength = data.byteLength;
+  handleQuotaExceededError_({segmentInfo, type, bytes}, error) {
+    const audioBuffered = this.sourceUpdater_.audioBuffered();
+    const videoBuffered = this.sourceUpdater_.videoBuffered();
 
-    if (initSegment) {
-      // if the media initialization segment is changing, append it before the content
-      // segment
-      segments.unshift(initSegment);
-      byteLength += initSegment.byteLength;
+    // For now we're ignoring any notion of gaps in the buffer, but they, in theory,
+    // should be cleared out during the buffer removals. However, log in case it helps
+    // debug.
+    if (audioBuffered.length > 1) {
+      this.logger_('On QUOTA_EXCEEDED_ERR, found gaps in the audio buffer: ' +
+        timeRangesToArray(audioBuffered).join(', '));
+    }
+    if (videoBuffered.length > 1) {
+      this.logger_('On QUOTA_EXCEEDED_ERR, found gaps in the video buffer: ' +
+        timeRangesToArray(videoBuffered).join(', '));
     }
 
-    // Technically we should be OK appending the init segment separately, however, we
-    // haven't yet tested that, and prepending is how we have always done things.
-    const bytes = concatSegments({
-      bytes: byteLength,
-      segments
-    });
+    const audioBufferStart = audioBuffered.length ? audioBuffered.start(0) : 0;
+    const audioBufferEnd = audioBuffered.length ?
+      audioBuffered.end(audioBuffered.length - 1) : 0;
+    const videoBufferStart = videoBuffered.length ? videoBuffered.start(0) : 0;
+    const videoBufferEnd = videoBuffered.length ?
+      videoBuffered.end(videoBuffered.length - 1) : 0;
 
-    this.sourceUpdater_.appendBuffer({segmentInfo, type, bytes}, (error) => {
-      if (error) {
-        this.error(`${type} append of ${bytes.length}b failed for segment #${segmentInfo.mediaIndex} in playlist ${segmentInfo.playlist.id}`);
-        // If an append errors, we can't recover.
-        // (see https://w3c.github.io/media-source/#sourcebuffer-append-error).
-        // Trigger a special error so that it can be handled separately from normal,
-        // recoverable errors.
-        this.trigger('appenderror');
-      }
+    if (
+      (audioBufferEnd - audioBufferStart) < MIN_BACK_BUFFER &&
+      (videoBufferEnd - videoBufferStart) < MIN_BACK_BUFFER
+    ) {
+      // Can't remove enough buffer to make room for new segment (or the browser doesn't
+      // allow for appends of segments this size). In the future, it may be possible to
+      // split up the segment and append in pieces, but for now, error out this playlist
+      // in an attempt to switch to a more manageable rendition.
+      this.logger_('On QUOTA_EXCEEDED_ERR, single segment too large to append to ' +
+        'buffer, triggering an error. ' +
+        `Appended byte length: ${bytes.byteLength}, ` +
+        `audio buffer: ${timeRangesToArray(audioBuffered).join(', ')}, ` +
+        `video buffer: ${timeRangesToArray(videoBuffered).join(', ')}, `);
+      this.error({
+        message: 'Quota exceeded error with append of a single segment of content',
+        // To prevent any possible repeated downloads for content we can't actually
+        // append, blacklist forever as a safety precaution.
+        blacklistDuration: Infinity
+      });
+      this.trigger('error');
+      return;
+    }
+
+    // To try to resolve the quota exceeded error, clear back buffer and retry. This means
+    // that the segment-loader should block on future events until this one is handled, so
+    // that it doesn't keep moving onto further segments. Adding the call to the call
+    // queue will prevent further appends until waitingOnRemove_ is cleared.
+    //
+    // Note that this will only block the current loader. In the case of demuxed content,
+    // the other load may keep filling as fast as possible. In practice, this should be
+    // OK, as it is a rare case when either audio has a high enough bitrate to fill up a
+    // source buffer, or video fills without enough room for audio to append (and without
+    // the availability of clearing out seconds of back buffer to make room for audio).
+    // But it might still be good to handle this case in the future as a TODO.
+    this.waitingOnRemove_ = true;
+    this.callQueue_.push(this.appendToSourceBuffer_.bind(this, {segmentInfo, type, bytes}));
+
+    const currentTime = this.currentTime_();
+    // Try to remove as much audio and video as possible to make room for new content
+    // before retrying.
+    const timeToRemoveUntil = currentTime - MIN_BACK_BUFFER;
+
+    this.logger_(`On QUOTA_EXCEEDED_ERR, removing video from 0 to ${timeToRemoveUntil}`);
+    this.sourceUpdater_.removeVideo(0, timeToRemoveUntil, () => {
+      this.logger_(`On QUOTA_EXCEEDED_ERR, removing audio from 0 to ${timeToRemoveUntil}`);
+      this.sourceUpdater_.removeAudio(0, timeToRemoveUntil, () => {
+        this.logger_(`On QUOTA_EXCEEDED_ERR, retrying append in ${MIN_BACK_BUFFER}s`);
+        // wait the length of time alotted in the back buffer to prevent wasted
+        // attempts (since we can't clear less than the minimum)
+        this.quotaExceededErrorRetryTimeout_ = window.setTimeout(() => {
+          this.logger_('On QUOTA_EXCEEDED_ERR, re-processing call queue');
+          this.quotaExceededErrorRetryTimeout_ = null;
+          this.processCallQueue_();
+        }, MIN_BACK_BUFFER * 1000);
+      });
     });
+  }
+
+  handleAppendError_({segmentInfo, type, bytes}, error) {
+    // if there's no error, nothing to do
+    if (!error) {
+      return;
+    }
+
+    if (error.code === QUOTA_EXCEEDED_ERR) {
+      this.handleQuotaExceededError_({segmentInfo, type, bytes});
+      // A quota exceeded error should be recoverable with a future re-append, so no need
+      // to trigger an append error.
+      return;
+    }
+
+    this.error(`${type} append of ${bytes.length}b failed for segment ` +
+      `#${segmentInfo.mediaIndex} in playlist ${segmentInfo.playlist.id}`);
+
+    // If an append errors, we often can't recover.
+    // (see https://w3c.github.io/media-source/#sourcebuffer-append-error).
+    //
+    // Trigger a special error so that it can be handled separately from normal,
+    // recoverable errors.
+    this.trigger('appenderror');
+  }
+
+  appendToSourceBuffer_({ segmentInfo, type, initSegment, data, bytes }) {
+    // If this is a re-append, bytes were already created and don't need to be recreated
+    if (!bytes) {
+      const segments = [data];
+      let byteLength = data.byteLength;
+
+      if (initSegment) {
+        // if the media initialization segment is changing, append it before the content
+        // segment
+        segments.unshift(initSegment);
+        byteLength += initSegment.byteLength;
+      }
+
+      // Technically we should be OK appending the init segment separately, however, we
+      // haven't yet tested that, and prepending is how we have always done things.
+      bytes = concatSegments({
+        bytes: byteLength,
+        segments
+      });
+    }
+
+    this.sourceUpdater_.appendBuffer(
+      {segmentInfo, type, bytes},
+      this.handleAppendError_.bind(this, {segmentInfo, type, bytes})
+    );
   }
 
   handleSegmentTimingInfo_(type, requestId, segmentTimingInfo) {
