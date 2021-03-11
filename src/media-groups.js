@@ -71,6 +71,7 @@ export const startLoaders = (playlistLoader, mediaType) => {
  */
 export const onGroupChanged = (type, settings) => () => {
   const {
+    sourceType,
     segmentLoaders: {
       [type]: segmentLoader,
       main: mainSegmentLoader
@@ -80,6 +81,11 @@ export const onGroupChanged = (type, settings) => () => {
   const activeTrack = mediaType.activeTrack();
   const activeGroup = mediaType.activeGroup(activeTrack);
   const previousActiveLoader = mediaType.activePlaylistLoader;
+
+  if (sourceType === 'dash') {
+    // only one playlist loader for dash. do not stop.
+    return;
+  }
 
   stopLoaders(segmentLoader, mediaType);
 
