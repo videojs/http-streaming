@@ -72,7 +72,7 @@ QUnit.test('skips over gap at beginning of stream if played before content is bu
   this.player.tech_.trigger('waiting');
   // create a buffer with a gap of 2 seconds at beginning of stream
   this.player.tech_.buffered = () => videojs.createTimeRanges([[2, 10]]);
-  // Playback watcher loop runs on a 250ms clock and needs run 6 consecutive stall checks before skipping the gap
+  // Playback watcher loop runs on a 250ms clock and needs 6 consecutive stall checks before skipping the gap
   this.clock.tick(250 * 6);
   // Need to wait for the duration of the gap
   this.clock.tick(2000);
@@ -113,7 +113,7 @@ QUnit.test('multiple play events do not cause the gap-skipping logic to be calle
   openMediaSource(this.player, this.clock);
   // create a buffer with a gap of 2 seconds at beginning of stream
   this.player.tech_.buffered = () => videojs.createTimeRanges([[2, 10]]);
-  // Playback watcher loop runs on a 250ms clock and needs run 6 consecutive stall checks before skipping the gap
+  // Playback watcher loop runs on a 250ms clock and needs 6 consecutive stall checks before skipping the gap
   // Start with 5 consecutive playback checks
   this.clock.tick(250 * 5);
   // and then simulate the playback monitor being called 'manually' by a new play event
@@ -185,7 +185,7 @@ QUnit.test('changing sources does not break ability to skip gap at beginning of 
   this.player.tech_.trigger('waiting');
   // create a buffer with a gap of 2 seconds at beginning of stream
   this.player.tech_.buffered = () => videojs.createTimeRanges([[2, 10]]);
-  // Playback watcher loop runs on a 250ms clock and needs run 6 consecutive stall checks before skipping the gap
+  // Playback watcher loop runs on a 250ms clock and needs 6 consecutive stall checks before skipping the gap
   this.clock.tick(250 * 6);
   // Need to wait for the duration of the gap
   this.clock.tick(2000);
@@ -212,7 +212,7 @@ QUnit.test('changing sources does not break ability to skip gap at beginning of 
   openMediaSource(this.player, this.clock);
   this.clock.tick(1);
 
-  // Playback watcher loop runs on a 250ms clock and needs run 6 consecutive stall checks before skipping the gap
+  // Playback watcher loop runs on a 250ms clock and needs 6 consecutive stall checks before skipping the gap
   this.clock.tick(250 * 6);
   // Need to wait for the duration of the gap
   this.clock.tick(2000);
