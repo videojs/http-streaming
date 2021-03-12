@@ -265,7 +265,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
         loader.state = 'WAITING';
         loadedSegment = true;
       };
-      loader.checkBuffer_ = () => {
+      loader.chooseNextRequest_ = () => {
         return { mediaIndex: 2, timeline: 2, segment: { } };
       };
 

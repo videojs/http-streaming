@@ -173,26 +173,8 @@ export default class VTTSegmentLoader extends SegmentLoader {
    * @private
    */
   fillBuffer_() {
-    if (!this.syncPoint_) {
-      this.syncPoint_ = this.syncController_.getSyncPoint(
-        this.playlist_,
-        this.duration_(),
-        this.currentTimeline_,
-        this.currentTime_()
-      );
-    }
-
     // see if we need to begin loading immediately
-    let segmentInfo = this.checkBuffer_(
-      this.buffered_(),
-      this.playlist_,
-      this.mediaIndex,
-      this.hasPlayed_(),
-      this.currentTime_(),
-      this.syncPoint_
-    );
-
-    segmentInfo = this.skipEmptySegments_(segmentInfo);
+    const segmentInfo = this.chooseNextRequest_();
 
     if (!segmentInfo) {
       return;
@@ -217,6 +199,16 @@ export default class VTTSegmentLoader extends SegmentLoader {
     this.loadSegment_(segmentInfo);
   }
 
+  generateSegmentInfo_(options) {
+    options.noTimestampOffset = true;
+
+    return super.generateSegmentInfo_(options);
+  }
+
+  chooseNextRequest_() {
+    return this.skipEmptySegments_(super.chooseNextRequest_());
+  }
+
   /**
    * Prevents the segment loader from requesting segments we know contain no subtitles
    * by walking forward until we find the next segment that we don't know whether it is
@@ -229,12 +221,17 @@ export default class VTTSegmentLoader extends SegmentLoader {
    */
   skipEmptySegments_(segmentInfo) {
     while (segmentInfo && segmentInfo.segment.empty) {
-      segmentInfo = this.generateSegmentInfo_(
-        segmentInfo.playlist,
-        segmentInfo.mediaIndex + 1,
-        segmentInfo.startOfSegment + segmentInfo.duration,
-        segmentInfo.isSyncRequest
-      );
+      // stop at the last possible segmentInfo
+      if (segmentInfo.mediaIndex + 1 >= segmentInfo.playlist.segments.length) {
+        segmentInfo = null;
+        break;
+      }
+      segmentInfo = this.generateSegmentInfo_({
+        playlist: segmentInfo.playlist,
+        mediaIndex: segmentInfo.mediaIndex + 1,
+        startOfSegment: segmentInfo.startOfSegment + segmentInfo.duration,
+        isSyncRequest: segmentInfo.isSyncRequest
+      });
     }
     return segmentInfo;
   }
