@@ -49,6 +49,7 @@ import {
 } from 'create-test-data!segments';
 import sinon from 'sinon';
 import { timeRangesEqual } from './custom-assertions.js';
+import { QUOTA_EXCEEDED_ERR } from '../src/error-codes';
 
 /* TODO
 // noop addSegmentMetadataCue_ since most test segments dont have real timing information
@@ -4147,6 +4148,158 @@ QUnit.module('SegmentLoader', function(hooks) {
           playlist2.segments[2],
           'segments are equal'
         );
+      });
+    });
+
+    QUnit.test('QUOTA_EXCEEDED_ERR no loader error triggered', function(assert) {
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        const playlist = playlistWithDuration(40);
+
+        loader.playlist(playlist);
+        loader.load();
+        this.clock.tick(1);
+
+        // mock some buffer to prevent an error from not being able to clear any buffer
+        loader.sourceUpdater_.audioBuffered = () => videojs.createTimeRanges([0, 5]);
+        loader.sourceUpdater_.videoBuffered = () => videojs.createTimeRanges([0, 5]);
+
+        loader.sourceUpdater_.appendBuffer = ({type, bytes}, callback) => {
+          callback({type: 'QUOTA_EXCEEDED_ERR', code: QUOTA_EXCEEDED_ERR});
+          assert.notOk(loader.error_, 'no error triggered on loader');
+        };
+
+        standardXHRResponse(this.requests.shift(), muxedSegment());
+      });
+    });
+
+    QUnit.test('QUOTA_EXCEEDED_ERR triggers error if no room for single segment', function(assert) {
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        const playlist = playlistWithDuration(40);
+
+        loader.playlist(playlist);
+        loader.load();
+        this.clock.tick(1);
+
+        loader.sourceUpdater_.appendBuffer = ({type, bytes}, callback) => {
+          callback({type: 'QUOTA_EXCEEDED_ERR', code: QUOTA_EXCEEDED_ERR});
+        };
+
+        standardXHRResponse(this.requests.shift(), muxedSegment());
+
+        return new Promise((resolve, reject) => {
+          // appenderrors are fatal, we don't want them in this case
+          loader.one('appenderror', reject);
+          loader.one('error', resolve);
+        });
+      }).then(() => {
+        // buffer was empty, meaning there wasn't room for a single segment from that
+        // rendition
+        assert.deepEqual(
+          loader.error_,
+          {
+            message: 'Quota exceeded error with append of a single segment of content',
+            blacklistDuration: Infinity
+          },
+          'loader triggered and saved the error'
+        );
+      });
+    });
+
+    QUnit.test('QUOTA_EXCEEDED_ERR leads to clearing back buffer and retrying', function(assert) {
+      const removeVideoCalls = [];
+      const removeAudioCalls = [];
+      let origAppendBuffer;
+
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        const playlist = playlistWithDuration(40);
+
+        loader.playlist(playlist);
+        loader.load();
+        this.clock.tick(1);
+
+        // mock some buffer and the playhead position
+        loader.currentTime_ = () => 7;
+        loader.sourceUpdater_.audioBuffered = () => videojs.createTimeRanges([2, 10]);
+        loader.sourceUpdater_.videoBuffered = () => videojs.createTimeRanges([0, 10]);
+
+        loader.sourceUpdater_.removeVideo = (start, end, done) => {
+          assert.ok(loader.waitingOnRemove_, 'waiting on buffer removal to complete');
+          removeVideoCalls.push({ start, end });
+          done();
+        };
+        loader.sourceUpdater_.removeAudio = (start, end, done) => {
+          assert.ok(loader.waitingOnRemove_, 'waiting on buffer removal to complete');
+          removeAudioCalls.push({ start, end });
+          done();
+        };
+
+        origAppendBuffer = loader.sourceUpdater_.appendBuffer;
+        loader.sourceUpdater_.appendBuffer = ({type, bytes}, callback) => {
+          assert.equal(removeVideoCalls.length, 0, 'no calls to remove video');
+          assert.equal(removeAudioCalls.length, 0, 'no calls to remove audio');
+          assert.notOk(
+            loader.waitingOnRemove_,
+            'loader is not waiting on buffer removal'
+          );
+          assert.notOk(
+            loader.quotaExceededErrorRetryTimeout_,
+            'loader is not waiting to retry'
+          );
+          assert.equal(loader.callQueue_.length, 0, 'loader has empty call queue');
+
+          callback({type: 'QUOTA_EXCEEDED_ERR', code: QUOTA_EXCEEDED_ERR});
+
+          assert.deepEqual(
+            removeVideoCalls,
+            [{ start: 0, end: 6 }],
+            'removed video to one second behind playhead'
+          );
+          assert.deepEqual(
+            removeAudioCalls,
+            [{ start: 0, end: 6 }],
+            'removed audio to one second behind playhead'
+          );
+          assert.notOk(
+            loader.waitingOnRemove_,
+            'loader is not waiting on buffer removal'
+          );
+          assert.ok(
+            loader.quotaExceededErrorRetryTimeout_,
+            'loader is waiting to retry'
+          );
+          assert.equal(loader.callQueue_.length, 1, 'loader has call waiting in queue');
+
+          loader.sourceUpdater_.appendBuffer = origAppendBuffer;
+
+          // wait one second for retry timeout
+          this.clock.tick(1000);
+
+          // ensure we cleared out the waiting state and call queue
+          assert.notOk(
+            loader.quotaExceededErrorRetryTimeout_,
+            'loader is not waiting to retry'
+          );
+          assert.equal(loader.callQueue_.length, 0, 'loader has empty call queue');
+        };
+
+        standardXHRResponse(this.requests.shift(), muxedSegment());
+
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        // at this point the append should've successfully completed, but it's good to
+        // once again check that the old state that was used was cleared out
+        assert.notOk(
+          loader.waitingOnRemove_,
+          'loader is not waiting on buffer removal'
+        );
+        assert.notOk(
+          loader.quotaExceededErrorRetryTimeout_,
+          'loader is not waiting to retry'
+        );
+        assert.equal(loader.callQueue_.length, 0, 'loader has empty call queue');
       });
     });
   });

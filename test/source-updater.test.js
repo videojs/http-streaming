@@ -5,6 +5,7 @@ import videojs from 'video.js';
 import SourceUpdater from '../src/source-updater';
 import {mp4VideoInit, mp4AudioInit, mp4Video, mp4Audio} from 'create-test-data!segments';
 import { timeRangesEqual } from './custom-assertions.js';
+import { QUOTA_EXCEEDED_ERR } from '../src/error-codes';
 
 const checkInitialDuration = function({duration}) {
   // ie sometimes sets duration to infinity earlier then expected
@@ -1311,5 +1312,40 @@ QUnit[testOrSkip]('audio appends are delayed until video append for the first ap
   this.sourceUpdater.appendBuffer({type: 'video', bytes: mp4VideoTotal()}, () => {
     videoAppend = true;
     assert.ok(!audioAppend, 'audio has not appended yet');
+  });
+});
+
+QUnit.test('appendBuffer calls back with QUOTA_EXCEEDED_ERR', function(assert) {
+  assert.expect(2);
+
+  this.sourceUpdater.createSourceBuffers({
+    audio: 'mp4a.40.2',
+    video: 'avc1.4D001E'
+  });
+
+  const videoBuffer = {
+    appendBuffer() {
+      const quotaExceededError = new Error();
+
+      quotaExceededError.code = QUOTA_EXCEEDED_ERR;
+
+      throw quotaExceededError;
+    }
+  };
+
+  const origMediaSource = this.sourceUpdater.mediaSource;
+  const origVideoBuffer = this.sourceUpdater.videoBuffer;
+
+  // mock the media source and video buffer since you can't modify the native buffer
+  this.sourceUpdater.videoBuffer = videoBuffer;
+  this.sourceUpdater.mediaSource = {
+    sourceBuffers: [videoBuffer]
+  };
+
+  this.sourceUpdater.appendBuffer({type: 'video', bytes: mp4VideoTotal()}, (err) => {
+    assert.equal(err.code, QUOTA_EXCEEDED_ERR, 'called back with error');
+    assert.notOk(this.sourceUpdater.queuePending.video, 'no pending action');
+    this.sourceUpdater.mediaSource = origMediaSource;
+    this.sourceUpdater.videoBuffer = origVideoBuffer;
   });
 });
