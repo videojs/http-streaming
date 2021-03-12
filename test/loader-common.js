@@ -192,7 +192,7 @@ export const LoaderCommonFactory = ({
 
         if (usesAsyncAppends) {
           return new Promise((resolve, reject) => {
-            loader.one('appending', loader.pause);
+            loader.one('appended', loader.pause);
             loader.one('appended', resolve);
             loader.one('error', reject);
           });

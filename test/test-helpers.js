@@ -7,7 +7,6 @@ import xhrFactory from '../src/xhr';
 import window from 'global/window';
 import { muxed as muxedSegment } from 'create-test-data!segments';
 import {bytesToString, isTypedArray} from '@videojs/vhs-utils/es/byte-helpers';
-import {isLikelyFmp4MediaSegment} from '@videojs/vhs-utils/es/containers';
 
 // return an absolute version of a page-relative URL
 export const absoluteUrl = function(relativeUrl) {
@@ -531,7 +530,8 @@ export const requestAndAppendSegment = function({
   requestDurationMillis,
   isOnlyAudio,
   isOnlyVideo,
-  tickClock
+  tickClock,
+  decryptionTicks
 }) {
   segment = segment || muxedSegment();
   tickClock = typeof tickClock === 'undefined' ? true : tickClock;
@@ -547,18 +547,19 @@ export const requestAndAppendSegment = function({
   requestDurationMillis = requestDurationMillis || 1000;
 
   return new Promise((resolve, reject) => {
+    segmentLoader.one('appending', resolve);
+    segmentLoader.one('error', reject);
+
     clock.tick(requestDurationMillis);
     if (initSegmentRequest) {
       standardXHRResponse(initSegmentRequest, initSegment);
     }
     standardXHRResponse(request, segment);
 
-    // fmp4 segments don't need to be transmuxed, therefore will execute synchronously
-    if (!isLikelyFmp4MediaSegment(segment)) {
-      segmentLoader.one('appending', resolve);
-      segmentLoader.one('error', reject);
-    } else {
-      resolve();
+    // we need decryptionTicks for syncWorker, as decryption
+    // happens in a setTimeout on the main thread
+    if (decryptionTicks) {
+      clock.tick(2);
     }
   }).then(function() {
     if (throughput) {
