@@ -368,7 +368,7 @@ by the user.
 * can be used as an initialization option
 
 The max number of times that a playlist will retry loading following an error
-before being indefinitely excluded from the rendition selection algorithm.
+before being indefinitely excluded from the rendition selection algorithm. Note: the number of retry attempts needs to _exceed_ this value before a playlist will be excluded.
 
 ##### bandwidth
 * Type: `number`
