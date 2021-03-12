@@ -2159,6 +2159,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
+    this.logger_('Received non QUOTA_EXCEEDED_ERR on append', error);
     this.error(`${type} append of ${bytes.length}b failed for segment ` +
       `#${segmentInfo.mediaIndex} in playlist ${segmentInfo.playlist.id}`);
 
