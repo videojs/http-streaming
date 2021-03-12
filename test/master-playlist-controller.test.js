@@ -5916,6 +5916,41 @@ QUnit.test('switch playlists if current playlist gets excluded and re-include if
   this.env.log.warn.callCount = 0;
 });
 
+QUnit.test('Playlist is blacklisted indefinitely if number of retries exceeds maxPlaylistRetries', function(assert) {
+  this.requests.length = 0;
+  this.player.dispose();
+  this.player = createPlayer({ html5: { vhs: { maxPlaylistRetries: 1 } } });
+  this.player.src({
+    src: 'manifest/two-renditions.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  this.masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  const mpc = this.masterPlaylistController;
+  const mpl = mpc.masterPlaylistLoader_;
+  const playlist = mpl.master.playlists[0];
+
+  mpc.blacklistCurrentPlaylist();
+
+  assert.ok('excludeUntil' in playlist, 'playlist was excluded');
+  assert.notEqual(playlist.excludeUntil, Infinity, 'The playlist was not excluded indefinitely');
+
+  mpc.blacklistCurrentPlaylist();
+
+  assert.equal(playlist.excludeUntil, Infinity, 'The playlist was excluded indefinitely');
+  assert.equal(this.env.log.warn.callCount, 2, 'logged a warning each time a playlist was blacklisted');
+
+  this.env.log.warn.callCount = 0;
+});
+
 QUnit.test('should delay loading of new playlist if lastRequest was less than half target duration', function(assert) {
   this.requests.length = 0;
   this.player.dispose();

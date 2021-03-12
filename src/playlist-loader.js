@@ -233,12 +233,17 @@ export default class PlaylistLoader extends EventTarget {
     }
     this.logger_ = logger('PlaylistLoader');
 
-    const { withCredentials = false, handleManifestRedirects = false } = options;
+    const {
+      withCredentials = false,
+      handleManifestRedirects = false,
+      maxPlaylistRetries = Infinity
+    } = options;
 
     this.src = src;
     this.vhs_ = vhs;
     this.withCredentials = withCredentials;
     this.handleManifestRedirects = handleManifestRedirects;
+    this.maxPlaylistRetries = maxPlaylistRetries;
 
     const vhsOptions = vhs.options_;
 
@@ -291,6 +296,13 @@ export default class PlaylistLoader extends EventTarget {
 
     if (startingState) {
       this.state = startingState;
+    }
+
+    playlist.retryCount++;
+
+    // Permanently remove the playlist
+    if (playlist.retryCount > this.maxPlaylistRetries) {
+      playlist.excludeUntil = Infinity;
     }
 
     this.error = {

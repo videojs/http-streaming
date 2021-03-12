@@ -45,6 +45,7 @@ Video.js Compatibility: 6.0, 7.0
       - [parse708captions](#parse708captions)
       - [overrideNative](#overridenative)
       - [blacklistDuration](#blacklistduration)
+    - [maxPlaylistRetries](#maxplaylistretries)
       - [bandwidth](#bandwidth)
       - [useBandwidthFromLocalStorage](#usebandwidthfromlocalstorage)
       - [enableLowInitialPlaylist](#enablelowinitialplaylist)
@@ -361,6 +362,13 @@ When the `blacklistDuration` property is set to a time duration in seconds,
 if a playlist is blacklisted, it will be blacklisted for a period of that
 customized duration. This enables the blacklist duration to be configured
 by the user.
+
+#### maxPlaylistRetries
+* Type: `number`
+* can be used as an initialization option
+
+The max number of times that a playlist will retry loading following an error
+before being indefinitely excluded from the rendition selection algorithm.
 
 ##### bandwidth
 * Type: `number`
