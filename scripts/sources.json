@@ -357,5 +357,17 @@
     "uri": "https://d2zihajmogu5jn.cloudfront.net/pdt-test-source/endlist.m3u8",
     "mimetype": "application/x-mpegurl",
     "features": []
+  },
+  {
+    "name": "audio only dash, two groups",
+    "uri": "https://d2zihajmogu5jn.cloudfront.net/audio-only-dash/dash.mpd",
+    "mimetype": "application/dash+xml",
+    "features": []
+  },
+  {
+    "name": "video only dash, two renditions",
+    "uri": "https://d2zihajmogu5jn.cloudfront.net/video-only-dash/dash.mpd",
+    "mimetype": "application/dash+xml",
+    "features": []
   }
 ]

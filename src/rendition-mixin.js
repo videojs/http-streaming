@@ -1,4 +1,4 @@
-import { isIncompatible, isEnabled } from './playlist.js';
+import { isIncompatible, isEnabled, isAudioOnly } from './playlist.js';
 import { codecsForPlaylist } from './util/codecs.js';
 
 /**
@@ -93,16 +93,18 @@ class Representation {
  * representation API into
  */
 const renditionSelectionMixin = function(vhsHandler) {
-  const playlists = vhsHandler.playlists;
 
   // Add a single API-specific function to the VhsHandler instance
   vhsHandler.representations = () => {
-    if (!playlists || !playlists.master || !playlists.master.playlists) {
+    const master = vhsHandler.masterPlaylistController_.master();
+    const playlists = isAudioOnly(master) ?
+      vhsHandler.masterPlaylistController_.getAudioTrackPlaylists_() :
+      master.playlists;
+
+    if (!playlists) {
       return [];
     }
     return playlists
-      .master
-      .playlists
       .filter((media) => !isIncompatible(media))
       .map((e, i) => new Representation(vhsHandler, e, e.id));
   };

@@ -6,6 +6,7 @@
 import videojs from 'video.js';
 import window from 'global/window';
 import {TIME_FUDGE_FACTOR} from './ranges.js';
+import {isAudioCodec} from '@videojs/vhs-utils/es/codecs.js';
 
 const {createTimeRange} = videojs;
 
@@ -541,6 +542,26 @@ export const isLowestEnabledRendition = (master, media) => {
   }).length === 0);
 };
 
+export const isAudioOnly = (master) => {
+  // we are audio only if we have no main playlists but do
+  // have media group playlists.
+  if (!master.playlists.length) {
+    for (const groupName in master.mediaGroups.AUDIO) {
+      for (const label in master.mediaGroups.AUDIO[groupName]) {
+        const variant = master.mediaGroups.AUDIO[groupName][label];
+
+        if (variant.playlists && variant.playlists.length || variant.uri) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return master.playlists
+    .every((p) => p.attributes && isAudioCodec(p.attributes.CODECS));
+
+};
+
 // exports
 export default {
   duration,
@@ -555,5 +576,6 @@ export default {
   isAes,
   hasAttribute,
   estimateSegmentRequestTime,
-  isLowestEnabledRendition
+  isLowestEnabledRendition,
+  isAudioOnly
 };
