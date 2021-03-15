@@ -30,7 +30,12 @@ import {
   comparePlaylistBandwidth,
   comparePlaylistResolution
 } from './playlist-selectors.js';
-import {isAudioCodec, isVideoCodec, browserSupportsCodec} from '@videojs/vhs-utils/es/codecs.js';
+import {
+  browserSupportsCodec,
+  getMimeForCodec,
+  parseCodecs
+} from '@videojs/vhs-utils/es/codecs.js';
+import { unwrapCodecList } from './util/codecs.js';
 import logger from './util/logger';
 import {SAFE_TIME_DELTA} from './ranges';
 
@@ -132,34 +137,18 @@ const emeKeySystems = (keySystemOptions, mainPlaylist, audioPlaylist) => {
     return keySystemOptions;
   }
 
-  const codecs = {};
+  let codecs = {};
 
   if (mainPlaylist && mainPlaylist.attributes && mainPlaylist.attributes.CODECS) {
-    const mainCodecs = mainPlaylist.attributes.CODECS;
-
-    if (mainCodecs.split(',').length > 1) {
-      mainCodecs.split(',').forEach(function(codec) {
-        codec = codec.trim();
-
-        if (isAudioCodec(codec)) {
-          codecs.audio = codec;
-        } else if (isVideoCodec(codec)) {
-          codecs.video = codec;
-        }
-      });
-    } else if (isAudioCodec(mainCodecs)) {
-      codecs.audio = mainCodecs;
-    } else {
-      codecs.video = mainCodecs;
-    }
+    codecs = unwrapCodecList(parseCodecs(mainPlaylist.attributes.CODECS));
   }
 
   if (audioPlaylist && audioPlaylist.attributes && audioPlaylist.attributes.CODECS) {
     codecs.audio = audioPlaylist.attributes.CODECS;
   }
 
-  const videoContentType = codecs.video ? `video/mp4;codecs="${codecs.video}"` : null;
-  const audioContentType = codecs.audio ? `audio/mp4;codecs="${codecs.audio}"` : null;
+  const videoContentType = getMimeForCodec(codecs.video);
+  const audioContentType = getMimeForCodec(codecs.audio);
 
   // upsert the content types based on the selected playlist
   const keySystemContentTypes = {};
