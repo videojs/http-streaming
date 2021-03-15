@@ -3,12 +3,12 @@ import sinon from 'sinon';
 import {
   default as DashPlaylistLoader,
   updateMaster,
-  generateSidxKey,
   compareSidxEntry,
   filterChangedSidxMappings,
   parseMasterXml
 } from '../src/dash-playlist-loader';
 import xhrFactory from '../src/xhr';
+import {generateSidxKey} from 'mpd-parser';
 import {
   useFakeEnvironment,
   standardXHRResponse,
@@ -382,22 +382,6 @@ QUnit.test('updateMaster: updates minimumUpdatePeriod', function(assert) {
       duration: 0,
       minimumUpdatePeriod: 2
     }
-  );
-});
-
-QUnit.test('generateSidxKey: generates correct key', function(assert) {
-  const sidxInfo = {
-    byterange: {
-      offset: 1,
-      length: 5
-    },
-    uri: 'uri'
-  };
-
-  assert.strictEqual(
-    generateSidxKey(sidxInfo),
-    'uri-1-5',
-    'the key byterange should have a inclusive end'
   );
 });
 
