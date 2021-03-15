@@ -330,6 +330,53 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.abrTimer_ = null;
   }
 
+  getAudioTrackPlaylists_() {
+    const playlists = [];
+    const master = this.master();
+
+    if (!master && !master.mediaGroups && !master.mediaGroups.AUDIO) {
+      return playlists;
+    }
+
+    const AUDIO = master.mediaGroups.AUDIO;
+    const groupKeys = Object.keys(AUDIO);
+    let track;
+
+    // get the current active track
+    if (Object.keys(this.mediaTypes_.AUDIO.groups).length) {
+      track = this.mediaTypes_.AUDIO.activeTrack();
+    // or get the default track from master if mediaTypes_ isn't setup yet
+    } else {
+      // default group is `main` or just the first group.
+      const defaultGroup = AUDIO.main || groupKeys.length && AUDIO[groupKeys[0]];
+
+      for (const label in defaultGroup) {
+        if (defaultGroup[label].default) {
+          track = {label};
+          break;
+        }
+      }
+    }
+
+    if (!track) {
+      return playlists;
+    }
+
+    for (const group in AUDIO) {
+      if (AUDIO[group][track.label]) {
+        const properties = AUDIO[group][track.label];
+
+        if (properties.playlists) {
+          playlists.push.apply(playlists, properties.playlists);
+        } else {
+          playlists.push(properties);
+        }
+      }
+    }
+
+    return playlists;
+  }
+
   /**
    * Register event handlers on the master playlist loader. A helper
    * function for construction time.
