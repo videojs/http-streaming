@@ -4174,22 +4174,23 @@ QUnit.module('SegmentLoader', function(hooks) {
 
     QUnit.test('QUOTA_EXCEEDED_ERR triggers error if no room for single segment', function(assert) {
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
-        const playlist = playlistWithDuration(40);
-
-        loader.playlist(playlist);
-        loader.load();
-        this.clock.tick(1);
-
-        loader.sourceUpdater_.appendBuffer = ({type, bytes}, callback) => {
-          callback({type: 'QUOTA_EXCEEDED_ERR', code: QUOTA_EXCEEDED_ERR});
-        };
-
-        standardXHRResponse(this.requests.shift(), muxedSegment());
-
         return new Promise((resolve, reject) => {
+          const playlist = playlistWithDuration(40);
+
+          loader.playlist(playlist);
+          loader.load();
+          this.clock.tick(1);
+
           // appenderrors are fatal, we don't want them in this case
           loader.one('appenderror', reject);
           loader.one('error', resolve);
+
+          loader.sourceUpdater_.appendBuffer = ({type, bytes}, callback) => {
+            callback({type: 'QUOTA_EXCEEDED_ERR', code: QUOTA_EXCEEDED_ERR});
+          };
+
+          standardXHRResponse(this.requests.shift(), muxedSegment());
+
         });
       }).then(() => {
         // buffer was empty, meaning there wasn't room for a single segment from that
