@@ -1101,7 +1101,7 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @param {Function} [done] - an optional callback to be executed when the remove
    * operation is complete
    */
-  remove(start, end, done = () => {}) {
+  remove(start, end, done = () => {}, force = false) {
     // clamp end to duration if we need to remove everything.
     // This is due to a browser bug that causes issues if we remove to Infinity.
     // videojs/videojs-contrib-hls#1225
@@ -1124,7 +1124,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       }
     };
 
-    if (!this.audioDisabled_) {
+    if (force || !this.audioDisabled_) {
       removesRemaining++;
       this.sourceUpdater_.removeAudio(start, end, removeFinished);
     }
@@ -1137,7 +1137,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // the event that we're switching between renditions and from video to audio only
     // (when we add support for that), we may need to clear the video contents despite
     // what the new media will contain.
-    if (this.loaderType_ === 'main') {
+    if (force || this.loaderType_ === 'main') {
       this.gopBuffer_ = removeGopBuffer(this.gopBuffer_, start, end, this.timeMapping_);
       removesRemaining++;
       this.sourceUpdater_.removeVideo(start, end, removeFinished);
@@ -2129,21 +2129,19 @@ export default class SegmentLoader extends videojs.EventTarget {
     // before retrying.
     const timeToRemoveUntil = currentTime - MIN_BACK_BUFFER;
 
-    this.logger_(`On QUOTA_EXCEEDED_ERR, removing video from 0 to ${timeToRemoveUntil}`);
-    this.sourceUpdater_.removeVideo(0, timeToRemoveUntil, () => {
-      this.logger_(`On QUOTA_EXCEEDED_ERR, removing audio from 0 to ${timeToRemoveUntil}`);
-      this.sourceUpdater_.removeAudio(0, timeToRemoveUntil, () => {
-        this.logger_(`On QUOTA_EXCEEDED_ERR, retrying append in ${MIN_BACK_BUFFER}s`);
-        this.waitingOnRemove_ = false;
-        // wait the length of time alotted in the back buffer to prevent wasted
-        // attempts (since we can't clear less than the minimum)
-        this.quotaExceededErrorRetryTimeout_ = window.setTimeout(() => {
-          this.logger_('On QUOTA_EXCEEDED_ERR, re-processing call queue');
-          this.quotaExceededErrorRetryTimeout_ = null;
-          this.processCallQueue_();
-        }, MIN_BACK_BUFFER * 1000);
-      });
-    });
+    this.logger_(`On QUOTA_EXCEEDED_ERR, removing audio/video from 0 to ${timeToRemoveUntil}`);
+    this.remove(0, timeToRemoveUntil, () => {
+
+      this.logger_(`On QUOTA_EXCEEDED_ERR, retrying append in ${MIN_BACK_BUFFER}s`);
+      this.waitingOnRemove_ = false;
+      // wait the length of time alotted in the back buffer to prevent wasted
+      // attempts (since we can't clear less than the minimum)
+      this.quotaExceededErrorRetryTimeout_ = window.setTimeout(() => {
+        this.logger_('On QUOTA_EXCEEDED_ERR, re-processing call queue');
+        this.quotaExceededErrorRetryTimeout_ = null;
+        this.processCallQueue_();
+      }, MIN_BACK_BUFFER * 1000);
+    }, true);
   }
 
   handleAppendError_({segmentInfo, type, bytes}, error) {
