@@ -1099,6 +1099,7 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @param {number} start - the start time of the region to remove from the buffer
    * @param {number} end - the end time of the region to remove from the buffer
    * @param {Function} [done] - an optional callback to be executed when the remove
+   * @param {boolean} force - force all remove operations to happen
    * operation is complete
    */
   remove(start, end, done = () => {}, force = false) {
