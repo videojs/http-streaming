@@ -17,7 +17,7 @@ const {createTimeRange} = videojs;
  *
  * @return {Array} The part/segment list.
  */
-const getPartSegments = (playlist) => (playlist.segments || []).reduce((acc, segment, si) => {
+const getPartsAndSegments = (playlist) => (playlist.segments || []).reduce((acc, segment, si) => {
   if (segment.parts) {
     segment.parts.forEach(function(part, pi) {
       acc.push({duration: part.duration, segmentIndex: si, partIndex: pi});
@@ -42,22 +42,21 @@ export const liveEdgeDelay = (master, media) => {
     return 0;
   }
 
-  const partSegments = getPartSegments(media);
-  const hasParts = partSegments.length &&
-    typeof partSegments[partSegments.length - 1].partIndex === 'number';
+  const partsAndSegments = getPartsAndSegments(media);
+  const hasParts = partsAndSegments.length &&
+    typeof partsAndSegments[partsAndSegments.length - 1].partIndex === 'number';
 
   let lastThreeDurations = 0;
 
-  if (partSegments.length >= 3) {
+  if (partsAndSegments.length >= 3) {
     for (let i = 0; i < 3; i++) {
-      lastThreeDurations += partSegments[partSegments.length - 1 - i].duration;
+      lastThreeDurations += partsAndSegments[partsAndSegments.length - 1 - i].duration;
     }
   }
 
   // dash suggestedPresentationDelay trumps everything
   if (master && master.suggestedPresentationDelay) {
     return master.suggestedPresentationDelay;
-
   // look for "part" delays from ll-hls first
   } else if (hasParts && media.serverControl && media.serverControl.partHoldBack) {
     return media.serverControl.partHoldBack;
@@ -72,7 +71,7 @@ export const liveEdgeDelay = (master, media) => {
   } else if (media.targetDuration) {
     // TODO: this should probably be targetDuration * 3
     // but we use this for backwards compatability.
-    const lastPartSegment = partSegments[partSegments.length - 1];
+    const lastPartSegment = partsAndSegments[partsAndSegments.length - 1];
     const lastPartDuration = lastPartSegment && lastPartSegment.duration || media.targetDuration;
 
     return lastPartDuration + media.targetDuration * 2;
@@ -307,9 +306,9 @@ export const sumDurations = function(playlist, startIndex, endIndex) {
  * @function safeLiveIndex
  */
 export const safeLiveIndex = function(playlist, liveEdgePadding) {
-  const partSegments = getPartSegments(playlist);
+  const partsAndSegments = getPartsAndSegments(playlist);
 
-  if (!partSegments.length) {
+  if (!partsAndSegments.length) {
     return 0;
   }
 
@@ -317,14 +316,14 @@ export const safeLiveIndex = function(playlist, liveEdgePadding) {
     liveEdgePadding = liveEdgeDelay(null, playlist);
   }
 
-  let i = partSegments.length;
+  let i = partsAndSegments.length;
   let distanceFromEnd = 0;
 
   while (i--) {
-    distanceFromEnd += partSegments[i].duration;
+    distanceFromEnd += partsAndSegments[i].duration;
 
     if (distanceFromEnd >= liveEdgePadding) {
-      return partSegments[i].segmentIndex;
+      return partsAndSegments[i].segmentIndex;
     }
   }
 
@@ -420,7 +419,7 @@ export const getMediaInfoForTime = function(
   startTime
 ) {
 
-  const partSegments = getPartSegments(playlist);
+  const partsAndSegments = getPartsAndSegments(playlist);
   let time = currentTime - startTime;
 
   if (time < 0) {
@@ -428,7 +427,7 @@ export const getMediaInfoForTime = function(
     // until we find a segment that contains `time` and return it
     if (startIndex > 0) {
       for (let i = startIndex - 1; i >= 0; i--) {
-        const segment = partSegments[i];
+        const segment = partsAndSegments[i];
 
         time += (segment.duration + TIME_FUDGE_FACTOR);
 
@@ -445,8 +444,8 @@ export const getMediaInfoForTime = function(
     // We were unable to find a good segment within the playlist
     // so select the first segment
     return {
-      mediaIndex: partSegments[0] && partSegments[0].segmentIndex || 0,
-      partIndex: partSegments[0] && partSegments[0].partIndex || null,
+      mediaIndex: partsAndSegments[0] && partsAndSegments[0].segmentIndex || 0,
+      partIndex: partsAndSegments[0] && partsAndSegments[0].partIndex || null,
       startTime: currentTime
     };
   }
@@ -459,7 +458,7 @@ export const getMediaInfoForTime = function(
       time -= playlist.targetDuration;
       if (time < 0) {
         return {
-          mediaIndex: partSegments[0].segmentIndex,
+          mediaIndex: partsAndSegments[0].segmentIndex,
           startTime: currentTime
         };
       }
@@ -469,8 +468,8 @@ export const getMediaInfoForTime = function(
 
   // Walk forward from startIndex in the playlist, subtracting durations
   // until we find a segment that contains `time` and return it
-  for (let i = startIndex; i < partSegments.length; i++) {
-    const partSegment = partSegments[i];
+  for (let i = startIndex; i < partsAndSegments.length; i++) {
+    const partSegment = partsAndSegments[i];
 
     time -= partSegment.duration + TIME_FUDGE_FACTOR;
 
@@ -485,8 +484,8 @@ export const getMediaInfoForTime = function(
 
   // We are out of possible candidates so load the last one...
   return {
-    mediaIndex: partSegments[partSegments.length - 1].segmentIndex,
-    partIndex: partSegments[partSegments.length - 1].partIndex,
+    mediaIndex: partsAndSegments[partsAndSegments.length - 1].segmentIndex,
+    partIndex: partsAndSegments[partsAndSegments.length - 1].partIndex,
     startTime: currentTime
   };
 };
