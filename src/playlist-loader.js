@@ -113,6 +113,19 @@ export const resolveSegmentUris = (segment, baseUri) => {
   }
 };
 
+const getAllSegments = function(media) {
+  const segments = media.segments || [];
+
+  // a preloadSegment with only preloadHints is not currently
+  // a usable segment, only include a preloadSegment that has
+  // parts.
+  if (media.preloadSegment && media.preloadSegment.parts) {
+    segments.push(media.preloadSegment);
+  }
+
+  return segments;
+};
+
 // consider the playlist unchanged if the playlist object is the same or
 // the number of segments is equal, the media sequence number is unchanged,
 // and this playlist hasn't become the end of the playlist
@@ -147,14 +160,7 @@ export const updateMaster = (master, media, unchangedCheck = isPlaylistUnchanged
 
   const mergedPlaylist = mergeOptions(playlist, media);
 
-  media.segments = media.segments || [];
-
-  // a preloadSegment with only preloadHints is not currently
-  // a usable segment, only include a preloadSegment that has
-  // parts.
-  if (media.preloadSegment && media.preloadSegment.parts) {
-    media.segments.push(media.preloadSegment);
-  }
+  media.segments = getAllSegments(media);
 
   // if the update could overlap existing segment information, merge the two segment lists
   if (playlist.segments) {
@@ -669,11 +675,7 @@ export default class PlaylistLoader extends EventTarget {
       // then resolve URIs in advance, as they are usually done after a playlist request,
       // which may not happen if the playlist is resolved.
       manifest.playlists.forEach((playlist) => {
-        playlist.segments = playlist.segments || [];
-
-        if (playlist.preloadSegment && playlist.preloadSegment.parts) {
-          playlist.segments.push(playlist.preloadSegment);
-        }
+        playlist.segments = getAllSegments(playlist);
 
         playlist.segments.forEach((segment) => {
           resolveSegmentUris(segment, playlist.resolvedUri);
