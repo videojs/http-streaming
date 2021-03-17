@@ -197,7 +197,7 @@ export const updateMaster = (master, media, unchangedCheck = isPlaylistUnchanged
  */
 export const refreshDelay = (media, update) => {
   const lastSegment = media.segments[media.segments.length - 1];
-  const lastPart = lastSegment && lastSegment.parts && lastSegment.parts[lastSegment.parts - 1];
+  const lastPart = lastSegment && lastSegment.parts && lastSegment.parts[lastSegment.parts.length - 1];
   const lastDuration = lastPart && lastPart.duration || lastSegment && lastSegment.duration;
 
   if (update && lastDuration) {
