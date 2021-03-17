@@ -112,7 +112,7 @@ const segmentInfoString = (segmentInfo) => {
   return [
     `${name} [${index}/${segments.length - 1}]`,
     (partIndex ? `part [${partIndex}/${parts.length - 1}]` : ''),
-    `msn [${seq}/${seq + segments.length - 1}]`,
+    `mediaSequenceNumber [${seq}/${seq + segments.length - 1}]`,
     `playlist [${id}]`,
     `start/end [${start} => ${end}]`,
     `timeline [${timeline}]`
