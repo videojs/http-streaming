@@ -1303,7 +1303,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     const mainSeekable = Vhs.Playlist.seekable(
       media,
       expired,
-      Vhs.Playlist.getHoldBack(master, media)
+      Vhs.Playlist.liveEdgeDelay(master, media)
     );
 
     if (mainSeekable.length === 0) {
@@ -1321,7 +1321,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       audioSeekable = Vhs.Playlist.seekable(
         media,
         expired,
-        Vhs.Playlist.getHoldBack(master, media)
+        Vhs.Playlist.liveEdgeDelay(master, media)
       );
 
       if (audioSeekable.length === 0) {

@@ -30,14 +30,14 @@ const getPartSegments = (playlist) => (playlist.segments || []).reduce((acc, seg
 }, []);
 
 /**
- * Get the number of seconds to hold back from the end of a
+ * Get the number of seconds to delay from the end of a
  * live playlist.
  *
  * @param {Playlist} master the master playlist
  * @param {Playlist} media the media playlist
  * @return {number} the hold back in seconds.
  */
-export const getHoldBack = (master, media) => {
+export const liveEdgeDelay = (master, media) => {
   if (media.endList) {
     return 0;
   }
@@ -314,7 +314,7 @@ export const safeLiveIndex = function(playlist, liveEdgePadding) {
   }
 
   if (typeof liveEdgePadding !== 'number') {
-    liveEdgePadding = getHoldBack(null, playlist);
+    liveEdgePadding = liveEdgeDelay(null, playlist);
   }
 
   let i = partSegments.length;
@@ -622,7 +622,7 @@ export const isLowestEnabledRendition = (master, media) => {
 
 // exports
 export default {
-  getHoldBack,
+  liveEdgeDelay,
   duration,
   seekable,
   safeLiveIndex,

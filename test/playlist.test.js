@@ -655,7 +655,7 @@ QUnit.test('safeLiveIndex accounts for liveEdgePadding in non-simple case', func
   );
 });
 
-QUnit.test('getHoldBack works as expected', function(assert) {
+QUnit.test('liveEdgeDelay works as expected', function(assert) {
   const media = {
     endList: true,
     targetDuration: 5,
@@ -681,56 +681,56 @@ QUnit.test('getHoldBack works as expected', function(assert) {
   };
 
   assert.equal(
-    Playlist.getHoldBack(master, media),
+    Playlist.liveEdgeDelay(master, media),
     0,
     'returns 0 with endlist'
   );
 
   delete media.endList;
   assert.equal(
-    Playlist.getHoldBack(master, media),
+    Playlist.liveEdgeDelay(master, media),
     master.suggestedPresentationDelay,
     'uses suggestedPresentationDelay'
   );
 
   delete master.suggestedPresentationDelay;
   assert.equal(
-    Playlist.getHoldBack(master, media),
+    Playlist.liveEdgeDelay(master, media),
     media.serverControl.partHoldBack,
     'uses part hold back'
   );
 
   media.serverControl.partHoldBack = null;
   assert.equal(
-    Playlist.getHoldBack(master, media),
+    Playlist.liveEdgeDelay(master, media),
     media.partTargetDuration * 3,
     'uses part target duration * 3'
   );
 
   media.partTargetDuration = null;
   assert.equal(
-    Playlist.getHoldBack(master, media),
+    Playlist.liveEdgeDelay(master, media),
     2,
     'uses last three part durations'
   );
 
   media.segments[media.segments.length - 1].parts = null;
   assert.equal(
-    Playlist.getHoldBack(master, media),
+    Playlist.liveEdgeDelay(master, media),
     media.serverControl.holdBack,
     'uses hold back'
   );
 
   media.serverControl.holdBack = null;
   assert.equal(
-    Playlist.getHoldBack(master, media),
+    Playlist.liveEdgeDelay(master, media),
     (media.targetDuration * 2) + media.segments[media.segments.length - 1].duration,
     'uses (targetDuration * 2) + last segment duration'
   );
 
   media.targetDuration = null;
   assert.equal(
-    Playlist.getHoldBack(master, media),
+    Playlist.liveEdgeDelay(master, media),
     11,
     'uses last three segment durations'
   );
@@ -738,7 +738,7 @@ QUnit.test('getHoldBack works as expected', function(assert) {
   media.segments.length = 0;
 
   assert.equal(
-    Playlist.getHoldBack(master, media),
+    Playlist.liveEdgeDelay(master, media),
     0,
     'no possible holdback can be calculated'
   );
