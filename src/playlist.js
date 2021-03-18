@@ -46,6 +46,7 @@ export const liveEdgeDelay = (master, media) => {
   const hasParts = partsAndSegments.length &&
     typeof partsAndSegments[partsAndSegments.length - 1].partIndex === 'number';
 
+  // get the last three part/segment durations
   let lastThreeDurations = 0;
 
   if (partsAndSegments.length >= 3) {
@@ -75,6 +76,9 @@ export const liveEdgeDelay = (master, media) => {
     const lastPartDuration = lastPartSegment && lastPartSegment.duration || media.targetDuration;
 
     return lastPartDuration + media.targetDuration * 2;
+  // we shouldn't ever end up using lastThreeDurations as targetDuration
+  // is usually required, but if we somehow get here, with a missing
+  // targetDuration we should handle it
   } else if (lastThreeDurations) {
     return lastThreeDurations;
   }
