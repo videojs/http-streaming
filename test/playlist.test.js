@@ -665,13 +665,17 @@ QUnit.test('liveEdgeDelay works as expected', function(assert) {
       partHoldBack: 2
     },
     segments: [
-      {duration: 4},
       {duration: 3},
       {duration: 4, parts: [
         {duration: 1},
+        {duration: 0.5}
+      ]},
+      {duration: 3, parts: [
         {duration: 1},
+        {duration: 0.5}
+      ]},
+      {duration: 4, parts: [
         {duration: 1},
-        {duration: 0.5},
         {duration: 0.5}
       ]}
     ]
@@ -714,7 +718,10 @@ QUnit.test('liveEdgeDelay works as expected', function(assert) {
     'uses last three part durations'
   );
 
-  media.segments[media.segments.length - 1].parts = null;
+  media.segments = media.segments.map((s) => {
+    s.parts = null;
+    return s;
+  });
   assert.equal(
     Playlist.liveEdgeDelay(master, media),
     media.serverControl.holdBack,
@@ -735,12 +742,23 @@ QUnit.test('liveEdgeDelay works as expected', function(assert) {
     'uses last three segment durations'
   );
 
+  media.segments = media.segments.map((s) => {
+    s.duration = null;
+    return s;
+  });
+
+  assert.equal(
+    Playlist.liveEdgeDelay(master, media),
+    0,
+    'no segment durations live delay can be calculated'
+  );
+
   media.segments.length = 0;
 
   assert.equal(
     Playlist.liveEdgeDelay(master, media),
     0,
-    'no possible holdback can be calculated'
+    'no segments live delay can be calculated'
   );
 });
 

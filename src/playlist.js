@@ -50,8 +50,13 @@ export const liveEdgeDelay = (master, media) => {
   let lastThreeDurations = 0;
 
   if (partsAndSegments.length >= 3) {
-    for (let i = 0; i < 3; i++) {
-      lastThreeDurations += partsAndSegments[partsAndSegments.length - 1 - i].duration;
+    for (let i = partsAndSegments.length - 1; i > partsAndSegments.length - 4; i--) {
+      // segment missing a duration, we cannot calculate
+      if (!partsAndSegments[i].duration) {
+        lastThreeDurations = 0;
+        break;
+      }
+      lastThreeDurations += partsAndSegments[i].duration;
     }
   }
 
