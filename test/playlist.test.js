@@ -575,7 +575,7 @@ QUnit.test('safeLiveIndex accounts for liveEdgePadding in simple case', function
 
   assert.equal(
     Playlist.safeLiveIndex(playlist, 0), 5,
-    'returns 6 when liveEdgePadding is 0 and duration is 6'
+    'returns 5 when liveEdgePadding is 0 and duration is 6'
   );
 });
 
@@ -651,7 +651,7 @@ QUnit.test('safeLiveIndex accounts for liveEdgePadding in non-simple case', func
 
   assert.equal(
     Playlist.safeLiveIndex(playlist, 0), 5,
-    'returns 6 when liveEdgePadding is 0'
+    'returns 5 when liveEdgePadding is 0'
   );
 });
 
