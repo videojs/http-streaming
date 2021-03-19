@@ -995,6 +995,9 @@ export default class SegmentLoader extends videojs.EventTarget {
           this.logger_(`currently processing part (index ${this.partIndex}) no longer exists.`);
           this.resetLoader();
 
+          // We want to throw away the partIndex and the data associated with it,
+          // as the part was dropped from our current playlists segment.
+          // The mediaIndex will still be valid so keep that around.
           this.mediaIndex = mediaIndex;
         }
       }
