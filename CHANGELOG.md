@@ -1,3 +1,16 @@
+<a name="2.6.4"></a>
+## [2.6.4](https://github.com/videojs/http-streaming/compare/v2.6.3...v2.6.4) (2021-03-12)
+
+### Bug Fixes
+
+* Monitor playback for stalls due to gaps in the beginning of stream when a new source is loaded ([#1087](https://github.com/videojs/http-streaming/issues/1087)) ([64a1f35](https://github.com/videojs/http-streaming/commit/64a1f35))
+* retry appends on QUOTA_EXCEEDED_ERR ([#1093](https://github.com/videojs/http-streaming/issues/1093)) ([008aeaf](https://github.com/videojs/http-streaming/commit/008aeaf))
+
+### Chores
+
+* Get test coverage working again with mock/sync worker ([#1094](https://github.com/videojs/http-streaming/issues/1094)) ([035e8c0](https://github.com/videojs/http-streaming/commit/035e8c0))
+* pin CI to ubuntu 18.04 ([#1091](https://github.com/videojs/http-streaming/issues/1091)) ([01ca182](https://github.com/videojs/http-streaming/commit/01ca182))
+
 <a name="2.6.3"></a>
 ## [2.6.3](https://github.com/videojs/http-streaming/compare/v2.6.2...v2.6.3) (2021-03-05)
 
