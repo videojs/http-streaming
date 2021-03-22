@@ -750,7 +750,7 @@ QUnit.test('liveEdgeDelay works as expected', function(assert) {
   assert.equal(
     Playlist.liveEdgeDelay(master, media),
     0,
-    'no segment durations live delay can be calculated'
+    'no segment durations, live delay can\'t be calculated'
   );
 
   media.segments.length = 0;
@@ -758,7 +758,7 @@ QUnit.test('liveEdgeDelay works as expected', function(assert) {
   assert.equal(
     Playlist.liveEdgeDelay(master, media),
     0,
-    'no segments live delay can be calculated'
+    'no segments, live delay can\'t be calculated'
   );
 });
 

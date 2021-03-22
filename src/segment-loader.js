@@ -1426,8 +1426,13 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     this.logger_(`checkBuffer_ returning ${segmentInfo.uri}`, {
       segmentInfo,
+      playlist,
       currentMediaIndex,
-      currentPartIndex
+      currentPartIndex,
+      nextPartIndex,
+      nextMediaIndex,
+      startOfSegment,
+      isSyncRequest
     });
 
     return segmentInfo;

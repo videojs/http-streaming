@@ -29,6 +29,24 @@ const getPartsAndSegments = (playlist) => (playlist.segments || []).reduce((acc,
   return acc;
 }, []);
 
+const sumLastThreeDurations = function(partsAndSegments) {
+  // get the last three part/segment durations
+  let lastThreeDurations = 0;
+
+  if (partsAndSegments.length >= 3) {
+    for (let i = partsAndSegments.length - 1; i > partsAndSegments.length - 4; i--) {
+      // segment missing a duration, we cannot calculate
+      if (!partsAndSegments[i].duration) {
+        lastThreeDurations = 0;
+        break;
+      }
+      lastThreeDurations += partsAndSegments[i].duration;
+    }
+  }
+
+  return lastThreeDurations;
+};
+
 /**
  * Get the number of seconds to delay from the end of a
  * live playlist.
@@ -45,20 +63,10 @@ export const liveEdgeDelay = (master, media) => {
   const partsAndSegments = getPartsAndSegments(media);
   const hasParts = partsAndSegments.length &&
     typeof partsAndSegments[partsAndSegments.length - 1].partIndex === 'number';
-
-  // get the last three part/segment durations
-  let lastThreeDurations = 0;
-
-  if (partsAndSegments.length >= 3) {
-    for (let i = partsAndSegments.length - 1; i > partsAndSegments.length - 4; i--) {
-      // segment missing a duration, we cannot calculate
-      if (!partsAndSegments[i].duration) {
-        lastThreeDurations = 0;
-        break;
-      }
-      lastThreeDurations += partsAndSegments[i].duration;
-    }
-  }
+  // by default we use the last three durations of segments if
+  // part target duration or target duration isn't found.
+  // see: https://tools.ietf.org/html/draft-pantos-hls-rfc8216bis-08#section-4.4.3.8
+  const lastThreeDurations = sumLastThreeDurations(partsAndSegments);
 
   // dash suggestedPresentationDelay trumps everything
   if (master && master.suggestedPresentationDelay) {
