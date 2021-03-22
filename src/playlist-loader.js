@@ -34,7 +34,7 @@ export const updateSegment = (a, b) => {
 
   const result = mergeOptions(a, b);
 
-  // only the old segment has parts
+  // if only the old segment has parts
   // then the parts are no longer valid
   if (a.parts && !b.parts) {
     delete result.parts;
@@ -55,7 +55,7 @@ export const updateSegment = (a, b) => {
 /**
  * Returns a new array of segments that is the result of merging
  * properties from an older list of segments onto an updated
- * list. No properties on the updated playlist will be overridden.
+ * list. No properties on the updated playlist will be ovewritten.
  *
  * @param {Array} original the outdated list of segments
  * @param {Array} update the updated list of segments

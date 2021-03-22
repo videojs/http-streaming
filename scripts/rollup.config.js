@@ -12,7 +12,6 @@ let syncWorker;
 const options = {
   input: 'src/videojs-http-streaming.js',
   distName: 'videojs-http-streaming',
-  checkWatch: false,
   excludeCoverage(defaults) {
     defaults.push(/^rollup-plugin-worker-factory/);
     defaults.push(/^create-test-data!/);
