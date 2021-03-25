@@ -939,6 +939,8 @@ class VhsHandler extends Component {
     this.mediaSourceUrl_ = window.URL.createObjectURL(this.masterPlaylistController_.mediaSource);
 
     this.tech_.src(this.mediaSourceUrl_);
+
+    this.player_.trigger('vhs-ready');
   }
 
   /**

@@ -435,16 +435,15 @@
         } else {
           sources.dispatchEvent(newEvent('change'));
         }
+        player.on('vhs-ready', function() {
+          window.vhs = player.tech_.vhs;
+          window.mpc = player.tech_.vhs.masterPlaylistController_;
+        });
+
         player.on('loadedmetadata', function() {
-          if (player.tech_.vhs) {
-            window.vhs = player.tech_.vhs;
-            window.mpc = player.tech_.vhs.masterPlaylistController_;
+          if (window.vhs && window.mpc) {
             window.mpc.masterPlaylistLoader_.on('mediachange', regenerateRepresentations);
             regenerateRepresentations();
-
-          } else {
-            window.vhs = null;
-            window.mpc = null;
           }
         });
         cb(player);
