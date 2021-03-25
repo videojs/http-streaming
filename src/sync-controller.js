@@ -6,6 +6,12 @@ import {sumDurations} from './playlist';
 import videojs from 'video.js';
 import logger from './util/logger';
 
+const getSegmentIndex = (i, playlist, currentTime = 0) => {
+  const segments = playlist.segments;
+
+  return (playlist.endList || currentTime === 0) ? i : segments.length - (i + 1);
+};
+
 export const syncPointStrategies = [
   // Stategy "VOD": Handle the VOD-case where the sync-point is *always*
   //                the equivalence display-time 0 === segment-index 0
@@ -38,7 +44,8 @@ export const syncPointStrategies = [
       currentTime = currentTime || 0;
 
       for (let i = 0; i < segments.length; i++) {
-        const segment = segments[i];
+        const segmentIndex = getSegmentIndex(i, playlist, currentTime);
+        const segment = segments[segmentIndex];
         const datetimeMapping =
           syncController.timelineToDatetimeMappings[segment.timeline];
 
@@ -60,7 +67,7 @@ export const syncPointStrategies = [
           lastDistance = distance;
           syncPoint = {
             time: segmentStart,
-            segmentIndex: i
+            segmentIndex
           };
         }
       }
@@ -79,7 +86,8 @@ export const syncPointStrategies = [
       currentTime = currentTime || 0;
 
       for (let i = 0; i < segments.length; i++) {
-        const segment = segments[i];
+        const segmentIndex = getSegmentIndex(i, playlist, currentTime);
+        const segment = segments[segmentIndex];
 
         if (segment.timeline === currentTimeline &&
             typeof segment.start !== 'undefined') {
@@ -95,7 +103,7 @@ export const syncPointStrategies = [
             lastDistance = distance;
             syncPoint = {
               time: segment.start,
-              segmentIndex: i
+              segmentIndex
             };
           }
 
