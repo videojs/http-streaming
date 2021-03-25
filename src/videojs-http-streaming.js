@@ -940,7 +940,7 @@ class VhsHandler extends Component {
 
     this.tech_.src(this.mediaSourceUrl_);
 
-    this.player_.trigger('vhs-ready');
+    this.tech_.trigger('vhs-ready');
   }
 
   /**
