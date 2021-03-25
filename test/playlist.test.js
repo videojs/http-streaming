@@ -712,16 +712,7 @@ QUnit.test('liveEdgeDelay works as expected', function(assert) {
   );
 
   media.partTargetDuration = null;
-  assert.equal(
-    Playlist.liveEdgeDelay(master, media),
-    2,
-    'uses last three part durations'
-  );
 
-  media.segments = media.segments.map((s) => {
-    s.parts = null;
-    return s;
-  });
   assert.equal(
     Playlist.liveEdgeDelay(master, media),
     media.serverControl.holdBack,
@@ -738,8 +729,8 @@ QUnit.test('liveEdgeDelay works as expected', function(assert) {
   media.targetDuration = null;
   assert.equal(
     Playlist.liveEdgeDelay(master, media),
-    11,
-    'uses last three segment durations'
+    0,
+    'no target duration delay cannot be calcluated'
   );
 
   media.segments = media.segments.map((s) => {

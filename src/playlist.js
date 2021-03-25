@@ -29,24 +29,6 @@ const getPartsAndSegments = (playlist) => (playlist.segments || []).reduce((acc,
   return acc;
 }, []);
 
-const sumLastThreeDurations = function(partsAndSegments) {
-  // get the last three part/segment durations
-  let lastThreeDurations = 0;
-
-  if (partsAndSegments.length >= 3) {
-    for (let i = partsAndSegments.length - 1; i > partsAndSegments.length - 4; i--) {
-      // segment missing a duration, we cannot calculate
-      if (!partsAndSegments[i].duration) {
-        lastThreeDurations = 0;
-        break;
-      }
-      lastThreeDurations += partsAndSegments[i].duration;
-    }
-  }
-
-  return lastThreeDurations;
-};
-
 /**
  * Get the number of seconds to delay from the end of a
  * live playlist.
@@ -60,13 +42,11 @@ export const liveEdgeDelay = (master, media) => {
     return 0;
   }
 
-  const partsAndSegments = getPartsAndSegments(media);
-  const hasParts = partsAndSegments.length &&
-    typeof partsAndSegments[partsAndSegments.length - 1].partIndex === 'number';
+  const lastSegment = media.segments && media.segments.length && media.segments[media.segments.length - 1];
+  const hasParts = lastSegment && lastSegment.parts && lastSegment.parts.length;
   // by default we use the last three durations of segments if
   // part target duration or target duration isn't found.
   // see: https://tools.ietf.org/html/draft-pantos-hls-rfc8216bis-08#section-4.4.3.8
-  const lastThreeDurations = sumLastThreeDurations(partsAndSegments);
 
   // dash suggestedPresentationDelay trumps everything
   if (master && master.suggestedPresentationDelay) {
@@ -76,8 +56,6 @@ export const liveEdgeDelay = (master, media) => {
     return media.serverControl.partHoldBack;
   } else if (hasParts && media.partTargetDuration) {
     return media.partTargetDuration * 3;
-  } else if (hasParts && lastThreeDurations) {
-    return lastThreeDurations;
 
   // finally look for full segment delays
   } else if (media.serverControl && media.serverControl.holdBack) {
@@ -85,15 +63,9 @@ export const liveEdgeDelay = (master, media) => {
   } else if (media.targetDuration) {
     // TODO: this should probably be targetDuration * 3
     // but we use this for backwards compatability.
-    const lastPartSegment = partsAndSegments[partsAndSegments.length - 1];
-    const lastPartDuration = lastPartSegment && lastPartSegment.duration || media.targetDuration;
+    const lastPartDuration = lastSegment && lastSegment.duration || media.targetDuration;
 
     return lastPartDuration + media.targetDuration * 2;
-  // we shouldn't ever end up using lastThreeDurations as targetDuration
-  // is usually required, but if we somehow get here, with a missing
-  // targetDuration we should handle it
-  } else if (lastThreeDurations) {
-    return lastThreeDurations;
   }
 
   return 0;
