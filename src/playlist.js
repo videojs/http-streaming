@@ -299,9 +299,16 @@ export const playlistEnd = function(playlist, expired, useSafeLiveEnd, liveEdgeP
     expired
   );
 
+  // "The client SHALL choose which Media Segment to play first from the
+  // Media Playlist when playback starts.  If the EXT-X-ENDLIST tag is not
+  // present and the client intends to play the media normally, the client
+  // SHOULD NOT choose a segment which starts less than three target
+  // durations from the end of the Playlist file.  Doing so can trigger
+  // playback stalls."
+  // https://tools.ietf.org/html/draft-pantos-http-live-streaming-23#section-6.3.3
   if (useSafeLiveEnd) {
     liveEdgePadding = typeof liveEdgePadding === 'number' ? liveEdgePadding : playlist.targetDuration * 3;
-    lastSegmentTime -= (playlist.targetDuration * 3);
+    lastSegmentTime -= liveEdgePadding;
 
   }
 
