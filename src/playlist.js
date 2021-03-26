@@ -214,53 +214,6 @@ export const sumDurations = function(playlist, startIndex, endIndex) {
 };
 
 /**
- * Determines the media index of the segment corresponding to the safe edge of the live
- * window which is the duration of the last segment plus 2 target durations from the end
- * of the playlist.
- *
- * A liveEdgePadding can be provided which will be used instead of calculating the safe live edge.
- * This corresponds to suggestedPresentationDelay in DASH manifests.
- *
- * @param {Object} playlist
- *        a media playlist object
- * @param {number} [liveEdgePadding]
- *        A number in seconds indicating how far from the end we want to be.
- *        If provided, this value is used instead of calculating the safe live index from the target durations.
- *        Corresponds to suggestedPresentationDelay in DASH manifests.
- * @return {number}
- *         The media index of the segment at the safe live point. 0 if there is no "safe"
- *         point.
- * @function safeLiveIndex
- */
-export const safeLiveIndex = function(playlist, liveEdgePadding) {
-  if (!playlist.segments.length) {
-    return 0;
-  }
-
-  let i = playlist.segments.length;
-  const lastSegmentDuration = playlist.segments[i - 1].duration || playlist.targetDuration;
-  const safeDistance = typeof liveEdgePadding === 'number' ?
-    liveEdgePadding :
-    lastSegmentDuration + playlist.targetDuration * 2;
-
-  if (safeDistance === 0) {
-    return i;
-  }
-
-  let distanceFromEnd = 0;
-
-  while (i--) {
-    distanceFromEnd += playlist.segments[i].duration;
-
-    if (distanceFromEnd >= safeDistance) {
-      break;
-    }
-  }
-
-  return Math.max(0, i);
-};
-
-/**
  * Calculates the playlist end time
  *
  * @param {Object} playlist a media playlist object
@@ -559,7 +512,6 @@ export const isLowestEnabledRendition = (master, media) => {
 export default {
   duration,
   seekable,
-  safeLiveIndex,
   getMediaInfoForTime,
   isEnabled,
   isDisabled,
