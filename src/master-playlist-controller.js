@@ -38,7 +38,8 @@ const loaderStats = [
   'mediaRequestsTimedout',
   'mediaRequestsErrored',
   'mediaTransferDuration',
-  'mediaBytesTransferred'
+  'mediaBytesTransferred',
+  'mediaAppends'
 ];
 const sumLoaderStat = function(stat) {
   return this.audioSegmentLoader_[stat] +
@@ -272,6 +273,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // mediaRequestsErrored_
     // mediaTransferDuration_
     // mediaBytesTransferred_
+    // mediaAppends_
     loaderStats.forEach((stat) => {
       this[stat + '_'] = sumLoaderStat.bind(this, stat);
     });
@@ -289,6 +291,23 @@ export class MasterPlaylistController extends videojs.EventTarget {
     } else {
       this.masterPlaylistLoader_.load();
     }
+    const timeToCanPlayStart = Date.now();
+
+    this.timeToFirstFrame__ = 0;
+    this.appendsToFirstFrame__ = 0;
+
+    this.tech_.one('canplay', () => {
+      this.timeToFirstFrame__ = Date.now() - timeToCanPlayStart;
+      this.appendsToFirstFrame__ = this.mediaAppends_();
+    });
+  }
+
+  appendsToFirstFrame_() {
+    return this.appendsToFirstFrame__;
+  }
+  timeToFirstFrame_() {
+    return this.timeToFirstFrame__;
+
   }
 
   /**

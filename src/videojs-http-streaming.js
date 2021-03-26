@@ -851,6 +851,18 @@ class VhsHandler extends Component {
         get: () => this.masterPlaylistController_.mediaSecondsLoaded_() || 0,
         enumerable: true
       },
+      mediaAppends: {
+        get: () => this.masterPlaylistController_.mediaAppends_() || 0,
+        enumerable: true
+      },
+      appendsToFirstFrame: {
+        get: () => this.masterPlaylistController_.appendsToFirstFrame_() || 0,
+        enumerable: true
+      },
+      timeToFirstFrame: {
+        get: () => this.masterPlaylistController_.timeToFirstFrame_() || 0,
+        enumerable: true
+      },
       buffered: {
         get: () => timeRangesToArray(this.tech_.buffered()),
         enumerable: true
