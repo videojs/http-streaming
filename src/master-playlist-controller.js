@@ -294,20 +294,30 @@ export class MasterPlaylistController extends videojs.EventTarget {
     const timeToCanPlayStart = Date.now();
 
     this.timeToFirstFrame__ = 0;
-    this.appendsToFirstFrame__ = 0;
+    this.mainAppendsToFirstFrame__ = 0;
+    this.audioAppendsToFirstFrame__ = 0;
 
     this.tech_.one('canplay', () => {
       this.timeToFirstFrame__ = Date.now() - timeToCanPlayStart;
-      this.appendsToFirstFrame__ = this.mediaAppends_();
+      this.mainAppendsToFirstFrame__ = this.mainSegmentLoader_.mediaAppends;
+      this.audioAppendsToFirstFrame__ = this.audioSegmentLoader_.mediaAppends;
     });
   }
 
-  appendsToFirstFrame_() {
-    return this.appendsToFirstFrame__;
+  mainAppendsToFirstFrame_() {
+    return this.mainAppendsToFirstFrame__;
   }
+
+  audioAppendsToFirstFrame_() {
+    return this.audioAppendsToFirstFrame__;
+  }
+
+  appendsToFirstFrame_() {
+    return this.mainAppendsToFirstFrame_() + this.audioAppendsToFirstFrame_();
+  }
+
   timeToFirstFrame_() {
     return this.timeToFirstFrame__;
-
   }
 
   /**
