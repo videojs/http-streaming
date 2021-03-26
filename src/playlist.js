@@ -104,7 +104,7 @@ const forwardDuration = function(playlist, endSequence) {
   */
 const intervalDuration = function(playlist, endSequence, expired) {
   if (typeof endSequence === 'undefined') {
-    endSequence = playlist.mediaSequence + (playlist.segments.length - 1);
+    endSequence = playlist.mediaSequence + playlist.segments.length;
   }
 
   if (endSequence < playlist.mediaSequence) {
@@ -295,16 +295,18 @@ export const playlistEnd = function(playlist, expired, useSafeLiveEnd, liveEdgeP
 
   let lastSegmentTime = intervalDuration(
     playlist,
-    playlist.mediaSequence + playlist.segments.length - 1,
+    playlist.mediaSequence + playlist.segments.length,
     expired
   );
 
   if (useSafeLiveEnd) {
     liveEdgePadding = typeof liveEdgePadding === 'number' ? liveEdgePadding : playlist.targetDuration * 3;
     lastSegmentTime -= (playlist.targetDuration * 3);
+
   }
 
-  return lastSegmentTime;
+  // don't return a time less than zero
+  return Math.max(0, lastSegmentTime);
 };
 
 /**

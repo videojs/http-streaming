@@ -398,12 +398,8 @@ QUnit.test(
     assert.equal(seekable.start(0), 0, 'starts at the earliest available segment');
     assert.equal(
       seekable.end(0),
-      // Playlist duration is 9s. Target duration 2s. Seekable end should be at
-      // least 6s from end. Adding segment durations starting from the end to get
-      // that 6s target
-      9 - (2 + 2 + 1 + 2),
-      'allows seeking no further than the start of the segment 2 target' +
-               'durations back from the beginning of the last segment'
+      (9 - (playlist.targetDuration * 3)),
+      'three target durations behind live'
     );
     assert.equal(playlistEnd, 9, 'playlist end at the last segment');
   }
