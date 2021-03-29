@@ -339,21 +339,28 @@ export default class DashPlaylistLoader extends EventTarget {
 
     // resolve the segment URL relative to the playlist
     const uri = resolveManifestRedirect(this.handleManifestRedirects, playlist.sidx.resolvedUri);
-    const sidxMapping = this.masterPlaylistLoader_.sidxMapping_;
-
-    sidxMapping[sidxKey] = {
-      sidxInfo: playlist.sidx
-    };
 
     const fin = (err, request) => {
       if (this.requestErrored_(err, request, startingState)) {
-        delete sidxMapping[sidxKey];
         return;
       }
 
-      const sidx = parseSidx(toUint8(request.response).subarray(8));
+      const sidxMapping = this.masterPlaylistLoader_.sidxMapping_;
+      let sidx;
 
-      sidxMapping[sidxKey].sidx = sidx;
+      try {
+        sidx = parseSidx(toUint8(request.response).subarray(8));
+      } catch (e) {
+        // sidx parsing failed.
+        this.requestErrored_(e, request, startingState);
+        return;
+
+      }
+
+      sidxMapping[sidxKey] = {
+        sidxInfo: playlist.sidx,
+        sidx
+      };
 
       addSidxSegmentsToPlaylist(playlist, sidx, playlist.sidx.resolvedUri);
 

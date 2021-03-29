@@ -2593,6 +2593,49 @@ QUnit.test('requests sidx if master xml includes it', function(assert) {
   );
 });
 
+QUnit.test('sidx mapping not added on container failure', function(assert) {
+  const loader = new DashPlaylistLoader('dash-sidx.mpd', this.fakeVhs);
+
+  loader.load();
+  this.standardXHRResponse(this.requests.shift());
+  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state is HAVE_MASTER');
+  assert.ok(loader.master.playlists[0].sidx, 'sidx info is returned from parser');
+
+  // initial media selection happens automatically
+  // as there was  no pending request
+  assert.ok(loader.hasPendingRequest(), 'request is pending');
+  assert.strictEqual(this.requests.length, 1, 'one request for sidx has been made');
+  assert.notOk(loader.media(), 'media playlist is not yet set');
+
+  // respond with non-sidx data
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.equal(Object.keys(loader.sidxMapping_).length, 0, 'no sidx data');
+});
+
+QUnit.test('sidx mapping not added on sidx parsing failure', function(assert) {
+  const loader = new DashPlaylistLoader('dash-sidx.mpd', this.fakeVhs);
+
+  loader.load();
+  this.standardXHRResponse(this.requests.shift());
+  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state is HAVE_MASTER');
+  assert.ok(loader.master.playlists[0].sidx, 'sidx info is returned from parser');
+
+  // initial media selection happens automatically
+  // as there was  no pending request
+  assert.ok(loader.hasPendingRequest(), 'request is pending');
+  assert.strictEqual(this.requests.length, 1, 'one request for sidx has been made');
+  assert.notOk(loader.media(), 'media playlist is not yet set');
+
+  // valid container request
+  this.standardXHRResponse(this.requests.shift(), mp4VideoInitSegment().subarray(0, 10));
+
+  // respond with non-sidx data
+  this.standardXHRResponse(this.requests.shift(), new Uint8Array(1));
+
+  assert.equal(Object.keys(loader.sidxMapping_).length, 0, 'no sidx data');
+});
+
 QUnit.test('child loaders wait for async action before moving to HAVE_MASTER', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeVhs);
 
