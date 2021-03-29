@@ -2,6 +2,7 @@ import videojs from 'video.js';
 import {
   parse as parseMpd,
   addSidxSegmentsToPlaylist,
+  generateSidxKey,
   parseUTCTiming
 } from 'mpd-parser';
 import {
@@ -110,18 +111,6 @@ export const parseMasterXml = ({ masterXml, srcUrl, clientOffset, sidxMapping })
   addPropertiesToMaster(master, srcUrl);
 
   return master;
-};
-
-export const generateSidxKey = (sidxInfo) => {
-  // should be non-inclusive
-  const sidxByteRangeEnd =
-    sidxInfo.byterange.offset +
-    sidxInfo.byterange.length -
-    1;
-
-  return sidxInfo.uri + '-' +
-    sidxInfo.byterange.offset + '-' +
-    sidxByteRangeEnd;
 };
 
 /**
@@ -350,20 +339,27 @@ export default class DashPlaylistLoader extends EventTarget {
 
     // resolve the segment URL relative to the playlist
     const uri = resolveManifestRedirect(this.handleManifestRedirects, playlist.sidx.resolvedUri);
-    const sidxMapping = this.masterPlaylistLoader_.sidxMapping_;
-
-    sidxMapping[sidxKey] = {
-      sidxInfo: playlist.sidx
-    };
 
     const fin = (err, request) => {
       if (this.requestErrored_(err, request, startingState)) {
         return;
       }
 
-      const sidx = parseSidx(toUint8(request.response).subarray(8));
+      const sidxMapping = this.masterPlaylistLoader_.sidxMapping_;
+      let sidx;
 
-      sidxMapping[sidxKey].sidx = sidx;
+      try {
+        sidx = parseSidx(toUint8(request.response).subarray(8));
+      } catch (e) {
+        // sidx parsing failed.
+        this.requestErrored_(e, request, startingState);
+        return;
+      }
+
+      sidxMapping[sidxKey] = {
+        sidxInfo: playlist.sidx,
+        sidx
+      };
 
       addSidxSegmentsToPlaylist(playlist, sidx, playlist.sidx.resolvedUri);
 
