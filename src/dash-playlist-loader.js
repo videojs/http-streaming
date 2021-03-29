@@ -354,7 +354,6 @@ export default class DashPlaylistLoader extends EventTarget {
         // sidx parsing failed.
         this.requestErrored_(e, request, startingState);
         return;
-
       }
 
       sidxMapping[sidxKey] = {
