@@ -619,6 +619,89 @@ QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', fun
   });
 });
 
+QUnit.test('basic timeToFirstFrame, mediaAppends, appendsToFirstFrame stats', function(assert) {
+  this.masterPlaylistController.mediaSource.trigger('sourceopen');
+  // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  const segmentLoader = this.masterPlaylistController.mainSegmentLoader_;
+
+  return requestAndAppendSegment({
+    request: this.requests.shift(),
+    segmentLoader,
+    clock: this.clock
+  }).then(() => {
+    this.player.tech_.trigger('canplay');
+    const vhs = this.player.tech_.vhs;
+
+    assert.equal(vhs.stats.mediaAppends, 1, 'one media append');
+    assert.equal(vhs.stats.appendsToFirstFrame, 1, 'appends to first frame is also 1');
+    assert.equal(vhs.stats.mainAppendsToFirstFrame, 1, 'main appends to first frame is also 1');
+    assert.equal(vhs.stats.audioAppendsToFirstFrame, 0, 'audio appends to first frame is 0');
+    assert.ok(vhs.stats.timeToFirstFrame > 0, 'time to first frame is valid');
+  });
+});
+
+QUnit.test('demuxed timeToFirstFrame, mediaAppends, appendsToFirstFrame stats', function(assert) {
+  const mpc = this.masterPlaylistController;
+
+  const videoMedia = '#EXTM3U\n' +
+                     '#EXT-X-VERSION:3\n' +
+                     '#EXT-X-PLAYLIST-TYPE:VOD\n' +
+                     '#EXT-X-MEDIA-SEQUENCE:0\n' +
+                     '#EXT-X-TARGETDURATION:10\n' +
+                     '#EXTINF:10,\n' +
+                     'video-0.ts\n' +
+                     '#EXTINF:10,\n' +
+                     'video-1.ts\n' +
+                     '#EXT-X-ENDLIST\n';
+
+  const audioMedia = '#EXTM3U\n' +
+                     '#EXT-X-VERSION:3\n' +
+                     '#EXT-X-PLAYLIST-TYPE:VOD\n' +
+                     '#EXT-X-MEDIA-SEQUENCE:0\n' +
+                     '#EXT-X-TARGETDURATION:10\n' +
+                     '#EXTINF:10,\n' +
+                     'audio-0.ts\n' +
+                     '#EXTINF:10,\n' +
+                     'audio-1.ts\n' +
+                     '#EXT-X-ENDLIST\n';
+
+  mpc.mediaSource.trigger('sourceopen');
+  // master
+  this.standardXHRResponse(this.requests.shift(), manifests.demuxed);
+
+  // video media
+  this.standardXHRResponse(this.requests.shift(), videoMedia);
+
+  // audio media
+  this.standardXHRResponse(this.requests.shift(), audioMedia);
+  return Promise.all([requestAndAppendSegment({
+    request: this.requests.shift(),
+    segment: videoSegment(),
+    isOnlyVideo: true,
+    segmentLoader: mpc.mainSegmentLoader_,
+    clock: this.clock
+  }), requestAndAppendSegment({
+    request: this.requests.shift(),
+    segment: audioSegment(),
+    isOnlyAudio: true,
+    segmentLoader: mpc.audioSegmentLoader_,
+    clock: this.clock
+  })]).then(() => {
+    this.player.tech_.trigger('canplay');
+    const vhs = this.player.tech_.vhs;
+
+    assert.equal(vhs.stats.mediaAppends, 2, 'two media append');
+    assert.equal(vhs.stats.appendsToFirstFrame, 2, 'appends to first frame is also 2');
+    assert.equal(vhs.stats.mainAppendsToFirstFrame, 1, 'main appends to first frame is 1');
+    assert.equal(vhs.stats.audioAppendsToFirstFrame, 1, 'audio appends to first frame is 1');
+    assert.ok(vhs.stats.timeToFirstFrame > 0, 'time to first frame is valid');
+  });
+});
+
 QUnit.test('seeks forward 0.04 sec for fast quality switch on Edge', function(assert) {
   const oldIEVersion = videojs.browser.IE_VERSION;
   const oldIsEdge = videojs.browser.IS_EDGE;
