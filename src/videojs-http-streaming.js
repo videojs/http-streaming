@@ -671,7 +671,8 @@ class VhsHandler extends Component {
       'playlistSelector',
       'initialPlaylistSelector',
       'experimentalBufferBasedABR',
-      'liveRangeSafeTimeDelta'
+      'liveRangeSafeTimeDelta',
+      'experimentalLLHLS'
     ].forEach((option) => {
       if (typeof this.source_[option] !== 'undefined') {
         this.options_[option] = this.source_[option];

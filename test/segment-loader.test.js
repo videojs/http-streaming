@@ -49,6 +49,7 @@ import {
 } from 'create-test-data!segments';
 import sinon from 'sinon';
 import { timeRangesEqual } from './custom-assertions.js';
+import { QUOTA_EXCEEDED_ERR } from '../src/error-codes';
 
 /* TODO
 // noop addSegmentMetadataCue_ since most test segments dont have real timing information
@@ -883,32 +884,35 @@ QUnit.module('SegmentLoader', function(hooks) {
       loader.cacheEncryptionKeys_ = true;
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
-        loader.playlist(playlistWithDuration(20, { isEncrypted: true }));
-
-        // make the keys the same
-        loader.playlist_.segments[1].key =
-          videojs.mergeOptions({}, loader.playlist_.segments[0].key);
-        // give 2nd key an iv
-        loader.playlist_.segments[1].key.iv = new Uint32Array([0, 1, 2, 3]);
-
-        loader.load();
-        this.clock.tick(1);
-
-        assert.strictEqual(this.requests.length, 2, 'one request');
-        assert.strictEqual(this.requests[0].uri, '0-key.php', 'key request');
-        assert.strictEqual(this.requests[1].uri, '0.ts', 'segment request');
-
-        // key response
-        standardXHRResponse(this.requests.shift(), encryptionKey());
-        this.clock.tick(1);
-
-        // segment
-        standardXHRResponse(this.requests.shift(), encryptedSegment());
-        this.clock.tick(1);
-
         return new Promise((resolve, reject) => {
           loader.one('appended', resolve);
           loader.one('error', reject);
+          loader.playlist(playlistWithDuration(20, { isEncrypted: true }));
+
+          // make the keys the same
+          loader.playlist_.segments[1].key =
+            videojs.mergeOptions({}, loader.playlist_.segments[0].key);
+          // give 2nd key an iv
+          loader.playlist_.segments[1].key.iv = new Uint32Array([0, 1, 2, 3]);
+
+          loader.load();
+          this.clock.tick(1);
+
+          assert.strictEqual(this.requests.length, 2, 'one request');
+          assert.strictEqual(this.requests[0].uri, '0-key.php', 'key request');
+          assert.strictEqual(this.requests[1].uri, '0.ts', 'segment request');
+
+          // key response
+          standardXHRResponse(this.requests.shift(), encryptionKey());
+          this.clock.tick(1);
+
+          // segment
+          standardXHRResponse(this.requests.shift(), encryptedSegment());
+          this.clock.tick(1);
+
+          // decryption tick for syncWorker
+          this.clock.tick(1);
+
         });
       }).then(() => {
         assert.deepEqual(loader.keyCache_['0-key.php'], {
@@ -930,26 +934,29 @@ QUnit.module('SegmentLoader', function(hooks) {
 
     QUnit.test('new segment request keys every time', function(assert) {
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
-        loader.playlist(playlistWithDuration(20, { isEncrypted: true }));
-
-        loader.load();
-        this.clock.tick(1);
-
-        assert.strictEqual(this.requests.length, 2, 'one request');
-        assert.strictEqual(this.requests[0].uri, '0-key.php', 'key request');
-        assert.strictEqual(this.requests[1].uri, '0.ts', 'segment request');
-
-        // key response
-        standardXHRResponse(this.requests.shift(), encryptionKey());
-        this.clock.tick(1);
-
-        // segment
-        standardXHRResponse(this.requests.shift(), encryptedSegment());
-        this.clock.tick(1);
-
         return new Promise((resolve, reject) => {
           loader.one('appended', resolve);
           loader.one('error', reject);
+          loader.playlist(playlistWithDuration(20, { isEncrypted: true }));
+
+          loader.load();
+          this.clock.tick(1);
+
+          assert.strictEqual(this.requests.length, 2, 'one request');
+          assert.strictEqual(this.requests[0].uri, '0-key.php', 'key request');
+          assert.strictEqual(this.requests[1].uri, '0.ts', 'segment request');
+
+          // key response
+          standardXHRResponse(this.requests.shift(), encryptionKey());
+          this.clock.tick(1);
+
+          // segment
+          standardXHRResponse(this.requests.shift(), encryptedSegment());
+          this.clock.tick(1);
+
+          // decryption tick for syncWorker
+          this.clock.tick(1);
+
         });
       }).then(() => {
         this.clock.tick(1);
@@ -997,6 +1004,7 @@ QUnit.module('SegmentLoader', function(hooks) {
         this.clock.tick(1);
 
         assert.equal(loader.mediaIndex, null, 'mediaIndex reset by seek to seekable');
+        assert.equal(loader.partIndex, null, 'partIndex reset by seek to seekable');
         assert.equal(syncInfoUpdates, 1, 'syncinfoupdate was triggered');
       });
     });
@@ -1008,19 +1016,19 @@ QUnit.module('SegmentLoader', function(hooks) {
       const done = assert.async();
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        loader.one('appending', () => {
+          loader.abort();
+          this.clock.tick(1);
+          assert.equal(loader.state, 'APPENDING', 'still appending');
+          done();
+        });
+
         loader.playlist(playlistWithDuration(20));
         loader.load();
         this.clock.tick(1);
 
         standardXHRResponse(this.requests.shift(), muxedSegment());
 
-        loader.one('appending', () => {
-          loader.abort();
-          this.clock.tick(1);
-          assert.equal(loader.state, 'APPENDING', 'still appending');
-          done();
-
-        });
       });
     });
 
@@ -1046,11 +1054,6 @@ QUnit.module('SegmentLoader', function(hooks) {
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
         let appendsdone = false;
 
-        loader.playlist(playlistWithDuration(20));
-        loader.load();
-        this.clock.tick(1);
-
-        standardXHRResponse(this.requests.shift(), muxedSegment());
         loader.one('appendsdone', () => {
           appendsdone = true;
         });
@@ -1073,6 +1076,13 @@ QUnit.module('SegmentLoader', function(hooks) {
           loader.sourceUpdater_.videoQueueCallback(finish);
           loader.sourceUpdater_.audioQueueCallback(finish);
         });
+
+        loader.playlist(playlistWithDuration(20));
+        loader.load();
+        this.clock.tick(1);
+
+        standardXHRResponse(this.requests.shift(), muxedSegment());
+
       });
     });
 
@@ -1092,15 +1102,15 @@ QUnit.module('SegmentLoader', function(hooks) {
       playlist.segments[1].timeline = 1;
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
-        loader.playlist(playlist);
-        loader.load();
-        this.clock.tick(1);
-
-        // segment 0
-        standardXHRResponse(this.requests.shift(), audioSegment());
         return new Promise((resolve, reject) => {
           loader.one('appended', resolve);
           loader.one('error', reject);
+          loader.playlist(playlist);
+          loader.load();
+          this.clock.tick(1);
+
+          // segment 0
+          standardXHRResponse(this.requests.shift(), audioSegment());
         });
       }).then(() => {
         this.clock.tick(1);
@@ -1158,15 +1168,16 @@ QUnit.module('SegmentLoader', function(hooks) {
       playlist.segments[1].timeline = 1;
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
-        loader.playlist(playlist);
-        loader.load();
-        this.clock.tick(1);
-
-        // segment 0
-        standardXHRResponse(this.requests.shift(), audioSegment());
         return new Promise((resolve, reject) => {
           loader.one('appended', resolve);
           loader.one('error', reject);
+
+          loader.playlist(playlist);
+          loader.load();
+          this.clock.tick(1);
+
+          // segment 0
+          standardXHRResponse(this.requests.shift(), audioSegment());
         });
       }).then(() => {
         this.clock.tick(1);
@@ -1197,15 +1208,15 @@ QUnit.module('SegmentLoader', function(hooks) {
       playlist.segments[1].timeline = 1;
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
-        loader.playlist(playlist);
-        loader.load();
-        this.clock.tick(1);
-
-        // segment 0
-        standardXHRResponse(this.requests.shift(), audioSegment());
         return new Promise((resolve, reject) => {
           loader.one('appended', resolve);
           loader.one('error', reject);
+          loader.playlist(playlist);
+          loader.load();
+          this.clock.tick(1);
+
+          // segment 0
+          standardXHRResponse(this.requests.shift(), audioSegment());
         });
       }).then(() => {
         this.clock.tick(1);
@@ -1238,15 +1249,15 @@ QUnit.module('SegmentLoader', function(hooks) {
       playlist.segments[1].timeline = 1;
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
-        loader.playlist(playlist);
-        loader.load();
-        this.clock.tick(1);
-
-        // segment 0
-        standardXHRResponse(this.requests.shift(), audioSegment());
         return new Promise((resolve, reject) => {
           loader.one('appended', resolve);
           loader.one('error', reject);
+          loader.playlist(playlist);
+          loader.load();
+          this.clock.tick(1);
+
+          // segment 0
+          standardXHRResponse(this.requests.shift(), audioSegment());
         });
       }).then(() => {
         this.clock.tick(1);
@@ -1524,29 +1535,30 @@ QUnit.module('SegmentLoader', function(hooks) {
       this.fakeMainTimelineChange();
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
-        loader.playlist(playlistWithDuration(20));
-        loader.load();
-        this.clock.tick(1);
-
-        assert.deepEqual(
-          this.timelineChangeController.pendingTimelineChange({ type: 'audio' }),
-          {
-            type: 'audio',
-            from: -1,
-            to: 0
-          },
-          'added pending timeline change for audio'
-        );
-        assert.notOk(
-          this.timelineChangeController.lastTimelineChange({ type: 'audio' }),
-          'no timeline change for audio yet'
-        );
-
-        // segment 0
-        standardXHRResponse(this.requests.shift(), audioSegment());
         return new Promise((resolve, reject) => {
           loader.one('appended', resolve);
           loader.one('error', reject);
+
+          loader.playlist(playlistWithDuration(20));
+          loader.load();
+          this.clock.tick(1);
+
+          assert.deepEqual(
+            this.timelineChangeController.pendingTimelineChange({ type: 'audio' }),
+            {
+              type: 'audio',
+              from: -1,
+              to: 0
+            },
+            'added pending timeline change for audio'
+          );
+          assert.notOk(
+            this.timelineChangeController.lastTimelineChange({ type: 'audio' }),
+            'no timeline change for audio yet'
+          );
+
+          // segment 0
+          standardXHRResponse(this.requests.shift(), audioSegment());
         });
       }).then(() => {
         assert.deepEqual(
@@ -1780,16 +1792,16 @@ QUnit.module('SegmentLoader', function(hooks) {
       const syncController = loader.syncController_;
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
-        loader.playlist(playlistWithDuration(20));
-        loader.load();
-        this.clock.tick(1);
-        standardXHRResponse(this.requests.shift(), audioSegment());
-
-        assert.notOk(syncController.mappingForTimeline(0), 'no mapping for timeline 0');
-
         return new Promise((resolve, reject) => {
+
           loader.one('appended', resolve);
           loader.one('error', reject);
+          loader.playlist(playlistWithDuration(20));
+          loader.load();
+          this.clock.tick(1);
+          standardXHRResponse(this.requests.shift(), audioSegment());
+
+          assert.notOk(syncController.mappingForTimeline(0), 'no mapping for timeline 0');
         });
       }).then(() => {
         assert.notOk(syncController.mappingForTimeline(0), 'no mapping for timeline 0');
@@ -1910,25 +1922,6 @@ QUnit.module('SegmentLoader', function(hooks) {
       const addCueSpy = sinon.spy();
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
-        loader.inbandTextTracks_ = {};
-        loader.playlist(playlistWithDuration(20));
-        loader.load();
-        // set the mediaSource duration as it is usually set by
-        // master playlist controller, which is not present here
-        loader.mediaSource_.duration = 20;
-
-        this.clock.tick(1);
-
-        // Mock text tracks and addRemoteTextTrack on the mock tech
-        sinon.stub(loader.vhs_.tech_, 'addRemoteTextTrack')
-          .returns({
-            track: {
-              addCue: addCueSpy
-            }
-          });
-
-        standardXHRResponse(this.requests.shift(), muxedSegment());
-
         loader.on('appending', () => {
           // Simulate an id3Frame event happening that will call handleId3_
           loader.handleId3_(loader.pendingSegment_, metadataCues, dispatchType);
@@ -1949,6 +1942,26 @@ QUnit.module('SegmentLoader', function(hooks) {
           );
           done();
         });
+
+        loader.inbandTextTracks_ = {};
+        loader.playlist(playlistWithDuration(20));
+        loader.load();
+        // set the mediaSource duration as it is usually set by
+        // master playlist controller, which is not present here
+        loader.mediaSource_.duration = 20;
+
+        this.clock.tick(1);
+
+        // Mock text tracks and addRemoteTextTrack on the mock tech
+        sinon.stub(loader.vhs_.tech_, 'addRemoteTextTrack')
+          .returns({
+            track: {
+              addCue: addCueSpy
+            }
+          });
+
+        standardXHRResponse(this.requests.shift(), muxedSegment());
+
       });
     });
 
@@ -1964,6 +1977,20 @@ QUnit.module('SegmentLoader', function(hooks) {
       const addCueSpy = sinon.spy();
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        loader.on('appending', () => {
+          // Simulate a caption event happening that will call handleCaptions_
+          loader.handleCaptions_(loader.pendingSegment_, captions);
+        });
+
+        loader.on('appended', () => {
+          assert.ok(
+            Object.keys(loader.inbandTextTracks_.CC1),
+            'created one text track with the caption stream as the id'
+          );
+          assert.strictEqual(addCueSpy.callCount, 1, 'created one cue');
+          done();
+        });
+
         loader.playlist(playlistWithDuration(20));
         loader.load();
 
@@ -1983,19 +2010,6 @@ QUnit.module('SegmentLoader', function(hooks) {
 
         standardXHRResponse(this.requests.shift(), muxedSegment());
 
-        loader.on('appending', () => {
-          // Simulate a caption event happening that will call handleCaptions_
-          loader.handleCaptions_(loader.pendingSegment_, captions);
-        });
-
-        loader.on('appended', () => {
-          assert.ok(
-            Object.keys(loader.inbandTextTracks_.CC1),
-            'created one text track with the caption stream as the id'
-          );
-          assert.strictEqual(addCueSpy.callCount, 1, 'created one cue');
-          done();
-        });
       });
     });
 
@@ -2012,25 +2026,6 @@ QUnit.module('SegmentLoader', function(hooks) {
       const addCueSpy = sinon.spy();
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
-        loader.playlist(playlistWithDuration(20));
-        loader.load();
-
-        this.clock.tick(1);
-
-        // Mock text tracks on the mock tech and setup the inbandTextTracks
-        loader.inbandTextTracks_ = {};
-        textTrackStub.returns({
-          getTrackById: () => null
-        });
-        sinon.stub(loader.vhs_.tech_, 'addRemoteTextTrack')
-          .returns({
-            track: {
-              addCue: addCueSpy
-            }
-          });
-
-        standardXHRResponse(this.requests.shift(), audioSegment());
-
         loader.on('appending', () => {
           // Simulate a caption event happening that will call handleCaptions_
           const dispatchType = 0x10;
@@ -2055,6 +2050,24 @@ QUnit.module('SegmentLoader', function(hooks) {
           done();
         });
 
+        loader.playlist(playlistWithDuration(20));
+        loader.load();
+
+        this.clock.tick(1);
+
+        // Mock text tracks on the mock tech and setup the inbandTextTracks
+        loader.inbandTextTracks_ = {};
+        textTrackStub.returns({
+          getTrackById: () => null
+        });
+        sinon.stub(loader.vhs_.tech_, 'addRemoteTextTrack')
+          .returns({
+            track: {
+              addCue: addCueSpy
+            }
+          });
+
+        standardXHRResponse(this.requests.shift(), audioSegment());
       });
     });
 
@@ -2276,19 +2289,18 @@ QUnit.module('SegmentLoader', function(hooks) {
       const errors = [];
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
-
-        const playlist = playlistWithDuration(40);
-
-        loader.on('error', () => errors.push(loader.error()));
-
-        loader.playlist(playlist);
-        loader.load();
-        this.clock.tick(1);
-
-        standardXHRResponse(this.requests.shift(), muxedSegment());
         return new Promise((resolve, reject) => {
           loader.one('appended', resolve);
-          loader.one('error', reject);
+
+          const playlist = playlistWithDuration(40);
+
+          loader.on('error', () => errors.push(loader.error()));
+
+          loader.playlist(playlist);
+          loader.load();
+          this.clock.tick(1);
+
+          standardXHRResponse(this.requests.shift(), muxedSegment());
         });
       }).then(() => {
         this.clock.tick(1);
@@ -2313,20 +2325,21 @@ QUnit.module('SegmentLoader', function(hooks) {
       const errors = [];
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
-
-        const playlist = playlistWithDuration(40);
-
-        loader.on('error', () => errors.push(loader.error()));
-
-        loader.playlist(playlist);
-        loader.load();
-        this.clock.tick(1);
-
-        standardXHRResponse(this.requests.shift(), audioSegment());
-
         return new Promise((resolve, reject) => {
+
           loader.one('appended', resolve);
           loader.one('error', reject);
+
+          const playlist = playlistWithDuration(40);
+
+          loader.on('error', () => errors.push(loader.error()));
+
+          loader.playlist(playlist);
+          loader.load();
+          this.clock.tick(1);
+
+          standardXHRResponse(this.requests.shift(), audioSegment());
+
         });
       }).then(() => {
         this.clock.tick(1);
@@ -2597,24 +2610,25 @@ QUnit.module('SegmentLoader', function(hooks) {
     QUnit.test('triggers appenderror when append errors', function(assert) {
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
-        const playlist = playlistWithDuration(40);
-
-        loader.playlist(playlist);
-        loader.load();
-        this.clock.tick(1);
-
-        // mocking in this case because it's hard to find a good append error that will
-        // 1) work across browsers
-        // 2) won't cause an error in the transmuxer first
-        loader.sourceUpdater_.appendBuffer = ({type, bytes}, callback) => {
-          callback({type: 'error'});
-        };
-
-        standardXHRResponse(this.requests.shift(), muxedSegment());
-
         return new Promise((resolve, reject) => {
           loader.one('appenderror', resolve);
           loader.one('error', reject);
+
+          const playlist = playlistWithDuration(40);
+
+          loader.playlist(playlist);
+          loader.load();
+          this.clock.tick(1);
+
+          // mocking in this case because it's hard to find a good append error that will
+          // 1) work across browsers
+          // 2) won't cause an error in the transmuxer first
+          loader.sourceUpdater_.appendBuffer = ({type, bytes}, callback) => {
+            callback({type: 'error'});
+          };
+
+          standardXHRResponse(this.requests.shift(), muxedSegment());
+
         });
       }).then(() => {
         assert.deepEqual(
@@ -3133,54 +3147,55 @@ QUnit.module('SegmentLoader', function(hooks) {
       };
 
       return setupMediaSource(loader.mediaSource_, sourceUpdater).then(() => {
-        const origAppendToSourceBuffer = loader.appendToSourceBuffer_.bind(loader);
-        const origAudioTimestampOffset =
-          sourceUpdater.audioTimestampOffset.bind(sourceUpdater);
-        const origVideoTimestampOffset =
-          sourceUpdater.videoTimestampOffset.bind(sourceUpdater);
-        const origTransmuxerPostMessage =
-          loader.transmuxer_.postMessage.bind(loader.transmuxer_);
-
-        // Keep track of appends and changes in timestamp offset to verify the right
-        // number of each were set.
-        loader.appendToSourceBuffer_ = (config) => {
-          appends.push(config);
-          origAppendToSourceBuffer(config);
-        };
-        sourceUpdater.audioTimestampOffset = (offset) => {
-          if (!offset) {
-            return audioTimestampOffsets.length ?
-              audioTimestampOffsets[audioTimestampOffsets.length - 1] : -1;
-          }
-          audioTimestampOffsets.push(offset);
-          origAudioTimestampOffset(offset);
-        };
-        sourceUpdater.videoTimestampOffset = (offset) => {
-          if (!offset) {
-            return videoTimestampOffsets.length ?
-              videoTimestampOffsets[videoTimestampOffsets.length - 1] : -1;
-          }
-          videoTimestampOffsets.push(offset);
-          origVideoTimestampOffset(offset);
-        };
-        loader.transmuxer_.postMessage = (message) => {
-          if (message.action === 'setTimestampOffset') {
-            transmuxerTimestampOffsets.push(message.timestampOffset);
-          }
-          origTransmuxerPostMessage(message);
-        };
-
-        // Load the playlist and the zero length segment. Note that the zero length
-        // segment is the first loaded segment, as it's an easy case for when a timestamp
-        // offset should be set, except in this case, when the first segment has no audio
-        // or video data.
-        loader.playlist(playlistWithDuration(20));
-        loader.load();
-        this.clock.tick(1);
-        standardXHRResponse(this.requests.shift(), zeroLengthSegment());
         return new Promise((resolve, reject) => {
           loader.one('appended', resolve);
           loader.one('error', reject);
+
+          const origAppendToSourceBuffer = loader.appendToSourceBuffer_.bind(loader);
+          const origAudioTimestampOffset =
+            sourceUpdater.audioTimestampOffset.bind(sourceUpdater);
+          const origVideoTimestampOffset =
+            sourceUpdater.videoTimestampOffset.bind(sourceUpdater);
+          const origTransmuxerPostMessage =
+            loader.transmuxer_.postMessage.bind(loader.transmuxer_);
+
+          // Keep track of appends and changes in timestamp offset to verify the right
+          // number of each were set.
+          loader.appendToSourceBuffer_ = (config) => {
+            appends.push(config);
+            origAppendToSourceBuffer(config);
+          };
+          sourceUpdater.audioTimestampOffset = (offset) => {
+            if (!offset) {
+              return audioTimestampOffsets.length ?
+                audioTimestampOffsets[audioTimestampOffsets.length - 1] : -1;
+            }
+            audioTimestampOffsets.push(offset);
+            origAudioTimestampOffset(offset);
+          };
+          sourceUpdater.videoTimestampOffset = (offset) => {
+            if (!offset) {
+              return videoTimestampOffsets.length ?
+                videoTimestampOffsets[videoTimestampOffsets.length - 1] : -1;
+            }
+            videoTimestampOffsets.push(offset);
+            origVideoTimestampOffset(offset);
+          };
+          loader.transmuxer_.postMessage = (message) => {
+            if (message.action === 'setTimestampOffset') {
+              transmuxerTimestampOffsets.push(message.timestampOffset);
+            }
+            origTransmuxerPostMessage(message);
+          };
+
+          // Load the playlist and the zero length segment. Note that the zero length
+          // segment is the first loaded segment, as it's an easy case for when a timestamp
+          // offset should be set, except in this case, when the first segment has no audio
+          // or video data.
+          loader.playlist(playlistWithDuration(20));
+          loader.load();
+          this.clock.tick(1);
+          standardXHRResponse(this.requests.shift(), zeroLengthSegment());
         });
       }).then(() => {
         assert.equal(appends.length, 0, 'zero appends');
@@ -3421,17 +3436,18 @@ QUnit.module('SegmentLoader', function(hooks) {
 
     QUnit.test('main buffered uses audio buffer when audio only', function(assert) {
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
-        const playlist = playlistWithDuration(40);
-
-        loader.playlist(playlist);
-        loader.load();
-        this.clock.tick(1);
-
-        // need to load content to have starting media
-        standardXHRResponse(this.requests.shift(), audioSegment());
         return new Promise((resolve, reject) => {
           loader.one('appended', resolve);
           loader.one('error', reject);
+
+          const playlist = playlistWithDuration(40);
+
+          loader.playlist(playlist);
+          loader.load();
+          this.clock.tick(1);
+
+          // need to load content to have starting media
+          standardXHRResponse(this.requests.shift(), audioSegment());
         });
       }).then(() => {
         // mock the buffered values (easiest solution to test that segment-loader is
@@ -3462,17 +3478,18 @@ QUnit.module('SegmentLoader', function(hooks) {
       this.fakeMainTimelineChange();
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
-        const playlist = playlistWithDuration(40);
-
-        loader.playlist(playlist);
-        loader.load();
-        this.clock.tick(1);
-
-        // need to load content to have starting media
-        standardXHRResponse(this.requests.shift(), audioSegment());
         return new Promise((resolve, reject) => {
           loader.one('appended', resolve);
           loader.one('error', reject);
+
+          const playlist = playlistWithDuration(40);
+
+          loader.playlist(playlist);
+          loader.load();
+          this.clock.tick(1);
+
+          // need to load content to have starting media
+          standardXHRResponse(this.requests.shift(), audioSegment());
         });
       }).then(() => {
         // mock the buffered values (easiest solution to test that segment-loader is
@@ -4132,6 +4149,159 @@ QUnit.module('SegmentLoader', function(hooks) {
           playlist2.segments[2],
           'segments are equal'
         );
+      });
+    });
+
+    QUnit.test('QUOTA_EXCEEDED_ERR no loader error triggered', function(assert) {
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        const playlist = playlistWithDuration(40);
+
+        loader.playlist(playlist);
+        loader.load();
+        this.clock.tick(1);
+
+        // mock some buffer to prevent an error from not being able to clear any buffer
+        loader.sourceUpdater_.audioBuffered = () => videojs.createTimeRanges([0, 5]);
+        loader.sourceUpdater_.videoBuffered = () => videojs.createTimeRanges([0, 5]);
+
+        loader.sourceUpdater_.appendBuffer = ({type, bytes}, callback) => {
+          callback({type: 'QUOTA_EXCEEDED_ERR', code: QUOTA_EXCEEDED_ERR});
+          assert.notOk(loader.error_, 'no error triggered on loader');
+        };
+
+        standardXHRResponse(this.requests.shift(), muxedSegment());
+      });
+    });
+
+    QUnit.test('QUOTA_EXCEEDED_ERR triggers error if no room for single segment', function(assert) {
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        return new Promise((resolve, reject) => {
+          const playlist = playlistWithDuration(40);
+
+          loader.playlist(playlist);
+          loader.load();
+          this.clock.tick(1);
+
+          // appenderrors are fatal, we don't want them in this case
+          loader.one('appenderror', reject);
+          loader.one('error', resolve);
+
+          loader.sourceUpdater_.appendBuffer = ({type, bytes}, callback) => {
+            callback({type: 'QUOTA_EXCEEDED_ERR', code: QUOTA_EXCEEDED_ERR});
+          };
+
+          standardXHRResponse(this.requests.shift(), muxedSegment());
+
+        });
+      }).then(() => {
+        // buffer was empty, meaning there wasn't room for a single segment from that
+        // rendition
+        assert.deepEqual(
+          loader.error_,
+          {
+            message: 'Quota exceeded error with append of a single segment of content',
+            blacklistDuration: Infinity
+          },
+          'loader triggered and saved the error'
+        );
+      });
+    });
+
+    QUnit.test('QUOTA_EXCEEDED_ERR leads to clearing back buffer and retrying', function(assert) {
+      const removeVideoCalls = [];
+      const removeAudioCalls = [];
+      let origAppendBuffer;
+
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        const playlist = playlistWithDuration(40);
+
+        loader.playlist(playlist);
+        loader.load();
+        this.clock.tick(1);
+
+        // mock some buffer and the playhead position
+        loader.currentTime_ = () => 7;
+        loader.sourceUpdater_.audioBuffered = () => videojs.createTimeRanges([2, 10]);
+        loader.sourceUpdater_.videoBuffered = () => videojs.createTimeRanges([0, 10]);
+
+        loader.sourceUpdater_.removeVideo = (start, end, done) => {
+          assert.ok(loader.waitingOnRemove_, 'waiting on buffer removal to complete');
+          removeVideoCalls.push({ start, end });
+          done();
+        };
+        loader.sourceUpdater_.removeAudio = (start, end, done) => {
+          assert.ok(loader.waitingOnRemove_, 'waiting on buffer removal to complete');
+          removeAudioCalls.push({ start, end });
+          done();
+        };
+
+        origAppendBuffer = loader.sourceUpdater_.appendBuffer;
+        loader.sourceUpdater_.appendBuffer = ({type, bytes}, callback) => {
+          assert.equal(removeVideoCalls.length, 0, 'no calls to remove video');
+          assert.equal(removeAudioCalls.length, 0, 'no calls to remove audio');
+          assert.notOk(
+            loader.waitingOnRemove_,
+            'loader is not waiting on buffer removal'
+          );
+          assert.notOk(
+            loader.quotaExceededErrorRetryTimeout_,
+            'loader is not waiting to retry'
+          );
+          assert.equal(loader.callQueue_.length, 0, 'loader has empty call queue');
+
+          callback({type: 'QUOTA_EXCEEDED_ERR', code: QUOTA_EXCEEDED_ERR});
+
+          assert.deepEqual(
+            removeVideoCalls,
+            [{ start: 0, end: 6 }],
+            'removed video to one second behind playhead'
+          );
+          assert.deepEqual(
+            removeAudioCalls,
+            [{ start: 0, end: 6 }],
+            'removed audio to one second behind playhead'
+          );
+          assert.notOk(
+            loader.waitingOnRemove_,
+            'loader is not waiting on buffer removal'
+          );
+          assert.ok(
+            loader.quotaExceededErrorRetryTimeout_,
+            'loader is waiting to retry'
+          );
+          assert.equal(loader.callQueue_.length, 1, 'loader has call waiting in queue');
+
+          loader.sourceUpdater_.appendBuffer = origAppendBuffer;
+
+          // wait one second for retry timeout
+          this.clock.tick(1000);
+
+          // ensure we cleared out the waiting state and call queue
+          assert.notOk(
+            loader.quotaExceededErrorRetryTimeout_,
+            'loader is not waiting to retry'
+          );
+          assert.equal(loader.callQueue_.length, 0, 'loader has empty call queue');
+        };
+
+        standardXHRResponse(this.requests.shift(), muxedSegment());
+
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        // at this point the append should've successfully completed, but it's good to
+        // once again check that the old state that was used was cleared out
+        assert.notOk(
+          loader.waitingOnRemove_,
+          'loader is not waiting on buffer removal'
+        );
+        assert.notOk(
+          loader.quotaExceededErrorRetryTimeout_,
+          'loader is not waiting to retry'
+        );
+        assert.equal(loader.callQueue_.length, 0, 'loader has empty call queue');
       });
     });
   });

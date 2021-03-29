@@ -8,6 +8,7 @@ import { bufferIntersection } from './ranges.js';
 import {getMimeForCodec} from '@videojs/vhs-utils/es/codecs.js';
 import window from 'global/window';
 import toTitleCase from './util/to-title-case.js';
+import { QUOTA_EXCEEDED_ERR } from './error-codes';
 
 const bufferTypes = [
   'video',
@@ -101,16 +102,22 @@ const shiftQueue = (type, sourceUpdater) => {
   }
 
   sourceUpdater.queue.splice(queueIndex, 1);
+  // Keep a record that this source buffer type is in use.
+  //
+  // The queue pending operation must be set before the action is performed in the event
+  // that the action results in a synchronous event that is acted upon. For instance, if
+  // an exception is thrown that can be handled, it's possible that new actions will be
+  // appended to an empty queue and immediately executed, but would not have the correct
+  // pending information if this property was set after the action was performed.
+  sourceUpdater.queuePending[type] = queueEntry;
   queueEntry.action(type, sourceUpdater);
 
   if (!queueEntry.doneFn) {
     // synchronous operation, process next entry
+    sourceUpdater.queuePending[type] = null;
     shiftQueue(type, sourceUpdater);
     return;
   }
-
-  // asynchronous operation, so keep a record that this source buffer type is in use
-  sourceUpdater.queuePending[type] = queueEntry;
 };
 
 const cleanupBuffer = (type, sourceUpdater) => {
@@ -132,7 +139,7 @@ const inSourceBuffers = (mediaSource, sourceBuffer) => mediaSource && sourceBuff
   Array.prototype.indexOf.call(mediaSource.sourceBuffers, sourceBuffer) !== -1;
 
 const actions = {
-  appendBuffer: (bytes, segmentInfo) => (type, sourceUpdater) => {
+  appendBuffer: (bytes, segmentInfo, onError) => (type, sourceUpdater) => {
     const sourceBuffer = sourceUpdater[`${type}Buffer`];
 
     // can't do anything if the media source / source buffer is null
@@ -143,7 +150,15 @@ const actions = {
 
     sourceUpdater.logger_(`Appending segment ${segmentInfo.mediaIndex}'s ${bytes.length} bytes to ${type}Buffer`);
 
-    sourceBuffer.appendBuffer(bytes);
+    try {
+      sourceBuffer.appendBuffer(bytes);
+    } catch (e) {
+      sourceUpdater.logger_(`Error with code ${e.code} ` +
+        (e.code === QUOTA_EXCEEDED_ERR ? '(QUOTA_EXCEEDED_ERR) ' : '') +
+        `when appending segment ${segmentInfo.mediaIndex} to ${type}Buffer`);
+      sourceUpdater.queuePending[type] = null;
+      onError(e);
+    }
   },
   remove: (start, end) => (type, sourceUpdater) => {
     const sourceBuffer = sourceUpdater[`${type}Buffer`];
@@ -155,7 +170,11 @@ const actions = {
     }
 
     sourceUpdater.logger_(`Removing ${start} to ${end} from ${type}Buffer`);
-    sourceBuffer.remove(start, end);
+    try {
+      sourceBuffer.remove(start, end);
+    } catch (e) {
+      sourceUpdater.logger_(`Remove ${start} to ${end} from ${type}Buffer failed`);
+    }
   },
   timestampOffset: (offset) => (type, sourceUpdater) => {
     const sourceBuffer = sourceUpdater[`${type}Buffer`];
@@ -546,10 +565,16 @@ export default class SourceUpdater extends videojs.EventTarget {
       return;
     }
 
+    // In the case of certain errors, for instance, QUOTA_EXCEEDED_ERR, updateend will
+    // not be fired. This means that the queue will be blocked until the next action
+    // taken by the segment-loader. Provide a mechanism for segment-loader to handle
+    // these errors by calling the doneFn with the specific error.
+    const onError = doneFn;
+
     pushQueue({
       type,
       sourceUpdater: this,
-      action: actions.appendBuffer(bytes, segmentInfo || {mediaIndex: -1}),
+      action: actions.appendBuffer(bytes, segmentInfo || {mediaIndex: -1}, onError),
       doneFn,
       name: 'appendBuffer'
     });

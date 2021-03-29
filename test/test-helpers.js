@@ -7,7 +7,6 @@ import xhrFactory from '../src/xhr';
 import window from 'global/window';
 import { muxed as muxedSegment } from 'create-test-data!segments';
 import {bytesToString, isTypedArray} from '@videojs/vhs-utils/es/byte-helpers';
-import {isLikelyFmp4MediaSegment} from '@videojs/vhs-utils/es/containers';
 
 // return an absolute version of a page-relative URL
 export const absoluteUrl = function(relativeUrl) {
@@ -433,10 +432,14 @@ export const playlistWithDuration = function(time, conf) {
     attributes: conf && typeof conf.attributes !== 'undefined' ? conf.attributes : {}
   };
 
+  if (conf && conf.llhls) {
+    result.partTargetDuration = conf.llhls.partTargetDuration || (targetDuration / 5);
+  }
+
   result.id = result.uri;
 
-  const count = Math.floor(time / targetDuration);
   const remainder = time % targetDuration;
+  const count = Math.floor(time / targetDuration) + (remainder ? 1 : 0);
   let i;
   const isEncrypted = conf && conf.isEncrypted;
   const extension = conf && conf.extension ? conf.extension : '.ts';
@@ -455,7 +458,8 @@ export const playlistWithDuration = function(time, conf) {
     const segment = {
       uri: i + extension,
       resolvedUri: i + extension,
-      duration: targetDuration,
+      // last segment will be less then 10 if duration is uneven
+      duration: (i + 1 === count && remainder) ? remainder : targetDuration,
       timeline
     };
 
@@ -470,15 +474,26 @@ export const playlistWithDuration = function(time, conf) {
       segment.discontinuity = true;
     }
 
+    // add parts for the the last 3 segments in llhls playlists
+    if (conf && conf.llhls && (count - i) <= 3) {
+      segment.parts = [];
+      const partRemainder = segment.duration % result.partTargetDuration;
+      const partCount = Math.floor(segment.duration / result.partTargetDuration) + (partRemainder ? 1 : 0);
+
+      for (let z = 0; z < partCount; z++) {
+        const uri = `segment${i}.part${z}${extension}`;
+
+        segment.parts.push({
+          uri,
+          resolvedUri: uri,
+          duration: (z + 1 === partCount && partRemainder) ? partRemainder : result.partTargetDuration
+        });
+      }
+    }
+
     result.segments.push(segment);
   }
-  if (remainder) {
-    result.segments.push({
-      uri: i + extension,
-      duration: remainder,
-      timeline: result.discontinuitySequence
-    });
-  }
+
   return result;
 };
 
@@ -531,7 +546,8 @@ export const requestAndAppendSegment = function({
   requestDurationMillis,
   isOnlyAudio,
   isOnlyVideo,
-  tickClock
+  tickClock,
+  decryptionTicks
 }) {
   segment = segment || muxedSegment();
   tickClock = typeof tickClock === 'undefined' ? true : tickClock;
@@ -547,18 +563,19 @@ export const requestAndAppendSegment = function({
   requestDurationMillis = requestDurationMillis || 1000;
 
   return new Promise((resolve, reject) => {
+    segmentLoader.one('appending', resolve);
+    segmentLoader.one('error', reject);
+
     clock.tick(requestDurationMillis);
     if (initSegmentRequest) {
       standardXHRResponse(initSegmentRequest, initSegment);
     }
     standardXHRResponse(request, segment);
 
-    // fmp4 segments don't need to be transmuxed, therefore will execute synchronously
-    if (!isLikelyFmp4MediaSegment(segment)) {
-      segmentLoader.one('appending', resolve);
-      segmentLoader.one('error', reject);
-    } else {
-      resolve();
+    // we need decryptionTicks for syncWorker, as decryption
+    // happens in a setTimeout on the main thread
+    if (decryptionTicks) {
+      clock.tick(2);
     }
   }).then(function() {
     if (throughput) {
