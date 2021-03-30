@@ -4,7 +4,7 @@
 import window from 'global/window';
 import PlaylistLoader from './playlist-loader';
 import DashPlaylistLoader from './dash-playlist-loader';
-import { isEnabled, isLowestEnabledRendition, isAudioOnly } from './playlist.js';
+import { isEnabled, isLowestEnabledRendition } from './playlist.js';
 import SegmentLoader from './segment-loader';
 import SourceUpdater from './source-updater';
 import VTTSegmentLoader from './vtt-segment-loader';
@@ -342,14 +342,19 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.abrTimer_ = null;
   }
 
+  /**
+   * Get a list of playlists for the currently selected audio playlist
+   *
+   * @return {Array} the array of audio playlists
+   */
   getAudioTrackPlaylists_() {
     const master = this.master();
 
-    if (isAudioOnly(master)) {
+    // if we don't have any9 demuxed audio tracks
+    // return an empty array
+    if (!master && !master.mediaGroups && !master.mediaGroups.AUDIO) {
       return [];
     }
-
-    const playlists = [];
 
     const AUDIO = master.mediaGroups.AUDIO;
     const groupKeys = Object.keys(AUDIO);
@@ -371,10 +376,15 @@ export class MasterPlaylistController extends videojs.EventTarget {
       }
     }
 
+    // no active track no playlists.
     if (!track) {
-      return playlists;
+      return [];
     }
 
+    const playlists = [];
+
+    // get all of the playlists that are possible for the
+    // active track.
     for (const group in AUDIO) {
       if (AUDIO[group][track.label]) {
         const properties = AUDIO[group][track.label];

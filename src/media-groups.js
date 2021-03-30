@@ -162,7 +162,7 @@ export const onTrackChanged = (type, settings) => () => {
       return;
     }
 
-    const mpc = settings.masterPlaylistController;
+    const mpc = settings.vhs.masterPlaylistController_;
     const newPlaylist = mpc.selectPlaylist();
 
     // media will not change do nothing
