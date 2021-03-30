@@ -82,7 +82,9 @@ export const parseManifest = ({
     const lastSegment = manifest.segments[manifest.segments.length - 1];
     const lastDuration = lastSegment && Math.round(lastSegment) || 10;
 
-    onwarn(`manifest has no targetDuration defaulting to ${lastDuration}`);
+    if (onwarn) {
+      onwarn(`manifest has no targetDuration defaulting to ${lastDuration}`);
+    }
     manifest.targetDuration = lastDuration;
   }
 
