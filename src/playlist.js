@@ -542,13 +542,35 @@ export const isLowestEnabledRendition = (master, media) => {
   }).length === 0);
 };
 
+const playlistMatch = (a, b) => {
+  if (a.id && b.id && a.id === b.id) {
+    return true;
+  }
+
+  if (a.uri && b.uri && a.uri === b.uri) {
+    return true;
+  }
+
+  if (a.resolvedUri && b.resolvedUri && a.resolvedUri === b.resolvedUri) {
+    return true;
+  }
+
+  return false;
+};
+
 export const isAudioOnly = (master) => {
+  const AUDIO = master.mediaGroups && master.mediaGroups.AUDIO;
+
   // we are audio only if we have no main playlists but do
   // have media group playlists.
   if (!master.playlists || !master.playlists.length) {
-    for (const groupName in master.mediaGroups.AUDIO) {
-      for (const label in master.mediaGroups.AUDIO[groupName]) {
-        const variant = master.mediaGroups.AUDIO[groupName][label];
+    // no audio media groups and no playlists, this cannot be audio only
+    if (!AUDIO) {
+      return false;
+    }
+    for (const groupName in AUDIO) {
+      for (const label in AUDIO[groupName]) {
+        const variant = AUDIO[groupName][label];
 
         if (variant.playlists && variant.playlists.length || variant.uri) {
           return true;
@@ -558,11 +580,34 @@ export const isAudioOnly = (master) => {
   }
 
   // if every playlist has only an audio codec it is audio only
-  return master.playlists
-    .every((p) => p.attributes &&
-    p.attributes.CODECS &&
-    p.attributes.CODECS.split(',').every((c) => isAudioCodec(c)));
+  for (let i = 0; i < master.playlists.length; i++) {
+    const playlist = master.playlists[i];
+    const CODECS = playlist.attributes && playlist.attributes.CODECS;
 
+    // all codecs are audio, this is an audio playlist.
+    if (CODECS && CODECS.split(',').every((c) => isAudioCodec(c))) {
+      continue;
+    }
+
+    if (AUDIO) {
+      for (const groupName in AUDIO) {
+        for (const label in AUDIO[groupName]) {
+          const variant = AUDIO[groupName][label];
+
+          // playlist is in an audio group it is audio only
+          if (playlistMatch(playlist, variant)) {
+            continue;
+          }
+        }
+      }
+    }
+
+    // if we make it here this playlist isn't audio and we
+    // are not audio only
+    return false;
+  }
+
+  return true;
 };
 
 // exports

@@ -798,6 +798,7 @@ QUnit.module('MediaGroups - initialize', {
     };
     this.settings = {
       mode: 'html5',
+      masterPlaylistLoader: {master: this.master},
       vhs: {},
       tech: {
         addRemoteTextTrack(track) {
@@ -826,11 +827,11 @@ QUnit.test(
 
     assert.deepEqual(
       this.master.mediaGroups[type],
-      { main: { default: { default: true } } }, 'forced default audio group'
+      { main: { default: { default: true, masterPlaylist: true } } }, 'forced default audio group'
     );
     assert.deepEqual(
       this.mediaTypes[type].groups,
-      { main: [ { id: 'default', playlistLoader: null, default: true } ] },
+      { main: [ { id: 'default', playlistLoader: null, default: true, masterPlaylist: true } ] },
       'creates group properties and no playlist loader'
     );
     assert.ok(this.mediaTypes[type].tracks.default, 'created default track');
@@ -842,6 +843,9 @@ QUnit.test(
   function(assert) {
     const type = 'AUDIO';
 
+    this.master.playlists = [
+      {resolvedUri: 'video/fr.m3u8', attributes: {AUDIO: 'aud1', CODECS: 'avc1.4d400d'}}
+    ];
     this.master.mediaGroups[type].aud1 = {
       en: { default: true, language: 'en' },
       fr: { default: false, language: 'fr', resolvedUri: 'aud1/fr.m3u8' }
@@ -997,6 +1001,10 @@ QUnit.test(
 );
 
 QUnit.test('initialize audio correctly uses HLS source type', function(assert) {
+
+  this.master.playlists = [
+    {resolvedUri: 'video/fr.m3u8', attributes: {AUDIO: 'aud1', CODECS: 'avc1.4d400d'}}
+  ];
   this.master.mediaGroups.AUDIO.aud1 = {
     en: { default: true, language: 'en' },
     fr: { default: false, language: 'fr', resolvedUri: 'aud1/fr.m3u8' }
@@ -1017,13 +1025,13 @@ QUnit.test('initialize audio correctly uses HLS source type', function(assert) {
 
 QUnit.test('no audio loader for audio only with duplicated audio groups', function(assert) {
   this.master.mediaGroups.AUDIO.aud1 = {
-    en: { default: true, language: 'en', resolvedUri: 'en.m3u8' }
+    en: { default: true, language: 'en', resolvedUri: 'en.m3u8'}
   };
 
   this.settings.sourceType = 'hls';
 
   this.settings.master.playlists = [
-    {resolvedUri: 'en.m3u8', attributes: {AUDIO: 'aud1'}}
+    {resolvedUri: 'en.m3u8', attributes: {AUDIO: 'aud1', CODECS: 'mp4a.40.2'}}
   ];
   MediaGroups.initialize.AUDIO('AUDIO', this.settings);
 
@@ -1055,6 +1063,10 @@ QUnit.test('audio loader created with audio group duplicated as audio only rendi
 QUnit.test('initialize audio correctly uses DASH source type', function(assert) {
   // allow async methods to resolve before next test
   const done = assert.async();
+
+  this.master.playlists = [
+    {resolvedUri: 'video/fr.m3u8', attributes: {AUDIO: 'aud1', CODECS: 'avc1.4d400d'}}
+  ];
 
   this.master.mediaGroups.AUDIO.aud1 = {
     // playlists are resolved, no URI for DASH
@@ -1150,6 +1162,10 @@ QUnit.test('initialize subtitles correctly uses HLS source type', function(asser
 QUnit.test('initialize audio correctly uses vhs-json source type', function(assert) {
   const manifestString = manifests.media;
   const audioPlaylist = parseManifest({ manifestString });
+
+  this.master.playlists = [
+    {resolvedUri: 'video/fr.m3u8', attributes: {AUDIO: 'aud1', CODECS: 'avc1.4d400d'}}
+  ];
 
   this.master.mediaGroups.AUDIO.aud1 = {
     en: {
