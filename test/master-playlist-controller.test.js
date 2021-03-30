@@ -633,8 +633,64 @@ QUnit.test('basic timeToFirstFrame, mediaAppends, appendsToFirstFrame stats', fu
     segmentLoader,
     clock: this.clock
   }).then(() => {
-    this.player.tech_.trigger('loadeddata');
+    this.player.tech_.trigger('timeupdate');
     const vhs = this.player.tech_.vhs;
+
+    assert.equal(vhs.stats.mediaAppends, 1, 'one media append');
+    assert.equal(vhs.stats.appendsToFirstFrame, 1, 'appends to first frame is also 1');
+    assert.equal(vhs.stats.mainAppendsToFirstFrame, 1, 'main appends to first frame is also 1');
+    assert.equal(vhs.stats.audioAppendsToFirstFrame, 0, 'audio appends to first frame is 0');
+    assert.ok(vhs.stats.timeToFirstFrame > 0, 'time to first frame is valid');
+  });
+});
+
+QUnit.test('preload none timeToFirstFrame, mediaAppends, appendsToFirstFrame stats', function(assert) {
+  this.requests.length = 0;
+  this.player.dispose();
+  this.player = createPlayer();
+  this.player.tech_.preload = () => 'none';
+
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+  const vhs = this.player.tech_.vhs;
+
+  this.masterPlaylistController = vhs.masterPlaylistController_;
+  this.masterPlaylistController.mediaSource.trigger('sourceopen');
+
+  assert.equal(this.requests.length, 0, 'no requests request');
+  assert.equal(vhs.stats.mediaAppends, 0, 'one media append');
+  assert.equal(vhs.stats.appendsToFirstFrame, 0, 'appends to first frame is 0');
+  assert.equal(vhs.stats.mainAppendsToFirstFrame, 0, 'main appends to first frame is 0');
+  assert.equal(vhs.stats.audioAppendsToFirstFrame, 0, 'audio appends to first frame is 0');
+
+  // stats stay the same even with timeupdate
+  this.player.tech_.trigger('timeupdate');
+  assert.equal(vhs.stats.mediaAppends, 0, 'one media append');
+  assert.equal(vhs.stats.appendsToFirstFrame, 0, 'appends to first frame is 0');
+  assert.equal(vhs.stats.mainAppendsToFirstFrame, 0, 'main appends to first frame is 0');
+  assert.equal(vhs.stats.audioAppendsToFirstFrame, 0, 'audio appends to first frame is 0');
+
+  this.player.tech_.paused = () => false;
+  this.player.tech_.trigger('play');
+
+  // master
+  this.standardXHRResponse(this.requests.shift());
+
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  const segmentLoader = this.masterPlaylistController.mainSegmentLoader_;
+
+  return requestAndAppendSegment({
+    request: this.requests.shift(),
+    segmentLoader,
+    clock: this.clock
+  }).then(() => {
+    this.player.tech_.trigger('timeupdate');
 
     assert.equal(vhs.stats.mediaAppends, 1, 'one media append');
     assert.equal(vhs.stats.appendsToFirstFrame, 1, 'appends to first frame is also 1');
@@ -691,7 +747,7 @@ QUnit.test('demuxed timeToFirstFrame, mediaAppends, appendsToFirstFrame stats', 
     segmentLoader: mpc.audioSegmentLoader_,
     clock: this.clock
   })]).then(() => {
-    this.player.tech_.trigger('loadeddata');
+    this.player.tech_.trigger('timeupdate');
     const vhs = this.player.tech_.vhs;
 
     assert.equal(vhs.stats.mediaAppends, 2, 'two media append');

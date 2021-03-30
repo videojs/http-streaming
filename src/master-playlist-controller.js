@@ -291,17 +291,26 @@ export class MasterPlaylistController extends videojs.EventTarget {
     } else {
       this.masterPlaylistLoader_.load();
     }
-    const timeToLoadedDataStart = Date.now();
+
+    const setupFirstAppendStats = () => {
+      const timeToFirstAppendStart = Date.now();
+
+      this.tech_.one('timeupdate', () => {
+        this.timeToFirstFrame__ = Date.now() - timeToFirstAppendStart;
+        this.mainAppendsToFirstFrame__ = this.mainSegmentLoader_.mediaAppends;
+        this.audioAppendsToFirstFrame__ = this.audioSegmentLoader_.mediaAppends;
+      });
+    };
 
     this.timeToFirstFrame__ = 0;
     this.mainAppendsToFirstFrame__ = 0;
     this.audioAppendsToFirstFrame__ = 0;
 
-    this.tech_.one('loadeddata', () => {
-      this.timeToFirstFrame__ = Date.now() - timeToLoadedDataStart;
-      this.mainAppendsToFirstFrame__ = this.mainSegmentLoader_.mediaAppends;
-      this.audioAppendsToFirstFrame__ = this.audioSegmentLoader_.mediaAppends;
-    });
+    if (this.tech_.preload() === 'none') {
+      this.tech_.one('play', setupFirstAppendStats);
+    } else {
+      setupFirstAppendStats();
+    }
   }
 
   mainAppendsToFirstFrame_() {
