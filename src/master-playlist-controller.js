@@ -4,7 +4,7 @@
 import window from 'global/window';
 import PlaylistLoader from './playlist-loader';
 import DashPlaylistLoader from './dash-playlist-loader';
-import { isEnabled, isLowestEnabledRendition } from './playlist.js';
+import { isEnabled, isLowestEnabledRendition, isAudioOnly } from './playlist.js';
 import SegmentLoader from './segment-loader';
 import SourceUpdater from './source-updater';
 import VTTSegmentLoader from './vtt-segment-loader';
@@ -331,12 +331,13 @@ export class MasterPlaylistController extends videojs.EventTarget {
   }
 
   getAudioTrackPlaylists_() {
-    const playlists = [];
     const master = this.master();
 
-    if (!master && !master.mediaGroups && !master.mediaGroups.AUDIO) {
-      return playlists;
+    if (isAudioOnly(master)) {
+      return [];
     }
+
+    const playlists = [];
 
     const AUDIO = master.mediaGroups.AUDIO;
     const groupKeys = Object.keys(AUDIO);

@@ -157,14 +157,24 @@ export const onTrackChanged = (type, settings) => () => {
   }
 
   if (activeGroup.masterPlaylist) {
-    if (activeTrack && lastTrack && activeTrack.id !== lastTrack.id) {
-      const mpc = settings.vhs.masterPlaylistController_;
-
-      mediaType.logger_(`track change. Switching master audio from ${lastTrack.id} to ${activeTrack.id}`);
-      masterPlaylistLoader.pause();
-      mainSegmentLoader.resetEverything();
-      mpc.fastQualityChange_();
+    // track did not change, do nothing
+    if (!activeTrack || !lastTrack || activeTrack.id === lastTrack.id) {
+      return;
     }
+
+    const mpc = settings.masterPlaylistController;
+    const newPlaylist = mpc.selectPlaylist();
+
+    // media will not change do nothing
+    if (mpc.media() === newPlaylist) {
+      return;
+    }
+
+    mediaType.logger_(`track change. Switching master audio from ${lastTrack.id} to ${activeTrack.id}`);
+    masterPlaylistLoader.pause();
+    mainSegmentLoader.resetEverything();
+    mpc.fastQualityChange_(newPlaylist);
+
     return;
   }
 
@@ -670,7 +680,7 @@ export const activeGroup = (type, settings) => (track) => {
 
   const groupKeys = Object.keys(groups);
 
-  if (!variants && groupKeys.length === 1) {
+  if (!variants) {
     // use the main group if it exists
     if (groups.main) {
       variants = groups.main;
