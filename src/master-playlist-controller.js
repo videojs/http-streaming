@@ -292,25 +292,22 @@ export class MasterPlaylistController extends videojs.EventTarget {
       this.masterPlaylistLoader_.load();
     }
 
-    const setupFirstAppendStats = () => {
+    this.timeToFirstFrame__ = -1;
+    this.mainAppendsToFirstFrame__ = -1;
+    this.audioAppendsToFirstFrame__ = -1;
+
+    const event = this.tech_.preload() === 'none' ? 'play' : 'loadstart';
+
+    // start the first frame timer on loadstart or play (for preload none)
+    this.tech_.one(event, () => {
       const timeToFirstAppendStart = Date.now();
 
-      this.tech_.one('timeupdate', () => {
+      this.tech_.one('loadeddata', () => {
         this.timeToFirstFrame__ = Date.now() - timeToFirstAppendStart;
         this.mainAppendsToFirstFrame__ = this.mainSegmentLoader_.mediaAppends;
         this.audioAppendsToFirstFrame__ = this.audioSegmentLoader_.mediaAppends;
       });
-    };
-
-    this.timeToFirstFrame__ = 0;
-    this.mainAppendsToFirstFrame__ = 0;
-    this.audioAppendsToFirstFrame__ = 0;
-
-    if (this.tech_.preload() === 'none') {
-      this.tech_.one('play', setupFirstAppendStats);
-    } else {
-      setupFirstAppendStats();
-    }
+    });
   }
 
   mainAppendsToFirstFrame_() {
@@ -322,7 +319,14 @@ export class MasterPlaylistController extends videojs.EventTarget {
   }
 
   appendsToFirstFrame_() {
-    return this.mainAppendsToFirstFrame_() + this.audioAppendsToFirstFrame_();
+    const main = this.mainAppendsToFirstFrame_();
+    const audio = this.audioAppendsToFirstFrame_();
+
+    if (main === -1 || audio === -1) {
+      return -1;
+    }
+
+    return main + audio;
   }
 
   timeToFirstFrame_() {
