@@ -21,7 +21,6 @@ const getPartsAndSegments = (playlist) => (playlist.segments || []).reduce((acc,
   if (segment.parts) {
     segment.parts.forEach(function(part, pi) {
       acc.push({duration: part.duration, segmentIndex: si, partIndex: pi});
-
     });
   } else {
     acc.push({duration: segment.duration, segmentIndex: si, partIndex: null});
