@@ -353,6 +353,9 @@ QUnit.test('onGroupChanging aborts and pauses segment loaders', function(assert)
   const settings = {
     segmentLoaders: {
       AUDIO: segmentLoader
+    },
+    mediaTypes: {
+      AUDIO: {}
     }
   };
   const type = 'AUDIO';

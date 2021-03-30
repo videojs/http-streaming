@@ -545,7 +545,7 @@ export const isLowestEnabledRendition = (master, media) => {
 export const isAudioOnly = (master) => {
   // we are audio only if we have no main playlists but do
   // have media group playlists.
-  if (!master.playlists.length) {
+  if (!master.playlists || !master.playlists.length) {
     for (const groupName in master.mediaGroups.AUDIO) {
       for (const label in master.mediaGroups.AUDIO[groupName]) {
         const variant = master.mediaGroups.AUDIO[groupName][label];
@@ -557,8 +557,11 @@ export const isAudioOnly = (master) => {
     }
   }
 
+  // if every playlist has only an audio codec it is audio only
   return master.playlists
-    .every((p) => p.attributes && isAudioCodec(p.attributes.CODECS));
+    .every((p) => p.attributes &&
+    p.attributes.CODECS &&
+    p.attributes.CODECS.split(',').every((c) => isAudioCodec(c)));
 
 };
 

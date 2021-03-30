@@ -58,14 +58,14 @@ class Representation {
     const qualityChangeFunction = mpc[`${changeType}QualityChange_`].bind(mpc);
 
     // some playlist attributes are optional
-    if (playlist.attributes.RESOLUTION) {
+    if (playlist.attributes) {
       const resolution = playlist.attributes.RESOLUTION;
 
-      this.width = resolution.width;
-      this.height = resolution.height;
-    }
+      this.width = resolution && resolution.width;
+      this.height = resolution && resolution.height;
 
-    this.bandwidth = playlist.attributes.BANDWIDTH;
+      this.bandwidth = playlist.attributes.BANDWIDTH;
+    }
 
     this.codecs = codecsForPlaylist(mpc.master(), playlist);
 

@@ -180,10 +180,10 @@ export const simpleSelector = function(
   // convert the playlists to an intermediary representation to make comparisons easier
   let sortedPlaylistReps = playlists.map((playlist) => {
     let bandwidth;
-    const width = playlist.attributes.RESOLUTION && playlist.attributes.RESOLUTION.width;
-    const height = playlist.attributes.RESOLUTION && playlist.attributes.RESOLUTION.height;
+    const width = playlist.attributes && playlist.attributes.RESOLUTION && playlist.attributes.RESOLUTION.width;
+    const height = playlist.attributes && playlist.attributes.RESOLUTION && playlist.attributes.RESOLUTION.height;
 
-    bandwidth = playlist.attributes.BANDWIDTH;
+    bandwidth = playlist.attributes && playlist.attributes.BANDWIDTH;
 
     bandwidth = bandwidth || window.Number.MAX_VALUE;
 

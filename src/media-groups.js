@@ -79,8 +79,18 @@ export const onGroupChanged = (type, settings) => () => {
     },
     mediaTypes: { [type]: mediaType }
   } = settings;
+  const activeTrack = mediaType.activeTrack();
   const activeGroup = mediaType.getActiveGroup();
   const previousActiveLoader = mediaType.activePlaylistLoader;
+  const lastGroup = mediaType.lastGroup_;
+
+  // the group did not change do nothing
+  if (activeGroup && lastGroup && activeGroup.id === lastGroup.id) {
+    return;
+  }
+
+  mediaType.lastGroup_ = activeGroup;
+  mediaType.lastTrack_ = activeTrack;
 
   stopLoaders(segmentLoader, mediaType);
 
@@ -110,8 +120,11 @@ export const onGroupChanging = (type, settings) => () => {
   const {
     segmentLoaders: {
       [type]: segmentLoader
-    }
+    },
+    mediaTypes: { [type]: mediaType }
   } = settings;
+
+  mediaType.lastGroup_ = null;
 
   segmentLoader.abort();
   segmentLoader.pause();
@@ -145,9 +158,13 @@ export const onTrackChanged = (type, settings) => () => {
   const previousActiveLoader = mediaType.activePlaylistLoader;
   const lastTrack = mediaType.lastTrack_;
 
-  if (!lastTrack || (activeTrack && activeTrack.id !== lastTrack.id)) {
-    mediaType.lastTrack_ = activeTrack;
+  // track did not change, do nothing
+  if (lastTrack && activeTrack && lastTrack.id === activeTrack.id) {
+    return;
   }
+
+  mediaType.lastGroup_ = activeGroup;
+  mediaType.lastTrack_ = activeTrack;
 
   stopLoaders(segmentLoader, mediaType);
 
