@@ -3,12 +3,12 @@ import sinon from 'sinon';
 import {
   default as DashPlaylistLoader,
   updateMaster,
-  generateSidxKey,
   compareSidxEntry,
   filterChangedSidxMappings,
   parseMasterXml
 } from '../src/dash-playlist-loader';
 import xhrFactory from '../src/xhr';
+import {generateSidxKey} from 'mpd-parser';
 import {
   useFakeEnvironment,
   standardXHRResponse,
@@ -385,22 +385,6 @@ QUnit.test('updateMaster: updates minimumUpdatePeriod', function(assert) {
   );
 });
 
-QUnit.test('generateSidxKey: generates correct key', function(assert) {
-  const sidxInfo = {
-    byterange: {
-      offset: 1,
-      length: 5
-    },
-    uri: 'uri'
-  };
-
-  assert.strictEqual(
-    generateSidxKey(sidxInfo),
-    'uri-1-5',
-    'the key byterange should have a inclusive end'
-  );
-});
-
 QUnit.test('compareSidxEntry: will not add new sidx info to a mapping', function(assert) {
   const playlists = {
     0: {
@@ -468,15 +452,24 @@ QUnit.test('filterChangedSidxMappings: removes change sidx info from mapping', f
   const loader = new DashPlaylistLoader('dash-sidx.mpd', this.fakeVhs);
 
   loader.load();
+  // master
   this.standardXHRResponse(this.requests.shift());
-  this.standardXHRResponse(this.requests.shift());
+
+  // container request
+  this.standardXHRResponse(this.requests.shift(), mp4VideoInitSegment().subarray(0, 10));
+  // sidx byterange request
+  this.standardXHRResponse(this.requests.shift(), sidxResponse());
   const childPlaylist = loader.master.mediaGroups.AUDIO.audio.en.playlists[0];
 
   const childLoader = new DashPlaylistLoader(childPlaylist, this.fakeVhs, false, loader);
 
   childLoader.load();
   this.clock.tick(1);
-  this.standardXHRResponse(this.requests.shift());
+
+  // audio playlist container request
+  this.standardXHRResponse(this.requests.shift(), mp4VideoInitSegment().subarray(0, 10));
+  // audio sidx byterange request
+  this.standardXHRResponse(this.requests.shift(), sidxResponse());
 
   const oldSidxMapping = loader.sidxMapping_;
   let newSidxMapping = filterChangedSidxMappings(
@@ -2598,6 +2591,49 @@ QUnit.test('requests sidx if master xml includes it', function(assert) {
     },
     'sidx was correctly applied'
   );
+});
+
+QUnit.test('sidx mapping not added on container failure', function(assert) {
+  const loader = new DashPlaylistLoader('dash-sidx.mpd', this.fakeVhs);
+
+  loader.load();
+  this.standardXHRResponse(this.requests.shift());
+  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state is HAVE_MASTER');
+  assert.ok(loader.master.playlists[0].sidx, 'sidx info is returned from parser');
+
+  // initial media selection happens automatically
+  // as there was  no pending request
+  assert.ok(loader.hasPendingRequest(), 'request is pending');
+  assert.strictEqual(this.requests.length, 1, 'one request for sidx has been made');
+  assert.notOk(loader.media(), 'media playlist is not yet set');
+
+  // respond with non-sidx data
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.equal(Object.keys(loader.sidxMapping_).length, 0, 'no sidx data');
+});
+
+QUnit.test('sidx mapping not added on sidx parsing failure', function(assert) {
+  const loader = new DashPlaylistLoader('dash-sidx.mpd', this.fakeVhs);
+
+  loader.load();
+  this.standardXHRResponse(this.requests.shift());
+  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state is HAVE_MASTER');
+  assert.ok(loader.master.playlists[0].sidx, 'sidx info is returned from parser');
+
+  // initial media selection happens automatically
+  // as there was  no pending request
+  assert.ok(loader.hasPendingRequest(), 'request is pending');
+  assert.strictEqual(this.requests.length, 1, 'one request for sidx has been made');
+  assert.notOk(loader.media(), 'media playlist is not yet set');
+
+  // valid container request
+  this.standardXHRResponse(this.requests.shift(), mp4VideoInitSegment().subarray(0, 10));
+
+  // respond with non-sidx data
+  this.standardXHRResponse(this.requests.shift(), new Uint8Array(1));
+
+  assert.equal(Object.keys(loader.sidxMapping_).length, 0, 'no sidx data');
 });
 
 QUnit.test('child loaders wait for async action before moving to HAVE_MASTER', function(assert) {
