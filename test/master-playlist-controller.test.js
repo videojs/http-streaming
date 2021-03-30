@@ -633,7 +633,7 @@ QUnit.test('basic timeToFirstFrame, mediaAppends, appendsToFirstFrame stats', fu
     segmentLoader,
     clock: this.clock
   }).then(() => {
-    this.player.tech_.trigger('canplay');
+    this.player.tech_.trigger('loadeddata');
     const vhs = this.player.tech_.vhs;
 
     assert.equal(vhs.stats.mediaAppends, 1, 'one media append');
@@ -691,7 +691,7 @@ QUnit.test('demuxed timeToFirstFrame, mediaAppends, appendsToFirstFrame stats', 
     segmentLoader: mpc.audioSegmentLoader_,
     clock: this.clock
   })]).then(() => {
-    this.player.tech_.trigger('canplay');
+    this.player.tech_.trigger('loadeddata');
     const vhs = this.player.tech_.vhs;
 
     assert.equal(vhs.stats.mediaAppends, 2, 'two media append');
