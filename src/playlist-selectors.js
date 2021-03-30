@@ -143,8 +143,8 @@ export const comparePlaylistResolution = function(left, right) {
  *        Current height of the player element (should account for the device pixel ratio)
  * @param {boolean} limitRenditionByPlayerDimensions
  *        True if the player width and height should be used during the selection, false otherwise
- * @param {Playlist} [currentMedia]
- *        The currently selected playlist if it exists.
+ * @param {Object} masterPlaylistController
+ *        the current masterPlaylistController object
  * @return {Playlist} the highest bitrate playlist less than the
  * currently detected bandwidth, accounting for some amount of
  * bandwidth variance
