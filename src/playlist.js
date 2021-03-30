@@ -41,17 +41,16 @@ export const liveEdgeDelay = (master, media) => {
     return 0;
   }
 
-  const lastSegment = media.segments && media.segments.length && media.segments[media.segments.length - 1];
-  const hasParts = lastSegment && lastSegment.parts && lastSegment.parts.length;
-  // by default we use the last three durations of segments if
-  // part target duration or target duration isn't found.
-  // see: https://tools.ietf.org/html/draft-pantos-hls-rfc8216bis-08#section-4.4.3.8
-
   // dash suggestedPresentationDelay trumps everything
   if (master && master.suggestedPresentationDelay) {
     return master.suggestedPresentationDelay;
+  }
+
+  const lastSegment = media.segments && media.segments.length && media.segments[media.segments.length - 1];
+  const hasParts = lastSegment && lastSegment.parts && lastSegment.parts.length;
+
   // look for "part" delays from ll-hls first
-  } else if (hasParts && media.serverControl && media.serverControl.partHoldBack) {
+  if (hasParts && media.serverControl && media.serverControl.partHoldBack) {
     return media.serverControl.partHoldBack;
   } else if (hasParts && media.partTargetDuration) {
     return media.partTargetDuration * 3;
