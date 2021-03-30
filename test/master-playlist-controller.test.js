@@ -832,9 +832,9 @@ QUnit.test('if buffered, will request second segment byte range', function(asser
   };
   this.clock.tick(1);
   // segment
-  this.standardXHRResponse(this.requests[1], muxedSegment());
   return new Promise((resolve, reject) => {
     this.masterPlaylistController.mainSegmentLoader_.on('appending', resolve);
+    this.standardXHRResponse(this.requests[1], muxedSegment());
   }).then(() => {
     this.masterPlaylistController.mainSegmentLoader_.fetchAtBuffer_ = true;
     // source buffers are mocked, so must manually trigger update ends on audio and video
@@ -1114,11 +1114,11 @@ QUnit.test('Segment loaders are unpaused when seeking after player has ended', f
   // media
   this.standardXHRResponse(this.requests.shift(), videoMedia);
 
-  // segment
-  this.standardXHRResponse(this.requests.shift(), muxedSegment());
-
   return new Promise((resolve, reject) => {
     this.masterPlaylistController.mainSegmentLoader_.one('appending', resolve);
+
+    // segment
+    this.standardXHRResponse(this.requests.shift(), muxedSegment());
   }).then(() => {
     assert.notOk(
       this.masterPlaylistController.mainSegmentLoader_.paused(),
@@ -2125,11 +2125,12 @@ QUnit.test('updates the duration after switching playlists', function(assert) {
   // 1ms for request duration
   this.clock.tick(1);
   this.masterPlaylistController.mainSegmentLoader_.mediaIndex = 0;
-  // segment 0
-  this.standardXHRResponse(this.requests[2], segment);
 
   return new Promise((resolve, reject) => {
     this.masterPlaylistController.mainSegmentLoader_.on('appending', resolve);
+
+    // segment 0
+    this.standardXHRResponse(this.requests[2], segment);
   }).then(() => {
     // source buffers are mocked, so must manually trigger update ends on audio and video
     // buffers

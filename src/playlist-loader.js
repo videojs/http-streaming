@@ -19,34 +19,73 @@ import {
 const { mergeOptions, EventTarget } = videojs;
 
 /**
-  * Returns a new array of segments that is the result of merging
-  * properties from an older list of segments onto an updated
-  * list. No properties on the updated playlist will be overridden.
-  *
-  * @param {Array} original the outdated list of segments
-  * @param {Array} update the updated list of segments
-  * @param {number=} offset the index of the first update
-  * segment in the original segment list. For non-live playlists,
-  * this should always be zero and does not need to be
-  * specified. For live playlists, it should be the difference
-  * between the media sequence numbers in the original and updated
-  * playlists.
-  * @return a list of merged segment objects
-  */
+ * Returns a new segment object with properties and
+ * the parts array merged.
+ *
+ * @param {Object} a the old segment
+ * @param {Object} b the new segment
+ *
+ * @return {Object} the merged segment
+ */
+export const updateSegment = (a, b) => {
+  if (!a) {
+    return b;
+  }
+
+  const result = mergeOptions(a, b);
+
+  // if only the old segment has parts
+  // then the parts are no longer valid
+  if (a.parts && !b.parts) {
+    delete result.parts;
+  // if both segments have parts
+  // copy part propeties from the old segment
+  // to the new one.
+  } else if (a.parts && b.parts) {
+    for (let i = 0; i < b.parts.length; i++) {
+      if (a.parts && a.parts[i]) {
+        result.parts[i] = mergeOptions(a.parts[i], b.parts[i]);
+      }
+    }
+  }
+
+  return result;
+};
+
+/**
+ * Returns a new array of segments that is the result of merging
+ * properties from an older list of segments onto an updated
+ * list. No properties on the updated playlist will be ovewritten.
+ *
+ * @param {Array} original the outdated list of segments
+ * @param {Array} update the updated list of segments
+ * @param {number=} offset the index of the first update
+ * segment in the original segment list. For non-live playlists,
+ * this should always be zero and does not need to be
+ * specified. For live playlists, it should be the difference
+ * between the media sequence numbers in the original and updated
+ * playlists.
+ * @return {Array} a list of merged segment objects
+ */
 export const updateSegments = (original, update, offset) => {
+  const oldSegments = original.slice();
   const result = update.slice();
 
   offset = offset || 0;
   const length = Math.min(original.length, update.length + offset);
 
   for (let i = offset; i < length; i++) {
-    result[i - offset] = mergeOptions(original[i], result[i - offset]);
+    const newIndex = i - offset;
+
+    result[newIndex] = updateSegment(oldSegments[i], result[newIndex]);
   }
   return result;
 };
 
 export const resolveSegmentUris = (segment, baseUri) => {
-  if (!segment.resolvedUri) {
+  // preloadSegments will not have a uri at all
+  // as the segment isn't actually in the manifest yet, only parts
+  if (!segment.resolvedUri && segment.uri) {
     segment.resolvedUri = resolveUrl(baseUri, segment.uri);
   }
   if (segment.key && !segment.key.resolvedUri) {
@@ -54,6 +93,23 @@ export const resolveSegmentUris = (segment, baseUri) => {
   }
   if (segment.map && !segment.map.resolvedUri) {
     segment.map.resolvedUri = resolveUrl(baseUri, segment.map.uri);
+  }
+  if (segment.parts && segment.parts.length) {
+    segment.parts.forEach((p) => {
+      if (p.resolvedUri) {
+        return;
+      }
+      p.resolvedUri = resolveUrl(baseUri, p.uri);
+    });
+  }
+
+  if (segment.preloadHints && segment.preloadHints.length) {
+    segment.preloadHints.forEach((p) => {
+      if (p.resolvedUri) {
+        return;
+      }
+      p.resolvedUri = resolveUrl(baseUri, p.uri);
+    });
   }
 };
 
@@ -173,6 +229,7 @@ export default class PlaylistLoader extends EventTarget {
 
     this.customTagParsers = (vhsOptions && vhsOptions.customTagParsers) || [];
     this.customTagMappers = (vhsOptions && vhsOptions.customTagMappers) || [];
+    this.experimentalLLHLS = (vhsOptions && vhsOptions.experimentalLLHLS) || false;
 
     // initialize the loader state
     this.state = 'HAVE_NOTHING';
@@ -254,7 +311,8 @@ export default class PlaylistLoader extends EventTarget {
       oninfo: ({message}) => this.logger_(`m3u8-parser info for ${id}: ${message}`),
       manifestString: playlistString,
       customTagParsers: this.customTagParsers,
-      customTagMappers: this.customTagMappers
+      customTagMappers: this.customTagMappers,
+      experimentalLLHLS: this.experimentalLLHLS
     });
 
     playlist.lastRequest = Date.now();
@@ -562,7 +620,8 @@ export default class PlaylistLoader extends EventTarget {
       const manifest = parseManifest({
         manifestString: req.responseText,
         customTagParsers: this.customTagParsers,
-        customTagMappers: this.customTagMappers
+        customTagMappers: this.customTagMappers,
+        llhls: this.llhls
       });
 
       this.setupInitialPlaylist(manifest);

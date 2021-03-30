@@ -1,3 +1,31 @@
+<a name="2.6.4"></a>
+## [2.6.4](https://github.com/videojs/http-streaming/compare/v2.6.3...v2.6.4) (2021-03-12)
+
+### Bug Fixes
+
+* Monitor playback for stalls due to gaps in the beginning of stream when a new source is loaded ([#1087](https://github.com/videojs/http-streaming/issues/1087)) ([64a1f35](https://github.com/videojs/http-streaming/commit/64a1f35))
+* retry appends on QUOTA_EXCEEDED_ERR ([#1093](https://github.com/videojs/http-streaming/issues/1093)) ([008aeaf](https://github.com/videojs/http-streaming/commit/008aeaf))
+
+### Chores
+
+* Get test coverage working again with mock/sync worker ([#1094](https://github.com/videojs/http-streaming/issues/1094)) ([035e8c0](https://github.com/videojs/http-streaming/commit/035e8c0))
+* pin CI to ubuntu 18.04 ([#1091](https://github.com/videojs/http-streaming/issues/1091)) ([01ca182](https://github.com/videojs/http-streaming/commit/01ca182))
+
+<a name="2.6.3"></a>
+## [2.6.3](https://github.com/videojs/http-streaming/compare/v2.6.2...v2.6.3) (2021-03-05)
+
+### Bug Fixes
+
+* **playback-watcher:** Skip over playback gaps that occur in the beginning of streams ([#1085](https://github.com/videojs/http-streaming/issues/1085)) ([ccd9352](https://github.com/videojs/http-streaming/commit/ccd9352))
+* Add exclude reason and skip duplicate playlist-unchanged ([#1082](https://github.com/videojs/http-streaming/issues/1082)) ([0dceb5b](https://github.com/videojs/http-streaming/commit/0dceb5b))
+* prevent changing undefined baseStartTime to NaN ([#1086](https://github.com/videojs/http-streaming/issues/1086)) ([43aa69a](https://github.com/videojs/http-streaming/commit/43aa69a))
+* update to mux.js 5.10.0 ([#1089](https://github.com/videojs/http-streaming/issues/1089)) ([1cfdab6](https://github.com/videojs/http-streaming/commit/1cfdab6))
+
+### Chores
+
+* ie 11 demo fixes ([0760d45](https://github.com/videojs/http-streaming/commit/0760d45))
+* use deferred scripts for faster demo startup ([#1083](https://github.com/videojs/http-streaming/issues/1083)) ([c348174](https://github.com/videojs/http-streaming/commit/c348174))
+
 <a name="2.6.2"></a>
 ## [2.6.2](https://github.com/videojs/http-streaming/compare/v2.6.1...v2.6.2) (2021-02-24)
 
