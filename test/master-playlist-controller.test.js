@@ -2087,7 +2087,7 @@ QUnit.test('does not get stuck in a loop due to inconsistent network/caching', f
   const origMedia = playlistLoader.media.bind(playlistLoader);
   const mediaChanges = [];
 
-  mpc.masterPlaylistLoader_.media = (media) => {
+  mpc.switchMedia_ = (media) => {
     if (media) {
       mediaChanges.push(media);
     }
