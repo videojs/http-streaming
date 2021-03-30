@@ -28,6 +28,7 @@ const dashPlaylistUnchanged = function(a, b) {
   // derive media sequence for timeshift manifests without startNumber attribute
   if (
     b.mediaSequence === 1 &&
+    b.mediaSequence <= a.mediaSequence &&
     a.segments &&
     b.segments &&
     a.segments.length &&
