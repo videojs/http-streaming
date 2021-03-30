@@ -60,9 +60,9 @@
     "@videojs/vhs-utils": "^3.0.0",
     "aes-decrypter": "3.1.2",
     "global": "^4.4.0",
-    "m3u8-parser": "4.5.2",
-    "mpd-parser": "0.15.4",
-    "mux.js": "5.10.0",
+    "m3u8-parser": "4.6.0",
+    "mpd-parser": "0.16.0",
+    "mux.js": "5.11.0",
     "video.js": "^6 || ^7"
   },
   "devDependencies": {

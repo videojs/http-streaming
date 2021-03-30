@@ -971,7 +971,7 @@ export const mediaSegmentRequest = ({
   }
 
   const segmentRequestOptions = videojs.mergeOptions(xhrOptions, {
-    uri: segment.resolvedUri,
+    uri: segment.part && segment.part.resolvedUri || segment.resolvedUri,
     responseType: 'arraybuffer',
     headers: segmentXhrHeaders(segment)
   });

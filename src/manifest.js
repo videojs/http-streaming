@@ -12,12 +12,18 @@ export const createPlaylistID = (index, uri) => {
 /**
  * Parses a given m3u8 playlist
  *
+ * @param {Function} [onwarn]
+ *        a function to call when the parser triggers a warning event.
+ * @param {Function} [oninfo]
+ *        a function to call when the parser triggers an info event.
  * @param {string} manifestString
  *        The downloaded manifest string
  * @param {Object[]} [customTagParsers]
  *        An array of custom tag parsers for the m3u8-parser instance
  * @param {Object[]} [customTagMappers]
- *         An array of custom tag mappers for the m3u8-parser instance
+ *        An array of custom tag mappers for the m3u8-parser instance
+ * @param {boolean} [experimentalLLHLS=false]
+ *        Whether to keep ll-hls features in the manifest after parsing.
  * @return {Object}
  *         The manifest object
  */
@@ -26,7 +32,8 @@ export const parseManifest = ({
   oninfo,
   manifestString,
   customTagParsers = [],
-  customTagMappers = []
+  customTagMappers = [],
+  experimentalLLHLS
 }) => {
   const parser = new M3u8Parser();
 
@@ -43,7 +50,36 @@ export const parseManifest = ({
   parser.push(manifestString);
   parser.end();
 
-  return parser.manifest;
+  const manifest = parser.manifest;
+
+  // remove llhls features from the parsed manifest
+  // if we don't want llhls support.
+  if (!experimentalLLHLS) {
+    [
+      'preloadSegment',
+      'skip',
+      'serverControl',
+      'renditionReports',
+      'partInf',
+      'partTargetDuration'
+    ].forEach(function(k) {
+      if (manifest.hasOwnProperty(k)) {
+        delete manifest[k];
+      }
+    });
+
+    if (manifest.segments) {
+      manifest.segments.forEach(function(segment) {
+        ['parts', 'preloadHints'].forEach(function(k) {
+          if (segment.hasOwnProperty(k)) {
+            delete segment[k];
+          }
+        });
+      });
+    }
+  }
+
+  return manifest;
 };
 
 /**

@@ -170,7 +170,11 @@ const actions = {
     }
 
     sourceUpdater.logger_(`Removing ${start} to ${end} from ${type}Buffer`);
-    sourceBuffer.remove(start, end);
+    try {
+      sourceBuffer.remove(start, end);
+    } catch (e) {
+      sourceUpdater.logger_(`Remove ${start} to ${end} from ${type}Buffer failed`);
+    }
   },
   timestampOffset: (offset) => (type, sourceUpdater) => {
     const sourceBuffer = sourceUpdater[`${type}Buffer`];
