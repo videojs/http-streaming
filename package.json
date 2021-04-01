@@ -65,6 +65,9 @@
     "mux.js": "5.11.0",
     "video.js": "^6 || ^7"
   },
+  "peerDependencies": {
+    "video.js": "^6 || ^7"
+  },
   "devDependencies": {
     "@rollup/plugin-replace": "^2.3.4",
     "@videojs/generator-helpers": "~2.0.1",
