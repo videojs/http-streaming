@@ -78,14 +78,18 @@ export const parseManifest = ({
       });
     }
   }
-  if (manifest.segments && manifest.segments.length && !manifest.targetDuration) {
-    const lastSegment = manifest.segments[manifest.segments.length - 1];
-    const lastDuration = lastSegment && Math.round(lastSegment) || 10;
+  if (!manifest.targetDuration) {
+    let targetDuration = 10;
+
+    if (manifest.segments && manifest.segments.length) {
+      targetDuration = manifest
+        .segments.reduce((acc, s) => Math.max(acc, s.duration), 0);
+    }
 
     if (onwarn) {
-      onwarn(`manifest has no targetDuration defaulting to ${lastDuration}`);
+      onwarn(`manifest has no targetDuration defaulting to ${targetDuration}`);
     }
-    manifest.targetDuration = lastDuration;
+    manifest.targetDuration = targetDuration;
   }
 
   return manifest;
