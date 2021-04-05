@@ -769,6 +769,16 @@ export const activeTrack = {
   }
 };
 
+export const getActiveGroup = (type, {mediaTypes}) => () => {
+  const activeTrack_ = mediaTypes[type].activeTrack();
+
+  if (!activeTrack_) {
+    return null;
+  }
+
+  return mediaTypes[type].activeGroup(activeTrack_);
+};
+
 /**
  * Setup PlaylistLoaders and Tracks for media groups (Audio, Subtitles,
  * Closed-Captions) specified in the master manifest.
@@ -810,15 +820,7 @@ export const setupMediaGroups = (settings) => {
     mediaTypes[type].onGroupChanged = onGroupChanged(type, settings);
     mediaTypes[type].onGroupChanging = onGroupChanging(type, settings);
     mediaTypes[type].onTrackChanged = onTrackChanged(type, settings);
-    mediaTypes[type].getActiveGroup = () => {
-      const activeTrack_ = mediaTypes[type].activeTrack();
-
-      if (!activeTrack_) {
-        return null;
-      }
-
-      return mediaTypes[type].activeGroup(activeTrack_);
-    };
+    mediaTypes[type].getActiveGroup = getActiveGroup(type, settings);
   });
 
   // DO NOT enable the default subtitle or caption track.

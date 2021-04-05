@@ -416,12 +416,13 @@ QUnit.test(
     tracks.es = { id: 'es', enabled: false };
     mediaType.activeTrack = MediaGroups.activeTrack[type](type, settings);
     mediaType.activeGroup = MediaGroups.activeGroup(type, settings);
+    mediaType.getActiveGroup = MediaGroups.getActiveGroup(type, settings);
 
     const onGroupChanged = MediaGroups.onGroupChanged(type, settings);
 
     onGroupChanged();
 
-    assert.equal(segmentLoaderPauseCalls, 1, 'loaders paused on group change');
+    assert.equal(segmentLoaderPauseCalls, 1, 'paused loader with no active group');
     assert.equal(mainSegmentLoaderResetCalls, 0, 'no reset when no active group');
     assert.equal(segmentLoaderResyncCalls, 0, 'no resync when no active group');
 
@@ -439,8 +440,8 @@ QUnit.test(
       'no resync changing to group with no playlist loader'
     );
 
+    mediaType.lastGroup_ = null;
     mediaType.activePlaylistLoader = groups.main[1].playlistLoader;
-
     onGroupChanged();
 
     assert.equal(segmentLoaderPauseCalls, 3, 'loaders paused on group change');
@@ -453,10 +454,10 @@ QUnit.test(
       'no resync changing to group with no playlist loader'
     );
 
+    mediaType.lastGroup_ = null;
     tracks.en.enabled = false;
     tracks.fr.enabled = true;
     mediaType.activePlaylistLoader = groups.main[2].playlistLoader;
-
     onGroupChanged();
 
     assert.equal(segmentLoaderPauseCalls, 4, 'loaders paused on group change');
@@ -528,6 +529,7 @@ QUnit.test(
     tracks.es = { id: 'es', enabled: false };
     mediaType.activeTrack = MediaGroups.activeTrack[type](type, settings);
     mediaType.activeGroup = MediaGroups.activeGroup(type, settings);
+    mediaType.getActiveGroup = MediaGroups.getActiveGroup(type, settings);
 
     const onTrackChanged = MediaGroups.onTrackChanged(type, settings);
 
@@ -589,7 +591,8 @@ QUnit.test(
       'sets the correct active playlist loader'
     );
 
-    mediaType.activePlaylistLoader = groups.main[2].playlistLoader;
+    tracks.fr.enabled = false;
+    tracks.es.enabled = true;
 
     onTrackChanged();
 
@@ -610,7 +613,7 @@ QUnit.test(
     assert.ok(segmentLoaderSetAudioCalls[1], 'audio enabled on track change');
     assert.equal(segmentLoaderResetCalls, 1, 'reset on track change');
     assert.strictEqual(
-      mediaType.activePlaylistLoader, groups.main[1].playlistLoader,
+      mediaType.activePlaylistLoader, groups.main[2].playlistLoader,
       'sets the correct active playlist loader'
     );
 
@@ -620,7 +623,9 @@ QUnit.test(
     segmentLoader.track = (track) => {
       segmentLoaderTrack = track;
     };
-    mediaType.activePlaylistLoader = groups.main[2].playlistLoader;
+
+    tracks.fr.enabled = true;
+    tracks.es.enabled = false;
 
     onTrackChanged();
 
@@ -827,11 +832,11 @@ QUnit.test(
 
     assert.deepEqual(
       this.master.mediaGroups[type],
-      { main: { default: { default: true, masterPlaylist: true } } }, 'forced default audio group'
+      { main: { default: { default: true, isMasterPlaylist: true } } }, 'forced default audio group'
     );
     assert.deepEqual(
       this.mediaTypes[type].groups,
-      { main: [ { id: 'default', playlistLoader: null, default: true, masterPlaylist: true } ] },
+      { main: [ { id: 'default', playlistLoader: null, default: true, isMasterPlaylist: true } ] },
       'creates group properties and no playlist loader'
     );
     assert.ok(this.mediaTypes[type].tracks.default, 'created default track');
