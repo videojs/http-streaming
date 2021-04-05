@@ -139,9 +139,20 @@ QUnit.test('getAudioTrackPlaylists_', function(assert) {
     {uri: 'bazz'}
   ], 'returns all dash style en playlist');
 
+  const main = [];
+  const alt = [];
+
+  Object.keys(master.mediaGroups.AUDIO.main).forEach(function(k) {
+    main.push(master.mediaGroups.AUDIO.main[k]);
+  });
+
+  Object.keys(master.mediaGroups.AUDIO.alt).forEach(function(k) {
+    alt.push(master.mediaGroups.AUDIO.alt[k]);
+  });
+
   mpc.mediaTypes_.AUDIO.groups = {
-    main: Object.values(master.mediaGroups.AUDIO.main),
-    alt: Object.values(master.mediaGroups.AUDIO.alt)
+    main,
+    alt
   };
   mpc.mediaTypes_.AUDIO.activeTrack = () => ({label: 'fr'});
 
