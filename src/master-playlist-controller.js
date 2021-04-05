@@ -352,8 +352,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     // if we don't have any demuxed audio tracks
     // return an empty array
-    if (!master && !master.mediaGroups && !master.mediaGroups.AUDIO) {
-      return [];
+    if (!master || !master.mediaGroups || !master.mediaGroups.AUDIO) {
+      return master && master.playlists;
     }
 
     const AUDIO = master.mediaGroups.AUDIO;
