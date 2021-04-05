@@ -485,6 +485,20 @@ QUnit.module('MediaGroups', function() {
         mediaType.activePlaylistLoader, groups.main[1].playlistLoader,
         'sets the correct active playlist loader'
       );
+
+      mediaType.lastGroup_ = null;
+      groups.main[1].isMasterPlaylist = true;
+
+      onGroupChanged();
+
+      assert.equal(segmentLoaderPauseCalls, 5, 'loaders paused on group change');
+      assert.equal(mainSegmentLoaderResetCalls, 1, 'main segment loader not reset');
+
+      onGroupChanged();
+
+      assert.equal(segmentLoaderPauseCalls, 5, 'loader not paused without group change');
+      assert.equal(mainSegmentLoaderResetCalls, 1, 'main segment loader not reset without group change');
+
     }
   );
 
@@ -672,6 +686,170 @@ QUnit.module('MediaGroups', function() {
       );
     }
   );
+
+  const createMocker = ({calls = [], args = []} = {}) => {
+    const obj = {calls: {}, args: {}};
+
+    calls.forEach(function(key) {
+      obj.calls[key] = 0;
+      obj[key] = () => {
+        obj.calls[key]++;
+      };
+    });
+
+    args.forEach(function(key) {
+      obj.args[key] = [];
+      obj[key] = (v) => {
+        obj.args[key].push(v);
+      };
+    });
+
+    return obj;
+  };
+
+  const mockSegmentLoader = () => createMocker({
+    calls: ['abort', 'pause', 'resetEverything'],
+    args: ['setAudio', 'track']
+  });
+  const mockPlaylistLoader = () => createMocker({
+    calls: ['pause', 'load'],
+    args: ['fastQualityChange_']
+  });
+
+  const mocksAreZero = (mocks, assert) => {
+    Object.keys(mocks).forEach(function(name) {
+      const mock = mocks[name];
+
+      Object.keys(mock.calls).forEach(function(key) {
+        assert.equal(mock.calls[key], 0, `${name} ${key} not called`);
+      });
+
+      Object.keys(mock.args).forEach(function(key) {
+        assert.equal(mock.args[key].length, 0, `${name} ${key} not called`);
+      });
+    });
+  };
+
+  QUnit.test('onTrackChanged with isMasterPlaylist', function(assert) {
+    this.media = {id: 'en', attributes: {AUDIO: 'main'}};
+    this.nextMedia = {id: 'fr', attributes: {AUDIO: 'main'}};
+
+    const audioSegmentLoader = mockSegmentLoader();
+    const mainSegmentLoader = mockSegmentLoader();
+    const masterPlaylistLoader = Object.assign(mockPlaylistLoader(), {
+      media: () => this.media
+    });
+    const masterPlaylistController_ = Object.assign(mockPlaylistLoader(), {
+      media: () => this.media,
+      selectPlaylist: () => this.nextMedia
+    });
+    const mocks = {audioSegmentLoader, mainSegmentLoader, masterPlaylistController_, masterPlaylistLoader};
+    const type = 'AUDIO';
+    const settings = {
+      segmentLoaders: {
+        AUDIO: audioSegmentLoader,
+        main: mainSegmentLoader
+      },
+      mediaTypes: MediaGroups.createMediaTypes(),
+      masterPlaylistLoader,
+      vhs: {
+        masterPlaylistController_
+      }
+    };
+    const mediaType = settings.mediaTypes[type];
+    const groups = mediaType.groups;
+    const tracks = mediaType.tracks;
+
+    groups.main = [
+      { id: 'en', playlistLoader: null, isMasterPlaylist: true },
+      { id: 'fr', playlistLoader: null, isMasterPlaylist: true },
+      { id: 'es', playlistLoader: null, isMasterPlaylist: true }
+    ];
+    tracks.en = { id: 'en', enabled: true };
+    tracks.fr = { id: 'fr', enabled: false };
+    tracks.es = { id: 'es', enabled: false };
+    mediaType.activeTrack = MediaGroups.activeTrack[type](type, settings);
+    mediaType.activeGroup = MediaGroups.activeGroup(type, settings);
+    mediaType.getActiveGroup = MediaGroups.getActiveGroup(type, settings);
+
+    const onTrackChanged = MediaGroups.onTrackChanged(type, settings);
+
+    // intial track setup does nothing.
+    onTrackChanged();
+
+    assert.equal(audioSegmentLoader.calls.pause, 1, 'audioSegmentLoader pause called');
+    assert.equal(audioSegmentLoader.calls.abort, 1, 'audioSegmentLoader abort called');
+
+    audioSegmentLoader.calls.pause = 0;
+    audioSegmentLoader.calls.abort = 0;
+
+    // verify that all othre mocks are zero
+    mocksAreZero(mocks, assert);
+
+    tracks.en.enabled = false;
+    tracks.fr.enabled = true;
+
+    onTrackChanged();
+
+    assert.equal(audioSegmentLoader.calls.pause, 1, 'audioSegmentLoader pause called on track change');
+    assert.equal(audioSegmentLoader.calls.abort, 1, 'audioSegmentLoader abort called on track change');
+    assert.equal(mainSegmentLoader.calls.resetEverything, 1, 'mainSegmentLoader resetEverything called on track change');
+    assert.equal(masterPlaylistLoader.calls.pause, 1, 'masterPlaylistLoader pause called on track change');
+    assert.deepEqual(
+      masterPlaylistController_.args.fastQualityChange_,
+      [this.nextMedia],
+      'fastQualityChange_ called on track change'
+    );
+
+    audioSegmentLoader.calls.pause = 0;
+    audioSegmentLoader.calls.abort = 0;
+    mainSegmentLoader.calls.resetEverything = 0;
+    masterPlaylistLoader.calls.pause = 0;
+    masterPlaylistController_.args.fastQualityChange_.length = 0;
+
+    mocksAreZero(mocks, assert);
+
+    // mock track change without media change (via selectPlaylist)
+    settings.mediaTypes.AUDIO.lastTrack_ = null;
+    onTrackChanged();
+
+    assert.equal(audioSegmentLoader.calls.pause, 1, 'audioSegmentLoader pause called');
+    assert.equal(audioSegmentLoader.calls.abort, 1, 'audioSegmentLoader abort called');
+
+    audioSegmentLoader.calls.pause = 0;
+    audioSegmentLoader.calls.abort = 0;
+
+    mocksAreZero(mocks, assert);
+
+    tracks.en.enabled = true;
+    tracks.fr.enabled = false;
+    this.nextMedia = {id: 'en'};
+
+    onTrackChanged();
+
+    assert.equal(audioSegmentLoader.calls.pause, 1, 'audioSegmentLoader pause called on track change');
+    assert.equal(audioSegmentLoader.calls.abort, 1, 'audioSegmentLoader abort called on track change');
+    assert.equal(mainSegmentLoader.calls.resetEverything, 1, 'mainSegmentLoader resetEverything called on track change');
+    assert.equal(masterPlaylistLoader.calls.pause, 1, 'masterPlaylistLoader pause called on track change');
+    assert.deepEqual(
+      masterPlaylistController_.args.fastQualityChange_,
+      [this.nextMedia],
+      'fastQualityChange_ called on track change'
+    );
+
+    audioSegmentLoader.calls.pause = 0;
+    audioSegmentLoader.calls.abort = 0;
+    mainSegmentLoader.calls.resetEverything = 0;
+    masterPlaylistLoader.calls.pause = 0;
+    masterPlaylistController_.args.fastQualityChange_.length = 0;
+
+    mocksAreZero(mocks, assert);
+
+    // no changes as track is the same.
+    onTrackChanged();
+    mocksAreZero(mocks, assert);
+
+  });
 
   QUnit.test(
     'switches to default audio track when an error is encountered',
