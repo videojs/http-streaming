@@ -1205,6 +1205,7 @@ loaderTypes.forEach(function(type) {
 
     expectedUsage['vhs-rendition-blacklisted'] = 1;
     expectedUsage['hls-rendition-blacklisted'] = 1;
+    // expectedUsage['vhs-rendition-change-exclude'] = 1;
 
     assert.deepEqual(this.usageEvents, expectedUsage, 'usage as expected');
 
@@ -1224,7 +1225,7 @@ loaderTypes.forEach(function(type) {
 
     const loader = this.mpc[`${type}SegmentLoader_`];
     const playlists = this.mpc.master().playlists;
-    const excludeAndVerify = () => {
+    const excludeAndVerify = (last) => {
       let oldPlaylist;
       // this test only needs 9 appends, since we do an intial append
 
@@ -1243,6 +1244,9 @@ loaderTypes.forEach(function(type) {
       expectedUsage[`vhs-${type}-download-exclusion`] = 1;
       expectedUsage['vhs-rendition-blacklisted'] = 1;
       expectedUsage['hls-rendition-blacklisted'] = 1;
+      if (!last) {
+        expectedUsage['vhs-rendition-change-exclude'] = 1;
+      }
 
       assert.deepEqual(this.usageEvents, expectedUsage, 'usage as expected');
       this.usageEvents = {};
@@ -1283,7 +1287,7 @@ loaderTypes.forEach(function(type) {
 
     // exclude all playlists and verify
     while (i--) {
-      excludeAndVerify();
+      excludeAndVerify((i === 0));
     }
 
   });
