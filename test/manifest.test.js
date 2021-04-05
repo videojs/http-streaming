@@ -33,7 +33,7 @@ QUnit.module('manifest', function() {
     assert.equal(manifest.targetDuration, 100, 'target duration is 100');
   });
 
-  QUnit.test('sets target duration to largest 10 without segments', function(assert) {
+  QUnit.test('sets target duration to 10 without segments', function(assert) {
     let manifestString = '#EXTM3U\n' +
       '#EXT-X-VERSION:3\n' +
       '#EXT-X-PLAYLIST-TYPE:VOD\n' +
