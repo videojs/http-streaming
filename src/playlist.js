@@ -59,11 +59,7 @@ export const liveEdgeDelay = (master, media) => {
   } else if (media.serverControl && media.serverControl.holdBack) {
     return media.serverControl.holdBack;
   } else if (media.targetDuration) {
-    // TODO: this should probably be targetDuration * 3
-    // but we use this for backwards compatability.
-    const lastPartDuration = lastSegment && lastSegment.duration || media.targetDuration;
-
-    return lastPartDuration + media.targetDuration * 2;
+    return media.targetDuration * 3;
   }
 
   return 0;
@@ -274,51 +270,6 @@ export const sumDurations = function(playlist, startIndex, endIndex) {
 };
 
 /**
- * Determines the media index of the segment corresponding to the safe edge of the live
- * window which is the duration of the last segment plus 2 target durations from the end
- * of the playlist.
- *
- * A liveEdgePadding can be provided which will be used instead of calculating the safe live edge.
- * This corresponds to suggestedPresentationDelay in DASH manifests.
- *
- * @param {Object} playlist
- *        a media playlist object
- * @param {number} [liveEdgePadding]
- *        A number in seconds indicating how far from the end we want to be.
- *        If provided, this value is used instead of calculating the safe live index from the target durations.
- *        Corresponds to suggestedPresentationDelay in DASH manifests.
- * @return {number}
- *         The media index of the segment at the safe live point. 0 if there is no "safe"
- *         point.
- * @function safeLiveIndex
- */
-export const safeLiveIndex = function(playlist, liveEdgePadding) {
-  const partsAndSegments = getPartsAndSegments(playlist);
-
-  if (!partsAndSegments.length) {
-    return 0;
-  }
-
-  if (typeof liveEdgePadding !== 'number') {
-    liveEdgePadding = liveEdgeDelay(null, playlist);
-  }
-
-  let i = partsAndSegments.length;
-  let distanceFromEnd = 0;
-
-  while (i--) {
-    distanceFromEnd += partsAndSegments[i].duration;
-
-    if (distanceFromEnd >= liveEdgePadding) {
-      return partsAndSegments[i].segmentIndex;
-    }
-  }
-
-  // there is nowhere in the playlist that is a safe distance from live.
-  return 0;
-};
-
-/**
  * Calculates the playlist end time
  *
  * @param {Object} playlist a media playlist object
@@ -351,13 +302,19 @@ export const playlistEnd = function(playlist, expired, useSafeLiveEnd, liveEdgeP
 
   expired = expired || 0;
 
-  const endSequence = useSafeLiveEnd ? safeLiveIndex(playlist, liveEdgePadding) : playlist.segments.length;
-
-  return intervalDuration(
+  let lastSegmentTime = intervalDuration(
     playlist,
-    playlist.mediaSequence + endSequence,
+    playlist.mediaSequence + playlist.segments.length,
     expired
   );
+
+  if (useSafeLiveEnd) {
+    liveEdgePadding = typeof liveEdgePadding === 'number' ? liveEdgePadding : liveEdgeDelay(null, playlist);
+    lastSegmentTime -= liveEdgePadding;
+  }
+
+  // don't return a time less than zero
+  return Math.max(0, lastSegmentTime);
 };
 
 /**
@@ -611,7 +568,6 @@ export default {
   liveEdgeDelay,
   duration,
   seekable,
-  safeLiveIndex,
   getMediaInfoForTime,
   isEnabled,
   isDisabled,
