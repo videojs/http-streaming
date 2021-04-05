@@ -543,15 +543,21 @@ export const isLowestEnabledRendition = (master, media) => {
 };
 
 const playlistMatch = (a, b) => {
+  // first try to use id as it should be the most
+  // accurate
   if (a.id && b.id && a.id === b.id) {
     return true;
   }
 
-  if (a.uri && b.uri && a.uri === b.uri) {
+  // next try to use reslovedUri as it should be the
+  // second most accurate.
+  if (a.resolvedUri && b.resolvedUri && a.resolvedUri === b.resolvedUri) {
     return true;
   }
 
-  if (a.resolvedUri && b.resolvedUri && a.resolvedUri === b.resolvedUri) {
+  // finally try to use uri as it should be accurate
+  // but might miss a few cases for relative uris
+  if (a.uri && b.uri && a.uri === b.uri) {
     return true;
   }
 

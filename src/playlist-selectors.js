@@ -175,6 +175,8 @@ export const simpleSelector = function(
   // if playlist is audio only, select between currently active audio group playlists.
   if (Playlist.isAudioOnly(master)) {
     playlists = masterPlaylistController.getAudioTrackPlaylists_();
+    // add audioOnly to options so that we log audioOnly: true
+    // at the buttom of this function for debugging.
     options.audioOnly = true;
   }
   // convert the playlists to an intermediary representation to make comparisons easier

@@ -77,7 +77,6 @@ const makeMockVhsHandler = function(playlistOptions = [], handlerOptions = {}, m
 
   if (!vhsHandler.playlists.master.playlists) {
     vhsHandler.playlists.master.playlists = [];
-
   }
 
   playlistOptions.forEach((playlist, i) => {
