@@ -1219,4 +1219,102 @@ QUnit.module('Playlist', function() {
       );
     }
   );
+
+  QUnit.test('liveEdgeDelay works as expected', function(assert) {
+    const media = {
+      endList: true,
+      targetDuration: 5,
+      partTargetDuration: 1.1,
+      serverControl: {
+        holdBack: 20,
+        partHoldBack: 2
+      },
+      segments: [
+        {duration: 3},
+        {duration: 4, parts: [
+          {duration: 1},
+          {duration: 0.5}
+        ]},
+        {duration: 3, parts: [
+          {duration: 1},
+          {duration: 0.5}
+        ]},
+        {duration: 4, parts: [
+          {duration: 1},
+          {duration: 0.5}
+        ]}
+      ]
+    };
+    const master = {
+      suggestedPresentationDelay: 10
+    };
+
+    assert.equal(
+      Playlist.liveEdgeDelay(master, media),
+      0,
+      'returns 0 with endlist'
+    );
+
+    delete media.endList;
+    assert.equal(
+      Playlist.liveEdgeDelay(master, media),
+      master.suggestedPresentationDelay,
+      'uses suggestedPresentationDelay'
+    );
+
+    delete master.suggestedPresentationDelay;
+    assert.equal(
+      Playlist.liveEdgeDelay(master, media),
+      media.serverControl.partHoldBack,
+      'uses part hold back'
+    );
+
+    media.serverControl.partHoldBack = null;
+    assert.equal(
+      Playlist.liveEdgeDelay(master, media),
+      media.partTargetDuration * 3,
+      'uses part target duration * 3'
+    );
+
+    media.partTargetDuration = null;
+
+    assert.equal(
+      Playlist.liveEdgeDelay(master, media),
+      media.serverControl.holdBack,
+      'uses hold back'
+    );
+
+    media.serverControl.holdBack = null;
+    assert.equal(
+      Playlist.liveEdgeDelay(master, media),
+      (media.targetDuration * 3),
+      'uses (targetDuration * 3)'
+    );
+
+    media.targetDuration = null;
+    assert.equal(
+      Playlist.liveEdgeDelay(master, media),
+      0,
+      'no target duration delay cannot be calcluated'
+    );
+
+    media.segments = media.segments.map((s) => {
+      s.duration = null;
+      return s;
+    });
+
+    assert.equal(
+      Playlist.liveEdgeDelay(master, media),
+      0,
+      'no segment durations, live delay can\'t be calculated'
+    );
+
+    media.segments.length = 0;
+
+    assert.equal(
+      Playlist.liveEdgeDelay(master, media),
+      0,
+      'no segments, live delay can\'t be calculated'
+    );
+  });
 });
