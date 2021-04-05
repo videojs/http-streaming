@@ -30,7 +30,12 @@ import {
   comparePlaylistBandwidth,
   comparePlaylistResolution
 } from './playlist-selectors.js';
-import {isAudioCodec, isVideoCodec, browserSupportsCodec} from '@videojs/vhs-utils/es/codecs.js';
+import {
+  browserSupportsCodec,
+  getMimeForCodec,
+  parseCodecs
+} from '@videojs/vhs-utils/es/codecs.js';
+import { unwrapCodecList } from './util/codecs.js';
 import logger from './util/logger';
 import {SAFE_TIME_DELTA} from './ranges';
 
@@ -127,35 +132,36 @@ Vhs.canPlaySource = function() {
     'your player\'s techOrder.');
 };
 
-const emeKeySystems = (keySystemOptions, videoPlaylist, audioPlaylist) => {
+const emeKeySystems = (keySystemOptions, mainPlaylist, audioPlaylist) => {
   if (!keySystemOptions) {
     return keySystemOptions;
   }
 
-  const codecs = {
-    video: videoPlaylist && videoPlaylist.attributes && videoPlaylist.attributes.CODECS,
-    audio: audioPlaylist && audioPlaylist.attributes && audioPlaylist.attributes.CODECS
-  };
+  let codecs = {};
 
-  if (!codecs.audio && codecs.video && codecs.video.split(',').length > 1) {
-    codecs.video.split(',').forEach(function(codec) {
-      codec = codec.trim();
-
-      if (isAudioCodec(codec)) {
-        codecs.audio = codec;
-      } else if (isVideoCodec(codec)) {
-        codecs.video = codec;
-      }
-    });
+  if (mainPlaylist && mainPlaylist.attributes && mainPlaylist.attributes.CODECS) {
+    codecs = unwrapCodecList(parseCodecs(mainPlaylist.attributes.CODECS));
   }
-  const videoContentType = codecs.video ? `video/mp4;codecs="${codecs.video}"` : null;
-  const audioContentType = codecs.audio ? `audio/mp4;codecs="${codecs.audio}"` : null;
+
+  if (audioPlaylist && audioPlaylist.attributes && audioPlaylist.attributes.CODECS) {
+    codecs.audio = audioPlaylist.attributes.CODECS;
+  }
+
+  const videoContentType = getMimeForCodec(codecs.video);
+  const audioContentType = getMimeForCodec(codecs.audio);
 
   // upsert the content types based on the selected playlist
   const keySystemContentTypes = {};
 
   for (const keySystem in keySystemOptions) {
-    keySystemContentTypes[keySystem] = {audioContentType, videoContentType};
+    keySystemContentTypes[keySystem] = {};
+
+    if (audioContentType) {
+      keySystemContentTypes[keySystem].audioContentType = audioContentType;
+    }
+    if (videoContentType) {
+      keySystemContentTypes[keySystem].videoContentType = videoContentType;
+    }
 
     // Default to using the video playlist's PSSH even though they may be different, as
     // videojs-contrib-eme will only accept one in the options.
@@ -163,11 +169,11 @@ const emeKeySystems = (keySystemOptions, videoPlaylist, audioPlaylist) => {
     // This shouldn't be an issue for most cases as early intialization will handle all
     // unique PSSH values, and if they aren't, then encrypted events should have the
     // specific information needed for the unique license.
-    if (videoPlaylist.contentProtection &&
-        videoPlaylist.contentProtection[keySystem] &&
-        videoPlaylist.contentProtection[keySystem].pssh) {
+    if (mainPlaylist.contentProtection &&
+        mainPlaylist.contentProtection[keySystem] &&
+        mainPlaylist.contentProtection[keySystem].pssh) {
       keySystemContentTypes[keySystem].pssh =
-        videoPlaylist.contentProtection[keySystem].pssh;
+        mainPlaylist.contentProtection[keySystem].pssh;
     }
 
     // videojs-contrib-eme accepts the option of specifying: 'com.some.cdm': 'url'
