@@ -78,6 +78,19 @@ export const parseManifest = ({
       });
     }
   }
+  if (!manifest.targetDuration) {
+    let targetDuration = 10;
+
+    if (manifest.segments && manifest.segments.length) {
+      targetDuration = manifest
+        .segments.reduce((acc, s) => Math.max(acc, s.duration), 0);
+    }
+
+    if (onwarn) {
+      onwarn(`manifest has no targetDuration defaulting to ${targetDuration}`);
+    }
+    manifest.targetDuration = targetDuration;
+  }
 
   return manifest;
 };
