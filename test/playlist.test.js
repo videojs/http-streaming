@@ -704,25 +704,6 @@ QUnit.module('Playlist', function() {
     assert.equal(playlistEnd, 175, 'playlist end is 175');
   });
 
-  QUnit.test('playlistEnd uses given live edge padding with useSafeLiveEnd true', function(assert) {
-    const playlist = {
-      targetDuration: 10,
-      mediaSequence: 0,
-      segments: []
-    };
-
-    for (let i = 0; i < 20; i++) {
-      playlist.segments.push({
-        duration: 10,
-        uri: `${i}.ts`
-      });
-    }
-
-    const playlistEnd = Playlist.playlistEnd(playlist, 0, true, 25);
-
-    assert.equal(playlistEnd, 175, 'playlist end is 175');
-  });
-
   QUnit.module('hasAttribute');
 
   QUnit.test('correctly checks for existence of playlist attribute', function(assert) {
