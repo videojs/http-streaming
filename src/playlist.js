@@ -214,53 +214,6 @@ export const sumDurations = function(playlist, startIndex, endIndex) {
 };
 
 /**
- * Determines the media index of the segment corresponding to the safe edge of the live
- * window which is the duration of the last segment plus 2 target durations from the end
- * of the playlist.
- *
- * A liveEdgePadding can be provided which will be used instead of calculating the safe live edge.
- * This corresponds to suggestedPresentationDelay in DASH manifests.
- *
- * @param {Object} playlist
- *        a media playlist object
- * @param {number} [liveEdgePadding]
- *        A number in seconds indicating how far from the end we want to be.
- *        If provided, this value is used instead of calculating the safe live index from the target durations.
- *        Corresponds to suggestedPresentationDelay in DASH manifests.
- * @return {number}
- *         The media index of the segment at the safe live point. 0 if there is no "safe"
- *         point.
- * @function safeLiveIndex
- */
-export const safeLiveIndex = function(playlist, liveEdgePadding) {
-  if (!playlist.segments.length) {
-    return 0;
-  }
-
-  let i = playlist.segments.length;
-  const lastSegmentDuration = playlist.segments[i - 1].duration || playlist.targetDuration;
-  const safeDistance = typeof liveEdgePadding === 'number' ?
-    liveEdgePadding :
-    lastSegmentDuration + playlist.targetDuration * 2;
-
-  if (safeDistance === 0) {
-    return i;
-  }
-
-  let distanceFromEnd = 0;
-
-  while (i--) {
-    distanceFromEnd += playlist.segments[i].duration;
-
-    if (distanceFromEnd >= safeDistance) {
-      break;
-    }
-  }
-
-  return Math.max(0, i);
-};
-
-/**
  * Calculates the playlist end time
  *
  * @param {Object} playlist a media playlist object
@@ -293,13 +246,27 @@ export const playlistEnd = function(playlist, expired, useSafeLiveEnd, liveEdgeP
 
   expired = expired || 0;
 
-  const endSequence = useSafeLiveEnd ? safeLiveIndex(playlist, liveEdgePadding) : playlist.segments.length;
-
-  return intervalDuration(
+  let lastSegmentTime = intervalDuration(
     playlist,
-    playlist.mediaSequence + endSequence,
+    playlist.mediaSequence + playlist.segments.length,
     expired
   );
+
+  // "The client SHALL choose which Media Segment to play first from the
+  // Media Playlist when playback starts.  If the EXT-X-ENDLIST tag is not
+  // present and the client intends to play the media normally, the client
+  // SHOULD NOT choose a segment which starts less than three target
+  // durations from the end of the Playlist file.  Doing so can trigger
+  // playback stalls."
+  // https://tools.ietf.org/html/draft-pantos-http-live-streaming-23#section-6.3.3
+  if (useSafeLiveEnd) {
+    liveEdgePadding = typeof liveEdgePadding === 'number' ? liveEdgePadding : playlist.targetDuration * 3;
+    lastSegmentTime -= liveEdgePadding;
+
+  }
+
+  // don't return a time less than zero
+  return Math.max(0, lastSegmentTime);
 };
 
 /**
@@ -545,7 +512,6 @@ export const isLowestEnabledRendition = (master, media) => {
 export default {
   duration,
   seekable,
-  safeLiveIndex,
   getMediaInfoForTime,
   isEnabled,
   isDisabled,
