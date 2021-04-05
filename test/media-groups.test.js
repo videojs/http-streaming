@@ -832,11 +832,11 @@ QUnit.test(
 
     assert.deepEqual(
       this.master.mediaGroups[type],
-      { main: { default: { default: true, isMasterPlaylist: true } } }, 'forced default audio group'
+      { main: { default: { default: true} } }, 'forced default audio group'
     );
     assert.deepEqual(
       this.mediaTypes[type].groups,
-      { main: [ { id: 'default', playlistLoader: null, default: true, isMasterPlaylist: true } ] },
+      { main: [ { id: 'default', playlistLoader: null, default: true } ] },
       'creates group properties and no playlist loader'
     );
     assert.ok(this.mediaTypes[type].tracks.default, 'created default track');

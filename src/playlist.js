@@ -564,7 +564,19 @@ export const isLowestEnabledRendition = (master, media) => {
   }).length === 0);
 };
 
-const playlistMatch = (a, b) => {
+export const playlistMatch = (a, b) => {
+  // both playlits are null
+  // or only one playlist is non-null
+  // no match
+  if (!a && !b || (!a && b) || (a && !b)) {
+    return false;
+  }
+
+  // playlist objects are the same, match
+  if (a === b) {
+    return true;
+  }
+
   // first try to use id as it should be the most
   // accurate
   if (a.id && b.id && a.id === b.id) {
@@ -587,15 +599,11 @@ const playlistMatch = (a, b) => {
 };
 
 export const isAudioOnly = (master) => {
-  const AUDIO = master.mediaGroups && master.mediaGroups.AUDIO;
+  const AUDIO = master.mediaGroups && master.mediaGroups.AUDIO || {};
 
   // we are audio only if we have no main playlists but do
   // have media group playlists.
   if (!master.playlists || !master.playlists.length) {
-    // no audio media groups and no playlists, this cannot be audio only
-    if (!AUDIO) {
-      return false;
-    }
     for (const groupName in AUDIO) {
       for (const label in AUDIO[groupName]) {
         const variant = AUDIO[groupName][label];
@@ -605,6 +613,9 @@ export const isAudioOnly = (master) => {
         }
       }
     }
+
+    // no audio media groups and no playlists, this cannot be audio only
+    return false;
   }
 
   // if every playlist has only an audio codec it is audio only
@@ -618,15 +629,25 @@ export const isAudioOnly = (master) => {
     }
 
     if (AUDIO) {
+      let audioGroupFound = false;
+
       for (const groupName in AUDIO) {
+        if (audioGroupFound) {
+          break;
+        }
         for (const label in AUDIO[groupName]) {
           const variant = AUDIO[groupName][label];
 
           // playlist is in an audio group it is audio only
           if (playlistMatch(playlist, variant)) {
-            continue;
+            audioGroupFound = true;
+            break;
           }
         }
+      }
+
+      if (audioGroupFound) {
+        continue;
       }
     }
 
@@ -653,5 +674,6 @@ export default {
   hasAttribute,
   estimateSegmentRequestTime,
   isLowestEnabledRendition,
-  isAudioOnly
+  isAudioOnly,
+  playlistMatch
 };
