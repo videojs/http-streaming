@@ -1319,42 +1319,42 @@ QUnit.module('Playlist', function() {
   });
 
   QUnit.test('playlistMatch', function(assert) {
-    assert.equal(Playlist.playlistMatch(null, null), false, 'null playlists do not match');
-    assert.equal(Playlist.playlistMatch({}, null), false, 'a playlist without b');
-    assert.equal(Playlist.playlistMatch(null, {}), false, 'b playlist without a');
+    assert.false(Playlist.playlistMatch(null, null), 'null playlists do not match');
+    assert.false(Playlist.playlistMatch({}, null), 'a playlist without b');
+    assert.false(Playlist.playlistMatch(null, {}), 'b playlist without a');
 
     const a = {id: 'foo', uri: 'foo.m3u8', resolvedUri: 'http://example.com/foo.m3u8'};
     const b = {id: 'foo', uri: 'foo.m3u8', resolvedUri: 'http://example.com/foo.m3u8'};
 
-    assert.equal(Playlist.playlistMatch(a, a), true, 'object signature match');
+    assert.true(Playlist.playlistMatch(a, a), 'object signature match');
 
-    assert.equal(Playlist.playlistMatch(a, b), true, 'id match');
+    assert.true(Playlist.playlistMatch(a, b), 'id match');
 
     a.id = 'bar';
-    assert.equal(Playlist.playlistMatch(a, b), true, 'resolved uri match');
+    assert.true(Playlist.playlistMatch(a, b), 'resolved uri match');
 
     a.resolvedUri += '?nope';
-    assert.equal(Playlist.playlistMatch(a, b), true, 'uri match');
+    assert.true(Playlist.playlistMatch(a, b), 'uri match');
 
     a.uri += '?nope';
 
-    assert.equal(Playlist.playlistMatch(a, b), false, 'no match');
+    assert.false(Playlist.playlistMatch(a, b), 'no match');
   });
 
   QUnit.test('isAudioOnly', function(assert) {
-    assert.equal(Playlist.isAudioOnly({
+    assert.false(Playlist.isAudioOnly({
       playlists: [{attributes: {CODECS: 'mp4a.40.2,avc1.4d400d'}}]
-    }), false, 'muxed playlist');
+    }), 'muxed playlist');
 
-    assert.equal(Playlist.isAudioOnly({
+    assert.false(Playlist.isAudioOnly({
       playlists: [
         {attributes: {CODECS: 'mp4a.40.2,avc1.4d400d'}},
         {attributes: {CODECS: 'avc1.4d400d'}},
         {attributes: {CODECS: 'mp4a.40.2'}}
       ]
-    }), false, 'muxed, audio only, and video only');
+    }), 'muxed, audio only, and video only');
 
-    assert.equal(Playlist.isAudioOnly({
+    assert.false(Playlist.isAudioOnly({
       mediaGroups: {
         AUDIO: {
           main: {
@@ -1364,17 +1364,17 @@ QUnit.module('Playlist', function() {
         }
       },
       playlists: [{attributes: {CODECS: 'mp4a.40.2,avc1.4d400d'}}]
-    }), false, 'muxed and alt audio');
+    }), 'muxed and alt audio');
 
-    assert.equal(Playlist.isAudioOnly({
+    assert.true(Playlist.isAudioOnly({
       playlists: [
         {attributes: {CODECS: 'mp4a.40.2'}},
         {attributes: {CODECS: 'mp4a.40.2'}},
         {attributes: {CODECS: 'mp4a.40.2'}}
       ]
-    }), true, 'audio only playlists');
+    }), 'audio only playlists');
 
-    assert.equal(Playlist.isAudioOnly({
+    assert.true(Playlist.isAudioOnly({
       mediaGroups: {
         AUDIO: {
           main: {
@@ -1382,9 +1382,9 @@ QUnit.module('Playlist', function() {
           }
         }
       }
-    }), true, 'only audio groups, uri');
+    }), 'only audio groups, uri');
 
-    assert.equal(Playlist.isAudioOnly({
+    assert.true(Playlist.isAudioOnly({
       mediaGroups: {
         AUDIO: {
           main: {
@@ -1392,9 +1392,9 @@ QUnit.module('Playlist', function() {
           }
         }
       }
-    }), true, 'only audio groups, playlists');
+    }), 'only audio groups, playlists');
 
-    assert.equal(Playlist.isAudioOnly({
+    assert.true(Playlist.isAudioOnly({
       playlists: [
         {id: 'en'}
       ],
@@ -1405,7 +1405,7 @@ QUnit.module('Playlist', function() {
           }
         }
       }
-    }), true, 'audio playlists that are also in groups, without codecs');
+    }), 'audio playlists that are also in groups, without codecs');
 
   });
 });
