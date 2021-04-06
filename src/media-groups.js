@@ -89,12 +89,8 @@ export const onGroupChanged = (type, settings) => () => {
     return;
   }
 
-  if (activeGroup) {
-    mediaType.lastGroup_ = activeGroup;
-  }
-  if (activeTrack) {
-    mediaType.lastTrack_ = activeTrack;
-  }
+  mediaType.lastGroup_ = activeGroup;
+  mediaType.lastTrack_ = activeTrack;
 
   stopLoaders(segmentLoader, mediaType);
 
@@ -167,12 +163,8 @@ export const onTrackChanged = (type, settings) => () => {
     return;
   }
 
-  if (activeGroup) {
-    mediaType.lastGroup_ = activeGroup;
-  }
-  if (activeTrack) {
-    mediaType.lastTrack_ = activeTrack;
-  }
+  mediaType.lastGroup_ = activeGroup;
+  mediaType.lastTrack_ = activeTrack;
 
   stopLoaders(segmentLoader, mediaType);
 
