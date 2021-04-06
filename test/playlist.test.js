@@ -1326,6 +1326,8 @@ QUnit.module('Playlist', function() {
     const a = {id: 'foo', uri: 'foo.m3u8', resolvedUri: 'http://example.com/foo.m3u8'};
     const b = {id: 'foo', uri: 'foo.m3u8', resolvedUri: 'http://example.com/foo.m3u8'};
 
+    assert.equal(Playlist.playlistMatch(a, a), true, 'object signature match');
+
     assert.equal(Playlist.playlistMatch(a, b), true, 'id match');
 
     a.id = 'bar';

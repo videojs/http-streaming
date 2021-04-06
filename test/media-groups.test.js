@@ -810,7 +810,8 @@ QUnit.module('MediaGroups', function() {
     mocksAreZero(mocks, assert);
 
     // mock track change without media change (via selectPlaylist)
-    settings.mediaTypes.AUDIO.lastTrack_ = null;
+    this.media = this.nextMedia;
+    settings.mediaTypes.AUDIO.lastTrack_ = {id: 'en'};
     onTrackChanged();
 
     assert.equal(audioSegmentLoader.calls.pause, 1, 'audioSegmentLoader pause called');
