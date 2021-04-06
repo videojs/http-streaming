@@ -118,8 +118,8 @@ const segmentInfoString = (segmentInfo) => {
     timeline
   } = segmentInfo;
 
-  const s = typeof start === 'number' ? start : startOfSegment;
-  const e = typeof end === 'number' ? end : `${(s + duration)} (estimated)`;
+  const startTime = typeof start === 'number' ? start : startOfSegment;
+  const endTime = typeof end === 'number' ? end : `${(startTime + duration)} (estimated)`;
   const segmentLen = segments.length - 1;
   let selection = 'mediaIndex/partIndex increment';
 
@@ -134,7 +134,7 @@ const segmentInfoString = (segmentInfo) => {
   return `${name} [${index}/${segmentLen}]` +
     (partIndex ? ` part [${partIndex}/${parts.length - 1}]` : '') +
     ` mediaSequenceNumber [${seq}/${seq + segmentLen}]` +
-    ` start/end [${s} => ${e}]` +
+    ` start/end [${startTime} => ${endTime}]` +
     ` timeline [${timeline}]` +
     ` selected by [${selection}]` +
     ` playlist [${id}]`;
