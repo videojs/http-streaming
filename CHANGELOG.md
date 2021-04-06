@@ -1,3 +1,27 @@
+<a name="2.7.0"></a>
+# [2.7.0](https://github.com/videojs/http-streaming/compare/v2.6.4...v2.7.0) (2021-04-06)
+
+### Features
+
+* Add  EXT-X-PART support behind a flag for LL-HLS ([#1055](https://github.com/videojs/http-streaming/issues/1055)) ([b33e109](https://github.com/videojs/http-streaming/commit/b33e109))
+* mark Video.js as a peer dependency ([#1111](https://github.com/videojs/http-streaming/issues/1111)) ([99480d5](https://github.com/videojs/http-streaming/commit/99480d5))
+* support serverControl and preloadSegment behind experimentalLLHLS flag ([#1078](https://github.com/videojs/http-streaming/issues/1078)) ([fa1b6b5](https://github.com/videojs/http-streaming/commit/fa1b6b5))
+* usage and logging on rendition change with reasons ([#1088](https://github.com/videojs/http-streaming/issues/1088)) ([1b990f1](https://github.com/videojs/http-streaming/commit/1b990f1))
+
+### Bug Fixes
+
+* audio only media group playlists, audio group playlists, and audio switches for audio only ([#1100](https://github.com/videojs/http-streaming/issues/1100)) ([6d83de3](https://github.com/videojs/http-streaming/commit/6d83de3))
+* better time to first frame for live playlists ([#1105](https://github.com/videojs/http-streaming/issues/1105)) ([1e94680](https://github.com/videojs/http-streaming/commit/1e94680))
+* catch remove errors, remove all data on QUOTA_EXCEEDED ([#1101](https://github.com/videojs/http-streaming/issues/1101)) ([86f77fe](https://github.com/videojs/http-streaming/commit/86f77fe))
+* Only add sidxMapping on successful sidx request and parse. ([#1099](https://github.com/videojs/http-streaming/issues/1099)) ([de0b55b](https://github.com/videojs/http-streaming/commit/de0b55b)), closes [#1107](https://github.com/videojs/http-streaming/issues/1107)
+* support automatic configuration of audio and video only DRM sources ([#1090](https://github.com/videojs/http-streaming/issues/1090)) ([9b116ce](https://github.com/videojs/http-streaming/commit/9b116ce))
+
+### Chores
+
+* never skip main ci runs ([#1108](https://github.com/videojs/http-streaming/issues/1108)) ([b2d2c91](https://github.com/videojs/http-streaming/commit/b2d2c91))
+* turn checkWatch back on for rollup ([87947fc](https://github.com/videojs/http-streaming/commit/87947fc))
+* update to mux.js[@5](https://github.com/5).11.0 ([#1109](https://github.com/videojs/http-streaming/issues/1109)) ([af5841c](https://github.com/videojs/http-streaming/commit/af5841c))
+
 <a name="2.6.4"></a>
 ## [2.6.4](https://github.com/videojs/http-streaming/compare/v2.6.3...v2.6.4) (2021-03-12)
 

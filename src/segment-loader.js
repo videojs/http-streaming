@@ -102,7 +102,8 @@ const segmentInfoString = (segmentInfo) => {
   const {
     segment: {
       start,
-      end
+      end,
+      parts
     },
     playlist: {
       mediaSequence: seq,
@@ -110,12 +111,19 @@ const segmentInfoString = (segmentInfo) => {
       segments = []
     },
     mediaIndex: index,
+    partIndex,
     timeline
   } = segmentInfo;
 
+  const name = segmentInfo.segment.uri ? 'segment' : 'pre-segment';
+
   return [
-    `appending [${index}] of [${seq}, ${seq + segments.length}] from playlist [${id}]`,
-    `[${start} => ${end}] in timeline [${timeline}]`
+    `${name} [${index}/${segments.length - 1}]`,
+    (partIndex ? `part [${partIndex}/${parts.length - 1}]` : ''),
+    `mediaSequenceNumber [${seq}/${seq + segments.length - 1}]`,
+    `playlist [${id}]`,
+    `start/end [${start} => ${end}]`,
+    `timeline [${timeline}]`
   ].join(' ');
 };
 
@@ -1354,7 +1362,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       return null;
     }
 
-    let nextPartIndex = typeof currentPartIndex === 'number' ? currentPartIndex + 1 : 0;
+    let nextPartIndex = null;
     let nextMediaIndex = null;
     let startOfSegment;
     let isSyncRequest = false;
@@ -1369,41 +1377,36 @@ export default class SegmentLoader extends videojs.EventTarget {
     } else if (currentMediaIndex !== null) {
     // Under normal playback conditions fetching is a simple walk forward
       const segment = playlist.segments[currentMediaIndex];
+      const partIndex = typeof currentPartIndex === 'number' ? currentPartIndex : -1;
 
       startOfSegment = segment.end ? segment.end : lastBufferedEnd;
 
-      if (!segment.parts || !segment.parts.length || !segment.parts[nextPartIndex]) {
-        nextMediaIndex = currentMediaIndex + 1;
-        nextPartIndex = 0;
-      } else {
+      if (segment.parts && segment.parts[partIndex + 1]) {
         nextMediaIndex = currentMediaIndex;
+        nextPartIndex = partIndex + 1;
+      } else {
+        nextMediaIndex = currentMediaIndex + 1;
       }
 
     // There is a sync-point but the lack of a mediaIndex indicates that
     // we need to make a good conservative guess about which segment to
     // fetch
-    } else if (this.fetchAtBuffer_) {
-      // Find the segment containing the end of the buffer
-      const mediaSourceInfo = Playlist.getMediaInfoForTime(
-        playlist,
-        lastBufferedEnd,
-        syncPoint.segmentIndex,
-        syncPoint.time
-      );
-
-      nextMediaIndex = mediaSourceInfo.mediaIndex;
-      startOfSegment = mediaSourceInfo.startTime;
     } else {
-      // Find the segment containing currentTime
+      // Find the segment containing the end of the buffer or current time.
       const mediaSourceInfo = Playlist.getMediaInfoForTime(
         playlist,
-        currentTime,
+        this.fetchAtBuffer_ ? lastBufferedEnd : currentTime,
         syncPoint.segmentIndex,
         syncPoint.time
       );
 
       nextMediaIndex = mediaSourceInfo.mediaIndex;
       startOfSegment = mediaSourceInfo.startTime;
+      nextPartIndex = mediaSourceInfo.partIndex;
+    }
+
+    if (typeof nextPartIndex !== 'number' && playlist.segments[nextMediaIndex] && playlist.segments[nextMediaIndex].parts) {
+      nextPartIndex = 0;
     }
 
     const segmentInfo = this.generateSegmentInfo_(playlist, nextMediaIndex, startOfSegment, isSyncRequest, nextPartIndex);
@@ -1425,6 +1428,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       segmentInfo,
       playlist,
       currentMediaIndex,
+      currentPartIndex,
+      nextPartIndex,
       nextMediaIndex,
       startOfSegment,
       isSyncRequest
@@ -1623,7 +1628,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.trigger('earlyabort');
   }
 
-  handleAbort_() {
+  handleAbort_(segmentInfo) {
+    this.logger_(`Aborting ${segmentInfoString(segmentInfo)}`);
     this.mediaRequestsAborted += 1;
   }
 
@@ -2396,13 +2402,15 @@ export default class SegmentLoader extends videojs.EventTarget {
       segmentInfo.timeline > 0;
     const isEndOfTimeline = isEndOfStream || (isWalkingForward && isDiscontinuity);
 
+    this.logger_(`Requesting ${segmentInfoString(segmentInfo)}`);
+
     segmentInfo.abortRequests = mediaSegmentRequest({
       xhr: this.vhs_.xhr,
       xhrOptions: this.xhrOptions_,
       decryptionWorker: this.decrypter_,
       segment: simpleSegment,
       handlePartialData: this.handlePartialData_,
-      abortFn: this.handleAbort_.bind(this),
+      abortFn: this.handleAbort_.bind(this, segmentInfo),
       progressFn: this.handleProgress_.bind(this),
       trackInfoFn: this.handleTrackInfo_.bind(this),
       timingInfoFn: this.handleTimingInfo_.bind(this),
@@ -2903,7 +2911,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       });
     }
 
-    this.logger_(segmentInfoString(segmentInfo));
+    this.logger_(`Appended ${segmentInfoString(segmentInfo)}`);
 
     const segmentDurationMessage =
       getTroublesomeSegmentDurationMessage(segmentInfo, this.sourceType_);

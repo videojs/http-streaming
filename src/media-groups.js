@@ -2,6 +2,8 @@ import videojs from 'video.js';
 import PlaylistLoader from './playlist-loader';
 import DashPlaylistLoader from './dash-playlist-loader';
 import noop from './util/noop';
+import {isAudioOnly} from './playlist.js';
+import logger from './util/logger';
 
 /**
  * Convert the properties of an HLS track into an audioTrackKind.
@@ -79,8 +81,17 @@ export const onGroupChanged = (type, settings) => () => {
     mediaTypes: { [type]: mediaType }
   } = settings;
   const activeTrack = mediaType.activeTrack();
-  const activeGroup = mediaType.activeGroup(activeTrack);
+  const activeGroup = mediaType.getActiveGroup();
   const previousActiveLoader = mediaType.activePlaylistLoader;
+  const lastGroup = mediaType.lastGroup_;
+
+  // the group did not change do nothing
+  if (activeGroup && lastGroup && activeGroup.id === lastGroup.id) {
+    return;
+  }
+
+  mediaType.lastGroup_ = activeGroup;
+  mediaType.lastTrack_ = activeTrack;
 
   if (sourceType === 'dash') {
     // only one playlist loader for dash. do not stop.
@@ -89,8 +100,8 @@ export const onGroupChanged = (type, settings) => () => {
 
   stopLoaders(segmentLoader, mediaType);
 
-  if (!activeGroup) {
-    // there is no group active
+  if (!activeGroup || activeGroup.isMasterPlaylist) {
+    // there is no group active or active group is a main playlist and won't change
     return;
   }
 
@@ -115,8 +126,11 @@ export const onGroupChanging = (type, settings) => () => {
   const {
     segmentLoaders: {
       [type]: segmentLoader
-    }
+    },
+    mediaTypes: { [type]: mediaType }
   } = settings;
+
+  mediaType.lastGroup_ = null;
 
   segmentLoader.abort();
   segmentLoader.pause();
@@ -138,6 +152,7 @@ export const onGroupChanging = (type, settings) => () => {
  */
 export const onTrackChanged = (type, settings) => () => {
   const {
+    masterPlaylistLoader,
     segmentLoaders: {
       [type]: segmentLoader,
       main: mainSegmentLoader
@@ -145,13 +160,44 @@ export const onTrackChanged = (type, settings) => () => {
     mediaTypes: { [type]: mediaType }
   } = settings;
   const activeTrack = mediaType.activeTrack();
-  const activeGroup = mediaType.activeGroup(activeTrack);
+  const activeGroup = mediaType.getActiveGroup();
   const previousActiveLoader = mediaType.activePlaylistLoader;
+  const lastTrack = mediaType.lastTrack_;
+
+  // track did not change, do nothing
+  if (lastTrack && activeTrack && lastTrack.id === activeTrack.id) {
+    return;
+  }
+
+  mediaType.lastGroup_ = activeGroup;
+  mediaType.lastTrack_ = activeTrack;
 
   stopLoaders(segmentLoader, mediaType);
 
   if (!activeGroup) {
     // there is no group active so we do not want to restart loaders
+    return;
+  }
+
+  if (activeGroup.isMasterPlaylist) {
+    // track did not change, do nothing
+    if (!activeTrack || !lastTrack || activeTrack.id === lastTrack.id) {
+      return;
+    }
+
+    const mpc = settings.vhs.masterPlaylistController_;
+    const newPlaylist = mpc.selectPlaylist();
+
+    // media will not change do nothing
+    if (mpc.media() === newPlaylist) {
+      return;
+    }
+
+    mediaType.logger_(`track change. Switching master audio from ${lastTrack.id} to ${activeTrack.id}`);
+    masterPlaylistLoader.pause();
+    mainSegmentLoader.resetEverything();
+    mpc.fastQualityChange_(newPlaylist);
+
     return;
   }
 
@@ -381,15 +427,18 @@ export const initialize = {
       sourceType,
       segmentLoaders: { [type]: segmentLoader },
       requestOptions,
-      master: { mediaGroups, playlists },
+      master: {mediaGroups},
       mediaTypes: {
         [type]: {
           groups,
-          tracks
+          tracks,
+          logger_
         }
       },
       masterPlaylistLoader
     } = settings;
+
+    const audioOnlyMaster = isAudioOnly(masterPlaylistLoader.master);
 
     // force a default if we have none
     if (!mediaGroups[type] ||
@@ -401,36 +450,19 @@ export const initialize = {
       if (!groups[groupId]) {
         groups[groupId] = [];
       }
-
-      // List of playlists that have an AUDIO attribute value matching the current
-      // group ID
-      const groupPlaylists = playlists.filter(playlist => {
-        return playlist.attributes[type] === groupId;
-      });
-
       for (const variantLabel in mediaGroups[type][groupId]) {
         let properties = mediaGroups[type][groupId][variantLabel];
 
-        // List of playlists for the current group ID that do not have a matching uri
-        // with this alternate audio variant
-        const unmatchingPlaylists = groupPlaylists.filter(playlist => {
-          return playlist.resolvedUri !== properties.resolvedUri;
-        });
-
-        // If there are no playlists using this audio group other than ones
-        // that match it's uri, then the playlist is audio only. We delete the resolvedUri
-        // property here to prevent a playlist loader from being created so that we don't have
-        // both the main and audio segment loaders loading the same audio segments
-        // from the same playlist.
-        if (!unmatchingPlaylists.length && groupPlaylists.length) {
-          delete properties.resolvedUri;
-        }
-
         let playlistLoader;
 
-        // if vhs-json was provided as the source, and the media playlist was resolved,
-        // use the resolved media playlist object
-        if (sourceType === 'vhs-json' && properties.playlists) {
+        if (audioOnlyMaster) {
+          logger_(`AUDIO group '${groupId}' label '${variantLabel}' is a master playlist`);
+          properties.isMasterPlaylist = true;
+          playlistLoader = null;
+
+          // if vhs-json was provided as the source, and the media playlist was resolved,
+          // use the resolved media playlist object
+        } else if (sourceType === 'vhs-json' && properties.playlists) {
           playlistLoader = new PlaylistLoader(
             properties.playlists[0],
             vhs,
@@ -664,17 +696,28 @@ export const activeGroup = (type, settings) => (track) => {
 
   let variants = null;
 
+  // set to variants to main media active group
   if (media.attributes[type]) {
     variants = groups[media.attributes[type]];
   }
 
-  variants = variants || groups.main;
+  const groupKeys = Object.keys(groups);
+
+  if (!variants) {
+    // use the main group if it exists
+    if (groups.main) {
+      variants = groups.main;
+    // only one group, use that one
+    } else if (groupKeys.length === 1) {
+      variants = groups[groupKeys[0]];
+    }
+  }
 
   if (typeof track === 'undefined') {
     return variants;
   }
 
-  if (track === null) {
+  if (track === null || !variants) {
     // An active track was specified so a corresponding group is expected. track === null
     // means no track is currently active so there is no corresponding group
     return null;
@@ -732,6 +775,16 @@ export const activeTrack = {
   }
 };
 
+export const getActiveGroup = (type, {mediaTypes}) => () => {
+  const activeTrack_ = mediaTypes[type].activeTrack();
+
+  if (!activeTrack_) {
+    return null;
+  }
+
+  return mediaTypes[type].activeGroup(activeTrack_);
+};
+
 /**
  * Setup PlaylistLoaders and Tracks for media groups (Audio, Subtitles,
  * Closed-Captions) specified in the master manifest.
@@ -773,6 +826,7 @@ export const setupMediaGroups = (settings) => {
     mediaTypes[type].onGroupChanged = onGroupChanged(type, settings);
     mediaTypes[type].onGroupChanging = onGroupChanging(type, settings);
     mediaTypes[type].onTrackChanged = onTrackChanged(type, settings);
+    mediaTypes[type].getActiveGroup = getActiveGroup(type, settings);
   });
 
   // DO NOT enable the default subtitle or caption track.
@@ -783,6 +837,7 @@ export const setupMediaGroups = (settings) => {
     const groupId = (audioGroup.filter(group => group.default)[0] || audioGroup[0]).id;
 
     mediaTypes.AUDIO.tracks[groupId].enabled = true;
+    mediaTypes.AUDIO.onGroupChanged();
     mediaTypes.AUDIO.onTrackChanged();
   }
 
@@ -841,8 +896,11 @@ export const createMediaTypes = () => {
       activePlaylistLoader: null,
       activeGroup: noop,
       activeTrack: noop,
+      getActiveGroup: noop,
       onGroupChanged: noop,
-      onTrackChanged: noop
+      onTrackChanged: noop,
+      lastTrack_: null,
+      logger_: logger(`MediaGroups[${type}]`)
     };
   });
 
