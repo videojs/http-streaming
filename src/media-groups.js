@@ -93,12 +93,10 @@ export const onGroupChanged = (type, settings) => () => {
   mediaType.lastGroup_ = activeGroup;
   mediaType.lastTrack_ = activeTrack;
 
-  if (sourceType === 'dash') {
-    // only one playlist loader for dash. do not stop.
-    return;
+  if (sourceType !== 'dash') {
+    // only one playlist for dash. do not stop.
+    stopLoaders(segmentLoader, mediaType);
   }
-
-  stopLoaders(segmentLoader, mediaType);
 
   if (!activeGroup || activeGroup.isMasterPlaylist) {
     // there is no group active or active group is a main playlist and won't change
