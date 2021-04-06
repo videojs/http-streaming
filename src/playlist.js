@@ -6,6 +6,7 @@
 import videojs from 'video.js';
 import window from 'global/window';
 import {TIME_FUDGE_FACTOR} from './ranges.js';
+import {isAudioCodec} from '@videojs/vhs-utils/es/codecs.js';
 
 const {createTimeRange} = videojs;
 
@@ -563,6 +564,100 @@ export const isLowestEnabledRendition = (master, media) => {
   }).length === 0);
 };
 
+export const playlistMatch = (a, b) => {
+  // both playlits are null
+  // or only one playlist is non-null
+  // no match
+  if (!a && !b || (!a && b) || (a && !b)) {
+    return false;
+  }
+
+  // playlist objects are the same, match
+  if (a === b) {
+    return true;
+  }
+
+  // first try to use id as it should be the most
+  // accurate
+  if (a.id && b.id && a.id === b.id) {
+    return true;
+  }
+
+  // next try to use reslovedUri as it should be the
+  // second most accurate.
+  if (a.resolvedUri && b.resolvedUri && a.resolvedUri === b.resolvedUri) {
+    return true;
+  }
+
+  // finally try to use uri as it should be accurate
+  // but might miss a few cases for relative uris
+  if (a.uri && b.uri && a.uri === b.uri) {
+    return true;
+  }
+
+  return false;
+};
+
+const someAudioVariant = function(master, callback) {
+  const AUDIO = master && master.mediaGroups && master.mediaGroups.AUDIO || {};
+  let found = false;
+
+  for (const groupName in AUDIO) {
+    for (const label in AUDIO[groupName]) {
+      found = callback(AUDIO[groupName][label]);
+
+      if (found) {
+        break;
+      }
+    }
+
+    if (found) {
+      break;
+    }
+  }
+
+  return !!found;
+};
+
+export const isAudioOnly = (master) => {
+  // we are audio only if we have no main playlists but do
+  // have media group playlists.
+  if (!master || !master.playlists || !master.playlists.length) {
+    // without audio variants or playlists this
+    // is not an audio only master.
+    const found = someAudioVariant(master, (variant) =>
+      (variant.playlists && variant.playlists.length) || variant.uri);
+
+    return found;
+  }
+
+  // if every playlist has only an audio codec it is audio only
+  for (let i = 0; i < master.playlists.length; i++) {
+    const playlist = master.playlists[i];
+    const CODECS = playlist.attributes && playlist.attributes.CODECS;
+
+    // all codecs are audio, this is an audio playlist.
+    if (CODECS && CODECS.split(',').every((c) => isAudioCodec(c))) {
+      continue;
+    }
+
+    // playlist is in an audio group it is audio only
+    const found = someAudioVariant(master, (variant) => playlistMatch(playlist, variant));
+
+    if (found) {
+      continue;
+    }
+
+    // if we make it here this playlist isn't audio and we
+    // are not audio only
+    return false;
+  }
+
+  // if we make it past every playlist without returning, then
+  // this is an audio only playlist.
+  return true;
+};
+
 // exports
 export default {
   liveEdgeDelay,
@@ -577,5 +672,7 @@ export default {
   isAes,
   hasAttribute,
   estimateSegmentRequestTime,
-  isLowestEnabledRendition
+  isLowestEnabledRendition,
+  isAudioOnly,
+  playlistMatch
 };

@@ -1317,4 +1317,95 @@ QUnit.module('Playlist', function() {
       'no segments, live delay can\'t be calculated'
     );
   });
+
+  QUnit.test('playlistMatch', function(assert) {
+    assert.false(Playlist.playlistMatch(null, null), 'null playlists do not match');
+    assert.false(Playlist.playlistMatch({}, null), 'a playlist without b');
+    assert.false(Playlist.playlistMatch(null, {}), 'b playlist without a');
+
+    const a = {id: 'foo', uri: 'foo.m3u8', resolvedUri: 'http://example.com/foo.m3u8'};
+    const b = {id: 'foo', uri: 'foo.m3u8', resolvedUri: 'http://example.com/foo.m3u8'};
+
+    assert.true(Playlist.playlistMatch(a, a), 'object signature match');
+
+    assert.true(Playlist.playlistMatch(a, b), 'id match');
+
+    a.id = 'bar';
+    assert.true(Playlist.playlistMatch(a, b), 'resolved uri match');
+
+    a.resolvedUri += '?nope';
+    assert.true(Playlist.playlistMatch(a, b), 'uri match');
+
+    a.uri += '?nope';
+
+    assert.false(Playlist.playlistMatch(a, b), 'no match');
+  });
+
+  QUnit.test('isAudioOnly', function(assert) {
+    assert.false(Playlist.isAudioOnly({
+      playlists: [{attributes: {CODECS: 'mp4a.40.2,avc1.4d400d'}}]
+    }), 'muxed playlist');
+
+    assert.false(Playlist.isAudioOnly({
+      playlists: [
+        {attributes: {CODECS: 'mp4a.40.2,avc1.4d400d'}},
+        {attributes: {CODECS: 'avc1.4d400d'}},
+        {attributes: {CODECS: 'mp4a.40.2'}}
+      ]
+    }), 'muxed, audio only, and video only');
+
+    assert.false(Playlist.isAudioOnly({
+      mediaGroups: {
+        AUDIO: {
+          main: {
+            en: {id: 'en', uri: 'en'},
+            es: {id: 'es', uri: 'es'}
+          }
+        }
+      },
+      playlists: [{attributes: {CODECS: 'mp4a.40.2,avc1.4d400d'}}]
+    }), 'muxed and alt audio');
+
+    assert.true(Playlist.isAudioOnly({
+      playlists: [
+        {attributes: {CODECS: 'mp4a.40.2'}},
+        {attributes: {CODECS: 'mp4a.40.2'}},
+        {attributes: {CODECS: 'mp4a.40.2'}}
+      ]
+    }), 'audio only playlists');
+
+    assert.true(Playlist.isAudioOnly({
+      mediaGroups: {
+        AUDIO: {
+          main: {
+            en: {id: 'en', uri: 'en'}
+          }
+        }
+      }
+    }), 'only audio groups, uri');
+
+    assert.true(Playlist.isAudioOnly({
+      mediaGroups: {
+        AUDIO: {
+          main: {
+            en: {id: 'en', playlists: [{uri: 'foo'}]}
+          }
+        }
+      }
+    }), 'only audio groups, playlists');
+
+    assert.true(Playlist.isAudioOnly({
+      playlists: [
+        {id: 'en'}
+      ],
+      mediaGroups: {
+        AUDIO: {
+          main: {
+            en: {id: 'en'}
+          }
+        }
+      }
+    }), 'audio playlists that are also in groups, without codecs');
+
+  });
 });

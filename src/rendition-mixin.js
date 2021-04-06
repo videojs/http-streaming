@@ -1,4 +1,4 @@
-import { isIncompatible, isEnabled } from './playlist.js';
+import { isIncompatible, isEnabled, isAudioOnly } from './playlist.js';
 import { codecsForPlaylist } from './util/codecs.js';
 
 /**
@@ -58,14 +58,14 @@ class Representation {
     const qualityChangeFunction = mpc[`${changeType}QualityChange_`].bind(mpc);
 
     // some playlist attributes are optional
-    if (playlist.attributes.RESOLUTION) {
+    if (playlist.attributes) {
       const resolution = playlist.attributes.RESOLUTION;
 
-      this.width = resolution.width;
-      this.height = resolution.height;
-    }
+      this.width = resolution && resolution.width;
+      this.height = resolution && resolution.height;
 
-    this.bandwidth = playlist.attributes.BANDWIDTH;
+      this.bandwidth = playlist.attributes.BANDWIDTH;
+    }
 
     this.codecs = codecsForPlaylist(mpc.master(), playlist);
 
@@ -93,16 +93,18 @@ class Representation {
  * representation API into
  */
 const renditionSelectionMixin = function(vhsHandler) {
-  const playlists = vhsHandler.playlists;
 
   // Add a single API-specific function to the VhsHandler instance
   vhsHandler.representations = () => {
-    if (!playlists || !playlists.master || !playlists.master.playlists) {
+    const master = vhsHandler.masterPlaylistController_.master();
+    const playlists = isAudioOnly(master) ?
+      vhsHandler.masterPlaylistController_.getAudioTrackPlaylists_() :
+      master.playlists;
+
+    if (!playlists) {
       return [];
     }
     return playlists
-      .master
-      .playlists
       .filter((media) => !isIncompatible(media))
       .map((e, i) => new Representation(vhsHandler, e, e.id));
   };
