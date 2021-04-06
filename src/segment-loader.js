@@ -25,6 +25,38 @@ import { QUOTA_EXCEEDED_ERR } from './error-codes';
 import { timeRangesToArray } from './ranges';
 import {lastBufferedEnd} from './ranges.js';
 
+/**
+ * The segment loader has no recourse except to fetch a segment in the
+ * current playlist and use the internal timestamps in that segment to
+ * generate a syncPoint. This function returns a good candidate index
+ * for that process.
+ *
+ * @param {Object} playlist - the playlist object to look for a
+ * @return {number} An index of a segment from the playlist to load
+ */
+export const getSyncSegmentCandidate = function(currentTimeline, {segments = []} = {}) {
+  // if we don't currently have a real timeline yet.
+  if (currentTimeline === -1) {
+    return 0;
+  }
+
+  const segmentIndexArray = segments.reduce((acc, s, i) => {
+    if (s.timeline === currentTimeline) {
+      acc.push(i);
+    }
+    return acc;
+  }, []);
+
+  if (segmentIndexArray.length) {
+    // TODO: why do we do this? Basically we choose index 0 if
+    // segmentIndexArray.length is 1 and index = 1 if segmentIndexArray.length
+    // is greater then 1
+    return segmentIndexArray[Math.min(segmentIndexArray.length - 1, 1)];
+  }
+
+  return Math.max(segments.length - 1, 0);
+};
+
 // In the event of a quota exceeded error, keep at least one second of back buffer. This
 // number was arbitrarily chosen and may be updated in the future, but seemed reasonable
 // as a start to prevent any potential issues with removing content too close to the
@@ -1311,34 +1343,6 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   /**
-   * The segment loader has no recourse except to fetch a segment in the
-   * current playlist and use the internal timestamps in that segment to
-   * generate a syncPoint. This function returns a good candidate index
-   * for that process.
-   *
-   * @param {Object} playlist - the playlist object to look for a
-   * @return {number} An index of a segment from the playlist to load
-   */
-  getSyncSegmentCandidate_(playlist) {
-    if (this.currentTimeline_ === -1) {
-      return 0;
-    }
-
-    const segmentIndexArray = playlist.segments.reduce((acc, s, i) => {
-      if (s.timeline === this.currentTimeline_) {
-        acc.push(i);
-      }
-      return acc;
-    }, []);
-
-    if (segmentIndexArray.length) {
-      return segmentIndexArray[Math.min(segmentIndexArray.length - 1, 1)];
-    }
-
-    return Math.max(playlist.segments.length - 1, 0);
-  }
-
-  /**
    * Determines what request should be made given current segment loader state.
    *
    * @return {Object} a request object that describes the segment/part to load
@@ -1375,7 +1379,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     };
 
     if (next.isSyncRequest) {
-      next.mediaIndex = this.getSyncSegmentCandidate_(this.playlist_);
+      next.mediaIndex = getSyncSegmentCandidate(this.currentTimeline_, this.playlist_);
     } else if (this.mediaIndex !== null) {
       const segment = segments[this.mediaIndex];
       const partIndex = typeof this.partIndex === 'number' ? this.partIndex : -1;

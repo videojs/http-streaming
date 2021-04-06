@@ -7,7 +7,8 @@ import {
   shouldWaitForTimelineChange,
   segmentTooLong,
   mediaDuration,
-  getTroublesomeSegmentDurationMessage
+  getTroublesomeSegmentDurationMessage,
+  getSyncSegmentCandidate
 } from '../src/segment-loader';
 import videojs from 'video.js';
 import mp4probe from 'mux.js/lib/mp4/probe';
@@ -61,6 +62,54 @@ SegmentLoader.prototype.addSegmentMetadataCue_ = function() {};
 */
 
 QUnit.module('SegmentLoader Isolated Functions');
+
+QUnit.test('getSyncSegmentCandidate works as expected', function(assert) {
+  assert.equal(getSyncSegmentCandidate(-1, {}), 0, '-1 timeline, try index 0');
+  assert.equal(getSyncSegmentCandidate(0, {}), 0, '0 timeline, no segments, try index 0');
+
+  assert.equal(
+    getSyncSegmentCandidate(0, {segments: [
+      {timeline: 0},
+      {timeline: 0}
+    ]}),
+    1,
+    '0 timeline, two timeline 0 segments, try index 1'
+  );
+
+  assert.equal(
+    getSyncSegmentCandidate(0, {segments: [
+      {timeline: 0},
+      {timeline: 0},
+      {timeline: 0},
+      {timeline: 0}
+    ]}),
+    1,
+    '0 timeline, four timeline 0 segments, try index 1'
+  );
+
+  assert.equal(
+    getSyncSegmentCandidate(0, {segments: [
+      {timeline: 0},
+      {timeline: 1},
+      {timeline: 1},
+      {timeline: 1}
+    ]}),
+    0,
+    '0 timeline, four timeline 0 segments, try index 1'
+  );
+
+  assert.equal(
+    getSyncSegmentCandidate(0, {segments: [
+      {timeline: 1},
+      {timeline: 1},
+      {timeline: 1},
+      {timeline: 1}
+    ]}),
+    3,
+    '0 timeline, four timeline 1 segments, try index 3'
+  );
+
+});
 
 QUnit.test('illegalMediaSwitch detects illegal media switches', function(assert) {
   let startingMedia = { hasAudio: true, hasVideo: true };
