@@ -350,10 +350,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
   getAudioTrackPlaylists_() {
     const master = this.master();
 
-    // if we don't have any demuxed audio tracks
-    // return an empty array
+    // if we don't have any audio groups then we can only
+    // assume that the audio tracks are contained in masters
+    // playlist array, use that or an empty array.
     if (!master || !master.mediaGroups || !master.mediaGroups.AUDIO) {
-      return master && master.playlists;
+      return master && master.playlists || [];
     }
 
     const AUDIO = master.mediaGroups.AUDIO;

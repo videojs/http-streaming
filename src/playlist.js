@@ -598,24 +598,37 @@ export const playlistMatch = (a, b) => {
   return false;
 };
 
-export const isAudioOnly = (master) => {
-  const AUDIO = master.mediaGroups && master.mediaGroups.AUDIO || {};
+const someAudioVariant = function(master, callback) {
+  const AUDIO = master && master.mediaGroups && master.mediaGroups.AUDIO || {};
+  let found = false;
 
-  // we are audio only if we have no main playlists but do
-  // have media group playlists.
-  if (!master.playlists || !master.playlists.length) {
-    for (const groupName in AUDIO) {
-      for (const label in AUDIO[groupName]) {
-        const variant = AUDIO[groupName][label];
+  for (const groupName in AUDIO) {
+    for (const label in AUDIO[groupName]) {
+      found = callback(AUDIO[groupName][label]);
 
-        if (variant.playlists && variant.playlists.length || variant.uri) {
-          return true;
-        }
+      if (found) {
+        break;
       }
     }
 
-    // no audio media groups and no playlists, this cannot be audio only
-    return false;
+    if (found) {
+      break;
+    }
+  }
+
+  return !!found;
+};
+
+export const isAudioOnly = (master) => {
+  // we are audio only if we have no main playlists but do
+  // have media group playlists.
+  if (!master || !master.playlists || !master.playlists.length) {
+    // without audio variants or playlists this
+    // is not an audio only master.
+    const found = someAudioVariant(master, (variant) =>
+      (variant.playlists && variant.playlists.length) || variant.uri);
+
+    return found;
   }
 
   // if every playlist has only an audio codec it is audio only
@@ -628,27 +641,11 @@ export const isAudioOnly = (master) => {
       continue;
     }
 
-    if (AUDIO) {
-      let audioGroupFound = false;
+    // playlist is in an audio group it is audio only
+    const found = someAudioVariant(master, (variant) => playlistMatch(playlist, variant));
 
-      for (const groupName in AUDIO) {
-        if (audioGroupFound) {
-          break;
-        }
-        for (const label in AUDIO[groupName]) {
-          const variant = AUDIO[groupName][label];
-
-          // playlist is in an audio group it is audio only
-          if (playlistMatch(playlist, variant)) {
-            audioGroupFound = true;
-            break;
-          }
-        }
-      }
-
-      if (audioGroupFound) {
-        continue;
-      }
+    if (found) {
+      continue;
     }
 
     // if we make it here this playlist isn't audio and we
@@ -656,6 +653,8 @@ export const isAudioOnly = (master) => {
     return false;
   }
 
+  // if we make it past every playlist without returning, then
+  // this is an audio only playlist.
   return true;
 };
 
