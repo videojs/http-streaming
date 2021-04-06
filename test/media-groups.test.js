@@ -783,7 +783,7 @@ QUnit.module('MediaGroups', function() {
     audioSegmentLoader.calls.pause = 0;
     audioSegmentLoader.calls.abort = 0;
 
-    // verify that all othre mocks are zero
+    // verify that all other mocks are zero
     mocksAreZero(mocks, assert);
 
     tracks.en.enabled = false;
