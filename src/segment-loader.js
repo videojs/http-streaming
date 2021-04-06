@@ -2305,8 +2305,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (!this.hasEnoughInfoToLoad_()) {
       this.loadQueue_.push(() => {
         // regenerate the audioAppendStart, timestampOffset, etc as they
-        // may have changed.
-
+        // may have changed since this function was added to the queue.
         this.isPendingTimestampOffset_ = true;
         Object.assign(segmentInfo, this.generateSegmentInfo_(segmentInfo));
         this.updateTransmuxerAndRequestSegment_(segmentInfo);
