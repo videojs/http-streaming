@@ -343,6 +343,65 @@ export class MasterPlaylistController extends videojs.EventTarget {
   }
 
   /**
+   * Get a list of playlists for the currently selected audio playlist
+   *
+   * @return {Array} the array of audio playlists
+   */
+  getAudioTrackPlaylists_() {
+    const master = this.master();
+
+    // if we don't have any audio groups then we can only
+    // assume that the audio tracks are contained in masters
+    // playlist array, use that or an empty array.
+    if (!master || !master.mediaGroups || !master.mediaGroups.AUDIO) {
+      return master && master.playlists || [];
+    }
+
+    const AUDIO = master.mediaGroups.AUDIO;
+    const groupKeys = Object.keys(AUDIO);
+    let track;
+
+    // get the current active track
+    if (Object.keys(this.mediaTypes_.AUDIO.groups).length) {
+      track = this.mediaTypes_.AUDIO.activeTrack();
+    // or get the default track from master if mediaTypes_ isn't setup yet
+    } else {
+      // default group is `main` or just the first group.
+      const defaultGroup = AUDIO.main || groupKeys.length && AUDIO[groupKeys[0]];
+
+      for (const label in defaultGroup) {
+        if (defaultGroup[label].default) {
+          track = {label};
+          break;
+        }
+      }
+    }
+
+    // no active track no playlists.
+    if (!track) {
+      return [];
+    }
+
+    const playlists = [];
+
+    // get all of the playlists that are possible for the
+    // active track.
+    for (const group in AUDIO) {
+      if (AUDIO[group][track.label]) {
+        const properties = AUDIO[group][track.label];
+
+        if (properties.playlists) {
+          playlists.push.apply(playlists, properties.playlists);
+        } else {
+          playlists.push(properties);
+        }
+      }
+    }
+
+    return playlists;
+  }
+
+  /**
    * Register event handlers on the master playlist loader. A helper
    * function for construction time.
    *
