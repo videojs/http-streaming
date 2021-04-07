@@ -688,7 +688,7 @@ QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', fun
   });
 });
 
-QUnit.test('basic timeToFirstFrame, mediaAppends, appendsToFirstFrame stats', function(assert) {
+QUnit.test('basic timeToLoadedData, mediaAppends, appendsToLoadedData stats', function(assert) {
   this.player.tech_.trigger('loadstart');
   this.masterPlaylistController.mediaSource.trigger('sourceopen');
   // master
@@ -707,14 +707,14 @@ QUnit.test('basic timeToFirstFrame, mediaAppends, appendsToFirstFrame stats', fu
     const vhs = this.player.tech_.vhs;
 
     assert.equal(vhs.stats.mediaAppends, 1, 'one media append');
-    assert.equal(vhs.stats.appendsToFirstFrame, 1, 'appends to first frame is also 1');
-    assert.equal(vhs.stats.mainAppendsToFirstFrame, 1, 'main appends to first frame is also 1');
-    assert.equal(vhs.stats.audioAppendsToFirstFrame, 0, 'audio appends to first frame is 0');
-    assert.ok(vhs.stats.timeToFirstFrame > 0, 'time to first frame is valid');
+    assert.equal(vhs.stats.appendsToLoadedData, 1, 'appends to first frame is also 1');
+    assert.equal(vhs.stats.mainAppendsToLoadedData, 1, 'main appends to first frame is also 1');
+    assert.equal(vhs.stats.audioAppendsToLoadedData, 0, 'audio appends to first frame is 0');
+    assert.ok(vhs.stats.timeToLoadedData > 0, 'time to first frame is valid');
   });
 });
 
-QUnit.test('preload none timeToFirstFrame, mediaAppends, appendsToFirstFrame stats', function(assert) {
+QUnit.test('preload none timeToLoadedData, mediaAppends, appendsToLoadedData stats', function(assert) {
   this.requests.length = 0;
   this.player.dispose();
   this.player = createPlayer();
@@ -733,10 +733,10 @@ QUnit.test('preload none timeToFirstFrame, mediaAppends, appendsToFirstFrame sta
 
   assert.equal(this.requests.length, 0, 'no requests request');
   assert.equal(vhs.stats.mediaAppends, 0, 'one media append');
-  assert.equal(vhs.stats.appendsToFirstFrame, -1, 'appends to first frame is -1');
-  assert.equal(vhs.stats.mainAppendsToFirstFrame, -1, 'main appends to first frame is -1');
-  assert.equal(vhs.stats.audioAppendsToFirstFrame, -1, 'audio appends to first frame is -1');
-  assert.equal(vhs.stats.timeToFirstFrame, -1, 'time to first frame is -1');
+  assert.equal(vhs.stats.appendsToLoadedData, -1, 'appends to first frame is -1');
+  assert.equal(vhs.stats.mainAppendsToLoadedData, -1, 'main appends to first frame is -1');
+  assert.equal(vhs.stats.audioAppendsToLoadedData, -1, 'audio appends to first frame is -1');
+  assert.equal(vhs.stats.timeToLoadedData, -1, 'time to first frame is -1');
 
   this.player.tech_.paused = () => false;
   this.player.tech_.trigger('play');
@@ -757,14 +757,14 @@ QUnit.test('preload none timeToFirstFrame, mediaAppends, appendsToFirstFrame sta
     this.player.tech_.trigger('loadeddata');
 
     assert.equal(vhs.stats.mediaAppends, 1, 'one media append');
-    assert.equal(vhs.stats.appendsToFirstFrame, 1, 'appends to first frame is also 1');
-    assert.equal(vhs.stats.mainAppendsToFirstFrame, 1, 'main appends to first frame is also 1');
-    assert.equal(vhs.stats.audioAppendsToFirstFrame, 0, 'audio appends to first frame is 0');
-    assert.ok(vhs.stats.timeToFirstFrame > 0, 'time to first frame is valid');
+    assert.equal(vhs.stats.appendsToLoadedData, 1, 'appends to first frame is also 1');
+    assert.equal(vhs.stats.mainAppendsToLoadedData, 1, 'main appends to first frame is also 1');
+    assert.equal(vhs.stats.audioAppendsToLoadedData, 0, 'audio appends to first frame is 0');
+    assert.ok(vhs.stats.timeToLoadedData > 0, 'time to first frame is valid');
   });
 });
 
-QUnit.test('demuxed timeToFirstFrame, mediaAppends, appendsToFirstFrame stats', function(assert) {
+QUnit.test('demuxed timeToLoadedData, mediaAppends, appendsToLoadedData stats', function(assert) {
   this.player.tech_.trigger('loadstart');
   const mpc = this.masterPlaylistController;
 
@@ -816,10 +816,10 @@ QUnit.test('demuxed timeToFirstFrame, mediaAppends, appendsToFirstFrame stats', 
     const vhs = this.player.tech_.vhs;
 
     assert.equal(vhs.stats.mediaAppends, 2, 'two media append');
-    assert.equal(vhs.stats.appendsToFirstFrame, 2, 'appends to first frame is also 2');
-    assert.equal(vhs.stats.mainAppendsToFirstFrame, 1, 'main appends to first frame is 1');
-    assert.equal(vhs.stats.audioAppendsToFirstFrame, 1, 'audio appends to first frame is 1');
-    assert.ok(vhs.stats.timeToFirstFrame > 0, 'time to first frame is valid');
+    assert.equal(vhs.stats.appendsToLoadedData, 2, 'appends to first frame is also 2');
+    assert.equal(vhs.stats.mainAppendsToLoadedData, 1, 'main appends to first frame is 1');
+    assert.equal(vhs.stats.audioAppendsToLoadedData, 1, 'audio appends to first frame is 1');
+    assert.ok(vhs.stats.timeToLoadedData > 0, 'time to first frame is valid');
   });
 });
 

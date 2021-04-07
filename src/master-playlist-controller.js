@@ -292,35 +292,35 @@ export class MasterPlaylistController extends videojs.EventTarget {
       this.masterPlaylistLoader_.load();
     }
 
-    this.timeToFirstFrame__ = -1;
-    this.mainAppendsToFirstFrame__ = -1;
-    this.audioAppendsToFirstFrame__ = -1;
+    this.timeToLoadedData__ = -1;
+    this.mainAppendsToLoadedData__ = -1;
+    this.audioAppendsToLoadedData__ = -1;
 
     const event = this.tech_.preload() === 'none' ? 'play' : 'loadstart';
 
     // start the first frame timer on loadstart or play (for preload none)
     this.tech_.one(event, () => {
-      const timeToFirstAppendStart = Date.now();
+      const timeToLoadedDataStart = Date.now();
 
       this.tech_.one('loadeddata', () => {
-        this.timeToFirstFrame__ = Date.now() - timeToFirstAppendStart;
-        this.mainAppendsToFirstFrame__ = this.mainSegmentLoader_.mediaAppends;
-        this.audioAppendsToFirstFrame__ = this.audioSegmentLoader_.mediaAppends;
+        this.timeToLoadedData__ = Date.now() - timeToLoadedDataStart;
+        this.mainAppendsToLoadedData__ = this.mainSegmentLoader_.mediaAppends;
+        this.audioAppendsToLoadedData__ = this.audioSegmentLoader_.mediaAppends;
       });
     });
   }
 
-  mainAppendsToFirstFrame_() {
-    return this.mainAppendsToFirstFrame__;
+  mainAppendsToLoadedData_() {
+    return this.mainAppendsToLoadedData__;
   }
 
-  audioAppendsToFirstFrame_() {
-    return this.audioAppendsToFirstFrame__;
+  audioAppendsToLoadedData_() {
+    return this.audioAppendsToLoadedData__;
   }
 
-  appendsToFirstFrame_() {
-    const main = this.mainAppendsToFirstFrame_();
-    const audio = this.audioAppendsToFirstFrame_();
+  appendsToLoadedData_() {
+    const main = this.mainAppendsToLoadedData_();
+    const audio = this.audioAppendsToLoadedData_();
 
     if (main === -1 || audio === -1) {
       return -1;
@@ -329,8 +329,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
     return main + audio;
   }
 
-  timeToFirstFrame_() {
-    return this.timeToFirstFrame__;
+  timeToLoadedData_() {
+    return this.timeToLoadedData__;
   }
 
   /**
