@@ -673,7 +673,7 @@ export default class PlaylistLoader extends EventTarget {
         manifestString: req.responseText,
         customTagParsers: this.customTagParsers,
         customTagMappers: this.customTagMappers,
-        llhls: this.llhls
+        experimentalLLHLS: this.experimentalLLHLS
       });
 
       this.setupInitialPlaylist(manifest);
