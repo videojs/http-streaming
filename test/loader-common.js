@@ -1130,6 +1130,48 @@ export const LoaderCommonFactory = ({
     );
 
     QUnit.test(
+      'does not choose to request if next index is last, we have ended, and are not seeking',
+      function(assert) {
+        loader.buffered_ = () => videojs.createTimeRanges([[0, 1]]);
+        const playlist = playlistWithDuration(20);
+
+        loader.hasPlayed_ = () => true;
+        loader.currentTime_ = () => 0;
+        loader.syncPoint_ = null;
+        loader.mediaSource_ = {readyState: 'ended'};
+
+        loader.playlist(playlist);
+        loader.load();
+        loader.mediaIndex = playlist.segments.length - 2;
+
+        const segmentInfo = loader.chooseNextRequest_();
+
+        assert.ok(!segmentInfo, 'no request generated');
+      }
+    );
+    QUnit.test(
+      'does choose to request if next index is last, we have ended, and are seeking',
+      function(assert) {
+        loader.buffered_ = () => videojs.createTimeRanges([[0, 1]]);
+        const playlist = playlistWithDuration(20);
+
+        loader.hasPlayed_ = () => true;
+        loader.currentTime_ = () => 0;
+        loader.syncPoint_ = null;
+        loader.mediaSource_ = {readyState: 'ended'};
+
+        loader.playlist(playlist);
+        loader.load();
+        loader.mediaIndex = playlist.segments.length - 2;
+        loader.seeking_ = () => true;
+
+        const segmentInfo = loader.chooseNextRequest_();
+
+        assert.ok(segmentInfo, 'request generated');
+      }
+    );
+
+    QUnit.test(
       'does not skip over segment if live playlist update occurs while processing',
       function(assert) {
         return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
