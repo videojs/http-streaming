@@ -107,6 +107,75 @@ const sharedHooks = {
 
 QUnit.module('MasterPlaylistController', sharedHooks);
 
+QUnit.test('getAudioTrackPlaylists_', function(assert) {
+  const mpc = this.masterPlaylistController;
+  const master = {playlists: [{uri: 'testing'}]};
+
+  mpc.master = () => master;
+
+  assert.deepEqual(
+    mpc.getAudioTrackPlaylists_(),
+    master.playlists,
+    'no media groups, return main playlists'
+  );
+
+  master.mediaGroups = {
+    AUDIO: {
+      main: {
+        en: {default: true, label: 'en', playlists: [{uri: 'foo'}, {uri: 'bar'}]},
+        fr: {label: 'fr', playlists: [{uri: 'foo-fr'}, {uri: 'bar-fr'}]}
+      },
+      alt: {
+        en: {default: true, label: 'en', playlists: [{uri: 'fizz'}, {uri: 'bazz'}]},
+        fr: {label: 'fr', playlists: [{uri: 'fizz-fr'}, {uri: 'bazz-fr'}]}
+      }
+    }
+  };
+
+  assert.deepEqual(mpc.getAudioTrackPlaylists_(), [
+    {uri: 'foo'},
+    {uri: 'bar'},
+    {uri: 'fizz'},
+    {uri: 'bazz'}
+  ], 'returns all dash style en playlist');
+
+  const main = [];
+  const alt = [];
+
+  Object.keys(master.mediaGroups.AUDIO.main).forEach(function(k) {
+    main.push(master.mediaGroups.AUDIO.main[k]);
+  });
+
+  Object.keys(master.mediaGroups.AUDIO.alt).forEach(function(k) {
+    alt.push(master.mediaGroups.AUDIO.alt[k]);
+  });
+
+  mpc.mediaTypes_.AUDIO.groups = {
+    main,
+    alt
+  };
+  mpc.mediaTypes_.AUDIO.activeTrack = () => ({label: 'fr'});
+
+  assert.deepEqual(mpc.getAudioTrackPlaylists_(), [
+    {uri: 'foo-fr'},
+    {uri: 'bar-fr'},
+    {uri: 'fizz-fr'},
+    {uri: 'bazz-fr'}
+  ], 'returns all dash style fr playlists');
+
+  delete master.mediaGroups.AUDIO.main.fr.playlists;
+  master.mediaGroups.AUDIO.main.fr.uri = 'fizz-fr';
+
+  delete master.mediaGroups.AUDIO.alt.fr.playlists;
+  master.mediaGroups.AUDIO.alt.fr.uri = 'buzz-fr';
+
+  assert.deepEqual(mpc.getAudioTrackPlaylists_(), [
+    {uri: 'fizz-fr', label: 'fr'},
+    {uri: 'buzz-fr', label: 'fr'}
+  ], 'returns all fr hls style playlists');
+
+});
+
 QUnit.test('throws error when given an empty URL', function(assert) {
   const options = {
     src: 'test',
@@ -6021,3 +6090,4 @@ QUnit.test('should delay loading of new playlist if lastRequest was less than ha
 
   this.env.log.warn.callCount = 0;
 });
+
