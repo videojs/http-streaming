@@ -210,3 +210,26 @@ test('simpleSelector can not limit based on resolution information', function(as
 
   assert.equal(selectedPlaylist, master.playlists[4], 'selected a playlist based solely on bandwidth');
 });
+
+test('simpleSelector chooses between current audio playlists for audio only', function(assert) {
+  const audioPlaylists = [
+    {id: 'foo'},
+    {id: 'bar', attributes: {BANDWIDTH: 534216}}
+  ];
+  const masterPlaylistController = {
+    getAudioTrackPlaylists_: () => audioPlaylists
+  };
+  const master = this.vhs.playlists.master;
+
+  master.mediaGroups = {
+    AUDIO: {
+      main: {
+        en: {id: 'en', playlists: audioPlaylists}
+      }
+    }
+  };
+
+  const selectedPlaylist = simpleSelector(master, Config.INITIAL_BANDWIDTH, 444, 790, false, masterPlaylistController);
+
+  assert.equal(selectedPlaylist, audioPlaylists[1], 'selected an audio based solely on bandwidth');
+});
