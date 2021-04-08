@@ -49,6 +49,12 @@ export const updateSegment = (a, b) => {
     }
   }
 
+  // set skipped to false for segments that have
+  // had information merged into them.
+  if (!a.skipped && b.skipped) {
+    result.skipped = false;
+  }
+
   return result;
 };
 
@@ -113,21 +119,8 @@ export const resolveSegmentUris = (segment, baseUri) => {
   }
 };
 
-const getAllSegments = function(media) {
-  const segments = [];
-
-  // add any skipped segments back onto the front
-  // so that they can be carried to the new playlist.
-  if (media.skip) {
-    // add back in objects for skipped segments
-    for (let i = 0; i < media.skip.skippedSegments; i++) {
-      segments.push({skipped: true});
-    }
-  }
-
-  if (media.segments) {
-    segments.push.apply(segments, media.segments);
-  }
+const getAllSegments = function(media, addSkipped = false) {
+  const segments = media.segments || [];
 
   // a preloadSegment with only preloadHints is not currently
   // a usable segment, only include a preloadSegment that has
@@ -159,28 +152,36 @@ export const isPlaylistUnchanged = (a, b) => a === b ||
   * master playlist with the updated media playlist merged in, or
   * null if the merge produced no change.
   */
-export const updateMaster = (master, media, unchangedCheck = isPlaylistUnchanged) => {
+export const updateMaster = (master, newMedia, unchangedCheck = isPlaylistUnchanged) => {
   const result = mergeOptions(master, {});
-  const playlist = result.playlists[media.id];
+  const oldMedia = result.playlists[newMedia.id];
 
-  if (!playlist) {
+  if (!oldMedia) {
     return null;
   }
 
-  if (unchangedCheck(playlist, media)) {
+  if (unchangedCheck(oldMedia, newMedia)) {
     return null;
   }
 
-  const mergedPlaylist = mergeOptions(playlist, media);
+  newMedia.segments = getAllSegments(newMedia);
 
-  media.segments = getAllSegments(media);
+  const mergedPlaylist = mergeOptions(oldMedia, newMedia);
 
   // if the update could overlap existing segment information, merge the two segment lists
-  if (playlist.segments) {
+  if (oldMedia.segments) {
+    if (newMedia.skip) {
+      newMedia.segments = newMedia.segments || [];
+      // add back in objects for skipped segments, so that we merge
+      // old properties into this new segment
+      for (let i = 0; i < newMedia.skip.skippedSegments; i++) {
+        newMedia.segments.unshift({skipped: true});
+      }
+    }
     mergedPlaylist.segments = updateSegments(
-      playlist.segments,
-      media.segments,
-      media.mediaSequence - playlist.mediaSequence
+      oldMedia.segments,
+      newMedia.segments,
+      newMedia.mediaSequence - oldMedia.mediaSequence
     );
   }
 
@@ -193,13 +194,13 @@ export const updateMaster = (master, media, unchangedCheck = isPlaylistUnchanged
   // that is referenced by index, and one by URI. The index reference may no longer be
   // necessary.
   for (let i = 0; i < result.playlists.length; i++) {
-    if (result.playlists[i].id === media.id) {
+    if (result.playlists[i].id === newMedia.id) {
       result.playlists[i] = mergedPlaylist;
     }
   }
-  result.playlists[media.id] = mergedPlaylist;
+  result.playlists[newMedia.id] = mergedPlaylist;
   // URI reference added for backwards compatibility
-  result.playlists[media.uri] = mergedPlaylist;
+  result.playlists[newMedia.uri] = mergedPlaylist;
 
   return result;
 };
@@ -271,28 +272,43 @@ export default class PlaylistLoader extends EventTarget {
       const media = this.media();
 
       let uri = resolveUrl(this.master.uri, media.uri);
-      const query = [];
 
-      // TODO: check CAN skip until to verify we can skip until x segment
-      // wait for the next part/segment
-      if (media.serverControl.canBlockReload) {
-        const preloadSegment = media.preloadSegment;
+      if (this.experimentalLLHLS) {
+        const query = [];
 
-        if (preloadSegment && preloadSegment.preloadHints) {
-          query.push(`_HLS_part=${(preloadSegment.parts && preloadSegment.parts.length || 0) + preloadSegment.preloadHints.length}`);
+        if (media.serverControl && media.serverControl.canBlockReload) {
+          const preloadSegment = media.preloadSegment;
+          let nextMSN = media.mediaSequence + media.segments.length;
+
+          if (preloadSegment && preloadSegment.parts) {
+            // since preload segment is added to our segment list when it has parts
+            // but doesn't count towards media seuence number for the server yet,
+            // we have to subtract one from nextMSN to get the correct number.
+            nextMSN--;
+          }
+
+          query.push(`_HLS_msn=${nextMSN}`);
+
+          if (preloadSegment && preloadSegment.preloadHints) {
+            const nextPart =
+              (preloadSegment.parts && preloadSegment.parts.length || 0) +
+              preloadSegment.preloadHints.length;
+
+            query.push(`_HLS_part=${nextPart}`);
+          }
+
         }
-        query.push(`_HLS_msn=${media.mediaSequence + media.segments.length - 1}`);
+
+        if (media.serverControl && media.serverControl.canSkipUntil) {
+          query.push('_HLS_skip=' + (media.serverControl.canSkipDateranges ? 'v2' : 'YES'));
+        }
+
+        query.forEach(function(str, i) {
+          const symbol = i === 0 ? '?' : '&';
+
+          uri += `${symbol}${str}`;
+        });
       }
-
-      if (media.serverControl.canSkipUntil) {
-        query.push('_HLS_skip=YES');
-      }
-
-      query.forEach(function(str, i) {
-        const symbol = i === 0 ? '?' : '&';
-
-        uri += `${symbol}${str}`;
-      });
       this.state = 'HAVE_CURRENT_METADATA';
 
       this.request = this.vhs_.xhr({
@@ -719,7 +735,7 @@ export default class PlaylistLoader extends EventTarget {
       manifest.playlists.forEach((playlist) => {
         playlist.segments = getAllSegments(playlist);
 
-        playlist.segments.forEach((segment) => {
+        playlist.segments.forEach(function(segment) {
           resolveSegmentUris(segment, playlist.resolvedUri);
         });
       });
