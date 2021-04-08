@@ -56,10 +56,6 @@ jobs:
       run: sudo apt-get install ffmpeg pulseaudio
       if: ${{startsWith(matrix.os, 'ubuntu')}}
 
-    - name: remove chromium
-      run: sudo apt-get remove chromium*
-      if: ${{startsWith(matrix.os, 'ubuntu')}}
-
     - name: start pulseaudio for firefox on linux w/o browserstack
       run: pulseaudio -D
       if: ${{startsWith(matrix.os, 'ubuntu')}}
