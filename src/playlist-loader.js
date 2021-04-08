@@ -341,6 +341,17 @@ export default class PlaylistLoader extends EventTarget {
     this.trigger('error');
   }
 
+  parseManifest_({url, manifestString}) {
+    return parseManifest({
+      onwarn: ({message}) => this.logger_(`m3u8-parser warn for ${url}: ${message}`),
+      oninfo: ({message}) => this.logger_(`m3u8-parser info for ${url}: ${message}`),
+      manifestString,
+      customTagParsers: this.customTagParsers,
+      customTagMappers: this.customTagMappers,
+      experimentalLLHLS: this.experimentalLLHLS
+    });
+  }
+
   /**
    * Update the playlist loader's state in response to a new or updated playlist.
    *
@@ -358,13 +369,9 @@ export default class PlaylistLoader extends EventTarget {
     this.request = null;
     this.state = 'HAVE_METADATA';
 
-    const playlist = playlistObject || parseManifest({
-      onwarn: ({message}) => this.logger_(`m3u8-parser warn for ${id}: ${message}`),
-      oninfo: ({message}) => this.logger_(`m3u8-parser info for ${id}: ${message}`),
-      manifestString: playlistString,
-      customTagParsers: this.customTagParsers,
-      customTagMappers: this.customTagMappers,
-      experimentalLLHLS: this.experimentalLLHLS
+    const playlist = playlistObject || this.parseManifest_({
+      url,
+      manifestString: playlistString
     });
 
     playlist.lastRequest = Date.now();
@@ -669,11 +676,9 @@ export default class PlaylistLoader extends EventTarget {
 
       this.src = resolveManifestRedirect(this.handleManifestRedirects, this.src, req);
 
-      const manifest = parseManifest({
+      const manifest = this.parseManifest_({
         manifestString: req.responseText,
-        customTagParsers: this.customTagParsers,
-        customTagMappers: this.customTagMappers,
-        experimentalLLHLS: this.experimentalLLHLS
+        url: this.src
       });
 
       this.setupInitialPlaylist(manifest);
