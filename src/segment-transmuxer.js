@@ -17,7 +17,7 @@ export const handleData_ = (event, transmuxedData, callback) => {
     metadata
   });
 
-  const boxes = {
+  const boxes = event.data.segment.boxes || {
     data: event.data.segment.data
   };
 
@@ -194,6 +194,9 @@ export const processTransmux = (options) => {
     );
   }
 
+  if (isEndOfTimeline) {
+    transmuxer.postMessage({ action: 'endTimeline' });
+  }
   // even if we didn't push any bytes, we have to make sure we flush in case we reached
   // the end of the segment
   transmuxer.postMessage({ action: 'flush' });
