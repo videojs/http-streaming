@@ -478,6 +478,7 @@ const handleSegmentBytes = ({
       data: bytesAsUint8Array,
       transmuxer: segment.transmuxer,
       callback: ({data, startTime}) => {
+        // transfer bytes back to us
         segment.bytes = bytesAsUint8Array = bytes = data;
 
         if (trackInfo.hasAudio && !trackInfo.isMuxed) {
@@ -503,7 +504,8 @@ const handleSegmentBytes = ({
           timescales: segment.map.timescales,
           trackIds: [tracks.video.id],
           callback: (message) => {
-            segment.bytes = bytesAsUint8Array = bytes = data;
+            // transfer bytes back to us
+            segment.bytes = bytesAsUint8Array = bytes = message.data;
             finishLoading(message.captions);
           }
         });
