@@ -822,7 +822,7 @@ QUnit.module('SegmentLoader', function(hooks) {
         if (message.action === 'probeMp4StartTime') {
           const evt = newEvent('message');
 
-          evt.data = {action: 'probeMp4StartTime', startTime: 11};
+          evt.data = {action: 'probeMp4StartTime', startTime: 11, data: message.data};
 
           loader.transmuxer_.dispatchEvent(evt);
           return;
