@@ -15,19 +15,11 @@
  */
 
 import {Transmuxer as FullMux} from 'mux.js/lib/mp4/transmuxer';
-import PartialMux from 'mux.js/lib/partial/transmuxer';
 import CaptionParser from 'mux.js/lib/mp4/caption-parser';
 import {
   secondsToVideoTs,
   videoTsToSeconds
 } from 'mux.js/lib/utils/clock';
-
-const typeFromStreamString = (streamString) => {
-  if (streamString === 'AudioSegmentStream') {
-    return 'audio';
-  }
-  return streamString === 'VideoSegmentStream' ? 'video' : '';
-};
 
 /**
  * Re-emits transmuxer events by converting them into messages to the
@@ -162,127 +154,6 @@ const wireFullTransmuxerEvents = function(self, transmuxer) {
 
 };
 
-const wirePartialTransmuxerEvents = function(self, transmuxer) {
-  transmuxer.on('data', function(event) {
-    // transfer ownership of the underlying ArrayBuffer
-    // instead of doing a copy to save memory
-    // ArrayBuffers are transferable but generic TypedArrays are not
-    // @link https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers#Passing_data_by_transferring_ownership_(transferable_objects)
-
-    const initSegment = {
-      data: event.data.track.initSegment.buffer,
-      byteOffset: event.data.track.initSegment.byteOffset,
-      byteLength: event.data.track.initSegment.byteLength
-    };
-    const boxes = {
-      data: event.data.boxes.buffer,
-      byteOffset: event.data.boxes.byteOffset,
-      byteLength: event.data.boxes.byteLength
-    };
-    const segment = {
-      boxes,
-      initSegment,
-      type: event.type,
-      sequence: event.data.sequence
-    };
-
-    if (typeof event.data.videoFrameDts !== 'undefined') {
-      segment.videoFrameDtsTime = videoTsToSeconds(event.data.videoFrameDts);
-    }
-
-    if (typeof event.data.videoFramePts !== 'undefined') {
-      segment.videoFramePtsTime = videoTsToSeconds(event.data.videoFramePts);
-    }
-
-    self.postMessage({
-      action: 'data',
-      segment
-    }, [ segment.boxes.data, segment.initSegment.data ]);
-  });
-
-  transmuxer.on('id3Frame', function(id3Frame) {
-    self.postMessage({
-      action: 'id3Frame',
-      id3Frame
-    });
-  });
-
-  transmuxer.on('caption', function(caption) {
-    self.postMessage({
-      action: 'caption',
-      caption
-    });
-  });
-
-  transmuxer.on('done', function(data) {
-    self.postMessage({
-      action: 'done',
-      type: typeFromStreamString(data)
-    });
-  });
-
-  transmuxer.on('partialdone', function(data) {
-    self.postMessage({
-      action: 'partialdone',
-      type: typeFromStreamString(data)
-    });
-  });
-
-  transmuxer.on('endedsegment', function(data) {
-    self.postMessage({
-      action: 'endedSegment',
-      type: typeFromStreamString(data)
-    });
-  });
-
-  transmuxer.on('trackinfo', function(trackInfo) {
-    self.postMessage({ action: 'trackinfo', trackInfo });
-  });
-
-  transmuxer.on('audioTimingInfo', function(audioTimingInfo) {
-    // This can happen if flush is called when no
-    // audio has been processed. This should be an
-    // unusual case, but if it does occur should not
-    // result in valid data being returned
-    if (audioTimingInfo.start === null) {
-      self.postMessage({
-        action: 'audioTimingInfo',
-        audioTimingInfo
-      });
-      return;
-    }
-
-    // convert to video TS since we prioritize video time over audio
-    const timingInfoInSeconds = {
-      start: videoTsToSeconds(audioTimingInfo.start)
-    };
-
-    if (audioTimingInfo.end) {
-      timingInfoInSeconds.end = videoTsToSeconds(audioTimingInfo.end);
-    }
-
-    self.postMessage({
-      action: 'audioTimingInfo',
-      audioTimingInfo: timingInfoInSeconds
-    });
-  });
-
-  transmuxer.on('videoTimingInfo', function(videoTimingInfo) {
-    const timingInfoInSeconds = {
-      start: videoTsToSeconds(videoTimingInfo.start)
-    };
-
-    if (videoTimingInfo.end) {
-      timingInfoInSeconds.end = videoTsToSeconds(videoTimingInfo.end);
-    }
-
-    self.postMessage({
-      action: 'videoTimingInfo',
-      videoTimingInfo: timingInfoInSeconds
-    });
-  });
-};
-
 /**
  * All incoming messages route through this hash. If no function exists
  * to handle an incoming message, then we ignore the message.
@@ -304,16 +175,9 @@ class MessageHandlers {
     if (this.transmuxer) {
       this.transmuxer.dispose();
     }
-    this.transmuxer = this.options.handlePartialData ?
-      new PartialMux(this.options) :
-      new FullMux(this.options);
+    this.transmuxer = new FullMux(this.options);
 
-    if (this.options.handlePartialData) {
-      wirePartialTransmuxerEvents(this.self, this.transmuxer);
-    } else {
-      wireFullTransmuxerEvents(this.self, this.transmuxer);
-    }
-
+    wireFullTransmuxerEvents(this.self, this.transmuxer);
   }
 
   pushMp4Captions(data) {
@@ -400,15 +264,6 @@ class MessageHandlers {
     // transmuxed done action is fired after both audio/video pipelines are flushed
     self.postMessage({
       action: 'done',
-      type: 'transmuxed'
-    });
-  }
-
-  partialFlush(data) {
-    this.transmuxer.partialFlush();
-    // transmuxed partialdone action is fired after both audio/video pipelines are flushed
-    self.postMessage({
-      action: 'partialdone',
       type: 'transmuxed'
     });
   }

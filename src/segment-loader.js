@@ -488,7 +488,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.sourceUpdater_ = settings.sourceUpdater;
     this.inbandTextTracks_ = settings.inbandTextTracks;
     this.state_ = 'INIT';
-    this.handlePartialData_ = settings.handlePartialData;
     this.timelineChangeController_ = settings.timelineChangeController;
     this.shouldSaveSegmentTimingInfo_ = true;
     this.parse708captions_ = settings.parse708captions;
@@ -612,7 +611,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       remux: false,
       alignGopsAtEnd: this.safeAppend_,
       keepOriginalTimestamps: true,
-      handlePartialData: this.handlePartialData_,
       parse708captions: this.parse708captions_
     });
   }
@@ -971,12 +969,9 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     if (!oldPlaylist || oldPlaylist.uri !== newPlaylist.uri) {
-      if (this.mediaIndex !== null || this.handlePartialData_) {
+      if (this.mediaIndex !== null) {
         // we must "resync" the segment loader when we switch renditions and
         // the segment loader is already synced to the previous rendition
-        //
-        // or if we're handling partial data, we need to ensure the transmuxer is cleared
-        // out before we start adding more data
         this.resyncLoader();
       }
       this.currentMediaInfo_ = void 0;
@@ -1928,17 +1923,15 @@ export default class SegmentLoader extends videojs.EventTarget {
       return false;
     }
 
-    if (!this.handlePartialData_) {
-      const {hasAudio, hasVideo, isMuxed} = this.currentMediaInfo_;
+    const {hasAudio, hasVideo, isMuxed} = this.currentMediaInfo_;
 
-      if (hasVideo && !segmentInfo.videoTimingInfo) {
-        return false;
-      }
+    if (hasVideo && !segmentInfo.videoTimingInfo) {
+      return false;
+    }
 
-      // muxed content only relies on video timing information for now.
-      if (hasAudio && !this.audioDisabled_ && !isMuxed && !segmentInfo.audioTimingInfo) {
-        return false;
-      }
+    // muxed content only relies on video timing information for now.
+    if (hasAudio && !this.audioDisabled_ && !isMuxed && !segmentInfo.audioTimingInfo) {
+      return false;
     }
 
     if (
@@ -2015,8 +2008,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       let firstVideoFrameTimeForData;
 
       if (useVideoTimingInfo) {
-        firstVideoFrameTimeForData = this.handlePartialData_ ?
-          result.videoFramePtsTime : segmentInfo.videoTimingInfo.start;
+        firstVideoFrameTimeForData = segmentInfo.videoTimingInfo.start;
       }
 
       // Segment loader knows more about segment timing than the transmuxer (in certain
@@ -2409,7 +2401,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       xhrOptions: this.xhrOptions_,
       decryptionWorker: this.decrypter_,
       segment: simpleSegment,
-      handlePartialData: this.handlePartialData_,
       abortFn: this.handleAbort_.bind(this, segmentInfo),
       progressFn: this.handleProgress_.bind(this),
       trackInfoFn: this.handleTrackInfo_.bind(this),
@@ -2721,7 +2712,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     // complete.
     const {hasAudio, hasVideo, isMuxed} = this.currentMediaInfo_;
     const waitForVideo = this.loaderType_ === 'main' && hasVideo;
-    // TODO: does this break partial support for muxed content?
     const waitForAudio = !this.audioDisabled_ && hasAudio && !isMuxed;
 
     segmentInfo.waitingOnAppends = 0;
@@ -2821,7 +2811,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // the video, this will trim the start of the audio.
     // This also trims any offset from 0 at the beginning of the media
     segmentInfo.timestampOffset -= segmentInfo.timingInfo.start;
-    // In the event that there are partial segment downloads, each will try to update the
+    // In the event that there are part segment downloads, each will try to update the
     // timestamp offset. Retaining this bit of state prevents us from updating in the
     // future (within the same segment), however, there may be a better way to handle it.
     segmentInfo.changedTimestampOffset = true;
@@ -2928,8 +2918,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.pendingSegment_ = null;
     this.state = 'READY';
 
-    // TODO minor, but for partial segment downloads, this can be done earlier to save
-    // on bandwidth and download time
     if (segmentInfo.isSyncRequest) {
       this.trigger('syncinfoupdate');
       return;
