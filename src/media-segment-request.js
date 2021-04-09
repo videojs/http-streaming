@@ -478,7 +478,7 @@ const handleSegmentBytes = ({
       data: bytesAsUint8Array,
       transmuxer: segment.transmuxer,
       callback: ({data, startTime}) => {
-        bytesAsUint8Array = data;
+        segment.bytes = bytesAsUint8Array = bytes = data;
 
         if (trackInfo.hasAudio && !trackInfo.isMuxed) {
           timingInfoFn(segment, 'audio', 'start', startTime);
@@ -499,11 +499,11 @@ const handleSegmentBytes = ({
           action: 'pushMp4Captions',
           endAction: 'mp4Captions',
           transmuxer: segment.transmuxer,
-          data: bytes,
+          data: bytesAsUint8Array,
           timescales: segment.map.timescales,
           trackIds: [tracks.video.id],
           callback: (message) => {
-            segment.bytes = bytes = message.data;
+            segment.bytes = bytesAsUint8Array = bytes = data;
             finishLoading(message.captions);
           }
         });

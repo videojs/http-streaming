@@ -344,7 +344,7 @@ class MessageHandlers {
     this.self.postMessage({
       action: 'probeMp4StartTime',
       startTime,
-      data: data.buffer
+      data
     }, [data.buffer]);
   }
 
@@ -354,7 +354,7 @@ class MessageHandlers {
     this.self.postMessage({
       action: 'probeMp4Tracks',
       tracks,
-      data: data.buffer
+      data
     }, [data.buffer]);
   }
 
@@ -396,7 +396,7 @@ class MessageHandlers {
     this.self.postMessage({
       action: 'probeTs',
       result,
-      data: data.buffer
+      data
     }, [data.buffer]);
   }
 
