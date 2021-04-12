@@ -465,7 +465,10 @@ const handleSegmentBytes = ({
       // for it to be audio only. See `tracks.video && tracks.audio` if statement
       // above.
       // we make sure to use segment.bytes here as that
-      dataFn(segment, {data: bytes, type: trackInfo.hasAudio && !trackInfo.isMuxed ? 'audio' : 'video'});
+      dataFn(segment, {
+        data: bytesAsUint8Array,
+        type: trackInfo.hasAudio && !trackInfo.isMuxed ? 'audio' : 'video'
+      });
       if (captions && captions.length) {
         captionsFn(segment, captions);
       }
@@ -479,7 +482,8 @@ const handleSegmentBytes = ({
       transmuxer: segment.transmuxer,
       callback: ({data, startTime}) => {
         // transfer bytes back to us
-        segment.bytes = bytesAsUint8Array = bytes = data;
+        bytes = data.buffer;
+        segment.bytes = bytesAsUint8Array = data;
 
         if (trackInfo.hasAudio && !trackInfo.isMuxed) {
           timingInfoFn(segment, 'audio', 'start', startTime);
@@ -505,7 +509,8 @@ const handleSegmentBytes = ({
           trackIds: [tracks.video.id],
           callback: (message) => {
             // transfer bytes back to us
-            segment.bytes = bytesAsUint8Array = bytes = message.data;
+            bytes = message.data.buffer;
+            segment.bytes = bytesAsUint8Array = message.data;
             finishLoading(message.captions);
           }
         });

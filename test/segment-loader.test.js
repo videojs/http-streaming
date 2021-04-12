@@ -3074,41 +3074,41 @@ QUnit.module('SegmentLoader', function(hooks) {
       const appends = [];
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {isVideoOnly: true}).then(() => {
-        const origAppendToSourceBuffer = loader.appendToSourceBuffer_.bind(loader);
-
-        loader.appendToSourceBuffer_ = (config) => {
-          appends.push(config);
-          origAppendToSourceBuffer(config);
-        };
-
-        const playlist = playlistWithDuration(30);
-
-        playlist.segments[0].map = {
-          resolvedUri: 'init.mp4',
-          byterange: { length: Infinity, offset: 0 }
-        };
-        // change the map tag as we won't re-append the init segment if it hasn't changed
-        playlist.segments[1].map = {
-          resolvedUri: 'init2.mp4',
-          byterange: { length: 100, offset: 10 }
-        };
-        // reuse the initial map to see if it was cached
-        playlist.segments[2].map = {
-          resolvedUri: 'init.mp4',
-          byterange: { length: Infinity, offset: 0 }
-        };
-
-        loader.playlist(playlist);
-        loader.load();
-        this.clock.tick(1);
-
-        // init
-        standardXHRResponse(this.requests.shift(), mp4VideoInitSegment());
-        // segment
-        standardXHRResponse(this.requests.shift(), mp4VideoSegment());
         return new Promise((resolve, reject) => {
           loader.one('appended', resolve);
           loader.one('error', reject);
+          const origAppendToSourceBuffer = loader.appendToSourceBuffer_.bind(loader);
+
+          loader.appendToSourceBuffer_ = (config) => {
+            appends.push(config);
+            origAppendToSourceBuffer(config);
+          };
+
+          const playlist = playlistWithDuration(30);
+
+          playlist.segments[0].map = {
+            resolvedUri: 'init.mp4',
+            byterange: { length: Infinity, offset: 0 }
+          };
+          // change the map tag as we won't re-append the init segment if it hasn't changed
+          playlist.segments[1].map = {
+            resolvedUri: 'init2.mp4',
+            byterange: { length: 100, offset: 10 }
+          };
+          // reuse the initial map to see if it was cached
+          playlist.segments[2].map = {
+            resolvedUri: 'init.mp4',
+            byterange: { length: Infinity, offset: 0 }
+          };
+
+          loader.playlist(playlist);
+          loader.load();
+          this.clock.tick(1);
+
+          // init
+          standardXHRResponse(this.requests.shift(), mp4VideoInitSegment());
+          // segment
+          standardXHRResponse(this.requests.shift(), mp4VideoSegment());
         });
       }).then(() => {
         this.clock.tick(1);

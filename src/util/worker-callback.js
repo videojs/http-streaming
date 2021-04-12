@@ -15,7 +15,7 @@ export const workerCallback = function(options) {
       event.data.data = new Uint8Array(
         event.data.data,
         options.byteOffset || 0,
-        options.byteLength || event.data.data.length
+        options.byteLength || event.data.data.byteLength
       );
       if (options.data) {
         options.data = event.data.data;
