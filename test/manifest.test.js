@@ -33,50 +33,6 @@ QUnit.module('manifest', function() {
     assert.equal(manifest.targetDuration, 100, 'target duration is 100');
   });
 
-  QUnit.test('setupMediaPlaylists adds URI keys for each playlist', function(assert) {
-    const master = {
-      uri: 'master-uri',
-      playlists: [{
-        uri: 'uri-0'
-      }, {
-        uri: 'uri-1'
-      }]
-    };
-    const expectedPlaylist0 = {
-      attributes: {},
-      resolvedUri: urlTo('uri-0'),
-      retryCount: 0,
-      uri: 'uri-0',
-      id: '0-uri-0'
-    };
-    const expectedPlaylist1 = {
-      attributes: {},
-      resolvedUri: urlTo('uri-1'),
-      retryCount: 0,
-      uri: 'uri-1',
-      id: '1-uri-1'
-    };
-
-    setupMediaPlaylists(master);
-
-    assert.deepEqual(master.playlists[0], expectedPlaylist0, 'retained playlist indices');
-    assert.deepEqual(master.playlists[1], expectedPlaylist1, 'retained playlist indices');
-    assert.deepEqual(master.playlists['0-uri-0'], expectedPlaylist0, 'added playlist key');
-    assert.deepEqual(master.playlists['1-uri-1'], expectedPlaylist1, 'added playlist key');
-
-    assert.equal(this.env.log.warn.calls, 2, 'logged two warnings');
-    assert.equal(
-      this.env.log.warn.args[0],
-      'Invalid playlist STREAM-INF detected. Missing BANDWIDTH attribute.',
-      'logged a warning'
-    );
-    assert.equal(
-      this.env.log.warn.args[1],
-      'Invalid playlist STREAM-INF detected. Missing BANDWIDTH attribute.',
-      'logged a warning'
-    );
-  });
-
   QUnit.test('sets target duration to 10 without segments', function(assert) {
     let manifestString = '#EXTM3U\n' +
       '#EXT-X-VERSION:3\n' +
@@ -123,12 +79,14 @@ QUnit.module('manifest', function() {
     const expectedPlaylist0 = {
       attributes: {},
       resolvedUri: urlTo('uri-0'),
+      retryCount: 0,
       uri: 'uri-0',
       id: '0-uri-0'
     };
     const expectedPlaylist1 = {
       attributes: {},
       resolvedUri: urlTo('uri-1'),
+      retryCount: 0,
       uri: 'uri-1',
       id: '1-uri-1'
     };
