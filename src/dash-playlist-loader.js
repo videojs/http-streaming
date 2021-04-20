@@ -517,9 +517,11 @@ export default class DashPlaylistLoader extends EventTarget {
     }
     this.stopRequest();
     window.clearTimeout(this.mediaUpdateTimeout);
-    window.clearTimeout(this.masterPlaylistLoader_.minimumUpdatePeriodTimeout_);
-    this.masterPlaylistLoader_.minimumUpdatePeriodTimeout_ = null;
     this.mediaUpdateTimeout = null;
+    if (this.isMaster_) {
+      window.clearTimeout(this.masterPlaylistLoader_.minimumUpdatePeriodTimeout_);
+      this.masterPlaylistLoader_.minimumUpdatePeriodTimeout_ = null;
+    }
     if (this.state === 'HAVE_NOTHING') {
       // If we pause the loader before any data has been retrieved, its as if we never
       // started, so reset to an unstarted state.
@@ -548,6 +550,15 @@ export default class DashPlaylistLoader extends EventTarget {
     }
 
     if (media && !media.endList) {
+      // Check to see if this is the master loader and the MUP was cleared (this happens
+      // when the loader was paused). `media` should be set at this point since one is always
+      // set during `start()`.
+      if (this.isMaster_ && !this.minimumUpdatePeriodTimeout_) {
+        // Trigger minimumUpdatePeriod to refresh the master manifest
+        this.trigger('minimumUpdatePeriod');
+        // Since there was no prior minimumUpdatePeriodTimeout it should be recreated
+        this.updateMinimumUpdatePeriodTimeout_();
+      }
       this.trigger('mediaupdatetimeout');
     } else {
       this.trigger('loadedplaylist');
