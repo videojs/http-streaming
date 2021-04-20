@@ -936,7 +936,10 @@ QUnit.module('SegmentLoader', function(hooks) {
           this.clock.tick(1);
 
           // decryption tick for syncWorker
-          this.clock.tick(2);
+          this.clock.tick(1);
+
+          // tick for web worker segment probe
+          this.clock.tick(1);
         });
       }).then(() => {
         assert.deepEqual(loader.keyCache_['0-key.php'], {
