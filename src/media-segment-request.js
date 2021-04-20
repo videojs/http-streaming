@@ -357,6 +357,7 @@ const transmuxAndNotify = ({
     onCaptions: (captions) => {
       captionsFn(segment, [captions]);
     },
+    isEndOfTimeline,
     onEndedTimeline: () => {
       endedTimelineFn();
     },

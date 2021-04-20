@@ -14,7 +14,7 @@
  * message-based interface to a Transmuxer object.
  */
 
-import {Transmuxer as FullMux} from 'mux.js/lib/mp4/transmuxer';
+import {Transmuxer} from 'mux.js/lib/mp4/transmuxer';
 import CaptionParser from 'mux.js/lib/mp4/caption-parser';
 import {
   secondsToVideoTs,
@@ -28,7 +28,7 @@ import {
  * @param {Object} transmuxer the transmuxer to wire events on
  * @private
  */
-const wireFullTransmuxerEvents = function(self, transmuxer) {
+const wireTransmuxerEvents = function(self, transmuxer) {
   transmuxer.on('data', function(segment) {
     // transfer ownership of the underlying ArrayBuffer
     // instead of doing a copy to save memory
@@ -175,9 +175,9 @@ class MessageHandlers {
     if (this.transmuxer) {
       this.transmuxer.dispose();
     }
-    this.transmuxer = new FullMux(this.options);
+    this.transmuxer = new Transmuxer(this.options);
 
-    wireFullTransmuxerEvents(this.self, this.transmuxer);
+    wireTransmuxerEvents(this.self, this.transmuxer);
   }
 
   pushMp4Captions(data) {
