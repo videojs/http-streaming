@@ -1356,7 +1356,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // return no segment if :
     // 1. we don't have segments
-    // 2. The video has not yet played and we already download a segment
+    // 2. The video has not yet played and we already downloaded a segment
     // 3. we already have enough buffered time
     if (!segments.length || preloaded || haveEnoughBuffer) {
       return null;
