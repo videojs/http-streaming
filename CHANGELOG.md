@@ -1,3 +1,14 @@
+<a name="2.7.1"></a>
+## [2.7.1](https://github.com/videojs/http-streaming/compare/v2.7.0...v2.7.1) (2021-04-09)
+
+### Bug Fixes
+
+* experimentalLLHLS option should always be passed ([#1114](https://github.com/videojs/http-streaming/issues/1114)) ([684fd08](https://github.com/videojs/http-streaming/commit/684fd08))
+
+### Chores
+
+* dont run tests on chromium ([#1116](https://github.com/videojs/http-streaming/issues/1116)) ([c2154d7](https://github.com/videojs/http-streaming/commit/c2154d7))
+
 <a name="2.7.0"></a>
 # [2.7.0](https://github.com/videojs/http-streaming/compare/v2.6.4...v2.7.0) (2021-04-06)
 

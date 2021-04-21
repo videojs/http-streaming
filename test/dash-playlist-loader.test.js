@@ -2690,3 +2690,71 @@ QUnit.test('load does not resume the media update timer for non live playlists',
 
   assert.notOk(loader.mediaUpdateTimeout, 'media update timeout not set');
 });
+
+QUnit.test('pause removes minimum update period timeout', function(assert) {
+  const loader = new DashPlaylistLoader('dash-live.mpd', this.fakeVhs);
+
+  loader.load();
+  this.standardXHRResponse(this.requests.shift());
+  this.clock.tick(1);
+
+  assert.ok(loader.minimumUpdatePeriodTimeout_, 'minimum update period timeout set');
+
+  loader.pause();
+
+  assert.notOk(
+    loader.minimumUpdatePeriodTimeout_,
+    'minimum update period timeout not set'
+  );
+});
+
+QUnit.test('load resumes minimum update period timeout for live', function(assert) {
+  const loader = new DashPlaylistLoader('dash-live.mpd', this.fakeVhs);
+
+  loader.load();
+  this.standardXHRResponse(this.requests.shift());
+  this.clock.tick(1);
+
+  // media should be selected at this point
+  loader.media(loader.master.playlists[0]);
+
+  assert.ok(loader.minimumUpdatePeriodTimeout_, 'minimum update period timeout set');
+
+  loader.pause();
+
+  assert.notOk(
+    loader.minimumUpdatePeriodTimeout_,
+    'minimum update period timeout not set'
+  );
+
+  loader.load();
+
+  assert.ok(loader.minimumUpdatePeriodTimeout_, 'minimum update period timeout set');
+});
+
+QUnit.test('pause does not remove minimum update period timeout when not master', function(assert) {
+  const masterLoader = new DashPlaylistLoader('dash-live.mpd', this.fakeVhs);
+
+  masterLoader.load();
+  this.standardXHRResponse(this.requests.shift());
+  this.clock.tick(1);
+
+  const media = masterLoader.master.playlists[0];
+  // media should be selected at this point
+
+  masterLoader.media(media);
+
+  const mediaLoader = new DashPlaylistLoader(media, this.fakeVhs, {}, masterLoader);
+
+  assert.ok(
+    masterLoader.minimumUpdatePeriodTimeout_,
+    'minimum update period timeout set'
+  );
+
+  mediaLoader.pause();
+
+  assert.ok(
+    masterLoader.minimumUpdatePeriodTimeout_,
+    'minimum update period timeout set'
+  );
+});
