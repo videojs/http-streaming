@@ -95,7 +95,7 @@ QUnit.test('getSyncSegmentCandidate works as expected', function(assert) {
       {timeline: 1}
     ]}),
     0,
-    '0 timeline, four timeline 0 segments, try index 1'
+    '0 timeline, one timeline 0 segment, three timeline 1 segments, try index 0'
   );
 
   assert.equal(

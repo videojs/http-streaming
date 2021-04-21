@@ -706,7 +706,12 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
 
         assert.ok(
           !loader.pendingSegment_,
-          'no pending segment, and no error even though last two segments are empty'
+          'no pending segment, with two empty segments'
+        );
+
+        assert.ok(
+          !loader.error_,
+          'no error, with last two empty segments'
         );
       }
     );
