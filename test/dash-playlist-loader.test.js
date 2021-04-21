@@ -7,6 +7,7 @@ import {
   filterChangedSidxMappings,
   parseMasterXml
 } from '../src/dash-playlist-loader';
+import parseSidx from 'mux.js/lib/tools/parse-sidx';
 import xhrFactory from '../src/xhr';
 import {generateSidxKey} from 'mpd-parser';
 import {
@@ -383,6 +384,67 @@ QUnit.test('updateMaster: updates minimumUpdatePeriod', function(assert) {
       minimumUpdatePeriod: 2
     }
   );
+});
+
+QUnit.test('updateMaster: requires sidxMapping.sidx to add sidx segments', function(assert) {
+  const prev = {
+    playlists: [{
+      uri: '0',
+      id: 0,
+      segments: [],
+      sidx: {
+        resolvedUri: 'https://example.com/foo.mp4',
+        uri: 'foo.mp4',
+        duration: 10,
+        byterange: {
+          offset: 2,
+          length: 4
+        }
+      }
+    }],
+    mediaGroups: {
+      AUDIO: {},
+      SUBTITLES: {}
+    }
+  };
+  const next = {
+    playlists: [{
+      uri: '0',
+      id: 0,
+      segments: [],
+      sidx: {
+        resolvedUri: 'https://example.com/foo.mp4',
+        uri: 'foo.mp4',
+        duration: 10,
+        byterange: {
+          offset: 2,
+          length: 4
+        }
+      }
+    }],
+    mediaGroups: {
+      AUDIO: {},
+      SUBTITLES: {}
+    }
+  };
+  const sidxMapping = {};
+  const key = generateSidxKey(prev.playlists[0].sidx);
+
+  sidxMapping[key] = {sidxInfo: {uri: 'foo', key}};
+
+  assert.deepEqual(
+    updateMaster(prev, next, sidxMapping),
+    null,
+    'no update'
+  );
+
+  sidxMapping[key].sidx = parseSidx(sidxResponse().subarray(8));
+
+  const result = updateMaster(prev, next, sidxMapping);
+
+  assert.ok(result, 'result returned');
+  assert.equal(result.playlists[0].segments.length, 1, 'added one segment from sidx');
+
 });
 
 QUnit.test('compareSidxEntry: will not add new sidx info to a mapping', function(assert) {
