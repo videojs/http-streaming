@@ -2641,6 +2641,10 @@ QUnit.module('SegmentLoader', function(hooks) {
         loader.remove(5, 4, () => {});
         assert.equal(audioRemoves, 0, 'no audio remove');
         assert.equal(videoRemoves, 0, 'no video remove');
+
+        loader.remove(0, 4, () => {});
+        assert.equal(audioRemoves, 1, 'valid remove works');
+        assert.equal(videoRemoves, 1, 'valid remove works');
       });
     });
 
