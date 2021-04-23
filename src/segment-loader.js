@@ -1199,6 +1199,14 @@ export default class SegmentLoader extends videojs.EventTarget {
       end = this.duration_();
     }
 
+    // skip removes that would throw an error
+    // commonly happens during a rendition switch at the start of a video
+    // from start 0 to end 0
+    if (end <= start) {
+      this.logger_('skipping remove because end ${end} is <= start ${start}');
+      return;
+    }
+
     if (!this.sourceUpdater_ || !this.startingMediaInfo_) {
       this.logger_('skipping remove because no source updater or starting media info');
       // nothing to remove if we haven't processed any media
