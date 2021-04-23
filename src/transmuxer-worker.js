@@ -17,7 +17,10 @@
 import {Transmuxer as FullMux} from 'mux.js/lib/mp4/transmuxer';
 import PartialMux from 'mux.js/lib/partial/transmuxer';
 import CaptionParser from 'mux.js/lib/mp4/caption-parser';
+import mp4probe from 'mux.js/lib/mp4/probe';
+import tsInspector from 'mux.js/lib/tools/ts-inspector.js';
 import {
+  ONE_SECOND_IN_TS,
   secondsToVideoTs,
   videoTsToSeconds
 } from 'mux.js/lib/utils/clock';
@@ -333,6 +336,68 @@ class MessageHandlers {
       captions: parsed && parsed.captions || [],
       data: segment.buffer
     }, [segment.buffer]);
+  }
+
+  probeMp4StartTime({timescales, data}) {
+    const startTime = mp4probe.startTime(timescales, data);
+
+    this.self.postMessage({
+      action: 'probeMp4StartTime',
+      startTime,
+      data
+    }, [data.buffer]);
+  }
+
+  probeMp4Tracks({data}) {
+    const tracks = mp4probe.tracks(data);
+
+    this.self.postMessage({
+      action: 'probeMp4Tracks',
+      tracks,
+      data
+    }, [data.buffer]);
+  }
+
+  /**
+   * Probe an mpeg2-ts segment to determine the start time of the segment in it's
+   * internal "media time," as well as whether it contains video and/or audio.
+   *
+   * @private
+   * @param {Uint8Array} bytes - segment bytes
+   * @param {number} baseStartTime
+   *        Relative reference timestamp used when adjusting frame timestamps for rollover.
+   *        This value should be in seconds, as it's converted to a 90khz clock within the
+   *        function body.
+   * @return {Object} The start time of the current segment in "media time" as well as
+   *                  whether it contains video and/or audio
+   */
+  probeTs({data, baseStartTime}) {
+    const tsStartTime = (typeof baseStartTime === 'number' && !isNaN(baseStartTime)) ?
+      (baseStartTime * ONE_SECOND_IN_TS) :
+      void 0;
+    const timeInfo = tsInspector.inspect(data, tsStartTime);
+    let result = null;
+
+    if (timeInfo) {
+      result = {
+        // each type's time info comes back as an array of 2 times, start and end
+        hasVideo: timeInfo.video && timeInfo.video.length === 2 || false,
+        hasAudio: timeInfo.audio && timeInfo.audio.length === 2 || false
+      };
+
+      if (result.hasVideo) {
+        result.videoStart = timeInfo.video[0].ptsTime;
+      }
+      if (result.hasAudio) {
+        result.audioStart = timeInfo.audio[0].ptsTime;
+      }
+    }
+
+    this.self.postMessage({
+      action: 'probeTs',
+      result,
+      data
+    }, [data.buffer]);
   }
 
   clearAllMp4Captions() {
