@@ -713,6 +713,8 @@ QUnit.test(
   function(assert) {
     const done = assert.async();
 
+    this.transmuxer = this.createTransmuxer();
+
     assert.expect(10);
     mediaSegmentRequest({
       xhr: this.xhr,
@@ -728,9 +730,11 @@ QUnit.test(
         },
         map: {
           resolvedUri: '0-init.dat'
-        }
+        },
+        transmuxer: this.transmuxer
       },
       progressFn: this.noop,
+      trackInfoFn: this.noop,
       doneFn: (error, segmentData) => {
         assert.notOk(error, 'there are no errors');
         assert.ok(segmentData.bytes, 'decrypted bytes in segment');
@@ -784,6 +788,28 @@ QUnit.test('non-TS segment will get parsed for captions', function(assert) {
           action: 'mp4Captions',
           data: event.data,
           captions
+        }
+      });
+    }
+
+    if (event.action === 'probeMp4StartTime') {
+      transmuxer.trigger({
+        type: 'message',
+        data: {
+          action: 'probeMp4StartTime',
+          data: event.data,
+          timingInfo: {}
+        }
+      });
+    }
+
+    if (event.action === 'probeMp4Tracks') {
+      transmuxer.trigger({
+        type: 'message',
+        data: {
+          action: 'probeMp4Tracks',
+          data: event.data,
+          tracks: [{type: 'video', codec: 'avc1.4d400d'}]
         }
       });
     }
@@ -902,6 +928,28 @@ QUnit.test('non-TS segment will get parsed for captions on next segment request 
           action: 'mp4Captions',
           data: event.data,
           captions
+        }
+      });
+    }
+
+    if (event.action === 'probeMp4StartTime') {
+      transmuxer.trigger({
+        type: 'message',
+        data: {
+          action: 'probeMp4StartTime',
+          data: event.data,
+          timingInfo: {}
+        }
+      });
+    }
+
+    if (event.action === 'probeMp4Tracks') {
+      transmuxer.trigger({
+        type: 'message',
+        data: {
+          action: 'probeMp4Tracks',
+          data: event.data,
+          tracks: [{type: 'video', codec: 'avc1.4d400d'}]
         }
       });
     }

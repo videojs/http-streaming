@@ -140,7 +140,8 @@ export const updateMaster = (oldMaster, newMaster, sidxMapping) => {
     if (playlist.sidx) {
       const sidxKey = generateSidxKey(playlist.sidx);
 
-      if (sidxMapping && sidxMapping[sidxKey]) {
+      // add sidx segments to the playlist if we have all the sidx info already
+      if (sidxMapping && sidxMapping[sidxKey] && sidxMapping[sidxKey].sidx) {
         addSidxSegmentsToPlaylist(playlist, sidxMapping[sidxKey].sidx, playlist.sidx.resolvedUri);
       }
     }
