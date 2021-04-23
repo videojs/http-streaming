@@ -1374,8 +1374,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       mediaIndex: null,
       startOfSegment: null,
       playlist: this.playlist_,
-      isSyncRequest: Boolean(!this.syncPoint_),
-      setTimestampOffset: true
+      isSyncRequest: Boolean(!this.syncPoint_)
     };
 
     if (next.isSyncRequest) {
@@ -1445,7 +1444,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       startOfSegment,
       isSyncRequest,
       partIndex,
-      noTimestampOffset,
+      forceTimestampOffset,
       getMediaInfoForTime
     } = options;
     const segment = playlist.segments[mediaIndex];
@@ -1483,14 +1482,19 @@ export default class SegmentLoader extends videojs.EventTarget {
       getMediaInfoForTime
     };
 
-    if (!noTimestampOffset) {
-      segmentInfo.timestampOffset = timestampOffsetForSegment({
-        segmentTimeline: segment.timeline,
-        currentTimeline: this.currentTimeline_,
-        startOfSegment,
-        buffered: this.buffered_(),
-        overrideCheck: this.isPendingTimestampOffset_
-      });
+    const overrideCheck =
+      typeof forceTimestampOffset !== 'undefined' ? forceTimestampOffset : this.isPendingTimestampOffset_;
+
+    segmentInfo.timestampOffset = this.timestampOffsetForSegment_({
+      segmentTimeline: segment.timeline,
+      currentTimeline: this.currentTimeline_,
+      startOfSegment,
+      buffered: this.buffered_(),
+      overrideCheck
+    });
+
+    // if timestampoffset was set then we no longer have a timestampoffset
+    if (typeof segmentInfo.timestampOffset === 'number') {
       this.isPendingTimestampOffset_ = false;
     }
 
@@ -1515,6 +1519,12 @@ export default class SegmentLoader extends videojs.EventTarget {
     return segmentInfo;
   }
 
+  // get the timestampoffset for a segment,
+  // added so that vtt segment loader can override and prevent
+  // adding timestamp offsets.
+  timestampOffsetForSegment_(options) {
+    return timestampOffsetForSegment(options);
+  }
   /**
    * Determines if the network has enough bandwidth to complete the current segment
    * request in a timely manner. If not, the request will be aborted early and bandwidth
@@ -2310,8 +2320,13 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.loadQueue_.push(() => {
         // regenerate the audioAppendStart, timestampOffset, etc as they
         // may have changed since this function was added to the queue.
-        this.isPendingTimestampOffset_ = true;
-        Object.assign(segmentInfo, this.generateSegmentInfo_(segmentInfo));
+        const options = Object.assign(
+          {},
+          segmentInfo,
+          {forceTimestampOffset: true}
+        );
+
+        Object.assign(segmentInfo, this.generateSegmentInfo_(options));
         this.updateTransmuxerAndRequestSegment_(segmentInfo);
       });
       return;

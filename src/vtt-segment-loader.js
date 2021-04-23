@@ -199,10 +199,9 @@ export default class VTTSegmentLoader extends SegmentLoader {
     this.loadSegment_(segmentInfo);
   }
 
-  generateSegmentInfo_(options) {
-    options.noTimestampOffset = true;
-
-    return super.generateSegmentInfo_(options);
+  // never set a timestamp offset for vtt segments.
+  timestampOffsetForSegment_() {
+    return null;
   }
 
   chooseNextRequest_() {
