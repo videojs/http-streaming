@@ -1302,6 +1302,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     if (typeof segmentInfo.timestampOffset === 'number') {
+      this.isPendingTimestampOffset_ = false;
       this.timelineChangeController_.pendingTimelineChange({
         type: this.loaderType_,
         from: this.currentTimeline_,
@@ -1492,11 +1493,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       buffered: this.buffered_(),
       overrideCheck
     });
-
-    // if timestampoffset was set then we no longer have a timestampoffset
-    if (typeof segmentInfo.timestampOffset === 'number') {
-      this.isPendingTimestampOffset_ = false;
-    }
 
     const audioBufferedEnd = lastBufferedEnd(this.sourceUpdater_.audioBuffered());
 
@@ -2327,6 +2323,10 @@ export default class SegmentLoader extends videojs.EventTarget {
         );
 
         Object.assign(segmentInfo, this.generateSegmentInfo_(options));
+
+        if (typeof segmentInfo.timestampOffset === 'number') {
+          this.isPendingTimestampOffset_ = false;
+        }
         this.updateTransmuxerAndRequestSegment_(segmentInfo);
       });
       return;
