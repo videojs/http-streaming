@@ -2633,8 +2633,48 @@ QUnit.module('SegmentLoader', function(hooks) {
       });
     });
 
-    QUnit.test('triggers appenderror when append errors', function(assert) {
+    QUnit.test('does not remove when end <= start', function(assert) {
+      let audioRemoves = 0;
+      let videoRemoves = 0;
 
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        const playlist = playlistWithDuration(40);
+
+        loader.playlist(playlist);
+        loader.load();
+        this.clock.tick(1);
+
+        loader.sourceUpdater_.removeAudio = (start, end) => {
+          audioRemoves++;
+        };
+        loader.sourceUpdater_.removeVideo = (start, end) => {
+          videoRemoves++;
+        };
+
+        assert.equal(audioRemoves, 0, 'no audio removes');
+        assert.equal(videoRemoves, 0, 'no video removes');
+
+        standardXHRResponse(this.requests.shift(), muxedSegment());
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        loader.remove(0, 0, () => {});
+        assert.equal(audioRemoves, 0, 'no audio remove');
+        assert.equal(videoRemoves, 0, 'no video remove');
+
+        loader.remove(5, 4, () => {});
+        assert.equal(audioRemoves, 0, 'no audio remove');
+        assert.equal(videoRemoves, 0, 'no video remove');
+
+        loader.remove(0, 4, () => {});
+        assert.equal(audioRemoves, 1, 'valid remove works');
+        assert.equal(videoRemoves, 1, 'valid remove works');
+      });
+    });
+
+    QUnit.test('triggers appenderror when append errors', function(assert) {
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
         return new Promise((resolve, reject) => {
           loader.one('appenderror', resolve);
