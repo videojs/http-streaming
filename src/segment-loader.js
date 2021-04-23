@@ -2323,10 +2323,7 @@ export default class SegmentLoader extends videojs.EventTarget {
         );
 
         Object.assign(segmentInfo, this.generateSegmentInfo_(options));
-
-        if (typeof segmentInfo.timestampOffset === 'number') {
-          this.isPendingTimestampOffset_ = false;
-        }
+        this.isPendingTimestampOffset_ = false;
         this.updateTransmuxerAndRequestSegment_(segmentInfo);
       });
       return;
