@@ -119,7 +119,7 @@ export const resolveSegmentUris = (segment, baseUri) => {
   }
 };
 
-const getAllSegments = function(media, addSkipped = false) {
+const getAllSegments = function(media) {
   const segments = media.segments || [];
 
   // a preloadSegment with only preloadHints is not currently
