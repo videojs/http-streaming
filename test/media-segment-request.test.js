@@ -1,12 +1,10 @@
 import QUnit from 'qunit';
 import videojs from 'video.js';
-import sinon from 'sinon';
 import {mediaSegmentRequest, REQUEST_ERRORS} from '../src/media-segment-request';
 import xhrFactory from '../src/xhr';
 import {
   useFakeEnvironment,
-  standardXHRResponse,
-  downloadProgress
+  standardXHRResponse
 } from './test-helpers';
 import {createTransmuxer as createTransmuxer_} from '../src/segment-transmuxer.js';
 import Decrypter from 'worker!../src/decrypter-worker.js';
@@ -20,11 +18,6 @@ import {
   mp4Video,
   mp4VideoInit,
   muxed as muxedSegment,
-  muxedString as muxedSegmentString,
-  caption as captionSegment,
-  captionString as captionSegmentString,
-  id3String as id3SegmentString,
-  id3 as id3Segment,
   webmVideo,
   webmVideoInit
 } from 'create-test-data!segments';
@@ -69,11 +62,10 @@ const sharedHooks = {
       this.clock.tick(1);
     };
 
-    this.createTransmuxer = (isPartial) => {
+    this.createTransmuxer = () => {
       return createTransmuxer_({
         remux: false,
-        keepOriginalTimestamps: true,
-        handlePartialData: isPartial
+        keepOriginalTimestamps: true
       });
     };
   },
@@ -97,8 +89,7 @@ QUnit.module('Media Segment Request - make it to transmuxer', {
       xhr: this.xhr,
       xhrOptions: this.xhrOptions,
       decryptionWorker: this.mockDecrypter,
-      segment: {},
-      handlePartialData: false
+      segment: {}
     };
 
     [
@@ -295,190 +286,6 @@ QUnit.test('aac without id3 will make it to the transmuxer', function(assert) {
 
   assert.equal(this.requests[0].uri, 'foo.aac', 'segment-request');
   this.standardXHRResponse(this.requests[0], aacWithoutId3Segment());
-});
-
-QUnit.test('ac3 without id3 segments will not make it to the partial transmuxer', function(assert) {
-  const done = assert.async();
-
-  this.options.segment.transmuxer = this.createTransmuxer(true);
-  this.options.segment.resolvedUri = 'foo.ac3';
-  this.options.doneFn = () => {
-    assert.deepEqual(this.calls, {
-      data: 0,
-      trackInfo: 1,
-      progress: 1,
-      timingInfo: 0,
-      captions: 0,
-      id3: 0,
-      videoSegmentTimingInfo: 0,
-      audioSegmentTimingInfo: 0
-    }, 'calls as expected');
-    done();
-  };
-
-  mediaSegmentRequest(this.options);
-
-  assert.equal(this.requests[0].uri, 'foo.ac3', 'segment-request');
-  this.standardXHRResponse(this.requests[0], ac3WithoutId3Segment());
-});
-
-QUnit.test('ac3 with id3 segments will not make it to the partial transmuxer', function(assert) {
-  const done = assert.async();
-
-  this.options.segment.transmuxer = this.createTransmuxer(true);
-  this.options.segment.resolvedUri = 'foo.ac3';
-  this.options.doneFn = () => {
-    assert.deepEqual(this.calls, {
-      data: 0,
-      trackInfo: 1,
-      progress: 1,
-      timingInfo: 0,
-      captions: 0,
-      id3: 0,
-      videoSegmentTimingInfo: 0,
-      audioSegmentTimingInfo: 0
-    }, 'calls as expected');
-    done();
-  };
-
-  mediaSegmentRequest(this.options);
-
-  assert.equal(this.requests[0].uri, 'foo.ac3', 'segment-request');
-  this.standardXHRResponse(this.requests[0], ac3WithId3Segment());
-});
-
-QUnit.test('muxed ts segments will make it to the partial transmuxer', function(assert) {
-  const done = assert.async();
-
-  this.options.segment.transmuxer = this.createTransmuxer(true);
-  this.options.segment.resolvedUri = 'foo.ts';
-  this.options.doneFn = () => {
-    assert.deepEqual(this.calls, {
-      data: 3,
-      trackInfo: 1,
-      progress: 1,
-      timingInfo: 4,
-      captions: 0,
-      id3: 0,
-      videoSegmentTimingInfo: 0,
-      audioSegmentTimingInfo: 0
-    }, 'calls as expected');
-    done();
-  };
-
-  mediaSegmentRequest(this.options);
-
-  assert.equal(this.requests[0].uri, 'foo.ts', 'segment-request');
-  this.standardXHRResponse(this.requests[0], muxedSegment());
-});
-
-QUnit.test('video ts segments will make it to the partial transmuxer', function(assert) {
-  const done = assert.async();
-
-  this.options.segment.transmuxer = this.createTransmuxer(true);
-  this.options.segment.resolvedUri = 'foo.ts';
-  this.options.doneFn = () => {
-    assert.deepEqual(this.calls, {
-      data: 2,
-      trackInfo: 1,
-      progress: 1,
-      timingInfo: 2,
-      captions: 0,
-      id3: 0,
-      videoSegmentTimingInfo: 0,
-      audioSegmentTimingInfo: 0
-    }, 'calls as expected');
-    done();
-  };
-
-  mediaSegmentRequest(this.options);
-
-  assert.equal(this.requests[0].uri, 'foo.ts', 'segment-request');
-  this.standardXHRResponse(this.requests[0], videoSegment());
-});
-
-QUnit.test('audio ts segments will make it to the partial transmuxer', function(assert) {
-  const done = assert.async();
-
-  this.options.segment.transmuxer = this.createTransmuxer(true);
-  this.options.segment.resolvedUri = 'foo.aac';
-  this.options.doneFn = () => {
-    assert.deepEqual(this.calls, {
-      data: 1,
-      trackInfo: 1,
-      progress: 1,
-      timingInfo: 2,
-      captions: 0,
-      id3: 0,
-      videoSegmentTimingInfo: 0,
-      audioSegmentTimingInfo: 0
-    }, 'calls as expected');
-    done();
-  };
-
-  mediaSegmentRequest(this.options);
-
-  assert.equal(this.requests[0].uri, 'foo.aac', 'segment-request');
-  this.standardXHRResponse(this.requests[0], audioSegment());
-});
-
-QUnit.test('aac with id3 will make it to the partial transmuxer', function(assert) {
-  const done = assert.async();
-
-  this.options.segment.transmuxer = this.createTransmuxer(true);
-  this.options.segment.resolvedUri = 'foo.aac';
-  this.options.doneFn = () => {
-    assert.deepEqual(this.calls, {
-      data: 1,
-      trackInfo: 1,
-      progress: 1,
-      timingInfo: 2,
-      captions: 0,
-      id3: 0,
-      videoSegmentTimingInfo: 0,
-      audioSegmentTimingInfo: 0
-    }, 'calls as expected');
-    done();
-  };
-
-  mediaSegmentRequest(this.options);
-
-  assert.equal(this.requests[0].uri, 'foo.aac', 'segment-request');
-  this.standardXHRResponse(this.requests[0], aacWithId3Segment());
-});
-
-QUnit.test('aac without id3 will make it to the partial transmuxer', function(assert) {
-  const done = assert.async();
-
-  this.options.segment.transmuxer = this.createTransmuxer(true);
-  this.options.segment.resolvedUri = 'foo.aac';
-  this.options.doneFn = () => {
-    assert.deepEqual(this.calls, {
-      data: 1,
-      trackInfo: 1,
-      progress: 1,
-      timingInfo: 2,
-      captions: 0,
-      id3: 0,
-      videoSegmentTimingInfo: 0,
-      audioSegmentTimingInfo: 0
-    }, 'calls as expected');
-    done();
-  };
-
-  mediaSegmentRequest(this.options);
-
-  assert.equal(this.requests[0].uri, 'foo.aac', 'segment-request');
-  this.standardXHRResponse(this.requests[0], aacWithoutId3Segment());
-});
-
-QUnit.module('Media Segment Request', {
-  beforeEach(assert) {
-    sharedHooks.beforeEach.call(this, assert);
-  },
-  afterEach(assert) {
-    sharedHooks.afterEach.call(this, assert);
-  }
 });
 
 QUnit.test('cancels outstanding segment request on abort', function(assert) {
@@ -1040,8 +847,7 @@ QUnit.test('non-TS segment will get parsed for captions', function(assert) {
       assert.ok(gotData, 'received data event');
       transmuxer.off();
       done();
-    },
-    handlePartialData: false
+    }
   });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
@@ -1088,8 +894,7 @@ QUnit.test('webm segment calls back with error', function(assert) {
         'receieved error message'
       );
       done();
-    },
-    handlePartialData: false
+    }
   });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
@@ -1187,8 +992,7 @@ QUnit.test('non-TS segment will get parsed for captions on next segment request 
       assert.equal(gotData, 1, 'received data event');
       transmuxer.off();
       done();
-    },
-    handlePartialData: false
+    }
   });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
@@ -1203,280 +1007,4 @@ QUnit.test('non-TS segment will get parsed for captions on next segment request 
   this.standardXHRResponse(segmentReq, mp4Video());
   // Simulate receiving the init segment after the media
   this.standardXHRResponse(initReq, mp4VideoInit());
-});
-
-QUnit.test('callbacks fire for TS segment with partial data', function(assert) {
-  const progressSpy = sinon.spy();
-  const trackInfoSpy = sinon.spy();
-  const timingInfoSpy = sinon.spy();
-  const dataSpy = sinon.spy();
-  const done = assert.async();
-
-  this.transmuxer = this.createTransmuxer(true);
-
-  mediaSegmentRequest({
-    xhr: this.xhr,
-    xhrOptions: this.xhrOptions,
-    decryptionWorker: this.mockDecrypter,
-    segment: {
-      resolvedUri: 'muxed.ts',
-      transmuxer: this.transmuxer
-    },
-    progressFn: progressSpy,
-    trackInfoFn: trackInfoSpy,
-    timingInfoFn: timingInfoSpy,
-    id3Fn: this.noop,
-    captionsFn: this.noop,
-    dataFn: dataSpy,
-    doneFn: () => {
-      // sinon will fire a second progress event at the end of the request (as specified
-      // by the xhr standard)
-      assert.strictEqual(progressSpy.callCount, 2, 'saw a progress event');
-      assert.ok(trackInfoSpy.callCount, 'got trackInfo');
-      assert.ok(timingInfoSpy.callCount, 'got timingInfo');
-      assert.ok(dataSpy.callCount, 'got data event');
-      done();
-    },
-    handlePartialData: true
-  });
-
-  const request = this.requests.shift();
-  // Need to take enough of the segment to trigger a data event
-  const partialResponse = muxedSegmentString().substring(0, 1700);
-
-  request.responseType = 'arraybuffer';
-  // simulates progress event
-  downloadProgress(request, partialResponse);
-  this.standardXHRResponse(request, muxedSegment());
-});
-
-QUnit.test('data callback does not fire if too little partial data', function(assert) {
-  const progressSpy = sinon.spy();
-  const dataSpy = sinon.spy();
-
-  this.transmuxer = this.createTransmuxer(true);
-
-  mediaSegmentRequest({
-    xhr: this.xhr,
-    xhrOptions: this.xhrOptions,
-    decryptionWorker: this.mockDecrypter,
-    segment: {
-      resolvedUri: 'muxed.ts',
-      transmuxer: this.transmuxer
-    },
-    progressFn: progressSpy,
-    trackInfoFn: this.noop,
-    timingInfoFn: this.noop,
-    id3Fn: this.noop,
-    captionsFn: this.noop,
-    dataFn: dataSpy,
-    doneFn: this.noop,
-    handlePartialData: true
-  });
-
-  const request = this.requests.shift();
-
-  request.responseType = 'arraybuffer';
-
-  // less data than needed for a data event to be fired
-  const partialResponse = muxedSegmentString().substring(0, 1000);
-
-  // simulates progress event
-  downloadProgress(request, partialResponse);
-  this.clock.tick(1);
-
-  assert.ok(progressSpy.callCount, 'got a progress event');
-  assert.notOk(dataSpy.callCount, 'did not get data event');
-});
-
-// TODO test only worked with the completion of a segment request. It should be rewritten
-// to account for partial data only.
-QUnit.skip('caption callback fires for TS segment with partial data', function(assert) {
-  const progressSpy = sinon.spy();
-  const captionSpy = sinon.spy();
-  const dataSpy = sinon.spy();
-  const done = assert.async();
-
-  this.transmuxer = this.createTransmuxer(true);
-
-  mediaSegmentRequest({
-    xhr: this.xhr,
-    xhrOptions: this.xhrOptions,
-    decryptionWorker: this.mockDecrypter,
-    segment: {
-      resolvedUri: 'caption.ts',
-      transmuxer: this.transmuxer
-    },
-    progressFn: progressSpy,
-    trackInfoFn: this.noop,
-    timingInfoFn: this.noop,
-    id3Fn: this.noop,
-    captionsFn: captionSpy,
-    dataFn: dataSpy,
-    doneFn: () => {
-      // sinon will fire a second progress event at the end of the request (as specified
-      // by the xhr standard)
-      assert.strictEqual(progressSpy.callCount, 2, 'saw a progress event');
-      assert.strictEqual(captionSpy.callCount, 1, 'got one caption back');
-      assert.ok(dataSpy.callCount, 'got data event');
-      done();
-    },
-    handlePartialData: true
-  });
-
-  const request = this.requests.shift();
-
-  request.responseType = 'arraybuffer';
-
-  // Need to take enough of the segment to trigger
-  // a data and caption event
-  const partialResponse = captionSegmentString().substring(0, 190000);
-
-  // simulates progress event
-  downloadProgress(request, partialResponse);
-  this.standardXHRResponse(request, captionSegment());
-});
-
-// TODO test only worked with the completion of a segment request. It should be rewritten
-// to account for partial data only.
-QUnit.skip('caption callback does not fire if partial data has no captions', function(assert) {
-  const progressSpy = sinon.spy();
-  const captionSpy = sinon.spy();
-  const dataSpy = sinon.spy();
-  const done = assert.async();
-
-  this.transmuxer = this.createTransmuxer(true);
-
-  mediaSegmentRequest({
-    xhr: this.xhr,
-    xhrOptions: this.xhrOptions,
-    decryptionWorker: this.mockDecrypter,
-    segment: {
-      resolvedUri: 'caption.ts',
-      transmuxer: this.transmuxer
-    },
-    progressFn: progressSpy,
-    trackInfoFn: this.noop,
-    timingInfoFn: this.noop,
-    id3Fn: this.noop,
-    captionsFn: captionSpy,
-    dataFn: dataSpy,
-    doneFn: () => {
-      // sinon will fire a second progress event at the end of the request (as specified
-      // by the xhr standard)
-      assert.strictEqual(progressSpy.callCount, 2, 'saw a progress event');
-      assert.strictEqual(captionSpy.callCount, 0, 'got no caption back');
-      assert.ok(dataSpy.callCount, 'got data event');
-      done();
-    },
-    handlePartialData: true
-  });
-
-  const request = this.requests.shift();
-
-  request.responseType = 'arraybuffer';
-
-  // Need to take enough of the segment to trigger a data event
-  const partialResponse = muxedSegmentString().substring(0, 1700);
-
-  // simulates progress event
-  downloadProgress(request, partialResponse);
-  this.standardXHRResponse(request, muxedSegment());
-});
-
-// TODO test only worked with the completion of a segment request. It should be rewritten
-// to account for partial data only.
-QUnit.skip('id3 callback fires for TS segment with partial data', function(assert) {
-  const progressSpy = sinon.spy();
-  const id3Spy = sinon.spy();
-  const dataSpy = sinon.spy();
-  const done = assert.async();
-
-  this.transmuxer = this.createTransmuxer(true);
-
-  mediaSegmentRequest({
-    xhr: this.xhr,
-    xhrOptions: this.xhrOptions,
-    decryptionWorker: this.mockDecrypter,
-    segment: {
-      resolvedUri: 'id3.ts',
-      transmuxer: this.transmuxer
-    },
-    progressFn: progressSpy,
-    trackInfoFn: this.noop,
-    timingInfoFn: this.noop,
-    id3Fn: id3Spy,
-    captionsFn: this.noop,
-    dataFn: dataSpy,
-    doneFn: () => {
-      assert.strictEqual(progressSpy.callCount, 1, 'saw 1 progress event');
-      assert.strictEqual(id3Spy.callCount, 1, 'got one id3Frame back');
-      assert.ok(dataSpy.callCount, 'got data event');
-      done();
-    },
-    handlePartialData: true
-  });
-
-  const request = this.requests.shift();
-
-  request.responseType = 'arraybuffer';
-
-  // Need to take enough of the segment to trigger
-  // a data and id3Frame event
-  const partialResponse = id3SegmentString().substring(0, 900);
-
-  // simulates progress event
-  downloadProgress(request, partialResponse);
-  // note that this test only worked with the completion of the segment request
-  // it should be fixed to account for only partial data
-  this.standardXHRResponse(request, id3Segment());
-});
-
-// TODO test only worked with the completion of a segment request. It should be rewritten
-// to account for partial data only.
-QUnit.skip('id3 callback does not fire if partial data has no ID3 tags', function(assert) {
-  const progressSpy = sinon.spy();
-  const id3Spy = sinon.spy();
-  const dataSpy = sinon.spy();
-  const done = assert.async();
-
-  this.transmuxer = this.createTransmuxer(true);
-
-  mediaSegmentRequest({
-    xhr: this.xhr,
-    xhrOptions: this.xhrOptions,
-    decryptionWorker: this.mockDecrypter,
-    segment: {
-      resolvedUri: 'id3.ts',
-      transmuxer: this.transmuxer
-    },
-    progressFn: progressSpy,
-    trackInfoFn: this.noop,
-    timingInfoFn: this.noop,
-    id3Fn: id3Spy,
-    captionsFn: this.noop,
-    dataFn: dataSpy,
-    doneFn: () => {
-      // sinon will fire a second progress event at the end of the request (as specified
-      // by the xhr standard)
-      assert.strictEqual(progressSpy.callCount, 2, 'saw a progress event');
-      assert.strictEqual(id3Spy.callCount, 0, 'got no id3Frames back');
-      assert.ok(dataSpy.callCount, 'got data event');
-      done();
-    },
-    handlePartialData: true
-  });
-
-  const request = this.requests.shift();
-
-  request.responseType = 'arraybuffer';
-
-  // Need to take enough of the segment to trigger a data event
-  const partialResponse = muxedSegmentString().substring(0, 1700);
-
-  // simulates progress event
-  downloadProgress(request, partialResponse);
-  // note that this test only worked with the completion of the segment request
-  // it should be fixed to account for only partial data
-  this.standardXHRResponse(request, muxedSegment());
 });

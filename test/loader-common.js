@@ -411,8 +411,6 @@ export const LoaderCommonFactory = ({
 
         this.clock.tick(1);
 
-        // TODO, probably want to repeat this test for
-        // both partial appends and full segment playback
         this.requests[0].responseText = '';
         this.requests[0].dispatchEvent({
           type: 'progress',

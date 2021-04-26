@@ -24,9 +24,6 @@ export default class VTTSegmentLoader extends SegmentLoader {
   constructor(settings, options = {}) {
     super(settings, options);
 
-    // VTT can't handle partial data
-    this.handlePartialData_ = false;
-
     // SegmentLoader requires a MediaSource be specified or it will throw an error;
     // however, VTTSegmentLoader has no need of a media source, so delete the reference
     this.mediaSource_ = null;
