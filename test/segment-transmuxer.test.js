@@ -2,8 +2,7 @@ import QUnit from 'qunit';
 import sinon from 'sinon';
 import {
   muxed as muxedSegment,
-  caption as captionSegment,
-  oneSecond as oneSecondSegment
+  caption as captionSegment
 } from 'create-test-data!segments';
 import {
   transmux,
@@ -23,15 +22,14 @@ import '../src/videojs-http-streaming';
 
 const noop = () => {};
 
-const createTransmuxer = (isPartial) => {
+const createTransmuxer = () => {
   return createTransmuxer_({
     remux: false,
-    keepOriginalTimestamps: true,
-    handlePartialData: isPartial
+    keepOriginalTimestamps: true
   });
 };
 
-const mockTransmuxer = (isPartial) => {
+const mockTransmuxer = () => {
   const transmuxer = {
     postMessage(event) {},
     terminate() {},
@@ -63,14 +61,13 @@ QUnit.test('transmux returns data for full appends', function(assert) {
   const videoSegmentTimingInfoFn = sinon.spy();
   const audioSegmentTimingInfoFn = sinon.spy();
 
-  this.transmuxer = createTransmuxer(false);
+  this.transmuxer = createTransmuxer();
 
   transmux({
     transmuxer: this.transmuxer,
     bytes: muxedSegment(),
     audioAppendStart: null,
     gopsToAlignWith: null,
-    isPartial: false,
     onData: dataFn,
     onTrackInfo: trackInfoFn,
     onAudioTimingInfo: audioTimingFn,
@@ -96,14 +93,13 @@ QUnit.test('transmux returns captions for full appends', function(assert) {
   const dataFn = sinon.spy();
   const captionsFn = sinon.spy();
 
-  this.transmuxer = createTransmuxer(false);
+  this.transmuxer = createTransmuxer();
 
   transmux({
     transmuxer: this.transmuxer,
     bytes: captionSegment(),
     audioAppendStart: null,
     gopsToAlignWith: null,
-    isPartial: false,
     onData: dataFn,
     onTrackInfo: noop,
     onAudioTimingInfo: noop,
@@ -119,52 +115,8 @@ QUnit.test('transmux returns captions for full appends', function(assert) {
   });
 });
 
-QUnit.test('transmux returns data for partial appends', function(assert) {
-  const done = assert.async();
-  const dataFn = sinon.spy();
-  const trackInfoFn = sinon.spy();
-  const audioTimingFn = sinon.spy();
-  const videoTimingFn = sinon.spy();
-  const videoSegmentTimingInfoFn = sinon.spy();
-  const audioSegmentTimingInfoFn = sinon.spy();
-
-  this.transmuxer = createTransmuxer(true);
-
-  transmux({
-    transmuxer: this.transmuxer,
-    bytes: oneSecondSegment(),
-    audioAppendStart: null,
-    gopsToAlignWith: null,
-    isPartial: true,
-    onData: () => {
-      dataFn();
-      // TODO: partial appends don't currently fire this
-
-      // assert.ok(videoSegmentTimingInfoFn.callCount, 'got videoSegmentTimingInfoFn event');
-      // assert.ok(audioSegmentTimingInfoFn.callCount, 'got audioSegmentTimingInfoFn event');
-      assert.ok(trackInfoFn.callCount, 'got trackInfo event');
-      assert.ok(videoTimingFn.callCount, 'got videoTimingInfo event');
-
-      if (audioTimingFn.callCount) {
-        assert.ok(audioTimingFn.callCount, 'got audioTimingInfo event');
-        done();
-      }
-    },
-    onTrackInfo: trackInfoFn,
-    onAudioTimingInfo: audioTimingFn,
-    onVideoTimingInfo: videoTimingFn,
-    onVideoSegmentTimingInfo: videoSegmentTimingInfoFn,
-    onAudioSegmentTimingInfo: audioSegmentTimingInfoFn,
-    onId3: noop,
-    onCaptions: noop,
-    // This will be called on partialdone events,
-    // so don't check here
-    onDone: noop
-  });
-});
-
 QUnit.test('resets transmuxer on reset()', function(assert) {
-  this.transmuxer = mockTransmuxer(false);
+  this.transmuxer = mockTransmuxer();
   this.transmuxer.postMessage = sinon.spy();
 
   reset(this.transmuxer);
@@ -176,7 +128,7 @@ QUnit.test('resets transmuxer on reset()', function(assert) {
 });
 
 QUnit.test('passes endTimeline to transmuxer on endTimeline()', function(assert) {
-  this.transmuxer = mockTransmuxer(false);
+  this.transmuxer = mockTransmuxer();
   this.transmuxer.postMessage = sinon.spy();
 
   endTimeline(this.transmuxer);
@@ -188,7 +140,7 @@ QUnit.test('passes endTimeline to transmuxer on endTimeline()', function(assert)
 });
 
 QUnit.test('passes action to transmuxer on enqueueAction()', function(assert) {
-  this.transmuxer = mockTransmuxer(false);
+  this.transmuxer = mockTransmuxer();
   this.transmuxer.postMessage = sinon.spy();
 
   enqueueAction('push', this.transmuxer);
@@ -205,7 +157,7 @@ QUnit.test('passes action to transmuxer on enqueueAction()', function(assert) {
 });
 
 QUnit.test('dequeues and processes action on dequeue()', function(assert) {
-  this.transmuxer = mockTransmuxer(false);
+  this.transmuxer = mockTransmuxer();
   this.transmuxer.postMessage = sinon.spy();
 
   assert.deepEqual(this.transmuxer.postMessage.callCount, 0, 'no actions yet');
@@ -215,7 +167,6 @@ QUnit.test('dequeues and processes action on dequeue()', function(assert) {
     bytes: new Uint8Array(),
     audioAppendStart: null,
     gopsToAlignWith: null,
-    isPartial: false,
     onData: noop,
     onTrackInfo: noop,
     onAudioTimingInfo: noop,
@@ -243,7 +194,7 @@ QUnit.test('dequeues and processes action on dequeue()', function(assert) {
 });
 
 QUnit.test('processAction posts a message to the transmuxer', function(assert) {
-  this.transmuxer = mockTransmuxer(false);
+  this.transmuxer = mockTransmuxer();
   this.transmuxer.postMessage = sinon.spy();
 
   processAction(this.transmuxer, 'fakeaction');
@@ -255,7 +206,7 @@ QUnit.test('processAction posts a message to the transmuxer', function(assert) {
 });
 
 QUnit.test('processTransmux posts all actions', function(assert) {
-  this.transmuxer = mockTransmuxer(false);
+  this.transmuxer = mockTransmuxer();
   this.transmuxer.onmessage = sinon.spy();
   this.transmuxer.postMessage = sinon.spy();
 
@@ -264,7 +215,6 @@ QUnit.test('processTransmux posts all actions', function(assert) {
     bytes: muxedSegment(),
     audioAppendStart: [0],
     gopsToAlignWith: [0],
-    isPartial: false,
     onData: noop,
     onTrackInfo: noop,
     onAudioTimingInfo: noop,
@@ -388,7 +338,6 @@ QUnit.test(
       }
     };
     const transmuxedData = {
-      isPartial: false,
       buffer: []
     };
 
@@ -401,8 +350,7 @@ QUnit.test(
           captions: event.data.segment.captions,
           captionStreams: event.data.segment.captionStreams,
           metadata: event.data.segment.metadata
-        }],
-        isPartial: false
+        }]
       },
       'captions and metadata are added to transmuxedData buffer'
     );
@@ -431,14 +379,13 @@ QUnit.test('transmux waits for endTimeline if isEndOfTimeline', function(assert)
   const audioSegmentTimingInfoFn = sinon.spy();
   const onEndedTimelineFn = sinon.spy();
 
-  this.transmuxer = createTransmuxer(false);
+  this.transmuxer = createTransmuxer();
 
   transmux({
     transmuxer: this.transmuxer,
     bytes: muxedSegment(),
     audioAppendStart: null,
     gopsToAlignWith: null,
-    isPartial: false,
     onData: dataFn,
     onTrackInfo: trackInfoFn,
     onAudioTimingInfo: audioTimingFn,
@@ -472,14 +419,13 @@ QUnit.test('transmux does not wait for endTimeline if not isEndOfTimeline', func
   const audioSegmentTimingInfoFn = sinon.spy();
   const onEndedTimelineFn = sinon.spy();
 
-  this.transmuxer = createTransmuxer(false);
+  this.transmuxer = createTransmuxer();
 
   transmux({
     transmuxer: this.transmuxer,
     bytes: muxedSegment(),
     audioAppendStart: null,
     gopsToAlignWith: null,
-    isPartial: false,
     onData: dataFn,
     onTrackInfo: trackInfoFn,
     onAudioTimingInfo: audioTimingFn,
@@ -497,91 +443,6 @@ QUnit.test('transmux does not wait for endTimeline if not isEndOfTimeline', func
       assert.ok(videoTimingFn.callCount, 'got videoTimingInfo events');
       assert.ok(videoSegmentTimingInfoFn.callCount, 'got videoSegmentTimingInfo events');
       assert.ok(audioSegmentTimingInfoFn.callCount, 'got audioSegmentTimingInfo events');
-      assert.notOk(onEndedTimelineFn.callCount, 'did not get onEndedTimeline event');
-      done();
-    }
-  });
-});
-
-QUnit.test('partial transmuxer transmux waits for endTimeline if isEndOfTimeline', function(assert) {
-  const done = assert.async();
-  const dataFn = sinon.spy();
-  const trackInfoFn = sinon.spy();
-  const audioTimingFn = sinon.spy();
-  const videoTimingFn = sinon.spy();
-  const videoSegmentTimingInfoFn = sinon.spy();
-  const audioSegmentTimingInfoFn = sinon.spy();
-  const onEndedTimelineFn = sinon.spy();
-
-  this.transmuxer = createTransmuxer(true);
-
-  transmux({
-    transmuxer: this.transmuxer,
-    bytes: muxedSegment(),
-    audioAppendStart: null,
-    gopsToAlignWith: null,
-    // isEndOfTimeline should never be true if isPartial is true
-    isPartial: false,
-    onData: dataFn,
-    onTrackInfo: trackInfoFn,
-    onAudioTimingInfo: audioTimingFn,
-    onVideoTimingInfo: videoTimingFn,
-    onVideoSegmentTimingInfo: videoSegmentTimingInfoFn,
-    onAudioSegmentTimingInfo: audioSegmentTimingInfoFn,
-    onId3: noop,
-    onCaptions: noop,
-    isEndOfTimeline: true,
-    onEndedTimeline: onEndedTimelineFn,
-    onDone: () => {
-      assert.ok(dataFn.callCount, 'got data events');
-      assert.ok(trackInfoFn.callCount, 'got trackInfo events');
-      assert.ok(audioTimingFn.callCount, 'got audioTimingInfo events');
-      assert.ok(videoTimingFn.callCount, 'got videoTimingInfo events');
-      // TODO: partial appends don't currently fire this
-      // assert.ok(videoSegmentTimingInfoFn.callCount, 'got videoSegmentTimingInfo events');
-      // assert.ok(audioSegmentTimingInfoFn.callCount, 'got audioSegmentTimingInfo events');
-      assert.ok(onEndedTimelineFn.callCount, 'got onEndedTimeline event');
-      done();
-    }
-  });
-});
-
-QUnit.test('partial transmuxer transmux does not wait for endTimeline if not isEndOfTimeline', function(assert) {
-  const done = assert.async();
-  const dataFn = sinon.spy();
-  const trackInfoFn = sinon.spy();
-  const audioTimingFn = sinon.spy();
-  const videoTimingFn = sinon.spy();
-  const videoSegmentTimingInfoFn = sinon.spy();
-  const audioSegmentTimingInfoFn = sinon.spy();
-  const onEndedTimelineFn = sinon.spy();
-
-  this.transmuxer = createTransmuxer(true);
-
-  transmux({
-    transmuxer: this.transmuxer,
-    bytes: muxedSegment(),
-    audioAppendStart: null,
-    gopsToAlignWith: null,
-    isPartial: false,
-    onData: dataFn,
-    onTrackInfo: trackInfoFn,
-    onAudioTimingInfo: audioTimingFn,
-    onVideoTimingInfo: videoTimingFn,
-    onVideoSegmentTimingInfo: videoSegmentTimingInfoFn,
-    onAudioSegmentTimingInfo: audioSegmentTimingInfoFn,
-    onId3: noop,
-    onCaptions: noop,
-    isEndOfTimeline: false,
-    onEndedTimeline: onEndedTimelineFn,
-    onDone: () => {
-      assert.ok(dataFn.callCount, 'got data events');
-      assert.ok(trackInfoFn.callCount, 'got trackInfo events');
-      assert.ok(audioTimingFn.callCount, 'got audioTimingInfo events');
-      assert.ok(videoTimingFn.callCount, 'got videoTimingInfo events');
-      // TODO: partial appends don't currently fire this
-      // assert.ok(videoSegmentTimingInfoFn.callCount, 'got videoSegmentTimingInfo events');
-      // assert.ok(audioSegmentTimingInfoFn.callCount, 'got audioSegmentTimingInfo events');
       assert.notOk(onEndedTimelineFn.callCount, 'did not get onEndedTimeline event');
       done();
     }

@@ -622,7 +622,6 @@ class VhsHandler extends Component {
     this.options_.customTagParsers = this.options_.customTagParsers || [];
     this.options_.customTagMappers = this.options_.customTagMappers || [];
     this.options_.cacheEncryptionKeys = this.options_.cacheEncryptionKeys || false;
-    this.options_.handlePartialData = this.options_.handlePartialData || false;
 
     if (typeof this.options_.blacklistDuration !== 'number') {
       this.options_.blacklistDuration = 5 * 60;
@@ -667,7 +666,6 @@ class VhsHandler extends Component {
       'customTagMappers',
       'handleManifestRedirects',
       'cacheEncryptionKeys',
-      'handlePartialData',
       'playlistSelector',
       'initialPlaylistSelector',
       'experimentalBufferBasedABR',

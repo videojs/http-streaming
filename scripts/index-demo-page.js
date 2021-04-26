@@ -240,7 +240,6 @@
     'minified',
     'sync-workers',
     'liveui',
-    'partial',
     'llhls',
     'url',
     'type',
@@ -302,13 +301,6 @@
     });
 
     stateEls.llhls.addEventListener('change', function(event) {
-      saveState();
-
-      // reload the player and scripts
-      stateEls.minified.dispatchEvent(newEvent('change'));
-    });
-
-    stateEls.partial.addEventListener('change', function(event) {
       saveState();
 
       // reload the player and scripts
@@ -384,7 +376,6 @@
           html5: {
             vhs: {
               overrideNative: getInputValue(stateEls['override-native']),
-              handlePartialData: getInputValue(stateEls.partial),
               experimentalBufferBasedABR: getInputValue(stateEls['buffer-water']),
               experimentalLLHLS: getInputValue(stateEls.llhls)
             }
