@@ -7,6 +7,7 @@ import {
   filterChangedSidxMappings,
   parseMasterXml
 } from '../src/dash-playlist-loader';
+import parseSidx from 'mux.js/lib/tools/parse-sidx';
 import xhrFactory from '../src/xhr';
 import {generateSidxKey} from 'mpd-parser';
 import {
@@ -383,6 +384,67 @@ QUnit.test('updateMaster: updates minimumUpdatePeriod', function(assert) {
       minimumUpdatePeriod: 2
     }
   );
+});
+
+QUnit.test('updateMaster: requires sidxMapping.sidx to add sidx segments', function(assert) {
+  const prev = {
+    playlists: [{
+      uri: '0',
+      id: 0,
+      segments: [],
+      sidx: {
+        resolvedUri: 'https://example.com/foo.mp4',
+        uri: 'foo.mp4',
+        duration: 10,
+        byterange: {
+          offset: 2,
+          length: 4
+        }
+      }
+    }],
+    mediaGroups: {
+      AUDIO: {},
+      SUBTITLES: {}
+    }
+  };
+  const next = {
+    playlists: [{
+      uri: '0',
+      id: 0,
+      segments: [],
+      sidx: {
+        resolvedUri: 'https://example.com/foo.mp4',
+        uri: 'foo.mp4',
+        duration: 10,
+        byterange: {
+          offset: 2,
+          length: 4
+        }
+      }
+    }],
+    mediaGroups: {
+      AUDIO: {},
+      SUBTITLES: {}
+    }
+  };
+  const sidxMapping = {};
+  const key = generateSidxKey(prev.playlists[0].sidx);
+
+  sidxMapping[key] = {sidxInfo: {uri: 'foo', key}};
+
+  assert.deepEqual(
+    updateMaster(prev, next, sidxMapping),
+    null,
+    'no update'
+  );
+
+  sidxMapping[key].sidx = parseSidx(sidxResponse().subarray(8));
+
+  const result = updateMaster(prev, next, sidxMapping);
+
+  assert.ok(result, 'result returned');
+  assert.equal(result.playlists[0].segments.length, 1, 'added one segment from sidx');
+
 });
 
 QUnit.test('compareSidxEntry: will not add new sidx info to a mapping', function(assert) {
@@ -2689,4 +2751,72 @@ QUnit.test('load does not resume the media update timer for non live playlists',
   loader.load();
 
   assert.notOk(loader.mediaUpdateTimeout, 'media update timeout not set');
+});
+
+QUnit.test('pause removes minimum update period timeout', function(assert) {
+  const loader = new DashPlaylistLoader('dash-live.mpd', this.fakeVhs);
+
+  loader.load();
+  this.standardXHRResponse(this.requests.shift());
+  this.clock.tick(1);
+
+  assert.ok(loader.minimumUpdatePeriodTimeout_, 'minimum update period timeout set');
+
+  loader.pause();
+
+  assert.notOk(
+    loader.minimumUpdatePeriodTimeout_,
+    'minimum update period timeout not set'
+  );
+});
+
+QUnit.test('load resumes minimum update period timeout for live', function(assert) {
+  const loader = new DashPlaylistLoader('dash-live.mpd', this.fakeVhs);
+
+  loader.load();
+  this.standardXHRResponse(this.requests.shift());
+  this.clock.tick(1);
+
+  // media should be selected at this point
+  loader.media(loader.master.playlists[0]);
+
+  assert.ok(loader.minimumUpdatePeriodTimeout_, 'minimum update period timeout set');
+
+  loader.pause();
+
+  assert.notOk(
+    loader.minimumUpdatePeriodTimeout_,
+    'minimum update period timeout not set'
+  );
+
+  loader.load();
+
+  assert.ok(loader.minimumUpdatePeriodTimeout_, 'minimum update period timeout set');
+});
+
+QUnit.test('pause does not remove minimum update period timeout when not master', function(assert) {
+  const masterLoader = new DashPlaylistLoader('dash-live.mpd', this.fakeVhs);
+
+  masterLoader.load();
+  this.standardXHRResponse(this.requests.shift());
+  this.clock.tick(1);
+
+  const media = masterLoader.master.playlists[0];
+  // media should be selected at this point
+
+  masterLoader.media(media);
+
+  const mediaLoader = new DashPlaylistLoader(media, this.fakeVhs, {}, masterLoader);
+
+  assert.ok(
+    masterLoader.minimumUpdatePeriodTimeout_,
+    'minimum update period timeout set'
+  );
+
+  mediaLoader.pause();
+
+  assert.ok(
+    masterLoader.minimumUpdatePeriodTimeout_,
+    'minimum update period timeout set'
+  );
 });

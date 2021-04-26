@@ -16,16 +16,6 @@ const base64ToUint8Array = function(base64) {
   return uint8Array;
 };
 
-const utf16CharCodesToString = (typedArray) => {
-  let val = '';
-
-  Array.prototype.forEach.call(typedArray, (x) => {
-    val += String.fromCharCode(x);
-  });
-
-  return val;
-};
-
 const getManifests = () => (fs.readdirSync(manifestsDir) || [])
   .filter((f) => ((/\.(m3u8|mpd)/).test(path.extname(f))))
   .map((f) => path.resolve(manifestsDir, f));
@@ -75,19 +65,13 @@ const buildSegmentString = function() {
         dest.set(cache.${key});
         return dest;
       };`);
-    // strings can be used to fake responseText in progress events
-    // when testing partial appends of data
-    acc.push(`export const ${key}String = () => {
-        cache.${key}String = cache.${key}String || utf16CharCodesToString(${key}());
-        return cache.${key}String;
-      };`);
+
     return acc;
   }, []);
 
   const segmentsFile =
     'const cache = {};\n' +
     `const base64ToUint8Array = ${base64ToUint8Array.toString()};\n` +
-    `const utf16CharCodesToString = ${utf16CharCodesToString.toString()};\n` +
     segmentDataExportStrings.join('\n');
 
   return segmentsFile;
