@@ -2913,6 +2913,36 @@ QUnit.test(
   }
 );
 
+QUnit.test('respects initialBandwidth option on the tech', function(assert) {
+  this.player.dispose();
+  this.player = createPlayer({ html5: { initialBandwidth: 0 } });
+
+  this.player.src({
+    src: 'http://example.com/media.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  assert.equal(this.player.tech_.vhs.bandwidth, 0, 'set bandwidth to 0');
+});
+
+QUnit.test('initialBandwidth option on the tech take precedence on over vhs bandwidth option', function(assert) {
+  this.player.dispose();
+  this.player = createPlayer({ html5: { initialBandwidth: 0, vhs: { bandwidth: 100 } } });
+
+  this.player.src({
+    src: 'http://example.com/media.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  assert.equal(this.player.tech_.vhs.bandwidth, 0, 'set bandwidth to 0');
+});
+
 QUnit.test('uses default bandwidth if browser is Android', function(assert) {
   this.player.dispose();
 
