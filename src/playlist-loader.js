@@ -126,6 +126,20 @@ const getAllSegments = function(media) {
   // a usable segment, only include a preloadSegment that has
   // parts.
   if (media.preloadSegment && media.preloadSegment.parts) {
+
+    // set the preload segment duration based on parts
+    media.preloadSegment.duration = media.preloadSegment.parts.reduce((acc, part) => {
+      acc += part.duration;
+
+      return acc;
+    }, 0);
+
+    media.preloadSegment.duration += (media.preloadHints || []).reduce((acc, hint) => {
+      if (hint.type === 'PART') {
+        acc += media.partTargetDuration;
+      }
+      return acc;
+    }, 0);
     segments.push(media.preloadSegment);
   }
 
