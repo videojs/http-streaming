@@ -80,10 +80,21 @@ export const updateSegments = (original, update, offset) => {
   offset = offset || 0;
   const length = Math.min(original.length, update.length + offset);
 
+  let currentMap;
+
   for (let i = offset; i < length; i++) {
     const newIndex = i - offset;
 
+    currentMap = oldSegments[i].map;
+
     result[newIndex] = updateSegment(oldSegments[i], result[newIndex]);
+
+    // if EXT-X-SKIP is used, even the init segment will be skipped
+    // we need to make sure that we bring the map over
+    // to all new segments.
+    if (!result[newIndex].map && currentMap) {
+      result[newIndex].map = currentMap;
+    }
   }
   return result;
 };
@@ -121,26 +132,22 @@ export const resolveSegmentUris = (segment, baseUri) => {
 
 const getAllSegments = function(media) {
   const segments = media.segments || [];
+  const preloadSegment = media.preloadSegment;
 
-  // a preloadSegment with only preloadHints is not currently
-  // a usable segment, only include a preloadSegment that has
-  // parts.
-  if (media.preloadSegment && media.preloadSegment.parts) {
-
-    // set the preload segment duration based on parts
-    media.preloadSegment.duration = media.preloadSegment.parts.reduce((acc, part) => {
-      acc += part.duration;
-
-      return acc;
-    }, 0);
-
-    media.preloadSegment.duration += (media.preloadHints || []).reduce((acc, hint) => {
-      if (hint.type === 'PART') {
-        acc += media.partTargetDuration;
+  if (preloadSegment && preloadSegment.parts && preloadSegment.parts.length) {
+    // if preloadHints has a MAP that means that the
+    // init segment is going to change. We cannot use any of the parts
+    if (preloadSegment.preloadHints) {
+      for (let i = 0; i < preloadSegment.preloadHints.length; i++) {
+        if (preloadSegment.preloadHints[i].type === 'MAP') {
+          return segments;
+        }
       }
-      return acc;
-    }, 0);
-    segments.push(media.preloadSegment);
+    }
+    // set the duration for our preload segment to target duration.
+    preloadSegment.duration = media.targetDuration;
+
+    segments.push(preloadSegment);
   }
 
   return segments;
@@ -290,31 +297,28 @@ export default class PlaylistLoader extends EventTarget {
       if (this.experimentalLLHLS) {
         const query = [];
 
+        if (media.serverControl && media.serverControl.canSkipUntil) {
+          query.push('_HLS_skip=' + (media.serverControl.canSkipDateranges ? 'v2' : 'YES'));
+        }
+
         if (media.serverControl && media.serverControl.canBlockReload) {
           const preloadSegment = media.preloadSegment;
+          // next msn will be for preload segment, if we have a preload segment.
           let nextMSN = media.mediaSequence + media.segments.length;
+          let nextPart;
 
-          if (preloadSegment && preloadSegment.parts) {
-            // since preload segment is added to our segment list when it has parts
-            // but doesn't count towards media seuence number for the server yet,
-            // we have to subtract one from nextMSN to get the correct number.
+          if (preloadSegment && preloadSegment.parts && preloadSegment.parts.length) {
+            nextPart = preloadSegment.parts.length + 1;
             nextMSN--;
+          } else {
+            nextMSN++;
           }
 
           query.push(`_HLS_msn=${nextMSN}`);
 
-          if (preloadSegment && preloadSegment.preloadHints) {
-            const nextPart =
-              (preloadSegment.parts && preloadSegment.parts.length || 0) +
-              preloadSegment.preloadHints.length;
-
+          if (nextPart) {
             query.push(`_HLS_part=${nextPart}`);
           }
-
-        }
-
-        if (media.serverControl && media.serverControl.canSkipUntil) {
-          query.push('_HLS_skip=' + (media.serverControl.canSkipDateranges ? 'v2' : 'YES'));
         }
 
         query.forEach(function(str, i) {
@@ -322,6 +326,7 @@ export default class PlaylistLoader extends EventTarget {
 
           uri += `${symbol}${str}`;
         });
+
       }
       this.state = 'HAVE_CURRENT_METADATA';
 
