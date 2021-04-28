@@ -138,9 +138,13 @@ const getAllSegments = function(media) {
   const segments = media.segments || [];
   const preloadSegment = media.preloadSegment;
 
+  // a preloadSegment with only preloadHints is not currently
+  // a usable segment, only include a preloadSegment that has
+  // parts.
   if (preloadSegment && preloadSegment.parts && preloadSegment.parts.length) {
     // if preloadHints has a MAP that means that the
     // init segment is going to change. We cannot use any of the parts
+    // from this preload segment.
     if (preloadSegment.preloadHints) {
       for (let i = 0; i < preloadSegment.preloadHints.length; i++) {
         if (preloadSegment.preloadHints[i].type === 'MAP') {
@@ -758,7 +762,7 @@ export default class PlaylistLoader extends EventTarget {
       manifest.playlists.forEach((playlist) => {
         playlist.segments = getAllSegments(playlist);
 
-        playlist.segments.forEach(function(segment) {
+        playlist.segments.forEach((segment) => {
           resolveSegmentUris(segment, playlist.resolvedUri);
         });
       });
