@@ -75,25 +75,29 @@ export const updateSegment = (a, b) => {
  */
 export const updateSegments = (original, update, offset) => {
   const oldSegments = original.slice();
-  const result = update.slice();
+  const newSegments = update.slice();
 
   offset = offset || 0;
-  const length = Math.min(original.length, update.length + offset);
+  const result = [];
 
   let currentMap;
 
-  for (let i = offset; i < length; i++) {
-    const newIndex = i - offset;
+  for (let newIndex = 0; newIndex < newSegments.length; newIndex++) {
+    const oldSegment = oldSegments[newIndex + offset];
+    const newSegment = newSegments[newIndex];
 
-    currentMap = oldSegments[i].map;
+    if (oldSegment) {
+      currentMap = oldSegment.map || currentMap;
 
-    result[newIndex] = updateSegment(oldSegments[i], result[newIndex]);
+      result.push(updateSegment(oldSegment, newSegment));
+    } else {
+      // carry over map to new segment if it is missing
+      if (currentMap && !newSegment.map) {
+        newSegment.map = currentMap;
+      }
 
-    // if EXT-X-SKIP is used, even the init segment will be skipped
-    // we need to make sure that we bring the map over
-    // to all new segments.
-    if (!result[newIndex].map && currentMap) {
-      result[newIndex].map = currentMap;
+      result.push(newSegment);
+
     }
   }
   return result;
