@@ -79,14 +79,14 @@ QUnit.module('manifest', function() {
     const expectedPlaylist0 = {
       attributes: {},
       resolvedUri: urlTo('uri-0'),
-      retryCount: 0,
+      retries: 0,
       uri: 'uri-0',
       id: '0-uri-0'
     };
     const expectedPlaylist1 = {
       attributes: {},
       resolvedUri: urlTo('uri-1'),
-      retryCount: 0,
+      retries: 0,
       uri: 'uri-1',
       id: '1-uri-1'
     };

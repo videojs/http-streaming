@@ -1478,7 +1478,7 @@ QUnit.test('clears the update timeout when switching quality', function(assert) 
   assert.equal(1, refreshes, 'only one refresh was triggered');
 });
 
-QUnit.test('Increments retryCount on playlist error', function(assert) {
+QUnit.test('Increments retries on playlist error', function(assert) {
   const loader = new PlaylistLoader('manifest/master.m3u8', this.fakeVhs);
 
   loader.load();
@@ -1494,12 +1494,12 @@ QUnit.test('Increments retryCount on playlist error', function(assert) {
                                 '#EXT-X-ENDLIST\n'
   );
 
-  assert.equal(loader.master.playlists[0].retryCount, 0, 'retryCount starts at zero on a sucessful load');
+  assert.equal(loader.master.playlists[0].retries, 0, 'retries starts at zero on a sucessful load');
 
   // playlist
   this.requests.shift().respond(404);
 
-  assert.equal(loader.master.playlists[0].retryCount, 1, 'retryCount incremented by one on playlist load error');
+  assert.equal(loader.master.playlists[0].retries, 1, 'retries incremented by one on playlist load error');
 
   loader.media(loader.master.playlists[1]);
   loader.media(loader.master.playlists[0]);
@@ -1511,7 +1511,7 @@ QUnit.test('Increments retryCount on playlist error', function(assert) {
     '#EXTINF:10,\n' +
     '0.ts\n'
   );
-  assert.equal(loader.master.playlists[0].retryCount, 0, 'retryCount resets to zero when a playlist sucessfully loads');
+  assert.equal(loader.master.playlists[0].retries, 0, 'retries resets to zero when a playlist sucessfully loads');
 });
 
 QUnit.test('Playlist is excluded indefinitely when number of retries surpasses value set by maxPlaylistRetries', function(assert) {
@@ -1532,12 +1532,12 @@ QUnit.test('Playlist is excluded indefinitely when number of retries surpasses v
                                 '#EXT-X-ENDLIST\n'
   );
 
-  assert.equal(loader.master.playlists[0].retryCount, 0, 'retryCount starts at zero on a sucessful load');
+  assert.equal(loader.master.playlists[0].retries, 0, 'retries starts at zero on a sucessful load');
 
   // playlist
   this.requests.shift().respond(404);
 
-  assert.equal(loader.master.playlists[0].retryCount, 1, 'retryCount incremented by one on playlist load error');
+  assert.equal(loader.master.playlists[0].retries, 1, 'retries incremented by one on playlist load error');
 
   // Swap playlists to force the playlist with an error to retry
   loader.media(loader.master.playlists[1]);
@@ -1546,7 +1546,7 @@ QUnit.test('Playlist is excluded indefinitely when number of retries surpasses v
   // first playlist throws another error
   this.requests.pop().respond(404);
 
-  assert.equal(loader.master.playlists[0].retryCount, 2, 'retryCount incremented by one on playlist load error');
+  assert.equal(loader.master.playlists[0].retries, 2, 'retries incremented by one on playlist load error');
   assert.equal(loader.master.playlists[0].excludeUntil, Infinity, 'The playlist is now excluded indefinitely');
 });
 

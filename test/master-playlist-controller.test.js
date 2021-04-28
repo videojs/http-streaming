@@ -5916,7 +5916,7 @@ QUnit.test('switch playlists if current playlist gets excluded and re-include if
   this.env.log.warn.callCount = 0;
 });
 
-QUnit.test('Playlist is blacklisted indefinitely if number of retries exceeds maxPlaylistRetries', function(assert) {
+QUnit.test('Playlist is excluded indefinitely if number of retries exceeds maxPlaylistRetries', function(assert) {
   this.requests.length = 0;
   this.player.dispose();
   this.player = createPlayer({ html5: { vhs: { maxPlaylistRetries: 1 } } });

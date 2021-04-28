@@ -298,10 +298,10 @@ export default class PlaylistLoader extends EventTarget {
       this.state = startingState;
     }
 
-    playlist.retryCount++;
+    playlist.retries++;
 
     // Permanently remove the playlist
-    if (playlist.retryCount > this.maxPlaylistRetries) {
+    if (playlist.retries > this.maxPlaylistRetries) {
       playlist.excludeUntil = Infinity;
     }
 

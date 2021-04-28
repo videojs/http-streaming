@@ -132,7 +132,7 @@ export const forEachMediaGroup = (master, callback) => {
  */
 export const setupMediaPlaylist = ({ playlist, uri, id }) => {
   playlist.id = id;
-  playlist.retryCount = 0;
+  playlist.retries = 0;
 
   if (uri) {
     // For media playlists, m3u8-parser does not have access to a URI, as HLS media

@@ -365,6 +365,7 @@ by the user.
 
 #### maxPlaylistRetries
 * Type: `number`
+* Default: `Infinity`
 * can be used as an initialization option
 
 The max number of times that a playlist will retry loading following an error
