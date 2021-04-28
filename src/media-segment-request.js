@@ -2,9 +2,8 @@ import videojs from 'video.js';
 import { createTransferableMessage } from './bin-utils';
 import { stringToArrayBuffer } from './util/string-to-array-buffer';
 import { transmux } from './segment-transmuxer';
-import { probeTsSegment } from './util/segment';
-import mp4probe from 'mux.js/lib/mp4/probe';
 import { segmentXhrHeaders } from './xhr';
+import {workerCallback} from './util/worker-callback.js';
 import {
   detectContainerForBytes,
   isLikelyFmp4MediaSegment
@@ -182,25 +181,34 @@ const handleInitSegmentResponse =
     }, segment);
   }
 
-  const tracks = mp4probe.tracks(segment.map.bytes);
+  workerCallback({
+    action: 'probeMp4Tracks',
+    data: segment.map.bytes,
+    transmuxer: segment.transmuxer,
+    callback: ({tracks, data}) => {
+      // transfer bytes back to us
+      segment.map.bytes = data;
 
-  tracks.forEach(function(track) {
-    segment.map.tracks = segment.map.tracks || {};
+      tracks.forEach(function(track) {
+        segment.map.tracks = segment.map.tracks || {};
 
-    // only support one track of each type for now
-    if (segment.map.tracks[track.type]) {
-      return;
-    }
+        // only support one track of each type for now
+        if (segment.map.tracks[track.type]) {
+          return;
+        }
 
-    segment.map.tracks[track.type] = track;
+        segment.map.tracks[track.type] = track;
 
-    if (typeof track.id === 'number' && track.timescale) {
-      segment.map.timescales = segment.map.timescales || {};
-      segment.map.timescales[track.id] = track.timescale;
+        if (typeof track.id === 'number' && track.timescale) {
+          segment.map.timescales = segment.map.timescales || {};
+          segment.map.timescales[track.id] = track.timescale;
+        }
+
+      });
+
+      return finishProcessingFn(null, segment);
     }
   });
-
-  return finishProcessingFn(null, segment);
 };
 
 /**
@@ -259,7 +267,6 @@ const handleSegmentResponse = ({
 const transmuxAndNotify = ({
   segment,
   bytes,
-  isPartial,
   trackInfoFn,
   timingInfoFn,
   videoSegmentTimingInfoFn,
@@ -282,39 +289,11 @@ const transmuxAndNotify = ({
   let videoStartFn = timingInfoFn.bind(null, segment, 'video', 'start');
   const videoEndFn = timingInfoFn.bind(null, segment, 'video', 'end');
 
-  // Check to see if we are appending a full segment.
-  if (!isPartial && !segment.lastReachedChar) {
-    // In the full segment transmuxer, we don't yet have the ability to extract a "proper"
-    // start time. Meaning cached frame data may corrupt our notion of where this segment
-    // really starts. To get around this, full segment appends should probe for the info
-    // needed.
-    const probeResult = probeTsSegment(bytes, segment.baseStartTime);
-
-    if (probeResult) {
-      trackInfoFn(segment, {
-        hasAudio: probeResult.hasAudio,
-        hasVideo: probeResult.hasVideo,
-        isMuxed
-      });
-      trackInfoFn = null;
-
-      if (probeResult.hasAudio && !isMuxed) {
-        audioStartFn(probeResult.audioStart);
-      }
-      if (probeResult.hasVideo) {
-        videoStartFn(probeResult.videoStart);
-      }
-      audioStartFn = null;
-      videoStartFn = null;
-    }
-  }
-
-  transmux({
+  const finish = () => transmux({
     bytes,
     transmuxer: segment.transmuxer,
     audioAppendStart: segment.audioAppendStart,
     gopsToAlignWith: segment.gopsToAlignWith,
-    isPartial,
     remux: isMuxed,
     onData: (result) => {
       result.type = result.type === 'combined' ? 'video' : result.type;
@@ -362,21 +341,51 @@ const transmuxAndNotify = ({
     onCaptions: (captions) => {
       captionsFn(segment, [captions]);
     },
-    // if this is a partial transmux, the end of the timeline has not yet been reached
-    // until the last part of the segment is processed (at which point isPartial will
-    // be false)
-    isEndOfTimeline: isEndOfTimeline && !isPartial,
+    isEndOfTimeline,
     onEndedTimeline: () => {
       endedTimelineFn();
     },
     onDone: (result) => {
-      // To handle partial appends, there won't be a done function passed in (since
-      // there's still, potentially, more segment to process), so there's nothing to do.
-      if (!doneFn || isPartial) {
+      if (!doneFn) {
         return;
       }
       result.type = result.type === 'combined' ? 'video' : result.type;
       doneFn(null, segment, result);
+    }
+  });
+
+  // In the transmuxer, we don't yet have the ability to extract a "proper" start time.
+  // Meaning cached frame data may corrupt our notion of where this segment
+  // really starts. To get around this, probe for the info needed.
+  workerCallback({
+    action: 'probeTs',
+    transmuxer: segment.transmuxer,
+    data: bytes,
+    baseStartTime: segment.baseStartTime,
+    callback: (data) => {
+      segment.bytes = bytes = data.data;
+
+      const probeResult = data.result;
+
+      if (probeResult) {
+        trackInfoFn(segment, {
+          hasAudio: probeResult.hasAudio,
+          hasVideo: probeResult.hasVideo,
+          isMuxed
+        });
+        trackInfoFn = null;
+
+        if (probeResult.hasAudio && !isMuxed) {
+          audioStartFn(probeResult.audioStart);
+        }
+        if (probeResult.hasVideo) {
+          videoStartFn(probeResult.videoStart);
+        }
+        audioStartFn = null;
+        videoStartFn = null;
+      }
+
+      finish();
     }
   });
 };
@@ -384,7 +393,6 @@ const transmuxAndNotify = ({
 const handleSegmentBytes = ({
   segment,
   bytes,
-  isPartial,
   trackInfoFn,
   timingInfoFn,
   videoSegmentTimingInfoFn,
@@ -396,7 +404,7 @@ const handleSegmentBytes = ({
   dataFn,
   doneFn
 }) => {
-  const bytesAsUint8Array = new Uint8Array(bytes);
+  let bytesAsUint8Array = new Uint8Array(bytes);
 
   // TODO:
   // We should have a handler that fetches the number of bytes required
@@ -438,62 +446,62 @@ const handleSegmentBytes = ({
     // Note that the start time returned by the probe reflects the baseMediaDecodeTime, as
     // that is the true start of the segment (where the playback engine should begin
     // decoding).
-    const timingInfo = mp4probe.startTime(segment.map.timescales, bytesAsUint8Array);
-
-    if (trackInfo.hasAudio && !trackInfo.isMuxed) {
-      timingInfoFn(segment, 'audio', 'start', timingInfo);
-    }
-
-    if (trackInfo.hasVideo) {
-      timingInfoFn(segment, 'video', 'start', timingInfo);
-    }
-
     const finishLoading = (captions) => {
       // if the track still has audio at this point it is only possible
       // for it to be audio only. See `tracks.video && tracks.audio` if statement
       // above.
       // we make sure to use segment.bytes here as that
-      dataFn(segment, {data: bytes, type: trackInfo.hasAudio && !trackInfo.isMuxed ? 'audio' : 'video'});
+      dataFn(segment, {
+        data: bytesAsUint8Array,
+        type: trackInfo.hasAudio && !trackInfo.isMuxed ? 'audio' : 'video'
+      });
       if (captions && captions.length) {
         captionsFn(segment, captions);
       }
       doneFn(null, segment, {});
     };
 
-    // Run through the CaptionParser in case there are captions.
-    // Initialize CaptionParser if it hasn't been yet
-    if (!tracks.video || !bytes.byteLength || !segment.transmuxer) {
-      finishLoading();
-      return;
-    }
-
-    const buffer = bytes instanceof ArrayBuffer ? bytes : bytes.buffer;
-    const byteOffset = bytes instanceof ArrayBuffer ? 0 : bytes.byteOffset;
-    const listenForCaptions = (event) => {
-      if (event.data.action !== 'mp4Captions') {
-        return;
-      }
-      segment.transmuxer.removeEventListener('message', listenForCaptions);
-
-      const data = event.data.data;
-
-      // transfer ownership of bytes back to us.
-      segment.bytes = bytes = new Uint8Array(data, data.byteOffset || 0, data.byteLength);
-
-      finishLoading(event.data.captions);
-    };
-
-    segment.transmuxer.addEventListener('message', listenForCaptions);
-
-    // transfer ownership of bytes to worker.
-    segment.transmuxer.postMessage({
-      action: 'pushMp4Captions',
+    workerCallback({
+      action: 'probeMp4StartTime',
       timescales: segment.map.timescales,
-      trackIds: [tracks.video.id],
-      data: buffer,
-      byteOffset,
-      byteLength: bytes.byteLength
-    }, [ buffer ]);
+      data: bytesAsUint8Array,
+      transmuxer: segment.transmuxer,
+      callback: ({data, startTime}) => {
+        // transfer bytes back to us
+        bytes = data.buffer;
+        segment.bytes = bytesAsUint8Array = data;
+
+        if (trackInfo.hasAudio && !trackInfo.isMuxed) {
+          timingInfoFn(segment, 'audio', 'start', startTime);
+        }
+
+        if (trackInfo.hasVideo) {
+          timingInfoFn(segment, 'video', 'start', startTime);
+        }
+
+        // Run through the CaptionParser in case there are captions.
+        // Initialize CaptionParser if it hasn't been yet
+        if (!tracks.video || !data.byteLength || !segment.transmuxer) {
+          finishLoading();
+          return;
+        }
+
+        workerCallback({
+          action: 'pushMp4Captions',
+          endAction: 'mp4Captions',
+          transmuxer: segment.transmuxer,
+          data: bytesAsUint8Array,
+          timescales: segment.map.timescales,
+          trackIds: [tracks.video.id],
+          callback: (message) => {
+            // transfer bytes back to us
+            bytes = message.data.buffer;
+            segment.bytes = bytesAsUint8Array = message.data;
+            finishLoading(message.captions);
+          }
+        });
+      }
+    });
     return;
   }
 
@@ -517,7 +525,6 @@ const handleSegmentBytes = ({
   transmuxAndNotify({
     segment,
     bytes,
-    isPartial,
     trackInfoFn,
     timingInfoFn,
     videoSegmentTimingInfoFn,
@@ -583,7 +590,6 @@ const decryptSegment = ({
       handleSegmentBytes({
         segment,
         bytes: segment.bytes,
-        isPartial: false,
         trackInfoFn,
         timingInfoFn,
         videoSegmentTimingInfoFn,
@@ -717,7 +723,6 @@ const waitForCompletion = ({
       handleSegmentBytes({
         segment,
         bytes: segment.bytes,
-        isPartial: false,
         trackInfoFn,
         timingInfoFn,
         videoSegmentTimingInfoFn,
@@ -785,48 +790,12 @@ const handleProgress = ({
   captionsFn,
   isEndOfTimeline,
   endedTimelineFn,
-  dataFn,
-  handlePartialData
+  dataFn
 }) => (event) => {
   const request = event.target;
 
   if (request.aborted) {
     return;
-  }
-
-  // don't support encrypted segments or fmp4 for now
-  if (
-    handlePartialData &&
-    !segment.key &&
-    // although responseText "should" exist, this guard serves to prevent an error being
-    // thrown on the next check for two primary cases:
-    // 1. the mime type override stops working, or is not implemented for a specific
-    //    browser
-    // 2. when using mock XHR libraries like sinon that do not allow the override behavior
-    request.responseText &&
-    // in order to determine if it's an fmp4 we need at least 8 bytes
-    request.responseText.length >= 8
-  ) {
-    const newBytes = stringToArrayBuffer(request.responseText.substring(segment.lastReachedChar || 0));
-
-    if (segment.lastReachedChar || !isLikelyFmp4MediaSegment(new Uint8Array(newBytes))) {
-      segment.lastReachedChar = request.responseText.length;
-
-      handleSegmentBytes({
-        segment,
-        bytes: newBytes,
-        isPartial: true,
-        trackInfoFn,
-        timingInfoFn,
-        videoSegmentTimingInfoFn,
-        audioSegmentTimingInfoFn,
-        id3Fn,
-        captionsFn,
-        isEndOfTimeline,
-        endedTimelineFn,
-        dataFn
-      });
-    }
   }
 
   segment.stats = videojs.mergeOptions(segment.stats, getProgressStats(event));
@@ -923,8 +892,7 @@ export const mediaSegmentRequest = ({
   isEndOfTimeline,
   endedTimelineFn,
   dataFn,
-  doneFn,
-  handlePartialData
+  doneFn
 }) => {
   const activeXhrs = [];
   const finishProcessingFn = waitForCompletion({
@@ -976,17 +944,6 @@ export const mediaSegmentRequest = ({
     headers: segmentXhrHeaders(segment)
   });
 
-  if (handlePartialData) {
-    // setting to text is required for partial responses
-    // conversion to ArrayBuffer happens later
-    segmentRequestOptions.responseType = 'text';
-    segmentRequestOptions.beforeSend = (xhrObject) => {
-      // XHR binary charset opt by Marcus Granado 2006 [http://mgran.blogspot.com]
-      // makes the browser pass through the "text" unparsed
-      xhrObject.overrideMimeType('text/plain; charset=x-user-defined');
-    };
-  }
-
   const segmentRequestCallback = handleSegmentResponse({
     segment,
     finishProcessingFn,
@@ -1007,8 +964,7 @@ export const mediaSegmentRequest = ({
       captionsFn,
       isEndOfTimeline,
       endedTimelineFn,
-      dataFn,
-      handlePartialData
+      dataFn
     })
   );
   activeXhrs.push(segmentXhr);

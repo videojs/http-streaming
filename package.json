@@ -1,6 +1,6 @@
 {
   "name": "@videojs/http-streaming",
-  "version": "2.7.1",
+  "version": "2.8.0",
   "description": "Play back HLS and DASH with Video.js, even where it's not natively supported",
   "main": "dist/videojs-http-streaming.cjs.js",
   "module": "dist/videojs-http-streaming.es.js",
@@ -80,7 +80,7 @@
     "lodash-compat": "^3.10.0",
     "nomnoml": "^0.3.0",
     "rollup": "^2.36.1",
-    "rollup-plugin-worker-factory": "0.5.4",
+    "rollup-plugin-worker-factory": "0.5.5",
     "shelljs": "^0.8.4",
     "sinon": "^8.1.1",
     "url-toolkit": "^2.2.1",
