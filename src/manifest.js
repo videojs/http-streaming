@@ -2,6 +2,7 @@ import videojs from 'video.js';
 import window from 'global/window';
 import { Parser as M3u8Parser } from 'm3u8-parser';
 import { resolveUrl } from './resolve-url';
+import { getLastParts } from './playlist.js';
 
 const { log } = videojs;
 
@@ -90,6 +91,21 @@ export const parseManifest = ({
       onwarn(`manifest has no targetDuration defaulting to ${targetDuration}`);
     }
     manifest.targetDuration = targetDuration;
+  }
+
+  const parts = getLastParts(manifest);
+
+  if (parts.length && !manifest.partTargetDuration) {
+    let partTargetDuration = (manifest.targetDuration / parts.length);
+
+    if (manifest.segments && manifest.segments.length) {
+      partTargetDuration = parts.reduce((acc, p) => Math.max(acc, p.duration), 0);
+    }
+
+    if (onwarn) {
+      onwarn(`manifest has no partTargetDuration defaulting to ${partTargetDuration}`);
+    }
+    manifest.partTargetDuration = partTargetDuration;
   }
 
   return manifest;

@@ -29,6 +29,12 @@ const getPartsAndSegments = (playlist) => (playlist.segments || []).reduce((acc,
   return acc;
 }, []);
 
+export const getLastParts = (media) => {
+  const lastSegment = media.segments && media.segments.length && media.segments[media.segments.length - 1];
+
+  return lastSegment && lastSegment.parts || [];
+};
+
 /**
  * Get the number of seconds to delay from the end of a
  * live playlist.
@@ -47,8 +53,7 @@ export const liveEdgeDelay = (master, media) => {
     return master.suggestedPresentationDelay;
   }
 
-  const lastSegment = media.segments && media.segments.length && media.segments[media.segments.length - 1];
-  const hasParts = lastSegment && lastSegment.parts && lastSegment.parts.length;
+  const hasParts = getLastParts(media).length > 0;
 
   // look for "part" delays from ll-hls first
   if (hasParts && media.serverControl && media.serverControl.partHoldBack) {
