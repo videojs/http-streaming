@@ -50,9 +50,15 @@ export const updateSegment = (a, b) => {
   }
 
   // set skipped to false for segments that have
-  // had information merged into them.
+  // have had information merged from the old segment.
   if (!a.skipped && b.skipped) {
     result.skipped = false;
+  }
+
+  // set preload to false for segments that have
+  // had information added in the new segment.
+  if (a.preload && !b.preload) {
+    result.preload = false;
   }
 
   return result;
@@ -154,6 +160,7 @@ const getAllSegments = function(media) {
     }
     // set the duration for our preload segment to target duration.
     preloadSegment.duration = media.targetDuration;
+    preloadSegment.preload = true;
 
     segments.push(preloadSegment);
   }
@@ -196,6 +203,9 @@ export const updateMaster = (master, newMedia, unchangedCheck = isPlaylistUnchan
   newMedia.segments = getAllSegments(newMedia);
 
   const mergedPlaylist = mergeOptions(oldMedia, newMedia);
+
+  // do not merge preloadSegment, always use the newest.
+  mergedPlaylist.preloadSegment = newMedia.preloadSegment;
 
   // if the update could overlap existing segment information, merge the two segment lists
   if (oldMedia.segments) {
@@ -305,28 +315,46 @@ export default class PlaylistLoader extends EventTarget {
       if (this.experimentalLLHLS) {
         const query = [];
 
-        if (media.serverControl && media.serverControl.canSkipUntil) {
-          query.push('_HLS_skip=' + (media.serverControl.canSkipDateranges ? 'v2' : 'YES'));
+        if (media.serverControl && media.serverControl.canBlockReload) {
+          const {preloadSegment} = media;
+          // next msn is a zero based value, length is not.
+          let nextMSN = media.mediaSequence + media.segments.length;
+
+          if (preloadSegment) {
+            // _HLS_part is a zero based index, start at -1 and
+            // increment if we need to request a part.
+            let nextPart = (preloadSegment.preloadHints || []).reduce(function(acc, hint) {
+              if (hint.type === 'PART') {
+                acc += 1;
+              }
+
+              return acc;
+            }, -1);
+
+            // if nextPart is > 1 then we had preload hints for parts
+            // and we know that we need to add the _HLS_part= query
+            if (nextPart > -1) {
+              // add existing parts to our preload hints
+              nextPart += preloadSegment.parts ? preloadSegment.parts.length : 0;
+              query.push(`_HLS_part=${nextPart}`);
+            }
+
+            // if we are requesting a nextPart or preload segment was added
+            // to our segment list. We are requesting a part of the preload segment
+            // or the full preload segment. Either way we need to go down by 1
+            // in nextMSN
+            if (nextPart > -1 || (preloadSegment.parts && preloadSegment.parts.length)) {
+              nextMSN--;
+            }
+          }
+
+          // add _HLS_msn= infront of any _HLS_part query
+          query.unshift(`_HLS_msn=${nextMSN}`);
         }
 
-        if (media.serverControl && media.serverControl.canBlockReload) {
-          const preloadSegment = media.preloadSegment;
-          // next msn will be for preload segment, if we have a preload segment.
-          let nextMSN = media.mediaSequence + media.segments.length;
-          let nextPart;
-
-          if (preloadSegment && preloadSegment.parts && preloadSegment.parts.length) {
-            nextPart = preloadSegment.parts.length + 1;
-            nextMSN--;
-          } else {
-            nextMSN++;
-          }
-
-          query.push(`_HLS_msn=${nextMSN}`);
-
-          if (nextPart) {
-            query.push(`_HLS_part=${nextPart}`);
-          }
+        if (media.serverControl && media.serverControl.canSkipUntil) {
+          // add _HLS_skip= infront of all other queries.
+          query.unshift('_HLS_skip=' + (media.serverControl.canSkipDateranges ? 'v2' : 'YES'));
         }
 
         query.forEach(function(str, i) {

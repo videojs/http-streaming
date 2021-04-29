@@ -2335,7 +2335,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_skip=v2');
   });
 
-  QUnit.test('Adds _HLS_part= and _HLS_msn= when we have a preload hint for a part', function(assert) {
+  QUnit.test('Adds _HLS_part= and _HLS_msn= when we have a part preload hints and parts', function(assert) {
     this.fakeVhs.options_ = {experimentalLLHLS: true};
     const loader = new PlaylistLoader('http://example.com/media.m3u8', this.fakeVhs);
 
@@ -2371,7 +2371,83 @@ QUnit.module('Playlist Loader', function(hooks) {
 
     loader.trigger('mediaupdatetimeout');
 
-    assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_msn=8&_HLS_part=2');
+    assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_msn=8&_HLS_part=1');
+  });
+
+  QUnit.test('Adds _HLS_part= and _HLS_msn= when we have only a part preload hint', function(assert) {
+    this.fakeVhs.options_ = {experimentalLLHLS: true};
+    const loader = new PlaylistLoader('http://example.com/media.m3u8', this.fakeVhs);
+
+    loader.load();
+
+    // no newline
+    this.requests.shift().respond(
+      200, null,
+      '#EXTM3U\n' +
+      '#EXT-X-MEDIA-SEQUENCE:0\n' +
+      '#EXT-X-SERVER-CONTROL:CAN-BLOCK-RELOAD=YES\n' +
+      '#EXTINF:2\n' +
+      'segment0.ts\n' +
+      '#EXTINF:2\n' +
+      'segment1.ts\n' +
+      '#EXTINF:2\n' +
+      'segment2.ts\n' +
+      '#EXTINF:2\n' +
+      'segment3.ts\n' +
+      '#EXTINF:2\n' +
+      'segment4.ts\n' +
+      '#EXTINF:2\n' +
+      'segment5.ts\n' +
+      '#EXT-X-PART:URI="segment6-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment6-part2.ts",DURATION=1\n' +
+      'segment6.ts\n' +
+      '#EXT-X-PART:URI="segment7-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment7-part2.ts",DURATION=1\n' +
+      'segment7.ts\n' +
+      '#EXT-X-PRELOAD-HINT:TYPE="PART",URI="segment8-part1.ts"\n'
+    );
+
+    loader.trigger('mediaupdatetimeout');
+
+    assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_msn=7&_HLS_part=0');
+  });
+
+  QUnit.test('does not add _HLS_part= when we have only a preload parts without preload hints', function(assert) {
+    this.fakeVhs.options_ = {experimentalLLHLS: true};
+    const loader = new PlaylistLoader('http://example.com/media.m3u8', this.fakeVhs);
+
+    loader.load();
+
+    // no newline
+    this.requests.shift().respond(
+      200, null,
+      '#EXTM3U\n' +
+      '#EXT-X-MEDIA-SEQUENCE:0\n' +
+      '#EXT-X-SERVER-CONTROL:CAN-BLOCK-RELOAD=YES\n' +
+      '#EXTINF:2\n' +
+      'segment0.ts\n' +
+      '#EXTINF:2\n' +
+      'segment1.ts\n' +
+      '#EXTINF:2\n' +
+      'segment2.ts\n' +
+      '#EXTINF:2\n' +
+      'segment3.ts\n' +
+      '#EXTINF:2\n' +
+      'segment4.ts\n' +
+      '#EXTINF:2\n' +
+      'segment5.ts\n' +
+      '#EXT-X-PART:URI="segment6-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment6-part2.ts",DURATION=1\n' +
+      'segment6.ts\n' +
+      '#EXT-X-PART:URI="segment7-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment7-part2.ts",DURATION=1\n' +
+      'segment7.ts\n' +
+      '#EXT-X-PART:URI="segment8-part1.ts",DURATION=1\n'
+    );
+
+    loader.trigger('mediaupdatetimeout');
+
+    assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_msn=8');
   });
 
   QUnit.test('Adds only _HLS_msn= when we have segment info', function(assert) {
@@ -2450,6 +2526,6 @@ QUnit.module('Playlist Loader', function(hooks) {
 
     loader.trigger('mediaupdatetimeout');
 
-    assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_msn=8&_HLS_part=2&_HLS_skip=YES');
+    assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_skip=YES&_HLS_msn=8&_HLS_part=1');
   });
 });
