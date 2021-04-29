@@ -24,6 +24,7 @@ import shallowEqual from './util/shallow-equal.js';
 import { QUOTA_EXCEEDED_ERR } from './error-codes';
 import { timeRangesToArray } from './ranges';
 import {lastBufferedEnd} from './ranges.js';
+import {getKnownPartCount} from './playlist.js';
 
 /**
  * The segment loader has no recourse except to fetch a segment in the
@@ -135,11 +136,7 @@ const segmentInfoString = (segmentInfo) => {
   const {
     startOfSegment,
     duration,
-    segment: {
-      start,
-      end,
-      parts
-    },
+    segment,
     playlist: {
       mediaSequence: seq,
       id,
@@ -158,11 +155,13 @@ const segmentInfoString = (segmentInfo) => {
   } else if (segmentInfo.isSyncRequest) {
     selection = 'getSyncSegmentCandidate (isSyncRequest)';
   }
-
+  const {start, end} = segment;
+  const hasPartIndex = typeof partIndex === 'number';
   const name = segmentInfo.segment.uri ? 'segment' : 'pre-segment';
+  const totalParts = hasPartIndex ? getKnownPartCount({preloadSegment: segment}) - 1 : 0;
 
   return `${name} [${index}/${segmentLen}]` +
-    (partIndex ? ` part [${partIndex}/${parts.length - 1}]` : '') +
+    (hasPartIndex ? ` part [${partIndex}/${totalParts}]` : '') +
     ` mediaSequenceNumber [${seq}/${seq + segmentLen}]` +
     ` start/end [${start} => ${end}]` +
     ` startOfSegment [${startOfSegment}]` +

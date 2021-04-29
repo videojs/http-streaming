@@ -15,6 +15,7 @@ import {
   masterForMedia,
   setupMediaPlaylist
 } from './manifest';
+import {getKnownPartCount} from './playlist.js';
 
 const { mergeOptions, EventTarget } = videojs;
 
@@ -33,6 +34,12 @@ export const updateSegment = (a, b) => {
   }
 
   const result = mergeOptions(a, b);
+
+  // if only the old segment has preload hints
+  // and the new one does not, remove preload hints.
+  if (a.preloadHints && !b.preloadHints) {
+    delete result.preloadHints;
+  }
 
   // if only the old segment has parts
   // then the parts are no longer valid
@@ -204,8 +211,10 @@ export const updateMaster = (master, newMedia, unchangedCheck = isPlaylistUnchan
 
   const mergedPlaylist = mergeOptions(oldMedia, newMedia);
 
-  // do not merge preloadSegment, always use the newest.
-  mergedPlaylist.preloadSegment = newMedia.preloadSegment;
+  // always use the new medias preload segment.
+  if (mergedPlaylist.preloadSegment && !newMedia.preloadSegment) {
+    delete mergedPlaylist.preloadSegment;
+  }
 
   // if the update could overlap existing segment information, merge the two segment lists
   if (oldMedia.segments) {
@@ -321,21 +330,15 @@ export default class PlaylistLoader extends EventTarget {
           let nextMSN = media.mediaSequence + media.segments.length;
 
           if (preloadSegment) {
-            // _HLS_part is a zero based index, start at -1 and
-            // increment if we need to request a part.
-            let nextPart = (preloadSegment.preloadHints || []).reduce(function(acc, hint) {
-              if (hint.type === 'PART') {
-                acc += 1;
-              }
+            const parts = preloadSegment.parts || [];
+            // _HLS_part is a zero based index
+            const nextPart = getKnownPartCount(media) - 1;
 
-              return acc;
-            }, -1);
-
-            // if nextPart is > 1 then we had preload hints for parts
-            // and we know that we need to add the _HLS_part= query
-            if (nextPart > -1) {
+            // if nextPart is > -1 and not equal to just the
+            // length of parts, then we know we had part preload hints
+            // and we need to add the _HLS_part= query
+            if (nextPart > -1 && nextPart !== (parts.length - 1)) {
               // add existing parts to our preload hints
-              nextPart += preloadSegment.parts ? preloadSegment.parts.length : 0;
               query.push(`_HLS_part=${nextPart}`);
             }
 
@@ -343,7 +346,7 @@ export default class PlaylistLoader extends EventTarget {
             // to our segment list. We are requesting a part of the preload segment
             // or the full preload segment. Either way we need to go down by 1
             // in nextMSN
-            if (nextPart > -1 || (preloadSegment.parts && preloadSegment.parts.length)) {
+            if (nextPart > -1 || parts.length) {
               nextMSN--;
             }
           }

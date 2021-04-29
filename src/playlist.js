@@ -35,6 +35,18 @@ export const getLastParts = (media) => {
   return lastSegment && lastSegment.parts || [];
 };
 
+export const getKnownPartCount = ({preloadSegment}) => {
+  if (!preloadSegment) {
+    return;
+  }
+  const {parts, preloadHints} = preloadSegment;
+  let partCount = (preloadHints || [])
+    .reduce((acc, hint) => acc + (hint.type === 'PART' ? 1 : 0), 0);
+
+  partCount += (parts && parts.length) ? parts.length : 0;
+
+  return partCount;
+};
 /**
  * Get the number of seconds to delay from the end of a
  * live playlist.
