@@ -261,22 +261,28 @@ export const addPropertiesToMaster = (master, uri) => {
   }
 
   forEachMediaGroup(master, (properties, mediaType, groupKey, labelKey) => {
-    if (!properties.playlists ||
-        !properties.playlists.length ||
-        properties.playlists[0].uri) {
-      return;
+    const groupId = `placeholder-uri-${mediaType}-${groupKey}-${labelKey}`;
+
+    if (!properties.playlists || !properties.playlists.length) {
+      properties.playlists = [Object.assign({}, properties)];
     }
 
-    // Set up phony URIs for the media group playlists since playlists are referenced by
-    // their URIs throughout VHS, but some formats (e.g., DASH) don't have external URIs
-    const phonyUri = `placeholder-uri-${mediaType}-${groupKey}-${labelKey}`;
-    const id = createPlaylistID(0, phonyUri);
+    properties.playlists.forEach(function(p, i) {
+      const id = createPlaylistID(i, groupId);
 
-    properties.playlists[0].uri = phonyUri;
-    properties.playlists[0].id = id;
-    // setup ID and URI references (URI for backwards compatibility)
-    master.playlists[id] = properties.playlists[0];
-    master.playlists[phonyUri] = properties.playlists[0];
+      p.uri = p.uri || id;
+      p.id = p.id || id;
+
+      p.resolvedUri = p.resolvedUri || resolveUrl(master.uri, p.uri);
+      // add an empty attributes object, all playlists are
+      // expected to have this.
+      p.attributes = p.attributes || {};
+
+      // setup ID and URI references (URI for backwards compatibility)
+      master.playlists[p.id] = p;
+      master.playlists[p.uri] = p;
+    });
+
   });
 
   setupMediaPlaylists(master);

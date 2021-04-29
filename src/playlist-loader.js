@@ -429,13 +429,24 @@ export default class PlaylistLoader extends EventTarget {
 
     const startingState = this.state;
     const mediaChange = !this.media_ || playlist.id !== this.media_.id;
+    const masterPlaylistRef = this.master.playlists[playlist.id];
 
     // switch to fully loaded playlists immediately
-    if (this.master.playlists[playlist.id].endList ||
+    if (masterPlaylistRef && masterPlaylistRef.endList ||
         // handle the case of a playlist object (e.g., if using vhs-json with a resolved
         // media playlist or, for the case of demuxed audio, a resolved audio media group)
         (playlist.endList && playlist.segments.length)) {
       // abort outstanding playlist requests
+
+      const update = updateMaster(this.master, playlist);
+
+      if (update) {
+        this.master = update;
+        this.media_ = this.master.playlists[playlist.id];
+      } else {
+        this.trigger('playlistunchanged');
+      }
+
       if (this.request) {
         this.request.onreadystatechange = null;
         this.request.abort();

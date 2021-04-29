@@ -395,7 +395,7 @@ QUnit.module('manifest', function() {
     );
     assert.equal(
       master.mediaGroups.AUDIO.default.es.playlists[0].uri,
-      'placeholder-uri-AUDIO-default-es',
+      '0-placeholder-uri-AUDIO-default-es',
       'added placeholder uri'
     );
   });

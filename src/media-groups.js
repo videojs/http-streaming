@@ -2,7 +2,7 @@ import videojs from 'video.js';
 import PlaylistLoader from './playlist-loader';
 import DashPlaylistLoader from './dash-playlist-loader';
 import noop from './util/noop';
-import {isAudioOnly} from './playlist.js';
+import {isAudioOnly, playlistMatch} from './playlist.js';
 import logger from './util/logger';
 
 /**
@@ -662,6 +662,20 @@ export const initialize = {
   }
 };
 
+const groupMatch = (list, media) => {
+  for (let i = 0; i < list.length; i++) {
+    if (playlistMatch(media, list[i])) {
+      return true;
+    }
+
+    if (list[i].playlists && groupMatch(list[i].playlists, media)) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
 /**
  * Returns a function used to get the active group of the provided type
  *
@@ -698,8 +712,20 @@ export const activeGroup = (type, settings) => (track) => {
   const groupKeys = Object.keys(groups);
 
   if (!variants) {
+    // find the masterPlaylistLoader media
+    // that is in a media group if we are dealing
+    // with audio only
+    if (type === 'AUDIO' && groupKeys.length > 1 && isAudioOnly(settings.master)) {
+      for (let i = 0; i < groupKeys.length; i++) {
+        const groupPropertyList = groups[groupKeys[i]];
+
+        if (groupMatch(groupPropertyList, media)) {
+          variants = groupPropertyList;
+          break;
+        }
+      }
     // use the main group if it exists
-    if (groups.main) {
+    } else if (groups.main) {
       variants = groups.main;
     // only one group, use that one
     } else if (groupKeys.length === 1) {

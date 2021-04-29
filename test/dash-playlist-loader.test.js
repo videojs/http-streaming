@@ -2456,7 +2456,7 @@ QUnit.test(
     );
     assert.equal(
       loader.master.mediaGroups.AUDIO.audio.main.playlists[0].uri,
-      'placeholder-uri-AUDIO-audio-main', 'setup phony uri for media groups'
+      '0-placeholder-uri-AUDIO-audio-main', 'setup phony uri for media groups'
     );
     assert.equal(
       loader.master.mediaGroups.AUDIO.audio.main.playlists[0].id,
