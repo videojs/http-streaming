@@ -2,15 +2,9 @@
  * @file sync-controller.js
  */
 
-import {sumDurations} from './playlist';
+import {sumDurations, getPartsAndSegments} from './playlist';
 import videojs from 'video.js';
 import logger from './util/logger';
-
-const getSegmentIndex = (i, playlist, currentTime = 0) => {
-  const segments = playlist.segments;
-
-  return (playlist.endList || currentTime === 0) ? i : segments.length - (i + 1);
-};
 
 export const syncPointStrategies = [
   // Stategy "VOD": Handle the VOD-case where the sync-point is *always*
@@ -37,15 +31,15 @@ export const syncPointStrategies = [
         return null;
       }
 
-      const segments = playlist.segments || [];
       let syncPoint = null;
       let lastDistance = null;
+      const partsAndSegments = getPartsAndSegments(playlist);
 
       currentTime = currentTime || 0;
-
-      for (let i = 0; i < segments.length; i++) {
-        const segmentIndex = getSegmentIndex(i, playlist, currentTime);
-        const segment = segments[segmentIndex];
+      for (let i = 0; i < partsAndSegments.length; i++) {
+        const index = (playlist.endList || currentTime === 0) ? i : partsAndSegments.length - (i + 1);
+        const partAndSegment = partsAndSegments[index];
+        const segment = partAndSegment.segment;
         const datetimeMapping =
           syncController.timelineToDatetimeMappings[segment.timeline];
 
@@ -67,7 +61,8 @@ export const syncPointStrategies = [
           lastDistance = distance;
           syncPoint = {
             time: segmentStart,
-            segmentIndex
+            segmentIndex: partAndSegment.segmentIndex,
+            partIndex: partAndSegment.partIndex
           };
         }
       }
@@ -79,15 +74,16 @@ export const syncPointStrategies = [
   {
     name: 'Segment',
     run: (syncController, playlist, duration, currentTimeline, currentTime) => {
-      const segments = playlist.segments || [];
       let syncPoint = null;
       let lastDistance = null;
 
       currentTime = currentTime || 0;
+      const partsAndSegments = getPartsAndSegments(playlist);
 
-      for (let i = 0; i < segments.length; i++) {
-        const segmentIndex = getSegmentIndex(i, playlist, currentTime);
-        const segment = segments[segmentIndex];
+      for (let i = 0; i < partsAndSegments.length; i++) {
+        const index = (playlist.endList || currentTime === 0) ? i : partsAndSegments.length - (i + 1);
+        const partAndSegment = partsAndSegments[index];
+        const segment = partAndSegment.segment;
 
         if (segment.timeline === currentTimeline &&
             typeof segment.start !== 'undefined') {
@@ -103,7 +99,8 @@ export const syncPointStrategies = [
             lastDistance = distance;
             syncPoint = {
               time: segment.start,
-              segmentIndex
+              segmentIndex: partAndSegment.segmentIndex,
+              partIndex: partAndSegment.partIndex
             };
           }
 
@@ -142,7 +139,8 @@ export const syncPointStrategies = [
               lastDistance = distance;
               syncPoint = {
                 time: discontinuitySync.time,
-                segmentIndex
+                segmentIndex,
+                partIndex: null
               };
             }
           }
@@ -255,7 +253,12 @@ export default class SyncController extends videojs.EventTarget {
       syncPoint.time *= -1;
     }
 
-    return Math.abs(syncPoint.time + sumDurations(playlist, syncPoint.segmentIndex, 0));
+    return Math.abs(syncPoint.time + sumDurations({
+      defaultDuration: playlist.targetDuration,
+      durationList: playlist.segments,
+      startIndex: syncPoint.segmentIndex,
+      endIndex: 0
+    }));
   }
 
   /**
@@ -330,7 +333,9 @@ export default class SyncController extends videojs.EventTarget {
 
     this.logger_(`syncPoint for [${target.key}: ${target.value}] chosen with strategy` +
       ` [${bestStrategy}]: [time:${bestSyncPoint.time},` +
-      ` segmentIndex:${bestSyncPoint.segmentIndex}]`);
+      ` segmentIndex:${bestSyncPoint.segmentIndex}` +
+      (typeof partIndex === 'number' ? `,partIndex:${bestSyncPoint.partIndex}` : '') +
+      ']');
 
     return bestSyncPoint;
   }
@@ -457,8 +462,12 @@ export default class SyncController extends videojs.EventTarget {
    *          Returns false if segment time mapping could not be calculated
    */
   calculateSegmentTimeMapping_(segmentInfo, timingInfo, shouldSaveTimelineMapping) {
+    // TODO: a calculate function, shouldn't have side effects...
     const segment = segmentInfo.segment;
+    const part = segmentInfo.part;
     let mappingObj = this.timelines[segmentInfo.timeline];
+    let start;
+    let end;
 
     if (typeof segmentInfo.timestampOffset === 'number') {
       mappingObj = {
@@ -473,14 +482,25 @@ export default class SyncController extends videojs.EventTarget {
           `[time: ${mappingObj.time}] [mapping: ${mappingObj.mapping}]`);
       }
 
-      segment.start = segmentInfo.startOfSegment;
-      segment.end = timingInfo.end + mappingObj.mapping;
+      start = segmentInfo.startOfSegment;
+      end = timingInfo.end + mappingObj.mapping;
+
     } else if (mappingObj) {
-      segment.start = timingInfo.start + mappingObj.mapping;
-      segment.end = timingInfo.end + mappingObj.mapping;
+      start = timingInfo.start + mappingObj.mapping;
+      end = timingInfo.end + mappingObj.mapping;
     } else {
       return false;
     }
+
+    if (part) {
+      part.start = start;
+      part.end = end;
+    }
+
+    if (!segment.start) {
+      segment.start = start;
+    }
+    segment.end = end;
 
     return true;
   }
@@ -519,17 +539,19 @@ export default class SyncController extends videojs.EventTarget {
           let time;
 
           if (mediaIndexDiff < 0) {
-            time = segment.start - sumDurations(
-              playlist,
-              segmentInfo.mediaIndex,
-              segmentIndex
-            );
+            time = segment.start - sumDurations({
+              defaultDuration: playlist.targetDuration,
+              durationList: playlist.segments,
+              startIndex: segmentInfo.mediaIndex,
+              endIndex: segmentIndex
+            });
           } else {
-            time = segment.end + sumDurations(
-              playlist,
-              segmentInfo.mediaIndex + 1,
-              segmentIndex
-            );
+            time = segment.end + sumDurations({
+              defaultDuration: playlist.targetDuration,
+              durationList: playlist.segments,
+              startIndex: segmentInfo.mediaIndex + 1,
+              endIndex: segmentIndex
+            });
           }
 
           this.discontinuities[discontinuity] = {

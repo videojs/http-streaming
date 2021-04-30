@@ -18,13 +18,13 @@ const {createTimeRange} = videojs;
  *
  * @return {Array} The part/segment list.
  */
-const getPartsAndSegments = (playlist) => (playlist.segments || []).reduce((acc, segment, si) => {
+export const getPartsAndSegments = (playlist) => (playlist.segments || []).reduce((acc, segment, si) => {
   if (segment.parts) {
     segment.parts.forEach(function(part, pi) {
-      acc.push({duration: part.duration, segmentIndex: si, partIndex: pi});
+      acc.push({duration: part.duration, segmentIndex: si, partIndex: pi, part, segment});
     });
   } else {
-    acc.push({duration: segment.duration, segmentIndex: si, partIndex: null});
+    acc.push({duration: segment.duration, segmentIndex: si, partIndex: null, segment, part: null});
   }
   return acc;
 }, []);
@@ -261,12 +261,13 @@ export const duration = function(playlist, endSequence, expired) {
   * playlist in which case, the targetDuration of the playlist is used
   * to approximate the durations of the segments
   *
-  * @param {Object} playlist a media playlist object
-  * @param {number} startIndex
-  * @param {number} endIndex
+  * @param {Object} durationList list to iterate over for durations.
+  * @param {number} defaultDuration duration to use for elements before or after the durationList
+  * @param {number} startIndex partsAndSegments index to start
+  * @param {number} endIndex partsAndSegments index to end.
   * @return {number} the number of seconds between startIndex and endIndex
   */
-export const sumDurations = function(playlist, startIndex, endIndex) {
+export const sumDurations = function({defaultDuration, durationList, startIndex, endIndex}) {
   let durations = 0;
 
   if (startIndex > endIndex) {
@@ -275,13 +276,13 @@ export const sumDurations = function(playlist, startIndex, endIndex) {
 
   if (startIndex < 0) {
     for (let i = startIndex; i < Math.min(0, endIndex); i++) {
-      durations += playlist.targetDuration;
+      durations += defaultDuration;
     }
     startIndex = 0;
   }
 
   for (let i = startIndex; i < endIndex; i++) {
-    durations += playlist.segments[i].duration;
+    durations += durationList[i].duration;
   }
 
   return durations;
@@ -374,30 +375,54 @@ export const seekable = function(playlist, expired, liveEdgePadding) {
  * @param {number} startTime
  * @return {Object}
  */
-export const getMediaInfoForTime = function(
+export const getMediaInfoForTime = function({
   playlist,
   currentTime,
-  startIndex,
+  segmentIndex,
+  partIndex,
   startTime
-) {
+}) {
 
-  const partsAndSegments = getPartsAndSegments(playlist);
   let time = currentTime - startTime;
+  const partsAndSegments = getPartsAndSegments(playlist);
+
+  let startIndex;
+
+  for (let i = 0; i < partsAndSegments.length; i++) {
+    const partAndSegment = partsAndSegments[i];
+
+    if (segmentIndex !== partAndSegment.segmentIndex) {
+      continue;
+    }
+
+    // skip this if part index does not match.
+    if (typeof partIndex === 'number' && typeof partAndSegment.partIndex === 'number' && partIndex !== partAndSegment.partIndex) {
+      continue;
+    }
+
+    startIndex = i;
+    break;
+  }
 
   if (time < 0) {
     // Walk backward from startIndex in the playlist, adding durations
     // until we find a segment that contains `time` and return it
     if (startIndex > 0) {
       for (let i = startIndex - 1; i >= 0; i--) {
-        const segment = partsAndSegments[i];
+        const partAndSegment = partsAndSegments[i];
 
-        time += (segment.duration + TIME_FUDGE_FACTOR);
+        time += (partAndSegment.duration + TIME_FUDGE_FACTOR);
 
         if (time > 0) {
           return {
-            mediaIndex: segment.segmentIndex,
-            startTime: startTime - sumDurations(playlist, startIndex, segment.segmentIndex),
-            partIndex: segment.partIndex
+            partIndex: partAndSegment.partIndex,
+            segmentIndex: partAndSegment.segmentIndex,
+            startTime: startTime - sumDurations({
+              defaultDuration: playlist.targetDuration,
+              durationList: partsAndSegments,
+              startIndex,
+              endIndex: i
+            })
           };
         }
       }
@@ -406,8 +431,8 @@ export const getMediaInfoForTime = function(
     // We were unable to find a good segment within the playlist
     // so select the first segment
     return {
-      mediaIndex: partsAndSegments[0] && partsAndSegments[0].segmentIndex || 0,
       partIndex: partsAndSegments[0] && partsAndSegments[0].partIndex || null,
+      segmentIndex: partsAndSegments[0] && partsAndSegments[0].segmentIndex || 0,
       startTime: currentTime
     };
   }
@@ -420,7 +445,8 @@ export const getMediaInfoForTime = function(
       time -= playlist.targetDuration;
       if (time < 0) {
         return {
-          mediaIndex: partsAndSegments[0].segmentIndex,
+          partIndex: partsAndSegments[0] && partsAndSegments[0].partIndex || null,
+          segmentIndex: partsAndSegments[0] && partsAndSegments[0].segmentIndex || 0,
           startTime: currentTime
         };
       }
@@ -431,22 +457,27 @@ export const getMediaInfoForTime = function(
   // Walk forward from startIndex in the playlist, subtracting durations
   // until we find a segment that contains `time` and return it
   for (let i = startIndex; i < partsAndSegments.length; i++) {
-    const partSegment = partsAndSegments[i];
+    const partAndSegment = partsAndSegments[i];
 
-    time -= partSegment.duration + TIME_FUDGE_FACTOR;
+    time -= (partAndSegment.duration + TIME_FUDGE_FACTOR);
 
     if (time < 0) {
       return {
-        mediaIndex: partSegment.segmentIndex,
-        startTime: startTime + sumDurations(playlist, startIndex, partSegment.segmentIndex),
-        partIndex: partSegment.partIndex
+        partIndex: partAndSegment.partIndex,
+        segmentIndex: partAndSegment.segmentIndex,
+        startTime: startTime + sumDurations({
+          defaultDuration: playlist.targetDuration,
+          durationList: partsAndSegments,
+          startIndex,
+          endIndex: i
+        })
       };
     }
   }
 
   // We are out of possible candidates so load the last one...
   return {
-    mediaIndex: partsAndSegments[partsAndSegments.length - 1].segmentIndex,
+    segmentIndex: partsAndSegments[partsAndSegments.length - 1].segmentIndex,
     partIndex: partsAndSegments[partsAndSegments.length - 1].partIndex,
     startTime: currentTime
   };
