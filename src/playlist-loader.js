@@ -443,8 +443,6 @@ export default class PlaylistLoader extends EventTarget {
       if (update) {
         this.master = update;
         this.media_ = this.master.playlists[playlist.id];
-      } else {
-        this.trigger('playlistunchanged');
       }
 
       if (this.request) {
