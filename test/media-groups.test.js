@@ -1542,7 +1542,6 @@ QUnit.module('MediaGroups', function() {
     this.master.mediaGroups.AUDIO.aud1 = {
       en: { default: true, language: 'en', resolvedUri: 'aud1/en.m3u8' }
     };
-    this.settings.sourceType = 'hls';
 
     MediaGroups.setupMediaGroups(this.settings);
 
@@ -1556,13 +1555,12 @@ QUnit.module('MediaGroups', function() {
     );
   });
 
-  QUnit.test('sets audio true for main loader if alternate tracks with main stream as URI attribute', function(assert) {
+  QUnit.test('audio true for main loader if alternate tracks with main stream as URI attribute', function(assert) {
     this.media = {resolvedUri: 'en.m3u8', attributes: {AUDIO: 'aud1'}};
     this.master.playlists = [this.media];
     this.master.mediaGroups.AUDIO.aud1 = {
       en: { default: true, language: 'en', resolvedUri: 'en.m3u8' }
     };
-    this.settings.sourceType = 'hls';
 
     MediaGroups.setupMediaGroups(this.settings);
 
