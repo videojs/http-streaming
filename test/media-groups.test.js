@@ -987,6 +987,13 @@ QUnit.module('MediaGroups', function() {
   QUnit.module('initialize', {
     beforeEach(assert) {
       this.mediaTypes = MediaGroups.createMediaTypes();
+      this.mainLoader = {
+        setAudio() {}
+      };
+      this.audioLoader = {
+        on() {},
+        setAudio() {}
+      };
       this.master = {
         mediaGroups: {
           'AUDIO': {},
@@ -1005,8 +1012,9 @@ QUnit.module('MediaGroups', function() {
           }
         },
         segmentLoaders: {
-          AUDIO: { on() {} },
-          SUBTITLES: { on() {} }
+          AUDIO: this.audioLoader,
+          SUBTITLES: { on() {} },
+          main: this.mainLoader
         },
         requestOptions: { withCredentials: false, timeout: 10 },
         master: this.master,
@@ -1440,5 +1448,129 @@ QUnit.module('MediaGroups', function() {
       subtitlesPlaylist,
       'passed the subtitles playlist'
     );
+  });
+
+  QUnit.module('setupMediaGroups', {
+    beforeEach(assert) {
+      this.mediaTypes = MediaGroups.createMediaTypes();
+      this.mainLoader = {
+        audioDisabled_: false,
+        setAudio(enable) {
+          this.audioDisabled_ = !enable;
+        },
+        on() {},
+        abort() {},
+        pause() {}
+      };
+      this.audioLoader = {
+        audioDisabled_: false,
+        setAudio(enable) {
+          this.audioDisabled_ = !enable;
+        },
+        on() {},
+        abort() {},
+        pause() {},
+        resyncLoader() {}
+      };
+      this.master = {
+        mediaGroups: {
+          'AUDIO': {},
+          'SUBTITLES': {},
+          'CLOSED-CAPTIONS': {}
+        }
+      };
+      this.media = null;
+      this.settings = {
+        mode: 'html5',
+        masterPlaylistLoader: {
+          master: this.master,
+          media: () => this.media,
+          on() {}
+        },
+        vhs: {
+          on() {},
+          xhr() {}
+        },
+        tech: {
+          addRemoteTextTrack(track) {
+            return { track };
+          },
+          audioTracks() {
+            return {
+              addEventListener() {},
+              addTrack() {}
+            };
+          },
+          remoteTextTracks() {
+            return {
+              addEventListener() {}
+            };
+          },
+          clearTracks() {}
+        },
+        segmentLoaders: {
+          AUDIO: this.audioLoader,
+          SUBTITLES: { on() {} },
+          main: this.mainLoader
+        },
+        requestOptions: { withCredentials: false, timeout: 10 },
+        master: this.master,
+        mediaTypes: this.mediaTypes,
+        blacklistCurrentPlaylist() {},
+        sourceType: 'hls'
+      };
+    }
+  });
+
+  QUnit.test('audio true for main loader if no audio loader', function(assert) {
+    this.media = {attributes: {}, resolvedUri: 'main.m3u8'};
+    this.master.playlists = [this.media];
+
+    MediaGroups.setupMediaGroups(this.settings);
+
+    assert.notOk(
+      this.mainLoader.audioDisabled_,
+      'main loader: audio enabled'
+    );
+
+    // audio loader remains unchanged as there's no need for an audio loader
+  });
+
+  QUnit.test('audio false for main loader if audio loader', function(assert) {
+    this.media = {resolvedUri: 'video/en.m3u8', attributes: {AUDIO: 'aud1'}};
+    this.master.playlists = [this.media];
+    this.master.mediaGroups.AUDIO.aud1 = {
+      en: { default: true, language: 'en', resolvedUri: 'aud1/en.m3u8' }
+    };
+    this.settings.sourceType = 'hls';
+
+    MediaGroups.setupMediaGroups(this.settings);
+
+    assert.ok(
+      this.mainLoader.audioDisabled_,
+      'main loader: audio disabled'
+    );
+    assert.notOk(
+      this.audioLoader.audioDisabled_,
+      'audio loader: audio enabled'
+    );
+  });
+
+  QUnit.test('sets audio true for main loader if alternate tracks with main stream as URI attribute', function(assert) {
+    this.media = {resolvedUri: 'en.m3u8', attributes: {AUDIO: 'aud1'}};
+    this.master.playlists = [this.media];
+    this.master.mediaGroups.AUDIO.aud1 = {
+      en: { default: true, language: 'en', resolvedUri: 'en.m3u8' }
+    };
+    this.settings.sourceType = 'hls';
+
+    MediaGroups.setupMediaGroups(this.settings);
+
+    assert.notOk(
+      this.mainLoader.audioDisabled_,
+      'main loader: audio enabled'
+    );
+
+    // audio loader remains unchanged as there's no need for an audio loader
   });
 });

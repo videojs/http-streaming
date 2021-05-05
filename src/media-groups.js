@@ -810,7 +810,11 @@ export const setupMediaGroups = (settings) => {
     mediaTypes,
     masterPlaylistLoader,
     tech,
-    vhs
+    vhs,
+    segmentLoaders: {
+      ['AUDIO']: audioSegmentLoader,
+      main: mainSegmentLoader
+    }
   } = settings;
 
   // setup active group and track getters and change event handlers
@@ -833,6 +837,20 @@ export const setupMediaGroups = (settings) => {
     mediaTypes.AUDIO.tracks[groupId].enabled = true;
     mediaTypes.AUDIO.onGroupChanged();
     mediaTypes.AUDIO.onTrackChanged();
+
+    const activeAudioGroup = mediaTypes.AUDIO.getActiveGroup();
+
+    // a similar check for handling setAudio on each loader is run again each time the
+    // track is changed, but needs to be handled here since the track may not be considered
+    // changed on the first call to onTrackChanged
+    if (!activeAudioGroup.playlistLoader) {
+      // either audio is muxed with video or the stream is audio only
+      mainSegmentLoader.setAudio(true);
+    } else {
+      // audio is demuxed
+      mainSegmentLoader.setAudio(false);
+      audioSegmentLoader.setAudio(true);
+    }
   }
 
   masterPlaylistLoader.on('mediachange', () => {
