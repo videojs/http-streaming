@@ -34,27 +34,27 @@ import {lastBufferedEnd} from './ranges.js';
  * @param {Object} playlist - the playlist object to look for a
  * @return {number} An index of a segment from the playlist to load
  */
-export const getSyncSegmentCandidate = function(currentTimeline, {segments = []} = {}) {
-  // if we don't currently have a real timeline yet.
-  if (currentTimeline === -1) {
-    return 0;
-  }
+export const getSyncSegmentCandidate = function(currentTimeline, playlist, targetTime) {
+  const segments = playlist.segments || [];
 
-  const segmentIndexArray = segments.reduce((acc, s, i) => {
-    if (s.timeline === currentTimeline) {
-      acc.push(i);
+  const timelineSegments = [];
+  let time = 0;
+
+  for (let i = 0; i < segments.length; i++) {
+    const segment = segments[i];
+
+    if (currentTimeline === segment.timeline) {
+      timelineSegments.push(i);
+      time += segment.duration;
+
+      if (time > targetTime) {
+        return i;
+      }
     }
-    return acc;
-  }, []);
-
-  if (segmentIndexArray.length) {
-    // TODO: why do we do this? Basically we choose index 0 if
-    // segmentIndexArray.length is 1 and index = 1 if segmentIndexArray.length
-    // is greater then 1
-    return segmentIndexArray[Math.min(segmentIndexArray.length - 1, 1)];
   }
 
-  return Math.max(segments.length - 1, 0);
+  // default to grabbing the last timeline segment or zero.
+  return Math.max(0, timelineSegments[timelineSegments.length - 1] || 0);
 };
 
 // In the event of a quota exceeded error, keep at least one second of back buffer. This
@@ -135,11 +135,8 @@ const segmentInfoString = (segmentInfo) => {
   const {
     startOfSegment,
     duration,
-    segment: {
-      start,
-      end,
-      parts
-    },
+    segment,
+    part,
     playlist: {
       mediaSequence: seq,
       id,
@@ -159,12 +156,18 @@ const segmentInfoString = (segmentInfo) => {
     selection = 'getSyncSegmentCandidate (isSyncRequest)';
   }
 
+  const hasPartIndex = typeof partIndex === 'number';
   const name = segmentInfo.segment.uri ? 'segment' : 'pre-segment';
+  const partCount = segment.parts ? segment.parts.length : 0;
+  const preloadPartCount = segment.preloadHints ?
+    segment.preloadHints.filter((h) => h.type === 'PART').length :
+    0;
+  const zeroBasedPartCount = partCount + preloadPartCount - 1 - (preloadPartCount > 0 ? 1 : 0);
 
-  return `${name} [${index}/${segmentLen}]` +
-    (partIndex ? ` part [${partIndex}/${parts.length - 1}]` : '') +
-    ` mediaSequenceNumber [${seq}/${seq + segmentLen}]` +
-    ` start/end [${start} => ${end}]` +
+  return `${name} [${seq + index}/${seq + segmentLen}]` +
+    (hasPartIndex ? ` part [${partIndex}/${zeroBasedPartCount}]` : '') +
+    ` segment start/end [${segment.start} => ${segment.end}]` +
+    (hasPartIndex ? ` part start/end [${part.start} => ${part.end}]` : '') +
     ` startOfSegment [${startOfSegment}]` +
     ` duration [${duration}]` +
     ` timeline [${timeline}]` +
@@ -1382,7 +1385,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     };
 
     if (next.isSyncRequest) {
-      next.mediaIndex = getSyncSegmentCandidate(this.currentTimeline_, this.playlist_);
+      next.mediaIndex = getSyncSegmentCandidate(this.currentTimeline_, this.playlist_, bufferedEnd);
     } else if (this.mediaIndex !== null) {
       const segment = segments[this.mediaIndex];
       const partIndex = typeof this.partIndex === 'number' ? this.partIndex : -1;
@@ -2031,6 +2034,27 @@ export default class SegmentLoader extends videojs.EventTarget {
     // as we use the start of the segment to offset the best guess (playlist provided)
     // timestamp offset.
     this.updateSourceBufferTimestampOffset_(segmentInfo);
+
+    // throw away the isSyncRequest segment if
+    // it wouldn't have been the next segment we request.
+    if (segmentInfo.isSyncRequest) {
+      this.syncController_.saveSegmentTimingInfo({
+        segmentInfo,
+        shouldSaveTimelineMapping: this.loaderType_ === 'main'
+      });
+
+      const next = this.chooseNextRequest_();
+
+      // if the sync request isn't the segment that would be request next
+      // after taking into account it's data. do not append it.
+      if (next.mediaIndex !== segmentInfo.mediaIndex || next.partIndex !== segmentInfo.partIndex) {
+        this.logger_('sync segment was incorrect, not appending');
+        return;
+      }
+      this.logger_('sync segment was correct, appending');
+
+    }
+
     // Save some state so that in the future anything waiting on first append (and/or
     // timestamp offset(s)) can process immediately. While the extra state isn't optimal,
     // we need some notion of whether the timestamp offset or other relevant information
@@ -2873,8 +2897,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       });
     }
 
-    this.logger_(`Appended ${segmentInfoString(segmentInfo)}`);
-
     const segmentDurationMessage =
       getTroublesomeSegmentDurationMessage(segmentInfo, this.sourceType_);
 
@@ -2892,8 +2914,17 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     if (segmentInfo.isSyncRequest) {
       this.trigger('syncinfoupdate');
-      return;
+      // if the sync request was not appended
+      // then it was not the correct segment.
+      // throw it away and use the data it gave us
+      // to get the correct one.
+      if (!segmentInfo.hasAppendedData_) {
+        this.logger_(`Throwing away un-appended sync request ${segmentInfoString(segmentInfo)}`);
+        return;
+      }
     }
+
+    this.logger_(`Appended ${segmentInfoString(segmentInfo)}`);
 
     this.addSegmentMetadataCue_(segmentInfo);
     this.fetchAtBuffer_ = true;
