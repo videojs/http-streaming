@@ -15,7 +15,8 @@ export const syncPointStrategies = [
       if (duration !== Infinity) {
         const syncPoint = {
           time: 0,
-          segmentIndex: 0
+          segmentIndex: 0,
+          partIndex: null
         };
 
         return syncPoint;
@@ -157,7 +158,8 @@ export const syncPointStrategies = [
       if (playlist.syncInfo) {
         const syncPoint = {
           time: playlist.syncInfo.time,
-          segmentIndex: playlist.syncInfo.mediaSequence - playlist.mediaSequence
+          segmentIndex: playlist.syncInfo.mediaSequence - playlist.mediaSequence,
+          partIndex: null
         };
 
         return syncPoint;

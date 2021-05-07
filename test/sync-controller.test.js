@@ -25,7 +25,7 @@ QUnit.test('returns correct sync point for VOD strategy', function(assert) {
   const vodStrategy = getStrategy('VOD');
   let syncPoint = vodStrategy.run(this.syncController, playlist, duration, timeline);
 
-  assert.deepEqual(syncPoint, { time: 0, segmentIndex: 0 }, 'sync point found for vod');
+  assert.deepEqual(syncPoint, { time: 0, segmentIndex: 0, partIndex: null }, 'sync point found for vod');
 
   duration = Infinity;
   syncPoint = vodStrategy.run(this.syncController, playlist, duration, timeline);
@@ -61,7 +61,8 @@ QUnit.test('returns correct sync point for ProgramDateTime strategy', function(a
 
   assert.deepEqual(syncPoint, {
     time: 10,
-    segmentIndex: 0
+    segmentIndex: 0,
+    partIndex: null
   }, 'syncpoint found for ProgramDateTime set');
 });
 
@@ -96,14 +97,16 @@ QUnit.test('ProgramDateTime strategy finds nearest segment for sync', function(a
 
   assert.deepEqual(syncPoint, {
     time: 160,
-    segmentIndex: 15
+    segmentIndex: 15,
+    partIndex: null
   }, 'syncpoint found for ProgramDateTime set');
 
   syncPoint = strategy.run(this.syncController, newPlaylist, duration, timeline, 0);
 
   assert.deepEqual(syncPoint, {
     time: 10,
-    segmentIndex: 0
+    segmentIndex: 0,
+    partIndex: null
   }, 'syncpoint found for ProgramDateTime set at 0');
 });
 
@@ -250,19 +253,19 @@ QUnit.test('returns correct sync point for Segment strategy', function(assert) {
   currentTimeline = 1;
   syncPoint = strategy.run(this.syncController, playlist, 80, currentTimeline, 30);
   assert.deepEqual(
-    syncPoint, { time: 20, segmentIndex: 3 },
+    syncPoint, { time: 20, segmentIndex: 3, partIndex: null },
     'closest sync point found'
   );
 
   syncPoint = strategy.run(this.syncController, playlist, 80, currentTimeline, 40);
   assert.deepEqual(
-    syncPoint, { time: 50, segmentIndex: 6 },
+    syncPoint, { time: 50, segmentIndex: 6, partIndex: null },
     'closest sync point found'
   );
 
   syncPoint = strategy.run(this.syncController, playlist, 80, currentTimeline, 50);
   assert.deepEqual(
-    syncPoint, { time: 50, segmentIndex: 6 },
+    syncPoint, { time: 50, segmentIndex: 6, partIndex: null },
     'exact sync point found'
   );
 });
@@ -299,7 +302,7 @@ QUnit.test('returns correct sync point for Discontinuity strategy', function(ass
 
   syncPoint = strategy.run(this.syncController, playlist, 100, currentTimeline, 55);
   assert.deepEqual(
-    syncPoint, { time: 40, segmentIndex: 2 },
+    syncPoint, { time: 40, segmentIndex: 2, partIndex: null },
     'found sync point for timeline 3'
   );
 
@@ -311,7 +314,7 @@ QUnit.test('returns correct sync point for Discontinuity strategy', function(ass
 
   syncPoint = strategy.run(this.syncController, playlist, 100, currentTimeline, 90);
   assert.deepEqual(
-    syncPoint, { time: 70, segmentIndex: 5 },
+    syncPoint, { time: 70, segmentIndex: 5, partIndex: null },
     'found sync point for timeline 4'
   );
 });
@@ -329,7 +332,7 @@ QUnit.test('returns correct sync point for Playlist strategy', function(assert) 
 
   syncPoint = strategy.run(this.syncController, playlist, 40, 0);
   assert.deepEqual(
-    syncPoint, { time: 10, segmentIndex: -2 },
+    syncPoint, { time: 10, segmentIndex: -2, partIndex: null },
     'found sync point in playlist'
   );
 });

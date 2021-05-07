@@ -5,6 +5,7 @@ import xhrFactory from '../src/xhr';
 import { useFakeEnvironment } from './test-helpers';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
+import {mergeOptions as merge} from 'video.js';
 
 QUnit.module('Playlist', function() {
   QUnit.module('Duration');
@@ -964,6 +965,11 @@ QUnit.module('Playlist', function() {
       this.fakeVhs = {
         xhr: xhrFactory()
       };
+
+      this.getMediaInfoForTime = (overrides) => {
+        return Playlist.getMediaInfoForTime(merge(this.defaults, overrides));
+      };
+
     },
     afterEach() {
       this.env.restore();
@@ -992,24 +998,41 @@ QUnit.module('Playlist', function() {
 
       const media = loader.media();
 
-      assert.equal(
-        Playlist.getMediaInfoForTime(media, -1, 0, 0).mediaIndex, 0,
+      this.defaults = {
+        playlist: media,
+        currentTime: -1,
+        segmentIndex: 0,
+        partIndex: null,
+        startTime: 0
+      };
+
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: -1}),
+        {partIndex: null, segmentIndex: 0, startTime: -1},
         'the index is never less than zero'
       );
-      assert.equal(
-        Playlist.getMediaInfoForTime(media, 0, 0, 0).mediaIndex, 0,
+
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 0}),
+        {partIndex: null, segmentIndex: 0, startTime: 0},
         'time zero is index zero'
       );
-      assert.equal(
-        Playlist.getMediaInfoForTime(media, 3, 0, 0).mediaIndex, 0,
+
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 3}),
+        {partIndex: null, segmentIndex: 0, startTime: 0},
         'time three is index zero'
       );
-      assert.equal(
-        Playlist.getMediaInfoForTime(media, 10, 0, 0).mediaIndex, 2,
+
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 10}),
+        {partIndex: null, segmentIndex: 2, startTime: 9},
         'time 10 is index 2'
       );
-      assert.equal(
-        Playlist.getMediaInfoForTime(media, 22, 0, 0).mediaIndex, 2,
+
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 22}),
+        {partIndex: null, segmentIndex: 2, startTime: 22},
         'time greater than the length is index 2'
       );
     }
@@ -1040,25 +1063,80 @@ QUnit.module('Playlist', function() {
     );
 
     const media = loader.media();
-    const fn = Playlist.getMediaInfoForTime;
+
+    this.defaults = {
+      playlist: media,
+      currentTime: 2.1,
+      segmentIndex: 0,
+      partIndex: null,
+      startTime: 0
+    };
 
     // 1 segment away
-    assert.equal(fn(media, 2.1, 0, 0).mediaIndex, 1, '1 away 2 is correct');
-    assert.equal(fn(media, 4.1, 1, 2).mediaIndex, 2, '1 away 3 is correct ');
-    assert.equal(fn(media, 6.1, 2, 4).mediaIndex, 3, '1 away 4 is correct');
-    assert.equal(fn(media, 8.1, 3, 6).mediaIndex, 4, '1 away 5 is correct');
-    assert.equal(fn(media, 10.1, 4, 8).mediaIndex, 5, '1 away 6 is correct');
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 2.1}),
+      {segmentIndex: 1, startTime: 2, partIndex: null},
+      '1 away 2 is correct'
+    );
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 4.1, segmentIndex: 1, startTime: 2}),
+      {segmentIndex: 2, startTime: 4, partIndex: null},
+      '1 away 3 is correct'
+    );
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 6.1, segmentIndex: 2, startTime: 4}),
+      {segmentIndex: 3, startTime: 6, partIndex: null},
+      '1 away 4 is correct'
+    );
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 8.1, segmentIndex: 3, startTime: 6}),
+      {segmentIndex: 4, startTime: 8, partIndex: null},
+      '1 away 5 is correct'
+    );
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 10.1, segmentIndex: 4, startTime: 8}),
+      {segmentIndex: 5, startTime: 10, partIndex: null},
+      '1 away 6 is correct'
+    );
 
     // 2 segment away
-    assert.equal(fn(media, 4.1, 0, 0).mediaIndex, 2, '2 away 3 is correct ');
-    assert.equal(fn(media, 6.1, 1, 2).mediaIndex, 3, '2 away 4 is correct');
-    assert.equal(fn(media, 8.1, 2, 4).mediaIndex, 4, '2 away 5 is correct');
-    assert.equal(fn(media, 10.1, 3, 6).mediaIndex, 5, '2 away 6 is correct');
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 4.1, segmentIndex: 0, startTime: 0}),
+      {segmentIndex: 2, startTime: 4, partIndex: null},
+      '2 away 3 is correct'
+    );
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 6.1, segmentIndex: 1, startTime: 2}),
+      {segmentIndex: 3, startTime: 6, partIndex: null},
+      '2 away 4 is correct'
+    );
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 8.1, segmentIndex: 2, startTime: 4}),
+      {segmentIndex: 4, startTime: 8, partIndex: null},
+      '2 away 5 is correct'
+    );
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 10.1, segmentIndex: 3, startTime: 6}),
+      {segmentIndex: 5, startTime: 10, partIndex: null},
+      '2 away 6 is correct'
+    );
 
     // 3 segments away
-    assert.equal(fn(media, 6.1, 0, 0).mediaIndex, 3, '3 away 4 is correct');
-    assert.equal(fn(media, 8.1, 1, 2).mediaIndex, 4, '3 away 5 is correct');
-    assert.equal(fn(media, 10.1, 2, 4).mediaIndex, 5, '3 away 6 is correct');
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 6.1, segmentIndex: 0, startTime: 0}),
+      {segmentIndex: 3, startTime: 6, partIndex: null},
+      '3 away 4 is correct'
+    );
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 8.1, segmentIndex: 1, startTime: 2}),
+      {segmentIndex: 4, startTime: 8, partIndex: null},
+      '3 away 5 is correct'
+    );
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 10.1, segmentIndex: 2, startTime: 4}),
+      {segmentIndex: 5, startTime: 10, partIndex: null},
+      '3 away 6 is correct'
+    );
   });
 
   QUnit.test('rounding up works', function(assert) {
@@ -1086,25 +1164,81 @@ QUnit.module('Playlist', function() {
     );
 
     const media = loader.media();
-    const fn = Playlist.getMediaInfoForTime;
+
+    this.defaults = {
+      playlist: media,
+      currentTime: 2.1,
+      segmentIndex: 0,
+      partIndex: null,
+      startTime: 0
+    };
 
     // 1 segment away
-    assert.equal(fn(media, 0, 1, 2).mediaIndex, 0, '1 away 1 is correct');
-    assert.equal(fn(media, 2.1, 2, 4).mediaIndex, 1, '1 away 2 is correct');
-    assert.equal(fn(media, 4.1, 3, 6).mediaIndex, 2, '1 away 3 is correct');
-    assert.equal(fn(media, 6.1, 4, 8).mediaIndex, 3, '1 away 4 is correct');
-    assert.equal(fn(media, 8.1, 5, 10).mediaIndex, 4, '1 away 5 is correct');
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 0, segmentIndex: 1, startTime: 2}),
+      {segmentIndex: 0, startTime: 0, partIndex: null},
+      '1 away 1 is correct'
+    );
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 2.1, segmentIndex: 2, startTime: 4}),
+      {segmentIndex: 1, startTime: 2, partIndex: null},
+      '1 away 2 is correct'
+    );
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 4.1, segmentIndex: 3, startTime: 6}),
+      {segmentIndex: 2, startTime: 4, partIndex: null},
+      '1 away 3 is correct'
+    );
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 6.1, segmentIndex: 4, startTime: 8}),
+      {segmentIndex: 3, startTime: 6, partIndex: null},
+      '1 away 4 is correct'
+    );
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 8.1, segmentIndex: 5, startTime: 10}),
+      {segmentIndex: 4, startTime: 8, partIndex: null},
+      '1 away 5 is correct'
+    );
 
     // 2 segment away
-    assert.equal(fn(media, 0, 2, 4).mediaIndex, 0, '2 away 1 is correct');
-    assert.equal(fn(media, 2.1, 3, 6).mediaIndex, 1, '2 away 2 is correct');
-    assert.equal(fn(media, 4.1, 4, 8).mediaIndex, 2, '2 away 3 is correct');
-    assert.equal(fn(media, 6.1, 5, 10).mediaIndex, 3, '2 away 4 is correct');
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 0, segmentIndex: 2, startTime: 4}),
+      {segmentIndex: 0, startTime: 0, partIndex: null},
+      '2 away 1 is correct'
+    );
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 2.1, segmentIndex: 3, startTime: 6}),
+      {segmentIndex: 1, startTime: 2, partIndex: null},
+      '2 away 2 is correct'
+    );
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 4.1, segmentIndex: 4, startTime: 8}),
+      {segmentIndex: 2, startTime: 4, partIndex: null},
+      '2 away 3 is correct'
+    );
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 6.1, segmentIndex: 5, startTime: 10}),
+      {segmentIndex: 3, startTime: 6, partIndex: null},
+      '2 away 4 is correct'
+    );
 
     // 3 segments away
-    assert.equal(fn(media, 0, 3, 6).mediaIndex, 0, '3 away 1 is correct');
-    assert.equal(fn(media, 2.1, 4, 8).mediaIndex, 1, '3 away 2 is correct');
-    assert.equal(fn(media, 4.1, 5, 10).mediaIndex, 2, '3 away 3 is correct');
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 0, segmentIndex: 3, startTime: 6}),
+      {segmentIndex: 0, startTime: 0, partIndex: null},
+      '3 away 1 is correct'
+    );
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 2.1, segmentIndex: 4, startTime: 8}),
+      {segmentIndex: 1, startTime: 2, partIndex: null},
+      '3 away 2 is correct'
+    );
+
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 4.1, segmentIndex: 5, startTime: 10}),
+      {segmentIndex: 2, startTime: 4, partIndex: null},
+      '3 away 3 is correct'
+    );
   });
 
   QUnit.test(
@@ -1127,16 +1261,28 @@ QUnit.module('Playlist', function() {
 
       const media = loader.media();
 
-      assert.equal(
-        Playlist.getMediaInfoForTime(media, 4, 0, 0).mediaIndex, 0,
+      this.defaults = {
+        playlist: media,
+        currentTime: 0,
+        segmentIndex: 0,
+        partIndex: null,
+        startTime: 0
+      };
+
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 4}),
+        {segmentIndex: 0, startTime: 0, partIndex: null},
         'rounds down exact matches'
       );
-      assert.equal(
-        Playlist.getMediaInfoForTime(media, 3.7, 0, 0).mediaIndex, 0,
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 3.7}),
+        {segmentIndex: 0, startTime: 0, partIndex: null},
         'rounds down'
       );
-      assert.equal(
-        Playlist.getMediaInfoForTime(media, 4.5, 0, 0).mediaIndex, 1,
+
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 4.5}),
+        {segmentIndex: 1, startTime: 4, partIndex: null},
         'rounds up at 0.5'
       );
     }
@@ -1161,60 +1307,63 @@ QUnit.module('Playlist', function() {
 
       const media = loader.media();
 
-      assert.equal(
-        Playlist.getMediaInfoForTime(media, 45, 0, 150).mediaIndex,
-        0,
+      this.defaults = {
+        playlist: media,
+        currentTime: 0,
+        segmentIndex: 0,
+        partIndex: null,
+        startTime: 0
+      };
+
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 45, startTime: 150}),
+        {segmentIndex: 0, startTime: 45, partIndex: null},
         'expired content returns 0 for earliest segment available'
       );
-      assert.equal(
-        Playlist.getMediaInfoForTime(media, 75, 0, 150).mediaIndex,
-        0,
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 75, startTime: 150}),
+        {segmentIndex: 0, startTime: 75, partIndex: null},
         'expired content returns 0 for earliest segment available'
       );
-      assert.equal(
-        Playlist.getMediaInfoForTime(media, 0, 0, 150).mediaIndex,
-        0,
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 0, startTime: 150}),
+        {segmentIndex: 0, startTime: 0, partIndex: null},
         'time of 0 with no expired time returns first segment'
       );
-      assert.equal(
-        Playlist.getMediaInfoForTime(media, 50 + 100, 0, 150).mediaIndex,
-        0,
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 150, startTime: 150}),
+        {segmentIndex: 0, startTime: 150, partIndex: null},
         'calculates the earliest available position'
       );
-      assert.equal(
-        Playlist.getMediaInfoForTime(media, 50 + 100 + 2, 0, 150).mediaIndex,
-        0,
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 152, startTime: 150}),
+        {segmentIndex: 0, startTime: 150, partIndex: null},
         'calculates within the first segment'
       );
-      assert.equal(
-        Playlist.getMediaInfoForTime(media, 50 + 100 + 2, 0, 150).mediaIndex,
-        0,
-        'calculates within the first segment'
-      );
-      assert.equal(
-        Playlist.getMediaInfoForTime(media, 50 + 100 + 4, 0, 150).mediaIndex,
-        0,
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 154, startTime: 150}),
+        {segmentIndex: 0, startTime: 150, partIndex: null},
         'calculates earlier segment on exact boundary match'
       );
-      assert.equal(
-        Playlist.getMediaInfoForTime(media, 50 + 100 + 4.5, 0, 150).mediaIndex,
-        1,
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 154.5, startTime: 150}),
+        {segmentIndex: 1, startTime: 154, partIndex: null},
         'calculates within the second segment'
       );
-      assert.equal(
-        Playlist.getMediaInfoForTime(media, 50 + 100 + 6, 0, 150).mediaIndex,
-        1,
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 156, startTime: 150}),
+        {segmentIndex: 1, startTime: 154, partIndex: null},
         'calculates within the second segment'
       );
 
-      assert.equal(
-        Playlist.getMediaInfoForTime(media, 159, 0, 150).mediaIndex,
-        1,
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 159, startTime: 150}),
+        {segmentIndex: 1, startTime: 154, partIndex: null},
         'returns last segment when time is equal to end of last segment'
       );
-      assert.equal(
-        Playlist.getMediaInfoForTime(media, 160, 0, 150).mediaIndex,
-        1,
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 160, startTime: 150}),
+        {segmentIndex: 1, startTime: 160, partIndex: null},
         'returns last segment when time is past end of last segment'
       );
     }
