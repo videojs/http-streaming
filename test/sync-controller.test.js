@@ -229,6 +229,50 @@ QUnit.test('uses separate date time to display time mapping for each timeline', 
   );
 });
 
+QUnit.test('ProgramDateTime strategy finds nearest llhls sync point', function(assert) {
+  const strategy = getStrategy('ProgramDateTime');
+  const playlist = playlistWithDuration(200, {llhls: true});
+  const timeline = 0;
+  const duration = Infinity;
+  let syncPoint;
+
+  syncPoint = strategy.run(this.syncController, playlist, duration, timeline, 170);
+
+  assert.equal(syncPoint, null, 'no syncpoint when no date time to display time mapping');
+
+  playlist.segments.forEach((segment, index) => {
+    segment.dateTimeObject = new Date(2012, 11, 12, 12, 12, 12 + (index * 10));
+  });
+
+  this.syncController.setDateTimeMappingForStart(playlist);
+
+  const newPlaylist = playlistWithDuration(200, {llhls: true});
+
+  syncPoint = strategy.run(this.syncController, newPlaylist, duration, timeline);
+
+  assert.equal(syncPoint, null, 'no syncpoint when datetimeObject not set on playlist');
+
+  newPlaylist.segments.forEach((segment, index) => {
+    segment.dateTimeObject = new Date(2012, 11, 12, 12, 12, 22 + (index * 10));
+  });
+
+  syncPoint = strategy.run(this.syncController, newPlaylist, duration, timeline, 194);
+
+  assert.deepEqual(syncPoint, {
+    time: 192,
+    segmentIndex: 18,
+    partIndex: 1
+  }, 'syncpoint found for ProgramDateTime');
+
+  syncPoint = strategy.run(this.syncController, newPlaylist, duration, timeline, 204);
+
+  assert.deepEqual(syncPoint, {
+    time: 202,
+    segmentIndex: 19,
+    partIndex: 1
+  }, 'syncpoint found for ProgramDateTime');
+});
+
 QUnit.test('returns correct sync point for Segment strategy', function(assert) {
   const strategy = getStrategy('Segment');
   const playlist = {
@@ -268,6 +312,58 @@ QUnit.test('returns correct sync point for Segment strategy', function(assert) {
     syncPoint, { time: 50, segmentIndex: 6, partIndex: null },
     'exact sync point found'
   );
+});
+
+QUnit.test('returns correct sync point for llhls Segment strategy', function(assert) {
+  const strategy = getStrategy('Segment');
+  const playlist = {
+    segments: [
+      { timeline: 0 },
+      { timeline: 0 },
+      { timeline: 1, start: 10 },
+      { timeline: 1, start: 20 },
+      { timeline: 1 },
+      { timeline: 1 },
+      { timeline: 1, start: 50, parts: [
+        {start: 50, duration: 1},
+        {start: 51, duration: 1},
+        {start: 52, duration: 1},
+        {start: 53, duration: 1},
+        {start: 54, duration: 1},
+        {start: 55, duration: 1},
+        {start: 56, duration: 1},
+        {start: 57, duration: 1},
+        {start: 58, duration: 1},
+        {start: 59, duration: 1}
+      ]},
+      { timeline: 1, start: 60, parts: [
+        {start: 60, duration: 1},
+        {start: 61, duration: 1},
+        {start: 62, duration: 1},
+        {start: 63, duration: 1},
+        {start: 64, duration: 1},
+        {start: 65, duration: 1},
+        {start: 66, duration: 1},
+        {start: 67, duration: 1},
+        {start: 68, duration: 1},
+        {start: 69, duration: 1}
+      ] }
+    ]
+  };
+  const currentTimeline = 1;
+
+  assert.deepEqual(
+    strategy.run(this.syncController, playlist, 80, currentTimeline, 55),
+    { time: 55, segmentIndex: 6, partIndex: 5 },
+    'exact sync point found'
+  );
+
+  assert.deepEqual(
+    strategy.run(this.syncController, playlist, 80, currentTimeline, 70),
+    { time: 69, segmentIndex: 7, partIndex: 9 },
+    'closest sync point found'
+  );
+
 });
 
 QUnit.test('returns correct sync point for Discontinuity strategy', function(assert) {

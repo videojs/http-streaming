@@ -386,7 +386,7 @@ export const getMediaInfoForTime = function({
   let time = currentTime - startTime;
   const partsAndSegments = getPartsAndSegments(playlist);
 
-  let startIndex;
+  let startIndex = 0;
 
   for (let i = 0; i < partsAndSegments.length; i++) {
     const partAndSegment = partsAndSegments[i];

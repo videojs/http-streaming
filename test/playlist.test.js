@@ -1369,6 +1369,55 @@ QUnit.module('Playlist', function() {
     }
   );
 
+  QUnit.test('can return a partIndex', function(assert) {
+    this.fakeVhs.options_ = {experimentalLLHLS: true};
+    const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
+
+    loader.load();
+
+    this.requests.shift().respond(
+      200, null,
+      '#EXTM3U\n' +
+      '#EXT-X-MEDIA-SEQUENCE:1001\n' +
+      '#EXTINF:4,\n' +
+      '1001.ts\n' +
+      '#EXTINF:5,\n' +
+      '1002.ts\n' +
+      '#EXT-X-PART:URI="1003.part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="1003.part2.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="1003.part3.ts",DURATION=1\n' +
+      '#EXT-X-PRELOAD-HINT:TYPE="PART",URI="1003.part4.ts"\n'
+    );
+
+    const media = loader.media();
+
+    this.defaults = {
+      playlist: media,
+      currentTime: 0,
+      segmentIndex: 0,
+      partIndex: null,
+      startTime: 0
+    };
+
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 10, startTime: 0}),
+      {segmentIndex: 2, startTime: 9, partIndex: 0},
+      'returns expected part/segment'
+    );
+
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 11, startTime: 0}),
+      {segmentIndex: 2, startTime: 10, partIndex: 1},
+      'returns expected part/segment'
+    );
+
+    assert.deepEqual(
+      this.getMediaInfoForTime({currentTime: 11, segmentIndex: -15}),
+      {segmentIndex: 2, startTime: 10, partIndex: 1},
+      'returns expected part/segment'
+    );
+  });
+
   QUnit.test('liveEdgeDelay works as expected', function(assert) {
     const media = {
       endList: true,

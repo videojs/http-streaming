@@ -50,8 +50,15 @@ export const syncPointStrategies = [
 
         if (segment.dateTimeObject) {
           const segmentTime = segment.dateTimeObject.getTime() / 1000;
-          const segmentStart = segmentTime + datetimeMapping;
-          const distance = Math.abs(currentTime - segmentStart);
+          let start = segmentTime + datetimeMapping;
+
+          // take part duration into account.
+          if (segment.parts && typeof partAndSegment.partIndex === 'number') {
+            for (let z = 0; z < partAndSegment.partIndex; z++) {
+              start += segment.parts[z].duration;
+            }
+          }
+          const distance = Math.abs(currentTime - start);
 
           // Once the distance begins to increase, or if distance is 0, we have passed
           // currentTime and can stop looking for better candidates
@@ -61,7 +68,7 @@ export const syncPointStrategies = [
 
           lastDistance = distance;
           syncPoint = {
-            time: segmentStart,
+            time: start,
             segmentIndex: partAndSegment.segmentIndex,
             partIndex: partAndSegment.partIndex
           };
@@ -85,10 +92,10 @@ export const syncPointStrategies = [
         const index = (playlist.endList || currentTime === 0) ? i : partsAndSegments.length - (i + 1);
         const partAndSegment = partsAndSegments[index];
         const segment = partAndSegment.segment;
+        const start = partAndSegment.part && partAndSegment.part.start || segment && segment.start;
 
-        if (segment.timeline === currentTimeline &&
-            typeof segment.start !== 'undefined') {
-          const distance = Math.abs(currentTime - segment.start);
+        if (segment.timeline === currentTimeline && typeof start !== 'undefined') {
+          const distance = Math.abs(currentTime - start);
 
           // Once the distance begins to increase, we have passed
           // currentTime and can stop looking for better candidates
@@ -99,7 +106,7 @@ export const syncPointStrategies = [
           if (!syncPoint || lastDistance === null || lastDistance >= distance) {
             lastDistance = distance;
             syncPoint = {
-              time: segment.start,
+              time: start,
               segmentIndex: partAndSegment.segmentIndex,
               partIndex: partAndSegment.partIndex
             };
