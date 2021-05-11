@@ -2098,7 +2098,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.playlistOfLastInitSegment_[type] = playlist;
       // we should only be appending the next init segment if we detect a change, or if
       // the segment has a map
-      this.appendInitSegment_[type] = map ? true : false;
+      this.appendInitSegment_[type] = false;
 
       // we need to clear out the fmp4 active init segment id, since
       // we are appending the muxer init segment
@@ -2367,6 +2367,16 @@ export default class SegmentLoader extends videojs.EventTarget {
     const isEndOfTimeline = isEndOfStream || (isWalkingForward && isDiscontinuity);
 
     this.logger_(`Requesting ${segmentInfoString(segmentInfo)}`);
+
+    // if init segment is being requested
+    // we will have to re-append the init segment.
+    if (simpleSegment.map && !simpleSegment.map.bytes) {
+      this.logger_('going to request init segment.');
+      this.appendInitSegment_ = {
+        video: true,
+        audio: true
+      };
+    }
 
     segmentInfo.abortRequests = mediaSegmentRequest({
       xhr: this.vhs_.xhr,
