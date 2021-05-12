@@ -275,9 +275,9 @@ export const addPropertiesToMaster = (master, uri) => {
       // we mark the first playlist uri without prepending the index as we used to
       // ideally we would do all of the playlists the same way.
       if (i === 0) {
-        p.uri = p.uri || id;
-      } else {
         p.uri = p.uri || groupId;
+      } else {
+        p.uri = p.uri || id;
       }
 
       p.id = p.id || id;
