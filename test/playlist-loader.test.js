@@ -1487,11 +1487,11 @@ QUnit.test('Increments retries on playlist error', function(assert) {
   this.requests.shift().respond(
     200, null,
     '#EXTM3U\n' +
-                                '#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=17\n' +
-                                'playlist/playlist.m3u8\n' +
-                                '#EXT-X-STREAM-INF:PROGRAM-ID=2,BANDWIDTH=170\n' +
-                                'playlist/playlist2.m3u8\n' +
-                                '#EXT-X-ENDLIST\n'
+    '#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=17\n' +
+    'playlist/playlist.m3u8\n' +
+    '#EXT-X-STREAM-INF:PROGRAM-ID=2,BANDWIDTH=170\n' +
+    'playlist/playlist2.m3u8\n' +
+    '#EXT-X-ENDLIST\n'
   );
 
   assert.equal(loader.master.playlists[0].retries, 0, 'retries starts at zero on a sucessful load');
