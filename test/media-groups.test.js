@@ -339,6 +339,7 @@ QUnit.module('MediaGroups', function() {
 
         assert.deepEqual(this.activeGroup(), this.groups.bar, 'selected matching group');
       });
+
       QUnit.test('dash audio only playlist returns correct group', function(assert) {
         this.media = {
           uri: 'fr-bar-1.ts',
