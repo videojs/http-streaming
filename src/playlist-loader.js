@@ -436,7 +436,6 @@ export default class PlaylistLoader extends EventTarget {
         // handle the case of a playlist object (e.g., if using vhs-json with a resolved
         // media playlist or, for the case of demuxed audio, a resolved audio media group)
         (playlist.endList && playlist.segments.length)) {
-      // abort outstanding playlist requests
 
       const update = updateMaster(this.master, playlist);
 
@@ -445,6 +444,7 @@ export default class PlaylistLoader extends EventTarget {
         this.media_ = this.master.playlists[playlist.id];
       }
 
+      // abort outstanding playlist requests
       if (this.request) {
         this.request.onreadystatechange = null;
         this.request.abort();
