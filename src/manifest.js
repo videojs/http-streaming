@@ -105,7 +105,13 @@ export const parseManifest = ({
  *        Callback to call for each media group
  */
 export const forEachMediaGroup = (master, callback) => {
+  if (!master.mediaGroups) {
+    return;
+  }
   ['AUDIO', 'SUBTITLES'].forEach((mediaType) => {
+    if (!master.mediaGroups[mediaType]) {
+      return;
+    }
     for (const groupKey in master.mediaGroups[mediaType]) {
       for (const labelKey in master.mediaGroups[mediaType][groupKey]) {
         const mediaProperties = master.mediaGroups[mediaType][groupKey][labelKey];
