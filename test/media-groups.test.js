@@ -257,17 +257,17 @@ QUnit.module('MediaGroups', function() {
 
         this.media = null;
 
-        const settings = {
+        this.settings = {
           mediaTypes: MediaGroups.createMediaTypes(),
           masterPlaylistLoader: {
             media: () => this.media
           }
         };
 
-        this.groups = settings.mediaTypes[groupType].groups;
-        this.tracks = settings.mediaTypes[groupType].tracks;
-        this.activeTrack = MediaGroups.activeTrack[groupType](groupType, settings);
-        this.activeGroup = MediaGroups.activeGroup(groupType, settings);
+        this.groups = this.settings.mediaTypes[groupType].groups;
+        this.tracks = this.settings.mediaTypes[groupType].tracks;
+        this.activeTrack = MediaGroups.activeTrack[groupType](groupType, this.settings);
+        this.activeGroup = MediaGroups.activeGroup(groupType, this.settings);
       },
       afterEach(assert) {
         sharedHooks.afterEach.call(this, assert);
@@ -319,6 +319,77 @@ QUnit.module('MediaGroups', function() {
       assert.deepEqual(this.activeGroup({id: 'en'}), this.groups.foo[0], 'returns track when passed a valid track');
       assert.equal(this.activeGroup({id: 'baz'}), null, 'no group with invalid track');
     });
+
+    if (groupType === 'AUDIO') {
+      QUnit.test('hls audio only playlist returns correct group', function(assert) {
+        this.media = {
+          id: 'fr-bar',
+          attributes: {CODECS: 'mp4a.40.2'}
+        };
+
+        this.settings.master = {
+          mediaGroups: {
+            AUDIO: this.groups
+          }
+        };
+
+        this.groups.main = [{ id: 'en', uri: 'en.ts'}, { id: 'fr', uri: 'fr.ts' }];
+        this.groups.foo = [{ id: 'en-foo', uri: 'en-foo.ts' }, { id: 'fr-foo', uri: 'fr-foo.ts' }];
+        this.groups.bar = [{ id: 'en-bar', uri: 'en-foo.ts' }, { id: 'fr-bar', uri: 'fr-bar.ts' }];
+
+        assert.deepEqual(this.activeGroup(), this.groups.bar, 'selected matching group');
+      });
+
+      QUnit.test('dash audio only playlist returns correct group', function(assert) {
+        this.media = {
+          uri: 'fr-bar-1.ts',
+          attributes: {CODECS: 'mp4a.40.2'}
+        };
+
+        this.settings.master = {
+          mediaGroups: {
+            AUDIO: this.groups
+          }
+        };
+
+        ['main', 'foo', 'bar'].forEach((key) => {
+          this.groups[key] = [{
+            label: 'en',
+            playlists: [
+              {id: `en-${key}-0`, uri: `en-${key}-0.ts`},
+              {id: `en-${key}-1`, uri: `en-${key}-1.ts`}
+            ]
+          }, {
+            label: 'fr',
+            playlists: [
+              {id: `fr-${key}-0`, uri: `fr-${key}-0.ts`},
+              {id: `fr-${key}-1`, uri: `fr-${key}-1.ts`}
+            ]
+          }];
+        });
+
+        assert.deepEqual(this.activeGroup(), this.groups.bar, 'selected matching group');
+      });
+
+      QUnit.test('audio only without group match', function(assert) {
+        this.media = {
+          id: 'nope',
+          attributes: {CODECS: 'mp4a.40.2'}
+        };
+
+        this.settings.master = {
+          mediaGroups: {
+            AUDIO: this.groups
+          }
+        };
+
+        this.groups.main = [{ id: 'en', uri: 'en.ts'}, { id: 'fr', uri: 'fr.ts' }];
+        this.groups.foo = [{ id: 'en-foo', uri: 'en-foo.ts' }, { id: 'fr-foo', uri: 'fr-foo.ts' }];
+        this.groups.bar = [{ id: 'en-bar', uri: 'en-foo.ts' }, { id: 'fr-bar', uri: 'fr-bar.ts' }];
+
+        assert.deepEqual(this.activeGroup(), null, 'selected no group');
+      });
+    }
 
     QUnit.module(`${groupType} getActiveGroup `, {
       beforeEach(assert) {
