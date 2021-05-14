@@ -427,7 +427,7 @@ QUnit.module('manifest', function() {
       'added placeholder id with index'
     );
     assert.equal(
-      groups.es.playlists[1].uri,
+      groups.es.playlists[1].id,
       '1-placeholder-uri-AUDIO-default-es',
       'added placeholder with index id'
     );

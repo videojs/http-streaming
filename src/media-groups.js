@@ -468,6 +468,8 @@ export const initialize = {
             vhs,
             requestOptions
           );
+        // TODO: dash isn't the only type with properties.playlists
+        // should we even have properties.playlists in this check.
         } else if (properties.playlists && sourceType === 'dash') {
           playlistLoader = new DashPlaylistLoader(
             properties.playlists[0],
