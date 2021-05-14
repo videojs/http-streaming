@@ -3079,7 +3079,7 @@ QUnit.module('SegmentLoader', function(hooks) {
           origAppendToSourceBuffer(config);
         };
 
-        const playlist = playlistWithDuration(30);
+        const playlist = playlistWithDuration(40);
 
         playlist.segments[0].map = {
           resolvedUri: 'init.mp4',
@@ -3092,6 +3092,11 @@ QUnit.module('SegmentLoader', function(hooks) {
         };
         // reuse the initial map to see if it was cached
         playlist.segments[2].map = {
+          resolvedUri: 'init.mp4',
+          byterange: { length: Infinity, offset: 0 }
+        };
+
+        playlist.segments[3].map = {
           resolvedUri: 'init.mp4',
           byterange: { length: Infinity, offset: 0 }
         };
@@ -3142,6 +3147,7 @@ QUnit.module('SegmentLoader', function(hooks) {
           appends[1].initSegment,
           'appended a different init segment'
         );
+        // force init segment append
         loader.appendInitSegment_.audio = true;
 
         // no init segment request, as it should be the same (and cached) segment
@@ -3151,6 +3157,7 @@ QUnit.module('SegmentLoader', function(hooks) {
           loader.one('error', reject);
         });
       }).then(() => {
+        this.clock.tick(1);
 
         assert.equal(appends.length, 3, 'one more append');
         assert.equal(appends[2].type, 'audio', 'appended to audio buffer');
@@ -3160,6 +3167,17 @@ QUnit.module('SegmentLoader', function(hooks) {
           appends[2].initSegment,
           'reused the init segment'
         );
+
+        // no init segment request, as it should be the same (and cached) segment
+        standardXHRResponse(this.requests.shift(), mp4AudioSegment());
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        assert.equal(appends.length, 4, 'one more append');
+        assert.equal(appends[3].type, 'audio', 'appended to audio buffer');
+        assert.notOk(appends[3].initSegment, 'did not append audio init segment');
       });
     });
 
@@ -3177,7 +3195,7 @@ QUnit.module('SegmentLoader', function(hooks) {
             origAppendToSourceBuffer(config);
           };
 
-          const playlist = playlistWithDuration(30);
+          const playlist = playlistWithDuration(40);
 
           playlist.segments[0].map = {
             resolvedUri: 'init.mp4',
@@ -3190,6 +3208,11 @@ QUnit.module('SegmentLoader', function(hooks) {
           };
           // reuse the initial map to see if it was cached
           playlist.segments[2].map = {
+            resolvedUri: 'init.mp4',
+            byterange: { length: Infinity, offset: 0 }
+          };
+
+          playlist.segments[3].map = {
             resolvedUri: 'init.mp4',
             byterange: { length: Infinity, offset: 0 }
           };
@@ -3230,6 +3253,7 @@ QUnit.module('SegmentLoader', function(hooks) {
           'appended a different init segment'
         );
 
+        // force re-append
         loader.appendInitSegment_.video = true;
         // no init segment request, as it should be the same (and cached) segment
         standardXHRResponse(this.requests.shift(), mp4VideoSegment());
@@ -3238,6 +3262,7 @@ QUnit.module('SegmentLoader', function(hooks) {
           loader.one('error', reject);
         });
       }).then(() => {
+        this.clock.tick(1);
 
         assert.equal(appends.length, 3, 'one more append');
         assert.equal(appends[2].type, 'video', 'appended to video buffer');
@@ -3247,6 +3272,17 @@ QUnit.module('SegmentLoader', function(hooks) {
           appends[2].initSegment,
           'reused the init segment'
         );
+
+        // no init segment request, as it should be the same (and cached) segment
+        standardXHRResponse(this.requests.shift(), mp4VideoSegment());
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+      }).then(() => {
+        assert.equal(appends.length, 4, 'one more append');
+        assert.equal(appends[3].type, 'video', 'appended to video buffer');
+        assert.notOk(appends[3].initSegment, 'did not append video init segment');
       });
     });
 
