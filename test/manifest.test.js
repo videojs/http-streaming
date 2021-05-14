@@ -410,6 +410,27 @@ QUnit.module('manifest', function() {
       '1-placeholder-uri-AUDIO-default-es',
       'added placeholder with index uri'
     );
+
+    assert.equal(
+      groups.en.playlists[0].id,
+      '0-placeholder-uri-AUDIO-default-en',
+      'added placeholder id with index'
+    );
+    assert.equal(
+      groups.en.playlists[1].id,
+      '1-placeholder-uri-AUDIO-default-en',
+      'added placeholder id with index'
+    );
+    assert.equal(
+      groups.es.playlists[0].id,
+      '0-placeholder-uri-AUDIO-default-es',
+      'added placeholder id with index'
+    );
+    assert.equal(
+      groups.es.playlists[1].uri,
+      '1-placeholder-uri-AUDIO-default-es',
+      'added placeholder with index id'
+    );
   });
 
   QUnit.test('adds resolvedUri for media group URIs', function(assert) {
