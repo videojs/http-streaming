@@ -270,19 +270,22 @@ export const addPropertiesToMaster = (master, uri) => {
     properties.playlists.forEach(function(p, i) {
       const id = createPlaylistID(i, groupId);
 
-      // DEPRECATED, this has been added to prevent a breaking change.
-      // previously we only ever had a single media group playlist, so
-      // we mark the first playlist uri without prepending the index as we used to
-      // ideally we would do all of the playlists the same way.
-      if (i === 0) {
-        p.uri = p.uri || groupId;
+      if (p.uri) {
+        p.resolvedUri = p.resolvedUri || resolveUrl(master.uri, p.uri);
       } else {
-        p.uri = p.uri || id;
+        // DEPRECATED, this has been added to prevent a breaking change.
+        // previously we only ever had a single media group playlist, so
+        // we mark the first playlist uri without prepending the index as we used to
+        // ideally we would do all of the playlists the same way.
+        p.uri = i === 0 ? groupId : id;
+
+        // don't resolve a placeholder uri to an absolute url, just use
+        // the placeholder again
+        p.resolvedUri = p.uri;
       }
 
       p.id = p.id || id;
 
-      p.resolvedUri = p.resolvedUri || resolveUrl(master.uri, p.uri);
       // add an empty attributes object, all playlists are
       // expected to have this.
       p.attributes = p.attributes || {};
