@@ -2096,8 +2096,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       // we can re-append the init segment in the event that we get data from a new
       // playlist. Discontinuities and track changes are handled in other sections.
       this.playlistOfLastInitSegment_[type] = playlist;
-      // we should only be appending the next init segment if we detect a change, or if
-      // the segment has a map
+      // Disable future init segment appends for this type. Until a change is necessary.
       this.appendInitSegment_[type] = false;
 
       // we need to clear out the fmp4 active init segment id, since
