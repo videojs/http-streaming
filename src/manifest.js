@@ -105,7 +105,13 @@ export const parseManifest = ({
  *        Callback to call for each media group
  */
 export const forEachMediaGroup = (master, callback) => {
+  if (!master.mediaGroups) {
+    return;
+  }
   ['AUDIO', 'SUBTITLES'].forEach((mediaType) => {
+    if (!master.mediaGroups[mediaType]) {
+      return;
+    }
     for (const groupKey in master.mediaGroups[mediaType]) {
       for (const labelKey in master.mediaGroups[mediaType][groupKey]) {
         const mediaProperties = master.mediaGroups[mediaType][groupKey][labelKey];
@@ -262,22 +268,40 @@ export const addPropertiesToMaster = (master, uri) => {
   }
 
   forEachMediaGroup(master, (properties, mediaType, groupKey, labelKey) => {
-    if (!properties.playlists ||
-        !properties.playlists.length ||
-        properties.playlists[0].uri) {
-      return;
+    const groupId = `placeholder-uri-${mediaType}-${groupKey}-${labelKey}`;
+
+    if (!properties.playlists || !properties.playlists.length) {
+      properties.playlists = [Object.assign({}, properties)];
     }
 
-    // Set up phony URIs for the media group playlists since playlists are referenced by
-    // their URIs throughout VHS, but some formats (e.g., DASH) don't have external URIs
-    const phonyUri = `placeholder-uri-${mediaType}-${groupKey}-${labelKey}`;
-    const id = createPlaylistID(0, phonyUri);
+    properties.playlists.forEach(function(p, i) {
+      const id = createPlaylistID(i, groupId);
 
-    properties.playlists[0].uri = phonyUri;
-    properties.playlists[0].id = id;
-    // setup ID and URI references (URI for backwards compatibility)
-    master.playlists[id] = properties.playlists[0];
-    master.playlists[phonyUri] = properties.playlists[0];
+      if (p.uri) {
+        p.resolvedUri = p.resolvedUri || resolveUrl(master.uri, p.uri);
+      } else {
+        // DEPRECATED, this has been added to prevent a breaking change.
+        // previously we only ever had a single media group playlist, so
+        // we mark the first playlist uri without prepending the index as we used to
+        // ideally we would do all of the playlists the same way.
+        p.uri = i === 0 ? groupId : id;
+
+        // don't resolve a placeholder uri to an absolute url, just use
+        // the placeholder again
+        p.resolvedUri = p.uri;
+      }
+
+      p.id = p.id || id;
+
+      // add an empty attributes object, all playlists are
+      // expected to have this.
+      p.attributes = p.attributes || {};
+
+      // setup ID and URI references (URI for backwards compatibility)
+      master.playlists[p.id] = p;
+      master.playlists[p.uri] = p;
+    });
+
   });
 
   setupMediaPlaylists(master);

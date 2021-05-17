@@ -377,10 +377,10 @@ QUnit.module('manifest', function() {
             en: {
               playlists: [{
                 uri: 'audio-default-uri'
-              }]
+              }, {}]
             },
             es: {
-              playlists: [{}]
+              playlists: [{}, {}]
             }
           }
         }
@@ -390,15 +390,48 @@ QUnit.module('manifest', function() {
 
     addPropertiesToMaster(master, 'some-uri');
 
+    const groups = master.mediaGroups.AUDIO.default;
+
     assert.equal(
-      master.mediaGroups.AUDIO.default.en.playlists[0].uri,
+      groups.en.playlists[0].uri,
       'audio-default-uri',
       'did not overwrite uri'
     );
     assert.equal(
-      master.mediaGroups.AUDIO.default.es.playlists[0].uri,
+      groups.en.playlists[1].uri,
+      '1-placeholder-uri-AUDIO-default-en',
+      'added placeholder uri with index'
+    );
+    assert.equal(
+      groups.es.playlists[0].uri,
       'placeholder-uri-AUDIO-default-es',
-      'added placeholder uri'
+      'added placeholder uri without index'
+    );
+    assert.equal(
+      groups.es.playlists[1].uri,
+      '1-placeholder-uri-AUDIO-default-es',
+      'added placeholder with index uri'
+    );
+
+    assert.equal(
+      groups.en.playlists[0].id,
+      '0-placeholder-uri-AUDIO-default-en',
+      'added placeholder id with index'
+    );
+    assert.equal(
+      groups.en.playlists[1].id,
+      '1-placeholder-uri-AUDIO-default-en',
+      'added placeholder id with index'
+    );
+    assert.equal(
+      groups.es.playlists[0].id,
+      '0-placeholder-uri-AUDIO-default-es',
+      'added placeholder id with index'
+    );
+    assert.equal(
+      groups.es.playlists[1].id,
+      '1-placeholder-uri-AUDIO-default-es',
+      'added placeholder with index id'
     );
   });
 

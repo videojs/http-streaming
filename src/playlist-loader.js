@@ -13,7 +13,8 @@ import {
   parseManifest,
   addPropertiesToMaster,
   masterForMedia,
-  setupMediaPlaylist
+  setupMediaPlaylist,
+  forEachMediaGroup
 } from './manifest';
 
 const { mergeOptions, EventTarget } = videojs;
@@ -187,6 +188,18 @@ export const updateMaster = (master, media, unchangedCheck = isPlaylistUnchanged
   result.playlists[media.id] = mergedPlaylist;
   // URI reference added for backwards compatibility
   result.playlists[media.uri] = mergedPlaylist;
+
+  // update media group playlist references.
+  forEachMediaGroup(master, (properties, mediaType, groupKey, labelKey) => {
+    if (!properties.playlists) {
+      return;
+    }
+    for (let i = 0; i < properties.playlists.length; i++) {
+      if (media.id === properties.playlists[i].id) {
+        properties.playlists[i] = media;
+      }
+    }
+  });
 
   return result;
 };
@@ -441,12 +454,14 @@ export default class PlaylistLoader extends EventTarget {
 
     const startingState = this.state;
     const mediaChange = !this.media_ || playlist.id !== this.media_.id;
+    const masterPlaylistRef = this.master.playlists[playlist.id];
 
     // switch to fully loaded playlists immediately
-    if (this.master.playlists[playlist.id].endList ||
+    if (masterPlaylistRef && masterPlaylistRef.endList ||
         // handle the case of a playlist object (e.g., if using vhs-json with a resolved
         // media playlist or, for the case of demuxed audio, a resolved audio media group)
         (playlist.endList && playlist.segments.length)) {
+
       // abort outstanding playlist requests
       if (this.request) {
         this.request.onreadystatechange = null;
