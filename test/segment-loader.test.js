@@ -3147,7 +3147,8 @@ QUnit.module('SegmentLoader', function(hooks) {
           appends[1].initSegment,
           'appended a different init segment'
         );
-        // force init segment append
+        // force init segment append to prove that init segments are not
+        // re-requested, but will be re-appended when needed.
         loader.appendInitSegment_.audio = true;
 
         // no init segment request, as it should be the same (and cached) segment
@@ -3253,8 +3254,10 @@ QUnit.module('SegmentLoader', function(hooks) {
           'appended a different init segment'
         );
 
-        // force re-append
+        // force init segment append to prove that init segments are not
+        // re-requested, but will be re-appended when needed.
         loader.appendInitSegment_.video = true;
+
         // no init segment request, as it should be the same (and cached) segment
         standardXHRResponse(this.requests.shift(), mp4VideoSegment());
         return new Promise((resolve, reject) => {
