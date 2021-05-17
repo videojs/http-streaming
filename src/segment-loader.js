@@ -2367,8 +2367,11 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     this.logger_(`Requesting ${segmentInfoString(segmentInfo)}`);
 
-    // if init segment is being requested
-    // we will have to re-append the init segment.
+    // If there's an init segment associated with this segment, but it is not cached (identified by a lack of bytes),
+    // then this init segment has never been seen before and should be appended.
+    //
+    // At this point the content type (audio/video or both) is not yet known, but it should be safe to set
+    // both to true and leave the decision of whether to append the init segment to append time.
     if (simpleSegment.map && !simpleSegment.map.bytes) {
       this.logger_('going to request init segment.');
       this.appendInitSegment_ = {
