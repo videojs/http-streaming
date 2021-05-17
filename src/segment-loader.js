@@ -2147,7 +2147,8 @@ export default class SegmentLoader extends videojs.EventTarget {
         `audio buffer: ${timeRangesToArray(audioBuffered).join(', ')}, ` +
         `video buffer: ${timeRangesToArray(videoBuffered).join(', ')}, `);
       this.error({
-        message: 'Quota exceeded error with append of a single segment of content'
+        message: 'Quota exceeded error with append of a single segment of content',
+        excludeUntil: Infinity
       });
       this.trigger('error');
       return;
