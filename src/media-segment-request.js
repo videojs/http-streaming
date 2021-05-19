@@ -107,10 +107,11 @@ const handleErrors = (error, request) => {
  *
  * @param {Object} segment - a simplified copy of the segmentInfo object
  *                           from SegmentLoader
+ * @param {Array} objects - objects to add the key bytes to.
  * @param {Function} finishProcessingFn - a callback to execute to continue processing
  *                                        this request
  */
-const handleKeyResponse = (segment, finishProcessingFn) => (error, request) => {
+const handleKeyResponse = (segment, objects, finishProcessingFn) => (error, request) => {
   const response = request.response;
   const errorObj = handleErrors(error, request);
 
@@ -128,13 +129,40 @@ const handleKeyResponse = (segment, finishProcessingFn) => (error, request) => {
   }
 
   const view = new DataView(response);
-
-  segment.key.bytes = new Uint32Array([
+  const bytes = new Uint32Array([
     view.getUint32(0),
     view.getUint32(4),
     view.getUint32(8),
     view.getUint32(12)
   ]);
+
+  for (let i = 0; i < objects.length; i++) {
+    objects[i].bytes = bytes;
+  }
+
+  return finishProcessingFn(null, segment);
+};
+
+const handleEncryptedInitSegmentResponse = ({segment, finishProcessingFn}) => (error, request) => {
+  const response = request.response;
+  const errorObj = handleErrors(error, request);
+
+  if (errorObj) {
+    return finishProcessingFn(errorObj, segment);
+  }
+
+  // stop processing if received empty content
+  if (response.byteLength === 0) {
+    return finishProcessingFn({
+      status: request.status,
+      message: 'Empty HLS segment content at URL: ' + request.uri,
+      code: REQUEST_ERRORS.FAILURE,
+      xhr: request
+    }, segment);
+  }
+
+  segment.map.encryptedBytes = new Uint8Array(request.response);
+
   return finishProcessingFn(null, segment);
 };
 
@@ -538,6 +566,43 @@ const handleSegmentBytes = ({
   });
 };
 
+const decrypt = function({id, key, encryptedBytes, decryptionWorker}, callback) {
+  const decryptionHandler = (event) => {
+    if (event.data.source === id) {
+      decryptionWorker.removeEventListener('message', decryptionHandler);
+      const decrypted = event.data.decrypted;
+
+      callback(new Uint8Array(
+        decrypted.bytes,
+        decrypted.byteOffset,
+        decrypted.byteLength
+      ));
+    }
+  };
+
+  decryptionWorker.addEventListener('message', decryptionHandler);
+
+  let keyBytes;
+
+  if (key.bytes.slice) {
+    keyBytes = key.bytes.slice();
+  } else {
+    keyBytes = new Uint32Array(Array.prototype.slice.call(key.bytes));
+  }
+
+  // this is an encrypted segment
+  // incrementally decrypt the segment
+  decryptionWorker.postMessage(createTransferableMessage({
+    source: id,
+    encrypted: encryptedBytes,
+    key: keyBytes,
+    iv: key.iv
+  }), [
+    encryptedBytes.buffer,
+    keyBytes.buffer
+  ]);
+};
+
 /**
  * Decrypt the segment via the decryption web worker
  *
@@ -576,55 +641,29 @@ const decryptSegment = ({
   dataFn,
   doneFn
 }) => {
-  const decryptionHandler = (event) => {
-    if (event.data.source === segment.requestId) {
-      decryptionWorker.removeEventListener('message', decryptionHandler);
-      const decrypted = event.data.decrypted;
+  decrypt({
+    id: segment.requestId,
+    key: segment.key,
+    encryptedBytes: segment.encryptedBytes,
+    decryptionWorker
+  }, (decryptedBytes) => {
+    segment.bytes = decryptedBytes;
 
-      segment.bytes = new Uint8Array(
-        decrypted.bytes,
-        decrypted.byteOffset,
-        decrypted.byteLength
-      );
-
-      handleSegmentBytes({
-        segment,
-        bytes: segment.bytes,
-        trackInfoFn,
-        timingInfoFn,
-        videoSegmentTimingInfoFn,
-        audioSegmentTimingInfoFn,
-        id3Fn,
-        captionsFn,
-        isEndOfTimeline,
-        endedTimelineFn,
-        dataFn,
-        doneFn
-      });
-    }
-  };
-
-  decryptionWorker.addEventListener('message', decryptionHandler);
-
-  let keyBytes;
-
-  if (segment.key.bytes.slice) {
-    keyBytes = segment.key.bytes.slice();
-  } else {
-    keyBytes = new Uint32Array(Array.prototype.slice.call(segment.key.bytes));
-  }
-
-  // this is an encrypted segment
-  // incrementally decrypt the segment
-  decryptionWorker.postMessage(createTransferableMessage({
-    source: segment.requestId,
-    encrypted: segment.encryptedBytes,
-    key: keyBytes,
-    iv: segment.key.iv
-  }), [
-    segment.encryptedBytes.buffer,
-    keyBytes.buffer
-  ]);
+    handleSegmentBytes({
+      segment,
+      bytes: segment.bytes,
+      trackInfoFn,
+      timingInfoFn,
+      videoSegmentTimingInfoFn,
+      audioSegmentTimingInfoFn,
+      id3Fn,
+      captionsFn,
+      isEndOfTimeline,
+      endedTimelineFn,
+      dataFn,
+      doneFn
+    });
+  });
 };
 
 /**
@@ -700,13 +739,27 @@ const waitForCompletion = ({
     count += 1;
 
     if (count === activeXhrs.length) {
-      // Keep track of when *all* of the requests have completed
-      segment.endOfAllRequests = Date.now();
-
-      if (segment.encryptedBytes) {
-        return decryptSegment({
-          decryptionWorker,
+      const segmentFinish = function() {
+        if (segment.encryptedBytes) {
+          return decryptSegment({
+            decryptionWorker,
+            segment,
+            trackInfoFn,
+            timingInfoFn,
+            videoSegmentTimingInfoFn,
+            audioSegmentTimingInfoFn,
+            id3Fn,
+            captionsFn,
+            isEndOfTimeline,
+            endedTimelineFn,
+            dataFn,
+            doneFn
+          });
+        }
+        // Otherwise, everything is ready just continue
+        handleSegmentBytes({
           segment,
+          bytes: segment.bytes,
           trackInfoFn,
           timingInfoFn,
           videoSegmentTimingInfoFn,
@@ -718,22 +771,33 @@ const waitForCompletion = ({
           dataFn,
           doneFn
         });
+      };
+
+      // Keep track of when *all* of the requests have completed
+      segment.endOfAllRequests = Date.now();
+      if (segment.map && segment.map.encryptedBytes && !segment.map.bytes) {
+        return decrypt({
+          decryptionWorker,
+          id: segment.requestId,
+          encryptedBytes: segment.map.encryptedBytes,
+          key: segment.map.key
+        }, (decryptedBytes) => {
+          handleInitSegmentResponse({segment, finishProcessingFn: (_error, _segment) => {
+            if (_error) {
+              didError = true;
+              // If there are errors, we have to abort any outstanding requests
+              abortAll(activeXhrs);
+
+              return doneFn(_error, _segment);
+            }
+
+            segmentFinish();
+          }})(null, {response: decryptedBytes, uri: segment.map.resolvedUri});
+
+        });
       }
-      // Otherwise, everything is ready just continue
-      handleSegmentBytes({
-        segment,
-        bytes: segment.bytes,
-        trackInfoFn,
-        timingInfoFn,
-        videoSegmentTimingInfoFn,
-        audioSegmentTimingInfoFn,
-        id3Fn,
-        captionsFn,
-        isEndOfTimeline,
-        endedTimelineFn,
-        dataFn,
-        doneFn
-      });
+
+      segmentFinish();
     }
   };
 };
@@ -912,11 +976,16 @@ export const mediaSegmentRequest = ({
 
   // optionally, request the decryption key
   if (segment.key && !segment.key.bytes) {
+    const objects = [segment.key];
+
+    if (segment.map && !segment.map.bytes && segment.map.key && segment.map.key.resolvedUri === segment.key.resolvedUri) {
+      objects.push(segment.map.key);
+    }
     const keyRequestOptions = videojs.mergeOptions(xhrOptions, {
       uri: segment.key.resolvedUri,
       responseType: 'arraybuffer'
     });
-    const keyRequestCallback = handleKeyResponse(segment, finishProcessingFn);
+    const keyRequestCallback = handleKeyResponse(segment, objects, finishProcessingFn);
     const keyXhr = xhr(keyRequestOptions, keyRequestCallback);
 
     activeXhrs.push(keyXhr);
@@ -924,15 +993,26 @@ export const mediaSegmentRequest = ({
 
   // optionally, request the associated media init segment
   if (segment.map && !segment.map.bytes) {
+    const differentMapKey = segment.map.key && (!segment.key || segment.key.resolvedUri !== segment.map.key.resolvedUri);
+
+    if (differentMapKey) {
+      const mapKeyRequestOptions = videojs.mergeOptions(xhrOptions, {
+        uri: segment.map.key.resolvedUri,
+        responseType: 'arraybuffer'
+      });
+      const mapKeyRequestCallback = handleKeyResponse(segment, [segment.map.key], finishProcessingFn);
+      const mapKeyXhr = xhr(mapKeyRequestOptions, mapKeyRequestCallback);
+
+      activeXhrs.push(mapKeyXhr);
+    }
     const initSegmentOptions = videojs.mergeOptions(xhrOptions, {
       uri: segment.map.resolvedUri,
       responseType: 'arraybuffer',
       headers: segmentXhrHeaders(segment.map)
     });
-    const initSegmentRequestCallback = handleInitSegmentResponse({
-      segment,
-      finishProcessingFn
-    });
+    const initSegmentRequestCallback = segment.map.key ?
+      handleEncryptedInitSegmentResponse({segment, finishProcessingFn}) :
+      handleInitSegmentResponse({segment, finishProcessingFn});
     const initSegmentXhr = xhr(initSegmentOptions, initSegmentRequestCallback);
 
     activeXhrs.push(initSegmentXhr);
