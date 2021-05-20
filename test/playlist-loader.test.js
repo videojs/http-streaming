@@ -583,7 +583,10 @@ QUnit.test('updateMaster resolves key and map URIs', function(assert) {
         uri: 'key-2-uri'
       },
       map: {
-        uri: 'map-2-uri'
+        uri: 'map-2-uri',
+        key: {
+          uri: 'key-map-uri'
+        }
       }
     }, {
       duration: 11,
@@ -620,6 +623,10 @@ QUnit.test('updateMaster resolves key and map URIs', function(assert) {
           },
           map: {
             uri: 'map-2-uri',
+            key: {
+              uri: 'key-map-uri',
+              resolvedUri: urlTo('key-map-uri')
+            },
             resolvedUri: urlTo('map-2-uri')
           }
         }, {
