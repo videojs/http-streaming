@@ -400,7 +400,7 @@
           }
 
           if (source.src) {
-            stateEls.url.value = source.src;
+            stateEls.url.value = encodeURI(source.src);
           }
 
           if (source.type) {
