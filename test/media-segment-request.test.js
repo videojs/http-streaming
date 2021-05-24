@@ -1011,6 +1011,145 @@ QUnit.test('segment/init segment different key and get decrypted', function(asse
   this.clock.tick(100);
 });
 
+QUnit.test('encrypted init segment parse error', function(assert) {
+  const done = assert.async();
+  const postMessage = this.mockDecrypter.postMessage;
+
+  this.transmuxer = this.createTransmuxer();
+
+  // mock decrypting the init segment.
+  this.mockDecrypter.postMessage = (message) => {
+    // segment is 9, init is 8
+    if (message.encrypted.byteLength === 8) {
+      message.encrypted.bytes = webmVideoInit().buffer;
+    } else {
+      message.encrypted.bytes = mp4Video();
+    }
+    message.encrypted.byteLength = message.encrypted.bytes.byteLength;
+    message.encrypted.byteOffset = 0;
+
+    return postMessage.call(this.mockDecrypter, message);
+  };
+
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.mockDecrypter,
+    segment: {
+      transmuxer: this.transmuxer,
+      resolvedUri: '0-test.mp4',
+      key: {
+        resolvedUri: '0-key.php',
+        iv: {
+          bytes: new Uint32Array([0, 0, 0, 1])
+        }
+      },
+      map: {
+        resolvedUri: '0-map.mp4',
+        key: {
+          resolvedUri: '1-key.php',
+          iv: {
+            bytes: new Uint32Array([0, 0, 0, 1])
+          }
+        }
+      }
+    },
+    trackInfoFn: this.noop,
+    timingInfoFn: this.noop,
+    dataFn: this.noop,
+    progressFn: this.noop,
+    doneFn: (error, segmentData) => {
+      assert.ok(error, 'error for invalid init segment');
+      done();
+    }
+  });
+
+  assert.equal(this.requests.length, 4, 'there are four requests');
+
+  const keyReq = this.requests.shift();
+  const keyReq2 = this.requests.shift();
+  const mapReq = this.requests.shift();
+  const segmentReq = this.requests.shift();
+
+  assert.equal(keyReq.uri, '0-key.php', 'the first request is for a key');
+  assert.equal(keyReq2.uri, '1-key.php', 'the second request is for a key');
+  assert.equal(mapReq.uri, '0-map.mp4', 'the third request is for a map');
+  assert.equal(segmentReq.uri, '0-test.mp4', 'the forth request is for a segment');
+
+  segmentReq.responseType = 'arraybuffer';
+  segmentReq.respond(200, null, new Uint8Array(9).buffer);
+  mapReq.responseType = 'arraybuffer';
+  mapReq.respond(200, null, new Uint8Array(8).buffer);
+  keyReq.responseType = 'arraybuffer';
+  keyReq.respond(200, null, new Uint32Array([0, 1, 2, 3]).buffer);
+  keyReq2.responseType = 'arraybuffer';
+  keyReq2.respond(200, null, new Uint32Array([0, 1, 2, 3]).buffer);
+
+  // Allow the decrypter to decrypt
+  this.clock.tick(100);
+});
+
+QUnit.test('encrypted init segment request failure', function(assert) {
+  const done = assert.async();
+
+  this.transmuxer = this.createTransmuxer();
+
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.mockDecrypter,
+    segment: {
+      transmuxer: this.transmuxer,
+      resolvedUri: '0-test.mp4',
+      key: {
+        resolvedUri: '0-key.php',
+        iv: {
+          bytes: new Uint32Array([0, 0, 0, 1])
+        }
+      },
+      map: {
+        resolvedUri: '0-map.mp4',
+        key: {
+          resolvedUri: '1-key.php',
+          iv: {
+            bytes: new Uint32Array([0, 0, 0, 1])
+          }
+        }
+      }
+    },
+    trackInfoFn: this.noop,
+    timingInfoFn: this.noop,
+    dataFn: this.noop,
+    progressFn: this.noop,
+    doneFn: (error, segmentData) => {
+      assert.ok(error, 'errored');
+      this.requests.forEach(function(request) {
+        assert.ok(request.aborted, 'request aborted');
+      });
+
+      done();
+    }
+  });
+
+  assert.equal(this.requests.length, 4, 'there are four requests');
+
+  const keyReq = this.requests[0];
+  const keyReq2 = this.requests[1];
+  const mapReq = this.requests[2];
+  const segmentReq = this.requests[3];
+
+  assert.equal(keyReq.uri, '0-key.php', 'the first request is for a key');
+  assert.equal(keyReq2.uri, '1-key.php', 'the second request is for a key');
+  assert.equal(mapReq.uri, '0-map.mp4', 'the third request is for a map');
+  assert.equal(segmentReq.uri, '0-test.mp4', 'the forth request is for a segment');
+
+  mapReq.responseType = 'arraybuffer';
+  mapReq.respond(500, null, new Uint8Array(8).buffer);
+
+  // Allow the decrypter to decrypt
+  this.clock.tick(100);
+});
+
 QUnit.test('encrypted init segment with decrypted bytes not re-requested', function(assert) {
   const done = assert.async();
   const postMessage = this.mockDecrypter.postMessage;

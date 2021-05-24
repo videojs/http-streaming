@@ -152,18 +152,6 @@ const handleKeyResponse = (segment, objects, finishProcessingFn) => (error, requ
   return finishProcessingFn(null, segment);
 };
 
-const handleEncryptedInitSegmentResponse = ({segment, finishProcessingFn}) => (error, request) => {
-  const errorObj = handleErrors(error, request);
-
-  if (errorObj) {
-    return finishProcessingFn(errorObj, segment);
-  }
-
-  segment.map.encryptedBytes = new Uint8Array(request.response);
-
-  return finishProcessingFn(null, segment);
-};
-
 const parseInitSegment = (segment, callback) => {
   const type = detectContainerForBytes(segment.map.bytes);
 
@@ -224,8 +212,16 @@ const handleInitSegmentResponse =
   if (errorObj) {
     return finishProcessingFn(errorObj, segment);
   }
+  const bytes = new Uint8Array(request.response);
 
-  segment.map.bytes = new Uint8Array(request.response);
+  // init segment is encypted, we will have to wait
+  // unit the key request is done to decrypt.
+  if (segment.map.key) {
+    segment.map.encryptedBytes = bytes;
+    return finishProcessingFn(null, segment);
+  }
+
+  segment.map.bytes = bytes;
 
   parseInitSegment(segment, function(parseError) {
     if (parseError) {
@@ -998,9 +994,7 @@ export const mediaSegmentRequest = ({
       responseType: 'arraybuffer',
       headers: segmentXhrHeaders(segment.map)
     });
-    const initSegmentRequestCallback = segment.map.key ?
-      handleEncryptedInitSegmentResponse({segment, finishProcessingFn}) :
-      handleInitSegmentResponse({segment, finishProcessingFn});
+    const initSegmentRequestCallback = handleInitSegmentResponse({segment, finishProcessingFn});
     const initSegmentXhr = xhr(initSegmentOptions, initSegmentRequestCallback);
 
     activeXhrs.push(initSegmentXhr);
