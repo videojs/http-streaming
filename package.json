@@ -1,6 +1,6 @@
 {
   "name": "@videojs/http-streaming",
-  "version": "2.8.0",
+  "version": "2.8.2",
   "description": "Play back HLS and DASH with Video.js, even where it's not natively supported",
   "main": "dist/videojs-http-streaming.cjs.js",
   "module": "dist/videojs-http-streaming.es.js",
@@ -57,10 +57,10 @@
   ],
   "dependencies": {
     "@babel/runtime": "^7.12.5",
-    "@videojs/vhs-utils": "^3.0.1",
+    "@videojs/vhs-utils": "^3.0.2",
     "aes-decrypter": "3.1.2",
     "global": "^4.4.0",
-    "m3u8-parser": "4.6.0",
+    "m3u8-parser": "4.7.0",
     "mpd-parser": "0.16.0",
     "mux.js": "5.11.0",
     "video.js": "^6 || ^7"
@@ -84,7 +84,7 @@
     "shelljs": "^0.8.4",
     "sinon": "^8.1.1",
     "url-toolkit": "^2.2.1",
-    "videojs-contrib-eme": "^3.8.0",
+    "videojs-contrib-eme": "^3.8.1",
     "videojs-contrib-quality-levels": "^2.0.4",
     "videojs-generate-karma-config": "^7.1.0",
     "videojs-generate-rollup-config": "~6.1.0",

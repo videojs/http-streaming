@@ -1,3 +1,24 @@
+<a name="2.8.2"></a>
+## [2.8.2](https://github.com/videojs/http-streaming/compare/v2.8.1...v2.8.2) (2021-05-20)
+
+### Bug Fixes
+
+* add tests for data uri, fix data uri in demo page ([#1133](https://github.com/videojs/http-streaming/issues/1133)) ([0be51eb](https://github.com/videojs/http-streaming/commit/0be51eb))
+
+<a name="2.8.1"></a>
+## [2.8.1](https://github.com/videojs/http-streaming/compare/v2.8.0...v2.8.1) (2021-05-19)
+
+### Bug Fixes
+
+* add master referenced id/uri for audio playlists. Add playlists to hls media groups ([#1124](https://github.com/videojs/http-streaming/issues/1124)) ([740d2ee](https://github.com/videojs/http-streaming/commit/740d2ee))
+* m3u8-parser/eme updates ([#1131](https://github.com/videojs/http-streaming/issues/1131)) ([29ece75](https://github.com/videojs/http-streaming/commit/29ece75))
+* only append/request init segments when they change ([#1128](https://github.com/videojs/http-streaming/issues/1128)) ([a4af004](https://github.com/videojs/http-streaming/commit/a4af004))
+* set audio status on loaders when setting up media groups ([#1126](https://github.com/videojs/http-streaming/issues/1126)) ([a44f984](https://github.com/videojs/http-streaming/commit/a44f984))
+
+### Chores
+
+* update vhs utils to 3.0.1 ([#1123](https://github.com/videojs/http-streaming/issues/1123)) ([552b012](https://github.com/videojs/http-streaming/commit/552b012))
+
 <a name="2.8.0"></a>
 # [2.8.0](https://github.com/videojs/http-streaming/compare/v2.7.1...v2.8.0) (2021-04-28)
 
