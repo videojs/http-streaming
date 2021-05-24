@@ -257,17 +257,17 @@ QUnit.module('MediaGroups', function() {
 
         this.media = null;
 
-        const settings = {
+        this.settings = {
           mediaTypes: MediaGroups.createMediaTypes(),
           masterPlaylistLoader: {
             media: () => this.media
           }
         };
 
-        this.groups = settings.mediaTypes[groupType].groups;
-        this.tracks = settings.mediaTypes[groupType].tracks;
-        this.activeTrack = MediaGroups.activeTrack[groupType](groupType, settings);
-        this.activeGroup = MediaGroups.activeGroup(groupType, settings);
+        this.groups = this.settings.mediaTypes[groupType].groups;
+        this.tracks = this.settings.mediaTypes[groupType].tracks;
+        this.activeTrack = MediaGroups.activeTrack[groupType](groupType, this.settings);
+        this.activeGroup = MediaGroups.activeGroup(groupType, this.settings);
       },
       afterEach(assert) {
         sharedHooks.afterEach.call(this, assert);
@@ -319,6 +319,77 @@ QUnit.module('MediaGroups', function() {
       assert.deepEqual(this.activeGroup({id: 'en'}), this.groups.foo[0], 'returns track when passed a valid track');
       assert.equal(this.activeGroup({id: 'baz'}), null, 'no group with invalid track');
     });
+
+    if (groupType === 'AUDIO') {
+      QUnit.test('hls audio only playlist returns correct group', function(assert) {
+        this.media = {
+          id: 'fr-bar',
+          attributes: {CODECS: 'mp4a.40.2'}
+        };
+
+        this.settings.master = {
+          mediaGroups: {
+            AUDIO: this.groups
+          }
+        };
+
+        this.groups.main = [{ id: 'en', uri: 'en.ts'}, { id: 'fr', uri: 'fr.ts' }];
+        this.groups.foo = [{ id: 'en-foo', uri: 'en-foo.ts' }, { id: 'fr-foo', uri: 'fr-foo.ts' }];
+        this.groups.bar = [{ id: 'en-bar', uri: 'en-foo.ts' }, { id: 'fr-bar', uri: 'fr-bar.ts' }];
+
+        assert.deepEqual(this.activeGroup(), this.groups.bar, 'selected matching group');
+      });
+
+      QUnit.test('dash audio only playlist returns correct group', function(assert) {
+        this.media = {
+          uri: 'fr-bar-1.ts',
+          attributes: {CODECS: 'mp4a.40.2'}
+        };
+
+        this.settings.master = {
+          mediaGroups: {
+            AUDIO: this.groups
+          }
+        };
+
+        ['main', 'foo', 'bar'].forEach((key) => {
+          this.groups[key] = [{
+            label: 'en',
+            playlists: [
+              {id: `en-${key}-0`, uri: `en-${key}-0.ts`},
+              {id: `en-${key}-1`, uri: `en-${key}-1.ts`}
+            ]
+          }, {
+            label: 'fr',
+            playlists: [
+              {id: `fr-${key}-0`, uri: `fr-${key}-0.ts`},
+              {id: `fr-${key}-1`, uri: `fr-${key}-1.ts`}
+            ]
+          }];
+        });
+
+        assert.deepEqual(this.activeGroup(), this.groups.bar, 'selected matching group');
+      });
+
+      QUnit.test('audio only without group match', function(assert) {
+        this.media = {
+          id: 'nope',
+          attributes: {CODECS: 'mp4a.40.2'}
+        };
+
+        this.settings.master = {
+          mediaGroups: {
+            AUDIO: this.groups
+          }
+        };
+
+        this.groups.main = [{ id: 'en', uri: 'en.ts'}, { id: 'fr', uri: 'fr.ts' }];
+        this.groups.foo = [{ id: 'en-foo', uri: 'en-foo.ts' }, { id: 'fr-foo', uri: 'fr-foo.ts' }];
+        this.groups.bar = [{ id: 'en-bar', uri: 'en-foo.ts' }, { id: 'fr-bar', uri: 'fr-bar.ts' }];
+
+        assert.deepEqual(this.activeGroup(), null, 'selected no group');
+      });
+    }
 
     QUnit.module(`${groupType} getActiveGroup `, {
       beforeEach(assert) {
@@ -987,6 +1058,13 @@ QUnit.module('MediaGroups', function() {
   QUnit.module('initialize', {
     beforeEach(assert) {
       this.mediaTypes = MediaGroups.createMediaTypes();
+      this.mainLoader = {
+        setAudio() {}
+      };
+      this.audioLoader = {
+        on() {},
+        setAudio() {}
+      };
       this.master = {
         mediaGroups: {
           'AUDIO': {},
@@ -1005,8 +1083,9 @@ QUnit.module('MediaGroups', function() {
           }
         },
         segmentLoaders: {
-          AUDIO: { on() {} },
-          SUBTITLES: { on() {} }
+          AUDIO: this.audioLoader,
+          SUBTITLES: { on() {} },
+          main: this.mainLoader
         },
         requestOptions: { withCredentials: false, timeout: 10 },
         master: this.master,
@@ -1440,5 +1519,127 @@ QUnit.module('MediaGroups', function() {
       subtitlesPlaylist,
       'passed the subtitles playlist'
     );
+  });
+
+  QUnit.module('setupMediaGroups', {
+    beforeEach(assert) {
+      this.mediaTypes = MediaGroups.createMediaTypes();
+      this.mainLoader = {
+        audioDisabled_: false,
+        setAudio(enable) {
+          this.audioDisabled_ = !enable;
+        },
+        on() {},
+        abort() {},
+        pause() {}
+      };
+      this.audioLoader = {
+        audioDisabled_: false,
+        setAudio(enable) {
+          this.audioDisabled_ = !enable;
+        },
+        on() {},
+        abort() {},
+        pause() {},
+        resyncLoader() {}
+      };
+      this.master = {
+        mediaGroups: {
+          'AUDIO': {},
+          'SUBTITLES': {},
+          'CLOSED-CAPTIONS': {}
+        }
+      };
+      this.media = null;
+      this.settings = {
+        mode: 'html5',
+        masterPlaylistLoader: {
+          master: this.master,
+          media: () => this.media,
+          on() {}
+        },
+        vhs: {
+          on() {},
+          xhr() {}
+        },
+        tech: {
+          addRemoteTextTrack(track) {
+            return { track };
+          },
+          audioTracks() {
+            return {
+              addEventListener() {},
+              addTrack() {}
+            };
+          },
+          remoteTextTracks() {
+            return {
+              addEventListener() {}
+            };
+          },
+          clearTracks() {}
+        },
+        segmentLoaders: {
+          AUDIO: this.audioLoader,
+          SUBTITLES: { on() {} },
+          main: this.mainLoader
+        },
+        requestOptions: { withCredentials: false, timeout: 10 },
+        master: this.master,
+        mediaTypes: this.mediaTypes,
+        blacklistCurrentPlaylist() {},
+        sourceType: 'hls'
+      };
+    }
+  });
+
+  QUnit.test('audio true for main loader if no audio loader', function(assert) {
+    this.media = {attributes: {}, resolvedUri: 'main.m3u8'};
+    this.master.playlists = [this.media];
+
+    MediaGroups.setupMediaGroups(this.settings);
+
+    assert.notOk(
+      this.mainLoader.audioDisabled_,
+      'main loader: audio enabled'
+    );
+
+    // audio loader remains unchanged as there's no need for an audio loader
+  });
+
+  QUnit.test('audio false for main loader if audio loader', function(assert) {
+    this.media = {resolvedUri: 'video/en.m3u8', attributes: {AUDIO: 'aud1'}};
+    this.master.playlists = [this.media];
+    this.master.mediaGroups.AUDIO.aud1 = {
+      en: { default: true, language: 'en', resolvedUri: 'aud1/en.m3u8' }
+    };
+
+    MediaGroups.setupMediaGroups(this.settings);
+
+    assert.ok(
+      this.mainLoader.audioDisabled_,
+      'main loader: audio disabled'
+    );
+    assert.notOk(
+      this.audioLoader.audioDisabled_,
+      'audio loader: audio enabled'
+    );
+  });
+
+  QUnit.test('audio true for main loader if alternate tracks with main stream as URI attribute', function(assert) {
+    this.media = {resolvedUri: 'en.m3u8', attributes: {AUDIO: 'aud1'}};
+    this.master.playlists = [this.media];
+    this.master.mediaGroups.AUDIO.aud1 = {
+      en: { default: true, language: 'en', resolvedUri: 'en.m3u8' }
+    };
+
+    MediaGroups.setupMediaGroups(this.settings);
+
+    assert.notOk(
+      this.mainLoader.audioDisabled_,
+      'main loader: audio enabled'
+    );
+
+    // audio loader remains unchanged as there's no need for an audio loader
   });
 });
