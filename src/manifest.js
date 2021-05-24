@@ -96,11 +96,7 @@ export const parseManifest = ({
   const parts = getLastParts(manifest);
 
   if (parts.length && !manifest.partTargetDuration) {
-    let partTargetDuration = (manifest.targetDuration / parts.length);
-
-    if (manifest.segments && manifest.segments.length) {
-      partTargetDuration = parts.reduce((acc, p) => Math.max(acc, p.duration), 0);
-    }
+    const partTargetDuration = parts.reduce((acc, p) => Math.max(acc, p.duration), 0);
 
     if (onwarn) {
       onwarn(`manifest has no partTargetDuration defaulting to ${partTargetDuration}`);
