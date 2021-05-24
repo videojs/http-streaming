@@ -98,6 +98,15 @@ const handleErrors = (error, request) => {
     };
   }
 
+  if (request.responseType === 'arraybuffer' && request.response.byteLength === 0) {
+    return {
+      status: request.status,
+      message: 'Empty HLS response at URL: ' + request.uri,
+      code: REQUEST_ERRORS.FAILURE,
+      xhr: request
+    };
+  }
+
   return null;
 };
 
@@ -144,21 +153,10 @@ const handleKeyResponse = (segment, objects, finishProcessingFn) => (error, requ
 };
 
 const handleEncryptedInitSegmentResponse = ({segment, finishProcessingFn}) => (error, request) => {
-  const response = request.response;
   const errorObj = handleErrors(error, request);
 
   if (errorObj) {
     return finishProcessingFn(errorObj, segment);
-  }
-
-  // stop processing if received empty content
-  if (response.byteLength === 0) {
-    return finishProcessingFn({
-      status: request.status,
-      message: 'Empty HLS segment content at URL: ' + request.uri,
-      code: REQUEST_ERRORS.FAILURE,
-      xhr: request
-    }, segment);
   }
 
   segment.map.encryptedBytes = new Uint8Array(request.response);
@@ -166,47 +164,19 @@ const handleEncryptedInitSegmentResponse = ({segment, finishProcessingFn}) => (e
   return finishProcessingFn(null, segment);
 };
 
-/**
- * Handle init-segment responses
- *
- * @param {Object} segment - a simplified copy of the segmentInfo object
- *                           from SegmentLoader
- * @param {Function} finishProcessingFn - a callback to execute to continue processing
- *                                        this request
- */
-const handleInitSegmentResponse =
-({segment, finishProcessingFn}) => (error, request) => {
-  const response = request.response;
-  const errorObj = handleErrors(error, request);
-
-  if (errorObj) {
-    return finishProcessingFn(errorObj, segment);
-  }
-
-  // stop processing if received empty content
-  if (response.byteLength === 0) {
-    return finishProcessingFn({
-      status: request.status,
-      message: 'Empty HLS segment content at URL: ' + request.uri,
-      code: REQUEST_ERRORS.FAILURE,
-      xhr: request
-    }, segment);
-  }
-
-  segment.map.bytes = new Uint8Array(request.response);
-
+const parseInitSegment = (segment, callback) => {
   const type = detectContainerForBytes(segment.map.bytes);
 
   // TODO: We should also handle ts init segments here, but we
   // only know how to parse mp4 init segments at the moment
   if (type !== 'mp4') {
-    return finishProcessingFn({
-      status: request.status,
-      message: `Found unsupported ${type || 'unknown'} container for initialization segment at URL: ${request.uri}`,
-      code: REQUEST_ERRORS.FAILURE,
+    const uri = segment.map.resolvedUri || segment.map.uri;
+
+    return callback({
       internal: true,
-      xhr: request
-    }, segment);
+      message: `Found unsupported ${type || 'unknown'} container for initialization segment at URL: ${uri}`,
+      code: REQUEST_ERRORS.FAILURE
+    });
   }
 
   workerCallback({
@@ -234,8 +204,38 @@ const handleInitSegmentResponse =
 
       });
 
-      return finishProcessingFn(null, segment);
+      return callback(null);
     }
+  });
+};
+
+/**
+ * Handle init-segment responses
+ *
+ * @param {Object} segment - a simplified copy of the segmentInfo object
+ *                           from SegmentLoader
+ * @param {Function} finishProcessingFn - a callback to execute to continue processing
+ *                                        this request
+ */
+const handleInitSegmentResponse =
+({segment, finishProcessingFn}) => (error, request) => {
+  const errorObj = handleErrors(error, request);
+
+  if (errorObj) {
+    return finishProcessingFn(errorObj, segment);
+  }
+
+  segment.map.bytes = new Uint8Array(request.response);
+
+  parseInitSegment(segment, function(parseError) {
+    if (parseError) {
+      parseError.xhr = request;
+      parseError.status = request.status;
+
+      return finishProcessingFn(parseError, segment);
+    }
+
+    finishProcessingFn(null, segment);
   });
 };
 
@@ -254,7 +254,6 @@ const handleSegmentResponse = ({
   finishProcessingFn,
   responseType
 }) => (error, request) => {
-  const response = request.response;
   const errorObj = handleErrors(error, request);
 
   if (errorObj) {
@@ -270,16 +269,6 @@ const handleSegmentResponse = ({
     (responseType === 'arraybuffer' || !request.responseText) ?
       request.response :
       stringToArrayBuffer(request.responseText.substring(segment.lastReachedChar || 0));
-
-  // stop processing if received empty content
-  if (response.byteLength === 0) {
-    return finishProcessingFn({
-      status: request.status,
-      message: 'Empty HLS segment content at URL: ' + request.uri,
-      code: REQUEST_ERRORS.FAILURE,
-      xhr: request
-    }, segment);
-  }
 
   segment.stats = getRequestStats(request);
 
@@ -782,17 +771,16 @@ const waitForCompletion = ({
           encryptedBytes: segment.map.encryptedBytes,
           key: segment.map.key
         }, (decryptedBytes) => {
-          handleInitSegmentResponse({segment, finishProcessingFn: (_error, _segment) => {
-            if (_error) {
-              didError = true;
-              // If there are errors, we have to abort any outstanding requests
-              abortAll(activeXhrs);
+          segment.map.bytes = decryptedBytes;
 
-              return doneFn(_error, _segment);
+          parseInitSegment(segment, (parseError) => {
+            if (parseError) {
+              abortAll(activeXhrs);
+              return doneFn(parseError, segment);
             }
 
             segmentFinish();
-          }})(null, {response: decryptedBytes, uri: segment.map.resolvedUri});
+          });
 
         });
       }
