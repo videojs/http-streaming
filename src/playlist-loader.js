@@ -334,7 +334,7 @@ export default class PlaylistLoader extends EventTarget {
 
       let uri = resolveUrl(this.master.uri, media.uri);
 
-      if (this.experimentalLLHLS) {
+      if (this.experimentalLLHLS && !media.endList) {
         const query = [];
 
         if (media.serverControl && media.serverControl.canBlockReload) {
