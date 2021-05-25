@@ -364,7 +364,7 @@ export default class PlaylistLoader extends EventTarget {
             }
           }
 
-          // add _HLS_msn= infront of any _HLS_part query
+          // add _HLS_msn= in front of any _HLS_part query
           query.unshift(`_HLS_msn=${nextMSN}`);
         }
 
