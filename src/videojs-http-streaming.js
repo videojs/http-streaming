@@ -511,6 +511,12 @@ class VhsHandler extends Component {
       videojs.log.warn('Using hls options is deprecated. Use vhs instead.');
     }
 
+    // if a tech level `initialBandwidth` option was passed
+    // use that over the VHS level `bandwidth` option
+    if (typeof options.initialBandwidth === 'number') {
+      this.options_.bandwidth = options.initialBandwidth;
+    }
+
     this.logger_ = logger('VhsHandler');
 
     // tech.player() is deprecated but setup a reference to HLS for

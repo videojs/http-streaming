@@ -2,7 +2,7 @@ import videojs from 'video.js';
 import PlaylistLoader from './playlist-loader';
 import DashPlaylistLoader from './dash-playlist-loader';
 import noop from './util/noop';
-import {isAudioOnly} from './playlist.js';
+import {isAudioOnly, playlistMatch} from './playlist.js';
 import logger from './util/logger';
 
 /**
@@ -468,6 +468,8 @@ export const initialize = {
             vhs,
             requestOptions
           );
+        // TODO: dash isn't the only type with properties.playlists
+        // should we even have properties.playlists in this check.
         } else if (properties.playlists && sourceType === 'dash') {
           playlistLoader = new DashPlaylistLoader(
             properties.playlists[0],
@@ -662,6 +664,20 @@ export const initialize = {
   }
 };
 
+const groupMatch = (list, media) => {
+  for (let i = 0; i < list.length; i++) {
+    if (playlistMatch(media, list[i])) {
+      return true;
+    }
+
+    if (list[i].playlists && groupMatch(list[i].playlists, media)) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
 /**
  * Returns a function used to get the active group of the provided type
  *
@@ -698,8 +714,20 @@ export const activeGroup = (type, settings) => (track) => {
   const groupKeys = Object.keys(groups);
 
   if (!variants) {
+    // find the masterPlaylistLoader media
+    // that is in a media group if we are dealing
+    // with audio only
+    if (type === 'AUDIO' && groupKeys.length > 1 && isAudioOnly(settings.master)) {
+      for (let i = 0; i < groupKeys.length; i++) {
+        const groupPropertyList = groups[groupKeys[i]];
+
+        if (groupMatch(groupPropertyList, media)) {
+          variants = groupPropertyList;
+          break;
+        }
+      }
     // use the main group if it exists
-    if (groups.main) {
+    } else if (groups.main) {
       variants = groups.main;
     // only one group, use that one
     } else if (groupKeys.length === 1) {
@@ -810,7 +838,11 @@ export const setupMediaGroups = (settings) => {
     mediaTypes,
     masterPlaylistLoader,
     tech,
-    vhs
+    vhs,
+    segmentLoaders: {
+      ['AUDIO']: audioSegmentLoader,
+      main: mainSegmentLoader
+    }
   } = settings;
 
   // setup active group and track getters and change event handlers
@@ -833,6 +865,20 @@ export const setupMediaGroups = (settings) => {
     mediaTypes.AUDIO.tracks[groupId].enabled = true;
     mediaTypes.AUDIO.onGroupChanged();
     mediaTypes.AUDIO.onTrackChanged();
+
+    const activeAudioGroup = mediaTypes.AUDIO.getActiveGroup();
+
+    // a similar check for handling setAudio on each loader is run again each time the
+    // track is changed, but needs to be handled here since the track may not be considered
+    // changed on the first call to onTrackChanged
+    if (!activeAudioGroup.playlistLoader) {
+      // either audio is muxed with video or the stream is audio only
+      mainSegmentLoader.setAudio(true);
+    } else {
+      // audio is demuxed
+      mainSegmentLoader.setAudio(false);
+      audioSegmentLoader.setAudio(true);
+    }
   }
 
   masterPlaylistLoader.on('mediachange', () => {
