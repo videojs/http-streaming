@@ -2048,8 +2048,8 @@ export default class SegmentLoader extends videojs.EventTarget {
 
       const next = this.chooseNextRequest_();
 
-      // if the sync request isn't the segment that would be request next
-      // after taking into account it's data. do not append it.
+      // If the sync request isn't the segment that would be requested next
+      // after taking into account its timing info, do not append it.
       if (next.mediaIndex !== segmentInfo.mediaIndex || next.partIndex !== segmentInfo.partIndex) {
         this.logger_('sync segment was incorrect, not appending');
         return;
