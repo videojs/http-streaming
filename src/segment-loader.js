@@ -55,7 +55,7 @@ export const getSyncSegmentCandidate = function(currentTimeline, segments, targe
   if (timelineSegments.length === 0) {
     return 0;
   }
-  
+
   // default to the last timeline segment
   return timelineSegments[timelineSegments.length - 1];
 };
