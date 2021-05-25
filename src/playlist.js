@@ -368,12 +368,14 @@ export const seekable = function(playlist, expired, liveEdgePadding) {
  * Determine the index and estimated starting time of the segment that
  * contains a specified playback position in a media playlist.
  *
- * @param {Object} playlist the media playlist to query
- * @param {number} currentTime The number of seconds since the earliest
+ * @param {Object} options.playlist the media playlist to query
+ * @param {number} options.currentTime The number of seconds since the earliest
  * possible position to determine the containing segment for
- * @param {number} startIndex
- * @param {number} startTime
- * @return {Object}
+ * @param {number} options.startTime the time where the segment/part starts
+ * @param {number} options.segmentIndex the segment index to start looking at.
+ * @param {number} [options.partIndex] the part index to look at within the segment.
+ *
+ * @return {Object} an object with partIndex, segmentIndex, and startTime.
  */
 export const getMediaInfoForTime = function({
   playlist,
