@@ -92,7 +92,7 @@ QUnit.test('getSyncSegmentCandidate works as expected', function(assert) {
   ];
 
   assert.equal(getSyncSegmentCandidate(-1, segments, 0), 0, '-1 timeline, 4x 0 segments, 0 target');
-  assert.equal(getSyncSegmentCandidate(0, segments, 1), 0, '0 timeline, 4x 0 segments, 4 target');
+  assert.equal(getSyncSegmentCandidate(0, segments, 1), 0, '0 timeline, 4x 0 segments, 1 target');
   assert.equal(getSyncSegmentCandidate(0, segments, 4), 1, '0 timeline, 4x 0 segments, 4 target');
   assert.equal(getSyncSegmentCandidate(-1, segments, 8), 0, '-1 timeline, 4x 0 segments, 8 target');
   assert.equal(getSyncSegmentCandidate(0, segments, 8), 2, '0 timeline, 4x 0 segments, 8 target');
