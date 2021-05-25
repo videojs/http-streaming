@@ -2166,7 +2166,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     );
   });
 
-  QUnit.test('#EXT-X-PRELOAD without parts not to added to segment list', function(assert) {
+  QUnit.test('#EXT-X-PRELOAD without parts not added to segment list', function(assert) {
     this.fakeVhs.options_ = {experimentalLLHLS: true};
     const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
 
