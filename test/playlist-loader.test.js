@@ -2020,7 +2020,6 @@ QUnit.module('Playlist Loader', function(hooks) {
 
       loader.load();
 
-      // no newline
       this.requests.shift().respond(
         200, null,
         '#EXTM3U\n' +
@@ -2067,7 +2066,6 @@ QUnit.module('Playlist Loader', function(hooks) {
 
     loader.load();
 
-    // no newline
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
@@ -2093,7 +2091,6 @@ QUnit.module('Playlist Loader', function(hooks) {
       playlist += `segment-${i}.ts\n`;
     }
 
-    // no newline
     this.requests.shift().respond(200, null, playlist);
     assert.equal(loader.media().segments.length, 10, '10 segments');
 
@@ -2146,7 +2143,6 @@ QUnit.module('Playlist Loader', function(hooks) {
 
     loader.load();
 
-    // no newline
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
@@ -2172,7 +2168,6 @@ QUnit.module('Playlist Loader', function(hooks) {
 
     loader.load();
 
-    // no newline
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
@@ -2197,39 +2192,6 @@ QUnit.module('Playlist Loader', function(hooks) {
 
     loader.load();
 
-    // no newline
-    this.requests.shift().respond(
-      200, null,
-      '#EXTM3U\n' +
-      '#EXT-X-MEDIA-SEQUENCE:0\n' +
-      '#EXTINF:2\n' +
-      'segment0.ts\n' +
-      '#EXT-X-PART:URI="segment1-part1.ts",DURATION=1\n' +
-      '#EXT-X-PART:URI="segment1-part2.ts",DURATION=1\n' +
-      'segment1.ts\n' +
-      '#EXT-X-PART:URI="segment2-part1.ts",DURATION=1\n' +
-      '#EXT-X-PART:URI="segment2-part2.ts",DURATION=1\n' +
-      'segment2.ts\n' +
-      '#EXT-X-PART:URI="segment3-part1.ts",DURATION=1\n' +
-      '#EXT-X-PART:URI="segment3-part2.ts",DURATION=1\n' +
-      'segment3.ts\n'
-    );
-    const segments = loader.media().segments;
-
-    assert.equal(segments.length, 4, '4 segments');
-    assert.notOk(segments[0].parts, 'no parts for first segment');
-    assert.equal(segments[1].parts.length, 2, 'parts for second segment');
-    assert.equal(segments[2].parts.length, 2, 'parts for third segment');
-    assert.equal(segments[3].parts.length, 2, 'parts for forth segment');
-  });
-
-  QUnit.test('#EXT-X-PART added to segments', function(assert) {
-    this.fakeVhs.options_ = {experimentalLLHLS: true};
-    const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
-
-    loader.load();
-
-    // no newline
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
@@ -2261,7 +2223,6 @@ QUnit.module('Playlist Loader', function(hooks) {
 
     loader.load();
 
-    // no newline
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
@@ -2301,7 +2262,6 @@ QUnit.module('Playlist Loader', function(hooks) {
 
     loader.load();
 
-    // no newline
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
@@ -2341,7 +2301,6 @@ QUnit.module('Playlist Loader', function(hooks) {
 
     loader.load();
 
-    // no newline
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
@@ -2380,7 +2339,6 @@ QUnit.module('Playlist Loader', function(hooks) {
 
     loader.load();
 
-    // no newline
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
@@ -2418,7 +2376,6 @@ QUnit.module('Playlist Loader', function(hooks) {
 
     loader.load();
 
-    // no newline
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
@@ -2456,7 +2413,6 @@ QUnit.module('Playlist Loader', function(hooks) {
 
     loader.load();
 
-    // no newline
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
@@ -2496,7 +2452,6 @@ QUnit.module('Playlist Loader', function(hooks) {
 
     loader.load();
 
-    // no newline
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
