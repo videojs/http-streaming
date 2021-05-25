@@ -20,6 +20,57 @@ import {getKnownPartCount} from './playlist.js';
 
 const { mergeOptions, EventTarget } = videojs;
 
+const addLLHLSQueryDirectives = (uri, media) => {
+  if (media.endList) {
+    return uri;
+  }
+  const query = [];
+
+  if (media.serverControl && media.serverControl.canBlockReload) {
+    const {preloadSegment} = media;
+    // next msn is a zero based value, length is not.
+    let nextMSN = media.mediaSequence + media.segments.length;
+
+    if (preloadSegment) {
+      const parts = preloadSegment.parts || [];
+      // _HLS_part is a zero based index
+      const nextPart = getKnownPartCount(media) - 1;
+
+      // if nextPart is > -1 and not equal to just the
+      // length of parts, then we know we had part preload hints
+      // and we need to add the _HLS_part= query
+      if (nextPart > -1 && nextPart !== (parts.length - 1)) {
+        // add existing parts to our preload hints
+        query.push(`_HLS_part=${nextPart}`);
+      }
+
+      // if we are requesting a nextPart or preload segment was added
+      // to our segment list. We are requesting a part of the preload segment
+      // or the full preload segment. Either way we need to go down by 1
+      // in nextMSN
+      if (nextPart > -1 || parts.length) {
+        nextMSN--;
+      }
+    }
+
+    // add _HLS_msn= in front of any _HLS_part query
+    query.unshift(`_HLS_msn=${nextMSN}`);
+  }
+
+  if (media.serverControl && media.serverControl.canSkipUntil) {
+    // add _HLS_skip= infront of all other queries.
+    query.unshift('_HLS_skip=' + (media.serverControl.canSkipDateranges ? 'v2' : 'YES'));
+  }
+
+  query.forEach(function(str, i) {
+    const symbol = i === 0 ? '?' : '&';
+
+    uri += `${symbol}${str}`;
+  });
+
+  return uri;
+};
+
 /**
  * Returns a new segment object with properties and
  * the parts array merged.
@@ -325,83 +376,44 @@ export default class PlaylistLoader extends EventTarget {
     this.state = 'HAVE_NOTHING';
 
     // live playlist staleness timeout
-    this.on('mediaupdatetimeout', () => {
-      if (this.state !== 'HAVE_METADATA') {
-        // only refresh the media playlist if no other activity is going on
+    this.handleMediaupdatetimeout_ = this.handleMediaupdatetimeout_.bind(this);
+    this.on('mediaupdatetimeout', this.handleMediaupdatetimeout_);
+  }
+
+  handleMediaupdatetimeout_() {
+    if (this.state !== 'HAVE_METADATA') {
+      // only refresh the media playlist if no other activity is going on
+      return;
+    }
+    const media = this.media();
+
+    let uri = resolveUrl(this.master.uri, media.uri);
+
+    if (this.experimentalLLHLS) {
+      uri = addLLHLSQueryDirectives(uri, media);
+    }
+    this.state = 'HAVE_CURRENT_METADATA';
+
+    this.request = this.vhs_.xhr({
+      uri,
+      withCredentials: this.withCredentials
+    }, (error, req) => {
+      // disposed
+      if (!this.request) {
         return;
       }
-      const media = this.media();
 
-      let uri = resolveUrl(this.master.uri, media.uri);
-
-      if (this.experimentalLLHLS && !media.endList) {
-        const query = [];
-
-        if (media.serverControl && media.serverControl.canBlockReload) {
-          const {preloadSegment} = media;
-          // next msn is a zero based value, length is not.
-          let nextMSN = media.mediaSequence + media.segments.length;
-
-          if (preloadSegment) {
-            const parts = preloadSegment.parts || [];
-            // _HLS_part is a zero based index
-            const nextPart = getKnownPartCount(media) - 1;
-
-            // if nextPart is > -1 and not equal to just the
-            // length of parts, then we know we had part preload hints
-            // and we need to add the _HLS_part= query
-            if (nextPart > -1 && nextPart !== (parts.length - 1)) {
-              // add existing parts to our preload hints
-              query.push(`_HLS_part=${nextPart}`);
-            }
-
-            // if we are requesting a nextPart or preload segment was added
-            // to our segment list. We are requesting a part of the preload segment
-            // or the full preload segment. Either way we need to go down by 1
-            // in nextMSN
-            if (nextPart > -1 || parts.length) {
-              nextMSN--;
-            }
-          }
-
-          // add _HLS_msn= in front of any _HLS_part query
-          query.unshift(`_HLS_msn=${nextMSN}`);
-        }
-
-        if (media.serverControl && media.serverControl.canSkipUntil) {
-          // add _HLS_skip= infront of all other queries.
-          query.unshift('_HLS_skip=' + (media.serverControl.canSkipDateranges ? 'v2' : 'YES'));
-        }
-
-        query.forEach(function(str, i) {
-          const symbol = i === 0 ? '?' : '&';
-
-          uri += `${symbol}${str}`;
-        });
-
+      if (error) {
+        return this.playlistRequestError(this.request, this.media(), 'HAVE_METADATA');
       }
-      this.state = 'HAVE_CURRENT_METADATA';
 
-      this.request = this.vhs_.xhr({
-        uri,
-        withCredentials: this.withCredentials
-      }, (error, req) => {
-        // disposed
-        if (!this.request) {
-          return;
-        }
-
-        if (error) {
-          return this.playlistRequestError(this.request, this.media(), 'HAVE_METADATA');
-        }
-
-        this.haveMetadata({
-          playlistString: this.request.responseText,
-          url: this.media().uri,
-          id: this.media().id
-        });
+      this.haveMetadata({
+        playlistString: this.request.responseText,
+        url: this.media().uri,
+        id: this.media().id
       });
     });
+
   }
 
   playlistRequestError(xhr, playlist, startingState) {
