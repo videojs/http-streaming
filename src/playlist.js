@@ -373,7 +373,7 @@ export const seekable = function(playlist, expired, liveEdgePadding) {
  * possible position to determine the containing segment for
  * @param {number} options.startTime the time where the segment/part starts
  * @param {number} options.segmentIndex the segment index to start looking at.
- * @param {number} [options.partIndex] the part index to look at within the segment.
+ * @param {number?} [options.partIndex] the part index to look at within the segment.
  *
  * @return {Object} an object with partIndex, segmentIndex, and startTime.
  */
