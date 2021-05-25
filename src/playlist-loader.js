@@ -257,8 +257,8 @@ export const updateMaster = (master, newMedia, unchangedCheck = isPlaylistUnchan
       return;
     }
     for (let i = 0; i < properties.playlists.length; i++) {
-      if (media.id === properties.playlists[i].id) {
-        properties.playlists[i] = media;
+      if (newMedia.id === properties.playlists[i].id) {
+        properties.playlists[i] = newMedia;
       }
     }
   });
