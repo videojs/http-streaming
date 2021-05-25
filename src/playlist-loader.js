@@ -212,7 +212,7 @@ export const updateMaster = (master, newMedia, unchangedCheck = isPlaylistUnchan
 
   const mergedPlaylist = mergeOptions(oldMedia, newMedia);
 
-  // always use the new medias preload segment.
+  // always use the new media's preload segment
   if (mergedPlaylist.preloadSegment && !newMedia.preloadSegment) {
     delete mergedPlaylist.preloadSegment;
   }
