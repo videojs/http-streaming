@@ -79,26 +79,26 @@ SegmentLoader.prototype.addSegmentMetadataCue_ = function() {};
 QUnit.module('SegmentLoader Isolated Functions');
 
 QUnit.test('getSyncSegmentCandidate works as expected', function(assert) {
-  const playlist = {};
+  let segments = [];
 
-  assert.equal(getSyncSegmentCandidate(-1, playlist, 0), 0, '-1 timeline, no segments, 0 target');
-  assert.equal(getSyncSegmentCandidate(0, playlist, 0), 0, '0 timeline, no segments, 0 target');
+  assert.equal(getSyncSegmentCandidate(-1, segments, 0), 0, '-1 timeline, no segments, 0 target');
+  assert.equal(getSyncSegmentCandidate(0, segments, 0), 0, '0 timeline, no segments, 0 target');
 
-  playlist.segments = [
+  segments = [
     {timeline: 0, duration: 4},
     {timeline: 0, duration: 4},
     {timeline: 0, duration: 4},
     {timeline: 0, duration: 4}
   ];
 
-  assert.equal(getSyncSegmentCandidate(-1, playlist, 0), 0, '-1 timeline, 4x 0 segments, 0 target');
-  assert.equal(getSyncSegmentCandidate(0, playlist, 1), 0, '0 timeline, 4x 0 segments, 4 target');
-  assert.equal(getSyncSegmentCandidate(0, playlist, 4), 1, '0 timeline, 4x 0 segments, 4 target');
-  assert.equal(getSyncSegmentCandidate(-1, playlist, 8), 0, '-1 timeline, 4x 0 segments, 8 target');
-  assert.equal(getSyncSegmentCandidate(0, playlist, 8), 2, '0 timeline, 4x 0 segments, 8 target');
-  assert.equal(getSyncSegmentCandidate(0, playlist, 20), 3, '0 timeline, 4x 0 segments, 20 target');
+  assert.equal(getSyncSegmentCandidate(-1, segments, 0), 0, '-1 timeline, 4x 0 segments, 0 target');
+  assert.equal(getSyncSegmentCandidate(0, segments, 1), 0, '0 timeline, 4x 0 segments, 4 target');
+  assert.equal(getSyncSegmentCandidate(0, segments, 4), 1, '0 timeline, 4x 0 segments, 4 target');
+  assert.equal(getSyncSegmentCandidate(-1, segments, 8), 0, '-1 timeline, 4x 0 segments, 8 target');
+  assert.equal(getSyncSegmentCandidate(0, segments, 8), 2, '0 timeline, 4x 0 segments, 8 target');
+  assert.equal(getSyncSegmentCandidate(0, segments, 20), 3, '0 timeline, 4x 0 segments, 20 target');
 
-  playlist.segments = [
+  segments = [
     {timeline: 1, duration: 4},
     {timeline: 0, duration: 4},
     {timeline: 1, duration: 4},
@@ -108,9 +108,9 @@ QUnit.test('getSyncSegmentCandidate works as expected', function(assert) {
     {timeline: 0, duration: 4}
   ];
 
-  assert.equal(getSyncSegmentCandidate(1, playlist, 8), 5, '1 timeline, mixed timeline segments, 8 target');
-  assert.equal(getSyncSegmentCandidate(0, playlist, 8), 6, '0 timeline, mixed timeline segments, 8 target');
-  assert.equal(getSyncSegmentCandidate(2, playlist, 8), 4, '2 timeline, mixed timeline segments, 8 target');
+  assert.equal(getSyncSegmentCandidate(1, segments, 8), 5, '1 timeline, mixed timeline segments, 8 target');
+  assert.equal(getSyncSegmentCandidate(0, segments, 8), 6, '0 timeline, mixed timeline segments, 8 target');
+  assert.equal(getSyncSegmentCandidate(2, segments, 8), 4, '2 timeline, mixed timeline segments, 8 target');
 });
 
 QUnit.test('illegalMediaSwitch detects illegal media switches', function(assert) {

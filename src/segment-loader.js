@@ -31,12 +31,11 @@ import {lastBufferedEnd} from './ranges.js';
  * generate a syncPoint. This function returns a good candidate index
  * for that process.
  *
- * @param {Object} playlist - the playlist object to look for a
+ * @param {Array} segments - the segments array from a playlist.
  * @return {number} An index of a segment from the playlist to load
  */
-export const getSyncSegmentCandidate = function(currentTimeline, playlist, targetTime) {
-  const segments = playlist.segments || [];
-
+export const getSyncSegmentCandidate = function(currentTimeline, segments, targetTime) {
+  segments = segments || [];
   const timelineSegments = [];
   let time = 0;
 
@@ -1385,7 +1384,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     };
 
     if (next.isSyncRequest) {
-      next.mediaIndex = getSyncSegmentCandidate(this.currentTimeline_, this.playlist_, bufferedEnd);
+      next.mediaIndex = getSyncSegmentCandidate(this.currentTimeline_, segments, bufferedEnd);
     } else if (this.mediaIndex !== null) {
       const segment = segments[this.mediaIndex];
       const partIndex = typeof this.partIndex === 'number' ? this.partIndex : -1;
