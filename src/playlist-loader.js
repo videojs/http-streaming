@@ -222,7 +222,7 @@ export const updateMaster = (master, newMedia, unchangedCheck = isPlaylistUnchan
     if (newMedia.skip) {
       newMedia.segments = newMedia.segments || [];
       // add back in objects for skipped segments, so that we merge
-      // old properties into this new segment
+      // old properties into the new segments
       for (let i = 0; i < newMedia.skip.skippedSegments; i++) {
         newMedia.segments.unshift({skipped: true});
       }
