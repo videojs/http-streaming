@@ -261,10 +261,10 @@ export const duration = function(playlist, endSequence, expired) {
   * playlist in which case, the targetDuration of the playlist is used
   * to approximate the durations of the segments
   *
-  * @param {Object} durationList list to iterate over for durations.
-  * @param {number} defaultDuration duration to use for elements before or after the durationList
-  * @param {number} startIndex partsAndSegments index to start
-  * @param {number} endIndex partsAndSegments index to end.
+  * @param {Object} options.durationList list to iterate over for durations.
+  * @param {number} options.defaultDuration duration to use for elements before or after the durationList
+  * @param {number} options.startIndex partsAndSegments index to start
+  * @param {number} options.endIndex partsAndSegments index to end.
   * @return {number} the number of seconds between startIndex and endIndex
   */
 export const sumDurations = function({defaultDuration, durationList, startIndex, endIndex}) {
