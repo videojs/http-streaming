@@ -52,8 +52,12 @@ export const getSyncSegmentCandidate = function(currentTimeline, segments, targe
     }
   }
 
-  // default to grabbing the last timeline segment or zero.
-  return Math.max(0, timelineSegments[timelineSegments.length - 1] || 0);
+  if (timelineSegments.length === 0) {
+    return 0;
+  }
+  
+  // default to the last timeline segment
+  return timelineSegments[timelineSegments.length - 1];
 };
 
 // In the event of a quota exceeded error, keep at least one second of back buffer. This
