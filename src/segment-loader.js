@@ -407,19 +407,32 @@ export const shouldWaitForTimelineChange = ({
   return false;
 };
 
-export const mediaDuration = (audioTimingInfo, videoTimingInfo) => {
-  const audioDuration =
-    audioTimingInfo &&
-    typeof audioTimingInfo.start === 'number' &&
-    typeof audioTimingInfo.end === 'number' ?
-      audioTimingInfo.end - audioTimingInfo.start : 0;
-  const videoDuration =
-    videoTimingInfo &&
-    typeof videoTimingInfo.start === 'number' &&
-    typeof videoTimingInfo.end === 'number' ?
-      videoTimingInfo.end - videoTimingInfo.start : 0;
+export const mediaDuration = (timingInfos) => {
+  let maxDuration = 0;
 
-  return Math.max(audioDuration, videoDuration);
+  ['video', 'audio'].forEach(function(type) {
+    const typeTimingInfo = timingInfos[`${type}TimingInfo`];
+
+    if (!typeTimingInfo) {
+      return;
+    }
+    const {start, end} = typeTimingInfo;
+    let duration;
+
+    // eslint-disable-next-line
+    if (typeof start === 'bigint' || typeof end === 'bigint') {
+      duration = window.BigInt(end) - window.BigInt(start);
+    } else if (typeof start === 'number' && typeof end === 'number') {
+      duration = end - start;
+
+    }
+
+    if (typeof duration !== 'undefined' && duration > maxDuration) {
+      maxDuration = duration;
+    }
+  });
+
+  return maxDuration;
 };
 
 export const segmentTooLong = ({ segmentDuration, maxDuration }) => {
@@ -450,10 +463,10 @@ export const getTroublesomeSegmentDurationMessage = (segmentInfo, sourceType) =>
     return null;
   }
 
-  const segmentDuration = mediaDuration(
-    segmentInfo.audioTimingInfo,
-    segmentInfo.videoTimingInfo
-  );
+  const segmentDuration = mediaDuration({
+    audioTimingInfo: segmentInfo.audioTimingInfo,
+    videoTimingInfo: segmentInfo.videoTimingInfo
+  });
 
   // Don't report if we lack information.
   //
@@ -2044,7 +2057,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     // if this request included an initialization segment, save that data
-    // to the initSegment cache
+    // to the initSegment cachehttps://github.com/videojs/mux.js/pull/383
     if (simpleSegment.map) {
       simpleSegment.map = this.initSegmentForMap(simpleSegment.map, true);
       // move over init segment properties to media request

@@ -107,8 +107,15 @@ const xhrFactory = function() {
 const byterangeStr = function(byterange) {
   // `byterangeEnd` is one less than `offset + length` because the HTTP range
   // header uses inclusive ranges
-  const byterangeEnd = byterange.offset + byterange.length - 1;
+  let byterangeEnd;
   const byterangeStart = byterange.offset;
+
+  // eslint-disable-next-line
+  if (typeof byterange.offset === 'bigint' || typeof byterange.length === 'bigint') {
+    byterangeEnd = global.BigInt(byterange.offset) + global.BigInt(byterange.length) - global.BigInt(1);
+  } else {
+    byterangeEnd = byterange.offset + byterange.length - 1;
+  }
 
   return 'bytes=' + byterangeStart + '-' + byterangeEnd;
 };
