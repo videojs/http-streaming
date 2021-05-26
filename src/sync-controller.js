@@ -471,7 +471,7 @@ export default class SyncController extends videojs.EventTarget {
    *          Returns false if segment time mapping could not be calculated
    */
   calculateSegmentTimeMapping_(segmentInfo, timingInfo, shouldSaveTimelineMapping) {
-    // TODO: a calculate function, shouldn't have side effects...
+    // TODO: remove side effects
     const segment = segmentInfo.segment;
     const part = segmentInfo.part;
     let mappingObj = this.timelines[segmentInfo.timeline];
