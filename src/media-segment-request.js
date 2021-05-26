@@ -762,7 +762,10 @@ const waitForCompletion = ({
       if (segment.map && segment.map.encryptedBytes && !segment.map.bytes) {
         return decrypt({
           decryptionWorker,
-          id: segment.requestId,
+          // add -init to the "id" to differentiate between segment
+          // and init segment decryption, just in case they happen
+          // at the same time at some point in the future.
+          id: segment.requestId + '-init',
           encryptedBytes: segment.map.encryptedBytes,
           key: segment.map.key
         }, (decryptedBytes) => {
