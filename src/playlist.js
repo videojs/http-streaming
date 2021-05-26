@@ -371,7 +371,7 @@ export const seekable = function(playlist, expired, liveEdgePadding) {
  * @param {Object} options.playlist the media playlist to query
  * @param {number} options.currentTime The number of seconds since the earliest
  * possible position to determine the containing segment for
- * @param {number} options.startTime the time where the segment/part starts
+ * @param {number} options.startTime the time when the segment/part starts
  * @param {number} options.segmentIndex the segment index to start looking at.
  * @param {number?} [options.partIndex] the part index to look at within the segment.
  *
