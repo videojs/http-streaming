@@ -51,7 +51,7 @@ const addLLHLSQueryDirectives = (uri, media) => {
       // of the preload segment if:
       // 1. the preload segment had parts (and was not yet a full segment)
       //    but was added to our segments array
-      // 2. the preload segment had preload hints for parts that our not in
+      // 2. the preload segment had preload hints for parts that are not in
       //    the manifest yet.
       // in all other cases we want the segment after the preload segment
       // which will be given by using media.segments.length because it is 1 based
