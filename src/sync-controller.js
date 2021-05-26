@@ -38,6 +38,8 @@ export const syncPointStrategies = [
 
       currentTime = currentTime || 0;
       for (let i = 0; i < partsAndSegments.length; i++) {
+        // start from the end and loop backwards for live
+        // or start from the front and loop forwards for non-live
         const index = (playlist.endList || currentTime === 0) ? i : partsAndSegments.length - (i + 1);
         const partAndSegment = partsAndSegments[index];
         const segment = partAndSegment.segment;
@@ -89,6 +91,8 @@ export const syncPointStrategies = [
       const partsAndSegments = getPartsAndSegments(playlist);
 
       for (let i = 0; i < partsAndSegments.length; i++) {
+        // start from the end and loop backwards for live
+        // or start from the front and loop forwards for non-live
         const index = (playlist.endList || currentTime === 0) ? i : partsAndSegments.length - (i + 1);
         const partAndSegment = partsAndSegments[index];
         const segment = partAndSegment.segment;

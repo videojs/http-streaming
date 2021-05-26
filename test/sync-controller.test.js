@@ -246,30 +246,20 @@ QUnit.test('ProgramDateTime strategy finds nearest llhls sync point', function(a
 
   this.syncController.setDateTimeMappingForStart(playlist);
 
-  const newPlaylist = playlistWithDuration(200, {llhls: true});
-
-  syncPoint = strategy.run(this.syncController, newPlaylist, duration, timeline);
-
-  assert.equal(syncPoint, null, 'no syncpoint when datetimeObject not set on playlist');
-
-  newPlaylist.segments.forEach((segment, index) => {
-    segment.dateTimeObject = new Date(2012, 11, 12, 12, 12, 22 + (index * 10));
-  });
-
-  syncPoint = strategy.run(this.syncController, newPlaylist, duration, timeline, 194);
+  syncPoint = strategy.run(this.syncController, playlist, duration, timeline, 194);
 
   assert.deepEqual(syncPoint, {
     time: 192,
-    segmentIndex: 18,
+    segmentIndex: 19,
     partIndex: 1
   }, 'syncpoint found for ProgramDateTime');
 
-  syncPoint = strategy.run(this.syncController, newPlaylist, duration, timeline, 204);
+  syncPoint = strategy.run(this.syncController, playlist, duration, timeline, 204);
 
   assert.deepEqual(syncPoint, {
-    time: 202,
+    time: 198,
     segmentIndex: 19,
-    partIndex: 1
+    partIndex: 4
   }, 'syncpoint found for ProgramDateTime');
 });
 

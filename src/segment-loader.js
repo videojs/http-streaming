@@ -1399,8 +1399,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       const {segmentIndex, startTime, partIndex} = Playlist.getMediaInfoForTime({
         playlist: this.playlist_,
         currentTime: this.fetchAtBuffer_ ? bufferedEnd : this.currentTime_(),
-        partIndex: this.syncPoint_.partIndex,
-        segmentIndex: this.syncPoint_.segmentIndex,
+        startingPartIndex: this.syncPoint_.partIndex,
+        startingSegmentIndex: this.syncPoint_.segmentIndex,
         startTime: this.syncPoint_.time
       });
 

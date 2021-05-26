@@ -372,16 +372,16 @@ export const seekable = function(playlist, expired, liveEdgePadding) {
  * @param {number} options.currentTime The number of seconds since the earliest
  * possible position to determine the containing segment for
  * @param {number} options.startTime the time when the segment/part starts
- * @param {number} options.segmentIndex the segment index to start looking at.
- * @param {number?} [options.partIndex] the part index to look at within the segment.
+ * @param {number} options.startingSegmentIndex the segment index to start looking at.
+ * @param {number?} [options.startingPartIndex] the part index to look at within the segment.
  *
  * @return {Object} an object with partIndex, segmentIndex, and startTime.
  */
 export const getMediaInfoForTime = function({
   playlist,
   currentTime,
-  segmentIndex,
-  partIndex,
+  startingSegmentIndex,
+  startingPartIndex,
   startTime
 }) {
 
@@ -393,12 +393,12 @@ export const getMediaInfoForTime = function({
   for (let i = 0; i < partsAndSegments.length; i++) {
     const partAndSegment = partsAndSegments[i];
 
-    if (segmentIndex !== partAndSegment.segmentIndex) {
+    if (startingSegmentIndex !== partAndSegment.segmentIndex) {
       continue;
     }
 
     // skip this if part index does not match.
-    if (typeof partIndex === 'number' && typeof partAndSegment.partIndex === 'number' && partIndex !== partAndSegment.partIndex) {
+    if (typeof startingPartIndex === 'number' && typeof partAndSegment.partIndex === 'number' && startingPartIndex !== partAndSegment.partIndex) {
       continue;
     }
 
