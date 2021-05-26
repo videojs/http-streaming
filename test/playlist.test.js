@@ -1099,7 +1099,7 @@ QUnit.module('Playlist', function() {
       '1 away 6 is correct'
     );
 
-    // 2 segment away
+    // 2 segments away
     assert.deepEqual(
       this.getMediaInfoForTime({currentTime: 4.1, segmentIndex: 0, startTime: 0}),
       {segmentIndex: 2, startTime: 4, partIndex: null},
