@@ -1225,7 +1225,7 @@ QUnit.test('encrypted init segment with decrypted bytes not re-requested', funct
       );
 
       // verify stats
-      assert.equal(segmentData.stats.bytesReceived, 9, '6198 bytes');
+      assert.equal(segmentData.stats.bytesReceived, 9, '9 bytes');
 
       assert.ok(data, 'got data');
       assert.ok(trackInfo, 'got track info');
