@@ -16,8 +16,68 @@ import {
   setupMediaPlaylist,
   forEachMediaGroup
 } from './manifest';
+import {getKnownPartCount} from './playlist.js';
 
 const { mergeOptions, EventTarget } = videojs;
+
+const addLLHLSQueryDirectives = (uri, media) => {
+  if (media.endList) {
+    return uri;
+  }
+  const query = [];
+
+  if (media.serverControl && media.serverControl.canBlockReload) {
+    const {preloadSegment} = media;
+    // next msn is a zero based value, length is not.
+    let nextMSN = media.mediaSequence + media.segments.length;
+
+    // If preload segment has parts then it is likely
+    // that we are going to request a part of that preload segment.
+    // the logic below is used to determine that.
+    if (preloadSegment) {
+      const parts = preloadSegment.parts || [];
+      // _HLS_part is a zero based index
+      const nextPart = getKnownPartCount(media) - 1;
+
+      // if nextPart is > -1 and not equal to just the
+      // length of parts, then we know we had part preload hints
+      // and we need to add the _HLS_part= query
+      if (nextPart > -1 && nextPart !== (parts.length - 1)) {
+        // add existing parts to our preload hints
+        query.push(`_HLS_part=${nextPart}`);
+      }
+
+      // this if statement makes sure that we request the msn
+      // of the preload segment if:
+      // 1. the preload segment had parts (and was not yet a full segment)
+      //    but was added to our segments array
+      // 2. the preload segment had preload hints for parts that are not in
+      //    the manifest yet.
+      // in all other cases we want the segment after the preload segment
+      // which will be given by using media.segments.length because it is 1 based
+      // rather than 0 based.
+      if (nextPart > -1 || parts.length) {
+        nextMSN--;
+      }
+    }
+
+    // add _HLS_msn= in front of any _HLS_part query
+    query.unshift(`_HLS_msn=${nextMSN}`);
+  }
+
+  if (media.serverControl && media.serverControl.canSkipUntil) {
+    // add _HLS_skip= infront of all other queries.
+    query.unshift('_HLS_skip=' + (media.serverControl.canSkipDateranges ? 'v2' : 'YES'));
+  }
+
+  query.forEach(function(str, i) {
+    const symbol = i === 0 ? '?' : '&';
+
+    uri += `${symbol}${str}`;
+  });
+
+  return uri;
+};
 
 /**
  * Returns a new segment object with properties and
@@ -35,6 +95,12 @@ export const updateSegment = (a, b) => {
 
   const result = mergeOptions(a, b);
 
+  // if only the old segment has preload hints
+  // and the new one does not, remove preload hints.
+  if (a.preloadHints && !b.preloadHints) {
+    delete result.preloadHints;
+  }
+
   // if only the old segment has parts
   // then the parts are no longer valid
   if (a.parts && !b.parts) {
@@ -48,6 +114,18 @@ export const updateSegment = (a, b) => {
         result.parts[i] = mergeOptions(a.parts[i], b.parts[i]);
       }
     }
+  }
+
+  // set skipped to false for segments that have
+  // have had information merged from the old segment.
+  if (!a.skipped && b.skipped) {
+    result.skipped = false;
+  }
+
+  // set preload to false for segments that have
+  // had information added in the new segment.
+  if (a.preload && !b.preload) {
+    result.preload = false;
   }
 
   return result;
@@ -70,15 +148,30 @@ export const updateSegment = (a, b) => {
  */
 export const updateSegments = (original, update, offset) => {
   const oldSegments = original.slice();
-  const result = update.slice();
+  const newSegments = update.slice();
 
   offset = offset || 0;
-  const length = Math.min(original.length, update.length + offset);
+  const result = [];
 
-  for (let i = offset; i < length; i++) {
-    const newIndex = i - offset;
+  let currentMap;
 
-    result[newIndex] = updateSegment(oldSegments[i], result[newIndex]);
+  for (let newIndex = 0; newIndex < newSegments.length; newIndex++) {
+    const oldSegment = oldSegments[newIndex + offset];
+    const newSegment = newSegments[newIndex];
+
+    if (oldSegment) {
+      currentMap = oldSegment.map || currentMap;
+
+      result.push(updateSegment(oldSegment, newSegment));
+    } else {
+      // carry over map to new segment if it is missing
+      if (currentMap && !newSegment.map) {
+        newSegment.map = currentMap;
+      }
+
+      result.push(newSegment);
+
+    }
   }
   return result;
 };
@@ -116,12 +209,27 @@ export const resolveSegmentUris = (segment, baseUri) => {
 
 const getAllSegments = function(media) {
   const segments = media.segments || [];
+  const preloadSegment = media.preloadSegment;
 
   // a preloadSegment with only preloadHints is not currently
   // a usable segment, only include a preloadSegment that has
   // parts.
-  if (media.preloadSegment && media.preloadSegment.parts) {
-    segments.push(media.preloadSegment);
+  if (preloadSegment && preloadSegment.parts && preloadSegment.parts.length) {
+    // if preloadHints has a MAP that means that the
+    // init segment is going to change. We cannot use any of the parts
+    // from this preload segment.
+    if (preloadSegment.preloadHints) {
+      for (let i = 0; i < preloadSegment.preloadHints.length; i++) {
+        if (preloadSegment.preloadHints[i].type === 'MAP') {
+          return segments;
+        }
+      }
+    }
+    // set the duration for our preload segment to target duration.
+    preloadSegment.duration = media.targetDuration;
+    preloadSegment.preload = true;
+
+    segments.push(preloadSegment);
   }
 
   return segments;
@@ -147,28 +255,41 @@ export const isPlaylistUnchanged = (a, b) => a === b ||
   * master playlist with the updated media playlist merged in, or
   * null if the merge produced no change.
   */
-export const updateMaster = (master, media, unchangedCheck = isPlaylistUnchanged) => {
+export const updateMaster = (master, newMedia, unchangedCheck = isPlaylistUnchanged) => {
   const result = mergeOptions(master, {});
-  const playlist = result.playlists[media.id];
+  const oldMedia = result.playlists[newMedia.id];
 
-  if (!playlist) {
+  if (!oldMedia) {
     return null;
   }
 
-  if (unchangedCheck(playlist, media)) {
+  if (unchangedCheck(oldMedia, newMedia)) {
     return null;
   }
 
-  const mergedPlaylist = mergeOptions(playlist, media);
+  newMedia.segments = getAllSegments(newMedia);
 
-  media.segments = getAllSegments(media);
+  const mergedPlaylist = mergeOptions(oldMedia, newMedia);
+
+  // always use the new media's preload segment
+  if (mergedPlaylist.preloadSegment && !newMedia.preloadSegment) {
+    delete mergedPlaylist.preloadSegment;
+  }
 
   // if the update could overlap existing segment information, merge the two segment lists
-  if (playlist.segments) {
+  if (oldMedia.segments) {
+    if (newMedia.skip) {
+      newMedia.segments = newMedia.segments || [];
+      // add back in objects for skipped segments, so that we merge
+      // old properties into the new segments
+      for (let i = 0; i < newMedia.skip.skippedSegments; i++) {
+        newMedia.segments.unshift({skipped: true});
+      }
+    }
     mergedPlaylist.segments = updateSegments(
-      playlist.segments,
-      media.segments,
-      media.mediaSequence - playlist.mediaSequence
+      oldMedia.segments,
+      newMedia.segments,
+      newMedia.mediaSequence - oldMedia.mediaSequence
     );
   }
 
@@ -181,13 +302,13 @@ export const updateMaster = (master, media, unchangedCheck = isPlaylistUnchanged
   // that is referenced by index, and one by URI. The index reference may no longer be
   // necessary.
   for (let i = 0; i < result.playlists.length; i++) {
-    if (result.playlists[i].id === media.id) {
+    if (result.playlists[i].id === newMedia.id) {
       result.playlists[i] = mergedPlaylist;
     }
   }
-  result.playlists[media.id] = mergedPlaylist;
+  result.playlists[newMedia.id] = mergedPlaylist;
   // URI reference added for backwards compatibility
-  result.playlists[media.uri] = mergedPlaylist;
+  result.playlists[newMedia.uri] = mergedPlaylist;
 
   // update media group playlist references.
   forEachMediaGroup(master, (properties, mediaType, groupKey, labelKey) => {
@@ -195,8 +316,8 @@ export const updateMaster = (master, media, unchangedCheck = isPlaylistUnchanged
       return;
     }
     for (let i = 0; i < properties.playlists.length; i++) {
-      if (media.id === properties.playlists[i].id) {
-        properties.playlists[i] = media;
+      if (newMedia.id === properties.playlists[i].id) {
+        properties.playlists[i] = newMedia;
       }
     }
   });
@@ -263,34 +384,44 @@ export default class PlaylistLoader extends EventTarget {
     this.state = 'HAVE_NOTHING';
 
     // live playlist staleness timeout
-    this.on('mediaupdatetimeout', () => {
-      if (this.state !== 'HAVE_METADATA') {
-        // only refresh the media playlist if no other activity is going on
+    this.handleMediaupdatetimeout_ = this.handleMediaupdatetimeout_.bind(this);
+    this.on('mediaupdatetimeout', this.handleMediaupdatetimeout_);
+  }
+
+  handleMediaupdatetimeout_() {
+    if (this.state !== 'HAVE_METADATA') {
+      // only refresh the media playlist if no other activity is going on
+      return;
+    }
+    const media = this.media();
+
+    let uri = resolveUrl(this.master.uri, media.uri);
+
+    if (this.experimentalLLHLS) {
+      uri = addLLHLSQueryDirectives(uri, media);
+    }
+    this.state = 'HAVE_CURRENT_METADATA';
+
+    this.request = this.vhs_.xhr({
+      uri,
+      withCredentials: this.withCredentials
+    }, (error, req) => {
+      // disposed
+      if (!this.request) {
         return;
       }
 
-      this.state = 'HAVE_CURRENT_METADATA';
+      if (error) {
+        return this.playlistRequestError(this.request, this.media(), 'HAVE_METADATA');
+      }
 
-      this.request = this.vhs_.xhr({
-        uri: resolveUrl(this.master.uri, this.media().uri),
-        withCredentials: this.withCredentials
-      }, (error, req) => {
-        // disposed
-        if (!this.request) {
-          return;
-        }
-
-        if (error) {
-          return this.playlistRequestError(this.request, this.media(), 'HAVE_METADATA');
-        }
-
-        this.haveMetadata({
-          playlistString: this.request.responseText,
-          url: this.media().uri,
-          id: this.media().id
-        });
+      this.haveMetadata({
+        playlistString: this.request.responseText,
+        url: this.media().uri,
+        id: this.media().id
       });
     });
+
   }
 
   playlistRequestError(xhr, playlist, startingState) {
@@ -317,6 +448,17 @@ export default class PlaylistLoader extends EventTarget {
     this.trigger('error');
   }
 
+  parseManifest_({url, manifestString}) {
+    return parseManifest({
+      onwarn: ({message}) => this.logger_(`m3u8-parser warn for ${url}: ${message}`),
+      oninfo: ({message}) => this.logger_(`m3u8-parser info for ${url}: ${message}`),
+      manifestString,
+      customTagParsers: this.customTagParsers,
+      customTagMappers: this.customTagMappers,
+      experimentalLLHLS: this.experimentalLLHLS
+    });
+  }
+
   /**
    * Update the playlist loader's state in response to a new or updated playlist.
    *
@@ -334,13 +476,9 @@ export default class PlaylistLoader extends EventTarget {
     this.request = null;
     this.state = 'HAVE_METADATA';
 
-    const playlist = playlistObject || parseManifest({
-      onwarn: ({message}) => this.logger_(`m3u8-parser warn for ${id}: ${message}`),
-      oninfo: ({message}) => this.logger_(`m3u8-parser info for ${id}: ${message}`),
-      manifestString: playlistString,
-      customTagParsers: this.customTagParsers,
-      customTagMappers: this.customTagMappers,
-      experimentalLLHLS: this.experimentalLLHLS
+    const playlist = playlistObject || this.parseManifest_({
+      url,
+      manifestString: playlistString
     });
 
     playlist.lastRequest = Date.now();
@@ -647,11 +785,9 @@ export default class PlaylistLoader extends EventTarget {
 
       this.src = resolveManifestRedirect(this.handleManifestRedirects, this.src, req);
 
-      const manifest = parseManifest({
+      const manifest = this.parseManifest_({
         manifestString: req.responseText,
-        customTagParsers: this.customTagParsers,
-        customTagMappers: this.customTagMappers,
-        experimentalLLHLS: this.experimentalLLHLS
+        url: this.src
       });
 
       this.setupInitialPlaylist(manifest);
