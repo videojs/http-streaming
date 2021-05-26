@@ -1400,17 +1400,18 @@ export default class SegmentLoader extends videojs.EventTarget {
       }
     } else {
       // Find the segment containing the end of the buffer or current time.
-      const mediaSourceInfo = Playlist.getMediaInfoForTime(
-        this.playlist_,
-        this.fetchAtBuffer_ ? bufferedEnd : this.currentTime_(),
-        this.syncPoint_.segmentIndex,
-        this.syncPoint_.time
-      );
+      const {segmentIndex, startTime, partIndex} = Playlist.getMediaInfoForTime({
+        playlist: this.playlist_,
+        currentTime: this.fetchAtBuffer_ ? bufferedEnd : this.currentTime_(),
+        startingPartIndex: this.syncPoint_.partIndex,
+        startingSegmentIndex: this.syncPoint_.segmentIndex,
+        startTime: this.syncPoint_.time
+      });
 
       next.getMediaInfoForTime = this.fetchAtBuffer_ ? 'bufferedEnd' : 'currentTime';
-      next.mediaIndex = mediaSourceInfo.mediaIndex;
-      next.startOfSegment = mediaSourceInfo.startTime;
-      next.partIndex = mediaSourceInfo.partIndex;
+      next.mediaIndex = segmentIndex;
+      next.startOfSegment = startTime;
+      next.partIndex = partIndex;
     }
 
     const nextSegment = segments[next.mediaIndex];
@@ -1479,7 +1480,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       // The timeline that the segment is in
       timeline: segment.timeline,
       // The expected duration of the segment in seconds
-      duration: segment.duration,
+      duration: part && part.duration || segment.duration,
       // retain the segment in case the playlist updates while doing an async process
       segment,
       part,
