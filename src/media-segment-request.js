@@ -215,7 +215,7 @@ const handleInitSegmentResponse =
   const bytes = new Uint8Array(request.response);
 
   // init segment is encypted, we will have to wait
-  // unit the key request is done to decrypt.
+  // until the key request is done to decrypt.
   if (segment.map.key) {
     segment.map.encryptedBytes = bytes;
     return finishProcessingFn(null, segment);
@@ -575,8 +575,7 @@ const decrypt = function({id, key, encryptedBytes, decryptionWorker}, callback) 
     keyBytes = new Uint32Array(Array.prototype.slice.call(key.bytes));
   }
 
-  // this is an encrypted segment
-  // incrementally decrypt the segment
+  // incrementally decrypt the bytes
   decryptionWorker.postMessage(createTransferableMessage({
     source: id,
     encrypted: encryptedBytes,
