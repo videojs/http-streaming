@@ -343,7 +343,7 @@ export default class SyncController extends videojs.EventTarget {
     this.logger_(`syncPoint for [${target.key}: ${target.value}] chosen with strategy` +
       ` [${bestStrategy}]: [time:${bestSyncPoint.time},` +
       ` segmentIndex:${bestSyncPoint.segmentIndex}` +
-      (typeof partIndex === 'number' ? `,partIndex:${bestSyncPoint.partIndex}` : '') +
+      (typeof bestSyncPoint.partIndex === 'number' ? `,partIndex:${bestSyncPoint.partIndex}` : '') +
       ']');
 
     return bestSyncPoint;
