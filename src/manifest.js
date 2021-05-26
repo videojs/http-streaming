@@ -100,7 +100,7 @@ export const parseManifest = ({
 
     if (onwarn) {
       onwarn(`manifest has no partTargetDuration defaulting to ${partTargetDuration}`);
-      log.error('llhls manifest has parts but lacks required #EXT-X-PART-INF:PART-TARGET value. Playback is not guaranteed.');
+      log.error('LL-HLS manifest has parts but lacks required #EXT-X-PART-INF:PART-TARGET value. See https://datatracker.ietf.org/doc/html/draft-pantos-hls-rfc8216bis-09#section-4.4.3.7. Playback is not guaranteed.');
     }
     manifest.partTargetDuration = partTargetDuration;
   }
