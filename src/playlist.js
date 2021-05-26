@@ -376,9 +376,7 @@ export const getMediaInfoForTime = function(
 
         time += segment.duration;
 
-        // TODO: We should consider not using TIME_FUDGE_FACTOR at all here, but at
-        // the time where this change was made there wasn't enough time to test without it.
-        // We should make some time to see if we can remove TIME_FUDGE_FACTOR here.
+        // TODO: consider not using TIME_FUDGE_FACTOR at all here
         if ((time + TIME_FUDGE_FACTOR) > 0) {
           return {
             mediaIndex: segment.segmentIndex,
@@ -421,9 +419,7 @@ export const getMediaInfoForTime = function(
 
     time -= partSegment.duration;
 
-    // TODO: We should consider not using TIME_FUDGE_FACTOR at all here, but at
-    // the time where this change was made there wasn't enough time to test without it.
-    // We should make some time to see if we can remove TIME_FUDGE_FACTOR here.
+    // TODO: consider not using TIME_FUDGE_FACTOR at all here
     if ((time - TIME_FUDGE_FACTOR) < 0) {
       return {
         mediaIndex: partSegment.segmentIndex,
