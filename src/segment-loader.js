@@ -2038,9 +2038,13 @@ export default class SegmentLoader extends videojs.EventTarget {
     // timestamp offset.
     this.updateSourceBufferTimestampOffset_(segmentInfo);
 
-    // throw away the isSyncRequest segment if
-    // it wouldn't have been the next segment we request.
+    // if this is a sync request we need to determine whether it should
+    // be appended or not.
     if (segmentInfo.isSyncRequest) {
+      // first save/update our timing info for this segment.
+      // this is what allows us to choose an accurate segment
+      // and the main reason we make a sync request.
+      this.updateTimingInfoEnd_(segmentInfo);
       this.syncController_.saveSegmentTimingInfo({
         segmentInfo,
         shouldSaveTimelineMapping: this.loaderType_ === 'main'
@@ -2054,8 +2058,8 @@ export default class SegmentLoader extends videojs.EventTarget {
         this.logger_('sync segment was incorrect, not appending');
         return;
       }
+      // otherwise append it like any other segment as our guess was correct.
       this.logger_('sync segment was correct, appending');
-
     }
 
     // Save some state so that in the future anything waiting on first append (and/or
