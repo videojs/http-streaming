@@ -2020,7 +2020,6 @@ QUnit.module('Playlist Loader', function(hooks) {
 
       loader.load();
 
-      // no newline
       this.requests.shift().respond(
         200, null,
         '#EXTM3U\n' +
@@ -2059,15 +2058,20 @@ QUnit.module('Playlist Loader', function(hooks) {
     );
   });
 
-  QUnit.module('llhls');
+  QUnit.module('llhls', {
+    beforeEach() {
+      this.fakeVhs.options_ = {experimentalLLHLS: true};
+      this.loader = new PlaylistLoader('http://example.com/media.m3u8', this.fakeVhs);
+
+      this.loader.load();
+
+    },
+    afterEach() {
+      this.loader.dispose();
+    }
+  });
 
   QUnit.test('#EXT-X-SKIP does not add initial empty segments', function(assert) {
-    this.fakeVhs.options_ = {experimentalLLHLS: true};
-    const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
-
-    loader.load();
-
-    // no newline
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
@@ -2076,14 +2080,10 @@ QUnit.module('Playlist Loader', function(hooks) {
       '#EXTINF:2\n' +
       'low-1.ts\n'
     );
-    assert.equal(loader.media().segments.length, 1, 'only 1 segment');
+    assert.equal(this.loader.media().segments.length, 1, 'only 1 segment');
   });
 
   QUnit.test('#EXT-X-SKIP merges skipped segments', function(assert) {
-    this.fakeVhs.options_ = {experimentalLLHLS: true};
-    const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
-
-    loader.load();
     let playlist =
       '#EXTM3U\n' +
       '#EXT-X-MEDIA-SEQUENCE:0\n';
@@ -2093,11 +2093,10 @@ QUnit.module('Playlist Loader', function(hooks) {
       playlist += `segment-${i}.ts\n`;
     }
 
-    // no newline
     this.requests.shift().respond(200, null, playlist);
-    assert.equal(loader.media().segments.length, 10, '10 segments');
+    assert.equal(this.loader.media().segments.length, 10, '10 segments');
 
-    loader.trigger('mediaupdatetimeout');
+    this.loader.trigger('mediaupdatetimeout');
 
     const skippedPlaylist =
       '#EXTM3U\n' +
@@ -2108,9 +2107,9 @@ QUnit.module('Playlist Loader', function(hooks) {
 
     this.requests.shift().respond(200, null, skippedPlaylist);
 
-    assert.equal(loader.media().segments.length, 11, '11 segments');
+    assert.equal(this.loader.media().segments.length, 11, '11 segments');
 
-    loader.media().segments.forEach(function(s, i) {
+    this.loader.media().segments.forEach(function(s, i) {
       if (i < 10) {
         assert.ok(s.hasOwnProperty('skipped'), 'has skipped property');
         assert.false(s.skipped, 'skipped property is false');
@@ -2119,7 +2118,7 @@ QUnit.module('Playlist Loader', function(hooks) {
       assert.equal(s.uri, `segment-${i}.ts`, 'segment uri as expected');
     });
 
-    loader.trigger('mediaupdatetimeout');
+    this.loader.trigger('mediaupdatetimeout');
 
     const skippedPlaylist2 =
       '#EXTM3U\n' +
@@ -2130,7 +2129,7 @@ QUnit.module('Playlist Loader', function(hooks) {
 
     this.requests.shift().respond(200, null, skippedPlaylist2);
 
-    loader.media().segments.forEach(function(s, i) {
+    this.loader.media().segments.forEach(function(s, i) {
       if (i < 10) {
         assert.ok(s.hasOwnProperty('skipped'), 'has skipped property');
         assert.false(s.skipped, 'skipped property is false');
@@ -2141,12 +2140,6 @@ QUnit.module('Playlist Loader', function(hooks) {
   });
 
   QUnit.test('#EXT-X-PRELOAD with parts to added to segment list', function(assert) {
-    this.fakeVhs.options_ = {experimentalLLHLS: true};
-    const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
-
-    loader.load();
-
-    // no newline
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
@@ -2156,7 +2149,7 @@ QUnit.module('Playlist Loader', function(hooks) {
       '#EXT-X-PART:URI="part1.ts",DURATION=1\n' +
       '#EXT-X-PART:URI="part2.ts",DURATION=1\n'
     );
-    const media = loader.media();
+    const media = this.loader.media();
 
     assert.equal(media.segments.length, 2, '2 segments');
     assert.deepEqual(
@@ -2166,13 +2159,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     );
   });
 
-  QUnit.test('#EXT-X-PRELOAD without parts not to added to segment list', function(assert) {
-    this.fakeVhs.options_ = {experimentalLLHLS: true};
-    const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
-
-    loader.load();
-
-    // no newline
+  QUnit.test('#EXT-X-PRELOAD without parts not added to segment list', function(assert) {
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
@@ -2181,7 +2168,7 @@ QUnit.module('Playlist Loader', function(hooks) {
       'low-1.ts\n' +
       '#EXT-X-PRELOAD-HINT:TYPE="PART",URI="part1.ts"\n'
     );
-    const media = loader.media();
+    const media = this.loader.media();
 
     assert.equal(media.segments.length, 1, '1 segment');
     assert.notDeepEqual(
@@ -2192,12 +2179,6 @@ QUnit.module('Playlist Loader', function(hooks) {
   });
 
   QUnit.test('#EXT-X-PART added to segments', function(assert) {
-    this.fakeVhs.options_ = {experimentalLLHLS: true};
-    const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
-
-    loader.load();
-
-    // no newline
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
@@ -2214,39 +2195,7 @@ QUnit.module('Playlist Loader', function(hooks) {
       '#EXT-X-PART:URI="segment3-part2.ts",DURATION=1\n' +
       'segment3.ts\n'
     );
-    const segments = loader.media().segments;
-
-    assert.equal(segments.length, 4, '4 segments');
-    assert.notOk(segments[0].parts, 'no parts for first segment');
-    assert.equal(segments[1].parts.length, 2, 'parts for second segment');
-    assert.equal(segments[2].parts.length, 2, 'parts for third segment');
-    assert.equal(segments[3].parts.length, 2, 'parts for forth segment');
-  });
-
-  QUnit.test('#EXT-X-PART added to segments', function(assert) {
-    this.fakeVhs.options_ = {experimentalLLHLS: true};
-    const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
-
-    loader.load();
-
-    // no newline
-    this.requests.shift().respond(
-      200, null,
-      '#EXTM3U\n' +
-      '#EXT-X-MEDIA-SEQUENCE:0\n' +
-      '#EXTINF:2\n' +
-      'segment0.ts\n' +
-      '#EXT-X-PART:URI="segment1-part1.ts",DURATION=1\n' +
-      '#EXT-X-PART:URI="segment1-part2.ts",DURATION=1\n' +
-      'segment1.ts\n' +
-      '#EXT-X-PART:URI="segment2-part1.ts",DURATION=1\n' +
-      '#EXT-X-PART:URI="segment2-part2.ts",DURATION=1\n' +
-      'segment2.ts\n' +
-      '#EXT-X-PART:URI="segment3-part1.ts",DURATION=1\n' +
-      '#EXT-X-PART:URI="segment3-part2.ts",DURATION=1\n' +
-      'segment3.ts\n'
-    );
-    const segments = loader.media().segments;
+    const segments = this.loader.media().segments;
 
     assert.equal(segments.length, 4, '4 segments');
     assert.notOk(segments[0].parts, 'no parts for first segment');
@@ -2256,12 +2205,6 @@ QUnit.module('Playlist Loader', function(hooks) {
   });
 
   QUnit.test('Adds _HLS_skip=YES to url when CAN-SKIP-UNTIL is set', function(assert) {
-    this.fakeVhs.options_ = {experimentalLLHLS: true};
-    const loader = new PlaylistLoader('http://example.com/media.m3u8', this.fakeVhs);
-
-    loader.load();
-
-    // no newline
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
@@ -2290,18 +2233,12 @@ QUnit.module('Playlist Loader', function(hooks) {
       'segment8.ts\n'
     );
 
-    loader.trigger('mediaupdatetimeout');
+    this.loader.trigger('mediaupdatetimeout');
 
     assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_skip=YES');
   });
 
   QUnit.test('Adds _HLS_skip=v2 to url when CAN-SKIP-UNTIL/CAN-SKIP-DATERANGES is set', function(assert) {
-    this.fakeVhs.options_ = {experimentalLLHLS: true};
-    const loader = new PlaylistLoader('http://example.com/media.m3u8', this.fakeVhs);
-
-    loader.load();
-
-    // no newline
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
@@ -2330,18 +2267,12 @@ QUnit.module('Playlist Loader', function(hooks) {
       'segment8.ts\n'
     );
 
-    loader.trigger('mediaupdatetimeout');
+    this.loader.trigger('mediaupdatetimeout');
 
     assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_skip=v2');
   });
 
   QUnit.test('Adds _HLS_part= and _HLS_msn= when we have a part preload hints and parts', function(assert) {
-    this.fakeVhs.options_ = {experimentalLLHLS: true};
-    const loader = new PlaylistLoader('http://example.com/media.m3u8', this.fakeVhs);
-
-    loader.load();
-
-    // no newline
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
@@ -2369,18 +2300,12 @@ QUnit.module('Playlist Loader', function(hooks) {
       '#EXT-X-PRELOAD-HINT:TYPE="PART",URI="segment8-part2.ts"\n'
     );
 
-    loader.trigger('mediaupdatetimeout');
+    this.loader.trigger('mediaupdatetimeout');
 
     assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_msn=8&_HLS_part=1');
   });
 
   QUnit.test('Adds _HLS_part= and _HLS_msn= when we have only a part preload hint', function(assert) {
-    this.fakeVhs.options_ = {experimentalLLHLS: true};
-    const loader = new PlaylistLoader('http://example.com/media.m3u8', this.fakeVhs);
-
-    loader.load();
-
-    // no newline
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
@@ -2407,18 +2332,12 @@ QUnit.module('Playlist Loader', function(hooks) {
       '#EXT-X-PRELOAD-HINT:TYPE="PART",URI="segment8-part1.ts"\n'
     );
 
-    loader.trigger('mediaupdatetimeout');
+    this.loader.trigger('mediaupdatetimeout');
 
     assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_msn=7&_HLS_part=0');
   });
 
   QUnit.test('does not add _HLS_part= when we have only a preload parts without preload hints', function(assert) {
-    this.fakeVhs.options_ = {experimentalLLHLS: true};
-    const loader = new PlaylistLoader('http://example.com/media.m3u8', this.fakeVhs);
-
-    loader.load();
-
-    // no newline
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
@@ -2445,18 +2364,12 @@ QUnit.module('Playlist Loader', function(hooks) {
       '#EXT-X-PART:URI="segment8-part1.ts",DURATION=1\n'
     );
 
-    loader.trigger('mediaupdatetimeout');
+    this.loader.trigger('mediaupdatetimeout');
 
     assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_msn=8');
   });
 
   QUnit.test('Adds only _HLS_msn= when we have segment info', function(assert) {
-    this.fakeVhs.options_ = {experimentalLLHLS: true};
-    const loader = new PlaylistLoader('http://example.com/media.m3u8', this.fakeVhs);
-
-    loader.load();
-
-    // no newline
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
@@ -2485,18 +2398,12 @@ QUnit.module('Playlist Loader', function(hooks) {
       'segment8.ts\n'
     );
 
-    loader.trigger('mediaupdatetimeout');
+    this.loader.trigger('mediaupdatetimeout');
 
     assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_msn=9');
   });
 
   QUnit.test('can add all query directives', function(assert) {
-    this.fakeVhs.options_ = {experimentalLLHLS: true};
-    const loader = new PlaylistLoader('http://example.com/media.m3u8', this.fakeVhs);
-
-    loader.load();
-
-    // no newline
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
@@ -2524,7 +2431,7 @@ QUnit.module('Playlist Loader', function(hooks) {
       '#EXT-X-PRELOAD-HINT:TYPE="PART",URI="segment8-part2.ts"\n'
     );
 
-    loader.trigger('mediaupdatetimeout');
+    this.loader.trigger('mediaupdatetimeout');
 
     assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_skip=YES&_HLS_msn=8&_HLS_part=1');
   });
