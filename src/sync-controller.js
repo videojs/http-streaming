@@ -510,7 +510,12 @@ export default class SyncController extends videojs.EventTarget {
       part.end = end;
     }
 
-    if (!segment.start) {
+    // if we don't have a segment start yet or the start value we got
+    // is less than our current segment.start value. save a new start value.
+    // We have to do this because parts will have segment timining info saved
+    // multiple times and we want segment start to be the earliest part start
+    // value for that segment.
+    if (!segment.start || start < segment.start) {
       segment.start = start;
     }
     segment.end = end;
