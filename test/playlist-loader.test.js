@@ -2143,6 +2143,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
+      '#EXT-X-PART-INF:PART-TARGET=1\n' +
       '#EXT-X-MEDIA-SEQUENCE:0\n' +
       '#EXTINF:2\n' +
       'low-1.ts\n' +
@@ -2163,6 +2164,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
+      '#EXT-X-PART-INF:PART-TARGET=1\n' +
       '#EXT-X-MEDIA-SEQUENCE:0\n' +
       '#EXTINF:2\n' +
       'low-1.ts\n' +
@@ -2182,6 +2184,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
+      '#EXT-X-PART-INF:PART-TARGET=1\n' +
       '#EXT-X-MEDIA-SEQUENCE:0\n' +
       '#EXTINF:2\n' +
       'segment0.ts\n' +
@@ -2208,6 +2211,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
+      '#EXT-X-PART-INF:PART-TARGET=1\n' +
       '#EXT-X-MEDIA-SEQUENCE:0\n' +
       '#EXT-X-SERVER-CONTROL:CAN-SKIP-UNTIL=3\n' +
       '#EXTINF:2\n' +
@@ -2242,6 +2246,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
+      '#EXT-X-PART-INF:PART-TARGET=1\n' +
       '#EXT-X-MEDIA-SEQUENCE:0\n' +
       '#EXT-X-SERVER-CONTROL:CAN-SKIP-UNTIL=3,CAN-SKIP-DATERANGES=YES\n' +
       '#EXTINF:2\n' +
@@ -2276,6 +2281,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
+      '#EXT-X-PART-INF:PART-TARGET=1\n' +
       '#EXT-X-MEDIA-SEQUENCE:0\n' +
       '#EXT-X-SERVER-CONTROL:CAN-BLOCK-RELOAD=YES\n' +
       '#EXTINF:2\n' +
@@ -2309,6 +2315,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
+      '#EXT-X-PART-INF:PART-TARGET=1\n' +
       '#EXT-X-MEDIA-SEQUENCE:0\n' +
       '#EXT-X-SERVER-CONTROL:CAN-BLOCK-RELOAD=YES\n' +
       '#EXTINF:2\n' +
@@ -2341,6 +2348,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
+      '#EXT-X-PART-INF:PART-TARGET=1\n' +
       '#EXT-X-MEDIA-SEQUENCE:0\n' +
       '#EXT-X-SERVER-CONTROL:CAN-BLOCK-RELOAD=YES\n' +
       '#EXTINF:2\n' +
@@ -2373,6 +2381,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
+      '#EXT-X-PART-INF:PART-TARGET=1\n' +
       '#EXT-X-MEDIA-SEQUENCE:0\n' +
       '#EXT-X-SERVER-CONTROL:CAN-BLOCK-RELOAD=YES\n' +
       '#EXTINF:2\n' +
@@ -2407,6 +2416,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
+      '#EXT-X-PART-INF:PART-TARGET=1\n' +
       '#EXT-X-MEDIA-SEQUENCE:0\n' +
       '#EXT-X-SERVER-CONTROL:CAN-BLOCK-RELOAD=YES,CAN-SKIP-UNTIL=3\n' +
       '#EXTINF:2\n' +
