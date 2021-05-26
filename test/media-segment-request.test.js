@@ -871,7 +871,7 @@ QUnit.test('segment/init segment share a key and get decrypted', function(assert
       );
 
       // verify stats
-      assert.equal(segmentData.stats.bytesReceived, 9, '6198 bytes');
+      assert.equal(segmentData.stats.bytesReceived, 9, '9 bytes');
 
       assert.ok(data, 'got data');
       assert.ok(trackInfo, 'got track info');
