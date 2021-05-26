@@ -31,6 +31,9 @@ const addLLHLSQueryDirectives = (uri, media) => {
     // next msn is a zero based value, length is not.
     let nextMSN = media.mediaSequence + media.segments.length;
 
+    // If preload segment has parts then it is likely
+    // that we are going to request a part of that preload segment.
+    // the logic below is used to determine that.
     if (preloadSegment) {
       const parts = preloadSegment.parts || [];
       // _HLS_part is a zero based index
@@ -44,10 +47,15 @@ const addLLHLSQueryDirectives = (uri, media) => {
         query.push(`_HLS_part=${nextPart}`);
       }
 
-      // if we are requesting a nextPart or preload segment was added
-      // to our segment list. We are requesting a part of the preload segment
-      // or the full preload segment. Either way we need to go down by 1
-      // in nextMSN
+      // this if statement makes sure that we request the msn
+      // of the preload segment if:
+      // 1. the preload segment had parts (and was not yet a full segment)
+      //    but was added to our segments array
+      // 2. the preload segment had preload hints for parts that our not in
+      //    the manifest yet.
+      // in all other cases we want the segment after the preload segment
+      // which will be given by using media.segments.length because it is 1 based
+      // rather than 0 based.
       if (nextPart > -1 || parts.length) {
         nextMSN--;
       }
