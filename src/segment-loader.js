@@ -24,6 +24,7 @@ import shallowEqual from './util/shallow-equal.js';
 import { QUOTA_EXCEEDED_ERR } from './error-codes';
 import { timeRangesToArray } from './ranges';
 import {lastBufferedEnd} from './ranges.js';
+import {getKnownPartCount} from './playlist.js';
 
 /**
  * The segment loader has no recourse except to fetch a segment in the
@@ -161,14 +162,10 @@ const segmentInfoString = (segmentInfo) => {
 
   const hasPartIndex = typeof partIndex === 'number';
   const name = segmentInfo.segment.uri ? 'segment' : 'pre-segment';
-  const partCount = segment.parts ? segment.parts.length : 0;
-  const preloadPartCount = segment.preloadHints ?
-    segment.preloadHints.filter((h) => h.type === 'PART').length :
-    0;
-  const zeroBasedPartCount = partCount + preloadPartCount - 1 - (preloadPartCount > 0 ? 1 : 0);
+  const totalParts = hasPartIndex ? getKnownPartCount({preloadSegment: segment}) - 1 : 0;
 
   return `${name} [${seq + index}/${seq + segmentLen}]` +
-    (hasPartIndex ? ` part [${partIndex}/${zeroBasedPartCount}]` : '') +
+    (hasPartIndex ? ` part [${partIndex}/${totalParts}]` : '') +
     ` segment start/end [${segment.start} => ${segment.end}]` +
     (hasPartIndex ? ` part start/end [${part.start} => ${part.end}]` : '') +
     ` startOfSegment [${startOfSegment}]` +
