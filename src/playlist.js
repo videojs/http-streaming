@@ -41,7 +41,7 @@ export const getKnownPartCount = ({preloadSegment}) => {
   }
   const {parts, preloadHints} = preloadSegment;
   let partCount = (preloadHints || [])
-    .reduce((acc, hint) => acc + (hint.type === 'PART' ? 1 : 0), 0);
+    .reduce((count, hint) => count + (hint.type === 'PART' ? 1 : 0), 0);
 
   partCount += (parts && parts.length) ? parts.length : 0;
 
