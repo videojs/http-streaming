@@ -162,10 +162,10 @@ const segmentInfoString = (segmentInfo) => {
 
   const hasPartIndex = typeof partIndex === 'number';
   const name = segmentInfo.segment.uri ? 'segment' : 'pre-segment';
-  const totalParts = hasPartIndex ? getKnownPartCount({preloadSegment: segment}) - 1 : 0;
+  const zeroBasedPartCount = hasPartIndex ? getKnownPartCount({preloadSegment: segment}) - 1 : 0;
 
   return `${name} [${seq + index}/${seq + segmentLen}]` +
-    (hasPartIndex ? ` part [${partIndex}/${totalParts}]` : '') +
+    (hasPartIndex ? ` part [${partIndex}/${zeroBasedPartCount}]` : '') +
     ` segment start/end [${segment.start} => ${segment.end}]` +
     (hasPartIndex ? ` part start/end [${part.start} => ${part.end}]` : '') +
     ` startOfSegment [${startOfSegment}]` +
