@@ -3005,7 +3005,9 @@ export default class SegmentLoader extends videojs.EventTarget {
     // used for testing
     this.trigger('appended');
 
-    this.mediaAppends++;
+    if (segmentInfo.hasAppendedData_) {
+      this.mediaAppends++;
+    }
 
     if (!this.paused()) {
       this.monitorBuffer_();

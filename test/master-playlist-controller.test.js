@@ -714,6 +714,44 @@ QUnit.test('basic timeToLoadedData, mediaAppends, appendsToLoadedData stats', fu
   });
 });
 
+QUnit.test('timeToLoadedData, mediaAppends, appendsToLoadedData stats with 0 length appends', function(assert) {
+  this.player.tech_.trigger('loadstart');
+  this.masterPlaylistController.mediaSource.trigger('sourceopen');
+  // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  const segmentLoader = this.masterPlaylistController.mainSegmentLoader_;
+
+  return requestAndAppendSegment({
+    request: this.requests.shift(),
+    segmentLoader,
+    clock: this.clock
+  }).then(() => {
+    // mock a zero length segment, by setting hasAppendedData_ to false.
+    segmentLoader.one('appendsdone', () => {
+      segmentLoader.pendingSegment_.hasAppendedData_ = false;
+    });
+    return requestAndAppendSegment({
+      request: this.requests.shift(),
+      segmentLoader,
+      clock: this.clock
+    });
+  }).then(() => {
+
+    this.player.tech_.trigger('loadeddata');
+    const vhs = this.player.tech_.vhs;
+
+    // only one media append as the second was zero length.
+    assert.equal(vhs.stats.mediaAppends, 1, 'one media append');
+    assert.equal(vhs.stats.appendsToLoadedData, 1, 'appends to first frame is also 1');
+    assert.equal(vhs.stats.mainAppendsToLoadedData, 1, 'main appends to first frame is also 1');
+    assert.equal(vhs.stats.audioAppendsToLoadedData, 0, 'audio appends to first frame is 0');
+    assert.ok(vhs.stats.timeToLoadedData > 0, 'time to first frame is valid');
+  });
+});
+
 QUnit.test('preload none timeToLoadedData, mediaAppends, appendsToLoadedData stats', function(assert) {
   this.requests.length = 0;
   this.player.dispose();
