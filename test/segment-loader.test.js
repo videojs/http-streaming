@@ -2965,10 +2965,6 @@ QUnit.module('SegmentLoader', function(hooks) {
 
           const origAppendToSourceBuffer = loader.appendToSourceBuffer_.bind(loader);
 
-          // set the mediaSource duration as it is usually set by
-          // master playlist controller, which is not present here
-          loader.mediaSource_.duration = Infinity;
-
           loader.appendToSourceBuffer_ = (config) => {
             appends.push(config);
             origAppendToSourceBuffer(config);
@@ -2984,8 +2980,6 @@ QUnit.module('SegmentLoader', function(hooks) {
         return new Promise((resolve, reject) => {
           // since it's a sync request, wait for the syncinfoupdate event (we won't get the
           // appended event)
-          loader.one('syncinfoupdate', resolve);
-          loader.one('error', reject);
           this.clock.tick(1);
 
           assert.equal(appends.length, 1, 'one append');
@@ -3001,6 +2995,10 @@ QUnit.module('SegmentLoader', function(hooks) {
           loader.logger_ = (line) => {
             logs.push(line);
           };
+          loader.one('syncinfoupdate', function() {
+            resolve();
+          });
+          loader.one('error', reject);
           standardXHRResponse(this.requests.shift(), videoSegment());
 
         });
