@@ -2961,9 +2961,11 @@ QUnit.module('SegmentLoader', function(hooks) {
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {isVideoOnly: true}).then(() => {
         const origAppendToSourceBuffer = loader.appendToSourceBuffer_.bind(loader);
 
-        // set the mediaSource duration as it is usually set by
-        // master playlist controller, which is not present here
-        loader.mediaSource_.duration = Infinity;
+        // set the mediaSource duration for IE 11 to force a sync request
+        // usually it is set by master playlist controller, which is not present here.
+        if (videojs.browser.IE_VERSION) {
+          loader.mediaSource_.duration = Infinity;
+        }
 
         loader.appendToSourceBuffer_ = (config) => {
           appends.push(config);
