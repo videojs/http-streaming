@@ -582,7 +582,10 @@ QUnit.module('Playlist Loader', function(hooks) {
           uri: 'key-2-uri'
         },
         map: {
-          uri: 'map-2-uri'
+          uri: 'map-2-uri',
+          key: {
+            uri: 'key-map-uri'
+          }
         }
       }, {
         duration: 11,
@@ -619,6 +622,10 @@ QUnit.module('Playlist Loader', function(hooks) {
             },
             map: {
               uri: 'map-2-uri',
+              key: {
+                uri: 'key-map-uri',
+                resolvedUri: urlTo('key-map-uri')
+              },
               resolvedUri: urlTo('map-2-uri')
             }
           }, {
