@@ -2959,49 +2959,53 @@ QUnit.module('SegmentLoader', function(hooks) {
       const logs = [];
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {isVideoOnly: true}).then(() => {
-        const origAppendToSourceBuffer = loader.appendToSourceBuffer_.bind(loader);
 
         // set the mediaSource duration as it is usually set by
         // master playlist controller, which is not present here
         loader.mediaSource_.duration = Infinity;
 
-        loader.appendToSourceBuffer_ = (config) => {
-          appends.push(config);
-          origAppendToSourceBuffer(config);
-        };
-
-        loader.playlist(playlistWithDuration(20));
-        loader.load();
-        this.clock.tick(1);
-        standardXHRResponse(this.requests.shift(), videoSegment());
-
         return new Promise((resolve, reject) => {
           loader.one('appended', resolve);
           loader.one('error', reject);
+
+          const origAppendToSourceBuffer = loader.appendToSourceBuffer_.bind(loader);
+
+          loader.appendToSourceBuffer_ = (config) => {
+            appends.push(config);
+            origAppendToSourceBuffer(config);
+          };
+
+          loader.playlist(playlistWithDuration(20));
+          loader.load();
+          this.clock.tick(1);
+          standardXHRResponse(this.requests.shift(), videoSegment());
+
         });
       }).then(() => {
-        this.clock.tick(1);
-
-        assert.equal(appends.length, 1, 'one append');
-        assert.equal(appends[0].type, 'video', 'appended to video buffer');
-        assert.ok(appends[0].initSegment, 'appended video init segment');
-
-        loader.playlist(playlistWithDuration(20, { uri: 'new-playlist.m3u8' }));
-        // remove old aborted request
-        this.requests.shift();
-        // get the new request
-        this.clock.tick(1);
-        loader.chooseNextRequest_ = () => ({partIndex: null, mediaIndex: 1});
-        loader.logger_ = (line) => {
-          logs.push(line);
-        };
-        standardXHRResponse(this.requests.shift(), videoSegment());
-
-        // since it's a sync request, wait for the syncinfoupdate event (we won't get the
-        // appended event)
         return new Promise((resolve, reject) => {
-          loader.one('syncinfoupdate', resolve);
+          // since it's a sync request, wait for the syncinfoupdate event (we won't get the
+          // appended event)
+          this.clock.tick(1);
+
+          assert.equal(appends.length, 1, 'one append');
+          assert.equal(appends[0].type, 'video', 'appended to video buffer');
+          assert.ok(appends[0].initSegment, 'appended video init segment');
+
+          loader.playlist(playlistWithDuration(20, { uri: 'new-playlist.m3u8' }));
+          // remove old aborted request
+          this.requests.shift();
+          // get the new request
+          this.clock.tick(1);
+          loader.chooseNextRequest_ = () => ({partIndex: null, mediaIndex: 1});
+          loader.logger_ = (line) => {
+            logs.push(line);
+          };
+          loader.one('syncinfoupdate', function() {
+            resolve();
+          });
           loader.one('error', reject);
+          standardXHRResponse(this.requests.shift(), videoSegment());
+
         });
       }).then(() => {
         this.clock.tick(1);
