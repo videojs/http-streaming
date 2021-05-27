@@ -870,7 +870,7 @@ export const LoaderCommonFactory = ({
       });
 
       QUnit.test('drops partIndex if playlist update drops parts', function(assert) {
-        assert.timeout(100000000000000000000);
+        loader.duration_ = () => Infinity;
         return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
           loader.playlist(playlistWithDuration(50, {
             mediaSequence: 0,
@@ -899,8 +899,8 @@ export const LoaderCommonFactory = ({
 
             assert.equal(
               this.requests[0].url,
-              '1.ts',
-              'requested mediaIndex 1 only'
+              '0.ts',
+              'requested mediaIndex 0 only'
             );
           });
       });
