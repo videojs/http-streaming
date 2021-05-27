@@ -872,6 +872,7 @@ QUnit.test('segment/init segment share a key and get decrypted', function(assert
 
       // verify stats
       assert.equal(segmentData.stats.bytesReceived, 9, '9 bytes');
+      assert.equal(segmentData.key.bytes, segmentData.map.key.bytes, 'keys are the same');
 
       assert.ok(data, 'got data');
       assert.ok(trackInfo, 'got track info');
@@ -975,9 +976,10 @@ QUnit.test('segment/init segment different key and get decrypted', function(asse
         16,
         'key bytes are readable'
       );
+      assert.notEqual(segmentData.key.bytes, segmentData.map.key.bytes, 'keys are different');
 
       // verify stats
-      assert.equal(segmentData.stats.bytesReceived, 9, '6198 bytes');
+      assert.equal(segmentData.stats.bytesReceived, 9, '9 bytes');
 
       assert.ok(data, 'got data');
       assert.ok(trackInfo, 'got track info');
@@ -1005,7 +1007,7 @@ QUnit.test('segment/init segment different key and get decrypted', function(asse
   keyReq.responseType = 'arraybuffer';
   keyReq.respond(200, null, new Uint32Array([0, 1, 2, 3]).buffer);
   keyReq2.responseType = 'arraybuffer';
-  keyReq2.respond(200, null, new Uint32Array([0, 1, 2, 3]).buffer);
+  keyReq2.respond(200, null, new Uint32Array([4, 5, 6, 7]).buffer);
 
   // Allow the decrypter to decrypt
   this.clock.tick(100);
@@ -1021,6 +1023,8 @@ QUnit.test('encrypted init segment parse error', function(assert) {
   this.mockDecrypter.postMessage = (message) => {
     // segment is 9, init is 8
     if (message.encrypted.byteLength === 8) {
+      // Responding with a webm segment is something we do not
+      // support. so this will be an error.
       message.encrypted.bytes = webmVideoInit().buffer;
     } else {
       message.encrypted.bytes = mp4Video();
@@ -1059,6 +1063,7 @@ QUnit.test('encrypted init segment parse error', function(assert) {
     dataFn: this.noop,
     progressFn: this.noop,
     doneFn: (error, segmentData) => {
+      // decrypted webm init segment caused this error.
       assert.ok(error, 'error for invalid init segment');
       done();
     }
