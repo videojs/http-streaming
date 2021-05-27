@@ -2959,6 +2959,11 @@ QUnit.module('SegmentLoader', function(hooks) {
       const logs = [];
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {isVideoOnly: true}).then(() => {
+
+        // set the mediaSource duration as it is usually set by
+        // master playlist controller, which is not present here
+        loader.mediaSource_.duration = Infinity;
+
         return new Promise((resolve, reject) => {
           loader.one('appended', resolve);
           loader.one('error', reject);
