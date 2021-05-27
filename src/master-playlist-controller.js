@@ -38,7 +38,8 @@ const loaderStats = [
   'mediaRequestsTimedout',
   'mediaRequestsErrored',
   'mediaTransferDuration',
-  'mediaBytesTransferred'
+  'mediaBytesTransferred',
+  'mediaAppends'
 ];
 const sumLoaderStat = function(stat) {
   return this.audioSegmentLoader_[stat] +
@@ -270,6 +271,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // mediaRequestsErrored_
     // mediaTransferDuration_
     // mediaBytesTransferred_
+    // mediaAppends_
     loaderStats.forEach((stat) => {
       this[stat + '_'] = sumLoaderStat.bind(this, stat);
     });
@@ -287,6 +289,46 @@ export class MasterPlaylistController extends videojs.EventTarget {
     } else {
       this.masterPlaylistLoader_.load();
     }
+
+    this.timeToLoadedData__ = -1;
+    this.mainAppendsToLoadedData__ = -1;
+    this.audioAppendsToLoadedData__ = -1;
+
+    const event = this.tech_.preload() === 'none' ? 'play' : 'loadstart';
+
+    // start the first frame timer on loadstart or play (for preload none)
+    this.tech_.one(event, () => {
+      const timeToLoadedDataStart = Date.now();
+
+      this.tech_.one('loadeddata', () => {
+        this.timeToLoadedData__ = Date.now() - timeToLoadedDataStart;
+        this.mainAppendsToLoadedData__ = this.mainSegmentLoader_.mediaAppends;
+        this.audioAppendsToLoadedData__ = this.audioSegmentLoader_.mediaAppends;
+      });
+    });
+  }
+
+  mainAppendsToLoadedData_() {
+    return this.mainAppendsToLoadedData__;
+  }
+
+  audioAppendsToLoadedData_() {
+    return this.audioAppendsToLoadedData__;
+  }
+
+  appendsToLoadedData_() {
+    const main = this.mainAppendsToLoadedData_();
+    const audio = this.audioAppendsToLoadedData_();
+
+    if (main === -1 || audio === -1) {
+      return -1;
+    }
+
+    return main + audio;
+  }
+
+  timeToLoadedData_() {
+    return this.timeToLoadedData__;
   }
 
   /**

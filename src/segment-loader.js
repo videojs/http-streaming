@@ -676,6 +676,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.mediaRequestsErrored = 0;
     this.mediaTransferDuration = 0;
     this.mediaSecondsLoaded = 0;
+    this.mediaAppends = 0;
   }
 
   /**
@@ -3003,6 +3004,10 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // used for testing
     this.trigger('appended');
+
+    if (segmentInfo.hasAppendedData_) {
+      this.mediaAppends++;
+    }
 
     if (!this.paused()) {
       this.monitorBuffer_();

@@ -688,6 +688,179 @@ QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', fun
   });
 });
 
+QUnit.test('basic timeToLoadedData, mediaAppends, appendsToLoadedData stats', function(assert) {
+  this.player.tech_.trigger('loadstart');
+  this.masterPlaylistController.mediaSource.trigger('sourceopen');
+  // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  const segmentLoader = this.masterPlaylistController.mainSegmentLoader_;
+
+  return requestAndAppendSegment({
+    request: this.requests.shift(),
+    segmentLoader,
+    clock: this.clock
+  }).then(() => {
+    this.player.tech_.trigger('loadeddata');
+    const vhs = this.player.tech_.vhs;
+
+    assert.equal(vhs.stats.mediaAppends, 1, 'one media append');
+    assert.equal(vhs.stats.appendsToLoadedData, 1, 'appends to first frame is also 1');
+    assert.equal(vhs.stats.mainAppendsToLoadedData, 1, 'main appends to first frame is also 1');
+    assert.equal(vhs.stats.audioAppendsToLoadedData, 0, 'audio appends to first frame is 0');
+    assert.ok(vhs.stats.timeToLoadedData > 0, 'time to first frame is valid');
+  });
+});
+
+QUnit.test('timeToLoadedData, mediaAppends, appendsToLoadedData stats with 0 length appends', function(assert) {
+  this.player.tech_.trigger('loadstart');
+  this.masterPlaylistController.mediaSource.trigger('sourceopen');
+  // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  const segmentLoader = this.masterPlaylistController.mainSegmentLoader_;
+
+  return requestAndAppendSegment({
+    request: this.requests.shift(),
+    segmentLoader,
+    clock: this.clock
+  }).then(() => {
+    // mock a zero length segment, by setting hasAppendedData_ to false.
+    segmentLoader.one('appendsdone', () => {
+      segmentLoader.pendingSegment_.hasAppendedData_ = false;
+    });
+    return requestAndAppendSegment({
+      request: this.requests.shift(),
+      segmentLoader,
+      clock: this.clock
+    });
+  }).then(() => {
+
+    this.player.tech_.trigger('loadeddata');
+    const vhs = this.player.tech_.vhs;
+
+    // only one media append as the second was zero length.
+    assert.equal(vhs.stats.mediaAppends, 1, 'one media append');
+    assert.equal(vhs.stats.appendsToLoadedData, 1, 'appends to first frame is also 1');
+    assert.equal(vhs.stats.mainAppendsToLoadedData, 1, 'main appends to first frame is also 1');
+    assert.equal(vhs.stats.audioAppendsToLoadedData, 0, 'audio appends to first frame is 0');
+    assert.ok(vhs.stats.timeToLoadedData > 0, 'time to first frame is valid');
+  });
+});
+
+QUnit.test('preload none timeToLoadedData, mediaAppends, appendsToLoadedData stats', function(assert) {
+  this.requests.length = 0;
+  this.player.dispose();
+  this.player = createPlayer();
+  this.player.tech_.preload = () => 'none';
+
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+  const vhs = this.player.tech_.vhs;
+
+  this.masterPlaylistController = vhs.masterPlaylistController_;
+  this.masterPlaylistController.mediaSource.trigger('sourceopen');
+
+  assert.equal(this.requests.length, 0, 'no requests request');
+  assert.equal(vhs.stats.mediaAppends, 0, 'one media append');
+  assert.equal(vhs.stats.appendsToLoadedData, -1, 'appends to first frame is -1');
+  assert.equal(vhs.stats.mainAppendsToLoadedData, -1, 'main appends to first frame is -1');
+  assert.equal(vhs.stats.audioAppendsToLoadedData, -1, 'audio appends to first frame is -1');
+  assert.equal(vhs.stats.timeToLoadedData, -1, 'time to first frame is -1');
+
+  this.player.tech_.paused = () => false;
+  this.player.tech_.trigger('play');
+
+  // master
+  this.standardXHRResponse(this.requests.shift());
+
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  const segmentLoader = this.masterPlaylistController.mainSegmentLoader_;
+
+  return requestAndAppendSegment({
+    request: this.requests.shift(),
+    segmentLoader,
+    clock: this.clock
+  }).then(() => {
+    this.player.tech_.trigger('loadeddata');
+
+    assert.equal(vhs.stats.mediaAppends, 1, 'one media append');
+    assert.equal(vhs.stats.appendsToLoadedData, 1, 'appends to first frame is also 1');
+    assert.equal(vhs.stats.mainAppendsToLoadedData, 1, 'main appends to first frame is also 1');
+    assert.equal(vhs.stats.audioAppendsToLoadedData, 0, 'audio appends to first frame is 0');
+    assert.ok(vhs.stats.timeToLoadedData > 0, 'time to first frame is valid');
+  });
+});
+
+QUnit.test('demuxed timeToLoadedData, mediaAppends, appendsToLoadedData stats', function(assert) {
+  this.player.tech_.trigger('loadstart');
+  const mpc = this.masterPlaylistController;
+
+  const videoMedia = '#EXTM3U\n' +
+                     '#EXT-X-VERSION:3\n' +
+                     '#EXT-X-PLAYLIST-TYPE:VOD\n' +
+                     '#EXT-X-MEDIA-SEQUENCE:0\n' +
+                     '#EXT-X-TARGETDURATION:10\n' +
+                     '#EXTINF:10,\n' +
+                     'video-0.ts\n' +
+                     '#EXTINF:10,\n' +
+                     'video-1.ts\n' +
+                     '#EXT-X-ENDLIST\n';
+
+  const audioMedia = '#EXTM3U\n' +
+                     '#EXT-X-VERSION:3\n' +
+                     '#EXT-X-PLAYLIST-TYPE:VOD\n' +
+                     '#EXT-X-MEDIA-SEQUENCE:0\n' +
+                     '#EXT-X-TARGETDURATION:10\n' +
+                     '#EXTINF:10,\n' +
+                     'audio-0.ts\n' +
+                     '#EXTINF:10,\n' +
+                     'audio-1.ts\n' +
+                     '#EXT-X-ENDLIST\n';
+
+  mpc.mediaSource.trigger('sourceopen');
+  // master
+  this.standardXHRResponse(this.requests.shift(), manifests.demuxed);
+
+  // video media
+  this.standardXHRResponse(this.requests.shift(), videoMedia);
+
+  // audio media
+  this.standardXHRResponse(this.requests.shift(), audioMedia);
+  return Promise.all([requestAndAppendSegment({
+    request: this.requests.shift(),
+    segment: videoSegment(),
+    isOnlyVideo: true,
+    segmentLoader: mpc.mainSegmentLoader_,
+    clock: this.clock
+  }), requestAndAppendSegment({
+    request: this.requests.shift(),
+    segment: audioSegment(),
+    isOnlyAudio: true,
+    segmentLoader: mpc.audioSegmentLoader_,
+    clock: this.clock
+  })]).then(() => {
+    this.player.tech_.trigger('loadeddata');
+    const vhs = this.player.tech_.vhs;
+
+    assert.equal(vhs.stats.mediaAppends, 2, 'two media append');
+    assert.equal(vhs.stats.appendsToLoadedData, 2, 'appends to first frame is also 2');
+    assert.equal(vhs.stats.mainAppendsToLoadedData, 1, 'main appends to first frame is 1');
+    assert.equal(vhs.stats.audioAppendsToLoadedData, 1, 'audio appends to first frame is 1');
+    assert.ok(vhs.stats.timeToLoadedData > 0, 'time to first frame is valid');
+  });
+});
+
 QUnit.test('seeks forward 0.04 sec for fast quality switch on Edge', function(assert) {
   const oldIEVersion = videojs.browser.IE_VERSION;
   const oldIsEdge = videojs.browser.IS_EDGE;
