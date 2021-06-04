@@ -638,9 +638,8 @@ export const initialize = {
       for (const variantLabel in mediaGroups[type][groupId]) {
         const properties = mediaGroups[type][groupId][variantLabel];
 
-        // We only support CEA608 captions for now, so ignore anything that
-        // doesn't use a CCx INSTREAM-ID
-        if (!properties.instreamId.match(/CC\d/)) {
+        // Look for either 608 (CCn) or 708 (SERVICEn) caption services
+        if (!/^(?:CC|SERVICE)/.test(properties.instreamId)) {
           continue;
         }
 
