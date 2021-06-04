@@ -16,7 +16,15 @@ export const createCaptionsTrackIfNotExists = function(inbandTextTracks, tech, c
   if (!inbandTextTracks[captionStream]) {
     tech.trigger({type: 'usage', name: 'vhs-608'});
     tech.trigger({type: 'usage', name: 'hls-608'});
-    const track = tech.textTracks().getTrackById(captionStream);
+
+    let instreamId = captionStream;
+
+    // we need to translate SERVICEn for 708 to how mux.js currently labels them
+    if (/^cc708_/.test(captionStream)) {
+      instreamId = 'SERVICE' + captionStream.split('_')[1];
+    }
+
+    const track = tech.textTracks().getTrackById(instreamId);
 
     if (track) {
       // Resuse an existing track with a CC# id because this was
@@ -27,12 +35,6 @@ export const createCaptionsTrackIfNotExists = function(inbandTextTracks, tech, c
       const captionServices = tech.options_.vhs && tech.options_.vhs.captionServices || {};
       let label = captionStream;
       let language = captionStream;
-      let instreamId = captionStream;
-
-      // we need to translate SERVICEn for 708 to how mux.js currently labels them
-      if (/^cc708_/.test(captionStream)) {
-        instreamId = 'SERVICE' + captionStream.split('_')[1];
-      }
 
       if (captionServices[instreamId]) {
         label = captionServices[instreamId].label;
