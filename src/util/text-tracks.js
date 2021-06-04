@@ -35,10 +35,12 @@ export const createCaptionsTrackIfNotExists = function(inbandTextTracks, tech, c
       const captionServices = tech.options_.vhs && tech.options_.vhs.captionServices || {};
       let label = captionStream;
       let language = captionStream;
+      let def = false;
 
       if (captionServices[instreamId]) {
         label = captionServices[instreamId].label;
         language = captionServices[instreamId].language;
+        def = captionServices[instreamId].default;
       }
 
       // Otherwise, create a track with the default `CC#` label and
@@ -46,6 +48,7 @@ export const createCaptionsTrackIfNotExists = function(inbandTextTracks, tech, c
       inbandTextTracks[captionStream] = tech.addRemoteTextTrack({
         kind: 'captions',
         id: instreamId,
+        default: def,
         label,
         language
       }, false).track;

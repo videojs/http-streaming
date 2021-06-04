@@ -483,8 +483,9 @@ For 608 captions, the service names are `CC1`, `CC2`, `CC3`, and `CC4`. For 708 
   vhs: {
     captionServices: {
       [serviceName]: {
-        language: String,
-        label: String
+        language: String, // optional
+        label: String, // optional
+        default: boolean // optional
       }
     }
   }
@@ -501,7 +502,8 @@ For 608 captions, the service names are `CC1`, `CC2`, `CC3`, and `CC4`. For 708 
       },
       SERVICE1: {
         langauge: 'kr',
-        label: 'Korean'
+        label: 'Korean',
+        default: true
       }
     }
   }
