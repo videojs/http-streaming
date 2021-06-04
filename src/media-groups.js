@@ -643,17 +643,35 @@ export const initialize = {
           continue;
         }
 
+        const captionServices = tech.options_.vhs && tech.options_.vhs.captionServices || {};
+
+        let label = variantLabel;
+        let language = properties.language;
+        let instreamId = properties.instreamId;
+        let def = properties.default && properties.autoselect;
+
+        // we need to translate SERVICEn for 708 to how mux.js currently labels them
+        if (/^cc708_/.test(instreamId)) {
+          instreamId = 'SERVICE' + properties.instreamId.split('_')[1];
+        }
+
+        if (captionServices[instreamId]) {
+          label = captionServices[instreamId].label;
+          language = captionServices[instreamId].language;
+          def = captionServices[instreamId].default;
+        }
+
         // No PlaylistLoader is required for Closed-Captions because the captions are
         // embedded within the video stream
         groups[groupId].push(videojs.mergeOptions({ id: variantLabel }, properties));
 
         if (typeof tracks[variantLabel] === 'undefined') {
           const track = tech.addRemoteTextTrack({
-            id: properties.instreamId,
+            id: instreamId,
             kind: 'captions',
-            default: properties.default && properties.autoselect,
-            language: properties.language,
-            label: variantLabel
+            default: def,
+            language,
+            label
           }, false).track;
 
           tracks[variantLabel] = track;
