@@ -24,12 +24,28 @@ export const createCaptionsTrackIfNotExists = function(inbandTextTracks, tech, c
       // in the m3u8 for us to use
       inbandTextTracks[captionStream] = track;
     } else {
+      const captionServices = tech.options_.vhs && tech.options_.vhs.captionServices || {};
+      let label = captionStream;
+      let language = captionStream;
+      let instreamId = captionStream;
+
+      // we need to translate SERVICEn for 708 to how mux.js currently labels them
+      if (/^cc708_/.test(captionStream)) {
+        instreamId = 'SERVICE' + captionStream.split('_')[1];
+      }
+
+      if (captionServices[instreamId]) {
+        label = captionServices[instreamId].label;
+        language = captionServices[instreamId].language;
+      }
+
       // Otherwise, create a track with the default `CC#` label and
       // without a language
       inbandTextTracks[captionStream] = tech.addRemoteTextTrack({
         kind: 'captions',
-        id: captionStream,
-        label: captionStream
+        id: instreamId,
+        label,
+        language
       }, false).track;
     }
   }
