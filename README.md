@@ -58,6 +58,8 @@ Video.js Compatibility: 6.0, 7.0
       - [handlePartialData](#handlepartialdata)
       - [liveRangeSafeTimeDelta](#liverangesafetimedelta)
       - [captionServices](#captionservices)
+        - [Format](#format)
+        - [Example](#example)
   - [Runtime Properties](#runtime-properties)
     - [vhs.playlists.master](#vhsplaylistsmaster)
     - [vhs.playlists.media](#vhsplaylistsmedia)
@@ -475,8 +477,8 @@ This option defaults to `false`.
 The captionServices options object has properties that map to the caption services. Each property is an object itself that includes several properties, like a label or language.
 
 For 608 captions, the service names are `CC1`, `CC2`, `CC3`, and `CC4`. For 708 captions, the service names are `SERVICEn` where `n` is a digit between `1` and `63`.
-Format:
-```json
+###### Format
+```js
 {
   vhs: {
     captionServices: {
@@ -488,8 +490,8 @@ Format:
   }
 }
 ```
-Example:
-```json
+###### Example
+```js
 {
   vhs: {
     captionServices: {
