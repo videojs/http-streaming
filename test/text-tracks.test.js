@@ -26,6 +26,7 @@ class MockTextTrack {
 
 class MockTech {
   constructor() {
+    this.options_ = {};
     this.tracks = {
       getTrackById(id) {
         return this[id];
