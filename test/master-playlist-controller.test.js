@@ -3221,7 +3221,7 @@ QUnit.test('parses codec from muxed fmp4 init segment', function(assert) {
 });
 
 QUnit.test(
-  'adds only CEA608 closed-caption tracks when a master playlist is loaded',
+  'adds CEA608 closed-caption tracks when a master playlist is loaded',
   function(assert) {
     this.requests.length = 0;
     this.player.dispose();
@@ -3260,15 +3260,77 @@ QUnit.test(
       .map(cap => Object.assign({name: cap.id}, cap));
 
     assert.equal(capsArr.length, 4, '4 closed-caption tracks defined in playlist');
-    assert.equal(addedCaps.length, 2, '2 CEA608 tracks added internally');
+    assert.equal(addedCaps.length, 4, '4 tracks added internally');
     assert.equal(addedCaps[0].instreamId, 'CC1', 'first 608 track is CC1');
-    assert.equal(addedCaps[1].instreamId, 'CC3', 'second 608 track is CC3');
+    assert.equal(addedCaps[2].instreamId, 'CC3', 'second 608 track is CC3');
 
     const textTracks = this.player.textTracks();
 
-    assert.equal(textTracks.length, 3, '2 text tracks were added');
-    assert.equal(textTracks[1].mode, 'disabled', 'track starts disabled');
-    assert.equal(textTracks[2].mode, 'disabled', 'track starts disabled');
+    assert.equal(
+      textTracks[1].id, addedCaps[0].instreamId,
+      'text track 1\'s id is CC\'s instreamId'
+    );
+    assert.equal(
+      textTracks[2].id, addedCaps[1].instreamId,
+      'text track 2\'s id is CC\'s instreamId'
+    );
+    assert.equal(
+      textTracks[1].label, addedCaps[0].name,
+      'text track 1\'s label is CC\'s name'
+    );
+    assert.equal(
+      textTracks[2].label, addedCaps[1].name,
+      'text track 2\'s label is CC\'s name'
+    );
+  }
+);
+
+QUnit.test(
+  'adds CEA708 closed-caption tracks when a master playlist is loaded',
+  function(assert) {
+    this.requests.length = 0;
+    this.player.dispose();
+    this.player = createPlayer();
+    this.player.src({
+      src: 'manifest/master-captions.m3u8',
+      type: 'application/vnd.apple.mpegurl'
+    });
+
+    // wait for async player.src to complete
+    this.clock.tick(1);
+
+    const masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
+
+    assert.equal(this.player.textTracks().length, 1, 'one text track to start');
+    assert.equal(
+      this.player.textTracks()[0].label,
+      'segment-metadata',
+      'only segment-metadata text track'
+    );
+
+    // master, contains media groups for captions
+    this.standardXHRResponse(this.requests.shift());
+
+    // we wait for loadedmetadata before setting caption tracks, so we need to wait for a
+    // media playlist
+    assert.equal(this.player.textTracks().length, 1, 'only one text track after master');
+
+    // media
+    this.standardXHRResponse(this.requests.shift());
+
+    const master = masterPlaylistController.masterPlaylistLoader_.master;
+    const caps = master.mediaGroups['CLOSED-CAPTIONS'].CCs;
+    const capsArr = Object.keys(caps).map(key => Object.assign({name: key}, caps[key]));
+    const addedCaps = masterPlaylistController.mediaTypes_['CLOSED-CAPTIONS'].groups.CCs
+      .map(cap => Object.assign({name: cap.id}, cap));
+
+    assert.equal(capsArr.length, 4, '4 closed-caption tracks defined in playlist');
+    assert.equal(addedCaps.length, 4, '4 tracks added internally');
+    assert.equal(addedCaps[1].instreamId, 'SERVICE1', 'first 708 track is SERVICE1');
+    assert.equal(addedCaps[3].instreamId, 'SERVICE3', 'second 708 track is SERVICE3');
+
+    const textTracks = this.player.textTracks();
+
     assert.equal(
       textTracks[1].id, addedCaps[0].instreamId,
       'text track 1\'s id is CC\'s instreamId'
