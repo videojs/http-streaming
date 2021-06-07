@@ -1078,6 +1078,7 @@ QUnit.module('MediaGroups', function() {
         masterPlaylistLoader: {master: this.master},
         vhs: {},
         tech: {
+          options_: {},
           addRemoteTextTrack(track) {
             return { track };
           }
@@ -1268,7 +1269,9 @@ QUnit.module('MediaGroups', function() {
         {
           CCs: [
             { id: 'en608', default: true, autoselect: true, language: 'en', instreamId: 'CC1' },
-            { id: 'fr608', language: 'fr', instreamId: 'CC3' }
+            { id: 'en708', language: 'en', instreamId: 'SERVICE1' },
+            { id: 'fr608', language: 'fr', instreamId: 'CC3' },
+            { id: 'fr708', language: 'fr', instreamId: 'SERVICE3' }
           ]
         }, 'creates group properties'
       );
