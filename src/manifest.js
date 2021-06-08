@@ -2,6 +2,7 @@ import videojs from 'video.js';
 import window from 'global/window';
 import { Parser as M3u8Parser } from 'm3u8-parser';
 import { resolveUrl } from './resolve-url';
+import { getLastParts } from './playlist.js';
 
 const { log } = videojs;
 
@@ -12,12 +13,18 @@ export const createPlaylistID = (index, uri) => {
 /**
  * Parses a given m3u8 playlist
  *
+ * @param {Function} [onwarn]
+ *        a function to call when the parser triggers a warning event.
+ * @param {Function} [oninfo]
+ *        a function to call when the parser triggers an info event.
  * @param {string} manifestString
  *        The downloaded manifest string
  * @param {Object[]} [customTagParsers]
  *        An array of custom tag parsers for the m3u8-parser instance
  * @param {Object[]} [customTagMappers]
- *         An array of custom tag mappers for the m3u8-parser instance
+ *        An array of custom tag mappers for the m3u8-parser instance
+ * @param {boolean} [experimentalLLHLS=false]
+ *        Whether to keep ll-hls features in the manifest after parsing.
  * @return {Object}
  *         The manifest object
  */
@@ -26,7 +33,8 @@ export const parseManifest = ({
   oninfo,
   manifestString,
   customTagParsers = [],
-  customTagMappers = []
+  customTagMappers = [],
+  experimentalLLHLS
 }) => {
   const parser = new M3u8Parser();
 
@@ -43,7 +51,61 @@ export const parseManifest = ({
   parser.push(manifestString);
   parser.end();
 
-  return parser.manifest;
+  const manifest = parser.manifest;
+
+  // remove llhls features from the parsed manifest
+  // if we don't want llhls support.
+  if (!experimentalLLHLS) {
+    [
+      'preloadSegment',
+      'skip',
+      'serverControl',
+      'renditionReports',
+      'partInf',
+      'partTargetDuration'
+    ].forEach(function(k) {
+      if (manifest.hasOwnProperty(k)) {
+        delete manifest[k];
+      }
+    });
+
+    if (manifest.segments) {
+      manifest.segments.forEach(function(segment) {
+        ['parts', 'preloadHints'].forEach(function(k) {
+          if (segment.hasOwnProperty(k)) {
+            delete segment[k];
+          }
+        });
+      });
+    }
+  }
+  if (!manifest.targetDuration) {
+    let targetDuration = 10;
+
+    if (manifest.segments && manifest.segments.length) {
+      targetDuration = manifest
+        .segments.reduce((acc, s) => Math.max(acc, s.duration), 0);
+    }
+
+    if (onwarn) {
+      onwarn(`manifest has no targetDuration defaulting to ${targetDuration}`);
+    }
+    manifest.targetDuration = targetDuration;
+  }
+
+  const parts = getLastParts(manifest);
+
+  if (parts.length && !manifest.partTargetDuration) {
+    const partTargetDuration = parts.reduce((acc, p) => Math.max(acc, p.duration), 0);
+
+    if (onwarn) {
+      onwarn(`manifest has no partTargetDuration defaulting to ${partTargetDuration}`);
+      log.error('LL-HLS manifest has parts but lacks required #EXT-X-PART-INF:PART-TARGET value. See https://datatracker.ietf.org/doc/html/draft-pantos-hls-rfc8216bis-09#section-4.4.3.7. Playback is not guaranteed.');
+    }
+    manifest.partTargetDuration = partTargetDuration;
+  }
+
+  return manifest;
 };
 
 /**
@@ -56,7 +118,13 @@ export const parseManifest = ({
  *        Callback to call for each media group
  */
 export const forEachMediaGroup = (master, callback) => {
+  if (!master.mediaGroups) {
+    return;
+  }
   ['AUDIO', 'SUBTITLES'].forEach((mediaType) => {
+    if (!master.mediaGroups[mediaType]) {
+      return;
+    }
     for (const groupKey in master.mediaGroups[mediaType]) {
       for (const labelKey in master.mediaGroups[mediaType][groupKey]) {
         const mediaProperties = master.mediaGroups[mediaType][groupKey][labelKey];
@@ -212,22 +280,40 @@ export const addPropertiesToMaster = (master, uri) => {
   }
 
   forEachMediaGroup(master, (properties, mediaType, groupKey, labelKey) => {
-    if (!properties.playlists ||
-        !properties.playlists.length ||
-        properties.playlists[0].uri) {
-      return;
+    const groupId = `placeholder-uri-${mediaType}-${groupKey}-${labelKey}`;
+
+    if (!properties.playlists || !properties.playlists.length) {
+      properties.playlists = [Object.assign({}, properties)];
     }
 
-    // Set up phony URIs for the media group playlists since playlists are referenced by
-    // their URIs throughout VHS, but some formats (e.g., DASH) don't have external URIs
-    const phonyUri = `placeholder-uri-${mediaType}-${groupKey}-${labelKey}`;
-    const id = createPlaylistID(0, phonyUri);
+    properties.playlists.forEach(function(p, i) {
+      const id = createPlaylistID(i, groupId);
 
-    properties.playlists[0].uri = phonyUri;
-    properties.playlists[0].id = id;
-    // setup ID and URI references (URI for backwards compatibility)
-    master.playlists[id] = properties.playlists[0];
-    master.playlists[phonyUri] = properties.playlists[0];
+      if (p.uri) {
+        p.resolvedUri = p.resolvedUri || resolveUrl(master.uri, p.uri);
+      } else {
+        // DEPRECATED, this has been added to prevent a breaking change.
+        // previously we only ever had a single media group playlist, so
+        // we mark the first playlist uri without prepending the index as we used to
+        // ideally we would do all of the playlists the same way.
+        p.uri = i === 0 ? groupId : id;
+
+        // don't resolve a placeholder uri to an absolute url, just use
+        // the placeholder again
+        p.resolvedUri = p.uri;
+      }
+
+      p.id = p.id || id;
+
+      // add an empty attributes object, all playlists are
+      // expected to have this.
+      p.attributes = p.attributes || {};
+
+      // setup ID and URI references (URI for backwards compatibility)
+      master.playlists[p.id] = p;
+      master.playlists[p.uri] = p;
+    });
+
   });
 
   setupMediaPlaylists(master);

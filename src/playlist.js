@@ -5,9 +5,83 @@
  */
 import videojs from 'video.js';
 import window from 'global/window';
+import {isAudioCodec} from '@videojs/vhs-utils/es/codecs.js';
 import {TIME_FUDGE_FACTOR} from './ranges.js';
 
 const {createTimeRange} = videojs;
+
+/**
+ * A function to get a combined list of parts and segments with durations
+ * and indexes.
+ *
+ * @param {Playlist} playlist the playlist to get the list for.
+ *
+ * @return {Array} The part/segment list.
+ */
+export const getPartsAndSegments = (playlist) => (playlist.segments || []).reduce((acc, segment, si) => {
+  if (segment.parts) {
+    segment.parts.forEach(function(part, pi) {
+      acc.push({duration: part.duration, segmentIndex: si, partIndex: pi, part, segment});
+    });
+  } else {
+    acc.push({duration: segment.duration, segmentIndex: si, partIndex: null, segment, part: null});
+  }
+  return acc;
+}, []);
+
+export const getLastParts = (media) => {
+  const lastSegment = media.segments && media.segments.length && media.segments[media.segments.length - 1];
+
+  return lastSegment && lastSegment.parts || [];
+};
+
+export const getKnownPartCount = ({preloadSegment}) => {
+  if (!preloadSegment) {
+    return;
+  }
+  const {parts, preloadHints} = preloadSegment;
+  let partCount = (preloadHints || [])
+    .reduce((count, hint) => count + (hint.type === 'PART' ? 1 : 0), 0);
+
+  partCount += (parts && parts.length) ? parts.length : 0;
+
+  return partCount;
+};
+/**
+ * Get the number of seconds to delay from the end of a
+ * live playlist.
+ *
+ * @param {Playlist} master the master playlist
+ * @param {Playlist} media the media playlist
+ * @return {number} the hold back in seconds.
+ */
+export const liveEdgeDelay = (master, media) => {
+  if (media.endList) {
+    return 0;
+  }
+
+  // dash suggestedPresentationDelay trumps everything
+  if (master && master.suggestedPresentationDelay) {
+    return master.suggestedPresentationDelay;
+  }
+
+  const hasParts = getLastParts(media).length > 0;
+
+  // look for "part" delays from ll-hls first
+  if (hasParts && media.serverControl && media.serverControl.partHoldBack) {
+    return media.serverControl.partHoldBack;
+  } else if (hasParts && media.partTargetDuration) {
+    return media.partTargetDuration * 3;
+
+  // finally look for full segment delays
+  } else if (media.serverControl && media.serverControl.holdBack) {
+    return media.serverControl.holdBack;
+  } else if (media.targetDuration) {
+    return media.targetDuration * 3;
+  }
+
+  return 0;
+};
 
 /**
  * walk backward until we find a duration we can use
@@ -187,12 +261,13 @@ export const duration = function(playlist, endSequence, expired) {
   * playlist in which case, the targetDuration of the playlist is used
   * to approximate the durations of the segments
   *
-  * @param {Object} playlist a media playlist object
-  * @param {number} startIndex
-  * @param {number} endIndex
+  * @param {Array} options.durationList list to iterate over for durations.
+  * @param {number} options.defaultDuration duration to use for elements before or after the durationList
+  * @param {number} options.startIndex partsAndSegments index to start
+  * @param {number} options.endIndex partsAndSegments index to end.
   * @return {number} the number of seconds between startIndex and endIndex
   */
-export const sumDurations = function(playlist, startIndex, endIndex) {
+export const sumDurations = function({defaultDuration, durationList, startIndex, endIndex}) {
   let durations = 0;
 
   if (startIndex > endIndex) {
@@ -201,63 +276,16 @@ export const sumDurations = function(playlist, startIndex, endIndex) {
 
   if (startIndex < 0) {
     for (let i = startIndex; i < Math.min(0, endIndex); i++) {
-      durations += playlist.targetDuration;
+      durations += defaultDuration;
     }
     startIndex = 0;
   }
 
   for (let i = startIndex; i < endIndex; i++) {
-    durations += playlist.segments[i].duration;
+    durations += durationList[i].duration;
   }
 
   return durations;
-};
-
-/**
- * Determines the media index of the segment corresponding to the safe edge of the live
- * window which is the duration of the last segment plus 2 target durations from the end
- * of the playlist.
- *
- * A liveEdgePadding can be provided which will be used instead of calculating the safe live edge.
- * This corresponds to suggestedPresentationDelay in DASH manifests.
- *
- * @param {Object} playlist
- *        a media playlist object
- * @param {number} [liveEdgePadding]
- *        A number in seconds indicating how far from the end we want to be.
- *        If provided, this value is used instead of calculating the safe live index from the target durations.
- *        Corresponds to suggestedPresentationDelay in DASH manifests.
- * @return {number}
- *         The media index of the segment at the safe live point. 0 if there is no "safe"
- *         point.
- * @function safeLiveIndex
- */
-export const safeLiveIndex = function(playlist, liveEdgePadding) {
-  if (!playlist.segments.length) {
-    return 0;
-  }
-
-  let i = playlist.segments.length;
-  const lastSegmentDuration = playlist.segments[i - 1].duration || playlist.targetDuration;
-  const safeDistance = typeof liveEdgePadding === 'number' ?
-    liveEdgePadding :
-    lastSegmentDuration + playlist.targetDuration * 2;
-
-  if (safeDistance === 0) {
-    return i;
-  }
-
-  let distanceFromEnd = 0;
-
-  while (i--) {
-    distanceFromEnd += playlist.segments[i].duration;
-
-    if (distanceFromEnd >= safeDistance) {
-      break;
-    }
-  }
-
-  return Math.max(0, i);
 };
 
 /**
@@ -293,13 +321,19 @@ export const playlistEnd = function(playlist, expired, useSafeLiveEnd, liveEdgeP
 
   expired = expired || 0;
 
-  const endSequence = useSafeLiveEnd ? safeLiveIndex(playlist, liveEdgePadding) : playlist.segments.length;
-
-  return intervalDuration(
+  let lastSegmentTime = intervalDuration(
     playlist,
-    playlist.mediaSequence + endSequence,
+    playlist.mediaSequence + playlist.segments.length,
     expired
   );
+
+  if (useSafeLiveEnd) {
+    liveEdgePadding = typeof liveEdgePadding === 'number' ? liveEdgePadding : liveEdgeDelay(null, playlist);
+    lastSegmentTime -= liveEdgePadding;
+  }
+
+  // don't return a time less than zero
+  return Math.max(0, lastSegmentTime);
 };
 
 /**
@@ -334,44 +368,74 @@ export const seekable = function(playlist, expired, liveEdgePadding) {
  * Determine the index and estimated starting time of the segment that
  * contains a specified playback position in a media playlist.
  *
- * @param {Object} playlist the media playlist to query
- * @param {number} currentTime The number of seconds since the earliest
+ * @param {Object} options.playlist the media playlist to query
+ * @param {number} options.currentTime The number of seconds since the earliest
  * possible position to determine the containing segment for
- * @param {number} startIndex
- * @param {number} startTime
- * @return {Object}
+ * @param {number} options.startTime the time when the segment/part starts
+ * @param {number} options.startingSegmentIndex the segment index to start looking at.
+ * @param {number?} [options.startingPartIndex] the part index to look at within the segment.
+ *
+ * @return {Object} an object with partIndex, segmentIndex, and startTime.
  */
-export const getMediaInfoForTime = function(
+export const getMediaInfoForTime = function({
   playlist,
   currentTime,
-  startIndex,
+  startingSegmentIndex,
+  startingPartIndex,
   startTime
-) {
-  let i;
-  let segment;
-  const numSegments = playlist.segments.length;
+}) {
 
   let time = currentTime - startTime;
+  const partsAndSegments = getPartsAndSegments(playlist);
+
+  let startIndex = 0;
+
+  for (let i = 0; i < partsAndSegments.length; i++) {
+    const partAndSegment = partsAndSegments[i];
+
+    if (startingSegmentIndex !== partAndSegment.segmentIndex) {
+      continue;
+    }
+
+    // skip this if part index does not match.
+    if (typeof startingPartIndex === 'number' && typeof partAndSegment.partIndex === 'number' && startingPartIndex !== partAndSegment.partIndex) {
+      continue;
+    }
+
+    startIndex = i;
+    break;
+  }
 
   if (time < 0) {
     // Walk backward from startIndex in the playlist, adding durations
     // until we find a segment that contains `time` and return it
     if (startIndex > 0) {
-      for (i = startIndex - 1; i >= 0; i--) {
-        segment = playlist.segments[i];
-        time += (segment.duration + TIME_FUDGE_FACTOR);
-        if (time > 0) {
+      for (let i = startIndex - 1; i >= 0; i--) {
+        const partAndSegment = partsAndSegments[i];
+
+        time += partAndSegment.duration;
+
+        // TODO: consider not using TIME_FUDGE_FACTOR at all here
+        if ((time + TIME_FUDGE_FACTOR) > 0) {
           return {
-            mediaIndex: i,
-            startTime: startTime - sumDurations(playlist, startIndex, i)
+            partIndex: partAndSegment.partIndex,
+            segmentIndex: partAndSegment.segmentIndex,
+            startTime: startTime - sumDurations({
+              defaultDuration: playlist.targetDuration,
+              durationList: partsAndSegments,
+              startIndex,
+              endIndex: i
+            })
           };
         }
       }
     }
+
     // We were unable to find a good segment within the playlist
     // so select the first segment
     return {
-      mediaIndex: 0,
+      partIndex: partsAndSegments[0] && partsAndSegments[0].partIndex || null,
+      segmentIndex: partsAndSegments[0] && partsAndSegments[0].segmentIndex || 0,
       startTime: currentTime
     };
   }
@@ -380,11 +444,12 @@ export const getMediaInfoForTime = function(
   // adding target durations. If we "run out of time" before getting to
   // the first segment, return the first segment
   if (startIndex < 0) {
-    for (i = startIndex; i < 0; i++) {
+    for (let i = startIndex; i < 0; i++) {
       time -= playlist.targetDuration;
       if (time < 0) {
         return {
-          mediaIndex: 0,
+          partIndex: partsAndSegments[0] && partsAndSegments[0].partIndex || null,
+          segmentIndex: partsAndSegments[0] && partsAndSegments[0].segmentIndex || 0,
           startTime: currentTime
         };
       }
@@ -394,20 +459,30 @@ export const getMediaInfoForTime = function(
 
   // Walk forward from startIndex in the playlist, subtracting durations
   // until we find a segment that contains `time` and return it
-  for (i = startIndex; i < numSegments; i++) {
-    segment = playlist.segments[i];
-    time -= segment.duration + TIME_FUDGE_FACTOR;
-    if (time < 0) {
+  for (let i = startIndex; i < partsAndSegments.length; i++) {
+    const partAndSegment = partsAndSegments[i];
+
+    time -= partAndSegment.duration;
+
+    // TODO: consider not using TIME_FUDGE_FACTOR at all here
+    if ((time - TIME_FUDGE_FACTOR) < 0) {
       return {
-        mediaIndex: i,
-        startTime: startTime + sumDurations(playlist, startIndex, i)
+        partIndex: partAndSegment.partIndex,
+        segmentIndex: partAndSegment.segmentIndex,
+        startTime: startTime + sumDurations({
+          defaultDuration: playlist.targetDuration,
+          durationList: partsAndSegments,
+          startIndex,
+          endIndex: i
+        })
       };
     }
   }
 
   // We are out of possible candidates so load the last one...
   return {
-    mediaIndex: numSegments - 1,
+    segmentIndex: partsAndSegments[partsAndSegments.length - 1].segmentIndex,
+    partIndex: partsAndSegments[partsAndSegments.length - 1].partIndex,
     startTime: currentTime
   };
 };
@@ -541,11 +616,105 @@ export const isLowestEnabledRendition = (master, media) => {
   }).length === 0);
 };
 
+export const playlistMatch = (a, b) => {
+  // both playlits are null
+  // or only one playlist is non-null
+  // no match
+  if (!a && !b || (!a && b) || (a && !b)) {
+    return false;
+  }
+
+  // playlist objects are the same, match
+  if (a === b) {
+    return true;
+  }
+
+  // first try to use id as it should be the most
+  // accurate
+  if (a.id && b.id && a.id === b.id) {
+    return true;
+  }
+
+  // next try to use reslovedUri as it should be the
+  // second most accurate.
+  if (a.resolvedUri && b.resolvedUri && a.resolvedUri === b.resolvedUri) {
+    return true;
+  }
+
+  // finally try to use uri as it should be accurate
+  // but might miss a few cases for relative uris
+  if (a.uri && b.uri && a.uri === b.uri) {
+    return true;
+  }
+
+  return false;
+};
+
+const someAudioVariant = function(master, callback) {
+  const AUDIO = master && master.mediaGroups && master.mediaGroups.AUDIO || {};
+  let found = false;
+
+  for (const groupName in AUDIO) {
+    for (const label in AUDIO[groupName]) {
+      found = callback(AUDIO[groupName][label]);
+
+      if (found) {
+        break;
+      }
+    }
+
+    if (found) {
+      break;
+    }
+  }
+
+  return !!found;
+};
+
+export const isAudioOnly = (master) => {
+  // we are audio only if we have no main playlists but do
+  // have media group playlists.
+  if (!master || !master.playlists || !master.playlists.length) {
+    // without audio variants or playlists this
+    // is not an audio only master.
+    const found = someAudioVariant(master, (variant) =>
+      (variant.playlists && variant.playlists.length) || variant.uri);
+
+    return found;
+  }
+
+  // if every playlist has only an audio codec it is audio only
+  for (let i = 0; i < master.playlists.length; i++) {
+    const playlist = master.playlists[i];
+    const CODECS = playlist.attributes && playlist.attributes.CODECS;
+
+    // all codecs are audio, this is an audio playlist.
+    if (CODECS && CODECS.split(',').every((c) => isAudioCodec(c))) {
+      continue;
+    }
+
+    // playlist is in an audio group it is audio only
+    const found = someAudioVariant(master, (variant) => playlistMatch(playlist, variant));
+
+    if (found) {
+      continue;
+    }
+
+    // if we make it here this playlist isn't audio and we
+    // are not audio only
+    return false;
+  }
+
+  // if we make it past every playlist without returning, then
+  // this is an audio only playlist.
+  return true;
+};
+
 // exports
 export default {
+  liveEdgeDelay,
   duration,
   seekable,
-  safeLiveIndex,
   getMediaInfoForTime,
   isEnabled,
   isDisabled,
@@ -555,5 +724,7 @@ export default {
   isAes,
   hasAttribute,
   estimateSegmentRequestTime,
-  isLowestEnabledRendition
+  isLowestEnabledRendition,
+  isAudioOnly,
+  playlistMatch
 };

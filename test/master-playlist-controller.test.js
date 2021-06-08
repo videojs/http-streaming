@@ -107,6 +107,75 @@ const sharedHooks = {
 
 QUnit.module('MasterPlaylistController', sharedHooks);
 
+QUnit.test('getAudioTrackPlaylists_', function(assert) {
+  const mpc = this.masterPlaylistController;
+  const master = {playlists: [{uri: 'testing'}]};
+
+  mpc.master = () => master;
+
+  assert.deepEqual(
+    mpc.getAudioTrackPlaylists_(),
+    master.playlists,
+    'no media groups, return main playlists'
+  );
+
+  master.mediaGroups = {
+    AUDIO: {
+      main: {
+        en: {default: true, label: 'en', playlists: [{uri: 'foo'}, {uri: 'bar'}]},
+        fr: {label: 'fr', playlists: [{uri: 'foo-fr'}, {uri: 'bar-fr'}]}
+      },
+      alt: {
+        en: {default: true, label: 'en', playlists: [{uri: 'fizz'}, {uri: 'bazz'}]},
+        fr: {label: 'fr', playlists: [{uri: 'fizz-fr'}, {uri: 'bazz-fr'}]}
+      }
+    }
+  };
+
+  assert.deepEqual(mpc.getAudioTrackPlaylists_(), [
+    {uri: 'foo'},
+    {uri: 'bar'},
+    {uri: 'fizz'},
+    {uri: 'bazz'}
+  ], 'returns all dash style en playlist');
+
+  const main = [];
+  const alt = [];
+
+  Object.keys(master.mediaGroups.AUDIO.main).forEach(function(k) {
+    main.push(master.mediaGroups.AUDIO.main[k]);
+  });
+
+  Object.keys(master.mediaGroups.AUDIO.alt).forEach(function(k) {
+    alt.push(master.mediaGroups.AUDIO.alt[k]);
+  });
+
+  mpc.mediaTypes_.AUDIO.groups = {
+    main,
+    alt
+  };
+  mpc.mediaTypes_.AUDIO.activeTrack = () => ({label: 'fr'});
+
+  assert.deepEqual(mpc.getAudioTrackPlaylists_(), [
+    {uri: 'foo-fr'},
+    {uri: 'bar-fr'},
+    {uri: 'fizz-fr'},
+    {uri: 'bazz-fr'}
+  ], 'returns all dash style fr playlists');
+
+  delete master.mediaGroups.AUDIO.main.fr.playlists;
+  master.mediaGroups.AUDIO.main.fr.uri = 'fizz-fr';
+
+  delete master.mediaGroups.AUDIO.alt.fr.playlists;
+  master.mediaGroups.AUDIO.alt.fr.uri = 'buzz-fr';
+
+  assert.deepEqual(mpc.getAudioTrackPlaylists_(), [
+    {uri: 'fizz-fr', label: 'fr'},
+    {uri: 'buzz-fr', label: 'fr'}
+  ], 'returns all fr hls style playlists');
+
+});
+
 QUnit.test('throws error when given an empty URL', function(assert) {
   const options = {
     src: 'test',
@@ -501,6 +570,179 @@ QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', fun
   });
 });
 
+QUnit.test('basic timeToLoadedData, mediaAppends, appendsToLoadedData stats', function(assert) {
+  this.player.tech_.trigger('loadstart');
+  this.masterPlaylistController.mediaSource.trigger('sourceopen');
+  // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  const segmentLoader = this.masterPlaylistController.mainSegmentLoader_;
+
+  return requestAndAppendSegment({
+    request: this.requests.shift(),
+    segmentLoader,
+    clock: this.clock
+  }).then(() => {
+    this.player.tech_.trigger('loadeddata');
+    const vhs = this.player.tech_.vhs;
+
+    assert.equal(vhs.stats.mediaAppends, 1, 'one media append');
+    assert.equal(vhs.stats.appendsToLoadedData, 1, 'appends to first frame is also 1');
+    assert.equal(vhs.stats.mainAppendsToLoadedData, 1, 'main appends to first frame is also 1');
+    assert.equal(vhs.stats.audioAppendsToLoadedData, 0, 'audio appends to first frame is 0');
+    assert.ok(vhs.stats.timeToLoadedData > 0, 'time to first frame is valid');
+  });
+});
+
+QUnit.test('timeToLoadedData, mediaAppends, appendsToLoadedData stats with 0 length appends', function(assert) {
+  this.player.tech_.trigger('loadstart');
+  this.masterPlaylistController.mediaSource.trigger('sourceopen');
+  // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  const segmentLoader = this.masterPlaylistController.mainSegmentLoader_;
+
+  return requestAndAppendSegment({
+    request: this.requests.shift(),
+    segmentLoader,
+    clock: this.clock
+  }).then(() => {
+    // mock a zero length segment, by setting hasAppendedData_ to false.
+    segmentLoader.one('appendsdone', () => {
+      segmentLoader.pendingSegment_.hasAppendedData_ = false;
+    });
+    return requestAndAppendSegment({
+      request: this.requests.shift(),
+      segmentLoader,
+      clock: this.clock
+    });
+  }).then(() => {
+
+    this.player.tech_.trigger('loadeddata');
+    const vhs = this.player.tech_.vhs;
+
+    // only one media append as the second was zero length.
+    assert.equal(vhs.stats.mediaAppends, 1, 'one media append');
+    assert.equal(vhs.stats.appendsToLoadedData, 1, 'appends to first frame is also 1');
+    assert.equal(vhs.stats.mainAppendsToLoadedData, 1, 'main appends to first frame is also 1');
+    assert.equal(vhs.stats.audioAppendsToLoadedData, 0, 'audio appends to first frame is 0');
+    assert.ok(vhs.stats.timeToLoadedData > 0, 'time to first frame is valid');
+  });
+});
+
+QUnit.test('preload none timeToLoadedData, mediaAppends, appendsToLoadedData stats', function(assert) {
+  this.requests.length = 0;
+  this.player.dispose();
+  this.player = createPlayer();
+  this.player.tech_.preload = () => 'none';
+
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+  const vhs = this.player.tech_.vhs;
+
+  this.masterPlaylistController = vhs.masterPlaylistController_;
+  this.masterPlaylistController.mediaSource.trigger('sourceopen');
+
+  assert.equal(this.requests.length, 0, 'no requests request');
+  assert.equal(vhs.stats.mediaAppends, 0, 'one media append');
+  assert.equal(vhs.stats.appendsToLoadedData, -1, 'appends to first frame is -1');
+  assert.equal(vhs.stats.mainAppendsToLoadedData, -1, 'main appends to first frame is -1');
+  assert.equal(vhs.stats.audioAppendsToLoadedData, -1, 'audio appends to first frame is -1');
+  assert.equal(vhs.stats.timeToLoadedData, -1, 'time to first frame is -1');
+
+  this.player.tech_.paused = () => false;
+  this.player.tech_.trigger('play');
+
+  // master
+  this.standardXHRResponse(this.requests.shift());
+
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  const segmentLoader = this.masterPlaylistController.mainSegmentLoader_;
+
+  return requestAndAppendSegment({
+    request: this.requests.shift(),
+    segmentLoader,
+    clock: this.clock
+  }).then(() => {
+    this.player.tech_.trigger('loadeddata');
+
+    assert.equal(vhs.stats.mediaAppends, 1, 'one media append');
+    assert.equal(vhs.stats.appendsToLoadedData, 1, 'appends to first frame is also 1');
+    assert.equal(vhs.stats.mainAppendsToLoadedData, 1, 'main appends to first frame is also 1');
+    assert.equal(vhs.stats.audioAppendsToLoadedData, 0, 'audio appends to first frame is 0');
+    assert.ok(vhs.stats.timeToLoadedData > 0, 'time to first frame is valid');
+  });
+});
+
+QUnit.test('demuxed timeToLoadedData, mediaAppends, appendsToLoadedData stats', function(assert) {
+  this.player.tech_.trigger('loadstart');
+  const mpc = this.masterPlaylistController;
+
+  const videoMedia = '#EXTM3U\n' +
+                     '#EXT-X-VERSION:3\n' +
+                     '#EXT-X-PLAYLIST-TYPE:VOD\n' +
+                     '#EXT-X-MEDIA-SEQUENCE:0\n' +
+                     '#EXT-X-TARGETDURATION:10\n' +
+                     '#EXTINF:10,\n' +
+                     'video-0.ts\n' +
+                     '#EXTINF:10,\n' +
+                     'video-1.ts\n' +
+                     '#EXT-X-ENDLIST\n';
+
+  const audioMedia = '#EXTM3U\n' +
+                     '#EXT-X-VERSION:3\n' +
+                     '#EXT-X-PLAYLIST-TYPE:VOD\n' +
+                     '#EXT-X-MEDIA-SEQUENCE:0\n' +
+                     '#EXT-X-TARGETDURATION:10\n' +
+                     '#EXTINF:10,\n' +
+                     'audio-0.ts\n' +
+                     '#EXTINF:10,\n' +
+                     'audio-1.ts\n' +
+                     '#EXT-X-ENDLIST\n';
+
+  mpc.mediaSource.trigger('sourceopen');
+  // master
+  this.standardXHRResponse(this.requests.shift(), manifests.demuxed);
+
+  // video media
+  this.standardXHRResponse(this.requests.shift(), videoMedia);
+
+  // audio media
+  this.standardXHRResponse(this.requests.shift(), audioMedia);
+  return Promise.all([requestAndAppendSegment({
+    request: this.requests.shift(),
+    segment: videoSegment(),
+    isOnlyVideo: true,
+    segmentLoader: mpc.mainSegmentLoader_,
+    clock: this.clock
+  }), requestAndAppendSegment({
+    request: this.requests.shift(),
+    segment: audioSegment(),
+    isOnlyAudio: true,
+    segmentLoader: mpc.audioSegmentLoader_,
+    clock: this.clock
+  })]).then(() => {
+    this.player.tech_.trigger('loadeddata');
+    const vhs = this.player.tech_.vhs;
+
+    assert.equal(vhs.stats.mediaAppends, 2, 'two media append');
+    assert.equal(vhs.stats.appendsToLoadedData, 2, 'appends to first frame is also 2');
+    assert.equal(vhs.stats.mainAppendsToLoadedData, 1, 'main appends to first frame is 1');
+    assert.equal(vhs.stats.audioAppendsToLoadedData, 1, 'audio appends to first frame is 1');
+    assert.ok(vhs.stats.timeToLoadedData > 0, 'time to first frame is valid');
+  });
+});
+
 QUnit.test('seeks forward 0.04 sec for fast quality switch on Edge', function(assert) {
   const oldIEVersion = videojs.browser.IE_VERSION;
   const oldIsEdge = videojs.browser.IS_EDGE;
@@ -715,9 +957,9 @@ QUnit.test('if buffered, will request second segment byte range', function(asser
   };
   this.clock.tick(1);
   // segment
-  this.standardXHRResponse(this.requests[1], muxedSegment());
   return new Promise((resolve, reject) => {
     this.masterPlaylistController.mainSegmentLoader_.on('appending', resolve);
+    this.standardXHRResponse(this.requests[1], muxedSegment());
   }).then(() => {
     this.masterPlaylistController.mainSegmentLoader_.fetchAtBuffer_ = true;
     // source buffers are mocked, so must manually trigger update ends on audio and video
@@ -997,11 +1239,11 @@ QUnit.test('Segment loaders are unpaused when seeking after player has ended', f
   // media
   this.standardXHRResponse(this.requests.shift(), videoMedia);
 
-  // segment
-  this.standardXHRResponse(this.requests.shift(), muxedSegment());
-
   return new Promise((resolve, reject) => {
     this.masterPlaylistController.mainSegmentLoader_.one('appending', resolve);
+
+    // segment
+    this.standardXHRResponse(this.requests.shift(), muxedSegment());
   }).then(() => {
     assert.notOk(
       this.masterPlaylistController.mainSegmentLoader_.paused(),
@@ -1831,7 +2073,7 @@ QUnit.test('does not get stuck in a loop due to inconsistent network/caching', f
   const origMedia = playlistLoader.media.bind(playlistLoader);
   const mediaChanges = [];
 
-  mpc.masterPlaylistLoader_.media = (media) => {
+  mpc.switchMedia_ = (media) => {
     if (media) {
       mediaChanges.push(media);
     }
@@ -2008,11 +2250,12 @@ QUnit.test('updates the duration after switching playlists', function(assert) {
   // 1ms for request duration
   this.clock.tick(1);
   this.masterPlaylistController.mainSegmentLoader_.mediaIndex = 0;
-  // segment 0
-  this.standardXHRResponse(this.requests[2], segment);
 
   return new Promise((resolve, reject) => {
     this.masterPlaylistController.mainSegmentLoader_.on('appending', resolve);
+
+    // segment 0
+    this.standardXHRResponse(this.requests[2], segment);
   }).then(() => {
     // source buffers are mocked, so must manually trigger update ends on audio and video
     // buffers
@@ -5769,3 +6012,4 @@ QUnit.test('should delay loading of new playlist if lastRequest was less than ha
 
   this.env.log.warn.callCount = 0;
 });
+

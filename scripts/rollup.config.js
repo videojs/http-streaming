@@ -4,12 +4,20 @@ const {terser} = require('rollup-plugin-terser');
 const createTestData = require('./create-test-data.js');
 const replace = require('@rollup/plugin-replace');
 
+const CI_TEST_TYPE = process.env.CI_TEST_TYPE || '';
+
 let syncWorker;
 // see https://github.com/videojs/videojs-generate-rollup-config
 // for options
 const options = {
   input: 'src/videojs-http-streaming.js',
   distName: 'videojs-http-streaming',
+  excludeCoverage(defaults) {
+    defaults.push(/^rollup-plugin-worker-factory/);
+    defaults.push(/^create-test-data!/);
+
+    return defaults;
+  },
   globals(defaults) {
     defaults.browser.xmldom = 'window';
     defaults.test.xmldom = 'window';
@@ -32,11 +40,19 @@ const options = {
     defaults.browser.unshift('worker');
     // change this to `syncWorker` for syncronous web worker
     // during unit tests
-    defaults.test.unshift('worker');
+    if (CI_TEST_TYPE === 'coverage') {
+      defaults.test.unshift('syncWorker');
+    } else {
+      defaults.test.unshift('worker');
+    }
     defaults.test.unshift('createTestData');
 
+    if (CI_TEST_TYPE === 'playback-min') {
+      defaults.test.push('uglify');
+    }
+
     // istanbul is only in the list for regular builds and not watch
-    if (defaults.test.indexOf('istanbul') !== -1) {
+    if (CI_TEST_TYPE !== 'coverage' && defaults.test.indexOf('istanbul') !== -1) {
       defaults.test.splice(defaults.test.indexOf('istanbul'), 1);
     }
     defaults.module.unshift('replace');
@@ -84,13 +100,12 @@ const options = {
   }
 };
 
-if (process.env.CI_TEST_TYPE) {
-  if (process.env.CI_TEST_TYPE === 'playback') {
-    options.testInput = 'test/playback.test.js';
-  } else {
-    options.testInput = {include: ['test/**/*.test.js'], exclude: ['test/playback.test.js']};
-  }
+if (CI_TEST_TYPE === 'playback' || CI_TEST_TYPE === 'playback-min') {
+  options.testInput = 'test/playback.test.js';
+} else if (CI_TEST_TYPE === 'unit' || CI_TEST_TYPE === 'coverage') {
+  options.testInput = {include: ['test/**/*.test.js'], exclude: ['test/playback.test.js']};
 }
+
 const config = generate(options);
 
 if (config.builds.browser) {

@@ -36,7 +36,7 @@
     var sources = JSON.parse(xhr.responseText);
 
     sources.forEach(function(source) {
-      const option = document.createElement('option');
+      var option = document.createElement('option');
 
       option.innerText = source.name;
       option.value = source.uri;
@@ -87,7 +87,7 @@
     if (el.type === 'url' || el.type === 'text' || el.nodeName.toLowerCase() === 'textarea') {
       el.value = decodeURIComponent(value);
     } else if (el.type === 'select-one') {
-      for (let i = 0; i < el.options.length; i++) {
+      for (var i = 0; i < el.options.length; i++) {
         if (el.options[i].value === value) {
           el.options[i].selected = true;
         }
@@ -166,21 +166,6 @@
   // eslint-disable-next-line
   var reloadScripts = function(urls, cb) {
     var el = document.getElementById('reload-scripts');
-    var onload = function() {
-      var script;
-
-      if (!urls.length) {
-        cb();
-        return;
-      }
-
-      script = document.createElement('script');
-
-      script.src = urls.shift();
-      script.onload = onload;
-
-      el.appendChild(script);
-    };
 
     if (!el) {
       el = document.createElement('div');
@@ -192,7 +177,30 @@
       el.removeChild(el.firstChild);
     }
 
-    onload();
+    var loaded = [];
+
+    var checkDone = function() {
+      if (loaded.length === urls.length) {
+        cb();
+      }
+    };
+
+    urls.forEach(function(url) {
+      var script = document.createElement('script');
+
+      // scripts marked as defer will be loaded asynchronously but will be executed in the order they are in the DOM
+      script.defer = true;
+      // dynamically created scripts are async by default unless otherwise specified
+      // async scripts are loaded asynchronously but also executed as soon as they are loaded
+      // we want to load them in the order they are added therefore we want to turn off async
+      script.async = false;
+      script.src = url;
+      script.onload = function() {
+        loaded.push(url);
+        checkDone();
+      };
+      el.appendChild(script);
+    });
   };
 
   var regenerateRepresentations = function() {
@@ -225,7 +233,22 @@
     representationsEl.selectedIndex = selectedIndex;
   };
 
-  ['debug', 'autoplay', 'muted', 'minified', 'sync-workers', 'liveui', 'partial', 'url', 'type', 'keysystems', 'buffer-water', 'override-native', 'preload'].forEach(function(name) {
+  [
+    'debug',
+    'autoplay',
+    'muted',
+    'minified',
+    'sync-workers',
+    'liveui',
+    'llhls',
+    'url',
+    'type',
+    'keysystems',
+    'buffer-water',
+    'override-native',
+    'preload',
+    'mirror-source'
+  ].forEach(function(name) {
     stateEls[name] = document.getElementById(name);
   });
 
@@ -252,6 +275,13 @@
       window.player.autoplay(event.target.checked);
     });
 
+    stateEls['mirror-source'].addEventListener('change', function(event) {
+      saveState();
+
+      // reload the player and scripts
+      stateEls.minified.dispatchEvent(newEvent('change'));
+    });
+
     stateEls['sync-workers'].addEventListener('change', function(event) {
       saveState();
 
@@ -270,7 +300,7 @@
       window.videojs.log.level(event.target.checked ? 'debug' : 'info');
     });
 
-    stateEls.partial.addEventListener('change', function(event) {
+    stateEls.llhls.addEventListener('change', function(event) {
       saveState();
 
       // reload the player and scripts
@@ -333,6 +363,8 @@
         videoEl.className = 'vjs-default-skin';
         fixture.appendChild(videoEl);
 
+        var mirrorSource = getInputValue(stateEls['mirror-source']);
+
         player = window.player = window.videojs(videoEl, {
           plugins: {
             httpSourceSelector: {
@@ -340,13 +372,42 @@
             }
           },
           liveui: stateEls.liveui.checked,
+          enableSourceset: mirrorSource,
           html5: {
             vhs: {
               overrideNative: getInputValue(stateEls['override-native']),
-              handlePartialData: getInputValue(stateEls.partial),
-              experimentalBufferBasedABR: getInputValue(stateEls['buffer-water'])
+              experimentalBufferBasedABR: getInputValue(stateEls['buffer-water']),
+              experimentalLLHLS: getInputValue(stateEls.llhls)
             }
           }
+        });
+
+        player.on('sourceset', function() {
+          var source = player.currentSource();
+
+          if (source.keySystems) {
+            var copy = JSON.parse(JSON.stringify(source.keySystems));
+
+            // have to delete pssh as it will often make keySystems too big
+            // for a uri
+            Object.keys(copy).forEach(function(key) {
+              if (copy[key].hasOwnProperty('pssh')) {
+                delete copy[key].pssh;
+              }
+            });
+
+            stateEls.keysystems.value = JSON.stringify(copy, null, 2);
+          }
+
+          if (source.src) {
+            stateEls.url.value = encodeURI(source.src);
+          }
+
+          if (source.type) {
+            stateEls.type.value = source.type;
+          }
+
+          saveState();
         });
 
         player.width(640);
@@ -381,7 +442,7 @@
       });
     });
 
-    const urlButtonClick = function(event) {
+    var urlButtonClick = function(event) {
       var ext;
       var type = stateEls.type.value;
 

@@ -48,7 +48,10 @@ const makeMockPlaylist = function(options) {
   return playlist;
 };
 
-const makeMockVhsHandler = function(playlistOptions, handlerOptions) {
+const makeMockVhsHandler = function(playlistOptions = [], handlerOptions = {}, master = {}) {
+  const vhsHandler = {
+    options_: handlerOptions
+  };
   const mpc = {
     fastQualityChange_: () => {
       mpc.fastQualityChange_.calls++;
@@ -57,20 +60,24 @@ const makeMockVhsHandler = function(playlistOptions, handlerOptions) {
       mpc.smoothQualityChange_.calls++;
     },
     master: () => {
-      return {};
+      return vhsHandler.playlists.master;
+    },
+    getAudioTrackPlaylists_: () => {
+      return [];
     }
   };
 
   mpc.fastQualityChange_.calls = 0;
   mpc.smoothQualityChange_.calls = 0;
 
-  const vhsHandler = {
-    masterPlaylistController_: mpc,
-    options_: handlerOptions || {}
-  };
-
+  vhsHandler.masterPlaylistController_ = mpc;
   vhsHandler.playlists = new videojs.EventTarget();
-  vhsHandler.playlists.master = { playlists: [] };
+
+  vhsHandler.playlists.master = master;
+
+  if (!vhsHandler.playlists.master.playlists) {
+    vhsHandler.playlists.master.playlists = [];
+  }
 
   playlistOptions.forEach((playlist, i) => {
     vhsHandler.playlists.master.playlists[i] = makeMockPlaylist(playlist);
@@ -398,17 +405,10 @@ QUnit.test('codecs attribute is exposed on renditions when available', function(
 });
 
 QUnit.test('codecs attribute gets codecs from master', function(assert) {
-  const vhsHandler = makeMockVhsHandler([
+  const vhsHandler = makeMockVhsHandler(
+    [{bandwidth: 0, uri: 'media0.m3u8', audio: 'a1'}],
+    {},
     {
-      bandwidth: 0,
-      uri: 'media0.m3u8',
-      audio: 'a1'
-    }
-  ]);
-  const mpc = vhsHandler.masterPlaylistController_;
-
-  mpc.master = () => {
-    return {
       mediaGroups: {
         AUDIO: {
           a1: {
@@ -422,8 +422,8 @@ QUnit.test('codecs attribute gets codecs from master', function(assert) {
           }
         }
       }
-    };
-  };
+    }
+  );
 
   RenditionMixin(vhsHandler);
 

@@ -1,3 +1,134 @@
+<a name="2.8.2"></a>
+## [2.8.2](https://github.com/videojs/http-streaming/compare/v2.8.1...v2.8.2) (2021-05-20)
+
+### Bug Fixes
+
+* add tests for data uri, fix data uri in demo page ([#1133](https://github.com/videojs/http-streaming/issues/1133)) ([0be51eb](https://github.com/videojs/http-streaming/commit/0be51eb))
+
+<a name="2.8.1"></a>
+## [2.8.1](https://github.com/videojs/http-streaming/compare/v2.8.0...v2.8.1) (2021-05-19)
+
+### Bug Fixes
+
+* add master referenced id/uri for audio playlists. Add playlists to hls media groups ([#1124](https://github.com/videojs/http-streaming/issues/1124)) ([740d2ee](https://github.com/videojs/http-streaming/commit/740d2ee))
+* m3u8-parser/eme updates ([#1131](https://github.com/videojs/http-streaming/issues/1131)) ([29ece75](https://github.com/videojs/http-streaming/commit/29ece75))
+* only append/request init segments when they change ([#1128](https://github.com/videojs/http-streaming/issues/1128)) ([a4af004](https://github.com/videojs/http-streaming/commit/a4af004))
+* set audio status on loaders when setting up media groups ([#1126](https://github.com/videojs/http-streaming/issues/1126)) ([a44f984](https://github.com/videojs/http-streaming/commit/a44f984))
+
+### Chores
+
+* update vhs utils to 3.0.1 ([#1123](https://github.com/videojs/http-streaming/issues/1123)) ([552b012](https://github.com/videojs/http-streaming/commit/552b012))
+
+<a name="2.8.0"></a>
+# [2.8.0](https://github.com/videojs/http-streaming/compare/v2.7.1...v2.8.0) (2021-04-28)
+
+### Features
+
+* add initialBandwidth option at the tech level ([#1122](https://github.com/videojs/http-streaming/issues/1122)) ([2071008](https://github.com/videojs/http-streaming/commit/2071008))
+
+### Bug Fixes
+
+* don't clear DASH minimum update period timeout on pause of a media loader ([#1118](https://github.com/videojs/http-streaming/issues/1118)) ([82ff4f5](https://github.com/videojs/http-streaming/commit/82ff4f5))
+* null check sidx on sidxmapping, check that end > start on remove ([#1121](https://github.com/videojs/http-streaming/issues/1121)) ([92f1333](https://github.com/videojs/http-streaming/commit/92f1333))
+
+### Code Refactoring
+
+* drop support for the partial muxer and handlePartial ([#1119](https://github.com/videojs/http-streaming/issues/1119)) ([ab305f8](https://github.com/videojs/http-streaming/commit/ab305f8))
+* offload mp4/ts probe to the web worker ([#1117](https://github.com/videojs/http-streaming/issues/1117)) ([3c9f721](https://github.com/videojs/http-streaming/commit/3c9f721))
+* segment/part choice and add more logging around the choice ([#1097](https://github.com/videojs/http-streaming/issues/1097)) ([b8a5aa5](https://github.com/videojs/http-streaming/commit/b8a5aa5))
+
+<a name="2.7.1"></a>
+## [2.7.1](https://github.com/videojs/http-streaming/compare/v2.7.0...v2.7.1) (2021-04-09)
+
+### Bug Fixes
+
+* experimentalLLHLS option should always be passed ([#1114](https://github.com/videojs/http-streaming/issues/1114)) ([684fd08](https://github.com/videojs/http-streaming/commit/684fd08))
+
+### Chores
+
+* dont run tests on chromium ([#1116](https://github.com/videojs/http-streaming/issues/1116)) ([c2154d7](https://github.com/videojs/http-streaming/commit/c2154d7))
+
+<a name="2.7.0"></a>
+# [2.7.0](https://github.com/videojs/http-streaming/compare/v2.6.4...v2.7.0) (2021-04-06)
+
+### Features
+
+* Add  EXT-X-PART support behind a flag for LL-HLS ([#1055](https://github.com/videojs/http-streaming/issues/1055)) ([b33e109](https://github.com/videojs/http-streaming/commit/b33e109))
+* mark Video.js as a peer dependency ([#1111](https://github.com/videojs/http-streaming/issues/1111)) ([99480d5](https://github.com/videojs/http-streaming/commit/99480d5))
+* support serverControl and preloadSegment behind experimentalLLHLS flag ([#1078](https://github.com/videojs/http-streaming/issues/1078)) ([fa1b6b5](https://github.com/videojs/http-streaming/commit/fa1b6b5))
+* usage and logging on rendition change with reasons ([#1088](https://github.com/videojs/http-streaming/issues/1088)) ([1b990f1](https://github.com/videojs/http-streaming/commit/1b990f1))
+
+### Bug Fixes
+
+* audio only media group playlists, audio group playlists, and audio switches for audio only ([#1100](https://github.com/videojs/http-streaming/issues/1100)) ([6d83de3](https://github.com/videojs/http-streaming/commit/6d83de3))
+* better time to first frame for live playlists ([#1105](https://github.com/videojs/http-streaming/issues/1105)) ([1e94680](https://github.com/videojs/http-streaming/commit/1e94680))
+* catch remove errors, remove all data on QUOTA_EXCEEDED ([#1101](https://github.com/videojs/http-streaming/issues/1101)) ([86f77fe](https://github.com/videojs/http-streaming/commit/86f77fe))
+* Only add sidxMapping on successful sidx request and parse. ([#1099](https://github.com/videojs/http-streaming/issues/1099)) ([de0b55b](https://github.com/videojs/http-streaming/commit/de0b55b)), closes [#1107](https://github.com/videojs/http-streaming/issues/1107)
+* support automatic configuration of audio and video only DRM sources ([#1090](https://github.com/videojs/http-streaming/issues/1090)) ([9b116ce](https://github.com/videojs/http-streaming/commit/9b116ce))
+
+### Chores
+
+* never skip main ci runs ([#1108](https://github.com/videojs/http-streaming/issues/1108)) ([b2d2c91](https://github.com/videojs/http-streaming/commit/b2d2c91))
+* turn checkWatch back on for rollup ([87947fc](https://github.com/videojs/http-streaming/commit/87947fc))
+* update to mux.js[@5](https://github.com/5).11.0 ([#1109](https://github.com/videojs/http-streaming/issues/1109)) ([af5841c](https://github.com/videojs/http-streaming/commit/af5841c))
+
+<a name="2.6.4"></a>
+## [2.6.4](https://github.com/videojs/http-streaming/compare/v2.6.3...v2.6.4) (2021-03-12)
+
+### Bug Fixes
+
+* Monitor playback for stalls due to gaps in the beginning of stream when a new source is loaded ([#1087](https://github.com/videojs/http-streaming/issues/1087)) ([64a1f35](https://github.com/videojs/http-streaming/commit/64a1f35))
+* retry appends on QUOTA_EXCEEDED_ERR ([#1093](https://github.com/videojs/http-streaming/issues/1093)) ([008aeaf](https://github.com/videojs/http-streaming/commit/008aeaf))
+
+### Chores
+
+* Get test coverage working again with mock/sync worker ([#1094](https://github.com/videojs/http-streaming/issues/1094)) ([035e8c0](https://github.com/videojs/http-streaming/commit/035e8c0))
+* pin CI to ubuntu 18.04 ([#1091](https://github.com/videojs/http-streaming/issues/1091)) ([01ca182](https://github.com/videojs/http-streaming/commit/01ca182))
+
+<a name="2.6.3"></a>
+## [2.6.3](https://github.com/videojs/http-streaming/compare/v2.6.2...v2.6.3) (2021-03-05)
+
+### Bug Fixes
+
+* **playback-watcher:** Skip over playback gaps that occur in the beginning of streams ([#1085](https://github.com/videojs/http-streaming/issues/1085)) ([ccd9352](https://github.com/videojs/http-streaming/commit/ccd9352))
+* Add exclude reason and skip duplicate playlist-unchanged ([#1082](https://github.com/videojs/http-streaming/issues/1082)) ([0dceb5b](https://github.com/videojs/http-streaming/commit/0dceb5b))
+* prevent changing undefined baseStartTime to NaN ([#1086](https://github.com/videojs/http-streaming/issues/1086)) ([43aa69a](https://github.com/videojs/http-streaming/commit/43aa69a))
+* update to mux.js 5.10.0 ([#1089](https://github.com/videojs/http-streaming/issues/1089)) ([1cfdab6](https://github.com/videojs/http-streaming/commit/1cfdab6))
+
+### Chores
+
+* ie 11 demo fixes ([0760d45](https://github.com/videojs/http-streaming/commit/0760d45))
+* use deferred scripts for faster demo startup ([#1083](https://github.com/videojs/http-streaming/issues/1083)) ([c348174](https://github.com/videojs/http-streaming/commit/c348174))
+
+<a name="2.6.2"></a>
+## [2.6.2](https://github.com/videojs/http-streaming/compare/v2.6.1...v2.6.2) (2021-02-24)
+
+### Bug Fixes
+
+* update to mux.js[@5](https://github.com/5).9.2 and mpd-parser[@0](https://github.com/0).15.4 ([#1081](https://github.com/videojs/http-streaming/issues/1081)) ([f5c060f](https://github.com/videojs/http-streaming/commit/f5c060f))
+
+### Tests
+
+* add playback-min as a unit test type ([#1077](https://github.com/videojs/http-streaming/issues/1077)) ([327a572](https://github.com/videojs/http-streaming/commit/327a572))
+
+<a name="2.6.1"></a>
+## [2.6.1](https://github.com/videojs/http-streaming/compare/v2.6.0...v2.6.1) (2021-02-19)
+
+### Bug Fixes
+
+* allow buffer removes when there's no current media info in loader ([#1070](https://github.com/videojs/http-streaming/issues/1070)) ([97ab712](https://github.com/videojs/http-streaming/commit/97ab712))
+* live dash segment changes should be considered a playlist update ([#1065](https://github.com/videojs/http-streaming/issues/1065)) ([1ce7838](https://github.com/videojs/http-streaming/commit/1ce7838))
+* sometimes subtitlesTrack_.cues is null ([#1073](https://github.com/videojs/http-streaming/issues/1073)) ([6778ca1](https://github.com/videojs/http-streaming/commit/6778ca1))
+* unbreak the minified build by updating rollup-plugin-worker-factory ([#1072](https://github.com/videojs/http-streaming/issues/1072)) ([e583b26](https://github.com/videojs/http-streaming/commit/e583b26))
+
+### Chores
+
+* mirror player.src on the demo page using sourceset ([#1071](https://github.com/videojs/http-streaming/issues/1071)) ([fee7309](https://github.com/videojs/http-streaming/commit/fee7309))
+
+### Documentation
+
+* **README:** fix useBandwidthFromLocalStorage and limitRenditionByPlayerDimensions ([#1075](https://github.com/videojs/http-streaming/issues/1075)) ([cf2efcb](https://github.com/videojs/http-streaming/commit/cf2efcb))
+
 <a name="2.6.0"></a>
 # [2.6.0](https://github.com/videojs/http-streaming/compare/v2.5.0...v2.6.0) (2021-02-11)
 

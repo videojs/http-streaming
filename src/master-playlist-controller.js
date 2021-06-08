@@ -38,7 +38,8 @@ const loaderStats = [
   'mediaRequestsTimedout',
   'mediaRequestsErrored',
   'mediaTransferDuration',
-  'mediaBytesTransferred'
+  'mediaBytesTransferred',
+  'mediaAppends'
 ];
 const sumLoaderStat = function(stat) {
   return this.audioSegmentLoader_[stat] +
@@ -143,7 +144,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
       enableLowInitialPlaylist,
       sourceType,
       cacheEncryptionKeys,
-      handlePartialData,
       experimentalBufferBasedABR
     } = options;
 
@@ -223,7 +223,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
       sourceType: this.sourceType_,
       inbandTextTracks: this.inbandTextTracks_,
       cacheEncryptionKeys,
-      handlePartialData,
       sourceUpdater: this.sourceUpdater_,
       timelineChangeController: this.timelineChangeController_
     };
@@ -272,6 +271,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // mediaRequestsErrored_
     // mediaTransferDuration_
     // mediaBytesTransferred_
+    // mediaAppends_
     loaderStats.forEach((stat) => {
       this[stat + '_'] = sumLoaderStat.bind(this, stat);
     });
@@ -289,6 +289,46 @@ export class MasterPlaylistController extends videojs.EventTarget {
     } else {
       this.masterPlaylistLoader_.load();
     }
+
+    this.timeToLoadedData__ = -1;
+    this.mainAppendsToLoadedData__ = -1;
+    this.audioAppendsToLoadedData__ = -1;
+
+    const event = this.tech_.preload() === 'none' ? 'play' : 'loadstart';
+
+    // start the first frame timer on loadstart or play (for preload none)
+    this.tech_.one(event, () => {
+      const timeToLoadedDataStart = Date.now();
+
+      this.tech_.one('loadeddata', () => {
+        this.timeToLoadedData__ = Date.now() - timeToLoadedDataStart;
+        this.mainAppendsToLoadedData__ = this.mainSegmentLoader_.mediaAppends;
+        this.audioAppendsToLoadedData__ = this.audioSegmentLoader_.mediaAppends;
+      });
+    });
+  }
+
+  mainAppendsToLoadedData_() {
+    return this.mainAppendsToLoadedData__;
+  }
+
+  audioAppendsToLoadedData_() {
+    return this.audioAppendsToLoadedData__;
+  }
+
+  appendsToLoadedData_() {
+    const main = this.mainAppendsToLoadedData_();
+    const audio = this.audioAppendsToLoadedData_();
+
+    if (main === -1 || audio === -1) {
+      return -1;
+    }
+
+    return main + audio;
+  }
+
+  timeToLoadedData_() {
+    return this.timeToLoadedData__;
   }
 
   /**
@@ -301,8 +341,20 @@ export class MasterPlaylistController extends videojs.EventTarget {
     const nextPlaylist = this.selectPlaylist();
 
     if (this.shouldSwitchToMedia_(nextPlaylist)) {
-      this.masterPlaylistLoader_.media(nextPlaylist);
+      this.switchMedia_(nextPlaylist, 'abr');
     }
+  }
+
+  switchMedia_(playlist, cause, delay) {
+    const oldMedia = this.media();
+    const oldId = oldMedia && (oldMedia.id || oldMedia.uri);
+    const newId = playlist.id || playlist.uri;
+
+    if (oldId && oldId !== newId) {
+      this.logger_(`switch media ${oldId} -> ${newId} from ${cause}`);
+      this.tech_.trigger({type: 'usage', name: `vhs-rendition-change-${cause}`});
+    }
+    this.masterPlaylistLoader_.media(playlist, delay);
   }
 
   /**
@@ -328,6 +380,65 @@ export class MasterPlaylistController extends videojs.EventTarget {
     }
     window.clearInterval(this.abrTimer_);
     this.abrTimer_ = null;
+  }
+
+  /**
+   * Get a list of playlists for the currently selected audio playlist
+   *
+   * @return {Array} the array of audio playlists
+   */
+  getAudioTrackPlaylists_() {
+    const master = this.master();
+
+    // if we don't have any audio groups then we can only
+    // assume that the audio tracks are contained in masters
+    // playlist array, use that or an empty array.
+    if (!master || !master.mediaGroups || !master.mediaGroups.AUDIO) {
+      return master && master.playlists || [];
+    }
+
+    const AUDIO = master.mediaGroups.AUDIO;
+    const groupKeys = Object.keys(AUDIO);
+    let track;
+
+    // get the current active track
+    if (Object.keys(this.mediaTypes_.AUDIO.groups).length) {
+      track = this.mediaTypes_.AUDIO.activeTrack();
+    // or get the default track from master if mediaTypes_ isn't setup yet
+    } else {
+      // default group is `main` or just the first group.
+      const defaultGroup = AUDIO.main || groupKeys.length && AUDIO[groupKeys[0]];
+
+      for (const label in defaultGroup) {
+        if (defaultGroup[label].default) {
+          track = {label};
+          break;
+        }
+      }
+    }
+
+    // no active track no playlists.
+    if (!track) {
+      return [];
+    }
+
+    const playlists = [];
+
+    // get all of the playlists that are possible for the
+    // active track.
+    for (const group in AUDIO) {
+      if (AUDIO[group][track.label]) {
+        const properties = AUDIO[group][track.label];
+
+        if (properties.playlists) {
+          playlists.push.apply(playlists, properties.playlists);
+        } else {
+          playlists.push(properties);
+        }
+      }
+    }
+
+    return playlists;
   }
 
   /**
@@ -416,7 +527,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
         this.initialMedia_ = selectedMedia;
 
-        this.masterPlaylistLoader_.media(this.initialMedia_);
+        this.switchMedia_(this.initialMedia_, 'initial');
 
         // Under the standard case where a source URL is provided, loadedplaylist will
         // fire again since the playlist will be requested. In the case of vhs-json
@@ -472,6 +583,14 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.masterPlaylistLoader_.on('playlistunchanged', () => {
       const updatedPlaylist = this.masterPlaylistLoader_.media();
+
+      // ignore unchanged playlists that have already been
+      // excluded for not-changing. We likely just have a really slowly updating
+      // playlist.
+      if (updatedPlaylist.lastExcludeReason_ === 'playlist-unchanged') {
+        return;
+      }
+
       const playlistOutdated = this.stuckAtPlaylistEnd_(updatedPlaylist);
 
       if (playlistOutdated) {
@@ -480,7 +599,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
         // one is updating (and give the player a chance to re-adjust to the
         // safe live point).
         this.blacklistCurrentPlaylist({
-          message: 'Playlist no longer updating.'
+          message: 'Playlist no longer updating.',
+          reason: 'playlist-unchanged'
         });
         // useful for monitoring QoS
         this.tech_.trigger('playliststuck');
@@ -608,7 +728,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
         const nextPlaylist = this.selectPlaylist();
 
         if (this.shouldSwitchToMedia_(nextPlaylist)) {
-          this.masterPlaylistLoader_.media(nextPlaylist);
+          this.switchMedia_(nextPlaylist, 'bandwidthupdate');
         }
 
         this.tech_.trigger('bandwidthupdate');
@@ -748,7 +868,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    this.masterPlaylistLoader_.media(media);
+    this.switchMedia_(media, 'fast-quality');
 
     // Delete all buffered data to allow an immediate quality switch, then seek to give
     // the browser a kick to remove any cached frames from the previous rendtion (.04 seconds
@@ -1060,6 +1180,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     // Blacklist this playlist
     currentPlaylist.excludeUntil = Date.now() + (blacklistDuration * 1000);
+    if (error.reason) {
+      currentPlaylist.lastExcludeReason_ = error.reason;
+    }
     this.tech_.trigger('blacklistplaylist');
     this.tech_.trigger({type: 'usage', name: 'vhs-rendition-blacklisted'});
     this.tech_.trigger({type: 'usage', name: 'hls-rendition-blacklisted'});
@@ -1100,7 +1223,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       (Date.now() - nextPlaylist.lastRequest) <= delayDuration;
 
     // delay if it's a final rendition or if the last refresh is sooner than half targetDuration
-    return this.masterPlaylistLoader_.media(nextPlaylist, isFinalRendition || shouldDelay);
+    return this.switchMedia_(nextPlaylist, 'exclude', isFinalRendition || shouldDelay);
   }
 
   /**
@@ -1281,8 +1404,12 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    const suggestedPresentationDelay = this.masterPlaylistLoader_.master.suggestedPresentationDelay;
-    const mainSeekable = Vhs.Playlist.seekable(media, expired, suggestedPresentationDelay);
+    const master = this.masterPlaylistLoader_.master;
+    const mainSeekable = Vhs.Playlist.seekable(
+      media,
+      expired,
+      Vhs.Playlist.liveEdgeDelay(master, media)
+    );
 
     if (mainSeekable.length === 0) {
       return;
@@ -1296,7 +1423,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
         return;
       }
 
-      audioSeekable = Vhs.Playlist.seekable(media, expired, suggestedPresentationDelay);
+      audioSeekable = Vhs.Playlist.seekable(
+        media,
+        expired,
+        Vhs.Playlist.liveEdgeDelay(master, media)
+      );
 
       if (audioSeekable.length === 0) {
         return;

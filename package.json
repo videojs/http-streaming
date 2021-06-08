@@ -1,6 +1,6 @@
 {
   "name": "@videojs/http-streaming",
-  "version": "2.6.0",
+  "version": "2.8.2",
   "description": "Play back HLS and DASH with Video.js, even where it's not natively supported",
   "main": "dist/videojs-http-streaming.cjs.js",
   "module": "dist/videojs-http-streaming.es.js",
@@ -25,6 +25,7 @@
     "start": "npm-run-all -p server watch",
     "server": "karma start scripts/karma.conf.js --singleRun=false --auto-watch",
     "test": "npm-run-all lint build-test && karma start scripts/karma.conf.js",
+    "posttest": "[ \"$CI_TEST_TYPE\" != 'coverage' ] || shx cat test/dist/coverage/text.txt",
     "version": "is-prerelease || npm run update-changelog && git add CHANGELOG.md",
     "update-changelog": "conventional-changelog -p videojs -i CHANGELOG.md -s",
     "watch": "npm-run-all -p watch:*",
@@ -56,12 +57,15 @@
   ],
   "dependencies": {
     "@babel/runtime": "^7.12.5",
-    "@videojs/vhs-utils": "^3.0.0",
+    "@videojs/vhs-utils": "^3.0.2",
     "aes-decrypter": "3.1.2",
     "global": "^4.4.0",
-    "m3u8-parser": "4.5.2",
-    "mpd-parser": "0.15.2",
-    "mux.js": "5.9.1",
+    "m3u8-parser": "4.7.0",
+    "mpd-parser": "0.16.0",
+    "mux.js": "5.11.0",
+    "video.js": "^6 || ^7"
+  },
+  "peerDependencies": {
     "video.js": "^6 || ^7"
   },
   "devDependencies": {
@@ -76,11 +80,11 @@
     "lodash-compat": "^3.10.0",
     "nomnoml": "^0.3.0",
     "rollup": "^2.36.1",
-    "rollup-plugin-worker-factory": "^0.4.1",
+    "rollup-plugin-worker-factory": "0.5.5",
     "shelljs": "^0.8.4",
     "sinon": "^8.1.1",
     "url-toolkit": "^2.2.1",
-    "videojs-contrib-eme": "^3.8.0",
+    "videojs-contrib-eme": "^3.8.1",
     "videojs-contrib-quality-levels": "^2.0.4",
     "videojs-generate-karma-config": "^7.1.0",
     "videojs-generate-rollup-config": "~6.1.0",

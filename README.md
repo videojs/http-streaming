@@ -373,7 +373,8 @@ information is seen by the player.
 ##### useBandwidthFromLocalStorage
 * Type: `boolean`
 * can be used as an initialization option
- If true, `bandwidth` and `throughput` values are stored in and retrieved from local
+
+If true, `bandwidth` and `throughput` values are stored in and retrieved from local
 storage on startup (for initial rendition selection). This setting is `false` by default.
 
 ##### enableLowInitialPlaylist
@@ -388,17 +389,17 @@ This setting is `false` by default.
 * Type: `boolean`
 * can be used as an initialization option
 
+When `limitRenditionByPlayerDimensions` is set to true, rendition
+selection logic will take into account the player size and rendition
+resolutions when making a decision.
+This setting is `true` by default.
+
 ##### useDevicePixelRatio
 * Type: `boolean`
 * can be used as an initialization option.
 
 If true, this will take the device pixel ratio into account when doing rendition switching. This means that if you have a player with the width of `540px` in a high density display with a device pixel ratio of 2, a rendition of `1080p` will be allowed.
 This setting is `false` by default.
-
-When `limitRenditionByPlayerDimensions` is set to true, rendition
-selection logic will take into account the player size and rendition
-resolutions when making a decision.
-This setting is `true` by default.
 
 ##### smoothQualityChange
 * NOTE: DEPRECATED
