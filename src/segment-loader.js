@@ -1129,8 +1129,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       audio: true,
       video: true
     };
-    this.fetchAtBuffer_ = false;
-    this.resyncLoader();
+    this.resetLoader();
 
     // remove from 0, the earliest point, to Infinity, to signify removal of everything.
     // VTT Segment Loader doesn't need to do anything but in the regular SegmentLoader,
@@ -1143,6 +1142,17 @@ export default class SegmentLoader extends videojs.EventTarget {
         action: 'clearAllMp4Captions'
       });
     }
+  }
+
+  /**
+   * Force the SegmentLoader to resync and start loading around the currentTime instead
+   * of starting at the end of the buffer
+   *
+   * Useful for fast quality changes
+   */
+  resetLoader() {
+    this.fetchAtBuffer_ = false;
+    this.resyncLoader();
   }
 
   /**
