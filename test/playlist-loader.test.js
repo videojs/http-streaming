@@ -2019,7 +2019,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     assert.strictEqual(loadedPlaylists, 3, 'still three loadedplaylists');
     assert.strictEqual(loadedMetadata, 1, 'still one loadedmetadata');
   });
-  
+
   QUnit.test('retries are reset on a successful response', function(assert) {
     const loader = new PlaylistLoader('manifest/master.m3u8', this.fakeVhs);
 
