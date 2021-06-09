@@ -5938,15 +5938,19 @@ QUnit.test('Playlist is excluded indefinitely if number of retries exceeds maxPl
   const mpl = mpc.masterPlaylistLoader_;
   const playlist = mpl.master.playlists[0];
 
+  assert.equal(playlist.retries, 0, 'retries starts at zero');
+
   mpc.blacklistCurrentPlaylist();
 
   assert.ok('excludeUntil' in playlist, 'playlist was excluded');
+  assert.equal(playlist.retries, 1, 'we incremented retry');
   assert.notEqual(playlist.excludeUntil, Infinity, 'The playlist was not excluded indefinitely');
 
   mpc.blacklistCurrentPlaylist();
 
+  assert.equal(playlist.retries, 2, 'we incremented retry');
   assert.equal(playlist.excludeUntil, Infinity, 'The playlist was excluded indefinitely');
-  assert.equal(this.env.log.warn.callCount, 2, 'logged a warning each time a playlist was blacklisted');
+  assert.equal(this.env.log.warn.callCount, 2, 'logged a warning each time a playlist was excluded');
 
   this.env.log.warn.callCount = 0;
 });
