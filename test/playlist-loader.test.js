@@ -1478,6 +1478,42 @@ QUnit.test('clears the update timeout when switching quality', function(assert) 
   assert.equal(1, refreshes, 'only one refresh was triggered');
 });
 
+QUnit.test('retries are reset on a successful response', function(assert) {
+  const loader = new PlaylistLoader('manifest/master.m3u8', this.fakeVhs);
+
+  loader.load();
+
+  // master
+  this.requests.shift().respond(
+    200, null,
+    '#EXTM3U\n' +
+    '#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=17\n' +
+    'playlist/playlist.m3u8\n' +
+    '#EXT-X-STREAM-INF:PROGRAM-ID=2,BANDWIDTH=170\n' +
+    'playlist/playlist2.m3u8\n' +
+    '#EXT-X-ENDLIST\n'
+  );
+
+  loader.master.playlists[0].retries = 3;
+
+  // playlist
+  this.requests.shift().respond(404);
+
+  loader.media(loader.master.playlists[1]);
+  loader.media(loader.master.playlists[0]);
+
+  assert.equal(loader.master.playlists[0].retries, 3, 'we have 3 retries');
+
+  this.requests[1].respond(
+    200, null,
+    '#EXTM3U\n' +
+    '#EXT-X-MEDIA-SEQUENCE:0\n' +
+    '#EXTINF:10,\n' +
+    '0.ts\n'
+  );
+  assert.equal(loader.master.playlists[0].retries, 0, 'retries resets to zero when a playlist sucessfully loads');
+});
+
 QUnit.test('media-sequence updates are considered a playlist change', function(assert) {
   const loader = new PlaylistLoader('live.m3u8', this.fakeVhs);
 
