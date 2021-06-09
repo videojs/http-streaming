@@ -5389,7 +5389,7 @@ QUnit.test('stats are reset on dispose', function(assert) {
 
 // mocking the fullscreenElement no longer works, find another way to mock
 // fullscreen behavior(without user gesture)
-QUnit.skip('detects fullscreen and triggers a smooth quality change', function(assert) {
+QUnit.skip('detects fullscreen and triggers a fast quality change', function(assert) {
   const vhs = VhsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -5405,7 +5405,7 @@ QUnit.skip('detects fullscreen and triggers a smooth quality change', function(a
     }
   });
 
-  vhs.masterPlaylistController_.smoothQualityChange_ = function() {
+  vhs.masterPlaylistController_.fastQualityChange_ = function() {
     qualityChanges++;
   };
 
@@ -5415,12 +5415,19 @@ QUnit.skip('detects fullscreen and triggers a smooth quality change', function(a
 
   assert.equal(qualityChanges, 1, 'made a fast quality change');
 
+  let checkABRCalls = 0;
+
+  vhs.masterPlaylistController_.checkABR_ = () => checkABRCalls++;
+
   // don't do a fast quality change when returning from fullscreen;
-  // allow the video element to rescale the already buffered video
+  //
+  // do check the current rendition to see if it should be changed for the next
+  // segment loaded
   document[fullscreenElementName] = null;
   Events.trigger(document, 'fullscreenchange');
 
   assert.equal(qualityChanges, 1, 'did not make another quality change');
+  assert.equal(checkABRCalls, 1, 'called to check the ABR');
   vhs.dispose();
 });
 

@@ -79,51 +79,38 @@ SegmentLoader.prototype.addSegmentMetadataCue_ = function() {};
 QUnit.module('SegmentLoader Isolated Functions');
 
 QUnit.test('getSyncSegmentCandidate works as expected', function(assert) {
-  assert.equal(getSyncSegmentCandidate(-1, {}), 0, '-1 timeline, try index 0');
-  assert.equal(getSyncSegmentCandidate(0, {}), 0, '0 timeline, no segments, try index 0');
+  let segments = [];
 
-  assert.equal(
-    getSyncSegmentCandidate(0, {segments: [
-      {timeline: 0},
-      {timeline: 0}
-    ]}),
-    1,
-    '0 timeline, two timeline 0 segments, try index 1'
-  );
+  assert.equal(getSyncSegmentCandidate(-1, segments, 0), 0, '-1 timeline, no segments, 0 target');
+  assert.equal(getSyncSegmentCandidate(0, segments, 0), 0, '0 timeline, no segments, 0 target');
 
-  assert.equal(
-    getSyncSegmentCandidate(0, {segments: [
-      {timeline: 0},
-      {timeline: 0},
-      {timeline: 0},
-      {timeline: 0}
-    ]}),
-    1,
-    '0 timeline, four timeline 0 segments, try index 1'
-  );
+  segments = [
+    {timeline: 0, duration: 4},
+    {timeline: 0, duration: 4},
+    {timeline: 0, duration: 4},
+    {timeline: 0, duration: 4}
+  ];
 
-  assert.equal(
-    getSyncSegmentCandidate(0, {segments: [
-      {timeline: 0},
-      {timeline: 1},
-      {timeline: 1},
-      {timeline: 1}
-    ]}),
-    0,
-    '0 timeline, one timeline 0 segment, three timeline 1 segments, try index 0'
-  );
+  assert.equal(getSyncSegmentCandidate(-1, segments, 0), 0, '-1 timeline, 4x 0 segments, 0 target');
+  assert.equal(getSyncSegmentCandidate(0, segments, 1), 0, '0 timeline, 4x 0 segments, 1 target');
+  assert.equal(getSyncSegmentCandidate(0, segments, 4), 1, '0 timeline, 4x 0 segments, 4 target');
+  assert.equal(getSyncSegmentCandidate(-1, segments, 8), 0, '-1 timeline, 4x 0 segments, 8 target');
+  assert.equal(getSyncSegmentCandidate(0, segments, 8), 2, '0 timeline, 4x 0 segments, 8 target');
+  assert.equal(getSyncSegmentCandidate(0, segments, 20), 3, '0 timeline, 4x 0 segments, 20 target');
 
-  assert.equal(
-    getSyncSegmentCandidate(0, {segments: [
-      {timeline: 1},
-      {timeline: 1},
-      {timeline: 1},
-      {timeline: 1}
-    ]}),
-    3,
-    '0 timeline, four timeline 1 segments, try index 3'
-  );
+  segments = [
+    {timeline: 1, duration: 4},
+    {timeline: 0, duration: 4},
+    {timeline: 1, duration: 4},
+    {timeline: 0, duration: 4},
+    {timeline: 2, duration: 4},
+    {timeline: 1, duration: 4},
+    {timeline: 0, duration: 4}
+  ];
 
+  assert.equal(getSyncSegmentCandidate(1, segments, 8), 5, '1 timeline, mixed timeline segments, 8 target');
+  assert.equal(getSyncSegmentCandidate(0, segments, 8), 6, '0 timeline, mixed timeline segments, 8 target');
+  assert.equal(getSyncSegmentCandidate(2, segments, 8), 4, '2 timeline, mixed timeline segments, 8 target');
 });
 
 QUnit.test('illegalMediaSwitch detects illegal media switches', function(assert) {
@@ -2967,6 +2954,73 @@ QUnit.module('SegmentLoader', function(hooks) {
       });
     });
 
+    QUnit.test('sync request can be thrown away', function(assert) {
+      const appends = [];
+      const logs = [];
+
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {isVideoOnly: true}).then(() => {
+
+        // set the mediaSource duration as it is usually set by
+        // master playlist controller, which is not present here
+        loader.mediaSource_.duration = Infinity;
+
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+
+          const origAppendToSourceBuffer = loader.appendToSourceBuffer_.bind(loader);
+
+          loader.appendToSourceBuffer_ = (config) => {
+            appends.push(config);
+            origAppendToSourceBuffer(config);
+          };
+
+          loader.playlist(playlistWithDuration(20));
+          loader.load();
+          this.clock.tick(1);
+          standardXHRResponse(this.requests.shift(), videoSegment());
+
+        });
+      }).then(() => {
+        return new Promise((resolve, reject) => {
+          // since it's a sync request, wait for the syncinfoupdate event (we won't get the
+          // appended event)
+          this.clock.tick(1);
+
+          assert.equal(appends.length, 1, 'one append');
+          assert.equal(appends[0].type, 'video', 'appended to video buffer');
+          assert.ok(appends[0].initSegment, 'appended video init segment');
+
+          loader.playlist(playlistWithDuration(20, { uri: 'new-playlist.m3u8' }));
+          // remove old aborted request
+          this.requests.shift();
+          // get the new request
+          this.clock.tick(1);
+          loader.chooseNextRequest_ = () => ({partIndex: null, mediaIndex: 1});
+          loader.logger_ = (line) => {
+            logs.push(line);
+          };
+          loader.one('syncinfoupdate', function() {
+            resolve();
+          });
+          loader.one('error', reject);
+          standardXHRResponse(this.requests.shift(), videoSegment());
+
+        });
+      }).then(() => {
+        this.clock.tick(1);
+        assert.equal(appends.length, 1, 'still only one append');
+        assert.true(
+          logs.some((l) => (/^sync segment was incorrect, not appending/).test(l)),
+          'has log line'
+        );
+        assert.true(
+          logs.some((l) => (/^Throwing away un-appended sync request segment/).test(l)),
+          'has log line'
+        );
+      });
+    });
+
     QUnit.test('re-appends init segments on discontinuity', function(assert) {
       const appends = [];
 
@@ -4290,6 +4344,9 @@ QUnit.module('SegmentLoader', function(hooks) {
         // smoothQualityChange will reset loader after changing renditions, so need to
         // mimic that behavior here in order for content to be overlayed over already
         // buffered content.
+        //
+        // Now that smoothQualityChange is removed, this behavior can be mimicked by
+        // calling resetLoader.
         loader.resetLoader();
         this.clock.tick(1);
 

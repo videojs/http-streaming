@@ -590,7 +590,12 @@ class VhsHandler extends Component {
         document.msFullscreenElement;
 
       if (fullscreenElement && fullscreenElement.contains(this.tech_.el())) {
-        this.masterPlaylistController_.smoothQualityChange_();
+        this.masterPlaylistController_.fastQualityChange_();
+      } else {
+        // When leaving fullscreen, since the in page pixel dimensions should be smaller
+        // than full screen, see if there should be a rendition switch down to preserve
+        // bandwidth.
+        this.masterPlaylistController_.checkABR_();
       }
     });
 
@@ -707,6 +712,10 @@ class VhsHandler extends Component {
     this.options_.seekTo = (time) => {
       this.tech_.setCurrentTime(time);
     };
+
+    if (this.options_.smoothQualityChange) {
+      videojs.log.warn('smoothQualityChange is deprecated and will be removed in the next major version');
+    }
 
     this.masterPlaylistController_ = new MasterPlaylistController(this.options_);
 
@@ -859,6 +868,26 @@ class VhsHandler extends Component {
       },
       mediaSecondsLoaded: {
         get: () => this.masterPlaylistController_.mediaSecondsLoaded_() || 0,
+        enumerable: true
+      },
+      mediaAppends: {
+        get: () => this.masterPlaylistController_.mediaAppends_() || 0,
+        enumerable: true
+      },
+      mainAppendsToLoadedData: {
+        get: () => this.masterPlaylistController_.mainAppendsToLoadedData_() || 0,
+        enumerable: true
+      },
+      audioAppendsToLoadedData: {
+        get: () => this.masterPlaylistController_.audioAppendsToLoadedData_() || 0,
+        enumerable: true
+      },
+      appendsToLoadedData: {
+        get: () => this.masterPlaylistController_.appendsToLoadedData_() || 0,
+        enumerable: true
+      },
+      timeToLoadedData: {
+        get: () => this.masterPlaylistController_.timeToLoadedData_() || 0,
         enumerable: true
       },
       buffered: {
