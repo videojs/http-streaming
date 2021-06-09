@@ -652,11 +652,6 @@ export const initialize = {
           default: properties.default && properties.autoselect
         };
 
-        // we need to translate SERVICEn for 708 to how mux.js currently labels them
-        if (/^cc708_/.test(newProps.instreamId)) {
-          newProps.instreamId = 'SERVICE' + properties.instreamId.split('_')[1];
-        }
-
         if (captionServices[newProps.instreamId]) {
           newProps = videojs.mergeOptions(newProps, captionServices[newProps.instreamId]);
         }
