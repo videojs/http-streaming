@@ -1478,7 +1478,7 @@ QUnit.test('clears the update timeout when switching quality', function(assert) 
   assert.equal(1, refreshes, 'only one refresh was triggered');
 });
 
-QUnit.test('Increments retries on playlist error', function(assert) {
+QUnit.test('retries are reset on a successful response', function(assert) {
   const loader = new PlaylistLoader('manifest/master.m3u8', this.fakeVhs);
 
   loader.load();
@@ -1494,15 +1494,15 @@ QUnit.test('Increments retries on playlist error', function(assert) {
     '#EXT-X-ENDLIST\n'
   );
 
-  assert.equal(loader.master.playlists[0].retries, 0, 'retries starts at zero on a sucessful load');
+  loader.master.playlists[0].retries = 3;
 
   // playlist
   this.requests.shift().respond(404);
 
-  assert.equal(loader.master.playlists[0].retries, 1, 'retries incremented by one on playlist load error');
-
   loader.media(loader.master.playlists[1]);
   loader.media(loader.master.playlists[0]);
+
+  assert.equal(loader.master.playlists[0].retries, 3, 'we have 3 retries');
 
   this.requests[1].respond(
     200, null,
@@ -1512,42 +1512,6 @@ QUnit.test('Increments retries on playlist error', function(assert) {
     '0.ts\n'
   );
   assert.equal(loader.master.playlists[0].retries, 0, 'retries resets to zero when a playlist sucessfully loads');
-});
-
-QUnit.test('Playlist is excluded indefinitely when number of retries surpasses value set by maxPlaylistRetries', function(assert) {
-  const loader = new PlaylistLoader('manifest/media.m3u8', this.fakeVhs, {
-    maxPlaylistRetries: 1
-  });
-
-  loader.load();
-
-  // master
-  this.requests.shift().respond(
-    200, null,
-    '#EXTM3U\n' +
-    '#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=17\n' +
-    'playlist/playlist.m3u8\n' +
-    '#EXT-X-STREAM-INF:PROGRAM-ID=2,BANDWIDTH=170\n' +
-    'playlist/playlist2.m3u8\n' +
-    '#EXT-X-ENDLIST\n'
-  );
-
-  assert.equal(loader.master.playlists[0].retries, 0, 'retries starts at zero on a sucessful load');
-
-  // playlist
-  this.requests.shift().respond(404);
-
-  assert.equal(loader.master.playlists[0].retries, 1, 'retries incremented by one on playlist load error');
-
-  // Swap playlists to force the playlist with an error to retry
-  loader.media(loader.master.playlists[1]);
-  loader.media(loader.master.playlists[0]);
-
-  // first playlist throws another error
-  this.requests.pop().respond(404);
-
-  assert.equal(loader.master.playlists[0].retries, 2, 'retries incremented by one on playlist load error');
-  assert.equal(loader.master.playlists[0].excludeUntil, Infinity, 'The playlist is now excluded indefinitely');
 });
 
 QUnit.test('media-sequence updates are considered a playlist change', function(assert) {
