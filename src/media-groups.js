@@ -645,20 +645,24 @@ export const initialize = {
 
         const captionServices = tech.options_.vhs && tech.options_.vhs.captionServices || {};
 
-        let label = variantLabel;
-        let language = properties.language;
-        let instreamId = properties.instreamId;
-        let def = properties.default && properties.autoselect;
+        let newProps = {
+          label: variantLabel,
+          language: properties.language,
+          instreamId: properties.instreamId,
+          default: properties.default && properties.autoselect
+        };
 
         // we need to translate SERVICEn for 708 to how mux.js currently labels them
-        if (/^cc708_/.test(instreamId)) {
-          instreamId = 'SERVICE' + properties.instreamId.split('_')[1];
+        if (/^cc708_/.test(newProps.instreamId)) {
+          newProps.instreamId = 'SERVICE' + properties.instreamId.split('_')[1];
         }
 
-        if (captionServices[instreamId]) {
-          label = captionServices[instreamId].label;
-          language = captionServices[instreamId].language;
-          def = captionServices[instreamId].default;
+        if (captionServices[newProps.instreamId]) {
+          newProps = videojs.mergeOptions(newProps, captionServices[newProps.instreamId]);
+        }
+
+        if (newProps.default === undefined) {
+          delete newProps.default;
         }
 
         // No PlaylistLoader is required for Closed-Captions because the captions are
@@ -667,11 +671,11 @@ export const initialize = {
 
         if (typeof tracks[variantLabel] === 'undefined') {
           const track = tech.addRemoteTextTrack({
-            id: instreamId,
+            id: newProps.instreamId,
             kind: 'captions',
-            default: def,
-            language,
-            label
+            default: newProps.default,
+            language: newProps.language,
+            label: newProps.label
           }, false).track;
 
           tracks[variantLabel] = track;

@@ -1259,7 +1259,18 @@ QUnit.module('MediaGroups', function() {
         en608: { language: 'en', default: true, autoselect: true, instreamId: 'CC1' },
         en708: { language: 'en', instreamId: 'SERVICE1' },
         fr608: { language: 'fr', instreamId: 'CC3' },
-        fr708: { language: 'fr', instreamId: 'SERVICE3' }
+        fr708: { language: 'fr', instreamId: 'SERVICE3' },
+        kr708: { language: 'kor', instreamId: 'SERVICE4' }
+      };
+
+      // verify that captionServices option can modify properties
+      this.settings.tech.options_.vhs = {
+        captionServices: {
+          SERVICE4: {
+            label: 'Korean',
+            default: true
+          }
+        }
       };
 
       MediaGroups.initialize[type](type, this.settings);
@@ -1271,13 +1282,21 @@ QUnit.module('MediaGroups', function() {
             { id: 'en608', default: true, autoselect: true, language: 'en', instreamId: 'CC1' },
             { id: 'en708', language: 'en', instreamId: 'SERVICE1' },
             { id: 'fr608', language: 'fr', instreamId: 'CC3' },
-            { id: 'fr708', language: 'fr', instreamId: 'SERVICE3' }
+            { id: 'fr708', language: 'fr', instreamId: 'SERVICE3' },
+            { id: 'kr708', language: 'kor', instreamId: 'SERVICE4' }
           ]
         }, 'creates group properties'
       );
       assert.ok(this.mediaTypes[type].tracks.en608, 'created text track');
       assert.ok(this.mediaTypes[type].tracks.fr608, 'created text track');
       assert.equal(this.mediaTypes[type].tracks.en608.default, true, 'en608 track auto selected');
+      assert.deepEqual(this.mediaTypes[type].tracks.kr708, {
+        id: 'SERVICE4',
+        kind: 'captions',
+        language: 'kor',
+        label: 'Korean',
+        default: true
+      }, 'kr708 fields are overriden by the options');
     }
   );
 
