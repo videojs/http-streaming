@@ -848,16 +848,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * removing already buffered content
    *
    * @private
+   * @deprecated
    */
   smoothQualityChange_(media = this.selectPlaylist()) {
-    if (media === this.masterPlaylistLoader_.media()) {
-      return;
-    }
-
-    this.switchMedia_(media, 'smooth-quality');
-
-    this.mainSegmentLoader_.resetLoader();
-    // don't need to reset audio as it is reset when media changes
+    this.fastQualityChange_(media);
   }
 
   /**
