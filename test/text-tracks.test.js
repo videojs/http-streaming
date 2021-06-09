@@ -83,7 +83,29 @@ test('maps mux.js 708 track name to HLS and DASH service name', function(assert)
   createCaptionsTrackIfNotExists(inbandTracks, tech, 'cc708_3');
   assert.ok(inbandTracks.cc708_3, 'cc708_3 track was added');
   assert.equal(inbandTracks.cc708_3.id, 'SERVICE3', 'SERVICE3 created from cc708_3');
+});
 
+test('can override caption services settings', function(assert) {
+  const inbandTracks = {};
+  const tech = new MockTech();
+
+  tech.options_ = {
+    vhs: {
+      captionServices: {
+        SERVICE1: {
+          label: 'hello'
+        },
+        CC1: {
+          label: 'goodbye'
+        }
+      }
+    }
+  };
+
+  createCaptionsTrackIfNotExists(inbandTracks, tech, 'cc708_1');
+  assert.equal(inbandTracks.cc708_1.label, 'hello', 'we set a custom label for SERVICE1');
+  createCaptionsTrackIfNotExists(inbandTracks, tech, 'CC1');
+  assert.equal(inbandTracks.CC1.label, 'goodbye', 'we set a custom label for CC1');
 });
 
 test('fills inbandTextTracks if a track already exists', function(assert) {
