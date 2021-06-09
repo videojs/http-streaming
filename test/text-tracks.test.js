@@ -11,7 +11,8 @@ import {
 const { module, test } = Qunit;
 
 class MockTextTrack {
-  constructor() {
+  constructor(opts = {}) {
+    Object.keys(opts).forEach((opt) => (this[opt] = opts[opt]));
     this.cues = [];
   }
   addCue(cue) {
@@ -33,9 +34,9 @@ class MockTech {
       }
     };
   }
-  addRemoteTextTrack({kind, id, label}) {
-    this.tracks[id] = new MockTextTrack();
-    return { track: this.tracks[id] };
+  addRemoteTextTrack(opts) {
+    this.tracks[opts.id] = new MockTextTrack(opts);
+    return { track: this.tracks[opts.id] };
   }
   trigger() {}
   textTracks() {
@@ -62,6 +63,27 @@ test('creates a track if it does not exist yet', function(assert) {
 
   createCaptionsTrackIfNotExists(inbandTracks, tech, 'CC1');
   assert.ok(inbandTracks.CC1, 'CC1 track was added');
+});
+
+test('creates a 708 track if it does not exist yet', function(assert) {
+  const inbandTracks = {};
+  const tech = new MockTech();
+
+  createCaptionsTrackIfNotExists(inbandTracks, tech, 'cc708_1');
+  assert.ok(inbandTracks.cc708_1, 'cc708_1 track was added');
+});
+
+test('maps mux.js 708 track name to HLS and DASH service name', function(assert) {
+  const inbandTracks = {};
+  const tech = new MockTech();
+
+  createCaptionsTrackIfNotExists(inbandTracks, tech, 'cc708_1');
+  assert.ok(inbandTracks.cc708_1, 'cc708_1 track was added');
+  assert.equal(inbandTracks.cc708_1.id, 'SERVICE1', 'SERVICE1 created from cc708_1');
+  createCaptionsTrackIfNotExists(inbandTracks, tech, 'cc708_3');
+  assert.ok(inbandTracks.cc708_3, 'cc708_3 track was added');
+  assert.equal(inbandTracks.cc708_3.id, 'SERVICE3', 'SERVICE3 created from cc708_3');
+
 });
 
 test('fills inbandTextTracks if a track already exists', function(assert) {
