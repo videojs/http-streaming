@@ -4344,6 +4344,9 @@ QUnit.module('SegmentLoader', function(hooks) {
         // smoothQualityChange will reset loader after changing renditions, so need to
         // mimic that behavior here in order for content to be overlayed over already
         // buffered content.
+        //
+        // Now that smoothQualityChange is removed, this behavior can be mimicked by
+        // calling resetLoader.
         loader.resetLoader();
         this.clock.tick(1);
 
@@ -4410,7 +4413,7 @@ QUnit.module('SegmentLoader', function(hooks) {
           loader.error_,
           {
             message: 'Quota exceeded error with append of a single segment of content',
-            blacklistDuration: Infinity
+            excludeUntil: Infinity
           },
           'loader triggered and saved the error'
         );

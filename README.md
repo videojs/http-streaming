@@ -45,6 +45,7 @@ Video.js Compatibility: 6.0, 7.0
       - [parse708captions](#parse708captions)
       - [overrideNative](#overridenative)
       - [blacklistDuration](#blacklistduration)
+    - [maxPlaylistRetries](#maxplaylistretries)
       - [bandwidth](#bandwidth)
       - [useBandwidthFromLocalStorage](#usebandwidthfromlocalstorage)
       - [enableLowInitialPlaylist](#enablelowinitialplaylist)
@@ -365,6 +366,14 @@ if a playlist is blacklisted, it will be blacklisted for a period of that
 customized duration. This enables the blacklist duration to be configured
 by the user.
 
+#### maxPlaylistRetries
+* Type: `number`
+* Default: `Infinity`
+* can be used as an initialization option
+
+The max number of times that a playlist will retry loading following an error
+before being indefinitely excluded from the rendition selection algorithm. Note: the number of retry attempts needs to _exceed_ this value before a playlist will be excluded.
+
 ##### bandwidth
 * Type: `number`
 * can be used as an initialization option
@@ -405,20 +414,16 @@ If true, this will take the device pixel ratio into account when doing rendition
 This setting is `false` by default.
 
 ##### smoothQualityChange
+* NOTE: DEPRECATED
 * Type: `boolean`
 * can be used as a source option
 * can be used as an initialization option
 
-When the `smoothQualityChange` property is set to `true`, a manual quality
-change triggered via the [representations API](#vhsrepresentations) will use
-smooth quality switching rather than the default fast (buffer-ejecting)
-quality switching. Using smooth quality switching will mean no loading spinner
-will appear during quality switches, but will cause quality switches to only
-be visible after a few seconds.
+smoothQualityChange is deprecated and will be removed in the next major version of VHS.
 
-Note that this _only_ affects quality changes triggered via the representations
-API; automatic quality switches based on available bandwidth will always be
-smooth switches.
+Instead of its prior behavior, smoothQualityChange will now call fastQualityChange, which
+clears the buffer, chooses a new rendition, and starts loading content from the current
+playhead position.
 
 ##### allowSeeksWithinUnsafeLiveWindow
 * Type: `boolean`
