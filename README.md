@@ -58,6 +58,9 @@ Video.js Compatibility: 6.0, 7.0
       - [cacheEncryptionKeys](#cacheencryptionkeys)
       - [handlePartialData](#handlepartialdata)
       - [liveRangeSafeTimeDelta](#liverangesafetimedelta)
+      - [captionServices](#captionservices)
+        - [Format](#format)
+        - [Example](#example)
   - [Runtime Properties](#runtime-properties)
     - [vhs.playlists.master](#vhsplaylistsmaster)
     - [vhs.playlists.media](#vhsplaylistsmedia)
@@ -470,6 +473,47 @@ This option defaults to `false`.
 * Type: `number`,
 * Default: [`SAFE_TIME_DELTA`](https://github.com/videojs/http-streaming/blob/e7cb63af010779108336eddb5c8fd138d6390e95/src/ranges.js#L17)
 * Allow to  re-define length (in seconds) of time delta when you compare current time and the end of the buffered range.
+
+##### captionServices
+* Type: `object`
+* Default: undefined
+* Provide extra information, like a label or a language, for instream (608 and 708) captions.
+
+The captionServices options object has properties that map to the caption services. Each property is an object itself that includes several properties, like a label or language.
+
+For 608 captions, the service names are `CC1`, `CC2`, `CC3`, and `CC4`. For 708 captions, the service names are `SERVICEn` where `n` is a digit between `1` and `63`.
+###### Format
+```js
+{
+  vhs: {
+    captionServices: {
+      [serviceName]: {
+        language: String, // optional
+        label: String, // optional
+        default: boolean // optional
+      }
+    }
+  }
+}
+```
+###### Example
+```js
+{
+  vhs: {
+    captionServices: {
+      CC1: {
+        language: 'en',
+        label: 'English'
+      },
+      SERVICE1: {
+        langauge: 'kr',
+        label: 'Korean',
+        default: true
+      }
+    }
+  }
+}
+```
 
 ### Runtime Properties
 Runtime properties are attached to the tech object when HLS is in

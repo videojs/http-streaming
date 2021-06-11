@@ -638,10 +638,26 @@ export const initialize = {
       for (const variantLabel in mediaGroups[type][groupId]) {
         const properties = mediaGroups[type][groupId][variantLabel];
 
-        // We only support CEA608 captions for now, so ignore anything that
-        // doesn't use a CCx INSTREAM-ID
-        if (!properties.instreamId.match(/CC\d/)) {
+        // Look for either 608 (CCn) or 708 (SERVICEn) caption services
+        if (!/^(?:CC|SERVICE)/.test(properties.instreamId)) {
           continue;
+        }
+
+        const captionServices = tech.options_.vhs && tech.options_.vhs.captionServices || {};
+
+        let newProps = {
+          label: variantLabel,
+          language: properties.language,
+          instreamId: properties.instreamId,
+          default: properties.default && properties.autoselect
+        };
+
+        if (captionServices[newProps.instreamId]) {
+          newProps = videojs.mergeOptions(newProps, captionServices[newProps.instreamId]);
+        }
+
+        if (newProps.default === undefined) {
+          delete newProps.default;
         }
 
         // No PlaylistLoader is required for Closed-Captions because the captions are
@@ -650,11 +666,11 @@ export const initialize = {
 
         if (typeof tracks[variantLabel] === 'undefined') {
           const track = tech.addRemoteTextTrack({
-            id: properties.instreamId,
+            id: newProps.instreamId,
             kind: 'captions',
-            default: properties.default && properties.autoselect,
-            language: properties.language,
-            label: variantLabel
+            default: newProps.default,
+            language: newProps.language,
+            label: newProps.label
           }, false).track;
 
           tracks[variantLabel] = track;

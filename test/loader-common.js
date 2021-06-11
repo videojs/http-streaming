@@ -45,6 +45,7 @@ export const LoaderCommonHooks = {
     this.fakeVhs = {
       xhr: xhrFactory(),
       tech_: {
+        options_: {},
         paused: () => this.paused,
         playbackRate: () => this.playbackRate,
         currentTime: () => this.currentTime,
