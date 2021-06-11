@@ -3260,7 +3260,7 @@ QUnit.test(
       .map(cap => Object.assign({name: cap.id}, cap));
 
     assert.equal(capsArr.length, 4, '4 closed-caption tracks defined in playlist');
-    assert.equal(addedCaps.length, 4, '4 tracks added internally');
+    assert.equal(addedCaps.length, 4, '4 tracks, 2 608 and 2 708 tracks, added internally');
     assert.equal(addedCaps[0].instreamId, 'CC1', 'first 608 track is CC1');
     assert.equal(addedCaps[2].instreamId, 'CC3', 'second 608 track is CC3');
 
@@ -3325,7 +3325,7 @@ QUnit.test(
       .map(cap => Object.assign({name: cap.id}, cap));
 
     assert.equal(capsArr.length, 4, '4 closed-caption tracks defined in playlist');
-    assert.equal(addedCaps.length, 4, '4 tracks added internally');
+    assert.equal(addedCaps.length, 4, '4 tracks, 2 608 and 2 708 tracks, added internally');
     assert.equal(addedCaps[1].instreamId, 'SERVICE1', 'first 708 track is SERVICE1');
     assert.equal(addedCaps[3].instreamId, 'SERVICE3', 'second 708 track is SERVICE3');
 

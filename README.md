@@ -472,7 +472,7 @@ This option defaults to `false`.
 ##### captionServices
 * Type: `object`
 * Default: undefined
-* Allow to override instream captions like 608 and 708 to provide labels or languaages.
+* Provide extra information, like a label or a language, for instream (608 and 708) captions.
 
 The captionServices options object has properties that map to the caption services. Each property is an object itself that includes several properties, like a label or language.
 

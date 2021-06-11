@@ -32,6 +32,8 @@ export const createCaptionsTrackIfNotExists = function(inbandTextTracks, tech, c
       // in the m3u8 for us to use
       inbandTextTracks[captionStream] = track;
     } else {
+      // This section gets called when we have caption services that aren't specified in the manifest.
+      // Manifest level caption services are handled in media-groups.js under CLOSED-CAPTIONS.
       const captionServices = tech.options_.vhs && tech.options_.vhs.captionServices || {};
       let label = captionStream;
       let language = captionStream;
@@ -49,6 +51,7 @@ export const createCaptionsTrackIfNotExists = function(inbandTextTracks, tech, c
       inbandTextTracks[captionStream] = tech.addRemoteTextTrack({
         kind: 'captions',
         id: instreamId,
+        // TODO: investigate why this doesn't seem to turn the caption on by default
         default: def,
         label,
         language
