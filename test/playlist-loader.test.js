@@ -2020,7 +2020,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     assert.strictEqual(loadedMetadata, 1, 'still one loadedmetadata');
   });
 
-  QUnit.test('retries are reset on a successful response', function(assert) {
+  QUnit.test('playlistErrors_ are reset on a successful response', function(assert) {
     const loader = new PlaylistLoader('manifest/master.m3u8', this.fakeVhs);
 
     loader.load();
@@ -2036,7 +2036,7 @@ QUnit.module('Playlist Loader', function(hooks) {
       '#EXT-X-ENDLIST\n'
     );
 
-    loader.master.playlists[0].retries = 3;
+    loader.master.playlists[0].playlistErrors_ = 3;
 
     // playlist
     this.requests.shift().respond(404);
@@ -2044,7 +2044,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     loader.media(loader.master.playlists[1]);
     loader.media(loader.master.playlists[0]);
 
-    assert.equal(loader.master.playlists[0].retries, 3, 'we have 3 retries');
+    assert.equal(loader.master.playlists[0].playlistErrors_, 3, 'we have 3 playlistErrors_');
 
     this.requests[1].respond(
       200, null,
@@ -2053,7 +2053,7 @@ QUnit.module('Playlist Loader', function(hooks) {
       '#EXTINF:10,\n' +
       '0.ts\n'
     );
-    assert.equal(loader.master.playlists[0].retries, 0, 'retries resets to zero when a playlist sucessfully loads');
+    assert.equal(loader.master.playlists[0].playlistErrors_, 0, 'playlistErrors_ resets to zero when a playlist sucessfully loads');
   });
 
   QUnit.test(

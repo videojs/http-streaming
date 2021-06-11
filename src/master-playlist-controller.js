@@ -1135,7 +1135,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    currentPlaylist.retries++;
+    currentPlaylist.playlistErrors_++;
 
     const playlists = this.masterPlaylistLoader_.master.playlists;
     const enabledPlaylists = playlists.filter(isEnabled);
@@ -1186,7 +1186,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // Blacklist this playlist
     let excludeUntil;
 
-    if (currentPlaylist.retries > this.maxPlaylistRetries) {
+    if (currentPlaylist.playlistErrors_ > this.maxPlaylistRetries) {
       excludeUntil = Infinity;
     } else {
       excludeUntil = Date.now() + (blacklistDuration * 1000);

@@ -5973,7 +5973,7 @@ QUnit.test('switch playlists if current playlist gets excluded and re-include if
   this.env.log.warn.callCount = 0;
 });
 
-QUnit.test('Playlist is excluded indefinitely if number of retries exceeds maxPlaylistRetries', function(assert) {
+QUnit.test('Playlist is excluded indefinitely if number of playlistErrors_ exceeds maxPlaylistRetries', function(assert) {
   this.requests.length = 0;
   this.player.dispose();
   this.player = createPlayer({ html5: { vhs: { maxPlaylistRetries: 1 } } });
@@ -5995,17 +5995,17 @@ QUnit.test('Playlist is excluded indefinitely if number of retries exceeds maxPl
   const mpl = mpc.masterPlaylistLoader_;
   const playlist = mpl.master.playlists[0];
 
-  assert.equal(playlist.retries, 0, 'retries starts at zero');
+  assert.equal(playlist.playlistErrors_, 0, 'playlistErrors_ starts at zero');
 
   mpc.blacklistCurrentPlaylist();
 
   assert.ok('excludeUntil' in playlist, 'playlist was excluded');
-  assert.equal(playlist.retries, 1, 'we incremented retry');
+  assert.equal(playlist.playlistErrors_, 1, 'we incremented playlistErrors_');
   assert.notEqual(playlist.excludeUntil, Infinity, 'The playlist was not excluded indefinitely');
 
   mpc.blacklistCurrentPlaylist();
 
-  assert.equal(playlist.retries, 2, 'we incremented retry');
+  assert.equal(playlist.playlistErrors_, 2, 'we incremented playlistErrors_');
   assert.equal(playlist.excludeUntil, Infinity, 'The playlist was excluded indefinitely');
   assert.equal(this.env.log.warn.callCount, 2, 'logged a warning each time a playlist was excluded');
 
