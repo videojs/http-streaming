@@ -140,6 +140,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       bandwidth,
       externVhs,
       useCueTags,
+      maxPlaylistRetries,
       blacklistDuration,
       enableLowInitialPlaylist,
       sourceType,
@@ -160,6 +161,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.sourceType_ = sourceType;
     this.useCueTags_ = useCueTags;
     this.blacklistDuration = blacklistDuration;
+    this.maxPlaylistRetries = maxPlaylistRetries;
     this.enableLowInitialPlaylist = enableLowInitialPlaylist;
     if (this.useCueTags_) {
       this.cueTagsTrack_ = this.tech_.addTextTrack(
@@ -172,6 +174,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.requestOptions_ = {
       withCredentials,
       handleManifestRedirects,
+      maxPlaylistRetries,
       timeout: null
     };
 
@@ -1132,6 +1135,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
+    currentPlaylist.playlistErrors_++;
+
     const playlists = this.masterPlaylistLoader_.master.playlists;
     const enabledPlaylists = playlists.filter(isEnabled);
     const isFinalRendition = enabledPlaylists.length === 1 && enabledPlaylists[0] === currentPlaylist;
@@ -1179,7 +1184,16 @@ export class MasterPlaylistController extends videojs.EventTarget {
     }
 
     // Blacklist this playlist
-    currentPlaylist.excludeUntil = Date.now() + (blacklistDuration * 1000);
+    let excludeUntil;
+
+    if (currentPlaylist.playlistErrors_ > this.maxPlaylistRetries) {
+      excludeUntil = Infinity;
+    } else {
+      excludeUntil = Date.now() + (blacklistDuration * 1000);
+    }
+
+    currentPlaylist.excludeUntil = excludeUntil;
+
     if (error.reason) {
       currentPlaylist.lastExcludeReason_ = error.reason;
     }
