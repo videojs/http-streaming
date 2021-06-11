@@ -36,11 +36,12 @@ export const createCaptionsTrackIfNotExists = function(inbandTextTracks, tech, c
       let label = captionStream;
       let language = captionStream;
       let def = false;
+      const captionService = captionServices[instreamId];
 
-      if (captionServices[instreamId]) {
-        label = captionServices[instreamId].label;
-        language = captionServices[instreamId].language;
-        def = captionServices[instreamId].default;
+      if (captionService) {
+        label = captionService.label;
+        language = captionService.language;
+        def = captionService.default;
       }
 
       // Otherwise, create a track with the default `CC#` label and
