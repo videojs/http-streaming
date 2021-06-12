@@ -2731,86 +2731,6 @@ QUnit.test('if handleManifestRedirects global option is used, it should be passe
   videojs.options.vhs = vhsOptions;
 });
 
-QUnit.test(
-  'if handlePartialData global option is used, it is set on audio/main loader but not subtitle',
-  function(assert) {
-    const vhsOptions = videojs.options.vhs;
-
-    this.player.dispose();
-    videojs.options.vhs = {
-      handlePartialData: true
-    };
-    this.player = createPlayer();
-    this.player.src({
-      src: 'http://example.com/media.m3u8',
-      type: 'application/vnd.apple.mpegurl'
-    });
-
-    this.clock.tick(1);
-
-    openMediaSource(this.player, this.clock);
-    const {mainSegmentLoader_, subtitleSegmentLoader_, audioSegmentLoader_} =
-    this.player.tech(true).vhs.masterPlaylistController_;
-
-    assert.equal(mainSegmentLoader_.handlePartialData_, true, 'is set on main');
-    assert.equal(audioSegmentLoader_.handlePartialData_, true, 'is set on audio');
-    assert.equal(subtitleSegmentLoader_.handlePartialData_, false, 'is not set on subtitle');
-    videojs.options.vhs = vhsOptions;
-  }
-);
-
-QUnit.test(
-  'if handlePartialData source option is used, it is set on audio/main loader but not subtitle',
-  function(assert) {
-    const vhsOptions = videojs.options.vhs;
-
-    this.player.dispose();
-    this.player = createPlayer();
-    this.player.src({
-      src: 'http://example.com/media.m3u8',
-      type: 'application/vnd.apple.mpegurl',
-      handlePartialData: true
-    });
-
-    this.clock.tick(1);
-
-    openMediaSource(this.player, this.clock);
-    const {mainSegmentLoader_, subtitleSegmentLoader_, audioSegmentLoader_} =
-    this.player.tech(true).vhs.masterPlaylistController_;
-
-    assert.equal(mainSegmentLoader_.handlePartialData_, true, 'is set on main');
-    assert.equal(audioSegmentLoader_.handlePartialData_, true, 'is set on audio');
-    assert.equal(subtitleSegmentLoader_.handlePartialData_, false, 'is not set on subtitle');
-    videojs.options.vhs = vhsOptions;
-  }
-);
-
-QUnit.test('the handlePartialData source option overrides the global default', function(assert) {
-  const vhsOptions = videojs.options.vhs;
-
-  this.player.dispose();
-  videojs.options.vhs = {
-    handlePartialData: true
-  };
-  this.player = createPlayer();
-  this.player.src({
-    src: 'http://example.com/media.m3u8',
-    type: 'application/vnd.apple.mpegurl',
-    handlePartialData: false
-  });
-
-  this.clock.tick(1);
-
-  openMediaSource(this.player, this.clock);
-  const {mainSegmentLoader_, subtitleSegmentLoader_, audioSegmentLoader_} =
-    this.player.tech(true).vhs.masterPlaylistController_;
-
-  assert.equal(mainSegmentLoader_.handlePartialData_, false, 'is set on main');
-  assert.equal(audioSegmentLoader_.handlePartialData_, false, 'is set on audio');
-  assert.equal(subtitleSegmentLoader_.handlePartialData_, false, 'is not set on subtitle');
-  videojs.options.vhs = vhsOptions;
-});
-
 QUnit.test('the handleManifestRedirects source option overrides the global default', function(assert) {
   const vhsOptions = videojs.options.vhs;
 
@@ -2992,6 +2912,36 @@ QUnit.test(
     assert.equal(this.player.tech_.vhs.bandwidth, 4194304, 'set bandwidth to default');
   }
 );
+
+QUnit.test('respects initialBandwidth option on the tech', function(assert) {
+  this.player.dispose();
+  this.player = createPlayer({ html5: { initialBandwidth: 0 } });
+
+  this.player.src({
+    src: 'http://example.com/media.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  assert.equal(this.player.tech_.vhs.bandwidth, 0, 'set bandwidth to 0');
+});
+
+QUnit.test('initialBandwidth option on the tech take precedence on over vhs bandwidth option', function(assert) {
+  this.player.dispose();
+  this.player = createPlayer({ html5: { initialBandwidth: 0, vhs: { bandwidth: 100 } } });
+
+  this.player.src({
+    src: 'http://example.com/media.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  assert.equal(this.player.tech_.vhs.bandwidth, 0, 'set bandwidth to 0');
+});
 
 QUnit.test('uses default bandwidth if browser is Android', function(assert) {
   this.player.dispose();
@@ -5439,7 +5389,7 @@ QUnit.test('stats are reset on dispose', function(assert) {
 
 // mocking the fullscreenElement no longer works, find another way to mock
 // fullscreen behavior(without user gesture)
-QUnit.skip('detects fullscreen and triggers a smooth quality change', function(assert) {
+QUnit.skip('detects fullscreen and triggers a fast quality change', function(assert) {
   const vhs = VhsSourceHandler.handleSource({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -5455,7 +5405,7 @@ QUnit.skip('detects fullscreen and triggers a smooth quality change', function(a
     }
   });
 
-  vhs.masterPlaylistController_.smoothQualityChange_ = function() {
+  vhs.masterPlaylistController_.fastQualityChange_ = function() {
     qualityChanges++;
   };
 
@@ -5465,12 +5415,19 @@ QUnit.skip('detects fullscreen and triggers a smooth quality change', function(a
 
   assert.equal(qualityChanges, 1, 'made a fast quality change');
 
+  let checkABRCalls = 0;
+
+  vhs.masterPlaylistController_.checkABR_ = () => checkABRCalls++;
+
   // don't do a fast quality change when returning from fullscreen;
-  // allow the video element to rescale the already buffered video
+  //
+  // do check the current rendition to see if it should be changed for the next
+  // segment loaded
   document[fullscreenElementName] = null;
   Events.trigger(document, 'fullscreenchange');
 
   assert.equal(qualityChanges, 1, 'did not make another quality change');
+  assert.equal(checkABRCalls, 1, 'called to check the ABR');
   vhs.dispose();
 });
 

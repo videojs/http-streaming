@@ -511,6 +511,12 @@ class VhsHandler extends Component {
       videojs.log.warn('Using hls options is deprecated. Use vhs instead.');
     }
 
+    // if a tech level `initialBandwidth` option was passed
+    // use that over the VHS level `bandwidth` option
+    if (typeof options.initialBandwidth === 'number') {
+      this.options_.bandwidth = options.initialBandwidth;
+    }
+
     this.logger_ = logger('VhsHandler');
 
     // tech.player() is deprecated but setup a reference to HLS for
@@ -584,7 +590,12 @@ class VhsHandler extends Component {
         document.msFullscreenElement;
 
       if (fullscreenElement && fullscreenElement.contains(this.tech_.el())) {
-        this.masterPlaylistController_.smoothQualityChange_();
+        this.masterPlaylistController_.fastQualityChange_();
+      } else {
+        // When leaving fullscreen, since the in page pixel dimensions should be smaller
+        // than full screen, see if there should be a rendition switch down to preserve
+        // bandwidth.
+        this.masterPlaylistController_.checkABR_();
       }
     });
 
@@ -622,7 +633,6 @@ class VhsHandler extends Component {
     this.options_.customTagParsers = this.options_.customTagParsers || [];
     this.options_.customTagMappers = this.options_.customTagMappers || [];
     this.options_.cacheEncryptionKeys = this.options_.cacheEncryptionKeys || false;
-    this.options_.handlePartialData = this.options_.handlePartialData || false;
 
     if (typeof this.options_.blacklistDuration !== 'number') {
       this.options_.blacklistDuration = 5 * 60;
@@ -667,7 +677,6 @@ class VhsHandler extends Component {
       'customTagMappers',
       'handleManifestRedirects',
       'cacheEncryptionKeys',
-      'handlePartialData',
       'playlistSelector',
       'initialPlaylistSelector',
       'experimentalBufferBasedABR',
@@ -703,6 +712,10 @@ class VhsHandler extends Component {
     this.options_.seekTo = (time) => {
       this.tech_.setCurrentTime(time);
     };
+
+    if (this.options_.smoothQualityChange) {
+      videojs.log.warn('smoothQualityChange is deprecated and will be removed in the next major version');
+    }
 
     this.masterPlaylistController_ = new MasterPlaylistController(this.options_);
 
@@ -855,6 +868,26 @@ class VhsHandler extends Component {
       },
       mediaSecondsLoaded: {
         get: () => this.masterPlaylistController_.mediaSecondsLoaded_() || 0,
+        enumerable: true
+      },
+      mediaAppends: {
+        get: () => this.masterPlaylistController_.mediaAppends_() || 0,
+        enumerable: true
+      },
+      mainAppendsToLoadedData: {
+        get: () => this.masterPlaylistController_.mainAppendsToLoadedData_() || 0,
+        enumerable: true
+      },
+      audioAppendsToLoadedData: {
+        get: () => this.masterPlaylistController_.audioAppendsToLoadedData_() || 0,
+        enumerable: true
+      },
+      appendsToLoadedData: {
+        get: () => this.masterPlaylistController_.appendsToLoadedData_() || 0,
+        enumerable: true
+      },
+      timeToLoadedData: {
+        get: () => this.masterPlaylistController_.timeToLoadedData_() || 0,
         enumerable: true
       },
       buffered: {

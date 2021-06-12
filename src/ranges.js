@@ -437,3 +437,11 @@ export const isRangeDifferent = function(a, b) {
   // this is the same time range
   return false;
 };
+
+export const lastBufferedEnd = function(a) {
+  if (!a || !a.length || !a.end) {
+    return;
+  }
+
+  return a.end(a.length - 1);
+};

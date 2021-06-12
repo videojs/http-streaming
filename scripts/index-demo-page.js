@@ -21,7 +21,7 @@
       rep.playlist.disabled = rep.id !== id;
     });
 
-    window.mpc.smoothQualityChange_();
+    window.mpc.fastQualityChange_();
   });
   var hlsOptGroup = document.querySelector('[label="hls"]');
   var dashOptGroup = document.querySelector('[label="dash"]');
@@ -240,7 +240,6 @@
     'minified',
     'sync-workers',
     'liveui',
-    'partial',
     'llhls',
     'url',
     'type',
@@ -302,13 +301,6 @@
     });
 
     stateEls.llhls.addEventListener('change', function(event) {
-      saveState();
-
-      // reload the player and scripts
-      stateEls.minified.dispatchEvent(newEvent('change'));
-    });
-
-    stateEls.partial.addEventListener('change', function(event) {
       saveState();
 
       // reload the player and scripts
@@ -384,7 +376,6 @@
           html5: {
             vhs: {
               overrideNative: getInputValue(stateEls['override-native']),
-              handlePartialData: getInputValue(stateEls.partial),
               experimentalBufferBasedABR: getInputValue(stateEls['buffer-water']),
               experimentalLLHLS: getInputValue(stateEls.llhls)
             }
@@ -409,7 +400,7 @@
           }
 
           if (source.src) {
-            stateEls.url.value = source.src;
+            stateEls.url.value = encodeURI(source.src);
           }
 
           if (source.type) {

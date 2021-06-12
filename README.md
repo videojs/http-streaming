@@ -45,6 +45,7 @@ Video.js Compatibility: 6.0, 7.0
       - [parse708captions](#parse708captions)
       - [overrideNative](#overridenative)
       - [blacklistDuration](#blacklistduration)
+    - [maxPlaylistRetries](#maxplaylistretries)
       - [bandwidth](#bandwidth)
       - [useBandwidthFromLocalStorage](#usebandwidthfromlocalstorage)
       - [enableLowInitialPlaylist](#enablelowinitialplaylist)
@@ -57,6 +58,9 @@ Video.js Compatibility: 6.0, 7.0
       - [cacheEncryptionKeys](#cacheencryptionkeys)
       - [handlePartialData](#handlepartialdata)
       - [liveRangeSafeTimeDelta](#liverangesafetimedelta)
+      - [captionServices](#captionservices)
+        - [Format](#format)
+        - [Example](#example)
   - [Runtime Properties](#runtime-properties)
     - [vhs.playlists.master](#vhsplaylistsmaster)
     - [vhs.playlists.media](#vhsplaylistsmedia)
@@ -362,6 +366,14 @@ if a playlist is blacklisted, it will be blacklisted for a period of that
 customized duration. This enables the blacklist duration to be configured
 by the user.
 
+#### maxPlaylistRetries
+* Type: `number`
+* Default: `Infinity`
+* can be used as an initialization option
+
+The max number of times that a playlist will retry loading following an error
+before being indefinitely excluded from the rendition selection algorithm. Note: the number of retry attempts needs to _exceed_ this value before a playlist will be excluded.
+
 ##### bandwidth
 * Type: `number`
 * can be used as an initialization option
@@ -402,20 +414,16 @@ If true, this will take the device pixel ratio into account when doing rendition
 This setting is `false` by default.
 
 ##### smoothQualityChange
+* NOTE: DEPRECATED
 * Type: `boolean`
 * can be used as a source option
 * can be used as an initialization option
 
-When the `smoothQualityChange` property is set to `true`, a manual quality
-change triggered via the [representations API](#vhsrepresentations) will use
-smooth quality switching rather than the default fast (buffer-ejecting)
-quality switching. Using smooth quality switching will mean no loading spinner
-will appear during quality switches, but will cause quality switches to only
-be visible after a few seconds.
+smoothQualityChange is deprecated and will be removed in the next major version of VHS.
 
-Note that this _only_ affects quality changes triggered via the representations
-API; automatic quality switches based on available bandwidth will always be
-smooth switches.
+Instead of its prior behavior, smoothQualityChange will now call fastQualityChange, which
+clears the buffer, chooses a new rendition, and starts loading content from the current
+playhead position.
 
 ##### allowSeeksWithinUnsafeLiveWindow
 * Type: `boolean`
@@ -465,6 +473,47 @@ This option defaults to `false`.
 * Type: `number`,
 * Default: [`SAFE_TIME_DELTA`](https://github.com/videojs/http-streaming/blob/e7cb63af010779108336eddb5c8fd138d6390e95/src/ranges.js#L17)
 * Allow to  re-define length (in seconds) of time delta when you compare current time and the end of the buffered range.
+
+##### captionServices
+* Type: `object`
+* Default: undefined
+* Provide extra information, like a label or a language, for instream (608 and 708) captions.
+
+The captionServices options object has properties that map to the caption services. Each property is an object itself that includes several properties, like a label or language.
+
+For 608 captions, the service names are `CC1`, `CC2`, `CC3`, and `CC4`. For 708 captions, the service names are `SERVICEn` where `n` is a digit between `1` and `63`.
+###### Format
+```js
+{
+  vhs: {
+    captionServices: {
+      [serviceName]: {
+        language: String, // optional
+        label: String, // optional
+        default: boolean // optional
+      }
+    }
+  }
+}
+```
+###### Example
+```js
+{
+  vhs: {
+    captionServices: {
+      CC1: {
+        language: 'en',
+        label: 'English'
+      },
+      SERVICE1: {
+        langauge: 'kr',
+        label: 'Korean',
+        default: true
+      }
+    }
+  }
+}
+```
 
 ### Runtime Properties
 Runtime properties are attached to the tech object when HLS is in
