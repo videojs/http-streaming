@@ -21,7 +21,7 @@
       rep.playlist.disabled = rep.id !== id;
     });
 
-    window.mpc.smoothQualityChange_();
+    window.mpc.fastQualityChange_();
   });
   var hlsOptGroup = document.querySelector('[label="hls"]');
   var dashOptGroup = document.querySelector('[label="dash"]');

@@ -430,8 +430,10 @@ QUnit.test(
   }
 );
 
-QUnit.test('resyncs SegmentLoader for a smooth quality change', function(assert) {
-  let resyncs = 0;
+// Since smoothQualityChange is deprecated, calls to smoothQualityChange_ should call
+// fastQualityChange_.
+QUnit.test('smoothQualityChange_ calls fastQualityChange_', function(assert) {
+  let fastQualityChangeCalls = 0;
 
   this.masterPlaylistController.mediaSource.trigger('sourceopen');
   // master
@@ -439,135 +441,15 @@ QUnit.test('resyncs SegmentLoader for a smooth quality change', function(assert)
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  const segmentLoader = this.masterPlaylistController.mainSegmentLoader_;
-  const originalResync = segmentLoader.resyncLoader;
-
-  segmentLoader.resyncLoader = function() {
-    resyncs++;
-    originalResync.call(segmentLoader);
-  };
-
   this.masterPlaylistController.selectPlaylist = () => {
     return this.masterPlaylistController.master().playlists[0];
   };
 
+  this.masterPlaylistController.fastQualityChange_ = () => fastQualityChangeCalls++;
+
   this.masterPlaylistController.smoothQualityChange_();
 
-  assert.equal(resyncs, 1, 'resynced the segmentLoader');
-
-  // verify stats
-  assert.equal(this.player.tech_.vhs.stats.bandwidth, 4194304, 'default bandwidth');
-});
-
-QUnit.test(
-  'does not resync the segmentLoader when no smooth quality change occurs',
-  function(assert) {
-    let resyncs = 0;
-
-    // master
-    this.standardXHRResponse(this.requests.shift());
-    // media
-    this.standardXHRResponse(this.requests.shift());
-    this.masterPlaylistController.mediaSource.trigger('sourceopen');
-
-    const segmentLoader = this.masterPlaylistController.mainSegmentLoader_;
-    const originalResync = segmentLoader.resyncLoader;
-
-    segmentLoader.resyncLoader = function() {
-      resyncs++;
-      originalResync.call(segmentLoader);
-    };
-
-    this.masterPlaylistController.smoothQualityChange_();
-
-    assert.equal(resyncs, 0, 'did not resync the segmentLoader');
-    // verify stats
-    assert.equal(this.player.tech_.vhs.stats.bandwidth, 4194304, 'default bandwidth');
-  }
-);
-
-QUnit.test('smooth quality change resyncs audio segment loader', function(assert) {
-  this.requests.length = 0;
-  this.player.dispose();
-  this.player = createPlayer();
-  this.player.src({
-    src: 'alternate-audio-multiple-groups.m3u8',
-    type: 'application/vnd.apple.mpegurl'
-  });
-
-  this.clock.tick(1);
-
-  const masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
-
-  masterPlaylistController.selectPlaylist = () => {
-    return masterPlaylistController.master().playlists[0];
-  };
-
-  // master
-  this.standardXHRResponse(this.requests.shift());
-  // media
-  this.standardXHRResponse(this.requests.shift());
-
-  masterPlaylistController.mediaSource.trigger('sourceopen');
-
-  this.clock.tick(1);
-
-  this.player.audioTracks()[0].enabled = true;
-
-  let resyncs = 0;
-  let resets = 0;
-  const realReset = masterPlaylistController.audioSegmentLoader_.resetLoader;
-
-  masterPlaylistController.audioSegmentLoader_.resetLoader = function() {
-    resets++;
-    realReset.call(this);
-  };
-
-  const originalResync = masterPlaylistController.audioSegmentLoader_.resyncLoader;
-
-  masterPlaylistController.audioSegmentLoader_.resyncLoader = function() {
-    resyncs++;
-    originalResync.call(masterPlaylistController.audioSegmentLoader_);
-  };
-
-  masterPlaylistController.smoothQualityChange_();
-  assert.equal(resyncs, 0, 'does not resync the audio segment loader when media same');
-
-  // force different media
-  masterPlaylistController.selectPlaylist = () => {
-    return masterPlaylistController.master().playlists[1];
-  };
-
-  assert.equal(this.requests.length, 3, 'three requests');
-  assert.ok(
-    this.requests[0].url.endsWith('eng/prog_index.m3u8'),
-    'requests eng playlist'
-  );
-  assert.ok(this.requests[1].url.endsWith('lo/main.mp4'), 'correct segment url');
-  assert.equal(
-    this.requests[1].requestHeaders.Range,
-    'bytes=0-603',
-    'requests init segment byte range'
-  );
-  assert.ok(this.requests[2].url.endsWith('lo/main.mp4'), 'correct segment url');
-  assert.equal(
-    this.requests[2].requestHeaders.Range,
-    'bytes=604-118754',
-    'requests segment byte range'
-  );
-  assert.notOk(this.requests[0].aborted, 'did not abort alt audio playlist request');
-  assert.notOk(this.requests[1].aborted, 'did not abort init request');
-  assert.notOk(this.requests[2].aborted, 'did not abort segment request');
-  masterPlaylistController.smoothQualityChange_();
-  assert.equal(this.requests.length, 4, 'added a request for new media');
-  assert.notOk(this.requests[0].aborted, 'did not abort alt audio playlist request');
-  assert.ok(this.requests[1].aborted, 'aborted init segment request');
-  assert.ok(this.requests[2].aborted, 'aborted segment request');
-  assert.equal(resyncs, 0, 'does not resync the audio segment loader yet');
-  // new media request
-  this.standardXHRResponse(this.requests[3]);
-  assert.equal(resyncs, 1, 'resyncs the audio segment loader when media changes');
-  assert.equal(resets, 0, 'does not reset the audio segment loader when media changes');
+  assert.equal(fastQualityChangeCalls, 1, 'called fastQualityChange_');
 });
 
 QUnit.test('resets everything for a fast quality change', function(assert) {
@@ -995,11 +877,11 @@ QUnit.test('audio segment loader is reset on audio track change', function(asser
 
   let resyncs = 0;
   let resets = 0;
-  const realReset = masterPlaylistController.audioSegmentLoader_.resetLoader;
+  const realReset = masterPlaylistController.audioSegmentLoader_.resetEverything;
 
-  masterPlaylistController.audioSegmentLoader_.resetLoader = function() {
+  masterPlaylistController.audioSegmentLoader_.resetEverything = function(done) {
     resets++;
-    realReset.call(this);
+    realReset.call(this, done);
   };
 
   const originalResync = masterPlaylistController.audioSegmentLoader_.resyncLoader;
@@ -1032,6 +914,7 @@ QUnit.test('audio segment loader is reset on audio track change', function(asser
   assert.equal(resyncs, 0, 'does not resync the audio segment loader yet');
 
   this.player.audioTracks()[1].enabled = true;
+  this.clock.tick(1);
 
   assert.equal(this.requests.length, 4, 'added a request for new media');
   assert.ok(this.requests[0].aborted, 'aborted old alt audio playlist request');
@@ -3221,7 +3104,7 @@ QUnit.test('parses codec from muxed fmp4 init segment', function(assert) {
 });
 
 QUnit.test(
-  'adds only CEA608 closed-caption tracks when a master playlist is loaded',
+  'adds CEA608 closed-caption tracks when a master playlist is loaded',
   function(assert) {
     this.requests.length = 0;
     this.player.dispose();
@@ -3260,15 +3143,77 @@ QUnit.test(
       .map(cap => Object.assign({name: cap.id}, cap));
 
     assert.equal(capsArr.length, 4, '4 closed-caption tracks defined in playlist');
-    assert.equal(addedCaps.length, 2, '2 CEA608 tracks added internally');
+    assert.equal(addedCaps.length, 4, '4 tracks, 2 608 and 2 708 tracks, added internally');
     assert.equal(addedCaps[0].instreamId, 'CC1', 'first 608 track is CC1');
-    assert.equal(addedCaps[1].instreamId, 'CC3', 'second 608 track is CC3');
+    assert.equal(addedCaps[2].instreamId, 'CC3', 'second 608 track is CC3');
 
     const textTracks = this.player.textTracks();
 
-    assert.equal(textTracks.length, 3, '2 text tracks were added');
-    assert.equal(textTracks[1].mode, 'disabled', 'track starts disabled');
-    assert.equal(textTracks[2].mode, 'disabled', 'track starts disabled');
+    assert.equal(
+      textTracks[1].id, addedCaps[0].instreamId,
+      'text track 1\'s id is CC\'s instreamId'
+    );
+    assert.equal(
+      textTracks[2].id, addedCaps[1].instreamId,
+      'text track 2\'s id is CC\'s instreamId'
+    );
+    assert.equal(
+      textTracks[1].label, addedCaps[0].name,
+      'text track 1\'s label is CC\'s name'
+    );
+    assert.equal(
+      textTracks[2].label, addedCaps[1].name,
+      'text track 2\'s label is CC\'s name'
+    );
+  }
+);
+
+QUnit.test(
+  'adds CEA708 closed-caption tracks when a master playlist is loaded',
+  function(assert) {
+    this.requests.length = 0;
+    this.player.dispose();
+    this.player = createPlayer();
+    this.player.src({
+      src: 'manifest/master-captions.m3u8',
+      type: 'application/vnd.apple.mpegurl'
+    });
+
+    // wait for async player.src to complete
+    this.clock.tick(1);
+
+    const masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
+
+    assert.equal(this.player.textTracks().length, 1, 'one text track to start');
+    assert.equal(
+      this.player.textTracks()[0].label,
+      'segment-metadata',
+      'only segment-metadata text track'
+    );
+
+    // master, contains media groups for captions
+    this.standardXHRResponse(this.requests.shift());
+
+    // we wait for loadedmetadata before setting caption tracks, so we need to wait for a
+    // media playlist
+    assert.equal(this.player.textTracks().length, 1, 'only one text track after master');
+
+    // media
+    this.standardXHRResponse(this.requests.shift());
+
+    const master = masterPlaylistController.masterPlaylistLoader_.master;
+    const caps = master.mediaGroups['CLOSED-CAPTIONS'].CCs;
+    const capsArr = Object.keys(caps).map(key => Object.assign({name: key}, caps[key]));
+    const addedCaps = masterPlaylistController.mediaTypes_['CLOSED-CAPTIONS'].groups.CCs
+      .map(cap => Object.assign({name: cap.id}, cap));
+
+    assert.equal(capsArr.length, 4, '4 closed-caption tracks defined in playlist');
+    assert.equal(addedCaps.length, 4, '4 tracks, 2 608 and 2 708 tracks, added internally');
+    assert.equal(addedCaps[1].instreamId, 'SERVICE1', 'first 708 track is SERVICE1');
+    assert.equal(addedCaps[3].instreamId, 'SERVICE3', 'second 708 track is SERVICE3');
+
+    const textTracks = this.player.textTracks();
+
     assert.equal(
       textTracks[1].id, addedCaps[0].instreamId,
       'text track 1\'s id is CC\'s instreamId'
@@ -4801,18 +4746,19 @@ QUnit.test('can pass or select a playlist for smoothQualityChange_', function(as
 
   mpc.smoothQualityChange_(mpc.master().playlists[1]);
   assert.deepEqual(calls, {
-    resetEverything: 0,
+    // should reset everything since smoothQualityChange_ calls fastQualityChange_
+    resetEverything: 1,
     media: 1,
     selectPlaylist: 0,
-    resyncLoader: 1
+    resyncLoader: 0
   }, 'calls expected function when passed a playlist');
 
   mpc.smoothQualityChange_();
   assert.deepEqual(calls, {
-    resetEverything: 0,
+    resetEverything: 2,
     media: 2,
     selectPlaylist: 1,
-    resyncLoader: 2
+    resyncLoader: 0
   }, 'calls expected function when not passed a playlist');
 });
 
@@ -6085,6 +6031,45 @@ QUnit.test('switch playlists if current playlist gets excluded and re-include if
     this.env.log.warn.calledWith('Removing other playlists from the exclusion list because the last rendition is about to be excluded.'),
     'we logged a warning that we reincluded playlists'
   );
+
+  this.env.log.warn.callCount = 0;
+});
+
+QUnit.test('Playlist is excluded indefinitely if number of playlistErrors_ exceeds maxPlaylistRetries', function(assert) {
+  this.requests.length = 0;
+  this.player.dispose();
+  this.player = createPlayer({ html5: { vhs: { maxPlaylistRetries: 1 } } });
+  this.player.src({
+    src: 'manifest/two-renditions.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  this.masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  const mpc = this.masterPlaylistController;
+  const mpl = mpc.masterPlaylistLoader_;
+  const playlist = mpl.master.playlists[0];
+
+  assert.equal(playlist.playlistErrors_, 0, 'playlistErrors_ starts at zero');
+
+  mpc.blacklistCurrentPlaylist();
+
+  assert.ok('excludeUntil' in playlist, 'playlist was excluded');
+  assert.equal(playlist.playlistErrors_, 1, 'we incremented playlistErrors_');
+  assert.notEqual(playlist.excludeUntil, Infinity, 'The playlist was not excluded indefinitely');
+
+  mpc.blacklistCurrentPlaylist();
+
+  assert.equal(playlist.playlistErrors_, 2, 'we incremented playlistErrors_');
+  assert.equal(playlist.excludeUntil, Infinity, 'The playlist was excluded indefinitely');
+  assert.equal(this.env.log.warn.callCount, 2, 'logged a warning each time a playlist was excluded');
 
   this.env.log.warn.callCount = 0;
 });

@@ -1,3 +1,24 @@
+<a name="2.9.0"></a>
+# [2.9.0](https://github.com/videojs/http-streaming/compare/v2.8.2...v2.9.0) (2021-06-11)
+
+### Features
+
+* Add support for encrypted init segments ([#1132](https://github.com/videojs/http-streaming/issues/1132)) ([4449ed5](https://github.com/videojs/http-streaming/commit/4449ed5))
+* allow clients to limit the number of times a playlist attempts to reload following an error ([#1098](https://github.com/videojs/http-streaming/issues/1098)) ([44905d4](https://github.com/videojs/http-streaming/commit/44905d4))
+* Caption services (608/708) metadata ([#1138](https://github.com/videojs/http-streaming/issues/1138)) ([39782c6](https://github.com/videojs/http-streaming/commit/39782c6)), closes [/datatracker.ietf.org/doc/html/draft-pantos-hls-rfc8216bis-08#section-4](https://github.com//datatracker.ietf.org/doc/html/draft-pantos-hls-rfc8216bis-08/issues/section-4) [videojs/mpd-parser#131](https://github.com/videojs/mpd-parser/issues/131)
+* do fast rendition changes on fullscreen changes and user actions ([#1074](https://github.com/videojs/http-streaming/issues/1074)) ([5405c18](https://github.com/videojs/http-streaming/commit/5405c18))
+* stats for timeToLoadedData, appendsToLoadedData, mainAppendsToLoadedData, audioAppendsToLoadedData, and mediaAppends ([#1106](https://github.com/videojs/http-streaming/issues/1106)) ([3124fbc](https://github.com/videojs/http-streaming/commit/3124fbc))
+* Use ll-hls query directives: segment skipping and requesting a specific segment/part ([#1079](https://github.com/videojs/http-streaming/issues/1079)) ([458be2c](https://github.com/videojs/http-streaming/commit/458be2c))
+
+### Bug Fixes
+
+* add part level sync points, fix LL hls sync issues, add part timing info ([#1125](https://github.com/videojs/http-streaming/issues/1125)) ([ee5841d](https://github.com/videojs/http-streaming/commit/ee5841d))
+* Append valid syncRequests, better sync request choice, less getMediaInfoForTime rounding ([#1127](https://github.com/videojs/http-streaming/issues/1127)) ([ce03f66](https://github.com/videojs/http-streaming/commit/ce03f66))
+
+### Chores
+
+* fix coverage ci run ([#1135](https://github.com/videojs/http-streaming/issues/1135)) ([82b6781](https://github.com/videojs/http-streaming/commit/82b6781))
+
 <a name="2.8.2"></a>
 ## [2.8.2](https://github.com/videojs/http-streaming/compare/v2.8.1...v2.8.2) (2021-05-20)
 
