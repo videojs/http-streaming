@@ -149,7 +149,7 @@ export const comparePlaylistResolution = function(left, right) {
  * currently detected bandwidth, accounting for some amount of
  * bandwidth variance
  */
-export const simpleSelector = function(
+export let simpleSelector = function(
   master,
   playerBandwidth,
   playerWidth,
@@ -313,6 +313,16 @@ export const simpleSelector = function(
   return null;
 };
 
+export const TEST_ONLY_SIMPLE_SELECTOR = (newSimpleSelector) => {
+  const oldSimpleSelector = simpleSelector;
+
+  simpleSelector = newSimpleSelector;
+
+  return function resetSimpleSelector() {
+    simpleSelector = oldSimpleSelector;
+  };
+};
+
 // Playlist Selectors
 
 /**
@@ -354,6 +364,7 @@ export const lastBandwidthSelector = function() {
  */
 export const movingAverageBandwidthSelector = function(decay) {
   let average = -1;
+  let lastSystemBandwidth = -1;
 
   if (decay < 0 || decay > 1) {
     throw new Error('Moving average bandwidth decay must be between 0 and 1.');
@@ -364,9 +375,20 @@ export const movingAverageBandwidthSelector = function(decay) {
 
     if (average < 0) {
       average = this.systemBandwidth;
+      lastSystemBandwidth = this.systemBandwidth;
     }
 
-    average = decay * this.systemBandwidth + (1 - decay) * average;
+    // stop the average value from decaying for every 250ms
+    // when the systemBandwidth is constant
+    // and
+    // stop average from setting to a very low value when the
+    // systemBandwidth becomes 0 in case of chunk cancellation
+
+    if (this.systemBandwidth > 0 && this.systemBandwidth !== lastSystemBandwidth) {
+      average = decay * this.systemBandwidth + (1 - decay) * average;
+      lastSystemBandwidth = this.systemBandwidth;
+    }
+
     return simpleSelector(
       this.playlists.master,
       average,

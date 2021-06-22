@@ -1,3 +1,16 @@
+<a name="2.9.1"></a>
+## [2.9.1](https://github.com/videojs/http-streaming/compare/v2.9.0...v2.9.1) (2021-06-22)
+
+### Bug Fixes
+
+* actually default maxPlaylistRetries to Infinity ([#1142](https://github.com/videojs/http-streaming/issues/1142)) ([4428e3a](https://github.com/videojs/http-streaming/commit/4428e3a)), closes [#1098](https://github.com/videojs/http-streaming/issues/1098)
+* don't decay average bandwidth value if system bandwidth did not change ([#1137](https://github.com/videojs/http-streaming/issues/1137)) ([c22749b](https://github.com/videojs/http-streaming/commit/c22749b))
+* ts segments that don't define all streams in the first pmt ([#1144](https://github.com/videojs/http-streaming/issues/1144)) ([36a8be4](https://github.com/videojs/http-streaming/commit/36a8be4))
+
+### Tests
+
+* moving average should not decay without new data ([#1141](https://github.com/videojs/http-streaming/issues/1141)) ([55726af](https://github.com/videojs/http-streaming/commit/55726af)), closes [#1137](https://github.com/videojs/http-streaming/issues/1137)
+
 <a name="2.9.0"></a>
 # [2.9.0](https://github.com/videojs/http-streaming/compare/v2.8.2...v2.9.0) (2021-06-11)
 
