@@ -13,6 +13,8 @@ const playFor = function(player, time, cb) {
 
   const checkPlayerTime = function() {
     window.setTimeout(() => {
+      // eslint-disable-next-line
+      console.log(targetTime, player.currentTime());
       if (player.tech_ && player.tech_.el_ && player.currentTime() <= targetTime) {
         return checkPlayerTime();
       }
