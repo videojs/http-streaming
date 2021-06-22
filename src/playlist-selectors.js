@@ -149,7 +149,7 @@ export const comparePlaylistResolution = function(left, right) {
  * currently detected bandwidth, accounting for some amount of
  * bandwidth variance
  */
-export const simpleSelector = function(
+export let simpleSelector = function(
   master,
   playerBandwidth,
   playerWidth,
@@ -311,6 +311,16 @@ export const simpleSelector = function(
   }
   logFn('could not choose a playlist with options', options);
   return null;
+};
+
+export const TEST_ONLY_SIMPLE_SELECTOR = (newSimpleSelector) => {
+  const oldSimpleSelector = simpleSelector;
+
+  simpleSelector = newSimpleSelector;
+
+  return function resetSimpleSelector() {
+    simpleSelector = oldSimpleSelector;
+  };
 };
 
 // Playlist Selectors
