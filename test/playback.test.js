@@ -9,10 +9,15 @@ import retrySetup from 'qunit-retry';
 QUnit.retry = retrySetup(QUnit.test);
 
 const playFor = function(player, time, cb) {
-  const targetTime = player.currentTime() + time;
+  const ct = player.currentTime();
+  const targetTime = (typeof ct === 'number' ? ct : 0) + time;
 
   const checkPlayerTime = function() {
     window.setTimeout(() => {
+      if (!player.tech_ || !player.tech_.el_) {
+        return checkPlayerTime();
+      }
+
       if (player.paused()) {
         const playPromise = player.play();
 
@@ -25,9 +30,10 @@ const playFor = function(player, time, cb) {
         }
       }
 
-      if (player.tech_ && player.tech_.el_ && player.currentTime() <= targetTime) {
+      if (player.currentTime() <= targetTime) {
         return checkPlayerTime();
       }
+
       cb();
     }, 100);
   };
