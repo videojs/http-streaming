@@ -1,3 +1,14 @@
+<a name="2.8.3"></a>
+## [2.8.3](https://github.com/videojs/http-streaming/compare/v2.8.2...v2.8.3) (2021-06-22)
+
+### Bug Fixes
+
+* don't decay average bandwidth value if system bandwidth did not change ([#1137](https://github.com/videojs/http-streaming/issues/1137)) ([d26abb1](https://github.com/videojs/http-streaming/commit/d26abb1))
+
+### Tests
+
+* moving average should not decay without new data ([#1141](https://github.com/videojs/http-streaming/issues/1141)) ([98d8368](https://github.com/videojs/http-streaming/commit/98d8368)), closes [#1137](https://github.com/videojs/http-streaming/issues/1137)
+
 <a name="2.8.2"></a>
 ## [2.8.2](https://github.com/videojs/http-streaming/compare/v2.8.1...v2.8.2) (2021-05-20)
 
