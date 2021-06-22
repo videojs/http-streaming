@@ -5796,6 +5796,70 @@ QUnit.test('true if duration < 30', function(assert) {
   assert.ok(mpc.shouldSwitchToMedia_(nextPlaylist), 'should switch');
 });
 
+QUnit.test('maxPlaylistRetries defaults to Infinity when no value or null/undefined is provided', function(assert) {
+  const playerNull = createPlayer({
+    html5: {
+      vhs: {
+        maxPlaylistRetries: null
+      }
+    }
+  });
+
+  const playerUndefined = createPlayer({
+    html5: {
+      vhs: {
+        maxPlaylistRetries: undefined
+      }
+    }
+  });
+
+  const playerNoValue = createPlayer();
+
+  playerNull.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  playerUndefined.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  playerNoValue.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  assert.equal(playerNull.tech_.vhs.masterPlaylistController_.maxPlaylistRetries, Infinity, 'maxPlaylistRetries defaults to Infinity when null is provided as the option value');
+  assert.equal(playerUndefined.tech_.vhs.masterPlaylistController_.maxPlaylistRetries, Infinity, 'maxPlaylistRetries defaults to Infinity when undefined is provided as the option value');
+  assert.equal(playerNoValue.tech_.vhs.masterPlaylistController_.maxPlaylistRetries, Infinity, 'maxPlaylistRetries defaults to Infinity when no value is provided');
+});
+
+QUnit.test('maxPlaylistRetries is set when zero is passed as the option\'s value', function(assert) {
+  const player = createPlayer({
+    html5: {
+      vhs: {
+        maxPlaylistRetries: 0
+      }
+    }
+  });
+
+  player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  assert.equal(player.tech_.vhs.masterPlaylistController_.maxPlaylistRetries, 0, 'maxPlaylistRetries was set to zero');
+});
+
 QUnit.test('true duration < 16 with experimentalBufferBasedABR', function(assert) {
   const mpc = this.masterPlaylistController;
   const nextPlaylist = {id: 'foo', endList: true};
