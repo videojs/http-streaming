@@ -65,7 +65,7 @@ test('Exponential moving average has a configurable decay parameter', function(a
   assert.equal(playlist.attributes.BANDWIDTH, 50, 'selected the middle playlist');
 });
 
-test('Calling exponential moing average wont decay average unless new bandwidth data was provided', function(assert) {
+test('Calling exponential moving average wont decay average unless new bandwidth data was provided', function(assert) {
   let playlist;
   const simSel = simpleSelector;
   const bandwidthAverages = [];
