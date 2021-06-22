@@ -3,6 +3,7 @@ const worker = require('rollup-plugin-worker-factory');
 const {terser} = require('rollup-plugin-terser');
 const createTestData = require('./create-test-data.js');
 const replace = require('@rollup/plugin-replace');
+const strip = require('@rollup/plugin-strip');
 
 const CI_TEST_TYPE = process.env.CI_TEST_TYPE || '';
 
@@ -57,6 +58,9 @@ const options = {
     }
     defaults.module.unshift('replace');
 
+    defaults.module.unshift('strip');
+    defaults.browser.unshift('strip');
+
     return defaults;
   },
   primedPlugins(defaults) {
@@ -70,6 +74,9 @@ const options = {
       uglify: terser({
         output: {comments: 'some'},
         compress: {passes: 2}
+      }),
+      strip: strip({
+        functions: ['TEST_ONLY_*']
       }),
       createTestData: createTestData()
     });
