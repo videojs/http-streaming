@@ -6,7 +6,6 @@ const replace = require('@rollup/plugin-replace');
 const strip = require('@rollup/plugin-strip');
 
 const CI_TEST_TYPE = process.env.CI_TEST_TYPE || '';
-const NO_TEST_BUNDLE = process.env.NO_TEST_BUNDLE || '';
 
 let syncWorker;
 // see https://github.com/videojs/videojs-generate-rollup-config
@@ -59,10 +58,8 @@ const options = {
     }
     defaults.module.unshift('replace');
 
-    if (NO_TEST_BUNDLE) {
-      defaults.module.unshift('strip');
-      defaults.browser.unshift('strip');
-    }
+    defaults.module.unshift('strip');
+    defaults.browser.unshift('strip');
 
     return defaults;
   },
