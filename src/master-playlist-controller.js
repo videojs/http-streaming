@@ -140,7 +140,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
       bandwidth,
       externVhs,
       useCueTags,
-      maxPlaylistRetries,
       blacklistDuration,
       enableLowInitialPlaylist,
       sourceType,
@@ -150,6 +149,12 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     if (!src) {
       throw new Error('A non-empty playlist URL or JSON manifest string is required');
+    }
+
+    let { maxPlaylistRetries } = options;
+
+    if (maxPlaylistRetries === null || typeof maxPlaylistRetries === 'undefined') {
+      maxPlaylistRetries = Infinity;
     }
 
     Vhs = externVhs;
