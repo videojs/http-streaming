@@ -7,7 +7,7 @@ module.exports = function(config) {
   // for options
   const options = {
     coverage: CI_TEST_TYPE === 'coverage' ? true : false,
-    preferHeadless: false,
+    preferHeadless: CI_TEST_TYPE === 'playback',
     browsers(aboutToRun) {
       return aboutToRun.filter(function(launcherName) {
         return !(/^(Safari|Chromium)/).test(launcherName);
