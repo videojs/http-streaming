@@ -4,6 +4,9 @@ import window from 'global/window';
 import document from 'global/document';
 import '../src/videojs-http-streaming';
 import 'videojs-contrib-eme';
+import retrySetup from 'qunit-retry';
+
+QUnit.retry = retrySetup(QUnit.test);
 
 const playFor = function(player, time, cb) {
   const targetTime = player.currentTime() + time;
@@ -32,7 +35,7 @@ const playFor = function(player, time, cb) {
   checkPlayerTime();
 };
 
-let testFn = 'test';
+let testFn = 'retry';
 
 // TODO: get these tests working, right now we just one the one basic test
 if (videojs.browser.IE_VERSION || videojs.browser.IS_EDGE) {
@@ -75,7 +78,7 @@ QUnit.module('Playback', {
   }
 });
 
-QUnit.test('Advanced Bip Bop default speed', function(assert) {
+QUnit.retry('Advanced Bip Bop default speed', function(assert) {
   const done = assert.async();
 
   this.player.defaultPlaybackRate(1);
@@ -96,7 +99,7 @@ QUnit.test('Advanced Bip Bop default speed', function(assert) {
   });
 });
 
-QUnit.test('Advanced Bip Bop', function(assert) {
+QUnit.retry('Advanced Bip Bop', function(assert) {
   const done = assert.async();
 
   assert.expect(2);

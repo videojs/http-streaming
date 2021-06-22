@@ -29,7 +29,8 @@
     "version": "is-prerelease || npm run update-changelog && git add CHANGELOG.md",
     "update-changelog": "conventional-changelog -p videojs -i CHANGELOG.md -s",
     "watch": "npm-run-all -p watch:*",
-    "watch:js": "npm run build:js -- -w"
+    "watch:js": "npm run build:js -- -w",
+    "postinstall": "patch-package"
   },
   "keywords": [
     "videojs",
@@ -80,6 +81,8 @@
     "lodash": "^4.17.4",
     "lodash-compat": "^3.10.0",
     "nomnoml": "^0.3.0",
+    "patch-package": "^6.4.7",
+    "qunit-retry": "^2.2.0",
     "rollup": "^2.36.1",
     "rollup-plugin-worker-factory": "0.5.5",
     "shelljs": "^0.8.4",

@@ -127,6 +127,18 @@ if (config.builds.browser) {
   config.builds.syncWorkers.plugins[0] = syncWorker;
 }
 
+if (config.builds.test) {
+  const old = config.builds.test.external;
+
+  config.builds.test.external = (id) => {
+    if (id === 'qunit-retry') {
+      return false;
+    }
+
+    return old(id);
+  };
+}
+
 // Add additonal builds/customization here!
 
 // export the builds to rollup
