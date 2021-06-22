@@ -13,26 +13,24 @@ const playFor = function(player, time, cb) {
 
   const checkPlayerTime = function() {
     window.setTimeout(() => {
-      // eslint-disable-next-line
-      console.log(targetTime, player.currentTime());
+      if (player.paused()) {
+        const playPromise = player.play();
+
+        // assert an error on playback failure or check player time after play has started.
+        if (typeof playPromise !== 'undefined' && typeof playPromise.then === 'function') {
+          playPromise.then(checkPlayerTime).catch((e) => {
+            QUnit.assert.notOk(true, 'play promise failed with error', e);
+          });
+          return;
+        }
+      }
+
       if (player.tech_ && player.tech_.el_ && player.currentTime() <= targetTime) {
         return checkPlayerTime();
       }
       cb();
     }, 100);
   };
-
-  if (player.paused()) {
-    const playPromise = player.play();
-
-    // assert an error on playback failure or check player time after play has started.
-    if (typeof playPromise !== 'undefined' && typeof playPromise.then === 'function') {
-      playPromise.then(checkPlayerTime).catch((e) => {
-        QUnit.assert.notOk(true, 'play promise failed with error', e);
-      });
-      return;
-    }
-  }
 
   checkPlayerTime();
 };
