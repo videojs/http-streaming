@@ -1,6 +1,7 @@
 import { module, test } from 'qunit';
 import document from 'global/document';
 import {
+  TEST_ONLY_SIMPLE_SELECTOR,
   simpleSelector,
   movingAverageBandwidthSelector,
   minRebufferMaxBandwidthSelector,
@@ -62,6 +63,50 @@ test('Exponential moving average has a configurable decay parameter', function(a
   this.vhs.systemBandwidth = 1;
   playlist = fiftyPercentDecay.call(this.vhs);
   assert.equal(playlist.attributes.BANDWIDTH, 50, 'selected the middle playlist');
+});
+
+test('Calling exponential moving average wont decay average unless new bandwidth data was provided', function(assert) {
+  let playlist;
+  const simSel = simpleSelector;
+  const bandwidthAverages = [];
+
+  const resetSimpleSelector = TEST_ONLY_SIMPLE_SELECTOR((...args) => {
+    // second argument to simpleSelector is the average
+    bandwidthAverages.push(args[1]);
+    return simSel(...args);
+  });
+
+  this.vhs.playlists.master.playlists = [
+    { attributes: { BANDWIDTH: 1 } },
+    { attributes: { BANDWIDTH: 50 } },
+    { attributes: { BANDWIDTH: 100 } }
+  ];
+
+  const fiftyPercentDecay = movingAverageBandwidthSelector(0.50);
+
+  this.vhs.systemBandwidth = 50 * Config.BANDWIDTH_VARIANCE + 1;
+  playlist = fiftyPercentDecay.call(this.vhs);
+  assert.equal(playlist.attributes.BANDWIDTH, 50, 'selected the middle playlist');
+
+  this.vhs.systemBandwidth = 1000 * Config.BANDWIDTH_VARIANCE + 1;
+  playlist = fiftyPercentDecay.call(this.vhs);
+  assert.equal(playlist.attributes.BANDWIDTH, 100, 'selected the top playlist');
+
+  // using the systemBandwidth values above, 50->1000
+  // we decay into 1000 after 50 iterations
+  let i = 50;
+
+  while (i--) {
+    playlist = fiftyPercentDecay.call(this.vhs);
+  }
+
+  assert.equal(
+    bandwidthAverages[bandwidthAverages.length - 1],
+    bandwidthAverages[1],
+    'bandwidth should only change when we get new bandwidth data'
+  );
+
+  resetSimpleSelector();
 });
 
 test(
