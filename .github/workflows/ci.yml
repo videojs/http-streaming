@@ -32,7 +32,7 @@ jobs:
   ci:
     needs: [should-skip, test-type-matrix]
     # 1. always run tests on main, otherwise skip tests if should-skip is true.
-    if: ${{(needs.should-skip.outputs.should-skip-job != 'true' || github.ref == 'refs/heads/main')}}
+    #if: ${{(needs.should-skip.outputs.should-skip-job != 'true' || github.ref == 'refs/heads/main')}}
     strategy:
       fail-fast: false
       matrix:
