@@ -17,14 +17,14 @@ jobs:
 
   ci:
     needs: should-skip
-    # 1. always run tests on main, otherwise skip tests if should-skip is true.
-    # 2. skip playback tests on forks outside of the main repo
-    if: ${{(needs.should-skip.outputs.should-skip-job != 'true' || github.ref == 'refs/heads/main') || (startsWith(matrix.test-type, 'playback') && github.event.pull_request.head.repo.full_name != github.repository)}}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
         test-type: [unit, playback, playback-min, coverage]
+    # 1. always run tests on main, otherwise skip tests if should-skip is true.
+    # 2. skip playback tests on forks outside of the main repo
+    if: ${{(needs.should-skip.outputs.should-skip-job != 'true' || github.ref == 'refs/heads/main') || (startsWith(matrix.test-type, 'playback') && github.event.pull_request.head.repo.full_name != github.repository)}}
     env:
       BROWSER_STACK_USERNAME: ${{secrets.BROWSER_STACK_USERNAME}}
       BROWSER_STACK_ACCESS_KEY: ${{secrets.BROWSER_STACK_ACCESS_KEY}}
