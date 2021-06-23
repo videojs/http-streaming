@@ -77,7 +77,8 @@ const options = {
       }),
       strip: strip({
         functions: ['TEST_ONLY_*'],
-        debugger: false
+        debugger: false,
+        sourceMap: false
       }),
       createTestData: createTestData()
     });
