@@ -438,6 +438,9 @@ export const initialize = {
     if (!mediaGroups[type] ||
         Object.keys(mediaGroups[type]).length === 0) {
       mediaGroups[type] = { main: { default: { default: true } } };
+      if (audioOnlyMaster) {
+        mediaGroups[type].main.default.playlists = masterPlaylistLoader.master.playlists;
+      }
     }
 
     for (const groupId in mediaGroups[type]) {
