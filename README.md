@@ -45,7 +45,7 @@ Video.js Compatibility: 6.0, 7.0
       - [parse708captions](#parse708captions)
       - [overrideNative](#overridenative)
       - [blacklistDuration](#blacklistduration)
-    - [maxPlaylistRetries](#maxplaylistretries)
+      - [maxPlaylistRetries](#maxplaylistretries)
       - [bandwidth](#bandwidth)
       - [useBandwidthFromLocalStorage](#usebandwidthfromlocalstorage)
       - [enableLowInitialPlaylist](#enablelowinitialplaylist)
@@ -366,7 +366,7 @@ if a playlist is blacklisted, it will be blacklisted for a period of that
 customized duration. This enables the blacklist duration to be configured
 by the user.
 
-#### maxPlaylistRetries
+##### maxPlaylistRetries
 * Type: `number`
 * Default: `Infinity`
 * can be used as an initialization option
