@@ -11,6 +11,33 @@ export const createPlaylistID = (index, uri) => {
 };
 
 /**
+ * Loops through all supported media groups in master and calls the provided
+ * callback for each group
+ *
+ * @param {Object} master
+ *        The parsed master manifest object
+ * @param {Function} callback
+ *        Callback to call for each media group
+ */
+export const forEachMediaGroup = (master, callback) => {
+  if (!master.mediaGroups) {
+    return;
+  }
+  ['AUDIO', 'SUBTITLES'].forEach((mediaType) => {
+    if (!master.mediaGroups[mediaType]) {
+      return;
+    }
+    for (const groupKey in master.mediaGroups[mediaType]) {
+      for (const labelKey in master.mediaGroups[mediaType][groupKey]) {
+        const mediaProperties = master.mediaGroups[mediaType][groupKey][labelKey];
+
+        callback(mediaProperties, mediaType, groupKey, labelKey);
+      }
+    }
+  });
+};
+
+/**
  * Parses a given m3u8 playlist
  *
  * @param {Function} [onwarn]
@@ -105,34 +132,18 @@ export const parseManifest = ({
     manifest.partTargetDuration = partTargetDuration;
   }
 
-  return manifest;
-};
+  forEachMediaGroup(manifest, (properties, mediaType, groupKey, labelKey) => {
+    if (!properties.uri && (!properties.playlists || !properties.playlists[0].uri)) {
+      delete manifest.mediaGroups[mediaType][groupKey][labelKey];
+      onwarn(`removing media group ${mediaType} - ${groupKey} - ${labelKey} as it lacks a uri`);
 
-/**
- * Loops through all supported media groups in master and calls the provided
- * callback for each group
- *
- * @param {Object} master
- *        The parsed master manifest object
- * @param {Function} callback
- *        Callback to call for each media group
- */
-export const forEachMediaGroup = (master, callback) => {
-  if (!master.mediaGroups) {
-    return;
-  }
-  ['AUDIO', 'SUBTITLES'].forEach((mediaType) => {
-    if (!master.mediaGroups[mediaType]) {
-      return;
-    }
-    for (const groupKey in master.mediaGroups[mediaType]) {
-      for (const labelKey in master.mediaGroups[mediaType][groupKey]) {
-        const mediaProperties = master.mediaGroups[mediaType][groupKey][labelKey];
-
-        callback(mediaProperties, mediaType, groupKey, labelKey);
+      if (!Object.keys(manifest.mediaGroups[mediaType][groupKey]).length) {
+        delete manifest.mediaGroups[mediaType][groupKey];
       }
     }
   });
+
+  return manifest;
 };
 
 /**
