@@ -358,8 +358,10 @@
         var fixture = document.getElementById('player-fixture');
         var videoEl = document.createElement('video-js');
 
+        var preload = stateEls.preload.options[stateEls.preload.selectedIndex];
+
         videoEl.setAttribute('controls', '');
-        videoEl.setAttribute('preload', stateEls.preload.options[stateEls.preload.selectedIndex].value || 'auto');
+        videoEl.setAttribute('preload', preload && preload.value || 'auto');
         videoEl.className = 'vjs-default-skin';
         fixture.appendChild(videoEl);
 
