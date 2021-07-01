@@ -2427,7 +2427,16 @@ export default class SegmentLoader extends videojs.EventTarget {
       id3Fn: this.handleId3_.bind(this),
 
       dataFn: this.handleData_.bind(this),
-      doneFn: this.segmentRequestFinished_.bind(this)
+      doneFn: this.segmentRequestFinished_.bind(this),
+      onTransmuxerWarn: (message) => {
+        this.logger_(`${segmentInfoString(segmentInfo)} transmuxer warn: ${message}`);
+      },
+      onTransmuxerDebug: (message) => {
+        this.logger_(`${segmentInfoString(segmentInfo)} transmuxer debug: ${message}`);
+      },
+      onTransmuxerError: (message) => {
+        this.logger_(`${segmentInfoString(segmentInfo)} transmuxer error: ${message}`);
+      }
     });
   }
 
