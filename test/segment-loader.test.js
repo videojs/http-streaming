@@ -912,7 +912,9 @@ QUnit.module('SegmentLoader', function(hooks) {
       };
 
       loader.transmuxer_.postMessage = (message) => {
-        if (message.action === 'flush') {
+        const retval = ogPost.call(loader.transmuxer_, message);
+
+        if (message.action === 'push') {
           const debug = newEvent('message');
           const error = newEvent('message');
           const warn = newEvent('message');
@@ -926,7 +928,8 @@ QUnit.module('SegmentLoader', function(hooks) {
           loader.transmuxer_.dispatchEvent(warn);
           return;
         }
-        return ogPost.call(loader.transmuxer_, message);
+
+        return retval;
       };
 
       return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {isVideoOnly: true}).then(() => {
