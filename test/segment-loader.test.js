@@ -902,6 +902,70 @@ QUnit.module('SegmentLoader', function(hooks) {
       });
     });
 
+    QUnit.test('logs warnings, debugs, and errors from the transmuxer', function(assert) {
+      const playlist = playlistWithDuration(10);
+      const ogPost = loader.transmuxer_.postMessage;
+      const messages = [];
+
+      loader.logger_ = (message) => {
+        messages.push(message);
+      };
+
+      loader.transmuxer_.postMessage = (message) => {
+        if (message.action === 'flush') {
+          const debug = newEvent('message');
+          const error = newEvent('message');
+          const warn = newEvent('message');
+
+          debug.data = {action: 'debug', message: 'debug foo'};
+          error.data = {action: 'error', message: 'error foo'};
+          warn.data = {action: 'warn', message: 'warning foo'};
+
+          loader.transmuxer_.dispatchEvent(debug);
+          loader.transmuxer_.dispatchEvent(error);
+          loader.transmuxer_.dispatchEvent(warn);
+          return;
+        }
+        return ogPost.call(loader.transmuxer_, message);
+      };
+
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {isVideoOnly: true}).then(() => {
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+
+          loader.playlist(playlist);
+          loader.load();
+
+          this.clock.tick(100);
+          // segment
+          standardXHRResponse(this.requests.shift(), videoOneSecondSegment());
+        });
+      }).then(() => {
+        let debugFound = false;
+        let warnFound = false;
+        let errorFound = false;
+
+        messages.forEach(function(message) {
+          if ((/debug foo/).test(message)) {
+            debugFound = true;
+          }
+
+          if ((/warning foo/).test(message)) {
+            warnFound = true;
+          }
+
+          if ((/error foo/).test(message)) {
+            errorFound = true;
+          }
+        });
+
+        assert.ok(debugFound, 'debug message was logged');
+        assert.ok(warnFound, 'warn message was logged');
+        assert.ok(errorFound, 'error message was logged');
+      });
+    });
+
     QUnit.test('segmentKey will cache new encrypted keys with cacheEncryptionKeys true', function(assert) {
       loader.cacheEncryptionKeys_ = true;
 

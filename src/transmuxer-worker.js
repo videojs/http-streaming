@@ -155,15 +155,15 @@ const wireTransmuxerEvents = function(self, transmuxer) {
     });
   });
 
-  transmuxer.on('debug', function(message) {
+  transmuxer.on('debug', function({message}) {
     self.postMessage({action: 'debug', message});
   });
 
-  transmuxer.on('error', function(message) {
+  transmuxer.on('error', function({message}) {
     self.postMessage({action: 'error', message});
   });
 
-  transmuxer.on('warn', function(message) {
+  transmuxer.on('warn', function({message}) {
     self.postMessage({action: 'warn', message});
   });
 

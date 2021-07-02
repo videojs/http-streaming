@@ -361,13 +361,13 @@ const transmuxAndNotify = ({
     onEndedTimeline: () => {
       endedTimelineFn();
     },
-    onError: ({message}) => {
+    onError: (message) => {
       onTransmuxerError(message);
     },
-    onWarn: ({message}) => {
+    onWarn: (message) => {
       onTransmuxerWarn(message);
     },
-    onDebug: ({message}) => {
+    onDebug: (message) => {
       onTransmuxerDebug(message);
     },
     onDone: (result) => {
