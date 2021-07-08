@@ -47,17 +47,6 @@ jobs:
     - name: checkout code
       uses: actions/checkout@v2
 
-    - name: Cache dependencies
-      uses: actions/cache@v2
-      with:
-        path: |
-          ~/.npm
-          **/node_modules
-        key: ${{runner.os}}-npm-${{hashFiles('**/package-lock.json')}}
-        restore-keys: |
-          ${{runner.os}}-npm-
-          ${{runner.os}}-
-
     - name: read node version from .nvmrc
       run: echo ::set-output name=NVMRC::$(cat .nvmrc)
       shell: bash
@@ -76,9 +65,10 @@ jobs:
       if: ${{startsWith(matrix.os, 'ubuntu')}}
 
     - name: setup node
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@v2
       with:
         node-version: '${{steps.nvm.outputs.NVMRC}}'
+        cache: npm
 
     # turn off the default setup-node problem watchers...
     - run: echo "::remove-matcher owner=eslint-compact::"
