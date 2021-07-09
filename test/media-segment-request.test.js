@@ -89,7 +89,8 @@ QUnit.module('Media Segment Request - make it to transmuxer', {
       xhr: this.xhr,
       xhrOptions: this.xhrOptions,
       decryptionWorker: this.mockDecrypter,
-      segment: {}
+      segment: {},
+      onTransmuxerLog: () => {}
     };
 
     [
@@ -1335,7 +1336,8 @@ QUnit.test('non-TS segment will get parsed for captions', function(assert) {
         data: {
           action: 'mp4Captions',
           data: event.data,
-          captions
+          captions,
+          logs: []
         }
       });
     }
@@ -1475,7 +1477,8 @@ QUnit.test('non-TS segment will get parsed for captions on next segment request 
         data: {
           action: 'mp4Captions',
           data: event.data,
-          captions
+          captions,
+          logs: []
         }
       });
     }
