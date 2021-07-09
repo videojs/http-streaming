@@ -328,6 +328,7 @@ QUnit.test('can parse mp4 captions', function(assert) {
 
     assert.equal(message.action, 'mp4Captions', 'returned mp4Captions event');
     assert.deepEqual(message.captions.length, 2, 'two captions');
+    assert.deepEqual(message.logs.length, 0, 'no logs returned');
     assert.deepEqual(
       new Uint8Array(message.data),
       data,

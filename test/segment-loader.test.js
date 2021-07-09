@@ -902,7 +902,7 @@ QUnit.module('SegmentLoader', function(hooks) {
       });
     });
 
-    QUnit.test('logs warnings, debugs, and errors from the transmuxer', function(assert) {
+    QUnit.test('uses the log event from the transmuxer', function(assert) {
       const playlist = playlistWithDuration(10);
       const ogPost = loader.transmuxer_.postMessage;
       const messages = [];
@@ -915,17 +915,11 @@ QUnit.module('SegmentLoader', function(hooks) {
         const retval = ogPost.call(loader.transmuxer_, message);
 
         if (message.action === 'push') {
-          const debug = newEvent('message');
-          const error = newEvent('message');
-          const warn = newEvent('message');
+          const log = newEvent('message');
 
-          debug.data = {action: 'debug', message: 'debug foo'};
-          error.data = {action: 'error', message: 'error foo'};
-          warn.data = {action: 'warn', message: 'warning foo'};
+          log.data = {action: 'log', log: {message: 'debug foo', stream: 'something', level: 'warn'}};
 
-          loader.transmuxer_.dispatchEvent(debug);
-          loader.transmuxer_.dispatchEvent(error);
-          loader.transmuxer_.dispatchEvent(warn);
+          loader.transmuxer_.dispatchEvent(log);
           return;
         }
 
@@ -945,27 +939,15 @@ QUnit.module('SegmentLoader', function(hooks) {
           standardXHRResponse(this.requests.shift(), videoOneSecondSegment());
         });
       }).then(() => {
-        let debugFound = false;
-        let warnFound = false;
-        let errorFound = false;
+        let messageFound = false;
 
         messages.forEach(function(message) {
-          if ((/debug foo/).test(message)) {
-            debugFound = true;
-          }
-
-          if ((/warning foo/).test(message)) {
-            warnFound = true;
-          }
-
-          if ((/error foo/).test(message)) {
-            errorFound = true;
+          if ((/debug foo/).test(message) && (/warn/).test(message) && (/something/).test(message)) {
+            messageFound = true;
           }
         });
 
-        assert.ok(debugFound, 'debug message was logged');
-        assert.ok(warnFound, 'warn message was logged');
-        assert.ok(errorFound, 'error message was logged');
+        assert.ok(messageFound, 'message was logged');
       });
     });
 

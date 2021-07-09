@@ -290,9 +290,7 @@ const transmuxAndNotify = ({
   endedTimelineFn,
   dataFn,
   doneFn,
-  onTransmuxerError,
-  onTransmuxerWarn,
-  onTransmuxerDebug
+  onTransmuxerLog
 }) => {
   const fmp4Tracks = segment.map && segment.map.tracks || {};
   const isMuxed = Boolean(fmp4Tracks.audio && fmp4Tracks.video);
@@ -361,15 +359,7 @@ const transmuxAndNotify = ({
     onEndedTimeline: () => {
       endedTimelineFn();
     },
-    onError: (message) => {
-      onTransmuxerError(message);
-    },
-    onWarn: (message) => {
-      onTransmuxerWarn(message);
-    },
-    onDebug: (message) => {
-      onTransmuxerDebug(message);
-    },
+    onTransmuxerLog,
     onDone: (result) => {
       if (!doneFn) {
         return;
@@ -428,9 +418,7 @@ const handleSegmentBytes = ({
   endedTimelineFn,
   dataFn,
   doneFn,
-  onTransmuxerDebug,
-  onTransmuxerWarn,
-  onTransmuxerError
+  onTransmuxerLog
 }) => {
   let bytesAsUint8Array = new Uint8Array(bytes);
 
@@ -525,6 +513,9 @@ const handleSegmentBytes = ({
             // transfer bytes back to us
             bytes = message.data.buffer;
             segment.bytes = bytesAsUint8Array = message.data;
+            message.logs.forEach(function(log) {
+              onTransmuxerLog(videojs.mergeOptions(log, {stream: 'mp4CaptionParser'}));
+            });
             finishLoading(message.captions);
           }
         });
@@ -563,9 +554,7 @@ const handleSegmentBytes = ({
     endedTimelineFn,
     dataFn,
     doneFn,
-    onTransmuxerError,
-    onTransmuxerDebug,
-    onTransmuxerWarn
+    onTransmuxerLog
   });
 };
 
@@ -642,9 +631,7 @@ const decryptSegment = ({
   endedTimelineFn,
   dataFn,
   doneFn,
-  onTransmuxerDebug,
-  onTransmuxerWarn,
-  onTransmuxerError
+  onTransmuxerLog
 }) => {
   decrypt({
     id: segment.requestId,
@@ -667,9 +654,7 @@ const decryptSegment = ({
       endedTimelineFn,
       dataFn,
       doneFn,
-      onTransmuxerError,
-      onTransmuxerWarn,
-      onTransmuxerDebug
+      onTransmuxerLog
     });
   });
 };
@@ -716,9 +701,7 @@ const waitForCompletion = ({
   endedTimelineFn,
   dataFn,
   doneFn,
-  onTransmuxerDebug,
-  onTransmuxerWarn,
-  onTransmuxerError
+  onTransmuxerLog
 }) => {
   let count = 0;
   let didError = false;
@@ -765,9 +748,7 @@ const waitForCompletion = ({
             endedTimelineFn,
             dataFn,
             doneFn,
-            onTransmuxerError,
-            onTransmuxerWarn,
-            onTransmuxerDebug
+            onTransmuxerLog
           });
         }
         // Otherwise, everything is ready just continue
@@ -784,9 +765,7 @@ const waitForCompletion = ({
           endedTimelineFn,
           dataFn,
           doneFn,
-          onTransmuxerError,
-          onTransmuxerWarn,
-          onTransmuxerDebug
+          onTransmuxerLog
         });
       };
 
@@ -976,9 +955,7 @@ export const mediaSegmentRequest = ({
   endedTimelineFn,
   dataFn,
   doneFn,
-  onTransmuxerDebug,
-  onTransmuxerWarn,
-  onTransmuxerError
+  onTransmuxerLog
 }) => {
   const activeXhrs = [];
   const finishProcessingFn = waitForCompletion({
@@ -994,9 +971,7 @@ export const mediaSegmentRequest = ({
     endedTimelineFn,
     dataFn,
     doneFn,
-    onTransmuxerDebug,
-    onTransmuxerWarn,
-    onTransmuxerError
+    onTransmuxerLog
   });
 
   // optionally, request the decryption key
