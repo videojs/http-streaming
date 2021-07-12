@@ -62,20 +62,25 @@ const sharedHooks = {
       this.clock.tick(1);
     };
 
+    this.transmuxers = [];
     this.createTransmuxer = () => {
-      return createTransmuxer_({
+      const transmuxer = createTransmuxer_({
         remux: false,
         keepOriginalTimestamps: true
       });
+
+      this.transmuxers.push(transmuxer);
+
+      return transmuxer;
     };
   },
   afterEach(assert) {
     this.realDecrypter.terminate();
     this.env.restore();
 
-    if (this.transmuxer) {
-      this.transmuxer.terminate();
-    }
+    this.transmuxers.forEach(function(transmuxer) {
+      transmuxer.terminate();
+    });
   }
 
 };
@@ -107,10 +112,7 @@ QUnit.module('Media Segment Request - make it to transmuxer', {
     });
 
   },
-  afterEach(assert) {
-    this.transmuxer = this.options.segment.transmuxer;
-    sharedHooks.afterEach.call(this, assert);
-  }
+  afterEach: sharedHooks.afterEach
 });
 
 QUnit.test('ac3 without id3 segments will not make it to the transmuxer', function(assert) {
@@ -711,8 +713,7 @@ QUnit.test('key 500 calls back with error', function(assert) {
 QUnit.test('init segment with key has bytes decrypted', function(assert) {
   const done = assert.async();
   const postMessage = this.mockDecrypter.postMessage;
-
-  this.transmuxer = this.createTransmuxer();
+  const transmuxer = this.createTransmuxer();
 
   // mock decrypting the init segment.
   this.mockDecrypter.postMessage = (message) => {
@@ -731,7 +732,7 @@ QUnit.test('init segment with key has bytes decrypted', function(assert) {
     xhrOptions: this.xhrOptions,
     decryptionWorker: this.mockDecrypter,
     segment: {
-      transmuxer: this.transmuxer,
+      transmuxer,
       resolvedUri: '0-test.mp4',
       map: {
         resolvedUri: '0-map.mp4',
@@ -798,8 +799,7 @@ QUnit.test('init segment with key has bytes decrypted', function(assert) {
 QUnit.test('segment/init segment share a key and get decrypted', function(assert) {
   const done = assert.async();
   const postMessage = this.mockDecrypter.postMessage;
-
-  this.transmuxer = this.createTransmuxer();
+  const transmuxer = this.createTransmuxer();
 
   // mock decrypting the init segment.
   this.mockDecrypter.postMessage = (message) => {
@@ -823,7 +823,7 @@ QUnit.test('segment/init segment share a key and get decrypted', function(assert
     xhrOptions: this.xhrOptions,
     decryptionWorker: this.mockDecrypter,
     segment: {
-      transmuxer: this.transmuxer,
+      transmuxer,
       resolvedUri: '0-test.mp4',
       key: {
         resolvedUri: '0-key.php',
@@ -905,8 +905,7 @@ QUnit.test('segment/init segment share a key and get decrypted', function(assert
 QUnit.test('segment/init segment different key and get decrypted', function(assert) {
   const done = assert.async();
   const postMessage = this.mockDecrypter.postMessage;
-
-  this.transmuxer = this.createTransmuxer();
+  const transmuxer = this.createTransmuxer();
 
   // mock decrypting the init segment.
   this.mockDecrypter.postMessage = (message) => {
@@ -930,7 +929,7 @@ QUnit.test('segment/init segment different key and get decrypted', function(asse
     xhrOptions: this.xhrOptions,
     decryptionWorker: this.mockDecrypter,
     segment: {
-      transmuxer: this.transmuxer,
+      transmuxer,
       resolvedUri: '0-test.mp4',
       key: {
         resolvedUri: '0-key.php',
@@ -1016,8 +1015,7 @@ QUnit.test('segment/init segment different key and get decrypted', function(asse
 QUnit.test('encrypted init segment parse error', function(assert) {
   const done = assert.async();
   const postMessage = this.mockDecrypter.postMessage;
-
-  this.transmuxer = this.createTransmuxer();
+  const transmuxer = this.createTransmuxer();
 
   // mock decrypting the init segment.
   this.mockDecrypter.postMessage = (message) => {
@@ -1040,7 +1038,7 @@ QUnit.test('encrypted init segment parse error', function(assert) {
     xhrOptions: this.xhrOptions,
     decryptionWorker: this.mockDecrypter,
     segment: {
-      transmuxer: this.transmuxer,
+      transmuxer,
       resolvedUri: '0-test.mp4',
       key: {
         resolvedUri: '0-key.php',
@@ -1096,15 +1094,14 @@ QUnit.test('encrypted init segment parse error', function(assert) {
 
 QUnit.test('encrypted init segment request failure', function(assert) {
   const done = assert.async();
-
-  this.transmuxer = this.createTransmuxer();
+  const transmuxer = this.createTransmuxer();
 
   mediaSegmentRequest({
     xhr: this.xhr,
     xhrOptions: this.xhrOptions,
     decryptionWorker: this.mockDecrypter,
     segment: {
-      transmuxer: this.transmuxer,
+      transmuxer,
       resolvedUri: '0-test.mp4',
       key: {
         resolvedUri: '0-key.php',
@@ -1158,8 +1155,7 @@ QUnit.test('encrypted init segment request failure', function(assert) {
 QUnit.test('encrypted init segment with decrypted bytes not re-requested', function(assert) {
   const done = assert.async();
   const postMessage = this.mockDecrypter.postMessage;
-
-  this.transmuxer = this.createTransmuxer();
+  const transmuxer = this.createTransmuxer();
 
   // mock decrypting the init segment.
   this.mockDecrypter.postMessage = (message) => {
@@ -1178,7 +1174,7 @@ QUnit.test('encrypted init segment with decrypted bytes not re-requested', funct
     xhrOptions: this.xhrOptions,
     decryptionWorker: this.mockDecrypter,
     segment: {
-      transmuxer: this.transmuxer,
+      transmuxer,
       resolvedUri: '0-test.mp4',
       key: {
         resolvedUri: '0-key.php',
@@ -1260,8 +1256,7 @@ QUnit.test(
   'waits for every request to finish before the callback is run',
   function(assert) {
     const done = assert.async();
-
-    this.transmuxer = this.createTransmuxer();
+    const transmuxer = this.createTransmuxer();
 
     assert.expect(10);
     mediaSegmentRequest({
@@ -1279,7 +1274,7 @@ QUnit.test(
         map: {
           resolvedUri: '0-init.dat'
         },
-        transmuxer: this.transmuxer
+        transmuxer
       },
       progressFn: this.noop,
       trackInfoFn: this.noop,
@@ -1325,7 +1320,6 @@ QUnit.test('non-TS segment will get parsed for captions', function(assert) {
   let gotCaption = false;
   let gotData = false;
   const captions = [{foo: 'bar'}];
-
   const transmuxer = new videojs.EventTarget();
 
   transmuxer.postMessage = (event) => {
