@@ -289,7 +289,8 @@ const transmuxAndNotify = ({
   isEndOfTimeline,
   endedTimelineFn,
   dataFn,
-  doneFn
+  doneFn,
+  onTransmuxerLog
 }) => {
   const fmp4Tracks = segment.map && segment.map.tracks || {};
   const isMuxed = Boolean(fmp4Tracks.audio && fmp4Tracks.video);
@@ -358,6 +359,7 @@ const transmuxAndNotify = ({
     onEndedTimeline: () => {
       endedTimelineFn();
     },
+    onTransmuxerLog,
     onDone: (result) => {
       if (!doneFn) {
         return;
@@ -415,7 +417,8 @@ const handleSegmentBytes = ({
   isEndOfTimeline,
   endedTimelineFn,
   dataFn,
-  doneFn
+  doneFn,
+  onTransmuxerLog
 }) => {
   let bytesAsUint8Array = new Uint8Array(bytes);
 
@@ -510,6 +513,9 @@ const handleSegmentBytes = ({
             // transfer bytes back to us
             bytes = message.data.buffer;
             segment.bytes = bytesAsUint8Array = message.data;
+            message.logs.forEach(function(log) {
+              onTransmuxerLog(videojs.mergeOptions(log, {stream: 'mp4CaptionParser'}));
+            });
             finishLoading(message.captions);
           }
         });
@@ -547,7 +553,8 @@ const handleSegmentBytes = ({
     isEndOfTimeline,
     endedTimelineFn,
     dataFn,
-    doneFn
+    doneFn,
+    onTransmuxerLog
   });
 };
 
@@ -623,7 +630,8 @@ const decryptSegment = ({
   isEndOfTimeline,
   endedTimelineFn,
   dataFn,
-  doneFn
+  doneFn,
+  onTransmuxerLog
 }) => {
   decrypt({
     id: segment.requestId,
@@ -645,7 +653,8 @@ const decryptSegment = ({
       isEndOfTimeline,
       endedTimelineFn,
       dataFn,
-      doneFn
+      doneFn,
+      onTransmuxerLog
     });
   });
 };
@@ -691,7 +700,8 @@ const waitForCompletion = ({
   isEndOfTimeline,
   endedTimelineFn,
   dataFn,
-  doneFn
+  doneFn,
+  onTransmuxerLog
 }) => {
   let count = 0;
   let didError = false;
@@ -737,7 +747,8 @@ const waitForCompletion = ({
             isEndOfTimeline,
             endedTimelineFn,
             dataFn,
-            doneFn
+            doneFn,
+            onTransmuxerLog
           });
         }
         // Otherwise, everything is ready just continue
@@ -753,7 +764,8 @@ const waitForCompletion = ({
           isEndOfTimeline,
           endedTimelineFn,
           dataFn,
-          doneFn
+          doneFn,
+          onTransmuxerLog
         });
       };
 
@@ -942,7 +954,8 @@ export const mediaSegmentRequest = ({
   isEndOfTimeline,
   endedTimelineFn,
   dataFn,
-  doneFn
+  doneFn,
+  onTransmuxerLog
 }) => {
   const activeXhrs = [];
   const finishProcessingFn = waitForCompletion({
@@ -957,7 +970,8 @@ export const mediaSegmentRequest = ({
     isEndOfTimeline,
     endedTimelineFn,
     dataFn,
-    doneFn
+    doneFn,
+    onTransmuxerLog
   });
 
   // optionally, request the decryption key

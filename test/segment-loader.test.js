@@ -902,6 +902,55 @@ QUnit.module('SegmentLoader', function(hooks) {
       });
     });
 
+    QUnit.test('uses the log event from the transmuxer', function(assert) {
+      const playlist = playlistWithDuration(10);
+      const ogPost = loader.transmuxer_.postMessage;
+      const messages = [];
+
+      loader.logger_ = (message) => {
+        messages.push(message);
+      };
+
+      loader.transmuxer_.postMessage = (message) => {
+        const retval = ogPost.call(loader.transmuxer_, message);
+
+        if (message.action === 'push') {
+          const log = newEvent('message');
+
+          log.data = {action: 'log', log: {message: 'debug foo', stream: 'something', level: 'warn'}};
+
+          loader.transmuxer_.dispatchEvent(log);
+          return;
+        }
+
+        return retval;
+      };
+
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {isVideoOnly: true}).then(() => {
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+
+          loader.playlist(playlist);
+          loader.load();
+
+          this.clock.tick(100);
+          // segment
+          standardXHRResponse(this.requests.shift(), videoOneSecondSegment());
+        });
+      }).then(() => {
+        let messageFound = false;
+
+        messages.forEach(function(message) {
+          if ((/debug foo/).test(message) && (/warn/).test(message) && (/something/).test(message)) {
+            messageFound = true;
+          }
+        });
+
+        assert.ok(messageFound, 'message was logged');
+      });
+    });
+
     QUnit.test('segmentKey will cache new encrypted keys with cacheEncryptionKeys true', function(assert) {
       loader.cacheEncryptionKeys_ = true;
 
