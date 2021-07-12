@@ -22,7 +22,8 @@ import { Vhs } from '../src/videojs-http-streaming';
 import {
   muxed as muxedSegment,
   mp4Video as mp4VideoSegment,
-  mp4VideoInit as mp4VideoInitSegment
+  mp4VideoInit as mp4VideoInitSegment,
+  videoOneSecond as tsVideoSegment
 } from 'create-test-data!segments';
 
 /**
@@ -818,6 +819,36 @@ export const LoaderCommonFactory = ({
         }
 
         return Promise.resolve();
+      });
+    });
+
+    QUnit.test('playlist change before any appends does not error', function(assert) {
+      return setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        loader.playlist(playlistWithDuration(50, {
+          uri: 'bar-720.m3u8',
+          mediaSequence: 0,
+          endList: true
+        }));
+
+        loader.load();
+        this.clock.tick(1);
+        return Promise.resolve();
+      }).then(() => new Promise((resolve, reject) => {
+        loader.on('playlistupdate', () => {
+          this.clock.tick(1);
+          resolve();
+        });
+        loader.on('trackinfo', () => {
+          loader.playlist(playlistWithDuration(50, {
+            uri: 'bar-1080.m3u8',
+            mediaSequence: 0,
+            endList: true
+          }));
+        });
+        standardXHRResponse(this.requests.shift(), tsVideoSegment());
+
+      })).then(() => {
+        assert.equal(loader.pendingSegment_.playlist.uri, 'bar-720.m3u8', 'previous playlist segment');
       });
     });
 
