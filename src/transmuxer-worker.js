@@ -155,6 +155,10 @@ const wireTransmuxerEvents = function(self, transmuxer) {
     });
   });
 
+  transmuxer.on('log', function(log) {
+    self.postMessage({action: 'log', log});
+  });
+
 };
 
 /**
@@ -198,6 +202,7 @@ class MessageHandlers {
     this.self.postMessage({
       action: 'mp4Captions',
       captions: parsed && parsed.captions || [],
+      logs: parsed && parsed.logs || [],
       data: segment.buffer
     }, [segment.buffer]);
   }

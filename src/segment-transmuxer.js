@@ -81,6 +81,7 @@ export const processTransmux = (options) => {
     onCaptions,
     onDone,
     onEndedTimeline,
+    onTransmuxerLog,
     isEndOfTimeline
   } = options;
   const transmuxedData = {
@@ -124,6 +125,9 @@ export const processTransmux = (options) => {
     if (event.data.action === 'endedtimeline') {
       waitForEndedTimelineEvent = false;
       onEndedTimeline();
+    }
+    if (event.data.action === 'log') {
+      onTransmuxerLog(event.data.log);
     }
 
     // wait for the transmuxed event since we may have audio and video
