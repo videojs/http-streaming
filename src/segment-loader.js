@@ -1929,6 +1929,9 @@ export default class SegmentLoader extends videojs.EventTarget {
     const segmentInfo = this.pendingSegment_;
     const trackInfo = this.getCurrentMediaInfo_();
 
+    // no segment to append any data for or
+    // we do not have information on this specific
+    // segment yet
     if (!segmentInfo || !trackInfo) {
       return false;
     }
