@@ -1045,9 +1045,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
     let isEndOfStream = this.mainSegmentLoader_.ended_;
 
     if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
+      const mainMediaInfo = this.mainSegmentLoader_.getCurrentMediaInfo_();
+
       // if the audio playlist loader exists, then alternate audio is active
-      if (!this.mainSegmentLoader_.currentMediaInfo_ ||
-          this.mainSegmentLoader_.currentMediaInfo_.hasVideo) {
+      if (!mainMediaInfo || mainMediaInfo.hasVideo) {
         // if we do not know if the main segment loader contains video yet or if we
         // definitively know the main segment loader contains video, then we need to wait
         // for both main and audio segment loaders to call endOfStream
@@ -1619,9 +1620,13 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
   areMediaTypesKnown_() {
     const usingAudioLoader = !!this.mediaTypes_.AUDIO.activePlaylistLoader;
+    const hasMainMediaInfo = !!this.mainSegmentLoader_.getCurrentMediaInfo_();
+    // if we are not using an audio loader, then we have audio media info
+    // otherwise check on the segment loader.
+    const hasAudioMediaInfo = !usingAudioLoader ? true : !!this.audioSegmentLoader_.getCurrentMediaInfo_();
 
     // one or both loaders has not loaded sufficently to get codecs
-    if (!this.mainSegmentLoader_.currentMediaInfo_ || (usingAudioLoader && !this.audioSegmentLoader_.currentMediaInfo_)) {
+    if (!hasMainMediaInfo || !hasAudioMediaInfo) {
       return false;
     }
 
@@ -1630,8 +1635,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
   getCodecsOrExclude_() {
     const media = {
-      main: this.mainSegmentLoader_.currentMediaInfo_ || {},
-      audio: this.audioSegmentLoader_.currentMediaInfo_ || {}
+      main: this.mainSegmentLoader_.getCurrentMediaInfo_() || {},
+      audio: this.audioSegmentLoader_.getCurrentMediaInfo_() || {}
     };
 
     // set "main" media equal to video
