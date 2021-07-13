@@ -6,7 +6,6 @@
 import videojs from 'video.js';
 import window from 'global/window';
 import {isAudioCodec} from '@videojs/vhs-utils/es/codecs.js';
-import {TIME_FUDGE_FACTOR} from './ranges.js';
 
 const {createTimeRange} = videojs;
 
@@ -415,8 +414,7 @@ export const getMediaInfoForTime = function({
 
         time += partAndSegment.duration;
 
-        // TODO: consider not using TIME_FUDGE_FACTOR at all here
-        if ((time + TIME_FUDGE_FACTOR) > 0) {
+        if (time > 0) {
           return {
             partIndex: partAndSegment.partIndex,
             segmentIndex: partAndSegment.segmentIndex,
@@ -464,8 +462,7 @@ export const getMediaInfoForTime = function({
 
     time -= partAndSegment.duration;
 
-    // TODO: consider not using TIME_FUDGE_FACTOR at all here
-    if ((time - TIME_FUDGE_FACTOR) < 0) {
+    if (time < 0) {
       return {
         partIndex: partAndSegment.partIndex,
         segmentIndex: partAndSegment.segmentIndex,
