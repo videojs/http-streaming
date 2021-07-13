@@ -144,7 +144,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       enableLowInitialPlaylist,
       sourceType,
       cacheEncryptionKeys,
-      experimentalBufferBasedABR
+      experimentalBufferBasedABR,
+      experimentalPixelDiffSelector
     } = options;
 
     if (!src) {
@@ -160,6 +161,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     Vhs = externVhs;
 
     this.experimentalBufferBasedABR = Boolean(experimentalBufferBasedABR);
+    this.experimentalPixelDiffSelector = Boolean(experimentalPixelDiffSelector);
     this.withCredentials = withCredentials;
     this.tech_ = tech;
     this.vhs_ = tech.vhs;
