@@ -539,6 +539,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.timelineChangeController_ = settings.timelineChangeController;
     this.shouldSaveSegmentTimingInfo_ = true;
     this.parse708captions_ = settings.parse708captions;
+    this.experimentalExactManifestTimings = settings.experimentalExactManifestTimings;
 
     // private instance variables
     this.checkBufferTimeout_ = null;
@@ -1404,6 +1405,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     } else {
       // Find the segment containing the end of the buffer or current time.
       const {segmentIndex, startTime, partIndex} = Playlist.getMediaInfoForTime({
+        experimentalExactManifestTimings: this.experimentalExactManifestTimings,
         playlist: this.playlist_,
         currentTime: this.fetchAtBuffer_ ? bufferedEnd : this.currentTime_(),
         startingPartIndex: this.syncPoint_.partIndex,

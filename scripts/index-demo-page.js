@@ -245,6 +245,7 @@
     'type',
     'keysystems',
     'buffer-water',
+    'exact-manifest-timings',
     'override-native',
     'preload',
     'mirror-source'
@@ -314,6 +315,13 @@
       stateEls.minified.dispatchEvent(newEvent('change'));
     });
 
+    stateEls['exact-manifest-timings'].addEventListener('change', function(event) {
+      saveState();
+
+      // reload the player and scripts
+      stateEls.minified.dispatchEvent(newEvent('change'));
+    });
+
     stateEls['override-native'].addEventListener('change', function(event) {
       saveState();
 
@@ -377,7 +385,8 @@
             vhs: {
               overrideNative: getInputValue(stateEls['override-native']),
               experimentalBufferBasedABR: getInputValue(stateEls['buffer-water']),
-              experimentalLLHLS: getInputValue(stateEls.llhls)
+              experimentalLLHLS: getInputValue(stateEls.llhls),
+              experimentalExactManifestTimings: getInputValue(stateEls['exact-manifest-timings'])
             }
           }
         });
