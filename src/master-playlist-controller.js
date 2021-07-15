@@ -439,7 +439,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       if (AUDIO[group][track.label]) {
         const properties = AUDIO[group][track.label];
 
-        if (properties.playlists) {
+        if (properties.playlists && properties.playlists.length) {
           playlists.push.apply(playlists, properties.playlists);
         } else if (properties.uri) {
           playlists.push(properties);
@@ -450,7 +450,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
           for (let i = 0; i < master.playlists.length; i++) {
             const playlist = master.playlists[i];
 
-            if (playlist.attributes && playlist.attributes.AUDIO && playlist.attributes.audio === group) {
+            if (playlist.attributes && playlist.attributes.AUDIO && playlist.attributes.AUDIO === group) {
               playlists.push(playlist);
             }
           }
