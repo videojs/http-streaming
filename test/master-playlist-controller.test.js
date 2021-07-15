@@ -238,6 +238,36 @@ QUnit.test('getAudioTrackPlaylists_ with track but groups are main playlists', f
   );
 });
 
+QUnit.test('getAudioTrackPlaylists_ invalid audio groups', function(assert) {
+  const mpc = this.masterPlaylistController;
+  const master = {playlists: [
+    {uri: 'foo-playlist'},
+    {uri: 'bar-playlist'}
+  ]};
+
+  mpc.master = () => master;
+
+  master.mediaGroups = {
+    AUDIO: {
+      720: {
+        audio: {default: true, label: 'audio'}
+      },
+      1080: {
+        audio: {default: true, label: 'audio'}
+      }
+    }
+  };
+
+  mpc.mediaTypes_.AUDIO.groups = {foo: [{}]};
+  mpc.mediaTypes_.AUDIO.activeTrack = () => ({label: 'audio'});
+
+  assert.deepEqual(
+    mpc.getAudioTrackPlaylists_(),
+    master.playlists,
+    'returns all master playlists'
+  );
+});
+
 QUnit.test('throws error when given an empty URL', function(assert) {
   const options = {
     src: 'test',
