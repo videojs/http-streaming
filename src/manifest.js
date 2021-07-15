@@ -2,7 +2,7 @@ import videojs from 'video.js';
 import window from 'global/window';
 import { Parser as M3u8Parser } from 'm3u8-parser';
 import { resolveUrl } from './resolve-url';
-import { getLastParts } from './playlist.js';
+import { getLastParts, isAudioOnly } from './playlist.js';
 
 const { log } = videojs;
 
@@ -279,11 +279,26 @@ export const addPropertiesToMaster = (master, uri) => {
       master.playlists[i].uri = phonyUri;
     }
   }
+  const audioOnlyMaster = isAudioOnly(master);
 
   forEachMediaGroup(master, (properties, mediaType, groupKey, labelKey) => {
     const groupId = `placeholder-uri-${mediaType}-${groupKey}-${labelKey}`;
 
+    // add a playlist array under properties
     if (!properties.playlists || !properties.playlists.length) {
+      // if we have an audio only master and this media group does not have a uri.
+      // check if it is located in the real list. If it is don't add placeholder
+      // properties as we should never switch to it.
+      if (audioOnlyMaster && mediaType === 'AUDIO' && !properties.uri) {
+        for (let i = 0; i < master.playlists.length; i++) {
+          const p = master.playlists[i];
+
+          if (p.attributes && p.attributes.AUDIO && p.attributes.AUDIO === groupKey) {
+            return;
+          }
+        }
+      }
+
       properties.playlists = [Object.assign({}, properties)];
     }
 
