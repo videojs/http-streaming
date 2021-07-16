@@ -1,3 +1,29 @@
+<a name="2.9.2"></a>
+## [2.9.2](https://github.com/videojs/http-streaming/compare/v2.9.1...v2.9.2) (2021-07-14)
+
+### Bug Fixes
+
+* Default to using segmentInfo.trackInfo over this.currentMediaInfo_ to get segment track info. ([#1162](https://github.com/videojs/http-streaming/issues/1162)) ([1d6bb55](https://github.com/videojs/http-streaming/commit/1d6bb55))
+* encode correct video width/height in transmuxed mp4 ([#1166](https://github.com/videojs/http-streaming/issues/1166)) ([d32801a](https://github.com/videojs/http-streaming/commit/d32801a))
+* include all master playlists in default audio group ([#1149](https://github.com/videojs/http-streaming/issues/1149)) ([297e2c7](https://github.com/videojs/http-streaming/commit/297e2c7))
+* Prevent skipping frames in adts data via mux.js 5.11.3 ([#1153](https://github.com/videojs/http-streaming/issues/1153)) ([253849a](https://github.com/videojs/http-streaming/commit/253849a))
+
+### Chores
+
+* log transmuxer log events via segment loader ([#1155](https://github.com/videojs/http-streaming/issues/1155)) ([1e2f7a4](https://github.com/videojs/http-streaming/commit/1e2f7a4))
+* prevent debugger statement removal and soucemap updating via rollup-plugin-strip ([#1147](https://github.com/videojs/http-streaming/issues/1147)) ([62f9c1c](https://github.com/videojs/http-streaming/commit/62f9c1c))
+* skip playback tests in forks ([#1148](https://github.com/videojs/http-streaming/issues/1148)) ([063e163](https://github.com/videojs/http-streaming/commit/063e163))
+* update utils/stats ([#1146](https://github.com/videojs/http-streaming/issues/1146)) ([c504b0d](https://github.com/videojs/http-streaming/commit/c504b0d))
+* use the new npm cache option when setting up node ([#1157](https://github.com/videojs/http-streaming/issues/1157)) ([b7942ff](https://github.com/videojs/http-streaming/commit/b7942ff))
+
+### Documentation
+
+* update maxPlaylistRetries outline level ([93b293a](https://github.com/videojs/http-streaming/commit/93b293a))
+
+### Tests
+
+* cleanup/dispose transmuxers in tests ([#1163](https://github.com/videojs/http-streaming/issues/1163)) ([df07176](https://github.com/videojs/http-streaming/commit/df07176))
+
 <a name="2.9.1"></a>
 ## [2.9.1](https://github.com/videojs/http-streaming/compare/v2.9.0...v2.9.1) (2021-06-22)
 

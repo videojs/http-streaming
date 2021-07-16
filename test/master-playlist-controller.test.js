@@ -5839,6 +5839,10 @@ QUnit.test('maxPlaylistRetries defaults to Infinity when no value or null/undefi
   assert.equal(playerNull.tech_.vhs.masterPlaylistController_.maxPlaylistRetries, Infinity, 'maxPlaylistRetries defaults to Infinity when null is provided as the option value');
   assert.equal(playerUndefined.tech_.vhs.masterPlaylistController_.maxPlaylistRetries, Infinity, 'maxPlaylistRetries defaults to Infinity when undefined is provided as the option value');
   assert.equal(playerNoValue.tech_.vhs.masterPlaylistController_.maxPlaylistRetries, Infinity, 'maxPlaylistRetries defaults to Infinity when no value is provided');
+
+  playerNoValue.dispose();
+  playerUndefined.dispose();
+  playerNull.dispose();
 });
 
 QUnit.test('maxPlaylistRetries is set when zero is passed as the option\'s value', function(assert) {
@@ -5858,6 +5862,8 @@ QUnit.test('maxPlaylistRetries is set when zero is passed as the option\'s value
   this.clock.tick(1);
 
   assert.equal(player.tech_.vhs.masterPlaylistController_.maxPlaylistRetries, 0, 'maxPlaylistRetries was set to zero');
+
+  player.dispose();
 });
 
 QUnit.test('true duration < 16 with experimentalBufferBasedABR', function(assert) {

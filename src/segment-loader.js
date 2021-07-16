@@ -811,12 +811,14 @@ export default class SegmentLoader extends videojs.EventTarget {
    *         TimeRange object representing the current buffered ranges
    */
   buffered_() {
-    if (!this.sourceUpdater_ || !this.startingMediaInfo_) {
+    const trackInfo = this.getMediaInfo_();
+
+    if (!this.sourceUpdater_ || !trackInfo) {
       return videojs.createTimeRanges();
     }
 
     if (this.loaderType_ === 'main') {
-      const { hasAudio, hasVideo, isMuxed } = this.startingMediaInfo_;
+      const { hasAudio, hasVideo, isMuxed } = trackInfo;
 
       if (hasVideo && hasAudio && !this.audioDisabled_ && !isMuxed) {
         return this.sourceUpdater_.buffered();
@@ -1206,7 +1208,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    if (!this.sourceUpdater_ || !this.startingMediaInfo_) {
+    if (!this.sourceUpdater_ || !this.getMediaInfo_()) {
       this.logger_('skipping remove because no source updater or starting media info');
       // nothing to remove if we haven't processed any media
       return;
@@ -1871,7 +1873,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // created together (before appending). Source buffer creation uses the presence of
     // audio and video data to determine whether to create audio/video source buffers, and
     // uses processed (transmuxed or parsed) media to determine the types required.
-    if (!this.currentMediaInfo_) {
+    if (!this.getCurrentMediaInfo_()) {
       return true;
     }
 
@@ -1905,6 +1907,14 @@ export default class SegmentLoader extends videojs.EventTarget {
     return true;
   }
 
+  getCurrentMediaInfo_(segmentInfo = this.pendingSegment_) {
+    return segmentInfo && segmentInfo.trackInfo || this.currentMediaInfo_;
+  }
+
+  getMediaInfo_(segmentInfo = this.pendingSegment_) {
+    return this.getCurrentMediaInfo_(segmentInfo) || this.startingMediaInfo_;
+  }
+
   hasEnoughInfoToAppend_() {
     if (!this.sourceUpdater_.ready()) {
       return false;
@@ -1917,15 +1927,16 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     const segmentInfo = this.pendingSegment_;
+    const trackInfo = this.getCurrentMediaInfo_();
 
     // no segment to append any data for or
     // we do not have information on this specific
     // segment yet
-    if (!segmentInfo || !segmentInfo.trackInfo) {
+    if (!segmentInfo || !trackInfo) {
       return false;
     }
 
-    const {hasAudio, hasVideo, isMuxed} = this.currentMediaInfo_;
+    const {hasAudio, hasVideo, isMuxed} = trackInfo;
 
     if (hasVideo && !segmentInfo.videoTimingInfo) {
       return false;
@@ -2005,8 +2016,9 @@ export default class SegmentLoader extends videojs.EventTarget {
       segmentInfo.timingInfo.start =
         segmentInfo[timingInfoPropertyForMedia(result.type)].start;
     } else {
+      const trackInfo = this.getCurrentMediaInfo_();
       const useVideoTimingInfo =
-        this.loaderType_ === 'main' && this.currentMediaInfo_.hasVideo;
+        this.loaderType_ === 'main' && trackInfo && trackInfo.hasVideo;
       let firstVideoFrameTimeForData;
 
       if (useVideoTimingInfo) {
@@ -2427,7 +2439,10 @@ export default class SegmentLoader extends videojs.EventTarget {
       id3Fn: this.handleId3_.bind(this),
 
       dataFn: this.handleData_.bind(this),
-      doneFn: this.segmentRequestFinished_.bind(this)
+      doneFn: this.segmentRequestFinished_.bind(this),
+      onTransmuxerLog: ({message, level, stream}) => {
+        this.logger_(`${segmentInfoString(segmentInfo)} logged from transmuxer stream ${stream} as a ${level}: ${message}`);
+      }
     });
   }
 
@@ -2711,7 +2726,9 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   waitForAppendsToComplete_(segmentInfo) {
-    if (!this.currentMediaInfo_) {
+    const trackInfo = this.getCurrentMediaInfo_(segmentInfo);
+
+    if (!trackInfo) {
       this.error({
         message: 'No starting media returned, likely due to an unsupported media format.',
         blacklistDuration: Infinity
@@ -2722,7 +2739,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // Although transmuxing is done, appends may not yet be finished. Throw a marker
     // on each queue this loader is responsible for to ensure that the appends are
     // complete.
-    const {hasAudio, hasVideo, isMuxed} = this.currentMediaInfo_;
+    const {hasAudio, hasVideo, isMuxed} = trackInfo;
     const waitForVideo = this.loaderType_ === 'main' && hasVideo;
     const waitForAudio = !this.audioDisabled_ && hasAudio && !isMuxed;
 
@@ -2790,7 +2807,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
   checkForIllegalMediaSwitch(trackInfo) {
     const illegalMediaSwitchError =
-      illegalMediaSwitch(this.loaderType_, this.currentMediaInfo_, trackInfo);
+      illegalMediaSwitch(this.loaderType_, this.getCurrentMediaInfo_(), trackInfo);
 
     if (illegalMediaSwitchError) {
       this.error({
@@ -2845,8 +2862,9 @@ export default class SegmentLoader extends videojs.EventTarget {
 
   updateTimingInfoEnd_(segmentInfo) {
     segmentInfo.timingInfo = segmentInfo.timingInfo || {};
+    const trackInfo = this.getMediaInfo_();
     const useVideoTimingInfo =
-      this.loaderType_ === 'main' && this.currentMediaInfo_.hasVideo;
+      this.loaderType_ === 'main' && trackInfo && trackInfo.hasVideo;
     const prioritizedTimingInfo = useVideoTimingInfo && segmentInfo.videoTimingInfo ?
       segmentInfo.videoTimingInfo : segmentInfo.audioTimingInfo;
 

@@ -76,7 +76,9 @@ const options = {
         compress: {passes: 2}
       }),
       strip: strip({
-        functions: ['TEST_ONLY_*']
+        functions: ['TEST_ONLY_*'],
+        debugger: false,
+        sourceMap: false
       }),
       createTestData: createTestData()
     });
