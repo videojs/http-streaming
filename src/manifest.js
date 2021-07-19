@@ -286,9 +286,9 @@ export const addPropertiesToMaster = (master, uri) => {
 
     // add a playlist array under properties
     if (!properties.playlists || !properties.playlists.length) {
-      // if we have an audio only master and this media group does not have a uri.
-      // check if it is located in the real list. If it is don't add placeholder
-      // properties as we should never switch to it.
+      // If the manifest is audio only and this media group does not have a uri, check
+      // if the media group is located in the main list of playlists. If it is, don't add
+      // placeholder properties as it shouldn't be considered an alternate audio track.
       if (audioOnlyMaster && mediaType === 'AUDIO' && !properties.uri) {
         for (let i = 0; i < master.playlists.length; i++) {
           const p = master.playlists[i];
