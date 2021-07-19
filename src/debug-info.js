@@ -1,20 +1,8 @@
 import window from 'global/window';
+import { timeRangesToArray } from './ranges';
 
 // two space indent
 const INDENT = '  ';
-
-const timeRangesToArray = (timeRanges) => {
-  const timeRangesList = [];
-
-  for (let i = 0; i < timeRanges.length; i++) {
-    timeRangesList.push({
-      start: timeRanges.start(i),
-      end: timeRanges.end(i)
-    });
-  }
-
-  return timeRangesList;
-};
 
 const timeRangesString = (timeRanges) => {
   if (!timeRanges) {
