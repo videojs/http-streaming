@@ -48,6 +48,7 @@ import {version as muxVersion} from 'mux.js/package.json';
 import {version as mpdVersion} from 'mpd-parser/package.json';
 import {version as m3u8Version} from 'm3u8-parser/package.json';
 import {version as aesVersion} from 'aes-decrypter/package.json';
+import debugInfo from './debug-info';
 
 const Vhs = {
   PlaylistLoader,
@@ -617,6 +618,8 @@ class VhsHandler extends Component {
     });
 
     this.on(this.tech_, 'play', this.play);
+
+    this.logDebugInfo_ = debugInfo.log.bind(null, this.player_);
   }
 
   setOptions_() {
