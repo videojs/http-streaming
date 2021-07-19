@@ -107,7 +107,7 @@ const sharedHooks = {
 
 QUnit.module('MasterPlaylistController', sharedHooks);
 
-QUnit.test('getAudioTrackPlaylists_', function(assert) {
+QUnit.test('getAudioTrackPlaylists_ works', function(assert) {
   const mpc = this.masterPlaylistController;
   const master = {playlists: [{uri: 'testing'}]};
 
@@ -174,6 +174,98 @@ QUnit.test('getAudioTrackPlaylists_', function(assert) {
     {uri: 'buzz-fr', label: 'fr'}
   ], 'returns all fr hls style playlists');
 
+});
+
+QUnit.test('getAudioTrackPlaylists_ without track', function(assert) {
+  const mpc = this.masterPlaylistController;
+  const master = {playlists: [{uri: 'testing'}]};
+
+  mpc.master = () => master;
+
+  master.mediaGroups = {
+    AUDIO: {
+      main: {
+        en: {label: 'en', playlists: [{uri: 'foo'}, {uri: 'bar'}]},
+        fr: {label: 'fr', playlists: [{uri: 'foo-fr'}, {uri: 'bar-fr'}]}
+      }
+    }
+  };
+
+  assert.deepEqual(
+    mpc.getAudioTrackPlaylists_(),
+    master.playlists,
+    'no default track, returns master playlists.'
+  );
+
+  mpc.mediaTypes_.AUDIO.groups = {foo: [{}]};
+  mpc.mediaTypes_.AUDIO.activeTrack = () => null;
+
+  assert.deepEqual(
+    mpc.getAudioTrackPlaylists_(),
+    master.playlists,
+    'no active track, returns master playlists.'
+  );
+
+});
+
+QUnit.test('getAudioTrackPlaylists_ with track but groups are main playlists', function(assert) {
+  const mpc = this.masterPlaylistController;
+  const master = {playlists: [
+    {uri: '720-audio', attributes: {AUDIO: '720'}},
+    {uri: '1080-audio', attributes: {AUDIO: '1080'}}
+  ]};
+
+  mpc.master = () => master;
+
+  master.mediaGroups = {
+    AUDIO: {
+      720: {
+        audio: {default: true, label: 'audio'}
+      },
+      1080: {
+        audio: {default: true, label: 'audio'}
+      }
+    }
+  };
+
+  mpc.mediaTypes_.AUDIO.groups = {foo: [{}]};
+  mpc.mediaTypes_.AUDIO.activeTrack = () => ({label: 'audio'});
+
+  assert.deepEqual(
+    mpc.getAudioTrackPlaylists_(),
+    [master.playlists[0], master.playlists[1]],
+    'returns all audio label playlists'
+  );
+});
+
+QUnit.test('getAudioTrackPlaylists_ invalid audio groups', function(assert) {
+  const mpc = this.masterPlaylistController;
+  const master = {playlists: [
+    {uri: 'foo-playlist'},
+    {uri: 'bar-playlist'}
+  ]};
+
+  mpc.master = () => master;
+
+  master.mediaGroups = {
+    AUDIO: {
+      720: {
+        audio: {default: true, label: 'audio'}
+      },
+      1080: {
+        audio: {default: true, label: 'audio'}
+      }
+    }
+  };
+
+  mpc.mediaTypes_.AUDIO.groups = {foo: [{}]};
+  mpc.mediaTypes_.AUDIO.activeTrack = () => ({label: 'audio'});
+
+  assert.deepEqual(
+    mpc.getAudioTrackPlaylists_(),
+    master.playlists,
+    'returns all master playlists'
+  );
 });
 
 QUnit.test('throws error when given an empty URL', function(assert) {
