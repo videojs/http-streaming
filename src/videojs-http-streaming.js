@@ -999,14 +999,6 @@ class VhsHandler extends Component {
       audioMedia: audioPlaylistLoader && audioPlaylistLoader.media()
     });
 
-    // In IE11 this is too early to initialize media keys, and IE11 does not support
-    // promises.
-    if (videojs.browser.IE_VERSION === 11 || !didSetupEmeOptions) {
-      // If EME options were not set up, we've done all we could to initialize EME.
-      this.masterPlaylistController_.sourceUpdater_.initializedEme();
-      return;
-    }
-
     this.player_.tech_.on('keystatuschange', (e) => {
       // typically 'output-restricted', but anything other than usable will
       // result in a failure to play.
@@ -1018,6 +1010,14 @@ class VhsHandler extends Component {
         });
       }
     });
+
+    // In IE11 this is too early to initialize media keys, and IE11 does not support
+    // promises.
+    if (videojs.browser.IE_VERSION === 11 || !didSetupEmeOptions) {
+      // If EME options were not set up, we've done all we could to initialize EME.
+      this.masterPlaylistController_.sourceUpdater_.initializedEme();
+      return;
+    }
 
     this.logger_('waiting for EME key session creation');
     waitForKeySessionCreation({
