@@ -393,5 +393,49 @@
     "uri": "https://d2zihajmogu5jn.cloudfront.net/first-pmt-only/index.m3u8",
     "mimetype": "application/x-mpegurl",
     "features": []
+  },
+  {
+    "name": "HDCP v1.0 DRM dash",
+    "uri": "https://storage.googleapis.com/wvmedia/cenc/h264/tears/tears.mpd#1",
+    "mimetype": "application/dash+xml",
+    "features": [],
+    "keySystems": {
+      "com.widevine.alpha": {
+        "url": "https://proxy.uat.widevine.com/proxy?video_id=GTS_SW_SECURE_CRYPTO_HDCP_V1&provider=widevine_test"
+      }
+    }
+  },
+  {
+    "name": "HDCP v2.0 DRM dash",
+    "uri": "https://storage.googleapis.com/wvmedia/cenc/h264/tears/tears.mpd#2",
+    "mimetype": "application/dash+xml",
+    "features": [],
+    "keySystems": {
+      "com.widevine.alpha": {
+        "url": "https://proxy.uat.widevine.com/proxy?video_id=GTS_SW_SECURE_CRYPTO_HDCP_V2&provider=widevine_test"
+      }
+    }
+  },
+  {
+    "name": "HDCP v2.1 DRM dash",
+    "uri": "https://storage.googleapis.com/wvmedia/cenc/h264/tears/tears.mpd@21",
+    "mimetype": "application/dash+xml",
+    "features": [],
+    "keySystems": {
+      "com.widevine.alpha": {
+        "url": "https://proxy.uat.widevine.com/proxy?video_id=GTS_SW_SECURE_CRYPTO_HDCP_V2_1&provider=widevine_test"
+      }
+    }
+  },
+  {
+    "name": "HDCP v2.2 DRM dash",
+    "uri": "https://storage.googleapis.com/wvmedia/cenc/h264/tears/tears.mpd#22",
+    "mimetype": "application/dash+xml",
+    "features": [],
+    "keySystems": {
+      "com.widevine.alpha": {
+        "url": "https://proxy.uat.widevine.com/proxy?video_id=GTS_SW_SECURE_CRYPTO_HDCP_V2_2&provider=widevine_test"
+      }
+    }
   }
 ]

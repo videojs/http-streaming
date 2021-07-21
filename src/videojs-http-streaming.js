@@ -1007,6 +1007,18 @@ class VhsHandler extends Component {
       return;
     }
 
+    this.player_.tech_.on('keystatuschange', (e) => {
+      // typically 'output-restricted', but anything other than usable will
+      // result in a failure to play.
+      if (e.status !== 'usable') {
+        this.masterPlaylistController_.blacklistCurrentPlaylist({
+          playlist: this.masterPlaylistController_.media(),
+          message: `DRM keystatus changed to ${e.status}, playlist will fail to play. Check for HDCP content.`,
+          blacklistDuration: Infinity
+        });
+      }
+    });
+
     this.logger_('waiting for EME key session creation');
     waitForKeySessionCreation({
       player: this.player_,
