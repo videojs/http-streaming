@@ -67,8 +67,10 @@ export const LoaderCommonHooks = {
 
     this.video = document.createElement('video');
 
-    this.setupMediaSource = (a, b, c) => {
-      return setupMediaSource(a, b, videojs.mergeOptions({videoEl: this.video}, c));
+    this.setupMediaSource = (mediaSource, sourceUpdater, options) => {
+      return setupMediaSource(mediaSource, sourceUpdater, videojs.mergeOptions({
+        videoEl: this.video
+      }, options));
     };
   },
   afterEach(assert) {
