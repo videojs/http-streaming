@@ -1006,7 +1006,7 @@ class VhsHandler extends Component {
       if (e.status !== 'usable') {
         this.masterPlaylistController_.blacklistCurrentPlaylist({
           playlist: this.masterPlaylistController_.media(),
-          message: `DRM keystatus changed to ${e.status}, playlist will fail to play. Check for HDCP content.`,
+          message: `DRM keystatus changed to ${e.status}. Playlist will fail to play. Check for HDCP content.`,
           blacklistDuration: Infinity
         });
       }
