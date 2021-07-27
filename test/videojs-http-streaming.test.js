@@ -4548,7 +4548,7 @@ QUnit.test('eme handles keystatuschange where status is output-restricted', func
 
   assert.deepEqual(excludes, [{
     blacklistDuration: Infinity,
-    message: 'DRM keystatus changed to output-restricted, playlist will fail to play. Check for HDCP content.',
+    message: 'DRM keystatus changed to output-restricted. Playlist will fail to play. Check for HDCP content.',
     playlist: undefined
   }], 'excluded playlist');
 });
