@@ -54,8 +54,17 @@ QUnit.module('Source Updater', {
 
     // need to attach the real media source to a video element for the media source to
     // change to an open ready state
-    this.video.src = URL.createObjectURL(this.mediaSource);
     this.sourceUpdater = new SourceUpdater(this.mediaSource);
+    this.objurls = [];
+
+    this.createObjectURL = (mediaSource) => {
+      const url_ = URL.createObjectURL(mediaSource);
+
+      this.objurls.push(url_);
+
+      return url_;
+    };
+    this.video.src = this.createObjectURL(this.mediaSource);
 
     // This is normally done at the top level of the plugin, but will not happen in
     // an isolated module.
@@ -71,7 +80,18 @@ QUnit.module('Source Updater', {
   afterEach() {
     this.sourceUpdater.dispose();
     this.video.src = '';
-    this.fixture.removeChild(this.video);
+    this.video.removeAttribute('src');
+
+    while (this.fixture.firstChild) {
+      this.fixture.removeChild(this.fixture.firstChild);
+    }
+
+    this.objurls.forEach(function(url_) {
+      URL.revokeObjectURL(url_);
+    });
+
+    this.objurls.length = 0;
+    this.video = null;
   }
 });
 
@@ -224,12 +244,15 @@ QUnit.test('verifies that sourcebuffer is in source buffers list before attempti
 
 QUnit.test('waits for sourceopen to create source buffers', function(assert) {
   this.sourceUpdater.dispose();
-  const video = document.createElement('video');
+
+  this.video.src = '';
+  this.video.removeAttribute('src');
+  this.video = document.createElement('video');
 
   this.mediaSource = new window.MediaSource();
   // need to attach the real media source to a video element for the media source to
   // change to an open ready state
-  video.src = URL.createObjectURL(this.mediaSource);
+  this.video.src = this.createObjectURL(this.mediaSource);
   this.sourceUpdater = new SourceUpdater(this.mediaSource);
 
   this.sourceUpdater.createSourceBuffers({
@@ -245,7 +268,6 @@ QUnit.test('waits for sourceopen to create source buffers', function(assert) {
     this.mediaSource.addEventListener('sourceopen', () => {
       assert.ok(this.sourceUpdater.audioBuffer, 'audio buffer created');
       assert.ok(this.sourceUpdater.videoBuffer, 'video buffer created');
-
       accept();
     });
     this.mediaSource.addEventListener('error', reject);
@@ -256,7 +278,10 @@ QUnit.test('source buffer creation is queued', function(assert) {
   // wait for the source to open (or error) before running through tests
   return new Promise((accept, reject) => {
     this.sourceUpdater.dispose();
-    const video = document.createElement('video');
+
+    this.video.src = '';
+    this.video.removeAttribute('src');
+    this.video = document.createElement('video');
 
     this.mediaSource = new window.MediaSource();
 
@@ -272,7 +297,7 @@ QUnit.test('source buffer creation is queued', function(assert) {
     });
     // need to attach the real media source to a video element for the media source to
     // change to an open ready state
-    video.src = URL.createObjectURL(this.mediaSource);
+    this.video.src = this.createObjectURL(this.mediaSource);
     this.sourceUpdater = new SourceUpdater(this.mediaSource);
     this.mediaSource.addEventListener('error', reject);
 
