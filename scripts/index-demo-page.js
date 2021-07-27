@@ -350,7 +350,7 @@
               overrideNative: getInputValue(stateEls['override-native']),
               experimentalBufferBasedABR: getInputValue(stateEls['buffer-water']),
               experimentalLLHLS: getInputValue(stateEls.llhls),
-              experimentalPixelDiffSelector: getInputValue(stateEls['pixel-diff-selector'])
+              experimentalLeastPixelDiffSelector: getInputValue(stateEls['pixel-diff-selector'])
             }
           }
         });
