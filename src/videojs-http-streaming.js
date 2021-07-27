@@ -682,7 +682,8 @@ class VhsHandler extends Component {
       'experimentalBufferBasedABR',
       'liveRangeSafeTimeDelta',
       'experimentalLLHLS',
-      'experimentalExactManifestTimings'
+      'experimentalExactManifestTimings',
+      'experimentalLeastPixelDiffSelector'
     ].forEach((option) => {
       if (typeof this.source_[option] !== 'undefined') {
         this.options_[option] = this.source_[option];

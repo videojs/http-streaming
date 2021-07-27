@@ -246,6 +246,7 @@
     'keysystems',
     'buffer-water',
     'exact-manifest-timings',
+    'pixel-diff-selector',
     'override-native',
     'preload',
     'mirror-source'
@@ -276,63 +277,28 @@
       window.player.autoplay(event.target.checked);
     });
 
-    stateEls['mirror-source'].addEventListener('change', function(event) {
-      saveState();
+    // stateEls that reload the player and scripts
+    [
+      'mirror-source',
+      'sync-workers',
+      'preload',
+      'llhls',
+      'buffer-water',
+      'override-native',
+      'liveui',
+      'pixel-diff-selector',
+      'exact-manifest-timings'
+    ].forEach(function(name) {
+      stateEls[name].addEventListener('change', function(event) {
+        saveState();
 
-      // reload the player and scripts
-      stateEls.minified.dispatchEvent(newEvent('change'));
-    });
-
-    stateEls['sync-workers'].addEventListener('change', function(event) {
-      saveState();
-
-      // reload the player and scripts
-      stateEls.minified.dispatchEvent(newEvent('change'));
-    });
-
-    stateEls.preload.addEventListener('change', function(event) {
-      saveState();
-      // reload the player and scripts
-      stateEls.minified.dispatchEvent(newEvent('change'));
+        stateEls.minified.dispatchEvent(newEvent('change'));
+      });
     });
 
     stateEls.debug.addEventListener('change', function(event) {
       saveState();
       window.videojs.log.level(event.target.checked ? 'debug' : 'info');
-    });
-
-    stateEls.llhls.addEventListener('change', function(event) {
-      saveState();
-
-      // reload the player and scripts
-      stateEls.minified.dispatchEvent(newEvent('change'));
-    });
-
-    stateEls['buffer-water'].addEventListener('change', function(event) {
-      saveState();
-
-      // reload the player and scripts
-      stateEls.minified.dispatchEvent(newEvent('change'));
-    });
-
-    stateEls['exact-manifest-timings'].addEventListener('change', function(event) {
-      saveState();
-
-      // reload the player and scripts
-      stateEls.minified.dispatchEvent(newEvent('change'));
-    });
-
-    stateEls['override-native'].addEventListener('change', function(event) {
-      saveState();
-
-      // reload the player and scripts
-      stateEls.minified.dispatchEvent(newEvent('change'));
-    });
-
-    stateEls.liveui.addEventListener('change', function(event) {
-      saveState();
-
-      stateEls.minified.dispatchEvent(newEvent('change'));
     });
 
     stateEls.minified.addEventListener('change', function(event) {
@@ -386,7 +352,8 @@
               overrideNative: getInputValue(stateEls['override-native']),
               experimentalBufferBasedABR: getInputValue(stateEls['buffer-water']),
               experimentalLLHLS: getInputValue(stateEls.llhls),
-              experimentalExactManifestTimings: getInputValue(stateEls['exact-manifest-timings'])
+              experimentalExactManifestTimings: getInputValue(stateEls['exact-manifest-timings']),
+              experimentalLeastPixelDiffSelector: getInputValue(stateEls['pixel-diff-selector'])
             }
           }
         });

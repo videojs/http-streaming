@@ -1353,7 +1353,7 @@ QUnit.test('selects a playlist below the current bandwidth', function(assert) {
 });
 
 QUnit.test(
-  'selects a primary rendtion when there are multiple rendtions share same attributes',
+  'selects a primary rendition when there are multiple rendtions share same attributes',
   function(assert) {
     let playlist;
 
