@@ -1000,7 +1000,6 @@ class VhsHandler extends Component {
     });
 
     this.player_.tech_.on('keystatuschange', (e) => {
-      // If there's an error, the status is 'output-restricted'
       if (e.status === 'output-restricted') {
         this.masterPlaylistController_.blacklistCurrentPlaylist({
           playlist: this.masterPlaylistController_.media(),
