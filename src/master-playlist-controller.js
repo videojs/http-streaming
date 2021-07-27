@@ -144,7 +144,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       enableLowInitialPlaylist,
       sourceType,
       cacheEncryptionKeys,
-      experimentalBufferBasedABR
+      experimentalBufferBasedABR,
+      experimentalLeastPixelDiffSelector
     } = options;
 
     if (!src) {
@@ -160,6 +161,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     Vhs = externVhs;
 
     this.experimentalBufferBasedABR = Boolean(experimentalBufferBasedABR);
+    this.experimentalLeastPixelDiffSelector = Boolean(experimentalLeastPixelDiffSelector);
     this.withCredentials = withCredentials;
     this.tech_ = tech;
     this.vhs_ = tech.vhs;
@@ -232,7 +234,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       inbandTextTracks: this.inbandTextTracks_,
       cacheEncryptionKeys,
       sourceUpdater: this.sourceUpdater_,
-      timelineChangeController: this.timelineChangeController_
+      timelineChangeController: this.timelineChangeController_,
+      experimentalExactManifestTimings: options.experimentalExactManifestTimings
     };
 
     // The source type check not only determines whether a special DASH playlist loader
