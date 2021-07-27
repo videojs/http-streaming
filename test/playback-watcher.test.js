@@ -151,6 +151,8 @@ QUnit.test('changing sources does not break ability to skip gap at beginning of 
   let vhsGapSkipEvents = 0;
   let hlsGapSkipEvents = 0;
 
+  this.player.dispose();
+
   this.player = createPlayer({
     html5: {
       vhs: {

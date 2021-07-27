@@ -739,13 +739,14 @@ QUnit.test('codecs are passed to the source buffer', function(assert) {
 });
 
 QUnit.test('including HLS as a tech does not error', function(assert) {
-  const player = createPlayer({
+  this.player.dispose();
+  this.player = createPlayer({
     techOrder: ['vhs', 'html5']
   });
 
   this.clock.tick(1);
 
-  assert.ok(player, 'created the player');
+  assert.ok(this.player, 'created the player');
   assert.equal(this.env.log.warn.calls, 2, 'logged two warnings for deprecations');
 });
 
@@ -1352,7 +1353,7 @@ QUnit.test('selects a playlist below the current bandwidth', function(assert) {
 });
 
 QUnit.test(
-  'selects a primary rendtion when there are multiple rendtions share same attributes',
+  'selects a primary rendition when there are multiple rendtions share same attributes',
   function(assert) {
     let playlist;
 
@@ -5040,6 +5041,7 @@ QUnit[testOrSkip](
       useBandwidthFromLocalStorage: true
     };
     // values must be stored before player is created, otherwise defaults are provided
+    this.player.dispose();
     this.player = createPlayer();
     this.player.tech_.on('usage', usageListener);
     this.player.src({

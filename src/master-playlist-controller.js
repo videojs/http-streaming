@@ -144,7 +144,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       enableLowInitialPlaylist,
       sourceType,
       cacheEncryptionKeys,
-      experimentalBufferBasedABR
+      experimentalBufferBasedABR,
+      experimentalLeastPixelDiffSelector
     } = options;
 
     if (!src) {
@@ -160,6 +161,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     Vhs = externVhs;
 
     this.experimentalBufferBasedABR = Boolean(experimentalBufferBasedABR);
+    this.experimentalLeastPixelDiffSelector = Boolean(experimentalLeastPixelDiffSelector);
     this.withCredentials = withCredentials;
     this.tech_ = tech;
     this.vhs_ = tech.vhs;
@@ -397,12 +399,13 @@ export class MasterPlaylistController extends videojs.EventTarget {
    */
   getAudioTrackPlaylists_() {
     const master = this.master();
+    const defaultPlaylists = master && master.playlists || [];
 
     // if we don't have any audio groups then we can only
     // assume that the audio tracks are contained in masters
     // playlist array, use that or an empty array.
     if (!master || !master.mediaGroups || !master.mediaGroups.AUDIO) {
-      return master && master.playlists || [];
+      return defaultPlaylists;
     }
 
     const AUDIO = master.mediaGroups.AUDIO;
@@ -427,7 +430,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     // no active track no playlists.
     if (!track) {
-      return [];
+      return defaultPlaylists;
     }
 
     const playlists = [];
@@ -438,12 +441,27 @@ export class MasterPlaylistController extends videojs.EventTarget {
       if (AUDIO[group][track.label]) {
         const properties = AUDIO[group][track.label];
 
-        if (properties.playlists) {
+        if (properties.playlists && properties.playlists.length) {
           playlists.push.apply(playlists, properties.playlists);
-        } else {
+        } else if (properties.uri) {
           playlists.push(properties);
+        } else if (master.playlists.length) {
+          // if an audio group does not have a uri
+          // see if we have main playlists that use it as a group.
+          // if we do then add those to the playlists list.
+          for (let i = 0; i < master.playlists.length; i++) {
+            const playlist = master.playlists[i];
+
+            if (playlist.attributes && playlist.attributes.AUDIO && playlist.attributes.AUDIO === group) {
+              playlists.push(playlist);
+            }
+          }
         }
       }
+    }
+
+    if (!playlists.length) {
+      return defaultPlaylists;
     }
 
     return playlists;

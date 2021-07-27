@@ -186,8 +186,13 @@ export const useFakeEnvironment = function(assert) {
   const realXMLHttpRequest = videojs.xhr.XMLHttpRequest;
 
   const fakeEnvironment = {
+    objurls: [],
     requests: [],
     restore() {
+      fakeEnvironment.objurls.forEach(function(objurl) {
+        window.URL.revokeObjectURL(objurl);
+      });
+      window.URL.createObjectURL = realCreateObjectURL;
       this.clock.restore();
       videojs.xhr.XMLHttpRequest = realXMLHttpRequest;
       this.xhr.restore();
@@ -244,6 +249,14 @@ export const useFakeEnvironment = function(assert) {
     fakeEnvironment.requests.push(xhr);
   };
   videojs.xhr.XMLHttpRequest = fakeEnvironment.xhr;
+
+  window.URL.createObjectURL = (object) => {
+    const objurl = realCreateObjectURL(object);
+
+    fakeEnvironment.objurls.push(objurl);
+
+    return objurl;
+  };
 
   return fakeEnvironment;
 };
