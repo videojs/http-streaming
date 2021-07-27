@@ -317,7 +317,9 @@ QUnit.module('Configuration - Options', {
     this.env.restore();
     videojs.Vhs.supportsNativeHls = this.old.NativeHlsSupport;
 
-    this.player.dispose();
+    if (this.player) {
+      this.player.dispose();
+    }
     videojs.options.vhs = {};
 
   }
