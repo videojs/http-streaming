@@ -290,8 +290,7 @@ export let simpleSelector = function(
   // resolutionPlusOneRep and resolutionBestRep and all
   // the code involving them should be removed.
   if (masterPlaylistController.experimentalLeastPixelDiffSelector) {
-    // find the smallest variant that is larger than the player
-    // if there is no match of exact resolution
+    // find the variant that is closest to the players pixel size
     const leastPixelDiffList = haveResolution.map((rep) => {
       rep.pixelDiff = Math.abs(rep.width - playerWidth) + Math.abs(rep.height - playerHeight);
       return rep;
