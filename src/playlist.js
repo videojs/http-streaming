@@ -382,7 +382,8 @@ export const getMediaInfoForTime = function({
   currentTime,
   startingSegmentIndex,
   startingPartIndex,
-  startTime
+  startTime,
+  experimentalExactManifestTimings
 }) {
 
   let time = currentTime - startTime;
@@ -415,19 +416,23 @@ export const getMediaInfoForTime = function({
 
         time += partAndSegment.duration;
 
-        // TODO: consider not using TIME_FUDGE_FACTOR at all here
-        if ((time + TIME_FUDGE_FACTOR) > 0) {
-          return {
-            partIndex: partAndSegment.partIndex,
-            segmentIndex: partAndSegment.segmentIndex,
-            startTime: startTime - sumDurations({
-              defaultDuration: playlist.targetDuration,
-              durationList: partsAndSegments,
-              startIndex,
-              endIndex: i
-            })
-          };
+        if (experimentalExactManifestTimings) {
+          if (time < 0) {
+            continue;
+          }
+        } else if ((time + TIME_FUDGE_FACTOR) <= 0) {
+          continue;
         }
+        return {
+          partIndex: partAndSegment.partIndex,
+          segmentIndex: partAndSegment.segmentIndex,
+          startTime: startTime - sumDurations({
+            defaultDuration: playlist.targetDuration,
+            durationList: partsAndSegments,
+            startIndex,
+            endIndex: i
+          })
+        };
       }
     }
 
@@ -446,6 +451,7 @@ export const getMediaInfoForTime = function({
   if (startIndex < 0) {
     for (let i = startIndex; i < 0; i++) {
       time -= playlist.targetDuration;
+
       if (time < 0) {
         return {
           partIndex: partsAndSegments[0] && partsAndSegments[0].partIndex || null,
@@ -464,19 +470,24 @@ export const getMediaInfoForTime = function({
 
     time -= partAndSegment.duration;
 
-    // TODO: consider not using TIME_FUDGE_FACTOR at all here
-    if ((time - TIME_FUDGE_FACTOR) < 0) {
-      return {
-        partIndex: partAndSegment.partIndex,
-        segmentIndex: partAndSegment.segmentIndex,
-        startTime: startTime + sumDurations({
-          defaultDuration: playlist.targetDuration,
-          durationList: partsAndSegments,
-          startIndex,
-          endIndex: i
-        })
-      };
+    if (experimentalExactManifestTimings) {
+      if (time > 0) {
+        continue;
+      }
+    } else if ((time - TIME_FUDGE_FACTOR) >= 0) {
+      continue;
     }
+
+    return {
+      partIndex: partAndSegment.partIndex,
+      segmentIndex: partAndSegment.segmentIndex,
+      startTime: startTime + sumDurations({
+        defaultDuration: playlist.targetDuration,
+        durationList: partsAndSegments,
+        startIndex,
+        endIndex: i
+      })
+    };
   }
 
   // We are out of possible candidates so load the last one...
