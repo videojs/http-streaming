@@ -245,6 +245,7 @@
     'type',
     'keysystems',
     'buffer-water',
+    'exact-manifest-timings',
     'pixel-diff-selector',
     'override-native',
     'preload',
@@ -285,7 +286,8 @@
       'buffer-water',
       'override-native',
       'liveui',
-      'pixel-diff-selector'
+      'pixel-diff-selector',
+      'exact-manifest-timings'
     ].forEach(function(name) {
       stateEls[name].addEventListener('change', function(event) {
         saveState();
@@ -350,6 +352,7 @@
               overrideNative: getInputValue(stateEls['override-native']),
               experimentalBufferBasedABR: getInputValue(stateEls['buffer-water']),
               experimentalLLHLS: getInputValue(stateEls.llhls),
+              experimentalExactManifestTimings: getInputValue(stateEls['exact-manifest-timings']),
               experimentalLeastPixelDiffSelector: getInputValue(stateEls['pixel-diff-selector'])
             }
           }

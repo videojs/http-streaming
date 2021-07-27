@@ -234,7 +234,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       inbandTextTracks: this.inbandTextTracks_,
       cacheEncryptionKeys,
       sourceUpdater: this.sourceUpdater_,
-      timelineChangeController: this.timelineChangeController_
+      timelineChangeController: this.timelineChangeController_,
+      experimentalExactManifestTimings: options.experimentalExactManifestTimings
     };
 
     // The source type check not only determines whether a special DASH playlist loader
