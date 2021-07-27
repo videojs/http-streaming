@@ -16,7 +16,9 @@ const files = [
   'node_modules/d3/d3.min.js',
   'logo.svg',
   'scripts/sources.json',
-  'scripts/index-demo-page.js'
+  'scripts/index-demo-page.js',
+  'scripts/dash-manifest-object.json',
+  'scripts/hls-manifest-object.json'
 ];
 
 // cleanup previous deploy

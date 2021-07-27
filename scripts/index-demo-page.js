@@ -23,11 +23,15 @@
 
     window.mpc.fastQualityChange_();
   });
+  var isManifestObjectType = function(url) {
+    return (/application\/vnd\.videojs\.vhs\+json/).test(url);
+  };
   var hlsOptGroup = document.querySelector('[label="hls"]');
   var dashOptGroup = document.querySelector('[label="dash"]');
   var drmOptGroup = document.querySelector('[label="drm"]');
   var liveOptGroup = document.querySelector('[label="live"]');
   var llliveOptGroup = document.querySelector('[label="low latency live"]');
+  var manifestOptGroup = document.querySelector('[label="json manifest object"]');
 
   // get the sources list squared away
   var xhr = new window.XMLHttpRequest();
@@ -61,9 +65,38 @@
         dashOptGroup.appendChild(option);
       }
     });
+
   });
   xhr.open('GET', './scripts/sources.json');
   xhr.send();
+
+  var hlsManifestXhr = new window.XMLHttpRequest();
+
+  hlsManifestXhr.addEventListener('load', function() {
+    var hlsManifest = hlsManifestXhr.responseText;
+    var option = document.createElement('option');
+
+    option.innerText = 'HLS Manifest Object Test, does not survive page reload';
+    option.value = `data:application/vnd.videojs.vhs+json,${hlsManifest}`;
+
+    manifestOptGroup.appendChild(option);
+  });
+  hlsManifestXhr.open('GET', './scripts/hls-manifest-object.json');
+  hlsManifestXhr.send();
+
+  var dashManifestXhr = new window.XMLHttpRequest();
+
+  dashManifestXhr.addEventListener('load', function() {
+    var dashManifest = dashManifestXhr.responseText;
+    var option = document.createElement('option');
+
+    option.innerText = 'Dash Manifest Object Test, does not survive page reload';
+    option.value = `data:application/vnd.videojs.vhs+json,${dashManifest}`;
+
+    manifestOptGroup.appendChild(option);
+  });
+  dashManifestXhr.open('GET', './scripts/dash-manifest-object.json');
+  dashManifestXhr.send();
 
   // all relevant elements
   var urlButton = document.getElementById('load-url');
@@ -72,6 +105,9 @@
 
   var getInputValue = function(el) {
     if (el.type === 'url' || el.type === 'text' || el.nodeName.toLowerCase() === 'textarea') {
+      if (isManifestObjectType(el.value)) {
+        return '';
+      }
       return encodeURIComponent(el.value);
     } else if (el.type === 'select-one') {
       return el.options[el.selectedIndex].value;
@@ -421,6 +457,15 @@
     var urlButtonClick = function(event) {
       var ext;
       var type = stateEls.type.value;
+
+      // reset type if it's a manifest object's type
+      if (type === 'application/vnd.videojs.vhs+json') {
+        type = '';
+      }
+
+      if (isManifestObjectType(stateEls.url.value)) {
+        type = 'application/vnd.videojs.vhs+json';
+      }
 
       if (!type.trim()) {
         ext = getFileExtension(stateEls.url.value);
