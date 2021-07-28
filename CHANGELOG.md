@@ -1,3 +1,25 @@
+<a name="2.10.0"></a>
+# [2.10.0](https://github.com/videojs/http-streaming/compare/v2.9.3...v2.10.0) (2021-07-28)
+
+### Features
+
+* add experimental pixel diff selector behind a flag defaulted off ([#786](https://github.com/videojs/http-streaming/issues/786)) ([a0c0359](https://github.com/videojs/http-streaming/commit/a0c0359))
+* Add experimentalExactManifestTimings which forgoes TIME_FUDGE_FACTOR during segment choice ([#1165](https://github.com/videojs/http-streaming/issues/1165)) ([67a1201](https://github.com/videojs/http-streaming/commit/67a1201))
+
+### Bug Fixes
+
+* exclude playlists on DRM key status of output-restricted ([#1171](https://github.com/videojs/http-streaming/issues/1171)) ([de5baa7](https://github.com/videojs/http-streaming/commit/de5baa7))
+* Generate the correct number of segments for segment template multi period dash ([#1175](https://github.com/videojs/http-streaming/issues/1175)) ([413fee3](https://github.com/videojs/http-streaming/commit/413fee3))
+* update vhs-utils to correctly detect mp4 starting with moof/moov ([#1173](https://github.com/videojs/http-streaming/issues/1173)) ([464a365](https://github.com/videojs/http-streaming/commit/464a365))
+
+### Chores
+
+* add tests/sources for manifest object urls ([#1168](https://github.com/videojs/http-streaming/issues/1168)) ([5f60612](https://github.com/videojs/http-streaming/commit/5f60612))
+
+### Tests
+
+* refactor tests so that players/blob urls/ and media elements are cleaned up ([#1174](https://github.com/videojs/http-streaming/issues/1174)) ([b3d1ec0](https://github.com/videojs/http-streaming/commit/b3d1ec0))
+
 <a name="2.9.3"></a>
 ## [2.9.3](https://github.com/videojs/http-streaming/compare/v2.9.2...v2.9.3) (2021-07-19)
 
