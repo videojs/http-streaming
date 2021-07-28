@@ -1001,6 +1001,16 @@ class VhsHandler extends Component {
       audioMedia: audioPlaylistLoader && audioPlaylistLoader.media()
     });
 
+    this.player_.tech_.on('keystatuschange', (e) => {
+      if (e.status === 'output-restricted') {
+        this.masterPlaylistController_.blacklistCurrentPlaylist({
+          playlist: this.masterPlaylistController_.media(),
+          message: `DRM keystatus changed to ${e.status}. Playlist will fail to play. Check for HDCP content.`,
+          blacklistDuration: Infinity
+        });
+      }
+    });
+
     // In IE11 this is too early to initialize media keys, and IE11 does not support
     // promises.
     if (videojs.browser.IE_VERSION === 11 || !didSetupEmeOptions) {

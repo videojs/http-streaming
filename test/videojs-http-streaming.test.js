@@ -4503,6 +4503,102 @@ QUnit.test('configures eme for HLS on source buffer creation', function(assert) 
   }, 'set source eme options');
 });
 
+QUnit.test('eme handles keystatuschange where status is output-restricted', function(assert) {
+  this.player.eme = {
+    options: {
+      previousSetting: 1
+    }
+  };
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/x-mpegURL',
+    keySystems: {
+      keySystem1: {
+        url: 'url1'
+      }
+    }
+  });
+
+  this.clock.tick(1);
+
+  const media = {
+    attributes: {
+      CODECS: 'avc1.420015, mp4a.40.2c'
+    },
+    contentProtection: {
+      keySystem1: {
+        pssh: 'test'
+      }
+    }
+  };
+
+  this.player.tech_.vhs.playlists = {
+    master: { playlists: [media] },
+    media: () => media
+  };
+
+  const excludes = [];
+
+  this.player.tech_.vhs.masterPlaylistController_.blacklistCurrentPlaylist = (exclude) => {
+    excludes.push(exclude);
+  };
+
+  this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.trigger('createdsourcebuffers');
+  this.player.tech_.trigger({type: 'keystatuschange', status: 'output-restricted'});
+
+  assert.deepEqual(excludes, [{
+    blacklistDuration: Infinity,
+    message: 'DRM keystatus changed to output-restricted. Playlist will fail to play. Check for HDCP content.',
+    playlist: undefined
+  }], 'excluded playlist');
+});
+
+QUnit.test('eme handles keystatuschange where status is usable', function(assert) {
+  this.player.eme = {
+    options: {
+      previousSetting: 1
+    }
+  };
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/x-mpegURL',
+    keySystems: {
+      keySystem1: {
+        url: 'url1'
+      }
+    }
+  });
+
+  this.clock.tick(1);
+
+  const media = {
+    attributes: {
+      CODECS: 'avc1.420015, mp4a.40.2c'
+    },
+    contentProtection: {
+      keySystem1: {
+        pssh: 'test'
+      }
+    }
+  };
+
+  this.player.tech_.vhs.playlists = {
+    master: { playlists: [media] },
+    media: () => media
+  };
+
+  const excludes = [];
+
+  this.player.tech_.vhs.masterPlaylistController_.blacklistCurrentPlaylist = (exclude) => {
+    excludes.push(exclude);
+  };
+
+  this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.trigger('createdsourcebuffers');
+  this.player.tech_.trigger({type: 'keystatuschange', status: 'usable'});
+
+  assert.deepEqual(excludes, [], 'did not exclude anything');
+});
+
 QUnit.test('integration: configures eme for DASH on source buffer creation', function(assert) {
   assert.timeout(3000);
   const done = assert.async();
