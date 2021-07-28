@@ -242,6 +242,32 @@ QUnit[testFn]('Live DASH', function(assert) {
   });
 });
 
+QUnit[testFn]('Multiperiod dash works and can end', function(assert) {
+  const done = assert.async();
+
+  assert.expect(2);
+  const player = this.player;
+
+  playFor(player, 2, function() {
+    assert.ok(true, 'played for at least two seconds');
+    assert.equal(player.error(), null, 'has no player errors');
+
+    player.one('ended', () => {
+      assert.ok(true, 'triggered ended event');
+      done();
+    });
+
+    player.currentTime(player.duration() - 0.5);
+
+    done();
+  });
+
+  player.src({
+    src: 'https://media.axprod.net/TestVectors/v7-Clear/Manifest_MultiPeriod.mpd',
+    type: 'application/dash+xml'
+  });
+});
+
 // These videos don't work on firefox consistenly. Seems like
 // firefox has lower performance or more aggressive throttling than chrome
 // which causes a variety of issues.
