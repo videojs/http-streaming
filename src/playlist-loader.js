@@ -705,6 +705,10 @@ export default class PlaylistLoader extends EventTarget {
    * start loading of the playlist
    */
   load(shouldDelay) {
+    if (this.mediaUpdateTimeout) {
+      window.clearTimeout(this.mediaUpdateTimeout);
+      this.mediaUpdateTimeout = null;
+    }
     const media = this.media();
 
     if (shouldDelay) {
