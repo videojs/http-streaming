@@ -2101,7 +2101,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     );
   });
 
-  QUnit.test('mediaupdatetimeout works as expeted for live playlists', function(assert) {
+  QUnit.test('mediaupdatetimeout works as expected for live playlists', function(assert) {
     const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
     let media =
       '#EXTM3U\n' +
