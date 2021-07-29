@@ -505,13 +505,7 @@ export default class PlaylistLoader extends EventTarget {
       this.trigger('playlistunchanged');
     }
 
-    // refresh live playlists after a target duration passes
-    if (!this.media().endList) {
-      window.clearTimeout(this.mediaUpdateTimeout);
-      this.mediaUpdateTimeout = window.setTimeout(() => {
-        this.trigger('mediaupdatetimeout');
-      }, refreshDelay(this.media(), !!update));
-    }
+    this.updateMediaUpdateTimeout_(refreshDelay(this.media(), !!update));
 
     this.trigger('loadedplaylist');
   }
@@ -619,6 +613,8 @@ export default class PlaylistLoader extends EventTarget {
       return;
     }
 
+    this.updateMediaUpdateTimeout_(refreshDelay(playlist, true));
+
     // switching to the active playlist is a no-op
     if (!mediaChange) {
       return;
@@ -679,8 +675,12 @@ export default class PlaylistLoader extends EventTarget {
    * pause loading of the playlist
    */
   pause() {
+    if (this.mediaUpdateTimeout) {
+      window.clearTimeout(this.mediaUpdateTimeout);
+      this.mediaUpdateTimeout = null;
+    }
+
     this.stopRequest();
-    window.clearTimeout(this.mediaUpdateTimeout);
     if (this.state === 'HAVE_NOTHING') {
       // If we pause the loader before any data has been retrieved, its as if we never
       // started, so reset to an unstarted state.
@@ -705,14 +705,16 @@ export default class PlaylistLoader extends EventTarget {
    * start loading of the playlist
    */
   load(shouldDelay) {
-    window.clearTimeout(this.mediaUpdateTimeout);
-
     const media = this.media();
 
     if (shouldDelay) {
       const delay = media ? ((media.partTargetDuration || media.targetDuration) / 2) * 1000 : 5 * 1000;
 
-      this.mediaUpdateTimeout = window.setTimeout(() => this.load(), delay);
+      this.mediaUpdateTimeout = window.setTimeout(() => {
+        this.mediaUpdateTimeout = null;
+        this.load();
+      }, delay);
+
       return;
     }
 
@@ -726,6 +728,24 @@ export default class PlaylistLoader extends EventTarget {
     } else {
       this.trigger('loadedplaylist');
     }
+  }
+
+  updateMediaUpdateTimeout_(delay) {
+    if (this.mediaUpdateTimeout) {
+      window.clearTimeout(this.mediaUpdateTimeout);
+      this.mediaUpdateTimeout = null;
+    }
+
+    // we only have use mediaupdatetimeout for live playlists.
+    if (!this.media() || this.media().endList) {
+      return;
+    }
+
+    this.mediaUpdateTimeout = window.setTimeout(() => {
+      this.mediaUpdateTimeout = null;
+      this.trigger('mediaupdatetimeout');
+      this.updateMediaUpdateTimeout_(delay);
+    }, delay);
   }
 
   /**

@@ -67,7 +67,7 @@ const shouldSwitchToMedia = function({
   // This is because in LIVE, the player plays 3 segments from the end of the
   // playlist, and if `BUFFER_LOW_WATER_LINE` is greater than the duration availble
   // in those segments, a viewer will never experience a rendition upswitch.
-  if (!currentPlaylist || !currentPlaylist.endList) {
+  if (!currentPlaylist) {
     log(`${sharedLogLine} as current playlist ` + (!currentPlaylist ? 'is not set' : 'is live'));
     return true;
   }

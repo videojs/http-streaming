@@ -2101,6 +2101,62 @@ QUnit.module('Playlist Loader', function(hooks) {
     );
   });
 
+  QUnit.test('mediaupdatetimeout works as expeted for live playlists', function(assert) {
+    const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+    let media =
+      '#EXTM3U\n' +
+      '#EXT-X-MEDIA-SEQUENCE:0\n' +
+      '#EXTINF:5,\n' +
+      'low-0.ts\n' +
+      '#EXTINF:5,\n' +
+      'low-1.ts\n';
+
+    loader.load();
+
+    this.requests.shift().respond(
+      200, null,
+      '#EXTM3U\n' +
+      '#EXT-X-STREAM-INF:BANDWIDTH=1\n' +
+      'media.m3u8\n' +
+      '#EXT-X-STREAM-INF:BANDWIDTH=1\n' +
+      'media2.m3u8\n'
+    );
+
+    this.requests.shift().respond(200, null, media);
+
+    assert.ok(loader.mediaUpdateTimeout, 'has an initial media update timeout');
+
+    this.clock.tick(5000);
+
+    media += '#EXTINF:5\nlow-2.ts\n';
+
+    this.requests.shift().respond(200, null, media);
+
+    assert.ok(loader.mediaUpdateTimeout, 'media update timeout created another');
+
+    loader.pause();
+    assert.notOk(loader.mediaUpdateTimeout, 'media update timeout cleared');
+
+    loader.media(loader.master.playlists[0]);
+
+    assert.ok(loader.mediaUpdateTimeout, 'media update timeout created again');
+    assert.equal(this.requests.length, 0, 'no request');
+
+    loader.media(loader.master.playlists[1]);
+
+    assert.ok(loader.mediaUpdateTimeout, 'media update timeout created');
+    assert.equal(this.requests.length, 1, 'playlist requested');
+
+    this.requests.shift().respond(500, null, 'fail');
+
+    assert.ok(loader.mediaUpdateTimeout, 'media update timeout exists after request failure');
+
+    this.clock.tick(5000);
+
+    assert.ok(loader.mediaUpdateTimeout, 'media update timeout created again');
+    assert.equal(this.requests.length, 1, 'playlist re-requested');
+  });
+
   QUnit.module('llhls', {
     beforeEach() {
       this.fakeVhs.options_ = {experimentalLLHLS: true};
