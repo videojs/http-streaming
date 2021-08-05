@@ -587,6 +587,14 @@ export default class PlaylistLoader extends EventTarget {
       playlist = this.master.playlists[playlist];
     }
 
+    if (this.pendingMedia_) {
+      this.pendingMedia_ = null;
+    }
+
+    if (this.pendingMediaHandler_) {
+      this.off('mediachange', this.pendingMediaHandler_);
+    }
+
     window.clearTimeout(this.finalRenditionTimeout);
 
     if (shouldDelay) {
@@ -600,6 +608,18 @@ export default class PlaylistLoader extends EventTarget {
     const startingState = this.state;
     const mediaChange = !this.media_ || playlist.id !== this.media_.id;
     const masterPlaylistRef = this.master.playlists[playlist.id];
+
+    if (mediaChange) {
+      const previousMedia = this.media_;
+
+      this.pendingMedia_ = playlist;
+      this.pendingMediaHandler_ = () => {
+        this.previousMedia_ = previousMedia;
+        this.pendingMedia_ = null;
+        this.pendingMediaHandler_ = null;
+      };
+      this.one('mediachange', this.pendingMediaHandler_);
+    }
 
     // switch to fully loaded playlists immediately
     if (masterPlaylistRef && masterPlaylistRef.endList ||

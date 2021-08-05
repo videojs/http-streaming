@@ -25,6 +25,7 @@ import {
 import { codecsForPlaylist, unwrapCodecList, codecCount } from './util/codecs.js';
 import { createMediaTypes, setupMediaGroups } from './media-groups';
 import logger from './util/logger';
+import MediaGroupController from './media-group-controller.js';
 
 const ABORT_EARLY_BLACKLIST_SECONDS = 60 * 2;
 
@@ -265,6 +266,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
       new DashPlaylistLoader(src, this.vhs_, this.requestOptions_) :
       new PlaylistLoader(src, this.vhs_, this.requestOptions_);
     this.setupMasterPlaylistLoaderListeners_();
+
+    this.mediaGroupController_ = new MediaGroupController({
+      tech,
+      mainPlaylistLoader: this.masterPlaylistLoader_
+    });
 
     // setup segment loaders
     // combined audio/video or just video when alternate audio track is selected
