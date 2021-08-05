@@ -613,6 +613,11 @@ export default class PlaylistLoader extends EventTarget {
       return;
     }
 
+    // We update/set the timeout here so that live playlists
+    // that are not a media change will "start" the loader as expected.
+    // We expect that this function will start the media update timeout
+    // cycle again. This also prevents a playlist switch failure from
+    // causing us to stall during live.
     this.updateMediaUpdateTimeout_(refreshDelay(playlist, true));
 
     // switching to the active playlist is a no-op
