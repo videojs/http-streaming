@@ -2033,6 +2033,36 @@ QUnit.test(
 
     mediaChanges.length = 0;
 
+    endList = false;
+    currentTime = 100;
+    currentPlaylistBandwidth = 1000;
+    nextPlaylistBandwidth = 1001;
+    buffered = [];
+    this.masterPlaylistController.mainSegmentLoader_.trigger('bandwidthupdate');
+    assert.equal(
+      mediaChanges.length,
+      1,
+      'changes live media when no buffer and higher bandwidth playlist'
+    );
+    buffered = [[0, 100], [100, 109]];
+    this.masterPlaylistController.mainSegmentLoader_.trigger('bandwidthupdate');
+    assert.equal(
+      mediaChanges.length,
+      2,
+      'changes live media when insufficient forward buffer and higher ' +
+               'bandwidth playlist'
+    );
+    buffered = [[0, 100], [100, 130]];
+    this.masterPlaylistController.mainSegmentLoader_.trigger('bandwidthupdate');
+    assert.equal(
+      mediaChanges.length,
+      3,
+      'changes live media when sufficient forward buffer and higher ' +
+               'bandwidth playlist'
+    );
+
+    mediaChanges.length = 0;
+
     endList = true;
     currentTime = 9;
     duration = 18;
@@ -5852,6 +5882,15 @@ QUnit.test('true if a no current playlist', function(assert) {
   const nextPlaylist = {id: 'foo', endList: true};
 
   assert.ok(mpc.shouldSwitchToMedia_(nextPlaylist), 'should switch without currentPlaylist');
+});
+
+QUnit.test('true if current playlist is live', function(assert) {
+  const mpc = this.masterPlaylistController;
+
+  mpc.masterPlaylistLoader_.media = () => ({endList: false, id: 'bar'});
+  const nextPlaylist = {id: 'foo', endList: true};
+
+  assert.ok(mpc.shouldSwitchToMedia_(nextPlaylist), 'should switch with live currentPlaylist');
 });
 
 QUnit.test('true if duration < 30', function(assert) {
