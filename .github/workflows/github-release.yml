@@ -1,0 +1,37 @@
+name: github-release
+on:
+  push:
+    tags:
+    - "v[0-9]+.[0-9]+.[0-9]+"
+jobs:
+  github-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: read node version from .nvmrc
+        run: echo ::set-output name=NVMRC::$(cat .nvmrc)
+        shell: bash
+        id: nvm
+
+      - name: setup node
+        uses: actions/setup-node@v2
+        with:
+          node-version: '${{steps.nvm.outputs.NVMRC}}'
+          cache: npm
+
+      - name: npm install
+        run: npm i --prefer-offline --no-audit
+
+      - name: Generate current release changelog
+        run: ./node_modules/.bin/conventional-changelog -p videojs -r 2 -o RELEASE-CHANGELOG.md
+
+      - name: Create Github release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: RELEASE-CHANGELOG.md
+          token: ${{github.token}}
+          files:
