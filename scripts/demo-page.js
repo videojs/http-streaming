@@ -178,7 +178,7 @@
       query += symbol + elName + '=' + getInputValue(stateEls[elName]);
     });
 
-    window.history.replaceState({}, 'vhs demo', query);
+    // window.history.replaceState({}, 'vhs demo', query);
   };
 
   window.URLSearchParams = window.URLSearchParams || function(locationSearch) {
