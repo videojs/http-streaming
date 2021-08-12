@@ -34,12 +34,16 @@ jobs:
       - name: build
         run: npm run build-prod
 
-      - name: Generate current release changelog
-        run: ./node_modules/.bin/conventional-changelog -p videojs -r 2 -o RELEASE-CHANGELOG.md
-
       - name: Check if this is a pre-release
-        run: echo ::set-output name=IS_PRE_RELEASE::$(./node_modules/.bin/is-prerelease && echo "true" || echo "false")
+        run: echo ::set-output name=IS_PRE_RELEASE::$(npx is-prerelease && echo "true" || echo "false")
         id: pre-release-check
+
+      - name: delete prerelease tags to build changelog
+        run: git tag -l | grep -vE '^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$' | xargs git tag -d
+        if: ${{ steps.pre-release-check.outputs.IS_PRE_RELEASE == 'false' }}
+
+      - name: Generate current release changelog
+        run: npx conventional-changelog -p videojs -r 2 -o RELEASE-CHANGELOG.md
 
       - name: get dashed package version for netlify
         run: echo ::set-output name=VERSION::$(node -e "process.stdout.write(require('./package.json').version.split('.').join('-'))")
