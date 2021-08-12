@@ -31,27 +31,24 @@ jobs:
       - name: build
         run: npm run build-prod
 
-      - name: get all dist files
-        run: echo ::set-output name=DISTFILES::$(find dist -type f -name '*\.js' -or -name '*\.css')
-        shell: bash
-        id: dist-files
+      - name: Generate current release changelog
+        run: ./node_modules/.bin/conventional-changelog -p videojs -r 2 -o RELEASE-CHANGELOG.md
 
       - name: get dashed package version for netlify
         run: echo ::set-output name=VERSION::$(node -e "process.stdout.write(require('./package.json').version.split('.').join('-'))")
         id: get-version
         shell: bash
 
-      - name: Generate current release changelog
-        run: ./node_modules/.bin/conventional-changelog -p videojs -r 2 -o RELEASE-CHANGELOG.md
-
       - name: add netlify preview to release notes
         run: |
           echo "" >> RELEASE-CHANGELOG.md
-          echo "[netlify preview](https://v${{steps.get-version.outputs.VERSION}--videojs-http-streaming.netlify.app)" >> RELEASE-CHANGELOG.md
+          echo "[netlify preview for this version](https://v${{steps.get-version.outputs.VERSION}}--videojs-http-streaming.netlify.app)" >> RELEASE-CHANGELOG.md
 
       - name: Create Github release
         uses: softprops/action-gh-release@v1
         with:
           body_path: RELEASE-CHANGELOG.md
           token: ${{github.token}}
-          files: ${{steps.dist-files.outputs.DISTFILES}}
+          files: |
+            dist/**/*.js
+            dist/**/*.css
