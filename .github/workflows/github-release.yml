@@ -9,6 +9,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        # We neeed to fetch the entire history as conventional-changelog needs
+        # access to any number of git commits to build the changelog.
         with:
           fetch-depth: 0
 
