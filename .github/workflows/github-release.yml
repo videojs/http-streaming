@@ -37,6 +37,10 @@ jobs:
       - name: Generate current release changelog
         run: ./node_modules/.bin/conventional-changelog -p videojs -r 2 -o RELEASE-CHANGELOG.md
 
+      - name: Check if this is a pre-release
+        run: echo ::set-output name=IS_PRE_RELEASE::$(./node_modules/.bin/is-prerelease && echo "true" || echo "false")
+        id: pre-release-check
+
       - name: get dashed package version for netlify
         run: echo ::set-output name=VERSION::$(node -e "process.stdout.write(require('./package.json').version.split('.').join('-'))")
         id: get-version
@@ -52,6 +56,7 @@ jobs:
         with:
           body_path: RELEASE-CHANGELOG.md
           token: ${{github.token}}
+          prerelease: ${{steps.pre-release-check.outputs.IS_PRE_RELEASE}}
           files: |
             dist/**/*.js
             dist/**/*.css
