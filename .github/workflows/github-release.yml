@@ -2,7 +2,10 @@ name: github-release
 on:
   push:
     tags:
+    # match semver versions
     - "v[0-9]+.[0-9]+.[0-9]+"
+    # match semver pre-releases
+    - "v[0-9]+.[0-9]+.[0-9]+-*?"
 jobs:
   github-release:
     runs-on: ubuntu-latest
