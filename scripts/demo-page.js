@@ -273,6 +273,7 @@
     'debug',
     'autoplay',
     'muted',
+    'fluid',
     'minified',
     'sync-workers',
     'liveui',
@@ -301,6 +302,11 @@
       if (s.value === state.url) {
         sources.selectedIndex = i;
       }
+    });
+
+    stateEls.fluid.addEventListener('change', function(event) {
+      saveState();
+      window.player.fluid(event.target.checked);
     });
 
     stateEls.muted.addEventListener('change', function(event) {
@@ -430,6 +436,7 @@
 
         stateEls.debug.dispatchEvent(newEvent('change'));
         stateEls.muted.dispatchEvent(newEvent('change'));
+        stateEls.fluid.dispatchEvent(newEvent('change'));
         stateEls.autoplay.dispatchEvent(newEvent('change'));
 
         // run the load url handler for the intial source
