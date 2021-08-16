@@ -306,6 +306,13 @@
 
     stateEls.fluid.addEventListener('change', function(event) {
       saveState();
+      if (event.target.checked) {
+        window['player-fixture'].style.aspectRatio = '16/9';
+        window['player-fixture'].style.minHeight = 'initial';
+      } else {
+        window['player-fixture'].style.aspectRatio = '';
+        window['player-fixture'].style.minHeight = '250px';
+      }
       window.player.fluid(event.target.checked);
     });
 
