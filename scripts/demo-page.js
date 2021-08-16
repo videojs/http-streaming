@@ -269,6 +269,116 @@
     representationsEl.selectedIndex = selectedIndex;
   };
 
+  function getBuffered(buffered) {
+    var bufferedText = '';
+
+    if (!buffered) {
+      return bufferedText;
+    }
+
+    if (buffered.length) {
+      bufferedText += buffered.start(0) + ' - ' + buffered.end(0);
+    }
+    for (i = 1; i < buffered.length; i++) {
+      bufferedText += ', ' + buffered.start(i) + ' - ' + buffered.end(i);
+    }
+    return bufferedText;
+  }
+
+  var setupPlayerStats = function(player) {
+    var currentTimeStat = document.querySelector('.current-time-stat');
+    var bufferedStat = document.querySelector('.buffered-stat');
+    var videoBufferedStat = document.querySelector('.video-buffered-stat');
+    var audioBufferedStat = document.querySelector('.audio-buffered-stat');
+    var seekableStartStat = document.querySelector('.seekable-start-stat');
+    var seekableEndStat = document.querySelector('.seekable-end-stat');
+    var videoBitrateState = document.querySelector('.video-bitrate-stat');
+    var measuredBitrateStat = document.querySelector('.measured-bitrate-stat');
+    var videoTimestampOffset = document.querySelector('.video-timestampoffset');
+    var audioTimestampOffset = document.querySelector('.audio-timestampoffset');
+    var qualityButtons = document.querySelector('.quality-buttons');
+
+    player.on('timeupdate', function() {
+      currentTimeStat.textContent = player.currentTime().toFixed(1);
+    });
+
+    window.stats_timer = window.setInterval(function() {
+      var bufferedText = '', oldStart, oldEnd, i;
+
+      // seekable
+      var seekable = player.seekable();
+      if (seekable && seekable.length) {
+
+        oldStart = seekableStartStat.textContent;
+        if (seekable.start(0).toFixed(1) !== oldStart) {
+          seekableStartStat.textContent = seekable.start(0).toFixed(1);
+        }
+        oldEnd = seekableEndStat.textContent;
+        if (seekable.end(0).toFixed(1) !== oldEnd) {
+          seekableEndStat.textContent = seekable.end(0).toFixed(1);
+        }
+      }
+
+      // buffered
+      bufferedStat.textContent = getBuffered(player.buffered());
+
+      // exit early if no VHS
+      if (!player.tech(true).vhs) {
+        videoBufferedStat.textContent = '';
+        audioBufferedStat.textContent = '';
+        videoBitrateState.textContent = '';
+        measuredBitrateStat.textContent = '';
+        videoTimestampOffset.textContent = '';
+        audioTimestampOffset.textContent = '';
+        return;
+      }
+
+      videoBufferedStat.textContent = getBuffered(
+        player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer &&
+        player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer.buffered
+      );
+
+      // demuxed audio
+      var audioBuffer = getBuffered(
+        player.tech(true).vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer &&
+        player.tech(true).vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer.buffered
+      );
+
+      // muxed audio
+      if (!audioBuffer) {
+        audioBuffer = getBuffered(
+          player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer &&
+          player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer.buffered
+        );
+      }
+      audioBufferedStat.textContent = audioBuffer;
+
+      if (player.tech(true).vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer) {
+        audioTimestampOffset.textContent = player.tech(true).vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer.timestampOffset;
+      } else if (player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer) {
+        audioTimestampOffset.textContent = player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer.timestampOffset;
+      }
+
+      if (player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer) {
+        videoTimestampOffset.textContent = player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer.timestampOffset;
+      }
+
+      // bitrates
+      var playlist = player.tech_.vhs.playlists.media();
+      if (playlist && playlist.attributes && playlist.attributes.BANDWIDTH) {
+        videoBitrateState.textContent = (playlist.attributes.BANDWIDTH / 1024).toLocaleString(undefined, {
+          maximumFractionDigits: 1
+        }) + ' kbps';
+      }
+      if (player.tech_.vhs.bandwidth) {
+        measuredBitrateStat.textContent = (player.tech_.vhs.bandwidth / 1024).toLocaleString(undefined, {
+          maximumFractionDigits: 1
+        }) + ' kbps';
+      }
+
+    }, 100);
+  };
+
   [
     'debug',
     'autoplay',
@@ -406,6 +516,8 @@
             }
           }
         });
+
+        setupPlayerStats(player);
 
         player.on('sourceset', function() {
           var source = player.currentSource();

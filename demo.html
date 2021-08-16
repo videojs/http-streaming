@@ -41,6 +41,9 @@
     <li class="nav-item" role="presentation">
       <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#levels" type="button" role="tab" aria-selected="false">Representations</button>
     </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#player-stats" type="button" role="tab" aria-selected="false">Player Stats</button>
+    </li>
   </ul>
 
   <div class="tab-content container-fluid">
@@ -168,6 +171,31 @@
       <div class="input-group">
         <span class="input-group-text"><label for=representations>Representations</label></span>
         <select id='representations' class="form-select"></select>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="player-stats" role="tabpanel">
+      <div class="player-stats">
+        <dl>
+          <dt>Current Time:</dt>
+          <dd class="current-time-stat">0</dd>
+          <dt>Buffered:</dt>
+          <dd class="buffered-stat">-</dd>
+          <dt>Video Buffered:</dt>
+          <dd class="video-buffered-stat">-</dd>
+          <dt>Audio Buffered:</dt>
+          <dd class="audio-buffered-stat">-</dd>
+          <dt>Seekable:</dt>
+          <dd><span class="seekable-start-stat">-</span> - <span class="seekable-end-stat">-</span></dd>
+          <dt>Video Bitrate:</dt>
+          <dd class="video-bitrate-stat">0 kbps</dd>
+          <dt>Measured Bitrate:</dt>
+          <dd class="measured-bitrate-stat">0 kbps</dd>
+          <dt>Video Timestamp Offset</dt>
+          <dd class="video-timestampoffset">0</dd>
+          <dt>Audio Timestamp Offset</dt>
+          <dd class="audio-timestampoffset">0</dd>
+        </dl>
       </div>
     </div>
 
