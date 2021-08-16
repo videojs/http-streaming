@@ -316,6 +316,7 @@
             var li = document.createElement('li');
             var pre = document.createElement('pre');
 
+            pre.classList.add('border', 'rounded', 'p-2');
             pre.textContent = text;
             li.appendChild(pre);
             segmentMetadata.appendChild(li);
