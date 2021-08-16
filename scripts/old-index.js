@@ -77,7 +77,7 @@
     var option = document.createElement('option');
 
     option.innerText = 'HLS Manifest Object Test, does not survive page reload';
-    option.value = `data:application/vnd.videojs.vhs+json,${hlsManifest}`;
+    option.value = 'data:application/vnd.videojs.vhs+json,' + hlsManifest;
 
     manifestOptGroup.appendChild(option);
   });
@@ -91,7 +91,7 @@
     var option = document.createElement('option');
 
     option.innerText = 'Dash Manifest Object Test, does not survive page reload';
-    option.value = `data:application/vnd.videojs.vhs+json,${dashManifest}`;
+    option.value = 'data:application/vnd.videojs.vhs+json,' + dashManifest;
 
     manifestOptGroup.appendChild(option);
   });
