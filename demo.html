@@ -29,9 +29,9 @@
     </a>
   </header>
 
-  <div id="player-fixture" class="container-fluid pb-3 mb-5"></div>
+  <div id="player-fixture" class="container-fluid pb-3 mb-3"></div>
 
-  <ul class="nav nav-tabs container-fluid" id="myTab" role="tablist">
+  <ul class="nav nav-tabs container-fluid mb-3" id="myTab" role="tablist">
     <li class="nav-item" role="presentation">
       <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#sources" type="button" role="tab" aria-selected="true">Sources</button>
     </li>
@@ -46,7 +46,6 @@
   <div class="tab-content container-fluid">
 
     <div class="tab-pane active" id="sources" role="tabpanel">
-      <h2 class="my-3">Load a URL</h2>
 
       <label for=url class="form-label">Source URL</label>
       <div class="input-group">
@@ -68,22 +67,23 @@
 
       <button id=load-url type=button class="btn btn-primary my-2">Load</button>
 
-      <h2 class="my-3">Load a Source</h2>
-
-      <select id=load-source class="form-select">
-        <optgroup label="hls">
-        </optgroup>
-        <optgroup label="dash">
-        </optgroup>
-        <optgroup label="drm">
-        </optgroup>
-        <optgroup label="live">
-        </optgroup>
-        <optgroup label="low latency live">
-        </optgroup>
-        <optgroup label="json manifest object">
-        </optgroup>
-      </select>
+      <div class="input-group">
+        <span class="input-group-text"><label for=load-source>Preloaded Sources</label></span>
+        <select id=load-source class="form-select">
+          <optgroup label="hls">
+          </optgroup>
+          <optgroup label="dash">
+          </optgroup>
+          <optgroup label="drm">
+          </optgroup>
+          <optgroup label="live">
+          </optgroup>
+          <optgroup label="low latency live">
+          </optgroup>
+          <optgroup label="json manifest object">
+          </optgroup>
+        </select>
+      </div>
     </div>
 
     <div class="tab-pane" id="levels" role="tabpanel">
