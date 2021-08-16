@@ -285,6 +285,48 @@
     return bufferedText;
   }
 
+  var setupSegmentMetadata = function(player) {
+    // setup segment metadata
+    var segmentMetadata = document.querySelector('#segment-metadata');
+
+    player.one('loadedmetadata', function() {
+      var tracks = player.textTracks();
+      var segmentMetadataTrack;
+      var i = 0;
+
+      for (i = 0; i < tracks.length; i++) {
+        if (tracks[i].label === 'segment-metadata') {
+          segmentMetadataTrack = tracks[i];
+        }
+      }
+
+      while (segmentMetadata.children.length) {
+        segmentMetadata.removeChild(segmentMetadata.firstChild);
+      }
+
+      if (segmentMetadataTrack) {
+        segmentMetadataTrack.addEventListener('cuechange', function() {
+          var cues = segmentMetadataTrack.activeCues || [];
+          var i;
+
+          while (segmentMetadata.children.length) {
+            segmentMetadata.removeChild(segmentMetadata.firstChild);
+          }
+
+          for (i = 0; i < cues.length; i++) {
+            var text = JSON.stringify(JSON.parse(cues[i].text), null, 2);
+
+            var li = document.createElement('li')
+            var pre = document.createElement('pre');
+            pre.textContent = text;
+            li.appendChild(pre);
+            segmentMetadata.appendChild(li);
+          }
+        });
+      }
+    });
+  };
+
   var setupPlayerStats = function(player) {
     var currentTimeStat = document.querySelector('.current-time-stat');
     var bufferedStat = document.querySelector('.buffered-stat');
@@ -518,6 +560,7 @@
         });
 
         setupPlayerStats(player);
+        setupSegmentMetadata(player);
 
         player.on('sourceset', function() {
           var source = player.currentSource();
