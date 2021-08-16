@@ -279,7 +279,7 @@
     if (buffered.length) {
       bufferedText += buffered.start(0) + ' - ' + buffered.end(0);
     }
-    for (i = 1; i < buffered.length; i++) {
+    for (var i = 1; i < buffered.length; i++) {
       bufferedText += ', ' + buffered.start(i) + ' - ' + buffered.end(i);
     }
     return bufferedText;
@@ -292,9 +292,8 @@
     player.one('loadedmetadata', function() {
       var tracks = player.textTracks();
       var segmentMetadataTrack;
-      var i = 0;
 
-      for (i = 0; i < tracks.length; i++) {
+      for (var i = 0; i < tracks.length; i++) {
         if (tracks[i].label === 'segment-metadata') {
           segmentMetadataTrack = tracks[i];
         }
@@ -307,17 +306,16 @@
       if (segmentMetadataTrack) {
         segmentMetadataTrack.addEventListener('cuechange', function() {
           var cues = segmentMetadataTrack.activeCues || [];
-          var i;
 
           while (segmentMetadata.children.length) {
             segmentMetadata.removeChild(segmentMetadata.firstChild);
           }
 
-          for (i = 0; i < cues.length; i++) {
-            var text = JSON.stringify(JSON.parse(cues[i].text), null, 2);
-
-            var li = document.createElement('li')
+          for (var j = 0; j < cues.length; j++) {
+            var text = JSON.stringify(JSON.parse(cues[j].text), null, 2);
+            var li = document.createElement('li');
             var pre = document.createElement('pre');
+
             pre.textContent = text;
             li.appendChild(pre);
             segmentMetadata.appendChild(li);
@@ -338,17 +336,16 @@
     var measuredBitrateStat = document.querySelector('.measured-bitrate-stat');
     var videoTimestampOffset = document.querySelector('.video-timestampoffset');
     var audioTimestampOffset = document.querySelector('.audio-timestampoffset');
-    var qualityButtons = document.querySelector('.quality-buttons');
 
     player.on('timeupdate', function() {
       currentTimeStat.textContent = player.currentTime().toFixed(1);
     });
 
-    window.stats_timer = window.setInterval(function() {
-      var bufferedText = '', oldStart, oldEnd, i;
-
-      // seekable
+    window.statsTimer = window.setInterval(function() {
+      var oldStart;
+      var oldEnd;
       var seekable = player.seekable();
+
       if (seekable && seekable.length) {
 
         oldStart = seekableStartStat.textContent;
@@ -375,28 +372,23 @@
         return;
       }
 
-      videoBufferedStat.textContent = getBuffered(
-        player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer &&
-        player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer.buffered
-      );
+      videoBufferedStat.textContent = getBuffered(player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer &&
+        player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer.buffered);
 
       // demuxed audio
-      var audioBuffer = getBuffered(
-        player.tech(true).vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer &&
-        player.tech(true).vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer.buffered
-      );
+      var audioBuffer = getBuffered(player.tech(true).vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer &&
+        player.tech(true).vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer.buffered);
 
       // muxed audio
       if (!audioBuffer) {
-        audioBuffer = getBuffered(
-          player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer &&
-          player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer.buffered
-        );
+        audioBuffer = getBuffered(player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer &&
+          player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer.buffered);
       }
       audioBufferedStat.textContent = audioBuffer;
 
       if (player.tech(true).vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer) {
         audioTimestampOffset.textContent = player.tech(true).vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer.timestampOffset;
+
       } else if (player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer) {
         audioTimestampOffset.textContent = player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer.timestampOffset;
       }
@@ -407,6 +399,7 @@
 
       // bitrates
       var playlist = player.tech_.vhs.playlists.media();
+
       if (playlist && playlist.attributes && playlist.attributes.BANDWIDTH) {
         videoBitrateState.textContent = (playlist.attributes.BANDWIDTH / 1024).toLocaleString(undefined, {
           maximumFractionDigits: 1
@@ -539,6 +532,11 @@
         fixture.appendChild(videoEl);
 
         var mirrorSource = getInputValue(stateEls['mirror-source']);
+
+        if (window.statsTimer) {
+          window.statsTimer = null;
+          clearInterval(window.statsTimer);
+        }
 
         player = window.player = window.videojs(videoEl, {
           plugins: {
