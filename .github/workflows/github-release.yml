@@ -8,6 +8,8 @@ on:
     - "v[0-9]+.[0-9]+.[0-9]+-*"
 jobs:
   github-release:
+    env:
+      NETLIFY_BASE: 'videojs-http-streaming.netlify.app'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -32,33 +34,34 @@ jobs:
         run: npm i --prefer-offline --no-audit
 
       - name: build
-        run: npm run build-prod
+        run: npm run build-prod --if-present
 
       - name: Check if this is a pre-release
-        run: echo ::set-output name=IS_PRE_RELEASE::$(npx is-prerelease && echo "true" || echo "false")
+        run: echo ::set-output name=IS_PRE_RELEASE::$(npx -p not-prerelease is-prerelease && echo "true" || echo "false")
         id: pre-release-check
 
-      - name: delete prerelease tags to build changelog
-        run: git tag -l | grep -vE '^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$' | xargs git tag -d
-        if: ${{ steps.pre-release-check.outputs.IS_PRE_RELEASE == 'false' }}
+      - name: truncate CHANGELOG.md so that we can get the current versions changes only
+        run: truncate -s 0 CHANGELOG.md
 
       - name: Generate current release changelog
-        run: npx conventional-changelog -p videojs -r 2 -o RELEASE-CHANGELOG.md
+        run: npx -p @videojs/update-changelog vjs-update-changelog --run-on-prerelease
 
       - name: get dashed package version for netlify
         run: echo ::set-output name=VERSION::$(node -e "process.stdout.write(require('./package.json').version.split('.').join('-'))")
         id: get-version
         shell: bash
+        if: env.NETLIFY_BASE != ''
 
       - name: add netlify preview to release notes
         run: |
-          echo "" >> RELEASE-CHANGELOG.md
-          echo "[netlify preview for this version](https://v${{steps.get-version.outputs.VERSION}}--videojs-http-streaming.netlify.app)" >> RELEASE-CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "[netlify preview for this version](https://v${{steps.get-version.outputs.VERSION}}--${{env.NETLIFY_BASE}})" >> CHANGELOG.md
+        if: env.NETLIFY_BASE != ''
 
       - name: Create Github release
         uses: softprops/action-gh-release@v1
         with:
-          body_path: RELEASE-CHANGELOG.md
+          body_path: CHANGELOG.md
           token: ${{github.token}}
           prerelease: ${{steps.pre-release-check.outputs.IS_PRE_RELEASE}}
           files: |
