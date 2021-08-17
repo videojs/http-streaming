@@ -228,9 +228,11 @@
   </footer>
 
   <script>
+    debugger;
     var unitTestLink = document.getElementById('unit-test-link');
 
-    if ((/netlify.app/).test(window.location.href.host)) {
+    // removal test run link on netlify, as we cannot run tests there.
+    if ((/netlify.app/).test(window.location.host)) {
       unitTestLink.remove();
     }
   </script>
