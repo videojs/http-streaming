@@ -338,6 +338,12 @@
   };
 
   var setupPlayerStats = function(player) {
+    player.on('dispose', () => {
+      if (window.statsTimer) {
+        window.clearInterval(window.statsTimer);
+        window.statsTimer = null;
+      }
+    });
     var currentTimeStat = document.querySelector('.current-time-stat');
     var bufferedStat = document.querySelector('.buffered-stat');
     var videoBufferedStat = document.querySelector('.video-buffered-stat');
