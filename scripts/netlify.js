@@ -13,10 +13,13 @@ const files = [
   'node_modules/videojs-http-source-selector/dist/videojs-http-source-selector.css',
   'node_modules/videojs-http-source-selector/dist/videojs-http-source-selector.js',
   'node_modules/videojs-http-source-selector/dist/videojs-http-source-selector.min.js',
+  'node_modules/bootstrap/dist/js/bootstrap.js',
+  'node_modules/bootstrap/dist/css/bootstrap.css',
   'node_modules/d3/d3.min.js',
   'logo.svg',
   'scripts/sources.json',
-  'scripts/index-demo-page.js',
+  'scripts/index.js',
+  'scripts/old-index.js',
   'scripts/dash-manifest-object.json',
   'scripts/hls-manifest-object.json'
 ];
@@ -33,5 +36,5 @@ files
 
 // copy files/folders to deploy dir
 files
-  .concat('dist', 'index.html', 'utils')
+  .concat('dist', 'index.html', 'old-index.html', 'utils')
   .forEach((file) => sh.cp('-r', file, path.join(deployDir, file)));
