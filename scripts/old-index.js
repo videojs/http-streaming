@@ -33,13 +33,16 @@
   var llliveOptGroup = document.querySelector('[label="low latency live"]');
   var manifestOptGroup = document.querySelector('[label="json manifest object"]');
 
-  // get the sources list squared away
-  var xhr = new window.XMLHttpRequest();
+  var sourceList;
+  var hlsDataManifest;
+  var dashDataManifest;
 
-  xhr.addEventListener('load', function() {
-    var sources = JSON.parse(xhr.responseText);
+  var addSourcesToDom = function() {
+    if (!sourceList || !hlsDataManifest || !dashDataManifest) {
+      return;
+    }
 
-    sources.forEach(function(source) {
+    sourceList.forEach(function(source) {
       var option = document.createElement('option');
 
       option.innerText = source.name;
@@ -66,20 +69,33 @@
       }
     });
 
+    var hlsOption = document.createElement('option');
+    var dashOption = document.createElement('option');
+
+    dashOption.innerText = 'Dash Manifest Object Test, does not survive page reload';
+    dashOption.value = 'data:application/vnd.videojs.vhs+json,' + dashDataManifest;
+    hlsOption.innerText = 'HLS Manifest Object Test, does not survive page reload';
+    hlsOption.value = 'data:application/vnd.videojs.vhs+json,' + hlsDataManifest;
+
+    manifestOptGroup.appendChild(hlsOption);
+    manifestOptGroup.appendChild(dashOption);
+  };
+
+  var sourcesXhr = new window.XMLHttpRequest();
+
+  sourcesXhr.addEventListener('load', function() {
+    sourceList = JSON.parse(sourcesXhr.responseText);
+    addSourcesToDom();
   });
-  xhr.open('GET', './scripts/sources.json');
-  xhr.send();
+  sourcesXhr.open('GET', './scripts/sources.json');
+  sourcesXhr.send();
 
   var hlsManifestXhr = new window.XMLHttpRequest();
 
   hlsManifestXhr.addEventListener('load', function() {
-    var hlsManifest = hlsManifestXhr.responseText;
-    var option = document.createElement('option');
+    hlsDataManifest = hlsManifestXhr.responseText;
+    addSourcesToDom();
 
-    option.innerText = 'HLS Manifest Object Test, does not survive page reload';
-    option.value = 'data:application/vnd.videojs.vhs+json,' + hlsManifest;
-
-    manifestOptGroup.appendChild(option);
   });
   hlsManifestXhr.open('GET', './scripts/hls-manifest-object.json');
   hlsManifestXhr.send();
@@ -87,13 +103,8 @@
   var dashManifestXhr = new window.XMLHttpRequest();
 
   dashManifestXhr.addEventListener('load', function() {
-    var dashManifest = dashManifestXhr.responseText;
-    var option = document.createElement('option');
-
-    option.innerText = 'Dash Manifest Object Test, does not survive page reload';
-    option.value = 'data:application/vnd.videojs.vhs+json,' + dashManifest;
-
-    manifestOptGroup.appendChild(option);
+    dashDataManifest = dashManifestXhr.responseText;
+    addSourcesToDom();
   });
   dashManifestXhr.open('GET', './scripts/dash-manifest-object.json');
   dashManifestXhr.send();
