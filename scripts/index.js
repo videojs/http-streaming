@@ -551,11 +551,6 @@
 
         var mirrorSource = getInputValue(stateEls['mirror-source']);
 
-        if (window.statsTimer) {
-          window.statsTimer = null;
-          clearInterval(window.statsTimer);
-        }
-
         player = window.player = window.videojs(videoEl, {
           plugins: {
             httpSourceSelector: {
