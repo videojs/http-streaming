@@ -338,6 +338,12 @@
   };
 
   var setupPlayerStats = function(player) {
+    player.on('dispose', () => {
+      if (window.statsTimer) {
+        window.clearInterval(window.statsTimer);
+        window.statsTimer = null;
+      }
+    });
     var currentTimeStat = document.querySelector('.current-time-stat');
     var bufferedStat = document.querySelector('.buffered-stat');
     var videoBufferedStat = document.querySelector('.video-buffered-stat');
@@ -545,11 +551,6 @@
 
         var mirrorSource = getInputValue(stateEls['mirror-source']);
 
-        if (window.statsTimer) {
-          window.statsTimer = null;
-          clearInterval(window.statsTimer);
-        }
-
         player = window.player = window.videojs(videoEl, {
           plugins: {
             httpSourceSelector: {
@@ -571,6 +572,14 @@
 
         setupPlayerStats(player);
         setupSegmentMetadata(player);
+
+        // save player muted state interation
+        player.on('volumechange', function() {
+          if (stateEls.muted.checked !== player.muted()) {
+            stateEls.muted.checked = player.muted();
+            saveState();
+          }
+        });
 
         player.on('sourceset', function() {
           var source = player.currentSource();
