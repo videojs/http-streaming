@@ -1448,16 +1448,21 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
+    // use either video timestampOffset or audio timestampOffset depending
+    // upon wether this source is audio only or not.
+    const timestampOffset = this.sourceUpdater_.codecs.video ?
+      this.sourceUpdater_.videoTimestampOffset() :
+      this.sourceUpdater_.audioTimestampOffset();
+
+    // convert from absolute media time to our relative time.
+    expired += timestampOffset;
+
     const master = this.masterPlaylistLoader_.master;
     const mainSeekable = Vhs.Playlist.seekable(
       media,
       expired,
       Vhs.Playlist.liveEdgeDelay(master, media)
     );
-
-    if (mainSeekable.length === 0) {
-      return;
-    }
 
     if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
       media = this.mediaTypes_.AUDIO.activePlaylistLoader.media();
@@ -1466,6 +1471,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
       if (expired === null) {
         return;
       }
+
+      // convert from absolute media time to our relative time.
+      expired += this.sourceUpdater_.audioTimestampOffset();
 
       audioSeekable = Vhs.Playlist.seekable(
         media,
