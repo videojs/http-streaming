@@ -578,6 +578,14 @@
         setupPlayerStats(player);
         setupSegmentMetadata(player);
 
+        // save player muted state interation
+        player.on('volumechange', function() {
+          if (stateEls.muted.checked !== player.muted()) {
+            stateEls.muted.checked = player.muted();
+            saveState();
+          }
+        });
+
         player.on('sourceset', function() {
           var source = player.currentSource();
 
