@@ -21,7 +21,8 @@ const files = [
   'scripts/index.js',
   'scripts/old-index.js',
   'scripts/dash-manifest-object.json',
-  'scripts/hls-manifest-object.json'
+  'scripts/hls-manifest-object.json',
+  'test/dist/bundle.js'
 ];
 
 // cleanup previous deploy
