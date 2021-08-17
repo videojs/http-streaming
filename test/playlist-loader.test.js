@@ -683,6 +683,22 @@ QUnit.module('Playlist Loader', function(hooks) {
     );
   });
 
+  QUnit.test('can delay load', function(assert) {
+    const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+
+    assert.notOk(loader.mediaUpdateTimeout, 'no media update timeout');
+
+    loader.load(true);
+
+    assert.ok(loader.mediaUpdateTimeout, 'have a media update timeout now');
+    assert.strictEqual(this.requests.length, 0, 'have no requests');
+
+    this.clock.tick(5000);
+
+    assert.notOk(loader.mediaUpdateTimeout, 'media update timeout is gone');
+    assert.strictEqual(this.requests.length, 1, 'playlist request after delay');
+  });
+
   QUnit.test('starts without any metadata', function(assert) {
     const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
 
