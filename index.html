@@ -231,7 +231,7 @@
     var unitTestLink = document.getElementById('unit-test-link');
 
     if ((/netlify.app/).test(window.location.href.host)) {
-      unitTestLink.parentElement.removeChild(unitTestLink);
+      unitTestLink.remove();
     }
   </script>
   <script src="node_modules/bootstrap/dist/js/bootstrap.js"></script>
