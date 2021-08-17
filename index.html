@@ -69,6 +69,23 @@
   <div class="tab-content container-fluid">
 
     <div class="tab-pane active" id="sources" role="tabpanel">
+      <div class="input-group">
+        <span class="input-group-text"><label for=load-source>Preloaded Sources</label></span>
+        <select id=load-source class="form-select">
+          <optgroup label="hls">
+          </optgroup>
+          <optgroup label="dash">
+          </optgroup>
+          <optgroup label="drm">
+          </optgroup>
+          <optgroup label="live">
+          </optgroup>
+          <optgroup label="low latency live">
+          </optgroup>
+          <optgroup label="json manifest object">
+          </optgroup>
+        </select>
+      </div>
 
       <label for=url class="form-label">Source URL</label>
       <div class="input-group">
@@ -90,23 +107,6 @@
 
       <button id=load-url type=button class="btn btn-primary my-2">Load</button>
 
-      <div class="input-group">
-        <span class="input-group-text"><label for=load-source>Preloaded Sources</label></span>
-        <select id=load-source class="form-select">
-          <optgroup label="hls">
-          </optgroup>
-          <optgroup label="dash">
-          </optgroup>
-          <optgroup label="drm">
-          </optgroup>
-          <optgroup label="live">
-          </optgroup>
-          <optgroup label="low latency live">
-          </optgroup>
-          <optgroup label="json manifest object">
-          </optgroup>
-        </select>
-      </div>
     </div>
 
     <div class="tab-pane" id="options" role="tabpanel">
