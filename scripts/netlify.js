@@ -19,7 +19,7 @@ const files = [
   'logo.svg',
   'scripts/sources.json',
   'scripts/index.js',
-  'scripts/oldindex.js',
+  'scripts/old-index.js',
   'scripts/dash-manifest-object.json',
   'scripts/hls-manifest-object.json'
 ];
