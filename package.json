@@ -70,7 +70,7 @@
   "devDependencies": {
     "@rollup/plugin-replace": "^2.3.4",
     "@rollup/plugin-strip": "^2.0.1",
-    "@videojs/generator-helpers": "~3.1.0",
+    "@videojs/generator-helpers": "~3.1.1",
     "bootstrap": "^5.1.0",
     "d3": "^3.4.8",
     "es5-shim": "^4.5.13",
