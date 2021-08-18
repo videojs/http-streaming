@@ -98,19 +98,28 @@ const dashPlaylistUnchanged = function(a, b) {
  *         A time difference between server and client
  * @param {Object} config.sidxMapping
  *        SIDX mappings for moof/mdat URIs and byte ranges
+ * @param {Object} config.lastMpd
+ *        The last parsed manifest object
  * @return {Object}
  *         The parsed mpd manifest object
  */
-export const parseMasterXml = ({ masterXml, srcUrl, clientOffset, sidxMapping }) => {
-  const master = parseMpd(masterXml, {
+export const parseMasterXml = ({
+  masterXml,
+  srcUrl,
+  clientOffset,
+  sidxMapping,
+  lastMpd
+}) => {
+  const { manifest } = parseMpd(masterXml, {
     manifestUri: srcUrl,
     clientOffset,
-    sidxMapping
+    sidxMapping,
+    lastMpd
   });
 
-  addPropertiesToMaster(master, srcUrl);
+  addPropertiesToMaster(manifest, srcUrl);
 
-  return master;
+  return manifest;
 };
 
 /**
@@ -703,8 +712,24 @@ export default class DashPlaylistLoader extends EventTarget {
       masterXml: this.masterPlaylistLoader_.masterXml_,
       srcUrl: this.masterPlaylistLoader_.srcUrl,
       clientOffset: this.masterPlaylistLoader_.clientOffset_,
-      sidxMapping: this.masterPlaylistLoader_.sidxMapping_
+      sidxMapping: this.masterPlaylistLoader_.sidxMapping_,
+      lastMpd: this.masterPlaylistLoader_.master
     });
+
+    // TODO handle playlistsToExclude and mediaGroupPlaylistsToExclude from parseMasterXml
+    //
+    // playlistsToExclude and mediaGroupPlaylistsToExclude contain playlists no longer
+    // supported by the latest refresh of the manifest, but were available in the prior
+    // refresh.
+    //
+    // Although the playlists should be excluded here in case a loader is currently using
+    // one of them, it largely shouldn't be an issue, as the new ABR timer will
+    // periodically select a new playlist. When a new playlist is chosen, it will choose
+    // among only the available playlists, so the old playlist will no longer be selected.
+    // Some other edge cases may need to be handled (e.g., rendition selection with
+    // changing playlists) but these cases can be solved later, as changing playlists
+    // midstream is not a common occurrence.
+
     const oldMaster = this.masterPlaylistLoader_.master;
 
     // if we have an old master to compare the new master against

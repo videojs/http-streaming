@@ -2260,6 +2260,35 @@ QUnit.test('returns to HAVE_METADATA after refreshing the playlist', function(as
   assert.strictEqual(loader.state, 'HAVE_METADATA', 'the state is correct');
 });
 
+QUnit.test('refreshes of live playlists are relative to old ones', function(assert) {
+  const loader = new DashPlaylistLoader('dash-live-refresh-1.mpd', this.fakeVhs);
+
+  loader.load();
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.equal(
+    loader.master.playlists[0].mediaSequence,
+    0,
+    'created manifest relative to start'
+  );
+
+  // 2s, one minimum update period
+  this.clock.tick(2 * 1000);
+
+  // dash-live-refresh-1 uses Location to change to dash-live-refresh-2
+  assert.ok(
+    this.requests[0].url.endsWith('dash-live-refresh-2.mpd'),
+    'requesting refreshed manifest'
+  );
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.equal(
+    loader.master.playlists[0].mediaSequence,
+    1,
+    'created manifest relative to original'
+  );
+});
+
 QUnit.test('triggers an event when the active media changes', function(assert) {
   // NOTE: this test relies upon calls to media behaving as though they are
   // asynchronous operations.

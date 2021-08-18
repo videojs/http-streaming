@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MPD
+  xmlns:cenc="urn:mpeg:cenc:2013"
+  availabilityStartTime="2021-03-18T20:00:36Z"
+  maxSegmentDuration="PT2S"
+  minBufferTime="PT2S"
+  minimumUpdatePeriod="PT2S"
+  profiles="urn:mpeg:dash:profile:isoff-live:2011"
+  publishTime="2021-03-18T20:32:55Z"
+  suggestedPresentationDelay="PT6S"
+  timeShiftBufferDepth="PT180.000S"
+  type="dynamic"
+  xmlns="urn:mpeg:dash:schema:mpd:2011">
+    <Period id="100" start="PT101S">
+        <AdaptationSet
+          audioSamplingRate="48000"
+          contentType="audio"
+          group="1"
+          lang="en"
+          mimeType="audio/mp4"
+          segmentAlignment="true"
+          startWithSAP="1">
+            <Role schemeIdUri="urn:mpeg:dash:role:2011" value="main" />
+            <Representation bandwidth="129262" codecs="mp4a.40.5" id="v0">
+                <AudioChannelConfiguration
+                  schemeIdUri="urn:mpeg:dash:23003:3:audio_channel_configuration:2011"
+                  value="2" />
+                <BaseURL>http://example.com/audio/1</BaseURL>
+                <SegmentTemplate
+                  initialization="init.mp4"
+                  media="$Number%03d$.m4f"
+                  startNumber="500"
+                  timescale="1">
+                    <SegmentTimeline>
+                        <S d="1" t="0" />
+                    </SegmentTimeline>
+                </SegmentTemplate>
+            </Representation>
+        </AdaptationSet>
+        <AdaptationSet
+          contentType="video"
+          id="1"
+          maxFrameRate="60.0"
+          maxHeight="720"
+          maxWidth="1280"
+          mimeType="video/mp4"
+          segmentAlignment="true"
+          startWithSAP="1">
+            <Representation
+              bandwidth="2942295"
+              codecs="avc1.4d001f"
+              frameRate="30.0"
+              height="720"
+              id="A"
+              scanType="progressive"
+              width="1280">
+                <BaseURL>http://example.com/video/D/</BaseURL>
+                <SegmentTemplate
+                  initialization="$RepresentationID$_init.mp4"
+                  media="$RepresentationID$$Number%03d$.m4f"
+                  startNumber="500"
+                  timescale="1">
+                    <SegmentTimeline>
+                        <S d="1" t="0" />
+                    </SegmentTimeline>
+                </SegmentTemplate>
+            </Representation>
+        </AdaptationSet>
+    </Period>
+</MPD>
