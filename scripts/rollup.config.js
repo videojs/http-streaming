@@ -20,8 +20,8 @@ const options = {
     return defaults;
   },
   globals(defaults) {
-    defaults.browser.xmldom = 'window';
-    defaults.test.xmldom = 'window';
+    defaults.browser['@xmldom/xmldom'] = 'window';
+    defaults.test['@xmldom/xmldom'] = 'window';
     return defaults;
   },
   externals(defaults) {
