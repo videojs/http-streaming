@@ -1,3 +1,24 @@
+<a name="2.10.2"></a>
+## [2.10.2](https://github.com/videojs/http-streaming/compare/v2.10.1...v2.10.2) (2021-08-24)
+
+### Bug Fixes
+
+* update mpd-parser and mux.js to fix an xmldom vulnerability ([#1190](https://github.com/videojs/http-streaming/issues/1190)) ([37b4b04](https://github.com/videojs/http-streaming/commit/37b4b04))
+
+<a name="2.10.1"></a>
+## [2.10.1](https://github.com/videojs/http-streaming/compare/v2.10.0...v2.10.1) (2021-08-17)
+
+### Bug Fixes
+
+* keep media update timeout alive so live playlists can recover from network issues ([#1176](https://github.com/videojs/http-streaming/issues/1176)) ([8b3533c](https://github.com/videojs/http-streaming/commit/8b3533c))
+
+### Chores
+
+* add a github-release action to automate github releases on version tags ([#1182](https://github.com/videojs/http-streaming/issues/1182)) ([e8230a9](https://github.com/videojs/http-streaming/commit/e8230a9))
+* consistent source selection on demo start ([#1185](https://github.com/videojs/http-streaming/issues/1185)) ([ff34277](https://github.com/videojs/http-streaming/commit/ff34277))
+* update the demo page ([#1184](https://github.com/videojs/http-streaming/issues/1184)) ([55f0bde](https://github.com/videojs/http-streaming/commit/55f0bde))
+* various demo page fixes and enhancements ([#1186](https://github.com/videojs/http-streaming/issues/1186)) ([eef29d4](https://github.com/videojs/http-streaming/commit/eef29d4))
+
 <a name="2.10.1"></a>
 ## [2.10.1](https://github.com/videojs/http-streaming/compare/v2.10.0...v2.10.1) (2021-08-17)
 
