@@ -115,6 +115,24 @@ export default class PlaybackWatcher {
       this.tech_.on(['seeked', 'seeking'], loaderChecks[type].reset);
     });
 
+    // handle seeking into a gap
+    this.tech_.on('seeking', () => {
+      let seekTimeout;
+
+      const clear = () => {
+        this.tech_.off('seeking', clear);
+        this.tech_.off('seeked', clear);
+        window.clearTimeout(seekTimeout);
+      };
+
+      this.tech_.on('seeking', clear);
+      this.tech_.on('seeked', clear);
+
+      seekTimeout = window.setTimeout(() => {
+        clear();
+        this.techWaiting_(false);
+      }, 3000);
+    });
     this.tech_.on('seekablechanged', fixesBadSeeksHandler);
     this.tech_.on('waiting', waitingHandler);
     this.tech_.on(timerCancelEvents, cancelTimerHandler);
@@ -422,16 +440,16 @@ export default class PlaybackWatcher {
    *         checks passed
    * @private
    */
-  techWaiting_() {
+  techWaiting_(seeking = this.tech_.seeking()) {
     const seekable = this.seekable();
     const currentTime = this.tech_.currentTime();
 
-    if (this.tech_.seeking() && this.fixesBadSeeks_()) {
+    if (seeking && this.fixesBadSeeks_()) {
       // Tech is seeking or bad seek fixed, no action needed
       return true;
     }
 
-    if (this.tech_.seeking() || this.timer_ !== null) {
+    if (seeking || this.timer_ !== null) {
       // Tech is seeking or already waiting on another action, no action needed
       return true;
     }
