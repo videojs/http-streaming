@@ -117,21 +117,30 @@ export default class PlaybackWatcher {
 
     // handle seeking into a gap
     this.tech_.on('seeking', () => {
-      let seekTimeout;
+      let clear;
+      const checkForGaps = () => {
+        if (this.techWaiting_(true)) {
+          clear();
+        }
+      };
 
-      const clear = () => {
+      clear = () => {
         this.tech_.off('seeking', clear);
         this.tech_.off('seeked', clear);
-        window.clearTimeout(seekTimeout);
+        this.tech_.off('dispose', clear);
+
+        ['main', 'audio'].forEach(function(type) {
+          mpc[`${type}SegmentLoader_`].off('appended', checkForGaps);
+        });
       };
 
       this.tech_.on('seeking', clear);
       this.tech_.on('seeked', clear);
+      this.tech_.on('dispose', clear);
 
-      seekTimeout = window.setTimeout(() => {
-        clear();
-        this.techWaiting_(false);
-      }, 3000);
+      ['main', 'audio'].forEach(function(type) {
+        mpc[`${type}SegmentLoader_`].on('appended', checkForGaps);
+      });
     });
     this.tech_.on('seekablechanged', fixesBadSeeksHandler);
     this.tech_.on('waiting', waitingHandler);
