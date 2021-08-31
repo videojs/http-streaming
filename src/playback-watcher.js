@@ -41,12 +41,6 @@ export const closeToBufferedContent = ({ buffered, targetDuration, currentTime }
     return false;
   }
 
-  // At least two to three segments worth of content should be buffered before there's a
-  // full enough buffer to consider taking any actions.
-  if (buffered.end(0) - buffered.start(0) < targetDuration * 2) {
-    return false;
-  }
-
   // It's possible that, on seek, a remove hasn't completed and the buffered range is
   // somewhere past the current time. In that event, don't consider the buffered content
   // close.
@@ -119,7 +113,7 @@ export default class PlaybackWatcher {
     this.tech_.on('seeking', () => {
       let clear;
       const checkForGaps = () => {
-        if (this.techWaiting_(true)) {
+        if (this.fixesBadSeeks_()) {
           clear();
         }
       };
@@ -449,16 +443,16 @@ export default class PlaybackWatcher {
    *         checks passed
    * @private
    */
-  techWaiting_(seeking = this.tech_.seeking()) {
+  techWaiting_() {
     const seekable = this.seekable();
     const currentTime = this.tech_.currentTime();
 
-    if (seeking && this.fixesBadSeeks_()) {
+    if (this.tech_.seeking() && this.fixesBadSeeks_()) {
       // Tech is seeking or bad seek fixed, no action needed
       return true;
     }
 
-    if (seeking || this.timer_ !== null) {
+    if (this.tech_.seeking() || this.timer_ !== null) {
       // Tech is seeking or already waiting on another action, no action needed
       return true;
     }
