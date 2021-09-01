@@ -29,6 +29,10 @@ const timerCancelEvents = [
  *        Options object
  * @param {TimeRange} options.buffered
  *        Current buffer
+ * @param {TimeRange} options.videoBuffered
+ *        Current buffer from the media sources video buffer
+  * @param {TimeRange} options.audioBuffered
+  *       Current buffer from the media sources audio buffer
  * @param {number} options.targetDuration
  *        The active playlist's target duration
  * @param {number} options.currentTime
