@@ -1708,6 +1708,7 @@ QUnit.test('false if zero length audioBuffered and videoBuffered', function(asse
   assert.notOk(
     closeToBufferedContent({
       audioBuffered: videojs.createTimeRanges(),
+      videoBuffered: videojs.createTimeRanges(),
       targetDuration: 4,
       currentTime: 10
     }),
@@ -1793,7 +1794,7 @@ QUnit.test('true if enough buffer and close to current time with gaps', function
   );
 });
 
-QUnit.test('complex gaps with enough buffer ahead.', function(assert) {
+QUnit.test('complex gaps with enough buffer ahead', function(assert) {
   const audioBuffered = videojs.createTimeRanges([[3095.04, 3095.46], [3095.55, 3110.57]]);
   const videoBuffered = videojs.createTimeRanges([[3093.15, 3095.55], [3095.62, 3110.64], [3112.34, 3114.34]]);
   const buffered = bufferIntersection(videoBuffered, audioBuffered);
@@ -1810,7 +1811,7 @@ QUnit.test('complex gaps with enough buffer ahead.', function(assert) {
   );
 });
 
-QUnit.test('another complex gaps with enough buffer ahead.', function(assert) {
+QUnit.test('another complex gaps with enough buffer ahead', function(assert) {
   const audioBuffered = videojs.createTimeRanges([[827.32, 832.17], [832.26, 850.12]]);
   const videoBuffered = videojs.createTimeRanges([[828.89, 832.26], [832.33, 856.35]]);
   const buffered = bufferIntersection(videoBuffered, audioBuffered);
