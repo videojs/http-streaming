@@ -445,3 +445,32 @@ export const lastBufferedEnd = function(a) {
 
   return a.end(a.length - 1);
 };
+
+export const timeAheadOf = function(range, startTime) {
+  let time = 0;
+
+  if (!range || !range.length || !range.end) {
+    return time;
+  }
+
+  for (let i = 0; i < range.length; i++) {
+    const start = range.start(i);
+    const end = range.end(i);
+
+    // startTime is after this range entirely
+    if (startTime > end) {
+      continue;
+    }
+
+    // startTime is within this range
+    if (startTime > start && startTime <= end) {
+      time += end - startTime;
+      continue;
+    }
+
+    // startTime is before this range.
+    time += end - start;
+  }
+
+  return time;
+};
