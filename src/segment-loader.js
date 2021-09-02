@@ -539,6 +539,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.timelineChangeController_ = settings.timelineChangeController;
     this.shouldSaveSegmentTimingInfo_ = true;
     this.parse708captions_ = settings.parse708captions;
+    this.captionServiceEncodings_ = settings.captionServiceEncodings;
     this.experimentalExactManifestTimings = settings.experimentalExactManifestTimings;
 
     // private instance variables
@@ -660,7 +661,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       remux: false,
       alignGopsAtEnd: this.safeAppend_,
       keepOriginalTimestamps: true,
-      parse708captions: this.parse708captions_
+      parse708captions: this.parse708captions_,
+      captionServiceEncodings: this.captionServiceEncodings_
     });
   }
 
