@@ -61,8 +61,9 @@ export const closeToBufferedContent = ({ buffered, audioBuffered, videoBuffered,
 
   // default to using buffered, but if we don't have one
   // use video or audio buffered
-  buffered = buffered && buffered.length ? buffered : null;
-  buffered = buffered || videoBuffered || audioBuffered;
+  if (!buffered || buffered.length === 0) {
+    buffered = videoBuffered || audioBuffered
+  }
 
   const nextRange = Ranges.findNextRange(buffered, currentTime);
 
