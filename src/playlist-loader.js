@@ -340,7 +340,8 @@ export const updateMaster = (master, newMedia, unchangedCheck = isPlaylistUnchan
  *         The time in ms to wait before refreshing the live playlist
  */
 export const refreshDelay = (media, update) => {
-  const lastSegment = media.segments[media.segments.length - 1];
+  const segments = media.segments || [];
+  const lastSegment = segments[segments.length - 1];
   const lastPart = lastSegment && lastSegment.parts && lastSegment.parts[lastSegment.parts.length - 1];
   const lastDuration = lastPart && lastPart.duration || lastSegment && lastSegment.duration;
 
