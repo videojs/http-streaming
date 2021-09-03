@@ -463,7 +463,7 @@ export const lastBufferedEnd = function(a) {
 export const timeAheadOf = function(range, startTime) {
   let time = 0;
 
-  if (!range || !range.length || !range.end) {
+  if (!range || !range.length) {
     return time;
   }
 
