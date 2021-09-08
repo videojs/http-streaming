@@ -13,7 +13,7 @@ import {
 } from '../src/playback-watcher';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
-import { SAFE_TIME_DELTA } from '../src/ranges';
+import { SAFE_TIME_DELTA, bufferIntersection } from '../src/ranges';
 
 let monitorCurrentTime_;
 
@@ -1006,6 +1006,12 @@ QUnit.test('jumps to buffered content if seeking just before', function(assert) 
     currentTime: () => currentTime,
     buffered: () => buffered
   };
+
+  Object.assign(playbackWatcher.masterPlaylistController_.sourceUpdater_, {
+    videoBuffer: true,
+    videoBuffered: () => buffered
+  });
+
   this.player.tech(true).vhs.setCurrentTime = (time) => seeks.push(time);
 
   currentTime = 10;
@@ -1040,6 +1046,55 @@ QUnit.test('jumps to buffered content if seeking just before', function(assert) 
   assert.ok(playbackWatcher.fixesBadSeeks_(), 'fixed bad seek');
   assert.equal(seeks.length, 2, 'seeked');
   assert.equal(seeks[1], 11.1, 'seeked to seekable range');
+});
+
+QUnit.test('jumps to correct range with gaps', function(assert) {
+  // target duration is 10 for this manifest
+  this.player.src({
+    src: 'liveStart30sBefore.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  // start playback normally
+  this.player.tech_.triggerReady();
+  this.clock.tick(1);
+  standardXHRResponse(this.requests.shift());
+  openMediaSource(this.player, this.clock);
+  this.player.tech_.trigger('play');
+  this.player.tech_.trigger('playing');
+  this.clock.tick(1);
+
+  const playbackWatcher = this.player.tech_.vhs.playbackWatcher_;
+  const seeks = [];
+  let currentTime;
+  let buffered;
+
+  playbackWatcher.seekable = () => videojs.createTimeRanges([[10, 100]]);
+  playbackWatcher.tech_ = {
+    off: () => {},
+    seeking: () => true,
+    setCurrentTime: (time) => {
+      seeks.push(time);
+    },
+    currentTime: () => currentTime,
+    buffered: () => buffered
+  };
+
+  Object.assign(playbackWatcher.masterPlaylistController_.sourceUpdater_, {
+    videoBuffer: true,
+    videoBuffered: () => buffered
+  });
+
+  this.player.tech(true).vhs.setCurrentTime = (time) => seeks.push(time);
+
+  currentTime = 40;
+  buffered = videojs.createTimeRanges([[19, 39], [41, 70]]);
+  assert.ok(
+    playbackWatcher.fixesBadSeeks_(),
+    'acts when close enough to, and enough, buffer'
+  );
+  assert.equal(seeks.length, 1, 'seeked');
+  assert.equal(seeks[0], 41.1, 'player seeked to the start of the closer buffer');
 });
 
 const loaderTypes = ['audio', 'main', 'subtitle'];
@@ -1627,10 +1682,10 @@ QUnit.test('respects allowSeeksWithinUnsafeLiveWindow flag', function(assert) {
 
 QUnit.module('closeToBufferedContent');
 
-QUnit.test('false if no buffer', function(assert) {
+QUnit.test('false if zero length videoBuffered', function(assert) {
   assert.notOk(
     closeToBufferedContent({
-      buffered: videojs.createTimeRanges(),
+      videoBuffered: videojs.createTimeRanges(),
       targetDuration: 4,
       currentTime: 10
     }),
@@ -1638,10 +1693,10 @@ QUnit.test('false if no buffer', function(assert) {
   );
 });
 
-QUnit.test('false if buffer less than two times target duration', function(assert) {
+QUnit.test('false if zero length audioBuffered', function(assert) {
   assert.notOk(
     closeToBufferedContent({
-      buffered: videojs.createTimeRanges([[11, 18.9]]),
+      audioBuffered: videojs.createTimeRanges(),
       targetDuration: 4,
       currentTime: 10
     }),
@@ -1649,10 +1704,67 @@ QUnit.test('false if buffer less than two times target duration', function(asser
   );
 });
 
-QUnit.test('false if buffer is beyond target duration from current time', function(assert) {
+QUnit.test('false if zero length audioBuffered and videoBuffered', function(assert) {
   assert.notOk(
     closeToBufferedContent({
-      buffered: videojs.createTimeRanges([[14.1, 30]]),
+      audioBuffered: videojs.createTimeRanges(),
+      videoBuffered: videojs.createTimeRanges(),
+      targetDuration: 4,
+      currentTime: 10
+    }),
+    'returned false'
+  );
+});
+
+QUnit.test('false if videoBuffered less than two times target duration', function(assert) {
+  assert.notOk(
+    closeToBufferedContent({
+      videoBuffered: videojs.createTimeRanges([[11, 18.9]]),
+      targetDuration: 4,
+      currentTime: 10
+    }),
+    'returned false'
+  );
+});
+
+QUnit.test('false if audioBuffered less than two times target duration', function(assert) {
+  assert.notOk(
+    closeToBufferedContent({
+      audioBuffered: videojs.createTimeRanges([[11, 18.9]]),
+      targetDuration: 4,
+      currentTime: 10
+    }),
+    'returned false'
+  );
+});
+
+QUnit.test('false if either buffer is less than two times target duration', function(assert) {
+  assert.notOk(
+    closeToBufferedContent({
+      videoBuffered: videojs.createTimeRanges([[11, 18.9]]),
+      audioBuffered: videojs.createTimeRanges([[11, 18.9]]),
+      targetDuration: 4,
+      currentTime: 10
+    }),
+    'returned false'
+  );
+});
+
+QUnit.test('false if there is not a range ahead', function(assert) {
+  assert.notOk(
+    closeToBufferedContent({
+      videoBuffered: videojs.createTimeRanges([[11, 18.9]]),
+      targetDuration: 4,
+      currentTime: 19
+    }),
+    'returned false'
+  );
+});
+
+QUnit.test('false if buffer is one segment away from current time', function(assert) {
+  assert.notOk(
+    closeToBufferedContent({
+      videoBuffered: videojs.createTimeRanges([[14.1, 30]]),
       targetDuration: 4,
       currentTime: 10
     }),
@@ -1663,7 +1775,7 @@ QUnit.test('false if buffer is beyond target duration from current time', functi
 QUnit.test('true if enough buffer and close to current time', function(assert) {
   assert.ok(
     closeToBufferedContent({
-      buffered: videojs.createTimeRanges([[13.9, 22]]),
+      videoBuffered: videojs.createTimeRanges([[13.9, 22]]),
       targetDuration: 4,
       currentTime: 10
     }),
@@ -1671,13 +1783,47 @@ QUnit.test('true if enough buffer and close to current time', function(assert) {
   );
 });
 
-QUnit.test('false if current time beyond buffer start', function(assert) {
-  assert.notOk(
+QUnit.test('true if enough buffer and close to current time with gaps', function(assert) {
+  assert.ok(
     closeToBufferedContent({
-      buffered: videojs.createTimeRanges([[13.9, 22]]),
+      videoBuffered: videojs.createTimeRanges([[19, 22], [24, 30], [31, 34]]),
       targetDuration: 4,
-      currentTime: 14
+      currentTime: 23
     }),
-    'returned false'
+    'returned true'
+  );
+});
+
+QUnit.test('complex gaps with enough buffer ahead', function(assert) {
+  const audioBuffered = videojs.createTimeRanges([[3095.04, 3095.46], [3095.55, 3110.57]]);
+  const videoBuffered = videojs.createTimeRanges([[3093.15, 3095.55], [3095.62, 3110.64], [3112.34, 3114.34]]);
+  const buffered = bufferIntersection(videoBuffered, audioBuffered);
+
+  assert.ok(
+    closeToBufferedContent({
+      videoBuffered,
+      audioBuffered,
+      buffered,
+      targetDuration: 7,
+      currentTime: 3095.45
+    }),
+    'returned true'
+  );
+});
+
+QUnit.test('another complex gaps with enough buffer ahead', function(assert) {
+  const audioBuffered = videojs.createTimeRanges([[827.32, 832.17], [832.26, 850.12]]);
+  const videoBuffered = videojs.createTimeRanges([[828.89, 832.26], [832.33, 856.35]]);
+  const buffered = bufferIntersection(videoBuffered, audioBuffered);
+
+  assert.ok(
+    closeToBufferedContent({
+      videoBuffered,
+      audioBuffered,
+      buffered,
+      targetDuration: 7,
+      currentTime: 832.16
+    }),
+    'returned true'
   );
 });

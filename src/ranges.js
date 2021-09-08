@@ -445,3 +445,46 @@ export const lastBufferedEnd = function(a) {
 
   return a.end(a.length - 1);
 };
+
+/**
+ * A utility function to add up the amount of time in a timeRange
+ * after a specified startTime.
+ * ie:[[0, 10], [20, 40], [50, 60]] with a startTime 0
+ *     would return 40 as there are 40s seconds after 0 in the timeRange
+ *
+ * @param {TimeRange} range
+ *        The range to check against
+ * @param {number} startTime
+ *        The time in the time range that you should start counting from
+ *
+ * @return {number}
+ *          The number of seconds in the buffer passed the specified time.
+ */
+export const timeAheadOf = function(range, startTime) {
+  let time = 0;
+
+  if (!range || !range.length) {
+    return time;
+  }
+
+  for (let i = 0; i < range.length; i++) {
+    const start = range.start(i);
+    const end = range.end(i);
+
+    // startTime is after this range entirely
+    if (startTime > end) {
+      continue;
+    }
+
+    // startTime is within this range
+    if (startTime > start && startTime <= end) {
+      time += end - startTime;
+      continue;
+    }
+
+    // startTime is before this range.
+    time += end - start;
+  }
+
+  return time;
+};

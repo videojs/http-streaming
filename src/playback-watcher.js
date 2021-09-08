@@ -29,6 +29,10 @@ const timerCancelEvents = [
  *        Options object
  * @param {TimeRange} options.buffered
  *        Current buffer
+ * @param {TimeRange} options.videoBuffered
+ *        Current buffered from the media source's video buffer
+ * @param {TimeRange} options.audioBuffered
+ *        Current buffered from the media source's audio buffer
  * @param {number} options.targetDuration
  *        The active playlist's target duration
  * @param {number} options.currentTime
@@ -36,28 +40,43 @@ const timerCancelEvents = [
  * @return {boolean}
  *         Whether the current time should be considered close to the buffer
  */
-export const closeToBufferedContent = ({ buffered, targetDuration, currentTime }) => {
-  if (!buffered.length) {
-    return false;
+export const closeToBufferedContent = ({ buffered, audioBuffered, videoBuffered, targetDuration, currentTime }) => {
+  const twoSegmentDurations = (targetDuration - Ranges.TIME_FUDGE_FACTOR) * 2;
+  const bufferedToCheck = [audioBuffered, videoBuffered];
+
+  for (let i = 0; i < bufferedToCheck.length; i++) {
+    // skip null buffered
+    if (!bufferedToCheck[i]) {
+      continue;
+    }
+
+    const timeAhead = Ranges.timeAheadOf(bufferedToCheck[i], currentTime);
+
+    // if we are less than two video/audio segment durations behind,
+    // we haven't append enough to be close to buffered content.
+    if (timeAhead < twoSegmentDurations) {
+      return false;
+    }
   }
 
-  // At least two to three segments worth of content should be buffered before there's a
-  // full enough buffer to consider taking any actions.
-  if (buffered.end(0) - buffered.start(0) < targetDuration * 2) {
-    return false;
+  // default to using buffered, but if we don't have one
+  // use video or audio buffered
+  if (!buffered || buffered.length === 0) {
+    buffered = videoBuffered || audioBuffered;
   }
 
-  // It's possible that, on seek, a remove hasn't completed and the buffered range is
-  // somewhere past the current time. In that event, don't consider the buffered content
-  // close.
-  if (currentTime > buffered.start(0)) {
+  const nextRange = Ranges.findNextRange(buffered, currentTime);
+
+  // if we don't have a next buffered range, we cannot be close to
+  // buffered content.
+  if (!nextRange.length) {
     return false;
   }
 
   // Since target duration generally represents the max (or close to max) duration of a
   // segment, if the buffer is within a segment of the current time, the gap probably
   // won't be closed, and current time should be considered close to buffered content.
-  return buffered.start(0) - currentTime < targetDuration;
+  return nextRange.start(0) - currentTime < (targetDuration + Ranges.TIME_FUDGE_FACTOR);
 };
 
 /**
@@ -253,7 +272,7 @@ export default class PlaybackWatcher {
    * @private
    */
   checkCurrentTime_() {
-    if (this.tech_.seeking() && this.fixesBadSeeks_()) {
+    if (this.fixesBadSeeks_()) {
       this.consecutiveUpdates = 0;
       this.lastRecordedTime = this.tech_.currentTime();
       return;
@@ -356,17 +375,22 @@ export default class PlaybackWatcher {
       return true;
     }
 
+    const sourceUpdater = this.masterPlaylistController_.sourceUpdater_;
     const buffered = this.tech_.buffered();
 
     if (
       closeToBufferedContent({
         buffered,
+        audioBuffered: sourceUpdater.audioBuffer ? sourceUpdater.audioBuffered() : null,
+        videoBuffered: sourceUpdater.videoBuffer ? sourceUpdater.videoBuffered() : null,
         targetDuration: this.media().targetDuration,
         currentTime
       })
     ) {
-      seekTo = buffered.start(0) + Ranges.SAFE_TIME_DELTA;
-      this.logger_(`Buffered region starts (${buffered.start(0)}) ` +
+      const nextRange = Ranges.findNextRange(buffered, currentTime);
+
+      seekTo = nextRange.start(0) + Ranges.SAFE_TIME_DELTA;
+      this.logger_(`Buffered region starts (${nextRange.start(0)}) ` +
                    ` just beyond seek point (${currentTime}). Seeking to ${seekTo}.`);
 
       this.tech_.setCurrentTime(seekTo);
@@ -426,7 +450,7 @@ export default class PlaybackWatcher {
     const seekable = this.seekable();
     const currentTime = this.tech_.currentTime();
 
-    if (this.tech_.seeking() && this.fixesBadSeeks_()) {
+    if (this.fixesBadSeeks_()) {
       // Tech is seeking or bad seek fixed, no action needed
       return true;
     }
