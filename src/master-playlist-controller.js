@@ -224,20 +224,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.inbandTextTracks_ = {};
     this.timelineChangeController_ = new TimelineChangeController();
 
-    const captionServiceEncodings = {};
-
-    Object.keys(captionServices).forEach(serviceName => {
-      const serviceProps = captionServices[serviceName];
-
-      if (/^SERVICE/.test(serviceName)) {
-        captionServiceEncodings[serviceName] = serviceProps.encoding;
-      }
-    });
-
     const segmentLoaderSettings = {
       vhs: this.vhs_,
       parse708captions: options.parse708captions,
-      captionServiceEncodings,
+      captionServices,
       mediaSource: this.mediaSource,
       currentTime: this.tech_.currentTime.bind(this.tech_),
       seekable: () => this.seekable(),
