@@ -6,6 +6,10 @@ import {sumDurations, getPartsAndSegments} from './playlist';
 import videojs from 'video.js';
 import logger from './util/logger';
 
+// The maximum gap allowed between two media sequence tags when trying to
+// synchronize expired playlist segments.
+const MAX_MEDIA_SEQUENCE_DIFF_FOR_SYNC = 1000;
+
 export const syncPointStrategies = [
   // Stategy "VOD": Handle the VOD-case where the sync-point is *always*
   //                the equivalence display-time 0 === segment-index 0
@@ -363,6 +367,11 @@ export default class SyncController extends videojs.EventTarget {
    */
   saveExpiredSegmentInfo(oldPlaylist, newPlaylist) {
     const mediaSequenceDiff = newPlaylist.mediaSequence - oldPlaylist.mediaSequence;
+
+    // Ignore large media sequence gaps
+    if (mediaSequenceDiff > MAX_MEDIA_SEQUENCE_DIFF_FOR_SYNC) {
+      return;
+    }
 
     // When a segment expires from the playlist and it has a start time
     // save that information as a possible sync-point reference in future
