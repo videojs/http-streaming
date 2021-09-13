@@ -21,12 +21,13 @@ import {getKnownPartCount} from './playlist.js';
 const { mergeOptions, EventTarget } = videojs;
 
 const addLLHLSQueryDirectives = (uri, media) => {
-  if (media.endList) {
+  if (media.endList || !media.serverControl) {
     return uri;
   }
-  const query = [];
 
-  if (media.serverControl && media.serverControl.canBlockReload) {
+  const parameters = {};
+
+  if (media.serverControl.canBlockReload) {
     const {preloadSegment} = media;
     // next msn is a zero based value, length is not.
     let nextMSN = media.mediaSequence + media.segments.length;
@@ -44,7 +45,8 @@ const addLLHLSQueryDirectives = (uri, media) => {
       // and we need to add the _HLS_part= query
       if (nextPart > -1 && nextPart !== (parts.length - 1)) {
         // add existing parts to our preload hints
-        query.push(`_HLS_part=${nextPart}`);
+        // eslint-disable-next-line
+        parameters._HLS_part = nextPart;
       }
 
       // this if statement makes sure that we request the msn
@@ -62,19 +64,29 @@ const addLLHLSQueryDirectives = (uri, media) => {
     }
 
     // add _HLS_msn= in front of any _HLS_part query
-    query.unshift(`_HLS_msn=${nextMSN}`);
+    // eslint-disable-next-line
+    parameters._HLS_msn = nextMSN;
   }
 
   if (media.serverControl && media.serverControl.canSkipUntil) {
     // add _HLS_skip= infront of all other queries.
-    query.unshift('_HLS_skip=' + (media.serverControl.canSkipDateranges ? 'v2' : 'YES'));
+    // eslint-disable-next-line
+    parameters._HLS_skip = (media.serverControl.canSkipDateranges ? 'v2' : 'YES');
   }
 
-  query.forEach(function(str, i) {
-    const symbol = i === 0 ? '?' : '&';
+  if (Object.keys(parameters).length) {
+    const parsedUri = new window.URL(uri);
 
-    uri += `${symbol}${str}`;
-  });
+    ['_HLS_skip', '_HLS_msn', '_HLS_part'].forEach(function(name) {
+      if (!parameters.hasOwnProperty(name)) {
+        return;
+      }
+
+      parsedUri.searchParams.set(name, parameters[name]);
+    });
+
+    uri = parsedUri.toString();
+  }
 
   return uri;
 };

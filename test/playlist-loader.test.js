@@ -686,16 +686,15 @@ QUnit.module('Playlist Loader', function(hooks) {
   QUnit.test('can delay load', function(assert) {
     const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
 
-    assert.notOk(loader.mediaUpdateTimeout, 'no media update timeout');
+    assert.false(loader.mediaUpdateTimeout, 'no media update timeout');
 
     loader.load(true);
 
-    assert.ok(loader.mediaUpdateTimeout, 'have a media update timeout now');
+    assert.true(loader.mediaUpdateTimeout, 'have a media update timeout now');
     assert.strictEqual(this.requests.length, 0, 'have no requests');
 
     this.clock.tick(5000);
 
-    assert.notOk(loader.mediaUpdateTimeout, 'media update timeout is gone');
     assert.strictEqual(this.requests.length, 1, 'playlist request after delay');
   });
 
@@ -2559,5 +2558,40 @@ QUnit.module('Playlist Loader', function(hooks) {
     this.loader.trigger('mediaupdatetimeout');
 
     assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_skip=YES&_HLS_msn=8&_HLS_part=1');
+  });
+
+  QUnit.test('works with existing query directives', function(assert) {
+    this.loader.src += '?foo=test';
+    this.requests.shift().respond(
+      200, null,
+      '#EXTM3U\n' +
+      '#EXT-X-PART-INF:PART-TARGET=1\n' +
+      '#EXT-X-MEDIA-SEQUENCE:0\n' +
+      '#EXT-X-SERVER-CONTROL:CAN-BLOCK-RELOAD=YES,CAN-SKIP-UNTIL=3\n' +
+      '#EXTINF:2\n' +
+      'segment0.ts\n' +
+      '#EXTINF:2\n' +
+      'segment1.ts\n' +
+      '#EXTINF:2\n' +
+      'segment2.ts\n' +
+      '#EXTINF:2\n' +
+      'segment3.ts\n' +
+      '#EXTINF:2\n' +
+      'segment4.ts\n' +
+      '#EXTINF:2\n' +
+      'segment5.ts\n' +
+      '#EXT-X-PART:URI="segment6-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment6-part2.ts",DURATION=1\n' +
+      'segment6.ts\n' +
+      '#EXT-X-PART:URI="segment7-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment7-part2.ts",DURATION=1\n' +
+      'segment7.ts\n' +
+      '#EXT-X-PART:URI="segment8-part1.ts",DURATION=1\n' +
+      '#EXT-X-PRELOAD-HINT:TYPE="PART",URI="segment8-part2.ts"\n'
+    );
+
+    this.loader.trigger('mediaupdatetimeout');
+
+    assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?foo=test&_HLS_skip=YES&_HLS_msn=8&_HLS_part=1');
   });
 });
