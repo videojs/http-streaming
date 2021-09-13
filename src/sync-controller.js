@@ -370,6 +370,7 @@ export default class SyncController extends videojs.EventTarget {
 
     // Ignore large media sequence gaps
     if (mediaSequenceDiff > MAX_MEDIA_SEQUENCE_DIFF_FOR_SYNC) {
+      videojs.log.warn('Ignoring sync for large media sequence gap');
       return;
     }
 
