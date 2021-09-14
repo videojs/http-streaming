@@ -78,9 +78,9 @@ export default class PlaybackWatcher {
     /**
      * We check if a seek was into a gap through the following steps:
      * 1. We get a seeking event and we do not get a seeked event. This means that
-     *    we seeking was attempted but not completed.
+     *    a seek was attempted but not completed.
      * 2. We run `fixesBadSeeks_` on segment loader appends. This means that we already
-     *    removed everything from our buffer and appeded a segment, and should be ready
+     *    removed everything from our buffer and appended a segment, and should be ready
      *    to check for gaps.
      */
     const setSeekingHandlers = (fn) => {

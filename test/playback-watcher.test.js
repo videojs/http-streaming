@@ -1112,7 +1112,7 @@ QUnit.test('two seekings skips a gap only once', function(assert) {
   this.player.tech_.trigger('seeking');
   mainSegmentLoader.trigger('appended');
   assert.equal(seeks.length, 1, 'seeked');
-  assert.equal(seeks[0], 41.1, 'player seeked to the start of the closer buffer');
+  assert.equal(seeks[0], 41.1, 'player seeked to the start of the next buffer');
 });
 
 QUnit.test('seeking followed by seeked will not skip gaps', function(assert) {
