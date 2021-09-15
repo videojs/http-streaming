@@ -849,11 +849,12 @@ export const LoaderCommonFactory = ({
           this.clock.tick(1);
           return Promise.resolve();
         }).then(() => new Promise((resolve, reject) => {
-          loader.on('playlistupdate', () => {
-            this.clock.tick(1);
-            resolve();
-          });
           loader.on('trackinfo', () => {
+            loader.on('playlistupdate', () => {
+              this.clock.tick(1);
+              resolve();
+            });
+
             loader.playlist(playlistWithDuration(50, {
               uri: 'bar-1080.m3u8',
               mediaSequence: 0,
