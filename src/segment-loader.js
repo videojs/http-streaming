@@ -1984,7 +1984,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.setTimeMapping_(segmentInfo.timeline);
 
     // for tracking overall stats
-    this.updateMediaSecondsLoaded_(segmentInfo.segment);
+    this.updateMediaSecondsLoaded_(segmentInfo.part || segmentInfo.segment);
 
     // Note that the state isn't changed from loading to appending. This is because abort
     // logic may change behavior depending on the state, and changing state too early may

@@ -1431,7 +1431,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
   onSyncInfoUpdate_() {
     let audioSeekable;
 
-    if (!this.masterPlaylistLoader_) {
+    if (!this.masterPlaylistLoader_ || this.sourceUpdater_.hasCreatedSourceBuffers()) {
       return;
     }
 

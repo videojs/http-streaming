@@ -257,7 +257,8 @@ const getAllSegments = function(media) {
 export const isPlaylistUnchanged = (a, b) => a === b ||
   (a.segments && b.segments && a.segments.length === b.segments.length &&
    a.endList === b.endList &&
-   a.mediaSequence === b.mediaSequence);
+   a.mediaSequence === b.mediaSequence &&
+   (a.preloadSegment && b.preloadSegment && a.preloadSegment === b.preloadSegment));
 
 /**
   * Returns a new master playlist that is the result of merging an

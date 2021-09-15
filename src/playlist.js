@@ -117,7 +117,19 @@ const backwardDuration = function(playlist, endSequence) {
       return { result: result + segment.end, precise: true };
     }
 
-    result += segment.duration;
+    if (segment.preload) {
+      (segment.parts || []).forEach(function(p) {
+        result += p.duration;
+      });
+
+      (segment.preloadHints || []).forEach(function(p) {
+        if (p.type === 'PART') {
+          result += playlist.partTargetDuration;
+        }
+      });
+    } else {
+      result += segment.duration;
+    }
 
     if (typeof segment.start !== 'undefined') {
       return { result: result + segment.start, precise: true };
@@ -321,7 +333,7 @@ export const playlistEnd = function(playlist, expired, useSafeLiveEnd, liveEdgeP
 
   expired = expired || 0;
 
-  let lastSegmentTime = intervalDuration(
+  let lastSegmentEndTime = intervalDuration(
     playlist,
     playlist.mediaSequence + playlist.segments.length,
     expired
@@ -329,11 +341,11 @@ export const playlistEnd = function(playlist, expired, useSafeLiveEnd, liveEdgeP
 
   if (useSafeLiveEnd) {
     liveEdgePadding = typeof liveEdgePadding === 'number' ? liveEdgePadding : liveEdgeDelay(null, playlist);
-    lastSegmentTime -= liveEdgePadding;
+    lastSegmentEndTime -= liveEdgePadding;
   }
 
   // don't return a time less than zero
-  return Math.max(0, lastSegmentTime);
+  return Math.max(0, lastSegmentEndTime);
 };
 
 /**
@@ -407,7 +419,12 @@ export const getMediaInfoForTime = function({
     break;
   }
 
-  if (time < 0) {
+  // for normal playlists we can compare against zero
+  // but we have to be much more specific for LLHLS.
+  // as even half a second can cause us to guess the wrong segment.
+  const zeroOrPartTarget = playlist.partTargetDuration || 0;
+
+  if (time < zeroOrPartTarget) {
     // Walk backward from startIndex in the playlist, adding durations
     // until we find a segment that contains `time` and return it
     if (startIndex > 0) {
@@ -417,10 +434,10 @@ export const getMediaInfoForTime = function({
         time += partAndSegment.duration;
 
         if (experimentalExactManifestTimings) {
-          if (time < 0) {
+          if (time < zeroOrPartTarget) {
             continue;
           }
-        } else if ((time + TIME_FUDGE_FACTOR) <= 0) {
+        } else if ((time + TIME_FUDGE_FACTOR) <= zeroOrPartTarget) {
           continue;
         }
         return {
@@ -452,7 +469,7 @@ export const getMediaInfoForTime = function({
     for (let i = startIndex; i < 0; i++) {
       time -= playlist.targetDuration;
 
-      if (time < 0) {
+      if (time < zeroOrPartTarget) {
         return {
           partIndex: partsAndSegments[0] && partsAndSegments[0].partIndex || null,
           segmentIndex: partsAndSegments[0] && partsAndSegments[0].segmentIndex || 0,
@@ -471,10 +488,10 @@ export const getMediaInfoForTime = function({
     time -= partAndSegment.duration;
 
     if (experimentalExactManifestTimings) {
-      if (time > 0) {
+      if (time > zeroOrPartTarget) {
         continue;
       }
-    } else if ((time - TIME_FUDGE_FACTOR) >= 0) {
+    } else if ((time - TIME_FUDGE_FACTOR) >= zeroOrPartTarget) {
       continue;
     }
 
