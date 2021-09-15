@@ -2,6 +2,7 @@ import Playlist from '../src/playlist';
 import PlaylistLoader from '../src/playlist-loader';
 import QUnit from 'qunit';
 import xhrFactory from '../src/xhr';
+import videojs from 'video.js';
 import { useFakeEnvironment } from './test-helpers';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
@@ -1372,54 +1373,56 @@ QUnit.module('Playlist', function() {
       }
     );
 
-    QUnit.test('can return a partIndex', function(assert) {
-      this.fakeVhs.options_ = {experimentalLLHLS: true};
-      const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
+    if (!videojs.browser.IE_VERSION) {
+      QUnit.test('can return a partIndex', function(assert) {
+        this.fakeVhs.options_ = {experimentalLLHLS: true};
+        const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
 
-      loader.load();
+        loader.load();
 
-      this.requests.shift().respond(
-        200, null,
-        '#EXTM3U\n' +
-        '#EXT-X-MEDIA-SEQUENCE:1001\n' +
-        '#EXTINF:4,\n' +
-        '1001.ts\n' +
-        '#EXTINF:5,\n' +
-        '1002.ts\n' +
-        '#EXT-X-PART:URI="1003.part1.ts",DURATION=1\n' +
-        '#EXT-X-PART:URI="1003.part2.ts",DURATION=1\n' +
-        '#EXT-X-PART:URI="1003.part3.ts",DURATION=1\n' +
-        '#EXT-X-PRELOAD-HINT:TYPE="PART",URI="1003.part4.ts"\n'
-      );
+        this.requests.shift().respond(
+          200, null,
+          '#EXTM3U\n' +
+          '#EXT-X-MEDIA-SEQUENCE:1001\n' +
+          '#EXTINF:4,\n' +
+          '1001.ts\n' +
+          '#EXTINF:5,\n' +
+          '1002.ts\n' +
+          '#EXT-X-PART:URI="1003.part1.ts",DURATION=1\n' +
+          '#EXT-X-PART:URI="1003.part2.ts",DURATION=1\n' +
+          '#EXT-X-PART:URI="1003.part3.ts",DURATION=1\n' +
+          '#EXT-X-PRELOAD-HINT:TYPE="PART",URI="1003.part4.ts"\n'
+        );
 
-      const media = loader.media();
+        const media = loader.media();
 
-      this.defaults = {
-        playlist: media,
-        currentTime: 0,
-        startingSegmentIndex: 0,
-        startingPartIndex: null,
-        startTime: 0
-      };
+        this.defaults = {
+          playlist: media,
+          currentTime: 0,
+          startingSegmentIndex: 0,
+          startingPartIndex: null,
+          startTime: 0
+        };
 
-      assert.deepEqual(
-        this.getMediaInfoForTime({currentTime: 10, startTime: 0}),
-        {segmentIndex: 2, startTime: 9, partIndex: 0},
-        'returns expected part/segment'
-      );
+        assert.deepEqual(
+          this.getMediaInfoForTime({currentTime: 10, startTime: 0}),
+          {segmentIndex: 2, startTime: 9, partIndex: 0},
+          'returns expected part/segment'
+        );
 
-      assert.deepEqual(
-        this.getMediaInfoForTime({currentTime: 11, startTime: 0}),
-        {segmentIndex: 2, startTime: 10, partIndex: 1},
-        'returns expected part/segment'
-      );
+        assert.deepEqual(
+          this.getMediaInfoForTime({currentTime: 11, startTime: 0}),
+          {segmentIndex: 2, startTime: 10, partIndex: 1},
+          'returns expected part/segment'
+        );
 
-      assert.deepEqual(
-        this.getMediaInfoForTime({currentTime: 11, segmentIndex: -15}),
-        {segmentIndex: 2, startTime: 10, partIndex: 1},
-        'returns expected part/segment'
-      );
-    });
+        assert.deepEqual(
+          this.getMediaInfoForTime({currentTime: 11, segmentIndex: -15}),
+          {segmentIndex: 2, startTime: 10, partIndex: 1},
+          'returns expected part/segment'
+        );
+      });
+    }
 
     QUnit.test('liveEdgeDelay works as expected', function(assert) {
       const media = {
