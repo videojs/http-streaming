@@ -161,7 +161,19 @@ const forwardDuration = function(playlist, endSequence) {
       };
     }
 
-    result += segment.duration;
+    if (segment.preload) {
+      (segment.parts || []).forEach(function(p) {
+        result += p.duration;
+      });
+
+      (segment.preloadHints || []).forEach(function(p) {
+        if (p.type === 'PART') {
+          result += playlist.partTargetDuration;
+        }
+      });
+    } else {
+      result += segment.duration;
+    }
 
     if (typeof segment.end !== 'undefined') {
       return {
