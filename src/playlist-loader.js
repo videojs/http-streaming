@@ -517,6 +517,8 @@ export default class PlaylistLoader extends EventTarget {
 
     this.targetDuration = playlist.partTargetDuration || playlist.targetDuration;
 
+    this.pendingMedia_ = null;
+
     if (update) {
       this.master = update;
       this.media_ = this.master.playlists[id];
@@ -662,6 +664,8 @@ export default class PlaylistLoader extends EventTarget {
     if (this.media_) {
       this.trigger('mediachanging');
     }
+
+    this.pendingMedia_ = playlist;
 
     this.request = this.vhs_.xhr({
       uri: playlist.resolvedUri,

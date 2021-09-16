@@ -729,7 +729,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
   }
 
   shouldSwitchToMedia_(nextPlaylist) {
-    const currentPlaylist = this.masterPlaylistLoader_.media();
+    const currentPlaylist = this.masterPlaylistLoader_.media() ||
+      this.masterPlaylistLoader_.pendingMedia_;
     const buffered = this.tech_.buffered();
     const forwardBuffer = buffered.length ?
       buffered.end(buffered.length - 1) - this.tech_.currentTime() : 0;
