@@ -1024,7 +1024,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       if (this.mediaIndex !== null) {
         // we must "resync" the segment loader when we switch renditions and
         // the segment loader is already synced to the previous rendition
-        this.resyncLoader();
+        this.resetLoader();
       }
       this.currentMediaInfo_ = void 0;
       this.trigger('playlistupdate');
@@ -1413,7 +1413,8 @@ export default class SegmentLoader extends videojs.EventTarget {
         startTime: this.syncPoint_.time
       });
 
-      next.getMediaInfoForTime = this.fetchAtBuffer_ ? 'bufferedEnd' : 'currentTime';
+      next.getMediaInfoForTime = this.fetchAtBuffer_ ?
+        `bufferedEnd ${bufferedEnd}` : `currentTime ${this.currentTime_()}`;
       next.mediaIndex = segmentIndex;
       next.startOfSegment = startTime;
       next.partIndex = partIndex;
@@ -2988,15 +2989,19 @@ export default class SegmentLoader extends videojs.EventTarget {
     // and attempt to resync when the post-update seekable window and live
     // point would mean that this was the perfect segment to fetch
     this.trigger('syncinfoupdate');
-
     const segment = segmentInfo.segment;
+    const part = segmentInfo.part;
+    const badSegmentGuess = segment.end &&
+      this.currentTime_() - segment.end > segmentInfo.playlist.targetDuration * 3;
+    const badPartGuess = part &&
+      part.end && this.currentTime_() - part.end > segmentInfo.playlist.partTargetDuration * 3;
 
-    // If we previously appended a segment that ends more than 3 targetDurations before
+    // If we previously appended a segment/part that ends more than 3 part/targetDurations before
     // the currentTime_ that means that our conservative guess was too conservative.
     // In that case, reset the loader state so that we try to use any information gained
     // from the previous request to create a new, more accurate, sync-point.
-    if (segment.end &&
-        this.currentTime_() - segment.end > segmentInfo.playlist.targetDuration * 3) {
+    if (badSegmentGuess || badPartGuess) {
+      this.logger_(`bad ${badSegmentGuess ? 'segment' : 'part'} ${segmentInfoString(segmentInfo)}`);
       this.resetEverything();
       return;
     }
