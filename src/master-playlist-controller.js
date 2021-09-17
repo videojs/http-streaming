@@ -47,6 +47,7 @@ const sumLoaderStat = function(stat) {
 };
 const shouldSwitchToMedia = function({
   currentPlaylist,
+  isBuffered,
   nextPlaylist,
   forwardBuffer,
   bufferLowWaterLine,
@@ -78,6 +79,10 @@ const shouldSwitchToMedia = function({
   // playlist, and if `BUFFER_LOW_WATER_LINE` is greater than the duration availble
   // in those segments, a viewer will never experience a rendition upswitch.
   if (!currentPlaylist.endList) {
+    if (!isBuffered && typeof currentPlaylist.partTargetDuration === 'number') {
+      log(`not ${sharedLogLine} as current playlist is live llhls, but currentTime isn't in buffered.`);
+      return false;
+    }
     log(`${sharedLogLine} as current playlist is live`);
     return true;
   }
@@ -732,13 +737,14 @@ export class MasterPlaylistController extends videojs.EventTarget {
     const currentPlaylist = this.masterPlaylistLoader_.media() ||
       this.masterPlaylistLoader_.pendingMedia_;
     const buffered = this.tech_.buffered();
-    const forwardBuffer = buffered.length ?
-      buffered.end(buffered.length - 1) - this.tech_.currentTime() : 0;
-
+    const currentTime = this.tech_.currentTime();
+    const forwardBuffer = Ranges.timeAheadOf(buffered, currentTime);
     const bufferLowWaterLine = this.bufferLowWaterLine();
     const bufferHighWaterLine = this.bufferHighWaterLine();
+    const isBuffered = Boolean(Ranges.findRange(buffered, currentTime).length);
 
     return shouldSwitchToMedia({
+      isBuffered,
       currentPlaylist,
       nextPlaylist,
       forwardBuffer,

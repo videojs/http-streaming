@@ -23,7 +23,7 @@ import { gopsSafeToAlignWith, removeGopBuffer, updateGopBuffer } from './util/go
 import shallowEqual from './util/shallow-equal.js';
 import { QUOTA_EXCEEDED_ERR } from './error-codes';
 import { timeRangesToArray } from './ranges';
-import {lastBufferedEnd} from './ranges.js';
+import {lastBufferedEnd, timeAheadOf} from './ranges.js';
 import {getKnownPartCount} from './playlist.js';
 
 /**
@@ -158,6 +158,10 @@ const segmentInfoString = (segmentInfo) => {
     selection = `getMediaInfoForTime (${segmentInfo.getMediaInfoForTime})`;
   } else if (segmentInfo.isSyncRequest) {
     selection = 'getSyncSegmentCandidate (isSyncRequest)';
+  }
+
+  if (segmentInfo.independent) {
+    selection += ` ${segmentInfo.independent}`;
   }
 
   const hasPartIndex = typeof partIndex === 'number';
@@ -1359,8 +1363,9 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @return {Object} a request object that describes the segment/part to load
    */
   chooseNextRequest_() {
-    const bufferedEnd = lastBufferedEnd(this.buffered_()) || 0;
-    const bufferedTime = Math.max(0, bufferedEnd - this.currentTime_());
+    const buffered = this.buffered_();
+    const bufferedEnd = lastBufferedEnd(buffered) || 0;
+    const bufferedTime = timeAheadOf(buffered, this.currentTime_());
     const preloaded = !this.hasPlayed_() && bufferedTime >= 1;
     const haveEnoughBuffer = bufferedTime >= this.goalBufferLength_();
     const segments = this.playlist_.segments;
@@ -1421,7 +1426,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     const nextSegment = segments[next.mediaIndex];
-    const nextPart = nextSegment &&
+    let nextPart = nextSegment &&
       typeof next.partIndex === 'number' &&
       nextSegment.parts &&
       nextSegment.parts[next.partIndex];
@@ -1436,6 +1441,28 @@ export default class SegmentLoader extends videojs.EventTarget {
     // Set partIndex to 0
     if (typeof next.partIndex !== 'number' && nextSegment.parts) {
       next.partIndex = 0;
+      nextPart = nextSegment.parts[0];
+    }
+
+    // if we have no buffered data then we need to make sure
+    // that the next part we append is "independent" if possible.
+    // So we check if the previous part is independent, and request
+    // it if it is.
+    if (!bufferedTime && nextPart && !nextPart.independent) {
+
+      if (next.partIndex === 0) {
+        const lastSegment = segments[next.mediaIndex - 1];
+        const lastSegmentLastPart = lastSegment.parts && lastSegment.parts.length && lastSegment.parts[lastSegment.parts.length - 1];
+
+        if (lastSegmentLastPart && lastSegmentLastPart.independent) {
+          next.mediaIndex -= 1;
+          next.partIndex = lastSegment.parts.length - 1;
+          next.independent = 'previous segment';
+        }
+      } else if (nextSegment.parts[next.partIndex - 1].independent) {
+        next.partIndex -= 1;
+        next.independent = 'previous part';
+      }
     }
 
     const ended = this.mediaSource_ && this.mediaSource_.readyState === 'ended';
@@ -1453,6 +1480,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
   generateSegmentInfo_(options) {
     const {
+      independent,
       playlist,
       mediaIndex,
       startOfSegment,
@@ -1493,7 +1521,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       byteLength: 0,
       transmuxer: this.transmuxer_,
       // type of getMediaInfoForTime that was used to get this segment
-      getMediaInfoForTime
+      getMediaInfoForTime,
+      independent
     };
 
     const overrideCheck =
