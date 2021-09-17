@@ -347,12 +347,11 @@ export default class PlaybackWatcher {
     const buffered = this.tech_.buffered();
     const audioBuffered = sourceUpdater.audioBuffer ? sourceUpdater.audioBuffered() : null;
     const videoBuffered = sourceUpdater.videoBuffer ? sourceUpdater.videoBuffered() : null;
+    const media = this.media();
 
-    // verify that at least two segment durations have been
+    // verify that at least two segment durations or one part duration have been
     // appended before checking for a gap.
-    const targetDuration = this.media().partTargetDuration || this.media().targetDuration;
-    // const targetDuration = this.media().targetDuration;
-    const twoDurations = (targetDuration - Ranges.TIME_FUDGE_FACTOR) * 2;
+    const durations = media.partTargetDuration ? media.partTargetDuration : media.targetDuration * 2;
     const bufferedToCheck = [audioBuffered, videoBuffered];
 
     for (let i = 0; i < bufferedToCheck.length; i++) {
@@ -363,9 +362,9 @@ export default class PlaybackWatcher {
 
       const timeAhead = Ranges.timeAheadOf(bufferedToCheck[i], currentTime);
 
-      // if we are less than two video/audio segment durations behind,
-      // we haven't appended enough to call this a bad seek.
-      if (timeAhead < twoDurations) {
+      // if we are less than two video/audio segment durations or one part
+      // duration behind we haven't appended enough to call this a bad seek.
+      if (timeAhead < durations) {
         return false;
       }
     }
