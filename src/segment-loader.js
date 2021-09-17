@@ -22,8 +22,7 @@ import {
 import { gopsSafeToAlignWith, removeGopBuffer, updateGopBuffer } from './util/gops';
 import shallowEqual from './util/shallow-equal.js';
 import { QUOTA_EXCEEDED_ERR } from './error-codes';
-import { timeRangesToArray } from './ranges';
-import {lastBufferedEnd, timeAheadOf} from './ranges.js';
+import {timeRangesToArray, lastBufferedEnd, timeAheadOf} from './ranges.js';
 import {getKnownPartCount} from './playlist.js';
 
 /**
