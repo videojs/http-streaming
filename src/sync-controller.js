@@ -55,7 +55,7 @@ export const syncPointStrategies = [
 
         // take part duration into account.
         if (segment.parts && typeof partAndSegment.partIndex === 'number') {
-          for (let z = 0; z < partAndSegment.partIndex - 1; z++) {
+          for (let z = 0; z < partAndSegment.partIndex; z++) {
             start += segment.parts[z].duration;
           }
         }

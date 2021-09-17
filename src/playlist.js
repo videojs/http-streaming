@@ -431,12 +431,7 @@ export const getMediaInfoForTime = function({
     break;
   }
 
-  // for normal playlists we can compare against zero
-  // but we have to be much more specific for LLHLS.
-  // as even half a second can cause us to guess the wrong segment.
-  const zeroOrPartTarget = playlist.partTargetDuration || 0;
-
-  if (time < zeroOrPartTarget) {
+  if (time < 0) {
     // Walk backward from startIndex in the playlist, adding durations
     // until we find a segment that contains `time` and return it
     if (startIndex > 0) {
@@ -446,10 +441,10 @@ export const getMediaInfoForTime = function({
         time += partAndSegment.duration;
 
         if (experimentalExactManifestTimings) {
-          if (time < zeroOrPartTarget) {
+          if (time < 0) {
             continue;
           }
-        } else if ((time + TIME_FUDGE_FACTOR) <= zeroOrPartTarget) {
+        } else if ((time + TIME_FUDGE_FACTOR) <= 0) {
           continue;
         }
         return {
@@ -481,7 +476,7 @@ export const getMediaInfoForTime = function({
     for (let i = startIndex; i < 0; i++) {
       time -= playlist.targetDuration;
 
-      if (time < zeroOrPartTarget) {
+      if (time < 0) {
         return {
           partIndex: partsAndSegments[0] && partsAndSegments[0].partIndex || null,
           segmentIndex: partsAndSegments[0] && partsAndSegments[0].segmentIndex || 0,
@@ -500,10 +495,10 @@ export const getMediaInfoForTime = function({
     time -= partAndSegment.duration;
 
     if (experimentalExactManifestTimings) {
-      if (time > zeroOrPartTarget) {
+      if (time > 0) {
         continue;
       }
-    } else if ((time - TIME_FUDGE_FACTOR) >= zeroOrPartTarget) {
+    } else if ((time - TIME_FUDGE_FACTOR) >= 0) {
       continue;
     }
 
