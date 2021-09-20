@@ -172,6 +172,7 @@ QUnit.module('Playlist Loader', function(hooks) {
         }]
       }]
     };
+
     const media = {
       mediaSequence: 1,
       attributes: {
@@ -646,6 +647,152 @@ QUnit.module('Playlist Loader', function(hooks) {
       },
       'resolves key and map URIs'
     );
+  });
+
+  QUnit.test('updateMaster detects preload segment changes', function(assert) {
+    const master = {
+      playlists: [{
+        mediaSequence: 0,
+        attributes: {
+          BANDWIDTH: 9
+        },
+        uri: 'playlist-0-uri',
+        id: 'playlist-0-uri',
+        resolvedUri: urlTo('playlist-0-uri'),
+        segments: [{
+          duration: 10,
+          uri: 'segment-0-uri',
+          resolvedUri: urlTo('segment-0-uri')
+        }],
+        preloadSegment: {
+          parts: [
+            {uri: 'part-0-uri'}
+          ]
+        }
+      }]
+    };
+    const media = {
+      mediaSequence: 0,
+      attributes: {
+        BANDWIDTH: 9
+      },
+      uri: 'playlist-0-uri',
+      id: 'playlist-0-uri',
+      segments: [{
+        duration: 10,
+        uri: 'segment-0-uri'
+      }],
+      preloadSegment: {
+        parts: [
+          {uri: 'part-0-uri'},
+          {uri: 'part-1-uri'}
+        ]
+      }
+    };
+
+    master.playlists['playlist-0-uri'] = master.playlists[0];
+
+    const result = updateMaster(master, media);
+
+    master.playlists[0].preloadSegment = media.preloadSegment;
+
+    assert.deepEqual(result, master, 'playlist updated');
+  });
+
+  QUnit.test('updateMaster detects preload segment addition', function(assert) {
+    const master = {
+      playlists: [{
+        mediaSequence: 0,
+        attributes: {
+          BANDWIDTH: 9
+        },
+        uri: 'playlist-0-uri',
+        id: 'playlist-0-uri',
+        resolvedUri: urlTo('playlist-0-uri'),
+        segments: [{
+          duration: 10,
+          uri: 'segment-0-uri',
+          resolvedUri: urlTo('segment-0-uri')
+        }]
+      }]
+    };
+
+    const media = {
+      mediaSequence: 0,
+      attributes: {
+        BANDWIDTH: 9
+      },
+      uri: 'playlist-0-uri',
+      id: 'playlist-0-uri',
+      segments: [{
+        duration: 10,
+        uri: 'segment-0-uri'
+      }],
+      preloadSegment: {
+        parts: [
+          {uri: 'part-0-uri'},
+          {uri: 'part-1-uri'}
+        ]
+      }
+    };
+
+    master.playlists['playlist-0-uri'] = master.playlists[0];
+
+    const result = updateMaster(master, media);
+
+    master.playlists[0].preloadSegment = media.preloadSegment;
+
+    assert.deepEqual(result, master, 'playlist updated');
+  });
+
+  QUnit.test('updateMaster detects preload segment removal', function(assert) {
+    const master = {
+      playlists: [{
+        mediaSequence: 0,
+        attributes: {
+          BANDWIDTH: 9
+        },
+        uri: 'playlist-0-uri',
+        id: 'playlist-0-uri',
+        resolvedUri: urlTo('playlist-0-uri'),
+        segments: [{
+          duration: 10,
+          uri: 'segment-0-uri',
+          resolvedUri: urlTo('segment-0-uri')
+        }],
+        preloadSegment: {
+          parts: [
+            {uri: 'part-0-uri'},
+            {uri: 'part-1-uri'}
+          ]
+        }
+      }]
+    };
+
+    const media = {
+      mediaSequence: 0,
+      attributes: {
+        BANDWIDTH: 9
+      },
+      uri: 'playlist-0-uri',
+      id: 'playlist-0-uri',
+      segments: [{
+        duration: 10,
+        uri: 'segment-1-uri',
+        parts: [
+          {uri: 'part-0-uri'},
+          {uri: 'part-1-uri'}
+        ]
+      }]
+    };
+
+    master.playlists['playlist-0-uri'] = master.playlists[0];
+
+    const result = updateMaster(master, media);
+
+    master.playlists[0].preloadSegment = media.preloadSegment;
+
+    assert.deepEqual(result, master, 'playlist updated');
   });
 
   QUnit.test('uses last segment duration for refresh delay', function(assert) {

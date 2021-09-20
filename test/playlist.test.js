@@ -282,6 +282,70 @@ QUnit.module('Playlist', function() {
     assert.equal(Playlist.duration(playlist, -1), 0, 'negative length duration is zero');
   });
 
+  QUnit.test('accounts for preload segment part durations', function(assert) {
+    const duration = Playlist.duration({
+      mediaSequence: 10,
+      endList: true,
+
+      segments: [{
+        duration: 10,
+        uri: '0.ts'
+      }, {
+        duration: 10,
+        uri: '1.ts'
+      }, {
+        duration: 10,
+        uri: '2.ts'
+      }, {
+        duration: 10,
+        uri: '3.ts'
+      }, {
+        preload: true,
+        parts: [
+          {duration: 2},
+          {duration: 2},
+          {duration: 2}
+        ]
+      }]
+    });
+
+    assert.equal(duration, 46, 'includes segments and parts');
+  });
+
+  QUnit.test('accounts for preload segment part and preload hint durations', function(assert) {
+    const duration = Playlist.duration({
+      mediaSequence: 10,
+      endList: true,
+      partTargetDuration: 2,
+      segments: [{
+        duration: 10,
+        uri: '0.ts'
+      }, {
+        duration: 10,
+        uri: '1.ts'
+      }, {
+        duration: 10,
+        uri: '2.ts'
+      }, {
+        duration: 10,
+        uri: '3.ts'
+      }, {
+        preload: true,
+        parts: [
+          {duration: 2},
+          {duration: 2},
+          {duration: 2}
+        ],
+        preloadHints: [
+          {type: 'PART'},
+          {type: 'MAP'}
+        ]
+      }]
+    });
+
+    assert.equal(duration, 48, 'includes segments, parts, and hints');
+  });
+
   QUnit.module('Seekable');
 
   QUnit.test('calculates seekable time ranges from available segments', function(assert) {
