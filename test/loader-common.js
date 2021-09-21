@@ -1266,6 +1266,38 @@ export const LoaderCommonFactory = ({
       }
     );
 
+    QUnit.test('chooses the previous part if not buffered and current is not independent', function(assert) {
+      loader.buffered_ = () => videojs.createTimeRanges();
+      const playlist = playlistWithDuration(50, {llhls: true});
+
+      loader.hasPlayed_ = () => true;
+      loader.currentTime_ = () => 46;
+      loader.syncPoint_ = null;
+
+      loader.playlist(playlist);
+      loader.load();
+      // in a real scenario this probably won't happen
+      // but it makes which segment/part is chosen easier.
+      loader.mediaIndex = 4;
+      loader.partIndex = 1;
+
+      playlist.segments[4].parts[1].independent = true;
+      const segmentInfo = loader.chooseNextRequest_();
+
+      assert.equal(segmentInfo.partIndex, 1, 'previous part');
+      assert.equal(segmentInfo.mediaIndex, 4, 'same segment');
+
+      // in a real scenario this probably won't happen
+      // but it makes which segment/part is chosen easier.
+      loader.mediaIndex = 3;
+      loader.partIndex = 4;
+      playlist.segments[3].parts[4].independent = true;
+      const segmentInfo2 = loader.chooseNextRequest_();
+
+      assert.equal(segmentInfo2.partIndex, 4, 'previous part');
+      assert.equal(segmentInfo2.mediaIndex, 3, 'previous segment');
+    });
+
     QUnit.test('processing segment reachable even after playlist update removes it', function(assert) {
       const handleAppendsDone_ = loader.handleAppendsDone_.bind(loader);
       let expectedURI = '0.ts';

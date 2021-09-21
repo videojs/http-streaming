@@ -346,6 +346,32 @@ QUnit.module('Playlist', function() {
     assert.equal(duration, 48, 'includes segments, parts, and hints');
   });
 
+  QUnit.test('looks forward for llhls durations', function(assert) {
+    const playlist = {
+      mediaSequence: 12,
+      partTargetDuration: 3,
+      segments: [{
+        duration: 10,
+        uri: '0.ts'
+      }, {
+        duration: 9,
+        uri: '1.ts'
+      }, {
+        end: 40,
+        preload: true,
+        parts: [
+          {duration: 3}
+        ],
+        preloadHints: [
+          {type: 'PART'}
+        ]
+      }]
+    };
+    const duration = Playlist.duration(playlist, playlist.mediaSequence);
+
+    assert.equal(duration, 15, 'used llhls part/preload durations');
+  });
+
   QUnit.module('Seekable');
 
   QUnit.test('calculates seekable time ranges from available segments', function(assert) {
