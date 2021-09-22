@@ -306,6 +306,10 @@ export default class PlaybackWatcher {
       return false;
     }
 
+    // TODO: It's possible that these seekable checks should be moved out of this function
+    // and into a function that runs on seekablechange. It's also possible that we only need
+    // afterSeekableWindow as the buffered check at the bottom is good enough to handle before
+    // seekable range.
     const seekable = this.seekable();
     const currentTime = this.tech_.currentTime();
     const isAfterSeekableRange = this.afterSeekableWindow_(
