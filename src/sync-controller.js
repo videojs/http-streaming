@@ -8,7 +8,7 @@ import logger from './util/logger';
 
 // The maximum gap allowed between two media sequence tags when trying to
 // synchronize expired playlist segments.
-// the max media sequence diff is 48 hours of live stream 
+// the max media sequence diff is 48 hours of live stream
 // content with two second segments. Anything larger than that
 // will likely be invalid.
 const MAX_MEDIA_SEQUENCE_DIFF_FOR_SYNC = 86400;
