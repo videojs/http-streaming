@@ -446,7 +446,7 @@ QUnit.test('skips save of expired segment info if media sequence gap too large',
   const newPlaylist = playlistWithDuration(50);
 
   oldPlaylist.mediaSequence = 100;
-  newPlaylist.mediaSequence = 2000;
+  newPlaylist.mediaSequence = 86501;
 
   oldPlaylist.segments[0].start = 390;
   oldPlaylist.segments[1].start = 400;
