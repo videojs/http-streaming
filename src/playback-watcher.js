@@ -306,6 +306,10 @@ export default class PlaybackWatcher {
       return false;
     }
 
+    // TODO: It's possible that these seekable checks should be moved out of this function
+    // and into a function that runs on seekablechange. It's also possible that we only need
+    // afterSeekableWindow as the buffered check at the bottom is good enough to handle before
+    // seekable range.
     const seekable = this.seekable();
     const currentTime = this.tech_.currentTime();
     const isAfterSeekableRange = this.afterSeekableWindow_(
@@ -351,7 +355,11 @@ export default class PlaybackWatcher {
 
     // verify that at least two segment durations or one part duration have been
     // appended before checking for a gap.
-    const durations = media.partTargetDuration ? media.partTargetDuration : media.targetDuration * 2;
+    const durations = media.partTargetDuration ? media.partTargetDuration :
+      (media.targetDuration - Ranges.TIME_FUDGE_FACTOR) * 2;
+
+    // verify that at least two segment durations have been
+    // appended before checking for a gap.
     const bufferedToCheck = [audioBuffered, videoBuffered];
 
     for (let i = 0; i < bufferedToCheck.length; i++) {

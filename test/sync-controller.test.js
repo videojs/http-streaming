@@ -441,6 +441,24 @@ QUnit.test('saves expired info onto new playlist for sync point', function(asser
   );
 });
 
+QUnit.test('skips save of expired segment info if media sequence gap too large', function(assert) {
+  const oldPlaylist = playlistWithDuration(50);
+  const newPlaylist = playlistWithDuration(50);
+
+  oldPlaylist.mediaSequence = 100;
+  newPlaylist.mediaSequence = 86501;
+
+  oldPlaylist.segments[0].start = 390;
+  oldPlaylist.segments[1].start = 400;
+
+  this.syncController.saveExpiredSegmentInfo(oldPlaylist, newPlaylist);
+
+  assert.strictEqual(
+    typeof newPlaylist.syncInfo, 'undefined',
+    'skipped saving sync info onto new playlist'
+  );
+});
+
 QUnit.test('saves segment timing info', function(assert) {
   const syncCon = this.syncController;
   const playlist = playlistWithDuration(60);
