@@ -18,7 +18,6 @@ Video.js Compatibility: 6.0, 7.0
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-
 - [Installation](#installation)
   - [NPM](#npm)
   - [CDN](#cdn)
@@ -482,6 +481,9 @@ This option defaults to `false`.
 The captionServices options object has properties that map to the caption services. Each property is an object itself that includes several properties, like a label or language.
 
 For 608 captions, the service names are `CC1`, `CC2`, `CC3`, and `CC4`. For 708 captions, the service names are `SERVICEn` where `n` is a digit between `1` and `63`.
+
+For 708 caption services, you may additionally provide an `encoding` value that will be used by the transmuxer to decode the captions using an instance of [TextDecoder](https://developer.mozilla.org/en-US/docs/Web/API/TextDecoder). This is to permit and is required for legacy multi-byte encodings. Please review the `TextDecoder` documentation for accepted encoding labels.
+
 ###### Format
 ```js
 {
@@ -490,7 +492,8 @@ For 608 captions, the service names are `CC1`, `CC2`, `CC3`, and `CC4`. For 708 
       [serviceName]: {
         language: String, // optional
         label: String, // optional
-        default: boolean // optional
+        default: boolean, // optional,
+        encoding: String // optional, 708 services only
       }
     }
   }
@@ -508,7 +511,8 @@ For 608 captions, the service names are `CC1`, `CC2`, `CC3`, and `CC4`. For 708 
       SERVICE1: {
         langauge: 'kr',
         label: 'Korean',
-        default: true
+        encoding: 'euc-kr'
+        default: true,
       }
     }
   }

@@ -150,7 +150,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       sourceType,
       cacheEncryptionKeys,
       experimentalBufferBasedABR,
-      experimentalLeastPixelDiffSelector
+      experimentalLeastPixelDiffSelector,
+      captionServices
     } = options;
 
     if (!src) {
@@ -175,6 +176,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.blacklistDuration = blacklistDuration;
     this.maxPlaylistRetries = maxPlaylistRetries;
     this.enableLowInitialPlaylist = enableLowInitialPlaylist;
+
     if (this.useCueTags_) {
       this.cueTagsTrack_ = this.tech_.addTextTrack(
         'metadata',
@@ -225,6 +227,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     const segmentLoaderSettings = {
       vhs: this.vhs_,
       parse708captions: options.parse708captions,
+      captionServices,
       mediaSource: this.mediaSource,
       currentTime: this.tech_.currentTime.bind(this.tech_),
       seekable: () => this.seekable(),
