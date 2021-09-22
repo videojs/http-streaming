@@ -7,13 +7,10 @@ import {
   openMediaSource,
   standardXHRResponse
 } from './test-helpers.js';
-import {
-  default as PlaybackWatcher,
-  closeToBufferedContent
-} from '../src/playback-watcher';
+import {default as PlaybackWatcher} from '../src/playback-watcher';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
-import { SAFE_TIME_DELTA, bufferIntersection } from '../src/ranges';
+import { SAFE_TIME_DELTA } from '../src/ranges';
 
 let monitorCurrentTime_;
 
@@ -836,24 +833,24 @@ QUnit.test('corrects seek outside of seekable', function(assert) {
   currentTime = 50;
   seekable = videojs.createTimeRanges([[1, 45]]);
   seeking = true;
-  this.player.tech_.trigger('waiting');
+  playbackWatcher.fixesBadSeeks_();
   assert.equal(seeks.length, 1, 'seeked');
   assert.equal(seeks[0], 45, 'player seeked to live point');
 
   currentTime = 0;
-  this.player.tech_.trigger('waiting');
+  playbackWatcher.fixesBadSeeks_();
   assert.equal(seeks.length, 2, 'seeked');
   assert.equal(seeks[1], 1.1, 'player seeked to start of the live window');
 
   // inside of seekable range
   currentTime = 10;
-  this.player.tech_.trigger('waiting');
+  playbackWatcher.fixesBadSeeks_();
   assert.equal(seeks.length, 2, 'did not seek');
 
   currentTime = 50;
   // if we're not seeking, the case shouldn't be handled here
   seeking = false;
-  this.player.tech_.trigger('waiting');
+  playbackWatcher.fixesBadSeeks_();
   assert.equal(seeks.length, 2, 'did not seek');
 
   // no check for 0 with seeking false because that should be handled by live falloff
@@ -862,26 +859,26 @@ QUnit.test('corrects seek outside of seekable', function(assert) {
 
   seeking = true;
   currentTime = 50;
-  playbackWatcher.checkCurrentTime_();
+  playbackWatcher.fixesBadSeeks_();
   assert.equal(seeks.length, 3, 'seeked');
   assert.equal(seeks[2], 45, 'player seeked to live point');
 
   currentTime = 0;
-  playbackWatcher.checkCurrentTime_();
+  playbackWatcher.fixesBadSeeks_();
   assert.equal(seeks.length, 4, 'seeked');
   assert.equal(seeks[3], 1.1, 'player seeked to live point');
 
   currentTime = 10;
-  playbackWatcher.checkCurrentTime_();
+  playbackWatcher.fixesBadSeeks_();
   assert.equal(seeks.length, 4, 'did not seek');
 
   seeking = false;
   currentTime = 50;
-  playbackWatcher.checkCurrentTime_();
+  playbackWatcher.fixesBadSeeks_();
   assert.equal(seeks.length, 4, 'did not seek');
 
   currentTime = 0;
-  playbackWatcher.checkCurrentTime_();
+  playbackWatcher.fixesBadSeeks_();
   assert.equal(seeks.length, 4, 'did not seek');
 });
 
@@ -933,47 +930,21 @@ QUnit.test(
     // target duration of 10, seekable end of 45
     // 45 + 3 * 10 = 75
     currentTime = 75;
-    this.player.tech_.trigger('waiting');
+    playbackWatcher.fixesBadSeeks_();
     assert.equal(seeks.length, 0, 'did not seek');
 
     currentTime = 75.1;
-    this.player.tech_.trigger('waiting');
+    playbackWatcher.fixesBadSeeks_();
     assert.equal(seeks.length, 1, 'seeked');
     assert.equal(seeks[0], 45, 'player seeked to live point');
 
     playbackWatcher.allowSeeksWithinUnsafeLiveWindow = true;
 
     currentTime = 75;
-    this.player.tech_.trigger('waiting');
+    playbackWatcher.fixesBadSeeks_();
     assert.equal(seeks.length, 1, 'did not seek');
   }
 );
-
-QUnit.test('calls fixesBadSeeks_ on seekablechanged', function(assert) {
-  // set an arbitrary live source
-  this.player.src({
-    src: 'liveStart30sBefore.m3u8',
-    type: 'application/vnd.apple.mpegurl'
-  });
-
-  // start playback normally
-  this.player.tech_.triggerReady();
-  this.clock.tick(1);
-  standardXHRResponse(this.requests.shift());
-  openMediaSource(this.player, this.clock);
-  this.player.tech_.trigger('play');
-  this.player.tech_.trigger('playing');
-  this.clock.tick(1);
-
-  const playbackWatcher = this.player.tech_.vhs.playbackWatcher_;
-  let fixesBadSeeks_ = 0;
-
-  playbackWatcher.fixesBadSeeks_ = () => fixesBadSeeks_++;
-
-  this.player.tech_.trigger('seekablechanged');
-
-  assert.equal(fixesBadSeeks_, 1, 'fixesBadSeeks_ was called');
-});
 
 QUnit.test('jumps to buffered content if seeking just before', function(assert) {
   // target duration is 10 for this manifest
@@ -1095,6 +1066,145 @@ QUnit.test('jumps to correct range with gaps', function(assert) {
   );
   assert.equal(seeks.length, 1, 'seeked');
   assert.equal(seeks[0], 41.1, 'player seeked to the start of the closer buffer');
+});
+
+QUnit.test('two seekings skips a gap only once', function(assert) {
+  // target duration is 10 for this manifest
+  this.player.src({
+    src: 'liveStart30sBefore.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  // start playback normally
+  this.player.tech_.triggerReady();
+  this.clock.tick(1);
+  standardXHRResponse(this.requests.shift());
+  openMediaSource(this.player, this.clock);
+  this.player.tech_.trigger('play');
+  this.player.tech_.trigger('playing');
+  this.clock.tick(1);
+
+  const mainSegmentLoader = this.player.tech_.vhs.masterPlaylistController_.mainSegmentLoader_;
+  const playbackWatcher = this.player.tech_.vhs.playbackWatcher_;
+  const seeks = [];
+  let currentTime;
+  let buffered;
+
+  playbackWatcher.seekable = () => videojs.createTimeRanges([[10, 100]]);
+  playbackWatcher.tech_ = {
+    off: () => {},
+    seeking: () => true,
+    setCurrentTime: (time) => {
+      seeks.push(time);
+    },
+    currentTime: () => currentTime,
+    buffered: () => buffered
+  };
+
+  Object.assign(playbackWatcher.masterPlaylistController_.sourceUpdater_, {
+    videoBuffer: true,
+    videoBuffered: () => buffered
+  });
+
+  currentTime = 40;
+  buffered = videojs.createTimeRanges([[19, 39], [41, 70]]);
+  this.player.tech_.trigger('seeking');
+  this.player.tech_.trigger('seeking');
+  mainSegmentLoader.trigger('appended');
+  assert.equal(seeks.length, 1, 'seeked');
+  assert.equal(seeks[0], 41.1, 'player seeked to the start of the next buffer');
+});
+
+QUnit.test('seeking followed by seeked will not skip gaps', function(assert) {
+  // target duration is 10 for this manifest
+  this.player.src({
+    src: 'liveStart30sBefore.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  // start playback normally
+  this.player.tech_.triggerReady();
+  this.clock.tick(1);
+  standardXHRResponse(this.requests.shift());
+  openMediaSource(this.player, this.clock);
+  this.player.tech_.trigger('play');
+  this.player.tech_.trigger('playing');
+  this.clock.tick(1);
+
+  const mainSegmentLoader = this.player.tech_.vhs.masterPlaylistController_.mainSegmentLoader_;
+  const playbackWatcher = this.player.tech_.vhs.playbackWatcher_;
+  const seeks = [];
+  let currentTime;
+  let buffered;
+
+  playbackWatcher.seekable = () => videojs.createTimeRanges([[10, 100]]);
+  playbackWatcher.tech_ = {
+    off: () => {},
+    seeking: () => true,
+    setCurrentTime: (time) => {
+      seeks.push(time);
+    },
+    currentTime: () => currentTime,
+    buffered: () => buffered
+  };
+
+  Object.assign(playbackWatcher.masterPlaylistController_.sourceUpdater_, {
+    videoBuffer: true,
+    videoBuffered: () => buffered
+  });
+
+  currentTime = 40;
+  buffered = videojs.createTimeRanges([[19, 39], [41, 70]]);
+  this.player.tech_.trigger('seeking');
+  this.player.tech_.trigger('seeked');
+  mainSegmentLoader.trigger('appended');
+  assert.equal(seeks.length, 0, 'no seeks');
+});
+
+QUnit.test('dispose stops bad seek handling', function(assert) {
+  // target duration is 10 for this manifest
+  this.player.src({
+    src: 'liveStart30sBefore.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  // start playback normally
+  this.player.tech_.triggerReady();
+  this.clock.tick(1);
+  standardXHRResponse(this.requests.shift());
+  openMediaSource(this.player, this.clock);
+  this.player.tech_.trigger('play');
+  this.player.tech_.trigger('playing');
+  this.clock.tick(1);
+
+  const mainSegmentLoader = this.player.tech_.vhs.masterPlaylistController_.mainSegmentLoader_;
+  const playbackWatcher = this.player.tech_.vhs.playbackWatcher_;
+  const seeks = [];
+  let currentTime;
+  let buffered;
+
+  playbackWatcher.seekable = () => videojs.createTimeRanges([[10, 100]]);
+  playbackWatcher.tech_ = {
+    off: () => {},
+    seeking: () => true,
+    setCurrentTime: (time) => {
+      seeks.push(time);
+    },
+    currentTime: () => currentTime,
+    buffered: () => buffered
+  };
+
+  Object.assign(playbackWatcher.masterPlaylistController_.sourceUpdater_, {
+    videoBuffer: true,
+    videoBuffered: () => buffered
+  });
+
+  currentTime = 40;
+  buffered = videojs.createTimeRanges([[19, 39], [41, 70]]);
+  this.player.tech_.trigger('seeking');
+  playbackWatcher.dispose();
+  mainSegmentLoader.trigger('appended');
+  assert.equal(seeks.length, 0, 'no seeks');
 });
 
 const loaderTypes = ['audio', 'main', 'subtitle'];
@@ -1677,153 +1787,5 @@ QUnit.test('respects allowSeeksWithinUnsafeLiveWindow flag', function(assert) {
   assert.notOk(
     afterSeekableWindow_(videojs.createTimeRanges([[0, 10]]), 10, playlist, true),
     'false if within seekable range'
-  );
-});
-
-QUnit.module('closeToBufferedContent');
-
-QUnit.test('false if zero length videoBuffered', function(assert) {
-  assert.notOk(
-    closeToBufferedContent({
-      videoBuffered: videojs.createTimeRanges(),
-      targetDuration: 4,
-      currentTime: 10
-    }),
-    'returned false'
-  );
-});
-
-QUnit.test('false if zero length audioBuffered', function(assert) {
-  assert.notOk(
-    closeToBufferedContent({
-      audioBuffered: videojs.createTimeRanges(),
-      targetDuration: 4,
-      currentTime: 10
-    }),
-    'returned false'
-  );
-});
-
-QUnit.test('false if zero length audioBuffered and videoBuffered', function(assert) {
-  assert.notOk(
-    closeToBufferedContent({
-      audioBuffered: videojs.createTimeRanges(),
-      videoBuffered: videojs.createTimeRanges(),
-      targetDuration: 4,
-      currentTime: 10
-    }),
-    'returned false'
-  );
-});
-
-QUnit.test('false if videoBuffered less than two times target duration', function(assert) {
-  assert.notOk(
-    closeToBufferedContent({
-      videoBuffered: videojs.createTimeRanges([[11, 18.9]]),
-      targetDuration: 4,
-      currentTime: 10
-    }),
-    'returned false'
-  );
-});
-
-QUnit.test('false if audioBuffered less than two times target duration', function(assert) {
-  assert.notOk(
-    closeToBufferedContent({
-      audioBuffered: videojs.createTimeRanges([[11, 18.9]]),
-      targetDuration: 4,
-      currentTime: 10
-    }),
-    'returned false'
-  );
-});
-
-QUnit.test('false if either buffer is less than two times target duration', function(assert) {
-  assert.notOk(
-    closeToBufferedContent({
-      videoBuffered: videojs.createTimeRanges([[11, 18.9]]),
-      audioBuffered: videojs.createTimeRanges([[11, 18.9]]),
-      targetDuration: 4,
-      currentTime: 10
-    }),
-    'returned false'
-  );
-});
-
-QUnit.test('false if there is not a range ahead', function(assert) {
-  assert.notOk(
-    closeToBufferedContent({
-      videoBuffered: videojs.createTimeRanges([[11, 18.9]]),
-      targetDuration: 4,
-      currentTime: 19
-    }),
-    'returned false'
-  );
-});
-
-QUnit.test('false if buffer is one segment away from current time', function(assert) {
-  assert.notOk(
-    closeToBufferedContent({
-      videoBuffered: videojs.createTimeRanges([[14.1, 30]]),
-      targetDuration: 4,
-      currentTime: 10
-    }),
-    'returned false'
-  );
-});
-
-QUnit.test('true if enough buffer and close to current time', function(assert) {
-  assert.ok(
-    closeToBufferedContent({
-      videoBuffered: videojs.createTimeRanges([[13.9, 22]]),
-      targetDuration: 4,
-      currentTime: 10
-    }),
-    'returned true'
-  );
-});
-
-QUnit.test('true if enough buffer and close to current time with gaps', function(assert) {
-  assert.ok(
-    closeToBufferedContent({
-      videoBuffered: videojs.createTimeRanges([[19, 22], [24, 30], [31, 34]]),
-      targetDuration: 4,
-      currentTime: 23
-    }),
-    'returned true'
-  );
-});
-
-QUnit.test('complex gaps with enough buffer ahead', function(assert) {
-  const audioBuffered = videojs.createTimeRanges([[3095.04, 3095.46], [3095.55, 3110.57]]);
-  const videoBuffered = videojs.createTimeRanges([[3093.15, 3095.55], [3095.62, 3110.64], [3112.34, 3114.34]]);
-  const buffered = bufferIntersection(videoBuffered, audioBuffered);
-
-  assert.ok(
-    closeToBufferedContent({
-      videoBuffered,
-      audioBuffered,
-      buffered,
-      targetDuration: 7,
-      currentTime: 3095.45
-    }),
-    'returned true'
-  );
-});
-
-QUnit.test('another complex gaps with enough buffer ahead', function(assert) {
-  const audioBuffered = videojs.createTimeRanges([[827.32, 832.17], [832.26, 850.12]]);
-  const videoBuffered = videojs.createTimeRanges([[828.89, 832.26], [832.33, 856.35]]);
-  const buffered = bufferIntersection(videoBuffered, audioBuffered);
-
-  assert.ok(
-    closeToBufferedContent({
-      videoBuffered,
-      audioBuffered,
-      buffered,
-      targetDuration: 7,
-      currentTime: 832.16
-    }),
-    'returned true'
   );
 });
