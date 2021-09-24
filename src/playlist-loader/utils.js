@@ -135,3 +135,34 @@ export const mergeSegments = function({oldSegments, newSegments, offset = 0, bas
   }
   return result;
 };
+
+/**
+ * Loops through all supported media groups in master and calls the provided
+ * callback for each group. Unless true is returned from the callback.
+ *
+ * @param {Object} master
+ *        The parsed master manifest object
+ * @param {Function} callback
+ *        Callback to call for each media group
+ */
+export const forEachMediaGroup = (master, callback) => {
+  if (!master.mediaGroups) {
+    return;
+  }
+  ['AUDIO', 'SUBTITLES'].forEach((mediaType) => {
+    if (!master.mediaGroups[mediaType]) {
+      return;
+    }
+    for (const groupKey in master.mediaGroups[mediaType]) {
+      for (const labelKey in master.mediaGroups[mediaType][groupKey]) {
+        const mediaProperties = master.mediaGroups[mediaType][groupKey][labelKey];
+
+        const stop = callback(mediaProperties, mediaType, groupKey, labelKey);
+
+        if (stop) {
+          return;
+        }
+      }
+    }
+  });
+};

@@ -4,16 +4,25 @@ import window from 'global/window';
 
 class PlaylistLoader extends videojs.EventTarget {
   constructor(uri, options = {}) {
+    super();
     this.logger_ = logger(this.constructor.name);
     this.uri_ = uri;
     this.options_ = options;
     this.manifest_ = options.manifest || null;
+    this.vhs_ = options.vhs;
+    this.manifestString_ = options.manifestString || null;
+    this.lastRequestTime_ = options.lastRequestTime || null;
+
+    this.mediaRefreshTime_ = null;
     this.mediaRefreshTimeout_ = null;
     this.request_ = null;
     this.started_ = false;
-
     this.on('refresh', this.refreshManifest);
-    this.on('updated', this.setMediaUpdateTimeout_);
+    this.on('updated', this.setMediaRefreshTimeout_);
+  }
+
+  request() {
+    return this.request_;
   }
 
   uri() {
@@ -24,37 +33,49 @@ class PlaylistLoader extends videojs.EventTarget {
     return this.manifest_;
   }
 
+  manifestString() {
+    return this.manifestString_;
+  }
+
   started() {
     return this.started_;
   }
 
+  lastRequestTime() {
+    return this.lastRequestTime_;
+  }
+
   refreshManifest(callback) {
-    this.makeRequest({uri: this.uri_}, (request, wasRedirected) => {
+    this.makeRequest({uri: this.uri()}, (request, wasRedirected) => {
       if (wasRedirected) {
         this.uri_ = request.responseURL;
       }
 
-      this.parseManifest_(this.manifest_, request.responseText, (newManifest, wasUpdated) => {
-        wasUpdated = wasUpdated || !this.manifest_;
-        this.manifest_ = newManifest;
-        if (wasUpdated) {
+      if (request.responseHeaders && request.responseHeaders.date) {
+        this.lastRequestTime_ = Date.parse(request.responseHeaders.date);
+      } else {
+        this.lastRequestTime_ = Date.now();
+      }
+
+      this.parseManifest_(request.responseText, (parsedManifest, updated) => {
+        if (updated) {
+          this.manifestString_ = request.responseText;
+          this.manifest_ = parsedManifest;
           this.trigger('updated');
         }
       });
     });
   }
 
-  parseManifest_(manifestText, callback) {
-    return null;
-  }
+  parseManifest_(manifestText, callback) {}
 
   // make a request and do custom error handling
-  makeRequest(options, callback) {
+  makeRequest(options, callback, handleErrors = true) {
     const xhrOptions = videojs.mergeOptions({withCredentials: this.options_.withCredentials}, options);
 
     this.request_ = this.options_.vhs.xhr(xhrOptions, (error, request) => {
       // disposed
-      if (!this.request_) {
+      if (this.isDisposed_) {
         return;
       }
 
@@ -112,9 +133,8 @@ class PlaylistLoader extends videojs.EventTarget {
     }
   }
 
-  setMediaRefreshTimeout_(event) {
+  setMediaRefreshTimeout_(time = this.getMediaRefreshTime_()) {
     this.clearMediaRefreshTimeout_();
-    const time = this.getMediaRefreshTime_(event && event.type === 'updated');
 
     if (typeof time !== 'number') {
       return;
@@ -123,12 +143,16 @@ class PlaylistLoader extends videojs.EventTarget {
     this.refreshTimeout_ = window.setTimout(() => {
       this.refreshTimeout_ = null;
       this.trigger('refresh');
+      this.setMediaRefreshTimeout_();
     }, time);
   }
 
-  getMediaRefreshTime_() {}
+  getMediaRefreshTime_() {
+    return this.mediaRefreshTime_;
+  }
 
   dispose() {
+    this.isDisposed_ = true;
     this.stop();
     this.trigger('dispose');
   }

@@ -97,8 +97,8 @@ const mergeMedia = function(oldMedia, newMedia) {
 
 class HlsMediaPlaylistLoader extends PlaylistLoader {
 
-  parseManifest_(oldMedia, manifestString, callback) {
-    const newMedia = parseManifest({
+  parseManifest_(manifestString, callback) {
+    const parsedMedia = parseManifest({
       onwarn: ({message}) => this.logger_(`m3u8-parser warn for ${this.uri_}: ${message}`),
       oninfo: ({message}) => this.logger_(`m3u8-parser info for ${this.uri_}: ${message}`),
       manifestString,
@@ -106,14 +106,11 @@ class HlsMediaPlaylistLoader extends PlaylistLoader {
       customTagMappers: this.options_.customTagMappers,
       experimentalLLHLS: this.options_.experimentalLLHLS
     });
+    const updated = true;
 
-    const {updated, mergedMedia} = mergeMedia(oldMedia, newMedia);
+    this.mediaRefreshTime_ = timeBeforeRefresh(this.manifest(), updated);
 
-    callback(mergedMedia, updated);
-  }
-
-  getMediaRefreshTime_(updated) {
-    return timeBeforeRefresh(this.manifest(), updated);
+    callback(mergeMedia(this.manifest_, parsedMedia), updated);
   }
 
   start() {
