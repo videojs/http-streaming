@@ -63,18 +63,23 @@ const shouldSwitchToMedia = function({
 
   const sharedLogLine = `allowing switch ${currentPlaylist && currentPlaylist.id || 'null'} -> ${nextPlaylist.id}`;
 
+  if (!currentPlaylist) {
+    log(`${sharedLogLine} as current playlist is not set`);
+    return true;
+  }
+
+  // no need to switch if playlist is the same
+  if (nextPlaylist.id === currentPlaylist.id) {
+    return false;
+  }
+
   // If the playlist is live, then we want to not take low water line into account.
   // This is because in LIVE, the player plays 3 segments from the end of the
   // playlist, and if `BUFFER_LOW_WATER_LINE` is greater than the duration availble
   // in those segments, a viewer will never experience a rendition upswitch.
-  if (!currentPlaylist || !currentPlaylist.endList) {
-    log(`${sharedLogLine} as current playlist ` + (!currentPlaylist ? 'is not set' : 'is live'));
+  if (!currentPlaylist.endList) {
+    log(`${sharedLogLine} as current playlist is live`);
     return true;
-  }
-
-  // no need to switch playlist is the same
-  if (nextPlaylist.id === currentPlaylist.id) {
-    return false;
   }
 
   const maxBufferLowWaterLine = experimentalBufferBasedABR ?
@@ -145,7 +150,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       sourceType,
       cacheEncryptionKeys,
       experimentalBufferBasedABR,
-      experimentalLeastPixelDiffSelector
+      experimentalLeastPixelDiffSelector,
+      captionServices
     } = options;
 
     if (!src) {
@@ -170,6 +176,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.blacklistDuration = blacklistDuration;
     this.maxPlaylistRetries = maxPlaylistRetries;
     this.enableLowInitialPlaylist = enableLowInitialPlaylist;
+
     if (this.useCueTags_) {
       this.cueTagsTrack_ = this.tech_.addTextTrack(
         'metadata',
@@ -220,6 +227,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     const segmentLoaderSettings = {
       vhs: this.vhs_,
       parse708captions: options.parse708captions,
+      captionServices,
       mediaSource: this.mediaSource,
       currentTime: this.tech_.currentTime.bind(this.tech_),
       seekable: () => this.seekable(),
@@ -351,7 +359,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
   checkABR_() {
     const nextPlaylist = this.selectPlaylist();
 
-    if (this.shouldSwitchToMedia_(nextPlaylist)) {
+    if (nextPlaylist && this.shouldSwitchToMedia_(nextPlaylist)) {
       this.switchMedia_(nextPlaylist, 'abr');
     }
   }

@@ -33,13 +33,16 @@
   var llliveOptGroup = document.querySelector('[label="low latency live"]');
   var manifestOptGroup = document.querySelector('[label="json manifest object"]');
 
-  // get the sources list squared away
-  var xhr = new window.XMLHttpRequest();
+  var sourceList;
+  var hlsDataManifest;
+  var dashDataManifest;
 
-  xhr.addEventListener('load', function() {
-    var sources = JSON.parse(xhr.responseText);
+  var addSourcesToDom = function() {
+    if (!sourceList || !hlsDataManifest || !dashDataManifest) {
+      return;
+    }
 
-    sources.forEach(function(source) {
+    sourceList.forEach(function(source) {
       var option = document.createElement('option');
 
       option.innerText = source.name;
@@ -66,20 +69,33 @@
       }
     });
 
+    var hlsOption = document.createElement('option');
+    var dashOption = document.createElement('option');
+
+    dashOption.innerText = 'Dash Manifest Object Test, does not survive page reload';
+    dashOption.value = `data:application/vnd.videojs.vhs+json,${dashDataManifest}`;
+    hlsOption.innerText = 'HLS Manifest Object Test, does not survive page reload';
+    hlsOption.value = `data:application/vnd.videojs.vhs+json,${hlsDataManifest}`;
+
+    manifestOptGroup.appendChild(hlsOption);
+    manifestOptGroup.appendChild(dashOption);
+  };
+
+  var sourcesXhr = new window.XMLHttpRequest();
+
+  sourcesXhr.addEventListener('load', function() {
+    sourceList = JSON.parse(sourcesXhr.responseText);
+    addSourcesToDom();
   });
-  xhr.open('GET', './scripts/sources.json');
-  xhr.send();
+  sourcesXhr.open('GET', './scripts/sources.json');
+  sourcesXhr.send();
 
   var hlsManifestXhr = new window.XMLHttpRequest();
 
   hlsManifestXhr.addEventListener('load', function() {
-    var hlsManifest = hlsManifestXhr.responseText;
-    var option = document.createElement('option');
+    hlsDataManifest = hlsManifestXhr.responseText;
+    addSourcesToDom();
 
-    option.innerText = 'HLS Manifest Object Test, does not survive page reload';
-    option.value = `data:application/vnd.videojs.vhs+json,${hlsManifest}`;
-
-    manifestOptGroup.appendChild(option);
   });
   hlsManifestXhr.open('GET', './scripts/hls-manifest-object.json');
   hlsManifestXhr.send();
@@ -87,13 +103,8 @@
   var dashManifestXhr = new window.XMLHttpRequest();
 
   dashManifestXhr.addEventListener('load', function() {
-    var dashManifest = dashManifestXhr.responseText;
-    var option = document.createElement('option');
-
-    option.innerText = 'Dash Manifest Object Test, does not survive page reload';
-    option.value = `data:application/vnd.videojs.vhs+json,${dashManifest}`;
-
-    manifestOptGroup.appendChild(option);
+    dashDataManifest = dashManifestXhr.responseText;
+    addSourcesToDom();
   });
   dashManifestXhr.open('GET', './scripts/dash-manifest-object.json');
   dashManifestXhr.send();
@@ -269,10 +280,163 @@
     representationsEl.selectedIndex = selectedIndex;
   };
 
+  function getBuffered(buffered) {
+    var bufferedText = '';
+
+    if (!buffered) {
+      return bufferedText;
+    }
+
+    if (buffered.length) {
+      bufferedText += buffered.start(0) + ' - ' + buffered.end(0);
+    }
+    for (var i = 1; i < buffered.length; i++) {
+      bufferedText += ', ' + buffered.start(i) + ' - ' + buffered.end(i);
+    }
+    return bufferedText;
+  }
+
+  var setupSegmentMetadata = function(player) {
+    // setup segment metadata
+    var segmentMetadata = document.querySelector('#segment-metadata');
+
+    player.one('loadedmetadata', function() {
+      var tracks = player.textTracks();
+      var segmentMetadataTrack;
+
+      for (var i = 0; i < tracks.length; i++) {
+        if (tracks[i].label === 'segment-metadata') {
+          segmentMetadataTrack = tracks[i];
+        }
+      }
+
+      while (segmentMetadata.children.length) {
+        segmentMetadata.removeChild(segmentMetadata.firstChild);
+      }
+
+      if (segmentMetadataTrack) {
+        segmentMetadataTrack.addEventListener('cuechange', function() {
+          var cues = segmentMetadataTrack.activeCues || [];
+
+          while (segmentMetadata.children.length) {
+            segmentMetadata.removeChild(segmentMetadata.firstChild);
+          }
+
+          for (var j = 0; j < cues.length; j++) {
+            var text = JSON.stringify(JSON.parse(cues[j].text), null, 2);
+            var li = document.createElement('li');
+            var pre = document.createElement('pre');
+
+            pre.classList.add('border', 'rounded', 'p-2');
+            pre.textContent = text;
+            li.appendChild(pre);
+            segmentMetadata.appendChild(li);
+          }
+        });
+      }
+    });
+  };
+
+  var setupPlayerStats = function(player) {
+    player.on('dispose', () => {
+      if (window.statsTimer) {
+        window.clearInterval(window.statsTimer);
+        window.statsTimer = null;
+      }
+    });
+    var currentTimeStat = document.querySelector('.current-time-stat');
+    var bufferedStat = document.querySelector('.buffered-stat');
+    var videoBufferedStat = document.querySelector('.video-buffered-stat');
+    var audioBufferedStat = document.querySelector('.audio-buffered-stat');
+    var seekableStartStat = document.querySelector('.seekable-start-stat');
+    var seekableEndStat = document.querySelector('.seekable-end-stat');
+    var videoBitrateState = document.querySelector('.video-bitrate-stat');
+    var measuredBitrateStat = document.querySelector('.measured-bitrate-stat');
+    var videoTimestampOffset = document.querySelector('.video-timestampoffset');
+    var audioTimestampOffset = document.querySelector('.audio-timestampoffset');
+
+    player.on('timeupdate', function() {
+      currentTimeStat.textContent = player.currentTime().toFixed(1);
+    });
+
+    window.statsTimer = window.setInterval(function() {
+      var oldStart;
+      var oldEnd;
+      var seekable = player.seekable();
+
+      if (seekable && seekable.length) {
+
+        oldStart = seekableStartStat.textContent;
+        if (seekable.start(0).toFixed(1) !== oldStart) {
+          seekableStartStat.textContent = seekable.start(0).toFixed(1);
+        }
+        oldEnd = seekableEndStat.textContent;
+        if (seekable.end(0).toFixed(1) !== oldEnd) {
+          seekableEndStat.textContent = seekable.end(0).toFixed(1);
+        }
+      }
+
+      // buffered
+      bufferedStat.textContent = getBuffered(player.buffered());
+
+      // exit early if no VHS
+      if (!player.tech(true).vhs) {
+        videoBufferedStat.textContent = '';
+        audioBufferedStat.textContent = '';
+        videoBitrateState.textContent = '';
+        measuredBitrateStat.textContent = '';
+        videoTimestampOffset.textContent = '';
+        audioTimestampOffset.textContent = '';
+        return;
+      }
+
+      videoBufferedStat.textContent = getBuffered(player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer &&
+        player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer.buffered);
+
+      // demuxed audio
+      var audioBuffer = getBuffered(player.tech(true).vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer &&
+        player.tech(true).vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer.buffered);
+
+      // muxed audio
+      if (!audioBuffer) {
+        audioBuffer = getBuffered(player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer &&
+          player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer.buffered);
+      }
+      audioBufferedStat.textContent = audioBuffer;
+
+      if (player.tech(true).vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer) {
+        audioTimestampOffset.textContent = player.tech(true).vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer.timestampOffset;
+
+      } else if (player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer) {
+        audioTimestampOffset.textContent = player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer.timestampOffset;
+      }
+
+      if (player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer) {
+        videoTimestampOffset.textContent = player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer.timestampOffset;
+      }
+
+      // bitrates
+      var playlist = player.tech_.vhs.playlists.media();
+
+      if (playlist && playlist.attributes && playlist.attributes.BANDWIDTH) {
+        videoBitrateState.textContent = (playlist.attributes.BANDWIDTH / 1024).toLocaleString(undefined, {
+          maximumFractionDigits: 1
+        }) + ' kbps';
+      }
+      if (player.tech_.vhs.bandwidth) {
+        measuredBitrateStat.textContent = (player.tech_.vhs.bandwidth / 1024).toLocaleString(undefined, {
+          maximumFractionDigits: 1
+        }) + ' kbps';
+      }
+
+    }, 100);
+  };
+
   [
     'debug',
     'autoplay',
     'muted',
+    'fluid',
     'minified',
     'sync-workers',
     'liveui',
@@ -301,6 +465,18 @@
       if (s.value === state.url) {
         sources.selectedIndex = i;
       }
+    });
+
+    stateEls.fluid.addEventListener('change', function(event) {
+      saveState();
+      if (event.target.checked) {
+        window['player-fixture'].style.aspectRatio = '16/9';
+        window['player-fixture'].style.minHeight = 'initial';
+      } else {
+        window['player-fixture'].style.aspectRatio = '';
+        window['player-fixture'].style.minHeight = '250px';
+      }
+      window.player.fluid(event.target.checked);
     });
 
     stateEls.muted.addEventListener('change', function(event) {
@@ -394,6 +570,17 @@
           }
         });
 
+        setupPlayerStats(player);
+        setupSegmentMetadata(player);
+
+        // save player muted state interation
+        player.on('volumechange', function() {
+          if (stateEls.muted.checked !== player.muted()) {
+            stateEls.muted.checked = player.muted();
+            saveState();
+          }
+        });
+
         player.on('sourceset', function() {
           var source = player.currentSource();
 
@@ -430,6 +617,7 @@
 
         stateEls.debug.dispatchEvent(newEvent('change'));
         stateEls.muted.dispatchEvent(newEvent('change'));
+        stateEls.fluid.dispatchEvent(newEvent('change'));
         stateEls.autoplay.dispatchEvent(newEvent('change'));
 
         // run the load url handler for the intial source

@@ -21,12 +21,13 @@ import {getKnownPartCount} from './playlist.js';
 const { mergeOptions, EventTarget } = videojs;
 
 const addLLHLSQueryDirectives = (uri, media) => {
-  if (media.endList) {
+  if (media.endList || !media.serverControl) {
     return uri;
   }
-  const query = [];
 
-  if (media.serverControl && media.serverControl.canBlockReload) {
+  const parameters = {};
+
+  if (media.serverControl.canBlockReload) {
     const {preloadSegment} = media;
     // next msn is a zero based value, length is not.
     let nextMSN = media.mediaSequence + media.segments.length;
@@ -44,7 +45,8 @@ const addLLHLSQueryDirectives = (uri, media) => {
       // and we need to add the _HLS_part= query
       if (nextPart > -1 && nextPart !== (parts.length - 1)) {
         // add existing parts to our preload hints
-        query.push(`_HLS_part=${nextPart}`);
+        // eslint-disable-next-line
+        parameters._HLS_part = nextPart;
       }
 
       // this if statement makes sure that we request the msn
@@ -62,19 +64,29 @@ const addLLHLSQueryDirectives = (uri, media) => {
     }
 
     // add _HLS_msn= in front of any _HLS_part query
-    query.unshift(`_HLS_msn=${nextMSN}`);
+    // eslint-disable-next-line
+    parameters._HLS_msn = nextMSN;
   }
 
   if (media.serverControl && media.serverControl.canSkipUntil) {
     // add _HLS_skip= infront of all other queries.
-    query.unshift('_HLS_skip=' + (media.serverControl.canSkipDateranges ? 'v2' : 'YES'));
+    // eslint-disable-next-line
+    parameters._HLS_skip = (media.serverControl.canSkipDateranges ? 'v2' : 'YES');
   }
 
-  query.forEach(function(str, i) {
-    const symbol = i === 0 ? '?' : '&';
+  if (Object.keys(parameters).length) {
+    const parsedUri = new window.URL(uri);
 
-    uri += `${symbol}${str}`;
-  });
+    ['_HLS_skip', '_HLS_msn', '_HLS_part'].forEach(function(name) {
+      if (!parameters.hasOwnProperty(name)) {
+        return;
+      }
+
+      parsedUri.searchParams.set(name, parameters[name]);
+    });
+
+    uri = parsedUri.toString();
+  }
 
   return uri;
 };
@@ -340,7 +352,8 @@ export const updateMaster = (master, newMedia, unchangedCheck = isPlaylistUnchan
  *         The time in ms to wait before refreshing the live playlist
  */
 export const refreshDelay = (media, update) => {
-  const lastSegment = media.segments[media.segments.length - 1];
+  const segments = media.segments || [];
+  const lastSegment = segments[segments.length - 1];
   const lastPart = lastSegment && lastSegment.parts && lastSegment.parts[lastSegment.parts.length - 1];
   const lastDuration = lastPart && lastPart.duration || lastSegment && lastSegment.duration;
 
@@ -383,6 +396,11 @@ export default class PlaylistLoader extends EventTarget {
     this.customTagParsers = (vhsOptions && vhsOptions.customTagParsers) || [];
     this.customTagMappers = (vhsOptions && vhsOptions.customTagMappers) || [];
     this.experimentalLLHLS = (vhsOptions && vhsOptions.experimentalLLHLS) || false;
+
+    // force experimentalLLHLS for IE 11
+    if (videojs.browser.IE_VERSION) {
+      this.experimentalLLHLS = false;
+    }
 
     // initialize the loader state
     this.state = 'HAVE_NOTHING';
@@ -505,13 +523,7 @@ export default class PlaylistLoader extends EventTarget {
       this.trigger('playlistunchanged');
     }
 
-    // refresh live playlists after a target duration passes
-    if (!this.media().endList) {
-      window.clearTimeout(this.mediaUpdateTimeout);
-      this.mediaUpdateTimeout = window.setTimeout(() => {
-        this.trigger('mediaupdatetimeout');
-      }, refreshDelay(this.media(), !!update));
-    }
+    this.updateMediaUpdateTimeout_(refreshDelay(this.media(), !!update));
 
     this.trigger('loadedplaylist');
   }
@@ -619,6 +631,13 @@ export default class PlaylistLoader extends EventTarget {
       return;
     }
 
+    // We update/set the timeout here so that live playlists
+    // that are not a media change will "start" the loader as expected.
+    // We expect that this function will start the media update timeout
+    // cycle again. This also prevents a playlist switch failure from
+    // causing us to stall during live.
+    this.updateMediaUpdateTimeout_(refreshDelay(playlist, true));
+
     // switching to the active playlist is a no-op
     if (!mediaChange) {
       return;
@@ -679,8 +698,12 @@ export default class PlaylistLoader extends EventTarget {
    * pause loading of the playlist
    */
   pause() {
+    if (this.mediaUpdateTimeout) {
+      window.clearTimeout(this.mediaUpdateTimeout);
+      this.mediaUpdateTimeout = null;
+    }
+
     this.stopRequest();
-    window.clearTimeout(this.mediaUpdateTimeout);
     if (this.state === 'HAVE_NOTHING') {
       // If we pause the loader before any data has been retrieved, its as if we never
       // started, so reset to an unstarted state.
@@ -705,14 +728,20 @@ export default class PlaylistLoader extends EventTarget {
    * start loading of the playlist
    */
   load(shouldDelay) {
-    window.clearTimeout(this.mediaUpdateTimeout);
-
+    if (this.mediaUpdateTimeout) {
+      window.clearTimeout(this.mediaUpdateTimeout);
+      this.mediaUpdateTimeout = null;
+    }
     const media = this.media();
 
     if (shouldDelay) {
       const delay = media ? ((media.partTargetDuration || media.targetDuration) / 2) * 1000 : 5 * 1000;
 
-      this.mediaUpdateTimeout = window.setTimeout(() => this.load(), delay);
+      this.mediaUpdateTimeout = window.setTimeout(() => {
+        this.mediaUpdateTimeout = null;
+        this.load();
+      }, delay);
+
       return;
     }
 
@@ -726,6 +755,24 @@ export default class PlaylistLoader extends EventTarget {
     } else {
       this.trigger('loadedplaylist');
     }
+  }
+
+  updateMediaUpdateTimeout_(delay) {
+    if (this.mediaUpdateTimeout) {
+      window.clearTimeout(this.mediaUpdateTimeout);
+      this.mediaUpdateTimeout = null;
+    }
+
+    // we only have use mediaupdatetimeout for live playlists.
+    if (!this.media() || this.media().endList) {
+      return;
+    }
+
+    this.mediaUpdateTimeout = window.setTimeout(() => {
+      this.mediaUpdateTimeout = null;
+      this.trigger('mediaupdatetimeout');
+      this.updateMediaUpdateTimeout_(delay);
+    }, delay);
   }
 
   /**
