@@ -17,8 +17,12 @@ class PlaylistLoader extends videojs.EventTarget {
     this.mediaRefreshTimeout_ = null;
     this.request_ = null;
     this.started_ = false;
-    this.on('refresh', this.refreshManifest);
+    this.on('refresh', this.refreshManifest_);
     this.on('updated', this.setMediaRefreshTimeout_);
+  }
+
+  error() {
+    return this.error_;
   }
 
   request() {
@@ -45,8 +49,8 @@ class PlaylistLoader extends videojs.EventTarget {
     return this.lastRequestTime_;
   }
 
-  refreshManifest(callback) {
-    this.makeRequest({uri: this.uri()}, (request, wasRedirected) => {
+  refreshManifest_(callback) {
+    this.makeRequest_({uri: this.uri()}, (request, wasRedirected) => {
       if (wasRedirected) {
         this.uri_ = request.responseURL;
       }
@@ -70,7 +74,12 @@ class PlaylistLoader extends videojs.EventTarget {
   parseManifest_(manifestText, callback) {}
 
   // make a request and do custom error handling
-  makeRequest(options, callback, handleErrors = true) {
+  makeRequest_(options, callback, handleErrors = true) {
+    if (!this.started_) {
+      this.error_ = {message: 'makeRequest_ cannot be called before started!'};
+      this.trigger('error');
+      return;
+    }
     const xhrOptions = videojs.mergeOptions({withCredentials: this.options_.withCredentials}, options);
 
     this.request_ = this.options_.vhs.xhr(xhrOptions, (error, request) => {
@@ -83,7 +92,7 @@ class PlaylistLoader extends videojs.EventTarget {
       this.request_ = null;
 
       if (error) {
-        this.error = typeof error === 'object' && !(error instanceof Error) ? error : {
+        this.error_ = typeof error === 'object' && !(error instanceof Error) ? error : {
           status: request.status,
           message: `Playlist request error at URI ${request.uri}`,
           response: request.response,
@@ -94,9 +103,8 @@ class PlaylistLoader extends videojs.EventTarget {
         return;
       }
 
-      const wasRedirected =
-        this.options_.handleManifestRedirects &&
-        request.responseURL !== xhrOptions.uri;
+      const wasRedirected = Boolean(this.options_.handleManifestRedirects &&
+        request.responseURL !== xhrOptions.uri);
 
       callback(request, wasRedirected);
     });
@@ -105,7 +113,7 @@ class PlaylistLoader extends videojs.EventTarget {
   start() {
     if (!this.started_) {
       this.started_ = true;
-      this.refreshManifest();
+      this.refreshManifest_();
     }
   }
 
@@ -127,20 +135,24 @@ class PlaylistLoader extends videojs.EventTarget {
   }
 
   clearMediaRefreshTimeout_() {
-    if (this.mediaRefreshTimeout_) {
-      window.clearTimeout(this.mediaRefreshTimeout_);
-      this.mediaRefreshTimeout_ = null;
+    if (this.refreshTimeout_) {
+      window.clearTimeout(this.refreshTimeout_);
+      this.refreshTimeout_ = null;
     }
   }
 
-  setMediaRefreshTimeout_(time = this.getMediaRefreshTime_()) {
+  setMediaRefreshTimeout_(time) {
+    if (typeof time !== 'number') {
+      time = this.getMediaRefreshTime_();
+    }
     this.clearMediaRefreshTimeout_();
 
     if (typeof time !== 'number') {
+      this.logger_('Not setting media refresh time, as time given is not a number.');
       return;
     }
 
-    this.refreshTimeout_ = window.setTimout(() => {
+    this.refreshTimeout_ = window.setTimeout(() => {
       this.refreshTimeout_ = null;
       this.trigger('refresh');
       this.setMediaRefreshTimeout_();
