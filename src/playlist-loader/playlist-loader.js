@@ -37,10 +37,6 @@ class PlaylistLoader extends videojs.EventTarget {
     return this.manifest_;
   }
 
-  manifestString() {
-    return this.manifestString_;
-  }
-
   started() {
     return this.started_;
   }

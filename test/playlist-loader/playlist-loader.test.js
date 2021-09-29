@@ -42,7 +42,7 @@ QUnit.module('New Playlist Loader', function(hooks) {
 
     assert.equal(this.loader.uri(), 'foo.uri', 'uri set');
     assert.equal(this.loader.manifest(), manifest, 'manifest set');
-    assert.equal(this.loader.manifestString(), manifestString, 'manifestString set');
+    assert.equal(this.loader.manifestString_, manifestString, 'manifestString set');
     assert.equal(this.loader.started(), false, 'not started');
     assert.equal(this.loader.request(), null, 'no request');
     assert.equal(this.loader.error(), null, 'no error');
@@ -200,7 +200,7 @@ QUnit.module('New Playlist Loader', function(hooks) {
     this.requests[0].respond(200, null, manifestString);
 
     assert.equal(this.loader.manifest(), manifest, 'manifest added to loader');
-    assert.equal(this.loader.manifestString(), manifestString, 'manifestString added to loader');
+    assert.equal(this.loader.manifestString_, manifestString, 'manifestString added to loader');
     assert.true(updatedCalled, 'updated was called');
   });
 
@@ -229,7 +229,7 @@ QUnit.module('New Playlist Loader', function(hooks) {
     this.requests[0].respond(200, null, manifestString);
 
     assert.equal(this.loader.manifest(), null, 'manifest not added to loader');
-    assert.equal(this.loader.manifestString(), null, 'manifestString not added to loader');
+    assert.equal(this.loader.manifestString_, null, 'manifestString not added to loader');
     assert.false(updatedCalled, 'updated was not called');
   });
 
