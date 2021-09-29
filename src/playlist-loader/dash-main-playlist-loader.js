@@ -1,5 +1,6 @@
 import PlaylistLoader from './playlist-loader.js';
-import {resolveUrl} from './resolve-url';
+import {resolveUrl} from '../resolve-url';
+// import {addPropertiesToMaster} from '../manifest.js';
 import {
   parse as parseMpd,
   parseUTCTiming
@@ -9,14 +10,14 @@ import {
 } from 'mpd-parser';
 import {forEachMediaGroup} from './utils.js';
 
-export const findMedia = function(mainManifest, id) {
+export const findMedia = function(mainManifest, uri) {
   if (!mainManifest || !mainManifest.playlists || !mainManifest.playlists.length) {
     return;
   }
   for (let i = 0; i < mainManifest.playlists.length; i++) {
     const media = mainManifest.playlists[i];
 
-    if (media.id === id) {
+    if (media.uri === uri) {
       return media;
     }
   }
@@ -31,7 +32,7 @@ export const findMedia = function(mainManifest, id) {
     for (let i = 0; i < properties.playlists; i++) {
       const media = mainManifest.playlists[i];
 
-      if (media.id === id) {
+      if (media.uri === uri) {
         foundMedia = media;
         return true;
       }
@@ -57,7 +58,7 @@ const mergeMainManifest = function(oldMain, newMain, sidxMapping) {
   // First update the media in playlist array
   for (let i = 0; i < newMain.playlists.length; i++) {
     const newMedia = newMain.playlists[i];
-    const oldMedia = findMedia(oldMain, newMedia.id);
+    const oldMedia = findMedia(oldMain, newMedia.uri);
     const {updated, mergedMedia} = mergeMedia(oldMedia, newMedia);
 
     result.mergedManifest.playlists[i] = mergedMedia;
@@ -94,14 +95,14 @@ class DashMainPlaylistLoader extends PlaylistLoader {
   constructor(uri, options) {
     super(uri, options);
     this.clientOffset_ = null;
-    this.sidxMapping_ = null;
+    this.sidxMapping_ = {};
     this.mediaList_ = options.mediaList;
     this.clientClockOffset_ = null;
     this.setMediaRefreshTimeout_ = this.setMediaRefreshTimeout_.bind(this);
   }
 
   parseManifest_(manifestString, callback) {
-    this.syncClientServerClock_(manifestString, function(clientOffset) {
+    this.syncClientServerClock_(manifestString, (clientOffset) => {
       const parsedManifest = parseMpd(manifestString, {
         manifestUri: this.uri_,
         clientOffset,
@@ -114,7 +115,20 @@ class DashMainPlaylistLoader extends PlaylistLoader {
         this.sidxMapping_
       );
 
-      callback(mergedManifest);
+      // TODO: why doesn't our mpd parser just do this...
+      // addPropertiesToMaster(mergedManifest);
+      mergedManifest.playlists.forEach(function(playlist) {
+        if (!playlist.id) {
+          playlist.id = playlist.attributes.NAME;
+        }
+
+        if (!playlist.uri) {
+          playlist.uri = playlist.attributes.NAME;
+        }
+      });
+
+      // TODO: determine if we were updated or not.
+      callback(mergedManifest, true);
     });
   }
 

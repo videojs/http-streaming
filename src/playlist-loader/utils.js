@@ -1,5 +1,5 @@
 import {mergeOptions} from 'video.js';
-import {resolveUrl} from './resolve-url';
+import {resolveUrl} from '../resolve-url';
 
 export const isMediaUnchanged = (a, b) => a === b ||
   (a.segments && b.segments && a.segments.length === b.segments.length &&

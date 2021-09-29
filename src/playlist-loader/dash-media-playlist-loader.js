@@ -1,59 +1,64 @@
 import PlaylistLoader from './playlist-loader.js';
 import {findMedia} from './dash-main-playlist-loader.js';
-
-const findManifestString = function(manifestString, id) {
-
-};
-
-const wasMediaUpdated = function(oldManifest, newManifest) {
-
-};
+import deepEqualObject from '../util/deep-equal-object.js';
 
 class DashMediaPlaylistLoader extends PlaylistLoader {
   constructor(uri, options) {
     super(uri, options);
+    this.manifest_ = null;
+    this.manifestString_ = null;
 
     this.mainPlaylistLoader_ = options.mainPlaylistLoader;
-    this.onMainUpdated_ = this.onMainUpdated_.bind(this);
+    this.boundOnMainUpdated_ = () => this.onMainUpdated_();
 
-    this.mainPlaylistLoader_.on('updated', this.onMainUpdated_);
+    this.mainPlaylistLoader_.on('updated', this.boundOnMainUpdated_);
   }
 
-  onMainUpdated_() {
-    const oldManifestString = this.manifestString_;
-    const oldManifest = this.manifest_;
+  // noop, as media playlists in dash do not have
+  // a uri to refresh or a manifest string
+  refreshManifest_() {}
+  parseManifest_() {}
+  setMediaRefreshTimeout_() {}
+  clearMediaRefreshTimeout_() {}
+  getMediaRefreshTime_() {}
+  getManifestString_() {}
+  stopRequest() {}
 
-    this.manifestString_ = findManifestString(
-      this.mainPlaylistLoader_.manifestString(),
-      this.uri()
-    );
+  onMainUpdated_() {
+    if (!this.started_) {
+      return;
+    }
+    const oldManifest = this.manifest_;
 
     this.manifest_ = findMedia(
       this.mainPlaylistLoader_.manifest(),
       this.uri()
     );
 
-    const wasUpdated = !oldManifestString ||
-      this.manifestString_ !== oldManifestString ||
-      wasMediaUpdated(oldManifest, this.manifest_);
+    const wasUpdated = !deepEqualObject(oldManifest, this.manifest_);
 
     if (wasUpdated) {
-      this.trigger('updated');
       this.mainPlaylistLoader_.setMediaRefreshTime_(this.manifest().targetDuration * 1000);
+      this.trigger('updated');
     }
-  }
-
-  manifest() {
-    return findMedia(this.mainPlaylistLoader_.manifest(), this.uri());
   }
 
   start() {
     if (!this.started_) {
       this.started_ = true;
+      this.onMainUpdated_();
+    }
+  }
+
+  stop() {
+    if (this.started_) {
+      this.started_ = false;
+      this.manifest_ = null;
     }
   }
 
   dispose() {
+    this.mainPlaylistLoader_.off('updated', this.boundOnMainUpdated_);
     super.dispose();
   }
 }
