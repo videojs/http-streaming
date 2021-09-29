@@ -12,13 +12,15 @@ class HlsMainPlaylistLoader extends PlaylistLoader {
       experimentalLLHLS: this.options_.experimentalLLHLS
     });
 
-    callback(parsedManifest);
+    callback(parsedManifest, this.manifestString_ !== manifestString);
   }
 
   start() {
     // never re-request the manifest.
     if (this.manifest_) {
+      // TODO: we may have to trigger updated here
       this.started_ = true;
+      return;
     }
 
     super.start();
