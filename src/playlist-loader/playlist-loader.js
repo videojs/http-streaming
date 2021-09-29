@@ -138,6 +138,10 @@ class PlaylistLoader extends videojs.EventTarget {
   }
 
   setMediaRefreshTimeout_(time) {
+    // do nothing if disposed
+    if (this.isDisposed_) {
+      return;
+    }
     if (typeof time !== 'number') {
       time = this.getMediaRefreshTime_();
     }

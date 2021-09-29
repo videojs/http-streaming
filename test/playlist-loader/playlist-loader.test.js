@@ -55,6 +55,39 @@ QUnit.module('New Playlist Loader', function(hooks) {
   });
 
   QUnit.module('#start()');
+
+  QUnit.test('only starts if not started', function(assert) {
+    this.loader = new PlaylistLoader('foo.uri', {
+      vhs: this.fakeVhs
+    });
+
+    const calls = {};
+    const fns = ['refreshManifest_'];
+
+    fns.forEach((name) => {
+      calls[name] = 0;
+
+      this.loader[name] = () => {
+        calls[name]++;
+      };
+    });
+    assert.false(this.loader.started(), 'not started');
+
+    this.loader.start();
+    assert.true(this.loader.started(), 'still started');
+
+    fns.forEach(function(name) {
+      assert.equal(calls[name], 1, `called ${name}`);
+    });
+
+    this.loader.start();
+    fns.forEach(function(name) {
+      assert.equal(calls[name], 1, `still 1 call to ${name}`);
+    });
+
+    assert.true(this.loader.started(), 'still started');
+  });
+
   QUnit.test('sets started to true', function(assert) {
     this.loader = new PlaylistLoader('foo.uri', {vhs: this.fakeVhs});
 
@@ -63,6 +96,7 @@ QUnit.module('New Playlist Loader', function(hooks) {
     this.loader.start();
 
     assert.equal(this.loader.started(), true, 'is started');
+    assert.equal(this.requests.length, 1, 'added request');
   });
 
   QUnit.test('does not request until start', function(assert) {
@@ -566,6 +600,18 @@ QUnit.module('New Playlist Loader', function(hooks) {
 
   });
 
+  QUnit.test('does nothing when disposed', function(assert) {
+    this.loader = new PlaylistLoader('foo.uri', {
+      vhs: this.fakeVhs
+    });
+
+    this.loader.isDisposed_ = true;
+    this.loader.getMediaRefreshTime_ = () => 20;
+    this.loader.setMediaRefreshTimeout_();
+
+    assert.equal(this.loader.refreshTimeout_, null, 'no refreshTimeout_');
+  });
+
   QUnit.module('#clearMediaRefreshTime_()');
 
   QUnit.test('not re-added if getMediaRefreshTime_ returns null', function(assert) {
@@ -590,5 +636,16 @@ QUnit.module('New Playlist Loader', function(hooks) {
     assert.false(refreshTriggered, 'refresh not triggered as timeout was cleared');
   });
 
+  QUnit.test('does not throw if we have no refreshTimeout_', function(assert) {
+    this.loader = new PlaylistLoader('foo.uri', {
+      vhs: this.fakeVhs
+    });
+    try {
+      this.loader.clearMediaRefreshTimeout_();
+      assert.true(true, 'did not throw an error');
+    } catch (e) {
+      assert.true(false, `threw an error ${e}`);
+    }
+  });
 });
 
