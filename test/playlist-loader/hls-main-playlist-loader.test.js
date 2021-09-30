@@ -49,7 +49,7 @@ QUnit.module('HLS Main Playlist Loader', function(hooks) {
 
     assert.equal(this.loader.request_, null, 'request is done');
     assert.ok(this.loader.manifest(), 'manifest was set');
-    assert.equal(this.loader.manifestString(), testDataManifests.master, 'manifest string set');
+    assert.equal(this.loader.manifestString_, testDataManifests.master, 'manifest string set');
     assert.true(updatedTriggered, 'updated was triggered');
   });
 
@@ -85,7 +85,7 @@ QUnit.module('HLS Main Playlist Loader', function(hooks) {
 
     assert.equal(this.loader.request_, null, 'request is done');
     assert.ok(this.loader.manifest(), 'manifest was set');
-    assert.equal(this.loader.manifestString(), testDataManifests.master, 'manifest string set');
+    assert.equal(this.loader.manifestString_, testDataManifests.master, 'manifest string set');
     assert.equal(updatedTriggers, 1, 'one updated trigger');
 
     this.loader.refreshManifest_();
@@ -115,7 +115,7 @@ QUnit.module('HLS Main Playlist Loader', function(hooks) {
 
     assert.equal(this.loader.request_, null, 'request is done');
     assert.ok(this.loader.manifest(), 'manifest was set');
-    assert.equal(this.loader.manifestString(), testDataManifests.master, 'manifest string set');
+    assert.equal(this.loader.manifestString_, testDataManifests.master, 'manifest string set');
     assert.equal(updatedTriggers, 1, 'one updated trigger');
 
     this.loader.refreshManifest_();
@@ -124,8 +124,32 @@ QUnit.module('HLS Main Playlist Loader', function(hooks) {
 
     assert.equal(this.loader.request_, null, 'request is done');
     assert.ok(this.loader.manifest(), 'manifest was set');
-    assert.equal(this.loader.manifestString(), testDataManifests['master-captions'], 'manifest string set');
+    assert.equal(this.loader.manifestString_, testDataManifests['master-captions'], 'manifest string set');
     assert.equal(updatedTriggers, 2, 'updated again');
+  });
+
+  QUnit.test('can handle media playlist passed as main', function(assert) {
+    assert.expect(8);
+    this.loader = new HlsMainPlaylistLoader('master.m3u8', {
+      vhs: this.fakeVhs
+    });
+
+    let updatedTriggered = false;
+
+    this.loader.on('updated', function() {
+      updatedTriggered = true;
+    });
+    this.loader.start();
+
+    assert.true(this.loader.started_, 'was started');
+    assert.ok(this.loader.request_, 'has request');
+
+    this.requests[0].respond(200, null, testDataManifests.media);
+
+    assert.equal(this.loader.request_, null, 'request is done');
+    assert.ok(this.loader.manifest(), 'manifest was set');
+    assert.equal(this.loader.manifestString_, testDataManifests.media, 'manifest string set');
+    assert.true(updatedTriggered, 'updated was triggered');
   });
 });
 
