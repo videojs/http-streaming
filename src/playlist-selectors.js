@@ -284,8 +284,34 @@ export let simpleSelector = function(
     resolutionPlusOneRep = resolutionPlusOneSmallest.filter((rep) => rep.bandwidth === highestRemainingBandwidthRep.bandwidth)[0];
   }
 
+  let leastPixelDiffRep;
+
+  // If this selector proves to be better than others,
+  // resolutionPlusOneRep and resolutionBestRep and all
+  // the code involving them should be removed.
+  if (masterPlaylistController.experimentalLeastPixelDiffSelector) {
+    // find the variant that is closest to the player's pixel size
+    const leastPixelDiffList = haveResolution.map((rep) => {
+      rep.pixelDiff = Math.abs(rep.width - playerWidth) + Math.abs(rep.height - playerHeight);
+      return rep;
+    });
+
+    // get the highest bandwidth, closest resolution playlist
+    stableSort(leastPixelDiffList, (left, right) => {
+      // sort by highest bandwidth if pixelDiff is the same
+      if (left.pixelDiff === right.pixelDiff) {
+        return right.bandwidth - left.bandwidth;
+      }
+
+      return left.pixelDiff - right.pixelDiff;
+    });
+
+    leastPixelDiffRep = leastPixelDiffList[0];
+  }
+
   // fallback chain of variants
   const chosenRep = (
+    leastPixelDiffRep ||
     resolutionPlusOneRep ||
     resolutionBestRep ||
     bandwidthBestRep ||
@@ -296,7 +322,9 @@ export let simpleSelector = function(
   if (chosenRep && chosenRep.playlist) {
     let type = 'sortedPlaylistReps';
 
-    if (resolutionPlusOneRep) {
+    if (leastPixelDiffRep) {
+      type = 'leastPixelDiffRep';
+    } else if (resolutionPlusOneRep) {
       type = 'resolutionPlusOneRep';
     } else if (resolutionBestRep) {
       type = 'resolutionBestRep';

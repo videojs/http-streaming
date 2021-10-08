@@ -461,3 +461,22 @@ QUnit.module('manifest', function() {
     );
   });
 });
+
+QUnit.test('does not add placeholder properties if playlist is a master playlist', function(assert) {
+  const master = {
+    mediaGroups: {
+      AUDIO: {
+        default: {
+          en: {default: true}
+        }
+      }
+    },
+    playlists: [
+      {uri: 'foo', attributes: {AUDIO: 'default', CODECS: 'mp4a.40.2', BANDWIDTH: 20}}
+    ]
+  };
+
+  addPropertiesToMaster(master, 'some-uri');
+
+  assert.notOk(master.mediaGroups.AUDIO.default.en.playlists, 'did not add playlists');
+});

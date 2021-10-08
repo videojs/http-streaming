@@ -63,18 +63,23 @@ const shouldSwitchToMedia = function({
 
   const sharedLogLine = `allowing switch ${currentPlaylist && currentPlaylist.id || 'null'} -> ${nextPlaylist.id}`;
 
+  if (!currentPlaylist) {
+    log(`${sharedLogLine} as current playlist is not set`);
+    return true;
+  }
+
+  // no need to switch if playlist is the same
+  if (nextPlaylist.id === currentPlaylist.id) {
+    return false;
+  }
+
   // If the playlist is live, then we want to not take low water line into account.
   // This is because in LIVE, the player plays 3 segments from the end of the
   // playlist, and if `BUFFER_LOW_WATER_LINE` is greater than the duration availble
   // in those segments, a viewer will never experience a rendition upswitch.
-  if (!currentPlaylist || !currentPlaylist.endList) {
-    log(`${sharedLogLine} as current playlist ` + (!currentPlaylist ? 'is not set' : 'is live'));
+  if (!currentPlaylist.endList) {
+    log(`${sharedLogLine} as current playlist is live`);
     return true;
-  }
-
-  // no need to switch playlist is the same
-  if (nextPlaylist.id === currentPlaylist.id) {
-    return false;
   }
 
   const maxBufferLowWaterLine = experimentalBufferBasedABR ?
@@ -144,7 +149,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
       enableLowInitialPlaylist,
       sourceType,
       cacheEncryptionKeys,
-      experimentalBufferBasedABR
+      experimentalBufferBasedABR,
+      experimentalLeastPixelDiffSelector,
+      captionServices
     } = options;
 
     if (!src) {
@@ -160,6 +167,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     Vhs = externVhs;
 
     this.experimentalBufferBasedABR = Boolean(experimentalBufferBasedABR);
+    this.experimentalLeastPixelDiffSelector = Boolean(experimentalLeastPixelDiffSelector);
     this.withCredentials = withCredentials;
     this.tech_ = tech;
     this.vhs_ = tech.vhs;
@@ -168,6 +176,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.blacklistDuration = blacklistDuration;
     this.maxPlaylistRetries = maxPlaylistRetries;
     this.enableLowInitialPlaylist = enableLowInitialPlaylist;
+
     if (this.useCueTags_) {
       this.cueTagsTrack_ = this.tech_.addTextTrack(
         'metadata',
@@ -218,6 +227,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     const segmentLoaderSettings = {
       vhs: this.vhs_,
       parse708captions: options.parse708captions,
+      captionServices,
       mediaSource: this.mediaSource,
       currentTime: this.tech_.currentTime.bind(this.tech_),
       seekable: () => this.seekable(),
@@ -232,7 +242,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       inbandTextTracks: this.inbandTextTracks_,
       cacheEncryptionKeys,
       sourceUpdater: this.sourceUpdater_,
-      timelineChangeController: this.timelineChangeController_
+      timelineChangeController: this.timelineChangeController_,
+      experimentalExactManifestTimings: options.experimentalExactManifestTimings
     };
 
     // The source type check not only determines whether a special DASH playlist loader
@@ -348,7 +359,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
   checkABR_() {
     const nextPlaylist = this.selectPlaylist();
 
-    if (this.shouldSwitchToMedia_(nextPlaylist)) {
+    if (nextPlaylist && this.shouldSwitchToMedia_(nextPlaylist)) {
       this.switchMedia_(nextPlaylist, 'abr');
     }
   }
@@ -397,12 +408,13 @@ export class MasterPlaylistController extends videojs.EventTarget {
    */
   getAudioTrackPlaylists_() {
     const master = this.master();
+    const defaultPlaylists = master && master.playlists || [];
 
     // if we don't have any audio groups then we can only
     // assume that the audio tracks are contained in masters
     // playlist array, use that or an empty array.
     if (!master || !master.mediaGroups || !master.mediaGroups.AUDIO) {
-      return master && master.playlists || [];
+      return defaultPlaylists;
     }
 
     const AUDIO = master.mediaGroups.AUDIO;
@@ -427,7 +439,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     // no active track no playlists.
     if (!track) {
-      return [];
+      return defaultPlaylists;
     }
 
     const playlists = [];
@@ -438,12 +450,27 @@ export class MasterPlaylistController extends videojs.EventTarget {
       if (AUDIO[group][track.label]) {
         const properties = AUDIO[group][track.label];
 
-        if (properties.playlists) {
+        if (properties.playlists && properties.playlists.length) {
           playlists.push.apply(playlists, properties.playlists);
-        } else {
+        } else if (properties.uri) {
           playlists.push(properties);
+        } else if (master.playlists.length) {
+          // if an audio group does not have a uri
+          // see if we have main playlists that use it as a group.
+          // if we do then add those to the playlists list.
+          for (let i = 0; i < master.playlists.length; i++) {
+            const playlist = master.playlists[i];
+
+            if (playlist.attributes && playlist.attributes.AUDIO && playlist.attributes.AUDIO === group) {
+              playlists.push(playlist);
+            }
+          }
         }
       }
+    }
+
+    if (!playlists.length) {
+      return defaultPlaylists;
     }
 
     return playlists;

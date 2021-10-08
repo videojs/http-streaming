@@ -2,6 +2,7 @@ import Playlist from '../src/playlist';
 import PlaylistLoader from '../src/playlist-loader';
 import QUnit from 'qunit';
 import xhrFactory from '../src/xhr';
+import videojs from 'video.js';
 import { useFakeEnvironment } from './test-helpers';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
@@ -957,653 +958,659 @@ QUnit.module('Playlist', function() {
     assert.ok(Playlist.isAes(media), 'media is an AES encrypted HLS stream');
   });
 
-  QUnit.module('Media Index For Time', {
-    beforeEach(assert) {
-      this.env = useFakeEnvironment(assert);
-      this.clock = this.env.clock;
-      this.requests = this.env.requests;
-      this.fakeVhs = {
-        xhr: xhrFactory()
-      };
+  ['experimentalExactManifestTimings', ''].forEach((key) => {
+    QUnit.module(`Media Index For Time ${key}`, {
+      beforeEach(assert) {
+        this.env = useFakeEnvironment(assert);
+        this.clock = this.env.clock;
+        this.requests = this.env.requests;
+        this.fakeVhs = {
+          xhr: xhrFactory()
+        };
 
-      this.getMediaInfoForTime = (overrides) => {
-        return Playlist.getMediaInfoForTime(merge(this.defaults, overrides));
-      };
+        const experiment = {experimentalExactManifestTimings: key === 'experimentalExactManifestTimings'};
 
-    },
-    afterEach() {
-      this.env.restore();
-    }
-  });
+        this.getMediaInfoForTime = (overrides) => {
+          return Playlist.getMediaInfoForTime(merge(this.defaults, overrides, experiment));
+        };
 
-  QUnit.test(
-    'can get media index by playback position for non-live videos',
-    function(assert) {
-      const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
-
-      loader.load();
-
-      this.requests.shift().respond(
-        200, null,
-        '#EXTM3U\n' +
-        '#EXT-X-MEDIA-SEQUENCE:0\n' +
-        '#EXTINF:4,\n' +
-        '0.ts\n' +
-        '#EXTINF:5,\n' +
-        '1.ts\n' +
-        '#EXTINF:6,\n' +
-        '2.ts\n' +
-        '#EXT-X-ENDLIST\n'
-      );
-
-      const media = loader.media();
-
-      this.defaults = {
-        playlist: media,
-        currentTime: -1,
-        startingSegmentIndex: 0,
-        startingPartIndex: null,
-        startTime: 0
-      };
-
-      assert.deepEqual(
-        this.getMediaInfoForTime({currentTime: -1}),
-        {partIndex: null, segmentIndex: 0, startTime: -1},
-        'the index is never less than zero'
-      );
-
-      assert.deepEqual(
-        this.getMediaInfoForTime({currentTime: 0}),
-        {partIndex: null, segmentIndex: 0, startTime: 0},
-        'time zero is index zero'
-      );
-
-      assert.deepEqual(
-        this.getMediaInfoForTime({currentTime: 3}),
-        {partIndex: null, segmentIndex: 0, startTime: 0},
-        'time three is index zero'
-      );
-
-      assert.deepEqual(
-        this.getMediaInfoForTime({currentTime: 10}),
-        {partIndex: null, segmentIndex: 2, startTime: 9},
-        'time 10 is index 2'
-      );
-
-      assert.deepEqual(
-        this.getMediaInfoForTime({currentTime: 22}),
-        {partIndex: null, segmentIndex: 2, startTime: 22},
-        'time greater than the length is index 2'
-      );
-    }
-  );
-
-  QUnit.test('rounding down works', function(assert) {
-    const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
-
-    loader.load();
-
-    this.requests.shift().respond(
-      200, null,
-      '#EXTM3U\n' +
-      '#EXT-X-MEDIA-SEQUENCE:0\n' +
-      '#EXTINF:2,\n' +
-      '0.ts\n' +
-      '#EXTINF:2,\n' +
-      '1.ts\n' +
-      '#EXTINF:2,\n' +
-      '2.ts\n' +
-      '#EXTINF:2,\n' +
-      '3.ts\n' +
-      '#EXTINF:2,\n' +
-      '4.ts\n' +
-      '#EXTINF:2,\n' +
-      '5.ts\n' +
-      '#EXT-X-ENDLIST\n'
-    );
-
-    const media = loader.media();
-
-    this.defaults = {
-      playlist: media,
-      currentTime: 2.1,
-      startingSegmentIndex: 0,
-      startingPartIndex: null,
-      startTime: 0
-    };
-
-    // 1 segment away
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 2.1}),
-      {segmentIndex: 1, startTime: 2, partIndex: null},
-      '1 away 2 is correct'
-    );
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 4.1, startingSegmentIndex: 1, startTime: 2}),
-      {segmentIndex: 2, startTime: 4, partIndex: null},
-      '1 away 3 is correct'
-    );
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 6.1, startingSegmentIndex: 2, startTime: 4}),
-      {segmentIndex: 3, startTime: 6, partIndex: null},
-      '1 away 4 is correct'
-    );
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 8.1, startingSegmentIndex: 3, startTime: 6}),
-      {segmentIndex: 4, startTime: 8, partIndex: null},
-      '1 away 5 is correct'
-    );
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 10.1, startingSegmentIndex: 4, startTime: 8}),
-      {segmentIndex: 5, startTime: 10, partIndex: null},
-      '1 away 6 is correct'
-    );
-
-    // 2 segments away
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 4.1, startingSegmentIndex: 0, startTime: 0}),
-      {segmentIndex: 2, startTime: 4, partIndex: null},
-      '2 away 3 is correct'
-    );
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 6.1, startingSegmentIndex: 1, startTime: 2}),
-      {segmentIndex: 3, startTime: 6, partIndex: null},
-      '2 away 4 is correct'
-    );
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 8.1, startingSegmentIndex: 2, startTime: 4}),
-      {segmentIndex: 4, startTime: 8, partIndex: null},
-      '2 away 5 is correct'
-    );
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 10.1, startingSegmentIndex: 3, startTime: 6}),
-      {segmentIndex: 5, startTime: 10, partIndex: null},
-      '2 away 6 is correct'
-    );
-
-    // 3 segments away
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 6.1, startingSegmentIndex: 0, startTime: 0}),
-      {segmentIndex: 3, startTime: 6, partIndex: null},
-      '3 away 4 is correct'
-    );
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 8.1, startingSegmentIndex: 1, startTime: 2}),
-      {segmentIndex: 4, startTime: 8, partIndex: null},
-      '3 away 5 is correct'
-    );
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 10.1, startingSegmentIndex: 2, startTime: 4}),
-      {segmentIndex: 5, startTime: 10, partIndex: null},
-      '3 away 6 is correct'
-    );
-  });
-
-  QUnit.test('rounding up works', function(assert) {
-    const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
-
-    loader.load();
-
-    this.requests.shift().respond(
-      200, null,
-      '#EXTM3U\n' +
-      '#EXT-X-MEDIA-SEQUENCE:0\n' +
-      '#EXTINF:2,\n' +
-      '0.ts\n' +
-      '#EXTINF:2,\n' +
-      '1.ts\n' +
-      '#EXTINF:2,\n' +
-      '2.ts\n' +
-      '#EXTINF:2,\n' +
-      '3.ts\n' +
-      '#EXTINF:2,\n' +
-      '4.ts\n' +
-      '#EXTINF:2,\n' +
-      '5.ts\n' +
-      '#EXT-X-ENDLIST\n'
-    );
-
-    const media = loader.media();
-
-    this.defaults = {
-      playlist: media,
-      currentTime: 2.1,
-      startingSegmentIndex: 0,
-      startingPartIndex: null,
-      startTime: 0
-    };
-
-    // 1 segment away
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 0, startingSegmentIndex: 1, startTime: 2}),
-      {segmentIndex: 0, startTime: 0, partIndex: null},
-      '1 away 1 is correct'
-    );
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 2.1, startingSegmentIndex: 2, startTime: 4}),
-      {segmentIndex: 1, startTime: 2, partIndex: null},
-      '1 away 2 is correct'
-    );
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 4.1, startingSegmentIndex: 3, startTime: 6}),
-      {segmentIndex: 2, startTime: 4, partIndex: null},
-      '1 away 3 is correct'
-    );
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 6.1, startingSegmentIndex: 4, startTime: 8}),
-      {segmentIndex: 3, startTime: 6, partIndex: null},
-      '1 away 4 is correct'
-    );
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 8.1, startingSegmentIndex: 5, startTime: 10}),
-      {segmentIndex: 4, startTime: 8, partIndex: null},
-      '1 away 5 is correct'
-    );
-
-    // 2 segments away
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 0, startingSegmentIndex: 2, startTime: 4}),
-      {segmentIndex: 0, startTime: 0, partIndex: null},
-      '2 away 1 is correct'
-    );
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 2.1, startingSegmentIndex: 3, startTime: 6}),
-      {segmentIndex: 1, startTime: 2, partIndex: null},
-      '2 away 2 is correct'
-    );
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 4.1, startingSegmentIndex: 4, startTime: 8}),
-      {segmentIndex: 2, startTime: 4, partIndex: null},
-      '2 away 3 is correct'
-    );
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 6.1, startingSegmentIndex: 5, startTime: 10}),
-      {segmentIndex: 3, startTime: 6, partIndex: null},
-      '2 away 4 is correct'
-    );
-
-    // 3 segments away
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 0, startingSegmentIndex: 3, startTime: 6}),
-      {segmentIndex: 0, startTime: 0, partIndex: null},
-      '3 away 1 is correct'
-    );
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 2.1, startingSegmentIndex: 4, startTime: 8}),
-      {segmentIndex: 1, startTime: 2, partIndex: null},
-      '3 away 2 is correct'
-    );
-
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 4.1, startingSegmentIndex: 5, startTime: 10}),
-      {segmentIndex: 2, startTime: 4, partIndex: null},
-      '3 away 3 is correct'
-    );
-  });
-
-  QUnit.test(
-    'returns the lower index when calculating for a segment boundary',
-    function(assert) {
-      const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
-
-      loader.load();
-
-      this.requests.shift().respond(
-        200, null,
-        '#EXTM3U\n' +
-        '#EXT-X-MEDIA-SEQUENCE:0\n' +
-        '#EXTINF:4,\n' +
-        '0.ts\n' +
-        '#EXTINF:5,\n' +
-        '1.ts\n' +
-        '#EXT-X-ENDLIST\n'
-      );
-
-      const media = loader.media();
-
-      this.defaults = {
-        playlist: media,
-        currentTime: 0,
-        startingSegmentIndex: 0,
-        startingPartIndex: null,
-        startTime: 0
-      };
-
-      assert.deepEqual(
-        this.getMediaInfoForTime({currentTime: 4}),
-        {segmentIndex: 0, startTime: 0, partIndex: null},
-        'rounds down exact matches'
-      );
-      assert.deepEqual(
-        this.getMediaInfoForTime({currentTime: 3.7}),
-        {segmentIndex: 0, startTime: 0, partIndex: null},
-        'rounds down'
-      );
-
-      assert.deepEqual(
-        this.getMediaInfoForTime({currentTime: 4.5}),
-        {segmentIndex: 1, startTime: 4, partIndex: null},
-        'rounds up at 0.5'
-      );
-    }
-  );
-
-  QUnit.test(
-    'accounts for non-zero starting segment time when calculating media index',
-    function(assert) {
-      const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
-
-      loader.load();
-
-      this.requests.shift().respond(
-        200, null,
-        '#EXTM3U\n' +
-        '#EXT-X-MEDIA-SEQUENCE:1001\n' +
-        '#EXTINF:4,\n' +
-        '1001.ts\n' +
-        '#EXTINF:5,\n' +
-        '1002.ts\n'
-      );
-
-      const media = loader.media();
-
-      this.defaults = {
-        playlist: media,
-        currentTime: 0,
-        startingSegmentIndex: 0,
-        startingPartIndex: null,
-        startTime: 0
-      };
-
-      assert.deepEqual(
-        this.getMediaInfoForTime({currentTime: 45, startTime: 150}),
-        {segmentIndex: 0, startTime: 45, partIndex: null},
-        'expired content returns 0 for earliest segment available'
-      );
-      assert.deepEqual(
-        this.getMediaInfoForTime({currentTime: 75, startTime: 150}),
-        {segmentIndex: 0, startTime: 75, partIndex: null},
-        'expired content returns 0 for earliest segment available'
-      );
-      assert.deepEqual(
-        this.getMediaInfoForTime({currentTime: 0, startTime: 150}),
-        {segmentIndex: 0, startTime: 0, partIndex: null},
-        'time of 0 with no expired time returns first segment'
-      );
-      assert.deepEqual(
-        this.getMediaInfoForTime({currentTime: 150, startTime: 150}),
-        {segmentIndex: 0, startTime: 150, partIndex: null},
-        'calculates the earliest available position'
-      );
-      assert.deepEqual(
-        this.getMediaInfoForTime({currentTime: 152, startTime: 150}),
-        {segmentIndex: 0, startTime: 150, partIndex: null},
-        'calculates within the first segment'
-      );
-      assert.deepEqual(
-        this.getMediaInfoForTime({currentTime: 154, startTime: 150}),
-        {segmentIndex: 0, startTime: 150, partIndex: null},
-        'calculates earlier segment on exact boundary match'
-      );
-      assert.deepEqual(
-        this.getMediaInfoForTime({currentTime: 154.5, startTime: 150}),
-        {segmentIndex: 1, startTime: 154, partIndex: null},
-        'calculates within the second segment'
-      );
-      assert.deepEqual(
-        this.getMediaInfoForTime({currentTime: 156, startTime: 150}),
-        {segmentIndex: 1, startTime: 154, partIndex: null},
-        'calculates within the second segment'
-      );
-
-      assert.deepEqual(
-        this.getMediaInfoForTime({currentTime: 159, startTime: 150}),
-        {segmentIndex: 1, startTime: 154, partIndex: null},
-        'returns last segment when time is equal to end of last segment'
-      );
-      assert.deepEqual(
-        this.getMediaInfoForTime({currentTime: 160, startTime: 150}),
-        {segmentIndex: 1, startTime: 160, partIndex: null},
-        'returns last segment when time is past end of last segment'
-      );
-    }
-  );
-
-  QUnit.test('can return a partIndex', function(assert) {
-    this.fakeVhs.options_ = {experimentalLLHLS: true};
-    const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
-
-    loader.load();
-
-    this.requests.shift().respond(
-      200, null,
-      '#EXTM3U\n' +
-      '#EXT-X-MEDIA-SEQUENCE:1001\n' +
-      '#EXTINF:4,\n' +
-      '1001.ts\n' +
-      '#EXTINF:5,\n' +
-      '1002.ts\n' +
-      '#EXT-X-PART:URI="1003.part1.ts",DURATION=1\n' +
-      '#EXT-X-PART:URI="1003.part2.ts",DURATION=1\n' +
-      '#EXT-X-PART:URI="1003.part3.ts",DURATION=1\n' +
-      '#EXT-X-PRELOAD-HINT:TYPE="PART",URI="1003.part4.ts"\n'
-    );
-
-    const media = loader.media();
-
-    this.defaults = {
-      playlist: media,
-      currentTime: 0,
-      startingSegmentIndex: 0,
-      startingPartIndex: null,
-      startTime: 0
-    };
-
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 10, startTime: 0}),
-      {segmentIndex: 2, startTime: 9, partIndex: 0},
-      'returns expected part/segment'
-    );
-
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 11, startTime: 0}),
-      {segmentIndex: 2, startTime: 10, partIndex: 1},
-      'returns expected part/segment'
-    );
-
-    assert.deepEqual(
-      this.getMediaInfoForTime({currentTime: 11, segmentIndex: -15}),
-      {segmentIndex: 2, startTime: 10, partIndex: 1},
-      'returns expected part/segment'
-    );
-  });
-
-  QUnit.test('liveEdgeDelay works as expected', function(assert) {
-    const media = {
-      endList: true,
-      targetDuration: 5,
-      partTargetDuration: 1.1,
-      serverControl: {
-        holdBack: 20,
-        partHoldBack: 2
       },
-      segments: [
-        {duration: 3},
-        {duration: 4, parts: [
-          {duration: 1},
-          {duration: 0.5}
-        ]},
-        {duration: 3, parts: [
-          {duration: 1},
-          {duration: 0.5}
-        ]},
-        {duration: 4, parts: [
-          {duration: 1},
-          {duration: 0.5}
-        ]}
-      ]
-    };
-    const master = {
-      suggestedPresentationDelay: 10
-    };
-
-    assert.equal(
-      Playlist.liveEdgeDelay(master, media),
-      0,
-      'returns 0 with endlist'
-    );
-
-    delete media.endList;
-    assert.equal(
-      Playlist.liveEdgeDelay(master, media),
-      master.suggestedPresentationDelay,
-      'uses suggestedPresentationDelay'
-    );
-
-    delete master.suggestedPresentationDelay;
-    assert.equal(
-      Playlist.liveEdgeDelay(master, media),
-      media.serverControl.partHoldBack,
-      'uses part hold back'
-    );
-
-    media.serverControl.partHoldBack = null;
-    assert.equal(
-      Playlist.liveEdgeDelay(master, media),
-      media.partTargetDuration * 3,
-      'uses part target duration * 3'
-    );
-
-    media.partTargetDuration = null;
-
-    assert.equal(
-      Playlist.liveEdgeDelay(master, media),
-      media.serverControl.holdBack,
-      'uses hold back'
-    );
-
-    media.serverControl.holdBack = null;
-    assert.equal(
-      Playlist.liveEdgeDelay(master, media),
-      (media.targetDuration * 3),
-      'uses (targetDuration * 3)'
-    );
-
-    media.targetDuration = null;
-    assert.equal(
-      Playlist.liveEdgeDelay(master, media),
-      0,
-      'no target duration delay cannot be calcluated'
-    );
-
-    media.segments = media.segments.map((s) => {
-      s.duration = null;
-      return s;
+      afterEach() {
+        this.env.restore();
+      }
     });
 
-    assert.equal(
-      Playlist.liveEdgeDelay(master, media),
-      0,
-      'no segment durations, live delay can\'t be calculated'
+    QUnit.test(
+      'can get media index by playback position for non-live videos',
+      function(assert) {
+        const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
+
+        loader.load();
+
+        this.requests.shift().respond(
+          200, null,
+          '#EXTM3U\n' +
+          '#EXT-X-MEDIA-SEQUENCE:0\n' +
+          '#EXTINF:4,\n' +
+          '0.ts\n' +
+          '#EXTINF:5,\n' +
+          '1.ts\n' +
+          '#EXTINF:6,\n' +
+          '2.ts\n' +
+          '#EXT-X-ENDLIST\n'
+        );
+
+        const media = loader.media();
+
+        this.defaults = {
+          playlist: media,
+          currentTime: -1,
+          startingSegmentIndex: 0,
+          startingPartIndex: null,
+          startTime: 0
+        };
+
+        assert.deepEqual(
+          this.getMediaInfoForTime({currentTime: -1}),
+          {partIndex: null, segmentIndex: 0, startTime: -1},
+          'the index is never less than zero'
+        );
+
+        assert.deepEqual(
+          this.getMediaInfoForTime({currentTime: 0}),
+          {partIndex: null, segmentIndex: 0, startTime: 0},
+          'time zero is index zero'
+        );
+
+        assert.deepEqual(
+          this.getMediaInfoForTime({currentTime: 3}),
+          {partIndex: null, segmentIndex: 0, startTime: 0},
+          'time three is index zero'
+        );
+
+        assert.deepEqual(
+          this.getMediaInfoForTime({currentTime: 10}),
+          {partIndex: null, segmentIndex: 2, startTime: 9},
+          'time 10 is index 2'
+        );
+
+        assert.deepEqual(
+          this.getMediaInfoForTime({currentTime: 22}),
+          {partIndex: null, segmentIndex: 2, startTime: 22},
+          'time greater than the length is index 2'
+        );
+      }
     );
 
-    media.segments.length = 0;
+    QUnit.test('rounding down works', function(assert) {
+      const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
 
-    assert.equal(
-      Playlist.liveEdgeDelay(master, media),
-      0,
-      'no segments, live delay can\'t be calculated'
+      loader.load();
+
+      this.requests.shift().respond(
+        200, null,
+        '#EXTM3U\n' +
+        '#EXT-X-MEDIA-SEQUENCE:0\n' +
+        '#EXTINF:2,\n' +
+        '0.ts\n' +
+        '#EXTINF:2,\n' +
+        '1.ts\n' +
+        '#EXTINF:2,\n' +
+        '2.ts\n' +
+        '#EXTINF:2,\n' +
+        '3.ts\n' +
+        '#EXTINF:2,\n' +
+        '4.ts\n' +
+        '#EXTINF:2,\n' +
+        '5.ts\n' +
+        '#EXT-X-ENDLIST\n'
+      );
+
+      const media = loader.media();
+
+      this.defaults = {
+        playlist: media,
+        currentTime: 2.1,
+        startingSegmentIndex: 0,
+        startingPartIndex: null,
+        startTime: 0
+      };
+
+      // 1 segment away
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 2.1}),
+        {segmentIndex: 1, startTime: 2, partIndex: null},
+        '1 away 2 is correct'
+      );
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 4.1, startingSegmentIndex: 1, startTime: 2}),
+        {segmentIndex: 2, startTime: 4, partIndex: null},
+        '1 away 3 is correct'
+      );
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 6.1, startingSegmentIndex: 2, startTime: 4}),
+        {segmentIndex: 3, startTime: 6, partIndex: null},
+        '1 away 4 is correct'
+      );
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 8.1, startingSegmentIndex: 3, startTime: 6}),
+        {segmentIndex: 4, startTime: 8, partIndex: null},
+        '1 away 5 is correct'
+      );
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 10.1, startingSegmentIndex: 4, startTime: 8}),
+        {segmentIndex: 5, startTime: 10, partIndex: null},
+        '1 away 6 is correct'
+      );
+
+      // 2 segments away
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 4.1, startingSegmentIndex: 0, startTime: 0}),
+        {segmentIndex: 2, startTime: 4, partIndex: null},
+        '2 away 3 is correct'
+      );
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 6.1, startingSegmentIndex: 1, startTime: 2}),
+        {segmentIndex: 3, startTime: 6, partIndex: null},
+        '2 away 4 is correct'
+      );
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 8.1, startingSegmentIndex: 2, startTime: 4}),
+        {segmentIndex: 4, startTime: 8, partIndex: null},
+        '2 away 5 is correct'
+      );
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 10.1, startingSegmentIndex: 3, startTime: 6}),
+        {segmentIndex: 5, startTime: 10, partIndex: null},
+        '2 away 6 is correct'
+      );
+
+      // 3 segments away
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 6.1, startingSegmentIndex: 0, startTime: 0}),
+        {segmentIndex: 3, startTime: 6, partIndex: null},
+        '3 away 4 is correct'
+      );
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 8.1, startingSegmentIndex: 1, startTime: 2}),
+        {segmentIndex: 4, startTime: 8, partIndex: null},
+        '3 away 5 is correct'
+      );
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 10.1, startingSegmentIndex: 2, startTime: 4}),
+        {segmentIndex: 5, startTime: 10, partIndex: null},
+        '3 away 6 is correct'
+      );
+    });
+
+    QUnit.test('rounding up works', function(assert) {
+      const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
+
+      loader.load();
+
+      this.requests.shift().respond(
+        200, null,
+        '#EXTM3U\n' +
+        '#EXT-X-MEDIA-SEQUENCE:0\n' +
+        '#EXTINF:2,\n' +
+        '0.ts\n' +
+        '#EXTINF:2,\n' +
+        '1.ts\n' +
+        '#EXTINF:2,\n' +
+        '2.ts\n' +
+        '#EXTINF:2,\n' +
+        '3.ts\n' +
+        '#EXTINF:2,\n' +
+        '4.ts\n' +
+        '#EXTINF:2,\n' +
+        '5.ts\n' +
+        '#EXT-X-ENDLIST\n'
+      );
+
+      const media = loader.media();
+
+      this.defaults = {
+        playlist: media,
+        currentTime: 2.1,
+        startingSegmentIndex: 0,
+        startingPartIndex: null,
+        startTime: 0
+      };
+
+      // 1 segment away
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 0, startingSegmentIndex: 1, startTime: 2}),
+        {segmentIndex: 0, startTime: 0, partIndex: null},
+        '1 away 1 is correct'
+      );
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 2.1, startingSegmentIndex: 2, startTime: 4}),
+        {segmentIndex: 1, startTime: 2, partIndex: null},
+        '1 away 2 is correct'
+      );
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 4.1, startingSegmentIndex: 3, startTime: 6}),
+        {segmentIndex: 2, startTime: 4, partIndex: null},
+        '1 away 3 is correct'
+      );
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 6.1, startingSegmentIndex: 4, startTime: 8}),
+        {segmentIndex: 3, startTime: 6, partIndex: null},
+        '1 away 4 is correct'
+      );
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 8.1, startingSegmentIndex: 5, startTime: 10}),
+        {segmentIndex: 4, startTime: 8, partIndex: null},
+        '1 away 5 is correct'
+      );
+
+      // 2 segments away
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 0, startingSegmentIndex: 2, startTime: 4}),
+        {segmentIndex: 0, startTime: 0, partIndex: null},
+        '2 away 1 is correct'
+      );
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 2.1, startingSegmentIndex: 3, startTime: 6}),
+        {segmentIndex: 1, startTime: 2, partIndex: null},
+        '2 away 2 is correct'
+      );
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 4.1, startingSegmentIndex: 4, startTime: 8}),
+        {segmentIndex: 2, startTime: 4, partIndex: null},
+        '2 away 3 is correct'
+      );
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 6.1, startingSegmentIndex: 5, startTime: 10}),
+        {segmentIndex: 3, startTime: 6, partIndex: null},
+        '2 away 4 is correct'
+      );
+
+      // 3 segments away
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 0, startingSegmentIndex: 3, startTime: 6}),
+        {segmentIndex: 0, startTime: 0, partIndex: null},
+        '3 away 1 is correct'
+      );
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 2.1, startingSegmentIndex: 4, startTime: 8}),
+        {segmentIndex: 1, startTime: 2, partIndex: null},
+        '3 away 2 is correct'
+      );
+
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 4.1, startingSegmentIndex: 5, startTime: 10}),
+        {segmentIndex: 2, startTime: 4, partIndex: null},
+        '3 away 3 is correct'
+      );
+    });
+
+    QUnit.test(
+      'returns the lower index when calculating for a segment boundary',
+      function(assert) {
+        const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
+
+        loader.load();
+
+        this.requests.shift().respond(
+          200, null,
+          '#EXTM3U\n' +
+          '#EXT-X-MEDIA-SEQUENCE:0\n' +
+          '#EXTINF:4,\n' +
+          '0.ts\n' +
+          '#EXTINF:5,\n' +
+          '1.ts\n' +
+          '#EXT-X-ENDLIST\n'
+        );
+
+        const media = loader.media();
+
+        this.defaults = {
+          playlist: media,
+          currentTime: 0,
+          startingSegmentIndex: 0,
+          startingPartIndex: null,
+          startTime: 0
+        };
+
+        assert.deepEqual(
+          this.getMediaInfoForTime({currentTime: 4}),
+          {segmentIndex: 0, startTime: 0, partIndex: null},
+          'rounds down exact matches'
+        );
+        assert.deepEqual(
+          this.getMediaInfoForTime({currentTime: 3.7}),
+          {segmentIndex: 0, startTime: 0, partIndex: null},
+          'rounds down'
+        );
+
+        assert.deepEqual(
+          this.getMediaInfoForTime({currentTime: 4.5}),
+          {segmentIndex: 1, startTime: 4, partIndex: null},
+          'rounds up at 0.5'
+        );
+      }
     );
-  });
 
-  QUnit.test('playlistMatch', function(assert) {
-    assert.false(Playlist.playlistMatch(null, null), 'null playlists do not match');
-    assert.false(Playlist.playlistMatch({}, null), 'a playlist without b');
-    assert.false(Playlist.playlistMatch(null, {}), 'b playlist without a');
+    QUnit.test(
+      'accounts for non-zero starting segment time when calculating media index',
+      function(assert) {
+        const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
 
-    const a = {id: 'foo', uri: 'foo.m3u8', resolvedUri: 'http://example.com/foo.m3u8'};
-    const b = {id: 'foo', uri: 'foo.m3u8', resolvedUri: 'http://example.com/foo.m3u8'};
+        loader.load();
 
-    assert.true(Playlist.playlistMatch(a, a), 'object signature match');
+        this.requests.shift().respond(
+          200, null,
+          '#EXTM3U\n' +
+          '#EXT-X-MEDIA-SEQUENCE:1001\n' +
+          '#EXTINF:4,\n' +
+          '1001.ts\n' +
+          '#EXTINF:5,\n' +
+          '1002.ts\n'
+        );
 
-    assert.true(Playlist.playlistMatch(a, b), 'id match');
+        const media = loader.media();
 
-    a.id = 'bar';
-    assert.true(Playlist.playlistMatch(a, b), 'resolved uri match');
+        this.defaults = {
+          playlist: media,
+          currentTime: 0,
+          startingSegmentIndex: 0,
+          startingPartIndex: null,
+          startTime: 0
+        };
 
-    a.resolvedUri += '?nope';
-    assert.true(Playlist.playlistMatch(a, b), 'uri match');
+        assert.deepEqual(
+          this.getMediaInfoForTime({currentTime: 45, startTime: 150}),
+          {segmentIndex: 0, startTime: 45, partIndex: null},
+          'expired content returns 0 for earliest segment available'
+        );
+        assert.deepEqual(
+          this.getMediaInfoForTime({currentTime: 75, startTime: 150}),
+          {segmentIndex: 0, startTime: 75, partIndex: null},
+          'expired content returns 0 for earliest segment available'
+        );
+        assert.deepEqual(
+          this.getMediaInfoForTime({currentTime: 0, startTime: 150}),
+          {segmentIndex: 0, startTime: 0, partIndex: null},
+          'time of 0 with no expired time returns first segment'
+        );
+        assert.deepEqual(
+          this.getMediaInfoForTime({currentTime: 150, startTime: 150}),
+          {segmentIndex: 0, startTime: 150, partIndex: null},
+          'calculates the earliest available position'
+        );
+        assert.deepEqual(
+          this.getMediaInfoForTime({currentTime: 152, startTime: 150}),
+          {segmentIndex: 0, startTime: 150, partIndex: null},
+          'calculates within the first segment'
+        );
+        assert.deepEqual(
+          this.getMediaInfoForTime({currentTime: 154, startTime: 150}),
+          {segmentIndex: 0, startTime: 150, partIndex: null},
+          'calculates earlier segment on exact boundary match'
+        );
+        assert.deepEqual(
+          this.getMediaInfoForTime({currentTime: 154.5, startTime: 150}),
+          {segmentIndex: 1, startTime: 154, partIndex: null},
+          'calculates within the second segment'
+        );
+        assert.deepEqual(
+          this.getMediaInfoForTime({currentTime: 156, startTime: 150}),
+          {segmentIndex: 1, startTime: 154, partIndex: null},
+          'calculates within the second segment'
+        );
 
-    a.uri += '?nope';
-
-    assert.false(Playlist.playlistMatch(a, b), 'no match');
-  });
-
-  QUnit.test('isAudioOnly', function(assert) {
-    assert.false(Playlist.isAudioOnly({
-      playlists: [{attributes: {CODECS: 'mp4a.40.2,avc1.4d400d'}}]
-    }), 'muxed playlist');
-
-    assert.false(Playlist.isAudioOnly({
-      playlists: [
-        {attributes: {CODECS: 'mp4a.40.2,avc1.4d400d'}},
-        {attributes: {CODECS: 'avc1.4d400d'}},
-        {attributes: {CODECS: 'mp4a.40.2'}}
-      ]
-    }), 'muxed, audio only, and video only');
-
-    assert.false(Playlist.isAudioOnly({
-      mediaGroups: {
-        AUDIO: {
-          main: {
-            en: {id: 'en', uri: 'en'},
-            es: {id: 'es', uri: 'es'}
-          }
-        }
-      },
-      playlists: [{attributes: {CODECS: 'mp4a.40.2,avc1.4d400d'}}]
-    }), 'muxed and alt audio');
-
-    assert.true(Playlist.isAudioOnly({
-      playlists: [
-        {attributes: {CODECS: 'mp4a.40.2'}},
-        {attributes: {CODECS: 'mp4a.40.2'}},
-        {attributes: {CODECS: 'mp4a.40.2'}}
-      ]
-    }), 'audio only playlists');
-
-    assert.true(Playlist.isAudioOnly({
-      mediaGroups: {
-        AUDIO: {
-          main: {
-            en: {id: 'en', uri: 'en'}
-          }
-        }
+        assert.deepEqual(
+          this.getMediaInfoForTime({currentTime: 159, startTime: 150}),
+          {segmentIndex: 1, startTime: 154, partIndex: null},
+          'returns last segment when time is equal to end of last segment'
+        );
+        assert.deepEqual(
+          this.getMediaInfoForTime({currentTime: 160, startTime: 150}),
+          {segmentIndex: 1, startTime: 160, partIndex: null},
+          'returns last segment when time is past end of last segment'
+        );
       }
-    }), 'only audio groups, uri');
+    );
 
-    assert.true(Playlist.isAudioOnly({
-      mediaGroups: {
-        AUDIO: {
-          main: {
-            en: {id: 'en', playlists: [{uri: 'foo'}]}
+    if (!videojs.browser.IE_VERSION) {
+      QUnit.test('can return a partIndex', function(assert) {
+        this.fakeVhs.options_ = {experimentalLLHLS: true};
+        const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
+
+        loader.load();
+
+        this.requests.shift().respond(
+          200, null,
+          '#EXTM3U\n' +
+          '#EXT-X-MEDIA-SEQUENCE:1001\n' +
+          '#EXTINF:4,\n' +
+          '1001.ts\n' +
+          '#EXTINF:5,\n' +
+          '1002.ts\n' +
+          '#EXT-X-PART:URI="1003.part1.ts",DURATION=1\n' +
+          '#EXT-X-PART:URI="1003.part2.ts",DURATION=1\n' +
+          '#EXT-X-PART:URI="1003.part3.ts",DURATION=1\n' +
+          '#EXT-X-PRELOAD-HINT:TYPE="PART",URI="1003.part4.ts"\n'
+        );
+
+        const media = loader.media();
+
+        this.defaults = {
+          playlist: media,
+          currentTime: 0,
+          startingSegmentIndex: 0,
+          startingPartIndex: null,
+          startTime: 0
+        };
+
+        assert.deepEqual(
+          this.getMediaInfoForTime({currentTime: 10, startTime: 0}),
+          {segmentIndex: 2, startTime: 9, partIndex: 0},
+          'returns expected part/segment'
+        );
+
+        assert.deepEqual(
+          this.getMediaInfoForTime({currentTime: 11, startTime: 0}),
+          {segmentIndex: 2, startTime: 10, partIndex: 1},
+          'returns expected part/segment'
+        );
+
+        assert.deepEqual(
+          this.getMediaInfoForTime({currentTime: 11, segmentIndex: -15}),
+          {segmentIndex: 2, startTime: 10, partIndex: 1},
+          'returns expected part/segment'
+        );
+      });
+    }
+
+    QUnit.test('liveEdgeDelay works as expected', function(assert) {
+      const media = {
+        endList: true,
+        targetDuration: 5,
+        partTargetDuration: 1.1,
+        serverControl: {
+          holdBack: 20,
+          partHoldBack: 2
+        },
+        segments: [
+          {duration: 3},
+          {duration: 4, parts: [
+            {duration: 1},
+            {duration: 0.5}
+          ]},
+          {duration: 3, parts: [
+            {duration: 1},
+            {duration: 0.5}
+          ]},
+          {duration: 4, parts: [
+            {duration: 1},
+            {duration: 0.5}
+          ]}
+        ]
+      };
+      const master = {
+        suggestedPresentationDelay: 10
+      };
+
+      assert.equal(
+        Playlist.liveEdgeDelay(master, media),
+        0,
+        'returns 0 with endlist'
+      );
+
+      delete media.endList;
+      assert.equal(
+        Playlist.liveEdgeDelay(master, media),
+        master.suggestedPresentationDelay,
+        'uses suggestedPresentationDelay'
+      );
+
+      delete master.suggestedPresentationDelay;
+      assert.equal(
+        Playlist.liveEdgeDelay(master, media),
+        media.serverControl.partHoldBack,
+        'uses part hold back'
+      );
+
+      media.serverControl.partHoldBack = null;
+      assert.equal(
+        Playlist.liveEdgeDelay(master, media),
+        media.partTargetDuration * 3,
+        'uses part target duration * 3'
+      );
+
+      media.partTargetDuration = null;
+
+      assert.equal(
+        Playlist.liveEdgeDelay(master, media),
+        media.serverControl.holdBack,
+        'uses hold back'
+      );
+
+      media.serverControl.holdBack = null;
+      assert.equal(
+        Playlist.liveEdgeDelay(master, media),
+        (media.targetDuration * 3),
+        'uses (targetDuration * 3)'
+      );
+
+      media.targetDuration = null;
+      assert.equal(
+        Playlist.liveEdgeDelay(master, media),
+        0,
+        'no target duration delay cannot be calcluated'
+      );
+
+      media.segments = media.segments.map((s) => {
+        s.duration = null;
+        return s;
+      });
+
+      assert.equal(
+        Playlist.liveEdgeDelay(master, media),
+        0,
+        'no segment durations, live delay can\'t be calculated'
+      );
+
+      media.segments.length = 0;
+
+      assert.equal(
+        Playlist.liveEdgeDelay(master, media),
+        0,
+        'no segments, live delay can\'t be calculated'
+      );
+    });
+
+    QUnit.test('playlistMatch', function(assert) {
+      assert.false(Playlist.playlistMatch(null, null), 'null playlists do not match');
+      assert.false(Playlist.playlistMatch({}, null), 'a playlist without b');
+      assert.false(Playlist.playlistMatch(null, {}), 'b playlist without a');
+
+      const a = {id: 'foo', uri: 'foo.m3u8', resolvedUri: 'http://example.com/foo.m3u8'};
+      const b = {id: 'foo', uri: 'foo.m3u8', resolvedUri: 'http://example.com/foo.m3u8'};
+
+      assert.true(Playlist.playlistMatch(a, a), 'object signature match');
+
+      assert.true(Playlist.playlistMatch(a, b), 'id match');
+
+      a.id = 'bar';
+      assert.true(Playlist.playlistMatch(a, b), 'resolved uri match');
+
+      a.resolvedUri += '?nope';
+      assert.true(Playlist.playlistMatch(a, b), 'uri match');
+
+      a.uri += '?nope';
+
+      assert.false(Playlist.playlistMatch(a, b), 'no match');
+    });
+
+    QUnit.test('isAudioOnly', function(assert) {
+      assert.false(Playlist.isAudioOnly({
+        playlists: [{attributes: {CODECS: 'mp4a.40.2,avc1.4d400d'}}]
+      }), 'muxed playlist');
+
+      assert.false(Playlist.isAudioOnly({
+        playlists: [
+          {attributes: {CODECS: 'mp4a.40.2,avc1.4d400d'}},
+          {attributes: {CODECS: 'avc1.4d400d'}},
+          {attributes: {CODECS: 'mp4a.40.2'}}
+        ]
+      }), 'muxed, audio only, and video only');
+
+      assert.false(Playlist.isAudioOnly({
+        mediaGroups: {
+          AUDIO: {
+            main: {
+              en: {id: 'en', uri: 'en'},
+              es: {id: 'es', uri: 'es'}
+            }
+          }
+        },
+        playlists: [{attributes: {CODECS: 'mp4a.40.2,avc1.4d400d'}}]
+      }), 'muxed and alt audio');
+
+      assert.true(Playlist.isAudioOnly({
+        playlists: [
+          {attributes: {CODECS: 'mp4a.40.2'}},
+          {attributes: {CODECS: 'mp4a.40.2'}},
+          {attributes: {CODECS: 'mp4a.40.2'}}
+        ]
+      }), 'audio only playlists');
+
+      assert.true(Playlist.isAudioOnly({
+        mediaGroups: {
+          AUDIO: {
+            main: {
+              en: {id: 'en', uri: 'en'}
+            }
           }
         }
-      }
-    }), 'only audio groups, playlists');
+      }), 'only audio groups, uri');
 
-    assert.true(Playlist.isAudioOnly({
-      playlists: [
-        {id: 'en'}
-      ],
-      mediaGroups: {
-        AUDIO: {
-          main: {
-            en: {id: 'en'}
+      assert.true(Playlist.isAudioOnly({
+        mediaGroups: {
+          AUDIO: {
+            main: {
+              en: {id: 'en', playlists: [{uri: 'foo'}]}
+            }
           }
         }
-      }
-    }), 'audio playlists that are also in groups, without codecs');
+      }), 'only audio groups, playlists');
 
+      assert.true(Playlist.isAudioOnly({
+        playlists: [
+          {id: 'en'}
+        ],
+        mediaGroups: {
+          AUDIO: {
+            main: {
+              en: {id: 'en'}
+            }
+          }
+        }
+      }), 'audio playlists that are also in groups, without codecs');
+
+    });
   });
 });
