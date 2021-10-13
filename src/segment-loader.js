@@ -1146,6 +1146,11 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.transmuxer_.postMessage({
         action: 'clearAllMp4Captions'
       });
+
+      // reset the cache in the transmuxer
+      this.transmuxer_.postMessage({
+        action: 'reset'
+      });
     }
   }
 
@@ -1516,13 +1521,15 @@ export default class SegmentLoader extends videojs.EventTarget {
       segmentInfo.audioAppendStart = audioBufferedEnd - this.sourceUpdater_.audioTimestampOffset();
     }
 
-    segmentInfo.gopsToAlignWith = gopsSafeToAlignWith(
-      this.gopBuffer_,
-      // since the transmuxer is using the actual timing values, but the time is
-      // adjusted by the timestmap offset, we must adjust the value here
-      this.currentTime_() - this.sourceUpdater_.videoTimestampOffset(),
-      this.timeMapping_
-    );
+    if (this.sourceUpdater_.videoBuffered().length) {
+      segmentInfo.gopsToAlignWith = gopsSafeToAlignWith(
+        this.gopBuffer_,
+        // since the transmuxer is using the actual timing values, but the time is
+        // adjusted by the timestmap offset, we must adjust the value here
+        this.currentTime_() - this.sourceUpdater_.videoTimestampOffset(),
+        this.timeMapping_
+      );
+    }
 
     return segmentInfo;
   }
