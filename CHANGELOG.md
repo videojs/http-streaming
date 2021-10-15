@@ -1,3 +1,16 @@
+<a name="2.11.1"></a>
+## [2.11.1](https://github.com/videojs/http-streaming/compare/v2.11.0...v2.11.1) (2021-10-14)
+
+### Bug Fixes
+
+* **package:** update mpd-parser to 0.19.2 ([#1211](https://github.com/videojs/http-streaming/issues/1211)) ([7420296](https://github.com/videojs/http-streaming/commit/7420296))
+* **package:** update mux.js to 5.14.1 ([#1215](https://github.com/videojs/http-streaming/issues/1215)) ([d7f6b63](https://github.com/videojs/http-streaming/commit/d7f6b63))
+* reset transmuxer in resetEverything to fix seeking backwards in some cases ([#1213](https://github.com/videojs/http-streaming/issues/1213)) ([a83ea37](https://github.com/videojs/http-streaming/commit/a83ea37))
+
+### Chores
+
+* add mux's ll-hls test stream ([#1214](https://github.com/videojs/http-streaming/issues/1214)) ([fc83109](https://github.com/videojs/http-streaming/commit/fc83109))
+
 <a name="2.11.0"></a>
 # [2.11.0](https://github.com/videojs/http-streaming/compare/v2.10.3...v2.11.0) (2021-09-22)
 
