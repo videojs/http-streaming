@@ -8,7 +8,8 @@ import {
   segmentTooLong,
   mediaDuration,
   getTroublesomeSegmentDurationMessage,
-  getSyncSegmentCandidate
+  getSyncSegmentCandidate,
+  segmentInfoString
 } from '../src/segment-loader';
 import videojs from 'video.js';
 import mp4probe from 'mux.js/lib/mp4/probe';
@@ -777,6 +778,251 @@ QUnit.test('info segment is bit too long', function(assert) {
     },
     'info when segment is a bit too long'
   );
+});
+
+QUnit.module('segmentInfoString');
+
+QUnit.test('all possible information', function(assert) {
+  const segment = {
+    uri: 'foo',
+    parts: [
+      {start: 0, end: 1, duration: 1},
+      {start: 1, end: 2, duration: 1},
+      {start: 2, end: 3, duration: 1},
+      {start: 4, end: 5, duration: 1},
+      {start: 5, end: 6, duration: 1}
+    ],
+    start: 0,
+    end: 6
+  };
+  const segmentInfo = {
+    startOfSegment: 1,
+    duration: 5,
+    segment,
+    part: segment.parts[0],
+    playlist: {
+      mediaSequence: 0,
+      id: 'playlist-id',
+      segments: [segment]
+    },
+    mediaIndex: 0,
+    partIndex: 0,
+    timeline: 0,
+    independent: 'previous part',
+    getMediaInfoForTime: 'bufferedEnd 0'
+  };
+
+  const expected =
+    'segment [0/0] ' +
+    'part [0/4] ' +
+    'segment start/end [0 => 6] ' +
+    'part start/end [0 => 1] ' +
+    'startOfSegment [1] ' +
+    'duration [5] ' +
+    'timeline [0] ' +
+    'selected by [getMediaInfoForTime (bufferedEnd 0) with independent previous part] ' +
+    'playlist [playlist-id]';
+
+  assert.equal(segmentInfoString(segmentInfo), expected, 'expected return value');
+});
+
+QUnit.test('mediaIndex selection', function(assert) {
+  const segment = {
+    uri: 'foo',
+    parts: [
+      {start: 0, end: 1, duration: 1},
+      {start: 1, end: 2, duration: 1},
+      {start: 2, end: 3, duration: 1},
+      {start: 4, end: 5, duration: 1},
+      {start: 5, end: 6, duration: 1}
+    ],
+    start: 0,
+    end: 6
+  };
+  const segmentInfo = {
+    startOfSegment: 1,
+    duration: 5,
+    segment,
+    part: segment.parts[0],
+    playlist: {
+      mediaSequence: 0,
+      id: 'playlist-id',
+      segments: [segment]
+    },
+    mediaIndex: 0,
+    partIndex: 0,
+    timeline: 0
+  };
+
+  const expected =
+    'segment [0/0] ' +
+    'part [0/4] ' +
+    'segment start/end [0 => 6] ' +
+    'part start/end [0 => 1] ' +
+    'startOfSegment [1] ' +
+    'duration [5] ' +
+    'timeline [0] ' +
+    'selected by [mediaIndex/partIndex increment] ' +
+    'playlist [playlist-id]';
+
+  assert.equal(segmentInfoString(segmentInfo), expected, 'expected return value');
+});
+
+QUnit.test('sync request selection', function(assert) {
+  const segment = {
+    uri: 'foo',
+    parts: [
+      {start: 0, end: 1, duration: 1},
+      {start: 1, end: 2, duration: 1},
+      {start: 2, end: 3, duration: 1},
+      {start: 4, end: 5, duration: 1},
+      {start: 5, end: 6, duration: 1}
+    ],
+    start: 0,
+    end: 6
+  };
+  const segmentInfo = {
+    startOfSegment: 1,
+    duration: 5,
+    segment,
+    part: segment.parts[0],
+    playlist: {
+      mediaSequence: 0,
+      id: 'playlist-id',
+      segments: [segment]
+    },
+    mediaIndex: 0,
+    partIndex: 0,
+    timeline: 0,
+    isSyncRequest: true
+
+  };
+
+  const expected =
+    'segment [0/0] ' +
+    'part [0/4] ' +
+    'segment start/end [0 => 6] ' +
+    'part start/end [0 => 1] ' +
+    'startOfSegment [1] ' +
+    'duration [5] ' +
+    'timeline [0] ' +
+    'selected by [getSyncSegmentCandidate (isSyncRequest)] ' +
+    'playlist [playlist-id]';
+
+  assert.equal(segmentInfoString(segmentInfo), expected, 'expected return value');
+});
+
+QUnit.test('preload segment', function(assert) {
+  const segment = {
+    parts: [
+      {start: 0, end: 1, duration: 1},
+      {start: 1, end: 2, duration: 1},
+      {start: 2, end: 3, duration: 1},
+      {start: 4, end: 5, duration: 1},
+      {start: 5, end: 6, duration: 1}
+    ],
+    start: 0,
+    end: 6
+  };
+  const segmentInfo = {
+    startOfSegment: 1,
+    duration: 5,
+    segment,
+    part: segment.parts[0],
+    playlist: {
+      mediaSequence: 0,
+      id: 'playlist-id',
+      segments: [segment]
+    },
+    mediaIndex: 0,
+    partIndex: 0,
+    timeline: 0
+  };
+
+  const expected =
+    'pre-segment [0/0] ' +
+    'part [0/4] ' +
+    'segment start/end [0 => 6] ' +
+    'part start/end [0 => 1] ' +
+    'startOfSegment [1] ' +
+    'duration [5] ' +
+    'timeline [0] ' +
+    'selected by [mediaIndex/partIndex increment] ' +
+    'playlist [playlist-id]';
+
+  assert.equal(segmentInfoString(segmentInfo), expected, 'expected return value');
+});
+
+QUnit.test('without parts', function(assert) {
+  const segment = {
+    start: 0,
+    end: 6
+  };
+  const segmentInfo = {
+    startOfSegment: 1,
+    duration: 5,
+    segment,
+    playlist: {
+      mediaSequence: 0,
+      id: 'playlist-id',
+      segments: [segment]
+    },
+    mediaIndex: 0,
+    timeline: 0
+  };
+
+  const expected =
+    'pre-segment [0/0] ' +
+    'segment start/end [0 => 6] ' +
+    'startOfSegment [1] ' +
+    'duration [5] ' +
+    'timeline [0] ' +
+    'selected by [mediaIndex/partIndex increment] ' +
+    'playlist [playlist-id]';
+
+  assert.equal(segmentInfoString(segmentInfo), expected, 'expected return value');
+});
+
+QUnit.test('unknown start/end', function(assert) {
+  const segment = {
+    uri: 'foo',
+    parts: [
+      {start: null, end: null, duration: 1},
+      {start: null, end: null, duration: 1},
+      {start: null, end: null, duration: 1},
+      {start: null, end: null, duration: 1},
+      {start: null, end: null, duration: 1}
+    ],
+    start: null,
+    end: null
+  };
+  const segmentInfo = {
+    startOfSegment: 1,
+    duration: 5,
+    segment,
+    part: segment.parts[0],
+    playlist: {
+      mediaSequence: 0,
+      id: 'playlist-id',
+      segments: [segment]
+    },
+    mediaIndex: 0,
+    partIndex: 0,
+    timeline: 0
+  };
+
+  const expected =
+    'segment [0/0] ' +
+    'part [0/4] ' +
+    'segment start/end [null => null] ' +
+    'part start/end [null => null] ' +
+    'startOfSegment [1] ' +
+    'duration [5] ' +
+    'timeline [0] ' +
+    'selected by [mediaIndex/partIndex increment] ' +
+    'playlist [playlist-id]';
+
+  assert.equal(segmentInfoString(segmentInfo), expected, 'expected return value');
 });
 
 QUnit.module('SegmentLoader', function(hooks) {

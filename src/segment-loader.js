@@ -134,7 +134,7 @@ export const safeBackBufferTrimTime = (seekable, currentTime, targetDuration) =>
   return Math.min(maxTrimTime, trimTime);
 };
 
-const segmentInfoString = (segmentInfo) => {
+export const segmentInfoString = (segmentInfo) => {
   const {
     startOfSegment,
     duration,
@@ -160,7 +160,7 @@ const segmentInfoString = (segmentInfo) => {
   }
 
   if (segmentInfo.independent) {
-    selection += ` ${segmentInfo.independent}`;
+    selection += ` with independent ${segmentInfo.independent}`;
   }
 
   const hasPartIndex = typeof partIndex === 'number';
