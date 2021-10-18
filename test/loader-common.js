@@ -835,6 +835,68 @@ export const LoaderCommonFactory = ({
       });
     });
 
+    QUnit.test('live rendition switch uses resetLoader', function(assert) {
+      return this.setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+
+        loader.playlist(playlistWithDuration(50, {
+          mediaSequence: 0,
+          endList: false
+        }));
+
+        loader.load();
+        loader.mediaIndex = 0;
+        let resetCalled = false;
+
+        loader.resetLoader = function() {
+          resetCalled = true;
+        };
+
+        const newPlaylist = playlistWithDuration(50, {
+          mediaSequence: 0,
+          endList: false
+        });
+
+        newPlaylist.uri = 'playlist2.m3u8';
+
+        loader.playlist(newPlaylist);
+
+        assert.true(resetCalled, 'reset was called');
+
+        return Promise.resolve();
+      });
+    });
+
+    QUnit.test('vod rendition switch uses resyncLoader', function(assert) {
+      return this.setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+
+        loader.playlist(playlistWithDuration(50, {
+          mediaSequence: 0,
+          endList: true
+        }));
+
+        loader.load();
+        loader.mediaIndex = 0;
+        let resyncCalled = false;
+
+        loader.resyncLoader = function() {
+          resyncCalled = true;
+        };
+
+        const newPlaylist = playlistWithDuration(50, {
+          mediaSequence: 0,
+          endList: true
+        });
+
+        newPlaylist.uri = 'playlist2.m3u8';
+
+        loader.playlist(newPlaylist);
+
+        assert.true(resyncCalled, 'resync was called');
+
+        return Promise.resolve();
+      });
+    });
+
     // only main/fmp4 segment loaders use async appends and parts/partIndex
     if (usesAsyncAppends) {
       let testFn = 'test';
