@@ -1149,6 +1149,11 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.transmuxer_.postMessage({
         action: 'clearAllMp4Captions'
       });
+
+      // reset the cache in the transmuxer
+      this.transmuxer_.postMessage({
+        action: 'reset'
+      });
     }
   }
 

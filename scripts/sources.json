@@ -189,6 +189,12 @@
     "features": ["live", "low-latency"]
   },
   {
+    "name": "Mux's LL-HLS test stream",
+    "uri": "https://stream.mux.com/v69RSHhFelSm4701snP22dYz2jICy4E4FUyk02rW4gxRM.m3u8",
+    "mimetype": "application/x-mpegurl",
+    "features": ["live", "low-latency"]
+  },
+  {
     "name": "Axinom Multi DRM - DASH, 4k, HEVC, Playready, Widevine",
     "uri": "https://media.axprod.net/TestVectors/v7-MultiDRM-SingleKey/Manifest.mpd",
     "mimetype": "application/dash+xml",
