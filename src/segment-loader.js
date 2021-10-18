@@ -1027,9 +1027,15 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     if (!oldPlaylist || oldPlaylist.uri !== newPlaylist.uri) {
       if (this.mediaIndex !== null) {
-        // we must "resync" the segment loader when we switch renditions and
+        // we must reset/resync the segment loader when we switch renditions and
         // the segment loader is already synced to the previous rendition
-        this.resetLoader();
+
+        // for live streams reset, for vod resync
+        if (!newPlaylist.endList) {
+          this.resetLoader();
+        } else {
+          this.resyncLoader();
+        }
       }
       this.currentMediaInfo_ = void 0;
       this.trigger('playlistupdate');
