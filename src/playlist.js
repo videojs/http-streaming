@@ -11,6 +11,43 @@ import {TIME_FUDGE_FACTOR} from './ranges.js';
 const {createTimeRange} = videojs;
 
 /**
+ * Get the duration of a segment, with special cases for
+ * llhls segments that do not have a duration yet.
+ *
+ * @param {Object} playlist
+ *        the playlist that the segment belongs to.
+ * @param {Object} segment
+ *        the segment to get a duration for.
+ *
+ * @return {number}
+ *          the segment duration
+ */
+export const segmentDurationWithParts = (playlist, segment) => {
+  // if this isn't a preload segment
+  // then we will have a segment duration that is accurate.
+  if (!segment.preload) {
+    return segment.duration;
+  }
+
+  // otherwise we have to add up parts and preload hints
+  // to get an up to date duration.
+  let result = 0;
+
+  (segment.parts || []).forEach(function(p) {
+    result += p.duration;
+  });
+
+  // for preload hints we have to use partTargetDuration
+  // as they won't even have a duration yet.
+  (segment.preloadHints || []).forEach(function(p) {
+    if (p.type === 'PART') {
+      result += playlist.partTargetDuration;
+    }
+  });
+
+  return result;
+};
+/**
  * A function to get a combined list of parts and segments with durations
  * and indexes.
  *
@@ -117,19 +154,7 @@ const backwardDuration = function(playlist, endSequence) {
       return { result: result + segment.end, precise: true };
     }
 
-    if (segment.preload) {
-      (segment.parts || []).forEach(function(p) {
-        result += p.duration;
-      });
-
-      (segment.preloadHints || []).forEach(function(p) {
-        if (p.type === 'PART') {
-          result += playlist.partTargetDuration;
-        }
-      });
-    } else {
-      result += segment.duration;
-    }
+    result += segmentDurationWithParts(playlist, segment);
 
     if (typeof segment.start !== 'undefined') {
       return { result: result + segment.start, precise: true };
@@ -161,19 +186,7 @@ const forwardDuration = function(playlist, endSequence) {
       };
     }
 
-    if (segment.preload) {
-      (segment.parts || []).forEach(function(p) {
-        result += p.duration;
-      });
-
-      (segment.preloadHints || []).forEach(function(p) {
-        if (p.type === 'PART') {
-          result += playlist.partTargetDuration;
-        }
-      });
-    } else {
-      result += segment.duration;
-    }
+    result += segmentDurationWithParts(playlist, segment);
 
     if (typeof segment.end !== 'undefined') {
       return {
@@ -761,5 +774,6 @@ export default {
   estimateSegmentRequestTime,
   isLowestEnabledRendition,
   isAudioOnly,
-  playlistMatch
+  playlistMatch,
+  segmentDurationWithParts
 };

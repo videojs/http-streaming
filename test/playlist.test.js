@@ -1703,4 +1703,51 @@ QUnit.module('Playlist', function() {
 
     });
   });
+
+  QUnit.module('segmentDurationWithParts');
+
+  QUnit.test('uses normal segment duration', function(assert) {
+    const duration = Playlist.segmentDurationWithParts(
+      {},
+      {duration: 5}
+    );
+
+    assert.equal(duration, 5, 'duration as expected');
+  });
+
+  QUnit.test('preload segment without parts or preload hints', function(assert) {
+    const duration = Playlist.segmentDurationWithParts(
+      {partTargetDuration: 1},
+      {preload: true}
+    );
+
+    assert.equal(duration, 0, 'duration as expected');
+  });
+
+  QUnit.test('preload segment with parts only', function(assert) {
+    const duration = Playlist.segmentDurationWithParts(
+      {partTargetDuration: 1},
+      {preload: true, parts: [{duration: 1}, {duration: 1}]}
+    );
+
+    assert.equal(duration, 2, 'duration as expected');
+  });
+
+  QUnit.test('preload segment with preload hints only', function(assert) {
+    const duration = Playlist.segmentDurationWithParts(
+      {partTargetDuration: 1},
+      {preload: true, preloadHints: [{type: 'PART'}, {type: 'PART'}, {type: 'MAP'}]}
+    );
+
+    assert.equal(duration, 2, 'duration as expected');
+  });
+
+  QUnit.test('preload segment with preload hints and parts', function(assert) {
+    const duration = Playlist.segmentDurationWithParts(
+      {partTargetDuration: 1},
+      {preload: true, parts: [{duration: 1}], preloadHints: [{type: 'PART'}, {type: 'PART'}, {type: 'MAP'}]}
+    );
+
+    assert.equal(duration, 3, 'duration as expected');
+  });
 });
