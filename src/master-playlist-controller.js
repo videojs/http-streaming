@@ -47,9 +47,9 @@ const sumLoaderStat = function(stat) {
 };
 const shouldSwitchToMedia = function({
   currentPlaylist,
-  isBuffered,
+  buffered,
+  currentTime,
   nextPlaylist,
-  forwardBuffer,
   bufferLowWaterLine,
   bufferHighWaterLine,
   duration,
@@ -74,6 +74,9 @@ const shouldSwitchToMedia = function({
     return false;
   }
 
+  // determine if current time is in a buffered range.
+  const isBuffered = Boolean(Ranges.findRange(buffered, currentTime).length);
+
   // If the playlist is live, then we want to not take low water line into account.
   // This is because in LIVE, the player plays 3 segments from the end of the
   // playlist, and if `BUFFER_LOW_WATER_LINE` is greater than the duration availble
@@ -89,6 +92,7 @@ const shouldSwitchToMedia = function({
     return true;
   }
 
+  const forwardBuffer = Ranges.timeAheadOf(buffered, currentTime);
   const maxBufferLowWaterLine = experimentalBufferBasedABR ?
     Config.EXPERIMENTAL_MAX_BUFFER_LOW_WATER_LINE : Config.MAX_BUFFER_LOW_WATER_LINE;
 
@@ -741,18 +745,16 @@ export class MasterPlaylistController extends videojs.EventTarget {
   shouldSwitchToMedia_(nextPlaylist) {
     const currentPlaylist = this.masterPlaylistLoader_.media() ||
       this.masterPlaylistLoader_.pendingMedia_;
-    const buffered = this.tech_.buffered();
     const currentTime = this.tech_.currentTime();
-    const forwardBuffer = Ranges.timeAheadOf(buffered, currentTime);
     const bufferLowWaterLine = this.bufferLowWaterLine();
     const bufferHighWaterLine = this.bufferHighWaterLine();
-    const isBuffered = Boolean(Ranges.findRange(buffered, currentTime).length);
+    const buffered = this.tech_.buffered();
 
     return shouldSwitchToMedia({
-      isBuffered,
+      buffered,
+      currentTime,
       currentPlaylist,
       nextPlaylist,
-      forwardBuffer,
       bufferLowWaterLine,
       bufferHighWaterLine,
       duration: this.duration(),
