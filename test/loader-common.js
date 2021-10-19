@@ -845,10 +845,19 @@ export const LoaderCommonFactory = ({
 
         loader.load();
         loader.mediaIndex = 0;
+        let resyncCalled = false;
         let resetCalled = false;
+        const origReset = loader.resetLoader;
+        const origResync = loader.resyncLoader;
 
         loader.resetLoader = function() {
           resetCalled = true;
+          return origReset.call(loader);
+        };
+
+        loader.resyncLoader = function() {
+          resyncCalled = true;
+          return origResync.call(loader);
         };
 
         const newPlaylist = playlistWithDuration(50, {
@@ -861,6 +870,7 @@ export const LoaderCommonFactory = ({
         loader.playlist(newPlaylist);
 
         assert.true(resetCalled, 'reset was called');
+        assert.true(resyncCalled, 'resync was called');
 
         return Promise.resolve();
       });
@@ -877,9 +887,18 @@ export const LoaderCommonFactory = ({
         loader.load();
         loader.mediaIndex = 0;
         let resyncCalled = false;
+        let resetCalled = false;
+        const origReset = loader.resetLoader;
+        const origResync = loader.resyncLoader;
+
+        loader.resetLoader = function() {
+          resetCalled = true;
+          return origReset.call(loader);
+        };
 
         loader.resyncLoader = function() {
           resyncCalled = true;
+          return origResync.call(loader);
         };
 
         const newPlaylist = playlistWithDuration(50, {
@@ -892,6 +911,7 @@ export const LoaderCommonFactory = ({
         loader.playlist(newPlaylist);
 
         assert.true(resyncCalled, 'resync was called');
+        assert.false(resetCalled, 'reset was not called');
 
         return Promise.resolve();
       });
@@ -1342,26 +1362,23 @@ export const LoaderCommonFactory = ({
       const playlist = playlistWithDuration(50, {llhls: true});
 
       loader.hasPlayed_ = () => true;
-      loader.currentTime_ = () => 46;
       loader.syncPoint_ = null;
 
       loader.playlist(playlist);
       loader.load();
-      // in a real scenario this probably won't happen
-      // but it makes which segment/part is chosen easier.
-      loader.mediaIndex = 4;
-      loader.partIndex = 1;
 
+      // force segmentIndex 4 and part 2 to be choosen
+      loader.currentTime_ = () => 46;
+      // make the previous part indepenent so we go back to it
       playlist.segments[4].parts[1].independent = true;
       const segmentInfo = loader.chooseNextRequest_();
 
-      assert.equal(segmentInfo.partIndex, 1, 'previous part');
+      assert.equal(segmentInfo.partIndex, 1, 'still chooses partIndex 1');
       assert.equal(segmentInfo.mediaIndex, 4, 'same segment');
 
-      // in a real scenario this probably won't happen
-      // but it makes which segment/part is chosen easier.
-      loader.mediaIndex = 3;
-      loader.partIndex = 4;
+      // force segmentIndex 4 and part 0 to be choosen
+      loader.currentTime_ = () => 42;
+      // make the previous part independent
       playlist.segments[3].parts[4].independent = true;
       const segmentInfo2 = loader.chooseNextRequest_();
 

@@ -355,7 +355,7 @@ export default class PlaybackWatcher {
 
     // verify that at least two segment durations or one part duration have been
     // appended before checking for a gap.
-    const durations = media.partTargetDuration ? media.partTargetDuration :
+    const minAppendedDuration = media.partTargetDuration ? media.partTargetDuration :
       (media.targetDuration - Ranges.TIME_FUDGE_FACTOR) * 2;
 
     // verify that at least two segment durations have been
@@ -372,7 +372,7 @@ export default class PlaybackWatcher {
 
       // if we are less than two video/audio segment durations or one part
       // duration behind we haven't appended enough to call this a bad seek.
-      if (timeAhead < durations) {
+      if (timeAhead < minAppendedDuration) {
         return false;
       }
     }

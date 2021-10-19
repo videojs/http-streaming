@@ -1030,7 +1030,12 @@ export default class SegmentLoader extends videojs.EventTarget {
         // we must reset/resync the segment loader when we switch renditions and
         // the segment loader is already synced to the previous rendition
 
-        // for live streams reset, for vod resync
+        // on playlist changes we want it to be possible to fetch
+        // at the buffer for vod but not for live. So we use resetLoader
+        // for live and resyncLoader for vod. We want this because
+        // if a playlist uses independent and non-independent segments/parts the
+        // buffer may not accurately reflect the next segment that we should try
+        // downloading.
         if (!newPlaylist.endList) {
           this.resetLoader();
         } else {

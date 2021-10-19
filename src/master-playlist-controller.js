@@ -79,6 +79,8 @@ const shouldSwitchToMedia = function({
   // playlist, and if `BUFFER_LOW_WATER_LINE` is greater than the duration availble
   // in those segments, a viewer will never experience a rendition upswitch.
   if (!currentPlaylist.endList) {
+    // We don't really want to switch at the start of playback for llhls live streams
+    // before we have actually started. It almost doubles are time to first playback.
     if (!isBuffered && typeof currentPlaylist.partTargetDuration === 'number') {
       log(`not ${sharedLogLine} as current playlist is live llhls, but currentTime isn't in buffered.`);
       return false;
@@ -1441,6 +1443,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
   onSyncInfoUpdate_() {
     let audioSeekable;
 
+    // If we have two source buffers and only one is created. The seekable range will be incorrect
+    // we should wait until all source buffers are created.
     if (!this.masterPlaylistLoader_ || this.sourceUpdater_.hasCreatedSourceBuffers()) {
       return;
     }

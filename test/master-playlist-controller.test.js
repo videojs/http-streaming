@@ -6085,23 +6085,23 @@ QUnit.test('false without nextPlaylist', function(assert) {
   this.env.log.warn.callCount = 0;
 });
 
-QUnit.test('false if llhls playlist and video not buffered', function(assert) {
+QUnit.test('false if llhls playlist and no buffered', function(assert) {
   const mpc = this.masterPlaylistController;
 
   mpc.masterPlaylistLoader_.media = () => ({id: 'foo', endList: false, partTargetDuration: 5});
   const nextPlaylist = {id: 'bar', endList: false, partTargetDuration: 5};
 
-  assert.notOk(mpc.shouldSwitchToMedia_(nextPlaylist), 'should switch without currentPlaylist');
+  assert.notOk(mpc.shouldSwitchToMedia_(nextPlaylist), 'should not switch when nothing is buffered');
 });
 
-QUnit.test('true if llhls playlist and video buffered', function(assert) {
+QUnit.test('true if llhls playlist and we have buffered', function(assert) {
   const mpc = this.masterPlaylistController;
 
   mpc.tech_.buffered = () => videojs.createTimeRange([[0, 10]]);
   mpc.masterPlaylistLoader_.media = () => ({id: 'foo', endList: false, partTargetDuration: 5});
   const nextPlaylist = {id: 'bar', endList: false, partTargetDuration: 5};
 
-  assert.ok(mpc.shouldSwitchToMedia_(nextPlaylist), 'should switch without currentPlaylist');
+  assert.ok(mpc.shouldSwitchToMedia_(nextPlaylist), 'should switch if buffered');
 });
 
 QUnit.module('MasterPlaylistController blacklistCurrentPlaylist', sharedHooks);
