@@ -257,7 +257,8 @@ const getAllSegments = function(media) {
 export const isPlaylistUnchanged = (a, b) => a === b ||
   (a.segments && b.segments && a.segments.length === b.segments.length &&
    a.endList === b.endList &&
-   a.mediaSequence === b.mediaSequence);
+   a.mediaSequence === b.mediaSequence &&
+   a.preloadSegment === b.preloadSegment);
 
 /**
   * Returns a new master playlist that is the result of merging an
@@ -516,6 +517,8 @@ export default class PlaylistLoader extends EventTarget {
 
     this.targetDuration = playlist.partTargetDuration || playlist.targetDuration;
 
+    this.pendingMedia_ = null;
+
     if (update) {
       this.master = update;
       this.media_ = this.master.playlists[id];
@@ -661,6 +664,8 @@ export default class PlaylistLoader extends EventTarget {
     if (this.media_) {
       this.trigger('mediachanging');
     }
+
+    this.pendingMedia_ = playlist;
 
     this.request = this.vhs_.xhr({
       uri: playlist.resolvedUri,
