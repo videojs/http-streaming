@@ -82,8 +82,8 @@ const shouldSwitchToMedia = function({
   // playlist, and if `BUFFER_LOW_WATER_LINE` is greater than the duration availble
   // in those segments, a viewer will never experience a rendition upswitch.
   if (!currentPlaylist.endList) {
-    // We don't really want to switch at the start of playback for llhls live streams
-    // before we have actually started. It almost doubles are time to first playback.
+    // For LLHLS live streams, don't switch renditions before playback has started, as it almost
+    // doubles the time to first playback.
     if (!isBuffered && typeof currentPlaylist.partTargetDuration === 'number') {
       log(`not ${sharedLogLine} as current playlist is live llhls, but currentTime isn't in buffered.`);
       return false;
