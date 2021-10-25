@@ -615,6 +615,48 @@ QUnit.test('reports video duration', function(assert) {
   );
 });
 
+if (window.BigInt) {
+  QUnit.test('handles bigint', function(assert) {
+    assert.equal(
+      mediaDuration({audioTimingInfo: {start: window.BigInt(1), end: window.BigInt(2)}}),
+      1,
+      'audio duration when no video info'
+    );
+
+    assert.equal(
+      mediaDuration({videoTimingInfo: {start: window.BigInt(1), end: window.BigInt(2)}}),
+      1,
+      'video duration when no audio info'
+    );
+  });
+}
+
+QUnit.test('reports video duration', function(assert) {
+  assert.equal(
+    mediaDuration({videoTimingInfo: {start: 1, end: 2}}),
+    1,
+    'video duration when no audio info'
+  );
+
+  assert.equal(
+    mediaDuration({audioTimingInfo: {start: 1}, videoTimingInfo: {start: 1, end: 2}}),
+    1,
+    'video duration when not enough audio info'
+  );
+
+  assert.equal(
+    mediaDuration({audioTimingInfo: {end: 3}, videoTimingInfo: {start: 1, end: 2}}),
+    1,
+    'video duration when not enough audio info'
+  );
+
+  assert.equal(
+    mediaDuration({audioTimingInfo: {start: 1, end: 2}, videoTimingInfo: {start: 1, end: 3}}),
+    2,
+    'video duration when video duration > audio duration'
+  );
+});
+
 QUnit.module('segmentTooLong');
 
 QUnit.test('false when no segment duration', function(assert) {

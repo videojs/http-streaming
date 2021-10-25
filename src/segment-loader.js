@@ -2057,7 +2057,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     // if this request included an initialization segment, save that data
-    // to the initSegment cachehttps://github.com/videojs/mux.js/pull/383
+    // to the initSegment cache
     if (simpleSegment.map) {
       simpleSegment.map = this.initSegmentForMap(simpleSegment.map, true);
       // move over init segment properties to media request
