@@ -1207,6 +1207,61 @@ QUnit.test('dispose stops bad seek handling', function(assert) {
   assert.equal(seeks.length, 0, 'no seeks');
 });
 
+QUnit.test('part target duration is used for append verification', function(assert) {
+  // target duration is 10 for this manifest
+  this.player.src({
+    src: 'liveStart30sBefore.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  // start playback normally
+  this.player.tech_.triggerReady();
+  this.clock.tick(1);
+  standardXHRResponse(this.requests.shift());
+  openMediaSource(this.player, this.clock);
+  this.player.tech_.trigger('play');
+  this.player.tech_.trigger('playing');
+  this.clock.tick(1);
+
+  const playbackWatcher = this.player.tech_.vhs.playbackWatcher_;
+  const seeks = [];
+  let currentTime;
+  let buffered;
+
+  playbackWatcher.seekable = () => videojs.createTimeRanges([[10, 100]]);
+  playbackWatcher.tech_ = {
+    off: () => {},
+    seeking: () => true,
+    setCurrentTime: (time) => {
+      seeks.push(time);
+    },
+    currentTime: () => currentTime,
+    buffered: () => buffered
+  };
+
+  Object.assign(playbackWatcher.masterPlaylistController_.sourceUpdater_, {
+    videoBuffer: true,
+    videoBuffered: () => buffered
+  });
+
+  this.player.tech(true).vhs.setCurrentTime = (time) => seeks.push(time);
+
+  const media = playbackWatcher.media();
+
+  media.partTargetDuration = 1.1;
+
+  playbackWatcher.media = () => media;
+
+  currentTime = 40;
+  buffered = videojs.createTimeRanges([[41, 42.1]]);
+  assert.ok(
+    playbackWatcher.fixesBadSeeks_(),
+    'acts when close enough to, and enough, buffer'
+  );
+  assert.equal(seeks.length, 1, 'seeked');
+  assert.equal(seeks[0], 41.1, 'player seeked to the start of the closer buffer');
+});
+
 const loaderTypes = ['audio', 'main', 'subtitle'];
 
 const EXCLUDE_APPEND_COUNT = 10;

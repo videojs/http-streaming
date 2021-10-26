@@ -22,8 +22,7 @@ import {
 import { gopsSafeToAlignWith, removeGopBuffer, updateGopBuffer } from './util/gops';
 import shallowEqual from './util/shallow-equal.js';
 import { QUOTA_EXCEEDED_ERR } from './error-codes';
-import { timeRangesToArray } from './ranges';
-import {lastBufferedEnd} from './ranges.js';
+import {timeRangesToArray, lastBufferedEnd, timeAheadOf} from './ranges.js';
 import {getKnownPartCount} from './playlist.js';
 
 /**
@@ -135,7 +134,7 @@ export const safeBackBufferTrimTime = (seekable, currentTime, targetDuration) =>
   return Math.min(maxTrimTime, trimTime);
 };
 
-const segmentInfoString = (segmentInfo) => {
+export const segmentInfoString = (segmentInfo) => {
   const {
     startOfSegment,
     duration,
@@ -158,6 +157,10 @@ const segmentInfoString = (segmentInfo) => {
     selection = `getMediaInfoForTime (${segmentInfo.getMediaInfoForTime})`;
   } else if (segmentInfo.isSyncRequest) {
     selection = 'getSyncSegmentCandidate (isSyncRequest)';
+  }
+
+  if (segmentInfo.independent) {
+    selection += ` with independent ${segmentInfo.independent}`;
   }
 
   const hasPartIndex = typeof partIndex === 'number';
@@ -1024,9 +1027,20 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     if (!oldPlaylist || oldPlaylist.uri !== newPlaylist.uri) {
       if (this.mediaIndex !== null) {
-        // we must "resync" the segment loader when we switch renditions and
+        // we must reset/resync the segment loader when we switch renditions and
         // the segment loader is already synced to the previous rendition
-        this.resyncLoader();
+
+        // on playlist changes we want it to be possible to fetch
+        // at the buffer for vod but not for live. So we use resetLoader
+        // for live and resyncLoader for vod. We want this because
+        // if a playlist uses independent and non-independent segments/parts the
+        // buffer may not accurately reflect the next segment that we should try
+        // downloading.
+        if (!newPlaylist.endList) {
+          this.resetLoader();
+        } else {
+          this.resyncLoader();
+        }
       }
       this.currentMediaInfo_ = void 0;
       this.trigger('playlistupdate');
@@ -1366,8 +1380,9 @@ export default class SegmentLoader extends videojs.EventTarget {
    * @return {Object} a request object that describes the segment/part to load
    */
   chooseNextRequest_() {
-    const bufferedEnd = lastBufferedEnd(this.buffered_()) || 0;
-    const bufferedTime = Math.max(0, bufferedEnd - this.currentTime_());
+    const buffered = this.buffered_();
+    const bufferedEnd = lastBufferedEnd(buffered) || 0;
+    const bufferedTime = timeAheadOf(buffered, this.currentTime_());
     const preloaded = !this.hasPlayed_() && bufferedTime >= 1;
     const haveEnoughBuffer = bufferedTime >= this.goalBufferLength_();
     const segments = this.playlist_.segments;
@@ -1420,14 +1435,15 @@ export default class SegmentLoader extends videojs.EventTarget {
         startTime: this.syncPoint_.time
       });
 
-      next.getMediaInfoForTime = this.fetchAtBuffer_ ? 'bufferedEnd' : 'currentTime';
+      next.getMediaInfoForTime = this.fetchAtBuffer_ ?
+        `bufferedEnd ${bufferedEnd}` : `currentTime ${this.currentTime_()}`;
       next.mediaIndex = segmentIndex;
       next.startOfSegment = startTime;
       next.partIndex = partIndex;
     }
 
     const nextSegment = segments[next.mediaIndex];
-    const nextPart = nextSegment &&
+    let nextPart = nextSegment &&
       typeof next.partIndex === 'number' &&
       nextSegment.parts &&
       nextSegment.parts[next.partIndex];
@@ -1442,6 +1458,28 @@ export default class SegmentLoader extends videojs.EventTarget {
     // Set partIndex to 0
     if (typeof next.partIndex !== 'number' && nextSegment.parts) {
       next.partIndex = 0;
+      nextPart = nextSegment.parts[0];
+    }
+
+    // if we have no buffered data then we need to make sure
+    // that the next part we append is "independent" if possible.
+    // So we check if the previous part is independent, and request
+    // it if it is.
+    if (!bufferedTime && nextPart && !nextPart.independent) {
+
+      if (next.partIndex === 0) {
+        const lastSegment = segments[next.mediaIndex - 1];
+        const lastSegmentLastPart = lastSegment.parts && lastSegment.parts.length && lastSegment.parts[lastSegment.parts.length - 1];
+
+        if (lastSegmentLastPart && lastSegmentLastPart.independent) {
+          next.mediaIndex -= 1;
+          next.partIndex = lastSegment.parts.length - 1;
+          next.independent = 'previous segment';
+        }
+      } else if (nextSegment.parts[next.partIndex - 1].independent) {
+        next.partIndex -= 1;
+        next.independent = 'previous part';
+      }
     }
 
     const ended = this.mediaSource_ && this.mediaSource_.readyState === 'ended';
@@ -1459,6 +1497,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
   generateSegmentInfo_(options) {
     const {
+      independent,
       playlist,
       mediaIndex,
       startOfSegment,
@@ -1499,7 +1538,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       byteLength: 0,
       transmuxer: this.transmuxer_,
       // type of getMediaInfoForTime that was used to get this segment
-      getMediaInfoForTime
+      getMediaInfoForTime,
+      independent
     };
 
     const overrideCheck =
@@ -1991,7 +2031,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.setTimeMapping_(segmentInfo.timeline);
 
     // for tracking overall stats
-    this.updateMediaSecondsLoaded_(segmentInfo.segment);
+    this.updateMediaSecondsLoaded_(segmentInfo.part || segmentInfo.segment);
 
     // Note that the state isn't changed from loading to appending. This is because abort
     // logic may change behavior depending on the state, and changing state too early may
@@ -2995,15 +3035,19 @@ export default class SegmentLoader extends videojs.EventTarget {
     // and attempt to resync when the post-update seekable window and live
     // point would mean that this was the perfect segment to fetch
     this.trigger('syncinfoupdate');
-
     const segment = segmentInfo.segment;
+    const part = segmentInfo.part;
+    const badSegmentGuess = segment.end &&
+      this.currentTime_() - segment.end > segmentInfo.playlist.targetDuration * 3;
+    const badPartGuess = part &&
+      part.end && this.currentTime_() - part.end > segmentInfo.playlist.partTargetDuration * 3;
 
-    // If we previously appended a segment that ends more than 3 targetDurations before
+    // If we previously appended a segment/part that ends more than 3 part/targetDurations before
     // the currentTime_ that means that our conservative guess was too conservative.
     // In that case, reset the loader state so that we try to use any information gained
     // from the previous request to create a new, more accurate, sync-point.
-    if (segment.end &&
-        this.currentTime_() - segment.end > segmentInfo.playlist.targetDuration * 3) {
+    if (badSegmentGuess || badPartGuess) {
+      this.logger_(`bad ${badSegmentGuess ? 'segment' : 'part'} ${segmentInfoString(segmentInfo)}`);
       this.resetEverything();
       return;
     }
