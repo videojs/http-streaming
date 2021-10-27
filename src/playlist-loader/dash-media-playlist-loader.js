@@ -1,6 +1,6 @@
 import PlaylistLoader from './playlist-loader.js';
 import {findMedia} from './dash-main-playlist-loader.js';
-import deepEqualObject from '../util/deep-equal-object.js';
+import deepEqual from '../util/deep-equal.js';
 
 class DashMediaPlaylistLoader extends PlaylistLoader {
   constructor(uri, options) {
@@ -35,7 +35,7 @@ class DashMediaPlaylistLoader extends PlaylistLoader {
       this.uri()
     );
 
-    const wasUpdated = !deepEqualObject(oldManifest, this.manifest_);
+    const wasUpdated = !deepEqual(oldManifest, this.manifest_);
 
     if (wasUpdated) {
       this.mainPlaylistLoader_.setMediaRefreshTime_(this.manifest().targetDuration * 1000);
