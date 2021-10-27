@@ -1,3 +1,10 @@
+<a name="2.11.2"></a>
+## [2.11.2](https://github.com/videojs/http-streaming/compare/v2.11.1...v2.11.2) (2021-10-27)
+
+### Bug Fixes
+
+* Various fixes for llhls so that we start closer to live, and stay closer to live ([#1201](https://github.com/videojs/http-streaming/issues/1201)) ([bf4a458](https://github.com/videojs/http-streaming/commit/bf4a458))
+
 <a name="2.11.1"></a>
 ## [2.11.1](https://github.com/videojs/http-streaming/compare/v2.11.0...v2.11.1) (2021-10-14)
 
