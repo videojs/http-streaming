@@ -18,7 +18,6 @@ class HlsMainPlaylistLoader extends PlaylistLoader {
   start() {
     // never re-request the manifest.
     if (this.manifest_) {
-      // TODO: we may have to trigger updated here
       this.started_ = true;
       return;
     }

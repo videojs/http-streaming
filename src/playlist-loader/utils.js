@@ -60,6 +60,7 @@ const mergeSegment = function(a, b, baseUri) {
   };
 
   if (!a) {
+    result.updated = true;
     return b;
   }
 
@@ -102,13 +103,15 @@ const mergeSegment = function(a, b, baseUri) {
 };
 
 export const mergeSegments = function({oldSegments, newSegments, offset = 0, baseUri}) {
+  oldSegments = oldSegments || [];
+  newSegments = newSegments || [];
   const result = {
-    mergedSegments: newSegments,
+    segments: [],
     updated: false
   };
 
-  if (!oldSegments || !oldSegments.length) {
-    return result;
+  if (!oldSegments || !oldSegments.length || oldSegments.length !== newSegments.length) {
+    result.updated = true;
   }
 
   let currentMap;
@@ -121,7 +124,7 @@ export const mergeSegments = function({oldSegments, newSegments, offset = 0, bas
     if (oldSegment) {
       currentMap = oldSegment.map || currentMap;
 
-      mergedSegment = mergeSegment(oldSegment, newSegment);
+      mergedSegment = mergeSegment(oldSegment, newSegment, baseUri);
     } else {
       // carry over map to new segment if it is missing
       if (currentMap && !newSegment.map) {
@@ -131,7 +134,7 @@ export const mergeSegments = function({oldSegments, newSegments, offset = 0, bas
       mergedSegment = newSegment;
     }
 
-    result.mergedSegments.push(resolveSegmentUris(mergedSegment, baseUri));
+    result.segments.push(resolveSegmentUris(mergedSegment, baseUri));
   }
   return result;
 };

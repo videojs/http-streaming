@@ -1,7 +1,7 @@
 import PlaylistLoader from './playlist-loader.js';
 import {parseManifest} from '../manifest.js';
-import {mergeOptions} from 'video.js';
 import {mergeSegments} from './utils.js';
+import deepEqual from '../util/deep-equal.js';
 
 /**
  * Calculates the time to wait before refreshing a live playlist
@@ -13,8 +13,8 @@ import {mergeSegments} from './utils.js';
  * @return {number}
  *         The time in ms to wait before refreshing the live playlist
  */
-const timeBeforeRefresh = function(manifest, update) {
-  const lastSegment = manifest.segments[manifest.segments.length - 1];
+export const timeBeforeRefresh = function(manifest, update) {
+  const lastSegment = manifest.segments && manifest.segments[manifest.segments.length - 1];
   const lastPart = lastSegment && lastSegment.parts && lastSegment.parts[lastSegment.parts.length - 1];
   const lastDuration = lastPart && lastPart.duration || lastSegment && lastSegment.duration;
 
@@ -27,90 +27,150 @@ const timeBeforeRefresh = function(manifest, update) {
   return (manifest.partTargetDuration || manifest.targetDuration || 10) * 500;
 };
 
+// clone a preload segment so that we can add it to segments
+// without worrying about adding properties and messing up the
+// mergeMedia update algorithm.
+const clonePreloadSegment = (preloadSegment) => {
+  preloadSegment = preloadSegment || {};
+  const result = Object.assign({}, preloadSegment);
+
+  if (preloadSegment.parts) {
+    result.parts = [];
+    for (let i = 0; i < preloadSegment.parts.length; i++) {
+      // clone the part
+      result.parts.push(Object.assign({}, preloadSegment.parts[i]));
+    }
+  }
+
+  if (preloadSegment.preloadHints) {
+    result.preloadHints = [];
+    for (let i = 0; i < preloadSegment.preloadHints.length; i++) {
+      // clone the preload hint
+      result.preloadHints.push(Object.assign({}, preloadSegment.preloadHints[i]));
+    }
+  }
+
+  return result;
+};
+
 export const getAllSegments = function(manifest) {
   const segments = manifest.segments || [];
-  const preloadSegment = manifest.preloadSegment;
+  let preloadSegment = manifest.preloadSegment;
 
   // a preloadSegment with only preloadHints is not currently
   // a usable segment, only include a preloadSegment that has
   // parts.
   if (preloadSegment && preloadSegment.parts && preloadSegment.parts.length) {
+    let add = true;
+
     // if preloadHints has a MAP that means that the
     // init segment is going to change. We cannot use any of the parts
     // from this preload segment.
     if (preloadSegment.preloadHints) {
       for (let i = 0; i < preloadSegment.preloadHints.length; i++) {
         if (preloadSegment.preloadHints[i].type === 'MAP') {
-          return segments;
+          add = false;
+          break;
         }
       }
     }
-    // set the duration for our preload segment to target duration.
-    preloadSegment.duration = manifest.targetDuration;
-    preloadSegment.preload = true;
 
-    segments.push(preloadSegment);
+    if (add) {
+      preloadSegment = clonePreloadSegment(preloadSegment);
+
+      // set the duration for our preload segment to target duration.
+      preloadSegment.duration = manifest.targetDuration;
+      preloadSegment.preload = true;
+
+      segments.push(preloadSegment);
+    }
+  }
+
+  if (manifest.skip) {
+    manifest.segments = manifest.segments || [];
+    // add back in objects for skipped segments, so that we merge
+    // old properties into the new segments
+    for (let i = 0; i < manifest.skip.skippedSegments; i++) {
+      manifest.segments.unshift({skipped: true});
+    }
   }
 
   return segments;
 };
 
-const mergeMedia = function(oldMedia, newMedia) {
-  const result = {
-    mergedMedia: newMedia,
-    updated: true
-  };
+export const mergeMedia = function({oldMedia, newMedia, baseUri}) {
+  oldMedia = oldMedia || {};
+  newMedia = newMedia || {};
+  // we need to update segments because we store timing information on them,
+  // and we also want to make sure we preserve old segment information in cases
+  // were the newMedia skipped segments.
+  const segmentResult = mergeSegments({
+    oldSegments: oldMedia.segments,
+    newSegments: newMedia.segments,
+    baseUri,
+    offset: newMedia.mediaSequence - oldMedia.mediaSequence
+  });
 
-  if (!oldMedia) {
-    return result;
-  }
+  let mediaUpdated = !oldMedia || segmentResult.updated;
+  const mergedMedia = {segments: segmentResult.segments};
 
-  result.mergedManifest = mergeOptions(oldMedia, newMedia);
+  const keys = [];
 
-  // always use the new manifest's preload segment
-  if (result.mergedManifest.preloadSegment && !newMedia.preloadSegment) {
-    delete result.mergedManifest.preloadSegment;
-  }
-
-  newMedia.segments = getAllSegments(newMedia);
-
-  if (newMedia.skip) {
-    newMedia.segments = newMedia.segments || [];
-    // add back in objects for skipped segments, so that we merge
-    // old properties into the new segments
-    for (let i = 0; i < newMedia.skip.skippedSegments; i++) {
-      newMedia.segments.unshift({skipped: true});
+  Object.keys(oldMedia).concat(Object.keys(newMedia)).forEach(function(key) {
+    // segments are merged elsewhere
+    if (key === 'segments' || keys.indexOf(key) !== -1) {
+      return;
     }
-  }
+    keys.push(key);
+  });
 
-  // if the update could overlap existing segment information, merge the two segment lists
-  const {updated, mergedSegments} = mergeSegments(oldMedia, newMedia);
+  keys.forEach(function(key) {
+    // both have the key
+    if (oldMedia.hasOwnProperty(key) && newMedia.hasOwnProperty(key)) {
+      // if the value is different media was updated
+      if (!deepEqual(oldMedia[key], newMedia[key])) {
+        mediaUpdated = true;
+      }
+      // regardless grab the value from new media
+      mergedMedia[key] = newMedia[key];
+    // only oldMedia has the key don't bring it over, but media was updated
+    } else if (oldMedia.hasOwnProperty(key) && !newMedia.hasOwnProperty(key)) {
+      mediaUpdated = true;
+    // otherwise the key came from newMedia
+    } else {
+      mediaUpdated = true;
+      mergedMedia[key] = newMedia[key];
+    }
+  });
 
-  if (updated) {
-    result.updated = true;
-  }
-
-  result.mergedManifest.segments = mergedSegments;
-
-  return result;
+  return {updated: mediaUpdated, media: mergedMedia};
 };
 
 class HlsMediaPlaylistLoader extends PlaylistLoader {
 
   parseManifest_(manifestString, callback) {
     const parsedMedia = parseManifest({
-      onwarn: ({message}) => this.logger_(`m3u8-parser warn for ${this.uri_}: ${message}`),
-      oninfo: ({message}) => this.logger_(`m3u8-parser info for ${this.uri_}: ${message}`),
+      onwarn: ({message}) => this.logger_(`m3u8-parser warn for ${this.uri()}: ${message}`),
+      oninfo: ({message}) => this.logger_(`m3u8-parser info for ${this.uri()}: ${message}`),
       manifestString,
       customTagParsers: this.options_.customTagParsers,
       customTagMappers: this.options_.customTagMappers,
       experimentalLLHLS: this.options_.experimentalLLHLS
     });
-    const updated = true;
 
-    this.mediaRefreshTime_ = timeBeforeRefresh(this.manifest(), updated);
+    // TODO: this should go in parseManifest, as it
+    // always needs to happen directly afterwards
+    parsedMedia.segments = getAllSegments(parsedMedia);
 
-    callback(mergeMedia(this.manifest_, parsedMedia), updated);
+    const {media, updated} = mergeMedia({
+      oldMedia: this.manifest_,
+      newMedia: parsedMedia,
+      baseUri: this.uri()
+    });
+
+    this.mediaRefreshTime_ = timeBeforeRefresh(media, updated);
+
+    callback(media, updated);
   }
 
   start() {
@@ -118,10 +178,12 @@ class HlsMediaPlaylistLoader extends PlaylistLoader {
     // need to re-request it.
     if (this.manifest() && this.manifest().endList) {
       this.started_ = true;
+      return;
     }
 
     super.start();
   }
+
 }
 
 export default HlsMediaPlaylistLoader;
