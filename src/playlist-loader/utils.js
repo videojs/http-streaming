@@ -1,12 +1,6 @@
 import {mergeOptions} from 'video.js';
 import {resolveUrl} from '../resolve-url';
 
-export const isMediaUnchanged = (a, b) => a === b ||
-  (a.segments && b.segments && a.segments.length === b.segments.length &&
-   a.endList === b.endList &&
-   a.mediaSequence === b.mediaSequence &&
-   (a.preloadSegment && b.preloadSegment && a.preloadSegment === b.preloadSegment));
-
 const resolveSegmentUris = function(segment, baseUri) {
   // preloadSegment will not have a uri at all
   // as the segment isn't actually in the manifest yet, only parts
@@ -53,36 +47,41 @@ const resolveSegmentUris = function(segment, baseUri) {
  *
  * @return {Object} the merged segment
  */
-const mergeSegment = function(a, b, baseUri) {
-  const result = {
-    mergedSegment: b,
-    updated: false
-  };
+export const mergeSegment = function(a, b) {
+  let segment = b;
+  let updated = false;
 
   if (!a) {
-    result.updated = true;
-    return b;
+    updated = true;
   }
 
-  result.mergedSegment = mergeOptions(a, b);
+  a = a || {};
+  b = b || {};
+
+  segment = mergeOptions(a, b);
 
   // if only the old segment has preload hints
   // and the new one does not, remove preload hints.
   if (a.preloadHints && !b.preloadHints) {
-    delete result.preloadHints;
+    updated = true;
+    delete segment.preloadHints;
   }
 
   // if only the old segment has parts
   // then the parts are no longer valid
   if (a.parts && !b.parts) {
-    delete result.parts;
+    updated = true;
+    delete segment.parts;
   // if both segments have parts
   // copy part propeties from the old segment
   // to the new one.
   } else if (a.parts && b.parts) {
+    if (a.parts.length !== b.parts.length) {
+      updated = true;
+    }
     for (let i = 0; i < b.parts.length; i++) {
       if (a.parts && a.parts[i]) {
-        result.parts[i] = mergeOptions(a.parts[i], b.parts[i]);
+        segment.parts[i] = mergeOptions(a.parts[i], b.parts[i]);
       }
     }
   }
@@ -90,16 +89,17 @@ const mergeSegment = function(a, b, baseUri) {
   // set skipped to false for segments that have
   // have had information merged from the old segment.
   if (!a.skipped && b.skipped) {
-    result.skipped = false;
+    delete segment.skipped;
   }
 
   // set preload to false for segments that have
   // had information added in the new segment.
   if (a.preload && !b.preload) {
-    result.preload = false;
+    updated = true;
+    delete segment.preload;
   }
 
-  return result;
+  return {updated, segment};
 };
 
 export const mergeSegments = function({oldSegments, newSegments, offset = 0, baseUri}) {
@@ -119,19 +119,21 @@ export const mergeSegments = function({oldSegments, newSegments, offset = 0, bas
   for (let newIndex = 0; newIndex < newSegments.length; newIndex++) {
     const oldSegment = oldSegments[newIndex + offset];
     const newSegment = newSegments[newIndex];
-    let mergedSegment;
 
-    if (oldSegment) {
-      currentMap = oldSegment.map || currentMap;
+    const {updated, segment} = mergeSegment(oldSegment, newSegment);
 
-      mergedSegment = mergeSegment(oldSegment, newSegment, baseUri);
-    } else {
-      // carry over map to new segment if it is missing
-      if (currentMap && !newSegment.map) {
-        newSegment.map = currentMap;
-      }
+    if (updated) {
+      result.updated = updated;
+    }
 
-      mergedSegment = newSegment;
+    const mergedSegment = segment;
+
+    // save and or carry over the map
+    if (mergedSegment.map) {
+      currentMap = mergedSegment.map;
+    } else if (currentMap && !mergedSegment.map) {
+      result.updated = true;
+      mergedSegment.map = currentMap;
     }
 
     result.segments.push(resolveSegmentUris(mergedSegment, baseUri));
@@ -139,26 +141,39 @@ export const mergeSegments = function({oldSegments, newSegments, offset = 0, bas
   return result;
 };
 
+const MEDIA_GROUP_TYPES = ['AUDIO', 'SUBTITLES'];
+
 /**
- * Loops through all supported media groups in master and calls the provided
+ * Loops through all supported media groups in mainManifest and calls the provided
  * callback for each group. Unless true is returned from the callback.
  *
- * @param {Object} master
- *        The parsed master manifest object
+ * @param {Object} mainManifest
+ *        The parsed main manifest object
  * @param {Function} callback
- *        Callback to call for each media group
+ *        Callback to call for each media group,
+ *        *NOTE* The return value is used here. Any true
+ *        value will stop the loop.
  */
-export const forEachMediaGroup = (master, callback) => {
-  if (!master.mediaGroups) {
+export const forEachMediaGroup = (mainManifest, callback) => {
+  if (!mainManifest.mediaGroups) {
     return;
   }
-  ['AUDIO', 'SUBTITLES'].forEach((mediaType) => {
-    if (!master.mediaGroups[mediaType]) {
-      return;
+
+  for (let i = 0; i < MEDIA_GROUP_TYPES.length; i++) {
+    const mediaType = MEDIA_GROUP_TYPES[i];
+
+    if (!mainManifest.mediaGroups[mediaType]) {
+      continue;
     }
-    for (const groupKey in master.mediaGroups[mediaType]) {
-      for (const labelKey in master.mediaGroups[mediaType][groupKey]) {
-        const mediaProperties = master.mediaGroups[mediaType][groupKey][labelKey];
+    for (const groupKey in mainManifest.mediaGroups[mediaType]) {
+      if (!mainManifest.mediaGroups[mediaType][groupKey]) {
+        continue;
+      }
+      for (const labelKey in mainManifest.mediaGroups[mediaType][groupKey]) {
+        if (!mainManifest.mediaGroups[mediaType][groupKey][labelKey]) {
+          continue;
+        }
+        const mediaProperties = mainManifest.mediaGroups[mediaType][groupKey][labelKey];
 
         const stop = callback(mediaProperties, mediaType, groupKey, labelKey);
 
@@ -167,5 +182,5 @@ export const forEachMediaGroup = (master, callback) => {
         }
       }
     }
-  });
+  }
 };
