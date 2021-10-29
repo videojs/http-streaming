@@ -1,5 +1,6 @@
 import {mergeOptions} from 'video.js';
 import {resolveUrl} from '../resolve-url';
+import deepEqual from '../util/deep-equal.js';
 
 const resolveSegmentUris = function(segment, baseUri) {
   // preloadSegment will not have a uri at all
@@ -183,4 +184,66 @@ export const forEachMediaGroup = (mainManifest, callback) => {
       }
     }
   }
+};
+
+export const mergeManifest = function(a, b, excludeKeys) {
+  excludeKeys = excludeKeys || [];
+
+  let updated = !a;
+  const mergedManifest = {};
+
+  a = a || {};
+  b = b || {};
+
+  const keys = [];
+
+  Object.keys(a).concat(Object.keys(b)).forEach(function(key) {
+    // make keys unique and exclude specified keys
+    if (excludeKeys.indexOf(key) !== -1 || keys.indexOf(key) !== -1) {
+      return;
+    }
+    keys.push(key);
+  });
+
+  keys.forEach(function(key) {
+    // both have the key
+    if (a.hasOwnProperty(key) && b.hasOwnProperty(key)) {
+      // if the value is different media was updated
+      if (!deepEqual(a[key], b[key])) {
+        updated = true;
+      }
+      // regardless grab the value from the new object
+      mergedManifest[key] = b[key];
+      // only oldMedia has the key don't bring it over, but media was updated
+    } else if (a.hasOwnProperty(key) && !b.hasOwnProperty(key)) {
+      updated = true;
+      // otherwise the key came from newMedia
+    } else {
+      updated = true;
+      mergedManifest[key] = b[key];
+    }
+  });
+
+  return {manifest: mergedManifest, updated};
+};
+
+export const mergeMedia = function({oldMedia, newMedia, baseUri}) {
+  const mergeResult = mergeManifest(oldMedia, newMedia, ['segments']);
+
+  // we need to update segments because we store timing information on them,
+  // and we also want to make sure we preserve old segment information in cases
+  // were the newMedia skipped segments.
+  const segmentResult = mergeSegments({
+    oldSegments: oldMedia && oldMedia.segments,
+    newSegments: newMedia && newMedia.segments,
+    baseUri,
+    offset: oldMedia ? (newMedia.mediaSequence - oldMedia.mediaSequence) : 0
+  });
+
+  mergeResult.manifest.segments = segmentResult.segments;
+
+  return {
+    updated: mergeResult.updated || segmentResult.updated,
+    media: mergeResult.manifest
+  };
 };

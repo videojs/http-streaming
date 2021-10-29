@@ -1,4 +1,5 @@
-* Finish DashMainPlaylistLoader
-  * migrate over sidx logic
-  * finish merging logic
+
+
+* Finish DashMain/Media PlaylistLoader
   * Write tests
+  * verify merging

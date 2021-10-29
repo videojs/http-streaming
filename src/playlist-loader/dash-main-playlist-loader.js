@@ -1,95 +1,7 @@
 import PlaylistLoader from './playlist-loader.js';
 import {resolveUrl} from '../resolve-url';
-// import {addPropertiesToMaster} from '../manifest.js';
-import {
-  parse as parseMpd,
-  parseUTCTiming
-// TODO
-// addSidxSegmentsToPlaylist,
-// generateSidxKey,
-} from 'mpd-parser';
-import {forEachMediaGroup} from './utils.js';
-
-export const findMedia = function(mainManifest, uri) {
-  if (!mainManifest || !mainManifest.playlists || !mainManifest.playlists.length) {
-    return;
-  }
-  for (let i = 0; i < mainManifest.playlists.length; i++) {
-    const media = mainManifest.playlists[i];
-
-    if (media.uri === uri) {
-      return media;
-    }
-  }
-
-  let foundMedia;
-
-  forEachMediaGroup(mainManifest, function(properties, type, group, label) {
-    if (!properties.playlists) {
-      return;
-    }
-
-    for (let i = 0; i < properties.playlists; i++) {
-      const media = mainManifest.playlists[i];
-
-      if (media.uri === uri) {
-        foundMedia = media;
-        return true;
-      }
-    }
-  });
-
-  return foundMedia;
-};
-
-const mergeMedia = function(oldMedia, newMedia) {
-
-};
-
-const mergeMainManifest = function(oldMain, newMain, sidxMapping) {
-  const result = newMain;
-
-  if (!oldMain) {
-    return result;
-  }
-
-  result.playlists = [];
-
-  // First update the media in playlist array
-  for (let i = 0; i < newMain.playlists.length; i++) {
-    const newMedia = newMain.playlists[i];
-    const oldMedia = findMedia(oldMain, newMedia.uri);
-    const {updated, mergedMedia} = mergeMedia(oldMedia, newMedia);
-
-    result.mergedManifest.playlists[i] = mergedMedia;
-
-    if (updated) {
-      result.updated = true;
-    }
-  }
-
-  // Then update media group playlists
-  forEachMediaGroup(newMain, (newProperties, type, group, label) => {
-    const oldProperties = oldMain.mediaGroups &&
-        oldMain.mediaGroups[type] && oldMain.mediaGroups[type][group] &&
-        oldMain.mergedMedia[type][group][label];
-
-    // nothing to merge.
-    if (!oldProperties || !newProperties || !oldProperties.playlists || !newProperties.playlists || !oldProperties.Playlists.length || !newProperties.playlists.length) {
-      return;
-    }
-
-    for (let i = 0; i < newProperties.playlists.length; i++) {
-      const newMedia = newProperties.playlists[i];
-      const oldMedia = oldProperties.playlists[i];
-      const mergedMedia = mergeMedia(oldMedia, newMedia);
-
-      result.mediaGroups[type][group][label].playlists[i] = mergedMedia;
-    }
-  });
-
-  return result;
-};
+import {parse as parseMpd, parseUTCTiming} from 'mpd-parser';
+import {mergeManifest} from './utils.js';
 
 class DashMainPlaylistLoader extends PlaylistLoader {
   constructor(uri, options) {
@@ -109,26 +21,11 @@ class DashMainPlaylistLoader extends PlaylistLoader {
         sidxMapping: this.sidxMapping_
       });
 
-      const mergedManifest = mergeMainManifest(
-        this.manifest_,
-        parsedManifest,
-        this.sidxMapping_
-      );
+      // merge everything except for playlists, they will merge themselves
+      const main = mergeManifest(this.manifest_, parsedManifest, ['playlists']);
 
-      // TODO: why doesn't our mpd parser just do this...
-      // addPropertiesToMaster(mergedManifest);
-      mergedManifest.playlists.forEach(function(playlist) {
-        if (!playlist.id) {
-          playlist.id = playlist.attributes.NAME;
-        }
-
-        if (!playlist.uri) {
-          playlist.uri = playlist.attributes.NAME;
-        }
-      });
-
-      // TODO: determine if we were updated or not.
-      callback(mergedManifest, true);
+      // always trigger updated, as playlists will have to update themselves
+      callback(main, true);
     });
   }
 
@@ -167,6 +64,8 @@ class DashMainPlaylistLoader extends PlaylistLoader {
     });
   }
 
+  // used by dash media playlist loaders in cases where
+  // minimumUpdatePeriod is zero
   setMediaRefreshTime_(time) {
     if (!this.getMediaRefreshTime_()) {
       this.setMediaRefreshTimeout_(time);

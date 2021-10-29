@@ -106,6 +106,17 @@ class PlaylistLoader extends videojs.EventTarget {
     });
   }
 
+  requestError_(error, request) {
+    this.error_ = typeof error === 'object' && !(error instanceof Error) ? error : {
+      status: request.status,
+      message: `Playlist request error at URI ${request.uri}`,
+      response: request.response,
+      code: (request.status >= 500) ? 4 : 2
+    };
+
+    this.trigger('error');
+  }
+
   start() {
     if (!this.started_) {
       this.started_ = true;

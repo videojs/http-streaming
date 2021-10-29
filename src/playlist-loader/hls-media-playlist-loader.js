@@ -1,7 +1,6 @@
 import PlaylistLoader from './playlist-loader.js';
 import {parseManifest} from '../manifest.js';
-import {mergeSegments} from './utils.js';
-import deepEqual from '../util/deep-equal.js';
+import {mergeMedia} from './utils.js';
 
 /**
  * Calculates the time to wait before refreshing a live playlist
@@ -106,54 +105,6 @@ const parseManifest_ = function(options) {
   parsedMedia.segments = getAllSegments(parsedMedia);
 
   return parsedMedia;
-};
-
-export const mergeMedia = function({oldMedia, newMedia, baseUri}) {
-  oldMedia = oldMedia || {};
-  newMedia = newMedia || {};
-  // we need to update segments because we store timing information on them,
-  // and we also want to make sure we preserve old segment information in cases
-  // were the newMedia skipped segments.
-  const segmentResult = mergeSegments({
-    oldSegments: oldMedia.segments,
-    newSegments: newMedia.segments,
-    baseUri,
-    offset: newMedia.mediaSequence - oldMedia.mediaSequence
-  });
-
-  let mediaUpdated = !oldMedia || segmentResult.updated;
-  const mergedMedia = {segments: segmentResult.segments};
-
-  const keys = [];
-
-  Object.keys(oldMedia).concat(Object.keys(newMedia)).forEach(function(key) {
-    // segments are merged elsewhere
-    if (key === 'segments' || keys.indexOf(key) !== -1) {
-      return;
-    }
-    keys.push(key);
-  });
-
-  keys.forEach(function(key) {
-    // both have the key
-    if (oldMedia.hasOwnProperty(key) && newMedia.hasOwnProperty(key)) {
-      // if the value is different media was updated
-      if (!deepEqual(oldMedia[key], newMedia[key])) {
-        mediaUpdated = true;
-      }
-      // regardless grab the value from new media
-      mergedMedia[key] = newMedia[key];
-    // only oldMedia has the key don't bring it over, but media was updated
-    } else if (oldMedia.hasOwnProperty(key) && !newMedia.hasOwnProperty(key)) {
-      mediaUpdated = true;
-    // otherwise the key came from newMedia
-    } else {
-      mediaUpdated = true;
-      mergedMedia[key] = newMedia[key];
-    }
-  });
-
-  return {updated: mediaUpdated, media: mergedMedia};
 };
 
 class HlsMediaPlaylistLoader extends PlaylistLoader {
