@@ -447,6 +447,7 @@
     'buffer-water',
     'exact-manifest-timings',
     'pixel-diff-selector',
+    'network-info',
     'override-native',
     'preload',
     'mirror-source'
@@ -499,6 +500,7 @@
       'override-native',
       'liveui',
       'pixel-diff-selector',
+      'network-info',
       'exact-manifest-timings'
     ].forEach(function(name) {
       stateEls[name].addEventListener('change', function(event) {
@@ -565,7 +567,8 @@
               experimentalBufferBasedABR: getInputValue(stateEls['buffer-water']),
               experimentalLLHLS: getInputValue(stateEls.llhls),
               experimentalExactManifestTimings: getInputValue(stateEls['exact-manifest-timings']),
-              experimentalLeastPixelDiffSelector: getInputValue(stateEls['pixel-diff-selector'])
+              experimentalLeastPixelDiffSelector: getInputValue(stateEls['pixel-diff-selector']),
+              useNetworkInformation: getInputValue(stateEls['network-info'])
             }
           }
         });

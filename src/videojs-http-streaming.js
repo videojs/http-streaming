@@ -617,6 +617,18 @@ class VhsHandler extends Component {
     });
 
     this.on(this.tech_, 'play', this.play);
+
+    if (this.options_.useNetworkInformation) {
+      this.networkInformation = window.navigator.connection || window.navigator.mozConnection || window.navigator.webkitConnection;
+
+      this.networkInformation.addEventListener('change', () => this.setNetworkInformationStats_());
+
+      this.setNetworkInformationStats_();
+    }
+  }
+
+  setNetworkInformationStats_() {
+    this.effectiveBandwidthInBits_ = this.networkInformation.downlink * 1000 * 1000;
   }
 
   setOptions_() {
@@ -630,6 +642,7 @@ class VhsHandler extends Component {
       typeof this.source_.useBandwidthFromLocalStorage !== 'undefined' ?
         this.source_.useBandwidthFromLocalStorage :
         this.options_.useBandwidthFromLocalStorage || false;
+    this.options_.useNetworkInformation = this.options_.useNetworkInformation || false;
     this.options_.customTagParsers = this.options_.customTagParsers || [];
     this.options_.customTagMappers = this.options_.customTagMappers || [];
     this.options_.cacheEncryptionKeys = this.options_.cacheEncryptionKeys || false;
@@ -682,6 +695,7 @@ class VhsHandler extends Component {
       'experimentalBufferBasedABR',
       'liveRangeSafeTimeDelta',
       'experimentalLLHLS',
+      'useNetworkInformation',
       'experimentalExactManifestTimings',
       'experimentalLeastPixelDiffSelector'
     ].forEach((option) => {
@@ -813,7 +827,16 @@ class VhsHandler extends Component {
        */
       systemBandwidth: {
         get() {
-          const invBandwidth = 1 / (this.bandwidth || 1);
+          let bandwidthEst = this.bandwidth;
+
+          // NetworkInfo.downlink maxes out at 10Mb/s. In the event that the player estimates a bandwidth
+          // greater than 10Mb, use the larger value to ensure that high quality streams are not
+          // accidentally filtered out
+          if (this.options_.useNetworkInformation) {
+            bandwidthEst = Math.max(bandwidthEst, this.effectiveBandwidthInBits_);
+          }
+
+          const invBandwidth = 1 / (bandwidthEst || 1);
           let invThroughput;
 
           if (this.throughput > 0) {
