@@ -394,8 +394,8 @@ QUnit.module('Playlist Loader Utils', function(hooks) {
           key: {uri: 'mapkey.uri'}
         },
         key: {uri: 'key.uri'},
-        parts: [{uri: 'part.uri'}],
-        preloadHints: [{uri: 'hint.uri'}]
+        parts: [{uri: 'part1.uri'}, {resolvedUri: absoluteUrl('part2.uri'), uri: 'part2.uri'}],
+        preloadHints: [{uri: 'hint1.uri'}, {resolvedUri: absoluteUrl('hint2.uri'), uri: 'hint2.uri'}]
       }]
     });
 
@@ -409,8 +409,14 @@ QUnit.module('Playlist Loader Utils', function(hooks) {
         key: {uri: 'mapkey.uri', resolvedUri: absoluteUrl('mapkey.uri')}
       },
       key: {uri: 'key.uri', resolvedUri: absoluteUrl('key.uri')},
-      parts: [{uri: 'part.uri', resolvedUri: absoluteUrl('part.uri')}],
-      preloadHints: [{uri: 'hint.uri', resolvedUri: absoluteUrl('hint.uri')}]
+      parts: [
+        {uri: 'part1.uri', resolvedUri: absoluteUrl('part1.uri')},
+        {uri: 'part2.uri', resolvedUri: absoluteUrl('part2.uri')}
+      ],
+      preloadHints: [
+        {uri: 'hint1.uri', resolvedUri: absoluteUrl('hint1.uri')},
+        {uri: 'hint2.uri', resolvedUri: absoluteUrl('hint2.uri')}
+      ]
     }], 'result as expected');
   });
 
@@ -491,6 +497,21 @@ QUnit.module('Playlist Loader Utils', function(hooks) {
 
     assert.true(result.updated, 'was updated');
     assert.deepEqual(result.segment, {uri: 'foo.mp4'}, 'as expected');
+  });
+
+  QUnit.test('updated with different number of parts', function(assert) {
+    const oldSegment = {uri: 'foo.mp4', parts: [{uri: 'foo-p1.mp4'}]};
+    const newSegment = {uri: 'foo.mp4', parts: [{uri: 'foo-p1.mp4'}, {uri: 'foo-p2.mp4'}]};
+    const result = mergeSegment(oldSegment, newSegment);
+
+    assert.true(result.updated, 'was updated');
+    assert.deepEqual(result.segment, {
+      uri: 'foo.mp4',
+      parts: [
+        {uri: 'foo-p1.mp4'},
+        {uri: 'foo-p2.mp4'}
+      ]
+    }, 'as expected');
   });
 
   QUnit.test('preload removed if new segment lacks it', function(assert) {
