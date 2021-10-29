@@ -98,6 +98,16 @@ export const getAllSegments = function(manifest) {
   return segments;
 };
 
+const parseManifest_ = function(options) {
+  const parsedMedia = parseManifest(options);
+
+  // TODO: this should go in parseManifest, as it
+  // always needs to happen directly afterwards
+  parsedMedia.segments = getAllSegments(parsedMedia);
+
+  return parsedMedia;
+};
+
 export const mergeMedia = function({oldMedia, newMedia, baseUri}) {
   oldMedia = oldMedia || {};
   newMedia = newMedia || {};
@@ -149,7 +159,7 @@ export const mergeMedia = function({oldMedia, newMedia, baseUri}) {
 class HlsMediaPlaylistLoader extends PlaylistLoader {
 
   parseManifest_(manifestString, callback) {
-    const parsedMedia = parseManifest({
+    const parsedMedia = parseManifest_({
       onwarn: ({message}) => this.logger_(`m3u8-parser warn for ${this.uri()}: ${message}`),
       oninfo: ({message}) => this.logger_(`m3u8-parser info for ${this.uri()}: ${message}`),
       manifestString,
@@ -157,10 +167,6 @@ class HlsMediaPlaylistLoader extends PlaylistLoader {
       customTagMappers: this.options_.customTagMappers,
       experimentalLLHLS: this.options_.experimentalLLHLS
     });
-
-    // TODO: this should go in parseManifest, as it
-    // always needs to happen directly afterwards
-    parsedMedia.segments = getAllSegments(parsedMedia);
 
     const {media, updated} = mergeMedia({
       oldMedia: this.manifest_,
