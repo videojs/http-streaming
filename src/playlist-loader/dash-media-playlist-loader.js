@@ -3,7 +3,7 @@ import containerRequest from './util/container-request.js';
 import {addSidxSegmentsToPlaylist} from 'mpd-parser';
 import parseSidx from 'mux.js/lib/tools/parse-sidx';
 import {toUint8} from '@videojs/vhs-utils/es/byte-helpers';
-import {segmentXhrHeaders} from './xhr';
+import {segmentXhrHeaders} from '../xhr';
 import {mergeMedia, forEachMediaGroup} from './utils.js';
 
 export const getMediaAccessor = function(mainManifest, uri) {

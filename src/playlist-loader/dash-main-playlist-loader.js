@@ -88,6 +88,8 @@ class DashMainPlaylistLoader extends PlaylistLoader {
     // in this case
     // TODO: can we do this in a better way? It would be much better
     // if DashMainPlaylistLoader didn't care about media playlist loaders at all.
+    // Right now DashMainPlaylistLoader's call `setMediaRefreshTime_` to set
+    // the media there target duration.
     if (minimumUpdatePeriod === 0) {
       return;
     }
