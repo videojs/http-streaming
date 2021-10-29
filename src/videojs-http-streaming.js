@@ -563,6 +563,7 @@ class VhsHandler extends Component {
     this.source_ = source;
     this.stats = {};
     this.ignoreNextSeekingEvent_ = false;
+    this.effectiveBandwidthInBits_ = 0;
     this.setOptions_();
 
     if (this.options_.overrideNative &&
@@ -621,9 +622,11 @@ class VhsHandler extends Component {
     if (this.options_.useNetworkInformation) {
       this.networkInformation = window.navigator.connection || window.navigator.mozConnection || window.navigator.webkitConnection;
 
-      this.networkInformation.addEventListener('change', () => this.setNetworkInformationStats_());
+      if (this.networkInformation) {
+        this.networkInformation.addEventListener('change', () => this.setNetworkInformationStats_());
 
-      this.setNetworkInformationStats_();
+        this.setNetworkInformationStats_();
+      }
     }
   }
 
