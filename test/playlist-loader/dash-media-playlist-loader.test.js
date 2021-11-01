@@ -49,7 +49,7 @@ QUnit.module('Dash Media Playlist Loader', function(hooks) {
   QUnit.module('#start()');
 
   QUnit.test('multiple calls do nothing', function(assert) {
-    this.loader = new DashMediaPlaylistLoader(this.mainPlaylistLoader.manifest().playlists[0].uri, {
+    this.loader = new DashMediaPlaylistLoader(this.mainPlaylistLoader.playlists()[0].uri, {
       vhs: this.fakeVhs,
       mainPlaylistLoader: this.mainPlaylistLoader
     });
@@ -72,7 +72,7 @@ QUnit.module('Dash Media Playlist Loader', function(hooks) {
   QUnit.module('#stop()');
 
   QUnit.test('multiple calls do nothing', function(assert) {
-    this.loader = new DashMediaPlaylistLoader(this.mainPlaylistLoader.manifest().playlists[0].uri, {
+    this.loader = new DashMediaPlaylistLoader(this.mainPlaylistLoader.playlists()[0].uri, {
       vhs: this.fakeVhs,
       mainPlaylistLoader: this.mainPlaylistLoader
     });
@@ -94,7 +94,7 @@ QUnit.module('Dash Media Playlist Loader', function(hooks) {
   QUnit.module('#onMainUpdated_()');
 
   QUnit.test('called via updated event on mainPlaylistLoader', function(assert) {
-    this.loader = new DashMediaPlaylistLoader(this.mainPlaylistLoader.manifest().playlists[0].uri, {
+    this.loader = new DashMediaPlaylistLoader(this.mainPlaylistLoader.playlists()[0].uri, {
       vhs: this.fakeVhs,
       mainPlaylistLoader: this.mainPlaylistLoader
     });
@@ -111,7 +111,7 @@ QUnit.module('Dash Media Playlist Loader', function(hooks) {
   });
 
   QUnit.test('does nothing if not started', function(assert) {
-    this.loader = new DashMediaPlaylistLoader(this.mainPlaylistLoader.manifest().playlists[0].uri, {
+    this.loader = new DashMediaPlaylistLoader(this.mainPlaylistLoader.playlists()[0].uri, {
       vhs: this.fakeVhs,
       mainPlaylistLoader: this.mainPlaylistLoader
     });
@@ -122,7 +122,7 @@ QUnit.module('Dash Media Playlist Loader', function(hooks) {
   });
 
   QUnit.test('triggers updated without oldManifest', function(assert) {
-    const media = this.mainPlaylistLoader.manifest().playlists[0];
+    const media = this.mainPlaylistLoader.playlists()[0];
 
     this.loader = new DashMediaPlaylistLoader(media.uri, {
       vhs: this.fakeVhs,
@@ -137,7 +137,7 @@ QUnit.module('Dash Media Playlist Loader', function(hooks) {
 
     this.loader.started_ = true;
     this.loader.onMainUpdated_();
-    assert.equal(this.loader.manifest_, media, 'manifest set as expected');
+    assert.equal(this.loader.manifest(), this.mainPlaylistLoader.playlists()[0], 'manifest set as expected');
     assert.true(updatedTriggered, 'updatedTriggered');
     assert.deepEqual(
       this.setMediaRefreshTimeCalls,
@@ -147,7 +147,7 @@ QUnit.module('Dash Media Playlist Loader', function(hooks) {
   });
 
   QUnit.test('does not trigger updated if manifest is the same', function(assert) {
-    const media = this.mainPlaylistLoader.manifest().playlists[0];
+    const media = this.mainPlaylistLoader.playlists()[0];
 
     this.loader = new DashMediaPlaylistLoader(media.uri, {
       vhs: this.fakeVhs,
@@ -164,7 +164,7 @@ QUnit.module('Dash Media Playlist Loader', function(hooks) {
     this.loader.started_ = true;
     this.loader.onMainUpdated_();
 
-    assert.equal(this.loader.manifest_, media, 'manifest set as expected');
+    assert.equal(this.loader.manifest(), this.mainPlaylistLoader.playlists()[0], 'manifest set as expected');
     assert.false(updatedTriggered, 'updatedTriggered');
     assert.deepEqual(
       this.setMediaRefreshTimeCalls,
@@ -174,7 +174,7 @@ QUnit.module('Dash Media Playlist Loader', function(hooks) {
   });
 
   QUnit.test('triggers updated if manifest properties changed', function(assert) {
-    const media = this.mainPlaylistLoader.manifest().playlists[0];
+    const media = this.mainPlaylistLoader.playlists()[0];
 
     this.loader = new DashMediaPlaylistLoader(media.uri, {
       vhs: this.fakeVhs,
@@ -193,7 +193,7 @@ QUnit.module('Dash Media Playlist Loader', function(hooks) {
 
     this.loader.onMainUpdated_();
 
-    assert.equal(this.loader.manifest_, media, 'manifest set as expected');
+    assert.equal(this.loader.manifest(), this.mainPlaylistLoader.playlists()[0], 'manifest set as expected');
     assert.true(updatedTriggered, 'updatedTriggered');
     assert.deepEqual(
       this.setMediaRefreshTimeCalls,
@@ -203,7 +203,7 @@ QUnit.module('Dash Media Playlist Loader', function(hooks) {
   });
 
   QUnit.test('triggers updated if segment properties changed', function(assert) {
-    const media = this.mainPlaylistLoader.manifest().playlists[0];
+    const media = this.mainPlaylistLoader.playlists()[0];
 
     this.loader = new DashMediaPlaylistLoader(media.uri, {
       vhs: this.fakeVhs,
@@ -227,13 +227,36 @@ QUnit.module('Dash Media Playlist Loader', function(hooks) {
 
     this.loader.onMainUpdated_();
 
-    assert.equal(this.loader.manifest_, media, 'manifest set as expected');
+    assert.equal(this.loader.manifest(), this.mainPlaylistLoader.playlists()[0], 'manifest set as expected');
     assert.true(updatedTriggered, 'updatedTriggered');
     assert.deepEqual(
       this.setMediaRefreshTimeCalls,
       [4000],
       'no set media refresh calls'
     );
+  });
+
+  QUnit.test('calls requestSidx_', function(assert) {
+    const media = this.mainPlaylistLoader.playlists()[0];
+
+    this.loader = new DashMediaPlaylistLoader(media.uri, {
+      vhs: this.fakeVhs,
+      mainPlaylistLoader: this.mainPlaylistLoader
+    });
+
+    let requestSidxCalled = false;
+
+    this.loader.requestSidx_ = (callback) => {
+      requestSidxCalled = true;
+    };
+
+    this.loader.manifest_ = Object.assign({}, media);
+    this.loader.started_ = true;
+    media.targetDuration = 5;
+
+    this.loader.onMainUpdated_();
+
+    assert.true(requestSidxCalled, 'requestSidx_ was called');
   });
 
 });

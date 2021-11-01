@@ -186,11 +186,37 @@ export const forEachMediaGroup = (mainManifest, callback) => {
   }
 };
 
+export const forEachPlaylist = function(mainManifest, callback) {
+  if (mainManifest && mainManifest.playlists) {
+    for (let i = 0; i < mainManifest.playlists.length; i++) {
+      const stop = callback(mainManifest.playlists[i], i, mainManifest.playlists);
+
+      if (stop) {
+        return;
+      }
+    }
+  }
+
+  forEachMediaGroup(mainManifest, function(properties, type, group, label) {
+    if (!properties.playlists) {
+      return;
+    }
+
+    for (let i = 0; i < properties.playlists.length; i++) {
+      const stop = callback(properties.playlists[i], i, properties.playlists);
+
+      if (stop) {
+        return stop;
+      }
+    }
+  });
+};
+
 export const mergeManifest = function(a, b, excludeKeys) {
   excludeKeys = excludeKeys || [];
 
   let updated = !a;
-  const mergedManifest = {};
+  const mergedManifest = b;
 
   a = a || {};
   b = b || {};

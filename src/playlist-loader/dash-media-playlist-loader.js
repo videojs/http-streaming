@@ -1,47 +1,24 @@
 import PlaylistLoader from './playlist-loader.js';
-import containerRequest from './util/container-request.js';
+import containerRequest from '../util/container-request.js';
 import {addSidxSegmentsToPlaylist} from 'mpd-parser';
 import parseSidx from 'mux.js/lib/tools/parse-sidx';
 import {toUint8} from '@videojs/vhs-utils/es/byte-helpers';
 import {segmentXhrHeaders} from '../xhr';
-import {mergeMedia, forEachMediaGroup} from './utils.js';
+import {mergeMedia, forEachPlaylist} from './utils.js';
 
 export const getMediaAccessor = function(mainManifest, uri) {
-  if (!mainManifest || !mainManifest.playlists || !mainManifest.playlists.length) {
-    return;
-  }
-  for (let i = 0; i < mainManifest.playlists.length; i++) {
-    const media = mainManifest.playlists[i];
-
-    if (media.uri === uri) {
-      return {
-        get: () => mainManifest.playlists[i],
-        set: (v) => {
-          mainManifest.playlists[i] = v;
-        }
-      };
-    }
-  }
-
   let result;
 
-  forEachMediaGroup(mainManifest, function(properties, type, group, label) {
-    if (!properties.playlists) {
-      return;
-    }
+  forEachPlaylist(mainManifest, function(media, index, array) {
+    if (media.uri === uri) {
+      result = {
+        get: () => array[index],
+        set: (v) => {
+          array[index] = v;
+        }
+      };
 
-    for (let i = 0; i < properties.playlists; i++) {
-      const media = properties.playlists[i];
-
-      if (media.uri === uri) {
-        result = {
-          get: () => properties.playlists[i],
-          set: (v) => {
-            properties.playlists[i] = v;
-          }
-        };
-        return true;
-      }
+      return true;
     }
   });
 
@@ -85,7 +62,6 @@ class DashMediaPlaylistLoader extends PlaylistLoader {
       get: mediaAccessor.get,
       set: mediaAccessor.set,
       writeable: true,
-      configurable: true,
       enumerable: true
     });
 
@@ -184,17 +160,25 @@ class DashMediaPlaylistLoader extends PlaylistLoader {
   }
 
   start() {
-    if (!this.started_) {
-      this.started_ = true;
-      this.onMainUpdated_();
+    if (this.started_) {
+      return;
     }
+
+    this.started_ = true;
+    this.onMainUpdated_();
   }
 
   stop() {
-    if (this.started_) {
-      this.started_ = false;
-      this.manifest_ = null;
+    if (!this.started_) {
+      return;
     }
+    // redefine the getters and setters.
+    Object.defineProperty(this, 'manifest_', {
+      value: null,
+      writeable: true,
+      enumerable: true
+    });
+    super.stop();
   }
 
   dispose() {

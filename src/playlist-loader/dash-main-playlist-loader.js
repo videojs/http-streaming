@@ -1,7 +1,7 @@
 import PlaylistLoader from './playlist-loader.js';
 import {resolveUrl} from '../resolve-url';
 import {parse as parseMpd, parseUTCTiming} from 'mpd-parser';
-import {mergeManifest} from './utils.js';
+import {mergeManifest, forEachPlaylist} from './utils.js';
 
 class DashMainPlaylistLoader extends PlaylistLoader {
   constructor(uri, options) {
@@ -13,6 +13,16 @@ class DashMainPlaylistLoader extends PlaylistLoader {
     this.setMediaRefreshTimeout_ = this.setMediaRefreshTimeout_.bind(this);
   }
 
+  playlists() {
+    const playlists = [];
+
+    forEachPlaylist(this.manifest_, (media) => {
+      playlists.push(media);
+    });
+
+    return playlists;
+  }
+
   parseManifest_(manifestString, callback) {
     this.syncClientServerClock_(manifestString, (clientOffset) => {
       const parsedManifest = parseMpd(manifestString, {
@@ -22,10 +32,10 @@ class DashMainPlaylistLoader extends PlaylistLoader {
       });
 
       // merge everything except for playlists, they will merge themselves
-      const main = mergeManifest(this.manifest_, parsedManifest, ['playlists']);
+      const mergeResult = mergeManifest(this.manifest_, parsedManifest, ['playlists']);
 
       // always trigger updated, as playlists will have to update themselves
-      callback(main, true);
+      callback(mergeResult.manifest, true);
     });
   }
 

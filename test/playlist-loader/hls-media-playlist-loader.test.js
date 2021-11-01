@@ -3,7 +3,6 @@ import videojs from 'video.js';
 import {
   default as HlsMediaPlaylistLoader,
   getAllSegments,
-  mergeMedia,
   timeBeforeRefresh
 } from '../../src/playlist-loader/hls-media-playlist-loader.js';
 import {useFakeEnvironment} from '../test-helpers';
@@ -255,83 +254,6 @@ QUnit.module('HLS Media Playlist Loader', function(hooks) {
         {duration: 5, preload: true, parts: [{duration: 1}]}
       ],
       'has nothing',
-    );
-  });
-
-  QUnit.module('mergeMedia');
-
-  QUnit.test('is updated without old media', function(assert) {
-    const oldMedia = null;
-    const newMedia = {mediaSequence: 0};
-    const result = mergeMedia({
-      oldMedia,
-      newMedia,
-      baseUri: null
-    });
-
-    assert.true(result.updated, 'was updated');
-    assert.deepEqual(
-      result.media,
-      {mediaSequence: 0, segments: []},
-      'as expected'
-    );
-  });
-
-  QUnit.test('is updated if key added', function(assert) {
-    const oldMedia = {mediaSequence: 0};
-    const newMedia = {mediaSequence: 0, endList: true};
-    const result = mergeMedia({
-      oldMedia,
-      newMedia,
-      baseUri: null
-    });
-
-    assert.true(result.updated, 'was updated');
-    assert.deepEqual(
-      result.media,
-      {mediaSequence: 0, segments: [], endList: true},
-      'as expected'
-    );
-  });
-
-  QUnit.test('is updated if key changes', function(assert) {
-    const oldMedia = {mediaSequence: 0, preloadSegment: {parts: [{duration: 1}]}};
-    const newMedia = {mediaSequence: 0, preloadSegment: {parts: [{duration: 1}, {duration: 1}]}};
-    const result = mergeMedia({
-      oldMedia,
-      newMedia,
-      baseUri: null
-    });
-
-    assert.true(result.updated, 'was updated');
-    assert.deepEqual(
-      result.media,
-      {
-        mediaSequence: 0,
-        preloadSegment: {parts: [{duration: 1}, {duration: 1}]},
-        segments: []
-      },
-      'as expected'
-    );
-  });
-
-  QUnit.test('is updated if key removed', function(assert) {
-    const oldMedia = {mediaSequence: 0, preloadSegment: {parts: [{duration: 1}]}};
-    const newMedia = {mediaSequence: 0};
-    const result = mergeMedia({
-      oldMedia,
-      newMedia,
-      baseUri: null
-    });
-
-    assert.true(result.updated, 'was updated');
-    assert.deepEqual(
-      result.media,
-      {
-        mediaSequence: 0,
-        segments: []
-      },
-      'as expected'
     );
   });
 
