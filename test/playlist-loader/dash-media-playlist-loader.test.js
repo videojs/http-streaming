@@ -2,9 +2,14 @@ import QUnit from 'qunit';
 import videojs from 'video.js';
 import DashMainPlaylistLoader from '../../src/playlist-loader/dash-main-playlist-loader.js';
 import DashMediaPlaylistLoader from '../../src/playlist-loader/dash-media-playlist-loader.js';
-import {useFakeEnvironment} from '../test-helpers';
+import {useFakeEnvironment, standardXHRResponse} from '../test-helpers';
 import xhrFactory from '../../src/xhr';
 import testDataManifests from 'create-test-data!manifests';
+import {
+  sidx as sidxResponse,
+  mp4VideoInit as mp4VideoInitSegment,
+  webmVideoInit
+} from 'create-test-data!segments';
 
 QUnit.module('Dash Media Playlist Loader', function(hooks) {
   hooks.beforeEach(function(assert) {
@@ -20,7 +25,7 @@ QUnit.module('Dash Media Playlist Loader', function(hooks) {
       this.logLines.push(args.join(' '));
     };
 
-    this.mainPlaylistLoader = new DashMainPlaylistLoader('dash-many-codecs.mpd', {
+    this.mainPlaylistLoader = new DashMainPlaylistLoader('main-manifests.mpd', {
       vhs: this.fakeVhs
     });
 
@@ -32,7 +37,6 @@ QUnit.module('Dash Media Playlist Loader', function(hooks) {
 
     this.mainPlaylistLoader.start();
 
-    this.requests[0].respond(200, null, testDataManifests['dash-many-codecs']);
   });
 
   hooks.afterEach(function(assert) {
@@ -46,7 +50,11 @@ QUnit.module('Dash Media Playlist Loader', function(hooks) {
     videojs.log.debug = this.oldDebugLog;
   });
 
-  QUnit.module('#start()');
+  QUnit.module('#start()', {
+    beforeEach() {
+      this.requests.shift().respond(200, null, testDataManifests['dash-many-codecs']);
+    }
+  });
 
   QUnit.test('multiple calls do nothing', function(assert) {
     this.loader = new DashMediaPlaylistLoader(this.mainPlaylistLoader.playlists()[0].uri, {
@@ -69,7 +77,11 @@ QUnit.module('Dash Media Playlist Loader', function(hooks) {
     assert.true(this.loader.started_, 'still started');
   });
 
-  QUnit.module('#stop()');
+  QUnit.module('#stop()', {
+    beforeEach() {
+      this.requests.shift().respond(200, null, testDataManifests['dash-many-codecs']);
+    }
+  });
 
   QUnit.test('multiple calls do nothing', function(assert) {
     this.loader = new DashMediaPlaylistLoader(this.mainPlaylistLoader.playlists()[0].uri, {
@@ -91,7 +103,11 @@ QUnit.module('Dash Media Playlist Loader', function(hooks) {
     assert.false(this.loader.started_, 'still stopped');
   });
 
-  QUnit.module('#onMainUpdated_()');
+  QUnit.module('#onMainUpdated_()', {
+    beforeEach() {
+      this.requests.shift().respond(200, null, testDataManifests['dash-many-codecs']);
+    }
+  });
 
   QUnit.test('called via updated event on mainPlaylistLoader', function(assert) {
     this.loader = new DashMediaPlaylistLoader(this.mainPlaylistLoader.playlists()[0].uri, {
@@ -257,6 +273,221 @@ QUnit.module('Dash Media Playlist Loader', function(hooks) {
     this.loader.onMainUpdated_();
 
     assert.true(requestSidxCalled, 'requestSidx_ was called');
+  });
+
+  QUnit.module('#requestSidx_()', {
+    beforeEach() {
+      this.requests.shift().respond(200, null, testDataManifests['dash-sidx']);
+    }
+  });
+
+  QUnit.test('does nothing if manifest has no sidx', function(assert) {
+    const media = this.mainPlaylistLoader.playlists()[0];
+
+    delete media.sidx;
+
+    this.loader = new DashMediaPlaylistLoader(media.uri, {
+      vhs: this.fakeVhs,
+      mainPlaylistLoader: this.mainPlaylistLoader
+    });
+    this.loader.started_ = true;
+
+    this.loader.onMainUpdated_();
+
+    assert.equal(this.loader.manifest().segments.length, 0, 'no segments');
+    assert.equal(this.requests.length, 0, 'no sidx request');
+  });
+
+  QUnit.test('requests container then sidx bytes', function(assert) {
+    const media = this.mainPlaylistLoader.playlists()[0];
+
+    this.loader = new DashMediaPlaylistLoader(media.uri, {
+      vhs: this.fakeVhs,
+      mainPlaylistLoader: this.mainPlaylistLoader
+    });
+    this.loader.started_ = true;
+
+    this.loader.onMainUpdated_();
+
+    assert.equal(this.loader.manifest().segments.length, 0, 'no segments');
+    assert.equal(this.requests.length, 1, 'one request for container');
+    assert.equal(this.loader.request(), this.requests[0], 'loader has a request');
+
+    standardXHRResponse(this.requests.shift(), mp4VideoInitSegment().subarray(0, 10));
+
+    assert.equal(this.requests.length, 1, 'one request for sidx bytes');
+    assert.equal(this.loader.request(), this.requests[0], 'loader has a request');
+    standardXHRResponse(this.requests.shift(), sidxResponse());
+
+    assert.equal(this.loader.manifest().segments.length, 1, 'sidx segment added');
+  });
+
+  QUnit.test('can use sidx from container request', function(assert) {
+    const media = this.mainPlaylistLoader.playlists()[0];
+
+    this.loader = new DashMediaPlaylistLoader(media.uri, {
+      vhs: this.fakeVhs,
+      mainPlaylistLoader: this.mainPlaylistLoader
+    });
+    this.loader.started_ = true;
+
+    this.loader.onMainUpdated_();
+
+    assert.equal(this.loader.manifest().segments.length, 0, 'no segments');
+    assert.equal(this.requests.length, 1, 'one request for container');
+    assert.equal(this.loader.request(), this.requests[0], 'loader has a request');
+
+    const sidxByterange = this.loader.manifest_.sidx.byterange;
+    // container bytes + length + offset
+    const response = new Uint8Array(10 + sidxByterange.length + sidxByterange.offset);
+
+    response.set(mp4VideoInitSegment().subarray(0, 10), 0);
+    response.set(sidxResponse(), sidxByterange.offset);
+
+    standardXHRResponse(this.requests.shift(), response);
+
+    assert.equal(this.requests.length, 0, 'no more requests ');
+    assert.equal(this.loader.manifest().segments.length, 1, 'sidx segment added');
+    assert.equal(this.loader.request(), null, 'loader has no request');
+  });
+
+  QUnit.test('container request failure reported', function(assert) {
+    const media = this.mainPlaylistLoader.playlists()[0];
+
+    this.loader = new DashMediaPlaylistLoader(media.uri, {
+      vhs: this.fakeVhs,
+      mainPlaylistLoader: this.mainPlaylistLoader
+    });
+    this.loader.started_ = true;
+
+    let errorTriggered = false;
+
+    this.loader.on('error', function() {
+      errorTriggered = true;
+    });
+    this.loader.onMainUpdated_();
+
+    assert.equal(this.loader.manifest().segments.length, 0, 'no segments');
+    assert.equal(this.requests.length, 1, 'one request for container');
+    assert.equal(this.loader.request(), this.requests[0], 'loader has a request');
+
+    this.requests.shift().respond(404);
+    assert.true(errorTriggered, 'error triggered');
+    assert.equal(this.loader.request(), null, 'loader has no request');
+  });
+
+  QUnit.test('undefined container errors', function(assert) {
+    const media = this.mainPlaylistLoader.playlists()[0];
+
+    this.loader = new DashMediaPlaylistLoader(media.uri, {
+      vhs: this.fakeVhs,
+      mainPlaylistLoader: this.mainPlaylistLoader
+    });
+    this.loader.started_ = true;
+
+    let errorTriggered = false;
+
+    this.loader.on('error', function() {
+      errorTriggered = true;
+    });
+    this.loader.onMainUpdated_();
+
+    assert.equal(this.loader.manifest().segments.length, 0, 'no segments');
+    assert.equal(this.requests.length, 1, 'one request for container');
+    assert.equal(this.loader.request(), this.requests[0], 'loader has a request');
+
+    standardXHRResponse(this.requests.shift(), new Uint8Array(200));
+    assert.true(errorTriggered, 'error triggered');
+    assert.equal(this.loader.request(), null, 'loader has no request');
+  });
+
+  QUnit.test('webm container errors', function(assert) {
+    const media = this.mainPlaylistLoader.playlists()[0];
+
+    this.loader = new DashMediaPlaylistLoader(media.uri, {
+      vhs: this.fakeVhs,
+      mainPlaylistLoader: this.mainPlaylistLoader
+    });
+    this.loader.started_ = true;
+
+    let errorTriggered = false;
+
+    this.loader.on('error', function() {
+      errorTriggered = true;
+    });
+    this.loader.onMainUpdated_();
+
+    assert.equal(this.loader.manifest().segments.length, 0, 'no segments');
+    assert.equal(this.requests.length, 1, 'one request for container');
+    assert.equal(this.loader.request(), this.requests[0], 'loader has a request');
+
+    standardXHRResponse(this.requests.shift(), webmVideoInit());
+    assert.true(errorTriggered, 'error triggered');
+    assert.equal(this.loader.request(), null, 'loader has no request');
+  });
+
+  QUnit.test('sidx request failure reported', function(assert) {
+    const media = this.mainPlaylistLoader.playlists()[0];
+
+    this.loader = new DashMediaPlaylistLoader(media.uri, {
+      vhs: this.fakeVhs,
+      mainPlaylistLoader: this.mainPlaylistLoader
+    });
+    this.loader.started_ = true;
+
+    let errorTriggered = false;
+
+    this.loader.on('error', function() {
+      errorTriggered = true;
+    });
+    this.loader.onMainUpdated_();
+
+    assert.equal(this.loader.manifest().segments.length, 0, 'no segments');
+    assert.equal(this.requests.length, 1, 'one request for container');
+    assert.equal(this.loader.request(), this.requests[0], 'loader has a request');
+
+    standardXHRResponse(this.requests.shift(), mp4VideoInitSegment().subarray(0, 10));
+
+    assert.equal(this.requests.length, 1, 'one request for container');
+    assert.equal(this.loader.request(), this.requests[0], 'loader has a request');
+    assert.false(errorTriggered, 'error not triggered');
+
+    this.requests.shift().respond(404);
+
+    assert.true(errorTriggered, 'error triggered');
+    assert.equal(this.loader.request(), null, 'loader has no request');
+  });
+
+  QUnit.test('sidx parse failure reported', function(assert) {
+    const media = this.mainPlaylistLoader.playlists()[0];
+
+    this.loader = new DashMediaPlaylistLoader(media.uri, {
+      vhs: this.fakeVhs,
+      mainPlaylistLoader: this.mainPlaylistLoader
+    });
+    this.loader.started_ = true;
+
+    let errorTriggered = false;
+
+    this.loader.on('error', function() {
+      errorTriggered = true;
+    });
+    this.loader.onMainUpdated_();
+
+    assert.equal(this.loader.manifest().segments.length, 0, 'no segments');
+    assert.equal(this.requests.length, 1, 'one request for container');
+    assert.equal(this.loader.request(), this.requests[0], 'loader has a request');
+
+    standardXHRResponse(this.requests.shift(), mp4VideoInitSegment().subarray(0, 10));
+
+    assert.equal(this.requests.length, 1, 'one request for container');
+    assert.equal(this.loader.request(), this.requests[0], 'loader has a request');
+    assert.false(errorTriggered, 'error not triggered');
+
+    standardXHRResponse(this.requests.shift(), new Uint8Array(10));
+
+    assert.true(errorTriggered, 'error triggered');
+    assert.equal(this.loader.request(), null, 'loader has no request');
   });
 
 });

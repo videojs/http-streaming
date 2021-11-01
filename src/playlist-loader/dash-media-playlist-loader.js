@@ -96,20 +96,7 @@ class DashMediaPlaylistLoader extends PlaylistLoader {
     }
     const uri = this.manifest_.sidx.resolvedUri;
 
-    const parseSidx_ = (error, request) => {
-      if (error) {
-        this.error_ = typeof err === 'object' && !(error instanceof Error) ? error : {
-          status: request.status,
-          message: 'DASH sidx request error at URL: ' + request.uri,
-          response: request.response,
-          // MEDIA_ERR_NETWORK
-          code: 2
-        };
-
-        this.trigger('error');
-        return;
-      }
-
+    const parseSidx_ = (request, wasRedirected) => {
       let sidx;
 
       try {
@@ -121,7 +108,7 @@ class DashMediaPlaylistLoader extends PlaylistLoader {
         return;
       }
 
-      this.sidx = sidx;
+      this.sidx_ = sidx;
       callback();
 
     };
@@ -130,20 +117,23 @@ class DashMediaPlaylistLoader extends PlaylistLoader {
       this.request_ = null;
 
       if (error || !container || container !== 'mp4') {
-        return parseSidx_(error || {
+        this.error = {
           status: request.status,
           message: `Unsupported ${container || 'unknown'} container type for sidx segment at URL: ${uri}`,
           blacklistDuration: Infinity,
           // MEDIA_ERR_NETWORK
           code: 2
-        }, null);
+        };
+
+        this.trigger('error');
+        return;
       }
 
       // if we already downloaded the sidx bytes in the container request, use them
       const {offset, length} = this.manifest_.sidx.byterange;
 
       if (bytes.length >= (length + offset)) {
-        return parseSidx_(error, {
+        return parseSidx_({
           response: bytes.subarray(offset, offset + length),
           status: request.status,
           uri: request.uri
