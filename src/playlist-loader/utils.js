@@ -15,7 +15,7 @@ import deepEqual from '../util/deep-equal.js';
  * @return {Object}
  *         The segment with resolved uris.
  */
-const resolveSegmentUris = function(segment, baseUri) {
+const resolveSegmentUris = function(segment, baseUri = '') {
   // preloadSegment will not have a uri at all
   // as the segment isn't actually in the manifest yet, only parts
   if (!segment.resolvedUri && segment.uri) {

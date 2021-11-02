@@ -39,7 +39,7 @@ class PlaylistLoader extends videojs.EventTarget {
    */
   constructor(uri, options = {}) {
     super();
-    this.logger_ = logger(this.constructor.name);
+    this.logger_ = logger(this.constructor.name || 'PlaylistLoader');
     this.uri_ = uri;
     this.options_ = options;
     this.manifest_ = options.manifest || null;
