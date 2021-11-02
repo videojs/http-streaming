@@ -392,10 +392,7 @@ QUnit.module('New Playlist Loader', function(hooks) {
     this.requests[0].respond(505, null, 'bad request foo bar');
 
     const expectedError = {
-      code: 4,
-      message: 'Playlist request error at URI bar.uri',
-      response: 'bad request foo bar',
-      status: 505
+      message: 'Request error at URI bar.uri'
     };
 
     assert.deepEqual(this.loader.error(), expectedError, 'expected error');
@@ -422,10 +419,7 @@ QUnit.module('New Playlist Loader', function(hooks) {
     this.requests[0].respond(404, null, 'bad request foo bar');
 
     const expectedError = {
-      code: 2,
-      message: 'Playlist request error at URI bar.uri',
-      response: 'bad request foo bar',
-      status: 404
+      message: 'Request error at URI bar.uri'
     };
 
     assert.deepEqual(this.loader.error(), expectedError, 'expected error');
@@ -452,10 +446,7 @@ QUnit.module('New Playlist Loader', function(hooks) {
     this.requests[0].respond(404, null, 'bad request foo bar');
 
     const expectedError = {
-      code: 2,
-      message: 'Playlist request error at URI bar.uri',
-      response: 'bad request foo bar',
-      status: 404
+      message: 'Request error at URI bar.uri'
     };
 
     assert.deepEqual(this.loader.error(), expectedError, 'expected error');
