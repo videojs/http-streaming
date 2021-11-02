@@ -428,7 +428,7 @@ QUnit.module('New Playlist Loader', function(hooks) {
   });
 
   QUnit.test('handleErrors: false causes errors to be passed along, not triggered', function(assert) {
-    assert.expect(5);
+    assert.expect(6);
     this.loader = new PlaylistLoader('foo.uri', {
       vhs: this.fakeVhs
     });
@@ -445,13 +445,9 @@ QUnit.module('New Playlist Loader', function(hooks) {
 
     this.requests[0].respond(404, null, 'bad request foo bar');
 
-    const expectedError = {
-      message: 'Request error at URI bar.uri'
-    };
-
-    assert.deepEqual(this.loader.error(), expectedError, 'expected error');
+    assert.notOk(this.loader.error(), 'no error');
     assert.equal(this.loader.request(), null, 'no request');
-    assert.true(errorTriggered, 'error was triggered');
+    assert.false(errorTriggered, 'error was triggered');
   });
 
   QUnit.module('#stop()');
