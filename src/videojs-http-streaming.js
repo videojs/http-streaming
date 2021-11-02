@@ -563,7 +563,6 @@ class VhsHandler extends Component {
     this.source_ = source;
     this.stats = {};
     this.ignoreNextSeekingEvent_ = false;
-    this.effectiveBandwidthInBits_ = 0;
     this.setOptions_();
 
     if (this.options_.overrideNative &&
@@ -619,19 +618,9 @@ class VhsHandler extends Component {
 
     this.on(this.tech_, 'play', this.play);
 
-    if (this.options_.useNetworkInformation) {
+    if (this.options_.useNetworkInformationApi) {
       this.networkInformation = window.navigator.connection || window.navigator.mozConnection || window.navigator.webkitConnection;
-
-      if (this.networkInformation) {
-        this.networkInformation.addEventListener('change', () => this.setNetworkInformationStats_());
-
-        this.setNetworkInformationStats_();
-      }
     }
-  }
-
-  setNetworkInformationStats_() {
-    this.effectiveBandwidthInBits_ = this.networkInformation.downlink * 1000 * 1000;
   }
 
   setOptions_() {
@@ -645,7 +634,7 @@ class VhsHandler extends Component {
       typeof this.source_.useBandwidthFromLocalStorage !== 'undefined' ?
         this.source_.useBandwidthFromLocalStorage :
         this.options_.useBandwidthFromLocalStorage || false;
-    this.options_.useNetworkInformation = this.options_.useNetworkInformation || false;
+    this.options_.useNetworkInformationApi = this.options_.useNetworkInformationApi || false;
     this.options_.customTagParsers = this.options_.customTagParsers || [];
     this.options_.customTagMappers = this.options_.customTagMappers || [];
     this.options_.cacheEncryptionKeys = this.options_.cacheEncryptionKeys || false;
@@ -698,7 +687,7 @@ class VhsHandler extends Component {
       'experimentalBufferBasedABR',
       'liveRangeSafeTimeDelta',
       'experimentalLLHLS',
-      'useNetworkInformation',
+      'useNetworkInformationApi',
       'experimentalExactManifestTimings',
       'experimentalLeastPixelDiffSelector'
     ].forEach((option) => {
@@ -832,11 +821,14 @@ class VhsHandler extends Component {
         get() {
           let bandwidthEst = this.bandwidth;
 
-          // NetworkInfo.downlink maxes out at 10Mb/s. In the event that the player estimates a bandwidth
-          // greater than 10Mb, use the larger value to ensure that high quality streams are not
+          // NetworkInfo.downlink maxes out at 10 Mbps. In the event that the player estimates a bandwidth
+          // greater than 10 Mbps, use the larger value to ensure that high quality streams are not
           // accidentally filtered out
-          if (this.options_.useNetworkInformation) {
-            bandwidthEst = Math.max(bandwidthEst, this.effectiveBandwidthInBits_);
+          if (this.options_.useNetworkInformationApi && this.networkInformation) {
+            // Downlink property returns Mbps https://developer.mozilla.org/en-US/docs/Web/API/NetworkInformation/downlink
+            const effectiveBandwidthBitsPerSec = this.networkInformation.downlink * 1000 * 1000;
+
+            bandwidthEst = Math.max(bandwidthEst, effectiveBandwidthBitsPerSec);
           }
 
           const invBandwidth = 1 / (bandwidthEst || 1);

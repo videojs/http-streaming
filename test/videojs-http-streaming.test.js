@@ -1160,98 +1160,100 @@ QUnit.test(
   }
 );
 
-QUnit.test(
-  'systemBandwidth retrieves bandwidth from networkInformation when option is enabled',
-  function(assert) {
-    this.player = createPlayer({ html5: { vhs: { useNetworkInformation: true } } });
-    this.player.src({
-      src: 'manifest/master.m3u8',
-      type: 'application/vnd.apple.mpegurl'
-    });
+QUnit.module('NetworkInformationApi', hooks => {
+  hooks.beforeEach(function(assert) {
+    this.env = useFakeEnvironment(assert);
+    this.ogNavigator = window.navigator;
+    this.clock = this.env.clock;
 
-    this.clock.tick(1);
+    this.resetNavigatorConnection = (connection = {}) => {
+      // Need to delete the property before setting since navigator doesn't have a setter
+      delete window.navigator;
+      window.navigator = {
+        connection
+      };
+    };
+  });
 
-    this.player.tech_.vhs.bandwidth = 10e10;
-    this.player.tech_.vhs.effectiveBandwidthInBits_ = 20e10;
-    this.player.tech_.vhs.throughput = 20e10;
-    // 1 / ( 1 / 20e10 + 1 / 20e10) = 10e10
-    assert.strictEqual(
-      this.player.tech_.vhs.systemBandwidth,
-      10e10,
-      'systemBandwidth is the combination of networkInfo.downlink and throughput'
-    );
-  }
-);
+  hooks.afterEach(function() {
+    this.env.restore();
+    window.navigator = this.ogNavigator;
+  });
 
-QUnit.test(
-  'systemBandwidth uses player-estimated bandwidth when its value is greater than networkInformation.downLink',
-  function(assert) {
-    this.player = createPlayer({ html5: { vhs: { useNetworkInformation: true } } });
-    this.player.src({
-      src: 'manifest/master.m3u8',
-      type: 'application/vnd.apple.mpegurl'
-    });
+  QUnit.test(
+    'systemBandwidth retrieves bandwidth from networkInformation when option is enabled',
+    function(assert) {
+      this.resetNavigatorConnection({
+        downlink: 200000
+      });
+      this.player = createPlayer({ html5: { vhs: { useNetworkInformationApi: true } } });
+      this.player.src({
+        src: 'manifest/master.m3u8',
+        type: 'application/vnd.apple.mpegurl'
+      });
 
-    this.clock.tick(1);
+      this.clock.tick(1);
 
-    this.player.tech_.vhs.bandwidth = 20e10;
-    this.player.tech_.vhs.effectiveBandwidthInBits_ = 10e10;
-    this.player.tech_.vhs.throughput = 20e10;
-    // 1 / ( 1 / 20e10 + 1 / 20e10) = 10e10
-    assert.strictEqual(
-      this.player.tech_.vhs.systemBandwidth,
-      10e10,
-      'systemBandwidth is the combination of player bandwidth and throughput'
-    );
-  }
-);
+      this.player.tech_.vhs.throughput = 20e10;
+      // downlink in bits = 200000 * 1000000 = 20e10
+      // 1 / ( 1 / 20e10 + 1 / 20e10) = 10e10
+      assert.strictEqual(
+        this.player.tech_.vhs.systemBandwidth,
+        10e10,
+        'systemBandwidth is the combination of networkInfo.downlink and throughput'
+      );
+    }
+  );
 
-QUnit.test(
-  'effectiveBandwidthInBits_ default',
-  function(assert) {
-    this.player.src({
-      src: 'manifest/master.m3u8',
-      type: 'application/vnd.apple.mpegurl'
-    });
+  QUnit.test(
+    'systemBandwidth uses player-estimated bandwidth when its value is greater than networkInformation.downLink',
+    function(assert) {
+      this.resetNavigatorConnection({
+        downlink: 100000
+      });
+      this.player = createPlayer({ html5: { vhs: { useNetworkInformationApi: true } } });
+      this.player.src({
+        src: 'manifest/master.m3u8',
+        type: 'application/vnd.apple.mpegurl'
+      });
 
-    this.clock.tick(1);
+      this.clock.tick(1);
 
-    assert.strictEqual(
-      this.player.tech_.vhs.effectiveBandwidthInBits_,
-      0,
-      'effectiveBandwidthInBits_ defaults to 0'
-    );
-  }
-);
+      this.player.tech_.vhs.bandwidth = 20e10;
+      this.player.tech_.vhs.throughput = 20e10;
+      // 1 / ( 1 / 20e10 + 1 / 20e10) = 10e10
+      assert.strictEqual(
+        this.player.tech_.vhs.systemBandwidth,
+        10e10,
+        'systemBandwidth is the combination of player bandwidth and throughput'
+      );
+    }
+  );
 
-QUnit.test(
-  'systemBandwidth uses player-estimated bandwidth when networkInformation is not supported',
-  function(assert) {
-    const ogNavigator = window.navigator;
+  QUnit.test(
+    'systemBandwidth uses player-estimated bandwidth when networkInformation is not supported',
+    function(assert) {
+      // Nullify the `connection` property on Navigator
+      this.resetNavigatorConnection(null);
+      this.player = createPlayer({ html5: { vhs: { useNetworkInformationApi: true } } });
+      this.player.src({
+        src: 'manifest/master.m3u8',
+        type: 'application/vnd.apple.mpegurl'
+      });
 
-    // Need to delete the property before setting since navigator doesn't have a setter
-    delete window.navigator;
-    window.navigator = {};
-    this.player = createPlayer({ html5: { vhs: { useNetworkInformation: true } } });
-    this.player.src({
-      src: 'manifest/master.m3u8',
-      type: 'application/vnd.apple.mpegurl'
-    });
+      this.clock.tick(1);
 
-    this.clock.tick(1);
-
-    this.player.tech_.vhs.bandwidth = 20e10;
-    this.player.tech_.vhs.throughput = 20e10;
-    // 1 / ( 1 / 20e10 + 1 / 20e10) = 10e10
-    assert.strictEqual(
-      this.player.tech_.vhs.systemBandwidth,
-      10e10,
-      'systemBandwidth is the combination of player bandwidth and throughput since networkInformation is not supported'
-    );
-
-    window.navigator = ogNavigator;
-  }
-);
+      this.player.tech_.vhs.bandwidth = 20e10;
+      this.player.tech_.vhs.throughput = 20e10;
+      // 1 / ( 1 / 20e10 + 1 / 20e10) = 10e10
+      assert.strictEqual(
+        this.player.tech_.vhs.systemBandwidth,
+        10e10,
+        'systemBandwidth is the combination of player bandwidth and throughput since networkInformation is not supported'
+      );
+    }
+  );
+});
 
 QUnit.test('requests a reasonable rendition to start', function(assert) {
   this.player.src({
