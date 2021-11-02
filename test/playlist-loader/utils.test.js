@@ -786,6 +786,53 @@ QUnit.module('Playlist Loader Utils', function(hooks) {
     assert.equal(i, 0, 'did not loop');
   });
 
+  QUnit.test('can stop in media groups', function(assert) {
+    const manifest = {
+      mediaGroups: {
+        AUDIO: {
+          en: {
+            main: {foo: 'bar', playlists: [{three: 'three'}]}
+          },
+          es: {
+            main: {a: 'b', playlists: [{four: 'four' }]}
+          }
+        },
+        SUBTITLES: {
+          en: {
+            main: {foo: 'bar', playlists: [{five: 'five'}]}
+          },
+          es: {
+            main: {a: 'b', playlists: [{six: 'six'}]}
+          }
+        }
+      }
+    };
+
+    let i = 0;
+
+    forEachPlaylist(manifest, function(playlist, index, array) {
+      i++;
+      return true;
+    });
+
+    assert.equal(i, 1, 'looped once');
+  });
+
+  QUnit.test('can stop in playlists', function(assert) {
+    const manifest = {
+      playlists: [{one: 'one'}, {two: 'two'}]
+    };
+
+    let i = 0;
+
+    forEachPlaylist(manifest, function(playlist, index, array) {
+      i++;
+      return true;
+    });
+
+    assert.equal(i, 1, 'looped once');
+  });
+
   QUnit.module('mergeManifest');
 
   QUnit.test('is updated without manifest a', function(assert) {

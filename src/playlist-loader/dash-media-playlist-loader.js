@@ -59,6 +59,10 @@ class DashMediaPlaylistLoader extends PlaylistLoader {
     this.boundOnMainUpdated_ = () => this.onMainUpdated_();
 
     this.mainPlaylistLoader_.on('updated', this.boundOnMainUpdated_);
+
+    // turn off event watching from parent
+    this.off('refresh', this.refreshManifest_);
+    this.off('updated', this.setMediaRefreshTimeout_);
   }
 
   // noop, as media playlists in dash do not have
