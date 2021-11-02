@@ -568,7 +568,7 @@
               experimentalLLHLS: getInputValue(stateEls.llhls),
               experimentalExactManifestTimings: getInputValue(stateEls['exact-manifest-timings']),
               experimentalLeastPixelDiffSelector: getInputValue(stateEls['pixel-diff-selector']),
-              useNetworkInformation: getInputValue(stateEls['network-info'])
+              useNetworkInformationApi: getInputValue(stateEls['network-info'])
             }
           }
         });
