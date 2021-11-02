@@ -40,7 +40,13 @@ class DashMainPlaylistLoader extends PlaylistLoader {
   }
 
   syncClientServerClock_(manifestString, callback) {
-    const utcTiming = parseUTCTiming(manifestString);
+    let utcTiming;
+
+    try {
+      utcTiming = parseUTCTiming(manifestString);
+    } catch (e) {
+      utcTiming = null;
+    }
 
     // No UTCTiming element found in the mpd. Use Date header from mpd request as the
     // server clock
@@ -52,21 +58,18 @@ class DashMainPlaylistLoader extends PlaylistLoader {
       return callback(utcTiming.value - Date.now());
     }
 
-    this.makeRequest({
+    this.makeRequest_({
       uri: resolveUrl(this.uri(), utcTiming.value),
-      method: utcTiming.method
-    }, function(request) {
-      let serverTime;
+      method: utcTiming.method,
+      handleErrors: false
+    }, (request, wasRedirected, error) => {
+      let serverTime = this.lastRequestTime();
 
-      if (utcTiming.method === 'HEAD') {
-        if (!request.responseHeaders || !request.responseHeaders.date) {
-          // expected date header not preset, fall back to using date header from mpd
-          this.logger_('warning expected date header from mpd not present, using mpd request time.');
-          serverTime = this.lastRequestTime();
-        } else {
-          serverTime = Date.parse(request.responseHeaders.date);
-        }
-      } else {
+      if (!error && utcTiming.method === 'HEAD' && request.responseHeaders && request.responseHeaders.date) {
+        serverTime = Date.parse(request.responseHeaders.date);
+      }
+
+      if (!error && request.responseText) {
         serverTime = Date.parse(request.responseText);
       }
 
@@ -77,9 +80,8 @@ class DashMainPlaylistLoader extends PlaylistLoader {
   // used by dash media playlist loaders in cases where
   // minimumUpdatePeriod is zero
   setMediaRefreshTime_(time) {
-    if (!this.getMediaRefreshTime_()) {
-      this.setMediaRefreshTimeout_(time);
-    }
+    this.mediaRefreshTime_ = time;
+    this.setMediaRefreshTimeout_();
   }
 
   getMediaRefreshTime_() {
@@ -89,7 +91,7 @@ class DashMainPlaylistLoader extends PlaylistLoader {
     // can happen when a live video becomes VOD. We do not have
     // a media refresh time.
     if (typeof minimumUpdatePeriod !== 'number' || minimumUpdatePeriod < 0) {
-      return;
+      return null;
     }
 
     // If the minimumUpdatePeriod has a value of 0, that indicates that the current
@@ -99,9 +101,9 @@ class DashMainPlaylistLoader extends PlaylistLoader {
     // TODO: can we do this in a better way? It would be much better
     // if DashMainPlaylistLoader didn't care about media playlist loaders at all.
     // Right now DashMainPlaylistLoader's call `setMediaRefreshTime_` to set
-    // the media there target duration.
+    // the medias target duration.
     if (minimumUpdatePeriod === 0) {
-      return;
+      return this.mediaRefreshTime_;
     }
 
     return minimumUpdatePeriod;

@@ -156,7 +156,7 @@ const MEDIA_GROUP_TYPES = ['AUDIO', 'SUBTITLES'];
  *        value will stop the loop.
  */
 export const forEachMediaGroup = (mainManifest, callback) => {
-  if (!mainManifest.mediaGroups) {
+  if (!mainManifest || !mainManifest.mediaGroups) {
     return;
   }
 
@@ -187,7 +187,10 @@ export const forEachMediaGroup = (mainManifest, callback) => {
 };
 
 export const forEachPlaylist = function(mainManifest, callback) {
-  if (mainManifest && mainManifest.playlists) {
+  if (!mainManifest) {
+    return;
+  }
+  if (mainManifest.playlists) {
     for (let i = 0; i < mainManifest.playlists.length; i++) {
       const stop = callback(mainManifest.playlists[i], i, mainManifest.playlists);
 

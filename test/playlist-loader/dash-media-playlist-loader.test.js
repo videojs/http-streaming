@@ -36,7 +36,6 @@ QUnit.module('Dash Media Playlist Loader', function(hooks) {
     };
 
     this.mainPlaylistLoader.start();
-
   });
 
   hooks.afterEach(function(assert) {
@@ -95,6 +94,11 @@ QUnit.module('Dash Media Playlist Loader', function(hooks) {
 
     assert.equal(this.loader.manifest_, null, 'manifest cleared');
     assert.false(this.loader.started_, 'stopped');
+    assert.deepEqual(
+      this.setMediaRefreshTimeCalls,
+      [null],
+      'setMediaRefreshTime called with null on mainPlaylistLoader'
+    );
 
     this.loader.manifest_ = {};
     this.loader.stop();
@@ -107,6 +111,22 @@ QUnit.module('Dash Media Playlist Loader', function(hooks) {
     beforeEach() {
       this.requests.shift().respond(200, null, testDataManifests['dash-many-codecs']);
     }
+  });
+
+  QUnit.test('triggers error if not found', function(assert) {
+    this.loader = new DashMediaPlaylistLoader('non-existant.uri', {
+      vhs: this.fakeVhs,
+      mainPlaylistLoader: this.mainPlaylistLoader
+    });
+    let errorTriggered = false;
+
+    this.loader.started_ = true;
+    this.loader.on('error', function() {
+      errorTriggered = true;
+    });
+
+    this.loader.onMainUpdated_();
+    assert.true(errorTriggered, 'error was triggered');
   });
 
   QUnit.test('called via updated event on mainPlaylistLoader', function(assert) {

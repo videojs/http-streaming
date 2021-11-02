@@ -3,13 +3,26 @@ import {
   forEachMediaGroup,
   mergeSegments,
   mergeSegment,
-  mergeMedia
+  mergeMedia,
+  forEachPlaylist,
+  mergeManifest
 } from '../../src/playlist-loader/utils.js';
 import {absoluteUrl} from '../test-helpers.js';
 
 QUnit.module('Playlist Loader Utils', function(hooks) {
 
   QUnit.module('forEachMediaGroup');
+
+  QUnit.test('does not error when passed null', function(assert) {
+    assert.expect(1);
+    let i = 0;
+
+    forEachMediaGroup(null, function(props, type, group, label) {
+      i++;
+    });
+
+    assert.equal(i, 0, 'did not loop');
+  });
 
   QUnit.test('does not error without groups', function(assert) {
     assert.expect(1);
@@ -619,5 +632,264 @@ QUnit.module('Playlist Loader Utils', function(hooks) {
     );
   });
 
+  QUnit.module('forEachPlaylist');
+
+  QUnit.test('loops over playlists and group playlists', function(assert) {
+    const manifest = {
+      playlists: [{one: 'one'}, {two: 'two'}],
+      mediaGroups: {
+        AUDIO: {
+          en: {
+            main: {foo: 'bar', playlists: [{three: 'three'}]}
+          },
+          es: {
+            main: {a: 'b', playlists: [{four: 'four' }]}
+          }
+        },
+        SUBTITLES: {
+          en: {
+            main: {foo: 'bar', playlists: [{five: 'five'}]}
+          },
+          es: {
+            main: {a: 'b', playlists: [{six: 'six'}]}
+          }
+        }
+      }
+    };
+
+    let i = 0;
+
+    forEachPlaylist(manifest, function(playlist, index, array) {
+      if (i === 0) {
+        assert.deepEqual(playlist, {one: 'one'}, 'playlist as expected');
+        assert.equal(index, 0, 'index as expected');
+        assert.equal(array, manifest.playlists, 'array is correct');
+      } else if (i === 1) {
+        assert.deepEqual(playlist, {two: 'two'}, 'playlist as expected');
+        assert.equal(index, 1, 'index as expected');
+        assert.equal(array, manifest.playlists, 'array is correct');
+      } else if (i === 2) {
+        assert.deepEqual(playlist, {three: 'three'}, 'playlist as expected');
+        assert.equal(index, 0, 'index as expected');
+        assert.equal(array, manifest.mediaGroups.AUDIO.en.main.playlists, 'array is correct');
+      } else if (i === 3) {
+        assert.deepEqual(playlist, {four: 'four'}, 'playlist as expected');
+        assert.equal(index, 0, 'index as expected');
+        assert.equal(array, manifest.mediaGroups.AUDIO.es.main.playlists, 'array is correct');
+      } else if (i === 4) {
+        assert.deepEqual(playlist, {five: 'five'}, 'playlist as expected');
+        assert.equal(index, 0, 'index as expected');
+        assert.equal(array, manifest.mediaGroups.SUBTITLES.en.main.playlists, 'array is correct');
+      } else if (i === 5) {
+        assert.deepEqual(playlist, {six: 'six'}, 'playlist as expected');
+        assert.equal(index, 0, 'index as expected');
+        assert.equal(array, manifest.mediaGroups.SUBTITLES.es.main.playlists, 'array is correct');
+      }
+      i++;
+    });
+
+    assert.equal(i, 6, 'six playlists');
+  });
+
+  QUnit.test('loops over just groups', function(assert) {
+    const manifest = {
+      mediaGroups: {
+        AUDIO: {
+          en: {
+            main: {foo: 'bar', playlists: [{three: 'three'}]}
+          },
+          es: {
+            main: {a: 'b', playlists: [{four: 'four' }]}
+          }
+        },
+        SUBTITLES: {
+          en: {
+            main: {foo: 'bar', playlists: [{five: 'five'}]}
+          },
+          es: {
+            main: {a: 'b', playlists: [{six: 'six'}]}
+          }
+        }
+      }
+    };
+
+    let i = 0;
+
+    forEachPlaylist(manifest, function(playlist, index, array) {
+      if (i === 0) {
+        assert.deepEqual(playlist, {three: 'three'}, 'playlist as expected');
+        assert.equal(index, 0, 'index as expected');
+        assert.equal(array, manifest.mediaGroups.AUDIO.en.main.playlists, 'array is correct');
+      } else if (i === 1) {
+        assert.deepEqual(playlist, {four: 'four'}, 'playlist as expected');
+        assert.equal(index, 0, 'index as expected');
+        assert.equal(array, manifest.mediaGroups.AUDIO.es.main.playlists, 'array is correct');
+      } else if (i === 2) {
+        assert.deepEqual(playlist, {five: 'five'}, 'playlist as expected');
+        assert.equal(index, 0, 'index as expected');
+        assert.equal(array, manifest.mediaGroups.SUBTITLES.en.main.playlists, 'array is correct');
+      } else if (i === 3) {
+        assert.deepEqual(playlist, {six: 'six'}, 'playlist as expected');
+        assert.equal(index, 0, 'index as expected');
+        assert.equal(array, manifest.mediaGroups.SUBTITLES.es.main.playlists, 'array is correct');
+      }
+      i++;
+    });
+
+    assert.equal(i, 4, 'four playlists');
+  });
+
+  QUnit.test('loops over playlists only', function(assert) {
+    const manifest = {
+      playlists: [{one: 'one'}, {two: 'two'}]
+    };
+
+    let i = 0;
+
+    forEachPlaylist(manifest, function(playlist, index, array) {
+      if (i === 0) {
+        assert.deepEqual(playlist, {one: 'one'}, 'playlist as expected');
+        assert.equal(index, 0, 'index as expected');
+        assert.equal(array, manifest.playlists, 'array is correct');
+      } else if (i === 1) {
+        assert.deepEqual(playlist, {two: 'two'}, 'playlist as expected');
+        assert.equal(index, 1, 'index as expected');
+        assert.equal(array, manifest.playlists, 'array is correct');
+      }
+      i++;
+    });
+
+    assert.equal(i, 2, 'two playlists');
+  });
+
+  QUnit.test('does not error when passed null', function(assert) {
+    assert.expect(1);
+    let i = 0;
+
+    forEachPlaylist(null, function(playlist, index, array) {
+      i++;
+    });
+
+    assert.equal(i, 0, 'did not loop');
+  });
+
+  QUnit.test('does not error without groups', function(assert) {
+    assert.expect(1);
+    const manifest = {};
+
+    let i = 0;
+
+    forEachPlaylist(manifest, function(playlist, index, array) {
+      i++;
+    });
+
+    assert.equal(i, 0, 'did not loop');
+  });
+
+  QUnit.module('mergeManifest');
+
+  QUnit.test('is updated without manifest a', function(assert) {
+    const oldManifest = null;
+    const newManifest = {mediaSequence: 0};
+    const result = mergeManifest(oldManifest, newManifest);
+
+    assert.true(result.updated, 'was updated');
+    assert.deepEqual(
+      result.manifest,
+      {mediaSequence: 0},
+      'as expected'
+    );
+  });
+
+  QUnit.test('is updated if b lack key that a has', function(assert) {
+    const oldManifest = {mediaSequence: 0, foo: 'bar'};
+    const newManifest = {mediaSequence: 0};
+    const result = mergeManifest(oldManifest, newManifest);
+
+    assert.true(result.updated, 'was updated');
+    assert.deepEqual(
+      result.manifest,
+      {mediaSequence: 0},
+      'as expected'
+    );
+  });
+
+  QUnit.test('is updated if a lack key that b has', function(assert) {
+    const oldManifest = {mediaSequence: 0};
+    const newManifest = {mediaSequence: 0, foo: 'bar'};
+    const result = mergeManifest(oldManifest, newManifest);
+
+    assert.true(result.updated, 'was updated');
+    assert.deepEqual(
+      result.manifest,
+      {mediaSequence: 0, foo: 'bar'},
+      'as expected'
+    );
+  });
+
+  QUnit.test('is updated if key value is different', function(assert) {
+    const oldManifest = {mediaSequence: 0};
+    const newManifest = {mediaSequence: 1};
+    const result = mergeManifest(oldManifest, newManifest);
+
+    assert.true(result.updated, 'was updated');
+    assert.deepEqual(
+      result.manifest,
+      {mediaSequence: 1},
+      'as expected'
+    );
+  });
+
+  QUnit.test('is not updated if key value is the same', function(assert) {
+    const oldManifest = {mediaSequence: 0};
+    const newManifest = {mediaSequence: 0};
+    const result = mergeManifest(oldManifest, newManifest);
+
+    assert.false(result.updated, 'was not updated');
+    assert.deepEqual(
+      result.manifest,
+      {mediaSequence: 0},
+      'as expected'
+    );
+  });
+
+  QUnit.test('is not updated if key value is the same', function(assert) {
+    const oldManifest = {mediaSequence: 0};
+    const newManifest = {mediaSequence: 0};
+    const result = mergeManifest(oldManifest, newManifest);
+
+    assert.false(result.updated, 'was not updated');
+    assert.deepEqual(
+      result.manifest,
+      {mediaSequence: 0},
+      'as expected'
+    );
+  });
+
+  QUnit.test('is not updated if key value is changed but ignored', function(assert) {
+    const oldManifest = {mediaSequence: 0};
+    const newManifest = {mediaSequence: 1};
+    const result = mergeManifest(oldManifest, newManifest, ['mediaSequence']);
+
+    assert.false(result.updated, 'was not updated');
+    assert.deepEqual(
+      result.manifest,
+      {mediaSequence: 1},
+      'as expected'
+    );
+  });
+
+  QUnit.test('excluded key is not brought over', function(assert) {
+    const oldManifest = {mediaSequence: 0, foo: 'bar'};
+    const newManifest = {mediaSequence: 0};
+    const result = mergeManifest(oldManifest, newManifest, ['foo']);
+
+    assert.false(result.updated, 'was not updated');
+    assert.deepEqual(
+      result.manifest,
+      {mediaSequence: 0},
+      'as expected'
+    );
+  });
 });
 

@@ -51,22 +51,23 @@ class DashMediaPlaylistLoader extends PlaylistLoader {
     if (!this.started_) {
       return;
     }
+
+    // save our old media information
     const oldMedia = this.manifest_;
+
+    // get the newly updated media information
     const mediaAccessor = getMediaAccessor(
       this.mainPlaylistLoader_.manifest(),
       this.uri()
     );
 
-    // redefine the getters and setters.
-    Object.defineProperty(this, 'manifest_', {
-      get: mediaAccessor.get,
-      set: mediaAccessor.set,
-      writeable: true,
-      enumerable: true
-    });
+    if (!mediaAccessor) {
+      this.triggerError_('could not find playlist on mainPlaylistLoader');
+      return;
+    }
 
     // use them
-    const newMedia = this.manifest_;
+    const newMedia = this.manifest_ = mediaAccessor.get();
 
     this.requestSidx_(() => {
       if (newMedia.sidx && this.sidx_) {
@@ -81,7 +82,9 @@ class DashMediaPlaylistLoader extends PlaylistLoader {
         uri: this.mainPlaylistLoader_.uri()
       });
 
-      this.manifest_ = media;
+      // set the newly merged media on main
+      mediaAccessor.set(media);
+      this.manifest_ = mediaAccessor.get();
 
       if (updated) {
         this.mainPlaylistLoader_.setMediaRefreshTime_(this.manifest().targetDuration * 1000);
@@ -103,8 +106,7 @@ class DashMediaPlaylistLoader extends PlaylistLoader {
         sidx = parseSidx(toUint8(request.response).subarray(8));
       } catch (e) {
         // sidx parsing failed.
-        this.error_ = e;
-        this.trigger('error');
+        this.triggerError_(e);
         return;
       }
 
@@ -117,15 +119,12 @@ class DashMediaPlaylistLoader extends PlaylistLoader {
       this.request_ = null;
 
       if (error || !container || container !== 'mp4') {
-        this.error = {
-          status: request.status,
-          message: `Unsupported ${container || 'unknown'} container type for sidx segment at URL: ${uri}`,
-          blacklistDuration: Infinity,
-          // MEDIA_ERR_NETWORK
-          code: 2
-        };
-
-        this.trigger('error');
+        if (error) {
+          this.triggerError_(error);
+        } else {
+          container = container || 'unknown';
+          this.triggerError_(`Unsupported ${container} container type for sidx segment at URL: ${uri}`);
+        }
         return;
       }
 
@@ -145,7 +144,7 @@ class DashMediaPlaylistLoader extends PlaylistLoader {
         uri,
         responseType: 'arraybuffer',
         headers: segmentXhrHeaders({byterange: this.manifest_.sidx.byterange})
-      }, parseSidx_, false);
+      }, parseSidx_);
     });
   }
 
@@ -162,12 +161,10 @@ class DashMediaPlaylistLoader extends PlaylistLoader {
     if (!this.started_) {
       return;
     }
-    // redefine the getters and setters.
-    Object.defineProperty(this, 'manifest_', {
-      value: null,
-      writeable: true,
-      enumerable: true
-    });
+
+    this.manifest_ = null;
+    // reset media refresh time
+    this.mainPlaylistLoader_.setMediaRefreshTime_(null);
     super.stop();
   }
 

@@ -433,6 +433,36 @@ QUnit.module('New Playlist Loader', function(hooks) {
     assert.true(errorTriggered, 'error was triggered');
   });
 
+  QUnit.test('handleErrors: false causes errors to be passed along, not triggered', function(assert) {
+    assert.expect(5);
+    this.loader = new PlaylistLoader('foo.uri', {
+      vhs: this.fakeVhs
+    });
+    let errorTriggered = false;
+
+    this.loader.on('error', function() {
+      errorTriggered = true;
+    });
+
+    this.loader.started_ = true;
+    this.loader.makeRequest_({uri: 'bar.uri', handleErrors: false}, function(request, wasRedirected, error) {
+      assert.ok(error, 'error was passed in');
+    });
+
+    this.requests[0].respond(404, null, 'bad request foo bar');
+
+    const expectedError = {
+      code: 2,
+      message: 'Playlist request error at URI bar.uri',
+      response: 'bad request foo bar',
+      status: 404
+    };
+
+    assert.deepEqual(this.loader.error(), expectedError, 'expected error');
+    assert.equal(this.loader.request(), null, 'no request');
+    assert.true(errorTriggered, 'error was triggered');
+  });
+
   QUnit.module('#stop()');
 
   QUnit.test('only stops things if started', function(assert) {

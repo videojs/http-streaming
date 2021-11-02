@@ -70,13 +70,19 @@ class PlaylistLoader extends videojs.EventTarget {
   parseManifest_(manifestText, callback) {}
 
   // make a request and do custom error handling
-  makeRequest_(options, callback, handleErrors = true) {
+  makeRequest_(options, callback) {
     if (!this.started_) {
-      this.error_ = {message: 'makeRequest_ cannot be called before started!'};
-      this.trigger('error');
+      this.triggerError_('makeRequest_ cannot be called before started!');
       return;
     }
+
     const xhrOptions = videojs.mergeOptions({withCredentials: this.options_.withCredentials}, options);
+    let handleErrors = true;
+
+    if (xhrOptions.hasOwnProperty('handleErrors')) {
+      handleErrors = xhrOptions.handleErrors;
+      delete xhrOptions.handleErrors;
+    }
 
     this.request_ = this.options_.vhs.xhr(xhrOptions, (error, request) => {
       // disposed
@@ -87,33 +93,24 @@ class PlaylistLoader extends videojs.EventTarget {
       // successful or errored requests are finished.
       this.request_ = null;
 
-      if (error) {
-        this.error_ = typeof error === 'object' && !(error instanceof Error) ? error : {
-          status: request.status,
-          message: `Playlist request error at URI ${request.uri}`,
-          response: request.response,
-          code: (request.status >= 500) ? 4 : 2
-        };
-
-        this.trigger('error');
-        return;
-      }
-
       const wasRedirected = Boolean(this.options_.handleManifestRedirects &&
         request.responseURL !== xhrOptions.uri);
 
-      callback(request, wasRedirected);
+      if (error && handleErrors) {
+        this.triggerError_(`Request error at URI ${request.uri}`);
+        return;
+      }
+
+      callback(request, wasRedirected, error);
     });
   }
 
-  requestError_(error, request) {
-    this.error_ = typeof error === 'object' && !(error instanceof Error) ? error : {
-      status: request.status,
-      message: `Playlist request error at URI ${request.uri}`,
-      response: request.response,
-      code: (request.status >= 500) ? 4 : 2
-    };
+  triggerError_(error) {
+    if (typeof error === 'string') {
+      error = {message: error};
+    }
 
+    this.error_ = error;
     this.trigger('error');
   }
 
@@ -148,14 +145,13 @@ class PlaylistLoader extends videojs.EventTarget {
     }
   }
 
-  setMediaRefreshTimeout_(time) {
+  setMediaRefreshTimeout_() {
     // do nothing if disposed
     if (this.isDisposed_) {
       return;
     }
-    if (typeof time !== 'number') {
-      time = this.getMediaRefreshTime_();
-    }
+    const time = this.getMediaRefreshTime_();
+
     this.clearMediaRefreshTimeout_();
 
     if (typeof time !== 'number') {
