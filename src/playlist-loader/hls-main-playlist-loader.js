@@ -1,6 +1,12 @@
 import PlaylistLoader from './playlist-loader.js';
 import {parseManifest} from '../manifest.js';
 
+/**
+ * A class to encapsulate all of the functionality for
+ * Hls main playlists.
+ *
+ * @extends PlaylistLoader
+ */
 class HlsMainPlaylistLoader extends PlaylistLoader {
   parseManifest_(manifestString, callback) {
     const parsedManifest = parseManifest({

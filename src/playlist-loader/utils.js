@@ -2,6 +2,19 @@ import {mergeOptions} from 'video.js';
 import {resolveUrl} from '../resolve-url';
 import deepEqual from '../util/deep-equal.js';
 
+/**
+ * Get aboslute uris for all uris on a segment unless
+ * they are already resolved.
+ *
+ * @param {Object} segment
+ *        The segment to get aboslute uris for.
+ *
+ * @param {string} baseUri
+ *        The base uri to use for resolving.
+ *
+ * @return {Object}
+ *         The segment with resolved uris.
+ */
 const resolveSegmentUris = function(segment, baseUri) {
   // preloadSegment will not have a uri at all
   // as the segment isn't actually in the manifest yet, only parts
@@ -43,10 +56,14 @@ const resolveSegmentUris = function(segment, baseUri) {
  * Returns a new segment object with properties and
  * the parts array merged.
  *
- * @param {Object} a the old segment
- * @param {Object} b the new segment
+ * @param {Object} a
+ *        The old segment
  *
- * @return {Object} the merged segment
+ * @param {Object} b
+ *        The new segment
+ *
+ * @return {Object}
+ *         The merged segment and if it was updated.
  */
 export const mergeSegment = function(a, b) {
   let segment = b;
@@ -103,6 +120,30 @@ export const mergeSegment = function(a, b) {
   return {updated, segment};
 };
 
+/**
+ * Merge two segment arrays.
+ *
+ * @param {Object} options
+ *        options for this function
+ *
+ * @param {Object[]} options.oldSegments
+ *        old segments
+ *
+ * @param {Object[]} options.newSegments
+ *        new segments
+ *
+ * @param {string} options.baseUri
+ *        The absolute uri to base aboslute segment uris on.
+ *
+ * @param {number} [options.offset=0]
+ *        The segment offset that should be used to match old
+ *        segments to new segments. IE: media sequence segment 1
+ *        is segment zero in new and segment 1 in old. Offset would
+ *        then be 1.
+ *
+ * @return {Object[]}
+ *         The merged segment array.
+ */
 export const mergeSegments = function({oldSegments, newSegments, offset = 0, baseUri}) {
   oldSegments = oldSegments || [];
   newSegments = newSegments || [];
@@ -150,6 +191,7 @@ const MEDIA_GROUP_TYPES = ['AUDIO', 'SUBTITLES'];
  *
  * @param {Object} mainManifest
  *        The parsed main manifest object
+ *
  * @param {Function} callback
  *        Callback to call for each media group,
  *        *NOTE* The return value is used here. Any true
@@ -186,6 +228,18 @@ export const forEachMediaGroup = (mainManifest, callback) => {
   }
 };
 
+/**
+ * Loops through all playlists including media group playlists and runs the
+ * callback for each one. Unless true is returned from the callback.
+ *
+ * @param {Object} mainManifest
+ *        The parsed main manifest object
+ *
+ * @param {Function} callback
+ *        Callback to call for each playlist
+ *        *NOTE* The return value is used here. Any true
+ *        value will stop the loop.
+ */
 export const forEachPlaylist = function(mainManifest, callback) {
   if (!mainManifest) {
     return;
@@ -215,6 +269,23 @@ export const forEachPlaylist = function(mainManifest, callback) {
   });
 };
 
+/**
+ * Shallow merge for an object and report if an update occured.
+ *
+ * @param {Object} a
+ *        The old manifest
+ *
+ * @param {Object} b
+ *        The new manifest
+ *
+ * @param {string[]} excludeKeys
+ *        An array of keys to completly ignore.
+ *        *NOTE* properties from the new manifest will still
+ *        exist, even though they were ignored
+ *
+ * @return {Object}
+ *         The merged manifest and if it was updated.
+ */
 export const mergeManifest = function(a, b, excludeKeys) {
   excludeKeys = excludeKeys || [];
 
@@ -256,6 +327,24 @@ export const mergeManifest = function(a, b, excludeKeys) {
   return {manifest: mergedManifest, updated};
 };
 
+/**
+ * Shallow merge a media manifest and deep merge it's segments.
+ *
+ * @param {Object} options
+ *        The options for this function
+ *
+ * @param {Object} options.oldMedia
+ *        The old media
+ *
+ * @param {Object} options.newMedia
+ *        The new media
+ *
+ * @param {string} options.baseUri
+ *        The base uri used for resolving aboslute uris.
+ *
+ * @return {Object}
+ *         The merged media and if it was updated.
+ */
 export const mergeMedia = function({oldMedia, newMedia, baseUri}) {
   const mergeResult = mergeManifest(oldMedia, newMedia, ['segments']);
 

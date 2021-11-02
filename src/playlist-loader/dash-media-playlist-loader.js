@@ -25,7 +25,30 @@ export const getMediaAccessor = function(mainManifest, uri) {
   return result;
 };
 
+/**
+ * A class to encapsulate all of the functionality for
+ * Dash media playlists. Note that this PlaylistLoader does
+ * not refresh, parse, or have manifest strings. This is because
+ * Dash doesn't really have media playlists. We only use them because:
+ * 1. We want to match our HLS API
+ * 2. Dash does have sub playlists but everything is updated on main.
+ *
+ * @extends PlaylistLoader
+ */
 class DashMediaPlaylistLoader extends PlaylistLoader {
+  /**
+   * Create an instance of this class.
+   *
+   * @param {string} uri
+   *        The uri of the manifest.
+   *
+   * @param {Object} options
+   *        Options that can be used. See base class for
+   *        shared options.
+   *
+   * @param {boolean} options.mainPlaylistLoader
+   *        The main playlist loader this playlist exists on.
+   */
   constructor(uri, options) {
     super(uri, options);
     this.manifest_ = null;
@@ -47,6 +70,15 @@ class DashMediaPlaylistLoader extends PlaylistLoader {
   getMediaRefreshTime_() {}
   getManifestString_() {}
 
+  /**
+   * A function that is run when main updates, but only
+   * functions if this playlist loader is started. It will
+   * merge it's old manifest with the new one, and update it
+   * with sidx segments if needed.
+   *
+   * @listens {DashMainPlaylistLoader#updated}
+   * @private
+   */
   onMainUpdated_() {
     if (!this.started_) {
       return;
@@ -93,6 +125,15 @@ class DashMediaPlaylistLoader extends PlaylistLoader {
     });
   }
 
+  /**
+   * A function that is run when main updates, but only
+   * functions if this playlist loader is started. It will
+   * merge it's old manifest with the new one, and update it
+   * with sidx segments if needed.
+   *
+   * @listens {DashMainPlaylistLoader#updated}
+   * @private
+   */
   requestSidx_(callback) {
     if ((this.sidx_ && this.manifest_.sidx) || !this.manifest_.sidx) {
       return callback();

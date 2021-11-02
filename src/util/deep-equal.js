@@ -1,6 +1,28 @@
+/**
+ * Verify that an object is only an object and not null.
+ *
+ * @param {Object} obj
+ *        The obj to check
+ *
+ * @return {boolean}
+ *         If the objects is actually an object and not null.
+ */
 const isObject = (obj) =>
   !!obj && typeof obj === 'object';
 
+/**
+ * A function to check if two objects are equal
+ * to any depth.
+ *
+ * @param {Object} a
+ *        The first object.
+ *
+ * @param {Object} b
+ *        The second object.
+ *
+ * @return {boolean}
+ *         If the objects are equal or not.
+ */
 const deepEqual = function(a, b) {
   // equal
   if (a === b) {

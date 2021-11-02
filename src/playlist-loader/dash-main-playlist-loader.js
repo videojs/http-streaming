@@ -3,16 +3,40 @@ import {resolveUrl} from '../resolve-url';
 import {parse as parseMpd, parseUTCTiming} from 'mpd-parser';
 import {mergeManifest, forEachPlaylist} from './utils.js';
 
+/**
+ * An instance of the `DashMainPlaylistLoader` class is created when VHS is passed a DASH
+ * manifest. For dash main playlists are the only thing that needs to be refreshed. This
+ * is important to note as a lot of the `DashMediaPlaylistLoader` logic looks to
+ * `DashMainPlaylistLoader` for guidance.
+ *
+ * @extends PlaylistLoader
+ */
 class DashMainPlaylistLoader extends PlaylistLoader {
+
+  /**
+   * Create an instance of this class.
+   *
+   * @param {Element} uri
+   *        The uri of the manifest.
+   *
+   * @param {Object} options
+   *        Options that can be used, see the base class for more information.
+   */
   constructor(uri, options) {
     super(uri, options);
     this.clientOffset_ = null;
     this.sidxMapping_ = {};
-    this.mediaList_ = options.mediaList;
     this.clientClockOffset_ = null;
     this.setMediaRefreshTimeout_ = this.setMediaRefreshTimeout_.bind(this);
   }
 
+  /**
+   * Get an array of all playlists in this manifest, including media group
+   * playlists.
+   *
+   * @return {Object[]}
+   *          An array of playlists.
+   */
   playlists() {
     const playlists = [];
 
@@ -23,6 +47,18 @@ class DashMainPlaylistLoader extends PlaylistLoader {
     return playlists;
   }
 
+  /**
+   * Parse a new manifest and merge it with an old one. Calls back
+   * with the merged manifest and weather or not it was updated.
+   *
+   * @param {string} manifestString
+   *        A manifest string directly from the request response.
+   *
+   * @param {Function} callback
+   *        A callback that takes the manifest and updated
+   *
+   * @private
+   */
   parseManifest_(manifestString, callback) {
     this.syncClientServerClock_(manifestString, (clientOffset) => {
       const parsedManifest = parseMpd(manifestString, {
@@ -39,6 +75,17 @@ class DashMainPlaylistLoader extends PlaylistLoader {
     });
   }
 
+  /**
+   * Used by parsedManifest to get the client server sync offest.
+   *
+   * @param {string} manifestString
+   *        A manifest string directly from the request response.
+   *
+   * @param {Function} callback
+   *        A callback that takes the client offset
+   *
+   * @private
+   */
   syncClientServerClock_(manifestString, callback) {
     let utcTiming;
 
@@ -77,13 +124,33 @@ class DashMainPlaylistLoader extends PlaylistLoader {
     });
   }
 
-  // used by dash media playlist loaders in cases where
-  // minimumUpdatePeriod is zero
+  /**
+   * Used by DashMediaPlaylistLoader in cases where
+   * minimumUpdatePeriod is zero. This allows the currently active
+   * playlist to set the mediaRefreshTime_ time to it's targetDuration.
+   *
+   * @param {number} time
+   *        Set the mediaRefreshTime
+   *
+   * @private
+   */
   setMediaRefreshTime_(time) {
     this.mediaRefreshTime_ = time;
     this.setMediaRefreshTimeout_();
   }
 
+  /**
+   * Get the amount of time that should elapse before the media is
+   * re-requested. Returns null if it shouldn't be re-requested. For
+   * Dash we look at minimumUpdatePeriod (from the manifest) or the
+   * targetDuration of the currently selected media
+   * (from a DashMediaPlaylistLoader).
+   *
+   * @return {number}
+   *         Returns the media refresh time
+   *
+   * @private
+   */
   getMediaRefreshTime_() {
     const minimumUpdatePeriod = this.manifest_.minimumUpdatePeriod;
 

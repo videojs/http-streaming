@@ -5,10 +5,12 @@ import {mergeMedia} from './utils.js';
 /**
  * Calculates the time to wait before refreshing a live playlist
  *
- * @param {Object} media
- *        The current media
+ * @param {Object} manifest
+ *        The current media.
+ *
  * @param {boolean} update
  *        True if there were any updates from the last refresh, false otherwise
+ *
  * @return {number}
  *         The time in ms to wait before refreshing the live playlist
  */
@@ -26,9 +28,17 @@ export const timeBeforeRefresh = function(manifest, update) {
   return (manifest.partTargetDuration || manifest.targetDuration || 10) * 500;
 };
 
-// clone a preload segment so that we can add it to segments
-// without worrying about adding properties and messing up the
-// mergeMedia update algorithm.
+/**
+ * Clone a preload segment so that we can add it to segments
+ * without worrying about adding properties and messing up the
+ * mergeMedia update algorithm.
+ *
+ * @param {Object} [preloadSegment={}]
+ *        The preloadSegment to clone
+ *
+ * @return {Object}
+ *         The cloned preload segment.
+ */
 const clonePreloadSegment = (preloadSegment) => {
   preloadSegment = preloadSegment || {};
   const result = Object.assign({}, preloadSegment);
@@ -52,6 +62,17 @@ const clonePreloadSegment = (preloadSegment) => {
   return result;
 };
 
+/**
+ * A helper function so that we can add preloadSegments
+ * that have parts and skipped segments to our main
+ * segment array.
+ *
+ * @param {Object} manifest
+ *        The manifest to get all segments for.
+ *
+ * @return {Array}
+ *         An array of segments.
+ */
 export const getAllSegments = function(manifest) {
   const segments = manifest.segments || [];
   let preloadSegment = manifest.preloadSegment;
@@ -97,16 +118,32 @@ export const getAllSegments = function(manifest) {
   return segments;
 };
 
+/**
+ * A small wrapped around parseManifest that also does
+ * getAllSegments.
+ *
+ * @param {Object} options
+ *        options to pass to parseManifest.
+ *
+ * @return {Object}
+ *         The parsed manifest.
+ */
 const parseManifest_ = function(options) {
   const parsedMedia = parseManifest(options);
 
-  // TODO: this should go in parseManifest, as it
+  // TODO: this should go in parseManifest in manifest.js, as it
   // always needs to happen directly afterwards
   parsedMedia.segments = getAllSegments(parsedMedia);
 
   return parsedMedia;
 };
 
+/**
+ * A class to encapsulate all of the functionality for
+ * Hls media playlists.
+ *
+ * @extends PlaylistLoader
+ */
 class HlsMediaPlaylistLoader extends PlaylistLoader {
 
   parseManifest_(manifestString, callback) {
