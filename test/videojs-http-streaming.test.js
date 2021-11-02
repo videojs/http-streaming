@@ -1181,7 +1181,7 @@ QUnit.module('NetworkInformationApi', hooks => {
   });
 
   QUnit.test(
-    'systemBandwidth retrieves bandwidth from networkInformation when option is enabled',
+    'bandwidth returns networkInformation.downlink when useNetworkInformationApi option is enabled',
     function(assert) {
       this.resetNavigatorConnection({
         downlink: 200000
@@ -1194,19 +1194,17 @@ QUnit.module('NetworkInformationApi', hooks => {
 
       this.clock.tick(1);
 
-      this.player.tech_.vhs.throughput = 20e10;
       // downlink in bits = 200000 * 1000000 = 20e10
-      // 1 / ( 1 / 20e10 + 1 / 20e10) = 10e10
       assert.strictEqual(
-        this.player.tech_.vhs.systemBandwidth,
-        10e10,
-        'systemBandwidth is the combination of networkInfo.downlink and throughput'
+        this.player.tech_.vhs.bandwidth,
+        20e10,
+        'bandwidth equals networkInfo.downlink represented as bits per second'
       );
     }
   );
 
   QUnit.test(
-    'systemBandwidth uses player-estimated bandwidth when its value is greater than networkInformation.downLink',
+    'bandwidth uses player-estimated bandwidth when its value is greater than networkInformation.downLink',
     function(assert) {
       this.resetNavigatorConnection({
         downlink: 100000
@@ -1220,18 +1218,16 @@ QUnit.module('NetworkInformationApi', hooks => {
       this.clock.tick(1);
 
       this.player.tech_.vhs.bandwidth = 20e10;
-      this.player.tech_.vhs.throughput = 20e10;
-      // 1 / ( 1 / 20e10 + 1 / 20e10) = 10e10
       assert.strictEqual(
-        this.player.tech_.vhs.systemBandwidth,
-        10e10,
-        'systemBandwidth is the combination of player bandwidth and throughput'
+        this.player.tech_.vhs.bandwidth,
+        20e10,
+        'bandwidth getter returned the player-estimated bandwidth value'
       );
     }
   );
 
   QUnit.test(
-    'systemBandwidth uses player-estimated bandwidth when networkInformation is not supported',
+    'bandwidth uses player-estimated bandwidth when networkInformation is not supported',
     function(assert) {
       // Nullify the `connection` property on Navigator
       this.resetNavigatorConnection(null);
@@ -1244,12 +1240,10 @@ QUnit.module('NetworkInformationApi', hooks => {
       this.clock.tick(1);
 
       this.player.tech_.vhs.bandwidth = 20e10;
-      this.player.tech_.vhs.throughput = 20e10;
-      // 1 / ( 1 / 20e10 + 1 / 20e10) = 10e10
       assert.strictEqual(
-        this.player.tech_.vhs.systemBandwidth,
-        10e10,
-        'systemBandwidth is the combination of player bandwidth and throughput since networkInformation is not supported'
+        this.player.tech_.vhs.bandwidth,
+        20e10,
+        'bandwidth getter returned the player-estimated bandwidth value'
       );
     }
   );
