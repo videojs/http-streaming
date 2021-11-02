@@ -795,7 +795,19 @@ class VhsHandler extends Component {
       },
       bandwidth: {
         get() {
-          return this.masterPlaylistController_.mainSegmentLoader_.bandwidth;
+          let bandwidthEst = this.masterPlaylistController_.mainSegmentLoader_.bandwidth;
+
+          // NetworkInfo.downlink maxes out at 10 Mbps. In the event that the player estimates a bandwidth
+          // greater than 10 Mbps, use the larger value to ensure that high quality streams are not
+          // accidentally filtered out
+          if (this.options_.useNetworkInformationApi && this.networkInformation) {
+            // Downlink property returns Mbps https://developer.mozilla.org/en-US/docs/Web/API/NetworkInformation/downlink
+            const effectiveBandwidthBitsPerSec = this.networkInformation.downlink * 1000 * 1000;
+
+            bandwidthEst = Math.max(bandwidthEst, effectiveBandwidthBitsPerSec);
+          }
+
+          return bandwidthEst;
         },
         set(bandwidth) {
           this.masterPlaylistController_.mainSegmentLoader_.bandwidth = bandwidth;
@@ -819,19 +831,7 @@ class VhsHandler extends Component {
        */
       systemBandwidth: {
         get() {
-          let bandwidthEst = this.bandwidth;
-
-          // NetworkInfo.downlink maxes out at 10 Mbps. In the event that the player estimates a bandwidth
-          // greater than 10 Mbps, use the larger value to ensure that high quality streams are not
-          // accidentally filtered out
-          if (this.options_.useNetworkInformationApi && this.networkInformation) {
-            // Downlink property returns Mbps https://developer.mozilla.org/en-US/docs/Web/API/NetworkInformation/downlink
-            const effectiveBandwidthBitsPerSec = this.networkInformation.downlink * 1000 * 1000;
-
-            bandwidthEst = Math.max(bandwidthEst, effectiveBandwidthBitsPerSec);
-          }
-
-          const invBandwidth = 1 / (bandwidthEst || 1);
+          const invBandwidth = 1 / (this.bandwidth || 1);
           let invThroughput;
 
           if (this.throughput > 0) {
