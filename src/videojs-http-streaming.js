@@ -791,22 +791,27 @@ class VhsHandler extends Component {
       },
       bandwidth: {
         get() {
-          let bandwidthEst = this.masterPlaylistController_.mainSegmentLoader_.bandwidth;
+          let playerBandwidthEst = this.masterPlaylistController_.mainSegmentLoader_.bandwidth;
 
           const networkInformation = window.navigator.connection || window.navigator.mozConnection || window.navigator.webkitConnection;
+          const tenMbpsAsBitsPerSecond = 10e6;
 
           if (this.options_.useNetworkInformationApi && networkInformation) {
             // downlink returns Mbps
             // https://developer.mozilla.org/en-US/docs/Web/API/NetworkInformation/downlink
-            const effectiveBandwidthBitsPerSec = networkInformation.downlink * 1000 * 1000;
+            const networkInfoBandwidthEstBitsPerSec = networkInformation.downlink * 1000 * 1000;
 
-            // downlink maxes out at 10 Mbps. In the event that the player estimates a bandwidth
-            // greater than 10 Mbps, use the larger value to ensure that high quality streams are not
-            // filtered out.
-            bandwidthEst = Math.max(bandwidthEst, effectiveBandwidthBitsPerSec);
+            // downlink maxes out at 10 Mbps. In the event that both networkInformationApi and the player
+            // estimate a bandwidth greater than 10 Mbps, use the larger of the two estimates to ensure that
+            // high quality streams are not filtered out.
+            if (networkInfoBandwidthEstBitsPerSec >= tenMbpsAsBitsPerSecond && playerBandwidthEst >= tenMbpsAsBitsPerSecond) {
+              playerBandwidthEst = Math.max(playerBandwidthEst, networkInfoBandwidthEstBitsPerSec);
+            } else {
+              playerBandwidthEst = networkInfoBandwidthEstBitsPerSec;
+            }
           }
 
-          return bandwidthEst;
+          return playerBandwidthEst;
         },
         set(bandwidth) {
           this.masterPlaylistController_.mainSegmentLoader_.bandwidth = bandwidth;

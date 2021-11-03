@@ -1184,7 +1184,7 @@ QUnit.module('NetworkInformationApi', hooks => {
     'bandwidth returns networkInformation.downlink when useNetworkInformationApi option is enabled',
     function(assert) {
       this.resetNavigatorConnection({
-        downlink: 200000
+        downlink: 10
       });
       this.player = createPlayer({ html5: { vhs: { useNetworkInformationApi: true } } });
       this.player.src({
@@ -1194,20 +1194,45 @@ QUnit.module('NetworkInformationApi', hooks => {
 
       this.clock.tick(1);
 
-      // downlink in bits = 200000 * 1000000 = 20e10
+      // downlink in bits = 10 * 1000000 = 10e6
       assert.strictEqual(
         this.player.tech_.vhs.bandwidth,
-        20e10,
+        10e6,
         'bandwidth equals networkInfo.downlink represented as bits per second'
       );
     }
   );
 
   QUnit.test(
-    'bandwidth uses player-estimated bandwidth when its value is greater than networkInformation.downLink',
+    'bandwidth uses player-estimated bandwidth when its value is greater than networkInformation.downLink and both values are >= 10 Mbps',
     function(assert) {
       this.resetNavigatorConnection({
-        downlink: 100000
+        // 10 Mbps or 10e6
+        downlink: 10
+      });
+      this.player = createPlayer({ html5: { vhs: { useNetworkInformationApi: true } } });
+      this.player.src({
+        src: 'manifest/master.m3u8',
+        type: 'application/vnd.apple.mpegurl'
+      });
+
+      this.clock.tick(1);
+
+      this.player.tech_.vhs.bandwidth = 20e6;
+      assert.strictEqual(
+        this.player.tech_.vhs.bandwidth,
+        20e6,
+        'bandwidth getter returned the player-estimated bandwidth value'
+      );
+    }
+  );
+
+  QUnit.test(
+    'bandwidth uses network-information-api bandwidth when its value is less than the player bandwidth and 10 Mbps',
+    function(assert) {
+      this.resetNavigatorConnection({
+        // 9 Mbps or 9e6
+        downlink: 9
       });
       this.player = createPlayer({ html5: { vhs: { useNetworkInformationApi: true } } });
       this.player.src({
@@ -1220,8 +1245,8 @@ QUnit.module('NetworkInformationApi', hooks => {
       this.player.tech_.vhs.bandwidth = 20e10;
       assert.strictEqual(
         this.player.tech_.vhs.bandwidth,
-        20e10,
-        'bandwidth getter returned the player-estimated bandwidth value'
+        9e6,
+        'bandwidth getter returned the network-information-api bandwidth value since it was less than 10 Mbps'
       );
     }
   );
