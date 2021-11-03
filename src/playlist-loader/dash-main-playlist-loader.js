@@ -25,7 +25,6 @@ class DashMainPlaylistLoader extends PlaylistLoader {
   constructor(uri, options) {
     super(uri, options);
     this.clientOffset_ = null;
-    this.sidxMapping_ = {};
     this.clientClockOffset_ = null;
     this.setMediaRefreshTimeout_ = this.setMediaRefreshTimeout_.bind(this);
   }
@@ -63,8 +62,7 @@ class DashMainPlaylistLoader extends PlaylistLoader {
     this.syncClientServerClock_(manifestString, (clientOffset) => {
       const parsedManifest = parseMpd(manifestString, {
         manifestUri: this.uri_,
-        clientOffset,
-        sidxMapping: this.sidxMapping_
+        clientOffset
       });
 
       // merge everything except for playlists, they will merge themselves
