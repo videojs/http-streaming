@@ -6,8 +6,21 @@ import {toUint8} from '@videojs/vhs-utils/es/byte-helpers';
 import {segmentXhrHeaders} from '../xhr';
 import {mergeMedia, forEachPlaylist} from './utils.js';
 
+/**
+ * This function is used internally to keep DashMainPlaylistLoader
+ * up to date with changes from this playlist loader.
+ *
+ * @param {Object} mainManifest
+ *        The manifest from DashMainPlaylistLoader
+ *
+ * @param {string} uri
+ *        The uri of the playlist to find
+ *
+ * @return {null|Object}
+ *         An object with get/set functions or null.
+ */
 export const getMediaAccessor = function(mainManifest, uri) {
-  let result;
+  let result = null;
 
   forEachPlaylist(mainManifest, function(media, index, array) {
     if (media.uri === uri) {
