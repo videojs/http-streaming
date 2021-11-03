@@ -66,7 +66,7 @@ class DashMainPlaylistLoader extends PlaylistLoader {
       });
 
       // merge everything except for playlists, they will merge themselves
-      const mergeResult = mergeManifest(this.manifest_, parsedManifest, ['playlists']);
+      const mergeResult = mergeManifest(this.manifest_, parsedManifest, ['playlists', 'mediaGroups']);
 
       // always trigger updated, as playlists will have to update themselves
       callback(mergeResult.manifest, true);
