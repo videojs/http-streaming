@@ -430,6 +430,12 @@ export const mediaDuration = (timingInfos) => {
     }
   });
 
+  // convert back to a number if it is lower than MAX_SAFE_INTEGER
+  // as we only need BigInt when we are above that.
+  if (typeof maxDuration === 'bigint' && maxDuration < Number.MAX_SAFE_INTEGER) {
+    maxDuration = Number(maxDuration);
+  }
+
   return maxDuration;
 };
 
