@@ -416,7 +416,7 @@ QUnit.test('logs deprecation notice when using hls for options', function(assert
   assert.equal(this.env.log.warn.calls, 1, 'warning logged');
   assert.equal(
     this.env.log.warn.args[0][0],
-    'Using hls options is deprecated. Use vhs instead.',
+    'Using hls options is deprecated. Use vhs instead.'
   );
 });
 
@@ -440,7 +440,7 @@ QUnit.test('logs deprecation notice when using hls for global options', function
   assert.equal(this.env.log.warn.calls, 1, 'warning logged');
   assert.equal(
     this.env.log.warn.args[0][0],
-    'Using hls options is deprecated. Use vhs instead.',
+    'Using hls options is deprecated. Use vhs instead.'
   );
 
   videojs.options.hls = origHlsOptions;
@@ -5880,7 +5880,7 @@ QUnit.test('emeKeySystems adds content types for all keySystems', function(asser
   assert.deepEqual(
     emeKeySystems(
       { keySystem1: {}, keySystem2: {} },
-      { attributes: { CODECS: 'avc1.420015, mp4a.40.2c' } },
+      { attributes: { CODECS: 'avc1.420015, mp4a.40.2c' } }
     ),
     {
       keySystem1: {
@@ -5900,7 +5900,7 @@ QUnit.test('emeKeySystems adds content types for all keySystems', function(asser
     emeKeySystems(
       { keySystem1: {}, keySystem2: {} },
       { attributes: { CODECS: 'avc1.420015' } },
-      { attributes: { CODECS: 'mp4a.40.2c' } },
+      { attributes: { CODECS: 'mp4a.40.2c' } }
     ),
     {
       keySystem1: {
@@ -5920,7 +5920,7 @@ QUnit.test('emeKeySystems supports audio only', function(assert) {
   assert.deepEqual(
     emeKeySystems(
       { keySystem1: {}, keySystem2: {} },
-      { attributes: { CODECS: 'mp4a.40.2c' } },
+      { attributes: { CODECS: 'mp4a.40.2c' } }
     ),
     {
       keySystem1: {
@@ -5939,7 +5939,7 @@ QUnit.test('emeKeySystems supports external audio only', function(assert) {
     emeKeySystems(
       { keySystem1: {}, keySystem2: {} },
       { attributes: {} },
-      { attributes: { CODECS: 'mp4a.40.2c' } },
+      { attributes: { CODECS: 'mp4a.40.2c' } }
     ),
     {
       keySystem1: {
@@ -5957,7 +5957,7 @@ QUnit.test('emeKeySystems supports video only', function(assert) {
   assert.deepEqual(
     emeKeySystems(
       { keySystem1: {}, keySystem2: {} },
-      { attributes: { CODECS: 'avc1.420015' } },
+      { attributes: { CODECS: 'avc1.420015' } }
     ),
     {
       keySystem1: {
@@ -5975,7 +5975,7 @@ QUnit.test('emeKeySystems retains non content type properties', function(assert)
   assert.deepEqual(
     emeKeySystems(
       { keySystem1: { url: '1' }, keySystem2: { url: '2'} },
-      { attributes: { CODECS: 'avc1.420015, mp4a.40.2c' } },
+      { attributes: { CODECS: 'avc1.420015, mp4a.40.2c' } }
     ),
     {
       keySystem1: {
@@ -6006,7 +6006,7 @@ QUnit.test('emeKeySystems overwrites content types', function(assert) {
           videoContentType: 'd'
         }
       },
-      { attributes: { CODECS: 'avc1.420015, mp4a.40.2c' } },
+      { attributes: { CODECS: 'avc1.420015, mp4a.40.2c' } }
     ),
     {
       keySystem1: {

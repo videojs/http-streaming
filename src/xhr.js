@@ -111,7 +111,6 @@ export const byterangeStr = function(byterange) {
   let byterangeEnd;
   const byterangeStart = byterange.offset;
 
-  // eslint-disable-next-line
   if (typeof byterange.offset === 'bigint' || typeof byterange.length === 'bigint') {
     byterangeEnd = window.BigInt(byterange.offset) + window.BigInt(byterange.length) - window.BigInt(1);
   } else {

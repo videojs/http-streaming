@@ -91,7 +91,7 @@
     "videojs-generate-rollup-config": "^6.2.2",
     "videojs-generator-verify": "~3.0.1",
     "videojs-http-source-selector": "^1.1.6",
-    "videojs-standard": "^8.0.4"
+    "videojs-standard": "^9.0.0"
   },
   "generator-videojs-plugin": {
     "version": "7.6.3"

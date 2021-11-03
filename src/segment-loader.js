@@ -419,7 +419,6 @@ export const mediaDuration = (timingInfos) => {
     const {start, end} = typeTimingInfo;
     let duration;
 
-    // eslint-disable-next-line
     if (typeof start === 'bigint' || typeof end === 'bigint') {
       duration = window.BigInt(end) - window.BigInt(start);
     } else if (typeof start === 'number' && typeof end === 'number') {
