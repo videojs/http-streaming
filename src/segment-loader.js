@@ -424,7 +424,6 @@ export const mediaDuration = (timingInfos) => {
       duration = window.BigInt(end) - window.BigInt(start);
     } else if (typeof start === 'number' && typeof end === 'number') {
       duration = end - start;
-
     }
 
     if (typeof duration !== 'undefined' && duration > maxDuration) {
