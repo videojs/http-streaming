@@ -440,7 +440,8 @@ const handleSegmentBytes = ({
     // if we have a audio track, with a codec that is not set to
     // encrypted audio
     if (tracks.audio && tracks.audio.codec && tracks.audio.codec !== 'enca') {
-      trackInfo.audioCodec = tracks.audio.codec;
+      // note Opus box name is capitalized, but things want lowercase for checks
+      trackInfo.audioCodec = tracks.audio.codec.toLowerCase();
     }
 
     // if we have a video track, with a codec that is not set to
