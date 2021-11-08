@@ -1180,7 +1180,7 @@ QUnit.module('NetworkInformationApi', hooks => {
     window.navigator = this.ogNavigator;
   });
 
-  QUnit.test(
+  QUnit[testOrSkip](
     'bandwidth returns networkInformation.downlink when useNetworkInformationApi option is enabled',
     function(assert) {
       this.resetNavigatorConnection({
@@ -1203,7 +1203,7 @@ QUnit.module('NetworkInformationApi', hooks => {
     }
   );
 
-  QUnit.test(
+  QUnit[testOrSkip](
     'bandwidth uses player-estimated bandwidth when its value is greater than networkInformation.downLink and both values are >= 10 Mbps',
     function(assert) {
       this.resetNavigatorConnection({
@@ -1227,7 +1227,7 @@ QUnit.module('NetworkInformationApi', hooks => {
     }
   );
 
-  QUnit.test(
+  QUnit[testOrSkip](
     'bandwidth uses network-information-api bandwidth when its value is less than the player bandwidth and 10 Mbps',
     function(assert) {
       this.resetNavigatorConnection({
@@ -1251,7 +1251,7 @@ QUnit.module('NetworkInformationApi', hooks => {
     }
   );
 
-  QUnit.test(
+  QUnit[testOrSkip](
     'bandwidth uses player-estimated bandwidth when networkInformation is not supported',
     function(assert) {
       // Nullify the `connection` property on Navigator
