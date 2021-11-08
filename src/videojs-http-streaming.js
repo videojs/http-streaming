@@ -630,6 +630,7 @@ class VhsHandler extends Component {
       typeof this.source_.useBandwidthFromLocalStorage !== 'undefined' ?
         this.source_.useBandwidthFromLocalStorage :
         this.options_.useBandwidthFromLocalStorage || false;
+    this.options_.useNetworkInformationApi = this.options_.useNetworkInformationApi || false;
     this.options_.customTagParsers = this.options_.customTagParsers || [];
     this.options_.customTagMappers = this.options_.customTagMappers || [];
     this.options_.cacheEncryptionKeys = this.options_.cacheEncryptionKeys || false;
@@ -682,6 +683,7 @@ class VhsHandler extends Component {
       'experimentalBufferBasedABR',
       'liveRangeSafeTimeDelta',
       'experimentalLLHLS',
+      'useNetworkInformationApi',
       'experimentalExactManifestTimings',
       'experimentalLeastPixelDiffSelector'
     ].forEach((option) => {
@@ -789,7 +791,27 @@ class VhsHandler extends Component {
       },
       bandwidth: {
         get() {
-          return this.masterPlaylistController_.mainSegmentLoader_.bandwidth;
+          let playerBandwidthEst = this.masterPlaylistController_.mainSegmentLoader_.bandwidth;
+
+          const networkInformation = window.navigator.connection || window.navigator.mozConnection || window.navigator.webkitConnection;
+          const tenMbpsAsBitsPerSecond = 10e6;
+
+          if (this.options_.useNetworkInformationApi && networkInformation) {
+            // downlink returns Mbps
+            // https://developer.mozilla.org/en-US/docs/Web/API/NetworkInformation/downlink
+            const networkInfoBandwidthEstBitsPerSec = networkInformation.downlink * 1000 * 1000;
+
+            // downlink maxes out at 10 Mbps. In the event that both networkInformationApi and the player
+            // estimate a bandwidth greater than 10 Mbps, use the larger of the two estimates to ensure that
+            // high quality streams are not filtered out.
+            if (networkInfoBandwidthEstBitsPerSec >= tenMbpsAsBitsPerSecond && playerBandwidthEst >= tenMbpsAsBitsPerSecond) {
+              playerBandwidthEst = Math.max(playerBandwidthEst, networkInfoBandwidthEstBitsPerSec);
+            } else {
+              playerBandwidthEst = networkInfoBandwidthEstBitsPerSec;
+            }
+          }
+
+          return playerBandwidthEst;
         },
         set(bandwidth) {
           this.masterPlaylistController_.mainSegmentLoader_.bandwidth = bandwidth;
