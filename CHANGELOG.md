@@ -1,3 +1,14 @@
+<a name="2.12.0"></a>
+# [2.12.0](https://github.com/videojs/http-streaming/compare/v2.11.2...v2.12.0) (2021-11-08)
+
+### Features
+
+* Add an option to use the NetworkInformation API, when available ([#1218](https://github.com/videojs/http-streaming/issues/1218)) ([061cf3c](https://github.com/videojs/http-streaming/commit/061cf3c))
+
+### Tests
+
+* Don't run networkInfo tests against ie11 ([#1221](https://github.com/videojs/http-streaming/issues/1221)) ([aaedde3](https://github.com/videojs/http-streaming/commit/aaedde3))
+
 <a name="2.11.2"></a>
 ## [2.11.2](https://github.com/videojs/http-streaming/compare/v2.11.1...v2.11.2) (2021-10-27)
 
