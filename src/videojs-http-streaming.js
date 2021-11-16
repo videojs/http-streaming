@@ -1230,10 +1230,14 @@ const VhsSourceHandler = {
     return tech.vhs;
   },
   canPlayType(type, options = {}) {
-    const { vhs: { overrideNative = !videojs.browser.IS_ANY_SAFARI } } = videojs.mergeOptions(videojs.options, options);
+    const {
+      vhs: { overrideNative = !videojs.browser.IS_ANY_SAFARI } = {},
+      hls: { overrideNative: legacyOverrideNative = false } = {}
+    } = videojs.mergeOptions(videojs.options, options);
+
     const supportedType = simpleTypeFromSourceType(type);
     const canUseMsePlayback = supportedType &&
-      (!Vhs.supportsTypeNatively(supportedType) || overrideNative);
+      (!Vhs.supportsTypeNatively(supportedType) || legacyOverrideNative || overrideNative);
 
     return canUseMsePlayback ? 'maybe' : '';
   }
