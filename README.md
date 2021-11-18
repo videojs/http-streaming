@@ -57,6 +57,7 @@ Video.js Compatibility: 6.0, 7.0
       - [cacheEncryptionKeys](#cacheencryptionkeys)
       - [handlePartialData](#handlepartialdata)
       - [liveRangeSafeTimeDelta](#liverangesafetimedelta)
+      - [useNetworkInformationApi](#usenetworkinformationapi)
       - [captionServices](#captionservices)
         - [Format](#format)
         - [Example](#example)
@@ -472,6 +473,11 @@ This option defaults to `false`.
 * Type: `number`,
 * Default: [`SAFE_TIME_DELTA`](https://github.com/videojs/http-streaming/blob/e7cb63af010779108336eddb5c8fd138d6390e95/src/ranges.js#L17)
 * Allow to  re-define length (in seconds) of time delta when you compare current time and the end of the buffered range.
+
+##### useNetworkInformationApi
+* Type: `boolean`,
+* Default: `false`
+* Use [window.networkInformation.downlink](https://developer.mozilla.org/en-US/docs/Web/API/NetworkInformation/downlink) to estimate the network's bandwidth. Per mdn, _The value is never greater than 10 Mbps, as a non-standard anti-fingerprinting measure_. Given this, if bandwidth estimates from both the player and networkInfo are >= 10 Mbps, the player will use the larger of the two values as its bandwidth estimate.
 
 ##### captionServices
 * Type: `object`
