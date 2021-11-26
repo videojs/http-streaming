@@ -868,6 +868,15 @@ export default class SegmentLoader extends videojs.EventTarget {
                                                          syncPoint.time);
 
       mediaIndex = mediaSourceInfo.mediaIndex;
+      try {
+        if (this.hls_.options_.smoothQualityChange) {
+          // Start from the next segment, so already buffered data isn't overwritten.
+          // This would cause trouble, force an internal reenqueue, force the video
+          // decoders to catch up, and cause glitches on WebKit/WPE browsers on some
+          // embedded platforms with hardware decoders.
+          mediaIndex++;
+        }
+      } catch (e) { }
       startOfSegment = mediaSourceInfo.startTime;
     } else {
       // Find the segment containing currentTime
