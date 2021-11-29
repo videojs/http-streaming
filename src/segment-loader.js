@@ -407,19 +407,36 @@ export const shouldWaitForTimelineChange = ({
   return false;
 };
 
-export const mediaDuration = (audioTimingInfo, videoTimingInfo) => {
-  const audioDuration =
-    audioTimingInfo &&
-    typeof audioTimingInfo.start === 'number' &&
-    typeof audioTimingInfo.end === 'number' ?
-      audioTimingInfo.end - audioTimingInfo.start : 0;
-  const videoDuration =
-    videoTimingInfo &&
-    typeof videoTimingInfo.start === 'number' &&
-    typeof videoTimingInfo.end === 'number' ?
-      videoTimingInfo.end - videoTimingInfo.start : 0;
+export const mediaDuration = (timingInfos) => {
+  let maxDuration = 0;
 
-  return Math.max(audioDuration, videoDuration);
+  ['video', 'audio'].forEach(function(type) {
+    const typeTimingInfo = timingInfos[`${type}TimingInfo`];
+
+    if (!typeTimingInfo) {
+      return;
+    }
+    const {start, end} = typeTimingInfo;
+    let duration;
+
+    if (typeof start === 'bigint' || typeof end === 'bigint') {
+      duration = window.BigInt(end) - window.BigInt(start);
+    } else if (typeof start === 'number' && typeof end === 'number') {
+      duration = end - start;
+    }
+
+    if (typeof duration !== 'undefined' && duration > maxDuration) {
+      maxDuration = duration;
+    }
+  });
+
+  // convert back to a number if it is lower than MAX_SAFE_INTEGER
+  // as we only need BigInt when we are above that.
+  if (typeof maxDuration === 'bigint' && maxDuration < Number.MAX_SAFE_INTEGER) {
+    maxDuration = Number(maxDuration);
+  }
+
+  return maxDuration;
 };
 
 export const segmentTooLong = ({ segmentDuration, maxDuration }) => {
@@ -450,10 +467,10 @@ export const getTroublesomeSegmentDurationMessage = (segmentInfo, sourceType) =>
     return null;
   }
 
-  const segmentDuration = mediaDuration(
-    segmentInfo.audioTimingInfo,
-    segmentInfo.videoTimingInfo
-  );
+  const segmentDuration = mediaDuration({
+    audioTimingInfo: segmentInfo.audioTimingInfo,
+    videoTimingInfo: segmentInfo.videoTimingInfo
+  });
 
   // Don't report if we lack information.
   //
