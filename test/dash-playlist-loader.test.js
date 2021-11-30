@@ -1,5 +1,6 @@
 import QUnit from 'qunit';
 import sinon from 'sinon';
+import window from 'global/window';
 import {
   default as DashPlaylistLoader,
   updateMaster,
@@ -2483,7 +2484,7 @@ QUnit.test('refreshes the xml if there is a minimumUpdatePeriod', function(asser
   this.clock.tick(4 * 1000);
 
   assert.equal(this.requests.length, 1, 'refreshed manifest');
-  assert.equal(this.requests[0].uri, 'dash-live.mpd', 'refreshed manifest');
+  assert.equal(this.requests[0].uri, window.location.href.split('/').slice(0, -1).join('/') + '/dash-live.mpd', 'refreshed manifest');
   assert.equal(minimumUpdatePeriods, 1, 'refreshed manifest');
 });
 
@@ -2503,7 +2504,7 @@ QUnit.test('stop xml refresh if minimumUpdatePeriod is removed', function(assert
   // First Refresh Tick: MPD loaded
   this.clock.tick(4 * 1000);
   assert.equal(this.requests.length, 1, 'refreshed manifest');
-  assert.equal(this.requests[0].uri, 'dash-live.mpd', 'refreshed manifest');
+  assert.equal(this.requests[0].uri, window.location.href.split('/').slice(0, -1).join('/') + '/dash-live.mpd', 'refreshed manifest');
   assert.equal(minimumUpdatePeriods, 1, 'total minimumUpdatePeriods');
 
   this.standardXHRResponse(this.requests[0], loader.masterXml_.replace('minimumUpdatePeriod="PT4S"', ''));
@@ -2530,7 +2531,7 @@ QUnit.test('continue xml refresh every targetDuration if minimumUpdatePeriod is 
   // First Refresh Tick
   this.clock.tick(4 * 1000);
   assert.equal(this.requests.length, 1, 'refreshed manifest');
-  assert.equal(this.requests[0].uri, 'dash-live.mpd', 'refreshed manifest');
+  assert.equal(this.requests[0].uri, window.location.href.split('/').slice(0, -1).join('/') + '/dash-live.mpd', 'refreshed manifest');
   assert.equal(minimumUpdatePeriods, 1, 'total minimumUpdatePeriods');
 
   this.standardXHRResponse(this.requests[0], loader.masterXml_.replace('minimumUpdatePeriod="PT4S"', 'minimumUpdatePeriod="PT0S"'));
