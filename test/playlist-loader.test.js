@@ -2708,7 +2708,14 @@ QUnit.module('Playlist Loader', function(hooks) {
     });
 
     QUnit.test('works with existing query directives', function(assert) {
-      this.loader.src += '?foo=test';
+      // clear existing requests
+      this.requests.length = 0;
+
+      this.loader.dispose();
+      this.loader = new PlaylistLoader('http://example.com/media.m3u8?foo=test', this.fakeVhs);
+
+      this.loader.load();
+
       this.requests.shift().respond(
         200, null,
         '#EXTM3U\n' +
