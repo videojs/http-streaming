@@ -260,11 +260,10 @@ export default class DashPlaylistLoader extends EventTarget {
       this.isMaster_ = true;
     }
 
-    const { withCredentials = false, handleManifestRedirects = false } = options;
+    const { withCredentials = false } = options;
 
     this.vhs_ = vhs;
     this.withCredentials = withCredentials;
-    this.handleManifestRedirects = handleManifestRedirects;
 
     if (!srcUrlOrPlaylist) {
       throw new Error('A non-empty playlist URL or object is required');
@@ -339,7 +338,7 @@ export default class DashPlaylistLoader extends EventTarget {
     }
 
     // resolve the segment URL relative to the playlist
-    const uri = resolveManifestRedirect(this.handleManifestRedirects, playlist.sidx.resolvedUri);
+    const uri = resolveManifestRedirect(playlist.sidx.resolvedUri);
 
     const fin = (err, request) => {
       if (this.requestErrored_(err, request, startingState)) {
@@ -607,7 +606,7 @@ export default class DashPlaylistLoader extends EventTarget {
         this.masterLoaded_ = Date.now();
       }
 
-      this.masterPlaylistLoader_.srcUrl = resolveManifestRedirect(this.handleManifestRedirects, this.masterPlaylistLoader_.srcUrl, req);
+      this.masterPlaylistLoader_.srcUrl = resolveManifestRedirect(this.masterPlaylistLoader_.srcUrl, req);
 
       if (masterChanged) {
         this.handleMaster_();
