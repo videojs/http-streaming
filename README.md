@@ -39,7 +39,6 @@ Video.js Compatibility: 6.0, 7.0
       - [Source](#source)
     - [List](#list)
       - [withCredentials](#withcredentials)
-      - [handleManifestRedirects](#handlemanifestredirects)
       - [useCueTags](#usecuetags)
       - [parse708captions](#parse708captions)
       - [overrideNative](#overridenative)
@@ -281,16 +280,6 @@ headers require the addition of `Access-Control-Allow-Credentials` header which
 is set to `true`.
 See html5rocks's [article](http://www.html5rocks.com/en/tutorials/cors/)
 for more info.
-
-##### handleManifestRedirects
-* Type: `boolean`
-* Default: `false`
-* can be used as a source option
-* can be used as an initialization option
-
-When the `handleManifestRedirects` property is set to `true`, manifest requests
-which are redirected will have their URL updated to the new URL for future
-requests.
 
 ##### useCueTags
 * Type: `boolean`
