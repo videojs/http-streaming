@@ -329,17 +329,14 @@ QUnit.test('passes options to PlaylistLoader', function(assert) {
   let controller = new MasterPlaylistController(options);
 
   assert.notOk(controller.masterPlaylistLoader_.withCredentials, 'credentials wont be sent by default');
-  assert.notOk(controller.masterPlaylistLoader_.handleManifestRedirects, 'redirects are ignored by default');
 
   controller.dispose();
 
   controller = new MasterPlaylistController(Object.assign({
-    withCredentials: true,
-    handleManifestRedirects: true
+    withCredentials: true
   }, options));
 
   assert.ok(controller.masterPlaylistLoader_.withCredentials, 'withCredentials enabled');
-  assert.ok(controller.masterPlaylistLoader_.handleManifestRedirects, 'handleManifestRedirects enabled');
   controller.dispose();
 });
 

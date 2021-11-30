@@ -1136,9 +1136,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   });
 
   QUnit.test('recognizes redirect, when media requested', function(assert) {
-    const loader = new PlaylistLoader('manifest/media.m3u8', this.fakeVhs, {
-      handleManifestRedirects: true
-    });
+    const loader = new PlaylistLoader('manifest/media.m3u8', this.fakeVhs, {});
 
     loader.load();
 
