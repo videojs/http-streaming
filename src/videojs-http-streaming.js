@@ -646,12 +646,10 @@ class VhsHandler extends Component {
         if (storedObject && storedObject.bandwidth) {
           this.options_.bandwidth = storedObject.bandwidth;
           this.tech_.trigger({type: 'usage', name: 'vhs-bandwidth-from-local-storage'});
-          this.tech_.trigger({type: 'usage', name: 'hls-bandwidth-from-local-storage'});
         }
         if (storedObject && storedObject.throughput) {
           this.options_.throughput = storedObject.throughput;
           this.tech_.trigger({type: 'usage', name: 'vhs-throughput-from-local-storage'});
-          this.tech_.trigger({type: 'usage', name: 'hls-throughput-from-local-storage'});
         }
       }
     }
