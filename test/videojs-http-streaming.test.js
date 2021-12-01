@@ -212,88 +212,6 @@ QUnit.test('canChangeType is exported', function(assert) {
   assert[assertion](this.player.tech(true).vhs.canChangeType(), 'canChangeType is correct');
 });
 
-QUnit.test('deprecation warning is show when using player.hls', function(assert) {
-  const oldWarn = videojs.log.warn;
-  let warning = '';
-  let vhsPlayerAccessEvents = 0;
-
-  this.player.src({
-    src: 'manifest/playlist.m3u8',
-    type: 'application/vnd.apple.mpegurl'
-  });
-
-  this.clock.tick(1);
-
-  this.player.tech_.on('usage', (event) => {
-    if (event.name === 'vhs-player-access') {
-      vhsPlayerAccessEvents++;
-    }
-  });
-
-  videojs.log.warn = (text) => {
-    warning = text;
-  };
-  assert.equal(vhsPlayerAccessEvents, 0, 'no vhs-player-access event was fired');
-  const hls = this.player.hls;
-
-  assert.equal(vhsPlayerAccessEvents, 0, 'no vhs-player-access event was fired');
-  assert.equal(
-    warning,
-    'player.hls is deprecated. Use player.tech().vhs instead.',
-    'warning would have been shown'
-  );
-  assert.ok(hls, 'an instance of hls is returned by player.hls');
-  videojs.log.warn = oldWarn;
-});
-
-QUnit.test('deprecation warning is show when using player.vhs', function(assert) {
-  const oldWarn = videojs.log.warn;
-  let warning = '';
-  let vhsPlayerAccessEvents = 0;
-
-  this.player.src({
-    src: 'manifest/playlist.m3u8',
-    type: 'application/vnd.apple.mpegurl'
-  });
-
-  this.clock.tick(1);
-
-  this.player.tech_.on('usage', (event) => {
-    if (event.name === 'vhs-player-access') {
-      vhsPlayerAccessEvents++;
-    }
-  });
-
-  videojs.log.warn = (text) => {
-    warning = text;
-  };
-  assert.equal(vhsPlayerAccessEvents, 0, 'no vhs-player-access event was fired');
-  const vhs = this.player.vhs;
-
-  assert.equal(vhsPlayerAccessEvents, 1, 'a vhs-player-access event was fired');
-  assert.equal(
-    warning,
-    'player.vhs is deprecated. Use player.tech().vhs instead.',
-    'warning would have been shown'
-  );
-  assert.ok(vhs, 'an instance of vhs is returned by player.vhs');
-  videojs.log.warn = oldWarn;
-});
-
-QUnit.test('the VhsHandler instance is referenced by player.vhs', function(assert) {
-  this.player.src({
-    src: 'manifest/playlist.m3u8',
-    type: 'application/vnd.apple.mpegurl'
-  });
-  this.clock.tick(1);
-
-  const vhs = this.player.vhs;
-
-  assert.ok(vhs instanceof VhsHandler, 'player.vhs references an instance of VhsHandler');
-
-  assert.equal(this.env.log.warn.calls, 1, 'warning logged');
-});
-
 QUnit.test('tech error may pause loading', function(assert) {
   this.player.src({
     src: 'manifest/playlist.m3u8',
@@ -322,25 +240,6 @@ QUnit.test('tech error may pause loading', function(assert) {
   assert.equal(this.env.log.error.calls, 1, '1 media error logged');
   this.env.log.error.reset();
 
-});
-
-QUnit.test('a deprecation notice is shown when using player.dash', function(assert) {
-  this.player.src({
-    src: 'manifest/playlist.m3u8',
-    type: 'application/vnd.apple.mpegurl'
-  });
-  this.clock.tick(1);
-
-  assert.ok(
-    this.player.dash instanceof VhsHandler,
-    'player.dash references an instance of VhsHandler'
-  );
-  assert.equal(this.env.log.warn.calls, 1, 'warning logged');
-  assert.equal(
-    this.env.log.warn.args[0][0],
-    'player.dash is deprecated. Use player.tech().vhs instead.',
-    'logged deprecation'
-  );
 });
 
 QUnit.test('VhsHandler is referenced by player.tech().vhs', function(assert) {
