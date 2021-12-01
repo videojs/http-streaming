@@ -10,7 +10,7 @@ module.exports = function(config) {
     preferHeadless: false,
     browsers(aboutToRun) {
       return aboutToRun.filter(function(launcherName) {
-        return !(/^(Safari|Chromium)/).test(launcherName);
+        return !(/(Safari|Chromium)/).test(launcherName);
       });
     },
     files(defaults) {
