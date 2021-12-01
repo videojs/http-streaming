@@ -519,42 +519,9 @@ class VhsHandler extends Component {
 
     this.logger_ = logger('VhsHandler');
 
-    // tech.player() is deprecated but setup a reference to HLS for
-    // backwards-compatibility
+    // tech.player() but we need access to the player in a few cases
     if (tech.options_ && tech.options_.playerId) {
-      const _player = videojs(tech.options_.playerId);
-
-      if (!_player.hasOwnProperty('hls')) {
-        Object.defineProperty(_player, 'hls', {
-          get: () => {
-            videojs.log.warn('player.hls is deprecated. Use player.tech().vhs instead.');
-            tech.trigger({ type: 'usage', name: 'hls-player-access' });
-            return this;
-          },
-          configurable: true
-        });
-      }
-
-      if (!_player.hasOwnProperty('vhs')) {
-        Object.defineProperty(_player, 'vhs', {
-          get: () => {
-            videojs.log.warn('player.vhs is deprecated. Use player.tech().vhs instead.');
-            tech.trigger({ type: 'usage', name: 'vhs-player-access' });
-            return this;
-          },
-          configurable: true
-        });
-      }
-
-      if (!_player.hasOwnProperty('dash')) {
-        Object.defineProperty(_player, 'dash', {
-          get: () => {
-            videojs.log.warn('player.dash is deprecated. Use player.tech().vhs instead.');
-            return this;
-          },
-          configurable: true
-        });
-      }
+      const _player = videojs.getPlayer(tech.options_.playerId);
 
       this.player_ = _player;
     }
@@ -1147,12 +1114,6 @@ class VhsHandler extends Component {
     }
     if (this.qualityLevels_) {
       this.qualityLevels_.dispose();
-    }
-
-    if (this.player_) {
-      delete this.player_.vhs;
-      delete this.player_.dash;
-      delete this.player_.hls;
     }
 
     if (this.tech_ && this.tech_.vhs) {

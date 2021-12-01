@@ -17,3 +17,15 @@ player.tech().on('vhs-gap-skip', () => {
 
 See [VHS Usage Events](../#vhs-usage-events) for more information on these events.
 
+## player properties for accessing VHS
+All player level properties to access VHS have been removed.
+
+If you were using any of the following:
+* `player.vhs`
+* `player.hls`
+* `player.dash`
+
+You should switch that to accessing the `vhs` property on the tech like so:
+```js
+player.tech().vhs
+```
