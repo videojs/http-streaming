@@ -43,14 +43,10 @@ QUnit.module('PlaybackWatcher', {
 
 QUnit.test('skips over gap at beginning of stream if played before content is buffered', function(assert) {
   let vhsGapSkipEvents = 0;
-  let hlsGapSkipEvents = 0;
 
   this.player.tech_.on('usage', (event) => {
     if (event.name === 'vhs-gap-skip') {
       vhsGapSkipEvents++;
-    }
-    if (event.name === 'hls-gap-skip') {
-      hlsGapSkipEvents++;
     }
   });
 
@@ -75,7 +71,6 @@ QUnit.test('skips over gap at beginning of stream if played before content is bu
   this.clock.tick(2000);
 
   assert.equal(vhsGapSkipEvents, 1, 'there is one skipped gap');
-  assert.equal(hlsGapSkipEvents, 1, 'there is one skipped gap');
 
   // check that player jumped the gap
   assert.equal(
@@ -87,14 +82,10 @@ QUnit.test('skips over gap at beginning of stream if played before content is bu
 
 QUnit.test('multiple play events do not cause the gap-skipping logic to be called sooner than expected', function(assert) {
   let vhsGapSkipEvents = 0;
-  let hlsGapSkipEvents = 0;
 
   this.player.tech_.on('usage', (event) => {
     if (event.name === 'vhs-gap-skip') {
       vhsGapSkipEvents++;
-    }
-    if (event.name === 'hls-gap-skip') {
-      hlsGapSkipEvents++;
     }
   });
 
@@ -119,7 +110,6 @@ QUnit.test('multiple play events do not cause the gap-skipping logic to be calle
   this.clock.tick(2000);
 
   assert.equal(vhsGapSkipEvents, 0, 'there is no skipped gap');
-  assert.equal(hlsGapSkipEvents, 0, 'there is no skipped gap');
 
   // check that player did not skip the gap
   assert.equal(
@@ -134,7 +124,6 @@ QUnit.test('multiple play events do not cause the gap-skipping logic to be calle
   this.clock.tick(2000);
 
   assert.equal(vhsGapSkipEvents, 1, 'there is one skipped gap');
-  assert.equal(hlsGapSkipEvents, 1, 'there is one skipped gap');
 
   // check that player did skip the gap after another 250ms has gone by
   assert.equal(
@@ -146,7 +135,6 @@ QUnit.test('multiple play events do not cause the gap-skipping logic to be calle
 
 QUnit.test('changing sources does not break ability to skip gap at beginning of stream on first play', function(assert) {
   let vhsGapSkipEvents = 0;
-  let hlsGapSkipEvents = 0;
 
   this.player.dispose();
 
@@ -164,9 +152,6 @@ QUnit.test('changing sources does not break ability to skip gap at beginning of 
   this.player.tech_.on('usage', (event) => {
     if (event.name === 'vhs-gap-skip') {
       vhsGapSkipEvents++;
-    }
-    if (event.name === 'hls-gap-skip') {
-      hlsGapSkipEvents++;
     }
   });
 
@@ -190,7 +175,6 @@ QUnit.test('changing sources does not break ability to skip gap at beginning of 
   this.clock.tick(2000);
 
   assert.equal(vhsGapSkipEvents, 1, 'there is one skipped gap');
-  assert.equal(hlsGapSkipEvents, 1, 'there is one skipped gap');
 
   // check that player jumped the gap
   assert.equal(
@@ -201,7 +185,6 @@ QUnit.test('changing sources does not break ability to skip gap at beginning of 
 
   // Simulate the source changing while the player is in a `playing` state
   vhsGapSkipEvents = 0;
-  hlsGapSkipEvents = 0;
   this.player.currentTime(0);
 
   this.player.src({
@@ -217,7 +200,6 @@ QUnit.test('changing sources does not break ability to skip gap at beginning of 
   this.clock.tick(2000);
 
   assert.equal(vhsGapSkipEvents, 1, 'there is one skipped gap');
-  assert.equal(hlsGapSkipEvents, 1, 'there is one skipped gap');
 
   // check that player jumped the gap
   assert.equal(
@@ -229,16 +211,12 @@ QUnit.test('changing sources does not break ability to skip gap at beginning of 
 
 QUnit.test('skips over gap in firefox with waiting event', function(assert) {
   let vhsGapSkipEvents = 0;
-  let hlsGapSkipEvents = 0;
 
   this.player.autoplay(true);
 
   this.player.tech_.on('usage', (event) => {
     if (event.name === 'vhs-gap-skip') {
       vhsGapSkipEvents++;
-    }
-    if (event.name === 'hls-gap-skip') {
-      hlsGapSkipEvents++;
     }
   });
 
@@ -264,7 +242,6 @@ QUnit.test('skips over gap in firefox with waiting event', function(assert) {
   this.clock.tick(1);
 
   assert.equal(vhsGapSkipEvents, 0, 'there is no skipped gap');
-  assert.equal(hlsGapSkipEvents, 0, 'there is no skipped gap');
   // seek to 10 seconds and wait 12 seconds
   this.player.currentTime(10);
   this.player.tech_.trigger('waiting');
@@ -276,21 +253,16 @@ QUnit.test('skips over gap in firefox with waiting event', function(assert) {
     20, 'Player seeked over gap after timer'
   );
   assert.equal(vhsGapSkipEvents, 1, 'there is one skipped gap');
-  assert.equal(hlsGapSkipEvents, 1, 'there is one skipped gap');
 });
 
 QUnit.test('skips over gap in chrome without waiting event', function(assert) {
   let vhsGapSkipEvents = 0;
-  let hlsGapSkipEvents = 0;
 
   this.player.autoplay(true);
 
   this.player.tech_.on('usage', (event) => {
     if (event.name === 'vhs-gap-skip') {
       vhsGapSkipEvents++;
-    }
-    if (event.name === 'hls-gap-skip') {
-      hlsGapSkipEvents++;
     }
   });
 
@@ -316,7 +288,6 @@ QUnit.test('skips over gap in chrome without waiting event', function(assert) {
   this.clock.tick(1);
 
   assert.equal(vhsGapSkipEvents, 0, 'there is no skipped gap');
-  assert.equal(hlsGapSkipEvents, 0, 'there is no skipped gap');
 
   // seek to 10 seconds & simulate chrome waiting event
   this.player.currentTime(10);
@@ -333,21 +304,16 @@ QUnit.test('skips over gap in chrome without waiting event', function(assert) {
     20, 'Player seeked over gap after timer'
   );
   assert.equal(vhsGapSkipEvents, 1, 'there is one skipped gap');
-  assert.equal(hlsGapSkipEvents, 1, 'there is one skipped gap');
 });
 
 QUnit.test('skips over gap in Chrome due to muxed video underflow', function(assert) {
   let vhsVideoUnderflowEvents = 0;
-  let hlsVideoUnderflowEvents = 0;
 
   this.player.autoplay(true);
 
   this.player.tech_.on('usage', (event) => {
     if (event.name === 'vhs-video-underflow') {
       vhsVideoUnderflowEvents++;
-    }
-    if (event.name === 'hls-video-underflow') {
-      hlsVideoUnderflowEvents++;
     }
   });
 
@@ -367,7 +333,6 @@ QUnit.test('skips over gap in Chrome due to muxed video underflow', function(ass
   this.clock.tick(1);
 
   assert.equal(vhsVideoUnderflowEvents, 0, 'no video underflow event got triggered');
-  assert.equal(hlsVideoUnderflowEvents, 0, 'no video underflow event got triggered');
 
   const mpc = this.player.tech_.vhs.masterPlaylistController_;
 
@@ -388,21 +353,16 @@ QUnit.test('skips over gap in Chrome due to muxed video underflow', function(ass
   assert.equal(seeks.length, 1, 'one seek');
   assert.equal(seeks[0], 13, 'player seeked to current time');
   assert.equal(vhsVideoUnderflowEvents, 1, 'triggered a video underflow event');
-  assert.equal(hlsVideoUnderflowEvents, 1, 'triggered a video underflow event');
 });
 
 QUnit.test('skips over gap in Chrome due to demuxed video underflow', function(assert) {
   let vhsVideoUnderflowEvents = 0;
-  let hlsVideoUnderflowEvents = 0;
 
   this.player.autoplay(true);
 
   this.player.tech_.on('usage', (event) => {
     if (event.name === 'vhs-video-underflow') {
       vhsVideoUnderflowEvents++;
-    }
-    if (event.name === 'hls-video-underflow') {
-      hlsVideoUnderflowEvents++;
     }
   });
 
@@ -422,7 +382,6 @@ QUnit.test('skips over gap in Chrome due to demuxed video underflow', function(a
   this.clock.tick(1);
 
   assert.equal(vhsVideoUnderflowEvents, 0, 'no video underflow event got triggered');
-  assert.equal(hlsVideoUnderflowEvents, 0, 'no video underflow event got triggered');
 
   const mpc = this.player.tech_.vhs.masterPlaylistController_;
 
@@ -447,7 +406,6 @@ QUnit.test('skips over gap in Chrome due to demuxed video underflow', function(a
   assert.equal(seeks.length, 1, 'one seek');
   assert.equal(seeks[0], 18, 'player seeked to current time');
   assert.equal(vhsVideoUnderflowEvents, 1, 'triggered a video underflow event');
-  assert.equal(hlsVideoUnderflowEvents, 1, 'triggered a video underflow event');
 });
 
 QUnit.test(
@@ -662,9 +620,7 @@ QUnit.test('fires notifications when activated', function(assert) {
   const seekable = [[]];
   let currentTime = 0;
   let vhsLiveResyncEvents = 0;
-  let hlsLiveResyncEvents = 0;
   let vhsVideoUnderflowEvents = 0;
-  let hlsVideoUnderflowEvents = 0;
 
   this.player.src({
     src: 'liveStart30sBefore.m3u8',
@@ -703,14 +659,8 @@ QUnit.test('fires notifications when activated', function(assert) {
     if (event.name === 'vhs-live-resync') {
       vhsLiveResyncEvents++;
     }
-    if (event.name === 'hls-live-resync') {
-      hlsLiveResyncEvents++;
-    }
     if (event.name === 'vhs-video-underflow') {
       vhsVideoUnderflowEvents++;
-    }
-    if (event.name === 'hls-video-underflow') {
-      hlsVideoUnderflowEvents++;
     }
   });
 
@@ -718,16 +668,13 @@ QUnit.test('fires notifications when activated', function(assert) {
   seekable[0] = [20, 30];
   playbackWatcher.waiting_();
   assert.equal(vhsLiveResyncEvents, 1, 'triggered a liveresync event');
-  assert.equal(hlsLiveResyncEvents, 1, 'triggered a liveresync event');
 
   currentTime = 12;
   seekable[0] = [0, 100];
   buffered = [[0, 9], [10, 20]];
   playbackWatcher.waiting_();
   assert.equal(vhsVideoUnderflowEvents, 1, 'triggered a videounderflow event');
-  assert.equal(hlsVideoUnderflowEvents, 1, 'triggered a videounderflow event');
   assert.equal(vhsLiveResyncEvents, 1, 'did not trigger an additional liveresync event');
-  assert.equal(hlsLiveResyncEvents, 1, 'did not trigger an additional liveresync event');
 });
 
 QUnit.test('fixes bad seeks', function(assert) {
@@ -1426,7 +1373,6 @@ loaderTypes.forEach(function(type) {
     expectedUsage[`vhs-${type}-download-exclusion`] = 1;
 
     expectedUsage['vhs-rendition-blacklisted'] = 1;
-    expectedUsage['hls-rendition-blacklisted'] = 1;
     // expectedUsage['vhs-rendition-change-exclude'] = 1;
 
     assert.deepEqual(this.usageEvents, expectedUsage, 'usage as expected');
@@ -1465,7 +1411,6 @@ loaderTypes.forEach(function(type) {
 
       expectedUsage[`vhs-${type}-download-exclusion`] = 1;
       expectedUsage['vhs-rendition-blacklisted'] = 1;
-      expectedUsage['hls-rendition-blacklisted'] = 1;
       if (!last) {
         expectedUsage['vhs-rendition-change-exclude'] = 1;
       }
