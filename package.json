@@ -1,6 +1,6 @@
 {
   "name": "@videojs/http-streaming",
-  "version": "2.11.0",
+  "version": "2.12.0",
   "description": "Play back HLS and DASH with Video.js, even where it's not natively supported",
   "main": "dist/videojs-http-streaming.cjs.js",
   "module": "dist/videojs-http-streaming.es.js",
@@ -60,8 +60,8 @@
     "aes-decrypter": "3.1.2",
     "global": "^4.4.0",
     "m3u8-parser": "4.7.0",
-    "mpd-parser": "0.19.1",
-    "mux.js": "5.14.0",
+    "mpd-parser": "0.20.0",
+    "mux.js": "6.0.0",
     "video.js": "^6 || ^7"
   },
   "peerDependencies": {
@@ -91,7 +91,7 @@
     "videojs-generate-rollup-config": "^6.2.2",
     "videojs-generator-verify": "~3.0.1",
     "videojs-http-source-selector": "^1.1.6",
-    "videojs-standard": "^8.0.4"
+    "videojs-standard": "^9.0.0"
   },
   "generator-videojs-plugin": {
     "version": "7.6.3"

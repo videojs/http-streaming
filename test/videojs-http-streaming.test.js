@@ -416,7 +416,7 @@ QUnit.test('logs deprecation notice when using hls for options', function(assert
   assert.equal(this.env.log.warn.calls, 1, 'warning logged');
   assert.equal(
     this.env.log.warn.args[0][0],
-    'Using hls options is deprecated. Use vhs instead.',
+    'Using hls options is deprecated. Use vhs instead.'
   );
 });
 
@@ -440,7 +440,7 @@ QUnit.test('logs deprecation notice when using hls for global options', function
   assert.equal(this.env.log.warn.calls, 1, 'warning logged');
   assert.equal(
     this.env.log.warn.args[0][0],
-    'Using hls options is deprecated. Use vhs instead.',
+    'Using hls options is deprecated. Use vhs instead.'
   );
 
   videojs.options.hls = origHlsOptions;
@@ -1159,6 +1159,120 @@ QUnit.test(
     );
   }
 );
+
+QUnit.module('NetworkInformationApi', hooks => {
+  hooks.beforeEach(function(assert) {
+    this.env = useFakeEnvironment(assert);
+    this.ogNavigator = window.navigator;
+    this.clock = this.env.clock;
+
+    this.resetNavigatorConnection = (connection = {}) => {
+      // Need to delete the property before setting since navigator doesn't have a setter
+      delete window.navigator;
+      window.navigator = {
+        connection
+      };
+    };
+  });
+
+  hooks.afterEach(function() {
+    this.env.restore();
+    window.navigator = this.ogNavigator;
+  });
+
+  QUnit[testOrSkip](
+    'bandwidth returns networkInformation.downlink when useNetworkInformationApi option is enabled',
+    function(assert) {
+      this.resetNavigatorConnection({
+        downlink: 10
+      });
+      this.player = createPlayer({ html5: { vhs: { useNetworkInformationApi: true } } });
+      this.player.src({
+        src: 'manifest/master.m3u8',
+        type: 'application/vnd.apple.mpegurl'
+      });
+
+      this.clock.tick(1);
+
+      // downlink in bits = 10 * 1000000 = 10e6
+      assert.strictEqual(
+        this.player.tech_.vhs.bandwidth,
+        10e6,
+        'bandwidth equals networkInfo.downlink represented as bits per second'
+      );
+    }
+  );
+
+  QUnit[testOrSkip](
+    'bandwidth uses player-estimated bandwidth when its value is greater than networkInformation.downLink and both values are >= 10 Mbps',
+    function(assert) {
+      this.resetNavigatorConnection({
+        // 10 Mbps or 10e6
+        downlink: 10
+      });
+      this.player = createPlayer({ html5: { vhs: { useNetworkInformationApi: true } } });
+      this.player.src({
+        src: 'manifest/master.m3u8',
+        type: 'application/vnd.apple.mpegurl'
+      });
+
+      this.clock.tick(1);
+
+      this.player.tech_.vhs.bandwidth = 20e6;
+      assert.strictEqual(
+        this.player.tech_.vhs.bandwidth,
+        20e6,
+        'bandwidth getter returned the player-estimated bandwidth value'
+      );
+    }
+  );
+
+  QUnit[testOrSkip](
+    'bandwidth uses network-information-api bandwidth when its value is less than the player bandwidth and 10 Mbps',
+    function(assert) {
+      this.resetNavigatorConnection({
+        // 9 Mbps or 9e6
+        downlink: 9
+      });
+      this.player = createPlayer({ html5: { vhs: { useNetworkInformationApi: true } } });
+      this.player.src({
+        src: 'manifest/master.m3u8',
+        type: 'application/vnd.apple.mpegurl'
+      });
+
+      this.clock.tick(1);
+
+      this.player.tech_.vhs.bandwidth = 20e10;
+      assert.strictEqual(
+        this.player.tech_.vhs.bandwidth,
+        9e6,
+        'bandwidth getter returned the network-information-api bandwidth value since it was less than 10 Mbps'
+      );
+    }
+  );
+
+  QUnit[testOrSkip](
+    'bandwidth uses player-estimated bandwidth when networkInformation is not supported',
+    function(assert) {
+      // Nullify the `connection` property on Navigator
+      this.resetNavigatorConnection(null);
+      this.player = createPlayer({ html5: { vhs: { useNetworkInformationApi: true } } });
+      this.player.src({
+        src: 'manifest/master.m3u8',
+        type: 'application/vnd.apple.mpegurl'
+      });
+
+      this.clock.tick(1);
+
+      this.player.tech_.vhs.bandwidth = 20e10;
+      assert.strictEqual(
+        this.player.tech_.vhs.bandwidth,
+        20e10,
+        'bandwidth getter returned the player-estimated bandwidth value'
+      );
+    }
+  );
+});
 
 QUnit.test('requests a reasonable rendition to start', function(assert) {
   this.player.src({
@@ -5880,7 +5994,7 @@ QUnit.test('emeKeySystems adds content types for all keySystems', function(asser
   assert.deepEqual(
     emeKeySystems(
       { keySystem1: {}, keySystem2: {} },
-      { attributes: { CODECS: 'avc1.420015, mp4a.40.2c' } },
+      { attributes: { CODECS: 'avc1.420015, mp4a.40.2c' } }
     ),
     {
       keySystem1: {
@@ -5900,7 +6014,7 @@ QUnit.test('emeKeySystems adds content types for all keySystems', function(asser
     emeKeySystems(
       { keySystem1: {}, keySystem2: {} },
       { attributes: { CODECS: 'avc1.420015' } },
-      { attributes: { CODECS: 'mp4a.40.2c' } },
+      { attributes: { CODECS: 'mp4a.40.2c' } }
     ),
     {
       keySystem1: {
@@ -5920,7 +6034,7 @@ QUnit.test('emeKeySystems supports audio only', function(assert) {
   assert.deepEqual(
     emeKeySystems(
       { keySystem1: {}, keySystem2: {} },
-      { attributes: { CODECS: 'mp4a.40.2c' } },
+      { attributes: { CODECS: 'mp4a.40.2c' } }
     ),
     {
       keySystem1: {
@@ -5939,7 +6053,7 @@ QUnit.test('emeKeySystems supports external audio only', function(assert) {
     emeKeySystems(
       { keySystem1: {}, keySystem2: {} },
       { attributes: {} },
-      { attributes: { CODECS: 'mp4a.40.2c' } },
+      { attributes: { CODECS: 'mp4a.40.2c' } }
     ),
     {
       keySystem1: {
@@ -5957,7 +6071,7 @@ QUnit.test('emeKeySystems supports video only', function(assert) {
   assert.deepEqual(
     emeKeySystems(
       { keySystem1: {}, keySystem2: {} },
-      { attributes: { CODECS: 'avc1.420015' } },
+      { attributes: { CODECS: 'avc1.420015' } }
     ),
     {
       keySystem1: {
@@ -5975,7 +6089,7 @@ QUnit.test('emeKeySystems retains non content type properties', function(assert)
   assert.deepEqual(
     emeKeySystems(
       { keySystem1: { url: '1' }, keySystem2: { url: '2'} },
-      { attributes: { CODECS: 'avc1.420015, mp4a.40.2c' } },
+      { attributes: { CODECS: 'avc1.420015, mp4a.40.2c' } }
     ),
     {
       keySystem1: {
@@ -6006,7 +6120,7 @@ QUnit.test('emeKeySystems overwrites content types', function(assert) {
           videoContentType: 'd'
         }
       },
-      { attributes: { CODECS: 'avc1.420015, mp4a.40.2c' } },
+      { attributes: { CODECS: 'avc1.420015, mp4a.40.2c' } }
     ),
     {
       keySystem1: {
