@@ -1004,6 +1004,28 @@ class VhsHandler extends Component {
     this.tech_.src(this.mediaSourceUrl_);
   }
 
+  createKeySessions_() {
+    const audioPlaylistLoader =
+      this.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader;
+
+    this.logger_('waiting for EME key session creation');
+    waitForKeySessionCreation({
+      player: this.player_,
+      sourceKeySystems: this.source_.keySystems,
+      audioMedia: audioPlaylistLoader && audioPlaylistLoader.media(),
+      mainPlaylists: this.playlists.master.playlists
+    }).then(() => {
+      this.logger_('created EME key session');
+      this.masterPlaylistController_.sourceUpdater_.initializedEme();
+    }).catch((err) => {
+      this.logger_('error while creating EME key session', err);
+      this.player_.error({
+        message: 'Failed to initialize media keys for EME',
+        code: 3
+      });
+    });
+  }
+
   /**
    * If necessary and EME is available, sets up EME options and waits for key session
    * creation.
@@ -1033,6 +1055,19 @@ class VhsHandler extends Component {
       }
     });
 
+    // If waitingforkey is fired, it's possible that the data that's necessary to retrieve
+    // the key is in the manifest. While this should've happened on initial source load, it
+    // may happen again in live streams where the keys change, and the manifest info
+    // reflects the update.
+    //
+    // Because videojs-contrib-eme compares the PSSH data we send to that of PSSH data it's
+    // already requested keys for, we don't have to worry about this generating extraneous
+    // requests.
+    this.player_.tech_.on('waitingforkey', () => {
+      this.logger_('waitingforkey fired, attempting to create any new key sessions');
+      this.createKeySessions_();
+    });
+
     // In IE11 this is too early to initialize media keys, and IE11 does not support
     // promises.
     if (videojs.browser.IE_VERSION === 11 || !didSetupEmeOptions) {
@@ -1041,22 +1076,7 @@ class VhsHandler extends Component {
       return;
     }
 
-    this.logger_('waiting for EME key session creation');
-    waitForKeySessionCreation({
-      player: this.player_,
-      sourceKeySystems: this.source_.keySystems,
-      audioMedia: audioPlaylistLoader && audioPlaylistLoader.media(),
-      mainPlaylists: this.playlists.master.playlists
-    }).then(() => {
-      this.logger_('created EME key session');
-      this.masterPlaylistController_.sourceUpdater_.initializedEme();
-    }).catch((err) => {
-      this.logger_('error while creating EME key session', err);
-      this.player_.error({
-        message: 'Failed to initialize media keys for EME',
-        code: 3
-      });
-    });
+    this.createKeySessions_();
   }
 
   /**
