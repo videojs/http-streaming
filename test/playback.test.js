@@ -236,7 +236,7 @@ QUnit[testFn]('Live DASH', function(assert) {
     const firstSeekableEnd = firstSeekable.end(firstSeekable.length - 1);
 
     playFor(player, 2, function() {
-      assert.ok(true, 'played for at least 10 seconds');
+      assert.ok(true, 'played for at least 2 seconds');
       assert.equal(player.error(), null, 'has no player errors');
 
       const seekable = player.seekable();
