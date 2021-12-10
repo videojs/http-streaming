@@ -238,8 +238,8 @@ QUnit[testFn]('Live DASH', function(assert) {
       const seekable = player.seekable();
       const seekableEnd = seekable.end(seekable.length - 1);
 
-      assert.notEqual(firstSeekableEnd, seekableEnd, 'the seekable end has changed');
-      assert.equal(firstSeekableEnd + 2, seekableEnd, 'seekable end has progressed by 2');
+      assert.notEqual(seekableEnd, firstSeekableEnd, 'the seekable end has changed');
+      assert.ok(seekableEnd > firstSeekableEnd, 'seekable end has progressed');
 
       done();
     });
