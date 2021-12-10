@@ -226,31 +226,31 @@ QUnit[testFn]('Big Buck Bunny', function(assert) {
 QUnit[testFn]('Live DASH', function(assert) {
   const done = assert.async();
   const player = this.player;
-  let firstSeekableEnd;
 
   player.on('canplay', function() {
-    const seekable = player.seekable();
+    const firstSeekable = player.seekable();
+    const firstSeekableEnd = firstSeekable.end(firstSeekable.length - 1);
 
-    firstSeekableEnd = seekable.end(seekable.length - 1);
-  });
+    playFor(player, 2, function() {
+      assert.ok(true, 'played for at least 10 seconds');
+      assert.equal(player.error(), null, 'has no player errors');
 
-  playFor(player, 5, function() {
-    assert.ok(true, 'played for at least five seconds');
-    assert.equal(player.error(), null, 'has no player errors');
+      const seekable = player.seekable();
+      const seekableEnd = seekable.end(seekable.length - 1);
 
-    const seekable = player.seekable();
-    const seekableEnd = seekable.end(seekable.length - 1);
+      assert.notEqual(seekableEnd, firstSeekableEnd, 'the seekable end has changed');
+      assert.ok(seekableEnd > firstSeekableEnd, 'seekable end has progressed');
 
-    assert.notEqual(seekableEnd, firstSeekableEnd, 'the seekable end has changed');
-    assert.ok(seekableEnd > firstSeekableEnd, 'seekable end has progressed');
-
-    done();
+      done();
+    });
   });
 
   player.src({
     src: 'https://livesim.dashif.org/livesim/mup_30/testpic_2s/Manifest.mpd',
     type: 'application/dash+xml'
   });
+
+  player.play();
 });
 
 QUnit[testFn]('Multiperiod dash works and can end', function(assert) {
