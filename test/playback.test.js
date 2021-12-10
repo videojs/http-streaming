@@ -227,6 +227,8 @@ QUnit[testFn]('Live DASH', function(assert) {
   const done = assert.async();
   const player = this.player;
 
+  // must set playback rate to 1 so that the manifest will refresh during playback
+  // and we'll be able to check whether seekable has updated
   player.defaultPlaybackRate(1);
 
   player.one('playing', function() {
