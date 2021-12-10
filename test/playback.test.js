@@ -227,10 +227,15 @@ QUnit[testFn]('Live DASH', function(assert) {
   const done = assert.async();
   const player = this.player;
 
+
+  player.playbackRate(1);
+
   player.one('playing', function() {
     const firstSeekable = player.seekable();
     const firstSeekableEnd = firstSeekable.end(firstSeekable.length - 1);
 
+  console.log(player.playbackRate());
+    console.log(new Date(), player.currentTime(), firstSeekableEnd);
     playFor(player, 2, function() {
       assert.ok(true, 'played for at least 10 seconds');
       assert.equal(player.error(), null, 'has no player errors');
@@ -238,6 +243,7 @@ QUnit[testFn]('Live DASH', function(assert) {
       const seekable = player.seekable();
       const seekableEnd = seekable.end(seekable.length - 1);
 
+      console.log(new Date(), player.currentTime(), seekableEnd);
       assert.notEqual(seekableEnd, firstSeekableEnd, 'the seekable end has changed');
       assert.ok(seekableEnd > firstSeekableEnd, 'seekable end has progressed');
 
