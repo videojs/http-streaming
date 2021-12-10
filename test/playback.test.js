@@ -234,19 +234,17 @@ QUnit[testFn]('Live DASH', function(assert) {
     firstSeekableEnd = seekable.end(seekable.length - 1);
   });
 
-  playFor(player, 2, function() {
-    assert.ok(true, 'played for at least two seconds');
+  playFor(player, 5, function() {
+    assert.ok(true, 'played for at least five seconds');
     assert.equal(player.error(), null, 'has no player errors');
 
-    playFor(player, 2, function() {
-      const seekable = player.seekable();
-      const seekableEnd = seekable.end(seekable.length - 1);
+    const seekable = player.seekable();
+    const seekableEnd = seekable.end(seekable.length - 1);
 
-      assert.notEqual(seekableEnd, firstSeekableEnd, 'the seekable end has changed');
-      assert.ok(seekableEnd > firstSeekableEnd, 'seekable end has progressed');
+    assert.notEqual(seekableEnd, firstSeekableEnd, 'the seekable end has changed');
+    assert.ok(seekableEnd > firstSeekableEnd, 'seekable end has progressed');
 
-      done();
-    });
+    done();
   });
 
   player.src({
