@@ -226,13 +226,17 @@ QUnit[testFn]('Big Buck Bunny', function(assert) {
 QUnit[testFn]('Live DASH', function(assert) {
   const done = assert.async();
   const player = this.player;
+  let firstSeekableEnd;
+
+  player.on('canplay', function() {
+    const seekable = player.seekable();
+
+    firstSeekableEnd = seekable.end(seekable.length - 1);
+  });
 
   playFor(player, 2, function() {
     assert.ok(true, 'played for at least two seconds');
     assert.equal(player.error(), null, 'has no player errors');
-
-    const firstSeekable = player.seekable();
-    const firstSeekableEnd = firstSeekable.end(firstSeekable.length - 1);
 
     playFor(player, 2, function() {
       const seekable = player.seekable();
