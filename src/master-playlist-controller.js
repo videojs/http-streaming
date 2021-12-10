@@ -1445,9 +1445,26 @@ export class MasterPlaylistController extends videojs.EventTarget {
   onSyncInfoUpdate_() {
     let audioSeekable;
 
-    // If we have two source buffers and only one is created then the seekable range will be incorrect.
-    // We should wait until all source buffers are created.
-    if (!this.masterPlaylistLoader_ || this.sourceUpdater_.hasCreatedSourceBuffers()) {
+    // TODO check for creation of both source buffers before updating seekable
+    //
+    // A fix was made to this function where a check for
+    // this.sourceUpdater_.hasCreatedSourceBuffers
+    // was added to ensure that both source buffers were created before seekable was
+    // updated. However, it originally had a bug where it was checking for a true and
+    // returning early instead of checking for false. Setting it to check for false to
+    // return early though created other issues. A call to play() would check for seekable
+    // end without verifying that a seekable range was present. In addition, even checking
+    // for that didn't solve some issues, as handleFirstPlay is sometimes worked around
+    // due to a media update calling load on the segment loaders, skipping a seek to live,
+    // thereby starting live streams at the beginning of the stream rather than at the end.
+    //
+    // This conditional should be fixed to wait for the creation of two source buffers at
+    // the same time as the other sections of code are fixed to properly seek to live and
+    // not throw an error due to checking for a seekable end when no seekable range exists.
+    //
+    // For now, fall back to the older behavior, with the understanding that the seekable
+    // range may not be completely correct, leading to a suboptimal initial live point.
+    if (!this.masterPlaylistLoader_) {
       return;
     }
 
