@@ -227,7 +227,7 @@ QUnit[testFn]('Live DASH', function(assert) {
   const done = assert.async();
   const player = this.player;
 
-  player.on('playing', function() {
+  player.one('playing', function() {
     const firstSeekable = player.seekable();
     const firstSeekableEnd = firstSeekable.end(firstSeekable.length - 1);
 
