@@ -1,5 +1,6 @@
 import QUnit from 'qunit';
 import sinon from 'sinon';
+import window from 'global/window';
 import {
   default as DashPlaylistLoader,
   updateMaster,
@@ -2084,8 +2085,8 @@ QUnit.test('requests the manifest immediately when given a URL', function(assert
   assert.equal(this.requests[0].url, 'dash.mpd', 'requested the manifest');
 });
 
-QUnit.test('redirect manifest request when handleManifestRedirects is true', function(assert) {
-  const loader = new DashPlaylistLoader('dash.mpd', this.fakeVhs, { handleManifestRedirects: true });
+QUnit.test('redirect manifest request', function(assert) {
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeVhs, {});
 
   loader.load();
 
@@ -2098,8 +2099,8 @@ QUnit.test('redirect manifest request when handleManifestRedirects is true', fun
   assert.equal(loader.srcUrl, 'http://differenturi.com/test.mpd', 'url has redirected');
 });
 
-QUnit.test('redirect src request when handleManifestRedirects is true', function(assert) {
-  const loader = new DashPlaylistLoader('dash.mpd', this.fakeVhs, { handleManifestRedirects: true });
+QUnit.test('redirect src request', function(assert) {
+  const loader = new DashPlaylistLoader('dash.mpd', this.fakeVhs, {});
 
   loader.load();
 
@@ -2114,20 +2115,6 @@ QUnit.test('redirect src request when handleManifestRedirects is true', function
   this.clock.tick(1);
 
   assert.equal(childLoader.media_.resolvedUri, 'http://differenturi.com/placeholder-uri-0', 'url has redirected');
-});
-
-QUnit.test('do not redirect src request when handleManifestRedirects is not set', function(assert) {
-  const loader = new DashPlaylistLoader('dash.mpd', this.fakeVhs);
-
-  loader.load();
-
-  const modifiedRequest = this.requests.shift();
-
-  modifiedRequest.responseURL = 'http://differenturi.com/test.mpd';
-
-  this.standardXHRResponse(modifiedRequest);
-
-  assert.equal(loader.srcUrl, 'dash.mpd', 'url has not redirected');
 });
 
 QUnit.test('starts without any metadata', function(assert) {
@@ -2519,7 +2506,7 @@ QUnit.test('refreshes the xml if there is a minimumUpdatePeriod', function(asser
   this.clock.tick(4 * 1000);
 
   assert.equal(this.requests.length, 1, 'refreshed manifest');
-  assert.equal(this.requests[0].uri, 'dash-live.mpd', 'refreshed manifest');
+  assert.equal(this.requests[0].uri, window.location.href.split('/').slice(0, -1).join('/') + '/dash-live.mpd', 'refreshed manifest');
   assert.equal(minimumUpdatePeriods, 1, 'refreshed manifest');
 });
 
@@ -2541,7 +2528,7 @@ QUnit.test('stop xml refresh if minimumUpdatePeriod is removed', function(assert
   // First Refresh Tick: MPD loaded
   this.clock.tick(4 * 1000);
   assert.equal(this.requests.length, 1, 'refreshed manifest');
-  assert.equal(this.requests[0].uri, 'dash-live.mpd', 'refreshed manifest');
+  assert.equal(this.requests[0].uri, window.location.href.split('/').slice(0, -1).join('/') + '/dash-live.mpd', 'refreshed manifest');
   assert.equal(minimumUpdatePeriods, 1, 'total minimumUpdatePeriods');
 
   this.standardXHRResponse(this.requests[0], loader.masterXml_.replace('minimumUpdatePeriod="PT4S"', ''));
@@ -2570,7 +2557,7 @@ QUnit.test('continue xml refresh every targetDuration if minimumUpdatePeriod is 
   // First Refresh Tick
   this.clock.tick(4 * 1000);
   assert.equal(this.requests.length, 1, 'refreshed manifest');
-  assert.equal(this.requests[0].uri, 'dash-live.mpd', 'refreshed manifest');
+  assert.equal(this.requests[0].uri, window.location.href.split('/').slice(0, -1).join('/') + '/dash-live.mpd', 'refreshed manifest');
   assert.equal(minimumUpdatePeriods, 1, 'total minimumUpdatePeriods');
 
   this.standardXHRResponse(this.requests[0], loader.masterXml_.replace('minimumUpdatePeriod="PT4S"', 'minimumUpdatePeriod="PT0S"'));

@@ -150,7 +150,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     const {
       src,
-      handleManifestRedirects,
       withCredentials,
       tech,
       bandwidth,
@@ -198,7 +197,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.requestOptions_ = {
       withCredentials,
-      handleManifestRedirects,
       maxPlaylistRetries,
       timeout: null
     };
