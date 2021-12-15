@@ -654,11 +654,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.masterPlaylistLoader_.on('renditiondisabled', () => {
       this.tech_.trigger({type: 'usage', name: 'vhs-rendition-disabled'});
-      this.tech_.trigger({type: 'usage', name: 'hls-rendition-disabled'});
     });
     this.masterPlaylistLoader_.on('renditionenabled', () => {
       this.tech_.trigger({type: 'usage', name: 'vhs-rendition-enabled'});
-      this.tech_.trigger({type: 'usage', name: 'hls-rendition-enabled'});
     });
   }
 
@@ -716,28 +714,23 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     if (defaultDemuxed) {
       this.tech_.trigger({type: 'usage', name: 'vhs-demuxed'});
-      this.tech_.trigger({type: 'usage', name: 'hls-demuxed'});
     }
 
     if (Object.keys(mediaGroups.SUBTITLES).length) {
       this.tech_.trigger({type: 'usage', name: 'vhs-webvtt'});
-      this.tech_.trigger({type: 'usage', name: 'hls-webvtt'});
     }
 
     if (Vhs.Playlist.isAes(media)) {
       this.tech_.trigger({type: 'usage', name: 'vhs-aes'});
-      this.tech_.trigger({type: 'usage', name: 'hls-aes'});
     }
 
     if (audioGroupKeys.length &&
         Object.keys(mediaGroups.AUDIO[audioGroupKeys[0]]).length > 1) {
       this.tech_.trigger({type: 'usage', name: 'vhs-alternate-audio'});
-      this.tech_.trigger({type: 'usage', name: 'hls-alternate-audio'});
     }
 
     if (this.useCueTags_) {
       this.tech_.trigger({type: 'usage', name: 'vhs-playlist-cue-tags'});
-      this.tech_.trigger({type: 'usage', name: 'hls-playlist-cue-tags'});
     }
   }
 
@@ -799,7 +792,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.mainSegmentLoader_.on('timestampoffset', () => {
       this.tech_.trigger({type: 'usage', name: 'vhs-timestamp-offset'});
-      this.tech_.trigger({type: 'usage', name: 'hls-timestamp-offset'});
     });
     this.audioSegmentLoader_.on('syncinfoupdate', () => {
       this.onSyncInfoUpdate_();
@@ -850,7 +842,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.mainSegmentLoader_.on('fmp4', () => {
       if (!this.triggeredFmp4Usage) {
         this.tech_.trigger({type: 'usage', name: 'vhs-fmp4'});
-        this.tech_.trigger({type: 'usage', name: 'hls-fmp4'});
         this.triggeredFmp4Usage = true;
       }
     });
@@ -858,7 +849,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.audioSegmentLoader_.on('fmp4', () => {
       if (!this.triggeredFmp4Usage) {
         this.tech_.trigger({type: 'usage', name: 'vhs-fmp4'});
-        this.tech_.trigger({type: 'usage', name: 'hls-fmp4'});
         this.triggeredFmp4Usage = true;
       }
     });
@@ -1242,7 +1232,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
     }
     this.tech_.trigger('blacklistplaylist');
     this.tech_.trigger({type: 'usage', name: 'vhs-rendition-blacklisted'});
-    this.tech_.trigger({type: 'usage', name: 'hls-rendition-blacklisted'});
 
     // TODO: should we select a new playlist if this blacklist wasn't for the currentPlaylist?
     // Would be something like media().id !=== currentPlaylist.id and we  would need something

@@ -2727,7 +2727,6 @@ QUnit.test('calls to update cues on media when no master', function(assert) {
 QUnit.test('respects useCueTags option', function(assert) {
   const origVhsOptions = videojs.options.vhs;
   let vhsPlaylistCueTagsEvents = 0;
-  let hlsPlaylistCueTagsEvents = 0;
 
   videojs.options.vhs = {
     useCueTags: true
@@ -2739,9 +2738,6 @@ QUnit.test('respects useCueTags option', function(assert) {
   this.player.tech_.on('usage', (event) => {
     if (event.name === 'vhs-playlist-cue-tags') {
       vhsPlaylistCueTagsEvents++;
-    }
-    if (event.name === 'hls-playlist-cue-tags') {
-      hlsPlaylistCueTagsEvents++;
     }
   });
   this.player.src({
@@ -2756,7 +2752,6 @@ QUnit.test('respects useCueTags option', function(assert) {
   this.standardXHRResponse(this.requests.shift());
 
   assert.equal(vhsPlaylistCueTagsEvents, 1, 'cue tags event has been triggered once');
-  assert.equal(hlsPlaylistCueTagsEvents, 1, 'cue tags event has been triggered once');
   assert.ok(
     this.masterPlaylistController.cueTagsTrack_,
     'creates cueTagsTrack_ if useCueTags is truthy'
@@ -2821,7 +2816,6 @@ QUnit.test('correctly sets alternate audio track kinds', function(assert) {
 
 QUnit.test('trigger events when video and audio is demuxed by default', function(assert) {
   let vhsDemuxedEvents = 0;
-  let hlsDemuxedEvents = 0;
 
   this.requests.length = 0;
   this.player.dispose();
@@ -2835,9 +2829,6 @@ QUnit.test('trigger events when video and audio is demuxed by default', function
     if (event.name === 'vhs-demuxed') {
       vhsDemuxedEvents++;
     }
-    if (event.name === 'hls-demuxed') {
-      hlsDemuxedEvents++;
-    }
   });
 
   openMediaSource(this.player, this.clock);
@@ -2847,12 +2838,10 @@ QUnit.test('trigger events when video and audio is demuxed by default', function
   this.standardXHRResponse(this.requests.shift());
 
   assert.equal(vhsDemuxedEvents, 1, 'video and audio is demuxed by default');
-  assert.equal(hlsDemuxedEvents, 1, 'video and audio is demuxed by default');
 });
 
 QUnit.test('trigger events when an AES is detected', function(assert) {
   let vhsAesEvents = 0;
-  let hlsAesEvents = 0;
   const isAesCopy = Vhs.Playlist.isAes;
 
   Vhs.Playlist.isAes = (media) => {
@@ -2863,9 +2852,6 @@ QUnit.test('trigger events when an AES is detected', function(assert) {
     if (event.name === 'vhs-aes') {
       vhsAesEvents++;
     }
-    if (event.name === 'hls-aes') {
-      hlsAesEvents++;
-    }
   });
 
   // master
@@ -2875,7 +2861,6 @@ QUnit.test('trigger events when an AES is detected', function(assert) {
   this.masterPlaylistController.mediaSource.trigger('sourceopen');
 
   assert.equal(vhsAesEvents, 1, 'an AES HLS stream is detected');
-  assert.equal(hlsAesEvents, 1, 'an AES HLS stream is detected');
   Vhs.Playlist.isAes = isAesCopy;
 });
 
@@ -2892,14 +2877,10 @@ QUnit.test('trigger event when a video fMP4 stream is detected', function(assert
   this.clock.tick(1);
 
   let vhsFmp4Events = 0;
-  let hlsFmp4Events = 0;
 
   this.player.tech_.on('usage', (event) => {
     if (event.name === 'vhs-fmp4') {
       vhsFmp4Events++;
-    }
-    if (event.name === 'hls-fmp4') {
-      hlsFmp4Events++;
     }
   });
 
@@ -2913,7 +2894,7 @@ QUnit.test('trigger event when a video fMP4 stream is detected', function(assert
     videoEl: this.player.tech_.el_,
     isVideoOnly: true
   }).then(() => {
-    assert.equal(hlsFmp4Events, 0, 'an fMP4 stream is not detected');
+    assert.equal(vhsFmp4Events, 0, 'an fMP4 stream is not detected');
 
     const initSegmentRequest = this.requests.shift();
     const segmentRequest = this.requests.shift();
@@ -2929,20 +2910,15 @@ QUnit.test('trigger event when a video fMP4 stream is detected', function(assert
     });
   }).then(() => {
     assert.equal(vhsFmp4Events, 1, 'an fMP4 stream is detected');
-    assert.equal(hlsFmp4Events, 1, 'an fMP4 stream is detected');
   });
 });
 
 QUnit.test('only triggers a single fmp4 usage event', function(assert) {
   let vhsFmp4Events = 0;
-  let hlsFmp4Events = 0;
 
   this.player.tech_.on('usage', (event) => {
     if (event.name === 'vhs-fmp4') {
       vhsFmp4Events++;
-    }
-    if (event.name === 'hls-fmp4') {
-      hlsFmp4Events++;
     }
   });
 
@@ -2951,12 +2927,10 @@ QUnit.test('only triggers a single fmp4 usage event', function(assert) {
   mainSegmentLoader.trigger('fmp4');
 
   assert.equal(vhsFmp4Events, 1, 'fired fMP4 usage event');
-  assert.equal(hlsFmp4Events, 1, 'fired fMP4 usage event');
 
   mainSegmentLoader.trigger('fmp4');
 
   assert.equal(vhsFmp4Events, 1, 'did not fire usage event');
-  assert.equal(hlsFmp4Events, 1, 'did not fire usage event');
 
   const audioSegmentLoader =
     this.player.tech(true).vhs.masterPlaylistController_.audioSegmentLoader_;
@@ -2964,7 +2938,6 @@ QUnit.test('only triggers a single fmp4 usage event', function(assert) {
   audioSegmentLoader.trigger('fmp4');
 
   assert.equal(vhsFmp4Events, 1, 'did not fire usage event');
-  assert.equal(hlsFmp4Events, 1, 'did not fire usage event');
 });
 
 QUnit.test('trigger event when an audio fMP4 stream is detected', function(assert) {
@@ -2980,14 +2953,10 @@ QUnit.test('trigger event when an audio fMP4 stream is detected', function(asser
   this.clock.tick(1);
 
   let vhsFmp4Events = 0;
-  let hlsFmp4Events = 0;
 
   this.player.tech_.on('usage', (event) => {
     if (event.name === 'vhs-fmp4') {
       vhsFmp4Events++;
-    }
-    if (event.name === 'hls-fmp4') {
-      hlsFmp4Events++;
     }
   });
 
@@ -3002,7 +2971,6 @@ QUnit.test('trigger event when an audio fMP4 stream is detected', function(asser
     isAudioOnly: true
   }).then(() => {
     assert.equal(vhsFmp4Events, 0, 'an fMP4 stream is not detected');
-    assert.equal(hlsFmp4Events, 0, 'an fMP4 stream is not detected');
 
     const initSegmentRequest = this.requests.shift();
     const segmentRequest = this.requests.shift();
@@ -3018,7 +2986,6 @@ QUnit.test('trigger event when an audio fMP4 stream is detected', function(asser
     });
   }).then(() => {
     assert.equal(vhsFmp4Events, 1, 'an fMP4 stream is detected');
-    assert.equal(hlsFmp4Events, 1, 'an fMP4 stream is detected');
   });
 });
 
@@ -3339,7 +3306,6 @@ QUnit.test(
 
 QUnit.test('adds subtitle tracks when a media playlist is loaded', function(assert) {
   let vhsWebvttEvents = 0;
-  let hlsWebvttEvents = 0;
 
   this.requests.length = 0;
   this.player.dispose();
@@ -3355,15 +3321,11 @@ QUnit.test('adds subtitle tracks when a media playlist is loaded', function(asse
     if (event.name === 'vhs-webvtt') {
       vhsWebvttEvents++;
     }
-    if (event.name === 'hls-webvtt') {
-      hlsWebvttEvents++;
-    }
   });
 
   const masterPlaylistController = this.player.tech_.vhs.masterPlaylistController_;
 
   assert.equal(vhsWebvttEvents, 0, 'there is no webvtt detected');
-  assert.equal(hlsWebvttEvents, 0, 'there is no webvtt detected');
   assert.equal(this.player.textTracks().length, 1, 'one text track to start');
   assert.equal(
     this.player.textTracks()[0].label,
@@ -3395,7 +3357,6 @@ QUnit.test('adds subtitle tracks when a media playlist is loaded', function(asse
   assert.equal(textTracks[1].mode, 'disabled', 'track starts disabled');
   assert.equal(textTracks[2].mode, 'disabled', 'track starts disabled');
   assert.equal(vhsWebvttEvents, 1, 'there is webvtt detected in the rendition');
-  assert.equal(hlsWebvttEvents, 1, 'there is webvtt detected in the rendition');
 
   // change source to make sure tracks are cleaned up
   this.player.src({

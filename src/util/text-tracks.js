@@ -15,7 +15,6 @@ import videojs from 'video.js';
 export const createCaptionsTrackIfNotExists = function(inbandTextTracks, tech, captionStream) {
   if (!inbandTextTracks[captionStream]) {
     tech.trigger({type: 'usage', name: 'vhs-608'});
-    tech.trigger({type: 'usage', name: 'hls-608'});
 
     let instreamId = captionStream;
 
