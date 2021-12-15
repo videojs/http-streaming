@@ -515,7 +515,8 @@ class VhsHandler extends Component {
 
     this.logger_ = logger('VhsHandler');
 
-    // tech.player() but we need access to the player in a few cases
+    // we need access to the player in some cases,
+    // so, get it from Video.js via the `playerId`
     if (tech.options_ && tech.options_.playerId) {
       const _player = videojs.getPlayer(tech.options_.playerId);
 
