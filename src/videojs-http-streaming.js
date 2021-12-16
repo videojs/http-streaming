@@ -1026,6 +1026,19 @@ class VhsHandler extends Component {
     });
   }
 
+  handleWaitingForKey_() {
+    // If waitingforkey is fired, it's possible that the data that's necessary to retrieve
+    // the key is in the manifest. While this should've happened on initial source load, it
+    // may happen again in live streams where the keys change, and the manifest info
+    // reflects the update.
+    //
+    // Because videojs-contrib-eme compares the PSSH data we send to that of PSSH data it's
+    // already requested keys for, we don't have to worry about this generating extraneous
+    // requests.
+    this.logger_('waitingforkey fired, attempting to create any new key sessions');
+    this.createKeySessions_();
+  }
+
   /**
    * If necessary and EME is available, sets up EME options and waits for key session
    * creation.
@@ -1055,18 +1068,8 @@ class VhsHandler extends Component {
       }
     });
 
-    // If waitingforkey is fired, it's possible that the data that's necessary to retrieve
-    // the key is in the manifest. While this should've happened on initial source load, it
-    // may happen again in live streams where the keys change, and the manifest info
-    // reflects the update.
-    //
-    // Because videojs-contrib-eme compares the PSSH data we send to that of PSSH data it's
-    // already requested keys for, we don't have to worry about this generating extraneous
-    // requests.
-    this.player_.tech_.on('waitingforkey', () => {
-      this.logger_('waitingforkey fired, attempting to create any new key sessions');
-      this.createKeySessions_();
-    });
+    this.handleWaitingForKey_ = this.handleWaitingForKey_.bind(this);
+    this.player_.tech_.on('waitingforkey', this.handleWaitingForKey_);
 
     // In IE11 this is too early to initialize media keys, and IE11 does not support
     // promises.
@@ -1189,6 +1192,10 @@ class VhsHandler extends Component {
     if (this.mediaSourceUrl_ && window.URL.revokeObjectURL) {
       window.URL.revokeObjectURL(this.mediaSourceUrl_);
       this.mediaSourceUrl_ = null;
+    }
+
+    if (this.tech_) {
+      this.tech_.off('waitingforkey', this.handleWaitingForKey_);
     }
 
     super.dispose();
