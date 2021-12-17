@@ -225,21 +225,36 @@ QUnit[testFn]('Big Buck Bunny', function(assert) {
 
 QUnit[testFn]('Live DASH', function(assert) {
   const done = assert.async();
-
-  assert.expect(2);
   const player = this.player;
 
-  playFor(player, 2, function() {
-    assert.ok(true, 'played for at least two seconds');
-    assert.equal(player.error(), null, 'has no player errors');
+  // must set playback rate to 1 so that the manifest will refresh during playback
+  // and we'll be able to check whether seekable has updated
+  player.defaultPlaybackRate(1);
 
-    done();
+  player.one('playing', function() {
+    const firstSeekable = player.seekable();
+    const firstSeekableEnd = firstSeekable.end(firstSeekable.length - 1);
+
+    playFor(player, 5, function() {
+      assert.ok(true, 'played for at least 5 seconds');
+      assert.equal(player.error(), null, 'has no player errors');
+
+      const seekable = player.seekable();
+      const seekableEnd = seekable.end(seekable.length - 1);
+
+      assert.notEqual(seekableEnd, firstSeekableEnd, 'the seekable end has changed');
+      assert.ok(seekableEnd > firstSeekableEnd, 'seekable end has progressed');
+
+      done();
+    });
   });
 
   player.src({
     src: 'https://livesim.dashif.org/livesim/mup_30/testpic_2s/Manifest.mpd',
     type: 'application/dash+xml'
   });
+
+  player.play();
 });
 
 QUnit[testFn]('Multiperiod dash works and can end', function(assert) {
