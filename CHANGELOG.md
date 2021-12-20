@@ -1,3 +1,10 @@
+<a name="2.13.1"></a>
+## [2.13.1](https://github.com/videojs/http-streaming/compare/v2.13.0...v2.13.1) (2021-12-20)
+
+### Bug Fixes
+
+* **package:** update mux.js to 6.0.1 ([#1242](https://github.com/videojs/http-streaming/issues/1242)) ([aed1931](https://github.com/videojs/http-streaming/commit/aed1931))
+
 <a name="2.13.0"></a>
 # [2.13.0](https://github.com/videojs/http-streaming/compare/v2.12.1...v2.13.0) (2021-12-20)
 
