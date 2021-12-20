@@ -4745,11 +4745,21 @@ QUnit.test('eme waitingforkey event triggers another setup', function(assert) {
 
   vhs.masterPlaylistController_.sourceUpdater_.trigger('createdsourcebuffers');
 
-  assert.equal(createKeySessionCalls, 1, 'called createKeySessions_ once');
+  // Since IE11 doesn't initialize media keys early, in this test IE11 will always have
+  // one less call than in other browsers.
+  if (videojs.browser.IE_VERSION === 11) {
+    assert.equal(createKeySessionCalls, 0, 'did not call createKeySessions_ yet');
+  } else {
+    assert.equal(createKeySessionCalls, 1, 'called createKeySessions_ once');
+  }
 
   this.player.tech_.trigger({type: 'waitingforkey', status: 'usable'});
 
-  assert.equal(createKeySessionCalls, 2, 'called createKeySessions_ again');
+  if (videojs.browser.IE_VERSION === 11) {
+    assert.equal(createKeySessionCalls, 1, 'called createKeySessions_ once');
+  } else {
+    assert.equal(createKeySessionCalls, 2, 'called createKeySessions_ again');
+  }
 });
 
 QUnit.test('integration: configures eme for DASH on source buffer creation', function(assert) {
