@@ -1,3 +1,15 @@
+<a name="2.13.0"></a>
+# [2.13.0](https://github.com/videojs/http-streaming/compare/v2.12.1...v2.13.0) (2021-12-20)
+
+### Features
+
+* set up required key sessions on waitingforkey event ([#1232](https://github.com/videojs/http-streaming/issues/1232)) ([3ed24a4](https://github.com/videojs/http-streaming/commit/3ed24a4))
+* use new mpd-parser API for handling live DASH refreshes ([#1231](https://github.com/videojs/http-streaming/issues/1231)) ([f109078](https://github.com/videojs/http-streaming/commit/f109078))
+
+### Tests
+
+* fix failing IE11 test due to late initialize of EME keys ([#1241](https://github.com/videojs/http-streaming/issues/1241)) ([159545c](https://github.com/videojs/http-streaming/commit/159545c))
+
 <a name="2.12.1"></a>
 ## [2.12.1](https://github.com/videojs/http-streaming/compare/v2.12.0...v2.12.1) (2021-12-10)
 
