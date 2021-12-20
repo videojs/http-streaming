@@ -4713,6 +4713,45 @@ QUnit.test('eme handles keystatuschange where status is usable', function(assert
   assert.deepEqual(excludes, [], 'did not exclude anything');
 });
 
+QUnit.test('eme waitingforkey event triggers another setup', function(assert) {
+  this.player.eme = { options: { setting: 1 } };
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/x-mpegURL',
+    keySystems: { keySystem1: { url: 'url1' } }
+  });
+
+  this.clock.tick(1);
+
+  const media = {
+    attributes: { CODECS: 'avc1.420015, mp4a.40.2c' },
+    contentProtection: { keySystem1: { pssh: 'test' } }
+  };
+
+  const vhs = this.player.tech_.vhs;
+
+  vhs.playlists = {
+    master: { playlists: [media] },
+    media: () => media
+  };
+
+  const origCreateKeySessions = vhs.createKeySessions_.bind(vhs);
+  let createKeySessionCalls = 0;
+
+  vhs.createKeySessions_ = () => {
+    createKeySessionCalls++;
+    origCreateKeySessions();
+  };
+
+  vhs.masterPlaylistController_.sourceUpdater_.trigger('createdsourcebuffers');
+
+  assert.equal(createKeySessionCalls, 1, 'called createKeySessions_ once');
+
+  this.player.tech_.trigger({type: 'waitingforkey', status: 'usable'});
+
+  assert.equal(createKeySessionCalls, 2, 'called createKeySessions_ again');
+});
+
 QUnit.test('integration: configures eme for DASH on source buffer creation', function(assert) {
   assert.timeout(3000);
   const done = assert.async();
