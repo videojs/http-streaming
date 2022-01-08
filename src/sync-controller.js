@@ -53,35 +53,33 @@ export const syncPointStrategies = [
         const datetimeMapping =
           syncController.timelineToDatetimeMappings[segment.timeline];
 
-        if (!datetimeMapping) {
+        if (!datetimeMapping || !segment.dateTimeObject) {
           continue;
         }
 
-        if (segment.dateTimeObject) {
-          const segmentTime = segment.dateTimeObject.getTime() / 1000;
-          let start = segmentTime + datetimeMapping;
+        const segmentTime = segment.dateTimeObject.getTime() / 1000;
+        let start = segmentTime + datetimeMapping;
 
-          // take part duration into account.
-          if (segment.parts && typeof partAndSegment.partIndex === 'number') {
-            for (let z = 0; z < partAndSegment.partIndex; z++) {
-              start += segment.parts[z].duration;
-            }
+        // take part duration into account.
+        if (segment.parts && typeof partAndSegment.partIndex === 'number') {
+          for (let z = 0; z < partAndSegment.partIndex; z++) {
+            start += segment.parts[z].duration;
           }
-          const distance = Math.abs(currentTime - start);
-
-          // Once the distance begins to increase, or if distance is 0, we have passed
-          // currentTime and can stop looking for better candidates
-          if (lastDistance !== null && (distance === 0 || lastDistance < distance)) {
-            break;
-          }
-
-          lastDistance = distance;
-          syncPoint = {
-            time: start,
-            segmentIndex: partAndSegment.segmentIndex,
-            partIndex: partAndSegment.partIndex
-          };
         }
+        const distance = Math.abs(currentTime - start);
+
+        // Once the distance begins to increase, or if distance is 0, we have passed
+        // currentTime and can stop looking for better candidates
+        if (lastDistance !== null && (distance === 0 || lastDistance < distance)) {
+          break;
+        }
+
+        lastDistance = distance;
+        syncPoint = {
+          time: start,
+          segmentIndex: partAndSegment.segmentIndex,
+          partIndex: partAndSegment.partIndex
+        };
       }
       return syncPoint;
     }

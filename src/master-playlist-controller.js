@@ -47,8 +47,9 @@ const sumLoaderStat = function(stat) {
 };
 const shouldSwitchToMedia = function({
   currentPlaylist,
+  buffered,
+  currentTime,
   nextPlaylist,
-  forwardBuffer,
   bufferLowWaterLine,
   bufferHighWaterLine,
   duration,
@@ -73,15 +74,25 @@ const shouldSwitchToMedia = function({
     return false;
   }
 
+  // determine if current time is in a buffered range.
+  const isBuffered = Boolean(Ranges.findRange(buffered, currentTime).length);
+
   // If the playlist is live, then we want to not take low water line into account.
   // This is because in LIVE, the player plays 3 segments from the end of the
   // playlist, and if `BUFFER_LOW_WATER_LINE` is greater than the duration availble
   // in those segments, a viewer will never experience a rendition upswitch.
   if (!currentPlaylist.endList) {
+    // For LLHLS live streams, don't switch renditions before playback has started, as it almost
+    // doubles the time to first playback.
+    if (!isBuffered && typeof currentPlaylist.partTargetDuration === 'number') {
+      log(`not ${sharedLogLine} as current playlist is live llhls, but currentTime isn't in buffered.`);
+      return false;
+    }
     log(`${sharedLogLine} as current playlist is live`);
     return true;
   }
 
+  const forwardBuffer = Ranges.timeAheadOf(buffered, currentTime);
   const maxBufferLowWaterLine = experimentalBufferBasedABR ?
     Config.EXPERIMENTAL_MAX_BUFFER_LOW_WATER_LINE : Config.MAX_BUFFER_LOW_WATER_LINE;
 
@@ -732,18 +743,18 @@ export class MasterPlaylistController extends videojs.EventTarget {
   }
 
   shouldSwitchToMedia_(nextPlaylist) {
-    const currentPlaylist = this.masterPlaylistLoader_.media();
-    const buffered = this.tech_.buffered();
-    const forwardBuffer = buffered.length ?
-      buffered.end(buffered.length - 1) - this.tech_.currentTime() : 0;
-
+    const currentPlaylist = this.masterPlaylistLoader_.media() ||
+      this.masterPlaylistLoader_.pendingMedia_;
+    const currentTime = this.tech_.currentTime();
     const bufferLowWaterLine = this.bufferLowWaterLine();
     const bufferHighWaterLine = this.bufferHighWaterLine();
+    const buffered = this.tech_.buffered();
 
     return shouldSwitchToMedia({
+      buffered,
+      currentTime,
       currentPlaylist,
       nextPlaylist,
-      forwardBuffer,
       bufferLowWaterLine,
       bufferHighWaterLine,
       duration: this.duration(),
@@ -1434,6 +1445,25 @@ export class MasterPlaylistController extends videojs.EventTarget {
   onSyncInfoUpdate_() {
     let audioSeekable;
 
+    // TODO check for creation of both source buffers before updating seekable
+    //
+    // A fix was made to this function where a check for
+    // this.sourceUpdater_.hasCreatedSourceBuffers
+    // was added to ensure that both source buffers were created before seekable was
+    // updated. However, it originally had a bug where it was checking for a true and
+    // returning early instead of checking for false. Setting it to check for false to
+    // return early though created other issues. A call to play() would check for seekable
+    // end without verifying that a seekable range was present. In addition, even checking
+    // for that didn't solve some issues, as handleFirstPlay is sometimes worked around
+    // due to a media update calling load on the segment loaders, skipping a seek to live,
+    // thereby starting live streams at the beginning of the stream rather than at the end.
+    //
+    // This conditional should be fixed to wait for the creation of two source buffers at
+    // the same time as the other sections of code are fixed to properly seek to live and
+    // not throw an error due to checking for a seekable end when no seekable range exists.
+    //
+    // For now, fall back to the older behavior, with the understanding that the seekable
+    // range may not be completely correct, leading to a suboptimal initial live point.
     if (!this.masterPlaylistLoader_) {
       return;
     }

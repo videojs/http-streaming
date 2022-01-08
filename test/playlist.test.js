@@ -282,6 +282,96 @@ QUnit.module('Playlist', function() {
     assert.equal(Playlist.duration(playlist, -1), 0, 'negative length duration is zero');
   });
 
+  QUnit.test('accounts for preload segment part durations', function(assert) {
+    const duration = Playlist.duration({
+      mediaSequence: 10,
+      endList: true,
+
+      segments: [{
+        duration: 10,
+        uri: '0.ts'
+      }, {
+        duration: 10,
+        uri: '1.ts'
+      }, {
+        duration: 10,
+        uri: '2.ts'
+      }, {
+        duration: 10,
+        uri: '3.ts'
+      }, {
+        preload: true,
+        parts: [
+          {duration: 2},
+          {duration: 2},
+          {duration: 2}
+        ]
+      }]
+    });
+
+    assert.equal(duration, 46, 'includes segments and parts');
+  });
+
+  QUnit.test('accounts for preload segment part and preload hint durations', function(assert) {
+    const duration = Playlist.duration({
+      mediaSequence: 10,
+      endList: true,
+      partTargetDuration: 2,
+      segments: [{
+        duration: 10,
+        uri: '0.ts'
+      }, {
+        duration: 10,
+        uri: '1.ts'
+      }, {
+        duration: 10,
+        uri: '2.ts'
+      }, {
+        duration: 10,
+        uri: '3.ts'
+      }, {
+        preload: true,
+        parts: [
+          {duration: 2},
+          {duration: 2},
+          {duration: 2}
+        ],
+        preloadHints: [
+          {type: 'PART'},
+          {type: 'MAP'}
+        ]
+      }]
+    });
+
+    assert.equal(duration, 48, 'includes segments, parts, and hints');
+  });
+
+  QUnit.test('looks forward for llhls durations', function(assert) {
+    const playlist = {
+      mediaSequence: 12,
+      partTargetDuration: 3,
+      segments: [{
+        duration: 10,
+        uri: '0.ts'
+      }, {
+        duration: 9,
+        uri: '1.ts'
+      }, {
+        end: 40,
+        preload: true,
+        parts: [
+          {duration: 3}
+        ],
+        preloadHints: [
+          {type: 'PART'}
+        ]
+      }]
+    };
+    const duration = Playlist.duration(playlist, playlist.mediaSequence);
+
+    assert.equal(duration, 15, 'used llhls part/preload durations');
+  });
+
   QUnit.module('Seekable');
 
   QUnit.test('calculates seekable time ranges from available segments', function(assert) {
@@ -1612,5 +1702,52 @@ QUnit.module('Playlist', function() {
       }), 'audio playlists that are also in groups, without codecs');
 
     });
+  });
+
+  QUnit.module('segmentDurationWithParts');
+
+  QUnit.test('uses normal segment duration', function(assert) {
+    const duration = Playlist.segmentDurationWithParts(
+      {},
+      {duration: 5}
+    );
+
+    assert.equal(duration, 5, 'duration as expected');
+  });
+
+  QUnit.test('preload segment without parts or preload hints', function(assert) {
+    const duration = Playlist.segmentDurationWithParts(
+      {partTargetDuration: 1},
+      {preload: true}
+    );
+
+    assert.equal(duration, 0, 'duration as expected');
+  });
+
+  QUnit.test('preload segment with parts only', function(assert) {
+    const duration = Playlist.segmentDurationWithParts(
+      {partTargetDuration: 1},
+      {preload: true, parts: [{duration: 1}, {duration: 1}]}
+    );
+
+    assert.equal(duration, 2, 'duration as expected');
+  });
+
+  QUnit.test('preload segment with preload hints only', function(assert) {
+    const duration = Playlist.segmentDurationWithParts(
+      {partTargetDuration: 1},
+      {preload: true, preloadHints: [{type: 'PART'}, {type: 'PART'}, {type: 'MAP'}]}
+    );
+
+    assert.equal(duration, 2, 'duration as expected');
+  });
+
+  QUnit.test('preload segment with preload hints and parts', function(assert) {
+    const duration = Playlist.segmentDurationWithParts(
+      {partTargetDuration: 1},
+      {preload: true, parts: [{duration: 1}], preloadHints: [{type: 'PART'}, {type: 'PART'}, {type: 'MAP'}]}
+    );
+
+    assert.equal(duration, 3, 'duration as expected');
   });
 });

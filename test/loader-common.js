@@ -835,6 +835,88 @@ export const LoaderCommonFactory = ({
       });
     });
 
+    QUnit.test('live rendition switch uses resetLoader', function(assert) {
+      return this.setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+
+        loader.playlist(playlistWithDuration(50, {
+          mediaSequence: 0,
+          endList: false
+        }));
+
+        loader.load();
+        loader.mediaIndex = 0;
+        let resyncCalled = false;
+        let resetCalled = false;
+        const origReset = loader.resetLoader;
+        const origResync = loader.resyncLoader;
+
+        loader.resetLoader = function() {
+          resetCalled = true;
+          return origReset.call(loader);
+        };
+
+        loader.resyncLoader = function() {
+          resyncCalled = true;
+          return origResync.call(loader);
+        };
+
+        const newPlaylist = playlistWithDuration(50, {
+          mediaSequence: 0,
+          endList: false
+        });
+
+        newPlaylist.uri = 'playlist2.m3u8';
+
+        loader.playlist(newPlaylist);
+
+        assert.true(resetCalled, 'reset was called');
+        assert.true(resyncCalled, 'resync was called');
+
+        return Promise.resolve();
+      });
+    });
+
+    QUnit.test('vod rendition switch uses resyncLoader', function(assert) {
+      return this.setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+
+        loader.playlist(playlistWithDuration(50, {
+          mediaSequence: 0,
+          endList: true
+        }));
+
+        loader.load();
+        loader.mediaIndex = 0;
+        let resyncCalled = false;
+        let resetCalled = false;
+        const origReset = loader.resetLoader;
+        const origResync = loader.resyncLoader;
+
+        loader.resetLoader = function() {
+          resetCalled = true;
+          return origReset.call(loader);
+        };
+
+        loader.resyncLoader = function() {
+          resyncCalled = true;
+          return origResync.call(loader);
+        };
+
+        const newPlaylist = playlistWithDuration(50, {
+          mediaSequence: 0,
+          endList: true
+        });
+
+        newPlaylist.uri = 'playlist2.m3u8';
+
+        loader.playlist(newPlaylist);
+
+        assert.true(resyncCalled, 'resync was called');
+        assert.false(resetCalled, 'reset was not called');
+
+        return Promise.resolve();
+      });
+    });
+
     // only main/fmp4 segment loaders use async appends and parts/partIndex
     if (usesAsyncAppends) {
       let testFn = 'test';
@@ -1274,6 +1356,35 @@ export const LoaderCommonFactory = ({
         });
       }
     );
+
+    QUnit.test('chooses the previous part if not buffered and current is not independent', function(assert) {
+      loader.buffered_ = () => videojs.createTimeRanges();
+      const playlist = playlistWithDuration(50, {llhls: true});
+
+      loader.hasPlayed_ = () => true;
+      loader.syncPoint_ = null;
+
+      loader.playlist(playlist);
+      loader.load();
+
+      // force segmentIndex 4 and part 2 to be choosen
+      loader.currentTime_ = () => 46;
+      // make the previous part indepenent so we go back to it
+      playlist.segments[4].parts[1].independent = true;
+      const segmentInfo = loader.chooseNextRequest_();
+
+      assert.equal(segmentInfo.partIndex, 1, 'still chooses partIndex 1');
+      assert.equal(segmentInfo.mediaIndex, 4, 'same segment');
+
+      // force segmentIndex 4 and part 0 to be choosen
+      loader.currentTime_ = () => 42;
+      // make the previous part independent
+      playlist.segments[3].parts[4].independent = true;
+      const segmentInfo2 = loader.chooseNextRequest_();
+
+      assert.equal(segmentInfo2.partIndex, 4, 'previous part');
+      assert.equal(segmentInfo2.mediaIndex, 3, 'previous segment');
+    });
 
     QUnit.test('processing segment reachable even after playlist update removes it', function(assert) {
       const handleAppendsDone_ = loader.handleAppendsDone_.bind(loader);

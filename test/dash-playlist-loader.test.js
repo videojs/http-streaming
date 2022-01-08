@@ -72,7 +72,8 @@ QUnit.test('updateMaster: returns falsy when there are no changes', function(ass
       SUBTITLES: {}
     },
     duration: 0,
-    minimumUpdatePeriod: 0
+    minimumUpdatePeriod: 0,
+    timelineStarts: []
   };
 
   assert.deepEqual(updateMaster(master, master), null);
@@ -94,7 +95,8 @@ QUnit.test('updateMaster: updates playlists', function(assert) {
       SUBTITLES: {}
     },
     duration: 0,
-    minimumUpdatePeriod: 0
+    minimumUpdatePeriod: 0,
+    timelineStarts: []
   };
 
   // Only the first playlist is changed
@@ -114,7 +116,8 @@ QUnit.test('updateMaster: updates playlists', function(assert) {
       SUBTITLES: {}
     },
     duration: 0,
-    minimumUpdatePeriod: 0
+    minimumUpdatePeriod: 0,
+    timelineStarts: []
   };
 
   assert.deepEqual(
@@ -135,7 +138,8 @@ QUnit.test('updateMaster: updates playlists', function(assert) {
         SUBTITLES: {}
       },
       duration: 0,
-      minimumUpdatePeriod: 0
+      minimumUpdatePeriod: 0,
+      timelineStarts: []
     }
   );
 });
@@ -209,6 +213,7 @@ QUnit.test('updateMaster: updates playlists and mediaGroups', function(assert) {
   const master = {
     duration: 10,
     minimumUpdatePeriod: 0,
+    timelineStarts: [],
     mediaGroups: {
       AUDIO: {
         audio: {
@@ -247,6 +252,7 @@ QUnit.test('updateMaster: updates playlists and mediaGroups', function(assert) {
   const update = {
     duration: 20,
     minimumUpdatePeriod: 0,
+    timelineStarts: [],
     mediaGroups: {
       AUDIO: {
         audio: {
@@ -291,6 +297,7 @@ QUnit.test('updateMaster: updates playlists and mediaGroups', function(assert) {
     {
       duration: 20,
       minimumUpdatePeriod: 0,
+      timelineStarts: [],
       mediaGroups: {
         AUDIO: {
           audio: {
@@ -345,7 +352,8 @@ QUnit.test('updateMaster: updates minimumUpdatePeriod', function(assert) {
       SUBTITLES: {}
     },
     duration: 0,
-    minimumUpdatePeriod: 0
+    minimumUpdatePeriod: 0,
+    timelineStarts: []
   };
 
   const update = {
@@ -362,7 +370,8 @@ QUnit.test('updateMaster: updates minimumUpdatePeriod', function(assert) {
       SUBTITLES: {}
     },
     duration: 0,
-    minimumUpdatePeriod: 2
+    minimumUpdatePeriod: 2,
+    timelineStarts: []
   };
 
   assert.deepEqual(
@@ -381,7 +390,8 @@ QUnit.test('updateMaster: updates minimumUpdatePeriod', function(assert) {
         SUBTITLES: {}
       },
       duration: 0,
-      minimumUpdatePeriod: 2
+      minimumUpdatePeriod: 2,
+      timelineStarts: []
     }
   );
 });
@@ -1495,7 +1505,9 @@ QUnit.test('parseMasterXml: includes sidx info if available and matches playlist
 });
 
 QUnit.test('refreshMedia: updates master and media playlists for master loader', function(assert) {
-  const loader = new DashPlaylistLoader('dash.mpd', this.fakeVhs);
+  // start at 4 seconds past epoch for 2x 2 second segments
+  this.clock.tick(4 * 1000);
+  const loader = new DashPlaylistLoader('dash-live.mpd', this.fakeVhs);
   let loadedPlaylists = 0;
   let playlistUnchanged = 0;
 
@@ -1519,10 +1531,12 @@ QUnit.test('refreshMedia: updates master and media playlists for master loader',
   });
 
   const oldMaster = loader.master;
-  const newMasterXml = testDataManifests['dash-live'];
 
-  loader.masterXml_ = newMasterXml;
-  loader.refreshMedia_(loader.media().id);
+  // Two seconds later in wall clock should mean one more segment added to ensure the
+  // refresh represents a change. Although four seconds is the minimumUpdatePeriod, since
+  // segments are two seconds in duration, the refreshDelay will be calculated as two
+  // seconds.
+  this.clock.tick(2 * 1000);
 
   assert.notEqual(loader.master, oldMaster, 'new master set');
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist');
@@ -1569,7 +1583,9 @@ QUnit.test('refreshMedia: triggers playlistunchanged for master loader' +
 });
 
 QUnit.test('refreshMedia: updates master and media playlists for child loader', function(assert) {
-  const loader = new DashPlaylistLoader('dash.mpd', this.fakeVhs);
+  // start at 4 seconds past epoch for 2x 2 second segments
+  this.clock.tick(4 * 1000);
+  const loader = new DashPlaylistLoader('dash-live.mpd', this.fakeVhs);
   let loadedPlaylists = 0;
   let playlistUnchanged = 0;
 
@@ -1595,11 +1611,12 @@ QUnit.test('refreshMedia: updates master and media playlists for child loader', 
   });
 
   const oldMaster = loader.master;
-  const newMasterXml = testDataManifests['dash-live'];
 
-  loader.masterXml_ = newMasterXml;
-  loader.handleMaster_();
-  childLoader.refreshMedia_(loader.media().id);
+  // Two seconds later in wall clock should mean one more segment added to ensure the
+  // refresh represents a change. Although four seconds is the minimumUpdatePeriod, since
+  // segments are two seconds in duration, the refreshDelay will be calculated as two
+  // seconds.
+  this.clock.tick(2 * 1000);
 
   assert.notEqual(loader.master, oldMaster, 'new master set on master loader');
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist');
@@ -1658,8 +1675,7 @@ QUnit.test('refreshXml_: requests the sidx if it changed', function(assert) {
   loader.load();
   // initial manifest
   this.standardXHRResponse(this.requests.shift());
-  // child playlist
-  this.standardXHRResponse(this.requests.shift());
+  assert.strictEqual(this.requests.length, 1, 'made a sidx request');
 
   const oldMaster = parseMasterXml({
     masterXml: loader.masterXml_,
@@ -1691,7 +1707,7 @@ QUnit.test('refreshXml_: requests the sidx if it changed', function(assert) {
   );
   loader.refreshXml_();
 
-  assert.strictEqual(this.requests.length, 1, 'manifest is being requested');
+  assert.strictEqual(this.requests.length, 2, 'manifest is being requested');
   newMaster = parseMasterXml({
     masterXml: loader.masterXml_,
     srcUrl: loader.srcUrl,
@@ -1771,7 +1787,9 @@ QUnit.test('refreshXml_: updates playlists if segment uri changed, but media seq
   );
 });
 
-QUnit.test('refreshXml_: updates playlists if sidx changed', function(assert) {
+// As of this writing, live SIDX where the SIDX value changes is not supported
+// Also note that the test uses a VOD SIDX playlist that is refreshed with a live one
+QUnit.skip('refreshXml_: updates playlists if sidx changed', function(assert) {
   const loader = new DashPlaylistLoader('dash-sidx.mpd', this.fakeVhs);
 
   loader.load();
@@ -2247,6 +2265,8 @@ QUnit.test('child playlist moves to HAVE_METADATA when initialized with a live m
 });
 
 QUnit.test('returns to HAVE_METADATA after refreshing the playlist', function(assert) {
+  // start at 4 seconds past epoch for 2x 2 second segments
+  this.clock.tick(4 * 1000);
   const loader = new DashPlaylistLoader('dash-live.mpd', this.fakeVhs);
 
   loader.load();
@@ -2255,8 +2275,8 @@ QUnit.test('returns to HAVE_METADATA after refreshing the playlist', function(as
   loader.media(loader.master.playlists[0]);
   this.clock.tick(1);
 
-  // 10s, one target duration
-  this.clock.tick(10 * 1000);
+  // 2s, one segment duration
+  this.clock.tick(2 * 1000);
   assert.strictEqual(loader.state, 'HAVE_METADATA', 'the state is correct');
 });
 
@@ -2483,6 +2503,8 @@ QUnit.test('use MPD.Location when refreshing the xml', function(assert) {
 });
 
 QUnit.test('refreshes the xml if there is a minimumUpdatePeriod', function(assert) {
+  // start at 4 seconds past epoch for 2x 2 second segments
+  this.clock.tick(4 * 1000);
   const loader = new DashPlaylistLoader('dash-live.mpd', this.fakeVhs);
   let minimumUpdatePeriods = 0;
 
@@ -2502,6 +2524,8 @@ QUnit.test('refreshes the xml if there is a minimumUpdatePeriod', function(asser
 });
 
 QUnit.test('stop xml refresh if minimumUpdatePeriod is removed', function(assert) {
+  // start at 4 seconds past epoch for 2x 2 second segments
+  this.clock.tick(4 * 1000);
   const loader = new DashPlaylistLoader('dash-live.mpd', this.fakeVhs);
   let minimumUpdatePeriods = 0;
 
@@ -2529,6 +2553,8 @@ QUnit.test('stop xml refresh if minimumUpdatePeriod is removed', function(assert
 });
 
 QUnit.test('continue xml refresh every targetDuration if minimumUpdatePeriod is 0', function(assert) {
+  // start at 4 seconds past epoch for 2x 2 second segments
+  this.clock.tick(4 * 1000);
   const loader = new DashPlaylistLoader('dash-live.mpd', this.fakeVhs);
   let minimumUpdatePeriods = 0;
 
@@ -2560,23 +2586,6 @@ QUnit.test('continue xml refresh every targetDuration if minimumUpdatePeriod is 
   this.clock.tick(1 * 1000);
   assert.equal(this.requests.length, 2, '3rd manifest refresh after targetDuration');
   assert.equal(minimumUpdatePeriods, 2, '3rd minimumUpdatePeriod after targetDuration');
-});
-
-QUnit.test('media playlists "refresh" by re-parsing master xml', function(assert) {
-  const loader = new DashPlaylistLoader('dash-live.mpd', this.fakeVhs);
-  let refreshes = 0;
-
-  loader.on('mediaupdatetimeout', () => refreshes++);
-
-  loader.load();
-  this.standardXHRResponse(this.requests.shift());
-  loader.media(loader.master.playlists[0]);
-  this.clock.tick(1);
-
-  // 1s, half segment target duration, since the playlist didn't change
-  this.clock.tick(2 * 500);
-
-  assert.equal(refreshes, 1, 'refreshed playlist after last segment duration');
 });
 
 QUnit.test('delays load when on final rendition', function(assert) {
@@ -2715,6 +2724,8 @@ QUnit.test('child loaders wait for async action before moving to HAVE_MASTER', f
 });
 
 QUnit.test('load resumes the media update timer for live playlists', function(assert) {
+  // start at 4 seconds past epoch for 2x 2 second segments
+  this.clock.tick(4 * 1000);
   const loader = new DashPlaylistLoader('dash-live.mpd', this.fakeVhs);
 
   loader.load();
@@ -2771,6 +2782,8 @@ QUnit.test('pause removes minimum update period timeout', function(assert) {
 });
 
 QUnit.test('load resumes minimum update period timeout for live', function(assert) {
+  // start at 4 seconds past epoch for 2x 2 second segments
+  this.clock.tick(4 * 1000);
   const loader = new DashPlaylistLoader('dash-live.mpd', this.fakeVhs);
 
   loader.load();
@@ -2819,4 +2832,44 @@ QUnit.test('pause does not remove minimum update period timeout when not master'
     masterLoader.minimumUpdatePeriodTimeout_,
     'minimum update period timeout set'
   );
+});
+
+QUnit.test('updateMaster: merges in top level timelineStarts', function(assert) {
+  const prev = {
+    timelineStarts: [0, 1],
+    playlists: [{
+      uri: '0',
+      id: 0,
+      segments: [{
+        presentationTime: 0,
+        timeline: 0
+      }, {
+        presentationTime: 1,
+        timeline: 1
+      }]
+    }],
+    mediaGroups: {
+      AUDIO: {},
+      SUBTITLES: {}
+    }
+  };
+  const next = {
+    timelineStarts: [2],
+    playlists: [{
+      uri: '0',
+      id: 0,
+      segments: [{
+        presentationTime: 2,
+        timeline: 2
+      }]
+    }],
+    mediaGroups: {
+      AUDIO: {},
+      SUBTITLES: {}
+    }
+  };
+
+  const update = updateMaster(prev, next);
+
+  assert.deepEqual(update.timelineStarts, [2], 'updated timelineStarts');
 });
