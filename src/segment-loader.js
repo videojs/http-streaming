@@ -2931,7 +2931,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
   }
 
-  getSegmentStartTimeForTimestampOffsetCalculation_ ({ videoTimingInfo, audioTimingInfo, timingInfo }) {
+  getSegmentStartTimeForTimestampOffsetCalculation_({ videoTimingInfo, audioTimingInfo, timingInfo }) {
     if (!this.useDtsForTimestampOffset_) {
       return timingInfo.start;
     }

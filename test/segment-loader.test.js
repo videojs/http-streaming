@@ -1145,11 +1145,11 @@ QUnit.module('SegmentLoader', function(hooks) {
       });
     });
 
-    QUnit.test('should use video PTS value for timestamp offset calculation when useDtsForTimestampOffset set as false', function (assert) {
+    QUnit.test('should use video PTS value for timestamp offset calculation when useDtsForTimestampOffset set as false', function(assert) {
       loader = new SegmentLoader(LoaderCommonSettings.call(this, {
         loaderType: 'main',
         segmentMetadataTrack: this.segmentMetadataTrack,
-        useDtsForTimestampOffset: false,
+        useDtsForTimestampOffset: false
       }), {});
 
       const playlist = playlistWithDuration(20, { uri: 'playlist.m3u8' });
@@ -1170,20 +1170,22 @@ QUnit.module('SegmentLoader', function(hooks) {
         assert.equal(
           loader.sourceUpdater_.videoTimestampOffset(),
           -playlist.segments[0].videoTimingInfo.transmuxedPresentationStart,
-          'set video timestampOffset');
+          'set video timestampOffset'
+        );
 
         assert.equal(
           loader.sourceUpdater_.audioTimestampOffset(),
           -playlist.segments[0].videoTimingInfo.transmuxedPresentationStart,
-          'set audio timestampOffset');
+          'set audio timestampOffset'
+        );
       });
     });
 
-    QUnit.test('should use video DTS value for timestamp offset calculation when useDtsForTimestampOffset set as true', function (assert) {
+    QUnit.test('should use video DTS value for timestamp offset calculation when useDtsForTimestampOffset set as true', function(assert) {
       loader = new SegmentLoader(LoaderCommonSettings.call(this, {
         loaderType: 'main',
         segmentMetadataTrack: this.segmentMetadataTrack,
-        useDtsForTimestampOffset: true,
+        useDtsForTimestampOffset: true
       }), {});
 
       const playlist = playlistWithDuration(20, { uri: 'playlist.m3u8' });
@@ -1204,20 +1206,22 @@ QUnit.module('SegmentLoader', function(hooks) {
         assert.equal(
           loader.sourceUpdater_.videoTimestampOffset(),
           -playlist.segments[0].videoTimingInfo.transmuxedDecodeStart,
-          'set video timestampOffset');
+          'set video timestampOffset'
+        );
 
         assert.equal(
           loader.sourceUpdater_.audioTimestampOffset(),
           -playlist.segments[0].videoTimingInfo.transmuxedDecodeStart,
-          'set audio timestampOffset');
+          'set audio timestampOffset'
+        );
       });
     });
 
-    QUnit.test('should use audio DTS value for timestamp offset calculation when useDtsForTimestampOffset set as true and only audio', function (assert) {
+    QUnit.test('should use audio DTS value for timestamp offset calculation when useDtsForTimestampOffset set as true and only audio', function(assert) {
       loader = new SegmentLoader(LoaderCommonSettings.call(this, {
         loaderType: 'main',
         segmentMetadataTrack: this.segmentMetadataTrack,
-        useDtsForTimestampOffset: true,
+        useDtsForTimestampOffset: true
       }), {});
 
       const playlist = playlistWithDuration(20, { uri: 'playlist.m3u8' });
@@ -1238,7 +1242,8 @@ QUnit.module('SegmentLoader', function(hooks) {
         assert.equal(
           loader.sourceUpdater_.audioTimestampOffset(),
           -playlist.segments[0].audioTimingInfo.transmuxedDecodeStart,
-          'set audio timestampOffset');
+          'set audio timestampOffset'
+        );
       });
     });
 
@@ -1246,7 +1251,7 @@ QUnit.module('SegmentLoader', function(hooks) {
       loader = new SegmentLoader(LoaderCommonSettings.call(this, {
         loaderType: 'main',
         segmentMetadataTrack: this.segmentMetadataTrack,
-        useDtsForTimestampOffset: true,
+        useDtsForTimestampOffset: true
       }), {});
 
       const playlist = playlistWithDuration(10);

@@ -571,7 +571,7 @@
               experimentalExactManifestTimings: getInputValue(stateEls['exact-manifest-timings']),
               experimentalLeastPixelDiffSelector: getInputValue(stateEls['pixel-diff-selector']),
               useNetworkInformationApi: getInputValue(stateEls['network-info']),
-              useDtsForTimestampOffset: getInputValue(stateEls['dts-offset']),
+              useDtsForTimestampOffset: getInputValue(stateEls['dts-offset'])
             }
           }
         });
