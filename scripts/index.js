@@ -448,6 +448,7 @@
     'exact-manifest-timings',
     'pixel-diff-selector',
     'network-info',
+    'dts-offset',
     'override-native',
     'preload',
     'mirror-source'
@@ -501,6 +502,7 @@
       'liveui',
       'pixel-diff-selector',
       'network-info',
+      'dts-offset',
       'exact-manifest-timings'
     ].forEach(function(name) {
       stateEls[name].addEventListener('change', function(event) {
@@ -568,7 +570,8 @@
               experimentalLLHLS: getInputValue(stateEls.llhls),
               experimentalExactManifestTimings: getInputValue(stateEls['exact-manifest-timings']),
               experimentalLeastPixelDiffSelector: getInputValue(stateEls['pixel-diff-selector']),
-              useNetworkInformationApi: getInputValue(stateEls['network-info'])
+              useNetworkInformationApi: getInputValue(stateEls['network-info']),
+              useDtsForTimestampOffset: getInputValue(stateEls['dts-offset']),
             }
           }
         });
