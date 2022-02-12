@@ -28,6 +28,7 @@ import {
   oneSecond as oneSecondSegment,
   audio as audioSegment,
   video as videoSegment,
+  videoDiffPtsDts as videoDiffPtsDtsSegment,
   videoOneSecond as videoOneSecondSegment,
   videoOneSecond1 as videoOneSecond1Segment,
   videoOneSecond2 as videoOneSecond2Segment,
@@ -1164,7 +1165,7 @@ QUnit.module('SegmentLoader', function(hooks) {
 
           this.clock.tick(100);
 
-          standardXHRResponse(this.requests.shift(), videoSegment());
+          standardXHRResponse(this.requests.shift(), videoDiffPtsDtsSegment());
         });
       }).then(() => {
         assert.equal(
@@ -1200,7 +1201,7 @@ QUnit.module('SegmentLoader', function(hooks) {
 
           this.clock.tick(100);
           // segment
-          standardXHRResponse(this.requests.shift(), videoSegment());
+          standardXHRResponse(this.requests.shift(), videoDiffPtsDtsSegment());
         });
       }).then(() => {
         assert.equal(
