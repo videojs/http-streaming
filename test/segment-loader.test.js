@@ -1217,6 +1217,42 @@ QUnit.module('SegmentLoader', function(hooks) {
       });
     });
 
+    QUnit.test('should use video DTS value as primary for muxed segments (eg: audio and video together) for timestamp offset calculation when useDtsForTimestampOffset set as true', function(assert) {
+      loader = new SegmentLoader(LoaderCommonSettings.call(this, {
+        loaderType: 'main',
+        segmentMetadataTrack: this.segmentMetadataTrack,
+        useDtsForTimestampOffset: true
+      }), {});
+
+      const playlist = playlistWithDuration(20, { uri: 'playlist.m3u8' });
+
+      return this.setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+
+          loader.playlist(playlist);
+          loader.load();
+
+          this.clock.tick(100);
+
+          standardXHRResponse(this.requests.shift(), muxedSegment());
+        });
+      }).then(() => {
+        assert.equal(
+          loader.sourceUpdater_.videoTimestampOffset(),
+          -playlist.segments[0].videoTimingInfo.transmuxedDecodeStart,
+          'set video timestampOffset'
+        );
+
+        assert.equal(
+          loader.sourceUpdater_.audioTimestampOffset(),
+          -playlist.segments[0].videoTimingInfo.transmuxedDecodeStart,
+          'set audio timestampOffset'
+        );
+      });
+    });
+
     QUnit.test('should use audio DTS value for timestamp offset calculation when useDtsForTimestampOffset set as true and only audio', function(assert) {
       loader = new SegmentLoader(LoaderCommonSettings.call(this, {
         loaderType: 'main',
