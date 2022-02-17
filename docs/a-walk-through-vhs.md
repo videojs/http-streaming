@@ -24,12 +24,10 @@ Since VHS is a part of Video.js, let's set up a Video.js player for the `<video>
 <link href="//vjs.zencdn.net/7.10.2/video-js.min.css" rel="stylesheet">
 <script src="//vjs.zencdn.net/7.10.2/video.min.js"></script>
 
-<video id="myPlayer" class="video-js">
+<video-js id="myPlayer" class="video-js" data-setup='{}'>
   <source src="http://example.com/manifest.m3u8" type="application/x-mpegURL">
-</video>
+</video-js>
 ```
-
-First, we added the Video.js script (and CSS). Then we added the `video-js` class to the `<video>` tag. This tells Video.js to create a player for that video, instead of letting the browser's native video playback handle the tag.
 
 Video.js does a lot of things, but in the context of VHS, the important feature is a way to let VHS handle playback of the source. To do this, VHS is registered as a Video.js Source Handler. When a Video.js player is created and provided a `<source>`, Video.js goes through its list of registered Source Handlers, including VHS, to see if they're able to play that source.
 
@@ -81,12 +79,12 @@ If you need to find a place where different modules communicate, you will probab
 MPC's [constructor](https://github.com/videojs/http-streaming/blob/0964cb4827d9e80aa36f2fa29e35dad92ca84111/src/master-playlist-controller.js#L148) does a lot. Instead of listing all of the things it does, let's go step-by-step through the main ones, passing the source we had above.
 
 ```html
-<video id="myPlayer" class="video-js">
+<video-js id="myPlayer" class="video-js" data-setup='{}'>
   <source src="http://example.com/manifest.m3u8" type="application/x-mpegURL">
-</video>
+</video-js>
 ```
 
-Looking at the `<video>` tag, `VhsSourceHandler` already used the "type" to tell Video.js that it could handle the source. `VhsHandler` took the manifest URL, in this case "manifest.m3u8" and provided it to the constructor of MPC.
+Looking at the `<source>` tag, `VhsSourceHandler` already used the "type" to tell Video.js that it could handle the source. `VhsHandler` took the manifest URL, in this case "manifest.m3u8" and provided it to the constructor of MPC.
 
 The first thing that MPC must do is download that source, but it doesn't make the request itself. Instead, it creates [this.masterPlaylistLoader_](https://github.com/videojs/http-streaming/blob/0964cb4827d9e80aa36f2fa29e35dad92ca84111/src/master-playlist-controller.js#L264-L266).
 
