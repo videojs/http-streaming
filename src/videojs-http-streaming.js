@@ -508,7 +508,7 @@ class VhsHandler extends Component {
     super(tech, videojs.mergeOptions(options.hls, options.vhs));
 
     if (options.hls && Object.keys(options.hls).length) {
-      videojs.log.warn('Using hls options is deprecated. Use vhs instead.');
+      videojs.log.warn('Using hls options is deprecated. Please rename `hls` to `vhs` in your options object.');
     }
 
     // if a tech level `initialBandwidth` option was passed

@@ -416,7 +416,7 @@ QUnit.test('logs deprecation notice when using hls for options', function(assert
   assert.equal(this.env.log.warn.calls, 1, 'warning logged');
   assert.equal(
     this.env.log.warn.args[0][0],
-    'Using hls options is deprecated. Use vhs instead.'
+    'Using hls options is deprecated. Please rename `hls` to `vhs` in your options object.'
   );
 });
 
@@ -440,7 +440,7 @@ QUnit.test('logs deprecation notice when using hls for global options', function
   assert.equal(this.env.log.warn.calls, 1, 'warning logged');
   assert.equal(
     this.env.log.warn.args[0][0],
-    'Using hls options is deprecated. Use vhs instead.'
+    'Using hls options is deprecated. Please rename `hls` to `vhs` in your options object.'
   );
 
   videojs.options.hls = origHlsOptions;
