@@ -1,3 +1,18 @@
+<a name="2.14.0"></a>
+# [2.14.0](https://github.com/videojs/http-streaming/compare/v2.13.1...v2.14.0) (2022-03-14)
+
+### Features
+
+* add dts-based timestamp offset calculation with feature toggle ([#1251](https://github.com/videojs/http-streaming/issues/1251)) ([450eb2d](https://github.com/videojs/http-streaming/commit/450eb2d))
+
+### Bug Fixes
+
+* clarify hls option deprecation warning ([#1257](https://github.com/videojs/http-streaming/issues/1257)) ([211cbe8](https://github.com/videojs/http-streaming/commit/211cbe8)), closes [#1256](https://github.com/videojs/http-streaming/issues/1256)
+
+### Documentation
+
+* add A Walk Through VHS ([#1253](https://github.com/videojs/http-streaming/issues/1253)) ([42fe383](https://github.com/videojs/http-streaming/commit/42fe383))
+
 <a name="2.13.1"></a>
 ## [2.13.1](https://github.com/videojs/http-streaming/compare/v2.13.0...v2.13.1) (2021-12-20)
 
