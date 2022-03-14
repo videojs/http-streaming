@@ -631,6 +631,7 @@ class VhsHandler extends Component {
         this.source_.useBandwidthFromLocalStorage :
         this.options_.useBandwidthFromLocalStorage || false;
     this.options_.useNetworkInformationApi = this.options_.useNetworkInformationApi || false;
+    this.options_.useDtsForTimestampOffset = this.options_.useDtsForTimestampOffset || false;
     this.options_.customTagParsers = this.options_.customTagParsers || [];
     this.options_.customTagMappers = this.options_.customTagMappers || [];
     this.options_.cacheEncryptionKeys = this.options_.cacheEncryptionKeys || false;
@@ -684,6 +685,7 @@ class VhsHandler extends Component {
       'liveRangeSafeTimeDelta',
       'experimentalLLHLS',
       'useNetworkInformationApi',
+      'useDtsForTimestampOffset',
       'experimentalExactManifestTimings',
       'experimentalLeastPixelDiffSelector'
     ].forEach((option) => {
