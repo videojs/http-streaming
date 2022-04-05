@@ -625,7 +625,6 @@ class VhsHandler extends Component {
     this.options_.handleManifestRedirects = this.options_.handleManifestRedirects === false ? false : true;
     this.options_.limitRenditionByPlayerDimensions = this.options_.limitRenditionByPlayerDimensions === false ? false : true;
     this.options_.useDevicePixelRatio = this.options_.useDevicePixelRatio || false;
-    this.options_.smoothQualityChange = this.options_.smoothQualityChange || false;
     this.options_.useBandwidthFromLocalStorage =
       typeof this.source_.useBandwidthFromLocalStorage !== 'undefined' ?
         this.source_.useBandwidthFromLocalStorage :
@@ -674,7 +673,6 @@ class VhsHandler extends Component {
       'useDevicePixelRatio',
       'limitRenditionByPlayerDimensions',
       'bandwidth',
-      'smoothQualityChange',
       'customTagParsers',
       'customTagMappers',
       'handleManifestRedirects',
@@ -718,10 +716,6 @@ class VhsHandler extends Component {
     this.options_.seekTo = (time) => {
       this.tech_.setCurrentTime(time);
     };
-
-    if (this.options_.smoothQualityChange) {
-      videojs.log.warn('smoothQualityChange is deprecated and will be removed in the next major version');
-    }
 
     this.masterPlaylistController_ = new MasterPlaylistController(this.options_);
 

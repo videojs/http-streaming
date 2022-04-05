@@ -891,18 +891,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
   /**
    * Re-tune playback quality level for the current player
-   * conditions without performing destructive actions, like
-   * removing already buffered content
-   *
-   * @private
-   * @deprecated
-   */
-  smoothQualityChange_(media = this.selectPlaylist()) {
-    this.fastQualityChange_(media);
-  }
-
-  /**
-   * Re-tune playback quality level for the current player
    * conditions. This method will perform destructive actions like removing
    * already buffered content in order to readjust the currently active
    * playlist quickly. This is good for manual quality changes

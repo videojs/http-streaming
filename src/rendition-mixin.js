@@ -50,12 +50,9 @@ const enableFunction = (loader, playlistID, changePlaylistFn) => (enable) => {
 class Representation {
   constructor(vhsHandler, playlist, id) {
     const {
-      masterPlaylistController_: mpc,
-      options_: { smoothQualityChange }
+      masterPlaylistController_: mpc
     } = vhsHandler;
-    // Get a reference to a bound version of the quality change function
-    const changeType = smoothQualityChange ? 'smooth' : 'fast';
-    const qualityChangeFunction = mpc[`${changeType}QualityChange_`].bind(mpc);
+    const qualityChangeFunction = mpc.fastQualityChange_.bind(mpc);
 
     // some playlist attributes are optional
     if (playlist.attributes) {

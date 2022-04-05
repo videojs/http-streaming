@@ -50,7 +50,6 @@ Video.js Compatibility: 6.0, 7.0
       - [enableLowInitialPlaylist](#enablelowinitialplaylist)
       - [limitRenditionByPlayerDimensions](#limitrenditionbyplayerdimensions)
       - [useDevicePixelRatio](#usedevicepixelratio)
-      - [smoothQualityChange](#smoothqualitychange)
       - [allowSeeksWithinUnsafeLiveWindow](#allowseekswithinunsafelivewindow)
       - [customTagParsers](#customtagparsers)
       - [customTagMappers](#customtagmappers)
@@ -413,18 +412,6 @@ This setting is `true` by default.
 
 If true, this will take the device pixel ratio into account when doing rendition switching. This means that if you have a player with the width of `540px` in a high density display with a device pixel ratio of 2, a rendition of `1080p` will be allowed.
 This setting is `false` by default.
-
-##### smoothQualityChange
-* NOTE: DEPRECATED
-* Type: `boolean`
-* can be used as a source option
-* can be used as an initialization option
-
-smoothQualityChange is deprecated and will be removed in the next major version of VHS.
-
-Instead of its prior behavior, smoothQualityChange will now call fastQualityChange, which
-clears the buffer, chooses a new rendition, and starts loading content from the current
-playhead position.
 
 ##### allowSeeksWithinUnsafeLiveWindow
 * Type: `boolean`

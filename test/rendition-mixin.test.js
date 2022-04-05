@@ -56,9 +56,6 @@ const makeMockVhsHandler = function(playlistOptions = [], handlerOptions = {}, m
     fastQualityChange_: () => {
       mpc.fastQualityChange_.calls++;
     },
-    smoothQualityChange_: () => {
-      mpc.smoothQualityChange_.calls++;
-    },
     master: () => {
       return vhsHandler.playlists.master;
     },
@@ -68,7 +65,6 @@ const makeMockVhsHandler = function(playlistOptions = [], handlerOptions = {}, m
   };
 
   mpc.fastQualityChange_.calls = 0;
-  mpc.smoothQualityChange_.calls = 0;
 
   vhsHandler.masterPlaylistController_ = mpc;
   vhsHandler.playlists = new videojs.EventTarget();
@@ -299,54 +295,6 @@ QUnit.test(
     renditions[1].enabled(false);
 
     assert.equal(mpc.fastQualityChange_.calls, 2, 'fastQualityChange_ was called twice');
-  }
-);
-
-QUnit.test(
-  'changing the enabled state of a representation calls smoothQualityChange_ ' +
-  'when the flag is set',
-  function(assert) {
-    let renditionEnabledEvents = 0;
-    const vhsHandler = makeMockVhsHandler([
-      {
-        bandwidth: 0,
-        disabled: true,
-        uri: 'media0.m3u8'
-      },
-      {
-        bandwidth: 0,
-        uri: 'media1.m3u8'
-      }
-    ], {
-      smoothQualityChange: true
-    });
-    const mpc = vhsHandler.masterPlaylistController_;
-
-    vhsHandler.playlists.on('renditionenabled', function() {
-      renditionEnabledEvents++;
-    });
-
-    RenditionMixin(vhsHandler);
-
-    const renditions = vhsHandler.representations();
-
-    assert.equal(mpc.smoothQualityChange_.calls, 0, 'smoothQualityChange_ was never called');
-    assert.equal(
-      renditionEnabledEvents, 0,
-      'renditionenabled event has not been triggered'
-    );
-
-    renditions[0].enabled(true);
-
-    assert.equal(mpc.smoothQualityChange_.calls, 1, 'smoothQualityChange_ was called once');
-    assert.equal(
-      renditionEnabledEvents, 1,
-      'renditionenabled event has been triggered once'
-    );
-
-    renditions[1].enabled(false);
-
-    assert.equal(mpc.smoothQualityChange_.calls, 2, 'smoothQualityChange_ was called twice');
   }
 );
 
