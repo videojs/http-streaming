@@ -489,18 +489,11 @@ export default class PlaybackWatcher {
 
     // check for gap
     if (nextRange.length > 0) {
-      const difference = nextRange.start(0) - currentTime;
-
-      this.logger_(`Stopped at ${currentTime}, setting timer for ${difference}, seeking ` +
+      this.logger_(`Stopped at ${currentTime} and seeking ` +
         `to ${nextRange.start(0)}`);
 
       this.cancelTimer_();
-
-      this.timer_ = setTimeout(
-        this.skipTheGap_.bind(this),
-        difference * 1000,
-        currentTime
-      );
+      this.skipTheGap_(currentTime);
       return true;
     }
 
