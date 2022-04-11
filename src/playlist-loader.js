@@ -334,7 +334,8 @@ export const updateMaster = (master, newMedia, unchangedCheck = isPlaylistUnchan
     }
     for (let i = 0; i < properties.playlists.length; i++) {
       if (newMedia.id === properties.playlists[i].id) {
-        properties.playlists[i] = newMedia;
+        // properties.playlists[i] = newMedia;
+        properties.playlists[i] = mergedPlaylist;
       }
     }
   });
