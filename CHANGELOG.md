@@ -1,3 +1,10 @@
+<a name="2.14.2"></a>
+## [2.14.2](https://github.com/videojs/http-streaming/compare/v2.14.1...v2.14.2) (2022-04-13)
+
+### Bug Fixes
+
+* retain playlist attributes when refreshing live media playlists ([#1270](https://github.com/videojs/http-streaming/issues/1270)) ([5fbac16](https://github.com/videojs/http-streaming/commit/5fbac16))
+
 <a name="2.14.1"></a>
 ## [2.14.1](https://github.com/videojs/http-streaming/compare/v2.14.0...v2.14.1) (2022-04-06)
 
