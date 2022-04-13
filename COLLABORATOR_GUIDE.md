@@ -5,7 +5,6 @@
 * [Releases](#releases)
   * [Getting dependencies](#getting-dependencies)
     * [npm access](#npm-access)
-    * [GitHub personal access token](#github-personal-access-token)
   * [Deciding what type of version release](#deciding-what-type-of-version-release)
   * [Doing a release](#doing-a-release)
 * [Doc credit](#doc-credit)
@@ -30,12 +29,6 @@ npm owner ls @videojs/http-streaming
 
 If you are a core committer, you can request access to npm from one of the current owners.
 Access is managed via an [npm organization][npm org] for [Video.js][vjs npm].
-
-#### GitHub personal access token
-
-This is used to make a GitHub release on videojs. You can get a token from the [personal access tokens](https://github.com/settings/tokens) page.
-
-After generating one, make sure to keep it safe because GitHub will not show the token for you again. A good place to save it is Lastpass Secure Notes.
 
 ### Deciding what type of version release
 
