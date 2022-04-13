@@ -795,6 +795,110 @@ QUnit.module('Playlist Loader', function(hooks) {
     assert.deepEqual(result, master, 'playlist updated');
   });
 
+  QUnit.test('updateMaster retains mediaGroup attributes', function(assert) {
+    const master = {
+      mediaGroups: {
+        AUDIO: {
+          'GROUP-ID': {
+            default: {
+              default: true,
+              playlists: [{
+                mediaSequence: 0,
+                attributes: {
+                  BANDWIDTH: 9,
+                  CODECS: 'mp4a.40.2'
+                },
+                id: 'playlist-0-uri',
+                uri: 'playlist-0-uri',
+                resolvedUri: urlTo('playlist-0-uri'),
+                segments: [{
+                  duration: 10,
+                  uri: 'segment-0-uri',
+                  resolvedUri: urlTo('segment-0-uri')
+                }]
+              }]
+            }
+          }
+        }
+      },
+      playlists: [{
+        mediaSequence: 0,
+        attributes: {
+          BANDWIDTH: 9,
+          CODECS: 'mp4a.40.2'
+        },
+        id: 'playlist-0-uri',
+        uri: 'playlist-0-uri',
+        resolvedUri: urlTo('playlist-0-uri'),
+        segments: [{
+          duration: 10,
+          uri: 'segment-0-uri',
+          resolvedUri: urlTo('segment-0-uri')
+        }]
+      }]
+    };
+    const media = {
+      mediaSequence: 1,
+      attributes: {
+        BANDWIDTH: 9
+      },
+      id: 'playlist-0-uri',
+      uri: 'playlist-0-uri',
+      segments: [{
+        duration: 10,
+        uri: 'segment-0-uri'
+      }]
+    };
+
+    master.playlists[media.id] = master.playlists[0];
+
+    assert.deepEqual(
+      updateMaster(master, media),
+      {
+        mediaGroups: {
+          AUDIO: {
+            'GROUP-ID': {
+              default: {
+                default: true,
+                playlists: [{
+                  mediaSequence: 1,
+                  attributes: {
+                    BANDWIDTH: 9,
+                    CODECS: 'mp4a.40.2'
+                  },
+                  id: 'playlist-0-uri',
+                  uri: 'playlist-0-uri',
+                  resolvedUri: urlTo('playlist-0-uri'),
+                  segments: [{
+                    duration: 10,
+                    uri: 'segment-0-uri',
+                    resolvedUri: urlTo('segment-0-uri')
+                  }]
+                }]
+              }
+            }
+          }
+        },
+        playlists: [{
+          mediaSequence: 1,
+          attributes: {
+            BANDWIDTH: 9,
+            CODECS: 'mp4a.40.2'
+          },
+          id: 'playlist-0-uri',
+          uri: 'playlist-0-uri',
+          resolvedUri: urlTo('playlist-0-uri'),
+          segments: [{
+            duration: 10,
+            uri: 'segment-0-uri',
+            resolvedUri: urlTo('segment-0-uri')
+          }]
+        }]
+      },
+      'updated playlist retains codec attribute'
+    );
+  });
+
   QUnit.test('uses last segment duration for refresh delay', function(assert) {
     const media = { targetDuration: 7, segments: [] };
 
