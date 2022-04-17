@@ -1,3 +1,17 @@
+<a name="2.14.2"></a>
+## [2.14.2](https://github.com/videojs/http-streaming/compare/v2.14.1...v2.14.2) (2022-04-13)
+
+### Bug Fixes
+
+* retain playlist attributes when refreshing live media playlists ([#1270](https://github.com/videojs/http-streaming/issues/1270)) ([5fbac16](https://github.com/videojs/http-streaming/commit/5fbac16))
+
+<a name="2.14.1"></a>
+## [2.14.1](https://github.com/videojs/http-streaming/compare/v2.14.0...v2.14.1) (2022-04-06)
+
+### Bug Fixes
+
+* ArrayBuffer.isView may not be available everywhere ([#1258](https://github.com/videojs/http-streaming/issues/1258)) ([e492fe8](https://github.com/videojs/http-streaming/commit/e492fe8)), closes [#1134](https://github.com/videojs/http-streaming/issues/1134)
+
 <a name="2.14.0"></a>
 # [2.14.0](https://github.com/videojs/http-streaming/compare/v2.13.1...v2.14.0) (2022-03-14)
 

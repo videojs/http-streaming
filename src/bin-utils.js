@@ -1,3 +1,5 @@
+import { isArrayBufferView } from '@videojs/vhs-utils/es/byte-helpers';
+
 /**
  * @file bin-utils.js
  */
@@ -48,7 +50,7 @@ export const createTransferableMessage = function(message) {
   Object.keys(message).forEach((key) => {
     const value = message[key];
 
-    if (ArrayBuffer.isView(value)) {
+    if (isArrayBufferView(value)) {
       transferable[key] = {
         bytes: value.buffer,
         byteOffset: value.byteOffset,
