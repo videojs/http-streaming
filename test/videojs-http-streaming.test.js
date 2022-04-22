@@ -2289,10 +2289,10 @@ QUnit.test('playlist 404 should blacklist media', function(assert) {
   this.player.tech_.on('blacklistplaylist', () => blacklistplaylist++);
   this.player.tech_.on('retryplaylist', () => retryplaylist++);
   this.player.tech_.on('usage', (event) => {
-    if (event.name === 'vhs-rendition-blacklisted') {
+    if (event.name === 'vhs-rendition-excluded') {
       vhsRenditionBlacklistedEvents++;
     }
-    if (event.name === 'hls-rendition-blacklisted') {
+    if (event.name === 'hls-rendition-excluded') {
       hlsRenditionBlacklistedEvents++;
     }
   });
@@ -2317,12 +2317,12 @@ QUnit.test('playlist 404 should blacklist media', function(assert) {
   assert.equal(
     vhsRenditionBlacklistedEvents,
     0,
-    'no vhs-rendition-blacklisted event was fired'
+    'no vhs-rendition-excluded event was fired'
   );
   assert.equal(
     hlsRenditionBlacklistedEvents,
     0,
-    'no hls-rendition-blacklisted event was fired'
+    'no hls-rendition-excluded event was fired'
   );
   // media
   this.requests[1].respond(404);
@@ -2346,12 +2346,12 @@ QUnit.test('playlist 404 should blacklist media', function(assert) {
   assert.equal(
     vhsRenditionBlacklistedEvents,
     1,
-    'a vhs-rendition-blacklisted event was fired'
+    'a vhs-rendition-excluded event was fired'
   );
   assert.equal(
     hlsRenditionBlacklistedEvents,
     1,
-    'an hls-rendition-blacklisted event was fired'
+    'an hls-rendition-excluded event was fired'
   );
   assert.equal(retryplaylist, 0, 'haven\'t retried any playlist');
 
@@ -2940,7 +2940,7 @@ QUnit.test('playlist blacklisting duration is set through options', function(ass
 
   this.player.dispose();
   videojs.options.vhs = {
-    blacklistDuration: 3 * 60
+    playlistExclusionDuration: 3 * 60
   };
   this.player = createPlayer();
   this.player.src({
@@ -4653,7 +4653,7 @@ QUnit.test('eme handles keystatuschange where status is output-restricted', func
 
   const excludes = [];
 
-  this.player.tech_.vhs.masterPlaylistController_.blacklistCurrentPlaylist = (exclude) => {
+  this.player.tech_.vhs.masterPlaylistController_.excludeCurrentPlaylist = (exclude) => {
     excludes.push(exclude);
   };
 
@@ -4661,7 +4661,7 @@ QUnit.test('eme handles keystatuschange where status is output-restricted', func
   this.player.tech_.trigger({type: 'keystatuschange', status: 'output-restricted'});
 
   assert.deepEqual(excludes, [{
-    blacklistDuration: Infinity,
+    playlistExclusionDuration: Infinity,
     message: 'DRM keystatus changed to output-restricted. Playlist will fail to play. Check for HDCP content.',
     playlist: undefined
   }], 'excluded playlist');
@@ -4703,7 +4703,7 @@ QUnit.test('eme handles keystatuschange where status is usable', function(assert
 
   const excludes = [];
 
-  this.player.tech_.vhs.masterPlaylistController_.blacklistCurrentPlaylist = (exclude) => {
+  this.player.tech_.vhs.masterPlaylistController_.excludeCurrentPlaylist = (exclude) => {
     excludes.push(exclude);
   };
 

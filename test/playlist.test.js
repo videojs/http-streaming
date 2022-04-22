@@ -896,25 +896,25 @@ QUnit.module('Playlist', function() {
     );
   });
 
-  QUnit.test('determines if a playlist is blacklisted', function(assert) {
+  QUnit.test('determines if a playlist is excluded', function(assert) {
     assert.notOk(
-      Playlist.isBlacklisted({}),
-      'playlist not blacklisted if no excludeUntil'
+      Playlist.isExcluded({}),
+      'playlist not excluded if no excludeUntil'
     );
 
     assert.notOk(
-      Playlist.isBlacklisted({ excludeUntil: Date.now() - 1 }),
-      'playlist not blacklisted if expired excludeUntil'
+      Playlist.isExcluded({ excludeUntil: Date.now() - 1 }),
+      'playlist not excluded if expired excludeUntil'
     );
 
     assert.ok(
-      Playlist.isBlacklisted({ excludeUntil: Date.now() + 9999 }),
-      'playlist is blacklisted'
+      Playlist.isExcluded({ excludeUntil: Date.now() + 9999 }),
+      'playlist is excluded'
     );
 
     assert.ok(
-      Playlist.isBlacklisted({ excludeUntil: Infinity }),
-      'playlist is blacklisted if excludeUntil is Infinity'
+      Playlist.isExcluded({ excludeUntil: Infinity }),
+      'playlist is excluded if excludeUntil is Infinity'
     );
   });
 

@@ -536,13 +536,13 @@ export const getMediaInfoForTime = function({
 };
 
 /**
- * Check whether the playlist is blacklisted or not.
+ * Check whether the playlist is excluded or not.
  *
  * @param {Object} playlist the media playlist object
- * @return {boolean} whether the playlist is blacklisted or not
- * @function isBlacklisted
+ * @return {boolean} whether the playlist is excluded or not
+ * @function isExcluded
  */
-export const isBlacklisted = function(playlist) {
+export const isExcluded = function(playlist) {
   return playlist.excludeUntil && playlist.excludeUntil > Date.now();
 };
 
@@ -566,9 +566,9 @@ export const isIncompatible = function(playlist) {
  * @function isEnabled
  */
 export const isEnabled = function(playlist) {
-  const blacklisted = isBlacklisted(playlist);
+  const excluded = isExcluded(playlist);
 
-  return (!playlist.disabled && !blacklisted);
+  return (!playlist.disabled && !excluded);
 };
 
 /**
@@ -766,7 +766,7 @@ export default {
   getMediaInfoForTime,
   isEnabled,
   isDisabled,
-  isBlacklisted,
+  isExcluded,
   isIncompatible,
   playlistEnd,
   isAes,
