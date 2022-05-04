@@ -420,7 +420,6 @@ export default class PlaybackWatcher {
 
       // unknown waiting corrections may be useful for monitoring QoS
       this.tech_.trigger({type: 'usage', name: 'vhs-unknown-waiting'});
-      this.tech_.trigger({type: 'usage', name: 'hls-unknown-waiting'});
       return;
     }
   }
@@ -452,7 +451,6 @@ export default class PlaybackWatcher {
 
       // live window resyncs may be useful for monitoring QoS
       this.tech_.trigger({type: 'usage', name: 'vhs-live-resync'});
-      this.tech_.trigger({type: 'usage', name: 'hls-live-resync'});
       return true;
     }
 
@@ -474,7 +472,6 @@ export default class PlaybackWatcher {
 
       // video underflow may be useful for monitoring QoS
       this.tech_.trigger({type: 'usage', name: 'vhs-video-underflow'});
-      this.tech_.trigger({type: 'usage', name: 'hls-video-underflow'});
       return true;
     }
     const nextRange = Ranges.findNextRange(buffered, currentTime);
@@ -594,7 +591,6 @@ export default class PlaybackWatcher {
     this.tech_.setCurrentTime(nextRange.start(0) + Ranges.TIME_FUDGE_FACTOR);
 
     this.tech_.trigger({type: 'usage', name: 'vhs-gap-skip'});
-    this.tech_.trigger({type: 'usage', name: 'hls-gap-skip'});
   }
 
   gapFromVideoUnderflow_(buffered, currentTime) {
