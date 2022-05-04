@@ -1,7 +1,7 @@
 /**
  * @file videojs-http-streaming.js
  *
- * The main file for the HLS project.
+ * The main file for the VHS project.
  * License: https://github.com/videojs/videojs-http-streaming/blob/master/LICENSE
  */
 import document from 'global/document';
@@ -125,10 +125,10 @@ const handleVhsLoadedMetadata = function(qualityLevels, vhs) {
   handleVhsMediaChange(qualityLevels, vhs.playlists);
 };
 
-// HLS is a source handler, not a tech. Make sure attempts to use it
+// VHS is a source handler, not a tech. Make sure attempts to use it
 // as one do not cause exceptions.
 Vhs.canPlaySource = function() {
-  return videojs.log.warn('HLS is no longer a tech. Please remove it from ' +
+  return videojs.log.warn('VHS is no longer a tech. Please remove it from ' +
     'your player\'s techOrder.');
 };
 
@@ -483,11 +483,11 @@ Vhs.supportsTypeNatively = (type) => {
 };
 
 /**
- * HLS is a source handler, not a tech. Make sure attempts to use it
+ * VHS is a source handler, not a tech. Make sure attempts to use it
  * as one do not cause exceptions.
  */
 Vhs.isSupported = function() {
-  return videojs.log.warn('HLS is no longer a tech. Please remove it from ' +
+  return videojs.log.warn('VHS is no longer a tech. Please remove it from ' +
     'your player\'s techOrder.');
 };
 
@@ -495,7 +495,7 @@ const Component = videojs.getComponent('Component');
 
 /**
  * The Vhs Handler object, where we orchestrate all of the parts
- * of HLS to interact with video.js
+ * of VHS to interact with video.js
  *
  * @class VhsHandler
  * @extends videojs.Component
@@ -505,11 +505,7 @@ const Component = videojs.getComponent('Component');
  */
 class VhsHandler extends Component {
   constructor(source, tech, options) {
-    super(tech, videojs.mergeOptions(options.hls, options.vhs));
-
-    if (options.hls && Object.keys(options.hls).length) {
-      videojs.log.warn('Using hls options is deprecated. Please rename `hls` to `vhs` in your options object.');
-    }
+    super(tech, options.vhs);
 
     // if a tech level `initialBandwidth` option was passed
     // use that over the VHS level `bandwidth` option
@@ -519,42 +515,10 @@ class VhsHandler extends Component {
 
     this.logger_ = logger('VhsHandler');
 
-    // tech.player() is deprecated but setup a reference to HLS for
-    // backwards-compatibility
+    // we need access to the player in some cases,
+    // so, get it from Video.js via the `playerId`
     if (tech.options_ && tech.options_.playerId) {
-      const _player = videojs(tech.options_.playerId);
-
-      if (!_player.hasOwnProperty('hls')) {
-        Object.defineProperty(_player, 'hls', {
-          get: () => {
-            videojs.log.warn('player.hls is deprecated. Use player.tech().vhs instead.');
-            tech.trigger({ type: 'usage', name: 'hls-player-access' });
-            return this;
-          },
-          configurable: true
-        });
-      }
-
-      if (!_player.hasOwnProperty('vhs')) {
-        Object.defineProperty(_player, 'vhs', {
-          get: () => {
-            videojs.log.warn('player.vhs is deprecated. Use player.tech().vhs instead.');
-            tech.trigger({ type: 'usage', name: 'vhs-player-access' });
-            return this;
-          },
-          configurable: true
-        });
-      }
-
-      if (!_player.hasOwnProperty('dash')) {
-        Object.defineProperty(_player, 'dash', {
-          get: () => {
-            videojs.log.warn('player.dash is deprecated. Use player.tech().vhs instead.');
-            return this;
-          },
-          configurable: true
-        });
-      }
+      const _player = videojs.getPlayer(tech.options_.playerId);
 
       this.player_ = _player;
     }
@@ -572,9 +536,9 @@ class VhsHandler extends Component {
       tech.overrideNativeVideoTracks(true);
     } else if (this.options_.overrideNative &&
       (tech.featuresNativeVideoTracks || tech.featuresNativeAudioTracks)) {
-      // overriding native HLS only works if audio tracks have been emulated
+      // overriding native VHS only works if audio tracks have been emulated
       // error early if we're misconfigured
-      throw new Error('Overriding native HLS requires emulated tracks. ' +
+      throw new Error('Overriding native VHS requires emulated tracks. ' +
         'See https://git.io/vMpjB');
     }
 
@@ -622,7 +586,6 @@ class VhsHandler extends Component {
   setOptions_() {
     // defaults
     this.options_.withCredentials = this.options_.withCredentials || false;
-    this.options_.handleManifestRedirects = this.options_.handleManifestRedirects === false ? false : true;
     this.options_.limitRenditionByPlayerDimensions = this.options_.limitRenditionByPlayerDimensions === false ? false : true;
     this.options_.useDevicePixelRatio = this.options_.useDevicePixelRatio || false;
     this.options_.smoothQualityChange = this.options_.smoothQualityChange || false;
@@ -647,12 +610,10 @@ class VhsHandler extends Component {
         if (storedObject && storedObject.bandwidth) {
           this.options_.bandwidth = storedObject.bandwidth;
           this.tech_.trigger({type: 'usage', name: 'vhs-bandwidth-from-local-storage'});
-          this.tech_.trigger({type: 'usage', name: 'hls-bandwidth-from-local-storage'});
         }
         if (storedObject && storedObject.throughput) {
           this.options_.throughput = storedObject.throughput;
           this.tech_.trigger({type: 'usage', name: 'vhs-throughput-from-local-storage'});
-          this.tech_.trigger({type: 'usage', name: 'hls-throughput-from-local-storage'});
         }
       }
     }
@@ -677,7 +638,6 @@ class VhsHandler extends Component {
       'smoothQualityChange',
       'customTagParsers',
       'customTagMappers',
-      'handleManifestRedirects',
       'cacheEncryptionKeys',
       'playlistSelector',
       'initialPlaylistSelector',
@@ -1176,19 +1136,8 @@ class VhsHandler extends Component {
       this.qualityLevels_.dispose();
     }
 
-    if (this.player_) {
-      delete this.player_.vhs;
-      delete this.player_.dash;
-      delete this.player_.hls;
-    }
-
     if (this.tech_ && this.tech_.vhs) {
       delete this.tech_.vhs;
-    }
-
-    // don't check this.tech_.hls as it will log a deprecated warning
-    if (this.tech_) {
-      delete this.tech_.hls;
     }
 
     if (this.mediaSourceUrl_ && window.URL.revokeObjectURL) {
@@ -1244,15 +1193,6 @@ const VhsSourceHandler = {
     const localOptions = videojs.mergeOptions(videojs.options, options);
 
     tech.vhs = new VhsHandler(source, tech, localOptions);
-    if (!videojs.hasOwnProperty('hls')) {
-      Object.defineProperty(tech, 'hls', {
-        get: () => {
-          videojs.log.warn('player.tech().hls is deprecated. Use player.tech().vhs instead.');
-          return tech.vhs;
-        },
-        configurable: true
-      });
-    }
     tech.vhs.xhr = xhrFactory();
 
     tech.vhs.src(source.src, source.type);
@@ -1260,13 +1200,12 @@ const VhsSourceHandler = {
   },
   canPlayType(type, options = {}) {
     const {
-      vhs: { overrideNative = !videojs.browser.IS_ANY_SAFARI } = {},
-      hls: { overrideNative: legacyOverrideNative = false } = {}
+      vhs: { overrideNative = !videojs.browser.IS_ANY_SAFARI } = {}
     } = videojs.mergeOptions(videojs.options, options);
 
     const supportedType = simpleTypeFromSourceType(type);
     const canUseMsePlayback = supportedType &&
-      (!Vhs.supportsTypeNatively(supportedType) || legacyOverrideNative || overrideNative);
+      (!Vhs.supportsTypeNatively(supportedType) || overrideNative);
 
     return canUseMsePlayback ? 'maybe' : '';
   }
@@ -1288,36 +1227,12 @@ if (supportsNativeMediaSources()) {
 }
 
 videojs.VhsHandler = VhsHandler;
-Object.defineProperty(videojs, 'HlsHandler', {
-  get: () => {
-    videojs.log.warn('videojs.HlsHandler is deprecated. Use videojs.VhsHandler instead.');
-    return VhsHandler;
-  },
-  configurable: true
-});
 videojs.VhsSourceHandler = VhsSourceHandler;
-Object.defineProperty(videojs, 'HlsSourceHandler', {
-  get: () => {
-    videojs.log.warn('videojs.HlsSourceHandler is deprecated. ' +
-      'Use videojs.VhsSourceHandler instead.');
-    return VhsSourceHandler;
-  },
-  configurable: true
-});
 videojs.Vhs = Vhs;
-Object.defineProperty(videojs, 'Hls', {
-  get: () => {
-    videojs.log.warn('videojs.Hls is deprecated. Use videojs.Vhs instead.');
-    return Vhs;
-  },
-  configurable: true
-});
 if (!videojs.use) {
-  videojs.registerComponent('Hls', Vhs);
   videojs.registerComponent('Vhs', Vhs);
 }
 videojs.options.vhs = videojs.options.vhs || {};
-videojs.options.hls = videojs.options.hls || {};
 
 if (!videojs.getPlugin || !videojs.getPlugin('reloadSourceOnError')) {
   const registerPlugin = videojs.registerPlugin || videojs.plugin;

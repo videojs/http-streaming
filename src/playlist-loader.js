@@ -385,12 +385,11 @@ export default class PlaylistLoader extends EventTarget {
     }
     this.logger_ = logger('PlaylistLoader');
 
-    const { withCredentials = false, handleManifestRedirects = false } = options;
+    const { withCredentials = false} = options;
 
     this.src = src;
     this.vhs_ = vhs;
     this.withCredentials = withCredentials;
-    this.handleManifestRedirects = handleManifestRedirects;
 
     const vhsOptions = vhs.options_;
 
@@ -678,7 +677,7 @@ export default class PlaylistLoader extends EventTarget {
 
       playlist.lastRequest = Date.now();
 
-      playlist.resolvedUri = resolveManifestRedirect(this.handleManifestRedirects, playlist.resolvedUri, req);
+      playlist.resolvedUri = resolveManifestRedirect(playlist.resolvedUri, req);
 
       if (error) {
         return this.playlistRequestError(this.request, playlist, startingState);
@@ -839,7 +838,7 @@ export default class PlaylistLoader extends EventTarget {
         return this.trigger('error');
       }
 
-      this.src = resolveManifestRedirect(this.handleManifestRedirects, this.src, req);
+      this.src = resolveManifestRedirect(this.src, req);
 
       const manifest = this.parseManifest_({
         manifestString: req.responseText,

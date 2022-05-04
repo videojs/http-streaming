@@ -912,7 +912,6 @@ export const setupMediaGroups = (settings) => {
   const onAudioTrackChanged = () => {
     mediaTypes.AUDIO.onTrackChanged();
     tech.trigger({ type: 'usage', name: 'vhs-audio-change' });
-    tech.trigger({ type: 'usage', name: 'hls-audio-change' });
   };
 
   tech.audioTracks().addEventListener('change', onAudioTrackChanged);

@@ -24,7 +24,6 @@ const initPlugin = function(player, options) {
 
   player.ready(() => {
     player.trigger({type: 'usage', name: 'vhs-error-reload-initialized'});
-    player.trigger({type: 'usage', name: 'hls-error-reload-initialized'});
   });
 
   /**
@@ -55,7 +54,6 @@ const initPlugin = function(player, options) {
 
     player.src(sourceObj);
     player.trigger({type: 'usage', name: 'vhs-error-reload'});
-    player.trigger({type: 'usage', name: 'hls-error-reload'});
     player.play();
   };
 
@@ -70,7 +68,6 @@ const initPlugin = function(player, options) {
     // 'errorInterval' time has elapsed since the last source-reload
     if (Date.now() - lastCalled < localOptions.errorInterval * 1000) {
       player.trigger({type: 'usage', name: 'vhs-error-reload-canceled'});
-      player.trigger({type: 'usage', name: 'hls-error-reload-canceled'});
       return;
     }
 
