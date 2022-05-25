@@ -204,12 +204,12 @@ export let simpleSelector = function(
   sortedPlaylistReps = sortedPlaylistReps.filter((rep) => !Playlist.isIncompatible(rep.playlist));
 
   // filter out any playlists that have been disabled manually through the representations
-  // api or blacklisted temporarily due to playback errors.
+  // api or excluded temporarily due to playback errors.
   let enabledPlaylistReps = sortedPlaylistReps.filter((rep) => Playlist.isEnabled(rep.playlist));
 
   if (!enabledPlaylistReps.length) {
-    // if there are no enabled playlists, then they have all been blacklisted or disabled
-    // by the user through the representations api. In this case, ignore blacklisting and
+    // if there are no enabled playlists, then they have all been excluded or disabled
+    // by the user through the representations api. In this case, ignore exclusion and
     // fallback to what the user wants by using playlists the user has not disabled.
     enabledPlaylistReps = sortedPlaylistReps.filter((rep) => !Playlist.isDisabled(rep.playlist));
   }
@@ -473,12 +473,12 @@ export const minRebufferMaxBandwidthSelector = function(settings) {
   const compatiblePlaylists = master.playlists.filter(playlist => !Playlist.isIncompatible(playlist));
 
   // filter out any playlists that have been disabled manually through the representations
-  // api or blacklisted temporarily due to playback errors.
+  // api or excluded temporarily due to playback errors.
   let enabledPlaylists = compatiblePlaylists.filter(Playlist.isEnabled);
 
   if (!enabledPlaylists.length) {
-    // if there are no enabled playlists, then they have all been blacklisted or disabled
-    // by the user through the representations api. In this case, ignore blacklisting and
+    // if there are no enabled playlists, then they have all been excluded or disabled
+    // by the user through the representations api. In this case, ignore exclusion and
     // fallback to what the user wants by using playlists the user has not disabled.
     enabledPlaylists = compatiblePlaylists.filter(playlist => !Playlist.isDisabled(playlist));
   }

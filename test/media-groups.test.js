@@ -959,7 +959,7 @@ QUnit.module('MediaGroups', function() {
 
       onError();
 
-      assert.equal(excludeCurrentPlaylistCalls, 0, 'did not blacklist current playlist');
+      assert.equal(excludeCurrentPlaylistCalls, 0, 'did not exclude current playlist');
       assert.equal(onTrackChangedCalls, 1, 'called onTrackChanged after changing to default');
       assert.equal(tracks.en.enabled, true, 'enabled default track');
       assert.equal(tracks.fr.enabled, false, 'disabled active track');
@@ -969,8 +969,8 @@ QUnit.module('MediaGroups', function() {
 
       onError();
 
-      assert.equal(excludeCurrentPlaylistCalls, 1, 'blacklist current playlist');
-      assert.equal(onTrackChangedCalls, 1, 'did not call onTrackChanged after blacklist');
+      assert.equal(excludeCurrentPlaylistCalls, 1, 'excluded current playlist');
+      assert.equal(onTrackChangedCalls, 1, 'did not call onTrackChanged after exclusion');
       assert.equal(tracks.en.enabled, true, 'default track still enabled');
       assert.equal(tracks.fr.enabled, false, 'disabled track still disabled');
       assert.equal(tracks.es.enabled, false, 'disabled track still disabled');

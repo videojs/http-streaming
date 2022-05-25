@@ -548,7 +548,7 @@ export const isExcluded = function(playlist) {
 
 /**
  * Check whether the playlist is compatible with current playback configuration or has
- * been blacklisted permanently for being incompatible.
+ * been excluded permanently for being incompatible.
  *
  * @param {Object} playlist the media playlist object
  * @return {boolean} whether the playlist is incompatible or not

@@ -2689,7 +2689,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       }
 
       // if control-flow has arrived here, then the error is real
-      // emit an error event to blacklist the current playlist
+      // emit an error event to exclude the current playlist
       this.mediaRequestsErrored += 1;
       this.error(error);
       this.trigger('error');

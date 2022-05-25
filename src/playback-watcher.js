@@ -187,7 +187,7 @@ export default class PlaybackWatcher {
   /**
    * Checks on every segment `appendsdone` to see
    * if segment appends are making progress. If they are not
-   * and we are still downloading bytes. We blacklist the playlist.
+   * and we are still downloading bytes. We exclude the playlist.
    *
    * @param {string} type
    *        The segment loader type to check.

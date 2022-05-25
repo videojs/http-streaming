@@ -1543,7 +1543,7 @@ QUnit.test('filters playlists that are currently excluded', function(assert) {
   assert.equal(this.player.tech_.vhs.stats.bandwidth, 1e10, 'bandwidth set above');
 });
 
-QUnit.test('does not blacklist compatible H.264 codec strings', function(assert) {
+QUnit.test('does not exclude compatible H.264 codec strings', function(assert) {
   this.player.src({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -1576,19 +1576,19 @@ QUnit.test('does not blacklist compatible H.264 codec strings', function(assert)
   assert.strictEqual(
     typeof master.playlists[0].excludeUntil,
     'undefined',
-    'did not blacklist'
+    'did not exclude'
   );
   assert.strictEqual(
     typeof master.playlists[1].excludeUntil,
     'undefined',
-    'did not blacklist'
+    'did not exclude'
   );
 
   // verify stats
   assert.equal(this.player.tech_.vhs.stats.bandwidth, 1, 'bandwidth set above');
 });
 
-QUnit.test('does not blacklist compatible AAC codec strings', function(assert) {
+QUnit.test('does not exclude compatible AAC codec strings', function(assert) {
   this.player.src({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -1621,16 +1621,16 @@ QUnit.test('does not blacklist compatible AAC codec strings', function(assert) {
   assert.strictEqual(
     typeof master.playlists[0].excludeUntil,
     'undefined',
-    'did not blacklist mp4a.40.2'
+    'did not exclude mp4a.40.2'
   );
   assert.strictEqual(
     master.playlists[1].excludeUntil,
     Infinity,
-    'blacklisted invalid audio codec'
+    'excluded invalid audio codec'
   );
 });
 
-QUnit.test('blacklists incompatible playlists by codec, without codec switching', function(assert) {
+QUnit.test('excludes incompatible playlists by codec, without codec switching', function(assert) {
   this.player.src({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -1681,16 +1681,16 @@ QUnit.test('blacklists incompatible playlists by codec, without codec switching'
   const playlists = master.playlists;
 
   assert.strictEqual(playlists.length, 7, 'six playlists total');
-  assert.strictEqual(typeof playlists[0].excludeUntil, 'undefined', 'did not blacklist first playlist');
-  assert.strictEqual(typeof playlists[1].excludeUntil, 'undefined', 'did not blacklist second playlist');
-  assert.strictEqual(playlists[2].excludeUntil, Infinity, 'blacklisted incompatible audio playlist');
-  assert.strictEqual(playlists[3].excludeUntil, Infinity, 'blacklisted incompatible video playlist');
-  assert.strictEqual(playlists[4].excludeUntil, Infinity, 'blacklisted audio only playlist');
-  assert.strictEqual(playlists[5].excludeUntil, Infinity, 'blacklisted video only playlist');
-  assert.strictEqual(typeof playlists[6].excludeUntil, 'undefined', 'did not blacklist seventh playlist');
+  assert.strictEqual(typeof playlists[0].excludeUntil, 'undefined', 'did not exclude first playlist');
+  assert.strictEqual(typeof playlists[1].excludeUntil, 'undefined', 'did not exclude second playlist');
+  assert.strictEqual(playlists[2].excludeUntil, Infinity, 'excluded incompatible audio playlist');
+  assert.strictEqual(playlists[3].excludeUntil, Infinity, 'excluded incompatible video playlist');
+  assert.strictEqual(playlists[4].excludeUntil, Infinity, 'excluded audio only playlist');
+  assert.strictEqual(playlists[5].excludeUntil, Infinity, 'excluded video only playlist');
+  assert.strictEqual(typeof playlists[6].excludeUntil, 'undefined', 'did not exclude seventh playlist');
 });
 
-QUnit.test('does not blacklist incompatible codecs with codec switching', function(assert) {
+QUnit.test('does not exclude incompatible codecs with codec switching', function(assert) {
   const oldIsTypeSupported = window.MediaSource.isTypeSupported;
 
   window.MediaSource.isTypeSupported = (t) => (/avc1|mp4a/).test(t);
@@ -1744,17 +1744,17 @@ QUnit.test('does not blacklist incompatible codecs with codec switching', functi
   const playlists = master.playlists;
 
   assert.strictEqual(playlists.length, 7, 'six playlists total');
-  assert.strictEqual(typeof playlists[0].excludeUntil, 'undefined', 'did not blacklist first playlist');
-  assert.strictEqual(typeof playlists[1].excludeUntil, 'undefined', 'did not blacklist second playlist');
-  assert.strictEqual(playlists[2].excludeUntil, Infinity, 'blacklisted incompatible audio playlist');
-  assert.strictEqual(playlists[3].excludeUntil, Infinity, 'blacklisted incompatible video playlist');
-  assert.strictEqual(playlists[4].excludeUntil, Infinity, 'blacklisted audio only playlist');
-  assert.strictEqual(playlists[5].excludeUntil, Infinity, 'blacklisted video only playlist');
-  assert.strictEqual(typeof playlists[6].excludeUntil, 'undefined', 'did not blacklist seventh playlist');
+  assert.strictEqual(typeof playlists[0].excludeUntil, 'undefined', 'did not exclude first playlist');
+  assert.strictEqual(typeof playlists[1].excludeUntil, 'undefined', 'did not exclude second playlist');
+  assert.strictEqual(playlists[2].excludeUntil, Infinity, 'exclude incompatible audio playlist');
+  assert.strictEqual(playlists[3].excludeUntil, Infinity, 'exclude incompatible video playlist');
+  assert.strictEqual(playlists[4].excludeUntil, Infinity, 'exclude audio only playlist');
+  assert.strictEqual(playlists[5].excludeUntil, Infinity, 'exclude video only playlist');
+  assert.strictEqual(typeof playlists[6].excludeUntil, 'undefined', 'did not exclude seventh playlist');
   window.MediaSource.isTypeSupported = oldIsTypeSupported;
 });
 
-QUnit.test('blacklists fmp4 playlists by browser support', function(assert) {
+QUnit.test('excludes fmp4 playlists by browser support', function(assert) {
   const oldIsTypeSupported = window.MediaSource.isTypeSupported;
 
   window.MediaSource.isTypeSupported = (t) => (/avc1|mp4a/).test(t);
@@ -1818,9 +1818,9 @@ QUnit.test('blacklists fmp4 playlists by browser support', function(assert) {
   loader.trigger('trackinfo');
 
   assert.strictEqual(playlists.length, 3, 'three playlists total');
-  assert.strictEqual(playlists[0].excludeUntil, Infinity, 'blacklisted first playlist');
-  assert.strictEqual(playlists[1].excludeUntil, Infinity, 'blacklisted second playlist');
-  assert.strictEqual(typeof playlists[2].excludeUntil, 'undefined', 'did not blacklist second playlist');
+  assert.strictEqual(playlists[0].excludeUntil, Infinity, 'excluded first playlist');
+  assert.strictEqual(playlists[1].excludeUntil, Infinity, 'excluded second playlist');
+  assert.strictEqual(typeof playlists[2].excludeUntil, 'undefined', 'did not exclude second playlist');
   assert.deepEqual(debugLogs, [
     `Internal problem encountered with playlist ${playlists[0].id}. browser does not support codec(s): "hvc1". Switching to playlist ${playlists[1].id}.`,
     `switch media ${playlists[0].id} -> ${playlists[1].id} from exclude`,
@@ -1831,7 +1831,7 @@ QUnit.test('blacklists fmp4 playlists by browser support', function(assert) {
   window.MediaSource.isTypeSupported = oldIsTypeSupported;
 });
 
-QUnit.test('blacklists ts playlists by muxer support', function(assert) {
+QUnit.test('excludes ts playlists by muxer support', function(assert) {
   const oldIsTypeSupported = window.MediaSource.isTypeSupported;
 
   window.MediaSource.isTypeSupported = (t) => true;
@@ -1891,9 +1891,9 @@ QUnit.test('blacklists ts playlists by muxer support', function(assert) {
   loader.trigger('trackinfo');
 
   assert.strictEqual(playlists.length, 3, 'three playlists total');
-  assert.strictEqual(playlists[0].excludeUntil, Infinity, 'blacklisted first playlist');
-  assert.strictEqual(playlists[1].excludeUntil, Infinity, 'blacklisted second playlist');
-  assert.strictEqual(typeof playlists[2].excludeUntil, 'undefined', 'did not blacklist third playlist');
+  assert.strictEqual(playlists[0].excludeUntil, Infinity, 'excluded first playlist');
+  assert.strictEqual(playlists[1].excludeUntil, Infinity, 'excluded second playlist');
+  assert.strictEqual(typeof playlists[2].excludeUntil, 'undefined', 'did not exclude third playlist');
   assert.deepEqual(debugLogs, [
     `Internal problem encountered with playlist ${playlists[0].id}. muxer does not support codec(s): "hvc1". Switching to playlist ${playlists[1].id}.`,
     `switch media ${playlists[0].id} -> ${playlists[1].id} from exclude`,
@@ -1988,7 +1988,7 @@ QUnit.test('unsupported playlist should not be re-included when excluding last p
     assert.strictEqual(
       master.playlists[1].excludeUntil,
       Infinity,
-      'blacklisted invalid audio codec'
+      'excluded invalid audio codec'
     );
     const requri = this.requests[0].uri;
 
@@ -1998,10 +1998,10 @@ QUnit.test('unsupported playlist should not be re-included when excluding last p
     assert.strictEqual(
       master.playlists[1].excludeUntil,
       Infinity,
-      'audio codec still blacklisted'
+      'audio codec still excluded'
     );
 
-    assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
+    assert.equal(this.env.log.warn.calls, 1, 'warning logged for exclusion');
     assert.equal(
       this.env.log.warn.args[0][0],
       `Problem encountered with playlist ${master.playlists[0].id}. HLS request errored at URL: ${requri} Switching to playlist 0-media.m3u8.`,
@@ -2010,7 +2010,7 @@ QUnit.test('unsupported playlist should not be re-included when excluding last p
   });
 });
 
-QUnit.test('segment 404 should trigger blacklisting of media', function(assert) {
+QUnit.test('segment 404 should trigger exclusion of media', function(assert) {
   this.player.src({
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -2030,20 +2030,20 @@ QUnit.test('segment 404 should trigger blacklisting of media', function(assert) 
 
   // segment
   this.requests[2].respond(400);
-  assert.ok(media.excludeUntil > 0, 'original media blacklisted for some time');
-  assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
+  assert.ok(media.excludeUntil > 0, 'original media excluded for some time');
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged for exclusion');
 
   // verify stats
   assert.equal(this.player.tech_.vhs.stats.bandwidth, 20000, 'bandwidth set above');
 });
 
-QUnit.test('playlist 404 should blacklist media', function(assert) {
+QUnit.test('playlist 404 should exclude media', function(assert) {
   let media;
   let url;
   let index;
-  let blacklistplaylist = 0;
+  let excludeplaylist = 0;
   let retryplaylist = 0;
-  let vhsRenditionBlacklistedEvents = 0;
+  let vhsRenditionExcludedEvents = 0;
 
   this.player.src({
     src: 'manifest/master.m3u8',
@@ -2053,11 +2053,11 @@ QUnit.test('playlist 404 should blacklist media', function(assert) {
   this.clock.tick(1);
 
   openMediaSource(this.player, this.clock);
-  this.player.tech_.on('blacklistplaylist', () => blacklistplaylist++);
+  this.player.tech_.on('excludeplaylist', () => excludeplaylist++);
   this.player.tech_.on('retryplaylist', () => retryplaylist++);
   this.player.tech_.on('usage', (event) => {
     if (event.name === 'vhs-rendition-excluded') {
-      vhsRenditionBlacklistedEvents++;
+      vhsRenditionExcludedEvents++;
     }
   });
 
@@ -2077,9 +2077,9 @@ QUnit.test('playlist 404 should blacklist media', function(assert) {
     'no media is initially set'
   );
 
-  assert.equal(blacklistplaylist, 0, 'there is no blacklisted playlist');
+  assert.equal(excludeplaylist, 0, 'there is no excluded playlist');
   assert.equal(
-    vhsRenditionBlacklistedEvents,
+    vhsRenditionExcludedEvents,
     0,
     'no vhs-rendition-excluded event was fired'
   );
@@ -2094,16 +2094,16 @@ QUnit.test('playlist 404 should blacklist media', function(assert) {
   }
   media = this.player.tech_.vhs.playlists.master.playlists[createPlaylistID(index, url)];
 
-  assert.ok(media.excludeUntil > 0, 'original media blacklisted for some time');
-  assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
+  assert.ok(media.excludeUntil > 0, 'original media excluded for some time');
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged for exclusion');
   assert.equal(
     this.env.log.warn.args[0],
     `Problem encountered with playlist ${media.id}. HLS playlist request error at URL: media.m3u8. Switching to playlist 1-media1.m3u8.`,
     'log generic error message'
   );
-  assert.equal(blacklistplaylist, 1, 'there is one blacklisted playlist');
+  assert.equal(excludeplaylist, 1, 'there is one excluded playlist');
   assert.equal(
-    vhsRenditionBlacklistedEvents,
+    vhsRenditionExcludedEvents,
     1,
     'a vhs-rendition-excluded event was fired'
   );
@@ -2120,8 +2120,8 @@ QUnit.test('playlist 404 should blacklist media', function(assert) {
 
   media = this.player.tech_.vhs.playlists.master.playlists[createPlaylistID(index, url)];
 
-  assert.ok(media.excludeUntil > 0, 'second media was blacklisted after playlist 404');
-  assert.equal(this.env.log.warn.calls, 2, 'warning logged for blacklist');
+  assert.ok(media.excludeUntil > 0, 'second media was excluded after playlist 404');
+  assert.equal(this.env.log.warn.calls, 2, 'warning logged for exclusion');
   assert.equal(
     this.env.log.warn.args[1],
     'Removing other playlists from the exclusion list because the last rendition is about to be excluded.',
@@ -2134,14 +2134,14 @@ QUnit.test('playlist 404 should blacklist media', function(assert) {
     'log generic error message'
   );
   assert.equal(retryplaylist, 1, 'fired a retryplaylist event');
-  assert.equal(blacklistplaylist, 2, 'media1 is blacklisted');
+  assert.equal(excludeplaylist, 2, 'media1 is excluded');
 
   this.clock.tick(2 * 1000);
   // no new request was made since it hasn't been half the segment duration
   assert.strictEqual(3, this.requests.length, 'no new request was made');
 
   this.clock.tick(3 * 1000);
-  // loading the first playlist since the blacklist duration was cleared
+  // loading the first playlist since the exclusion duration was cleared
   // when half the segment duaration passed
 
   assert.strictEqual(4, this.requests.length, 'one more request was made');
@@ -2153,8 +2153,8 @@ QUnit.test('playlist 404 should blacklist media', function(assert) {
   }
   media = this.player.tech_.vhs.playlists.master.playlists[createPlaylistID(index, url)];
 
-  // the first media was unblacklisted after a refresh delay
-  assert.ok(!media.excludeUntil, 'removed first media from blacklist');
+  // the first media was removed from exclusion after a refresh delay
+  assert.ok(!media.excludeUntil, 'removed first media from exclusion');
 
   assert.strictEqual(
     this.requests[3].url,
@@ -2166,7 +2166,7 @@ QUnit.test('playlist 404 should blacklist media', function(assert) {
   assert.equal(this.player.tech_.vhs.stats.bandwidth, 1e10, 'bandwidth set above');
 });
 
-QUnit.test('blacklists playlist if it has stopped being updated', function(assert) {
+QUnit.test('excludes playlist if it has stopped being updated', function(assert) {
   let playliststuck = 0;
 
   this.player.src({
@@ -2200,9 +2200,9 @@ QUnit.test('blacklists playlist if it has stopped being updated', function(asser
 
   assert.ok(
     !this.player.tech_.vhs.playlists.media().excludeUntil,
-    'playlist was not blacklisted'
+    'playlist was not excluded'
   );
-  assert.equal(this.env.log.warn.calls, 0, 'no warning logged for blacklist');
+  assert.equal(this.env.log.warn.calls, 0, 'no warning logged for exclusion');
   assert.equal(playliststuck, 0, 'there is no stuck playlist');
 
   this.player.tech_.trigger('play');
@@ -2222,9 +2222,9 @@ QUnit.test('blacklists playlist if it has stopped being updated', function(asser
 
   assert.ok(
     media.excludeUntil > 0,
-    'playlist blacklisted for some time'
+    'playlist excluded for some time'
   );
-  assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged for exclusion');
   assert.equal(
     this.env.log.warn.args[0],
     `Problem encountered with playlist ${media.id}. ` +
@@ -2234,7 +2234,7 @@ QUnit.test('blacklists playlist if it has stopped being updated', function(asser
   assert.equal(playliststuck, 1, 'there is one stuck playlist');
 });
 
-QUnit.test('never blacklist the playlist if it is the only playlist', function(assert) {
+QUnit.test('never excluded the playlist if it is the only playlist', function(assert) {
   this.player.src({
     src: 'manifest/media.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -2252,9 +2252,9 @@ QUnit.test('never blacklist the playlist if it is the only playlist', function(a
   this.requests.shift().respond(404);
   const media = this.player.tech_.vhs.playlists.media();
 
-  // media wasn't blacklisted because it's the only rendition
-  assert.ok(!media.excludeUntil, 'media was not blacklisted after playlist 404');
-  assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
+  // media wasn't excluded because it's the only rendition
+  assert.ok(!media.excludeUntil, 'media was not excluded after playlist 404');
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged for exclusion');
   assert.equal(
     this.env.log.warn.args[0],
     `Problem encountered with playlist ${media.id}. ` +
@@ -2286,9 +2286,9 @@ QUnit.test(
     const url = this.requests[1].url.slice(this.requests[1].url.lastIndexOf('/') + 1);
     const media = this.player.tech_.vhs.playlists.master.playlists[createPlaylistID(0, url)];
 
-    // media wasn't blacklisted because it's the only rendition
-    assert.ok(!media.excludeUntil, 'media was not blacklisted after playlist 404');
-    assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
+    // media wasn't excluded because it's the only rendition
+    assert.ok(!media.excludeUntil, 'media was not excluded after playlist 404');
+    assert.equal(this.env.log.warn.calls, 1, 'warning logged for exclusion');
     assert.equal(
       this.env.log.warn.args[0],
       `Problem encountered with playlist ${media.id}. ` +
@@ -2347,7 +2347,7 @@ QUnit.test('fire loadedmetadata once we successfully load a playlist', function(
     count, 0,
     'loadedMedia not triggered after playlist 404'
   );
-  assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged for exclusion');
 
   // media
   this.standardXHRResponse(this.requests.shift());
@@ -2601,7 +2601,7 @@ QUnit.test('the withCredentials option overrides the global default', function(a
   videojs.options.vhs = vhsOptions;
 });
 
-QUnit.test('playlist blacklisting duration is set through options', function(assert) {
+QUnit.test('playlist exclusion duration is set through options', function(assert) {
   const vhsOptions = videojs.options.vhs;
 
   this.player.dispose();
@@ -2635,8 +2635,8 @@ QUnit.test('playlist blacklisting duration is set through options', function(ass
   }
   const media = this.player.tech_.vhs.playlists.master.playlists[createPlaylistID(index, url)];
 
-  assert.ok(media.excludeUntil > 0, 'original media blacklisted for some time');
-  assert.equal(this.env.log.warn.calls, 1, 'warning logged for blacklist');
+  assert.ok(media.excludeUntil > 0, 'original media excluded for some time');
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged for exclusion');
   assert.equal(
     this.env.log.warn.args[0],
     `Problem encountered with playlist ${media.id}. ` +
@@ -2649,7 +2649,7 @@ QUnit.test('playlist blacklisting duration is set through options', function(ass
   this.standardXHRResponse(this.requests[2]);
 
   this.clock.tick(2 * 60 * 1000 - 1);
-  assert.ok(media.excludeUntil - Date.now() > 0, 'original media still be blacklisted');
+  assert.ok(media.excludeUntil - Date.now() > 0, 'original media still be excluded');
 
   this.clock.tick(1 * 60 * 1000);
   assert.equal(
@@ -5567,7 +5567,7 @@ QUnit.module('HLS - Encryption', {
   }
 });
 
-QUnit.test('blacklists playlist if key requests fail', function(assert) {
+QUnit.test('excludes playlist if key requests fail', function(assert) {
   const vhs = VhsSourceHandler.handleSource({
     src: 'manifest/encrypted-master.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -5608,14 +5608,14 @@ QUnit.test('blacklists playlist if key requests fail', function(assert) {
 
   assert.ok(
     vhs.playlists.media().excludeUntil > 0,
-    'playlist blacklisted'
+    'playlist excluded'
   );
-  assert.equal(this.env.log.warn.calls, 1, 'logged warning for blacklist');
+  assert.equal(this.env.log.warn.calls, 1, 'logged warning for exclusion');
   vhs.dispose();
 });
 
 QUnit.test(
-  'treats invalid keys as a key request failure and blacklists playlist',
+  'treats invalid keys as a key request failure and excludes playlist',
   function(assert) {
     const vhs = VhsSourceHandler.handleSource({
       src: 'manifest/encrypted-master.m3u8',
@@ -5660,12 +5660,12 @@ QUnit.test(
     this.requests.shift().respond(200, null, '');
     this.clock.tick(1);
 
-    // blacklist this playlist
+    // exclude this playlist
     assert.ok(
       vhs.playlists.media().excludeUntil > 0,
-      'blacklisted playlist'
+      'exclude playlist'
     );
-    assert.equal(this.env.log.warn.calls, 1, 'logged warning for blacklist');
+    assert.equal(this.env.log.warn.calls, 1, 'logged warning for exclusion');
 
     // verify stats
     assert.equal(vhs.stats.mediaBytesTransferred, 1024, '1024 bytes');

@@ -26,7 +26,7 @@ import { codecsForPlaylist, unwrapCodecList, codecCount } from './util/codecs.js
 import { createMediaTypes, setupMediaGroups } from './media-groups';
 import logger from './util/logger';
 
-const ABORT_EARLY_BLACKLIST_SECONDS = 60 * 2;
+const ABORT_EARLY_EXCLUSION_SECONDS = 60 * 2;
 
 let Vhs;
 
@@ -818,7 +818,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       this.excludeCurrentPlaylist({
         message: 'Aborted early because there isn\'t enough bandwidth to complete the ' +
           'request without rebuffering.'
-      }, ABORT_EARLY_BLACKLIST_SECONDS);
+      }, ABORT_EARLY_EXCLUSION_SECONDS);
     });
 
     const updateCodecs = () => {
@@ -1174,7 +1174,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     const enabledPlaylists = playlists.filter(isEnabled);
     const isFinalRendition = enabledPlaylists.length === 1 && enabledPlaylists[0] === currentPlaylist;
 
-    // Don't blacklist the only playlist unless it was blacklisted
+    // Don't exclude the only playlist unless it was excluded
     // forever
     if (playlists.length === 1 && playlistExclusionDuration !== Infinity) {
       videojs.log.warn(`Problem encountered with playlist ${currentPlaylist.id}. ` +
@@ -1186,14 +1186,14 @@ export class MasterPlaylistController extends videojs.EventTarget {
     }
 
     if (isFinalRendition) {
-      // Since we're on the final non-blacklisted playlist, and we're about to blacklist
+      // Since we're on the final non-excluded playlist, and we're about to exclude
       // it, instead of erring the player or retrying this playlist, clear out the current
-      // blacklist. This allows other playlists to be attempted in case any have been
+      // exclusion list. This allows other playlists to be attempted in case any have been
       // fixed.
       let reincluded = false;
 
       playlists.forEach((playlist) => {
-        // skip current playlist which is about to be blacklisted
+        // skip current playlist which is about to be excluded
         if (playlist === currentPlaylist) {
           return;
         }
@@ -1745,7 +1745,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       this.logger_(`excluding audio group ${audioGroup} as ${unsupportedAudio} does not support codec(s): "${codecs.audio}"`);
     }
 
-    // if we have any unsupported codecs blacklist this playlist.
+    // if we have any unsupported codecs exclude this playlist.
     if (Object.keys(unsupportedCodecs).length) {
       const message = Object.keys(unsupportedCodecs).reduce((acc, supporter) => {
 
@@ -1904,7 +1904,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       }
 
       ids.push(variant.id);
-      const blacklistReasons = [];
+      const exclusionReasons = [];
 
       // get codecs from the playlist for this variant
       const variantCodecs = codecsForPlaylist(this.masterPlaylistLoader_.master, variant);
@@ -1920,7 +1920,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       // old media source and creating a new one, but it will take some work.
       // The number of streams cannot change
       if (variantCodecCount !== codecCount_) {
-        blacklistReasons.push(`codec count "${variantCodecCount}" !== "${codecCount_}"`);
+        exclusionReasons.push(`codec count "${variantCodecCount}" !== "${codecCount_}"`);
       }
 
       // only exclude playlists by codec change, if codecs cannot switch
@@ -1931,18 +1931,18 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
         // the video codec cannot change
         if (variantVideoDetails && videoDetails && variantVideoDetails.type.toLowerCase() !== videoDetails.type.toLowerCase()) {
-          blacklistReasons.push(`video codec "${variantVideoDetails.type}" !== "${videoDetails.type}"`);
+          exclusionReasons.push(`video codec "${variantVideoDetails.type}" !== "${videoDetails.type}"`);
         }
 
         // the audio codec cannot change
         if (variantAudioDetails && audioDetails && variantAudioDetails.type.toLowerCase() !== audioDetails.type.toLowerCase()) {
-          blacklistReasons.push(`audio codec "${variantAudioDetails.type}" !== "${audioDetails.type}"`);
+          exclusionReasons.push(`audio codec "${variantAudioDetails.type}" !== "${audioDetails.type}"`);
         }
       }
 
-      if (blacklistReasons.length) {
+      if (exclusionReasons.length) {
         variant.excludeUntil = Infinity;
-        this.logger_(`blacklisting ${variant.id}: ${blacklistReasons.join(' && ')}`);
+        this.logger_(`excluding ${variant.id}: ${exclusionReasons.join(' && ')}`);
       }
     });
   }

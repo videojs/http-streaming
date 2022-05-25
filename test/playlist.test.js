@@ -872,9 +872,9 @@ QUnit.module('Playlist', function() {
   });
 
   QUnit.test('determines if a playlist is incompatible', function(assert) {
-    // incompatible means that the playlist was blacklisted due to incompatible
+    // incompatible means that the playlist was excluded due to incompatible
     // configuration e.g. audio only stream when trying to playback audio and video.
-    // incompaatibility is denoted by a blacklist of Infinity.
+    // incompaatibility is denoted by an excludeUntil of Infinity.
     assert.notOk(
       Playlist.isIncompatible({}),
       'playlist not incompatible if no excludeUntil'
@@ -882,12 +882,12 @@ QUnit.module('Playlist', function() {
 
     assert.notOk(
       Playlist.isIncompatible({ excludeUntil: 1 }),
-      'playlist not incompatible if expired blacklist'
+      'playlist not incompatible if excludeUntil has expired'
     );
 
     assert.notOk(
       Playlist.isIncompatible({ excludeUntil: Date.now() + 9999 }),
-      'playlist not incompatible if temporarily blacklisted'
+      'playlist not incompatible if temporarily excluded'
     );
 
     assert.ok(
@@ -924,20 +924,20 @@ QUnit.module('Playlist', function() {
     assert.ok(Playlist.isDisabled({ disabled: true }), 'playlist is disabled');
   });
 
-  QUnit.test('playlists with no or expired blacklist are enabled', function(assert) {
-    // enabled means not blacklisted and not disabled
-    assert.ok(Playlist.isEnabled({}), 'playlist with no blacklist is enabled');
+  QUnit.test('playlists with no or expired excludeUntil are enabled', function(assert) {
+    // enabled means not excluded and not disabled
+    assert.ok(Playlist.isEnabled({}), 'playlist with no excludeUntil is enabled');
     assert.ok(
       Playlist.isEnabled({ excludeUntil: Date.now() - 1 }),
-      'playlist with expired blacklist is enabled'
+      'playlist with expired excludeUntil is enabled'
     );
   });
 
-  QUnit.test('blacklisted playlists are not enabled', function(assert) {
-    // enabled means not blacklisted and not disabled
+  QUnit.test('excluded playlists are not enabled', function(assert) {
+    // enabled means not excluded and not disabled
     assert.notOk(
       Playlist.isEnabled({ excludeUntil: Date.now() + 9999 }),
-      'playlist with temporary blacklist is not enabled'
+      'playlist with temporary excludeUntil is not enabled'
     );
     assert.notOk(
       Playlist.isEnabled({ excludeUntil: Infinity }),
@@ -946,24 +946,24 @@ QUnit.module('Playlist', function() {
   });
 
   QUnit.test(
-    'manually disabled playlists are not enabled regardless of blacklist state',
+    'manually disabled playlists are not enabled regardless of exclusion state',
     function(assert) {
-      // enabled means not blacklisted and not disabled
+      // enabled means not excluded and not disabled
       assert.notOk(
         Playlist.isEnabled({ disabled: true }),
-        'disabled playlist with no blacklist is not enabled'
+        'disabled playlist with no excludeUntil is not enabled'
       );
       assert.notOk(
         Playlist.isEnabled({ disabled: true, excludeUntil: Date.now() - 1 }),
-        'disabled playlist with expired blacklist is not enabled'
+        'disabled playlist with expired excludeUntil is not enabled'
       );
       assert.notOk(
         Playlist.isEnabled({ disabled: true, excludeUntil: Date.now() + 9999 }),
-        'disabled playlist with temporary blacklist is not enabled'
+        'disabled playlist with temporary excludeUntil is not enabled'
       );
       assert.notOk(
         Playlist.isEnabled({ disabled: true, excludeUntil: Infinity }),
-        'disabled playlist with permanent blacklist is not enabled'
+        'disabled playlist with permanent excludeUntil is not enabled'
       );
     }
   );
