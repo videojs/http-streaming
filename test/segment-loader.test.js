@@ -4780,9 +4780,6 @@ QUnit.module('SegmentLoader', function(hooks) {
       // PDT mapping changes, but when changing renditions over a timeline change, the new
       // mapping will lead to an incorrect value if the different timeline mappings are
       // not accounted for.
-      //
-      // This is mainly an issue with smooth quality change, as that is when the loader
-      // will overlap content.
       const playlist1 = playlistWithDuration(
         playlistDuration,
         // need different URIs to ensure the playlists are considered different
@@ -4872,12 +4869,6 @@ QUnit.module('SegmentLoader', function(hooks) {
         // wrong, since the gap in ProgramDateTime was not accounted for.
         currentTime = 2.8;
         loader.playlist(playlist2);
-        // smoothQualityChange will reset loader after changing renditions, so need to
-        // mimic that behavior here in order for content to be overlayed over already
-        // buffered content.
-        //
-        // Now that smoothQualityChange is removed, this behavior can be mimicked by
-        // calling resetLoader.
         loader.resetLoader();
         this.clock.tick(1);
 
