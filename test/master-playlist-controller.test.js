@@ -1454,7 +1454,7 @@ QUnit.test('detects if the player is stuck at the playlist end', function(assert
   Vhs.Playlist.playlistEnd = playlistCopy;
 });
 
-QUnit.test('blacklists switching from video+audio playlists to audio only', function(assert) {
+QUnit.test('excludes switching from video+audio playlists to audio only', function(assert) {
   openMediaSource(this.player, this.clock);
 
   this.player.tech_.vhs.bandwidth = 1e10;
@@ -1500,7 +1500,7 @@ QUnit.test('blacklists switching from video+audio playlists to audio only', func
   });
 });
 
-QUnit.test('blacklists switching from audio-only playlists to video+audio', function(assert) {
+QUnit.test('excludes switching from audio-only playlists to video+audio', function(assert) {
   openMediaSource(this.player, this.clock);
 
   this.player.tech_.vhs.bandwidth = 1;
@@ -1554,7 +1554,7 @@ QUnit.test('blacklists switching from audio-only playlists to video+audio', func
   });
 });
 
-QUnit.test('blacklists switching from video-only playlists to video+audio', function(assert) {
+QUnit.test('excludes switching from video-only playlists to video+audio', function(assert) {
   openMediaSource(this.player, this.clock);
 
   this.player.tech_.vhs.bandwidth = 1;
@@ -1609,7 +1609,7 @@ QUnit.test('blacklists switching from video-only playlists to video+audio', func
   });
 });
 
-QUnit.test('blacklists switching between playlists with different codecs', function(assert) {
+QUnit.test('excludes switching between playlists with different codecs', function(assert) {
   openMediaSource(this.player, this.clock);
 
   this.player.tech_.vhs.bandwidth = 1;
@@ -1688,7 +1688,7 @@ QUnit.test('blacklists switching between playlists with different codecs', funct
   });
 });
 
-QUnit.test('does not blacklist switching between playlists with different audio profiles', function(assert) {
+QUnit.test('does not exclude switching between playlists with different audio profiles', function(assert) {
   openMediaSource(this.player, this.clock);
 
   this.player.tech_.vhs.bandwidth = 1;
