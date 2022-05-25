@@ -276,8 +276,7 @@ export default class PlaybackWatcher {
   }
 
   /**
-   * Resets the 'timeupdate' mechanism
-   * designed to detect that we are stalled
+   * Resets the 'timeupdate' mechanism designed to detect that we are stalled
    *
    * @private
    */
@@ -478,8 +477,7 @@ export default class PlaybackWatcher {
 
     // check for gap
     if (nextRange.length > 0) {
-      this.logger_(`Stopped at ${currentTime} and seeking ` +
-        `to ${nextRange.start(0)}`);
+      this.logger_(`Stopped at ${currentTime} and seeking to ${nextRange.start(0)}`);
 
       this.resetTimeUpdate_();
       this.skipTheGap_(currentTime);

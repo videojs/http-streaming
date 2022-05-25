@@ -100,14 +100,13 @@ QUnit.test('multiple play events do not cause the gap-skipping logic to be calle
   // create a buffer with a gap of 2 seconds at beginning of stream
   this.player.tech_.buffered = () => videojs.createTimeRanges([[2, 10]]);
   // Playback watcher loop runs on a 250ms clock and needs 6 consecutive stall checks before skipping the gap
-  // Start with 5 consecutive playback checks
   this.clock.tick(250 * 6);
   // and then simulate the playback monitor being called 'manually' by a new play event
   this.player.tech_.trigger('play');
 
   assert.equal(vhsGapSkipEvents, 1, 'there is one skipped gap');
 
-  // check that player did not skip the gap
+  // check that player skipped the gap
   assert.equal(
     Math.round(this.player.currentTime()),
     2,
