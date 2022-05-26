@@ -280,6 +280,11 @@ export default class VTTSegmentLoader extends SegmentLoader {
     // maintain functionality between segment loaders
     this.saveBandwidthRelatedStats_(segmentInfo.duration, simpleSegment.stats);
 
+    // if this request included a segment key, save that data in the cache
+    if (simpleSegment.key) {
+      this.segmentKey(simpleSegment.key, true);
+    }
+
     this.state = 'APPENDING';
 
     // used for tests

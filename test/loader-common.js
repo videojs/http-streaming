@@ -24,7 +24,9 @@ import {
   muxed as muxedSegment,
   mp4Video as mp4VideoSegment,
   mp4VideoInit as mp4VideoInitSegment,
-  videoOneSecond as tsVideoSegment
+  videoOneSecond as tsVideoSegment,
+  encrypted as encryptedSegment,
+  encryptionKey
 } from 'create-test-data!segments';
 
 /**
@@ -1692,6 +1694,141 @@ export const LoaderCommonFactory = ({
       }));
 
       assert.notOk(loader.playlist_.syncInfo, 'did not set sync info on new playlist');
+    });
+
+    QUnit.test('segmentKey will cache new encrypted keys with cacheEncryptionKeys true', function(assert) {
+      loader.cacheEncryptionKeys_ = true;
+
+      return this.setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        loader.playlist(playlistWithDuration(10, { isEncrypted: true }));
+        loader.load();
+        this.clock.tick(1);
+
+        const keyCache = loader.keyCache_;
+        const bytes = new Uint32Array([1, 2, 3, 4]);
+
+        assert.strictEqual(Object.keys(keyCache).length, 0, 'no keys have been cached');
+
+        const result = loader.segmentKey({resolvedUri: 'key.php', bytes});
+
+        assert.deepEqual(result, {resolvedUri: 'key.php'}, 'gets by default');
+        loader.segmentKey({resolvedUri: 'key.php', bytes}, true);
+        assert.deepEqual(keyCache['key.php'].bytes, bytes, 'key has been cached');
+      });
+    });
+
+    QUnit.test('segmentKey will not cache encrypted keys with cacheEncryptionKeys false', function(assert) {
+      loader.cacheEncryptionKeys_ = false;
+
+      return this.setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        loader.playlist(playlistWithDuration(10, { isEncrypted: true }));
+        loader.load();
+        this.clock.tick(1);
+
+        const keyCache = loader.keyCache_;
+        const bytes = new Uint32Array([1, 2, 3, 4]);
+
+        assert.strictEqual(Object.keys(keyCache).length, 0, 'no keys have been cached');
+        loader.segmentKey({resolvedUri: 'key.php', bytes}, true);
+
+        assert.strictEqual(Object.keys(keyCache).length, 0, 'no keys have been cached');
+      });
+    });
+
+    QUnit.test('new segment requests will use cached keys', function(assert) {
+      loader.cacheEncryptionKeys_ = true;
+
+      return this.setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+          loader.playlist(playlistWithDuration(20, { isEncrypted: true }));
+
+          // make the keys the same
+          loader.playlist_.segments[1].key =
+            videojs.mergeOptions({}, loader.playlist_.segments[0].key);
+          // give 2nd key an iv
+          loader.playlist_.segments[1].key.iv = new Uint32Array([0, 1, 2, 3]);
+
+          loader.load();
+          this.clock.tick(1);
+
+          assert.strictEqual(this.requests.length, 2, 'one request');
+          assert.strictEqual(this.requests[0].uri, '0-key.php', 'key request');
+          assert.strictEqual(this.requests[1].uri, '0.ts', 'segment request');
+
+          // key response
+          standardXHRResponse(this.requests.shift(), encryptionKey());
+          this.clock.tick(1);
+
+          // segment
+          standardXHRResponse(this.requests.shift(), encryptedSegment());
+          this.clock.tick(1);
+
+          // decryption tick for syncWorker
+          this.clock.tick(1);
+
+          // tick for web worker segment probe
+          this.clock.tick(1);
+        });
+      }).then(() => {
+        assert.deepEqual(loader.keyCache_['0-key.php'], {
+          resolvedUri: '0-key.php',
+          bytes: new Uint32Array([609867320, 2355137646, 2410040447, 480344904])
+        }, 'previous key was cached');
+
+        this.clock.tick(1);
+        assert.deepEqual(loader.pendingSegment_.segment.key, {
+          resolvedUri: '0-key.php',
+          uri: '0-key.php',
+          iv: new Uint32Array([0, 1, 2, 3])
+        }, 'used cached key for request and own initialization vector');
+
+        assert.strictEqual(this.requests.length, 1, 'one request');
+        assert.strictEqual(this.requests[0].uri, '1.ts', 'only segment request');
+      });
+    });
+
+    QUnit.test('new segment request keys every time', function(assert) {
+      return this.setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        return new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+          loader.playlist(playlistWithDuration(20, { isEncrypted: true }));
+
+          loader.load();
+          this.clock.tick(1);
+
+          assert.strictEqual(this.requests.length, 2, 'one request');
+          assert.strictEqual(this.requests[0].uri, '0-key.php', 'key request');
+          assert.strictEqual(this.requests[1].uri, '0.ts', 'segment request');
+
+          // key response
+          standardXHRResponse(this.requests.shift(), encryptionKey());
+          this.clock.tick(1);
+
+          // segment
+          standardXHRResponse(this.requests.shift(), encryptedSegment());
+          this.clock.tick(1);
+
+          // decryption tick for syncWorker
+          this.clock.tick(1);
+
+        });
+      }).then(() => {
+        this.clock.tick(1);
+
+        assert.notOk(loader.keyCache_['0-key.php'], 'not cached');
+
+        assert.deepEqual(loader.pendingSegment_.segment.key, {
+          resolvedUri: '1-key.php',
+          uri: '1-key.php'
+        }, 'used cached key for request and own initialization vector');
+
+        assert.strictEqual(this.requests.length, 2, 'two requests');
+        assert.strictEqual(this.requests[0].uri, '1-key.php', 'key request');
+        assert.strictEqual(this.requests[1].uri, '1.ts', 'segment request');
+      });
     });
   });
 };
