@@ -101,16 +101,23 @@ const dashPlaylistUnchanged = function(a, b) {
  * @return {Object}
  *         The parsed mpd manifest object
  */
-export const parseMasterXml = ({ masterXml, srcUrl, clientOffset, sidxMapping }) => {
-  const master = parseMpd(masterXml, {
+export const parseMasterXml = ({
+  masterXml,
+  srcUrl,
+  clientOffset,
+  sidxMapping,
+  previousManifest
+}) => {
+  const manifest = parseMpd(masterXml, {
     manifestUri: srcUrl,
     clientOffset,
-    sidxMapping
+    sidxMapping,
+    previousManifest
   });
 
-  addPropertiesToMaster(master, srcUrl);
+  addPropertiesToMaster(manifest, srcUrl);
 
-  return master;
+  return manifest;
 };
 
 /**
@@ -130,7 +137,8 @@ export const updateMaster = (oldMaster, newMaster, sidxMapping) => {
   let update = mergeOptions(oldMaster, {
     // These are top level properties that can be updated
     duration: newMaster.duration,
-    minimumUpdatePeriod: newMaster.minimumUpdatePeriod
+    minimumUpdatePeriod: newMaster.minimumUpdatePeriod,
+    timelineStarts: newMaster.timelineStarts
   });
 
   // First update the playlists in playlist list
@@ -699,13 +707,15 @@ export default class DashPlaylistLoader extends EventTarget {
     // clear media request
     this.mediaRequest_ = null;
 
+    const oldMaster = this.masterPlaylistLoader_.master;
+
     let newMaster = parseMasterXml({
       masterXml: this.masterPlaylistLoader_.masterXml_,
       srcUrl: this.masterPlaylistLoader_.srcUrl,
       clientOffset: this.masterPlaylistLoader_.clientOffset_,
-      sidxMapping: this.masterPlaylistLoader_.sidxMapping_
+      sidxMapping: this.masterPlaylistLoader_.sidxMapping_,
+      previousManifest: oldMaster
     });
-    const oldMaster = this.masterPlaylistLoader_.master;
 
     // if we have an old master to compare the new master against
     if (oldMaster) {

@@ -416,7 +416,7 @@ QUnit.test('logs deprecation notice when using hls for options', function(assert
   assert.equal(this.env.log.warn.calls, 1, 'warning logged');
   assert.equal(
     this.env.log.warn.args[0][0],
-    'Using hls options is deprecated. Use vhs instead.'
+    'Using hls options is deprecated. Please rename `hls` to `vhs` in your options object.'
   );
 });
 
@@ -440,7 +440,7 @@ QUnit.test('logs deprecation notice when using hls for global options', function
   assert.equal(this.env.log.warn.calls, 1, 'warning logged');
   assert.equal(
     this.env.log.warn.args[0][0],
-    'Using hls options is deprecated. Use vhs instead.'
+    'Using hls options is deprecated. Please rename `hls` to `vhs` in your options object.'
   );
 
   videojs.options.hls = origHlsOptions;
@@ -4711,6 +4711,55 @@ QUnit.test('eme handles keystatuschange where status is usable', function(assert
   this.player.tech_.trigger({type: 'keystatuschange', status: 'usable'});
 
   assert.deepEqual(excludes, [], 'did not exclude anything');
+});
+
+QUnit.test('eme waitingforkey event triggers another setup', function(assert) {
+  this.player.eme = { options: { setting: 1 } };
+  this.player.src({
+    src: 'manifest/master.m3u8',
+    type: 'application/x-mpegURL',
+    keySystems: { keySystem1: { url: 'url1' } }
+  });
+
+  this.clock.tick(1);
+
+  const media = {
+    attributes: { CODECS: 'avc1.420015, mp4a.40.2c' },
+    contentProtection: { keySystem1: { pssh: 'test' } }
+  };
+
+  const vhs = this.player.tech_.vhs;
+
+  vhs.playlists = {
+    master: { playlists: [media] },
+    media: () => media
+  };
+
+  const origCreateKeySessions = vhs.createKeySessions_.bind(vhs);
+  let createKeySessionCalls = 0;
+
+  vhs.createKeySessions_ = () => {
+    createKeySessionCalls++;
+    origCreateKeySessions();
+  };
+
+  vhs.masterPlaylistController_.sourceUpdater_.trigger('createdsourcebuffers');
+
+  // Since IE11 doesn't initialize media keys early, in this test IE11 will always have
+  // one less call than in other browsers.
+  if (videojs.browser.IE_VERSION === 11) {
+    assert.equal(createKeySessionCalls, 0, 'did not call createKeySessions_ yet');
+  } else {
+    assert.equal(createKeySessionCalls, 1, 'called createKeySessions_ once');
+  }
+
+  this.player.tech_.trigger({type: 'waitingforkey', status: 'usable'});
+
+  if (videojs.browser.IE_VERSION === 11) {
+    assert.equal(createKeySessionCalls, 1, 'called createKeySessions_ once');
+  } else {
+    assert.equal(createKeySessionCalls, 2, 'called createKeySessions_ again');
+  }
 });
 
 QUnit.test('integration: configures eme for DASH on source buffer creation', function(assert) {

@@ -508,7 +508,7 @@ class VhsHandler extends Component {
     super(tech, videojs.mergeOptions(options.hls, options.vhs));
 
     if (options.hls && Object.keys(options.hls).length) {
-      videojs.log.warn('Using hls options is deprecated. Use vhs instead.');
+      videojs.log.warn('Using hls options is deprecated. Please rename `hls` to `vhs` in your options object.');
     }
 
     // if a tech level `initialBandwidth` option was passed
@@ -631,6 +631,7 @@ class VhsHandler extends Component {
         this.source_.useBandwidthFromLocalStorage :
         this.options_.useBandwidthFromLocalStorage || false;
     this.options_.useNetworkInformationApi = this.options_.useNetworkInformationApi || false;
+    this.options_.useDtsForTimestampOffset = this.options_.useDtsForTimestampOffset || false;
     this.options_.customTagParsers = this.options_.customTagParsers || [];
     this.options_.customTagMappers = this.options_.customTagMappers || [];
     this.options_.cacheEncryptionKeys = this.options_.cacheEncryptionKeys || false;
@@ -684,6 +685,7 @@ class VhsHandler extends Component {
       'liveRangeSafeTimeDelta',
       'experimentalLLHLS',
       'useNetworkInformationApi',
+      'useDtsForTimestampOffset',
       'experimentalExactManifestTimings',
       'experimentalLeastPixelDiffSelector'
     ].forEach((option) => {
@@ -1004,6 +1006,41 @@ class VhsHandler extends Component {
     this.tech_.src(this.mediaSourceUrl_);
   }
 
+  createKeySessions_() {
+    const audioPlaylistLoader =
+      this.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader;
+
+    this.logger_('waiting for EME key session creation');
+    waitForKeySessionCreation({
+      player: this.player_,
+      sourceKeySystems: this.source_.keySystems,
+      audioMedia: audioPlaylistLoader && audioPlaylistLoader.media(),
+      mainPlaylists: this.playlists.master.playlists
+    }).then(() => {
+      this.logger_('created EME key session');
+      this.masterPlaylistController_.sourceUpdater_.initializedEme();
+    }).catch((err) => {
+      this.logger_('error while creating EME key session', err);
+      this.player_.error({
+        message: 'Failed to initialize media keys for EME',
+        code: 3
+      });
+    });
+  }
+
+  handleWaitingForKey_() {
+    // If waitingforkey is fired, it's possible that the data that's necessary to retrieve
+    // the key is in the manifest. While this should've happened on initial source load, it
+    // may happen again in live streams where the keys change, and the manifest info
+    // reflects the update.
+    //
+    // Because videojs-contrib-eme compares the PSSH data we send to that of PSSH data it's
+    // already requested keys for, we don't have to worry about this generating extraneous
+    // requests.
+    this.logger_('waitingforkey fired, attempting to create any new key sessions');
+    this.createKeySessions_();
+  }
+
   /**
    * If necessary and EME is available, sets up EME options and waits for key session
    * creation.
@@ -1033,6 +1070,9 @@ class VhsHandler extends Component {
       }
     });
 
+    this.handleWaitingForKey_ = this.handleWaitingForKey_.bind(this);
+    this.player_.tech_.on('waitingforkey', this.handleWaitingForKey_);
+
     // In IE11 this is too early to initialize media keys, and IE11 does not support
     // promises.
     if (videojs.browser.IE_VERSION === 11 || !didSetupEmeOptions) {
@@ -1041,22 +1081,7 @@ class VhsHandler extends Component {
       return;
     }
 
-    this.logger_('waiting for EME key session creation');
-    waitForKeySessionCreation({
-      player: this.player_,
-      sourceKeySystems: this.source_.keySystems,
-      audioMedia: audioPlaylistLoader && audioPlaylistLoader.media(),
-      mainPlaylists: this.playlists.master.playlists
-    }).then(() => {
-      this.logger_('created EME key session');
-      this.masterPlaylistController_.sourceUpdater_.initializedEme();
-    }).catch((err) => {
-      this.logger_('error while creating EME key session', err);
-      this.player_.error({
-        message: 'Failed to initialize media keys for EME',
-        code: 3
-      });
-    });
+    this.createKeySessions_();
   }
 
   /**
@@ -1169,6 +1194,10 @@ class VhsHandler extends Component {
     if (this.mediaSourceUrl_ && window.URL.revokeObjectURL) {
       window.URL.revokeObjectURL(this.mediaSourceUrl_);
       this.mediaSourceUrl_ = null;
+    }
+
+    if (this.tech_) {
+      this.tech_.off('waitingforkey', this.handleWaitingForKey_);
     }
 
     super.dispose();

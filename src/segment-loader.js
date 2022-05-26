@@ -559,6 +559,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.timelineChangeController_ = settings.timelineChangeController;
     this.shouldSaveSegmentTimingInfo_ = true;
     this.parse708captions_ = settings.parse708captions;
+    this.useDtsForTimestampOffset_ = settings.useDtsForTimestampOffset;
     this.captionServices_ = settings.captionServices;
     this.experimentalExactManifestTimings = settings.experimentalExactManifestTimings;
 
@@ -2905,7 +2906,11 @@ export default class SegmentLoader extends videojs.EventTarget {
     // the timing info here comes from video. In the event that the audio is longer than
     // the video, this will trim the start of the audio.
     // This also trims any offset from 0 at the beginning of the media
-    segmentInfo.timestampOffset -= segmentInfo.timingInfo.start;
+    segmentInfo.timestampOffset -= this.getSegmentStartTimeForTimestampOffsetCalculation_({
+      videoTimingInfo: segmentInfo.segment.videoTimingInfo,
+      audioTimingInfo: segmentInfo.segment.audioTimingInfo,
+      timingInfo: segmentInfo.timingInfo
+    });
     // In the event that there are part segment downloads, each will try to update the
     // timestamp offset. Retaining this bit of state prevents us from updating in the
     // future (within the same segment), however, there may be a better way to handle it.
@@ -2924,6 +2929,24 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (didChange) {
       this.trigger('timestampoffset');
     }
+  }
+
+  getSegmentStartTimeForTimestampOffsetCalculation_({ videoTimingInfo, audioTimingInfo, timingInfo }) {
+    if (!this.useDtsForTimestampOffset_) {
+      return timingInfo.start;
+    }
+
+    if (videoTimingInfo && typeof videoTimingInfo.transmuxedDecodeStart === 'number') {
+      return videoTimingInfo.transmuxedDecodeStart;
+    }
+
+    // handle audio only
+    if (audioTimingInfo && typeof audioTimingInfo.transmuxedDecodeStart === 'number') {
+      return audioTimingInfo.transmuxedDecodeStart;
+    }
+
+    // handle content not transmuxed (e.g., MP4)
+    return timingInfo.start;
   }
 
   updateTimingInfoEnd_(segmentInfo) {

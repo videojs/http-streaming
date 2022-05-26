@@ -1,3 +1,65 @@
+<a name="2.14.2"></a>
+## [2.14.2](https://github.com/videojs/http-streaming/compare/v2.14.1...v2.14.2) (2022-04-13)
+
+### Bug Fixes
+
+* retain playlist attributes when refreshing live media playlists ([#1270](https://github.com/videojs/http-streaming/issues/1270)) ([5fbac16](https://github.com/videojs/http-streaming/commit/5fbac16))
+
+<a name="2.14.1"></a>
+## [2.14.1](https://github.com/videojs/http-streaming/compare/v2.14.0...v2.14.1) (2022-04-06)
+
+### Bug Fixes
+
+* ArrayBuffer.isView may not be available everywhere ([#1258](https://github.com/videojs/http-streaming/issues/1258)) ([e492fe8](https://github.com/videojs/http-streaming/commit/e492fe8)), closes [#1134](https://github.com/videojs/http-streaming/issues/1134)
+
+<a name="2.14.0"></a>
+# [2.14.0](https://github.com/videojs/http-streaming/compare/v2.13.1...v2.14.0) (2022-03-14)
+
+### Features
+
+* add dts-based timestamp offset calculation with feature toggle ([#1251](https://github.com/videojs/http-streaming/issues/1251)) ([450eb2d](https://github.com/videojs/http-streaming/commit/450eb2d))
+
+### Bug Fixes
+
+* clarify hls option deprecation warning ([#1257](https://github.com/videojs/http-streaming/issues/1257)) ([211cbe8](https://github.com/videojs/http-streaming/commit/211cbe8)), closes [#1256](https://github.com/videojs/http-streaming/issues/1256)
+
+### Documentation
+
+* add A Walk Through VHS ([#1253](https://github.com/videojs/http-streaming/issues/1253)) ([42fe383](https://github.com/videojs/http-streaming/commit/42fe383))
+
+<a name="2.13.1"></a>
+## [2.13.1](https://github.com/videojs/http-streaming/compare/v2.13.0...v2.13.1) (2021-12-20)
+
+### Bug Fixes
+
+* **package:** update mux.js to 6.0.1 ([#1242](https://github.com/videojs/http-streaming/issues/1242)) ([aed1931](https://github.com/videojs/http-streaming/commit/aed1931))
+
+<a name="2.13.0"></a>
+# [2.13.0](https://github.com/videojs/http-streaming/compare/v2.12.1...v2.13.0) (2021-12-20)
+
+### Features
+
+* set up required key sessions on waitingforkey event ([#1232](https://github.com/videojs/http-streaming/issues/1232)) ([3ed24a4](https://github.com/videojs/http-streaming/commit/3ed24a4))
+* use new mpd-parser API for handling live DASH refreshes ([#1231](https://github.com/videojs/http-streaming/issues/1231)) ([f109078](https://github.com/videojs/http-streaming/commit/f109078))
+
+### Tests
+
+* fix failing IE11 test due to late initialize of EME keys ([#1241](https://github.com/videojs/http-streaming/issues/1241)) ([159545c](https://github.com/videojs/http-streaming/commit/159545c))
+
+<a name="2.12.1"></a>
+## [2.12.1](https://github.com/videojs/http-streaming/compare/v2.12.0...v2.12.1) (2021-12-10)
+
+### Bug Fixes
+
+* fix seekable not updating after the first change for live streams ([#1233](https://github.com/videojs/http-streaming/issues/1233)) ([3d8755c](https://github.com/videojs/http-streaming/commit/3d8755c))
+* mp4 sources that use bigint numbers ([#1217](https://github.com/videojs/http-streaming/issues/1217)) ([bfd0ad0](https://github.com/videojs/http-streaming/commit/bfd0ad0))
+* support legacy hls option for overrideNative ([#1222](https://github.com/videojs/http-streaming/issues/1222)) ([4f9ce7a](https://github.com/videojs/http-streaming/commit/4f9ce7a))
+
+### Tests
+
+* add a test to verify that seekable updates with a live stream ([#1234](https://github.com/videojs/http-streaming/issues/1234)) ([7495ead](https://github.com/videojs/http-streaming/commit/7495ead)), closes [#1233](https://github.com/videojs/http-streaming/issues/1233)
+* **playack:** make live dash test take 5 seconds ([#1235](https://github.com/videojs/http-streaming/issues/1235)) ([b66e124](https://github.com/videojs/http-streaming/commit/b66e124))
+
 <a name="2.12.0"></a>
 # [2.12.0](https://github.com/videojs/http-streaming/compare/v2.11.2...v2.12.0) (2021-11-08)
 
