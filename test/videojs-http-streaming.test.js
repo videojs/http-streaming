@@ -2041,7 +2041,7 @@ QUnit.test('playlist 404 should exclude media', function(assert) {
   let media;
   let url;
   let index;
-  let excludeplaylist = 0;
+  let excludedplaylist = 0;
   let retryplaylist = 0;
   let vhsRenditionExcludedEvents = 0;
 
@@ -2053,7 +2053,7 @@ QUnit.test('playlist 404 should exclude media', function(assert) {
   this.clock.tick(1);
 
   openMediaSource(this.player, this.clock);
-  this.player.tech_.on('excludeplaylist', () => excludeplaylist++);
+  this.player.tech_.on('blacklistplaylist', () => excludedplaylist++);
   this.player.tech_.on('retryplaylist', () => retryplaylist++);
   this.player.tech_.on('usage', (event) => {
     if (event.name === 'vhs-rendition-excluded') {
@@ -2077,7 +2077,7 @@ QUnit.test('playlist 404 should exclude media', function(assert) {
     'no media is initially set'
   );
 
-  assert.equal(excludeplaylist, 0, 'there is no excluded playlist');
+  assert.equal(excludedplaylist, 0, 'there is no excluded playlist');
   assert.equal(
     vhsRenditionExcludedEvents,
     0,
@@ -2101,7 +2101,7 @@ QUnit.test('playlist 404 should exclude media', function(assert) {
     `Problem encountered with playlist ${media.id}. HLS playlist request error at URL: media.m3u8. Switching to playlist 1-media1.m3u8.`,
     'log generic error message'
   );
-  assert.equal(excludeplaylist, 1, 'there is one excluded playlist');
+  assert.equal(excludedplaylist, 1, 'there is one excluded playlist');
   assert.equal(
     vhsRenditionExcludedEvents,
     1,
@@ -2134,7 +2134,7 @@ QUnit.test('playlist 404 should exclude media', function(assert) {
     'log generic error message'
   );
   assert.equal(retryplaylist, 1, 'fired a retryplaylist event');
-  assert.equal(excludeplaylist, 2, 'media1 is excluded');
+  assert.equal(excludedplaylist, 2, 'media1 is excluded');
 
   this.clock.tick(2 * 1000);
   // no new request was made since it hasn't been half the segment duration
