@@ -1022,7 +1022,7 @@ class VhsHandler extends Component {
 
     this.player_.tech_.on('keystatuschange', (e) => {
       if (e.status === 'output-restricted') {
-        this.masterPlaylistController_.excludeCurrentPlaylist({
+        this.masterPlaylistController_.excludePlaylist({
           playlist: this.masterPlaylistController_.media(),
           message: `DRM keystatus changed to ${e.status}. Playlist will fail to play. Check for HDCP content.`,
           playlistExclusionDuration: Infinity

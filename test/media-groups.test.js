@@ -926,7 +926,7 @@ QUnit.module('MediaGroups', function() {
   QUnit.test(
     'switches to default audio track when an error is encountered',
     function(assert) {
-      let excludeCurrentPlaylistCalls = 0;
+      let excludePlaylistCalls = 0;
       let onTrackChangedCalls = 0;
 
       const type = 'AUDIO';
@@ -939,7 +939,7 @@ QUnit.module('MediaGroups', function() {
       const settings = {
         segmentLoaders: { AUDIO: segmentLoader },
         mediaTypes: MediaGroups.createMediaTypes(),
-        excludeCurrentPlaylist: () => excludeCurrentPlaylistCalls++,
+        excludePlaylist: () => excludePlaylistCalls++,
         masterPlaylistLoader
       };
       const mediaType = settings.mediaTypes[type];
@@ -959,7 +959,7 @@ QUnit.module('MediaGroups', function() {
 
       onError();
 
-      assert.equal(excludeCurrentPlaylistCalls, 0, 'did not exclude current playlist');
+      assert.equal(excludePlaylistCalls, 0, 'did not exclude current playlist');
       assert.equal(onTrackChangedCalls, 1, 'called onTrackChanged after changing to default');
       assert.equal(tracks.en.enabled, true, 'enabled default track');
       assert.equal(tracks.fr.enabled, false, 'disabled active track');
@@ -969,7 +969,7 @@ QUnit.module('MediaGroups', function() {
 
       onError();
 
-      assert.equal(excludeCurrentPlaylistCalls, 1, 'excluded current playlist');
+      assert.equal(excludePlaylistCalls, 1, 'excluded current playlist');
       assert.equal(onTrackChangedCalls, 1, 'did not call onTrackChanged after exclusion');
       assert.equal(tracks.en.enabled, true, 'default track still enabled');
       assert.equal(tracks.fr.enabled, false, 'disabled track still disabled');
@@ -1091,7 +1091,7 @@ QUnit.module('MediaGroups', function() {
         requestOptions: { withCredentials: false, timeout: 10 },
         master: this.master,
         mediaTypes: this.mediaTypes,
-        excludeCurrentPlaylist() {},
+        excludePlaylist() {},
         sourceType: 'hls'
       };
     }
@@ -1609,7 +1609,7 @@ QUnit.module('MediaGroups', function() {
         requestOptions: { withCredentials: false, timeout: 10 },
         master: this.master,
         mediaTypes: this.mediaTypes,
-        excludeCurrentPlaylist() {},
+        excludePlaylist() {},
         sourceType: 'hls'
       };
     }

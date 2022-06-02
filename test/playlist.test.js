@@ -874,7 +874,7 @@ QUnit.module('Playlist', function() {
   QUnit.test('determines if a playlist is incompatible', function(assert) {
     // incompatible means that the playlist was excluded due to incompatible
     // configuration e.g. audio only stream when trying to playback audio and video.
-    // incompaatibility is denoted by an excludeUntil of Infinity.
+    // incompatibility is denoted by an excludeUntil of Infinity.
     assert.notOk(
       Playlist.isIncompatible({}),
       'playlist not incompatible if no excludeUntil'

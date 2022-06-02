@@ -4833,7 +4833,7 @@ QUnit.module('MasterPlaylistController codecs', {
     this.mpc = this.masterPlaylistController;
 
     this.exclusionList = [];
-    this.mpc.excludeCurrentPlaylist = (playlist) => this.exclusionList.push(playlist);
+    this.mpc.excludePlaylist = (playlist) => this.exclusionList.push(playlist);
 
     this.contentSetup = (options) => {
       const {
@@ -5508,7 +5508,7 @@ QUnit.module('MasterPlaylistController - exclusion behavior', {
 
       assert.equal(this.mpc.media(), this.mpc.master().playlists[0], 'selected first playlist');
 
-      this.mpc.excludeCurrentPlaylist({
+      this.mpc.excludePlaylist({
         internal: true,
         playlist: this.mpc.master().playlists[0],
         playlistExclusionDuration: Infinity
@@ -6062,7 +6062,7 @@ QUnit.test('true if llhls playlist and we have buffered', function(assert) {
   assert.ok(mpc.shouldSwitchToMedia_(nextPlaylist), 'should switch if buffered');
 });
 
-QUnit.module('MasterPlaylistController excludeCurrentPlaylist', sharedHooks);
+QUnit.module('MasterPlaylistController excludePlaylist', sharedHooks);
 
 QUnit.test("don't exclude only playlist unless it was excluded forever", function(assert) {
   // expect 9 because we have a failing assertion that shouldn't run unless something is broken
@@ -6092,7 +6092,7 @@ QUnit.test("don't exclude only playlist unless it was excluded forever", functio
 
   mpl.load = (delay) => (shouldDelay = delay);
 
-  mpc.excludeCurrentPlaylist();
+  mpc.excludePlaylist();
 
   assert.notOk('excludeUntil' in playlist, 'playlist was not excluded since excludeDuration was finite');
   assert.ok(shouldDelay, 'we delay retry since it is the final rendition');
@@ -6128,7 +6128,7 @@ QUnit.test("don't exclude only playlist unless it was excluded forever", functio
   });
 
   // exclude forever
-  mpc.excludeCurrentPlaylist({}, Infinity);
+  mpc.excludePlaylist({}, Infinity);
 
   assert.ok('excludeUntil' in playlist, 'playlist was excluded');
   assert.notOk(shouldDelay, 'value was not changed');
@@ -6164,7 +6164,7 @@ QUnit.test('switch playlists if current playlist gets excluded and re-include if
 
   mpl.load = (delay) => (shouldDelay = delay);
 
-  mpc.excludeCurrentPlaylist();
+  mpc.excludePlaylist();
 
   assert.ok('excludeUntil' in playlist, 'playlist was excluded since there is another playlist');
   assert.notOk(shouldDelay, 'we do not delay retry since it is not the final rendition');
@@ -6176,7 +6176,7 @@ QUnit.test('switch playlists if current playlist gets excluded and re-include if
   this.standardXHRResponse(this.requests.shift());
   playlist2 = mpl.master.playlists[1];
 
-  mpc.excludeCurrentPlaylist();
+  mpc.excludePlaylist();
 
   assert.ok('excludeUntil' in playlist2, 'playlist2 was excluded');
   assert.notOk('excludeUntil' in playlist, 'playlist was re-included');
@@ -6213,13 +6213,13 @@ QUnit.test('Playlist is excluded indefinitely if number of playlistErrors_ excee
 
   assert.equal(playlist.playlistErrors_, 0, 'playlistErrors_ starts at zero');
 
-  mpc.excludeCurrentPlaylist();
+  mpc.excludePlaylist();
 
   assert.ok('excludeUntil' in playlist, 'playlist was excluded');
   assert.equal(playlist.playlistErrors_, 1, 'we incremented playlistErrors_');
   assert.notEqual(playlist.excludeUntil, Infinity, 'The playlist was not excluded indefinitely');
 
-  mpc.excludeCurrentPlaylist();
+  mpc.excludePlaylist();
 
   assert.equal(playlist.playlistErrors_, 2, 'we incremented playlistErrors_');
   assert.equal(playlist.excludeUntil, Infinity, 'The playlist was excluded indefinitely');
@@ -6259,7 +6259,7 @@ QUnit.test('should delay loading of new playlist if lastRequest was less than ha
   };
   playlist2.lastRequest = Date.now() - 1000;
 
-  mpc.excludeCurrentPlaylist();
+  mpc.excludePlaylist();
 
   assert.ok('excludeUntil' in playlist, 'playlist was excluded since there is another playlist');
   assert.ok(shouldDelay, 'we delay retry since second rendition was loaded less than half target duration ago');

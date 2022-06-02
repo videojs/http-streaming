@@ -2053,7 +2053,7 @@ QUnit.test('playlist 404 should exclude media', function(assert) {
   this.clock.tick(1);
 
   openMediaSource(this.player, this.clock);
-  this.player.tech_.on('blacklistplaylist', () => excludedplaylist++);
+  this.player.tech_.on('excludeplaylist', () => excludedplaylist++);
   this.player.tech_.on('retryplaylist', () => retryplaylist++);
   this.player.tech_.on('usage', (event) => {
     if (event.name === 'vhs-rendition-excluded') {
@@ -2649,7 +2649,7 @@ QUnit.test('playlist exclusion duration is set through options', function(assert
   this.standardXHRResponse(this.requests[2]);
 
   this.clock.tick(2 * 60 * 1000 - 1);
-  assert.ok(media.excludeUntil - Date.now() > 0, 'original media still be excluded');
+  assert.ok(media.excludeUntil - Date.now() > 0, 'original media still excluded');
 
   this.clock.tick(1 * 60 * 1000);
   assert.equal(
@@ -4313,7 +4313,7 @@ QUnit.test('eme handles keystatuschange where status is output-restricted', func
 
   const excludes = [];
 
-  this.player.tech_.vhs.masterPlaylistController_.excludeCurrentPlaylist = (exclude) => {
+  this.player.tech_.vhs.masterPlaylistController_.excludePlaylist = (exclude) => {
     excludes.push(exclude);
   };
 
@@ -4363,7 +4363,7 @@ QUnit.test('eme handles keystatuschange where status is usable', function(assert
 
   const excludes = [];
 
-  this.player.tech_.vhs.masterPlaylistController_.excludeCurrentPlaylist = (exclude) => {
+  this.player.tech_.vhs.masterPlaylistController_.excludePlaylist = (exclude) => {
     excludes.push(exclude);
   };
 
