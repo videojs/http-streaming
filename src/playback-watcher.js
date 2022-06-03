@@ -41,7 +41,6 @@ export default class PlaybackWatcher {
 
     this.consecutiveUpdates = 0;
     this.lastRecordedTime = null;
-    this.timer_ = null;
     this.checkCurrentTimeTimeout_ = null;
     this.logger_ = logger('PlaybackWatcher');
 
@@ -50,7 +49,7 @@ export default class PlaybackWatcher {
     const playHandler = () => this.monitorCurrentTime_();
     const canPlayHandler = () => this.monitorCurrentTime_();
     const waitingHandler = () => this.techWaiting_();
-    const cancelTimerHandler = () => this.cancelTimer_();
+    const cancelTimerHandler = () => this.resetTimeUpdate_();
 
     const mpc = this.masterPlaylistController_;
 
@@ -143,7 +142,7 @@ export default class PlaybackWatcher {
       if (this.checkCurrentTimeTimeout_) {
         window.clearTimeout(this.checkCurrentTimeTimeout_);
       }
-      this.cancelTimer_();
+      this.resetTimeUpdate_();
     };
   }
 
@@ -277,20 +276,12 @@ export default class PlaybackWatcher {
   }
 
   /**
-   * Cancels any pending timers and resets the 'timeupdate' mechanism
-   * designed to detect that we are stalled
+   * Resets the 'timeupdate' mechanism designed to detect that we are stalled
    *
    * @private
    */
-  cancelTimer_() {
+  resetTimeUpdate_() {
     this.consecutiveUpdates = 0;
-
-    if (this.timer_) {
-      this.logger_('cancelTimer_');
-      clearTimeout(this.timer_);
-    }
-
-    this.timer_ = null;
   }
 
   /**
@@ -419,7 +410,7 @@ export default class PlaybackWatcher {
     // make sure there is ~3 seconds of forward buffer before taking any corrective action
     // to avoid triggering an `unknownwaiting` event when the network is slow.
     if (currentRange.length && currentTime + 3 <= currentRange.end(0)) {
-      this.cancelTimer_();
+      this.resetTimeUpdate_();
       this.tech_.setCurrentTime(currentTime);
 
       this.logger_(`Stopped at ${currentTime} while inside a buffered region ` +
@@ -444,7 +435,7 @@ export default class PlaybackWatcher {
     const seekable = this.seekable();
     const currentTime = this.tech_.currentTime();
 
-    if (this.tech_.seeking() || this.timer_ !== null) {
+    if (this.tech_.seeking()) {
       // Tech is seeking or already waiting on another action, no action needed
       return true;
     }
@@ -454,7 +445,7 @@ export default class PlaybackWatcher {
 
       this.logger_(`Fell out of live window at time ${currentTime}. Seeking to ` +
                    `live point (seekable end) ${livePoint}`);
-      this.cancelTimer_();
+      this.resetTimeUpdate_();
       this.tech_.setCurrentTime(livePoint);
 
       // live window resyncs may be useful for monitoring QoS
@@ -475,7 +466,7 @@ export default class PlaybackWatcher {
       // the gap, leading currentTime into a buffered range. Seeking to currentTime
       // allows the video to catch up to the audio position without losing any audio
       // (only suffering ~3 seconds of frozen video and a pause in audio playback).
-      this.cancelTimer_();
+      this.resetTimeUpdate_();
       this.tech_.setCurrentTime(currentTime);
 
       // video underflow may be useful for monitoring QoS
@@ -486,18 +477,10 @@ export default class PlaybackWatcher {
 
     // check for gap
     if (nextRange.length > 0) {
-      const difference = nextRange.start(0) - currentTime;
+      this.logger_(`Stopped at ${currentTime} and seeking to ${nextRange.start(0)}`);
 
-      this.logger_(`Stopped at ${currentTime}, setting timer for ${difference}, seeking ` +
-        `to ${nextRange.start(0)}`);
-
-      this.cancelTimer_();
-
-      this.timer_ = setTimeout(
-        this.skipTheGap_.bind(this),
-        difference * 1000,
-        currentTime
-      );
+      this.resetTimeUpdate_();
+      this.skipTheGap_(currentTime);
       return true;
     }
 
@@ -588,7 +571,7 @@ export default class PlaybackWatcher {
     const currentTime = this.tech_.currentTime();
     const nextRange = Ranges.findNextRange(buffered, currentTime);
 
-    this.cancelTimer_();
+    this.resetTimeUpdate_();
 
     if (nextRange.length === 0 ||
         currentTime !== scheduledCurrentTime) {

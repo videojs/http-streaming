@@ -67,8 +67,6 @@ QUnit.test('skips over gap at beginning of stream if played before content is bu
   this.player.tech_.buffered = () => videojs.createTimeRanges([[2, 10]]);
   // Playback watcher loop runs on a 250ms clock and needs 6 consecutive stall checks before skipping the gap
   this.clock.tick(250 * 6);
-  // Need to wait for the duration of the gap
-  this.clock.tick(2000);
 
   assert.equal(vhsGapSkipEvents, 1, 'there is one skipped gap');
 
@@ -102,30 +100,13 @@ QUnit.test('multiple play events do not cause the gap-skipping logic to be calle
   // create a buffer with a gap of 2 seconds at beginning of stream
   this.player.tech_.buffered = () => videojs.createTimeRanges([[2, 10]]);
   // Playback watcher loop runs on a 250ms clock and needs 6 consecutive stall checks before skipping the gap
-  // Start with 5 consecutive playback checks
-  this.clock.tick(250 * 5);
+  this.clock.tick(250 * 6);
   // and then simulate the playback monitor being called 'manually' by a new play event
   this.player.tech_.trigger('play');
-  // Need to wait for the duration of the gap
-  this.clock.tick(2000);
-
-  assert.equal(vhsGapSkipEvents, 0, 'there is no skipped gap');
-
-  // check that player did not skip the gap
-  assert.equal(
-    Math.round(this.player.currentTime()),
-    0,
-    'Player did not seek over gap'
-  );
-
-  // Simulate remaining time
-  this.clock.tick(250);
-  // Need to wait for the duration of the gap
-  this.clock.tick(2000);
 
   assert.equal(vhsGapSkipEvents, 1, 'there is one skipped gap');
 
-  // check that player did skip the gap after another 250ms has gone by
+  // check that player skipped the gap
   assert.equal(
     Math.round(this.player.currentTime()),
     2,
@@ -171,8 +152,6 @@ QUnit.test('changing sources does not break ability to skip gap at beginning of 
   this.player.tech_.buffered = () => videojs.createTimeRanges([[2, 10]]);
   // Playback watcher loop runs on a 250ms clock and needs 6 consecutive stall checks before skipping the gap
   this.clock.tick(250 * 6);
-  // Need to wait for the duration of the gap
-  this.clock.tick(2000);
 
   assert.equal(vhsGapSkipEvents, 1, 'there is one skipped gap');
 
@@ -196,8 +175,6 @@ QUnit.test('changing sources does not break ability to skip gap at beginning of 
 
   // Playback watcher loop runs on a 250ms clock and needs 6 consecutive stall checks before skipping the gap
   this.clock.tick(250 * 6);
-  // Need to wait for the duration of the gap
-  this.clock.tick(2000);
 
   assert.equal(vhsGapSkipEvents, 1, 'there is one skipped gap');
 
@@ -242,10 +219,9 @@ QUnit.test('skips over gap in firefox with waiting event', function(assert) {
   this.clock.tick(1);
 
   assert.equal(vhsGapSkipEvents, 0, 'there is no skipped gap');
-  // seek to 10 seconds and wait 12 seconds
+  // seek to 10 seconds
   this.player.currentTime(10);
   this.player.tech_.trigger('waiting');
-  this.clock.tick(12000);
 
   // check that player jumped the gap
   assert.equal(
@@ -294,14 +270,10 @@ QUnit.test('skips over gap in chrome without waiting event', function(assert) {
 
   this.clock.tick(4000);
 
-  // checks that player doesn't seek before timer expires
-  assert.equal(this.player.currentTime(), 10, 'Player doesnt seek over gap pre-timer');
-  this.clock.tick(10000);
-
   // check that player jumped the gap
   assert.equal(
     Math.round(this.player.currentTime()),
-    20, 'Player seeked over gap after timer'
+    20, 'Player seeked over gap'
   );
   assert.equal(vhsGapSkipEvents, 1, 'there is one skipped gap');
 });
