@@ -519,31 +519,6 @@ QUnit.test(
   }
 );
 
-// Since smoothQualityChange is deprecated, calls to smoothQualityChange_ should call
-// fastQualityChange_.
-QUnit.test('smoothQualityChange_ calls fastQualityChange_', function(assert) {
-  let fastQualityChangeCalls = 0;
-
-  this.masterPlaylistController.mediaSource.trigger('sourceopen');
-  // master
-  this.standardXHRResponse(this.requests.shift());
-  // media
-  this.standardXHRResponse(this.requests.shift());
-
-  this.masterPlaylistController.selectPlaylist = () => {
-    const playlists = this.masterPlaylistController.master().playlists;
-    const currentPlaylist = this.masterPlaylistController.media();
-
-    return playlists.find((playlist) => playlist !== currentPlaylist);
-  };
-
-  this.masterPlaylistController.fastQualityChange_ = () => fastQualityChangeCalls++;
-
-  this.masterPlaylistController.smoothQualityChange_();
-
-  assert.equal(fastQualityChangeCalls, 1, 'called fastQualityChange_');
-});
-
 QUnit.test('resets everything for a fast quality change', function(assert) {
   let resyncs = 0;
   let resets = 0;
@@ -4764,61 +4739,6 @@ QUnit.test('can pass or select a playlist for fastQualityChange', function(asser
   }, 'calls expected function when passed a playlist');
 
   mpc.fastQualityChange_();
-  assert.deepEqual(calls, {
-    resetEverything: 2,
-    media: 2,
-    selectPlaylist: 1,
-    resyncLoader: 0
-  }, 'calls expected function when not passed a playlist');
-});
-
-QUnit.test('can pass or select a playlist for smoothQualityChange_', function(assert) {
-  const calls = {
-    resetEverything: 0,
-    resyncLoader: 0,
-    media: 0,
-    selectPlaylist: 0
-  };
-
-  const mpc = this.masterPlaylistController;
-
-  mpc.mediaSource.trigger('sourceopen');
-  // master
-  this.standardXHRResponse(this.requests.shift());
-  // media
-  this.standardXHRResponse(this.requests.shift());
-
-  // media is changed
-  mpc.selectPlaylist = () => {
-    calls.selectPlaylist++;
-    return mpc.master().playlists[1];
-  };
-  mpc.masterPlaylistLoader_.media = (playlist) => {
-    if (!playlist) {
-      return mpc.master().playlists[0];
-    }
-    assert.equal(mpc.master().playlists[1], playlist, 'switching to passed in playlist');
-    calls.media++;
-  };
-
-  mpc.mainSegmentLoader_.resyncLoader = function() {
-    calls.resyncLoader++;
-  };
-
-  mpc.mainSegmentLoader_.resetEverything = () => {
-    calls.resetEverything++;
-  };
-
-  mpc.smoothQualityChange_(mpc.master().playlists[1]);
-  assert.deepEqual(calls, {
-    // should reset everything since smoothQualityChange_ calls fastQualityChange_
-    resetEverything: 1,
-    media: 1,
-    selectPlaylist: 0,
-    resyncLoader: 0
-  }, 'calls expected function when passed a playlist');
-
-  mpc.smoothQualityChange_();
   assert.deepEqual(calls, {
     resetEverything: 2,
     media: 2,
