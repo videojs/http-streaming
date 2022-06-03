@@ -1,5 +1,4 @@
-const transmuxQueue = [];
-let currentTransmux;
+import TransmuxWorker from 'worker!./transmuxer-worker.js';
 
 export const handleData_ = (event, transmuxedData, callback) => {
   const {
@@ -18,7 +17,6 @@ export const handleData_ = (event, transmuxedData, callback) => {
     metadata
   });
 
-  // right now, boxes will come back from partial transmuxer, data from full
   const boxes = event.data.segment.boxes || {
     data: event.data.segment.data
   };
@@ -66,29 +64,33 @@ export const handleGopInfo_ = (event, transmuxedData) => {
   transmuxedData.gopInfo = event.data.gopInfo;
 };
 
-export const processTransmux = ({
-  transmuxer,
-  bytes,
-  audioAppendStart,
-  gopsToAlignWith,
-  isPartial,
-  remux,
-  onData,
-  onTrackInfo,
-  onAudioTimingInfo,
-  onVideoTimingInfo,
-  onVideoSegmentTimingInfo,
-  onId3,
-  onCaptions,
-  onDone
-}) => {
+export const processTransmux = (options) => {
+  const {
+    transmuxer,
+    bytes,
+    audioAppendStart,
+    gopsToAlignWith,
+    remux,
+    onData,
+    onTrackInfo,
+    onAudioTimingInfo,
+    onVideoTimingInfo,
+    onVideoSegmentTimingInfo,
+    onAudioSegmentTimingInfo,
+    onId3,
+    onCaptions,
+    onDone,
+    onEndedTimeline,
+    onTransmuxerLog,
+    isEndOfTimeline
+  } = options;
   const transmuxedData = {
-    isPartial,
     buffer: []
   };
+  let waitForEndedTimelineEvent = isEndOfTimeline;
 
   const handleMessage = (event) => {
-    if (!currentTransmux) {
+    if (transmuxer.currentTransmux !== options) {
       // disposed
       return;
     }
@@ -111,15 +113,33 @@ export const processTransmux = ({
     if (event.data.action === 'videoSegmentTimingInfo') {
       onVideoSegmentTimingInfo(event.data.videoSegmentTimingInfo);
     }
+    if (event.data.action === 'audioSegmentTimingInfo') {
+      onAudioSegmentTimingInfo(event.data.audioSegmentTimingInfo);
+    }
     if (event.data.action === 'id3Frame') {
       onId3([event.data.id3Frame], event.data.id3Frame.dispatchType);
     }
     if (event.data.action === 'caption') {
       onCaptions(event.data.caption);
     }
+    if (event.data.action === 'endedtimeline') {
+      waitForEndedTimelineEvent = false;
+      onEndedTimeline();
+    }
+    if (event.data.action === 'log') {
+      onTransmuxerLog(event.data.log);
+    }
 
     // wait for the transmuxed event since we may have audio and video
     if (event.data.type !== 'transmuxed') {
+      return;
+    }
+
+    // If the "endedtimeline" event has not yet fired, and this segment represents the end
+    // of a timeline, that means there may still be data events before the segment
+    // processing can be considerred complete. In that case, the final event should be
+    // an "endedtimeline" event with the type "transmuxed."
+    if (waitForEndedTimelineEvent) {
       return;
     }
 
@@ -130,7 +150,7 @@ export const processTransmux = ({
     });
 
     /* eslint-disable no-use-before-define */
-    dequeue();
+    dequeue(transmuxer);
     /* eslint-enable */
   };
 
@@ -178,35 +198,38 @@ export const processTransmux = ({
     );
   }
 
+  if (isEndOfTimeline) {
+    transmuxer.postMessage({ action: 'endTimeline' });
+  }
   // even if we didn't push any bytes, we have to make sure we flush in case we reached
   // the end of the segment
-  transmuxer.postMessage({ action: isPartial ? 'partialFlush' : 'flush' });
+  transmuxer.postMessage({ action: 'flush' });
 };
 
-export const dequeue = () => {
-  currentTransmux = null;
-  if (transmuxQueue.length) {
-    currentTransmux = transmuxQueue.shift();
-    if (typeof currentTransmux === 'function') {
-      currentTransmux();
+export const dequeue = (transmuxer) => {
+  transmuxer.currentTransmux = null;
+  if (transmuxer.transmuxQueue.length) {
+    transmuxer.currentTransmux = transmuxer.transmuxQueue.shift();
+    if (typeof transmuxer.currentTransmux === 'function') {
+      transmuxer.currentTransmux();
     } else {
-      processTransmux(currentTransmux);
+      processTransmux(transmuxer.currentTransmux);
     }
   }
 };
 
 export const processAction = (transmuxer, action) => {
   transmuxer.postMessage({ action });
-  dequeue();
+  dequeue(transmuxer);
 };
 
 export const enqueueAction = (action, transmuxer) => {
-  if (!currentTransmux) {
-    currentTransmux = action;
+  if (!transmuxer.currentTransmux) {
+    transmuxer.currentTransmux = action;
     processAction(transmuxer, action);
     return;
   }
-  transmuxQueue.push(processAction.bind(null, transmuxer, action));
+  transmuxer.transmuxQueue.push(processAction.bind(null, transmuxer, action));
 };
 
 export const reset = (transmuxer) => {
@@ -218,23 +241,35 @@ export const endTimeline = (transmuxer) => {
 };
 
 export const transmux = (options) => {
-  if (!currentTransmux) {
-    currentTransmux = options;
+  if (!options.transmuxer.currentTransmux) {
+    options.transmuxer.currentTransmux = options;
     processTransmux(options);
     return;
   }
-  transmuxQueue.push(options);
+  options.transmuxer.transmuxQueue.push(options);
 };
 
-export const dispose = () => {
-  // clear out module-level references
-  currentTransmux = null;
-  transmuxQueue.length = 0;
+export const createTransmuxer = (options) => {
+  const transmuxer = new TransmuxWorker();
+
+  transmuxer.currentTransmux = null;
+  transmuxer.transmuxQueue = [];
+  const term = transmuxer.terminate;
+
+  transmuxer.terminate = () => {
+    transmuxer.currentTransmux = null;
+    transmuxer.transmuxQueue.length = 0;
+    return term.call(transmuxer);
+  };
+
+  transmuxer.postMessage({action: 'init', options});
+
+  return transmuxer;
 };
 
 export default {
   reset,
-  dispose,
   endTimeline,
-  transmux
+  transmux,
+  createTransmuxer
 };

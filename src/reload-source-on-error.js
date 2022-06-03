@@ -4,7 +4,7 @@ const defaultOptions = {
   errorInterval: 30,
   getSource(next) {
     const tech = this.tech({ IWillNotUseThisInPlugins: true });
-    const sourceObj = tech.currentSource_;
+    const sourceObj = tech.currentSource_ || this.currentSource();
 
     return next(sourceObj);
   }

@@ -59,8 +59,8 @@ not meant serve as an exhaustive list.
 * Any browser supported resolution (e.g., 4k)
 * Any browser supported framerate (e.g., 60fps)
 * [DRM] via [videojs-contrib-eme]
-* Audio only (non DRM)
-* Video only (non DRM)
+* Audio only (non DASH)
+* Video only (non DASH)
 * In-manifest [WebVTT] subtitles are automatically translated into standard HTML5 subtitle
   tracks
 * [AES-128] segment encryption
@@ -94,10 +94,6 @@ supported when packaged within [TS].
 * [Dolby Vision] (DVHE)
 * [Dolby Digital] Audio (AC-3)
 * [Dolby Digital Plus] (E-AC-3)
-
-### General Missing Features
-
-* Audio/video only DRM streams
 
 ### HLS Missing Features
 
@@ -141,6 +137,7 @@ features in the DASH specification that are not yet implemented in VHS:
 Note that many of the following are parsed by [mpd-parser] but are either not yet used, or
 simply take on their default values (in the case where they have valid defaults).
 
+* Audio and video only streams
 * Audio rendition switching
   * Each video rendition is paired with an audio rendition for the duration of playback.
 * MPD
@@ -152,7 +149,6 @@ simply take on their default values (in the case where they have valid defaults)
   * @maxSegmentDuration
   * @maxSubsegmentDuration
   * ProgramInformation
-  * Location
   * Metrics
 * Period
   * @xlink:href

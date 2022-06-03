@@ -9,7 +9,7 @@ import window from 'global/window';
 import PlaylistLoader from './playlist-loader';
 import Playlist from './playlist';
 import xhrFactory from './xhr';
-import { simpleTypeFromSourceType } from '@videojs/vhs-utils/dist/media-types.js';
+import { simpleTypeFromSourceType } from '@videojs/vhs-utils/es/media-types.js';
 import * as utils from './bin-utils';
 import {
   getProgramTime,
@@ -21,19 +21,33 @@ import { MasterPlaylistController } from './master-playlist-controller';
 import Config from './config';
 import renditionSelectionMixin from './rendition-mixin';
 import PlaybackWatcher from './playback-watcher';
+import SourceUpdater from './source-updater';
 import reloadSourceOnError from './reload-source-on-error';
 import {
   lastBandwidthSelector,
   lowestBitrateCompatibleVariantSelector,
+  movingAverageBandwidthSelector,
   comparePlaylistBandwidth,
   comparePlaylistResolution
 } from './playlist-selectors.js';
+import {
+  browserSupportsCodec,
+  getMimeForCodec,
+  parseCodecs
+} from '@videojs/vhs-utils/es/codecs.js';
+import { unwrapCodecList } from './util/codecs.js';
+import logger from './util/logger';
+import {SAFE_TIME_DELTA} from './ranges';
+
+// IMPORTANT:
+// keep these at the bottom they are replaced at build time
+// because webpack and rollup without plugins do not support json
+// and we do not want to break our users
 import {version as vhsVersion} from '../package.json';
 import {version as muxVersion} from 'mux.js/package.json';
 import {version as mpdVersion} from 'mpd-parser/package.json';
 import {version as m3u8Version} from 'm3u8-parser/package.json';
 import {version as aesVersion} from 'aes-decrypter/package.json';
-import {isAudioCodec, isVideoCodec, browserSupportsCodec} from '@videojs/vhs-utils/dist/codecs.js';
 
 const Vhs = {
   PlaylistLoader,
@@ -42,22 +56,16 @@ const Vhs = {
 
   STANDARD_PLAYLIST_SELECTOR: lastBandwidthSelector,
   INITIAL_PLAYLIST_SELECTOR: lowestBitrateCompatibleVariantSelector,
+  lastBandwidthSelector,
+  movingAverageBandwidthSelector,
   comparePlaylistBandwidth,
   comparePlaylistResolution,
 
   xhr: xhrFactory()
 };
 
-// Define getter/setters for config properites
-[
-  'GOAL_BUFFER_LENGTH',
-  'MAX_GOAL_BUFFER_LENGTH',
-  'GOAL_BUFFER_LENGTH_RATE',
-  'BUFFER_LOW_WATER_LINE',
-  'MAX_BUFFER_LOW_WATER_LINE',
-  'BUFFER_LOW_WATER_LINE_RATE',
-  'BANDWIDTH_VARIANCE'
-].forEach((prop) => {
+// Define getter/setters for config properties
+Object.keys(Config).forEach((prop) => {
   Object.defineProperty(Vhs, prop, {
     get() {
       videojs.log.warn(`using Vhs.${prop} is UNSAFE be sure you know what you are doing`);
@@ -124,41 +132,48 @@ Vhs.canPlaySource = function() {
     'your player\'s techOrder.');
 };
 
-const emeKeySystems = (keySystemOptions, videoPlaylist, audioPlaylist) => {
+const emeKeySystems = (keySystemOptions, mainPlaylist, audioPlaylist) => {
   if (!keySystemOptions) {
     return keySystemOptions;
   }
 
-  const codecs = {
-    video: videoPlaylist && videoPlaylist.attributes && videoPlaylist.attributes.CODECS,
-    audio: audioPlaylist && audioPlaylist.attributes && audioPlaylist.attributes.CODECS
-  };
+  let codecs = {};
 
-  if (!codecs.audio && codecs.video.split(',').length > 1) {
-    codecs.video.split(',').forEach(function(codec) {
-      codec = codec.trim();
-
-      if (isAudioCodec(codec)) {
-        codecs.audio = codec;
-      } else if (isVideoCodec(codec)) {
-        codecs.video = codec;
-      }
-    });
+  if (mainPlaylist && mainPlaylist.attributes && mainPlaylist.attributes.CODECS) {
+    codecs = unwrapCodecList(parseCodecs(mainPlaylist.attributes.CODECS));
   }
-  const videoContentType = codecs.video ? `video/mp4;codecs="${codecs.video}"` : null;
-  const audioContentType = codecs.audio ? `audio/mp4;codecs="${codecs.audio}"` : null;
+
+  if (audioPlaylist && audioPlaylist.attributes && audioPlaylist.attributes.CODECS) {
+    codecs.audio = audioPlaylist.attributes.CODECS;
+  }
+
+  const videoContentType = getMimeForCodec(codecs.video);
+  const audioContentType = getMimeForCodec(codecs.audio);
 
   // upsert the content types based on the selected playlist
   const keySystemContentTypes = {};
 
   for (const keySystem in keySystemOptions) {
-    keySystemContentTypes[keySystem] = {audioContentType, videoContentType};
+    keySystemContentTypes[keySystem] = {};
 
-    if (videoPlaylist.contentProtection &&
-        videoPlaylist.contentProtection[keySystem] &&
-        videoPlaylist.contentProtection[keySystem].pssh) {
+    if (audioContentType) {
+      keySystemContentTypes[keySystem].audioContentType = audioContentType;
+    }
+    if (videoContentType) {
+      keySystemContentTypes[keySystem].videoContentType = videoContentType;
+    }
+
+    // Default to using the video playlist's PSSH even though they may be different, as
+    // videojs-contrib-eme will only accept one in the options.
+    //
+    // This shouldn't be an issue for most cases as early intialization will handle all
+    // unique PSSH values, and if they aren't, then encrypted events should have the
+    // specific information needed for the unique license.
+    if (mainPlaylist.contentProtection &&
+        mainPlaylist.contentProtection[keySystem] &&
+        mainPlaylist.contentProtection[keySystem].pssh) {
       keySystemContentTypes[keySystem].pssh =
-        videoPlaylist.contentProtection[keySystem].pssh;
+        mainPlaylist.contentProtection[keySystem].pssh;
     }
 
     // videojs-contrib-eme accepts the option of specifying: 'com.some.cdm': 'url'
@@ -171,27 +186,183 @@ const emeKeySystems = (keySystemOptions, videoPlaylist, audioPlaylist) => {
   return videojs.mergeOptions(keySystemOptions, keySystemContentTypes);
 };
 
-const setupEmeOptions = (vhsHandler) => {
-  const player = vhsHandler.player_;
+/**
+ * @typedef {Object} KeySystems
+ *
+ * keySystems configuration for https://github.com/videojs/videojs-contrib-eme
+ * Note: not all options are listed here.
+ *
+ * @property {Uint8Array} [pssh]
+ *           Protection System Specific Header
+ */
 
-  if (player.eme) {
-    const audioPlaylistLoader = vhsHandler.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader;
-    const sourceOptions = emeKeySystems(
-      vhsHandler.source_.keySystems,
-      vhsHandler.playlists.media(),
-      audioPlaylistLoader && audioPlaylistLoader.media()
-    );
-
-    if (sourceOptions) {
-      player.currentSource().keySystems = sourceOptions;
-
-      // works around https://bugs.chromium.org/p/chromium/issues/detail?id=895449
-      // in non-IE11 browsers. In IE11 this is too early to initialize media keys
-      if (!(videojs.browser.IE_VERSION === 11) && player.eme.initializeMediaKeys) {
-        player.eme.initializeMediaKeys();
-      }
+/**
+ * Goes through all the playlists and collects an array of KeySystems options objects
+ * containing each playlist's keySystems and their pssh values, if available.
+ *
+ * @param {Object[]} playlists
+ *        The playlists to look through
+ * @param {string[]} keySystems
+ *        The keySystems to collect pssh values for
+ *
+ * @return {KeySystems[]}
+ *         An array of KeySystems objects containing available key systems and their
+ *         pssh values
+ */
+const getAllPsshKeySystemsOptions = (playlists, keySystems) => {
+  return playlists.reduce((keySystemsArr, playlist) => {
+    if (!playlist.contentProtection) {
+      return keySystemsArr;
     }
+
+    const keySystemsOptions = keySystems.reduce((keySystemsObj, keySystem) => {
+      const keySystemOptions = playlist.contentProtection[keySystem];
+
+      if (keySystemOptions && keySystemOptions.pssh) {
+        keySystemsObj[keySystem] = { pssh: keySystemOptions.pssh };
+      }
+
+      return keySystemsObj;
+    }, {});
+
+    if (Object.keys(keySystemsOptions).length) {
+      keySystemsArr.push(keySystemsOptions);
+    }
+
+    return keySystemsArr;
+  }, []);
+};
+
+/**
+ * Returns a promise that waits for the
+ * [eme plugin](https://github.com/videojs/videojs-contrib-eme) to create a key session.
+ *
+ * Works around https://bugs.chromium.org/p/chromium/issues/detail?id=895449 in non-IE11
+ * browsers.
+ *
+ * As per the above ticket, this is particularly important for Chrome, where, if
+ * unencrypted content is appended before encrypted content and the key session has not
+ * been created, a MEDIA_ERR_DECODE will be thrown once the encrypted content is reached
+ * during playback.
+ *
+ * @param {Object} player
+ *        The player instance
+ * @param {Object[]} sourceKeySystems
+ *        The key systems options from the player source
+ * @param {Object} [audioMedia]
+ *        The active audio media playlist (optional)
+ * @param {Object[]} mainPlaylists
+ *        The playlists found on the master playlist object
+ *
+ * @return {Object}
+ *         Promise that resolves when the key session has been created
+ */
+export const waitForKeySessionCreation = ({
+  player,
+  sourceKeySystems,
+  audioMedia,
+  mainPlaylists
+}) => {
+  if (!player.eme.initializeMediaKeys) {
+    return Promise.resolve();
   }
+
+  // TODO should all audio PSSH values be initialized for DRM?
+  //
+  // All unique video rendition pssh values are initialized for DRM, but here only
+  // the initial audio playlist license is initialized. In theory, an encrypted
+  // event should be fired if the user switches to an alternative audio playlist
+  // where a license is required, but this case hasn't yet been tested. In addition, there
+  // may be many alternate audio playlists unlikely to be used (e.g., multiple different
+  // languages).
+  const playlists = audioMedia ? mainPlaylists.concat([audioMedia]) : mainPlaylists;
+
+  const keySystemsOptionsArr = getAllPsshKeySystemsOptions(
+    playlists,
+    Object.keys(sourceKeySystems)
+  );
+
+  const initializationFinishedPromises = [];
+  const keySessionCreatedPromises = [];
+
+  // Since PSSH values are interpreted as initData, EME will dedupe any duplicates. The
+  // only place where it should not be deduped is for ms-prefixed APIs, but the early
+  // return for IE11 above, and the existence of modern EME APIs in addition to
+  // ms-prefixed APIs on Edge should prevent this from being a concern.
+  // initializeMediaKeys also won't use the webkit-prefixed APIs.
+  keySystemsOptionsArr.forEach((keySystemsOptions) => {
+    keySessionCreatedPromises.push(new Promise((resolve, reject) => {
+      player.tech_.one('keysessioncreated', resolve);
+    }));
+
+    initializationFinishedPromises.push(new Promise((resolve, reject) => {
+      player.eme.initializeMediaKeys({
+        keySystems: keySystemsOptions
+      }, (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve();
+      });
+    }));
+  });
+
+  // The reasons Promise.race is chosen over Promise.any:
+  //
+  // * Promise.any is only available in Safari 14+.
+  // * None of these promises are expected to reject. If they do reject, it might be
+  //   better here for the race to surface the rejection, rather than mask it by using
+  //   Promise.any.
+  return Promise.race([
+    // If a session was previously created, these will all finish resolving without
+    // creating a new session, otherwise it will take until the end of all license
+    // requests, which is why the key session check is used (to make setup much faster).
+    Promise.all(initializationFinishedPromises),
+    // Once a single session is created, the browser knows DRM will be used.
+    Promise.race(keySessionCreatedPromises)
+  ]);
+};
+
+/**
+ * If the [eme](https://github.com/videojs/videojs-contrib-eme) plugin is available, and
+ * there are keySystems on the source, sets up source options to prepare the source for
+ * eme.
+ *
+ * @param {Object} player
+ *        The player instance
+ * @param {Object[]} sourceKeySystems
+ *        The key systems options from the player source
+ * @param {Object} media
+ *        The active media playlist
+ * @param {Object} [audioMedia]
+ *        The active audio media playlist (optional)
+ *
+ * @return {boolean}
+ *         Whether or not options were configured and EME is available
+ */
+const setupEmeOptions = ({
+  player,
+  sourceKeySystems,
+  media,
+  audioMedia
+}) => {
+  const sourceOptions = emeKeySystems(sourceKeySystems, media, audioMedia);
+
+  if (!sourceOptions) {
+    return false;
+  }
+
+  player.currentSource().keySystems = sourceOptions;
+
+  // eme handles the rest of the setup, so if it is missing
+  // do nothing.
+  if (sourceOptions && !player.eme) {
+    videojs.log.warn('DRM encrypted source cannot be decrypted without a DRM plugin');
+    return false;
+  }
+
+  return true;
 };
 
 const getVhsLocalStorage = () => {
@@ -337,8 +508,16 @@ class VhsHandler extends Component {
     super(tech, videojs.mergeOptions(options.hls, options.vhs));
 
     if (options.hls && Object.keys(options.hls).length) {
-      videojs.log.warn('Using hls options is deprecated. Use vhs instead.');
+      videojs.log.warn('Using hls options is deprecated. Please rename `hls` to `vhs` in your options object.');
     }
+
+    // if a tech level `initialBandwidth` option was passed
+    // use that over the VHS level `bandwidth` option
+    if (typeof options.initialBandwidth === 'number') {
+      this.options_.bandwidth = options.initialBandwidth;
+    }
+
+    this.logger_ = logger('VhsHandler');
 
     // tech.player() is deprecated but setup a reference to HLS for
     // backwards-compatibility
@@ -411,7 +590,12 @@ class VhsHandler extends Component {
         document.msFullscreenElement;
 
       if (fullscreenElement && fullscreenElement.contains(this.tech_.el())) {
-        this.masterPlaylistController_.smoothQualityChange_();
+        this.masterPlaylistController_.fastQualityChange_();
+      } else {
+        // When leaving fullscreen, since the in page pixel dimensions should be smaller
+        // than full screen, see if there should be a rendition switch down to preserve
+        // bandwidth.
+        this.masterPlaylistController_.checkABR_();
       }
     });
 
@@ -425,7 +609,9 @@ class VhsHandler extends Component {
     });
 
     this.on(this.tech_, 'error', function() {
-      if (this.masterPlaylistController_) {
+      // verify that the error was real and we are loaded
+      // enough to have mpc loaded.
+      if (this.tech_.error() && this.masterPlaylistController_) {
         this.masterPlaylistController_.pauseLoading();
       }
     });
@@ -436,7 +622,7 @@ class VhsHandler extends Component {
   setOptions_() {
     // defaults
     this.options_.withCredentials = this.options_.withCredentials || false;
-    this.options_.handleManifestRedirects = this.options_.handleManifestRedirects || false;
+    this.options_.handleManifestRedirects = this.options_.handleManifestRedirects === false ? false : true;
     this.options_.limitRenditionByPlayerDimensions = this.options_.limitRenditionByPlayerDimensions === false ? false : true;
     this.options_.useDevicePixelRatio = this.options_.useDevicePixelRatio || false;
     this.options_.smoothQualityChange = this.options_.smoothQualityChange || false;
@@ -444,10 +630,11 @@ class VhsHandler extends Component {
       typeof this.source_.useBandwidthFromLocalStorage !== 'undefined' ?
         this.source_.useBandwidthFromLocalStorage :
         this.options_.useBandwidthFromLocalStorage || false;
+    this.options_.useNetworkInformationApi = this.options_.useNetworkInformationApi || false;
+    this.options_.useDtsForTimestampOffset = this.options_.useDtsForTimestampOffset || false;
     this.options_.customTagParsers = this.options_.customTagParsers || [];
     this.options_.customTagMappers = this.options_.customTagMappers || [];
     this.options_.cacheEncryptionKeys = this.options_.cacheEncryptionKeys || false;
-    this.options_.handlePartialData = this.options_.handlePartialData || false;
 
     if (typeof this.options_.blacklistDuration !== 'number') {
       this.options_.blacklistDuration = 5 * 60;
@@ -492,7 +679,15 @@ class VhsHandler extends Component {
       'customTagMappers',
       'handleManifestRedirects',
       'cacheEncryptionKeys',
-      'handlePartialData'
+      'playlistSelector',
+      'initialPlaylistSelector',
+      'experimentalBufferBasedABR',
+      'liveRangeSafeTimeDelta',
+      'experimentalLLHLS',
+      'useNetworkInformationApi',
+      'useDtsForTimestampOffset',
+      'experimentalExactManifestTimings',
+      'experimentalLeastPixelDiffSelector'
     ].forEach((option) => {
       if (typeof this.source_[option] !== 'undefined') {
         this.options_[option] = this.source_[option];
@@ -518,17 +713,31 @@ class VhsHandler extends Component {
     this.options_.tech = this.tech_;
     this.options_.externVhs = Vhs;
     this.options_.sourceType = simpleTypeFromSourceType(type);
+
     // Whenever we seek internally, we should update the tech
     this.options_.seekTo = (time) => {
       this.tech_.setCurrentTime(time);
     };
 
+    if (this.options_.smoothQualityChange) {
+      videojs.log.warn('smoothQualityChange is deprecated and will be removed in the next major version');
+    }
+
     this.masterPlaylistController_ = new MasterPlaylistController(this.options_);
-    this.playbackWatcher_ = new PlaybackWatcher(videojs.mergeOptions(this.options_, {
-      seekable: () => this.seekable(),
-      media: () => this.masterPlaylistController_.media(),
-      masterPlaylistController: this.masterPlaylistController_
-    }));
+
+    const playbackWatcherOptions = videojs.mergeOptions(
+      {
+        liveRangeSafeTimeDelta: SAFE_TIME_DELTA
+      },
+      this.options_,
+      {
+        seekable: () => this.seekable(),
+        media: () => this.masterPlaylistController_.media(),
+        masterPlaylistController: this.masterPlaylistController_
+      }
+    );
+
+    this.playbackWatcher_ = new PlaybackWatcher(playbackWatcherOptions);
 
     this.masterPlaylistController_.on('error', () => {
       const player = videojs.players[this.tech_.options_.playerId];
@@ -543,11 +752,14 @@ class VhsHandler extends Component {
       player.error(error);
     });
 
+    const defaultSelector = this.options_.experimentalBufferBasedABR ?
+      Vhs.movingAverageBandwidthSelector(0.55) : Vhs.STANDARD_PLAYLIST_SELECTOR;
+
     // `this` in selectPlaylist should be the VhsHandler for backwards
     // compatibility with < v2
-    this.masterPlaylistController_.selectPlaylist =
-      this.selectPlaylist ?
-        this.selectPlaylist.bind(this) : Vhs.STANDARD_PLAYLIST_SELECTOR.bind(this);
+    this.masterPlaylistController_.selectPlaylist = this.selectPlaylist ?
+      this.selectPlaylist.bind(this) :
+      defaultSelector.bind(this);
 
     this.masterPlaylistController_.selectInitialPlaylist =
       Vhs.INITIAL_PLAYLIST_SELECTOR.bind(this);
@@ -581,7 +793,27 @@ class VhsHandler extends Component {
       },
       bandwidth: {
         get() {
-          return this.masterPlaylistController_.mainSegmentLoader_.bandwidth;
+          let playerBandwidthEst = this.masterPlaylistController_.mainSegmentLoader_.bandwidth;
+
+          const networkInformation = window.navigator.connection || window.navigator.mozConnection || window.navigator.webkitConnection;
+          const tenMbpsAsBitsPerSecond = 10e6;
+
+          if (this.options_.useNetworkInformationApi && networkInformation) {
+            // downlink returns Mbps
+            // https://developer.mozilla.org/en-US/docs/Web/API/NetworkInformation/downlink
+            const networkInfoBandwidthEstBitsPerSec = networkInformation.downlink * 1000 * 1000;
+
+            // downlink maxes out at 10 Mbps. In the event that both networkInformationApi and the player
+            // estimate a bandwidth greater than 10 Mbps, use the larger of the two estimates to ensure that
+            // high quality streams are not filtered out.
+            if (networkInfoBandwidthEstBitsPerSec >= tenMbpsAsBitsPerSecond && playerBandwidthEst >= tenMbpsAsBitsPerSecond) {
+              playerBandwidthEst = Math.max(playerBandwidthEst, networkInfoBandwidthEstBitsPerSec);
+            } else {
+              playerBandwidthEst = networkInfoBandwidthEstBitsPerSec;
+            }
+          }
+
+          return playerBandwidthEst;
         },
         set(bandwidth) {
           this.masterPlaylistController_.mainSegmentLoader_.bandwidth = bandwidth;
@@ -664,6 +896,26 @@ class VhsHandler extends Component {
         get: () => this.masterPlaylistController_.mediaSecondsLoaded_() || 0,
         enumerable: true
       },
+      mediaAppends: {
+        get: () => this.masterPlaylistController_.mediaAppends_() || 0,
+        enumerable: true
+      },
+      mainAppendsToLoadedData: {
+        get: () => this.masterPlaylistController_.mainAppendsToLoadedData_() || 0,
+        enumerable: true
+      },
+      audioAppendsToLoadedData: {
+        get: () => this.masterPlaylistController_.audioAppendsToLoadedData_() || 0,
+        enumerable: true
+      },
+      appendsToLoadedData: {
+        get: () => this.masterPlaylistController_.appendsToLoadedData_() || 0,
+        enumerable: true
+      },
+      timeToLoadedData: {
+        get: () => this.masterPlaylistController_.timeToLoadedData_() || 0,
+        enumerable: true
+      },
       buffered: {
         get: () => timeRangesToArray(this.tech_.buffered()),
         enumerable: true
@@ -723,7 +975,10 @@ class VhsHandler extends Component {
     this.masterPlaylistController_.on('selectedinitialmedia', () => {
       // Add the manual rendition mix-in to VhsHandler
       renditionSelectionMixin(this);
-      setupEmeOptions(this);
+    });
+
+    this.masterPlaylistController_.sourceUpdater_.on('createdsourcebuffers', () => {
+      this.setupEme_();
     });
 
     // the bandwidth of the primary segment loader is our best
@@ -749,6 +1004,84 @@ class VhsHandler extends Component {
     this.mediaSourceUrl_ = window.URL.createObjectURL(this.masterPlaylistController_.mediaSource);
 
     this.tech_.src(this.mediaSourceUrl_);
+  }
+
+  createKeySessions_() {
+    const audioPlaylistLoader =
+      this.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader;
+
+    this.logger_('waiting for EME key session creation');
+    waitForKeySessionCreation({
+      player: this.player_,
+      sourceKeySystems: this.source_.keySystems,
+      audioMedia: audioPlaylistLoader && audioPlaylistLoader.media(),
+      mainPlaylists: this.playlists.master.playlists
+    }).then(() => {
+      this.logger_('created EME key session');
+      this.masterPlaylistController_.sourceUpdater_.initializedEme();
+    }).catch((err) => {
+      this.logger_('error while creating EME key session', err);
+      this.player_.error({
+        message: 'Failed to initialize media keys for EME',
+        code: 3
+      });
+    });
+  }
+
+  handleWaitingForKey_() {
+    // If waitingforkey is fired, it's possible that the data that's necessary to retrieve
+    // the key is in the manifest. While this should've happened on initial source load, it
+    // may happen again in live streams where the keys change, and the manifest info
+    // reflects the update.
+    //
+    // Because videojs-contrib-eme compares the PSSH data we send to that of PSSH data it's
+    // already requested keys for, we don't have to worry about this generating extraneous
+    // requests.
+    this.logger_('waitingforkey fired, attempting to create any new key sessions');
+    this.createKeySessions_();
+  }
+
+  /**
+   * If necessary and EME is available, sets up EME options and waits for key session
+   * creation.
+   *
+   * This function also updates the source updater so taht it can be used, as for some
+   * browsers, EME must be configured before content is appended (if appending unencrypted
+   * content before encrypted content).
+   */
+  setupEme_() {
+    const audioPlaylistLoader =
+      this.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader;
+
+    const didSetupEmeOptions = setupEmeOptions({
+      player: this.player_,
+      sourceKeySystems: this.source_.keySystems,
+      media: this.playlists.media(),
+      audioMedia: audioPlaylistLoader && audioPlaylistLoader.media()
+    });
+
+    this.player_.tech_.on('keystatuschange', (e) => {
+      if (e.status === 'output-restricted') {
+        this.masterPlaylistController_.blacklistCurrentPlaylist({
+          playlist: this.masterPlaylistController_.media(),
+          message: `DRM keystatus changed to ${e.status}. Playlist will fail to play. Check for HDCP content.`,
+          blacklistDuration: Infinity
+        });
+      }
+    });
+
+    this.handleWaitingForKey_ = this.handleWaitingForKey_.bind(this);
+    this.player_.tech_.on('waitingforkey', this.handleWaitingForKey_);
+
+    // In IE11 this is too early to initialize media keys, and IE11 does not support
+    // promises.
+    if (videojs.browser.IE_VERSION === 11 || !didSetupEmeOptions) {
+      // If EME options were not set up, we've done all we could to initialize EME.
+      this.masterPlaylistController_.sourceUpdater_.initializedEme();
+      return;
+    }
+
+    this.createKeySessions_();
   }
 
   /**
@@ -795,6 +1128,10 @@ class VhsHandler extends Component {
    */
   version() {
     return this.constructor.version();
+  }
+
+  canChangeType() {
+    return SourceUpdater.canChangeType();
   }
 
   /**
@@ -859,6 +1196,10 @@ class VhsHandler extends Component {
       this.mediaSourceUrl_ = null;
     }
 
+    if (this.tech_) {
+      this.tech_.off('waitingforkey', this.handleWaitingForKey_);
+    }
+
     super.dispose();
   }
 
@@ -918,10 +1259,14 @@ const VhsSourceHandler = {
     return tech.vhs;
   },
   canPlayType(type, options = {}) {
-    const { vhs: { overrideNative = !videojs.browser.IS_ANY_SAFARI } } = videojs.mergeOptions(videojs.options, options);
+    const {
+      vhs: { overrideNative = !videojs.browser.IS_ANY_SAFARI } = {},
+      hls: { overrideNative: legacyOverrideNative = false } = {}
+    } = videojs.mergeOptions(videojs.options, options);
+
     const supportedType = simpleTypeFromSourceType(type);
     const canUseMsePlayback = supportedType &&
-      (!Vhs.supportsTypeNatively(supportedType) || overrideNative);
+      (!Vhs.supportsTypeNatively(supportedType) || legacyOverrideNative || overrideNative);
 
     return canUseMsePlayback ? 'maybe' : '';
   }
@@ -974,10 +1319,10 @@ if (!videojs.use) {
 videojs.options.vhs = videojs.options.vhs || {};
 videojs.options.hls = videojs.options.hls || {};
 
-if (videojs.registerPlugin) {
-  videojs.registerPlugin('reloadSourceOnError', reloadSourceOnError);
-} else {
-  videojs.plugin('reloadSourceOnError', reloadSourceOnError);
+if (!videojs.getPlugin || !videojs.getPlugin('reloadSourceOnError')) {
+  const registerPlugin = videojs.registerPlugin || videojs.plugin;
+
+  registerPlugin('reloadSourceOnError', reloadSourceOnError);
 }
 
 export {
@@ -986,5 +1331,7 @@ export {
   VhsSourceHandler,
   emeKeySystems,
   simpleTypeFromSourceType,
-  expandDataUri
+  expandDataUri,
+  setupEmeOptions,
+  getAllPsshKeySystemsOptions
 };

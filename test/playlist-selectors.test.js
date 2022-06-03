@@ -1,6 +1,7 @@
 import { module, test } from 'qunit';
 import document from 'global/document';
 import {
+  TEST_ONLY_SIMPLE_SELECTOR,
   simpleSelector,
   movingAverageBandwidthSelector,
   minRebufferMaxBandwidthSelector,
@@ -22,7 +23,8 @@ module('Playlist Selectors', {
         master: {
           playlists: []
         }
-      }
+      },
+      masterPlaylistController_: {}
     };
   },
   afterEach() {
@@ -62,6 +64,50 @@ test('Exponential moving average has a configurable decay parameter', function(a
   this.vhs.systemBandwidth = 1;
   playlist = fiftyPercentDecay.call(this.vhs);
   assert.equal(playlist.attributes.BANDWIDTH, 50, 'selected the middle playlist');
+});
+
+test('Calling exponential moving average wont decay average unless new bandwidth data was provided', function(assert) {
+  let playlist;
+  const simSel = simpleSelector;
+  const bandwidthAverages = [];
+
+  const resetSimpleSelector = TEST_ONLY_SIMPLE_SELECTOR((...args) => {
+    // second argument to simpleSelector is the average
+    bandwidthAverages.push(args[1]);
+    return simSel(...args);
+  });
+
+  this.vhs.playlists.master.playlists = [
+    { attributes: { BANDWIDTH: 1 } },
+    { attributes: { BANDWIDTH: 50 } },
+    { attributes: { BANDWIDTH: 100 } }
+  ];
+
+  const fiftyPercentDecay = movingAverageBandwidthSelector(0.50);
+
+  this.vhs.systemBandwidth = 50 * Config.BANDWIDTH_VARIANCE + 1;
+  playlist = fiftyPercentDecay.call(this.vhs);
+  assert.equal(playlist.attributes.BANDWIDTH, 50, 'selected the middle playlist');
+
+  this.vhs.systemBandwidth = 1000 * Config.BANDWIDTH_VARIANCE + 1;
+  playlist = fiftyPercentDecay.call(this.vhs);
+  assert.equal(playlist.attributes.BANDWIDTH, 100, 'selected the top playlist');
+
+  // using the systemBandwidth values above, 50->1000
+  // we decay into 1000 after 50 iterations
+  let i = 50;
+
+  while (i--) {
+    playlist = fiftyPercentDecay.call(this.vhs);
+  }
+
+  assert.equal(
+    bandwidthAverages[bandwidthAverages.length - 1],
+    bandwidthAverages[1],
+    'bandwidth should only change when we get new bandwidth data'
+  );
+
+  resetSimpleSelector();
 });
 
 test(
@@ -196,7 +242,7 @@ test('simpleSelector limits using resolution information when it exists', functi
 
   master.playlists = trickyPlaylists;
 
-  const selectedPlaylist = simpleSelector(master, Config.INITIAL_BANDWIDTH, 444, 790, true);
+  const selectedPlaylist = simpleSelector(master, Config.INITIAL_BANDWIDTH, 444, 790, true, {});
 
   assert.equal(selectedPlaylist, master.playlists[3], 'selected the playlist with the lowest bandwidth higher than player resolution');
 });
@@ -209,4 +255,75 @@ test('simpleSelector can not limit based on resolution information', function(as
   const selectedPlaylist = simpleSelector(master, Config.INITIAL_BANDWIDTH, 444, 790, false);
 
   assert.equal(selectedPlaylist, master.playlists[4], 'selected a playlist based solely on bandwidth');
+});
+
+test('simpleSelector chooses between current audio playlists for audio only', function(assert) {
+  const audioPlaylists = [
+    {id: 'foo'},
+    {id: 'bar', attributes: {BANDWIDTH: 534216}}
+  ];
+  const masterPlaylistController = {
+    getAudioTrackPlaylists_: () => audioPlaylists
+  };
+  const master = this.vhs.playlists.master;
+
+  master.mediaGroups = {
+    AUDIO: {
+      main: {
+        en: {id: 'en', playlists: audioPlaylists}
+      }
+    }
+  };
+
+  const selectedPlaylist = simpleSelector(master, Config.INITIAL_BANDWIDTH, 444, 790, false, masterPlaylistController);
+
+  assert.equal(selectedPlaylist, audioPlaylists[1], 'selected an audio based solely on bandwidth');
+});
+
+test('simpleSelector experimentalLeastPixelDiffSelector selects least pixel diff resolution.', function(assert) {
+  const bandwidth = Config.INITIAL_BANDWIDTH;
+  const master = this.vhs.playlists.master;
+  const usePixelDiff = {experimentalLeastPixelDiffSelector: true};
+
+  master.playlists = [
+    { attributes: { BANDWIDTH: bandwidth, RESOLUTION: { width: 768, height: 432 } } },
+    { attributes: { BANDWIDTH: bandwidth, RESOLUTION: { width: 1024, height: 576 } } },
+    { attributes: { BANDWIDTH: bandwidth, RESOLUTION: { width: 1280, height: 720 } } },
+    { attributes: { BANDWIDTH: bandwidth, RESOLUTION: { width: 1920, height: 1080 } } }
+  ];
+
+  let pixelDiff;
+  let nonPixelDiff;
+
+  // +1 pixel
+  pixelDiff = simpleSelector(master, Infinity, 1281, 721, true, usePixelDiff);
+  nonPixelDiff = simpleSelector(master, Infinity, 1281, 721, true, {});
+
+  assert.equal(pixelDiff, master.playlists[2], '1281w x 721h pixel diff');
+  assert.equal(nonPixelDiff, master.playlists[3], '1281w x 721h resolution plus one');
+
+  // -1 pixel
+  pixelDiff = simpleSelector(master, Infinity, 1279, 719, true, usePixelDiff);
+  nonPixelDiff = simpleSelector(master, Infinity, 1279, 719, true, {});
+
+  assert.equal(pixelDiff, master.playlists[2], '1279w x 719h pixel diff');
+  assert.equal(nonPixelDiff, master.playlists[2], '1279w x 719h resolution plus one');
+
+  // equal to player resolution
+  pixelDiff = simpleSelector(master, Infinity, 1280, 720, true, usePixelDiff);
+  nonPixelDiff = simpleSelector(master, Infinity, 1280, 720, true, {});
+
+  assert.equal(pixelDiff, master.playlists[2], '1280w x 720h pixel diff');
+  assert.equal(nonPixelDiff, master.playlists[2], '1280w x 720h resolution plus one');
+
+  master.playlists.push({ attributes: { BANDWIDTH: bandwidth - 1, RESOLUTION: { width: 1280, height: 720 } } });
+  master.playlists.push({ attributes: { BANDWIDTH: bandwidth + 1, RESOLUTION: { width: 1280, height: 720 } } });
+
+  // equal to player resolution, chooses higher bandwidth
+  pixelDiff = simpleSelector(master, Infinity, 1280, 720, true, usePixelDiff);
+  nonPixelDiff = simpleSelector(master, Infinity, 1280, 720, true, {});
+
+  assert.equal(pixelDiff, master.playlists[5], '1280w x 720h pixel diff higher bandwidth');
+  assert.equal(nonPixelDiff, master.playlists[5], '1280w x 720h resolution plus higher bandwidth');
+
 });

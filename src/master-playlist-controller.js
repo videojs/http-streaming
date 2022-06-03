@@ -13,7 +13,7 @@ import videojs from 'video.js';
 import { updateAdCues } from './ad-cue-tags';
 import SyncController from './sync-controller';
 import TimelineChangeController from './timeline-change-controller';
-import Decrypter from 'worker!./decrypter-worker.worker.js';
+import Decrypter from 'worker!./decrypter-worker.js';
 import Config from './config';
 import {
   parseCodecs,
@@ -21,8 +21,8 @@ import {
   muxerSupportsCodec,
   DEFAULT_AUDIO_CODEC,
   DEFAULT_VIDEO_CODEC
-} from '@videojs/vhs-utils/dist/codecs.js';
-import { codecsForPlaylist } from './util/codecs.js';
+} from '@videojs/vhs-utils/es/codecs.js';
+import { codecsForPlaylist, unwrapCodecList, codecCount } from './util/codecs.js';
 import { createMediaTypes, setupMediaGroups } from './media-groups';
 import logger from './util/logger';
 
@@ -38,7 +38,8 @@ const loaderStats = [
   'mediaRequestsTimedout',
   'mediaRequestsErrored',
   'mediaTransferDuration',
-  'mediaBytesTransferred'
+  'mediaBytesTransferred',
+  'mediaAppends'
 ];
 const sumLoaderStat = function(stat) {
   return this.audioSegmentLoader_[stat] +
@@ -46,10 +47,13 @@ const sumLoaderStat = function(stat) {
 };
 const shouldSwitchToMedia = function({
   currentPlaylist,
+  buffered,
+  currentTime,
   nextPlaylist,
-  forwardBuffer,
   bufferLowWaterLine,
+  bufferHighWaterLine,
   duration,
+  experimentalBufferBasedABR,
   log
 }) {
   // we have no other playlist to switch to
@@ -58,30 +62,75 @@ const shouldSwitchToMedia = function({
     return false;
   }
 
+  const sharedLogLine = `allowing switch ${currentPlaylist && currentPlaylist.id || 'null'} -> ${nextPlaylist.id}`;
+
+  if (!currentPlaylist) {
+    log(`${sharedLogLine} as current playlist is not set`);
+    return true;
+  }
+
+  // no need to switch if playlist is the same
+  if (nextPlaylist.id === currentPlaylist.id) {
+    return false;
+  }
+
+  // determine if current time is in a buffered range.
+  const isBuffered = Boolean(Ranges.findRange(buffered, currentTime).length);
+
   // If the playlist is live, then we want to not take low water line into account.
   // This is because in LIVE, the player plays 3 segments from the end of the
   // playlist, and if `BUFFER_LOW_WATER_LINE` is greater than the duration availble
   // in those segments, a viewer will never experience a rendition upswitch.
   if (!currentPlaylist.endList) {
+    // For LLHLS live streams, don't switch renditions before playback has started, as it almost
+    // doubles the time to first playback.
+    if (!isBuffered && typeof currentPlaylist.partTargetDuration === 'number') {
+      log(`not ${sharedLogLine} as current playlist is live llhls, but currentTime isn't in buffered.`);
+      return false;
+    }
+    log(`${sharedLogLine} as current playlist is live`);
     return true;
   }
+
+  const forwardBuffer = Ranges.timeAheadOf(buffered, currentTime);
+  const maxBufferLowWaterLine = experimentalBufferBasedABR ?
+    Config.EXPERIMENTAL_MAX_BUFFER_LOW_WATER_LINE : Config.MAX_BUFFER_LOW_WATER_LINE;
 
   // For the same reason as LIVE, we ignore the low water line when the VOD
   // duration is below the max potential low water line
-  if (duration < Config.MAX_BUFFER_LOW_WATER_LINE) {
+  if (duration < maxBufferLowWaterLine) {
+    log(`${sharedLogLine} as duration < max low water line (${duration} < ${maxBufferLowWaterLine})`);
     return true;
   }
 
-  // we want to switch down to lower resolutions quickly to continue playback, but
-  if (nextPlaylist.attributes.BANDWIDTH < currentPlaylist.attributes.BANDWIDTH) {
+  const nextBandwidth = nextPlaylist.attributes.BANDWIDTH;
+  const currBandwidth = currentPlaylist.attributes.BANDWIDTH;
+
+  // when switching down, if our buffer is lower than the high water line,
+  // we can switch down
+  if (nextBandwidth < currBandwidth && (!experimentalBufferBasedABR || forwardBuffer < bufferHighWaterLine)) {
+    let logLine = `${sharedLogLine} as next bandwidth < current bandwidth (${nextBandwidth} < ${currBandwidth})`;
+
+    if (experimentalBufferBasedABR) {
+      logLine += ` and forwardBuffer < bufferHighWaterLine (${forwardBuffer} < ${bufferHighWaterLine})`;
+    }
+    log(logLine);
     return true;
   }
 
-  // ensure we have some buffer before we switch up to prevent us running out of
-  // buffer while loading a higher rendition.
-  if (forwardBuffer >= bufferLowWaterLine) {
+  // and if our buffer is higher than the low water line,
+  // we can switch up
+  if ((!experimentalBufferBasedABR || nextBandwidth > currBandwidth) && forwardBuffer >= bufferLowWaterLine) {
+    let logLine = `${sharedLogLine} as forwardBuffer >= bufferLowWaterLine (${forwardBuffer} >= ${bufferLowWaterLine})`;
+
+    if (experimentalBufferBasedABR) {
+      logLine += ` and next bandwidth > current bandwidth (${nextBandwidth} > ${currBandwidth})`;
+    }
+    log(logLine);
     return true;
   }
+
+  log(`not ${sharedLogLine} as no switching criteria met`);
 
   return false;
 };
@@ -111,22 +160,34 @@ export class MasterPlaylistController extends videojs.EventTarget {
       enableLowInitialPlaylist,
       sourceType,
       cacheEncryptionKeys,
-      handlePartialData
+      experimentalBufferBasedABR,
+      experimentalLeastPixelDiffSelector,
+      captionServices
     } = options;
 
     if (!src) {
       throw new Error('A non-empty playlist URL or JSON manifest string is required');
     }
 
+    let { maxPlaylistRetries } = options;
+
+    if (maxPlaylistRetries === null || typeof maxPlaylistRetries === 'undefined') {
+      maxPlaylistRetries = Infinity;
+    }
+
     Vhs = externVhs;
 
+    this.experimentalBufferBasedABR = Boolean(experimentalBufferBasedABR);
+    this.experimentalLeastPixelDiffSelector = Boolean(experimentalLeastPixelDiffSelector);
     this.withCredentials = withCredentials;
     this.tech_ = tech;
     this.vhs_ = tech.vhs;
     this.sourceType_ = sourceType;
     this.useCueTags_ = useCueTags;
     this.blacklistDuration = blacklistDuration;
+    this.maxPlaylistRetries = maxPlaylistRetries;
     this.enableLowInitialPlaylist = enableLowInitialPlaylist;
+
     if (this.useCueTags_) {
       this.cueTagsTrack_ = this.tech_.addTextTrack(
         'metadata',
@@ -138,6 +199,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.requestOptions_ = {
       withCredentials,
       handleManifestRedirects,
+      maxPlaylistRetries,
       timeout: null
     };
 
@@ -175,6 +237,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     const segmentLoaderSettings = {
       vhs: this.vhs_,
+      parse708captions: options.parse708captions,
+      useDtsForTimestampOffset: options.useDtsForTimestampOffset,
+      captionServices,
       mediaSource: this.mediaSource,
       currentTime: this.tech_.currentTime.bind(this.tech_),
       seekable: () => this.seekable(),
@@ -188,9 +253,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
       sourceType: this.sourceType_,
       inbandTextTracks: this.inbandTextTracks_,
       cacheEncryptionKeys,
-      handlePartialData,
       sourceUpdater: this.sourceUpdater_,
-      timelineChangeController: this.timelineChangeController_
+      timelineChangeController: this.timelineChangeController_,
+      experimentalExactManifestTimings: options.experimentalExactManifestTimings
     };
 
     // The source type check not only determines whether a special DASH playlist loader
@@ -224,6 +289,12 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.setupSegmentLoaderListeners_();
 
+    if (this.experimentalBufferBasedABR) {
+      this.masterPlaylistLoader_.one('loadedplaylist', () => this.startABRTimer_());
+      this.tech_.on('pause', () => this.stopABRTimer_());
+      this.tech_.on('play', () => this.startABRTimer_());
+    }
+
     // Create SegmentLoader stat-getters
     // mediaRequests_
     // mediaRequestsAborted_
@@ -231,6 +302,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // mediaRequestsErrored_
     // mediaTransferDuration_
     // mediaBytesTransferred_
+    // mediaAppends_
     loaderStats.forEach((stat) => {
       this[stat + '_'] = sumLoaderStat.bind(this, stat);
     });
@@ -238,7 +310,182 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.logger_ = logger('MPC');
 
     this.triggeredFmp4Usage = false;
-    this.masterPlaylistLoader_.load();
+    if (this.tech_.preload() === 'none') {
+      this.loadOnPlay_ = () => {
+        this.loadOnPlay_ = null;
+        this.masterPlaylistLoader_.load();
+      };
+
+      this.tech_.one('play', this.loadOnPlay_);
+    } else {
+      this.masterPlaylistLoader_.load();
+    }
+
+    this.timeToLoadedData__ = -1;
+    this.mainAppendsToLoadedData__ = -1;
+    this.audioAppendsToLoadedData__ = -1;
+
+    const event = this.tech_.preload() === 'none' ? 'play' : 'loadstart';
+
+    // start the first frame timer on loadstart or play (for preload none)
+    this.tech_.one(event, () => {
+      const timeToLoadedDataStart = Date.now();
+
+      this.tech_.one('loadeddata', () => {
+        this.timeToLoadedData__ = Date.now() - timeToLoadedDataStart;
+        this.mainAppendsToLoadedData__ = this.mainSegmentLoader_.mediaAppends;
+        this.audioAppendsToLoadedData__ = this.audioSegmentLoader_.mediaAppends;
+      });
+    });
+  }
+
+  mainAppendsToLoadedData_() {
+    return this.mainAppendsToLoadedData__;
+  }
+
+  audioAppendsToLoadedData_() {
+    return this.audioAppendsToLoadedData__;
+  }
+
+  appendsToLoadedData_() {
+    const main = this.mainAppendsToLoadedData_();
+    const audio = this.audioAppendsToLoadedData_();
+
+    if (main === -1 || audio === -1) {
+      return -1;
+    }
+
+    return main + audio;
+  }
+
+  timeToLoadedData_() {
+    return this.timeToLoadedData__;
+  }
+
+  /**
+   * Run selectPlaylist and switch to the new playlist if we should
+   *
+   * @private
+   *
+   */
+  checkABR_() {
+    const nextPlaylist = this.selectPlaylist();
+
+    if (nextPlaylist && this.shouldSwitchToMedia_(nextPlaylist)) {
+      this.switchMedia_(nextPlaylist, 'abr');
+    }
+  }
+
+  switchMedia_(playlist, cause, delay) {
+    const oldMedia = this.media();
+    const oldId = oldMedia && (oldMedia.id || oldMedia.uri);
+    const newId = playlist.id || playlist.uri;
+
+    if (oldId && oldId !== newId) {
+      this.logger_(`switch media ${oldId} -> ${newId} from ${cause}`);
+      this.tech_.trigger({type: 'usage', name: `vhs-rendition-change-${cause}`});
+    }
+    this.masterPlaylistLoader_.media(playlist, delay);
+  }
+
+  /**
+   * Start a timer that periodically calls checkABR_
+   *
+   * @private
+   */
+  startABRTimer_() {
+    this.stopABRTimer_();
+    this.abrTimer_ = window.setInterval(() => this.checkABR_(), 250);
+  }
+
+  /**
+   * Stop the timer that periodically calls checkABR_
+   *
+   * @private
+   */
+  stopABRTimer_() {
+    // if we're scrubbing, we don't need to pause.
+    // This getter will be added to Video.js in version 7.11.
+    if (this.tech_.scrubbing && this.tech_.scrubbing()) {
+      return;
+    }
+    window.clearInterval(this.abrTimer_);
+    this.abrTimer_ = null;
+  }
+
+  /**
+   * Get a list of playlists for the currently selected audio playlist
+   *
+   * @return {Array} the array of audio playlists
+   */
+  getAudioTrackPlaylists_() {
+    const master = this.master();
+    const defaultPlaylists = master && master.playlists || [];
+
+    // if we don't have any audio groups then we can only
+    // assume that the audio tracks are contained in masters
+    // playlist array, use that or an empty array.
+    if (!master || !master.mediaGroups || !master.mediaGroups.AUDIO) {
+      return defaultPlaylists;
+    }
+
+    const AUDIO = master.mediaGroups.AUDIO;
+    const groupKeys = Object.keys(AUDIO);
+    let track;
+
+    // get the current active track
+    if (Object.keys(this.mediaTypes_.AUDIO.groups).length) {
+      track = this.mediaTypes_.AUDIO.activeTrack();
+    // or get the default track from master if mediaTypes_ isn't setup yet
+    } else {
+      // default group is `main` or just the first group.
+      const defaultGroup = AUDIO.main || groupKeys.length && AUDIO[groupKeys[0]];
+
+      for (const label in defaultGroup) {
+        if (defaultGroup[label].default) {
+          track = {label};
+          break;
+        }
+      }
+    }
+
+    // no active track no playlists.
+    if (!track) {
+      return defaultPlaylists;
+    }
+
+    const playlists = [];
+
+    // get all of the playlists that are possible for the
+    // active track.
+    for (const group in AUDIO) {
+      if (AUDIO[group][track.label]) {
+        const properties = AUDIO[group][track.label];
+
+        if (properties.playlists && properties.playlists.length) {
+          playlists.push.apply(playlists, properties.playlists);
+        } else if (properties.uri) {
+          playlists.push(properties);
+        } else if (master.playlists.length) {
+          // if an audio group does not have a uri
+          // see if we have main playlists that use it as a group.
+          // if we do then add those to the playlists list.
+          for (let i = 0; i < master.playlists.length; i++) {
+            const playlist = master.playlists[i];
+
+            if (playlist.attributes && playlist.attributes.AUDIO && playlist.attributes.AUDIO === group) {
+              playlists.push(playlist);
+            }
+          }
+        }
+      }
+    }
+
+    if (!playlists.length) {
+      return defaultPlaylists;
+    }
+
+    return playlists;
   }
 
   /**
@@ -301,9 +548,16 @@ export class MasterPlaylistController extends videojs.EventTarget {
     });
 
     this.masterPlaylistLoader_.on('loadedplaylist', () => {
+      if (this.loadOnPlay_) {
+        this.tech_.off('play', this.loadOnPlay_);
+      }
       let updatedPlaylist = this.masterPlaylistLoader_.media();
 
       if (!updatedPlaylist) {
+        // exclude any variants that are not supported by the browser before selecting
+        // an initial media as the playlist selectors do not consider browser support
+        this.excludeUnsupportedVariants_();
+
         let selectedMedia;
 
         if (this.enableLowInitialPlaylist) {
@@ -314,8 +568,13 @@ export class MasterPlaylistController extends videojs.EventTarget {
           selectedMedia = this.selectPlaylist();
         }
 
+        if (!selectedMedia || !this.shouldSwitchToMedia_(selectedMedia)) {
+          return;
+        }
+
         this.initialMedia_ = selectedMedia;
-        this.masterPlaylistLoader_.media(this.initialMedia_);
+
+        this.switchMedia_(this.initialMedia_, 'initial');
 
         // Under the standard case where a source URL is provided, loadedplaylist will
         // fire again since the playlist will be requested. In the case of vhs-json
@@ -371,6 +630,14 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
     this.masterPlaylistLoader_.on('playlistunchanged', () => {
       const updatedPlaylist = this.masterPlaylistLoader_.media();
+
+      // ignore unchanged playlists that have already been
+      // excluded for not-changing. We likely just have a really slowly updating
+      // playlist.
+      if (updatedPlaylist.lastExcludeReason_ === 'playlist-unchanged') {
+        return;
+      }
+
       const playlistOutdated = this.stuckAtPlaylistEnd_(updatedPlaylist);
 
       if (playlistOutdated) {
@@ -379,7 +646,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
         // one is updating (and give the player a chance to re-adjust to the
         // safe live point).
         this.blacklistCurrentPlaylist({
-          message: 'Playlist no longer updating.'
+          message: 'Playlist no longer updating.',
+          reason: 'playlist-unchanged'
         });
         // useful for monitoring QoS
         this.tech_.trigger('playliststuck');
@@ -474,6 +742,27 @@ export class MasterPlaylistController extends videojs.EventTarget {
       this.tech_.trigger({type: 'usage', name: 'hls-playlist-cue-tags'});
     }
   }
+
+  shouldSwitchToMedia_(nextPlaylist) {
+    const currentPlaylist = this.masterPlaylistLoader_.media() ||
+      this.masterPlaylistLoader_.pendingMedia_;
+    const currentTime = this.tech_.currentTime();
+    const bufferLowWaterLine = this.bufferLowWaterLine();
+    const bufferHighWaterLine = this.bufferHighWaterLine();
+    const buffered = this.tech_.buffered();
+
+    return shouldSwitchToMedia({
+      buffered,
+      currentTime,
+      currentPlaylist,
+      nextPlaylist,
+      bufferLowWaterLine,
+      bufferHighWaterLine,
+      duration: this.duration(),
+      experimentalBufferBasedABR: this.experimentalBufferBasedABR,
+      log: this.logger_
+    });
+  }
   /**
    * Register event handlers on the segment loaders. A helper function
    * for construction time.
@@ -481,31 +770,21 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * @private
    */
   setupSegmentLoaderListeners_() {
-    this.mainSegmentLoader_.on('bandwidthupdate', () => {
-      const nextPlaylist = this.selectPlaylist();
-      const currentPlaylist = this.masterPlaylistLoader_.media();
-      const buffered = this.tech_.buffered();
-      const forwardBuffer = buffered.length ?
-        buffered.end(buffered.length - 1) - this.tech_.currentTime() : 0;
+    if (!this.experimentalBufferBasedABR) {
+      this.mainSegmentLoader_.on('bandwidthupdate', () => {
+        const nextPlaylist = this.selectPlaylist();
 
-      const bufferLowWaterLine = this.bufferLowWaterLine();
+        if (this.shouldSwitchToMedia_(nextPlaylist)) {
+          this.switchMedia_(nextPlaylist, 'bandwidthupdate');
+        }
 
-      if (shouldSwitchToMedia({
-        currentPlaylist,
-        nextPlaylist,
-        forwardBuffer,
-        bufferLowWaterLine,
-        duration: this.duration(),
-        log: this.logger_
-      })) {
-        this.masterPlaylistLoader_.media(nextPlaylist);
-      }
+        this.tech_.trigger('bandwidthupdate');
+      });
 
-      this.tech_.trigger('bandwidthupdate');
-    });
-    this.mainSegmentLoader_.on('progress', () => {
-      this.trigger('progress');
-    });
+      this.mainSegmentLoader_.on('progress', () => {
+        this.trigger('progress');
+      });
+    }
 
     this.mainSegmentLoader_.on('error', () => {
       this.blacklistCurrentPlaylist(this.mainSegmentLoader_.error());
@@ -538,16 +817,37 @@ export class MasterPlaylistController extends videojs.EventTarget {
       this.onEndOfStream();
     });
 
-    this.mainSegmentLoader_.on('earlyabort', () => {
+    this.mainSegmentLoader_.on('earlyabort', (event) => {
+      // never try to early abort with the new ABR algorithm
+      if (this.experimentalBufferBasedABR) {
+        return;
+      }
+
+      this.delegateLoaders_('all', ['abort']);
+
       this.blacklistCurrentPlaylist({
         message: 'Aborted early because there isn\'t enough bandwidth to complete the ' +
           'request without rebuffering.'
       }, ABORT_EARLY_BLACKLIST_SECONDS);
     });
 
-    this.mainSegmentLoader_.on('trackinfo', () => {
-      this.tryToCreateSourceBuffers_();
-    });
+    const updateCodecs = () => {
+      if (!this.sourceUpdater_.hasCreatedSourceBuffers()) {
+        return this.tryToCreateSourceBuffers_();
+      }
+
+      const codecs = this.getCodecsOrExclude_();
+
+      // no codecs means that the playlist was excluded
+      if (!codecs) {
+        return;
+      }
+
+      this.sourceUpdater_.addOrChangeSourceBuffers(codecs);
+    };
+
+    this.mainSegmentLoader_.on('trackinfo', updateCodecs);
+    this.audioSegmentLoader_.on('trackinfo', updateCodecs);
 
     this.mainSegmentLoader_.on('fmp4', () => {
       if (!this.triggeredFmp4Usage) {
@@ -568,10 +868,6 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.audioSegmentLoader_.on('ended', () => {
       this.logger_('audioSegmentLoader ended');
       this.onEndOfStream();
-    });
-
-    this.audioSegmentLoader_.on('trackinfo', () => {
-      this.tryToCreateSourceBuffers_();
     });
   }
 
@@ -599,16 +895,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * removing already buffered content
    *
    * @private
+   * @deprecated
    */
-  smoothQualityChange_() {
-    const media = this.selectPlaylist();
-
-    if (media !== this.masterPlaylistLoader_.media()) {
-      this.masterPlaylistLoader_.media(media);
-
-      this.mainSegmentLoader_.resetLoader();
-      // don't need to reset audio as it is reset when media changes
-    }
+  smoothQualityChange_(media = this.selectPlaylist()) {
+    this.fastQualityChange_(media);
   }
 
   /**
@@ -619,14 +909,13 @@ export class MasterPlaylistController extends videojs.EventTarget {
    *
    * @private
    */
-  fastQualityChange_() {
-    const media = this.selectPlaylist();
-
+  fastQualityChange_(media = this.selectPlaylist()) {
     if (media === this.masterPlaylistLoader_.media()) {
+      this.logger_('skipping fastQualityChange because new media is same as old');
       return;
     }
 
-    this.masterPlaylistLoader_.media(media);
+    this.switchMedia_(media, 'fast-quality');
 
     // Delete all buffered data to allow an immediate quality switch, then seek to give
     // the browser a kick to remove any cached frames from the previous rendtion (.04 seconds
@@ -734,17 +1023,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // Only attempt to create the source buffer if none already exist.
     // handleSourceOpen is also called when we are "re-opening" a source buffer
     // after `endOfStream` has been called (in response to a seek for instance)
-    try {
-      this.tryToCreateSourceBuffers_();
-    } catch (e) {
-      videojs.log.warn('Failed to create Source Buffers', e);
-      if (this.mediaSource.readyState !== 'open') {
-        this.trigger('error');
-      } else {
-        this.sourceUpdater_.endOfStream('decode');
-      }
-      return;
-    }
+    this.tryToCreateSourceBuffers_();
 
     // if autoplay is enabled, begin playback. This is duplicative of
     // code in video.js but is required because play() must be invoked
@@ -805,9 +1084,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
     let isEndOfStream = this.mainSegmentLoader_.ended_;
 
     if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
+      const mainMediaInfo = this.mainSegmentLoader_.getCurrentMediaInfo_();
+
       // if the audio playlist loader exists, then alternate audio is active
-      if (!this.mainSegmentLoader_.startingMedia_ ||
-          this.mainSegmentLoader_.startingMedia_.hasVideo) {
+      if (!mainMediaInfo || mainMediaInfo.hasVideo) {
         // if we do not know if the main segment loader contains video yet or if we
         // definitively know the main segment loader contains video, then we need to wait
         // for both main and audio segment loaders to call endOfStream
@@ -822,6 +1102,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
+    this.stopABRTimer_();
     this.sourceUpdater_.endOfStream();
   }
 
@@ -899,6 +1180,8 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
+    currentPlaylist.playlistErrors_++;
+
     const playlists = this.masterPlaylistLoader_.master.playlists;
     const enabledPlaylists = playlists.filter(isEnabled);
     const isFinalRendition = enabledPlaylists.length === 1 && enabledPlaylists[0] === currentPlaylist;
@@ -910,6 +1193,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
                        'Trying again since it is the only playlist.');
 
       this.tech_.trigger('retryplaylist');
+      // if this is a final rendition, we should delay
       return this.masterPlaylistLoader_.load(isFinalRendition);
     }
 
@@ -945,11 +1229,27 @@ export class MasterPlaylistController extends videojs.EventTarget {
     }
 
     // Blacklist this playlist
-    currentPlaylist.excludeUntil = Date.now() + (blacklistDuration * 1000);
+    let excludeUntil;
+
+    if (currentPlaylist.playlistErrors_ > this.maxPlaylistRetries) {
+      excludeUntil = Infinity;
+    } else {
+      excludeUntil = Date.now() + (blacklistDuration * 1000);
+    }
+
+    currentPlaylist.excludeUntil = excludeUntil;
+
+    if (error.reason) {
+      currentPlaylist.lastExcludeReason_ = error.reason;
+    }
     this.tech_.trigger('blacklistplaylist');
     this.tech_.trigger({type: 'usage', name: 'vhs-rendition-blacklisted'});
     this.tech_.trigger({type: 'usage', name: 'hls-rendition-blacklisted'});
 
+    // TODO: should we select a new playlist if this blacklist wasn't for the currentPlaylist?
+    // Would be something like media().id !=== currentPlaylist.id and we  would need something
+    // like `pendingMedia` in playlist loaders to check against that too. This will prevent us
+    // from loading a new playlist on any blacklist.
     // Select a new playlist
     const nextPlaylist = this.selectPlaylist();
 
@@ -958,35 +1258,97 @@ export class MasterPlaylistController extends videojs.EventTarget {
       this.trigger('error');
       return;
     }
+
     const logFn = error.internal ? this.logger_ : videojs.log.warn;
     const errorMessage = error.message ? (' ' + error.message) : '';
 
     logFn(`${(error.internal ? 'Internal problem' : 'Problem')} encountered with playlist ${currentPlaylist.id}.` +
       `${errorMessage} Switching to playlist ${nextPlaylist.id}.`);
 
-    return this.masterPlaylistLoader_.media(nextPlaylist, isFinalRendition);
+    // if audio group changed reset audio loaders
+    if (nextPlaylist.attributes.AUDIO !== currentPlaylist.attributes.AUDIO) {
+      this.delegateLoaders_('audio', ['abort', 'pause']);
+    }
+
+    // if subtitle group changed reset subtitle loaders
+    if (nextPlaylist.attributes.SUBTITLES !== currentPlaylist.attributes.SUBTITLES) {
+      this.delegateLoaders_('subtitle', ['abort', 'pause']);
+    }
+
+    this.delegateLoaders_('main', ['abort', 'pause']);
+
+    const delayDuration = (nextPlaylist.targetDuration / 2) * 1000 || 5 * 1000;
+    const shouldDelay = typeof nextPlaylist.lastRequest === 'number' &&
+      (Date.now() - nextPlaylist.lastRequest) <= delayDuration;
+
+    // delay if it's a final rendition or if the last refresh is sooner than half targetDuration
+    return this.switchMedia_(nextPlaylist, 'exclude', isFinalRendition || shouldDelay);
   }
 
   /**
    * Pause all segment/playlist loaders
    */
   pauseLoading() {
-    // pause all segment loaders
-    this.mainSegmentLoader_.pause();
-    if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
-      this.audioSegmentLoader_.pause();
-    }
-    if (this.mediaTypes_.SUBTITLES.activePlaylistLoader) {
-      this.subtitleSegmentLoader_.pause();
+    this.delegateLoaders_('all', ['abort', 'pause']);
+    this.stopABRTimer_();
+  }
+
+  /**
+   * Call a set of functions in order on playlist loaders, segment loaders,
+   * or both types of loaders.
+   *
+   * @param {string} filter
+   *        Filter loaders that should call fnNames using a string. Can be:
+   *        * all - run on all loaders
+   *        * audio - run on all audio loaders
+   *        * subtitle - run on all subtitle loaders
+   *        * main - run on the main/master loaders
+   *
+   * @param {Array|string} fnNames
+   *        A string or array of function names to call.
+   */
+  delegateLoaders_(filter, fnNames) {
+    const loaders = [];
+
+    const dontFilterPlaylist = filter === 'all';
+
+    if (dontFilterPlaylist || filter === 'main') {
+      loaders.push(this.masterPlaylistLoader_);
     }
 
-    // pause all playlist loaders
-    this.masterPlaylistLoader_.pause();
-    Object.keys(this.mediaTypes_).forEach((type) => {
-      if (this.mediaTypes_[type].activePlaylistLoader) {
-        this.mediaTypes_[type].activePlaylistLoader.pause();
+    const mediaTypes = [];
+
+    if (dontFilterPlaylist || filter === 'audio') {
+      mediaTypes.push('AUDIO');
+    }
+
+    if (dontFilterPlaylist || filter === 'subtitle') {
+      mediaTypes.push('CLOSED-CAPTIONS');
+      mediaTypes.push('SUBTITLES');
+    }
+
+    mediaTypes.forEach((mediaType) => {
+      const loader = this.mediaTypes_[mediaType] &&
+        this.mediaTypes_[mediaType].activePlaylistLoader;
+
+      if (loader) {
+        loaders.push(loader);
       }
     });
+
+    ['main', 'audio', 'subtitle'].forEach((name) => {
+      const loader = this[`${name}SegmentLoader_`];
+
+      if (loader && (filter === name || filter === 'all')) {
+        loaders.push(loader);
+      }
+    });
+
+    loaders.forEach((loader) => fnNames.forEach((fnName) => {
+      if (typeof loader[fnName] === 'function') {
+        loader[fnName]();
+      }
+    }));
   }
 
   /**
@@ -1084,6 +1446,25 @@ export class MasterPlaylistController extends videojs.EventTarget {
   onSyncInfoUpdate_() {
     let audioSeekable;
 
+    // TODO check for creation of both source buffers before updating seekable
+    //
+    // A fix was made to this function where a check for
+    // this.sourceUpdater_.hasCreatedSourceBuffers
+    // was added to ensure that both source buffers were created before seekable was
+    // updated. However, it originally had a bug where it was checking for a true and
+    // returning early instead of checking for false. Setting it to check for false to
+    // return early though created other issues. A call to play() would check for seekable
+    // end without verifying that a seekable range was present. In addition, even checking
+    // for that didn't solve some issues, as handleFirstPlay is sometimes worked around
+    // due to a media update calling load on the segment loaders, skipping a seek to live,
+    // thereby starting live streams at the beginning of the stream rather than at the end.
+    //
+    // This conditional should be fixed to wait for the creation of two source buffers at
+    // the same time as the other sections of code are fixed to properly seek to live and
+    // not throw an error due to checking for a seekable end when no seekable range exists.
+    //
+    // For now, fall back to the older behavior, with the understanding that the seekable
+    // range may not be completely correct, leading to a suboptimal initial live point.
     if (!this.masterPlaylistLoader_) {
       return;
     }
@@ -1101,8 +1482,12 @@ export class MasterPlaylistController extends videojs.EventTarget {
       return;
     }
 
-    const suggestedPresentationDelay = this.masterPlaylistLoader_.master.suggestedPresentationDelay;
-    const mainSeekable = Vhs.Playlist.seekable(media, expired, suggestedPresentationDelay);
+    const master = this.masterPlaylistLoader_.master;
+    const mainSeekable = Vhs.Playlist.seekable(
+      media,
+      expired,
+      Vhs.Playlist.liveEdgeDelay(master, media)
+    );
 
     if (mainSeekable.length === 0) {
       return;
@@ -1116,7 +1501,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
         return;
       }
 
-      audioSeekable = Vhs.Playlist.seekable(media, expired, suggestedPresentationDelay);
+      audioSeekable = Vhs.Playlist.seekable(
+        media,
+        expired,
+        Vhs.Playlist.liveEdgeDelay(master, media)
+      );
 
       if (audioSeekable.length === 0) {
         return;
@@ -1233,6 +1622,10 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.masterPlaylistLoader_.dispose();
     this.mainSegmentLoader_.dispose();
 
+    if (this.loadOnPlay_) {
+      this.tech_.off('play', this.loadOnPlay_);
+    }
+
     ['AUDIO', 'SUBTITLES'].forEach((type) => {
       const groups = this.mediaTypes_[type].groups;
 
@@ -1249,6 +1642,9 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.subtitleSegmentLoader_.dispose();
     this.sourceUpdater_.dispose();
     this.timelineChangeController_.dispose();
+
+    this.stopABRTimer_();
+
     if (this.updateDuration_) {
       this.mediaSource.removeEventListener('sourceopen', this.updateDuration_);
     }
@@ -1280,125 +1676,213 @@ export class MasterPlaylistController extends videojs.EventTarget {
     return this.masterPlaylistLoader_.media() || this.initialMedia_;
   }
 
+  areMediaTypesKnown_() {
+    const usingAudioLoader = !!this.mediaTypes_.AUDIO.activePlaylistLoader;
+    const hasMainMediaInfo = !!this.mainSegmentLoader_.getCurrentMediaInfo_();
+    // if we are not using an audio loader, then we have audio media info
+    // otherwise check on the segment loader.
+    const hasAudioMediaInfo = !usingAudioLoader ? true : !!this.audioSegmentLoader_.getCurrentMediaInfo_();
+
+    // one or both loaders has not loaded sufficently to get codecs
+    if (!hasMainMediaInfo || !hasAudioMediaInfo) {
+      return false;
+    }
+
+    return true;
+  }
+
+  getCodecsOrExclude_() {
+    const media = {
+      main: this.mainSegmentLoader_.getCurrentMediaInfo_() || {},
+      audio: this.audioSegmentLoader_.getCurrentMediaInfo_() || {}
+    };
+
+    // set "main" media equal to video
+    media.video = media.main;
+    const playlistCodecs = codecsForPlaylist(this.master(), this.media());
+    const codecs = {};
+    const usingAudioLoader = !!this.mediaTypes_.AUDIO.activePlaylistLoader;
+
+    if (media.main.hasVideo) {
+      codecs.video = playlistCodecs.video || media.main.videoCodec || DEFAULT_VIDEO_CODEC;
+    }
+
+    if (media.main.isMuxed) {
+      codecs.video += `,${playlistCodecs.audio || media.main.audioCodec || DEFAULT_AUDIO_CODEC}`;
+    }
+
+    if ((media.main.hasAudio && !media.main.isMuxed) || media.audio.hasAudio || usingAudioLoader) {
+      codecs.audio = playlistCodecs.audio || media.main.audioCodec || media.audio.audioCodec || DEFAULT_AUDIO_CODEC;
+      // set audio isFmp4 so we use the correct "supports" function below
+      media.audio.isFmp4 = (media.main.hasAudio && !media.main.isMuxed) ? media.main.isFmp4 : media.audio.isFmp4;
+    }
+
+    // no codecs, no playback.
+    if (!codecs.audio && !codecs.video) {
+      this.blacklistCurrentPlaylist({
+        playlist: this.media(),
+        message: 'Could not determine codecs for playlist.',
+        blacklistDuration: Infinity
+      });
+      return;
+    }
+
+    // fmp4 relies on browser support, while ts relies on muxer support
+    const supportFunction = (isFmp4, codec) => (isFmp4 ? browserSupportsCodec(codec) : muxerSupportsCodec(codec));
+    const unsupportedCodecs = {};
+    let unsupportedAudio;
+
+    ['video', 'audio'].forEach(function(type) {
+      if (codecs.hasOwnProperty(type) && !supportFunction(media[type].isFmp4, codecs[type])) {
+        const supporter = media[type].isFmp4 ? 'browser' : 'muxer';
+
+        unsupportedCodecs[supporter] = unsupportedCodecs[supporter] || [];
+        unsupportedCodecs[supporter].push(codecs[type]);
+
+        if (type === 'audio') {
+          unsupportedAudio = supporter;
+        }
+      }
+    });
+
+    if (usingAudioLoader && unsupportedAudio && this.media().attributes.AUDIO) {
+      const audioGroup = this.media().attributes.AUDIO;
+
+      this.master().playlists.forEach(variant => {
+        const variantAudioGroup = variant.attributes && variant.attributes.AUDIO;
+
+        if (variantAudioGroup === audioGroup && variant !== this.media()) {
+          variant.excludeUntil = Infinity;
+        }
+      });
+      this.logger_(`excluding audio group ${audioGroup} as ${unsupportedAudio} does not support codec(s): "${codecs.audio}"`);
+    }
+
+    // if we have any unsupported codecs blacklist this playlist.
+    if (Object.keys(unsupportedCodecs).length) {
+      const message = Object.keys(unsupportedCodecs).reduce((acc, supporter) => {
+
+        if (acc) {
+          acc += ', ';
+        }
+
+        acc += `${supporter} does not support codec(s): "${unsupportedCodecs[supporter].join(',')}"`;
+
+        return acc;
+      }, '') + '.';
+
+      this.blacklistCurrentPlaylist({
+        playlist: this.media(),
+        internal: true,
+        message,
+        blacklistDuration: Infinity
+      });
+      return;
+    }
+    // check if codec switching is happening
+    if (
+      this.sourceUpdater_.hasCreatedSourceBuffers() &&
+      !this.sourceUpdater_.canChangeType()
+    ) {
+      const switchMessages = [];
+
+      ['video', 'audio'].forEach((type) => {
+        const newCodec = (parseCodecs(this.sourceUpdater_.codecs[type] || '')[0] || {}).type;
+        const oldCodec = (parseCodecs(codecs[type] || '')[0] || {}).type;
+
+        if (newCodec && oldCodec && newCodec.toLowerCase() !== oldCodec.toLowerCase()) {
+          switchMessages.push(`"${this.sourceUpdater_.codecs[type]}" -> "${codecs[type]}"`);
+        }
+      });
+
+      if (switchMessages.length) {
+        this.blacklistCurrentPlaylist({
+          playlist: this.media(),
+          message: `Codec switching not supported: ${switchMessages.join(', ')}.`,
+          blacklistDuration: Infinity,
+          internal: true
+        });
+        return;
+      }
+    }
+
+    // TODO: when using the muxer shouldn't we just return
+    // the codecs that the muxer outputs?
+    return codecs;
+  }
+
   /**
    * Create source buffers and exlude any incompatible renditions.
    *
    * @private
    */
   tryToCreateSourceBuffers_() {
-    // media source is not ready yet
-    if (this.mediaSource.readyState !== 'open') {
+    // media source is not ready yet or sourceBuffers are already
+    // created.
+    if (
+      this.mediaSource.readyState !== 'open' ||
+      this.sourceUpdater_.hasCreatedSourceBuffers()
+    ) {
       return;
     }
 
-    // source buffers are already created
-    if (this.sourceUpdater_.ready()) {
+    if (!this.areMediaTypesKnown_()) {
       return;
     }
 
-    const mainStartingMedia = this.mainSegmentLoader_.startingMedia_;
-    const hasAltAudio = !!this.mediaTypes_.AUDIO.activePlaylistLoader;
+    const codecs = this.getCodecsOrExclude_();
 
-    // Because a URI is required for EXT-X-STREAM-INF tags (therefore, there must always
-    // be a playlist, even for audio only playlists with alt audio), a segment will always
-    // be downloaded for the main segment loader, and the track info parsed from it.
-    // Therefore we must always wait for the segment loader's track info.
-    if (!mainStartingMedia || (hasAltAudio && !this.audioSegmentLoader_.startingMedia_)) {
-      return;
-    }
-    const audioStartingMedia = this.audioSegmentLoader_ && this.audioSegmentLoader_.startingMedia_ || {};
-    const media = this.masterPlaylistLoader_.media();
-    const playlistCodecs = codecsForPlaylist(this.masterPlaylistLoader_.master, media);
-    const codecs = {};
-
-    // priority of codecs: playlist -> mux.js parsed codecs -> default
-    if (mainStartingMedia.isMuxed) {
-      codecs.video = playlistCodecs.video || mainStartingMedia.videoCodec || DEFAULT_VIDEO_CODEC;
-      codecs.video += ',' + (playlistCodecs.audio || mainStartingMedia.audioCodec || DEFAULT_AUDIO_CODEC);
-      if (hasAltAudio) {
-        codecs.audio = playlistCodecs.audio ||
-          audioStartingMedia.audioCodec ||
-          DEFAULT_AUDIO_CODEC;
-      }
-    } else {
-      if (mainStartingMedia.hasAudio || hasAltAudio) {
-        codecs.audio = playlistCodecs.audio ||
-          mainStartingMedia.audioCodec ||
-          audioStartingMedia.audioCodec ||
-          DEFAULT_AUDIO_CODEC;
-      }
-
-      if (mainStartingMedia.hasVideo) {
-        codecs.video =
-          playlistCodecs.video ||
-          mainStartingMedia.videoCodec ||
-          DEFAULT_VIDEO_CODEC;
-      }
-    }
-
-    // fmp4 relies on browser support, while ts relies on muxer support
-    const supportFunction = mainStartingMedia.isFmp4 ? browserSupportsCodec : muxerSupportsCodec;
-    const unsupportedCodecs = [];
-
-    ['audio', 'video'].forEach(function(type) {
-      if (codecs.hasOwnProperty(type) && !supportFunction(codecs[type])) {
-        unsupportedCodecs.push(codecs[type]);
-      }
-    });
-
-    // if we have any unsupported codecs blacklist this playlist.
-    if (unsupportedCodecs.length) {
-      const supporter = mainStartingMedia.isFmp4 ? 'browser' : 'muxer';
-
-      // reset startingMedia_ when the intial playlist is blacklisted.
-      this.mainSegmentLoader_.startingMedia_ = void 0;
-
-      this.blacklistCurrentPlaylist({
-        playlist: media,
-        message: `${supporter} does not support codec(s): "${unsupportedCodecs.join(',')}".`,
-        internal: true
-      }, Infinity);
+    // no codecs means that the playlist was excluded
+    if (!codecs) {
       return;
     }
 
-    if (!codecs.video && !codecs.audio) {
-      const error = 'Failed to create SourceBuffers. No compatible SourceBuffer ' +
-        'configuration for the variant stream:' + media.resolvedUri;
-
-      videojs.log.warn(error);
-      this.error = error;
-
-      if (this.mediaSource.readyState !== 'open') {
-        this.trigger('error');
-      } else {
-        this.sourceUpdater_.endOfStream('decode');
-      }
-    }
-
-    try {
-      this.sourceUpdater_.createSourceBuffers(codecs);
-    } catch (e) {
-      const error = 'Failed to create SourceBuffers: ' + e;
-
-      videojs.log.warn(error);
-      this.error = error;
-      if (this.mediaSource.readyState !== 'open') {
-        this.trigger('error');
-      } else {
-        this.sourceUpdater_.endOfStream('decode');
-      }
-      return;
-    }
+    this.sourceUpdater_.createSourceBuffers(codecs);
 
     const codecString = [codecs.video, codecs.audio].filter(Boolean).join(',');
 
-    // TODO:
-    // blacklisting incompatible renditions will have to change
-    // once we add support for `changeType` on source buffers.
-    // We will have to not blacklist any rendition until we try to
-    // switch to it and learn that it is incompatible and if it is compatible
-    // we `changeType` on the sourceBuffer.
     this.excludeIncompatibleVariants_(codecString);
+  }
+
+  /**
+   * Excludes playlists with codecs that are unsupported by the muxer and browser.
+   */
+  excludeUnsupportedVariants_() {
+    const playlists = this.master().playlists;
+    const ids = [];
+
+    // TODO: why don't we have a property to loop through all
+    // playlist? Why did we ever mix indexes and keys?
+    Object.keys(playlists).forEach(key => {
+      const variant = playlists[key];
+
+      // check if we already processed this playlist.
+      if (ids.indexOf(variant.id) !== -1) {
+        return;
+      }
+
+      ids.push(variant.id);
+
+      const codecs = codecsForPlaylist(this.master, variant);
+      const unsupported = [];
+
+      if (codecs.audio && !muxerSupportsCodec(codecs.audio) && !browserSupportsCodec(codecs.audio)) {
+        unsupported.push(`audio codec ${codecs.audio}`);
+      }
+
+      if (codecs.video && !muxerSupportsCodec(codecs.video) && !browserSupportsCodec(codecs.video)) {
+        unsupported.push(`video codec ${codecs.video}`);
+      }
+
+      if (codecs.text && codecs.text === 'stpp.ttml.im1t') {
+        unsupported.push(`text codec ${codecs.text}`);
+      }
+
+      if (unsupported.length) {
+        variant.excludeUntil = Infinity;
+        this.logger_(`excluding ${variant.id} for unsupported: ${unsupported.join(', ')}`);
+      }
+    });
   }
 
   /**
@@ -1416,61 +1900,61 @@ export class MasterPlaylistController extends videojs.EventTarget {
    * @private
    */
   excludeIncompatibleVariants_(codecString) {
-    const codecs = parseCodecs(codecString);
-    const codecCount = Object.keys(codecs).length;
+    const ids = [];
+    const playlists = this.master().playlists;
+    const codecs = unwrapCodecList(parseCodecs(codecString));
+    const codecCount_ = codecCount(codecs);
+    const videoDetails = codecs.video && parseCodecs(codecs.video)[0] || null;
+    const audioDetails = codecs.audio && parseCodecs(codecs.audio)[0] || null;
 
-    this.master().playlists.forEach((variant) => {
-      // skip variants that are already blacklisted forever
-      if (variant.excludeUntil === Infinity) {
+    Object.keys(playlists).forEach((key) => {
+      const variant = playlists[key];
+
+      // check if we already processed this playlist.
+      // or it if it is already excluded forever.
+      if (ids.indexOf(variant.id) !== -1 || variant.excludeUntil === Infinity) {
         return;
       }
-      /* TODO: Decide whether two codecs should be assumed here.
-       * Right now, for playlists that don't specify codecs, VHS assumes
-       * that there are two (one for audio and one for video).
-       * Although this is often the case, this may lead to broken behavior
-       * if the playlist only has one codec. It may be better in the future
-       * to decide at time of segment download how many tracks there are and
-       * determine the proper codecs. This will come at a cost of potentially
-       * more bandwidth, but will be a more robust approach than the assumption here.
-       */
 
-      let variantCodecs = {};
-      let variantCodecCount = 2;
+      ids.push(variant.id);
       const blacklistReasons = [];
 
       // get codecs from the playlist for this variant
-      const variantCodecStrings = codecsForPlaylist(this.masterPlaylistLoader_.master, variant);
+      const variantCodecs = codecsForPlaylist(this.masterPlaylistLoader_.master, variant);
+      const variantCodecCount = codecCount(variantCodecs);
 
-      if (variantCodecStrings.audio || variantCodecStrings.video) {
-        const variantCodecString = [variantCodecStrings.video, variantCodecStrings.audio]
-          .filter(Boolean)
-          .join(',');
-
-        variantCodecs = parseCodecs(variantCodecString);
-        variantCodecCount = Object.keys(variantCodecs).length;
+      // if no codecs are listed, we cannot determine that this
+      // variant is incompatible. Wait for mux.js to probe
+      if (!variantCodecs.audio && !variantCodecs.video) {
+        return;
       }
 
+      // TODO: we can support this by removing the
+      // old media source and creating a new one, but it will take some work.
       // The number of streams cannot change
-      if (variantCodecCount !== codecCount) {
-        blacklistReasons.push(`codec count "${variantCodecCount}" !== "${codecCount}"`);
-        variant.excludeUntil = Infinity;
+      if (variantCodecCount !== codecCount_) {
+        blacklistReasons.push(`codec count "${variantCodecCount}" !== "${codecCount_}"`);
       }
 
-      // the video codec cannot change
-      if (variantCodecs.video && codecs.video &&
-        variantCodecs.video.type.toLowerCase() !== codecs.video.type.toLowerCase()) {
-        blacklistReasons.push(`video codec "${variantCodecs.video.type}" !== "${codecs.video.type}"`);
-        variant.excludeUntil = Infinity;
-      }
+      // only exclude playlists by codec change, if codecs cannot switch
+      // during playback.
+      if (!this.sourceUpdater_.canChangeType()) {
+        const variantVideoDetails = variantCodecs.video && parseCodecs(variantCodecs.video)[0] || null;
+        const variantAudioDetails = variantCodecs.audio && parseCodecs(variantCodecs.audio)[0] || null;
 
-      // the audio codec cannot change
-      if (variantCodecs.audio && codecs.audio &&
-        variantCodecs.audio.type.toLowerCase() !== codecs.audio.type.toLowerCase()) {
-        variant.excludeUntil = Infinity;
-        blacklistReasons.push(`audio codec "${variantCodecs.audio.type}" !== "${codecs.audio.type}"`);
+        // the video codec cannot change
+        if (variantVideoDetails && videoDetails && variantVideoDetails.type.toLowerCase() !== videoDetails.type.toLowerCase()) {
+          blacklistReasons.push(`video codec "${variantVideoDetails.type}" !== "${videoDetails.type}"`);
+        }
+
+        // the audio codec cannot change
+        if (variantAudioDetails && audioDetails && variantAudioDetails.type.toLowerCase() !== audioDetails.type.toLowerCase()) {
+          blacklistReasons.push(`audio codec "${variantAudioDetails.type}" !== "${audioDetails.type}"`);
+        }
       }
 
       if (blacklistReasons.length) {
+        variant.excludeUntil = Infinity;
         this.logger_(`blacklisting ${variant.id}: ${blacklistReasons.join(' && ')}`);
       }
     });
@@ -1511,8 +1995,13 @@ export class MasterPlaylistController extends videojs.EventTarget {
     const initial = Config.BUFFER_LOW_WATER_LINE;
     const rate = Config.BUFFER_LOW_WATER_LINE_RATE;
     const max = Math.max(initial, Config.MAX_BUFFER_LOW_WATER_LINE);
+    const newMax = Math.max(initial, Config.EXPERIMENTAL_MAX_BUFFER_LOW_WATER_LINE);
 
-    return Math.min(initial + currentTime * rate, max);
+    return Math.min(initial + currentTime * rate, this.experimentalBufferBasedABR ? newMax : max);
+  }
+
+  bufferHighWaterLine() {
+    return Config.BUFFER_HIGH_WATER_LINE;
   }
 
 }

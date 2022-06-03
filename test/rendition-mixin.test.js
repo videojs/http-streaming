@@ -13,6 +13,14 @@ const makeMockPlaylist = function(options) {
 
   playlist.attributes.BANDWIDTH = options.bandwidth;
 
+  if ('codecs' in options) {
+    playlist.attributes.CODECS = options.codecs;
+  }
+
+  if ('audio' in options) {
+    playlist.attributes.AUDIO = options.audio;
+  }
+
   if ('width' in options) {
     playlist.attributes.RESOLUTION = playlist.attributes.RESOLUTION || {};
 
@@ -40,26 +48,36 @@ const makeMockPlaylist = function(options) {
   return playlist;
 };
 
-const makeMockVhsHandler = function(playlistOptions, handlerOptions) {
-  const mcp = {
+const makeMockVhsHandler = function(playlistOptions = [], handlerOptions = {}, master = {}) {
+  const vhsHandler = {
+    options_: handlerOptions
+  };
+  const mpc = {
     fastQualityChange_: () => {
-      mcp.fastQualityChange_.calls++;
+      mpc.fastQualityChange_.calls++;
     },
     smoothQualityChange_: () => {
-      mcp.smoothQualityChange_.calls++;
+      mpc.smoothQualityChange_.calls++;
+    },
+    master: () => {
+      return vhsHandler.playlists.master;
+    },
+    getAudioTrackPlaylists_: () => {
+      return [];
     }
   };
 
-  mcp.fastQualityChange_.calls = 0;
-  mcp.smoothQualityChange_.calls = 0;
+  mpc.fastQualityChange_.calls = 0;
+  mpc.smoothQualityChange_.calls = 0;
 
-  const vhsHandler = {
-    masterPlaylistController_: mcp,
-    options_: handlerOptions || {}
-  };
-
+  vhsHandler.masterPlaylistController_ = mpc;
   vhsHandler.playlists = new videojs.EventTarget();
-  vhsHandler.playlists.master = { playlists: [] };
+
+  vhsHandler.playlists.master = master;
+
+  if (!vhsHandler.playlists.master.playlists) {
+    vhsHandler.playlists.master.playlists = [];
+  }
 
   playlistOptions.forEach((playlist, i) => {
     vhsHandler.playlists.master.playlists[i] = makeMockPlaylist(playlist);
@@ -331,3 +349,85 @@ QUnit.test(
     assert.equal(mpc.smoothQualityChange_.calls, 2, 'smoothQualityChange_ was called twice');
   }
 );
+
+QUnit.test('playlist is exposed on renditions', function(assert) {
+  const vhsHandler = makeMockVhsHandler([
+    {
+      bandwidth: 0,
+      uri: 'media0.m3u8',
+      codecs: 'mp4a.40.2'
+    },
+    {
+      bandwidth: 0,
+      uri: 'media1.m3u8',
+      codecs: 'mp4a.40.5'
+    },
+    {
+      bandwidth: 0,
+      uri: 'media2.m3u8'
+    }
+  ]);
+
+  RenditionMixin(vhsHandler);
+
+  const renditions = vhsHandler.representations();
+
+  assert.deepEqual(renditions[0].playlist, vhsHandler.playlists.master.playlists[0], 'rendition 1 has correct playlist');
+  assert.deepEqual(renditions[1].playlist, vhsHandler.playlists.master.playlists[1], 'rendition 2 has correct playlist');
+  assert.deepEqual(renditions[2].playlist, vhsHandler.playlists.master.playlists[2], 'rendition 3 has no playlist');
+});
+
+QUnit.test('codecs attribute is exposed on renditions when available', function(assert) {
+  const vhsHandler = makeMockVhsHandler([
+    {
+      bandwidth: 0,
+      uri: 'media0.m3u8',
+      codecs: 'mp4a.40.2'
+    },
+    {
+      bandwidth: 0,
+      uri: 'media1.m3u8',
+      codecs: 'mp4a.40.5'
+    },
+    {
+      bandwidth: 0,
+      uri: 'media2.m3u8'
+    }
+  ]);
+
+  RenditionMixin(vhsHandler);
+
+  const renditions = vhsHandler.representations();
+
+  assert.deepEqual(renditions[0].codecs, {audio: 'mp4a.40.2'}, 'rendition 1 has correct codec');
+  assert.deepEqual(renditions[1].codecs, {audio: 'mp4a.40.5'}, 'rendition 2 has correct codec');
+  assert.deepEqual(renditions[2].codecs, {}, 'rendition 3 has no codec');
+});
+
+QUnit.test('codecs attribute gets codecs from master', function(assert) {
+  const vhsHandler = makeMockVhsHandler(
+    [{bandwidth: 0, uri: 'media0.m3u8', audio: 'a1'}],
+    {},
+    {
+      mediaGroups: {
+        AUDIO: {
+          a1: {
+            eng: {
+              default: true,
+              uri: 'audio.m3u8',
+              playlists: [
+                {attributes: {CODECS: 'mp4a.40.2'}}
+              ]
+            }
+          }
+        }
+      }
+    }
+  );
+
+  RenditionMixin(vhsHandler);
+
+  const renditions = vhsHandler.representations();
+
+  assert.deepEqual(renditions[0].codecs, {audio: 'mp4a.40.2'}, 'rendition 1 has correct codec');
+});

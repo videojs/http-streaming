@@ -5,6 +5,15 @@ import window from 'global/window';
 
 /**
  * Searches for an ad cue that overlaps with the given mediaTime
+ *
+ * @param {Object} track
+ *        the track to find the cue for
+ *
+ * @param {number} mediaTime
+ *        the time to find the cue at
+ *
+ * @return {Object|null}
+ *         the found cue or null
  */
 export const findAdCue = function(track, mediaTime) {
   const cues = track.cues;

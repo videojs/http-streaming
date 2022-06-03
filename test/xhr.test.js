@@ -1,5 +1,6 @@
+import window from 'global/window';
 import QUnit from 'qunit';
-import xhrFactory from '../src/xhr';
+import {default as xhrFactory, byterangeStr} from '../src/xhr';
 import { useFakeEnvironment } from './test-helpers.js';
 import videojs from 'video.js';
 // needed for plugin registration
@@ -45,4 +46,24 @@ QUnit.test('xhr respects beforeRequest', function(assert) {
 
   this.xhr(defaultOptions);
   assert.equal(this.requests.shift().url, 'global', 'url changed with global override');
+});
+
+QUnit.test('byterangeStr works as expected', function(assert) {
+  assert.equal(byterangeStr({offset: 20, length: 15}), 'bytes=20-34', 'as expected');
+  assert.equal(byterangeStr({offset: 0, length: 40}), 'bytes=0-39', 'as expected');
+
+  if (window.BigInt) {
+    assert.equal(
+      byterangeStr({offset: window.BigInt(20), length: window.BigInt(15)}),
+      'bytes=20-34',
+      'bigint result as expected'
+    );
+    assert.equal(
+      byterangeStr({offset: window.BigInt(0), length: window.BigInt(40)}),
+      'bytes=0-39',
+      'bigint result as expected'
+    );
+
+  }
+
 });

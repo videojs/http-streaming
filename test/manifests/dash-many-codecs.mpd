@@ -3,7 +3,7 @@
  <Period>
   <AdaptationSet mimeType="video/mp4" contentType="video" subsegmentAlignment="true" subsegmentStartsWithSAP="1" par="16:9">
    <SegmentTemplate duration="120" timescale="30" media="$RepresentationID$/$RepresentationID$_$Number$.m4v" startNumber="1" initialization="$RepresentationID$/$RepresentationID$_0.m4v"/>
-   <Representation id="video_1" codecs="avc1.foo.bar" bandwidth="507246" width="320" height="180" frameRate="30" sar="1:1" scanType="progressive"/>
+   <Representation id="video_1" codecs="avc1.4d400d" bandwidth="507246" width="320" height="180" frameRate="30" sar="1:1" scanType="progressive"/>
    <Representation id="video_2" codecs="hvc1.foo.bar" bandwidth="507246" width="320" height="180" frameRate="30" sar="1:1" scanType="progressive"/>
    <Representation id="video_3" codecs="avc1.4d000e" bandwidth="507246" width="320" height="180" frameRate="30" sar="1:1" scanType="progressive"/>
    <Representation id="video_4" codecs="av01.foo.bar" bandwidth="507246" width="320" height="180" frameRate="30" sar="1:1" scanType="progressive"/>
@@ -13,7 +13,7 @@
    <Role schemeIdUri="urn:mpeg:dash:role:2011" value="main"/>
    <SegmentTemplate duration="192512" timescale="48000" media="$RepresentationID$/$RepresentationID$_$Number$.m4a" startNumber="1" initialization="$RepresentationID$/$RepresentationID$_0.m4a"/>
 
-	 <Representation id="audio_1" codecs="mp4a.foo.bar" bandwidth="67070" audioSamplingRate="48000">
+	 <Representation id="audio_1" codecs="mp4a.40.2" bandwidth="67070" audioSamplingRate="48000">
 		<AudioChannelConfiguration schemeIdUri="urn:mpeg:dash:23003:3:audio_channel_configuration:2011" value="2"/>
 	 </Representation>
   </AdaptationSet>

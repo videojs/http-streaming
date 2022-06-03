@@ -18,7 +18,6 @@ Video.js Compatibility: 6.0, 7.0
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-
 - [Installation](#installation)
   - [NPM](#npm)
   - [CDN](#cdn)
@@ -42,8 +41,10 @@ Video.js Compatibility: 6.0, 7.0
       - [withCredentials](#withcredentials)
       - [handleManifestRedirects](#handlemanifestredirects)
       - [useCueTags](#usecuetags)
+      - [parse708captions](#parse708captions)
       - [overrideNative](#overridenative)
       - [blacklistDuration](#blacklistduration)
+      - [maxPlaylistRetries](#maxplaylistretries)
       - [bandwidth](#bandwidth)
       - [useBandwidthFromLocalStorage](#usebandwidthfromlocalstorage)
       - [enableLowInitialPlaylist](#enablelowinitialplaylist)
@@ -55,6 +56,12 @@ Video.js Compatibility: 6.0, 7.0
       - [customTagMappers](#customtagmappers)
       - [cacheEncryptionKeys](#cacheencryptionkeys)
       - [handlePartialData](#handlepartialdata)
+      - [liveRangeSafeTimeDelta](#liverangesafetimedelta)
+      - [useNetworkInformationApi](#usenetworkinformationapi)
+      - [useDtsForTimestampOffset](#usedtsfortimestampoffset)
+      - [captionServices](#captionservices)
+        - [Format](#format)
+        - [Example](#example)
   - [Runtime Properties](#runtime-properties)
     - [vhs.playlists.master](#vhsplaylistsmaster)
     - [vhs.playlists.media](#vhsplaylistsmedia)
@@ -317,6 +324,13 @@ cuesTrack.addEventListener('cuechange', function() {
 });
 ```
 
+##### parse708captions
+* Type: `boolean`
+* Default: `true`
+* can be used as an initialization option
+
+When set to `false`, 708 captions in the stream are not parsed and will not show up in text track lists or the captions menu.
+
 ##### overrideNative
 * Type: `boolean`
 * can be used as an initialization option
@@ -353,6 +367,14 @@ if a playlist is blacklisted, it will be blacklisted for a period of that
 customized duration. This enables the blacklist duration to be configured
 by the user.
 
+##### maxPlaylistRetries
+* Type: `number`
+* Default: `Infinity`
+* can be used as an initialization option
+
+The max number of times that a playlist will retry loading following an error
+before being indefinitely excluded from the rendition selection algorithm. Note: the number of retry attempts needs to _exceed_ this value before a playlist will be excluded.
+
 ##### bandwidth
 * Type: `number`
 * can be used as an initialization option
@@ -364,7 +386,8 @@ information is seen by the player.
 ##### useBandwidthFromLocalStorage
 * Type: `boolean`
 * can be used as an initialization option
- If true, `bandwidth` and `throughput` values are stored in and retrieved from local
+
+If true, `bandwidth` and `throughput` values are stored in and retrieved from local
 storage on startup (for initial rendition selection). This setting is `false` by default.
 
 ##### enableLowInitialPlaylist
@@ -379,6 +402,11 @@ This setting is `false` by default.
 * Type: `boolean`
 * can be used as an initialization option
 
+When `limitRenditionByPlayerDimensions` is set to true, rendition
+selection logic will take into account the player size and rendition
+resolutions when making a decision.
+This setting is `true` by default.
+
 ##### useDevicePixelRatio
 * Type: `boolean`
 * can be used as an initialization option.
@@ -386,26 +414,17 @@ This setting is `false` by default.
 If true, this will take the device pixel ratio into account when doing rendition switching. This means that if you have a player with the width of `540px` in a high density display with a device pixel ratio of 2, a rendition of `1080p` will be allowed.
 This setting is `false` by default.
 
-When `limitRenditionByPlayerDimensions` is set to true, rendition
-selection logic will take into account the player size and rendition
-resolutions when making a decision.
-This setting is `true` by default.
-
 ##### smoothQualityChange
+* NOTE: DEPRECATED
 * Type: `boolean`
 * can be used as a source option
 * can be used as an initialization option
 
-When the `smoothQualityChange` property is set to `true`, a manual quality
-change triggered via the [representations API](#vhsrepresentations) will use
-smooth quality switching rather than the default fast (buffer-ejecting)
-quality switching. Using smooth quality switching will mean no loading spinner
-will appear during quality switches, but will cause quality switches to only
-be visible after a few seconds.
+smoothQualityChange is deprecated and will be removed in the next major version of VHS.
 
-Note that this _only_ affects quality changes triggered via the representations
-API; automatic quality switches based on available bandwidth will always be
-smooth switches.
+Instead of its prior behavior, smoothQualityChange will now call fastQualityChange, which
+clears the buffer, chooses a new rendition, and starts loading content from the current
+playhead position.
 
 ##### allowSeeksWithinUnsafeLiveWindow
 * Type: `boolean`
@@ -450,6 +469,67 @@ This option defaults to `false`.
 * Type: `boolean`,
 * Default: `false`
 * Use partial appends in the transmuxer and segment loader
+
+##### liveRangeSafeTimeDelta
+* Type: `number`,
+* Default: [`SAFE_TIME_DELTA`](https://github.com/videojs/http-streaming/blob/e7cb63af010779108336eddb5c8fd138d6390e95/src/ranges.js#L17)
+* Allow to  re-define length (in seconds) of time delta when you compare current time and the end of the buffered range.
+
+##### useNetworkInformationApi
+* Type: `boolean`,
+* Default: `false`
+* Use [window.networkInformation.downlink](https://developer.mozilla.org/en-US/docs/Web/API/NetworkInformation/downlink) to estimate the network's bandwidth. Per mdn, _The value is never greater than 10 Mbps, as a non-standard anti-fingerprinting measure_. Given this, if bandwidth estimates from both the player and networkInfo are >= 10 Mbps, the player will use the larger of the two values as its bandwidth estimate.
+
+##### useDtsForTimestampOffset
+* Type: `boolean`,
+* Default: `false`
+* Use [Decode Timestamp](https://www.w3.org/TR/media-source/#decode-timestamp) instead of [Presentation Timestamp](https://www.w3.org/TR/media-source/#presentation-timestamp) for [timestampOffset](https://www.w3.org/TR/media-source/#dom-sourcebuffer-timestampoffset) calculation. This option was introduced to align with DTS-based browsers. This option affects only transmuxed data (eg: transport stream). For more info please check the following [issue](https://github.com/videojs/http-streaming/issues/1247).  
+
+##### captionServices
+* Type: `object`
+* Default: undefined
+* Provide extra information, like a label or a language, for instream (608 and 708) captions.
+
+The captionServices options object has properties that map to the caption services. Each property is an object itself that includes several properties, like a label or language.
+
+For 608 captions, the service names are `CC1`, `CC2`, `CC3`, and `CC4`. For 708 captions, the service names are `SERVICEn` where `n` is a digit between `1` and `63`.
+
+For 708 caption services, you may additionally provide an `encoding` value that will be used by the transmuxer to decode the captions using an instance of [TextDecoder](https://developer.mozilla.org/en-US/docs/Web/API/TextDecoder). This is to permit and is required for legacy multi-byte encodings. Please review the `TextDecoder` documentation for accepted encoding labels.
+
+###### Format
+```js
+{
+  vhs: {
+    captionServices: {
+      [serviceName]: {
+        language: String, // optional
+        label: String, // optional
+        default: boolean, // optional,
+        encoding: String // optional, 708 services only
+      }
+    }
+  }
+}
+```
+###### Example
+```js
+{
+  vhs: {
+    captionServices: {
+      CC1: {
+        language: 'en',
+        label: 'English'
+      },
+      SERVICE1: {
+        langauge: 'kr',
+        label: 'Korean',
+        encoding: 'euc-kr'
+        default: true,
+      }
+    }
+  }
+}
+```
 
 ### Runtime Properties
 Runtime properties are attached to the tech object when HLS is in
@@ -927,7 +1007,7 @@ npm run <command>
 
 [slack-icon]: http://slack.videojs.com/badge.svg
 [slack-link]: http://slack.videojs.com
-[travis-icon]: https://travis-ci.org/videojs/http-streaming.svg?branch=master
+[travis-icon]: https://travis-ci.org/videojs/http-streaming.svg?branch=main
 [travis-link]: https://travis-ci.org/videojs/http-streaming
 [issue-stats-link]: http://issuestats.com/github/videojs/http-streaming
 [issue-stats-pr-icon]: http://issuestats.com/github/videojs/http-streaming/badge/pr

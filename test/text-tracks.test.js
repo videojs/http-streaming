@@ -4,31 +4,39 @@ import {
   createCaptionsTrackIfNotExists,
   addCaptionData,
   createMetadataTrackIfNotExists,
-  addMetadata
+  addMetadata,
+  removeDuplicateCuesFromTrack
 } from '../src/util/text-tracks';
 
 const { module, test } = Qunit;
 
 class MockTextTrack {
-  constructor() {
+  constructor(opts = {}) {
+    Object.keys(opts).forEach((opt) => (this[opt] = opts[opt]));
     this.cues = [];
   }
   addCue(cue) {
     this.cues.push(cue);
   }
+  removeCue(cue) {
+    const cueIndex = this.cues.map(c => c.text).indexOf(cue.text);
+
+    this.cues.splice(cueIndex, 1);
+  }
 }
 
 class MockTech {
   constructor() {
+    this.options_ = {};
     this.tracks = {
       getTrackById(id) {
         return this[id];
       }
     };
   }
-  addRemoteTextTrack({kind, id, label}) {
-    this.tracks[id] = new MockTextTrack();
-    return { track: this.tracks[id] };
+  addRemoteTextTrack(opts) {
+    this.tracks[opts.id] = new MockTextTrack(opts);
+    return { track: this.tracks[opts.id] };
   }
   trigger() {}
   textTracks() {
@@ -55,6 +63,49 @@ test('creates a track if it does not exist yet', function(assert) {
 
   createCaptionsTrackIfNotExists(inbandTracks, tech, 'CC1');
   assert.ok(inbandTracks.CC1, 'CC1 track was added');
+});
+
+test('creates a 708 track if it does not exist yet', function(assert) {
+  const inbandTracks = {};
+  const tech = new MockTech();
+
+  createCaptionsTrackIfNotExists(inbandTracks, tech, 'cc708_1');
+  assert.ok(inbandTracks.cc708_1, 'cc708_1 track was added');
+});
+
+test('maps mux.js 708 track name to HLS and DASH service name', function(assert) {
+  const inbandTracks = {};
+  const tech = new MockTech();
+
+  createCaptionsTrackIfNotExists(inbandTracks, tech, 'cc708_1');
+  assert.ok(inbandTracks.cc708_1, 'cc708_1 track was added');
+  assert.equal(inbandTracks.cc708_1.id, 'SERVICE1', 'SERVICE1 created from cc708_1');
+  createCaptionsTrackIfNotExists(inbandTracks, tech, 'cc708_3');
+  assert.ok(inbandTracks.cc708_3, 'cc708_3 track was added');
+  assert.equal(inbandTracks.cc708_3.id, 'SERVICE3', 'SERVICE3 created from cc708_3');
+});
+
+test('can override caption services settings', function(assert) {
+  const inbandTracks = {};
+  const tech = new MockTech();
+
+  tech.options_ = {
+    vhs: {
+      captionServices: {
+        SERVICE1: {
+          label: 'hello'
+        },
+        CC1: {
+          label: 'goodbye'
+        }
+      }
+    }
+  };
+
+  createCaptionsTrackIfNotExists(inbandTracks, tech, 'cc708_1');
+  assert.equal(inbandTracks.cc708_1.label, 'hello', 'we set a custom label for SERVICE1');
+  createCaptionsTrackIfNotExists(inbandTracks, tech, 'CC1');
+  assert.equal(inbandTracks.CC1.label, 'goodbye', 'we set a custom label for CC1');
 });
 
 test('fills inbandTextTracks if a track already exists', function(assert) {
@@ -301,4 +352,80 @@ test('adds cues for each metadata frame seen', function(assert) {
     videoDuration,
     'ended at duration 20'
   );
+});
+
+test('removeDuplicateCuesFromTrack removes all but one cue with identical startTime, endTime, and text', function(assert) {
+  const track = new MockTextTrack();
+
+  [{
+    startTime: 0,
+    endTime: 1,
+    text: 'CC1 text'
+  }, {
+    startTime: 1,
+    endTime: 2,
+    text: 'Identical'
+  }, {
+    startTime: 1,
+    endTime: 2,
+    text: 'Identical'
+  }, {
+    startTime: 1,
+    endTime: 2,
+    text: 'Identical'
+  }, {
+    startTime: 1,
+    endTime: 2,
+    text: 'Identical'
+  }, {
+    startTime: 2,
+    endTime: 3,
+    text: 'CC3 text'
+  }].forEach((mockCue) => {
+    track.addCue(mockCue);
+  });
+
+  assert.equal(track.cues.length, 6, '6 cues present initially');
+
+  removeDuplicateCuesFromTrack(track);
+
+  assert.equal(track.cues.length, 3, '3 cue remains after duplicates removed');
+});
+
+test('removeDuplicateCuesFromTrack leaves in cues with the same startTime and endTime, but different text-- or vice-versa', function(assert) {
+  const track = new MockTextTrack();
+
+  [{
+    startTime: 0,
+    endTime: 1,
+    text: 'Identical'
+  }, {
+    startTime: 0,
+    endTime: 1,
+    text: 'Identical'
+  }, {
+    startTime: 0,
+    endTime: 1,
+    text: 'CC2 text'
+  }, {
+    startTime: 0,
+    endTime: 1,
+    text: 'CC3 text'
+  }, {
+    startTime: 1,
+    endTime: 2,
+    text: 'Also identical'
+  }, {
+    startTime: 1,
+    endTime: 2,
+    text: 'Also identical'
+  }].forEach((mockCue) => {
+    track.addCue(mockCue);
+  });
+
+  assert.equal(track.cues.length, 6, '6 cues present initially');
+
+  removeDuplicateCuesFromTrack(track);
+
+  assert.equal(track.cues.length, 4, '4 cues remain after duplicates removed');
 });

@@ -265,7 +265,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
         loader.state = 'WAITING';
         loadedSegment = true;
       };
-      loader.checkBuffer_ = () => {
+      loader.chooseNextRequest_ = () => {
         return { mediaIndex: 2, timeline: 2, segment: { } };
       };
 
@@ -651,7 +651,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
     QUnit.test(
       'loader does not re-request segments that contain no subtitles',
       function(assert) {
-        const playlist = playlistWithDuration(60);
+        const playlist = playlistWithDuration(40);
 
         playlist.endList = false;
 
@@ -676,16 +676,42 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
           'requesting initial segment guess'
         );
 
+        // set the pending segment to mediaIndex 1
+        // so that the next request will attempt to grab this empty segment.
+        loader.pendingSegment_.mediaIndex = 1;
+
         this.requests[0].responseType = 'arraybuffer';
         this.requests.shift().respond(200, null, new Uint8Array(10).buffer);
 
         this.clock.tick(1);
 
         assert.ok(playlist.segments[2].empty, 'marked empty segment as empty');
+
         assert.equal(
           loader.pendingSegment_.mediaIndex,
           3,
           'walked forward skipping requesting empty segment'
+        );
+
+        // set the pending segment to mediaIndex 1 again
+        // so that the next request will attempt to grab the next two empty segments.
+        loader.pendingSegment_.mediaIndex = 1;
+
+        this.requests[0].responseType = 'arraybuffer';
+        this.requests.shift().respond(200, null, new Uint8Array(10).buffer);
+
+        this.clock.tick(1);
+
+        assert.ok(playlist.segments[3].empty, 'marked empty segment as empty');
+
+        assert.ok(
+          !loader.pendingSegment_,
+          'no pending segment, with two empty segments'
+        );
+
+        assert.ok(
+          !loader.error_,
+          'no error, with last two empty segments'
         );
       }
     );

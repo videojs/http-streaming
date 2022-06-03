@@ -1,0 +1,4 @@
+# A simple main playlist with a single media playlist
+#EXTM3U
+#EXT-X-STREAM-INF:BANDWIDTH=240000,RESOLUTION=396x224
+media.m3u8

@@ -16,7 +16,15 @@ export const createCaptionsTrackIfNotExists = function(inbandTextTracks, tech, c
   if (!inbandTextTracks[captionStream]) {
     tech.trigger({type: 'usage', name: 'vhs-608'});
     tech.trigger({type: 'usage', name: 'hls-608'});
-    const track = tech.textTracks().getTrackById(captionStream);
+
+    let instreamId = captionStream;
+
+    // we need to translate SERVICEn for 708 to how mux.js currently labels them
+    if (/^cc708_/.test(captionStream)) {
+      instreamId = 'SERVICE' + captionStream.split('_')[1];
+    }
+
+    const track = tech.textTracks().getTrackById(instreamId);
 
     if (track) {
       // Resuse an existing track with a CC# id because this was
@@ -24,12 +32,29 @@ export const createCaptionsTrackIfNotExists = function(inbandTextTracks, tech, c
       // in the m3u8 for us to use
       inbandTextTracks[captionStream] = track;
     } else {
+      // This section gets called when we have caption services that aren't specified in the manifest.
+      // Manifest level caption services are handled in media-groups.js under CLOSED-CAPTIONS.
+      const captionServices = tech.options_.vhs && tech.options_.vhs.captionServices || {};
+      let label = captionStream;
+      let language = captionStream;
+      let def = false;
+      const captionService = captionServices[instreamId];
+
+      if (captionService) {
+        label = captionService.label;
+        language = captionService.language;
+        def = captionService.default;
+      }
+
       // Otherwise, create a track with the default `CC#` label and
       // without a language
       inbandTextTracks[captionStream] = tech.addRemoteTextTrack({
         kind: 'captions',
-        id: captionStream,
-        label: captionStream
+        id: instreamId,
+        // TODO: investigate why this doesn't seem to turn the caption on by default
+        default: def,
+        label,
+        language
       }, false).track;
     }
   }
@@ -240,9 +265,47 @@ export const removeCuesFromTrack = function(start, end, track) {
   while (i--) {
     cue = track.cues[i];
 
-    // Remove any overlapping cue
+    // Remove any cue within the provided start and end time
     if (cue.startTime >= start && cue.endTime <= end) {
       track.removeCue(cue);
+    }
+  }
+};
+
+/**
+ * Remove duplicate cues from a track on video.js (a cue is considered a
+ * duplicate if it has the same time interval and text as another)
+ *
+ * @param {Object} track the text track to remove the duplicate cues from
+ * @private
+ */
+export const removeDuplicateCuesFromTrack = function(track) {
+  const cues = track.cues;
+
+  if (!cues) {
+    return;
+  }
+
+  for (let i = 0; i < cues.length; i++) {
+    const duplicates = [];
+    let occurrences = 0;
+
+    for (let j = 0; j < cues.length; j++) {
+      if (
+        cues[i].startTime === cues[j].startTime &&
+        cues[i].endTime === cues[j].endTime &&
+        cues[i].text === cues[j].text
+      ) {
+        occurrences++;
+
+        if (occurrences > 1) {
+          duplicates.push(cues[j]);
+        }
+      }
+    }
+
+    if (duplicates.length) {
+      duplicates.forEach(dupe => track.removeCue(dupe));
     }
   }
 };

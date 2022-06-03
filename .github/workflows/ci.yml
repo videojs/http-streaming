@@ -1,0 +1,92 @@
+name: ci
+
+on: [push, pull_request]
+
+jobs:
+  should-skip:
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    # Map a step output to a job output
+    outputs:
+      should-skip-job: ${{steps.skip-check.outputs.should_skip}}
+    steps:
+      - id: skip-check
+        uses: fkirc/skip-duplicate-actions@v2.1.0
+        with:
+          github_token: ${{github.token}}
+
+  # generate our test-type matrix, forks should not run playback tests
+  test-type-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      test-type: ${{steps.test-type-fork.outputs.test_type || steps.test-type.outputs.test_type}}
+    steps:
+      - id: test-type-fork
+        if: ${{github.event.pull_request.head.repo.fork}}
+        run: echo '::set-output name=test_type::["unit", "coverage"]'
+      - id: test-type
+        if: ${{!github.event.pull_request.head.repo.fork}}
+        run: echo '::set-output name=test_type::["unit", "playback", "playback-min", "coverage"]'
+
+
+  ci:
+    needs: [should-skip, test-type-matrix]
+    # 1. always run tests on main, otherwise skip tests if should-skip is true.
+    if: ${{github.ref == 'refs/heads/main' || needs.should-skip.outputs.should-skip-job != 'true'}}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        test-type: ${{fromJson(needs.test-type-matrix.outputs.test-type)}}
+    env:
+      BROWSER_STACK_USERNAME: ${{secrets.BROWSER_STACK_USERNAME}}
+      BROWSER_STACK_ACCESS_KEY: ${{secrets.BROWSER_STACK_ACCESS_KEY}}
+      CI_TEST_TYPE: ${{matrix.test-type}}
+    runs-on: ${{matrix.os}}
+    steps:
+    - name: checkout code
+      uses: actions/checkout@v2
+
+    - name: read node version from .nvmrc
+      run: echo ::set-output name=NVMRC::$(cat .nvmrc)
+      shell: bash
+      id: nvm
+
+    - name: update apt cache on linux w/o browserstack
+      run: sudo apt-get update
+      if: ${{startsWith(matrix.os, 'ubuntu')}}
+
+    - name: install ffmpeg/pulseaudio for firefox on linux w/o browserstack
+      run: sudo apt-get install ffmpeg pulseaudio
+      if: ${{startsWith(matrix.os, 'ubuntu')}}
+
+    - name: start pulseaudio for firefox on linux w/o browserstack
+      run: pulseaudio -D
+      if: ${{startsWith(matrix.os, 'ubuntu')}}
+
+    - name: setup node
+      uses: actions/setup-node@v2
+      with:
+        node-version: '${{steps.nvm.outputs.NVMRC}}'
+        cache: npm
+
+    # turn off the default setup-node problem watchers...
+    - run: echo "::remove-matcher owner=eslint-compact::"
+    - run: echo "::remove-matcher owner=eslint-stylish::"
+    - run: echo "::remove-matcher owner=tsc::"
+
+    - name: npm install
+      run: npm i --prefer-offline --no-audit
+
+    - name: run npm test
+      uses: GabrielBB/xvfb-action@v1
+      with:
+        run: npm run test
+
+    - name: coverage
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{secrets.CODECOV_TOKEN}}
+        files: './test/dist/coverage/coverage-final.json'
+        fail_ci_if_error: true
+      if: ${{startsWith(env.CI_TEST_TYPE, 'coverage')}}

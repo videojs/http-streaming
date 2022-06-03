@@ -496,3 +496,98 @@ QUnit.test('converts time ranges to an array', function(assert) {
     'formats ranges correctly'
   );
 });
+
+QUnit.module('bufferIntersection');
+
+QUnit.test('returns intersection of two buffers', function(assert) {
+  const a = createTimeRanges([[0, 5], [12, 100]]);
+  const b = createTimeRanges([[4, 5], [10, 101]]);
+
+  assert.ok(
+    rangesEqual(Ranges.bufferIntersection(a, b), createTimeRanges([[4, 5], [12, 100]])),
+    'returns intersection'
+  );
+});
+
+QUnit.test('returns empty when no buffers', function(assert) {
+  assert.ok(
+    rangesEqual(Ranges.bufferIntersection(null, null), createTimeRanges()),
+    'returns empty'
+  );
+});
+
+QUnit.test('returns empty when buffers are empty', function(assert) {
+  const a = createTimeRanges();
+  const b = createTimeRanges();
+
+  assert.ok(
+    rangesEqual(Ranges.bufferIntersection(a, b), createTimeRanges()),
+    'returns empty'
+  );
+});
+
+QUnit.test('returns empty when one buffer is empty', function(assert) {
+  const a = createTimeRanges([[0, 1], [2, 3]]);
+  const b = createTimeRanges();
+
+  assert.ok(
+    rangesEqual(Ranges.bufferIntersection(a, b), createTimeRanges()),
+    'returns empty'
+  );
+});
+
+QUnit.test('returns empty when other buffer empty', function(assert) {
+  const a = createTimeRanges();
+  const b = createTimeRanges([[0, 1], [2, 3]]);
+
+  assert.ok(
+    rangesEqual(Ranges.bufferIntersection(a, b), createTimeRanges()),
+    'returns empty'
+  );
+});
+
+QUnit.module('timeAheadOf');
+
+QUnit.test('empty range returns 0', function(assert) {
+  const range = createTimeRanges();
+
+  assert.equal(Ranges.timeAheadOf(range, 0), 0, 'empty range returns 0');
+});
+
+QUnit.test('returns the total amount of time ahead of 0', function(assert) {
+  const range = createTimeRanges([[0, 10]]);
+
+  assert.equal(Ranges.timeAheadOf(range, 0), 10, '10s of time starting at 0s');
+});
+
+QUnit.test('takes gaps into account', function(assert) {
+  const range = createTimeRanges([[0, 10], [20, 40], [50, 60]]);
+
+  assert.equal(Ranges.timeAheadOf(range, 0), 40, '40s of time starting at 0s');
+});
+QUnit.test('takes gaps into account with different time', function(assert) {
+  const range = createTimeRanges([[0, 10], [20, 40], [50, 60]]);
+
+  assert.equal(Ranges.timeAheadOf(range, 11), 30, '30s of time starting at 11s');
+});
+QUnit.test('takes partial time ranges into account', function(assert) {
+  const range = createTimeRanges([[0, 10], [20, 40], [50, 60]]);
+
+  assert.equal(Ranges.timeAheadOf(range, 5), 35, '35s of time starting at 5s');
+});
+QUnit.test('exact end of range', function(assert) {
+  const range = createTimeRanges([[0, 10], [11, 20]]);
+
+  assert.equal(Ranges.timeAheadOf(range, 10), 9, '9s of time starting at 10s');
+});
+QUnit.test('exact start of range', function(assert) {
+  const range = createTimeRanges([[0, 9], [10, 20]]);
+
+  assert.equal(Ranges.timeAheadOf(range, 10), 10, '10s of time starting at 10s');
+});
+QUnit.test('matching end and start', function(assert) {
+  const range = createTimeRanges([[0, 10], [10, 20]]);
+
+  assert.equal(Ranges.timeAheadOf(range, 10), 10, '10s of time starting at 10s');
+});
+
