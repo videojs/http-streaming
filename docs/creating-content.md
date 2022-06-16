@@ -205,7 +205,7 @@ $ mv chunk-stream0-00001.webm webmVideo.webm
 
 ### subtitlesEncrypted.vtt
 
-Run subtitles.vtt through subtle crypto. As an example, here's a Node.js script.
+Run subtitles.vtt through subtle crypto. As an example:
 
 ```javascript
 const fs = require('fs');
@@ -240,9 +240,13 @@ const run = async () => {
   console.log(`Wrote ${encryptedBytes.length} bytes to encrypted.vtt:`);
 };
 
-(async () => {
-  await run();
-})();
+run();
+```
+
+To use the script:
+
+```
+$ node index.js encryptionKey.key subtitles.vtt
 ```
 
 ## Other useful commands
