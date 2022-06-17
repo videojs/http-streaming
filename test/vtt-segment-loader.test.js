@@ -63,7 +63,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
     initSegments: false,
     testData: () => new Uint8Array(testData.split('').map(char => char.charCodeAt(0))),
     encryptedSegmentFn: subtitlesEncrypted,
-    encryptedSegmentKeyFn: encryptionKey,
+    encryptedSegmentKeyFn: encryptionKey
   });
 
   // Tests specific to the vtt loader go in this module

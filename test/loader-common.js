@@ -136,7 +136,7 @@ export const LoaderCommonFactory = ({
   // after decrypting, leaving an empty segment/key. This usage is consistent with other
   // segments used in tests.
   encryptedSegmentFn,
-  encryptedSegmentKeyFn,
+  encryptedSegmentKeyFn
 }) => {
   let loader;
 
@@ -1605,11 +1605,7 @@ export const LoaderCommonFactory = ({
       return this.setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
         return new Promise((resolve, reject) => {
           loader.one('appended', resolve);
-          loader.one('error', (e) => {
-            console.error(e);
-            debugger;
-            reject();
-          });
+          loader.one('error', reject);
           loader.playlist(playlistWithDuration(20, { isEncrypted: true }));
 
           loader.load();
