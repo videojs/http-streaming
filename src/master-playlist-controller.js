@@ -1234,7 +1234,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.tech_.trigger({type: 'usage', name: 'vhs-rendition-excluded'});
 
     // TODO: only load a new playlist if we're excluding the current playlist
-    // If this function was called with a playlist that's not the current active playlist 
+    // If this function was called with a playlist that's not the current active playlist
     // (e.g., media().id !== playlistToExclude.id),
     // then a new playlist should not be selected and loaded, as there's nothing wrong with the current playlist.
     const nextPlaylist = this.selectPlaylist();
