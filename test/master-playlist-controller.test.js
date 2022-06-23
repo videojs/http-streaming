@@ -1429,7 +1429,7 @@ QUnit.test('detects if the player is stuck at the playlist end', function(assert
   Vhs.Playlist.playlistEnd = playlistCopy;
 });
 
-QUnit.test('blacklists switching from video+audio playlists to audio only', function(assert) {
+QUnit.test('excludes switching from video+audio playlists to audio only', function(assert) {
   openMediaSource(this.player, this.clock);
 
   this.player.tech_.vhs.bandwidth = 1e10;
@@ -1452,7 +1452,7 @@ QUnit.test('blacklists switching from video+audio playlists to audio only', func
   mpc.logger_ = (...logs) => {
     debugLogs = debugLogs.concat(logs);
   };
-  // segment must be appended before the blacklist logic runs
+  // segment must be appended before the exclusion logic runs
   return requestAndAppendSegment({
     request: this.requests.shift(),
     segmentLoader: mpc.mainSegmentLoader_,
@@ -1468,14 +1468,14 @@ QUnit.test('blacklists switching from video+audio playlists to audio only', func
 
     assert.equal(audioPlaylist.excludeUntil, Infinity, 'excluded incompatible playlist');
     assert.notEqual(
-      debugLogs.indexOf('blacklisting 0-media.m3u8: codec count "1" !== "2"'),
+      debugLogs.indexOf('excluding 0-media.m3u8: codec count "1" !== "2"'),
       -1,
       'debug logs about codec count'
     );
   });
 });
 
-QUnit.test('blacklists switching from audio-only playlists to video+audio', function(assert) {
+QUnit.test('excludes switching from audio-only playlists to video+audio', function(assert) {
   openMediaSource(this.player, this.clock);
 
   this.player.tech_.vhs.bandwidth = 1;
@@ -1499,7 +1499,7 @@ QUnit.test('blacklists switching from audio-only playlists to video+audio', func
   mpc.logger_ = (...logs) => {
     debugLogs = debugLogs.concat(logs);
   };
-  // segment must be appended before the blacklist logic runs
+  // segment must be appended before the exclusion logic runs
   return requestAndAppendSegment({
     request: this.requests.shift(),
     segmentLoader: mpc.mainSegmentLoader_,
@@ -1522,14 +1522,14 @@ QUnit.test('blacklists switching from audio-only playlists to video+audio', func
     );
 
     assert.notEqual(
-      debugLogs.indexOf('blacklisting 1-media1.m3u8: codec count "2" !== "1"'),
+      debugLogs.indexOf('excluding 1-media1.m3u8: codec count "2" !== "1"'),
       -1,
       'debug logs about codec count'
     );
   });
 });
 
-QUnit.test('blacklists switching from video-only playlists to video+audio', function(assert) {
+QUnit.test('excludes switching from video-only playlists to video+audio', function(assert) {
   openMediaSource(this.player, this.clock);
 
   this.player.tech_.vhs.bandwidth = 1;
@@ -1555,7 +1555,7 @@ QUnit.test('blacklists switching from video-only playlists to video+audio', func
     debugLogs = debugLogs.concat(logs);
   };
 
-  // segment must be appended before the blacklist logic runs
+  // segment must be appended before the exclusion logic runs
   return requestAndAppendSegment({
     request: this.requests.shift(),
     segmentLoader: mpc.mainSegmentLoader_,
@@ -1577,14 +1577,14 @@ QUnit.test('blacklists switching from video-only playlists to video+audio', func
       'excluded incompatible playlist'
     );
     assert.notEqual(
-      debugLogs.indexOf('blacklisting 1-media1.m3u8: codec count "2" !== "1"'),
+      debugLogs.indexOf('excluding 1-media1.m3u8: codec count "2" !== "1"'),
       -1,
       'debug logs about codec count'
     );
   });
 });
 
-QUnit.test('blacklists switching between playlists with different codecs', function(assert) {
+QUnit.test('excludes switching between playlists with different codecs', function(assert) {
   openMediaSource(this.player, this.clock);
 
   this.player.tech_.vhs.bandwidth = 1;
@@ -1631,7 +1631,7 @@ QUnit.test('blacklists switching between playlists with different codecs', funct
     debugLogs = debugLogs.concat(logs);
   };
 
-  // segment must be appended before the blacklist logic runs
+  // segment must be appended before the exclusion logic runs
   return requestAndAppendSegment({
     request: this.requests.shift(),
     segmentLoader: mpc.mainSegmentLoader_,
@@ -1639,20 +1639,20 @@ QUnit.test('blacklists switching between playlists with different codecs', funct
   }).then(() => {
     const playlists = mpc.masterPlaylistLoader_.master.playlists;
 
-    assert.equal(typeof playlists[0].excludeUntil, 'undefined', 'did not blacklist first playlist');
-    assert.equal(playlists[1].excludeUntil, Infinity, 'blacklistlisted second playlist');
-    assert.equal(playlists[2].excludeUntil, Infinity, 'blacklistlisted third playlist');
-    assert.equal(playlists[3].excludeUntil, Infinity, 'blacklistlisted forth playlist');
-    assert.equal(typeof playlists[4].excludeUntil, 'undefined', 'did not blacklist fifth playlist');
-    assert.equal(playlists[5].excludeUntil, Infinity, 'blacklistlisted sixth playlist');
-    assert.equal(playlists[6].excludeUntil, Infinity, 'blacklistlisted seventh playlist');
+    assert.equal(typeof playlists[0].excludeUntil, 'undefined', 'did not exclude first playlist');
+    assert.equal(playlists[1].excludeUntil, Infinity, 'excluded second playlist');
+    assert.equal(playlists[2].excludeUntil, Infinity, 'excluded third playlist');
+    assert.equal(playlists[3].excludeUntil, Infinity, 'excluded forth playlist');
+    assert.equal(typeof playlists[4].excludeUntil, 'undefined', 'did not exclude fifth playlist');
+    assert.equal(playlists[5].excludeUntil, Infinity, 'excluded sixth playlist');
+    assert.equal(playlists[6].excludeUntil, Infinity, 'excluded seventh playlist');
 
     [
-      'blacklisting 1-media1.m3u8: video codec "hvc1" !== "avc1"',
-      'blacklisting 2-media2.m3u8: audio codec "ac-3" !== "mp4a"',
-      'blacklisting 3-media3.m3u8: video codec "hvc1" !== "avc1" && audio codec "ac-3" !== "mp4a"',
-      'blacklisting 5-media5.m3u8: codec count "1" !== "2" && audio codec "ac-3" !== "mp4a"',
-      'blacklisting 6-media6.m3u8: codec count "1" !== "2" && video codec "hvc1" !== "avc1"'
+      'excluding 1-media1.m3u8: video codec "hvc1" !== "avc1"',
+      'excluding 2-media2.m3u8: audio codec "ac-3" !== "mp4a"',
+      'excluding 3-media3.m3u8: video codec "hvc1" !== "avc1" && audio codec "ac-3" !== "mp4a"',
+      'excluding 5-media5.m3u8: codec count "1" !== "2" && audio codec "ac-3" !== "mp4a"',
+      'excluding 6-media6.m3u8: codec count "1" !== "2" && video codec "hvc1" !== "avc1"'
     ].forEach(function(message) {
       assert.notEqual(
         debugLogs.indexOf(message),
@@ -1663,7 +1663,7 @@ QUnit.test('blacklists switching between playlists with different codecs', funct
   });
 });
 
-QUnit.test('does not blacklist switching between playlists with different audio profiles', function(assert) {
+QUnit.test('does not exclude switching between playlists with different audio profiles', function(assert) {
   openMediaSource(this.player, this.clock);
 
   this.player.tech_.vhs.bandwidth = 1;
@@ -1689,7 +1689,7 @@ QUnit.test('does not blacklist switching between playlists with different audio 
 
   const mpc = this.masterPlaylistController;
 
-  // segment must be appended before the blacklist logic runs
+  // segment must be appended before the exclusion logic runs
   return requestAndAppendSegment({
     request: this.requests.shift(),
     segmentLoader: mpc.mainSegmentLoader_,
@@ -2056,7 +2056,7 @@ QUnit.test(
   }
 );
 
-QUnit.test('blacklists playlist on earlyabort', function(assert) {
+QUnit.test('excludes playlist on earlyabort', function(assert) {
   this.masterPlaylistController.mediaSource.trigger('sourceopen');
   // master
   this.standardXHRResponse(this.requests.shift());
@@ -2079,12 +2079,12 @@ QUnit.test('blacklists playlist on earlyabort', function(assert) {
 
   videojs.log.warn = (text) => warnings.push(text);
 
-  assert.notOk(currentMedia.excludeUntil > 0, 'playlist not blacklisted');
+  assert.notOk(currentMedia.excludeUntil > 0, 'playlist not excluded');
   assert.equal(mediaChanges.length, 0, 'no media change');
 
   this.masterPlaylistController.mainSegmentLoader_.trigger('earlyabort');
 
-  assert.ok(currentMedia.excludeUntil > 0, 'playlist blacklisted');
+  assert.ok(currentMedia.excludeUntil > 0, 'playlist excluded');
   assert.equal(mediaChanges.length, 1, 'one media change');
   assert.equal(warnings.length, 1, 'one warning logged');
   assert.equal(
@@ -2219,7 +2219,7 @@ QUnit.test('does not get stuck in a loop due to inconsistent network/caching', f
 
     const media1ResolvedPlaylist = segmentLoader.playlist_;
 
-    assert.notOk(media1ResolvedPlaylist.excludeUntil, 'media1 not blacklisted');
+    assert.notOk(media1ResolvedPlaylist.excludeUntil, 'media1 not excluded');
     assert.equal(
       segmentRequest.uri.substring(segmentRequest.uri.length - 4),
       '0.ts',
@@ -2244,7 +2244,7 @@ QUnit.test('does not get stuck in a loop due to inconsistent network/caching', f
     );
     assert.equal(mediaChanges.length, 2, 'changed media');
     assert.equal(mediaChanges[1].uri, 'media.m3u8', 'changed to media');
-    assert.ok(media1ResolvedPlaylist.excludeUntil, 'blacklisted media1');
+    assert.ok(media1ResolvedPlaylist.excludeUntil, 'excluded media1');
     assert.equal(
       segmentRequest.uri.substring(segmentRequest.uri.length - 4),
       '0.ts',
@@ -4752,8 +4752,8 @@ QUnit.module('MasterPlaylistController codecs', {
     sharedHooks.beforeEach.call(this, assert);
     this.mpc = this.masterPlaylistController;
 
-    this.blacklists = [];
-    this.mpc.blacklistCurrentPlaylist = (blacklist) => this.blacklists.push(blacklist);
+    this.exclusionList = [];
+    this.mpc.excludePlaylist = (playlist) => this.exclusionList.push(playlist);
 
     this.contentSetup = (options) => {
       const {
@@ -4811,7 +4811,7 @@ QUnit.test('can get demuxed codecs from the video/main', function(assert) {
 
   const codecs = this.mpc.getCodecsOrExclude_();
 
-  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(this.exclusionList, [], 'did not exclude anything');
   assert.deepEqual(codecs, {audio: 'mp4a.40.5', video: 'avc1.4c400d'}, 'codecs returned');
 });
 
@@ -4825,7 +4825,7 @@ QUnit.test('can get demuxed codecs from the video/main playlist and audio playli
 
   const codecs = this.mpc.getCodecsOrExclude_();
 
-  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(this.exclusionList, [], 'did not exclude anything');
   assert.deepEqual(codecs, {audio: 'mp4a.40.5', video: 'avc1.4c400d'}, 'codecs returned');
 });
 
@@ -4839,7 +4839,7 @@ QUnit.test('can get demuxed codecs from the main and audio loaders', function(as
 
   const codecs = this.mpc.getCodecsOrExclude_();
 
-  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(this.exclusionList, [], 'did not exclude anything');
   assert.deepEqual(codecs, {audio: 'mp4a.40.5', video: 'avc1.4c400d'}, 'codecs returned');
 });
 
@@ -4853,7 +4853,7 @@ QUnit.test('can get demuxed codecs from the main loader', function(assert) {
 
   const codecs = this.mpc.getCodecsOrExclude_();
 
-  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(this.exclusionList, [], 'did not exclude anything');
   assert.deepEqual(codecs, {audio: 'mp4a.40.5', video: 'avc1.4c400d'}, 'codecs returned');
 });
 
@@ -4865,7 +4865,7 @@ QUnit.test('can get muxed codecs from video/main playlist', function(assert) {
 
   const codecs = this.mpc.getCodecsOrExclude_();
 
-  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(this.exclusionList, [], 'did not exclude anything');
   assert.deepEqual(codecs, {video: 'avc1.4c400d,mp4a.40.5'}, 'codecs returned');
 });
 
@@ -4883,7 +4883,7 @@ QUnit.test('can get muxed codecs from video/main loader', function(assert) {
 
   const codecs = this.mpc.getCodecsOrExclude_();
 
-  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(this.exclusionList, [], 'did not exclude anything');
   assert.deepEqual(codecs, {video: 'avc1.4c400d,mp4a.40.5'}, 'codecs returned');
 });
 
@@ -4895,7 +4895,7 @@ QUnit.test('can get audio only codecs from main playlist ', function(assert) {
 
   const codecs = this.mpc.getCodecsOrExclude_();
 
-  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(this.exclusionList, [], 'did not exclude anything');
   assert.deepEqual(codecs, {audio: 'mp4a.40.5'}, 'codecs returned');
 });
 
@@ -4907,7 +4907,7 @@ QUnit.test('can get audio only codecs from main loader ', function(assert) {
 
   const codecs = this.mpc.getCodecsOrExclude_();
 
-  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(this.exclusionList, [], 'did not exclude anything');
   assert.deepEqual(codecs, {audio: 'mp4a.40.5'}, 'codecs returned');
 });
 
@@ -4919,7 +4919,7 @@ QUnit.test('can get video only codecs from main playlist', function(assert) {
 
   const codecs = this.mpc.getCodecsOrExclude_();
 
-  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(this.exclusionList, [], 'did not exclude anything');
   assert.deepEqual(codecs, {video: 'avc1.4c400d'}, 'codecs returned');
 });
 
@@ -4931,7 +4931,7 @@ QUnit.test('can get video only codecs from main loader', function(assert) {
 
   const codecs = this.mpc.getCodecsOrExclude_();
 
-  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(this.exclusionList, [], 'did not exclude anything');
   assert.deepEqual(codecs, {video: 'avc1.4c400d'}, 'codecs returned');
 });
 
@@ -4945,7 +4945,7 @@ QUnit.test('can get codecs from startingMedia', function(assert) {
 
   const codecs = this.mpc.getCodecsOrExclude_();
 
-  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(this.exclusionList, [], 'did not exclude anything');
   assert.deepEqual(codecs, {video: 'avc1.4c400d', audio: 'mp4a.40.5'}, 'codecs returned');
 });
 
@@ -4959,7 +4959,7 @@ QUnit.test('playlist codecs take priority over others', function(assert) {
 
   const codecs = this.mpc.getCodecsOrExclude_();
 
-  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(this.exclusionList, [], 'did not exclude anything');
   assert.deepEqual(codecs, {video: 'avc1.4b400d', audio: 'mp4a.40.20'}, 'codecs returned');
 });
 
@@ -4973,7 +4973,7 @@ QUnit.test('uses default codecs if no codecs are found', function(assert) {
 
   const codecs = this.mpc.getCodecsOrExclude_();
 
-  assert.deepEqual(this.blacklists, [], 'did not blacklist anything');
+  assert.deepEqual(this.exclusionList, [], 'did not exclude anything');
   assert.deepEqual(codecs, {video: 'avc1.4d400d', audio: 'mp4a.40.2'}, 'codecs returned');
 });
 
@@ -4986,11 +4986,11 @@ QUnit.test('excludes playlist without detected audio/video', function(assert) {
 
   const codecs = this.mpc.getCodecsOrExclude_();
 
-  assert.deepEqual(this.blacklists, [{
-    blacklistDuration: Infinity,
+  assert.deepEqual(this.exclusionList, [{
+    playlistExclusionDuration: Infinity,
     message: 'Could not determine codecs for playlist.',
     playlist: {attributes: {}}
-  }], 'blacklisted playlist');
+  }], 'excluded playlist');
   assert.deepEqual(codecs, void 0, 'no codecs returned');
 });
 
@@ -5007,12 +5007,12 @@ QUnit.test('excludes unsupported muxer codecs for ts', function(assert) {
 
   const codecs = this.mpc.getCodecsOrExclude_();
 
-  assert.deepEqual(this.blacklists, [{
-    blacklistDuration: Infinity,
+  assert.deepEqual(this.exclusionList, [{
+    playlistExclusionDuration: Infinity,
     playlist: {attributes: {}},
     internal: true,
     message: 'muxer does not support codec(s): "hvc1.2.4.L123.B0,ac-3".'
-  }], 'blacklisted playlist');
+  }], 'excluded playlist');
   assert.deepEqual(codecs, void 0, 'codecs returned');
 });
 
@@ -5033,12 +5033,12 @@ QUnit.test('excludes unsupported browser codecs for muxed fmp4', function(assert
 
   const codecs = this.mpc.getCodecsOrExclude_();
 
-  assert.deepEqual(this.blacklists, [{
-    blacklistDuration: Infinity,
+  assert.deepEqual(this.exclusionList, [{
+    playlistExclusionDuration: Infinity,
     playlist: {attributes: {}},
     internal: true,
     message: 'browser does not support codec(s): "hvc1.2.4.L123.B0,ac-3".'
-  }], 'blacklisted playlist');
+  }], 'excluded playlist');
   assert.deepEqual(codecs, void 0, 'codecs returned');
 });
 
@@ -5056,12 +5056,12 @@ QUnit.test('excludes unsupported muxer codecs for muxed ts', function(assert) {
 
   const codecs = this.mpc.getCodecsOrExclude_();
 
-  assert.deepEqual(this.blacklists, [{
-    blacklistDuration: Infinity,
+  assert.deepEqual(this.exclusionList, [{
+    playlistExclusionDuration: Infinity,
     playlist: {attributes: {}},
     internal: true,
     message: 'muxer does not support codec(s): "hvc1.2.4.L123.B0,ac-3".'
-  }], 'blacklisted playlist');
+  }], 'excluded playlist');
   assert.deepEqual(codecs, void 0, 'codecs returned');
 });
 
@@ -5081,12 +5081,12 @@ QUnit.test('excludes unsupported browser codecs for fmp4', function(assert) {
 
   const codecs = this.mpc.getCodecsOrExclude_();
 
-  assert.deepEqual(this.blacklists, [{
-    blacklistDuration: Infinity,
+  assert.deepEqual(this.exclusionList, [{
+    playlistExclusionDuration: Infinity,
     playlist: {attributes: {}},
     internal: true,
     message: 'browser does not support codec(s): "hvc1.2.4.L123.B0,ac-3".'
-  }], 'blacklisted playlist');
+  }], 'excluded playlist');
   assert.deepEqual(codecs, void 0, 'codecs returned');
 });
 
@@ -5111,12 +5111,12 @@ QUnit.test('excludes unsupported codecs video ts, audio fmp4', function(assert) 
 
   const codecs = this.mpc.getCodecsOrExclude_();
 
-  assert.deepEqual(this.blacklists, [{
-    blacklistDuration: Infinity,
+  assert.deepEqual(this.exclusionList, [{
+    playlistExclusionDuration: Infinity,
     playlist: {attributes: {AUDIO: 'low-quality'}},
     internal: true,
     message: 'muxer does not support codec(s): "hvc1.2.4.L123.B0", browser does not support codec(s): "ac-3".'
-  }], 'blacklisted playlist');
+  }], 'excluded playlist');
   assert.deepEqual(codecs, void 0, 'codecs returned');
 });
 
@@ -5141,12 +5141,12 @@ QUnit.test('excludes unsupported codecs video fmp4, audio ts', function(assert) 
 
   const codecs = this.mpc.getCodecsOrExclude_();
 
-  assert.deepEqual(this.blacklists, [{
-    blacklistDuration: Infinity,
+  assert.deepEqual(this.exclusionList, [{
+    playlistExclusionDuration: Infinity,
     playlist: {attributes: {AUDIO: 'low-quality'}},
     internal: true,
     message: 'browser does not support codec(s): "hvc1.2.4.L123.B0", muxer does not support codec(s): "ac-3".'
-  }], 'blacklisted playlist');
+  }], 'excluded playlist');
   assert.deepEqual(codecs, void 0, 'codecs returned');
 });
 
@@ -5171,12 +5171,12 @@ QUnit.test('excludes all of audio group on unsupported audio', function(assert) 
 
   const codecs = this.mpc.getCodecsOrExclude_();
 
-  assert.deepEqual(this.blacklists, [{
-    blacklistDuration: Infinity,
+  assert.deepEqual(this.exclusionList, [{
+    playlistExclusionDuration: Infinity,
     playlist: {attributes: {AUDIO: 'low-quality'}, id: 'bar'},
     internal: true,
     message: 'muxer does not support codec(s): "hvc1.2.4.L123.B0,ac-3".'
-  }], 'blacklisted playlist');
+  }], 'excluded playlist');
   assert.deepEqual(codecs, void 0, 'codecs returned');
   assert.equal(this.master.playlists[2].id, 'foo', 'playlist 3 is the one we added');
   assert.equal(this.master.playlists[2].excludeUntil, Infinity, 'playlist 3 with same audio group excluded');
@@ -5216,12 +5216,12 @@ QUnit.test('excludes on codec switch if codec switching not supported', function
 
   const codecs = this.mpc.getCodecsOrExclude_();
 
-  assert.deepEqual(this.blacklists, [{
-    blacklistDuration: Infinity,
+  assert.deepEqual(this.exclusionList, [{
+    playlistExclusionDuration: Infinity,
     playlist: {attributes: {AUDIO: 'low-quality'}},
     internal: true,
     message: 'Codec switching not supported: "avc1.4c400d" -> "hvc1.2.4.L123.B0", "mp4a.40.2" -> "ac-3".'
-  }], 'blacklisted playlist');
+  }], 'excluded playlist');
   assert.deepEqual(codecs, void 0, 'codecs returned');
 });
 
@@ -5257,7 +5257,7 @@ QUnit.test('does not exclude on codec switch between the same base codec', funct
 
   const codecs = this.mpc.getCodecsOrExclude_();
 
-  assert.deepEqual(this.blacklists, []);
+  assert.deepEqual(this.exclusionList, []);
   assert.deepEqual(codecs, {video: 'avc1.4d400e', audio: 'mp4a.40.5'}, 'codecs returned');
 });
 
@@ -5428,10 +5428,10 @@ QUnit.module('MasterPlaylistController - exclusion behavior', {
 
       assert.equal(this.mpc.media(), this.mpc.master().playlists[0], 'selected first playlist');
 
-      this.mpc.blacklistCurrentPlaylist({
+      this.mpc.excludePlaylist({
         internal: true,
         playlist: this.mpc.master().playlists[0],
-        blacklistDuration: Infinity
+        playlistExclusionDuration: Infinity
       });
 
       assert.equal(this.mpc.master().playlists[0].excludeUntil, Infinity, 'exclusion happened');
@@ -5982,7 +5982,7 @@ QUnit.test('true if llhls playlist and we have buffered', function(assert) {
   assert.ok(mpc.shouldSwitchToMedia_(nextPlaylist), 'should switch if buffered');
 });
 
-QUnit.module('MasterPlaylistController blacklistCurrentPlaylist', sharedHooks);
+QUnit.module('MasterPlaylistController excludePlaylist', sharedHooks);
 
 QUnit.test("don't exclude only playlist unless it was excluded forever", function(assert) {
   // expect 9 because we have a failing assertion that shouldn't run unless something is broken
@@ -6012,7 +6012,7 @@ QUnit.test("don't exclude only playlist unless it was excluded forever", functio
 
   mpl.load = (delay) => (shouldDelay = delay);
 
-  mpc.blacklistCurrentPlaylist();
+  mpc.excludePlaylist();
 
   assert.notOk('excludeUntil' in playlist, 'playlist was not excluded since excludeDuration was finite');
   assert.ok(shouldDelay, 'we delay retry since it is the final rendition');
@@ -6048,7 +6048,7 @@ QUnit.test("don't exclude only playlist unless it was excluded forever", functio
   });
 
   // exclude forever
-  mpc.blacklistCurrentPlaylist({}, Infinity);
+  mpc.excludePlaylist({}, Infinity);
 
   assert.ok('excludeUntil' in playlist, 'playlist was excluded');
   assert.notOk(shouldDelay, 'value was not changed');
@@ -6084,7 +6084,7 @@ QUnit.test('switch playlists if current playlist gets excluded and re-include if
 
   mpl.load = (delay) => (shouldDelay = delay);
 
-  mpc.blacklistCurrentPlaylist();
+  mpc.excludePlaylist();
 
   assert.ok('excludeUntil' in playlist, 'playlist was excluded since there is another playlist');
   assert.notOk(shouldDelay, 'we do not delay retry since it is not the final rendition');
@@ -6096,7 +6096,7 @@ QUnit.test('switch playlists if current playlist gets excluded and re-include if
   this.standardXHRResponse(this.requests.shift());
   playlist2 = mpl.master.playlists[1];
 
-  mpc.blacklistCurrentPlaylist();
+  mpc.excludePlaylist();
 
   assert.ok('excludeUntil' in playlist2, 'playlist2 was excluded');
   assert.notOk('excludeUntil' in playlist, 'playlist was re-included');
@@ -6133,13 +6133,13 @@ QUnit.test('Playlist is excluded indefinitely if number of playlistErrors_ excee
 
   assert.equal(playlist.playlistErrors_, 0, 'playlistErrors_ starts at zero');
 
-  mpc.blacklistCurrentPlaylist();
+  mpc.excludePlaylist();
 
   assert.ok('excludeUntil' in playlist, 'playlist was excluded');
   assert.equal(playlist.playlistErrors_, 1, 'we incremented playlistErrors_');
   assert.notEqual(playlist.excludeUntil, Infinity, 'The playlist was not excluded indefinitely');
 
-  mpc.blacklistCurrentPlaylist();
+  mpc.excludePlaylist();
 
   assert.equal(playlist.playlistErrors_, 2, 'we incremented playlistErrors_');
   assert.equal(playlist.excludeUntil, Infinity, 'The playlist was excluded indefinitely');
@@ -6179,7 +6179,7 @@ QUnit.test('should delay loading of new playlist if lastRequest was less than ha
   };
   playlist2.lastRequest = Date.now() - 1000;
 
-  mpc.blacklistCurrentPlaylist();
+  mpc.excludePlaylist();
 
   assert.ok('excludeUntil' in playlist, 'playlist was excluded since there is another playlist');
   assert.ok(shouldDelay, 'we delay retry since second rendition was loaded less than half target duration ago');

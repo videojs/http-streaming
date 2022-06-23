@@ -598,8 +598,8 @@ class VhsHandler extends Component {
     this.options_.customTagMappers = this.options_.customTagMappers || [];
     this.options_.cacheEncryptionKeys = this.options_.cacheEncryptionKeys || false;
 
-    if (typeof this.options_.blacklistDuration !== 'number') {
-      this.options_.blacklistDuration = 5 * 60;
+    if (typeof this.options_.playlistExclusionDuration !== 'number') {
+      this.options_.playlistExclusionDuration = 5 * 60;
     }
 
     if (typeof this.options_.bandwidth !== 'number') {
@@ -1016,10 +1016,10 @@ class VhsHandler extends Component {
 
     this.player_.tech_.on('keystatuschange', (e) => {
       if (e.status === 'output-restricted') {
-        this.masterPlaylistController_.blacklistCurrentPlaylist({
+        this.masterPlaylistController_.excludePlaylist({
           playlist: this.masterPlaylistController_.media(),
           message: `DRM keystatus changed to ${e.status}. Playlist will fail to play. Check for HDCP content.`,
-          blacklistDuration: Infinity
+          playlistExclusionDuration: Infinity
         });
       }
     });

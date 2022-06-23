@@ -247,4 +247,4 @@ The video can start playing as soon as there's enough audio and video (for muxed
 
 But once `SegmentLoader` does finish, it starts the process again, looking for new content.
 
-There are other modules, and other functions of the code (e.g., blacklisting logic, ABR, etc.), but this is the most critical path of VHS, the one that allows video to play in the browser.
+There are other modules, and other functions of the code (e.g., excluding logic, ABR, etc.), but this is the most critical path of VHS, the one that allows video to play in the browser.

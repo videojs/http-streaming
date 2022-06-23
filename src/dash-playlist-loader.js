@@ -388,7 +388,7 @@ export default class DashPlaylistLoader extends EventTarget {
           response: '',
           playlist,
           internal: true,
-          blacklistDuration: Infinity,
+          playlistExclusionDuration: Infinity,
           // MEDIA_ERR_NETWORK
           code: 2
         }, request);

@@ -1344,7 +1344,7 @@ loaderTypes.forEach(function(type) {
 
     expectedUsage[`vhs-${type}-download-exclusion`] = 1;
 
-    expectedUsage['vhs-rendition-blacklisted'] = 1;
+    expectedUsage['vhs-rendition-excluded'] = 1;
     // expectedUsage['vhs-rendition-change-exclude'] = 1;
 
     assert.deepEqual(this.usageEvents, expectedUsage, 'usage as expected');
@@ -1382,7 +1382,7 @@ loaderTypes.forEach(function(type) {
       const expectedUsage = {};
 
       expectedUsage[`vhs-${type}-download-exclusion`] = 1;
-      expectedUsage['vhs-rendition-blacklisted'] = 1;
+      expectedUsage['vhs-rendition-excluded'] = 1;
       if (!last) {
         expectedUsage['vhs-rendition-change-exclude'] = 1;
       }

@@ -42,7 +42,7 @@ Video.js Compatibility: 6.0, 7.0
       - [useCueTags](#usecuetags)
       - [parse708captions](#parse708captions)
       - [overrideNative](#overridenative)
-      - [blacklistDuration](#blacklistduration)
+      - [playlistExclusionDuration](#playlistexclusionduration)
       - [maxPlaylistRetries](#maxplaylistretries)
       - [bandwidth](#bandwidth)
       - [useBandwidthFromLocalStorage](#usebandwidthfromlocalstorage)
@@ -346,13 +346,13 @@ var player = videojs('playerId', {
 
 Since MSE playback may be desirable on all browsers with some native support other than Safari, `overrideNative: !videojs.browser.IS_SAFARI` could be used.
 
-##### blacklistDuration
+##### playlistExclusionDuration
 * Type: `number`
 * can be used as an initialization option
 
-When the `blacklistDuration` property is set to a time duration in seconds,
-if a playlist is blacklisted, it will be blacklisted for a period of that
-customized duration. This enables the blacklist duration to be configured
+When the `playlistExclusionDuration` property is set to a time duration in seconds,
+if a playlist is excluded, it will be excluded for a period of that
+customized duration. This enables the exclusion duration to be configured
 by the user.
 
 ##### maxPlaylistRetries
@@ -761,7 +761,7 @@ Each of the following usage events are fired per use:
 | vhs-audio-change | a user selected an alternate audio stream |
 | vhs-rendition-disabled | a rendition was disabled |
 | vhs-rendition-enabled | a rendition was enabled |
-| vhs-rendition-blacklisted | a rendition was blacklisted |
+| vhs-rendition-excluded| a rendition was excluded |
 | vhs-timestamp-offset | a timestamp offset was set in HLS (can identify discontinuities) |
 | vhs-unknown-waiting | the player stopped for an unknown reason and we seeked to current time try to address it |
 | vhs-live-resync | playback fell off the back of a live playlist and we resynced to the live point |

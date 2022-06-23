@@ -243,7 +243,7 @@ export const onError = {
    * @param {Object} settings
    *        Object containing required information for media groups
    * @return {Function}
-   *         Error handler. Logs warning (or error if the playlist is blacklisted) to
+   *         Error handler. Logs warning (or error if the playlist is excluded) to
    *         console and switches back to default audio track.
    * @function onError.AUDIO
    */
@@ -251,7 +251,7 @@ export const onError = {
     const {
       segmentLoaders: { [type]: segmentLoader},
       mediaTypes: { [type]: mediaType },
-      blacklistCurrentPlaylist
+      excludePlaylist
     } = settings;
 
     stopLoaders(segmentLoader, mediaType);
@@ -263,9 +263,9 @@ export const onError = {
     const defaultTrack = mediaType.tracks[id];
 
     if (activeTrack === defaultTrack) {
-      // Default track encountered an error. All we can do now is blacklist the current
+      // Default track encountered an error. All we can do now is exclude the current
       // rendition and hope another will switch audio groups
-      blacklistCurrentPlaylist({
+      excludePlaylist({
         message: 'Problem encountered loading the default audio track.'
       });
       return;
@@ -844,8 +844,8 @@ export const getActiveGroup = (type, {mediaTypes}) => () => {
  *        The parsed master manifest
  * @param {Object} settings.mediaTypes
  *        Object to store the loaders, tracks, and utility methods for each media type
- * @param {Function} settings.blacklistCurrentPlaylist
- *        Blacklists the current rendition and forces a rendition switch.
+ * @param {Function} settings.excludePlaylist
+ *        Excludes the current rendition and forces a rendition switch.
  * @function setupMediaGroups
  */
 export const setupMediaGroups = (settings) => {

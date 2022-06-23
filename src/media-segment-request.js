@@ -425,7 +425,7 @@ const handleSegmentBytes = ({
   // TODO:
   // We should have a handler that fetches the number of bytes required
   // to check if something is fmp4. This will allow us to save bandwidth
-  // because we can only blacklist a playlist and abort requests
+  // because we can only exclude a playlist and abort requests
   // by codec after trackinfo triggers.
   if (isLikelyFmp4MediaSegment(bytesAsUint8Array)) {
     segment.isFmp4 = true;

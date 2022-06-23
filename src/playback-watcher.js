@@ -186,7 +186,7 @@ export default class PlaybackWatcher {
   /**
    * Checks on every segment `appendsdone` to see
    * if segment appends are making progress. If they are not
-   * and we are still downloading bytes. We blacklist the playlist.
+   * and we are still downloading bytes. We exclude the playlist.
    *
    * @param {string} type
    *        The segment loader type to check.
@@ -232,7 +232,7 @@ export default class PlaybackWatcher {
 
     // TODO: should we exclude audio tracks rather than main tracks
     // when type is audio?
-    mpc.blacklistCurrentPlaylist({
+    mpc.excludePlaylist({
       message: `Excessive ${type} segment downloading detected.`
     }, Infinity);
   }

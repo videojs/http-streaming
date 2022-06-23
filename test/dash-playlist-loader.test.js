@@ -693,7 +693,7 @@ QUnit.test('addSidxSegments_: adds/triggers error on invalid container', functio
   assert.ok(triggeredError, 'triggered an error');
 
   assert.deepEqual(loader.error, {
-    blacklistDuration: Infinity,
+    playlistExclusionDuration: Infinity,
     code: 2,
     internal: true,
     message: 'Unsupported unknown container type for sidx segment at URL: sidx.mp4',

@@ -2689,7 +2689,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       }
 
       // if control-flow has arrived here, then the error is real
-      // emit an error event to blacklist the current playlist
+      // emit an error event to exclude the current playlist
       this.mediaRequestsErrored += 1;
       this.error(error);
       this.trigger('error');
@@ -2798,7 +2798,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (!trackInfo) {
       this.error({
         message: 'No starting media returned, likely due to an unsupported media format.',
-        blacklistDuration: Infinity
+        playlistExclusionDuration: Infinity
       });
       this.trigger('error');
       return;
@@ -2879,7 +2879,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (illegalMediaSwitchError) {
       this.error({
         message: illegalMediaSwitchError,
-        blacklistDuration: Infinity
+        playlistExclusionDuration: Infinity
       });
       this.trigger('error');
       return true;
