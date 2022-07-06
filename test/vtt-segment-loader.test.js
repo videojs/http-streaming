@@ -11,6 +11,7 @@ import {
   LoaderCommonSettings,
   LoaderCommonFactory
 } from './loader-common.js';
+import { encryptionKey, subtitlesEncrypted } from 'create-test-data!segments';
 
 const oldVTT = window.WebVTT;
 
@@ -60,7 +61,9 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
     loaderBeforeEach: (loader) => loader.track(new MockTextTrack()),
     usesAsyncAppends: false,
     initSegments: false,
-    testData: () => new Uint8Array(testData.split('').map(char => char.charCodeAt(0)))
+    testData: () => new Uint8Array(testData.split('').map(char => char.charCodeAt(0))),
+    encryptedSegmentFn: subtitlesEncrypted,
+    encryptedSegmentKeyFn: encryptionKey
   });
 
   // Tests specific to the vtt loader go in this module
