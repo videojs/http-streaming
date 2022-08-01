@@ -420,7 +420,7 @@ export const getMediaInfoForTime = function({
   startingSegmentIndex,
   startingPartIndex,
   startTime,
-  experimentalExactManifestTimings
+  exactManifestTimings
 }) {
 
   let time = currentTime - startTime;
@@ -453,7 +453,7 @@ export const getMediaInfoForTime = function({
 
         time += partAndSegment.duration;
 
-        if (experimentalExactManifestTimings) {
+        if (exactManifestTimings) {
           if (time < 0) {
             continue;
           }
@@ -507,7 +507,7 @@ export const getMediaInfoForTime = function({
 
     time -= partAndSegment.duration;
 
-    if (experimentalExactManifestTimings) {
+    if (exactManifestTimings) {
       if (time > 0) {
         continue;
       }

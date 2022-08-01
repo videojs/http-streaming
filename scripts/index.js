@@ -512,6 +512,20 @@
       });
     });
 
+    [
+      'buffer-water',
+      'llhls',
+    ].forEach(function(name) {
+      stateEls[name].checked = true
+    });
+
+    [
+      'exact-manifest-timings',
+      'pixel-diff-selector'
+    ].forEach(function(name) {
+      stateEls[name].checked = false
+    });
+
     stateEls.debug.addEventListener('change', function(event) {
       saveState();
       window.videojs.log.level(event.target.checked ? 'debug' : 'info');
@@ -567,9 +581,9 @@
             vhs: {
               overrideNative: getInputValue(stateEls['override-native']),
               experimentalBufferBasedABR: getInputValue(stateEls['buffer-water']),
-              experimentalLLHLS: getInputValue(stateEls.llhls),
-              experimentalExactManifestTimings: getInputValue(stateEls['exact-manifest-timings']),
-              experimentalLeastPixelDiffSelector: getInputValue(stateEls['pixel-diff-selector']),
+              llhls: getInputValue(stateEls.llhls),
+              exactManifestTimings: getInputValue(stateEls['exact-manifest-timings']),
+              leastPixelDiffSelector: getInputValue(stateEls['pixel-diff-selector']),
               useNetworkInformationApi: getInputValue(stateEls['network-info']),
               useDtsForTimestampOffset: getInputValue(stateEls['dts-offset'])
             }

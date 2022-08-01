@@ -2425,7 +2425,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   if (!videojs.browser.IE_VERSION) {
     QUnit.module('llhls', {
       beforeEach() {
-        this.fakeVhs.options_ = {experimentalLLHLS: true};
+        this.fakeVhs.options_ = {llhls: true};
         this.loader = new PlaylistLoader('http://example.com/media.m3u8', this.fakeVhs);
 
         this.loader.load();

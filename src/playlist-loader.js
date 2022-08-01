@@ -395,11 +395,11 @@ export default class PlaylistLoader extends EventTarget {
 
     this.customTagParsers = (vhsOptions && vhsOptions.customTagParsers) || [];
     this.customTagMappers = (vhsOptions && vhsOptions.customTagMappers) || [];
-    this.experimentalLLHLS = (vhsOptions && vhsOptions.experimentalLLHLS) || false;
+    this.llhls = (vhsOptions && vhsOptions.llhls) || false;
 
-    // force experimentalLLHLS for IE 11
+    // force llhls for IE 11
     if (videojs.browser.IE_VERSION) {
-      this.experimentalLLHLS = false;
+      this.llhls = false;
     }
 
     // initialize the loader state
@@ -419,7 +419,7 @@ export default class PlaylistLoader extends EventTarget {
 
     let uri = resolveUrl(this.main.uri, media.uri);
 
-    if (this.experimentalLLHLS) {
+    if (this.llhls) {
       uri = addLLHLSQueryDirectives(uri, media);
     }
     this.state = 'HAVE_CURRENT_METADATA';
@@ -477,7 +477,7 @@ export default class PlaylistLoader extends EventTarget {
       manifestString,
       customTagParsers: this.customTagParsers,
       customTagMappers: this.customTagMappers,
-      experimentalLLHLS: this.experimentalLLHLS
+      llhls: this.llhls
     });
   }
 

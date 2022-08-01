@@ -1048,7 +1048,7 @@ QUnit.module('Playlist', function() {
     assert.ok(Playlist.isAes(media), 'media is an AES encrypted HLS stream');
   });
 
-  ['experimentalExactManifestTimings', ''].forEach((key) => {
+  ['exactManifestTimings', ''].forEach((key) => {
     QUnit.module(`Media Index For Time ${key}`, {
       beforeEach(assert) {
         this.env = useFakeEnvironment(assert);
@@ -1058,7 +1058,7 @@ QUnit.module('Playlist', function() {
           xhr: xhrFactory()
         };
 
-        const experiment = {experimentalExactManifestTimings: key === 'experimentalExactManifestTimings'};
+        const experiment = {exactManifestTimings: key === 'exactManifestTimings'};
 
         this.getMediaInfoForTime = (overrides) => {
           return Playlist.getMediaInfoForTime(merge(this.defaults, overrides, experiment));
@@ -1465,7 +1465,7 @@ QUnit.module('Playlist', function() {
 
     if (!videojs.browser.IE_VERSION) {
       QUnit.test('can return a partIndex', function(assert) {
-        this.fakeVhs.options_ = {experimentalLLHLS: true};
+        this.fakeVhs.options_ = {llhls: true};
         const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
 
         loader.load();
