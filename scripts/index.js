@@ -513,7 +513,6 @@
     });
 
     [
-      'buffer-water',
       'llhls',
     ].forEach(function(name) {
       stateEls[name].checked = true
