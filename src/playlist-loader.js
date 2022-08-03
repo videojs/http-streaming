@@ -395,12 +395,7 @@ export default class PlaylistLoader extends EventTarget {
 
     this.customTagParsers = (vhsOptions && vhsOptions.customTagParsers) || [];
     this.customTagMappers = (vhsOptions && vhsOptions.customTagMappers) || [];
-    this.llhls = (vhsOptions && vhsOptions.llhls) || false;
-
-    // force llhls for IE 11
-    if (videojs.browser.IE_VERSION) {
-      this.llhls = false;
-    }
+    this.llhls = (vhsOptions && vhsOptions.llhls) || true;
 
     // initialize the loader state
     this.state = 'HAVE_NOTHING';

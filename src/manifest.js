@@ -34,7 +34,7 @@ export const parseManifest = ({
   manifestString,
   customTagParsers = [],
   customTagMappers = [],
-  llhls = true
+  llhls
 }) => {
   const parser = new M3u8Parser();
 
