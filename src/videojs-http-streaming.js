@@ -597,7 +597,7 @@ class VhsHandler extends Component {
     this.options_.customTagParsers = this.options_.customTagParsers || [];
     this.options_.customTagMappers = this.options_.customTagMappers || [];
     this.options_.cacheEncryptionKeys = this.options_.cacheEncryptionKeys || false;
-    this.options_.llhls = this.options_.llhls === false ? false : true;
+    this.options_.llhls = Boolean(this.options_.llhls);
 
     if (typeof this.options_.playlistExclusionDuration !== 'number') {
       this.options_.playlistExclusionDuration = 5 * 60;

@@ -395,7 +395,7 @@ export default class PlaylistLoader extends EventTarget {
 
     this.customTagParsers = (vhsOptions && vhsOptions.customTagParsers) || [];
     this.customTagMappers = (vhsOptions && vhsOptions.customTagMappers) || [];
-    this.llhls = (vhsOptions && vhsOptions.llhls) || false;
+    this.llhls = (vhsOptions && vhsOptions.llhls);
 
     // initialize the loader state
     this.state = 'HAVE_NOTHING';
