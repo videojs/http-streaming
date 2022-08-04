@@ -23,7 +23,7 @@ export const createPlaylistID = (index, uri) => {
  *        An array of custom tag parsers for the m3u8-parser instance
  * @param {Object[]} [customTagMappers]
  *        An array of custom tag mappers for the m3u8-parser instance
- * @param {boolean} [llhls=true]
+ * @param {boolean} [llhls]
  *        Whether to keep ll-hls features in the manifest after parsing.
  * @return {Object}
  *         The manifest object
