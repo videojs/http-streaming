@@ -4617,7 +4617,7 @@ QUnit.test('configures eme for HLS on source buffer creation', function(assert) 
   }, 'set source eme options');
 });
 
-QUnit.only('eme handles keystatuschange where status is output-restricted', function(assert) {
+QUnit.test('eme handles keystatuschange where status is output-restricted', function(assert) {
   const originalWarn = videojs.log.warn;
   let warning = '';
   let qualitySwitches = 0;
