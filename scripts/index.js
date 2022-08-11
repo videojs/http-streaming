@@ -513,16 +513,16 @@
     });
 
     [
-      'llhls',
+      'llhls'
     ].forEach(function(name) {
-      stateEls[name].checked = true
+      stateEls[name].checked = true;
     });
 
     [
       'exact-manifest-timings',
       'pixel-diff-selector'
     ].forEach(function(name) {
-      stateEls[name].checked = false
+      stateEls[name].checked = false;
     });
 
     stateEls.debug.addEventListener('change', function(event) {
