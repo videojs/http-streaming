@@ -4676,7 +4676,7 @@ QUnit.test('eme handles keystatuschange where status is output-restricted', func
     media: () => playlists[0]
   };
 
-  this.player.tech_.vhs.masterPlaylistController_.media = () => {
+  this.player.tech_.vhs.masterPlaylistController_.master = () => {
     return {
       playlists
     };
