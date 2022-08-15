@@ -4696,8 +4696,9 @@ QUnit.test('eme handles keystatuschange where status is output-restricted', func
   assert.equal(
     warning,
     'DRM keystatus changed to "output-restricted." Removing the following HD playlists ' +
-    'that will most likely fail to play and clearing already buffered HD segments. ' +
-    'Check for HDCP content.' + [playlists[0], playlists[1]].join('')
+    'that will most likely fail to play and clearing the buffer. ' +
+    'This may be due to HDCP restrictions on the stream and the capabilities of the current device.' +
+    [playlists[0], playlists[1]].join('')
   );
 
   videojs.log.warn = originalWarn;

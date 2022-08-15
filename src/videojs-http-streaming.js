@@ -1067,7 +1067,7 @@ class VhsHandler extends Component {
 
       const masterPlaylist = this.masterPlaylistController_.master();
 
-      if (masterPlaylist && masterPlaylist.playlists) {
+      if (!masterPlaylist || !masterPlaylist.playlists) {
         return;
       }
 
