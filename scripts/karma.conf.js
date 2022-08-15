@@ -14,9 +14,6 @@ module.exports = function(config) {
       });
     },
     files(defaults) {
-      defaults.unshift('node_modules/es5-shim/es5-shim.js');
-      defaults.unshift('node_modules/es6-shim/es6-shim.js');
-
       defaults.splice(
         defaults.indexOf('node_modules/video.js/dist/video.js'),
         1,
@@ -26,9 +23,6 @@ module.exports = function(config) {
       return defaults;
     },
     browserstackLaunchers(defaults) {
-      delete defaults.bsSafariMojave;
-      delete defaults.bsSafariElCapitan;
-
       // do not run on browserstack for coverage
       if (CI_TEST_TYPE === 'coverage') {
         defaults = {};

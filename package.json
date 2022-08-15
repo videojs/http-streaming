@@ -73,8 +73,6 @@
     "@videojs/generator-helpers": "~3.1.0",
     "bootstrap": "^5.1.0",
     "d3": "^3.4.8",
-    "es5-shim": "^4.5.13",
-    "es6-shim": "^0.35.5",
     "jsdoc": "~3.6.6",
     "karma": "^5.2.3",
     "lodash": "^4.17.4",
@@ -88,7 +86,7 @@
     "videojs-contrib-eme": "^3.8.1",
     "videojs-contrib-quality-levels": "^2.0.4",
     "videojs-generate-karma-config": "^8.0.1",
-    "videojs-generate-rollup-config": "^6.2.2",
+    "videojs-generate-rollup-config": "^7.0.0",
     "videojs-generator-verify": "~3.0.1",
     "videojs-http-source-selector": "^1.1.6",
     "videojs-standard": "^9.0.0"
@@ -96,10 +94,6 @@
   "generator-videojs-plugin": {
     "version": "7.6.3"
   },
-  "browserslist": [
-    "defaults",
-    "ie 11"
-  ],
   "engines": {
     "node": ">=8",
     "npm": ">=5"
