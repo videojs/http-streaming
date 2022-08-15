@@ -62,10 +62,10 @@
     "m3u8-parser": "4.7.1",
     "mpd-parser": "0.21.1",
     "mux.js": "6.0.1",
-    "video.js": "^6 || ^7"
+    "video.js": "^7 || ^8"
   },
   "peerDependencies": {
-    "video.js": "^6 || ^7"
+    "video.js": "^7 || ^8"
   },
   "devDependencies": {
     "@rollup/plugin-replace": "^2.3.4",
