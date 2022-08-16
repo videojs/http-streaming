@@ -260,7 +260,7 @@ export class PlaylistController extends videojs.EventTarget {
     // should be used, but also covers the case where the provided src is a vhs-json
     // manifest object (instead of a URL). In the case of vhs-json, the default
     // PlaylistLoader should be used.
-    this.masterPlaylistLoader_ = this.sourceType_ === 'dash' ?
+    this.mainPlaylistLoader_ = this.sourceType_ === 'dash' ?
       new DashPlaylistLoader(src, this.vhs_, this.requestOptions_) :
       new PlaylistLoader(src, this.vhs_, this.requestOptions_);
     this.setupMasterPlaylistLoaderListeners_();
@@ -288,7 +288,7 @@ export class PlaylistController extends videojs.EventTarget {
     this.setupSegmentLoaderListeners_();
 
     if (this.experimentalBufferBasedABR) {
-      this.masterPlaylistLoader_.one('loadedplaylist', () => this.startABRTimer_());
+      this.mainPlaylistLoader_.one('loadedplaylist', () => this.startABRTimer_());
       this.tech_.on('pause', () => this.stopABRTimer_());
       this.tech_.on('play', () => this.startABRTimer_());
     }
@@ -311,12 +311,12 @@ export class PlaylistController extends videojs.EventTarget {
     if (this.tech_.preload() === 'none') {
       this.loadOnPlay_ = () => {
         this.loadOnPlay_ = null;
-        this.masterPlaylistLoader_.load();
+        this.mainPlaylistLoader_.load();
       };
 
       this.tech_.one('play', this.loadOnPlay_);
     } else {
-      this.masterPlaylistLoader_.load();
+      this.mainPlaylistLoader_.load();
     }
 
     this.timeToLoadedData__ = -1;
@@ -383,7 +383,7 @@ export class PlaylistController extends videojs.EventTarget {
       this.logger_(`switch media ${oldId} -> ${newId} from ${cause}`);
       this.tech_.trigger({type: 'usage', name: `vhs-rendition-change-${cause}`});
     }
-    this.masterPlaylistLoader_.media(playlist, delay);
+    this.mainPlaylistLoader_.media(playlist, delay);
   }
 
   /**
@@ -493,13 +493,13 @@ export class PlaylistController extends videojs.EventTarget {
    * @private
    */
   setupMasterPlaylistLoaderListeners_() {
-    this.masterPlaylistLoader_.on('loadedmetadata', () => {
-      const media = this.masterPlaylistLoader_.media();
+    this.mainPlaylistLoader_.on('loadedmetadata', () => {
+      const media = this.mainPlaylistLoader_.media();
       const requestTimeout = (media.targetDuration * 1.5) * 1000;
 
       // If we don't have any more available playlists, we don't want to
       // timeout the request.
-      if (isLowestEnabledRendition(this.masterPlaylistLoader_.main, this.masterPlaylistLoader_.media())) {
+      if (isLowestEnabledRendition(this.mainPlaylistLoader_.main, this.mainPlaylistLoader_.media())) {
         this.requestOptions_.timeout = 0;
       } else {
         this.requestOptions_.timeout = requestTimeout;
@@ -521,7 +521,7 @@ export class PlaylistController extends videojs.EventTarget {
         },
         tech: this.tech_,
         requestOptions: this.requestOptions_,
-        masterPlaylistLoader: this.masterPlaylistLoader_,
+        mainPlaylistLoader: this.mainPlaylistLoader_,
         vhs: this.vhs_,
         main: this.master(),
         mediaTypes: this.mediaTypes_,
@@ -545,11 +545,11 @@ export class PlaylistController extends videojs.EventTarget {
 
     });
 
-    this.masterPlaylistLoader_.on('loadedplaylist', () => {
+    this.mainPlaylistLoader_.on('loadedplaylist', () => {
       if (this.loadOnPlay_) {
         this.tech_.off('play', this.loadOnPlay_);
       }
-      let updatedPlaylist = this.masterPlaylistLoader_.media();
+      let updatedPlaylist = this.mainPlaylistLoader_.media();
 
       if (!updatedPlaylist) {
         // exclude any variants that are not supported by the browser before selecting
@@ -591,22 +591,22 @@ export class PlaylistController extends videojs.EventTarget {
       this.handleUpdatedMediaPlaylist(updatedPlaylist);
     });
 
-    this.masterPlaylistLoader_.on('error', () => {
-      this.excludePlaylist(this.masterPlaylistLoader_.error);
+    this.mainPlaylistLoader_.on('error', () => {
+      this.excludePlaylist(this.mainPlaylistLoader_.error);
     });
 
-    this.masterPlaylistLoader_.on('mediachanging', () => {
+    this.mainPlaylistLoader_.on('mediachanging', () => {
       this.mainSegmentLoader_.abort();
       this.mainSegmentLoader_.pause();
     });
 
-    this.masterPlaylistLoader_.on('mediachange', () => {
-      const media = this.masterPlaylistLoader_.media();
+    this.mainPlaylistLoader_.on('mediachange', () => {
+      const media = this.mainPlaylistLoader_.media();
       const requestTimeout = (media.targetDuration * 1.5) * 1000;
 
       // If we don't have any more available playlists, we don't want to
       // timeout the request.
-      if (isLowestEnabledRendition(this.masterPlaylistLoader_.main, this.masterPlaylistLoader_.media())) {
+      if (isLowestEnabledRendition(this.mainPlaylistLoader_.main, this.mainPlaylistLoader_.media())) {
         this.requestOptions_.timeout = 0;
       } else {
         this.requestOptions_.timeout = requestTimeout;
@@ -626,8 +626,8 @@ export class PlaylistController extends videojs.EventTarget {
       });
     });
 
-    this.masterPlaylistLoader_.on('playlistunchanged', () => {
-      const updatedPlaylist = this.masterPlaylistLoader_.media();
+    this.mainPlaylistLoader_.on('playlistunchanged', () => {
+      const updatedPlaylist = this.mainPlaylistLoader_.media();
 
       // ignore unchanged playlists that have already been
       // excluded for not-changing. We likely just have a really slowly updating
@@ -652,10 +652,10 @@ export class PlaylistController extends videojs.EventTarget {
       }
     });
 
-    this.masterPlaylistLoader_.on('renditiondisabled', () => {
+    this.mainPlaylistLoader_.on('renditiondisabled', () => {
       this.tech_.trigger({type: 'usage', name: 'vhs-rendition-disabled'});
     });
-    this.masterPlaylistLoader_.on('renditionenabled', () => {
+    this.mainPlaylistLoader_.on('renditionenabled', () => {
       this.tech_.trigger({type: 'usage', name: 'vhs-rendition-enabled'});
     });
   }
@@ -735,8 +735,8 @@ export class PlaylistController extends videojs.EventTarget {
   }
 
   shouldSwitchToMedia_(nextPlaylist) {
-    const currentPlaylist = this.masterPlaylistLoader_.media() ||
-      this.masterPlaylistLoader_.pendingMedia_;
+    const currentPlaylist = this.mainPlaylistLoader_.media() ||
+      this.mainPlaylistLoader_.pendingMedia_;
     const currentTime = this.tech_.currentTime();
     const bufferLowWaterLine = this.bufferLowWaterLine();
     const bufferHighWaterLine = this.bufferHighWaterLine();
@@ -886,7 +886,7 @@ export class PlaylistController extends videojs.EventTarget {
    * @private
    */
   fastQualityChange_(media = this.selectPlaylist()) {
-    if (media === this.masterPlaylistLoader_.media()) {
+    if (media === this.mainPlaylistLoader_.media()) {
       this.logger_('skipping fastQualityChange because new media is same as old');
       return;
     }
@@ -944,7 +944,7 @@ export class PlaylistController extends videojs.EventTarget {
    * player and video are loaded and initialized.
    */
   setupFirstPlay() {
-    const media = this.masterPlaylistLoader_.media();
+    const media = this.mainPlaylistLoader_.media();
 
     // Check that everything is ready to begin buffering for the first call to play
     //  If 1) there is no active media
@@ -1136,7 +1136,7 @@ export class PlaylistController extends videojs.EventTarget {
     // the playlist we were trying to load (but failed) and that should be
     // excluded instead of the currently selected playlist which is likely
     // out-of-date in this scenario
-    const playlistToExclude = error.playlist || this.masterPlaylistLoader_.media();
+    const playlistToExclude = error.playlist || this.mainPlaylistLoader_.media();
 
     playlistExclusionDuration = playlistExclusionDuration ||
                         error.playlistExclusionDuration ||
@@ -1158,7 +1158,7 @@ export class PlaylistController extends videojs.EventTarget {
 
     playlistToExclude.playlistErrors_++;
 
-    const playlists = this.masterPlaylistLoader_.main.playlists;
+    const playlists = this.mainPlaylistLoader_.main.playlists;
     const enabledPlaylists = playlists.filter(isEnabled);
     const isFinalRendition = enabledPlaylists.length === 1 && enabledPlaylists[0] === playlistToExclude;
 
@@ -1170,7 +1170,7 @@ export class PlaylistController extends videojs.EventTarget {
 
       this.tech_.trigger('retryplaylist');
       // if this is a final rendition, we should delay
-      return this.masterPlaylistLoader_.load(isFinalRendition);
+      return this.mainPlaylistLoader_.load(isFinalRendition);
     }
 
     if (isFinalRendition) {
@@ -1287,7 +1287,7 @@ export class PlaylistController extends videojs.EventTarget {
     const dontFilterPlaylist = filter === 'all';
 
     if (dontFilterPlaylist || filter === 'main') {
-      loaders.push(this.masterPlaylistLoader_);
+      loaders.push(this.mainPlaylistLoader_);
     }
 
     const mediaTypes = [];
@@ -1334,14 +1334,14 @@ export class PlaylistController extends videojs.EventTarget {
   setCurrentTime(currentTime) {
     const buffered = Ranges.findRange(this.tech_.buffered(), currentTime);
 
-    if (!(this.masterPlaylistLoader_ && this.masterPlaylistLoader_.media())) {
+    if (!(this.mainPlaylistLoader_ && this.mainPlaylistLoader_.media())) {
       // return immediately if the metadata is not ready yet
       return 0;
     }
 
     // it's clearly an edge-case but don't thrown an error if asked to
     // seek within an empty playlist
-    if (!this.masterPlaylistLoader_.media().segments) {
+    if (!this.mainPlaylistLoader_.media().segments) {
       return 0;
     }
 
@@ -1373,11 +1373,11 @@ export class PlaylistController extends videojs.EventTarget {
    * @return {TimeRange} the duration
    */
   duration() {
-    if (!this.masterPlaylistLoader_) {
+    if (!this.mainPlaylistLoader_) {
       return 0;
     }
 
-    const media = this.masterPlaylistLoader_.media();
+    const media = this.mainPlaylistLoader_.media();
 
     if (!media) {
       // no playlists loaded yet, so can't determine a duration
@@ -1439,11 +1439,11 @@ export class PlaylistController extends videojs.EventTarget {
     //
     // For now, fall back to the older behavior, with the understanding that the seekable
     // range may not be completely correct, leading to a suboptimal initial live point.
-    if (!this.masterPlaylistLoader_) {
+    if (!this.mainPlaylistLoader_) {
       return;
     }
 
-    let media = this.masterPlaylistLoader_.media();
+    let media = this.mainPlaylistLoader_.media();
 
     if (!media) {
       return;
@@ -1456,7 +1456,7 @@ export class PlaylistController extends videojs.EventTarget {
       return;
     }
 
-    const master = this.masterPlaylistLoader_.main;
+    const master = this.mainPlaylistLoader_.main;
     const mainSeekable = Vhs.Playlist.seekable(
       media,
       expired,
@@ -1575,7 +1575,7 @@ export class PlaylistController extends videojs.EventTarget {
     }
 
     const buffered = this.tech_.buffered();
-    let duration = Vhs.Playlist.duration(this.masterPlaylistLoader_.media());
+    let duration = Vhs.Playlist.duration(this.mainPlaylistLoader_.media());
 
     if (buffered.length > 0) {
       duration = Math.max(duration, buffered.end(buffered.length - 1));
@@ -1593,7 +1593,7 @@ export class PlaylistController extends videojs.EventTarget {
   dispose() {
     this.trigger('dispose');
     this.decrypter_.terminate();
-    this.masterPlaylistLoader_.dispose();
+    this.mainPlaylistLoader_.dispose();
     this.mainSegmentLoader_.dispose();
 
     if (this.loadOnPlay_) {
@@ -1637,7 +1637,7 @@ export class PlaylistController extends videojs.EventTarget {
    * @return {Object} the master playlist object that we parsed
    */
   master() {
-    return this.masterPlaylistLoader_.main;
+    return this.mainPlaylistLoader_.main;
   }
 
   /**
@@ -1647,7 +1647,7 @@ export class PlaylistController extends videojs.EventTarget {
    */
   media() {
     // playlist loader will not return media if it has not been fully loaded
-    return this.masterPlaylistLoader_.media() || this.initialMedia_;
+    return this.mainPlaylistLoader_.media() || this.initialMedia_;
   }
 
   areMediaTypesKnown_() {
@@ -1894,7 +1894,7 @@ export class PlaylistController extends videojs.EventTarget {
       const exclusionReasons = [];
 
       // get codecs from the playlist for this variant
-      const variantCodecs = codecsForPlaylist(this.masterPlaylistLoader_.main, variant);
+      const variantCodecs = codecsForPlaylist(this.mainPlaylistLoader_.main, variant);
       const variantCodecCount = codecCount(variantCodecs);
 
       // if no codecs are listed, we cannot determine that this

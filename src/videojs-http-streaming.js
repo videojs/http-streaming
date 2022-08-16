@@ -719,7 +719,7 @@ class VhsHandler extends Component {
       Vhs.INITIAL_PLAYLIST_SELECTOR.bind(this);
 
     // re-expose some internal objects for backwards compatibility with < v2
-    this.playlists = this.playlistController_.masterPlaylistLoader_;
+    this.playlists = this.playlistController_.mainPlaylistLoader_;
     this.mediaSource = this.playlistController_.mediaSource;
 
     // Proxy assignment of some properties to the master playlist

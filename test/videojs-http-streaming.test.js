@@ -1790,7 +1790,7 @@ QUnit.test('excludes fmp4 playlists by browser support', function(assert) {
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  const playlistLoader = pc.masterPlaylistLoader_;
+  const playlistLoader = pc.mainPlaylistLoader_;
   const loader = pc.mainSegmentLoader_;
   const main = this.player.tech_.vhs.playlists.main;
 
@@ -1863,7 +1863,7 @@ QUnit.test('excludes ts playlists by muxer support', function(assert) {
   this.standardXHRResponse(this.requests.shift());
 
   const pc = this.player.tech_.vhs.playlistController_;
-  const playlistLoader = pc.masterPlaylistLoader_;
+  const playlistLoader = pc.mainPlaylistLoader_;
   const loader = pc.mainSegmentLoader_;
   const main = this.player.tech_.vhs.playlists.main;
 
@@ -2332,7 +2332,7 @@ QUnit.test('fire loadedmetadata once we successfully load a playlist', function(
   const vhs = this.player.tech_.vhs;
 
   vhs.bandwidth = 20000;
-  vhs.playlistController_.masterPlaylistLoader_.on('loadedmetadata', function() {
+  vhs.playlistController_.mainPlaylistLoader_.on('loadedmetadata', function() {
     count += 1;
   });
   // main
@@ -3903,7 +3903,7 @@ QUnit.test('when mediaGroup changes enabled track should not change', function(a
   // clear out any outstanding requests
   this.requests.length = 0;
   // force pc to select a playlist from a new media group
-  pc.masterPlaylistLoader_.media(pc.master().playlists[0]);
+  pc.mainPlaylistLoader_.media(pc.master().playlists[0]);
   this.clock.tick(1);
 
   // video media
@@ -3933,7 +3933,7 @@ QUnit.test('when mediaGroup changes enabled track should not change', function(a
   this.requests.length = 0;
   // swap back to the old media group
   // this playlist is already loaded so no new requests are made
-  pc.masterPlaylistLoader_.media(pc.master().playlists[3]);
+  pc.mainPlaylistLoader_.media(pc.master().playlists[3]);
   this.clock.tick(1);
 
   assert.notEqual(

@@ -717,7 +717,7 @@ QUnit.test('constructor sets srcUrl and other properties', function(assert) {
 
   assert.strictEqual(loader.state, 'HAVE_NOTHING', 'correct state');
   assert.deepEqual(loader.loadedPlaylists_, {}, 'correct loadedPlaylist state');
-  assert.equal(loader.masterPlaylistLoader_, loader, 'masterPlaylistLoader should be self');
+  assert.equal(loader.mainPlaylistLoader_, loader, 'mainPlaylistLoader should be self');
   assert.ok(loader.isMain_, 'should be set as main');
   assert.notOk(loader.childPlaylist_, 'should be no childPlaylist_');
   assert.strictEqual(loader.srcUrl, 'dash.mpd', 'set the srcUrl');
@@ -726,8 +726,8 @@ QUnit.test('constructor sets srcUrl and other properties', function(assert) {
 
   assert.strictEqual(childLoader.state, 'HAVE_NOTHING', 'correct state');
   assert.deepEqual(childLoader.loadedPlaylists_, {}, 'correct loadedPlaylist state');
-  assert.ok(childLoader.masterPlaylistLoader_, 'should be a masterPlaylistLoader');
-  assert.notEqual(childLoader.masterPlaylistLoader_, childLoader, 'should not be a masterPlaylistLoader');
+  assert.ok(childLoader.mainPlaylistLoader_, 'should be a mainPlaylistLoader');
+  assert.notEqual(childLoader.mainPlaylistLoader_, childLoader, 'should not be a mainPlaylistLoader');
   assert.notOk(childLoader.isMain_, 'should not be main');
   assert.deepEqual(
     childLoader.childPlaylist_, {},
@@ -1934,14 +1934,14 @@ QUnit.test('addSidxSegments_: updates main with sidx information', function(asse
     }
   };
 
-  loader.masterPlaylistLoader_.main = {
+  loader.mainPlaylistLoader_.main = {
     playlists: {
       0: fakePlaylist,
       fakeplaylist: fakePlaylist
     }
   };
   const stubDone = sinon.stub();
-  const sidxMapping = loader.masterPlaylistLoader_.sidxMapping_;
+  const sidxMapping = loader.mainPlaylistLoader_.sidxMapping_;
 
   assert.deepEqual(sidxMapping, {}, 'no sidx mapping');
   loader.addSidxSegments_(fakePlaylist, 'HAVE_MAIN_MANIFEST', stubDone);
@@ -1978,7 +1978,7 @@ QUnit.test('addSidxSegments_: errors if request for sidx fails', function(assert
     }
   };
   const stubDone = sinon.stub();
-  const sidxMapping = loader.masterPlaylistLoader_.sidxMapping_;
+  const sidxMapping = loader.mainPlaylistLoader_.sidxMapping_;
   let errors = 0;
 
   assert.deepEqual(sidxMapping, {}, 'no sidx mapping');
