@@ -609,9 +609,9 @@ export default class DashPlaylistLoader extends EventTarget {
       this.masterPlaylistLoader_.mainXml_ = req.responseText;
 
       if (req.responseHeaders && req.responseHeaders.date) {
-        this.masterLoaded_ = Date.parse(req.responseHeaders.date);
+        this.mainLoaded_ = Date.parse(req.responseHeaders.date);
       } else {
-        this.masterLoaded_ = Date.now();
+        this.mainLoaded_ = Date.now();
       }
 
       this.masterPlaylistLoader_.srcUrl = resolveManifestRedirect(this.masterPlaylistLoader_.srcUrl, req);
@@ -642,7 +642,7 @@ export default class DashPlaylistLoader extends EventTarget {
     // No UTCTiming element found in the mpd. Use Date header from mpd request as the
     // server clock
     if (utcTiming === null) {
-      this.masterPlaylistLoader_.clientOffset_ = this.masterLoaded_ - Date.now();
+      this.masterPlaylistLoader_.clientOffset_ = this.mainLoaded_ - Date.now();
       return done();
     }
 
@@ -664,7 +664,7 @@ export default class DashPlaylistLoader extends EventTarget {
       if (error) {
         // sync request failed, fall back to using date header from mpd
         // TODO: log warning
-        this.masterPlaylistLoader_.clientOffset_ = this.masterLoaded_ - Date.now();
+        this.masterPlaylistLoader_.clientOffset_ = this.mainLoaded_ - Date.now();
         return done();
       }
 
@@ -674,7 +674,7 @@ export default class DashPlaylistLoader extends EventTarget {
         if (!req.responseHeaders || !req.responseHeaders.date) {
           // expected date header not preset, fall back to using date header from mpd
           // TODO: log warning
-          serverTime = this.masterLoaded_;
+          serverTime = this.mainLoaded_;
         } else {
           serverTime = Date.parse(req.responseHeaders.date);
         }
