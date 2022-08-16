@@ -561,14 +561,14 @@ QUnit.test('filterChangedSidxMappings: removes change sidx info from mapping', f
 
   let masterXml = loader.masterXml_.replace(/(indexRange)=\"\d+-\d+\"/, '$1="201-400"');
   // should change the video playlist
-  let newMaster = parseMasterXml({
+  let newMain = parseMasterXml({
     masterXml,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_
   });
 
   newSidxMapping = filterChangedSidxMappings(
-    newMaster,
+    newMain,
     loader.sidxMapping_
   );
   const newVideoKey = `${playlists['0-placeholder-uri-0'].sidx.uri}-201-400`;
@@ -588,13 +588,13 @@ QUnit.test('filterChangedSidxMappings: removes change sidx info from mapping', f
 
   // should change the English audio group
   masterXml = loader.masterXml_.replace(/(indexRange)=\"\d+-\d+\"/g, '$1="201-400"');
-  newMaster = parseMasterXml({
+  newMain = parseMasterXml({
     masterXml,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_
   });
   newSidxMapping = filterChangedSidxMappings(
-    newMaster,
+    newMain,
     loader.sidxMapping_
   );
   assert.notOk(
@@ -1531,7 +1531,7 @@ QUnit.test('refreshMedia: updates main and media playlists for main loader', fun
     playlistUnchanged++;
   });
 
-  const oldMaster = loader.main;
+  const oldMain = loader.main;
 
   // Two seconds later in wall clock should mean one more segment added to ensure the
   // refresh represents a change. Although four seconds is the minimumUpdatePeriod, since
@@ -1539,7 +1539,7 @@ QUnit.test('refreshMedia: updates main and media playlists for main loader', fun
   // seconds.
   this.clock.tick(2 * 1000);
 
-  assert.notEqual(loader.main, oldMaster, 'new main set');
+  assert.notEqual(loader.main, oldMain, 'new main set');
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist');
   assert.strictEqual(playlistUnchanged, 0, 'no playlistunchanged');
 });
@@ -1576,10 +1576,10 @@ QUnit.test('refreshMedia: triggers playlistunchanged for main loader' +
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylists');
   assert.strictEqual(playlistUnchanged, 1, 'one playlistunchanged');
 
-  const newmain = loader.main;
+  const newMain = loader.main;
   const newMedia = loader.media();
 
-  assert.equal(main, newmain, 'main is unchanged');
+  assert.equal(main, newMain, 'main is unchanged');
   assert.equal(media, newMedia, 'media is unchanged');
 });
 
@@ -1611,7 +1611,7 @@ QUnit.test('refreshMedia: updates main and media playlists for child loader', fu
     playlistUnchanged++;
   });
 
-  const oldMaster = loader.main;
+  const oldMain = loader.main;
 
   // Two seconds later in wall clock should mean one more segment added to ensure the
   // refresh represents a change. Although four seconds is the minimumUpdatePeriod, since
@@ -1619,7 +1619,7 @@ QUnit.test('refreshMedia: updates main and media playlists for child loader', fu
   // seconds.
   this.clock.tick(2 * 1000);
 
-  assert.notEqual(loader.main, oldMaster, 'new main set on main loader');
+  assert.notEqual(loader.main, oldMain, 'new main set on main loader');
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist');
   assert.strictEqual(playlistUnchanged, 0, 'no playlistunchanged');
 });
@@ -1678,23 +1678,23 @@ QUnit.test('refreshXml_: requests the sidx if it changed', function(assert) {
   this.standardXHRResponse(this.requests.shift());
   assert.strictEqual(this.requests.length, 1, 'made a sidx request');
 
-  const oldMaster = parseMasterXml({
+  const oldMain = parseMasterXml({
     masterXml: loader.masterXml_,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_,
     sidxMapping: loader.sidxMapping_
   });
-  const newMasterXml = loader.masterXml_.replace(/(indexRange)=\"\d+-\d+\"/g, '$1="400-599"');
+  const newMainXml = loader.masterXml_.replace(/(indexRange)=\"\d+-\d+\"/g, '$1="400-599"');
 
-  loader.masterXml_ = newMasterXml;
+  loader.masterXml_ = newMainXml;
   assert.deepEqual(
-    oldMaster.playlists[0].sidx.byterange, {
+    oldMain.playlists[0].sidx.byterange, {
       offset: 200,
       length: 200
     },
     'sidx is the original in the xml'
   );
-  let newMaster = parseMasterXml({
+  let newMain = parseMasterXml({
     masterXml: loader.masterXml_,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_,
@@ -1702,21 +1702,21 @@ QUnit.test('refreshXml_: requests the sidx if it changed', function(assert) {
   });
 
   assert.notEqual(
-    newMaster.playlists[0].sidx.byterange.offset,
-    oldMaster.playlists[0].sidx.byterange.offset,
+    newMain.playlists[0].sidx.byterange.offset,
+    oldMain.playlists[0].sidx.byterange.offset,
     'the sidx has been changed'
   );
   loader.refreshXml_();
 
   assert.strictEqual(this.requests.length, 2, 'manifest is being requested');
-  newMaster = parseMasterXml({
+  newMain = parseMasterXml({
     masterXml: loader.masterXml_,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_,
     sidxMapping: loader.sidxMapping_
   });
   assert.deepEqual(
-    newMaster.playlists[0].sidx.byterange,
+    newMain.playlists[0].sidx.byterange,
     {
       offset: 400,
       length: 200
@@ -1731,9 +1731,9 @@ QUnit.test('refreshXml_: updates media playlist reference if main changed', func
   loader.load();
   this.standardXHRResponse(this.requests.shift());
 
-  const oldMaster = loader.main;
+  const oldMain = loader.main;
   const oldMedia = loader.media();
-  const newMasterXml = loader.masterXml_.replace(
+  const newMainXml = loader.masterXml_.replace(
     'mediaPresentationDuration="PT4S"',
     'mediaPresentationDuration="PT5S"'
   );
@@ -1742,16 +1742,16 @@ QUnit.test('refreshXml_: updates media playlist reference if main changed', func
 
   assert.strictEqual(this.requests.length, 1, 'manifest is being requested');
 
-  this.requests.shift().respond(200, null, newMasterXml);
+  this.requests.shift().respond(200, null, newMainXml);
 
-  const newMaster = loader.main;
+  const newMain = loader.main;
   const newMedia = loader.media();
 
-  assert.notEqual(newMaster, oldMaster, 'main changed');
+  assert.notEqual(newMain, oldMain, 'main changed');
   assert.notEqual(newMedia, oldMedia, 'media changed');
   assert.equal(
     newMedia,
-    newMaster.playlists[newMedia.id],
+    newMain.playlists[newMedia.id],
     'media from updated main'
   );
 });
@@ -1762,11 +1762,11 @@ QUnit.test('refreshXml_: updates playlists if segment uri changed, but media seq
   loader.load();
   this.standardXHRResponse(this.requests.shift());
 
-  const oldMaster = loader.main;
+  const oldMain = loader.main;
   const oldMedia = loader.media();
 
   // change segment uris
-  const newMasterXml = loader.masterXml_
+  const newMainXml = loader.masterXml_
     .replace(/\$RepresentationID\$/g, '$RepresentationID$-foo')
     .replace('media="segment-$Number$.mp4"', 'media="segment-foo$Number$.mp4"');
 
@@ -1774,16 +1774,16 @@ QUnit.test('refreshXml_: updates playlists if segment uri changed, but media seq
 
   assert.strictEqual(this.requests.length, 1, 'manifest is being requested');
 
-  this.requests.shift().respond(200, null, newMasterXml);
+  this.requests.shift().respond(200, null, newMainXml);
 
-  const newMaster = loader.main;
+  const newMain = loader.main;
   const newMedia = loader.media();
 
-  assert.notEqual(newMaster, oldMaster, 'main changed');
+  assert.notEqual(newMain, oldMain, 'main changed');
   assert.notEqual(newMedia, oldMedia, 'media changed');
   assert.equal(
     newMedia,
-    newMaster.playlists[newMedia.id],
+    newMain.playlists[newMedia.id],
     'media from updated main'
   );
 });
@@ -1798,26 +1798,26 @@ QUnit.skip('refreshXml_: updates playlists if sidx changed', function(assert) {
   this.standardXHRResponse(this.requests.shift(), mp4VideoInitSegment().subarray(0, 10));
   this.standardXHRResponse(this.requests.shift(), sidxResponse());
 
-  const oldMaster = loader.main;
+  const oldMain = loader.main;
   const oldMedia = loader.media();
 
-  const newMasterXml = loader.masterXml_
+  const newMainXml = loader.masterXml_
     .replace(/indexRange="200-399"/g, 'indexRange="500-699"');
 
   loader.refreshXml_();
 
   assert.strictEqual(this.requests.length, 1, 'manifest is being requested');
 
-  this.standardXHRResponse(this.requests.shift(), newMasterXml);
+  this.standardXHRResponse(this.requests.shift(), newMainXml);
 
-  const newMaster = loader.main;
+  const newMain = loader.main;
   const newMedia = loader.media();
 
-  assert.notEqual(newMaster, oldMaster, 'main changed');
+  assert.notEqual(newMain, oldMain, 'main changed');
   assert.notEqual(newMedia, oldMedia, 'media changed');
   assert.equal(
     newMedia,
-    newMaster.playlists[newMedia.id],
+    newMain.playlists[newMedia.id],
     'media from updated main'
   );
 });
@@ -1830,26 +1830,26 @@ QUnit.test('refreshXml_: updates playlists if sidx removed', function(assert) {
   this.standardXHRResponse(this.requests.shift(), mp4VideoInitSegment().subarray(0, 10));
   this.standardXHRResponse(this.requests.shift(), sidxResponse());
 
-  const oldMaster = loader.main;
+  const oldMain = loader.main;
   const oldMedia = loader.media();
 
-  const newMasterXml = loader.masterXml_
+  const newMainXml = loader.masterXml_
     .replace(/indexRange="200-399"/g, '');
 
   loader.refreshXml_();
 
   assert.strictEqual(this.requests.length, 1, 'manifest is being requested');
 
-  this.standardXHRResponse(this.requests.shift(), newMasterXml);
+  this.standardXHRResponse(this.requests.shift(), newMainXml);
 
-  const newMaster = loader.main;
+  const newMain = loader.main;
   const newMedia = loader.media();
 
-  assert.notEqual(newMaster, oldMaster, 'main changed');
+  assert.notEqual(newMain, oldMain, 'main changed');
   assert.notEqual(newMedia, oldMedia, 'media changed');
   assert.equal(
     newMedia,
-    newMaster.playlists[newMedia.id],
+    newMain.playlists[newMedia.id],
     'media from updated master'
   );
 });
@@ -1860,26 +1860,26 @@ QUnit.test('refreshXml_: updates playlists if only segment byteranges change', f
   loader.load();
   this.standardXHRResponse(this.requests.shift());
 
-  const oldMaster = loader.main;
+  const oldMain = loader.main;
   const oldMedia = loader.media();
 
-  const newMasterXml = loader.masterXml_
+  const newMainXml = loader.masterXml_
     .replace('mediaRange="12883295-13124492"', 'mediaRange="12883296-13124492"');
 
   loader.refreshXml_();
 
   assert.strictEqual(this.requests.length, 1, 'manifest is being requested');
 
-  this.standardXHRResponse(this.requests.shift(), newMasterXml);
+  this.standardXHRResponse(this.requests.shift(), newMainXml);
 
-  const newMaster = loader.main;
+  const newMain = loader.main;
   const newMedia = loader.media();
 
-  assert.notEqual(newMaster, oldMaster, 'main changed');
+  assert.notEqual(newMain, oldMain, 'main changed');
   assert.notEqual(newMedia, oldMedia, 'media changed');
   assert.equal(
     newMedia,
-    newMaster.playlists[newMedia.id],
+    newMain.playlists[newMedia.id],
     'media from updated main'
   );
 });
@@ -1892,26 +1892,26 @@ QUnit.test('refreshXml_: updates playlists if sidx removed', function(assert) {
   this.standardXHRResponse(this.requests.shift(), mp4VideoInitSegment().subarray(0, 10));
   this.standardXHRResponse(this.requests.shift(), sidxResponse());
 
-  const oldMaster = loader.main;
+  const oldMain = loader.main;
   const oldMedia = loader.media();
 
-  const newMasterXml = loader.masterXml_
+  const newMainXml = loader.masterXml_
     .replace(/indexRange="200-399"/g, '');
 
   loader.refreshXml_();
 
   assert.strictEqual(this.requests.length, 1, 'manifest is being requested');
 
-  this.standardXHRResponse(this.requests.shift(), newMasterXml);
+  this.standardXHRResponse(this.requests.shift(), newMainXml);
 
-  const newMaster = loader.main;
+  const newMain = loader.main;
   const newMedia = loader.media();
 
-  assert.notEqual(newMaster, oldMaster, 'main changed');
+  assert.notEqual(newMain, oldMain, 'main changed');
   assert.notEqual(newMedia, oldMedia, 'media changed');
   assert.equal(
     newMedia,
-    newMaster.playlists[newMedia.id],
+    newMain.playlists[newMedia.id],
     'media from updated main'
   );
 });

@@ -124,26 +124,26 @@ export const parseMasterXml = ({
  * Returns a new main manifest that is the result of merging an updated main manifest
  * into the original version.
  *
- * @param {Object} oldMaster
+ * @param {Object} oldMain
  *        The old parsed mpd object
- * @param {Object} newMaster
+ * @param {Object} newMain
  *        The updated parsed mpd object
  * @return {Object}
  *         A new object representing the original main manifest with the updated media
  *         playlists merged in
  */
-export const updateMain = (oldMaster, newMaster, sidxMapping) => {
+export const updateMain = (oldMain, newMain, sidxMapping) => {
   let noChanges = true;
-  let update = mergeOptions(oldMaster, {
+  let update = mergeOptions(oldMain, {
     // These are top level properties that can be updated
-    duration: newMaster.duration,
-    minimumUpdatePeriod: newMaster.minimumUpdatePeriod,
-    timelineStarts: newMaster.timelineStarts
+    duration: newMain.duration,
+    minimumUpdatePeriod: newMain.minimumUpdatePeriod,
+    timelineStarts: newMain.timelineStarts
   });
 
   // First update the playlists in playlist list
-  for (let i = 0; i < newMaster.playlists.length; i++) {
-    const playlist = newMaster.playlists[i];
+  for (let i = 0; i < newMain.playlists.length; i++) {
+    const playlist = newMain.playlists[i];
 
     if (playlist.sidx) {
       const sidxKey = generateSidxKey(playlist.sidx);
@@ -162,7 +162,7 @@ export const updateMain = (oldMaster, newMaster, sidxMapping) => {
   }
 
   // Then update media group playlists
-  forEachMediaGroup(newMaster, (properties, type, group, label) => {
+  forEachMediaGroup(newMain, (properties, type, group, label) => {
     if (properties.playlists && properties.playlists.length) {
       const id = properties.playlists[0].id;
       const playlistUpdate = updatePlaylist(update, properties.playlists[0], dashPlaylistUnchanged);
@@ -176,7 +176,7 @@ export const updateMain = (oldMaster, newMaster, sidxMapping) => {
     }
   });
 
-  if (newMaster.minimumUpdatePeriod !== oldMaster.minimumUpdatePeriod) {
+  if (newMain.minimumUpdatePeriod !== oldMain.minimumUpdatePeriod) {
     noChanges = false;
   }
 
@@ -706,34 +706,34 @@ export default class DashPlaylistLoader extends EventTarget {
     // clear media request
     this.mediaRequest_ = null;
 
-    const oldMaster = this.masterPlaylistLoader_.main;
+    const oldMain = this.masterPlaylistLoader_.main;
 
-    let newMaster = parseMasterXml({
+    let newMain = parseMasterXml({
       masterXml: this.masterPlaylistLoader_.masterXml_,
       srcUrl: this.masterPlaylistLoader_.srcUrl,
       clientOffset: this.masterPlaylistLoader_.clientOffset_,
       sidxMapping: this.masterPlaylistLoader_.sidxMapping_,
-      previousManifest: oldMaster
+      previousManifest: oldMain
     });
 
     // if we have an old master to compare the new master against
-    if (oldMaster) {
-      newMaster = updateMain(oldMaster, newMaster, this.masterPlaylistLoader_.sidxMapping_);
+    if (oldMain) {
+      newMain = updateMain(oldMain, newMain, this.masterPlaylistLoader_.sidxMapping_);
     }
 
     // only update master if we have a new master
-    this.masterPlaylistLoader_.main = newMaster ? newMaster : oldMaster;
+    this.masterPlaylistLoader_.main = newMain ? newMain : oldMain;
     const location = this.masterPlaylistLoader_.main.locations && this.masterPlaylistLoader_.main.locations[0];
 
     if (location && location !== this.masterPlaylistLoader_.srcUrl) {
       this.masterPlaylistLoader_.srcUrl = location;
     }
 
-    if (!oldMaster || (newMaster && newMaster.minimumUpdatePeriod !== oldMaster.minimumUpdatePeriod)) {
+    if (!oldMain || (newMain && newMain.minimumUpdatePeriod !== oldMain.minimumUpdatePeriod)) {
       this.updateMinimumUpdatePeriodTimeout_();
     }
 
-    return Boolean(newMaster);
+    return Boolean(newMain);
   }
 
   updateMinimumUpdatePeriodTimeout_() {
