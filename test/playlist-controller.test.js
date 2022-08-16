@@ -69,7 +69,7 @@ const sharedHooks = {
     videojs.browser = videojs.mergeOptions({}, videojs.browser);
     this.player = createPlayer(videojs.mergeOptions({}, this.playerOptions));
     this.player.src({
-      src: 'manifest/master.m3u8',
+      src: 'manifest/main.m3u8',
       type: 'application/vnd.apple.mpegurl'
     });
 
@@ -479,7 +479,7 @@ QUnit.test(
     this.player = createPlayer({ html5: { vhs: { enableLowInitialPlaylist: true } } });
 
     this.player.src({
-      src: 'manifest/master.m3u8',
+      src: 'manifest/main.m3u8',
       type: 'application/vnd.apple.mpegurl'
     });
 
@@ -714,7 +714,7 @@ QUnit.test('preload none timeToLoadedData, mediaAppends, appendsToLoadedData sta
   this.player.tech_.preload = () => 'none';
 
   this.player.src({
-    src: 'manifest/master.m3u8',
+    src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -1063,7 +1063,7 @@ QUnit.test(
     this.standardXHRResponse(this.requests.shift(), muxedSegment());
     // change the source
     this.player.src({
-      src: 'manifest/master.m3u8',
+      src: 'manifest/main.m3u8',
       type: 'application/vnd.apple.mpegurl'
     });
 
@@ -1095,7 +1095,7 @@ QUnit.test(
 
     assert.equal(this.requests.length, 1, 'made one request');
     assert.ok(
-      this.requests[0].url.indexOf('master.m3u8') >= 0,
+      this.requests[0].url.indexOf('main.m3u8') >= 0,
       'requested only the new playlist'
     );
   }
@@ -2641,7 +2641,7 @@ QUnit.test('calls to update cues on new media', function(assert) {
   this.player.dispose();
   this.player = createPlayer();
   this.player.src({
-    src: 'manifest/master.m3u8',
+    src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -3156,7 +3156,7 @@ QUnit.test(
     this.player.dispose();
     this.player = createPlayer();
     this.player.src({
-      src: 'manifest/master-captions.m3u8',
+      src: 'manifest/main-captions.m3u8',
       type: 'application/vnd.apple.mpegurl'
     });
 
@@ -3221,7 +3221,7 @@ QUnit.test(
     this.player.dispose();
     this.player = createPlayer();
     this.player.src({
-      src: 'manifest/master-captions.m3u8',
+      src: 'manifest/main-captions.m3u8',
       type: 'application/vnd.apple.mpegurl'
     });
 
@@ -3286,7 +3286,7 @@ QUnit.test('adds subtitle tracks when a media playlist is loaded', function(asse
   this.player.dispose();
   this.player = createPlayer();
   this.player.src({
-    src: 'manifest/master-subtitles.m3u8',
+    src: 'manifest/main-subtitles.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -3349,7 +3349,7 @@ QUnit.test('switches off subtitles on subtitle errors', function(assert) {
   this.player.dispose();
   this.player = createPlayer();
   this.player.src({
-    src: 'manifest/master-subtitles.m3u8',
+    src: 'manifest/main-subtitles.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -3434,7 +3434,7 @@ QUnit.test('pauses subtitle segment loader on tech errors', function(assert) {
   this.player.dispose();
   this.player = createPlayer();
   this.player.src({
-    src: 'manifest/master-subtitles.m3u8',
+    src: 'manifest/main-subtitles.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -3478,7 +3478,7 @@ QUnit.test('disposes subtitle loaders on dispose', function(assert) {
   this.player.dispose();
   this.player = createPlayer();
   this.player.src({
-    src: 'manifest/master-subtitles.m3u8',
+    src: 'manifest/main-subtitles.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -3508,7 +3508,7 @@ QUnit.test('disposes subtitle loaders on dispose', function(assert) {
   this.player.dispose();
   this.player = createPlayer();
   this.player.src({
-    src: 'manifest/master-subtitles.m3u8',
+    src: 'manifest/main-subtitles.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -3563,7 +3563,7 @@ QUnit.test('subtitle segment loader resets on seeks', function(assert) {
   this.player.dispose();
   this.player = createPlayer();
   this.player.src({
-    src: 'manifest/master-subtitles.m3u8',
+    src: 'manifest/main-subtitles.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -3695,7 +3695,7 @@ QUnit.test('creates source buffers after first main segment if muxed content', f
   this.player.dispose();
   this.player = createPlayer();
   this.player.src({
-    src: 'manifest/master.m3u8',
+    src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
   this.clock.tick(1);
@@ -3741,7 +3741,7 @@ QUnit.test('creates source buffers after first main segment if audio only', func
   this.player.dispose();
   this.player = createPlayer();
   this.player.src({
-    src: 'manifest/master.m3u8',
+    src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
   this.clock.tick(1);
@@ -3788,7 +3788,7 @@ QUnit.test('creates source buffers after first main segment if video only', func
   this.player.dispose();
   this.player = createPlayer();
   this.player.src({
-    src: 'manifest/master.m3u8',
+    src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
   this.clock.tick(1);
@@ -3837,7 +3837,7 @@ QUnit.test('creates source buffers after second trackinfo if demuxed', function(
   this.player.dispose();
   this.player = createPlayer();
   this.player.src({
-    src: 'manifest/master.m3u8',
+    src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
   this.clock.tick(1);
@@ -3968,7 +3968,7 @@ QUnit.test('uses codec info from manifest for source buffer creation', function(
   this.player.dispose();
   this.player = createPlayer();
   this.player.src({
-    src: 'manifest/master.m3u8',
+    src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
   this.clock.tick(1);
@@ -4019,7 +4019,7 @@ QUnit.test('translates old-school apple codec strings from manifest to modern st
   this.player.dispose();
   this.player = createPlayer();
   this.player.src({
-    src: 'manifest/master.m3u8',
+    src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
   this.clock.tick(1);
@@ -4069,7 +4069,7 @@ QUnit.test('uses default codec strings when provided are invalid', function(asse
   this.player.dispose();
   this.player = createPlayer();
   this.player.src({
-    src: 'manifest/master.m3u8',
+    src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
   this.clock.tick(1);
@@ -4121,7 +4121,7 @@ QUnit.test('uses codec info from manifest for source buffer creation even when d
   this.player.dispose();
   this.player = createPlayer();
   this.player.src({
-    src: 'manifest/master.m3u8',
+    src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
   this.clock.tick(1);
@@ -4189,7 +4189,7 @@ QUnit.test('uses codec info from manifest for source buffer creation for audio o
   this.player.dispose();
   this.player = createPlayer();
   this.player.src({
-    src: 'manifest/master.m3u8',
+    src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
   this.clock.tick(1);
@@ -4240,7 +4240,7 @@ QUnit.test('uses codec info from manifest for source buffer creation for video o
   this.player.dispose();
   this.player = createPlayer();
   this.player.src({
-    src: 'manifest/master.m3u8',
+    src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
   this.clock.tick(1);
@@ -4294,7 +4294,7 @@ QUnit.test('uses available audio codec info from manifest plus video default for
   this.player.dispose();
   this.player = createPlayer();
   this.player.src({
-    src: 'manifest/master.m3u8',
+    src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
   this.clock.tick(1);
@@ -4349,7 +4349,7 @@ QUnit.test('uses available video codec info from manifest plus audio default for
   this.player.dispose();
   this.player = createPlayer();
   this.player.src({
-    src: 'manifest/master.m3u8',
+    src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
   this.clock.tick(1);
@@ -4456,7 +4456,7 @@ QUnit.test(
     this.player.dispose();
     this.player = createPlayer();
 
-    const manifestObject = parseManifest({ manifestString: manifests.master });
+    const manifestObject = parseManifest({ manifestString: manifests.main });
     const mediaObject = parseManifest({ manifestString: manifests.media });
 
     // prevent warnings for no BANDWIDTH attribute as media playlists within a master
@@ -4465,7 +4465,7 @@ QUnit.test(
 
     manifestObject.playlists = [mediaObject, mediaObject, mediaObject];
     // placeholder master URI
-    addPropertiesToMaster(manifestObject, 'master.m3u8');
+    addPropertiesToMaster(manifestObject, 'main.m3u8');
 
     this.player.src({
       src: `data:application/vnd.videojs.vhs+json,${JSON.stringify(manifestObject)}`,
@@ -4501,7 +4501,7 @@ QUnit.test(
     this.player.dispose();
     this.player = createPlayer();
 
-    const manifestObject = parseManifest({ manifestString: manifests.master });
+    const manifestObject = parseManifest({ manifestString: manifests.main });
 
     this.player.src({
       src: `data:application/vnd.videojs.vhs+json,${JSON.stringify(manifestObject)}`,
@@ -5801,21 +5801,21 @@ QUnit.test('maxPlaylistRetries defaults to Infinity when no value or null/undefi
   const playerNoValue = createPlayer();
 
   playerNull.src({
-    src: 'manifest/master.m3u8',
+    src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
   this.clock.tick(1);
 
   playerUndefined.src({
-    src: 'manifest/master.m3u8',
+    src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
   this.clock.tick(1);
 
   playerNoValue.src({
-    src: 'manifest/master.m3u8',
+    src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -5840,7 +5840,7 @@ QUnit.test('maxPlaylistRetries is set when zero is passed as the option\'s value
   });
 
   player.src({
-    src: 'manifest/master.m3u8',
+    src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 

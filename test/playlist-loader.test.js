@@ -936,7 +936,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   });
 
   QUnit.test('can delay load', function(assert) {
-    const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+    const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
 
     assert.notOk(loader.mediaUpdateTimeout, 'no media update timeout');
 
@@ -951,7 +951,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   });
 
   QUnit.test('starts without any metadata', function(assert) {
-    const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+    const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
 
     loader.load();
 
@@ -959,20 +959,20 @@ QUnit.module('Playlist Loader', function(hooks) {
   });
 
   QUnit.test('requests the initial playlist immediately', function(assert) {
-    const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+    const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
 
     loader.load();
 
     assert.strictEqual(this.requests.length, 1, 'made a request');
     assert.strictEqual(
       this.requests[0].url,
-      'master.m3u8',
+      'main.m3u8',
       'requested the initial playlist'
     );
   });
 
   QUnit.test('moves to HAVE_MAIN_MANIFEST after loading a master playlist', function(assert) {
-    const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+    const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
     let state;
 
     loader.load();
@@ -991,7 +991,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   });
 
   QUnit.test('logs warning for master playlist with invalid STREAM-INF', function(assert) {
-    const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+    const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
 
     loader.load();
 
@@ -1037,7 +1037,7 @@ QUnit.module('Playlist Loader', function(hooks) {
 
     this.fakeVhs.options_ = { customTagParsers, customTagMappers };
 
-    const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+    const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
 
     loader.load();
     this.requests.pop().respond(
@@ -1062,7 +1062,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     'adds properties to playlists array when given a master playlist object',
     function(assert) {
       const masterPlaylist = JSON.parse(JSON.stringify(parseManifest({
-        manifestString: manifests.master
+        manifestString: manifests.main
       })));
       const firstPlaylistId = createPlaylistID(0, masterPlaylist.playlists[0].uri);
 
@@ -1143,7 +1143,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     'stays at HAVE_MAIN_MANIFEST and makes a request when initialized with a master playlist ' +
     'without resolved media playlists',
     function(assert) {
-      const masterPlaylist = parseManifest({ manifestString: manifests.master });
+      const masterPlaylist = parseManifest({ manifestString: manifests.main });
 
       const loader = new PlaylistLoader(masterPlaylist, this.fakeVhs);
       let loadedmetadataEvents = 0;
@@ -1169,7 +1169,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     'moves to HAVE_METADATA without a request when initialized with a master playlist ' +
     'object with resolved media playlists',
     function(assert) {
-      const masterPlaylist = parseManifest({ manifestString: manifests.master });
+      const masterPlaylist = parseManifest({ manifestString: manifests.main });
       const mediaPlaylist = parseManifest({ manifestString: manifests.media });
 
       // since the playlist is getting overwritten in the master (to fake a resolved media
@@ -1204,7 +1204,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   );
 
   QUnit.test('resolves relative media playlist URIs', function(assert) {
-    const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+    const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
 
     loader.load();
 
@@ -1376,7 +1376,7 @@ QUnit.module('Playlist Loader', function(hooks) {
 
   QUnit.test('trigger an error event when a media playlist 404s', function(assert) {
     let count = 0;
-    const loader = new PlaylistLoader('manifest/master.m3u8', this.fakeVhs);
+    const loader = new PlaylistLoader('manifest/main.m3u8', this.fakeVhs);
 
     loader.load();
 
@@ -1466,7 +1466,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   QUnit.test('moves to HAVE_METADATA after loading a media playlist', function(assert) {
     let loadedPlaylist = 0;
     let loadedMetadata = 0;
-    const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+    const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
 
     loader.load();
 
@@ -1508,7 +1508,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   });
 
   QUnit.test('defaults missing media groups for a media playlist', function(assert) {
-    const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+    const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
 
     loader.load();
     this.requests.pop().respond(
@@ -1596,7 +1596,7 @@ QUnit.module('Playlist Loader', function(hooks) {
 
   QUnit.test('emits an error when an initial playlist request fails', function(assert) {
     const errors = [];
-    const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+    const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
 
     loader.load();
 
@@ -1611,7 +1611,7 @@ QUnit.module('Playlist Loader', function(hooks) {
 
   QUnit.test('errors when an initial media playlist request fails', function(assert) {
     const errors = [];
-    const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+    const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
 
     loader.load();
 
@@ -1708,7 +1708,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   });
 
   QUnit.test('clears the update timeout when switching quality', function(assert) {
-    const loader = new PlaylistLoader('live-master.m3u8', this.fakeVhs);
+    const loader = new PlaylistLoader('live-main.m3u8', this.fakeVhs);
     let refreshes = 0;
 
     loader.load();
@@ -1807,7 +1807,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   });
 
   QUnit.test('switches media playlists when requested', function(assert) {
-    const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+    const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
 
     loader.load();
 
@@ -1848,7 +1848,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   QUnit.test(
     'can switch playlists immediately after the master is downloaded',
     function(assert) {
-      const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+      const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
 
       loader.load();
 
@@ -1868,7 +1868,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   );
 
   QUnit.test('can switch media playlists based on ID', function(assert) {
-    const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+    const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
 
     loader.load();
 
@@ -1907,7 +1907,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   });
 
   QUnit.test('aborts in-flight playlist refreshes when switching', function(assert) {
-    const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+    const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
 
     loader.load();
 
@@ -1937,7 +1937,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   });
 
   QUnit.test('switching to the active playlist is a no-op', function(assert) {
-    const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+    const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
 
     loader.load();
 
@@ -1963,7 +1963,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   });
 
   QUnit.test('switching to the active live playlist is a no-op', function(assert) {
-    const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+    const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
 
     loader.load();
 
@@ -1990,7 +1990,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   QUnit.test(
     'switches back to loaded playlists without re-requesting them',
     function(assert) {
-      const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+      const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
 
       loader.load();
 
@@ -2029,7 +2029,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   QUnit.test(
     'aborts outstanding requests if switching back to an already loaded playlist',
     function(assert) {
-      const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+      const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
 
       loader.load();
 
@@ -2081,7 +2081,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   QUnit.test(
     'does not abort requests when the same playlist is re-requested',
     function(assert) {
-      const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+      const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
 
       loader.load();
 
@@ -2110,7 +2110,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   );
 
   QUnit.test('throws an error if a media switch is initiated too early', function(assert) {
-    const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+    const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
 
     loader.load();
 
@@ -2131,7 +2131,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   QUnit.test(
     'throws an error if a switch to an unrecognized playlist is requested',
     function(assert) {
-      const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+      const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
 
       loader.load();
 
@@ -2205,7 +2205,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   });
 
   QUnit.test('triggers an event when the active media changes', function(assert) {
-    const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+    const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
     let mediaChanges = 0;
     let mediaChangings = 0;
     let loadedPlaylists = 0;
@@ -2286,7 +2286,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   });
 
   QUnit.test('playlistErrors_ are reset on a successful response', function(assert) {
-    const loader = new PlaylistLoader('manifest/master.m3u8', this.fakeVhs);
+    const loader = new PlaylistLoader('manifest/main.m3u8', this.fakeVhs);
 
     loader.load();
 
@@ -2341,7 +2341,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   );
 
   QUnit.test('Supports multiple STREAM-INF with the same URI', function(assert) {
-    const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+    const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
 
     loader.load();
 
@@ -2367,7 +2367,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   });
 
   QUnit.test('mediaupdatetimeout works as expected for live playlists', function(assert) {
-    const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
+    const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
     let media =
       '#EXTM3U\n' +
       '#EXT-X-MEDIA-SEQUENCE:0\n' +

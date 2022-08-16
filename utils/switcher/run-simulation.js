@@ -114,7 +114,7 @@ const runSimulation = function(options, done) {
   player.options(poptions);
   document.querySelector('#qunit-fixture').style = 'display: none;';
   player.src({
-    src: 'http://example.com/master.m3u8',
+    src: 'http://example.com/main.m3u8',
     type: 'application/x-mpegurl'
   });
   openMediaSource(player, clock);
