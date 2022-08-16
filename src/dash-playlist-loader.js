@@ -16,7 +16,7 @@ import { segmentXhrHeaders } from './xhr';
 import window from 'global/window';
 import {
   forEachMediaGroup,
-  addPropertiesToMaster
+  addPropertiesToMain
 } from './manifest';
 import containerRequest from './util/container-request.js';
 import {toUint8} from '@videojs/vhs-utils/es/byte-helpers';
@@ -115,7 +115,7 @@ export const parseMasterXml = ({
     previousManifest
   });
 
-  addPropertiesToMaster(manifest, srcUrl);
+  addPropertiesToMain(manifest, srcUrl);
 
   return manifest;
 };

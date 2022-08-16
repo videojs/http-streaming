@@ -29,7 +29,7 @@ import PlaylistLoader from '../src/playlist-loader';
 import DashPlaylistLoader from '../src/dash-playlist-loader';
 import {
   parseManifest,
-  addPropertiesToMaster
+  addPropertiesToMain
 } from '../src/manifest.js';
 import {
   muxed as muxedSegment,
@@ -4465,7 +4465,7 @@ QUnit.test(
 
     manifestObject.playlists = [mediaObject, mediaObject, mediaObject];
     // placeholder master URI
-    addPropertiesToMaster(manifestObject, 'main.m3u8');
+    addPropertiesToMain(manifestObject, 'main.m3u8');
 
     this.player.src({
       src: `data:application/vnd.videojs.vhs+json,${JSON.stringify(manifestObject)}`,

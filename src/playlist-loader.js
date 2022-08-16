@@ -11,8 +11,8 @@ import window from 'global/window';
 import logger from './util/logger';
 import {
   parseManifest,
-  addPropertiesToMaster,
-  masterForMedia,
+  addPropertiesToMain,
+  mainForMedia,
   setupMediaPlaylist,
   forEachMediaGroup
 } from './manifest';
@@ -876,7 +876,7 @@ export default class PlaylistLoader extends EventTarget {
 
     if (manifest.playlists) {
       this.main = manifest;
-      addPropertiesToMaster(this.main, this.srcUri());
+      addPropertiesToMain(this.main, this.srcUri());
       // If the initial main playlist has playlists wtih segments already resolved,
       // then resolve URIs in advance, as they are usually done after a playlist request,
       // which may not happen if the playlist is resolved.
@@ -901,7 +901,7 @@ export default class PlaylistLoader extends EventTarget {
     // default used.
     const uri = this.srcUri() || window.location.href;
 
-    this.main = masterForMedia(manifest, uri);
+    this.main = mainForMedia(manifest, uri);
     this.haveMetadata({
       playlistObject: manifest,
       url: uri,
