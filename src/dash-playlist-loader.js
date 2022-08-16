@@ -90,7 +90,7 @@ const dashPlaylistUnchanged = function(a, b) {
  *
  * @param {Object} config
  *        Object of arguments
- * @param {string} config.masterXml
+ * @param {string} config.mainXml
  *        The mpd XML
  * @param {string} config.srcUrl
  *        The mpd URL
@@ -102,13 +102,13 @@ const dashPlaylistUnchanged = function(a, b) {
  *         The parsed mpd manifest object
  */
 export const parseMasterXml = ({
-  masterXml,
+  mainXml,
   srcUrl,
   clientOffset,
   sidxMapping,
   previousManifest
 }) => {
-  const manifest = parseMpd(masterXml, {
+  const manifest = parseMpd(mainXml, {
     manifestUri: srcUrl,
     clientOffset,
     sidxMapping,
@@ -604,9 +604,9 @@ export default class DashPlaylistLoader extends EventTarget {
         return;
       }
 
-      const masterChanged = req.responseText !== this.masterPlaylistLoader_.masterXml_;
+      const masterChanged = req.responseText !== this.masterPlaylistLoader_.mainXml_;
 
-      this.masterPlaylistLoader_.masterXml_ = req.responseText;
+      this.masterPlaylistLoader_.mainXml_ = req.responseText;
 
       if (req.responseHeaders && req.responseHeaders.date) {
         this.masterLoaded_ = Date.parse(req.responseHeaders.date);
@@ -637,7 +637,7 @@ export default class DashPlaylistLoader extends EventTarget {
    *        Function to call when clock sync has completed
    */
   syncClientServerClock_(done) {
-    const utcTiming = parseUTCTiming(this.masterPlaylistLoader_.masterXml_);
+    const utcTiming = parseUTCTiming(this.masterPlaylistLoader_.mainXml_);
 
     // No UTCTiming element found in the mpd. Use Date header from mpd request as the
     // server clock
@@ -709,7 +709,7 @@ export default class DashPlaylistLoader extends EventTarget {
     const oldMain = this.masterPlaylistLoader_.main;
 
     let newMain = parseMasterXml({
-      masterXml: this.masterPlaylistLoader_.masterXml_,
+      mainXml: this.masterPlaylistLoader_.mainXml_,
       srcUrl: this.masterPlaylistLoader_.srcUrl,
       clientOffset: this.masterPlaylistLoader_.clientOffset_,
       sidxMapping: this.masterPlaylistLoader_.sidxMapping_,

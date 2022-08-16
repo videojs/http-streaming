@@ -559,10 +559,10 @@ QUnit.test('filterChangedSidxMappings: removes change sidx info from mapping', f
   const oldVideoKey = generateSidxKey(playlists['0-placeholder-uri-0'].sidx);
   const oldAudioEnKey = generateSidxKey(playlists['0-placeholder-uri-AUDIO-audio-en'].sidx);
 
-  let masterXml = loader.masterXml_.replace(/(indexRange)=\"\d+-\d+\"/, '$1="201-400"');
+  let mainXml = loader.mainXml_.replace(/(indexRange)=\"\d+-\d+\"/, '$1="201-400"');
   // should change the video playlist
   let newMain = parseMasterXml({
-    masterXml,
+    mainXml,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_
   });
@@ -587,9 +587,9 @@ QUnit.test('filterChangedSidxMappings: removes change sidx info from mapping', f
   );
 
   // should change the English audio group
-  masterXml = loader.masterXml_.replace(/(indexRange)=\"\d+-\d+\"/g, '$1="201-400"');
+  mainXml = loader.mainXml_.replace(/(indexRange)=\"\d+-\d+\"/g, '$1="201-400"');
   newMain = parseMasterXml({
-    masterXml,
+    mainXml,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_
   });
@@ -1382,7 +1382,7 @@ QUnit.test('haveMaster: triggers loadedplaylist for loader', function(assert) {
   });
 
   // fake already having main XML loaded
-  loader.masterXml_ = testDataManifests.dash;
+  loader.mainXml_ = testDataManifests.dash;
   loader.haveMaster_();
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist triggered');
 
@@ -1415,7 +1415,7 @@ QUnit.test('parseMasterXml: setup phony playlists and resolves uris', function(a
   this.standardXHRResponse(this.requests.shift());
 
   const masterPlaylist = parseMasterXml({
-    masterXml: loader.masterXml_,
+    mainXml: loader.mainXml_,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_,
     sidxMapping: loader.sidxMapping_
@@ -1442,7 +1442,7 @@ QUnit.test('parseMasterXml: includes sidx info if available and matches playlist
   loader.load();
   this.standardXHRResponse(this.requests.shift());
   const origParsedMaster = parseMasterXml({
-    masterXml: loader.masterXml_,
+    mainXml: loader.mainXml_,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_,
     sidxMapping: loader.sidxMapping_
@@ -1451,7 +1451,7 @@ QUnit.test('parseMasterXml: includes sidx info if available and matches playlist
   loader.sidxMapping_ = {};
 
   let newParsedMaster = parseMasterXml({
-    masterXml: loader.masterXml_,
+    mainXml: loader.mainXml_,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_,
     sidxMapping: loader.sidxMapping_
@@ -1481,7 +1481,7 @@ QUnit.test('parseMasterXml: includes sidx info if available and matches playlist
     }
   };
   newParsedMaster = parseMasterXml({
-    masterXml: loader.masterXml_,
+    mainXml: loader.mainXml_,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_,
     sidxMapping: loader.sidxMapping_
@@ -1679,14 +1679,14 @@ QUnit.test('refreshXml_: requests the sidx if it changed', function(assert) {
   assert.strictEqual(this.requests.length, 1, 'made a sidx request');
 
   const oldMain = parseMasterXml({
-    masterXml: loader.masterXml_,
+    mainXml: loader.mainXml_,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_,
     sidxMapping: loader.sidxMapping_
   });
-  const newMainXml = loader.masterXml_.replace(/(indexRange)=\"\d+-\d+\"/g, '$1="400-599"');
+  const newMainXml = loader.mainXml_.replace(/(indexRange)=\"\d+-\d+\"/g, '$1="400-599"');
 
-  loader.masterXml_ = newMainXml;
+  loader.mainXml_ = newMainXml;
   assert.deepEqual(
     oldMain.playlists[0].sidx.byterange, {
       offset: 200,
@@ -1695,7 +1695,7 @@ QUnit.test('refreshXml_: requests the sidx if it changed', function(assert) {
     'sidx is the original in the xml'
   );
   let newMain = parseMasterXml({
-    masterXml: loader.masterXml_,
+    mainXml: loader.mainXml_,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_,
     sidxMapping: loader.sidxMapping_
@@ -1710,7 +1710,7 @@ QUnit.test('refreshXml_: requests the sidx if it changed', function(assert) {
 
   assert.strictEqual(this.requests.length, 2, 'manifest is being requested');
   newMain = parseMasterXml({
-    masterXml: loader.masterXml_,
+    mainXml: loader.mainXml_,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_,
     sidxMapping: loader.sidxMapping_
@@ -1733,7 +1733,7 @@ QUnit.test('refreshXml_: updates media playlist reference if main changed', func
 
   const oldMain = loader.main;
   const oldMedia = loader.media();
-  const newMainXml = loader.masterXml_.replace(
+  const newMainXml = loader.mainXml_.replace(
     'mediaPresentationDuration="PT4S"',
     'mediaPresentationDuration="PT5S"'
   );
@@ -1766,7 +1766,7 @@ QUnit.test('refreshXml_: updates playlists if segment uri changed, but media seq
   const oldMedia = loader.media();
 
   // change segment uris
-  const newMainXml = loader.masterXml_
+  const newMainXml = loader.mainXml_
     .replace(/\$RepresentationID\$/g, '$RepresentationID$-foo')
     .replace('media="segment-$Number$.mp4"', 'media="segment-foo$Number$.mp4"');
 
@@ -1801,7 +1801,7 @@ QUnit.skip('refreshXml_: updates playlists if sidx changed', function(assert) {
   const oldMain = loader.main;
   const oldMedia = loader.media();
 
-  const newMainXml = loader.masterXml_
+  const newMainXml = loader.mainXml_
     .replace(/indexRange="200-399"/g, 'indexRange="500-699"');
 
   loader.refreshXml_();
@@ -1833,7 +1833,7 @@ QUnit.test('refreshXml_: updates playlists if sidx removed', function(assert) {
   const oldMain = loader.main;
   const oldMedia = loader.media();
 
-  const newMainXml = loader.masterXml_
+  const newMainXml = loader.mainXml_
     .replace(/indexRange="200-399"/g, '');
 
   loader.refreshXml_();
@@ -1863,7 +1863,7 @@ QUnit.test('refreshXml_: updates playlists if only segment byteranges change', f
   const oldMain = loader.main;
   const oldMedia = loader.media();
 
-  const newMainXml = loader.masterXml_
+  const newMainXml = loader.mainXml_
     .replace('mediaRange="12883295-13124492"', 'mediaRange="12883296-13124492"');
 
   loader.refreshXml_();
@@ -1895,7 +1895,7 @@ QUnit.test('refreshXml_: updates playlists if sidx removed', function(assert) {
   const oldMain = loader.main;
   const oldMedia = loader.media();
 
-  const newMainXml = loader.masterXml_
+  const newMainXml = loader.mainXml_
     .replace(/indexRange="200-399"/g, '');
 
   loader.refreshXml_();
@@ -2531,7 +2531,7 @@ QUnit.test('stop xml refresh if minimumUpdatePeriod is removed', function(assert
   assert.equal(this.requests[0].uri, window.location.href.split('/').slice(0, -1).join('/') + '/dash-live.mpd', 'refreshed manifest');
   assert.equal(minimumUpdatePeriods, 1, 'total minimumUpdatePeriods');
 
-  this.standardXHRResponse(this.requests[0], loader.masterXml_.replace('minimumUpdatePeriod="PT4S"', ''));
+  this.standardXHRResponse(this.requests[0], loader.mainXml_.replace('minimumUpdatePeriod="PT4S"', ''));
 
   // Second Refresh Tick: MUP removed
   this.clock.tick(4 * 1000);
@@ -2560,7 +2560,7 @@ QUnit.test('continue xml refresh every targetDuration if minimumUpdatePeriod is 
   assert.equal(this.requests[0].uri, window.location.href.split('/').slice(0, -1).join('/') + '/dash-live.mpd', 'refreshed manifest');
   assert.equal(minimumUpdatePeriods, 1, 'total minimumUpdatePeriods');
 
-  this.standardXHRResponse(this.requests[0], loader.masterXml_.replace('minimumUpdatePeriod="PT4S"', 'minimumUpdatePeriod="PT0S"'));
+  this.standardXHRResponse(this.requests[0], loader.mainXml_.replace('minimumUpdatePeriod="PT4S"', 'minimumUpdatePeriod="PT0S"'));
 
   // Second Refresh Tick: MinimumUpdatePeriod set to 0
   // The manifest should refresh after one target duration, in this case 2 seconds. At this point
