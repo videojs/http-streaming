@@ -776,7 +776,7 @@ QUnit.test('load: will start an unstarted loader', function(assert) {
   // media isn't selected automatically
   loader.hasPendingRequest = () => true;
   this.standardXHRResponse(this.requests.shift());
-  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state is updated');
+  assert.strictEqual(loader.state, 'HAVE_MAIN_MANIFEST', 'state is updated');
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist');
   assert.strictEqual(loadedMetadata, 0, 'no loadedmetadata');
   loader.hasPendingRequest = origHasPendingRequest;
@@ -786,7 +786,7 @@ QUnit.test('load: will start an unstarted loader', function(assert) {
   assert.strictEqual(loadedPlaylists, 2, 'two loadedplaylists');
   assert.strictEqual(loadedMetadata, 0, 'no loadedmetadata');
   assert.strictEqual(this.requests.length, 0, 'no request made');
-  assert.strictEqual(loader.state, 'HAVE_MASTER', 'no state change');
+  assert.strictEqual(loader.state, 'HAVE_MAIN_MANIFEST', 'no state change');
 
   loader.media(loader.master.playlists[0]);
   this.clock.tick(1);
@@ -822,7 +822,7 @@ QUnit.test('load: will not request manifest when started', function(assert) {
   // media isn't selected automatically
   loader.hasPendingRequest = () => true;
   this.standardXHRResponse(this.requests.shift());
-  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state is updated');
+  assert.strictEqual(loader.state, 'HAVE_MAIN_MANIFEST', 'state is updated');
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist');
   assert.strictEqual(loadedMetadata, 0, 'no loadedmetadata');
   loader.hasPendingRequest = origHasPendingRequest;
@@ -832,7 +832,7 @@ QUnit.test('load: will not request manifest when started', function(assert) {
   assert.strictEqual(loadedPlaylists, 2, 'two loadedplaylists');
   assert.strictEqual(loadedMetadata, 0, 'no loadedmetadata');
   assert.strictEqual(this.requests.length, 0, 'no request made');
-  assert.strictEqual(loader.state, 'HAVE_MASTER', 'no state change');
+  assert.strictEqual(loader.state, 'HAVE_MAIN_MANIFEST', 'no state change');
 });
 
 QUnit.test('load: will retry if this is the final rendition', function(assert) {
@@ -877,7 +877,7 @@ QUnit.test('media: get returns currently active media playlist', function(assert
   // media isn't selected automatically
   loader.hasPendingRequest = () => true;
   this.standardXHRResponse(this.requests.shift());
-  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state should be HAVE_MASTER');
+  assert.strictEqual(loader.state, 'HAVE_MAIN_MANIFEST', 'state should be HAVE_MAIN_MANIFEST');
   assert.strictEqual(loader.media(), undefined, 'no media set yet');
   loader.hasPendingRequest = origHasPendingRequest;
 
@@ -909,18 +909,18 @@ QUnit.test('media: does not set media if getter is called', function(assert) {
   // media isn't selected automatically
   loader.hasPendingRequest = () => true;
   this.standardXHRResponse(this.requests.shift());
-  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state should be HAVE_MASTER');
+  assert.strictEqual(loader.state, 'HAVE_MAIN_MANIFEST', 'state should be HAVE_MAIN_MANIFEST');
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist');
   assert.strictEqual(loadedMetadata, 0, 'no loadedmetadata');
   loader.hasPendingRequest = origHasPendingRequest;
 
   loader.media(null);
-  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state should stay HAVE_MASTER');
+  assert.strictEqual(loader.state, 'HAVE_MAIN_MANIFEST', 'state should stay HAVE_MAIN_MANIFEST');
   assert.strictEqual(loadedPlaylists, 1, 'still one loadedplaylist');
   assert.strictEqual(loadedMetadata, 0, 'still no loadedmetadata');
 
   loader.media(undefined);
-  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state should stay HAVE_MASTER');
+  assert.strictEqual(loader.state, 'HAVE_MAIN_MANIFEST', 'state should stay HAVE_MAIN_MANIFEST');
   assert.strictEqual(loadedPlaylists, 1, 'still one loadedplaylist');
   assert.strictEqual(loadedMetadata, 0, 'still no loadedmetadata');
 });
@@ -958,7 +958,7 @@ QUnit.test('media: setting media causes an asynchronous action', function(assert
   this.standardXHRResponse(this.requests.shift());
   loader.hasPendingRequest = origHasPendingRequest;
 
-  assert.strictEqual(loader.state, 'HAVE_MASTER', 'correct state before media call');
+  assert.strictEqual(loader.state, 'HAVE_MAIN_MANIFEST', 'correct state before media call');
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist before media is loaded');
   assert.strictEqual(loadedMetadata, 0, 'no loadedmetadata before media is loaded');
   assert.notOk(loader.hasPendingRequest(), 'no pending asynchronous actions');
@@ -966,7 +966,7 @@ QUnit.test('media: setting media causes an asynchronous action', function(assert
   // set initial media
   loader.media(loader.master.playlists[0]);
   assert.ok(loader.hasPendingRequest(), 'has asynchronous action pending');
-  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state is still HAVE_MASTER');
+  assert.strictEqual(loader.state, 'HAVE_MAIN_MANIFEST', 'state is still HAVE_MAIN_MANIFEST');
   assert.strictEqual(loadedPlaylists, 1, 'still one loadedplaylist');
   assert.strictEqual(loadedMetadata, 0, 'still no loadedmetadata');
 
@@ -998,7 +998,7 @@ QUnit.test('media: sets initial media playlist on master loader', function(asser
   // media isn't selected automatically
   loader.hasPendingRequest = () => true;
   this.standardXHRResponse(this.requests.shift());
-  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state should be HAVE_MASTER');
+  assert.strictEqual(loader.state, 'HAVE_MAIN_MANIFEST', 'state should be HAVE_MAIN_MANIFEST');
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist');
   assert.strictEqual(loadedMetadata, 0, 'no loadedmetadata');
   loader.hasPendingRequest = origHasPendingRequest;
@@ -1040,7 +1040,7 @@ QUnit.test('media: sets a playlist from a string reference', function(assert) {
   // media isn't selected automatically
   loader.hasPendingRequest = () => true;
   this.standardXHRResponse(this.requests.shift());
-  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state should be HAVE_MASTER');
+  assert.strictEqual(loader.state, 'HAVE_MAIN_MANIFEST', 'state should be HAVE_MAIN_MANIFEST');
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist');
   assert.strictEqual(loadedMetadata, 0, 'no loadedmetadata');
   loader.hasPendingRequest = origHasPendingRequest;
@@ -1092,7 +1092,7 @@ QUnit.test('media: switches to a new playlist from a loaded one', function(asser
   // media isn't selected automatically
   loader.hasPendingRequest = () => true;
   this.standardXHRResponse(this.requests.shift());
-  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state should be HAVE_MASTER');
+  assert.strictEqual(loader.state, 'HAVE_MAIN_MANIFEST', 'state should be HAVE_MAIN_MANIFEST');
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist');
   assert.strictEqual(loadedMetadata, 0, 'no loadedmetadata');
   loader.hasPendingRequest = origHasPendingRequest;
@@ -1159,7 +1159,7 @@ QUnit.test('media: switches to a previously loaded playlist immediately', functi
   // media isn't selected automatically
   loader.hasPendingRequest = () => true;
   this.standardXHRResponse(this.requests.shift());
-  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state should be HAVE_MASTER');
+  assert.strictEqual(loader.state, 'HAVE_MAIN_MANIFEST', 'state should be HAVE_MAIN_MANIFEST');
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist');
   assert.strictEqual(loadedMetadata, 0, 'no loadedmetadata');
   loader.hasPendingRequest = origHasPendingRequest;
@@ -1238,7 +1238,7 @@ QUnit.test('media: does not switch to same playlist', function(assert) {
   // media isn't selected automatically
   loader.hasPendingRequest = () => true;
   this.standardXHRResponse(this.requests.shift());
-  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state should be HAVE_MASTER');
+  assert.strictEqual(loader.state, 'HAVE_MAIN_MANIFEST', 'state should be HAVE_MAIN_MANIFEST');
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist');
   assert.strictEqual(loadedMetadata, 0, 'no loadedmetadata');
   loader.hasPendingRequest = origHasPendingRequest;
@@ -1292,7 +1292,7 @@ QUnit.test('haveMetadata: triggers loadedplaylist if initial selection', functio
   });
 
   loader.haveMetadata({
-    startingState: 'HAVE_MASTER',
+    startingState: 'HAVE_MAIN_MANIFEST',
     playlist: loader.master.playlists[0]
   });
   assert.strictEqual(loader.state, 'HAVE_METADATA', 'state should advance');
@@ -1944,7 +1944,7 @@ QUnit.test('addSidxSegments_: updates master with sidx information', function(as
   const sidxMapping = loader.masterPlaylistLoader_.sidxMapping_;
 
   assert.deepEqual(sidxMapping, {}, 'no sidx mapping');
-  loader.addSidxSegments_(fakePlaylist, 'HAVE_MASTER', stubDone);
+  loader.addSidxSegments_(fakePlaylist, 'HAVE_MAIN_MANIFEST', stubDone);
 
   this.standardXHRResponse(this.requests.shift(), mp4VideoInitSegment().subarray(0, 10));
   this.standardXHRResponse(this.requests.shift(), sidxData);
@@ -1982,7 +1982,7 @@ QUnit.test('addSidxSegments_: errors if request for sidx fails', function(assert
   let errors = 0;
 
   assert.deepEqual(sidxMapping, {}, 'no sidx mapping');
-  loader.addSidxSegments_(fakePlaylist, 'HAVE_MASTER', stubDone);
+  loader.addSidxSegments_(fakePlaylist, 'HAVE_MAIN_MANIFEST', stubDone);
 
   loader.on('error', () => {
     errors++;
@@ -1990,7 +1990,7 @@ QUnit.test('addSidxSegments_: errors if request for sidx fails', function(assert
 
   this.requests.shift().respond(500, null, 'bad request');
 
-  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state is returned to state passed in');
+  assert.strictEqual(loader.state, 'HAVE_MAIN_MANIFEST', 'state is returned to state passed in');
   assert.deepEqual(
     loader.error,
     {
@@ -2048,7 +2048,7 @@ QUnit.test('hasPendingRequest: returns true if async code is running in child lo
   assert.notOk(childLoader.request, 'xhr request is not being made');
 
   childLoader.haveMetadata({
-    startingState: 'HAVE_MASTER',
+    startingState: 'HAVE_MAIN_MANIFEST',
     playlist: childLoader.childPlaylist_
   });
   assert.strictEqual(childLoader.state, 'HAVE_METADATA', 'state is in HAVE_METADATA');
@@ -2127,7 +2127,7 @@ QUnit.test('starts without any metadata', function(assert) {
   assert.ok(loader.started, 'started');
 });
 
-QUnit.test('moves to HAVE_MASTER after loading a master playlist', function(assert) {
+QUnit.test('moves to HAVE_MAIN_MANIFEST after loading a master playlist', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeVhs);
   const origHasPendingRequest = loader.hasPendingRequest;
 
@@ -2139,7 +2139,7 @@ QUnit.test('moves to HAVE_MASTER after loading a master playlist', function(asse
   loader.hasPendingRequest = () => true;
   this.standardXHRResponse(this.requests.shift());
   assert.ok(loader.master, 'the master playlist is available');
-  assert.strictEqual(loader.state, 'HAVE_MASTER', 'the state at loadedplaylist correct');
+  assert.strictEqual(loader.state, 'HAVE_MAIN_MANIFEST', 'the state at loadedplaylist correct');
   loader.hasPendingRequest = origHasPendingRequest;
 });
 
@@ -2167,7 +2167,7 @@ QUnit.test('moves to HAVE_METADATA after loading a media playlist', function(ass
   assert.strictEqual(loadedPlaylist, 1, 'fired loadedplaylist once');
   assert.strictEqual(loadedMetadata, 0, 'fired loadedmetadata once');
   assert.strictEqual(
-    loader.state, 'HAVE_MASTER',
+    loader.state, 'HAVE_MAIN_MANIFEST',
     'the loader state is correct before setting the media'
   );
   assert.ok(loader.master, 'sets the master playlist');
@@ -2628,7 +2628,7 @@ QUnit.test('requests sidx if master xml includes it', function(assert) {
 
   loader.load();
   this.standardXHRResponse(this.requests.shift());
-  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state is HAVE_MASTER');
+  assert.strictEqual(loader.state, 'HAVE_MAIN_MANIFEST', 'state is HAVE_MAIN_MANIFEST');
   assert.ok(loader.master.playlists[0].sidx, 'sidx info is returned from parser');
 
   // initial media selection happens automatically
@@ -2656,7 +2656,7 @@ QUnit.test('sidx mapping not added on container failure', function(assert) {
 
   loader.load();
   this.standardXHRResponse(this.requests.shift());
-  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state is HAVE_MASTER');
+  assert.strictEqual(loader.state, 'HAVE_MAIN_MANIFEST', 'state is HAVE_MAIN_MANIFEST');
   assert.ok(loader.master.playlists[0].sidx, 'sidx info is returned from parser');
 
   // initial media selection happens automatically
@@ -2676,7 +2676,7 @@ QUnit.test('sidx mapping not added on sidx parsing failure', function(assert) {
 
   loader.load();
   this.standardXHRResponse(this.requests.shift());
-  assert.strictEqual(loader.state, 'HAVE_MASTER', 'state is HAVE_MASTER');
+  assert.strictEqual(loader.state, 'HAVE_MAIN_MANIFEST', 'state is HAVE_MAIN_MANIFEST');
   assert.ok(loader.master.playlists[0].sidx, 'sidx info is returned from parser');
 
   // initial media selection happens automatically
@@ -2694,7 +2694,7 @@ QUnit.test('sidx mapping not added on sidx parsing failure', function(assert) {
   assert.equal(Object.keys(loader.sidxMapping_).length, 0, 'no sidx data');
 });
 
-QUnit.test('child loaders wait for async action before moving to HAVE_MASTER', function(assert) {
+QUnit.test('child loaders wait for async action before moving to HAVE_MAIN_MANIFEST', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeVhs);
 
   loader.load();

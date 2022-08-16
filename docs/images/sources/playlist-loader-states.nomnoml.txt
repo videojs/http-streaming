@@ -17,8 +17,8 @@
 
 #.label: align=center visual=none italic
 
-[HAVE_NOTHING] load()-> [HAVE_MASTER]
-[HAVE_MASTER] media()-> [SWITCHING_MEDIA]
+[HAVE_NOTHING] load()-> [HAVE_MAIN_MANIFEST]
+[HAVE_MAIN_MANIFEST] media()-> [SWITCHING_MEDIA]
 [SWITCHING_MEDIA] media()/ start()-> [HAVE_METADATA]
 
 [HAVE_METADATA] <--> [<label> mediaupdatetimeout]

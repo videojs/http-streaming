@@ -971,7 +971,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     );
   });
 
-  QUnit.test('moves to HAVE_MASTER after loading a master playlist', function(assert) {
+  QUnit.test('moves to HAVE_MAIN_MANIFEST after loading a master playlist', function(assert) {
     const loader = new PlaylistLoader('master.m3u8', this.fakeVhs);
     let state;
 
@@ -987,7 +987,7 @@ QUnit.module('Playlist Loader', function(hooks) {
       'media.m3u8\n'
     );
     assert.ok(loader.master, 'the master playlist is available');
-    assert.strictEqual(state, 'HAVE_MASTER', 'the state at loadedplaylist correct');
+    assert.strictEqual(state, 'HAVE_MAIN_MANIFEST', 'the state at loadedplaylist correct');
   });
 
   QUnit.test('logs warning for master playlist with invalid STREAM-INF', function(assert) {
@@ -1140,7 +1140,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   );
 
   QUnit.test(
-    'stays at HAVE_MASTER and makes a request when initialized with a master playlist ' +
+    'stays at HAVE_MAIN_MANIFEST and makes a request when initialized with a master playlist ' +
     'without resolved media playlists',
     function(assert) {
       const masterPlaylist = parseManifest({ manifestString: manifests.master });

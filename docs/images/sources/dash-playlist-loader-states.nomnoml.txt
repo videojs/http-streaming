@@ -17,5 +17,5 @@
 
 #.label: align=center visual=none italic
 
-[HAVE_NOTHING] load()-> [HAVE_MASTER]
-[HAVE_MASTER] media()-> [HAVE_METADATA]
+[HAVE_NOTHING] load()-> [HAVE_MAIN_MANIFEST]
+[HAVE_MAIN_MANIFEST] media()-> [HAVE_METADATA]

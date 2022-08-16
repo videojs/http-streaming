@@ -18,7 +18,7 @@ The [PlaylistLoader][pl] (PL) is responsible for requesting m3u8s, parsing them 
 ![PlaylistLoader States](images/playlist-loader-states.nomnoml.svg)
 
 - `HAVE_NOTHING` the state before the m3u8 is received and parsed.
-- `HAVE_MASTER` the state before a media manifest is parsed and setup but after the master manifest has been parsed and setup.
+- `HAVE_MAIN_MANIFEST` the state before a media manifest is parsed and setup but after the master manifest has been parsed and setup.
 - `HAVE_METADATA` the state after a media stream is setup.
 - `SWITCHING_MEDIA` the intermediary state we go though while changing to a newly selected media playlist
 - `HAVE_CURRENT_METADATA`  a temporary state after requesting a refresh of the live manifest and before receiving the update

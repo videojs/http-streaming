@@ -510,7 +510,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
     // fire loadedmetadata the first time a media playlist is loaded
     // to resolve setup of media groups
-    if (startingState === 'HAVE_MASTER') {
+    if (startingState === 'HAVE_MAIN_MANIFEST') {
       this.trigger('loadedmetadata');
     } else {
       // trigger media change if the active media has been updated
@@ -689,7 +689,7 @@ export default class DashPlaylistLoader extends EventTarget {
   }
 
   haveMaster_() {
-    this.state = 'HAVE_MASTER';
+    this.state = 'HAVE_MAIN_MANIFEST';
     if (this.isMaster_) {
       // We have the master playlist at this point, so
       // trigger this to allow PlaylistController

@@ -45,7 +45,7 @@ group MasterPlaylistLoader.load()
       MPL -> parser: parse master manifest
       parser -> MPL: object representing manifest
       MPL -> MPL: set loader's master playlist
-      note over MPL #lightgray: state = 'HAVE_MASTER'
+      note over MPL #lightgray: state = 'HAVE_MAIN_MANIFEST'
       note over MPL #lightblue: trigger 'loadedplaylist' on master loader
 
 == Requesting Video Manifest ==
@@ -182,7 +182,7 @@ group MasterPlaylistLoader.load()
                     ext -> APL: responds with child manifest
                     APL -> parser: parse child manifest
                     parser -> APL: object representing child manifest returned
-                    note over APL #lightyellow: state = 'HAVE_MASTER'
+                    note over APL #lightyellow: state = 'HAVE_MAIN_MANIFEST'
                     note left #lightgray: Infer a master playlist
 
                     APL -> APL: haveMetadata()

@@ -619,7 +619,7 @@ export default class PlaylistLoader extends EventTarget {
       if (mediaChange) {
         this.trigger('mediachanging');
 
-        if (startingState === 'HAVE_MASTER') {
+        if (startingState === 'HAVE_MAIN_MANIFEST') {
           // The initial playlist was a master manifest, and the first media selected was
           // also provided (in the form of a resolved playlist object) as part of the
           // source object (rather than just a URL). Therefore, since the media playlist
@@ -690,7 +690,7 @@ export default class PlaylistLoader extends EventTarget {
       });
 
       // fire loadedmetadata the first time a media playlist is loaded
-      if (startingState === 'HAVE_MASTER') {
+      if (startingState === 'HAVE_MAIN_MANIFEST') {
         this.trigger('loadedmetadata');
       } else {
         this.trigger('mediachange');
@@ -716,12 +716,12 @@ export default class PlaylistLoader extends EventTarget {
     // Need to restore state now that no activity is happening
     if (this.state === 'SWITCHING_MEDIA') {
       // if the loader was in the process of switching media, it should either return to
-      // HAVE_MASTER or HAVE_METADATA depending on if the loader has loaded a media
+      // HAVE_MAIN_MANIFEST or HAVE_METADATA depending on if the loader has loaded a media
       // playlist yet. This is determined by the existence of loader.media_
       if (this.media_) {
         this.state = 'HAVE_METADATA';
       } else {
-        this.state = 'HAVE_MASTER';
+        this.state = 'HAVE_MAIN_MANIFEST';
       }
     } else if (this.state === 'HAVE_CURRENT_METADATA') {
       this.state = 'HAVE_METADATA';
@@ -872,7 +872,7 @@ export default class PlaylistLoader extends EventTarget {
    *        The parsed manifest object
    */
   setupInitialPlaylist(manifest) {
-    this.state = 'HAVE_MASTER';
+    this.state = 'HAVE_MAIN_MANIFEST';
 
     if (manifest.playlists) {
       this.master = manifest;
