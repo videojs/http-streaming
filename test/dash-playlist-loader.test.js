@@ -718,7 +718,7 @@ QUnit.test('constructor sets srcUrl and other properties', function(assert) {
   assert.strictEqual(loader.state, 'HAVE_NOTHING', 'correct state');
   assert.deepEqual(loader.loadedPlaylists_, {}, 'correct loadedPlaylist state');
   assert.equal(loader.masterPlaylistLoader_, loader, 'masterPlaylistLoader should be self');
-  assert.ok(loader.isMaster_, 'should be set as main');
+  assert.ok(loader.isMain_, 'should be set as main');
   assert.notOk(loader.childPlaylist_, 'should be no childPlaylist_');
   assert.strictEqual(loader.srcUrl, 'dash.mpd', 'set the srcUrl');
 
@@ -728,7 +728,7 @@ QUnit.test('constructor sets srcUrl and other properties', function(assert) {
   assert.deepEqual(childLoader.loadedPlaylists_, {}, 'correct loadedPlaylist state');
   assert.ok(childLoader.masterPlaylistLoader_, 'should be a masterPlaylistLoader');
   assert.notEqual(childLoader.masterPlaylistLoader_, childLoader, 'should not be a masterPlaylistLoader');
-  assert.notOk(childLoader.isMaster_, 'should not be main');
+  assert.notOk(childLoader.isMain_, 'should not be main');
   assert.deepEqual(
     childLoader.childPlaylist_, {},
     'should be a childPlaylist_'

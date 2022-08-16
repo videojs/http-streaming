@@ -265,7 +265,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
     this.masterPlaylistLoader_ = masterPlaylistLoader || this;
     if (!masterPlaylistLoader) {
-      this.isMaster_ = true;
+      this.isMain_ = true;
     }
 
     const { withCredentials = false } = options;
@@ -293,7 +293,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
     // initialize the loader state
     // The masterPlaylistLoader will be created with a string
-    if (this.isMaster_) {
+    if (this.isMain_) {
       this.masterPlaylistLoader_.srcUrl = srcUrlOrPlaylist;
       // TODO: reset sidxMapping between period changes
       // once multi-period is refactored
@@ -526,7 +526,7 @@ export default class DashPlaylistLoader extends EventTarget {
     this.stopRequest();
     window.clearTimeout(this.mediaUpdateTimeout);
     this.mediaUpdateTimeout = null;
-    if (this.isMaster_) {
+    if (this.isMain_) {
       window.clearTimeout(this.masterPlaylistLoader_.minimumUpdatePeriodTimeout_);
       this.masterPlaylistLoader_.minimumUpdatePeriodTimeout_ = null;
     }
@@ -561,7 +561,7 @@ export default class DashPlaylistLoader extends EventTarget {
       // Check to see if this is the main loader and the MUP was cleared (this happens
       // when the loader was paused). `media` should be set at this point since one is always
       // set during `start()`.
-      if (this.isMaster_ && !this.minimumUpdatePeriodTimeout_) {
+      if (this.isMain_ && !this.minimumUpdatePeriodTimeout_) {
         // Trigger minimumUpdatePeriod to refresh the main manifest
         this.trigger('minimumUpdatePeriod');
         // Since there was no prior minimumUpdatePeriodTimeout it should be recreated
@@ -578,7 +578,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
     // We don't need to request the main manifest again
     // Call this asynchronously to match the xhr request behavior below
-    if (!this.isMaster_) {
+    if (!this.isMain_) {
       this.mediaRequest_ = window.setTimeout(() => this.haveMain_(), 0);
       return;
     }
@@ -690,7 +690,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
   haveMain_() {
     this.state = 'HAVE_MAIN_MANIFEST';
-    if (this.isMaster_) {
+    if (this.isMain_) {
       // We have the main playlist at this point, so
       // trigger this to allow PlaylistController
       // to make an initial playlist selection
@@ -831,7 +831,7 @@ export default class DashPlaylistLoader extends EventTarget {
     // which may change media. We only skip updating the main manifest
     // if this is the first time this.media_ is being set.
     // as main was just parsed in that case.
-    if (this.media_ && this.isMaster_) {
+    if (this.media_ && this.isMain_) {
       this.handleMaster_();
     }
 
