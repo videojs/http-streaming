@@ -27,21 +27,6 @@
   </style>
 </head>
 <body class="m-4">
-  <script>
-    // if we're on IE, load up the load index page
-    var result = (/MSIE\s(\d+)\.\d/).exec(navigator.userAgent);
-    var version = result && parseFloat(result[1]);
-
-    if (!version && (/Trident\/7.0/i).test(navigator.userAgent) && (/rv:11.0/).test(navigator.userAgent)) {
-      // IE 11 has a different user agent string than other IE versions
-      version = 11.0;
-    }
-
-    if (version) {
-      window.location.href = './old-index.html';
-    }
-  </script>
-
   <header class="container-fluid">
     <a href="https://github.com/videojs/http-streaming" class="d-flex align-items-center pb-3 mb-5 border-bottom" style="height: 4em">
       <img src="./logo.svg" alt="VHS logo showcasing a VHS tape with the Video.js logo on the label" class="rounded mh-100">
