@@ -67,7 +67,7 @@ Corresponding AudioTrackList when media-group-1 is used (before any tracks have 
 
 1. `HLS` creates a `PlaylistController` and watches for the `loadedmetadata` event
 1. `HLS` parses the m3u8 using the `PlaylistController`
-1. `PlaylistController` creates a `PlaylistLoader` for the master m3u8
+1. `PlaylistController` creates a `PlaylistLoader` for the main m3u8
 1. `PlaylistController` creates `PlaylistLoader`s for every audio playlist
 1. `PlaylistController` creates a `SegmentLoader` for the main m3u8
 1. `PlaylistController` creates a `SegmentLoader` for a potential audio playlist
