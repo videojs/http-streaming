@@ -579,12 +579,12 @@ export default class DashPlaylistLoader extends EventTarget {
     // We don't need to request the main manifest again
     // Call this asynchronously to match the xhr request behavior below
     if (!this.isMaster_) {
-      this.mediaRequest_ = window.setTimeout(() => this.haveMaster_(), 0);
+      this.mediaRequest_ = window.setTimeout(() => this.haveMain_(), 0);
       return;
     }
 
     this.requestMaster_((req, masterChanged) => {
-      this.haveMaster_();
+      this.haveMain_();
 
       if (!this.hasPendingRequest() && !this.media_) {
         this.media(this.masterPlaylistLoader_.main.playlists[0]);
@@ -688,7 +688,7 @@ export default class DashPlaylistLoader extends EventTarget {
     });
   }
 
-  haveMaster_() {
+  haveMain_() {
     this.state = 'HAVE_MAIN_MANIFEST';
     if (this.isMaster_) {
       // We have the main playlist at this point, so

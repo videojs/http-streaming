@@ -1383,7 +1383,7 @@ QUnit.test('haveMaster: triggers loadedplaylist for loader', function(assert) {
 
   // fake already having main XML loaded
   loader.mainXml_ = testDataManifests.dash;
-  loader.haveMaster_();
+  loader.haveMain_();
   assert.strictEqual(loadedPlaylists, 1, 'one loadedplaylist triggered');
 
   loader.media = origMediaFn;
@@ -1399,7 +1399,7 @@ QUnit.test('haveMaster: sets media on child loader', function(assert) {
 
   const mediaStub = sinon.stub(childLoader, 'media');
 
-  childLoader.haveMaster_();
+  childLoader.haveMain_();
   assert.strictEqual(mediaStub.callCount, 1, 'calls media on childLoader');
   assert.deepEqual(
     mediaStub.getCall(0).args[0],
@@ -2042,7 +2042,7 @@ QUnit.test('hasPendingRequest: returns true if async code is running in child lo
   assert.notOk(childLoader.request, 'xhr request is not being made');
 
   // this starts a request for the media playlist
-  childLoader.haveMaster_();
+  childLoader.haveMain_();
   assert.ok(childLoader.hasPendingRequest(), 'pending request while loading media playlist');
   assert.ok(childLoader.mediaRequest_, 'media request is being made');
   assert.notOk(childLoader.request, 'xhr request is not being made');
