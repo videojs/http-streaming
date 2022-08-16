@@ -499,7 +499,7 @@ export class PlaylistController extends videojs.EventTarget {
 
       // If we don't have any more available playlists, we don't want to
       // timeout the request.
-      if (isLowestEnabledRendition(this.masterPlaylistLoader_.master, this.masterPlaylistLoader_.media())) {
+      if (isLowestEnabledRendition(this.masterPlaylistLoader_.main, this.masterPlaylistLoader_.media())) {
         this.requestOptions_.timeout = 0;
       } else {
         this.requestOptions_.timeout = requestTimeout;
@@ -606,7 +606,7 @@ export class PlaylistController extends videojs.EventTarget {
 
       // If we don't have any more available playlists, we don't want to
       // timeout the request.
-      if (isLowestEnabledRendition(this.masterPlaylistLoader_.master, this.masterPlaylistLoader_.media())) {
+      if (isLowestEnabledRendition(this.masterPlaylistLoader_.main, this.masterPlaylistLoader_.media())) {
         this.requestOptions_.timeout = 0;
       } else {
         this.requestOptions_.timeout = requestTimeout;
@@ -1158,7 +1158,7 @@ export class PlaylistController extends videojs.EventTarget {
 
     playlistToExclude.playlistErrors_++;
 
-    const playlists = this.masterPlaylistLoader_.master.playlists;
+    const playlists = this.masterPlaylistLoader_.main.playlists;
     const enabledPlaylists = playlists.filter(isEnabled);
     const isFinalRendition = enabledPlaylists.length === 1 && enabledPlaylists[0] === playlistToExclude;
 
@@ -1456,7 +1456,7 @@ export class PlaylistController extends videojs.EventTarget {
       return;
     }
 
-    const master = this.masterPlaylistLoader_.master;
+    const master = this.masterPlaylistLoader_.main;
     const mainSeekable = Vhs.Playlist.seekable(
       media,
       expired,
@@ -1637,7 +1637,7 @@ export class PlaylistController extends videojs.EventTarget {
    * @return {Object} the master playlist object that we parsed
    */
   master() {
-    return this.masterPlaylistLoader_.master;
+    return this.masterPlaylistLoader_.main;
   }
 
   /**
@@ -1894,7 +1894,7 @@ export class PlaylistController extends videojs.EventTarget {
       const exclusionReasons = [];
 
       // get codecs from the playlist for this variant
-      const variantCodecs = codecsForPlaylist(this.masterPlaylistLoader_.master, variant);
+      const variantCodecs = codecsForPlaylist(this.masterPlaylistLoader_.main, variant);
       const variantCodecCount = codecCount(variantCodecs);
 
       // if no codecs are listed, we cannot determine that this

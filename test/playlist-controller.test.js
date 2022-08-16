@@ -1460,11 +1460,11 @@ QUnit.test('excludes switching from video+audio playlists to audio only', functi
   }).then(() => {
     assert.equal(
       pc.masterPlaylistLoader_.media(),
-      pc.masterPlaylistLoader_.master.playlists[1],
+      pc.masterPlaylistLoader_.main.playlists[1],
       'selected video+audio'
     );
 
-    const audioPlaylist = pc.masterPlaylistLoader_.master.playlists[0];
+    const audioPlaylist = pc.masterPlaylistLoader_.main.playlists[0];
 
     assert.equal(audioPlaylist.excludeUntil, Infinity, 'excluded incompatible playlist');
     assert.notEqual(
@@ -1509,11 +1509,11 @@ QUnit.test('excludes switching from audio-only playlists to video+audio', functi
   }).then(() => {
     assert.equal(
       pc.masterPlaylistLoader_.media(),
-      pc.masterPlaylistLoader_.master.playlists[0],
+      pc.masterPlaylistLoader_.main.playlists[0],
       'selected audio only'
     );
 
-    const videoAudioPlaylist = pc.masterPlaylistLoader_.master.playlists[1];
+    const videoAudioPlaylist = pc.masterPlaylistLoader_.main.playlists[1];
 
     assert.equal(
       videoAudioPlaylist.excludeUntil,
@@ -1565,11 +1565,11 @@ QUnit.test('excludes switching from video-only playlists to video+audio', functi
   }).then(() => {
     assert.equal(
       pc.masterPlaylistLoader_.media(),
-      pc.masterPlaylistLoader_.master.playlists[0],
+      pc.masterPlaylistLoader_.main.playlists[0],
       'selected video only'
     );
 
-    const videoAudioPlaylist = pc.masterPlaylistLoader_.master.playlists[1];
+    const videoAudioPlaylist = pc.masterPlaylistLoader_.main.playlists[1];
 
     assert.equal(
       videoAudioPlaylist.excludeUntil,
@@ -1621,7 +1621,7 @@ QUnit.test('excludes switching between playlists with different codecs', functio
   this.standardXHRResponse(this.requests.shift());
   assert.equal(
     this.playlistController.masterPlaylistLoader_.media(),
-    this.playlistController.masterPlaylistLoader_.master.playlists[0],
+    this.playlistController.masterPlaylistLoader_.main.playlists[0],
     'selected HE-AAC stream'
   );
 
@@ -1637,7 +1637,7 @@ QUnit.test('excludes switching between playlists with different codecs', functio
     segmentLoader: pc.mainSegmentLoader_,
     clock: this.clock
   }).then(() => {
-    const playlists = pc.masterPlaylistLoader_.master.playlists;
+    const playlists = pc.masterPlaylistLoader_.main.playlists;
 
     assert.equal(typeof playlists[0].excludeUntil, 'undefined', 'did not exclude first playlist');
     assert.equal(playlists[1].excludeUntil, Infinity, 'excluded second playlist');
@@ -1683,7 +1683,7 @@ QUnit.test('does not exclude switching between playlists with different audio pr
   this.standardXHRResponse(this.requests.shift());
   assert.equal(
     this.playlistController.masterPlaylistLoader_.media(),
-    this.playlistController.masterPlaylistLoader_.master.playlists[0],
+    this.playlistController.masterPlaylistLoader_.main.playlists[0],
     'selected HE-AAC stream'
   );
 
@@ -1695,7 +1695,7 @@ QUnit.test('does not exclude switching between playlists with different audio pr
     segmentLoader: pc.mainSegmentLoader_,
     clock: this.clock
   }).then(() => {
-    const alternatePlaylist = pc.masterPlaylistLoader_.master.playlists[1];
+    const alternatePlaylist = pc.masterPlaylistLoader_.main.playlists[1];
 
     assert.equal(alternatePlaylist.excludeUntil, undefined, 'did not exclude playlist');
   });
@@ -1768,7 +1768,7 @@ QUnit.test('selects a playlist after main/combined segment downloads', function(
 
   this.playlistController.selectPlaylist = () => {
     calls++;
-    return this.playlistController.masterPlaylistLoader_.master.playlists[0];
+    return this.playlistController.masterPlaylistLoader_.main.playlists[0];
   };
   this.playlistController.mediaSource.trigger('sourceopen');
 
@@ -2321,7 +2321,7 @@ QUnit.test('updates the duration after switching playlists', function(assert) {
     this.playlistController.mediaSource.duration = 0;
     this.playlistController.mediaSource.readyState = 'open';
 
-    return this.playlistController.masterPlaylistLoader_.master.playlists[1];
+    return this.playlistController.masterPlaylistLoader_.main.playlists[1];
   };
 
   assert.ok(segmentByteLength, 'the segment has some number of bytes');
@@ -2420,7 +2420,7 @@ QUnit.test(
 
     assert.ok(
       !Playlist.isLowestEnabledRendition(
-        this.playlistController.masterPlaylistLoader_.master,
+        this.playlistController.masterPlaylistLoader_.main,
         this.playlistController.masterPlaylistLoader_.media()
       ),
       'not on lowest rendition'
@@ -2437,7 +2437,7 @@ QUnit.test(
 
     assert.ok(
       Playlist.isLowestEnabledRendition(
-        this.playlistController.masterPlaylistLoader_.master,
+        this.playlistController.masterPlaylistLoader_.main,
         this.playlistController.masterPlaylistLoader_.media()
       ),
       'on lowest rendition'
@@ -2484,7 +2484,7 @@ QUnit.test(
     let mainTimeRanges = [];
     let audioTimeRanges = [];
 
-    this.playlistController.masterPlaylistLoader_.master = {};
+    this.playlistController.masterPlaylistLoader_.main = {};
     this.playlistController.masterPlaylistLoader_.media = () => mainMedia;
     this.playlistController.syncController_.getExpiredTime = () => 0;
 
@@ -2617,7 +2617,7 @@ QUnit.test(
     Playlist.seekable = () => {
       return videojs.createTimeRanges(mainTimeRanges);
     };
-    this.playlistController.masterPlaylistLoader_.master = {};
+    this.playlistController.masterPlaylistLoader_.main = {};
     this.playlistController.masterPlaylistLoader_.media = () => media;
     this.playlistController.syncController_.getExpiredTime = () => 0;
 
@@ -3182,7 +3182,7 @@ QUnit.test(
     // media
     this.standardXHRResponse(this.requests.shift());
 
-    const master = playlistController.masterPlaylistLoader_.master;
+    const master = playlistController.masterPlaylistLoader_.main;
     const caps = master.mediaGroups['CLOSED-CAPTIONS'].CCs;
     const capsArr = Object.keys(caps).map(key => Object.assign({name: key}, caps[key]));
     const addedCaps = playlistController.mediaTypes_['CLOSED-CAPTIONS'].groups.CCs
@@ -3247,7 +3247,7 @@ QUnit.test(
     // media
     this.standardXHRResponse(this.requests.shift());
 
-    const master = playlistController.masterPlaylistLoader_.master;
+    const master = playlistController.masterPlaylistLoader_.main;
     const caps = master.mediaGroups['CLOSED-CAPTIONS'].CCs;
     const capsArr = Object.keys(caps).map(key => Object.assign({name: key}, caps[key]));
     const addedCaps = playlistController.mediaTypes_['CLOSED-CAPTIONS'].groups.CCs
@@ -3318,7 +3318,7 @@ QUnit.test('adds subtitle tracks when a media playlist is loaded', function(asse
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  const master = playlistController.masterPlaylistLoader_.master;
+  const master = playlistController.masterPlaylistLoader_.main;
   const subs = master.mediaGroups.SUBTITLES.subs;
   const subsArr = Object.keys(subs).map(key => subs[key]);
 
@@ -5725,7 +5725,7 @@ QUnit.test('Determines if playlist should change on bandwidthupdate/progress fro
 
   this.playlistController.selectPlaylist = () => {
     calls++;
-    return this.playlistController.masterPlaylistLoader_.master.playlists[0];
+    return this.playlistController.masterPlaylistLoader_.main.playlists[0];
   };
   this.playlistController.mediaSource.trigger('sourceopen');
 
