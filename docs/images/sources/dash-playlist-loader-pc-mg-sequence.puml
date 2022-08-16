@@ -1,31 +1,31 @@
 @startuml
 
-header PlaylistLoader sequences
-title PlaylistLoader sequences: Master Manifest and Alternate Audio
+header DashPlaylistLoader sequences
+title DashPlaylistLoader sequences: Master Manifest with Alternate Audio
 
-Participant "MasterPlaylistController" as MPC #red
-Participant "MasterPlaylistLoader" as MPL #blue
+Participant "PlaylistController" as PC #red
+Participant "MasterDashPlaylistLoader" as MPL #blue
 Participant "mainSegmentLoader" as SL #blue
-Participant "AudioPlaylistLoader" as APL #green
+Participant "AudioDashPlaylistLoader" as APL #green
 Participant "audioSegmentLoader" as ASL #green
 Participant "external server" as ext #brown
-Participant "m3u8Parser" as parser #orange
+Participant "mpdParser" as parser #orange
 Participant "mediaGroups" as MG #purple
 Participant Tech #lightblue
 
 == Initialization ==
 
-MPC -> MPL : construct MasterPlaylistLoader
-MPC -> MPL: load()
-
-MPL -> MPL : start()
+PC -> MPL : construct MasterPlaylistLoader
+PC -> MPL: load()
 
 == Requesting Master Manifest ==
+
+MPL -> MPL : start()
 
 MPL -> ext: xhr request for master manifest
 ext -> MPL : response with master manifest
 
-MPL -> parser: parse master manifest
+MPL -> parser: parse manifest
 parser -> MPL: object representing manifest
 
 note over MPL #lightblue: trigger 'loadedplaylist'
@@ -33,23 +33,18 @@ note over MPL #lightblue: trigger 'loadedplaylist'
 == Requesting Video Manifest ==
 
 note over MPL #lightblue: handling loadedplaylist
-MPL -> MPL : media()
+MPL -> MPL: media(x)
 
-MPL -> ext : request child manifest
-ext -> MPL: child manifest returned
+alt if no sidx
+  note over MPL #lightgray: zero delay to fake network request
+else if sidx
+  break
+    MPL -> ext: request sidx
+  end
+end
 
-MPL -> parser: parse child manifest
-parser -> MPL: object representing the child manifest
+note over MPL #lightblue: trigger 'loadedmetadata' on master loader [T1]
 
-note over MPL #lightblue: trigger 'loadedplaylist'
-note over MPL #lightblue: handleing 'loadedplaylist'
-
-MPL -> SL: playlist()
-MPL -> SL: load()
-
-== Requesting Video Segments ==
-
-note over MPL #lightblue: trigger 'loadedmetadata'
 note over MPL #lightblue: handling 'loadedmetadata'
 
 opt vod and preload !== 'none'
@@ -59,15 +54,18 @@ opt vod and preload !== 'none'
 
 end
 
-MPL -> MG: setupMediaGroups()
-
 == Initializing Media Groups, Choosing Active Tracks ==
+
+MPL -> MG: setupMediaGroups()
+MG -> MG: initialize()
+
+== Initializing Alternate Audio Loader ==
 
 MG -> APL: create child playlist loader for alt audio
 
 MG -> MG: activeGroup and audio variant selected
 MG -> MG: enable activeTrack, onTrackChanged()
-MG -> SL: reset mainSegmentLoader
+MG -> ASL: reset audio segment loader
 
 == Requesting Alternate Audio Manifest ==
 
@@ -75,24 +73,29 @@ MG -> MG: startLoaders()
 
 MG -> APL: load()
 APL -> APL: start()
-
-APL -> ext: request alt audio media manifest
+APL -> APL: zero delay to fake network request
 
 break finish pending tasks
-  MG -> Tech: add audioTracks
-  MPL -> MPC: setupSourceBuffers()
-  MPL -> MPC: setupFirstPlay()
+  MG -> Tech: add audioTrack
+  MPL -> PC: setupSourceBuffers_()
+  MPL -> PC: setupFirstPlay()
 
-  loop on monitorBufferTick
+  loop mainSegmentLoader.monitorBufferTick_()
     SL -> ext: requests media segments
     ext -> SL: response with media segment bytes
   end
 end
 
-ext -> APL: responds with child manifest
+APL -> APL: zero delay over
+APL -> APL: media(x)
 
-APL -> parser: parse child manifest
-parser -> APL: object representing child manifest returned
+alt if no sidx
+  note over APL #lightgray: zero delay to fake network request
+else if sidx
+  break
+    MPL -> ext: request sidx
+  end
+end
 
 == Requesting Alternate Audio Segments ==
 
@@ -100,15 +103,17 @@ note over APL #lightblue: trigger 'loadedplaylist'
 note over APL #lightblue: handling 'loadedplaylist'
 APL -> ASL: playlist()
 
-note over APL #lightblue: trigger 'loadedmetadata'
+
+note over ASL #lightblue: trigger 'loadedmetadata' [T2]
 note over APL #lightblue: handling 'loadedmetadata'
 APL -> ASL: playlist()
 APL -> ASL: load()
 
-loop audioSegmentLoader.load()
+loop audioSegmentLoader.monitorBufferTick_()
 
   ASL -> ext: requests media segments
   ext -> ASL: response with media segment bytes
+
 end
 
 @enduml

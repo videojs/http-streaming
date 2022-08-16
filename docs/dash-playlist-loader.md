@@ -44,7 +44,7 @@ The [DPL] is written to be as similar as possible to the [PlaylistLoader][pl]. T
 
 ### Interaction with Other Modules
 
-![DPL with PC and MG](images/dash-playlist-loader-mpc-mg-sequence.plantuml.png)
+![DPL with PC and MG](images/dash-playlist-loader-pc-mg-sequence.puml.png)
 
 ### Special Features
 

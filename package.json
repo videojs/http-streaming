@@ -18,7 +18,9 @@
     "docs": "npm-run-all docs:*",
     "docs:api": "jsdoc src -g plugins/markdown -r -d docs/api",
     "docs:toc": "doctoc --notitle README.md",
-    "docs:images": "node ./scripts/create-docs-images.js",
+    "docs:images:puml": "for i in docs/images/sources/*.puml; do npx water-uml export $i -f png -o \"docs/images/$(echo $i | cut -d '/' -f 4)\"; done",
+    "docs:images:nomnoml": "node ./scripts/create-docs-images.js",
+    "docs:images": "npm-run-all -p docs:images:puml docs:images:nomnoml",
     "clean": "shx rm -rf ./dist ./test/dist && shx mkdir -p ./dist ./test/dist",
     "lint": "vjsstandard",
     "prepublishOnly": "npm-run-all build-prod && vjsverify --verbose",
@@ -91,7 +93,8 @@
     "videojs-generate-rollup-config": "^6.2.2",
     "videojs-generator-verify": "~3.0.1",
     "videojs-http-source-selector": "^1.1.6",
-    "videojs-standard": "^9.0.0"
+    "videojs-standard": "^9.0.0",
+    "water-plant-uml": "^2.0.2"
   },
   "generator-videojs-plugin": {
     "version": "7.6.3"

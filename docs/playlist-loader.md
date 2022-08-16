@@ -40,7 +40,7 @@ The [PlaylistLoader][pl] (PL) is responsible for requesting m3u8s, parsing them 
 
 ### Interaction with Other Modules
 
-![PL with MPC and MG](images/playlist-loader-mpc-mg-sequence.plantuml.png)
+![PL with PC and MG](images/playlist-loader-pc-mg-sequence.puml.png)
 
 [pl]: ../src/playlist-loader.js
 [sl]: ../src/segment-loader.js
