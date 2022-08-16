@@ -6,7 +6,7 @@ import {
   updateMain,
   compareSidxEntry,
   filterChangedSidxMappings,
-  parseMasterXml
+  parseMainXml
 } from '../src/dash-playlist-loader';
 import parseSidx from 'mux.js/lib/tools/parse-sidx';
 import xhrFactory from '../src/xhr';
@@ -561,7 +561,7 @@ QUnit.test('filterChangedSidxMappings: removes change sidx info from mapping', f
 
   let mainXml = loader.mainXml_.replace(/(indexRange)=\"\d+-\d+\"/, '$1="201-400"');
   // should change the video playlist
-  let newMain = parseMasterXml({
+  let newMain = parseMainXml({
     mainXml,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_
@@ -588,7 +588,7 @@ QUnit.test('filterChangedSidxMappings: removes change sidx info from mapping', f
 
   // should change the English audio group
   mainXml = loader.mainXml_.replace(/(indexRange)=\"\d+-\d+\"/g, '$1="201-400"');
-  newMain = parseMasterXml({
+  newMain = parseMainXml({
     mainXml,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_
@@ -1408,13 +1408,13 @@ QUnit.test('haveMaster: sets media on child loader', function(assert) {
   );
 });
 
-QUnit.test('parseMasterXml: setup phony playlists and resolves uris', function(assert) {
+QUnit.test('parseMainXml: setup phony playlists and resolves uris', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeVhs);
 
   loader.load();
   this.standardXHRResponse(this.requests.shift());
 
-  const masterPlaylist = parseMasterXml({
+  const masterPlaylist = parseMainXml({
     mainXml: loader.mainXml_,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_,
@@ -1436,12 +1436,12 @@ QUnit.test('parseMasterXml: setup phony playlists and resolves uris', function(a
   assert.ok(masterPlaylist.playlists[0].resolvedUri, 'resolved playlist uris');
 });
 
-QUnit.test('parseMasterXml: includes sidx info if available and matches playlist', function(assert) {
+QUnit.test('parseMainXml: includes sidx info if available and matches playlist', function(assert) {
   const loader = new DashPlaylistLoader('dash-sidx.mpd', this.fakeVhs);
 
   loader.load();
   this.standardXHRResponse(this.requests.shift());
-  const origParsedMaster = parseMasterXml({
+  const origParsedMaster = parseMainXml({
     mainXml: loader.mainXml_,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_,
@@ -1450,7 +1450,7 @@ QUnit.test('parseMasterXml: includes sidx info if available and matches playlist
 
   loader.sidxMapping_ = {};
 
-  let newParsedMaster = parseMasterXml({
+  let newParsedMaster = parseMainXml({
     mainXml: loader.mainXml_,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_,
@@ -1480,7 +1480,7 @@ QUnit.test('parseMasterXml: includes sidx info if available and matches playlist
       }]
     }
   };
-  newParsedMaster = parseMasterXml({
+  newParsedMaster = parseMainXml({
     mainXml: loader.mainXml_,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_,
@@ -1678,7 +1678,7 @@ QUnit.test('refreshXml_: requests the sidx if it changed', function(assert) {
   this.standardXHRResponse(this.requests.shift());
   assert.strictEqual(this.requests.length, 1, 'made a sidx request');
 
-  const oldMain = parseMasterXml({
+  const oldMain = parseMainXml({
     mainXml: loader.mainXml_,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_,
@@ -1694,7 +1694,7 @@ QUnit.test('refreshXml_: requests the sidx if it changed', function(assert) {
     },
     'sidx is the original in the xml'
   );
-  let newMain = parseMasterXml({
+  let newMain = parseMainXml({
     mainXml: loader.mainXml_,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_,
@@ -1709,7 +1709,7 @@ QUnit.test('refreshXml_: requests the sidx if it changed', function(assert) {
   loader.refreshXml_();
 
   assert.strictEqual(this.requests.length, 2, 'manifest is being requested');
-  newMain = parseMasterXml({
+  newMain = parseMainXml({
     mainXml: loader.mainXml_,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_,
@@ -2429,7 +2429,7 @@ QUnit.test('errors if requests take longer than 45s', function(assert) {
 });
 
 QUnit.test(
-  'parseMasterXml parses main manifest and sets up uri references',
+  'parseMainXml parses main manifest and sets up uri references',
   function(assert) {
     const loader = new DashPlaylistLoader('dash.mpd', this.fakeVhs);
 

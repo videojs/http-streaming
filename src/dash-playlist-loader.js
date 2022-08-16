@@ -101,7 +101,7 @@ const dashPlaylistUnchanged = function(a, b) {
  * @return {Object}
  *         The parsed mpd manifest object
  */
-export const parseMasterXml = ({
+export const parseMainXml = ({
   mainXml,
   srcUrl,
   clientOffset,
@@ -708,7 +708,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
     const oldMain = this.masterPlaylistLoader_.main;
 
-    let newMain = parseMasterXml({
+    let newMain = parseMainXml({
       mainXml: this.masterPlaylistLoader_.mainXml_,
       srcUrl: this.masterPlaylistLoader_.srcUrl,
       clientOffset: this.masterPlaylistLoader_.clientOffset_,
