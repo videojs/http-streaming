@@ -520,7 +520,8 @@
 
     [
       'exact-manifest-timings',
-      'pixel-diff-selector'
+      'pixel-diff-selector',
+      'bufferBasedABR'
     ].forEach(function(name) {
       stateEls[name].checked = false;
     });
@@ -579,7 +580,7 @@
           html5: {
             vhs: {
               overrideNative: getInputValue(stateEls['override-native']),
-              experimentalBufferBasedABR: getInputValue(stateEls['buffer-water']),
+              bufferBasedABR: getInputValue(stateEls['buffer-water']),
               llhls: getInputValue(stateEls.llhls),
               exactManifestTimings: getInputValue(stateEls['exact-manifest-timings']),
               leastPixelDiffSelector: getInputValue(stateEls['pixel-diff-selector']),

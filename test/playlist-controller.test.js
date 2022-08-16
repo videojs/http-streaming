@@ -5702,12 +5702,12 @@ QUnit.test('filter subtitle works', function(assert) {
   assert.deepEqual(this.calls, this.expected, 'calls as expected');
 });
 
-QUnit.module('PlaylistController experimentalBufferBasedABR', {
+QUnit.module('PlaylistController bufferBasedABR', {
   beforeEach(assert) {
     this.playerOptions = {
       html5: {
         vhs: {
-          experimentalBufferBasedABR: true
+          bufferBasedABR: true
         }
       }
     };
@@ -5851,11 +5851,11 @@ QUnit.test('maxPlaylistRetries is set when zero is passed as the option\'s value
   player.dispose();
 });
 
-QUnit.test('true duration < 16 with experimentalBufferBasedABR', function(assert) {
+QUnit.test('true duration < 16 with bufferBasedABR', function(assert) {
   const pc = this.playlistController;
   const nextPlaylist = {id: 'foo', endList: true};
 
-  pc.experimentalBufferBasedABR = true;
+  pc.bufferBasedABR = true;
 
   pc.duration = () => 15;
   pc.mainPlaylistLoader_.media = () => ({endList: true, id: 'bar'});
@@ -5873,14 +5873,14 @@ QUnit.test('true if bandwidth decreases', function(assert) {
   assert.ok(pc.shouldSwitchToMedia_(nextPlaylist), 'should switch');
 });
 
-QUnit.test('true if bandwidth decreases, experimentalBufferBasedABR, and forwardBuffer < bufferHighWaterLine', function(assert) {
+QUnit.test('true if bandwidth decreases, bufferBasedABR, and forwardBuffer < bufferHighWaterLine', function(assert) {
   const pc = this.playlistController;
   const nextPlaylist = {id: 'foo', endList: true, attributes: {BANDWIDTH: 1}};
 
   // 0 forward buffer
   pc.tech_.buffered = () => videojs.createTimeRange();
   pc.tech_.currentTime = () => 0;
-  pc.experimentalBufferBasedABR = true;
+  pc.bufferBasedABR = true;
   pc.duration = () => 40;
   pc.mainPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
 
@@ -5900,42 +5900,42 @@ QUnit.test('true if forwardBuffer >= bufferLowWaterLine', function(assert) {
   assert.ok(pc.shouldSwitchToMedia_(nextPlaylist), 'should switch');
 });
 
-QUnit.test('true if forwardBuffer >= bufferLowWaterLine, experimentalBufferBasedABR, and bandwidth increase', function(assert) {
+QUnit.test('true if forwardBuffer >= bufferLowWaterLine, bufferBasedABR, and bandwidth increase', function(assert) {
   const pc = this.playlistController;
   const nextPlaylist = {id: 'foo', endList: true, attributes: {BANDWIDTH: 3}};
 
   // zero forward buffer and zero buffer low water line
   pc.tech_.buffered = () => videojs.createTimeRange();
   pc.tech_.currentTime = () => 0;
-  pc.experimentalBufferBasedABR = true;
+  pc.bufferBasedABR = true;
   pc.duration = () => 40;
   pc.mainPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
 
   assert.ok(pc.shouldSwitchToMedia_(nextPlaylist), 'should switch');
 });
 
-QUnit.test('false if nextPlaylist bandwidth lower, experimentalBufferBasedABR, and forwardBuffer > bufferHighWaterLine', function(assert) {
+QUnit.test('false if nextPlaylist bandwidth lower, bufferBasedABR, and forwardBuffer > bufferHighWaterLine', function(assert) {
   const pc = this.playlistController;
   const nextPlaylist = {id: 'foo', endList: true, attributes: {BANDWIDTH: 1}};
 
   // 31s forwardBuffer
   pc.tech_.buffered = () => videojs.createTimeRange(0, 31);
   pc.tech_.currentTime = () => 0;
-  pc.experimentalBufferBasedABR = true;
+  pc.bufferBasedABR = true;
   pc.duration = () => 40;
   pc.mainPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
 
   assert.notOk(pc.shouldSwitchToMedia_(nextPlaylist), 'should not switch');
 });
 
-QUnit.test('false if nextPlaylist bandwidth same, experimentalBufferBasedABR, and forwardBuffer >= bufferLowWaterLine', function(assert) {
+QUnit.test('false if nextPlaylist bandwidth same, bufferBasedABR, and forwardBuffer >= bufferLowWaterLine', function(assert) {
   const pc = this.playlistController;
   const nextPlaylist = {id: 'foo', endList: true, attributes: {BANDWIDTH: 2}};
 
   // 31s forwardBuffer
   pc.tech_.buffered = () => videojs.createTimeRange();
   pc.tech_.currentTime = () => 0;
-  pc.experimentalBufferBasedABR = true;
+  pc.bufferBasedABR = true;
   pc.duration = () => 40;
   pc.mainPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
 

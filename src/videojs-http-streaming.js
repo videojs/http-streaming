@@ -598,6 +598,7 @@ class VhsHandler extends Component {
     this.options_.customTagMappers = this.options_.customTagMappers || [];
     this.options_.cacheEncryptionKeys = this.options_.cacheEncryptionKeys || false;
     this.options_.llhls = Boolean(this.options_.llhls);
+    this.options_.bufferBasedABR = this.options_.bufferBasedABR || false;
 
     if (typeof this.options_.playlistExclusionDuration !== 'number') {
       this.options_.playlistExclusionDuration = 5 * 60;
@@ -640,7 +641,7 @@ class VhsHandler extends Component {
       'cacheEncryptionKeys',
       'playlistSelector',
       'initialPlaylistSelector',
-      'experimentalBufferBasedABR',
+      'bufferBasedABR',
       'liveRangeSafeTimeDelta',
       'llhls',
       'useNetworkInformationApi',
@@ -707,7 +708,7 @@ class VhsHandler extends Component {
       player.error(error);
     });
 
-    const defaultSelector = this.options_.experimentalBufferBasedABR ?
+    const defaultSelector = this.options_.bufferBasedABR ?
       Vhs.movingAverageBandwidthSelector(0.55) : Vhs.STANDARD_PLAYLIST_SELECTOR;
 
     // `this` in selectPlaylist should be the VhsHandler for backwards
