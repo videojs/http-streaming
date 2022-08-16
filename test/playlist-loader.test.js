@@ -114,16 +114,16 @@ QUnit.module('Playlist Loader', function(hooks) {
   });
 
   QUnit.test('updateMain returns null when no playlists', function(assert) {
-    const master = {
+    const main = {
       playlists: []
     };
     const media = {};
 
-    assert.deepEqual(updateMain(master, media), null, 'returns null when no playlists');
+    assert.deepEqual(updateMain(main, media), null, 'returns null when no playlists');
   });
 
   QUnit.test('updateMain returns null when no change', function(assert) {
-    const master = {
+    const main = {
       playlists: [{
         mediaSequence: 0,
         attributes: {
@@ -152,11 +152,11 @@ QUnit.module('Playlist Loader', function(hooks) {
       }]
     };
 
-    assert.deepEqual(updateMain(master, media), null, 'returns null');
+    assert.deepEqual(updateMain(main, media), null, 'returns null');
   });
 
-  QUnit.test('updateMain updates master when new media sequence', function(assert) {
-    const master = {
+  QUnit.test('updateMain updates main when new media sequence', function(assert) {
+    const main = {
       playlists: [{
         mediaSequence: 0,
         attributes: {
@@ -186,10 +186,10 @@ QUnit.module('Playlist Loader', function(hooks) {
       }]
     };
 
-    master.playlists[media.id] = master.playlists[0];
+    main.playlists[media.id] = main.playlists[0];
 
     assert.deepEqual(
-      updateMain(master, media),
+      updateMain(main, media),
       {
         playlists: [{
           mediaSequence: 1,
@@ -206,12 +206,12 @@ QUnit.module('Playlist Loader', function(hooks) {
           }]
         }]
       },
-      'updates master when new media sequence'
+      'updates main when new media sequence'
     );
   });
 
-  QUnit.test('updateMain updates master when endList changes', function(assert) {
-    const master = {
+  QUnit.test('updateMain updates main when endList changes', function(assert) {
+    const main = {
       playlists: [{
         endList: false,
         mediaSequence: 0,
@@ -242,10 +242,10 @@ QUnit.module('Playlist Loader', function(hooks) {
       }]
     };
 
-    master.playlists[media.id] = master.playlists[0];
+    main.playlists[media.id] = main.playlists[0];
 
     assert.deepEqual(
-      updateMain(master, media),
+      updateMain(main, media),
       {
         playlists: [{
           endList: true,
@@ -263,12 +263,12 @@ QUnit.module('Playlist Loader', function(hooks) {
           }]
         }]
       },
-      'updates master when endList changes'
+      'updates main when endList changes'
     );
   });
 
-  QUnit.test('updateMain retains top level values in master', function(assert) {
-    const master = {
+  QUnit.test('updateMain retains top level values in main', function(assert) {
+    const main = {
       mediaGroups: {
         AUDIO: {
           'GROUP-ID': {
@@ -305,10 +305,10 @@ QUnit.module('Playlist Loader', function(hooks) {
       }]
     };
 
-    master.playlists[media.id] = master.playlists[0];
+    main.playlists[media.id] = main.playlists[0];
 
     assert.deepEqual(
-      updateMain(master, media),
+      updateMain(main, media),
       {
         mediaGroups: {
           AUDIO: {
@@ -333,12 +333,12 @@ QUnit.module('Playlist Loader', function(hooks) {
           }]
         }]
       },
-      'retains top level values in master'
+      'retains top level values in main'
     );
   });
 
-  QUnit.test('updateMain adds new segments to master', function(assert) {
-    const master = {
+  QUnit.test('updateMain adds new segments to main', function(assert) {
+    const main = {
       mediaGroups: {
         AUDIO: {
           'GROUP-ID': {
@@ -378,10 +378,10 @@ QUnit.module('Playlist Loader', function(hooks) {
       }]
     };
 
-    master.playlists[media.id] = master.playlists[0];
+    main.playlists[media.id] = main.playlists[0];
 
     assert.deepEqual(
-      updateMain(master, media),
+      updateMain(main, media),
       {
         mediaGroups: {
           AUDIO: {
@@ -410,12 +410,12 @@ QUnit.module('Playlist Loader', function(hooks) {
           }]
         }]
       },
-      'adds new segment to master'
+      'adds new segment to main'
     );
   });
 
   QUnit.test('updateMain changes old values', function(assert) {
-    const master = {
+    const main = {
       mediaGroups: {
         AUDIO: {
           'GROUP-ID': {
@@ -456,10 +456,10 @@ QUnit.module('Playlist Loader', function(hooks) {
       }]
     };
 
-    master.playlists[media.id] = master.playlists[0];
+    main.playlists[media.id] = main.playlists[0];
 
     assert.deepEqual(
-      updateMain(master, media),
+      updateMain(main, media),
       {
         mediaGroups: {
           AUDIO: {
@@ -494,7 +494,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   });
 
   QUnit.test('updateMain retains saved segment values', function(assert) {
-    const master = {
+    const main = {
       playlists: [{
         mediaSequence: 0,
         id: 'playlist-0-uri',
@@ -522,10 +522,10 @@ QUnit.module('Playlist Loader', function(hooks) {
       }]
     };
 
-    master.playlists[media.id] = master.playlists[0];
+    main.playlists[media.id] = main.playlists[0];
 
     assert.deepEqual(
-      updateMain(master, media),
+      updateMain(main, media),
       {
         playlists: [{
           mediaSequence: 0,
@@ -550,7 +550,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   });
 
   QUnit.test('updateMain resolves key and map URIs', function(assert) {
-    const master = {
+    const main = {
       playlists: [{
         mediaSequence: 0,
         attributes: {
@@ -601,10 +601,10 @@ QUnit.module('Playlist Loader', function(hooks) {
       }]
     };
 
-    master.playlists[media.id] = master.playlists[0];
+    main.playlists[media.id] = main.playlists[0];
 
     assert.deepEqual(
-      updateMain(master, media),
+      updateMain(main, media),
       {
         playlists: [{
           mediaSequence: 3,
@@ -650,7 +650,7 @@ QUnit.module('Playlist Loader', function(hooks) {
   });
 
   QUnit.test('updateMain detects preload segment changes', function(assert) {
-    const master = {
+    const main = {
       playlists: [{
         mediaSequence: 0,
         attributes: {
@@ -690,17 +690,17 @@ QUnit.module('Playlist Loader', function(hooks) {
       }
     };
 
-    master.playlists['playlist-0-uri'] = master.playlists[0];
+    main.playlists['playlist-0-uri'] = main.playlists[0];
 
-    const result = updateMain(master, media);
+    const result = updateMain(main, media);
 
-    master.playlists[0].preloadSegment = media.preloadSegment;
+    main.playlists[0].preloadSegment = media.preloadSegment;
 
-    assert.deepEqual(result, master, 'playlist updated');
+    assert.deepEqual(result, main, 'playlist updated');
   });
 
   QUnit.test('updateMain detects preload segment addition', function(assert) {
-    const master = {
+    const main = {
       playlists: [{
         mediaSequence: 0,
         attributes: {
@@ -736,17 +736,17 @@ QUnit.module('Playlist Loader', function(hooks) {
       }
     };
 
-    master.playlists['playlist-0-uri'] = master.playlists[0];
+    main.playlists['playlist-0-uri'] = main.playlists[0];
 
-    const result = updateMain(master, media);
+    const result = updateMain(main, media);
 
-    master.playlists[0].preloadSegment = media.preloadSegment;
+    main.playlists[0].preloadSegment = media.preloadSegment;
 
-    assert.deepEqual(result, master, 'playlist updated');
+    assert.deepEqual(result, main, 'playlist updated');
   });
 
   QUnit.test('updateMain detects preload segment removal', function(assert) {
-    const master = {
+    const main = {
       playlists: [{
         mediaSequence: 0,
         attributes: {
@@ -786,17 +786,17 @@ QUnit.module('Playlist Loader', function(hooks) {
       }]
     };
 
-    master.playlists['playlist-0-uri'] = master.playlists[0];
+    main.playlists['playlist-0-uri'] = main.playlists[0];
 
-    const result = updateMain(master, media);
+    const result = updateMain(main, media);
 
-    master.playlists[0].preloadSegment = media.preloadSegment;
+    main.playlists[0].preloadSegment = media.preloadSegment;
 
-    assert.deepEqual(result, master, 'playlist updated');
+    assert.deepEqual(result, main, 'playlist updated');
   });
 
   QUnit.test('updateMain retains mediaGroup attributes', function(assert) {
-    const master = {
+    const main = {
       mediaGroups: {
         AUDIO: {
           'GROUP-ID': {
@@ -850,10 +850,10 @@ QUnit.module('Playlist Loader', function(hooks) {
       }]
     };
 
-    master.playlists[media.id] = master.playlists[0];
+    main.playlists[media.id] = main.playlists[0];
 
     assert.deepEqual(
-      updateMain(master, media),
+      updateMain(main, media),
       {
         mediaGroups: {
           AUDIO: {
@@ -971,7 +971,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     );
   });
 
-  QUnit.test('moves to HAVE_MAIN_MANIFEST after loading a master playlist', function(assert) {
+  QUnit.test('moves to HAVE_MAIN_MANIFEST after loading a main playlist', function(assert) {
     const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
     let state;
 
@@ -986,11 +986,11 @@ QUnit.module('Playlist Loader', function(hooks) {
       '#EXT-X-STREAM-INF:BANDWIDTH=1\n' +
       'media.m3u8\n'
     );
-    assert.ok(loader.master, 'the master playlist is available');
+    assert.ok(loader.main, 'the main playlist is available');
     assert.strictEqual(state, 'HAVE_MAIN_MANIFEST', 'the state at loadedplaylist correct');
   });
 
-  QUnit.test('logs warning for master playlist with invalid STREAM-INF', function(assert) {
+  QUnit.test('logs warning for main playlist with invalid STREAM-INF', function(assert) {
     const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
 
     loader.load();
@@ -1004,12 +1004,12 @@ QUnit.module('Playlist Loader', function(hooks) {
       'video2/media.m3u8\n'
     );
 
-    assert.ok(loader.master, 'infers a master playlist');
+    assert.ok(loader.main, 'infers a main playlist');
     assert.equal(
-      loader.master.playlists[1].uri, 'video2/media.m3u8',
+      loader.main.playlists[1].uri, 'video2/media.m3u8',
       'parsed invalid stream'
     );
-    assert.ok(loader.master.playlists[1].attributes, 'attached attributes property');
+    assert.ok(loader.main.playlists[1].attributes, 'attached attributes property');
     assert.equal(this.env.log.warn.calls, 1, 'logged a warning');
     assert.equal(
       this.env.log.warn.args[0],
@@ -1050,7 +1050,7 @@ QUnit.module('Playlist Loader', function(hooks) {
       '#EXT-X-ENDLIST\n'
     );
 
-    const segment = loader.master.playlists[0].segments[0];
+    const segment = loader.main.playlists[0].segments[0];
 
     assert.strictEqual(segment.custom.test, '#PARSER:parsed', 'parsed custom tag');
     assert.ok(segment.dateTimeObject, 'converted and parsed custom time');
@@ -1059,26 +1059,26 @@ QUnit.module('Playlist Loader', function(hooks) {
   });
 
   QUnit.test(
-    'adds properties to playlists array when given a master playlist object',
+    'adds properties to playlists array when given a main playlist object',
     function(assert) {
-      const masterPlaylist = JSON.parse(JSON.stringify(parseManifest({
+      const mainPlaylist = JSON.parse(JSON.stringify(parseManifest({
         manifestString: manifests.main
       })));
-      const firstPlaylistId = createPlaylistID(0, masterPlaylist.playlists[0].uri);
+      const firstPlaylistId = createPlaylistID(0, mainPlaylist.playlists[0].uri);
 
       assert.notOk(
-        firstPlaylistId in masterPlaylist.playlists,
+        firstPlaylistId in mainPlaylist.playlists,
         'parsed manifest playlists array does not contain playlist ID property'
       );
 
-      const loader = new PlaylistLoader(masterPlaylist, this.fakeVhs);
+      const loader = new PlaylistLoader(mainPlaylist, this.fakeVhs);
 
       loader.load();
       // even for vhs-json manifest objects, load is an async operation
       this.clock.tick(1);
 
       assert.ok(
-        firstPlaylistId in masterPlaylist.playlists,
+        firstPlaylistId in mainPlaylist.playlists,
         'parsed manifest playlists array contains playlist ID property'
       );
     }
@@ -1102,7 +1102,7 @@ QUnit.module('Playlist Loader', function(hooks) {
         '0.ts\n' +
         '#EXT-X-ENDLIST\n'
       );
-      assert.ok(loader.master, 'infers a master playlist');
+      assert.ok(loader.main, 'infers a main playlist');
       assert.ok(loader.media(), 'sets the media playlist');
       assert.ok(loader.media().uri, 'sets the media playlist URI');
       assert.ok(loader.media().attributes, 'sets the media playlist attributes');
@@ -1133,19 +1133,19 @@ QUnit.module('Playlist Loader', function(hooks) {
 
       assert.equal(this.requests.length, 0, 'no requests');
       assert.equal(loadedmetadataEvents, 1, 'one loadedmetadata event');
-      assert.ok(loader.master, 'inferred a master playlist');
+      assert.ok(loader.main, 'inferred a main playlist');
       assert.deepEqual(mediaPlaylist, loader.media(), 'set the media playlist');
       assert.equal(loader.state, 'HAVE_METADATA', 'state is HAVE_METADATA');
     }
   );
 
   QUnit.test(
-    'stays at HAVE_MAIN_MANIFEST and makes a request when initialized with a master playlist ' +
+    'stays at HAVE_MAIN_MANIFEST and makes a request when initialized with a main playlist ' +
     'without resolved media playlists',
     function(assert) {
-      const masterPlaylist = parseManifest({ manifestString: manifests.main });
+      const mainPlaylist = parseManifest({ manifestString: manifests.main });
 
-      const loader = new PlaylistLoader(masterPlaylist, this.fakeVhs);
+      const loader = new PlaylistLoader(mainPlaylist, this.fakeVhs);
       let loadedmetadataEvents = 0;
 
       loader.on('loadedmetadata', () => loadedmetadataEvents++);
@@ -1160,29 +1160,29 @@ QUnit.module('Playlist Loader', function(hooks) {
 
       assert.equal(this.requests.length, 1, 'one request');
       assert.equal(loadedmetadataEvents, 0, 'no loadedmetadata event');
-      assert.deepEqual(loader.master, masterPlaylist, 'set the master playlist');
+      assert.deepEqual(loader.main, mainPlaylist, 'set the main playlist');
       assert.equal(loader.state, 'SWITCHING_MEDIA', 'state is SWITCHING_MEDIA');
     }
   );
 
   QUnit.test(
-    'moves to HAVE_METADATA without a request when initialized with a master playlist ' +
+    'moves to HAVE_METADATA without a request when initialized with a main playlist ' +
     'object with resolved media playlists',
     function(assert) {
-      const masterPlaylist = parseManifest({ manifestString: manifests.main });
+      const mainPlaylist = parseManifest({ manifestString: manifests.main });
       const mediaPlaylist = parseManifest({ manifestString: manifests.media });
 
-      // since the playlist is getting overwritten in the master (to fake a resolved media
+      // since the playlist is getting overwritten in the main (to fake a resolved media
       // playlist), attributes should be copied over to prevent warnings or errors due to
       // a missing BANDWIDTH attribute
-      mediaPlaylist.attributes = masterPlaylist.playlists[0].attributes;
+      mediaPlaylist.attributes = mainPlaylist.playlists[0].attributes;
 
       // If no playlist is selected after the first loadedplaylist event, then playlist loader
       // defaults to the first playlist. Here it's already resolved, so loadedmetadata should
       // fire immediately.
-      masterPlaylist.playlists[0] = mediaPlaylist;
+      mainPlaylist.playlists[0] = mediaPlaylist;
 
-      const loader = new PlaylistLoader(masterPlaylist, this.fakeVhs);
+      const loader = new PlaylistLoader(mainPlaylist, this.fakeVhs);
       let loadedmetadataEvents = 0;
 
       loader.on('loadedmetadata', () => loadedmetadataEvents++);
@@ -1197,7 +1197,7 @@ QUnit.module('Playlist Loader', function(hooks) {
 
       assert.equal(this.requests.length, 0, 'no requests');
       assert.equal(loadedmetadataEvents, 1, 'one loadedmetadata event');
-      assert.deepEqual(loader.master, masterPlaylist, 'set the master playlist');
+      assert.deepEqual(loader.main, mainPlaylist, 'set the main playlist');
       assert.deepEqual(mediaPlaylist, loader.media(), 'set the media playlist');
       assert.equal(loader.state, 'HAVE_METADATA', 'state is HAVE_METADATA');
     }
@@ -1215,7 +1215,7 @@ QUnit.module('Playlist Loader', function(hooks) {
       'video/media.m3u8\n'
     );
     assert.equal(
-      loader.master.playlists[0].resolvedUri, urlTo('video/media.m3u8'),
+      loader.main.playlists[0].resolvedUri, urlTo('video/media.m3u8'),
       'resolved media URI'
     );
   });
@@ -1251,7 +1251,7 @@ QUnit.module('Playlist Loader', function(hooks) {
       '/media.m3u8\n'
     );
     assert.equal(
-      loader.master.playlists[0].resolvedUri,
+      loader.main.playlists[0].resolvedUri,
       window.location.protocol + '//' +
       window.location.host + '/media.m3u8',
       'resolved media URI'
@@ -1288,7 +1288,7 @@ QUnit.module('Playlist Loader', function(hooks) {
       'http://example.com/video/media.m3u8\n'
     );
     assert.equal(
-      loader.master.playlists[0].resolvedUri,
+      loader.main.playlists[0].resolvedUri,
       'http://example.com/video/media.m3u8', 'resolved media URI'
     );
 
@@ -1317,7 +1317,7 @@ QUnit.module('Playlist Loader', function(hooks) {
       '/media.m3u8\n'
     );
     assert.equal(
-      loader.master.playlists[0].resolvedUri,
+      loader.main.playlists[0].resolvedUri,
       window.location.protocol + '//' +
       window.location.host + '/media.m3u8',
       'resolved media URI'
@@ -1338,7 +1338,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     );
   });
 
-  QUnit.test('recognizes key URLs relative to master and playlist', function(assert) {
+  QUnit.test('recognizes key URLs relative to main and playlist', function(assert) {
     const loader = new PlaylistLoader('/video/media-encrypted.m3u8', this.fakeVhs);
 
     loader.load();
@@ -1351,7 +1351,7 @@ QUnit.module('Playlist Loader', function(hooks) {
       '#EXT-X-ENDLIST\n'
     );
     assert.equal(
-      loader.master.playlists[0].resolvedUri,
+      loader.main.playlists[0].resolvedUri,
       window.location.protocol + '//' +
       window.location.host + '/video/playlist/playlist.m3u8',
       'resolved media URI'
@@ -1384,7 +1384,7 @@ QUnit.module('Playlist Loader', function(hooks) {
       count += 1;
     });
 
-    // master
+    // main
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
@@ -1421,7 +1421,7 @@ QUnit.module('Playlist Loader', function(hooks) {
       '#EXT-X-ENDLIST\n'
     );
     assert.equal(
-      loader.master.playlists[0].resolvedUri,
+      loader.main.playlists[0].resolvedUri,
       window.location.protocol + '//' +
       window.location.host + '/video/playlist/playlist.m3u8',
       'resolved media URI'
@@ -1456,7 +1456,7 @@ QUnit.module('Playlist Loader', function(hooks) {
         '#EXTINF:10,\n' +
         '0.ts\n'
       );
-      assert.ok(loader.master, 'infers a master playlist');
+      assert.ok(loader.main, 'infers a main playlist');
       assert.ok(loader.media(), 'sets the media playlist');
       assert.ok(loader.media().attributes, 'sets the media playlist attributes');
       assert.strictEqual(loader.state, 'HAVE_METADATA', 'the state is correct');
@@ -1500,7 +1500,7 @@ QUnit.module('Playlist Loader', function(hooks) {
       '#EXTINF:10,\n' +
       '0.ts\n'
     );
-    assert.ok(loader.master, 'sets the master playlist');
+    assert.ok(loader.main, 'sets the main playlist');
     assert.ok(loader.media(), 'sets the media playlist');
     assert.strictEqual(loadedPlaylist, 2, 'fired loadedplaylist twice');
     assert.strictEqual(loadedMetadata, 1, 'fired loadedmetadata once');
@@ -1518,10 +1518,10 @@ QUnit.module('Playlist Loader', function(hooks) {
       '0.ts\n'
     );
 
-    assert.ok(loader.master.mediaGroups.AUDIO, 'defaulted audio');
-    assert.ok(loader.master.mediaGroups.VIDEO, 'defaulted video');
-    assert.ok(loader.master.mediaGroups['CLOSED-CAPTIONS'], 'defaulted closed captions');
-    assert.ok(loader.master.mediaGroups.SUBTITLES, 'defaulted subtitles');
+    assert.ok(loader.main.mediaGroups.AUDIO, 'defaulted audio');
+    assert.ok(loader.main.mediaGroups.VIDEO, 'defaulted video');
+    assert.ok(loader.main.mediaGroups['CLOSED-CAPTIONS'], 'defaulted closed captions');
+    assert.ok(loader.main.mediaGroups.SUBTITLES, 'defaulted subtitles');
   });
 
   QUnit.test(
@@ -1717,7 +1717,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     loader.on('mediaupdatetimeout', function() {
       refreshes++;
     });
-    // deliver the master
+    // deliver the main
     this.requests.pop().respond(
       200, null,
       '#EXTM3U\n' +
@@ -1827,7 +1827,7 @@ QUnit.module('Playlist Loader', function(hooks) {
       'low-0.ts\n'
     );
 
-    loader.media(loader.master.playlists[1]);
+    loader.media(loader.main.playlists[1]);
     assert.strictEqual(loader.state, 'SWITCHING_MEDIA', 'updated the state');
 
     this.requests.pop().respond(
@@ -1840,13 +1840,13 @@ QUnit.module('Playlist Loader', function(hooks) {
     assert.strictEqual(loader.state, 'HAVE_METADATA', 'switched active media');
     assert.strictEqual(
       loader.media(),
-      loader.master.playlists[1],
+      loader.main.playlists[1],
       'updated the active media'
     );
   });
 
   QUnit.test(
-    'can switch playlists immediately after the master is downloaded',
+    'can switch playlists immediately after the main is downloaded',
     function(assert) {
       const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
 
@@ -1901,7 +1901,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     assert.strictEqual(loader.state, 'HAVE_METADATA', 'switched active media');
     assert.strictEqual(
       loader.media(),
-      loader.master.playlists[1],
+      loader.main.playlists[1],
       'updated the active media'
     );
   });
@@ -2072,7 +2072,7 @@ QUnit.module('Playlist Loader', function(hooks) {
       );
       assert.strictEqual(
         loader.media(),
-        loader.master.playlists[0],
+        loader.main.playlists[0],
         'switched to loaded playlist'
       );
     }
@@ -2290,7 +2290,7 @@ QUnit.module('Playlist Loader', function(hooks) {
 
     loader.load();
 
-    // master
+    // main
     this.requests.shift().respond(
       200, null,
       '#EXTM3U\n' +
@@ -2301,15 +2301,15 @@ QUnit.module('Playlist Loader', function(hooks) {
       '#EXT-X-ENDLIST\n'
     );
 
-    loader.master.playlists[0].playlistErrors_ = 3;
+    loader.main.playlists[0].playlistErrors_ = 3;
 
     // playlist
     this.requests.shift().respond(404);
 
-    loader.media(loader.master.playlists[1]);
-    loader.media(loader.master.playlists[0]);
+    loader.media(loader.main.playlists[1]);
+    loader.media(loader.main.playlists[0]);
 
-    assert.equal(loader.master.playlists[0].playlistErrors_, 3, 'we have 3 playlistErrors_');
+    assert.equal(loader.main.playlists[0].playlistErrors_, 3, 'we have 3 playlistErrors_');
 
     this.requests[1].respond(
       200, null,
@@ -2318,7 +2318,7 @@ QUnit.module('Playlist Loader', function(hooks) {
       '#EXTINF:10,\n' +
       '0.ts\n'
     );
-    assert.equal(loader.master.playlists[0].playlistErrors_, 0, 'playlistErrors_ resets to zero when a playlist sucessfully loads');
+    assert.equal(loader.main.playlists[0].playlistErrors_, 0, 'playlistErrors_ resets to zero when a playlist sucessfully loads');
   });
 
   QUnit.test(
@@ -2354,14 +2354,14 @@ QUnit.module('Playlist Loader', function(hooks) {
       'video/media.m3u8\n'
     );
     assert.equal(
-      loader.master.playlists['0-video/media.m3u8'].id,
-      loader.master.playlists[0].id,
+      loader.main.playlists['0-video/media.m3u8'].id,
+      loader.main.playlists[0].id,
       'created key based on playlist id'
     );
 
     assert.equal(
-      loader.master.playlists['1-video/media.m3u8'].id,
-      loader.master.playlists[1].id,
+      loader.main.playlists['1-video/media.m3u8'].id,
+      loader.main.playlists[1].id,
       'created key based on playlist id'
     );
   });
@@ -2402,12 +2402,12 @@ QUnit.module('Playlist Loader', function(hooks) {
     loader.pause();
     assert.notOk(loader.mediaUpdateTimeout, 'media update timeout cleared');
 
-    loader.media(loader.master.playlists[0]);
+    loader.media(loader.main.playlists[0]);
 
     assert.ok(loader.mediaUpdateTimeout, 'media update timeout created again');
     assert.equal(this.requests.length, 0, 'no request');
 
-    loader.media(loader.master.playlists[1]);
+    loader.media(loader.main.playlists[1]);
 
     assert.ok(loader.mediaUpdateTimeout, 'media update timeout created');
     assert.equal(this.requests.length, 1, 'playlist requested');
