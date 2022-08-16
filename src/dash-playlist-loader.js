@@ -716,12 +716,12 @@ export default class DashPlaylistLoader extends EventTarget {
       previousManifest: oldMain
     });
 
-    // if we have an old master to compare the new master against
+    // if we have an old main to compare the new main against
     if (oldMain) {
       newMain = updateMain(oldMain, newMain, this.masterPlaylistLoader_.sidxMapping_);
     }
 
-    // only update master if we have a new master
+    // only update main if we have a new main
     this.masterPlaylistLoader_.main = newMain ? newMain : oldMain;
     const location = this.masterPlaylistLoader_.main.locations && this.masterPlaylistLoader_.main.locations[0];
 

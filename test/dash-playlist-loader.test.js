@@ -1372,7 +1372,7 @@ QUnit.test('haveMetadata: triggers mediachange if new selection', function(asser
   assert.strictEqual(mediaChangings, 0, 'no mediachanging');
 });
 
-QUnit.test('haveMaster: triggers loadedplaylist for loader', function(assert) {
+QUnit.test('haveMain: triggers loadedplaylist for loader', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeVhs);
   const origMediaFn = loader.media;
   let loadedPlaylists = 0;
@@ -1389,7 +1389,7 @@ QUnit.test('haveMaster: triggers loadedplaylist for loader', function(assert) {
   loader.media = origMediaFn;
 });
 
-QUnit.test('haveMaster: sets media on child loader', function(assert) {
+QUnit.test('haveMain: sets media on child loader', function(assert) {
   const loader = new DashPlaylistLoader('dash.mpd', this.fakeVhs);
 
   loader.load();
@@ -1441,7 +1441,7 @@ QUnit.test('parseMainXml: includes sidx info if available and matches playlist',
 
   loader.load();
   this.standardXHRResponse(this.requests.shift());
-  const origParsedMaster = parseMainXml({
+  const origParsedMain = parseMainXml({
     mainXml: loader.mainXml_,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_,
@@ -1450,7 +1450,7 @@ QUnit.test('parseMainXml: includes sidx info if available and matches playlist',
 
   loader.sidxMapping_ = {};
 
-  let newParsedMaster = parseMainXml({
+  let newParsedMain = parseMainXml({
     mainXml: loader.mainXml_,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_,
@@ -1458,8 +1458,8 @@ QUnit.test('parseMainXml: includes sidx info if available and matches playlist',
   });
 
   assert.deepEqual(
-    newParsedMaster,
-    origParsedMaster,
+    newParsedMain,
+    origParsedMain,
     'empty sidxMapping will not affect main xml parsing'
   );
 
@@ -1480,7 +1480,7 @@ QUnit.test('parseMainXml: includes sidx info if available and matches playlist',
       }]
     }
   };
-  newParsedMaster = parseMainXml({
+  newParsedMain = parseMainXml({
     mainXml: loader.mainXml_,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_,
@@ -1488,7 +1488,7 @@ QUnit.test('parseMainXml: includes sidx info if available and matches playlist',
   });
 
   assert.deepEqual(
-    newParsedMaster.playlists[0].segments[0].byterange,
+    newParsedMain.playlists[0].segments[0].byterange,
     {
       length: 10,
       offset: 400
@@ -1496,7 +1496,7 @@ QUnit.test('parseMainXml: includes sidx info if available and matches playlist',
     'byte range from sidx is applied to playlist segment'
   );
   assert.deepEqual(
-    newParsedMaster.playlists[0].segments[0].map.byterange,
+    newParsedMain.playlists[0].segments[0].map.byterange,
     {
       length: 200,
       offset: 0
@@ -1850,7 +1850,7 @@ QUnit.test('refreshXml_: updates playlists if sidx removed', function(assert) {
   assert.equal(
     newMedia,
     newMain.playlists[newMedia.id],
-    'media from updated master'
+    'media from updated main'
   );
 });
 
