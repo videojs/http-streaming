@@ -4,9 +4,9 @@
 
 **Media Playlist**: This is a manifest that represents a single rendition or media stream of the source.
 
-**Master Playlist Controller**: This acts as the main controller for the playback engine. It interacts with the SegmentLoaders, PlaylistLoaders, PlaybackWatcher, etc.
+**Playlist Controller**: This acts as the main controller for the playback engine. It interacts with the SegmentLoaders, PlaylistLoaders, PlaybackWatcher, etc.
 
-**Playlist Loader**: This will request the source and load the master manifest. It is also instructed by the ABR algorithm to load a media playlist or wraps a media playlist if it is provided as the source. There are more details about the playlist loader [here](./arch.md).
+**Playlist Loader**: This will request the source and load the main manifest. It is also instructed by the ABR algorithm to load a media playlist or wraps a media playlist if it is provided as the source. There are more details about the playlist loader [here](./arch.md).
 
 **DASH Playlist Loader**: This will do as the PlaylistLoader does, but for DASH sources. It also handles DASH specific functionaltiy, such as refreshing the MPD according to the minimumRefreshPeriod and synchronizing to a server clock.
 

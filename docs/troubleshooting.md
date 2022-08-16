@@ -2,7 +2,7 @@
 
 ## Other troubleshooting guides
 
-For issues around data embedded into media segments (e.g., 608 captions), see the [mux.js troubleshooting guide](https://github.com/videojs/mux.js/blob/master/docs/troubleshooting.md).
+For issues around data embedded into media segments (e.g., 608 captions), see the [mux.js troubleshooting guide](https://github.com/videojs/mux.js/blob/main/docs/troubleshooting.md).
 
 ## Tools
 

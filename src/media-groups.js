@@ -94,7 +94,7 @@ export const onGroupChanged = (type, settings) => () => {
 
   stopLoaders(segmentLoader, mediaType);
 
-  if (!activeGroup || activeGroup.isMasterPlaylist) {
+  if (!activeGroup || activeGroup.isMainPlaylist) {
     // there is no group active or active group is a main playlist and won't change
     return;
   }
@@ -146,7 +146,7 @@ export const onGroupChanging = (type, settings) => () => {
  */
 export const onTrackChanged = (type, settings) => () => {
   const {
-    masterPlaylistLoader,
+    mainPlaylistLoader,
     segmentLoaders: {
       [type]: segmentLoader,
       main: mainSegmentLoader
@@ -173,24 +173,24 @@ export const onTrackChanged = (type, settings) => () => {
     return;
   }
 
-  if (activeGroup.isMasterPlaylist) {
+  if (activeGroup.isMainPlaylist) {
     // track did not change, do nothing
     if (!activeTrack || !lastTrack || activeTrack.id === lastTrack.id) {
       return;
     }
 
-    const mpc = settings.vhs.masterPlaylistController_;
-    const newPlaylist = mpc.selectPlaylist();
+    const pc = settings.vhs.playlistController_;
+    const newPlaylist = pc.selectPlaylist();
 
     // media will not change do nothing
-    if (mpc.media() === newPlaylist) {
+    if (pc.media() === newPlaylist) {
       return;
     }
 
-    mediaType.logger_(`track change. Switching master audio from ${lastTrack.id} to ${activeTrack.id}`);
-    masterPlaylistLoader.pause();
+    mediaType.logger_(`track change. Switching main audio from ${lastTrack.id} to ${activeTrack.id}`);
+    mainPlaylistLoader.pause();
     mainSegmentLoader.resetEverything();
-    mpc.fastQualityChange_(newPlaylist);
+    pc.fastQualityChange_(newPlaylist);
 
     return;
   }
@@ -421,7 +421,7 @@ export const initialize = {
       sourceType,
       segmentLoaders: { [type]: segmentLoader },
       requestOptions,
-      master: {mediaGroups},
+      main: {mediaGroups},
       mediaTypes: {
         [type]: {
           groups,
@@ -429,17 +429,17 @@ export const initialize = {
           logger_
         }
       },
-      masterPlaylistLoader
+      mainPlaylistLoader
     } = settings;
 
-    const audioOnlyMaster = isAudioOnly(masterPlaylistLoader.master);
+    const audioOnlyMain = isAudioOnly(mainPlaylistLoader.main);
 
     // force a default if we have none
     if (!mediaGroups[type] ||
         Object.keys(mediaGroups[type]).length === 0) {
       mediaGroups[type] = { main: { default: { default: true } } };
-      if (audioOnlyMaster) {
-        mediaGroups[type].main.default.playlists = masterPlaylistLoader.master.playlists;
+      if (audioOnlyMain) {
+        mediaGroups[type].main.default.playlists = mainPlaylistLoader.main.playlists;
       }
     }
 
@@ -452,9 +452,9 @@ export const initialize = {
 
         let playlistLoader;
 
-        if (audioOnlyMaster) {
-          logger_(`AUDIO group '${groupId}' label '${variantLabel}' is a master playlist`);
-          properties.isMasterPlaylist = true;
+        if (audioOnlyMain) {
+          logger_(`AUDIO group '${groupId}' label '${variantLabel}' is a main playlist`);
+          properties.isMainPlaylist = true;
           playlistLoader = null;
 
           // if vhs-json was provided as the source, and the media playlist was resolved,
@@ -478,7 +478,7 @@ export const initialize = {
             properties.playlists[0],
             vhs,
             requestOptions,
-            masterPlaylistLoader
+            mainPlaylistLoader
           );
         } else {
           // no resolvedUri means the audio is muxed with the video when using this
@@ -529,14 +529,14 @@ export const initialize = {
       sourceType,
       segmentLoaders: { [type]: segmentLoader },
       requestOptions,
-      master: { mediaGroups },
+      main: { mediaGroups },
       mediaTypes: {
         [type]: {
           groups,
           tracks
         }
       },
-      masterPlaylistLoader
+      mainPlaylistLoader
     } = settings;
 
     for (const groupId in mediaGroups[type]) {
@@ -574,7 +574,7 @@ export const initialize = {
             properties.playlists[0],
             vhs,
             requestOptions,
-            masterPlaylistLoader
+            mainPlaylistLoader
           );
         } else if (sourceType === 'vhs-json') {
           playlistLoader = new PlaylistLoader(
@@ -624,7 +624,7 @@ export const initialize = {
   'CLOSED-CAPTIONS': (type, settings) => {
     const {
       tech,
-      master: { mediaGroups },
+      main: { mediaGroups },
       mediaTypes: {
         [type]: {
           groups,
@@ -713,11 +713,11 @@ const groupMatch = (list, media) => {
  */
 export const activeGroup = (type, settings) => (track) => {
   const {
-    masterPlaylistLoader,
+    mainPlaylistLoader,
     mediaTypes: { [type]: { groups } }
   } = settings;
 
-  const media = masterPlaylistLoader.media();
+  const media = mainPlaylistLoader.media();
 
   if (!media) {
     return null;
@@ -733,10 +733,10 @@ export const activeGroup = (type, settings) => (track) => {
   const groupKeys = Object.keys(groups);
 
   if (!variants) {
-    // find the masterPlaylistLoader media
+    // find the mainPlaylistLoader media
     // that is in a media group if we are dealing
     // with audio only
-    if (type === 'AUDIO' && groupKeys.length > 1 && isAudioOnly(settings.master)) {
+    if (type === 'AUDIO' && groupKeys.length > 1 && isAudioOnly(settings.main)) {
       for (let i = 0; i < groupKeys.length; i++) {
         const groupPropertyList = groups[groupKeys[i]];
 
@@ -828,7 +828,7 @@ export const getActiveGroup = (type, {mediaTypes}) => () => {
 
 /**
  * Setup PlaylistLoaders and Tracks for media groups (Audio, Subtitles,
- * Closed-Captions) specified in the master manifest.
+ * Closed-Captions) specified in the main manifest.
  *
  * @param {Object} settings
  *        Object containing required information for setting up the media groups
@@ -836,12 +836,12 @@ export const getActiveGroup = (type, {mediaTypes}) => () => {
  *        The tech of the player
  * @param {Object} settings.requestOptions
  *        XHR request options used by the segment loaders
- * @param {PlaylistLoader} settings.masterPlaylistLoader
- *        PlaylistLoader for the master source
+ * @param {PlaylistLoader} settings.mainPlaylistLoader
+ *        PlaylistLoader for the main source
  * @param {VhsHandler} settings.vhs
  *        VHS SourceHandler
- * @param {Object} settings.master
- *        The parsed master manifest
+ * @param {Object} settings.main
+ *        The parsed main manifest
  * @param {Object} settings.mediaTypes
  *        Object to store the loaders, tracks, and utility methods for each media type
  * @param {Function} settings.excludePlaylist
@@ -855,7 +855,7 @@ export const setupMediaGroups = (settings) => {
 
   const {
     mediaTypes,
-    masterPlaylistLoader,
+    mainPlaylistLoader,
     tech,
     vhs,
     segmentLoaders: {
@@ -900,11 +900,11 @@ export const setupMediaGroups = (settings) => {
     }
   }
 
-  masterPlaylistLoader.on('mediachange', () => {
+  mainPlaylistLoader.on('mediachange', () => {
     ['AUDIO', 'SUBTITLES'].forEach(type => mediaTypes[type].onGroupChanged());
   });
 
-  masterPlaylistLoader.on('mediachanging', () => {
+  mainPlaylistLoader.on('mediachanging', () => {
     ['AUDIO', 'SUBTITLES'].forEach(type => mediaTypes[type].onGroupChanging());
   });
 

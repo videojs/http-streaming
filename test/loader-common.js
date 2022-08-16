@@ -10,7 +10,7 @@ import {
   standardXHRResponse,
   setupMediaSource
 } from './test-helpers.js';
-import { MasterPlaylistController } from '../src/master-playlist-controller';
+import { PlaylistController } from '../src/playlist-controller';
 import SourceUpdater from '../src/source-updater';
 import SyncController from '../src/sync-controller';
 import TimelineChangeController from '../src/timeline-change-controller';
@@ -58,7 +58,7 @@ export const LoaderCommonHooks = {
     };
     this.tech_ = this.fakeVhs.tech_;
     this.goalBufferLength =
-      MasterPlaylistController.prototype.goalBufferLength.bind(this);
+      PlaylistController.prototype.goalBufferLength.bind(this);
     this.mediaSource = new window.MediaSource();
     this.sourceUpdater = new SourceUpdater(this.mediaSource);
     this.syncController = new SyncController();
@@ -393,7 +393,7 @@ export const LoaderCommonFactory = ({
         playlist4.attributes.BANDWIDTH = 7777;
 
         loader.vhs_.playlists = {
-          master: {
+          main: {
             playlists: [
               playlist1,
               playlist2,
