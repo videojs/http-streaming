@@ -272,7 +272,7 @@ export const isPlaylistUnchanged = (a, b) => a === b ||
   * master playlist with the updated media playlist merged in, or
   * null if the merge produced no change.
   */
-export const updateMaster = (master, newMedia, unchangedCheck = isPlaylistUnchanged) => {
+export const updateMain = (master, newMedia, unchangedCheck = isPlaylistUnchanged) => {
   const result = mergeOptions(master, {});
   const oldMedia = result.playlists[newMedia.id];
 
@@ -512,7 +512,7 @@ export default class PlaylistLoader extends EventTarget {
     });
 
     // merge this playlist into the master
-    const update = updateMaster(this.master, playlist);
+    const update = updateMain(this.master, playlist);
 
     this.targetDuration = playlist.partTargetDuration || playlist.targetDuration;
 

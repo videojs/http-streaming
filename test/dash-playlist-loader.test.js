@@ -3,7 +3,7 @@ import sinon from 'sinon';
 import window from 'global/window';
 import {
   default as DashPlaylistLoader,
-  updateMaster,
+  updateMain,
   compareSidxEntry,
   filterChangedSidxMappings,
   parseMasterXml
@@ -44,7 +44,7 @@ QUnit.module('DASH Playlist Loader: unit', {
   }
 });
 
-QUnit.test('updateMaster: returns falsy when there are no changes', function(assert) {
+QUnit.test('updateMain: returns falsy when there are no changes', function(assert) {
   const master = {
     playlists: {
       length: 1,
@@ -77,10 +77,10 @@ QUnit.test('updateMaster: returns falsy when there are no changes', function(ass
     timelineStarts: []
   };
 
-  assert.deepEqual(updateMaster(master, master), null);
+  assert.deepEqual(updateMain(master, master), null);
 });
 
-QUnit.test('updateMaster: updates playlists', function(assert) {
+QUnit.test('updateMain: updates playlists', function(assert) {
   const master = {
     playlists: [{
       uri: '0',
@@ -122,7 +122,7 @@ QUnit.test('updateMaster: updates playlists', function(assert) {
   };
 
   assert.deepEqual(
-    updateMaster(master, update),
+    updateMain(master, update),
     {
       playlists: [{
         id: '0',
@@ -145,7 +145,7 @@ QUnit.test('updateMaster: updates playlists', function(assert) {
   );
 });
 
-QUnit.test('updateMaster: updates mediaGroups', function(assert) {
+QUnit.test('updateMain: updates mediaGroups', function(assert) {
   const master = {
     playlists: {
       length: 1,
@@ -205,12 +205,12 @@ QUnit.test('updateMaster: updates mediaGroups', function(assert) {
   };
 
   assert.ok(
-    updateMaster(master, update),
+    updateMain(master, update),
     'the mediaGroups were updated'
   );
 });
 
-QUnit.test('updateMaster: updates playlists and mediaGroups', function(assert) {
+QUnit.test('updateMain: updates playlists and mediaGroups', function(assert) {
   const master = {
     duration: 10,
     minimumUpdatePeriod: 0,
@@ -294,7 +294,7 @@ QUnit.test('updateMaster: updates playlists and mediaGroups', function(assert) {
   master.playlists['audio-0-uri'] = master.mediaGroups.AUDIO.audio.main.playlists[0];
 
   assert.deepEqual(
-    updateMaster(master, update),
+    updateMain(master, update),
     {
       duration: 20,
       minimumUpdatePeriod: 0,
@@ -338,7 +338,7 @@ QUnit.test('updateMaster: updates playlists and mediaGroups', function(assert) {
   );
 });
 
-QUnit.test('updateMaster: updates minimumUpdatePeriod', function(assert) {
+QUnit.test('updateMain: updates minimumUpdatePeriod', function(assert) {
   const master = {
     playlists: {
       length: 1,
@@ -376,7 +376,7 @@ QUnit.test('updateMaster: updates minimumUpdatePeriod', function(assert) {
   };
 
   assert.deepEqual(
-    updateMaster(master, update),
+    updateMain(master, update),
     {
       playlists: {
         length: 1,
@@ -397,7 +397,7 @@ QUnit.test('updateMaster: updates minimumUpdatePeriod', function(assert) {
   );
 });
 
-QUnit.test('updateMaster: requires sidxMapping.sidx to add sidx segments', function(assert) {
+QUnit.test('updateMain: requires sidxMapping.sidx to add sidx segments', function(assert) {
   const prev = {
     playlists: [{
       uri: '0',
@@ -444,14 +444,14 @@ QUnit.test('updateMaster: requires sidxMapping.sidx to add sidx segments', funct
   sidxMapping[key] = {sidxInfo: {uri: 'foo', key}};
 
   assert.deepEqual(
-    updateMaster(prev, next, sidxMapping),
+    updateMain(prev, next, sidxMapping),
     null,
     'no update'
   );
 
   sidxMapping[key].sidx = parseSidx(sidxResponse().subarray(8));
 
-  const result = updateMaster(prev, next, sidxMapping);
+  const result = updateMain(prev, next, sidxMapping);
 
   assert.ok(result, 'result returned');
   assert.equal(result.playlists[0].segments.length, 1, 'added one segment from sidx');
@@ -2821,7 +2821,7 @@ QUnit.test('pause does not remove minimum update period timeout when not master'
   );
 });
 
-QUnit.test('updateMaster: merges in top level timelineStarts', function(assert) {
+QUnit.test('updateMain: merges in top level timelineStarts', function(assert) {
   const prev = {
     timelineStarts: [0, 1],
     playlists: [{
@@ -2856,7 +2856,7 @@ QUnit.test('updateMaster: merges in top level timelineStarts', function(assert) 
     }
   };
 
-  const update = updateMaster(prev, next);
+  const update = updateMain(prev, next);
 
   assert.deepEqual(update.timelineStarts, [2], 'updated timelineStarts');
 });

@@ -3,7 +3,7 @@ import videojs from 'video.js';
 import {
   default as PlaylistLoader,
   updateSegments,
-  updateMaster,
+  updateMain,
   refreshDelay
 } from '../src/playlist-loader';
 import xhrFactory from '../src/xhr';
@@ -113,16 +113,16 @@ QUnit.module('Playlist Loader', function(hooks) {
     );
   });
 
-  QUnit.test('updateMaster returns null when no playlists', function(assert) {
+  QUnit.test('updateMain returns null when no playlists', function(assert) {
     const master = {
       playlists: []
     };
     const media = {};
 
-    assert.deepEqual(updateMaster(master, media), null, 'returns null when no playlists');
+    assert.deepEqual(updateMain(master, media), null, 'returns null when no playlists');
   });
 
-  QUnit.test('updateMaster returns null when no change', function(assert) {
+  QUnit.test('updateMain returns null when no change', function(assert) {
     const master = {
       playlists: [{
         mediaSequence: 0,
@@ -152,10 +152,10 @@ QUnit.module('Playlist Loader', function(hooks) {
       }]
     };
 
-    assert.deepEqual(updateMaster(master, media), null, 'returns null');
+    assert.deepEqual(updateMain(master, media), null, 'returns null');
   });
 
-  QUnit.test('updateMaster updates master when new media sequence', function(assert) {
+  QUnit.test('updateMain updates master when new media sequence', function(assert) {
     const master = {
       playlists: [{
         mediaSequence: 0,
@@ -189,7 +189,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     master.playlists[media.id] = master.playlists[0];
 
     assert.deepEqual(
-      updateMaster(master, media),
+      updateMain(master, media),
       {
         playlists: [{
           mediaSequence: 1,
@@ -210,7 +210,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     );
   });
 
-  QUnit.test('updateMaster updates master when endList changes', function(assert) {
+  QUnit.test('updateMain updates master when endList changes', function(assert) {
     const master = {
       playlists: [{
         endList: false,
@@ -245,7 +245,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     master.playlists[media.id] = master.playlists[0];
 
     assert.deepEqual(
-      updateMaster(master, media),
+      updateMain(master, media),
       {
         playlists: [{
           endList: true,
@@ -267,7 +267,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     );
   });
 
-  QUnit.test('updateMaster retains top level values in master', function(assert) {
+  QUnit.test('updateMain retains top level values in master', function(assert) {
     const master = {
       mediaGroups: {
         AUDIO: {
@@ -308,7 +308,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     master.playlists[media.id] = master.playlists[0];
 
     assert.deepEqual(
-      updateMaster(master, media),
+      updateMain(master, media),
       {
         mediaGroups: {
           AUDIO: {
@@ -337,7 +337,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     );
   });
 
-  QUnit.test('updateMaster adds new segments to master', function(assert) {
+  QUnit.test('updateMain adds new segments to master', function(assert) {
     const master = {
       mediaGroups: {
         AUDIO: {
@@ -381,7 +381,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     master.playlists[media.id] = master.playlists[0];
 
     assert.deepEqual(
-      updateMaster(master, media),
+      updateMain(master, media),
       {
         mediaGroups: {
           AUDIO: {
@@ -414,7 +414,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     );
   });
 
-  QUnit.test('updateMaster changes old values', function(assert) {
+  QUnit.test('updateMain changes old values', function(assert) {
     const master = {
       mediaGroups: {
         AUDIO: {
@@ -459,7 +459,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     master.playlists[media.id] = master.playlists[0];
 
     assert.deepEqual(
-      updateMaster(master, media),
+      updateMain(master, media),
       {
         mediaGroups: {
           AUDIO: {
@@ -493,7 +493,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     );
   });
 
-  QUnit.test('updateMaster retains saved segment values', function(assert) {
+  QUnit.test('updateMain retains saved segment values', function(assert) {
     const master = {
       playlists: [{
         mediaSequence: 0,
@@ -525,7 +525,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     master.playlists[media.id] = master.playlists[0];
 
     assert.deepEqual(
-      updateMaster(master, media),
+      updateMain(master, media),
       {
         playlists: [{
           mediaSequence: 0,
@@ -549,7 +549,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     );
   });
 
-  QUnit.test('updateMaster resolves key and map URIs', function(assert) {
+  QUnit.test('updateMain resolves key and map URIs', function(assert) {
     const master = {
       playlists: [{
         mediaSequence: 0,
@@ -604,7 +604,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     master.playlists[media.id] = master.playlists[0];
 
     assert.deepEqual(
-      updateMaster(master, media),
+      updateMain(master, media),
       {
         playlists: [{
           mediaSequence: 3,
@@ -649,7 +649,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     );
   });
 
-  QUnit.test('updateMaster detects preload segment changes', function(assert) {
+  QUnit.test('updateMain detects preload segment changes', function(assert) {
     const master = {
       playlists: [{
         mediaSequence: 0,
@@ -692,14 +692,14 @@ QUnit.module('Playlist Loader', function(hooks) {
 
     master.playlists['playlist-0-uri'] = master.playlists[0];
 
-    const result = updateMaster(master, media);
+    const result = updateMain(master, media);
 
     master.playlists[0].preloadSegment = media.preloadSegment;
 
     assert.deepEqual(result, master, 'playlist updated');
   });
 
-  QUnit.test('updateMaster detects preload segment addition', function(assert) {
+  QUnit.test('updateMain detects preload segment addition', function(assert) {
     const master = {
       playlists: [{
         mediaSequence: 0,
@@ -738,14 +738,14 @@ QUnit.module('Playlist Loader', function(hooks) {
 
     master.playlists['playlist-0-uri'] = master.playlists[0];
 
-    const result = updateMaster(master, media);
+    const result = updateMain(master, media);
 
     master.playlists[0].preloadSegment = media.preloadSegment;
 
     assert.deepEqual(result, master, 'playlist updated');
   });
 
-  QUnit.test('updateMaster detects preload segment removal', function(assert) {
+  QUnit.test('updateMain detects preload segment removal', function(assert) {
     const master = {
       playlists: [{
         mediaSequence: 0,
@@ -788,14 +788,14 @@ QUnit.module('Playlist Loader', function(hooks) {
 
     master.playlists['playlist-0-uri'] = master.playlists[0];
 
-    const result = updateMaster(master, media);
+    const result = updateMain(master, media);
 
     master.playlists[0].preloadSegment = media.preloadSegment;
 
     assert.deepEqual(result, master, 'playlist updated');
   });
 
-  QUnit.test('updateMaster retains mediaGroup attributes', function(assert) {
+  QUnit.test('updateMain retains mediaGroup attributes', function(assert) {
     const master = {
       mediaGroups: {
         AUDIO: {
@@ -853,7 +853,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     master.playlists[media.id] = master.playlists[0];
 
     assert.deepEqual(
-      updateMaster(master, media),
+      updateMain(master, media),
       {
         mediaGroups: {
           AUDIO: {

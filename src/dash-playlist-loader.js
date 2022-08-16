@@ -7,7 +7,7 @@ import {
 } from 'mpd-parser';
 import {
   refreshDelay,
-  updateMaster as updatePlaylist,
+  updateMain as updatePlaylist,
   isPlaylistUnchanged
 } from './playlist-loader';
 import { resolveUrl, resolveManifestRedirect } from './resolve-url';
@@ -132,7 +132,7 @@ export const parseMasterXml = ({
  *         A new object representing the original master manifest with the updated media
  *         playlists merged in
  */
-export const updateMaster = (oldMaster, newMaster, sidxMapping) => {
+export const updateMain = (oldMaster, newMaster, sidxMapping) => {
   let noChanges = true;
   let update = mergeOptions(oldMaster, {
     // These are top level properties that can be updated
@@ -718,7 +718,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
     // if we have an old master to compare the new master against
     if (oldMaster) {
-      newMaster = updateMaster(oldMaster, newMaster, this.masterPlaylistLoader_.sidxMapping_);
+      newMaster = updateMain(oldMaster, newMaster, this.masterPlaylistLoader_.sidxMapping_);
     }
 
     // only update master if we have a new master
