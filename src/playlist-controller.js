@@ -1,5 +1,5 @@
 /**
- * @file master-playlist-controller.js
+ * @file playlist-controller.js
  */
 import window from 'global/window';
 import PlaylistLoader from './playlist-loader';

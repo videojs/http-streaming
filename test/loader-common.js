@@ -10,7 +10,7 @@ import {
   standardXHRResponse,
   setupMediaSource
 } from './test-helpers.js';
-import { MasterPlaylistController } from '../src/master-playlist-controller';
+import { MasterPlaylistController } from '../src/playlist-controller';
 import SourceUpdater from '../src/source-updater';
 import SyncController from '../src/sync-controller';
 import TimelineChangeController from '../src/timeline-change-controller';

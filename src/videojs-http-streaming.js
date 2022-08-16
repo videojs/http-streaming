@@ -17,7 +17,7 @@ import {
 } from './util/time';
 import { timeRangesToArray } from './ranges';
 import videojs from 'video.js';
-import { MasterPlaylistController } from './master-playlist-controller';
+import { MasterPlaylistController } from './playlist-controller';
 import Config from './config';
 import renditionSelectionMixin from './rendition-mixin';
 import PlaybackWatcher from './playback-watcher';

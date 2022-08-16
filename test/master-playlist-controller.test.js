@@ -18,7 +18,7 @@ import {
 import manifests from 'create-test-data!manifests';
 import {
   MasterPlaylistController
-} from '../src/master-playlist-controller';
+} from '../src/playlist-controller';
 /* eslint-disable no-unused-vars */
 // we need this so that it can register vhs with videojs
 import { Vhs } from '../src/videojs-http-streaming';
