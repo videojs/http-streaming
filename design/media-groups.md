@@ -9,10 +9,10 @@ These are used to represent:
 
 Currently, [MediaGroups][mg] interacts with several different classes, which can be difficult to follow and has cause bugs in the past. These components are:
 - multiple [DashPlaylistLoaders][dpl] or [PlaylistLoaders][pl]
-- [PlaylistController][pc]
+- [PlaylistController][PC]
 - multiple [SegmentLoaders][sl]
 
-[MediaGroups][mg] are **setup** by the `loadedmetadata` handler for the `masterPlaylistLoader` (video playlist loader) of a source; contained in the [PlaylistController][pc] (pc). The [pc] will pass in an `audioSegmentLoader` and `subtitleSegmentLoader` to be shared by the `AUDIO` and `SUBTITLE` mediaGroups respectively.
+[MediaGroups][mg] are **setup** by the `loadedmetadata` handler for the `masterPlaylistLoader` (video playlist loader) of a source; contained in the [PlaylistController][PC] (PC). The [PC] will pass in an `audioSegmentLoader` and `subtitleSegmentLoader` to be shared by the `AUDIO` and `SUBTITLE` mediaGroups respectively.
 
 This **setup** includes creating either [DashPlaylistLoaders][dpl] or [PlaylistLoaders][pl] for each track described in the manifest and a corresponding HTML Track (either audio or text).
 
@@ -39,5 +39,5 @@ Considering that we could have multiple tracks of all media types, it may be the
 [dpl]: ../src/dash-playlist-loader.js
 [mg]: ../src/media-groups.js
 [pl]: ../src/playlist-loader.js
-[pc]: ../src/master-playlist-controller.js
+[PC]: ../src/playlist-controller.js
 [sl]: ../src/segment-loader.js

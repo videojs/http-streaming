@@ -68,7 +68,7 @@ flowchart TD
   VhsHandler --> PlaylistController
 ```
 
-`PlaylistController` is not a great name, and has grown in size to be a bit unwieldy, but it's the hub of VHS. Eventually, it should be broken into smaller pieces, but for now, it handles the creation and management of most of the other VHS modules. Its code can be found in [src/master-playlist-controller.js](https://github.com/videojs/http-streaming/blob/0964cb4827d9e80aa36f2fa29e35dad92ca84111/src/master-playlist-controller.js).
+`PlaylistController` is not a great name, and has grown in size to be a bit unwieldy, but it's the hub of VHS. Eventually, it should be broken into smaller pieces, but for now, it handles the creation and management of most of the other VHS modules. Its code can be found in [src/playlist-controller.js](https://github.com/videojs/http-streaming/blob/0964cb4827d9e80aa36f2fa29e35dad92ca84111/src/master-playlist-controller.js).
 
 The best way to think of `PlaylistController` is as Tron's Master Control Program, though hopefully it isn't as evil.
 
