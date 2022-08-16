@@ -155,7 +155,7 @@ const runSimulation = function(options, done) {
     time: 0,
     bandwidth: player.tech(true).vhs.bandwidth
   });
-  player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.segmentMetadataTrack_ = null;
+  player.tech(true).vhs.playlistController_.mainSegmentLoader_.segmentMetadataTrack_ = null;
   player.play();
 
   let t = 0;
@@ -286,7 +286,7 @@ const runSimulation = function(options, done) {
 
         if (segmentDownloaded > segmentSize) {
           if (!currentTime ||
-               player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.mediaIndex !== null) {
+               player.tech(true).vhs.playlistController_.mainSegmentLoader_.mediaIndex !== null) {
             buffered += simulationParams.segmentDuration;
             s++;
           } else {

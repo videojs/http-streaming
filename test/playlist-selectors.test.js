@@ -24,7 +24,7 @@ module('Playlist Selectors', {
           playlists: []
         }
       },
-      masterPlaylistController_: {}
+      playlistController_: {}
     };
   },
   afterEach() {
@@ -262,7 +262,7 @@ test('simpleSelector chooses between current audio playlists for audio only', fu
     {id: 'foo'},
     {id: 'bar', attributes: {BANDWIDTH: 534216}}
   ];
-  const masterPlaylistController = {
+  const playlistController = {
     getAudioTrackPlaylists_: () => audioPlaylists
   };
   const master = this.vhs.playlists.master;
@@ -275,7 +275,7 @@ test('simpleSelector chooses between current audio playlists for audio only', fu
     }
   };
 
-  const selectedPlaylist = simpleSelector(master, Config.INITIAL_BANDWIDTH, 444, 790, false, masterPlaylistController);
+  const selectedPlaylist = simpleSelector(master, Config.INITIAL_BANDWIDTH, 444, 790, false, playlistController);
 
   assert.equal(selectedPlaylist, audioPlaylists[1], 'selected an audio based solely on bandwidth');
 });

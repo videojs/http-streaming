@@ -143,8 +143,8 @@ export const comparePlaylistResolution = function(left, right) {
  *        Current height of the player element (should account for the device pixel ratio)
  * @param {boolean} limitRenditionByPlayerDimensions
  *        True if the player width and height should be used during the selection, false otherwise
- * @param {Object} masterPlaylistController
- *        the current masterPlaylistController object
+ * @param {Object} playlistController
+ *        the current playlistController object
  * @return {Playlist} the highest bitrate playlist less than the
  * currently detected bandwidth, accounting for some amount of
  * bandwidth variance
@@ -155,7 +155,7 @@ export let simpleSelector = function(
   playerWidth,
   playerHeight,
   limitRenditionByPlayerDimensions,
-  masterPlaylistController
+  playlistController
 ) {
 
   // If we end up getting called before `master` is available, exit early
@@ -174,7 +174,7 @@ export let simpleSelector = function(
 
   // if playlist is audio only, select between currently active audio group playlists.
   if (Playlist.isAudioOnly(master)) {
-    playlists = masterPlaylistController.getAudioTrackPlaylists_();
+    playlists = playlistController.getAudioTrackPlaylists_();
     // add audioOnly to options so that we log audioOnly: true
     // at the buttom of this function for debugging.
     options.audioOnly = true;
@@ -289,7 +289,7 @@ export let simpleSelector = function(
   // If this selector proves to be better than others,
   // resolutionPlusOneRep and resolutionBestRep and all
   // the code involving them should be removed.
-  if (masterPlaylistController.experimentalLeastPixelDiffSelector) {
+  if (playlistController.experimentalLeastPixelDiffSelector) {
     // find the variant that is closest to the player's pixel size
     const leastPixelDiffList = haveResolution.map((rep) => {
       rep.pixelDiff = Math.abs(rep.width - playerWidth) + Math.abs(rep.height - playerHeight);
@@ -372,7 +372,7 @@ export const lastBandwidthSelector = function() {
     parseInt(safeGetComputedStyle(this.tech_.el(), 'width'), 10) * pixelRatio,
     parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10) * pixelRatio,
     this.limitRenditionByPlayerDimensions,
-    this.masterPlaylistController_
+    this.playlistController_
   );
 };
 
@@ -423,7 +423,7 @@ export const movingAverageBandwidthSelector = function(decay) {
       parseInt(safeGetComputedStyle(this.tech_.el(), 'width'), 10) * pixelRatio,
       parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10) * pixelRatio,
       this.limitRenditionByPlayerDimensions,
-      this.masterPlaylistController_
+      this.playlistController_
     );
   };
 };

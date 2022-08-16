@@ -50,9 +50,9 @@ const enableFunction = (loader, playlistID, changePlaylistFn) => (enable) => {
 class Representation {
   constructor(vhsHandler, playlist, id) {
     const {
-      masterPlaylistController_: mpc
+      playlistController_: pc
     } = vhsHandler;
-    const qualityChangeFunction = mpc.fastQualityChange_.bind(mpc);
+    const qualityChangeFunction = pc.fastQualityChange_.bind(pc);
 
     // some playlist attributes are optional
     if (playlist.attributes) {
@@ -64,7 +64,7 @@ class Representation {
       this.bandwidth = playlist.attributes.BANDWIDTH;
     }
 
-    this.codecs = codecsForPlaylist(mpc.master(), playlist);
+    this.codecs = codecsForPlaylist(pc.master(), playlist);
 
     this.playlist = playlist;
 
@@ -93,9 +93,9 @@ const renditionSelectionMixin = function(vhsHandler) {
 
   // Add a single API-specific function to the VhsHandler instance
   vhsHandler.representations = () => {
-    const master = vhsHandler.masterPlaylistController_.master();
+    const master = vhsHandler.playlistController_.master();
     const playlists = isAudioOnly(master) ?
-      vhsHandler.masterPlaylistController_.getAudioTrackPlaylists_() :
+      vhsHandler.playlistController_.getAudioTrackPlaylists_() :
       master.playlists;
 
     if (!playlists) {

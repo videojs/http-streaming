@@ -32,7 +32,7 @@ export default class PlaybackWatcher {
    * @param {Object} options an object that includes the tech and settings
    */
   constructor(options) {
-    this.masterPlaylistController_ = options.masterPlaylistController;
+    this.playlistController_ = options.playlistController;
     this.tech_ = options.tech;
     this.seekable = options.seekable;
     this.allowSeeksWithinUnsafeLiveWindow = options.allowSeeksWithinUnsafeLiveWindow;
@@ -51,7 +51,7 @@ export default class PlaybackWatcher {
     const waitingHandler = () => this.techWaiting_();
     const cancelTimerHandler = () => this.resetTimeUpdate_();
 
-    const mpc = this.masterPlaylistController_;
+    const pc = this.playlistController_;
 
     const loaderTypes = ['main', 'subtitle', 'audio'];
     const loaderChecks = {};
@@ -62,11 +62,11 @@ export default class PlaybackWatcher {
         updateend: () => this.checkSegmentDownloads_(type)
       };
 
-      mpc[`${type}SegmentLoader_`].on('appendsdone', loaderChecks[type].updateend);
+      pc[`${type}SegmentLoader_`].on('appendsdone', loaderChecks[type].updateend);
       // If a rendition switch happens during a playback stall where the buffer
       // isn't changing we want to reset. We cannot assume that the new rendition
       // will also be stalled, until after new appends.
-      mpc[`${type}SegmentLoader_`].on('playlistupdate', loaderChecks[type].reset);
+      pc[`${type}SegmentLoader_`].on('playlistupdate', loaderChecks[type].reset);
       // Playback stalls should not be detected right after seeking.
       // This prevents one segment playlists (single vtt or single segment content)
       // from being detected as stalling. As the buffer will not change in those cases, since
@@ -84,7 +84,7 @@ export default class PlaybackWatcher {
      */
     const setSeekingHandlers = (fn) => {
       ['main', 'audio'].forEach((type) => {
-        mpc[`${type}SegmentLoader_`][fn]('appended', this.seekingAppendCheck_);
+        pc[`${type}SegmentLoader_`][fn]('appended', this.seekingAppendCheck_);
       });
     };
 
@@ -135,8 +135,8 @@ export default class PlaybackWatcher {
       this.tech_.off('seeked', this.clearSeekingAppendCheck_);
 
       loaderTypes.forEach((type) => {
-        mpc[`${type}SegmentLoader_`].off('appendsdone', loaderChecks[type].updateend);
-        mpc[`${type}SegmentLoader_`].off('playlistupdate', loaderChecks[type].reset);
+        pc[`${type}SegmentLoader_`].off('appendsdone', loaderChecks[type].updateend);
+        pc[`${type}SegmentLoader_`].off('playlistupdate', loaderChecks[type].reset);
         this.tech_.off(['seeked', 'seeking'], loaderChecks[type].reset);
       });
       if (this.checkCurrentTimeTimeout_) {
@@ -174,7 +174,7 @@ export default class PlaybackWatcher {
    * @listens Tech#seeked
    */
   resetSegmentDownloads_(type) {
-    const loader = this.masterPlaylistController_[`${type}SegmentLoader_`];
+    const loader = this.playlistController_[`${type}SegmentLoader_`];
 
     if (this[`${type}StalledDownloads_`] > 0) {
       this.logger_(`resetting possible stalled download count for ${type} loader`);
@@ -194,8 +194,8 @@ export default class PlaybackWatcher {
    * @listens SegmentLoader#appendsdone
    */
   checkSegmentDownloads_(type) {
-    const mpc = this.masterPlaylistController_;
-    const loader = mpc[`${type}SegmentLoader_`];
+    const pc = this.playlistController_;
+    const loader = pc[`${type}SegmentLoader_`];
     const buffered = loader.buffered_();
     const isBufferedDifferent = Ranges.isRangeDifferent(this[`${type}Buffered_`], buffered);
 
@@ -232,7 +232,7 @@ export default class PlaybackWatcher {
 
     // TODO: should we exclude audio tracks rather than main tracks
     // when type is audio?
-    mpc.excludePlaylist({
+    pc.excludePlaylist({
       message: `Excessive ${type} segment downloading detected.`
     }, Infinity);
   }
@@ -338,7 +338,7 @@ export default class PlaybackWatcher {
       return true;
     }
 
-    const sourceUpdater = this.masterPlaylistController_.sourceUpdater_;
+    const sourceUpdater = this.playlistController_.sourceUpdater_;
     const buffered = this.tech_.buffered();
     const audioBuffered = sourceUpdater.audioBuffer ? sourceUpdater.audioBuffered() : null;
     const videoBuffered = sourceUpdater.videoBuffer ? sourceUpdater.videoBuffered() : null;
@@ -453,7 +453,7 @@ export default class PlaybackWatcher {
       return true;
     }
 
-    const sourceUpdater = this.tech_.vhs.masterPlaylistController_.sourceUpdater_;
+    const sourceUpdater = this.tech_.vhs.playlistController_.sourceUpdater_;
     const buffered = this.tech_.buffered();
     const videoUnderflow = this.videoUnderflow_({
       audioBuffered: sourceUpdater.audioBuffered(),

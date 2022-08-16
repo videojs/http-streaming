@@ -220,10 +220,10 @@ QUnit.test('tech error may pause loading', function(assert) {
   this.clock.tick(1);
 
   const vhs = this.player.tech_.vhs;
-  const mpc = vhs.masterPlaylistController_;
+  const pc = vhs.playlistController_;
   let pauseCalled = false;
 
-  mpc.pauseLoading = () => {
+  pc.pauseLoading = () => {
     pauseCalled = true;
   };
 
@@ -300,7 +300,7 @@ QUnit.test('stats are reset on each new source', function(assert) {
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  this.player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.one('appending', () => {
+  this.player.tech(true).vhs.playlistController_.mainSegmentLoader_.one('appending', () => {
     assert.equal(
       this.player.tech_.vhs.stats.mediaBytesTransferred,
       segmentByteLength,
@@ -485,7 +485,7 @@ QUnit.test('codecs are passed to the source buffer', function(assert) {
   this.standardXHRResponse(this.requests.shift());
 
   // source buffer won't be created until we have our first segment
-  this.player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.one('appending', () => {
+  this.player.tech(true).vhs.playlistController_.mainSegmentLoader_.one('appending', () => {
     // always create separate audio and video source buffers
     assert.equal(codecs.length, 2, 'created two source buffers');
     assert.notEqual(
@@ -670,7 +670,7 @@ QUnit.test('starts downloading a segment on loadedmetadata', function(assert) {
     'the first segment is requested'
   );
 
-  this.player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.one('appending', () => {
+  this.player.tech(true).vhs.playlistController_.mainSegmentLoader_.one('appending', () => {
     // verify stats
     assert.equal(
       this.player.tech_.vhs.stats.mediaBytesTransferred,
@@ -705,21 +705,21 @@ QUnit.test('re-initializes the handler for each source', function(assert) {
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  const mpc = this.player.tech_.vhs.masterPlaylistController_;
+  const pc = this.player.tech_.vhs.playlistController_;
 
   // need a segment request to complete for the source buffers to be created
   return requestAndAppendSegment({
     request: this.requests.shift(),
-    mediaSource: mpc.mediaSource,
-    segmentLoader: mpc.mainSegmentLoader_,
+    mediaSource: pc.mediaSource,
+    segmentLoader: pc.mainSegmentLoader_,
     clock: this.clock,
     tickClock: false
   }).then(() => {
     let audioBufferAborts = 0;
     let videoBufferAborts = 0;
 
-    mpc.mainSegmentLoader_.sourceUpdater_.audioBuffer.abort = () => audioBufferAborts++;
-    mpc.mainSegmentLoader_.sourceUpdater_.videoBuffer.abort = () => videoBufferAborts++;
+    pc.mainSegmentLoader_.sourceUpdater_.audioBuffer.abort = () => audioBufferAborts++;
+    pc.mainSegmentLoader_.sourceUpdater_.videoBuffer.abort = () => videoBufferAborts++;
 
     // allow timeout for making another request
     this.clock.tick(1);
@@ -787,7 +787,7 @@ QUnit.test(
     });
     openMediaSource(this.player, this.clock);
 
-    this.player.tech_.vhs.masterPlaylistController_.mediaSource.readyState = 'closed';
+    this.player.tech_.vhs.playlistController_.mediaSource.readyState = 'closed';
 
     this.player.on('error', () => {
       const error = this.player.error();
@@ -833,7 +833,7 @@ QUnit.test('downloads media playlists after loading the master', function(assert
 
   assert.ok(segmentByteLength, 'the segment has some number of bytes');
 
-  this.player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.one('appending', () => {
+  this.player.tech(true).vhs.playlistController_.mainSegmentLoader_.one('appending', () => {
     // verify stats
     assert.equal(
       this.player.tech_.vhs.stats.mediaBytesTransferred,
@@ -1568,7 +1568,7 @@ QUnit.test('does not exclude compatible H.264 codec strings', function(assert) {
   // media
   this.standardXHRResponse(this.requests.shift());
   const master = this.player.tech_.vhs.playlists.master;
-  const loader = this.player.tech_.vhs.masterPlaylistController_.mainSegmentLoader_;
+  const loader = this.player.tech_.vhs.playlistController_.mainSegmentLoader_;
 
   loader.currentMediaInfo_ = {hasVideo: true, hasAudio: true};
   loader.trigger('trackinfo');
@@ -1612,7 +1612,7 @@ QUnit.test('does not exclude compatible AAC codec strings', function(assert) {
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  const loader = this.player.tech_.vhs.masterPlaylistController_.mainSegmentLoader_;
+  const loader = this.player.tech_.vhs.playlistController_.mainSegmentLoader_;
   const master = this.player.tech_.vhs.playlists.master;
 
   loader.currentMediaInfo_ = {hasVideo: true, hasAudio: true};
@@ -1670,11 +1670,11 @@ QUnit.test('excludes incompatible playlists by codec, without codec switching', 
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  const mpc = this.player.tech_.vhs.masterPlaylistController_;
-  const loader = mpc.mainSegmentLoader_;
+  const pc = this.player.tech_.vhs.playlistController_;
+  const loader = pc.mainSegmentLoader_;
   const master = this.player.tech_.vhs.playlists.master;
 
-  mpc.sourceUpdater_.canChangeType = () => false;
+  pc.sourceUpdater_.canChangeType = () => false;
 
   loader.currentMediaInfo_ = {hasVideo: true, hasAudio: true};
   loader.trigger('trackinfo');
@@ -1733,11 +1733,11 @@ QUnit.test('does not exclude incompatible codecs with codec switching', function
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  const mpc = this.player.tech_.vhs.masterPlaylistController_;
-  const loader = mpc.mainSegmentLoader_;
+  const pc = this.player.tech_.vhs.playlistController_;
+  const loader = pc.mainSegmentLoader_;
   const master = this.player.tech_.vhs.playlists.master;
 
-  mpc.sourceUpdater_.canChangeType = () => true;
+  pc.sourceUpdater_.canChangeType = () => true;
 
   loader.currentMediaInfo_ = {hasVideo: true, hasAudio: true};
   loader.trigger('trackinfo');
@@ -1779,10 +1779,10 @@ QUnit.test('excludes fmp4 playlists by browser support', function(assert) {
     '#EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.2"\n' +
     'media1.m3u8\n';
 
-  const mpc = this.player.tech_.vhs.masterPlaylistController_;
+  const pc = this.player.tech_.vhs.playlistController_;
 
   // do not exclude incompatible so that we can run this test.
-  mpc.excludeUnsupportedVariants_ = () => {};
+  pc.excludeUnsupportedVariants_ = () => {};
 
   // master
   this.requests.shift().respond(200, null, playlistString);
@@ -1790,13 +1790,13 @@ QUnit.test('excludes fmp4 playlists by browser support', function(assert) {
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  const playlistLoader = mpc.masterPlaylistLoader_;
-  const loader = mpc.mainSegmentLoader_;
+  const playlistLoader = pc.masterPlaylistLoader_;
+  const loader = pc.mainSegmentLoader_;
   const master = this.player.tech_.vhs.playlists.master;
 
   let debugLogs = [];
 
-  mpc.logger_ = (...logs) => {
+  pc.logger_ = (...logs) => {
     debugLogs = debugLogs.concat(logs);
   };
 
@@ -1862,14 +1862,14 @@ QUnit.test('excludes ts playlists by muxer support', function(assert) {
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  const mpc = this.player.tech_.vhs.masterPlaylistController_;
-  const playlistLoader = mpc.masterPlaylistLoader_;
-  const loader = mpc.mainSegmentLoader_;
+  const pc = this.player.tech_.vhs.playlistController_;
+  const playlistLoader = pc.masterPlaylistLoader_;
+  const loader = pc.mainSegmentLoader_;
   const master = this.player.tech_.vhs.playlists.master;
 
   let debugLogs = [];
 
-  mpc.logger_ = (...logs) => {
+  pc.logger_ = (...logs) => {
     debugLogs = debugLogs.concat(logs);
   };
 
@@ -1977,12 +1977,12 @@ QUnit.test('unsupported playlist should not be re-included when excluding last p
 
   const master = this.player.tech_.vhs.playlists.master;
   const media = this.player.tech_.vhs.playlists.media_;
-  const mpc = this.player.tech_.vhs.masterPlaylistController_;
+  const pc = this.player.tech_.vhs.playlistController_;
 
   return requestAndAppendSegment({
     request: this.requests.shift(),
-    mediaSource: mpc.mediaSource,
-    segmentLoader: mpc.mainSegmentLoader_,
+    mediaSource: pc.mediaSource,
+    segmentLoader: pc.mainSegmentLoader_,
     clock: this.clock
   }).then(() => {
     assert.strictEqual(
@@ -2178,7 +2178,7 @@ QUnit.test('excludes playlist if it has stopped being updated', function(assert)
 
   this.standardXHRResponse(this.requests.shift());
 
-  this.player.tech_.vhs.masterPlaylistController_.seekable = function() {
+  this.player.tech_.vhs.playlistController_.seekable = function() {
     return videojs.createTimeRange(90, 130);
   };
   this.player.tech_.setCurrentTime(170);
@@ -2332,7 +2332,7 @@ QUnit.test('fire loadedmetadata once we successfully load a playlist', function(
   const vhs = this.player.tech_.vhs;
 
   vhs.bandwidth = 20000;
-  vhs.masterPlaylistController_.masterPlaylistLoader_.on('loadedmetadata', function() {
+  vhs.playlistController_.masterPlaylistLoader_.on('loadedmetadata', function() {
     count += 1;
   });
   // masters
@@ -2453,7 +2453,7 @@ QUnit.test(
       mediaSequence: 130,
       time: 80
     };
-    this.player.tech_.vhs.masterPlaylistController_.onSyncInfoUpdate_();
+    this.player.tech_.vhs.playlistController_.onSyncInfoUpdate_();
     assert.equal(
       this.player.seekable().start(0),
       500,
@@ -3149,7 +3149,7 @@ QUnit.test('calling play() at the end of a video replays', function(assert) {
   // copy the byte length since the segment bytes get cleared out
   const segmentByteLength = segment.byteLength;
 
-  this.player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.one('appending', () => {
+  this.player.tech(true).vhs.playlistController_.mainSegmentLoader_.one('appending', () => {
     this.player.tech_.ended = function() {
       return true;
     };
@@ -3279,12 +3279,12 @@ QUnit.test('keys are not requested when cached key available, cacheEncryptionKey
   // key response
   this.standardXHRResponse(this.requests.shift(), encryptionKey());
 
-  const mpc = this.player.tech_.vhs.masterPlaylistController_;
+  const pc = this.player.tech_.vhs.playlistController_;
 
   return requestAndAppendSegment({
     request: this.requests.shift(),
-    mediaSource: mpc.mediaSource,
-    segmentLoader: mpc.mainSegmentLoader_,
+    mediaSource: pc.mediaSource,
+    segmentLoader: pc.mainSegmentLoader_,
     clock: this.clock,
     segment: encryptedSegment(),
     decryptionTicks: true
@@ -3335,12 +3335,12 @@ QUnit.test('keys are requested per segment, cacheEncryptionKeys:false', function
   // key response
   this.standardXHRResponse(this.requests.shift(), encryptionKey());
 
-  const mpc = this.player.tech_.vhs.masterPlaylistController_;
+  const pc = this.player.tech_.vhs.playlistController_;
 
   return requestAndAppendSegment({
     request: this.requests.shift(),
-    mediaSource: mpc.mediaSource,
-    segmentLoader: mpc.mainSegmentLoader_,
+    mediaSource: pc.mediaSource,
+    segmentLoader: pc.mainSegmentLoader_,
     clock: this.clock,
     segment: encryptedSegment(),
     decryptionTicks: true
@@ -3610,7 +3610,7 @@ QUnit.test('cleans up the buffer when loading live segments', function(assert) {
 
   openMediaSource(this.player, this.clock);
 
-  this.player.tech_.vhs.masterPlaylistController_.seekable = function() {
+  this.player.tech_.vhs.playlistController_.seekable = function() {
     return seekable;
   };
 
@@ -3628,7 +3628,7 @@ QUnit.test('cleans up the buffer when loading live segments', function(assert) {
   this.player.tech_.trigger('play');
   this.clock.tick(1);
 
-  const mpc = this.player.tech_.vhs.masterPlaylistController_;
+  const pc = this.player.tech_.vhs.playlistController_;
 
   const audioRemoves = [];
   const videoRemoves = [];
@@ -3636,13 +3636,13 @@ QUnit.test('cleans up the buffer when loading live segments', function(assert) {
   // request first playable segment
   return requestAndAppendSegment({
     request: this.requests[1],
-    mediaSource: mpc.mediaSource,
-    segmentLoader: mpc.mainSegmentLoader_,
+    mediaSource: pc.mediaSource,
+    segmentLoader: pc.mainSegmentLoader_,
     clock: this.clock
   }).then(() => {
 
-    const audioBuffer = mpc.sourceUpdater_.audioBuffer;
-    const videoBuffer = mpc.sourceUpdater_.videoBuffer;
+    const audioBuffer = pc.sourceUpdater_.audioBuffer;
+    const videoBuffer = pc.sourceUpdater_.videoBuffer;
     const origAudioRemove = audioBuffer.remove.bind(audioBuffer);
     const origVideoRemove = videoBuffer.remove.bind(videoBuffer);
 
@@ -3663,8 +3663,8 @@ QUnit.test('cleans up the buffer when loading live segments', function(assert) {
     // request second segment, and give enough time for the source buffer to process removes
     return requestAndAppendSegment({
       request: this.requests[2],
-      mediaSource: mpc.mediaSource,
-      segmentLoader: mpc.mainSegmentLoader_,
+      mediaSource: pc.mediaSource,
+      segmentLoader: pc.mainSegmentLoader_,
       clock: this.clock
     });
   }).then(() => {
@@ -3693,7 +3693,7 @@ QUnit.test('cleans up buffer by removing targetDuration from currentTime when lo
     type: 'application/vnd.apple.mpegurl'
   });
   openMediaSource(this.player, this.clock);
-  this.player.tech_.vhs.masterPlaylistController_.seekable = function() {
+  this.player.tech_.vhs.playlistController_.seekable = function() {
     return seekable;
   };
 
@@ -3712,15 +3712,15 @@ QUnit.test('cleans up buffer by removing targetDuration from currentTime when lo
   this.player.tech_.trigger('play');
   this.clock.tick(1);
 
-  const mpc = this.player.tech_.vhs.masterPlaylistController_;
+  const pc = this.player.tech_.vhs.playlistController_;
   const audioRemoves = [];
   const videoRemoves = [];
 
   // request first playable segment
   return requestAndAppendSegment({
     request: this.requests.shift(),
-    mediaSource: mpc.mediaSource,
-    segmentLoader: mpc.mainSegmentLoader_,
+    mediaSource: pc.mediaSource,
+    segmentLoader: pc.mainSegmentLoader_,
     clock: this.clock
   }).then(() => {
 
@@ -3729,8 +3729,8 @@ QUnit.test('cleans up buffer by removing targetDuration from currentTime when lo
     seekable = videojs.createTimeRanges([[110, 120]]);
     this.clock.tick(1);
 
-    const audioBuffer = mpc.sourceUpdater_.audioBuffer;
-    const videoBuffer = mpc.sourceUpdater_.videoBuffer;
+    const audioBuffer = pc.sourceUpdater_.audioBuffer;
+    const videoBuffer = pc.sourceUpdater_.videoBuffer;
     const origAudioRemove = audioBuffer.remove.bind(audioBuffer);
     const origVideoRemove = videoBuffer.remove.bind(videoBuffer);
 
@@ -3754,8 +3754,8 @@ QUnit.test('cleans up buffer by removing targetDuration from currentTime when lo
     // request second segment, and give enough time for the source buffer to process removes
     return requestAndAppendSegment({
       request: this.requests.shift(),
-      mediaSource: mpc.mediaSource,
-      segmentLoader: mpc.mainSegmentLoader_,
+      mediaSource: pc.mediaSource,
+      segmentLoader: pc.mainSegmentLoader_,
       clock: this.clock
     });
   }).then(() => {
@@ -3793,19 +3793,19 @@ QUnit.test('cleans up the buffer when loading VOD segments', function(assert) {
   // media
   this.standardXHRResponse(this.requests[1]);
 
-  const mpc = this.player.tech_.vhs.masterPlaylistController_;
+  const pc = this.player.tech_.vhs.playlistController_;
   const audioRemoves = [];
   const videoRemoves = [];
 
   // first segment request will set up all of the source buffers we need
   return requestAndAppendSegment({
     request: this.requests[2],
-    mediaSource: mpc.mediaSource,
-    segmentLoader: mpc.mainSegmentLoader_,
+    mediaSource: pc.mediaSource,
+    segmentLoader: pc.mainSegmentLoader_,
     clock: this.clock
   }).then(() => {
-    const audioBuffer = mpc.sourceUpdater_.audioBuffer;
-    const videoBuffer = mpc.sourceUpdater_.videoBuffer;
+    const audioBuffer = pc.sourceUpdater_.audioBuffer;
+    const videoBuffer = pc.sourceUpdater_.videoBuffer;
     const origAudioRemove = audioBuffer.remove.bind(audioBuffer);
     const origVideoRemove = videoBuffer.remove.bind(videoBuffer);
 
@@ -3840,8 +3840,8 @@ QUnit.test('cleans up the buffer when loading VOD segments', function(assert) {
     // request second segment, and give enough time for the source buffer to process removes
     return requestAndAppendSegment({
       request: this.requests[4],
-      mediaSource: mpc.mediaSource,
-      segmentLoader: mpc.mainSegmentLoader_,
+      mediaSource: pc.mediaSource,
+      segmentLoader: pc.mainSegmentLoader_,
       clock: this.clock
     });
   }).then(() => {
@@ -3891,7 +3891,7 @@ QUnit.test('when mediaGroup changes enabled track should not change', function(a
   // video media
   this.standardXHRResponse(this.requests.shift());
   const vhs = this.player.tech_.vhs;
-  const mpc = vhs.masterPlaylistController_;
+  const pc = vhs.playlistController_;
   let audioTracks = this.player.audioTracks();
 
   assert.equal(vhsAudioChangeEvents, 0, 'no vhs-audio-change event was fired');
@@ -3902,8 +3902,8 @@ QUnit.test('when mediaGroup changes enabled track should not change', function(a
 
   // clear out any outstanding requests
   this.requests.length = 0;
-  // force mpc to select a playlist from a new media group
-  mpc.masterPlaylistLoader_.media(mpc.master().playlists[0]);
+  // force pc to select a playlist from a new media group
+  pc.masterPlaylistLoader_.media(pc.master().playlists[0]);
   this.clock.tick(1);
 
   // video media
@@ -3915,7 +3915,7 @@ QUnit.test('when mediaGroup changes enabled track should not change', function(a
     'selected a new playlist'
   );
   audioTracks = this.player.audioTracks();
-  const activeGroup = mpc.mediaTypes_.AUDIO.activeGroup(audioTracks[0]);
+  const activeGroup = pc.mediaTypes_.AUDIO.activeGroup(audioTracks[0]);
 
   assert.equal(audioTracks.length, 3, 'three audio tracks after changing mediaGroup');
   assert.ok(activeGroup.default, 'track one should be the default');
@@ -3933,7 +3933,7 @@ QUnit.test('when mediaGroup changes enabled track should not change', function(a
   this.requests.length = 0;
   // swap back to the old media group
   // this playlist is already loaded so no new requests are made
-  mpc.masterPlaylistLoader_.media(mpc.master().playlists[3]);
+  pc.masterPlaylistLoader_.media(pc.master().playlists[3]);
   this.clock.tick(1);
 
   assert.notEqual(
@@ -4081,7 +4081,7 @@ QUnit.test(
     this.clock.tick(1);
 
     assert.ok(
-      !this.player.tech_.vhs.masterPlaylistController_.useCueTags_,
+      !this.player.tech_.vhs.playlistController_.useCueTags_,
       'useCueTags is falsy by default'
     );
 
@@ -4101,7 +4101,7 @@ QUnit.test(
     this.clock.tick(1);
 
     assert.ok(
-      this.player.tech_.vhs.masterPlaylistController_.useCueTags_,
+      this.player.tech_.vhs.playlistController_.useCueTags_,
       'useCueTags passed to master playlist controller'
     );
 
@@ -4188,7 +4188,7 @@ QUnit.test('configures eme for DASH on source buffer creation', function(assert)
     media: () => media
   };
 
-  this.player.tech_.vhs.masterPlaylistController_.mediaTypes_ = {
+  this.player.tech_.vhs.playlistController_.mediaTypes_ = {
     SUBTITLES: {},
     AUDIO: {
       activePlaylistLoader: {
@@ -4203,7 +4203,7 @@ QUnit.test('configures eme for DASH on source buffer creation', function(assert)
     }
   };
 
-  this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.trigger('createdsourcebuffers');
+  this.player.tech_.vhs.playlistController_.sourceUpdater_.trigger('createdsourcebuffers');
 
   assert.deepEqual(this.player.eme.options, {
     previousSetting: 1
@@ -4257,7 +4257,7 @@ QUnit.test('configures eme for HLS on source buffer creation', function(assert) 
     media: () => media
   };
 
-  this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.trigger('createdsourcebuffers');
+  this.player.tech_.vhs.playlistController_.sourceUpdater_.trigger('createdsourcebuffers');
 
   assert.deepEqual(this.player.eme.options, {
     previousSetting: 1
@@ -4313,11 +4313,11 @@ QUnit.test('eme handles keystatuschange where status is output-restricted', func
 
   const excludes = [];
 
-  this.player.tech_.vhs.masterPlaylistController_.excludePlaylist = (exclude) => {
+  this.player.tech_.vhs.playlistController_.excludePlaylist = (exclude) => {
     excludes.push(exclude);
   };
 
-  this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.trigger('createdsourcebuffers');
+  this.player.tech_.vhs.playlistController_.sourceUpdater_.trigger('createdsourcebuffers');
   this.player.tech_.trigger({type: 'keystatuschange', status: 'output-restricted'});
 
   assert.deepEqual(excludes, [{
@@ -4363,11 +4363,11 @@ QUnit.test('eme handles keystatuschange where status is usable', function(assert
 
   const excludes = [];
 
-  this.player.tech_.vhs.masterPlaylistController_.excludePlaylist = (exclude) => {
+  this.player.tech_.vhs.playlistController_.excludePlaylist = (exclude) => {
     excludes.push(exclude);
   };
 
-  this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.trigger('createdsourcebuffers');
+  this.player.tech_.vhs.playlistController_.sourceUpdater_.trigger('createdsourcebuffers');
   this.player.tech_.trigger({type: 'keystatuschange', status: 'usable'});
 
   assert.deepEqual(excludes, [], 'did not exclude anything');
@@ -4403,7 +4403,7 @@ QUnit.test('eme waitingforkey event triggers another setup', function(assert) {
     origCreateKeySessions();
   };
 
-  vhs.masterPlaylistController_.sourceUpdater_.trigger('createdsourcebuffers');
+  vhs.playlistController_.sourceUpdater_.trigger('createdsourcebuffers');
 
   // Since IE11 doesn't initialize media keys early, in this test IE11 will always have
   // one less call than in other browsers.
@@ -4442,7 +4442,7 @@ QUnit.test('integration: configures eme for DASH on source buffer creation', fun
   });
   openMediaSource(this.player, this.clock);
 
-  this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.on(
+  this.player.tech_.vhs.playlistController_.sourceUpdater_.on(
     'createdsourcebuffers',
     () => {
       assert.deepEqual(this.player.eme.options, {
@@ -4496,7 +4496,7 @@ QUnit.test('integration: configures eme for HLS on source buffer creation', func
   });
   openMediaSource(this.player, this.clock);
 
-  this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.on(
+  this.player.tech_.vhs.playlistController_.sourceUpdater_.on(
     'createdsourcebuffers',
     () => {
       assert.deepEqual(this.player.eme.options, {
@@ -4552,7 +4552,7 @@ QUnit.test('integration: updates source updater after eme init', function(assert
   });
   openMediaSource(this.player, this.clock);
 
-  const sourceUpdater = this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_;
+  const sourceUpdater = this.player.tech_.vhs.playlistController_.sourceUpdater_;
 
   sourceUpdater.on('ready', () => {
     assert.ok(sourceUpdater.hasInitializedAnyEme(), 'updated source updater');
@@ -4640,12 +4640,12 @@ QUnit[testOrSkip]('player error when key session creation rejects promise', func
     media: () => media
   };
 
-  this.player.tech_.vhs.masterPlaylistController_.mediaTypes_ = {
+  this.player.tech_.vhs.playlistController_.mediaTypes_ = {
     SUBTITLES: {},
     AUDIO: {}
   };
 
-  this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.trigger('createdsourcebuffers');
+  this.player.tech_.vhs.playlistController_.sourceUpdater_.trigger('createdsourcebuffers');
 });
 
 QUnit.test(
@@ -4676,7 +4676,7 @@ QUnit.test(
         playlists: []
       }
     };
-    this.player.tech_.vhs.masterPlaylistController_.mediaTypes_ = {
+    this.player.tech_.vhs.playlistController_.mediaTypes_ = {
       SUBTITLES: {},
       AUDIO: {
         activePlaylistLoader: {
@@ -4690,7 +4690,7 @@ QUnit.test(
         }
       }
     };
-    this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.trigger('ready');
+    this.player.tech_.vhs.playlistController_.sourceUpdater_.trigger('ready');
 
     assert.deepEqual(this.player.currentSource(), {
       src: 'manifest/master.mpd',
@@ -4717,8 +4717,8 @@ QUnit[testOrSkip](
 
     assert.notOk(window.localStorage.getItem(LOCAL_STORAGE_KEY), 'nothing in local storage');
 
-    this.player.tech_.vhs.masterPlaylistController_.mainSegmentLoader_.bandwidth = 11;
-    this.player.tech_.vhs.masterPlaylistController_.mainSegmentLoader_.throughput.rate = 22;
+    this.player.tech_.vhs.playlistController_.mainSegmentLoader_.bandwidth = 11;
+    this.player.tech_.vhs.playlistController_.mainSegmentLoader_.throughput.rate = 22;
     this.player.tech_.trigger('bandwidthupdate');
 
     const storedObject = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY));
@@ -4752,8 +4752,8 @@ QUnit[testOrSkip](
 
     assert.notOk(window.localStorage.getItem(LOCAL_STORAGE_KEY), 'nothing in local storage');
 
-    this.player.tech_.vhs.masterPlaylistController_.mainSegmentLoader_.bandwidth = 11;
-    this.player.tech_.vhs.masterPlaylistController_.mainSegmentLoader_.throughput.rate = 22;
+    this.player.tech_.vhs.playlistController_.mainSegmentLoader_.bandwidth = 11;
+    this.player.tech_.vhs.playlistController_.mainSegmentLoader_.throughput.rate = 22;
     this.player.tech_.trigger('bandwidthupdate');
 
     const storedObject = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY));
@@ -4782,8 +4782,8 @@ QUnit[testOrSkip](
 
     assert.notOk(window.localStorage.getItem(LOCAL_STORAGE_KEY), 'nothing in local storage');
 
-    this.player.tech_.vhs.masterPlaylistController_.mainSegmentLoader_.bandwidth = 11;
-    this.player.tech_.vhs.masterPlaylistController_.mainSegmentLoader_.throughput.rate = 22;
+    this.player.tech_.vhs.playlistController_.mainSegmentLoader_.bandwidth = 11;
+    this.player.tech_.vhs.playlistController_.mainSegmentLoader_.throughput.rate = 22;
     this.player.tech_.trigger('bandwidthupdate');
 
     const storedObject = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY));
@@ -4818,8 +4818,8 @@ QUnit[testOrSkip](
 
     assert.notOk(window.localStorage.getItem(LOCAL_STORAGE_KEY), 'nothing in local storage');
 
-    this.player.tech_.vhs.masterPlaylistController_.mainSegmentLoader_.bandwidth = 11;
-    this.player.tech_.vhs.masterPlaylistController_.mainSegmentLoader_.throughput.rate = 22;
+    this.player.tech_.vhs.playlistController_.mainSegmentLoader_.bandwidth = 11;
+    this.player.tech_.vhs.playlistController_.mainSegmentLoader_.throughput.rate = 22;
     this.player.tech_.trigger('bandwidthupdate');
 
     const storedObject = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY));
@@ -4847,8 +4847,8 @@ QUnit[testOrSkip](
 
     assert.notOk(window.localStorage.getItem(LOCAL_STORAGE_KEY), 'nothing in local storage');
 
-    this.player.tech_.vhs.masterPlaylistController_.mainSegmentLoader_.bandwidth = 11;
-    this.player.tech_.vhs.masterPlaylistController_.mainSegmentLoader_.throughput.rate = 22;
+    this.player.tech_.vhs.playlistController_.mainSegmentLoader_.bandwidth = 11;
+    this.player.tech_.vhs.playlistController_.mainSegmentLoader_.throughput.rate = 22;
     this.player.tech_.trigger('bandwidthupdate');
 
     assert.notOk(window.localStorage.getItem(LOCAL_STORAGE_KEY), 'nothing in local storage');
@@ -5012,8 +5012,8 @@ QUnit.test('convertToProgramTime will return stream time if buffered', function(
   // media.m3u8
   this.standardXHRResponse(this.requests[1]);
 
-  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
-  const mainSegmentLoader_ = mpc.mainSegmentLoader_;
+  const pc = this.player.tech(true).vhs.playlistController_;
+  const mainSegmentLoader_ = pc.mainSegmentLoader_;
 
   mainSegmentLoader_.one('appending', () => {
     // since we don't run through the transmuxer, we have to manually trigger the timing
@@ -5031,8 +5031,8 @@ QUnit.test('convertToProgramTime will return stream time if buffered', function(
 
   return requestAndAppendSegment({
     request: this.requests[2],
-    mediaSource: mpc.mediaSource,
-    segmentLoader: mpc.mainSegmentLoader_,
+    mediaSource: pc.mediaSource,
+    segmentLoader: pc.mainSegmentLoader_,
     clock: this.clock
   }).then(() => {
     // ts
@@ -5119,10 +5119,10 @@ QUnit.test('seekToProgramTime seek to time if buffered', function(assert) {
   // wait for playlist refresh
   this.clock.tick(2 * 1000 + 1);
 
-  const mpc = this.player.tech(true).vhs.masterPlaylistController_;
+  const pc = this.player.tech(true).vhs.playlistController_;
 
-  mpc.mainSegmentLoader_.one('appending', () => {
-    const videoBuffer = mpc.sourceUpdater_.videoBuffer;
+  pc.mainSegmentLoader_.one('appending', () => {
+    const videoBuffer = pc.sourceUpdater_.videoBuffer;
 
     // must fake the call to videoTimingInfo as the segment isn't transmuxed in the test
     videoBuffer.trigger({
@@ -5142,8 +5142,8 @@ QUnit.test('seekToProgramTime seek to time if buffered', function(assert) {
 
   return requestAndAppendSegment({
     request: this.requests.shift(),
-    mediaSource: mpc.mediaSource,
-    segmentLoader: mpc.mainSegmentLoader_,
+    mediaSource: pc.mediaSource,
+    segmentLoader: pc.mainSegmentLoader_,
     clock: this.clock
   }).then(() => {
     this.player.tech(true).vhs.seekToProgramTime(
@@ -5274,7 +5274,7 @@ QUnit.test('stats are reset on dispose', function(assert) {
 
   assert.ok(segmentByteLength, 'the segment has some number of bytes');
 
-  vhs.masterPlaylistController_.mainSegmentLoader_.on('appending', () => {
+  vhs.playlistController_.mainSegmentLoader_.on('appending', () => {
     assert.equal(vhs.stats.mediaBytesTransferred, segmentByteLength, 'stat is set');
     vhs.dispose();
     assert.equal(vhs.stats.mediaBytesTransferred, 0, 'stat is reset');
@@ -5304,7 +5304,7 @@ QUnit.skip('detects fullscreen and triggers a fast quality change', function(ass
     }
   });
 
-  vhs.masterPlaylistController_.fastQualityChange_ = function() {
+  vhs.playlistController_.fastQualityChange_ = function() {
     qualityChanges++;
   };
 
@@ -5316,7 +5316,7 @@ QUnit.skip('detects fullscreen and triggers a fast quality change', function(ass
 
   let checkABRCalls = 0;
 
-  vhs.masterPlaylistController_.checkABR_ = () => checkABRCalls++;
+  vhs.playlistController_.checkABR_ = () => checkABRCalls++;
 
   // don't do a fast quality change when returning from fullscreen;
   //
@@ -5337,7 +5337,7 @@ QUnit.test('downloads additional playlists if required', function(assert) {
   }, this.tech);
 
   // Make segment metadata noop since most test segments dont have real data
-  vhs.masterPlaylistController_.mainSegmentLoader_.addSegmentMetadataCue_ = () => {};
+  vhs.playlistController_.mainSegmentLoader_.addSegmentMetadataCue_ = () => {};
 
   vhs.mediaSource.trigger('sourceopen');
   vhs.bandwidth = 1;
@@ -5347,14 +5347,14 @@ QUnit.test('downloads additional playlists if required', function(assert) {
   this.standardXHRResponse(this.requests[1]);
 
   const originalPlaylist = vhs.playlists.media();
-  const mpc = vhs.masterPlaylistController_;
+  const pc = vhs.playlistController_;
 
-  mpc.mainSegmentLoader_.mediaIndex = 0;
+  pc.mainSegmentLoader_.mediaIndex = 0;
 
   return requestAndAppendSegment({
     request: this.requests[2],
-    mediaSource: mpc.mediaSource,
-    segmentLoader: mpc.mainSegmentLoader_,
+    mediaSource: pc.mediaSource,
+    segmentLoader: pc.mainSegmentLoader_,
     clock: this.clock,
     // the playlist selection is revisited after a new segment is downloaded
     bandwidth: 3000000,
@@ -5389,9 +5389,9 @@ QUnit.test('waits to download new segments until the media playlist is stable', 
     src: 'manifest/master.m3u8',
     type: 'application/vnd.apple.mpegurl'
   }, this.tech);
-  const mpc = vhs.masterPlaylistController_;
+  const pc = vhs.playlistController_;
 
-  mpc.mainSegmentLoader_.addSegmentMetadataCue_ = () => {};
+  pc.mainSegmentLoader_.addSegmentMetadataCue_ = () => {};
 
   vhs.mediaSource.trigger('sourceopen');
 
@@ -5403,12 +5403,12 @@ QUnit.test('waits to download new segments until the media playlist is stable', 
   this.standardXHRResponse(this.requests.shift());
 
   // put segment loader in walking forward mode
-  mpc.mainSegmentLoader_.mediaIndex = 0;
+  pc.mainSegmentLoader_.mediaIndex = 0;
 
   return requestAndAppendSegment({
     request: this.requests.shift(),
-    mediaSource: mpc.mediaSource,
-    segmentLoader: mpc.mainSegmentLoader_,
+    mediaSource: pc.mediaSource,
+    segmentLoader: pc.mainSegmentLoader_,
     clock: this.clock,
     // bandwidth is high enough to switch playlists
     bandwidth: Number.MAX_VALUE,
@@ -5502,7 +5502,7 @@ QUnit.test(
       type: 'application/vnd.apple.mpegurl'
     }, this.tech);
 
-    vhs.masterPlaylistController_.selectPlaylist();
+    vhs.playlistController_.selectPlaylist();
     assert.equal(defaultSelectPlaylistCount, 1, 'uses default playlist selector');
 
     defaultSelectPlaylistCount = 0;
@@ -5519,7 +5519,7 @@ QUnit.test(
       type: 'application/vnd.apple.mpegurl'
     }, this.tech);
 
-    vhs.masterPlaylistController_.selectPlaylist();
+    vhs.playlistController_.selectPlaylist();
     assert.equal(defaultSelectPlaylistCount, 0, 'standard playlist selector not run');
     assert.equal(newSelectPlaylistCount, 1, 'uses overridden playlist selector');
 
@@ -5529,7 +5529,7 @@ QUnit.test(
 
     vhs.selectPlaylist = () => setSelectPlaylistCount++;
 
-    vhs.masterPlaylistController_.selectPlaylist();
+    vhs.playlistController_.selectPlaylist();
     assert.equal(defaultSelectPlaylistCount, 0, 'standard playlist selector not run');
     assert.equal(newSelectPlaylistCount, 0, 'overridden playlist selector not run');
     assert.equal(setSelectPlaylistCount, 1, 'uses set playlist selector');

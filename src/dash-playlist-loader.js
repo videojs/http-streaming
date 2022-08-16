@@ -692,7 +692,7 @@ export default class DashPlaylistLoader extends EventTarget {
     this.state = 'HAVE_MASTER';
     if (this.isMaster_) {
       // We have the master playlist at this point, so
-      // trigger this to allow MasterPlaylistController
+      // trigger this to allow PlaylistController
       // to make an initial playlist selection
       this.trigger('loadedplaylist');
     } else if (!this.media_) {

@@ -179,18 +179,18 @@ export const onTrackChanged = (type, settings) => () => {
       return;
     }
 
-    const mpc = settings.vhs.masterPlaylistController_;
-    const newPlaylist = mpc.selectPlaylist();
+    const pc = settings.vhs.playlistController_;
+    const newPlaylist = pc.selectPlaylist();
 
     // media will not change do nothing
-    if (mpc.media() === newPlaylist) {
+    if (pc.media() === newPlaylist) {
       return;
     }
 
     mediaType.logger_(`track change. Switching master audio from ${lastTrack.id} to ${activeTrack.id}`);
     masterPlaylistLoader.pause();
     mainSegmentLoader.resetEverything();
-    mpc.fastQualityChange_(newPlaylist);
+    pc.fastQualityChange_(newPlaylist);
 
     return;
   }

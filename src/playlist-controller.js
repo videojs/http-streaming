@@ -141,10 +141,10 @@ const shouldSwitchToMedia = function({
  * involves a master playlist and a series of audio playlists
  * if they are available
  *
- * @class MasterPlaylistController
+ * @class PlaylistController
  * @extends videojs.EventTarget
  */
-export class MasterPlaylistController extends videojs.EventTarget {
+export class PlaylistController extends videojs.EventTarget {
   constructor(options) {
     super();
 
@@ -305,7 +305,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       this[stat + '_'] = sumLoaderStat.bind(this, stat);
     });
 
-    this.logger_ = logger('MPC');
+    this.logger_ = logger('pc');
 
     this.triggeredFmp4Usage = false;
     if (this.tech_.preload() === 'none') {
@@ -1587,7 +1587,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
   }
 
   /**
-   * dispose of the MasterPlaylistController and everything
+   * dispose of the PlaylistController and everything
    * that it controls
    */
   dispose() {

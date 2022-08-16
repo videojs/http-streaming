@@ -52,9 +52,9 @@ const makeMockVhsHandler = function(playlistOptions = [], handlerOptions = {}, m
   const vhsHandler = {
     options_: handlerOptions
   };
-  const mpc = {
+  const pc = {
     fastQualityChange_: () => {
-      mpc.fastQualityChange_.calls++;
+      pc.fastQualityChange_.calls++;
     },
     master: () => {
       return vhsHandler.playlists.master;
@@ -64,9 +64,9 @@ const makeMockVhsHandler = function(playlistOptions = [], handlerOptions = {}, m
     }
   };
 
-  mpc.fastQualityChange_.calls = 0;
+  pc.fastQualityChange_.calls = 0;
 
-  vhsHandler.masterPlaylistController_ = mpc;
+  vhsHandler.playlistController_ = pc;
   vhsHandler.playlists = new videojs.EventTarget();
 
   vhsHandler.playlists.master = master;
@@ -268,7 +268,7 @@ QUnit.test(
         uri: 'media1.m3u8'
       }
     ]);
-    const mpc = vhsHandler.masterPlaylistController_;
+    const pc = vhsHandler.playlistController_;
 
     vhsHandler.playlists.on('renditionenabled', function() {
       renditionEnabledEvents++;
@@ -278,7 +278,7 @@ QUnit.test(
 
     const renditions = vhsHandler.representations();
 
-    assert.equal(mpc.fastQualityChange_.calls, 0, 'fastQualityChange_ was never called');
+    assert.equal(pc.fastQualityChange_.calls, 0, 'fastQualityChange_ was never called');
     assert.equal(
       renditionEnabledEvents, 0,
       'renditionenabled event has not been triggered'
@@ -286,7 +286,7 @@ QUnit.test(
 
     renditions[0].enabled(true);
 
-    assert.equal(mpc.fastQualityChange_.calls, 1, 'fastQualityChange_ was called once');
+    assert.equal(pc.fastQualityChange_.calls, 1, 'fastQualityChange_ was called once');
     assert.equal(
       renditionEnabledEvents, 1,
       'renditionenabled event has been triggered once'
@@ -294,7 +294,7 @@ QUnit.test(
 
     renditions[1].enabled(false);
 
-    assert.equal(mpc.fastQualityChange_.calls, 2, 'fastQualityChange_ was called twice');
+    assert.equal(pc.fastQualityChange_.calls, 2, 'fastQualityChange_ was called twice');
   }
 );
 

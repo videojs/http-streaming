@@ -810,11 +810,11 @@ QUnit.module('MediaGroups', function() {
     const masterPlaylistLoader = Object.assign(mockPlaylistLoader(), {
       media: () => this.media
     });
-    const masterPlaylistController_ = Object.assign(mockPlaylistLoader(), {
+    const playlistController_ = Object.assign(mockPlaylistLoader(), {
       media: () => this.media,
       selectPlaylist: () => this.nextMedia
     });
-    const mocks = {audioSegmentLoader, mainSegmentLoader, masterPlaylistController_, masterPlaylistLoader};
+    const mocks = {audioSegmentLoader, mainSegmentLoader, playlistController_, masterPlaylistLoader};
     const type = 'AUDIO';
     const settings = {
       segmentLoaders: {
@@ -824,7 +824,7 @@ QUnit.module('MediaGroups', function() {
       mediaTypes: MediaGroups.createMediaTypes(),
       masterPlaylistLoader,
       vhs: {
-        masterPlaylistController_
+        playlistController_
       }
     };
     const mediaType = settings.mediaTypes[type];
@@ -867,7 +867,7 @@ QUnit.module('MediaGroups', function() {
     assert.equal(mainSegmentLoader.calls.resetEverything, 1, 'mainSegmentLoader resetEverything called on track change');
     assert.equal(masterPlaylistLoader.calls.pause, 1, 'masterPlaylistLoader pause called on track change');
     assert.deepEqual(
-      masterPlaylistController_.args.fastQualityChange_,
+      playlistController_.args.fastQualityChange_,
       [this.nextMedia],
       'fastQualityChange_ called on track change'
     );
@@ -876,7 +876,7 @@ QUnit.module('MediaGroups', function() {
     audioSegmentLoader.calls.abort = 0;
     mainSegmentLoader.calls.resetEverything = 0;
     masterPlaylistLoader.calls.pause = 0;
-    masterPlaylistController_.args.fastQualityChange_.length = 0;
+    playlistController_.args.fastQualityChange_.length = 0;
 
     mocksAreZero(mocks, assert);
 
@@ -904,7 +904,7 @@ QUnit.module('MediaGroups', function() {
     assert.equal(mainSegmentLoader.calls.resetEverything, 1, 'mainSegmentLoader resetEverything called on track change');
     assert.equal(masterPlaylistLoader.calls.pause, 1, 'masterPlaylistLoader pause called on track change');
     assert.deepEqual(
-      masterPlaylistController_.args.fastQualityChange_,
+      playlistController_.args.fastQualityChange_,
       [this.nextMedia],
       'fastQualityChange_ called on track change'
     );
@@ -913,7 +913,7 @@ QUnit.module('MediaGroups', function() {
     audioSegmentLoader.calls.abort = 0;
     mainSegmentLoader.calls.resetEverything = 0;
     masterPlaylistLoader.calls.pause = 0;
-    masterPlaylistController_.args.fastQualityChange_.length = 0;
+    playlistController_.args.fastQualityChange_.length = 0;
 
     mocksAreZero(mocks, assert);
 
