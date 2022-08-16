@@ -617,7 +617,7 @@ export default class DashPlaylistLoader extends EventTarget {
       this.masterPlaylistLoader_.srcUrl = resolveManifestRedirect(this.masterPlaylistLoader_.srcUrl, req);
 
       if (mainChanged) {
-        this.handleMaster_();
+        this.handleMain_();
         this.syncClientServerClock_(() => {
           return cb(req, mainChanged);
         });
@@ -702,7 +702,7 @@ export default class DashPlaylistLoader extends EventTarget {
     }
   }
 
-  handleMaster_() {
+  handleMain_() {
     // clear media request
     this.mediaRequest_ = null;
 
@@ -832,7 +832,7 @@ export default class DashPlaylistLoader extends EventTarget {
     // if this is the first time this.media_ is being set.
     // as main was just parsed in that case.
     if (this.media_ && this.isMain_) {
-      this.handleMaster_();
+      this.handleMain_();
     }
 
     const playlists = this.masterPlaylistLoader_.main.playlists;
