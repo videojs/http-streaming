@@ -33,4 +33,4 @@ With the transmux before append and LHLS changes, we only append video init segm
 
 ### Test Changes
 
-Some tests were removed because they were no longer relevant after the change to creating source buffers later. For instance, `waits for both main and audio loaders to finish before calling endOfStream if main loader starting media is unknown` no longer can be tested by waiting for an audio loader response and checking for end of stream, as the test will time out since MasterPlaylistController will wait for track info from the main loader before the source buffers are created. That condition is checked elsewhere.
+Some tests were removed because they were no longer relevant after the change to creating source buffers later. For instance, `waits for both main and audio loaders to finish before calling endOfStream if main loader starting media is unknown` no longer can be tested by waiting for an audio loader response and checking for end of stream, as the test will time out since PlaylistController will wait for track info from the main loader before the source buffers are created. That condition is checked elsewhere.

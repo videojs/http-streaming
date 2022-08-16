@@ -58,21 +58,21 @@ flowchart TD
 > * most EME handling for DRM and setup of the [videojs-contrib-eme plugin](https://github.com/videojs/videojs-contrib-eme)
 > * mapping/handling of options passed down via Video.js
 
-## MasterPlaylistController
+## PlaylistController
 
-One critical object that `VhsHandler`'s constructor creates is a new `MasterPlaylistController`.
+One critical object that `VhsHandler`'s constructor creates is a new `PlaylistController`.
 
 ```mermaid
 flowchart TD
   VhsSourceHandler --> VhsHandler
-  VhsHandler --> MasterPlaylistController
+  VhsHandler --> PlaylistController
 ```
 
-`MasterPlaylistController` is not a great name, and has grown in size to be a bit unwieldy, but it's the hub of VHS. Eventually, it should be broken into smaller pieces, but for now, it handles the creation and management of most of the other VHS modules. Its code can be found in [src/master-playlist-controller.js](https://github.com/videojs/http-streaming/blob/0964cb4827d9e80aa36f2fa29e35dad92ca84111/src/master-playlist-controller.js).
+`PlaylistController` is not a great name, and has grown in size to be a bit unwieldy, but it's the hub of VHS. Eventually, it should be broken into smaller pieces, but for now, it handles the creation and management of most of the other VHS modules. Its code can be found in [src/master-playlist-controller.js](https://github.com/videojs/http-streaming/blob/0964cb4827d9e80aa36f2fa29e35dad92ca84111/src/master-playlist-controller.js).
 
-The best way to think of `MasterPlaylistController` is as Tron's Master Control Program, though hopefully it isn't as evil.
+The best way to think of `PlaylistController` is as Tron's Master Control Program, though hopefully it isn't as evil.
 
-`MasterPlaylistController` is a lot to say. So we often refer to it as MPC.
+`PlaylistController` is a lot to say. So we often refer to it as MPC.
 
 If you need to find a place where different modules communicate, you will probably end up in MPC. Just about all of `VhsHandler` that doesn't interface with Video.js or other plugins, interfaces with MPC.
 
@@ -91,8 +91,8 @@ The first thing that MPC must do is download that source, but it doesn't make th
 ```mermaid
 flowchart TD
   VhsSourceHandler --> VhsHandler
-  VhsHandler --> MasterPlaylistController
-  MasterPlaylistController --> PlaylistLoader
+  VhsHandler --> PlaylistController
+  PlaylistController --> PlaylistLoader
 ```
 
 `masterPlaylistLoader_` is an instance of either the [HLS PlaylistLoader](https://github.com/videojs/http-streaming/blob/0964cb4827d9e80aa36f2fa29e35dad92ca84111/src/playlist-loader.js#L379) or the [DashPlaylistLoader](https://github.com/videojs/http-streaming/blob/0964cb4827d9e80aa36f2fa29e35dad92ca84111/src/dash-playlist-loader.js#L259).
@@ -142,10 +142,10 @@ The SourceUpdater created for MSE above is passed to the segment loaders.
 ```mermaid
 flowchart TD
   VhsSourceHandler --> VhsHandler
-  VhsHandler --> MasterPlaylistController
-  MasterPlaylistController --> PlaylistLoader
-  MasterPlaylistController --> SourceUpdater
-  MasterPlaylistController --> SegmentLoader
+  VhsHandler --> PlaylistController
+  PlaylistController --> PlaylistLoader
+  PlaylistController --> SourceUpdater
+  PlaylistController --> SegmentLoader
 ```
 
 Besides options and the `sourceUpdater_` from MPC, the segment loaders are given a [playlist](https://github.com/videojs/http-streaming/blob/0964cb4827d9e80aa36f2fa29e35dad92ca84111/src/segment-loader.js#L988). This playlist is a media playlist from the `masterPlaylistLoader_`. So looking back at our parsed manifest object:
@@ -179,10 +179,10 @@ If there are seeks or rendition changes, then `chooseNextRequest_` will look at 
 ```mermaid
 flowchart TD
   VhsSourceHandler --> VhsHandler
-  VhsHandler --> MasterPlaylistController
-  MasterPlaylistController --> PlaylistLoader
-  MasterPlaylistController --> SourceUpdater
-  MasterPlaylistController --> SegmentLoader
+  VhsHandler --> PlaylistController
+  PlaylistController --> PlaylistLoader
+  PlaylistController --> SourceUpdater
+  PlaylistController --> SegmentLoader
   SegmentLoader --> SyncController
 ```
 
@@ -196,10 +196,10 @@ If the buffer is not full, and a segment was chosen, then `SegmentLoader` will d
 ```mermaid
 flowchart TD
   VhsSourceHandler --> VhsHandler
-  VhsHandler --> MasterPlaylistController
-  MasterPlaylistController --> PlaylistLoader
-  MasterPlaylistController --> SourceUpdater
-  MasterPlaylistController --> SegmentLoader
+  VhsHandler --> PlaylistController
+  PlaylistController --> PlaylistLoader
+  PlaylistController --> SourceUpdater
+  PlaylistController --> SegmentLoader
   SegmentLoader --> SyncController
   SegmentLoader --> mediaSegmentRequest
 ```
@@ -213,10 +213,10 @@ When the `SegmentLoader` receives segment data events, it can append the data to
 ```mermaid
 flowchart TD
   VhsSourceHandler --> VhsHandler
-  VhsHandler --> MasterPlaylistController
-  MasterPlaylistController --> PlaylistLoader
-  MasterPlaylistController --> SourceUpdater
-  MasterPlaylistController --> SegmentLoader
+  VhsHandler --> PlaylistController
+  PlaylistController --> PlaylistLoader
+  PlaylistController --> SourceUpdater
+  PlaylistController --> SegmentLoader
   SegmentLoader --> SyncController
   SegmentLoader --> mediaSegmentRequest
   SegmentLoader --> SourceUpdater
@@ -231,10 +231,10 @@ Besides downloading segments, `mediaSegmentRequest` [decrypts](https://github.co
 ```mermaid
 flowchart TD
   VhsSourceHandler --> VhsHandler
-  VhsHandler --> MasterPlaylistController
-  MasterPlaylistController --> PlaylistLoader
-  MasterPlaylistController --> SourceUpdater
-  MasterPlaylistController --> SegmentLoader
+  VhsHandler --> PlaylistController
+  PlaylistController --> PlaylistLoader
+  PlaylistController --> SourceUpdater
+  PlaylistController --> SegmentLoader
   SegmentLoader --> SyncController
   SegmentLoader --> mediaSegmentRequest
   SegmentLoader --> SourceUpdater

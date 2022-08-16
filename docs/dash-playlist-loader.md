@@ -44,7 +44,7 @@ The [DPL] is written to be as similar as possible to the [PlaylistLoader][pl]. T
 
 ### Interaction with Other Modules
 
-![DPL with MPC and MG](images/dash-playlist-loader-mpc-mg-sequence.plantuml.png)
+![DPL with PC and MG](images/dash-playlist-loader-mpc-mg-sequence.plantuml.png)
 
 ### Special Features
 
@@ -72,7 +72,7 @@ A DASH MPD that describes a `sidx` is therefore similar to an HLS master manifes
 
 In [this PR](https://github.com/videojs/http-streaming/pull/386), the [DPL] was updated to go through the `HAVE_NOTHING` and `HAVE_MASTER` states before arriving at `HAVE_METADATA`. If the MPD does not contain `sidx` boxes, then this transition happens quickly after `load()` is called, spending little time in the `HAVE_MASTER` state.
 
-The initial media selection for `masterPlaylistLoader` is made in the `loadedplaylist` handler located in [MasterPlaylistController][mpc]. We now use `hasPendingRequest` to determine whether to automatically select a media playlist for the `masterPlaylistLoader` as a fallback in case one is not selected by [MPC]. The child [DPL]s are created with a media playlist passed in as an argument, so this fallback is not necessary for them. Instead, that media playlist is saved and auto-selected once we enter the `HAVE_MASTER` state.
+The initial media selection for `masterPlaylistLoader` is made in the `loadedplaylist` handler located in [PlaylistController][pc]. We now use `hasPendingRequest` to determine whether to automatically select a media playlist for the `masterPlaylistLoader` as a fallback in case one is not selected by [PC]. The child [DPL]s are created with a media playlist passed in as an argument, so this fallback is not necessary for them. Instead, that media playlist is saved and auto-selected once we enter the `HAVE_MASTER` state.
 
 The `updateMaster` method will return `null` if no updates are found.
 
@@ -82,6 +82,6 @@ The `selectinitialmedia` event is not triggered until an audioPlaylistLoader (wh
 [sl]: ../src/segment-loader.js
 [vhs]: intro.md
 [pl]: ../src/playlist-loader.js
-[mpc]: ../src/master-playlist-controller.js
+[pc]: ../src/playlist-controller.js
 [representations]: ../README.md#hlsrepresentations
 [contrib-eme]: https://github.com/videojs/videojs-contrib-eme
