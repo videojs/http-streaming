@@ -583,7 +583,7 @@ export default class DashPlaylistLoader extends EventTarget {
       return;
     }
 
-    this.requestMaster_((req, masterChanged) => {
+    this.requestMain_((req, mainChanged) => {
       this.haveMain_();
 
       if (!this.hasPendingRequest() && !this.media_) {
@@ -592,7 +592,7 @@ export default class DashPlaylistLoader extends EventTarget {
     });
   }
 
-  requestMaster_(cb) {
+  requestMain_(cb) {
     this.request = this.vhs_.xhr({
       uri: this.masterPlaylistLoader_.srcUrl,
       withCredentials: this.withCredentials
@@ -604,7 +604,7 @@ export default class DashPlaylistLoader extends EventTarget {
         return;
       }
 
-      const masterChanged = req.responseText !== this.masterPlaylistLoader_.mainXml_;
+      const mainChanged = req.responseText !== this.masterPlaylistLoader_.mainXml_;
 
       this.masterPlaylistLoader_.mainXml_ = req.responseText;
 
@@ -616,15 +616,15 @@ export default class DashPlaylistLoader extends EventTarget {
 
       this.masterPlaylistLoader_.srcUrl = resolveManifestRedirect(this.masterPlaylistLoader_.srcUrl, req);
 
-      if (masterChanged) {
+      if (mainChanged) {
         this.handleMaster_();
         this.syncClientServerClock_(() => {
-          return cb(req, masterChanged);
+          return cb(req, mainChanged);
         });
         return;
       }
 
-      return cb(req, masterChanged);
+      return cb(req, mainChanged);
     });
 
   }
@@ -794,8 +794,8 @@ export default class DashPlaylistLoader extends EventTarget {
    * Sends request to refresh the main xml and updates the parsed main manifest
    */
   refreshXml_() {
-    this.requestMaster_((req, masterChanged) => {
-      if (!masterChanged) {
+    this.requestMain_((req, mainChanged) => {
+      if (!mainChanged) {
         return;
       }
 
