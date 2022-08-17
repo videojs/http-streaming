@@ -6007,7 +6007,7 @@ QUnit.test("don't exclude only playlist unless it was excluded forever", functio
 
   let pc = this.playlistController;
   let mpl = pc.masterPlaylistLoader_;
-  let playlist = mpl.master.playlists[0];
+  let playlist = mpl.main.playlists[0];
   let shouldDelay = false;
 
   mpl.load = (delay) => (shouldDelay = delay);
@@ -6036,7 +6036,7 @@ QUnit.test("don't exclude only playlist unless it was excluded forever", functio
 
   pc = this.playlistController;
   mpl = pc.masterPlaylistLoader_;
-  playlist = mpl.master.playlists[0];
+  playlist = mpl.main.playlists[0];
   shouldDelay = false;
 
   mpl.load = (delay) => {
@@ -6078,8 +6078,8 @@ QUnit.test('switch playlists if current playlist gets excluded and re-include if
 
   const pc = this.playlistController;
   const mpl = pc.masterPlaylistLoader_;
-  const playlist = mpl.master.playlists[0];
-  let playlist2 = mpl.master.playlists[1];
+  const playlist = mpl.main.playlists[0];
+  let playlist2 = mpl.main.playlists[1];
   let shouldDelay = false;
 
   mpl.load = (delay) => (shouldDelay = delay);
@@ -6094,7 +6094,7 @@ QUnit.test('switch playlists if current playlist gets excluded and re-include if
   this.requests.shift();
   // media1
   this.standardXHRResponse(this.requests.shift());
-  playlist2 = mpl.master.playlists[1];
+  playlist2 = mpl.main.playlists[1];
 
   pc.excludePlaylist();
 
@@ -6129,7 +6129,7 @@ QUnit.test('Playlist is excluded indefinitely if number of playlistErrors_ excee
 
   const pc = this.playlistController;
   const mpl = pc.masterPlaylistLoader_;
-  const playlist = mpl.master.playlists[0];
+  const playlist = mpl.main.playlists[0];
 
   assert.equal(playlist.playlistErrors_, 0, 'playlistErrors_ starts at zero');
 
@@ -6169,8 +6169,8 @@ QUnit.test('should delay loading of new playlist if lastRequest was less than ha
   const pc = this.playlistController;
   const mpl = pc.masterPlaylistLoader_;
   const oldMplMedia = mpl.media;
-  const playlist = mpl.master.playlists[0];
-  const playlist2 = mpl.master.playlists[1];
+  const playlist = mpl.main.playlists[0];
+  const playlist2 = mpl.main.playlists[1];
   let shouldDelay = false;
 
   mpl.media = (nextPlaylist, delay) => {
