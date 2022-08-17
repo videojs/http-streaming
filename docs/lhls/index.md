@@ -53,7 +53,7 @@ The first change was to request pieces of a segment. There are a few approaches 
 
 *Plain text MIME type* was chosen because of its wide support. It provides a mechanism to access progressive bytes downloaded on [XMLHttpRequest progress events](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequestEventTarget/onprogress).
 
-This change was made in [media-segment-request](https://github.com/videojs/http-streaming/blob/master/src/media-segment-request.js).
+This change was made in [media-segment-request](/src/media-segment-request.js).
 
 ### Transmux and Append Segment Pieces
 
@@ -93,7 +93,7 @@ The transmuxing logic moved to a new module called segment-transmuxer, which wra
 
 ##### mux.js
 
-While most of the [mux.js pipeline](https://github.com/videojs/mux.js/blob/master/docs/diagram.png) supports pushing pieces of data (and should support LHLS by default), its "flushes" to send transmuxed data back to the caller expected full segments.
+While most of the [mux.js pipeline](/docs/diagram.png) supports pushing pieces of data (and should support LHLS by default), its "flushes" to send transmuxed data back to the caller expected full segments.
 
 Much of the pipeline was reused, however, the top level audio and video segment streams, as well as the entry point, were rewritten so that instead of providing a full segment on flushes, each frame of video was provided individually (audio frames still flush as a group). The new concept of partial flushes was added into the pipeline to handle this case.
 
