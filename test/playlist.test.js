@@ -410,7 +410,7 @@ QUnit.module('Playlist', function() {
   });
 
   QUnit.test(
-    'master playlists have empty seekable ranges and no playlist end',
+    'main playlists have empty seekable ranges and no playlist end',
     function(assert) {
       const playlist = {
         playlists: [{
@@ -422,8 +422,8 @@ QUnit.module('Playlist', function() {
       const seekable = Playlist.seekable(playlist);
       const playlistEnd = Playlist.playlistEnd(playlist);
 
-      assert.equal(seekable.length, 0, 'no seekable ranges from a master playlist');
-      assert.equal(playlistEnd, null, 'no playlist end from a master playlist');
+      assert.equal(seekable.length, 0, 'no seekable ranges from a main playlist');
+      assert.equal(playlistEnd, null, 'no playlist end from a main playlist');
     }
   );
 
@@ -1539,33 +1539,33 @@ QUnit.module('Playlist', function() {
           ]}
         ]
       };
-      const master = {
+      const main = {
         suggestedPresentationDelay: 10
       };
 
       assert.equal(
-        Playlist.liveEdgeDelay(master, media),
+        Playlist.liveEdgeDelay(main, media),
         0,
         'returns 0 with endlist'
       );
 
       delete media.endList;
       assert.equal(
-        Playlist.liveEdgeDelay(master, media),
-        master.suggestedPresentationDelay,
+        Playlist.liveEdgeDelay(main, media),
+        main.suggestedPresentationDelay,
         'uses suggestedPresentationDelay'
       );
 
-      delete master.suggestedPresentationDelay;
+      delete main.suggestedPresentationDelay;
       assert.equal(
-        Playlist.liveEdgeDelay(master, media),
+        Playlist.liveEdgeDelay(main, media),
         media.serverControl.partHoldBack,
         'uses part hold back'
       );
 
       media.serverControl.partHoldBack = null;
       assert.equal(
-        Playlist.liveEdgeDelay(master, media),
+        Playlist.liveEdgeDelay(main, media),
         media.partTargetDuration * 3,
         'uses part target duration * 3'
       );
@@ -1573,21 +1573,21 @@ QUnit.module('Playlist', function() {
       media.partTargetDuration = null;
 
       assert.equal(
-        Playlist.liveEdgeDelay(master, media),
+        Playlist.liveEdgeDelay(main, media),
         media.serverControl.holdBack,
         'uses hold back'
       );
 
       media.serverControl.holdBack = null;
       assert.equal(
-        Playlist.liveEdgeDelay(master, media),
+        Playlist.liveEdgeDelay(main, media),
         (media.targetDuration * 3),
         'uses (targetDuration * 3)'
       );
 
       media.targetDuration = null;
       assert.equal(
-        Playlist.liveEdgeDelay(master, media),
+        Playlist.liveEdgeDelay(main, media),
         0,
         'no target duration delay cannot be calcluated'
       );
@@ -1598,7 +1598,7 @@ QUnit.module('Playlist', function() {
       });
 
       assert.equal(
-        Playlist.liveEdgeDelay(master, media),
+        Playlist.liveEdgeDelay(main, media),
         0,
         'no segment durations, live delay can\'t be calculated'
       );
@@ -1606,7 +1606,7 @@ QUnit.module('Playlist', function() {
       media.segments.length = 0;
 
       assert.equal(
-        Playlist.liveEdgeDelay(master, media),
+        Playlist.liveEdgeDelay(main, media),
         0,
         'no segments, live delay can\'t be calculated'
       );

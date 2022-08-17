@@ -52,7 +52,7 @@ QUnit.test('skips over gap at beginning of stream if played before content is bu
 
   // set an arbitrary source
   this.player.src({
-    src: 'master.m3u8',
+    src: 'main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -89,7 +89,7 @@ QUnit.test('multiple play events do not cause the gap-skipping logic to be calle
 
   // set an arbitrary source
   this.player.src({
-    src: 'master.m3u8',
+    src: 'main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -138,7 +138,7 @@ QUnit.test('changing sources does not break ability to skip gap at beginning of 
 
   // set an arbitrary source
   this.player.src({
-    src: 'master.m3u8',
+    src: 'main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
   // start playback normally
@@ -167,7 +167,7 @@ QUnit.test('changing sources does not break ability to skip gap at beginning of 
   this.player.currentTime(0);
 
   this.player.src({
-    src: 'new-master.m3u8',
+    src: 'new-main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
   openMediaSource(this.player, this.clock);
@@ -204,7 +204,7 @@ QUnit.test('skips over gap in firefox with waiting event', function(assert) {
 
   // set an arbitrary source
   this.player.src({
-    src: 'master.m3u8',
+    src: 'main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -249,7 +249,7 @@ QUnit.test('skips over gap in chrome without waiting event', function(assert) {
 
   // set an arbitrary source
   this.player.src({
-    src: 'master.m3u8',
+    src: 'main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -291,7 +291,7 @@ QUnit.test('skips over gap in Chrome due to muxed video underflow', function(ass
 
   // set an arbitrary source
   this.player.src({
-    src: 'master.m3u8',
+    src: 'main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -340,7 +340,7 @@ QUnit.test('skips over gap in Chrome due to demuxed video underflow', function(a
 
   // set an arbitrary source
   this.player.src({
-    src: 'master.m3u8',
+    src: 'main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -1364,7 +1364,7 @@ loaderTypes.forEach(function(type) {
     this.setup({src: 'multipleAudioGroupsCombinedMain.m3u8', type: 'application/vnd.apple.mpegurl'});
 
     const loader = this.pc[`${type}SegmentLoader_`];
-    const playlists = this.pc.master().playlists;
+    const playlists = this.pc.main().playlists;
     const excludeAndVerify = (last) => {
       let oldPlaylist;
       // this test only needs 9 appends, since we do an intial append
@@ -1392,7 +1392,7 @@ loaderTypes.forEach(function(type) {
 
       this.respondToPlaylists_();
 
-      const otherPlaylistsLeft = this.pc.master().playlists.some((p) => p.excludeUntil !== Infinity);
+      const otherPlaylistsLeft = this.pc.main().playlists.some((p) => p.excludeUntil !== Infinity);
 
       if (otherPlaylistsLeft) {
         const message = `Problem encountered with playlist ${oldPlaylist.id}.` +

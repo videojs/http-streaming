@@ -34,7 +34,7 @@ gets used:
 ![Final selection](images/bitrate-switching-4.png)
 
 If it turns out no rendition is acceptable based on the filtering
-described above, the first encoding listed in the master playlist will
+described above, the first encoding listed in the main playlist will
 be used.
 
 If you'd like your player to use a different set of priorities, it's 

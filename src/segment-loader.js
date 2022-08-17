@@ -1653,7 +1653,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     const switchCandidate = minRebufferMaxBandwidthSelector({
-      master: this.vhs_.playlists.master,
+      main: this.vhs_.playlists.main,
       currentTime,
       bandwidth: measuredBandwidth,
       duration: this.duration_(),

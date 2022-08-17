@@ -133,8 +133,8 @@ export const comparePlaylistResolution = function(left, right) {
 /**
  * Chooses the appropriate media playlist based on bandwidth and player size
  *
- * @param {Object} master
- *        Object representation of the master manifest
+ * @param {Object} main
+ *        Object representation of the main manifest
  * @param {number} playerBandwidth
  *        Current calculated bandwidth of the player
  * @param {number} playerWidth
@@ -150,7 +150,7 @@ export const comparePlaylistResolution = function(left, right) {
  * bandwidth variance
  */
 export let simpleSelector = function(
-  master,
+  main,
   playerBandwidth,
   playerWidth,
   playerHeight,
@@ -158,8 +158,8 @@ export let simpleSelector = function(
   playlistController
 ) {
 
-  // If we end up getting called before `master` is available, exit early
-  if (!master) {
+  // If we end up getting called before `main` is available, exit early
+  if (!main) {
     return;
   }
 
@@ -170,10 +170,10 @@ export let simpleSelector = function(
     limitRenditionByPlayerDimensions
   };
 
-  let playlists = master.playlists;
+  let playlists = main.playlists;
 
   // if playlist is audio only, select between currently active audio group playlists.
-  if (Playlist.isAudioOnly(master)) {
+  if (Playlist.isAudioOnly(main)) {
     playlists = playlistController.getAudioTrackPlaylists_();
     // add audioOnly to options so that we log audioOnly: true
     // at the buttom of this function for debugging.
@@ -367,7 +367,7 @@ export const lastBandwidthSelector = function() {
   const pixelRatio = this.useDevicePixelRatio ? window.devicePixelRatio || 1 : 1;
 
   return simpleSelector(
-    this.playlists.master,
+    this.playlists.main,
     this.systemBandwidth,
     parseInt(safeGetComputedStyle(this.tech_.el(), 'width'), 10) * pixelRatio,
     parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10) * pixelRatio,
@@ -418,7 +418,7 @@ export const movingAverageBandwidthSelector = function(decay) {
     }
 
     return simpleSelector(
-      this.playlists.master,
+      this.playlists.main,
       average,
       parseInt(safeGetComputedStyle(this.tech_.el(), 'width'), 10) * pixelRatio,
       parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10) * pixelRatio,
@@ -433,8 +433,8 @@ export const movingAverageBandwidthSelector = function(decay) {
  *
  * @param {Object} settings
  *        Object of information required to use this selector
- * @param {Object} settings.master
- *        Object representation of the master manifest
+ * @param {Object} settings.main
+ *        Object representation of the main manifest
  * @param {number} settings.currentTime
  *        The current time of the player
  * @param {number} settings.bandwidth
@@ -458,7 +458,7 @@ export const movingAverageBandwidthSelector = function(decay) {
  */
 export const minRebufferMaxBandwidthSelector = function(settings) {
   const {
-    master,
+    main,
     currentTime,
     bandwidth,
     duration,
@@ -470,7 +470,7 @@ export const minRebufferMaxBandwidthSelector = function(settings) {
 
   // filter out any playlists that have been excluded due to
   // incompatible configurations
-  const compatiblePlaylists = master.playlists.filter(playlist => !Playlist.isIncompatible(playlist));
+  const compatiblePlaylists = main.playlists.filter(playlist => !Playlist.isIncompatible(playlist));
 
   // filter out any playlists that have been disabled manually through the representations
   // api or excluded temporarily due to playback errors.
@@ -540,7 +540,7 @@ export const minRebufferMaxBandwidthSelector = function(settings) {
 export const lowestBitrateCompatibleVariantSelector = function() {
   // filter out any playlists that have been excluded due to
   // incompatible configurations or playback errors
-  const playlists = this.playlists.master.playlists.filter(Playlist.isEnabled);
+  const playlists = this.playlists.main.playlists.filter(Playlist.isEnabled);
 
   // Sort ascending by bitrate
   stableSort(
@@ -553,7 +553,7 @@ export const lowestBitrateCompatibleVariantSelector = function() {
   //
   // If an entire manifest has no valid videos everything will get filtered
   // out.
-  const playlistsWithVideo = playlists.filter(playlist => !!codecsForPlaylist(this.playlists.master, playlist).video);
+  const playlistsWithVideo = playlists.filter(playlist => !!codecsForPlaylist(this.playlists.main, playlist).video);
 
   return playlistsWithVideo[0] || null;
 };

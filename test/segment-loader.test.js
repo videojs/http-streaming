@@ -2541,7 +2541,7 @@ QUnit.module('SegmentLoader', function(hooks) {
         loader.playlist(playlistWithDuration(20));
         loader.load();
         // set the mediaSource duration as it is usually set by
-        // master playlist controller, which is not present here
+        // main playlist controller, which is not present here
         loader.mediaSource_.duration = 20;
 
         this.clock.tick(1);
@@ -3492,7 +3492,7 @@ QUnit.module('SegmentLoader', function(hooks) {
       return this.setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {isVideoOnly: true}).then(() => {
 
         // set the mediaSource duration as it is usually set by
-        // master playlist controller, which is not present here
+        // main playlist controller, which is not present here
         loader.mediaSource_.duration = Infinity;
 
         return new Promise((resolve, reject) => {
