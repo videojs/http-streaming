@@ -13,7 +13,7 @@ Included in video.js 7 by default! See the [video.js 7 blog post](https://blog.v
 
 Maintenance Status: Stable
 
-Video.js Compatibility: 6.0, 7.0
+Video.js Compatibility: 7.x, 8.x
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
