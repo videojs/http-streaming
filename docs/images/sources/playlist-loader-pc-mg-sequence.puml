@@ -1,10 +1,10 @@
 @startuml
 
 header PlaylistLoader sequences
-title PlaylistLoader sequences: Master Manifest and Alternate Audio
+title PlaylistLoader sequences: Main Manifest and Alternate Audio
 
 Participant "PlaylistController" as PC #red
-Participant "MasterPlaylistLoader" as MPL #blue
+Participant "MainPlaylistLoader" as MPL #blue
 Participant "mainSegmentLoader" as SL #blue
 Participant "AudioPlaylistLoader" as APL #green
 Participant "audioSegmentLoader" as ASL #green
@@ -15,17 +15,17 @@ Participant Tech #lightblue
 
 == Initialization ==
 
-PC -> MPL : construct MasterPlaylistLoader
+PC -> MPL : construct MainPlaylistLoader
 PC -> MPL: load()
 
 MPL -> MPL : start()
 
-== Requesting Master Manifest ==
+== Requesting Main Manifest ==
 
-MPL -> ext: xhr request for master manifest
-ext -> MPL : response with master manifest
+MPL -> ext: xhr request for main manifest
+ext -> MPL : response with main manifest
 
-MPL -> parser: parse master manifest
+MPL -> parser: parse main manifest
 parser -> MPL: object representing manifest
 
 note over MPL #lightblue: trigger 'loadedplaylist'

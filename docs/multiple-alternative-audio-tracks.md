@@ -77,7 +77,7 @@ Corresponding AudioTrackList when media-group-1 is used (before any tracks have 
 1. `HLS` calls `PlaylistController`s `useAudio` with no arguments (causes it to use the currently enabled audio)
 1. `PlaylistController` turns off the current audio `PlaylistLoader` if it is on
 1. `PlaylistController` maps the `label` to the `PlaylistLoader` containing the audio
-1. `PlaylistController` turns on that `PlaylistLoader` and the Corresponding `SegmentLoader` (master or audio only)
+1. `PlaylistController` turns on that `PlaylistLoader` and the Corresponding `SegmentLoader` (main or audio only)
 1. `MediaSource`/`mux.js` determine how to mux
 
 ## How tracks are switched
@@ -92,5 +92,5 @@ Corresponding AudioTrackList when media-group-1 is used (before any tracks have 
 1. `PlaylistController` turns off the current audio `PlaylistLoader` if it is on
 1. `PlaylistController` maps the `label` to the `PlaylistLoader` containing the audio
 1. `PlaylistController` maps the `label` to the `PlaylistLoader` containing the audio
-1. `PlaylistController` turns on that `PlaylistLoader` and the Corresponding `SegmentLoader` (master or audio only)
+1. `PlaylistController` turns on that `PlaylistLoader` and the Corresponding `SegmentLoader` (main or audio only)
 1. `MediaSource`/`mux.js` determine how to mux

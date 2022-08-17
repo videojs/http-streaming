@@ -393,7 +393,7 @@ export const LoaderCommonFactory = ({
         playlist4.attributes.BANDWIDTH = 7777;
 
         loader.vhs_.playlists = {
-          master: {
+          main: {
             playlists: [
               playlist1,
               playlist2,
