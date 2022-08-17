@@ -75,7 +75,7 @@ export const onGroupChanged = (type, settings) => () => {
   const {
     segmentLoaders: {
       [type]: segmentLoader,
-      master: mainSegmentLoader
+      main: mainSegmentLoader
     },
     mediaTypes: { [type]: mediaType }
   } = settings;
@@ -149,7 +149,7 @@ export const onTrackChanged = (type, settings) => () => {
     masterPlaylistLoader,
     segmentLoaders: {
       [type]: segmentLoader,
-      master: mainSegmentLoader
+      main: mainSegmentLoader
     },
     mediaTypes: { [type]: mediaType }
   } = settings;
@@ -860,7 +860,7 @@ export const setupMediaGroups = (settings) => {
     vhs,
     segmentLoaders: {
       ['AUDIO']: audioSegmentLoader,
-      master: mainSegmentLoader
+      main: mainSegmentLoader
     }
   } = settings;
 
