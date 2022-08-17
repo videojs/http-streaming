@@ -52,7 +52,7 @@ QUnit.test('skips over gap at beginning of stream if played before content is bu
 
   // set an arbitrary source
   this.player.src({
-    src: 'master.m3u8',
+    src: 'main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -89,7 +89,7 @@ QUnit.test('multiple play events do not cause the gap-skipping logic to be calle
 
   // set an arbitrary source
   this.player.src({
-    src: 'master.m3u8',
+    src: 'main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -138,7 +138,7 @@ QUnit.test('changing sources does not break ability to skip gap at beginning of 
 
   // set an arbitrary source
   this.player.src({
-    src: 'master.m3u8',
+    src: 'main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
   // start playback normally
@@ -167,7 +167,7 @@ QUnit.test('changing sources does not break ability to skip gap at beginning of 
   this.player.currentTime(0);
 
   this.player.src({
-    src: 'new-master.m3u8',
+    src: 'new-main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
   openMediaSource(this.player, this.clock);
@@ -204,7 +204,7 @@ QUnit.test('skips over gap in firefox with waiting event', function(assert) {
 
   // set an arbitrary source
   this.player.src({
-    src: 'master.m3u8',
+    src: 'main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -249,7 +249,7 @@ QUnit.test('skips over gap in chrome without waiting event', function(assert) {
 
   // set an arbitrary source
   this.player.src({
-    src: 'master.m3u8',
+    src: 'main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -291,7 +291,7 @@ QUnit.test('skips over gap in Chrome due to muxed video underflow', function(ass
 
   // set an arbitrary source
   this.player.src({
-    src: 'master.m3u8',
+    src: 'main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -306,9 +306,9 @@ QUnit.test('skips over gap in Chrome due to muxed video underflow', function(ass
 
   assert.equal(vhsVideoUnderflowEvents, 0, 'no video underflow event got triggered');
 
-  const mpc = this.player.tech_.vhs.masterPlaylistController_;
+  const pc = this.player.tech_.vhs.playlistController_;
 
-  mpc.sourceUpdater_.videoBuffered = () => {
+  pc.sourceUpdater_.videoBuffered = () => {
     return videojs.createTimeRanges([[0, 10], [10.1, 20]]);
   };
 
@@ -340,7 +340,7 @@ QUnit.test('skips over gap in Chrome due to demuxed video underflow', function(a
 
   // set an arbitrary source
   this.player.src({
-    src: 'master.m3u8',
+    src: 'main.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -355,13 +355,13 @@ QUnit.test('skips over gap in Chrome due to demuxed video underflow', function(a
 
   assert.equal(vhsVideoUnderflowEvents, 0, 'no video underflow event got triggered');
 
-  const mpc = this.player.tech_.vhs.masterPlaylistController_;
+  const pc = this.player.tech_.vhs.playlistController_;
 
-  mpc.sourceUpdater_.videoBuffered = () => {
+  pc.sourceUpdater_.videoBuffered = () => {
     return videojs.createTimeRanges([[0, 15]]);
   };
 
-  mpc.sourceUpdater_.audioBuffered = () => {
+  pc.sourceUpdater_.audioBuffered = () => {
     return videojs.createTimeRanges([[0, 20]]);
   };
 
@@ -603,7 +603,7 @@ QUnit.test('fires notifications when activated', function(assert) {
   this.player.tech_.currentTime = function() {
     return currentTime;
   };
-  this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.videoBuffered = function() {
+  this.player.tech_.vhs.playlistController_.sourceUpdater_.videoBuffered = function() {
     return {
       length: buffered.length,
       start(i) {
@@ -738,7 +738,7 @@ QUnit.test('corrects seek outside of seekable', function(assert) {
     buffered: () => videojs.createTimeRanges(),
     trigger: () => {},
     vhs: {
-      masterPlaylistController_: {
+      playlistController_: {
         sourceUpdater_: {
           videoBuffered: () => {},
           audioBuffered: () => {}
@@ -897,7 +897,7 @@ QUnit.test('jumps to buffered content if seeking just before', function(assert) 
     buffered: () => buffered
   };
 
-  Object.assign(playbackWatcher.masterPlaylistController_.sourceUpdater_, {
+  Object.assign(playbackWatcher.playlistController_.sourceUpdater_, {
     videoBuffer: true,
     videoBuffered: () => buffered
   });
@@ -970,7 +970,7 @@ QUnit.test('jumps to correct range with gaps', function(assert) {
     buffered: () => buffered
   };
 
-  Object.assign(playbackWatcher.masterPlaylistController_.sourceUpdater_, {
+  Object.assign(playbackWatcher.playlistController_.sourceUpdater_, {
     videoBuffer: true,
     videoBuffered: () => buffered
   });
@@ -1003,7 +1003,7 @@ QUnit.test('two seekings skips a gap only once', function(assert) {
   this.player.tech_.trigger('playing');
   this.clock.tick(1);
 
-  const mainSegmentLoader = this.player.tech_.vhs.masterPlaylistController_.mainSegmentLoader_;
+  const mainSegmentLoader = this.player.tech_.vhs.playlistController_.mainSegmentLoader_;
   const playbackWatcher = this.player.tech_.vhs.playbackWatcher_;
   const seeks = [];
   let currentTime;
@@ -1020,7 +1020,7 @@ QUnit.test('two seekings skips a gap only once', function(assert) {
     buffered: () => buffered
   };
 
-  Object.assign(playbackWatcher.masterPlaylistController_.sourceUpdater_, {
+  Object.assign(playbackWatcher.playlistController_.sourceUpdater_, {
     videoBuffer: true,
     videoBuffered: () => buffered
   });
@@ -1050,7 +1050,7 @@ QUnit.test('seeking followed by seeked will not skip gaps', function(assert) {
   this.player.tech_.trigger('playing');
   this.clock.tick(1);
 
-  const mainSegmentLoader = this.player.tech_.vhs.masterPlaylistController_.mainSegmentLoader_;
+  const mainSegmentLoader = this.player.tech_.vhs.playlistController_.mainSegmentLoader_;
   const playbackWatcher = this.player.tech_.vhs.playbackWatcher_;
   const seeks = [];
   let currentTime;
@@ -1067,7 +1067,7 @@ QUnit.test('seeking followed by seeked will not skip gaps', function(assert) {
     buffered: () => buffered
   };
 
-  Object.assign(playbackWatcher.masterPlaylistController_.sourceUpdater_, {
+  Object.assign(playbackWatcher.playlistController_.sourceUpdater_, {
     videoBuffer: true,
     videoBuffered: () => buffered
   });
@@ -1096,7 +1096,7 @@ QUnit.test('dispose stops bad seek handling', function(assert) {
   this.player.tech_.trigger('playing');
   this.clock.tick(1);
 
-  const mainSegmentLoader = this.player.tech_.vhs.masterPlaylistController_.mainSegmentLoader_;
+  const mainSegmentLoader = this.player.tech_.vhs.playlistController_.mainSegmentLoader_;
   const playbackWatcher = this.player.tech_.vhs.playbackWatcher_;
   const seeks = [];
   let currentTime;
@@ -1113,7 +1113,7 @@ QUnit.test('dispose stops bad seek handling', function(assert) {
     buffered: () => buffered
   };
 
-  Object.assign(playbackWatcher.masterPlaylistController_.sourceUpdater_, {
+  Object.assign(playbackWatcher.playlistController_.sourceUpdater_, {
     videoBuffer: true,
     videoBuffered: () => buffered
   });
@@ -1158,7 +1158,7 @@ QUnit.test('part target duration is used for append verification', function(asse
     buffered: () => buffered
   };
 
-  Object.assign(playbackWatcher.masterPlaylistController_.sourceUpdater_, {
+  Object.assign(playbackWatcher.playlistController_.sourceUpdater_, {
     videoBuffer: true,
     videoBuffered: () => buffered
   });
@@ -1229,11 +1229,11 @@ QUnit.module('PlaybackWatcher download detection', {
       this.respondToPlaylists_();
 
       this.usageEvents = {};
-      this.mpcErrors = 0;
+      this.pcErrors = 0;
 
       this.playbackWatcher = this.player.tech(true).vhs.playbackWatcher_;
-      this.mpc = this.player.tech(true).vhs.masterPlaylistController_;
-      this.mpc.on('error', () => this.mpcErrors++);
+      this.pc = this.player.tech(true).vhs.playlistController_;
+      this.pc.on('error', () => this.pcErrors++);
 
       this.player.tech_.on('usage', (event) => {
         const name = event.name;
@@ -1245,7 +1245,7 @@ QUnit.module('PlaybackWatcher download detection', {
       this.setBuffered = (val) => {
         this.player.buffered = () => val;
         loaderTypes.forEach((type) => {
-          this.mpc[`${type}SegmentLoader_`].buffered_ = () => val;
+          this.pc[`${type}SegmentLoader_`].buffered_ = () => val;
         });
       };
 
@@ -1262,7 +1262,7 @@ QUnit.module('PlaybackWatcher download detection', {
 loaderTypes.forEach(function(type) {
   QUnit.test(`resets ${type} exclusion on playlistupdate, tech seeking, tech seeked`, function(assert) {
     this.setup();
-    const loader = this.mpc[`${type}SegmentLoader_`];
+    const loader = this.pc[`${type}SegmentLoader_`];
 
     this.setBuffered(videojs.createTimeRanges([[0, 30]]));
     loader.trigger('appendsdone');
@@ -1303,7 +1303,7 @@ loaderTypes.forEach(function(type) {
 
   QUnit.test(`Resets ${type} exclusion on buffered change`, function(assert) {
     this.setup();
-    const loader = this.mpc[`${type}SegmentLoader_`];
+    const loader = this.pc[`${type}SegmentLoader_`];
 
     this.setBuffered(videojs.createTimeRanges([[0, 30]]));
     loader.trigger('appendsdone');
@@ -1327,7 +1327,7 @@ loaderTypes.forEach(function(type) {
 
   QUnit.test(`detects ${type} appends without buffer changes and excludes`, function(assert) {
     this.setup();
-    const loader = this.mpc[`${type}SegmentLoader_`];
+    const loader = this.pc[`${type}SegmentLoader_`];
 
     this.setBuffered(videojs.createTimeRanges([[0, 30]]));
 
@@ -1351,8 +1351,8 @@ loaderTypes.forEach(function(type) {
 
     const message = 'Playback cannot continue. No available working or supported playlists.';
 
-    assert.equal(this.mpcErrors, 1, 'one mpc error');
-    assert.equal(this.mpc.error, message, 'mpc error set');
+    assert.equal(this.pcErrors, 1, 'one pc error');
+    assert.equal(this.pc.error, message, 'pc error set');
     assert.equal(this.player.error().message, message, 'player error set');
     assert.equal(this.env.log.error.callCount, 1, 'player error logged');
     assert.equal(this.env.log.error.args[0][1], message, 'error message as expected');
@@ -1363,14 +1363,14 @@ loaderTypes.forEach(function(type) {
   QUnit.test(`detects ${type} appends without buffer changes and excludes many playlists`, function(assert) {
     this.setup({src: 'multipleAudioGroupsCombinedMain.m3u8', type: 'application/vnd.apple.mpegurl'});
 
-    const loader = this.mpc[`${type}SegmentLoader_`];
-    const playlists = this.mpc.master().playlists;
+    const loader = this.pc[`${type}SegmentLoader_`];
+    const playlists = this.pc.main().playlists;
     const excludeAndVerify = (last) => {
       let oldPlaylist;
       // this test only needs 9 appends, since we do an intial append
 
       for (let i = 0; i < EXCLUDE_APPEND_COUNT; i++) {
-        oldPlaylist = this.mpc.media();
+        oldPlaylist = this.pc.media();
         loader.trigger('appendsdone');
         if (i === EXCLUDE_APPEND_COUNT - 1) {
           assert.equal(this.playbackWatcher[`${type}StalledDownloads_`], 0, `append #${i} resets stalled downloads to 0`);
@@ -1392,15 +1392,15 @@ loaderTypes.forEach(function(type) {
 
       this.respondToPlaylists_();
 
-      const otherPlaylistsLeft = this.mpc.master().playlists.some((p) => p.excludeUntil !== Infinity);
+      const otherPlaylistsLeft = this.pc.main().playlists.some((p) => p.excludeUntil !== Infinity);
 
       if (otherPlaylistsLeft) {
         const message = `Problem encountered with playlist ${oldPlaylist.id}.` +
           ` Excessive ${type} segment downloading detected.` +
-          ` Switching to playlist ${this.mpc.media().id}.`;
+          ` Switching to playlist ${this.pc.media().id}.`;
 
-        assert.equal(this.mpcErrors, 0, 'no mpc error');
-        assert.notOk(this.mpc.error, 'no mpc error set');
+        assert.equal(this.pcErrors, 0, 'no pc error');
+        assert.notOk(this.pc.error, 'no pc error set');
         assert.notOk(this.player.error(), 'player error not set');
         assert.equal(this.env.log.warn.callCount, 1, 'player warning logged');
         assert.equal(this.env.log.warn.args[0][0], message, 'warning message as expected');
@@ -1409,8 +1409,8 @@ loaderTypes.forEach(function(type) {
       } else {
         const message = 'Playback cannot continue. No available working or supported playlists.';
 
-        assert.equal(this.mpcErrors, 1, 'one mpc error');
-        assert.equal(this.mpc.error, message, 'mpc error set');
+        assert.equal(this.pcErrors, 1, 'one pc error');
+        assert.equal(this.pc.error, message, 'pc error set');
         assert.equal(this.player.error().message, message, 'player error set');
         assert.equal(this.env.log.error.callCount, 1, 'player error logged');
         assert.equal(this.env.log.error.args[0][1], message, 'error message as expected');
@@ -1447,7 +1447,7 @@ QUnit.module('PlaybackWatcher isolated functions', {
           playerId: 'mock-player-id'
         }
       },
-      masterPlaylistController: {
+      playlistController: {
         mainSegmentLoader_: Object.assign(new videojs.EventTarget(), {buffered_: () => videojs.createTimeRanges()}),
         audioSegmentLoader_: Object.assign(new videojs.EventTarget(), {buffered_: () => videojs.createTimeRanges()}),
         subtitleSegmentLoader_: Object.assign(new videojs.EventTarget(), {buffered_: () => videojs.createTimeRanges()})

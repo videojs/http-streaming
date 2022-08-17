@@ -9,7 +9,7 @@ The [PlaylistLoader][pl] (PL) is responsible for requesting m3u8s, parsing them 
 1. To request an m3u8.
 2. To parse a m3u8 into a format [videojs-http-streaming][vhs] can understand.
 3. To allow selection of a specific media stream.
-4. To refresh a live master m3u8 for changes.
+4. To refresh a live m3u8 for changes.
 
 ## Design
 
@@ -18,7 +18,7 @@ The [PlaylistLoader][pl] (PL) is responsible for requesting m3u8s, parsing them 
 ![PlaylistLoader States](images/playlist-loader-states.nomnoml.svg)
 
 - `HAVE_NOTHING` the state before the m3u8 is received and parsed.
-- `HAVE_MASTER` the state before a media manifest is parsed and setup but after the master manifest has been parsed and setup.
+- `HAVE_MAIN_MANIFEST` the state before a media manifest is parsed and setup but after the main manifest has been parsed and setup.
 - `HAVE_METADATA` the state after a media stream is setup.
 - `SWITCHING_MEDIA` the intermediary state we go though while changing to a newly selected media playlist
 - `HAVE_CURRENT_METADATA`  a temporary state after requesting a refresh of the live manifest and before receiving the update
@@ -31,7 +31,7 @@ The [PlaylistLoader][pl] (PL) is responsible for requesting m3u8s, parsing them 
 
 ### Events
 
-- `loadedplaylist` signals the setup of a master playlist, representing the HLS source as a whole, from the m3u8; or a media playlist, representing a media stream.
+- `loadedplaylist` signals the setup of a main playlist, representing the HLS source as a whole, from the m3u8; or a media playlist, representing a media stream.
 - `loadedmetadata` signals initial setup of a media stream.
 - `playlistunchanged` signals that no changes have been made to a m3u8.
 - `mediaupdatetimeout` signals that a live m3u8 and media stream must be refreshed.
@@ -40,7 +40,7 @@ The [PlaylistLoader][pl] (PL) is responsible for requesting m3u8s, parsing them 
 
 ### Interaction with Other Modules
 
-![PL with MPC and MG](images/playlist-loader-mpc-mg-sequence.plantuml.png)
+![PL with PC and MG](images/playlist-loader-pc-mg-sequence.puml.png)
 
 [pl]: ../src/playlist-loader.js
 [sl]: ../src/segment-loader.js

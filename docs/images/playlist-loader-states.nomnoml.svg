@@ -15,8 +15,8 @@
 <path d="M155.2 489 L152 485 L148.8 489 L152 481 Z" style="stroke:#33322E;fill:#33322E;stroke-dasharray:none;"></path>
 <rect x="75" y="30" height="50" width="154" style="stroke:#33322E;fill:#eee8d5;stroke-dasharray:none;"></rect>
 <text x="95" y="60" style="">HAVE_NOTHING</text>
-<rect x="78" y="130" height="50" width="149" style="stroke:#33322E;fill:#eee8d5;stroke-dasharray:none;"></rect>
-<text x="98" y="160" style="">HAVE_MASTER</text>
+<rect x="42" y="130" height="50" width="220" style="stroke:#33322E;fill:#eee8d5;stroke-dasharray:none;"></rect>
+<text x="62" y="160" style="">HAVE_MAIN_MANIFEST</text>
 <rect x="56" y="230" height="50" width="192" style="stroke:#33322E;fill:#eee8d5;stroke-dasharray:none;"></rect>
 <text x="76.3" y="260" style="">SWITCHING_MEDIA</text>
 <rect x="68" y="330" height="50" width="168" style="stroke:#33322E;fill:#eee8d5;stroke-dasharray:none;"></rect>

@@ -2,7 +2,7 @@
  * @file videojs-http-streaming.js
  *
  * The main file for the VHS project.
- * License: https://github.com/videojs/videojs-http-streaming/blob/master/LICENSE
+ * License: https://github.com/videojs/videojs-http-streaming/blob/main/LICENSE
  */
 import document from 'global/document';
 import window from 'global/window';
@@ -17,7 +17,7 @@ import {
 } from './util/time';
 import { timeRangesToArray } from './ranges';
 import videojs from 'video.js';
-import { MasterPlaylistController } from './master-playlist-controller';
+import { PlaylistController } from './playlist-controller';
 import Config from './config';
 import renditionSelectionMixin from './rendition-mixin';
 import PlaybackWatcher from './playback-watcher';
@@ -252,7 +252,7 @@ const getAllPsshKeySystemsOptions = (playlists, keySystems) => {
  * @param {Object} [audioMedia]
  *        The active audio media playlist (optional)
  * @param {Object[]} mainPlaylists
- *        The playlists found on the master playlist object
+ *        The playlists found on the main playlist object
  *
  * @return {Object}
  *         Promise that resolves when the key session has been created
@@ -554,12 +554,12 @@ class VhsHandler extends Component {
         document.msFullscreenElement;
 
       if (fullscreenElement && fullscreenElement.contains(this.tech_.el())) {
-        this.masterPlaylistController_.fastQualityChange_();
+        this.playlistController_.fastQualityChange_();
       } else {
         // When leaving fullscreen, since the in page pixel dimensions should be smaller
         // than full screen, see if there should be a rendition switch down to preserve
         // bandwidth.
-        this.masterPlaylistController_.checkABR_();
+        this.playlistController_.checkABR_();
       }
     });
 
@@ -574,9 +574,9 @@ class VhsHandler extends Component {
 
     this.on(this.tech_, 'error', function() {
       // verify that the error was real and we are loaded
-      // enough to have mpc loaded.
-      if (this.tech_.error() && this.masterPlaylistController_) {
-        this.masterPlaylistController_.pauseLoading();
+      // enough to have pc loaded.
+      if (this.tech_.error() && this.playlistController_) {
+        this.playlistController_.pauseLoading();
       }
     });
 
@@ -666,7 +666,7 @@ class VhsHandler extends Component {
       return;
     }
     this.setOptions_();
-    // add master playlist controller options
+    // add main playlist controller options
     this.options_.src = expandDataUri(this.source_.src);
     this.options_.tech = this.tech_;
     this.options_.externVhs = Vhs;
@@ -677,7 +677,7 @@ class VhsHandler extends Component {
       this.tech_.setCurrentTime(time);
     };
 
-    this.masterPlaylistController_ = new MasterPlaylistController(this.options_);
+    this.playlistController_ = new PlaylistController(this.options_);
 
     const playbackWatcherOptions = videojs.mergeOptions(
       {
@@ -686,16 +686,16 @@ class VhsHandler extends Component {
       this.options_,
       {
         seekable: () => this.seekable(),
-        media: () => this.masterPlaylistController_.media(),
-        masterPlaylistController: this.masterPlaylistController_
+        media: () => this.playlistController_.media(),
+        playlistController: this.playlistController_
       }
     );
 
     this.playbackWatcher_ = new PlaybackWatcher(playbackWatcherOptions);
 
-    this.masterPlaylistController_.on('error', () => {
+    this.playlistController_.on('error', () => {
       const player = videojs.players[this.tech_.options_.playerId];
-      let error = this.masterPlaylistController_.error;
+      let error = this.playlistController_.error;
 
       if (typeof error === 'object' && !error.code) {
         error.code = 3;
@@ -711,43 +711,43 @@ class VhsHandler extends Component {
 
     // `this` in selectPlaylist should be the VhsHandler for backwards
     // compatibility with < v2
-    this.masterPlaylistController_.selectPlaylist = this.selectPlaylist ?
+    this.playlistController_.selectPlaylist = this.selectPlaylist ?
       this.selectPlaylist.bind(this) :
       defaultSelector.bind(this);
 
-    this.masterPlaylistController_.selectInitialPlaylist =
+    this.playlistController_.selectInitialPlaylist =
       Vhs.INITIAL_PLAYLIST_SELECTOR.bind(this);
 
     // re-expose some internal objects for backwards compatibility with < v2
-    this.playlists = this.masterPlaylistController_.masterPlaylistLoader_;
-    this.mediaSource = this.masterPlaylistController_.mediaSource;
+    this.playlists = this.playlistController_.mainPlaylistLoader_;
+    this.mediaSource = this.playlistController_.mediaSource;
 
-    // Proxy assignment of some properties to the master playlist
+    // Proxy assignment of some properties to the main playlist
     // controller. Using a custom property for backwards compatibility
     // with < v2
     Object.defineProperties(this, {
       selectPlaylist: {
         get() {
-          return this.masterPlaylistController_.selectPlaylist;
+          return this.playlistController_.selectPlaylist;
         },
         set(selectPlaylist) {
-          this.masterPlaylistController_.selectPlaylist = selectPlaylist.bind(this);
+          this.playlistController_.selectPlaylist = selectPlaylist.bind(this);
         }
       },
       throughput: {
         get() {
-          return this.masterPlaylistController_.mainSegmentLoader_.throughput.rate;
+          return this.playlistController_.mainSegmentLoader_.throughput.rate;
         },
         set(throughput) {
-          this.masterPlaylistController_.mainSegmentLoader_.throughput.rate = throughput;
+          this.playlistController_.mainSegmentLoader_.throughput.rate = throughput;
           // By setting `count` to 1 the throughput value becomes the starting value
           // for the cumulative average
-          this.masterPlaylistController_.mainSegmentLoader_.throughput.count = 1;
+          this.playlistController_.mainSegmentLoader_.throughput.count = 1;
         }
       },
       bandwidth: {
         get() {
-          let playerBandwidthEst = this.masterPlaylistController_.mainSegmentLoader_.bandwidth;
+          let playerBandwidthEst = this.playlistController_.mainSegmentLoader_.bandwidth;
 
           const networkInformation = window.navigator.connection || window.navigator.mozConnection || window.navigator.webkitConnection;
           const tenMbpsAsBitsPerSecond = 10e6;
@@ -770,11 +770,11 @@ class VhsHandler extends Component {
           return playerBandwidthEst;
         },
         set(bandwidth) {
-          this.masterPlaylistController_.mainSegmentLoader_.bandwidth = bandwidth;
+          this.playlistController_.mainSegmentLoader_.bandwidth = bandwidth;
           // setting the bandwidth manually resets the throughput counter
           // `count` is set to zero that current value of `rate` isn't included
           // in the cumulative average
-          this.masterPlaylistController_.mainSegmentLoader_.throughput = {
+          this.playlistController_.mainSegmentLoader_.throughput = {
             rate: 0,
             count: 0
           };
@@ -823,51 +823,51 @@ class VhsHandler extends Component {
         enumerable: true
       },
       mediaRequests: {
-        get: () => this.masterPlaylistController_.mediaRequests_() || 0,
+        get: () => this.playlistController_.mediaRequests_() || 0,
         enumerable: true
       },
       mediaRequestsAborted: {
-        get: () => this.masterPlaylistController_.mediaRequestsAborted_() || 0,
+        get: () => this.playlistController_.mediaRequestsAborted_() || 0,
         enumerable: true
       },
       mediaRequestsTimedout: {
-        get: () => this.masterPlaylistController_.mediaRequestsTimedout_() || 0,
+        get: () => this.playlistController_.mediaRequestsTimedout_() || 0,
         enumerable: true
       },
       mediaRequestsErrored: {
-        get: () => this.masterPlaylistController_.mediaRequestsErrored_() || 0,
+        get: () => this.playlistController_.mediaRequestsErrored_() || 0,
         enumerable: true
       },
       mediaTransferDuration: {
-        get: () => this.masterPlaylistController_.mediaTransferDuration_() || 0,
+        get: () => this.playlistController_.mediaTransferDuration_() || 0,
         enumerable: true
       },
       mediaBytesTransferred: {
-        get: () => this.masterPlaylistController_.mediaBytesTransferred_() || 0,
+        get: () => this.playlistController_.mediaBytesTransferred_() || 0,
         enumerable: true
       },
       mediaSecondsLoaded: {
-        get: () => this.masterPlaylistController_.mediaSecondsLoaded_() || 0,
+        get: () => this.playlistController_.mediaSecondsLoaded_() || 0,
         enumerable: true
       },
       mediaAppends: {
-        get: () => this.masterPlaylistController_.mediaAppends_() || 0,
+        get: () => this.playlistController_.mediaAppends_() || 0,
         enumerable: true
       },
       mainAppendsToLoadedData: {
-        get: () => this.masterPlaylistController_.mainAppendsToLoadedData_() || 0,
+        get: () => this.playlistController_.mainAppendsToLoadedData_() || 0,
         enumerable: true
       },
       audioAppendsToLoadedData: {
-        get: () => this.masterPlaylistController_.audioAppendsToLoadedData_() || 0,
+        get: () => this.playlistController_.audioAppendsToLoadedData_() || 0,
         enumerable: true
       },
       appendsToLoadedData: {
-        get: () => this.masterPlaylistController_.appendsToLoadedData_() || 0,
+        get: () => this.playlistController_.appendsToLoadedData_() || 0,
         enumerable: true
       },
       timeToLoadedData: {
-        get: () => this.masterPlaylistController_.timeToLoadedData_() || 0,
+        get: () => this.playlistController_.timeToLoadedData_() || 0,
         enumerable: true
       },
       buffered: {
@@ -890,8 +890,8 @@ class VhsHandler extends Component {
         get: () => this.tech_.duration(),
         enumerable: true
       },
-      master: {
-        get: () => this.playlists.master,
+      main: {
+        get: () => this.playlists.main,
         enumerable: true
       },
       playerDimensions: {
@@ -914,7 +914,7 @@ class VhsHandler extends Component {
 
     this.tech_.one(
       'canplay',
-      this.masterPlaylistController_.setupFirstPlay.bind(this.masterPlaylistController_)
+      this.playlistController_.setupFirstPlay.bind(this.playlistController_)
     );
 
     this.tech_.on('bandwidthupdate', () => {
@@ -926,24 +926,24 @@ class VhsHandler extends Component {
       }
     });
 
-    this.masterPlaylistController_.on('selectedinitialmedia', () => {
+    this.playlistController_.on('selectedinitialmedia', () => {
       // Add the manual rendition mix-in to VhsHandler
       renditionSelectionMixin(this);
     });
 
-    this.masterPlaylistController_.sourceUpdater_.on('createdsourcebuffers', () => {
+    this.playlistController_.sourceUpdater_.on('createdsourcebuffers', () => {
       this.setupEme_();
     });
 
     // the bandwidth of the primary segment loader is our best
     // estimate of overall bandwidth
-    this.on(this.masterPlaylistController_, 'progress', function() {
+    this.on(this.playlistController_, 'progress', function() {
       this.tech_.trigger('progress');
     });
 
     // In the live case, we need to ignore the very first `seeking` event since
     // that will be the result of the seek-to-live behavior
-    this.on(this.masterPlaylistController_, 'firstplay', function() {
+    this.on(this.playlistController_, 'firstplay', function() {
       this.ignoreNextSeekingEvent_ = true;
     });
 
@@ -955,24 +955,24 @@ class VhsHandler extends Component {
       return;
     }
 
-    this.mediaSourceUrl_ = window.URL.createObjectURL(this.masterPlaylistController_.mediaSource);
+    this.mediaSourceUrl_ = window.URL.createObjectURL(this.playlistController_.mediaSource);
 
     this.tech_.src(this.mediaSourceUrl_);
   }
 
   createKeySessions_() {
     const audioPlaylistLoader =
-      this.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader;
+      this.playlistController_.mediaTypes_.AUDIO.activePlaylistLoader;
 
     this.logger_('waiting for EME key session creation');
     waitForKeySessionCreation({
       player: this.player_,
       sourceKeySystems: this.source_.keySystems,
       audioMedia: audioPlaylistLoader && audioPlaylistLoader.media(),
-      mainPlaylists: this.playlists.master.playlists
+      mainPlaylists: this.playlists.main.playlists
     }).then(() => {
       this.logger_('created EME key session');
-      this.masterPlaylistController_.sourceUpdater_.initializedEme();
+      this.playlistController_.sourceUpdater_.initializedEme();
     }).catch((err) => {
       this.logger_('error while creating EME key session', err);
       this.player_.error({
@@ -1005,7 +1005,7 @@ class VhsHandler extends Component {
    */
   setupEme_() {
     const audioPlaylistLoader =
-      this.masterPlaylistController_.mediaTypes_.AUDIO.activePlaylistLoader;
+      this.playlistController_.mediaTypes_.AUDIO.activePlaylistLoader;
 
     const didSetupEmeOptions = setupEmeOptions({
       player: this.player_,
@@ -1016,8 +1016,8 @@ class VhsHandler extends Component {
 
     this.player_.tech_.on('keystatuschange', (e) => {
       if (e.status === 'output-restricted') {
-        this.masterPlaylistController_.excludePlaylist({
-          playlist: this.masterPlaylistController_.media(),
+        this.playlistController_.excludePlaylist({
+          playlist: this.playlistController_.media(),
           message: `DRM keystatus changed to ${e.status}. Playlist will fail to play. Check for HDCP content.`,
           playlistExclusionDuration: Infinity
         });
@@ -1031,7 +1031,7 @@ class VhsHandler extends Component {
     // promises.
     if (videojs.browser.IE_VERSION === 11 || !didSetupEmeOptions) {
       // If EME options were not set up, we've done all we could to initialize EME.
-      this.masterPlaylistController_.sourceUpdater_.initializedEme();
+      this.playlistController_.sourceUpdater_.initializedEme();
       return;
     }
 
@@ -1055,7 +1055,7 @@ class VhsHandler extends Component {
 
     this.qualityLevels_ = player.qualityLevels();
 
-    this.masterPlaylistController_.on('selectedinitialmedia', () => {
+    this.playlistController_.on('selectedinitialmedia', () => {
       handleVhsLoadedMetadata(this.qualityLevels_, this);
     });
 
@@ -1092,28 +1092,28 @@ class VhsHandler extends Component {
    * Begin playing the video.
    */
   play() {
-    this.masterPlaylistController_.play();
+    this.playlistController_.play();
   }
 
   /**
-   * a wrapper around the function in MasterPlaylistController
+   * a wrapper around the function in PlaylistController
    */
   setCurrentTime(currentTime) {
-    this.masterPlaylistController_.setCurrentTime(currentTime);
+    this.playlistController_.setCurrentTime(currentTime);
   }
 
   /**
-   * a wrapper around the function in MasterPlaylistController
+   * a wrapper around the function in PlaylistController
    */
   duration() {
-    return this.masterPlaylistController_.duration();
+    return this.playlistController_.duration();
   }
 
   /**
-   * a wrapper around the function in MasterPlaylistController
+   * a wrapper around the function in PlaylistController
    */
   seekable() {
-    return this.masterPlaylistController_.seekable();
+    return this.playlistController_.seekable();
   }
 
   /**
@@ -1123,8 +1123,8 @@ class VhsHandler extends Component {
     if (this.playbackWatcher_) {
       this.playbackWatcher_.dispose();
     }
-    if (this.masterPlaylistController_) {
-      this.masterPlaylistController_.dispose();
+    if (this.playlistController_) {
+      this.playlistController_.dispose();
     }
     if (this.qualityLevels_) {
       this.qualityLevels_.dispose();
@@ -1148,7 +1148,7 @@ class VhsHandler extends Component {
 
   convertToProgramTime(time, callback) {
     return getProgramTime({
-      playlist: this.masterPlaylistController_.media(),
+      playlist: this.playlistController_.media(),
       time,
       callback
     });
@@ -1158,7 +1158,7 @@ class VhsHandler extends Component {
   seekToProgramTime(programTime, callback, pauseAfterSeek = true, retryCount = 2) {
     return seekToProgramTime({
       programTime,
-      playlist: this.masterPlaylistController_.media(),
+      playlist: this.playlistController_.media(),
       retryCount,
       pauseAfterSeek,
       seekTo: this.options_.seekTo,

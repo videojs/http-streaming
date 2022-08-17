@@ -1,10 +1,10 @@
 @startuml
 
 header PlaylistLoader sequences
-title PlaylistLoader sequences: Master Manifest and Alternate Audio
+title PlaylistLoader sequences: Main Manifest and Alternate Audio
 
-Participant "MasterPlaylistController" as MPC #red
-Participant "MasterPlaylistLoader" as MPL #blue
+Participant "PlaylistController" as PC #red
+Participant "MainPlaylistLoader" as MPL #blue
 Participant "mainSegmentLoader" as SL #blue
 Participant "AudioPlaylistLoader" as APL #green
 Participant "audioSegmentLoader" as ASL #green
@@ -15,17 +15,17 @@ Participant Tech #lightblue
 
 == Initialization ==
 
-MPC -> MPL : construct MasterPlaylistLoader
-MPC -> MPL: load()
+PC -> MPL : construct MainPlaylistLoader
+PC -> MPL: load()
 
 MPL -> MPL : start()
 
-== Requesting Master Manifest ==
+== Requesting Main Manifest ==
 
-MPL -> ext: xhr request for master manifest
-ext -> MPL : response with master manifest
+MPL -> ext: xhr request for main manifest
+ext -> MPL : response with main manifest
 
-MPL -> parser: parse master manifest
+MPL -> parser: parse main manifest
 parser -> MPL: object representing manifest
 
 note over MPL #lightblue: trigger 'loadedplaylist'
@@ -80,8 +80,8 @@ APL -> ext: request alt audio media manifest
 
 break finish pending tasks
   MG -> Tech: add audioTracks
-  MPL -> MPC: setupSourceBuffers()
-  MPL -> MPC: setupFirstPlay()
+  MPL -> PC: setupSourceBuffers()
+  MPL -> PC: setupFirstPlay()
 
   loop on monitorBufferTick
     SL -> ext: requests media segments

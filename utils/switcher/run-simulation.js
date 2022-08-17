@@ -114,16 +114,16 @@ const runSimulation = function(options, done) {
   player.options(poptions);
   document.querySelector('#qunit-fixture').style = 'display: none;';
   player.src({
-    src: 'http://example.com/master.m3u8',
+    src: 'http://example.com/main.m3u8',
     type: 'application/x-mpegurl'
   });
   openMediaSource(player, clock);
 
   // run next tick so that Flash doesn't swallow exceptions
-  let master = '#EXTM3U\n';
+  let main = '#EXTM3U\n';
   options.playlists.forEach((bandwidths) => {
-    master += `#EXT-X-STREAM-INF:BANDWIDTH=${bandwidths[0]},AVERAGE-BANDWIDTH=${bandwidths[1]}\n`;
-    master += `playlist-${bandwidths[0]}-${bandwidths[1]}.m3u8\n`;
+    main += `#EXT-X-STREAM-INF:BANDWIDTH=${bandwidths[0]},AVERAGE-BANDWIDTH=${bandwidths[1]}\n`;
+    main += `playlist-${bandwidths[0]}-${bandwidths[1]}.m3u8\n`;
   });
 
   // simulate buffered and currentTime during playback
@@ -139,8 +139,8 @@ const runSimulation = function(options, done) {
   });
 
   // respond to the playlist requests
-  let masterRequest = requests.shift();
-  masterRequest.respond(200, null, master);
+  let mainRequest = requests.shift();
+  mainRequest.respond(200, null, main);
 
   let playlistRequest = requests.shift();
   playlistRequest.respond(200, null, playlistResponse(playlistRequest, simulationParams));
@@ -155,7 +155,7 @@ const runSimulation = function(options, done) {
     time: 0,
     bandwidth: player.tech(true).vhs.bandwidth
   });
-  player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.segmentMetadataTrack_ = null;
+  player.tech(true).vhs.playlistController_.mainSegmentLoader_.segmentMetadataTrack_ = null;
   player.play();
 
   let t = 0;
@@ -286,7 +286,7 @@ const runSimulation = function(options, done) {
 
         if (segmentDownloaded > segmentSize) {
           if (!currentTime ||
-               player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.mediaIndex !== null) {
+               player.tech(true).vhs.playlistController_.mainSegmentLoader_.mediaIndex !== null) {
             buffered += simulationParams.segmentDuration;
             s++;
           } else {

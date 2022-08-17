@@ -22,19 +22,19 @@ The [DPL] is written to be as similar as possible to the [PlaylistLoader][pl]. T
 ![DashPlaylistLoader States](images/dash-playlist-loader-states.nomnoml.svg)
 
 - `HAVE_NOTHING` the state before the MPD is received and parsed.
-- `HAVE_MASTER` the state before a media stream is setup but the MPD has been parsed.
+- `HAVE_MAIN_MANIFEST` the state before a media stream is setup but the MPD has been parsed.
 - `HAVE_METADATA` the state after a media stream is setup.
 
 ### API
 
 - `load()` this will either start or kick the loader during playback.
 - `start()` this will start the [DPL] and request the MPD.
-- `parseMasterXml()` this will parse the MPD manifest and return the result.
+- `parseMainXml()` this will parse the MPD manifest and return the result.
 - `media()` this will return the currently active media stream or set a new active media stream.
 
 ### Events
 
-- `loadedplaylist` signals the setup of a master playlist, representing the DASH source as a whole, from the MPD; or a media playlist, representing a media stream.
+- `loadedplaylist` signals the setup of a main playlist, representing the DASH source as a whole, from the MPD; or a media playlist, representing a media stream.
 - `loadedmetadata` signals initial setup of a media stream.
 - `minimumUpdatePeriod` signals that a update period has ended and the MPD must be requested again.
 - `playlistunchanged` signals that no changes have been made to a MPD.
@@ -44,7 +44,7 @@ The [DPL] is written to be as similar as possible to the [PlaylistLoader][pl]. T
 
 ### Interaction with Other Modules
 
-![DPL with MPC and MG](images/dash-playlist-loader-mpc-mg-sequence.plantuml.png)
+![DPL with PC and MG](images/dash-playlist-loader-pc-mg-sequence.puml.png)
 
 ### Special Features
 
@@ -64,17 +64,17 @@ To be filled out.
 
 ### Previous Behavior
 
-Until version 1.9.0 of [VHS], we thought that [DPL] could skip the `HAVE_NOTHING` and `HAVE_MASTER` states, as no other XHR requests are needed once the MPD has been downloaded and parsed. However, this is incorrect as there are some Presentations that signal the use of a "Segment Index box" or `sidx`. This `sidx` references specific byte ranges in a file that could contain media or potentially other `sidx` boxes.
+Until version 1.9.0 of [VHS], we thought that [DPL] could skip the `HAVE_NOTHING` and `HAVE_MAIN_MANIFEST` states, as no other XHR requests are needed once the MPD has been downloaded and parsed. However, this is incorrect as there are some Presentations that signal the use of a "Segment Index box" or `sidx`. This `sidx` references specific byte ranges in a file that could contain media or potentially other `sidx` boxes.
 
-A DASH MPD that describes a `sidx` is therefore similar to an HLS master manifest, in that the MPD contains references to something that must be requested and parsed first before references to media segments can be obtained. With this in mind, it was necessary to update the initialization and state transitions of [DPL] to allow further XHR requests to be made after the initial request for the MPD.
+A DASH MPD that describes a `sidx` is therefore similar to an HLS main manifest, in that the MPD contains references to something that must be requested and parsed first before references to media segments can be obtained. With this in mind, it was necessary to update the initialization and state transitions of [DPL] to allow further XHR requests to be made after the initial request for the MPD.
 
 ### Current Behavior
 
-In [this PR](https://github.com/videojs/http-streaming/pull/386), the [DPL] was updated to go through the `HAVE_NOTHING` and `HAVE_MASTER` states before arriving at `HAVE_METADATA`. If the MPD does not contain `sidx` boxes, then this transition happens quickly after `load()` is called, spending little time in the `HAVE_MASTER` state.
+In [this PR](https://github.com/videojs/http-streaming/pull/386), the [DPL] was updated to go through the `HAVE_NOTHING` and `HAVE_MAIN_MANIFEST` states before arriving at `HAVE_METADATA`. If the MPD does not contain `sidx` boxes, then this transition happens quickly after `load()` is called, spending little time in the `HAVE_MAIN_MANIFEST` state.
 
-The initial media selection for `masterPlaylistLoader` is made in the `loadedplaylist` handler located in [MasterPlaylistController][mpc]. We now use `hasPendingRequest` to determine whether to automatically select a media playlist for the `masterPlaylistLoader` as a fallback in case one is not selected by [MPC]. The child [DPL]s are created with a media playlist passed in as an argument, so this fallback is not necessary for them. Instead, that media playlist is saved and auto-selected once we enter the `HAVE_MASTER` state.
+The initial media selection for `mainPlaylistLoader` is made in the `loadedplaylist` handler located in [PlaylistController][pc]. We now use `hasPendingRequest` to determine whether to automatically select a media playlist for the `mainPlaylistLoader` as a fallback in case one is not selected by [PC]. The child [DPL]s are created with a media playlist passed in as an argument, so this fallback is not necessary for them. Instead, that media playlist is saved and auto-selected once we enter the `HAVE_MAIN_MANIFEST` state.
 
-The `updateMaster` method will return `null` if no updates are found.
+The `updateMain` method will return `null` if no updates are found.
 
 The `selectinitialmedia` event is not triggered until an audioPlaylistLoader (which for DASH is always a child [DPL]) has a media playlist. This is signaled by triggering `loadedmetadata` on the respective [DPL]. This event is used to initialize the [Representations API][representations] and setup EME (see [contrib-eme]).
 
@@ -82,6 +82,6 @@ The `selectinitialmedia` event is not triggered until an audioPlaylistLoader (wh
 [sl]: ../src/segment-loader.js
 [vhs]: intro.md
 [pl]: ../src/playlist-loader.js
-[mpc]: ../src/master-playlist-controller.js
+[pc]: ../src/playlist-controller.js
 [representations]: ../README.md#hlsrepresentations
 [contrib-eme]: https://github.com/videojs/videojs-contrib-eme

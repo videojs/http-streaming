@@ -58,25 +58,23 @@ flowchart TD
 > * most EME handling for DRM and setup of the [videojs-contrib-eme plugin](https://github.com/videojs/videojs-contrib-eme)
 > * mapping/handling of options passed down via Video.js
 
-## MasterPlaylistController
+## PlaylistController
 
-One critical object that `VhsHandler`'s constructor creates is a new `MasterPlaylistController`.
+One critical object that `VhsHandler`'s constructor creates is a new `PlaylistController`.
 
 ```mermaid
 flowchart TD
   VhsSourceHandler --> VhsHandler
-  VhsHandler --> MasterPlaylistController
+  VhsHandler --> PlaylistController
 ```
 
-`MasterPlaylistController` is not a great name, and has grown in size to be a bit unwieldy, but it's the hub of VHS. Eventually, it should be broken into smaller pieces, but for now, it handles the creation and management of most of the other VHS modules. Its code can be found in [src/master-playlist-controller.js](https://github.com/videojs/http-streaming/blob/0964cb4827d9e80aa36f2fa29e35dad92ca84111/src/master-playlist-controller.js).
+`PlaylistController` is not a great name, and has grown in size to be a bit unwieldy, but it's the hub of VHS. Eventually, it should be broken into smaller pieces, but for now, it handles the creation and management of most of the other VHS modules. Its code can be found in [src/playlist-controller.js](/src/playlist-controller.js).
 
-The best way to think of `MasterPlaylistController` is as Tron's Master Control Program, though hopefully it isn't as evil.
+`PlaylistController` is a lot to say. So we often refer to it as PC.
 
-`MasterPlaylistController` is a lot to say. So we often refer to it as MPC.
+If you need to find a place where different modules communicate, you will probably end up in PC. Just about all of `VhsHandler` that doesn't interface with Video.js or other plugins, interfaces with PC.
 
-If you need to find a place where different modules communicate, you will probably end up in MPC. Just about all of `VhsHandler` that doesn't interface with Video.js or other plugins, interfaces with MPC.
-
-MPC's [constructor](https://github.com/videojs/http-streaming/blob/0964cb4827d9e80aa36f2fa29e35dad92ca84111/src/master-playlist-controller.js#L148) does a lot. Instead of listing all of the things it does, let's go step-by-step through the main ones, passing the source we had above.
+PC's [constructor](/src/playlist-controller.js#L148) does a lot. Instead of listing all of the things it does, let's go step-by-step through the main ones, passing the source we had above.
 
 ```html
 <video-js id="myPlayer" class="video-js" data-setup='{}'>
@@ -84,18 +82,18 @@ MPC's [constructor](https://github.com/videojs/http-streaming/blob/0964cb4827d9e
 </video-js>
 ```
 
-Looking at the `<source>` tag, `VhsSourceHandler` already used the "type" to tell Video.js that it could handle the source. `VhsHandler` took the manifest URL, in this case "manifest.m3u8" and provided it to the constructor of MPC.
+Looking at the `<source>` tag, `VhsSourceHandler` already used the "type" to tell Video.js that it could handle the source. `VhsHandler` took the manifest URL, in this case "manifest.m3u8" and provided it to the constructor of PC.
 
-The first thing that MPC must do is download that source, but it doesn't make the request itself. Instead, it creates [this.masterPlaylistLoader_](https://github.com/videojs/http-streaming/blob/0964cb4827d9e80aa36f2fa29e35dad92ca84111/src/master-playlist-controller.js#L264-L266).
+The first thing that PC must do is download that source, but it doesn't make the request itself. Instead, it creates [this.mainPlaylistLoader_](/src/laylist-controller.js#L263-L265).
 
 ```mermaid
 flowchart TD
   VhsSourceHandler --> VhsHandler
-  VhsHandler --> MasterPlaylistController
-  MasterPlaylistController --> PlaylistLoader
+  VhsHandler --> PlaylistController
+  PlaylistController --> PlaylistLoader
 ```
 
-`masterPlaylistLoader_` is an instance of either the [HLS PlaylistLoader](https://github.com/videojs/http-streaming/blob/0964cb4827d9e80aa36f2fa29e35dad92ca84111/src/playlist-loader.js#L379) or the [DashPlaylistLoader](https://github.com/videojs/http-streaming/blob/0964cb4827d9e80aa36f2fa29e35dad92ca84111/src/dash-playlist-loader.js#L259).
+`mainPlaylistLoader_` is an instance of either the [HLS PlaylistLoader](/src/playlist-loader.js#L379) or the [DashPlaylistLoader](/src/dash-playlist-loader.js#L259).
 
 The names betray their use. They load the playlist. The URL ("manifest.m3u8" here) is given, and the manifest/playlist is downloaded and parsed. If the content is live, the playlist loader also handles refreshing the manifest. For HLS, where manifests point to other manifests, the playlist loader requests those as well.
 
@@ -117,9 +115,9 @@ Manifest {
 }
 ```
 
-Many properties are removed for simplicity. This is a top level manifest (often referred to as a master or main manifest), and within it there are playlists, each playlist being a Manifest itself. Since the JSON "schema" for main and media playlists is the same, you will see irrelevant properties within any given manifest object. For instance, you might see a `targetDuration` property on the main manifest object, though a main manifest doesn't have a target duration. You can ignore irrelevant properties. Eventually they should be cleaned up, and a proper schema defined for manifest objects.
+Many properties are removed for simplicity. This is a top level manifest (often referred to as a main manifest or a multivariant manifest [from the HLS spec]), and within it there are playlists, each playlist being a Manifest itself. Since the JSON "schema" for main and media playlists is the same, you will see irrelevant properties within any given manifest object. For instance, you might see a `targetDuration` property on the main manifest object, though a main manifest doesn't have a target duration. You can ignore irrelevant properties. Eventually they should be cleaned up, and a proper schema defined for manifest objects.
 
-MPC will also use `masterPlaylistLoader_` to select which media playlist is active (e.g., the 720p rendition or the 480p rendition), so that `masterPlaylistLoader_` will only need to refresh that individual playlist if the stream is live.
+PC will also use `mainPlaylistLoader_` to select which media playlist is active (e.g., the 720p rendition or the 480p rendition), so that `mainPlaylistLoader_` will only need to refresh that individual playlist if the stream is live.
 
 > :information_source: **Future Work**
 >
@@ -129,26 +127,26 @@ MPC will also use `masterPlaylistLoader_` to select which media playlist is acti
 
 ### Media Source Extensions
 
-The next thing MPC needs to do is set up a media source for [Media Source Extensions](https://www.w3.org/TR/media-source/). Specifically, it needs to create [this.mediaSource](https://github.com/videojs/http-streaming/blob/0964cb4827d9e80aa36f2fa29e35dad92ca84111/src/master-playlist-controller.js#L210) and its associated [source buffers](https://github.com/videojs/http-streaming/blob/main/src/master-playlist-controller.js#L1818). These are where audio and video data will be appended, so that the browser has content to play. But those aren't used directly. Because source buffers can only handle one operation at a time, [this.sourceUpdater_](https://github.com/videojs/http-streaming/blob/0964cb4827d9e80aa36f2fa29e35dad92ca84111/src/master-playlist-controller.js#L234) is created. `sourceUpdater_` is a queue for operations performed on the source buffers. That's pretty much it. So all of the MSE pieces for appending get wrapped up in `sourceUpdater_`.
+The next thing PC needs to do is set up a media source for [Media Source Extensions](https://www.w3.org/TR/media-source/). Specifically, it needs to create [this.mediaSource](/src/playlist-controller.js#L208) and its associated [source buffers](/src/playlist-controller.js#L1814). These are where audio and video data will be appended, so that the browser has content to play. But those aren't used directly. Because source buffers can only handle one operation at a time, [this.sourceUpdater_](/src/playlist-controller.js#L232) is created. `sourceUpdater_` is a queue for operations performed on the source buffers. That's pretty much it. So all of the MSE pieces for appending get wrapped up in `sourceUpdater_`.
 
 ## Segment Loaders
 
 The SourceUpdater created for MSE above is passed to the segment loaders.
 
-[this.mainSegmentLoader_](https://github.com/videojs/http-streaming/blob/0964cb4827d9e80aa36f2fa29e35dad92ca84111/src/master-playlist-controller.js#L271-L275) is used for muxed content (audio and video in one segment) and for audio or video only streams.
+[this.mainSegmentLoader_](/src/playlist-controller.js#L270-L274) is used for muxed content (audio and video in one segment) and for audio or video only streams.
 
-[this.audioSegmentLoader_](https://github.com/videojs/http-streaming/blob/0964cb4827d9e80aa36f2fa29e35dad92ca84111/src/master-playlist-controller.js#L278-L281) is used when the content is demuxed (audio and video in separate playlists). 
+[this.audioSegmentLoader_](/src/playlist-controller.js#L277-L280) is used when the content is demuxed (audio and video in separate playlists). 
 
 ```mermaid
 flowchart TD
   VhsSourceHandler --> VhsHandler
-  VhsHandler --> MasterPlaylistController
-  MasterPlaylistController --> PlaylistLoader
-  MasterPlaylistController --> SourceUpdater
-  MasterPlaylistController --> SegmentLoader
+  VhsHandler --> PlaylistController
+  PlaylistController --> PlaylistLoader
+  PlaylistController --> SourceUpdater
+  PlaylistController --> SegmentLoader
 ```
 
-Besides options and the `sourceUpdater_` from MPC, the segment loaders are given a [playlist](https://github.com/videojs/http-streaming/blob/0964cb4827d9e80aa36f2fa29e35dad92ca84111/src/segment-loader.js#L988). This playlist is a media playlist from the `masterPlaylistLoader_`. So looking back at our parsed manifest object:
+Besides options and the `sourceUpdater_` from PC, the segment loaders are given a [playlist](https://github.com/videojs/http-streaming/blob/0964cb4827d9e80aa36f2fa29e35dad92ca84111/src/segment-loader.js#L988). This playlist is a media playlist from the `mainPlaylistLoader_`. So looking back at our parsed manifest object:
 
 ```
 Manifest {
@@ -174,19 +172,19 @@ VHS uses a strategy called `mediaIndex++` for choosing the next segment, see [he
 
 If there are no seeks or rendition changes, `chooseNextRequest_` will rely on the `mediaIndex++` strategy.
 
-If there are seeks or rendition changes, then `chooseNextRequest_` will look at segment timing values via the `SyncController` (created previously in MPC), the current time, and the buffer, to determine what the next segment should be, and what it's start time should be (to position it on the timeline).
+If there are seeks or rendition changes, then `chooseNextRequest_` will look at segment timing values via the `SyncController` (created previously in PC), the current time, and the buffer, to determine what the next segment should be, and what it's start time should be (to position it on the timeline).
 
 ```mermaid
 flowchart TD
   VhsSourceHandler --> VhsHandler
-  VhsHandler --> MasterPlaylistController
-  MasterPlaylistController --> PlaylistLoader
-  MasterPlaylistController --> SourceUpdater
-  MasterPlaylistController --> SegmentLoader
+  VhsHandler --> PlaylistController
+  PlaylistController --> PlaylistLoader
+  PlaylistController --> SourceUpdater
+  PlaylistController --> SegmentLoader
   SegmentLoader --> SyncController
 ```
 
-The `SyncController` has various [strategies](https://github.com/videojs/http-streaming/blob/0964cb4827d9e80aa36f2fa29e35dad92ca84111/src/sync-controller.js#L16) for ensuring that different renditions, which can have different media sequence and segment timing values, can be positioned on the playback timeline successfully. (It is also be [used by MPC](https://github.com/videojs/http-streaming/blob/0964cb4827d9e80aa36f2fa29e35dad92ca84111/src/master-playlist-controller.js#L1477) to establish a `seekable` range.)
+The `SyncController` has various [strategies](https://github.com/videojs/http-streaming/blob/0964cb4827d9e80aa36f2fa29e35dad92ca84111/src/sync-controller.js#L16) for ensuring that different renditions, which can have different media sequence and segment timing values, can be positioned on the playback timeline successfully. (It is also be [used by PC](/src/playlist-controller.js#L1472) to establish a `seekable` range.)
 
 ### Downloading and Appending Segments
 
@@ -196,10 +194,10 @@ If the buffer is not full, and a segment was chosen, then `SegmentLoader` will d
 ```mermaid
 flowchart TD
   VhsSourceHandler --> VhsHandler
-  VhsHandler --> MasterPlaylistController
-  MasterPlaylistController --> PlaylistLoader
-  MasterPlaylistController --> SourceUpdater
-  MasterPlaylistController --> SegmentLoader
+  VhsHandler --> PlaylistController
+  PlaylistController --> PlaylistLoader
+  PlaylistController --> SourceUpdater
+  PlaylistController --> SegmentLoader
   SegmentLoader --> SyncController
   SegmentLoader --> mediaSegmentRequest
 ```
@@ -213,10 +211,10 @@ When the `SegmentLoader` receives segment data events, it can append the data to
 ```mermaid
 flowchart TD
   VhsSourceHandler --> VhsHandler
-  VhsHandler --> MasterPlaylistController
-  MasterPlaylistController --> PlaylistLoader
-  MasterPlaylistController --> SourceUpdater
-  MasterPlaylistController --> SegmentLoader
+  VhsHandler --> PlaylistController
+  PlaylistController --> PlaylistLoader
+  PlaylistController --> SourceUpdater
+  PlaylistController --> SegmentLoader
   SegmentLoader --> SyncController
   SegmentLoader --> mediaSegmentRequest
   SegmentLoader --> SourceUpdater
@@ -231,10 +229,10 @@ Besides downloading segments, `mediaSegmentRequest` [decrypts](https://github.co
 ```mermaid
 flowchart TD
   VhsSourceHandler --> VhsHandler
-  VhsHandler --> MasterPlaylistController
-  MasterPlaylistController --> PlaylistLoader
-  MasterPlaylistController --> SourceUpdater
-  MasterPlaylistController --> SegmentLoader
+  VhsHandler --> PlaylistController
+  PlaylistController --> PlaylistLoader
+  PlaylistController --> SourceUpdater
+  PlaylistController --> SegmentLoader
   SegmentLoader --> SyncController
   SegmentLoader --> mediaSegmentRequest
   SegmentLoader --> SourceUpdater
