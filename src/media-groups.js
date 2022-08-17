@@ -75,7 +75,7 @@ export const onGroupChanged = (type, settings) => () => {
   const {
     segmentLoaders: {
       [type]: segmentLoader,
-      main: mainSegmentLoader
+      master: mainSegmentLoader
     },
     mediaTypes: { [type]: mediaType }
   } = settings;
@@ -149,7 +149,7 @@ export const onTrackChanged = (type, settings) => () => {
     masterPlaylistLoader,
     segmentLoaders: {
       [type]: segmentLoader,
-      main: mainSegmentLoader
+      master: mainSegmentLoader
     },
     mediaTypes: { [type]: mediaType }
   } = settings;
@@ -187,7 +187,7 @@ export const onTrackChanged = (type, settings) => () => {
       return;
     }
 
-    mediaType.logger_(`track change. Switching master audio from ${lastTrack.id} to ${activeTrack.id}`);
+    mediaType.logger_(`track change. Switching main audio from ${lastTrack.id} to ${activeTrack.id}`);
     masterPlaylistLoader.pause();
     mainSegmentLoader.resetEverything();
     pc.fastQualityChange_(newPlaylist);
@@ -432,14 +432,14 @@ export const initialize = {
       masterPlaylistLoader
     } = settings;
 
-    const audioOnlyMaster = isAudioOnly(masterPlaylistLoader.master);
+    const audioOnlyMaster = isAudioOnly(masterPlaylistLoader.main);
 
     // force a default if we have none
     if (!mediaGroups[type] ||
         Object.keys(mediaGroups[type]).length === 0) {
-      mediaGroups[type] = { main: { default: { default: true } } };
+      mediaGroups[type] = { master: { default: { default: true } } };
       if (audioOnlyMaster) {
-        mediaGroups[type].main.default.playlists = masterPlaylistLoader.master.playlists;
+        mediaGroups[type].main.default.playlists = masterPlaylistLoader.main.playlists;
       }
     }
 
@@ -736,7 +736,7 @@ export const activeGroup = (type, settings) => (track) => {
     // find the masterPlaylistLoader media
     // that is in a media group if we are dealing
     // with audio only
-    if (type === 'AUDIO' && groupKeys.length > 1 && isAudioOnly(settings.master)) {
+    if (type === 'AUDIO' && groupKeys.length > 1 && isAudioOnly(settings.main)) {
       for (let i = 0; i < groupKeys.length; i++) {
         const groupPropertyList = groups[groupKeys[i]];
 
@@ -828,7 +828,7 @@ export const getActiveGroup = (type, {mediaTypes}) => () => {
 
 /**
  * Setup PlaylistLoaders and Tracks for media groups (Audio, Subtitles,
- * Closed-Captions) specified in the master manifest.
+ * Closed-Captions) specified in the main manifest.
  *
  * @param {Object} settings
  *        Object containing required information for setting up the media groups
@@ -837,11 +837,11 @@ export const getActiveGroup = (type, {mediaTypes}) => () => {
  * @param {Object} settings.requestOptions
  *        XHR request options used by the segment loaders
  * @param {PlaylistLoader} settings.masterPlaylistLoader
- *        PlaylistLoader for the master source
+ *        PlaylistLoader for the main source
  * @param {VhsHandler} settings.vhs
  *        VHS SourceHandler
- * @param {Object} settings.master
- *        The parsed master manifest
+ * @param {Object} settings.main
+ *        The parsed main manifest
  * @param {Object} settings.mediaTypes
  *        Object to store the loaders, tracks, and utility methods for each media type
  * @param {Function} settings.excludePlaylist
@@ -860,7 +860,7 @@ export const setupMediaGroups = (settings) => {
     vhs,
     segmentLoaders: {
       ['AUDIO']: audioSegmentLoader,
-      main: mainSegmentLoader
+      master: mainSegmentLoader
     }
   } = settings;
 
