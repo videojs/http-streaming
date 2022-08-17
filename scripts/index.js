@@ -636,7 +636,7 @@
           if (player.tech_.vhs) {
             window.vhs = player.tech_.vhs;
             window.pc = player.tech_.vhs.playlistController_;
-            window.pc.masterPlaylistLoader_.on('mediachange', regenerateRepresentations);
+            window.pc.mainPlaylistLoader_.on('mediachange', regenerateRepresentations);
             regenerateRepresentations();
 
           } else {

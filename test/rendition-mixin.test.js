@@ -48,7 +48,7 @@ const makeMockPlaylist = function(options) {
   return playlist;
 };
 
-const makeMockVhsHandler = function(playlistOptions = [], handlerOptions = {}, master = {}) {
+const makeMockVhsHandler = function(playlistOptions = [], handlerOptions = {}, main = {}) {
   const vhsHandler = {
     options_: handlerOptions
   };
@@ -56,7 +56,7 @@ const makeMockVhsHandler = function(playlistOptions = [], handlerOptions = {}, m
     fastQualityChange_: () => {
       pc.fastQualityChange_.calls++;
     },
-    master: () => {
+    main: () => {
       return vhsHandler.playlists.main;
     },
     getAudioTrackPlaylists_: () => {
@@ -69,7 +69,7 @@ const makeMockVhsHandler = function(playlistOptions = [], handlerOptions = {}, m
   vhsHandler.playlistController_ = pc;
   vhsHandler.playlists = new videojs.EventTarget();
 
-  vhsHandler.playlists.main = master;
+  vhsHandler.playlists.main = main;
 
   if (!vhsHandler.playlists.main.playlists) {
     vhsHandler.playlists.main.playlists = [];
@@ -352,7 +352,7 @@ QUnit.test('codecs attribute is exposed on renditions when available', function(
   assert.deepEqual(renditions[2].codecs, {}, 'rendition 3 has no codec');
 });
 
-QUnit.test('codecs attribute gets codecs from master', function(assert) {
+QUnit.test('codecs attribute gets codecs from main', function(assert) {
   const vhsHandler = makeMockVhsHandler(
     [{bandwidth: 0, uri: 'media0.m3u8', audio: 'a1'}],
     {},

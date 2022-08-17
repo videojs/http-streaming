@@ -1364,7 +1364,7 @@ loaderTypes.forEach(function(type) {
     this.setup({src: 'multipleAudioGroupsCombinedMain.m3u8', type: 'application/vnd.apple.mpegurl'});
 
     const loader = this.pc[`${type}SegmentLoader_`];
-    const playlists = this.pc.master().playlists;
+    const playlists = this.pc.main().playlists;
     const excludeAndVerify = (last) => {
       let oldPlaylist;
       // this test only needs 9 appends, since we do an intial append
@@ -1392,7 +1392,7 @@ loaderTypes.forEach(function(type) {
 
       this.respondToPlaylists_();
 
-      const otherPlaylistsLeft = this.pc.master().playlists.some((p) => p.excludeUntil !== Infinity);
+      const otherPlaylistsLeft = this.pc.main().playlists.some((p) => p.excludeUntil !== Infinity);
 
       if (otherPlaylistsLeft) {
         const message = `Problem encountered with playlist ${oldPlaylist.id}.` +
