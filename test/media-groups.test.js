@@ -259,7 +259,7 @@ QUnit.module('MediaGroups', function() {
 
         this.settings = {
           mediaTypes: MediaGroups.createMediaTypes(),
-          masterPlaylistLoader: {
+          mainPlaylistLoader: {
             media: () => this.media
           }
         };
@@ -476,14 +476,14 @@ QUnit.module('MediaGroups', function() {
           pause() {}
         };
       };
-      const masterPlaylistLoader = mockPlaylistLoader();
+      const mainPlaylistLoader = mockPlaylistLoader();
       const settings = {
         segmentLoaders: {
           AUDIO: segmentLoader,
           main: mainSegmentLoader
         },
         mediaTypes: MediaGroups.createMediaTypes(),
-        masterPlaylistLoader
+        mainPlaylistLoader
       };
       const mediaType = settings.mediaTypes[type];
       const groups = mediaType.groups;
@@ -558,7 +558,7 @@ QUnit.module('MediaGroups', function() {
       );
 
       mediaType.lastGroup_ = null;
-      groups.main[1].isMasterPlaylist = true;
+      groups.main[1].isMainPlaylist = true;
 
       onGroupChanged();
 
@@ -605,14 +605,14 @@ QUnit.module('MediaGroups', function() {
           pause() {}
         };
       };
-      const masterPlaylistLoader = mockPlaylistLoader();
+      const mainPlaylistLoader = mockPlaylistLoader();
       const settings = {
         segmentLoaders: {
           AUDIO: segmentLoader,
           main: mainSegmentLoader
         },
         mediaTypes: MediaGroups.createMediaTypes(),
-        masterPlaylistLoader
+        mainPlaylistLoader
       };
       const mediaType = settings.mediaTypes[type];
       const groups = mediaType.groups;
@@ -801,20 +801,20 @@ QUnit.module('MediaGroups', function() {
     });
   };
 
-  QUnit.test('onTrackChanged with isMasterPlaylist', function(assert) {
+  QUnit.test('onTrackChanged with isMainPlaylist', function(assert) {
     this.media = {id: 'en', attributes: {AUDIO: 'main'}};
     this.nextMedia = {id: 'fr', attributes: {AUDIO: 'main'}};
 
     const audioSegmentLoader = mockSegmentLoader();
     const mainSegmentLoader = mockSegmentLoader();
-    const masterPlaylistLoader = Object.assign(mockPlaylistLoader(), {
+    const mainPlaylistLoader = Object.assign(mockPlaylistLoader(), {
       media: () => this.media
     });
     const playlistController_ = Object.assign(mockPlaylistLoader(), {
       media: () => this.media,
       selectPlaylist: () => this.nextMedia
     });
-    const mocks = {audioSegmentLoader, mainSegmentLoader, playlistController_, masterPlaylistLoader};
+    const mocks = {audioSegmentLoader, mainSegmentLoader, playlistController_, mainPlaylistLoader};
     const type = 'AUDIO';
     const settings = {
       segmentLoaders: {
@@ -822,7 +822,7 @@ QUnit.module('MediaGroups', function() {
         main: mainSegmentLoader
       },
       mediaTypes: MediaGroups.createMediaTypes(),
-      masterPlaylistLoader,
+      mainPlaylistLoader,
       vhs: {
         playlistController_
       }
@@ -832,9 +832,9 @@ QUnit.module('MediaGroups', function() {
     const tracks = mediaType.tracks;
 
     groups.main = [
-      { id: 'en', playlistLoader: null, isMasterPlaylist: true },
-      { id: 'fr', playlistLoader: null, isMasterPlaylist: true },
-      { id: 'es', playlistLoader: null, isMasterPlaylist: true }
+      { id: 'en', playlistLoader: null, isMainPlaylist: true },
+      { id: 'fr', playlistLoader: null, isMainPlaylist: true },
+      { id: 'es', playlistLoader: null, isMainPlaylist: true }
     ];
     tracks.en = { id: 'en', enabled: true };
     tracks.fr = { id: 'fr', enabled: false };
@@ -865,7 +865,7 @@ QUnit.module('MediaGroups', function() {
     assert.equal(audioSegmentLoader.calls.pause, 1, 'audioSegmentLoader pause called on track change');
     assert.equal(audioSegmentLoader.calls.abort, 1, 'audioSegmentLoader abort called on track change');
     assert.equal(mainSegmentLoader.calls.resetEverything, 1, 'mainSegmentLoader resetEverything called on track change');
-    assert.equal(masterPlaylistLoader.calls.pause, 1, 'masterPlaylistLoader pause called on track change');
+    assert.equal(mainPlaylistLoader.calls.pause, 1, 'mainPlaylistLoader pause called on track change');
     assert.deepEqual(
       playlistController_.args.fastQualityChange_,
       [this.nextMedia],
@@ -875,7 +875,7 @@ QUnit.module('MediaGroups', function() {
     audioSegmentLoader.calls.pause = 0;
     audioSegmentLoader.calls.abort = 0;
     mainSegmentLoader.calls.resetEverything = 0;
-    masterPlaylistLoader.calls.pause = 0;
+    mainPlaylistLoader.calls.pause = 0;
     playlistController_.args.fastQualityChange_.length = 0;
 
     mocksAreZero(mocks, assert);
@@ -902,7 +902,7 @@ QUnit.module('MediaGroups', function() {
     assert.equal(audioSegmentLoader.calls.pause, 1, 'audioSegmentLoader pause called on track change');
     assert.equal(audioSegmentLoader.calls.abort, 1, 'audioSegmentLoader abort called on track change');
     assert.equal(mainSegmentLoader.calls.resetEverything, 1, 'mainSegmentLoader resetEverything called on track change');
-    assert.equal(masterPlaylistLoader.calls.pause, 1, 'masterPlaylistLoader pause called on track change');
+    assert.equal(mainPlaylistLoader.calls.pause, 1, 'mainPlaylistLoader pause called on track change');
     assert.deepEqual(
       playlistController_.args.fastQualityChange_,
       [this.nextMedia],
@@ -912,7 +912,7 @@ QUnit.module('MediaGroups', function() {
     audioSegmentLoader.calls.pause = 0;
     audioSegmentLoader.calls.abort = 0;
     mainSegmentLoader.calls.resetEverything = 0;
-    masterPlaylistLoader.calls.pause = 0;
+    mainPlaylistLoader.calls.pause = 0;
     playlistController_.args.fastQualityChange_.length = 0;
 
     mocksAreZero(mocks, assert);
@@ -931,7 +931,7 @@ QUnit.module('MediaGroups', function() {
 
       const type = 'AUDIO';
       const segmentLoader = { abort() {}, pause() {} };
-      const masterPlaylistLoader = {
+      const mainPlaylistLoader = {
         media() {
           return { attributes: { AUDIO: 'main' } };
         }
@@ -940,7 +940,7 @@ QUnit.module('MediaGroups', function() {
         segmentLoaders: { AUDIO: segmentLoader },
         mediaTypes: MediaGroups.createMediaTypes(),
         excludePlaylist: () => excludePlaylistCalls++,
-        masterPlaylistLoader
+        mainPlaylistLoader
       };
       const mediaType = settings.mediaTypes[type];
       const groups = mediaType.groups;
@@ -1075,7 +1075,7 @@ QUnit.module('MediaGroups', function() {
       };
       this.settings = {
         mode: 'html5',
-        masterPlaylistLoader: {main: this.main},
+        mainPlaylistLoader: {main: this.main},
         vhs: {},
         tech: {
           options_: {},
@@ -1575,7 +1575,7 @@ QUnit.module('MediaGroups', function() {
       this.media = null;
       this.settings = {
         mode: 'html5',
-        masterPlaylistLoader: {
+        mainPlaylistLoader: {
           main: this.main,
           media: () => this.media,
           on() {}

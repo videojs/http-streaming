@@ -13,7 +13,7 @@ const generateMedia = function({
   const codec = (hasVideoCodec ? 'avc1.deadbeef' : '') +
     (hasVideoCodec && hasAudioCodec ? ',' : '') +
     (hasAudioCodec ? 'mp4a.40.E' : '');
-  const master = {
+  const main = {
     mediaGroups: {},
     playlists: []
   };
@@ -22,7 +22,7 @@ const generateMedia = function({
   };
 
   if (isMaat) {
-    master.mediaGroups.AUDIO = {
+    main.mediaGroups.AUDIO = {
       test: {
         demuxed: {
           uri: 'foo.bar'
@@ -31,7 +31,7 @@ const generateMedia = function({
     };
 
     if (isMuxed) {
-      master.mediaGroups.AUDIO.test.muxed = {};
+      main.mediaGroups.AUDIO.test.muxed = {};
     }
     media.attributes.AUDIO = 'test';
   }
@@ -50,7 +50,7 @@ const generateMedia = function({
     media.attributes.CODECS = codec;
   }
 
-  return [master, media];
+  return [main, media];
 };
 
 QUnit.module('Codec to MIME Type Conversion');
@@ -244,7 +244,7 @@ QUnit.test(
         { map: 'test' }
       ]
     };
-    const master = {
+    const main = {
       mediaGroups: {
         AUDIO: {
           test: {
@@ -259,7 +259,7 @@ QUnit.test(
 
     // HLS case, URI present for the alt audio playlist
     assert.deepEqual(
-      codecsForPlaylist(master, media),
+      codecsForPlaylist(main, media),
       {
         audio: 'mp4a.40.E',
         video: 'avc1.deadbeef'
@@ -268,9 +268,9 @@ QUnit.test(
     );
 
     // HLS case, no URI or alt audio playlist present, so no available alt audio
-    delete master.mediaGroups.AUDIO.test.demuxed.uri;
+    delete main.mediaGroups.AUDIO.test.demuxed.uri;
     assert.deepEqual(
-      codecsForPlaylist(master, media),
+      codecsForPlaylist(main, media),
       {
         audio: 'mp4a.40.E',
         video: 'avc1.deadbeef'
@@ -279,9 +279,9 @@ QUnit.test(
     );
 
     // DASH case, no URI but a playlist is available for alt audio
-    master.mediaGroups.AUDIO.test.demuxed.playlists = [{}];
+    main.mediaGroups.AUDIO.test.demuxed.playlists = [{}];
     assert.deepEqual(
-      codecsForPlaylist(master, media),
+      codecsForPlaylist(main, media),
       {
         audio: 'mp4a.40.E',
         video: 'avc1.deadbeef'
@@ -305,7 +305,7 @@ QUnit.test(
       ]
     };
     // dash audio playlist won't have a URI but will have resolved playlists
-    const master = {
+    const main = {
       mediaGroups: {
         AUDIO: {
           test: {
@@ -324,7 +324,7 @@ QUnit.test(
     };
 
     assert.deepEqual(
-      codecsForPlaylist(master, media),
+      codecsForPlaylist(main, media),
       {
         audio: 'mp4a.40.E',
         video: 'avc1.deadbeef'
@@ -332,9 +332,9 @@ QUnit.test(
       'uses audio codec from media group'
     );
 
-    delete master.mediaGroups.AUDIO.test.demuxed.default;
+    delete main.mediaGroups.AUDIO.test.demuxed.default;
     assert.deepEqual(
-      codecsForPlaylist(master, media),
+      codecsForPlaylist(main, media),
       {
         video: 'avc1.deadbeef'
       },
@@ -344,7 +344,7 @@ QUnit.test(
 );
 
 QUnit.test('parses codecs regardless of codec order', function(assert) {
-  const master = {
+  const main = {
     mediaGroups: {},
     playlists: []
   };
@@ -355,7 +355,7 @@ QUnit.test('parses codecs regardless of codec order', function(assert) {
   };
 
   assert.deepEqual(
-    codecsForPlaylist(master, media),
+    codecsForPlaylist(main, media),
     {
       audio: 'mp4a.40.e',
       video: 'avc1.deadbeef'
@@ -366,7 +366,7 @@ QUnit.test('parses codecs regardless of codec order', function(assert) {
   media.attributes.CODECS = 'mp4a.40.e, avc1.deadbeef';
 
   assert.deepEqual(
-    codecsForPlaylist(master, media),
+    codecsForPlaylist(main, media),
     {
       audio: 'mp4a.40.e',
       video: 'avc1.deadbeef'

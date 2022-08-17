@@ -88,18 +88,18 @@ export const getKnownPartCount = ({preloadSegment}) => {
  * Get the number of seconds to delay from the end of a
  * live playlist.
  *
- * @param {Playlist} master the master playlist
+ * @param {Playlist} main the main playlist
  * @param {Playlist} media the media playlist
  * @return {number} the hold back in seconds.
  */
-export const liveEdgeDelay = (master, media) => {
+export const liveEdgeDelay = (main, media) => {
   if (media.endList) {
     return 0;
   }
 
   // dash suggestedPresentationDelay trumps everything
-  if (master && master.suggestedPresentationDelay) {
-    return master.suggestedPresentationDelay;
+  if (main && main.suggestedPresentationDelay) {
+    return main.suggestedPresentationDelay;
   }
 
   const hasParts = getLastParts(media).length > 0;
@@ -647,14 +647,14 @@ export const estimateSegmentRequestTime = function(
  *
  * @return {Boolean} true if on lowest rendition
  */
-export const isLowestEnabledRendition = (master, media) => {
-  if (master.playlists.length === 1) {
+export const isLowestEnabledRendition = (main, media) => {
+  if (main.playlists.length === 1) {
     return true;
   }
 
   const currentBandwidth = media.attributes.BANDWIDTH || Number.MAX_VALUE;
 
-  return (master.playlists.filter((playlist) => {
+  return (main.playlists.filter((playlist) => {
     if (!isEnabled(playlist)) {
       return false;
     }
@@ -698,8 +698,8 @@ export const playlistMatch = (a, b) => {
   return false;
 };
 
-const someAudioVariant = function(master, callback) {
-  const AUDIO = master && master.mediaGroups && master.mediaGroups.AUDIO || {};
+const someAudioVariant = function(main, callback) {
+  const AUDIO = main && main.mediaGroups && main.mediaGroups.AUDIO || {};
   let found = false;
 
   for (const groupName in AUDIO) {
@@ -719,21 +719,21 @@ const someAudioVariant = function(master, callback) {
   return !!found;
 };
 
-export const isAudioOnly = (master) => {
+export const isAudioOnly = (main) => {
   // we are audio only if we have no main playlists but do
   // have media group playlists.
-  if (!master || !master.playlists || !master.playlists.length) {
+  if (!main || !main.playlists || !main.playlists.length) {
     // without audio variants or playlists this
-    // is not an audio only master.
-    const found = someAudioVariant(master, (variant) =>
+    // is not an audio only main.
+    const found = someAudioVariant(main, (variant) =>
       (variant.playlists && variant.playlists.length) || variant.uri);
 
     return found;
   }
 
   // if every playlist has only an audio codec it is audio only
-  for (let i = 0; i < master.playlists.length; i++) {
-    const playlist = master.playlists[i];
+  for (let i = 0; i < main.playlists.length; i++) {
+    const playlist = main.playlists[i];
     const CODECS = playlist.attributes && playlist.attributes.CODECS;
 
     // all codecs are audio, this is an audio playlist.
@@ -742,7 +742,7 @@ export const isAudioOnly = (master) => {
     }
 
     // playlist is in an audio group it is audio only
-    const found = someAudioVariant(master, (variant) => playlistMatch(playlist, variant));
+    const found = someAudioVariant(main, (variant) => playlistMatch(playlist, variant));
 
     if (found) {
       continue;

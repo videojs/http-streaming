@@ -1,4 +1,4 @@
-# A simple master playlist with multiple variant streams
+# A simple main playlist with multiple variant streams
 #EXTM3U
 
 #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="English",DEFAULT=NO,AUTOSELECT=YES,FORCED=NO,LANGUAGE="en",URI="subtitles/en/index.m3u8"

@@ -598,10 +598,10 @@ export default class PlaylistLoader extends EventTarget {
 
     const startingState = this.state;
     const mediaChange = !this.media_ || playlist.id !== this.media_.id;
-    const masterPlaylistRef = this.main.playlists[playlist.id];
+    const mainPlaylistRef = this.main.playlists[playlist.id];
 
     // switch to fully loaded playlists immediately
-    if (masterPlaylistRef && masterPlaylistRef.endList ||
+    if (mainPlaylistRef && mainPlaylistRef.endList ||
         // handle the case of a playlist object (e.g., if using vhs-json with a resolved
         // media playlist or, for the case of demuxed audio, a resolved audio media group)
         (playlist.endList && playlist.segments.length)) {
