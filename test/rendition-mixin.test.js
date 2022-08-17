@@ -56,7 +56,7 @@ const makeMockVhsHandler = function(playlistOptions = [], handlerOptions = {}, m
     fastQualityChange_: () => {
       pc.fastQualityChange_.calls++;
     },
-    master: () => {
+    main: () => {
       return vhsHandler.playlists.main;
     },
     getAudioTrackPlaylists_: () => {

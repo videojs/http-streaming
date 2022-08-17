@@ -81,7 +81,7 @@ Afterwards, you want to push the commit and the tag to the repo.
 It's necessary to do this before running `npm publish` because our GitHub release automation relies on the commit being available on GitHub.
 
 ```sh
-git push --follow-tags origin master
+git push --follow-tags origin main
 ```
 
 Publish to npm.
@@ -90,15 +90,15 @@ Publish to npm.
 npm publish
 ```
 
-After it's done, [create a release in github](https://github.com/videojs/http-streaming/releases/new) with latest tag, no title, description copied from [the changelog](https://github.com/videojs/http-streaming/blob/master/CHANGELOG.md), and the .min.js and .js dist files attached.
+After it's done, [create a release in github](https://github.com/videojs/http-streaming/releases/new) with latest tag, no title, description copied from [the changelog](https://github.com/videojs/http-streaming/blob/main/CHANGELOG.md), and the .min.js and .js dist files attached.
 
 If it's a large enough release, consider writing a blog post as well.
 
 ## Doc credit
 
-This collaborator guide was heavily inspired by [node.js's guide](https://github.com/nodejs/node/blob/master/COLLABORATOR_GUIDE.md) and [video.js's guide](https://github.com/videojs/video.js/blob/master/COLLABORATOR_GUIDE.md)
+This collaborator guide was heavily inspired by [node.js's guide](https://github.com/nodejs/node/blob/main/COLLABORATOR_GUIDE.md) and [video.js's guide](https://github.com/videojs/video.js/blob/main/COLLABORATOR_GUIDE.md)
 
-[conventions]: https://github.com/videojs/conventional-changelog-videojs/blob/master/convention.md
+[conventions]: https://github.com/videojs/conventional-changelog-videojs/blob/main/convention.md
 
 [vjs npm]: http://npmjs.com/org/videojs
 
