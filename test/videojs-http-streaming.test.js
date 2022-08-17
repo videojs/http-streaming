@@ -3903,7 +3903,7 @@ QUnit.test('when mediaGroup changes enabled track should not change', function(a
   // clear out any outstanding requests
   this.requests.length = 0;
   // force pc to select a playlist from a new media group
-  pc.main.media(pc.master().playlists[0]);
+  pc.masterPlaylistLoader_.media(pc.master().playlists[0]);
   this.clock.tick(1);
 
   // video media
