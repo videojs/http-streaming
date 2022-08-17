@@ -523,7 +523,7 @@ export class PlaylistController extends videojs.EventTarget {
         requestOptions: this.requestOptions_,
         masterPlaylistLoader: this.masterPlaylistLoader_,
         vhs: this.vhs_,
-        master: this.master(),
+        main: this.master(),
         mediaTypes: this.mediaTypes_,
         excludePlaylist: this.excludePlaylist.bind(this)
       });

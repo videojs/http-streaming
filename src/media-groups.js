@@ -421,7 +421,7 @@ export const initialize = {
       sourceType,
       segmentLoaders: { [type]: segmentLoader },
       requestOptions,
-      master: {mediaGroups},
+      main: {mediaGroups},
       mediaTypes: {
         [type]: {
           groups,
@@ -437,7 +437,7 @@ export const initialize = {
     // force a default if we have none
     if (!mediaGroups[type] ||
         Object.keys(mediaGroups[type]).length === 0) {
-      mediaGroups[type] = { master: { default: { default: true } } };
+      mediaGroups[type] = { main: { default: { default: true } } };
       if (audioOnlyMaster) {
         mediaGroups[type].main.default.playlists = masterPlaylistLoader.main.playlists;
       }
@@ -529,7 +529,7 @@ export const initialize = {
       sourceType,
       segmentLoaders: { [type]: segmentLoader },
       requestOptions,
-      master: { mediaGroups },
+      main: { mediaGroups },
       mediaTypes: {
         [type]: {
           groups,
@@ -624,7 +624,7 @@ export const initialize = {
   'CLOSED-CAPTIONS': (type, settings) => {
     const {
       tech,
-      master: { mediaGroups },
+      main: { mediaGroups },
       mediaTypes: {
         [type]: {
           groups,
