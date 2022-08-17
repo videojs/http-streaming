@@ -33,7 +33,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
 
     window.WebVTT = () => {};
     window.WebVTT.StringDecoder = () => {};
-    window.WebVTT.Parser = () => {
+    window.WebVTT.Parser = function() {
       this.parserCreated = true;
       return {
         oncue() {},
@@ -423,7 +423,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
       function(assert) {
         const playlist = playlistWithDuration(40);
 
-        window.WebVTT.Parser = () => {
+        window.WebVTT.Parser = function() {
           this.parserCreated = true;
           return {
             oncue() {},
@@ -496,7 +496,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
 
         const playlist = playlistWithDuration(10);
 
-        window.WebVTT.Parser = () => {
+        window.WebVTT.Parser = function() {
           this.parserCreated = true;
           return {
             oncue() {},
