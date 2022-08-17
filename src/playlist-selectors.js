@@ -458,7 +458,7 @@ export const movingAverageBandwidthSelector = function(decay) {
  */
 export const minRebufferMaxBandwidthSelector = function(settings) {
   const {
-    master: main,
+    main,
     currentTime,
     bandwidth,
     duration,
