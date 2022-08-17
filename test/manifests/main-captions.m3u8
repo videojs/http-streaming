@@ -1,4 +1,4 @@
-# A simple master playlist with multiple variant streams
+# A simple main playlist with multiple variant streams
 #EXTM3U
 
 #EXT-X-MEDIA:TYPE=CLOSED-CAPTIONS,GROUP-ID="CCs",LANGUAGE="en",NAME="English608",DEFAULT=YES,AUTOSELECT=YES,INSTREAM-ID="CC1"

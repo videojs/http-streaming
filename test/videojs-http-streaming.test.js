@@ -1790,7 +1790,7 @@ QUnit.test('excludes fmp4 playlists by browser support', function(assert) {
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  const playlistLoader = pc.masterPlaylistLoader_;
+  const playlistLoader = pc.mainPlaylistLoader_;
   const loader = pc.mainSegmentLoader_;
   const main = this.player.tech_.vhs.playlists.main;
 
@@ -1863,7 +1863,7 @@ QUnit.test('excludes ts playlists by muxer support', function(assert) {
   this.standardXHRResponse(this.requests.shift());
 
   const pc = this.player.tech_.vhs.playlistController_;
-  const playlistLoader = pc.masterPlaylistLoader_;
+  const playlistLoader = pc.mainPlaylistLoader_;
   const loader = pc.mainSegmentLoader_;
   const main = this.player.tech_.vhs.playlists.main;
 
@@ -2332,7 +2332,7 @@ QUnit.test('fire loadedmetadata once we successfully load a playlist', function(
   const vhs = this.player.tech_.vhs;
 
   vhs.bandwidth = 20000;
-  vhs.playlistController_.masterPlaylistLoader_.on('loadedmetadata', function() {
+  vhs.playlistController_.mainPlaylistLoader_.on('loadedmetadata', function() {
     count += 1;
   });
   // main
@@ -3176,7 +3176,7 @@ QUnit.test('calling play() at the end of a video replays', function(assert) {
 
 QUnit.test('keys are resolved relative to the main playlist', function(assert) {
   this.player.src({
-    src: 'video/master-encrypted.m3u8',
+    src: 'video/main-encrypted.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -3903,7 +3903,7 @@ QUnit.test('when mediaGroup changes enabled track should not change', function(a
   // clear out any outstanding requests
   this.requests.length = 0;
   // force pc to select a playlist from a new media group
-  pc.masterPlaylistLoader_.media(pc.master().playlists[0]);
+  pc.mainPlaylistLoader_.media(pc.main().playlists[0]);
   this.clock.tick(1);
 
   // video media
@@ -3933,7 +3933,7 @@ QUnit.test('when mediaGroup changes enabled track should not change', function(a
   this.requests.length = 0;
   // swap back to the old media group
   // this playlist is already loaded so no new requests are made
-  pc.masterPlaylistLoader_.media(pc.master().playlists[3]);
+  pc.mainPlaylistLoader_.media(pc.main().playlists[3]);
   this.clock.tick(1);
 
   assert.notEqual(
@@ -4161,7 +4161,7 @@ QUnit.test('configures eme for DASH on source buffer creation', function(assert)
     }
   };
   this.player.src({
-    src: 'manifest/master.mpd',
+    src: 'manifest/main.mpd',
     type: 'application/dash+xml',
     keySystems: {
       keySystem1: {
@@ -4210,7 +4210,7 @@ QUnit.test('configures eme for DASH on source buffer creation', function(assert)
   }, 'did not modify plugin options');
 
   assert.deepEqual(this.player.currentSource(), {
-    src: 'manifest/master.mpd',
+    src: 'manifest/main.mpd',
     type: 'application/dash+xml',
     keySystems: {
       keySystem1: {
@@ -4613,7 +4613,7 @@ QUnit[testOrSkip]('player error when key session creation rejects promise', func
     }
   };
   this.player.src({
-    src: 'manifest/master.mpd',
+    src: 'manifest/main.mpd',
     type: 'application/dash+xml',
     keySystems: {
       keySystem1: {
@@ -4652,7 +4652,7 @@ QUnit.test(
   'does not set source keySystems if keySystems not provided by source',
   function(assert) {
     this.player.src({
-      src: 'manifest/master.mpd',
+      src: 'manifest/main.mpd',
       type: 'application/dash+xml'
     });
 
@@ -4693,7 +4693,7 @@ QUnit.test(
     this.player.tech_.vhs.playlistController_.sourceUpdater_.trigger('ready');
 
     assert.deepEqual(this.player.currentSource(), {
-      src: 'manifest/master.mpd',
+      src: 'manifest/main.mpd',
       type: 'application/dash+xml'
     }, 'does not set source eme options');
   }

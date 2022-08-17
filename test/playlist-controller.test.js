@@ -29,7 +29,7 @@ import PlaylistLoader from '../src/playlist-loader';
 import DashPlaylistLoader from '../src/dash-playlist-loader';
 import {
   parseManifest,
-  addPropertiesToMaster
+  addPropertiesToMain
 } from '../src/manifest.js';
 import {
   muxed as muxedSegment,
@@ -109,17 +109,17 @@ QUnit.module('PlaylistController', sharedHooks);
 
 QUnit.test('getAudioTrackPlaylists_ works', function(assert) {
   const pc = this.playlistController;
-  const master = {playlists: [{uri: 'testing'}]};
+  const mainPlaylist = {playlists: [{uri: 'testing'}]};
 
-  pc.master = () => master;
+  pc.main = () => mainPlaylist;
 
   assert.deepEqual(
     pc.getAudioTrackPlaylists_(),
-    master.playlists,
+    mainPlaylist.playlists,
     'no media groups, return main playlists'
   );
 
-  master.mediaGroups = {
+  mainPlaylist.mediaGroups = {
     AUDIO: {
       main: {
         en: {default: true, label: 'en', playlists: [{uri: 'foo'}, {uri: 'bar'}]},
@@ -142,12 +142,12 @@ QUnit.test('getAudioTrackPlaylists_ works', function(assert) {
   const main = [];
   const alt = [];
 
-  Object.keys(master.mediaGroups.AUDIO.main).forEach(function(k) {
-    main.push(master.mediaGroups.AUDIO.main[k]);
+  Object.keys(mainPlaylist.mediaGroups.AUDIO.main).forEach(function(k) {
+    main.push(mainPlaylist.mediaGroups.AUDIO.main[k]);
   });
 
-  Object.keys(master.mediaGroups.AUDIO.alt).forEach(function(k) {
-    alt.push(master.mediaGroups.AUDIO.alt[k]);
+  Object.keys(mainPlaylist.mediaGroups.AUDIO.alt).forEach(function(k) {
+    alt.push(mainPlaylist.mediaGroups.AUDIO.alt[k]);
   });
 
   pc.mediaTypes_.AUDIO.groups = {
@@ -163,11 +163,11 @@ QUnit.test('getAudioTrackPlaylists_ works', function(assert) {
     {uri: 'bazz-fr'}
   ], 'returns all dash style fr playlists');
 
-  delete master.mediaGroups.AUDIO.main.fr.playlists;
-  master.mediaGroups.AUDIO.main.fr.uri = 'fizz-fr';
+  delete mainPlaylist.mediaGroups.AUDIO.main.fr.playlists;
+  mainPlaylist.mediaGroups.AUDIO.main.fr.uri = 'fizz-fr';
 
-  delete master.mediaGroups.AUDIO.alt.fr.playlists;
-  master.mediaGroups.AUDIO.alt.fr.uri = 'buzz-fr';
+  delete mainPlaylist.mediaGroups.AUDIO.alt.fr.playlists;
+  mainPlaylist.mediaGroups.AUDIO.alt.fr.uri = 'buzz-fr';
 
   assert.deepEqual(pc.getAudioTrackPlaylists_(), [
     {uri: 'fizz-fr', label: 'fr'},
@@ -178,11 +178,11 @@ QUnit.test('getAudioTrackPlaylists_ works', function(assert) {
 
 QUnit.test('getAudioTrackPlaylists_ without track', function(assert) {
   const pc = this.playlistController;
-  const master = {playlists: [{uri: 'testing'}]};
+  const main = {playlists: [{uri: 'testing'}]};
 
-  pc.master = () => master;
+  pc.main = () => main;
 
-  master.mediaGroups = {
+  main.mediaGroups = {
     AUDIO: {
       main: {
         en: {label: 'en', playlists: [{uri: 'foo'}, {uri: 'bar'}]},
@@ -193,8 +193,8 @@ QUnit.test('getAudioTrackPlaylists_ without track', function(assert) {
 
   assert.deepEqual(
     pc.getAudioTrackPlaylists_(),
-    master.playlists,
-    'no default track, returns master playlists.'
+    main.playlists,
+    'no default track, returns main playlists.'
   );
 
   pc.mediaTypes_.AUDIO.groups = {foo: [{}]};
@@ -202,22 +202,22 @@ QUnit.test('getAudioTrackPlaylists_ without track', function(assert) {
 
   assert.deepEqual(
     pc.getAudioTrackPlaylists_(),
-    master.playlists,
-    'no active track, returns master playlists.'
+    main.playlists,
+    'no active track, returns main playlists.'
   );
 
 });
 
 QUnit.test('getAudioTrackPlaylists_ with track but groups are main playlists', function(assert) {
   const pc = this.playlistController;
-  const master = {playlists: [
+  const main = {playlists: [
     {uri: '720-audio', attributes: {AUDIO: '720'}},
     {uri: '1080-audio', attributes: {AUDIO: '1080'}}
   ]};
 
-  pc.master = () => master;
+  pc.main = () => main;
 
-  master.mediaGroups = {
+  main.mediaGroups = {
     AUDIO: {
       720: {
         audio: {default: true, label: 'audio'}
@@ -233,21 +233,21 @@ QUnit.test('getAudioTrackPlaylists_ with track but groups are main playlists', f
 
   assert.deepEqual(
     pc.getAudioTrackPlaylists_(),
-    [master.playlists[0], master.playlists[1]],
+    [main.playlists[0], main.playlists[1]],
     'returns all audio label playlists'
   );
 });
 
 QUnit.test('getAudioTrackPlaylists_ invalid audio groups', function(assert) {
   const pc = this.playlistController;
-  const master = {playlists: [
+  const main = {playlists: [
     {uri: 'foo-playlist'},
     {uri: 'bar-playlist'}
   ]};
 
-  pc.master = () => master;
+  pc.main = () => main;
 
-  master.mediaGroups = {
+  main.mediaGroups = {
     AUDIO: {
       720: {
         audio: {default: true, label: 'audio'}
@@ -263,8 +263,8 @@ QUnit.test('getAudioTrackPlaylists_ invalid audio groups', function(assert) {
 
   assert.deepEqual(
     pc.getAudioTrackPlaylists_(),
-    master.playlists,
-    'returns all master playlists'
+    main.playlists,
+    'returns all main playlists'
   );
 });
 
@@ -292,7 +292,7 @@ QUnit.test('throws error when given an empty URL', function(assert) {
 
 QUnit.test('obeys none preload option', function(assert) {
   this.player.preload('none');
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
   // playlist
   this.standardXHRResponse(this.requests.shift());
@@ -307,7 +307,7 @@ QUnit.test('obeys none preload option', function(assert) {
 
 QUnit.test('obeys auto preload option', function(assert) {
   this.player.preload('auto');
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
   // playlist
   this.standardXHRResponse(this.requests.shift());
@@ -328,7 +328,7 @@ QUnit.test('passes options to PlaylistLoader', function(assert) {
 
   let controller = new PlaylistController(options);
 
-  assert.notOk(controller.masterPlaylistLoader_.withCredentials, 'credentials wont be sent by default');
+  assert.notOk(controller.mainPlaylistLoader_.withCredentials, 'credentials wont be sent by default');
 
   controller.dispose();
 
@@ -336,13 +336,13 @@ QUnit.test('passes options to PlaylistLoader', function(assert) {
     withCredentials: true
   }, options));
 
-  assert.ok(controller.masterPlaylistLoader_.withCredentials, 'withCredentials enabled');
+  assert.ok(controller.mainPlaylistLoader_.withCredentials, 'withCredentials enabled');
   controller.dispose();
 });
 
 QUnit.test('obeys metadata preload option', function(assert) {
   this.player.preload('metadata');
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
   // playlist
   this.standardXHRResponse(this.requests.shift());
@@ -365,7 +365,7 @@ QUnit.test('creates appropriate PlaylistLoader for sourceType', function(assert)
   let pc = new PlaylistController(options);
 
   assert.ok(
-    pc.masterPlaylistLoader_ instanceof PlaylistLoader,
+    pc.mainPlaylistLoader_ instanceof PlaylistLoader,
     'created a standard playlist loader'
   );
 
@@ -374,7 +374,7 @@ QUnit.test('creates appropriate PlaylistLoader for sourceType', function(assert)
   pc = new PlaylistController(options);
 
   assert.ok(
-    pc.masterPlaylistLoader_ instanceof DashPlaylistLoader,
+    pc.mainPlaylistLoader_ instanceof DashPlaylistLoader,
     'created a dash playlist loader'
   );
   pc.dispose();
@@ -382,7 +382,7 @@ QUnit.test('creates appropriate PlaylistLoader for sourceType', function(assert)
   pc = new PlaylistController(options);
 
   assert.ok(
-    pc.masterPlaylistLoader_ instanceof PlaylistLoader,
+    pc.mainPlaylistLoader_ instanceof PlaylistLoader,
     'created a standard playlist loader for vhs-json source type'
   );
 
@@ -434,7 +434,7 @@ QUnit.test(
   function(assert) {
     let resets = 0;
 
-    // master
+    // main
     this.standardXHRResponse(this.requests.shift());
     // media
     this.standardXHRResponse(this.requests.shift());
@@ -492,16 +492,16 @@ QUnit.test(
 
     this.playlistController.selectPlaylist = () => {
       numCallsToSelectPlaylist++;
-      return this.playlistController.master().playlists[0];
+      return this.playlistController.main().playlists[0];
     };
 
     this.playlistController.selectInitialPlaylist = () => {
       numCallsToSelectInitialPlaylistCalls++;
-      return this.playlistController.master().playlists[0];
+      return this.playlistController.main().playlists[0];
     };
 
     this.playlistController.mediaSource.trigger('sourceopen');
-    // master
+    // main
     this.standardXHRResponse(this.requests.shift());
     // media
     this.standardXHRResponse(this.requests.shift());
@@ -512,7 +512,7 @@ QUnit.test(
     assert.equal(numCallsToSelectPlaylist, 0, 'selectPlaylist');
 
     // Simulate a live reload
-    this.playlistController.masterPlaylistLoader_.trigger('loadedplaylist');
+    this.playlistController.mainPlaylistLoader_.trigger('loadedplaylist');
 
     assert.equal(numCallsToSelectInitialPlaylistCalls, 1, 'selectInitialPlaylist');
     assert.equal(numCallsToSelectPlaylist, 0, 'selectPlaylist');
@@ -525,7 +525,7 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
   let removeFuncArgs = {};
 
   this.playlistController.mediaSource.trigger('sourceopen');
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
@@ -575,7 +575,7 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
 
   // media is changed
   this.playlistController.selectPlaylist = () => {
-    const playlists = this.playlistController.master().playlists;
+    const playlists = this.playlistController.main().playlists;
     const currentPlaylist = this.playlistController.media();
 
     return playlists.find((playlist) => playlist !== currentPlaylist);
@@ -594,7 +594,7 @@ QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', fun
   let seeks = 0;
 
   this.playlistController.mediaSource.trigger('sourceopen');
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
@@ -608,7 +608,7 @@ QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', fun
   }).then(() => {
     // media is changed
     this.playlistController.selectPlaylist = () => {
-      const playlists = this.playlistController.master().playlists;
+      const playlists = this.playlistController.main().playlists;
       const currentPlaylist = this.playlistController.media();
 
       return playlists.find((playlist) => playlist !== currentPlaylist);
@@ -646,7 +646,7 @@ QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', fun
 QUnit.test('basic timeToLoadedData, mediaAppends, appendsToLoadedData stats', function(assert) {
   this.player.tech_.trigger('loadstart');
   this.playlistController.mediaSource.trigger('sourceopen');
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
@@ -672,7 +672,7 @@ QUnit.test('basic timeToLoadedData, mediaAppends, appendsToLoadedData stats', fu
 QUnit.test('timeToLoadedData, mediaAppends, appendsToLoadedData stats with 0 length appends', function(assert) {
   this.player.tech_.trigger('loadstart');
   this.playlistController.mediaSource.trigger('sourceopen');
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
@@ -734,7 +734,7 @@ QUnit.test('preload none timeToLoadedData, mediaAppends, appendsToLoadedData sta
   this.player.tech_.paused = () => false;
   this.player.tech_.trigger('play');
 
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
 
   // media
@@ -784,7 +784,7 @@ QUnit.test('demuxed timeToLoadedData, mediaAppends, appendsToLoadedData stats', 
                      '#EXT-X-ENDLIST\n';
 
   pc.mediaSource.trigger('sourceopen');
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift(), manifests.demuxed);
 
   // video media
@@ -822,7 +822,7 @@ QUnit.test('seeks forward 0.04 sec for fast quality switch on Edge', function(as
   let seeks = 0;
 
   this.playlistController.mediaSource.trigger('sourceopen');
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
@@ -836,7 +836,7 @@ QUnit.test('seeks forward 0.04 sec for fast quality switch on Edge', function(as
   }).then(() => {
     // media is changed
     this.playlistController.selectPlaylist = () => {
-      const playlists = this.playlistController.master().playlists;
+      const playlists = this.playlistController.main().playlists;
       const currentPlaylist = this.playlistController.media();
 
       return playlists.find((playlist) => playlist !== currentPlaylist);
@@ -879,7 +879,7 @@ QUnit.test('seeks forward 0.04 sec for fast quality switch on IE', function(asse
   let seeks = 0;
 
   this.playlistController.mediaSource.trigger('sourceopen');
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
@@ -893,7 +893,7 @@ QUnit.test('seeks forward 0.04 sec for fast quality switch on IE', function(asse
   }).then(() => {
     // media is changed
     this.playlistController.selectPlaylist = () => {
-      const playlists = this.playlistController.master().playlists;
+      const playlists = this.playlistController.main().playlists;
       const currentPlaylist = this.playlistController.media();
 
       return playlists.find((playlist) => playlist !== currentPlaylist);
@@ -944,10 +944,10 @@ QUnit.test('audio segment loader is reset on audio track change', function(asser
   const playlistController = this.player.tech_.vhs.playlistController_;
 
   playlistController.selectPlaylist = () => {
-    return playlistController.master().playlists[0];
+    return playlistController.main().playlists[0];
   };
 
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
@@ -1055,7 +1055,7 @@ QUnit.test(
   're-initializes the combined playlist loader when switching sources',
   function(assert) {
     openMediaSource(this.player, this.clock);
-    // master
+    // main
     this.standardXHRResponse(this.requests.shift());
     // playlist
     this.standardXHRResponse(this.requests.shift());
@@ -1076,11 +1076,11 @@ QUnit.test(
     // maybe not needed if https://github.com/videojs/video.js/issues/2326 gets fixed
     this.clock.tick(1);
     assert.ok(
-      !this.playlistController.masterPlaylistLoader_.media(),
+      !this.playlistController.mainPlaylistLoader_.media(),
       'no media playlist'
     );
     assert.equal(
-      this.playlistController.masterPlaylistLoader_.state,
+      this.playlistController.mainPlaylistLoader_.state,
       'HAVE_NOTHING',
       'reset the playlist loader state'
     );
@@ -1106,7 +1106,7 @@ QUnit.test('excludes playlists with unsupported codecs before initial selection'
   window.MediaSource.isTypeSupported = (type) => (/(mp4a|avc1)/).test(type);
 
   this.playlistController.selectPlaylist = () => {
-    const playlists = this.playlistController.master().playlists;
+    const playlists = this.playlistController.main().playlists;
 
     assert.equal(playlists[0].excludeUntil, Infinity, 'theora excluded');
     assert.equal(playlists[1].excludeUntil, undefined, 'avc/mp4a not excluded');
@@ -1116,7 +1116,7 @@ QUnit.test('excludes playlists with unsupported codecs before initial selection'
 
   openMediaSource(this.player, this.clock);
 
-  // master
+  // main
   this.requests.shift().respond(
     200, null,
     '#EXTM3U\n' +
@@ -1140,7 +1140,7 @@ QUnit.test(
     const updates = [];
 
     openMediaSource(this.player, this.clock);
-    // master
+    // main
     this.standardXHRResponse(this.requests.shift());
     // media
     this.standardXHRResponse(this.requests.shift());
@@ -1149,7 +1149,7 @@ QUnit.test(
       updates.push(update);
     };
 
-    this.playlistController.masterPlaylistLoader_.trigger('loadedplaylist');
+    this.playlistController.mainPlaylistLoader_.trigger('loadedplaylist');
     assert.equal(updates.length, 1, 'updated the segment list');
     // verify stats
     assert.equal(this.player.tech_.vhs.stats.bandwidth, 4194304, 'default bandwidth');
@@ -1163,7 +1163,7 @@ QUnit.test(
 
     openMediaSource(this.player, this.clock);
 
-    // master
+    // main
     this.standardXHRResponse(this.requests.shift());
     // media
     this.standardXHRResponse(this.requests.shift());
@@ -1186,7 +1186,7 @@ QUnit.test(
   'updates the active loader when switching from unmuxed to muxed audio group',
   function(assert) {
     openMediaSource(this.player, this.clock);
-    // master
+    // main
     this.requests.shift().respond(
       200, null,
       manifests.multipleAudioGroupsCombinedMain
@@ -1203,14 +1203,14 @@ QUnit.test(
     this.requests.length = 0;
 
     const pc = this.playlistController;
-    const combinedPlaylist = pc.master().playlists[0];
+    const combinedPlaylist = pc.main().playlists[0];
 
     assert.ok(
       pc.mediaTypes_.AUDIO.activePlaylistLoader,
       'starts with an active playlist loader'
     );
 
-    pc.masterPlaylistLoader_.media(combinedPlaylist);
+    pc.mainPlaylistLoader_.media(combinedPlaylist);
     // updated media
     this.requests.shift().respond(
       200, null,
@@ -1259,7 +1259,7 @@ QUnit.test('waits for both main and audio loaders to finish before calling endOf
   pc.mainSegmentLoader_.currentMediaInfo_ = { hasVideo: true };
   pc.audioSegmentLoader_.currentMediaInfo_ = { hasAudio: true };
 
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift(), manifests.demuxed);
 
   // video media
@@ -1291,7 +1291,7 @@ QUnit.test('waits for both main and audio loaders to finish before calling endOf
 // for: "does not wait for main loader to finish before calling endOfStream with audio
 // only stream and alternate audio active." This will require changes in segment loader to
 // handle disabled audio on the main stream, as well as potential media group changes and
-// master playlist controller changes to use measurements from the audio segment loader as
+// main playlist controller changes to use measurements from the audio segment loader as
 // the primary source when main is disabled.
 
 QUnit.test('Segment loaders are unpaused when seeking after player has ended', function(assert) {
@@ -1312,7 +1312,7 @@ QUnit.test('Segment loaders are unpaused when seeking after player has ended', f
 
   this.player.tech_.trigger('play');
 
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
 
   // media
@@ -1434,7 +1434,7 @@ QUnit.test('excludes switching from video+audio playlists to audio only', functi
 
   this.player.tech_.vhs.bandwidth = 1e10;
 
-  // master
+  // main
   this.requests.shift().respond(
     200, null,
     '#EXTM3U\n' +
@@ -1459,12 +1459,12 @@ QUnit.test('excludes switching from video+audio playlists to audio only', functi
     clock: this.clock
   }).then(() => {
     assert.equal(
-      pc.masterPlaylistLoader_.media(),
-      pc.masterPlaylistLoader_.main.playlists[1],
+      pc.mainPlaylistLoader_.media(),
+      pc.mainPlaylistLoader_.main.playlists[1],
       'selected video+audio'
     );
 
-    const audioPlaylist = pc.masterPlaylistLoader_.main.playlists[0];
+    const audioPlaylist = pc.mainPlaylistLoader_.main.playlists[0];
 
     assert.equal(audioPlaylist.excludeUntil, Infinity, 'excluded incompatible playlist');
     assert.notEqual(
@@ -1481,7 +1481,7 @@ QUnit.test('excludes switching from audio-only playlists to video+audio', functi
   this.player.tech_.vhs.bandwidth = 1;
   const pc = this.playlistController;
 
-  // master
+  // main
   this.requests.shift().respond(
     200, null,
     '#EXTM3U\n' +
@@ -1508,12 +1508,12 @@ QUnit.test('excludes switching from audio-only playlists to video+audio', functi
     clock: this.clock
   }).then(() => {
     assert.equal(
-      pc.masterPlaylistLoader_.media(),
-      pc.masterPlaylistLoader_.main.playlists[0],
+      pc.mainPlaylistLoader_.media(),
+      pc.mainPlaylistLoader_.main.playlists[0],
       'selected audio only'
     );
 
-    const videoAudioPlaylist = pc.masterPlaylistLoader_.main.playlists[1];
+    const videoAudioPlaylist = pc.mainPlaylistLoader_.main.playlists[1];
 
     assert.equal(
       videoAudioPlaylist.excludeUntil,
@@ -1534,7 +1534,7 @@ QUnit.test('excludes switching from video-only playlists to video+audio', functi
 
   this.player.tech_.vhs.bandwidth = 1;
 
-  // master
+  // main
   this.requests.shift()
     .respond(
       200, null,
@@ -1564,12 +1564,12 @@ QUnit.test('excludes switching from video-only playlists to video+audio', functi
     clock: this.clock
   }).then(() => {
     assert.equal(
-      pc.masterPlaylistLoader_.media(),
-      pc.masterPlaylistLoader_.main.playlists[0],
+      pc.mainPlaylistLoader_.media(),
+      pc.mainPlaylistLoader_.main.playlists[0],
       'selected video only'
     );
 
-    const videoAudioPlaylist = pc.masterPlaylistLoader_.main.playlists[1];
+    const videoAudioPlaylist = pc.mainPlaylistLoader_.main.playlists[1];
 
     assert.equal(
       videoAudioPlaylist.excludeUntil,
@@ -1596,7 +1596,7 @@ QUnit.test('excludes switching between playlists with different codecs', functio
   pc.excludeUnsupportedVariants_ = () => {};
   pc.sourceUpdater_.canChangeType = () => false;
 
-  // master
+  // main
   this.requests.shift()
     .respond(
       200, null,
@@ -1620,8 +1620,8 @@ QUnit.test('excludes switching between playlists with different codecs', functio
   // media
   this.standardXHRResponse(this.requests.shift());
   assert.equal(
-    this.playlistController.masterPlaylistLoader_.media(),
-    this.playlistController.masterPlaylistLoader_.main.playlists[0],
+    this.playlistController.mainPlaylistLoader_.media(),
+    this.playlistController.mainPlaylistLoader_.main.playlists[0],
     'selected HE-AAC stream'
   );
 
@@ -1637,7 +1637,7 @@ QUnit.test('excludes switching between playlists with different codecs', functio
     segmentLoader: pc.mainSegmentLoader_,
     clock: this.clock
   }).then(() => {
-    const playlists = pc.masterPlaylistLoader_.main.playlists;
+    const playlists = pc.mainPlaylistLoader_.main.playlists;
 
     assert.equal(typeof playlists[0].excludeUntil, 'undefined', 'did not exclude first playlist');
     assert.equal(playlists[1].excludeUntil, Infinity, 'excluded second playlist');
@@ -1668,7 +1668,7 @@ QUnit.test('does not exclude switching between playlists with different audio pr
 
   this.player.tech_.vhs.bandwidth = 1;
 
-  // master
+  // main
   this.requests.shift()
     .respond(
       200, null,
@@ -1682,8 +1682,8 @@ QUnit.test('does not exclude switching between playlists with different audio pr
   // media
   this.standardXHRResponse(this.requests.shift());
   assert.equal(
-    this.playlistController.masterPlaylistLoader_.media(),
-    this.playlistController.masterPlaylistLoader_.main.playlists[0],
+    this.playlistController.mainPlaylistLoader_.media(),
+    this.playlistController.mainPlaylistLoader_.main.playlists[0],
     'selected HE-AAC stream'
   );
 
@@ -1695,7 +1695,7 @@ QUnit.test('does not exclude switching between playlists with different audio pr
     segmentLoader: pc.mainSegmentLoader_,
     clock: this.clock
   }).then(() => {
-    const alternatePlaylist = pc.masterPlaylistLoader_.main.playlists[1];
+    const alternatePlaylist = pc.mainPlaylistLoader_.main.playlists[1];
 
     assert.equal(alternatePlaylist.excludeUntil, undefined, 'did not exclude playlist');
   });
@@ -1708,7 +1708,7 @@ QUnit.test('updates the combined segment loader on media changes', function(asse
 
   this.playlistController.mainSegmentLoader_.bandwidth = 1;
 
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
@@ -1768,11 +1768,11 @@ QUnit.test('selects a playlist after main/combined segment downloads', function(
 
   this.playlistController.selectPlaylist = () => {
     calls++;
-    return this.playlistController.masterPlaylistLoader_.main.playlists[0];
+    return this.playlistController.mainPlaylistLoader_.main.playlists[0];
   };
   this.playlistController.mediaSource.trigger('sourceopen');
 
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
@@ -1800,7 +1800,7 @@ QUnit.test('does not select a playlist after segment downloads if only one playl
   };
   this.playlistController.mediaSource.trigger('sourceopen');
 
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
@@ -1821,7 +1821,7 @@ QUnit.test('does not select a playlist after segment downloads if only one playl
 
 QUnit.test('re-triggers bandwidthupdate events on the tech', function(assert) {
   this.playlistController.mediaSource.trigger('sourceopen');
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
@@ -1843,7 +1843,7 @@ QUnit.test(
   'switches to lower renditions immediately, higher dependent on buffer',
   function(assert) {
     this.playlistController.mediaSource.trigger('sourceopen');
-    // master
+    // main
     this.standardXHRResponse(this.requests.shift());
     // media
     this.standardXHRResponse(this.requests.shift());
@@ -1869,7 +1869,7 @@ QUnit.test(
         endList
       };
     };
-    this.playlistController.masterPlaylistLoader_.media = (media) => {
+    this.playlistController.mainPlaylistLoader_.media = (media) => {
       if (!media) {
         return {
           id: id++,
@@ -2058,19 +2058,19 @@ QUnit.test(
 
 QUnit.test('excludes playlist on earlyabort', function(assert) {
   this.playlistController.mediaSource.trigger('sourceopen');
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
 
   const mediaChanges = [];
-  const playlistLoader = this.playlistController.masterPlaylistLoader_;
+  const playlistLoader = this.playlistController.mainPlaylistLoader_;
   const currentMedia = playlistLoader.media();
   const origMedia = playlistLoader.media.bind(playlistLoader);
   const origWarn = videojs.log.warn;
   const warnings = [];
 
-  this.playlistController.masterPlaylistLoader_.media = (media) => {
+  this.playlistController.mainPlaylistLoader_.media = (media) => {
     if (media) {
       mediaChanges.push(media);
     }
@@ -2136,7 +2136,7 @@ QUnit.test('does not get stuck in a loop due to inconsistent network/caching', f
 
   this.player.tech_.paused = () => false;
   pc.mediaSource.trigger('sourceopen');
-  // master
+  // main
   this.requests.shift().respond(
     200, null,
     '#EXTM3U\n' +
@@ -2148,7 +2148,7 @@ QUnit.test('does not get stuck in a loop due to inconsistent network/caching', f
   // media.m3u8
   this.requests.shift().respond(200, null, mediaContents);
 
-  const playlistLoader = pc.masterPlaylistLoader_;
+  const playlistLoader = pc.mainPlaylistLoader_;
   const origMedia = playlistLoader.media.bind(playlistLoader);
   const mediaChanges = [];
 
@@ -2309,7 +2309,7 @@ QUnit.test('updates the duration after switching playlists', function(assert) {
   this.playlistController.mediaSource.trigger('sourceopen');
   this.playlistController.bandwidth = 1e20;
 
-  // master
+  // main
   this.standardXHRResponse(this.requests[0]);
   // media
   this.standardXHRResponse(this.requests[1]);
@@ -2321,7 +2321,7 @@ QUnit.test('updates the duration after switching playlists', function(assert) {
     this.playlistController.mediaSource.duration = 0;
     this.playlistController.mediaSource.readyState = 'open';
 
-    return this.playlistController.masterPlaylistLoader_.main.playlists[1];
+    return this.playlistController.mainPlaylistLoader_.main.playlists[1];
   };
 
   assert.ok(segmentByteLength, 'the segment has some number of bytes');
@@ -2371,7 +2371,7 @@ QUnit.test('playlist selection uses systemBandwidth', function(assert) {
   this.player.width(1000);
   this.player.height(900);
 
-  // master
+  // main
   this.standardXHRResponse(this.requests[0]);
   // media
   this.standardXHRResponse(this.requests[1]);
@@ -2406,22 +2406,22 @@ QUnit.test(
   function(assert) {
     this.playlistController.mediaSource.trigger('sourceopen');
 
-    // master
+    // main
     this.standardXHRResponse(this.requests[0]);
     // media
     this.standardXHRResponse(this.requests[1]);
 
     assert.equal(
       this.playlistController.requestOptions_.timeout,
-      this.playlistController.masterPlaylistLoader_.targetDuration * 1.5 *
+      this.playlistController.mainPlaylistLoader_.targetDuration * 1.5 *
               1000,
       'default request timeout'
     );
 
     assert.ok(
       !Playlist.isLowestEnabledRendition(
-        this.playlistController.masterPlaylistLoader_.main,
-        this.playlistController.masterPlaylistLoader_.media()
+        this.playlistController.mainPlaylistLoader_.main,
+        this.playlistController.mainPlaylistLoader_.media()
       ),
       'not on lowest rendition'
     );
@@ -2437,8 +2437,8 @@ QUnit.test(
 
     assert.ok(
       Playlist.isLowestEnabledRendition(
-        this.playlistController.masterPlaylistLoader_.main,
-        this.playlistController.masterPlaylistLoader_.media()
+        this.playlistController.mainPlaylistLoader_.main,
+        this.playlistController.mainPlaylistLoader_.media()
       ),
       'on lowest rendition'
     );
@@ -2451,7 +2451,7 @@ QUnit.test(
 );
 
 QUnit.test(
-  'removes request timeout when the source is a media playlist and not master',
+  'removes request timeout when the source is a media playlist and not main',
   function(assert) {
     this.requests.length = 0;
 
@@ -2469,7 +2469,7 @@ QUnit.test(
 
     assert.equal(
       this.playlistController.requestOptions_.timeout, 0,
-      'request timeout set to 0 when loading a non master playlist'
+      'request timeout set to 0 when loading a non main playlist'
     );
   }
 );
@@ -2484,8 +2484,8 @@ QUnit.test(
     let mainTimeRanges = [];
     let audioTimeRanges = [];
 
-    this.playlistController.masterPlaylistLoader_.main = {};
-    this.playlistController.masterPlaylistLoader_.media = () => mainMedia;
+    this.playlistController.mainPlaylistLoader_.main = {};
+    this.playlistController.mainPlaylistLoader_.media = () => mainMedia;
     this.playlistController.syncController_.getExpiredTime = () => 0;
 
     Playlist.seekable = (media) => {
@@ -2617,8 +2617,8 @@ QUnit.test(
     Playlist.seekable = () => {
       return videojs.createTimeRanges(mainTimeRanges);
     };
-    this.playlistController.masterPlaylistLoader_.main = {};
-    this.playlistController.masterPlaylistLoader_.media = () => media;
+    this.playlistController.mainPlaylistLoader_.main = {};
+    this.playlistController.mainPlaylistLoader_.media = () => media;
     this.playlistController.syncController_.getExpiredTime = () => 0;
 
     mainTimeRanges = [[0, 10]];
@@ -2655,24 +2655,24 @@ QUnit.test('calls to update cues on new media', function(assert) {
     callCount++;
   };
 
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
 
-  assert.equal(callCount, 0, 'no call to update cues on master');
+  assert.equal(callCount, 0, 'no call to update cues on main');
 
   // media
   this.standardXHRResponse(this.requests.shift());
 
   assert.equal(callCount, 1, 'calls to update cues on first media');
 
-  this.playlistController.masterPlaylistLoader_.trigger('loadedplaylist');
+  this.playlistController.mainPlaylistLoader_.trigger('loadedplaylist');
 
   assert.equal(callCount, 2, 'calls to update cues on subsequent media');
 
   videojs.options.vhs = origVhsOptions;
 });
 
-QUnit.test('calls to update cues on media when no master', function(assert) {
+QUnit.test('calls to update cues on media when no main', function(assert) {
   this.requests.length = 0;
 
   this.player.src({
@@ -2694,7 +2694,7 @@ QUnit.test('calls to update cues on media when no master', function(assert) {
 
   assert.equal(callCount, 1, 'calls to update cues on first media');
 
-  this.playlistController.masterPlaylistLoader_.trigger('loadedplaylist');
+  this.playlistController.mainPlaylistLoader_.trigger('loadedplaylist');
 
   assert.equal(callCount, 2, 'calls to update cues on subsequent media');
 });
@@ -2755,7 +2755,7 @@ QUnit.test('correctly sets alternate audio track kinds', function(assert) {
 
   this.clock.tick(1);
 
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
   // media - required for loadedmetadata
   this.standardXHRResponse(this.requests.shift());
@@ -2807,7 +2807,7 @@ QUnit.test('trigger events when video and audio is demuxed by default', function
   });
 
   openMediaSource(this.player, this.clock);
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
@@ -2829,7 +2829,7 @@ QUnit.test('trigger events when an AES is detected', function(assert) {
     }
   });
 
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
@@ -3150,7 +3150,7 @@ QUnit.test('parses codec from muxed fmp4 init segment', function(assert) {
 });
 
 QUnit.test(
-  'adds CEA608 closed-caption tracks when a master playlist is loaded',
+  'adds CEA608 closed-caption tracks when a main playlist is loaded',
   function(assert) {
     this.requests.length = 0;
     this.player.dispose();
@@ -3172,18 +3172,18 @@ QUnit.test(
       'only segment-metadata text track'
     );
 
-    // master, contains media groups for captions
+    // main, contains media groups for captions
     this.standardXHRResponse(this.requests.shift());
 
     // we wait for loadedmetadata before setting caption tracks, so we need to wait for a
     // media playlist
-    assert.equal(this.player.textTracks().length, 1, 'only one text track after master');
+    assert.equal(this.player.textTracks().length, 1, 'only one text track after main');
 
     // media
     this.standardXHRResponse(this.requests.shift());
 
-    const master = playlistController.masterPlaylistLoader_.main;
-    const caps = master.mediaGroups['CLOSED-CAPTIONS'].CCs;
+    const main = playlistController.mainPlaylistLoader_.main;
+    const caps = main.mediaGroups['CLOSED-CAPTIONS'].CCs;
     const capsArr = Object.keys(caps).map(key => Object.assign({name: key}, caps[key]));
     const addedCaps = playlistController.mediaTypes_['CLOSED-CAPTIONS'].groups.CCs
       .map(cap => Object.assign({name: cap.id}, cap));
@@ -3215,7 +3215,7 @@ QUnit.test(
 );
 
 QUnit.test(
-  'adds CEA708 closed-caption tracks when a master playlist is loaded',
+  'adds CEA708 closed-caption tracks when a main playlist is loaded',
   function(assert) {
     this.requests.length = 0;
     this.player.dispose();
@@ -3237,18 +3237,18 @@ QUnit.test(
       'only segment-metadata text track'
     );
 
-    // master, contains media groups for captions
+    // main, contains media groups for captions
     this.standardXHRResponse(this.requests.shift());
 
     // we wait for loadedmetadata before setting caption tracks, so we need to wait for a
     // media playlist
-    assert.equal(this.player.textTracks().length, 1, 'only one text track after master');
+    assert.equal(this.player.textTracks().length, 1, 'only one text track after main');
 
     // media
     this.standardXHRResponse(this.requests.shift());
 
-    const master = playlistController.masterPlaylistLoader_.main;
-    const caps = master.mediaGroups['CLOSED-CAPTIONS'].CCs;
+    const main = playlistController.mainPlaylistLoader_.main;
+    const caps = main.mediaGroups['CLOSED-CAPTIONS'].CCs;
     const capsArr = Object.keys(caps).map(key => Object.assign({name: key}, caps[key]));
     const addedCaps = playlistController.mediaTypes_['CLOSED-CAPTIONS'].groups.CCs
       .map(cap => Object.assign({name: cap.id}, cap));
@@ -3308,18 +3308,18 @@ QUnit.test('adds subtitle tracks when a media playlist is loaded', function(asse
     'only segment-metadata text track'
   );
 
-  // master, contains media groups for subtitles
+  // main, contains media groups for subtitles
   this.standardXHRResponse(this.requests.shift());
 
   // we wait for loadedmetadata before setting subtitle tracks, so we need to wait for a
   // media playlist
-  assert.equal(this.player.textTracks().length, 1, 'only one text track after master');
+  assert.equal(this.player.textTracks().length, 1, 'only one text track after main');
 
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  const master = playlistController.masterPlaylistLoader_.main;
-  const subs = master.mediaGroups.SUBTITLES.subs;
+  const main = playlistController.mainPlaylistLoader_.main;
+  const subs = main.mediaGroups.SUBTITLES.subs;
   const subsArr = Object.keys(subs).map(key => subs[key]);
 
   assert.equal(subsArr.length, 4, 'got 4 subtitles');
@@ -3360,7 +3360,7 @@ QUnit.test('switches off subtitles on subtitle errors', function(assert) {
   // sets up listener for text track changes
   playlistController.trigger('sourceopen');
 
-  // master, contains media groups for subtitles
+  // main, contains media groups for subtitles
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
@@ -3445,7 +3445,7 @@ QUnit.test('pauses subtitle segment loader on tech errors', function(assert) {
   // sets up listener for text track changes
   playlistController.trigger('sourceopen');
 
-  // master, contains media groups for subtitles
+  // main, contains media groups for subtitles
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
@@ -3519,7 +3519,7 @@ QUnit.test('disposes subtitle loaders on dispose', function(assert) {
   // sets up listener for text track changes
   playlistController.trigger('sourceopen');
 
-  // master, contains media groups for subtitles
+  // main, contains media groups for subtitles
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
@@ -3574,7 +3574,7 @@ QUnit.test('subtitle segment loader resets on seeks', function(assert) {
   // sets up listener for text track changes
   playlistController.trigger('sourceopen');
 
-  // master, contains media groups for subtitles
+  // main, contains media groups for subtitles
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
@@ -3712,7 +3712,7 @@ QUnit.test('creates source buffers after first main segment if muxed content', f
 
   openMediaSource(this.player, this.clock);
 
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
@@ -3758,7 +3758,7 @@ QUnit.test('creates source buffers after first main segment if audio only', func
 
   openMediaSource(this.player, this.clock);
 
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
@@ -3805,7 +3805,7 @@ QUnit.test('creates source buffers after first main segment if video only', func
 
   openMediaSource(this.player, this.clock);
 
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
@@ -3854,7 +3854,7 @@ QUnit.test('creates source buffers after second trackinfo if demuxed', function(
 
   openMediaSource(this.player, this.clock);
 
-  // master
+  // main
   this.requests.shift().respond(
     200,
     null,
@@ -3929,7 +3929,7 @@ QUnit.test('Uses audio codec from audio playlist for demuxed content', function(
 
   openMediaSource(this.player, this.clock);
 
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
 
   assert.equal(createSourceBufferCalls.length, 0, 'have not created source buffers yet');
@@ -3985,7 +3985,7 @@ QUnit.test('uses codec info from manifest for source buffer creation', function(
 
   openMediaSource(this.player, this.clock);
 
-  // master
+  // main
   this.requests.shift().respond(
     200,
     null,
@@ -4036,7 +4036,7 @@ QUnit.test('translates old-school apple codec strings from manifest to modern st
 
   openMediaSource(this.player, this.clock);
 
-  // master
+  // main
   this.requests.shift().respond(
     200,
     null,
@@ -4086,7 +4086,7 @@ QUnit.test('uses default codec strings when provided are invalid', function(asse
 
   openMediaSource(this.player, this.clock);
 
-  // master
+  // main
   this.requests.shift().respond(
     200,
     null,
@@ -4206,7 +4206,7 @@ QUnit.test('uses codec info from manifest for source buffer creation for audio o
 
   openMediaSource(this.player, this.clock);
 
-  // master
+  // main
   this.requests.shift().respond(
     200,
     null,
@@ -4257,7 +4257,7 @@ QUnit.test('uses codec info from manifest for source buffer creation for video o
 
   openMediaSource(this.player, this.clock);
 
-  // master
+  // main
   this.requests.shift().respond(
     200,
     null,
@@ -4311,7 +4311,7 @@ QUnit.test('uses available audio codec info from manifest plus video default for
 
   openMediaSource(this.player, this.clock);
 
-  // master
+  // main
   this.requests.shift().respond(
     200,
     null,
@@ -4366,7 +4366,7 @@ QUnit.test('uses available video codec info from manifest plus audio default for
 
   openMediaSource(this.player, this.clock);
 
-  // master
+  // main
   this.requests.shift().respond(
     200,
     null,
@@ -4433,7 +4433,7 @@ QUnit.test(
 
     this.playlistController = this.player.tech_.vhs.playlistController_;
 
-    // a duration update indicates a master playlist controller state update from the media
+    // a duration update indicates a main playlist controller state update from the media
     // playlist
     assert.equal(this.playlistController.duration(), 40, 'duration set');
 
@@ -4448,7 +4448,7 @@ QUnit.test(
 );
 
 QUnit.test(
-  'when data URI is a master playlist with media playlists resolved, ' +
+  'when data URI is a main playlist with media playlists resolved, ' +
   'state is updated without a playlist request',
   function(assert) {
     this.requests.length = 0;
@@ -4459,13 +4459,13 @@ QUnit.test(
     const manifestObject = parseManifest({ manifestString: manifests.main });
     const mediaObject = parseManifest({ manifestString: manifests.media });
 
-    // prevent warnings for no BANDWIDTH attribute as media playlists within a master
+    // prevent warnings for no BANDWIDTH attribute as media playlists within a main
     // should always have the property
     mediaObject.attributes = { BANDWIDTH: 1000 };
 
     manifestObject.playlists = [mediaObject, mediaObject, mediaObject];
-    // placeholder master URI
-    addPropertiesToMaster(manifestObject, 'main.m3u8');
+    // placeholder main URI
+    addPropertiesToMain(manifestObject, 'main.m3u8');
 
     this.player.src({
       src: `data:application/vnd.videojs.vhs+json,${JSON.stringify(manifestObject)}`,
@@ -4478,7 +4478,7 @@ QUnit.test(
 
     this.playlistController = this.player.tech_.vhs.playlistController_;
 
-    // a duration update indicates a master playlist controller state update from the media
+    // a duration update indicates a main playlist controller state update from the media
     // playlist
     assert.equal(this.playlistController.duration(), 40, 'duration set');
 
@@ -4493,7 +4493,7 @@ QUnit.test(
 );
 
 QUnit.test(
-  'when data URI is a master playlist without media playlists resolved, ' +
+  'when data URI is a main playlist without media playlists resolved, ' +
   'a media playlist request is the first request',
   function(assert) {
     this.requests.length = 0;
@@ -4525,7 +4525,7 @@ QUnit.test('adds duration to media source after loading playlist', function(asse
   openMediaSource(this.player, this.clock);
   const pc = this.playlistController;
 
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
 
   assert.notOk(pc.mediaSource.duration, 'no duration set on media source');
@@ -4540,7 +4540,7 @@ QUnit.test('live playlist reports infinite duration', function(assert) {
   openMediaSource(this.player, this.clock);
   const pc = this.playlistController;
 
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
 
   assert.notOk(pc.mediaSource.duration, 'no duration set on media source');
@@ -4561,7 +4561,7 @@ QUnit.test(
     openMediaSource(this.player, this.clock);
     const pc = this.playlistController;
 
-    // master
+    // main
     this.standardXHRResponse(this.requests.shift());
 
     assert.notOk(pc.mediaSource.duration, 'no duration set on media source');
@@ -4596,7 +4596,7 @@ QUnit.test(
     openMediaSource(this.player, this.clock);
     const pc = this.playlistController;
 
-    // master
+    // main
     this.standardXHRResponse(this.requests.shift());
 
     assert.notOk(pc.mediaSource.duration, 'no duration set on media source');
@@ -4624,7 +4624,7 @@ QUnit.test(
 
     this.player.tech_.buffered = () => videojs.createTimeRanges([[0, 11]]);
 
-    // master
+    // main
     this.standardXHRResponse(this.requests.shift());
 
     assert.notOk(pc.mediaSource.duration, 'no duration set on media source');
@@ -4678,7 +4678,7 @@ QUnit.test('on error all segment and playlist loaders are paused and aborted', f
     'audioSegmentLoader',
     'subtitleSegmentLoader',
     'mainSegmentLoader',
-    'masterPlaylistLoader'
+    'mainPlaylistLoader'
   ].forEach(function(key) {
     calls[`${key}Abort`] = 0;
     calls[`${key}Pause`] = 0;
@@ -4704,7 +4704,7 @@ QUnit.test('can pass or select a playlist for fastQualityChange', function(asser
   const pc = this.playlistController;
 
   pc.mediaSource.trigger('sourceopen');
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
@@ -4712,13 +4712,13 @@ QUnit.test('can pass or select a playlist for fastQualityChange', function(asser
   // media is changed
   pc.selectPlaylist = () => {
     calls.selectPlaylist++;
-    return pc.master().playlists[1];
+    return pc.main().playlists[1];
   };
-  pc.masterPlaylistLoader_.media = (playlist) => {
+  pc.mainPlaylistLoader_.media = (playlist) => {
     if (!playlist) {
-      return pc.master().playlists[0];
+      return pc.main().playlists[0];
     }
-    assert.equal(pc.master().playlists[1], playlist, 'switching to passed in playlist');
+    assert.equal(pc.main().playlists[1], playlist, 'switching to passed in playlist');
     calls.media++;
   };
 
@@ -4730,7 +4730,7 @@ QUnit.test('can pass or select a playlist for fastQualityChange', function(asser
     calls.resetEverything++;
   };
 
-  pc.fastQualityChange_(pc.master().playlists[1]);
+  pc.fastQualityChange_(pc.main().playlists[1]);
   assert.deepEqual(calls, {
     resetEverything: 1,
     media: 1,
@@ -4771,27 +4771,27 @@ QUnit.module('PlaylistController codecs', {
         this.pc.audioSegmentLoader_.currentMediaInfo_ = audioStartingMedia;
       }
 
-      this.master = {mediaGroups: {AUDIO: {}}, playlists: []};
+      this.main = {mediaGroups: {AUDIO: {}}, playlists: []};
 
-      this.pc.master = () => this.master;
+      this.pc.main = () => this.main;
 
       if (mainPlaylist) {
         this.pc.media = () => mainPlaylist;
-        this.master.playlists.push(mainPlaylist);
+        this.main.playlists.push(mainPlaylist);
       }
 
       if (audioPlaylist) {
         const mainAudioGroup = mainPlaylist && mainPlaylist.attributes.AUDIO;
 
         if (mainAudioGroup) {
-          this.master.mediaGroups.AUDIO[mainAudioGroup] = {
+          this.main.mediaGroups.AUDIO[mainAudioGroup] = {
             english: {
               default: true,
               playlists: [audioPlaylist]
             }
           };
         }
-        this.master.playlists.push(audioPlaylist);
+        this.main.playlists.push(audioPlaylist);
         this.pc.mediaTypes_.AUDIO.activePlaylistLoader = {pause() {}};
       }
     };
@@ -5166,8 +5166,8 @@ QUnit.test('excludes all of audio group on unsupported audio', function(assert) 
     audioPlaylist: {attributes: {}}
   });
 
-  this.master.playlists.push({id: 'foo', attributes: {AUDIO: 'low-quality'}});
-  this.master.playlists.push({id: 'baz', attributes: {AUDIO: 'low-quality'}});
+  this.main.playlists.push({id: 'foo', attributes: {AUDIO: 'low-quality'}});
+  this.main.playlists.push({id: 'baz', attributes: {AUDIO: 'low-quality'}});
 
   const codecs = this.pc.getCodecsOrExclude_();
 
@@ -5178,10 +5178,10 @@ QUnit.test('excludes all of audio group on unsupported audio', function(assert) 
     message: 'muxer does not support codec(s): "hvc1.2.4.L123.B0,ac-3".'
   }], 'excluded playlist');
   assert.deepEqual(codecs, void 0, 'codecs returned');
-  assert.equal(this.master.playlists[2].id, 'foo', 'playlist 3 is the one we added');
-  assert.equal(this.master.playlists[2].excludeUntil, Infinity, 'playlist 3 with same audio group excluded');
-  assert.equal(this.master.playlists[3].id, 'baz', 'playlist 4 is the one we added');
-  assert.equal(this.master.playlists[3].excludeUntil, Infinity, 'playlist 4 with same audio group excluded');
+  assert.equal(this.main.playlists[2].id, 'foo', 'playlist 3 is the one we added');
+  assert.equal(this.main.playlists[2].excludeUntil, Infinity, 'playlist 3 with same audio group excluded');
+  assert.equal(this.main.playlists[3].id, 'baz', 'playlist 4 is the one we added');
+  assert.equal(this.main.playlists[3].excludeUntil, Infinity, 'playlist 4 with same audio group excluded');
 });
 
 QUnit.test('excludes on codec switch if codec switching not supported', function(assert) {
@@ -5418,23 +5418,23 @@ QUnit.module('PlaylistController - exclusion behavior', {
       this.delegateLoaders.push({filter, fnNames});
     };
 
-    this.runTest = (master, expectedDelegates) => {
-      // master
+    this.runTest = (main, expectedDelegates) => {
+      // main
       this.requests.shift()
-        .respond(200, null, master);
+        .respond(200, null, main);
 
       // media
       this.standardXHRResponse(this.requests.shift());
 
-      assert.equal(this.pc.media(), this.pc.master().playlists[0], 'selected first playlist');
+      assert.equal(this.pc.media(), this.pc.main().playlists[0], 'selected first playlist');
 
       this.pc.excludePlaylist({
         internal: true,
-        playlist: this.pc.master().playlists[0],
+        playlist: this.pc.main().playlists[0],
         playlistExclusionDuration: Infinity
       });
 
-      assert.equal(this.pc.master().playlists[0].excludeUntil, Infinity, 'exclusion happened');
+      assert.equal(this.pc.main().playlists[0].excludeUntil, Infinity, 'exclusion happened');
       assert.deepEqual(this.delegateLoaders, expectedDelegates, 'called delegateLoaders');
     };
   },
@@ -5443,8 +5443,8 @@ QUnit.module('PlaylistController - exclusion behavior', {
   }
 });
 
-QUnit.test('exclusions always pause/abort main/master loaders', function(assert) {
-  const master = `
+QUnit.test('exclusions always pause/abort main loaders', function(assert) {
+  const main = `
     #EXTM3U
     #EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5"
     media.m3u8
@@ -5456,11 +5456,11 @@ QUnit.test('exclusions always pause/abort main/master loaders', function(assert)
     {filter: 'main', fnNames: ['abort', 'pause']}
   ];
 
-  this.runTest(master, expectedDelegates);
+  this.runTest(main, expectedDelegates);
 });
 
 QUnit.test('exclusions that remove audio group abort/pause main/audio loaders', function(assert) {
-  const master = `
+  const main = `
     #EXTM3U
     #EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5",AUDIO="foo"
     media.m3u8'
@@ -5473,11 +5473,11 @@ QUnit.test('exclusions that remove audio group abort/pause main/audio loaders', 
     {filter: 'main', fnNames: ['abort', 'pause']}
   ];
 
-  this.runTest(master, expectedDelegates);
+  this.runTest(main, expectedDelegates);
 });
 
 QUnit.test('exclusions that change audio group abort/pause main/audio loaders', function(assert) {
-  const master = `
+  const main = `
     #EXTM3U
     #EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5",AUDIO="foo"
     media.m3u8'
@@ -5490,11 +5490,11 @@ QUnit.test('exclusions that change audio group abort/pause main/audio loaders', 
     {filter: 'main', fnNames: ['abort', 'pause']}
   ];
 
-  this.runTest(master, expectedDelegates);
+  this.runTest(main, expectedDelegates);
 });
 
 QUnit.test('exclusions that add audio group abort/pause main/audio loaders', function(assert) {
-  const master = `
+  const main = `
     #EXTM3U
     #EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5"
     media.m3u8'
@@ -5507,11 +5507,11 @@ QUnit.test('exclusions that add audio group abort/pause main/audio loaders', fun
     {filter: 'main', fnNames: ['abort', 'pause']}
   ];
 
-  this.runTest(master, expectedDelegates);
+  this.runTest(main, expectedDelegates);
 });
 
 QUnit.test('exclusions that add subtitles group abort/pause main/subtitles loaders', function(assert) {
-  const master = `
+  const main = `
     #EXTM3U
     #EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5"
     media.m3u8'
@@ -5524,11 +5524,11 @@ QUnit.test('exclusions that add subtitles group abort/pause main/subtitles loade
     {filter: 'main', fnNames: ['abort', 'pause']}
   ];
 
-  this.runTest(master, expectedDelegates);
+  this.runTest(main, expectedDelegates);
 });
 
 QUnit.test('exclusions that remove subtitles group abort/pause main/subtitles loaders', function(assert) {
-  const master = `
+  const main = `
     #EXTM3U
     #EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5",SUBTITLES="foo"
     media.m3u8'
@@ -5541,11 +5541,11 @@ QUnit.test('exclusions that remove subtitles group abort/pause main/subtitles lo
     {filter: 'main', fnNames: ['abort', 'pause']}
   ];
 
-  this.runTest(master, expectedDelegates);
+  this.runTest(main, expectedDelegates);
 });
 
 QUnit.test('exclusions that change subtitles group abort/pause main/subtitles loaders', function(assert) {
-  const master = `
+  const main = `
     #EXTM3U
     #EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5",SUBTITLES="foo"
     media.m3u8'
@@ -5558,11 +5558,11 @@ QUnit.test('exclusions that change subtitles group abort/pause main/subtitles lo
     {filter: 'main', fnNames: ['abort', 'pause']}
   ];
 
-  this.runTest(master, expectedDelegates);
+  this.runTest(main, expectedDelegates);
 });
 
 QUnit.test('exclusions that change all groups abort/pause all loaders', function(assert) {
-  const master = `
+  const main = `
     #EXTM3U
     #EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5",AUDIO="foo",SUBTITLES="foo"
     media.m3u8'
@@ -5576,11 +5576,11 @@ QUnit.test('exclusions that change all groups abort/pause all loaders', function
     {filter: 'main', fnNames: ['abort', 'pause']}
   ];
 
-  this.runTest(master, expectedDelegates);
+  this.runTest(main, expectedDelegates);
 });
 
 QUnit.test('exclusions that remove all groups abort/pause all loaders', function(assert) {
-  const master = `
+  const main = `
     #EXTM3U
     #EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5",AUDIO="foo",SUBTITLES="foo"
     media.m3u8'
@@ -5594,11 +5594,11 @@ QUnit.test('exclusions that remove all groups abort/pause all loaders', function
     {filter: 'main', fnNames: ['abort', 'pause']}
   ];
 
-  this.runTest(master, expectedDelegates);
+  this.runTest(main, expectedDelegates);
 });
 
 QUnit.test('exclusions that add all groups abort/pause all loaders', function(assert) {
-  const master = `
+  const main = `
     #EXTM3U
     #EXT-X-STREAM-INF:BANDWIDTH=1,CODECS="avc1.4d400d,mp4a.40.5"
     media.m3u8'
@@ -5612,7 +5612,7 @@ QUnit.test('exclusions that add all groups abort/pause all loaders', function(as
     {filter: 'main', fnNames: ['abort', 'pause']}
   ];
 
-  this.runTest(master, expectedDelegates);
+  this.runTest(main, expectedDelegates);
 });
 
 QUnit.module('PlaylistController delegate loaders', {
@@ -5641,7 +5641,7 @@ QUnit.module('PlaylistController delegate loaders', {
       'audioSegmentLoader',
       'subtitleSegmentLoader',
       'mainSegmentLoader',
-      'masterPlaylistLoader'
+      'mainPlaylistLoader'
     ].forEach((key) => {
       this.calls[`${key}Abort`] = 0;
       this.calls[`${key}Pause`] = 0;
@@ -5670,7 +5670,7 @@ QUnit.test('filter main works', function(assert) {
   this.pc.delegateLoaders_('main', ['abort', 'pause']);
 
   Object.keys(this.expected).forEach((key) => {
-    if ((/^(master|main)/).test(key)) {
+    if ((/^(main)/).test(key)) {
       this.expected[key] = 1;
     }
   });
@@ -5725,11 +5725,11 @@ QUnit.test('Determines if playlist should change on bandwidthupdate/progress fro
 
   this.playlistController.selectPlaylist = () => {
     calls++;
-    return this.playlistController.masterPlaylistLoader_.main.playlists[0];
+    return this.playlistController.mainPlaylistLoader_.main.playlists[0];
   };
   this.playlistController.mediaSource.trigger('sourceopen');
 
-  // master
+  // main
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
@@ -5756,7 +5756,7 @@ QUnit.module('PlaylistController shouldSwitchToMedia', sharedHooks);
 QUnit.test('true if a no current playlist', function(assert) {
   const pc = this.playlistController;
 
-  pc.masterPlaylistLoader_.media = () => null;
+  pc.mainPlaylistLoader_.media = () => null;
   const nextPlaylist = {id: 'foo', endList: true};
 
   assert.ok(pc.shouldSwitchToMedia_(nextPlaylist), 'should switch without currentPlaylist');
@@ -5765,7 +5765,7 @@ QUnit.test('true if a no current playlist', function(assert) {
 QUnit.test('true if current playlist is live', function(assert) {
   const pc = this.playlistController;
 
-  pc.masterPlaylistLoader_.media = () => ({endList: false, id: 'bar'});
+  pc.mainPlaylistLoader_.media = () => ({endList: false, id: 'bar'});
   const nextPlaylist = {id: 'foo', endList: true};
 
   assert.ok(pc.shouldSwitchToMedia_(nextPlaylist), 'should switch with live currentPlaylist');
@@ -5776,7 +5776,7 @@ QUnit.test('true if duration < 30', function(assert) {
   const nextPlaylist = {id: 'foo', endList: true};
 
   pc.duration = () => 20;
-  pc.masterPlaylistLoader_.media = () => ({endList: true, id: 'bar'});
+  pc.mainPlaylistLoader_.media = () => ({endList: true, id: 'bar'});
 
   assert.ok(pc.shouldSwitchToMedia_(nextPlaylist), 'should switch');
 });
@@ -5858,7 +5858,7 @@ QUnit.test('true duration < 16 with experimentalBufferBasedABR', function(assert
   pc.experimentalBufferBasedABR = true;
 
   pc.duration = () => 15;
-  pc.masterPlaylistLoader_.media = () => ({endList: true, id: 'bar'});
+  pc.mainPlaylistLoader_.media = () => ({endList: true, id: 'bar'});
 
   assert.ok(pc.shouldSwitchToMedia_(nextPlaylist), 'should switch');
 });
@@ -5868,7 +5868,7 @@ QUnit.test('true if bandwidth decreases', function(assert) {
   const nextPlaylist = {id: 'foo', endList: true, attributes: {BANDWIDTH: 1}};
 
   pc.duration = () => 40;
-  pc.masterPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
+  pc.mainPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
 
   assert.ok(pc.shouldSwitchToMedia_(nextPlaylist), 'should switch');
 });
@@ -5882,7 +5882,7 @@ QUnit.test('true if bandwidth decreases, experimentalBufferBasedABR, and forward
   pc.tech_.currentTime = () => 0;
   pc.experimentalBufferBasedABR = true;
   pc.duration = () => 40;
-  pc.masterPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
+  pc.mainPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
 
   assert.ok(pc.shouldSwitchToMedia_(nextPlaylist), 'should switch');
 });
@@ -5895,7 +5895,7 @@ QUnit.test('true if forwardBuffer >= bufferLowWaterLine', function(assert) {
   pc.tech_.buffered = () => videojs.createTimeRange();
   pc.tech_.currentTime = () => 0;
   pc.duration = () => 40;
-  pc.masterPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
+  pc.mainPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
 
   assert.ok(pc.shouldSwitchToMedia_(nextPlaylist), 'should switch');
 });
@@ -5909,7 +5909,7 @@ QUnit.test('true if forwardBuffer >= bufferLowWaterLine, experimentalBufferBased
   pc.tech_.currentTime = () => 0;
   pc.experimentalBufferBasedABR = true;
   pc.duration = () => 40;
-  pc.masterPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
+  pc.mainPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
 
   assert.ok(pc.shouldSwitchToMedia_(nextPlaylist), 'should switch');
 });
@@ -5923,7 +5923,7 @@ QUnit.test('false if nextPlaylist bandwidth lower, experimentalBufferBasedABR, a
   pc.tech_.currentTime = () => 0;
   pc.experimentalBufferBasedABR = true;
   pc.duration = () => 40;
-  pc.masterPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
+  pc.mainPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
 
   assert.notOk(pc.shouldSwitchToMedia_(nextPlaylist), 'should not switch');
 });
@@ -5937,7 +5937,7 @@ QUnit.test('false if nextPlaylist bandwidth same, experimentalBufferBasedABR, an
   pc.tech_.currentTime = () => 0;
   pc.experimentalBufferBasedABR = true;
   pc.duration = () => 40;
-  pc.masterPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
+  pc.mainPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
 
   assert.notOk(pc.shouldSwitchToMedia_(nextPlaylist), 'should not switch');
 });
@@ -5946,7 +5946,7 @@ QUnit.test('false if nextPlaylist is currentPlaylist', function(assert) {
   const pc = this.playlistController;
   const nextPlaylist = {id: 'foo', endList: true};
 
-  pc.masterPlaylistLoader_.media = () => nextPlaylist;
+  pc.mainPlaylistLoader_.media = () => nextPlaylist;
 
   assert.notOk(pc.shouldSwitchToMedia_(nextPlaylist), 'should not switch');
 });
@@ -5954,7 +5954,7 @@ QUnit.test('false if nextPlaylist is currentPlaylist', function(assert) {
 QUnit.test('false without nextPlaylist', function(assert) {
   const pc = this.playlistController;
 
-  pc.masterPlaylistLoader_.media = () => ({endList: true, id: 'bar'});
+  pc.mainPlaylistLoader_.media = () => ({endList: true, id: 'bar'});
 
   assert.notOk(pc.shouldSwitchToMedia_(null), 'should not switch');
 
@@ -5966,7 +5966,7 @@ QUnit.test('false without nextPlaylist', function(assert) {
 QUnit.test('false if llhls playlist and no buffered', function(assert) {
   const pc = this.playlistController;
 
-  pc.masterPlaylistLoader_.media = () => ({id: 'foo', endList: false, partTargetDuration: 5});
+  pc.mainPlaylistLoader_.media = () => ({id: 'foo', endList: false, partTargetDuration: 5});
   const nextPlaylist = {id: 'bar', endList: false, partTargetDuration: 5};
 
   assert.notOk(pc.shouldSwitchToMedia_(nextPlaylist), 'should not switch when nothing is buffered');
@@ -5976,7 +5976,7 @@ QUnit.test('true if llhls playlist and we have buffered', function(assert) {
   const pc = this.playlistController;
 
   pc.tech_.buffered = () => videojs.createTimeRange([[0, 10]]);
-  pc.masterPlaylistLoader_.media = () => ({id: 'foo', endList: false, partTargetDuration: 5});
+  pc.mainPlaylistLoader_.media = () => ({id: 'foo', endList: false, partTargetDuration: 5});
   const nextPlaylist = {id: 'bar', endList: false, partTargetDuration: 5};
 
   assert.ok(pc.shouldSwitchToMedia_(nextPlaylist), 'should switch if buffered');
@@ -6006,7 +6006,7 @@ QUnit.test("don't exclude only playlist unless it was excluded forever", functio
   this.standardXHRResponse(this.requests.shift());
 
   let pc = this.playlistController;
-  let mpl = pc.masterPlaylistLoader_;
+  let mpl = pc.mainPlaylistLoader_;
   let playlist = mpl.main.playlists[0];
   let shouldDelay = false;
 
@@ -6035,7 +6035,7 @@ QUnit.test("don't exclude only playlist unless it was excluded forever", functio
   this.standardXHRResponse(this.requests.shift());
 
   pc = this.playlistController;
-  mpl = pc.masterPlaylistLoader_;
+  mpl = pc.mainPlaylistLoader_;
   playlist = mpl.main.playlists[0];
   shouldDelay = false;
 
@@ -6077,7 +6077,7 @@ QUnit.test('switch playlists if current playlist gets excluded and re-include if
   this.standardXHRResponse(this.requests.shift());
 
   const pc = this.playlistController;
-  const mpl = pc.masterPlaylistLoader_;
+  const mpl = pc.mainPlaylistLoader_;
   const playlist = mpl.main.playlists[0];
   let playlist2 = mpl.main.playlists[1];
   let shouldDelay = false;
@@ -6128,7 +6128,7 @@ QUnit.test('Playlist is excluded indefinitely if number of playlistErrors_ excee
   this.standardXHRResponse(this.requests.shift());
 
   const pc = this.playlistController;
-  const mpl = pc.masterPlaylistLoader_;
+  const mpl = pc.mainPlaylistLoader_;
   const playlist = mpl.main.playlists[0];
 
   assert.equal(playlist.playlistErrors_, 0, 'playlistErrors_ starts at zero');
@@ -6167,7 +6167,7 @@ QUnit.test('should delay loading of new playlist if lastRequest was less than ha
   this.standardXHRResponse(this.requests.shift());
 
   const pc = this.playlistController;
-  const mpl = pc.masterPlaylistLoader_;
+  const mpl = pc.mainPlaylistLoader_;
   const oldMplMedia = mpl.media;
   const playlist = mpl.main.playlists[0];
   const playlist2 = mpl.main.playlists[1];

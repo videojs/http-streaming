@@ -61,7 +61,7 @@ Video.js Compatibility: 6.0, 7.0
         - [Format](#format)
         - [Example](#example)
   - [Runtime Properties](#runtime-properties)
-    - [vhs.playlists.master](#vhsplaylistsmaster)
+    - [vhs.playlists.main](#vhsplaylistsmain)
     - [vhs.playlists.media](#vhsplaylistsmedia)
     - [vhs.systemBandwidth](#vhssystembandwidth)
     - [vhs.bandwidth](#vhsbandwidth)
@@ -172,7 +172,7 @@ This plugin does not support Flash playback. Instead, it is recommended that use
 
 DRM is supported through [videojs-contrib-eme](https://github.com/videojs/videojs-contrib-eme). In order to use DRM, include the videojs-contrib-eme plug, [initialize it](https://github.com/videojs/videojs-contrib-eme#initialization), and add options to either the [plugin](https://github.com/videojs/videojs-contrib-eme#plugin-options) or the [source](https://github.com/videojs/videojs-contrib-eme#source-options).
 
-Detailed option information can be found in the [videojs-contrib-eme README](https://github.com/videojs/videojs-contrib-eme/blob/master/README.md).
+Detailed option information can be found in the [videojs-contrib-eme README](https://github.com/videojs/videojs-contrib-eme/blob/main/README.md).
 
 ## Documentation
 [HTTP Live Streaming](https://developer.apple.com/streaming/) (HLS) has
@@ -522,11 +522,11 @@ work across all the media types that video.js supports. If you're
 deploying videojs-http-streaming on your own website and want to make a
 couple tweaks though, go for it!
 
-#### vhs.playlists.master
+#### vhs.playlists.main
 Type: `object`
 
-An object representing the parsed master playlist. If a media playlist
-is loaded directly, a master playlist with only one entry will be
+An object representing the parsed main playlist. If a media playlist
+is loaded directly, a main playlist with only one entry will be
 created.
 
 #### vhs.playlists.media
@@ -537,7 +537,7 @@ media playlist. The active media playlist is referred to when
 additional video data needs to be downloaded. Calling this function
 with no arguments returns the parsed playlist object for the active
 media playlist. Calling this function with a playlist object from the
-master playlist or a URI string as specified in the master playlist
+main playlist or a URI string as specified in the main playlist
 will kick off an asynchronous load of the specified media
 playlist. Once it has been retreived, it will become the active media
 playlist.
@@ -577,7 +577,7 @@ A function that returns the media playlist object to use to download
 the next segment. It is invoked by the tech immediately before a new
 segment is downloaded. You can override this function to provide your
 adaptive streaming logic. You must, however, be sure to return a valid
-media playlist object that is present in `player.tech().vhs.master`.
+media playlist object that is present in `player.tech().vhs.main`.
 
 Overridding this function with your own is very powerful but is overkill
 for many purposes. Most of the time, you should use the much simpler
@@ -691,7 +691,7 @@ This object contains a summary of HLS and player related stats.
 | currentSource         | object | The source object. Has the structure `{src: 'url', type: 'mimetype'}` |
 | currentTech           | string | The name of the tech in use |
 | duration              | number | Duration of the video in seconds |
-| master                | object | The [master playlist object](#vhsplaylistsmaster) |
+| main                  | object | The [main playlist object](#vhsplaylistsmain) |
 | playerDimensions      | object | Contains the width and height of the player |
 | seekable              | array  | List of time ranges that the player can seek to |
 | timestamp             | number | Timestamp of when `vhs.stats` was accessed |
@@ -732,7 +732,7 @@ player.on('ready', () => {
 ```
 
 Note that these events are triggered as soon as a case is encountered, and often only
-once. For example, the `vhs-demuxed` usage event will be triggered as soon as the master
+once. For example, the `vhs-demuxed` usage event will be triggered as soon as the main
 manifest is downloaded and parsed, and will not be triggered again.
 
 #### Presence Stats
@@ -741,11 +741,11 @@ Each of the following usage events are fired once per source if (and when) detec
 
 | Name          | Description   |
 | ------------- | ------------- |
-| vhs-webvtt    | master manifest has at least one segmented WebVTT playlist |
+| vhs-webvtt    | main manifest has at least one segmented WebVTT playlist |
 | vhs-aes       | a playlist is AES encrypted |
 | vhs-fmp4      | a playlist used fMP4 segments |
 | vhs-demuxed   | audio and video are demuxed by default |
-| vhs-alternate-audio | alternate audio available in the master manifest |
+| vhs-alternate-audio | alternate audio available in the main manifest |
 | vhs-playlist-cue-tags | a playlist used cue tags (see useCueTags(#usecuetags) for details) |
 | vhs-bandwidth-from-local-storage | starting bandwidth was retrieved from local storage (see useBandwidthFromLocalStorage(#useBandwidthFromLocalStorage) for details) |
 | vhs-throughput-from-local-storage | starting throughput was retrieved from local storage (see useBandwidthFromLocalStorage(#useBandwidthFromLocalStorage) for details) |

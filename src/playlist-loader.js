@@ -11,8 +11,8 @@ import window from 'global/window';
 import logger from './util/logger';
 import {
   parseManifest,
-  addPropertiesToMaster,
-  masterForMedia,
+  addPropertiesToMain,
+  mainForMedia,
   setupMediaPlaylist,
   forEachMediaGroup
 } from './manifest';
@@ -598,10 +598,10 @@ export default class PlaylistLoader extends EventTarget {
 
     const startingState = this.state;
     const mediaChange = !this.media_ || playlist.id !== this.media_.id;
-    const masterPlaylistRef = this.main.playlists[playlist.id];
+    const mainPlaylistRef = this.main.playlists[playlist.id];
 
     // switch to fully loaded playlists immediately
-    if (masterPlaylistRef && masterPlaylistRef.endList ||
+    if (mainPlaylistRef && mainPlaylistRef.endList ||
         // handle the case of a playlist object (e.g., if using vhs-json with a resolved
         // media playlist or, for the case of demuxed audio, a resolved audio media group)
         (playlist.endList && playlist.segments.length)) {
@@ -876,7 +876,7 @@ export default class PlaylistLoader extends EventTarget {
 
     if (manifest.playlists) {
       this.main = manifest;
-      addPropertiesToMaster(this.main, this.srcUri());
+      addPropertiesToMain(this.main, this.srcUri());
       // If the initial main playlist has playlists wtih segments already resolved,
       // then resolve URIs in advance, as they are usually done after a playlist request,
       // which may not happen if the playlist is resolved.
@@ -901,7 +901,7 @@ export default class PlaylistLoader extends EventTarget {
     // default used.
     const uri = this.srcUri() || window.location.href;
 
-    this.main = masterForMedia(manifest, uri);
+    this.main = mainForMedia(manifest, uri);
     this.haveMetadata({
       playlistObject: manifest,
       url: uri,
