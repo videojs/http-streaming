@@ -230,7 +230,7 @@
 
 * Default to using segmentInfo.trackInfo over this.currentMediaInfo_ to get segment track info. ([#1162](https://github.com/videojs/http-streaming/issues/1162)) ([1d6bb55](https://github.com/videojs/http-streaming/commit/1d6bb55))
 * encode correct video width/height in transmuxed mp4 ([#1166](https://github.com/videojs/http-streaming/issues/1166)) ([d32801a](https://github.com/videojs/http-streaming/commit/d32801a))
-* include all main playlists in default audio group ([#1149](https://github.com/videojs/http-streaming/issues/1149)) ([297e2c7](https://github.com/videojs/http-streaming/commit/297e2c7))
+* include all master playlists in default audio group ([#1149](https://github.com/videojs/http-streaming/issues/1149)) ([297e2c7](https://github.com/videojs/http-streaming/commit/297e2c7))
 * Prevent skipping frames in adts data via mux.js 5.11.3 ([#1153](https://github.com/videojs/http-streaming/issues/1153)) ([253849a](https://github.com/videojs/http-streaming/commit/253849a))
 
 ### Chores
@@ -295,7 +295,7 @@
 
 ### Bug Fixes
 
-* add main referenced id/uri for audio playlists. Add playlists to hls media groups ([#1124](https://github.com/videojs/http-streaming/issues/1124)) ([740d2ee](https://github.com/videojs/http-streaming/commit/740d2ee))
+* add master referenced id/uri for audio playlists. Add playlists to hls media groups ([#1124](https://github.com/videojs/http-streaming/issues/1124)) ([740d2ee](https://github.com/videojs/http-streaming/commit/740d2ee))
 * m3u8-parser/eme updates ([#1131](https://github.com/videojs/http-streaming/issues/1131)) ([29ece75](https://github.com/videojs/http-streaming/commit/29ece75))
 * only append/request init segments when they change ([#1128](https://github.com/videojs/http-streaming/issues/1128)) ([a4af004](https://github.com/videojs/http-streaming/commit/a4af004))
 * set audio status on loaders when setting up media groups ([#1126](https://github.com/videojs/http-streaming/issues/1126)) ([a44f984](https://github.com/videojs/http-streaming/commit/a44f984))
@@ -513,9 +513,9 @@
 
 ### Code Refactoring
 
-* Add a better distinction between main and child dash loaders ([#992](https://github.com/videojs/http-streaming/issues/992)) ([56592bc](https://github.com/videojs/http-streaming/commit/56592bc))
+* Add a better distinction between master and child dash loaders ([#992](https://github.com/videojs/http-streaming/issues/992)) ([56592bc](https://github.com/videojs/http-streaming/commit/56592bc))
 * add sidx segments to playlist object instead of re-parsing xml ([#994](https://github.com/videojs/http-streaming/issues/994)) ([e41f856](https://github.com/videojs/http-streaming/commit/e41f856))
-* unify sidx/main/error request logic ([#998](https://github.com/videojs/http-streaming/issues/998)) ([fe57e60](https://github.com/videojs/http-streaming/commit/fe57e60))
+* unify sidx/master/error request logic ([#998](https://github.com/videojs/http-streaming/issues/998)) ([fe57e60](https://github.com/videojs/http-streaming/commit/fe57e60))
 
 ### Tests
 
@@ -609,7 +609,7 @@
 
 ### Chores
 
-* Add vhs & mpc (vhs.playlistController_) to window of index.html ([#875](https://github.com/videojs/http-streaming/issues/875)) ([bab61d6](https://github.com/videojs/http-streaming/commit/bab61d6))
+* Add vhs & mpc (vhs.masterPlaylistController_) to window of index.html ([#875](https://github.com/videojs/http-streaming/issues/875)) ([bab61d6](https://github.com/videojs/http-streaming/commit/bab61d6))
 * **demo:** add a representations selector to the demo page ([#901](https://github.com/videojs/http-streaming/issues/901)) ([0a54ae2](https://github.com/videojs/http-streaming/commit/0a54ae2))
 * fix tears of steal playready on the demo page ([#915](https://github.com/videojs/http-streaming/issues/915)) ([29a10d0](https://github.com/videojs/http-streaming/commit/29a10d0))
 * keep window vhs/mpc up to date on source switch ([#883](https://github.com/videojs/http-streaming/issues/883)) ([3ba85fd](https://github.com/videojs/http-streaming/commit/3ba85fd))
@@ -1003,7 +1003,7 @@
 
 # 0.5.1
 * Fix audio only streams with EXT-X-MEDIA tags ([#34](https://github.com/videojs/http-streaming/pull/34))
-* Merge videojs-contrib-hls main into http-streaming main ([#35](https://github.com/videojs/http-streaming/pull/35))
+* Merge videojs-contrib-hls master into http-streaming master ([#35](https://github.com/videojs/http-streaming/pull/35))
   * Update sinon to 1.10.3=
   * Update videojs-contrib-quality-levels to ^2.0.4
   * Fix test for event handler cleanup on dispose by calling event handling methods
