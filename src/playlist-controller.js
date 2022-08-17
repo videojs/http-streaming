@@ -136,9 +136,9 @@ const shouldSwitchToMedia = function({
 };
 
 /**
- * the master playlist controller controller all interactons
+ * the main playlist controller controller all interactons
  * between playlists and segmentloaders. At this time this mainly
- * involves a master playlist and a series of audio playlists
+ * involves a main playlist and a series of audio playlists
  * if they are available
  *
  * @class PlaylistController
@@ -417,24 +417,24 @@ export class PlaylistController extends videojs.EventTarget {
    * @return {Array} the array of audio playlists
    */
   getAudioTrackPlaylists_() {
-    const master = this.master();
-    const defaultPlaylists = master && master.playlists || [];
+    const main = this.main();
+    const defaultPlaylists = main && main.playlists || [];
 
     // if we don't have any audio groups then we can only
-    // assume that the audio tracks are contained in masters
+    // assume that the audio tracks are contained in main
     // playlist array, use that or an empty array.
-    if (!master || !master.mediaGroups || !master.mediaGroups.AUDIO) {
+    if (!main || !main.mediaGroups || !main.mediaGroups.AUDIO) {
       return defaultPlaylists;
     }
 
-    const AUDIO = master.mediaGroups.AUDIO;
+    const AUDIO = main.mediaGroups.AUDIO;
     const groupKeys = Object.keys(AUDIO);
     let track;
 
     // get the current active track
     if (Object.keys(this.mediaTypes_.AUDIO.groups).length) {
       track = this.mediaTypes_.AUDIO.activeTrack();
-    // or get the default track from master if mediaTypes_ isn't setup yet
+    // or get the default track from main if mediaTypes_ isn't setup yet
     } else {
       // default group is `main` or just the first group.
       const defaultGroup = AUDIO.main || groupKeys.length && AUDIO[groupKeys[0]];
@@ -464,12 +464,12 @@ export class PlaylistController extends videojs.EventTarget {
           playlists.push.apply(playlists, properties.playlists);
         } else if (properties.uri) {
           playlists.push(properties);
-        } else if (master.playlists.length) {
+        } else if (main.playlists.length) {
           // if an audio group does not have a uri
           // see if we have main playlists that use it as a group.
           // if we do then add those to the playlists list.
-          for (let i = 0; i < master.playlists.length; i++) {
-            const playlist = master.playlists[i];
+          for (let i = 0; i < main.playlists.length; i++) {
+            const playlist = main.playlists[i];
 
             if (playlist.attributes && playlist.attributes.AUDIO && playlist.attributes.AUDIO === group) {
               playlists.push(playlist);
@@ -487,7 +487,7 @@ export class PlaylistController extends videojs.EventTarget {
   }
 
   /**
-   * Register event handlers on the master playlist loader. A helper
+   * Register event handlers on the main playlist loader. A helper
    * function for construction time.
    *
    * @private
@@ -523,12 +523,12 @@ export class PlaylistController extends videojs.EventTarget {
         requestOptions: this.requestOptions_,
         mainPlaylistLoader: this.mainPlaylistLoader_,
         vhs: this.vhs_,
-        main: this.master(),
+        main: this.main(),
         mediaTypes: this.mediaTypes_,
         excludePlaylist: this.excludePlaylist.bind(this)
       });
 
-      this.triggerPresenceUsage_(this.master(), media);
+      this.triggerPresenceUsage_(this.main(), media);
       this.setupFirstPlay();
 
       if (!this.mediaTypes_.AUDIO.activePlaylistLoader ||
@@ -697,8 +697,8 @@ export class PlaylistController extends videojs.EventTarget {
    *
    * @private
    */
-  triggerPresenceUsage_(master, media) {
-    const mediaGroups = master.mediaGroups || {};
+  triggerPresenceUsage_(main, media) {
+    const mediaGroups = main.mediaGroups || {};
     let defaultDemuxed = true;
     const audioGroupKeys = Object.keys(mediaGroups.AUDIO);
 
@@ -1143,7 +1143,7 @@ export class PlaylistController extends videojs.EventTarget {
                         this.playlistExclusionDuration;
 
     // If there is no current playlist, then an error occurred while we were
-    // trying to load the master OR while we were disposing of the tech
+    // trying to load the main OR while we were disposing of the tech
     if (!playlistToExclude) {
       this.error = error;
 
@@ -1276,7 +1276,7 @@ export class PlaylistController extends videojs.EventTarget {
    *        * all - run on all loaders
    *        * audio - run on all audio loaders
    *        * subtitle - run on all subtitle loaders
-   *        * main - run on the main/master loaders
+   *        * main - run on the main loaders
    *
    * @param {Array|string} fnNames
    *        A string or array of function names to call.
@@ -1456,11 +1456,11 @@ export class PlaylistController extends videojs.EventTarget {
       return;
     }
 
-    const master = this.mainPlaylistLoader_.main;
+    const main = this.mainPlaylistLoader_.main;
     const mainSeekable = Vhs.Playlist.seekable(
       media,
       expired,
-      Vhs.Playlist.liveEdgeDelay(master, media)
+      Vhs.Playlist.liveEdgeDelay(main, media)
     );
 
     if (mainSeekable.length === 0) {
@@ -1478,7 +1478,7 @@ export class PlaylistController extends videojs.EventTarget {
       audioSeekable = Vhs.Playlist.seekable(
         media,
         expired,
-        Vhs.Playlist.liveEdgeDelay(master, media)
+        Vhs.Playlist.liveEdgeDelay(main, media)
       );
 
       if (audioSeekable.length === 0) {
@@ -1632,11 +1632,11 @@ export class PlaylistController extends videojs.EventTarget {
   }
 
   /**
-   * return the master playlist object if we have one
+   * return the main playlist object if we have one
    *
-   * @return {Object} the master playlist object that we parsed
+   * @return {Object} the main playlist object that we parsed
    */
-  master() {
+  main() {
     return this.mainPlaylistLoader_.main;
   }
 
@@ -1673,7 +1673,7 @@ export class PlaylistController extends videojs.EventTarget {
 
     // set "main" media equal to video
     media.video = media.main;
-    const playlistCodecs = codecsForPlaylist(this.master(), this.media());
+    const playlistCodecs = codecsForPlaylist(this.main(), this.media());
     const codecs = {};
     const usingAudioLoader = !!this.mediaTypes_.AUDIO.activePlaylistLoader;
 
@@ -1722,7 +1722,7 @@ export class PlaylistController extends videojs.EventTarget {
     if (usingAudioLoader && unsupportedAudio && this.media().attributes.AUDIO) {
       const audioGroup = this.media().attributes.AUDIO;
 
-      this.master().playlists.forEach(variant => {
+      this.main().playlists.forEach(variant => {
         const variantAudioGroup = variant.attributes && variant.attributes.AUDIO;
 
         if (variantAudioGroup === audioGroup && variant !== this.media()) {
@@ -1822,7 +1822,7 @@ export class PlaylistController extends videojs.EventTarget {
    * Excludes playlists with codecs that are unsupported by the muxer and browser.
    */
   excludeUnsupportedVariants_() {
-    const playlists = this.master().playlists;
+    const playlists = this.main().playlists;
     const ids = [];
 
     // TODO: why don't we have a property to loop through all
@@ -1837,7 +1837,7 @@ export class PlaylistController extends videojs.EventTarget {
 
       ids.push(variant.id);
 
-      const codecs = codecsForPlaylist(this.master, variant);
+      const codecs = codecsForPlaylist(this.main, variant);
       const unsupported = [];
 
       if (codecs.audio && !muxerSupportsCodec(codecs.audio) && !browserSupportsCodec(codecs.audio)) {
@@ -1867,7 +1867,7 @@ export class PlaylistController extends videojs.EventTarget {
    * video and audio to an audio-only one.
    *
    * @param {Object} media a media playlist compatible with the current
-   * set of SourceBuffers. Variants in the current master playlist that
+   * set of SourceBuffers. Variants in the current main playlist that
    * do not appear to have compatible codec or stream configurations
    * will be excluded from the default playlist selection algorithm
    * indefinitely.
@@ -1875,7 +1875,7 @@ export class PlaylistController extends videojs.EventTarget {
    */
   excludeIncompatibleVariants_(codecString) {
     const ids = [];
-    const playlists = this.master().playlists;
+    const playlists = this.main().playlists;
     const codecs = unwrapCodecList(parseCodecs(codecString));
     const codecCount_ = codecCount(codecs);
     const videoDetails = codecs.video && parseCodecs(codecs.video)[0] || null;
