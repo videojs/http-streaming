@@ -263,7 +263,7 @@ export class PlaylistController extends videojs.EventTarget {
     this.mainPlaylistLoader_ = this.sourceType_ === 'dash' ?
       new DashPlaylistLoader(src, this.vhs_, this.requestOptions_) :
       new PlaylistLoader(src, this.vhs_, this.requestOptions_);
-    this.setupMasterPlaylistLoaderListeners_();
+    this.setupMainPlaylistLoaderListeners_();
 
     // setup segment loaders
     // combined audio/video or just video when alternate audio track is selected
@@ -492,7 +492,7 @@ export class PlaylistController extends videojs.EventTarget {
    *
    * @private
    */
-  setupMasterPlaylistLoaderListeners_() {
+  setupMainPlaylistLoaderListeners_() {
     this.mainPlaylistLoader_.on('loadedmetadata', () => {
       const media = this.mainPlaylistLoader_.media();
       const requestTimeout = (media.targetDuration * 1.5) * 1000;
