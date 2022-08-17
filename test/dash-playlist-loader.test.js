@@ -1414,26 +1414,26 @@ QUnit.test('parseMainXml: setup phony playlists and resolves uris', function(ass
   loader.load();
   this.standardXHRResponse(this.requests.shift());
 
-  const masterPlaylist = parseMainXml({
+  const mainPlaylist = parseMainXml({
     mainXml: loader.mainXml_,
     srcUrl: loader.srcUrl,
     clientOffset: loader.clientOffset_,
     sidxMapping: loader.sidxMapping_
   });
 
-  assert.strictEqual(masterPlaylist.uri, loader.srcUrl, 'main playlist uri set correctly');
-  assert.strictEqual(masterPlaylist.playlists[0].uri, 'placeholder-uri-0');
-  assert.strictEqual(masterPlaylist.playlists[0].id, '0-placeholder-uri-0');
+  assert.strictEqual(mainPlaylist.uri, loader.srcUrl, 'main playlist uri set correctly');
+  assert.strictEqual(mainPlaylist.playlists[0].uri, 'placeholder-uri-0');
+  assert.strictEqual(mainPlaylist.playlists[0].id, '0-placeholder-uri-0');
   assert.deepEqual(
-    masterPlaylist.playlists['0-placeholder-uri-0'],
-    masterPlaylist.playlists[0],
+    mainPlaylist.playlists['0-placeholder-uri-0'],
+    mainPlaylist.playlists[0],
     'phony id setup correctly for playlist'
   );
   assert.ok(
-    Object.keys(masterPlaylist.mediaGroups.AUDIO).length,
+    Object.keys(mainPlaylist.mediaGroups.AUDIO).length,
     'has audio group'
   );
-  assert.ok(masterPlaylist.playlists[0].resolvedUri, 'resolved playlist uris');
+  assert.ok(mainPlaylist.playlists[0].resolvedUri, 'resolved playlist uris');
 });
 
 QUnit.test('parseMainXml: includes sidx info if available and matches playlist', function(assert) {
