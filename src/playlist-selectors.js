@@ -367,7 +367,7 @@ export const lastBandwidthSelector = function() {
   const pixelRatio = this.useDevicePixelRatio ? window.devicePixelRatio || 1 : 1;
 
   return simpleSelector(
-    this.playlists.master,
+    this.playlists.main,
     this.systemBandwidth,
     parseInt(safeGetComputedStyle(this.tech_.el(), 'width'), 10) * pixelRatio,
     parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10) * pixelRatio,
@@ -418,7 +418,7 @@ export const movingAverageBandwidthSelector = function(decay) {
     }
 
     return simpleSelector(
-      this.playlists.master,
+      this.playlists.main,
       average,
       parseInt(safeGetComputedStyle(this.tech_.el(), 'width'), 10) * pixelRatio,
       parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10) * pixelRatio,
@@ -540,7 +540,7 @@ export const minRebufferMaxBandwidthSelector = function(settings) {
 export const lowestBitrateCompatibleVariantSelector = function() {
   // filter out any playlists that have been excluded due to
   // incompatible configurations or playback errors
-  const playlists = this.playlists.master.playlists.filter(Playlist.isEnabled);
+  const playlists = this.playlists.main.playlists.filter(Playlist.isEnabled);
 
   // Sort ascending by bitrate
   stableSort(
@@ -553,7 +553,7 @@ export const lowestBitrateCompatibleVariantSelector = function() {
   //
   // If an entire manifest has no valid videos everything will get filtered
   // out.
-  const playlistsWithVideo = playlists.filter(playlist => !!codecsForPlaylist(this.playlists.master, playlist).video);
+  const playlistsWithVideo = playlists.filter(playlist => !!codecsForPlaylist(this.playlists.main, playlist).video);
 
   return playlistsWithVideo[0] || null;
 };

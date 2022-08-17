@@ -57,7 +57,7 @@ const makeMockVhsHandler = function(playlistOptions = [], handlerOptions = {}, m
       pc.fastQualityChange_.calls++;
     },
     master: () => {
-      return vhsHandler.playlists.master;
+      return vhsHandler.playlists.main;
     },
     getAudioTrackPlaylists_: () => {
       return [];
@@ -69,21 +69,21 @@ const makeMockVhsHandler = function(playlistOptions = [], handlerOptions = {}, m
   vhsHandler.playlistController_ = pc;
   vhsHandler.playlists = new videojs.EventTarget();
 
-  vhsHandler.playlists.master = master;
+  vhsHandler.playlists.main = master;
 
-  if (!vhsHandler.playlists.master.playlists) {
-    vhsHandler.playlists.master.playlists = [];
+  if (!vhsHandler.playlists.main.playlists) {
+    vhsHandler.playlists.main.playlists = [];
   }
 
   playlistOptions.forEach((playlist, i) => {
-    vhsHandler.playlists.master.playlists[i] = makeMockPlaylist(playlist);
+    vhsHandler.playlists.main.playlists[i] = makeMockPlaylist(playlist);
 
     if (playlist.uri) {
       const id = createPlaylistID(i, playlist.uri);
 
-      vhsHandler.playlists.master.playlists[i].id = id;
-      vhsHandler.playlists.master.playlists[id] =
-        vhsHandler.playlists.master.playlists[i];
+      vhsHandler.playlists.main.playlists[i].id = id;
+      vhsHandler.playlists.main.playlists[id] =
+        vhsHandler.playlists.main.playlists[i];
     }
   });
 
@@ -226,7 +226,7 @@ QUnit.test(
         uri: 'media1.m3u8'
       }
     ]);
-    const playlists = vhsHandler.playlists.master.playlists;
+    const playlists = vhsHandler.playlists.main.playlists;
 
     vhsHandler.playlists.on('renditiondisabled', function() {
       renditiondisabled++;
@@ -320,9 +320,9 @@ QUnit.test('playlist is exposed on renditions', function(assert) {
 
   const renditions = vhsHandler.representations();
 
-  assert.deepEqual(renditions[0].playlist, vhsHandler.playlists.master.playlists[0], 'rendition 1 has correct playlist');
-  assert.deepEqual(renditions[1].playlist, vhsHandler.playlists.master.playlists[1], 'rendition 2 has correct playlist');
-  assert.deepEqual(renditions[2].playlist, vhsHandler.playlists.master.playlists[2], 'rendition 3 has no playlist');
+  assert.deepEqual(renditions[0].playlist, vhsHandler.playlists.main.playlists[0], 'rendition 1 has correct playlist');
+  assert.deepEqual(renditions[1].playlist, vhsHandler.playlists.main.playlists[1], 'rendition 2 has correct playlist');
+  assert.deepEqual(renditions[2].playlist, vhsHandler.playlists.main.playlists[2], 'rendition 3 has no playlist');
 });
 
 QUnit.test('codecs attribute is exposed on renditions when available', function(assert) {

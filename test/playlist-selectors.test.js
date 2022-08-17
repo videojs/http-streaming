@@ -36,7 +36,7 @@ test('Exponential moving average has a configurable decay parameter', function(a
   let playlist;
   const instantAverage = movingAverageBandwidthSelector(1.0);
 
-  this.vhs.playlists.master.playlists = [
+  this.vhs.playlists.main.playlists = [
     { attributes: { BANDWIDTH: 1 } },
     { attributes: { BANDWIDTH: 50 } },
     { attributes: { BANDWIDTH: 100 } }
@@ -77,7 +77,7 @@ test('Calling exponential moving average wont decay average unless new bandwidth
     return simSel(...args);
   });
 
-  this.vhs.playlists.master.playlists = [
+  this.vhs.playlists.main.playlists = [
     { attributes: { BANDWIDTH: 1 } },
     { attributes: { BANDWIDTH: 50 } },
     { attributes: { BANDWIDTH: 100 } }
@@ -113,7 +113,7 @@ test('Calling exponential moving average wont decay average unless new bandwidth
 test(
   'minRebufferMaxBandwidthSelector picks highest rendition without rebuffering',
   function(assert) {
-    const master = this.vhs.playlists.master;
+    const master = this.vhs.playlists.main;
     const currentTime = 0;
     let bandwidth = 2000;
     const duration = 100;
@@ -178,13 +178,13 @@ test(
   function(assert) {
     // Set this up out of order to make sure that the function sorts all
     // playlists by bandwidth
-    this.vhs.playlists.master.playlists = [
+    this.vhs.playlists.main.playlists = [
       { attributes: { BANDWIDTH: 10, CODECS: 'mp4a.40.2' } },
       { attributes: { BANDWIDTH: 100, CODECS: 'mp4a.40.2, avc1.4d400d' } },
       { attributes: { BANDWIDTH: 50, CODECS: 'mp4a.40.2, avc1.4d400d' } }
     ];
 
-    const expectedPlaylist = this.vhs.playlists.master.playlists[2];
+    const expectedPlaylist = this.vhs.playlists.main.playlists[2];
     const testPlaylist = lowestBitrateCompatibleVariantSelector.call(this.vhs);
 
     assert.equal(
@@ -197,7 +197,7 @@ test(
 test(
   'lowestBitrateCompatibleVariantSelector return null if no video exists',
   function(assert) {
-    this.vhs.playlists.master.playlists = [
+    this.vhs.playlists.main.playlists = [
       { attributes: { BANDWIDTH: 50, CODECS: 'mp4a.40.2' } },
       { attributes: { BANDWIDTH: 10, CODECS: 'mp4a.40.2' } },
       { attributes: { BANDWIDTH: 100, CODECS: 'mp4a.40.2' } }
@@ -213,7 +213,7 @@ test(
 );
 
 test('simpleSelector switches up even without resolution information', function(assert) {
-  const master = this.vhs.playlists.master;
+  const master = this.vhs.playlists.main;
 
   master.playlists = [
     { attributes: { BANDWIDTH: 100 } },
@@ -238,7 +238,7 @@ const trickyPlaylists = [
 ];
 
 test('simpleSelector limits using resolution information when it exists', function(assert) {
-  const master = this.vhs.playlists.master;
+  const master = this.vhs.playlists.main;
 
   master.playlists = trickyPlaylists;
 
@@ -248,7 +248,7 @@ test('simpleSelector limits using resolution information when it exists', functi
 });
 
 test('simpleSelector can not limit based on resolution information', function(assert) {
-  const master = this.vhs.playlists.master;
+  const master = this.vhs.playlists.main;
 
   master.playlists = trickyPlaylists;
 
@@ -265,7 +265,7 @@ test('simpleSelector chooses between current audio playlists for audio only', fu
   const playlistController = {
     getAudioTrackPlaylists_: () => audioPlaylists
   };
-  const master = this.vhs.playlists.master;
+  const master = this.vhs.playlists.main;
 
   master.mediaGroups = {
     AUDIO: {
@@ -282,7 +282,7 @@ test('simpleSelector chooses between current audio playlists for audio only', fu
 
 test('simpleSelector experimentalLeastPixelDiffSelector selects least pixel diff resolution.', function(assert) {
   const bandwidth = Config.INITIAL_BANDWIDTH;
-  const master = this.vhs.playlists.master;
+  const master = this.vhs.playlists.main;
   const usePixelDiff = {experimentalLeastPixelDiffSelector: true};
 
   master.playlists = [

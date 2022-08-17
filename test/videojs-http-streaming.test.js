@@ -539,7 +539,7 @@ QUnit.test('creates a PlaylistLoader on init', function(assert) {
   assert.equal(this.requests[0].aborted, true, 'aborted previous src');
   this.standardXHRResponse(this.requests[1]);
   assert.ok(
-    this.player.tech_.vhs.playlists.master,
+    this.player.tech_.vhs.playlists.main,
     'set the master playlist'
   );
   assert.ok(
@@ -551,7 +551,7 @@ QUnit.test('creates a PlaylistLoader on init', function(assert) {
     'the segment entries are parsed'
   );
   assert.strictEqual(
-    this.player.tech_.vhs.playlists.master.playlists[0],
+    this.player.tech_.vhs.playlists.main.playlists[0],
     this.player.tech_.vhs.playlists.media(),
     'the playlist is selected'
   );
@@ -1216,9 +1216,9 @@ QUnit.test('selects a playlist below the current bandwidth', function(assert) {
   this.standardXHRResponse(this.requests[0]);
 
   // the default playlist has a really high bitrate
-  this.player.tech_.vhs.playlists.master.playlists[0].attributes.BANDWIDTH = 9e10;
+  this.player.tech_.vhs.playlists.main.playlists[0].attributes.BANDWIDTH = 9e10;
   // playlist 1 has a very low bitrate
-  this.player.tech_.vhs.playlists.master.playlists[1].attributes.BANDWIDTH = 1;
+  this.player.tech_.vhs.playlists.main.playlists[1].attributes.BANDWIDTH = 1;
   // but the detected client bandwidth is really low
   this.player.tech_.vhs.bandwidth = 10;
 
@@ -1226,7 +1226,7 @@ QUnit.test('selects a playlist below the current bandwidth', function(assert) {
 
   assert.strictEqual(
     playlist,
-    this.player.tech_.vhs.playlists.master.playlists[1],
+    this.player.tech_.vhs.playlists.main.playlists[1],
     'the low bitrate stream is selected'
   );
 
@@ -1248,17 +1248,17 @@ QUnit.test(
 
     // covers playlists with same bandwidth but different resolution and different bandwidth
     // but same resolution
-    this.player.tech_.vhs.playlists.master.playlists[0].attributes.BANDWIDTH = 528;
-    this.player.tech_.vhs.playlists.master.playlists[1].attributes.BANDWIDTH = 528;
-    this.player.tech_.vhs.playlists.master.playlists[2].attributes.BANDWIDTH = 728;
-    this.player.tech_.vhs.playlists.master.playlists[3].attributes.BANDWIDTH = 728;
+    this.player.tech_.vhs.playlists.main.playlists[0].attributes.BANDWIDTH = 528;
+    this.player.tech_.vhs.playlists.main.playlists[1].attributes.BANDWIDTH = 528;
+    this.player.tech_.vhs.playlists.main.playlists[2].attributes.BANDWIDTH = 728;
+    this.player.tech_.vhs.playlists.main.playlists[3].attributes.BANDWIDTH = 728;
 
     this.player.tech_.vhs.bandwidth = 1000;
 
     playlist = this.player.tech_.vhs.selectPlaylist();
     assert.strictEqual(
       playlist,
-      this.player.tech_.vhs.playlists.master.playlists[2],
+      this.player.tech_.vhs.playlists.main.playlists[2],
       'select the rendition with largest bandwidth and just-larger-than video player'
     );
 
@@ -1266,21 +1266,21 @@ QUnit.test(
     assert.equal(this.player.tech_.vhs.stats.bandwidth, 1000, 'bandwidth set above');
 
     // covers playlists share same bandwidth and resolutions
-    this.player.tech_.vhs.playlists.master.playlists[0].attributes.BANDWIDTH = 728;
-    this.player.tech_.vhs.playlists.master.playlists[0].attributes.RESOLUTION.width = 960;
-    this.player.tech_.vhs.playlists.master.playlists[0].attributes.RESOLUTION.height = 540;
-    this.player.tech_.vhs.playlists.master.playlists[1].attributes.BANDWIDTH = 728;
-    this.player.tech_.vhs.playlists.master.playlists[2].attributes.BANDWIDTH = 728;
-    this.player.tech_.vhs.playlists.master.playlists[2].attributes.RESOLUTION.width = 960;
-    this.player.tech_.vhs.playlists.master.playlists[2].attributes.RESOLUTION.height = 540;
-    this.player.tech_.vhs.playlists.master.playlists[3].attributes.BANDWIDTH = 728;
+    this.player.tech_.vhs.playlists.main.playlists[0].attributes.BANDWIDTH = 728;
+    this.player.tech_.vhs.playlists.main.playlists[0].attributes.RESOLUTION.width = 960;
+    this.player.tech_.vhs.playlists.main.playlists[0].attributes.RESOLUTION.height = 540;
+    this.player.tech_.vhs.playlists.main.playlists[1].attributes.BANDWIDTH = 728;
+    this.player.tech_.vhs.playlists.main.playlists[2].attributes.BANDWIDTH = 728;
+    this.player.tech_.vhs.playlists.main.playlists[2].attributes.RESOLUTION.width = 960;
+    this.player.tech_.vhs.playlists.main.playlists[2].attributes.RESOLUTION.height = 540;
+    this.player.tech_.vhs.playlists.main.playlists[3].attributes.BANDWIDTH = 728;
 
     this.player.tech_.vhs.bandwidth = 1000;
 
     playlist = this.player.tech_.vhs.selectPlaylist();
     assert.strictEqual(
       playlist,
-      this.player.tech_.vhs.playlists.master.playlists[0],
+      this.player.tech_.vhs.playlists.main.playlists[0],
       'the primary rendition is selected'
     );
   }
@@ -1327,16 +1327,16 @@ QUnit.test('raises the minimum bitrate for a stream proportionially', function(a
   this.standardXHRResponse(this.requests[0]);
 
   // the default playlist's bandwidth + 10% is assert.equal to the current bandwidth
-  this.player.tech_.vhs.playlists.master.playlists[0].attributes.BANDWIDTH = 10;
+  this.player.tech_.vhs.playlists.main.playlists[0].attributes.BANDWIDTH = 10;
   this.player.tech_.vhs.bandwidth = 11;
 
   // 9.9 * 1.1 < 11
-  this.player.tech_.vhs.playlists.master.playlists[1].attributes.BANDWIDTH = 9.9;
+  this.player.tech_.vhs.playlists.main.playlists[1].attributes.BANDWIDTH = 9.9;
   const playlist = this.player.tech_.vhs.selectPlaylist();
 
   assert.strictEqual(
     playlist,
-    this.player.tech_.vhs.playlists.master.playlists[1],
+    this.player.tech_.vhs.playlists.main.playlists[1],
     'a lower bitrate stream is selected'
   );
 
@@ -1364,7 +1364,7 @@ QUnit.test('uses the lowest bitrate if no other is suitable', function(assert) {
   // playlist 1 has the lowest advertised bitrate
   assert.strictEqual(
     playlist,
-    this.player.tech_.vhs.playlists.master.playlists[1],
+    this.player.tech_.vhs.playlists.main.playlists[1],
     'the lowest bitrate stream is selected'
   );
 
@@ -1522,11 +1522,11 @@ QUnit.test('filters playlists that are currently excluded', function(assert) {
   this.standardXHRResponse(this.requests.shift());
 
   // exclude the current playlist
-  this.player.tech_.vhs.playlists.master.playlists[0].excludeUntil = +new Date() + 1000;
+  this.player.tech_.vhs.playlists.main.playlists[0].excludeUntil = +new Date() + 1000;
   playlist = this.player.tech_.vhs.selectPlaylist();
   assert.equal(
     playlist,
-    this.player.tech_.vhs.playlists.master.playlists[1],
+    this.player.tech_.vhs.playlists.main.playlists[1],
     'respected exclusions'
   );
 
@@ -1535,7 +1535,7 @@ QUnit.test('filters playlists that are currently excluded', function(assert) {
   playlist = this.player.tech_.vhs.selectPlaylist();
   assert.equal(
     playlist,
-    this.player.tech_.vhs.playlists.master.playlists[0],
+    this.player.tech_.vhs.playlists.main.playlists[0],
     'expired the exclusion'
   );
 
@@ -1567,7 +1567,7 @@ QUnit.test('does not exclude compatible H.264 codec strings', function(assert) {
 
   // media
   this.standardXHRResponse(this.requests.shift());
-  const master = this.player.tech_.vhs.playlists.master;
+  const master = this.player.tech_.vhs.playlists.main;
   const loader = this.player.tech_.vhs.playlistController_.mainSegmentLoader_;
 
   loader.currentMediaInfo_ = {hasVideo: true, hasAudio: true};
@@ -1613,7 +1613,7 @@ QUnit.test('does not exclude compatible AAC codec strings', function(assert) {
   this.standardXHRResponse(this.requests.shift());
 
   const loader = this.player.tech_.vhs.playlistController_.mainSegmentLoader_;
-  const master = this.player.tech_.vhs.playlists.master;
+  const master = this.player.tech_.vhs.playlists.main;
 
   loader.currentMediaInfo_ = {hasVideo: true, hasAudio: true};
   loader.trigger('trackinfo');
@@ -1672,7 +1672,7 @@ QUnit.test('excludes incompatible playlists by codec, without codec switching', 
 
   const pc = this.player.tech_.vhs.playlistController_;
   const loader = pc.mainSegmentLoader_;
-  const master = this.player.tech_.vhs.playlists.master;
+  const master = this.player.tech_.vhs.playlists.main;
 
   pc.sourceUpdater_.canChangeType = () => false;
 
@@ -1735,7 +1735,7 @@ QUnit.test('does not exclude incompatible codecs with codec switching', function
 
   const pc = this.player.tech_.vhs.playlistController_;
   const loader = pc.mainSegmentLoader_;
-  const master = this.player.tech_.vhs.playlists.master;
+  const master = this.player.tech_.vhs.playlists.main;
 
   pc.sourceUpdater_.canChangeType = () => true;
 
@@ -1792,7 +1792,7 @@ QUnit.test('excludes fmp4 playlists by browser support', function(assert) {
 
   const playlistLoader = pc.masterPlaylistLoader_;
   const loader = pc.mainSegmentLoader_;
-  const master = this.player.tech_.vhs.playlists.master;
+  const master = this.player.tech_.vhs.playlists.main;
 
   let debugLogs = [];
 
@@ -1865,7 +1865,7 @@ QUnit.test('excludes ts playlists by muxer support', function(assert) {
   const pc = this.player.tech_.vhs.playlistController_;
   const playlistLoader = pc.masterPlaylistLoader_;
   const loader = pc.mainSegmentLoader_;
-  const master = this.player.tech_.vhs.playlists.master;
+  const master = this.player.tech_.vhs.playlists.main;
 
   let debugLogs = [];
 
@@ -1975,7 +1975,7 @@ QUnit.test('unsupported playlist should not be re-included when excluding last p
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  const master = this.player.tech_.vhs.playlists.master;
+  const master = this.player.tech_.vhs.playlists.main;
   const media = this.player.tech_.vhs.playlists.media_;
   const pc = this.player.tech_.vhs.playlistController_;
 
@@ -2092,7 +2092,7 @@ QUnit.test('playlist 404 should exclude media', function(assert) {
   } else {
     index = 1;
   }
-  media = this.player.tech_.vhs.playlists.master.playlists[createPlaylistID(index, url)];
+  media = this.player.tech_.vhs.playlists.main.playlists[createPlaylistID(index, url)];
 
   assert.ok(media.excludeUntil > 0, 'original media excluded for some time');
   assert.equal(this.env.log.warn.calls, 1, 'warning logged for exclusion');
@@ -2118,7 +2118,7 @@ QUnit.test('playlist 404 should exclude media', function(assert) {
     index = 1;
   }
 
-  media = this.player.tech_.vhs.playlists.master.playlists[createPlaylistID(index, url)];
+  media = this.player.tech_.vhs.playlists.main.playlists[createPlaylistID(index, url)];
 
   assert.ok(media.excludeUntil > 0, 'second media was excluded after playlist 404');
   assert.equal(this.env.log.warn.calls, 2, 'warning logged for exclusion');
@@ -2151,7 +2151,7 @@ QUnit.test('playlist 404 should exclude media', function(assert) {
   } else {
     index = 1;
   }
-  media = this.player.tech_.vhs.playlists.master.playlists[createPlaylistID(index, url)];
+  media = this.player.tech_.vhs.playlists.main.playlists[createPlaylistID(index, url)];
 
   // the first media was removed from exclusion after a refresh delay
   assert.ok(!media.excludeUntil, 'removed first media from exclusion');
@@ -2284,7 +2284,7 @@ QUnit.test(
     this.requests[1].respond(404);
 
     const url = this.requests[1].url.slice(this.requests[1].url.lastIndexOf('/') + 1);
-    const media = this.player.tech_.vhs.playlists.master.playlists[createPlaylistID(0, url)];
+    const media = this.player.tech_.vhs.playlists.main.playlists[createPlaylistID(0, url)];
 
     // media wasn't excluded because it's the only rendition
     assert.ok(!media.excludeUntil, 'media was not excluded after playlist 404');
@@ -2633,7 +2633,7 @@ QUnit.test('playlist exclusion duration is set through options', function(assert
   } else {
     index = 1;
   }
-  const media = this.player.tech_.vhs.playlists.master.playlists[createPlaylistID(index, url)];
+  const media = this.player.tech_.vhs.playlists.main.playlists[createPlaylistID(index, url)];
 
   assert.ok(media.excludeUntil > 0, 'original media excluded for some time');
   assert.equal(this.env.log.warn.calls, 1, 'warning logged for exclusion');
@@ -2837,7 +2837,7 @@ QUnit.test('resets the switching algorithm if a request times out', function(ass
 
   assert.strictEqual(
     this.player.tech_.vhs.playlists.media(),
-    this.player.tech_.vhs.playlists.master.playlists[1],
+    this.player.tech_.vhs.playlists.main.playlists[1],
     'reset to the lowest bitrate playlist'
   );
 

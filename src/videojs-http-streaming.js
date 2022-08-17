@@ -891,7 +891,7 @@ class VhsHandler extends Component {
         enumerable: true
       },
       master: {
-        get: () => this.playlists.master,
+        get: () => this.playlists.main,
         enumerable: true
       },
       playerDimensions: {
@@ -969,7 +969,7 @@ class VhsHandler extends Component {
       player: this.player_,
       sourceKeySystems: this.source_.keySystems,
       audioMedia: audioPlaylistLoader && audioPlaylistLoader.media(),
-      mainPlaylists: this.playlists.master.playlists
+      mainPlaylists: this.playlists.main.playlists
     }).then(() => {
       this.logger_('created EME key session');
       this.playlistController_.sourceUpdater_.initializedEme();
