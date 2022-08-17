@@ -2,7 +2,7 @@
  * @file videojs-http-streaming.js
  *
  * The main file for the VHS project.
- * License: https://github.com/videojs/videojs-http-streaming/blob/master/LICENSE
+ * License: https://github.com/videojs/videojs-http-streaming/blob/main/LICENSE
  */
 import document from 'global/document';
 import window from 'global/window';
@@ -252,7 +252,7 @@ const getAllPsshKeySystemsOptions = (playlists, keySystems) => {
  * @param {Object} [audioMedia]
  *        The active audio media playlist (optional)
  * @param {Object[]} mainPlaylists
- *        The playlists found on the master playlist object
+ *        The playlists found on the main playlist object
  *
  * @return {Object}
  *         Promise that resolves when the key session has been created
@@ -666,7 +666,7 @@ class VhsHandler extends Component {
       return;
     }
     this.setOptions_();
-    // add master playlist controller options
+    // add main playlist controller options
     this.options_.src = expandDataUri(this.source_.src);
     this.options_.tech = this.tech_;
     this.options_.externVhs = Vhs;
@@ -722,7 +722,7 @@ class VhsHandler extends Component {
     this.playlists = this.playlistController_.mainPlaylistLoader_;
     this.mediaSource = this.playlistController_.mediaSource;
 
-    // Proxy assignment of some properties to the master playlist
+    // Proxy assignment of some properties to the main playlist
     // controller. Using a custom property for backwards compatibility
     // with < v2
     Object.defineProperties(this, {
@@ -890,7 +890,7 @@ class VhsHandler extends Component {
         get: () => this.tech_.duration(),
         enumerable: true
       },
-      master: {
+      main: {
         get: () => this.playlists.main,
         enumerable: true
       },

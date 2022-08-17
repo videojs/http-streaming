@@ -558,7 +558,7 @@ QUnit.module('MediaGroups', function() {
       );
 
       mediaType.lastGroup_ = null;
-      groups.main[1].isMasterPlaylist = true;
+      groups.main[1].isMainPlaylist = true;
 
       onGroupChanged();
 
@@ -801,7 +801,7 @@ QUnit.module('MediaGroups', function() {
     });
   };
 
-  QUnit.test('onTrackChanged with isMasterPlaylist', function(assert) {
+  QUnit.test('onTrackChanged with isMainPlaylist', function(assert) {
     this.media = {id: 'en', attributes: {AUDIO: 'main'}};
     this.nextMedia = {id: 'fr', attributes: {AUDIO: 'main'}};
 
@@ -832,9 +832,9 @@ QUnit.module('MediaGroups', function() {
     const tracks = mediaType.tracks;
 
     groups.main = [
-      { id: 'en', playlistLoader: null, isMasterPlaylist: true },
-      { id: 'fr', playlistLoader: null, isMasterPlaylist: true },
-      { id: 'es', playlistLoader: null, isMasterPlaylist: true }
+      { id: 'en', playlistLoader: null, isMainPlaylist: true },
+      { id: 'fr', playlistLoader: null, isMainPlaylist: true },
+      { id: 'es', playlistLoader: null, isMainPlaylist: true }
     ];
     tracks.en = { id: 'en', enabled: true };
     tracks.fr = { id: 'fr', enabled: false };

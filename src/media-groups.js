@@ -94,7 +94,7 @@ export const onGroupChanged = (type, settings) => () => {
 
   stopLoaders(segmentLoader, mediaType);
 
-  if (!activeGroup || activeGroup.isMasterPlaylist) {
+  if (!activeGroup || activeGroup.isMainPlaylist) {
     // there is no group active or active group is a main playlist and won't change
     return;
   }
@@ -173,7 +173,7 @@ export const onTrackChanged = (type, settings) => () => {
     return;
   }
 
-  if (activeGroup.isMasterPlaylist) {
+  if (activeGroup.isMainPlaylist) {
     // track did not change, do nothing
     if (!activeTrack || !lastTrack || activeTrack.id === lastTrack.id) {
       return;
@@ -432,13 +432,13 @@ export const initialize = {
       mainPlaylistLoader
     } = settings;
 
-    const audioOnlyMaster = isAudioOnly(mainPlaylistLoader.main);
+    const audioOnlyMain = isAudioOnly(mainPlaylistLoader.main);
 
     // force a default if we have none
     if (!mediaGroups[type] ||
         Object.keys(mediaGroups[type]).length === 0) {
       mediaGroups[type] = { main: { default: { default: true } } };
-      if (audioOnlyMaster) {
+      if (audioOnlyMain) {
         mediaGroups[type].main.default.playlists = mainPlaylistLoader.main.playlists;
       }
     }
@@ -452,9 +452,9 @@ export const initialize = {
 
         let playlistLoader;
 
-        if (audioOnlyMaster) {
-          logger_(`AUDIO group '${groupId}' label '${variantLabel}' is a master playlist`);
-          properties.isMasterPlaylist = true;
+        if (audioOnlyMain) {
+          logger_(`AUDIO group '${groupId}' label '${variantLabel}' is a main playlist`);
+          properties.isMainPlaylist = true;
           playlistLoader = null;
 
           // if vhs-json was provided as the source, and the media playlist was resolved,

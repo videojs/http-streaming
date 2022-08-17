@@ -64,7 +64,7 @@ class Representation {
       this.bandwidth = playlist.attributes.BANDWIDTH;
     }
 
-    this.codecs = codecsForPlaylist(pc.master(), playlist);
+    this.codecs = codecsForPlaylist(pc.main(), playlist);
 
     this.playlist = playlist;
 
@@ -93,7 +93,7 @@ const renditionSelectionMixin = function(vhsHandler) {
 
   // Add a single API-specific function to the VhsHandler instance
   vhsHandler.representations = () => {
-    const main = vhsHandler.playlistController_.master();
+    const main = vhsHandler.playlistController_.main();
     const playlists = isAudioOnly(main) ?
       vhsHandler.playlistController_.getAudioTrackPlaylists_() :
       main.playlists;
