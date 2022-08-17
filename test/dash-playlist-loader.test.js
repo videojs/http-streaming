@@ -2795,28 +2795,28 @@ QUnit.test('load resumes minimum update period timeout for live', function(asser
 });
 
 QUnit.test('pause does not remove minimum update period timeout when not main', function(assert) {
-  const masterLoader = new DashPlaylistLoader('dash-live.mpd', this.fakeVhs);
+  const mainLoader = new DashPlaylistLoader('dash-live.mpd', this.fakeVhs);
 
-  masterLoader.load();
+  mainLoader.load();
   this.standardXHRResponse(this.requests.shift());
   this.clock.tick(1);
 
-  const media = masterLoader.main.playlists[0];
+  const media = mainLoader.main.playlists[0];
   // media should be selected at this point
 
-  masterLoader.media(media);
+  mainLoader.media(media);
 
-  const mediaLoader = new DashPlaylistLoader(media, this.fakeVhs, {}, masterLoader);
+  const mediaLoader = new DashPlaylistLoader(media, this.fakeVhs, {}, mainLoader);
 
   assert.ok(
-    masterLoader.minimumUpdatePeriodTimeout_,
+    mainLoader.minimumUpdatePeriodTimeout_,
     'minimum update period timeout set'
   );
 
   mediaLoader.pause();
 
   assert.ok(
-    masterLoader.minimumUpdatePeriodTimeout_,
+    mainLoader.minimumUpdatePeriodTimeout_,
     'minimum update period timeout set'
   );
 });
