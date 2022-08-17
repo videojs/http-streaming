@@ -31,7 +31,7 @@ The [PlaylistLoader][pl] (PL) is responsible for requesting m3u8s, parsing them 
 
 ### Events
 
-- `loadedplaylist` signals the setup of a master playlist, representing the HLS source as a whole, from the m3u8; or a media playlist, representing a media stream.
+- `loadedplaylist` signals the setup of a main playlist, representing the HLS source as a whole, from the m3u8; or a media playlist, representing a media stream.
 - `loadedmetadata` signals initial setup of a media stream.
 - `playlistunchanged` signals that no changes have been made to a m3u8.
 - `mediaupdatetimeout` signals that a live m3u8 and media stream must be refreshed.

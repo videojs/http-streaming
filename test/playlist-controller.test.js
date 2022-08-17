@@ -5670,7 +5670,7 @@ QUnit.test('filter main works', function(assert) {
   this.pc.delegateLoaders_('main', ['abort', 'pause']);
 
   Object.keys(this.expected).forEach((key) => {
-    if ((/^(master|main)/).test(key)) {
+    if ((/^(main)/).test(key)) {
       this.expected[key] = 1;
     }
   });

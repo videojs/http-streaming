@@ -3176,7 +3176,7 @@ QUnit.test('calling play() at the end of a video replays', function(assert) {
 
 QUnit.test('keys are resolved relative to the main playlist', function(assert) {
   this.player.src({
-    src: 'video/master-encrypted.m3u8',
+    src: 'video/main-encrypted.m3u8',
     type: 'application/vnd.apple.mpegurl'
   });
 
@@ -4161,7 +4161,7 @@ QUnit.test('configures eme for DASH on source buffer creation', function(assert)
     }
   };
   this.player.src({
-    src: 'manifest/master.mpd',
+    src: 'manifest/main.mpd',
     type: 'application/dash+xml',
     keySystems: {
       keySystem1: {
@@ -4210,7 +4210,7 @@ QUnit.test('configures eme for DASH on source buffer creation', function(assert)
   }, 'did not modify plugin options');
 
   assert.deepEqual(this.player.currentSource(), {
-    src: 'manifest/master.mpd',
+    src: 'manifest/main.mpd',
     type: 'application/dash+xml',
     keySystems: {
       keySystem1: {
@@ -4613,7 +4613,7 @@ QUnit[testOrSkip]('player error when key session creation rejects promise', func
     }
   };
   this.player.src({
-    src: 'manifest/master.mpd',
+    src: 'manifest/main.mpd',
     type: 'application/dash+xml',
     keySystems: {
       keySystem1: {
@@ -4652,7 +4652,7 @@ QUnit.test(
   'does not set source keySystems if keySystems not provided by source',
   function(assert) {
     this.player.src({
-      src: 'manifest/master.mpd',
+      src: 'manifest/main.mpd',
       type: 'application/dash+xml'
     });
 
@@ -4693,7 +4693,7 @@ QUnit.test(
     this.player.tech_.vhs.playlistController_.sourceUpdater_.trigger('ready');
 
     assert.deepEqual(this.player.currentSource(), {
-      src: 'manifest/master.mpd',
+      src: 'manifest/main.mpd',
       type: 'application/dash+xml'
     }, 'does not set source eme options');
   }
