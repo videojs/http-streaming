@@ -29,21 +29,21 @@ const getCodecs = function(media) {
   }
 };
 
-export const isMaat = (master, media) => {
+export const isMaat = (main, media) => {
   const mediaAttributes = media.attributes || {};
 
-  return master && master.mediaGroups && master.mediaGroups.AUDIO &&
+  return main && main.mediaGroups && main.mediaGroups.AUDIO &&
     mediaAttributes.AUDIO &&
-    master.mediaGroups.AUDIO[mediaAttributes.AUDIO];
+    main.mediaGroups.AUDIO[mediaAttributes.AUDIO];
 };
 
-export const isMuxed = (master, media) => {
-  if (!isMaat(master, media)) {
+export const isMuxed = (main, media) => {
+  if (!isMaat(main, media)) {
     return true;
   }
 
   const mediaAttributes = media.attributes || {};
-  const audioGroup = master.mediaGroups.AUDIO[mediaAttributes.AUDIO];
+  const audioGroup = main.mediaGroups.AUDIO[mediaAttributes.AUDIO];
 
   for (const groupId in audioGroup) {
     // If an audio group has a URI (the case for HLS, as HLS will use external playlists),
@@ -95,28 +95,28 @@ export const codecCount = function(codecObj) {
 
 /**
  * Calculates the codec strings for a working configuration of
- * SourceBuffers to play variant streams in a master playlist. If
+ * SourceBuffers to play variant streams in a main playlist. If
  * there is no possible working configuration, an empty object will be
  * returned.
  *
- * @param master {Object} the m3u8 object for the master playlist
+ * @param main {Object} the m3u8 object for the main playlist
  * @param media {Object} the m3u8 object for the variant playlist
  * @return {Object} the codec strings.
  *
  * @private
  */
-export const codecsForPlaylist = function(master, media) {
+export const codecsForPlaylist = function(main, media) {
   const mediaAttributes = media.attributes || {};
   const codecInfo = unwrapCodecList(getCodecs(media) || []);
 
   // HLS with multiple-audio tracks must always get an audio codec.
   // Put another way, there is no way to have a video-only multiple-audio HLS!
-  if (isMaat(master, media) && !codecInfo.audio) {
-    if (!isMuxed(master, media)) {
+  if (isMaat(main, media) && !codecInfo.audio) {
+    if (!isMuxed(main, media)) {
       // It is possible for codecs to be specified on the audio media group playlist but
       // not on the rendition playlist. This is mostly the case for DASH, where audio and
       // video are always separate (and separately specified).
-      const defaultCodecs = unwrapCodecList(codecsFromDefault(master, mediaAttributes.AUDIO) || []);
+      const defaultCodecs = unwrapCodecList(codecsFromDefault(main, mediaAttributes.AUDIO) || []);
 
       if (defaultCodecs.audio) {
         codecInfo.audio = defaultCodecs.audio;
