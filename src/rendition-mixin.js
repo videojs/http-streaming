@@ -4,7 +4,7 @@ import { codecsForPlaylist } from './util/codecs.js';
 /**
  * Returns a function that acts as the Enable/disable playlist function.
  *
- * @param {PlaylistLoader} loader - The master playlist loader
+ * @param {PlaylistLoader} loader - The main playlist loader
  * @param {string} playlistID - id of the playlist
  * @param {Function} changePlaylistFn - A function to be called after a
  * playlist's enabled-state has been changed. Will NOT be called if a
@@ -14,7 +14,7 @@ import { codecsForPlaylist } from './util/codecs.js';
  * @return {Function} Function for setting/getting enabled
  */
 const enableFunction = (loader, playlistID, changePlaylistFn) => (enable) => {
-  const playlist = loader.master.playlists[playlistID];
+  const playlist = loader.main.playlists[playlistID];
   const incompatible = isIncompatible(playlist);
   const currentlyEnabled = isEnabled(playlist);
 
@@ -69,7 +69,7 @@ class Representation {
     this.playlist = playlist;
 
     // The id is simply the ordinality of the media playlist
-    // within the master playlist
+    // within the main playlist
     this.id = id;
 
     // Partially-apply the enableFunction to create a playlist-
@@ -93,10 +93,10 @@ const renditionSelectionMixin = function(vhsHandler) {
 
   // Add a single API-specific function to the VhsHandler instance
   vhsHandler.representations = () => {
-    const master = vhsHandler.playlistController_.master();
-    const playlists = isAudioOnly(master) ?
+    const main = vhsHandler.playlistController_.master();
+    const playlists = isAudioOnly(main) ?
       vhsHandler.playlistController_.getAudioTrackPlaylists_() :
-      master.playlists;
+      main.playlists;
 
     if (!playlists) {
       return [];
