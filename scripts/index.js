@@ -521,7 +521,7 @@
     [
       'exact-manifest-timings',
       'pixel-diff-selector',
-      'bufferBasedABR'
+      'buffer-water'
     ].forEach(function(name) {
       stateEls[name].checked = false;
     });
