@@ -250,7 +250,7 @@ QUnit[testFn]('Live DASH', function(assert) {
   });
 
   player.src({
-    src: 'https://livesim.dashif.org/livesim/mup_30/testpic_2s/Manifest.mpd',
+    src: 'https://livesim.dashif.org/livesim/segtimeline_1/testpic_2s/Manifest.mpd',
     type: 'application/dash+xml'
   });
 
