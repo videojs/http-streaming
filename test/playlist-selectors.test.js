@@ -280,10 +280,10 @@ test('simpleSelector chooses between current audio playlists for audio only', fu
   assert.equal(selectedPlaylist, audioPlaylists[1], 'selected an audio based solely on bandwidth');
 });
 
-test('simpleSelector experimentalLeastPixelDiffSelector selects least pixel diff resolution.', function(assert) {
+test('simpleSelector leastPixelDiffSelector selects least pixel diff resolution.', function(assert) {
   const bandwidth = Config.INITIAL_BANDWIDTH;
   const main = this.vhs.playlists.main;
-  const usePixelDiff = {experimentalLeastPixelDiffSelector: true};
+  const usePixelDiff = {leastPixelDiffSelector: true};
 
   main.playlists = [
     { attributes: { BANDWIDTH: bandwidth, RESOLUTION: { width: 768, height: 432 } } },

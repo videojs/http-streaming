@@ -53,7 +53,7 @@ const shouldSwitchToMedia = function({
   bufferLowWaterLine,
   bufferHighWaterLine,
   duration,
-  experimentalBufferBasedABR,
+  bufferBasedABR,
   log
 }) {
   // we have no other playlist to switch to
@@ -93,7 +93,7 @@ const shouldSwitchToMedia = function({
   }
 
   const forwardBuffer = Ranges.timeAheadOf(buffered, currentTime);
-  const maxBufferLowWaterLine = experimentalBufferBasedABR ?
+  const maxBufferLowWaterLine = bufferBasedABR ?
     Config.EXPERIMENTAL_MAX_BUFFER_LOW_WATER_LINE : Config.MAX_BUFFER_LOW_WATER_LINE;
 
   // For the same reason as LIVE, we ignore the low water line when the VOD
@@ -108,10 +108,10 @@ const shouldSwitchToMedia = function({
 
   // when switching down, if our buffer is lower than the high water line,
   // we can switch down
-  if (nextBandwidth < currBandwidth && (!experimentalBufferBasedABR || forwardBuffer < bufferHighWaterLine)) {
+  if (nextBandwidth < currBandwidth && (!bufferBasedABR || forwardBuffer < bufferHighWaterLine)) {
     let logLine = `${sharedLogLine} as next bandwidth < current bandwidth (${nextBandwidth} < ${currBandwidth})`;
 
-    if (experimentalBufferBasedABR) {
+    if (bufferBasedABR) {
       logLine += ` and forwardBuffer < bufferHighWaterLine (${forwardBuffer} < ${bufferHighWaterLine})`;
     }
     log(logLine);
@@ -120,10 +120,10 @@ const shouldSwitchToMedia = function({
 
   // and if our buffer is higher than the low water line,
   // we can switch up
-  if ((!experimentalBufferBasedABR || nextBandwidth > currBandwidth) && forwardBuffer >= bufferLowWaterLine) {
+  if ((!bufferBasedABR || nextBandwidth > currBandwidth) && forwardBuffer >= bufferLowWaterLine) {
     let logLine = `${sharedLogLine} as forwardBuffer >= bufferLowWaterLine (${forwardBuffer} >= ${bufferLowWaterLine})`;
 
-    if (experimentalBufferBasedABR) {
+    if (bufferBasedABR) {
       logLine += ` and next bandwidth > current bandwidth (${nextBandwidth} > ${currBandwidth})`;
     }
     log(logLine);
@@ -159,8 +159,8 @@ export class PlaylistController extends videojs.EventTarget {
       enableLowInitialPlaylist,
       sourceType,
       cacheEncryptionKeys,
-      experimentalBufferBasedABR,
-      experimentalLeastPixelDiffSelector,
+      bufferBasedABR,
+      leastPixelDiffSelector,
       captionServices
     } = options;
 
@@ -176,8 +176,8 @@ export class PlaylistController extends videojs.EventTarget {
 
     Vhs = externVhs;
 
-    this.experimentalBufferBasedABR = Boolean(experimentalBufferBasedABR);
-    this.experimentalLeastPixelDiffSelector = Boolean(experimentalLeastPixelDiffSelector);
+    this.bufferBasedABR = Boolean(bufferBasedABR);
+    this.leastPixelDiffSelector = Boolean(leastPixelDiffSelector);
     this.withCredentials = withCredentials;
     this.tech_ = tech;
     this.vhs_ = tech.vhs;
@@ -253,7 +253,7 @@ export class PlaylistController extends videojs.EventTarget {
       cacheEncryptionKeys,
       sourceUpdater: this.sourceUpdater_,
       timelineChangeController: this.timelineChangeController_,
-      experimentalExactManifestTimings: options.experimentalExactManifestTimings
+      exactManifestTimings: options.exactManifestTimings
     };
 
     // The source type check not only determines whether a special DASH playlist loader
@@ -287,7 +287,7 @@ export class PlaylistController extends videojs.EventTarget {
 
     this.setupSegmentLoaderListeners_();
 
-    if (this.experimentalBufferBasedABR) {
+    if (this.bufferBasedABR) {
       this.mainPlaylistLoader_.one('loadedplaylist', () => this.startABRTimer_());
       this.tech_.on('pause', () => this.stopABRTimer_());
       this.tech_.on('play', () => this.startABRTimer_());
@@ -750,7 +750,7 @@ export class PlaylistController extends videojs.EventTarget {
       bufferLowWaterLine,
       bufferHighWaterLine,
       duration: this.duration(),
-      experimentalBufferBasedABR: this.experimentalBufferBasedABR,
+      bufferBasedABR: this.bufferBasedABR,
       log: this.logger_
     });
   }
@@ -761,7 +761,7 @@ export class PlaylistController extends videojs.EventTarget {
    * @private
    */
   setupSegmentLoaderListeners_() {
-    if (!this.experimentalBufferBasedABR) {
+    if (!this.bufferBasedABR) {
       this.mainSegmentLoader_.on('bandwidthupdate', () => {
         const nextPlaylist = this.selectPlaylist();
 
@@ -809,7 +809,7 @@ export class PlaylistController extends videojs.EventTarget {
 
     this.mainSegmentLoader_.on('earlyabort', (event) => {
       // never try to early abort with the new ABR algorithm
-      if (this.experimentalBufferBasedABR) {
+      if (this.bufferBasedABR) {
         return;
       }
 
@@ -1971,7 +1971,7 @@ export class PlaylistController extends videojs.EventTarget {
     const max = Math.max(initial, Config.MAX_BUFFER_LOW_WATER_LINE);
     const newMax = Math.max(initial, Config.EXPERIMENTAL_MAX_BUFFER_LOW_WATER_LINE);
 
-    return Math.min(initial + currentTime * rate, this.experimentalBufferBasedABR ? newMax : max);
+    return Math.min(initial + currentTime * rate, this.bufferBasedABR ? newMax : max);
   }
 
   bufferHighWaterLine() {

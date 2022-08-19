@@ -23,7 +23,7 @@ export const createPlaylistID = (index, uri) => {
  *        An array of custom tag parsers for the m3u8-parser instance
  * @param {Object[]} [customTagMappers]
  *        An array of custom tag mappers for the m3u8-parser instance
- * @param {boolean} [experimentalLLHLS=false]
+ * @param {boolean} [llhls]
  *        Whether to keep ll-hls features in the manifest after parsing.
  * @return {Object}
  *         The manifest object
@@ -34,7 +34,7 @@ export const parseManifest = ({
   manifestString,
   customTagParsers = [],
   customTagMappers = [],
-  experimentalLLHLS
+  llhls
 }) => {
   const parser = new M3u8Parser();
 
@@ -55,7 +55,7 @@ export const parseManifest = ({
 
   // remove llhls features from the parsed manifest
   // if we don't want llhls support.
-  if (!experimentalLLHLS) {
+  if (!llhls) {
     [
       'preloadSegment',
       'skip',
