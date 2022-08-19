@@ -266,7 +266,7 @@ export const onError = {
       // Default track encountered an error. All we can do now is exclude the current
       // rendition and hope another will switch audio groups
       excludePlaylist({
-        message: 'Problem encountered loading the default audio track.'
+        error: { message: 'Problem encountered loading the default audio track.' }
       });
       return;
     }

@@ -233,8 +233,9 @@ export default class PlaybackWatcher {
     // TODO: should we exclude audio tracks rather than main tracks
     // when type is audio?
     pc.excludePlaylist({
-      message: `Excessive ${type} segment downloading detected.`
-    }, Infinity);
+      error: { message: `Excessive ${type} segment downloading detected.` },
+      playlistExclusionDuration: Infinity
+    });
   }
 
   /**
