@@ -5447,7 +5447,7 @@ QUnit.module('PlaylistController - exclusion behavior', {
       assert.equal(this.pc.media(), this.pc.main().playlists[0], 'selected first playlist');
 
       this.pc.excludePlaylist({
-        playlistToExclude: this.pc.master().playlists[0],
+        playlistToExclude: this.pc.main().playlists[0],
         error: { internal: true },
         playlistExclusionDuration: Infinity
       });

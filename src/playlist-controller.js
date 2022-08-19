@@ -1142,7 +1142,7 @@ export class PlaylistController extends videojs.EventTarget {
    *                  an optional number of seconds to exclude the playlist
    */
   excludePlaylist({
-    playlistToExclude = this.masterPlaylistLoader_.media(),
+    playlistToExclude = this.mainPlaylistLoader_.media(),
     error = {},
     playlistExclusionDuration
   }) {
