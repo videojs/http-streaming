@@ -4618,11 +4618,20 @@ QUnit.test('configures eme for HLS on source buffer creation', function(assert) 
 });
 
 QUnit.test('eme handles keystatuschange where status is output-restricted', function(assert) {
+  const originalWarn = videojs.log.warn;
+  let warning = '';
+  let qualitySwitches = 0;
+
+  videojs.log.warn = (...text) => {
+    warning += [...text].join('');
+  };
+
   this.player.eme = {
     options: {
       previousSetting: 1
     }
   };
+
   this.player.src({
     src: 'manifest/master.m3u8',
     type: 'application/x-mpegURL',
@@ -4635,36 +4644,64 @@ QUnit.test('eme handles keystatuschange where status is output-restricted', func
 
   this.clock.tick(1);
 
-  const media = {
-    attributes: {
-      CODECS: 'avc1.420015, mp4a.40.2c'
+  const playlists = [
+    {
+      attributes: {
+        RESOLUTION: {
+          width: 1280,
+          height: 720
+        }
+      }
     },
-    contentProtection: {
-      keySystem1: {
-        pssh: 'test'
+    {
+      attributes: {
+        RESOLUTION: {
+          width: 1920,
+          height: 1080
+        }
+      }
+    },
+    {
+      attributes: {
+        RESOLUTION: {
+          width: 848,
+          height: 480
+        }
       }
     }
-  };
+  ];
 
   this.player.tech_.vhs.playlists = {
-    master: { playlists: [media] },
-    media: () => media
+    master: { playlists },
+    media: () => playlists[0]
   };
 
-  const excludes = [];
+  this.player.tech_.vhs.masterPlaylistController_.master = () => {
+    return {
+      playlists
+    };
+  };
 
-  this.player.tech_.vhs.masterPlaylistController_.blacklistCurrentPlaylist = (exclude) => {
-    excludes.push(exclude);
+  this.player.tech_.vhs.masterPlaylistController_.fastQualityChange_ = () => {
+    qualitySwitches++;
   };
 
   this.player.tech_.vhs.masterPlaylistController_.sourceUpdater_.trigger('createdsourcebuffers');
   this.player.tech_.trigger({type: 'keystatuschange', status: 'output-restricted'});
 
-  assert.deepEqual(excludes, [{
-    blacklistDuration: Infinity,
-    message: 'DRM keystatus changed to output-restricted. Playlist will fail to play. Check for HDCP content.',
-    playlist: undefined
-  }], 'excluded playlist');
+  assert.equal(playlists[0].excludeUntil, Infinity, 'first HD playlist excluded');
+  assert.equal(playlists[1].excludeUntil, Infinity, 'second HD playlist excluded');
+  assert.equal(playlists[2].excludeUntil, undefined, 'non-HD playlist not excluded');
+  assert.equal(qualitySwitches, 1, 'fastQualityChange_ called once');
+  assert.equal(
+    warning,
+    'DRM keystatus changed to "output-restricted." Removing the following HD playlists ' +
+    'that will most likely fail to play and clearing the buffer. ' +
+    'This may be due to HDCP restrictions on the stream and the capabilities of the current device.' +
+    [playlists[0], playlists[1]].join('')
+  );
+
+  videojs.log.warn = originalWarn;
 });
 
 QUnit.test('eme handles keystatuschange where status is usable', function(assert) {
