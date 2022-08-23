@@ -1260,9 +1260,7 @@ if (!videojs.use) {
 videojs.options.vhs = videojs.options.vhs || {};
 
 if (!videojs.getPlugin || !videojs.getPlugin('reloadSourceOnError')) {
-  const registerPlugin = videojs.registerPlugin || videojs.plugin;
-
-  registerPlugin('reloadSourceOnError', reloadSourceOnError);
+  videojs.registerPlugin('reloadSourceOnError', reloadSourceOnError);
 }
 
 export {
