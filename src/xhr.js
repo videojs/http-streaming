@@ -11,10 +11,10 @@
  */
 import videojs from 'video.js';
 import window from 'global/window';
+import {merge} from './util/vjs-compat';
 
 const {
-  xhr: videojsXHR,
-  mergeOptions
+  xhr: videojsXHR
 } = videojs;
 
 const callbackWrapper = function(request, error, response, callback) {
@@ -59,7 +59,7 @@ const callbackWrapper = function(request, error, response, callback) {
 const xhrFactory = function() {
   const xhr = function XhrFunction(options, callback) {
     // Add a default timeout
-    options = mergeOptions({
+    options = merge({
       timeout: 45e3
     }, options);
 

@@ -46,6 +46,7 @@ import {
   timeRangesEqual,
   bandwidthWithinTolerance
 } from './custom-assertions.js';
+import {merge} from '../src/util/vjs-compat';
 
 const sharedHooks = {
   beforeEach(assert) {
@@ -66,8 +67,8 @@ const sharedHooks = {
     this.origSupportsNativeHls = videojs.Vhs.supportsNativeHls;
     videojs.Vhs.supportsNativeHls = false;
     this.oldBrowser = videojs.browser;
-    videojs.browser = videojs.mergeOptions({}, videojs.browser);
-    this.player = createPlayer(videojs.mergeOptions({}, this.playerOptions));
+    videojs.browser = merge({}, videojs.browser);
+    this.player = createPlayer(merge({}, this.playerOptions));
     this.player.src({
       src: 'manifest/main.m3u8',
       type: 'application/vnd.apple.mpegurl'

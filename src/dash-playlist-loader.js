@@ -21,8 +21,9 @@ import {
 import containerRequest from './util/container-request.js';
 import {toUint8} from '@videojs/vhs-utils/es/byte-helpers';
 import logger from './util/logger';
+import {merge} from './util/vjs-compat';
 
-const { EventTarget, mergeOptions } = videojs;
+const { EventTarget } = videojs;
 
 const dashPlaylistUnchanged = function(a, b) {
   if (!isPlaylistUnchanged(a, b)) {
@@ -134,7 +135,7 @@ export const parseMainXml = ({
  */
 export const updateMain = (oldMain, newMain, sidxMapping) => {
   let noChanges = true;
-  let update = mergeOptions(oldMain, {
+  let update = merge(oldMain, {
     // These are top level properties that can be updated
     duration: newMain.duration,
     minimumUpdatePeriod: newMain.minimumUpdatePeriod,
@@ -246,7 +247,7 @@ export const filterChangedSidxMappings = (main, oldSidxMapping) => {
     if (properties.playlists && properties.playlists.length) {
       const playlists = properties.playlists;
 
-      mediaGroupSidx = mergeOptions(
+      mediaGroupSidx = merge(
         mediaGroupSidx,
         compareSidxEntry(playlists, oldSidxMapping)
       );

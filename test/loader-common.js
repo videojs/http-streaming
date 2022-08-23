@@ -26,6 +26,7 @@ import {
   mp4VideoInit as mp4VideoInitSegment,
   videoOneSecond as tsVideoSegment
 } from 'create-test-data!segments';
+import {merge} from '../src/util/vjs-compat';
 
 /**
  * beforeEach and afterEach hooks that should be run segment loader tests regardless of
@@ -68,7 +69,7 @@ export const LoaderCommonHooks = {
     this.video = document.createElement('video');
 
     this.setupMediaSource = (mediaSource, sourceUpdater, options) => {
-      return setupMediaSource(mediaSource, sourceUpdater, videojs.mergeOptions({
+      return setupMediaSource(mediaSource, sourceUpdater, merge({
         videoEl: this.video
       }, options));
     };
@@ -96,7 +97,7 @@ export const LoaderCommonHooks = {
  *         Settings object containing custom settings merged with defaults
  */
 export const LoaderCommonSettings = function(settings) {
-  return videojs.mergeOptions({
+  return merge({
     vhs: this.fakeVhs,
     currentTime: () => this.currentTime,
     seekable: () => this.seekable,
@@ -1558,7 +1559,7 @@ export const LoaderCommonFactory = ({
 
           // make the keys the same
           loader.playlist_.segments[1].key =
-            videojs.mergeOptions({}, loader.playlist_.segments[0].key);
+            merge({}, loader.playlist_.segments[0].key);
           // give 2nd key an iv
           loader.playlist_.segments[1].key.iv = new Uint32Array([0, 1, 2, 3]);
 

@@ -25,6 +25,7 @@ import {
 import { codecsForPlaylist, unwrapCodecList, codecCount } from './util/codecs.js';
 import { createMediaTypes, setupMediaGroups } from './media-groups';
 import logger from './util/logger';
+import {merge} from './util/vjs-compat';
 
 const ABORT_EARLY_EXCLUSION_SECONDS = 60 * 2;
 
@@ -268,19 +269,19 @@ export class PlaylistController extends videojs.EventTarget {
     // setup segment loaders
     // combined audio/video or just video when alternate audio track is selected
     this.mainSegmentLoader_ =
-      new SegmentLoader(videojs.mergeOptions(segmentLoaderSettings, {
+      new SegmentLoader(merge(segmentLoaderSettings, {
         segmentMetadataTrack: this.segmentMetadataTrack_,
         loaderType: 'main'
       }), options);
 
     // alternate audio track
     this.audioSegmentLoader_ =
-      new SegmentLoader(videojs.mergeOptions(segmentLoaderSettings, {
+      new SegmentLoader(merge(segmentLoaderSettings, {
         loaderType: 'audio'
       }), options);
 
     this.subtitleSegmentLoader_ =
-      new VTTSegmentLoader(videojs.mergeOptions(segmentLoaderSettings, {
+      new VTTSegmentLoader(merge(segmentLoaderSettings, {
         loaderType: 'vtt',
         featuresNativeTextTracks: this.tech_.featuresNativeTextTracks
       }), options);

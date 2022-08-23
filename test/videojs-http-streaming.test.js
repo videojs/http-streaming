@@ -45,6 +45,7 @@ import window from 'global/window';
 // we need this so the plugin registers itself
 import 'videojs-contrib-quality-levels';
 import 'videojs-contrib-eme';
+import {merge} from '../src/util/vjs-compat';
 
 import {version as vhsVersion} from '../package.json';
 import {version as muxVersion} from 'mux.js/package.json';
@@ -62,7 +63,7 @@ if (videojs.browser.IS_EDGE || videojs.browser.IE_VERSION) {
 const ogVhsHandlerSetupQualityLevels = videojs.VhsHandler.prototype.setupQualityLevels_;
 
 // do a shallow copy of the properties of source onto the target object
-const merge = function(target, source) {
+const mergeShallow = function(target, source) {
   let name;
 
   for (name in source) {
@@ -82,7 +83,7 @@ QUnit.module('VHS', {
       window.devicePixelRatio = 1;
     }
     // store functionality that some tests need to mock
-    this.old.GlobalOptions = videojs.mergeOptions(videojs.options);
+    this.old.GlobalOptions = merge(videojs.options);
 
     // force the HLS tech to run
     this.old.NativeHlsSupport = videojs.Vhs.supportsNativeHls;
@@ -96,7 +97,7 @@ QUnit.module('VHS', {
 
     // save and restore browser detection for the Firefox-specific tests
     this.old.browser = videojs.browser;
-    videojs.browser = videojs.mergeOptions({}, videojs.browser);
+    videojs.browser = merge({}, videojs.browser);
 
     this.standardXHRResponse = (request, data) => {
       standardXHRResponse(request, data);
@@ -120,7 +121,8 @@ QUnit.module('VHS', {
       window.devicePixelRatio = this.old.devicePixelRatio;
     }
 
-    merge(videojs.options, this.old.GlobalOptions);
+    // This seems duplicative of `merge` but tests fail if `merge` is used...
+    mergeShallow(videojs.options, this.old.GlobalOptions);
 
     videojs.Vhs.supportsNativeHls = this.old.NativeHlsSupport;
     videojs.Vhs.supportsNativeDash = this.old.NativeDashSupport;

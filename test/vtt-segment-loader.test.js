@@ -12,11 +12,12 @@ import {
   LoaderCommonFactory
 } from './loader-common.js';
 import { encryptionKey, subtitlesEncrypted } from 'create-test-data!segments';
+import {merge} from '../src/util/vjs-compat';
 
 const oldVTT = window.WebVTT;
 
 const playlistWithDuration = function(time, conf) {
-  return oldPlaylistWithDuration(time, videojs.mergeOptions({ extension: '.vtt' }, conf));
+  return oldPlaylistWithDuration(time, merge({ extension: '.vtt' }, conf));
 };
 
 const testData = `

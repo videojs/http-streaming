@@ -1,4 +1,5 @@
 import videojs from 'video.js';
+import {merge} from './util/vjs-compat';
 
 const defaultOptions = {
   errorInterval: 30,
@@ -20,7 +21,7 @@ const defaultOptions = {
 const initPlugin = function(player, options) {
   let lastCalled = 0;
   let seekTo = 0;
-  const localOptions = videojs.mergeOptions(defaultOptions, options);
+  const localOptions = merge(defaultOptions, options);
 
   player.ready(() => {
     player.trigger({type: 'usage', name: 'vhs-error-reload-initialized'});

@@ -54,6 +54,7 @@ import { timeRangesEqual } from './custom-assertions.js';
 import { QUOTA_EXCEEDED_ERR } from '../src/error-codes';
 import window from 'global/window';
 import document from 'global/document';
+import {merge} from '../src/util/vjs-compat';
 
 const newEvent = function(name) {
   let event;
@@ -4540,11 +4541,11 @@ QUnit.module('SegmentLoader', function(hooks) {
       const playlist1 = playlistWithDuration(
         playlistDuration,
         // need different URIs to ensure the playlists are considered different
-        videojs.mergeOptions(playlistOptions, { uri: 'playlist1.m3u8' })
+        merge(playlistOptions, { uri: 'playlist1.m3u8' })
       );
       const playlist2 = playlistWithDuration(
         playlistDuration,
-        videojs.mergeOptions(playlistOptions, { uri: 'playlist2.m3u8' })
+        merge(playlistOptions, { uri: 'playlist2.m3u8' })
       );
 
       const segmentDurationMs = targetDuration * 1000;
@@ -4650,11 +4651,11 @@ QUnit.module('SegmentLoader', function(hooks) {
       const playlist1 = playlistWithDuration(
         playlistDuration,
         // need different URIs to ensure the playlists are considered different
-        videojs.mergeOptions(playlistOptions, { uri: 'playlist1.m3u8' })
+        merge(playlistOptions, { uri: 'playlist1.m3u8' })
       );
       const playlist2 = playlistWithDuration(
         playlistDuration,
-        videojs.mergeOptions(playlistOptions, { uri: 'playlist2.m3u8' })
+        merge(playlistOptions, { uri: 'playlist2.m3u8' })
       );
 
       loader.currentTime_ = () => currentTime;
