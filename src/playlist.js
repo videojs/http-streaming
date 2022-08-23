@@ -3,12 +3,10 @@
  *
  * Playlist related utilities.
  */
-import videojs from 'video.js';
 import window from 'global/window';
 import {isAudioCodec} from '@videojs/vhs-utils/es/codecs.js';
 import {TIME_FUDGE_FACTOR} from './ranges.js';
-
-const {createTimeRange} = videojs;
+import {createTimeRanges} from './util/vjs-compat';
 
 /**
  * Get the duration of a segment, with special cases for
@@ -396,9 +394,9 @@ export const seekable = function(playlist, expired, liveEdgePadding) {
   const seekableEnd = playlistEnd(playlist, expired, useSafeLiveEnd, liveEdgePadding);
 
   if (seekableEnd === null) {
-    return createTimeRange();
+    return createTimeRanges();
   }
-  return createTimeRange(seekableStart, seekableEnd);
+  return createTimeRanges(seekableStart, seekableEnd);
 };
 
 /**

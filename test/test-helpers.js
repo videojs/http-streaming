@@ -7,6 +7,7 @@ import xhrFactory from '../src/xhr';
 import window from 'global/window';
 import { muxed as muxedSegment } from 'create-test-data!segments';
 import {bytesToString, isTypedArray} from '@videojs/vhs-utils/es/byte-helpers';
+import {createTimeRanges} from '../src/util/vjs-compat';
 
 // return an absolute version of a page-relative URL
 export const absoluteUrl = function(relativeUrl) {
@@ -40,7 +41,7 @@ class MockSourceBuffer extends videojs.EventTarget {
       this.updating = false;
     });
 
-    this.buffered = videojs.createTimeRanges();
+    this.buffered = createTimeRanges();
     this.duration_ = NaN;
 
     Object.defineProperty(this, 'duration', {
@@ -91,7 +92,7 @@ class MockMediaSource extends videojs.EventTarget {
     // this.activeSourceBuffers.onremovesourcebuffer: null
     this.sourceBuffers = this.activeSourceBuffers;
     this.duration_ = NaN;
-    this.seekable = videojs.createTimeRange();
+    this.seekable = createTimeRanges();
     this.onsourceclose = null;
     this.onsourceended = null;
     this.onsourceopen = null;
@@ -109,7 +110,7 @@ class MockMediaSource extends videojs.EventTarget {
   }
 
   addSeekableRange_(start, end) {
-    this.seekable = videojs.createTimeRange(start, end);
+    this.seekable = createTimeRanges(start, end);
   }
 
   addSourceBuffer(mime) {
@@ -357,7 +358,7 @@ export const createPlayer = function(options, src, clock) {
   const player = videojs(video, options || {});
 
   player.buffered = function() {
-    return videojs.createTimeRange(0, 0);
+    return createTimeRanges(0, 0);
   };
 
   if (clock) {

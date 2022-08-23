@@ -6,6 +6,7 @@ import SourceUpdater from '../src/source-updater';
 import {mp4VideoInit, mp4AudioInit, mp4Video, mp4Audio} from 'create-test-data!segments';
 import { timeRangesEqual } from './custom-assertions.js';
 import { QUOTA_EXCEEDED_ERR } from '../src/error-codes';
+import {createTimeRanges} from '../src/util/vjs-compat';
 
 const checkInitialDuration = function({duration}) {
   // ie sometimes sets duration to infinity earlier then expected
@@ -149,7 +150,7 @@ QUnit.test('verifies that sourcebuffer is in source buffers list before attempti
       Object.defineProperty(sb, 'buffered', {
         get: () => {
           actionCalls[`${type}Buffered`]++;
-          return videojs.createTimeRanges([0, 15]);
+          return createTimeRanges([0, 15]);
         }
       });
 
@@ -489,10 +490,10 @@ QUnit.test('buffered returns intersection of audio and video buffers', function(
   // mocking the buffered ranges in this test because it's tough to know how much each
   // browser will actually buffer
   this.sourceUpdater.audioBuffer = {
-    buffered: videojs.createTimeRanges([[1, 2], [5.5, 5.6], [10.5, 11]])
+    buffered: createTimeRanges([[1, 2], [5.5, 5.6], [10.5, 11]])
   };
   this.sourceUpdater.videoBuffer = {
-    buffered: videojs.createTimeRanges([[1.25, 1.5], [5.1, 6.1], [10.5, 10.9]])
+    buffered: createTimeRanges([[1.25, 1.5], [5.1, 6.1], [10.5, 10.9]])
   };
 
   this.sourceUpdater.mediaSource = {
@@ -504,7 +505,7 @@ QUnit.test('buffered returns intersection of audio and video buffers', function(
 
   timeRangesEqual(
     this.sourceUpdater.buffered(),
-    videojs.createTimeRanges([[1.25, 1.5], [5.5, 5.6], [10.5, 10.9]]),
+    createTimeRanges([[1.25, 1.5], [5.5, 5.6], [10.5, 10.9]]),
     'buffered is intersection'
   );
 
@@ -519,7 +520,7 @@ QUnit.test('buffered returns audio buffered if no video buffer', function(assert
   // mocking the buffered ranges in this test because it's tough to know how much each
   // browser will actually buffer
   this.sourceUpdater.audioBuffer = {
-    buffered: videojs.createTimeRanges([[1, 2], [5.5, 5.6], [10.5, 11]])
+    buffered: createTimeRanges([[1, 2], [5.5, 5.6], [10.5, 11]])
   };
 
   timeRangesEqual(
@@ -537,7 +538,7 @@ QUnit.test('buffered returns video buffered if no audio buffer', function(assert
   // mocking the buffered ranges in this test because it's tough to know how much each
   // browser will actually buffer
   this.sourceUpdater.videoBuffer = {
-    buffered: videojs.createTimeRanges([[1.25, 1.5], [5.1, 6.1], [10.5, 10.9]])
+    buffered: createTimeRanges([[1.25, 1.5], [5.1, 6.1], [10.5, 10.9]])
   };
 
   timeRangesEqual(

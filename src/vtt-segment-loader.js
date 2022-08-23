@@ -9,6 +9,7 @@ import { initSegmentId } from './bin-utils';
 import { uint8ToUtf8 } from './util/string';
 import { REQUEST_ERRORS } from './media-segment-request';
 import { ONE_SECOND_IN_TS } from 'mux.js/lib/utils/clock';
+import {createTimeRanges} from './util/vjs-compat';
 
 const VTT_LINE_TERMINATORS =
   new Uint8Array('\n\n'.split('').map(char => char.charCodeAt(0)));
@@ -52,14 +53,14 @@ export default class VTTSegmentLoader extends SegmentLoader {
    */
   buffered_() {
     if (!this.subtitlesTrack_ || !this.subtitlesTrack_.cues || !this.subtitlesTrack_.cues.length) {
-      return videojs.createTimeRanges();
+      return createTimeRanges();
     }
 
     const cues = this.subtitlesTrack_.cues;
     const start = cues[0].startTime;
     const end = cues[cues.length - 1].startTime;
 
-    return videojs.createTimeRanges([[start, end]]);
+    return createTimeRanges([[start, end]]);
   }
 
   /**

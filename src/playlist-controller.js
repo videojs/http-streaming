@@ -25,7 +25,7 @@ import {
 import { codecsForPlaylist, unwrapCodecList, codecCount } from './util/codecs.js';
 import { createMediaTypes, setupMediaGroups } from './media-groups';
 import logger from './util/logger';
-import {merge} from './util/vjs-compat';
+import {merge, createTimeRanges} from './util/vjs-compat';
 
 const ABORT_EARLY_EXCLUSION_SECONDS = 60 * 2;
 
@@ -220,7 +220,7 @@ export class PlaylistController extends videojs.EventTarget {
     // we don't have to handle sourceclose since dispose will handle termination of
     // everything, and the MediaSource should not be detached without a proper disposal
 
-    this.seekable_ = videojs.createTimeRanges();
+    this.seekable_ = createTimeRanges();
     this.hasPlayed_ = false;
 
     this.syncController_ = new SyncController(options);
@@ -1519,7 +1519,7 @@ export class PlaylistController extends videojs.EventTarget {
       // seekables are pretty far off, rely on main
       this.seekable_ = mainSeekable;
     } else {
-      this.seekable_ = videojs.createTimeRanges([[
+      this.seekable_ = createTimeRanges([[
         (audioSeekable.start(0) > mainSeekable.start(0)) ? audioSeekable.start(0) :
           mainSeekable.start(0),
         (audioSeekable.end(0) < mainSeekable.end(0)) ? audioSeekable.end(0) :

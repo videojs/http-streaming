@@ -1,7 +1,6 @@
 import QUnit from 'qunit';
 import window from 'global/window';
 import VTTSegmentLoader from '../src/vtt-segment-loader';
-import videojs from 'video.js';
 import {
   playlistWithDuration as oldPlaylistWithDuration,
   MockTextTrack
@@ -12,7 +11,7 @@ import {
   LoaderCommonFactory
 } from './loader-common.js';
 import { encryptionKey, subtitlesEncrypted } from 'create-test-data!segments';
-import {merge} from '../src/util/vjs-compat';
+import {merge, createTimeRanges} from '../src/util/vjs-compat';
 
 const oldVTT = window.WebVTT;
 
@@ -121,7 +120,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
       'saves segment info to new segment after playlist refresh',
       function(assert) {
         const playlist = playlistWithDuration(40);
-        let buffered = videojs.createTimeRanges();
+        let buffered = createTimeRanges();
 
         loader.buffered_ = () => buffered;
 
@@ -143,7 +142,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
         // wrap up the first request to set mediaIndex and start normal live streaming
         this.requests[0].responseType = 'arraybuffer';
         this.requests.shift().respond(200, null, new Uint8Array(10).buffer);
-        buffered = videojs.createTimeRanges([[0, 10]]);
+        buffered = createTimeRanges([[0, 10]]);
         this.clock.tick(1);
 
         assert.equal(loader.state, 'WAITING', 'in waiting state');
@@ -192,7 +191,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
       'saves segment info to old segment after playlist refresh if segment fell off',
       function(assert) {
         const playlist = playlistWithDuration(40);
-        let buffered = videojs.createTimeRanges();
+        let buffered = createTimeRanges();
 
         loader.buffered_ = () => buffered;
 
@@ -214,7 +213,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
         // wrap up the first request to set mediaIndex and start normal live streaming
         this.requests[0].responseType = 'arraybuffer';
         this.requests.shift().respond(200, null, new Uint8Array(10).buffer);
-        buffered = videojs.createTimeRanges([[0, 10]]);
+        buffered = createTimeRanges([[0, 10]]);
         this.clock.tick(1);
 
         assert.equal(loader.state, 'WAITING', 'in waiting state');

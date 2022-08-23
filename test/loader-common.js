@@ -26,7 +26,7 @@ import {
   mp4VideoInit as mp4VideoInitSegment,
   videoOneSecond as tsVideoSegment
 } from 'create-test-data!segments';
-import {merge} from '../src/util/vjs-compat';
+import {merge, createTimeRanges} from '../src/util/vjs-compat';
 
 /**
  * beforeEach and afterEach hooks that should be run segment loader tests regardless of
@@ -263,7 +263,7 @@ export const LoaderCommonFactory = ({
         this.clock.tick(1);
         standardXHRResponse(this.requests.shift(), testData());
 
-        loader.buffered_ = () => videojs.createTimeRanges([[
+        loader.buffered_ = () => createTimeRanges([[
           0, Config.GOAL_BUFFER_LENGTH
         ]]);
 
@@ -579,7 +579,7 @@ export const LoaderCommonFactory = ({
       QUnit.test('detects init segment changes and downloads it', function(assert) {
         return this.setupMediaSource(loader.mediaSource_, loader.sourceUpdater_, {isVideoOnly: true}).then(() => {
           const playlist = playlistWithDuration(20);
-          const buffered = videojs.createTimeRanges();
+          const buffered = createTimeRanges();
 
           playlist.segments[0].map = {
             resolvedUri: 'init0',
@@ -1249,7 +1249,7 @@ export const LoaderCommonFactory = ({
     QUnit.test(
       'checks the goal buffer configuration every loading opportunity',
       function(assert) {
-        loader.buffered_ = () => videojs.createTimeRanges([[0, 1]]);
+        loader.buffered_ = () => createTimeRanges([[0, 1]]);
         const playlist = playlistWithDuration(20);
 
         loader.mediaIndex = null;
@@ -1273,7 +1273,7 @@ export const LoaderCommonFactory = ({
     QUnit.test(
       'does not choose to request if next index is last, we have ended, and are not seeking',
       function(assert) {
-        loader.buffered_ = () => videojs.createTimeRanges([[0, 1]]);
+        loader.buffered_ = () => createTimeRanges([[0, 1]]);
         const playlist = playlistWithDuration(20);
 
         loader.hasPlayed_ = () => true;
@@ -1293,7 +1293,7 @@ export const LoaderCommonFactory = ({
     QUnit.test(
       'does choose to request if next index is last, we have ended, and are seeking',
       function(assert) {
-        loader.buffered_ = () => videojs.createTimeRanges([[0, 1]]);
+        loader.buffered_ = () => createTimeRanges([[0, 1]]);
         const playlist = playlistWithDuration(20);
 
         loader.hasPlayed_ = () => true;
@@ -1364,7 +1364,7 @@ export const LoaderCommonFactory = ({
     );
 
     QUnit.test('chooses the previous part if not buffered and current is not independent', function(assert) {
-      loader.buffered_ = () => videojs.createTimeRanges();
+      loader.buffered_ = () => createTimeRanges();
       const playlist = playlistWithDuration(50, {llhls: true});
 
       loader.hasPlayed_ = () => true;
@@ -1646,7 +1646,7 @@ export const LoaderCommonFactory = ({
     QUnit.module('Loading Calculation');
 
     QUnit.test('requests the first segment with an empty buffer', function(assert) {
-      loader.buffered_ = () => videojs.createTimeRanges();
+      loader.buffered_ = () => createTimeRanges();
       loader.playlist_ = playlistWithDuration(20);
       loader.mediaIndex = null;
       loader.hasPlayed_ = () => false;
@@ -1662,7 +1662,7 @@ export const LoaderCommonFactory = ({
     QUnit.test(
       'no request if video not played and 1 segment is buffered',
       function(assert) {
-        loader.buffered_ = () => videojs.createTimeRanges([[0, 1]]);
+        loader.buffered_ = () => createTimeRanges([[0, 1]]);
         loader.playlist_ = playlistWithDuration(20);
         loader.mediaIndex = 0;
         loader.hasPlayed_ = () => false;
@@ -1678,7 +1678,7 @@ export const LoaderCommonFactory = ({
     QUnit.test(
       'does not download the next segment if the buffer is full',
       function(assert) {
-        loader.buffered_ = () => videojs.createTimeRanges([[0, 30 + Config.GOAL_BUFFER_LENGTH]]);
+        loader.buffered_ = () => createTimeRanges([[0, 30 + Config.GOAL_BUFFER_LENGTH]]);
         loader.playlist_ = playlistWithDuration(30);
         loader.mediaIndex = null;
         loader.hasPlayed_ = () => true;
@@ -1694,7 +1694,7 @@ export const LoaderCommonFactory = ({
     QUnit.test(
       'downloads the next segment if the buffer is getting low',
       function(assert) {
-        loader.buffered_ = () => videojs.createTimeRanges([[0, 19.999]]);
+        loader.buffered_ = () => createTimeRanges([[0, 19.999]]);
         loader.playlist_ = playlistWithDuration(30);
         loader.mediaIndex = 1;
         loader.hasPlayed_ = () => true;
@@ -1709,7 +1709,7 @@ export const LoaderCommonFactory = ({
     );
 
     QUnit.test('stops downloading segments at the end of the playlist', function(assert) {
-      loader.buffered_ = () => videojs.createTimeRanges([[0, 60]]);
+      loader.buffered_ = () => createTimeRanges([[0, 60]]);
       loader.playlist_ = playlistWithDuration(60);
       loader.mediaIndex = null;
       loader.hasPlayed_ = () => true;
@@ -1723,7 +1723,7 @@ export const LoaderCommonFactory = ({
     QUnit.test(
       'stops downloading segments if buffered past reported end of the playlist',
       function(assert) {
-        loader.buffered_ = () => videojs.createTimeRanges([[0, 59.9]]);
+        loader.buffered_ = () => createTimeRanges([[0, 59.9]]);
         loader.playlist_ = playlistWithDuration(60);
         loader.mediaIndex = loader.playlist_.segments.length - 1;
         loader.hasPlayed_ = () => true;
