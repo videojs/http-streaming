@@ -46,6 +46,7 @@ import {
   timeRangesEqual,
   bandwidthWithinTolerance
 } from './custom-assertions.js';
+import {merge, createTimeRanges} from '../src/util/vjs-compat';
 
 const sharedHooks = {
   beforeEach(assert) {
@@ -66,8 +67,8 @@ const sharedHooks = {
     this.origSupportsNativeHls = videojs.Vhs.supportsNativeHls;
     videojs.Vhs.supportsNativeHls = false;
     this.oldBrowser = videojs.browser;
-    videojs.browser = videojs.mergeOptions({}, videojs.browser);
-    this.player = createPlayer(videojs.mergeOptions({}, this.playerOptions));
+    videojs.browser = merge({}, videojs.browser);
+    this.player = createPlayer(merge({}, this.playerOptions));
     this.player.src({
       src: 'manifest/main.m3u8',
       type: 'application/vnd.apple.mpegurl'
@@ -453,7 +454,7 @@ QUnit.test(
       return buffered;
     };
 
-    buffered = videojs.createTimeRanges([[0, 20]]);
+    buffered = createTimeRanges([[0, 20]]);
 
     pc.setCurrentTime(10);
     assert.equal(
@@ -621,8 +622,8 @@ QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', fun
     let timeBeforeSwitch = this.player.currentTime();
 
     // mock buffered values so removes are processed
-    segmentLoader.sourceUpdater_.audioBuffer.buffered = videojs.createTimeRanges([[0, 10]]);
-    segmentLoader.sourceUpdater_.videoBuffer.buffered = videojs.createTimeRanges([[0, 10]]);
+    segmentLoader.sourceUpdater_.audioBuffer.buffered = createTimeRanges([[0, 10]]);
+    segmentLoader.sourceUpdater_.videoBuffer.buffered = createTimeRanges([[0, 10]]);
 
     this.playlistController.fastQualityChange_();
     // trigger updateend to indicate the end of the remove operation
@@ -852,8 +853,8 @@ QUnit.test('seeks forward 0.04 sec for fast quality switch on Edge', function(as
     videojs.browser.IS_EDGE = true;
 
     // mock buffered values so removes are processed
-    segmentLoader.sourceUpdater_.audioBuffer.buffered = videojs.createTimeRanges([[0, 10]]);
-    segmentLoader.sourceUpdater_.videoBuffer.buffered = videojs.createTimeRanges([[0, 10]]);
+    segmentLoader.sourceUpdater_.audioBuffer.buffered = createTimeRanges([[0, 10]]);
+    segmentLoader.sourceUpdater_.videoBuffer.buffered = createTimeRanges([[0, 10]]);
 
     this.playlistController.fastQualityChange_();
     // trigger updateend to indicate the end of the remove operation
@@ -909,8 +910,8 @@ QUnit.test('seeks forward 0.04 sec for fast quality switch on IE', function(asse
     videojs.browser.IS_EDGE = false;
 
     // mock buffered values so removes are processed
-    segmentLoader.sourceUpdater_.audioBuffer.buffered = videojs.createTimeRanges([[0, 10]]);
-    segmentLoader.sourceUpdater_.videoBuffer.buffered = videojs.createTimeRanges([[0, 10]]);
+    segmentLoader.sourceUpdater_.audioBuffer.buffered = createTimeRanges([[0, 10]]);
+    segmentLoader.sourceUpdater_.videoBuffer.buffered = createTimeRanges([[0, 10]]);
 
     this.playlistController.fastQualityChange_();
     // trigger updateend to indicate the end of the remove operation
@@ -1025,14 +1026,14 @@ QUnit.test('if buffered, will request second segment byte range', function(asser
   this.clock.tick(1);
   this.player.tech_.trigger('play');
   this.player.tech_.paused_ = false;
-  this.player.tech_.played = () => videojs.createTimeRanges([[0, 20]]);
+  this.player.tech_.played = () => createTimeRanges([[0, 20]]);
 
   openMediaSource(this.player, this.clock);
   // playlist
   this.standardXHRResponse(this.requests[0]);
 
   this.playlistController.mainSegmentLoader_.sourceUpdater_.buffered = () => {
-    return videojs.createTimeRanges([[0, 20]]);
+    return createTimeRanges([[0, 20]]);
   };
   this.clock.tick(1);
   // segment
@@ -1361,8 +1362,8 @@ QUnit.test('detects if the player is stuck at the playlist end', function(assert
 
   // not stuck at playlist end when no seekable, even if empty buffer
   // and positive currentTime
-  this.playlistController.seekable = () => videojs.createTimeRange();
-  this.player.tech_.buffered = () => videojs.createTimeRange();
+  this.playlistController.seekable = () => createTimeRanges();
+  this.player.tech_.buffered = () => createTimeRanges();
   this.player.tech_.setCurrentTime(170);
   assert.ok(
     !this.playlistController.stuckAtPlaylistEnd_(playlist),
@@ -1379,7 +1380,7 @@ QUnit.test('detects if the player is stuck at the playlist end', function(assert
 
   // not stuck at playlist end when no seekable but current time is at
   // the end of the buffered range
-  this.player.tech_.buffered = () => videojs.createTimeRange(0, 170);
+  this.player.tech_.buffered = () => createTimeRanges(0, 170);
   assert.ok(
     !this.playlistController.stuckAtPlaylistEnd_(playlist),
     'not stuck at playlist end'
@@ -1387,10 +1388,10 @@ QUnit.test('detects if the player is stuck at the playlist end', function(assert
 
   // not stuck at playlist end when currentTime not at seekable end
   // even if the buffer is empty
-  this.playlistController.seekable = () => videojs.createTimeRange(0, 130);
+  this.playlistController.seekable = () => createTimeRanges(0, 130);
   this.playlistController.syncController_.getExpiredTime = () => 0;
   this.player.tech_.setCurrentTime(50);
-  this.player.tech_.buffered = () => videojs.createTimeRange();
+  this.player.tech_.buffered = () => createTimeRanges();
   Vhs.Playlist.playlistEnd = () => 130;
   assert.ok(
     !this.playlistController.stuckAtPlaylistEnd_(playlist),
@@ -1400,7 +1401,7 @@ QUnit.test('detects if the player is stuck at the playlist end', function(assert
   // not stuck at playlist end when buffer reached the absolute end of the playlist
   // and current time is in the buffered range
   this.player.tech_.setCurrentTime(159);
-  this.player.tech_.buffered = () => videojs.createTimeRange(0, 160);
+  this.player.tech_.buffered = () => createTimeRanges(0, 160);
   Vhs.Playlist.playlistEnd = () => 160;
   assert.ok(
     !this.playlistController.stuckAtPlaylistEnd_(playlist),
@@ -1417,8 +1418,8 @@ QUnit.test('detects if the player is stuck at the playlist end', function(assert
 
   // stuck at playlist end when current time reached the buffer end
   // and buffer has reached absolute end of playlist
-  this.playlistController.seekable = () => videojs.createTimeRange(90, 130);
-  this.player.tech_.buffered = () => videojs.createTimeRange(0, 170);
+  this.playlistController.seekable = () => createTimeRanges(90, 130);
+  this.player.tech_.buffered = () => createTimeRanges(0, 170);
   this.player.tech_.setCurrentTime(170);
   Vhs.Playlist.playlistEnd = () => 170;
   assert.ok(
@@ -1735,7 +1736,7 @@ QUnit.test('updates the combined segment loader on media changes', function(asse
   // update the buffer to reflect the appended segment, and have enough buffer to
   // change playlist
   this.playlistController.tech_.buffered = () => {
-    return videojs.createTimeRanges([[0, 30]]);
+    return createTimeRanges([[0, 30]]);
   };
 
   this.playlistController.mainSegmentLoader_.one('appending', () => {
@@ -1858,7 +1859,7 @@ QUnit.test(
     let id = 0;
 
     this.playlistController.tech_.currentTime = () => currentTime;
-    this.playlistController.tech_.buffered = () => videojs.createTimeRanges(buffered);
+    this.playlistController.tech_.buffered = () => createTimeRanges(buffered);
     this.playlistController.duration = () => duration;
     this.playlistController.selectPlaylist = () => {
       return {
@@ -2490,16 +2491,16 @@ QUnit.test(
 
     Playlist.seekable = (media) => {
       if (media === mainMedia) {
-        return videojs.createTimeRanges(mainTimeRanges);
+        return createTimeRanges(mainTimeRanges);
       }
-      return videojs.createTimeRanges(audioTimeRanges);
+      return createTimeRanges(audioTimeRanges);
     };
 
-    timeRangesEqual(pc.seekable(), videojs.createTimeRanges(), 'empty when main empty');
+    timeRangesEqual(pc.seekable(), createTimeRanges(), 'empty when main empty');
     mainTimeRanges = [[0, 10]];
-    pc.seekable_ = videojs.createTimeRanges();
+    pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
-    timeRangesEqual(pc.seekable(), videojs.createTimeRanges([[0, 10]]), 'main when no audio');
+    timeRangesEqual(pc.seekable(), createTimeRanges([[0, 10]]), 'main when no audio');
 
     pc.mediaTypes_.AUDIO.activePlaylistLoader = {
       media: () => audioMedia,
@@ -2507,94 +2508,94 @@ QUnit.test(
       expired_: 0
     };
     mainTimeRanges = [];
-    pc.seekable_ = videojs.createTimeRanges();
+    pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
 
-    timeRangesEqual(pc.seekable(), videojs.createTimeRanges(), 'empty when both empty');
+    timeRangesEqual(pc.seekable(), createTimeRanges(), 'empty when both empty');
     mainTimeRanges = [[0, 10]];
-    pc.seekable_ = videojs.createTimeRanges();
+    pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
-    timeRangesEqual(pc.seekable(), videojs.createTimeRanges(), 'empty when audio empty');
+    timeRangesEqual(pc.seekable(), createTimeRanges(), 'empty when audio empty');
     mainTimeRanges = [];
     audioTimeRanges = [[0, 10]];
-    pc.seekable_ = videojs.createTimeRanges();
+    pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
-    timeRangesEqual(pc.seekable(), videojs.createTimeRanges(), 'empty when main empty');
+    timeRangesEqual(pc.seekable(), createTimeRanges(), 'empty when main empty');
     mainTimeRanges = [[0, 10]];
     audioTimeRanges = [[0, 10]];
-    pc.seekable_ = videojs.createTimeRanges();
+    pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
-    timeRangesEqual(pc.seekable(), videojs.createTimeRanges([[0, 10]]), 'ranges equal');
+    timeRangesEqual(pc.seekable(), createTimeRanges([[0, 10]]), 'ranges equal');
     mainTimeRanges = [[5, 10]];
-    pc.seekable_ = videojs.createTimeRanges();
+    pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
-    timeRangesEqual(pc.seekable(), videojs.createTimeRanges([[5, 10]]), 'main later start');
+    timeRangesEqual(pc.seekable(), createTimeRanges([[5, 10]]), 'main later start');
     mainTimeRanges = [[0, 10]];
     audioTimeRanges = [[5, 10]];
-    pc.seekable_ = videojs.createTimeRanges();
+    pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
-    timeRangesEqual(pc.seekable(), videojs.createTimeRanges([[5, 10]]), 'audio later start');
+    timeRangesEqual(pc.seekable(), createTimeRanges([[5, 10]]), 'audio later start');
     mainTimeRanges = [[0, 9]];
     audioTimeRanges = [[0, 10]];
-    pc.seekable_ = videojs.createTimeRanges();
+    pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
-    timeRangesEqual(pc.seekable(), videojs.createTimeRanges([[0, 9]]), 'main earlier end');
+    timeRangesEqual(pc.seekable(), createTimeRanges([[0, 9]]), 'main earlier end');
     mainTimeRanges = [[0, 10]];
     audioTimeRanges = [[0, 9]];
-    pc.seekable_ = videojs.createTimeRanges();
+    pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
-    timeRangesEqual(pc.seekable(), videojs.createTimeRanges([[0, 9]]), 'audio earlier end');
+    timeRangesEqual(pc.seekable(), createTimeRanges([[0, 9]]), 'audio earlier end');
     mainTimeRanges = [[1, 10]];
     audioTimeRanges = [[0, 9]];
-    pc.seekable_ = videojs.createTimeRanges();
+    pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
     timeRangesEqual(
       pc.seekable(),
-      videojs.createTimeRanges([[1, 9]]),
+      createTimeRanges([[1, 9]]),
       'main later start, audio earlier end'
     );
     mainTimeRanges = [[0, 9]];
     audioTimeRanges = [[1, 10]];
-    pc.seekable_ = videojs.createTimeRanges();
+    pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
     timeRangesEqual(
       pc.seekable(),
-      videojs.createTimeRanges([[1, 9]]),
+      createTimeRanges([[1, 9]]),
       'audio later start, main earlier end'
     );
     mainTimeRanges = [[2, 9]];
-    pc.seekable_ = videojs.createTimeRanges();
+    pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
     timeRangesEqual(
       pc.seekable(),
-      videojs.createTimeRanges([[2, 9]]),
+      createTimeRanges([[2, 9]]),
       'main later start, main earlier end'
     );
     mainTimeRanges = [[1, 10]];
     audioTimeRanges = [[2, 9]];
-    pc.seekable_ = videojs.createTimeRanges();
+    pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
     timeRangesEqual(
       pc.seekable(),
-      videojs.createTimeRanges([[2, 9]]),
+      createTimeRanges([[2, 9]]),
       'audio later start, audio earlier end'
     );
     mainTimeRanges = [[1, 10]];
     audioTimeRanges = [[11, 20]];
-    pc.seekable_ = videojs.createTimeRanges();
+    pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
     timeRangesEqual(
       pc.seekable(),
-      videojs.createTimeRanges([[1, 10]]),
+      createTimeRanges([[1, 10]]),
       'no intersection, audio later'
     );
     mainTimeRanges = [[11, 20]];
     audioTimeRanges = [[1, 10]];
-    pc.seekable_ = videojs.createTimeRanges();
+    pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
     timeRangesEqual(
       pc.seekable(),
-      videojs.createTimeRanges([[11, 20]]),
+      createTimeRanges([[11, 20]]),
       'no intersection, main later'
     );
 
@@ -2615,14 +2616,14 @@ QUnit.test(
     tech.on('seekablechanged', () => seekablechanged++);
 
     Playlist.seekable = () => {
-      return videojs.createTimeRanges(mainTimeRanges);
+      return createTimeRanges(mainTimeRanges);
     };
     this.playlistController.mainPlaylistLoader_.main = {};
     this.playlistController.mainPlaylistLoader_.media = () => media;
     this.playlistController.syncController_.getExpiredTime = () => 0;
 
     mainTimeRanges = [[0, 10]];
-    pc.seekable_ = videojs.createTimeRanges();
+    pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
     assert.equal(seekablechanged, 1, 'seekablechanged triggered');
 
@@ -4622,7 +4623,7 @@ QUnit.test(
     openMediaSource(this.player, this.clock);
     const pc = this.playlistController;
 
-    this.player.tech_.buffered = () => videojs.createTimeRanges([[0, 11]]);
+    this.player.tech_.buffered = () => createTimeRanges([[0, 11]]);
 
     // main
     this.standardXHRResponse(this.requests.shift());
@@ -5896,7 +5897,7 @@ QUnit.test('true if bandwidth decreases, bufferBasedABR, and forwardBuffer < buf
   const nextPlaylist = {id: 'foo', endList: true, attributes: {BANDWIDTH: 1}};
 
   // 0 forward buffer
-  pc.tech_.buffered = () => videojs.createTimeRange();
+  pc.tech_.buffered = () => createTimeRanges();
   pc.tech_.currentTime = () => 0;
   pc.bufferBasedABR = true;
   pc.duration = () => 40;
@@ -5910,7 +5911,7 @@ QUnit.test('true if forwardBuffer >= bufferLowWaterLine', function(assert) {
   const nextPlaylist = {id: 'foo', endList: true, attributes: {BANDWIDTH: 2}};
 
   // zero forward buffer and zero buffer low water line
-  pc.tech_.buffered = () => videojs.createTimeRange();
+  pc.tech_.buffered = () => createTimeRanges();
   pc.tech_.currentTime = () => 0;
   pc.duration = () => 40;
   pc.mainPlaylistLoader_.media = () => ({endList: true, id: 'bar', attributes: {BANDWIDTH: 2}});
@@ -5923,7 +5924,7 @@ QUnit.test('true if forwardBuffer >= bufferLowWaterLine, bufferBasedABR, and ban
   const nextPlaylist = {id: 'foo', endList: true, attributes: {BANDWIDTH: 3}};
 
   // zero forward buffer and zero buffer low water line
-  pc.tech_.buffered = () => videojs.createTimeRange();
+  pc.tech_.buffered = () => createTimeRanges();
   pc.tech_.currentTime = () => 0;
   pc.bufferBasedABR = true;
   pc.duration = () => 40;
@@ -5937,7 +5938,7 @@ QUnit.test('false if nextPlaylist bandwidth lower, bufferBasedABR, and forwardBu
   const nextPlaylist = {id: 'foo', endList: true, attributes: {BANDWIDTH: 1}};
 
   // 31s forwardBuffer
-  pc.tech_.buffered = () => videojs.createTimeRange(0, 31);
+  pc.tech_.buffered = () => createTimeRanges(0, 31);
   pc.tech_.currentTime = () => 0;
   pc.bufferBasedABR = true;
   pc.duration = () => 40;
@@ -5951,7 +5952,7 @@ QUnit.test('false if nextPlaylist bandwidth same, bufferBasedABR, and forwardBuf
   const nextPlaylist = {id: 'foo', endList: true, attributes: {BANDWIDTH: 2}};
 
   // 31s forwardBuffer
-  pc.tech_.buffered = () => videojs.createTimeRange();
+  pc.tech_.buffered = () => createTimeRanges();
   pc.tech_.currentTime = () => 0;
   pc.bufferBasedABR = true;
   pc.duration = () => 40;
@@ -5993,7 +5994,7 @@ QUnit.test('false if llhls playlist and no buffered', function(assert) {
 QUnit.test('true if llhls playlist and we have buffered', function(assert) {
   const pc = this.playlistController;
 
-  pc.tech_.buffered = () => videojs.createTimeRange([[0, 10]]);
+  pc.tech_.buffered = () => createTimeRanges([[0, 10]]);
   pc.mainPlaylistLoader_.media = () => ({id: 'foo', endList: false, partTargetDuration: 5});
   const nextPlaylist = {id: 'bar', endList: false, partTargetDuration: 5};
 

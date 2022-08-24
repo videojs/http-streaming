@@ -45,6 +45,7 @@ import window from 'global/window';
 // we need this so the plugin registers itself
 import 'videojs-contrib-quality-levels';
 import 'videojs-contrib-eme';
+import {merge, createTimeRanges} from '../src/util/vjs-compat';
 
 import {version as vhsVersion} from '../package.json';
 import {version as muxVersion} from 'mux.js/package.json';
@@ -62,7 +63,7 @@ if (videojs.browser.IS_EDGE || videojs.browser.IE_VERSION) {
 const ogVhsHandlerSetupQualityLevels = videojs.VhsHandler.prototype.setupQualityLevels_;
 
 // do a shallow copy of the properties of source onto the target object
-const merge = function(target, source) {
+const mergeShallow = function(target, source) {
   let name;
 
   for (name in source) {
@@ -82,7 +83,7 @@ QUnit.module('VHS', {
       window.devicePixelRatio = 1;
     }
     // store functionality that some tests need to mock
-    this.old.GlobalOptions = videojs.mergeOptions(videojs.options);
+    this.old.GlobalOptions = merge(videojs.options);
 
     // force the HLS tech to run
     this.old.NativeHlsSupport = videojs.Vhs.supportsNativeHls;
@@ -96,7 +97,7 @@ QUnit.module('VHS', {
 
     // save and restore browser detection for the Firefox-specific tests
     this.old.browser = videojs.browser;
-    videojs.browser = videojs.mergeOptions({}, videojs.browser);
+    videojs.browser = merge({}, videojs.browser);
 
     this.standardXHRResponse = (request, data) => {
       standardXHRResponse(request, data);
@@ -120,7 +121,8 @@ QUnit.module('VHS', {
       window.devicePixelRatio = this.old.devicePixelRatio;
     }
 
-    merge(videojs.options, this.old.GlobalOptions);
+    // This seems duplicative of `merge` but tests fail if `merge` is used...
+    mergeShallow(videojs.options, this.old.GlobalOptions);
 
     videojs.Vhs.supportsNativeHls = this.old.NativeHlsSupport;
     videojs.Vhs.supportsNativeDash = this.old.NativeDashSupport;
@@ -651,7 +653,7 @@ QUnit.test('starts downloading a segment on loadedmetadata', function(assert) {
   this.clock.tick(1);
 
   this.player.buffered = function() {
-    return videojs.createTimeRange(0, 0);
+    return createTimeRanges(0, 0);
   };
   openMediaSource(this.player, this.clock);
 
@@ -1943,7 +1945,7 @@ QUnit.test('does not abort segment loading for in-buffer seeking', function(asse
   openMediaSource(this.player, this.clock);
   this.standardXHRResponse(this.requests.shift());
   this.player.tech_.buffered = function() {
-    return videojs.createTimeRange(0, 20);
+    return createTimeRanges(0, 20);
   };
 
   this.player.tech_.setCurrentTime(11);
@@ -2179,11 +2181,11 @@ QUnit.test('excludes playlist if it has stopped being updated', function(assert)
   this.standardXHRResponse(this.requests.shift());
 
   this.player.tech_.vhs.playlistController_.seekable = function() {
-    return videojs.createTimeRange(90, 130);
+    return createTimeRanges(90, 130);
   };
   this.player.tech_.setCurrentTime(170);
   this.player.tech_.buffered = function() {
-    return videojs.createTimeRange(0, 170);
+    return createTimeRanges(0, 170);
   };
   Vhs.Playlist.playlistEnd = function() {
     return 170;
@@ -2484,7 +2486,7 @@ QUnit.test('resets the time to the live point when resuming a live stream after 
   // mock out the player to simulate a live stream that has been
   // playing for awhile
   this.player.tech_.vhs.seekable = function() {
-    return videojs.createTimeRange(160, 170);
+    return createTimeRanges(160, 170);
   };
   this.player.tech_.setCurrentTime = function(time) {
     if (typeof time !== 'undefined') {
@@ -2492,7 +2494,7 @@ QUnit.test('resets the time to the live point when resuming a live stream after 
     }
   };
   this.player.tech_.played = function() {
-    return videojs.createTimeRange(120, 170);
+    return createTimeRanges(120, 170);
   };
   this.player.tech_.trigger('playing');
 
@@ -3599,7 +3601,7 @@ QUnit.test('adds audio tracks if we have parsed some from a playlist', function(
 });
 
 QUnit.test('cleans up the buffer when loading live segments', function(assert) {
-  const seekable = videojs.createTimeRanges([[0, 70]]);
+  const seekable = createTimeRanges([[0, 70]]);
 
   this.player.src({
     src: 'liveStart30sBefore.m3u8',
@@ -3657,8 +3659,8 @@ QUnit.test('cleans up the buffer when loading live segments', function(assert) {
 
     // since source buffers are mocked, must fake that there's buffered data, or else we
     // don't bother processing removes
-    audioBuffer.buffered = videojs.createTimeRanges([[10, 20]]);
-    videoBuffer.buffered = videojs.createTimeRanges([[15, 25]]);
+    audioBuffer.buffered = createTimeRanges([[10, 20]]);
+    videoBuffer.buffered = createTimeRanges([[15, 25]]);
 
     // request second segment, and give enough time for the source buffer to process removes
     return requestAndAppendSegment({
@@ -3686,7 +3688,7 @@ QUnit.test('cleans up the buffer when loading live segments', function(assert) {
 
 QUnit.test('cleans up buffer by removing targetDuration from currentTime when loading a ' +
            'live segment if seekable start is after currentTime', function(assert) {
-  let seekable = videojs.createTimeRanges([[0, 80]]);
+  let seekable = createTimeRanges([[0, 80]]);
 
   this.player.src({
     src: 'liveStart30sBefore.m3u8',
@@ -3726,7 +3728,7 @@ QUnit.test('cleans up buffer by removing targetDuration from currentTime when lo
 
     // Change seekable so that it starts *after* the currentTime which was set
     // based on the previous seekable range (the end of 80)
-    seekable = videojs.createTimeRanges([[110, 120]]);
+    seekable = createTimeRanges([[110, 120]]);
     this.clock.tick(1);
 
     const audioBuffer = pc.sourceUpdater_.audioBuffer;
@@ -3745,8 +3747,8 @@ QUnit.test('cleans up buffer by removing targetDuration from currentTime when lo
 
     // since source buffers are mocked, must fake that there's buffered data, or else we
     // don't bother processing removes
-    audioBuffer.buffered = videojs.createTimeRanges([[10, 20]]);
-    videoBuffer.buffered = videojs.createTimeRanges([[15, 25]]);
+    audioBuffer.buffered = createTimeRanges([[10, 20]]);
+    videoBuffer.buffered = createTimeRanges([[15, 25]]);
 
     // prevent trying to correct live time
     disposePlaybackWatcher(this.player);
@@ -3826,8 +3828,8 @@ QUnit.test('cleans up the buffer when loading VOD segments', function(assert) {
 
     // since source buffers are mocked, must fake that there's buffered data, or else we
     // don't bother processing removes
-    audioBuffer.buffered = videojs.createTimeRanges([[0, 10]]);
-    videoBuffer.buffered = videojs.createTimeRanges([[1, 11]]);
+    audioBuffer.buffered = createTimeRanges([[0, 10]]);
+    videoBuffer.buffered = createTimeRanges([[1, 11]]);
 
     // This requires 2 clock ticks because after updateend monitorBuffer_ is called
     // to setup fillBuffer on the next tick, but the seek also causes monitorBuffer_ to be
@@ -5400,7 +5402,7 @@ QUnit.test('downloads additional playlists if required', function(assert) {
 
     // update the buffer to reflect the appended segment, and have enough buffer to
     // change playlist
-    this.tech.buffered = () => videojs.createTimeRanges([[0, 30]]);
+    this.tech.buffered = () => createTimeRanges([[0, 30]]);
     this.clock.tick(1);
 
     // new media
@@ -5454,7 +5456,7 @@ QUnit.test('waits to download new segments until the media playlist is stable', 
 
     // update the buffer to reflect the appended segment, and have enough buffer to
     // change playlist
-    this.tech.buffered = () => videojs.createTimeRanges([[0, 30]]);
+    this.tech.buffered = () => createTimeRanges([[0, 30]]);
 
     this.clock.tick(1);
 

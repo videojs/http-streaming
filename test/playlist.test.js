@@ -6,7 +6,7 @@ import videojs from 'video.js';
 import { useFakeEnvironment } from './test-helpers';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
-import {mergeOptions as merge} from 'video.js';
+import {merge} from '../src/util/vjs-compat';
 
 QUnit.module('Playlist', function() {
   QUnit.module('Duration');

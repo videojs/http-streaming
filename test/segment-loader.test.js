@@ -11,7 +11,6 @@ import {
   getSyncSegmentCandidate,
   segmentInfoString
 } from '../src/segment-loader';
-import videojs from 'video.js';
 import mp4probe from 'mux.js/lib/mp4/probe';
 import {
   playlistWithDuration,
@@ -54,6 +53,7 @@ import { timeRangesEqual } from './custom-assertions.js';
 import { QUOTA_EXCEEDED_ERR } from '../src/error-codes';
 import window from 'global/window';
 import document from 'global/document';
+import {merge, createTimeRanges} from '../src/util/vjs-compat';
 
 const newEvent = function(name) {
   let event;
@@ -228,7 +228,7 @@ QUnit.test('returns startOfSegment when timeline changes and the buffer is empty
       segmentTimeline: 1,
       currentTimeline: 0,
       startOfSegment: 3,
-      buffered: videojs.createTimeRanges()
+      buffered: createTimeRanges()
     }),
     3,
     'returned startOfSegment'
@@ -241,7 +241,7 @@ QUnit.test('returns buffered end when timeline changes and there exists buffered
       segmentTimeline: 1,
       currentTimeline: 0,
       startOfSegment: 3,
-      buffered: videojs.createTimeRanges([[1, 5], [7, 8]])
+      buffered: createTimeRanges([[1, 5], [7, 8]])
     }),
     8,
     'returned buffered end'
@@ -254,7 +254,7 @@ QUnit.test('returns null when timeline does not change', function(assert) {
       segmentTimeline: 0,
       currentTimeline: 0,
       startOfSegment: 3,
-      buffered: videojs.createTimeRanges([[1, 5], [7, 8]])
+      buffered: createTimeRanges([[1, 5], [7, 8]])
     }) === null,
     'returned null'
   );
@@ -264,7 +264,7 @@ QUnit.test('returns null when timeline does not change', function(assert) {
       segmentTimeline: 1,
       currentTimeline: 1,
       startOfSegment: 3,
-      buffered: videojs.createTimeRanges([[1, 5], [7, 8]])
+      buffered: createTimeRanges([[1, 5], [7, 8]])
     }) === null,
     'returned null'
   );
@@ -276,7 +276,7 @@ QUnit.test('returns value when overrideCheck is true', function(assert) {
       segmentTimeline: 0,
       currentTimeline: 0,
       startOfSegment: 3,
-      buffered: videojs.createTimeRanges([[1, 5], [7, 8]]),
+      buffered: createTimeRanges([[1, 5], [7, 8]]),
       overrideCheck: true
     }),
     8,
@@ -290,7 +290,7 @@ QUnit.test('uses startOfSegment when timeline is before current', function(asser
       segmentTimeline: 0,
       currentTimeline: 1,
       startOfSegment: 3,
-      buffered: videojs.createTimeRanges([[1, 5], [7, 8]]),
+      buffered: createTimeRanges([[1, 5], [7, 8]]),
       overrideCheck: true
     }),
     3,
@@ -468,7 +468,7 @@ QUnit.test('main loader does not wait if pending audio timeline change matches s
 QUnit.module('safeBackBufferTrimTime');
 
 QUnit.test('uses 30s before playhead when seekable start is 0', function(assert) {
-  const seekable = videojs.createTimeRanges([[0, 120]]);
+  const seekable = createTimeRanges([[0, 120]]);
   const targetDuration = 10;
   const currentTime = 70;
 
@@ -480,7 +480,7 @@ QUnit.test('uses 30s before playhead when seekable start is 0', function(assert)
 });
 
 QUnit.test('uses 30s before playhead when seekable start is earlier', function(assert) {
-  const seekable = videojs.createTimeRanges([[30, 120]]);
+  const seekable = createTimeRanges([[30, 120]]);
   const targetDuration = 10;
   const currentTime = 70;
 
@@ -492,7 +492,7 @@ QUnit.test('uses 30s before playhead when seekable start is earlier', function(a
 });
 
 QUnit.test('uses seekable start when within 30s of playhead', function(assert) {
-  const seekable = videojs.createTimeRanges([[41, 120]]);
+  const seekable = createTimeRanges([[41, 120]]);
   const targetDuration = 10;
   const currentTime = 70;
 
@@ -504,7 +504,7 @@ QUnit.test('uses seekable start when within 30s of playhead', function(assert) {
 });
 
 QUnit.test('uses target duration when seekable range is within target duration', function(assert) {
-  let seekable = videojs.createTimeRanges([[0, 120]]);
+  let seekable = createTimeRanges([[0, 120]]);
   const targetDuration = 10;
   let currentTime = 9;
 
@@ -514,7 +514,7 @@ QUnit.test('uses target duration when seekable range is within target duration',
     'returned 10 seconds before playhead'
   );
 
-  seekable = videojs.createTimeRanges([[40, 120]]);
+  seekable = createTimeRanges([[40, 120]]);
   currentTime = 41;
 
   assert.equal(
@@ -525,7 +525,7 @@ QUnit.test('uses target duration when seekable range is within target duration',
 });
 
 QUnit.test('uses target duration when seekable range is after current time', function(assert) {
-  const seekable = videojs.createTimeRanges([[110, 120]]);
+  const seekable = createTimeRanges([[110, 120]]);
   const targetDuration = 10;
   const currentTime = 80;
 
@@ -537,7 +537,7 @@ QUnit.test('uses target duration when seekable range is after current time', fun
 });
 
 QUnit.test('uses current time when seekable range is well before current time', function(assert) {
-  const seekable = videojs.createTimeRanges([[10, 20]]);
+  const seekable = createTimeRanges([[10, 20]]);
   const targetDuration = 10;
   const currentTime = 140;
 
@@ -1443,11 +1443,11 @@ QUnit.module('SegmentLoader', function(hooks) {
         loader.load();
         this.clock.tick(1);
 
-        this.seekable = videojs.createTimeRanges([[0, 10]]);
+        this.seekable = createTimeRanges([[0, 10]]);
         loader.on('syncinfoupdate', () => {
           syncInfoUpdates++;
           // Simulate the seekable window updating
-          this.seekable = videojs.createTimeRanges([[200, 210]]);
+          this.seekable = createTimeRanges([[200, 210]]);
           // Simulate the seek to live that should happen in playback-watcher
           this.currentTime = 210;
         });
@@ -2037,7 +2037,7 @@ QUnit.module('SegmentLoader', function(hooks) {
     QUnit.test('sets the timestampOffset on timeline change', function(assert) {
       const setTimestampOffsetMessages = [];
       let timestampOffsetEvents = 0;
-      let buffered = videojs.createTimeRanges();
+      let buffered = createTimeRanges();
       const playlist = playlistWithDuration(40);
       let videoSegmentStartTime = 3;
       let videoSegmentEndTime = 13;
@@ -2103,7 +2103,7 @@ QUnit.module('SegmentLoader', function(hooks) {
           'timestampoffset was not set in transmuxer'
         );
 
-        buffered = videojs.createTimeRanges([[0, 10]]);
+        buffered = createTimeRanges([[0, 10]]);
         playlist.segments[0].end = 10;
         // start request for segment 1
         this.clock.tick(1);
@@ -2144,7 +2144,7 @@ QUnit.module('SegmentLoader', function(hooks) {
           'timestampoffset was not set in transmuxer'
         );
 
-        buffered = videojs.createTimeRanges([[10, 20]]);
+        buffered = createTimeRanges([[10, 20]]);
         playlist.segments[1].end = 20;
         // start request for segment 2, which has a discontinuity (new timeline)
         this.clock.tick(1);
@@ -3860,7 +3860,7 @@ QUnit.module('SegmentLoader', function(hooks) {
       const videoTimestampOffsets = [];
       const transmuxerTimestampOffsets = [];
       const sourceUpdater = loader.sourceUpdater_;
-      let buffered = videojs.createTimeRanges();
+      let buffered = createTimeRanges();
       let timestampOffsetOverride;
 
       loader.buffered_ = () => buffered;
@@ -3938,7 +3938,7 @@ QUnit.module('SegmentLoader', function(hooks) {
         // start is before the timestamp offset, it should be appended without changing the
         // timestamp offset, as issues were seen when the timestamp offset was changed
         // without an actual timeline change.
-        buffered = videojs.createTimeRanges([[0, 10]]);
+        buffered = createTimeRanges([[0, 10]]);
         timestampOffsetOverride = 11;
 
         this.clock.tick(1);
@@ -3984,21 +3984,21 @@ QUnit.module('SegmentLoader', function(hooks) {
         // mock the buffered values (easiest solution to test that segment-loader is
         // calling the correct functions)
         loader.sourceUpdater_.audioBuffered =
-          () => videojs.createTimeRanges([[2, 3], [5, 7]]);
+          () => createTimeRanges([[2, 3], [5, 7]]);
         loader.sourceUpdater_.videoBuffered =
-          () => videojs.createTimeRanges([[2, 6]]);
+          () => createTimeRanges([[2, 6]]);
         loader.sourceUpdater_.buffered =
-          () => videojs.createTimeRanges([[2, 3], [5, 6]]);
+          () => createTimeRanges([[2, 3], [5, 6]]);
 
         timeRangesEqual(
           loader.buffered_(),
-          videojs.createTimeRanges([[2, 3], [5, 6]]),
+          createTimeRanges([[2, 3], [5, 6]]),
           'buffered reports intersection of audio and video buffers'
         );
         loader.setAudio(false);
         timeRangesEqual(
           loader.buffered_(),
-          videojs.createTimeRanges([[2, 6]]),
+          createTimeRanges([[2, 6]]),
           'buffered reports video buffered'
         );
       });
@@ -4022,21 +4022,21 @@ QUnit.module('SegmentLoader', function(hooks) {
         // mock the buffered values (easiest solution to test that segment-loader is
         // calling the correct functions)
         loader.sourceUpdater_.audioBuffered =
-          () => videojs.createTimeRanges([[2, 3], [5, 7]]);
+          () => createTimeRanges([[2, 3], [5, 7]]);
         loader.sourceUpdater_.videoBuffered =
-          () => videojs.createTimeRanges([[2, 6]]);
+          () => createTimeRanges([[2, 6]]);
         loader.sourceUpdater_.buffered =
-          () => videojs.createTimeRanges([[2, 3], [5, 6]]);
+          () => createTimeRanges([[2, 3], [5, 6]]);
 
         timeRangesEqual(
           loader.buffered_(),
-          videojs.createTimeRanges([[2, 6]]),
+          createTimeRanges([[2, 6]]),
           'buffered reports video buffered'
         );
         loader.setAudio(false);
         timeRangesEqual(
           loader.buffered_(),
-          videojs.createTimeRanges([[2, 6]]),
+          createTimeRanges([[2, 6]]),
           'buffered reports video buffered'
         );
       });
@@ -4061,15 +4061,15 @@ QUnit.module('SegmentLoader', function(hooks) {
         // mock the buffered values (easiest solution to test that segment-loader is
         // calling the correct functions)
         loader.sourceUpdater_.audioBuffered =
-          () => videojs.createTimeRanges([[2, 3], [5, 7]]);
+          () => createTimeRanges([[2, 3], [5, 7]]);
         loader.sourceUpdater_.videoBuffered =
-          () => videojs.createTimeRanges([[2, 6]]);
+          () => createTimeRanges([[2, 6]]);
         loader.sourceUpdater_.buffered =
-          () => videojs.createTimeRanges([[2, 3], [5, 6]]);
+          () => createTimeRanges([[2, 3], [5, 6]]);
 
         timeRangesEqual(
           loader.buffered_(),
-          videojs.createTimeRanges([[2, 3], [5, 7]]),
+          createTimeRanges([[2, 3], [5, 7]]),
           'buffered reports audio buffered'
         );
         // note that there currently is no proper support for audio only with alt audio,
@@ -4103,15 +4103,15 @@ QUnit.module('SegmentLoader', function(hooks) {
         // mock the buffered values (easiest solution to test that segment-loader is
         // calling the correct functions)
         loader.sourceUpdater_.audioBuffered =
-          () => videojs.createTimeRanges([[2, 3], [5, 7]]);
+          () => createTimeRanges([[2, 3], [5, 7]]);
         loader.sourceUpdater_.videoBuffered =
-          () => videojs.createTimeRanges([[2, 6]]);
+          () => createTimeRanges([[2, 6]]);
         loader.sourceUpdater_.buffered =
-          () => videojs.createTimeRanges([[2, 3], [5, 6]]);
+          () => createTimeRanges([[2, 3], [5, 6]]);
 
         timeRangesEqual(
           loader.buffered_(),
-          videojs.createTimeRanges([[2, 3], [5, 7]]),
+          createTimeRanges([[2, 3], [5, 7]]),
           'buffered reports audio buffered'
         );
       });
@@ -4142,15 +4142,15 @@ QUnit.module('SegmentLoader', function(hooks) {
         // mock the buffered values (easiest solution to test that segment-loader is
         // calling the correct functions)
         loader.sourceUpdater_.audioBuffered =
-          () => videojs.createTimeRanges([[2, 3], [5, 7]]);
+          () => createTimeRanges([[2, 3], [5, 7]]);
         loader.sourceUpdater_.videoBuffered =
-          () => videojs.createTimeRanges([[2, 6]]);
+          () => createTimeRanges([[2, 6]]);
         loader.sourceUpdater_.buffered =
-          () => videojs.createTimeRanges([[2, 3], [5, 6]]);
+          () => createTimeRanges([[2, 3], [5, 6]]);
 
         timeRangesEqual(
           loader.buffered_(),
-          videojs.createTimeRanges([[2, 3], [5, 7]]),
+          createTimeRanges([[2, 3], [5, 7]]),
           'buffered reports audio buffered'
         );
       });
@@ -4174,15 +4174,15 @@ QUnit.module('SegmentLoader', function(hooks) {
         // mock the buffered values (easiest solution to test that segment-loader is
         // calling the correct functions)
         loader.sourceUpdater_.audioBuffered =
-          () => videojs.createTimeRanges([[2, 3], [5, 7]]);
+          () => createTimeRanges([[2, 3], [5, 7]]);
         loader.sourceUpdater_.videoBuffered =
-          () => videojs.createTimeRanges([[2, 6]]);
+          () => createTimeRanges([[2, 6]]);
         loader.sourceUpdater_.buffered =
-          () => videojs.createTimeRanges([[2, 3], [5, 6]]);
+          () => createTimeRanges([[2, 3], [5, 6]]);
 
         timeRangesEqual(
           loader.buffered_(),
-          videojs.createTimeRanges([[2, 3], [5, 6]]),
+          createTimeRanges([[2, 3], [5, 6]]),
           'buffered reports intersection of audio and video buffers'
         );
         const playlist2 = playlistWithDuration(40, {uri: 'playlist2.m3u8'});
@@ -4191,7 +4191,7 @@ QUnit.module('SegmentLoader', function(hooks) {
 
         timeRangesEqual(
           loader.buffered_(),
-          videojs.createTimeRanges([[2, 3], [5, 6]]),
+          createTimeRanges([[2, 3], [5, 6]]),
           'buffered reports intersection of audio and video buffers'
         );
 
@@ -4199,7 +4199,7 @@ QUnit.module('SegmentLoader', function(hooks) {
 
         timeRangesEqual(
           loader.buffered_(),
-          videojs.createTimeRanges([[2, 3], [5, 6]]),
+          createTimeRanges([[2, 3], [5, 6]]),
           'buffered reports intersection of audio and video buffers'
         );
       });
@@ -4540,11 +4540,11 @@ QUnit.module('SegmentLoader', function(hooks) {
       const playlist1 = playlistWithDuration(
         playlistDuration,
         // need different URIs to ensure the playlists are considered different
-        videojs.mergeOptions(playlistOptions, { uri: 'playlist1.m3u8' })
+        merge(playlistOptions, { uri: 'playlist1.m3u8' })
       );
       const playlist2 = playlistWithDuration(
         playlistDuration,
-        videojs.mergeOptions(playlistOptions, { uri: 'playlist2.m3u8' })
+        merge(playlistOptions, { uri: 'playlist2.m3u8' })
       );
 
       const segmentDurationMs = targetDuration * 1000;
@@ -4650,11 +4650,11 @@ QUnit.module('SegmentLoader', function(hooks) {
       const playlist1 = playlistWithDuration(
         playlistDuration,
         // need different URIs to ensure the playlists are considered different
-        videojs.mergeOptions(playlistOptions, { uri: 'playlist1.m3u8' })
+        merge(playlistOptions, { uri: 'playlist1.m3u8' })
       );
       const playlist2 = playlistWithDuration(
         playlistDuration,
-        videojs.mergeOptions(playlistOptions, { uri: 'playlist2.m3u8' })
+        merge(playlistOptions, { uri: 'playlist2.m3u8' })
       );
 
       loader.currentTime_ = () => currentTime;
@@ -4763,8 +4763,8 @@ QUnit.module('SegmentLoader', function(hooks) {
         this.clock.tick(1);
 
         // mock some buffer to prevent an error from not being able to clear any buffer
-        loader.sourceUpdater_.audioBuffered = () => videojs.createTimeRanges([0, 5]);
-        loader.sourceUpdater_.videoBuffered = () => videojs.createTimeRanges([0, 5]);
+        loader.sourceUpdater_.audioBuffered = () => createTimeRanges([0, 5]);
+        loader.sourceUpdater_.videoBuffered = () => createTimeRanges([0, 5]);
 
         loader.sourceUpdater_.appendBuffer = ({type, bytes}, callback) => {
           callback({type: 'QUOTA_EXCEEDED_ERR', code: QUOTA_EXCEEDED_ERR});
@@ -4823,8 +4823,8 @@ QUnit.module('SegmentLoader', function(hooks) {
 
         // mock some buffer and the playhead position
         loader.currentTime_ = () => 7;
-        loader.sourceUpdater_.audioBuffered = () => videojs.createTimeRanges([2, 10]);
-        loader.sourceUpdater_.videoBuffered = () => videojs.createTimeRanges([0, 10]);
+        loader.sourceUpdater_.audioBuffered = () => createTimeRanges([2, 10]);
+        loader.sourceUpdater_.videoBuffered = () => createTimeRanges([0, 10]);
 
         loader.sourceUpdater_.removeVideo = (start, end, done) => {
           assert.ok(loader.waitingOnRemove_, 'waiting on buffer removal to complete');

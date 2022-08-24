@@ -9,6 +9,7 @@ import {getMimeForCodec} from '@videojs/vhs-utils/es/codecs.js';
 import window from 'global/window';
 import toTitleCase from './util/to-title-case.js';
 import { QUOTA_EXCEEDED_ERR } from './error-codes';
+import {createTimeRanges} from './util/vjs-compat';
 
 const bufferTypes = [
   'video',
@@ -605,11 +606,11 @@ export default class SourceUpdater extends videojs.EventTarget {
     // no media source/source buffer or it isn't in the media sources
     // source buffer list
     if (!inSourceBuffers(this.mediaSource, this.audioBuffer)) {
-      return videojs.createTimeRange();
+      return createTimeRanges();
     }
 
     return this.audioBuffer.buffered ? this.audioBuffer.buffered :
-      videojs.createTimeRange();
+      createTimeRanges();
   }
 
   /**
@@ -622,10 +623,10 @@ export default class SourceUpdater extends videojs.EventTarget {
     // no media source/source buffer or it isn't in the media sources
     // source buffer list
     if (!inSourceBuffers(this.mediaSource, this.videoBuffer)) {
-      return videojs.createTimeRange();
+      return createTimeRanges();
     }
     return this.videoBuffer.buffered ? this.videoBuffer.buffered :
-      videojs.createTimeRange();
+      createTimeRanges();
   }
 
   /**

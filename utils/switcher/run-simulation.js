@@ -6,6 +6,7 @@ import {
   standardXHRResponse,
 } from '../../test/test-helpers';
 import {Hls} from '../../src/videojs-http-streaming.js';
+import {createTimeRanges} from '../../src/util/vjs-compat';
 
 let simulationDefaults = {
   // number of seconds of video in each segment
@@ -128,7 +129,7 @@ const runSimulation = function(options, done) {
 
   // simulate buffered and currentTime during playback
   let getBuffer = (buff) => {
-    return videojs.createTimeRange(0, currentTime + buffered);
+    return createTimeRanges(0, currentTime + buffered);
   };
   player.tech_.buffered = getBuffer;
 

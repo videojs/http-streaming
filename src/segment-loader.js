@@ -24,6 +24,7 @@ import shallowEqual from './util/shallow-equal.js';
 import { QUOTA_EXCEEDED_ERR } from './error-codes';
 import {timeRangesToArray, lastBufferedEnd, timeAheadOf} from './ranges.js';
 import {getKnownPartCount} from './playlist.js';
+import {createTimeRanges} from './util/vjs-compat';
 
 /**
  * The segment loader has no recourse except to fetch a segment in the
@@ -838,7 +839,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     const trackInfo = this.getMediaInfo_();
 
     if (!this.sourceUpdater_ || !trackInfo) {
-      return videojs.createTimeRanges();
+      return createTimeRanges();
     }
 
     if (this.loaderType_ === 'main') {

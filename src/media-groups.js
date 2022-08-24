@@ -4,6 +4,7 @@ import DashPlaylistLoader from './dash-playlist-loader';
 import noop from './util/noop';
 import {isAudioOnly, playlistMatch} from './playlist.js';
 import logger from './util/logger';
+import {merge} from './util/vjs-compat';
 
 /**
  * Convert the properties of an HLS track into an audioTrackKind.
@@ -486,7 +487,7 @@ export const initialize = {
           playlistLoader = null;
         }
 
-        properties = videojs.mergeOptions(
+        properties = merge(
           { id: variantLabel, playlistLoader },
           properties
         );
@@ -586,7 +587,7 @@ export const initialize = {
           );
         }
 
-        properties = videojs.mergeOptions({
+        properties = merge({
           id: variantLabel,
           playlistLoader
         }, properties);
@@ -656,7 +657,7 @@ export const initialize = {
         };
 
         if (captionServices[newProps.instreamId]) {
-          newProps = videojs.mergeOptions(newProps, captionServices[newProps.instreamId]);
+          newProps = merge(newProps, captionServices[newProps.instreamId]);
         }
 
         if (newProps.default === undefined) {
@@ -665,7 +666,7 @@ export const initialize = {
 
         // No PlaylistLoader is required for Closed-Captions because the captions are
         // embedded within the video stream
-        groups[groupId].push(videojs.mergeOptions({ id: variantLabel }, properties));
+        groups[groupId].push(merge({ id: variantLabel }, properties));
 
         if (typeof tracks[variantLabel] === 'undefined') {
           const track = tech.addRemoteTextTrack({

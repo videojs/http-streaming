@@ -17,8 +17,9 @@ import {
   forEachMediaGroup
 } from './manifest';
 import {getKnownPartCount} from './playlist.js';
+import {merge} from './util/vjs-compat';
 
-const { mergeOptions, EventTarget } = videojs;
+const { EventTarget } = videojs;
 
 const addLLHLSQueryDirectives = (uri, media) => {
   if (media.endList || !media.serverControl) {
@@ -105,7 +106,7 @@ export const updateSegment = (a, b) => {
     return b;
   }
 
-  const result = mergeOptions(a, b);
+  const result = merge(a, b);
 
   // if only the old segment has preload hints
   // and the new one does not, remove preload hints.
@@ -123,7 +124,7 @@ export const updateSegment = (a, b) => {
   } else if (a.parts && b.parts) {
     for (let i = 0; i < b.parts.length; i++) {
       if (a.parts && a.parts[i]) {
-        result.parts[i] = mergeOptions(a.parts[i], b.parts[i]);
+        result.parts[i] = merge(a.parts[i], b.parts[i]);
       }
     }
   }
@@ -273,7 +274,7 @@ export const isPlaylistUnchanged = (a, b) => a === b ||
   * null if the merge produced no change.
   */
 export const updateMain = (main, newMedia, unchangedCheck = isPlaylistUnchanged) => {
-  const result = mergeOptions(main, {});
+  const result = merge(main, {});
   const oldMedia = result.playlists[newMedia.id];
 
   if (!oldMedia) {
@@ -286,7 +287,7 @@ export const updateMain = (main, newMedia, unchangedCheck = isPlaylistUnchanged)
 
   newMedia.segments = getAllSegments(newMedia);
 
-  const mergedPlaylist = mergeOptions(oldMedia, newMedia);
+  const mergedPlaylist = merge(oldMedia, newMedia);
 
   // always use the new media's preload segment
   if (mergedPlaylist.preloadSegment && !newMedia.preloadSegment) {

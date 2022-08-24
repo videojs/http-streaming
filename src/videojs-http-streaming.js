@@ -38,6 +38,7 @@ import {
 import { unwrapCodecList } from './util/codecs.js';
 import logger from './util/logger';
 import {SAFE_TIME_DELTA} from './ranges';
+import {merge} from './util/vjs-compat';
 
 // IMPORTANT:
 // keep these at the bottom they are replaced at build time
@@ -183,7 +184,7 @@ const emeKeySystems = (keySystemOptions, mainPlaylist, audioPlaylist) => {
     }
   }
 
-  return videojs.mergeOptions(keySystemOptions, keySystemContentTypes);
+  return merge(keySystemOptions, keySystemContentTypes);
 };
 
 /**
@@ -391,7 +392,7 @@ const updateVhsLocalStorage = (options) => {
 
   let objectToStore = getVhsLocalStorage();
 
-  objectToStore = objectToStore ? videojs.mergeOptions(objectToStore, options) : options;
+  objectToStore = objectToStore ? merge(objectToStore, options) : options;
 
   try {
     window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(objectToStore));
@@ -681,7 +682,7 @@ class VhsHandler extends Component {
 
     this.playlistController_ = new PlaylistController(this.options_);
 
-    const playbackWatcherOptions = videojs.mergeOptions(
+    const playbackWatcherOptions = merge(
       {
         liveRangeSafeTimeDelta: SAFE_TIME_DELTA
       },
@@ -1209,12 +1210,12 @@ const VhsSourceHandler = {
   name: 'videojs-http-streaming',
   VERSION: vhsVersion,
   canHandleSource(srcObj, options = {}) {
-    const localOptions = videojs.mergeOptions(videojs.options, options);
+    const localOptions = merge(videojs.options, options);
 
     return VhsSourceHandler.canPlayType(srcObj.type, localOptions);
   },
   handleSource(source, tech, options = {}) {
-    const localOptions = videojs.mergeOptions(videojs.options, options);
+    const localOptions = merge(videojs.options, options);
 
     tech.vhs = new VhsHandler(source, tech, localOptions);
     tech.vhs.xhr = xhrFactory();
@@ -1225,7 +1226,7 @@ const VhsSourceHandler = {
   canPlayType(type, options = {}) {
     const {
       vhs: { overrideNative = !videojs.browser.IS_ANY_SAFARI } = {}
-    } = videojs.mergeOptions(videojs.options, options);
+    } = merge(videojs.options, options);
 
     const supportedType = simpleTypeFromSourceType(type);
     const canUseMsePlayback = supportedType &&
@@ -1259,9 +1260,7 @@ if (!videojs.use) {
 videojs.options.vhs = videojs.options.vhs || {};
 
 if (!videojs.getPlugin || !videojs.getPlugin('reloadSourceOnError')) {
-  const registerPlugin = videojs.registerPlugin || videojs.plugin;
-
-  registerPlugin('reloadSourceOnError', reloadSourceOnError);
+  videojs.registerPlugin('reloadSourceOnError', reloadSourceOnError);
 }
 
 export {

@@ -1,4 +1,3 @@
-import videojs from 'video.js';
 import { createTransferableMessage } from './bin-utils';
 import { stringToArrayBuffer } from './util/string-to-array-buffer';
 import { transmux } from './segment-transmuxer';
@@ -8,6 +7,7 @@ import {
   detectContainerForBytes,
   isLikelyFmp4MediaSegment
 } from '@videojs/vhs-utils/es/containers';
+import {merge} from './util/vjs-compat';
 
 export const REQUEST_ERRORS = {
   FAILURE: 2,
@@ -514,7 +514,7 @@ const handleSegmentBytes = ({
             bytes = message.data.buffer;
             segment.bytes = bytesAsUint8Array = message.data;
             message.logs.forEach(function(log) {
-              onTransmuxerLog(videojs.mergeOptions(log, {stream: 'mp4CaptionParser'}));
+              onTransmuxerLog(merge(log, {stream: 'mp4CaptionParser'}));
             });
             finishLoading(message.captions);
           }
@@ -860,7 +860,7 @@ const handleProgress = ({
     return;
   }
 
-  segment.stats = videojs.mergeOptions(segment.stats, getProgressStats(event));
+  segment.stats = merge(segment.stats, getProgressStats(event));
 
   // record the time that we receive the first byte of data
   if (!segment.stats.firstBytesReceivedAt && segment.stats.bytesReceived) {
@@ -981,7 +981,7 @@ export const mediaSegmentRequest = ({
     if (segment.map && !segment.map.bytes && segment.map.key && segment.map.key.resolvedUri === segment.key.resolvedUri) {
       objects.push(segment.map.key);
     }
-    const keyRequestOptions = videojs.mergeOptions(xhrOptions, {
+    const keyRequestOptions = merge(xhrOptions, {
       uri: segment.key.resolvedUri,
       responseType: 'arraybuffer'
     });
@@ -996,7 +996,7 @@ export const mediaSegmentRequest = ({
     const differentMapKey = segment.map.key && (!segment.key || segment.key.resolvedUri !== segment.map.key.resolvedUri);
 
     if (differentMapKey) {
-      const mapKeyRequestOptions = videojs.mergeOptions(xhrOptions, {
+      const mapKeyRequestOptions = merge(xhrOptions, {
         uri: segment.map.key.resolvedUri,
         responseType: 'arraybuffer'
       });
@@ -1005,7 +1005,7 @@ export const mediaSegmentRequest = ({
 
       activeXhrs.push(mapKeyXhr);
     }
-    const initSegmentOptions = videojs.mergeOptions(xhrOptions, {
+    const initSegmentOptions = merge(xhrOptions, {
       uri: segment.map.resolvedUri,
       responseType: 'arraybuffer',
       headers: segmentXhrHeaders(segment.map)
@@ -1016,7 +1016,7 @@ export const mediaSegmentRequest = ({
     activeXhrs.push(initSegmentXhr);
   }
 
-  const segmentRequestOptions = videojs.mergeOptions(xhrOptions, {
+  const segmentRequestOptions = merge(xhrOptions, {
     uri: segment.part && segment.part.resolvedUri || segment.resolvedUri,
     responseType: 'arraybuffer',
     headers: segmentXhrHeaders(segment)

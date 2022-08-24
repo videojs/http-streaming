@@ -1,8 +1,6 @@
 import * as Ranges from '../src/ranges';
-import videojs from 'video.js';
 import QUnit from 'qunit';
-
-const createTimeRanges = videojs.createTimeRanges;
+import {createTimeRanges} from '../src/util/vjs-compat';
 
 const rangesEqual = (rangeOne, rangeTwo) => {
   if (!rangeOne || !rangeTwo) {
