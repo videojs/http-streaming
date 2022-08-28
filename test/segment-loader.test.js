@@ -45,7 +45,9 @@ import {
   mp4VideoInit as mp4VideoInitSegment,
   mp4Audio as mp4AudioSegment,
   mp4AudioInit as mp4AudioInitSegment,
-  zeroLength as zeroLengthSegment
+  zeroLength as zeroLengthSegment,
+  encrypted as encryptedSegment,
+  encryptionKey
 } from 'create-test-data!segments';
 import sinon from 'sinon';
 import { timeRangesEqual } from './custom-assertions.js';
@@ -1080,7 +1082,9 @@ QUnit.module('SegmentLoader', function(hooks) {
 
   LoaderCommonFactory({
     LoaderConstructor: SegmentLoader,
-    loaderSettings: {loaderType: 'main'}
+    loaderSettings: {loaderType: 'main'},
+    encryptedSegmentFn: encryptedSegment,
+    encryptedSegmentKeyFn: encryptionKey
   });
 
   // Tests specific to the main segment loader go in this module
@@ -4920,7 +4924,14 @@ QUnit.module('SegmentLoader: FMP4', function(hooks) {
 
   LoaderCommonFactory({
     LoaderConstructor: SegmentLoader,
-    loaderSettings: {loaderType: 'main'}
+    loaderSettings: {loaderType: 'main'},
+    // TODO change to encrypted FMP4s when supported
+    //
+    // This segment should be an encrypted FMP4, however, right now in the code there's no
+    // support for an encrypted map tag, as the IV is not passed along. When that support
+    // is added, change this segment to an encrypted FMP4.
+    encryptedSegmentFn: encryptedSegment,
+    encryptedSegmentKeyFn: encryptionKey
   });
 
   // Tests specific to the main segment loader go in this module
