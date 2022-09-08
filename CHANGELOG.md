@@ -1,3 +1,20 @@
+<a name="2.14.3"></a>
+## [2.14.3](https://github.com/videojs/http-streaming/compare/v2.14.2...v2.14.3) (2022-08-31)
+
+### Bug Fixes
+
+* cache aes keys for text tracks ([#973](https://github.com/videojs/http-streaming/issues/973)) ([#1228](https://github.com/videojs/http-streaming/issues/1228)) ([721e1bf](https://github.com/videojs/http-streaming/commit/721e1bf))
+* output-restricted event handling for unplayable streams ([#1305](https://github.com/videojs/http-streaming/issues/1305)) ([23bbf84](https://github.com/videojs/http-streaming/commit/23bbf84))
+
+### Chores
+
+* **docs:** Remove outdated information in collaborators' guide ([#1271](https://github.com/videojs/http-streaming/issues/1271)) ([5223427](https://github.com/videojs/http-streaming/commit/5223427))
+
+### Tests
+
+* change source for live DASH playback test to fix test failures ([#1303](https://github.com/videojs/http-streaming/issues/1303)) ([e39e27d](https://github.com/videojs/http-streaming/commit/e39e27d))
+* fix IE11 encrypted VTT tests by using an actual encrypted VTT segment ([#1291](https://github.com/videojs/http-streaming/issues/1291)) ([97e02fb](https://github.com/videojs/http-streaming/commit/97e02fb))
+
 <a name="2.14.2"></a>
 ## [2.14.2](https://github.com/videojs/http-streaming/compare/v2.14.1...v2.14.2) (2022-04-13)
 
