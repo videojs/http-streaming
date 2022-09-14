@@ -62,6 +62,7 @@ class Representation {
       this.height = resolution && resolution.height;
 
       this.bandwidth = playlist.attributes.BANDWIDTH;
+      this.frameRate = playlist.attributes['FRAME-RATE'];
     }
 
     this.codecs = codecsForPlaylist(pc.main(), playlist);
