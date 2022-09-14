@@ -1,3 +1,10 @@
+<a name="2.15.0"></a>
+# [2.15.0](https://github.com/videojs/http-streaming/compare/v2.14.3...v2.15.0) (2022-09-14)
+
+### Features
+
+* add frameRate property to the representation class. ([#1289](https://github.com/videojs/http-streaming/issues/1289)) ([27a970c](https://github.com/videojs/http-streaming/commit/27a970c))
+
 <a name="2.14.3"></a>
 ## [2.14.3](https://github.com/videojs/http-streaming/compare/v2.14.2...v2.14.3) (2022-08-31)
 
