@@ -21,7 +21,7 @@ const getManifests = () => (fs.readdirSync(manifestsDir) || [])
   .map((f) => path.resolve(manifestsDir, f));
 
 const getSegments = () => (fs.readdirSync(segmentsDir) || [])
-  .filter((f) => ((/\.(ts|mp4|key|webm|aac|ac3)/).test(path.extname(f))))
+  .filter((f) => ((/\.(ts|mp4|key|webm|aac|ac3|vtt)/).test(path.extname(f))))
   .map((f) => path.resolve(segmentsDir, f));
 
 const buildManifestString = function() {

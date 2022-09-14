@@ -1061,12 +1061,40 @@ class VhsHandler extends Component {
     });
 
     this.player_.tech_.on('keystatuschange', (e) => {
-      if (e.status === 'output-restricted') {
-        this.masterPlaylistController_.blacklistCurrentPlaylist({
-          playlist: this.masterPlaylistController_.media(),
-          message: `DRM keystatus changed to ${e.status}. Playlist will fail to play. Check for HDCP content.`,
-          blacklistDuration: Infinity
-        });
+      if (e.status !== 'output-restricted') {
+        return;
+      }
+
+      const masterPlaylist = this.masterPlaylistController_.master();
+
+      if (!masterPlaylist || !masterPlaylist.playlists) {
+        return;
+      }
+
+      const excludedHDPlaylists = [];
+
+      // Assume all HD streams are unplayable and exclude them from ABR selection
+      masterPlaylist.playlists.forEach(playlist => {
+        if (playlist && playlist.attributes && playlist.attributes.RESOLUTION &&
+            playlist.attributes.RESOLUTION.height >= 720) {
+          if (!playlist.excludeUntil || playlist.excludeUntil < Infinity) {
+
+            playlist.excludeUntil = Infinity;
+            excludedHDPlaylists.push(playlist);
+          }
+        }
+      });
+
+      if (excludedHDPlaylists.length) {
+        videojs.log.warn(
+          'DRM keystatus changed to "output-restricted." Removing the following HD playlists ' +
+          'that will most likely fail to play and clearing the buffer. ' +
+          'This may be due to HDCP restrictions on the stream and the capabilities of the current device.',
+          ...excludedHDPlaylists
+        );
+
+        // Clear the buffer before switching playlists, since it may already contain unplayable segments
+        this.masterPlaylistController_.fastQualityChange_();
       }
     });
 
