@@ -1,3 +1,21 @@
+<a name="3.0.0-1"></a>
+# [3.0.0-1](https://github.com/videojs/http-streaming/compare/v3.0.0-0...v3.0.0-1) (2022-09-30)
+
+### Features
+
+* add compatibility layer for video.js 7 and 8 ([#1322](https://github.com/videojs/http-streaming/issues/1322)) ([b9d26e5](https://github.com/videojs/http-streaming/commit/b9d26e5))
+* add frameRate property to the representation class. ([#1289](https://github.com/videojs/http-streaming/issues/1289)) ([fd2898f](https://github.com/videojs/http-streaming/commit/fd2898f))
+
+### Chores
+
+* **package:** update m3u8-parser to v6.0.0 ([#1330](https://github.com/videojs/http-streaming/issues/1330)) ([fe15751](https://github.com/videojs/http-streaming/commit/fe15751))
+* update package-lock ([1806b46](https://github.com/videojs/http-streaming/commit/1806b46))
+
+
+### BREAKING CHANGES
+
+* **package:** manifests with tags lacking colons (:) are no longer supported
+
 <a name="3.0.0-0"></a>
 # [3.0.0-0](https://github.com/videojs/http-streaming/compare/v2.14.2...v3.0.0-0) (2022-08-19)
 
