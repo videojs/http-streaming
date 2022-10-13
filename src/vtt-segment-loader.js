@@ -476,11 +476,13 @@ export default class VTTSegmentLoader extends SegmentLoader {
 
     const timestampmap = segmentInfo.timestampmap;
     const diff = (timestampmap.MPEGTS / ONE_SECOND_IN_TS) - timestampmap.LOCAL + mappingObj.mapping;
+    const mpegTsRollover = Math.floor((2 ** 33) / ONE_SECOND_IN_TS);
 
     segmentInfo.cues.forEach((cue) => {
       // First convert cue time to TS time using the timestamp-map provided within the vtt
-      cue.startTime += diff;
-      cue.endTime += diff;
+      // Also account for mpegts rollover
+      cue.startTime = (cue.startTime % mpegTsRollover) + diff;
+      cue.endTime = (cue.endTime % mpegTsRollover) + diff;
     });
 
     if (!playlist.syncInfo) {
