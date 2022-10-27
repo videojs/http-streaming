@@ -53,13 +53,6 @@ import {version as mpdVersion} from 'mpd-parser/package.json';
 import {version as m3u8Version} from 'm3u8-parser/package.json';
 import {version as aesVersion} from 'aes-decrypter/package.json';
 
-let testOrSkip = 'test';
-
-// some tests just don't work reliably on ie11 or edge
-if (videojs.browser.IS_EDGE || videojs.browser.IE_VERSION) {
-  testOrSkip = 'skip';
-}
-
 const ogVhsHandlerSetupQualityLevels = videojs.VhsHandler.prototype.setupQualityLevels_;
 
 // do a shallow copy of the properties of source onto the target object
@@ -78,10 +71,9 @@ QUnit.module('VHS', {
     this.mse = useFakeMediaSource();
     this.clock = this.env.clock;
     this.old = {};
-    if (!videojs.browser.IE_VERSION) {
-      this.old.devicePixelRatio = window.devicePixelRatio;
-      window.devicePixelRatio = 1;
-    }
+    this.old.devicePixelRatio = window.devicePixelRatio;
+    window.devicePixelRatio = 1;
+
     // store functionality that some tests need to mock
     this.old.GlobalOptions = merge(videojs.options);
 
@@ -403,37 +395,6 @@ QUnit.test('autoplay seeks to the live point after media source open', function(
 
   assert.notEqual(currentTime, 0, 'seeked on autoplay');
 });
-
-QUnit.test(
-  'autoplay seeks to the live point after tech fires loadedmetadata in ie11',
-  function(assert) {
-    videojs.browser.IE_VERSION = 11;
-    let currentTime = 0;
-
-    this.player.autoplay(true);
-    this.player.on('seeking', () => {
-      currentTime = this.player.currentTime();
-    });
-    this.player.src({
-      src: 'liveStart30sBefore.m3u8',
-      type: 'application/vnd.apple.mpegurl'
-    });
-
-    this.clock.tick(1);
-
-    openMediaSource(this.player, this.clock);
-    this.player.tech_.trigger('play');
-    this.standardXHRResponse(this.requests.shift());
-    this.clock.tick(1);
-
-    assert.equal(currentTime, 0, 'have not played yet');
-
-    this.player.tech_.trigger('loadedmetadata');
-    this.clock.tick(1);
-
-    assert.notEqual(currentTime, 0, 'seeked after tech is ready');
-  }
-);
 
 QUnit.test(
   'duration is set when the source opens after the playlist is loaded',
@@ -950,7 +911,7 @@ QUnit.module('NetworkInformationApi', hooks => {
     window.navigator = this.ogNavigator;
   });
 
-  QUnit[testOrSkip](
+  QUnit.test(
     'bandwidth returns networkInformation.downlink when useNetworkInformationApi option is enabled',
     function(assert) {
       this.resetNavigatorConnection({
@@ -973,7 +934,7 @@ QUnit.module('NetworkInformationApi', hooks => {
     }
   );
 
-  QUnit[testOrSkip](
+  QUnit.test(
     'bandwidth uses player-estimated bandwidth when its value is greater than networkInformation.downLink and both values are >= 10 Mbps',
     function(assert) {
       this.resetNavigatorConnection({
@@ -997,7 +958,7 @@ QUnit.module('NetworkInformationApi', hooks => {
     }
   );
 
-  QUnit[testOrSkip](
+  QUnit.test(
     'bandwidth uses network-information-api bandwidth when its value is less than the player bandwidth and 10 Mbps',
     function(assert) {
       this.resetNavigatorConnection({
@@ -1021,7 +982,7 @@ QUnit.module('NetworkInformationApi', hooks => {
     }
   );
 
-  QUnit[testOrSkip](
+  QUnit.test(
     'bandwidth uses player-estimated bandwidth when networkInformation is not supported',
     function(assert) {
       // Nullify the `connection` property on Navigator
@@ -4444,21 +4405,11 @@ QUnit.test('eme waitingforkey event triggers another setup', function(assert) {
 
   vhs.playlistController_.sourceUpdater_.trigger('createdsourcebuffers');
 
-  // Since IE11 doesn't initialize media keys early, in this test IE11 will always have
-  // one less call than in other browsers.
-  if (videojs.browser.IE_VERSION === 11) {
-    assert.equal(createKeySessionCalls, 0, 'did not call createKeySessions_ yet');
-  } else {
-    assert.equal(createKeySessionCalls, 1, 'called createKeySessions_ once');
-  }
+  assert.equal(createKeySessionCalls, 1, 'called createKeySessions_ once');
 
   this.player.tech_.trigger({type: 'waitingforkey', status: 'usable'});
 
-  if (videojs.browser.IE_VERSION === 11) {
-    assert.equal(createKeySessionCalls, 1, 'called createKeySessions_ once');
-  } else {
-    assert.equal(createKeySessionCalls, 2, 'called createKeySessions_ again');
-  }
+  assert.equal(createKeySessionCalls, 2, 'called createKeySessions_ again');
 });
 
 QUnit.test('integration: configures eme for DASH on source buffer creation', function(assert) {
@@ -4601,13 +4552,8 @@ QUnit.test('integration: updates source updater after eme init', function(assert
   sourceUpdater.on(
     'createdsourcebuffers',
     () => {
-      let expected = false;
+      const expected = false;
 
-      // IE initializes eme syncronously directly after source buffer
-      // creation
-      if (videojs.browser.IE_VERSION) {
-        expected = true;
-      }
       assert.equal(sourceUpdater.hasInitializedAnyEme(), expected, 'correct eme state');
     }
   );
@@ -4629,7 +4575,7 @@ QUnit.test('integration: updates source updater after eme init', function(assert
   this.standardXHRResponse(this.requests.shift(), audioSegment());
 });
 
-QUnit[testOrSkip]('player error when key session creation rejects promise', function(assert) {
+QUnit.test('player error when key session creation rejects promise', function(assert) {
   const done = assert.async();
 
   this.player.error = (errorObject) => {
@@ -4738,7 +4684,7 @@ QUnit.test(
   }
 );
 
-QUnit[testOrSkip](
+QUnit.test(
   'stores bandwidth and throughput in localStorage when global option is true',
   function(assert) {
     videojs.options.vhs = {
@@ -4767,7 +4713,7 @@ QUnit[testOrSkip](
   }
 );
 
-QUnit[testOrSkip](
+QUnit.test(
   'stores bandwidth and throughput in localStorage when player option is true',
   function(assert) {
     this.player.dispose();
@@ -4802,7 +4748,7 @@ QUnit[testOrSkip](
   }
 );
 
-QUnit[testOrSkip](
+QUnit.test(
   'stores bandwidth and throughput in localStorage when source option is true',
   function(assert) {
     this.player.dispose();
@@ -4832,7 +4778,7 @@ QUnit[testOrSkip](
   }
 );
 
-QUnit[testOrSkip](
+QUnit.test(
   'source localStorage option takes priority over player option',
   function(assert) {
     this.player.dispose();
@@ -4868,7 +4814,7 @@ QUnit[testOrSkip](
   }
 );
 
-QUnit[testOrSkip](
+QUnit.test(
   'does not store bandwidth and throughput in localStorage by default',
   function(assert) {
     this.player.dispose();
@@ -4894,7 +4840,7 @@ QUnit[testOrSkip](
   }
 );
 
-QUnit[testOrSkip]('retrieves bandwidth and throughput from localStorage', function(assert) {
+QUnit.test('retrieves bandwidth and throughput from localStorage', function(assert) {
   window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({
     bandwidth: 33,
     throughput: 44
@@ -4956,7 +4902,7 @@ QUnit[testOrSkip]('retrieves bandwidth and throughput from localStorage', functi
   videojs.options.vhs = origVhsOptions;
 });
 
-QUnit[testOrSkip](
+QUnit.test(
   'does not retrieve bandwidth and throughput from localStorage when stored value is not as expected',
   function(assert) {
   // bad value

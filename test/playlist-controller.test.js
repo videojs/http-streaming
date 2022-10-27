@@ -58,10 +58,8 @@ const sharedHooks = {
     this.requests = this.env.requests;
     this.mse = useFakeMediaSource();
 
-    if (!videojs.browser.IE_VERSION) {
-      this.oldDevicePixelRatio = window.devicePixelRatio;
-      window.devicePixelRatio = 1;
-    }
+    this.oldDevicePixelRatio = window.devicePixelRatio;
+    window.devicePixelRatio = 1;
 
     // force the HLS tech to run
     this.origSupportsNativeHls = videojs.Vhs.supportsNativeHls;
@@ -619,7 +617,7 @@ QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', fun
       seeks++;
     });
 
-    let timeBeforeSwitch = this.player.currentTime();
+    const timeBeforeSwitch = this.player.currentTime();
 
     // mock buffered values so removes are processed
     segmentLoader.sourceUpdater_.audioBuffer.buffered = createTimeRanges([[0, 10]]);
@@ -631,10 +629,6 @@ QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', fun
     segmentLoader.sourceUpdater_.videoBuffer.trigger('updateend');
     this.clock.tick(1);
 
-    // we seek an additional 0.04s on edge and ie
-    if (videojs.browser.IS_EDGE || videojs.browser.IE_VERSION) {
-      timeBeforeSwitch += 0.04;
-    }
     assert.equal(
       this.player.currentTime(),
       timeBeforeSwitch,
@@ -814,120 +808,6 @@ QUnit.test('demuxed timeToLoadedData, mediaAppends, appendsToLoadedData stats', 
     assert.equal(vhs.stats.mainAppendsToLoadedData, 1, 'main appends to first frame is 1');
     assert.equal(vhs.stats.audioAppendsToLoadedData, 1, 'audio appends to first frame is 1');
     assert.ok(vhs.stats.timeToLoadedData > 0, 'time to first frame is valid');
-  });
-});
-
-QUnit.test('seeks forward 0.04 sec for fast quality switch on Edge', function(assert) {
-  const oldIEVersion = videojs.browser.IE_VERSION;
-  const oldIsEdge = videojs.browser.IS_EDGE;
-  let seeks = 0;
-
-  this.playlistController.mediaSource.trigger('sourceopen');
-  // main
-  this.standardXHRResponse(this.requests.shift());
-  // media
-  this.standardXHRResponse(this.requests.shift());
-
-  const segmentLoader = this.playlistController.mainSegmentLoader_;
-
-  return requestAndAppendSegment({
-    request: this.requests.shift(),
-    segmentLoader,
-    clock: this.clock
-  }).then(() => {
-    // media is changed
-    this.playlistController.selectPlaylist = () => {
-      const playlists = this.playlistController.main().playlists;
-      const currentPlaylist = this.playlistController.media();
-
-      return playlists.find((playlist) => playlist !== currentPlaylist);
-    };
-
-    this.player.tech_.on('seeking', function() {
-      seeks++;
-    });
-
-    const timeBeforeSwitch = this.player.currentTime();
-
-    videojs.browser.IE_VERSION = null;
-    videojs.browser.IS_EDGE = true;
-
-    // mock buffered values so removes are processed
-    segmentLoader.sourceUpdater_.audioBuffer.buffered = createTimeRanges([[0, 10]]);
-    segmentLoader.sourceUpdater_.videoBuffer.buffered = createTimeRanges([[0, 10]]);
-
-    this.playlistController.fastQualityChange_();
-    // trigger updateend to indicate the end of the remove operation
-    segmentLoader.sourceUpdater_.audioBuffer.trigger('updateend');
-    segmentLoader.sourceUpdater_.videoBuffer.trigger('updateend');
-    this.clock.tick(1);
-
-    assert.equal(
-      this.player.currentTime(),
-      timeBeforeSwitch + 0.04,
-      'seeks forward on fast quality switch'
-    );
-    assert.equal(seeks, 1, 'seek event occurs on fast quality switch');
-
-    videojs.browser.IE_VERSION = oldIEVersion;
-    videojs.browser.IS_EDGE = oldIsEdge;
-  });
-});
-
-QUnit.test('seeks forward 0.04 sec for fast quality switch on IE', function(assert) {
-  const oldIEVersion = videojs.browser.IE_VERSION;
-  const oldIsEdge = videojs.browser.IS_EDGE;
-  let seeks = 0;
-
-  this.playlistController.mediaSource.trigger('sourceopen');
-  // main
-  this.standardXHRResponse(this.requests.shift());
-  // media
-  this.standardXHRResponse(this.requests.shift());
-
-  const segmentLoader = this.playlistController.mainSegmentLoader_;
-
-  return requestAndAppendSegment({
-    request: this.requests.shift(),
-    segmentLoader,
-    clock: this.clock
-  }).then(() => {
-    // media is changed
-    this.playlistController.selectPlaylist = () => {
-      const playlists = this.playlistController.main().playlists;
-      const currentPlaylist = this.playlistController.media();
-
-      return playlists.find((playlist) => playlist !== currentPlaylist);
-    };
-
-    this.player.tech_.on('seeking', function() {
-      seeks++;
-    });
-
-    const timeBeforeSwitch = this.player.currentTime();
-
-    videojs.browser.IE_VERSION = 11;
-    videojs.browser.IS_EDGE = false;
-
-    // mock buffered values so removes are processed
-    segmentLoader.sourceUpdater_.audioBuffer.buffered = createTimeRanges([[0, 10]]);
-    segmentLoader.sourceUpdater_.videoBuffer.buffered = createTimeRanges([[0, 10]]);
-
-    this.playlistController.fastQualityChange_();
-    // trigger updateend to indicate the end of the remove operation
-    segmentLoader.sourceUpdater_.audioBuffer.trigger('updateend');
-    segmentLoader.sourceUpdater_.videoBuffer.trigger('updateend');
-    this.clock.tick(1);
-
-    assert.equal(
-      this.player.currentTime(),
-      timeBeforeSwitch + 0.04,
-      'seeks forward on fast quality switch'
-    );
-    assert.equal(seeks, 1, 'seek event occurs on fast quality switch');
-
-    videojs.browser.IE_VERSION = oldIEVersion;
-    videojs.browser.IS_EDGE = oldIsEdge;
   });
 });
 

@@ -576,7 +576,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // TODO possibly move gopBuffer and timeMapping info to a separate controller
     this.gopBuffer_ = [];
     this.timeMapping_ = 0;
-    this.safeAppend_ = videojs.browser.IE_VERSION >= 11;
+    this.safeAppend_ = false;
     this.appendInitSegment_ = {
       audio: true,
       video: true

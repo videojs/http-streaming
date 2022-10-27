@@ -9,20 +9,8 @@ import { QUOTA_EXCEEDED_ERR } from '../src/error-codes';
 import {createTimeRanges} from '../src/util/vjs-compat';
 
 const checkInitialDuration = function({duration}) {
-  // ie sometimes sets duration to infinity earlier then expected
-  if (videojs.browser.IS_EDGE || videojs.browser.IE_VERSION) {
-    QUnit.assert.ok(Number.isNaN(duration) || !Number.isFinite(duration), 'starting duration as expected');
-  } else {
-    QUnit.assert.ok(Number.isNaN(duration), 'starting duration as expected');
-  }
+  QUnit.assert.ok(Number.isNaN(duration), 'starting duration as expected');
 };
-
-let testOrSkip = 'test';
-
-// some tests just don't work reliably on ie11 or edge
-if (videojs.browser.IS_EDGE || videojs.browser.IE_VERSION) {
-  testOrSkip = 'skip';
-}
 
 const concatSegments = (...segments) => {
   let byteLength = segments.reduce((acc, cv) => {
@@ -962,7 +950,7 @@ QUnit.test(
   }
 );
 
-QUnit[testOrSkip]('setDuration waits for audio buffer to finish updating', function(assert) {
+QUnit.test('setDuration waits for audio buffer to finish updating', function(assert) {
   const done = assert.async();
 
   assert.expect(5);
@@ -1013,50 +1001,48 @@ QUnit.test('setDuration waits for video buffer to finish updating', function(ass
   assert.ok(this.sourceUpdater.updating(), 'updating during appends');
 });
 
-if (!videojs.browser.IS_EDGE) {
-  QUnit.test(
-    'setDuration waits for both audio and video buffers to finish updating',
-    function(assert) {
-      const done = assert.async();
-      let appendsFinished = 0;
+QUnit.test(
+  'setDuration waits for both audio and video buffers to finish updating',
+  function(assert) {
+    const done = assert.async();
+    let appendsFinished = 0;
 
-      assert.expect(7);
+    assert.expect(7);
 
-      this.sourceUpdater.createSourceBuffers({
-        audio: 'mp4a.40.2',
-        video: 'avc1.4D001E'
-      });
+    this.sourceUpdater.createSourceBuffers({
+      audio: 'mp4a.40.2',
+      video: 'avc1.4D001E'
+    });
 
-      assert.notOk(this.sourceUpdater.updating(), 'not updating by default');
+    assert.notOk(this.sourceUpdater.updating(), 'not updating by default');
 
-      const checkDuration = () => {
-        // duration is set to infinity if content is appended before an explicit duration is
-        // set https://w3c.github.io/media-source/#sourcebuffer-init-segment-received
-        assert.equal(this.mediaSource.duration, Infinity, 'duration not set on media source');
+    const checkDuration = () => {
+      // duration is set to infinity if content is appended before an explicit duration is
+      // set https://w3c.github.io/media-source/#sourcebuffer-init-segment-received
+      assert.equal(this.mediaSource.duration, Infinity, 'duration not set on media source');
 
-        if (appendsFinished === 0) {
-          // try to set the duration while one of the buffers is still updating, this should
-          // happen after the other setDuration call
-          this.sourceUpdater.setDuration(12, () => {
-            assert.equal(this.mediaSource.duration, 12, 'set duration on media source');
-            done();
-          });
-        }
+      if (appendsFinished === 0) {
+        // try to set the duration while one of the buffers is still updating, this should
+        // happen after the other setDuration call
+        this.sourceUpdater.setDuration(12, () => {
+          assert.equal(this.mediaSource.duration, 12, 'set duration on media source');
+          done();
+        });
+      }
 
-        appendsFinished++;
-      };
+      appendsFinished++;
+    };
 
-      this.sourceUpdater.appendBuffer({type: 'video', bytes: mp4VideoTotal()}, checkDuration);
-      this.sourceUpdater.appendBuffer({type: 'audio', bytes: mp4AudioTotal()}, checkDuration);
-      this.sourceUpdater.setDuration(11, () => {
-        assert.equal(this.mediaSource.duration, 11, 'set duration on media source');
-      });
+    this.sourceUpdater.appendBuffer({type: 'video', bytes: mp4VideoTotal()}, checkDuration);
+    this.sourceUpdater.appendBuffer({type: 'audio', bytes: mp4AudioTotal()}, checkDuration);
+    this.sourceUpdater.setDuration(11, () => {
+      assert.equal(this.mediaSource.duration, 11, 'set duration on media source');
+    });
 
-      checkInitialDuration(this.mediaSource);
-      assert.ok(this.sourceUpdater.updating(), 'updating during appends');
-    }
-  );
-}
+    checkInitialDuration(this.mediaSource);
+    assert.ok(this.sourceUpdater.updating(), 'updating during appends');
+  }
+);
 
 QUnit.test(
   'setDuration blocks audio and video queue entries until it finishes',
@@ -1318,7 +1304,7 @@ QUnit.test('dispose removes sourceopen listener', function(assert) {
   });
 });
 
-QUnit[testOrSkip]('audio appends are delayed until video append for the first append', function(assert) {
+QUnit.test('audio appends are delayed until video append for the first append', function(assert) {
   const done = assert.async();
   let audioAppend = false;
   let videoAppend = false;
