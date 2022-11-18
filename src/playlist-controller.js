@@ -364,14 +364,14 @@ export class PlaylistController extends videojs.EventTarget {
   /**
    * Run selectPlaylist and switch to the new playlist if we should
    *
+   * @param {string} [reason=abr] a reason for why the ABR check is made
    * @private
-   *
    */
-  checkABR_() {
+  checkABR_(reason = 'abr') {
     const nextPlaylist = this.selectPlaylist();
 
     if (nextPlaylist && this.shouldSwitchToMedia_(nextPlaylist)) {
-      this.switchMedia_(nextPlaylist, 'abr');
+      this.switchMedia_(nextPlaylist, reason);
     }
   }
 
@@ -766,17 +766,26 @@ export class PlaylistController extends videojs.EventTarget {
    * @private
    */
   setupSegmentLoaderListeners_() {
+    this.mainSegmentLoader_.on('bandwidthupdate', () => {
+      // Whether or not buffer based ABR or another ABR is used, on a bandwidth change it's
+      // useful to check to see if a rendition switch should be made.
+      this.checkABR_('bandwidthupdate');
+      this.tech_.trigger('bandwidthupdate');
+    });
+
+    this.mainSegmentLoader_.on('timeout', () => {
+      if (this.bufferBasedABR) {
+        // If a rendition change is needed, then it would've be done on `bandwidthupdate`.
+        // Here the only consideration is that for buffer based ABR there's no guarantee
+        // of an immediate switch (since the bandwidth is averaged with a timeout
+        // bandwidth value of 1), so force a load on the segment loader to keep it going.
+        this.mainSegmentLoader_.load();
+      }
+    });
+
+    // `progress` events are not reliable enough of a bandwidth measure to trigger buffer
+    // based ABR.
     if (!this.bufferBasedABR) {
-      this.mainSegmentLoader_.on('bandwidthupdate', () => {
-        const nextPlaylist = this.selectPlaylist();
-
-        if (this.shouldSwitchToMedia_(nextPlaylist)) {
-          this.switchMedia_(nextPlaylist, 'bandwidthupdate');
-        }
-
-        this.tech_.trigger('bandwidthupdate');
-      });
-
       this.mainSegmentLoader_.on('progress', () => {
         this.trigger('progress');
       });

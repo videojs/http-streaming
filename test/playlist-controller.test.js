@@ -1790,11 +1790,8 @@ QUnit.test('selects a playlist after main/combined segment downloads', function(
 });
 
 QUnit.test('does not select a playlist after segment downloads if only one playlist', function(assert) {
-  const origWarn = videojs.log.warn;
   let calls = 0;
-  const warnings = [];
 
-  videojs.log.warn = (text) => warnings.push(text);
   this.playlistController.selectPlaylist = () => {
     calls++;
     return null;
@@ -1809,15 +1806,6 @@ QUnit.test('does not select a playlist after segment downloads if only one playl
   // "downloaded" a segment
   this.playlistController.mainSegmentLoader_.trigger('bandwidthupdate');
   assert.strictEqual(calls, 2, 'selects after the initial segment');
-
-  assert.equal(warnings.length, 1, 'one warning logged');
-  assert.equal(
-    warnings[0],
-    'We received no playlist to switch to. Please check your stream.',
-    'we logged the correct warning'
-  );
-
-  videojs.log.warn = origWarn;
 });
 
 QUnit.test('re-triggers bandwidthupdate events on the tech', function(assert) {
@@ -5759,15 +5747,38 @@ QUnit.test('Determines if playlist should change on bandwidthupdate/progress fro
 
   // "downloaded" a segment
   this.playlistController.mainSegmentLoader_.trigger('bandwidthupdate');
-  assert.strictEqual(calls, 1, 'does not select after segment download');
+  assert.strictEqual(calls, 2, 'selects after segment download');
 
   this.clock.tick(250);
-  assert.strictEqual(calls, 2, 'selects after clock tick');
+  assert.strictEqual(calls, 3, 'selects after clock tick');
   this.clock.tick(1000);
-  assert.strictEqual(calls, 6, 'selects after clock tick, 1000 is 4x250');
+  assert.strictEqual(calls, 7, 'selects after clock tick, 1000 is 4x250');
 
   // verify stats
   assert.equal(this.player.tech_.vhs.stats.bandwidth, 4194304, 'default bandwidth');
+});
+
+QUnit.test('loads main segment loader on timeout', function(assert) {
+  const mainSegmentLoader = this.playlistController.mainSegmentLoader_;
+
+  this.playlistController.mediaSource.trigger('sourceopen');
+
+  // master
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  let loadCalls = 0;
+
+  mainSegmentLoader.load = () => loadCalls++;
+
+  this.playlistController.mainSegmentLoader_.trigger('bandwidthupdate');
+
+  assert.equal(loadCalls, 0, 'does not call load');
+
+  this.playlistController.mainSegmentLoader_.trigger('timeout');
+
+  assert.equal(loadCalls, 1, 'calls load');
 });
 
 QUnit.module('PlaylistController shouldSwitchToMedia', sharedHooks);
