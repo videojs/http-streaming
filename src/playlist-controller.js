@@ -615,6 +615,8 @@ export class PlaylistController extends videojs.EventTarget {
         this.requestOptions_.timeout = requestTimeout;
       }
 
+      this.mainPlaylistLoader_.load();
+
       // TODO: Create a new event on the PlaylistLoader that signals
       // that the segments have changed in some way and use that to
       // update the SegmentLoader instead of doing it twice here and
