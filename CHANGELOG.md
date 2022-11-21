@@ -1,3 +1,16 @@
+<a name="2.15.1"></a>
+## [2.15.1](https://github.com/videojs/http-streaming/compare/v2.15.0...v2.15.1) (2022-11-21)
+
+### Bug Fixes
+
+* Restart masterPlaylistLoader after media change ([#1339](https://github.com/videojs/http-streaming/issues/1339)) ([66707b4](https://github.com/videojs/http-streaming/commit/66707b4))
+* resume loading on segment timeout for `experimentalBufferBasedABR` ([#1333](https://github.com/videojs/http-streaming/issues/1333)) ([5666562](https://github.com/videojs/http-streaming/commit/5666562))
+
+### Chores
+
+* update mpd-parser (main) ([#1336](https://github.com/videojs/http-streaming/issues/1336)) ([404ba76](https://github.com/videojs/http-streaming/commit/404ba76))
+* update video.js for the example page ([#1340](https://github.com/videojs/http-streaming/issues/1340)) ([8a8b111](https://github.com/videojs/http-streaming/commit/8a8b111))
+
 <a name="2.15.0"></a>
 # [2.15.0](https://github.com/videojs/http-streaming/compare/v2.14.3...v2.15.0) (2022-09-14)
 
