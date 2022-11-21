@@ -1,3 +1,68 @@
+<a name="3.0.0"></a>
+# [3.0.0](https://github.com/videojs/http-streaming/compare/v2.14.2...v3.0.0) (2022-11-21)
+
+### Features
+
+* add compatibility layer for video.js 7 and 8 ([#1322](https://github.com/videojs/http-streaming/issues/1322)) ([b9d26e5](https://github.com/videojs/http-streaming/commit/b9d26e5))
+* add frameRate property to the representation class. ([#1289](https://github.com/videojs/http-streaming/issues/1289)) ([fd2898f](https://github.com/videojs/http-streaming/commit/fd2898f))
+* enable LLHLS support by default and remove experimental prefix on options ([#1301](https://github.com/videojs/http-streaming/issues/1301)) ([02c3c77](https://github.com/videojs/http-streaming/commit/02c3c77))
+* remove handleManifestRedirects and always use XHR.responseURL if available ([#1226](https://github.com/videojs/http-streaming/issues/1226)) ([3ad3120](https://github.com/videojs/http-streaming/commit/3ad3120))
+* rename many things to `main` ([#1309](https://github.com/videojs/http-streaming/issues/1309)) ([54cbab3](https://github.com/videojs/http-streaming/commit/54cbab3))
+* Skip gaps immediately ([#1267](https://github.com/videojs/http-streaming/issues/1267)) ([f85c153](https://github.com/videojs/http-streaming/commit/f85c153))
+* update tooling to remove ie 11 transpiling, update tests ([#1306](https://github.com/videojs/http-streaming/issues/1306)) ([206f099](https://github.com/videojs/http-streaming/commit/206f099))
+
+### Bug Fixes
+
+* add Video.js 8 to the dep version range ([#1307](https://github.com/videojs/http-streaming/issues/1307)) ([325a98e](https://github.com/videojs/http-streaming/commit/325a98e))
+* cache aes keys for text tracks ([#973](https://github.com/videojs/http-streaming/issues/973)) ([#1228](https://github.com/videojs/http-streaming/issues/1228)) ([66a5b17](https://github.com/videojs/http-streaming/commit/66a5b17))
+* output-restricted event handling for unplayable streams ([#1305](https://github.com/videojs/http-streaming/issues/1305)) ([1c62a98](https://github.com/videojs/http-streaming/commit/1c62a98))
+* remove deprecation hls options, properties, and events; add migration guide ([#1229](https://github.com/videojs/http-streaming/issues/1229)) ([43fce26](https://github.com/videojs/http-streaming/commit/43fce26))
+* Restart mainPlaylistLoader after media change ([#1339](https://github.com/videojs/http-streaming/issues/1339)) ([cf340f2](https://github.com/videojs/http-streaming/commit/cf340f2))
+* resume loading on segment timeout for `bufferBasedABR` ([#1333](https://github.com/videojs/http-streaming/issues/1333)) ([969589e](https://github.com/videojs/http-streaming/commit/969589e))
+
+### Chores
+
+* **docs:** Remove outdated information in collaborators' guide ([#1271](https://github.com/videojs/http-streaming/issues/1271)) ([6100750](https://github.com/videojs/http-streaming/commit/6100750))
+* **package:** update dependencies to use new ES6 builds ([#1320](https://github.com/videojs/http-streaming/issues/1320)) ([9ae6695](https://github.com/videojs/http-streaming/commit/9ae6695))
+* **package:** update m3u8-parser to v6.0.0 ([#1330](https://github.com/videojs/http-streaming/issues/1330)) ([fe15751](https://github.com/videojs/http-streaming/commit/fe15751))
+* remove old-index since IE is no longer supported ([#1308](https://github.com/videojs/http-streaming/issues/1308)) ([5ba3a77](https://github.com/videojs/http-streaming/commit/5ba3a77))
+* update karma-config to 8 to drop ie11 and older browsers ([#1227](https://github.com/videojs/http-streaming/issues/1227)) ([44c12ea](https://github.com/videojs/http-streaming/commit/44c12ea))
+* update mpd-parser ([#1337](https://github.com/videojs/http-streaming/issues/1337)) ([7ff95b9](https://github.com/videojs/http-streaming/commit/7ff95b9))
+* update package-lock ([1806b46](https://github.com/videojs/http-streaming/commit/1806b46))
+* update package-lock.json ([#1319](https://github.com/videojs/http-streaming/issues/1319)) ([c7aa9c1](https://github.com/videojs/http-streaming/commit/c7aa9c1))
+
+### Code Refactoring
+
+* clean up parameters of excludePlaylist ([#1304](https://github.com/videojs/http-streaming/issues/1304)) ([ca3162b](https://github.com/videojs/http-streaming/commit/ca3162b))
+* Remove deprecated smooth quality change ([#1268](https://github.com/videojs/http-streaming/issues/1268)) ([6041014](https://github.com/videojs/http-streaming/commit/6041014))
+* rename 'blacklist' to 'exclude' ([#1274](https://github.com/videojs/http-streaming/issues/1274)) ([d79d783](https://github.com/videojs/http-streaming/commit/d79d783))
+
+### Tests
+
+* change source for live DASH playback test to fix test failures ([#1303](https://github.com/videojs/http-streaming/issues/1303)) ([128b3d7](https://github.com/videojs/http-streaming/commit/128b3d7))
+* fix IE11 encrypted VTT tests by using an actual encrypted VTT segment ([#1291](https://github.com/videojs/http-streaming/issues/1291)) ([57c0e72](https://github.com/videojs/http-streaming/commit/57c0e72))
+
+
+### BREAKING CHANGES
+
+* **package:** manifests with tags lacking colons (:) are no longer supported
+* **package:** This updates bundled libraries to no longer be transpiled to ES5, which means IE will no longer be supported.
+* This changes the arguments for the `PlaylistController#excludePlaylist` method to take a single object instead of multiple arguments.
+* This renames four experimental options to no longer be experimental and enables Low Latency HLS support by default (`llhls: false` will still disable it, if desired).
+* rename PlaylistController
+* rename HAVE_MASTER to HAVE_MAIN_MANIFEST
+* playlist loaders updateMain and .main prop rename
+* manifest.js exports mainForMedia and addPropertiesToMain
+* rename media groups prop to isMainPlaylist
+* rename property to mainPlaylistLoader_
+* rename to PlaylistController#main()
+* This removes support entirely for IE11 (and older) as well as any other platforms that do not support ES6.
+* remove ^6 from the dependency version ranges.
+* Skips detected gaps immediately instead of waiting the duration of the gap before skipping
+* Removes deprecated `smoothQualityChange` option
+* remove deprecated options, properties, events.
+* remove handleManifestRedirects option. Now XHR.responseURL will always be used when available.
+
 <a name="3.0.0-2"></a>
 # [3.0.0-2](https://github.com/videojs/http-streaming/compare/v3.0.0-1...v3.0.0-2) (2022-09-30)
 
