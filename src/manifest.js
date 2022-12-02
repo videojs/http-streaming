@@ -10,7 +10,8 @@ export const createPlaylistID = (index, uri) => {
   return `${index}-${uri}`;
 };
 
-const groupID = (type, group, label, _) => {
+// default function for creating a group id
+const groupID = (type, group, label) => {
   return `placeholder-uri-${type}-${group}-${label}`;
 };
 
@@ -269,6 +270,8 @@ export const mainForMedia = (media, uri) => {
  *        main manifest object
  * @param {string} uri
  *        The source URI
+ * @param {function} createGroupID
+ *        A function to determine how to create the groupID for mediaGroups
  */
 export const addPropertiesToMain = (main, uri, createGroupID = groupID) => {
   main.uri = uri;
