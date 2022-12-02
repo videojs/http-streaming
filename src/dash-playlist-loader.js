@@ -86,6 +86,13 @@ const dashPlaylistUnchanged = function(a, b) {
   return true;
 };
 
+// DASH playlist playlistIDs should be the same accross period regardless of the mediaGroup label
+const dashGroupId = (type, group, label, playlist) => {
+  const playlistId = playlist.attributes && playlist.attributes.NAME ? playlist.attributes.NAME : label;
+
+  return `placeholder-uri-${type}-${group}-${playlistId}`;
+};
+
 /**
  * Parses the main XML string and updates playlist URI references.
  *
@@ -116,7 +123,7 @@ export const parseMainXml = ({
     previousManifest
   });
 
-  addPropertiesToMain(manifest, srcUrl);
+  addPropertiesToMain(manifest, srcUrl, dashGroupId);
 
   return manifest;
 };
@@ -170,6 +177,9 @@ export const updateMain = (oldMain, newMain, sidxMapping) => {
 
       if (playlistUpdate) {
         update = playlistUpdate;
+        if (!(label in update.mediaGroups[type][group])) {
+          update.mediaGroups[type][group][label] = properties;
+        }
         // update the playlist reference within media groups
         update.mediaGroups[type][group][label].playlists[0] = update.playlists[id];
         noChanges = false;
