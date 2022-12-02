@@ -86,8 +86,12 @@ const dashPlaylistUnchanged = function(a, b) {
   return true;
 };
 
-// DASH playlist playlistIDs should be the same accross period regardless of the mediaGroup label
+/**
+ * Use the representation ids from the mpd object to create groupIDs, this allows for continuity across periods
+ * regardless of the current label.
+ */
 const dashGroupId = (type, group, label, playlist) => {
+  // NAME is set to the id in the parser.
   const playlistId = playlist.attributes && playlist.attributes.NAME ? playlist.attributes.NAME : label;
 
   return `placeholder-uri-${type}-${group}-${playlistId}`;
@@ -126,6 +130,22 @@ export const parseMainXml = ({
   addPropertiesToMain(manifest, srcUrl, dashGroupId);
 
   return manifest;
+};
+
+/**
+ * Removes any mediaGroup labels that no longer exist in the newMain
+ *
+ * @param {Object} update
+ *         The previous mpd object being updated
+ * @param {Object} newMain
+ *         The new mpd object
+ */
+const removeOldMediaGroupLabels = (update, newMain) => {
+  forEachMediaGroup(update, (_, type, group, label) => {
+    if (!(label in newMain.mediaGroups[type][group])) {
+      delete update.mediaGroups[type][group][label];
+    }
+  });
 };
 
 /**
@@ -177,15 +197,22 @@ export const updateMain = (oldMain, newMain, sidxMapping) => {
 
       if (playlistUpdate) {
         update = playlistUpdate;
+
+        // add new mediaGroup label if it doesn't exist and assign the new mediaGroup.
         if (!(label in update.mediaGroups[type][group])) {
           update.mediaGroups[type][group][label] = properties;
         }
+
         // update the playlist reference within media groups
         update.mediaGroups[type][group][label].playlists[0] = update.playlists[id];
+
         noChanges = false;
       }
     }
   });
+
+  // remove mediaGroup labels and references that no longer exist in the newMain
+  removeOldMediaGroupLabels(update, newMain);
 
   if (newMain.minimumUpdatePeriod !== oldMain.minimumUpdatePeriod) {
     noChanges = false;
