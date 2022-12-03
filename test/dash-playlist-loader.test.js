@@ -2860,3 +2860,131 @@ QUnit.test('updateMain: merges in top level timelineStarts', function(assert) {
 
   assert.deepEqual(update.timelineStarts, [2], 'updated timelineStarts');
 });
+
+QUnit.test('updateMain: updates playlists and mediaGroups when labels change', function(assert) {
+  const main = {
+    duration: 10,
+    minimumUpdatePeriod: 0,
+    timelineStarts: [],
+    mediaGroups: {
+      AUDIO: {
+        audio: {
+          main: {
+            playlists: [{
+              mediaSequence: 0,
+              attributes: {},
+              id: 'audio-0-uri',
+              uri: 'audio-0-uri',
+              resolvedUri: urlTo('audio-0-uri'),
+              segments: [{
+                duration: 10,
+                uri: 'audio-segment-0-uri',
+                resolvedUri: urlTo('audio-segment-0-uri')
+              }]
+            }]
+          }
+        }
+      }
+    },
+    playlists: [{
+      mediaSequence: 0,
+      attributes: {
+        BANDWIDTH: 9
+      },
+      id: 'playlist-0-uri',
+      uri: 'playlist-0-uri',
+      resolvedUri: urlTo('playlist-0-uri'),
+      segments: [{
+        duration: 10,
+        uri: 'segment-0-uri',
+        resolvedUri: urlTo('segment-0-uri')
+      }]
+    }]
+  };
+  const update = {
+    duration: 20,
+    minimumUpdatePeriod: 0,
+    timelineStarts: [],
+    mediaGroups: {
+      AUDIO: {
+        audio: {
+          update: {
+            playlists: [{
+              mediaSequence: 1,
+              attributes: {},
+              id: 'audio-0-uri',
+              uri: 'audio-0-uri',
+              resolvedUri: urlTo('audio-0-uri'),
+              segments: [{
+                duration: 10,
+                uri: 'audio-segment-0-uri',
+                resolvedUri: urlTo('audio-segment-0-uri')
+              }]
+            }]
+          }
+        }
+      }
+    },
+    playlists: [{
+      mediaSequence: 1,
+      attributes: {
+        BANDWIDTH: 9
+      },
+      id: 'playlist-0-uri',
+      uri: 'playlist-0-uri',
+      resolvedUri: urlTo('playlist-0-uri'),
+      segments: [{
+        duration: 10,
+        uri: 'segment-0-uri',
+        resolvedUri: urlTo('segment-0-uri')
+      }]
+    }]
+  };
+
+  main.playlists['playlist-0-uri'] = main.playlists[0];
+  main.playlists['audio-0-uri'] = main.mediaGroups.AUDIO.audio.main.playlists[0];
+
+  assert.deepEqual(
+    updateMain(main, update),
+    {
+      duration: 20,
+      minimumUpdatePeriod: 0,
+      timelineStarts: [],
+      mediaGroups: {
+        AUDIO: {
+          audio: {
+            update: {
+              playlists: [{
+                mediaSequence: 1,
+                attributes: {},
+                id: 'audio-0-uri',
+                uri: 'audio-0-uri',
+                resolvedUri: urlTo('audio-0-uri'),
+                segments: [{
+                  duration: 10,
+                  uri: 'audio-segment-0-uri',
+                  resolvedUri: urlTo('audio-segment-0-uri')
+                }]
+              }]
+            }
+          }
+        }
+      },
+      playlists: [{
+        mediaSequence: 1,
+        attributes: {
+          BANDWIDTH: 9
+        },
+        id: 'playlist-0-uri',
+        uri: 'playlist-0-uri',
+        resolvedUri: urlTo('playlist-0-uri'),
+        segments: [{
+          duration: 10,
+          uri: 'segment-0-uri',
+          resolvedUri: urlTo('segment-0-uri')
+        }]
+      }]
+    },
+    'updates playlists and media groups'
+  );
+});
