@@ -143,7 +143,7 @@ export const parseMainXml = ({
  *         The new mpd object
  */
 const removeOldMediaGroupLabels = (update, newMain) => {
-  forEachMediaGroup(update, (_, type, group, label) => {
+  forEachMediaGroup(update, (properties, type, group, label) => {
     if (!(label in newMain.mediaGroups[type][group])) {
       delete update.mediaGroups[type][group][label];
     }
