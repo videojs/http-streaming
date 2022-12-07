@@ -87,8 +87,10 @@ const dashPlaylistUnchanged = function(a, b) {
 };
 
 /**
- * Use the representation ids from the mpd object to create groupIDs, this allows for continuity across periods
- * regardless of the current label.
+ * Use the representation IDs from the mpd object to create groupIDs, this allows for continuous playout across periods
+ * with the same representation IDs (continuous periods as defined in DASH-IF 3.2.12). This is assumed in the mpd-parser
+ * as well. If we want to support periods without continuous playback this function may need modification as well as the
+ * parser.
  */
 const dashGroupId = (type, group, label, playlist) => {
   // NAME is set to the id in the parser.
