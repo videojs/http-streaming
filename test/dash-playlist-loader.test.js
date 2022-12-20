@@ -557,7 +557,7 @@ QUnit.test('filterChangedSidxMappings: removes change sidx info from mapping', f
   );
   const playlists = loader.main.playlists;
   const oldVideoKey = generateSidxKey(playlists['0-placeholder-uri-0'].sidx);
-  const oldAudioEnKey = generateSidxKey(playlists['0-placeholder-uri-AUDIO-audio-en'].sidx);
+  const oldAudioEnKey = generateSidxKey(playlists['0-placeholder-uri-AUDIO-audio-audio'].sidx);
 
   let mainXml = loader.mainXml_.replace(/(indexRange)=\"\d+-\d+\"/, '$1="201-400"');
   // should change the video playlist
@@ -1394,7 +1394,7 @@ QUnit.test('haveMain: sets media on child loader', function(assert) {
 
   loader.load();
   this.standardXHRResponse(this.requests.shift());
-  const childPlaylist = loader.main.playlists['0-placeholder-uri-AUDIO-audio-main'];
+  const childPlaylist = loader.main.playlists['0-placeholder-uri-AUDIO-audio-audio'];
   const childLoader = new DashPlaylistLoader(childPlaylist, this.fakeVhs, false, loader);
 
   const mediaStub = sinon.stub(childLoader, 'media');
@@ -2031,7 +2031,7 @@ QUnit.test('hasPendingRequest: returns true if async code is running in child lo
 
   loader.load();
   this.standardXHRResponse(this.requests.shift());
-  const childPlaylist = loader.main.playlists['0-placeholder-uri-AUDIO-audio-main'];
+  const childPlaylist = loader.main.playlists['0-placeholder-uri-AUDIO-audio-audio'];
   const childLoader = new DashPlaylistLoader(childPlaylist, this.fakeVhs, false, loader);
 
   assert.notOk(childLoader.hasPendingRequest(), 'no pending requests on construction');
@@ -2192,7 +2192,7 @@ QUnit.test('child loader moves to HAVE_METADATA when initialized with a main pla
 
   loader.load();
   this.standardXHRResponse(this.requests.shift());
-  const playlist = loader.main.playlists['0-placeholder-uri-AUDIO-audio-main'];
+  const playlist = loader.main.playlists['0-placeholder-uri-AUDIO-audio-audio'];
   const childLoader = new DashPlaylistLoader(playlist, this.fakeVhs, false, loader);
 
   childLoader.on('loadedplaylist', function() {
@@ -2225,7 +2225,7 @@ QUnit.test('child playlist moves to HAVE_METADATA when initialized with a live m
 
   loader.load();
   this.standardXHRResponse(this.requests.shift());
-  const playlist = loader.main.playlists['0-placeholder-uri-AUDIO-audio-main'];
+  const playlist = loader.main.playlists['0-placeholder-uri-AUDIO-audio-audio'];
   const childLoader = new DashPlaylistLoader(playlist, this.fakeVhs, false, loader);
 
   childLoader.on('loadedplaylist', function() {
@@ -2463,14 +2463,14 @@ QUnit.test(
     );
     assert.equal(
       loader.main.mediaGroups.AUDIO.audio.main.playlists[0].uri,
-      'placeholder-uri-AUDIO-audio-main', 'setup phony uri for media groups'
+      'placeholder-uri-AUDIO-audio-audio', 'setup phony uri for media groups'
     );
     assert.equal(
       loader.main.mediaGroups.AUDIO.audio.main.playlists[0].id,
-      '0-placeholder-uri-AUDIO-audio-main', 'setup phony id for media groups'
+      '0-placeholder-uri-AUDIO-audio-audio', 'setup phony id for media groups'
     );
     assert.strictEqual(
-      loader.main.playlists['0-placeholder-uri-AUDIO-audio-main'],
+      loader.main.playlists['0-placeholder-uri-AUDIO-audio-audio'],
       loader.main.mediaGroups.AUDIO.audio.main.playlists[0],
       'set reference by uri for easy access'
     );
@@ -2699,7 +2699,7 @@ QUnit.test('child loaders wait for async action before moving to HAVE_MAIN_MANIF
 
   loader.load();
   this.standardXHRResponse(this.requests.shift());
-  const childPlaylist = loader.main.playlists['0-placeholder-uri-AUDIO-audio-main'];
+  const childPlaylist = loader.main.playlists['0-placeholder-uri-AUDIO-audio-audio'];
   const childLoader = new DashPlaylistLoader(childPlaylist, this.fakeVhs, false, loader);
 
   childLoader.load();
@@ -2859,4 +2859,132 @@ QUnit.test('updateMain: merges in top level timelineStarts', function(assert) {
   const update = updateMain(prev, next);
 
   assert.deepEqual(update.timelineStarts, [2], 'updated timelineStarts');
+});
+
+QUnit.test('updateMain: updates playlists and mediaGroups when labels change', function(assert) {
+  const main = {
+    duration: 10,
+    minimumUpdatePeriod: 0,
+    timelineStarts: [],
+    mediaGroups: {
+      AUDIO: {
+        audio: {
+          main: {
+            playlists: [{
+              mediaSequence: 0,
+              attributes: {},
+              id: 'audio-0-uri',
+              uri: 'audio-0-uri',
+              resolvedUri: urlTo('audio-0-uri'),
+              segments: [{
+                duration: 10,
+                uri: 'audio-segment-0-uri',
+                resolvedUri: urlTo('audio-segment-0-uri')
+              }]
+            }]
+          }
+        }
+      }
+    },
+    playlists: [{
+      mediaSequence: 0,
+      attributes: {
+        BANDWIDTH: 9
+      },
+      id: 'playlist-0-uri',
+      uri: 'playlist-0-uri',
+      resolvedUri: urlTo('playlist-0-uri'),
+      segments: [{
+        duration: 10,
+        uri: 'segment-0-uri',
+        resolvedUri: urlTo('segment-0-uri')
+      }]
+    }]
+  };
+  const update = {
+    duration: 20,
+    minimumUpdatePeriod: 0,
+    timelineStarts: [],
+    mediaGroups: {
+      AUDIO: {
+        audio: {
+          update: {
+            playlists: [{
+              mediaSequence: 1,
+              attributes: {},
+              id: 'audio-0-uri',
+              uri: 'audio-0-uri',
+              resolvedUri: urlTo('audio-0-uri'),
+              segments: [{
+                duration: 10,
+                uri: 'audio-segment-0-uri',
+                resolvedUri: urlTo('audio-segment-0-uri')
+              }]
+            }]
+          }
+        }
+      }
+    },
+    playlists: [{
+      mediaSequence: 1,
+      attributes: {
+        BANDWIDTH: 9
+      },
+      id: 'playlist-0-uri',
+      uri: 'playlist-0-uri',
+      resolvedUri: urlTo('playlist-0-uri'),
+      segments: [{
+        duration: 10,
+        uri: 'segment-0-uri',
+        resolvedUri: urlTo('segment-0-uri')
+      }]
+    }]
+  };
+
+  main.playlists['playlist-0-uri'] = main.playlists[0];
+  main.playlists['audio-0-uri'] = main.mediaGroups.AUDIO.audio.main.playlists[0];
+
+  assert.deepEqual(
+    updateMain(main, update),
+    {
+      duration: 20,
+      minimumUpdatePeriod: 0,
+      timelineStarts: [],
+      mediaGroups: {
+        AUDIO: {
+          audio: {
+            update: {
+              playlists: [{
+                mediaSequence: 1,
+                attributes: {},
+                id: 'audio-0-uri',
+                uri: 'audio-0-uri',
+                resolvedUri: urlTo('audio-0-uri'),
+                segments: [{
+                  duration: 10,
+                  uri: 'audio-segment-0-uri',
+                  resolvedUri: urlTo('audio-segment-0-uri')
+                }]
+              }]
+            }
+          }
+        }
+      },
+      playlists: [{
+        mediaSequence: 1,
+        attributes: {
+          BANDWIDTH: 9
+        },
+        id: 'playlist-0-uri',
+        uri: 'playlist-0-uri',
+        resolvedUri: urlTo('playlist-0-uri'),
+        segments: [{
+          duration: 10,
+          uri: 'segment-0-uri',
+          resolvedUri: urlTo('segment-0-uri')
+        }]
+      }]
+    },
+    'updates playlists and media groups'
+  );
 });
