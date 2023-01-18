@@ -41,7 +41,7 @@ export default class VTTSegmentLoader extends SegmentLoader {
 
     this.featuresNativeTextTracks_ = settings.featuresNativeTextTracks;
 
-    this.loadVttJs_ = settings.loadVttJs;
+    this.loadVttJs = settings.loadVttJs;
 
     // The VTT segment will have its own time mappings. Saving VTT segment timing info in
     // the sync controller leads to improper behavior.
@@ -307,11 +307,11 @@ export default class VTTSegmentLoader extends SegmentLoader {
     segmentInfo.bytes = simpleSegment.bytes;
 
     // Make sure that vttjs has loaded, otherwise, load it and wait till it finished loading
-    if (typeof window.WebVTT !== 'function' && typeof this.loadVttJs_ === 'function') {
+    if (typeof window.WebVTT !== 'function' && typeof this.loadVttJs === 'function') {
       this.state = 'WAITING_ON_VTTJS';
       // should be fine to call multiple times
       // script will be loaded once but multiple listeners will be added to the queue, which is expected.
-      this.loadVttJs_()
+      this.loadVttJs()
         .then(
           () => this.segmentRequestFinished_(error, simpleSegment, result),
           () => this.stopForError({ message: 'Error loading vtt.js' })
