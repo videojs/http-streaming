@@ -12,6 +12,7 @@ import {
 } from './loader-common.js';
 import { encryptionKey, subtitlesEncrypted } from 'create-test-data!segments';
 import {merge, createTimeRanges} from '../src/util/vjs-compat';
+import sinon from 'sinon';
 
 const oldVTT = window.WebVTT;
 
@@ -364,6 +365,52 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
         });
 
         resolveLoadVttJs();
+      }
+    );
+
+    QUnit.test(
+      'parse should throw if no vtt.js is loaded for any reason',
+      function(assert) {
+        const vttjs = window.WebVTT;
+        const playlist = playlistWithDuration(40);
+        let errors = 0;
+
+        const originalParse = loader.parseVTTCues_.bind(loader);
+
+        loader.parseVTTCues_ = (...args) => {
+          delete window.WebVTT;
+          return originalParse(...args);
+        };
+
+        const spy = sinon.spy(loader, 'error');
+
+        loader.on('error', () => errors++);
+
+        loader.playlist(playlist);
+        loader.track(this.track);
+        loader.load();
+
+        assert.equal(errors, 0, 'no error at loader start');
+
+        this.clock.tick(1);
+
+        // state WAITING for segment response
+        this.requests[0].responseType = 'arraybuffer';
+        this.requests.shift().respond(200, null, new Uint8Array(10).buffer);
+
+        this.clock.tick(1);
+
+        assert.equal(errors, 1, 'triggered error when parser emmitts fatal error');
+        assert.ok(loader.paused(), 'loader paused when encountering fatal error');
+        assert.equal(loader.state, 'READY', 'loader reset after error');
+        assert.ok(
+          spy.withArgs(sinon.match({
+            message: 'Trying to parse received VTT cues, but there is no WebVTT. Make sure vtt.js is loaded.'
+          })).calledOnce,
+          'error method called once with instance of NoVttJsError'
+        );
+
+        window.WebVTT = vttjs;
       }
     );
 
