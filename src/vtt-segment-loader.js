@@ -14,6 +14,12 @@ import {createTimeRanges} from './util/vjs-compat';
 const VTT_LINE_TERMINATORS =
   new Uint8Array('\n\n'.split('').map(char => char.charCodeAt(0)));
 
+class NoVttJsError extends Error {
+  constructor() {
+    super('Trying to parse received VTT cues, but there is no WebVTT. Make sure vtt.js is loaded.');
+  }
+}
+
 /**
  * An object that manages segment loading and appending.
  *
@@ -309,7 +315,7 @@ export default class VTTSegmentLoader extends SegmentLoader {
         .then(
           () => this.segmentRequestFinished_(error, simpleSegment, result),
           () => this.stopForError({ message: 'Error loading vtt.js' })
-        )
+        );
       return;
     }
 
@@ -489,11 +495,5 @@ export default class VTTSegmentLoader extends SegmentLoader {
         time: Math.min(firstStart, lastStart - segment.duration)
       };
     }
-  }
-}
-
-class NoVttJsError extends Error {
-  constructor() {
-    super('Trying to parse received VTT cues, but there is no WebVTT. Make sure vtt.js is loaded.');
   }
 }
