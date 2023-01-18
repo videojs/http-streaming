@@ -286,14 +286,12 @@ export class MasterPlaylistController extends videojs.EventTarget {
         loaderType: 'vtt',
         featuresNativeTextTracks: this.tech_.featuresNativeTextTracks,
         loadVttJs: () => new Promise((resolve, reject) => {
-          const tech = this.tech_;
-
-          function onLoad () {
+          function onLoad() {
             tech.off('vttjserror', onError);
             resolve();
           }
 
-          function onError () {
+          function onError() {
             tech.off('vttjsloaded', onLoad);
             reject();
           }

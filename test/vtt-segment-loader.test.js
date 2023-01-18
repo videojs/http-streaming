@@ -308,11 +308,14 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
     QUnit.test(
       'waits for vtt.js to be loaded before attempting to parse cues',
       function(assert) {
-        let promiseLoadVttJs, resolveLoadVttJs
+        let promiseLoadVttJs; let resolveLoadVttJs;
+
         loader = new VTTSegmentLoader(LoaderCommonSettings.call(this, {
           loaderType: 'vtt',
           loadVttJs: () => {
-            promiseLoadVttJs = new Promise((resolve) => resolveLoadVttJs = resolve);
+            promiseLoadVttJs = new Promise((resolve) => {
+              resolveLoadVttJs = resolve;
+            });
 
             return promiseLoadVttJs;
           }
@@ -744,11 +747,14 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
     });
 
     QUnit.test('loader triggers error event when vtt.js fails to load', function(assert) {
-      let promiseLoadVttJs, rejectLoadVttJs;
+      let promiseLoadVttJs; let rejectLoadVttJs;
+
       loader = new VTTSegmentLoader(LoaderCommonSettings.call(this, {
         loaderType: 'vtt',
         loadVttJs: () => {
-          promiseLoadVttJs = new Promise((resolve, reject) => rejectLoadVttJs = reject);
+          promiseLoadVttJs = new Promise((resolve, reject) => {
+            rejectLoadVttJs = reject;
+          });
 
           return promiseLoadVttJs;
         }
