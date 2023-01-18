@@ -1,4 +1,5 @@
 import QUnit from 'qunit';
+import sinon from 'sinon';
 import videojs from 'video.js';
 import window from 'global/window';
 import {
@@ -616,6 +617,24 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
   assert.equal(resets, 1, 'resetEverything called if media is changed');
 
   assert.deepEqual(removeFuncArgs, {start: 0, end: 60}, 'remove() called with correct arguments if media is changed');
+});
+
+QUnit.test('loadVttJs should be passed to the vttSegmentLoader and resolved on vttjsloaded', function(assert) {
+  const stub = sinon.stub(this.player.tech_, 'addWebVttScript_').callsFake(() => this.player.tech_.trigger('vttjsloaded'));
+  const controller = new PlaylistController({ src: 'test', tech: this.player.tech_});
+
+  controller.subtitleSegmentLoader_.loadVttJs().then(() => {
+    assert.equal(stub.callCount, 1, 'tech addWebVttScript called once');
+  });
+});
+
+QUnit.test('loadVttJs should be passed to the vttSegmentLoader and rejected on vttjserror', function(assert) {
+  const stub = sinon.stub(this.player.tech_, 'addWebVttScript_').callsFake(() => this.player.tech_.trigger('vttjserror'));
+  const controller = new PlaylistController({ src: 'test', tech: this.player.tech_});
+
+  controller.subtitleSegmentLoader_.loadVttJs().catch(() => {
+    assert.equal(stub.callCount, 1, 'tech addWebVttScript called once');
+  });
 });
 
 QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', function(assert) {
