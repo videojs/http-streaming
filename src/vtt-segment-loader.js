@@ -392,6 +392,8 @@ export default class VTTSegmentLoader extends SegmentLoader {
   /**
    * Uses the WebVTT parser to parse the segment response
    *
+   * @throws NoVttJsError
+   *
    * @param {Object} segmentInfo
    *        a segment info object that describes the current segment
    * @private
@@ -399,6 +401,11 @@ export default class VTTSegmentLoader extends SegmentLoader {
   parseVTTCues_(segmentInfo) {
     let decoder;
     let decodeBytesToString = false;
+
+    if (typeof window.WebVTT !== 'function') {
+      // caller is responsible for exception handling.
+      throw new NoVttJsError();
+    }
 
     if (typeof window.TextDecoder === 'function') {
       decoder = new window.TextDecoder('utf8');
@@ -493,5 +500,11 @@ export default class VTTSegmentLoader extends SegmentLoader {
         time: Math.min(firstStart, lastStart - segment.duration)
       };
     }
+  }
+}
+
+class NoVttJsError extends Error {
+  constructor() {
+    super('Trying to parse received VTT cues, but there is no WebVTT. Make sure vtt.js is loaded.');
   }
 }
