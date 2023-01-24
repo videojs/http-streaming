@@ -2980,12 +2980,14 @@ QUnit.test('has no effect if native HLS is available and browser is Safari', fun
   videojs.browser.IS_ANY_SAFARI = origIsAnySafari;
 });
 
-QUnit.test('loads if native HLS is available but browser is not Safari', function(assert) {
+QUnit.test('has no effect if native HLS is available and browser is any non-safari browser on ios', function(assert) {
   const Html5 = videojs.getTech('Html5');
   const oldHtml5CanPlaySource = Html5.canPlaySource;
   const origIsAnySafari = videojs.browser.IS_ANY_SAFARI;
+  const originalIsIos = videojs.browser.IS_IOS;
 
   videojs.browser.IS_ANY_SAFARI = false;
+  videojs.browser.IS_IOS = true;
   Html5.canPlaySource = () => true;
   Vhs.supportsNativeHls = true;
   const player = createPlayer();
@@ -2997,10 +2999,11 @@ QUnit.test('loads if native HLS is available but browser is not Safari', functio
 
   this.clock.tick(1);
 
-  assert.ok(player.tech_.vhs, 'loaded VHS tech');
+  assert.ok(!player.tech_.vhs, 'did not load vhs tech');
   player.dispose();
   Html5.canPlaySource = oldHtml5CanPlaySource;
   videojs.browser.IS_ANY_SAFARI = origIsAnySafari;
+  videojs.browser.IS_IOS = originalIsIos;
 });
 
 QUnit.test(
