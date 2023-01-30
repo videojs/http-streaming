@@ -1286,7 +1286,7 @@ const VhsSourceHandler = {
     tech.vhs.src(source.src, source.type);
     return tech.vhs;
   },
-  canPlayType(type, options = {}) {
+  canPlayType(type, options) {
     const simpleType = simpleTypeFromSourceType(type);
 
     if (!simpleType) {
