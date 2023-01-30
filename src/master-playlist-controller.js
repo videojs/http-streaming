@@ -284,7 +284,24 @@ export class MasterPlaylistController extends videojs.EventTarget {
     this.subtitleSegmentLoader_ =
       new VTTSegmentLoader(videojs.mergeOptions(segmentLoaderSettings, {
         loaderType: 'vtt',
-        featuresNativeTextTracks: this.tech_.featuresNativeTextTracks
+        featuresNativeTextTracks: this.tech_.featuresNativeTextTracks,
+        loadVttJs: () => new Promise((resolve, reject) => {
+          function onLoad() {
+            tech.off('vttjserror', onError);
+            resolve();
+          }
+
+          function onError() {
+            tech.off('vttjsloaded', onLoad);
+            reject();
+          }
+
+          tech.one('vttjsloaded', onLoad);
+          tech.one('vttjserror', onError);
+
+          // safe to call multiple times, script will be loaded only once:
+          tech.addWebVttScript_();
+        })
       }), options);
 
     this.setupSegmentLoaderListeners_();

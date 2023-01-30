@@ -1286,17 +1286,26 @@ const VhsSourceHandler = {
     tech.vhs.src(source.src, source.type);
     return tech.vhs;
   },
-  canPlayType(type, options = {}) {
-    const {
-      vhs: { overrideNative = !videojs.browser.IS_ANY_SAFARI } = {},
-      hls: { overrideNative: legacyOverrideNative = false } = {}
-    } = videojs.mergeOptions(videojs.options, options);
+  canPlayType(type, options) {
+    const simpleType = simpleTypeFromSourceType(type);
 
-    const supportedType = simpleTypeFromSourceType(type);
-    const canUseMsePlayback = supportedType &&
-      (!Vhs.supportsTypeNatively(supportedType) || legacyOverrideNative || overrideNative);
+    if (!simpleType) {
+      return '';
+    }
+
+    const overrideNative = VhsSourceHandler.getOverrideNative(options);
+    const supportsTypeNatively = Vhs.supportsTypeNatively(simpleType);
+    const canUseMsePlayback = !supportsTypeNatively || overrideNative;
 
     return canUseMsePlayback ? 'maybe' : '';
+  },
+  getOverrideNative(options = {}) {
+    const { vhs = {}, hls = {} } = options;
+    const defaultOverrideNative = !(videojs.browser.IS_ANY_SAFARI || videojs.browser.IS_IOS);
+    const { overrideNative = defaultOverrideNative } = vhs;
+    const { overrideNative: legacyOverrideNative = false } = hls;
+
+    return legacyOverrideNative || overrideNative;
   }
 };
 
