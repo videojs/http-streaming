@@ -1,3 +1,10 @@
+<a name="2.16.0"></a>
+# [2.16.0](https://github.com/videojs/http-streaming/compare/v2.15.1...v2.16.0) (2023-01-30)
+
+### Bug Fixes
+
+* in-manifest VTT iOS MSE issue ([#1364](https://github.com/videojs/http-streaming/issues/1364)) ([e735188](https://github.com/videojs/http-streaming/commit/e735188))
+
 <a name="2.15.1"></a>
 ## [2.15.1](https://github.com/videojs/http-streaming/compare/v2.15.0...v2.15.1) (2022-11-21)
 
