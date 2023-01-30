@@ -621,7 +621,7 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
 
 QUnit.test('loadVttJs should be passed to the vttSegmentLoader and resolved on vttjsloaded', function(assert) {
   const stub = sinon.stub(this.player.tech_, 'addWebVttScript_').callsFake(() => this.player.tech_.trigger('vttjsloaded'));
-  const controller = new PlaylistController({ src: 'test', tech: this.player.tech_});
+  const controller = new MasterPlaylistController({ src: 'test', tech: this.player.tech_});
 
   controller.subtitleSegmentLoader_.loadVttJs().then(() => {
     assert.equal(stub.callCount, 1, 'tech addWebVttScript called once');
@@ -630,7 +630,7 @@ QUnit.test('loadVttJs should be passed to the vttSegmentLoader and resolved on v
 
 QUnit.test('loadVttJs should be passed to the vttSegmentLoader and rejected on vttjserror', function(assert) {
   const stub = sinon.stub(this.player.tech_, 'addWebVttScript_').callsFake(() => this.player.tech_.trigger('vttjserror'));
-  const controller = new PlaylistController({ src: 'test', tech: this.player.tech_});
+  const controller = new MasterPlaylistController({ src: 'test', tech: this.player.tech_});
 
   controller.subtitleSegmentLoader_.loadVttJs().catch(() => {
     assert.equal(stub.callCount, 1, 'tech addWebVttScript called once');
