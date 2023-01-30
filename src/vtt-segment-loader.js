@@ -13,6 +13,12 @@ import { ONE_SECOND_IN_TS } from 'mux.js/lib/utils/clock';
 const VTT_LINE_TERMINATORS =
   new Uint8Array('\n\n'.split('').map(char => char.charCodeAt(0)));
 
+class NoVttJsError extends Error {
+  constructor() {
+    super('Trying to parse received VTT cues, but there is no WebVTT. Make sure vtt.js is loaded.');
+  }
+}
+
 /**
  * An object that manages segment loading and appending.
  *
@@ -33,6 +39,8 @@ export default class VTTSegmentLoader extends SegmentLoader {
     this.loaderType_ = 'subtitle';
 
     this.featuresNativeTextTracks_ = settings.featuresNativeTextTracks;
+
+    this.loadVttJs = settings.loadVttJs;
 
     // The VTT segment will have its own time mappings. Saving VTT segment timing info in
     // the sync controller leads to improper behavior.
@@ -297,29 +305,16 @@ export default class VTTSegmentLoader extends SegmentLoader {
     }
     segmentInfo.bytes = simpleSegment.bytes;
 
-    // Make sure that vttjs has loaded, otherwise, wait till it finished loading
-    if (typeof window.WebVTT !== 'function' &&
-        this.subtitlesTrack_ &&
-        this.subtitlesTrack_.tech_) {
-
-      let loadHandler;
-      const errorHandler = () => {
-        this.subtitlesTrack_.tech_.off('vttjsloaded', loadHandler);
-        this.stopForError({
-          message: 'Error loading vtt.js'
-        });
-        return;
-      };
-
-      loadHandler = () => {
-        this.subtitlesTrack_.tech_.off('vttjserror', errorHandler);
-        this.segmentRequestFinished_(error, simpleSegment, result);
-      };
-
+    // Make sure that vttjs has loaded, otherwise, load it and wait till it finished loading
+    if (typeof window.WebVTT !== 'function' && typeof this.loadVttJs === 'function') {
       this.state = 'WAITING_ON_VTTJS';
-      this.subtitlesTrack_.tech_.one('vttjsloaded', loadHandler);
-      this.subtitlesTrack_.tech_.one('vttjserror', errorHandler);
-
+      // should be fine to call multiple times
+      // script will be loaded once but multiple listeners will be added to the queue, which is expected.
+      this.loadVttJs()
+        .then(
+          () => this.segmentRequestFinished_(error, simpleSegment, result),
+          () => this.stopForError({ message: 'Error loading vtt.js' })
+        );
       return;
     }
 
@@ -391,6 +386,8 @@ export default class VTTSegmentLoader extends SegmentLoader {
   /**
    * Uses the WebVTT parser to parse the segment response
    *
+   * @throws NoVttJsError
+   *
    * @param {Object} segmentInfo
    *        a segment info object that describes the current segment
    * @private
@@ -398,6 +395,11 @@ export default class VTTSegmentLoader extends SegmentLoader {
   parseVTTCues_(segmentInfo) {
     let decoder;
     let decodeBytesToString = false;
+
+    if (typeof window.WebVTT !== 'function') {
+      // caller is responsible for exception handling.
+      throw new NoVttJsError();
+    }
 
     if (typeof window.TextDecoder === 'function') {
       decoder = new window.TextDecoder('utf8');
