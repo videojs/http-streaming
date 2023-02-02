@@ -9,7 +9,7 @@
 Play HLS, DASH, and future HTTP streaming protocols with video.js, even where they're not
 natively supported.
 
-Included in video.js 7 by default! See the [video.js 7 blog post](https://blog.videojs.com/video-js-7-is-here/)
+**Included in video.js 7 by default!** See the [video.js 7 blog post](https://blog.videojs.com/video-js-7-is-here/)
 
 Maintenance Status: Stable
 
@@ -94,8 +94,13 @@ Video.js Compatibility: 7.x, 8.x
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Installation
+
+In most cases **it is not necessary to separately install http-streaming**, as it has been included in the default build of Video.js since version 7.
+
+Only install if you need a specifc compination of video.js and http-streaming versions. If installing separately, use the "core" version of Video.js without the bundled version of http-streaming. 
+
 ### NPM
-To install `videojs-http-streaming` with npm run
+To install `videojs-http-streaming` with npm, run
 
 ```bash
 npm install --save @videojs/http-streaming
@@ -120,8 +125,9 @@ See [our troubleshooting guide](/docs/troubleshooting.md)
 Drop by our slack channel (#playback) on the [Video.js slack][slack-link].
 
 ## Getting Started
-This library is included in video.js 7 by default, if you are using an older version of video.js then
-get a copy of [videojs-http-streaming](#installation) and include it in your page along with video.js:
+This library is included in video.js 7 by default.
+
+**Only if need a specific combination of versions of Video.js and VHS** you can get a copy of [videojs-http-streaming](#installation) and include it in your page along with video.js. In this case, you should use the "core" build of Video.js, without a bundled VHS:
 
 ```html
 <video-js id=vid1 width=600 height=300 class="vjs-default-skin" controls>
@@ -129,15 +135,14 @@ get a copy of [videojs-http-streaming](#installation) and include it in your pag
      src="https://example.com/index.m3u8"
      type="application/x-mpegURL">
 </video-js>
-<script src="video.js"></script>
+<!-- "core" version of Video.js -->
+<script src="video.core.min.js"></script>
 <script src="videojs-http-streaming.min.js"></script>
 <script>
 var player = videojs('vid1');
 player.play();
 </script>
 ```
-
-Check out our [live example](https://jsbin.com/gejugat/edit?html,output) if you're having trouble.
 
 Is it recommended to use the `<video-js>` element or load a source with `player.src(sourceObject)` in order to prevent the video element from playing the source natively where HLS is supported.
 
@@ -151,7 +156,7 @@ The [Media Source Extensions](http://caniuse.com/#feat=mediasource) API is requi
 - Firefox
 - Internet Explorer 11 Windows 10 or 8.1
 
-These browsers have some level of native HLS support, which will be used unless the [overrideNative](#overridenative) option is used:
+These browsers have some level of native HLS support, however by default the [overrideNative](#overridenative) option is set `true` except on Safari, so MSE playback is used:
 
 - Chrome Android
 - Firefox Android
@@ -162,11 +167,7 @@ These browsers have some level of native HLS support, which will be used unless 
 - Mac Safari
 - iOS Safari
 
-Mac Safari does have MSE support, but native HLS is recommended 
-
-### Flash Support
-This plugin does not support Flash playback. Instead, it is recommended that users use the [videojs-flashls-source-handler](https://github.com/brightcove/videojs-flashls-source-handler) plugin as a fallback option for browsers that don't have a native
-[HLS](https://caniuse.com/#feat=http-live-streaming)/[DASH](https://caniuse.com/#feat=mpeg-dash) player or support for [Media Source Extensions](http://caniuse.com/#feat=mediasource).
+Mac and iPad Safari do have MSE support, but native HLS is recommended 
 
 ### DRM
 
