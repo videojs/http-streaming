@@ -516,7 +516,20 @@ const handleSegmentBytes = ({
             message.logs.forEach(function(log) {
               onTransmuxerLog(merge(log, {stream: 'mp4CaptionParser'}));
             });
-            finishLoading(message.captions);
+
+            workerCallback({
+              action: 'probeEmsgID3',
+              data: bytesAsUint8Array,
+              transmuxer: segment.transmuxer,
+              offset: startTime,
+              callback: ({segmentData, emsgId3}) => {
+                // transfer bytes back to us
+                bytes = segmentData.buffer;
+                segment.bytes = bytesAsUint8Array = segmentData;
+                id3Fn(segment, emsgId3);
+                finishLoading(message.captions);
+              }
+            });
           }
         });
       }
