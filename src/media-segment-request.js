@@ -522,11 +522,11 @@ const handleSegmentBytes = ({
               data: bytesAsUint8Array,
               transmuxer: segment.transmuxer,
               offset: startTime,
-              callback: ({segmentData, emsgId3}) => {
+              callback: ({emsgData, id3Frames}) => {
                 // transfer bytes back to us
-                bytes = segmentData.buffer;
-                segment.bytes = bytesAsUint8Array = segmentData;
-                id3Fn(segment, emsgId3);
+                bytes = emsgData.buffer;
+                segment.bytes = bytesAsUint8Array = emsgData;
+                id3Fn(segment, id3Frames);
                 finishLoading(message.captions);
               }
             });

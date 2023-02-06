@@ -236,12 +236,12 @@ class MessageHandlers {
    * @return {Object[]} an array of ID3 frames
    */
   probeEmsgID3({data, offset}) {
-    const emsgId3 = mp4probe.getEmsgID3(data, offset);
+    const id3Frames = mp4probe.getEmsgID3(data, offset);
 
     this.self.postMessage({
       action: 'probeEmsgID3',
-      emsgId3,
-      data
+      id3Frames,
+      emsgData: data
     }, [data.buffer]);
   }
 
