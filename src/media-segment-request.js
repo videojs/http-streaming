@@ -462,7 +462,7 @@ const handleSegmentBytes = ({
     // Note that the start time returned by the probe reflects the baseMediaDecodeTime, as
     // that is the true start of the segment (where the playback engine should begin
     // decoding).
-    const finishLoading = (captions) => {
+    const finishLoading = (captions, id3Frames) => {
       // if the track still has audio at this point it is only possible
       // for it to be audio only. See `tracks.video && tracks.audio` if statement
       // above.
@@ -471,6 +471,9 @@ const handleSegmentBytes = ({
         data: bytesAsUint8Array,
         type: trackInfo.hasAudio && !trackInfo.isMuxed ? 'audio' : 'video'
       });
+      if (id3Frames && id3Frames.length) {
+        id3Fn(segment, id3Frames);
+      }
       if (captions && captions.length) {
         captionsFn(segment, captions);
       }
@@ -526,8 +529,7 @@ const handleSegmentBytes = ({
                 // transfer bytes back to us
                 bytes = emsgData.buffer;
                 segment.bytes = bytesAsUint8Array = emsgData;
-                id3Fn(segment, id3Frames);
-                finishLoading(message.captions);
+                finishLoading(message.captions, id3Frames);
               }
             });
           }
