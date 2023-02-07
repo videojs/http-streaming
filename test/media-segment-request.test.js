@@ -1357,6 +1357,17 @@ QUnit.test('non-TS segment will get parsed for captions', function(assert) {
         }
       });
     }
+
+    if (event.action === 'probeEmsgID3') {
+      transmuxer.trigger({
+        type: 'message',
+        data: {
+          action: 'probeEmsgID3',
+          emsgData: event.data,
+          id3Frames: []
+        }
+      });
+    }
   };
 
   mediaSegmentRequest({
@@ -1495,6 +1506,17 @@ QUnit.test('non-TS segment will get parsed for captions on next segment request 
           action: 'probeMp4Tracks',
           data: event.data,
           tracks: [{type: 'video', codec: 'avc1.4d400d'}]
+        }
+      });
+    }
+
+    if (event.action === 'probeEmsgID3') {
+      transmuxer.trigger({
+        type: 'message',
+        data: {
+          action: 'probeEmsgID3',
+          emsgData: event.data,
+          id3Frames: []
         }
       });
     }
