@@ -125,7 +125,7 @@ See [our troubleshooting guide](/docs/troubleshooting.md)
 Drop by our slack channel (#playback) on the [Video.js slack][slack-link].
 
 ## Getting Started
-This library is included in video.js 7 by default.
+This library is included in Video.js 7 by default.
 
 **Only if need a specific combination of versions of Video.js and VHS** you can get a copy of [videojs-http-streaming](#installation) and include it in your page along with video.js. In this case, you should use the "core" build of Video.js, without a bundled VHS:
 
