@@ -1,3 +1,10 @@
+<a name="2.16.1"></a>
+## [2.16.1](https://github.com/videojs/http-streaming/compare/v2.16.0...v2.16.1) (2023-02-23)
+
+### Bug Fixes
+
+* Linear DASH multiperiod label issue ([#1352](https://github.com/videojs/http-streaming/issues/1352)) ([#1373](https://github.com/videojs/http-streaming/issues/1373)) ([7111fdd](https://github.com/videojs/http-streaming/commit/7111fdd))
+
 <a name="2.16.0"></a>
 # [2.16.0](https://github.com/videojs/http-streaming/compare/v2.15.1...v2.16.0) (2023-01-30)
 
