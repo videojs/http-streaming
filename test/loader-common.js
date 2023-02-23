@@ -363,6 +363,22 @@ export const LoaderCommonFactory = ({
       assert.ok(isNaN(loader.roundTrip), 'reset round trip time');
     });
 
+    QUnit.test('segment request timeout triggers timeout event', function(assert) {
+      let timeoutEvents = 0;
+
+      loader.on('timeout', () => timeoutEvents++);
+      loader.playlist(playlistWithDuration(10));
+
+      loader.load();
+      this.clock.tick(1);
+
+      this.requests[0].timedout = true;
+      // arbitrary length of time that should lead to a timeout
+      this.clock.tick(100 * 1000);
+
+      assert.equal(timeoutEvents, 1, 'triggered timeout event');
+    });
+
     QUnit.test('progress on segment requests are redispatched', function(assert) {
       let progressEvents = 0;
 

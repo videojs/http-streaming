@@ -12,6 +12,7 @@ import {
 } from './loader-common.js';
 import { encryptionKey, subtitlesEncrypted } from 'create-test-data!segments';
 import {merge, createTimeRanges} from '../src/util/vjs-compat';
+import sinon from 'sinon';
 
 const oldVTT = window.WebVTT;
 
@@ -308,6 +309,19 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
     QUnit.test(
       'waits for vtt.js to be loaded before attempting to parse cues',
       function(assert) {
+        let promiseLoadVttJs; let resolveLoadVttJs;
+
+        loader = new VTTSegmentLoader(LoaderCommonSettings.call(this, {
+          loaderType: 'vtt',
+          loadVttJs: () => {
+            promiseLoadVttJs = new Promise((resolve) => {
+              resolveLoadVttJs = resolve;
+            });
+
+            return promiseLoadVttJs;
+          }
+        }), {});
+
         const vttjs = window.WebVTT;
         const playlist = playlistWithDuration(40);
         let parsedCues = false;
@@ -317,22 +331,6 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
         loader.handleAppendsDone_ = () => {
           parsedCues = true;
           loader.state = 'READY';
-        };
-
-        let vttjsCallback = () => {};
-
-        this.track.tech_ = {
-          one(event, callback) {
-            if (event === 'vttjsloaded') {
-              vttjsCallback = callback;
-            }
-          },
-          trigger(event) {
-            if (event === 'vttjsloaded') {
-              vttjsCallback();
-            }
-          },
-          off() {}
         };
 
         loader.playlist(playlist);
@@ -361,10 +359,58 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
 
         window.WebVTT = vttjs;
 
-        loader.subtitlesTrack_.tech_.trigger('vttjsloaded');
+        promiseLoadVttJs.then(() => {
+          assert.equal(loader.state, 'READY', 'loader is ready to load next segment');
+          assert.ok(parsedCues, 'parsed cues');
+        });
 
-        assert.equal(loader.state, 'READY', 'loader is ready to load next segment');
-        assert.ok(parsedCues, 'parsed cues');
+        resolveLoadVttJs();
+      }
+    );
+
+    QUnit.test(
+      'parse should throw if no vtt.js is loaded for any reason',
+      function(assert) {
+        const vttjs = window.WebVTT;
+        const playlist = playlistWithDuration(40);
+        let errors = 0;
+
+        const originalParse = loader.parseVTTCues_.bind(loader);
+
+        loader.parseVTTCues_ = (...args) => {
+          delete window.WebVTT;
+          return originalParse(...args);
+        };
+
+        const spy = sinon.spy(loader, 'error');
+
+        loader.on('error', () => errors++);
+
+        loader.playlist(playlist);
+        loader.track(this.track);
+        loader.load();
+
+        assert.equal(errors, 0, 'no error at loader start');
+
+        this.clock.tick(1);
+
+        // state WAITING for segment response
+        this.requests[0].responseType = 'arraybuffer';
+        this.requests.shift().respond(200, null, new Uint8Array(10).buffer);
+
+        this.clock.tick(1);
+
+        assert.equal(errors, 1, 'triggered error when parser emmitts fatal error');
+        assert.ok(loader.paused(), 'loader paused when encountering fatal error');
+        assert.equal(loader.state, 'READY', 'loader reset after error');
+        assert.ok(
+          spy.withArgs(sinon.match({
+            message: 'Trying to parse received VTT cues, but there is no WebVTT. Make sure vtt.js is loaded.'
+          })).calledOnce,
+          'error method called once with instance of NoVttJsError'
+        );
+
+        window.WebVTT = vttjs;
       }
     );
 
@@ -748,25 +794,22 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
     });
 
     QUnit.test('loader triggers error event when vtt.js fails to load', function(assert) {
+      let promiseLoadVttJs; let rejectLoadVttJs;
+
+      loader = new VTTSegmentLoader(LoaderCommonSettings.call(this, {
+        loaderType: 'vtt',
+        loadVttJs: () => {
+          promiseLoadVttJs = new Promise((resolve, reject) => {
+            rejectLoadVttJs = reject;
+          });
+
+          return promiseLoadVttJs;
+        }
+      }), {});
       const playlist = playlistWithDuration(40);
       let errors = 0;
 
       delete window.WebVTT;
-      let vttjsCallback = () => {};
-
-      this.track.tech_ = {
-        one(event, callback) {
-          if (event === 'vttjserror') {
-            vttjsCallback = callback;
-          }
-        },
-        trigger(event) {
-          if (event === 'vttjserror') {
-            vttjsCallback();
-          }
-        },
-        off() {}
-      };
 
       loader.on('error', () => errors++);
 
@@ -794,11 +837,13 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
       );
       assert.equal(errors, 0, 'no errors yet');
 
-      loader.subtitlesTrack_.tech_.trigger('vttjserror');
+      promiseLoadVttJs.catch(() => {
+        assert.equal(loader.state, 'READY', 'loader is reset to ready');
+        assert.ok(loader.paused(), 'loader is paused after error');
+        assert.equal(errors, 1, 'loader triggered error when vtt.js load triggers error');
+      });
 
-      assert.equal(loader.state, 'READY', 'loader is reset to ready');
-      assert.ok(loader.paused(), 'loader is paused after error');
-      assert.equal(errors, 1, 'loader triggered error when vtt.js load triggers error');
+      rejectLoadVttJs();
     });
 
     QUnit.test('does not save segment timing info', function(assert) {

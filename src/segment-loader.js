@@ -2635,6 +2635,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.bandwidth = 1;
     this.roundTrip = NaN;
     this.trigger('bandwidthupdate');
+    this.trigger('timeout');
   }
 
   /**
