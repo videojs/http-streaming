@@ -156,7 +156,7 @@ The [Media Source Extensions](http://caniuse.com/#feat=mediasource) API is requi
 - Firefox
 - Internet Explorer 11 Windows 10 or 8.1
 
-These browsers have some level of native HLS support, however by default the [overrideNative](#overridenative) option is set `true` except on Safari, so MSE playback is used:
+These browsers have some level of native HLS support, however by default the [overrideNative](#overridenative) option is set to `true` except on Safari, so MSE playback is used:
 
 - Chrome Android
 - Firefox Android
