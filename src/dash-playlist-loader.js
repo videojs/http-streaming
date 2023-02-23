@@ -86,6 +86,19 @@ const dashPlaylistUnchanged = function(a, b) {
 };
 
 /**
+ * Use the representation IDs from the mpd object to create groupIDs, the NAME is set to mandatory representation
+ * ID in the parser. This allows for continuous playout across periods with the same representation IDs
+ * (continuous periods as defined in DASH-IF 3.2.12). This is assumed in the mpd-parser as well. If we want to support
+ * periods without continuous playback this function may need modification as well as the parser.
+ */
+const dashGroupId = (type, group, label, playlist) => {
+  // If the manifest somehow does not have an ID (non-dash compliant), use the label.
+  const playlistId = playlist.attributes.NAME || label;
+
+  return `placeholder-uri-${type}-${group}-${playlistId}`;
+};
+
+/**
  * Parses the master XML string and updates playlist URI references.
  *
  * @param {Object} config
@@ -115,9 +128,25 @@ export const parseMasterXml = ({
     previousManifest
   });
 
-  addPropertiesToMaster(manifest, srcUrl);
+  addPropertiesToMaster(manifest, srcUrl, dashGroupId);
 
   return manifest;
+};
+
+/**
+ * Removes any mediaGroup labels that no longer exist in the newMaster
+ *
+ * @param {Object} update
+ *         The previous mpd object being updated
+ * @param {Object} newMaster
+ *         The new mpd object
+ */
+const removeOldMediaGroupLabels = (update, newMaster) => {
+  forEachMediaGroup(update, (properties, type, group, label) => {
+    if (!(label in newMaster.mediaGroups[type][group])) {
+      delete update.mediaGroups[type][group][label];
+    }
+  });
 };
 
 /**
@@ -169,12 +198,22 @@ export const updateMaster = (oldMaster, newMaster, sidxMapping) => {
 
       if (playlistUpdate) {
         update = playlistUpdate;
+
+        // add new mediaGroup label if it doesn't exist and assign the new mediaGroup.
+        if (!(label in update.mediaGroups[type][group])) {
+          update.mediaGroups[type][group][label] = properties;
+        }
+
         // update the playlist reference within media groups
         update.mediaGroups[type][group][label].playlists[0] = update.playlists[id];
+
         noChanges = false;
       }
     }
   });
+
+  // remove mediaGroup labels and references that no longer exist in the newMaster
+  removeOldMediaGroupLabels(update, newMaster);
 
   if (newMaster.minimumUpdatePeriod !== oldMaster.minimumUpdatePeriod) {
     noChanges = false;

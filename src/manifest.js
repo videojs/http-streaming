@@ -10,6 +10,11 @@ export const createPlaylistID = (index, uri) => {
   return `${index}-${uri}`;
 };
 
+// default function for creating a group id
+const groupID = (type, group, label) => {
+  return `placeholder-uri-${type}-${group}-${label}`;
+};
+
 /**
  * Parses a given m3u8 playlist
  *
@@ -265,8 +270,10 @@ export const masterForMedia = (media, uri) => {
  *        Master manifest object
  * @param {string} uri
  *        The source URI
+ * @param {function} createGroupID
+ *        A function to determine how to create the groupID for mediaGroups
  */
-export const addPropertiesToMaster = (master, uri) => {
+export const addPropertiesToMaster = (master, uri, createGroupID = groupID) => {
   master.uri = uri;
 
   for (let i = 0; i < master.playlists.length; i++) {
@@ -282,8 +289,6 @@ export const addPropertiesToMaster = (master, uri) => {
   const audioOnlyMaster = isAudioOnly(master);
 
   forEachMediaGroup(master, (properties, mediaType, groupKey, labelKey) => {
-    const groupId = `placeholder-uri-${mediaType}-${groupKey}-${labelKey}`;
-
     // add a playlist array under properties
     if (!properties.playlists || !properties.playlists.length) {
       // If the manifest is audio only and this media group does not have a uri, check
@@ -303,6 +308,7 @@ export const addPropertiesToMaster = (master, uri) => {
     }
 
     properties.playlists.forEach(function(p, i) {
+      const groupId = createGroupID(mediaType, groupKey, labelKey, p);
       const id = createPlaylistID(i, groupId);
 
       if (p.uri) {
