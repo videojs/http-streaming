@@ -1982,6 +1982,10 @@ export default class SegmentLoader extends videojs.EventTarget {
     return this.getCurrentMediaInfo_(segmentInfo) || this.startingMediaInfo_;
   }
 
+  getPendingSegmentPlaylist() {
+    return this.pendingSegment_ ? this.pendingSegment_.playlist : null;
+  }
+
   hasEnoughInfoToAppend_() {
     if (!this.sourceUpdater_.ready()) {
       return false;
