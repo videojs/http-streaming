@@ -4,6 +4,7 @@
 ### Bug Fixes
 
 * Linear DASH multiperiod label issue ([#1352](https://github.com/videojs/http-streaming/issues/1352)) ([d7e8713](https://github.com/videojs/http-streaming/commit/d7e8713))
+* In-manifest VTT iOS MSE issue ([#1360](https://github.com/videojs/http-streaming/issues/1360)) ([6ba70e0](https://github.com/videojs/http-streaming/commit/6ba70e0))
 
 <a name="3.0.0"></a>
 # [3.0.0](https://github.com/videojs/http-streaming/compare/v2.14.2...v3.0.0) (2022-11-21)
