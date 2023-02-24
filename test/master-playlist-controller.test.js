@@ -5101,6 +5101,7 @@ QUnit.test('Current pending segment\'s playlist codecs take priority over others
   });
 
   const originalGetPendingSegmentPlaylist = this.mpc.mainSegmentLoader_.getPendingSegmentPlaylist.bind(this.mpc.mainSegmentLoader_);
+
   this.mpc.mainSegmentLoader_.getPendingSegmentPlaylist = () => ({attributes: {CODECS: 'avc1.64001f', AUDIO: 'low-quality'}});
 
   const codecs = this.mpc.getCodecsOrExclude_();
@@ -5149,6 +5150,7 @@ QUnit.test('excludes current pending segment\'s playlist without detected audio/
   });
 
   const originalGetPendingSegmentPlaylist = this.mpc.mainSegmentLoader_.getPendingSegmentPlaylist.bind(this.mpc.mainSegmentLoader_);
+
   this.mpc.mainSegmentLoader_.getPendingSegmentPlaylist = () => ({attributes: {CODECS: ''}});
   const codecs = this.mpc.getCodecsOrExclude_();
 
