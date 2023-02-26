@@ -1162,6 +1162,7 @@ export default class SegmentLoader extends videojs.EventTarget {
    */
   resetEverything(done) {
     this.ended_ = false;
+    this.activeInitSegmentId_ = null;
     this.appendInitSegment_ = {
       audio: true,
       video: true
