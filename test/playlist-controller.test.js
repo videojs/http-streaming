@@ -4971,6 +4971,25 @@ QUnit.test('playlist codecs take priority over others', function(assert) {
   assert.deepEqual(codecs, {video: 'avc1.4b400d', audio: 'mp4a.40.20'}, 'codecs returned');
 });
 
+QUnit.test('Current pending segment\'s playlist codecs take priority over others', function(assert) {
+  this.contentSetup({
+    mainStartingMedia: {videoCodec: 'avc1.4c400d', hasVideo: true, hasAudio: false},
+    audioStartingMedia: {audioCodec: 'mp4a.40.5', hasVideo: false, hasAudio: true},
+    mainPlaylist: {attributes: {CODECS: 'avc1.4b400d', AUDIO: 'low-quality'}},
+    audioPlaylist: {attributes: {CODECS: 'mp4a.40.20'}}
+  });
+
+  const originalGetPendingSegmentPlaylist = this.pc.mainSegmentLoader_.getPendingSegmentPlaylist.bind(this.pc.mainSegmentLoader_);
+
+  this.pc.mainSegmentLoader_.getPendingSegmentPlaylist = () => ({attributes: {CODECS: 'avc1.64001f', AUDIO: 'low-quality'}});
+
+  const codecs = this.pc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.exclusionList, [], 'did not blacklist anything');
+  assert.deepEqual(codecs, {video: 'avc1.64001f', audio: 'mp4a.40.20'}, 'codecs returned');
+  this.pc.mainSegmentLoader_.getPendingSegmentPlaylist = originalGetPendingSegmentPlaylist;
+});
+
 QUnit.test('uses default codecs if no codecs are found', function(assert) {
   this.contentSetup({
     mainStartingMedia: {hasVideo: true, hasAudio: false},
@@ -5000,6 +5019,27 @@ QUnit.test('excludes playlist without detected audio/video', function(assert) {
     error: { message: 'Could not determine codecs for playlist.' }
   }], 'excluded playlist');
   assert.deepEqual(codecs, void 0, 'no codecs returned');
+});
+
+QUnit.test('excludes current pending segment\'s playlist without detected audio/video', function(assert) {
+  this.contentSetup({
+    mainStartingMedia: {},
+    audioStartingMedia: {},
+    mainPlaylist: {attributes: {}}
+  });
+
+  const originalGetPendingSegmentPlaylist = this.pc.mainSegmentLoader_.getPendingSegmentPlaylist.bind(this.pc.mainSegmentLoader_);
+
+  this.pc.mainSegmentLoader_.getPendingSegmentPlaylist = () => ({attributes: {CODECS: ''}});
+  const codecs = this.pc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.exclusionList, [{
+    playlistExclusionDuration: Infinity,
+    playlistToExclude: {attributes: {CODECS: ''}},
+    error: { message: 'Could not determine codecs for playlist.' }
+  }], 'excluded playlist');
+  assert.deepEqual(codecs, void 0, 'no codecs returned');
+  this.pc.mainSegmentLoader_.getPendingSegmentPlaylist = originalGetPendingSegmentPlaylist;
 });
 
 QUnit.test('excludes unsupported muxer codecs for ts', function(assert) {
