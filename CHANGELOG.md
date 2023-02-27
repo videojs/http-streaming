@@ -1,3 +1,10 @@
+<a name="2.16.2"></a>
+## [2.16.2](https://github.com/videojs/http-streaming/compare/v2.16.1...v2.16.2) (2023-02-27)
+
+### Bug Fixes
+
+* CMAF HLS. Source buffer change type is called with wrong codecs sometimes when append segment without init data because of a race condition. ([#1374](https://github.com/videojs/http-streaming/issues/1374)) ([aa9dfbd](https://github.com/videojs/http-streaming/commit/aa9dfbd))
+
 <a name="2.16.1"></a>
 ## [2.16.1](https://github.com/videojs/http-streaming/compare/v2.16.0...v2.16.1) (2023-02-23)
 
