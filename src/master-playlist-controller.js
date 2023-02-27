@@ -1725,9 +1725,11 @@ export class MasterPlaylistController extends videojs.EventTarget {
       audio: this.audioSegmentLoader_.getCurrentMediaInfo_() || {}
     };
 
+    const playlist = this.mainSegmentLoader_.getPendingSegmentPlaylist() || this.media();
+
     // set "main" media equal to video
     media.video = media.main;
-    const playlistCodecs = codecsForPlaylist(this.master(), this.media());
+    const playlistCodecs = codecsForPlaylist(this.master(), playlist);
     const codecs = {};
     const usingAudioLoader = !!this.mediaTypes_.AUDIO.activePlaylistLoader;
 
@@ -1748,7 +1750,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
     // no codecs, no playback.
     if (!codecs.audio && !codecs.video) {
       this.blacklistCurrentPlaylist({
-        playlist: this.media(),
+        playlist,
         message: 'Could not determine codecs for playlist.',
         blacklistDuration: Infinity
       });
@@ -1773,13 +1775,13 @@ export class MasterPlaylistController extends videojs.EventTarget {
       }
     });
 
-    if (usingAudioLoader && unsupportedAudio && this.media().attributes.AUDIO) {
-      const audioGroup = this.media().attributes.AUDIO;
+    if (usingAudioLoader && unsupportedAudio && playlist.attributes.AUDIO) {
+      const audioGroup = playlist.attributes.AUDIO;
 
       this.master().playlists.forEach(variant => {
         const variantAudioGroup = variant.attributes && variant.attributes.AUDIO;
 
-        if (variantAudioGroup === audioGroup && variant !== this.media()) {
+        if (variantAudioGroup === audioGroup && variant !== playlist) {
           variant.excludeUntil = Infinity;
         }
       });
@@ -1800,7 +1802,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
       }, '') + '.';
 
       this.blacklistCurrentPlaylist({
-        playlist: this.media(),
+        playlist,
         internal: true,
         message,
         blacklistDuration: Infinity
@@ -1825,7 +1827,7 @@ export class MasterPlaylistController extends videojs.EventTarget {
 
       if (switchMessages.length) {
         this.blacklistCurrentPlaylist({
-          playlist: this.media(),
+          playlist,
           message: `Codec switching not supported: ${switchMessages.join(', ')}.`,
           blacklistDuration: Infinity,
           internal: true
