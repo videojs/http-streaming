@@ -59,7 +59,7 @@ Install dependencies for the project.
 npm install
 ```
 
-Then, it's mostly a standard npm package release process with running `npm version`, followed by an `npm publish`.
+Update version.
 
 ```sh
 npm version {major|minor|patch}
@@ -71,17 +71,16 @@ See [deciding what type of version release section](#deciding-what-type-of-versi
 Optionally, you can run `git show` now to verify that the version update and CHANGELOG automation worked as expected.
 
 Afterwards, you want to push the commit and the tag to the repo.
-It's necessary to do this before running `npm publish` because our GitHub release automation relies on the commit being available on GitHub.
 
 ```sh
 git push --follow-tags origin main
 ```
 
-Publish to npm.
+After the tag was pushed, GitHub actions will trigger the `release` workflow, which will do the following:
 
-```sh
-npm publish
-```
+* Publish to npm with `next` or `next-{n}` depending on your current major version.
+* Create GitHub release with changelog and Netlify preview.
+* Create a GitHub `releases` discussion linked to the GitHub release.
 
 If it's a large enough release, consider writing a blog post as well.
 
