@@ -97,7 +97,7 @@ Video.js Compatibility: 7.x, 8.x
 
 In most cases **it is not necessary to separately install http-streaming**, as it has been included in the default build of Video.js since version 7.
 
-Only install if you need a specifc compination of video.js and http-streaming versions. If installing separately, use the "core" version of Video.js without the bundled version of http-streaming. 
+Only install if you need a specifc combination of video.js and http-streaming versions. If installing separately, use the "core" version of Video.js without the bundled version of http-streaming. 
 
 ### NPM
 To install `videojs-http-streaming` with npm, run
@@ -122,7 +122,7 @@ See [CONTRIBUTING.md](/CONTRIBUTING.md)
 See [our troubleshooting guide](/docs/troubleshooting.md)
 
 ## Talk to us
-Drop by our slack channel (#playback) on the [Video.js slack][slack-link].
+Drop by the [Video.js slack][slack-link].
 
 ## Getting Started
 This library is included in Video.js 7 by default.
