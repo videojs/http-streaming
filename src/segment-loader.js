@@ -1163,6 +1163,7 @@ export default class SegmentLoader extends videojs.EventTarget {
    */
   resetEverything(done) {
     this.ended_ = false;
+    this.activeInitSegmentId_ = null;
     this.appendInitSegment_ = {
       audio: true,
       video: true
@@ -1981,6 +1982,10 @@ export default class SegmentLoader extends videojs.EventTarget {
 
   getMediaInfo_(segmentInfo = this.pendingSegment_) {
     return this.getCurrentMediaInfo_(segmentInfo) || this.startingMediaInfo_;
+  }
+
+  getPendingSegmentPlaylist() {
+    return this.pendingSegment_ ? this.pendingSegment_.playlist : null;
   }
 
   hasEnoughInfoToAppend_() {

@@ -1,9 +1,22 @@
+<a name="3.0.2"></a>
+## [3.0.2](https://github.com/videojs/http-streaming/compare/v3.0.1...v3.0.2) (2023-02-27)
+
+### Bug Fixes
+
+* CMAF HLS. Source buffer change type is called with wrong codecs sometimes when append segment without init data because of a race condition. ([#1375](https://github.com/videojs/http-streaming/issues/1375)) ([7c3e08e](https://github.com/videojs/http-streaming/commit/7c3e08e))
+
+### Chores
+
+* **changelog:** add missing bug fix ([#1362](https://github.com/videojs/http-streaming/issues/1362)) ([343f682](https://github.com/videojs/http-streaming/commit/343f682))
+* update mux.js ([#1372](https://github.com/videojs/http-streaming/issues/1372)) ([1bd22c9](https://github.com/videojs/http-streaming/commit/1bd22c9))
+
 <a name="3.0.1"></a>
 ## [3.0.1](https://github.com/videojs/http-streaming/compare/v3.0.0...v3.0.1) (2023-01-24)
 
 ### Bug Fixes
 
 * Linear DASH multiperiod label issue ([#1352](https://github.com/videojs/http-streaming/issues/1352)) ([d7e8713](https://github.com/videojs/http-streaming/commit/d7e8713))
+* In-manifest VTT iOS MSE issue ([#1360](https://github.com/videojs/http-streaming/issues/1360)) ([6ba70e0](https://github.com/videojs/http-streaming/commit/6ba70e0))
 
 <a name="3.0.0"></a>
 # [3.0.0](https://github.com/videojs/http-streaming/compare/v2.14.2...v3.0.0) (2022-11-21)
