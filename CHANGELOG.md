@@ -1,3 +1,26 @@
+<a name="3.1.0"></a>
+# [3.1.0](https://github.com/videojs/http-streaming/compare/v3.0.2...v3.1.0) (2023-03-07)
+
+### Features
+
+* add fmp4 emsg ID3 support ([#1370](https://github.com/videojs/http-streaming/issues/1370)) ([906f29e](https://github.com/videojs/http-streaming/commit/906f29e))
+
+### Chores
+
+* npm publish for release workflow ([#1376](https://github.com/videojs/http-streaming/issues/1376)) ([e5b4bf6](https://github.com/videojs/http-streaming/commit/e5b4bf6))
+
+<a name="3.0.2"></a>
+## [3.0.2](https://github.com/videojs/http-streaming/compare/v3.0.1...v3.0.2) (2023-02-27)
+
+### Bug Fixes
+
+* CMAF HLS. Source buffer change type is called with wrong codecs sometimes when append segment without init data because of a race condition. ([#1375](https://github.com/videojs/http-streaming/issues/1375)) ([7c3e08e](https://github.com/videojs/http-streaming/commit/7c3e08e))
+
+### Chores
+
+* **changelog:** add missing bug fix ([#1362](https://github.com/videojs/http-streaming/issues/1362)) ([343f682](https://github.com/videojs/http-streaming/commit/343f682))
+* update mux.js ([#1372](https://github.com/videojs/http-streaming/issues/1372)) ([1bd22c9](https://github.com/videojs/http-streaming/commit/1bd22c9))
+
 <a name="3.0.1"></a>
 ## [3.0.1](https://github.com/videojs/http-streaming/compare/v3.0.0...v3.0.1) (2023-01-24)
 
