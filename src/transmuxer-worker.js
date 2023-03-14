@@ -228,6 +228,24 @@ class MessageHandlers {
   }
 
   /**
+   * Probes an mp4 segment for EMSG boxes containing ID3 data.
+   * https://aomediacodec.github.io/id3-emsg/
+   *
+   * @param {Uint8Array} data segment data
+   * @param {number} offset segment start time
+   * @return {Object[]} an array of ID3 frames
+   */
+  probeEmsgID3({data, offset}) {
+    const id3Frames = mp4probe.getEmsgID3(data, offset);
+
+    this.self.postMessage({
+      action: 'probeEmsgID3',
+      id3Frames,
+      emsgData: data
+    }, [data.buffer]);
+  }
+
+  /**
    * Probe an mpeg2-ts segment to determine the start time of the segment in it's
    * internal "media time," as well as whether it contains video and/or audio.
    *
