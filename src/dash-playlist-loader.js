@@ -22,6 +22,7 @@ import containerRequest from './util/container-request.js';
 import {toUint8} from '@videojs/vhs-utils/es/byte-helpers';
 import logger from './util/logger';
 import {merge} from './util/vjs-compat';
+import { addMetadata, createMetadataTrackIfNotExists } from './util/text-tracks';
 
 const { EventTarget } = videojs;
 
@@ -300,7 +301,7 @@ export default class DashPlaylistLoader extends EventTarget {
   // DashPlaylistLoader must accept either a src url or a playlist because subsequent
   // playlist loader setups from media groups will expect to be able to pass a playlist
   // (since there aren't external URLs to media playlists with DASH)
-  constructor(srcUrlOrPlaylist, vhs, options = { }, mainPlaylistLoader) {
+  constructor(srcUrlOrPlaylist, vhs, options = { }, mainPlaylistLoader, inbandTextTracks, tech) {
     super();
 
     this.mainPlaylistLoader_ = mainPlaylistLoader || this;
@@ -312,6 +313,8 @@ export default class DashPlaylistLoader extends EventTarget {
 
     this.vhs_ = vhs;
     this.withCredentials = withCredentials;
+    this.inbandTextTracks_ = inbandTextTracks;
+    this.tech_ = tech;
 
     if (!srcUrlOrPlaylist) {
       throw new Error('A non-empty playlist URL or object is required');
@@ -773,6 +776,8 @@ export default class DashPlaylistLoader extends EventTarget {
       this.updateMinimumUpdatePeriodTimeout_();
     }
 
+    this.addEventStreamToMetadataTrack_(newMain);
+
     return Boolean(newMain);
   }
 
@@ -900,5 +905,32 @@ export default class DashPlaylistLoader extends EventTarget {
     }
 
     this.trigger('loadedplaylist');
+  }
+
+  /**
+   * Takes eventstream data from a parsed DASH manifest and adds it to the metadata text track.
+   *
+   * @param {manifest} newMain the newly parsed manifest
+   */
+  addEventStreamToMetadataTrack_(newMain) {
+    // Only add new event stream metadata if we have a new manifest.
+    if (newMain && this.mainPlaylistLoader_.main.eventStream) {
+      createMetadataTrackIfNotExists(this.inbandTextTracks_, 'EventStream', this.tech_);
+
+      // convert EventStream to ID3-like data.
+      this.mainPlaylistLoader_.main.eventStream.forEach((eventStreamNode) => {
+        const metadataArray = [{
+          cueTime: eventStreamNode.start,
+          frames: [{ value: eventStreamNode.messageData || eventStreamNode.value }]
+        }];
+
+        addMetadata({
+          inbandTextTracks: this.inbandTextTracks_,
+          metadataArray,
+          timestampOffset: eventStreamNode.presentationTimeOffset,
+          videoDuration: this.mainPlaylistLoader_.main.duration
+        });
+      });
+    }
   }
 }

@@ -262,7 +262,7 @@ export class PlaylistController extends videojs.EventTarget {
     // manifest object (instead of a URL). In the case of vhs-json, the default
     // PlaylistLoader should be used.
     this.mainPlaylistLoader_ = this.sourceType_ === 'dash' ?
-      new DashPlaylistLoader(src, this.vhs_, this.requestOptions_) :
+      new DashPlaylistLoader(src, this.vhs_, this.requestOptions_, undefined, this.inbandTextTracks_, this.tech_) :
       new PlaylistLoader(src, this.vhs_, this.requestOptions_);
     this.setupMainPlaylistLoaderListeners_();
 
