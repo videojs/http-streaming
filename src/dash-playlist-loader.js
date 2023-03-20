@@ -921,7 +921,7 @@ export default class DashPlaylistLoader extends EventTarget {
       this.mainPlaylistLoader_.main.eventStream.forEach((eventStreamNode) => {
         const metadataArray = [{
           cueTime: eventStreamNode.start,
-          frames: [{ value: eventStreamNode.messageData || eventStreamNode.value }]
+          frames: [{ data: eventStreamNode.messageData || eventStreamNode.value }]
         }];
 
         addMetadata({
