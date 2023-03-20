@@ -2991,7 +2991,7 @@ QUnit.test('updateMain: updates playlists and mediaGroups when labels change', f
   );
 });
 
-QUnit.test('addEventStreamToMetadataTrack_', function(assert) {
+QUnit.test('addEventStreamToMetadataTrack_ adds EventStream data to the metadata text track', function(assert) {
   const player = createPlayer(merge({}, this.playerOptions));
   const inbandTextTracks = {};
   const loader = new DashPlaylistLoader('eventStreamMessageData.mpd', this.fakeVhs, undefined, undefined, inbandTextTracks, player.tech_);
