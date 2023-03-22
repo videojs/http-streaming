@@ -140,3 +140,21 @@ test('does nothing if frames are undefined', function(assert) {
     'added no metadata cues'
   );
 });
+
+test('does nothing if frames.length is 0', function(assert) {
+  addMetadata({
+    inbandTextTracks: this.inbandTextTracks,
+    timestampOffset: this.timestampOffset,
+    videoDuration: 1,
+    metadataArray: [{
+      cueTime: 1,
+      frames: []
+    }]
+  });
+
+  assert.strictEqual(
+    this.inbandTextTracks.metadataTrack_.cues.length,
+    0,
+    'added no metadata cues'
+  );
+});
