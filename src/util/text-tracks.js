@@ -159,6 +159,11 @@ export const addMetadata = ({
       return;
     }
 
+    // If we have no frames, we can't create a cue.
+    if (!metadata.frames || !metadata.frames.length) {
+      return;
+    }
+
     metadata.frames.forEach((frame) => {
       const cue = new Cue(
         time,
