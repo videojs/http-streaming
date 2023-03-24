@@ -22,7 +22,7 @@ import '../src/videojs-http-streaming';
 import testDataManifests from 'create-test-data!manifests';
 import { sidx as sidxResponse } from 'create-test-data!segments';
 import {mp4VideoInit as mp4VideoInitSegment} from 'create-test-data!segments';
-import { merge } from '../src/util/vjs-compat';
+import SourceUpdater from '../src/source-updater';
 
 QUnit.module('DASH Playlist Loader: unit', {
   beforeEach(assert) {
@@ -2991,10 +2991,15 @@ QUnit.test('updateMain: updates playlists and mediaGroups when labels change', f
   );
 });
 
-QUnit.test('addEventStreamToMetadataTrack_ adds EventStream data to the metadata text track', function(assert) {
-  const player = createPlayer(merge({}, this.playerOptions));
-  const inbandTextTracks = {};
-  const loader = new DashPlaylistLoader('eventStreamMessageData.mpd', this.fakeVhs, undefined, undefined, inbandTextTracks, player.tech_);
+QUnit.test('addEventStreamToMetadataTrack_ adds EventStream messageData to the metadata text track', function(assert) {
+  const player = createPlayer();
+  const sourceUpdater = new SourceUpdater(new window.MediaSource());
+  const options = {
+    inbandTextTracks: {},
+    tech: player.tech_,
+    sourceUpdater
+  };
+  const loader = new DashPlaylistLoader('eventStreamMessageData.mpd', this.fakeVhs, options);
   const expectedCueValues = [
     {
       startTime: 63857834.256000005,

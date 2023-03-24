@@ -301,7 +301,7 @@ export default class DashPlaylistLoader extends EventTarget {
   // DashPlaylistLoader must accept either a src url or a playlist because subsequent
   // playlist loader setups from media groups will expect to be able to pass a playlist
   // (since there aren't external URLs to media playlists with DASH)
-  constructor(srcUrlOrPlaylist, vhs, options = { }, mainPlaylistLoader, inbandTextTracks, tech) {
+  constructor(srcUrlOrPlaylist, vhs, options = { }, mainPlaylistLoader) {
     super();
 
     this.mainPlaylistLoader_ = mainPlaylistLoader || this;
@@ -309,12 +309,13 @@ export default class DashPlaylistLoader extends EventTarget {
       this.isMain_ = true;
     }
 
-    const { withCredentials = false } = options;
+    const { withCredentials = false, inbandTextTracks, tech, sourceUpdater } = options;
 
     this.vhs_ = vhs;
     this.withCredentials = withCredentials;
     this.inbandTextTracks_ = inbandTextTracks;
     this.tech_ = tech;
+    this.sourceUpdater_ = sourceUpdater;
 
     if (!srcUrlOrPlaylist) {
       throw new Error('A non-empty playlist URL or object is required');
@@ -918,18 +919,22 @@ export default class DashPlaylistLoader extends EventTarget {
       createMetadataTrackIfNotExists(this.inbandTextTracks_, 'EventStream', this.tech_);
 
       // convert EventStream to ID3-like data.
-      this.mainPlaylistLoader_.main.eventStream.forEach((eventStreamNode) => {
-        const metadataArray = [{
+      const metadataArray = this.mainPlaylistLoader_.main.eventStream.map((eventStreamNode) => {
+        return {
           cueTime: eventStreamNode.start,
           frames: [{ data: eventStreamNode.messageData }]
-        }];
+        };
+      });
 
-        addMetadata({
-          inbandTextTracks: this.inbandTextTracks_,
-          metadataArray,
-          timestampOffset: eventStreamNode.presentationTimeOffset,
-          videoDuration: this.mainPlaylistLoader_.main.duration
-        });
+      const timestampOffset = this.sourceUpdater_.videoTimestampOffset() === null ?
+        this.sourceUpdater_.audioTimestampOffset() :
+        this.sourceUpdater_.videoTimestampOffset();
+
+      addMetadata({
+        inbandTextTracks: this.inbandTextTracks_,
+        metadataArray,
+        timestampOffset,
+        videoDuration: this.mainPlaylistLoader_.main.duration
       });
     }
   }

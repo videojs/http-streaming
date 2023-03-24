@@ -257,12 +257,18 @@ export class PlaylistController extends videojs.EventTarget {
       exactManifestTimings: options.exactManifestTimings
     };
 
+    const dashMainPlaylistLoaderOptions = {
+      inbandTextTracks: this.inbandTextTracks_,
+      tech: this.tech_,
+      sourceUpdater: this.sourceUpdater_
+    };
+
     // The source type check not only determines whether a special DASH playlist loader
     // should be used, but also covers the case where the provided src is a vhs-json
     // manifest object (instead of a URL). In the case of vhs-json, the default
     // PlaylistLoader should be used.
     this.mainPlaylistLoader_ = this.sourceType_ === 'dash' ?
-      new DashPlaylistLoader(src, this.vhs_, this.requestOptions_, undefined, this.inbandTextTracks_, this.tech_) :
+      new DashPlaylistLoader(src, this.vhs_, merge(this.requestOptions_, dashMainPlaylistLoaderOptions)) :
       new PlaylistLoader(src, this.vhs_, this.requestOptions_);
     this.setupMainPlaylistLoaderListeners_();
 
