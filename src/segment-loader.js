@@ -1873,9 +1873,9 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-    const timestampOffset = this.sourceUpdater_.videoTimestampOffset() === null ?
-      this.sourceUpdater_.audioTimestampOffset() :
-      this.sourceUpdater_.videoTimestampOffset();
+    const timestampOffset = segmentInfo.trackInfo.hasVideo ?
+      this.sourceUpdater_.videoTimestampOffset() :
+      this.sourceUpdater_.audioTimestampOffset();
 
     // There's potentially an issue where we could double add metadata if there's a muxed
     // audio/video source with a metadata track, and an alt audio with a metadata track.
