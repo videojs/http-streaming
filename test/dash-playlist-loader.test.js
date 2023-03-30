@@ -14,15 +14,13 @@ import {generateSidxKey} from 'mpd-parser';
 import {
   useFakeEnvironment,
   standardXHRResponse,
-  urlTo,
-  createPlayer
+  urlTo
 } from './test-helpers';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
 import testDataManifests from 'create-test-data!manifests';
 import { sidx as sidxResponse } from 'create-test-data!segments';
 import {mp4VideoInit as mp4VideoInitSegment} from 'create-test-data!segments';
-import SourceUpdater from '../src/source-updater';
 
 QUnit.module('DASH Playlist Loader: unit', {
   beforeEach(assert) {
@@ -2991,84 +2989,3 @@ QUnit.test('updateMain: updates playlists and mediaGroups when labels change', f
   );
 });
 
-QUnit.test('addEventStreamToMetadataTrack_ adds EventStream messageData to the metadata text track', function(assert) {
-  const player = createPlayer();
-  const sourceUpdater = new SourceUpdater(new window.MediaSource());
-  const options = {
-    inbandTextTracks: {},
-    tech: player.tech_,
-    sourceUpdater
-  };
-  const loader = new DashPlaylistLoader('eventStreamMessageData.mpd', this.fakeVhs, options);
-  const expectedCueValues = [
-    {
-      startTime: 63857834.256000005,
-      data: 'google_7617584398642699833'
-    },
-    {
-      startTime: 63857835.056,
-      data: 'google_gkmxVFMIdHz413g3pIgZtITUSFFQYDnQ421MGEkVnTA'
-    },
-    {
-      startTime: 63857836.056,
-      data: 'google_Yl7LFi1Fh-TD39nqQzIiGLDD1lx7tYRjjmYND7tEEjM'
-    },
-    {
-      startTime: 63857836.650000006,
-      data: 'google_5437877779805246002'
-    },
-    {
-      startTime: 63857837.056,
-      data: 'google_8X2eBAFbC2cUJmNNHkrcDKqSJQncj2nrVoB2eIu6lrc'
-    },
-    {
-      startTime: 63857838.056,
-      data: 'google_Qyxg2ZhKfBUls-J7oj0Re0_-gCQFviaaEMMDvIOTEWE'
-    },
-    {
-      startTime: 63857838.894,
-      data: 'google_7174574530630198647'
-    },
-    {
-      startTime: 63857839.056,
-      data: 'google_EFt2jovkcT9PqjuLLC5kH7gIIjWvc0iIhROFED6kqsg'
-    },
-    {
-      startTime: 63857840.056,
-      data: 'google_eUHx4vMmAikHojJZLOTR2XZdg1A9b9A8TY7F2CVC3cA'
-    },
-    {
-      startTime: 63857841.056,
-      data: 'google_gkmxVFMIdHz413g3pIgZtITUSFFQYDnQ421MGEkVnTA'
-    },
-    {
-      startTime: 63857841.638000004,
-      data: 'google_1443613685977331553'
-    },
-    {
-      startTime: 63857842.056,
-      data: 'google_Yl7LFi1Fh-TD39nqQzIiGLDD1lx7tYRjjmYND7tEEjM'
-    },
-    {
-      startTime: 63857843.056,
-      data: 'google_8X2eBAFbC2cUJmNNHkrcDKqSJQncj2nrVoB2eIu6lrc'
-    },
-    {
-      startTime: 63857843.13200001,
-      data: 'google_5822903356700578162'
-    }
-  ];
-
-  // Load EventStream manifest
-  loader.mainXml_ = testDataManifests.eventStreamMessageData;
-  loader.handleMain_();
-  // Map actual values to expected value objects
-  const actualCueValues = loader.mainPlaylistLoader_.inbandTextTracks_.metadataTrack_.cues_.map((cue) => {
-    return {
-      startTime: cue.startTime,
-      data: cue.value.data
-    };
-  });
-
-  assert.deepEqual(actualCueValues, expectedCueValues, 'dash EventStream is added to metadata text track');
-});

@@ -2421,6 +2421,9 @@ QUnit.module('SegmentLoader', function(hooks) {
             }
           });
 
+        this.sourceUpdater_ = loader.sourceUpdater_;
+        this.inbandTextTracks_ = loader.inbandTextTracks_;
+        this.tech_ = loader.vhs_.tech_;
         standardXHRResponse(this.requests.shift(), muxedSegment());
 
       });
@@ -2527,7 +2530,9 @@ QUnit.module('SegmentLoader', function(hooks) {
               addCue: addCueSpy
             }
           });
-
+        this.sourceUpdater_ = loader.sourceUpdater_;
+        this.inbandTextTracks_ = loader.inbandTextTracks_;
+        this.tech_ = loader.vhs_.tech_;
         standardXHRResponse(this.requests.shift(), audioSegment());
       });
     });

@@ -22,7 +22,6 @@ import containerRequest from './util/container-request.js';
 import {toUint8} from '@videojs/vhs-utils/es/byte-helpers';
 import logger from './util/logger';
 import {merge} from './util/vjs-compat';
-import { addMetadata, createMetadataTrackIfNotExists } from './util/text-tracks';
 
 const { EventTarget } = videojs;
 
@@ -309,13 +308,11 @@ export default class DashPlaylistLoader extends EventTarget {
       this.isMain_ = true;
     }
 
-    const { withCredentials = false, inbandTextTracks, tech, sourceUpdater } = options;
+    const { withCredentials = false } = options;
 
     this.vhs_ = vhs;
     this.withCredentials = withCredentials;
-    this.inbandTextTracks_ = inbandTextTracks;
-    this.tech_ = tech;
-    this.sourceUpdater_ = sourceUpdater;
+    this.addMetadataToTextTrack = options.addMetadataToTextTrack;
 
     if (!srcUrlOrPlaylist) {
       throw new Error('A non-empty playlist URL or object is required');
@@ -916,8 +913,6 @@ export default class DashPlaylistLoader extends EventTarget {
   addEventStreamToMetadataTrack_(newMain) {
     // Only add new event stream metadata if we have a new manifest.
     if (newMain && this.mainPlaylistLoader_.main.eventStream) {
-      createMetadataTrackIfNotExists(this.inbandTextTracks_, 'EventStream', this.tech_);
-
       // convert EventStream to ID3-like data.
       const metadataArray = this.mainPlaylistLoader_.main.eventStream.map((eventStreamNode) => {
         return {
@@ -926,16 +921,7 @@ export default class DashPlaylistLoader extends EventTarget {
         };
       });
 
-      const timestampOffset = this.sourceUpdater_.videoTimestampOffset() === null ?
-        this.sourceUpdater_.audioTimestampOffset() :
-        this.sourceUpdater_.videoTimestampOffset();
-
-      addMetadata({
-        inbandTextTracks: this.inbandTextTracks_,
-        metadataArray,
-        timestampOffset,
-        videoDuration: this.mainPlaylistLoader_.main.duration
-      });
+      this.addMetadataToTextTrack('EventStream', metadataArray, this.mainPlaylistLoader_.main.duration);
     }
   }
 }
