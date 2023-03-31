@@ -287,8 +287,8 @@ export const waitForKeySessionCreation = ({
   const keySessionCreatedPromises = [];
 
   // Since PSSH values are interpreted as initData, EME will dedupe any duplicates. The
-  // only place where it should not be deduped is for ms-prefixed APIs, but the early
-  // return for IE11 above, and the existence of modern EME APIs in addition to
+  // only place where it should not be deduped is for ms-prefixed APIs, but
+  // the existence of modern EME APIs in addition to
   // ms-prefixed APIs on Edge should prevent this from being a concern.
   // initializeMediaKeys also won't use the webkit-prefixed APIs.
   keySystemsOptionsArr.forEach((keySystemsOptions) => {
@@ -1058,9 +1058,7 @@ class VhsHandler extends Component {
     this.handleWaitingForKey_ = this.handleWaitingForKey_.bind(this);
     this.player_.tech_.on('waitingforkey', this.handleWaitingForKey_);
 
-    // In IE11 this is too early to initialize media keys, and IE11 does not support
-    // promises.
-    if (videojs.browser.IE_VERSION === 11 || !didSetupEmeOptions) {
+    if (!didSetupEmeOptions) {
       // If EME options were not set up, we've done all we could to initialize EME.
       this.playlistController_.sourceUpdater_.initializedEme();
       return;
