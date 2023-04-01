@@ -468,11 +468,9 @@ export default class SourceUpdater extends videojs.EventTarget {
    *          if removeSourceBuffer can be called.
    */
   canRemoveSourceBuffer() {
-    // IE reports that it supports removeSourceBuffer, but often throws
-    // errors when attempting to use the function. So we report that it
-    // does not support removeSourceBuffer. As of Firefox 83 removeSourceBuffer
-    // throws errors, so we report that it does not support this as well.
-    return !videojs.browser.IE_VERSION && !videojs.browser.IS_FIREFOX && window.MediaSource &&
+    // As of Firefox 83 removeSourceBuffer
+    // throws errors, so we report that it does not support this.
+    return !videojs.browser.IS_FIREFOX && window.MediaSource &&
       window.MediaSource.prototype &&
       typeof window.MediaSource.prototype.removeSourceBuffer === 'function';
   }

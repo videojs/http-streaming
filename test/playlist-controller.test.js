@@ -59,10 +59,8 @@ const sharedHooks = {
     this.requests = this.env.requests;
     this.mse = useFakeMediaSource();
 
-    if (!videojs.browser.IE_VERSION) {
-      this.oldDevicePixelRatio = window.devicePixelRatio;
-      window.devicePixelRatio = 1;
-    }
+    this.oldDevicePixelRatio = window.devicePixelRatio;
+    window.devicePixelRatio = 1;
 
     // force the HLS tech to run
     this.origSupportsNativeHls = videojs.Vhs.supportsNativeHls;
@@ -638,7 +636,7 @@ QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', fun
       seeks++;
     });
 
-    let timeBeforeSwitch = this.player.currentTime();
+    const timeBeforeSwitch = this.player.currentTime();
 
     // mock buffered values so removes are processed
     segmentLoader.sourceUpdater_.audioBuffer.buffered = createTimeRanges([[0, 10]]);
@@ -650,10 +648,6 @@ QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', fun
     segmentLoader.sourceUpdater_.videoBuffer.trigger('updateend');
     this.clock.tick(1);
 
-    // we seek an additional 0.04s on edge and ie
-    if (videojs.browser.IS_EDGE || videojs.browser.IE_VERSION) {
-      timeBeforeSwitch += 0.04;
-    }
     assert.equal(
       this.player.currentTime(),
       timeBeforeSwitch,
@@ -833,120 +827,6 @@ QUnit.test('demuxed timeToLoadedData, mediaAppends, appendsToLoadedData stats', 
     assert.equal(vhs.stats.mainAppendsToLoadedData, 1, 'main appends to first frame is 1');
     assert.equal(vhs.stats.audioAppendsToLoadedData, 1, 'audio appends to first frame is 1');
     assert.ok(vhs.stats.timeToLoadedData > 0, 'time to first frame is valid');
-  });
-});
-
-QUnit.test('seeks forward 0.04 sec for fast quality switch on Edge', function(assert) {
-  const oldIEVersion = videojs.browser.IE_VERSION;
-  const oldIsEdge = videojs.browser.IS_EDGE;
-  let seeks = 0;
-
-  this.playlistController.mediaSource.trigger('sourceopen');
-  // main
-  this.standardXHRResponse(this.requests.shift());
-  // media
-  this.standardXHRResponse(this.requests.shift());
-
-  const segmentLoader = this.playlistController.mainSegmentLoader_;
-
-  return requestAndAppendSegment({
-    request: this.requests.shift(),
-    segmentLoader,
-    clock: this.clock
-  }).then(() => {
-    // media is changed
-    this.playlistController.selectPlaylist = () => {
-      const playlists = this.playlistController.main().playlists;
-      const currentPlaylist = this.playlistController.media();
-
-      return playlists.find((playlist) => playlist !== currentPlaylist);
-    };
-
-    this.player.tech_.on('seeking', function() {
-      seeks++;
-    });
-
-    const timeBeforeSwitch = this.player.currentTime();
-
-    videojs.browser.IE_VERSION = null;
-    videojs.browser.IS_EDGE = true;
-
-    // mock buffered values so removes are processed
-    segmentLoader.sourceUpdater_.audioBuffer.buffered = createTimeRanges([[0, 10]]);
-    segmentLoader.sourceUpdater_.videoBuffer.buffered = createTimeRanges([[0, 10]]);
-
-    this.playlistController.fastQualityChange_();
-    // trigger updateend to indicate the end of the remove operation
-    segmentLoader.sourceUpdater_.audioBuffer.trigger('updateend');
-    segmentLoader.sourceUpdater_.videoBuffer.trigger('updateend');
-    this.clock.tick(1);
-
-    assert.equal(
-      this.player.currentTime(),
-      timeBeforeSwitch + 0.04,
-      'seeks forward on fast quality switch'
-    );
-    assert.equal(seeks, 1, 'seek event occurs on fast quality switch');
-
-    videojs.browser.IE_VERSION = oldIEVersion;
-    videojs.browser.IS_EDGE = oldIsEdge;
-  });
-});
-
-QUnit.test('seeks forward 0.04 sec for fast quality switch on IE', function(assert) {
-  const oldIEVersion = videojs.browser.IE_VERSION;
-  const oldIsEdge = videojs.browser.IS_EDGE;
-  let seeks = 0;
-
-  this.playlistController.mediaSource.trigger('sourceopen');
-  // main
-  this.standardXHRResponse(this.requests.shift());
-  // media
-  this.standardXHRResponse(this.requests.shift());
-
-  const segmentLoader = this.playlistController.mainSegmentLoader_;
-
-  return requestAndAppendSegment({
-    request: this.requests.shift(),
-    segmentLoader,
-    clock: this.clock
-  }).then(() => {
-    // media is changed
-    this.playlistController.selectPlaylist = () => {
-      const playlists = this.playlistController.main().playlists;
-      const currentPlaylist = this.playlistController.media();
-
-      return playlists.find((playlist) => playlist !== currentPlaylist);
-    };
-
-    this.player.tech_.on('seeking', function() {
-      seeks++;
-    });
-
-    const timeBeforeSwitch = this.player.currentTime();
-
-    videojs.browser.IE_VERSION = 11;
-    videojs.browser.IS_EDGE = false;
-
-    // mock buffered values so removes are processed
-    segmentLoader.sourceUpdater_.audioBuffer.buffered = createTimeRanges([[0, 10]]);
-    segmentLoader.sourceUpdater_.videoBuffer.buffered = createTimeRanges([[0, 10]]);
-
-    this.playlistController.fastQualityChange_();
-    // trigger updateend to indicate the end of the remove operation
-    segmentLoader.sourceUpdater_.audioBuffer.trigger('updateend');
-    segmentLoader.sourceUpdater_.videoBuffer.trigger('updateend');
-    this.clock.tick(1);
-
-    assert.equal(
-      this.player.currentTime(),
-      timeBeforeSwitch + 0.04,
-      'seeks forward on fast quality switch'
-    );
-    assert.equal(seeks, 1, 'seek event occurs on fast quality switch');
-
-    videojs.browser.IE_VERSION = oldIEVersion;
-    videojs.browser.IS_EDGE = oldIsEdge;
   });
 });
 
@@ -5040,6 +4920,25 @@ QUnit.test('playlist codecs take priority over others', function(assert) {
   assert.deepEqual(codecs, {video: 'avc1.4b400d', audio: 'mp4a.40.20'}, 'codecs returned');
 });
 
+QUnit.test('Current pending segment\'s playlist codecs take priority over others', function(assert) {
+  this.contentSetup({
+    mainStartingMedia: {videoCodec: 'avc1.4c400d', hasVideo: true, hasAudio: false},
+    audioStartingMedia: {audioCodec: 'mp4a.40.5', hasVideo: false, hasAudio: true},
+    mainPlaylist: {attributes: {CODECS: 'avc1.4b400d', AUDIO: 'low-quality'}},
+    audioPlaylist: {attributes: {CODECS: 'mp4a.40.20'}}
+  });
+
+  const originalGetPendingSegmentPlaylist = this.pc.mainSegmentLoader_.getPendingSegmentPlaylist.bind(this.pc.mainSegmentLoader_);
+
+  this.pc.mainSegmentLoader_.getPendingSegmentPlaylist = () => ({attributes: {CODECS: 'avc1.64001f', AUDIO: 'low-quality'}});
+
+  const codecs = this.pc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.exclusionList, [], 'did not blacklist anything');
+  assert.deepEqual(codecs, {video: 'avc1.64001f', audio: 'mp4a.40.20'}, 'codecs returned');
+  this.pc.mainSegmentLoader_.getPendingSegmentPlaylist = originalGetPendingSegmentPlaylist;
+});
+
 QUnit.test('uses default codecs if no codecs are found', function(assert) {
   this.contentSetup({
     mainStartingMedia: {hasVideo: true, hasAudio: false},
@@ -5069,6 +4968,27 @@ QUnit.test('excludes playlist without detected audio/video', function(assert) {
     error: { message: 'Could not determine codecs for playlist.' }
   }], 'excluded playlist');
   assert.deepEqual(codecs, void 0, 'no codecs returned');
+});
+
+QUnit.test('excludes current pending segment\'s playlist without detected audio/video', function(assert) {
+  this.contentSetup({
+    mainStartingMedia: {},
+    audioStartingMedia: {},
+    mainPlaylist: {attributes: {}}
+  });
+
+  const originalGetPendingSegmentPlaylist = this.pc.mainSegmentLoader_.getPendingSegmentPlaylist.bind(this.pc.mainSegmentLoader_);
+
+  this.pc.mainSegmentLoader_.getPendingSegmentPlaylist = () => ({attributes: {CODECS: ''}});
+  const codecs = this.pc.getCodecsOrExclude_();
+
+  assert.deepEqual(this.exclusionList, [{
+    playlistExclusionDuration: Infinity,
+    playlistToExclude: {attributes: {CODECS: ''}},
+    error: { message: 'Could not determine codecs for playlist.' }
+  }], 'excluded playlist');
+  assert.deepEqual(codecs, void 0, 'no codecs returned');
+  this.pc.mainSegmentLoader_.getPendingSegmentPlaylist = originalGetPendingSegmentPlaylist;
 });
 
 QUnit.test('excludes unsupported muxer codecs for ts', function(assert) {
