@@ -64,6 +64,7 @@ not meant serve as an exhaustive list.
 * In-manifest [WebVTT] subtitles are automatically translated into standard HTML5 subtitle
   tracks
 * [AES-128] segment encryption
+* In-manifest EventStream and Event tags are automatically translated into HTML5 metadata cues
 
 ## Notable Missing Features
 
