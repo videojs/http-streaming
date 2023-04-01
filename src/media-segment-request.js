@@ -497,38 +497,37 @@ const handleSegmentBytes = ({
         if (trackInfo.hasVideo) {
           timingInfoFn(segment, 'video', 'start', startTime);
         }
-
-        // Run through the CaptionParser in case there are captions.
-        // Initialize CaptionParser if it hasn't been yet
-        if (!tracks.video || !data.byteLength || !segment.transmuxer) {
-          finishLoading();
-          return;
-        }
-
         workerCallback({
-          action: 'pushMp4Captions',
-          endAction: 'mp4Captions',
-          transmuxer: segment.transmuxer,
+          action: 'probeEmsgID3',
           data: bytesAsUint8Array,
-          timescales: segment.map.timescales,
-          trackIds: [tracks.video.id],
-          callback: (message) => {
+          transmuxer: segment.transmuxer,
+          offset: startTime,
+          callback: ({emsgData, id3Frames}) => {
             // transfer bytes back to us
-            bytes = message.data.buffer;
-            segment.bytes = bytesAsUint8Array = message.data;
-            message.logs.forEach(function(log) {
-              onTransmuxerLog(merge(log, {stream: 'mp4CaptionParser'}));
-            });
+            bytes = emsgData.buffer;
+            segment.bytes = bytesAsUint8Array = emsgData;
+
+            // Run through the CaptionParser in case there are captions.
+            // Initialize CaptionParser if it hasn't been yet
+            if (!tracks.video || !data.byteLength || !segment.transmuxer) {
+              finishLoading(undefined, id3Frames);
+              return;
+            }
 
             workerCallback({
-              action: 'probeEmsgID3',
-              data: bytesAsUint8Array,
+              action: 'pushMp4Captions',
+              endAction: 'mp4Captions',
               transmuxer: segment.transmuxer,
-              offset: startTime,
-              callback: ({emsgData, id3Frames}) => {
+              data: bytesAsUint8Array,
+              timescales: segment.map.timescales,
+              trackIds: [tracks.video.id],
+              callback: (message) => {
                 // transfer bytes back to us
-                bytes = emsgData.buffer;
-                segment.bytes = bytesAsUint8Array = emsgData;
+                bytes = message.data.buffer;
+                segment.bytes = bytesAsUint8Array = message.data;
+                message.logs.forEach(function(log) {
+                  onTransmuxerLog(merge(log, {stream: 'mp4CaptionParser'}));
+                });
                 finishLoading(message.captions, id3Frames);
               }
             });
