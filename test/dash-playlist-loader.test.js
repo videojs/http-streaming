@@ -2988,4 +2988,3 @@ QUnit.test('updateMain: updates playlists and mediaGroups when labels change', f
     'updates playlists and media groups'
   );
 });
-
