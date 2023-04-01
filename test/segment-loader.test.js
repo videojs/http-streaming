@@ -2530,6 +2530,7 @@ QUnit.module('SegmentLoader', function(hooks) {
               addCue: addCueSpy
             }
           });
+
         this.sourceUpdater_ = loader.sourceUpdater_;
         this.inbandTextTracks_ = loader.inbandTextTracks_;
         this.tech_ = loader.vhs_.tech_;

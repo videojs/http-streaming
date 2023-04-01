@@ -137,10 +137,6 @@ export const addMetadata = ({
   timestampOffset,
   videoDuration
 }) => {
-  // console.dir(inbandTextTracks);
-  // console.dir(metadataArray);
-  // console.dir(timestampOffset);
-  // console.dir(videoDuration);
   if (!metadataArray) {
     return;
   }
