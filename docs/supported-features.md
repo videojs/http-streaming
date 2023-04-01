@@ -115,7 +115,6 @@ not yet been implemented. VHS currently supports everything in the
 * [EXT-X-SESSION-DATA]
 * [EXT-X-SESSION-KEY]
 * [EXT-X-INDEPENDENT-SEGMENTS]
-* Use of [EXT-X-START] (value parsed but not used)
 * Alternate video via [EXT-X-MEDIA] of type video
 * ASSOC-LANGUAGE in [EXT-X-MEDIA]
 * CHANNELS in [EXT-X-MEDIA]

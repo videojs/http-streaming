@@ -987,20 +987,33 @@ export class PlaylistController extends videojs.EventTarget {
       return false;
     }
 
-    // when the video is a live stream
-    if (!media.endList) {
+    // when the video is a live stream and/or has a start time
+    if (!media.endList || media.start) {
       const seekable = this.seekable();
 
       if (!seekable.length) {
-        // without a seekable range, the player cannot seek to begin buffering at the live
-        // point
+        // without a seekable range, the player cannot seek to begin buffering at the
+        // live or start point
         return false;
+      }
+
+      const seekableEnd = seekable.end(0);
+      let startPoint = seekableEnd;
+
+      if (media.start) {
+        const offset = media.start.timeOffset;
+
+        if (offset < 0) {
+          startPoint = Math.max(seekableEnd + offset, seekable.start(0));
+        } else {
+          startPoint = Math.min(seekableEnd, offset);
+        }
       }
 
       // trigger firstplay to inform the source handler to ignore the next seek event
       this.trigger('firstplay');
       // seek to the live point
-      this.tech_.setCurrentTime(seekable.end(0));
+      this.tech_.setCurrentTime(startPoint);
     }
 
     this.hasPlayed_ = true;

@@ -396,6 +396,72 @@ QUnit.test('autoplay seeks to the live point after media source open', function(
   assert.notEqual(currentTime, 0, 'seeked on autoplay');
 });
 
+QUnit.test('seeks to the start offset point', function(assert) {
+  let currentTime = 0;
+
+  this.player.autoplay(true);
+  this.player.on('seeking', () => {
+    currentTime = this.player.currentTime();
+  });
+  this.player.src({
+    src: 'startVod.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  this.player.tech_.trigger('play');
+  this.standardXHRResponse(this.requests.shift());
+  this.clock.tick(1);
+
+  assert.strictEqual(currentTime, 10.3, 'seeked to positive offset');
+});
+
+QUnit.test('seeks to non-negative offet for a live stream', function(assert) {
+  let currentTime = 0;
+
+  this.player.autoplay(true);
+  this.player.on('seeking', () => {
+    currentTime = this.player.currentTime();
+  });
+  this.player.src({
+    src: 'startLive.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  this.player.tech_.trigger('play');
+  this.standardXHRResponse(this.requests.shift());
+  this.clock.tick(1);
+
+  assert.strictEqual(currentTime, 0, 'seeked to offset on live stream');
+});
+
+QUnit.test('seeks to negative offset point', function(assert) {
+  let currentTime = 0;
+
+  this.player.autoplay(true);
+  this.player.on('seeking', () => {
+    currentTime = this.player.currentTime();
+  });
+  this.player.src({
+    src: 'startNegative.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  this.player.tech_.trigger('play');
+  this.standardXHRResponse(this.requests.shift());
+  this.clock.tick(1);
+
+  assert.strictEqual(currentTime, 35, 'seeked to negative offset');
+});
+
 QUnit.test(
   'duration is set when the source opens after the playlist is loaded',
   function(assert) {
