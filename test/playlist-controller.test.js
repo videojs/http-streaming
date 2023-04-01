@@ -340,14 +340,15 @@ QUnit.test('passes options to PlaylistLoader', function(assert) {
   controller.dispose();
 });
 
-QUnit.test('passes addMetadataToTextTrack to DASH playlist loader', function(assert) {
+QUnit.test('addMetadataToTextTrack adds expected metadata to the metadataTrack', function(assert) {
   const options = {
     src: 'test.mpd',
     tech: this.player.tech_,
     sourceType: 'dash'
   };
-  const controller = new PlaylistController(options);
-  const expectedCueValues = [
+
+  // Test messageData property manifest
+  let expectedCueValues = [
     {
       startTime: 63857834.256000005,
       data: 'google_7617584398642699833'
@@ -406,11 +407,12 @@ QUnit.test('passes addMetadataToTextTrack to DASH playlist loader', function(ass
     }
   ];
 
+  let controller = new PlaylistController(options);
+
   controller.mainPlaylistLoader_.mainXml_ = manifests.eventStreamMessageData;
   controller.mainPlaylistLoader_.handleMain_();
-
   // Gather actual cues.
-  const actualCueValues = controller.inbandTextTracks_.metadataTrack_.cues_.map((cue) => {
+  let actualCueValues = controller.inbandTextTracks_.metadataTrack_.cues_.map((cue) => {
     return {
       startTime: cue.startTime,
       data: cue.value.data
@@ -418,6 +420,39 @@ QUnit.test('passes addMetadataToTextTrack to DASH playlist loader', function(ass
   });
 
   assert.ok(controller.mainPlaylistLoader_.addMetadataToTextTrack, 'addMetadataToTextTrack is passed to the DASH mainPlaylistLoader');
+  assert.deepEqual(actualCueValues, expectedCueValues, 'expected cue values are added to the metadataTrack');
+  controller.dispose();
+
+  // Test <Event> content manifest
+  expectedCueValues = [
+    {
+      startTime: 63857834.256000005,
+      data: 'foo'
+    },
+    {
+      startTime: 63857835.056,
+      data: 'bar'
+    },
+    {
+      startTime: 63857836.056,
+      data: 'foo_bar'
+    },
+    {
+      startTime: 63857836.650000006,
+      data: 'bar_foo'
+    }
+  ];
+
+  controller = new PlaylistController(options);
+  controller.mainPlaylistLoader_.mainXml_ = manifests.eventStream;
+  controller.mainPlaylistLoader_.handleMain_();
+  actualCueValues = controller.inbandTextTracks_.metadataTrack_.cues_.map((cue) => {
+    return {
+      startTime: cue.startTime,
+      data: cue.value.data
+    };
+  });
+
   assert.deepEqual(actualCueValues, expectedCueValues, 'expected cue values are added to the metadataTrack');
   controller.dispose();
 });
