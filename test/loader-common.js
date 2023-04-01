@@ -62,7 +62,7 @@ export const LoaderCommonHooks = {
     this.goalBufferLength =
       PlaylistController.prototype.goalBufferLength.bind(this);
     this.mediaSource = new window.MediaSource();
-    this.sourceUpdater = this.sourceUpdater_ = new SourceUpdater(this.mediaSource);
+    this.sourceUpdater_ = new SourceUpdater(this.mediaSource);
     this.inbandTextTracks_ = {
       metadataTrack_: {
         addCue: () => {}
@@ -88,7 +88,7 @@ export const LoaderCommonHooks = {
 
     this.env.restore();
     this.decrypter.terminate();
-    this.sourceUpdater.dispose();
+    this.sourceUpdater_.dispose();
     this.timelineChangeController.dispose();
   }
 };
@@ -113,7 +113,7 @@ export const LoaderCommonSettings = function(settings) {
     duration: () => this.mediaSource.duration,
     goalBufferLength: () => this.goalBufferLength(),
     mediaSource: this.mediaSource,
-    sourceUpdater: this.sourceUpdater,
+    sourceUpdater: this.sourceUpdater_,
     syncController: this.syncController,
     decrypter: this.decrypter,
     timelineChangeController: this.timelineChangeController,
