@@ -62,7 +62,7 @@
     "aes-decrypter": "4.0.1",
     "global": "^4.4.0",
     "m3u8-parser": "^6.0.0",
-    "mpd-parser": "^1.1.0",
+    "mpd-parser": "^1.1.1",
     "mux.js": "6.3.0",
     "video.js": "^7 || ^8"
   },
@@ -70,6 +70,8 @@
     "video.js": "^7 || ^8"
   },
   "devDependencies": {
+    "@babel/cli": "^7.21.0",
+    "@popperjs/core": "^2.11.7",
     "@rollup/plugin-replace": "^2.3.4",
     "@rollup/plugin-strip": "^2.0.1",
     "@videojs/generator-helpers": "~3.1.0",
@@ -86,7 +88,7 @@
     "sinon": "^8.1.1",
     "url-toolkit": "^2.2.1",
     "videojs-contrib-eme": "^5.0.1",
-    "videojs-contrib-quality-levels": "^2.0.4",
+    "videojs-contrib-quality-levels": "^4.0.0",
     "videojs-generate-karma-config": "^8.0.1",
     "videojs-generate-rollup-config": "^7.0.0",
     "videojs-generator-verify": "~3.0.1",
