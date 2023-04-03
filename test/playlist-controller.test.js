@@ -340,6 +340,123 @@ QUnit.test('passes options to PlaylistLoader', function(assert) {
   controller.dispose();
 });
 
+QUnit.test('addMetadataToTextTrack adds expected metadata to the metadataTrack', function(assert) {
+  const options = {
+    src: 'test.mpd',
+    tech: this.player.tech_,
+    sourceType: 'dash'
+  };
+
+  // Test messageData property manifest
+  let expectedCueValues = [
+    {
+      startTime: 63857834.256000005,
+      data: 'google_7617584398642699833'
+    },
+    {
+      startTime: 63857835.056,
+      data: 'google_gkmxVFMIdHz413g3pIgZtITUSFFQYDnQ421MGEkVnTA'
+    },
+    {
+      startTime: 63857836.056,
+      data: 'google_Yl7LFi1Fh-TD39nqQzIiGLDD1lx7tYRjjmYND7tEEjM'
+    },
+    {
+      startTime: 63857836.650000006,
+      data: 'google_5437877779805246002'
+    },
+    {
+      startTime: 63857837.056,
+      data: 'google_8X2eBAFbC2cUJmNNHkrcDKqSJQncj2nrVoB2eIu6lrc'
+    },
+    {
+      startTime: 63857838.056,
+      data: 'google_Qyxg2ZhKfBUls-J7oj0Re0_-gCQFviaaEMMDvIOTEWE'
+    },
+    {
+      startTime: 63857838.894,
+      data: 'google_7174574530630198647'
+    },
+    {
+      startTime: 63857839.056,
+      data: 'google_EFt2jovkcT9PqjuLLC5kH7gIIjWvc0iIhROFED6kqsg'
+    },
+    {
+      startTime: 63857840.056,
+      data: 'google_eUHx4vMmAikHojJZLOTR2XZdg1A9b9A8TY7F2CVC3cA'
+    },
+    {
+      startTime: 63857841.056,
+      data: 'google_gkmxVFMIdHz413g3pIgZtITUSFFQYDnQ421MGEkVnTA'
+    },
+    {
+      startTime: 63857841.638000004,
+      data: 'google_1443613685977331553'
+    },
+    {
+      startTime: 63857842.056,
+      data: 'google_Yl7LFi1Fh-TD39nqQzIiGLDD1lx7tYRjjmYND7tEEjM'
+    },
+    {
+      startTime: 63857843.056,
+      data: 'google_8X2eBAFbC2cUJmNNHkrcDKqSJQncj2nrVoB2eIu6lrc'
+    },
+    {
+      startTime: 63857843.13200001,
+      data: 'google_5822903356700578162'
+    }
+  ];
+
+  let controller = new PlaylistController(options);
+
+  controller.mainPlaylistLoader_.mainXml_ = manifests.eventStreamMessageData;
+  controller.mainPlaylistLoader_.handleMain_();
+  // Gather actual cues.
+  let actualCueValues = controller.inbandTextTracks_.metadataTrack_.cues_.map((cue) => {
+    return {
+      startTime: cue.startTime,
+      data: cue.value.data
+    };
+  });
+
+  assert.ok(controller.mainPlaylistLoader_.addMetadataToTextTrack, 'addMetadataToTextTrack is passed to the DASH mainPlaylistLoader');
+  assert.deepEqual(actualCueValues, expectedCueValues, 'expected cue values are added to the metadataTrack');
+  controller.dispose();
+
+  // Test <Event> content manifest
+  expectedCueValues = [
+    {
+      startTime: 63857834.256000005,
+      data: 'foo'
+    },
+    {
+      startTime: 63857835.056,
+      data: 'bar'
+    },
+    {
+      startTime: 63857836.056,
+      data: 'foo_bar'
+    },
+    {
+      startTime: 63857836.650000006,
+      data: 'bar_foo'
+    }
+  ];
+
+  controller = new PlaylistController(options);
+  controller.mainPlaylistLoader_.mainXml_ = manifests.eventStream;
+  controller.mainPlaylistLoader_.handleMain_();
+  actualCueValues = controller.inbandTextTracks_.metadataTrack_.cues_.map((cue) => {
+    return {
+      startTime: cue.startTime,
+      data: cue.value.data
+    };
+  });
+
+  assert.deepEqual(actualCueValues, expectedCueValues, 'expected cue values are added to the metadataTrack');
+  controller.dispose();
+});
+
 QUnit.test('obeys metadata preload option', function(assert) {
   this.player.preload('metadata');
   // main
