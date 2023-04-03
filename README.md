@@ -57,6 +57,7 @@ Video.js Compatibility: 7.x, 8.x
       - [liveRangeSafeTimeDelta](#liverangesafetimedelta)
       - [useNetworkInformationApi](#usenetworkinformationapi)
       - [useDtsForTimestampOffset](#usedtsfortimestampoffset)
+      - [useForcedSubtitles](#useforcedsubtitles)
       - [captionServices](#captionservices)
         - [Format](#format)
         - [Example](#example)
@@ -460,6 +461,14 @@ This option defaults to `false`.
 * Type: `boolean`,
 * Default: `false`
 * Use [Decode Timestamp](https://www.w3.org/TR/media-source/#decode-timestamp) instead of [Presentation Timestamp](https://www.w3.org/TR/media-source/#presentation-timestamp) for [timestampOffset](https://www.w3.org/TR/media-source/#dom-sourcebuffer-timestampoffset) calculation. This option was introduced to align with DTS-based browsers. This option affects only transmuxed data (eg: transport stream). For more info please check the following [issue](https://github.com/videojs/http-streaming/issues/1247).  
+
+##### useForcedSubtitles
+* Type: `boolean`
+* Default: `false`
+* can be used as a source option
+* can be used as an initialization option
+
+If true, this option allows the player to display forced subtitles. When available, forced subtitles allow to translate foreign language dialogues or images containing foreign language characters.
 
 ##### captionServices
 * Type: `object`

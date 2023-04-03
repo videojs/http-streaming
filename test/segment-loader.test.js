@@ -2421,6 +2421,9 @@ QUnit.module('SegmentLoader', function(hooks) {
             }
           });
 
+        this.sourceUpdater_ = loader.sourceUpdater_;
+        this.inbandTextTracks_ = loader.inbandTextTracks_;
+        this.tech_ = loader.vhs_.tech_;
         standardXHRResponse(this.requests.shift(), muxedSegment());
 
       });
@@ -2491,8 +2494,8 @@ QUnit.module('SegmentLoader', function(hooks) {
           // Simulate a caption event happening that will call handleCaptions_
           const dispatchType = 0x10;
 
-          // Ensure video and audio offset are different, to know which offset is used
-          loader.sourceUpdater_.videoTimestampOffset(loader.sourceUpdater_.audioTimestampOffset() - 10);
+          // Ensure no video buffer is present in the test case
+          loader.sourceUpdater_.videoBuffer = undefined;
 
           loader.handleId3_(loader.pendingSegment_, metadata, dispatchType);
         });
@@ -2533,6 +2536,9 @@ QUnit.module('SegmentLoader', function(hooks) {
             }
           });
 
+        this.sourceUpdater_ = loader.sourceUpdater_;
+        this.inbandTextTracks_ = loader.inbandTextTracks_;
+        this.tech_ = loader.vhs_.tech_;
         standardXHRResponse(this.requests.shift(), audioSegment());
       });
     });
