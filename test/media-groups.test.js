@@ -1076,7 +1076,9 @@ QUnit.module('MediaGroups', function() {
       this.settings = {
         mode: 'html5',
         mainPlaylistLoader: {main: this.main},
-        vhs: {},
+        vhs: {
+          options_: {}
+        },
         tech: {
           options_: {},
           addRemoteTextTrack(track) {

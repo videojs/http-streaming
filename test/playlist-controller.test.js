@@ -3349,6 +3349,75 @@ QUnit.test('adds subtitle tracks when a media playlist is loaded', function(asse
   assert.equal(this.player.textTracks().length, 0, 'text tracks cleaned');
 });
 
+QUnit.test('adds subtitle tracks including forced subtitles when a media playlist is loaded', function(assert) {
+  let vhsWebvttEvents = 0;
+
+  this.requests.length = 0;
+  this.player.dispose();
+  this.player = createPlayer({
+    html5: {
+      vhs: { useForcedSubtitles: true }
+    }
+  });
+  this.player.src({
+    src: 'manifest/main-subtitles.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  this.player.tech_.on('usage', (event) => {
+    if (event.name === 'vhs-webvtt') {
+      vhsWebvttEvents++;
+    }
+  });
+
+  const playlistController = this.player.tech_.vhs.playlistController_;
+
+  assert.equal(vhsWebvttEvents, 0, 'there is no webvtt detected');
+  assert.equal(this.player.textTracks().length, 1, 'one text track to start');
+  assert.equal(
+    this.player.textTracks()[0].label,
+    'segment-metadata',
+    'only segment-metadata text track'
+  );
+
+  // main, contains media groups for subtitles
+  this.standardXHRResponse(this.requests.shift());
+
+  // we wait for loadedmetadata before setting subtitle tracks, so we need to wait for a
+  // media playlist
+  assert.equal(this.player.textTracks().length, 1, 'only one text track after main');
+
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  const main = playlistController.mainPlaylistLoader_.main;
+  const subs = main.mediaGroups.SUBTITLES.subs;
+  const subsArr = Object.keys(subs).map(key => subs[key]);
+
+  assert.equal(subsArr.length, 4, 'got 4 subtitles');
+  assert.equal(subsArr.filter(sub => sub.forced === false).length, 2, '2 forced');
+  assert.equal(subsArr.filter(sub => sub.forced === true).length, 2, '2 non-forced');
+
+  const textTracks = this.player.textTracks();
+
+  assert.equal(textTracks.length, 5, 'forced text tracks were added');
+  assert.equal(textTracks[1].mode, 'disabled', 'track starts disabled');
+  assert.equal(textTracks[2].mode, 'disabled', 'track starts disabled');
+  assert.equal(vhsWebvttEvents, 1, 'there is webvtt detected in the rendition');
+
+  // change source to make sure tracks are cleaned up
+  this.player.src({
+    src: 'http://example.com/media.mp4',
+    type: 'video/mp4'
+  });
+
+  this.clock.tick(1);
+
+  assert.equal(this.player.textTracks().length, 0, 'text tracks cleaned');
+});
+
 QUnit.test('switches off subtitles on subtitle errors', function(assert) {
   this.requests.length = 0;
   this.player.dispose();
