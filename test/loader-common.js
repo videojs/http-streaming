@@ -52,7 +52,9 @@ export const LoaderCommonHooks = {
         playbackRate: () => this.playbackRate,
         currentTime: () => this.currentTime,
         textTracks: () => {},
-        addRemoteTextTrack: () => {},
+        addRemoteTextTrack: (track) => {
+          return track;
+        },
         trigger: () => {}
       }
     };
@@ -60,10 +62,16 @@ export const LoaderCommonHooks = {
     this.goalBufferLength =
       PlaylistController.prototype.goalBufferLength.bind(this);
     this.mediaSource = new window.MediaSource();
-    this.sourceUpdater = new SourceUpdater(this.mediaSource);
+    this.sourceUpdater_ = new SourceUpdater(this.mediaSource);
+    this.inbandTextTracks_ = {
+      metadataTrack_: {
+        addCue: () => {}
+      }
+    };
     this.syncController = new SyncController();
     this.decrypter = new Decrypter();
     this.timelineChangeController = new TimelineChangeController();
+    this.addMetadataToTextTrack = PlaylistController.prototype.addMetadataToTextTrack.bind(this);
 
     this.video = document.createElement('video');
 
@@ -80,7 +88,7 @@ export const LoaderCommonHooks = {
 
     this.env.restore();
     this.decrypter.terminate();
-    this.sourceUpdater.dispose();
+    this.sourceUpdater_.dispose();
     this.timelineChangeController.dispose();
   }
 };
@@ -105,10 +113,11 @@ export const LoaderCommonSettings = function(settings) {
     duration: () => this.mediaSource.duration,
     goalBufferLength: () => this.goalBufferLength(),
     mediaSource: this.mediaSource,
-    sourceUpdater: this.sourceUpdater,
+    sourceUpdater: this.sourceUpdater_,
     syncController: this.syncController,
     decrypter: this.decrypter,
-    timelineChangeController: this.timelineChangeController
+    timelineChangeController: this.timelineChangeController,
+    addMetadataToTextTrack: this.addMetadataToTextTrack
   }, settings);
 };
 

@@ -546,7 +546,7 @@ export const initialize = {
       }
 
       for (const variantLabel in mediaGroups[type][groupId]) {
-        if (mediaGroups[type][groupId][variantLabel].forced) {
+        if (!vhs.options_.useForcedSubtitles && mediaGroups[type][groupId][variantLabel].forced) {
           // Subtitle playlists with the forced attribute are not selectable in Safari.
           // According to Apple's HLS Authoring Specification:
           //   If content has forced subtitles and regular subtitles in a given language,

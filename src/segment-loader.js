@@ -14,8 +14,6 @@ import logger from './util/logger';
 import { concatSegments } from './util/segment';
 import {
   createCaptionsTrackIfNotExists,
-  createMetadataTrackIfNotExists,
-  addMetadata,
   addCaptionData,
   removeCuesFromTrack
 } from './util/text-tracks';
@@ -563,6 +561,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.useDtsForTimestampOffset_ = settings.useDtsForTimestampOffset;
     this.captionServices_ = settings.captionServices;
     this.exactManifestTimings = settings.exactManifestTimings;
+    this.addMetadataToTextTrack = settings.addMetadataToTextTrack;
 
     // private instance variables
     this.checkBufferTimeout_ = null;
@@ -1872,21 +1871,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.metadataQueue_.id3.push(this.handleId3_.bind(this, simpleSegment, id3Frames, dispatchType));
       return;
     }
-
-    const timestampOffset = this.sourceUpdater_.videoTimestampOffset() === null ?
-      this.sourceUpdater_.audioTimestampOffset() :
-      this.sourceUpdater_.videoTimestampOffset();
-
-    // There's potentially an issue where we could double add metadata if there's a muxed
-    // audio/video source with a metadata track, and an alt audio with a metadata track.
-    // However, this probably won't happen, and if it does it can be handled then.
-    createMetadataTrackIfNotExists(this.inbandTextTracks_, dispatchType, this.vhs_.tech_);
-    addMetadata({
-      inbandTextTracks: this.inbandTextTracks_,
-      metadataArray: id3Frames,
-      timestampOffset,
-      videoDuration: this.duration_()
-    });
+    this.addMetadataToTextTrack(dispatchType, id3Frames, this.duration_());
   }
 
   processMetadataQueue_() {
