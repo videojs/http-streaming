@@ -2012,8 +2012,8 @@ export class PlaylistController extends videojs.EventTarget {
   }
 
   addMetadataToTextTrack(dispatchType, metadataArray, videoDuration) {
-    const timestampOffset = this.sourceUpdater_.videoTimestampOffset() === null ?
-      this.sourceUpdater_.audioTimestampOffset() : this.sourceUpdater_.videoTimestampOffset();
+    const timestampOffset = this.sourceUpdater_.videoBuffer ?
+      this.sourceUpdater_.videoTimestampOffset() : this.sourceUpdater_.audioTimestampOffset();
 
     // There's potentially an issue where we could double add metadata if there's a muxed
     // audio/video source with a metadata track, and an alt audio with a metadata track.
