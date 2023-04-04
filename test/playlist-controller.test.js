@@ -340,6 +340,123 @@ QUnit.test('passes options to PlaylistLoader', function(assert) {
   controller.dispose();
 });
 
+QUnit.test('addMetadataToTextTrack adds expected metadata to the metadataTrack', function(assert) {
+  const options = {
+    src: 'test.mpd',
+    tech: this.player.tech_,
+    sourceType: 'dash'
+  };
+
+  // Test messageData property manifest
+  let expectedCueValues = [
+    {
+      startTime: 63857834.256000005,
+      data: 'google_7617584398642699833'
+    },
+    {
+      startTime: 63857835.056,
+      data: 'google_gkmxVFMIdHz413g3pIgZtITUSFFQYDnQ421MGEkVnTA'
+    },
+    {
+      startTime: 63857836.056,
+      data: 'google_Yl7LFi1Fh-TD39nqQzIiGLDD1lx7tYRjjmYND7tEEjM'
+    },
+    {
+      startTime: 63857836.650000006,
+      data: 'google_5437877779805246002'
+    },
+    {
+      startTime: 63857837.056,
+      data: 'google_8X2eBAFbC2cUJmNNHkrcDKqSJQncj2nrVoB2eIu6lrc'
+    },
+    {
+      startTime: 63857838.056,
+      data: 'google_Qyxg2ZhKfBUls-J7oj0Re0_-gCQFviaaEMMDvIOTEWE'
+    },
+    {
+      startTime: 63857838.894,
+      data: 'google_7174574530630198647'
+    },
+    {
+      startTime: 63857839.056,
+      data: 'google_EFt2jovkcT9PqjuLLC5kH7gIIjWvc0iIhROFED6kqsg'
+    },
+    {
+      startTime: 63857840.056,
+      data: 'google_eUHx4vMmAikHojJZLOTR2XZdg1A9b9A8TY7F2CVC3cA'
+    },
+    {
+      startTime: 63857841.056,
+      data: 'google_gkmxVFMIdHz413g3pIgZtITUSFFQYDnQ421MGEkVnTA'
+    },
+    {
+      startTime: 63857841.638000004,
+      data: 'google_1443613685977331553'
+    },
+    {
+      startTime: 63857842.056,
+      data: 'google_Yl7LFi1Fh-TD39nqQzIiGLDD1lx7tYRjjmYND7tEEjM'
+    },
+    {
+      startTime: 63857843.056,
+      data: 'google_8X2eBAFbC2cUJmNNHkrcDKqSJQncj2nrVoB2eIu6lrc'
+    },
+    {
+      startTime: 63857843.13200001,
+      data: 'google_5822903356700578162'
+    }
+  ];
+
+  let controller = new PlaylistController(options);
+
+  controller.mainPlaylistLoader_.mainXml_ = manifests.eventStreamMessageData;
+  controller.mainPlaylistLoader_.handleMain_();
+  // Gather actual cues.
+  let actualCueValues = controller.inbandTextTracks_.metadataTrack_.cues_.map((cue) => {
+    return {
+      startTime: cue.startTime,
+      data: cue.value.data
+    };
+  });
+
+  assert.ok(controller.mainPlaylistLoader_.addMetadataToTextTrack, 'addMetadataToTextTrack is passed to the DASH mainPlaylistLoader');
+  assert.deepEqual(actualCueValues, expectedCueValues, 'expected cue values are added to the metadataTrack');
+  controller.dispose();
+
+  // Test <Event> content manifest
+  expectedCueValues = [
+    {
+      startTime: 63857834.256000005,
+      data: 'foo'
+    },
+    {
+      startTime: 63857835.056,
+      data: 'bar'
+    },
+    {
+      startTime: 63857836.056,
+      data: 'foo_bar'
+    },
+    {
+      startTime: 63857836.650000006,
+      data: 'bar_foo'
+    }
+  ];
+
+  controller = new PlaylistController(options);
+  controller.mainPlaylistLoader_.mainXml_ = manifests.eventStream;
+  controller.mainPlaylistLoader_.handleMain_();
+  actualCueValues = controller.inbandTextTracks_.metadataTrack_.cues_.map((cue) => {
+    return {
+      startTime: cue.startTime,
+      data: cue.value.data
+    };
+  });
+
+  assert.deepEqual(actualCueValues, expectedCueValues, 'expected cue values are added to the metadataTrack');
+  controller.dispose();
+});
+
 QUnit.test('obeys metadata preload option', function(assert) {
   this.player.preload('metadata');
   // main
@@ -3217,6 +3334,75 @@ QUnit.test('adds subtitle tracks when a media playlist is loaded', function(asse
   const textTracks = this.player.textTracks();
 
   assert.equal(textTracks.length, 3, 'non-forced text tracks were added');
+  assert.equal(textTracks[1].mode, 'disabled', 'track starts disabled');
+  assert.equal(textTracks[2].mode, 'disabled', 'track starts disabled');
+  assert.equal(vhsWebvttEvents, 1, 'there is webvtt detected in the rendition');
+
+  // change source to make sure tracks are cleaned up
+  this.player.src({
+    src: 'http://example.com/media.mp4',
+    type: 'video/mp4'
+  });
+
+  this.clock.tick(1);
+
+  assert.equal(this.player.textTracks().length, 0, 'text tracks cleaned');
+});
+
+QUnit.test('adds subtitle tracks including forced subtitles when a media playlist is loaded', function(assert) {
+  let vhsWebvttEvents = 0;
+
+  this.requests.length = 0;
+  this.player.dispose();
+  this.player = createPlayer({
+    html5: {
+      vhs: { useForcedSubtitles: true }
+    }
+  });
+  this.player.src({
+    src: 'manifest/main-subtitles.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  this.player.tech_.on('usage', (event) => {
+    if (event.name === 'vhs-webvtt') {
+      vhsWebvttEvents++;
+    }
+  });
+
+  const playlistController = this.player.tech_.vhs.playlistController_;
+
+  assert.equal(vhsWebvttEvents, 0, 'there is no webvtt detected');
+  assert.equal(this.player.textTracks().length, 1, 'one text track to start');
+  assert.equal(
+    this.player.textTracks()[0].label,
+    'segment-metadata',
+    'only segment-metadata text track'
+  );
+
+  // main, contains media groups for subtitles
+  this.standardXHRResponse(this.requests.shift());
+
+  // we wait for loadedmetadata before setting subtitle tracks, so we need to wait for a
+  // media playlist
+  assert.equal(this.player.textTracks().length, 1, 'only one text track after main');
+
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  const main = playlistController.mainPlaylistLoader_.main;
+  const subs = main.mediaGroups.SUBTITLES.subs;
+  const subsArr = Object.keys(subs).map(key => subs[key]);
+
+  assert.equal(subsArr.length, 4, 'got 4 subtitles');
+  assert.equal(subsArr.filter(sub => sub.forced === false).length, 2, '2 forced');
+  assert.equal(subsArr.filter(sub => sub.forced === true).length, 2, '2 non-forced');
+
+  const textTracks = this.player.textTracks();
+
+  assert.equal(textTracks.length, 5, 'forced text tracks were added');
   assert.equal(textTracks[1].mode, 'disabled', 'track starts disabled');
   assert.equal(textTracks[2].mode, 'disabled', 'track starts disabled');
   assert.equal(vhsWebvttEvents, 1, 'there is webvtt detected in the rendition');

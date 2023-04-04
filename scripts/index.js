@@ -451,7 +451,8 @@
     'dts-offset',
     'override-native',
     'preload',
-    'mirror-source'
+    'mirror-source',
+    'forced-subtitles'
   ].forEach(function(name) {
     stateEls[name] = document.getElementById(name);
   });
@@ -503,7 +504,8 @@
       'pixel-diff-selector',
       'network-info',
       'dts-offset',
-      'exact-manifest-timings'
+      'exact-manifest-timings',
+      'forced-subtitles'
     ].forEach(function(name) {
       stateEls[name].addEventListener('change', function(event) {
         saveState();
@@ -585,7 +587,8 @@
               exactManifestTimings: getInputValue(stateEls['exact-manifest-timings']),
               leastPixelDiffSelector: getInputValue(stateEls['pixel-diff-selector']),
               useNetworkInformationApi: getInputValue(stateEls['network-info']),
-              useDtsForTimestampOffset: getInputValue(stateEls['dts-offset'])
+              useDtsForTimestampOffset: getInputValue(stateEls['dts-offset']),
+              useForcedSubtitles: getInputValue(stateEls['forced-subtitles'])
             }
           }
         });

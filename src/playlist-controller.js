@@ -26,6 +26,7 @@ import { codecsForPlaylist, unwrapCodecList, codecCount } from './util/codecs.js
 import { createMediaTypes, setupMediaGroups } from './media-groups';
 import logger from './util/logger';
 import {merge, createTimeRanges} from './util/vjs-compat';
+import { addMetadata, createMetadataTrackIfNotExists } from './util/text-tracks';
 
 const ABORT_EARLY_EXCLUSION_SECONDS = 60 * 2;
 
@@ -254,7 +255,8 @@ export class PlaylistController extends videojs.EventTarget {
       cacheEncryptionKeys,
       sourceUpdater: this.sourceUpdater_,
       timelineChangeController: this.timelineChangeController_,
-      exactManifestTimings: options.exactManifestTimings
+      exactManifestTimings: options.exactManifestTimings,
+      addMetadataToTextTrack: this.addMetadataToTextTrack.bind(this)
     };
 
     // The source type check not only determines whether a special DASH playlist loader
@@ -262,7 +264,7 @@ export class PlaylistController extends videojs.EventTarget {
     // manifest object (instead of a URL). In the case of vhs-json, the default
     // PlaylistLoader should be used.
     this.mainPlaylistLoader_ = this.sourceType_ === 'dash' ?
-      new DashPlaylistLoader(src, this.vhs_, this.requestOptions_) :
+      new DashPlaylistLoader(src, this.vhs_, merge(this.requestOptions_, { addMetadataToTextTrack: this.addMetadataToTextTrack.bind(this) })) :
       new PlaylistLoader(src, this.vhs_, this.requestOptions_);
     this.setupMainPlaylistLoaderListeners_();
 
@@ -2022,4 +2024,19 @@ export class PlaylistController extends videojs.EventTarget {
     return Config.BUFFER_HIGH_WATER_LINE;
   }
 
+  addMetadataToTextTrack(dispatchType, metadataArray, videoDuration) {
+    const timestampOffset = this.sourceUpdater_.videoTimestampOffset() === null ?
+      this.sourceUpdater_.audioTimestampOffset() : this.sourceUpdater_.videoTimestampOffset();
+
+    // There's potentially an issue where we could double add metadata if there's a muxed
+    // audio/video source with a metadata track, and an alt audio with a metadata track.
+    // However, this probably won't happen, and if it does it can be handled then.
+    createMetadataTrackIfNotExists(this.inbandTextTracks_, dispatchType, this.tech_);
+    addMetadata({
+      inbandTextTracks: this.inbandTextTracks_,
+      metadataArray,
+      timestampOffset,
+      videoDuration
+    });
+  }
 }

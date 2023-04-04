@@ -312,6 +312,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
     this.vhs_ = vhs;
     this.withCredentials = withCredentials;
+    this.addMetadataToTextTrack = options.addMetadataToTextTrack;
 
     if (!srcUrlOrPlaylist) {
       throw new Error('A non-empty playlist URL or object is required');
@@ -773,6 +774,8 @@ export default class DashPlaylistLoader extends EventTarget {
       this.updateMinimumUpdatePeriodTimeout_();
     }
 
+    this.addEventStreamToMetadataTrack_(newMain);
+
     return Boolean(newMain);
   }
 
@@ -900,5 +903,25 @@ export default class DashPlaylistLoader extends EventTarget {
     }
 
     this.trigger('loadedplaylist');
+  }
+
+  /**
+   * Takes eventstream data from a parsed DASH manifest and adds it to the metadata text track.
+   *
+   * @param {manifest} newMain the newly parsed manifest
+   */
+  addEventStreamToMetadataTrack_(newMain) {
+    // Only add new event stream metadata if we have a new manifest.
+    if (newMain && this.mainPlaylistLoader_.main.eventStream) {
+      // convert EventStream to ID3-like data.
+      const metadataArray = this.mainPlaylistLoader_.main.eventStream.map((eventStreamNode) => {
+        return {
+          cueTime: eventStreamNode.start,
+          frames: [{ data: eventStreamNode.messageData }]
+        };
+      });
+
+      this.addMetadataToTextTrack('EventStream', metadataArray, this.mainPlaylistLoader_.main.duration);
+    }
   }
 }
