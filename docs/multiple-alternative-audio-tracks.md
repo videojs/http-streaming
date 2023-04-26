@@ -65,19 +65,19 @@ Corresponding AudioTrackList when media-group-1 is used (before any tracks have 
 ## Startup (how tracks are added and used)
 > AudioTrack & AudioTrackList live in video.js
 
-1. `HLS` creates a `MasterPlaylistController` and watches for the `loadedmetadata` event
-1. `HLS` parses the m3u8 using the `MasterPlaylistController`
-1. `MasterPlaylistController` creates a `PlaylistLoader` for the master m3u8
-1. `MasterPlaylistController` creates `PlaylistLoader`s for every audio playlist
-1. `MasterPlaylistController` creates a `SegmentLoader` for the main m3u8
-1. `MasterPlaylistController` creates a `SegmentLoader` for a potential audio playlist
+1. `HLS` creates a `PlaylistController` and watches for the `loadedmetadata` event
+1. `HLS` parses the m3u8 using the `PlaylistController`
+1. `PlaylistController` creates a `PlaylistLoader` for the main m3u8
+1. `PlaylistController` creates `PlaylistLoader`s for every audio playlist
+1. `PlaylistController` creates a `SegmentLoader` for the main m3u8
+1. `PlaylistController` creates a `SegmentLoader` for a potential audio playlist
 1. `HLS` sees the `loadedmetadata` and finds the currently selected MediaGroup and all the metadata
 1. `HLS` removes all `AudioTrack`s from the `AudioTrackList`
 1. `HLS` created `AudioTrack`s for the MediaGroup and adds them to the `AudioTrackList`
-1. `HLS` calls `MasterPlaylistController`s `useAudio` with no arguments (causes it to use the currently enabled audio)
-1. `MasterPlaylistController` turns off the current audio `PlaylistLoader` if it is on
-1. `MasterPlaylistController` maps the `label` to the `PlaylistLoader` containing the audio
-1. `MasterPlaylistController` turns on that `PlaylistLoader` and the Corresponding `SegmentLoader` (master or audio only)
+1. `HLS` calls `PlaylistController`s `useAudio` with no arguments (causes it to use the currently enabled audio)
+1. `PlaylistController` turns off the current audio `PlaylistLoader` if it is on
+1. `PlaylistController` maps the `label` to the `PlaylistLoader` containing the audio
+1. `PlaylistController` turns on that `PlaylistLoader` and the Corresponding `SegmentLoader` (main or audio only)
 1. `MediaSource`/`mux.js` determine how to mux
 
 ## How tracks are switched
@@ -88,9 +88,9 @@ Corresponding AudioTrackList when media-group-1 is used (before any tracks have 
 1. `AudioTrackList` enables the new `Audiotrack` and disables all others
 1. `AudioTrackList` triggers a `changed` event
 1. `HLS` sees the `changed` event and finds the newly enabled `AudioTrack`
-1. `HLS` sends the `label` for the new `AudioTrack` to `MasterPlaylistController`s `useAudio` function
-1. `MasterPlaylistController` turns off the current audio `PlaylistLoader` if it is on
-1. `MasterPlaylistController` maps the `label` to the `PlaylistLoader` containing the audio
-1. `MasterPlaylistController` maps the `label` to the `PlaylistLoader` containing the audio
-1. `MasterPlaylistController` turns on that `PlaylistLoader` and the Corresponding `SegmentLoader` (master or audio only)
+1. `HLS` sends the `label` for the new `AudioTrack` to `PlaylistController`s `useAudio` function
+1. `PlaylistController` turns off the current audio `PlaylistLoader` if it is on
+1. `PlaylistController` maps the `label` to the `PlaylistLoader` containing the audio
+1. `PlaylistController` maps the `label` to the `PlaylistLoader` containing the audio
+1. `PlaylistController` turns on that `PlaylistLoader` and the Corresponding `SegmentLoader` (main or audio only)
 1. `MediaSource`/`mux.js` determine how to mux

@@ -9,10 +9,10 @@ These are used to represent:
 
 Currently, [MediaGroups][mg] interacts with several different classes, which can be difficult to follow and has cause bugs in the past. These components are:
 - multiple [DashPlaylistLoaders][dpl] or [PlaylistLoaders][pl]
-- [MasterPlaylistController][mpc]
+- [PlaylistController][PC]
 - multiple [SegmentLoaders][sl]
 
-[MediaGroups][mg] are **setup** by the `loadedmetadata` handler for the `masterPlaylistLoader` (video playlist loader) of a source; contained in the [MasterPlaylistController][mpc] (MPC). The [MPC] will pass in an `audioSegmentLoader` and `subtitleSegmentLoader` to be shared by the `AUDIO` and `SUBTITLE` mediaGroups respectively.
+[MediaGroups][mg] are **setup** by the `loadedmetadata` handler for the `mainPlaylistLoader` (video playlist loader) of a source; contained in the [PlaylistController][PC] (PC). The [PC] will pass in an `audioSegmentLoader` and `subtitleSegmentLoader` to be shared by the `AUDIO` and `SUBTITLE` mediaGroups respectively.
 
 This **setup** includes creating either [DashPlaylistLoaders][dpl] or [PlaylistLoaders][pl] for each track described in the manifest and a corresponding HTML Track (either audio or text).
 
@@ -34,10 +34,10 @@ Currently, videojs-http-streaming (VHS) does not support multiple video tracks. 
 
 ## Future Ideas
 
-Considering that we could have multiple tracks of all media types, it may be the most accurate to **always** use MediaGroups for all content. This would include HLS without alternate audio tracks and DASH for all cases. In this way, the MasterPlaylistController could delegate much of the interaction handling for the PlaylistLoaders and SegmentLoaders to the MediaGroups class which would act as a specialized controller.
+Considering that we could have multiple tracks of all media types, it may be the most accurate to **always** use MediaGroups for all content. This would include HLS without alternate audio tracks and DASH for all cases. In this way, the PlaylistController could delegate much of the interaction handling for the PlaylistLoaders and SegmentLoaders to the MediaGroups class which would act as a specialized controller.
 
 [dpl]: ../src/dash-playlist-loader.js
 [mg]: ../src/media-groups.js
 [pl]: ../src/playlist-loader.js
-[mpc]: ../src/master-playlist-controller.js
+[PC]: ../src/playlist-controller.js
 [sl]: ../src/segment-loader.js

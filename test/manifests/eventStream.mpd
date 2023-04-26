@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MPD xmlns="urn:mpeg:dash:schema:mpd:2011" xmlns:_XMLSchema-instance="http://www.w3.org/2001/XMLSchema-instance" _XMLSchema-instance:schemaLocation="urn:mpeg:dash:schema:mpd:2011 http://standards.iso.org/ittf/PubliclyAvailableStandards/MPEG-DASH_schema_files/DASH-MPD.xsd" id="201" profiles="urn:mpeg:dash:profile:isoff-live:2011" type="dynamic" availabilityStartTime="2021-02-25T22:43:33.112Z" publishTime="2023-03-07T01:01:34.248221397Z" minimumUpdatePeriod="PT5S" minBufferTime="PT30S" timeShiftBufferDepth="PT1M0S" suggestedPresentationDelay="PT25S">
+  <BaseURL>https://547f72e6652371c3.mediapackage.us-east-1.amazonaws.com/out/v1/ef88d1a64fd543f4a4be9a56c913d868/</BaseURL>
+  <Location>https://dai.google.com/linear/dash/pa/event/PSzZMzAkSXCmlJOWDmRj8Q/stream/7e6b742f-0013-412c-b8a9-fd527adafc89:ATL/manifest.mpd</Location>
+  <Period id="dai_pod-0001065804-ad-1" start="PT17738H17M14.156S" duration="PT9.977S">
+    <BaseURL>https://dai.google.com/linear/pods/v1/p/PSzZMzAkSXCmlJOWDmRj8Q/7e6b742f-0013-412c-b8a9-fd527adafc89:ATL/1065804/0/0/</BaseURL>
+    <SegmentTemplate media="$RepresentationID$/$Number$.mp4" initialization="$RepresentationID$/init.mp4"/>
+    <EventStream schemeIdUri="urn:foo:bar:2023" timescale="1000">
+      <Event presentationTime="100" duration="0" id="0">foo</Event>
+      <Event presentationTime="900" duration="0" id="5">bar</Event>
+      <Event presentationTime="1900" duration="0" id="6">foo_bar</Event>
+      <Event presentationTime="2494" duration="0" id="1">bar_foo</Event>
+    </EventStream>
+    <AdaptationSet id="0" contentType="audio">
+      <SegmentTemplate timescale="48000" startNumber="0">
+        <SegmentTimeline>
+          <S d="96240" r="3"/>
+          <S d="93936"/>
+        </SegmentTimeline>
+      </SegmentTemplate>
+      <Representation audioSamplingRate="48000" mimeType="audio/mp4" codecs="mp4a.40.2" id="a87ff679a2f3e71d9181a67b7542122c" bandwidth="98000">
+        <AudioChannelConfiguration schemeIdUri="urn:mpeg:dash:23003:3:audio_channel_configuration:2011" value="2"/>
+      </Representation>
+      <Representation audioSamplingRate="48000" mimeType="audio/mp4" codecs="mp4a.40.2" id="eccbc87e4b5ce2fe28308fd9f2a7baf3" bandwidth="130000">
+        <AudioChannelConfiguration schemeIdUri="urn:mpeg:dash:23003:3:audio_channel_configuration:2011" value="2"/>
+      </Representation>
+    </AdaptationSet>
+    <AdaptationSet startWithSAP="1" id="1" contentType="video" minFrameRate="24000/1001" maxFrameRate="30000/1001" segmentAlignment="true">
+      <SegmentTemplate timescale="90000" startNumber="0">
+        <SegmentTimeline>
+          <S d="180180" r="3"/>
+          <S d="177210"/>
+        </SegmentTimeline>
+      </SegmentTemplate>
+      <Representation width="1280" height="720" frameRate="30000/1001" mimeType="video/mp4" codecs="avc1.64001f" id="c4ca4238a0b923820dcc509a6f75849b" bandwidth="331000"/>
+      <Representation width="480" height="270" frameRate="24000/1001" mimeType="video/mp4" codecs="avc1.42c015" id="c81e728d9d4c2f636f067f89cc14862c" bandwidth="137000"/>
+    </AdaptationSet>
+  </Period>
+</MPD>

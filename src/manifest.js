@@ -10,6 +10,11 @@ export const createPlaylistID = (index, uri) => {
   return `${index}-${uri}`;
 };
 
+// default function for creating a group id
+const groupID = (type, group, label) => {
+  return `placeholder-uri-${type}-${group}-${label}`;
+};
+
 /**
  * Parses a given m3u8 playlist
  *
@@ -23,7 +28,7 @@ export const createPlaylistID = (index, uri) => {
  *        An array of custom tag parsers for the m3u8-parser instance
  * @param {Object[]} [customTagMappers]
  *        An array of custom tag mappers for the m3u8-parser instance
- * @param {boolean} [experimentalLLHLS=false]
+ * @param {boolean} [llhls]
  *        Whether to keep ll-hls features in the manifest after parsing.
  * @return {Object}
  *         The manifest object
@@ -34,7 +39,7 @@ export const parseManifest = ({
   manifestString,
   customTagParsers = [],
   customTagMappers = [],
-  experimentalLLHLS
+  llhls
 }) => {
   const parser = new M3u8Parser();
 
@@ -55,7 +60,7 @@ export const parseManifest = ({
 
   // remove llhls features from the parsed manifest
   // if we don't want llhls support.
-  if (!experimentalLLHLS) {
+  if (!llhls) {
     [
       'preloadSegment',
       'skip',
@@ -109,25 +114,25 @@ export const parseManifest = ({
 };
 
 /**
- * Loops through all supported media groups in master and calls the provided
+ * Loops through all supported media groups in main and calls the provided
  * callback for each group
  *
- * @param {Object} master
- *        The parsed master manifest object
+ * @param {Object} main
+ *        The parsed main manifest object
  * @param {Function} callback
  *        Callback to call for each media group
  */
-export const forEachMediaGroup = (master, callback) => {
-  if (!master.mediaGroups) {
+export const forEachMediaGroup = (main, callback) => {
+  if (!main.mediaGroups) {
     return;
   }
   ['AUDIO', 'SUBTITLES'].forEach((mediaType) => {
-    if (!master.mediaGroups[mediaType]) {
+    if (!main.mediaGroups[mediaType]) {
       return;
     }
-    for (const groupKey in master.mediaGroups[mediaType]) {
-      for (const labelKey in master.mediaGroups[mediaType][groupKey]) {
-        const mediaProperties = master.mediaGroups[mediaType][groupKey][labelKey];
+    for (const groupKey in main.mediaGroups[mediaType]) {
+      for (const labelKey in main.mediaGroups[mediaType][groupKey]) {
+        const mediaProperties = main.mediaGroups[mediaType][groupKey][labelKey];
 
         callback(mediaProperties, mediaType, groupKey, labelKey);
       }
@@ -144,7 +149,7 @@ export const forEachMediaGroup = (master, callback) => {
  * @param {Object} config.playlist
  *        The media playlist
  * @param {string} [config.uri]
- *        The uri to the media playlist (if media playlist is not from within a master
+ *        The uri to the media playlist (if media playlist is not from within a main
  *        playlist)
  * @param {string} id
  *        ID to use for the playlist
@@ -160,7 +165,7 @@ export const setupMediaPlaylist = ({ playlist, uri, id }) => {
     playlist.uri = uri;
   }
 
-  // For HLS master playlists, even though certain attributes MUST be defined, the
+  // For HLS main playlists, even though certain attributes MUST be defined, the
   // stream may still be played without them.
   // For HLS media playlists, m3u8-parser does not attach an attributes object to the
   // manifest.
@@ -171,27 +176,27 @@ export const setupMediaPlaylist = ({ playlist, uri, id }) => {
 };
 
 /**
- * Adds ID, resolvedUri, and attributes properties to each playlist of the master, where
+ * Adds ID, resolvedUri, and attributes properties to each playlist of the main, where
  * necessary. In addition, creates playlist IDs for each playlist and adds playlist ID to
  * playlist references to the playlists array.
  *
- * @param {Object} master
- *        The master playlist
+ * @param {Object} main
+ *        The main playlist
  */
-export const setupMediaPlaylists = (master) => {
-  let i = master.playlists.length;
+export const setupMediaPlaylists = (main) => {
+  let i = main.playlists.length;
 
   while (i--) {
-    const playlist = master.playlists[i];
+    const playlist = main.playlists[i];
 
     setupMediaPlaylist({
       playlist,
       id: createPlaylistID(i, playlist.uri)
     });
-    playlist.resolvedUri = resolveUrl(master.uri, playlist.uri);
-    master.playlists[playlist.id] = playlist;
+    playlist.resolvedUri = resolveUrl(main.uri, playlist.uri);
+    main.playlists[playlist.id] = playlist;
     // URI reference added for backwards compatibility
-    master.playlists[playlist.uri] = playlist;
+    main.playlists[playlist.uri] = playlist;
 
     // Although the spec states an #EXT-X-STREAM-INF tag MUST have a BANDWIDTH attribute,
     // the stream can be played without it. Although an attributes property may have been
@@ -206,19 +211,19 @@ export const setupMediaPlaylists = (master) => {
 /**
  * Adds resolvedUri properties to each media group.
  *
- * @param {Object} master
- *        The master playlist
+ * @param {Object} main
+ *        The main playlist
  */
-export const resolveMediaGroupUris = (master) => {
-  forEachMediaGroup(master, (properties) => {
+export const resolveMediaGroupUris = (main) => {
+  forEachMediaGroup(main, (properties) => {
     if (properties.uri) {
-      properties.resolvedUri = resolveUrl(master.uri, properties.uri);
+      properties.resolvedUri = resolveUrl(main.uri, properties.uri);
     }
   });
 };
 
 /**
- * Creates a master playlist wrapper to insert a sole media playlist into.
+ * Creates a main playlist wrapper to insert a sole media playlist into.
  *
  * @param {Object} media
  *        Media playlist
@@ -226,11 +231,11 @@ export const resolveMediaGroupUris = (master) => {
  *        The media URI
  *
  * @return {Object}
- *         Master playlist
+ *         main playlist
  */
-export const masterForMedia = (media, uri) => {
+export const mainForMedia = (media, uri) => {
   const id = createPlaylistID(0, uri);
-  const master = {
+  const main = {
     mediaGroups: {
       'AUDIO': {},
       'VIDEO': {},
@@ -250,48 +255,48 @@ export const masterForMedia = (media, uri) => {
   };
 
   // set up ID reference
-  master.playlists[id] = master.playlists[0];
+  main.playlists[id] = main.playlists[0];
   // URI reference added for backwards compatibility
-  master.playlists[uri] = master.playlists[0];
+  main.playlists[uri] = main.playlists[0];
 
-  return master;
+  return main;
 };
 
 /**
- * Does an in-place update of the master manifest to add updated playlist URI references
+ * Does an in-place update of the main manifest to add updated playlist URI references
  * as well as other properties needed by VHS that aren't included by the parser.
  *
- * @param {Object} master
- *        Master manifest object
+ * @param {Object} main
+ *        main manifest object
  * @param {string} uri
  *        The source URI
+ * @param {function} createGroupID
+ *        A function to determine how to create the groupID for mediaGroups
  */
-export const addPropertiesToMaster = (master, uri) => {
-  master.uri = uri;
+export const addPropertiesToMain = (main, uri, createGroupID = groupID) => {
+  main.uri = uri;
 
-  for (let i = 0; i < master.playlists.length; i++) {
-    if (!master.playlists[i].uri) {
+  for (let i = 0; i < main.playlists.length; i++) {
+    if (!main.playlists[i].uri) {
       // Set up phony URIs for the playlists since playlists are referenced by their URIs
       // throughout VHS, but some formats (e.g., DASH) don't have external URIs
       // TODO: consider adding dummy URIs in mpd-parser
       const phonyUri = `placeholder-uri-${i}`;
 
-      master.playlists[i].uri = phonyUri;
+      main.playlists[i].uri = phonyUri;
     }
   }
-  const audioOnlyMaster = isAudioOnly(master);
+  const audioOnlyMain = isAudioOnly(main);
 
-  forEachMediaGroup(master, (properties, mediaType, groupKey, labelKey) => {
-    const groupId = `placeholder-uri-${mediaType}-${groupKey}-${labelKey}`;
-
+  forEachMediaGroup(main, (properties, mediaType, groupKey, labelKey) => {
     // add a playlist array under properties
     if (!properties.playlists || !properties.playlists.length) {
       // If the manifest is audio only and this media group does not have a uri, check
       // if the media group is located in the main list of playlists. If it is, don't add
       // placeholder properties as it shouldn't be considered an alternate audio track.
-      if (audioOnlyMaster && mediaType === 'AUDIO' && !properties.uri) {
-        for (let i = 0; i < master.playlists.length; i++) {
-          const p = master.playlists[i];
+      if (audioOnlyMain && mediaType === 'AUDIO' && !properties.uri) {
+        for (let i = 0; i < main.playlists.length; i++) {
+          const p = main.playlists[i];
 
           if (p.attributes && p.attributes.AUDIO && p.attributes.AUDIO === groupKey) {
             return;
@@ -303,10 +308,11 @@ export const addPropertiesToMaster = (master, uri) => {
     }
 
     properties.playlists.forEach(function(p, i) {
+      const groupId = createGroupID(mediaType, groupKey, labelKey, p);
       const id = createPlaylistID(i, groupId);
 
       if (p.uri) {
-        p.resolvedUri = p.resolvedUri || resolveUrl(master.uri, p.uri);
+        p.resolvedUri = p.resolvedUri || resolveUrl(main.uri, p.uri);
       } else {
         // DEPRECATED, this has been added to prevent a breaking change.
         // previously we only ever had a single media group playlist, so
@@ -326,12 +332,12 @@ export const addPropertiesToMaster = (master, uri) => {
       p.attributes = p.attributes || {};
 
       // setup ID and URI references (URI for backwards compatibility)
-      master.playlists[p.id] = p;
-      master.playlists[p.uri] = p;
+      main.playlists[p.id] = p;
+      main.playlists[p.uri] = p;
     });
 
   });
 
-  setupMediaPlaylists(master);
-  resolveMediaGroupUris(master);
+  setupMediaPlaylists(main);
+  resolveMediaGroupUris(main);
 };

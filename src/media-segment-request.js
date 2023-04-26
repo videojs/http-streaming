@@ -1,4 +1,3 @@
-import videojs from 'video.js';
 import { createTransferableMessage } from './bin-utils';
 import { stringToArrayBuffer } from './util/string-to-array-buffer';
 import { transmux } from './segment-transmuxer';
@@ -8,6 +7,7 @@ import {
   detectContainerForBytes,
   isLikelyFmp4MediaSegment
 } from '@videojs/vhs-utils/es/containers';
+import {merge} from './util/vjs-compat';
 
 export const REQUEST_ERRORS = {
   FAILURE: 2,
@@ -425,7 +425,7 @@ const handleSegmentBytes = ({
   // TODO:
   // We should have a handler that fetches the number of bytes required
   // to check if something is fmp4. This will allow us to save bandwidth
-  // because we can only blacklist a playlist and abort requests
+  // because we can only exclude a playlist and abort requests
   // by codec after trackinfo triggers.
   if (isLikelyFmp4MediaSegment(bytesAsUint8Array)) {
     segment.isFmp4 = true;
@@ -463,7 +463,7 @@ const handleSegmentBytes = ({
     // Note that the start time returned by the probe reflects the baseMediaDecodeTime, as
     // that is the true start of the segment (where the playback engine should begin
     // decoding).
-    const finishLoading = (captions) => {
+    const finishLoading = (captions, id3Frames) => {
       // if the track still has audio at this point it is only possible
       // for it to be audio only. See `tracks.video && tracks.audio` if statement
       // above.
@@ -472,6 +472,9 @@ const handleSegmentBytes = ({
         data: bytesAsUint8Array,
         type: trackInfo.hasAudio && !trackInfo.isMuxed ? 'audio' : 'video'
       });
+      if (id3Frames && id3Frames.length) {
+        id3Fn(segment, id3Frames);
+      }
       if (captions && captions.length) {
         captionsFn(segment, captions);
       }
@@ -495,29 +498,40 @@ const handleSegmentBytes = ({
         if (trackInfo.hasVideo) {
           timingInfoFn(segment, 'video', 'start', startTime);
         }
-
-        // Run through the CaptionParser in case there are captions.
-        // Initialize CaptionParser if it hasn't been yet
-        if (!tracks.video || !data.byteLength || !segment.transmuxer) {
-          finishLoading();
-          return;
-        }
-
         workerCallback({
-          action: 'pushMp4Captions',
-          endAction: 'mp4Captions',
-          transmuxer: segment.transmuxer,
+          action: 'probeEmsgID3',
           data: bytesAsUint8Array,
-          timescales: segment.map.timescales,
-          trackIds: [tracks.video.id],
-          callback: (message) => {
+          transmuxer: segment.transmuxer,
+          offset: startTime,
+          callback: ({emsgData, id3Frames}) => {
             // transfer bytes back to us
-            bytes = message.data.buffer;
-            segment.bytes = bytesAsUint8Array = message.data;
-            message.logs.forEach(function(log) {
-              onTransmuxerLog(videojs.mergeOptions(log, {stream: 'mp4CaptionParser'}));
+            bytes = emsgData.buffer;
+            segment.bytes = bytesAsUint8Array = emsgData;
+
+            // Run through the CaptionParser in case there are captions.
+            // Initialize CaptionParser if it hasn't been yet
+            if (!tracks.video || !data.byteLength || !segment.transmuxer) {
+              finishLoading(undefined, id3Frames);
+              return;
+            }
+
+            workerCallback({
+              action: 'pushMp4Captions',
+              endAction: 'mp4Captions',
+              transmuxer: segment.transmuxer,
+              data: bytesAsUint8Array,
+              timescales: segment.map.timescales,
+              trackIds: [tracks.video.id],
+              callback: (message) => {
+                // transfer bytes back to us
+                bytes = message.data.buffer;
+                segment.bytes = bytesAsUint8Array = message.data;
+                message.logs.forEach(function(log) {
+                  onTransmuxerLog(merge(log, {stream: 'mp4CaptionParser'}));
+                });
+                finishLoading(message.captions, id3Frames);
+              }
             });
-            finishLoading(message.captions);
           }
         });
       }
@@ -861,7 +875,7 @@ const handleProgress = ({
     return;
   }
 
-  segment.stats = videojs.mergeOptions(segment.stats, getProgressStats(event));
+  segment.stats = merge(segment.stats, getProgressStats(event));
 
   // record the time that we receive the first byte of data
   if (!segment.stats.firstBytesReceivedAt && segment.stats.bytesReceived) {
@@ -982,7 +996,7 @@ export const mediaSegmentRequest = ({
     if (segment.map && !segment.map.bytes && segment.map.key && segment.map.key.resolvedUri === segment.key.resolvedUri) {
       objects.push(segment.map.key);
     }
-    const keyRequestOptions = videojs.mergeOptions(xhrOptions, {
+    const keyRequestOptions = merge(xhrOptions, {
       uri: segment.key.resolvedUri,
       responseType: 'arraybuffer'
     });
@@ -997,7 +1011,7 @@ export const mediaSegmentRequest = ({
     const differentMapKey = segment.map.key && (!segment.key || segment.key.resolvedUri !== segment.map.key.resolvedUri);
 
     if (differentMapKey) {
-      const mapKeyRequestOptions = videojs.mergeOptions(xhrOptions, {
+      const mapKeyRequestOptions = merge(xhrOptions, {
         uri: segment.map.key.resolvedUri,
         responseType: 'arraybuffer'
       });
@@ -1006,7 +1020,7 @@ export const mediaSegmentRequest = ({
 
       activeXhrs.push(mapKeyXhr);
     }
-    const initSegmentOptions = videojs.mergeOptions(xhrOptions, {
+    const initSegmentOptions = merge(xhrOptions, {
       uri: segment.map.resolvedUri,
       responseType: 'arraybuffer',
       headers: segmentXhrHeaders(segment.map)
@@ -1017,7 +1031,7 @@ export const mediaSegmentRequest = ({
     activeXhrs.push(initSegmentXhr);
   }
 
-  const segmentRequestOptions = videojs.mergeOptions(xhrOptions, {
+  const segmentRequestOptions = merge(xhrOptions, {
     uri: segment.part && segment.part.resolvedUri || segment.resolvedUri,
     responseType: 'arraybuffer',
     headers: segmentXhrHeaders(segment)

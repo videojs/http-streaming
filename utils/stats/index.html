@@ -328,33 +328,33 @@
           // buffered
           bufferedStat.textContent = getBuffered(player.buffered());
           videoBufferedStat.textContent = getBuffered(
-            player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer &&
-            player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer.buffered
+            player.tech(true).vhs.playlistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer &&
+            player.tech(true).vhs.playlistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer.buffered
           );
 
           // demuxed audio
           var audioBuffer = getBuffered(
-            player.tech(true).vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer &&
-            player.tech(true).vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer.buffered
+            player.tech(true).vhs.playlistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer &&
+            player.tech(true).vhs.playlistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer.buffered
           );
 
           // muxed audio
           if (!audioBuffer) {
             audioBuffer = getBuffered(
-              player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer &&
-              player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer.buffered
+              player.tech(true).vhs.playlistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer &&
+              player.tech(true).vhs.playlistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer.buffered
             );
           }
           audioBufferedStat.textContent = audioBuffer;
 
-          if (player.tech(true).vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer) {
-            audioTimestampOffset.textContent = player.tech(true).vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer.timestampOffset;
-          } else if (player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer) {
-            audioTimestampOffset.textContent = player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer.timestampOffset;
+          if (player.tech(true).vhs.playlistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer) {
+            audioTimestampOffset.textContent = player.tech(true).vhs.playlistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer.timestampOffset;
+          } else if (player.tech(true).vhs.playlistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer) {
+            audioTimestampOffset.textContent = player.tech(true).vhs.playlistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer.timestampOffset;
           }
 
-          if (player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer) {
-            videoTimestampOffset.textContent = player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer.timestampOffset;
+          if (player.tech(true).vhs.playlistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer) {
+            videoTimestampOffset.textContent = player.tech(true).vhs.playlistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer.timestampOffset;
           }
 
           // seekable

@@ -9,11 +9,11 @@
 Play HLS, DASH, and future HTTP streaming protocols with video.js, even where they're not
 natively supported.
 
-Included in video.js 7 by default! See the [video.js 7 blog post](https://blog.videojs.com/video-js-7-is-here/)
+**Included in video.js 7 by default!** See the [video.js 7 blog post](https://blog.videojs.com/video-js-7-is-here/)
 
 Maintenance Status: Stable
 
-Video.js Compatibility: 6.0, 7.0
+Video.js Compatibility: 7.x, 8.x
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
@@ -39,18 +39,16 @@ Video.js Compatibility: 6.0, 7.0
       - [Source](#source)
     - [List](#list)
       - [withCredentials](#withcredentials)
-      - [handleManifestRedirects](#handlemanifestredirects)
       - [useCueTags](#usecuetags)
       - [parse708captions](#parse708captions)
       - [overrideNative](#overridenative)
-      - [blacklistDuration](#blacklistduration)
+      - [playlistExclusionDuration](#playlistexclusionduration)
       - [maxPlaylistRetries](#maxplaylistretries)
       - [bandwidth](#bandwidth)
       - [useBandwidthFromLocalStorage](#usebandwidthfromlocalstorage)
       - [enableLowInitialPlaylist](#enablelowinitialplaylist)
       - [limitRenditionByPlayerDimensions](#limitrenditionbyplayerdimensions)
       - [useDevicePixelRatio](#usedevicepixelratio)
-      - [smoothQualityChange](#smoothqualitychange)
       - [allowSeeksWithinUnsafeLiveWindow](#allowseekswithinunsafelivewindow)
       - [customTagParsers](#customtagparsers)
       - [customTagMappers](#customtagmappers)
@@ -58,11 +56,13 @@ Video.js Compatibility: 6.0, 7.0
       - [handlePartialData](#handlepartialdata)
       - [liveRangeSafeTimeDelta](#liverangesafetimedelta)
       - [useNetworkInformationApi](#usenetworkinformationapi)
+      - [useDtsForTimestampOffset](#usedtsfortimestampoffset)
+      - [useForcedSubtitles](#useforcedsubtitles)
       - [captionServices](#captionservices)
         - [Format](#format)
         - [Example](#example)
   - [Runtime Properties](#runtime-properties)
-    - [vhs.playlists.master](#vhsplaylistsmaster)
+    - [vhs.playlists.main](#vhsplaylistsmain)
     - [vhs.playlists.media](#vhsplaylistsmedia)
     - [vhs.systemBandwidth](#vhssystembandwidth)
     - [vhs.bandwidth](#vhsbandwidth)
@@ -95,8 +95,13 @@ Video.js Compatibility: 6.0, 7.0
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Installation
+
+In most cases **it is not necessary to separately install http-streaming**, as it has been included in the default build of Video.js since version 7.
+
+Only install if you need a specifc combination of video.js and http-streaming versions. If installing separately, use the "core" version of Video.js without the bundled version of http-streaming. 
+
 ### NPM
-To install `videojs-http-streaming` with npm run
+To install `videojs-http-streaming` with npm, run
 
 ```bash
 npm install --save @videojs/http-streaming
@@ -118,11 +123,12 @@ See [CONTRIBUTING.md](/CONTRIBUTING.md)
 See [our troubleshooting guide](/docs/troubleshooting.md)
 
 ## Talk to us
-Drop by our slack channel (#playback) on the [Video.js slack][slack-link].
+Drop by the [Video.js slack][slack-link].
 
 ## Getting Started
-This library is included in video.js 7 by default, if you are using an older version of video.js then
-get a copy of [videojs-http-streaming](#installation) and include it in your page along with video.js:
+This library is included in Video.js 7 by default.
+
+**Only if need a specific combination of versions of Video.js and VHS** you can get a copy of [videojs-http-streaming](#installation) and include it in your page along with video.js. In this case, you should use the "core" build of Video.js, without a bundled VHS:
 
 ```html
 <video-js id=vid1 width=600 height=300 class="vjs-default-skin" controls>
@@ -130,15 +136,14 @@ get a copy of [videojs-http-streaming](#installation) and include it in your pag
      src="https://example.com/index.m3u8"
      type="application/x-mpegURL">
 </video-js>
-<script src="video.js"></script>
+<!-- "core" version of Video.js -->
+<script src="video.core.min.js"></script>
 <script src="videojs-http-streaming.min.js"></script>
 <script>
 var player = videojs('vid1');
 player.play();
 </script>
 ```
-
-Check out our [live example](https://jsbin.com/gejugat/edit?html,output) if you're having trouble.
 
 Is it recommended to use the `<video-js>` element or load a source with `player.src(sourceObject)` in order to prevent the video element from playing the source natively where HLS is supported.
 
@@ -152,7 +157,7 @@ The [Media Source Extensions](http://caniuse.com/#feat=mediasource) API is requi
 - Firefox
 - Internet Explorer 11 Windows 10 or 8.1
 
-These browsers have some level of native HLS support, which will be used unless the [overrideNative](#overridenative) option is used:
+These browsers have some level of native HLS support, however by default the [overrideNative](#overridenative) option is set to `true` except on Safari, so MSE playback is used:
 
 - Chrome Android
 - Firefox Android
@@ -163,17 +168,13 @@ These browsers have some level of native HLS support, which will be used unless 
 - Mac Safari
 - iOS Safari
 
-Mac Safari does have MSE support, but native HLS is recommended 
-
-### Flash Support
-This plugin does not support Flash playback. Instead, it is recommended that users use the [videojs-flashls-source-handler](https://github.com/brightcove/videojs-flashls-source-handler) plugin as a fallback option for browsers that don't have a native
-[HLS](https://caniuse.com/#feat=http-live-streaming)/[DASH](https://caniuse.com/#feat=mpeg-dash) player or support for [Media Source Extensions](http://caniuse.com/#feat=mediasource).
+Mac and iPad Safari do have MSE support, but native HLS is recommended 
 
 ### DRM
 
 DRM is supported through [videojs-contrib-eme](https://github.com/videojs/videojs-contrib-eme). In order to use DRM, include the videojs-contrib-eme plug, [initialize it](https://github.com/videojs/videojs-contrib-eme#initialization), and add options to either the [plugin](https://github.com/videojs/videojs-contrib-eme#plugin-options) or the [source](https://github.com/videojs/videojs-contrib-eme#source-options).
 
-Detailed option information can be found in the [videojs-contrib-eme README](https://github.com/videojs/videojs-contrib-eme/blob/master/README.md).
+Detailed option information can be found in the [videojs-contrib-eme README](https://github.com/videojs/videojs-contrib-eme/blob/main/README.md).
 
 ## Documentation
 [HTTP Live Streaming](https://developer.apple.com/streaming/) (HLS) has
@@ -282,16 +283,6 @@ is set to `true`.
 See html5rocks's [article](http://www.html5rocks.com/en/tutorials/cors/)
 for more info.
 
-##### handleManifestRedirects
-* Type: `boolean`
-* Default: `false`
-* can be used as a source option
-* can be used as an initialization option
-
-When the `handleManifestRedirects` property is set to `true`, manifest requests
-which are redirected will have their URL updated to the new URL for future
-requests.
-
 ##### useCueTags
 * Type: `boolean`
 * can be used as an initialization option
@@ -357,13 +348,13 @@ var player = videojs('playerId', {
 
 Since MSE playback may be desirable on all browsers with some native support other than Safari, `overrideNative: !videojs.browser.IS_SAFARI` could be used.
 
-##### blacklistDuration
+##### playlistExclusionDuration
 * Type: `number`
 * can be used as an initialization option
 
-When the `blacklistDuration` property is set to a time duration in seconds,
-if a playlist is blacklisted, it will be blacklisted for a period of that
-customized duration. This enables the blacklist duration to be configured
+When the `playlistExclusionDuration` property is set to a time duration in seconds,
+if a playlist is excluded, it will be excluded for a period of that
+customized duration. This enables the exclusion duration to be configured
 by the user.
 
 ##### maxPlaylistRetries
@@ -412,18 +403,6 @@ This setting is `true` by default.
 
 If true, this will take the device pixel ratio into account when doing rendition switching. This means that if you have a player with the width of `540px` in a high density display with a device pixel ratio of 2, a rendition of `1080p` will be allowed.
 This setting is `false` by default.
-
-##### smoothQualityChange
-* NOTE: DEPRECATED
-* Type: `boolean`
-* can be used as a source option
-* can be used as an initialization option
-
-smoothQualityChange is deprecated and will be removed in the next major version of VHS.
-
-Instead of its prior behavior, smoothQualityChange will now call fastQualityChange, which
-clears the buffer, chooses a new rendition, and starts loading content from the current
-playhead position.
 
 ##### allowSeeksWithinUnsafeLiveWindow
 * Type: `boolean`
@@ -478,6 +457,19 @@ This option defaults to `false`.
 * Type: `boolean`,
 * Default: `false`
 * Use [window.networkInformation.downlink](https://developer.mozilla.org/en-US/docs/Web/API/NetworkInformation/downlink) to estimate the network's bandwidth. Per mdn, _The value is never greater than 10 Mbps, as a non-standard anti-fingerprinting measure_. Given this, if bandwidth estimates from both the player and networkInfo are >= 10 Mbps, the player will use the larger of the two values as its bandwidth estimate.
+
+##### useDtsForTimestampOffset
+* Type: `boolean`,
+* Default: `false`
+* Use [Decode Timestamp](https://www.w3.org/TR/media-source/#decode-timestamp) instead of [Presentation Timestamp](https://www.w3.org/TR/media-source/#presentation-timestamp) for [timestampOffset](https://www.w3.org/TR/media-source/#dom-sourcebuffer-timestampoffset) calculation. This option was introduced to align with DTS-based browsers. This option affects only transmuxed data (eg: transport stream). For more info please check the following [issue](https://github.com/videojs/http-streaming/issues/1247).  
+
+##### useForcedSubtitles
+* Type: `boolean`
+* Default: `false`
+* can be used as a source option
+* can be used as an initialization option
+
+If true, this option allows the player to display forced subtitles. When available, forced subtitles allow to translate foreign language dialogues or images containing foreign language characters.
 
 ##### captionServices
 * Type: `object`
@@ -540,11 +532,11 @@ work across all the media types that video.js supports. If you're
 deploying videojs-http-streaming on your own website and want to make a
 couple tweaks though, go for it!
 
-#### vhs.playlists.master
+#### vhs.playlists.main
 Type: `object`
 
-An object representing the parsed master playlist. If a media playlist
-is loaded directly, a master playlist with only one entry will be
+An object representing the parsed main playlist. If a media playlist
+is loaded directly, a main playlist with only one entry will be
 created.
 
 #### vhs.playlists.media
@@ -555,7 +547,7 @@ media playlist. The active media playlist is referred to when
 additional video data needs to be downloaded. Calling this function
 with no arguments returns the parsed playlist object for the active
 media playlist. Calling this function with a playlist object from the
-master playlist or a URI string as specified in the master playlist
+main playlist or a URI string as specified in the main playlist
 will kick off an asynchronous load of the specified media
 playlist. Once it has been retreived, it will become the active media
 playlist.
@@ -595,7 +587,7 @@ A function that returns the media playlist object to use to download
 the next segment. It is invoked by the tech immediately before a new
 segment is downloaded. You can override this function to provide your
 adaptive streaming logic. You must, however, be sure to return a valid
-media playlist object that is present in `player.tech().vhs.master`.
+media playlist object that is present in `player.tech().vhs.main`.
 
 Overridding this function with your own is very powerful but is overkill
 for many purposes. Most of the time, you should use the much simpler
@@ -709,7 +701,7 @@ This object contains a summary of HLS and player related stats.
 | currentSource         | object | The source object. Has the structure `{src: 'url', type: 'mimetype'}` |
 | currentTech           | string | The name of the tech in use |
 | duration              | number | Duration of the video in seconds |
-| master                | object | The [master playlist object](#vhsplaylistsmaster) |
+| main                  | object | The [main playlist object](#vhsplaylistsmain) |
 | playerDimensions      | object | Contains the width and height of the player |
 | seekable              | array  | List of time ranges that the player can seek to |
 | timestamp             | number | Timestamp of when `vhs.stats` was accessed |
@@ -750,7 +742,7 @@ player.on('ready', () => {
 ```
 
 Note that these events are triggered as soon as a case is encountered, and often only
-once. For example, the `vhs-demuxed` usage event will be triggered as soon as the master
+once. For example, the `vhs-demuxed` usage event will be triggered as soon as the main
 manifest is downloaded and parsed, and will not be triggered again.
 
 #### Presence Stats
@@ -759,11 +751,11 @@ Each of the following usage events are fired once per source if (and when) detec
 
 | Name          | Description   |
 | ------------- | ------------- |
-| vhs-webvtt    | master manifest has at least one segmented WebVTT playlist |
+| vhs-webvtt    | main manifest has at least one segmented WebVTT playlist |
 | vhs-aes       | a playlist is AES encrypted |
 | vhs-fmp4      | a playlist used fMP4 segments |
 | vhs-demuxed   | audio and video are demuxed by default |
-| vhs-alternate-audio | alternate audio available in the master manifest |
+| vhs-alternate-audio | alternate audio available in the main manifest |
 | vhs-playlist-cue-tags | a playlist used cue tags (see useCueTags(#usecuetags) for details) |
 | vhs-bandwidth-from-local-storage | starting bandwidth was retrieved from local storage (see useBandwidthFromLocalStorage(#useBandwidthFromLocalStorage) for details) |
 | vhs-throughput-from-local-storage | starting throughput was retrieved from local storage (see useBandwidthFromLocalStorage(#useBandwidthFromLocalStorage) for details) |
@@ -779,7 +771,7 @@ Each of the following usage events are fired per use:
 | vhs-audio-change | a user selected an alternate audio stream |
 | vhs-rendition-disabled | a rendition was disabled |
 | vhs-rendition-enabled | a rendition was enabled |
-| vhs-rendition-blacklisted | a rendition was blacklisted |
+| vhs-rendition-excluded| a rendition was excluded |
 | vhs-timestamp-offset | a timestamp offset was set in HLS (can identify discontinuities) |
 | vhs-unknown-waiting | the player stopped for an unknown reason and we seeked to current time try to address it |
 | vhs-live-resync | playback fell off the back of a live playlist and we resynced to the live point |

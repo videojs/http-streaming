@@ -203,6 +203,52 @@ $ mv init-stream0.webm webmVideoInit.webm
 $ mv chunk-stream0-00001.webm webmVideo.webm
 ```
 
+### subtitlesEncrypted.vtt
+
+Run subtitles.vtt through subtle crypto. As an example:
+
+```javascript
+const fs = require('fs');
+const { subtle } = require('crypto').webcrypto;
+
+// first segment has media index 0, so should have the following IV
+const DEFAULT_IV = new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+
+const getCryptoKey = async (bytes, iv = DEFAULT_IV) => {
+  const algorithm = { name: 'AES-CBC', iv };
+  const extractable = true;
+  const usages = ['encrypt', 'decrypt'];
+
+  return subtle.importKey('raw', bytes, algorithm, extractable, usages);
+};
+
+const run = async () => {
+  const keyFilePath = process.argv[2];
+  const segmentFilePath = process.argv[3];
+
+  const keyBytes = fs.readFileSync(keyFilePath);
+  const segmentBytes = fs.readFileSync(segmentFilePath);
+
+  const key = await getCryptoKey(keyBytes);
+  const encryptedBytes = await subtle.encrypt({
+    name: 'AES-CBC',
+    iv: DEFAULT_IV,
+  }, key, segmentBytes);
+
+  fs.writeFileSync('./encrypted.vtt', new Buffer(encryptedBytes));
+
+  console.log(`Wrote ${encryptedBytes.length} bytes to encrypted.vtt:`);
+};
+
+run();
+```
+
+To use the script:
+
+```
+$ node index.js encryptionKey.key subtitles.vtt
+```
+
 ## Other useful commands
 
 ### Joined (audio and video) initialization segment (for HLS)

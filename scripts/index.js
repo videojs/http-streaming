@@ -21,7 +21,7 @@
       rep.playlist.disabled = rep.id !== id;
     });
 
-    window.mpc.fastQualityChange_();
+    window.pc.fastQualityChange_();
   });
   var isManifestObjectType = function(url) {
     return (/application\/vnd\.videojs\.vhs\+json/).test(url);
@@ -270,7 +270,7 @@
         width: rep.width
       });
 
-      if (window.mpc.media().id === rep.id) {
+      if (window.pc.media().id === rep.id) {
         selectedIndex = i;
       }
 
@@ -390,29 +390,29 @@
         return;
       }
 
-      videoBufferedStat.textContent = getBuffered(player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer &&
-        player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer.buffered);
+      videoBufferedStat.textContent = getBuffered(player.tech(true).vhs.playlistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer &&
+        player.tech(true).vhs.playlistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer.buffered);
 
       // demuxed audio
-      var audioBuffer = getBuffered(player.tech(true).vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer &&
-        player.tech(true).vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer.buffered);
+      var audioBuffer = getBuffered(player.tech(true).vhs.playlistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer &&
+        player.tech(true).vhs.playlistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer.buffered);
 
       // muxed audio
       if (!audioBuffer) {
-        audioBuffer = getBuffered(player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer &&
-          player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer.buffered);
+        audioBuffer = getBuffered(player.tech(true).vhs.playlistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer &&
+          player.tech(true).vhs.playlistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer.buffered);
       }
       audioBufferedStat.textContent = audioBuffer;
 
-      if (player.tech(true).vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer) {
-        audioTimestampOffset.textContent = player.tech(true).vhs.masterPlaylistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer.timestampOffset;
+      if (player.tech(true).vhs.playlistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer) {
+        audioTimestampOffset.textContent = player.tech(true).vhs.playlistController_.audioSegmentLoader_.sourceUpdater_.audioBuffer.timestampOffset;
 
-      } else if (player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer) {
-        audioTimestampOffset.textContent = player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer.timestampOffset;
+      } else if (player.tech(true).vhs.playlistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer) {
+        audioTimestampOffset.textContent = player.tech(true).vhs.playlistController_.mainSegmentLoader_.sourceUpdater_.audioBuffer.timestampOffset;
       }
 
-      if (player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer) {
-        videoTimestampOffset.textContent = player.tech(true).vhs.masterPlaylistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer.timestampOffset;
+      if (player.tech(true).vhs.playlistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer) {
+        videoTimestampOffset.textContent = player.tech(true).vhs.playlistController_.mainSegmentLoader_.sourceUpdater_.videoBuffer.timestampOffset;
       }
 
       // bitrates
@@ -448,9 +448,11 @@
     'exact-manifest-timings',
     'pixel-diff-selector',
     'network-info',
+    'dts-offset',
     'override-native',
     'preload',
-    'mirror-source'
+    'mirror-source',
+    'forced-subtitles'
   ].forEach(function(name) {
     stateEls[name] = document.getElementById(name);
   });
@@ -501,13 +503,29 @@
       'liveui',
       'pixel-diff-selector',
       'network-info',
-      'exact-manifest-timings'
+      'dts-offset',
+      'exact-manifest-timings',
+      'forced-subtitles'
     ].forEach(function(name) {
       stateEls[name].addEventListener('change', function(event) {
         saveState();
 
         stateEls.minified.dispatchEvent(newEvent('change'));
       });
+    });
+
+    [
+      'llhls'
+    ].forEach(function(name) {
+      stateEls[name].checked = true;
+    });
+
+    [
+      'exact-manifest-timings',
+      'pixel-diff-selector',
+      'buffer-water'
+    ].forEach(function(name) {
+      stateEls[name].checked = false;
     });
 
     stateEls.debug.addEventListener('change', function(event) {
@@ -564,11 +582,13 @@
           html5: {
             vhs: {
               overrideNative: getInputValue(stateEls['override-native']),
-              experimentalBufferBasedABR: getInputValue(stateEls['buffer-water']),
-              experimentalLLHLS: getInputValue(stateEls.llhls),
-              experimentalExactManifestTimings: getInputValue(stateEls['exact-manifest-timings']),
-              experimentalLeastPixelDiffSelector: getInputValue(stateEls['pixel-diff-selector']),
-              useNetworkInformationApi: getInputValue(stateEls['network-info'])
+              bufferBasedABR: getInputValue(stateEls['buffer-water']),
+              llhls: getInputValue(stateEls.llhls),
+              exactManifestTimings: getInputValue(stateEls['exact-manifest-timings']),
+              leastPixelDiffSelector: getInputValue(stateEls['pixel-diff-selector']),
+              useNetworkInformationApi: getInputValue(stateEls['network-info']),
+              useDtsForTimestampOffset: getInputValue(stateEls['dts-offset']),
+              useForcedSubtitles: getInputValue(stateEls['forced-subtitles'])
             }
           }
         });
@@ -632,13 +652,13 @@
         player.on('loadedmetadata', function() {
           if (player.tech_.vhs) {
             window.vhs = player.tech_.vhs;
-            window.mpc = player.tech_.vhs.masterPlaylistController_;
-            window.mpc.masterPlaylistLoader_.on('mediachange', regenerateRepresentations);
+            window.pc = player.tech_.vhs.playlistController_;
+            window.pc.mainPlaylistLoader_.on('mediachange', regenerateRepresentations);
             regenerateRepresentations();
 
           } else {
             window.vhs = null;
-            window.mpc = null;
+            window.pc = null;
           }
         });
         cb(player);

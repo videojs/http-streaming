@@ -7,8 +7,8 @@ import _resolveUrl from '@videojs/vhs-utils/es/resolve-url.js';
 export const resolveUrl = _resolveUrl;
 
 /**
- * Checks whether xhr request was redirected and returns correct url depending
- * on `handleManifestRedirects` option
+ * If the xhr request was redirected, return the responseURL, otherwise,
+ * return the original url.
  *
  * @api private
  *
@@ -17,12 +17,11 @@ export const resolveUrl = _resolveUrl;
  *
  * @return {string}
  */
-export const resolveManifestRedirect = (handleManifestRedirect, url, req) => {
+export const resolveManifestRedirect = (url, req) => {
   // To understand how the responseURL below is set and generated:
   // - https://fetch.spec.whatwg.org/#concept-response-url
   // - https://fetch.spec.whatwg.org/#atomic-http-redirect-handling
   if (
-    handleManifestRedirect &&
     req &&
     req.responseURL &&
     url !== req.responseURL

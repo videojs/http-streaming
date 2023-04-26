@@ -48,46 +48,42 @@ const makeMockPlaylist = function(options) {
   return playlist;
 };
 
-const makeMockVhsHandler = function(playlistOptions = [], handlerOptions = {}, master = {}) {
+const makeMockVhsHandler = function(playlistOptions = [], handlerOptions = {}, main = {}) {
   const vhsHandler = {
     options_: handlerOptions
   };
-  const mpc = {
+  const pc = {
     fastQualityChange_: () => {
-      mpc.fastQualityChange_.calls++;
+      pc.fastQualityChange_.calls++;
     },
-    smoothQualityChange_: () => {
-      mpc.smoothQualityChange_.calls++;
-    },
-    master: () => {
-      return vhsHandler.playlists.master;
+    main: () => {
+      return vhsHandler.playlists.main;
     },
     getAudioTrackPlaylists_: () => {
       return [];
     }
   };
 
-  mpc.fastQualityChange_.calls = 0;
-  mpc.smoothQualityChange_.calls = 0;
+  pc.fastQualityChange_.calls = 0;
 
-  vhsHandler.masterPlaylistController_ = mpc;
+  vhsHandler.playlistController_ = pc;
   vhsHandler.playlists = new videojs.EventTarget();
 
-  vhsHandler.playlists.master = master;
+  vhsHandler.playlists.main = main;
 
-  if (!vhsHandler.playlists.master.playlists) {
-    vhsHandler.playlists.master.playlists = [];
+  if (!vhsHandler.playlists.main.playlists) {
+    vhsHandler.playlists.main.playlists = [];
   }
 
   playlistOptions.forEach((playlist, i) => {
-    vhsHandler.playlists.master.playlists[i] = makeMockPlaylist(playlist);
+    vhsHandler.playlists.main.playlists[i] = makeMockPlaylist(playlist);
 
     if (playlist.uri) {
       const id = createPlaylistID(i, playlist.uri);
 
-      vhsHandler.playlists.master.playlists[i].id = id;
-      vhsHandler.playlists.master.playlists[id] =
-        vhsHandler.playlists.master.playlists[i];
+      vhsHandler.playlists.main.playlists[i].id = id;
+      vhsHandler.playlists.main.playlists[id] =
+        vhsHandler.playlists.main.playlists[i];
     }
   });
 
@@ -230,7 +226,7 @@ QUnit.test(
         uri: 'media1.m3u8'
       }
     ]);
-    const playlists = vhsHandler.playlists.master.playlists;
+    const playlists = vhsHandler.playlists.main.playlists;
 
     vhsHandler.playlists.on('renditiondisabled', function() {
       renditiondisabled++;
@@ -272,7 +268,7 @@ QUnit.test(
         uri: 'media1.m3u8'
       }
     ]);
-    const mpc = vhsHandler.masterPlaylistController_;
+    const pc = vhsHandler.playlistController_;
 
     vhsHandler.playlists.on('renditionenabled', function() {
       renditionEnabledEvents++;
@@ -282,7 +278,7 @@ QUnit.test(
 
     const renditions = vhsHandler.representations();
 
-    assert.equal(mpc.fastQualityChange_.calls, 0, 'fastQualityChange_ was never called');
+    assert.equal(pc.fastQualityChange_.calls, 0, 'fastQualityChange_ was never called');
     assert.equal(
       renditionEnabledEvents, 0,
       'renditionenabled event has not been triggered'
@@ -290,7 +286,7 @@ QUnit.test(
 
     renditions[0].enabled(true);
 
-    assert.equal(mpc.fastQualityChange_.calls, 1, 'fastQualityChange_ was called once');
+    assert.equal(pc.fastQualityChange_.calls, 1, 'fastQualityChange_ was called once');
     assert.equal(
       renditionEnabledEvents, 1,
       'renditionenabled event has been triggered once'
@@ -298,55 +294,7 @@ QUnit.test(
 
     renditions[1].enabled(false);
 
-    assert.equal(mpc.fastQualityChange_.calls, 2, 'fastQualityChange_ was called twice');
-  }
-);
-
-QUnit.test(
-  'changing the enabled state of a representation calls smoothQualityChange_ ' +
-  'when the flag is set',
-  function(assert) {
-    let renditionEnabledEvents = 0;
-    const vhsHandler = makeMockVhsHandler([
-      {
-        bandwidth: 0,
-        disabled: true,
-        uri: 'media0.m3u8'
-      },
-      {
-        bandwidth: 0,
-        uri: 'media1.m3u8'
-      }
-    ], {
-      smoothQualityChange: true
-    });
-    const mpc = vhsHandler.masterPlaylistController_;
-
-    vhsHandler.playlists.on('renditionenabled', function() {
-      renditionEnabledEvents++;
-    });
-
-    RenditionMixin(vhsHandler);
-
-    const renditions = vhsHandler.representations();
-
-    assert.equal(mpc.smoothQualityChange_.calls, 0, 'smoothQualityChange_ was never called');
-    assert.equal(
-      renditionEnabledEvents, 0,
-      'renditionenabled event has not been triggered'
-    );
-
-    renditions[0].enabled(true);
-
-    assert.equal(mpc.smoothQualityChange_.calls, 1, 'smoothQualityChange_ was called once');
-    assert.equal(
-      renditionEnabledEvents, 1,
-      'renditionenabled event has been triggered once'
-    );
-
-    renditions[1].enabled(false);
-
-    assert.equal(mpc.smoothQualityChange_.calls, 2, 'smoothQualityChange_ was called twice');
+    assert.equal(pc.fastQualityChange_.calls, 2, 'fastQualityChange_ was called twice');
   }
 );
 
@@ -372,9 +320,9 @@ QUnit.test('playlist is exposed on renditions', function(assert) {
 
   const renditions = vhsHandler.representations();
 
-  assert.deepEqual(renditions[0].playlist, vhsHandler.playlists.master.playlists[0], 'rendition 1 has correct playlist');
-  assert.deepEqual(renditions[1].playlist, vhsHandler.playlists.master.playlists[1], 'rendition 2 has correct playlist');
-  assert.deepEqual(renditions[2].playlist, vhsHandler.playlists.master.playlists[2], 'rendition 3 has no playlist');
+  assert.deepEqual(renditions[0].playlist, vhsHandler.playlists.main.playlists[0], 'rendition 1 has correct playlist');
+  assert.deepEqual(renditions[1].playlist, vhsHandler.playlists.main.playlists[1], 'rendition 2 has correct playlist');
+  assert.deepEqual(renditions[2].playlist, vhsHandler.playlists.main.playlists[2], 'rendition 3 has no playlist');
 });
 
 QUnit.test('codecs attribute is exposed on renditions when available', function(assert) {
@@ -404,7 +352,7 @@ QUnit.test('codecs attribute is exposed on renditions when available', function(
   assert.deepEqual(renditions[2].codecs, {}, 'rendition 3 has no codec');
 });
 
-QUnit.test('codecs attribute gets codecs from master', function(assert) {
+QUnit.test('codecs attribute gets codecs from main', function(assert) {
   const vhsHandler = makeMockVhsHandler(
     [{bandwidth: 0, uri: 'media0.m3u8', audio: 'a1'}],
     {},

@@ -10,10 +10,11 @@
  * @return {Request} the xhr request that is going to be made
  */
 import videojs from 'video.js';
+import window from 'global/window';
+import {merge} from './util/vjs-compat';
 
 const {
-  xhr: videojsXHR,
-  mergeOptions
+  xhr: videojsXHR
 } = videojs;
 
 const callbackWrapper = function(request, error, response, callback) {
@@ -58,7 +59,7 @@ const callbackWrapper = function(request, error, response, callback) {
 const xhrFactory = function() {
   const xhr = function XhrFunction(options, callback) {
     // Add a default timeout
-    options = mergeOptions({
+    options = merge({
       timeout: 45e3
     }, options);
 
@@ -104,11 +105,17 @@ const xhrFactory = function() {
  * @param {Object} byterange - an object with two values defining the start and end
  *                             of a byte-range
  */
-const byterangeStr = function(byterange) {
+export const byterangeStr = function(byterange) {
   // `byterangeEnd` is one less than `offset + length` because the HTTP range
   // header uses inclusive ranges
-  const byterangeEnd = byterange.offset + byterange.length - 1;
+  let byterangeEnd;
   const byterangeStart = byterange.offset;
+
+  if (typeof byterange.offset === 'bigint' || typeof byterange.length === 'bigint') {
+    byterangeEnd = window.BigInt(byterange.offset) + window.BigInt(byterange.length) - window.BigInt(1);
+  } else {
+    byterangeEnd = byterange.offset + byterange.length - 1;
+  }
 
   return 'bytes=' + byterangeStart + '-' + byterangeEnd;
 };

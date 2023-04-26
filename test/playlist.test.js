@@ -2,11 +2,10 @@ import Playlist from '../src/playlist';
 import PlaylistLoader from '../src/playlist-loader';
 import QUnit from 'qunit';
 import xhrFactory from '../src/xhr';
-import videojs from 'video.js';
 import { useFakeEnvironment } from './test-helpers';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
-import {mergeOptions as merge} from 'video.js';
+import {merge} from '../src/util/vjs-compat';
 
 QUnit.module('Playlist', function() {
   QUnit.module('Duration');
@@ -410,7 +409,7 @@ QUnit.module('Playlist', function() {
   });
 
   QUnit.test(
-    'master playlists have empty seekable ranges and no playlist end',
+    'main playlists have empty seekable ranges and no playlist end',
     function(assert) {
       const playlist = {
         playlists: [{
@@ -422,8 +421,8 @@ QUnit.module('Playlist', function() {
       const seekable = Playlist.seekable(playlist);
       const playlistEnd = Playlist.playlistEnd(playlist);
 
-      assert.equal(seekable.length, 0, 'no seekable ranges from a master playlist');
-      assert.equal(playlistEnd, null, 'no playlist end from a master playlist');
+      assert.equal(seekable.length, 0, 'no seekable ranges from a main playlist');
+      assert.equal(playlistEnd, null, 'no playlist end from a main playlist');
     }
   );
 
@@ -872,9 +871,9 @@ QUnit.module('Playlist', function() {
   });
 
   QUnit.test('determines if a playlist is incompatible', function(assert) {
-    // incompatible means that the playlist was blacklisted due to incompatible
+    // incompatible means that the playlist was excluded due to incompatible
     // configuration e.g. audio only stream when trying to playback audio and video.
-    // incompaatibility is denoted by a blacklist of Infinity.
+    // incompatibility is denoted by an excludeUntil of Infinity.
     assert.notOk(
       Playlist.isIncompatible({}),
       'playlist not incompatible if no excludeUntil'
@@ -882,12 +881,12 @@ QUnit.module('Playlist', function() {
 
     assert.notOk(
       Playlist.isIncompatible({ excludeUntil: 1 }),
-      'playlist not incompatible if expired blacklist'
+      'playlist not incompatible if excludeUntil has expired'
     );
 
     assert.notOk(
       Playlist.isIncompatible({ excludeUntil: Date.now() + 9999 }),
-      'playlist not incompatible if temporarily blacklisted'
+      'playlist not incompatible if temporarily excluded'
     );
 
     assert.ok(
@@ -896,25 +895,25 @@ QUnit.module('Playlist', function() {
     );
   });
 
-  QUnit.test('determines if a playlist is blacklisted', function(assert) {
+  QUnit.test('determines if a playlist is excluded', function(assert) {
     assert.notOk(
-      Playlist.isBlacklisted({}),
-      'playlist not blacklisted if no excludeUntil'
+      Playlist.isExcluded({}),
+      'playlist not excluded if no excludeUntil'
     );
 
     assert.notOk(
-      Playlist.isBlacklisted({ excludeUntil: Date.now() - 1 }),
-      'playlist not blacklisted if expired excludeUntil'
+      Playlist.isExcluded({ excludeUntil: Date.now() - 1 }),
+      'playlist not excluded if expired excludeUntil'
     );
 
     assert.ok(
-      Playlist.isBlacklisted({ excludeUntil: Date.now() + 9999 }),
-      'playlist is blacklisted'
+      Playlist.isExcluded({ excludeUntil: Date.now() + 9999 }),
+      'playlist is excluded'
     );
 
     assert.ok(
-      Playlist.isBlacklisted({ excludeUntil: Infinity }),
-      'playlist is blacklisted if excludeUntil is Infinity'
+      Playlist.isExcluded({ excludeUntil: Infinity }),
+      'playlist is excluded if excludeUntil is Infinity'
     );
   });
 
@@ -924,20 +923,20 @@ QUnit.module('Playlist', function() {
     assert.ok(Playlist.isDisabled({ disabled: true }), 'playlist is disabled');
   });
 
-  QUnit.test('playlists with no or expired blacklist are enabled', function(assert) {
-    // enabled means not blacklisted and not disabled
-    assert.ok(Playlist.isEnabled({}), 'playlist with no blacklist is enabled');
+  QUnit.test('playlists with no or expired excludeUntil are enabled', function(assert) {
+    // enabled means not excluded and not disabled
+    assert.ok(Playlist.isEnabled({}), 'playlist with no excludeUntil is enabled');
     assert.ok(
       Playlist.isEnabled({ excludeUntil: Date.now() - 1 }),
-      'playlist with expired blacklist is enabled'
+      'playlist with expired excludeUntil is enabled'
     );
   });
 
-  QUnit.test('blacklisted playlists are not enabled', function(assert) {
-    // enabled means not blacklisted and not disabled
+  QUnit.test('excluded playlists are not enabled', function(assert) {
+    // enabled means not excluded and not disabled
     assert.notOk(
       Playlist.isEnabled({ excludeUntil: Date.now() + 9999 }),
-      'playlist with temporary blacklist is not enabled'
+      'playlist with temporary excludeUntil is not enabled'
     );
     assert.notOk(
       Playlist.isEnabled({ excludeUntil: Infinity }),
@@ -946,24 +945,24 @@ QUnit.module('Playlist', function() {
   });
 
   QUnit.test(
-    'manually disabled playlists are not enabled regardless of blacklist state',
+    'manually disabled playlists are not enabled regardless of exclusion state',
     function(assert) {
-      // enabled means not blacklisted and not disabled
+      // enabled means not excluded and not disabled
       assert.notOk(
         Playlist.isEnabled({ disabled: true }),
-        'disabled playlist with no blacklist is not enabled'
+        'disabled playlist with no excludeUntil is not enabled'
       );
       assert.notOk(
         Playlist.isEnabled({ disabled: true, excludeUntil: Date.now() - 1 }),
-        'disabled playlist with expired blacklist is not enabled'
+        'disabled playlist with expired excludeUntil is not enabled'
       );
       assert.notOk(
         Playlist.isEnabled({ disabled: true, excludeUntil: Date.now() + 9999 }),
-        'disabled playlist with temporary blacklist is not enabled'
+        'disabled playlist with temporary excludeUntil is not enabled'
       );
       assert.notOk(
         Playlist.isEnabled({ disabled: true, excludeUntil: Infinity }),
-        'disabled playlist with permanent blacklist is not enabled'
+        'disabled playlist with permanent excludeUntil is not enabled'
       );
     }
   );
@@ -1048,7 +1047,7 @@ QUnit.module('Playlist', function() {
     assert.ok(Playlist.isAes(media), 'media is an AES encrypted HLS stream');
   });
 
-  ['experimentalExactManifestTimings', ''].forEach((key) => {
+  ['exactManifestTimings', ''].forEach((key) => {
     QUnit.module(`Media Index For Time ${key}`, {
       beforeEach(assert) {
         this.env = useFakeEnvironment(assert);
@@ -1058,7 +1057,7 @@ QUnit.module('Playlist', function() {
           xhr: xhrFactory()
         };
 
-        const experiment = {experimentalExactManifestTimings: key === 'experimentalExactManifestTimings'};
+        const experiment = {exactManifestTimings: key === 'exactManifestTimings'};
 
         this.getMediaInfoForTime = (overrides) => {
           return Playlist.getMediaInfoForTime(merge(this.defaults, overrides, experiment));
@@ -1463,56 +1462,54 @@ QUnit.module('Playlist', function() {
       }
     );
 
-    if (!videojs.browser.IE_VERSION) {
-      QUnit.test('can return a partIndex', function(assert) {
-        this.fakeVhs.options_ = {experimentalLLHLS: true};
-        const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
+    QUnit.test('can return a partIndex', function(assert) {
+      this.fakeVhs.options_ = {llhls: true};
+      const loader = new PlaylistLoader('media.m3u8', this.fakeVhs);
 
-        loader.load();
+      loader.load();
 
-        this.requests.shift().respond(
-          200, null,
-          '#EXTM3U\n' +
-          '#EXT-X-MEDIA-SEQUENCE:1001\n' +
-          '#EXTINF:4,\n' +
-          '1001.ts\n' +
-          '#EXTINF:5,\n' +
-          '1002.ts\n' +
-          '#EXT-X-PART:URI="1003.part1.ts",DURATION=1\n' +
-          '#EXT-X-PART:URI="1003.part2.ts",DURATION=1\n' +
-          '#EXT-X-PART:URI="1003.part3.ts",DURATION=1\n' +
-          '#EXT-X-PRELOAD-HINT:TYPE="PART",URI="1003.part4.ts"\n'
-        );
+      this.requests.shift().respond(
+        200, null,
+        '#EXTM3U\n' +
+        '#EXT-X-MEDIA-SEQUENCE:1001\n' +
+        '#EXTINF:4,\n' +
+        '1001.ts\n' +
+        '#EXTINF:5,\n' +
+        '1002.ts\n' +
+        '#EXT-X-PART:URI="1003.part1.ts",DURATION=1\n' +
+        '#EXT-X-PART:URI="1003.part2.ts",DURATION=1\n' +
+        '#EXT-X-PART:URI="1003.part3.ts",DURATION=1\n' +
+        '#EXT-X-PRELOAD-HINT:TYPE="PART",URI="1003.part4.ts"\n'
+      );
 
-        const media = loader.media();
+      const media = loader.media();
 
-        this.defaults = {
-          playlist: media,
-          currentTime: 0,
-          startingSegmentIndex: 0,
-          startingPartIndex: null,
-          startTime: 0
-        };
+      this.defaults = {
+        playlist: media,
+        currentTime: 0,
+        startingSegmentIndex: 0,
+        startingPartIndex: null,
+        startTime: 0
+      };
 
-        assert.deepEqual(
-          this.getMediaInfoForTime({currentTime: 10, startTime: 0}),
-          {segmentIndex: 2, startTime: 9, partIndex: 0},
-          'returns expected part/segment'
-        );
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 10, startTime: 0}),
+        {segmentIndex: 2, startTime: 9, partIndex: 0},
+        'returns expected part/segment'
+      );
 
-        assert.deepEqual(
-          this.getMediaInfoForTime({currentTime: 11, startTime: 0}),
-          {segmentIndex: 2, startTime: 10, partIndex: 1},
-          'returns expected part/segment'
-        );
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 11, startTime: 0}),
+        {segmentIndex: 2, startTime: 10, partIndex: 1},
+        'returns expected part/segment'
+      );
 
-        assert.deepEqual(
-          this.getMediaInfoForTime({currentTime: 11, segmentIndex: -15}),
-          {segmentIndex: 2, startTime: 10, partIndex: 1},
-          'returns expected part/segment'
-        );
-      });
-    }
+      assert.deepEqual(
+        this.getMediaInfoForTime({currentTime: 11, segmentIndex: -15}),
+        {segmentIndex: 2, startTime: 10, partIndex: 1},
+        'returns expected part/segment'
+      );
+    });
 
     QUnit.test('liveEdgeDelay works as expected', function(assert) {
       const media = {
@@ -1539,33 +1536,33 @@ QUnit.module('Playlist', function() {
           ]}
         ]
       };
-      const master = {
+      const main = {
         suggestedPresentationDelay: 10
       };
 
       assert.equal(
-        Playlist.liveEdgeDelay(master, media),
+        Playlist.liveEdgeDelay(main, media),
         0,
         'returns 0 with endlist'
       );
 
       delete media.endList;
       assert.equal(
-        Playlist.liveEdgeDelay(master, media),
-        master.suggestedPresentationDelay,
+        Playlist.liveEdgeDelay(main, media),
+        main.suggestedPresentationDelay,
         'uses suggestedPresentationDelay'
       );
 
-      delete master.suggestedPresentationDelay;
+      delete main.suggestedPresentationDelay;
       assert.equal(
-        Playlist.liveEdgeDelay(master, media),
+        Playlist.liveEdgeDelay(main, media),
         media.serverControl.partHoldBack,
         'uses part hold back'
       );
 
       media.serverControl.partHoldBack = null;
       assert.equal(
-        Playlist.liveEdgeDelay(master, media),
+        Playlist.liveEdgeDelay(main, media),
         media.partTargetDuration * 3,
         'uses part target duration * 3'
       );
@@ -1573,21 +1570,21 @@ QUnit.module('Playlist', function() {
       media.partTargetDuration = null;
 
       assert.equal(
-        Playlist.liveEdgeDelay(master, media),
+        Playlist.liveEdgeDelay(main, media),
         media.serverControl.holdBack,
         'uses hold back'
       );
 
       media.serverControl.holdBack = null;
       assert.equal(
-        Playlist.liveEdgeDelay(master, media),
+        Playlist.liveEdgeDelay(main, media),
         (media.targetDuration * 3),
         'uses (targetDuration * 3)'
       );
 
       media.targetDuration = null;
       assert.equal(
-        Playlist.liveEdgeDelay(master, media),
+        Playlist.liveEdgeDelay(main, media),
         0,
         'no target duration delay cannot be calcluated'
       );
@@ -1598,7 +1595,7 @@ QUnit.module('Playlist', function() {
       });
 
       assert.equal(
-        Playlist.liveEdgeDelay(master, media),
+        Playlist.liveEdgeDelay(main, media),
         0,
         'no segment durations, live delay can\'t be calculated'
       );
@@ -1606,7 +1603,7 @@ QUnit.module('Playlist', function() {
       media.segments.length = 0;
 
       assert.equal(
-        Playlist.liveEdgeDelay(master, media),
+        Playlist.liveEdgeDelay(main, media),
         0,
         'no segments, live delay can\'t be calculated'
       );

@@ -4,8 +4,7 @@
  * Utilities for working with TimeRanges.
  *
  */
-
-import videojs from 'video.js';
+import {createTimeRanges} from './util/vjs-compat';
 
 // Fudge factor to account for TimeRanges rounding
 export const TIME_FUDGE_FACTOR = 1 / 30;
@@ -40,7 +39,7 @@ const filterRanges = function(timeRanges, predicate) {
     }
   }
 
-  return videojs.createTimeRanges(results);
+  return createTimeRanges(results);
 };
 
 /**
@@ -79,7 +78,7 @@ export const findNextRange = function(timeRanges, time) {
  */
 export const findGaps = function(buffered) {
   if (buffered.length < 2) {
-    return videojs.createTimeRanges();
+    return createTimeRanges();
   }
 
   const ranges = [];
@@ -91,7 +90,7 @@ export const findGaps = function(buffered) {
     ranges.push([start, end]);
   }
 
-  return videojs.createTimeRanges(ranges);
+  return createTimeRanges(ranges);
 };
 
 /**
@@ -170,7 +169,7 @@ export const bufferIntersection = function(bufferA, bufferB) {
   const ranges = [];
 
   if (!bufferA || !bufferA.length || !bufferB || !bufferB.length) {
-    return videojs.createTimeRange();
+    return createTimeRanges();
   }
 
   // Handle the case where we have both buffers and create an
@@ -221,7 +220,7 @@ export const bufferIntersection = function(bufferA, bufferB) {
     }
   }
 
-  return videojs.createTimeRanges(ranges);
+  return createTimeRanges(ranges);
 };
 
 /**
@@ -300,7 +299,7 @@ export const getSegmentBufferedPercent = function(
   const endOfSegment = startOfSegment + segmentDuration;
 
   // The entire time range of the segment
-  const originalSegmentRange = videojs.createTimeRanges([[
+  const originalSegmentRange = createTimeRanges([[
     startOfSegment,
     endOfSegment
   ]]);
@@ -311,7 +310,7 @@ export const getSegmentBufferedPercent = function(
   // for that and the function will still return 100% if a only half of a
   // segment is actually in the buffer as long as the currentTime is also
   // half-way through the segment
-  const adjustedSegmentRange = videojs.createTimeRanges([[
+  const adjustedSegmentRange = createTimeRanges([[
     clamp(startOfSegment, [currentTime, endOfSegment]),
     endOfSegment
   ]]);

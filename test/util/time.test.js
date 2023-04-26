@@ -1,5 +1,4 @@
 import QUnit from 'qunit';
-import videojs from 'video.js';
 import {
   getProgramTime,
   seekToProgramTime,
@@ -10,6 +9,7 @@ import {
   originalSegmentVideoDuration,
   playerTimeToProgramTime
 } from '../../src/util/time.js';
+import {merge} from '../../src/util/vjs-compat';
 
 QUnit.module('Time');
 
@@ -754,7 +754,7 @@ QUnit.test(
 
 QUnit.test('returns time if no modifications', function(assert) {
   const done = assert.async();
-  const segment = videojs.mergeOptions(this.playlist.segments[0], {
+  const segment = merge(this.playlist.segments[0], {
     duration: 2,
     start: 3,
     end: 5
@@ -783,7 +783,7 @@ QUnit.test('returns time if no modifications', function(assert) {
 
 QUnit.test('returns programDateTime parsed from media segment tags', function(assert) {
   const done = assert.async();
-  const segment = videojs.mergeOptions(this.playlist.segments[0], {
+  const segment = merge(this.playlist.segments[0], {
     duration: 1,
     start: 0,
     end: 1
@@ -962,7 +962,7 @@ QUnit.test(
 
 QUnit.test('returns error if live stream has not started', function(assert) {
   const done = assert.async();
-  const tech = videojs.mergeOptions(this.tech, {
+  const tech = merge(this.tech, {
     hasStarted_: false
   });
 
@@ -1019,7 +1019,7 @@ QUnit.test('vod: seeks and returns player time seeked to if buffered', function(
   let currentTime = 0;
   const done = assert.async();
   const handlers = {};
-  const tech = videojs.mergeOptions(this.tech, {
+  const tech = merge(this.tech, {
     one(e, handler) {
       handlers[e] = handler;
     },
@@ -1085,7 +1085,7 @@ QUnit.test('vod: does not account for prepended content duration', function(asse
   let currentTime = 0;
   const done = assert.async();
   const handlers = {};
-  const tech = videojs.mergeOptions(this.tech, {
+  const tech = merge(this.tech, {
     one(e, handler) {
       handlers[e] = handler;
     },
@@ -1151,7 +1151,7 @@ QUnit.test('live: seeks and returns player time seeked to if buffered', function
   let currentTime = 0;
   const done = assert.async();
   const handlers = {};
-  const tech = videojs.mergeOptions(this.tech, {
+  const tech = merge(this.tech, {
     one(e, handler) {
       handlers[e] = handler;
     },
@@ -1216,7 +1216,7 @@ QUnit.test('setting pauseAfterSeek to false seeks without pausing', function(ass
   let currentTime = 0;
   const done = assert.async();
   const handlers = {};
-  const tech = videojs.mergeOptions(this.tech, {
+  const tech = merge(this.tech, {
     one(e, handler) {
       handlers[e] = handler;
     },

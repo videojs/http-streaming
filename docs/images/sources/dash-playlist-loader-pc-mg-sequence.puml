@@ -1,10 +1,10 @@
 @startuml
 
 header DashPlaylistLoader sequences
-title DashPlaylistLoader sequences: Master Manifest with Alternate Audio
+title DashPlaylistLoader sequences: Main Manifest with Alternate Audio
 
-Participant "MasterPlaylistController" as MPC #red
-Participant "MasterDashPlaylistLoader" as MPL #blue
+Participant "PlaylistController" as PC #red
+Participant "MainDashPlaylistLoader" as MPL #blue
 Participant "mainSegmentLoader" as SL #blue
 Participant "AudioDashPlaylistLoader" as APL #green
 Participant "audioSegmentLoader" as ASL #green
@@ -15,15 +15,15 @@ Participant Tech #lightblue
 
 == Initialization ==
 
-MPC -> MPL : construct MasterPlaylistLoader
-MPC -> MPL: load()
+PC -> MPL : construct MainPlaylistLoader
+PC -> MPL: load()
 
-== Requesting Master Manifest ==
+== Requesting Main Manifest ==
 
 MPL -> MPL : start()
 
-MPL -> ext: xhr request for master manifest
-ext -> MPL : response with master manifest
+MPL -> ext: xhr request for main manifest
+ext -> MPL : response with main manifest
 
 MPL -> parser: parse manifest
 parser -> MPL: object representing manifest
@@ -43,7 +43,7 @@ else if sidx
   end
 end
 
-note over MPL #lightblue: trigger 'loadedmetadata' on master loader [T1]
+note over MPL #lightblue: trigger 'loadedmetadata' on main loader [T1]
 
 note over MPL #lightblue: handling 'loadedmetadata'
 
@@ -77,8 +77,8 @@ APL -> APL: zero delay to fake network request
 
 break finish pending tasks
   MG -> Tech: add audioTrack
-  MPL -> MPC: setupSourceBuffers_()
-  MPL -> MPC: setupFirstPlay()
+  MPL -> PC: setupSourceBuffers_()
+  MPL -> PC: setupFirstPlay()
 
   loop mainSegmentLoader.monitorBufferTick_()
     SL -> ext: requests media segments

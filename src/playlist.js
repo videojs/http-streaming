@@ -3,12 +3,10 @@
  *
  * Playlist related utilities.
  */
-import videojs from 'video.js';
 import window from 'global/window';
 import {isAudioCodec} from '@videojs/vhs-utils/es/codecs.js';
 import {TIME_FUDGE_FACTOR} from './ranges.js';
-
-const {createTimeRange} = videojs;
+import {createTimeRanges} from './util/vjs-compat';
 
 /**
  * Get the duration of a segment, with special cases for
@@ -88,18 +86,18 @@ export const getKnownPartCount = ({preloadSegment}) => {
  * Get the number of seconds to delay from the end of a
  * live playlist.
  *
- * @param {Playlist} master the master playlist
+ * @param {Playlist} main the main playlist
  * @param {Playlist} media the media playlist
  * @return {number} the hold back in seconds.
  */
-export const liveEdgeDelay = (master, media) => {
+export const liveEdgeDelay = (main, media) => {
   if (media.endList) {
     return 0;
   }
 
   // dash suggestedPresentationDelay trumps everything
-  if (master && master.suggestedPresentationDelay) {
-    return master.suggestedPresentationDelay;
+  if (main && main.suggestedPresentationDelay) {
+    return main.suggestedPresentationDelay;
   }
 
   const hasParts = getLastParts(media).length > 0;
@@ -396,9 +394,9 @@ export const seekable = function(playlist, expired, liveEdgePadding) {
   const seekableEnd = playlistEnd(playlist, expired, useSafeLiveEnd, liveEdgePadding);
 
   if (seekableEnd === null) {
-    return createTimeRange();
+    return createTimeRanges();
   }
-  return createTimeRange(seekableStart, seekableEnd);
+  return createTimeRanges(seekableStart, seekableEnd);
 };
 
 /**
@@ -420,7 +418,7 @@ export const getMediaInfoForTime = function({
   startingSegmentIndex,
   startingPartIndex,
   startTime,
-  experimentalExactManifestTimings
+  exactManifestTimings
 }) {
 
   let time = currentTime - startTime;
@@ -453,7 +451,7 @@ export const getMediaInfoForTime = function({
 
         time += partAndSegment.duration;
 
-        if (experimentalExactManifestTimings) {
+        if (exactManifestTimings) {
           if (time < 0) {
             continue;
           }
@@ -507,7 +505,7 @@ export const getMediaInfoForTime = function({
 
     time -= partAndSegment.duration;
 
-    if (experimentalExactManifestTimings) {
+    if (exactManifestTimings) {
       if (time > 0) {
         continue;
       }
@@ -536,19 +534,19 @@ export const getMediaInfoForTime = function({
 };
 
 /**
- * Check whether the playlist is blacklisted or not.
+ * Check whether the playlist is excluded or not.
  *
  * @param {Object} playlist the media playlist object
- * @return {boolean} whether the playlist is blacklisted or not
- * @function isBlacklisted
+ * @return {boolean} whether the playlist is excluded or not
+ * @function isExcluded
  */
-export const isBlacklisted = function(playlist) {
+export const isExcluded = function(playlist) {
   return playlist.excludeUntil && playlist.excludeUntil > Date.now();
 };
 
 /**
  * Check whether the playlist is compatible with current playback configuration or has
- * been blacklisted permanently for being incompatible.
+ * been excluded permanently for being incompatible.
  *
  * @param {Object} playlist the media playlist object
  * @return {boolean} whether the playlist is incompatible or not
@@ -566,9 +564,9 @@ export const isIncompatible = function(playlist) {
  * @function isEnabled
  */
 export const isEnabled = function(playlist) {
-  const blacklisted = isBlacklisted(playlist);
+  const excluded = isExcluded(playlist);
 
-  return (!playlist.disabled && !blacklisted);
+  return (!playlist.disabled && !excluded);
 };
 
 /**
@@ -647,14 +645,14 @@ export const estimateSegmentRequestTime = function(
  *
  * @return {Boolean} true if on lowest rendition
  */
-export const isLowestEnabledRendition = (master, media) => {
-  if (master.playlists.length === 1) {
+export const isLowestEnabledRendition = (main, media) => {
+  if (main.playlists.length === 1) {
     return true;
   }
 
   const currentBandwidth = media.attributes.BANDWIDTH || Number.MAX_VALUE;
 
-  return (master.playlists.filter((playlist) => {
+  return (main.playlists.filter((playlist) => {
     if (!isEnabled(playlist)) {
       return false;
     }
@@ -698,8 +696,8 @@ export const playlistMatch = (a, b) => {
   return false;
 };
 
-const someAudioVariant = function(master, callback) {
-  const AUDIO = master && master.mediaGroups && master.mediaGroups.AUDIO || {};
+const someAudioVariant = function(main, callback) {
+  const AUDIO = main && main.mediaGroups && main.mediaGroups.AUDIO || {};
   let found = false;
 
   for (const groupName in AUDIO) {
@@ -719,21 +717,21 @@ const someAudioVariant = function(master, callback) {
   return !!found;
 };
 
-export const isAudioOnly = (master) => {
+export const isAudioOnly = (main) => {
   // we are audio only if we have no main playlists but do
   // have media group playlists.
-  if (!master || !master.playlists || !master.playlists.length) {
+  if (!main || !main.playlists || !main.playlists.length) {
     // without audio variants or playlists this
-    // is not an audio only master.
-    const found = someAudioVariant(master, (variant) =>
+    // is not an audio only main.
+    const found = someAudioVariant(main, (variant) =>
       (variant.playlists && variant.playlists.length) || variant.uri);
 
     return found;
   }
 
   // if every playlist has only an audio codec it is audio only
-  for (let i = 0; i < master.playlists.length; i++) {
-    const playlist = master.playlists[i];
+  for (let i = 0; i < main.playlists.length; i++) {
+    const playlist = main.playlists[i];
     const CODECS = playlist.attributes && playlist.attributes.CODECS;
 
     // all codecs are audio, this is an audio playlist.
@@ -742,7 +740,7 @@ export const isAudioOnly = (master) => {
     }
 
     // playlist is in an audio group it is audio only
-    const found = someAudioVariant(master, (variant) => playlistMatch(playlist, variant));
+    const found = someAudioVariant(main, (variant) => playlistMatch(playlist, variant));
 
     if (found) {
       continue;
@@ -766,7 +764,7 @@ export default {
   getMediaInfoForTime,
   isEnabled,
   isDisabled,
-  isBlacklisted,
+  isExcluded,
   isIncompatible,
   playlistEnd,
   isAes,
