@@ -428,6 +428,64 @@ const expandDataUri = (dataUri) => {
 };
 
 /**
+ * Adds a request hook to an xhr object
+ *
+ * @param {Object} xhr object to add the onRequest hook to
+ * @param {function} callback hook function for an xhr request
+ */
+const addOnRequestHook = (xhr, callback) => {
+  if (!xhr.onRequest) {
+    xhr.onRequest = new Set();
+  }
+  xhr.onRequest.add(callback);
+};
+
+/**
+ * Adds a response hook to an xhr object
+ *
+ * @param {Object} xhr object to add the onResponse hook to
+ * @param {function} callback hook function for an xhr response
+ */
+const addOnResponseHook = (xhr, callback) => {
+  if (!xhr.onResponse) {
+    xhr.onResponse = new Set();
+  }
+  xhr.onResponse.add(callback);
+};
+
+/**
+ * Removes a request hook on an xhr object, deletes the onRequest set if empty.
+ *
+ * @param {Object} xhr object to remove the onRequest hook from
+ * @param {function} callback hook function to remove
+ */
+const removeOnRequestHook = (xhr, callback) => {
+  if (!xhr.onRequest) {
+    return;
+  }
+  xhr.onRequest.delete(callback);
+  if (!xhr.onRequest.size) {
+    delete xhr.onRequest;
+  }
+};
+
+/**
+ * Removes a response hook on an xhr object, deletes the onResponse set if empty.
+ *
+ * @param {Object} xhr object to remove the onResponse hook from
+ * @param {function} callback hook function to remove
+ */
+const removeOnResponseHook = (xhr, callback) => {
+  if (!xhr.onResponse) {
+    return;
+  }
+  xhr.onResponse.delete(callback);
+  if (!xhr.onResponse.size) {
+    delete xhr.onResponse;
+  }
+};
+
+/**
  * Whether the browser has built-in HLS support.
  */
 Vhs.supportsNativeHls = (function() {
@@ -493,35 +551,39 @@ Vhs.isSupported = function() {
 };
 
 /**
- * A global function for setting the beforeRequest hook
+ * A global function for setting an onRequest hook
  *
- * @param {function} callback for request options modifiction
+ * @param {function} callback for request modifiction
  */
 Vhs.onRequest = function(callback) {
-  Vhs.xhr.beforeRequest = callback;
+  addOnRequestHook(Vhs.xhr, callback);
 };
 
 /**
- * A global function for setting the onResponse hook
+ * A global function for setting an onResponse hook
  *
  * @param {callback} callback for response data retrieval
  */
 Vhs.onResponse = function(callback) {
-  Vhs.xhr.beforeResponse = callback;
+  addOnResponseHook(Vhs.xhr, callback);
 };
 
 /**
- * Deletes the global beforeRequest function
+ * Deletes a global onRequest callback if it exists
+ *
+ * @param {function} callback to delete from the global set
  */
-Vhs.offRequest = function() {
-  delete Vhs.xhr.beforeRequest;
+Vhs.offRequest = function(callback) {
+  removeOnRequestHook(Vhs.xhr, callback);
 };
 
 /**
- * Deletes the global beforeResponse function
+ * Deletes a global onResponse callback if it exists
+ *
+ * @param {function} callback to delete from the global set
  */
-Vhs.offResponse = function() {
-  delete Vhs.xhr.beforeResponse;
+Vhs.offResponse = function(callback) {
+  removeOnResponseHook(Vhs.xhr, callback);
 };
 
 const Component = videojs.getComponent('Component');
@@ -1230,20 +1292,40 @@ class VhsHandler extends Component {
     });
   }
 
+  /**
+   * A player function for setting an onRequest hook
+   *
+   * @param {function} callback for request modifiction
+   */
   onRequest(callback) {
-    this.xhr.beforeRequest = callback;
+    addOnRequestHook(this.xhr, callback);
   }
 
+  /**
+   * A player function for setting an onResponse hook
+   *
+   * @param {callback} callback for response data retrieval
+   */
   onResponse(callback) {
-    this.xhr.beforeResponse = callback;
+    addOnResponseHook(this.xhr, callback);
   }
 
-  offRequest() {
-    delete this.xhr.beforeRequest;
+  /**
+   * Deletes a player onRequest callback if it exists
+   *
+   * @param {function} callback to delete from the player set
+   */
+  offRequest(callback) {
+    removeOnRequestHook(this.xhr, callback);
   }
 
-  offResponse() {
-    delete this.xhr.beforeResponse;
+  /**
+   * Deletes a player onResponse callback if it exists
+   *
+   * @param {function} callback to delete from the player set
+   */
+  offResponse(callback) {
+    removeOnResponseHook(this.xhr, callback);
   }
 }
 

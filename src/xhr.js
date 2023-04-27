@@ -17,7 +17,7 @@ const {
   xhr: videojsXHR
 } = videojs;
 
-const callbackWrapper = function(request, error, response, callback, beforeResponse) {
+const callbackWrapper = function(request, error, response, callback) {
   const reqResponse = request.responseType === 'arraybuffer' ? request.response : request.responseText;
 
   if (!error && reqResponse) {
@@ -52,10 +52,6 @@ const callbackWrapper = function(request, error, response, callback, beforeRespo
     error = new Error('XHR Failed with a response of: ' +
                       (request && (reqResponse || request.responseText)));
   }
-  // If we have a response hook, call it now.
-  if (beforeResponse && typeof beforeResponse === 'function') {
-    beforeResponse(response);
-  }
   callback(error, request);
 };
 
@@ -69,7 +65,9 @@ const xhrFactory = function() {
     // Allow an optional user-specified function to modify the option
     // object before we construct the xhr request
     const beforeRequest = XhrFunction.beforeRequest || videojs.Vhs.xhr.beforeRequest;
-    const beforeResponse = XhrFunction.beforeResponse || videojs.Vhs.xhr.beforeResponse;
+    // These will be a collection of callbacks
+    const onRequest = XhrFunction.onRequest || videojs.Vhs.xhr.onRequest;
+    const onResponse = XhrFunction.onResponse || videojs.Vhs.xhr.onResponse;
 
     if (beforeRequest && typeof beforeRequest === 'function') {
       const newOptions = beforeRequest(options);
@@ -84,7 +82,15 @@ const xhrFactory = function() {
     const xhrMethod = videojs.Vhs.xhr.original === true ? videojsXHR : videojs.Vhs.xhr;
 
     const request = xhrMethod(options, function(error, response) {
-      return callbackWrapper(request, error, response, callback, beforeResponse);
+      // call onResponse here.
+      // If we have a response hook, call it now.
+      // TODO: This will be a collection of callbacks, not just a single function.
+      if (onResponse) {
+        onResponse.forEach((responseHook) => {
+          responseHook(error, response);
+        });
+      }
+      return callbackWrapper(request, error, response, callback);
     });
     const originalAbort = request.abort;
 
@@ -94,6 +100,13 @@ const xhrFactory = function() {
     };
     request.uri = options.uri;
     request.requestTime = Date.now();
+    // call all registered onRequest hooks in order
+    if (onRequest) {
+      onRequest.forEach((requestHook) => {
+        requestHook(request);
+      });
+    }
+
     return request;
   };
 
