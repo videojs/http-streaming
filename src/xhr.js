@@ -82,9 +82,7 @@ const xhrFactory = function() {
     const xhrMethod = videojs.Vhs.xhr.original === true ? videojsXHR : videojs.Vhs.xhr;
 
     const request = xhrMethod(options, function(error, response) {
-      // call onResponse here.
-      // If we have a response hook, call it now.
-      // TODO: This will be a collection of callbacks, not just a single function.
+      // call all registered onResponse hooks in order
       if (onResponse) {
         onResponse.forEach((responseHook) => {
           responseHook(error, response);
