@@ -52,6 +52,7 @@ const callbackWrapper = function(request, error, response, callback) {
     error = new Error('XHR Failed with a response of: ' +
                       (request && (reqResponse || request.responseText)));
   }
+
   callback(error, request);
 };
 
