@@ -17,7 +17,7 @@ const {
   xhr: videojsXHR
 } = videojs;
 
-const callbackWrapper = function(request, error, response, callback) {
+const callbackWrapper = function(request, error, response, callback, beforeResponse) {
   const reqResponse = request.responseType === 'arraybuffer' ? request.response : request.responseText;
 
   if (!error && reqResponse) {
@@ -52,7 +52,10 @@ const callbackWrapper = function(request, error, response, callback) {
     error = new Error('XHR Failed with a response of: ' +
                       (request && (reqResponse || request.responseText)));
   }
-
+  // If we have a response hook, call it now.
+  if (beforeResponse && typeof beforeResponse === 'function') {
+    beforeResponse(response);
+  }
   callback(error, request);
 };
 
@@ -66,6 +69,7 @@ const xhrFactory = function() {
     // Allow an optional user-specified function to modify the option
     // object before we construct the xhr request
     const beforeRequest = XhrFunction.beforeRequest || videojs.Vhs.xhr.beforeRequest;
+    const beforeResponse = XhrFunction.beforeResponse || videojs.Vhs.xhr.beforeResponse;
 
     if (beforeRequest && typeof beforeRequest === 'function') {
       const newOptions = beforeRequest(options);
@@ -80,7 +84,7 @@ const xhrFactory = function() {
     const xhrMethod = videojs.Vhs.xhr.original === true ? videojsXHR : videojs.Vhs.xhr;
 
     const request = xhrMethod(options, function(error, response) {
-      return callbackWrapper(request, error, response, callback);
+      return callbackWrapper(request, error, response, callback, beforeResponse);
     });
     const originalAbort = request.abort;
 

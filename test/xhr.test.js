@@ -46,6 +46,48 @@ QUnit.test('xhr respects beforeRequest', function(assert) {
 
   this.xhr(defaultOptions);
   assert.equal(this.requests.shift().url, 'global', 'url changed with global override');
+
+  delete videojs.Vhs.xhr.beforeRequest;
+});
+
+QUnit.test('xhr calls beforeResponse', function(assert) {
+  const done = assert.async();
+  const defaultOptions = {
+    url: 'default'
+  };
+
+  // Set player beforeResponse
+  this.xhr.beforeResponse = (response) => {
+    assert.equal(response.body, 'foo-bar', 'expected response body');
+    assert.equal(response.method, 'GET', 'expected method');
+    assert.equal(response.headers.foo, 'bar', 'expected headers');
+    assert.equal(response.statusCode, 200, 'expected statusCode');
+    assert.equal(response.url, 'default', 'expected URL');
+  };
+
+  // Set global beforeResponse
+  videojs.Vhs.xhr.beforeResponse = (response) => {
+    assert.equal(response.body, 'bar-foo', 'expected response body');
+    assert.equal(response.method, 'GET', 'expected method');
+    assert.equal(response.headers.bar, 'foo', 'expected headers');
+    assert.equal(response.statusCode, 200, 'expected statusCode');
+    assert.equal(response.url, 'global', 'expected URL');
+    done();
+  };
+
+  this.xhr(defaultOptions, () => { });
+  this.requests.shift().respond(200, { foo: 'bar' }, 'foo-bar');
+
+  delete this.xhr.beforeResponse;
+
+  const globalOptions = {
+    url: 'global'
+  };
+
+  this.xhr(globalOptions, () => { });
+  this.requests.shift().respond(200, { bar: 'foo' }, 'bar-foo');
+
+  delete videojs.Vhs.xhr.beforeResponse;
 });
 
 QUnit.test('byterangeStr works as expected', function(assert) {

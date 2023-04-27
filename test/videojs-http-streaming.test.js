@@ -4036,6 +4036,138 @@ QUnit.test('Allows overriding the global beforeRequest function', function(asser
   delete videojs.Vhs.xhr.beforeRequest;
 });
 
+QUnit.test('Allows setting beforeRequest with onRequest on the player', function(assert) {
+  let beforeRequestCalled = false;
+
+  this.player.src({
+    src: 'main.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+
+  this.player.tech_.vhs.onRequest(() => {
+    beforeRequestCalled = true;
+  });
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.ok(beforeRequestCalled, 'beforeRequest was called');
+});
+
+QUnit.test('Allows setting beforeRequest with onRequest globally', function(assert) {
+  let beforeRequestCalled = false;
+
+  this.player.src({
+    src: 'main.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  videojs.Vhs.onRequest(() => {
+    beforeRequestCalled = true;
+  });
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.ok(beforeRequestCalled, 'beforeRequest was called');
+});
+
+QUnit.test('Allows overriding the global beforeRequest function calling onRequest locally', function(assert) {
+  let beforeGlobalRequestCalled = 0;
+  let beforeLocalRequestCalled = 0;
+
+  videojs.Vhs.onRequest(() => {
+    beforeGlobalRequestCalled++;
+  });
+
+  this.player.src({
+    src: 'main.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+
+  this.player.tech_.vhs.onRequest(() => {
+    beforeLocalRequestCalled++;
+  });
+  // main
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+  // ts
+  this.standardXHRResponse(this.requests.shift(), muxedSegment());
+
+  assert.equal(beforeLocalRequestCalled, 2, 'local onRequest callback was called twice ' +
+                                           'for the media playlist and media');
+  assert.equal(beforeGlobalRequestCalled, 1, 'global onRequest callback was called once ' +
+                                            'for the main playlist');
+});
+
+QUnit.test('Allows deleting beforeRequest with offRequest on the player', function(assert) {
+  let beforeRequestCalled = false;
+
+  this.player.src({
+    src: 'main.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+
+  this.player.tech_.vhs.onRequest(() => {
+    beforeRequestCalled = true;
+  });
+
+  this.player.tech_.vhs.offRequest();
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.notOk(beforeRequestCalled, 'beforeRequest was called');
+});
+
+QUnit.test('Allows deleting beforeRequest with offRequest globally', function(assert) {
+  let beforeRequestCalled = false;
+
+  this.player.src({
+    src: 'main.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  videojs.Vhs.onRequest(() => {
+    beforeRequestCalled = true;
+  });
+
+  videojs.Vhs.offRequest();
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.notOk(beforeRequestCalled, 'beforeRequest was called');
+});
+// TODO: Finish tests! Test onResponse and offResponse and their priority.
+
 QUnit.test(
   'passes useCueTags vhs option to main playlist controller',
   function(assert) {

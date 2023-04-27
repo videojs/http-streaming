@@ -492,6 +492,38 @@ Vhs.isSupported = function() {
     'your player\'s techOrder.');
 };
 
+/**
+ * A global function for setting the beforeRequest hook
+ *
+ * @param {function} callback for request options modifiction
+ */
+Vhs.onRequest = function(callback) {
+  Vhs.xhr.beforeRequest = callback;
+};
+
+/**
+ * A global function for setting the onResponse hook
+ *
+ * @param {callback} callback for response data retrieval
+ */
+Vhs.onResponse = function(callback) {
+  Vhs.xhr.beforeResponse = callback;
+};
+
+/**
+ * Deletes the global beforeRequest function
+ */
+Vhs.offRequest = function() {
+  delete Vhs.xhr.beforeRequest;
+};
+
+/**
+ * Deletes the global beforeResponse function
+ */
+Vhs.offResponse = function() {
+  delete Vhs.xhr.beforeResponse;
+};
+
 const Component = videojs.getComponent('Component');
 
 /**
@@ -1196,6 +1228,22 @@ class VhsHandler extends Component {
       tech: this.options_.tech,
       callback
     });
+  }
+
+  onRequest(callback) {
+    this.xhr.beforeRequest = callback;
+  }
+
+  onResponse(callback) {
+    this.xhr.beforeResponse = callback;
+  }
+
+  offRequest() {
+    delete this.xhr.beforeRequest;
+  }
+
+  offResponse() {
+    delete this.xhr.beforeResponse;
   }
 }
 
