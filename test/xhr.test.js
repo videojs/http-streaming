@@ -46,8 +46,6 @@ QUnit.test('xhr respects beforeRequest', function(assert) {
 
   this.xhr(defaultOptions);
   assert.equal(this.requests.shift().url, 'global', 'url changed with global override');
-
-  delete videojs.Vhs.xhr.beforeRequest;
 });
 
 QUnit.test('xhr calls global and player onRequest hooks respectively', function(assert) {
