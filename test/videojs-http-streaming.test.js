@@ -4036,137 +4036,338 @@ QUnit.test('Allows overriding the global beforeRequest function', function(asser
   delete videojs.Vhs.xhr.beforeRequest;
 });
 
-// QUnit.test('Allows setting beforeRequest with onRequest on the player', function(assert) {
-//   let beforeRequestCalled = false;
+QUnit.test('Allows setting onRequest hooks globally', function(assert) {
+  let onRequestHookCallCount = 0;
+  let actualRequestUrl;
 
-//   this.player.src({
-//     src: 'main.m3u8',
-//     type: 'application/vnd.apple.mpegurl'
-//   });
+  this.player.src({
+    src: 'main.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
 
-//   this.clock.tick(1);
+  this.clock.tick(1);
 
-//   openMediaSource(this.player, this.clock);
+  openMediaSource(this.player, this.clock);
+  const globalRequestHook1 = (request) => {
+    const requestUrl = new URL(request.url);
 
-//   this.player.tech_.vhs.onRequest(() => {
-//     beforeRequestCalled = true;
-//   });
+    requestUrl.searchParams.set('foo', 'bar');
+    request.url = decodeURIComponent(requestUrl.href);
+    actualRequestUrl = request.url;
+    onRequestHookCallCount++;
+  };
+  const globalRequestHook2 = () => {
+    onRequestHookCallCount++;
+  };
 
-//   // main
-//   this.standardXHRResponse(this.requests.shift());
-//   // media
-//   this.standardXHRResponse(this.requests.shift());
+  videojs.Vhs.onRequest(globalRequestHook1);
+  videojs.Vhs.onRequest(globalRequestHook2);
 
-//   assert.ok(beforeRequestCalled, 'beforeRequest was called');
-// });
+  // main
+  this.standardXHRResponse(this.requests.shift());
 
-// QUnit.test('Allows setting beforeRequest with onRequest globally', function(assert) {
-//   let beforeRequestCalled = false;
+  assert.equal(onRequestHookCallCount, 2, '2 onRequest hooks called');
+  assert.equal(actualRequestUrl, 'http://localhost:9999/test/media2.m3u8?foo=bar', 'request url modified by onRequest hook');
+  // remove global hooks for other tests
+  videojs.Vhs.offRequest(globalRequestHook1);
+  videojs.Vhs.offRequest(globalRequestHook2);
+});
 
-//   this.player.src({
-//     src: 'main.m3u8',
-//     type: 'application/vnd.apple.mpegurl'
-//   });
+QUnit.test('Allows setting onRequest hooks on the player', function(assert) {
+  let onRequestHookCallCount = 0;
+  let actualRequestUrl;
 
-//   this.clock.tick(1);
+  this.player.src({
+    src: 'main.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
 
-//   openMediaSource(this.player, this.clock);
-//   videojs.Vhs.onRequest(() => {
-//     beforeRequestCalled = true;
-//   });
+  this.clock.tick(1);
 
-//   // main
-//   this.standardXHRResponse(this.requests.shift());
-//   // media
-//   this.standardXHRResponse(this.requests.shift());
+  openMediaSource(this.player, this.clock);
+  const playerRequestHook1 = (request) => {
+    const requestUrl = new URL(request.url);
 
-//   assert.ok(beforeRequestCalled, 'beforeRequest was called');
-// });
+    requestUrl.searchParams.set('foo', 'bar');
+    request.url = decodeURIComponent(requestUrl.href);
+    actualRequestUrl = request.url;
+    onRequestHookCallCount++;
+  };
+  const playerRequestHook2 = () => {
+    onRequestHookCallCount++;
+  };
 
-// QUnit.test('Allows overriding the global beforeRequest function calling onRequest locally', function(assert) {
-//   let beforeGlobalRequestCalled = 0;
-//   let beforeLocalRequestCalled = 0;
+  this.player.tech_.vhs.onRequest(playerRequestHook1);
+  this.player.tech_.vhs.onRequest(playerRequestHook2);
 
-//   videojs.Vhs.onRequest(() => {
-//     beforeGlobalRequestCalled++;
-//   });
+  // main
+  this.standardXHRResponse(this.requests.shift());
 
-//   this.player.src({
-//     src: 'main.m3u8',
-//     type: 'application/vnd.apple.mpegurl'
-//   });
+  assert.equal(onRequestHookCallCount, 2, '2 onRequest hooks called');
+  assert.equal(actualRequestUrl, 'http://localhost:9999/test/media2.m3u8?foo=bar', 'request url modified by onRequest hook');
+  // remove player hooks for other tests
+  this.player.tech_.vhs.offRequest(playerRequestHook1);
+  this.player.tech_.vhs.offRequest(playerRequestHook2);
+});
 
-//   this.clock.tick(1);
+QUnit.test('Allows setting onRequest hooks globally and overriding with player hooks', function(assert) {
+  let onRequestHookCallCountGlobal = 0;
+  let onRequestHookCallCountPlayer = 0;
+  let actualRequestUrlGlobal;
+  let actualRequestUrlPlayer;
 
-//   openMediaSource(this.player, this.clock);
+  this.player.src({
+    src: 'main.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
 
-//   this.player.tech_.vhs.onRequest(() => {
-//     beforeLocalRequestCalled++;
-//   });
-//   // main
-//   this.standardXHRResponse(this.requests.shift());
-//   // media
-//   this.standardXHRResponse(this.requests.shift());
-//   // ts
-//   this.standardXHRResponse(this.requests.shift(), muxedSegment());
+  this.clock.tick(1);
 
-//   assert.equal(beforeLocalRequestCalled, 2, 'local onRequest callback was called twice ' +
-//                                            'for the media playlist and media');
-//   assert.equal(beforeGlobalRequestCalled, 1, 'global onRequest callback was called once ' +
-//                                             'for the main playlist');
-// });
+  openMediaSource(this.player, this.clock);
+  const globalRequestHook1 = (request) => {
+    const requestUrl = new URL(request.url);
 
-// QUnit.test('Allows deleting beforeRequest with offRequest on the player', function(assert) {
-//   let beforeRequestCalled = false;
+    requestUrl.searchParams.set('foo', 'bar');
+    request.url = decodeURIComponent(requestUrl.href);
+    actualRequestUrlGlobal = request.url;
+    onRequestHookCallCountGlobal++;
+  };
+  const globalRequestHook2 = () => {
+    onRequestHookCallCountGlobal++;
+  };
 
-//   this.player.src({
-//     src: 'main.m3u8',
-//     type: 'application/vnd.apple.mpegurl'
-//   });
+  videojs.Vhs.onRequest(globalRequestHook1);
+  videojs.Vhs.onRequest(globalRequestHook2);
 
-//   this.clock.tick(1);
+  const playerRequestHook1 = (request) => {
+    const requestUrl = new URL(request.url);
 
-//   openMediaSource(this.player, this.clock);
+    requestUrl.searchParams.set('bar', 'foo');
+    request.url = decodeURIComponent(requestUrl.href);
+    actualRequestUrlPlayer = request.url;
+    onRequestHookCallCountPlayer++;
+  };
+  const playerRequestHook2 = () => {
+    onRequestHookCallCountPlayer++;
+  };
 
-//   this.player.tech_.vhs.onRequest(() => {
-//     beforeRequestCalled = true;
-//   });
+  this.player.tech_.vhs.onRequest(playerRequestHook1);
+  this.player.tech_.vhs.onRequest(playerRequestHook2);
 
-//   this.player.tech_.vhs.offRequest();
+  // main
+  this.standardXHRResponse(this.requests.shift());
+  // remove player request hooks
+  this.player.tech_.vhs.offRequest(playerRequestHook1);
+  this.player.tech_.vhs.offRequest(playerRequestHook2);
 
-//   // main
-//   this.standardXHRResponse(this.requests.shift());
-//   // media
-//   this.standardXHRResponse(this.requests.shift());
+  assert.equal(onRequestHookCallCountGlobal, 0, 'no onRequest global hooks called');
+  assert.equal(actualRequestUrlGlobal, undefined, 'global request url undefined');
+  assert.equal(onRequestHookCallCountPlayer, 2, '2 onRequest player hooks called');
+  assert.equal(actualRequestUrlPlayer, 'http://localhost:9999/test/media2.m3u8?bar=foo', 'request url modified by player onRequest hook');
 
-//   assert.notOk(beforeRequestCalled, 'beforeRequest was called');
-// });
+  // media
+  this.standardXHRResponse(this.requests.shift());
 
-// QUnit.test('Allows deleting beforeRequest with offRequest globally', function(assert) {
-//   let beforeRequestCalled = false;
+  assert.equal(onRequestHookCallCountGlobal, 2, '2 onRequest global hooks called');
+  assert.equal(actualRequestUrlGlobal, 'http://localhost:9999/test/media2-00001.ts?foo=bar', 'request url modified by global onRequest hook');
 
-//   this.player.src({
-//     src: 'main.m3u8',
-//     type: 'application/vnd.apple.mpegurl'
-//   });
+  videojs.Vhs.offRequest(globalRequestHook1);
+  videojs.Vhs.offRequest(globalRequestHook2);
+});
 
-//   this.clock.tick(1);
+QUnit.test('Allows removing onRequest hooks globally with offRequest', function(assert) {
+  let onRequestHookCallCount = 0;
+  let actualRequestUrl;
 
-//   openMediaSource(this.player, this.clock);
-//   videojs.Vhs.onRequest(() => {
-//     beforeRequestCalled = true;
-//   });
+  this.player.src({
+    src: 'main.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
 
-//   videojs.Vhs.offRequest();
+  this.clock.tick(1);
 
-//   // main
-//   this.standardXHRResponse(this.requests.shift());
-//   // media
-//   this.standardXHRResponse(this.requests.shift());
+  openMediaSource(this.player, this.clock);
+  const globalRequestHook1 = (request) => {
+    const requestUrl = new URL(request.url);
 
-//   assert.notOk(beforeRequestCalled, 'beforeRequest was called');
-// });
-// TODO: Finish tests! Test onResponse and offResponse and their priority.
+    requestUrl.searchParams.set('foo', 'bar');
+    request.url = decodeURIComponent(requestUrl.href);
+    actualRequestUrl = request.url;
+    onRequestHookCallCount++;
+  };
+  const globalRequestHook2 = () => {
+    onRequestHookCallCount++;
+  };
+
+  videojs.Vhs.onRequest(globalRequestHook1);
+  videojs.Vhs.onRequest(globalRequestHook2);
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.equal(onRequestHookCallCount, 2, '2 onRequest hooks called');
+  assert.equal(actualRequestUrl, 'http://localhost:9999/test/media2.m3u8?foo=bar', 'request url modified by onRequest hook');
+
+  videojs.Vhs.offRequest(globalRequestHook1);
+
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.equal(onRequestHookCallCount, 3, '3 onRequest hooks called');
+});
+
+QUnit.test('Allows setting onResponse hooks globally', function(assert) {
+  const done = assert.async();
+  let onResponseHookCallCount = 0;
+
+  this.player.src({
+    src: 'main.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  const globalResponseHook1 = (request, error, response) => {
+    onResponseHookCallCount++;
+  };
+  const globalResponseHook2 = (request, error, response) => {
+    assert.equal(onResponseHookCallCount, 1, '1 onResponse hook called');
+    assert.equal(response.url, 'http://localhost:9999/test/media2.m3u8', 'got expected response url');
+    done();
+  };
+
+  videojs.Vhs.onResponse(globalResponseHook1);
+  videojs.Vhs.onResponse(globalResponseHook2);
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  videojs.Vhs.offResponse(globalResponseHook1);
+  videojs.Vhs.offResponse(globalResponseHook2);
+});
+
+QUnit.test('Allows setting onResponse hooks on the player', function(assert) {
+  const done = assert.async();
+  let onResponseHookCallCount = 0;
+
+  this.player.src({
+    src: 'main.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  const globalResponseHook1 = (request, error, response) => {
+    onResponseHookCallCount++;
+  };
+  const globalResponseHook2 = (request, error, response) => {
+    assert.equal(onResponseHookCallCount, 1, '1 onResponse hook called');
+    assert.equal(response.url, 'http://localhost:9999/test/media2.m3u8', 'got expected response url');
+    done();
+  };
+
+  this.player.tech_.vhs.onResponse(globalResponseHook1);
+  this.player.tech_.vhs.onResponse(globalResponseHook2);
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  this.player.tech_.vhs.offResponse(globalResponseHook1);
+  this.player.tech_.vhs.offResponse(globalResponseHook2);
+});
+
+QUnit.test('Allows setting onResponse hooks globally and overriding with player hooks', function(assert) {
+  const done = assert.async();
+  let onResponseHookCallCountGlobal = 0;
+  let onResponseHookCallCountplayer = 0;
+
+  this.player.src({
+    src: 'main.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  const globalResponseHook1 = (request, error, response) => {
+    onResponseHookCallCountGlobal++;
+  };
+
+  const globalResponseHook2 = (request, error, response) => {
+    assert.equal(onResponseHookCallCountGlobal, 1, 'no global onResponse hook called');
+    assert.equal(response.url, 'http://localhost:9999/test/media2-00001.ts', 'got expected response url');
+    done();
+  };
+
+  const playerResponseHook1 = (request, error, response) => {
+    onResponseHookCallCountplayer++;
+  };
+  const playerResponseHook2 = (request, error, response) => {
+    assert.equal(onResponseHookCallCountGlobal, 0, 'no global onResponse hook called');
+    assert.equal(onResponseHookCallCountplayer, 1, '1 player onResponse hook called');
+    assert.equal(response.url, 'http://localhost:9999/test/media2.m3u8', 'got expected response url');
+  };
+
+  videojs.Vhs.onResponse(globalResponseHook1);
+  videojs.Vhs.onResponse(globalResponseHook2);
+  this.player.tech_.vhs.onResponse(playerResponseHook1);
+  this.player.tech_.vhs.onResponse(playerResponseHook2);
+  // main
+  this.standardXHRResponse(this.requests.shift());
+
+  this.player.tech_.vhs.offResponse(playerResponseHook1);
+  this.player.tech_.vhs.offResponse(playerResponseHook2);
+
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  // ts
+  this.standardXHRResponse(this.requests.shift(), muxedSegment());
+
+  videojs.Vhs.offResponse(globalResponseHook1);
+  videojs.Vhs.offResponse(globalResponseHook2);
+});
+
+QUnit.test('Allows removing onResponse hooks globally with offResponse', function(assert) {
+  const done = assert.async();
+  let onResponseHookCallCount = 0;
+
+  this.player.src({
+    src: 'main.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  const globalResponseHook1 = (request, error, response) => {
+    onResponseHookCallCount++;
+  };
+  const globalResponseHook2 = (request, error, response) => {
+    assert.equal(onResponseHookCallCount, 0, '0 onResponse hooks called');
+    assert.equal(response.url, 'http://localhost:9999/test/media2.m3u8', 'got expected response url');
+    done();
+  };
+
+  videojs.Vhs.onResponse(globalResponseHook1);
+  videojs.Vhs.onResponse(globalResponseHook2);
+
+  // remove hook1
+  videojs.Vhs.offResponse(globalResponseHook1);
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  videojs.Vhs.offResponse(globalResponseHook2);
+});
 
 QUnit.test(
   'passes useCueTags vhs option to main playlist controller',
