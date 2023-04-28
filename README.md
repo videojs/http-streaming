@@ -701,7 +701,7 @@ Example
 const globalRequestHook = (request) => {
   const requestUrl = new URL(request.uri);
   requestUrl.searchParams.set('foo', 'bar');
-  request.uri = decodeURIComponent(requestUrl.href);
+  request.uri = requestUrl.href;
 };
 videojs.Vhs.onRequest(globalRequestHook);
 
@@ -709,7 +709,7 @@ videojs.Vhs.onRequest(globalRequestHook);
 const playerRequestHook = (request) => {
   const requestUrl = new URL(request.uri);
   requestUrl.searchParams.set('foo', 'bar');
-  request.uri = decodeURIComponent(requestUrl.href);
+  request.uri = requestUrl.href;
 };
 player.tech().vhs.onRequest(playerRequestHook);
 ```
