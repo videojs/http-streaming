@@ -434,10 +434,10 @@ const expandDataUri = (dataUri) => {
  * @param {function} callback hook function for an xhr request
  */
 const addOnRequestHook = (xhr, callback) => {
-  if (!xhr.onRequest) {
-    xhr.onRequest = new Set();
+  if (!xhr._requestCallbackSet) {
+    xhr._requestCallbackSet = new Set();
   }
-  xhr.onRequest.add(callback);
+  xhr._requestCallbackSet.add(callback);
 };
 
 /**
@@ -447,10 +447,10 @@ const addOnRequestHook = (xhr, callback) => {
  * @param {function} callback hook function for an xhr response
  */
 const addOnResponseHook = (xhr, callback) => {
-  if (!xhr.onResponse) {
-    xhr.onResponse = new Set();
+  if (!xhr._responseCallbackSet) {
+    xhr._responseCallbackSet = new Set();
   }
-  xhr.onResponse.add(callback);
+  xhr._responseCallbackSet.add(callback);
 };
 
 /**
@@ -460,12 +460,12 @@ const addOnResponseHook = (xhr, callback) => {
  * @param {function} callback hook function to remove
  */
 const removeOnRequestHook = (xhr, callback) => {
-  if (!xhr.onRequest) {
+  if (!xhr._requestCallbackSet) {
     return;
   }
-  xhr.onRequest.delete(callback);
-  if (!xhr.onRequest.size) {
-    delete xhr.onRequest;
+  xhr._requestCallbackSet.delete(callback);
+  if (!xhr._requestCallbackSet.size) {
+    delete xhr._requestCallbackSet;
   }
 };
 
@@ -476,12 +476,12 @@ const removeOnRequestHook = (xhr, callback) => {
  * @param {function} callback hook function to remove
  */
 const removeOnResponseHook = (xhr, callback) => {
-  if (!xhr.onResponse) {
+  if (!xhr._responseCallbackSet) {
     return;
   }
-  xhr.onResponse.delete(callback);
-  if (!xhr.onResponse.size) {
-    delete xhr.onResponse;
+  xhr._responseCallbackSet.delete(callback);
+  if (!xhr._responseCallbackSet.size) {
+    delete xhr._responseCallbackSet;
   }
 };
 

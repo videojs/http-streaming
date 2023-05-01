@@ -83,9 +83,9 @@ const xhrFactory = function() {
     // Allow an optional user-specified function to modify the option
     // object before we construct the xhr request
     const beforeRequest = XhrFunction.beforeRequest || videojs.Vhs.xhr.beforeRequest;
-    // onRequest and onResponse hooks as a set, at either the player or global level.
-    const onRequest = XhrFunction.onRequest || videojs.Vhs.xhr.onRequest;
-    const onResponse = XhrFunction.onResponse || videojs.Vhs.xhr.onResponse;
+    // onRequest and onResponse hooks as a Set, at either the player or global level.
+    const onRequest = XhrFunction._requestCallbackSet || videojs.Vhs.xhr._requestCallbackSet;
+    const onResponse = XhrFunction._responseCallbackSet || videojs.Vhs.xhr._responseCallbackSet;
 
     if (beforeRequest && typeof beforeRequest === 'function') {
       const newOptions = beforeRequest(options);
