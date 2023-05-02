@@ -69,10 +69,6 @@ Video.js Compatibility: 7.x, 8.x
     - [vhs.selectPlaylist](#vhsselectplaylist)
     - [vhs.representations](#vhsrepresentations)
     - [vhs.xhr](#vhsxhr)
-    - [vhs.onRequest](#vhsonrequest)
-    - [vhs.onResponse](#vhsonresponse)
-    - [vhs.offRequest](#vhsoffrequest)
-    - [vhs.offResponse](#vhsoffresponse)
     - [vhs.stats](#vhsstats)
   - [Events](#events)
     - [loadedmetadata](#loadedmetadata)
@@ -640,12 +636,62 @@ player.tech().vhs.representations().forEach(function(rep) {
 #### vhs.xhr
 Type: `function`
 
-The xhr function that is used by HLS internally is exposed on the per-
+The xhr function that is used by VHS internally is exposed on the per-
 player `vhs` object. While it is possible, we do not recommend replacing
-the function with your own implementation. Instead, the `xhr` provides
-the ability to specify a `beforeRequest` function that will be called
-with an object containing the options that will be used to create the
-xhr request.
+the function with your own implementation. Instead, `xhr` provides
+the ability to specify `onRequest` and `onResponse` hooks which take a 
+callback function as a parameter as well as `offRequest` and `offResponse` 
+functions which will remove a callback function from the `onRequest` or 
+`onResponse` set if it exists. 
+
+The `onRequest(callback)` function takes a `callback` function that will pass the xhr `request` 
+Object to that callback. These callbacks are called in the order registered and act as pre-request 
+hooks for modifying the xhr `request` Object prior to making a request.
+
+Example:
+```javascript
+const playerRequestHook = (request) => {
+  const requestUrl = new URL(request.uri);
+  requestUrl.searchParams.set('foo', 'bar');
+  request.uri = requestUrl.href;
+};
+player.tech().vhs.xhr.onRequest(playerRequestHook);
+```
+
+The `onResponse(callback)` function takes a `callback` function that will pass the xhr
+`request`, `error`, and `response` Objects to that callback. These callbacks are called
+in the order registered and act as post-request hooks for gathering data from the
+xhr `request`, `error` and `response` Objects.
+
+Example:
+```javascript
+const playerResponseHook = (request, error, response) => {
+  const bar = response.headers.foo
+};
+player.tech().vhs.xhr.onResponse(playerResponseHook);
+```
+
+The `offRequest` function takes a `callback` function, and will remove that function from
+the collection of `onRequest` hooks if it exists.
+
+Example:
+```javascript
+player.tech().vhs.xhr.offRequest(playerRequestHook);
+```
+
+The `offResponse` function takes a `callback` function, and will remove that function from
+the collection of `offResponse` hooks if it exists.
+
+Example:
+```javascript
+player.tech().vhs.xhr.offResponse(playerResponseHook);
+```
+Additionally a `beforeRequest` function can be defined, 
+that will be called with an object containing the options that will be used 
+to create the xhr request.
+
+Note: any registered `onRequest` hooks, are called _after_ the `beforeRequest` function, so xhr
+options modified by this function may be further modified by these hooks.
 
 Example:
 ```javascript
@@ -656,13 +702,43 @@ player.tech().vhs.xhr.beforeRequest = function(options) {
 };
 ```
 
-The global `videojs.Vhs` also exposes an `xhr` property. Specifying a
-`beforeRequest` function on that will allow you to intercept the options
-for *all* requests in every player on a page. For consistency across
-browsers the video source should be set at runtime once the video player
-is ready.
+The global `videojs.Vhs` also exposes an `xhr` property. Adding
+`onRequest`, `onResponse` hooks and/or specifying a `beforeRequest` 
+function that will allow you to intercept the request Object, response 
+data and options for *all* requests in every player on a page. For 
+consistency across browsers the video source should be set at runtime 
+once the video player is ready.
 
-Example
+Example:
+```javascript
+// Global request callback, will affect every player.
+const globalRequestHook = (request) => {
+  const requestUrl = new URL(request.uri);
+  requestUrl.searchParams.set('foo', 'bar');
+  request.uri = requestUrl.href;
+};
+videojs.Vhs.xhr.onRequest(globalRequestHook);
+```
+
+```javascript
+// Global response hook callback, will affect every player.
+const globalResponseHook = (request, error, response) => {
+  const bar = response.headers.foo
+};
+
+videojs.Vhs.xhr.onResponse(globalResponseHook);
+```
+
+```javascript
+// Remove a global onRequest callback.
+videojs.Vhs.xhr.offRequest(globalRequestHook);
+```
+
+```javascript
+// Remove a global onResponse callback.
+videojs.Vhs.xhr.offResponse(globalResponseHook);
+```
+
 ```javascript
 videojs.Vhs.xhr.beforeRequest = function(options) {
   /*
@@ -680,95 +756,9 @@ player.ready(function() {
   });
 });
 ```
-Note: any registered `onRequest` hooks, are called _after_ the `beforeRequest` function, so xhr
-options modified by this function may be further modified by these hooks.
 
 For information on the type of options that you can modify see the
 documentation at [https://github.com/Raynos/xhr](https://github.com/Raynos/xhr).
-
-#### vhs.onRequest
-Type: `function`
-
-The `onRequest(callback)` function takes a `callback` function that will pass the xhr `request` 
-Object to that callback. These callbacks are called in the order registered and act as pre-request 
-hooks for modifying the xhr `request` Object prior to making a request. These hooks can be set at 
-the global or player level, where the player level hooks will override global.
-
-
-Example
-```javascript
-// Global
-const globalRequestHook = (request) => {
-  const requestUrl = new URL(request.uri);
-  requestUrl.searchParams.set('foo', 'bar');
-  request.uri = requestUrl.href;
-};
-videojs.Vhs.onRequest(globalRequestHook);
-
-// Player
-const playerRequestHook = (request) => {
-  const requestUrl = new URL(request.uri);
-  requestUrl.searchParams.set('foo', 'bar');
-  request.uri = requestUrl.href;
-};
-player.tech().vhs.onRequest(playerRequestHook);
-```
-
-#### vhs.onResponse
-Type: `function`
-
-The `onResponse(callback)` function takes a `callback` function that will pass the xhr
-`request`, `error`, and `response` Objects to that callback. These callbacks are called
-in the order registered and act as post-request hooks for gathering data from the
-xhr `request`, `error` and `response` Objects. These hooks can be set at the global 
-or player level, where the player level hooks will override global.
-
-Example
-```javascript
-// Global
-const globalResponseHook = (request, error, response) => {
-  const bar = response.headers.foo
-};
-videojs.Vhs.onResponse(globalResponseHook);
-
-// Player
-const playerResponseHook = (request, error, response) => {
-  const bar = response.headers.foo
-};
-player.tech().vhs.onResponse(playerResponseHook);
-```
-
-#### vhs.offRequest
-Type: `function`
-
-The `offRequest` function takes a `callback` function, and will remove that function from
-the collection of `onRequest` hooks if it exists. This can be called at the global or 
-player level.
-
-Example
-```javascript
-// Global
-videojs.Vhs.offRequest(globalRequestHook);
-
-// Player
-player.tech().vhs.offRequest(playerRequestHook);
-```
-
-#### vhs.offResponse
-Type: `function`
-
-The `offResponse` function takes a `callback` function, and will remove that function from
-the collection of `offResponse` hooks if it exists. This can be called at the global or 
-player level.
-
-Example
-```javascript
-// Global
-videojs.Vhs.offResponse(globalResponseHook);
-
-// Player
-player.tech().vhs.offResponse(playerResponseHook);
-```
 
 #### vhs.stats
 Type: `object`

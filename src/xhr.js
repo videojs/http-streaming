@@ -84,8 +84,8 @@ const xhrFactory = function() {
     // object before we construct the xhr request
     const beforeRequest = XhrFunction.beforeRequest || videojs.Vhs.xhr.beforeRequest;
     // onRequest and onResponse hooks as a Set, at either the player or global level.
-    const onRequest = XhrFunction._requestCallbackSet || videojs.Vhs.xhr._requestCallbackSet;
-    const onResponse = XhrFunction._responseCallbackSet || videojs.Vhs.xhr._responseCallbackSet;
+    const _requestCallbackSet = XhrFunction._requestCallbackSet || videojs.Vhs.xhr._requestCallbackSet;
+    const _responseCallbackSet = XhrFunction._responseCallbackSet || videojs.Vhs.xhr._responseCallbackSet;
 
     if (beforeRequest && typeof beforeRequest === 'function') {
       const newOptions = beforeRequest(options);
@@ -101,7 +101,7 @@ const xhrFactory = function() {
 
     const request = xhrMethod(options, function(error, response) {
       // call all registered onResponse hooks
-      callAllHooks(onResponse, request, error, response);
+      callAllHooks(_responseCallbackSet, request, error, response);
       return callbackWrapper(request, error, response, callback);
     });
     const originalAbort = request.abort;
@@ -113,7 +113,7 @@ const xhrFactory = function() {
     request.uri = options.uri;
     request.requestTime = Date.now();
     // call all registered onRequest hooks
-    callAllHooks(onRequest, request);
+    callAllHooks(_requestCallbackSet, request);
 
     return request;
   };

@@ -4060,8 +4060,8 @@ QUnit.test('Allows setting onRequest hooks globally', function(assert) {
     onRequestHookCallCount++;
   };
 
-  videojs.Vhs.onRequest(globalRequestHook1);
-  videojs.Vhs.onRequest(globalRequestHook2);
+  videojs.Vhs.xhr.onRequest(globalRequestHook1);
+  videojs.Vhs.xhr.onRequest(globalRequestHook2);
 
   // main
   this.standardXHRResponse(this.requests.shift());
@@ -4069,8 +4069,8 @@ QUnit.test('Allows setting onRequest hooks globally', function(assert) {
   assert.equal(onRequestHookCallCount, 2, '2 onRequest hooks called');
   assert.equal(actualRequestUrl, 'http://localhost:9999/test/media2.m3u8?foo=bar', 'request url modified by onRequest hook');
   // remove global hooks for other tests
-  videojs.Vhs.offRequest(globalRequestHook1);
-  videojs.Vhs.offRequest(globalRequestHook2);
+  videojs.Vhs.xhr.offRequest(globalRequestHook1);
+  videojs.Vhs.xhr.offRequest(globalRequestHook2);
 });
 
 QUnit.test('Allows setting onRequest hooks on the player', function(assert) {
@@ -4097,8 +4097,11 @@ QUnit.test('Allows setting onRequest hooks on the player', function(assert) {
     onRequestHookCallCount++;
   };
 
-  this.player.tech_.vhs.onRequest(playerRequestHook1);
-  this.player.tech_.vhs.onRequest(playerRequestHook2);
+  // Setup player level xhr hooks.
+  this.player.tech_.vhs.setupXhrHooks_();
+
+  this.player.tech_.vhs.xhr.onRequest(playerRequestHook1);
+  this.player.tech_.vhs.xhr.onRequest(playerRequestHook2);
 
   // main
   this.standardXHRResponse(this.requests.shift());
@@ -4106,8 +4109,8 @@ QUnit.test('Allows setting onRequest hooks on the player', function(assert) {
   assert.equal(onRequestHookCallCount, 2, '2 onRequest hooks called');
   assert.equal(actualRequestUrl, 'http://localhost:9999/test/media2.m3u8?foo=bar', 'request url modified by onRequest hook');
   // remove player hooks for other tests
-  this.player.tech_.vhs.offRequest(playerRequestHook1);
-  this.player.tech_.vhs.offRequest(playerRequestHook2);
+  this.player.tech_.vhs.xhr.offRequest(playerRequestHook1);
+  this.player.tech_.vhs.xhr.offRequest(playerRequestHook2);
 });
 
 QUnit.test('Allows setting onRequest hooks globally and overriding with player hooks', function(assert) {
@@ -4136,8 +4139,8 @@ QUnit.test('Allows setting onRequest hooks globally and overriding with player h
     onRequestHookCallCountGlobal++;
   };
 
-  videojs.Vhs.onRequest(globalRequestHook1);
-  videojs.Vhs.onRequest(globalRequestHook2);
+  videojs.Vhs.xhr.onRequest(globalRequestHook1);
+  videojs.Vhs.xhr.onRequest(globalRequestHook2);
 
   const playerRequestHook1 = (request) => {
     const requestUrl = new URL(request.url);
@@ -4151,14 +4154,17 @@ QUnit.test('Allows setting onRequest hooks globally and overriding with player h
     onRequestHookCallCountPlayer++;
   };
 
-  this.player.tech_.vhs.onRequest(playerRequestHook1);
-  this.player.tech_.vhs.onRequest(playerRequestHook2);
+  // Setup player level xhr hooks.
+  this.player.tech_.vhs.setupXhrHooks_();
+
+  this.player.tech_.vhs.xhr.onRequest(playerRequestHook1);
+  this.player.tech_.vhs.xhr.onRequest(playerRequestHook2);
 
   // main
   this.standardXHRResponse(this.requests.shift());
   // remove player request hooks
-  this.player.tech_.vhs.offRequest(playerRequestHook1);
-  this.player.tech_.vhs.offRequest(playerRequestHook2);
+  this.player.tech_.vhs.xhr.offRequest(playerRequestHook1);
+  this.player.tech_.vhs.xhr.offRequest(playerRequestHook2);
 
   assert.equal(onRequestHookCallCountGlobal, 0, 'no onRequest global hooks called');
   assert.equal(actualRequestUrlGlobal, undefined, 'global request url undefined');
@@ -4171,8 +4177,8 @@ QUnit.test('Allows setting onRequest hooks globally and overriding with player h
   assert.equal(onRequestHookCallCountGlobal, 2, '2 onRequest global hooks called');
   assert.equal(actualRequestUrlGlobal, 'http://localhost:9999/test/media2-00001.ts?foo=bar', 'request url modified by global onRequest hook');
 
-  videojs.Vhs.offRequest(globalRequestHook1);
-  videojs.Vhs.offRequest(globalRequestHook2);
+  videojs.Vhs.xhr.offRequest(globalRequestHook1);
+  videojs.Vhs.xhr.offRequest(globalRequestHook2);
 });
 
 QUnit.test('Allows removing onRequest hooks globally with offRequest', function(assert) {
@@ -4199,8 +4205,8 @@ QUnit.test('Allows removing onRequest hooks globally with offRequest', function(
     onRequestHookCallCount++;
   };
 
-  videojs.Vhs.onRequest(globalRequestHook1);
-  videojs.Vhs.onRequest(globalRequestHook2);
+  videojs.Vhs.xhr.onRequest(globalRequestHook1);
+  videojs.Vhs.xhr.onRequest(globalRequestHook2);
 
   // main
   this.standardXHRResponse(this.requests.shift());
@@ -4208,7 +4214,7 @@ QUnit.test('Allows removing onRequest hooks globally with offRequest', function(
   assert.equal(onRequestHookCallCount, 2, '2 onRequest hooks called');
   assert.equal(actualRequestUrl, 'http://localhost:9999/test/media2.m3u8?foo=bar', 'request url modified by onRequest hook');
 
-  videojs.Vhs.offRequest(globalRequestHook1);
+  videojs.Vhs.xhr.offRequest(globalRequestHook1);
 
   // media
   this.standardXHRResponse(this.requests.shift());
@@ -4237,16 +4243,16 @@ QUnit.test('Allows setting onResponse hooks globally', function(assert) {
     done();
   };
 
-  videojs.Vhs.onResponse(globalResponseHook1);
-  videojs.Vhs.onResponse(globalResponseHook2);
+  videojs.Vhs.xhr.onResponse(globalResponseHook1);
+  videojs.Vhs.xhr.onResponse(globalResponseHook2);
 
   // main
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  videojs.Vhs.offResponse(globalResponseHook1);
-  videojs.Vhs.offResponse(globalResponseHook2);
+  videojs.Vhs.xhr.offResponse(globalResponseHook1);
+  videojs.Vhs.xhr.offResponse(globalResponseHook2);
 });
 
 QUnit.test('Allows setting onResponse hooks on the player', function(assert) {
@@ -4270,16 +4276,19 @@ QUnit.test('Allows setting onResponse hooks on the player', function(assert) {
     done();
   };
 
-  this.player.tech_.vhs.onResponse(globalResponseHook1);
-  this.player.tech_.vhs.onResponse(globalResponseHook2);
+  // Setup player level xhr hooks.
+  this.player.tech_.vhs.setupXhrHooks_();
+
+  this.player.tech_.vhs.xhr.onResponse(globalResponseHook1);
+  this.player.tech_.vhs.xhr.onResponse(globalResponseHook2);
 
   // main
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  this.player.tech_.vhs.offResponse(globalResponseHook1);
-  this.player.tech_.vhs.offResponse(globalResponseHook2);
+  this.player.tech_.vhs.xhr.offResponse(globalResponseHook1);
+  this.player.tech_.vhs.xhr.offResponse(globalResponseHook2);
 });
 
 QUnit.test('Allows setting onResponse hooks globally and overriding with player hooks', function(assert) {
@@ -4314,15 +4323,18 @@ QUnit.test('Allows setting onResponse hooks globally and overriding with player 
     assert.equal(response.url, 'http://localhost:9999/test/media2.m3u8', 'got expected response url');
   };
 
-  videojs.Vhs.onResponse(globalResponseHook1);
-  videojs.Vhs.onResponse(globalResponseHook2);
-  this.player.tech_.vhs.onResponse(playerResponseHook1);
-  this.player.tech_.vhs.onResponse(playerResponseHook2);
+  // Setup player level xhr hooks.
+  this.player.tech_.vhs.setupXhrHooks_();
+
+  videojs.Vhs.xhr.onResponse(globalResponseHook1);
+  videojs.Vhs.xhr.onResponse(globalResponseHook2);
+  this.player.tech_.vhs.xhr.onResponse(playerResponseHook1);
+  this.player.tech_.vhs.xhr.onResponse(playerResponseHook2);
   // main
   this.standardXHRResponse(this.requests.shift());
 
-  this.player.tech_.vhs.offResponse(playerResponseHook1);
-  this.player.tech_.vhs.offResponse(playerResponseHook2);
+  this.player.tech_.vhs.xhr.offResponse(playerResponseHook1);
+  this.player.tech_.vhs.xhr.offResponse(playerResponseHook2);
 
   // media
   this.standardXHRResponse(this.requests.shift());
@@ -4330,8 +4342,8 @@ QUnit.test('Allows setting onResponse hooks globally and overriding with player 
   // ts
   this.standardXHRResponse(this.requests.shift(), muxedSegment());
 
-  videojs.Vhs.offResponse(globalResponseHook1);
-  videojs.Vhs.offResponse(globalResponseHook2);
+  videojs.Vhs.xhr.offResponse(globalResponseHook1);
+  videojs.Vhs.xhr.offResponse(globalResponseHook2);
 });
 
 QUnit.test('Allows removing onResponse hooks globally with offResponse', function(assert) {
@@ -4355,18 +4367,18 @@ QUnit.test('Allows removing onResponse hooks globally with offResponse', functio
     done();
   };
 
-  videojs.Vhs.onResponse(globalResponseHook1);
-  videojs.Vhs.onResponse(globalResponseHook2);
+  videojs.Vhs.xhr.onResponse(globalResponseHook1);
+  videojs.Vhs.xhr.onResponse(globalResponseHook2);
 
   // remove hook1
-  videojs.Vhs.offResponse(globalResponseHook1);
+  videojs.Vhs.xhr.offResponse(globalResponseHook1);
 
   // main
   this.standardXHRResponse(this.requests.shift());
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  videojs.Vhs.offResponse(globalResponseHook2);
+  videojs.Vhs.xhr.offResponse(globalResponseHook2);
 });
 
 QUnit.test(

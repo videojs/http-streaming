@@ -555,7 +555,7 @@ Vhs.isSupported = function() {
  *
  * @param {function} callback for request modifiction
  */
-Vhs.onRequest = function(callback) {
+Vhs.xhr.onRequest = function(callback) {
   addOnRequestHook(Vhs.xhr, callback);
 };
 
@@ -564,7 +564,7 @@ Vhs.onRequest = function(callback) {
  *
  * @param {callback} callback for response data retrieval
  */
-Vhs.onResponse = function(callback) {
+Vhs.xhr.onResponse = function(callback) {
   addOnResponseHook(Vhs.xhr, callback);
 };
 
@@ -573,7 +573,7 @@ Vhs.onResponse = function(callback) {
  *
  * @param {function} callback to delete from the global set
  */
-Vhs.offRequest = function(callback) {
+Vhs.xhr.offRequest = function(callback) {
   removeOnRequestHook(Vhs.xhr, callback);
 };
 
@@ -582,7 +582,7 @@ Vhs.offRequest = function(callback) {
  *
  * @param {function} callback to delete from the global set
  */
-Vhs.offResponse = function(callback) {
+Vhs.xhr.offResponse = function(callback) {
   removeOnResponseHook(Vhs.xhr, callback);
 };
 
@@ -1293,39 +1293,45 @@ class VhsHandler extends Component {
   }
 
   /**
-   * A player function for setting an onRequest hook
-   *
-   * @param {function} callback for request modifiction
+   * Adds the onRequest, onResponse, offRequest and offResponse functions
+   * to the VhsHandler xhr Object.
    */
-  onRequest(callback) {
-    addOnRequestHook(this.xhr, callback);
-  }
+  setupXhrHooks_() {
+    /**
+     * A player function for setting an onRequest hook
+     *
+     * @param {function} callback for request modifiction
+     */
+    this.xhr.onRequest = (callback) => {
+      addOnRequestHook(this.xhr, callback);
+    };
 
-  /**
-   * A player function for setting an onResponse hook
-   *
-   * @param {callback} callback for response data retrieval
-   */
-  onResponse(callback) {
-    addOnResponseHook(this.xhr, callback);
-  }
+    /**
+     * A player function for setting an onResponse hook
+     *
+     * @param {callback} callback for response data retrieval
+     */
+    this.xhr.onResponse = (callback) => {
+      addOnResponseHook(this.xhr, callback);
+    };
 
-  /**
-   * Deletes a player onRequest callback if it exists
-   *
-   * @param {function} callback to delete from the player set
-   */
-  offRequest(callback) {
-    removeOnRequestHook(this.xhr, callback);
-  }
+    /**
+     * Deletes a player onRequest callback if it exists
+     *
+     * @param {function} callback to delete from the player set
+     */
+    this.xhr.offRequest = (callback) => {
+      removeOnRequestHook(this.xhr, callback);
+    };
 
-  /**
-   * Deletes a player onResponse callback if it exists
-   *
-   * @param {function} callback to delete from the player set
-   */
-  offResponse(callback) {
-    removeOnResponseHook(this.xhr, callback);
+    /**
+     * Deletes a player onResponse callback if it exists
+     *
+     * @param {function} callback to delete from the player set
+     */
+    this.xhr.offResponse = (callback) => {
+      removeOnResponseHook(this.xhr, callback);
+    };
   }
 }
 
@@ -1349,6 +1355,7 @@ const VhsSourceHandler = {
 
     tech.vhs = new VhsHandler(source, tech, localOptions);
     tech.vhs.xhr = xhrFactory();
+    tech.vhs.setupXhrHooks_();
 
     tech.vhs.src(source.src, source.type);
     return tech.vhs;
