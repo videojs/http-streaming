@@ -56,6 +56,23 @@ const callbackWrapper = function(request, error, response, callback) {
   callback(error, request);
 };
 
+/**
+ * Iterates over a Set of callback hooks and calls them in order
+ *
+ * @param {Set} hooks the hook set to iterate over
+ * @param {Object} request the xhr request object
+ * @param {Object} error the xhr error object
+ * @param {Object} response the xhr response object
+ */
+const callAllHooks = (hooks, request, error, response) => {
+  if (!hooks) {
+    return;
+  }
+  hooks.forEach((hookCallback) => {
+    hookCallback(request, error, response);
+  });
+};
+
 const xhrFactory = function() {
   const xhr = function XhrFunction(options, callback) {
     // Add a default timeout
@@ -66,6 +83,9 @@ const xhrFactory = function() {
     // Allow an optional user-specified function to modify the option
     // object before we construct the xhr request
     const beforeRequest = XhrFunction.beforeRequest || videojs.Vhs.xhr.beforeRequest;
+    // onRequest and onResponse hooks as a Set, at either the player or global level.
+    const _requestCallbackSet = XhrFunction._requestCallbackSet || videojs.Vhs.xhr._requestCallbackSet;
+    const _responseCallbackSet = XhrFunction._responseCallbackSet || videojs.Vhs.xhr._responseCallbackSet;
 
     if (beforeRequest && typeof beforeRequest === 'function') {
       const newOptions = beforeRequest(options);
@@ -80,6 +100,8 @@ const xhrFactory = function() {
     const xhrMethod = videojs.Vhs.xhr.original === true ? videojsXHR : videojs.Vhs.xhr;
 
     const request = xhrMethod(options, function(error, response) {
+      // call all registered onResponse hooks
+      callAllHooks(_responseCallbackSet, request, error, response);
       return callbackWrapper(request, error, response, callback);
     });
     const originalAbort = request.abort;
@@ -90,6 +112,9 @@ const xhrFactory = function() {
     };
     request.uri = options.uri;
     request.requestTime = Date.now();
+    // call all registered onRequest hooks
+    callAllHooks(_requestCallbackSet, request);
+
     return request;
   };
 

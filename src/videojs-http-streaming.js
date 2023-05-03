@@ -428,6 +428,64 @@ const expandDataUri = (dataUri) => {
 };
 
 /**
+ * Adds a request hook to an xhr object
+ *
+ * @param {Object} xhr object to add the onRequest hook to
+ * @param {function} callback hook function for an xhr request
+ */
+const addOnRequestHook = (xhr, callback) => {
+  if (!xhr._requestCallbackSet) {
+    xhr._requestCallbackSet = new Set();
+  }
+  xhr._requestCallbackSet.add(callback);
+};
+
+/**
+ * Adds a response hook to an xhr object
+ *
+ * @param {Object} xhr object to add the onResponse hook to
+ * @param {function} callback hook function for an xhr response
+ */
+const addOnResponseHook = (xhr, callback) => {
+  if (!xhr._responseCallbackSet) {
+    xhr._responseCallbackSet = new Set();
+  }
+  xhr._responseCallbackSet.add(callback);
+};
+
+/**
+ * Removes a request hook on an xhr object, deletes the onRequest set if empty.
+ *
+ * @param {Object} xhr object to remove the onRequest hook from
+ * @param {function} callback hook function to remove
+ */
+const removeOnRequestHook = (xhr, callback) => {
+  if (!xhr._requestCallbackSet) {
+    return;
+  }
+  xhr._requestCallbackSet.delete(callback);
+  if (!xhr._requestCallbackSet.size) {
+    delete xhr._requestCallbackSet;
+  }
+};
+
+/**
+ * Removes a response hook on an xhr object, deletes the onResponse set if empty.
+ *
+ * @param {Object} xhr object to remove the onResponse hook from
+ * @param {function} callback hook function to remove
+ */
+const removeOnResponseHook = (xhr, callback) => {
+  if (!xhr._responseCallbackSet) {
+    return;
+  }
+  xhr._responseCallbackSet.delete(callback);
+  if (!xhr._responseCallbackSet.size) {
+    delete xhr._responseCallbackSet;
+  }
+};
+
+/**
  * Whether the browser has built-in HLS support.
  */
 Vhs.supportsNativeHls = (function() {
@@ -490,6 +548,42 @@ Vhs.supportsTypeNatively = (type) => {
 Vhs.isSupported = function() {
   return videojs.log.warn('VHS is no longer a tech. Please remove it from ' +
     'your player\'s techOrder.');
+};
+
+/**
+ * A global function for setting an onRequest hook
+ *
+ * @param {function} callback for request modifiction
+ */
+Vhs.xhr.onRequest = function(callback) {
+  addOnRequestHook(Vhs.xhr, callback);
+};
+
+/**
+ * A global function for setting an onResponse hook
+ *
+ * @param {callback} callback for response data retrieval
+ */
+Vhs.xhr.onResponse = function(callback) {
+  addOnResponseHook(Vhs.xhr, callback);
+};
+
+/**
+ * Deletes a global onRequest callback if it exists
+ *
+ * @param {function} callback to delete from the global set
+ */
+Vhs.xhr.offRequest = function(callback) {
+  removeOnRequestHook(Vhs.xhr, callback);
+};
+
+/**
+ * Deletes a global onResponse callback if it exists
+ *
+ * @param {function} callback to delete from the global set
+ */
+Vhs.xhr.offResponse = function(callback) {
+  removeOnResponseHook(Vhs.xhr, callback);
 };
 
 const Component = videojs.getComponent('Component');
@@ -1197,6 +1291,48 @@ class VhsHandler extends Component {
       callback
     });
   }
+
+  /**
+   * Adds the onRequest, onResponse, offRequest and offResponse functions
+   * to the VhsHandler xhr Object.
+   */
+  setupXhrHooks_() {
+    /**
+     * A player function for setting an onRequest hook
+     *
+     * @param {function} callback for request modifiction
+     */
+    this.xhr.onRequest = (callback) => {
+      addOnRequestHook(this.xhr, callback);
+    };
+
+    /**
+     * A player function for setting an onResponse hook
+     *
+     * @param {callback} callback for response data retrieval
+     */
+    this.xhr.onResponse = (callback) => {
+      addOnResponseHook(this.xhr, callback);
+    };
+
+    /**
+     * Deletes a player onRequest callback if it exists
+     *
+     * @param {function} callback to delete from the player set
+     */
+    this.xhr.offRequest = (callback) => {
+      removeOnRequestHook(this.xhr, callback);
+    };
+
+    /**
+     * Deletes a player onResponse callback if it exists
+     *
+     * @param {function} callback to delete from the player set
+     */
+    this.xhr.offResponse = (callback) => {
+      removeOnResponseHook(this.xhr, callback);
+    };
+  }
 }
 
 /**
@@ -1219,6 +1355,7 @@ const VhsSourceHandler = {
 
     tech.vhs = new VhsHandler(source, tech, localOptions);
     tech.vhs.xhr = xhrFactory();
+    tech.vhs.setupXhrHooks_();
 
     tech.vhs.src(source.src, source.type);
     return tech.vhs;
