@@ -644,9 +644,9 @@ callback function as a parameter as well as `offRequest` and `offResponse`
 functions which will remove a callback function from the `onRequest` or 
 `onResponse` set if it exists. 
 
-The `onRequest(callback)` function takes a `callback` function that will pass the xhr `request` 
-Object to that callback. These callbacks are called in the order registered and act as pre-request 
-hooks for modifying the xhr `request` Object prior to making a request.
+The `onRequest(callback)` function takes a `callback` function that will pass the xhr `request`
+Object to that callback. These callbacks are called synchronously, in the order registered
+and act as pre-request hooks for modifying the xhr `request` Object prior to making a request.
 
 Example:
 ```javascript
