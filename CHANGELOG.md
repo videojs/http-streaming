@@ -1,3 +1,11 @@
+<a name="3.3.0"></a>
+# [3.3.0](https://github.com/videojs/http-streaming/compare/v3.2.0...v3.3.0) (2023-05-03)
+
+### Features
+
+* Start at offset from EXT-X-START ([#1389](https://github.com/videojs/http-streaming/issues/1389)) ([b3a508d](https://github.com/videojs/http-streaming/commit/b3a508d))
+* **xhr:** add request and response hook API ([#1393](https://github.com/videojs/http-streaming/issues/1393)) ([2356c34](https://github.com/videojs/http-streaming/commit/2356c34))
+
 <a name="3.2.0"></a>
 # [3.2.0](https://github.com/videojs/http-streaming/compare/v3.1.0...v3.2.0) (2023-04-04)
 
