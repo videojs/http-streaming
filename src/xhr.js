@@ -99,6 +99,8 @@ const xhrFactory = function() {
     // TODO: switch back to videojs.Vhs.xhr.name === 'XhrFunction' when we drop IE11
     const xhrMethod = videojs.Vhs.xhr.original === true ? videojsXHR : videojs.Vhs.xhr;
 
+    // call all registered onRequest hooks
+    callAllHooks(_requestCallbackSet, options);
     const request = xhrMethod(options, function(error, response) {
       // call all registered onResponse hooks
       callAllHooks(_responseCallbackSet, request, error, response);
@@ -112,9 +114,6 @@ const xhrFactory = function() {
     };
     request.uri = options.uri;
     request.requestTime = Date.now();
-    // call all registered onRequest hooks
-    callAllHooks(_requestCallbackSet, request);
-
     return request;
   };
 

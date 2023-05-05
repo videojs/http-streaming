@@ -644,18 +644,33 @@ callback function as a parameter as well as `offRequest` and `offResponse`
 functions which will remove a callback function from the `onRequest` or 
 `onResponse` set if it exists. 
 
-The `onRequest(callback)` function takes a `callback` function that will pass the xhr `request`
-Object to that callback. These callbacks are called synchronously, in the order registered
-and act as pre-request hooks for modifying the xhr `request` Object prior to making a request.
+The `onRequest(callback)` function takes a `callback` function that will pass the xhr `options`
+Object to that callback. These callbacks are called synchronously, in the order registered 
+and act as pre-request hooks for modifying the xhr `options` Object prior to making a request. 
+https://github.com/videojs/xhr#options
 
 Example:
 ```javascript
-const playerRequestHook = (request) => {
-  const requestUrl = new URL(request.uri);
+const playerRequestHook = (options) => {
+  const requestUrl = new URL(options.uri);
   requestUrl.searchParams.set('foo', 'bar');
-  request.uri = requestUrl.href;
+  options.uri = requestUrl.href;
 };
 player.tech().vhs.xhr.onRequest(playerRequestHook);
+```
+
+If access to the `xhr` Object is required prior to the `xhr.send` call, an `options.beforeSend` 
+callback can be set within an `onRequest` callback function that will pass the `xhr` Object 
+as a parameter and will be called immediately prior to `xhr.send`.
+
+Example:
+```javascript
+const playerXhrRequestHook = (options) => {
+  options.beforeSend = (xhr) => {
+    xhr.open('GET', 'https://new.uri');
+  };
+};
+player.tech().vhs.xhr.onRequest(playerXhrRequestHook);
 ```
 
 The `onResponse(callback)` function takes a `callback` function that will pass the xhr
@@ -704,20 +719,30 @@ player.tech().vhs.xhr.beforeRequest = function(options) {
 
 The global `videojs.Vhs` also exposes an `xhr` property. Adding
 `onRequest`, `onResponse` hooks and/or specifying a `beforeRequest` 
-function that will allow you to intercept the request Object, response 
-data and options for *all* requests in every player on a page. For 
-consistency across browsers the video source should be set at runtime 
+function that will allow you to intercept the request options, xhr 
+Object, error and response data for *all* requests in every player on a page. 
+For consistency across browsers the video source should be set at runtime 
 once the video player is ready.
 
 Example:
 ```javascript
 // Global request callback, will affect every player.
-const globalRequestHook = (request) => {
-  const requestUrl = new URL(request.uri);
+const globalRequestHook = (options) => {
+  const requestUrl = new URL(options.uri);
   requestUrl.searchParams.set('foo', 'bar');
-  request.uri = requestUrl.href;
+  options.uri = requestUrl.href;
 };
 videojs.Vhs.xhr.onRequest(globalRequestHook);
+```
+
+```javascript
+// Global request callback defining beforeSend function, will affect every player.
+const globalXhrRequestHook = (options) => {
+  options.beforeSend = (xhr) => {
+    xhr.open('GET', 'https://new.uri');
+  };
+};
+videojs.Vhs.xhr.onRequest(globalXhrRequestHook);
 ```
 
 ```javascript
