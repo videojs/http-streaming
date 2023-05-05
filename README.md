@@ -646,8 +646,7 @@ functions which will remove a callback function from the `onRequest` or
 
 The `onRequest(callback)` function takes a `callback` function that will pass the xhr `options`
 Object to that callback. These callbacks are called synchronously, in the order registered 
-and act as pre-request hooks for modifying the xhr `options` Object prior to making a request. 
-https://github.com/videojs/xhr#options
+and act as pre-request hooks for modifying the xhr `options` Object prior to making a request.
 
 Example:
 ```javascript
