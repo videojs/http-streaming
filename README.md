@@ -72,6 +72,7 @@ Video.js Compatibility: 7.x, 8.x
     - [vhs.stats](#vhsstats)
   - [Events](#events)
     - [loadedmetadata](#loadedmetadata)
+    - [xhr-hooks-ready](#xhr-hooks-ready)
   - [VHS Usage Events](#vhs-usage-events)
     - [Presence Stats](#presence-stats)
     - [Use Stats](#use-stats)
@@ -819,6 +820,11 @@ are triggered on the player object.
 
 Fired after the first segment is downloaded for a playlist. This will not happen
 until playback if video.js's `metadata` setting is `none`
+
+#### xhr-hooks-ready
+
+Fired when the player `xhr` object is ready to set `onRequest` and `offRequest` hooks, as well
+as remove hooks with `offRequest` and `offResponse`.
 
 ### VHS Usage Events
 

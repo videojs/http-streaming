@@ -1332,6 +1332,12 @@ class VhsHandler extends Component {
     this.xhr.offResponse = (callback) => {
       removeOnResponseHook(this.xhr, callback);
     };
+
+    /**
+     * Trigger an event on the player to notify the user that vhs is ready to set xhr hooks.
+     * This allows hooks to be set before the source is set to vhs when handleSource is called.
+     */
+    this.player_.trigger('xhr-hooks-ready');
   }
 }
 
@@ -1356,7 +1362,6 @@ const VhsSourceHandler = {
     tech.vhs = new VhsHandler(source, tech, localOptions);
     tech.vhs.xhr = xhrFactory();
     tech.vhs.setupXhrHooks_();
-
     tech.vhs.src(source.src, source.type);
     return tech.vhs;
   },
