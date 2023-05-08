@@ -667,7 +667,7 @@ Example:
 ```javascript
 const playerXhrRequestHook = (options) => {
   options.beforeSend = (xhr) => {
-    xhr.open('GET', 'https://new.uri');
+    xhr.setRequestHeader('foo', 'bar');
   };
 };
 player.tech().vhs.xhr.onRequest(playerXhrRequestHook);
