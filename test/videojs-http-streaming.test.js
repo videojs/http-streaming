@@ -4523,6 +4523,26 @@ QUnit.test('Allows xhr object access in player onRequest hooks', function(assert
   this.player.tech_.vhs.xhr.offRequest(playerXhrRequestHook2);
 });
 
+QUnit.test('xhr-hooks-ready event fires as expected', function(assert) {
+  const done = assert.async();
+
+  this.player.on('xhr-hooks-ready', (event) => {
+    assert.equal(event.type, 'xhr-hooks-ready', 'event type is xhr-hooks-ready');
+    assert.ok(this.player.tech(true).vhs.xhr.onRequest);
+    assert.ok(this.player.tech(true).vhs.xhr.onResponse);
+    assert.ok(this.player.tech(true).vhs.xhr.offRequest);
+    assert.ok(this.player.tech(true).vhs.xhr.offResponse);
+    done();
+  });
+
+  this.player.src({
+    src: 'main.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+});
+
 QUnit.test(
   'passes useCueTags vhs option to main playlist controller',
   function(assert) {
