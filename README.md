@@ -823,7 +823,7 @@ until playback if video.js's `metadata` setting is `none`
 
 #### xhr-hooks-ready
 
-Fired when the player `xhr` object is ready to set `onRequest` and `offRequest` hooks, as well
+Fired when the player `xhr` object is ready to set `onRequest` and `onResponse` hooks, as well
 as remove hooks with `offRequest` and `offResponse`.
 
 ### VHS Usage Events
