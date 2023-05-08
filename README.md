@@ -739,7 +739,7 @@ videojs.Vhs.xhr.onRequest(globalRequestHook);
 // Global request callback defining beforeSend function, will affect every player.
 const globalXhrRequestHook = (options) => {
   options.beforeSend = (xhr) => {
-    xhr.open('GET', 'https://new.uri');
+    xhr.setRequestHeader('foo', 'bar');
   };
 };
 videojs.Vhs.xhr.onRequest(globalXhrRequestHook);
