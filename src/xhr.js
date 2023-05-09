@@ -60,17 +60,23 @@ const callbackWrapper = function(request, error, response, callback) {
  * Iterates over a Set of callback hooks and calls them in order
  *
  * @param {Set} hooks the hook set to iterate over
- * @param {Object} request the xhr request object
- * @param {Object} error the xhr error object
- * @param {Object} response the xhr response object
+ * @param {Object} request the request options or object
+ * @param {Object} error the error object
+ * @param {Object} response the response object
+ *
+ * @return the callback hook function return value.
  */
 const callAllHooks = (hooks, request, error, response) => {
   if (!hooks || !hooks.size) {
     return;
   }
+  let hookOptions;
+
   hooks.forEach((hookCallback) => {
-    hookCallback(request, error, response);
+    // Pass the returned options back to the next hook callback to support a callback returning a new options object.
+    hookOptions = hookCallback(hookOptions || request, error, response);
   });
+  return hookOptions;
 };
 
 const xhrFactory = function() {
@@ -98,14 +104,14 @@ const xhrFactory = function() {
     // TODO: switch back to videojs.Vhs.xhr.name === 'XhrFunction' when we drop IE11
     const xhrMethod = videojs.Vhs.xhr.original === true ? videojsXHR : videojs.Vhs.xhr;
 
-    // call all registered onRequest hooks
-    callAllHooks(_requestCallbackSet, options);
+    // call all registered onRequest hooks, options returned for beforeRequest support.
+    const beforeRequestOptions = callAllHooks(_requestCallbackSet, options);
 
     // Remove the beforeRequest function from the hooks set so stale beforeRequest functions are not called.
     _requestCallbackSet.delete(beforeRequest);
 
     // xhrMethod will call XMLHttpRequest.open and XMLHttpRequest.send
-    const request = xhrMethod(options, function(error, response) {
+    const request = xhrMethod(beforeRequestOptions || options, function(error, response) {
       // call all registered onResponse hooks
       callAllHooks(_responseCallbackSet, request, error, response);
       return callbackWrapper(request, error, response, callback);

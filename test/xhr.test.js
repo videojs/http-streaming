@@ -53,6 +53,37 @@ QUnit.test('xhr respects beforeRequest', function(assert) {
   delete videojs.Vhs.xhr.beforeRequest;
 });
 
+QUnit.test('beforeRequest can return a new options object', function(assert) {
+  const defaultOptions = {
+    url: 'default'
+  };
+
+  this.xhr(defaultOptions);
+  assert.equal(this.requests.shift().url, 'default', 'url the same without override');
+
+  videojs.Vhs.xhr.beforeRequest = () => {
+    return { uri: 'global-newOptions'};
+  };
+
+  this.xhr(defaultOptions);
+  assert.equal(this.requests.shift().url, 'global-newOptions', 'url changed with global override');
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged for deprecation');
+
+  this.xhr.beforeRequest = () => {
+    return { uri: 'player-newOptions'};
+  };
+
+  this.xhr(defaultOptions);
+  assert.equal(this.requests.shift().url, 'player-newOptions', 'url changed with player override');
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged for deprecation');
+
+  delete this.xhr.beforeRequest;
+  delete videojs.Vhs.xhr.beforeRequest;
+
+  this.xhr(defaultOptions);
+  assert.equal(this.requests.shift().url, 'default', 'url the same without override');
+});
+
 QUnit.test('calls global and player onRequest hooks respectively', function(assert) {
   const defaultOptions = {
     url: 'default'
