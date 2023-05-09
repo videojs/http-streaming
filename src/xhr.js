@@ -65,7 +65,7 @@ const callbackWrapper = function(request, error, response, callback) {
  * @param {Object} response the xhr response object
  */
 const callAllHooks = (hooks, request, error, response) => {
-  if (!hooks) {
+  if (!hooks || !hooks.size) {
     return;
   }
   hooks.forEach((hookCallback) => {
@@ -82,17 +82,16 @@ const xhrFactory = function() {
 
     // Allow an optional user-specified function to modify the option
     // object before we construct the xhr request
+    // TODO: Remove beforeRequest in the next major release.
     const beforeRequest = XhrFunction.beforeRequest || videojs.Vhs.xhr.beforeRequest;
     // onRequest and onResponse hooks as a Set, at either the player or global level.
-    const _requestCallbackSet = XhrFunction._requestCallbackSet || videojs.Vhs.xhr._requestCallbackSet;
+    // TODO: new Set added here for beforeRequest alias. Remove this when beforeRequest is removed.
+    const _requestCallbackSet = XhrFunction._requestCallbackSet || videojs.Vhs.xhr._requestCallbackSet || new Set();
     const _responseCallbackSet = XhrFunction._responseCallbackSet || videojs.Vhs.xhr._responseCallbackSet;
 
     if (beforeRequest && typeof beforeRequest === 'function') {
-      const newOptions = beforeRequest(options);
-
-      if (newOptions) {
-        options = newOptions;
-      }
+      videojs.log.warn('beforeRequest is deprecated, use onRequest instead.');
+      _requestCallbackSet.add(beforeRequest);
     }
 
     // Use the standard videojs.xhr() method unless `videojs.Vhs.xhr` has been overriden
@@ -101,6 +100,11 @@ const xhrFactory = function() {
 
     // call all registered onRequest hooks
     callAllHooks(_requestCallbackSet, options);
+
+    // Remove the beforeRequest function from the hooks set so stale beforeRequest functions are not called.
+    _requestCallbackSet.delete(beforeRequest);
+
+    // xhrMethod will call XMLHttpRequest.open and XMLHttpRequest.send
     const request = xhrMethod(options, function(error, response) {
       // call all registered onResponse hooks
       callAllHooks(_responseCallbackSet, request, error, response);

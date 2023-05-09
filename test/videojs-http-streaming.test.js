@@ -4005,6 +4005,7 @@ QUnit.test(
     this.standardXHRResponse(this.requests.shift());
 
     assert.ok(beforeRequestCalled, 'beforeRequest was called');
+    assert.equal(this.env.log.warn.calls, 2, 'warning logged for deprecation');
 
     // verify stats
     assert.equal(this.player.tech_.vhs.stats.bandwidth, 4194304, 'default');
@@ -4030,6 +4031,7 @@ QUnit.test('Allows specifying the beforeRequest function globally', function(ass
   this.standardXHRResponse(this.requests.shift());
 
   assert.ok(beforeRequestCalled, 'beforeRequest was called');
+  assert.equal(this.env.log.warn.calls, 2, 'warning logged for deprecation');
 
   delete videojs.Vhs.xhr.beforeRequest;
 
@@ -4098,6 +4100,7 @@ QUnit.test('Allows overriding the global beforeRequest function', function(asser
                                            'for the media playlist and media');
   assert.equal(beforeGlobalRequestCalled, 1, 'global beforeRequest was called once ' +
                                             'for the main playlist');
+  assert.equal(this.env.log.warn.calls, 3, 'warning logged for deprecation');
 
   delete videojs.Vhs.xhr.beforeRequest;
 });
