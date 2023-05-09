@@ -701,25 +701,9 @@ Example:
 ```javascript
 player.tech().vhs.xhr.offResponse(playerResponseHook);
 ```
-Additionally a `beforeRequest` function can be defined, 
-that will be called with an object containing the options that will be used 
-to create the xhr request.
 
-Note: any registered `onRequest` hooks, are called _after_ the `beforeRequest` function, so xhr
-options modified by this function may be further modified by these hooks.
-
-Example:
-```javascript
-player.tech().vhs.xhr.beforeRequest = function(options) {
-  options.uri = options.uri.replace('example.com', 'foo.com');
-
-  return options;
-};
-```
-
-The global `videojs.Vhs` also exposes an `xhr` property. Adding
-`onRequest`, `onResponse` hooks and/or specifying a `beforeRequest` 
-function that will allow you to intercept the request options, xhr 
+The global `videojs.Vhs` also exposes an `xhr` property. Adding `onRequest` 
+and/or `onResponse` hooks will allow you to intercept the request options, xhr 
 Object, error and response data for *all* requests in every player on a page. 
 For consistency across browsers the video source should be set at runtime 
 once the video player is ready.
@@ -762,24 +746,6 @@ videojs.Vhs.xhr.offRequest(globalRequestHook);
 ```javascript
 // Remove a global onResponse callback.
 videojs.Vhs.xhr.offResponse(globalResponseHook);
-```
-
-```javascript
-videojs.Vhs.xhr.beforeRequest = function(options) {
-  /*
-   * Modifications to requests that will affect every player.
-   */
-
-  return options;
-};
-
-var player = videojs('video-player-id');
-player.ready(function() {
-  this.src({
-    src: 'https://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8',
-    type: 'application/x-mpegURL',
-  });
-});
 ```
 
 For information on the type of options that you can modify see the
