@@ -640,21 +640,36 @@ Type: `function`
 The xhr function that is used by VHS internally is exposed on the per-
 player `vhs` object. While it is possible, we do not recommend replacing
 the function with your own implementation. Instead, `xhr` provides
-the ability to specify `onRequest` and `onResponse` hooks which take a 
-callback function as a parameter as well as `offRequest` and `offResponse` 
-functions which will remove a callback function from the `onRequest` or 
-`onResponse` set if it exists. 
+the ability to specify `onRequest` and `onResponse` hooks which each take a
+callback function as a parameter, as well as `offRequest` and `offResponse`
+functions which can remove a callback function from the `onRequest` or
+`onResponse` Set.
 
-The `onRequest(callback)` function takes a `callback` function that will pass the xhr `options`
+Additionally, an `xhr-hooks-ready` event is fired from a player when 
+per-player hooks are ready to be added or removed. This will ensure player 
+specific hooks are set prior to any manifest or segment requests.
+
+Example:
+```javascript
+player.on('xhr-hooks-ready', () => {
+  const playerRequestHook = (options) => options;
+  player.tech().vhs.xhr.onRequest(playerRequestHook);
+});
+```
+
+The `onRequest(callback)` function takes a `callback` function that will pass an xhr `options`
 Object to that callback. These callbacks are called synchronously, in the order registered 
 and act as pre-request hooks for modifying the xhr `options` Object prior to making a request.
+
+Note: This callback *MUST* return an `options` Object as the `xhr` wrapper and each `onRequest`
+hook receives the returned `options` as a parameter.
 
 Example:
 ```javascript
 const playerRequestHook = (options) => {
-  const requestUrl = new URL(options.uri);
-  requestUrl.searchParams.set('foo', 'bar');
-  options.uri = requestUrl.href;
+  return {
+    uri: 'https://new.options.uri'
+  };
 };
 player.tech().vhs.xhr.onRequest(playerRequestHook);
 ```
@@ -669,6 +684,7 @@ const playerXhrRequestHook = (options) => {
   options.beforeSend = (xhr) => {
     xhr.setRequestHeader('foo', 'bar');
   };
+  return options;
 };
 player.tech().vhs.xhr.onRequest(playerXhrRequestHook);
 ```
@@ -676,7 +692,8 @@ player.tech().vhs.xhr.onRequest(playerXhrRequestHook);
 The `onResponse(callback)` function takes a `callback` function that will pass the xhr
 `request`, `error`, and `response` Objects to that callback. These callbacks are called
 in the order registered and act as post-request hooks for gathering data from the
-xhr `request`, `error` and `response` Objects.
+xhr `request`, `error` and `response` Objects. `onResponse` callbacks do not require a
+return value, the parameters are passed to each subsequent callback by reference.
 
 Example:
 ```javascript
@@ -702,19 +719,19 @@ Example:
 player.tech().vhs.xhr.offResponse(playerResponseHook);
 ```
 
-The global `videojs.Vhs` also exposes an `xhr` property. Adding `onRequest` 
-and/or `onResponse` hooks will allow you to intercept the request options, xhr 
-Object, error and response data for *all* requests in every player on a page. 
-For consistency across browsers the video source should be set at runtime 
-once the video player is ready.
+The global `videojs.Vhs` also exposes an `xhr` property. Adding `onRequest`
+and/or `onResponse` hooks will allow you to intercept the request options and xhr
+Object as well as request, error, and response data for *all* requests in *every*
+player on a page. For consistency across browsers the video source should be set
+at runtime once the video player is ready.
 
 Example:
 ```javascript
 // Global request callback, will affect every player.
 const globalRequestHook = (options) => {
-  const requestUrl = new URL(options.uri);
-  requestUrl.searchParams.set('foo', 'bar');
-  options.uri = requestUrl.href;
+  return {
+    uri: 'https://new.options.global.uri'
+  };
 };
 videojs.Vhs.xhr.onRequest(globalRequestHook);
 ```
@@ -725,6 +742,7 @@ const globalXhrRequestHook = (options) => {
   options.beforeSend = (xhr) => {
     xhr.setRequestHeader('foo', 'bar');
   };
+  return options;
 };
 videojs.Vhs.xhr.onRequest(globalXhrRequestHook);
 ```
