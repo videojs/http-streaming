@@ -643,19 +643,9 @@ the function with your own implementation. Instead, `xhr` provides
 the ability to specify `onRequest` and `onResponse` hooks which each take a
 callback function as a parameter, as well as `offRequest` and `offResponse`
 functions which can remove a callback function from the `onRequest` or
-`onResponse` Set.
-
-Additionally, an `xhr-hooks-ready` event is fired from a player when 
-per-player hooks are ready to be added or removed. This will ensure player 
-specific hooks are set prior to any manifest or segment requests.
-
-Example:
-```javascript
-player.on('xhr-hooks-ready', () => {
-  const playerRequestHook = (options) => options;
-  player.tech().vhs.xhr.onRequest(playerRequestHook);
-});
-```
+`onResponse` Set. An `xhr-hooks-ready` event is fired from a player when per-player
+hooks are ready to be added or removed. This will ensure player specific hooks are
+set prior to any manifest or segment requests.
 
 The `onRequest(callback)` function takes a `callback` function that will pass an xhr `options`
 Object to that callback. These callbacks are called synchronously, in the order registered 
@@ -666,12 +656,14 @@ hook receives the returned `options` as a parameter.
 
 Example:
 ```javascript
-const playerRequestHook = (options) => {
-  return {
-    uri: 'https://new.options.uri'
+player.on('xhr-hooks-ready', () => {
+  const playerRequestHook = (options) => {
+    return {
+      uri: 'https://new.options.uri'
+    };
   };
-};
-player.tech().vhs.xhr.onRequest(playerRequestHook);
+  player.tech().vhs.xhr.onRequest(playerRequestHook);
+});
 ```
 
 If access to the `xhr` Object is required prior to the `xhr.send` call, an `options.beforeSend` 
@@ -680,13 +672,15 @@ as a parameter and will be called immediately prior to `xhr.send`.
 
 Example:
 ```javascript
-const playerXhrRequestHook = (options) => {
-  options.beforeSend = (xhr) => {
-    xhr.setRequestHeader('foo', 'bar');
+player.on('xhr-hooks-ready', () => {
+  const playerXhrRequestHook = (options) => {
+    options.beforeSend = (xhr) => {
+      xhr.setRequestHeader('foo', 'bar');
+    };
+    return options;
   };
-  return options;
-};
-player.tech().vhs.xhr.onRequest(playerXhrRequestHook);
+  player.tech().vhs.xhr.onRequest(playerXhrRequestHook);
+});
 ```
 
 The `onResponse(callback)` function takes a `callback` function that will pass the xhr
@@ -697,10 +691,12 @@ return value, the parameters are passed to each subsequent callback by reference
 
 Example:
 ```javascript
-const playerResponseHook = (request, error, response) => {
-  const bar = response.headers.foo
-};
-player.tech().vhs.xhr.onResponse(playerResponseHook);
+player.on('xhr-hooks-ready', () => {
+  const playerResponseHook = (request, error, response) => {
+    const bar = response.headers.foo;
+  };
+  player.tech().vhs.xhr.onResponse(playerResponseHook);
+});
 ```
 
 The `offRequest` function takes a `callback` function, and will remove that function from
@@ -708,7 +704,9 @@ the collection of `onRequest` hooks if it exists.
 
 Example:
 ```javascript
-player.tech().vhs.xhr.offRequest(playerRequestHook);
+player.on('xhr-hooks-ready', () => {
+  player.tech().vhs.xhr.offRequest(playerRequestHook);
+});
 ```
 
 The `offResponse` function takes a `callback` function, and will remove that function from
@@ -716,7 +714,9 @@ the collection of `offResponse` hooks if it exists.
 
 Example:
 ```javascript
-player.tech().vhs.xhr.offResponse(playerResponseHook);
+player.on('xhr-hooks-ready', () => {
+  player.tech().vhs.xhr.offResponse(playerResponseHook);
+});
 ```
 
 The global `videojs.Vhs` also exposes an `xhr` property. Adding `onRequest`
