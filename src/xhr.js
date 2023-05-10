@@ -57,26 +57,39 @@ const callbackWrapper = function(request, error, response, callback) {
 };
 
 /**
- * Iterates over a Set of callback hooks and calls them in order
+ * Iterates over the request hooks Set and calls them in order
  *
- * @param {Set} hooks the hook set to iterate over
- * @param {Object} request the request options or object
- * @param {Object} error the error object
- * @param {Object} response the response object
- *
- * @return the callback hook function return value.
+ * @param {Set} hooks the hook Set to iterate over
+ * @param {Object} options the request options to pass to the xhr wrapper
+ * @return the callback hook function return value, the modified or new options Object.
  */
-const callAllHooks = (hooks, request, error, response) => {
-  if (!hooks || !hooks.size) {
+const callAllRequestHooks = (requestSet, options) => {
+  if (!requestSet || !requestSet.size) {
     return;
   }
-  let hookOptions;
+  let newOptions = options;
 
-  hooks.forEach((hookCallback) => {
-    // Pass the returned options back to the next hook callback to support a callback returning a new options object.
-    hookOptions = hookCallback(hookOptions || request, error, response);
+  requestSet.forEach((requestCallback) => {
+    newOptions = requestCallback(newOptions);
   });
-  return hookOptions;
+  return newOptions;
+};
+
+/**
+ * Iterates over the response hooks Set and calls them in order.
+ *
+ * @param {Set} hooks the hook Set to iterate over
+ * @param {Object} request the xhr request object
+ * @param {Object} error the xhr error object
+ * @param {Object} response the xhr response object
+ */
+const callAllResponseHooks = (responseSet, request, error, response) => {
+  if (!responseSet || !responseSet.size) {
+    return;
+  }
+  responseSet.forEach((responseCallback) => {
+    responseCallback(request, error, response);
+  });
 };
 
 const xhrFactory = function() {
@@ -104,8 +117,8 @@ const xhrFactory = function() {
     // TODO: switch back to videojs.Vhs.xhr.name === 'XhrFunction' when we drop IE11
     const xhrMethod = videojs.Vhs.xhr.original === true ? videojsXHR : videojs.Vhs.xhr;
 
-    // call all registered onRequest hooks, options returned for beforeRequest support.
-    const beforeRequestOptions = callAllHooks(_requestCallbackSet, options);
+    // call all registered onRequest hooks, assign new options.
+    const beforeRequestOptions = callAllRequestHooks(_requestCallbackSet, options);
 
     // Remove the beforeRequest function from the hooks set so stale beforeRequest functions are not called.
     _requestCallbackSet.delete(beforeRequest);
@@ -113,7 +126,7 @@ const xhrFactory = function() {
     // xhrMethod will call XMLHttpRequest.open and XMLHttpRequest.send
     const request = xhrMethod(beforeRequestOptions || options, function(error, response) {
       // call all registered onResponse hooks
-      callAllHooks(_responseCallbackSet, request, error, response);
+      callAllResponseHooks(_responseCallbackSet, request, error, response);
       return callbackWrapper(request, error, response, callback);
     });
     const originalAbort = request.abort;

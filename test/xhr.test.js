@@ -94,13 +94,15 @@ QUnit.test('calls global and player onRequest hooks respectively', function(asse
 
   // create the global onRequest set and 2 hooks
   videojs.Vhs.xhr._requestCallbackSet = new Set();
-  const globalRequestHook1 = (request) => {
-    request.url = 'global';
+  const globalRequestHook1 = (options) => {
+    options.url = 'global';
+    return options;
   };
-  const globalRequestHook2 = (request) => {
-    request.headers = {
+  const globalRequestHook2 = (options) => {
+    options.headers = {
       foo: 'bar'
     };
+    return options;
   };
 
   // add them to the set
@@ -115,13 +117,15 @@ QUnit.test('calls global and player onRequest hooks respectively', function(asse
 
   // create the player onRequest set and 2 hooks
   this.xhr._requestCallbackSet = new Set();
-  const playerRequestHook1 = (request) => {
-    request.url = 'player';
+  const playerRequestHook1 = (options) => {
+    options.url = 'player';
+    return options;
   };
-  const playerRequestHook2 = (request) => {
-    request.headers = {
+  const playerRequestHook2 = (options) => {
+    options.headers = {
       bar: 'foo'
     };
+    return options;
   };
 
   // add them to the set

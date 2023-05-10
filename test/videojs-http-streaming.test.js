@@ -4123,9 +4123,11 @@ QUnit.test('Allows setting onRequest hooks globally', function(assert) {
     requestUrl.searchParams.set('foo', 'bar');
     actualRequestUrl = options.uri = requestUrl.href;
     onRequestHookCallCount++;
+    return options;
   };
-  const globalRequestHook2 = () => {
+  const globalRequestHook2 = (options) => {
     onRequestHookCallCount++;
+    return options;
   };
 
   videojs.Vhs.xhr.onRequest(globalRequestHook1);
@@ -4159,9 +4161,11 @@ QUnit.test('Allows setting onRequest hooks on the player', function(assert) {
     requestUrl.searchParams.set('foo', 'bar');
     actualRequestUrl = options.uri = requestUrl.href;
     onRequestHookCallCount++;
+    return options;
   };
-  const playerRequestHook2 = () => {
+  const playerRequestHook2 = (options) => {
     onRequestHookCallCount++;
+    return options;
   };
 
   // Setup player level xhr hooks.
@@ -4200,9 +4204,11 @@ QUnit.test('Allows setting onRequest hooks globally and overriding with player h
     requestUrl.searchParams.set('foo', 'bar');
     actualRequestUrlGlobal = options.uri = requestUrl.href;
     onRequestHookCallCountGlobal++;
+    return options;
   };
-  const globalRequestHook2 = () => {
+  const globalRequestHook2 = (options) => {
     onRequestHookCallCountGlobal++;
+    return options;
   };
 
   videojs.Vhs.xhr.onRequest(globalRequestHook1);
@@ -4214,9 +4220,11 @@ QUnit.test('Allows setting onRequest hooks globally and overriding with player h
     requestUrl.searchParams.set('bar', 'foo');
     actualRequestUrlPlayer = options.uri = requestUrl.href;
     onRequestHookCallCountPlayer++;
+    return options;
   };
-  const playerRequestHook2 = () => {
+  const playerRequestHook2 = (options) => {
     onRequestHookCallCountPlayer++;
+    return options;
   };
 
   // Setup player level xhr hooks.
@@ -4264,9 +4272,11 @@ QUnit.test('Allows removing onRequest hooks globally with offRequest', function(
     requestUrl.searchParams.set('foo', 'bar');
     actualRequestUrl = options.uri = requestUrl.href;
     onRequestHookCallCount++;
+    return options;
   };
-  const globalRequestHook2 = () => {
+  const globalRequestHook2 = (options) => {
     onRequestHookCallCount++;
+    return options;
   };
 
   videojs.Vhs.xhr.onRequest(globalRequestHook1);
@@ -4462,6 +4472,7 @@ QUnit.test('Allows xhr object access in global onRequest hooks', function(assert
       xhr.open('GET', 'https://foo.bar');
     };
     onRequestHookCallCount++;
+    return options;
   };
   const globalXhrRequestHook2 = (options) => {
     options.beforeSend = (xhr) => {
@@ -4469,6 +4480,7 @@ QUnit.test('Allows xhr object access in global onRequest hooks', function(assert
       expectedUrl = xhr.url;
     };
     onRequestHookCallCount++;
+    return options;
   };
 
   videojs.Vhs.xhr.onRequest(globalXhrRequestHook1);
@@ -4501,6 +4513,7 @@ QUnit.test('Allows xhr object access in player onRequest hooks', function(assert
       xhr.open('GET', 'https://new.url');
     };
     onRequestHookCallCount++;
+    return options;
   };
   const playerXhrRequestHook2 = (options) => {
     options.beforeSend = (xhr) => {
@@ -4508,6 +4521,7 @@ QUnit.test('Allows xhr object access in player onRequest hooks', function(assert
       expectedUrl = xhr.url;
     };
     onRequestHookCallCount++;
+    return options;
   };
 
   // Setup player level xhr hooks.
