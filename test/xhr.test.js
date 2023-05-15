@@ -33,6 +33,7 @@ QUnit.test('xhr respects beforeRequest', function(assert) {
 
   this.xhr(defaultOptions);
   assert.equal(this.requests.shift().url, 'player', 'url changed with player override');
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged for deprecation');
 
   videojs.Vhs.xhr.beforeRequest = (options) => {
     options.url = 'global';
@@ -41,11 +42,46 @@ QUnit.test('xhr respects beforeRequest', function(assert) {
 
   this.xhr(defaultOptions);
   assert.equal(this.requests.shift().url, 'player', 'prioritizes player override');
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged for deprecation');
 
   delete this.xhr.beforeRequest;
 
   this.xhr(defaultOptions);
   assert.equal(this.requests.shift().url, 'global', 'url changed with global override');
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged for deprecation');
+
+  delete videojs.Vhs.xhr.beforeRequest;
+});
+
+QUnit.test('beforeRequest can return a new options object', function(assert) {
+  const defaultOptions = {
+    url: 'default'
+  };
+
+  this.xhr(defaultOptions);
+  assert.equal(this.requests.shift().url, 'default', 'url the same without override');
+
+  videojs.Vhs.xhr.beforeRequest = () => {
+    return { uri: 'global-newOptions'};
+  };
+
+  this.xhr(defaultOptions);
+  assert.equal(this.requests.shift().url, 'global-newOptions', 'url changed with global override');
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged for deprecation');
+
+  this.xhr.beforeRequest = () => {
+    return { uri: 'player-newOptions'};
+  };
+
+  this.xhr(defaultOptions);
+  assert.equal(this.requests.shift().url, 'player-newOptions', 'url changed with player override');
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged for deprecation');
+
+  delete this.xhr.beforeRequest;
+  delete videojs.Vhs.xhr.beforeRequest;
+
+  this.xhr(defaultOptions);
+  assert.equal(this.requests.shift().url, 'default', 'url the same without override');
 });
 
 QUnit.test('calls global and player onRequest hooks respectively', function(assert) {
@@ -58,13 +94,15 @@ QUnit.test('calls global and player onRequest hooks respectively', function(asse
 
   // create the global onRequest set and 2 hooks
   videojs.Vhs.xhr._requestCallbackSet = new Set();
-  const globalRequestHook1 = (request) => {
-    request.url = 'global';
+  const globalRequestHook1 = (options) => {
+    options.url = 'global';
+    return options;
   };
-  const globalRequestHook2 = (request) => {
-    request.headers = {
+  const globalRequestHook2 = (options) => {
+    options.headers = {
       foo: 'bar'
     };
+    return options;
   };
 
   // add them to the set
@@ -79,13 +117,15 @@ QUnit.test('calls global and player onRequest hooks respectively', function(asse
 
   // create the player onRequest set and 2 hooks
   this.xhr._requestCallbackSet = new Set();
-  const playerRequestHook1 = (request) => {
-    request.url = 'player';
+  const playerRequestHook1 = (options) => {
+    options.url = 'player';
+    return options;
   };
-  const playerRequestHook2 = (request) => {
-    request.headers = {
+  const playerRequestHook2 = (options) => {
+    options.headers = {
       bar: 'foo'
     };
+    return options;
   };
 
   // add them to the set
