@@ -13,19 +13,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         # We neeed to fetch the entire history as conventional-changelog needs
         # access to any number of git commits to build the changelog.
         with:
           fetch-depth: 0
 
       - name: read node version from .nvmrc
-        run: echo ::set-output name=NVMRC::$(cat .nvmrc)
+        run: echo "NVMRC=$(cat .nvmrc)" >> $GITHUB_OUTPUT
         shell: bash
         id: nvm
 
       - name: setup node
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: '${{steps.nvm.outputs.NVMRC}}'
           cache: npm
@@ -42,7 +42,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Check if this is a pre-release
-        run: echo ::set-output name=IS_PRE_RELEASE::$(npx -p not-prerelease is-prerelease && echo "true" || echo "false")
+        run: echo "IS_PRE_RELEASE=$(npx -p not-prerelease is-prerelease && echo "true" || echo "false")" >> $GITHUB_OUTPUT
         id: pre-release-check
 
       - name: truncate CHANGELOG.md so that we can get the current versions changes only
@@ -52,7 +52,7 @@ jobs:
         run: npx -p @videojs/update-changelog vjs-update-changelog --run-on-prerelease
 
       - name: get dashed package version for netlify
-        run: echo ::set-output name=VERSION::$(node -e "process.stdout.write(require('./package.json').version.split('.').join('-'))")
+        run: echo "VERSION=$(node -e "process.stdout.write(require('./package.json').version.split('.').join('-'))")" >> $GITHUB_OUTPUT
         id: get-version
         shell: bash
         if: env.NETLIFY_BASE != ''
