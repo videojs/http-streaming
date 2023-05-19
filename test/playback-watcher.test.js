@@ -866,6 +866,75 @@ QUnit.test(
   }
 );
 
+QUnit.test(
+  'low latency streams can seek closer to the live edge',
+  function(assert) {
+  // set an arbitrary live source
+    this.player.src({
+      src: 'llHLS.m3u8',
+      type: 'application/vnd.apple.mpegurl'
+    });
+
+    // start playback normally
+    this.player.tech_.triggerReady();
+    this.clock.tick(1);
+    this.requests.shift().respond(
+      200, null,
+      '#EXTM3U\n' +
+      '#EXT-X-PART-INF:PART-TARGET=1\n' +
+      '#EXT-X-MEDIA-SEQUENCE:0\n' +
+      '#EXTINF:2\n' +
+      'low-1.ts\n' +
+      '#EXT-X-PART:URI="part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="part2.ts",DURATION=1\n'
+    );
+    openMediaSource(this.player, this.clock);
+    this.player.tech_.trigger('play');
+    this.player.tech_.trigger('playing');
+    this.clock.tick(1);
+
+    const playbackWatcher = this.player.tech_.vhs.playbackWatcher_;
+    const seeks = [];
+    let seekable;
+    let seeking;
+    let currentTime;
+
+    playbackWatcher.seekable = () => seekable;
+    playbackWatcher.tech_ = {
+      off: () => {},
+      seeking: () => seeking,
+      setCurrentTime: (time) => {
+        seeks.push(time);
+      },
+
+      currentTime: () => currentTime,
+      // mocked out
+      paused: () => false,
+      buffered: () => createTimeRanges()
+    };
+
+    // waiting
+
+    seekable = createTimeRanges([[1, 45]]);
+    seeking = true;
+
+    // target duration of 2, seekable end of 45
+    // 45 + 3 * 2 = 51
+    currentTime = 51;
+    playbackWatcher.fixesBadSeeks_();
+    assert.equal(seeks.length, 0, 'did not seek');
+
+    currentTime = 51.1;
+    playbackWatcher.fixesBadSeeks_();
+    assert.equal(seeks.length, 1, 'seeked');
+    assert.equal(seeks[0], 45, 'player seeked to live point');
+
+    currentTime = 51;
+    playbackWatcher.fixesBadSeeks_();
+    assert.equal(seeks.length, 1, 'did not seek');
+  }
+);
+
 QUnit.test('jumps to buffered content if seeking just before', function(assert) {
   // target duration is 10 for this manifest
   this.player.src({
