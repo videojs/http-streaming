@@ -1407,6 +1407,52 @@ export const LoaderCommonFactory = ({
       assert.equal(segmentInfo2.mediaIndex, 3, 'previous segment');
     });
 
+    QUnit.test('chooses the correct next segment if independentSegments is true on the playlist', function(assert) {
+      loader.buffered_ = () => createTimeRanges();
+      const playlist = playlistWithDuration(50, {llhls: true});
+
+      playlist.independentSegments = true;
+
+      loader.hasPlayed_ = () => true;
+      loader.syncPoint_ = null;
+
+      loader.playlist(playlist);
+      loader.load();
+
+      loader.currentTime_ = () => 46;
+      // make the previous part indepenent, ensure we don't go back to that part.
+      playlist.segments[4].parts[1].independent = true;
+      const segmentInfo = loader.chooseNextRequest_();
+
+      assert.equal(segmentInfo.partIndex, 2, 'chooses part 2');
+      assert.equal(segmentInfo.mediaIndex, 4, 'same segment');
+    });
+
+    QUnit.test('chooses the correct next segment if independentSegments is true on the main playlist', function(assert) {
+      loader.buffered_ = () => createTimeRanges();
+      const playlist = playlistWithDuration(50, {llhls: true});
+
+      loader.vhs_.playlists = {
+        main: {
+          independentSegments: true
+        }
+      };
+
+      loader.hasPlayed_ = () => true;
+      loader.syncPoint_ = null;
+
+      loader.playlist(playlist);
+      loader.load();
+
+      loader.currentTime_ = () => 46;
+      // make the previous part indepenent, ensure we don't go back to that part.
+      playlist.segments[4].parts[1].independent = true;
+      const segmentInfo = loader.chooseNextRequest_();
+
+      assert.equal(segmentInfo.partIndex, 2, 'chooses part 2');
+      assert.equal(segmentInfo.mediaIndex, 4, 'same segment');
+    });
+
     QUnit.test('processing segment reachable even after playlist update removes it', function(assert) {
       const handleAppendsDone_ = loader.handleAppendsDone_.bind(loader);
       let expectedURI = '0.ts';
