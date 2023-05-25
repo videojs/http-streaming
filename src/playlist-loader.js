@@ -391,6 +391,7 @@ export default class PlaylistLoader extends EventTarget {
     this.src = src;
     this.vhs_ = vhs;
     this.withCredentials = withCredentials;
+    this.addDaterangeToTextTrack = options.addDaterangeToTextTrack;
 
     const vhsOptions = vhs.options_;
 
@@ -404,6 +405,11 @@ export default class PlaylistLoader extends EventTarget {
     // live playlist staleness timeout
     this.handleMediaupdatetimeout_ = this.handleMediaupdatetimeout_.bind(this);
     this.on('mediaupdatetimeout', this.handleMediaupdatetimeout_);
+    this.one('loadedplaylist', ()=>{
+      if (this.media() && this.media().daterange) {
+        this.addDaterangeToTextTrack('DateRange', this.media().daterange, this.media().targetDuration);
+      }
+    });
   }
 
   handleMediaupdatetimeout_() {

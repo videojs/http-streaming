@@ -224,6 +224,44 @@ export const addMetadata = ({
 };
 
 /**
+ * Add daterange metadata text track to a source handler given an array of metadata
+ *
+ * @param {Object}
+ *   @param {Object} inbandTextTracks the inband text tracks
+ *   @param {Array} metadataArray an array of meta data
+ * @private
+ */
+export const addDaterangeMetadata = ({
+  inbandTextTracks,
+  metadataArray
+}) => {
+  if (!metadataArray) {
+    return;
+  }
+
+  const Cue = window.WebKitDataCue || window.VTTCue;
+  const metadataTrack = inbandTextTracks.metadataTrack_;
+
+  if (!metadataTrack) {
+    return;
+  }
+
+  metadataArray.forEach((metadata) => {
+
+    const endTime = metadata.endDate || metadata.startDate.getTime() + (metadata.plannedDuration * 1000);
+    const cue = new Cue(
+      metadata.startDate,
+      endTime,
+      metadata.id
+    );
+
+    cue.value = metadata;
+    metadataTrack.addCue(cue);
+  });
+
+};
+
+/**
  * Create metadata text track on video.js if it does not exist
  *
  * @param {Object} inbandTextTracks a reference to current inbandTextTracks
