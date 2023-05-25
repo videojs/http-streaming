@@ -1480,11 +1480,17 @@ export default class SegmentLoader extends videojs.EventTarget {
       nextPart = nextSegment.parts[0];
     }
 
+    // independentSegments applies to every segment in a playlist. If independentSegments appears in a main playlist,
+    // it applies to each segment in each media playlist.
+    // https://datatracker.ietf.org/doc/html/draft-pantos-http-live-streaming-23#section-4.3.5.1
+    const hasIndependentSegments = (this.vhs_.playlists && this.vhs_.playlists.main && this.vhs_.playlists.main.independentSegments) ||
+      this.playlist_.independentSegments;
+
     // if we have no buffered data then we need to make sure
     // that the next part we append is "independent" if possible.
     // So we check if the previous part is independent, and request
     // it if it is.
-    if (!bufferedTime && nextPart && !nextPart.independent) {
+    if (!bufferedTime && nextPart && !hasIndependentSegments && !nextPart.independent) {
 
       if (next.partIndex === 0) {
         const lastSegment = segments[next.mediaIndex - 1];
