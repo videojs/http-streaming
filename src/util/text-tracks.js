@@ -241,6 +241,17 @@ export const addDaterangeMetadata = ({
 
   const Cue = window.WebKitDataCue || window.VTTCue;
   const metadataTrack = inbandTextTracks.metadataTrack_;
+  const daterangeAttr = {
+    id: 'ID',
+    class: 'CLASS',
+    startDate: 'START-DATE',
+    duration: 'DURATION',
+    endDate: 'END-DATE',
+    endOnNext: 'END-ON-NEXT',
+    plannedDuration: 'PLANNED-DURATION',
+    scte35Out: 'SCTE35-OUT',
+    scte35In: 'SCTE35-IN'
+  };
 
   if (!metadataTrack) {
     return;
@@ -249,14 +260,15 @@ export const addDaterangeMetadata = ({
   metadataArray.forEach((metadata) => {
 
     const endTime = metadata.endDate || metadata.startDate.getTime() + (metadata.plannedDuration * 1000);
-    const cue = new Cue(
-      metadata.startDate,
-      endTime,
-      metadata.id
-    );
+    const cue = new Cue(metadata.startDate, endTime, '');
 
-    cue.value = metadata;
-    metadataTrack.addCue(cue);
+    cue.id = metadata.id;
+    Object.keys(metadata).forEach((key) => {
+      if (!['id', 'class', 'startDate', 'duration', 'endDate', 'endOnNext'].includes(key)) {
+        cue.value = {keys: daterangeAttr[key], data: metadata[key]};
+        metadataTrack.addCue(cue);
+      }
+    });
   });
 
 };
