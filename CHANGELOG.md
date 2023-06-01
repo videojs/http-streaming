@@ -1,3 +1,18 @@
+<a name="3.4.0"></a>
+# [3.4.0](https://github.com/videojs/http-streaming/compare/v3.3.1...v3.4.0) (2023-06-01)
+
+### Features
+
+* add support for independentSegments ([#1399](https://github.com/videojs/http-streaming/issues/1399)) ([f9a392f](https://github.com/videojs/http-streaming/commit/f9a392f))
+
+### Bug Fixes
+
+* **llhls:** watcher causes playback failure ([#1398](https://github.com/videojs/http-streaming/issues/1398)) ([3580d1e](https://github.com/videojs/http-streaming/commit/3580d1e))
+
+### Chores
+
+* **package:** update m3u8-parser v6.2.0 ([#1403](https://github.com/videojs/http-streaming/issues/1403)) ([0026717](https://github.com/videojs/http-streaming/commit/0026717))
+
 <a name="3.3.1"></a>
 ## [3.3.1](https://github.com/videojs/http-streaming/compare/v3.3.0...v3.3.1) (2023-05-15)
 
