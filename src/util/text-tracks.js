@@ -259,8 +259,7 @@ export const addDaterangeMetadata = ({
   }
 
   metadataArray.daterange.forEach((metadata) => {
-
-    const startTime = (new Date(metadata.startDate).getTime() - new Date(metadataArray.dateTimeObject).getTime()) / 1e3;
+    const startTime = timestampOffset + (new Date(metadata.startDate).getTime() - new Date(metadataArray.dateTimeObject).getTime()) / 1000;
     const endTime = startTime + parseFloat(metadata.plannedDuration || metadata.duration) || 0;
     const cue = new Cue(startTime, endTime, '');
 
