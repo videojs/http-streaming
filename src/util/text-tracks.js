@@ -233,7 +233,8 @@ export const addMetadata = ({
  */
 export const addDaterangeMetadata = ({
   inbandTextTracks,
-  metadataArray
+  metadataArray,
+  timestampOffset
 }) => {
   if (!metadataArray) {
     return;
@@ -257,15 +258,18 @@ export const addDaterangeMetadata = ({
     return;
   }
 
-  metadataArray.forEach((metadata) => {
+  metadataArray.daterange.forEach((metadata) => {
 
-    const endTime = metadata.endDate || metadata.startDate.getTime() + (metadata.plannedDuration * 1000);
-    const cue = new Cue(metadata.startDate, endTime, '');
+    const startTime = (new Date(metadata.startDate).getTime() - new Date(metadataArray.dateTimeObject).getTime()) / 1e3;
+    const endTime = startTime + parseFloat(metadata.plannedDuration || metadata.duration) || 0;
+    const cue = new Cue(startTime, endTime, '');
 
     cue.id = metadata.id;
     Object.keys(metadata).forEach((key) => {
       if (!['id', 'class', 'startDate', 'duration', 'endDate', 'endOnNext'].includes(key)) {
         cue.value = {keys: daterangeAttr[key], data: metadata[key]};
+        cue.startTime = startTime;
+        cue.endTime = endTime;
         metadataTrack.addCue(cue);
       }
     });

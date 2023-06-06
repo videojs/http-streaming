@@ -2025,15 +2025,18 @@ export class PlaylistController extends videojs.EventTarget {
     return Config.BUFFER_HIGH_WATER_LINE;
   }
 
-  addDaterangeToTextTrack(dispatchType, metadataArray) {
+  addDaterangeToTextTrack(metadataArray) {
+    const timestampOffset = this.sourceUpdater_.videoBuffer ?
+      this.sourceUpdater_.videoTimestampOffset() : this.sourceUpdater_.audioTimestampOffset();
+
     this.inbandTextTracks_.metadataTrack_ = this.tech_.addRemoteTextTrack({
       kind: 'metadata',
       label: 'daterange-metadata'
     }, false).track;
-    this.inbandTextTracks_.metadataTrack_.inBandMetadataTrackDispatchType = dispatchType;
     addDaterangeMetadata({
       inbandTextTracks: this.inbandTextTracks_,
-      metadataArray
+      metadataArray,
+      timestampOffset
     });
   }
 
