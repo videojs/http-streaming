@@ -457,6 +457,60 @@ QUnit.test('addMetadataToTextTrack adds expected metadata to the metadataTrack',
   controller.dispose();
 });
 
+QUnit.test('addDaterangeToTextTrack adds expected metadata to the metadataTrack', function(assert) {
+  const options = {
+    src: 'manifest/daterange.m3u8',
+    tech: this.player.tech_,
+    sourceType: 'hls'
+  };
+
+  const controller = new PlaylistController(options);
+  const metadata = {};
+
+  metadata.dateTimeObject = 0;
+  metadata.daterange = [{
+    startDate: new Date(0),
+    plannedDuration: 40,
+    id: 'testId'
+  }];
+  controller.mainPlaylistLoader_.addDaterangeToTextTrack(metadata);
+  const actualMetadaTrack = {
+    label: controller.inbandTextTracks_.metadataTrack_.label,
+    kind: controller.inbandTextTracks_.metadataTrack_.kind
+  };
+  const actualCueValues = controller.inbandTextTracks_.metadataTrack_.cues_.map((cue) => {
+    return {
+      startTime: cue.startTime,
+      endTime: cue.endTime,
+      id: cue.id,
+      value: {
+        data: cue.value.data,
+        keys: cue.value.keys
+      }
+    };
+  });
+  const expectedMetadaTrack = {
+    label: 'daterange-metadata',
+    kind: 'metadata'
+  };
+  const expectedCueValues = [
+    {
+      startTime: 0,
+      id: 'testId',
+      endTime: 40,
+      value: {
+        data: 40,
+        keys: 'PLANNED-DURATION'
+      }
+    }
+  ];
+
+  assert.ok(controller.mainPlaylistLoader_.addDaterangeToTextTrack, 'addMetadataToTextTrack is passed to the PlaylistLoader');
+  assert.deepEqual(actualMetadaTrack, expectedMetadaTrack, 'daterange metadata is added to the metadataTrack');
+  assert.deepEqual(actualCueValues, expectedCueValues, 'expected cue values are added to the metadataTrack');
+  controller.dispose();
+});
+
 QUnit.test('obeys metadata preload option', function(assert) {
   this.player.preload('metadata');
   // main
