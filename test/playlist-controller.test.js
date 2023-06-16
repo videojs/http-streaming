@@ -470,6 +470,7 @@ QUnit.test('addDaterangeToTextTrack adds expected metadata to the metadataTrack'
   metadata.dateTimeObject = 0;
   metadata.daterange = [{
     startDate: new Date(0),
+    endDate: new Date(2000),
     plannedDuration: 40,
     id: 'testId'
   }];
@@ -497,7 +498,7 @@ QUnit.test('addDaterangeToTextTrack adds expected metadata to the metadataTrack'
     {
       startTime: 0,
       id: 'testId',
-      endTime: 40,
+      endTime: 2,
       value: {
         data: 40,
         keys: 'PLANNED-DURATION'

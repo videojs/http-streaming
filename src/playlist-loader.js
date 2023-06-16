@@ -405,7 +405,7 @@ export default class PlaylistLoader extends EventTarget {
     // live playlist staleness timeout
     this.handleMediaupdatetimeout_ = this.handleMediaupdatetimeout_.bind(this);
     this.on('mediaupdatetimeout', this.handleMediaupdatetimeout_);
-    this.one('loadedplaylist', ()=>{
+    this.one('loadedplaylist', () => {
       if (this.media() && this.media().daterange) {
         this.addDaterangeToTextTrack(this.media());
       }
