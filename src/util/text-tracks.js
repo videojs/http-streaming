@@ -223,51 +223,58 @@ export const addMetadata = ({
   });
 };
 
+// object for mapping daterange attributes
+const daterangeAttr = {
+  id: 'ID',
+  class: 'CLASS',
+  startDate: 'START-DATE',
+  duration: 'DURATION',
+  endDate: 'END-DATE',
+  endOnNext: 'END-ON-NEXT',
+  plannedDuration: 'PLANNED-DURATION',
+  scte35Out: 'SCTE35-OUT',
+  scte35In: 'SCTE35-IN'
+};
+
 /**
  * Add daterange metadata text track to a source handler given an array of metadata
  *
  * @param {Object}
  *   @param {Object} inbandTextTracks the inband text tracks
- *   @param {Array} metadataArray an array of meta data
+ *   @param {Object} mediaPlaylist parsed media playlist
  * @private
  */
 export const addDaterangeMetadata = ({
   inbandTextTracks,
-  metadataArray,
+  mediaPlaylist,
   timestampOffset
 }) => {
-  if (!metadataArray) {
+  if (!mediaPlaylist) {
     return;
   }
 
   const Cue = window.WebKitDataCue || window.VTTCue;
   const metadataTrack = inbandTextTracks.metadataTrack_;
-  const daterangeAttr = {
-    id: 'ID',
-    class: 'CLASS',
-    startDate: 'START-DATE',
-    duration: 'DURATION',
-    endDate: 'END-DATE',
-    endOnNext: 'END-ON-NEXT',
-    plannedDuration: 'PLANNED-DURATION',
-    scte35Out: 'SCTE35-OUT',
-    scte35In: 'SCTE35-IN'
-  };
 
   if (!metadataTrack) {
     return;
   }
 
-  metadataArray.daterange.forEach((metadata) => {
-    const startTime = timestampOffset + (new Date(metadata.startDate).getTime() - new Date(metadataArray.dateTimeObject).getTime()) / 1000;
-    const endTime = metadata.endDate ? (new Date(metadata.endDate).getTime() - new Date(metadataArray.dateTimeObject).getTime()) / 1000 : 0;
+  const dateRanges = mediaPlaylist.daterange;
 
+  dateRanges.forEach((dateRange) => {
+    const startTime = timestampOffset + (new Date(dateRange.startDate).getTime() - new Date(mediaPlaylist.dateTimeObject).getTime()) / 1000;
+    const endTime = dateRange.endDate ? (new Date(dateRange.endDate).getTime() - new Date(mediaPlaylist.dateTimeObject).getTime()) / 1000 : 0;
     const cue = new Cue(startTime, endTime, '');
 
-    cue.id = metadata.id;
-    Object.keys(metadata).forEach((key) => {
+    cue.id = dateRange.id;
+    cue.type = 'com.apple.quicktime.HLS';
+    Object.keys(dateRange).forEach((key) => {
       if (!['id', 'class', 'startDate', 'duration', 'endDate', 'endOnNext'].includes(key)) {
-        cue.value = {keys: daterangeAttr[key], data: metadata[key]};
+        if (key === 'scte35Out') {
+          dateRange[key] = new Uint8Array(dateRange[key].match(/[\da-f]{2}/gi)).buffer;
+        }
+        cue.value = {key: daterangeAttr[key], data: dateRange[key]};
         cue.startTime = startTime;
         cue.endTime = endTime;
         metadataTrack.addCue(cue);

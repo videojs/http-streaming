@@ -486,7 +486,7 @@ QUnit.test('addDaterangeToTextTrack adds expected metadata to the metadataTrack'
       id: cue.id,
       value: {
         data: cue.value.data,
-        keys: cue.value.keys
+        key: cue.value.key
       }
     };
   });
@@ -501,7 +501,7 @@ QUnit.test('addDaterangeToTextTrack adds expected metadata to the metadataTrack'
       endTime: 2,
       value: {
         data: 40,
-        keys: 'PLANNED-DURATION'
+        key: 'PLANNED-DURATION'
       }
     }
   ];

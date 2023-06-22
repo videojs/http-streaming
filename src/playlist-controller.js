@@ -256,8 +256,7 @@ export class PlaylistController extends videojs.EventTarget {
       sourceUpdater: this.sourceUpdater_,
       timelineChangeController: this.timelineChangeController_,
       exactManifestTimings: options.exactManifestTimings,
-      addMetadataToTextTrack: this.addMetadataToTextTrack.bind(this),
-      addDaterangeToTextTrack: this.addDaterangeToTextTrack.bind(this)
+      addMetadataToTextTrack: this.addMetadataToTextTrack.bind(this)
     };
 
     // The source type check not only determines whether a special DASH playlist loader
@@ -2025,7 +2024,7 @@ export class PlaylistController extends videojs.EventTarget {
     return Config.BUFFER_HIGH_WATER_LINE;
   }
 
-  addDaterangeToTextTrack(metadataArray) {
+  addDaterangeToTextTrack(mediaPlaylist) {
     const timestampOffset = this.sourceUpdater_.videoBuffer ?
       this.sourceUpdater_.videoTimestampOffset() : this.sourceUpdater_.audioTimestampOffset();
 
@@ -2035,7 +2034,7 @@ export class PlaylistController extends videojs.EventTarget {
     }, false).track;
     addDaterangeMetadata({
       inbandTextTracks: this.inbandTextTracks_,
-      metadataArray,
+      mediaPlaylist,
       timestampOffset
     });
   }
