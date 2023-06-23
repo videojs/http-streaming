@@ -283,7 +283,7 @@ test('daterange text track cues - endDate is used for endTime calculation', func
     inbandTextTracks,
     mediaPlaylist: {
       daterange: [{
-        startDate: new Date(0),
+        startDate: new Date(10),
         endDate: new Date(2000),
         scte35Out: '0xFC30200000FFF00F0500D4DF747FFFFE0034BC00C00000E4612424',
         id: 'testId'
@@ -317,7 +317,7 @@ test('daterange text track cues - duration is used for endTime calculation', fun
   });
 
   assert.ok(inbandTextTracks.metadataTrack_, 'metadataTrack exists');
-  assert.equal(inbandTextTracks.metadataTrack_.cues[0].endTime, 40.005, 'duration is used when endDate and class not available');
+  assert.equal(inbandTextTracks.metadataTrack_.cues[0].endTime, 50.005, 'duration is used when endDate and class not available');
 });
 
 test('daterange text track cues - plannedDuration is used for endTime calculation', function(assert) {
@@ -329,18 +329,18 @@ test('daterange text track cues - plannedDuration is used for endTime calculatio
     inbandTextTracks,
     mediaPlaylist: {
       daterange: [{
-        startDate: new Date(2000),
+        startDate: new Date(10),
         scte35Out: '0xFC30200000FFF00F0500D4DF747FFFFE0034BC00C00000E4612424',
-        plannedDuration: 15,
+        plannedDuration: 40,
         id: 'testId'
       }],
-      dateTimeObject: 1000
+      dateTimeObject: 5
     },
-    timestampOffset: 9
+    timestampOffset: 10
   });
 
   assert.ok(inbandTextTracks.metadataTrack_, 'metadataTrack exists');
-  assert.equal(inbandTextTracks.metadataTrack_.cues[0].endTime, 25, 'plannedDuration is used when endDate, class and duration not available');
+  assert.equal(inbandTextTracks.metadataTrack_.cues[0].endTime, 50.005, 'plannedDuration is used when endDate, class and duration not available');
 });
 
 test('daterange text track cues - endOnNext and classList are used', function(assert) {
