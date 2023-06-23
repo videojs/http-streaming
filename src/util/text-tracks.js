@@ -249,28 +249,57 @@ export const addDaterangeMetadata = ({
   mediaPlaylist,
   timestampOffset
 }) => {
-  if (!mediaPlaylist) {
-    return;
-  }
-
   const Cue = window.WebKitDataCue || window.VTTCue;
   const metadataTrack = inbandTextTracks.metadataTrack_;
 
-  if (!metadataTrack) {
+  if (!mediaPlaylist || !metadataTrack) {
     return;
   }
 
   const dateRanges = mediaPlaylist.daterange;
+  const dateRangeClasses = {};
+  let classList;
+  let classListIndex;
+  let startTime;
+  let endTime;
+
+  dateRanges.forEach((dateRange)=>{
+    startTime = timestampOffset + (new Date(dateRange.startDate).getTime() - new Date(mediaPlaylist.dateTimeObject).getTime()) / 1000;
+    dateRange.startTime = startTime;
+
+    if (dateRange.class) {
+      if (dateRangeClasses[dateRange.class]) {
+        dateRangeClasses[dateRange.class].push(dateRange);
+      } else {
+        dateRangeClasses[dateRange.class] = [dateRange];
+      }
+    }
+  });
 
   dateRanges.forEach((dateRange) => {
-    const startTime = timestampOffset + (new Date(dateRange.startDate).getTime() - new Date(mediaPlaylist.dateTimeObject).getTime()) / 1000;
-    const endTime = dateRange.endDate ? (new Date(dateRange.endDate).getTime() - new Date(mediaPlaylist.dateTimeObject).getTime()) / 1000 : 0;
+    if (dateRange.class) {
+      classList = dateRangeClasses[dateRange.class];
+      classListIndex = classList.indexOf(dateRange);
+    }
+
+    if (dateRange.endDate) {
+      endTime = (new Date(dateRange.endDate).getTime() - new Date(mediaPlaylist.dateTimeObject).getTime()) / 1000;
+    } else if (dateRange.endOnNext && classList[classListIndex + 1]) {
+      endTime = classList[classListIndex + 1].startTime;
+    } else if (dateRange.duration) {
+      endTime = startTime + dateRange.duration;
+    } else if (dateRange.plannedDuration) {
+      endTime = startTime + dateRange.plannedDuration;
+    } else {
+      endTime = 0;
+    }
+
     const cue = new Cue(startTime, endTime, '');
 
     cue.id = dateRange.id;
     cue.type = 'com.apple.quicktime.HLS';
     Object.keys(dateRange).forEach((key) => {
-      if (!['id', 'class', 'startDate', 'duration', 'endDate', 'endOnNext'].includes(key)) {
+      if (!['id', 'class', 'startDate', 'duration', 'endDate', 'endOnNext', 'startTime'].includes(key)) {
         if (key === 'scte35Out') {
           dateRange[key] = new Uint8Array(dateRange[key].match(/[\da-f]{2}/gi)).buffer;
         }

@@ -5,7 +5,8 @@ import {
   addCaptionData,
   createMetadataTrackIfNotExists,
   addMetadata,
-  removeDuplicateCuesFromTrack
+  removeDuplicateCuesFromTrack,
+  addDaterangeMetadata
 } from '../src/util/text-tracks';
 
 const { module, test } = Qunit;
@@ -271,6 +272,104 @@ test('does nothing if there is no metadataTrack or no metadata cues given', func
     0,
     'no metadata cues are added'
   );
+});
+
+test('daterange text track cues - endDate is used for endTime calculation', function(assert) {
+  const inbandTextTracks = {
+    metadataTrack_: new MockTextTrack()
+  };
+
+  addDaterangeMetadata({
+    inbandTextTracks,
+    mediaPlaylist: {
+      daterange: [{
+        startDate: new Date(0),
+        endDate: new Date(2000),
+        scte35Out: '0xFC30200000FFF00F0500D4DF747FFFFE0034BC00C00000E4612424',
+        id: 'testId'
+      }],
+      dateTimeObject: 5
+    },
+    timestampOffset: 10
+  });
+
+  assert.ok(inbandTextTracks.metadataTrack_, 'metadataTrack exists');
+  assert.equal(inbandTextTracks.metadataTrack_.cues[0].endTime, 1.995, 'endDate is used when available');
+});
+
+test('daterange text track cues - duration is used for endTime calculation', function(assert) {
+  const inbandTextTracks = {
+    metadataTrack_: new MockTextTrack()
+  };
+
+  addDaterangeMetadata({
+    inbandTextTracks,
+    mediaPlaylist: {
+      daterange: [{
+        startDate: new Date(10),
+        scte35Out: '0xFC30200000FFF00F0500D4DF747FFFFE0034BC00C00000E4612424',
+        duration: 40,
+        id: 'testId'
+      }],
+      dateTimeObject: 5
+    },
+    timestampOffset: 10
+  });
+
+  assert.ok(inbandTextTracks.metadataTrack_, 'metadataTrack exists');
+  assert.equal(inbandTextTracks.metadataTrack_.cues[0].endTime, 40.005, 'duration is used when endDate and class not available');
+});
+
+test('daterange text track cues - plannedDuration is used for endTime calculation', function(assert) {
+  const inbandTextTracks = {
+    metadataTrack_: new MockTextTrack()
+  };
+
+  addDaterangeMetadata({
+    inbandTextTracks,
+    mediaPlaylist: {
+      daterange: [{
+        startDate: new Date(2000),
+        scte35Out: '0xFC30200000FFF00F0500D4DF747FFFFE0034BC00C00000E4612424',
+        plannedDuration: 15,
+        id: 'testId'
+      }],
+      dateTimeObject: 1000
+    },
+    timestampOffset: 9
+  });
+
+  assert.ok(inbandTextTracks.metadataTrack_, 'metadataTrack exists');
+  assert.equal(inbandTextTracks.metadataTrack_.cues[0].endTime, 25, 'plannedDuration is used when endDate, class and duration not available');
+});
+
+test('daterange text track cues - endOnNext and classList are used', function(assert) {
+  const inbandTextTracks = {
+    metadataTrack_: new MockTextTrack()
+  };
+
+  addDaterangeMetadata({
+    inbandTextTracks,
+    mediaPlaylist: {
+      daterange: [{
+        startDate: new Date(2000),
+        scte35Out: '0xFC30200000FFF00F0500D4DF747FFFFE0034BC00C00000E4612424',
+        id: 'testId1',
+        class: 'TestClass',
+        endOnNext: true
+      }, {
+        startDate: new Date(4000),
+        scte35Out: '0xFC30200000FFF00F0500D4DF747FFFFE0034BC00C00000E46',
+        id: 'testId2',
+        class: 'TestClass'
+      }],
+      dateTimeObject: 1000
+    },
+    timestampOffset: 9
+  });
+
+  assert.ok(inbandTextTracks.metadataTrack_, 'metadataTrack exists');
+  assert.equal(inbandTextTracks.metadataTrack_.cues[0].endTime, 12, 'startTime of the next dateRange with the same class is used as endTime');
 });
 
 test('adds cues for each metadata frame seen', function(assert) {
