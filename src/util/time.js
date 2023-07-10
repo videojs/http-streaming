@@ -26,7 +26,7 @@ const SEGMENT_END_FUDGE_PERCENT = 0.25;
  * @return {Date} program time
  */
 export const playerTimeToProgramTime = (playerTime, segment) => {
-  if (!segment.dateTimeObject) {
+  if (!segment.programDateTime) {
     // Can't convert without an "anchor point" for the program time (i.e., a time that can
     // be used to map the start of a segment with a real world time).
     return null;
@@ -39,7 +39,7 @@ export const playerTimeToProgramTime = (playerTime, segment) => {
   const startOfSegment = transmuxedStart + transmuxerPrependedSeconds;
   const offsetFromSegmentStart = playerTime - startOfSegment;
 
-  return new Date(segment.dateTimeObject.getTime() + offsetFromSegmentStart * 1000);
+  return new Date(segment.programDateTime + offsetFromSegmentStart * 1000);
 };
 
 export const originalSegmentVideoDuration = (videoTimingInfo) => {
@@ -74,7 +74,7 @@ export const findSegmentForProgramTime = (programTime, playlist) => {
 
   let segment = playlist.segments[0];
 
-  if (dateTimeObject < segment.dateTimeObject) {
+  if (dateTimeObject < segment.programDateTime) {
     // Requested time is before stream start.
     return null;
   }
@@ -82,7 +82,7 @@ export const findSegmentForProgramTime = (programTime, playlist) => {
   for (let i = 0; i < playlist.segments.length - 1; i++) {
     segment = playlist.segments[i];
 
-    const nextSegmentStart = playlist.segments[i + 1].dateTimeObject;
+    const nextSegmentStart = playlist.segments[i + 1].programDateTime;
 
     if (dateTimeObject < nextSegmentStart) {
       break;
@@ -90,12 +90,12 @@ export const findSegmentForProgramTime = (programTime, playlist) => {
   }
 
   const lastSegment = playlist.segments[playlist.segments.length - 1];
-  const lastSegmentStart = lastSegment.dateTimeObject;
+  const lastSegmentStart = lastSegment.programDateTime;
   const lastSegmentDuration = lastSegment.videoTimingInfo ?
     originalSegmentVideoDuration(lastSegment.videoTimingInfo) :
     lastSegment.duration + lastSegment.duration * SEGMENT_END_FUDGE_PERCENT;
   const lastSegmentEnd =
-    new Date(lastSegmentStart.getTime() + lastSegmentDuration * 1000);
+    new Date(lastSegmentStart + lastSegmentDuration * 1000);
 
   if (dateTimeObject > lastSegmentEnd) {
     // Beyond the end of the stream, or our best guess of the end of the stream.
@@ -230,7 +230,7 @@ export const verifyProgramDateTimeTags = (playlist) => {
   for (let i = 0; i < playlist.segments.length; i++) {
     const segment = playlist.segments[i];
 
-    if (!segment.dateTimeObject) {
+    if (!segment.programDateTime) {
       return false;
     }
   }
@@ -295,6 +295,9 @@ export const getProgramTime = ({
     programTimeObject.programDateTime = programTime.toISOString();
   }
 
+  // eslint-disable-next-line
+  console.log(',,,,2', programTimeObject);
+
   return callback(null, programTimeObject);
 };
 
@@ -355,7 +358,7 @@ export const seekToProgramTime = ({
 
   const segment = matchedSegment.segment;
   const mediaOffset = getOffsetFromTimestamp(
-    segment.dateTimeObject,
+    segment.programDateTime,
     programTime
   );
 
