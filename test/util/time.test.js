@@ -799,7 +799,7 @@ QUnit.test('returns programDateTime parsed from media segment tags', function(as
       assert.equal(err, null, 'no error');
       assert.equal(
         programTime.programDateTime,
-        playlist.segments[0].programDateTime,
+        new Date(playlist.segments[0].programDateTime).toISOString(),
         'uses programDateTime found in media segments'
       );
       done();

@@ -295,9 +295,6 @@ export const getProgramTime = ({
     programTimeObject.programDateTime = programTime.toISOString();
   }
 
-  // eslint-disable-next-line
-  console.log(',,,,2', programTimeObject);
-
   return callback(null, programTimeObject);
 };
 

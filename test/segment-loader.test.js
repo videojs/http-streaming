@@ -4563,23 +4563,23 @@ QUnit.module('SegmentLoader', function(hooks) {
       const playlist1Start = new Date('2021-01-01T00:00:00.000-05:00').getTime();
 
       playlist1.segments[0].programDateTime = playlist1Start;
-      playlist1.segments[1].programDateTime = new Date(playlist1Start + segmentDurationMs);
+      playlist1.segments[1].programDateTime = new Date(playlist1Start + segmentDurationMs).getTime();
       // jump of 0.5 seconds after disco (0.5 seconds of missing real world time, e.g.,
       // an encoder went down briefly), should have a PDT mapping difference of -3.5
       // seconds from first mapping
-      playlist1.segments[2].programDateTime = new Date(playlist1.segments[1].programDateTime + segmentDurationMs + 500);
-      playlist1.segments[3].programDateTime = new Date(playlist1.segments[2].programDateTime + segmentDurationMs);
+      playlist1.segments[2].programDateTime = new Date(playlist1.segments[1].programDateTime + segmentDurationMs + 500).getTime();
+      playlist1.segments[3].programDateTime = new Date(playlist1.segments[2].programDateTime + segmentDurationMs).getTime();
 
       // offset by 0.25 seconds from playlist1
       const playlist2Start = new Date('2021-01-01T00:00:00.250-05:00');
 
-      playlist2.segments[0].programDateTime = playlist2Start;
-      playlist2.segments[1].programDateTime = new Date(playlist2Start + segmentDurationMs);
+      playlist2.segments[0].programDateTime = playlist2Start.getTime();
+      playlist2.segments[1].programDateTime = new Date(playlist2Start + segmentDurationMs).getTime();
       // jump of 0.5 seconds after disco (0.5 seconds of missing real world time, e.g.,
       // an encoder went down briefly), should have a PDT mapping difference of -3.5
       // seconds from first mapping
-      playlist2.segments[2].programDateTime = new Date(playlist2.segments[1].programDateTime + segmentDurationMs + 500);
-      playlist2.segments[3].programDateTime = new Date(playlist2.segments[2].programDateTime + segmentDurationMs);
+      playlist2.segments[2].programDateTime = new Date(playlist2.segments[1].programDateTime + segmentDurationMs + 500).getTime();
+      playlist2.segments[3].programDateTime = new Date(playlist2.segments[2].programDateTime + segmentDurationMs).getTime();
 
       const {
         mediaSource_: mediaSource,
