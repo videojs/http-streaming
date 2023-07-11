@@ -1165,7 +1165,6 @@ QUnit.test('live: seeks and returns player time seeked to if buffered', function
     playlist: {
       segments: [
         {
-          dateTimeString: '2018-10-12T22:33:49.037+00:00',
           programDateTime: new Date('2018-10-12T22:33:49.037+00:00').getTime(),
           duration: 1,
           start: 0,
