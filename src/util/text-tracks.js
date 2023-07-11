@@ -331,7 +331,10 @@ export const createMetadataTrackIfNotExists = (inbandTextTracks, dispatchType, t
     label: 'Timed Metadata'
   }, false).track;
 
-  inbandTextTracks.metadataTrack_.inBandMetadataTrackDispatchType = dispatchType;
+  if (!videojs.browser.IS_ANY_SAFARI) {
+    inbandTextTracks.metadataTrack_.inBandMetadataTrackDispatchType = dispatchType;
+
+  }
 };
 
 /**
