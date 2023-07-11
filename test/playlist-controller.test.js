@@ -491,7 +491,7 @@ QUnit.test('addDaterangeToTextTrack adds expected metadata to the metadataTrack'
     };
   });
   const expectedMetadaTrack = {
-    label: 'daterange-metadata',
+    label: 'Timed Metadata',
     kind: 'metadata'
   };
   const expectedCueValues = [
