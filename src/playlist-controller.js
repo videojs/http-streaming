@@ -2025,14 +2025,11 @@ export class PlaylistController extends videojs.EventTarget {
   }
 
   addDaterangeToTextTrack(mediaPlaylist) {
-    const timestampOffset = this.sourceUpdater_.videoBuffer ?
-      this.sourceUpdater_.videoTimestampOffset() : this.sourceUpdater_.audioTimestampOffset();
 
     createMetadataTrackIfNotExists(this.inbandTextTracks_, 'com.apple.streaming', this.tech_);
     addDaterangeMetadata({
       inbandTextTracks: this.inbandTextTracks_,
-      mediaPlaylist,
-      timestampOffset
+      mediaPlaylist
     });
   }
 

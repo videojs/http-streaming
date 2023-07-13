@@ -246,8 +246,7 @@ const daterangeAttr = {
  */
 export const addDaterangeMetadata = ({
   inbandTextTracks,
-  mediaPlaylist,
-  timestampOffset
+  mediaPlaylist
 }) => {
   const Cue = window.WebKitDataCue || window.VTTCue;
   const metadataTrack = inbandTextTracks.metadataTrack_;
