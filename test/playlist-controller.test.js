@@ -467,9 +467,12 @@ QUnit.test('addDaterangeToTextTrack adds expected metadata to the metadataTrack'
   const controller = new PlaylistController(options);
   const metadata = {};
 
-  metadata.dateTimeObject = 0;
-  metadata.daterange = [{
-    startDate: new Date(0),
+  metadata.segments = [{
+    programDateTime: 2000,
+    duration: 1
+  }];
+  metadata.dateRanges = [{
+    startDate: new Date(1500),
     endDate: new Date(2000),
     plannedDuration: 40,
     id: 'testId'
@@ -496,9 +499,9 @@ QUnit.test('addDaterangeToTextTrack adds expected metadata to the metadataTrack'
   };
   const expectedCueValues = [
     {
-      startTime: 0,
+      startTime: 0.5,
       id: 'testId',
-      endTime: 2,
+      endTime: 1,
       value: {
         data: 40,
         key: 'PLANNED-DURATION'

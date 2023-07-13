@@ -279,22 +279,26 @@ test('daterange text track cues - endDate is used for endTime calculation', func
     metadataTrack_: new MockTextTrack()
   };
 
+  inbandTextTracks.metadataTrack_.cues_ = [];
   addDaterangeMetadata({
     inbandTextTracks,
     mediaPlaylist: {
-      daterange: [{
-        startDate: new Date(10),
+      dateRanges: [{
+        startDate: new Date(1500),
         endDate: new Date(2000),
         scte35Out: '0xFC30200000FFF00F0500D4DF747FFFFE0034BC00C00000E4612424',
         id: 'testId'
       }],
-      dateTimeObject: 5
+      segments: [{
+        duration: 1,
+        programDateTime: 2000
+      }]
     },
     timestampOffset: 10
   });
 
   assert.ok(inbandTextTracks.metadataTrack_, 'metadataTrack exists');
-  assert.equal(inbandTextTracks.metadataTrack_.cues[0].endTime, 1.995, 'endDate is used when available');
+  assert.equal(inbandTextTracks.metadataTrack_.cues[0].endTime, 1, 'endDate is used when available');
 });
 
 test('daterange text track cues - duration is used for endTime calculation', function(assert) {
@@ -302,22 +306,26 @@ test('daterange text track cues - duration is used for endTime calculation', fun
     metadataTrack_: new MockTextTrack()
   };
 
+  inbandTextTracks.metadataTrack_.cues_ = [];
   addDaterangeMetadata({
     inbandTextTracks,
     mediaPlaylist: {
-      daterange: [{
-        startDate: new Date(10),
+      dateRanges: [{
+        startDate: new Date(3000),
         scte35Out: '0xFC30200000FFF00F0500D4DF747FFFFE0034BC00C00000E4612424',
         duration: 40,
         id: 'testId'
       }],
-      dateTimeObject: 5
+      segments: [{
+        duration: 2,
+        programDateTime: 3000
+      }]
     },
     timestampOffset: 10
   });
 
   assert.ok(inbandTextTracks.metadataTrack_, 'metadataTrack exists');
-  assert.equal(inbandTextTracks.metadataTrack_.cues[0].endTime, 50.005, 'duration is used when endDate and class not available');
+  assert.equal(inbandTextTracks.metadataTrack_.cues[0].endTime, 42, 'duration is used when endDate and class not available');
 });
 
 test('daterange text track cues - plannedDuration is used for endTime calculation', function(assert) {
@@ -325,22 +333,26 @@ test('daterange text track cues - plannedDuration is used for endTime calculatio
     metadataTrack_: new MockTextTrack()
   };
 
+  inbandTextTracks.metadataTrack_.cues_ = [];
   addDaterangeMetadata({
     inbandTextTracks,
     mediaPlaylist: {
-      daterange: [{
-        startDate: new Date(10),
+      dateRanges: [{
+        startDate: new Date(3000),
         scte35Out: '0xFC30200000FFF00F0500D4DF747FFFFE0034BC00C00000E4612424',
         plannedDuration: 40,
         id: 'testId'
       }],
-      dateTimeObject: 5
+      segments: [{
+        duration: 2,
+        programDateTime: 3000
+      }]
     },
     timestampOffset: 10
   });
 
   assert.ok(inbandTextTracks.metadataTrack_, 'metadataTrack exists');
-  assert.equal(inbandTextTracks.metadataTrack_.cues[0].endTime, 50.005, 'plannedDuration is used when endDate, class and duration not available');
+  assert.equal(inbandTextTracks.metadataTrack_.cues[0].endTime, 42, 'plannedDuration is used when endDate, class and duration not available');
 });
 
 test('daterange text track cues - endOnNext and classList are used', function(assert) {
@@ -348,11 +360,12 @@ test('daterange text track cues - endOnNext and classList are used', function(as
     metadataTrack_: new MockTextTrack()
   };
 
+  inbandTextTracks.metadataTrack_.cues_ = [];
   addDaterangeMetadata({
     inbandTextTracks,
     mediaPlaylist: {
-      daterange: [{
-        startDate: new Date(2000),
+      dateRanges: [{
+        startDate: new Date(3000),
         scte35Out: '0xFC30200000FFF00F0500D4DF747FFFFE0034BC00C00000E4612424',
         id: 'testId1',
         class: 'TestClass',
@@ -363,13 +376,16 @@ test('daterange text track cues - endOnNext and classList are used', function(as
         id: 'testId2',
         class: 'TestClass'
       }],
-      dateTimeObject: 1000
+      segments: [{
+        duration: 2,
+        programDateTime: 3000
+      }]
     },
     timestampOffset: 9
   });
 
   assert.ok(inbandTextTracks.metadataTrack_, 'metadataTrack exists');
-  assert.equal(inbandTextTracks.metadataTrack_.cues[0].endTime, 12, 'startTime of the next dateRange with the same class is used as endTime');
+  assert.equal(inbandTextTracks.metadataTrack_.cues[0].endTime, 3, 'startTime of the next dateRange with the same class is used as endTime');
 });
 
 test('adds cues for each metadata frame seen', function(assert) {

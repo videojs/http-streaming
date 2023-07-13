@@ -256,15 +256,29 @@ export const addDaterangeMetadata = ({
     return;
   }
 
-  const dateRanges = mediaPlaylist.daterange;
+  const cuesInTrack = metadataTrack.cues_.map((cue)=> {
+    return {id: cue.id, value: cue.value};
+  });
+  const dateRanges = mediaPlaylist.dateRanges;
   const dateRangeClasses = {};
   let classList;
   let classListIndex;
   let startTime;
   let endTime;
+  const lastSegmentIndex = mediaPlaylist.segments.length - 1;
+  const lastSegment = mediaPlaylist.segments[lastSegmentIndex];
+  let totalDuration = 0;
+
+  mediaPlaylist.segments.forEach((segment)=>{
+    totalDuration += segment.duration;
+  });
+
+  lastSegment.start = totalDuration;
+
+  const dateTimeOffset = (lastSegment.programDateTime) / 1000 - lastSegment.start;
 
   dateRanges.forEach((dateRange)=>{
-    startTime = timestampOffset + (new Date(dateRange.startDate).getTime() - new Date(mediaPlaylist.dateTimeObject).getTime()) / 1000;
+    startTime = (dateRange.startDate.getTime() / 1000) - dateTimeOffset;
     dateRange.startTime = startTime;
 
     if (dateRange.class) {
@@ -283,7 +297,7 @@ export const addDaterangeMetadata = ({
     }
 
     if (dateRange.endDate) {
-      endTime = (new Date(dateRange.endDate).getTime() - new Date(mediaPlaylist.dateTimeObject).getTime()) / 1000;
+      endTime = (dateRange.endDate.getTime() / 1000) - dateTimeOffset;
     } else if (dateRange.endOnNext && classList[classListIndex + 1]) {
       endTime = classList[classListIndex + 1].startTime;
     } else if (dateRange.duration) {
@@ -306,7 +320,16 @@ export const addDaterangeMetadata = ({
         cue.value = {key: daterangeAttr[key], data: dateRange[key]};
         cue.startTime = startTime;
         cue.endTime = endTime;
-        metadataTrack.addCue(cue);
+        const indexOfCue = cuesInTrack.findIndex(cueInTrack => cueInTrack.id === cue.id && cueInTrack.value.key === cue.value.key);
+
+        if (indexOfCue > -1) {
+          const cueToUpdate = metadataTrack.cues_[indexOfCue];
+
+          cueToUpdate.startTime = startTime;
+          cueToUpdate.endTime = endTime;
+        } else {
+          metadataTrack.addCue(cue);
+        }
       }
     });
   });
