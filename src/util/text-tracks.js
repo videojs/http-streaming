@@ -283,14 +283,6 @@ export const addDateRangeMetadata = ({ inbandTextTracks, dateRanges }) => {
       }
 
       metadataTrack.addCue(cue);
-      // what about cues with infinity end date?
-      // const indexOfCue = cuesInTrack.findIndex(cueInTrack => cueInTrack.id === cue.id && cueInTrack.value.key === cue.value.key);
-      //
-      // if (indexOfCue > -1) {
-      //   const cueToUpdate = metadataTrack.cues_[indexOfCue];
-      //
-      //   cueToUpdate.startTime = startTime;
-      //   cueToUpdate.endTime = endTime;
     }
 
     dateRange.processDateRange();
