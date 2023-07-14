@@ -224,7 +224,7 @@ export const addMetadata = ({
 };
 
 // object for mapping daterange attributes
-const daterangeAttr = {
+const dateRangeAttr = {
   id: 'ID',
   class: 'CLASS',
   startDate: 'START-DATE',
@@ -236,103 +236,65 @@ const daterangeAttr = {
   scte35In: 'SCTE35-IN'
 };
 
+  const dateRangeKeysToOmit = new Set([
+    'id', // data from parser
+    'class', // data from parser
+    'startDate', // data from parer
+    'duration', // data from parser. Should it be omitted?
+    'endDate', // data from parser.
+    'endOnNext', // data from parser.
+    'startTime', // mixing from our code.
+    'endTime', // mixin from our code.
+    'processDateRange' // mixin from our code.
+  ]);
+
 /**
- * Add daterange metadata text track to a source handler given an array of metadata
+ * Add DateRange metadata text track to a source handler given an array of metadata
  *
  * @param {Object}
  *   @param {Object} inbandTextTracks the inband text tracks
- *   @param {Object} mediaPlaylist parsed media playlist
+ *   @param {Array} dateRanges parsed media playlist
  * @private
  */
-export const addDaterangeMetadata = ({
-  inbandTextTracks,
-  mediaPlaylist
-}) => {
-  const Cue = window.WebKitDataCue || window.VTTCue;
+export const addDateRangeMetadata = ({ inbandTextTracks, dateRanges }) => {
   const metadataTrack = inbandTextTracks.metadataTrack_;
 
-  if (!mediaPlaylist || !metadataTrack) {
+  if (!metadataTrack) {
     return;
   }
 
-  const cuesInTrack = metadataTrack.cues_.map((cue)=> {
-    return {id: cue.id, value: cue.value};
-  });
-  const dateRanges = mediaPlaylist.dateRanges;
-  const dateRangeClasses = {};
-  let classList;
-  let classListIndex;
-  let startTime;
-  let endTime;
-  const lastSegmentIndex = mediaPlaylist.segments.length - 1;
-  const lastSegment = mediaPlaylist.segments[lastSegmentIndex];
-  let totalDuration = 0;
-
-  mediaPlaylist.segments.forEach((segment)=>{
-    totalDuration += segment.duration;
-  });
-
-  lastSegment.start = totalDuration;
-
-  const dateTimeOffset = (lastSegment.programDateTime) / 1000 - lastSegment.start;
-
-  dateRanges.forEach((dateRange)=>{
-    startTime = (dateRange.startDate.getTime() / 1000) - dateTimeOffset;
-    dateRange.startTime = startTime;
-
-    if (dateRange.class) {
-      if (dateRangeClasses[dateRange.class]) {
-        dateRangeClasses[dateRange.class].push(dateRange);
-      } else {
-        dateRangeClasses[dateRange.class] = [dateRange];
-      }
-    }
-  });
+  const Cue = window.WebKitDataCue || window.VTTCue;
 
   dateRanges.forEach((dateRange) => {
-    if (dateRange.class) {
-      classList = dateRangeClasses[dateRange.class];
-      classListIndex = classList.indexOf(dateRange);
-    }
-
-    if (dateRange.endDate) {
-      endTime = (dateRange.endDate.getTime() / 1000) - dateTimeOffset;
-    } else if (dateRange.endOnNext && classList[classListIndex + 1]) {
-      endTime = classList[classListIndex + 1].startTime;
-    } else if (dateRange.duration) {
-      endTime = startTime + dateRange.duration;
-    } else if (dateRange.plannedDuration) {
-      endTime = startTime + dateRange.plannedDuration;
-    } else {
-      endTime = 0;
-    }
-
-    const cue = new Cue(startTime, endTime, '');
-
-    cue.id = dateRange.id;
-    cue.type = 'com.apple.quicktime.HLS';
-    Object.keys(dateRange).forEach((key) => {
-      if (!['id', 'class', 'startDate', 'duration', 'endDate', 'endOnNext', 'startTime'].includes(key)) {
-        if (key === 'scte35Out') {
-          dateRange[key] = new Uint8Array(dateRange[key].match(/[\da-f]{2}/gi)).buffer;
-        }
-        cue.value = {key: daterangeAttr[key], data: dateRange[key]};
-        cue.startTime = startTime;
-        cue.endTime = endTime;
-        const indexOfCue = cuesInTrack.findIndex(cueInTrack => cueInTrack.id === cue.id && cueInTrack.value.key === cue.value.key);
-
-        if (indexOfCue > -1) {
-          const cueToUpdate = metadataTrack.cues_[indexOfCue];
-
-          cueToUpdate.startTime = startTime;
-          cueToUpdate.endTime = endTime;
-        } else {
-          metadataTrack.addCue(cue);
-        }
+    // we generate multiple cues for each date range with different attributes
+    for (const key of Object.keys(dateRange)) {
+      if (dateRangeKeysToOmit.has(key)) {
+        continue;
       }
-    });
-  });
 
+      const cue = new Cue(dateRange.startTime, dateRange.endTime, '');
+      cue.id = dateRange.id;
+      cue.type = 'com.apple.quicktime.HLS';
+      cue.value = { key: dateRangeAttr[key], data: dateRange[key] };
+
+      // Should we convert anything else to array buffer?
+      if (key === 'scte35Out') {
+        cue.value.data = new Uint8Array(cue.value.data.match(/[\da-f]{2}/gi)).buffer;
+      }
+
+      metadataTrack.addCue(cue);
+      // what about cues with infinity end date?
+      // const indexOfCue = cuesInTrack.findIndex(cueInTrack => cueInTrack.id === cue.id && cueInTrack.value.key === cue.value.key);
+      //
+      // if (indexOfCue > -1) {
+      //   const cueToUpdate = metadataTrack.cues_[indexOfCue];
+      //
+      //   cueToUpdate.startTime = startTime;
+      //   cueToUpdate.endTime = endTime;
+    }
+
+    dateRange.processDateRange();
+  });
 };
 
 /**

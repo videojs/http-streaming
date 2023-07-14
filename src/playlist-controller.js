@@ -26,7 +26,7 @@ import { codecsForPlaylist, unwrapCodecList, codecCount } from './util/codecs.js
 import { createMediaTypes, setupMediaGroups } from './media-groups';
 import logger from './util/logger';
 import {merge, createTimeRanges} from './util/vjs-compat';
-import { addMetadata, createMetadataTrackIfNotExists, addDaterangeMetadata } from './util/text-tracks';
+import { addMetadata, createMetadataTrackIfNotExists, addDateRangeMetadata } from './util/text-tracks';
 
 const ABORT_EARLY_EXCLUSION_SECONDS = 60 * 2;
 
@@ -265,7 +265,7 @@ export class PlaylistController extends videojs.EventTarget {
     // PlaylistLoader should be used.
     this.mainPlaylistLoader_ = this.sourceType_ === 'dash' ?
       new DashPlaylistLoader(src, this.vhs_, merge(this.requestOptions_, { addMetadataToTextTrack: this.addMetadataToTextTrack.bind(this) })) :
-      new PlaylistLoader(src, this.vhs_, merge(this.requestOptions_, { addDaterangeToTextTrack: this.addDaterangeToTextTrack.bind(this) }));
+      new PlaylistLoader(src, this.vhs_, merge(this.requestOptions_, { addDateRangesToTextTrack: this.addDateRangesToTextTrack_.bind(this) }));
     this.setupMainPlaylistLoaderListeners_();
 
     // setup segment loaders
@@ -2024,12 +2024,11 @@ export class PlaylistController extends videojs.EventTarget {
     return Config.BUFFER_HIGH_WATER_LINE;
   }
 
-  addDaterangeToTextTrack(mediaPlaylist) {
-
+  addDateRangesToTextTrack_(dateRanges) {
     createMetadataTrackIfNotExists(this.inbandTextTracks_, 'com.apple.streaming', this.tech_);
-    addDaterangeMetadata({
+    addDateRangeMetadata({
       inbandTextTracks: this.inbandTextTracks_,
-      mediaPlaylist
+      dateRanges
     });
   }
 

@@ -18,6 +18,7 @@ import {
 } from './manifest';
 import {getKnownPartCount} from './playlist.js';
 import {merge} from './util/vjs-compat';
+import DateRangesStorage from './util/date-ranges';
 
 const { EventTarget } = videojs;
 
@@ -391,13 +392,14 @@ export default class PlaylistLoader extends EventTarget {
     this.src = src;
     this.vhs_ = vhs;
     this.withCredentials = withCredentials;
-    this.addDaterangeToTextTrack = options.addDaterangeToTextTrack;
+    this.addDateRangesToTextTrack_ = options.addDateRangesToTextTrack;
 
     const vhsOptions = vhs.options_;
 
     this.customTagParsers = (vhsOptions && vhsOptions.customTagParsers) || [];
     this.customTagMappers = (vhsOptions && vhsOptions.customTagMappers) || [];
     this.llhls = vhsOptions && vhsOptions.llhls;
+    this.dateRangesStorage_ = new DateRangesStorage();
 
     // initialize the loader state
     this.state = 'HAVE_NOTHING';
@@ -405,13 +407,25 @@ export default class PlaylistLoader extends EventTarget {
     // live playlist staleness timeout
     this.handleMediaupdatetimeout_ = this.handleMediaupdatetimeout_.bind(this);
     this.on('mediaupdatetimeout', this.handleMediaupdatetimeout_);
-    this.on('loadedplaylist', () => {
-      const dateRanges = this.media() && this.media().dateRanges;
+    this.on('loadedplaylist', this.handleLoadedPlaylist_.bind(this));
+  }
 
-      if (dateRanges && dateRanges.length) {
-        this.addDaterangeToTextTrack(this.media());
-      }
-    });
+  handleLoadedPlaylist_() {
+    const mediaPlaylist = this.media();
+
+    if (!mediaPlaylist) {
+      return;
+    }
+
+    this.dateRangesStorage_.setOffset(mediaPlaylist.segments);
+    this.dateRangesStorage_.setPendingDateRanges(mediaPlaylist.dateRanges);
+    const availableDateRanges = this.dateRangesStorage_.getDateRangesToProcess();
+
+    if (!availableDateRanges.length) {
+      return;
+    }
+
+    this.addDateRangesToTextTrack_(availableDateRanges);
   }
 
   handleMediaupdatetimeout_() {
@@ -542,6 +556,7 @@ export default class PlaylistLoader extends EventTarget {
     this.stopRequest();
     window.clearTimeout(this.mediaUpdateTimeout);
     window.clearTimeout(this.finalRenditionTimeout);
+    this.dateRangesStorage_ = new DateRangesStorage();
 
     this.off();
   }
