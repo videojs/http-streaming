@@ -236,17 +236,17 @@ const dateRangeAttr = {
   scte35In: 'SCTE35-IN'
 };
 
-  const dateRangeKeysToOmit = new Set([
-    'id', // data from parser
-    'class', // data from parser
-    'startDate', // data from parer
-    'duration', // data from parser. Should it be omitted?
-    'endDate', // data from parser.
-    'endOnNext', // data from parser.
-    'startTime', // mixing from our code.
-    'endTime', // mixin from our code.
-    'processDateRange' // mixin from our code.
-  ]);
+const dateRangeKeysToOmit = new Set([
+  'id',
+  'class',
+  'startDate',
+  'duration',
+  'endDate',
+  'endOnNext',
+  'startTime',
+  'endTime',
+  'processDateRange'
+]);
 
 /**
  * Add DateRange metadata text track to a source handler given an array of metadata
@@ -273,12 +273,12 @@ export const addDateRangeMetadata = ({ inbandTextTracks, dateRanges }) => {
       }
 
       const cue = new Cue(dateRange.startTime, dateRange.endTime, '');
+
       cue.id = dateRange.id;
       cue.type = 'com.apple.quicktime.HLS';
       cue.value = { key: dateRangeAttr[key], data: dateRange[key] };
 
-      // Should we convert anything else to array buffer?
-      if (key === 'scte35Out') {
+      if (key === 'scte35Out' || key === 'scte35In') {
         cue.value.data = new Uint8Array(cue.value.data.match(/[\da-f]{2}/gi)).buffer;
       }
 

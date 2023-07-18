@@ -16,6 +16,7 @@ export default class DateRangesStorage {
     }
 
     const [firstSegment] = segments;
+
     // no program date time
     if (firstSegment.programDateTime === undefined) {
       return;
@@ -31,10 +32,11 @@ export default class DateRangesStorage {
 
     const [dateRange] = dateRanges;
     const startTime = dateRange.startDate.getTime();
+
     this.trimProcessedDateRanges_(startTime);
 
-    this.pendingDateRanges_ = dateRanges.reduce((map, dateRange) => {
-      map.set(dateRange.id, dateRange);
+    this.pendingDateRanges_ = dateRanges.reduce((map, pendingDateRange) => {
+      map.set(pendingDateRange.id, pendingDateRange);
       return map;
     }, new Map());
   }
@@ -67,6 +69,7 @@ export default class DateRangesStorage {
 
       if (dateRangeClasses[dateRange.class]) {
         const length = dateRangeClasses[dateRange.class].push(dateRange);
+
         dateRange.classListIndex = length - 1;
       } else {
         dateRangeClasses[dateRange.class] = [dateRange];

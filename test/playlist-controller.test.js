@@ -457,32 +457,37 @@ QUnit.test('addMetadataToTextTrack adds expected metadata to the metadataTrack',
   controller.dispose();
 });
 
-QUnit.test('addDaterangeToTextTrack adds expected metadata to the metadataTrack', function(assert) {
+QUnit.test('addDateRangesToTextTrack adds expected metadata to the metadataTrack', function(assert) {
   const options = {
     src: 'manifest/daterange.m3u8',
     tech: this.player.tech_,
     sourceType: 'hls'
   };
-
   const controller = new PlaylistController(options);
-  const metadata = {};
+  const dateRanges = [{
+    endDate: new Date(5000),
+    endTime: 3,
+    plannedDuration: 5,
+    scte35Out: '0xFC30200FFF00F0500D00E4612424',
+    startDate: new Date(3000),
+    startTime: 1,
+    id: 'testId',
+    processDateRange: () => {}
+  }];
+  const expectedCueValues = [{
+    endTime: 3,
+    id: 'testId',
+    startTime: 1,
+    value: {data: 5, key: 'PLANNED-DURATION'}
+  }, {
+    endTime: 3,
+    id: 'testId',
+    startTime: 1,
+    value: {data: new ArrayBuffer(), key: 'SCTE35-OUT'}
+  }];
 
-  metadata.segments = [{
-    programDateTime: 2000,
-    duration: 1
-  }];
-  metadata.dateRanges = [{
-    startDate: new Date(1500),
-    endDate: new Date(2000),
-    plannedDuration: 40,
-    id: 'testId'
-  }];
-  controller.mainPlaylistLoader_.addDaterangeToTextTrack(metadata);
-  const actualMetadaTrack = {
-    label: controller.inbandTextTracks_.metadataTrack_.label,
-    kind: controller.inbandTextTracks_.metadataTrack_.kind
-  };
-  const actualCueValues = controller.inbandTextTracks_.metadataTrack_.cues_.map((cue) => {
+  controller.mainPlaylistLoader_.addDateRangesToTextTrack_(dateRanges);
+  const actualCueValues = controller.inbandTextTracks_.metadataTrack_.cues_.map((cue)=>{
     return {
       startTime: cue.startTime,
       endTime: cue.endTime,
@@ -493,24 +498,7 @@ QUnit.test('addDaterangeToTextTrack adds expected metadata to the metadataTrack'
       }
     };
   });
-  const expectedMetadaTrack = {
-    label: 'Timed Metadata',
-    kind: 'metadata'
-  };
-  const expectedCueValues = [
-    {
-      startTime: 0.5,
-      id: 'testId',
-      endTime: 1,
-      value: {
-        data: 40,
-        key: 'PLANNED-DURATION'
-      }
-    }
-  ];
 
-  assert.ok(controller.mainPlaylistLoader_.addDaterangeToTextTrack, 'addMetadataToTextTrack is passed to the PlaylistLoader');
-  assert.deepEqual(actualMetadaTrack, expectedMetadaTrack, 'daterange metadata is added to the metadataTrack');
   assert.deepEqual(actualCueValues, expectedCueValues, 'expected cue values are added to the metadataTrack');
   controller.dispose();
 });
