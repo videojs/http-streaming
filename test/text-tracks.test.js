@@ -180,6 +180,63 @@ test('creates cues for 608 captions with "stream" property in ccX', function(ass
   );
 });
 
+test('creates cues for 608 captions with "content" property for positioning', function(assert) {
+  addCaptionData({
+    inbandTextTracks: this.inbandTextTracks,
+    timestampOffset: this.timestampOffset,
+    captionArray: [
+      {
+        startTime: 0,
+        endTime: 1,
+        content: [
+          {
+            text: 'CC1',
+            position: 10,
+            line: 15
+          },
+          {
+            text: 'text',
+            position: 15,
+            line: 14
+          }
+        ],
+        stream: 'CC1'
+      },
+      {
+        startTime: 0,
+        endTime: 1,
+        content: [{
+          text: 'CC2 text',
+          position: 80,
+          line: 1
+        }],
+        stream: 'CC2'
+      }
+    ]
+  });
+
+  // CC1
+  assert.strictEqual(this.inbandTextTracks.CC1.cues.length, 2, 'added two 608 cues to CC1');
+
+  // CC1 cue 1
+  assert.strictEqual(this.inbandTextTracks.CC1.cues[0].text, 'CC1', 'added text to first cue in CC1');
+  assert.strictEqual(this.inbandTextTracks.CC1.cues[0].line, 15, 'added line to first cue in CC1');
+  assert.strictEqual(this.inbandTextTracks.CC1.cues[0].position, 10, 'added position to first cue in CC1');
+
+  // CC1 cue 2
+  assert.strictEqual(this.inbandTextTracks.CC1.cues[1].text, 'text', 'added text to second cue in CC1');
+  assert.strictEqual(this.inbandTextTracks.CC1.cues[1].line, 14, 'added line to second cue in CC1');
+  assert.strictEqual(this.inbandTextTracks.CC1.cues[1].position, 15, 'added position to second cue in CC1');
+
+  // CC2
+  assert.strictEqual(this.inbandTextTracks.CC2.cues.length, 1, 'added one 608 cue to CC2');
+  assert.strictEqual(this.inbandTextTracks.CC2.cues[0].text, 'CC2 text', 'added text to CC2');
+  assert.strictEqual(this.inbandTextTracks.CC2.cues[0].line, 1, 'added line to CC2');
+  assert.strictEqual(this.inbandTextTracks.CC2.cues[0].position, 80, 'added position to CC2');
+  assert.strictEqual(this.inbandTextTracks.CC2.cues[0].align, 'left', 'left align 608 cues');
+  assert.strictEqual(this.inbandTextTracks.CC2.cues[0].positionAlign, 'line-left', 'left align position on 608 cues');
+});
+
 test('use existing tracks with id equal to CC#', function(assert) {
   const tech = new MockTech();
   const inbandTextTracks = {};

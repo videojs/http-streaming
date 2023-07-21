@@ -296,7 +296,11 @@ QUnit.test('caption events are returned', function(assert) {
     assert.deepEqual(
       messages[28].caption,
       {
-        text: 'Bip!',
+        content: [{
+          line: 15,
+          position: 45,
+          text: 'Bip!'
+        }],
         stream: 'CC1',
         startPts: 157500,
         endPts: 175500,
