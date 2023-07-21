@@ -1,5 +1,4 @@
 import QUnit from 'qunit';
-import videojs from 'video.js';
 import {
   default as PlaylistLoader,
   updateSegments,
@@ -1053,7 +1052,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     const segment = loader.main.playlists[0].segments[0];
 
     assert.strictEqual(segment.custom.test, '#PARSER:parsed', 'parsed custom tag');
-    assert.ok(segment.dateTimeObject, 'converted and parsed custom time');
+    assert.ok(segment.programDateTime, 'converted and parsed custom time');
 
     delete this.fakeVhs.options_;
   });
@@ -2422,435 +2421,433 @@ QUnit.module('Playlist Loader', function(hooks) {
     assert.equal(this.requests.length, 1, 'playlist re-requested');
   });
 
-  if (!videojs.browser.IE_VERSION) {
-    QUnit.module('llhls', {
-      beforeEach() {
-        this.fakeVhs.options_ = {llhls: true};
-        this.loader = new PlaylistLoader('http://example.com/media.m3u8', this.fakeVhs);
-
-        this.loader.load();
-
-      },
-      afterEach() {
-        this.loader.dispose();
-      }
-    });
-
-    QUnit.test('#EXT-X-SKIP does not add initial empty segments', function(assert) {
-      this.requests.shift().respond(
-        200, null,
-        '#EXTM3U\n' +
-        '#EXT-X-MEDIA-SEQUENCE:0\n' +
-        '#EXT-X-SKIP:SKIPPED-SEGMENTS=10\n' +
-        '#EXTINF:2\n' +
-        'low-1.ts\n'
-      );
-      assert.equal(this.loader.media().segments.length, 1, 'only 1 segment');
-    });
-
-    QUnit.test('#EXT-X-SKIP merges skipped segments', function(assert) {
-      let playlist =
-        '#EXTM3U\n' +
-        '#EXT-X-MEDIA-SEQUENCE:0\n';
-
-      for (let i = 0; i < 10; i++) {
-        playlist += '#EXTINF:2\n';
-        playlist += `segment-${i}.ts\n`;
-      }
-
-      this.requests.shift().respond(200, null, playlist);
-      assert.equal(this.loader.media().segments.length, 10, '10 segments');
-
-      this.loader.trigger('mediaupdatetimeout');
-
-      const skippedPlaylist =
-        '#EXTM3U\n' +
-        '#EXT-X-MEDIA-SEQUENCE:0\n' +
-        '#EXT-X-SKIP:SKIPPED-SEGMENTS=10\n' +
-        '#EXTINF:2\n' +
-        'segment-10.ts\n';
-
-      this.requests.shift().respond(200, null, skippedPlaylist);
-
-      assert.equal(this.loader.media().segments.length, 11, '11 segments');
-
-      this.loader.media().segments.forEach(function(s, i) {
-        if (i < 10) {
-          assert.ok(s.hasOwnProperty('skipped'), 'has skipped property');
-          assert.false(s.skipped, 'skipped property is false');
-        }
-
-        assert.equal(s.uri, `segment-${i}.ts`, 'segment uri as expected');
-      });
-
-      this.loader.trigger('mediaupdatetimeout');
-
-      const skippedPlaylist2 =
-        '#EXTM3U\n' +
-        '#EXT-X-MEDIA-SEQUENCE:1\n' +
-        '#EXT-X-SKIP:SKIPPED-SEGMENTS=10\n' +
-        '#EXTINF:2\n' +
-        'segment-11.ts\n';
-
-      this.requests.shift().respond(200, null, skippedPlaylist2);
-
-      this.loader.media().segments.forEach(function(s, i) {
-        if (i < 10) {
-          assert.ok(s.hasOwnProperty('skipped'), 'has skipped property');
-          assert.false(s.skipped, 'skipped property is false');
-        }
-
-        assert.equal(s.uri, `segment-${i + 1}.ts`, 'segment uri as expected');
-      });
-    });
-
-    QUnit.test('#EXT-X-PRELOAD with parts to added to segment list', function(assert) {
-      this.requests.shift().respond(
-        200, null,
-        '#EXTM3U\n' +
-        '#EXT-X-PART-INF:PART-TARGET=1\n' +
-        '#EXT-X-MEDIA-SEQUENCE:0\n' +
-        '#EXTINF:2\n' +
-        'low-1.ts\n' +
-        '#EXT-X-PART:URI="part1.ts",DURATION=1\n' +
-        '#EXT-X-PART:URI="part2.ts",DURATION=1\n'
-      );
-      const media = this.loader.media();
-
-      assert.equal(media.segments.length, 2, '2 segments');
-      assert.deepEqual(
-        media.preloadSegment,
-        media.segments[media.segments.length - 1],
-        'last segment is preloadSegment'
-      );
-    });
-
-    QUnit.test('#EXT-X-PRELOAD without parts not added to segment list', function(assert) {
-      this.requests.shift().respond(
-        200, null,
-        '#EXTM3U\n' +
-        '#EXT-X-PART-INF:PART-TARGET=1\n' +
-        '#EXT-X-MEDIA-SEQUENCE:0\n' +
-        '#EXTINF:2\n' +
-        'low-1.ts\n' +
-        '#EXT-X-PRELOAD-HINT:TYPE="PART",URI="part1.ts"\n'
-      );
-      const media = this.loader.media();
-
-      assert.equal(media.segments.length, 1, '1 segment');
-      assert.notDeepEqual(
-        media.preloadSegment,
-        media.segments[media.segments.length - 1],
-        'last segment is not preloadSegment'
-      );
-    });
-
-    QUnit.test('#EXT-X-PART added to segments', function(assert) {
-      this.requests.shift().respond(
-        200, null,
-        '#EXTM3U\n' +
-        '#EXT-X-PART-INF:PART-TARGET=1\n' +
-        '#EXT-X-MEDIA-SEQUENCE:0\n' +
-        '#EXTINF:2\n' +
-        'segment0.ts\n' +
-        '#EXT-X-PART:URI="segment1-part1.ts",DURATION=1\n' +
-        '#EXT-X-PART:URI="segment1-part2.ts",DURATION=1\n' +
-        'segment1.ts\n' +
-        '#EXT-X-PART:URI="segment2-part1.ts",DURATION=1\n' +
-        '#EXT-X-PART:URI="segment2-part2.ts",DURATION=1\n' +
-        'segment2.ts\n' +
-        '#EXT-X-PART:URI="segment3-part1.ts",DURATION=1\n' +
-        '#EXT-X-PART:URI="segment3-part2.ts",DURATION=1\n' +
-        'segment3.ts\n'
-      );
-      const segments = this.loader.media().segments;
-
-      assert.equal(segments.length, 4, '4 segments');
-      assert.notOk(segments[0].parts, 'no parts for first segment');
-      assert.equal(segments[1].parts.length, 2, 'parts for second segment');
-      assert.equal(segments[2].parts.length, 2, 'parts for third segment');
-      assert.equal(segments[3].parts.length, 2, 'parts for forth segment');
-    });
-
-    QUnit.test('Adds _HLS_skip=YES to url when CAN-SKIP-UNTIL is set', function(assert) {
-      this.requests.shift().respond(
-        200, null,
-        '#EXTM3U\n' +
-        '#EXT-X-PART-INF:PART-TARGET=1\n' +
-        '#EXT-X-MEDIA-SEQUENCE:0\n' +
-        '#EXT-X-SERVER-CONTROL:CAN-SKIP-UNTIL=3\n' +
-        '#EXTINF:2\n' +
-        'segment0.ts\n' +
-        '#EXTINF:2\n' +
-        'segment1.ts\n' +
-        '#EXTINF:2\n' +
-        'segment2.ts\n' +
-        '#EXTINF:2\n' +
-        'segment3.ts\n' +
-        '#EXTINF:2\n' +
-        'segment4.ts\n' +
-        '#EXTINF:2\n' +
-        'segment5.ts\n' +
-        '#EXT-X-PART:URI="segment6-part1.ts",DURATION=1\n' +
-        '#EXT-X-PART:URI="segment6-part2.ts",DURATION=1\n' +
-        'segment6.ts\n' +
-        '#EXT-X-PART:URI="segment7-part1.ts",DURATION=1\n' +
-        '#EXT-X-PART:URI="segment7-part2.ts",DURATION=1\n' +
-        'segment7.ts\n' +
-        '#EXT-X-PART:URI="segment8-part1.ts",DURATION=1\n' +
-        '#EXT-X-PART:URI="segment8-part2.ts",DURATION=1\n' +
-        'segment8.ts\n'
-      );
-
-      this.loader.trigger('mediaupdatetimeout');
-
-      assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_skip=YES');
-    });
-
-    QUnit.test('Adds _HLS_skip=v2 to url when CAN-SKIP-UNTIL/CAN-SKIP-DATERANGES is set', function(assert) {
-      this.requests.shift().respond(
-        200, null,
-        '#EXTM3U\n' +
-        '#EXT-X-PART-INF:PART-TARGET=1\n' +
-        '#EXT-X-MEDIA-SEQUENCE:0\n' +
-        '#EXT-X-SERVER-CONTROL:CAN-SKIP-UNTIL=3,CAN-SKIP-DATERANGES=YES\n' +
-        '#EXTINF:2\n' +
-        'segment0.ts\n' +
-        '#EXTINF:2\n' +
-        'segment1.ts\n' +
-        '#EXTINF:2\n' +
-        'segment2.ts\n' +
-        '#EXTINF:2\n' +
-        'segment3.ts\n' +
-        '#EXTINF:2\n' +
-        'segment4.ts\n' +
-        '#EXTINF:2\n' +
-        'segment5.ts\n' +
-        '#EXT-X-PART:URI="segment6-part1.ts",DURATION=1\n' +
-        '#EXT-X-PART:URI="segment6-part2.ts",DURATION=1\n' +
-        'segment6.ts\n' +
-        '#EXT-X-PART:URI="segment7-part1.ts",DURATION=1\n' +
-        '#EXT-X-PART:URI="segment7-part2.ts",DURATION=1\n' +
-        'segment7.ts\n' +
-        '#EXT-X-PART:URI="segment8-part1.ts",DURATION=1\n' +
-        '#EXT-X-PART:URI="segment8-part2.ts",DURATION=1\n' +
-        'segment8.ts\n'
-      );
-
-      this.loader.trigger('mediaupdatetimeout');
-
-      assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_skip=v2');
-    });
-
-    QUnit.test('Adds _HLS_part= and _HLS_msn= when we have a part preload hints and parts', function(assert) {
-      this.requests.shift().respond(
-        200, null,
-        '#EXTM3U\n' +
-        '#EXT-X-PART-INF:PART-TARGET=1\n' +
-        '#EXT-X-MEDIA-SEQUENCE:0\n' +
-        '#EXT-X-SERVER-CONTROL:CAN-BLOCK-RELOAD=YES\n' +
-        '#EXTINF:2\n' +
-        'segment0.ts\n' +
-        '#EXTINF:2\n' +
-        'segment1.ts\n' +
-        '#EXTINF:2\n' +
-        'segment2.ts\n' +
-        '#EXTINF:2\n' +
-        'segment3.ts\n' +
-        '#EXTINF:2\n' +
-        'segment4.ts\n' +
-        '#EXTINF:2\n' +
-        'segment5.ts\n' +
-        '#EXT-X-PART:URI="segment6-part1.ts",DURATION=1\n' +
-        '#EXT-X-PART:URI="segment6-part2.ts",DURATION=1\n' +
-        'segment6.ts\n' +
-        '#EXT-X-PART:URI="segment7-part1.ts",DURATION=1\n' +
-        '#EXT-X-PART:URI="segment7-part2.ts",DURATION=1\n' +
-        'segment7.ts\n' +
-        '#EXT-X-PART:URI="segment8-part1.ts",DURATION=1\n' +
-        '#EXT-X-PRELOAD-HINT:TYPE="PART",URI="segment8-part2.ts"\n'
-      );
-
-      this.loader.trigger('mediaupdatetimeout');
-
-      assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_msn=8&_HLS_part=1');
-    });
-
-    QUnit.test('Adds _HLS_part= and _HLS_msn= when we have only a part preload hint', function(assert) {
-      this.requests.shift().respond(
-        200, null,
-        '#EXTM3U\n' +
-        '#EXT-X-PART-INF:PART-TARGET=1\n' +
-        '#EXT-X-MEDIA-SEQUENCE:0\n' +
-        '#EXT-X-SERVER-CONTROL:CAN-BLOCK-RELOAD=YES\n' +
-        '#EXTINF:2\n' +
-        'segment0.ts\n' +
-        '#EXTINF:2\n' +
-        'segment1.ts\n' +
-        '#EXTINF:2\n' +
-        'segment2.ts\n' +
-        '#EXTINF:2\n' +
-        'segment3.ts\n' +
-        '#EXTINF:2\n' +
-        'segment4.ts\n' +
-        '#EXTINF:2\n' +
-        'segment5.ts\n' +
-        '#EXT-X-PART:URI="segment6-part1.ts",DURATION=1\n' +
-        '#EXT-X-PART:URI="segment6-part2.ts",DURATION=1\n' +
-        'segment6.ts\n' +
-        '#EXT-X-PART:URI="segment7-part1.ts",DURATION=1\n' +
-        '#EXT-X-PART:URI="segment7-part2.ts",DURATION=1\n' +
-        'segment7.ts\n' +
-        '#EXT-X-PRELOAD-HINT:TYPE="PART",URI="segment8-part1.ts"\n'
-      );
-
-      this.loader.trigger('mediaupdatetimeout');
-
-      assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_msn=7&_HLS_part=0');
-    });
-
-    QUnit.test('does not add _HLS_part= when we have only a preload parts without preload hints', function(assert) {
-      this.requests.shift().respond(
-        200, null,
-        '#EXTM3U\n' +
-        '#EXT-X-PART-INF:PART-TARGET=1\n' +
-        '#EXT-X-MEDIA-SEQUENCE:0\n' +
-        '#EXT-X-SERVER-CONTROL:CAN-BLOCK-RELOAD=YES\n' +
-        '#EXTINF:2\n' +
-        'segment0.ts\n' +
-        '#EXTINF:2\n' +
-        'segment1.ts\n' +
-        '#EXTINF:2\n' +
-        'segment2.ts\n' +
-        '#EXTINF:2\n' +
-        'segment3.ts\n' +
-        '#EXTINF:2\n' +
-        'segment4.ts\n' +
-        '#EXTINF:2\n' +
-        'segment5.ts\n' +
-        '#EXT-X-PART:URI="segment6-part1.ts",DURATION=1\n' +
-        '#EXT-X-PART:URI="segment6-part2.ts",DURATION=1\n' +
-        'segment6.ts\n' +
-        '#EXT-X-PART:URI="segment7-part1.ts",DURATION=1\n' +
-        '#EXT-X-PART:URI="segment7-part2.ts",DURATION=1\n' +
-        'segment7.ts\n' +
-        '#EXT-X-PART:URI="segment8-part1.ts",DURATION=1\n'
-      );
-
-      this.loader.trigger('mediaupdatetimeout');
-
-      assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_msn=8');
-    });
-
-    QUnit.test('Adds only _HLS_msn= when we have segment info', function(assert) {
-      this.requests.shift().respond(
-        200, null,
-        '#EXTM3U\n' +
-        '#EXT-X-PART-INF:PART-TARGET=1\n' +
-        '#EXT-X-MEDIA-SEQUENCE:0\n' +
-        '#EXT-X-SERVER-CONTROL:CAN-BLOCK-RELOAD=YES\n' +
-        '#EXTINF:2\n' +
-        'segment0.ts\n' +
-        '#EXTINF:2\n' +
-        'segment1.ts\n' +
-        '#EXTINF:2\n' +
-        'segment2.ts\n' +
-        '#EXTINF:2\n' +
-        'segment3.ts\n' +
-        '#EXTINF:2\n' +
-        'segment4.ts\n' +
-        '#EXTINF:2\n' +
-        'segment5.ts\n' +
-        '#EXT-X-PART:URI="segment6-part1.ts",DURATION=1\n' +
-        '#EXT-X-PART:URI="segment6-part2.ts",DURATION=1\n' +
-        'segment6.ts\n' +
-        '#EXT-X-PART:URI="segment7-part1.ts",DURATION=1\n' +
-        '#EXT-X-PART:URI="segment7-part2.ts",DURATION=1\n' +
-        'segment7.ts\n' +
-        '#EXT-X-PART:URI="segment8-part1.ts",DURATION=1\n' +
-        '#EXT-X-PART:URI="segment8-part2.ts",DURATION=1\n' +
-        'segment8.ts\n'
-      );
-
-      this.loader.trigger('mediaupdatetimeout');
-
-      assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_msn=9');
-    });
-
-    QUnit.test('can add all query directives', function(assert) {
-      this.requests.shift().respond(
-        200, null,
-        '#EXTM3U\n' +
-        '#EXT-X-PART-INF:PART-TARGET=1\n' +
-        '#EXT-X-MEDIA-SEQUENCE:0\n' +
-        '#EXT-X-SERVER-CONTROL:CAN-BLOCK-RELOAD=YES,CAN-SKIP-UNTIL=3\n' +
-        '#EXTINF:2\n' +
-        'segment0.ts\n' +
-        '#EXTINF:2\n' +
-        'segment1.ts\n' +
-        '#EXTINF:2\n' +
-        'segment2.ts\n' +
-        '#EXTINF:2\n' +
-        'segment3.ts\n' +
-        '#EXTINF:2\n' +
-        'segment4.ts\n' +
-        '#EXTINF:2\n' +
-        'segment5.ts\n' +
-        '#EXT-X-PART:URI="segment6-part1.ts",DURATION=1\n' +
-        '#EXT-X-PART:URI="segment6-part2.ts",DURATION=1\n' +
-        'segment6.ts\n' +
-        '#EXT-X-PART:URI="segment7-part1.ts",DURATION=1\n' +
-        '#EXT-X-PART:URI="segment7-part2.ts",DURATION=1\n' +
-        'segment7.ts\n' +
-        '#EXT-X-PART:URI="segment8-part1.ts",DURATION=1\n' +
-        '#EXT-X-PRELOAD-HINT:TYPE="PART",URI="segment8-part2.ts"\n'
-      );
-
-      this.loader.trigger('mediaupdatetimeout');
-
-      assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_skip=YES&_HLS_msn=8&_HLS_part=1');
-    });
-
-    QUnit.test('works with existing query directives', function(assert) {
-      // clear existing requests
-      this.requests.length = 0;
-
-      this.loader.dispose();
-      this.loader = new PlaylistLoader('http://example.com/media.m3u8?foo=test', this.fakeVhs);
+  QUnit.module('llhls', {
+    beforeEach() {
+      this.fakeVhs.options_ = {llhls: true};
+      this.loader = new PlaylistLoader('http://example.com/media.m3u8', this.fakeVhs);
 
       this.loader.load();
 
-      this.requests.shift().respond(
-        200, null,
-        '#EXTM3U\n' +
-        '#EXT-X-PART-INF:PART-TARGET=1\n' +
-        '#EXT-X-MEDIA-SEQUENCE:0\n' +
-        '#EXT-X-SERVER-CONTROL:CAN-BLOCK-RELOAD=YES,CAN-SKIP-UNTIL=3\n' +
-        '#EXTINF:2\n' +
-        'segment0.ts\n' +
-        '#EXTINF:2\n' +
-        'segment1.ts\n' +
-        '#EXTINF:2\n' +
-        'segment2.ts\n' +
-        '#EXTINF:2\n' +
-        'segment3.ts\n' +
-        '#EXTINF:2\n' +
-        'segment4.ts\n' +
-        '#EXTINF:2\n' +
-        'segment5.ts\n' +
-        '#EXT-X-PART:URI="segment6-part1.ts",DURATION=1\n' +
-        '#EXT-X-PART:URI="segment6-part2.ts",DURATION=1\n' +
-        'segment6.ts\n' +
-        '#EXT-X-PART:URI="segment7-part1.ts",DURATION=1\n' +
-        '#EXT-X-PART:URI="segment7-part2.ts",DURATION=1\n' +
-        'segment7.ts\n' +
-        '#EXT-X-PART:URI="segment8-part1.ts",DURATION=1\n' +
-        '#EXT-X-PRELOAD-HINT:TYPE="PART",URI="segment8-part2.ts"\n'
-      );
+    },
+    afterEach() {
+      this.loader.dispose();
+    }
+  });
 
-      this.loader.trigger('mediaupdatetimeout');
+  QUnit.test('#EXT-X-SKIP does not add initial empty segments', function(assert) {
+    this.requests.shift().respond(
+      200, null,
+      '#EXTM3U\n' +
+      '#EXT-X-MEDIA-SEQUENCE:0\n' +
+      '#EXT-X-SKIP:SKIPPED-SEGMENTS=10\n' +
+      '#EXTINF:2\n' +
+      'low-1.ts\n'
+    );
+    assert.equal(this.loader.media().segments.length, 1, 'only 1 segment');
+  });
 
-      assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?foo=test&_HLS_skip=YES&_HLS_msn=8&_HLS_part=1');
+  QUnit.test('#EXT-X-SKIP merges skipped segments', function(assert) {
+    let playlist =
+      '#EXTM3U\n' +
+      '#EXT-X-MEDIA-SEQUENCE:0\n';
+
+    for (let i = 0; i < 10; i++) {
+      playlist += '#EXTINF:2\n';
+      playlist += `segment-${i}.ts\n`;
+    }
+
+    this.requests.shift().respond(200, null, playlist);
+    assert.equal(this.loader.media().segments.length, 10, '10 segments');
+
+    this.loader.trigger('mediaupdatetimeout');
+
+    const skippedPlaylist =
+      '#EXTM3U\n' +
+      '#EXT-X-MEDIA-SEQUENCE:0\n' +
+      '#EXT-X-SKIP:SKIPPED-SEGMENTS=10\n' +
+      '#EXTINF:2\n' +
+      'segment-10.ts\n';
+
+    this.requests.shift().respond(200, null, skippedPlaylist);
+
+    assert.equal(this.loader.media().segments.length, 11, '11 segments');
+
+    this.loader.media().segments.forEach(function(s, i) {
+      if (i < 10) {
+        assert.ok(s.hasOwnProperty('skipped'), 'has skipped property');
+        assert.false(s.skipped, 'skipped property is false');
+      }
+
+      assert.equal(s.uri, `segment-${i}.ts`, 'segment uri as expected');
     });
-  }
+
+    this.loader.trigger('mediaupdatetimeout');
+
+    const skippedPlaylist2 =
+      '#EXTM3U\n' +
+      '#EXT-X-MEDIA-SEQUENCE:1\n' +
+      '#EXT-X-SKIP:SKIPPED-SEGMENTS=10\n' +
+      '#EXTINF:2\n' +
+      'segment-11.ts\n';
+
+    this.requests.shift().respond(200, null, skippedPlaylist2);
+
+    this.loader.media().segments.forEach(function(s, i) {
+      if (i < 10) {
+        assert.ok(s.hasOwnProperty('skipped'), 'has skipped property');
+        assert.false(s.skipped, 'skipped property is false');
+      }
+
+      assert.equal(s.uri, `segment-${i + 1}.ts`, 'segment uri as expected');
+    });
+  });
+
+  QUnit.test('#EXT-X-PRELOAD with parts to added to segment list', function(assert) {
+    this.requests.shift().respond(
+      200, null,
+      '#EXTM3U\n' +
+      '#EXT-X-PART-INF:PART-TARGET=1\n' +
+      '#EXT-X-MEDIA-SEQUENCE:0\n' +
+      '#EXTINF:2\n' +
+      'low-1.ts\n' +
+      '#EXT-X-PART:URI="part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="part2.ts",DURATION=1\n'
+    );
+    const media = this.loader.media();
+
+    assert.equal(media.segments.length, 2, '2 segments');
+    assert.deepEqual(
+      media.preloadSegment,
+      media.segments[media.segments.length - 1],
+      'last segment is preloadSegment'
+    );
+  });
+
+  QUnit.test('#EXT-X-PRELOAD without parts not added to segment list', function(assert) {
+    this.requests.shift().respond(
+      200, null,
+      '#EXTM3U\n' +
+      '#EXT-X-PART-INF:PART-TARGET=1\n' +
+      '#EXT-X-MEDIA-SEQUENCE:0\n' +
+      '#EXTINF:2\n' +
+      'low-1.ts\n' +
+      '#EXT-X-PRELOAD-HINT:TYPE="PART",URI="part1.ts"\n'
+    );
+    const media = this.loader.media();
+
+    assert.equal(media.segments.length, 1, '1 segment');
+    assert.notDeepEqual(
+      media.preloadSegment,
+      media.segments[media.segments.length - 1],
+      'last segment is not preloadSegment'
+    );
+  });
+
+  QUnit.test('#EXT-X-PART added to segments', function(assert) {
+    this.requests.shift().respond(
+      200, null,
+      '#EXTM3U\n' +
+      '#EXT-X-PART-INF:PART-TARGET=1\n' +
+      '#EXT-X-MEDIA-SEQUENCE:0\n' +
+      '#EXTINF:2\n' +
+      'segment0.ts\n' +
+      '#EXT-X-PART:URI="segment1-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment1-part2.ts",DURATION=1\n' +
+      'segment1.ts\n' +
+      '#EXT-X-PART:URI="segment2-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment2-part2.ts",DURATION=1\n' +
+      'segment2.ts\n' +
+      '#EXT-X-PART:URI="segment3-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment3-part2.ts",DURATION=1\n' +
+      'segment3.ts\n'
+    );
+    const segments = this.loader.media().segments;
+
+    assert.equal(segments.length, 4, '4 segments');
+    assert.notOk(segments[0].parts, 'no parts for first segment');
+    assert.equal(segments[1].parts.length, 2, 'parts for second segment');
+    assert.equal(segments[2].parts.length, 2, 'parts for third segment');
+    assert.equal(segments[3].parts.length, 2, 'parts for forth segment');
+  });
+
+  QUnit.test('Adds _HLS_skip=YES to url when CAN-SKIP-UNTIL is set', function(assert) {
+    this.requests.shift().respond(
+      200, null,
+      '#EXTM3U\n' +
+      '#EXT-X-PART-INF:PART-TARGET=1\n' +
+      '#EXT-X-MEDIA-SEQUENCE:0\n' +
+      '#EXT-X-SERVER-CONTROL:CAN-SKIP-UNTIL=3\n' +
+      '#EXTINF:2\n' +
+      'segment0.ts\n' +
+      '#EXTINF:2\n' +
+      'segment1.ts\n' +
+      '#EXTINF:2\n' +
+      'segment2.ts\n' +
+      '#EXTINF:2\n' +
+      'segment3.ts\n' +
+      '#EXTINF:2\n' +
+      'segment4.ts\n' +
+      '#EXTINF:2\n' +
+      'segment5.ts\n' +
+      '#EXT-X-PART:URI="segment6-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment6-part2.ts",DURATION=1\n' +
+      'segment6.ts\n' +
+      '#EXT-X-PART:URI="segment7-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment7-part2.ts",DURATION=1\n' +
+      'segment7.ts\n' +
+      '#EXT-X-PART:URI="segment8-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment8-part2.ts",DURATION=1\n' +
+      'segment8.ts\n'
+    );
+
+    this.loader.trigger('mediaupdatetimeout');
+
+    assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_skip=YES');
+  });
+
+  QUnit.test('Adds _HLS_skip=v2 to url when CAN-SKIP-UNTIL/CAN-SKIP-DATERANGES is set', function(assert) {
+    this.requests.shift().respond(
+      200, null,
+      '#EXTM3U\n' +
+      '#EXT-X-PART-INF:PART-TARGET=1\n' +
+      '#EXT-X-MEDIA-SEQUENCE:0\n' +
+      '#EXT-X-SERVER-CONTROL:CAN-SKIP-UNTIL=3,CAN-SKIP-DATERANGES=YES\n' +
+      '#EXTINF:2\n' +
+      'segment0.ts\n' +
+      '#EXTINF:2\n' +
+      'segment1.ts\n' +
+      '#EXTINF:2\n' +
+      'segment2.ts\n' +
+      '#EXTINF:2\n' +
+      'segment3.ts\n' +
+      '#EXTINF:2\n' +
+      'segment4.ts\n' +
+      '#EXTINF:2\n' +
+      'segment5.ts\n' +
+      '#EXT-X-PART:URI="segment6-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment6-part2.ts",DURATION=1\n' +
+      'segment6.ts\n' +
+      '#EXT-X-PART:URI="segment7-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment7-part2.ts",DURATION=1\n' +
+      'segment7.ts\n' +
+      '#EXT-X-PART:URI="segment8-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment8-part2.ts",DURATION=1\n' +
+      'segment8.ts\n'
+    );
+
+    this.loader.trigger('mediaupdatetimeout');
+
+    assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_skip=v2');
+  });
+
+  QUnit.test('Adds _HLS_part= and _HLS_msn= when we have a part preload hints and parts', function(assert) {
+    this.requests.shift().respond(
+      200, null,
+      '#EXTM3U\n' +
+      '#EXT-X-PART-INF:PART-TARGET=1\n' +
+      '#EXT-X-MEDIA-SEQUENCE:0\n' +
+      '#EXT-X-SERVER-CONTROL:CAN-BLOCK-RELOAD=YES\n' +
+      '#EXTINF:2\n' +
+      'segment0.ts\n' +
+      '#EXTINF:2\n' +
+      'segment1.ts\n' +
+      '#EXTINF:2\n' +
+      'segment2.ts\n' +
+      '#EXTINF:2\n' +
+      'segment3.ts\n' +
+      '#EXTINF:2\n' +
+      'segment4.ts\n' +
+      '#EXTINF:2\n' +
+      'segment5.ts\n' +
+      '#EXT-X-PART:URI="segment6-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment6-part2.ts",DURATION=1\n' +
+      'segment6.ts\n' +
+      '#EXT-X-PART:URI="segment7-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment7-part2.ts",DURATION=1\n' +
+      'segment7.ts\n' +
+      '#EXT-X-PART:URI="segment8-part1.ts",DURATION=1\n' +
+      '#EXT-X-PRELOAD-HINT:TYPE="PART",URI="segment8-part2.ts"\n'
+    );
+
+    this.loader.trigger('mediaupdatetimeout');
+
+    assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_msn=8&_HLS_part=1');
+  });
+
+  QUnit.test('Adds _HLS_part= and _HLS_msn= when we have only a part preload hint', function(assert) {
+    this.requests.shift().respond(
+      200, null,
+      '#EXTM3U\n' +
+      '#EXT-X-PART-INF:PART-TARGET=1\n' +
+      '#EXT-X-MEDIA-SEQUENCE:0\n' +
+      '#EXT-X-SERVER-CONTROL:CAN-BLOCK-RELOAD=YES\n' +
+      '#EXTINF:2\n' +
+      'segment0.ts\n' +
+      '#EXTINF:2\n' +
+      'segment1.ts\n' +
+      '#EXTINF:2\n' +
+      'segment2.ts\n' +
+      '#EXTINF:2\n' +
+      'segment3.ts\n' +
+      '#EXTINF:2\n' +
+      'segment4.ts\n' +
+      '#EXTINF:2\n' +
+      'segment5.ts\n' +
+      '#EXT-X-PART:URI="segment6-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment6-part2.ts",DURATION=1\n' +
+      'segment6.ts\n' +
+      '#EXT-X-PART:URI="segment7-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment7-part2.ts",DURATION=1\n' +
+      'segment7.ts\n' +
+      '#EXT-X-PRELOAD-HINT:TYPE="PART",URI="segment8-part1.ts"\n'
+    );
+
+    this.loader.trigger('mediaupdatetimeout');
+
+    assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_msn=7&_HLS_part=0');
+  });
+
+  QUnit.test('does not add _HLS_part= when we have only a preload parts without preload hints', function(assert) {
+    this.requests.shift().respond(
+      200, null,
+      '#EXTM3U\n' +
+      '#EXT-X-PART-INF:PART-TARGET=1\n' +
+      '#EXT-X-MEDIA-SEQUENCE:0\n' +
+      '#EXT-X-SERVER-CONTROL:CAN-BLOCK-RELOAD=YES\n' +
+      '#EXTINF:2\n' +
+      'segment0.ts\n' +
+      '#EXTINF:2\n' +
+      'segment1.ts\n' +
+      '#EXTINF:2\n' +
+      'segment2.ts\n' +
+      '#EXTINF:2\n' +
+      'segment3.ts\n' +
+      '#EXTINF:2\n' +
+      'segment4.ts\n' +
+      '#EXTINF:2\n' +
+      'segment5.ts\n' +
+      '#EXT-X-PART:URI="segment6-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment6-part2.ts",DURATION=1\n' +
+      'segment6.ts\n' +
+      '#EXT-X-PART:URI="segment7-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment7-part2.ts",DURATION=1\n' +
+      'segment7.ts\n' +
+      '#EXT-X-PART:URI="segment8-part1.ts",DURATION=1\n'
+    );
+
+    this.loader.trigger('mediaupdatetimeout');
+
+    assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_msn=8');
+  });
+
+  QUnit.test('Adds only _HLS_msn= when we have segment info', function(assert) {
+    this.requests.shift().respond(
+      200, null,
+      '#EXTM3U\n' +
+      '#EXT-X-PART-INF:PART-TARGET=1\n' +
+      '#EXT-X-MEDIA-SEQUENCE:0\n' +
+      '#EXT-X-SERVER-CONTROL:CAN-BLOCK-RELOAD=YES\n' +
+      '#EXTINF:2\n' +
+      'segment0.ts\n' +
+      '#EXTINF:2\n' +
+      'segment1.ts\n' +
+      '#EXTINF:2\n' +
+      'segment2.ts\n' +
+      '#EXTINF:2\n' +
+      'segment3.ts\n' +
+      '#EXTINF:2\n' +
+      'segment4.ts\n' +
+      '#EXTINF:2\n' +
+      'segment5.ts\n' +
+      '#EXT-X-PART:URI="segment6-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment6-part2.ts",DURATION=1\n' +
+      'segment6.ts\n' +
+      '#EXT-X-PART:URI="segment7-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment7-part2.ts",DURATION=1\n' +
+      'segment7.ts\n' +
+      '#EXT-X-PART:URI="segment8-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment8-part2.ts",DURATION=1\n' +
+      'segment8.ts\n'
+    );
+
+    this.loader.trigger('mediaupdatetimeout');
+
+    assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_msn=9');
+  });
+
+  QUnit.test('can add all query directives', function(assert) {
+    this.requests.shift().respond(
+      200, null,
+      '#EXTM3U\n' +
+      '#EXT-X-PART-INF:PART-TARGET=1\n' +
+      '#EXT-X-MEDIA-SEQUENCE:0\n' +
+      '#EXT-X-SERVER-CONTROL:CAN-BLOCK-RELOAD=YES,CAN-SKIP-UNTIL=3\n' +
+      '#EXTINF:2\n' +
+      'segment0.ts\n' +
+      '#EXTINF:2\n' +
+      'segment1.ts\n' +
+      '#EXTINF:2\n' +
+      'segment2.ts\n' +
+      '#EXTINF:2\n' +
+      'segment3.ts\n' +
+      '#EXTINF:2\n' +
+      'segment4.ts\n' +
+      '#EXTINF:2\n' +
+      'segment5.ts\n' +
+      '#EXT-X-PART:URI="segment6-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment6-part2.ts",DURATION=1\n' +
+      'segment6.ts\n' +
+      '#EXT-X-PART:URI="segment7-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment7-part2.ts",DURATION=1\n' +
+      'segment7.ts\n' +
+      '#EXT-X-PART:URI="segment8-part1.ts",DURATION=1\n' +
+      '#EXT-X-PRELOAD-HINT:TYPE="PART",URI="segment8-part2.ts"\n'
+    );
+
+    this.loader.trigger('mediaupdatetimeout');
+
+    assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?_HLS_skip=YES&_HLS_msn=8&_HLS_part=1');
+  });
+
+  QUnit.test('works with existing query directives', function(assert) {
+    // clear existing requests
+    this.requests.length = 0;
+
+    this.loader.dispose();
+    this.loader = new PlaylistLoader('http://example.com/media.m3u8?foo=test', this.fakeVhs);
+
+    this.loader.load();
+
+    this.requests.shift().respond(
+      200, null,
+      '#EXTM3U\n' +
+      '#EXT-X-PART-INF:PART-TARGET=1\n' +
+      '#EXT-X-MEDIA-SEQUENCE:0\n' +
+      '#EXT-X-SERVER-CONTROL:CAN-BLOCK-RELOAD=YES,CAN-SKIP-UNTIL=3\n' +
+      '#EXTINF:2\n' +
+      'segment0.ts\n' +
+      '#EXTINF:2\n' +
+      'segment1.ts\n' +
+      '#EXTINF:2\n' +
+      'segment2.ts\n' +
+      '#EXTINF:2\n' +
+      'segment3.ts\n' +
+      '#EXTINF:2\n' +
+      'segment4.ts\n' +
+      '#EXTINF:2\n' +
+      'segment5.ts\n' +
+      '#EXT-X-PART:URI="segment6-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment6-part2.ts",DURATION=1\n' +
+      'segment6.ts\n' +
+      '#EXT-X-PART:URI="segment7-part1.ts",DURATION=1\n' +
+      '#EXT-X-PART:URI="segment7-part2.ts",DURATION=1\n' +
+      'segment7.ts\n' +
+      '#EXT-X-PART:URI="segment8-part1.ts",DURATION=1\n' +
+      '#EXT-X-PRELOAD-HINT:TYPE="PART",URI="segment8-part2.ts"\n'
+    );
+
+    this.loader.trigger('mediaupdatetimeout');
+
+    assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?foo=test&_HLS_skip=YES&_HLS_msn=8&_HLS_part=1');
+  });
 });

@@ -9,7 +9,7 @@
 Play HLS, DASH, and future HTTP streaming protocols with video.js, even where they're not
 natively supported.
 
-Included in video.js 7 by default! See the [video.js 7 blog post](https://blog.videojs.com/video-js-7-is-here/)
+**Included in video.js 7 by default!** See the [video.js 7 blog post](https://blog.videojs.com/video-js-7-is-here/)
 
 Maintenance Status: Stable
 
@@ -30,7 +30,6 @@ Video.js Compatibility: 7.x, 8.x
 - [Compatibility](#compatibility)
   - [Browsers which support MSE](#browsers-which-support-mse)
   - [Native only](#native-only)
-  - [Flash Support](#flash-support)
   - [DRM](#drm)
 - [Documentation](#documentation)
   - [Options](#options)
@@ -57,6 +56,7 @@ Video.js Compatibility: 7.x, 8.x
       - [liveRangeSafeTimeDelta](#liverangesafetimedelta)
       - [useNetworkInformationApi](#usenetworkinformationapi)
       - [useDtsForTimestampOffset](#usedtsfortimestampoffset)
+      - [useForcedSubtitles](#useforcedsubtitles)
       - [captionServices](#captionservices)
         - [Format](#format)
         - [Example](#example)
@@ -72,6 +72,7 @@ Video.js Compatibility: 7.x, 8.x
     - [vhs.stats](#vhsstats)
   - [Events](#events)
     - [loadedmetadata](#loadedmetadata)
+    - [xhr-hooks-ready](#xhr-hooks-ready)
   - [VHS Usage Events](#vhs-usage-events)
     - [Presence Stats](#presence-stats)
     - [Use Stats](#use-stats)
@@ -94,8 +95,13 @@ Video.js Compatibility: 7.x, 8.x
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Installation
+
+In most cases **it is not necessary to separately install http-streaming**, as it has been included in the default build of Video.js since version 7.
+
+Only install if you need a specifc combination of video.js and http-streaming versions. If installing separately, use the "core" version of Video.js without the bundled version of http-streaming. 
+
 ### NPM
-To install `videojs-http-streaming` with npm run
+To install `videojs-http-streaming` with npm, run
 
 ```bash
 npm install --save @videojs/http-streaming
@@ -117,11 +123,12 @@ See [CONTRIBUTING.md](/CONTRIBUTING.md)
 See [our troubleshooting guide](/docs/troubleshooting.md)
 
 ## Talk to us
-Drop by our slack channel (#playback) on the [Video.js slack][slack-link].
+Drop by the [Video.js slack][slack-link].
 
 ## Getting Started
-This library is included in video.js 7 by default, if you are using an older version of video.js then
-get a copy of [videojs-http-streaming](#installation) and include it in your page along with video.js:
+This library is included in Video.js 7 by default.
+
+**Only if need a specific combination of versions of Video.js and VHS** you can get a copy of [videojs-http-streaming](#installation) and include it in your page along with video.js. In this case, you should use the "core" build of Video.js, without a bundled VHS:
 
 ```html
 <video-js id=vid1 width=600 height=300 class="vjs-default-skin" controls>
@@ -129,15 +136,14 @@ get a copy of [videojs-http-streaming](#installation) and include it in your pag
      src="https://example.com/index.m3u8"
      type="application/x-mpegURL">
 </video-js>
-<script src="video.js"></script>
+<!-- "core" version of Video.js -->
+<script src="video.core.min.js"></script>
 <script src="videojs-http-streaming.min.js"></script>
 <script>
 var player = videojs('vid1');
 player.play();
 </script>
 ```
-
-Check out our [live example](https://jsbin.com/gejugat/edit?html,output) if you're having trouble.
 
 Is it recommended to use the `<video-js>` element or load a source with `player.src(sourceObject)` in order to prevent the video element from playing the source natively where HLS is supported.
 
@@ -151,7 +157,7 @@ The [Media Source Extensions](http://caniuse.com/#feat=mediasource) API is requi
 - Firefox
 - Internet Explorer 11 Windows 10 or 8.1
 
-These browsers have some level of native HLS support, which will be used unless the [overrideNative](#overridenative) option is used:
+These browsers have some level of native HLS support, however by default the [overrideNative](#overridenative) option is set to `true` except on Safari, so MSE playback is used:
 
 - Chrome Android
 - Firefox Android
@@ -162,11 +168,7 @@ These browsers have some level of native HLS support, which will be used unless 
 - Mac Safari
 - iOS Safari
 
-Mac Safari does have MSE support, but native HLS is recommended 
-
-### Flash Support
-This plugin does not support Flash playback. Instead, it is recommended that users use the [videojs-flashls-source-handler](https://github.com/brightcove/videojs-flashls-source-handler) plugin as a fallback option for browsers that don't have a native
-[HLS](https://caniuse.com/#feat=http-live-streaming)/[DASH](https://caniuse.com/#feat=mpeg-dash) player or support for [Media Source Extensions](http://caniuse.com/#feat=mediasource).
+Mac and iPad Safari do have MSE support, but native HLS is recommended 
 
 ### DRM
 
@@ -461,6 +463,14 @@ This option defaults to `false`.
 * Default: `false`
 * Use [Decode Timestamp](https://www.w3.org/TR/media-source/#decode-timestamp) instead of [Presentation Timestamp](https://www.w3.org/TR/media-source/#presentation-timestamp) for [timestampOffset](https://www.w3.org/TR/media-source/#dom-sourcebuffer-timestampoffset) calculation. This option was introduced to align with DTS-based browsers. This option affects only transmuxed data (eg: transport stream). For more info please check the following [issue](https://github.com/videojs/http-streaming/issues/1247).  
 
+##### useForcedSubtitles
+* Type: `boolean`
+* Default: `false`
+* can be used as a source option
+* can be used as an initialization option
+
+If true, this option allows the player to display forced subtitles. When available, forced subtitles allow to translate foreign language dialogues or images containing foreign language characters.
+
 ##### captionServices
 * Type: `object`
 * Default: undefined
@@ -627,45 +637,133 @@ player.tech().vhs.representations().forEach(function(rep) {
 #### vhs.xhr
 Type: `function`
 
-The xhr function that is used by HLS internally is exposed on the per-
+The xhr function that is used by VHS internally is exposed on the per-
 player `vhs` object. While it is possible, we do not recommend replacing
-the function with your own implementation. Instead, the `xhr` provides
-the ability to specify a `beforeRequest` function that will be called
-with an object containing the options that will be used to create the
-xhr request.
+the function with your own implementation. Instead, `xhr` provides
+the ability to specify `onRequest` and `onResponse` hooks which each take a
+callback function as a parameter, as well as `offRequest` and `offResponse`
+functions which can remove a callback function from the `onRequest` or
+`onResponse` Set. An `xhr-hooks-ready` event is fired from a player when per-player
+hooks are ready to be added or removed. This will ensure player specific hooks are
+set prior to any manifest or segment requests.
+
+The `onRequest(callback)` function takes a `callback` function that will pass an xhr `options`
+Object to that callback. These callbacks are called synchronously, in the order registered 
+and act as pre-request hooks for modifying the xhr `options` Object prior to making a request.
+
+Note: This callback *MUST* return an `options` Object as the `xhr` wrapper and each `onRequest`
+hook receives the returned `options` as a parameter.
 
 Example:
 ```javascript
-player.tech().vhs.xhr.beforeRequest = function(options) {
-  options.uri = options.uri.replace('example.com', 'foo.com');
-
-  return options;
-};
+player.on('xhr-hooks-ready', () => {
+  const playerRequestHook = (options) => {
+    return {
+      uri: 'https://new.options.uri'
+    };
+  };
+  player.tech().vhs.xhr.onRequest(playerRequestHook);
+});
 ```
 
-The global `videojs.Vhs` also exposes an `xhr` property. Specifying a
-`beforeRequest` function on that will allow you to intercept the options
-for *all* requests in every player on a page. For consistency across
-browsers the video source should be set at runtime once the video player
-is ready.
+If access to the `xhr` Object is required prior to the `xhr.send` call, an `options.beforeSend` 
+callback can be set within an `onRequest` callback function that will pass the `xhr` Object 
+as a parameter and will be called immediately prior to `xhr.send`.
 
-Example
+Example:
 ```javascript
-videojs.Vhs.xhr.beforeRequest = function(options) {
-  /*
-   * Modifications to requests that will affect every player.
-   */
+player.on('xhr-hooks-ready', () => {
+  const playerXhrRequestHook = (options) => {
+    options.beforeSend = (xhr) => {
+      xhr.setRequestHeader('foo', 'bar');
+    };
+    return options;
+  };
+  player.tech().vhs.xhr.onRequest(playerXhrRequestHook);
+});
+```
 
+The `onResponse(callback)` function takes a `callback` function that will pass the xhr
+`request`, `error`, and `response` Objects to that callback. These callbacks are called
+in the order registered and act as post-request hooks for gathering data from the
+xhr `request`, `error` and `response` Objects. `onResponse` callbacks do not require a
+return value, the parameters are passed to each subsequent callback by reference.
+
+Example:
+```javascript
+player.on('xhr-hooks-ready', () => {
+  const playerResponseHook = (request, error, response) => {
+    const bar = response.headers.foo;
+  };
+  player.tech().vhs.xhr.onResponse(playerResponseHook);
+});
+```
+
+The `offRequest` function takes a `callback` function, and will remove that function from
+the collection of `onRequest` hooks if it exists.
+
+Example:
+```javascript
+player.on('xhr-hooks-ready', () => {
+  player.tech().vhs.xhr.offRequest(playerRequestHook);
+});
+```
+
+The `offResponse` function takes a `callback` function, and will remove that function from
+the collection of `offResponse` hooks if it exists.
+
+Example:
+```javascript
+player.on('xhr-hooks-ready', () => {
+  player.tech().vhs.xhr.offResponse(playerResponseHook);
+});
+```
+
+The global `videojs.Vhs` also exposes an `xhr` property. Adding `onRequest`
+and/or `onResponse` hooks will allow you to intercept the request options and xhr
+Object as well as request, error, and response data for *all* requests in *every*
+player on a page. For consistency across browsers the video source should be set
+at runtime once the video player is ready.
+
+Example:
+```javascript
+// Global request callback, will affect every player.
+const globalRequestHook = (options) => {
+  return {
+    uri: 'https://new.options.global.uri'
+  };
+};
+videojs.Vhs.xhr.onRequest(globalRequestHook);
+```
+
+```javascript
+// Global request callback defining beforeSend function, will affect every player.
+const globalXhrRequestHook = (options) => {
+  options.beforeSend = (xhr) => {
+    xhr.setRequestHeader('foo', 'bar');
+  };
   return options;
 };
+videojs.Vhs.xhr.onRequest(globalXhrRequestHook);
+```
 
-var player = videojs('video-player-id');
-player.ready(function() {
-  this.src({
-    src: 'https://d2zihajmogu5jn.cloudfront.net/bipbop-advanced/bipbop_16x9_variant.m3u8',
-    type: 'application/x-mpegURL',
-  });
-});
+```javascript
+// Global response hook callback, will affect every player.
+const globalResponseHook = (request, error, response) => {
+  const bar = response.headers.foo
+};
+
+videojs.Vhs.xhr.onResponse(globalResponseHook);
+```
+
+```javascript
+// Remove a global onRequest callback.
+videojs.Vhs.xhr.offRequest(globalRequestHook);
+```
+
+```javascript
+// Remove a global onResponse callback.
+videojs.Vhs.xhr.offResponse(globalResponseHook);
 ```
 
 For information on the type of options that you can modify see the
@@ -706,6 +804,11 @@ are triggered on the player object.
 
 Fired after the first segment is downloaded for a playlist. This will not happen
 until playback if video.js's `metadata` setting is `none`
+
+#### xhr-hooks-ready
+
+Fired when the player `xhr` object is ready to set `onRequest` and `onResponse` hooks, as well
+as remove hooks with `offRequest` and `offResponse`.
 
 ### VHS Usage Events
 

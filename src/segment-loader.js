@@ -14,8 +14,6 @@ import logger from './util/logger';
 import { concatSegments } from './util/segment';
 import {
   createCaptionsTrackIfNotExists,
-  createMetadataTrackIfNotExists,
-  addMetadata,
   addCaptionData,
   removeCuesFromTrack
 } from './util/text-tracks';
@@ -563,6 +561,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.useDtsForTimestampOffset_ = settings.useDtsForTimestampOffset;
     this.captionServices_ = settings.captionServices;
     this.exactManifestTimings = settings.exactManifestTimings;
+    this.addMetadataToTextTrack = settings.addMetadataToTextTrack;
 
     // private instance variables
     this.checkBufferTimeout_ = null;
@@ -576,7 +575,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // TODO possibly move gopBuffer and timeMapping info to a separate controller
     this.gopBuffer_ = [];
     this.timeMapping_ = 0;
-    this.safeAppend_ = videojs.browser.IE_VERSION >= 11;
+    this.safeAppend_ = false;
     this.appendInitSegment_ = {
       audio: true,
       video: true
@@ -1163,6 +1162,7 @@ export default class SegmentLoader extends videojs.EventTarget {
    */
   resetEverything(done) {
     this.ended_ = false;
+    this.activeInitSegmentId_ = null;
     this.appendInitSegment_ = {
       audio: true,
       video: true
@@ -1480,11 +1480,17 @@ export default class SegmentLoader extends videojs.EventTarget {
       nextPart = nextSegment.parts[0];
     }
 
+    // independentSegments applies to every segment in a playlist. If independentSegments appears in a main playlist,
+    // it applies to each segment in each media playlist.
+    // https://datatracker.ietf.org/doc/html/draft-pantos-http-live-streaming-23#section-4.3.5.1
+    const hasIndependentSegments = (this.vhs_.playlists && this.vhs_.playlists.main && this.vhs_.playlists.main.independentSegments) ||
+      this.playlist_.independentSegments;
+
     // if we have no buffered data then we need to make sure
     // that the next part we append is "independent" if possible.
     // So we check if the previous part is independent, and request
     // it if it is.
-    if (!bufferedTime && nextPart && !nextPart.independent) {
+    if (!bufferedTime && nextPart && !hasIndependentSegments && !nextPart.independent) {
 
       if (next.partIndex === 0) {
         const lastSegment = segments[next.mediaIndex - 1];
@@ -1871,21 +1877,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.metadataQueue_.id3.push(this.handleId3_.bind(this, simpleSegment, id3Frames, dispatchType));
       return;
     }
-
-    const timestampOffset = this.sourceUpdater_.videoTimestampOffset() === null ?
-      this.sourceUpdater_.audioTimestampOffset() :
-      this.sourceUpdater_.videoTimestampOffset();
-
-    // There's potentially an issue where we could double add metadata if there's a muxed
-    // audio/video source with a metadata track, and an alt audio with a metadata track.
-    // However, this probably won't happen, and if it does it can be handled then.
-    createMetadataTrackIfNotExists(this.inbandTextTracks_, dispatchType, this.vhs_.tech_);
-    addMetadata({
-      inbandTextTracks: this.inbandTextTracks_,
-      metadataArray: id3Frames,
-      timestampOffset,
-      videoDuration: this.duration_()
-    });
+    this.addMetadataToTextTrack(dispatchType, id3Frames, this.duration_());
   }
 
   processMetadataQueue_() {
@@ -1981,6 +1973,10 @@ export default class SegmentLoader extends videojs.EventTarget {
 
   getMediaInfo_(segmentInfo = this.pendingSegment_) {
     return this.getCurrentMediaInfo_(segmentInfo) || this.startingMediaInfo_;
+  }
+
+  getPendingSegmentPlaylist() {
+    return this.pendingSegment_ ? this.pendingSegment_.playlist : null;
   }
 
   hasEnoughInfoToAppend_() {
@@ -3184,8 +3180,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     const Cue = window.WebKitDataCue || window.VTTCue;
     const value = {
       custom: segment.custom,
-      dateTimeObject: segment.dateTimeObject,
-      dateTimeString: segment.dateTimeString,
+      programDateTime: segment.programDateTime,
       bandwidth: segmentInfo.playlist.attributes.BANDWIDTH,
       resolution: segmentInfo.playlist.attributes.RESOLUTION,
       codecs: segmentInfo.playlist.attributes.CODECS,

@@ -53,13 +53,6 @@ import {version as mpdVersion} from 'mpd-parser/package.json';
 import {version as m3u8Version} from 'm3u8-parser/package.json';
 import {version as aesVersion} from 'aes-decrypter/package.json';
 
-let testOrSkip = 'test';
-
-// some tests just don't work reliably on ie11 or edge
-if (videojs.browser.IS_EDGE || videojs.browser.IE_VERSION) {
-  testOrSkip = 'skip';
-}
-
 const ogVhsHandlerSetupQualityLevels = videojs.VhsHandler.prototype.setupQualityLevels_;
 
 // do a shallow copy of the properties of source onto the target object
@@ -78,10 +71,9 @@ QUnit.module('VHS', {
     this.mse = useFakeMediaSource();
     this.clock = this.env.clock;
     this.old = {};
-    if (!videojs.browser.IE_VERSION) {
-      this.old.devicePixelRatio = window.devicePixelRatio;
-      window.devicePixelRatio = 1;
-    }
+    this.old.devicePixelRatio = window.devicePixelRatio;
+    window.devicePixelRatio = 1;
+
     // store functionality that some tests need to mock
     this.old.GlobalOptions = merge(videojs.options);
 
@@ -404,36 +396,71 @@ QUnit.test('autoplay seeks to the live point after media source open', function(
   assert.notEqual(currentTime, 0, 'seeked on autoplay');
 });
 
-QUnit.test(
-  'autoplay seeks to the live point after tech fires loadedmetadata in ie11',
-  function(assert) {
-    videojs.browser.IE_VERSION = 11;
-    let currentTime = 0;
+QUnit.test('seeks to the start offset point', function(assert) {
+  let currentTime = 0;
 
-    this.player.autoplay(true);
-    this.player.on('seeking', () => {
-      currentTime = this.player.currentTime();
-    });
-    this.player.src({
-      src: 'liveStart30sBefore.m3u8',
-      type: 'application/vnd.apple.mpegurl'
-    });
+  this.player.autoplay(true);
+  this.player.on('seeking', () => {
+    currentTime = this.player.currentTime();
+  });
+  this.player.src({
+    src: 'startVod.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
 
-    this.clock.tick(1);
+  this.clock.tick(1);
 
-    openMediaSource(this.player, this.clock);
-    this.player.tech_.trigger('play');
-    this.standardXHRResponse(this.requests.shift());
-    this.clock.tick(1);
+  openMediaSource(this.player, this.clock);
+  this.player.tech_.trigger('play');
+  this.standardXHRResponse(this.requests.shift());
+  this.clock.tick(1);
 
-    assert.equal(currentTime, 0, 'have not played yet');
+  assert.strictEqual(currentTime, 10.3, 'seeked to positive offset');
+});
 
-    this.player.tech_.trigger('loadedmetadata');
-    this.clock.tick(1);
+QUnit.test('seeks to non-negative offet for a live stream', function(assert) {
+  let currentTime = 0;
 
-    assert.notEqual(currentTime, 0, 'seeked after tech is ready');
-  }
-);
+  this.player.autoplay(true);
+  this.player.on('seeking', () => {
+    currentTime = this.player.currentTime();
+  });
+  this.player.src({
+    src: 'startLive.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  this.player.tech_.trigger('play');
+  this.standardXHRResponse(this.requests.shift());
+  this.clock.tick(1);
+
+  assert.strictEqual(currentTime, 0, 'seeked to offset on live stream');
+});
+
+QUnit.test('seeks to negative offset point', function(assert) {
+  let currentTime = 0;
+
+  this.player.autoplay(true);
+  this.player.on('seeking', () => {
+    currentTime = this.player.currentTime();
+  });
+  this.player.src({
+    src: 'startNegative.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  this.player.tech_.trigger('play');
+  this.standardXHRResponse(this.requests.shift());
+  this.clock.tick(1);
+
+  assert.strictEqual(currentTime, 35, 'seeked to negative offset');
+});
 
 QUnit.test(
   'duration is set when the source opens after the playlist is loaded',
@@ -950,7 +977,7 @@ QUnit.module('NetworkInformationApi', hooks => {
     window.navigator = this.ogNavigator;
   });
 
-  QUnit[testOrSkip](
+  QUnit.test(
     'bandwidth returns networkInformation.downlink when useNetworkInformationApi option is enabled',
     function(assert) {
       this.resetNavigatorConnection({
@@ -973,7 +1000,7 @@ QUnit.module('NetworkInformationApi', hooks => {
     }
   );
 
-  QUnit[testOrSkip](
+  QUnit.test(
     'bandwidth uses player-estimated bandwidth when its value is greater than networkInformation.downLink and both values are >= 10 Mbps',
     function(assert) {
       this.resetNavigatorConnection({
@@ -997,7 +1024,7 @@ QUnit.module('NetworkInformationApi', hooks => {
     }
   );
 
-  QUnit[testOrSkip](
+  QUnit.test(
     'bandwidth uses network-information-api bandwidth when its value is less than the player bandwidth and 10 Mbps',
     function(assert) {
       this.resetNavigatorConnection({
@@ -1021,7 +1048,7 @@ QUnit.module('NetworkInformationApi', hooks => {
     }
   );
 
-  QUnit[testOrSkip](
+  QUnit.test(
     'bandwidth uses player-estimated bandwidth when networkInformation is not supported',
     function(assert) {
       // Nullify the `connection` property on Navigator
@@ -2980,12 +3007,14 @@ QUnit.test('has no effect if native HLS is available and browser is Safari', fun
   videojs.browser.IS_ANY_SAFARI = origIsAnySafari;
 });
 
-QUnit.test('loads if native HLS is available but browser is not Safari', function(assert) {
+QUnit.test('has no effect if native HLS is available and browser is any non-safari browser on ios', function(assert) {
   const Html5 = videojs.getTech('Html5');
   const oldHtml5CanPlaySource = Html5.canPlaySource;
   const origIsAnySafari = videojs.browser.IS_ANY_SAFARI;
+  const originalIsIos = videojs.browser.IS_IOS;
 
   videojs.browser.IS_ANY_SAFARI = false;
+  videojs.browser.IS_IOS = true;
   Html5.canPlaySource = () => true;
   Vhs.supportsNativeHls = true;
   const player = createPlayer();
@@ -2997,10 +3026,11 @@ QUnit.test('loads if native HLS is available but browser is not Safari', functio
 
   this.clock.tick(1);
 
-  assert.ok(player.tech_.vhs, 'loaded VHS tech');
+  assert.ok(!player.tech_.vhs, 'did not load vhs tech');
   player.dispose();
   Html5.canPlaySource = oldHtml5CanPlaySource;
   videojs.browser.IS_ANY_SAFARI = origIsAnySafari;
+  videojs.browser.IS_IOS = originalIsIos;
 });
 
 QUnit.test(
@@ -3975,6 +4005,7 @@ QUnit.test(
     this.standardXHRResponse(this.requests.shift());
 
     assert.ok(beforeRequestCalled, 'beforeRequest was called');
+    assert.equal(this.env.log.warn.calls, 2, 'warning logged for deprecation');
 
     // verify stats
     assert.equal(this.player.tech_.vhs.stats.bandwidth, 4194304, 'default');
@@ -4000,6 +4031,7 @@ QUnit.test('Allows specifying the beforeRequest function globally', function(ass
   this.standardXHRResponse(this.requests.shift());
 
   assert.ok(beforeRequestCalled, 'beforeRequest was called');
+  assert.equal(this.env.log.warn.calls, 2, 'warning logged for deprecation');
 
   delete videojs.Vhs.xhr.beforeRequest;
 
@@ -4068,8 +4100,464 @@ QUnit.test('Allows overriding the global beforeRequest function', function(asser
                                            'for the media playlist and media');
   assert.equal(beforeGlobalRequestCalled, 1, 'global beforeRequest was called once ' +
                                             'for the main playlist');
+  assert.equal(this.env.log.warn.calls, 3, 'warning logged for deprecation');
 
   delete videojs.Vhs.xhr.beforeRequest;
+});
+
+QUnit.test('Allows setting onRequest hooks globally', function(assert) {
+  let onRequestHookCallCount = 0;
+  let actualRequestUrl;
+
+  this.player.src({
+    src: 'main.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  const globalRequestHook1 = (options) => {
+    const requestUrl = new URL(options.uri);
+
+    requestUrl.searchParams.set('foo', 'bar');
+    actualRequestUrl = options.uri = requestUrl.href;
+    onRequestHookCallCount++;
+    return options;
+  };
+  const globalRequestHook2 = (options) => {
+    onRequestHookCallCount++;
+    return options;
+  };
+
+  videojs.Vhs.xhr.onRequest(globalRequestHook1);
+  videojs.Vhs.xhr.onRequest(globalRequestHook2);
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.equal(onRequestHookCallCount, 2, '2 onRequest hooks called');
+  assert.equal(actualRequestUrl, 'http://localhost:9999/test/media2.m3u8?foo=bar', 'request url modified by onRequest hook');
+  // remove global hooks for other tests
+  videojs.Vhs.xhr.offRequest(globalRequestHook1);
+  videojs.Vhs.xhr.offRequest(globalRequestHook2);
+});
+
+QUnit.test('Allows setting onRequest hooks on the player', function(assert) {
+  let onRequestHookCallCount = 0;
+  let actualRequestUrl;
+
+  this.player.src({
+    src: 'main.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  const playerRequestHook1 = (options) => {
+    const requestUrl = new URL(options.uri);
+
+    requestUrl.searchParams.set('foo', 'bar');
+    actualRequestUrl = options.uri = requestUrl.href;
+    onRequestHookCallCount++;
+    return options;
+  };
+  const playerRequestHook2 = (options) => {
+    onRequestHookCallCount++;
+    return options;
+  };
+
+  // Setup player level xhr hooks.
+  this.player.tech_.vhs.setupXhrHooks_();
+
+  this.player.tech_.vhs.xhr.onRequest(playerRequestHook1);
+  this.player.tech_.vhs.xhr.onRequest(playerRequestHook2);
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.equal(onRequestHookCallCount, 2, '2 onRequest hooks called');
+  assert.equal(actualRequestUrl, 'http://localhost:9999/test/media2.m3u8?foo=bar', 'request url modified by onRequest hook');
+  // remove player hooks for other tests
+  this.player.tech_.vhs.xhr.offRequest(playerRequestHook1);
+  this.player.tech_.vhs.xhr.offRequest(playerRequestHook2);
+});
+
+QUnit.test('Allows setting onRequest hooks globally and overriding with player hooks', function(assert) {
+  let onRequestHookCallCountGlobal = 0;
+  let onRequestHookCallCountPlayer = 0;
+  let actualRequestUrlGlobal;
+  let actualRequestUrlPlayer;
+
+  this.player.src({
+    src: 'main.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  const globalRequestHook1 = (options) => {
+    const requestUrl = new URL(options.uri);
+
+    requestUrl.searchParams.set('foo', 'bar');
+    actualRequestUrlGlobal = options.uri = requestUrl.href;
+    onRequestHookCallCountGlobal++;
+    return options;
+  };
+  const globalRequestHook2 = (options) => {
+    onRequestHookCallCountGlobal++;
+    return options;
+  };
+
+  videojs.Vhs.xhr.onRequest(globalRequestHook1);
+  videojs.Vhs.xhr.onRequest(globalRequestHook2);
+
+  const playerRequestHook1 = (options) => {
+    const requestUrl = new URL(options.uri);
+
+    requestUrl.searchParams.set('bar', 'foo');
+    actualRequestUrlPlayer = options.uri = requestUrl.href;
+    onRequestHookCallCountPlayer++;
+    return options;
+  };
+  const playerRequestHook2 = (options) => {
+    onRequestHookCallCountPlayer++;
+    return options;
+  };
+
+  // Setup player level xhr hooks.
+  this.player.tech_.vhs.setupXhrHooks_();
+
+  this.player.tech_.vhs.xhr.onRequest(playerRequestHook1);
+  this.player.tech_.vhs.xhr.onRequest(playerRequestHook2);
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+  // remove player request hooks
+  this.player.tech_.vhs.xhr.offRequest(playerRequestHook1);
+  this.player.tech_.vhs.xhr.offRequest(playerRequestHook2);
+
+  assert.equal(onRequestHookCallCountGlobal, 0, 'no onRequest global hooks called');
+  assert.equal(actualRequestUrlGlobal, undefined, 'global request url undefined');
+  assert.equal(onRequestHookCallCountPlayer, 2, '2 onRequest player hooks called');
+  assert.equal(actualRequestUrlPlayer, 'http://localhost:9999/test/media2.m3u8?bar=foo', 'request url modified by player onRequest hook');
+
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.equal(onRequestHookCallCountGlobal, 2, '2 onRequest global hooks called');
+  assert.equal(actualRequestUrlGlobal, 'http://localhost:9999/test/media2-00001.ts?foo=bar', 'request url modified by global onRequest hook');
+
+  videojs.Vhs.xhr.offRequest(globalRequestHook1);
+  videojs.Vhs.xhr.offRequest(globalRequestHook2);
+});
+
+QUnit.test('Allows removing onRequest hooks globally with offRequest', function(assert) {
+  let onRequestHookCallCount = 0;
+  let actualRequestUrl;
+
+  this.player.src({
+    src: 'main.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  const globalRequestHook1 = (options) => {
+    const requestUrl = new URL(options.uri);
+
+    requestUrl.searchParams.set('foo', 'bar');
+    actualRequestUrl = options.uri = requestUrl.href;
+    onRequestHookCallCount++;
+    return options;
+  };
+  const globalRequestHook2 = (options) => {
+    onRequestHookCallCount++;
+    return options;
+  };
+
+  videojs.Vhs.xhr.onRequest(globalRequestHook1);
+  videojs.Vhs.xhr.onRequest(globalRequestHook2);
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.equal(onRequestHookCallCount, 2, '2 onRequest hooks called');
+  assert.equal(actualRequestUrl, 'http://localhost:9999/test/media2.m3u8?foo=bar', 'request url modified by onRequest hook');
+
+  videojs.Vhs.xhr.offRequest(globalRequestHook1);
+
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.equal(onRequestHookCallCount, 3, '3 onRequest hooks called');
+});
+
+QUnit.test('Allows setting onResponse hooks globally', function(assert) {
+  const done = assert.async();
+  let onResponseHookCallCount = 0;
+
+  this.player.src({
+    src: 'main.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  const globalResponseHook1 = (request, error, response) => {
+    onResponseHookCallCount++;
+  };
+  const globalResponseHook2 = (request, error, response) => {
+    assert.equal(onResponseHookCallCount, 1, '1 onResponse hook called');
+    assert.equal(response.url, 'http://localhost:9999/test/media2.m3u8', 'got expected response url');
+    done();
+  };
+
+  videojs.Vhs.xhr.onResponse(globalResponseHook1);
+  videojs.Vhs.xhr.onResponse(globalResponseHook2);
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  videojs.Vhs.xhr.offResponse(globalResponseHook1);
+  videojs.Vhs.xhr.offResponse(globalResponseHook2);
+});
+
+QUnit.test('Allows setting onResponse hooks on the player', function(assert) {
+  const done = assert.async();
+  let onResponseHookCallCount = 0;
+
+  this.player.src({
+    src: 'main.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  const globalResponseHook1 = (request, error, response) => {
+    onResponseHookCallCount++;
+  };
+  const globalResponseHook2 = (request, error, response) => {
+    assert.equal(onResponseHookCallCount, 1, '1 onResponse hook called');
+    assert.equal(response.url, 'http://localhost:9999/test/media2.m3u8', 'got expected response url');
+    done();
+  };
+
+  // Setup player level xhr hooks.
+  this.player.tech_.vhs.setupXhrHooks_();
+
+  this.player.tech_.vhs.xhr.onResponse(globalResponseHook1);
+  this.player.tech_.vhs.xhr.onResponse(globalResponseHook2);
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  this.player.tech_.vhs.xhr.offResponse(globalResponseHook1);
+  this.player.tech_.vhs.xhr.offResponse(globalResponseHook2);
+});
+
+QUnit.test('Allows setting onResponse hooks globally and overriding with player hooks', function(assert) {
+  const done = assert.async();
+  let onResponseHookCallCountGlobal = 0;
+  let onResponseHookCallCountplayer = 0;
+
+  this.player.src({
+    src: 'main.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  const globalResponseHook1 = (request, error, response) => {
+    onResponseHookCallCountGlobal++;
+  };
+
+  const globalResponseHook2 = (request, error, response) => {
+    assert.equal(onResponseHookCallCountGlobal, 1, 'no global onResponse hook called');
+    assert.equal(response.url, 'http://localhost:9999/test/media2-00001.ts', 'got expected response url');
+    done();
+  };
+
+  const playerResponseHook1 = (request, error, response) => {
+    onResponseHookCallCountplayer++;
+  };
+  const playerResponseHook2 = (request, error, response) => {
+    assert.equal(onResponseHookCallCountGlobal, 0, 'no global onResponse hook called');
+    assert.equal(onResponseHookCallCountplayer, 1, '1 player onResponse hook called');
+    assert.equal(response.url, 'http://localhost:9999/test/media2.m3u8', 'got expected response url');
+  };
+
+  // Setup player level xhr hooks.
+  this.player.tech_.vhs.setupXhrHooks_();
+
+  videojs.Vhs.xhr.onResponse(globalResponseHook1);
+  videojs.Vhs.xhr.onResponse(globalResponseHook2);
+  this.player.tech_.vhs.xhr.onResponse(playerResponseHook1);
+  this.player.tech_.vhs.xhr.onResponse(playerResponseHook2);
+  // main
+  this.standardXHRResponse(this.requests.shift());
+
+  this.player.tech_.vhs.xhr.offResponse(playerResponseHook1);
+  this.player.tech_.vhs.xhr.offResponse(playerResponseHook2);
+
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  // ts
+  this.standardXHRResponse(this.requests.shift(), muxedSegment());
+
+  videojs.Vhs.xhr.offResponse(globalResponseHook1);
+  videojs.Vhs.xhr.offResponse(globalResponseHook2);
+});
+
+QUnit.test('Allows removing onResponse hooks globally with offResponse', function(assert) {
+  const done = assert.async();
+  let onResponseHookCallCount = 0;
+
+  this.player.src({
+    src: 'main.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  const globalResponseHook1 = (request, error, response) => {
+    onResponseHookCallCount++;
+  };
+  const globalResponseHook2 = (request, error, response) => {
+    assert.equal(onResponseHookCallCount, 0, '0 onResponse hooks called');
+    assert.equal(response.url, 'http://localhost:9999/test/media2.m3u8', 'got expected response url');
+    done();
+  };
+
+  videojs.Vhs.xhr.onResponse(globalResponseHook1);
+  videojs.Vhs.xhr.onResponse(globalResponseHook2);
+
+  // remove hook1
+  videojs.Vhs.xhr.offResponse(globalResponseHook1);
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  videojs.Vhs.xhr.offResponse(globalResponseHook2);
+});
+
+QUnit.test('Allows xhr object access in global onRequest hooks', function(assert) {
+  let onRequestHookCallCount = 0;
+  let expectedUrl;
+
+  this.player.src({
+    src: 'main.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  const globalXhrRequestHook1 = (options) => {
+    options.beforeSend = (xhr) => {
+      xhr.open('GET', 'https://foo.bar');
+    };
+    onRequestHookCallCount++;
+    return options;
+  };
+  const globalXhrRequestHook2 = (options) => {
+    options.beforeSend = (xhr) => {
+      xhr.open('GET', 'https://new.url');
+      expectedUrl = xhr.url;
+    };
+    onRequestHookCallCount++;
+    return options;
+  };
+
+  videojs.Vhs.xhr.onRequest(globalXhrRequestHook1);
+  videojs.Vhs.xhr.onRequest(globalXhrRequestHook2);
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.equal(onRequestHookCallCount, 2, '2 onRequest hooks called');
+  assert.equal(expectedUrl, 'https://new.url', 'request url modified by onRequest hook calling open on xhr');
+  // remove global hooks for other tests
+  videojs.Vhs.xhr.offRequest(globalXhrRequestHook1);
+  videojs.Vhs.xhr.offRequest(globalXhrRequestHook2);
+});
+
+QUnit.test('Allows xhr object access in player onRequest hooks', function(assert) {
+  let onRequestHookCallCount = 0;
+  let expectedUrl;
+
+  this.player.src({
+    src: 'main.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  const playerXhrRequestHook1 = (options) => {
+    options.beforeSend = (xhr) => {
+      xhr.open('GET', 'https://new.url');
+    };
+    onRequestHookCallCount++;
+    return options;
+  };
+  const playerXhrRequestHook2 = (options) => {
+    options.beforeSend = (xhr) => {
+      xhr.open('GET', 'https://foo.bar');
+      expectedUrl = xhr.url;
+    };
+    onRequestHookCallCount++;
+    return options;
+  };
+
+  // Setup player level xhr hooks.
+  this.player.tech_.vhs.setupXhrHooks_();
+
+  this.player.tech_.vhs.xhr.onRequest(playerXhrRequestHook1);
+  this.player.tech_.vhs.xhr.onRequest(playerXhrRequestHook2);
+
+  // main
+  this.standardXHRResponse(this.requests.shift());
+
+  assert.equal(onRequestHookCallCount, 2, '2 onRequest hooks called');
+  assert.equal(expectedUrl, 'https://foo.bar', 'request url modified by onRequest hook calling open on xhr');
+  // remove player hooks for other tests
+  this.player.tech_.vhs.xhr.offRequest(playerXhrRequestHook1);
+  this.player.tech_.vhs.xhr.offRequest(playerXhrRequestHook2);
+});
+
+QUnit.test('xhr-hooks-ready event fires as expected', function(assert) {
+  const done = assert.async();
+
+  this.player.on('xhr-hooks-ready', (event) => {
+    assert.equal(event.type, 'xhr-hooks-ready', 'event type is xhr-hooks-ready');
+    assert.ok(this.player.tech(true).vhs.xhr.onRequest);
+    assert.ok(this.player.tech(true).vhs.xhr.onResponse);
+    assert.ok(this.player.tech(true).vhs.xhr.offRequest);
+    assert.ok(this.player.tech(true).vhs.xhr.offResponse);
+    done();
+  });
+
+  this.player.src({
+    src: 'main.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
 });
 
 QUnit.test(
@@ -4444,21 +4932,11 @@ QUnit.test('eme waitingforkey event triggers another setup', function(assert) {
 
   vhs.playlistController_.sourceUpdater_.trigger('createdsourcebuffers');
 
-  // Since IE11 doesn't initialize media keys early, in this test IE11 will always have
-  // one less call than in other browsers.
-  if (videojs.browser.IE_VERSION === 11) {
-    assert.equal(createKeySessionCalls, 0, 'did not call createKeySessions_ yet');
-  } else {
-    assert.equal(createKeySessionCalls, 1, 'called createKeySessions_ once');
-  }
+  assert.equal(createKeySessionCalls, 1, 'called createKeySessions_ once');
 
   this.player.tech_.trigger({type: 'waitingforkey', status: 'usable'});
 
-  if (videojs.browser.IE_VERSION === 11) {
-    assert.equal(createKeySessionCalls, 1, 'called createKeySessions_ once');
-  } else {
-    assert.equal(createKeySessionCalls, 2, 'called createKeySessions_ again');
-  }
+  assert.equal(createKeySessionCalls, 2, 'called createKeySessions_ again');
 });
 
 QUnit.test('integration: configures eme for DASH on source buffer creation', function(assert) {
@@ -4601,13 +5079,8 @@ QUnit.test('integration: updates source updater after eme init', function(assert
   sourceUpdater.on(
     'createdsourcebuffers',
     () => {
-      let expected = false;
+      const expected = false;
 
-      // IE initializes eme syncronously directly after source buffer
-      // creation
-      if (videojs.browser.IE_VERSION) {
-        expected = true;
-      }
       assert.equal(sourceUpdater.hasInitializedAnyEme(), expected, 'correct eme state');
     }
   );
@@ -4629,7 +5102,7 @@ QUnit.test('integration: updates source updater after eme init', function(assert
   this.standardXHRResponse(this.requests.shift(), audioSegment());
 });
 
-QUnit[testOrSkip]('player error when key session creation rejects promise', function(assert) {
+QUnit.test('player error when key session creation rejects promise', function(assert) {
   const done = assert.async();
 
   this.player.error = (errorObject) => {
@@ -4738,7 +5211,7 @@ QUnit.test(
   }
 );
 
-QUnit[testOrSkip](
+QUnit.test(
   'stores bandwidth and throughput in localStorage when global option is true',
   function(assert) {
     videojs.options.vhs = {
@@ -4767,7 +5240,7 @@ QUnit[testOrSkip](
   }
 );
 
-QUnit[testOrSkip](
+QUnit.test(
   'stores bandwidth and throughput in localStorage when player option is true',
   function(assert) {
     this.player.dispose();
@@ -4802,7 +5275,7 @@ QUnit[testOrSkip](
   }
 );
 
-QUnit[testOrSkip](
+QUnit.test(
   'stores bandwidth and throughput in localStorage when source option is true',
   function(assert) {
     this.player.dispose();
@@ -4832,7 +5305,7 @@ QUnit[testOrSkip](
   }
 );
 
-QUnit[testOrSkip](
+QUnit.test(
   'source localStorage option takes priority over player option',
   function(assert) {
     this.player.dispose();
@@ -4868,7 +5341,7 @@ QUnit[testOrSkip](
   }
 );
 
-QUnit[testOrSkip](
+QUnit.test(
   'does not store bandwidth and throughput in localStorage by default',
   function(assert) {
     this.player.dispose();
@@ -4894,7 +5367,7 @@ QUnit[testOrSkip](
   }
 );
 
-QUnit[testOrSkip]('retrieves bandwidth and throughput from localStorage', function(assert) {
+QUnit.test('retrieves bandwidth and throughput from localStorage', function(assert) {
   window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({
     bandwidth: 33,
     throughput: 44
@@ -4956,7 +5429,7 @@ QUnit[testOrSkip]('retrieves bandwidth and throughput from localStorage', functi
   videojs.options.vhs = origVhsOptions;
 });
 
-QUnit[testOrSkip](
+QUnit.test(
   'does not retrieve bandwidth and throughput from localStorage when stored value is not as expected',
   function(assert) {
   // bad value

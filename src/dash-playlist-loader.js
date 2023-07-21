@@ -87,6 +87,19 @@ const dashPlaylistUnchanged = function(a, b) {
 };
 
 /**
+ * Use the representation IDs from the mpd object to create groupIDs, the NAME is set to mandatory representation
+ * ID in the parser. This allows for continuous playout across periods with the same representation IDs
+ * (continuous periods as defined in DASH-IF 3.2.12). This is assumed in the mpd-parser as well. If we want to support
+ * periods without continuous playback this function may need modification as well as the parser.
+ */
+const dashGroupId = (type, group, label, playlist) => {
+  // If the manifest somehow does not have an ID (non-dash compliant), use the label.
+  const playlistId = playlist.attributes.NAME || label;
+
+  return `placeholder-uri-${type}-${group}-${playlistId}`;
+};
+
+/**
  * Parses the main XML string and updates playlist URI references.
  *
  * @param {Object} config
@@ -116,9 +129,25 @@ export const parseMainXml = ({
     previousManifest
   });
 
-  addPropertiesToMain(manifest, srcUrl);
+  addPropertiesToMain(manifest, srcUrl, dashGroupId);
 
   return manifest;
+};
+
+/**
+ * Removes any mediaGroup labels that no longer exist in the newMain
+ *
+ * @param {Object} update
+ *         The previous mpd object being updated
+ * @param {Object} newMain
+ *         The new mpd object
+ */
+const removeOldMediaGroupLabels = (update, newMain) => {
+  forEachMediaGroup(update, (properties, type, group, label) => {
+    if (!(label in newMain.mediaGroups[type][group])) {
+      delete update.mediaGroups[type][group][label];
+    }
+  });
 };
 
 /**
@@ -170,12 +199,22 @@ export const updateMain = (oldMain, newMain, sidxMapping) => {
 
       if (playlistUpdate) {
         update = playlistUpdate;
+
+        // add new mediaGroup label if it doesn't exist and assign the new mediaGroup.
+        if (!(label in update.mediaGroups[type][group])) {
+          update.mediaGroups[type][group][label] = properties;
+        }
+
         // update the playlist reference within media groups
         update.mediaGroups[type][group][label].playlists[0] = update.playlists[id];
+
         noChanges = false;
       }
     }
   });
+
+  // remove mediaGroup labels and references that no longer exist in the newMain
+  removeOldMediaGroupLabels(update, newMain);
 
   if (newMain.minimumUpdatePeriod !== oldMain.minimumUpdatePeriod) {
     noChanges = false;
@@ -273,6 +312,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
     this.vhs_ = vhs;
     this.withCredentials = withCredentials;
+    this.addMetadataToTextTrack = options.addMetadataToTextTrack;
 
     if (!srcUrlOrPlaylist) {
       throw new Error('A non-empty playlist URL or object is required');
@@ -734,6 +774,8 @@ export default class DashPlaylistLoader extends EventTarget {
       this.updateMinimumUpdatePeriodTimeout_();
     }
 
+    this.addEventStreamToMetadataTrack_(newMain);
+
     return Boolean(newMain);
   }
 
@@ -861,5 +903,25 @@ export default class DashPlaylistLoader extends EventTarget {
     }
 
     this.trigger('loadedplaylist');
+  }
+
+  /**
+   * Takes eventstream data from a parsed DASH manifest and adds it to the metadata text track.
+   *
+   * @param {manifest} newMain the newly parsed manifest
+   */
+  addEventStreamToMetadataTrack_(newMain) {
+    // Only add new event stream metadata if we have a new manifest.
+    if (newMain && this.mainPlaylistLoader_.main.eventStream) {
+      // convert EventStream to ID3-like data.
+      const metadataArray = this.mainPlaylistLoader_.main.eventStream.map((eventStreamNode) => {
+        return {
+          cueTime: eventStreamNode.start,
+          frames: [{ data: eventStreamNode.messageData }]
+        };
+      });
+
+      this.addMetadataToTextTrack('EventStream', metadataArray, this.mainPlaylistLoader_.main.duration);
+    }
   }
 }

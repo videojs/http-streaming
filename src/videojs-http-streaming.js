@@ -287,8 +287,8 @@ export const waitForKeySessionCreation = ({
   const keySessionCreatedPromises = [];
 
   // Since PSSH values are interpreted as initData, EME will dedupe any duplicates. The
-  // only place where it should not be deduped is for ms-prefixed APIs, but the early
-  // return for IE11 above, and the existence of modern EME APIs in addition to
+  // only place where it should not be deduped is for ms-prefixed APIs, but
+  // the existence of modern EME APIs in addition to
   // ms-prefixed APIs on Edge should prevent this from being a concern.
   // initializeMediaKeys also won't use the webkit-prefixed APIs.
   keySystemsOptionsArr.forEach((keySystemsOptions) => {
@@ -428,6 +428,64 @@ const expandDataUri = (dataUri) => {
 };
 
 /**
+ * Adds a request hook to an xhr object
+ *
+ * @param {Object} xhr object to add the onRequest hook to
+ * @param {function} callback hook function for an xhr request
+ */
+const addOnRequestHook = (xhr, callback) => {
+  if (!xhr._requestCallbackSet) {
+    xhr._requestCallbackSet = new Set();
+  }
+  xhr._requestCallbackSet.add(callback);
+};
+
+/**
+ * Adds a response hook to an xhr object
+ *
+ * @param {Object} xhr object to add the onResponse hook to
+ * @param {function} callback hook function for an xhr response
+ */
+const addOnResponseHook = (xhr, callback) => {
+  if (!xhr._responseCallbackSet) {
+    xhr._responseCallbackSet = new Set();
+  }
+  xhr._responseCallbackSet.add(callback);
+};
+
+/**
+ * Removes a request hook on an xhr object, deletes the onRequest set if empty.
+ *
+ * @param {Object} xhr object to remove the onRequest hook from
+ * @param {function} callback hook function to remove
+ */
+const removeOnRequestHook = (xhr, callback) => {
+  if (!xhr._requestCallbackSet) {
+    return;
+  }
+  xhr._requestCallbackSet.delete(callback);
+  if (!xhr._requestCallbackSet.size) {
+    delete xhr._requestCallbackSet;
+  }
+};
+
+/**
+ * Removes a response hook on an xhr object, deletes the onResponse set if empty.
+ *
+ * @param {Object} xhr object to remove the onResponse hook from
+ * @param {function} callback hook function to remove
+ */
+const removeOnResponseHook = (xhr, callback) => {
+  if (!xhr._responseCallbackSet) {
+    return;
+  }
+  xhr._responseCallbackSet.delete(callback);
+  if (!xhr._responseCallbackSet.size) {
+    delete xhr._responseCallbackSet;
+  }
+};
+
+/**
  * Whether the browser has built-in HLS support.
  */
 Vhs.supportsNativeHls = (function() {
@@ -490,6 +548,42 @@ Vhs.supportsTypeNatively = (type) => {
 Vhs.isSupported = function() {
   return videojs.log.warn('VHS is no longer a tech. Please remove it from ' +
     'your player\'s techOrder.');
+};
+
+/**
+ * A global function for setting an onRequest hook
+ *
+ * @param {function} callback for request modifiction
+ */
+Vhs.xhr.onRequest = function(callback) {
+  addOnRequestHook(Vhs.xhr, callback);
+};
+
+/**
+ * A global function for setting an onResponse hook
+ *
+ * @param {callback} callback for response data retrieval
+ */
+Vhs.xhr.onResponse = function(callback) {
+  addOnResponseHook(Vhs.xhr, callback);
+};
+
+/**
+ * Deletes a global onRequest callback if it exists
+ *
+ * @param {function} callback to delete from the global set
+ */
+Vhs.xhr.offRequest = function(callback) {
+  removeOnRequestHook(Vhs.xhr, callback);
+};
+
+/**
+ * Deletes a global onResponse callback if it exists
+ *
+ * @param {function} callback to delete from the global set
+ */
+Vhs.xhr.offResponse = function(callback) {
+  removeOnResponseHook(Vhs.xhr, callback);
 };
 
 const Component = videojs.getComponent('Component');
@@ -593,6 +687,7 @@ class VhsHandler extends Component {
       typeof this.source_.useBandwidthFromLocalStorage !== 'undefined' ?
         this.source_.useBandwidthFromLocalStorage :
         this.options_.useBandwidthFromLocalStorage || false;
+    this.options_.useForcedSubtitles = this.options_.useForcedSubtitles || false;
     this.options_.useNetworkInformationApi = this.options_.useNetworkInformationApi || false;
     this.options_.useDtsForTimestampOffset = this.options_.useDtsForTimestampOffset || false;
     this.options_.customTagParsers = this.options_.customTagParsers || [];
@@ -645,6 +740,7 @@ class VhsHandler extends Component {
       'bufferBasedABR',
       'liveRangeSafeTimeDelta',
       'llhls',
+      'useForcedSubtitles',
       'useNetworkInformationApi',
       'useDtsForTimestampOffset',
       'exactManifestTimings',
@@ -1058,9 +1154,7 @@ class VhsHandler extends Component {
     this.handleWaitingForKey_ = this.handleWaitingForKey_.bind(this);
     this.player_.tech_.on('waitingforkey', this.handleWaitingForKey_);
 
-    // In IE11 this is too early to initialize media keys, and IE11 does not support
-    // promises.
-    if (videojs.browser.IE_VERSION === 11 || !didSetupEmeOptions) {
+    if (!didSetupEmeOptions) {
       // If EME options were not set up, we've done all we could to initialize EME.
       this.playlistController_.sourceUpdater_.initializedEme();
       return;
@@ -1197,6 +1291,52 @@ class VhsHandler extends Component {
       callback
     });
   }
+
+  /**
+   * Adds the onRequest, onResponse, offRequest and offResponse functions
+   * to the VhsHandler xhr Object.
+   */
+  setupXhrHooks_() {
+    /**
+     * A player function for setting an onRequest hook
+     *
+     * @param {function} callback for request modifiction
+     */
+    this.xhr.onRequest = (callback) => {
+      addOnRequestHook(this.xhr, callback);
+    };
+
+    /**
+     * A player function for setting an onResponse hook
+     *
+     * @param {callback} callback for response data retrieval
+     */
+    this.xhr.onResponse = (callback) => {
+      addOnResponseHook(this.xhr, callback);
+    };
+
+    /**
+     * Deletes a player onRequest callback if it exists
+     *
+     * @param {function} callback to delete from the player set
+     */
+    this.xhr.offRequest = (callback) => {
+      removeOnRequestHook(this.xhr, callback);
+    };
+
+    /**
+     * Deletes a player onResponse callback if it exists
+     *
+     * @param {function} callback to delete from the player set
+     */
+    this.xhr.offResponse = (callback) => {
+      removeOnResponseHook(this.xhr, callback);
+    };
+
+    // Trigger an event on the player to notify the user that vhs is ready to set xhr hooks.
+    // This allows hooks to be set before the source is set to vhs when handleSource is called.
+    this.player_.trigger('xhr-hooks-ready');
+  }
 }
 
 /**
@@ -1219,20 +1359,29 @@ const VhsSourceHandler = {
 
     tech.vhs = new VhsHandler(source, tech, localOptions);
     tech.vhs.xhr = xhrFactory();
-
+    tech.vhs.setupXhrHooks_();
     tech.vhs.src(source.src, source.type);
     return tech.vhs;
   },
-  canPlayType(type, options = {}) {
-    const {
-      vhs: { overrideNative = !videojs.browser.IS_ANY_SAFARI } = {}
-    } = merge(videojs.options, options);
+  canPlayType(type, options) {
+    const simpleType = simpleTypeFromSourceType(type);
 
-    const supportedType = simpleTypeFromSourceType(type);
-    const canUseMsePlayback = supportedType &&
-      (!Vhs.supportsTypeNatively(supportedType) || overrideNative);
+    if (!simpleType) {
+      return '';
+    }
+
+    const overrideNative = VhsSourceHandler.getOverrideNative(options);
+    const supportsTypeNatively = Vhs.supportsTypeNatively(simpleType);
+    const canUseMsePlayback = !supportsTypeNatively || overrideNative;
 
     return canUseMsePlayback ? 'maybe' : '';
+  },
+  getOverrideNative(options = {}) {
+    const { vhs = {} } = options;
+    const defaultOverrideNative = !(videojs.browser.IS_ANY_SAFARI || videojs.browser.IS_IOS);
+    const { overrideNative = defaultOverrideNative } = vhs;
+
+    return overrideNative;
   }
 };
 

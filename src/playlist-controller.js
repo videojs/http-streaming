@@ -26,6 +26,7 @@ import { codecsForPlaylist, unwrapCodecList, codecCount } from './util/codecs.js
 import { createMediaTypes, setupMediaGroups } from './media-groups';
 import logger from './util/logger';
 import {merge, createTimeRanges} from './util/vjs-compat';
+import { addMetadata, createMetadataTrackIfNotExists } from './util/text-tracks';
 
 const ABORT_EARLY_EXCLUSION_SECONDS = 60 * 2;
 
@@ -254,7 +255,8 @@ export class PlaylistController extends videojs.EventTarget {
       cacheEncryptionKeys,
       sourceUpdater: this.sourceUpdater_,
       timelineChangeController: this.timelineChangeController_,
-      exactManifestTimings: options.exactManifestTimings
+      exactManifestTimings: options.exactManifestTimings,
+      addMetadataToTextTrack: this.addMetadataToTextTrack.bind(this)
     };
 
     // The source type check not only determines whether a special DASH playlist loader
@@ -262,7 +264,7 @@ export class PlaylistController extends videojs.EventTarget {
     // manifest object (instead of a URL). In the case of vhs-json, the default
     // PlaylistLoader should be used.
     this.mainPlaylistLoader_ = this.sourceType_ === 'dash' ?
-      new DashPlaylistLoader(src, this.vhs_, this.requestOptions_) :
+      new DashPlaylistLoader(src, this.vhs_, merge(this.requestOptions_, { addMetadataToTextTrack: this.addMetadataToTextTrack.bind(this) })) :
       new PlaylistLoader(src, this.vhs_, this.requestOptions_);
     this.setupMainPlaylistLoaderListeners_();
 
@@ -283,7 +285,24 @@ export class PlaylistController extends videojs.EventTarget {
     this.subtitleSegmentLoader_ =
       new VTTSegmentLoader(merge(segmentLoaderSettings, {
         loaderType: 'vtt',
-        featuresNativeTextTracks: this.tech_.featuresNativeTextTracks
+        featuresNativeTextTracks: this.tech_.featuresNativeTextTracks,
+        loadVttJs: () => new Promise((resolve, reject) => {
+          function onLoad() {
+            tech.off('vttjserror', onError);
+            resolve();
+          }
+
+          function onError() {
+            tech.off('vttjsloaded', onLoad);
+            reject();
+          }
+
+          tech.one('vttjsloaded', onLoad);
+          tech.one('vttjserror', onError);
+
+          // safe to call multiple times, script will be loaded only once:
+          tech.addWebVttScript_();
+        })
       }), options);
 
     this.setupSegmentLoaderListeners_();
@@ -916,18 +935,12 @@ export class PlaylistController extends videojs.EventTarget {
 
     // Delete all buffered data to allow an immediate quality switch, then seek to give
     // the browser a kick to remove any cached frames from the previous rendtion (.04 seconds
-    // ahead is roughly the minimum that will accomplish this across a variety of content
+    // ahead was roughly the minimum that will accomplish this across a variety of content
     // in IE and Edge, but seeking in place is sufficient on all other browsers)
     // Edge/IE bug: https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/14600375/
     // Chrome bug: https://bugs.chromium.org/p/chromium/issues/detail?id=651904
     this.mainSegmentLoader_.resetEverything(() => {
-      // Since this is not a typical seek, we avoid the seekTo method which can cause segments
-      // from the previously enabled rendition to load before the new playlist has finished loading
-      if (videojs.browser.IE_VERSION || videojs.browser.IS_EDGE) {
-        this.tech_.setCurrentTime(this.tech_.currentTime() + 0.04);
-      } else {
-        this.tech_.setCurrentTime(this.tech_.currentTime());
-      }
+      this.tech_.setCurrentTime(this.tech_.currentTime());
     });
 
     // don't need to reset audio as it is reset when media changes
@@ -976,33 +989,33 @@ export class PlaylistController extends videojs.EventTarget {
       return false;
     }
 
-    // when the video is a live stream
-    if (!media.endList) {
+    // when the video is a live stream and/or has a start time
+    if (!media.endList || media.start) {
       const seekable = this.seekable();
 
       if (!seekable.length) {
-        // without a seekable range, the player cannot seek to begin buffering at the live
-        // point
+        // without a seekable range, the player cannot seek to begin buffering at the
+        // live or start point
         return false;
       }
 
-      if (videojs.browser.IE_VERSION &&
-          this.tech_.readyState() === 0) {
-        // IE11 throws an InvalidStateError if you try to set currentTime while the
-        // readyState is 0, so it must be delayed until the tech fires loadedmetadata.
-        this.tech_.one('loadedmetadata', () => {
-          this.trigger('firstplay');
-          this.tech_.setCurrentTime(seekable.end(0));
-          this.hasPlayed_ = true;
-        });
+      const seekableEnd = seekable.end(0);
+      let startPoint = seekableEnd;
 
-        return false;
+      if (media.start) {
+        const offset = media.start.timeOffset;
+
+        if (offset < 0) {
+          startPoint = Math.max(seekableEnd + offset, seekable.start(0));
+        } else {
+          startPoint = Math.min(seekableEnd, offset);
+        }
       }
 
       // trigger firstplay to inform the source handler to ignore the next seek event
       this.trigger('firstplay');
       // seek to the live point
-      this.tech_.setCurrentTime(seekable.end(0));
+      this.tech_.setCurrentTime(startPoint);
     }
 
     this.hasPlayed_ = true;
@@ -1698,9 +1711,11 @@ export class PlaylistController extends videojs.EventTarget {
       audio: this.audioSegmentLoader_.getCurrentMediaInfo_() || {}
     };
 
+    const playlist = this.mainSegmentLoader_.getPendingSegmentPlaylist() || this.media();
+
     // set "main" media equal to video
     media.video = media.main;
-    const playlistCodecs = codecsForPlaylist(this.main(), this.media());
+    const playlistCodecs = codecsForPlaylist(this.main(), playlist);
     const codecs = {};
     const usingAudioLoader = !!this.mediaTypes_.AUDIO.activePlaylistLoader;
 
@@ -1721,7 +1736,7 @@ export class PlaylistController extends videojs.EventTarget {
     // no codecs, no playback.
     if (!codecs.audio && !codecs.video) {
       this.excludePlaylist({
-        playlistToExclude: this.media(),
+        playlistToExclude: playlist,
         error: { message: 'Could not determine codecs for playlist.' },
         playlistExclusionDuration: Infinity
       });
@@ -1746,13 +1761,13 @@ export class PlaylistController extends videojs.EventTarget {
       }
     });
 
-    if (usingAudioLoader && unsupportedAudio && this.media().attributes.AUDIO) {
-      const audioGroup = this.media().attributes.AUDIO;
+    if (usingAudioLoader && unsupportedAudio && playlist.attributes.AUDIO) {
+      const audioGroup = playlist.attributes.AUDIO;
 
       this.main().playlists.forEach(variant => {
         const variantAudioGroup = variant.attributes && variant.attributes.AUDIO;
 
-        if (variantAudioGroup === audioGroup && variant !== this.media()) {
+        if (variantAudioGroup === audioGroup && variant !== playlist) {
           variant.excludeUntil = Infinity;
         }
       });
@@ -1773,7 +1788,7 @@ export class PlaylistController extends videojs.EventTarget {
       }, '') + '.';
 
       this.excludePlaylist({
-        playlistToExclude: this.media(),
+        playlistToExclude: playlist,
         error: {
           internal: true,
           message
@@ -1800,7 +1815,7 @@ export class PlaylistController extends videojs.EventTarget {
 
       if (switchMessages.length) {
         this.excludePlaylist({
-          playlistToExclude: this.media(),
+          playlistToExclude: playlist,
           error: {
             message: `Codec switching not supported: ${switchMessages.join(', ')}.`,
             internal: true
@@ -2009,4 +2024,19 @@ export class PlaylistController extends videojs.EventTarget {
     return Config.BUFFER_HIGH_WATER_LINE;
   }
 
+  addMetadataToTextTrack(dispatchType, metadataArray, videoDuration) {
+    const timestampOffset = this.sourceUpdater_.videoBuffer ?
+      this.sourceUpdater_.videoTimestampOffset() : this.sourceUpdater_.audioTimestampOffset();
+
+    // There's potentially an issue where we could double add metadata if there's a muxed
+    // audio/video source with a metadata track, and an alt audio with a metadata track.
+    // However, this probably won't happen, and if it does it can be handled then.
+    createMetadataTrackIfNotExists(this.inbandTextTracks_, dispatchType, this.tech_);
+    addMetadata({
+      inbandTextTracks: this.inbandTextTracks_,
+      metadataArray,
+      timestampOffset,
+      videoDuration
+    });
+  }
 }

@@ -15,6 +15,8 @@ import {
   ac3WithoutId3 as ac3WithoutId3Segment,
   video as videoSegment,
   audio as audioSegment,
+  mp4Audio,
+  mp4AudioInit,
   mp4Video,
   mp4VideoInit,
   muxed as muxedSegment,
@@ -1357,6 +1359,17 @@ QUnit.test('non-TS segment will get parsed for captions', function(assert) {
         }
       });
     }
+
+    if (event.action === 'probeEmsgID3') {
+      transmuxer.trigger({
+        type: 'message',
+        data: {
+          action: 'probeEmsgID3',
+          emsgData: event.data,
+          id3Frames: []
+        }
+      });
+    }
   };
 
   mediaSegmentRequest({
@@ -1498,6 +1511,17 @@ QUnit.test('non-TS segment will get parsed for captions on next segment request 
         }
       });
     }
+
+    if (event.action === 'probeEmsgID3') {
+      transmuxer.trigger({
+        type: 'message',
+        data: {
+          action: 'probeEmsgID3',
+          emsgData: event.data,
+          id3Frames: []
+        }
+      });
+    }
   };
 
   mediaSegmentRequest({
@@ -1552,4 +1576,264 @@ QUnit.test('non-TS segment will get parsed for captions on next segment request 
   this.standardXHRResponse(segmentReq, mp4Video());
   // Simulate receiving the init segment after the media
   this.standardXHRResponse(initReq, mp4VideoInit());
+});
+
+QUnit.test('can get emsg ID3 frames from fmp4 video segment', function(assert) {
+  const done = assert.async();
+  let gotEmsgId3 = 0;
+  let gotData = 0;
+  // expected frame data
+  const id3Frames = [{
+    cueTime: 1,
+    duration: 0,
+    frames: [{
+      id: 'TXXX',
+      description: 'foo bar',
+      data: { key: 'value' }
+    },
+    {
+      id: 'PRIV',
+      owner: 'priv-owner@foo.bar',
+      // 'foo'
+      data: new Uint8Array([0x66, 0x6F, 0x6F])
+    }]
+  },
+  {
+    cueTime: 3,
+    duration: 0,
+    frames: [{
+      id: 'PRIV',
+      owner: 'priv-owner@foo.bar',
+      // 'bar'
+      data: new Uint8Array([0x62, 0x61, 0x72])
+    },
+    {
+      id: 'TXXX',
+      description: 'bar foo',
+      data: { key: 'value' }
+    }]
+  }];
+  const transmuxer = new videojs.EventTarget();
+
+  transmuxer.postMessage = (event) => {
+    if (event.action === 'pushMp4Captions') {
+      transmuxer.trigger({
+        type: 'message',
+        data: {
+          action: 'mp4Captions',
+          data: event.data,
+          captions: 'foo bar',
+          logs: []
+        }
+      });
+    }
+
+    if (event.action === 'probeMp4StartTime') {
+      transmuxer.trigger({
+        type: 'message',
+        data: {
+          action: 'probeMp4StartTime',
+          data: event.data,
+          timingInfo: {}
+        }
+      });
+    }
+
+    if (event.action === 'probeMp4Tracks') {
+      transmuxer.trigger({
+        type: 'message',
+        data: {
+          action: 'probeMp4Tracks',
+          data: event.data,
+          tracks: [{type: 'video', codec: 'avc1.4d400d'}]
+        }
+      });
+    }
+
+    if (event.action === 'probeEmsgID3') {
+      transmuxer.trigger({
+        type: 'message',
+        data: {
+          action: 'probeEmsgID3',
+          emsgData: event.data,
+          id3Frames
+        }
+      });
+    }
+  };
+
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.mockDecrypter,
+    segment: {
+      transmuxer,
+      resolvedUri: 'mp4Video.mp4',
+      map: {
+        resolvedUri: 'mp4VideoInit.mp4'
+      }
+    },
+    progressFn: this.noop,
+    trackInfoFn: this.noop,
+    timingInfoFn: this.noop,
+    id3Fn: (segment, _id3Frames) => {
+      gotEmsgId3++;
+      assert.deepEqual(_id3Frames, id3Frames, 'got expected emsg id3 data.');
+    },
+    captionsFn: this.noop,
+    dataFn: (segment, segmentData) => {
+      gotData++;
+      assert.ok(segmentData, 'init segment bytes in map');
+      assert.ok(segment.map.tracks, 'added tracks');
+      assert.ok(segment.map.tracks.video, 'added video track');
+    },
+    doneFn: () => {
+      assert.equal(gotEmsgId3, 1, 'received emsg ID3 event');
+      assert.equal(gotData, 1, 'received data event');
+      transmuxer.off();
+      done();
+    }
+  });
+  assert.equal(this.requests.length, 2, 'there are two requests');
+
+  const initReq = this.requests.shift();
+  const segmentReq = this.requests.shift();
+
+  assert.equal(initReq.uri, 'mp4VideoInit.mp4', 'the first request is for the init segment');
+  assert.equal(segmentReq.uri, 'mp4Video.mp4', 'the second request is for a segment');
+
+  // Simulate receiving the media first
+  this.standardXHRResponse(segmentReq, mp4Video());
+  // Simulate receiving the init segment after the media
+  this.standardXHRResponse(initReq, mp4VideoInit());
+});
+
+QUnit.test('can get emsg ID3 frames from fmp4 audio segment', function(assert) {
+  const done = assert.async();
+  let gotEmsgId3 = 0;
+  let gotData = 0;
+  // expected frame data
+  const id3Frames = [{
+    cueTime: 1,
+    duration: 0,
+    frames: [{
+      id: 'TXXX',
+      description: 'foo bar',
+      data: { key: 'value' }
+    },
+    {
+      id: 'PRIV',
+      owner: 'priv-owner@foo.bar',
+      // 'foo'
+      data: new Uint8Array([0x66, 0x6F, 0x6F])
+    }]
+  },
+  {
+    cueTime: 3,
+    duration: 0,
+    frames: [{
+      id: 'PRIV',
+      owner: 'priv-owner@foo.bar',
+      // 'bar'
+      data: new Uint8Array([0x62, 0x61, 0x72])
+    },
+    {
+      id: 'TXXX',
+      description: 'bar foo',
+      data: { key: 'value' }
+    }]
+  }];
+  const transmuxer = new videojs.EventTarget();
+
+  transmuxer.postMessage = (event) => {
+    if (event.action === 'pushMp4Captions') {
+      transmuxer.trigger({
+        type: 'message',
+        data: {
+          action: 'mp4Captions',
+          data: event.data,
+          captions: 'foo bar',
+          logs: []
+        }
+      });
+    }
+
+    if (event.action === 'probeMp4StartTime') {
+      transmuxer.trigger({
+        type: 'message',
+        data: {
+          action: 'probeMp4StartTime',
+          data: event.data,
+          timingInfo: {}
+        }
+      });
+    }
+
+    if (event.action === 'probeMp4Tracks') {
+      transmuxer.trigger({
+        type: 'message',
+        data: {
+          action: 'probeMp4Tracks',
+          data: event.data,
+          tracks: [{type: 'audio', codec: 'mp4a.40.2'}]
+        }
+      });
+    }
+
+    if (event.action === 'probeEmsgID3') {
+      transmuxer.trigger({
+        type: 'message',
+        data: {
+          action: 'probeEmsgID3',
+          emsgData: event.data,
+          id3Frames
+        }
+      });
+    }
+  };
+
+  mediaSegmentRequest({
+    xhr: this.xhr,
+    xhrOptions: this.xhrOptions,
+    decryptionWorker: this.mockDecrypter,
+    segment: {
+      transmuxer,
+      resolvedUri: 'mp4Audio.mp4',
+      map: {
+        resolvedUri: 'mp4AudioInit.mp4'
+      }
+    },
+    progressFn: this.noop,
+    trackInfoFn: this.noop,
+    timingInfoFn: this.noop,
+    id3Fn: (segment, _id3Frames) => {
+      gotEmsgId3++;
+      assert.deepEqual(_id3Frames, id3Frames, 'got expected emsg id3 data.');
+    },
+    captionsFn: this.noop,
+    dataFn: (segment, segmentData) => {
+      gotData++;
+      assert.ok(segmentData, 'init segment bytes in map');
+      assert.ok(segment.map.tracks, 'added tracks');
+      assert.ok(segment.map.tracks.audio, 'added audio track');
+    },
+    doneFn: () => {
+      assert.equal(gotEmsgId3, 1, 'received emsg ID3 event');
+      assert.equal(gotData, 1, 'received data event');
+      transmuxer.off();
+      done();
+    }
+  });
+  assert.equal(this.requests.length, 2, 'there are two requests');
+
+  const initReq = this.requests.shift();
+  const segmentReq = this.requests.shift();
+
+  assert.equal(initReq.uri, 'mp4AudioInit.mp4', 'the first request is for the init segment');
+  assert.equal(segmentReq.uri, 'mp4Audio.mp4', 'the second request is for a segment');
+
+  // Simulate receiving the media first
+  this.standardXHRResponse(segmentReq, mp4Audio());
+  // Simulate receiving the init segment after the media
+  this.standardXHRResponse(initReq, mp4AudioInit());
 });

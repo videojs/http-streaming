@@ -179,6 +179,11 @@ export const addMetadata = ({
       return;
     }
 
+    // If we have no frames, we can't create a cue.
+    if (!metadata.frames || !metadata.frames.length) {
+      return;
+    }
+
     metadata.frames.forEach((frame) => {
       const cue = new Cue(
         time,
@@ -305,26 +310,16 @@ export const removeDuplicateCuesFromTrack = function(track) {
     return;
   }
 
-  for (let i = 0; i < cues.length; i++) {
-    const duplicates = [];
-    let occurrences = 0;
+  const uniqueCues = {};
 
-    for (let j = 0; j < cues.length; j++) {
-      if (
-        cues[i].startTime === cues[j].startTime &&
-        cues[i].endTime === cues[j].endTime &&
-        cues[i].text === cues[j].text
-      ) {
-        occurrences++;
+  for (let i = cues.length - 1; i >= 0; i--) {
+    const cue = cues[i];
+    const cueKey = `${cue.startTime}-${cue.endTime}-${cue.text}`;
 
-        if (occurrences > 1) {
-          duplicates.push(cues[j]);
-        }
-      }
-    }
-
-    if (duplicates.length) {
-      duplicates.forEach(dupe => track.removeCue(dupe));
+    if (uniqueCues[cueKey]) {
+      track.removeCue(cue);
+    } else {
+      uniqueCues[cueKey] = cue;
     }
   }
 };

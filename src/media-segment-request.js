@@ -462,7 +462,7 @@ const handleSegmentBytes = ({
     // Note that the start time returned by the probe reflects the baseMediaDecodeTime, as
     // that is the true start of the segment (where the playback engine should begin
     // decoding).
-    const finishLoading = (captions) => {
+    const finishLoading = (captions, id3Frames) => {
       // if the track still has audio at this point it is only possible
       // for it to be audio only. See `tracks.video && tracks.audio` if statement
       // above.
@@ -471,6 +471,9 @@ const handleSegmentBytes = ({
         data: bytesAsUint8Array,
         type: trackInfo.hasAudio && !trackInfo.isMuxed ? 'audio' : 'video'
       });
+      if (id3Frames && id3Frames.length) {
+        id3Fn(segment, id3Frames);
+      }
       if (captions && captions.length) {
         captionsFn(segment, captions);
       }
@@ -494,29 +497,40 @@ const handleSegmentBytes = ({
         if (trackInfo.hasVideo) {
           timingInfoFn(segment, 'video', 'start', startTime);
         }
-
-        // Run through the CaptionParser in case there are captions.
-        // Initialize CaptionParser if it hasn't been yet
-        if (!tracks.video || !data.byteLength || !segment.transmuxer) {
-          finishLoading();
-          return;
-        }
-
         workerCallback({
-          action: 'pushMp4Captions',
-          endAction: 'mp4Captions',
-          transmuxer: segment.transmuxer,
+          action: 'probeEmsgID3',
           data: bytesAsUint8Array,
-          timescales: segment.map.timescales,
-          trackIds: [tracks.video.id],
-          callback: (message) => {
+          transmuxer: segment.transmuxer,
+          offset: startTime,
+          callback: ({emsgData, id3Frames}) => {
             // transfer bytes back to us
-            bytes = message.data.buffer;
-            segment.bytes = bytesAsUint8Array = message.data;
-            message.logs.forEach(function(log) {
-              onTransmuxerLog(merge(log, {stream: 'mp4CaptionParser'}));
+            bytes = emsgData.buffer;
+            segment.bytes = bytesAsUint8Array = emsgData;
+
+            // Run through the CaptionParser in case there are captions.
+            // Initialize CaptionParser if it hasn't been yet
+            if (!tracks.video || !data.byteLength || !segment.transmuxer) {
+              finishLoading(undefined, id3Frames);
+              return;
+            }
+
+            workerCallback({
+              action: 'pushMp4Captions',
+              endAction: 'mp4Captions',
+              transmuxer: segment.transmuxer,
+              data: bytesAsUint8Array,
+              timescales: segment.map.timescales,
+              trackIds: [tracks.video.id],
+              callback: (message) => {
+                // transfer bytes back to us
+                bytes = message.data.buffer;
+                segment.bytes = bytesAsUint8Array = message.data;
+                message.logs.forEach(function(log) {
+                  onTransmuxerLog(merge(log, {stream: 'mp4CaptionParser'}));
+                });
+                finishLoading(message.captions, id3Frames);
+              }
             });
-            finishLoading(message.captions);
           }
         });
       }

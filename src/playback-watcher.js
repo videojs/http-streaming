@@ -497,8 +497,9 @@ export default class PlaybackWatcher {
 
     let allowedEnd = seekable.end(seekable.length - 1) + Ranges.SAFE_TIME_DELTA;
     const isLive = !playlist.endList;
+    const isLLHLS = typeof playlist.partTargetDuration === 'number';
 
-    if (isLive && allowSeeksWithinUnsafeLiveWindow) {
+    if (isLive && (isLLHLS || allowSeeksWithinUnsafeLiveWindow)) {
       allowedEnd = seekable.end(seekable.length - 1) + (playlist.targetDuration * 3);
     }
 

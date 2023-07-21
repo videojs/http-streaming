@@ -11,11 +11,7 @@ QUnit.test('the environment is sane', function(assert) {
   assert.strictEqual(typeof sinon, 'object', 'sinon exists');
   assert.strictEqual(typeof videojs, 'function', 'videojs exists');
   assert.strictEqual(typeof window.MediaSource, 'function', 'MediaSource is a function');
-  if (videojs.browser.IE_VERSION) {
-    assert.strictEqual(typeof window.URL, 'object', 'URL is an object');
-  } else {
-    assert.strictEqual(typeof window.URL, 'function', 'URL is a function');
-  }
+  assert.strictEqual(typeof window.URL, 'function', 'URL is a function');
   assert.strictEqual(typeof videojs.Vhs, 'object', 'Vhs is an object');
   assert.strictEqual(
     typeof videojs.VhsSourceHandler,

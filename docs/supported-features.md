@@ -64,6 +64,7 @@ not meant serve as an exhaustive list.
 * In-manifest [WebVTT] subtitles are automatically translated into standard HTML5 subtitle
   tracks
 * [AES-128] segment encryption
+* DASH In-manifest EventStream and Event tags are automatically translated into HTML5 metadata cues
 
 ## Notable Missing Features
 
@@ -114,8 +115,6 @@ not yet been implemented. VHS currently supports everything in the
 * [EXT-X-DATERANGE]
 * [EXT-X-SESSION-DATA]
 * [EXT-X-SESSION-KEY]
-* [EXT-X-INDEPENDENT-SEGMENTS]
-* Use of [EXT-X-START] (value parsed but not used)
 * Alternate video via [EXT-X-MEDIA] of type video
 * ASSOC-LANGUAGE in [EXT-X-MEDIA]
 * CHANNELS in [EXT-X-MEDIA]
@@ -278,7 +277,6 @@ simply take on their default values (in the case where they have valid defaults)
 [EXT-X-I-FRAMES-ONLY]: https://tools.ietf.org/html/draft-pantos-http-live-streaming-23#section-4.3.3.6
 [EXT-X-I-FRAME-STREAM-INF]: https://tools.ietf.org/html/draft-pantos-http-live-streaming-23#section-4.3.4.3
 [EXT-X-SESSION-KEY]: https://tools.ietf.org/html/draft-pantos-http-live-streaming-23#section-4.3.4.5
-[EXT-X-INDEPENDENT-SEGMENTS]: https://tools.ietf.org/html/draft-pantos-http-live-streaming-23#section-4.3.5.1
 [EXT-X-START]: https://tools.ietf.org/html/draft-pantos-http-live-streaming-23#section-4.3.5.2
 [EXT-X-MEDIA]: https://tools.ietf.org/html/draft-pantos-http-live-streaming-23#section-4.3.4.1
 

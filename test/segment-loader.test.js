@@ -2421,6 +2421,9 @@ QUnit.module('SegmentLoader', function(hooks) {
             }
           });
 
+        this.sourceUpdater_ = loader.sourceUpdater_;
+        this.inbandTextTracks_ = loader.inbandTextTracks_;
+        this.tech_ = loader.vhs_.tech_;
         standardXHRResponse(this.requests.shift(), muxedSegment());
 
       });
@@ -2491,6 +2494,9 @@ QUnit.module('SegmentLoader', function(hooks) {
           // Simulate a caption event happening that will call handleCaptions_
           const dispatchType = 0x10;
 
+          // Ensure no video buffer is present in the test case
+          loader.sourceUpdater_.videoBuffer = undefined;
+
           loader.handleId3_(loader.pendingSegment_, metadata, dispatchType);
         });
 
@@ -2508,6 +2514,8 @@ QUnit.module('SegmentLoader', function(hooks) {
           const cue = addCueSpy.getCall(0).args[0];
 
           assert.strictEqual(cue.value.data, 'This is a priv tag', 'included the text');
+
+          assert.strictEqual(cue.startTime, metadata[0].cueTime + loader.sourceUpdater_.audioTimestampOffset(), 'cue.startTime offset from audioTimestampOffset');
           done();
         });
 
@@ -2528,6 +2536,9 @@ QUnit.module('SegmentLoader', function(hooks) {
             }
           });
 
+        this.sourceUpdater_ = loader.sourceUpdater_;
+        this.inbandTextTracks_ = loader.inbandTextTracks_;
+        this.tech_ = loader.vhs_.tech_;
         standardXHRResponse(this.requests.shift(), audioSegment());
       });
     });
@@ -4549,26 +4560,26 @@ QUnit.module('SegmentLoader', function(hooks) {
 
       const segmentDurationMs = targetDuration * 1000;
 
-      const playlist1Start = new Date('2021-01-01T00:00:00.000-05:00');
+      const playlist1Start = new Date('2021-01-01T00:00:00.000-05:00').getTime();
 
-      playlist1.segments[0].dateTimeObject = playlist1Start;
-      playlist1.segments[1].dateTimeObject = new Date(playlist1Start.getTime() + segmentDurationMs);
+      playlist1.segments[0].programDateTime = playlist1Start;
+      playlist1.segments[1].programDateTime = new Date(playlist1Start + segmentDurationMs).getTime();
       // jump of 0.5 seconds after disco (0.5 seconds of missing real world time, e.g.,
       // an encoder went down briefly), should have a PDT mapping difference of -3.5
       // seconds from first mapping
-      playlist1.segments[2].dateTimeObject = new Date(playlist1.segments[1].dateTimeObject.getTime() + segmentDurationMs + 500);
-      playlist1.segments[3].dateTimeObject = new Date(playlist1.segments[2].dateTimeObject.getTime() + segmentDurationMs);
+      playlist1.segments[2].programDateTime = new Date(playlist1.segments[1].programDateTime + segmentDurationMs + 500).getTime();
+      playlist1.segments[3].programDateTime = new Date(playlist1.segments[2].programDateTime + segmentDurationMs).getTime();
 
       // offset by 0.25 seconds from playlist1
       const playlist2Start = new Date('2021-01-01T00:00:00.250-05:00');
 
-      playlist2.segments[0].dateTimeObject = playlist2Start;
-      playlist2.segments[1].dateTimeObject = new Date(playlist2Start.getTime() + segmentDurationMs);
+      playlist2.segments[0].programDateTime = playlist2Start.getTime();
+      playlist2.segments[1].programDateTime = new Date(playlist2Start + segmentDurationMs).getTime();
       // jump of 0.5 seconds after disco (0.5 seconds of missing real world time, e.g.,
       // an encoder went down briefly), should have a PDT mapping difference of -3.5
       // seconds from first mapping
-      playlist2.segments[2].dateTimeObject = new Date(playlist2.segments[1].dateTimeObject.getTime() + segmentDurationMs + 500);
-      playlist2.segments[3].dateTimeObject = new Date(playlist2.segments[2].dateTimeObject.getTime() + segmentDurationMs);
+      playlist2.segments[2].programDateTime = new Date(playlist2.segments[1].programDateTime + segmentDurationMs + 500).getTime();
+      playlist2.segments[3].programDateTime = new Date(playlist2.segments[2].programDateTime + segmentDurationMs).getTime();
 
       const {
         mediaSource_: mediaSource,
@@ -4669,11 +4680,11 @@ QUnit.module('SegmentLoader', function(hooks) {
       const segment3Start = new Date(segment2Start.getTime() + segmentDurationMs + 500);
 
       [playlist1, playlist2].forEach((playlist) => {
-        playlist.dateTimeObject = segment0Start;
-        playlist.segments[0].dateTimeObject = segment0Start;
-        playlist.segments[1].dateTimeObject = segment1Start;
-        playlist.segments[2].dateTimeObject = segment2Start;
-        playlist.segments[3].dateTimeObject = segment3Start;
+        playlist.programDateTime = segment0Start;
+        playlist.segments[0].programDateTime = segment0Start;
+        playlist.segments[1].programDateTime = segment1Start;
+        playlist.segments[2].programDateTime = segment2Start;
+        playlist.segments[3].programDateTime = segment3Start;
       });
 
       const {
