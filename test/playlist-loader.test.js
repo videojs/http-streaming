@@ -15,6 +15,7 @@ import {
   parseManifest
 } from '../src/manifest.js';
 import manifests from 'create-test-data!manifests';
+import sinon from 'sinon';
 
 QUnit.module('Playlist Loader', function(hooks) {
   hooks.beforeEach(function(assert) {
@@ -2849,5 +2850,40 @@ QUnit.module('Playlist Loader', function(hooks) {
     this.loader.trigger('mediaupdatetimeout');
 
     assert.equal(this.requests[0].uri, 'http://example.com/media.m3u8?foo=test&_HLS_skip=YES&_HLS_msn=8&_HLS_part=1');
+  });
+
+  QUnit.module('DateRanges', {
+    beforeEach() {
+      this.fakeVhs = {
+        xhr: xhrFactory()
+      };
+      this.loader = new PlaylistLoader('http://example.com/media.m3u8', this.fakeVhs, {addDateRangesToTextTrack: () => {}});
+
+      this.loader.load();
+    },
+    afterEach() {
+      this.loader.dispose();
+    }
+  });
+
+  QUnit.test('addDateRangesToTextTrack called on loadedplaylist', function(assert) {
+    this.loader.media = () => {
+      return {
+        segments: [{
+          programDateTime: 2000,
+          duration: 1
+        }],
+        dateRanges: [{
+          startDate: new Date(2500),
+          endDate: new Date(3000),
+          plannedDuration: 40,
+          id: 'testId'
+        }]
+      };
+    };
+    const addDateRangesToTextTrackSpy = sinon.spy(this.loader, 'addDateRangesToTextTrack_');
+
+    this.loader.trigger('loadedplaylist');
+    assert.strictEqual(addDateRangesToTextTrackSpy.callCount, 1);
   });
 });

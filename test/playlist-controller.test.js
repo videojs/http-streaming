@@ -457,6 +457,52 @@ QUnit.test('addMetadataToTextTrack adds expected metadata to the metadataTrack',
   controller.dispose();
 });
 
+QUnit.test('addDateRangesToTextTrack adds expected metadata to the metadataTrack', function(assert) {
+  const options = {
+    src: 'manifest/daterange.m3u8',
+    tech: this.player.tech_,
+    sourceType: 'hls'
+  };
+  const controller = new PlaylistController(options);
+  const dateRanges = [{
+    endDate: new Date(5000),
+    endTime: 3,
+    plannedDuration: 5,
+    scte35Out: '0xFC30200FFF00F0500D00E4612424',
+    startDate: new Date(3000),
+    startTime: 1,
+    id: 'testId',
+    processDateRange: () => {}
+  }];
+  const expectedCueValues = [{
+    endTime: 3,
+    id: 'testId',
+    startTime: 1,
+    value: {data: 5, key: 'PLANNED-DURATION'}
+  }, {
+    endTime: 3,
+    id: 'testId',
+    startTime: 1,
+    value: {data: new ArrayBuffer(), key: 'SCTE35-OUT'}
+  }];
+
+  controller.mainPlaylistLoader_.addDateRangesToTextTrack_(dateRanges);
+  const actualCueValues = controller.inbandTextTracks_.metadataTrack_.cues_.map((cue)=>{
+    return {
+      startTime: cue.startTime,
+      endTime: cue.endTime,
+      id: cue.id,
+      value: {
+        data: cue.value.data,
+        key: cue.value.key
+      }
+    };
+  });
+
+  assert.deepEqual(actualCueValues, expectedCueValues, 'expected cue values are added to the metadataTrack');
+  controller.dispose();
+});
+
 QUnit.test('obeys metadata preload option', function(assert) {
   this.player.preload('metadata');
   // main

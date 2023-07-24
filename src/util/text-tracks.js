@@ -243,6 +243,72 @@ export const addMetadata = ({
   });
 };
 
+// object for mapping daterange attributes
+const dateRangeAttr = {
+  id: 'ID',
+  class: 'CLASS',
+  startDate: 'START-DATE',
+  duration: 'DURATION',
+  endDate: 'END-DATE',
+  endOnNext: 'END-ON-NEXT',
+  plannedDuration: 'PLANNED-DURATION',
+  scte35Out: 'SCTE35-OUT',
+  scte35In: 'SCTE35-IN'
+};
+
+const dateRangeKeysToOmit = new Set([
+  'id',
+  'class',
+  'startDate',
+  'duration',
+  'endDate',
+  'endOnNext',
+  'startTime',
+  'endTime',
+  'processDateRange'
+]);
+
+/**
+ * Add DateRange metadata text track to a source handler given an array of metadata
+ *
+ * @param {Object}
+ *   @param {Object} inbandTextTracks the inband text tracks
+ *   @param {Array} dateRanges parsed media playlist
+ * @private
+ */
+export const addDateRangeMetadata = ({ inbandTextTracks, dateRanges }) => {
+  const metadataTrack = inbandTextTracks.metadataTrack_;
+
+  if (!metadataTrack) {
+    return;
+  }
+
+  const Cue = window.WebKitDataCue || window.VTTCue;
+
+  dateRanges.forEach((dateRange) => {
+    // we generate multiple cues for each date range with different attributes
+    for (const key of Object.keys(dateRange)) {
+      if (dateRangeKeysToOmit.has(key)) {
+        continue;
+      }
+
+      const cue = new Cue(dateRange.startTime, dateRange.endTime, '');
+
+      cue.id = dateRange.id;
+      cue.type = 'com.apple.quicktime.HLS';
+      cue.value = { key: dateRangeAttr[key], data: dateRange[key] };
+
+      if (key === 'scte35Out' || key === 'scte35In') {
+        cue.value.data = new Uint8Array(cue.value.data.match(/[\da-f]{2}/gi)).buffer;
+      }
+
+      metadataTrack.addCue(cue);
+    }
+
+    dateRange.processDateRange();
+  });
+};
+
 /**
  * Create metadata text track on video.js if it does not exist
  *
@@ -261,7 +327,10 @@ export const createMetadataTrackIfNotExists = (inbandTextTracks, dispatchType, t
     label: 'Timed Metadata'
   }, false).track;
 
-  inbandTextTracks.metadataTrack_.inBandMetadataTrackDispatchType = dispatchType;
+  if (!videojs.browser.IS_ANY_SAFARI) {
+    inbandTextTracks.metadataTrack_.inBandMetadataTrackDispatchType = dispatchType;
+
+  }
 };
 
 /**
