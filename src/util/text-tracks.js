@@ -82,11 +82,31 @@ export const addCaptionData = function({
   captionArray.forEach((caption) => {
     const track = caption.stream;
 
-    inbandTextTracks[track].addCue(new Cue(
-      caption.startTime + timestampOffset,
-      caption.endTime + timestampOffset,
-      caption.text
-    ));
+    // in CEA 608 captions, video.js/mux.js sends a content array
+    // with positioning data
+    if (caption.content) {
+      caption.content.forEach((value) => {
+        const cue = new Cue(
+          caption.startTime + timestampOffset,
+          caption.endTime + timestampOffset,
+          value.text
+        );
+
+        cue.line = value.line;
+        cue.align = 'left';
+        cue.position = value.position;
+        cue.positionAlign = 'line-left';
+
+        inbandTextTracks[track].addCue(cue);
+      });
+    } else {
+      // otherwise, a text value with combined captions is sent
+      inbandTextTracks[track].addCue(new Cue(
+        caption.startTime + timestampOffset,
+        caption.endTime + timestampOffset,
+        caption.text
+      ));
+    }
   });
 };
 
