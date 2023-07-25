@@ -865,7 +865,49 @@ export const LoaderCommonFactory = ({
       });
     });
 
-    QUnit.test('live rendition switch uses resetLoader', function(assert) {
+    QUnit.test('live LLHLS rendition switch uses resetLoader', function(assert) {
+      return this.setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+
+        loader.playlist(playlistWithDuration(50, {
+          mediaSequence: 0,
+          endList: false
+        }));
+
+        loader.load();
+        loader.mediaIndex = 0;
+        let resyncCalled = false;
+        let resetCalled = false;
+        const origReset = loader.resetLoader;
+        const origResync = loader.resyncLoader;
+
+        loader.resetLoader = function() {
+          resetCalled = true;
+          return origReset.call(loader);
+        };
+
+        loader.resyncLoader = function() {
+          resyncCalled = true;
+          return origResync.call(loader);
+        };
+
+        const newPlaylist = playlistWithDuration(50, {
+          mediaSequence: 0,
+          endList: false
+        });
+
+        newPlaylist.uri = 'playlist2.m3u8';
+        newPlaylist.partTargetDuration = 1;
+
+        loader.playlist(newPlaylist);
+
+        assert.true(resetCalled, 'reset was called');
+        assert.true(resyncCalled, 'resync was called');
+
+        return Promise.resolve();
+      });
+    });
+
+    QUnit.test('live rendition switch uses resyncLoader', function(assert) {
       return this.setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
 
         loader.playlist(playlistWithDuration(50, {
@@ -899,8 +941,8 @@ export const LoaderCommonFactory = ({
 
         loader.playlist(newPlaylist);
 
-        assert.true(resetCalled, 'reset was called');
         assert.true(resyncCalled, 'resync was called');
+        assert.false(resetCalled, 'reset was not called');
 
         return Promise.resolve();
       });
