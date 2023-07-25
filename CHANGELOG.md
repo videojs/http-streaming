@@ -1,3 +1,23 @@
+<a name="3.5.0"></a>
+# [3.5.0](https://github.com/videojs/http-streaming/compare/v3.4.0...v3.5.0) (2023-07-25)
+
+### Features
+
+* add daterange support ([#1402](https://github.com/videojs/http-streaming/issues/1402)) ([7c0e968](https://github.com/videojs/http-streaming/commit/7c0e968))
+* enable caption positioning ([#1408](https://github.com/videojs/http-streaming/issues/1408)) ([3c5a5bc](https://github.com/videojs/http-streaming/commit/3c5a5bc))
+
+### Bug Fixes
+
+* **live:** only reset playlist loader for LLHLS ([#1410](https://github.com/videojs/http-streaming/issues/1410)) ([0d8a7a3](https://github.com/videojs/http-streaming/commit/0d8a7a3))
+
+### Chores
+
+* update m3u8-parser version and fix tests ([#1407](https://github.com/videojs/http-streaming/issues/1407)) ([fe25a04](https://github.com/videojs/http-streaming/commit/fe25a04))
+
+### Code Refactoring
+
+* add dateTimeObject and dateTimeString to Cues for backward compatibility ([#1409](https://github.com/videojs/http-streaming/issues/1409)) ([2079454](https://github.com/videojs/http-streaming/commit/2079454))
+
 <a name="3.4.0"></a>
 # [3.4.0](https://github.com/videojs/http-streaming/compare/v3.3.1...v3.4.0) (2023-06-01)
 
