@@ -1051,7 +1051,8 @@ export default class SegmentLoader extends videojs.EventTarget {
         // We only want to reset the loader here for LLHLS playback, as resetLoader sets fetchAtBuffer_
         // to false, resulting in fetching segments at currentTime and causing repeated
         // same-segment requests on playlist change. This erroneously drives up the playback watcher
-        // stalled segment count, as re-requesting browser cached segments will not increase the buffer.
+        // stalled segment count, as re-requesting segments at the currentTime or browser cached segments
+        // will not change the buffer.
         // Reference for LLHLS fixes: https://github.com/videojs/http-streaming/pull/1201
         const isLLHLS = !newPlaylist.endList && typeof newPlaylist.partTargetDuration === 'number';
 
