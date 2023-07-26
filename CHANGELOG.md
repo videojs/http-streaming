@@ -1,3 +1,10 @@
+<a name="3.5.1"></a>
+## [3.5.1](https://github.com/videojs/http-streaming/compare/v3.5.0...v3.5.1) (2023-07-26)
+
+### Bug Fixes
+
+* **live:** cue end time not finite ([#1411](https://github.com/videojs/http-streaming/issues/1411)) ([9723e6d](https://github.com/videojs/http-streaming/commit/9723e6d))
+
 <a name="3.5.0"></a>
 # [3.5.0](https://github.com/videojs/http-streaming/compare/v3.4.0...v3.5.0) (2023-07-25)
 
