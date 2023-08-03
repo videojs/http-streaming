@@ -24,7 +24,7 @@ QUnit.test(
       segments: [{
         start: 0,
         end: 1,
-        programDateTime: new Date().getTime()
+        dateTimeObject: new Date()
       }]
     };
     const badPlaylist = {
@@ -32,7 +32,7 @@ QUnit.test(
         {
           start: 0,
           end: 1,
-          programDateTime: new Date().getTime()
+          dateTimeObject: new Date()
         },
         {
           start: 1,
@@ -41,7 +41,7 @@ QUnit.test(
         {
           start: 2,
           end: 3,
-          programDateTime: new Date().getTime()
+          dateTimeObject: new Date()
         }
       ]
     };
@@ -280,7 +280,7 @@ QUnit.test(
             transmuxedPresentationEnd: 1
           },
           duration: 1,
-          programDateTime: new Date('2018-11-10T19:39:57.158Z').getTime()
+          dateTimeObject: new Date('2018-11-10T19:39:57.158Z')
         }],
         targetDuration: 1
       }),
@@ -295,7 +295,7 @@ QUnit.test(
   function(assert) {
     const segment = {
       duration: 1,
-      programDateTime: new Date('2018-11-10T19:38:57.158Z').getTime()
+      dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
     };
 
     assert.deepEqual(
@@ -317,11 +317,11 @@ QUnit.test(
   function(assert) {
     const segment1 = {
       duration: 1,
-      programDateTime: new Date('2018-11-10T19:38:57.158Z').getTime()
+      dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
     };
     const segment2 = {
       duration: 1,
-      programDateTime: new Date('2018-11-10T19:38:58.158Z').getTime()
+      dateTimeObject: new Date('2018-11-10T19:38:58.158Z')
     };
 
     assert.deepEqual(
@@ -348,7 +348,7 @@ QUnit.test(
         transmuxedPresentationEnd: 1
       },
       duration: 1,
-      programDateTime: new Date('2018-11-10T19:38:57.158Z').getTime()
+      dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
     };
 
     assert.deepEqual(
@@ -375,7 +375,7 @@ QUnit.test('findSegmentForProgramTime returns accurate last segment', function(a
         transmuxedPresentationEnd: 1
       },
       duration: 1,
-      programDateTime: new Date('2018-11-10T19:38:57.158Z').getTime()
+      dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
     }, {
       videoTimingInfo: {
         transmuxerPrependedSeconds: 0,
@@ -383,7 +383,7 @@ QUnit.test('findSegmentForProgramTime returns accurate last segment', function(a
         transmuxedPresentationEnd: 2
       },
       duration: 1,
-      programDateTime: new Date('2018-11-10T19:38:58.158Z').getTime()
+      dateTimeObject: new Date('2018-11-10T19:38:58.158Z')
     }]
   };
 
@@ -410,7 +410,7 @@ QUnit.test(
           transmuxedPresentationEnd: 1
         },
         duration: 1,
-        programDateTime: new Date('2018-11-10T19:38:57.158Z').getTime()
+        dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
       }, {
         videoTimingInfo: {
           transmuxerPrependedSeconds: 0,
@@ -418,7 +418,7 @@ QUnit.test(
           transmuxedPresentationEnd: 2
         },
         duration: 1,
-        programDateTime: new Date('2018-11-10T19:38:58.158Z').getTime()
+        dateTimeObject: new Date('2018-11-10T19:38:58.158Z')
       }]
     };
 
@@ -440,17 +440,17 @@ QUnit.test('findSegmentForProgramTime returns estimated last segment', function(
         transmuxedPresentationEnd: 1
       },
       duration: 1,
-      programDateTime: new Date('2018-11-10T19:38:57.158Z').getTime()
+      dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
     }, {
       duration: 1,
-      programDateTime: new Date('2018-11-10T19:38:58.158Z').getTime()
+      dateTimeObject: new Date('2018-11-10T19:38:58.158Z')
     }]
   };
 
   // 25% of last segment duration + last segment duration on top of last segment start
   // to test allowed fudge
   const programTime =
-    new Date(playlist.segments[1].programDateTime + 1.25 * 1000);
+    new Date(playlist.segments[1].dateTimeObject.getTime() + 1.25 * 1000);
 
   assert.deepEqual(
     findSegmentForProgramTime(programTime.toISOString(), playlist),
@@ -476,16 +476,16 @@ QUnit.test(
           transmuxedPresentationEnd: 1
         },
         duration: 1,
-        programDateTime: new Date('2018-11-10T19:38:57.158Z').getTime()
+        dateTimeObject: new Date('2018-11-10T19:38:57.158Z')
       }, {
         duration: 1,
-        programDateTime: new Date('2018-11-10T19:38:58.158Z').getTime()
+        dateTimeObject: new Date('2018-11-10T19:38:58.158Z')
       }]
     };
 
     // just over allowed fudge of 25%
     const programTime =
-    new Date(playlist.segments[1].programDateTime + 1.26 * 1000);
+    new Date(playlist.segments[1].dateTimeObject.getTime() + 1.26 * 1000);
 
     assert.equal(
       findSegmentForProgramTime(programTime.toISOString(), playlist),
@@ -549,11 +549,11 @@ QUnit.test(
 ' program date time',
   function(assert) {
   // UTC: Sun, 11 Nov 2018 00:00:00 GMT
-    const programDateTime = new Date(1541894400000).getTime();
+    const dateTimeObject = new Date(1541894400000);
 
     assert.deepEqual(
       playerTimeToProgramTime(7, {
-        programDateTime,
+        dateTimeObject,
         videoTimingInfo: {
           transmuxedPresentationEnd: 11,
           transmuxedPresentationStart: 4,
@@ -561,7 +561,7 @@ QUnit.test(
         }
       }).toISOString(),
       // 7 seconds into the stream, segment starts at 4 seconds
-      (new Date(programDateTime + 3 * 1000)).toISOString(),
+      (new Date(dateTimeObject.getTime() + 3 * 1000)).toISOString(),
       'returns stream time based on segment program date time'
     );
   }
@@ -569,11 +569,11 @@ QUnit.test(
 
 QUnit.test('playerTimeToProgramTime accounts for prepended content', function(assert) {
   // UTC: Sun, 11 Nov 2018 00:00:00 GMT
-  const programDateTime = new Date(1541894400000).getTime();
+  const dateTimeObject = new Date(1541894400000);
 
   assert.deepEqual(
     playerTimeToProgramTime(7, {
-      programDateTime,
+      dateTimeObject,
       videoTimingInfo: {
         transmuxedPresentationEnd: 11,
         transmuxedPresentationStart: 4,
@@ -582,7 +582,7 @@ QUnit.test('playerTimeToProgramTime accounts for prepended content', function(as
     }).toISOString(),
     // 7 seconds into the stream, segment starts at 4 seconds, but after accounting for
     // prepended content of 2 seconds, the original segment starts at 6 seconds
-    (new Date(programDateTime + 1 * 1000)).toISOString(),
+    (new Date(dateTimeObject.getTime() + 1 * 1000)).toISOString(),
     'returns stream time based on segment program date time'
   );
 });
@@ -609,7 +609,8 @@ QUnit.module('Time: getProgramTime', {
       segments: [{
         duration: 4,
         // UTC: Sun, 11 Nov 2018 00:00:00 GMT
-        programDateTime: new Date(1541894400000).getTime(),
+        dateTimeObject: new Date(1541894400000),
+        dateTimeString: '2018-11-11T00:00:00.000Z',
         start: 5,
         videoTimingInfo: {
           transmuxerPrependedSeconds: 0,
@@ -695,7 +696,7 @@ QUnit.test(
 
         // offset into start of stream by time passed in
         const expectedDateTime =
-        new Date(this.playlist.segments[0].programDateTime + 6 * 1000);
+        new Date(this.playlist.segments[0].dateTimeObject.getTime() + 6 * 1000);
 
         assert.equal(
           programTime.programDateTime,
@@ -718,12 +719,14 @@ QUnit.test(
         {
           duration: 1,
           // UTC: Sun, 11 Nov 2018 00:00:00 GMT
-          programDateTime: new Date(1541894400000).getTime()
+          dateTimeObject: new Date(1541894400000),
+          dateTimeString: '2018-11-11T00:00:00.000Z'
         },
         {
           duration: 2,
           // UTC: Sun, 11 Nov 2018 00:00:00 GMT
-          programDateTime: new Date(1541894400000).getTime()
+          dateTimeObject: new Date(1541894400000),
+          dateTimeString: '2018-11-11T00:00:00.000Z'
         }
       ]
     };
@@ -799,7 +802,7 @@ QUnit.test('returns programDateTime parsed from media segment tags', function(as
       assert.equal(err, null, 'no error');
       assert.equal(
         programTime.programDateTime,
-        new Date(playlist.segments[0].programDateTime).toISOString(),
+        playlist.segments[0].dateTimeString,
         'uses programDateTime found in media segments'
       );
       done();
@@ -990,7 +993,8 @@ QUnit.test('returns error if time does not exist in live stream', function(asser
     programTime: '2018-10-12T22:33:52.037+00:00',
     playlist: {
       segments: [{
-        programDateTime: new Date('2018-10-12T22:33:49.037+00:00').getTime(),
+        dateTimeString: '2018-10-12T22:33:49.037+00:00',
+        dateTimeObject: new Date('2018-10-12T22:33:49.037+00:00'),
         duration: 1,
         start: 0
       }],
@@ -1037,7 +1041,8 @@ QUnit.test('vod: seeks and returns player time seeked to if buffered', function(
     playlist: {
       segments: [
         {
-          programDateTime: new Date('2018-10-12T22:33:49.037+00:00').getTime(),
+          dateTimeString: '2018-10-12T22:33:49.037+00:00',
+          dateTimeObject: new Date('2018-10-12T22:33:49.037+00:00'),
           duration: 1,
           start: 0,
           videoTimingInfo: {
@@ -1046,7 +1051,8 @@ QUnit.test('vod: seeks and returns player time seeked to if buffered', function(
             transmuxedPresentationEnd: 1
           }
         }, {
-          programDateTime: new Date('2018-10-12T22:33:50.037+00:00').getTime(),
+          dateTimeString: '2018-10-12T22:33:50.037+00:00',
+          dateTimeObject: new Date('2018-10-12T22:33:50.037+00:00'),
           duration: 1,
           start: 1,
           videoTimingInfo: {
@@ -1101,7 +1107,8 @@ QUnit.test('vod: does not account for prepended content duration', function(asse
     playlist: {
       segments: [
         {
-          programDateTime: new Date('2018-10-12T22:33:48.037+00:00').getTime(),
+          dateTimeString: '2018-10-12T22:33:48.037+00:00',
+          dateTimeObject: new Date('2018-10-12T22:33:48.037+00:00'),
           duration: 2,
           start: 0,
           videoTimingInfo: {
@@ -1110,7 +1117,8 @@ QUnit.test('vod: does not account for prepended content duration', function(asse
             transmuxedPresentationEnd: 2
           }
         }, {
-          programDateTime: new Date('2018-10-12T22:33:50.037+00:00').getTime(),
+          dateTimeString: '2018-10-12T22:33:50.037+00:00',
+          dateTimeObject: new Date('2018-10-12T22:33:50.037+00:00'),
           duration: 2,
           start: 2,
           videoTimingInfo: {
@@ -1165,7 +1173,8 @@ QUnit.test('live: seeks and returns player time seeked to if buffered', function
     playlist: {
       segments: [
         {
-          programDateTime: new Date('2018-10-12T22:33:49.037+00:00').getTime(),
+          dateTimeString: '2018-10-12T22:33:49.037+00:00',
+          dateTimeObject: new Date('2018-10-12T22:33:49.037+00:00'),
           duration: 1,
           start: 0,
           videoTimingInfo: {
@@ -1174,7 +1183,8 @@ QUnit.test('live: seeks and returns player time seeked to if buffered', function
             transmuxedPresentationEnd: 1
           }
         }, {
-          programDateTime: new Date('2018-10-12T22:33:50.037+00:00').getTime(),
+          dateTimeString: '2018-10-12T22:33:50.037+00:00',
+          dateTimeObject: new Date('2018-10-12T22:33:50.037+00:00'),
           duration: 1,
           start: 1,
           videoTimingInfo: {
@@ -1228,7 +1238,8 @@ QUnit.test('setting pauseAfterSeek to false seeks without pausing', function(ass
     playlist: {
       segments: [
         {
-          programDateTime: new Date('2018-10-12T22:33:49.037+00:00').getTime(),
+          dateTimeString: '2018-10-12T22:33:49.037+00:00',
+          dateTimeObject: new Date('2018-10-12T22:33:49.037+00:00'),
           duration: 1,
           start: 0,
           videoTimingInfo: {
@@ -1237,7 +1248,8 @@ QUnit.test('setting pauseAfterSeek to false seeks without pausing', function(ass
             transmuxedPresentationEnd: 1
           }
         }, {
-          programDateTime: new Date('2018-10-12T22:33:50.037+00:00').getTime(),
+          dateTimeString: '2018-10-12T22:33:50.037+00:00',
+          dateTimeObject: new Date('2018-10-12T22:33:50.037+00:00'),
           duration: 1,
           start: 1,
           videoTimingInfo: {

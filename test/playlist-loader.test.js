@@ -1053,7 +1053,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     const segment = loader.main.playlists[0].segments[0];
 
     assert.strictEqual(segment.custom.test, '#PARSER:parsed', 'parsed custom tag');
-    assert.ok(segment.programDateTime, 'converted and parsed custom time');
+    assert.ok(segment.dateTimeObject, 'converted and parsed custom time');
 
     delete this.fakeVhs.options_;
   });
