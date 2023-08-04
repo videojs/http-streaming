@@ -28,7 +28,7 @@ import logger from './util/logger';
 import {merge, createTimeRanges} from './util/vjs-compat';
 import { addMetadata, createMetadataTrackIfNotExists, addDateRangeMetadata } from './util/text-tracks';
 
-const ABORT_EARLY_EXCLUSION_SECONDS = 60 * 2;
+const ABORT_EARLY_EXCLUSION_SECONDS = 10;
 
 let Vhs;
 
