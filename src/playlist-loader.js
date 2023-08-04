@@ -421,7 +421,7 @@ export default class PlaylistLoader extends EventTarget {
     this.dateRangesStorage_.setPendingDateRanges(mediaPlaylist.dateRanges);
     const availableDateRanges = this.dateRangesStorage_.getDateRangesToProcess();
 
-    if (!availableDateRanges.length) {
+    if (!availableDateRanges.length || !this.addDateRangesToTextTrack_) {
       return;
     }
 
