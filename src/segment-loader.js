@@ -3182,11 +3182,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     const Cue = window.WebKitDataCue || window.VTTCue;
     const value = {
       custom: segment.custom,
-      // Since we now have programDateTime available for every segment, dateTimeObject and dateTimeString
-      // are redundant
-      // TODO: Consider removing this in future major version
-      dateTimeObject: segment.programDateTime ? new Date(segment.programDateTime) : undefined,
-      dateTimeString: segment.programDateTime ? new Date(segment.programDateTime).toISOString() : undefined,
+      dateTimeObject: segment.dateTimeObject,
+      dateTimeString: segment.dateTimeString,
       programDateTime: segment.programDateTime,
       bandwidth: segmentInfo.playlist.attributes.BANDWIDTH,
       resolution: segmentInfo.playlist.attributes.RESOLUTION,

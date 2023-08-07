@@ -53,11 +53,11 @@ export const syncPointStrategies = [
         const datetimeMapping =
           syncController.timelineToDatetimeMappings[segment.timeline];
 
-        if (!datetimeMapping || !segment.programDateTime) {
+        if (!datetimeMapping || !segment.dateTimeObject) {
           continue;
         }
 
-        const segmentTime = segment.programDateTime / 1000;
+        const segmentTime = segment.dateTimeObject.getTime() / 1000;
         let start = segmentTime + datetimeMapping;
 
         // take part duration into account.
@@ -408,9 +408,9 @@ export default class SyncController extends videojs.EventTarget {
 
     if (playlist.segments &&
         playlist.segments.length &&
-        playlist.segments[0].programDateTime) {
+        playlist.segments[0].dateTimeObject) {
       const firstSegment = playlist.segments[0];
-      const playlistTimestamp = firstSegment.programDateTime / 1000;
+      const playlistTimestamp = firstSegment.dateTimeObject.getTime() / 1000;
 
       this.timelineToDatetimeMappings[firstSegment.timeline] = -playlistTimestamp;
     }
@@ -449,10 +449,10 @@ export default class SyncController extends videojs.EventTarget {
       }
     }
 
-    const dateTime = segment.programDateTime;
+    const dateTime = segment.dateTimeObject;
 
     if (segment.discontinuity && shouldSaveTimelineMapping && dateTime) {
-      this.timelineToDatetimeMappings[segment.timeline] = -(dateTime / 1000);
+      this.timelineToDatetimeMappings[segment.timeline] = -(dateTime.getTime() / 1000);
     }
   }
 
