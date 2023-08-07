@@ -1,3 +1,10 @@
+<a name="3.5.2"></a>
+## [3.5.2](https://github.com/videojs/http-streaming/compare/v3.5.1...v3.5.2) (2023-08-07)
+
+### Bug Fixes
+
+* restore dateTimeObject and dateTimeString usage ([#1412](https://github.com/videojs/http-streaming/issues/1412)) ([5e425c0](https://github.com/videojs/http-streaming/commit/5e425c0))
+
 <a name="3.5.1"></a>
 ## [3.5.1](https://github.com/videojs/http-streaming/compare/v3.5.0...v3.5.1) (2023-07-26)
 
