@@ -1157,18 +1157,25 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   /**
-   * Delete all the buffered data and reset the SegmentLoader
-   *
-   * @param {Function} [done] an optional callback to be executed when the remove
-   * operation is complete
+   * Resets the segment loader ended and init properties.
    */
-  resetEverything(done) {
+  resetLoaderProperties() {
     this.ended_ = false;
     this.activeInitSegmentId_ = null;
     this.appendInitSegment_ = {
       audio: true,
       video: true
     };
+  }
+
+  /**
+   * Delete all the buffered data and reset the SegmentLoader
+   *
+   * @param {Function} [done] an optional callback to be executed when the remove
+   * operation is complete
+   */
+  resetEverything(done) {
+    this.resetLoaderProperties();
     this.resetLoader();
 
     // remove from 0, the earliest point, to Infinity, to signify removal of everything.

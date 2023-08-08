@@ -919,9 +919,9 @@ export class PlaylistController extends videojs.EventTarget {
 
   /**
    * Re-tune playback quality level for the current player
-   * conditions. This method will perform destructive actions like removing
-   * already buffered content in order to readjust the currently active
-   * playlist quickly. This is good for manual quality changes
+   * conditions. This will reset the main segment loader
+   * and the next segment position to the currentTime.
+   * This is good for manual quality changes.
    *
    * @private
    */
@@ -933,17 +933,9 @@ export class PlaylistController extends videojs.EventTarget {
 
     this.switchMedia_(media, 'fast-quality');
 
-    // Delete all buffered data to allow an immediate quality switch, then seek to give
-    // the browser a kick to remove any cached frames from the previous rendtion (.04 seconds
-    // ahead was roughly the minimum that will accomplish this across a variety of content
-    // in IE and Edge, but seeking in place is sufficient on all other browsers)
-    // Edge/IE bug: https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/14600375/
-    // Chrome bug: https://bugs.chromium.org/p/chromium/issues/detail?id=651904
-    this.mainSegmentLoader_.resetEverything(() => {
-      this.tech_.setCurrentTime(this.tech_.currentTime());
-    });
-
-    // don't need to reset audio as it is reset when media changes
+    // Reset main segment loader properties and next segment position information
+    this.mainSegmentLoader_.resetLoaderProperties();
+    this.mainSegmentLoader_.resetLoader();
   }
 
   /**
