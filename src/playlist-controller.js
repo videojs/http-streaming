@@ -1393,14 +1393,11 @@ export class PlaylistController extends videojs.EventTarget {
     // cancel outstanding requests so we begin buffering at the new
     // location
     this.mainSegmentLoader_.resetEverything();
-    this.mainSegmentLoader_.abort();
     if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
       this.audioSegmentLoader_.resetEverything();
-      this.audioSegmentLoader_.abort();
     }
     if (this.mediaTypes_.SUBTITLES.activePlaylistLoader) {
       this.subtitleSegmentLoader_.resetEverything();
-      this.subtitleSegmentLoader_.abort();
     }
 
     // start segment loader loading in case they are paused

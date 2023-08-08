@@ -3710,28 +3710,23 @@ QUnit.test('subtitle segment loader resets on seeks', function(assert) {
   this.clock.tick(1);
 
   let resetCount = 0;
-  let abortCount = 0;
   let loadCount = 0;
 
   playlistController.subtitleSegmentLoader_.resetEverything = () => resetCount++;
-  playlistController.subtitleSegmentLoader_.abort = () => abortCount++;
   playlistController.subtitleSegmentLoader_.load = () => loadCount++;
 
   this.player.pause();
   playlistController.setCurrentTime(5);
 
   assert.equal(resetCount, 1, 'reset subtitle segment loader');
-  assert.equal(abortCount, 1, 'aborted subtitle segment loader');
   assert.equal(loadCount, 1, 'called load on subtitle segment loader');
 
   this.player.play();
   resetCount = 0;
-  abortCount = 0;
   loadCount = 0;
   playlistController.setCurrentTime(10);
 
   assert.equal(resetCount, 1, 'reset subtitle segment loader');
-  assert.equal(abortCount, 1, 'aborted subtitle segment loader');
   assert.equal(loadCount, 1, 'called load on subtitle segment loader');
 });
 
