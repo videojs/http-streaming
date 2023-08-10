@@ -629,6 +629,8 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // ...for determining the fetch location
     this.fetchAtBuffer_ = false;
+    // For comparing with currentTime when overwriting segments on playlist changes. Use -1 as the inactive flag.
+    this.replaceSegmentsUntil_ = -1;
 
     this.logger_ = logger(`SegmentLoader[${this.loaderType_}]`);
 
@@ -3057,7 +3059,10 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.logger_(`Appended ${segmentInfoString(segmentInfo)}`);
 
     this.addSegmentMetadataCue_(segmentInfo);
-    this.fetchAtBuffer_ = true;
+    if (this.currentTime_() >= this.replaceSegmentsUntil_) {
+      this.replaceSegmentsUntil_ = -1;
+      this.fetchAtBuffer_ = true;
+    }
     if (this.currentTimeline_ !== segmentInfo.timeline) {
       this.timelineChangeController_.lastTimelineChange({
         type: this.loaderType_,

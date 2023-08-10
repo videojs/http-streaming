@@ -930,13 +930,26 @@ export class PlaylistController extends videojs.EventTarget {
       this.logger_('skipping fastQualityChange because new media is same as old');
       return;
     }
-
     this.switchMedia_(media, 'fast-quality');
-
     // Reset main segment loader properties and next segment position information.
     // Don't need to reset audio as it is reset when media changes.
     // We resetLoaderProperties separately here as we want to fetch init segments if
     // necessary and ensure we're not in an ended state when we switch playlists.
+    this.resetMainLoaderReplaceSegments();
+  }
+
+  /**
+   * Sets the replaceUntil flag on the main segment soader to the buffered end
+   * and resets the main segment loaders properties.
+   */
+  resetMainLoaderReplaceSegments() {
+    const buffered = this.tech_.buffered();
+    const bufferedEnd = buffered.end(buffered.length - 1);
+
+    // Set the replace segments flag to the buffered end, this forces fetchAtBuffer
+    // on the main loader to remain, false after the resetLoader call, until we have
+    // replaced all content buffered ahead of the currentTime.
+    this.mainSegmentLoader_.replaceSegmentsUntil_ = bufferedEnd;
     this.mainSegmentLoader_.resetLoaderProperties();
     this.mainSegmentLoader_.resetLoader();
   }
