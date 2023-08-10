@@ -949,7 +949,7 @@ export class PlaylistController extends videojs.EventTarget {
     // Set the replace segments flag to the buffered end, this forces fetchAtBuffer
     // on the main loader to remain, false after the resetLoader call, until we have
     // replaced all content buffered ahead of the currentTime.
-    this.mainSegmentLoader_.replaceSegmentsUntil_ = bufferedEnd;
+    this.mainSegmentLoader_.replaceSegmentsUntil = bufferedEnd;
     this.mainSegmentLoader_.resetLoaderProperties();
     this.mainSegmentLoader_.resetLoader();
   }

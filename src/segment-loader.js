@@ -3216,4 +3216,16 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     this.segmentMetadataTrack_.addCue(cue);
   }
+
+  /**
+   * Public setter for defining the private replaceSegmentsUntil_ property, which
+   * determines when we can return fetchAtBuffer to true if overwriting the buffer.
+   *
+   * @param {number} bufferedEnd the end of the buffered range to replace segments
+   * until currentTime reaches this time.
+   */
+  set replaceSegmentsUntil(bufferedEnd) {
+    this.logger_(`Replacing currently buffered segments until ${bufferedEnd}`);
+    this.replaceSegmentsUntil_ = bufferedEnd;
+  }
 }
