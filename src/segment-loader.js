@@ -629,7 +629,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // ...for determining the fetch location
     this.fetchAtBuffer_ = false;
-    // For comparing with currentTime when overwriting segments on playlist changes. Use -1 as the inactive flag.
+    // For comparing with currentTime when overwriting segments on fastQualityChange_ changes. Use -1 as the inactive flag.
     this.replaceSegmentsUntil_ = -1;
 
     this.logger_ = logger(`SegmentLoader[${this.loaderType_}]`);
