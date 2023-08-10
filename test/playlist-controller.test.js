@@ -687,6 +687,8 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
   let resets = 0;
   let removeFuncArgs = {};
 
+  this.player.tech_.buffered = () => createTimeRanges(0, 1);
+
   this.playlistController.mediaSource.trigger('sourceopen');
   // main
   this.standardXHRResponse(this.requests.shift());
@@ -4763,6 +4765,8 @@ QUnit.test('can pass or select a playlist for fastQualityChange', function(asser
   };
 
   const pc = this.playlistController;
+
+  this.player.tech_.buffered = () => createTimeRanges(0, 1);
 
   pc.mediaSource.trigger('sourceopen');
   // main
