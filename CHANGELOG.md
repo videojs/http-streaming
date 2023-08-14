@@ -1,3 +1,13 @@
+<a name="3.5.3"></a>
+## [3.5.3](https://github.com/videojs/http-streaming/compare/v3.5.2...v3.5.3) (2023-08-14)
+
+### Bug Fixes
+
+* demo page representation selector ([#1416](https://github.com/videojs/http-streaming/issues/1416)) ([4ca3cab](https://github.com/videojs/http-streaming/commit/4ca3cab))
+* fastQualityChange refactor ([#1414](https://github.com/videojs/http-streaming/issues/1414)) ([4590bdd](https://github.com/videojs/http-streaming/commit/4590bdd))
+* reduce playlist exclusion defaults ([#1413](https://github.com/videojs/http-streaming/issues/1413)) ([bf0a300](https://github.com/videojs/http-streaming/commit/bf0a300))
+* remove segment loader abort in setCurrentTime ([#1415](https://github.com/videojs/http-streaming/issues/1415)) ([323bb32](https://github.com/videojs/http-streaming/commit/323bb32))
+
 <a name="3.5.2"></a>
 ## [3.5.2](https://github.com/videojs/http-streaming/compare/v3.5.1...v3.5.2) (2023-08-07)
 
