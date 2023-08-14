@@ -697,7 +697,7 @@ class VhsHandler extends Component {
     this.options_.bufferBasedABR = this.options_.bufferBasedABR || false;
 
     if (typeof this.options_.playlistExclusionDuration !== 'number') {
-      this.options_.playlistExclusionDuration = 5 * 60;
+      this.options_.playlistExclusionDuration = 60;
     }
 
     if (typeof this.options_.bandwidth !== 'number') {
