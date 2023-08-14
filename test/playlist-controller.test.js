@@ -687,6 +687,8 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
   let resets = 0;
   let removeFuncArgs = {};
 
+  this.player.tech_.buffered = () => createTimeRanges(0, 1);
+
   this.playlistController.mediaSource.trigger('sourceopen');
   // main
   this.standardXHRResponse(this.requests.shift());
@@ -701,18 +703,11 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
     originalResync.call(segmentLoader);
   };
 
-  const origResetEverything = segmentLoader.resetEverything;
-  const origRemove = segmentLoader.remove;
+  const origResetLoaderProperties = segmentLoader.resetLoaderProperties;
 
-  segmentLoader.resetEverything = () => {
+  segmentLoader.resetLoaderProperties = () => {
     resets++;
-    origResetEverything.call(segmentLoader);
-  };
-
-  segmentLoader.remove = (start, end) => {
-    assert.equal(end, Infinity, 'on a remove all, end should be Infinity');
-
-    origRemove.call(segmentLoader, start, end);
+    origResetLoaderProperties.call(segmentLoader);
   };
 
   segmentLoader.startingMediaInfo_ = { hasVideo: true };
@@ -748,9 +743,7 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
 
   assert.equal(resyncs, 1, 'resynced segment loader if media is changed');
 
-  assert.equal(resets, 1, 'resetEverything called if media is changed');
-
-  assert.deepEqual(removeFuncArgs, {start: 0, end: 60}, 'remove() called with correct arguments if media is changed');
+  assert.equal(resets, 1, 'resetLoaderProperties called if media is changed');
 });
 
 QUnit.test('loadVttJs should be passed to the vttSegmentLoader and resolved on vttjsloaded', function(assert) {
@@ -768,55 +761,6 @@ QUnit.test('loadVttJs should be passed to the vttSegmentLoader and rejected on v
 
   controller.subtitleSegmentLoader_.loadVttJs().catch(() => {
     assert.equal(stub.callCount, 1, 'tech addWebVttScript called once');
-  });
-});
-
-QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', function(assert) {
-  let seeks = 0;
-
-  this.playlistController.mediaSource.trigger('sourceopen');
-  // main
-  this.standardXHRResponse(this.requests.shift());
-  // media
-  this.standardXHRResponse(this.requests.shift());
-
-  const segmentLoader = this.playlistController.mainSegmentLoader_;
-
-  return requestAndAppendSegment({
-    request: this.requests.shift(),
-    segmentLoader,
-    clock: this.clock
-  }).then(() => {
-    // media is changed
-    this.playlistController.selectPlaylist = () => {
-      const playlists = this.playlistController.main().playlists;
-      const currentPlaylist = this.playlistController.media();
-
-      return playlists.find((playlist) => playlist !== currentPlaylist);
-    };
-
-    this.player.tech_.on('seeking', function() {
-      seeks++;
-    });
-
-    const timeBeforeSwitch = this.player.currentTime();
-
-    // mock buffered values so removes are processed
-    segmentLoader.sourceUpdater_.audioBuffer.buffered = createTimeRanges([[0, 10]]);
-    segmentLoader.sourceUpdater_.videoBuffer.buffered = createTimeRanges([[0, 10]]);
-
-    this.playlistController.fastQualityChange_();
-    // trigger updateend to indicate the end of the remove operation
-    segmentLoader.sourceUpdater_.audioBuffer.trigger('updateend');
-    segmentLoader.sourceUpdater_.videoBuffer.trigger('updateend');
-    this.clock.tick(1);
-
-    assert.equal(
-      this.player.currentTime(),
-      timeBeforeSwitch,
-      'current time remains the same on fast quality switch'
-    );
-    assert.equal(seeks, 1, 'seek event occurs on fast quality switch');
   });
 });
 
@@ -4810,13 +4754,14 @@ QUnit.test('on error all segment and playlist loaders are paused and aborted', f
 
 QUnit.test('can pass or select a playlist for fastQualityChange', function(assert) {
   const calls = {
-    resetEverything: 0,
     resyncLoader: 0,
     media: 0,
     selectPlaylist: 0
   };
 
   const pc = this.playlistController;
+
+  this.player.tech_.buffered = () => createTimeRanges(0, 1);
 
   pc.mediaSource.trigger('sourceopen');
   // main
@@ -4841,24 +4786,18 @@ QUnit.test('can pass or select a playlist for fastQualityChange', function(asser
     calls.resyncLoader++;
   };
 
-  pc.mainSegmentLoader_.resetEverything = () => {
-    calls.resetEverything++;
-  };
-
   pc.fastQualityChange_(pc.main().playlists[1]);
   assert.deepEqual(calls, {
-    resetEverything: 1,
     media: 1,
     selectPlaylist: 0,
-    resyncLoader: 0
+    resyncLoader: 1
   }, 'calls expected function when passed a playlist');
 
   pc.fastQualityChange_();
   assert.deepEqual(calls, {
-    resetEverything: 2,
     media: 2,
     selectPlaylist: 1,
-    resyncLoader: 0
+    resyncLoader: 2
   }, 'calls expected function when not passed a playlist');
 });
 

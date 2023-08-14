@@ -629,6 +629,8 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // ...for determining the fetch location
     this.fetchAtBuffer_ = false;
+    // For comparing with currentTime when overwriting segments on fastQualityChange_ changes. Use -1 as the inactive flag.
+    this.replaceSegmentsUntil_ = -1;
 
     this.logger_ = logger(`SegmentLoader[${this.loaderType_}]`);
 
@@ -1157,18 +1159,25 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   /**
-   * Delete all the buffered data and reset the SegmentLoader
-   *
-   * @param {Function} [done] an optional callback to be executed when the remove
-   * operation is complete
+   * Resets the segment loader ended and init properties.
    */
-  resetEverything(done) {
+  resetLoaderProperties() {
     this.ended_ = false;
     this.activeInitSegmentId_ = null;
     this.appendInitSegment_ = {
       audio: true,
       video: true
     };
+  }
+
+  /**
+   * Delete all the buffered data and reset the SegmentLoader
+   *
+   * @param {Function} [done] an optional callback to be executed when the remove
+   * operation is complete
+   */
+  resetEverything(done) {
+    this.resetLoaderProperties();
     this.resetLoader();
 
     // remove from 0, the earliest point, to Infinity, to signify removal of everything.
@@ -3050,7 +3059,10 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.logger_(`Appended ${segmentInfoString(segmentInfo)}`);
 
     this.addSegmentMetadataCue_(segmentInfo);
-    this.fetchAtBuffer_ = true;
+    if (this.currentTime_() >= this.replaceSegmentsUntil_) {
+      this.replaceSegmentsUntil_ = -1;
+      this.fetchAtBuffer_ = true;
+    }
     if (this.currentTimeline_ !== segmentInfo.timeline) {
       this.timelineChangeController_.lastTimelineChange({
         type: this.loaderType_,
@@ -3203,5 +3215,17 @@ export default class SegmentLoader extends videojs.EventTarget {
     cue.value = value;
 
     this.segmentMetadataTrack_.addCue(cue);
+  }
+
+  /**
+   * Public setter for defining the private replaceSegmentsUntil_ property, which
+   * determines when we can return fetchAtBuffer to true if overwriting the buffer.
+   *
+   * @param {number} bufferedEnd the end of the buffered range to replace segments
+   * until currentTime reaches this time.
+   */
+  set replaceSegmentsUntil(bufferedEnd) {
+    this.logger_(`Replacing currently buffered segments until ${bufferedEnd}`);
+    this.replaceSegmentsUntil_ = bufferedEnd;
   }
 }
