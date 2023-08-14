@@ -6,7 +6,7 @@
   representationsEl.addEventListener('change', function() {
     var selectedIndex = representationsEl.selectedIndex;
 
-    if (!selectedIndex || selectedIndex < 1 || !window.vhs) {
+    if (selectedIndex < 0 || !window.vhs) {
       return;
     }
     var selectedOption = representationsEl.options[representationsEl.selectedIndex];
