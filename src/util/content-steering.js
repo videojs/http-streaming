@@ -108,8 +108,10 @@ export default class ContentSteering {
    * aborts any current steering xhr and sets the current request object to null
    */
   abort() {
-    this.request.abort();
-    this.request = null;
+    if (this.request) {
+      this.request.abort();
+      this.request = null;
+    }
   }
 
   /**
