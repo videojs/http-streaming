@@ -313,6 +313,7 @@ export default class DashPlaylistLoader extends EventTarget {
     this.vhs_ = vhs;
     this.withCredentials = withCredentials;
     this.addMetadataToTextTrack = options.addMetadataToTextTrack;
+    this.contentSteering = options.contentSteering;
 
     if (!srcUrlOrPlaylist) {
       throw new Error('A non-empty playlist URL or object is required');
@@ -465,6 +466,7 @@ export default class DashPlaylistLoader extends EventTarget {
     this.mediaUpdateTimeout = null;
     this.mediaRequest_ = null;
     this.minimumUpdatePeriodTimeout_ = null;
+    this.contentSteering.dispose();
 
     if (this.mainPlaylistLoader_.createMupOnMedia_) {
       this.off('loadedmetadata', this.mainPlaylistLoader_.createMupOnMedia_);
@@ -775,6 +777,10 @@ export default class DashPlaylistLoader extends EventTarget {
     }
 
     this.addEventStreamToMetadataTrack_(newMain);
+
+    if (this.main.contentSteering) {
+      this.contentSteering.handleContentSteeringTags(this.vhs_.xhr, this.main.uri, this.main.contentSteering);
+    }
 
     return Boolean(newMain);
   }

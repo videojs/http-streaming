@@ -27,6 +27,7 @@ import { createMediaTypes, setupMediaGroups } from './media-groups';
 import logger from './util/logger';
 import {merge, createTimeRanges} from './util/vjs-compat';
 import { addMetadata, createMetadataTrackIfNotExists, addDateRangeMetadata } from './util/text-tracks';
+import ContentSteering from './util/content-steering';
 
 const ABORT_EARLY_EXCLUSION_SECONDS = 10;
 
@@ -200,7 +201,9 @@ export class PlaylistController extends videojs.EventTarget {
     this.requestOptions_ = {
       withCredentials,
       maxPlaylistRetries,
-      timeout: null
+      timeout: null,
+      // pass content steering parsing down to both playlist loaders.
+      contentSteering: new ContentSteering()
     };
 
     this.on('error', this.pauseLoading);

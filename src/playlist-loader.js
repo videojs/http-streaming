@@ -393,6 +393,7 @@ export default class PlaylistLoader extends EventTarget {
     this.vhs_ = vhs;
     this.withCredentials = withCredentials;
     this.addDateRangesToTextTrack_ = options.addDateRangesToTextTrack;
+    this.contentSteering = options.contentSteering;
 
     const vhsOptions = vhs.options_;
 
@@ -545,6 +546,10 @@ export default class PlaylistLoader extends EventTarget {
 
     this.updateMediaUpdateTimeout_(refreshDelay(this.media(), !!update));
 
+    if (this.main.contentSteering) {
+      this.contentSteering.handleContentSteeringTags(this.vhs_.xhr, this.main.uri, this.main.contentSteering);
+    }
+
     this.trigger('loadedplaylist');
   }
 
@@ -557,6 +562,7 @@ export default class PlaylistLoader extends EventTarget {
     window.clearTimeout(this.mediaUpdateTimeout);
     window.clearTimeout(this.finalRenditionTimeout);
     this.dateRangesStorage_ = new DateRangesStorage();
+    this.contentSteering.dispose();
 
     this.off();
   }
