@@ -19,6 +19,7 @@ import {
 import {getKnownPartCount} from './playlist.js';
 import {merge} from './util/vjs-compat';
 import DateRangesStorage from './util/date-ranges';
+import ContentSteering from './util/content-steering';
 
 const { EventTarget } = videojs;
 
@@ -393,7 +394,6 @@ export default class PlaylistLoader extends EventTarget {
     this.vhs_ = vhs;
     this.withCredentials = withCredentials;
     this.addDateRangesToTextTrack_ = options.addDateRangesToTextTrack;
-    this.contentSteering = options.contentSteering;
 
     const vhsOptions = vhs.options_;
 
@@ -547,7 +547,7 @@ export default class PlaylistLoader extends EventTarget {
     this.updateMediaUpdateTimeout_(refreshDelay(this.media(), !!update));
 
     if (this.main.contentSteering) {
-      this.contentSteering.handleContentSteeringTags(this.vhs_.xhr, this.main.uri, this.main.contentSteering);
+      this.contentSteering = new ContentSteering(this.vhs_.xhr, this.main.uri, this.main.contentSteering);
     }
 
     this.trigger('loadedplaylist');

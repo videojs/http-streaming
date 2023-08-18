@@ -27,7 +27,6 @@ import { createMediaTypes, setupMediaGroups } from './media-groups';
 import logger from './util/logger';
 import {merge, createTimeRanges} from './util/vjs-compat';
 import { addMetadata, createMetadataTrackIfNotExists, addDateRangeMetadata } from './util/text-tracks';
-import ContentSteering from './util/content-steering';
 
 const ABORT_EARLY_EXCLUSION_SECONDS = 10;
 
@@ -201,9 +200,7 @@ export class PlaylistController extends videojs.EventTarget {
     this.requestOptions_ = {
       withCredentials,
       maxPlaylistRetries,
-      timeout: null,
-      // pass content steering parsing down to both playlist loaders.
-      contentSteering: new ContentSteering()
+      timeout: null
     };
 
     this.on('error', this.pauseLoading);
@@ -356,6 +353,10 @@ export class PlaylistController extends videojs.EventTarget {
         this.timeToLoadedData__ = Date.now() - timeToLoadedDataStart;
         this.mainAppendsToLoadedData__ = this.mainSegmentLoader_.mediaAppends;
         this.audioAppendsToLoadedData__ = this.audioSegmentLoader_.mediaAppends;
+        // Pass the mainSegmentLoader reference to the contentSteering object for throughput.
+        if (this.mainPlaylistLoader_.contentSteering) {
+          this.mainPlaylistLoader_.contentSteering.mainSegmentLoader_ = this.mainSegmentLoader_;
+        }
       });
     });
   }

@@ -22,6 +22,7 @@ import containerRequest from './util/container-request.js';
 import {toUint8} from '@videojs/vhs-utils/es/byte-helpers';
 import logger from './util/logger';
 import {merge} from './util/vjs-compat';
+import ContentSteering from './util/content-steering';
 
 const { EventTarget } = videojs;
 
@@ -313,7 +314,6 @@ export default class DashPlaylistLoader extends EventTarget {
     this.vhs_ = vhs;
     this.withCredentials = withCredentials;
     this.addMetadataToTextTrack = options.addMetadataToTextTrack;
-    this.contentSteering = options.contentSteering;
 
     if (!srcUrlOrPlaylist) {
       throw new Error('A non-empty playlist URL or object is required');
@@ -466,7 +466,9 @@ export default class DashPlaylistLoader extends EventTarget {
     this.mediaUpdateTimeout = null;
     this.mediaRequest_ = null;
     this.minimumUpdatePeriodTimeout_ = null;
-    this.contentSteering.dispose();
+    if (this.contentSteering) {
+      this.contentSteering.dispose();
+    }
 
     if (this.mainPlaylistLoader_.createMupOnMedia_) {
       this.off('loadedmetadata', this.mainPlaylistLoader_.createMupOnMedia_);
@@ -779,7 +781,7 @@ export default class DashPlaylistLoader extends EventTarget {
     this.addEventStreamToMetadataTrack_(newMain);
 
     if (this.main.contentSteering) {
-      this.contentSteering.handleContentSteeringTags(this.vhs_.xhr, this.main.uri, this.main.contentSteering);
+      this.contentSteering = new ContentSteering(this.vhs_.xhr, this.main.uri, this.main.contentSteering);
     }
 
     return Boolean(newMain);

@@ -13,7 +13,7 @@ import window from 'global/window';
  * This class represents a content steering manifest and associated state.
  */
 export default class ContentSteering {
-  constructor() {
+  constructor(xhr, manifestUri, steeringTag) {
     this.version = null;
     this.ttl = null;
     this.reloadUri = null;
@@ -21,6 +21,9 @@ export default class ContentSteering {
     this.ttlTimeout = null;
     this.currentCdn = null;
     this.request = null;
+    this.manifestType = null;
+
+    this.handleContentSteeringTags_(xhr, manifestUri, steeringTag);
   }
 
   /**
@@ -30,19 +33,42 @@ export default class ContentSteering {
    * @param {string} manifestUri the uri of the main manifest for path resolution
    * @param {Object} steeringTag the content steering tag from the manifest
    */
-  handleContentSteeringTags(xhr, manifestUri, steeringTag) {
+  handleContentSteeringTags_(xhr, manifestUri, steeringTag) {
     if (!xhr || !steeringTag) {
       return;
     }
+    this.manifestType = steeringTag.serverUri ? 'HLS' : 'DASH';
     // serverUri is HLS serverURL is DASH
     const steeringUri = steeringTag.serverUri || steeringTag.serverURL;
 
     // pathwayId is HLS defaultServiceLocation is DASH
     this.currentCdn = steeringTag.pathwayId || steeringTag.defaultServiceLocation;
+    if (this.currentCdn) {
+      // TODO: Apply the currentCdn if we have one.
+    }
+
+    // Content steering manifests can be encoded as a data URI. We can decode, parse and return early if that's the case.
+    if (steeringUri.startsWith('data:')) {
+      this.decodeDataUriManifest_(steeringUri.substring(steeringUri.indexOf(',') + 1), xhr, manifestUri);
+      return;
+    }
+
     // resolve the URI to an absolute URI.
     const uri = resolveUrl(manifestUri, steeringUri);
 
     this.requestContentSteeringManifest_(uri, xhr);
+  }
+
+  /**
+   * Decodes and parses the data uri encoded steering manifest
+   *
+   * @param {string} dataUri the data uri to be decoded and parsed.
+   */
+  decodeDataUriManifest_(dataUri, xhr, manifestUri) {
+    const steeringManifestJson = JSON.parse(window.atob(dataUri));
+
+    this.assignSteeringProperties_(steeringManifestJson, manifestUri);
+    this.startTTLTimeout_(this.reloadUri, xhr);
   }
 
   /**
@@ -52,9 +78,8 @@ export default class ContentSteering {
    * @param {Function} xhr the tech xhr function
    */
   requestContentSteeringManifest_(uri, xhr) {
-    // TODO: Handle steering query parameters.
     this.request = xhr({
-      uri
+      uri: this.setSteeringParams_(uri)
     }, (error) => {
       if (error) {
         // TODO: Add error handling.
@@ -62,8 +87,36 @@ export default class ContentSteering {
       const steeringManifestJson = JSON.parse(this.request.responseText);
 
       this.assignSteeringProperties_(steeringManifestJson, uri);
-      this.startTTLTimeout_(uri, xhr);
+      this.startTTLTimeout_(this.reloadUri, xhr);
     });
+  }
+
+  /**
+   * Set the HLS or DASH content steering manifest request query parameters. For example:
+   * _HLS_pathway="<CURRENT-PATHWAY-ID>" and _HLS_throughput=<THROUGHPUT>
+   * _DASH_pathway and _DASH_throughput
+   *
+   * @param {string} uri to add content steering server parameters to.
+   * @return a new uri as a string with the added steering query parameters.
+   */
+  setSteeringParams_(uri) {
+    const urlObject = new window.URL(uri);
+
+    // set the pathway query param if we have a currentCdn or pathway
+    if (this.currentCdn) {
+      const pathwayKey = `_${this.manifestType}_pathway`;
+
+      urlObject.searchParams.set(pathwayKey, this.currentCdn);
+    }
+    // set throughput query param if we have a throughput rate
+    const hasThroughputRate = this.mainSegmentLoader_ && this.mainSegmentLoader_.throughput && this.mainSegmentLoader_.throughput.rate;
+
+    if (hasThroughputRate) {
+      const throughputKey = `_${this.manifestType}_throughput`;
+
+      urlObject.searchParams.set(throughputKey, this.mainSegmentLoader_.throughput.rate);
+    }
+    return urlObject.toString();
   }
 
   /**
@@ -80,6 +133,8 @@ export default class ContentSteering {
     this.reloadUri = steeringManifest['RELOAD-URI'] ? resolveUrl(baseUri, steeringManifest['RELOAD-URI']) : baseUri;
     // HLS = PATHWAY-PRIORITY, DASH = SERVICE-LOCATION-PRIORITY default = false
     this.cdnPriority = steeringManifest['PATHWAY-PRIORITY'] || steeringManifest['SERVICE-LOCATION-PRIORITY'] || false;
+    // TODO: Trigger switching logic based on priority being set here.
+    // TODO: update the this.currentCdn here? or wait until after we have actually changed the playlist?
   }
 
   /**
