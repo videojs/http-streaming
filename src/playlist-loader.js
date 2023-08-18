@@ -562,7 +562,9 @@ export default class PlaylistLoader extends EventTarget {
     window.clearTimeout(this.mediaUpdateTimeout);
     window.clearTimeout(this.finalRenditionTimeout);
     this.dateRangesStorage_ = new DateRangesStorage();
-    this.contentSteering.dispose();
+    if (this.contentSteering) {
+      this.contentSteering.dispose();
+    }
 
     this.off();
   }
