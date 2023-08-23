@@ -88,8 +88,6 @@ export default class ContentSteering {
       const steeringManifestJson = JSON.parse(this.request.responseText);
 
       this.assignSteeringProperties_(steeringManifestJson, uri);
-      // Fire a content-steering event here to let the player know we have new steering data.
-      this.mainPlaylistLoader_.trigger('content-steering');
       this.startTTLTimeout_(this.reloadUri, xhr);
     });
   }
@@ -136,6 +134,8 @@ export default class ContentSteering {
     this.reloadUri = steeringManifest['RELOAD-URI'] ? resolveUrl(baseUri, steeringManifest['RELOAD-URI']) : baseUri;
     // HLS = PATHWAY-PRIORITY, DASH = SERVICE-LOCATION-PRIORITY default = false
     this.cdnPriority = steeringManifest['PATHWAY-PRIORITY'] || steeringManifest['SERVICE-LOCATION-PRIORITY'] || false;
+    // Fire a content-steering event here to let the player know we have new steering data.
+    this.mainPlaylistLoader_.trigger('content-steering');
   }
 
   /**
