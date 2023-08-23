@@ -13,15 +13,11 @@ import window from 'global/window';
  * This class represents a content steering manifest and associated state.
  */
 export default class ContentSteering {
-  constructor(xhr, manifestUri, steeringTag) {
-    this.version = null;
-    this.ttl = null;
-    this.reloadUri = null;
-    this.cdnPriority = null;
-    this.ttlTimeout = null;
-    this.currentCdn = null;
-    this.request = null;
-    this.manifestType = null;
+  constructor(xhr, manifestUri, steeringTag, mainPlaylistLoader) {
+    // pass a playlist loader reference for triggering events.
+    this.mainPlaylistLoader_ = mainPlaylistLoader;
+    this.queryBeforeStart = false;
+    this.nullAllProperties_();
 
     this.handleContentSteeringTags_(xhr, manifestUri, steeringTag);
   }
@@ -43,8 +39,11 @@ export default class ContentSteering {
 
     // pathwayId is HLS defaultServiceLocation is DASH
     this.currentCdn = steeringTag.pathwayId || steeringTag.defaultServiceLocation;
-    if (this.currentCdn) {
-      // TODO: Apply the currentCdn if we have one.
+    // currently only DASH supports forcing a steering request prior to playback
+    this.queryBeforeStart = this.manifestType === 'DASH' && steeringTag.queryBeforeStart;
+
+    if (this.currentCdn && !this.queryBeforeStart) {
+      this.mainPlaylistLoader_.trigger('content-steering');
     }
 
     // Content steering manifests can be encoded as a data URI. We can decode, parse and return early if that's the case.
@@ -82,11 +81,15 @@ export default class ContentSteering {
       uri: this.setSteeringParams_(uri)
     }, (error) => {
       if (error) {
-        // TODO: Add error handling.
+        this.mainPlaylistLoader_.logger.warn(`sontent steering manifest failed to load ${error}`);
+        this.dispose();
+        return;
       }
       const steeringManifestJson = JSON.parse(this.request.responseText);
 
       this.assignSteeringProperties_(steeringManifestJson, uri);
+      // Fire a content-steering event here to let the player know we have new steering data.
+      this.mainPlaylistLoader_.trigger('content-steering');
       this.startTTLTimeout_(this.reloadUri, xhr);
     });
   }
@@ -133,8 +136,6 @@ export default class ContentSteering {
     this.reloadUri = steeringManifest['RELOAD-URI'] ? resolveUrl(baseUri, steeringManifest['RELOAD-URI']) : baseUri;
     // HLS = PATHWAY-PRIORITY, DASH = SERVICE-LOCATION-PRIORITY default = false
     this.cdnPriority = steeringManifest['PATHWAY-PRIORITY'] || steeringManifest['SERVICE-LOCATION-PRIORITY'] || false;
-    // TODO: Trigger switching logic based on priority being set here.
-    // TODO: update the this.currentCdn here? or wait until after we have actually changed the playlist?
   }
 
   /**
@@ -159,6 +160,17 @@ export default class ContentSteering {
     this.ttlTimeout = null;
   }
 
+  nullAllProperties_() {
+    this.version = null;
+    this.ttl = null;
+    this.reloadUri = null;
+    this.cdnPriority = null;
+    this.ttlTimeout = null;
+    this.currentCdn = null;
+    this.request = null;
+    this.manifestType = null;
+  }
+
   /**
    * aborts any current steering xhr and sets the current request object to null
    */
@@ -175,5 +187,7 @@ export default class ContentSteering {
   dispose() {
     this.abort();
     this.clearTTLTimeout_();
+    this.nullAllProperties_();
+    this.logger = null;
   }
 }

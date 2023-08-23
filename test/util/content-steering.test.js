@@ -11,9 +11,22 @@ QUnit.module('ContentSteering', {
       xhr: xhrFactory()
     };
     this.manifestUri = 'https://foo.bar';
+    this.triggerCount = 0;
+    this.warnCount = 0;
+    this.mockSegmentLoader = {
+      trigger: () => {
+        this.triggerCount++;
+      },
+      logger: {
+        warn: () => {
+          this.warnCount++;
+        }
+      }
+    };
   },
   afterEach() {
     this.env.restore();
+    this.contentSteering = null;
   }
 });
 
@@ -22,7 +35,7 @@ QUnit.test('Can handle HLS content steering object with serverUri only', functio
   const hlsServerUriOnly = {
     serverUri: 'https://content.steering.hls'
   };
-  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, hlsServerUriOnly);
+  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, hlsServerUriOnly, this.mockSegmentLoader);
 
   this.requests[0].respond(200, { 'Content-Type': 'application/json' }, '{ "VERSION": 1 }');
   assert.equal(contentSteering.reloadUri, hlsServerUriOnly.serverUri, 'reloadUri is expected value');
@@ -32,7 +45,7 @@ QUnit.test('Can handle HLS content steering object with relative serverUri', fun
   const hlsServerUriOnly = {
     serverUri: '/hls/path'
   };
-  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, hlsServerUriOnly);
+  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, hlsServerUriOnly, this.mockSegmentLoader);
 
   this.requests[0].respond(200, { 'Content-Type': 'application/json' }, '{ "VERSION": 1 }');
   assert.equal(contentSteering.reloadUri, this.manifestUri + hlsServerUriOnly.serverUri, 'reloadUri is expected value');
@@ -43,7 +56,7 @@ QUnit.test('Can handle HLS content steering object with pathwayId', function(ass
     serverUri: 'https://content.steering.hls',
     pathwayId: 'hls-test'
   };
-  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, hlsSteeringTag);
+  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, hlsSteeringTag, this.mockSegmentLoader);
 
   this.requests[0].respond(200, { 'Content-Type': 'application/json' }, '{ "VERSION": 1 }');
   // check pathway query param
@@ -55,7 +68,7 @@ QUnit.test('Can add HLS throughput to steering manifest requests', function(asse
   const hlsServerUriOnly = {
     serverUri: 'https://content.steering.hls'
   };
-  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, hlsServerUriOnly);
+  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, hlsServerUriOnly, this.mockSegmentLoader);
   const expectedThroughputUrl = hlsServerUriOnly.serverUri + '/?_HLS_throughput=99999';
 
   contentSteering.mainSegmentLoader_ = {
@@ -72,7 +85,7 @@ QUnit.test('Can handle HLS content steering object with serverUri encoded as a b
     'vnd.apple.steeringlist;base64,eyJWRVJTSU9OIjoxLCJUVEwiOjMwMCwiUkVMT0FELVVSSSI6Imh0dHBzOi8vZXhhbXB' +
     'sZS5jb20vc3RlZXJpbmc/dmlkZW89MDAwMTImc2Vzc2lvbj0xMjMiLCJQQVRIV0FZLVBSSU9SSVRZIjpbIkNETi1BIiwiQ0ROLUIiXX0='
   };
-  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, hlsServerUriOnly);
+  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, hlsServerUriOnly, this.mockSegmentLoader);
 
   assert.equal(contentSteering.reloadUri, 'https://example.com/steering?video=00012&session=123', 'reloadUri is expected value');
   assert.equal(contentSteering.ttl, 300, 'ttl is expected value');
@@ -84,7 +97,7 @@ QUnit.test('Can handle DASH content steering object with serverURL only', functi
   const dashServerUrlOnly = {
     serverURL: 'https://content.steering.dash'
   };
-  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, dashServerUrlOnly);
+  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, dashServerUrlOnly, this.mockSegmentLoader);
 
   this.requests[0].respond(200, { 'Content-Type': 'application/json' }, '{ "VERSION": 1 }');
   assert.equal(contentSteering.reloadUri, dashServerUrlOnly.serverURL, 'reloadUri is expected value');
@@ -94,7 +107,7 @@ QUnit.test('Can handle DASH content steering object with relative serverURL', fu
   const dashServerUrlOnly = {
     serverURL: '/dash/path'
   };
-  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, dashServerUrlOnly);
+  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, dashServerUrlOnly, this.mockSegmentLoader);
 
   this.requests[0].respond(200, { 'Content-Type': 'application/json' }, '{ "VERSION": 1 }');
   assert.equal(contentSteering.reloadUri, this.manifestUri + dashServerUrlOnly.serverURL, 'reloadUri is expected value');
@@ -105,7 +118,7 @@ QUnit.test('Can handle DASH content steering object with defaultServiceLocation'
     serverURL: 'https://content.steering.dash',
     defaultServiceLocation: 'dash-test'
   };
-  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, dashSteeringTag);
+  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, dashSteeringTag, this.mockSegmentLoader);
 
   this.requests[0].respond(200, { 'Content-Type': 'application/json' }, '{ "VERSION": 1 }');
   // check pathway query param
@@ -117,7 +130,7 @@ QUnit.test('Can add DASH throughput to steering manifest requests', function(ass
   const dashServerUrlOnly = {
     serverURL: 'https://content.steering.dash'
   };
-  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, dashServerUrlOnly);
+  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, dashServerUrlOnly, this.mockSegmentLoader);
   const expectedThroughputUrl = dashServerUrlOnly.serverURL + '/?_DASH_throughput=99999';
 
   contentSteering.mainSegmentLoader_ = {
@@ -133,7 +146,7 @@ QUnit.test('Can handle content steering manifest with VERSION', function(assert)
   const hlsServerUriOnly = {
     serverUri: 'https://content.steering.hls'
   };
-  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, hlsServerUriOnly);
+  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, hlsServerUriOnly, this.mockSegmentLoader);
 
   this.requests[0].respond(200, { 'Content-Type': 'application/json' }, '{ "VERSION": 1 }');
   assert.equal(contentSteering.version, 1, 'version is expected value');
@@ -145,7 +158,7 @@ QUnit.test('Can handle content steering manifest with RELOAD-URI', function(asse
   const dashServerUrlOnly = {
     serverURL: 'https://content.steering.dash'
   };
-  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, dashServerUrlOnly);
+  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, dashServerUrlOnly, this.mockSegmentLoader);
 
   this.requests[0].respond(200, { 'Content-Type': 'application/json' }, '{ "VERSION": 1, "RELOAD-URI": "https://foo.bar" }');
   assert.equal(contentSteering.reloadUri, 'https://foo.bar', 'reloadUri is expected value');
@@ -155,7 +168,7 @@ QUnit.test('Can handle content steering manifest with TTL', function(assert) {
   const hlsServerUriOnly = {
     serverUri: 'https://content.steering.hls'
   };
-  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, hlsServerUriOnly);
+  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, hlsServerUriOnly, this.mockSegmentLoader);
 
   this.requests[0].respond(200, { 'Content-Type': 'application/json' }, '{ "VERSION": 1, "TTL": 1 }');
   assert.equal(contentSteering.ttl, 1, 'ttl is expected value');
@@ -165,7 +178,7 @@ QUnit.test('Can abort a content steering manifest request', function(assert) {
   const dashServerUrlOnly = {
     serverURL: 'https://content.steering.dash'
   };
-  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, dashServerUrlOnly);
+  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, dashServerUrlOnly, this.mockSegmentLoader);
 
   contentSteering.abort();
   assert.true(this.requests[0].aborted, 'request is aborted');
@@ -176,7 +189,7 @@ QUnit.test('Can abort and clear the TTL timeout for a content steering manifest'
   const hlsServerUriOnly = {
     serverUri: 'https://content.steering.hls'
   };
-  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, hlsServerUriOnly);
+  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, hlsServerUriOnly, this.mockSegmentLoader);
 
   contentSteering.dispose();
   assert.true(this.requests[0].aborted, 'request is aborted');
@@ -189,7 +202,7 @@ QUnit.test('Can handle HLS content steering manifest with PATHWAY-PRIORITY', fun
   const hlsServerUriOnly = {
     serverUri: 'https://content.steering.hls'
   };
-  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, hlsServerUriOnly);
+  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, hlsServerUriOnly, this.mockSegmentLoader);
 
   this.requests[0].respond(200, { 'Content-Type': 'application/json' }, '{ "VERSION": 1, "PATHWAY-PRIORITY": ["hls1", "hls2"] }');
   assert.deepEqual(contentSteering.cdnPriority, ['hls1', 'hls2'], 'cdn priority is expected value');
@@ -200,7 +213,7 @@ QUnit.test('Can handle DASH content steering manifest with SERVICE-LOCATION-PRIO
   const dashServerUrlOnly = {
     serverURL: 'https://content.steering.dash'
   };
-  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, dashServerUrlOnly);
+  const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, dashServerUrlOnly, this.mockSegmentLoader);
 
   this.requests[0].respond(200, { 'Content-Type': 'application/json' }, '{ "VERSION": 1, "SERVICE-LOCATION-PRIORITY": ["dash1", "dash2", "dash3"] }');
   assert.deepEqual(contentSteering.cdnPriority, ['dash1', 'dash2', 'dash3'], 'cdn priority is expected value');

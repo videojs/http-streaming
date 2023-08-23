@@ -547,7 +547,7 @@ export default class PlaylistLoader extends EventTarget {
     this.updateMediaUpdateTimeout_(refreshDelay(this.media(), !!update));
 
     if (this.main.contentSteering) {
-      this.contentSteering = new ContentSteering(this.vhs_.xhr, this.main.uri, this.main.contentSteering);
+      this.contentSteering = new ContentSteering(this.vhs_.xhr, this.main.uri, this.main.contentSteering, this);
     }
 
     this.trigger('loadedplaylist');

@@ -781,7 +781,7 @@ export default class DashPlaylistLoader extends EventTarget {
     this.addEventStreamToMetadataTrack_(newMain);
 
     if (this.main.contentSteering) {
-      this.contentSteering = new ContentSteering(this.vhs_.xhr, this.main.uri, this.main.contentSteering);
+      this.contentSteering = new ContentSteering(this.vhs_.xhr, this.main.uri, this.main.contentSteering, this);
     }
 
     return Boolean(newMain);
