@@ -2,12 +2,15 @@ import resolveUrl from './resolve-url';
 import window from 'global/window';
 import logger from './util/logger';
 
-// A utility class for setting properties and maintaining the state of the content steering manifest.
-// Content Steering manifest format:
-// VERSION: number (required)
-// TTL: number in seconds (optional), default is 300 seconds.
-// RELOAD-URI: string (optional)
-// SERVICE-LOCATION-PRIORITY or PATHWAY-PRIORITY array of strings (handle quoted and not quoted) (optional) default = false in DASH
+/**
+ * A utility class for setting properties and maintaining the state of the content steering manifest.
+ *
+ * Content Steering manifest format:
+ * VERSION: number (required) currently only version 1 is supported.
+ * TTL: number in seconds (optional) until the next content steering manifest reload.
+ * RELOAD-URI: string (optional) uri to fetch the next content steering manifest.
+ * SERVICE-LOCATION-PRIORITY or PATHWAY-PRIORITY a non empty array of unique string values.
+ */
 class SteeringManifest {
   constructor() {
   }
@@ -60,7 +63,8 @@ class SteeringManifest {
  * https://datatracker.ietf.org/doc/draft-pantos-hls-rfc8216bis/ section 4.4.6.6.
  * DASH: https://dashif.org/docs/DASH-IF-CTS-00XX-Content-Steering-Community-Review.pdf
  *
- * @param {Object} mainPlaylistLoader a reference to the mainPlaylistLoader
+ * @param {Object} playlistLoader a reference to the mainPlaylistLoader
+ * @param {Object} segmentLoader a reference to the mainSegmentLoader
  */
 export default class ContentSteering {
   // pass a playlist loader and segment loader reference for triggering events, logging and xhr.
@@ -70,7 +74,6 @@ export default class ContentSteering {
     this.queryBeforeStart_ = null;
     this.proxyServerUrl_ = null;
     this.manifestType_ = null;
-    this.steeringTag_ = null;
     this.ttlTimeout_ = null;
     this.request_ = null;
     this.mainPlaylistLoader_ = playlistLoader;
@@ -87,8 +90,7 @@ export default class ContentSteering {
     if (!steeringTag) {
       return;
     }
-    this.steeringTag_ = steeringTag;
-    this.assignTagProperties_(this.mainPlaylistLoader_.main.uri);
+    this.assignTagProperties_(this.mainPlaylistLoader_.main.uri, steeringTag);
   }
 
   /**
@@ -128,10 +130,15 @@ export default class ContentSteering {
     });
   }
 
-  assignTagProperties_(baseUrl) {
-    this.manifestType_ = this.steeringTag_.serverUri ? 'HLS' : 'DASH';
+  /**
+   * Assigns the content steering tag properties to
+   *
+   * @param {string} baseUrl the baseURL from the manifest for resolving the steering manifest url.
+   */
+  assignTagProperties_(baseUrl, steeringTag) {
+    this.manifestType_ = steeringTag.serverUri ? 'HLS' : 'DASH';
     // serverUri is HLS serverURL is DASH
-    const steeringUri = this.steeringTag_.serverUri || this.steeringTag_.serverURL;
+    const steeringUri = steeringTag.serverUri || steeringTag.serverURL;
 
     // Content steering manifests can be encoded as a data URI. We can decode, parse and return early if that's the case.
     if (steeringUri.startsWith('data:')) {
@@ -140,11 +147,11 @@ export default class ContentSteering {
     }
     this.steeringManifest.reloadUri = resolveUrl(baseUrl, steeringUri);
     // pathwayId is HLS defaultServiceLocation is DASH
-    this.currentPathway = this.steeringTag_.pathwayId || this.steeringTag_.defaultServiceLocation;
+    this.currentPathway = steeringTag.pathwayId || steeringTag.defaultServiceLocation;
     // currently only DASH supports the following properties on <ContentSteering> tags.
     if (this.manifestType_ === 'DASH') {
-      this.queryBeforeStart = this.steeringTag_.queryBeforeStart || false;
-      this.proxyServerUrl_ = this.steeringTag_.proxyServerUrl;
+      this.queryBeforeStart = steeringTag.queryBeforeStart || false;
+      this.proxyServerUrl_ = steeringTag.proxyServerUrl;
     }
 
     // trigger a steering event if we have a pathway from the content steering tag.
@@ -154,6 +161,12 @@ export default class ContentSteering {
     }
   }
 
+  /**
+   * Set the proxy server URL and add the steering manifest url as a URI encoded parameter.
+   *
+   * @param {string} steeringUrl the steering manifest url
+   * @return the steering manifest url to a proxy server with all parameters set
+   */
   setProxyServerUrl_(steeringUrl) {
     const steeringUrlObject = new window.URL(steeringUrl);
     const proxyServerUrlObject = new window.URL(this.proxyServerUrl_);
@@ -203,7 +216,6 @@ export default class ContentSteering {
    * Assigns the current steering manifest properties and to the ContentSteering class.
    *
    * @param {Object} steeringJson the raw JSON steering manifest
-   * @param {string} baseUri the baseUri for url path resolution
    */
   assignSteeringProperties_(steeringJson) {
     this.steeringManifest.version = steeringJson.VERSION;
@@ -223,8 +235,6 @@ export default class ContentSteering {
 
   /**
    * Start the timeout for re-requesting the steering manifest at the TTL interval.
-   *
-   * @param {string} uri the uri to request the steering manifest from after the ttl interval
    */
   startTTLTimeout_() {
     if (!this.steeringManifest.ttl) {
@@ -261,7 +271,6 @@ export default class ContentSteering {
     this.queryBeforeStart_ = null;
     this.proxyServerUrl_ = null;
     this.manifestType_ = null;
-    this.steeringTag_ = null;
     this.ttlTimeout_ = null;
     this.request_ = null;
   }
