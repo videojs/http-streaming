@@ -192,8 +192,9 @@ export default class ContentSteering {
 
     if (this.mainSegmentLoader_.throughput.rate) {
       const throughputKey = `_${this.manifestType_}_throughput`;
+      const rateInteger = Math.round(this.mainSegmentLoader_.throughput.rate);
 
-      urlObject.searchParams.set(throughputKey, this.mainSegmentLoader_.throughput.rate);
+      urlObject.searchParams.set(throughputKey, rateInteger);
     }
     return urlObject.toString();
   }
