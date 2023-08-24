@@ -27,6 +27,7 @@ import { createMediaTypes, setupMediaGroups } from './media-groups';
 import logger from './util/logger';
 import {merge, createTimeRanges} from './util/vjs-compat';
 import { addMetadata, createMetadataTrackIfNotExists, addDateRangeMetadata } from './util/text-tracks';
+import ContentSteering from './content-steering';
 
 const ABORT_EARLY_EXCLUSION_SECONDS = 10;
 
@@ -306,7 +307,7 @@ export class PlaylistController extends videojs.EventTarget {
       }), options);
 
     this.setupSegmentLoaderListeners_();
-
+    this.contentSteering_ = new ContentSteering(this.mainPlaylistLoader_, this.mainSegmentLoader_);
     if (this.bufferBasedABR) {
       this.mainPlaylistLoader_.one('loadedplaylist', () => this.startABRTimer_());
       this.tech_.on('pause', () => this.stopABRTimer_());
@@ -611,7 +612,19 @@ export class PlaylistController extends videojs.EventTarget {
         }
         updatedPlaylist = this.initialMedia_;
       }
-
+      this.contentSteering_.handleContentSteeringTag();
+      if (this.mainPlaylistLoader_.main.contentSteering) {
+        // TODO: Apply default pathways here.
+        if (this.sourceType_ !== 'dash') {
+          this.contentSteering_.requestContentSteeringManifest();
+        } else {
+          // DASH wants some buffer first before we request a steering manifest.
+          // TODO: Handle queryBeforeStart here.
+          this.tech_.on('canplay', () => {
+            this.contentSteering_.requestContentSteeringManifest();
+          });
+        }
+      }
       this.handleUpdatedMediaPlaylist(updatedPlaylist);
     });
 
@@ -1665,6 +1678,7 @@ export class PlaylistController extends videojs.EventTarget {
     this.subtitleSegmentLoader_.dispose();
     this.sourceUpdater_.dispose();
     this.timelineChangeController_.dispose();
+    this.contentSteering_.dispose();
 
     this.stopABRTimer_();
 

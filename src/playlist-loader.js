@@ -19,7 +19,6 @@ import {
 import {getKnownPartCount} from './playlist.js';
 import {merge} from './util/vjs-compat';
 import DateRangesStorage from './util/date-ranges';
-import ContentSteering from './util/content-steering';
 
 const { EventTarget } = videojs;
 
@@ -546,10 +545,6 @@ export default class PlaylistLoader extends EventTarget {
 
     this.updateMediaUpdateTimeout_(refreshDelay(this.media(), !!update));
 
-    if (this.main.contentSteering) {
-      this.contentSteering = new ContentSteering(this.vhs_.xhr, this.main.uri, this.main.contentSteering, this);
-    }
-
     this.trigger('loadedplaylist');
   }
 
@@ -562,9 +557,6 @@ export default class PlaylistLoader extends EventTarget {
     window.clearTimeout(this.mediaUpdateTimeout);
     window.clearTimeout(this.finalRenditionTimeout);
     this.dateRangesStorage_ = new DateRangesStorage();
-    if (this.contentSteering) {
-      this.contentSteering.dispose();
-    }
 
     this.off();
   }
