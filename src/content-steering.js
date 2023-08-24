@@ -31,8 +31,9 @@ class SteeringManifest {
   }
 
   set priority(array) {
+    // priority must be non-empty and unique values.
     if (array.length) {
-      this.priority_ = array;
+      this.priority_ = new Set(array);
     }
   }
 
