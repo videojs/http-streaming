@@ -354,10 +354,6 @@ export class PlaylistController extends videojs.EventTarget {
         this.timeToLoadedData__ = Date.now() - timeToLoadedDataStart;
         this.mainAppendsToLoadedData__ = this.mainSegmentLoader_.mediaAppends;
         this.audioAppendsToLoadedData__ = this.audioSegmentLoader_.mediaAppends;
-        // Pass the mainSegmentLoader reference to the contentSteering object for throughput.
-        if (this.mainPlaylistLoader_.contentSteering) {
-          this.mainPlaylistLoader_.contentSteering.mainSegmentLoader_ = this.mainSegmentLoader_;
-        }
       });
     });
   }
