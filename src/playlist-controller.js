@@ -577,9 +577,9 @@ export class PlaylistController extends videojs.EventTarget {
       let updatedPlaylist = this.mainPlaylistLoader_.media();
 
       if (!updatedPlaylist) {
+        this.initContentSteering_();
         // exclude any variants that are not supported by the browser before selecting
         // an initial media as the playlist selectors do not consider browser support
-        this.excludeUnsupportedVariants_();
 
         let selectedMedia;
 
@@ -611,19 +611,6 @@ export class PlaylistController extends videojs.EventTarget {
           return;
         }
         updatedPlaylist = this.initialMedia_;
-      }
-      this.contentSteering_.handleContentSteeringTag();
-      if (this.mainPlaylistLoader_.main.contentSteering) {
-        // TODO: Apply default pathways here.
-        if (this.sourceType_ !== 'dash') {
-          this.contentSteering_.requestContentSteeringManifest();
-        } else {
-          // DASH wants some buffer first before we request a steering manifest.
-          // TODO: Handle queryBeforeStart here.
-          this.tech_.on('canplay', () => {
-            this.contentSteering_.requestContentSteeringManifest();
-          });
-        }
       }
       this.handleUpdatedMediaPlaylist(updatedPlaylist);
     });
@@ -2069,5 +2056,81 @@ export class PlaylistController extends videojs.EventTarget {
       timestampOffset,
       videoDuration
     });
+  }
+
+  /**
+   * Initialize content steering listeners and apply the tag properties.
+   */
+  initContentSteering_() {
+    // TODO: apply content steering pathways before updating a playlist.
+    if (!this.main().contentSteering) {
+      return;
+    }
+    this.mainPlaylistLoader_.on('content-steering', () => {
+      this.excludeThenChangePathway_();
+    });
+    this.contentSteering_.handleContentSteeringTag();
+    this.tech_.one('canplay', () => {
+      // TODO: Implement queryBeforeStart
+      this.contentSteering_.requestContentSteeringManifest();
+    });
+  }
+
+  // TODO: Implement HLS and DASH specific logic. This is just a simple switcher
+  /**
+   * Simple exclude and change playlist logic for content steering.
+   */
+  excludeThenChangePathway_() {
+    const currentPathway = this.contentSteering_.currentPathway;
+
+    if (!currentPathway) {
+      return;
+    }
+    const main = this.main();
+    const playlists = main.playlists;
+    const ids = new Set();
+    let didEnablePlaylists = false;
+
+    Object.keys(playlists).forEach((key) => {
+      const variant = playlists[key];
+      const differentPathwayId = variant.attributes['PATHWAY-ID'] && currentPathway !== variant.attributes['PATHWAY-ID'];
+      const steeringExclusion = variant.excludeUntil === Infinity && variant.lastExcludeReason_ === 'content-steering';
+
+      if (steeringExclusion && !differentPathwayId) {
+        delete variant.excludeUntil;
+        delete variant.lastExcludeReason_;
+        didEnablePlaylists = true;
+      }
+      const shouldExclude = !ids.has(variant.id) && differentPathwayId && variant.excludeUntil !== Infinity;
+
+      if (!shouldExclude) {
+        return;
+      }
+      ids.add(variant.id);
+      variant.excludeUntil = Infinity;
+      variant.lastExcludeReason_ = 'content-steering';
+      // TODO: kind of spammy, maybe move this.
+      this.logger_(`excluding ${variant.id} for ${variant.lastExcludeReason_}`);
+    });
+
+    if (didEnablePlaylists) {
+      this.changeSegmentPathway_();
+    }
+  }
+
+  changeSegmentPathway_() {
+    const nextPlaylist = this.selectPlaylist();
+
+    if (nextPlaylist.attributes.AUDIO) {
+      this.delegateLoaders_('audio', ['abort', 'pause']);
+    }
+
+    if (nextPlaylist.attributes.SUBTITLES) {
+      this.delegateLoaders_('subtitle', ['abort', 'pause']);
+    }
+
+    this.delegateLoaders_('main', ['abort', 'pause']);
+
+    this.switchMedia_(nextPlaylist, 'content-steering');
   }
 }

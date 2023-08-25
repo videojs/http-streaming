@@ -35,8 +35,8 @@ class SteeringManifest {
 
   set priority(array) {
     // priority must be non-empty and unique values.
-    if (array.length) {
-      this.priority_ = new Set(array);
+    if (array && array.length) {
+      this.priority_ = array;
     }
   }
 
@@ -78,7 +78,7 @@ export default class ContentSteering {
     this.request_ = null;
     this.mainPlaylistLoader_ = playlistLoader;
     this.mainSegmentLoader_ = segmentLoader;
-    this.logger_ = logger('ContentSteering');
+    this.logger_ = logger('Content Steering');
   }
 
   /**
@@ -98,7 +98,7 @@ export default class ContentSteering {
    */
   requestContentSteeringManifest() {
     if (!this.steeringManifest.reloadUri) {
-      this.logger_(`${this.logString_} manifest URL is ${this.steeringManifest.reloadUri}, cannot request steering manifest.`);
+      this.logger_(`manifest URL is ${this.steeringManifest.reloadUri}, cannot request steering manifest.`);
     }
     // add parameters to the steering uri
     const reloadUri = this.steeringManifest.reloadUri;
@@ -121,7 +121,7 @@ export default class ContentSteering {
         // client SHOULD continue to use the previous values and attempt to reload
         // it after waiting for the previously-specified TTL (or 5 minutes if
         // none).
-        this.mainPlaylistLoader_.logger(`manifest failed to load ${error}.`);
+        this.logger_(`manifest failed to load ${error}.`);
         return;
       }
       const steeringManifestJson = JSON.parse(this.request_.responseText);
@@ -228,8 +228,13 @@ export default class ContentSteering {
     // HLS = PATHWAY-PRIORITY required. DASH = SERVICE-LOCATION-PRIORITY optional, default = false
     this.steeringManifest.priority = steeringJson['PATHWAY-PRIORITY'] || steeringJson['SERVICE-LOCATION-PRIORITY'];
     // TODO: HLS handle PATHWAY-CLONES. See section 7.2 https://datatracker.ietf.org/doc/draft-pantos-hls-rfc8216bis/
-    // Fire a content-steering event here to let the player know we have new steering data.
-    this.mainPlaylistLoader_.trigger('content-steering');
+    const firstPriority = this.steeringManifest.priority[0];
+
+    // TODO: implement priority logic.
+    if (firstPriority && this.currentPathway !== firstPriority) {
+      this.currentPathway = firstPriority;
+      this.mainPlaylistLoader_.trigger('content-steering');
+    }
     this.startTTLTimeout_();
   }
 
