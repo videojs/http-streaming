@@ -27,7 +27,7 @@ import { createMediaTypes, setupMediaGroups } from './media-groups';
 import logger from './util/logger';
 import {merge, createTimeRanges} from './util/vjs-compat';
 import { addMetadata, createMetadataTrackIfNotExists, addDateRangeMetadata } from './util/text-tracks';
-import ContentSteering from './content-steering';
+import ContentSteeringController from './content-steering';
 
 const ABORT_EARLY_EXCLUSION_SECONDS = 10;
 
@@ -307,7 +307,8 @@ export class PlaylistController extends videojs.EventTarget {
       }), options);
 
     this.setupSegmentLoaderListeners_();
-    this.contentSteering_ = new ContentSteering(this.mainPlaylistLoader_, this.mainSegmentLoader_);
+    // pass main segment loader for current throughput.
+    this.contentSteeringController_ = new ContentSteeringController(this.mainSegmentLoader_);
     if (this.bufferBasedABR) {
       this.mainPlaylistLoader_.one('loadedplaylist', () => this.startABRTimer_());
       this.tech_.on('pause', () => this.stopABRTimer_());
@@ -573,9 +574,13 @@ export class PlaylistController extends videojs.EventTarget {
       let updatedPlaylist = this.mainPlaylistLoader_.media();
 
       if (!updatedPlaylist) {
-        this.initContentSteering_();
+        this.initContentSteeringController_();
+        if (this.main().contentSteering.queryBeforeStart) {
+          this.contentSteeringController_.requestContentSteeringManifest();
+        }
         // exclude any variants that are not supported by the browser before selecting
         // an initial media as the playlist selectors do not consider browser support
+        this.excludeUnsupportedVariants_();
 
         let selectedMedia;
 
@@ -1661,7 +1666,7 @@ export class PlaylistController extends videojs.EventTarget {
     this.subtitleSegmentLoader_.dispose();
     this.sourceUpdater_.dispose();
     this.timelineChangeController_.dispose();
-    this.contentSteering_.dispose();
+    this.contentSteeringController_.dispose();
 
     this.stopABRTimer_();
 
@@ -2057,27 +2062,32 @@ export class PlaylistController extends videojs.EventTarget {
   /**
    * Initialize content steering listeners and apply the tag properties.
    */
-  initContentSteering_() {
-    // TODO: apply content steering pathways before updating a playlist.
-    if (!this.main().contentSteering) {
+  initContentSteeringController_() {
+    const main = this.main();
+
+    if (!main.contentSteering) {
       return;
     }
-    this.mainPlaylistLoader_.on('content-steering', () => {
-      this.excludeThenChangePathway_();
-    });
-    this.contentSteering_.handleContentSteeringTag();
+    this.contentSteeringController_.handleContentSteeringTag(main);
+    for (const playlist of main.playlists) {
+      this.contentSteeringController_.availablePathways.add(playlist.attributes['PATHWAY-ID']);
+    }
+    this.contentSteeringController_.on('content-steering', this.excludeThenChangePathway_.bind(this));
+    // Do this at startup only, after that the steering requests are managed by the Content Steering class.
     this.tech_.one('canplay', () => {
-      // TODO: Implement queryBeforeStart
-      this.contentSteering_.requestContentSteeringManifest();
+      if (!main.contentSteering.queryBeforeStart) {
+        this.contentSteeringController_.requestContentSteeringManifest();
+      }
     });
   }
 
-  // TODO: Implement HLS and DASH specific logic. This is just a simple switcher
+  // TODO: Implement HLS and DASH specific logic. This is just a simple HLS switcher
   /**
    * Simple exclude and change playlist logic for content steering.
    */
   excludeThenChangePathway_() {
-    const currentPathway = this.contentSteering_.currentPathway;
+    // take current pathway, if that doesn't exist try the default.
+    const currentPathway = this.contentSteeringController_.pathway();
 
     if (!currentPathway) {
       return;
@@ -2089,7 +2099,8 @@ export class PlaylistController extends videojs.EventTarget {
 
     Object.keys(playlists).forEach((key) => {
       const variant = playlists[key];
-      const differentPathwayId = variant.attributes['PATHWAY-ID'] && currentPathway !== variant.attributes['PATHWAY-ID'];
+      const pathwayId = variant.attributes['PATHWAY-ID'];
+      const differentPathwayId = pathwayId && currentPathway !== pathwayId;
       const steeringExclusion = variant.excludeUntil === Infinity && variant.lastExcludeReason_ === 'content-steering';
 
       if (steeringExclusion && !differentPathwayId) {
@@ -2097,7 +2108,8 @@ export class PlaylistController extends videojs.EventTarget {
         delete variant.lastExcludeReason_;
         didEnablePlaylists = true;
       }
-      const shouldExclude = !ids.has(variant.id) && differentPathwayId && variant.excludeUntil !== Infinity;
+      const noExcludeUntil = !variant.excludeUntil && variant.excludeUntil !== Infinity;
+      const shouldExclude = !ids.has(variant.id) && differentPathwayId && noExcludeUntil;
 
       if (!shouldExclude) {
         return;
@@ -2118,14 +2130,14 @@ export class PlaylistController extends videojs.EventTarget {
     const nextPlaylist = this.selectPlaylist();
 
     if (nextPlaylist.attributes.AUDIO) {
-      this.delegateLoaders_('audio', ['abort', 'pause']);
+      this.delegateLoaders_('audio', ['pause']);
     }
 
     if (nextPlaylist.attributes.SUBTITLES) {
-      this.delegateLoaders_('subtitle', ['abort', 'pause']);
+      this.delegateLoaders_('subtitle', ['pause']);
     }
 
-    this.delegateLoaders_('main', ['abort', 'pause']);
+    this.delegateLoaders_('main', ['pause']);
 
     this.switchMedia_(nextPlaylist, 'content-steering');
   }

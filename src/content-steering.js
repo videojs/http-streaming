@@ -1,6 +1,7 @@
 import resolveUrl from './resolve-url';
 import window from 'global/window';
 import logger from './util/logger';
+import videojs from 'video.js';
 
 /**
  * A utility class for setting properties and maintaining the state of the content steering manifest.
@@ -13,6 +14,7 @@ import logger from './util/logger';
  */
 class SteeringManifest {
   constructor() {
+    this.priority_ = [];
   }
 
   set version(number) {
@@ -66,17 +68,22 @@ class SteeringManifest {
  * @param {Object} playlistLoader a reference to the mainPlaylistLoader
  * @param {Object} segmentLoader a reference to the mainSegmentLoader
  */
-export default class ContentSteering {
+export default class ContentSteeringController extends videojs.EventTarget {
   // pass a playlist loader and segment loader reference for triggering events, logging and xhr.
-  constructor(playlistLoader, segmentLoader) {
+  constructor(segmentLoader) {
+    super();
+
     this.currentPathway = null;
+    this.defaultPathway = null;
+    this.availablePathways = new Set();
+    this.queryBeforeStart = null;
+    // TODO: Implement exclusion.
+    this.excludedPathways_ = new Set();
     this.steeringManifest = new SteeringManifest();
-    this.queryBeforeStart_ = null;
     this.proxyServerUrl_ = null;
     this.manifestType_ = null;
     this.ttlTimeout_ = null;
     this.request_ = null;
-    this.mainPlaylistLoader_ = playlistLoader;
     this.mainSegmentLoader_ = segmentLoader;
     this.logger_ = logger('Content Steering');
   }
@@ -84,13 +91,13 @@ export default class ContentSteering {
   /**
    * This function will extract the content steering data from both DASH and HLS manifest objects.
    */
-  handleContentSteeringTag() {
-    const steeringTag = this.mainPlaylistLoader_.main.contentSteering;
+  handleContentSteeringTag(mainPlaylist) {
+    const steeringTag = mainPlaylist.contentSteering;
 
     if (!steeringTag) {
       return;
     }
-    this.assignTagProperties_(this.mainPlaylistLoader_.main.uri, steeringTag);
+    this.assignTagProperties_(mainPlaylist.uri, steeringTag);
   }
 
   /**
@@ -147,7 +154,7 @@ export default class ContentSteering {
     }
     this.steeringManifest.reloadUri = resolveUrl(baseUrl, steeringUri);
     // pathwayId is HLS defaultServiceLocation is DASH
-    this.currentPathway = steeringTag.pathwayId || steeringTag.defaultServiceLocation;
+    this.defaultPathway = steeringTag.pathwayId || steeringTag.defaultServiceLocation;
     // currently only DASH supports the following properties on <ContentSteering> tags.
     if (this.manifestType_ === 'DASH') {
       this.queryBeforeStart = steeringTag.queryBeforeStart || false;
@@ -156,8 +163,8 @@ export default class ContentSteering {
 
     // trigger a steering event if we have a pathway from the content steering tag.
     // this tells VHS which segment pathway to start with.
-    if (this.currentPathway && !this.queryBeforeStart) {
-      this.mainPlaylistLoader_.trigger('content-steering');
+    if (this.defaultPathway && !this.queryBeforeStart) {
+      this.trigger('content-steering');
     }
   }
 
@@ -196,11 +203,12 @@ export default class ContentSteering {
    */
   setSteeringParams_(url) {
     const urlObject = new window.URL(url);
+    const path = this.pathway();
 
-    if (this.currentPathway) {
+    if (path) {
       const pathwayKey = `_${this.manifestType_}_pathway`;
 
-      urlObject.searchParams.set(pathwayKey, this.currentPathway);
+      urlObject.searchParams.set(pathwayKey, path);
     }
 
     if (this.mainSegmentLoader_.throughput.rate) {
@@ -228,14 +236,32 @@ export default class ContentSteering {
     // HLS = PATHWAY-PRIORITY required. DASH = SERVICE-LOCATION-PRIORITY optional, default = false
     this.steeringManifest.priority = steeringJson['PATHWAY-PRIORITY'] || steeringJson['SERVICE-LOCATION-PRIORITY'];
     // TODO: HLS handle PATHWAY-CLONES. See section 7.2 https://datatracker.ietf.org/doc/draft-pantos-hls-rfc8216bis/
-    const firstPriority = this.steeringManifest.priority[0];
 
     // TODO: implement priority logic.
-    if (firstPriority && this.currentPathway !== firstPriority) {
-      this.currentPathway = firstPriority;
-      this.mainPlaylistLoader_.trigger('content-steering');
+    // 1. apply first pathway from the array.
+    // 2. if first first pathway doesn't exist in manifest, try next pathway.
+    //    a. if all pathways are exhausted, ignore the steering manifest priority.
+    // 3. if segments fail from an established pathway, try all variants/renditions, then exclude the failed pathway.
+    //    a. exclude a pathway for a minimum of the last TTL duration. Meaning, from the next steering response,
+    //       the excluded pathway will be ignored.
+    const choseNextPathway = (pathways) => {
+      for (const path of pathways) {
+        if (this.availablePathways.has(path)) {
+          return path;
+        }
+      }
+    };
+    const nextPathway = choseNextPathway(this.steeringManifest.priority);
+
+    if (nextPathway && this.currentPathway !== nextPathway) {
+      this.currentPathway = nextPathway;
+      this.trigger('content-steering');
     }
     this.startTTLTimeout_();
+  }
+
+  pathway() {
+    return this.currentPathway || this.defaultPathway;
   }
 
   /**
@@ -255,7 +281,7 @@ export default class ContentSteering {
   /**
    * Clear the TTL timeout if necessary.
    */
-  clearTTLTimeout() {
+  clearTTLTimeout_() {
     window.clearTimeout(this.ttlTimeout);
     this.ttlTimeout = null;
   }
@@ -271,13 +297,21 @@ export default class ContentSteering {
 
   dispose() {
     this.abort();
-    this.clearTTLTimeout();
+    this.clearTTLTimeout_();
     this.currentPathway = null;
-    this.queryBeforeStart_ = null;
+    this.defaultPathway = null;
+    this.queryBeforeStart = null;
     this.proxyServerUrl_ = null;
     this.manifestType_ = null;
     this.ttlTimeout_ = null;
     this.request_ = null;
+    this.availablePathways_ = new Set();
+    this.excludedPathways_ = new Set();
+    this.steeringManifest = new SteeringManifest();
+  }
+
+  set availablePathway(pathway) {
+    this.availablePathways_.add(pathway);
   }
 }
 
