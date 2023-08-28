@@ -254,7 +254,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
     };
     const nextPathway = choseNextPathway(this.steeringManifest.priority);
 
-    if (nextPathway && this.currentPathway !== nextPathway) {
+    if (this.currentPathway !== nextPathway) {
       this.currentPathway = nextPathway;
       this.trigger('content-steering');
     }
