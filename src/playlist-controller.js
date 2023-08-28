@@ -27,7 +27,7 @@ import { createMediaTypes, setupMediaGroups } from './media-groups';
 import logger from './util/logger';
 import {merge, createTimeRanges} from './util/vjs-compat';
 import { addMetadata, createMetadataTrackIfNotExists, addDateRangeMetadata } from './util/text-tracks';
-import ContentSteeringController from './content-steering';
+import ContentSteeringController from './content-steering-controller';
 
 const ABORT_EARLY_EXCLUSION_SECONDS = 10;
 
