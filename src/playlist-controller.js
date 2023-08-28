@@ -613,6 +613,7 @@ export class PlaylistController extends videojs.EventTarget {
         }
         updatedPlaylist = this.initialMedia_;
       }
+
       this.handleUpdatedMediaPlaylist(updatedPlaylist);
     });
 
