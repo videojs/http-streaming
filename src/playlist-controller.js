@@ -575,9 +575,6 @@ export class PlaylistController extends videojs.EventTarget {
 
       if (!updatedPlaylist) {
         this.initContentSteeringController_();
-        if (this.main().contentSteering.queryBeforeStart) {
-          this.contentSteeringController_.requestContentSteeringManifest();
-        }
         // exclude any variants that are not supported by the browser before selecting
         // an initial media as the playlist selectors do not consider browser support
         this.excludeUnsupportedVariants_();
