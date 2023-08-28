@@ -2057,6 +2057,10 @@ export class PlaylistController extends videojs.EventTarget {
     });
   }
 
+  pathwayAttribute_(playlist) {
+    return playlist.attributes['PATHWAY-ID'] || playlist.attributes.serviceLocation;
+  }
+
   /**
    * Initialize content steering listeners and apply the tag properties.
    */
@@ -2068,12 +2072,12 @@ export class PlaylistController extends videojs.EventTarget {
     }
     this.contentSteeringController_.handleContentSteeringTag(main);
     for (const playlist of main.playlists) {
-      this.contentSteeringController_.availablePathways.add(playlist.attributes['PATHWAY-ID']);
+      this.contentSteeringController_.availablePathways.add(this.pathwayAttribute_(playlist));
     }
     this.contentSteeringController_.on('content-steering', this.excludeThenChangePathway_.bind(this));
     // Do this at startup only, after that the steering requests are managed by the Content Steering class.
     this.tech_.one('canplay', () => {
-      if (main.contentSteering && !main.contentSteering.queryBeforeStart) {
+      if (main.contentSteering) {
         this.contentSteeringController_.requestContentSteeringManifest();
       }
     });
@@ -2097,7 +2101,7 @@ export class PlaylistController extends videojs.EventTarget {
 
     Object.keys(playlists).forEach((key) => {
       const variant = playlists[key];
-      const pathwayId = variant.attributes['PATHWAY-ID'];
+      const pathwayId = this.pathwayAttribute_(variant);
       const differentPathwayId = pathwayId && currentPathway !== pathwayId;
       const steeringExclusion = variant.excludeUntil === Infinity && variant.lastExcludeReason_ === 'content-steering';
 
