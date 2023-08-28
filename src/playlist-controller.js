@@ -2076,7 +2076,7 @@ export class PlaylistController extends videojs.EventTarget {
     this.contentSteeringController_.on('content-steering', this.excludeThenChangePathway_.bind(this));
     // Do this at startup only, after that the steering requests are managed by the Content Steering class.
     this.tech_.one('canplay', () => {
-      if (!main.contentSteering.queryBeforeStart) {
+      if (main.contentSteering && !main.contentSteering.queryBeforeStart) {
         this.contentSteeringController_.requestContentSteeringManifest();
       }
     });
