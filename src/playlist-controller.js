@@ -2085,7 +2085,7 @@ export class PlaylistController extends videojs.EventTarget {
    */
   excludeThenChangePathway_() {
     // take current pathway, if that doesn't exist try the default.
-    const currentPathway = this.contentSteeringController_.pathway();
+    const currentPathway = this.contentSteeringController_.getPathway();
 
     if (!currentPathway) {
       return;

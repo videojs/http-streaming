@@ -31,6 +31,7 @@ class SteeringManifest {
 
   set reloadUri(uri) {
     if (uri) {
+      // reload URI can be relative to the previous reloadUri.
       this.reloadUri_ = resolveUrl(this.reloadUri_, uri);
     }
   }
@@ -203,7 +204,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
    */
   setSteeringParams_(url) {
     const urlObject = new window.URL(url);
-    const path = this.pathway();
+    const path = this.getPathway();
 
     if (path) {
       const pathwayKey = `_${this.manifestType_}_pathway`;
@@ -260,7 +261,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
     this.startTTLTimeout_();
   }
 
-  pathway() {
+  getPathway() {
     return this.currentPathway || this.defaultPathway;
   }
 
