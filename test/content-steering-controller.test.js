@@ -3,8 +3,7 @@ import ContentSteeringController from '../src/content-steering-controller';
 import { useFakeEnvironment } from './test-helpers';
 import xhrFactory from '../src/xhr';
 
-// TODO: REFACTOR ALL TESTS.
-QUnit.module.skip('ContentSteering', {
+QUnit.module.only('ContentSteering', {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
     this.requests = this.env.requests;
@@ -50,52 +49,61 @@ QUnit.test('Can handle HLS content steering object with relative serverUri', fun
 
   this.mockMainPlaylist.contentSteering = steeringTag;
   this.contentSteeringController.handleContentSteeringTag(this.mockMainPlaylist);
-  const reloadUri = this.contentSteeringController.steeringManifest.reloadUri;
+  this.contentSteeringController.requestContentSteeringManifest();
+  let reloadUri = this.contentSteeringController.steeringManifest.reloadUri;
   const baseURL = this.mockMainPlaylist.uri;
+  const steeringResponsePath = 'steering/relative';
 
   assert.equal(reloadUri, baseURL + steeringTag.serverUri, 'reloadUri is expected value');
+  // steering response with relative RELOAD-URI
+  this.requests[0].respond(200, { 'Content-Type': 'application/json' }, `{ "VERSION": 1, "RELOAD-URI": "${steeringResponsePath}" }`);
+  reloadUri = this.contentSteeringController.steeringManifest.reloadUri;
+  assert.equal(reloadUri, baseURL + steeringTag.serverUri.slice(0, 5) + steeringResponsePath, 'reloadUri is expected value');
 });
 
-// QUnit.test('Can handle HLS content steering object with pathwayId', function(assert) {
-//   const hlsSteeringTag = {
-//     serverUri: 'https://content.steering.hls',
-//     pathwayId: 'hls-test'
-//   };
-//   const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, hlsSteeringTag, this.mockSegmentLoader);
+QUnit.test('Can handle HLS content steering object with pathwayId', function(assert) {
+  const steeringTag = {
+    serverUri: 'https://content.steering.hls',
+    pathwayId: 'hls-test'
+  };
 
-//   this.requests[0].respond(200, { 'Content-Type': 'application/json' }, '{ "VERSION": 1 }');
-//   // check pathway query param
-//   assert.equal(this.requests[0].uri, contentSteering.reloadUri + '/?_HLS_pathway=hls-test', 'query parameters are set');
-//   assert.equal(contentSteering.currentCdn, hlsSteeringTag.pathwayId, 'current cdn is expected value');
-// });
+  this.mockMainPlaylist.contentSteering = steeringTag;
+  this.contentSteeringController.handleContentSteeringTag(this.mockMainPlaylist);
+  this.contentSteeringController.requestContentSteeringManifest();
+  const reloadUri = this.contentSteeringController.steeringManifest.reloadUri;
 
-// QUnit.test('Can add HLS throughput to steering manifest requests', function(assert) {
-//   const hlsServerUriOnly = {
-//     serverUri: 'https://content.steering.hls'
-//   };
-//   const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, hlsServerUriOnly, this.mockSegmentLoader);
-//   const expectedThroughputUrl = hlsServerUriOnly.serverUri + '/?_HLS_throughput=99999';
+  // check pathway query param
+  assert.equal(this.requests[0].uri, reloadUri + '/?_HLS_pathway=hls-test', 'query parameters are set');
+  assert.equal(this.contentSteeringController.defaultPathway, steeringTag.pathwayId, 'default pathway is expected value');
+});
 
-//   contentSteering.mainSegmentLoader_ = {
-//     throughput: {
-//       rate: 99999
-//     }
-//   };
-//   assert.equal(contentSteering.setSteeringParams_(hlsServerUriOnly.serverUri), expectedThroughputUrl, 'throughput parameters set as expected');
-// });
+QUnit.test('Can add HLS pathway and throughput to steering manifest requests', function(assert) {
+  const steeringTag = {
+    serverUri: 'https://content.steering.hls',
+    pathwayId: 'cdn-a'
+  };
+  const expectedThroughputUrl = steeringTag.serverUri + '/?_HLS_pathway=cdn-a&_HLS_throughput=99999';
 
-// QUnit.test('Can handle HLS content steering object with serverUri encoded as a base64 dataURI', function(assert) {
-//   const hlsServerUriOnly = {
-//     serverUri: 'data:application/' +
-//     'vnd.apple.steeringlist;base64,eyJWRVJTSU9OIjoxLCJUVEwiOjMwMCwiUkVMT0FELVVSSSI6Imh0dHBzOi8vZXhhbXB' +
-//     'sZS5jb20vc3RlZXJpbmc/dmlkZW89MDAwMTImc2Vzc2lvbj0xMjMiLCJQQVRIV0FZLVBSSU9SSVRZIjpbIkNETi1BIiwiQ0ROLUIiXX0='
-//   };
-//   const contentSteering = new ContentSteering(this.fakeVhs.xhr, this.manifestUri, hlsServerUriOnly, this.mockSegmentLoader);
+  this.mockMainPlaylist.contentSteering = steeringTag;
+  this.contentSteeringController.handleContentSteeringTag(this.mockMainPlaylist);
+  this.mockSegmentLoader.throughput.rate = 99999;
+  assert.equal(this.contentSteeringController.setSteeringParams_(steeringTag.serverUri), expectedThroughputUrl, 'throughput parameters set as expected');
+});
 
-//   assert.equal(contentSteering.reloadUri, 'https://example.com/steering?video=00012&session=123', 'reloadUri is expected value');
-//   assert.equal(contentSteering.ttl, 300, 'ttl is expected value');
-//   assert.deepEqual(contentSteering.cdnPriority, ['CDN-A', 'CDN-B'], 'cdnPriority is expected value');
-// });
+QUnit.test('Can handle HLS content steering object with serverUri encoded as a base64 dataURI', function(assert) {
+  const steeringTag = {
+    serverUri: 'data:application/' +
+    'vnd.apple.steeringlist;base64,eyJWRVJTSU9OIjoxLCJUVEwiOjMwMCwiUkVMT0FELVVSSSI6Imh0dHBzOi8vZXhhbXB' +
+    'sZS5jb20vc3RlZXJpbmc/dmlkZW89MDAwMTImc2Vzc2lvbj0xMjMiLCJQQVRIV0FZLVBSSU9SSVRZIjpbIkNETi1BIiwiQ0ROLUIiXX0='
+  };
+  const steeringManifest = this.contentSteeringController.steeringManifest;
+
+  this.mockMainPlaylist.contentSteering = steeringTag;
+  this.contentSteeringController.handleContentSteeringTag(this.mockMainPlaylist);
+  assert.equal(steeringManifest.reloadUri, 'https://example.com/steering?video=00012&session=123', 'reloadUri is expected value');
+  assert.equal(steeringManifest.ttl, 300, 'ttl is expected value');
+  assert.deepEqual(steeringManifest.priority, ['CDN-A', 'CDN-B'], 'cdnPriority is expected value');
+});
 
 // // DASH
 // QUnit.test('Can handle DASH content steering object with serverURL only', function(assert) {
