@@ -2072,7 +2072,7 @@ export class PlaylistController extends videojs.EventTarget {
     }
     this.contentSteeringController_.assignTagProperties(main.uri, main.contentSteering);
     for (const playlist of main.playlists) {
-      this.contentSteeringController_.availablePathways.add(this.pathwayAttribute_(playlist));
+      this.contentSteeringController_.addAvailablePathway(this.pathwayAttribute_(playlist));
     }
     this.contentSteeringController_.on('content-steering', this.excludeThenChangePathway_.bind(this));
     // Do this at startup only, after that the steering requests are managed by the Content Steering class.

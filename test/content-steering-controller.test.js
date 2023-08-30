@@ -3,7 +3,7 @@ import ContentSteeringController from '../src/content-steering-controller';
 import { useFakeEnvironment } from './test-helpers';
 import xhrFactory from '../src/xhr';
 
-QUnit.module.only('ContentSteering', {
+QUnit.module('ContentSteering', {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
     this.requests = this.env.requests;
@@ -238,8 +238,8 @@ QUnit.test('Can handle HLS content steering manifest with PATHWAY-PRIORITY and t
     pathwayId: 'hls2'
   };
 
-  this.contentSteeringController.availablePathways.add('hls1');
-  this.contentSteeringController.availablePathways.add('hls2');
+  this.contentSteeringController.addAvailablePathway('hls1');
+  this.contentSteeringController.addAvailablePathway('hls2');
   this.assignAndRequest(steeringTag);
   this.requests[0].respond(200, { 'Content-Type': 'application/json' }, '{ "VERSION": 1, "PATHWAY-PRIORITY": ["hls1", "hls2"] }');
   assert.deepEqual(this.contentSteeringController.steeringManifest.priority, ['hls1', 'hls2'], 'priority is expected value');
@@ -263,9 +263,9 @@ QUnit.test('Can handle DASH content steering manifest with PATHWAY-PRIORITY and 
     pathwayId: 'dash3'
   };
 
-  this.contentSteeringController.availablePathways.add('dash1');
-  this.contentSteeringController.availablePathways.add('dash2');
-  this.contentSteeringController.availablePathways.add('dash3');
+  this.contentSteeringController.addAvailablePathway('dash1');
+  this.contentSteeringController.addAvailablePathway('dash2');
+  this.contentSteeringController.addAvailablePathway('dash3');
   this.assignAndRequest(steeringTag);
   this.requests[0].respond(200, { 'Content-Type': 'application/json' }, '{ "VERSION": 1, "SERVICE-LOCATION-PRIORITY": ["dash2", "dash1", "dash3"] }');
   assert.deepEqual(this.contentSteeringController.steeringManifest.priority, ['dash2', 'dash1', 'dash3'], 'priority is expected value');
