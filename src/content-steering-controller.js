@@ -126,11 +126,14 @@ export default class ContentSteeringController extends videojs.EventTarget {
   }
 
   /**
-   * Requests the content steering manifest and parse the response.
+   * Requests the content steering manifest and parse the response. This should only be called after
+   * assignTagProperties was called with a content steering tag.
    */
   requestSteeringManifest() {
     // add parameters to the steering uri
     const reloadUri = this.steeringManifest.reloadUri;
+    // We currently don't support passing MPD query parameters directly to the content steering URL as this requires
+    // ExtUrlQueryInfo tag support. See the DASH content steering spec section 8.1.
     const uri = this.proxyServerUrl_ ? this.setProxyServerUrl_(reloadUri) : this.setSteeringParams_(reloadUri);
 
     this.request_ = this.mainSegmentLoader_.vhs_.xhr({

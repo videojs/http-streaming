@@ -103,7 +103,7 @@ QUnit.test('Can handle HLS content steering object with serverUri encoded as a b
   assert.deepEqual(steeringManifest.priority, ['CDN-A', 'CDN-B'], 'cdnPriority is expected value');
 });
 
-// // DASH
+// DASH
 QUnit.test('Can handle DASH content steering object with serverURL only', function(assert) {
   const steeringTag = {
     serverURL: 'https://content.steering.dash'
