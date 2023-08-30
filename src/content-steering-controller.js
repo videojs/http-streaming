@@ -75,8 +75,8 @@ export default class ContentSteeringController extends videojs.EventTarget {
 
     this.currentPathway = null;
     this.defaultPathway = null;
-    this.availablePathways_ = new Set();
     this.queryBeforeStart = null;
+    this.availablePathways_ = new Set();
     // TODO: Implement exclusion.
     this.excludedPathways_ = new Set();
     this.steeringManifest = new SteeringManifest();
