@@ -229,7 +229,21 @@ QUnit.test('Can handle HLS content steering manifest with PATHWAY-PRIORITY', fun
 
   this.assignAndRequest(steeringTag);
   this.requests[0].respond(200, { 'Content-Type': 'application/json' }, '{ "VERSION": 1, "PATHWAY-PRIORITY": ["hls1", "hls2"] }');
-  assert.deepEqual(this.contentSteeringController.steeringManifest.priority, ['hls1', 'hls2'], 'cdn priority is expected value');
+  assert.deepEqual(this.contentSteeringController.steeringManifest.priority, ['hls1', 'hls2'], 'priority is expected value');
+});
+
+QUnit.test('Can handle HLS content steering manifest with PATHWAY-PRIORITY and tag with pathwayId', function(assert) {
+  const steeringTag = {
+    serverUri: 'https://content.steering.hls',
+    pathwayId: 'hls2'
+  };
+
+  this.contentSteeringController.availablePathways.add('hls1');
+  this.contentSteeringController.availablePathways.add('hls2');
+  this.assignAndRequest(steeringTag);
+  this.requests[0].respond(200, { 'Content-Type': 'application/json' }, '{ "VERSION": 1, "PATHWAY-PRIORITY": ["hls1", "hls2"] }');
+  assert.deepEqual(this.contentSteeringController.steeringManifest.priority, ['hls1', 'hls2'], 'priority is expected value');
+  assert.equal(this.contentSteeringController.currentPathway, 'hls1', 'current pathway is hls1');
 });
 
 // DASH
@@ -240,11 +254,25 @@ QUnit.test('Can handle DASH content steering manifest with SERVICE-LOCATION-PRIO
 
   this.assignAndRequest(steeringTag);
   this.requests[0].respond(200, { 'Content-Type': 'application/json' }, '{ "VERSION": 1, "SERVICE-LOCATION-PRIORITY": ["dash1", "dash2", "dash3"] }');
-  assert.deepEqual(this.contentSteeringController.steeringManifest.priority, ['dash1', 'dash2', 'dash3'], 'cdn priority is expected value');
+  assert.deepEqual(this.contentSteeringController.steeringManifest.priority, ['dash1', 'dash2', 'dash3'], 'priority is expected value');
+});
+
+QUnit.test('Can handle DASH content steering manifest with PATHWAY-PRIORITY and tag with pathwayId', function(assert) {
+  const steeringTag = {
+    serverUri: 'https://content.steering.hls',
+    pathwayId: 'dash3'
+  };
+
+  this.contentSteeringController.availablePathways.add('dash1');
+  this.contentSteeringController.availablePathways.add('dash2');
+  this.contentSteeringController.availablePathways.add('dash3');
+  this.assignAndRequest(steeringTag);
+  this.requests[0].respond(200, { 'Content-Type': 'application/json' }, '{ "VERSION": 1, "SERVICE-LOCATION-PRIORITY": ["dash2", "dash1", "dash3"] }');
+  assert.deepEqual(this.contentSteeringController.steeringManifest.priority, ['dash2', 'dash1', 'dash3'], 'priority is expected value');
+  assert.equal(this.contentSteeringController.currentPathway, 'dash2', 'current pathway is dash2');
 });
 
 // Common abort, dispose and error cases
-
 QUnit.test('Can abort a content steering manifest request', function(assert) {
   const steeringTag = {
     serverURL: 'https://content.steering.dash'

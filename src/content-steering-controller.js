@@ -238,14 +238,14 @@ export default class ContentSteeringController extends videojs.EventTarget {
     // 3. if segments fail from an established pathway, try all variants/renditions, then exclude the failed pathway.
     //    a. exclude a pathway for a minimum of the last TTL duration. Meaning, from the next steering response,
     //       the excluded pathway will be ignored.
-    const choseNextPathway = (pathways) => {
+    const chooseNextPathway = (pathways) => {
       for (const path of pathways) {
         if (this.availablePathways.has(path)) {
           return path;
         }
       }
     };
-    const nextPathway = choseNextPathway(this.steeringManifest.priority);
+    const nextPathway = chooseNextPathway(this.steeringManifest.priority);
 
     if (this.currentPathway !== nextPathway) {
       this.currentPathway = nextPathway;
@@ -262,9 +262,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
    * Start the timeout for re-requesting the steering manifest at the TTL interval.
    */
   startTTLTimeout_() {
-    if (!this.steeringManifest.ttl) {
-      this.logger_(`manifest ttl is ${this.steeringManifest.ttl} cannot reload steering manifest.`);
-    }
+    // 300 (5 minutes) is the default value.
     const ttlMS = this.steeringManifest.ttl * 1000;
 
     this.ttlTimeout_ = window.setTimeout(() => {
