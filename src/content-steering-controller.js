@@ -90,21 +90,40 @@ export default class ContentSteeringController extends videojs.EventTarget {
   }
 
   /**
-   * This function will extract the content steering data from both DASH and HLS manifest objects.
-   */
-  handleContentSteeringTag(mainPlaylist) {
-    const steeringTag = mainPlaylist.contentSteering;
+     * Assigns the content steering tag properties to the steering controller
+     *
+     * @param {string} baseUrl the baseURL from the manifest for resolving the steering manifest url.
+     */
+  assignTagProperties(baseUrl, steeringTag) {
+    this.manifestType_ = steeringTag.serverUri ? 'HLS' : 'DASH';
+    // serverUri is HLS serverURL is DASH
+    const steeringUri = steeringTag.serverUri || steeringTag.serverURL;
 
-    if (!steeringTag) {
+    // Content steering manifests can be encoded as a data URI. We can decode, parse and return early if that's the case.
+    if (steeringUri.startsWith('data:')) {
+      this.decodeDataUriManifest_(steeringUri.substring(steeringUri.indexOf(',') + 1));
       return;
     }
-    this.assignTagProperties_(mainPlaylist.uri, steeringTag);
+    this.steeringManifest.reloadUri = resolveUrl(baseUrl, steeringUri);
+    // pathwayId is HLS defaultServiceLocation is DASH
+    this.defaultPathway = steeringTag.pathwayId || steeringTag.defaultServiceLocation;
+    // currently only DASH supports the following properties on <ContentSteering> tags.
+    if (this.manifestType_ === 'DASH') {
+      this.queryBeforeStart = steeringTag.queryBeforeStart || false;
+      this.proxyServerUrl_ = steeringTag.proxyServerURL;
+    }
+
+    // trigger a steering event if we have a pathway from the content steering tag.
+    // this tells VHS which segment pathway to start with.
+    if (this.defaultPathway) {
+      this.trigger('content-steering');
+    }
   }
 
   /**
    * Requests the steering manifest and parse response.
    */
-  requestContentSteeringManifest() {
+  requestSteeringManifest() {
     if (!this.steeringManifest.reloadUri) {
       this.logger_(`manifest URL is ${this.steeringManifest.reloadUri}, cannot request steering manifest.`);
     }
@@ -130,43 +149,14 @@ export default class ContentSteeringController extends videojs.EventTarget {
         // it after waiting for the previously-specified TTL (or 5 minutes if
         // none).
         this.logger_(`manifest failed to load ${error}.`);
+        // TODO: we may want to expose the error object here.
+        this.trigger('error');
         return;
       }
       const steeringManifestJson = JSON.parse(this.request_.responseText);
 
       this.assignSteeringProperties_(steeringManifestJson);
     });
-  }
-
-  /**
-   * Assigns the content steering tag properties to
-   *
-   * @param {string} baseUrl the baseURL from the manifest for resolving the steering manifest url.
-   */
-  assignTagProperties_(baseUrl, steeringTag) {
-    this.manifestType_ = steeringTag.serverUri ? 'HLS' : 'DASH';
-    // serverUri is HLS serverURL is DASH
-    const steeringUri = steeringTag.serverUri || steeringTag.serverURL;
-
-    // Content steering manifests can be encoded as a data URI. We can decode, parse and return early if that's the case.
-    if (steeringUri.startsWith('data:')) {
-      this.decodeDataUriManifest_(steeringUri.substring(steeringUri.indexOf(',') + 1));
-      return;
-    }
-    this.steeringManifest.reloadUri = resolveUrl(baseUrl, steeringUri);
-    // pathwayId is HLS defaultServiceLocation is DASH
-    this.defaultPathway = steeringTag.pathwayId || steeringTag.defaultServiceLocation;
-    // currently only DASH supports the following properties on <ContentSteering> tags.
-    if (this.manifestType_ === 'DASH') {
-      this.queryBeforeStart = steeringTag.queryBeforeStart || false;
-      this.proxyServerUrl_ = steeringTag.proxyServerUrl;
-    }
-
-    // trigger a steering event if we have a pathway from the content steering tag.
-    // this tells VHS which segment pathway to start with.
-    if (this.defaultPathway && !this.queryBeforeStart) {
-      this.trigger('content-steering');
-    }
   }
 
   /**
@@ -229,7 +219,8 @@ export default class ContentSteeringController extends videojs.EventTarget {
   assignSteeringProperties_(steeringJson) {
     this.steeringManifest.version = steeringJson.VERSION;
     if (!this.steeringManifest.version) {
-      this.logger_(`manifest version is ${this.steeringManifest.version}, which is not supported.`);
+      this.logger_(`manifest version is ${steeringJson.VERSION}, which is not supported.`);
+      this.trigger('error');
       return;
     }
     this.steeringManifest.ttl = steeringJson.TTL;
@@ -274,8 +265,8 @@ export default class ContentSteeringController extends videojs.EventTarget {
     }
     const ttlMS = this.steeringManifest.ttl * 1000;
 
-    this.ttlTimeout = window.setTimeout(() => {
-      this.requestContentSteeringManifest();
+    this.ttlTimeout_ = window.setTimeout(() => {
+      this.requestSteeringManifest();
     }, ttlMS);
   }
 
@@ -283,8 +274,8 @@ export default class ContentSteeringController extends videojs.EventTarget {
    * Clear the TTL timeout if necessary.
    */
   clearTTLTimeout_() {
-    window.clearTimeout(this.ttlTimeout);
-    this.ttlTimeout = null;
+    window.clearTimeout(this.ttlTimeout_);
+    this.ttlTimeout_ = null;
   }
 
   /**
