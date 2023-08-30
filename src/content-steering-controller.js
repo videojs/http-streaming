@@ -307,7 +307,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
   }
 
   /**
-   * adds an pathway to the available pathways set
+   * adds a pathway to the available pathways set
    *
    * @param {string} pathway the pathway string to add
    */
@@ -315,4 +315,3 @@ export default class ContentSteeringController extends videojs.EventTarget {
     this.availablePathways_.add(pathway);
   }
 }
-
