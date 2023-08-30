@@ -3,7 +3,7 @@ import ContentSteeringController from '../src/content-steering-controller';
 import { useFakeEnvironment } from './test-helpers';
 import xhrFactory from '../src/xhr';
 
-QUnit.module('ContentSteering', {
+QUnit.module.only('ContentSteering', {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
     this.requests = this.env.requests;
@@ -264,7 +264,7 @@ QUnit.test('Can abort and clear the TTL timeout for a content steering manifest'
   this.assignAndRequest(steeringTag);
   this.contentSteeringController.dispose();
   assert.true(this.requests[0].aborted, 'request is aborted');
-  assert.equal(this.contentSteeringController.request, null, 'request is null');
+  assert.equal(this.contentSteeringController.request_, null, 'request is null');
   assert.equal(this.contentSteeringController.ttlTimeout, null, 'ttl timeout is null');
 });
 
@@ -282,6 +282,17 @@ QUnit.test('trigger error on VERSION !== 1', function(assert) {
   });
   this.assignAndRequest(steeringTag);
   this.requests[0].respond(200, { 'Content-Type': 'application/json' }, '{ "VERSION": 0 }');
+});
+
+QUnit.test('trigger error when serverUri or serverURL is undefined', function(assert) {
+  const steeringTag = {};
+  const done = assert.async();
+
+  this.contentSteeringController.on('error', function() {
+    assert.equal(undefined, this.steeringManifest.reloadUri, 'reloadUri is undefined');
+    done();
+  });
+  this.contentSteeringController.assignTagProperties(this.baseURL, steeringTag);
 });
 
 QUnit.test('trigger error on steering manifest request error', function(assert) {

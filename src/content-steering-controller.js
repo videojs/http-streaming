@@ -66,11 +66,10 @@ class SteeringManifest {
  * https://datatracker.ietf.org/doc/draft-pantos-hls-rfc8216bis/ section 4.4.6.6.
  * DASH: https://dashif.org/docs/DASH-IF-CTS-00XX-Content-Steering-Community-Review.pdf
  *
- * @param {Object} playlistLoader a reference to the mainPlaylistLoader
  * @param {Object} segmentLoader a reference to the mainSegmentLoader
  */
 export default class ContentSteeringController extends videojs.EventTarget {
-  // pass a playlist loader and segment loader reference for triggering events, logging and xhr.
+  // pass a segment loader reference for throughput rate and xhr
   constructor(segmentLoader) {
     super();
 
@@ -90,15 +89,21 @@ export default class ContentSteeringController extends videojs.EventTarget {
   }
 
   /**
-     * Assigns the content steering tag properties to the steering controller
-     *
-     * @param {string} baseUrl the baseURL from the manifest for resolving the steering manifest url.
-     */
+   * Assigns the content steering tag properties to the steering controller
+   *
+   * @param {string} baseUrl the baseURL from the manifest for resolving the steering manifest url
+   * @param {Object} steeringTag the content steering tag from the main manifest
+   */
   assignTagProperties(baseUrl, steeringTag) {
     this.manifestType_ = steeringTag.serverUri ? 'HLS' : 'DASH';
     // serverUri is HLS serverURL is DASH
     const steeringUri = steeringTag.serverUri || steeringTag.serverURL;
 
+    if (!steeringUri) {
+      this.logger_(`steering manifest URL is ${steeringUri}, cannot request steering manifest.`);
+      this.trigger('error');
+      return;
+    }
     // Content steering manifests can be encoded as a data URI. We can decode, parse and return early if that's the case.
     if (steeringUri.startsWith('data:')) {
       this.decodeDataUriManifest_(steeringUri.substring(steeringUri.indexOf(',') + 1));
@@ -121,12 +126,9 @@ export default class ContentSteeringController extends videojs.EventTarget {
   }
 
   /**
-   * Requests the steering manifest and parse response.
+   * Requests the content steering manifest and parse the response.
    */
   requestSteeringManifest() {
-    if (!this.steeringManifest.reloadUri) {
-      this.logger_(`manifest URL is ${this.steeringManifest.reloadUri}, cannot request steering manifest.`);
-    }
     // add parameters to the steering uri
     const reloadUri = this.steeringManifest.reloadUri;
     const uri = this.proxyServerUrl_ ? this.setProxyServerUrl_(reloadUri) : this.setSteeringParams_(reloadUri);
@@ -225,11 +227,11 @@ export default class ContentSteeringController extends videojs.EventTarget {
     }
     this.steeringManifest.ttl = steeringJson.TTL;
     this.steeringManifest.reloadUri = steeringJson['RELOAD-URI'];
-    // HLS = PATHWAY-PRIORITY required. DASH = SERVICE-LOCATION-PRIORITY optional, default = false
+    // HLS = PATHWAY-PRIORITY required. DASH = SERVICE-LOCATION-PRIORITY optional
     this.steeringManifest.priority = steeringJson['PATHWAY-PRIORITY'] || steeringJson['SERVICE-LOCATION-PRIORITY'];
     // TODO: HLS handle PATHWAY-CLONES. See section 7.2 https://datatracker.ietf.org/doc/draft-pantos-hls-rfc8216bis/
 
-    // TODO: implement priority logic.
+    // TODO: fully implement priority logic.
     // 1. apply first pathway from the array.
     // 2. if first first pathway doesn't exist in manifest, try next pathway.
     //    a. if all pathways are exhausted, ignore the steering manifest priority.
@@ -285,8 +287,12 @@ export default class ContentSteeringController extends videojs.EventTarget {
     if (this.request_) {
       this.request_.abort();
     }
+    this.request_ = null;
   }
 
+  /**
+   * aborts steering requests clears the ttl timeout and resets all properties.
+   */
   dispose() {
     this.abort();
     this.clearTTLTimeout_();
@@ -302,6 +308,11 @@ export default class ContentSteeringController extends videojs.EventTarget {
     this.steeringManifest = new SteeringManifest();
   }
 
+  /**
+   * adds an pathway to the available pathways set
+   *
+   * @param {string} pathway the pathway string to add
+   */
   set availablePathway(pathway) {
     this.availablePathways_.add(pathway);
   }
