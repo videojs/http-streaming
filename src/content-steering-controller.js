@@ -75,7 +75,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
 
     this.currentPathway = null;
     this.defaultPathway = null;
-    this.availablePathways = new Set();
+    this.availablePathways_ = new Set();
     this.queryBeforeStart = null;
     // TODO: Implement exclusion.
     this.excludedPathways_ = new Set();
@@ -240,7 +240,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
     //       the excluded pathway will be ignored.
     const chooseNextPathway = (pathways) => {
       for (const path of pathways) {
-        if (this.availablePathways.has(path)) {
+        if (this.availablePathways_.has(path)) {
           return path;
         }
       }
