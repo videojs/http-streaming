@@ -217,7 +217,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
   }
 
   /**
-   * Assigns the current steering manifest properties and to the ContentSteering class.
+   * Assigns the current steering manifest properties and to the SteeringManifest object
    *
    * @param {Object} steeringJson the raw JSON steering manifest
    */
@@ -257,6 +257,11 @@ export default class ContentSteeringController extends videojs.EventTarget {
     this.startTTLTimeout_();
   }
 
+  /**
+   * Returns the pathway to use for steering decisions
+   *
+   * @return returns the current pathway or the default
+   */
   getPathway() {
     return this.currentPathway || this.defaultPathway;
   }
