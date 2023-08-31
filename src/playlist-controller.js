@@ -410,6 +410,35 @@ export class PlaylistController extends videojs.EventTarget {
   }
 
   /**
+   * A function that ensures we switch our playlists inside of `mediaTypes`
+   * to match the current `serviceLocation` provided by the contentSteering controller.
+   * We want to check media types of `AUDIO`, `SUBTITLES`, and `CLOSED-CAPTIONS`.
+   *
+   * This should only be called on a DASH playback scenario while using content steering.
+   * This is necessary due to differences in how media in HLS manifests are generally tied to
+   * a video playlist, where in DASH that is not always the case.
+   */
+  switchMediaForDASHContentSteering_() {
+    ['AUDIO', 'SUBTITLES', 'CLOSED-CAPTIONS'].forEach((type) => {
+      const mediaType = this.mediaTypes_[type];
+      const activeGroup = mediaType ? mediaType.activeGroup() : null;
+      const pathway = this.contentSteeringController_.getPathway();
+
+      if (activeGroup && pathway) {
+        // activeGroup can be an array or a single group
+        const mediaPlaylists = activeGroup.length ? activeGroup[0].playlists : activeGroup.playlists;
+
+        const dashMediaPlaylists = mediaPlaylists.filter((p) => p.attributes.serviceLocation === pathway);
+
+        // Switch the current active playlist to the correct CDN
+        if (dashMediaPlaylists.length) {
+          this.mediaTypes_[type].activePlaylistLoader.media(dashMediaPlaylists[0]);
+        }
+      }
+    });
+  }
+
+  /**
    * Start a timer that periodically calls checkABR_
    *
    * @private
@@ -2120,6 +2149,24 @@ export class PlaylistController extends videojs.EventTarget {
       this.logger_(`excluding ${variant.id} for ${variant.lastExcludeReason_}`);
     });
 
+    // In DASH when using content steering, we want to ensure that the audio and
+    // text track playlists match the current pathway. If not, we want to force
+    // the playlists to update.
+    if (this.contentSteeringController_.manifestType_ === 'DASH') {
+      Object.keys(this.mediaTypes_).forEach((key) => {
+        const type = this.mediaTypes_[key];
+
+        if (type.activePlaylistLoader) {
+          const currentPlaylist = type.activePlaylistLoader.media_;
+
+          // Check if the current media playlist matches the current CDN
+          if (currentPlaylist && currentPlaylist.attributes.serviceLocation !== currentPathway) {
+            didEnablePlaylists = true;
+          }
+        }
+      });
+    }
+
     if (didEnablePlaylists) {
       this.changeSegmentPathway_();
     }
@@ -2139,5 +2186,10 @@ export class PlaylistController extends videojs.EventTarget {
     this.delegateLoaders_('main', ['pause']);
 
     this.switchMedia_(nextPlaylist, 'content-steering');
+
+    // Switch audio and text track playlists if necessary in DASH
+    if (this.contentSteeringController_.manifestType_ === 'DASH') {
+      this.switchMediaForDASHContentSteering_();
+    }
   }
 }
