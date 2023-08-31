@@ -319,7 +319,7 @@ export default class PlaybackWatcher {
       seekTo = seekableEnd;
     }
 
-    if (this.beforeSeekableWindow_(seekable, currentTime)) {
+    if (seekable.length && seekable.length > 1 && this.beforeSeekableWindow_(seekable, currentTime)) {
       const seekableStart = seekable.start(0);
 
       // sync to the beginning of the live window
