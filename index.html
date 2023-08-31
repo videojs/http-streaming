@@ -49,6 +49,9 @@
     <li class="nav-item" role="presentation">
       <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#player-stats" type="button" role="tab" aria-selected="false">Player Stats</button>
     </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#content-steering" type="button" role="tab" aria-selected="false">Content Steering</button>
+    </li>
   </ul>
 
   <div class="tab-content container-fluid">
@@ -219,6 +222,22 @@
           </dl>
         </div>
         <ul id="segment-metadata" class="col-8"></ul>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="content-steering" role="tabpanel">
+      <div class="row">
+        <div class="content-steering col-8">
+          <dl>
+            <dt>Current Pathway:</dt>
+            <dd class="current-pathway"></dd>
+            <dt>Available Pathways:</dt>
+            <dd class="available-pathways"></dd>
+            <dt>Steering Manifest:</dt>
+            <dd class="steering-manifest"></dd>
+          </dl>
+        </div>
+      </div>
       </div>
     </div>
   </div>

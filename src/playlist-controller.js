@@ -27,6 +27,7 @@ import { createMediaTypes, setupMediaGroups } from './media-groups';
 import logger from './util/logger';
 import {merge, createTimeRanges} from './util/vjs-compat';
 import { addMetadata, createMetadataTrackIfNotExists, addDateRangeMetadata } from './util/text-tracks';
+import ContentSteeringController from './content-steering-controller';
 
 const ABORT_EARLY_EXCLUSION_SECONDS = 10;
 
@@ -305,6 +306,8 @@ export class PlaylistController extends videojs.EventTarget {
         })
       }), options);
 
+    // pass main segment loader for current throughput.
+    this.contentSteeringController_ = new ContentSteeringController(this.mainSegmentLoader_);
     this.setupSegmentLoaderListeners_();
 
     if (this.bufferBasedABR) {
@@ -572,6 +575,7 @@ export class PlaylistController extends videojs.EventTarget {
       let updatedPlaylist = this.mainPlaylistLoader_.media();
 
       if (!updatedPlaylist) {
+        this.initContentSteeringController_();
         // exclude any variants that are not supported by the browser before selecting
         // an initial media as the playlist selectors do not consider browser support
         this.excludeUnsupportedVariants_();
@@ -2051,5 +2055,89 @@ export class PlaylistController extends videojs.EventTarget {
       timestampOffset,
       videoDuration
     });
+  }
+
+  pathwayAttribute_(playlist) {
+    return playlist.attributes['PATHWAY-ID'] || playlist.attributes.serviceLocation;
+  }
+  /**
+   * Initialize content steering listeners and apply the tag properties.
+   */
+  initContentSteeringController_() {
+    const main = this.main();
+
+    if (!main.contentSteering) {
+      return;
+    }
+    this.contentSteeringController_.assignTagProperties(main.uri, main.contentSteering);
+    for (const playlist of main.playlists) {
+      this.contentSteeringController_.addAvailablePathway(this.pathwayAttribute_(playlist));
+    }
+    this.contentSteeringController_.on('content-steering', this.excludeThenChangePathway_.bind(this));
+    // Do this at startup only, after that the steering requests are managed by the Content Steering class.
+    this.tech_.one('canplay', () => {
+      this.contentSteeringController_.requestSteeringManifest();
+    });
+  }
+
+  // TODO: Implement HLS and DASH specific logic. This is just a simple HLS switcher
+  /**
+   * Simple exclude and change playlist logic for content steering.
+   */
+  excludeThenChangePathway_() {
+    // take current pathway, if that doesn't exist try the default.
+    const currentPathway = this.contentSteeringController_.getPathway();
+
+    if (!currentPathway) {
+      return;
+    }
+    const main = this.main();
+    const playlists = main.playlists;
+    const ids = new Set();
+    let didEnablePlaylists = false;
+
+    Object.keys(playlists).forEach((key) => {
+      const variant = playlists[key];
+      const pathwayId = this.pathwayAttribute_(variant);
+      const differentPathwayId = pathwayId && currentPathway !== pathwayId;
+      const steeringExclusion = variant.excludeUntil === Infinity && variant.lastExcludeReason_ === 'content-steering';
+
+      if (steeringExclusion && !differentPathwayId) {
+        delete variant.excludeUntil;
+        delete variant.lastExcludeReason_;
+        didEnablePlaylists = true;
+      }
+      const noExcludeUntil = !variant.excludeUntil && variant.excludeUntil !== Infinity;
+      const shouldExclude = !ids.has(variant.id) && differentPathwayId && noExcludeUntil;
+
+      if (!shouldExclude) {
+        return;
+      }
+      ids.add(variant.id);
+      variant.excludeUntil = Infinity;
+      variant.lastExcludeReason_ = 'content-steering';
+      // TODO: kind of spammy, maybe move this.
+      this.logger_(`excluding ${variant.id} for ${variant.lastExcludeReason_}`);
+    });
+
+    if (didEnablePlaylists) {
+      this.changeSegmentPathway_();
+    }
+  }
+
+  changeSegmentPathway_() {
+    const nextPlaylist = this.selectPlaylist();
+
+    if (nextPlaylist.attributes.AUDIO) {
+      this.delegateLoaders_('audio', ['pause']);
+    }
+
+    if (nextPlaylist.attributes.SUBTITLES) {
+      this.delegateLoaders_('subtitle', ['pause']);
+    }
+
+    this.delegateLoaders_('main', ['pause']);
+
+    this.switchMedia_(nextPlaylist, 'content-steering');
   }
 }
