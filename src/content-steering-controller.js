@@ -84,6 +84,8 @@ export default class ContentSteeringController extends videojs.EventTarget {
     this.manifestType_ = null;
     this.ttlTimeout_ = null;
     this.request_ = null;
+    this.requestError_ = null;
+    this.exlucdedSteeringManifestURLs = [];
     this.mainSegmentLoader_ = segmentLoader;
     this.logger_ = logger('Content Steering');
   }
@@ -134,30 +136,52 @@ export default class ContentSteeringController extends videojs.EventTarget {
     const reloadUri = this.steeringManifest.reloadUri;
     // We currently don't support passing MPD query parameters directly to the content steering URL as this requires
     // ExtUrlQueryInfo tag support. See the DASH content steering spec section 8.1.
-    const uri = this.proxyServerUrl_ ? this.setProxyServerUrl_(reloadUri) : this.setSteeringParams_(reloadUri);
+    const uri = this.getRequestURI(reloadUri);
+
+    // If there are no valid manifest URIs, we should stop content steering.
+    if (!uri) {
+      this.logger_('No valid content steering manifest URIs. Stopping content steering.');
+      this.dispose();
+      this.trigger('error');
+      return;
+    }
 
     this.request_ = this.mainSegmentLoader_.vhs_.xhr({
       uri
-    }, (error) => {
-      // TODO: HLS CASES THAT NEED ADDRESSED:
-      // If the client receives HTTP 410 Gone in response to a manifest request,
-      // it MUST NOT issue another request for that URI for the remainder of the
-      // playback session. It MAY continue to use the most-recently obtained set
-      // of Pathways.
-      // If the client receives HTTP 429 Too Many Requests with a Retry-After
-      // header in response to a manifest request, it SHOULD wait until the time
-      // specified by the Retry-After header to reissue the request.
+    }, (error, errorInfo) => {
       if (error) {
-        // TODO: HLS RETRY CASE:
+        this.requestError_ = error;
+        // If the client receives HTTP 410 Gone in response to a manifest request,
+        // it MUST NOT issue another request for that URI for the remainder of the
+        // playback session. It MAY continue to use the most-recently obtained set
+        // of Pathways.
+        if (errorInfo.status === 410) {
+          this.logger_(`manifest request 410 ${error}.`);
+          this.logger_(`There will be no more content steering requests to ${uri} this session.`);
+
+          this.exlucdedSteeringManifestURLs.push(uri);
+          return;
+        }
+        // If the client receives HTTP 429 Too Many Requests with a Retry-After
+        // header in response to a manifest request, it SHOULD wait until the time
+        // specified by the Retry-After header to reissue the request.
+        if (errorInfo.status === 429) {
+          const retrySeconds = errorInfo.responseHeaders['retry-after'];
+
+          this.logger_(`manifest request 429 ${error}.`);
+          this.logger_(`content steering will retry in ${retrySeconds} seconds.`);
+          this.startTTLTimeout_(retrySeconds);
+          return;
+        }
         // If the Steering Manifest cannot be loaded and parsed correctly, the
         // client SHOULD continue to use the previous values and attempt to reload
         // it after waiting for the previously-specified TTL (or 5 minutes if
         // none).
         this.logger_(`manifest failed to load ${error}.`);
-        // TODO: we may want to expose the error object here.
-        this.trigger('error');
+        this.startTTLTimeout_();
         return;
       }
+      this.requestError_ = null;
       const steeringManifestJson = JSON.parse(this.request_.responseText);
 
       this.assignSteeringProperties_(steeringManifestJson);
@@ -267,11 +291,43 @@ export default class ContentSteeringController extends videojs.EventTarget {
   }
 
   /**
-   * Start the timeout for re-requesting the steering manifest at the TTL interval.
+   * Chooses the manifest request URI based on proxy URIs and server URLs.
+   * Also accounts for exclusion on certain manifest URIs.
+   *
+   * @param {string} reloadUri
+   *
+   * @return the final URI for the request to the manifest server.
    */
-  startTTLTimeout_() {
+  getRequestURI(reloadUri) {
+    const isExcluded = (uri) => this.exlucdedSteeringManifestURLs.includes(uri);
+
+    if (this.proxyServerUrl_) {
+      const proxyURI = this.setProxyServerUrl_(reloadUri);
+
+      if (!isExcluded(proxyURI)) {
+        return proxyURI;
+      }
+    }
+
+    const steeringURI = this.setSteeringParams_(reloadUri);
+
+    if (!isExcluded(steeringURI)) {
+      return steeringURI;
+    }
+
+    // Return nothing if all valid manifest URIs are excluded.
+    return null;
+  }
+
+  /**
+   * Start the timeout for re-requesting the steering manifest at the TTL interval.
+   *
+   * @param {string} ttl time in seconds of the timeout. Defaults to the
+   *        ttl interval in the steering manifest
+   */
+  startTTLTimeout_(ttl = this.steeringManifest.ttl) {
     // 300 (5 minutes) is the default value.
-    const ttlMS = this.steeringManifest.ttl * 1000;
+    const ttlMS = ttl * 1000;
 
     this.ttlTimeout_ = window.setTimeout(() => {
       this.requestSteeringManifest();
@@ -320,6 +376,8 @@ export default class ContentSteeringController extends videojs.EventTarget {
    * @param {string} pathway the pathway string to add
    */
   addAvailablePathway(pathway) {
-    this.availablePathways_.add(pathway);
+    if (pathway) {
+      this.availablePathways_.add(pathway);
+    }
   }
 }
