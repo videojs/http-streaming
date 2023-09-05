@@ -122,7 +122,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
 
     // trigger a steering event if we have a pathway from the content steering tag.
     // this tells VHS which segment pathway to start with.
-    if (this.defaultPathway) {
+    if (this.defaultPathway && !this.queryBeforeStart) {
       this.trigger('content-steering');
     }
   }
@@ -134,8 +134,15 @@ export default class ContentSteeringController extends videojs.EventTarget {
   requestSteeringManifest() {
     // add parameters to the steering uri
     const reloadUri = this.steeringManifest.reloadUri;
+
+    if (!reloadUri) {
+      return;
+    }
+
     // We currently don't support passing MPD query parameters directly to the content steering URL as this requires
     // ExtUrlQueryInfo tag support. See the DASH content steering spec section 8.1.
+
+    // This request URI accounts for manifest URIs that have been excluded.
     const uri = this.getRequestURI(reloadUri);
 
     // If there are no valid manifest URIs, we should stop content steering.
@@ -184,6 +191,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
       this.requestError_ = null;
       const steeringManifestJson = JSON.parse(this.request_.responseText);
 
+      this.startTTLTimeout_();
       this.assignSteeringProperties_(steeringManifestJson);
     });
   }
@@ -265,26 +273,37 @@ export default class ContentSteeringController extends videojs.EventTarget {
     // 3. if segments fail from an established pathway, try all variants/renditions, then exclude the failed pathway.
     //    a. exclude a pathway for a minimum of the last TTL duration. Meaning, from the next steering response,
     //       the excluded pathway will be ignored.
-    const chooseNextPathway = (pathways) => {
-      for (const path of pathways) {
+
+    // If there are no available pathways, we need to stop content steering.
+    if (!this.availablePathways_.size) {
+      this.logger_('There are no available pathways for content steering. Ending content steering.');
+      this.trigger('error');
+      this.dispose();
+    }
+
+    const chooseNextPathway = (pathwaysByPriority) => {
+      for (const path of pathwaysByPriority) {
         if (this.availablePathways_.has(path)) {
           return path;
         }
       }
+
+      // If no pathway matches, ignore the manifest and choose whatever is available.
+      return this.availablePathways_[0];
     };
+
     const nextPathway = chooseNextPathway(this.steeringManifest.priority);
 
     if (this.currentPathway !== nextPathway) {
       this.currentPathway = nextPathway;
       this.trigger('content-steering');
     }
-    this.startTTLTimeout_();
   }
 
   /**
    * Returns the pathway to use for steering decisions
    *
-   * @return returns the current pathway or the default
+   * @return {string} returns the current pathway or the default
    */
   getPathway() {
     return this.currentPathway || this.defaultPathway;
@@ -294,11 +313,15 @@ export default class ContentSteeringController extends videojs.EventTarget {
    * Chooses the manifest request URI based on proxy URIs and server URLs.
    * Also accounts for exclusion on certain manifest URIs.
    *
-   * @param {string} reloadUri
+   * @param {string} reloadUri the base uri before parameters
    *
-   * @return the final URI for the request to the manifest server.
+   * @return {string} the final URI for the request to the manifest server.
    */
   getRequestURI(reloadUri) {
+    if (!reloadUri) {
+      return null;
+    }
+
     const isExcluded = (uri) => this.exlucdedSteeringManifestURLs.includes(uri);
 
     if (this.proxyServerUrl_) {

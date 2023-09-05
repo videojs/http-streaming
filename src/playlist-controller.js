@@ -2098,18 +2098,27 @@ export class PlaylistController extends videojs.EventTarget {
     if (!main.contentSteering) {
       return;
     }
-    this.contentSteeringController_.assignTagProperties(main.uri, main.contentSteering);
+
     for (const playlist of main.playlists) {
       this.contentSteeringController_.addAvailablePathway(this.pathwayAttribute_(playlist));
     }
+
+    this.contentSteeringController_.assignTagProperties(main.uri, main.contentSteering);
+
     this.contentSteeringController_.on('content-steering', this.excludeThenChangePathway_.bind(this));
-    // Do this at startup only, after that the steering requests are managed by the Content Steering class.
-    this.tech_.one('canplay', () => {
+
+    if (this.contentSteeringController_.queryBeforeStart) {
+      // If the DASH `queryBeforeStart` parameter is set, we want to ensure we
+      // make a request for the steering manifest before playback
       this.contentSteeringController_.requestSteeringManifest();
-    });
+    } else {
+      // Otherwise, we want to start playback as soon as possible.
+      this.tech_.one('canplay', () => {
+        this.contentSteeringController_.requestSteeringManifest();
+      });
+    }
   }
 
-  // TODO: Implement HLS and DASH specific logic. This is just a simple HLS switcher
   /**
    * Simple exclude and change playlist logic for content steering.
    */
