@@ -432,6 +432,27 @@
     }, 100);
   };
 
+  var setupContentSteeringData = function(player) {
+    var currentPathwayEl = document.querySelector('.current-pathway');
+    var availablePathwaysEl = document.querySelector('.available-pathways');
+    var steeringManifestEl = document.querySelector('.steering-manifest');
+
+    player.one('loadedmetadata', function() {
+      var steeringController = player.tech_.vhs.playlistController_.contentSteeringController_;
+
+      if (!steeringController) {
+        return;
+      }
+      var onContentSteering = function() {
+        currentPathwayEl.textContent = steeringController.currentPathway;
+        availablePathwaysEl.textContent = Array.from(steeringController.availablePathways_).join(', ');
+        steeringManifestEl.textContent = JSON.stringify(steeringController.steeringManifest);
+      };
+
+      steeringController.on('content-steering', onContentSteering);
+    });
+  };
+
   [
     'debug',
     'autoplay',
@@ -595,6 +616,7 @@
 
         setupPlayerStats(player);
         setupSegmentMetadata(player);
+        setupContentSteeringData(player);
 
         // save player muted state interation
         player.on('volumechange', function() {
