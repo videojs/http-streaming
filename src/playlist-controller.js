@@ -2181,6 +2181,10 @@ export class PlaylistController extends videojs.EventTarget {
     }
   }
 
+  /**
+   * Changes the current playlists for audio, video and subtitles after a new pathway
+   * is chosen from content steering.
+   */
   changeSegmentPathway_() {
     const nextPlaylist = this.selectPlaylist();
 
@@ -2194,11 +2198,11 @@ export class PlaylistController extends videojs.EventTarget {
 
     this.delegateLoaders_('main', ['pause']);
 
-    this.switchMedia_(nextPlaylist, 'content-steering');
-
     // Switch audio and text track playlists if necessary in DASH
     if (this.contentSteeringController_.manifestType_ === 'DASH') {
       this.switchMediaForDASHContentSteering_();
     }
+
+    this.switchMedia_(nextPlaylist, 'content-steering');
   }
 }
