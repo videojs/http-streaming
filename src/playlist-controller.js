@@ -239,6 +239,7 @@ export class PlaylistController extends videojs.EventTarget {
       vhs: this.vhs_,
       parse708captions: options.parse708captions,
       useDtsForTimestampOffset: options.useDtsForTimestampOffset,
+      calculateTimestampOffsetForEachSegment: options.calculateTimestampOffsetForEachSegment,
       captionServices,
       mediaSource: this.mediaSource,
       currentTime: this.tech_.currentTime.bind(this.tech_),

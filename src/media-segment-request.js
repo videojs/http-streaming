@@ -389,15 +389,6 @@ const transmuxAndNotify = ({
           isMuxed
         });
         trackInfoFn = null;
-
-        if (probeResult.hasAudio && !isMuxed) {
-          audioStartFn(probeResult.audioStart);
-        }
-        if (probeResult.hasVideo) {
-          videoStartFn(probeResult.videoStart);
-        }
-        audioStartFn = null;
-        videoStartFn = null;
       }
 
       finish();
