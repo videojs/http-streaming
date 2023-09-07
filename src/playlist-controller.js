@@ -307,6 +307,7 @@ export class PlaylistController extends videojs.EventTarget {
       }), options);
 
     // pass main segment loader for current throughput.
+    this.contentSteeringController_ = new ContentSteeringController(this.mainSegmentLoader_);
     this.setupSegmentLoaderListeners_();
 
     if (this.bufferBasedABR) {
@@ -1685,6 +1686,7 @@ export class PlaylistController extends videojs.EventTarget {
     this.decrypter_.terminate();
     this.mainPlaylistLoader_.dispose();
     this.mainSegmentLoader_.dispose();
+    this.contentSteeringController_.dispose();
 
     if (this.loadOnPlay_) {
       this.tech_.off('play', this.loadOnPlay_);
@@ -2118,8 +2120,6 @@ export class PlaylistController extends videojs.EventTarget {
 
       this.contentSteeringController_.assignTagProperties(main.uri, main.contentSteering);
     };
-
-    this.contentSteeringController_ = new ContentSteeringController(this.mainSegmentLoader_);
 
     updateSteeringValues(initialMain);
 

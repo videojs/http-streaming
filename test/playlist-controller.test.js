@@ -6325,3 +6325,171 @@ QUnit.test('should delay loading of new playlist if lastRequest was less than ha
   this.env.log.warn.callCount = 0;
 });
 
+// Content Steering
+
+QUnit.test('initContentSteeringController_ for HLS', function(assert) {
+  const options = {
+    src: 'test',
+    tech: this.player.tech_,
+    sourceType: 'hls'
+  };
+
+  const pc = new PlaylistController(options);
+
+  const mainPlaylist = {
+    contentSteering: {
+      ['PATHWAY-ID']: 'cdn-a',
+      serverUri: 'https://www.server.test/hls'
+    },
+    playlists: [
+      {
+        attributes: {
+          ['PATHWAY-ID']: 'cdn-a'
+        },
+        endList: true,
+        id: '0-placeholder-uri-0',
+        resolvedUri: 'https://fastly.content-steering.com/bbb/placeholder-uri-0',
+        uri: 'placeholder-uri-0'
+      },
+      {
+        attributes: {
+          ['PATHWAY-ID']: 'cdn-b'
+        },
+        endList: true,
+        id: '1-placeholder-uri-1',
+        resolvedUri: 'https://fastly.content-steering.com/bbb/placeholder-uri-1',
+        uri: 'placeholder-uri-1'
+      }
+    ]
+  };
+
+  pc.main = () => mainPlaylist;
+
+  pc.initContentSteeringController_();
+
+  const steering = pc.contentSteeringController_;
+  const pathways = [...steering.availablePathways_];
+
+  assert.deepEqual(pathways[0], 'cdn-a');
+  assert.deepEqual(pathways[1], 'cdn-b');
+  assert.deepEqual(steering.manifestType_, 'HLS');
+  assert.deepEqual(steering.steeringManifest.reloadUri, mainPlaylist.contentSteering.serverUri);
+});
+
+QUnit.test('initContentSteeringController_ for DASH with queryBeforeStart', function(assert) {
+  const options = {
+    src: 'test',
+    tech: this.player.tech_,
+    sourceType: 'dash'
+  };
+
+  const pc = new PlaylistController(options);
+  const requestSteeringManifestSpy = sinon.spy(pc.contentSteeringController_, 'requestSteeringManifest');
+
+  const mainPlaylist = {
+    contentSteering: {
+      defaultServiceLocation: 'cdn-a',
+      queryBeforeStart: true,
+      serverURL: 'https://www.server.test'
+    },
+    playlists: [
+      {
+        attributes: {
+          NAME: 'video_1920x1080_4531kbps',
+          serviceLocation: 'cdn-a'
+        },
+        endList: true,
+        id: '0-placeholder-uri-0',
+        resolvedUri: 'https://fastly.content-steering.com/bbb/placeholder-uri-0',
+        uri: 'placeholder-uri-0'
+      },
+      {
+        attributes: {
+          NAME: 'video_1280x720_2445kbps',
+          serviceLocation: 'cdn-b'
+        },
+        endList: true,
+        id: '1-placeholder-uri-1',
+        resolvedUri: 'https://fastly.content-steering.com/bbb/placeholder-uri-1',
+        uri: 'placeholder-uri-1'
+      }
+    ]
+  };
+
+  pc.main = () => mainPlaylist;
+
+  pc.initContentSteeringController_();
+
+  // requestManifest is called, which means a request to the steering server is made.
+  assert.ok(requestSteeringManifestSpy.called);
+
+  const steering = pc.contentSteeringController_;
+  const pathways = [...steering.availablePathways_];
+
+  assert.deepEqual(pathways[0], 'cdn-a');
+  assert.deepEqual(pathways[1], 'cdn-b');
+  assert.deepEqual(steering.manifestType_, 'DASH');
+  assert.deepEqual(steering.steeringManifest.reloadUri, mainPlaylist.contentSteering.serverURL);
+});
+
+QUnit.test.only('initContentSteeringController_ for DASH without queryBeforeStart', function(assert) {
+  const options = {
+    src: 'test',
+    tech: this.player.tech_,
+    sourceType: 'dash'
+  };
+
+  const pc = new PlaylistController(options);
+  const requestSteeringManifestSpy = sinon.spy(pc.contentSteeringController_, 'requestSteeringManifest');
+
+  const mainPlaylist = {
+    contentSteering: {
+      defaultServiceLocation: 'cdn-a',
+      serverURL: 'https://www.server.test'
+    },
+    playlists: [
+      {
+        attributes: {
+          NAME: 'video_1920x1080_4531kbps',
+          serviceLocation: 'cdn-a'
+        },
+        endList: true,
+        id: '0-placeholder-uri-0',
+        resolvedUri: 'https://fastly.content-steering.com/bbb/placeholder-uri-0',
+        uri: 'placeholder-uri-0'
+      },
+      {
+        attributes: {
+          NAME: 'video_1280x720_2445kbps',
+          serviceLocation: 'cdn-b'
+        },
+        endList: true,
+        id: '1-placeholder-uri-1',
+        resolvedUri: 'https://fastly.content-steering.com/bbb/placeholder-uri-1',
+        uri: 'placeholder-uri-1'
+      }
+    ]
+  };
+
+  pc.main = () => mainPlaylist;
+
+  pc.initContentSteeringController_();
+
+  // requestManifest is NOT called yet without queryBeforeStart
+  assert.notOk(requestSteeringManifestSpy.called);
+
+  // Now the playlist should make the request to the content steering server
+  // This event mean the media should already be loaded.
+  this.player.tech_.trigger('canplay');
+
+  // requestManifest is called, which means a request to the steering server is made.
+  assert.ok(requestSteeringManifestSpy.called);
+
+  const steering = pc.contentSteeringController_;
+  const pathways = [...steering.availablePathways_];
+
+  assert.deepEqual(pathways[0], 'cdn-a');
+  assert.deepEqual(pathways[1], 'cdn-b');
+  assert.deepEqual(steering.manifestType_, 'DASH');
+  assert.deepEqual(steering.steeringManifest.reloadUri, mainPlaylist.contentSteering.serverURL);
+});

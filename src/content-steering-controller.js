@@ -289,8 +289,8 @@ export default class ContentSteeringController extends videojs.EventTarget {
         }
       }
 
-      // If no pathway matches, ignore the manifest and choose whatever is available.
-      return this.availablePathways_[0];
+      // If no pathway matches, ignore the manifest and choose the first available.
+      return [...this.availablePathways_][0];
     };
 
     const nextPathway = chooseNextPathway(this.steeringManifest.priority);
