@@ -1254,6 +1254,19 @@ export class PlaylistController extends videojs.EventTarget {
     }
 
     if (isFinalRendition) {
+      // If we're content steering, try other pathways.
+      if (this.main().contentSteering) {
+        const pathway = this.pathwayAttribute_(playlistToExclude);
+        // Ignore atleast 1 steering manifest refresh.
+        const reIncludeDelay = this.contentSteeringController_.steeringManifest.ttl * 1000;
+
+        this.contentSteeringController_.excludePathway(pathway);
+        this.excludeThenChangePathway_();
+        setTimeout(() => {
+          this.contentSteeringController_.addAvailablePathway(pathway);
+        }, reIncludeDelay);
+        return;
+      }
       // Since we're on the final non-excluded playlist, and we're about to exclude
       // it, instead of erring the player or retrying this playlist, clear out the current
       // exclusion list. This allows other playlists to be attempted in case any have been
@@ -2143,7 +2156,6 @@ export class PlaylistController extends videojs.EventTarget {
    * Simple exclude and change playlist logic for content steering.
    */
   excludeThenChangePathway_() {
-    // take current pathway, if that doesn't exist try the default.
     const currentPathway = this.contentSteeringController_.getPathway();
 
     if (!currentPathway) {
@@ -2178,24 +2190,6 @@ export class PlaylistController extends videojs.EventTarget {
       this.logger_(`excluding ${variant.id} for ${variant.lastExcludeReason_}`);
     });
 
-    // In DASH when using content steering, we want to ensure that the audio and
-    // text track playlists match the current pathway. If not, we want to force
-    // the playlists to update.
-    if (this.contentSteeringController_.manifestType_ === 'DASH') {
-      Object.keys(this.mediaTypes_).forEach((key) => {
-        const type = this.mediaTypes_[key];
-
-        if (type.activePlaylistLoader) {
-          const currentPlaylist = type.activePlaylistLoader.media_;
-
-          // Check if the current media playlist matches the current CDN
-          if (currentPlaylist && currentPlaylist.attributes.serviceLocation !== currentPathway) {
-            didEnablePlaylists = true;
-          }
-        }
-      });
-    }
-
     if (didEnablePlaylists) {
       this.changeSegmentPathway_();
     }
@@ -2208,15 +2202,7 @@ export class PlaylistController extends videojs.EventTarget {
   changeSegmentPathway_() {
     const nextPlaylist = this.selectPlaylist();
 
-    if (nextPlaylist.attributes.AUDIO) {
-      this.delegateLoaders_('audio', ['pause']);
-    }
-
-    if (nextPlaylist.attributes.SUBTITLES) {
-      this.delegateLoaders_('subtitle', ['pause']);
-    }
-
-    this.delegateLoaders_('main', ['pause']);
+    this.pauseLoading();
 
     // Switch audio and text track playlists if necessary in DASH
     if (this.contentSteeringController_.manifestType_ === 'DASH') {

@@ -250,12 +250,9 @@ export const onError = {
    */
   AUDIO: (type, settings) => () => {
     const {
-      segmentLoaders: { [type]: segmentLoader},
       mediaTypes: { [type]: mediaType },
       excludePlaylist
     } = settings;
-
-    stopLoaders(segmentLoader, mediaType);
 
     // switch back to default audio track
     const activeTrack = mediaType.activeTrack();
