@@ -297,13 +297,10 @@ const pushQueue = ({type, sourceUpdater, action, doneFn, name}) => {
 };
 
 const onUpdateend = (type, sourceUpdater) => (e) => {
-  const sourceBuffer = sourceUpdater[`${type}Buffer`];
+  const buffered = sourceUpdater[`${type}Buffered`]();
+  const bufferedAsString = prettyBuffered(buffered);
 
-  if (sourceBuffer) {
-    const bufferedAsString = prettyBuffered(sourceBuffer.buffered);
-
-    sourceUpdater.logger_(`${type} source buffer update end. Buffered: \n`, bufferedAsString);
-  }
+  sourceUpdater.logger_(`${type} source buffer update end. Buffered: \n`, bufferedAsString);
 
   // Although there should, in theory, be a pending action for any updateend receieved,
   // there are some actions that may trigger updateend events without set definitions in
