@@ -2187,6 +2187,21 @@ export class PlaylistController extends videojs.EventTarget {
       this.logger_(`excluding ${variant.id} for ${variant.lastExcludeReason_}`);
     });
 
+    if (this.contentSteeringController_.manifestType_ === 'DASH') {
+      Object.keys(this.mediaTypes_).forEach((key) => {
+        const type = this.mediaTypes_[key];
+
+        if (type.activePlaylistLoader) {
+          const currentPlaylist = type.activePlaylistLoader.media_;
+
+          // Check if the current media playlist matches the current CDN
+          if (currentPlaylist && currentPlaylist.attributes.serviceLocation !== currentPathway) {
+            didEnablePlaylists = true;
+          }
+        }
+      });
+    }
+
     if (didEnablePlaylists) {
       this.changeSegmentPathway_();
     }
