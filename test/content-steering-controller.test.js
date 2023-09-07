@@ -2,6 +2,7 @@ import QUnit from 'qunit';
 import ContentSteeringController from '../src/content-steering-controller';
 import { useFakeEnvironment } from './test-helpers';
 import xhrFactory from '../src/xhr';
+import sinon from 'sinon';
 
 QUnit.module('ContentSteering', {
   beforeEach(assert) {
@@ -18,6 +19,7 @@ QUnit.module('ContentSteering', {
     };
     this.baseURL = 'https://foo.bar';
     this.contentSteeringController = new ContentSteeringController(this.mockSegmentLoader);
+    this.contentSteeringController.addAvailablePathway('test-1');
     // handles a common testing flow of assigning tag properties and requesting the steering manifest immediately.
     this.assignAndRequest = (steeringTag) => {
       this.contentSteeringController.assignTagProperties(this.baseURL, steeringTag);
@@ -323,18 +325,14 @@ QUnit.test('trigger error when serverUri or serverURL is undefined', function(as
   this.contentSteeringController.assignTagProperties(this.baseURL, steeringTag);
 });
 
-QUnit.test('trigger error on steering manifest request error', function(assert) {
+QUnit.test('trigger retry on steering manifest request error', function(assert) {
   const steeringTag = {
     serverUri: '/content/steering'
   };
-  const manifest = this.contentSteeringController.steeringManifest;
-  const done = assert.async();
+  const startTTLSpy = sinon.spy(this.contentSteeringController, 'startTTLTimeout_');
 
-  this.contentSteeringController.on('error', function() {
-    assert.equal(manifest.version, undefined, 'version is undefined');
-    assert.equal(manifest.ttl, undefined, 'ttl is undefined');
-    done();
-  });
+  this.contentSteeringController.steeringManifest.ttl = 1;
   this.assignAndRequest(steeringTag);
   this.requests[0].respond(404);
+  assert.equal(startTTLSpy.callCount, 1, 'startTTLTimeout called on retry');
 });

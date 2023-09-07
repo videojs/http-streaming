@@ -120,13 +120,10 @@ export default class ContentSteeringController extends videojs.EventTarget {
       this.proxyServerUrl_ = steeringTag.proxyServerURL;
     }
 
-    // We want to trigger an update to the playlists no matter what in HLS,
-    // In DASH, we only want to update here if `queryBeforeStart` is true.
-    const shouldContinue = this.manifestType_ === 'HLS' || this.queryBeforeStart;
-
     // trigger a steering event if we have a pathway from the content steering tag.
     // this tells VHS which segment pathway to start with.
-    if (this.defaultPathway && shouldContinue) {
+    // If queryBeforeStart is true we need to wait for the steering manifest response.
+    if (this.defaultPathway && !this.queryBeforeStart) {
       this.trigger('content-steering');
     }
   }
