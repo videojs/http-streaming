@@ -111,7 +111,8 @@ export default class ContentSteeringController extends videojs.EventTarget {
       this.decodeDataUriManifest_(steeringUri.substring(steeringUri.indexOf(',') + 1));
       return;
     }
-    this.steeringManifest.reloadUri = resolveUrl(baseUrl, steeringUri);
+    // With DASH queryBeforeStart, we want to use the steeringUri as soon as possible for the request.
+    this.steeringManifest.reloadUri = this.queryBeforeStart ? steeringUri : resolveUrl(baseUrl, steeringUri);
     // pathwayId is HLS defaultServiceLocation is DASH
     this.defaultPathway = steeringTag.pathwayId || steeringTag.defaultServiceLocation;
     // currently only DASH supports the following properties on <ContentSteering> tags.
@@ -126,13 +127,21 @@ export default class ContentSteeringController extends videojs.EventTarget {
     if (this.defaultPathway && !this.queryBeforeStart) {
       this.trigger('content-steering');
     }
+
+    if (this.queryBeforeStart) {
+      this.requestSteeringManifest(this.queryBeforeStart);
+    }
   }
 
   /**
    * Requests the content steering manifest and parse the response. This should only be called after
    * assignTagProperties was called with a content steering tag.
+   *
+   * @param {boolean} withQueryBeforeStart If true, the request should be made with the initial serverUri.
+   *    This scenario is specific to DASH when the queryBeforeStart parameter is true.
+   *    This scenario should only happen once on initalization.
    */
-  requestSteeringManifest() {
+  requestSteeringManifest(withQueryBeforeStart = false) {
     // add parameters to the steering uri
     const reloadUri = this.steeringManifest.reloadUri;
 
@@ -144,7 +153,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
     // ExtUrlQueryInfo tag support. See the DASH content steering spec section 8.1.
 
     // This request URI accounts for manifest URIs that have been excluded.
-    const uri = this.getRequestURI(reloadUri);
+    const uri = withQueryBeforeStart ? reloadUri : this.getRequestURI(reloadUri);
 
     // If there are no valid manifest URIs, we should stop content steering.
     if (!uri) {

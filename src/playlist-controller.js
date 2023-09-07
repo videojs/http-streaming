@@ -1258,7 +1258,7 @@ export class PlaylistController extends videojs.EventTarget {
       // If we're content steering, try other pathways.
       if (this.main().contentSteering) {
         const pathway = this.pathwayAttribute_(playlistToExclude);
-        // Ignore atleast 1 steering manifest refresh.
+        // Ignore at least 1 steering manifest refresh.
         const reIncludeDelay = this.contentSteeringController_.steeringManifest.ttl * 1000;
 
         this.contentSteeringController_.excludePathway(pathway);
@@ -2140,12 +2140,9 @@ export class PlaylistController extends videojs.EventTarget {
       });
     }
 
-    if (this.contentSteeringController_.queryBeforeStart) {
-      // If the DASH `queryBeforeStart` parameter is set, we want to ensure we
-      // make a request for the steering manifest before playback
-      this.contentSteeringController_.requestSteeringManifest();
-    } else {
-      // Otherwise, we want to start playback as soon as possible.
+    // Do this at startup only, after that the steering requests are managed by the Content Steering class.
+    // DASH queryBeforeStart scenarios will be handled by the Content Steering class.
+    if (!this.contentSteeringController_.queryBeforeStart) {
       this.tech_.one('canplay', () => {
         this.contentSteeringController_.requestSteeringManifest();
       });

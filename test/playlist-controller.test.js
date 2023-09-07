@@ -6432,7 +6432,7 @@ QUnit.test('initContentSteeringController_ for DASH with queryBeforeStart', func
   assert.deepEqual(steering.steeringManifest.reloadUri, mainPlaylist.contentSteering.serverURL);
 });
 
-QUnit.test.only('initContentSteeringController_ for DASH without queryBeforeStart', function(assert) {
+QUnit.test('initContentSteeringController_ for DASH without queryBeforeStart', function(assert) {
   const options = {
     src: 'test',
     tech: this.player.tech_,
