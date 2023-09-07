@@ -301,6 +301,7 @@ const onUpdateend = (type, sourceUpdater) => (e) => {
 
   if (sourceBuffer) {
     const bufferedAsString = prettyBuffered(sourceBuffer.buffered);
+
     sourceUpdater.logger_(`${type} source buffer update end. Buffered: \n`, bufferedAsString);
   }
 

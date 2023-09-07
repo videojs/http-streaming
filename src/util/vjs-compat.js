@@ -30,7 +30,7 @@ export function createTimeRanges(...args) {
  * @param {TimeRanges} buffered - time ranges
  * @return {string} - descriptive string
  */
-export function prettyBuffered (buffered) {
+export function prettyBuffered(buffered) {
   let result = '';
 
   for (let i = 0; i < buffered.length; i++) {
