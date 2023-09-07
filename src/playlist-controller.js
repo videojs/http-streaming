@@ -307,7 +307,6 @@ export class PlaylistController extends videojs.EventTarget {
       }), options);
 
     // pass main segment loader for current throughput.
-    this.contentSteeringController_ = new ContentSteeringController(this.mainSegmentLoader_);
     this.setupSegmentLoaderListeners_();
 
     if (this.bufferBasedABR) {
@@ -2093,19 +2092,40 @@ export class PlaylistController extends videojs.EventTarget {
    * Initialize content steering listeners and apply the tag properties.
    */
   initContentSteeringController_() {
-    const main = this.main();
+    const initialMain = this.main();
 
-    if (!main.contentSteering) {
+    if (!initialMain.contentSteering) {
       return;
     }
 
-    for (const playlist of main.playlists) {
-      this.contentSteeringController_.addAvailablePathway(this.pathwayAttribute_(playlist));
-    }
+    const updateSteeringValues = (main) => {
+      for (const playlist of main.playlists) {
+        this.contentSteeringController_.addAvailablePathway(this.pathwayAttribute_(playlist));
+      }
 
-    this.contentSteeringController_.assignTagProperties(main.uri, main.contentSteering);
+      this.contentSteeringController_.assignTagProperties(main.uri, main.contentSteering);
+    };
+
+    this.contentSteeringController_ = new ContentSteeringController(this.mainSegmentLoader_);
+
+    updateSteeringValues(initialMain);
 
     this.contentSteeringController_.on('content-steering', this.excludeThenChangePathway_.bind(this));
+
+    // We need to ensure we update the content steering values when a new
+    // manifest is loaded in live DASH with content steering.
+    if (this.sourceType_ === 'dash') {
+      this.mainPlaylistLoader_.on('mediaupdatetimeout', () => {
+        this.mainPlaylistLoader_.refreshMedia_(this.mainPlaylistLoader_.media().id);
+
+        // clear past values
+        this.contentSteeringController_.abort();
+        this.contentSteeringController_.clearTTLTimeout_();
+        this.contentSteeringController_.availablePathways_.clear();
+
+        updateSteeringValues(this.main());
+      });
+    }
 
     if (this.contentSteeringController_.queryBeforeStart) {
       // If the DASH `queryBeforeStart` parameter is set, we want to ensure we

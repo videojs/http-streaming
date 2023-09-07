@@ -85,7 +85,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
     this.ttlTimeout_ = null;
     this.request_ = null;
     this.requestError_ = null;
-    this.exlucdedSteeringManifestURLs = [];
+    this.excludedSteeringManifestURLs = [];
     this.mainSegmentLoader_ = segmentLoader;
     this.logger_ = logger('Content Steering');
   }
@@ -166,7 +166,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
           this.logger_(`manifest request 410 ${error}.`);
           this.logger_(`There will be no more content steering requests to ${uri} this session.`);
 
-          this.exlucdedSteeringManifestURLs.push(uri);
+          this.excludedSteeringManifestURLs.push(uri);
           return;
         }
         // If the client receives HTTP 429 Too Many Requests with a Retry-After
@@ -322,7 +322,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
       return null;
     }
 
-    const isExcluded = (uri) => this.exlucdedSteeringManifestURLs.includes(uri);
+    const isExcluded = (uri) => this.excludedSteeringManifestURLs.includes(uri);
 
     if (this.proxyServerUrl_) {
       const proxyURI = this.setProxyServerUrl_(reloadUri);
@@ -388,6 +388,8 @@ export default class ContentSteeringController extends videojs.EventTarget {
     this.manifestType_ = null;
     this.ttlTimeout_ = null;
     this.request_ = null;
+    this.requestError_ = null;
+    this.excludedSteeringManifestURLs = [];
     this.availablePathways_ = new Set();
     this.excludedPathways_ = new Set();
     this.steeringManifest = new SteeringManifest();
