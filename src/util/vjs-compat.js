@@ -27,6 +27,7 @@ export function createTimeRanges(...args) {
 
 /**
  * Converts any buffered time range to a descriptive string
+ *
  * @param {TimeRanges} buffered - time ranges
  * @return {string} - descriptive string
  */
