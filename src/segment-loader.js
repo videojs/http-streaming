@@ -179,6 +179,10 @@ export const segmentInfoString = (segmentInfo) => {
 
 const timingInfoPropertyForMedia = (mediaType) => `${mediaType}TimingInfo`;
 
+const getBufferedEndOrFallback = (buffered, fallback) => buffered.length ?
+  buffered.end(buffered.length - 1) :
+  fallback;
+
 /**
  * Returns the timestamp offset to use for the segment.
  *
@@ -209,7 +213,7 @@ export const timestampOffsetForSegment = ({
   overrideCheck
 }) => {
   if (calculateTimestampOffsetForEachSegment) {
-    return buffered.length ? buffered.end(buffered.length - 1) : startOfSegment;
+    return getBufferedEndOrFallback(buffered, startOfSegment);
   }
 
   // Check to see if we are crossing a discontinuity to see if we need to set the
@@ -255,7 +259,7 @@ export const timestampOffsetForSegment = ({
   // should often be correct, it's better to rely on the buffered end, as the new
   // content post discontinuity should line up with the buffered end as if it were
   // time 0 for the new content.
-  return buffered.length ? buffered.end(buffered.length - 1) : startOfSegment;
+  return getBufferedEndOrFallback(buffered, startOfSegment);
 };
 
 /**
