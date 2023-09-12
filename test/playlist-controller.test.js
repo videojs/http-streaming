@@ -6326,6 +6326,50 @@ QUnit.test('should delay loading of new playlist if lastRequest was less than ha
 });
 
 // Content Steering
+QUnit.module('PlaylistController contentSteering', {
+  beforeEach(assert) {
+    sharedHooks.beforeEach.call(this, assert);
+
+    this.controllerOptions = {
+      src: 'test',
+      tech: this.player.tech_,
+      sourceType: 'dash'
+    };
+
+    this.csMainPlaylist = {
+      contentSteering: {
+        defaultServiceLocation: 'cdn-a',
+        serverURL: 'https://www.server.test'
+      },
+      playlists: [
+        {
+          attributes: {
+            NAME: 'video_1920x1080_4531kbps',
+            serviceLocation: 'cdn-a'
+          },
+          endList: true,
+          id: '0-placeholder-uri-0',
+          resolvedUri: 'https://fastly.content-steering.com/bbb/placeholder-uri-0',
+          uri: 'placeholder-uri-0'
+        },
+        {
+          attributes: {
+            NAME: 'video_1280x720_2445kbps',
+            serviceLocation: 'cdn-b'
+          },
+          endList: true,
+          id: '1-placeholder-uri-1',
+          resolvedUri: 'https://fastly.content-steering.com/bbb/placeholder-uri-1',
+          uri: 'placeholder-uri-1'
+        }
+      ]
+    };
+
+  },
+  afterEach(assert) {
+    sharedHooks.afterEach.call(this, assert);
+  }
+});
 
 QUnit.test('initContentSteeringController_ for HLS', function(assert) {
   const options = {
@@ -6377,44 +6421,12 @@ QUnit.test('initContentSteeringController_ for HLS', function(assert) {
 });
 
 QUnit.test('initContentSteeringController_ for DASH with queryBeforeStart', function(assert) {
-  const options = {
-    src: 'test',
-    tech: this.player.tech_,
-    sourceType: 'dash'
-  };
-
-  const pc = new PlaylistController(options);
+  const pc = new PlaylistController(this.controllerOptions);
   const requestSteeringManifestSpy = sinon.spy(pc.contentSteeringController_, 'requestSteeringManifest');
 
-  const mainPlaylist = {
-    contentSteering: {
-      defaultServiceLocation: 'cdn-a',
-      queryBeforeStart: true,
-      serverURL: 'https://www.server.test'
-    },
-    playlists: [
-      {
-        attributes: {
-          NAME: 'video_1920x1080_4531kbps',
-          serviceLocation: 'cdn-a'
-        },
-        endList: true,
-        id: '0-placeholder-uri-0',
-        resolvedUri: 'https://fastly.content-steering.com/bbb/placeholder-uri-0',
-        uri: 'placeholder-uri-0'
-      },
-      {
-        attributes: {
-          NAME: 'video_1280x720_2445kbps',
-          serviceLocation: 'cdn-b'
-        },
-        endList: true,
-        id: '1-placeholder-uri-1',
-        resolvedUri: 'https://fastly.content-steering.com/bbb/placeholder-uri-1',
-        uri: 'placeholder-uri-1'
-      }
-    ]
-  };
+  const mainPlaylist = Object.assign({}, this.csMainPlaylist);
+
+  mainPlaylist.contentSteering.queryBeforeStart = true;
 
   pc.main = () => mainPlaylist;
 
@@ -6433,45 +6445,10 @@ QUnit.test('initContentSteeringController_ for DASH with queryBeforeStart', func
 });
 
 QUnit.test('initContentSteeringController_ for DASH without queryBeforeStart', function(assert) {
-  const options = {
-    src: 'test',
-    tech: this.player.tech_,
-    sourceType: 'dash'
-  };
-
-  const pc = new PlaylistController(options);
+  const pc = new PlaylistController(this.controllerOptions);
   const requestSteeringManifestSpy = sinon.spy(pc.contentSteeringController_, 'requestSteeringManifest');
 
-  const mainPlaylist = {
-    contentSteering: {
-      defaultServiceLocation: 'cdn-a',
-      serverURL: 'https://www.server.test'
-    },
-    playlists: [
-      {
-        attributes: {
-          NAME: 'video_1920x1080_4531kbps',
-          serviceLocation: 'cdn-a'
-        },
-        endList: true,
-        id: '0-placeholder-uri-0',
-        resolvedUri: 'https://fastly.content-steering.com/bbb/placeholder-uri-0',
-        uri: 'placeholder-uri-0'
-      },
-      {
-        attributes: {
-          NAME: 'video_1280x720_2445kbps',
-          serviceLocation: 'cdn-b'
-        },
-        endList: true,
-        id: '1-placeholder-uri-1',
-        resolvedUri: 'https://fastly.content-steering.com/bbb/placeholder-uri-1',
-        uri: 'placeholder-uri-1'
-      }
-    ]
-  };
-
-  pc.main = () => mainPlaylist;
+  pc.main = () => this.csMainPlaylist;
 
   pc.initContentSteeringController_();
 
@@ -6491,56 +6468,21 @@ QUnit.test('initContentSteeringController_ for DASH without queryBeforeStart', f
   assert.deepEqual(pathways[0], 'cdn-a');
   assert.deepEqual(pathways[1], 'cdn-b');
   assert.deepEqual(steering.manifestType_, 'DASH');
-  assert.deepEqual(steering.steeringManifest.reloadUri, mainPlaylist.contentSteering.serverURL);
+  assert.deepEqual(steering.steeringManifest.reloadUri, this.csMainPlaylist.contentSteering.serverURL);
 });
 
 QUnit.test('Test Live DASH update with content steering', function(assert) {
-  const options = {
-    src: 'test',
-    tech: this.player.tech_,
-    sourceType: 'dash'
-  };
-
-  const pc = new PlaylistController(options);
+  const pc = new PlaylistController(this.controllerOptions);
 
   // Stub the steering request functionality and the resetting of media.
   sinon.stub(pc.contentSteeringController_, 'requestSteeringManifest');
   sinon.stub(pc.mainPlaylistLoader_, 'refreshMedia_');
 
-  const mainPlaylist = {
-    contentSteering: {
-      defaultServiceLocation: 'cdn-a',
-      serverURL: 'https://www.server.test'
-    },
-    playlists: [
-      {
-        attributes: {
-          NAME: 'video_1920x1080_4531kbps',
-          serviceLocation: 'cdn-a'
-        },
-        endList: true,
-        id: '0-placeholder-uri-0',
-        resolvedUri: 'https://fastly.content-steering.com/bbb/placeholder-uri-0',
-        uri: 'placeholder-uri-0'
-      },
-      {
-        attributes: {
-          NAME: 'video_1280x720_2445kbps',
-          serviceLocation: 'cdn-b'
-        },
-        endList: true,
-        id: '1-placeholder-uri-1',
-        resolvedUri: 'https://fastly.content-steering.com/bbb/placeholder-uri-1',
-        uri: 'placeholder-uri-1'
-      }
-    ]
-  };
-
   // Second manifest after live update just changes the queryBeforeStartParam
-  const mainPlaylistAfter = Object.assign({}, mainPlaylist);
+  const mainPlaylistAfter = Object.assign({}, this.csMainPlaylist);
 
-  pc.main = () => mainPlaylist;
-  pc.mainPlaylistLoader_.media = () => mainPlaylist.playlists[0];
+  pc.main = () => this.csMainPlaylist;
+  pc.mainPlaylistLoader_.media = () => this.csMainPlaylist.playlists[0];
 
   pc.initContentSteeringController_();
 
@@ -6556,4 +6498,177 @@ QUnit.test('Test Live DASH update with content steering', function(assert) {
 
   // The content steering controller was updated with the new information.
   assert.deepEqual(pc.contentSteeringController_.queryBeforeStart, true);
+
+  pc.dispose();
+});
+
+QUnit.test('Exclude and reinclude pathway after timeout for content steering', function(assert) {
+  const pc = new PlaylistController(this.controllerOptions);
+
+  const mainPlaylist = Object.assign({}, this.csMainPlaylist);
+
+  // playlist for cdn-b is currently excluded
+  mainPlaylist.playlists[1].excludeUntil = Infinity;
+  mainPlaylist.playlists[1].lastExcludeReason_ = 'content-steering';
+
+  // Set up playlists
+  pc.main = () => mainPlaylist;
+  pc.media = () => mainPlaylist.playlists[0];
+  pc.mainPlaylistLoader_.main = mainPlaylist;
+  pc.mainPlaylistLoader_.media = () => mainPlaylist.playlists[0];
+  pc.selectPlaylist = () => pc.main().playlists[0];
+
+  pc.initContentSteeringController_();
+
+  // The content steering controller has the pathway available.
+  assert.ok(pc.contentSteeringController_.availablePathways_.has('cdn-a'));
+
+  pc.excludePlaylist({
+    playlistToExclude: pc.main().playlists[0],
+    error: { internal: true }
+  });
+
+  // The pathway was removed from the available pathways.
+  assert.notOk(pc.contentSteeringController_.availablePathways_.has('cdn-a'));
+
+  // A timeout was set, to fast forward to when the pathway should be included again.
+  this.clock.tick(4);
+
+  // The pathway was added back to the available pathways.
+  assert.ok(pc.contentSteeringController_.availablePathways_.has('cdn-a'));
+});
+
+QUnit.test('switch media on priority change for content steering', function(assert) {
+  const pc = new PlaylistController(this.controllerOptions);
+
+  const mainPlaylist = Object.assign({}, this.csMainPlaylist);
+
+  // playlist for cdn-b is currently excluded
+  mainPlaylist.playlists[1].excludeUntil = Infinity;
+  mainPlaylist.playlists[1].lastExcludeReason_ = 'content-steering';
+
+  // Set up playlists
+  pc.main = () => mainPlaylist;
+  pc.media = () => mainPlaylist.playlists[0];
+  pc.selectPlaylist = () => pc.main().playlists[0];
+
+  const switchMediaStub = sinon.stub(pc, 'switchMedia_');
+
+  pc.initContentSteeringController_();
+
+  // Initially, cdn-a should be selected and there should be no media switch
+  assert.deepEqual(pc.contentSteeringController_.getPathway(), 'cdn-a');
+  assert.notOk(switchMediaStub.called);
+  // The playlist for cdn-b is excluded
+  assert.deepEqual(pc.main().playlists[1].excludeUntil, Infinity);
+
+  // selectPlaylist has to be mocked
+  pc.selectPlaylist = () => pc.main().playlists[1];
+
+  const steeringManifestJson = {
+    VERSION: 1,
+    TTL: 10,
+    ['RELOAD-URI']: 'https://fastly-server.content-steering.com/dash.dcsm?steering_params=eyJtaW5CaXRyYXRlIjo5MTQ4NzgsImNkbk9yZGVyIjpbImNkbi1jIiwiY2RuLWIiLCJjZG4tYSJdLCJwcmV2aW91c1Rocm91Z2hwdXQiOjE2ODk1ODMwMzIsInBhdGh3YXlzIjpbeyJpZCI6ImNkbi1hIiwidGhyb3VnaHB1dCI6ODAzNzQ3MDB9LHsiaWQiOiJjZG4tYiIsInRocm91Z2hwdXQiOjE5NzQxNzkyMTl9LHsiaWQiOiJjZG4tYyIsInRocm91Z2hwdXQiOjE2OTAwMDQ4MDl9XSwidGltZXN0YW1wIjoxNjk0MjAyMjUwNjMxfQ==',
+    ['PATHWAY-PRIORITY']: [
+      'cdn-b',
+      'cdn-a'
+    ]
+  };
+
+  // mimic a response from the content server
+  pc.contentSteeringController_.assignSteeringProperties_(steeringManifestJson);
+
+  // When the priority changes in the manifest, the media should switch to cdn-b
+  assert.deepEqual(switchMediaStub.getCall(0).args[0].attributes.serviceLocation, 'cdn-b');
+  assert.deepEqual(pc.contentSteeringController_.getPathway(), 'cdn-b');
+  // The playlist for cdn-b is no longer excluded
+  assert.deepEqual(pc.main().playlists[1].excludeUntil, undefined);
+});
+
+QUnit.test('media group playlists should switch on steering change', function(assert) {
+  const pc = new PlaylistController(this.controllerOptions);
+
+  const mainPlaylist = Object.assign({}, this.csMainPlaylist);
+
+  // playlist for cdn-b is currently excluded
+  mainPlaylist.playlists[1].excludeUntil = Infinity;
+  mainPlaylist.playlists[1].lastExcludeReason_ = 'content-steering';
+
+  mainPlaylist.mediaGroups = {
+    AUDIO: {
+      audio: {
+        und: {
+          language: 'und',
+          default: true,
+          autoselect: true,
+          playlists: [
+            {
+              attributes: {
+                NAME: 'audio_128kbps',
+                CODECS: 'mp4a.40.2',
+                serviceLocation: 'cdn-a'
+              },
+              endList: true,
+              id: '0-placeholder-uri-AUDIO-audio-audio_128kbps',
+              uri: 'placeholder-uri-AUDIO-audio-audio_128kbps',
+              resolvedUri: 'placeholder-uri-AUDIO-audio-audio_128kbps'
+            },
+            {
+              attributes: {
+                NAME: 'audio_128kbps',
+                CODECS: 'mp4a.40.2',
+                serviceLocation: 'cdn-b'
+              },
+              endList: true,
+              id: '1-placeholder-uri-AUDIO-audio-audio_128kbps',
+              uri: '1-placeholder-uri-AUDIO-audio-audio_128kbps',
+              resolvedUri: '1-placeholder-uri-AUDIO-audio-audio_128kbps'
+            }
+          ]
+        }
+      }
+    },
+    ['CLOSED_CAPTIONS']: {},
+    SUBTITLES: {},
+    VIDEO: {}
+  };
+
+  // Set up playlists
+  pc.main = () => mainPlaylist;
+  pc.media = () => mainPlaylist.playlists[0];
+  pc.mainPlaylistLoader_.main = mainPlaylist;
+  pc.mainPlaylistLoader_.media = () => mainPlaylist.playlists[0];
+  pc.selectPlaylist = () => pc.main().playlists[0];
+
+  // Set up mediaTypes_ groups
+  pc.mediaTypes_.AUDIO.groups = [{
+    audio: [mainPlaylist.mediaGroups.AUDIO.audio.und]
+  }];
+  pc.mediaTypes_.AUDIO.activeGroup = () => [
+    mainPlaylist.mediaGroups.AUDIO.audio.und
+  ];
+  pc.mediaTypes_.AUDIO.activeTrack = () => ({label: 'und'});
+  pc.mediaTypes_.AUDIO.activePlaylistLoader = { media: () => {}};
+
+  // Set up stubs
+  sinon.stub(pc, 'switchMedia_');
+  const mediaStub = sinon.stub(pc.mediaTypes_.AUDIO.activePlaylistLoader, 'media');
+
+  pc.initContentSteeringController_();
+
+  const steeringManifestJson = {
+    VERSION: 1,
+    TTL: 10,
+    ['RELOAD-URI']: 'https://fastly-server.content-steering.com/dash.dcsm?steering_params=eyJtaW5CaXRyYXRlIjo5MTQ4NzgsImNkbk9yZGVyIjpbImNkbi1jIiwiY2RuLWIiLCJjZG4tYSJdLCJwcmV2aW91c1Rocm91Z2hwdXQiOjE2ODk1ODMwMzIsInBhdGh3YXlzIjpbeyJpZCI6ImNkbi1hIiwidGhyb3VnaHB1dCI6ODAzNzQ3MDB9LHsiaWQiOiJjZG4tYiIsInRocm91Z2hwdXQiOjE5NzQxNzkyMTl9LHsiaWQiOiJjZG4tYyIsInRocm91Z2hwdXQiOjE2OTAwMDQ4MDl9XSwidGltZXN0YW1wIjoxNjk0MjAyMjUwNjMxfQ==',
+    ['PATHWAY-PRIORITY']: [
+      'cdn-b',
+      'cdn-a'
+    ]
+  };
+
+  // mimic a response from the content server
+  pc.contentSteeringController_.assignSteeringProperties_(steeringManifestJson);
+
+  // the audio media() is called with the playlist for cdn-b
+  assert.deepEqual(mediaStub.getCall(0).args[0].attributes.serviceLocation, 'cdn-b');
 });
