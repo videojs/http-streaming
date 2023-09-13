@@ -418,13 +418,4 @@ export default class ContentSteeringController extends videojs.EventTarget {
   excludePathway(pathway) {
     return this.availablePathways_.delete(pathway);
   }
-
-  /**
-   * Utility function for getting the current pathway priority from the content steering manifest.
-   *
-   * @return the pathway priority
-   */
-  getPriority() {
-    return this.steeringManifest.priority;
-  }
 }

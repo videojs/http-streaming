@@ -496,3 +496,17 @@ QUnit.test('chooses first pathway when none are in the priority list', function(
   // test-1 is the default pathway added in beforeEach
   assert.equal(expected, 'test-1', 'use first pathway when none exist on the priority list');
 });
+
+QUnit.test('disposes the controller when there are no available pathways', function(assert) {
+  const steeringTag = {
+    serverUri: '/content/steering'
+  };
+
+  this.contentSteeringController.excludePathway('test-1');
+  const disposeSpy = sinon.spy(this.contentSteeringController, 'dispose');
+
+  this.assignAndRequest(steeringTag);
+  this.requests[0].respond(200, { 'Content-Type': 'application/json' }, '{ "VERSION": 1, "PATHWAY-PRIORITY": ["cdn-z"] }');
+
+  assert.ok(disposeSpy.called, 'diposes the content steering controller');
+});

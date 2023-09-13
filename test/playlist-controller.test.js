@@ -6568,7 +6568,7 @@ QUnit.test('switch media on priority change for content steering', function(asse
   const steeringManifestJson = {
     VERSION: 1,
     TTL: 10,
-    ['RELOAD-URI']: 'https://fastly-server.content-steering.com/dash.dcsm?steering_params=eyJtaW5CaXRyYXRlIjo5MTQ4NzgsImNkbk9yZGVyIjpbImNkbi1jIiwiY2RuLWIiLCJjZG4tYSJdLCJwcmV2aW91c1Rocm91Z2hwdXQiOjE2ODk1ODMwMzIsInBhdGh3YXlzIjpbeyJpZCI6ImNkbi1hIiwidGhyb3VnaHB1dCI6ODAzNzQ3MDB9LHsiaWQiOiJjZG4tYiIsInRocm91Z2hwdXQiOjE5NzQxNzkyMTl9LHsiaWQiOiJjZG4tYyIsInRocm91Z2hwdXQiOjE2OTAwMDQ4MDl9XSwidGltZXN0YW1wIjoxNjk0MjAyMjUwNjMxfQ==',
+    ['RELOAD-URI']: 'https://fastly-server.content-steering.com/dash.dcsm',
     ['PATHWAY-PRIORITY']: [
       'cdn-b',
       'cdn-a'
@@ -6648,18 +6648,24 @@ QUnit.test('media group playlists should switch on steering change', function(as
     mainPlaylist.mediaGroups.AUDIO.audio.und
   ];
   pc.mediaTypes_.AUDIO.activeTrack = () => ({label: 'und'});
-  pc.mediaTypes_.AUDIO.activePlaylistLoader = { media: () => {}};
+
+  const audioPlaylist = mainPlaylist.mediaGroups.AUDIO.audio.und.playlists[0];
+
+  pc.mediaTypes_.AUDIO.activePlaylistLoader = {
+    media: () => audioPlaylist,
+    media_: audioPlaylist
+  };
 
   // Set up stubs
   sinon.stub(pc, 'switchMedia_');
-  const mediaStub = sinon.stub(pc.mediaTypes_.AUDIO.activePlaylistLoader, 'media');
+  const mediaSpy = sinon.spy(pc.mediaTypes_.AUDIO.activePlaylistLoader, 'media');
 
   pc.initContentSteeringController_();
 
   const steeringManifestJson = {
     VERSION: 1,
     TTL: 10,
-    ['RELOAD-URI']: 'https://fastly-server.content-steering.com/dash.dcsm?steering_params=eyJtaW5CaXRyYXRlIjo5MTQ4NzgsImNkbk9yZGVyIjpbImNkbi1jIiwiY2RuLWIiLCJjZG4tYSJdLCJwcmV2aW91c1Rocm91Z2hwdXQiOjE2ODk1ODMwMzIsInBhdGh3YXlzIjpbeyJpZCI6ImNkbi1hIiwidGhyb3VnaHB1dCI6ODAzNzQ3MDB9LHsiaWQiOiJjZG4tYiIsInRocm91Z2hwdXQiOjE5NzQxNzkyMTl9LHsiaWQiOiJjZG4tYyIsInRocm91Z2hwdXQiOjE2OTAwMDQ4MDl9XSwidGltZXN0YW1wIjoxNjk0MjAyMjUwNjMxfQ==',
+    ['RELOAD-URI']: 'https://fastly-server.content-steering.com/dash.dcsm',
     ['PATHWAY-PRIORITY']: [
       'cdn-b',
       'cdn-a'
@@ -6670,5 +6676,35 @@ QUnit.test('media group playlists should switch on steering change', function(as
   pc.contentSteeringController_.assignSteeringProperties_(steeringManifestJson);
 
   // the audio media() is called with the playlist for cdn-b
-  assert.deepEqual(mediaStub.getCall(0).args[0].attributes.serviceLocation, 'cdn-b');
+  assert.deepEqual(mediaSpy.getCall(0).args[0].attributes.serviceLocation, 'cdn-b');
+});
+
+QUnit.test('playlists should not change when there is no currentPathway', function(assert) {
+  const pc = new PlaylistController(this.controllerOptions);
+
+  const switchMediaSpy = sinon.spy(pc, 'switchMedia_');
+
+  // Set up playlists
+  pc.main = () => this.csMainPlaylist;
+
+  pc.initContentSteeringController_();
+
+  // mimic there being no current pathway
+  pc.contentSteeringController_.getPathway = () => null;
+
+  const steeringManifestJson = {
+    VERSION: 1,
+    TTL: 10,
+    ['RELOAD-URI']: 'https://fastly-server.content-steering.com/dash.dcsm',
+    ['PATHWAY-PRIORITY']: [
+      'cdn-b',
+      'cdn-a'
+    ]
+  };
+
+  // mimic a response from the content server
+  pc.contentSteeringController_.assignSteeringProperties_(steeringManifestJson);
+
+  // media is never switched
+  assert.notOk(switchMediaSpy.called);
 });
