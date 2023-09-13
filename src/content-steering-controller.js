@@ -77,7 +77,6 @@ export default class ContentSteeringController extends videojs.EventTarget {
     this.defaultPathway = null;
     this.queryBeforeStart = null;
     this.availablePathways_ = new Set();
-    // TODO: Implement exclusion.
     this.excludedPathways_ = new Set();
     this.steeringManifest = new SteeringManifest();
     this.proxyServerUrl_ = null;
@@ -187,7 +186,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
 
           this.logger_(`manifest request 429 ${error}.`);
           this.logger_(`content steering will retry in ${retrySeconds} seconds.`);
-          this.startTTLTimeout_(retrySeconds);
+          this.startTTLTimeout_(parseInt(retrySeconds, 10));
           return;
         }
         // If the Steering Manifest cannot be loaded and parsed correctly, the
@@ -276,13 +275,13 @@ export default class ContentSteeringController extends videojs.EventTarget {
     this.steeringManifest.priority = steeringJson['PATHWAY-PRIORITY'] || steeringJson['SERVICE-LOCATION-PRIORITY'];
     // TODO: HLS handle PATHWAY-CLONES. See section 7.2 https://datatracker.ietf.org/doc/draft-pantos-hls-rfc8216bis/
 
-    // TODO: fully implement priority logic.
     // 1. apply first pathway from the array.
-    // 2. if first first pathway doesn't exist in manifest, try next pathway.
+    // 2. if first pathway doesn't exist in manifest, try next pathway.
     //    a. if all pathways are exhausted, ignore the steering manifest priority.
     // 3. if segments fail from an established pathway, try all variants/renditions, then exclude the failed pathway.
     //    a. exclude a pathway for a minimum of the last TTL duration. Meaning, from the next steering response,
     //       the excluded pathway will be ignored.
+    //       See excludePathway usage in excludePlaylist().
 
     // If there are no available pathways, we need to stop content steering.
     if (!this.availablePathways_.size) {
@@ -355,7 +354,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
   /**
    * Start the timeout for re-requesting the steering manifest at the TTL interval.
    *
-   * @param {string} ttl time in seconds of the timeout. Defaults to the
+   * @param {number} ttl time in seconds of the timeout. Defaults to the
    *        ttl interval in the steering manifest
    */
   startTTLTimeout_(ttl = this.steeringManifest.ttl) {
