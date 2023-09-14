@@ -292,14 +292,11 @@ export const onError = {
    */
   SUBTITLES: (type, settings) => () => {
     const {
-      segmentLoaders: { [type]: segmentLoader},
       mediaTypes: { [type]: mediaType }
     } = settings;
 
     videojs.log.warn('Problem encountered loading the subtitle track.' +
                      'Disabling subtitle track.');
-
-    stopLoaders(segmentLoader, mediaType);
 
     const track = mediaType.activeTrack();
 
