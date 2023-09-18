@@ -115,10 +115,8 @@ export default class ContentSteeringController extends videojs.EventTarget {
     // pathwayId is HLS defaultServiceLocation is DASH
     this.defaultPathway = steeringTag.pathwayId || steeringTag.defaultServiceLocation;
     // currently only DASH supports the following properties on <ContentSteering> tags.
-    if (this.manifestType_ === 'DASH') {
-      this.queryBeforeStart = steeringTag.queryBeforeStart || false;
-      this.proxyServerUrl_ = steeringTag.proxyServerURL;
-    }
+    this.queryBeforeStart = steeringTag.queryBeforeStart || false;
+    this.proxyServerUrl_ = steeringTag.proxyServerURL || null;
 
     // trigger a steering event if we have a pathway from the content steering tag.
     // this tells VHS which segment pathway to start with.
@@ -388,6 +386,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
    * aborts steering requests clears the ttl timeout and resets all properties.
    */
   dispose() {
+    this.off('content-steering');
     this.abort();
     this.clearTTLTimeout_();
     this.currentPathway = null;
@@ -413,6 +412,13 @@ export default class ContentSteeringController extends videojs.EventTarget {
     if (pathway) {
       this.availablePathways_.add(pathway);
     }
+  }
+
+  /**
+   * clears all pathways from the available pathways set
+   */
+  clearAvailablePathways() {
+    this.availablePathways_.clear();
   }
 
   excludePathway(pathway) {

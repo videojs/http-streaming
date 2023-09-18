@@ -2134,7 +2134,7 @@ export class PlaylistController extends videojs.EventTarget {
         // clear past values
         this.contentSteeringController_.abort();
         this.contentSteeringController_.clearTTLTimeout_();
-        this.contentSteeringController_.availablePathways_.clear();
+        this.contentSteeringController_.clearAvailablePathways();
 
         updateSteeringValues(this.main());
       });
