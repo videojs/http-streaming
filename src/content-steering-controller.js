@@ -83,7 +83,6 @@ export default class ContentSteeringController extends videojs.EventTarget {
     this.manifestType_ = null;
     this.ttlTimeout_ = null;
     this.request_ = null;
-    this.requestError_ = null;
     this.excludedSteeringManifestURLs = new Set();
     this.mainSegmentLoader_ = segmentLoader;
     this.logger_ = logger('Content Steering');
@@ -164,7 +163,6 @@ export default class ContentSteeringController extends videojs.EventTarget {
       uri
     }, (error, errorInfo) => {
       if (error) {
-        this.requestError_ = error;
         // If the client receives HTTP 410 Gone in response to a manifest request,
         // it MUST NOT issue another request for that URI for the remainder of the
         // playback session. It MAY continue to use the most-recently obtained set
@@ -195,7 +193,6 @@ export default class ContentSteeringController extends videojs.EventTarget {
         this.startTTLTimeout_();
         return;
       }
-      this.requestError_ = null;
       const steeringManifestJson = JSON.parse(this.request_.responseText);
 
       this.startTTLTimeout_();
@@ -397,7 +394,6 @@ export default class ContentSteeringController extends videojs.EventTarget {
     this.manifestType_ = null;
     this.ttlTimeout_ = null;
     this.request_ = null;
-    this.requestError_ = null;
     this.excludedSteeringManifestURLs = new Set();
     this.availablePathways_ = new Set();
     this.excludedPathways_ = new Set();
