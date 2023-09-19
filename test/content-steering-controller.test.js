@@ -378,7 +378,7 @@ QUnit.test('Exclude request URI on a 410 error', function(assert) {
   this.assignAndRequest(steeringTag);
   this.requests[0].respond(410);
 
-  const excludedUri = this.contentSteeringController.excludedSteeringManifestURLs[0];
+  const excludedUri = [...this.contentSteeringController.excludedSteeringManifestURLs][0];
 
   assert.equal(excludedUri, resolvedUri, 'exludes uri from future requests');
 });
@@ -427,7 +427,7 @@ QUnit.test('getRequestURI returns resolved reloadUri when proxyUri is excluded',
 
   this.contentSteeringController.proxyServerUrl_ = 'https://proxy.url';
   // exlude the resolved url
-  this.contentSteeringController.excludedSteeringManifestURLs[0] = 'https://proxy.url/?url=https%3A%2F%2Fbaseurl.com%2F';
+  this.contentSteeringController.excludedSteeringManifestURLs.add('https://proxy.url/?url=https%3A%2F%2Fbaseurl.com%2F');
 
   const actual = this.contentSteeringController.getRequestURI(reloadUri);
   const expected = 'https://baseurl.com/';
@@ -440,8 +440,8 @@ QUnit.test('getRequestURI returns null when both reloadUri or proxyUri are exclu
 
   this.contentSteeringController.proxyServerUrl_ = 'https://proxy.url';
   // exlude the resolved urls
-  this.contentSteeringController.excludedSteeringManifestURLs[0] = 'https://proxy.url/?url=https%3A%2F%2Fbaseurl.com%2F';
-  this.contentSteeringController.excludedSteeringManifestURLs[1] = 'https://baseurl.com/';
+  this.contentSteeringController.excludedSteeringManifestURLs.add('https://proxy.url/?url=https%3A%2F%2Fbaseurl.com%2F');
+  this.contentSteeringController.excludedSteeringManifestURLs.add('https://baseurl.com/');
 
   const actual = this.contentSteeringController.getRequestURI(reloadUri);
 

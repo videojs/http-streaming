@@ -84,7 +84,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
     this.ttlTimeout_ = null;
     this.request_ = null;
     this.requestError_ = null;
-    this.excludedSteeringManifestURLs = [];
+    this.excludedSteeringManifestURLs = new Set();
     this.mainSegmentLoader_ = segmentLoader;
     this.logger_ = logger('Content Steering');
   }
@@ -155,8 +155,8 @@ export default class ContentSteeringController extends videojs.EventTarget {
     // If there are no valid manifest URIs, we should stop content steering.
     if (!uri) {
       this.logger_('No valid content steering manifest URIs. Stopping content steering.');
-      this.dispose();
       this.trigger('error');
+      this.dispose();
       return;
     }
 
@@ -173,7 +173,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
           this.logger_(`manifest request 410 ${error}.`);
           this.logger_(`There will be no more content steering requests to ${uri} this session.`);
 
-          this.excludedSteeringManifestURLs.push(uri);
+          this.excludedSteeringManifestURLs.add(uri);
           return;
         }
         // If the client receives HTTP 429 Too Many Requests with a Retry-After
@@ -329,7 +329,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
       return null;
     }
 
-    const isExcluded = (uri) => this.excludedSteeringManifestURLs.includes(uri);
+    const isExcluded = (uri) => this.excludedSteeringManifestURLs.has(uri);
 
     if (this.proxyServerUrl_) {
       const proxyURI = this.setProxyServerUrl_(reloadUri);
@@ -387,6 +387,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
    */
   dispose() {
     this.off('content-steering');
+    this.off('error');
     this.abort();
     this.clearTTLTimeout_();
     this.currentPathway = null;
@@ -397,7 +398,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
     this.ttlTimeout_ = null;
     this.request_ = null;
     this.requestError_ = null;
-    this.excludedSteeringManifestURLs = [];
+    this.excludedSteeringManifestURLs = new Set();
     this.availablePathways_ = new Set();
     this.excludedPathways_ = new Set();
     this.steeringManifest = new SteeringManifest();
