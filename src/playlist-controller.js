@@ -306,8 +306,11 @@ export class PlaylistController extends videojs.EventTarget {
         })
       }), options);
 
-    // pass main segment loader for current throughput.
-    this.contentSteeringController_ = new ContentSteeringController(this.mainSegmentLoader_);
+    const getBandwidth = () => {
+      return this.mainSegmentLoader_.bandwidth;
+    };
+
+    this.contentSteeringController_ = new ContentSteeringController(this.vhs_.xhr, getBandwidth);
     this.setupSegmentLoaderListeners_();
 
     if (this.bufferBasedABR) {

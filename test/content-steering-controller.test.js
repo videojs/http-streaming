@@ -8,17 +8,8 @@ QUnit.module('ContentSteering', {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
     this.requests = this.env.requests;
-    this.fakeVhs = {
-      xhr: xhrFactory()
-    };
-    this.mockSegmentLoader = {
-      vhs_: this.fakeVhs,
-      throughput: {
-        rate: 0
-      }
-    };
     this.baseURL = 'https://foo.bar';
-    this.contentSteeringController = new ContentSteeringController(this.mockSegmentLoader);
+    this.contentSteeringController = new ContentSteeringController(xhrFactory(), () => undefined);
     this.contentSteeringController.addAvailablePathway('test-1');
     // handles a common testing flow of assigning tag properties and requesting the steering manifest immediately.
     this.assignAndRequest = (steeringTag) => {
@@ -97,8 +88,10 @@ QUnit.test('Can add HLS pathway and throughput to steering manifest requests', f
   };
   const expectedThroughputUrl = steeringTag.serverUri + '/?_HLS_pathway=cdn-a&_HLS_throughput=99999';
 
+  this.contentSteeringController.getBandwidth_ = () => {
+    return 99999;
+  };
   this.contentSteeringController.assignTagProperties(this.baseURL, steeringTag);
-  this.mockSegmentLoader.throughput.rate = 99999;
   assert.equal(this.contentSteeringController.setSteeringParams_(steeringTag.serverUri), expectedThroughputUrl, 'pathway and throughput parameters set as expected');
 });
 
@@ -169,8 +162,10 @@ QUnit.test('Can add DASH pathway and throughput to steering manifest requests', 
   };
   const expectedThroughputUrl = steeringTag.serverURL + '&_DASH_pathway=cdn-c&_DASH_throughput=9999';
 
+  this.contentSteeringController.getBandwidth_ = () => {
+    return 9999;
+  };
   this.contentSteeringController.assignTagProperties(this.baseURL, steeringTag);
-  this.mockSegmentLoader.throughput.rate = 9999;
   assert.equal(this.contentSteeringController.setSteeringParams_(steeringTag.serverURL), expectedThroughputUrl, 'pathway and throughput parameters set as expected');
 });
 
@@ -192,7 +187,9 @@ QUnit.test('Can handle DASH proxyServerURL', function(assert) {
   };
   const expectedProxyUrl = 'https://proxy.url/?url=https%3A%2F%2Fcontent.steering.dash%2F%3Fprevious%3Dparams&_DASH_pathway=dash-cdn&_DASH_throughput=99';
 
-  this.mockSegmentLoader.throughput.rate = 99;
+  this.contentSteeringController.getBandwidth_ = () => {
+    return 99;
+  };
   this.assignAndRequest(steeringTag);
   assert.equal(this.requests[0].uri, expectedProxyUrl, 'returns expected proxy server URL');
 });

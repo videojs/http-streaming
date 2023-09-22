@@ -66,11 +66,11 @@ class SteeringManifest {
  * https://datatracker.ietf.org/doc/draft-pantos-hls-rfc8216bis/ section 4.4.6.6.
  * DASH: https://dashif.org/docs/DASH-IF-CTS-00XX-Content-Steering-Community-Review.pdf
  *
- * @param {Object} segmentLoader a reference to the mainSegmentLoader
+ * @param {function} xhr for making a network request from the browser.
+ * @param {function} bandwidth for fetching the current bandwidth from the main segment loader.
  */
 export default class ContentSteeringController extends videojs.EventTarget {
-  // pass a segment loader reference for throughput rate and xhr
-  constructor(segmentLoader) {
+  constructor(xhr, bandwidth) {
     super();
 
     this.currentPathway = null;
@@ -84,8 +84,9 @@ export default class ContentSteeringController extends videojs.EventTarget {
     this.ttlTimeout_ = null;
     this.request_ = null;
     this.excludedSteeringManifestURLs = new Set();
-    this.mainSegmentLoader_ = segmentLoader;
     this.logger_ = logger('Content Steering');
+    this.xhr_ = xhr;
+    this.getBandwidth_ = bandwidth;
   }
 
   /**
@@ -159,7 +160,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
       return;
     }
 
-    this.request_ = this.mainSegmentLoader_.vhs_.xhr({
+    this.request_ = this.xhr_({
       uri
     }, (error, errorInfo) => {
       if (error) {
@@ -236,6 +237,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
   setSteeringParams_(url) {
     const urlObject = new window.URL(url);
     const path = this.getPathway();
+    const networkThroughput = this.getBandwidth_();
 
     if (path) {
       const pathwayKey = `_${this.manifestType_}_pathway`;
@@ -243,10 +245,10 @@ export default class ContentSteeringController extends videojs.EventTarget {
       urlObject.searchParams.set(pathwayKey, path);
     }
 
-    if (this.mainSegmentLoader_.throughput.rate) {
+    if (networkThroughput) {
       const throughputKey = `_${this.manifestType_}_throughput`;
 
-      urlObject.searchParams.set(throughputKey, this.mainSegmentLoader_.bandwidth);
+      urlObject.searchParams.set(throughputKey, networkThroughput);
     }
     return urlObject.toString();
   }
