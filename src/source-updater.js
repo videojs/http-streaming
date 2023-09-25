@@ -9,7 +9,7 @@ import {getMimeForCodec} from '@videojs/vhs-utils/es/codecs.js';
 import window from 'global/window';
 import toTitleCase from './util/to-title-case.js';
 import { QUOTA_EXCEEDED_ERR } from './error-codes';
-import {createTimeRanges} from './util/vjs-compat';
+import {createTimeRanges, prettyBuffered} from './util/vjs-compat';
 
 const bufferTypes = [
   'video',
@@ -297,6 +297,11 @@ const pushQueue = ({type, sourceUpdater, action, doneFn, name}) => {
 };
 
 const onUpdateend = (type, sourceUpdater) => (e) => {
+  const buffered = sourceUpdater[`${type}Buffered`]();
+  const bufferedAsString = prettyBuffered(buffered);
+
+  sourceUpdater.logger_(`${type} source buffer update end. Buffered: \n`, bufferedAsString);
+
   // Although there should, in theory, be a pending action for any updateend receieved,
   // there are some actions that may trigger updateend events without set definitions in
   // the w3c spec. For instance, setting the duration on the media source may trigger

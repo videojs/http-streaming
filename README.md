@@ -463,6 +463,12 @@ This option defaults to `false`.
 * Default: `false`
 * Use [Decode Timestamp](https://www.w3.org/TR/media-source/#decode-timestamp) instead of [Presentation Timestamp](https://www.w3.org/TR/media-source/#presentation-timestamp) for [timestampOffset](https://www.w3.org/TR/media-source/#dom-sourcebuffer-timestampoffset) calculation. This option was introduced to align with DTS-based browsers. This option affects only transmuxed data (eg: transport stream). For more info please check the following [issue](https://github.com/videojs/http-streaming/issues/1247).  
 
+##### calculateTimestampOffsetForEachSegment
+* Type: `boolean`,
+* Default: `false`
+* Calculate timestampOffset for each segment, regardless of its timeline. Sometimes it is helpful when you have corrupted DTS/PTS timestamps during discontinuities.
+
+
 ##### useForcedSubtitles
 * Type: `boolean`
 * Default: `false`

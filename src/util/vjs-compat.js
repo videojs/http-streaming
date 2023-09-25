@@ -24,3 +24,28 @@ export function createTimeRanges(...args) {
 
   return fn.apply(context, args);
 }
+
+/**
+ * Converts any buffered time range to a descriptive string
+ *
+ * @param {TimeRanges} buffered - time ranges
+ * @return {string} - descriptive string
+ */
+export function prettyBuffered(buffered) {
+  let result = '';
+
+  for (let i = 0; i < buffered.length; i++) {
+    const start = buffered.start(i);
+    const end = buffered.end(i);
+
+    const duration = end - start;
+
+    if (result.length) {
+      result += '\n';
+    }
+
+    result += `[${duration}](${start} -> ${end})`;
+  }
+
+  return result || 'empty';
+}

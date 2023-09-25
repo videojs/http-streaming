@@ -690,6 +690,7 @@ class VhsHandler extends Component {
     this.options_.useForcedSubtitles = this.options_.useForcedSubtitles || false;
     this.options_.useNetworkInformationApi = this.options_.useNetworkInformationApi || false;
     this.options_.useDtsForTimestampOffset = this.options_.useDtsForTimestampOffset || false;
+    this.options_.calculateTimestampOffsetForEachSegment = this.options_.calculateTimestampOffsetForEachSegment || false;
     this.options_.customTagParsers = this.options_.customTagParsers || [];
     this.options_.customTagMappers = this.options_.customTagMappers || [];
     this.options_.cacheEncryptionKeys = this.options_.cacheEncryptionKeys || false;
@@ -743,6 +744,7 @@ class VhsHandler extends Component {
       'useForcedSubtitles',
       'useNetworkInformationApi',
       'useDtsForTimestampOffset',
+      'calculateTimestampOffsetForEachSegment',
       'exactManifestTimings',
       'leastPixelDiffSelector'
     ].forEach((option) => {
