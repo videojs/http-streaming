@@ -1,3 +1,17 @@
+<a name="3.6.0"></a>
+# [3.6.0](https://github.com/videojs/http-streaming/compare/v3.5.3...v3.6.0) (2023-09-25)
+
+### Features
+
+* Add feature flag to calculate timestampOffset for each segment to handle streams with corrupted pts or dts timestamps ([#1426](https://github.com/videojs/http-streaming/issues/1426)) ([2355ddc](https://github.com/videojs/http-streaming/commit/2355ddc))
+* content steering demo page tab ([#1425](https://github.com/videojs/http-streaming/issues/1425)) ([04451d4](https://github.com/videojs/http-streaming/commit/04451d4))
+* request Content Steering manifest ([#1419](https://github.com/videojs/http-streaming/issues/1419)) ([86d5327](https://github.com/videojs/http-streaming/commit/86d5327))
+
+### Chores
+
+* update mpd-parser to v1.2.1 ([#1420](https://github.com/videojs/http-streaming/issues/1420)) ([c246ca1](https://github.com/videojs/http-streaming/commit/c246ca1))
+* update mpd-parser to v1.2.2 ([#1422](https://github.com/videojs/http-streaming/issues/1422)) ([9ab8c88](https://github.com/videojs/http-streaming/commit/9ab8c88))
+
 <a name="3.5.3"></a>
 ## [3.5.3](https://github.com/videojs/http-streaming/compare/v3.5.2...v3.5.3) (2023-08-14)
 
