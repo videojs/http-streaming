@@ -2,22 +2,15 @@ import QUnit from 'qunit';
 import ContentSteeringController from '../src/content-steering-controller';
 import { useFakeEnvironment } from './test-helpers';
 import xhrFactory from '../src/xhr';
+import sinon from 'sinon';
 
 QUnit.module('ContentSteering', {
   beforeEach(assert) {
     this.env = useFakeEnvironment(assert);
     this.requests = this.env.requests;
-    this.fakeVhs = {
-      xhr: xhrFactory()
-    };
-    this.mockSegmentLoader = {
-      vhs_: this.fakeVhs,
-      throughput: {
-        rate: 0
-      }
-    };
     this.baseURL = 'https://foo.bar';
-    this.contentSteeringController = new ContentSteeringController(this.mockSegmentLoader);
+    this.contentSteeringController = new ContentSteeringController(xhrFactory(), () => undefined);
+    this.contentSteeringController.addAvailablePathway('test-1');
     // handles a common testing flow of assigning tag properties and requesting the steering manifest immediately.
     this.assignAndRequest = (steeringTag) => {
       this.contentSteeringController.assignTagProperties(this.baseURL, steeringTag);
@@ -40,6 +33,17 @@ QUnit.test('Can handle HLS content steering object with serverUri only', functio
   const reloadUri = this.contentSteeringController.steeringManifest.reloadUri;
 
   assert.equal(reloadUri, steeringTag.serverUri, 'reloadUri is expected value');
+});
+
+QUnit.test('Fails when there is no serverUri', function(assert) {
+  const steeringTag = {};
+
+  this.assignAndRequest(steeringTag);
+  const reloadUri = this.contentSteeringController.steeringManifest.reloadUri;
+  const request = this.contentSteeringController.request_;
+
+  assert.equal(reloadUri, null, 'reloadUri is null');
+  assert.equal(request, null, 'no request is made');
 });
 
 QUnit.test('Can handle HLS content steering object and manifest with relative serverUri', function(assert) {
@@ -84,8 +88,10 @@ QUnit.test('Can add HLS pathway and throughput to steering manifest requests', f
   };
   const expectedThroughputUrl = steeringTag.serverUri + '/?_HLS_pathway=cdn-a&_HLS_throughput=99999';
 
+  this.contentSteeringController.getBandwidth_ = () => {
+    return 99999;
+  };
   this.contentSteeringController.assignTagProperties(this.baseURL, steeringTag);
-  this.mockSegmentLoader.throughput.rate = 99999;
   assert.equal(this.contentSteeringController.setSteeringParams_(steeringTag.serverUri), expectedThroughputUrl, 'pathway and throughput parameters set as expected');
 });
 
@@ -156,8 +162,10 @@ QUnit.test('Can add DASH pathway and throughput to steering manifest requests', 
   };
   const expectedThroughputUrl = steeringTag.serverURL + '&_DASH_pathway=cdn-c&_DASH_throughput=9999';
 
+  this.contentSteeringController.getBandwidth_ = () => {
+    return 9999;
+  };
   this.contentSteeringController.assignTagProperties(this.baseURL, steeringTag);
-  this.mockSegmentLoader.throughput.rate = 9999;
   assert.equal(this.contentSteeringController.setSteeringParams_(steeringTag.serverURL), expectedThroughputUrl, 'pathway and throughput parameters set as expected');
 });
 
@@ -179,7 +187,9 @@ QUnit.test('Can handle DASH proxyServerURL', function(assert) {
   };
   const expectedProxyUrl = 'https://proxy.url/?url=https%3A%2F%2Fcontent.steering.dash%2F%3Fprevious%3Dparams&_DASH_pathway=dash-cdn&_DASH_throughput=99';
 
-  this.mockSegmentLoader.throughput.rate = 99;
+  this.contentSteeringController.getBandwidth_ = () => {
+    return 99;
+  };
   this.assignAndRequest(steeringTag);
   assert.equal(this.requests[0].uri, expectedProxyUrl, 'returns expected proxy server URL');
 });
@@ -323,18 +333,177 @@ QUnit.test('trigger error when serverUri or serverURL is undefined', function(as
   this.contentSteeringController.assignTagProperties(this.baseURL, steeringTag);
 });
 
-QUnit.test('trigger error on steering manifest request error', function(assert) {
+QUnit.test('trigger retry on steering manifest request error', function(assert) {
   const steeringTag = {
     serverUri: '/content/steering'
   };
-  const manifest = this.contentSteeringController.steeringManifest;
-  const done = assert.async();
+  const startTTLSpy = sinon.spy(this.contentSteeringController, 'startTTLTimeout_');
 
-  this.contentSteeringController.on('error', function() {
-    assert.equal(manifest.version, undefined, 'version is undefined');
-    assert.equal(manifest.ttl, undefined, 'ttl is undefined');
-    done();
-  });
+  this.contentSteeringController.steeringManifest.ttl = 1;
   this.assignAndRequest(steeringTag);
   this.requests[0].respond(404);
+  assert.equal(startTTLSpy.callCount, 1, 'startTTLTimeout called on retry');
+});
+
+QUnit.test('Disposes content steering when there is not a valid requestUri', function(assert) {
+  const steeringTag = {
+    serverUri: '/content/steering'
+  };
+
+  // There is no valid request URI
+  const getRequestURIStub = sinon.stub(this.contentSteeringController, 'getRequestURI');
+
+  getRequestURIStub.returns(null);
+
+  const disposeSpy = sinon.spy(this.contentSteeringController, 'dispose');
+
+  this.assignAndRequest(steeringTag);
+
+  const request = this.contentSteeringController.request_;
+
+  assert.equal(request, null, 'no request is made');
+  assert.ok(disposeSpy.called, 'diposes the content steering controller');
+});
+
+QUnit.test('Exclude request URI on a 410 error', function(assert) {
+  const steeringTag = {
+    serverUri: '/content/steering'
+  };
+
+  const resolvedUri = this.baseURL + steeringTag.serverUri;
+
+  this.assignAndRequest(steeringTag);
+  this.requests[0].respond(410);
+
+  const excludedUri = [...this.contentSteeringController.excludedSteeringManifestURLs][0];
+
+  assert.equal(excludedUri, resolvedUri, 'exludes uri from future requests');
+});
+
+QUnit.test('Set a retry on a 429 error', function(assert) {
+  const steeringTag = {
+    serverUri: '/content/steering'
+  };
+  const startTTLSpy = sinon.spy(this.contentSteeringController, 'startTTLTimeout_');
+
+  this.assignAndRequest(steeringTag);
+  this.requests[0].respond(429, { 'Retry-After': 10 });
+
+  assert.deepEqual(startTTLSpy.getCall(0).args[0], 10, 'will retry the request in 10 seconds');
+});
+
+// getRequestURI
+
+QUnit.test('getRequestURI returns null when no uri is passed', function(assert) {
+  const actual = this.contentSteeringController.getRequestURI(null);
+
+  assert.deepEqual(actual, null, 'function should return null');
+});
+
+QUnit.test('getRequestURI returns resolved proxyServerUrl when set', function(assert) {
+  const reloadUri = 'https://baseUrl.com';
+
+  this.contentSteeringController.proxyServerUrl_ = 'https://proxy.url';
+  const actual = this.contentSteeringController.getRequestURI(reloadUri);
+  const expected = 'https://proxy.url/?url=https%3A%2F%2Fbaseurl.com%2F';
+
+  assert.deepEqual(actual, expected, 'function should return the resolved proxy url');
+});
+
+QUnit.test('getRequestURI returns resolved reloadUri when set', function(assert) {
+  const reloadUri = 'https://baseUrl.com';
+
+  const actual = this.contentSteeringController.getRequestURI(reloadUri);
+  const expected = 'https://baseurl.com/';
+
+  assert.deepEqual(actual, expected, 'function should return the original reloadUri');
+});
+
+QUnit.test('getRequestURI returns resolved reloadUri when proxyUri is excluded', function(assert) {
+  const reloadUri = 'https://baseUrl.com';
+
+  this.contentSteeringController.proxyServerUrl_ = 'https://proxy.url';
+  // exlude the resolved url
+  this.contentSteeringController.excludedSteeringManifestURLs.add('https://proxy.url/?url=https%3A%2F%2Fbaseurl.com%2F');
+
+  const actual = this.contentSteeringController.getRequestURI(reloadUri);
+  const expected = 'https://baseurl.com/';
+
+  assert.deepEqual(actual, expected, 'function should return the original reloadUri');
+});
+
+QUnit.test('getRequestURI returns null when both reloadUri or proxyUri are excluded', function(assert) {
+  const reloadUri = 'https://baseUrl.com';
+
+  this.contentSteeringController.proxyServerUrl_ = 'https://proxy.url';
+  // exlude the resolved urls
+  this.contentSteeringController.excludedSteeringManifestURLs.add('https://proxy.url/?url=https%3A%2F%2Fbaseurl.com%2F');
+  this.contentSteeringController.excludedSteeringManifestURLs.add('https://baseurl.com/');
+
+  const actual = this.contentSteeringController.getRequestURI(reloadUri);
+
+  assert.deepEqual(actual, null, 'function should return null');
+});
+
+// Switching Logic
+
+QUnit.test('chooses pathway with highest priority', function(assert) {
+  const steeringTag = {
+    serverUri: '/content/steering'
+  };
+
+  this.contentSteeringController.addAvailablePathway('cdn-a');
+  this.contentSteeringController.addAvailablePathway('cdn-b');
+  this.contentSteeringController.addAvailablePathway('cdn-c');
+
+  this.assignAndRequest(steeringTag);
+  this.requests[0].respond(200, { 'Content-Type': 'application/json' }, '{ "VERSION": 1, "PATHWAY-PRIORITY": ["cdn-b", "cdn-a", "cdn-c"] }');
+
+  const expected = this.contentSteeringController.currentPathway;
+
+  assert.equal(expected, 'cdn-b', 'pathway with highest priority is selected');
+});
+
+QUnit.test('chooses pathway with highest priority when pathway is not available', function(assert) {
+  const steeringTag = {
+    serverUri: '/content/steering'
+  };
+
+  this.contentSteeringController.addAvailablePathway('cdn-a');
+  this.contentSteeringController.addAvailablePathway('cdn-c');
+
+  this.assignAndRequest(steeringTag);
+  this.requests[0].respond(200, { 'Content-Type': 'application/json' }, '{ "VERSION": 1, "PATHWAY-PRIORITY": ["cdn-b", "cdn-c", "cdn-a"] }');
+
+  const expected = this.contentSteeringController.currentPathway;
+
+  assert.equal(expected, 'cdn-c', 'pathway with highest priority that is available');
+});
+
+QUnit.test('chooses first pathway when none are in the priority list', function(assert) {
+  const steeringTag = {
+    serverUri: '/content/steering'
+  };
+
+  this.assignAndRequest(steeringTag);
+  this.requests[0].respond(200, { 'Content-Type': 'application/json' }, '{ "VERSION": 1, "PATHWAY-PRIORITY": ["cdn-z"] }');
+
+  const expected = this.contentSteeringController.currentPathway;
+
+  // test-1 is the default pathway added in beforeEach
+  assert.equal(expected, 'test-1', 'use first pathway when none exist on the priority list');
+});
+
+QUnit.test('disposes the controller when there are no available pathways', function(assert) {
+  const steeringTag = {
+    serverUri: '/content/steering'
+  };
+
+  this.contentSteeringController.excludePathway('test-1');
+  const disposeSpy = sinon.spy(this.contentSteeringController, 'dispose');
+
+  this.assignAndRequest(steeringTag);
+  this.requests[0].respond(200, { 'Content-Type': 'application/json' }, '{ "VERSION": 1, "PATHWAY-PRIORITY": ["cdn-z"] }');
+
+  assert.ok(disposeSpy.called, 'diposes the content steering controller');
 });

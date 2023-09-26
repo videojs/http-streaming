@@ -27,6 +27,7 @@ import { createMediaTypes, setupMediaGroups } from './media-groups';
 import logger from './util/logger';
 import {merge, createTimeRanges} from './util/vjs-compat';
 import { addMetadata, createMetadataTrackIfNotExists, addDateRangeMetadata } from './util/text-tracks';
+import ContentSteeringController from './content-steering-controller';
 
 const ABORT_EARLY_EXCLUSION_SECONDS = 10;
 
@@ -306,6 +307,11 @@ export class PlaylistController extends videojs.EventTarget {
         })
       }), options);
 
+    const getBandwidth = () => {
+      return this.mainSegmentLoader_.bandwidth;
+    };
+
+    this.contentSteeringController_ = new ContentSteeringController(this.vhs_.xhr, getBandwidth);
     this.setupSegmentLoaderListeners_();
 
     if (this.bufferBasedABR) {
@@ -405,6 +411,35 @@ export class PlaylistController extends videojs.EventTarget {
       this.tech_.trigger({type: 'usage', name: `vhs-rendition-change-${cause}`});
     }
     this.mainPlaylistLoader_.media(playlist, delay);
+  }
+
+  /**
+   * A function that ensures we switch our playlists inside of `mediaTypes`
+   * to match the current `serviceLocation` provided by the contentSteering controller.
+   * We want to check media types of `AUDIO`, `SUBTITLES`, and `CLOSED-CAPTIONS`.
+   *
+   * This should only be called on a DASH playback scenario while using content steering.
+   * This is necessary due to differences in how media in HLS manifests are generally tied to
+   * a video playlist, where in DASH that is not always the case.
+   */
+  switchMediaForDASHContentSteering_() {
+    ['AUDIO', 'SUBTITLES', 'CLOSED-CAPTIONS'].forEach((type) => {
+      const mediaType = this.mediaTypes_[type];
+      const activeGroup = mediaType ? mediaType.activeGroup() : null;
+      const pathway = this.contentSteeringController_.getPathway();
+
+      if (activeGroup && pathway) {
+        // activeGroup can be an array or a single group
+        const mediaPlaylists = activeGroup.length ? activeGroup[0].playlists : activeGroup.playlists;
+
+        const dashMediaPlaylists = mediaPlaylists.filter((p) => p.attributes.serviceLocation === pathway);
+
+        // Switch the current active playlist to the correct CDN
+        if (dashMediaPlaylists.length) {
+          this.mediaTypes_[type].activePlaylistLoader.media(dashMediaPlaylists[0]);
+        }
+      }
+    });
   }
 
   /**
@@ -573,6 +608,7 @@ export class PlaylistController extends videojs.EventTarget {
       let updatedPlaylist = this.mainPlaylistLoader_.media();
 
       if (!updatedPlaylist) {
+        this.initContentSteeringController_();
         // exclude any variants that are not supported by the browser before selecting
         // an initial media as the playlist selectors do not consider browser support
         this.excludeUnsupportedVariants_();
@@ -1223,6 +1259,19 @@ export class PlaylistController extends videojs.EventTarget {
     }
 
     if (isFinalRendition) {
+      // If we're content steering, try other pathways.
+      if (this.main().contentSteering) {
+        const pathway = this.pathwayAttribute_(playlistToExclude);
+        // Ignore at least 1 steering manifest refresh.
+        const reIncludeDelay = this.contentSteeringController_.steeringManifest.ttl * 1000;
+
+        this.contentSteeringController_.excludePathway(pathway);
+        this.excludeThenChangePathway_();
+        setTimeout(() => {
+          this.contentSteeringController_.addAvailablePathway(pathway);
+        }, reIncludeDelay);
+        return;
+      }
       // Since we're on the final non-excluded playlist, and we're about to exclude
       // it, instead of erring the player or retrying this playlist, clear out the current
       // exclusion list. This allows other playlists to be attempted in case any have been
@@ -1641,6 +1690,7 @@ export class PlaylistController extends videojs.EventTarget {
     this.decrypter_.terminate();
     this.mainPlaylistLoader_.dispose();
     this.mainSegmentLoader_.dispose();
+    this.contentSteeringController_.dispose();
 
     if (this.loadOnPlay_) {
       this.tech_.off('play', this.loadOnPlay_);
@@ -2052,5 +2102,129 @@ export class PlaylistController extends videojs.EventTarget {
       timestampOffset,
       videoDuration
     });
+  }
+
+  pathwayAttribute_(playlist) {
+    return playlist.attributes['PATHWAY-ID'] || playlist.attributes.serviceLocation;
+  }
+  /**
+   * Initialize content steering listeners and apply the tag properties.
+   */
+  initContentSteeringController_() {
+    const initialMain = this.main();
+
+    if (!initialMain.contentSteering) {
+      return;
+    }
+
+    const updateSteeringValues = (main) => {
+      for (const playlist of main.playlists) {
+        this.contentSteeringController_.addAvailablePathway(this.pathwayAttribute_(playlist));
+      }
+
+      this.contentSteeringController_.assignTagProperties(main.uri, main.contentSteering);
+    };
+
+    updateSteeringValues(initialMain);
+
+    this.contentSteeringController_.on('content-steering', this.excludeThenChangePathway_.bind(this));
+
+    // We need to ensure we update the content steering values when a new
+    // manifest is loaded in live DASH with content steering.
+    if (this.sourceType_ === 'dash') {
+      this.mainPlaylistLoader_.on('mediaupdatetimeout', () => {
+        this.mainPlaylistLoader_.refreshMedia_(this.mainPlaylistLoader_.media().id);
+
+        // clear past values
+        this.contentSteeringController_.abort();
+        this.contentSteeringController_.clearTTLTimeout_();
+        this.contentSteeringController_.clearAvailablePathways();
+
+        updateSteeringValues(this.main());
+      });
+    }
+
+    // Do this at startup only, after that the steering requests are managed by the Content Steering class.
+    // DASH queryBeforeStart scenarios will be handled by the Content Steering class.
+    if (!this.contentSteeringController_.queryBeforeStart) {
+      this.tech_.one('canplay', () => {
+        this.contentSteeringController_.requestSteeringManifest();
+      });
+    }
+  }
+
+  /**
+   * Simple exclude and change playlist logic for content steering.
+   */
+  excludeThenChangePathway_() {
+    const currentPathway = this.contentSteeringController_.getPathway();
+
+    if (!currentPathway) {
+      return;
+    }
+    const main = this.main();
+    const playlists = main.playlists;
+    const ids = new Set();
+    let didEnablePlaylists = false;
+
+    Object.keys(playlists).forEach((key) => {
+      const variant = playlists[key];
+      const pathwayId = this.pathwayAttribute_(variant);
+      const differentPathwayId = pathwayId && currentPathway !== pathwayId;
+      const steeringExclusion = variant.excludeUntil === Infinity && variant.lastExcludeReason_ === 'content-steering';
+
+      if (steeringExclusion && !differentPathwayId) {
+        delete variant.excludeUntil;
+        delete variant.lastExcludeReason_;
+        didEnablePlaylists = true;
+      }
+      const noExcludeUntil = !variant.excludeUntil && variant.excludeUntil !== Infinity;
+      const shouldExclude = !ids.has(variant.id) && differentPathwayId && noExcludeUntil;
+
+      if (!shouldExclude) {
+        return;
+      }
+      ids.add(variant.id);
+      variant.excludeUntil = Infinity;
+      variant.lastExcludeReason_ = 'content-steering';
+      // TODO: kind of spammy, maybe move this.
+      this.logger_(`excluding ${variant.id} for ${variant.lastExcludeReason_}`);
+    });
+
+    if (this.contentSteeringController_.manifestType_ === 'DASH') {
+      Object.keys(this.mediaTypes_).forEach((key) => {
+        const type = this.mediaTypes_[key];
+
+        if (type.activePlaylistLoader) {
+          const currentPlaylist = type.activePlaylistLoader.media_;
+
+          // Check if the current media playlist matches the current CDN
+          if (currentPlaylist && currentPlaylist.attributes.serviceLocation !== currentPathway) {
+            didEnablePlaylists = true;
+          }
+        }
+      });
+    }
+
+    if (didEnablePlaylists) {
+      this.changeSegmentPathway_();
+    }
+  }
+
+  /**
+   * Changes the current playlists for audio, video and subtitles after a new pathway
+   * is chosen from content steering.
+   */
+  changeSegmentPathway_() {
+    const nextPlaylist = this.selectPlaylist();
+
+    this.pauseLoading();
+
+    // Switch audio and text track playlists if necessary in DASH
+    if (this.contentSteeringController_.manifestType_ === 'DASH') {
+      this.switchMediaForDASHContentSteering_();
+    }
+
+    this.switchMedia_(nextPlaylist, 'content-steering');
   }
 }

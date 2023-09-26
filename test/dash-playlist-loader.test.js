@@ -2821,6 +2821,62 @@ QUnit.test('pause does not remove minimum update period timeout when not main', 
   );
 });
 
+QUnit.test('Content Steering with Live DASH should NOT update media', function(assert) {
+  const mainLoader = new DashPlaylistLoader('dash-live.mpd', this.fakeVhs);
+
+  const refreshMediaSpy = sinon.stub(mainLoader, 'refreshMedia_');
+
+  mainLoader.load();
+  this.standardXHRResponse(this.requests.shift());
+  this.clock.tick(1);
+
+  const media = mainLoader.main.playlists[0];
+
+  mainLoader.media = () => media;
+
+  // This means content steering is active on the media.
+  media.attributes.serviceLocation = 'cdn-a';
+
+  mainLoader.media(media);
+
+  // This means there was a DASH live update.
+  mainLoader.trigger('mediaupdatetimeout');
+
+  // If refreshMedia_ is only called once, it means it was called on initialization,
+  // and is expected to be called later by the playlist controller.
+  assert.equal(
+    refreshMediaSpy.callCount,
+    1
+  );
+});
+
+QUnit.test('Live DASH without content steering should update media', function(assert) {
+  const mainLoader = new DashPlaylistLoader('dash-live.mpd', this.fakeVhs);
+
+  const refreshMediaSpy = sinon.stub(mainLoader, 'refreshMedia_');
+
+  mainLoader.load();
+  this.standardXHRResponse(this.requests.shift());
+  this.clock.tick(1);
+
+  const media = mainLoader.main.playlists[0];
+
+  mainLoader.media = () => media;
+
+  mainLoader.media(media);
+
+  // This means there was a DASH live update.
+  mainLoader.trigger('mediaupdatetimeout');
+
+  // If refreshMedia_ is called twice, it means it is was called on initialization,
+  // and later when there is a live update. This should all be handled by the
+  // playlist controller.
+  assert.equal(
+    refreshMediaSpy.callCount,
+    2
+  );
+});
+
 QUnit.test('updateMain: merges in top level timelineStarts', function(assert) {
   const prev = {
     timelineStarts: [0, 1],

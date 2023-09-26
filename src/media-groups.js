@@ -250,12 +250,9 @@ export const onError = {
    */
   AUDIO: (type, settings) => () => {
     const {
-      segmentLoaders: { [type]: segmentLoader},
       mediaTypes: { [type]: mediaType },
       excludePlaylist
     } = settings;
-
-    stopLoaders(segmentLoader, mediaType);
 
     // switch back to default audio track
     const activeTrack = mediaType.activeTrack();
@@ -295,14 +292,11 @@ export const onError = {
    */
   SUBTITLES: (type, settings) => () => {
     const {
-      segmentLoaders: { [type]: segmentLoader},
       mediaTypes: { [type]: mediaType }
     } = settings;
 
     videojs.log.warn('Problem encountered loading the subtitle track.' +
                      'Disabling subtitle track.');
-
-    stopLoaders(segmentLoader, mediaType);
 
     const track = mediaType.activeTrack();
 
