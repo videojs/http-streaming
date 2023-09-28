@@ -2162,6 +2162,13 @@ export class PlaylistController extends videojs.EventTarget {
     if (!currentPathway) {
       return;
     }
+
+    const pathwayClones = this.contentSteeringController_.pathwayClones;
+
+    if (pathwayClones && pathwayClones.length) {
+      this.addPathwayClones_();
+    }
+
     const main = this.main();
     const playlists = main.playlists;
     const ids = new Set();
@@ -2209,6 +2216,37 @@ export class PlaylistController extends videojs.EventTarget {
     if (didEnablePlaylists) {
       this.changeSegmentPathway_();
     }
+  }
+
+  /**
+   * Adds playlists for the pathway clones for HLS Content Steering.
+   * See https://datatracker.ietf.org/doc/draft-pantos-hls-rfc8216bis/
+   */
+  addPathwayClones_() {
+    const main = this.main();
+    const playlists = main.playlists;
+
+    const pathwayClones = this.contentSteeringController_.pathwayClones;
+    const availablePathways = this.contentSteeringController_.availablePathways_;
+
+    pathwayClones.forEach((clone) => {
+      const basePathwayExists = availablePathways.has(clone['BASE-ID']);
+      // const cloneExists = availablePathways.has(clone.ID);
+
+      if (!basePathwayExists) {
+        return;
+      }
+
+      const playlistsToClone = playlists.filter(p => {
+        return p.attributes['PATHWAY-ID'] === clone['BASE-ID'];
+      });
+
+      playlistsToClone.forEach((p) => {
+        this.mainPlaylistLoader_.clonePathway(clone, p);
+      });
+
+      this.contentSteeringController_.addAvailablePathway(clone.ID);
+    });
   }
 
   /**

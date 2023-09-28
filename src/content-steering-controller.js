@@ -83,6 +83,43 @@ export default class ContentSteeringController extends videojs.EventTarget {
     this.manifestType_ = null;
     this.ttlTimeout_ = null;
     this.request_ = null;
+    this.pathwayClones = [
+      {
+        ['BASE-ID']: 'cdn-a',
+        ID: 'cdn-d',
+        ['URI-REPLACEMENT']: {
+          HOST: 'www.test.com',
+          PARAMS: {
+            test: 123
+          },
+          ['PER-VARIANT-URIS']: {},
+          ['PER-RENDITION-URIS']: {}
+        }
+      },
+      {
+        ['BASE-ID']: 'cdn-b',
+        ID: 'cdn-e',
+        ['URI-REPLACEMENT']: {
+          HOST: 'www.test2.com',
+          PARAMS: {
+
+          },
+          ['PER-VARIANT-URIS']: {},
+          ['PER-RENDITION-URIS']: {}
+        }
+      },
+      {
+        ['BASE-ID']: 'cdn-z',
+        ID: 'cdn-d',
+        ['URI-REPLACEMENT']: {
+          HOST: 'www.test.com',
+          PARAMS: {
+            ['PER-VARIANT-URIS']: {},
+            ['PER-RENDITION-URIS']: {}
+          }
+        }
+      }
+    ];
     this.excludedSteeringManifestURLs = new Set();
     this.logger_ = logger('Content Steering');
     this.xhr_ = xhr;
@@ -270,6 +307,9 @@ export default class ContentSteeringController extends videojs.EventTarget {
     // HLS = PATHWAY-PRIORITY required. DASH = SERVICE-LOCATION-PRIORITY optional
     this.steeringManifest.priority = steeringJson['PATHWAY-PRIORITY'] || steeringJson['SERVICE-LOCATION-PRIORITY'];
     // TODO: HLS handle PATHWAY-CLONES. See section 7.2 https://datatracker.ietf.org/doc/draft-pantos-hls-rfc8216bis/
+
+    // TODO: Get real pathway clones from content steering server.
+    // this.pathwayClones = steeringJson['PATHWAY-CLONES'];
 
     // 1. apply first pathway from the array.
     // 2. if first pathway doesn't exist in manifest, try next pathway.
