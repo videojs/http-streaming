@@ -194,6 +194,33 @@ QUnit.test('Can handle DASH proxyServerURL', function(assert) {
   assert.equal(this.requests[0].uri, expectedProxyUrl, 'returns expected proxy server URL');
 });
 
+QUnit.test('didDASHTagChange can check if a DASH content steering tag has changed', function(assert) {
+  const oldSteeringTag = {
+    serverURL: 'https://content.steering.dash/?old=params',
+    proxyServerURL: 'https://old.proxy.url',
+    defaultServiceLocation: 'old-dash-cdn'
+  };
+  const newSteeringTag = {
+    serverURL: 'https://content.steering.dash/?new=params',
+    proxyServerURL: 'https://new.proxy.url',
+    defaultServiceLocation: 'new-dash-cdn',
+    queryBeforeStart: true
+  };
+  const ommittedAttributes = {
+    serverURL: 'https://content.steering.dash/?old=params'
+  };
+
+  this.contentSteeringController.assignTagProperties(this.baseURL, oldSteeringTag);
+  assert.false(this.contentSteeringController.didDASHTagChange(this.baseURL, oldSteeringTag));
+  assert.true(this.contentSteeringController.didDASHTagChange(this.baseURL, newSteeringTag));
+  assert.true(this.contentSteeringController.didDASHTagChange(this.baseURL, ommittedAttributes));
+  this.contentSteeringController.dispose();
+  this.contentSteeringController.assignTagProperties(this.baseURL, ommittedAttributes);
+  assert.false(this.contentSteeringController.didDASHTagChange(this.baseURL, ommittedAttributes));
+  assert.true(this.contentSteeringController.didDASHTagChange(this.baseURL, newSteeringTag));
+  assert.true(this.contentSteeringController.didDASHTagChange(this.baseURL, oldSteeringTag));
+});
+
 // Common steering manifest tests
 QUnit.test('Can handle content steering manifest with VERSION', function(assert) {
   const steeringTag = {
@@ -269,7 +296,7 @@ QUnit.test('Can handle DASH content steering manifest with SERVICE-LOCATION-PRIO
 
 QUnit.test('Can handle DASH content steering manifest with PATHWAY-PRIORITY and tag with pathwayId', function(assert) {
   const steeringTag = {
-    serverUri: 'https://content.steering.hls',
+    serverUri: 'https://content.steering.dash',
     pathwayId: 'dash3'
   };
 
