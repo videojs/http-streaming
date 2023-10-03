@@ -430,9 +430,9 @@ export default class ContentSteeringController extends videojs.EventTarget {
    */
   didDASHTagChange(baseURL, newTag) {
     return !newTag && this.steeringManifest.reloadUri ||
-      resolveUrl(baseURL, newTag.serverURL) !== this.steeringManifest.reloadUri ||
+      newTag && (resolveUrl(baseURL, newTag.serverURL) !== this.steeringManifest.reloadUri ||
       newTag.defaultServiceLocation !== this.defaultPathway ||
       newTag.queryBeforeStart !== this.queryBeforeStart ||
-      newTag.proxyServerURL !== this.proxyServerUrl_;
+      newTag.proxyServerURL !== this.proxyServerUrl_);
   }
 }

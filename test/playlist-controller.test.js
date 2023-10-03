@@ -6628,6 +6628,7 @@ QUnit.test('switch media on priority change for content steering', function(asse
 
   const switchMediaStub = sinon.stub(pc, 'switchMedia_');
 
+  pc.attachContentSteeringListeners_();
   pc.initContentSteeringController_();
 
   // Initially, cdn-a should be selected and there should be no media switch
@@ -6734,6 +6735,7 @@ QUnit.test('media group playlists should switch on steering change', function(as
   sinon.stub(pc, 'switchMedia_');
   const mediaSpy = sinon.spy(pc.mediaTypes_.AUDIO.activePlaylistLoader, 'media');
 
+  pc.attachContentSteeringListeners_();
   pc.initContentSteeringController_();
 
   const steeringManifestJson = {
@@ -6761,6 +6763,7 @@ QUnit.test('playlists should not change when there is no currentPathway', functi
   // Set up playlists
   pc.main = () => this.csMainPlaylist;
 
+  pc.attachContentSteeringListeners_();
   pc.initContentSteeringController_();
 
   // mimic there being no current pathway
