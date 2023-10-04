@@ -2163,10 +2163,12 @@ export class PlaylistController extends videojs.EventTarget {
       return;
     }
 
-    const pathwayClones = this.contentSteeringController_.pathwayClones;
+    const pastClones = this.contentSteeringController_.currentPathwayClones;
+    const nextClones = this.contentSteeringController_.nextPathwayClones;
+    const hasClones = pastClones && nextClones && (pastClones.length || nextClones.length);
 
-    if (pathwayClones && pathwayClones.length) {
-      this.addPathwayClones_();
+    if (hasClones) {
+      this.handlePathwayClones_();
     }
 
     const main = this.main();
@@ -2219,34 +2221,92 @@ export class PlaylistController extends videojs.EventTarget {
   }
 
   /**
-   * Adds playlists for the pathway clones for HLS Content Steering.
+   * Add, update, or delete playlists and media groups for
+   * the pathway clones for HLS Content Steering.
+   *
    * See https://datatracker.ietf.org/doc/draft-pantos-hls-rfc8216bis/
    */
-  addPathwayClones_() {
+  handlePathwayClones_() {
     const main = this.main();
     const playlists = main.playlists;
+    const currentPathwayClones = this.contentSteeringController_.currentPathwayClones;
+    const nextPathwayClones = this.contentSteeringController_.nextPathwayClones;
 
-    const pathwayClones = this.contentSteeringController_.pathwayClones;
-    const availablePathways = this.contentSteeringController_.availablePathways_;
+    currentPathwayClones.forEach((clone) => {
+      const newClone = nextPathwayClones.find(c => c.ID === clone.ID);
 
-    pathwayClones.forEach((clone) => {
-      const basePathwayExists = availablePathways.has(clone['BASE-ID']);
-      // const cloneExists = availablePathways.has(clone.ID);
+      // Delete the old pathway clone.
+      if (!newClone) {
+        this.mainPlaylistLoader_.updateOrDeleteClone(clone);
+        this.contentSteeringController_.excludePathway(clone.ID);
+      }
+    });
 
-      if (!basePathwayExists) {
+    nextPathwayClones.forEach((clone) => {
+      const oldClone = currentPathwayClones.find(c => c.ID === clone.ID);
+
+      // Create a new pathway if it is a new pathway clone object.
+      if (!oldClone) {
+        const playlistsToClone = playlists.filter(p => {
+          return p.attributes['PATHWAY-ID'] === clone['BASE-ID'];
+        });
+
+        playlistsToClone.forEach((p) => {
+          this.mainPlaylistLoader_.clonePathway(clone, p);
+        });
+
+        this.contentSteeringController_.addAvailablePathway(clone.ID);
         return;
       }
 
-      const playlistsToClone = playlists.filter(p => {
-        return p.attributes['PATHWAY-ID'] === clone['BASE-ID'];
-      });
+      // There have not been changes to the pathway clone object, so skip.
+      if (this.equalPathwayClones_(oldClone, clone)) {
+        return;
+      }
+      // Update a preexisting cloned pathway.
+      // True is set for the update flag.
+      this.mainPlaylistLoader_.updateOrDeleteClone(clone, true);
 
-      playlistsToClone.forEach((p) => {
-        this.mainPlaylistLoader_.clonePathway(clone, p);
-      });
-
-      this.contentSteeringController_.addAvailablePathway(clone.ID);
     });
+
+    // Deep copy contents of next to current pathways.
+    this.contentSteeringController_.currentPathwayClones = JSON.parse(JSON.stringify(nextPathwayClones));
+  }
+
+  /**
+   * Determines whether two pathway clone objects are equivalent.
+   *
+   * @param {Object} a The first pathway clone object.
+   * @param {Object} b The second pathway clone object.
+   * @return {boolean} True if the pathway clone objects are equal, false otherwise.
+   */
+  equalPathwayClones_(a, b) {
+    if (
+      a['BASE-ID'] !== b['BASE-ID'] ||
+      a.ID !== b.ID ||
+      a['URI-REPLACEMENT'].HOST !== b['URI-REPLACEMENT'].HOST
+    ) {
+      return false;
+    }
+
+    const aParams = a['URI-REPLACEMENT'].PARAMS;
+    const bParams = b['URI-REPLACEMENT'].PARAMS;
+
+    // We need to iterate through both lists of params because one could be
+    // missing a parameter that the other has.
+    for (const p in aParams) {
+      if (aParams[p] !== bParams[p]) {
+        return false;
+      }
+    }
+
+    for (const p in bParams) {
+      if (aParams[p] !== bParams[p]) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   /**

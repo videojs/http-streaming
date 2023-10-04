@@ -932,6 +932,101 @@ export default class PlaylistLoader extends EventTarget {
   }
 
   /**
+   * Updates or deletes a prexisting pathway clone.
+   * Ensures that all playlists related to the old pathway clone are
+   * either updated or deleted.
+   *
+   * @param {Object} clone The pathway clone object for the newly updated pathway clone.
+   * @param {boolean} isUpdate True if the pathway is to be updated,
+   *        false if it is meant to be deleted.
+   */
+  updateOrDeleteClone(clone, isUpdate) {
+    const main = this.main;
+    const pathway = clone.ID;
+
+    let i = main.playlists.length;
+
+    // Iterate backwards through the playlist so we can remove playlists if necessary.
+    while (i--) {
+      const p = main.playlists[i];
+
+      if (p.attributes['PATHWAY-ID'] === pathway) {
+        const oldPlaylistUri = p.resolvedUri;
+        const oldPlaylistId = p.id;
+
+        // update the indexed playlist and add new playlists by ID and URI
+        if (isUpdate) {
+          const newPlaylistUri = this.createCloneURI_(p.resolvedUri, clone);
+          const newPlaylistId = createPlaylistID(pathway, newPlaylistUri);
+          const attributes = this.createCloneAttributes_(pathway, p.attributes);
+          const updatedPlaylist = this.createClonePlaylist_(p, newPlaylistId, clone, attributes);
+
+          main.playlists[i] = updatedPlaylist;
+          main.playlists[newPlaylistId] = updatedPlaylist;
+          main.playlists[newPlaylistUri] = updatedPlaylist;
+        } else {
+          // Remove the indexed playlist.
+          main.playlists.splice(i, 1);
+        }
+
+        // Remove playlists by the old ID and URI.
+        delete main.playlists[oldPlaylistId];
+        delete main.playlists[oldPlaylistUri];
+      }
+    }
+
+    this.updateOrDeleteCloneMedia(clone, isUpdate);
+  }
+
+  /**
+   * Updates or deletes media data based on the pathway clone object.
+   * Due to the complexity of the media groups and playlists, in all cases
+   * we remove all of the old media groups and playlists.
+   * On updates, we then create new media groups and playlists based on the
+   * new pathway clone object.
+   *
+   * @param {Object} clone The pathway clone object for the newly updated pathway clone.
+   * @param {boolean} isUpdate True if the pathway is to be updated,
+   *        false if it is meant to be deleted.
+   */
+  updateOrDeleteCloneMedia(clone, isUpdate) {
+    const main = this.main;
+    const id = clone.ID;
+
+    ['AUDIO', 'SUBTITLES', 'CLOSED-CAPTIONS'].forEach((mediaType) => {
+      if (!main.mediaGroups[mediaType] || !main.mediaGroups[mediaType][id]) {
+        return;
+      }
+
+      for (const groupKey in main.mediaGroups[mediaType]) {
+        // Remove all media playlists for the media group for this pathway clone.
+        if (groupKey === id) {
+          for (const labelKey in main.mediaGroups[mediaType][groupKey]) {
+            const oldMedia = main.mediaGroups[mediaType][groupKey][labelKey];
+
+            oldMedia.playlists.forEach((p, i) => {
+              const oldMediaPlaylist = main.playlists[p.id];
+              const oldPlaylistId = oldMediaPlaylist.id;
+              const oldPlaylistUri = oldMediaPlaylist.resolvedUri;
+
+              delete main.playlists[oldPlaylistId];
+              delete main.playlists[oldPlaylistUri];
+            });
+          }
+
+          // Delete the old media group.
+          delete main.mediaGroups[mediaType][groupKey];
+        }
+      }
+    });
+
+    // Create the new media groups and playlists if there is an update.
+    if (isUpdate) {
+      this.createClonedMediaGroups_(clone);
+    }
+  }
+
+  /**
    * Given a pathway clone object, clones all necessary playlists.
    *
    * @param {Object} clone The pathway clone object.
@@ -941,9 +1036,8 @@ export default class PlaylistLoader extends EventTarget {
     const main = this.main;
     const index = main.playlists.length;
     const uri = this.createCloneURI_(basePlaylist.resolvedUri, clone);
-    const playlistId = createPlaylistID(index, uri);
-    // TODO: set up media groups better
-    const attributes = { ['PATHWAY-ID']: clone.ID, AUDIO: clone.ID };
+    const playlistId = createPlaylistID(clone.ID, uri);
+    const attributes = this.createCloneAttributes_(clone.ID, basePlaylist.attributes);
 
     const playlist = this.createClonePlaylist_(basePlaylist, playlistId, clone, attributes);
 
@@ -953,24 +1047,23 @@ export default class PlaylistLoader extends EventTarget {
     main.playlists[playlistId] = playlist;
     main.playlists[uri] = playlist;
 
-    this.cloneMediaGroups_(clone, basePlaylist.attributes['PATHWAY-ID']);
+    this.createClonedMediaGroups_(clone);
 
     return this.main;
   }
 
   /**
-   * Given a pathway clone object and the ID of the original pathway, we create
-   * clones of all media playlists.
-   * In this function, the `mediaGroup` property is updated with all necessary
-   * information and updated playlists.
+   * Given a pathway clone object we create clones of all media.
+   * In this function, all necessary information and updated playlists
+   * are added to the `mediaGroup` object.
    * Playlists are also added to the `playlists` array so the media groups
    * will be properly linked.
    *
    * @param {Object} clone The pathway clone object.
-   * @param {string} baseID The ID of the playlist we are attempting to clone from.
    */
-  cloneMediaGroups_(clone, baseID) {
+  createClonedMediaGroups_(clone) {
     const id = clone.ID;
+    const baseID = clone['BASE-ID'];
     const main = this.main;
 
     ['AUDIO', 'SUBTITLES', 'CLOSED-CAPTIONS'].forEach((mediaType) => {
@@ -1008,7 +1101,7 @@ export default class PlaylistLoader extends EventTarget {
           oldMedia.playlists.forEach((p, i) => {
             const oldMediaPlaylist = main.playlists[p.id];
             const group = groupID(mediaType, id, labelKey);
-            const newPlaylistID = createPlaylistID(i, group);
+            const newPlaylistID = createPlaylistID(id, group);
 
             // Check to see if it already exists
             if (oldMediaPlaylist && !main.playlists[newPlaylistID]) {
@@ -1081,5 +1174,25 @@ export default class PlaylistLoader extends EventTarget {
     }
 
     return uri.href;
+  }
+
+  /**
+   * Helper function to create the attributes needed for the new clone.
+   * This mainly adds the necessary media attributes.
+   *
+   * @param {string} id The pathway clone object ID.
+   * @param {Object} oldAttributes The old attributes to compare to.
+   * @return {Object} The new attributes to add to the playlist.
+   */
+  createCloneAttributes_(id, oldAttributes) {
+    const attributes = { ['PATHWAY-ID']: id };
+
+    ['AUDIO', 'SUBTITLES', 'CLOSED-CAPTIONS'].forEach((mediaType) => {
+      if (oldAttributes[mediaType]) {
+        attributes[mediaType] = id;
+      }
+    });
+
+    return attributes;
   }
 }
