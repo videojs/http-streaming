@@ -932,11 +932,12 @@ export default class PlaylistLoader extends EventTarget {
   }
 
   /**
-   * Updates or deletes a prexisting pathway clone.
+   * Updates or deletes a preexisting pathway clone.
    * Ensures that all playlists related to the old pathway clone are
    * either updated or deleted.
    *
-   * @param {Object} clone The pathway clone object for the newly updated pathway clone.
+   * @param {Object} clone On update, the pathway clone object for the newly updated pathway clone.
+   *        On delete, the old pathway clone object to be deleted.
    * @param {boolean} isUpdate True if the pathway is to be updated,
    *        false if it is meant to be deleted.
    */
@@ -1032,7 +1033,7 @@ export default class PlaylistLoader extends EventTarget {
    * @param {Object} clone The pathway clone object.
    * @param {Object} basePlaylist The original playlist to clone from.
    */
-  clonePathway(clone, basePlaylist = {}) {
+  addClonePathway(clone, basePlaylist = {}) {
     const main = this.main;
     const index = main.playlists.length;
     const uri = this.createCloneURI_(basePlaylist.resolvedUri, clone);
@@ -1048,8 +1049,6 @@ export default class PlaylistLoader extends EventTarget {
     main.playlists[uri] = playlist;
 
     this.createClonedMediaGroups_(clone);
-
-    return this.main;
   }
 
   /**

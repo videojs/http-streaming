@@ -2252,7 +2252,7 @@ export class PlaylistController extends videojs.EventTarget {
         });
 
         playlistsToClone.forEach((p) => {
-          this.mainPlaylistLoader_.clonePathway(clone, p);
+          this.mainPlaylistLoader_.addClonePathway(clone, p);
         });
 
         this.contentSteeringController_.addAvailablePathway(clone.ID);
@@ -2266,7 +2266,7 @@ export class PlaylistController extends videojs.EventTarget {
       // Update a preexisting cloned pathway.
       // True is set for the update flag.
       this.mainPlaylistLoader_.updateOrDeleteClone(clone, true);
-
+      this.contentSteeringController_.addAvailablePathway(clone.ID);
     });
 
     // Deep copy contents of next to current pathways.

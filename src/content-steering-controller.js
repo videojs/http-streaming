@@ -11,10 +11,12 @@ import videojs from 'video.js';
  * TTL: number in seconds (optional) until the next content steering manifest reload.
  * RELOAD-URI: string (optional) uri to fetch the next content steering manifest.
  * SERVICE-LOCATION-PRIORITY or PATHWAY-PRIORITY a non empty array of unique string values.
+ * PATHWAY-CLONES: array (optional) (HLS only) pathway clone objects to copy from other playlists.
  */
 class SteeringManifest {
   constructor() {
     this.priority_ = [];
+    this.pathwayClones_ = [];
   }
 
   set version(number) {
@@ -43,6 +45,13 @@ class SteeringManifest {
     }
   }
 
+  set pathwayClones(array) {
+    // pathwayClones must be non-empty.
+    if (array && array.length) {
+      this.pathwayClones_ = array;
+    }
+  }
+
   get version() {
     return this.version_;
   }
@@ -57,6 +66,10 @@ class SteeringManifest {
 
   get priority() {
     return this.priority_;
+  }
+
+  get pathwayClones() {
+    return this.pathwayClones_;
   }
 }
 
@@ -84,44 +97,6 @@ export default class ContentSteeringController extends videojs.EventTarget {
     this.request_ = null;
     this.currentPathwayClones = [];
     this.nextPathwayClones = [];
-    // TODO: Delete this once tests are written.
-    // this.nextPathwayClones = [
-    //   {
-    //     ['BASE-ID']: 'cdn-a',
-    //     ID: 'cdn-d',
-    //     ['URI-REPLACEMENT']: {
-    //       HOST: 'www.test.com',
-    //       PARAMS: {
-    //         test: 123
-    //       },
-    //       ['PER-VARIANT-URIS']: {},
-    //       ['PER-RENDITION-URIS']: {}
-    //     }
-    //   },
-    //   {
-    //     ['BASE-ID']: 'cdn-b',
-    //     ID: 'cdn-e',
-    //     ['URI-REPLACEMENT']: {
-    //       HOST: 'www.test2.com',
-    //       PARAMS: {
-
-    //       },
-    //       ['PER-VARIANT-URIS']: {},
-    //       ['PER-RENDITION-URIS']: {}
-    //     }
-    //   },
-    //   {
-    //     ['BASE-ID']: 'cdn-z',
-    //     ID: 'cdn-x',
-    //     ['URI-REPLACEMENT']: {
-    //       HOST: 'www.test.com',
-    //       PARAMS: {
-    //         ['PER-VARIANT-URIS']: {},
-    //         ['PER-RENDITION-URIS']: {}
-    //       }
-    //     }
-    //   }
-    // ];
     this.excludedSteeringManifestURLs = new Set();
     this.logger_ = logger('Content Steering');
     this.xhr_ = xhr;
@@ -311,7 +286,8 @@ export default class ContentSteeringController extends videojs.EventTarget {
 
     // Pathway clones to be created/updated in HLS.
     // See section 7.2 https://datatracker.ietf.org/doc/draft-pantos-hls-rfc8216bis/
-    this.nextPathwayClones = steeringJson['PATHWAY-CLONES'];
+    this.steeringManifest.pathwayClones = steeringJson['PATHWAY-CLONES'];
+    this.nextPathwayClones = this.steeringManifest.pathwayClones;
 
     // 1. apply first pathway from the array.
     // 2. if first pathway doesn't exist in manifest, try next pathway.
