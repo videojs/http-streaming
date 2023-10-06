@@ -2938,7 +2938,9 @@ QUnit.module('Pathway Cloning', {
               uri: audioUri,
               playlists: [audioPlaylist]
             }
-          }
+          },
+          // Ensures we hit the code where we skip this.
+          'cdn-other': {}
         }
       },
       playlists: [videoPlaylist]

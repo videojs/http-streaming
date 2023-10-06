@@ -2225,6 +2225,7 @@ export class PlaylistController extends videojs.EventTarget {
    * the pathway clones for HLS Content Steering.
    *
    * See https://datatracker.ietf.org/doc/draft-pantos-hls-rfc8216bis/
+   *
    * NOTE: Pathway cloning does not currently support the `PER_VARIANT_URIS` and
    * `PER_RENDITION_URIS` as we do not handle `STABLE-VARIANT-ID` or
    * `STABLE-RENDITION-ID` values.
