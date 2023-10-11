@@ -2173,9 +2173,10 @@ export class PlaylistController extends videojs.EventTarget {
                 return true;
               }
             }
-            if (!newPathways.length && availablePathways.size) {
-              return true;
-            }
+          }
+          // If we have no new serviceLocations and previously had availablePathways
+          if (!newPathways.length && availablePathways.size) {
+            return true;
           }
           return false;
         };
