@@ -133,10 +133,9 @@ export default class ContentSteeringController extends videojs.EventTarget {
    *
    * @param {string} initialUri The optional uri to make the request with.
    *    If set, the request should be made with exactly what is passed in this variable.
-   *    This scenario is specific to DASH when the queryBeforeStart parameter is true.
    *    This scenario should only happen once on initalization.
    */
-  requestSteeringManifest() {
+  requestSteeringManifest(initial) {
     const reloadUri = this.steeringManifest.reloadUri;
 
     if (!reloadUri) {
@@ -147,7 +146,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
     // ExtUrlQueryInfo tag support. See the DASH content steering spec section 8.1.
 
     // This request URI accounts for manifest URIs that have been excluded.
-    const uri = this.getRequestURI(reloadUri);
+    const uri = initial ? reloadUri : this.getRequestURI(reloadUri);
 
     // If there are no valid manifest URIs, we should stop content steering.
     if (!uri) {
@@ -381,6 +380,8 @@ export default class ContentSteeringController extends videojs.EventTarget {
    * aborts steering requests clears the ttl timeout and resets all properties.
    */
   dispose() {
+    this.off('content-steering');
+    this.off('error');
     this.abort();
     this.clearTTLTimeout_();
     this.currentPathway = null;
@@ -434,5 +435,9 @@ export default class ContentSteeringController extends videojs.EventTarget {
       newTag.defaultServiceLocation !== this.defaultPathway ||
       newTag.queryBeforeStart !== this.queryBeforeStart ||
       newTag.proxyServerURL !== this.proxyServerUrl_);
+  }
+
+  getAvailablePathways() {
+    return this.availablePathways_;
   }
 }

@@ -2131,7 +2131,8 @@ export class PlaylistController extends videojs.EventTarget {
     this.contentSteeringController_.assignTagProperties(main.uri, main.contentSteering);
     // request the steering manifest immediately if queryBeforeStart is set.
     if (this.contentSteeringController_.queryBeforeStart) {
-      this.contentSteeringController_.requestSteeringManifest();
+      // When queryBeforeStart is true, initial request should omit steering parameters.
+      this.contentSteeringController_.requestSteeringManifest(true);
       return;
     }
     // otherwise start content steering after playback starts
@@ -2157,9 +2158,29 @@ export class PlaylistController extends videojs.EventTarget {
     if (this.sourceType_ === 'dash') {
       this.mainPlaylistLoader_.on('loadedplaylist', () => {
         const main = this.main();
+        // check if steering tag or pathways changed.
         const didDashTagChange = this.contentSteeringController_.didDASHTagChange(main.uri, main.contentSteering);
+        const didPathwaysChange = () => {
+          const availablePathways = this.contentSteeringController_.getAvailablePathways();
+          const newPathways = [];
 
-        if (didDashTagChange) {
+          for (const playlist of main.playlists) {
+            const serviceLocation = playlist.attributes.serviceLocation;
+
+            if (serviceLocation) {
+              newPathways.push(serviceLocation);
+              if (!availablePathways.has(serviceLocation)) {
+                return true;
+              }
+            }
+            if (!newPathways.length && availablePathways.size) {
+              return true;
+            }
+          }
+          return false;
+        };
+
+        if (didDashTagChange || didPathwaysChange()) {
           this.resetContentSteeringController_();
         }
       });
