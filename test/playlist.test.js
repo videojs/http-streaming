@@ -632,7 +632,7 @@ QUnit.module('Playlist', function() {
           {
             duration: 9.01,
             uri: '2.ts'
-          },
+          }
         ]
       };
 
