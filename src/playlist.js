@@ -391,11 +391,17 @@ export const playlistEnd = function(playlist, expired, useSafeLiveEnd, liveEdgeP
 export const seekable = function(playlist, expired, liveEdgePadding) {
   const useSafeLiveEnd = true;
   const seekableStart = expired || 0;
-  const seekableEnd = playlistEnd(playlist, expired, useSafeLiveEnd, liveEdgePadding);
+  let seekableEnd = playlistEnd(playlist, expired, useSafeLiveEnd, liveEdgePadding);
 
   if (seekableEnd === null) {
     return createTimeRanges();
   }
+
+  // Clamp seekable end since it can not be less than the seekable start
+  if (seekableEnd < seekableStart) {
+    seekableEnd = seekableStart;
+  }
+
   return createTimeRanges(seekableStart, seekableEnd);
 };
 

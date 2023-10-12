@@ -616,6 +616,45 @@ QUnit.module('Playlist', function() {
       playlist = {
         targetDuration: 10,
         mediaSequence: 100,
+        syncInfo: {
+          time: 50,
+          mediaSequence: 95
+        },
+        segments: [
+          {
+            duration: 9.01,
+            uri: '0.ts'
+          },
+          {
+            duration: 9.01,
+            uri: '1.ts'
+          },
+          {
+            duration: 9.01,
+            uri: '2.ts'
+          }
+        ]
+      };
+
+      seekable = Playlist.seekable(playlist, 100);
+      playlistEnd = Playlist.playlistEnd(playlist, 100);
+
+      assert.ok(seekable.length, 'seekable range calculated');
+      assert.equal(
+        seekable.start(0),
+        100,
+        'estimated start time based on expired sync point'
+      );
+      assert.equal(
+        seekable.end(0),
+        100,
+        'seekable end is clamped to start time'
+      );
+      assert.equal(playlistEnd, 127.03, 'playlist end at the last segment end');
+
+      playlist = {
+        targetDuration: 10,
+        mediaSequence: 100,
         segments: [
           {
             duration: 10,
