@@ -500,7 +500,7 @@ const handleSegmentBytes = ({
 
             // Run through the CaptionParser in case there are captions.
             // Initialize CaptionParser if it hasn't been yet
-            if (!tracks.video || !data.byteLength || !segment.transmuxer) {
+            if (!tracks.video || !emsgData.byteLength || !segment.transmuxer) {
               finishLoading(undefined, id3Frames);
               return;
             }
