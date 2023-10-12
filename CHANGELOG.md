@@ -1,3 +1,19 @@
+<a name="3.7.0"></a>
+# [3.7.0](https://github.com/videojs/http-streaming/compare/v3.6.0...v3.7.0) (2023-10-12)
+
+### Features
+
+* content steering switching ([#1427](https://github.com/videojs/http-streaming/issues/1427)) ([dd5e2af](https://github.com/videojs/http-streaming/commit/dd5e2af))
+
+### Bug Fixes
+
+* clamp seekable end ([#1433](https://github.com/videojs/http-streaming/issues/1433)) ([53edf72](https://github.com/videojs/http-streaming/commit/53edf72))
+* fmp4 captions regression ([#1434](https://github.com/videojs/http-streaming/issues/1434)) ([fcd2e8a](https://github.com/videojs/http-streaming/commit/fcd2e8a))
+
+### Chores
+
+* update mux.js to v7.0.1 ([#1435](https://github.com/videojs/http-streaming/issues/1435)) ([2eedfba](https://github.com/videojs/http-streaming/commit/2eedfba))
+
 <a name="3.6.0"></a>
 # [3.6.0](https://github.com/videojs/http-streaming/compare/v3.5.3...v3.6.0) (2023-09-25)
 
