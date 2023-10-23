@@ -6745,7 +6745,8 @@ QUnit.test('Pathway cloning - add a new pathway when the clone has not existed',
     ['RELOAD-URI']: 'https://fastly-server.content-steering.com/dash.dcsm',
     ['PATHWAY-PRIORITY']: [
       'cdn-b',
-      'cdn-a'
+      'cdn-a',
+      'cdn-z'
     ],
     ['PATHWAY-CLONES']: [clone]
   };
@@ -6757,8 +6758,12 @@ QUnit.test('Pathway cloning - add a new pathway when the clone has not existed',
   assert.equal(addCloneStub.getCall(0).args[0], clone);
   assert.equal(pc.contentSteeringController_.availablePathways_.has('cdn-z'), true);
 
+  const cloneMap = new Map();
+
+  cloneMap.set(clone.ID, clone);
+
   // Ensure we set the current pathway clones from next.
-  assert.deepEqual(pc.contentSteeringController_.currentPathwayClones, [clone]);
+  assert.deepEqual(pc.contentSteeringController_.currentPathwayClones.get('cdn-z'), cloneMap.get('cdn-z'));
 });
 
 QUnit.test('Pathway cloning - update the pathway when the BASE-ID does not match', function(assert) {
@@ -6802,7 +6807,8 @@ QUnit.test('Pathway cloning - update the pathway when the BASE-ID does not match
     }
   };
 
-  pc.contentSteeringController_.currentPathwayClones = [pastClone];
+  pc.contentSteeringController_.currentPathwayClones = new Map();
+  pc.contentSteeringController_.currentPathwayClones.set(pastClone.ID, pastClone);
 
   const steeringManifestJson = {
     VERSION: 1,
@@ -6823,8 +6829,12 @@ QUnit.test('Pathway cloning - update the pathway when the BASE-ID does not match
   assert.equal(updateCloneStub.getCall(0).args[1], true);
   assert.equal(pc.contentSteeringController_.availablePathways_.has('cdn-z'), true);
 
+  const nextClonesMap = new Map();
+
+  nextClonesMap.set(nextClone.ID, nextClone);
+
   // Ensure we set the current pathway clones from next.
-  assert.deepEqual(pc.contentSteeringController_.currentPathwayClones, [nextClone]);
+  assert.deepEqual(pc.contentSteeringController_.currentPathwayClones, nextClonesMap);
 });
 
 QUnit.test('Pathway cloning - update the pathway when there is a new param', function(assert) {
@@ -6869,7 +6879,8 @@ QUnit.test('Pathway cloning - update the pathway when there is a new param', fun
     }
   };
 
-  pc.contentSteeringController_.currentPathwayClones = [pastClone];
+  pc.contentSteeringController_.currentPathwayClones = new Map();
+  pc.contentSteeringController_.currentPathwayClones.set(pastClone.ID, pastClone);
 
   const steeringManifestJson = {
     VERSION: 1,
@@ -6891,8 +6902,12 @@ QUnit.test('Pathway cloning - update the pathway when there is a new param', fun
   assert.equal(updateCloneStub.getCall(0).args[1], true);
   assert.equal(pc.contentSteeringController_.availablePathways_.has('cdn-z'), true);
 
+  const nextClonesMap = new Map();
+
+  nextClonesMap.set(nextClone.ID, nextClone);
+
   // Ensure we set the current pathway clones from next.
-  assert.deepEqual(pc.contentSteeringController_.currentPathwayClones, [nextClone]);
+  assert.deepEqual(pc.contentSteeringController_.currentPathwayClones, nextClonesMap);
 });
 
 QUnit.test('Pathway cloning - update the pathway when a param is missing', function(assert) {
@@ -6934,7 +6949,8 @@ QUnit.test('Pathway cloning - update the pathway when a param is missing', funct
     }
   };
 
-  pc.contentSteeringController_.currentPathwayClones = [pastClone];
+  pc.contentSteeringController_.currentPathwayClones = new Map();
+  pc.contentSteeringController_.currentPathwayClones.set(pastClone.ID, pastClone);
 
   const steeringManifestJson = {
     VERSION: 1,
@@ -6956,8 +6972,12 @@ QUnit.test('Pathway cloning - update the pathway when a param is missing', funct
   assert.equal(updateCloneStub.getCall(0).args[1], true);
   assert.equal(pc.contentSteeringController_.availablePathways_.has('cdn-z'), true);
 
+  const nextClonesMap = new Map();
+
+  nextClonesMap.set(nextClone.ID, nextClone);
+
   // Ensure we set the current pathway clones from next.
-  assert.deepEqual(pc.contentSteeringController_.currentPathwayClones, [nextClone]);
+  assert.deepEqual(pc.contentSteeringController_.currentPathwayClones, nextClonesMap);
 });
 
 QUnit.test('Pathway cloning - delete the pathway when it is no longer in the steering response', function(assert) {
@@ -6990,7 +7010,8 @@ QUnit.test('Pathway cloning - delete the pathway when it is no longer in the ste
     }
   };
 
-  pc.contentSteeringController_.currentPathwayClones = [pastClone];
+  pc.contentSteeringController_.currentPathwayClones = new Map();
+  pc.contentSteeringController_.currentPathwayClones.set(pastClone.ID, pastClone);
 
   const steeringManifestJson = {
     VERSION: 1,
@@ -7014,7 +7035,7 @@ QUnit.test('Pathway cloning - delete the pathway when it is no longer in the ste
   // The value is no longer in the available pathways.
   assert.equal(!pc.contentSteeringController_.availablePathways_.has('cdn-z'), true);
 
-  assert.deepEqual(pc.contentSteeringController_.currentPathwayClones, []);
+  assert.deepEqual(pc.contentSteeringController_.currentPathwayClones, new Map());
 });
 
 QUnit.test('Pathway cloning - do nothing when next and past clones are the same', function(assert) {
@@ -7048,7 +7069,8 @@ QUnit.test('Pathway cloning - do nothing when next and past clones are the same'
     }
   };
 
-  pc.contentSteeringController_.currentPathwayClones = [clone];
+  pc.contentSteeringController_.currentPathwayClones = new Map();
+  pc.contentSteeringController_.currentPathwayClones.set(clone.ID, clone);
 
   const steeringManifestJson = {
     VERSION: 1,
@@ -7062,7 +7084,7 @@ QUnit.test('Pathway cloning - do nothing when next and past clones are the same'
     ['PATHWAY-CLONES']: [clone]
   };
 
-  // By adding this we are saying that the pathway was previosuly available.
+  // By adding this we are saying that the pathway was previously available.
   pc.contentSteeringController_.addAvailablePathway('cdn-z');
 
   // This triggers `handlePathwayClones()`.
@@ -7075,5 +7097,9 @@ QUnit.test('Pathway cloning - do nothing when next and past clones are the same'
   // The value is still in the available pathways.
   assert.equal(pc.contentSteeringController_.availablePathways_.has('cdn-z'), true);
 
-  assert.deepEqual(pc.contentSteeringController_.currentPathwayClones, [clone]);
+  const clonesMap = new Map();
+
+  clonesMap.set(clone.ID, clone);
+
+  assert.deepEqual(pc.contentSteeringController_.currentPathwayClones, clonesMap);
 });

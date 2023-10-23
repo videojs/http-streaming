@@ -16,7 +16,7 @@ import videojs from 'video.js';
 class SteeringManifest {
   constructor() {
     this.priority_ = [];
-    this.pathwayClones_ = [];
+    this.pathwayClones_ = new Map();
   }
 
   set version(number) {
@@ -48,7 +48,7 @@ class SteeringManifest {
   set pathwayClones(array) {
     // pathwayClones must be non-empty.
     if (array && array.length) {
-      this.pathwayClones_ = array;
+      this.pathwayClones_ = new Map(array.map((clone) => [clone.ID, clone]));
     }
   }
 
@@ -95,8 +95,8 @@ export default class ContentSteeringController extends videojs.EventTarget {
     this.manifestType_ = null;
     this.ttlTimeout_ = null;
     this.request_ = null;
-    this.currentPathwayClones = [];
-    this.nextPathwayClones = [];
+    this.currentPathwayClones = new Map();
+    this.nextPathwayClones = new Map();
     this.excludedSteeringManifestURLs = new Set();
     this.logger_ = logger('Content Steering');
     this.xhr_ = xhr;

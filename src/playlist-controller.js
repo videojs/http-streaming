@@ -2165,7 +2165,7 @@ export class PlaylistController extends videojs.EventTarget {
 
     const pastClones = this.contentSteeringController_.currentPathwayClones;
     const nextClones = this.contentSteeringController_.nextPathwayClones;
-    const hasClones = pastClones && nextClones && (pastClones.length || nextClones.length);
+    const hasClones = (pastClones && pastClones.size) || (nextClones && nextClones.size);
 
     if (hasClones) {
       this.handlePathwayClones_();
@@ -2236,18 +2236,18 @@ export class PlaylistController extends videojs.EventTarget {
     const currentPathwayClones = this.contentSteeringController_.currentPathwayClones;
     const nextPathwayClones = this.contentSteeringController_.nextPathwayClones;
 
-    currentPathwayClones.forEach((clone) => {
-      const newClone = nextPathwayClones.find(c => c.ID === clone.ID);
+    for (const [id, clone] of currentPathwayClones.entries()) {
+      const newClone = nextPathwayClones.get(id);
 
       // Delete the old pathway clone.
       if (!newClone) {
         this.mainPlaylistLoader_.updateOrDeleteClone(clone);
-        this.contentSteeringController_.excludePathway(clone.ID);
+        this.contentSteeringController_.excludePathway(id);
       }
-    });
+    }
 
-    nextPathwayClones.forEach((clone) => {
-      const oldClone = currentPathwayClones.find(c => c.ID === clone.ID);
+    for (const [id, clone] of nextPathwayClones.entries()) {
+      const oldClone = currentPathwayClones.get(id);
 
       // Create a new pathway if it is a new pathway clone object.
       if (!oldClone) {
@@ -2259,22 +2259,23 @@ export class PlaylistController extends videojs.EventTarget {
           this.mainPlaylistLoader_.addClonePathway(clone, p);
         });
 
-        this.contentSteeringController_.addAvailablePathway(clone.ID);
-        return;
+        this.contentSteeringController_.addAvailablePathway(id);
+        continue;
       }
 
       // There have not been changes to the pathway clone object, so skip.
       if (this.equalPathwayClones_(oldClone, clone)) {
-        return;
+        continue;
       }
+
       // Update a preexisting cloned pathway.
       // True is set for the update flag.
       this.mainPlaylistLoader_.updateOrDeleteClone(clone, true);
-      this.contentSteeringController_.addAvailablePathway(clone.ID);
-    });
+      this.contentSteeringController_.addAvailablePathway(id);
+    }
 
     // Deep copy contents of next to current pathways.
-    this.contentSteeringController_.currentPathwayClones = JSON.parse(JSON.stringify(nextPathwayClones));
+    this.contentSteeringController_.currentPathwayClones = new Map(JSON.parse(JSON.stringify([...nextPathwayClones])));
   }
 
   /**
