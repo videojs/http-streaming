@@ -981,7 +981,7 @@ export class PlaylistController extends videojs.EventTarget {
    */
   resetMainLoaderReplaceSegments() {
     const buffered = this.tech_.buffered();
-    const bufferedEnd = buffered.end(buffered.length - 1);
+    const bufferedEnd = buffered.length ? buffered.end(buffered.length - 1) : 0;
 
     // Set the replace segments flag to the buffered end, this forces fetchAtBuffer
     // on the main loader to remain, false after the resetLoader call, until we have
