@@ -2163,13 +2163,7 @@ export class PlaylistController extends videojs.EventTarget {
       return;
     }
 
-    const pastClones = this.contentSteeringController_.currentPathwayClones;
-    const nextClones = this.contentSteeringController_.nextPathwayClones;
-    const hasClones = (pastClones && pastClones.size) || (nextClones && nextClones.size);
-
-    if (hasClones) {
-      this.handlePathwayClones_();
-    }
+    this.handlePathwayClones_();
 
     const main = this.main();
     const playlists = main.playlists;
@@ -2235,6 +2229,12 @@ export class PlaylistController extends videojs.EventTarget {
     const playlists = main.playlists;
     const currentPathwayClones = this.contentSteeringController_.currentPathwayClones;
     const nextPathwayClones = this.contentSteeringController_.nextPathwayClones;
+
+    const hasClones = (currentPathwayClones && currentPathwayClones.size) || (nextPathwayClones && nextPathwayClones.size);
+
+    if (!hasClones) {
+      return;
+    }
 
     for (const [id, clone] of currentPathwayClones.entries()) {
       const newClone = nextPathwayClones.get(id);
