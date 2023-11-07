@@ -325,10 +325,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
     // live playlist staleness timeout
     this.on('mediaupdatetimeout', () => {
-      // We handle live content steering in the playlist controller
-      if (!this.media().attributes.serviceLocation) {
-        this.refreshMedia_(this.media().id);
-      }
+      this.refreshMedia_(this.media().id);
     });
 
     this.state = 'HAVE_NOTHING';

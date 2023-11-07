@@ -6472,7 +6472,9 @@ QUnit.test('initContentSteeringController_ for DASH without queryBeforeStart', f
 });
 
 QUnit.test('Test Live DASH update with content steering', function(assert) {
+  const done = assert.async();
   const pc = new PlaylistController(this.controllerOptions);
+  const resetContentSteeringControllerSpy = sinon.spy(pc, 'resetContentSteeringController_');
 
   // Stub the steering request functionality and the resetting of media.
   sinon.stub(pc.contentSteeringController_, 'requestSteeringManifest');
@@ -6484,22 +6486,191 @@ QUnit.test('Test Live DASH update with content steering', function(assert) {
   pc.main = () => this.csMainPlaylist;
   pc.mainPlaylistLoader_.media = () => this.csMainPlaylist.playlists[0];
 
+  pc.attachContentSteeringListeners_();
   pc.initContentSteeringController_();
 
   // The initial manifest did not have queryBeforeStart set
-  assert.deepEqual(pc.contentSteeringController_.queryBeforeStart, false);
+  assert.equal(pc.contentSteeringController_.queryBeforeStart, undefined);
 
   // mimics refreshMedia_, resetting main with the new manifest
   mainPlaylistAfter.contentSteering.queryBeforeStart = true;
   pc.main = () => mainPlaylistAfter;
 
+  pc.mainPlaylistLoader_.on('loadedplaylist', () => {
+    // The content steering controller was updated with the new information.
+    assert.true(resetContentSteeringControllerSpy.called);
+    assert.true(pc.contentSteeringController_.queryBeforeStart);
+    done();
+  });
   // mimic a live DASH manifest update
-  pc.mainPlaylistLoader_.trigger('mediaupdatetimeout');
+  pc.mainPlaylistLoader_.trigger('loadedplaylist');
+});
 
-  // The content steering controller was updated with the new information.
-  assert.deepEqual(pc.contentSteeringController_.queryBeforeStart, true);
+QUnit.test('Test Live DASH content steering adding a steering tag', function(assert) {
+  const done = assert.async();
+  const pc = new PlaylistController(this.controllerOptions);
+  const resetContentSteeringControllerSpy = sinon.spy(pc, 'resetContentSteeringController_');
 
-  pc.dispose();
+  // Stub the steering request functionality and the resetting of media.
+  sinon.stub(pc.contentSteeringController_, 'requestSteeringManifest');
+  sinon.stub(pc.mainPlaylistLoader_, 'refreshMedia_');
+
+  // Second manifest after live update just changes the queryBeforeStartParam
+  const mainPlaylistBefore = Object.assign({}, this.csMainPlaylist);
+
+  delete mainPlaylistBefore.contentSteering;
+
+  pc.main = () => mainPlaylistBefore;
+  pc.mainPlaylistLoader_.media = () => mainPlaylistBefore.playlists[0];
+
+  pc.attachContentSteeringListeners_();
+  pc.initContentSteeringController_();
+
+  pc.main = () => this.csMainPlaylist;
+
+  this.csMainPlaylist.contentSteering.queryBeforeStart = true;
+  pc.mainPlaylistLoader_.on('loadedplaylist', () => {
+    // The content steering controller was updated with the new information.
+    assert.true(resetContentSteeringControllerSpy.called);
+    assert.equal(pc.contentSteeringController_.steeringManifest.reloadUri, 'https://www.server.test', 'reloadUri added');
+    assert.true(pc.contentSteeringController_.queryBeforeStart, 'queryBeforeStart is true');
+    assert.equal(pc.contentSteeringController_.getPathway(), 'cdn-a', 'pathway is expected value');
+    done();
+  });
+  // mimic a live DASH manifest update
+  pc.mainPlaylistLoader_.trigger('loadedplaylist');
+});
+
+QUnit.test('Test Live DASH content steering removing a steering tag', function(assert) {
+  const done = assert.async();
+  const pc = new PlaylistController(this.controllerOptions);
+  const resetContentSteeringControllerSpy = sinon.spy(pc, 'resetContentSteeringController_');
+
+  // Stub the steering request functionality and the resetting of media.
+  sinon.stub(pc.contentSteeringController_, 'requestSteeringManifest');
+  sinon.stub(pc.mainPlaylistLoader_, 'refreshMedia_');
+  const mainPlaylistAfter = Object.assign({}, this.csMainPlaylist);
+
+  // remove the content steering tag.
+  delete mainPlaylistAfter.contentSteering;
+
+  pc.main = () => this.csMainPlaylist;
+
+  pc.attachContentSteeringListeners_();
+  pc.initContentSteeringController_();
+
+  pc.main = () => mainPlaylistAfter;
+  pc.mainPlaylistLoader_.media = () => mainPlaylistAfter.playlists[0];
+
+  this.csMainPlaylist.contentSteering.queryBeforeStart = true;
+  pc.mainPlaylistLoader_.on('loadedplaylist', () => {
+    // The content steering controller was updated with the new information.
+    assert.true(resetContentSteeringControllerSpy.called);
+    assert.equal(pc.contentSteeringController_.steeringManifest.reloadUri, undefined, 'reloadUri removed');
+    assert.equal(pc.contentSteeringController_.queryBeforeStart, undefined, 'queryBeforeStart is undefined');
+    assert.equal(pc.contentSteeringController_.getPathway(), null, 'pathway is expected value');
+    done();
+  });
+  // mimic a live DASH manifest update
+  pc.mainPlaylistLoader_.trigger('loadedplaylist');
+});
+
+QUnit.test('Test Live DASH content steering updating serviceLocation', function(assert) {
+  const done = assert.async();
+  const pc = new PlaylistController(this.controllerOptions);
+  const resetContentSteeringControllerSpy = sinon.spy(pc, 'resetContentSteeringController_');
+  const newPathways = new Set(['cdn-c', 'cdn-d']);
+
+  // Stub the steering request functionality and the resetting of media.
+  sinon.stub(pc.contentSteeringController_, 'requestSteeringManifest');
+  sinon.stub(pc.mainPlaylistLoader_, 'refreshMedia_');
+  const mainPlaylistAfter = Object.assign({}, this.csMainPlaylist);
+
+  pc.main = () => this.csMainPlaylist;
+  pc.attachContentSteeringListeners_();
+  pc.initContentSteeringController_();
+
+  pc.main = () => mainPlaylistAfter;
+  mainPlaylistAfter.playlists = [
+    {
+      attributes: {
+        NAME: 'video_1920x1080_4531kbps',
+        serviceLocation: 'cdn-c'
+      },
+      endList: true,
+      id: '0-placeholder-uri-0',
+      resolvedUri: 'https://fastly.content-steering.com/bbb/placeholder-uri-0',
+      uri: 'placeholder-uri-0'
+    },
+    {
+      attributes: {
+        NAME: 'video_1280x720_2445kbps',
+        serviceLocation: 'cdn-d'
+      },
+      endList: true,
+      id: '1-placeholder-uri-1',
+      resolvedUri: 'https://fastly.content-steering.com/bbb/placeholder-uri-1',
+      uri: 'placeholder-uri-1'
+    }
+  ];
+  pc.mainPlaylistLoader_.media = () => mainPlaylistAfter.playlists[0];
+
+  pc.mainPlaylistLoader_.on('loadedplaylist', () => {
+    // The content steering controller was updated with the new pathways
+    assert.true(resetContentSteeringControllerSpy.called);
+    assert.deepEqual(pc.contentSteeringController_.availablePathways_, newPathways);
+    done();
+  });
+  // mimic a live DASH manifest update
+  pc.mainPlaylistLoader_.trigger('loadedplaylist');
+});
+
+QUnit.test('Test Live DASH content steering removing serviceLocation', function(assert) {
+  const done = assert.async();
+  const pc = new PlaylistController(this.controllerOptions);
+  const resetContentSteeringControllerSpy = sinon.spy(pc, 'resetContentSteeringController_');
+  const newPathways = new Set();
+
+  // Stub the steering request functionality and the resetting of media.
+  sinon.stub(pc.contentSteeringController_, 'requestSteeringManifest');
+  sinon.stub(pc.mainPlaylistLoader_, 'refreshMedia_');
+  const mainPlaylistAfter = Object.assign({}, this.csMainPlaylist);
+
+  pc.main = () => this.csMainPlaylist;
+  pc.attachContentSteeringListeners_();
+  pc.initContentSteeringController_();
+
+  pc.main = () => mainPlaylistAfter;
+  mainPlaylistAfter.playlists = [
+    {
+      attributes: {
+        NAME: 'video_1920x1080_4531kbps'
+      },
+      endList: true,
+      id: '0-placeholder-uri-0',
+      resolvedUri: 'https://fastly.content-steering.com/bbb/placeholder-uri-0',
+      uri: 'placeholder-uri-0'
+    },
+    {
+      attributes: {
+        NAME: 'video_1280x720_2445kbps'
+      },
+      endList: true,
+      id: '1-placeholder-uri-1',
+      resolvedUri: 'https://fastly.content-steering.com/bbb/placeholder-uri-1',
+      uri: 'placeholder-uri-1'
+    }
+  ];
+  pc.mainPlaylistLoader_.media = () => mainPlaylistAfter.playlists[0];
+
+  pc.mainPlaylistLoader_.on('loadedplaylist', () => {
+    // The content steering controller was updated with the new pathways
+    assert.true(resetContentSteeringControllerSpy.called);
+    assert.deepEqual(pc.contentSteeringController_.availablePathways_, newPathways);
+    done();
+  });
+  // mimic a live DASH manifest update
+  pc.mainPlaylistLoader_.trigger('loadedplaylist');
 });
 
 QUnit.test('Exclude and reinclude pathway after timeout for content steering', function(assert) {
@@ -6554,6 +6725,7 @@ QUnit.test('switch media on priority change for content steering', function(asse
 
   const switchMediaStub = sinon.stub(pc, 'switchMedia_');
 
+  pc.attachContentSteeringListeners_();
   pc.initContentSteeringController_();
 
   // Initially, cdn-a should be selected and there should be no media switch
@@ -6660,6 +6832,7 @@ QUnit.test('media group playlists should switch on steering change', function(as
   sinon.stub(pc, 'switchMedia_');
   const mediaSpy = sinon.spy(pc.mediaTypes_.AUDIO.activePlaylistLoader, 'media');
 
+  pc.attachContentSteeringListeners_();
   pc.initContentSteeringController_();
 
   const steeringManifestJson = {
@@ -6687,6 +6860,7 @@ QUnit.test('playlists should not change when there is no currentPathway', functi
   // Set up playlists
   pc.main = () => this.csMainPlaylist;
 
+  pc.attachContentSteeringListeners_();
   pc.initContentSteeringController_();
 
   // mimic there being no current pathway

@@ -608,6 +608,8 @@ export class PlaylistController extends videojs.EventTarget {
       let updatedPlaylist = this.mainPlaylistLoader_.media();
 
       if (!updatedPlaylist) {
+        // Add content steering listeners on first load and init.
+        this.attachContentSteeringListeners_();
         this.initContentSteeringController_();
         // exclude any variants that are not supported by the browser before selecting
         // an initial media as the playlist selectors do not consider browser support
@@ -2104,51 +2106,84 @@ export class PlaylistController extends videojs.EventTarget {
     });
   }
 
+  /**
+   * Utility for getting the pathway or service location from an HLS or DASH playlist.
+   *
+   * @param {Object} playlist for getting pathway from.
+   * @return the pathway attribute of a playlist
+   */
   pathwayAttribute_(playlist) {
     return playlist.attributes['PATHWAY-ID'] || playlist.attributes.serviceLocation;
   }
+
   /**
-   * Initialize content steering listeners and apply the tag properties.
+   * Initialize available pathways and apply the tag properties.
    */
   initContentSteeringController_() {
-    const initialMain = this.main();
+    const main = this.main();
 
-    if (!initialMain.contentSteering) {
+    if (!main.contentSteering) {
       return;
     }
-
-    const updateSteeringValues = (main) => {
-      for (const playlist of main.playlists) {
-        this.contentSteeringController_.addAvailablePathway(this.pathwayAttribute_(playlist));
-      }
-
-      this.contentSteeringController_.assignTagProperties(main.uri, main.contentSteering);
-    };
-
-    updateSteeringValues(initialMain);
-
-    this.contentSteeringController_.on('content-steering', this.excludeThenChangePathway_.bind(this));
-
-    // We need to ensure we update the content steering values when a new
-    // manifest is loaded in live DASH with content steering.
-    if (this.sourceType_ === 'dash') {
-      this.mainPlaylistLoader_.on('mediaupdatetimeout', () => {
-        this.mainPlaylistLoader_.refreshMedia_(this.mainPlaylistLoader_.media().id);
-
-        // clear past values
-        this.contentSteeringController_.abort();
-        this.contentSteeringController_.clearTTLTimeout_();
-        this.contentSteeringController_.clearAvailablePathways();
-
-        updateSteeringValues(this.main());
-      });
+    for (const playlist of main.playlists) {
+      this.contentSteeringController_.addAvailablePathway(this.pathwayAttribute_(playlist));
     }
+    this.contentSteeringController_.assignTagProperties(main.uri, main.contentSteering);
+    // request the steering manifest immediately if queryBeforeStart is set.
+    if (this.contentSteeringController_.queryBeforeStart) {
+      // When queryBeforeStart is true, initial request should omit steering parameters.
+      this.contentSteeringController_.requestSteeringManifest(true);
+      return;
+    }
+    // otherwise start content steering after playback starts
+    this.tech_.one('canplay', () => {
+      this.contentSteeringController_.requestSteeringManifest();
+    });
+  }
 
-    // Do this at startup only, after that the steering requests are managed by the Content Steering class.
-    // DASH queryBeforeStart scenarios will be handled by the Content Steering class.
-    if (!this.contentSteeringController_.queryBeforeStart) {
-      this.tech_.one('canplay', () => {
-        this.contentSteeringController_.requestSteeringManifest();
+  /**
+   * Reset the content steering controller and re-init.
+   */
+  resetContentSteeringController_() {
+    this.contentSteeringController_.clearAvailablePathways();
+    this.contentSteeringController_.dispose();
+    this.initContentSteeringController_();
+  }
+
+  /**
+   * Attaches the listeners for content steering.
+   */
+  attachContentSteeringListeners_() {
+    this.contentSteeringController_.on('content-steering', this.excludeThenChangePathway_.bind(this));
+    if (this.sourceType_ === 'dash') {
+      this.mainPlaylistLoader_.on('loadedplaylist', () => {
+        const main = this.main();
+        // check if steering tag or pathways changed.
+        const didDashTagChange = this.contentSteeringController_.didDASHTagChange(main.uri, main.contentSteering);
+        const didPathwaysChange = () => {
+          const availablePathways = this.contentSteeringController_.getAvailablePathways();
+          const newPathways = [];
+
+          for (const playlist of main.playlists) {
+            const serviceLocation = playlist.attributes.serviceLocation;
+
+            if (serviceLocation) {
+              newPathways.push(serviceLocation);
+              if (!availablePathways.has(serviceLocation)) {
+                return true;
+              }
+            }
+          }
+          // If we have no new serviceLocations and previously had availablePathways
+          if (!newPathways.length && availablePathways.size) {
+            return true;
+          }
+          return false;
+        };
+
+        if (didDashTagChange || didPathwaysChange()) {
+          this.resetContentSteeringController_();
+        }
       });
     }
   }
