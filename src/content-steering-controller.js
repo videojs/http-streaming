@@ -11,10 +11,12 @@ import videojs from 'video.js';
  * TTL: number in seconds (optional) until the next content steering manifest reload.
  * RELOAD-URI: string (optional) uri to fetch the next content steering manifest.
  * SERVICE-LOCATION-PRIORITY or PATHWAY-PRIORITY a non empty array of unique string values.
+ * PATHWAY-CLONES: array (optional) (HLS only) pathway clone objects to copy from other playlists.
  */
 class SteeringManifest {
   constructor() {
     this.priority_ = [];
+    this.pathwayClones_ = new Map();
   }
 
   set version(number) {
@@ -43,6 +45,13 @@ class SteeringManifest {
     }
   }
 
+  set pathwayClones(array) {
+    // pathwayClones must be non-empty.
+    if (array && array.length) {
+      this.pathwayClones_ = new Map(array.map((clone) => [clone.ID, clone]));
+    }
+  }
+
   get version() {
     return this.version_;
   }
@@ -57,6 +66,10 @@ class SteeringManifest {
 
   get priority() {
     return this.priority_;
+  }
+
+  get pathwayClones() {
+    return this.pathwayClones_;
   }
 }
 
@@ -77,12 +90,13 @@ export default class ContentSteeringController extends videojs.EventTarget {
     this.defaultPathway = null;
     this.queryBeforeStart = false;
     this.availablePathways_ = new Set();
-    this.excludedPathways_ = new Set();
     this.steeringManifest = new SteeringManifest();
     this.proxyServerUrl_ = null;
     this.manifestType_ = null;
     this.ttlTimeout_ = null;
     this.request_ = null;
+    this.currentPathwayClones = new Map();
+    this.nextPathwayClones = new Map();
     this.excludedSteeringManifestURLs = new Set();
     this.logger_ = logger('Content Steering');
     this.xhr_ = xhr;
@@ -265,7 +279,11 @@ export default class ContentSteeringController extends videojs.EventTarget {
     this.steeringManifest.reloadUri = steeringJson['RELOAD-URI'];
     // HLS = PATHWAY-PRIORITY required. DASH = SERVICE-LOCATION-PRIORITY optional
     this.steeringManifest.priority = steeringJson['PATHWAY-PRIORITY'] || steeringJson['SERVICE-LOCATION-PRIORITY'];
-    // TODO: HLS handle PATHWAY-CLONES. See section 7.2 https://datatracker.ietf.org/doc/draft-pantos-hls-rfc8216bis/
+
+    // Pathway clones to be created/updated in HLS.
+    // See section 7.2 https://datatracker.ietf.org/doc/draft-pantos-hls-rfc8216bis/
+    this.steeringManifest.pathwayClones = steeringJson['PATHWAY-CLONES'];
+    this.nextPathwayClones = this.steeringManifest.pathwayClones;
 
     // 1. apply first pathway from the array.
     // 2. if first pathway doesn't exist in manifest, try next pathway.
@@ -393,7 +411,6 @@ export default class ContentSteeringController extends videojs.EventTarget {
     this.request_ = null;
     this.excludedSteeringManifestURLs = new Set();
     this.availablePathways_ = new Set();
-    this.excludedPathways_ = new Set();
     this.steeringManifest = new SteeringManifest();
   }
 

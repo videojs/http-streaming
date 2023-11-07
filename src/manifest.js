@@ -11,7 +11,7 @@ export const createPlaylistID = (index, uri) => {
 };
 
 // default function for creating a group id
-const groupID = (type, group, label) => {
+export const groupID = (type, group, label) => {
   return `placeholder-uri-${type}-${group}-${label}`;
 };
 

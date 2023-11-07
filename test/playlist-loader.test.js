@@ -2887,3 +2887,235 @@ QUnit.module('Playlist Loader', function(hooks) {
     assert.strictEqual(addDateRangesToTextTrackSpy.callCount, 1);
   });
 });
+
+QUnit.module('Pathway Cloning', {
+  before() {
+    this.fakeVhs = {
+      xhr: xhrFactory()
+    };
+    this.loader = new PlaylistLoader('http://example.com/media.m3u8', this.fakeVhs);
+
+    this.loader.load();
+
+    // Setup video playlists and media groups/playlists
+
+    const videoUri = '//test.com/playlist.m3u8';
+    const videoId = `0-${videoUri}`;
+    const videoPlaylist = {
+      attributes: {
+        ['PATHWAY-ID']: 'cdn-a',
+        AUDIO: 'cdn-a',
+        BANDWIDTH: 9,
+        CODECS: 'avc1.640028,mp4a.40.2'
+      },
+      id: videoId,
+      uri: videoUri,
+      resolvedUri: 'https://test.com/playlist.m3u8',
+      segments: []
+    };
+
+    const audioUri = 'https://test.com/audio_128kbps/playlist.m3u8';
+    const audioId = '0-placeholder-uri-AUDIO-cdn-a-English';
+    const audioPlaylist = {
+      attributes: {},
+      autoselect: true,
+      default: false,
+      id: audioId,
+      language: 'en',
+      uri: audioUri,
+      resolvedUri: audioUri
+    };
+
+    this.loader.main = {
+      mediaGroups: {
+        AUDIO: {
+          'cdn-a': {
+            English: {
+              autoselect: true,
+              default: false,
+              language: 'en',
+              resolvedUri: audioUri,
+              uri: audioUri,
+              playlists: [audioPlaylist]
+            }
+          },
+          // Ensures we hit the code where we skip this.
+          'cdn-other': {}
+        }
+      },
+      playlists: [videoPlaylist]
+    };
+
+    // link all playlists by ID and URI
+    this.loader.main.playlists[videoId] = videoPlaylist;
+    this.loader.main.playlists[videoUri] = videoPlaylist;
+    this.loader.main.playlists[audioId] = audioPlaylist;
+    this.loader.main.playlists[audioUri] = audioPlaylist;
+  },
+  after() {
+    this.loader.dispose();
+  }
+});
+
+QUnit.test('add a new pathway clone', function(assert) {
+  // The cloned pathway already exists due to the previous test.
+
+  const clone = {
+    ID: 'cdn-b',
+    ['BASE-ID']: 'cdn-a',
+    ['URI-REPLACEMENT']: {
+      HOST: 'www.cdn-b.com',
+      PARAMS: {
+        test: 123
+      }
+    }
+  };
+
+  const videoUri = 'https://www.cdn-b.com/playlist.m3u8?test=123';
+  const videoId = `cdn-b-${videoUri}`;
+  const expectedVideoPlaylist = {
+    attributes: {
+      AUDIO: 'cdn-b',
+      BANDWIDTH: 9,
+      CODECS: 'avc1.640028,mp4a.40.2',
+      ['PATHWAY-ID']: 'cdn-b'
+    },
+    id: videoId,
+    resolvedUri: videoUri,
+    segments: [],
+    uri: videoUri
+  };
+
+  const audioUri = 'https://www.cdn-b.com/audio_128kbps/playlist.m3u8?test=123';
+  const audioId = 'cdn-b-placeholder-uri-AUDIO-cdn-b-English';
+  const expectedAudioPlaylist = {
+    attributes: {},
+    autoselect: true,
+    default: false,
+    id: audioId,
+    language: 'en',
+    resolvedUri: audioUri,
+    uri: audioUri
+  };
+
+  const expectedMediaGroup = {
+    English: {
+      autoselect: true,
+      default: false,
+      language: 'en',
+      playlists: [expectedAudioPlaylist],
+      resolvedUri: audioUri,
+      uri: audioUri
+    }
+  };
+
+  this.loader.addClonePathway(clone, this.loader.main.playlists[0]);
+
+  assert.deepEqual(this.loader.main.playlists[1], expectedVideoPlaylist);
+  assert.deepEqual(this.loader.main.playlists[videoUri], expectedVideoPlaylist);
+  assert.deepEqual(this.loader.main.playlists[videoId], expectedVideoPlaylist);
+
+  assert.deepEqual(this.loader.main.playlists[audioId], expectedAudioPlaylist);
+  assert.deepEqual(this.loader.main.playlists[audioUri], expectedAudioPlaylist);
+  assert.deepEqual(this.loader.main.mediaGroups.AUDIO['cdn-b'], expectedMediaGroup);
+});
+
+QUnit.test('update the pathway clone', function(assert) {
+  // The cloned pathway already exists due to the previous test.
+
+  // The old clone to be deleted.
+  const clone = {
+    ID: 'cdn-b',
+    ['BASE-ID']: 'cdn-a',
+    ['URI-REPLACEMENT']: {
+      HOST: 'www.newurl.com',
+      PARAMS: {
+        test: 'updatedValue'
+      }
+    }
+  };
+
+  // These values have been updated.
+  const videoUri = 'https://www.newurl.com/playlist.m3u8?test=updatedValue';
+  const videoId = `cdn-b-${videoUri}`;
+  const expectedVideoPlaylist = {
+    attributes: {
+      AUDIO: 'cdn-b',
+      BANDWIDTH: 9,
+      CODECS: 'avc1.640028,mp4a.40.2',
+      ['PATHWAY-ID']: 'cdn-b'
+    },
+    id: videoId,
+    resolvedUri: videoUri,
+    segments: [],
+    uri: videoUri
+  };
+
+  // These values have been updated.
+  const audioUri = 'https://www.newurl.com/audio_128kbps/playlist.m3u8?test=updatedValue';
+  const audioId = 'cdn-b-placeholder-uri-AUDIO-cdn-b-English';
+  const expectedAudioPlaylist = {
+    attributes: {},
+    autoselect: true,
+    default: false,
+    id: audioId,
+    language: 'en',
+    resolvedUri: audioUri,
+    uri: audioUri
+  };
+
+  const expectedMediaGroup = {
+    English: {
+      autoselect: true,
+      default: false,
+      language: 'en',
+      playlists: [expectedAudioPlaylist],
+      resolvedUri: audioUri,
+      uri: audioUri
+    }
+  };
+
+  // set the flag to true to ensure we update.
+  this.loader.updateOrDeleteClone(clone, true);
+
+  assert.deepEqual(this.loader.main.playlists[1], expectedVideoPlaylist);
+  assert.deepEqual(this.loader.main.playlists[videoUri], expectedVideoPlaylist);
+  assert.deepEqual(this.loader.main.playlists[videoId], expectedVideoPlaylist);
+
+  assert.deepEqual(this.loader.main.playlists[audioId], expectedAudioPlaylist);
+  assert.deepEqual(this.loader.main.playlists[audioUri], expectedAudioPlaylist);
+  assert.deepEqual(this.loader.main.mediaGroups.AUDIO['cdn-b'], expectedMediaGroup);
+});
+
+QUnit.test('delete the pathway clone', function(assert) {
+  // The old clone to be deleted.
+  const clone = {
+    ID: 'cdn-b',
+    ['BASE-ID']: 'cdn-a',
+    ['URI-REPLACEMENT']: {
+      HOST: 'www.cdn-b.com',
+      PARAMS: {
+        test: 123
+      }
+    }
+  };
+
+  // the playlist exists before the deletion.
+  assert.deepEqual(this.loader.main.playlists[1].attributes['PATHWAY-ID'], 'cdn-b');
+
+  const videoUri = 'https://www.cdn-b.com/playlist.m3u8?test=123';
+  const videoId = `cdn-b-${videoUri}`;
+  const audioUri = 'https://www.cdn-b.com/audio_128kbps/playlist.m3u8?test=123';
+  const audioId = 'cdn-b-placeholder-uri-AUDIO-cdn-b-English';
+
+  // set the flag to false to ensure we delete.
+  this.loader.updateOrDeleteClone(clone, false);
+
+  assert.deepEqual(this.loader.main.playlists[1], undefined);
+  assert.deepEqual(this.loader.main.playlists[videoUri], undefined);
+  assert.deepEqual(this.loader.main.playlists[videoId], undefined);
+
+  assert.deepEqual(this.loader.main.playlists[audioId], undefined);
+  assert.deepEqual(this.loader.main.playlists[audioUri], undefined);
+  assert.deepEqual(this.loader.main.mediaGroups.AUDIO['cdn-b'], undefined);
+});

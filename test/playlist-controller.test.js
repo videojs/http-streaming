@@ -6882,3 +6882,398 @@ QUnit.test('playlists should not change when there is no currentPathway', functi
   // media is never switched
   assert.notOk(switchMediaSpy.called);
 });
+
+QUnit.test('Pathway cloning - add a new pathway when the clone has not existed', function(assert) {
+  const options = {
+    src: 'test',
+    tech: this.player.tech_,
+    sourceType: 'hls'
+  };
+
+  const pc = new PlaylistController(options);
+
+  this.csMainPlaylist.playlists.forEach(p => {
+    p.attributes['PATHWAY-ID'] = p.attributes.serviceLocation;
+    p.attributes.serviceLocation = undefined;
+  });
+
+  pc.main = () => this.csMainPlaylist;
+  pc.initContentSteeringController_();
+
+  const addCloneStub = sinon.stub(pc.mainPlaylistLoader_, 'addClonePathway');
+
+  const clone = {
+    ID: 'cdn-z',
+    ['BASE-ID']: 'cdn-a',
+    ['URI-REPLACEMENT']: {
+      HOST: 'www.cdn-z.com',
+      PARAMS: {
+        test: 123
+      }
+    }
+  };
+
+  const steeringManifestJson = {
+    VERSION: 1,
+    TTL: 10,
+    ['RELOAD-URI']: 'https://fastly-server.content-steering.com/dash.dcsm',
+    ['PATHWAY-PRIORITY']: [
+      'cdn-b',
+      'cdn-a',
+      'cdn-z'
+    ],
+    ['PATHWAY-CLONES']: [clone]
+  };
+
+  // This triggers `handlePathwayClones_()`
+  pc.contentSteeringController_.assignSteeringProperties_(steeringManifestJson);
+
+  // Assert that we add a clone and it is added to the available pathways If not already.
+  assert.equal(addCloneStub.getCall(0).args[0], clone);
+  assert.equal(pc.contentSteeringController_.availablePathways_.has('cdn-z'), true);
+
+  const cloneMap = new Map();
+
+  cloneMap.set(clone.ID, clone);
+
+  // Ensure we set the current pathway clones from next.
+  assert.deepEqual(pc.contentSteeringController_.currentPathwayClones.get('cdn-z'), cloneMap.get('cdn-z'));
+});
+
+QUnit.test('Pathway cloning - update the pathway when the BASE-ID does not match', function(assert) {
+  const options = {
+    src: 'test',
+    tech: this.player.tech_,
+    sourceType: 'hls'
+  };
+
+  const pc = new PlaylistController(options);
+
+  this.csMainPlaylist.playlists.forEach(p => {
+    p.attributes['PATHWAY-ID'] = p.attributes.serviceLocation;
+    p.attributes.serviceLocation = undefined;
+  });
+
+  pc.main = () => this.csMainPlaylist;
+  pc.initContentSteeringController_();
+
+  const updateCloneStub = sinon.stub(pc.mainPlaylistLoader_, 'updateOrDeleteClone');
+
+  const pastClone = {
+    ID: 'cdn-z',
+    ['BASE-ID']: 'cdn-a',
+    ['URI-REPLACEMENT']: {
+      HOST: 'www.cdn-z.com',
+      PARAMS: {
+        test: 123
+      }
+    }
+  };
+
+  const nextClone = {
+    ID: 'cdn-z',
+    ['BASE-ID']: 'cdn-b',
+    ['URI-REPLACEMENT']: {
+      HOST: 'www.cdn-b.com',
+      PARAMS: {
+        test: 123
+      }
+    }
+  };
+
+  pc.contentSteeringController_.currentPathwayClones = new Map();
+  pc.contentSteeringController_.currentPathwayClones.set(pastClone.ID, pastClone);
+
+  const steeringManifestJson = {
+    VERSION: 1,
+    TTL: 10,
+    ['RELOAD-URI']: 'https://fastly-server.content-steering.com/dash.dcsm',
+    ['PATHWAY-PRIORITY']: [
+      'cdn-b',
+      'cdn-a'
+    ],
+    ['PATHWAY-CLONES']: [nextClone]
+  };
+
+  // This triggers `handlePathwayClones()`.
+  pc.contentSteeringController_.assignSteeringProperties_(steeringManifestJson);
+
+  // Assert that we update the clone and it is still in the available pathways.
+  assert.equal(updateCloneStub.getCall(0).args[0], nextClone);
+  assert.equal(updateCloneStub.getCall(0).args[1], true);
+  assert.equal(pc.contentSteeringController_.availablePathways_.has('cdn-z'), true);
+
+  const nextClonesMap = new Map();
+
+  nextClonesMap.set(nextClone.ID, nextClone);
+
+  // Ensure we set the current pathway clones from next.
+  assert.deepEqual(pc.contentSteeringController_.currentPathwayClones, nextClonesMap);
+});
+
+QUnit.test('Pathway cloning - update the pathway when there is a new param', function(assert) {
+  const options = {
+    src: 'test',
+    tech: this.player.tech_,
+    sourceType: 'hls'
+  };
+
+  const pc = new PlaylistController(options);
+
+  this.csMainPlaylist.playlists.forEach(p => {
+    p.attributes['PATHWAY-ID'] = p.attributes.serviceLocation;
+    p.attributes.serviceLocation = undefined;
+  });
+
+  pc.main = () => this.csMainPlaylist;
+  pc.initContentSteeringController_();
+
+  const updateCloneStub = sinon.stub(pc.mainPlaylistLoader_, 'updateOrDeleteClone');
+
+  const pastClone = {
+    ID: 'cdn-z',
+    ['BASE-ID']: 'cdn-a',
+    ['URI-REPLACEMENT']: {
+      HOST: 'www.cdn-z.com',
+      PARAMS: {
+        test: 123
+      }
+    }
+  };
+
+  const nextClone = {
+    ID: 'cdn-z',
+    ['BASE-ID']: 'cdn-b',
+    ['URI-REPLACEMENT']: {
+      HOST: 'www.cdn-b.com',
+      PARAMS: {
+        test: 123,
+        newParam: 456
+      }
+    }
+  };
+
+  pc.contentSteeringController_.currentPathwayClones = new Map();
+  pc.contentSteeringController_.currentPathwayClones.set(pastClone.ID, pastClone);
+
+  const steeringManifestJson = {
+    VERSION: 1,
+    TTL: 10,
+    ['RELOAD-URI']: 'https://fastly-server.content-steering.com/dash.dcsm',
+    ['PATHWAY-PRIORITY']: [
+      'cdn-b',
+      'cdn-a',
+      'cdn-z'
+    ],
+    ['PATHWAY-CLONES']: [nextClone]
+  };
+
+  // This triggers `handlePathwayClones()`.
+  pc.contentSteeringController_.assignSteeringProperties_(steeringManifestJson);
+
+  // Assert that we update the clone and it is still in the available pathways.
+  assert.equal(updateCloneStub.getCall(0).args[0], nextClone);
+  assert.equal(updateCloneStub.getCall(0).args[1], true);
+  assert.equal(pc.contentSteeringController_.availablePathways_.has('cdn-z'), true);
+
+  const nextClonesMap = new Map();
+
+  nextClonesMap.set(nextClone.ID, nextClone);
+
+  // Ensure we set the current pathway clones from next.
+  assert.deepEqual(pc.contentSteeringController_.currentPathwayClones, nextClonesMap);
+});
+
+QUnit.test('Pathway cloning - update the pathway when a param is missing', function(assert) {
+  const options = {
+    src: 'test',
+    tech: this.player.tech_,
+    sourceType: 'hls'
+  };
+
+  const pc = new PlaylistController(options);
+
+  this.csMainPlaylist.playlists.forEach(p => {
+    p.attributes['PATHWAY-ID'] = p.attributes.serviceLocation;
+    p.attributes.serviceLocation = undefined;
+  });
+
+  pc.main = () => this.csMainPlaylist;
+  pc.initContentSteeringController_();
+
+  const updateCloneStub = sinon.stub(pc.mainPlaylistLoader_, 'updateOrDeleteClone');
+
+  const pastClone = {
+    ID: 'cdn-z',
+    ['BASE-ID']: 'cdn-a',
+    ['URI-REPLACEMENT']: {
+      HOST: 'www.cdn-z.com',
+      PARAMS: {
+        test: 123
+      }
+    }
+  };
+
+  const nextClone = {
+    ID: 'cdn-z',
+    ['BASE-ID']: 'cdn-b',
+    ['URI-REPLACEMENT']: {
+      HOST: 'www.cdn-b.com',
+      PARAMS: {}
+    }
+  };
+
+  pc.contentSteeringController_.currentPathwayClones = new Map();
+  pc.contentSteeringController_.currentPathwayClones.set(pastClone.ID, pastClone);
+
+  const steeringManifestJson = {
+    VERSION: 1,
+    TTL: 10,
+    ['RELOAD-URI']: 'https://fastly-server.content-steering.com/dash.dcsm',
+    ['PATHWAY-PRIORITY']: [
+      'cdn-b',
+      'cdn-a',
+      'cdn-z'
+    ],
+    ['PATHWAY-CLONES']: [nextClone]
+  };
+
+  // This triggers `handlePathwayClones()`.
+  pc.contentSteeringController_.assignSteeringProperties_(steeringManifestJson);
+
+  // Assert that we update the clone and it is still in the available pathways.
+  assert.equal(updateCloneStub.getCall(0).args[0], nextClone);
+  assert.equal(updateCloneStub.getCall(0).args[1], true);
+  assert.equal(pc.contentSteeringController_.availablePathways_.has('cdn-z'), true);
+
+  const nextClonesMap = new Map();
+
+  nextClonesMap.set(nextClone.ID, nextClone);
+
+  // Ensure we set the current pathway clones from next.
+  assert.deepEqual(pc.contentSteeringController_.currentPathwayClones, nextClonesMap);
+});
+
+QUnit.test('Pathway cloning - delete the pathway when it is no longer in the steering response', function(assert) {
+  const options = {
+    src: 'test',
+    tech: this.player.tech_,
+    sourceType: 'hls'
+  };
+
+  const pc = new PlaylistController(options);
+
+  this.csMainPlaylist.playlists.forEach(p => {
+    p.attributes['PATHWAY-ID'] = p.attributes.serviceLocation;
+    p.attributes.serviceLocation = undefined;
+  });
+
+  pc.main = () => this.csMainPlaylist;
+  pc.initContentSteeringController_();
+
+  const updateCloneStub = sinon.stub(pc.mainPlaylistLoader_, 'updateOrDeleteClone');
+
+  const pastClone = {
+    ID: 'cdn-z',
+    ['BASE-ID']: 'cdn-a',
+    ['URI-REPLACEMENT']: {
+      HOST: 'www.cdn-z.com',
+      PARAMS: {
+        test: 123
+      }
+    }
+  };
+
+  pc.contentSteeringController_.currentPathwayClones = new Map();
+  pc.contentSteeringController_.currentPathwayClones.set(pastClone.ID, pastClone);
+
+  const steeringManifestJson = {
+    VERSION: 1,
+    TTL: 10,
+    ['RELOAD-URI']: 'https://fastly-server.content-steering.com/dash.dcsm',
+    ['PATHWAY-PRIORITY']: [
+      'cdn-b',
+      'cdn-a'
+    ],
+    // empty response
+    ['PATHWAY-CLONES']: []
+  };
+
+  // This triggers `handlePathwayClones()`.
+  pc.contentSteeringController_.assignSteeringProperties_(steeringManifestJson);
+
+  // Assert that we update the clone and it is still in the available pathways.
+  assert.equal(updateCloneStub.getCall(0).args[0], pastClone);
+  // undefined means we are deleting.
+  assert.equal(updateCloneStub.getCall(0).args[1], undefined);
+  // The value is no longer in the available pathways.
+  assert.equal(!pc.contentSteeringController_.availablePathways_.has('cdn-z'), true);
+
+  assert.deepEqual(pc.contentSteeringController_.currentPathwayClones, new Map());
+});
+
+QUnit.test('Pathway cloning - do nothing when next and past clones are the same', function(assert) {
+  const options = {
+    src: 'test',
+    tech: this.player.tech_,
+    sourceType: 'hls'
+  };
+
+  const pc = new PlaylistController(options);
+
+  this.csMainPlaylist.playlists.forEach(p => {
+    p.attributes['PATHWAY-ID'] = p.attributes.serviceLocation;
+    p.attributes.serviceLocation = undefined;
+  });
+
+  pc.main = () => this.csMainPlaylist;
+  pc.initContentSteeringController_();
+
+  const addCloneStub = sinon.stub(pc.mainPlaylistLoader_, 'addClonePathway');
+  const updateCloneStub = sinon.stub(pc.mainPlaylistLoader_, 'updateOrDeleteClone');
+
+  const clone = {
+    ID: 'cdn-z',
+    ['BASE-ID']: 'cdn-a',
+    ['URI-REPLACEMENT']: {
+      HOST: 'www.cdn-z.com',
+      PARAMS: {
+        test: 123
+      }
+    }
+  };
+
+  pc.contentSteeringController_.currentPathwayClones = new Map();
+  pc.contentSteeringController_.currentPathwayClones.set(clone.ID, clone);
+
+  const steeringManifestJson = {
+    VERSION: 1,
+    TTL: 10,
+    ['RELOAD-URI']: 'https://fastly-server.content-steering.com/dash.dcsm',
+    ['PATHWAY-PRIORITY']: [
+      'cdn-b',
+      'cdn-a',
+      'cdn-z'
+    ],
+    ['PATHWAY-CLONES']: [clone]
+  };
+
+  // By adding this we are saying that the pathway was previously available.
+  pc.contentSteeringController_.addAvailablePathway('cdn-z');
+
+  // This triggers `handlePathwayClones()`.
+  pc.contentSteeringController_.assignSteeringProperties_(steeringManifestJson);
+
+  // Assert that we do not add, update, or delete any pathway clones.
+  assert.equal(addCloneStub.callCount, 0);
+  assert.equal(updateCloneStub.callCount, 0);
+
+  // The value is still in the available pathways.
+  assert.equal(pc.contentSteeringController_.availablePathways_.has('cdn-z'), true);
+
+  const clonesMap = new Map();
+
+  clonesMap.set(clone.ID, clone);
+
+  assert.deepEqual(pc.contentSteeringController_.currentPathwayClones, clonesMap);
+});

@@ -2197,6 +2197,9 @@ export class PlaylistController extends videojs.EventTarget {
     if (!currentPathway) {
       return;
     }
+
+    this.handlePathwayClones_();
+
     const main = this.main();
     const playlists = main.playlists;
     const ids = new Set();
@@ -2244,6 +2247,106 @@ export class PlaylistController extends videojs.EventTarget {
     if (didEnablePlaylists) {
       this.changeSegmentPathway_();
     }
+  }
+
+  /**
+   * Add, update, or delete playlists and media groups for
+   * the pathway clones for HLS Content Steering.
+   *
+   * See https://datatracker.ietf.org/doc/draft-pantos-hls-rfc8216bis/
+   *
+   * NOTE: Pathway cloning does not currently support the `PER_VARIANT_URIS` and
+   * `PER_RENDITION_URIS` as we do not handle `STABLE-VARIANT-ID` or
+   * `STABLE-RENDITION-ID` values.
+   */
+  handlePathwayClones_() {
+    const main = this.main();
+    const playlists = main.playlists;
+    const currentPathwayClones = this.contentSteeringController_.currentPathwayClones;
+    const nextPathwayClones = this.contentSteeringController_.nextPathwayClones;
+
+    const hasClones = (currentPathwayClones && currentPathwayClones.size) || (nextPathwayClones && nextPathwayClones.size);
+
+    if (!hasClones) {
+      return;
+    }
+
+    for (const [id, clone] of currentPathwayClones.entries()) {
+      const newClone = nextPathwayClones.get(id);
+
+      // Delete the old pathway clone.
+      if (!newClone) {
+        this.mainPlaylistLoader_.updateOrDeleteClone(clone);
+        this.contentSteeringController_.excludePathway(id);
+      }
+    }
+
+    for (const [id, clone] of nextPathwayClones.entries()) {
+      const oldClone = currentPathwayClones.get(id);
+
+      // Create a new pathway if it is a new pathway clone object.
+      if (!oldClone) {
+        const playlistsToClone = playlists.filter(p => {
+          return p.attributes['PATHWAY-ID'] === clone['BASE-ID'];
+        });
+
+        playlistsToClone.forEach((p) => {
+          this.mainPlaylistLoader_.addClonePathway(clone, p);
+        });
+
+        this.contentSteeringController_.addAvailablePathway(id);
+        continue;
+      }
+
+      // There have not been changes to the pathway clone object, so skip.
+      if (this.equalPathwayClones_(oldClone, clone)) {
+        continue;
+      }
+
+      // Update a preexisting cloned pathway.
+      // True is set for the update flag.
+      this.mainPlaylistLoader_.updateOrDeleteClone(clone, true);
+      this.contentSteeringController_.addAvailablePathway(id);
+    }
+
+    // Deep copy contents of next to current pathways.
+    this.contentSteeringController_.currentPathwayClones = new Map(JSON.parse(JSON.stringify([...nextPathwayClones])));
+  }
+
+  /**
+   * Determines whether two pathway clone objects are equivalent.
+   *
+   * @param {Object} a The first pathway clone object.
+   * @param {Object} b The second pathway clone object.
+   * @return {boolean} True if the pathway clone objects are equal, false otherwise.
+   */
+  equalPathwayClones_(a, b) {
+    if (
+      a['BASE-ID'] !== b['BASE-ID'] ||
+      a.ID !== b.ID ||
+      a['URI-REPLACEMENT'].HOST !== b['URI-REPLACEMENT'].HOST
+    ) {
+      return false;
+    }
+
+    const aParams = a['URI-REPLACEMENT'].PARAMS;
+    const bParams = b['URI-REPLACEMENT'].PARAMS;
+
+    // We need to iterate through both lists of params because one could be
+    // missing a parameter that the other has.
+    for (const p in aParams) {
+      if (aParams[p] !== bParams[p]) {
+        return false;
+      }
+    }
+
+    for (const p in bParams) {
+      if (aParams[p] !== bParams[p]) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   /**
