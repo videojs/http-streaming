@@ -2418,7 +2418,33 @@ export default class SegmentLoader extends videojs.EventTarget {
       map: segmentInfo.isFmp4 ? segmentInfo.segment.map : null
     });
 
+    this.appendDiagnosticLog_(segmentInfo, type);
+
     this.appendToSourceBuffer_({ segmentInfo, type, initSegment, data });
+  }
+
+
+  appendDiagnosticLog_(segmentInfo, type) {
+      const currentBuffered = this.sourceUpdater_[`${type}Buffered`]();
+      const currentTimestampOffset = this.sourceUpdater_[`${type}TimestampOffset`]();
+      const currentStartPts = segmentInfo[`${type}TimingInfo`].start;
+
+      const lastBuffered = lastBufferedEnd(currentBuffered);
+      const expectedStartTime = currentStartPts  + currentTimestampOffset;
+
+      const bufferedDelta = lastBuffered ? expectedStartTime - lastBuffered : 'no buffered data available';
+      const startOfSegmentDelta = expectedStartTime - segmentInfo.startOfSegment;
+
+      diagnosticLog(`
+We are about to append data for ${type} from playlist ${this.playlist_.attributes.RESOLUTION.width}x${this.playlist_.attributes.RESOLUTION.height} + ${this.playlist_.attributes.BANDWIDTH} bandwidth.
+MediaSequence is ${this.playlist_.mediaSequence + segmentInfo.mediaIndex}.
+Start ${type} PTS is ${currentStartPts}
+StartOfSegment is ${segmentInfo.startOfSegment}
+Last Buffered End: ${lastBuffered || 'no buffered data available'}
+Expected Start of ${type} in player time: ${expectedStartTime}
+Delta with buffered: ${bufferedDelta}
+Delta with startOfSegment: ${startOfSegmentDelta}
+`);
   }
 
   /**
