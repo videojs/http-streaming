@@ -194,8 +194,6 @@ const getBufferedEndOrFallback = (buffered, fallback) => buffered.length ?
  *        The estimated segment start
  * @param {TimeRange[]} buffered
  *        The loader's buffer
- * @param {boolean} calculateTimestampOffsetForEachSegment
- *        Feature flag to always calculate timestampOffset
  * @param {boolean} overrideCheck
  *        If true, no checks are made to see if the timestamp offset value should be set,
  *        but sets it directly to a value.
@@ -209,13 +207,8 @@ export const timestampOffsetForSegment = ({
   currentTimeline,
   startOfSegment,
   buffered,
-  calculateTimestampOffsetForEachSegment,
   overrideCheck
 }) => {
-  if (calculateTimestampOffsetForEachSegment) {
-    return getBufferedEndOrFallback(buffered, startOfSegment);
-  }
-
   // Check to see if we are crossing a discontinuity to see if we need to set the
   // timestamp offset on the transmuxer and source buffer.
   //
@@ -1598,7 +1591,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       currentTimeline: this.currentTimeline_,
       startOfSegment,
       buffered: this.buffered_(),
-      calculateTimestampOffsetForEachSegment: this.calculateTimestampOffsetForEachSegment_,
       overrideCheck
     });
 
@@ -2937,7 +2929,13 @@ Delta with startOfSegment: ${startOfSegmentDelta}
   }
 
   updateSourceBufferTimestampOffset_(segmentInfo) {
-    if (segmentInfo.timestampOffset === null ||
+    let timestampOffset = segmentInfo.timestampOffset;
+
+    if (timestampOffset === null && this.calculateTimestampOffsetForEachSegment_) {
+      timestampOffset = getBufferedEndOrFallback(this.buffered_(), segmentInfo.startOfSegment);
+    }
+
+    if (timestampOffset === null ||
         // we don't yet have the start for whatever media type (video or audio) has
         // priority, timing-wise, so we must wait
         typeof segmentInfo.timingInfo.start !== 'number' ||
@@ -2954,7 +2952,7 @@ Delta with startOfSegment: ${startOfSegmentDelta}
     // the timing info here comes from video. In the event that the audio is longer than
     // the video, this will trim the start of the audio.
     // This also trims any offset from 0 at the beginning of the media
-    segmentInfo.timestampOffset -= this.getSegmentStartTimeForTimestampOffsetCalculation_({
+    timestampOffset -= this.getSegmentStartTimeForTimestampOffsetCalculation_({
       videoTimingInfo: segmentInfo.segment.videoTimingInfo,
       audioTimingInfo: segmentInfo.segment.audioTimingInfo,
       timingInfo: segmentInfo.timingInfo
@@ -2964,13 +2962,13 @@ Delta with startOfSegment: ${startOfSegmentDelta}
     // future (within the same segment), however, there may be a better way to handle it.
     segmentInfo.changedTimestampOffset = true;
 
-    if (segmentInfo.timestampOffset !== this.sourceUpdater_.videoTimestampOffset()) {
-      this.sourceUpdater_.videoTimestampOffset(segmentInfo.timestampOffset);
+    if (timestampOffset !== this.sourceUpdater_.videoTimestampOffset()) {
+      this.sourceUpdater_.videoTimestampOffset(timestampOffset);
       didChange = true;
     }
 
-    if (segmentInfo.timestampOffset !== this.sourceUpdater_.audioTimestampOffset()) {
-      this.sourceUpdater_.audioTimestampOffset(segmentInfo.timestampOffset);
+    if (timestampOffset !== this.sourceUpdater_.audioTimestampOffset()) {
+      this.sourceUpdater_.audioTimestampOffset(timestampOffset);
       didChange = true;
     }
 
