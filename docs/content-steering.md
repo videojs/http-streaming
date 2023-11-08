@@ -32,3 +32,16 @@ Content steering manifest response will look something like this:
 Where `CDN-PRIORITY` represents either `PATHWAY-PRIORITY` for HLS or `SERVICE-LOCATION-PRIORITY` for DASH. This priority collection of keys will match with either a `PATHWAY-ID` or `serviceLocation` (HLS and DASH respectively) associated with a location where VHS can fetch segments.
 
 VHS will attempt to fetch segments from the locations defined in the steering manifest response, in the order, then during playback provide quality of experience metrics back to the steering server which can then adjust the steering decision accordingly.
+
+## Notable Support
+
+### HLS
+ * Pathway Cloning
+### DASH
+ * queryBeforeStart
+ * proxyServerURL
+
+## Currently Missing Support
+
+### DASH
+ * Flexible Insertion of URL Parameters, see: ISO/IEC 23009-1 [2], clause I.3
