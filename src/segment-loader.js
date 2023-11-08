@@ -10,7 +10,7 @@ import { mediaSegmentRequest, REQUEST_ERRORS } from './media-segment-request';
 import segmentTransmuxer from './segment-transmuxer';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
-import logger from './util/logger';
+import logger, {diagnosticLog} from './util/logger';
 import { concatSegments } from './util/segment';
 import {
   createCaptionsTrackIfNotExists,
