@@ -2936,7 +2936,16 @@ Delta with startOfSegment: ${startOfSegmentDelta}
     let timestampOffset = segmentInfo.timestampOffset;
 
     if (timestampOffset === null && this.calculateTimestampOffsetForEachSegment_) {
-      timestampOffset = getBufferedEndOrFallback(this.buffered_(), segmentInfo.startOfSegment);
+      if (this.replaceSegmentsUntil_ === -1) {
+        // normal flow, we append to the end of the buffer
+        // use buffered end
+        timestampOffset = getBufferedEndOrFallback(this.buffered_(), segmentInfo.startOfSegment);
+      } else {
+        // replace mode after fast quality switch, we append close to the current time
+        // use start of segment
+        timestampOffset = segmentInfo.startOfSegment;
+      }
+
       diagnosticLog('timestampOffset was null but we calculated it, since calculateTimestampOffsetForEachSegment is true. The value is: ', timestampOffset);
     }
 
