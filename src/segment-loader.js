@@ -2933,6 +2933,7 @@ Delta with startOfSegment: ${startOfSegmentDelta}
 
     if (timestampOffset === null && this.calculateTimestampOffsetForEachSegment_) {
       timestampOffset = getBufferedEndOrFallback(this.buffered_(), segmentInfo.startOfSegment);
+      diagnosticLog('timestampOffset was null but we calculated it, since calculateTimestampOffsetForEachSegment is true. The value is: ', timestampOffset);
     }
 
     if (timestampOffset === null ||
