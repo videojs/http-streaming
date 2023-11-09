@@ -2431,8 +2431,22 @@ export default class SegmentLoader extends videojs.EventTarget {
       const bufferedDelta = lastBuffered ? expectedStartTime - lastBuffered : 'no buffered data available';
       const startOfSegmentDelta = expectedStartTime - segmentInfo.startOfSegment;
 
+      let playlistInfoString = '';
+
+      if (this.playlist_.attributes && this.playlist_.attributes.RESOLUTION && this.playlist_.attributes.RESOLUTION.width) {
+        playlistInfoString += `width: ${this.playlist_.attributes.RESOLUTION.width}`;
+      }
+
+      if (this.playlist_.attributes && this.playlist_.attributes.RESOLUTION && this.playlist_.attributes.RESOLUTION.height) {
+        playlistInfoString += `height: ${this.playlist_.attributes.RESOLUTION.height}`;
+      }
+
+    if (this.playlist_.attributes && this.playlist_.attributes.BANDWIDTH) {
+      playlistInfoString += `Bandwidth: ${this.playlist_.attributes.BANDWIDTH}`;
+    }
+
       diagnosticLog(`
-We are about to append data for ${type} from playlist ${this.playlist_.attributes.RESOLUTION.width}x${this.playlist_.attributes.RESOLUTION.height} + ${this.playlist_.attributes.BANDWIDTH} bandwidth.
+We are about to append data for ${type} from a playlist ${playlistInfoString}.
 MediaSequence is ${this.playlist_.mediaSequence + segmentInfo.mediaIndex}.
 Start ${type} PTS is ${currentStartPts}
 StartOfSegment is ${segmentInfo.startOfSegment}
