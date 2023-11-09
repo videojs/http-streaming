@@ -1414,7 +1414,7 @@ export default class SegmentLoader extends videojs.EventTarget {
    *
    * @return {Object} a request object that describes the segment/part to load
    */
-  chooseNextRequest_(fromSyncRequest = false) {
+  chooseNextRequest_() {
     const buffered = this.buffered_();
     const bufferedEnd = lastBufferedEnd(buffered) || 0;
     const bufferedTime = timeAheadOf(buffered, this.currentTime_());
@@ -1475,10 +1475,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       next.mediaIndex = segmentIndex;
       next.startOfSegment = startTime;
       next.partIndex = partIndex;
-
-      if (bufferedEnd > 0 && startTime < bufferedEnd) {
-        diagnosticLog(`WARNING: Selected new segment, but start time is less than buffered end! Start Time: ${startTime}. buffered End: ${bufferedEnd}. CurrentTime: ${this.currentTime_()}. Segment Duration: ${segments[next.mediaIndex].duration}. From Sync Request: ${fromSyncRequest}`);
-      }
     }
 
     const nextSegment = segments[next.mediaIndex];
@@ -2145,7 +2141,7 @@ export default class SegmentLoader extends videojs.EventTarget {
         shouldSaveTimelineMapping: this.loaderType_ === 'main'
       });
 
-      const next = this.chooseNextRequest_(true);
+      const next = this.chooseNextRequest_();
 
       // If the sync request isn't the segment that would be requested next
       // after taking into account its timing info, do not append it.
