@@ -2419,33 +2419,32 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.appendToSourceBuffer_({ segmentInfo, type, initSegment, data });
   }
 
-
   appendDiagnosticLog_(segmentInfo, type) {
-      const currentBuffered = this.sourceUpdater_[`${type}Buffered`]();
-      const currentTimestampOffset = this.sourceUpdater_[`${type}TimestampOffset`]();
-      const currentStartPts = segmentInfo[`${type}TimingInfo`].start;
+    const currentBuffered = this.sourceUpdater_[`${type}Buffered`]();
+    const currentTimestampOffset = this.sourceUpdater_[`${type}TimestampOffset`]();
+    const currentStartPts = segmentInfo[`${type}TimingInfo`].start;
 
-      const lastBuffered = lastBufferedEnd(currentBuffered);
-      const expectedStartTime = currentStartPts  + currentTimestampOffset;
+    const lastBuffered = lastBufferedEnd(currentBuffered);
+    const expectedStartTime = currentStartPts + currentTimestampOffset;
 
-      const bufferedDelta = lastBuffered ? expectedStartTime - lastBuffered : 'no buffered data available';
-      const startOfSegmentDelta = expectedStartTime - segmentInfo.startOfSegment;
+    const bufferedDelta = lastBuffered ? expectedStartTime - lastBuffered : 'no buffered data available';
+    const startOfSegmentDelta = expectedStartTime - segmentInfo.startOfSegment;
 
-      let playlistInfoString = '';
+    let playlistInfoString = '';
 
-      if (this.playlist_.attributes && this.playlist_.attributes.RESOLUTION && this.playlist_.attributes.RESOLUTION.width) {
-        playlistInfoString += `width: ${this.playlist_.attributes.RESOLUTION.width}`;
-      }
+    if (this.playlist_.attributes && this.playlist_.attributes.RESOLUTION && this.playlist_.attributes.RESOLUTION.width) {
+      playlistInfoString += `width: ${this.playlist_.attributes.RESOLUTION.width}`;
+    }
 
-      if (this.playlist_.attributes && this.playlist_.attributes.RESOLUTION && this.playlist_.attributes.RESOLUTION.height) {
-        playlistInfoString += `height: ${this.playlist_.attributes.RESOLUTION.height}`;
-      }
+    if (this.playlist_.attributes && this.playlist_.attributes.RESOLUTION && this.playlist_.attributes.RESOLUTION.height) {
+      playlistInfoString += `height: ${this.playlist_.attributes.RESOLUTION.height}`;
+    }
 
     if (this.playlist_.attributes && this.playlist_.attributes.BANDWIDTH) {
       playlistInfoString += `Bandwidth: ${this.playlist_.attributes.BANDWIDTH}`;
     }
 
-      diagnosticLog(`
+    diagnosticLog(`
 We are about to append data for ${type} from a playlist ${playlistInfoString}.
 MediaSequence is ${this.playlist_.mediaSequence + segmentInfo.mediaIndex}.
 Start ${type} PTS is ${currentStartPts}
