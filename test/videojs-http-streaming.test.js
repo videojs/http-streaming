@@ -257,6 +257,29 @@ QUnit.test('VhsHandler is referenced by player.tech().vhs', function(assert) {
   );
 });
 
+QUnit.test.only('options are updated when setOptions is called', function(assert) {
+  this.player.src({
+    src: 'manifest/playlist.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+
+  const vhs = this.player.tech().vhs;
+
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged');
+  assert.equal(
+    this.env.log.warn.args[0][0],
+    'Using the tech directly can be dangerous. I hope you know what you\'re doing.\n' +
+    'See https://github.com/videojs/video.js/issues/2617 for more info.\n',
+    'logged warning'
+  );
+  assert.equal(vhs.options_.withCredentials, false);
+
+  vhs.setOptions({ withCredentials: true });
+
+  assert.equal(vhs.options_.withCredentials, true, 'options are updated');
+});
+
 QUnit.test('starts playing if autoplay is specified', function(assert) {
   this.player.autoplay(true);
   this.player.src({
