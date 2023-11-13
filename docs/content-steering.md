@@ -44,4 +44,4 @@ VHS will attempt to fetch segments from the locations defined in the steering ma
 ## Currently Missing Support
 
 ### DASH
- * Flexible Insertion of URL Parameters, see: ISO/IEC 23009-1 [2], clause I.3
+ * Extended HTTP GET request parametrization, see: ISO/IEC 23009-1 [2], clause I.3
