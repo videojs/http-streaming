@@ -2128,7 +2128,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     // as we use the start of the segment to offset the best guess (playlist provided)
     // timestamp offset.
     this.updateSourceBufferTimestampOffset_(segmentInfo, result.type);
-    diagnosticLog2('skip setting timestampOffset');
 
     // if this is a sync request we need to determine whether it should
     // be appended or not.
