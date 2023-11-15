@@ -10,7 +10,7 @@ import { mediaSegmentRequest, REQUEST_ERRORS } from './media-segment-request';
 import segmentTransmuxer from './segment-transmuxer';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
-import logger, {diagnosticLog} from './util/logger';
+import logger, {diagnosticLog, diagnosticLog2} from './util/logger';
 import { concatSegments } from './util/segment';
 import {
   createCaptionsTrackIfNotExists,
@@ -2127,7 +2127,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     // Timestamp offset should be updated once we get new data and have its timing info,
     // as we use the start of the segment to offset the best guess (playlist provided)
     // timestamp offset.
-    this.updateSourceBufferTimestampOffset_(segmentInfo);
+    this.updateSourceBufferTimestampOffset_(segmentInfo, result.type);
+    diagnosticLog2('skip setting timestampOffset');
 
     // if this is a sync request we need to determine whether it should
     // be appended or not.
@@ -2410,7 +2411,10 @@ export default class SegmentLoader extends videojs.EventTarget {
       map: segmentInfo.isFmp4 ? segmentInfo.segment.map : null
     });
 
-    this.appendDiagnosticLog_(segmentInfo, type);
+    // this.appendDiagnosticLog_(segmentInfo, type);
+
+    diagnosticLog2('video timestampOffset before append: ', this.sourceUpdater_.videoTimestampOffset());
+    diagnosticLog2('audio timestampOffset before append: ', this.sourceUpdater_.audioTimestampOffset());
 
     this.appendToSourceBuffer_({ segmentInfo, type, initSegment, data });
   }
@@ -2538,6 +2542,8 @@ Delta with startOfSegment: ${startOfSegmentDelta}
         audio: true
       };
     }
+
+    diagnosticLog2('Requesting segment: ', structuredClone(segmentInfo.segment));
 
     segmentInfo.abortRequests = mediaSegmentRequest({
       xhr: this.vhs_.xhr,
@@ -2942,23 +2948,44 @@ Delta with startOfSegment: ${startOfSegmentDelta}
   }
 
   updateSourceBufferTimestampOffset_(segmentInfo) {
-    let timestampOffset = segmentInfo.timestampOffset;
+    if (this.calculateTimestampOffsetForEachSegment_) {
+      let videoTimestampOffset;
+      let audioTimestampOffset;
 
-    if (timestampOffset === null && this.calculateTimestampOffsetForEachSegment_) {
       if (this.replaceSegmentsUntil_ === -1) {
-        // normal flow, we append to the end of the buffer
-        // use buffered end
-        timestampOffset = getBufferedEndOrFallback(this.buffered_(), segmentInfo.startOfSegment);
+        videoTimestampOffset = getBufferedEndOrFallback(this.sourceUpdater_.videoBuffered(), segmentInfo.startOfSegment);
+        audioTimestampOffset = getBufferedEndOrFallback(this.sourceUpdater_.audioBuffered(), segmentInfo.startOfSegment);
       } else {
-        // replace mode after fast quality switch, we append close to the current time
-        // use start of segment
-        timestampOffset = segmentInfo.startOfSegment;
+        videoTimestampOffset = segmentInfo.startOfSegment;
+        audioTimestampOffset = segmentInfo.startOfSegment;
       }
 
-      diagnosticLog('timestampOffset was null but we calculated it, since calculateTimestampOffsetForEachSegment is true. The value is: ', timestampOffset);
+
+      /**
+       * offset = buffered-end - start-pts
+       * ...
+       * start = start-pts + offset = start-pts + (buffered-end - start-pts) = buffered-end
+       */
+      videoTimestampOffset -= segmentInfo.videoTimingInfo.start;
+      audioTimestampOffset -= segmentInfo.audioTimingInfo.start;
+
+      const currentVideoOffset = this.sourceUpdater_.videoTimestampOffset();
+      const currentAudioOffset = this.sourceUpdater_.audioTimestampOffset();
+
+      if (currentVideoOffset !== videoTimestampOffset) {
+        this.sourceUpdater_.videoTimestampOffset(videoTimestampOffset);
+        this.trigger('videoTimestampOffset');
+      }
+
+      if (currentAudioOffset !== audioTimestampOffset) {
+        this.sourceUpdater_.audioTimestampOffset(audioTimestampOffset);
+        this.trigger('audioTimestampOffset');
+      }
+
+      return;
     }
 
-    if (timestampOffset === null ||
+    if (segmentInfo.timestampOffset === null ||
         // we don't yet have the start for whatever media type (video or audio) has
         // priority, timing-wise, so we must wait
         typeof segmentInfo.timingInfo.start !== 'number' ||
@@ -2975,7 +3002,7 @@ Delta with startOfSegment: ${startOfSegmentDelta}
     // the timing info here comes from video. In the event that the audio is longer than
     // the video, this will trim the start of the audio.
     // This also trims any offset from 0 at the beginning of the media
-    timestampOffset -= this.getSegmentStartTimeForTimestampOffsetCalculation_({
+    segmentInfo.timestampOffset.timestampOffset -= this.getSegmentStartTimeForTimestampOffsetCalculation_({
       videoTimingInfo: segmentInfo.segment.videoTimingInfo,
       audioTimingInfo: segmentInfo.segment.audioTimingInfo,
       timingInfo: segmentInfo.timingInfo
@@ -2985,13 +3012,13 @@ Delta with startOfSegment: ${startOfSegmentDelta}
     // future (within the same segment), however, there may be a better way to handle it.
     segmentInfo.changedTimestampOffset = true;
 
-    if (timestampOffset !== this.sourceUpdater_.videoTimestampOffset()) {
-      this.sourceUpdater_.videoTimestampOffset(timestampOffset);
+    if (segmentInfo.timestampOffset !== this.sourceUpdater_.videoTimestampOffset()) {
+      this.sourceUpdater_.videoTimestampOffset(segmentInfo.timestampOffset);
       didChange = true;
     }
 
-    if (timestampOffset !== this.sourceUpdater_.audioTimestampOffset()) {
-      this.sourceUpdater_.audioTimestampOffset(timestampOffset);
+    if (segmentInfo.timestampOffset !== this.sourceUpdater_.audioTimestampOffset()) {
+      this.sourceUpdater_.audioTimestampOffset(segmentInfo.timestampOffset);
       didChange = true;
     }
 

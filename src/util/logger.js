@@ -8,11 +8,18 @@ const logger = (source) => {
   return function() {};
 };
 
-const diagnosticStyles = 'background: #333; padding: 3px; color: #bada55';
+const diagnosticStyles = 'background: black; padding: 3px; color: green';
 const diagnosticLabel = '%cDiagnostic';
 
 export const diagnosticLog = (...args) => {
   console.log(diagnosticLabel, diagnosticStyles, ...args); // eslint-disable-line
+};
+
+const diagnosticStyles2 = 'background: black; padding: 3px; color: red';
+const diagnosticLabel2 = '%cDiagnostic';
+
+export const diagnosticLog2 = (...args) => {
+  console.log(diagnosticLabel2, diagnosticStyles2, ...args); // eslint-disable-line
 };
 
 export default logger;
