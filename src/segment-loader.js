@@ -3002,7 +3002,7 @@ Delta with startOfSegment: ${startOfSegmentDelta}
     // the timing info here comes from video. In the event that the audio is longer than
     // the video, this will trim the start of the audio.
     // This also trims any offset from 0 at the beginning of the media
-    segmentInfo.timestampOffset.timestampOffset -= this.getSegmentStartTimeForTimestampOffsetCalculation_({
+    segmentInfo.timestampOffset -= this.getSegmentStartTimeForTimestampOffsetCalculation_({
       videoTimingInfo: segmentInfo.segment.videoTimingInfo,
       audioTimingInfo: segmentInfo.segment.audioTimingInfo,
       timingInfo: segmentInfo.timingInfo
