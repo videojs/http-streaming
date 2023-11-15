@@ -2982,6 +2982,8 @@ Delta with startOfSegment: ${startOfSegmentDelta}
         this.trigger('audioTimestampOffset');
       }
 
+      diagnosticLog2('video timestampOffset is updated: ', this.sourceUpdater_.videoTimestampOffset());
+      diagnosticLog2('audio timestampOffset is updated: ', this.sourceUpdater_.audioTimestampOffset());
       return;
     }
 
