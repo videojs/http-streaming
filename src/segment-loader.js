@@ -179,9 +179,17 @@ export const segmentInfoString = (segmentInfo) => {
 
 const timingInfoPropertyForMedia = (mediaType) => `${mediaType}TimingInfo`;
 
-const getBufferedEndOrFallback = (buffered, fallback) => buffered.length ?
-  buffered.end(buffered.length - 1) :
-  fallback;
+const getTimestampOffset = (buffered, replaceSegmentsUntil, fallback) => {
+  if (replaceSegmentsUntil !== null) {
+    return fallback;
+  }
+
+  if (buffered.length) {
+    return buffered.end(buffered.length - 1);
+  }
+
+  return fallback;
+};
 
 /**
  * Returns the timestamp offset to use for the segment.
@@ -196,6 +204,8 @@ const getBufferedEndOrFallback = (buffered, fallback) => buffered.length ?
  *        The loader's buffer
  * @param {boolean} calculateTimestampOffsetForEachSegment
  *        Feature flag to always calculate timestampOffset
+ * @param {number|null} replaceSegmentsUntil
+ *        value if we switched quality recently and replacing buffered with a new quality
  * @param {boolean} overrideCheck
  *        If true, no checks are made to see if the timestamp offset value should be set,
  *        but sets it directly to a value.
@@ -210,10 +220,11 @@ export const timestampOffsetForSegment = ({
   startOfSegment,
   buffered,
   calculateTimestampOffsetForEachSegment,
+  replaceSegmentsUntil,
   overrideCheck
 }) => {
   if (calculateTimestampOffsetForEachSegment) {
-    return getBufferedEndOrFallback(buffered, startOfSegment);
+    return getTimestampOffset(buffered, replaceSegmentsUntil, startOfSegment);
   }
 
   // Check to see if we are crossing a discontinuity to see if we need to set the
@@ -259,7 +270,7 @@ export const timestampOffsetForSegment = ({
   // should often be correct, it's better to rely on the buffered end, as the new
   // content post discontinuity should line up with the buffered end as if it were
   // time 0 for the new content.
-  return getBufferedEndOrFallback(buffered, startOfSegment);
+  return getTimestampOffset(buffered, replaceSegmentsUntil, startOfSegment);
 };
 
 /**
@@ -1600,6 +1611,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       startOfSegment,
       buffered: this.buffered_(),
       calculateTimestampOffsetForEachSegment: this.calculateTimestampOffsetForEachSegment_,
+      replaceSegmentsUntil: this.replaceSegmentsUntil_,
       overrideCheck
     });
 
