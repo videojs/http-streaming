@@ -642,7 +642,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // ...for determining the fetch location
     this.fetchAtBuffer_ = false;
     // For comparing with currentTime when overwriting segments on fastQualityChange_ changes. Use -1 as the inactive flag.
-    this.replaceSegmentsUntil_ = -1;
+    this.replaceSegmentsUntil_ = null;
 
     this.logger_ = logger(`SegmentLoader[${this.loaderType_}]`);
 
@@ -1189,6 +1189,7 @@ export default class SegmentLoader extends videojs.EventTarget {
    * operation is complete
    */
   resetEverything(done) {
+    this.replaceSegmentsUntil_ = null;
     this.resetLoaderProperties();
     this.resetLoader();
 
@@ -3072,8 +3073,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.logger_(`Appended ${segmentInfoString(segmentInfo)}`);
 
     this.addSegmentMetadataCue_(segmentInfo);
-    if (this.currentTime_() >= this.replaceSegmentsUntil_) {
-      this.replaceSegmentsUntil_ = -1;
+    if (this.replaceSegmentsUntil_ !== null && this.currentTime_() >= this.replaceSegmentsUntil_) {
+      this.replaceSegmentsUntil_ = null;
       this.fetchAtBuffer_ = true;
     }
     if (this.currentTimeline_ !== segmentInfo.timeline) {
