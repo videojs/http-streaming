@@ -6365,6 +6365,14 @@ QUnit.module('PlaylistController contentSteering', {
       ]
     };
 
+    this.setupSteeringPlaylists = (pc, mainPlaylist) => {
+      pc.main = () => mainPlaylist;
+      pc.media = () => mainPlaylist.playlists[0];
+      pc.mainPlaylistLoader_.main = mainPlaylist;
+      pc.mainPlaylistLoader_.media = () => mainPlaylist.playlists[0];
+      pc.selectPlaylist = () => pc.main().playlists[0];
+    };
+
   },
   afterEach(assert) {
     sharedHooks.afterEach.call(this, assert);
@@ -6892,6 +6900,10 @@ QUnit.test('Pathway cloning - add a new pathway when the clone has not existed',
 
   const pc = new PlaylistController(options);
 
+  // Set up steering playlists
+  this.setupSteeringPlaylists(pc, this.csMainPlaylist);
+  pc.attachContentSteeringListeners_();
+
   this.csMainPlaylist.playlists.forEach(p => {
     p.attributes['PATHWAY-ID'] = p.attributes.serviceLocation;
     p.attributes.serviceLocation = undefined;
@@ -6948,6 +6960,9 @@ QUnit.test('Pathway cloning - update the pathway when the BASE-ID does not match
   };
 
   const pc = new PlaylistController(options);
+
+  this.setupSteeringPlaylists(pc, this.csMainPlaylist);
+  pc.attachContentSteeringListeners_();
 
   this.csMainPlaylist.playlists.forEach(p => {
     p.attributes['PATHWAY-ID'] = p.attributes.serviceLocation;
@@ -7019,6 +7034,9 @@ QUnit.test('Pathway cloning - update the pathway when there is a new param', fun
   };
 
   const pc = new PlaylistController(options);
+
+  this.setupSteeringPlaylists(pc, this.csMainPlaylist);
+  pc.attachContentSteeringListeners_();
 
   this.csMainPlaylist.playlists.forEach(p => {
     p.attributes['PATHWAY-ID'] = p.attributes.serviceLocation;
@@ -7093,6 +7111,9 @@ QUnit.test('Pathway cloning - update the pathway when a param is missing', funct
 
   const pc = new PlaylistController(options);
 
+  this.setupSteeringPlaylists(pc, this.csMainPlaylist);
+  pc.attachContentSteeringListeners_();
+
   this.csMainPlaylist.playlists.forEach(p => {
     p.attributes['PATHWAY-ID'] = p.attributes.serviceLocation;
     p.attributes.serviceLocation = undefined;
@@ -7163,6 +7184,9 @@ QUnit.test('Pathway cloning - delete the pathway when it is no longer in the ste
 
   const pc = new PlaylistController(options);
 
+  this.setupSteeringPlaylists(pc, this.csMainPlaylist);
+  pc.attachContentSteeringListeners_();
+
   this.csMainPlaylist.playlists.forEach(p => {
     p.attributes['PATHWAY-ID'] = p.attributes.serviceLocation;
     p.attributes.serviceLocation = undefined;
@@ -7220,6 +7244,9 @@ QUnit.test('Pathway cloning - do nothing when next and past clones are the same'
   };
 
   const pc = new PlaylistController(options);
+
+  this.setupSteeringPlaylists(pc, this.csMainPlaylist);
+  pc.attachContentSteeringListeners_();
 
   this.csMainPlaylist.playlists.forEach(p => {
     p.attributes['PATHWAY-ID'] = p.attributes.serviceLocation;
