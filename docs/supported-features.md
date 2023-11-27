@@ -65,6 +65,7 @@ not meant serve as an exhaustive list.
   tracks
 * [AES-128] segment encryption
 * DASH In-manifest EventStream and Event tags are automatically translated into HTML5 metadata cues
+* [Content Steering](content-steering.md) for both HLS and DASH.
 
 ## Notable Missing Features
 
