@@ -257,7 +257,7 @@ QUnit.test('VhsHandler is referenced by player.tech().vhs', function(assert) {
   );
 });
 
-QUnit.test.only('options are updated when setOptions is called', function(assert) {
+QUnit.test('options are updated when setOptions is called', function(assert) {
   this.player.src({
     src: 'manifest/playlist.m3u8',
     type: 'application/vnd.apple.mpegurl'
