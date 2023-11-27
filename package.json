@@ -63,7 +63,7 @@
     "global": "^4.4.0",
     "m3u8-parser": "^7.1.0",
     "mpd-parser": "^1.2.2",
-    "mux.js": "7.0.1",
+    "mux.js": "7.0.2",
     "video.js": "^7 || ^8"
   },
   "peerDependencies": {
