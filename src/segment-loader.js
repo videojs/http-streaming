@@ -2478,7 +2478,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     //
     // Even though keepOriginalTimestamps is set to true for the transmuxer, timestamp
     // offset must be passed to the transmuxer for stream correcting adjustments.
-    if (this.shouldUpdateTransmuxerTimestampOffset_(segmentInfo.timestampOffset)) {
+    if (this.shouldUpdateTransmuxerTimestampOffset_(segmentInfo)) {
       this.gopBuffer_.length = 0;
       // gopsToAlignWith was set before the GOP buffer was cleared
       segmentInfo.gopsToAlignWith = [];
@@ -2769,8 +2769,13 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
   }
 
-  shouldUpdateTransmuxerTimestampOffset_(timestampOffset) {
-    if (timestampOffset === null) {
+  shouldUpdateTransmuxerTimestampOffset_(segmentInfo) {
+    if (this.calculateTimestampOffsetForEachSegment_) {
+      // is discontinuity
+      return segmentInfo.timeline !== this.currentTimeline_;
+    }
+
+    if (segmentInfo.timestampOffset === null) {
       return false;
     }
 
@@ -2778,12 +2783,12 @@ export default class SegmentLoader extends videojs.EventTarget {
     // audio
 
     if (this.loaderType_ === 'main' &&
-        timestampOffset !== this.sourceUpdater_.videoTimestampOffset()) {
+      segmentInfo.timestampOffset !== this.sourceUpdater_.videoTimestampOffset()) {
       return true;
     }
 
     if (!this.audioDisabled_ &&
-        timestampOffset !== this.sourceUpdater_.audioTimestampOffset()) {
+      segmentInfo.timestampOffset !== this.sourceUpdater_.audioTimestampOffset()) {
       return true;
     }
 
