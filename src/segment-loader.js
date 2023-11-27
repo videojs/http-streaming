@@ -3072,7 +3072,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.logger_(`Appended ${segmentInfoString(segmentInfo)}`);
 
     this.addSegmentMetadataCue_(segmentInfo);
-    if (this.replaceSegmentsUntil_ && this.currentTime_() >= this.replaceSegmentsUntil_) {
+    if (this.replaceSegmentsUntil_ !== null && this.currentTime_() >= this.replaceSegmentsUntil_) {
       this.replaceSegmentsUntil_ = null;
       this.fetchAtBuffer_ = true;
     }
