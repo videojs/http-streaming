@@ -678,7 +678,15 @@ class VhsHandler extends Component {
     this.on(this.tech_, 'play', this.play);
   }
 
-  setOptions_() {
+  /**
+   * Set VHS options based on options from configuration, as well as partial
+   * options to be passed at a later time.
+   *
+   * @param {Object} options A partial chunk of config options
+   */
+  setOptions_(options = {}) {
+    this.options_ = merge(this.options_, options);
+
     // defaults
     this.options_.withCredentials = this.options_.withCredentials || false;
     this.options_.limitRenditionByPlayerDimensions = this.options_.limitRenditionByPlayerDimensions === false ? false : true;
@@ -755,6 +763,10 @@ class VhsHandler extends Component {
 
     this.limitRenditionByPlayerDimensions = this.options_.limitRenditionByPlayerDimensions;
     this.useDevicePixelRatio = this.options_.useDevicePixelRatio;
+  }
+  // alias for public method to set options
+  setOptions(options = {}) {
+    this.setOptions_(options);
   }
   /**
    * called when player.src gets called, handle a new source

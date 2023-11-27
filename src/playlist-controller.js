@@ -673,7 +673,10 @@ export class PlaylistController extends videojs.EventTarget {
         this.requestOptions_.timeout = requestTimeout;
       }
 
-      this.mainPlaylistLoader_.load();
+      if (this.sourceType_ === 'dash') {
+        // we don't want to re-request the same hls playlist right after it was changed
+        this.mainPlaylistLoader_.load();
+      }
 
       // TODO: Create a new event on the PlaylistLoader that signals
       // that the segments have changed in some way and use that to
