@@ -1189,6 +1189,7 @@ export default class SegmentLoader extends videojs.EventTarget {
    * operation is complete
    */
   resetEverything(done) {
+    this.replaceSegmentsUntil_ = null;
     this.resetLoaderProperties();
     this.resetLoader();
 
