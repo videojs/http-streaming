@@ -2478,7 +2478,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     //
     // Even though keepOriginalTimestamps is set to true for the transmuxer, timestamp
     // offset must be passed to the transmuxer for stream correcting adjustments.
-    if (this.shouldUpdateTransmuxerTimestampOffset_(segmentInfo)) {
+    if (this.transmuxer_ && this.shouldUpdateTransmuxerTimestampOffset_(segmentInfo)) {
       this.gopBuffer_.length = 0;
       // gopsToAlignWith was set before the GOP buffer was cleared
       segmentInfo.gopsToAlignWith = [];
