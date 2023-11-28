@@ -225,6 +225,7 @@ QUnit.module('timestampOffsetForSegment');
 QUnit.test('returns startOfSegment when calculateTimestampOffsetForEachSegment is enabled and the buffer is empty with the same timeline', function(assert) {
   const timestampOffset = timestampOffsetForSegment({
     calculateTimestampOffsetForEachSegment: true,
+    replaceSegmentsUntil: null,
     segmentTimeline: 0,
     currentTimeline: 0,
     startOfSegment: 3,
@@ -237,6 +238,7 @@ QUnit.test('returns startOfSegment when calculateTimestampOffsetForEachSegment i
 QUnit.test('returns startOfSegment when calculateTimestampOffsetForEachSegment is enabled and the buffer is empty with different timeline', function(assert) {
   const timestampOffset = timestampOffsetForSegment({
     calculateTimestampOffsetForEachSegment: true,
+    replaceSegmentsUntil: null,
     segmentTimeline: 1,
     currentTimeline: 0,
     startOfSegment: 3,
@@ -249,6 +251,7 @@ QUnit.test('returns startOfSegment when calculateTimestampOffsetForEachSegment i
 QUnit.test('returns buffered.end when calculateTimestampOffsetForEachSegment is enabled and there exists buffered content with the same timeline', function(assert) {
   const timestampOffset = timestampOffsetForSegment({
     calculateTimestampOffsetForEachSegment: true,
+    replaceSegmentsUntil: null,
     segmentTimeline: 0,
     currentTimeline: 0,
     startOfSegment: 3,
@@ -261,6 +264,7 @@ QUnit.test('returns buffered.end when calculateTimestampOffsetForEachSegment is 
 QUnit.test('returns buffered.end when calculateTimestampOffsetForEachSegment is enabled and there exists buffered content with different timeline', function(assert) {
   const timestampOffset = timestampOffsetForSegment({
     calculateTimestampOffsetForEachSegment: true,
+    replaceSegmentsUntil: null,
     segmentTimeline: 1,
     currentTimeline: 0,
     startOfSegment: 3,
@@ -273,6 +277,7 @@ QUnit.test('returns buffered.end when calculateTimestampOffsetForEachSegment is 
 QUnit.test('returns startOfSegment when timeline changes and the buffer is empty', function(assert) {
   assert.equal(
     timestampOffsetForSegment({
+      replaceSegmentsUntil: null,
       segmentTimeline: 1,
       currentTimeline: 0,
       startOfSegment: 3,
@@ -286,6 +291,7 @@ QUnit.test('returns startOfSegment when timeline changes and the buffer is empty
 QUnit.test('returns buffered end when timeline changes and there exists buffered content', function(assert) {
   assert.equal(
     timestampOffsetForSegment({
+      replaceSegmentsUntil: null,
       segmentTimeline: 1,
       currentTimeline: 0,
       startOfSegment: 3,
@@ -299,6 +305,7 @@ QUnit.test('returns buffered end when timeline changes and there exists buffered
 QUnit.test('returns null when timeline does not change', function(assert) {
   assert.ok(
     timestampOffsetForSegment({
+      replaceSegmentsUntil: null,
       segmentTimeline: 0,
       currentTimeline: 0,
       startOfSegment: 3,
@@ -309,6 +316,7 @@ QUnit.test('returns null when timeline does not change', function(assert) {
 
   assert.ok(
     timestampOffsetForSegment({
+      replaceSegmentsUntil: null,
       segmentTimeline: 1,
       currentTimeline: 1,
       startOfSegment: 3,
@@ -321,6 +329,7 @@ QUnit.test('returns null when timeline does not change', function(assert) {
 QUnit.test('returns value when overrideCheck is true', function(assert) {
   assert.equal(
     timestampOffsetForSegment({
+      replaceSegmentsUntil: null,
       segmentTimeline: 0,
       currentTimeline: 0,
       startOfSegment: 3,
@@ -335,6 +344,7 @@ QUnit.test('returns value when overrideCheck is true', function(assert) {
 QUnit.test('uses startOfSegment when timeline is before current', function(assert) {
   assert.equal(
     timestampOffsetForSegment({
+      replaceSegmentsUntil: null,
       segmentTimeline: 0,
       currentTimeline: 1,
       startOfSegment: 3,
