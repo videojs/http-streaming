@@ -3092,8 +3092,12 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.addSegmentMetadataCue_(segmentInfo);
     if (this.replaceSegmentsUntil_ !== null && this.currentTime_() >= this.replaceSegmentsUntil_) {
       this.replaceSegmentsUntil_ = null;
+    }
+
+    if (this.replaceSegmentsUntil_ === null) {
       this.fetchAtBuffer_ = true;
     }
+
     if (this.currentTimeline_ !== segmentInfo.timeline) {
       this.timelineChangeController_.lastTimelineChange({
         type: this.loaderType_,
