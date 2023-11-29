@@ -652,8 +652,6 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     // ...for determining the fetch location
     this.fetchAtBuffer_ = false;
-    // For comparing with currentTime when overwriting segments on fastQualityChange_ changes. Use -1 as the inactive flag.
-    this.replaceSegmentsUntil_ = null;
 
     this.logger_ = logger(`SegmentLoader[${this.loaderType_}]`);
 
@@ -1200,7 +1198,6 @@ export default class SegmentLoader extends videojs.EventTarget {
    * operation is complete
    */
   resetEverything(done) {
-    this.replaceSegmentsUntil_ = null;
     this.resetLoaderProperties();
     this.resetLoader();
 
@@ -1611,7 +1608,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       startOfSegment,
       buffered: this.buffered_(),
       calculateTimestampOffsetForEachSegment: this.calculateTimestampOffsetForEachSegment_,
-      replaceSegmentsUntil: this.replaceSegmentsUntil_,
       overrideCheck
     });
 
@@ -3090,13 +3086,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.logger_(`Appended ${segmentInfoString(segmentInfo)}`);
 
     this.addSegmentMetadataCue_(segmentInfo);
-    if (this.replaceSegmentsUntil_ !== null && this.currentTime_() >= this.replaceSegmentsUntil_) {
-      this.replaceSegmentsUntil_ = null;
-    }
-
-    if (this.replaceSegmentsUntil_ === null) {
-      this.fetchAtBuffer_ = true;
-    }
 
     if (this.currentTimeline_ !== segmentInfo.timeline) {
       this.timelineChangeController_.lastTimelineChange({
@@ -3250,17 +3239,5 @@ export default class SegmentLoader extends videojs.EventTarget {
     cue.value = value;
 
     this.segmentMetadataTrack_.addCue(cue);
-  }
-
-  /**
-   * Public setter for defining the private replaceSegmentsUntil_ property, which
-   * determines when we can return fetchAtBuffer to true if overwriting the buffer.
-   *
-   * @param {number} bufferedEnd the end of the buffered range to replace segments
-   * until currentTime reaches this time.
-   */
-  set replaceSegmentsUntil(bufferedEnd) {
-    this.logger_(`Replacing currently buffered segments until ${bufferedEnd}`);
-    this.replaceSegmentsUntil_ = bufferedEnd;
   }
 }
