@@ -977,7 +977,9 @@ export class PlaylistController extends videojs.EventTarget {
     // Don't need to reset audio as it is reset when media changes.
     // We resetLoaderProperties separately here as we want to fetch init segments if
     // necessary and ensure we're not in an ended state when we switch playlists.
+    this.delegateLoaders_('all', ['pause']);
     this.resetAllSegmentLoaders_();
+    this.load();
   }
 
   /**
