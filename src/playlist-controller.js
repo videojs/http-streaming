@@ -164,7 +164,8 @@ export class PlaylistController extends videojs.EventTarget {
       cacheEncryptionKeys,
       bufferBasedABR,
       leastPixelDiffSelector,
-      captionServices
+      captionServices,
+      useManagedMediaSource
     } = options;
 
     if (!src) {
@@ -208,7 +209,14 @@ export class PlaylistController extends videojs.EventTarget {
 
     this.mediaTypes_ = createMediaTypes();
 
-    this.mediaSource = new window.MediaSource();
+    if (useManagedMediaSource && window.ManagedMediaSource) {
+      // Airplay source not yet implemented. Remote playback must be disabled.
+      this.tech_.el_.disableRemotePlayback = true;
+      this.mediaSource = new window.ManagedMediaSource();
+      videojs.log('Using ManagedMediaSource');
+    } else if (window.MediaSource) {
+      this.mediaSource = new window.MediaSource();
+    }
 
     this.handleDurationChange_ = this.handleDurationChange_.bind(this);
     this.handleSourceOpen_ = this.handleSourceOpen_.bind(this);

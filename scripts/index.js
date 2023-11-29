@@ -438,6 +438,10 @@
     var steeringManifestEl = document.querySelector('.steering-manifest');
 
     player.one('loadedmetadata', function() {
+      if (!player.tech_vhs) {
+        return;
+      }
+
       var steeringController = player.tech_.vhs.playlistController_.contentSteeringController_;
 
       if (!steeringController) {
@@ -472,6 +476,7 @@
     'dts-offset',
     'offset-each-segment',
     'override-native',
+    'use-mms',
     'preload',
     'mirror-source',
     'forced-subtitles'
@@ -522,6 +527,7 @@
       'llhls',
       'buffer-water',
       'override-native',
+      'use-mms',
       'liveui',
       'pixel-diff-selector',
       'network-info',
@@ -560,8 +566,7 @@
       var urls = [
         'node_modules/video.js/dist/alt/video.core',
         'node_modules/videojs-contrib-eme/dist/videojs-contrib-eme',
-        'node_modules/videojs-contrib-quality-levels/dist/videojs-contrib-quality-levels',
-        'node_modules/videojs-http-source-selector/dist/videojs-http-source-selector'
+        'node_modules/videojs-contrib-quality-levels/dist/videojs-contrib-quality-levels'
       ].map(function(url) {
         return url + (event.target.checked ? '.min' : '') + '.js';
       });
@@ -588,6 +593,7 @@
         var videoEl = document.createElement('video-js');
 
         videoEl.setAttribute('controls', '');
+        videoEl.setAttribute('playsInline', '');
         videoEl.setAttribute('preload', stateEls.preload.options[stateEls.preload.selectedIndex].value || 'auto');
         videoEl.className = 'vjs-default-skin';
         fixture.appendChild(videoEl);
@@ -595,16 +601,12 @@
         var mirrorSource = getInputValue(stateEls['mirror-source']);
 
         player = window.player = window.videojs(videoEl, {
-          plugins: {
-            httpSourceSelector: {
-              default: 'auto'
-            }
-          },
           liveui: stateEls.liveui.checked,
           enableSourceset: mirrorSource,
           html5: {
             vhs: {
               overrideNative: getInputValue(stateEls['override-native']),
+              useManagedMediaSource: getInputValue(stateEls['use-mms']),
               bufferBasedABR: getInputValue(stateEls['buffer-water']),
               llhls: getInputValue(stateEls.llhls),
               exactManifestTimings: getInputValue(stateEls['exact-manifest-timings']),
@@ -616,7 +618,6 @@
             }
           }
         });
-
         setupPlayerStats(player);
         setupSegmentMetadata(player);
         setupContentSteeringData(player);
