@@ -977,7 +977,7 @@ export class PlaylistController extends videojs.EventTarget {
     // Don't need to reset audio as it is reset when media changes.
     // We resetLoaderProperties separately here as we want to fetch init segments if
     // necessary and ensure we're not in an ended state when we switch playlists.
-    this.mainSegmentLoader_.resetEverything();
+    this.resetAllSegmentLoaders_();
   }
 
   /**
@@ -1439,13 +1439,7 @@ export class PlaylistController extends videojs.EventTarget {
 
     // cancel outstanding requests so we begin buffering at the new
     // location
-    this.mainSegmentLoader_.resetEverything();
-    if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
-      this.audioSegmentLoader_.resetEverything();
-    }
-    if (this.mediaTypes_.SUBTITLES.activePlaylistLoader) {
-      this.subtitleSegmentLoader_.resetEverything();
-    }
+    this.resetAllSegmentLoaders_();
 
     // start segment loader loading in case they are paused
     this.load();
@@ -2351,5 +2345,15 @@ export class PlaylistController extends videojs.EventTarget {
     }
 
     this.switchMedia_(nextPlaylist, 'content-steering');
+  }
+
+  resetAllSegmentLoaders_() {
+    this.mainSegmentLoader_.resetEverything();
+    if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
+      this.audioSegmentLoader_.resetEverything();
+    }
+    if (this.mediaTypes_.SUBTITLES.activePlaylistLoader) {
+      this.subtitleSegmentLoader_.resetEverything();
+    }
   }
 }
