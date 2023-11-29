@@ -678,14 +678,6 @@ export class PlaylistController extends videojs.EventTarget {
         this.mainPlaylistLoader_.load();
       }
 
-      // TODO: Create a new event on the PlaylistLoader that signals
-      // that the segments have changed in some way and use that to
-      // update the SegmentLoader instead of doing it twice here and
-      // on `loadedplaylist`
-      this.mainSegmentLoader_.playlist(media, this.requestOptions_);
-
-      this.mainSegmentLoader_.load();
-
       this.tech_.trigger({
         type: 'mediachange',
         bubbles: true
@@ -742,10 +734,6 @@ export class PlaylistController extends videojs.EventTarget {
       this.updateAdCues_(updatedPlaylist);
     }
 
-    // TODO: Create a new event on the PlaylistLoader that signals
-    // that the segments have changed in some way and use that to
-    // update the SegmentLoader instead of doing it twice here and
-    // on `mediachange`
     this.mainSegmentLoader_.playlist(updatedPlaylist, this.requestOptions_);
     this.updateDuration(!updatedPlaylist.endList);
 
