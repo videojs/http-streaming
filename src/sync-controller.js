@@ -58,7 +58,7 @@ export const syncPointStrategies = [
         return null;
       }
 
-      const currentMediaSequence = playlist.mediaSequence;
+      let currentMediaSequence = playlist.mediaSequence;
       let segmentIndex = 0;
 
       for (const segment of playlist.segments) {
@@ -104,6 +104,7 @@ export const syncPointStrategies = [
         }
 
         segmentIndex++;
+        currentMediaSequence++;
       }
 
       // we didn't find any segments for provided current time
