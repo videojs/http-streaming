@@ -327,7 +327,10 @@ Current map: `, currentMap);
       currentBaseTime = currentTime;
     }
 
-    this.logger_(`MediaSequence sync for ${type}. base time is ${currentBaseTime}`);
+    this.logger_(`MediaSequence sync for ${type} segment loader.
+Received media sequence: ${currentMediaSequence}.
+base time is ${currentBaseTime}
+Current map: `, currentMap);
 
     playlist.segments.forEach((segment) => {
       const start = currentBaseTime;
