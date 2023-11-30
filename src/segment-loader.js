@@ -179,10 +179,6 @@ export const segmentInfoString = (segmentInfo) => {
 
 const timingInfoPropertyForMedia = (mediaType) => `${mediaType}TimingInfo`;
 
-const getBufferedEndOrFallback = (buffered, fallback) => buffered.length ?
-  buffered.end(buffered.length - 1) :
-  fallback;
-
 /**
  * Returns the timestamp offset to use for the segment.
  *
@@ -194,8 +190,6 @@ const getBufferedEndOrFallback = (buffered, fallback) => buffered.length ?
  *        The estimated segment start
  * @param {TimeRange[]} buffered
  *        The loader's buffer
- * @param {boolean} calculateTimestampOffsetForEachSegment
- *        Feature flag to always calculate timestampOffset
  * @param {boolean} overrideCheck
  *        If true, no checks are made to see if the timestamp offset value should be set,
  *        but sets it directly to a value.
@@ -209,13 +203,8 @@ export const timestampOffsetForSegment = ({
   currentTimeline,
   startOfSegment,
   buffered,
-  calculateTimestampOffsetForEachSegment,
   overrideCheck
 }) => {
-  if (calculateTimestampOffsetForEachSegment) {
-    return getBufferedEndOrFallback(buffered, startOfSegment);
-  }
-
   // Check to see if we are crossing a discontinuity to see if we need to set the
   // timestamp offset on the transmuxer and source buffer.
   //
@@ -259,7 +248,7 @@ export const timestampOffsetForSegment = ({
   // should often be correct, it's better to rely on the buffered end, as the new
   // content post discontinuity should line up with the buffered end as if it were
   // time 0 for the new content.
-  return getBufferedEndOrFallback(buffered, startOfSegment);
+  return buffered.length ? buffered.end(buffered.length - 1) : startOfSegment;
 };
 
 /**
@@ -570,7 +559,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.shouldSaveSegmentTimingInfo_ = true;
     this.parse708captions_ = settings.parse708captions;
     this.useDtsForTimestampOffset_ = settings.useDtsForTimestampOffset;
-    this.calculateTimestampOffsetForEachSegment_ = settings.calculateTimestampOffsetForEachSegment;
     this.captionServices_ = settings.captionServices;
     this.exactManifestTimings = settings.exactManifestTimings;
     this.addMetadataToTextTrack = settings.addMetadataToTextTrack;
@@ -1598,7 +1586,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       currentTimeline: this.currentTimeline_,
       startOfSegment,
       buffered: this.buffered_(),
-      calculateTimestampOffsetForEachSegment: this.calculateTimestampOffsetForEachSegment_,
       overrideCheck
     });
 
