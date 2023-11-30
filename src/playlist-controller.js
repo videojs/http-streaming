@@ -681,9 +681,14 @@ export class PlaylistController extends videojs.EventTarget {
       // that the segments have changed in some way and use that to
       // update the SegmentLoader instead of doing it twice here and
       // on `loadedplaylist`
+      this.mainSegmentLoader_.pause();
       this.mainSegmentLoader_.playlist(media, this.requestOptions_);
 
-      this.mainSegmentLoader_.load();
+      if (this.waitingForFastQualityPlaylistReceived_) {
+        this.runFastQualitySwitch_();
+      } else {
+        this.mainSegmentLoader_.load();
+      }
 
       this.tech_.trigger({
         type: 'mediachange',
@@ -745,7 +750,12 @@ export class PlaylistController extends videojs.EventTarget {
     // that the segments have changed in some way and use that to
     // update the SegmentLoader instead of doing it twice here and
     // on `mediachange`
+    this.mainSegmentLoader_.pause();
     this.mainSegmentLoader_.playlist(updatedPlaylist, this.requestOptions_);
+    if (this.waitingForFastQualityPlaylistReceived_) {
+      this.runFastQualitySwitch_();
+    }
+
     this.updateDuration(!updatedPlaylist.endList);
 
     // If the player isn't paused, ensure that the segment loader is running,
@@ -974,12 +984,20 @@ export class PlaylistController extends videojs.EventTarget {
 
     this.switchMedia_(media, 'fast-quality');
 
+    // we would like to avoid race condition when we call fastQuality,
+    // reset everything and start loading segments from prev segments instead of new because new playlist is not received yet
+    this.waitingForFastQualityPlaylistReceived_ = true;
+  }
+
+  runFastQualitySwitch_() {
+    this.waitingForFastQualityPlaylistReceived_ = false;
     // Delete all buffered data to allow an immediate quality switch, then seek to give
     // the browser a kick to remove any cached frames from the previous rendtion (.04 seconds
     // ahead was roughly the minimum that will accomplish this across a variety of content
     // in IE and Edge, but seeking in place is sufficient on all other browsers)
     // Edge/IE bug: https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/14600375/
     // Chrome bug: https://bugs.chromium.org/p/chromium/issues/detail?id=651904
+    this.mainSegmentLoader_.pause();
     this.mainSegmentLoader_.resetEverything(() => {
       this.tech_.setCurrentTime(this.tech_.currentTime());
     });
@@ -1446,11 +1464,14 @@ export class PlaylistController extends videojs.EventTarget {
 
     // cancel outstanding requests so we begin buffering at the new
     // location
+    this.mainSegmentLoader_.pause();
     this.mainSegmentLoader_.resetEverything();
     if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
+      this.audioSegmentLoader_.pause();
       this.audioSegmentLoader_.resetEverything();
     }
     if (this.mediaTypes_.SUBTITLES.activePlaylistLoader) {
+      this.subtitleSegmentLoader_.pause();
       this.subtitleSegmentLoader_.resetEverything();
     }
 
