@@ -1159,7 +1159,6 @@ class VhsHandler extends Component {
         );
 
         // Clear the buffer before switching playlists, since it may already contain unplayable segments
-        this.playlistController_.mainSegmentLoader_.resetEverything();
         this.playlistController_.fastQualityChange_();
       }
     });
