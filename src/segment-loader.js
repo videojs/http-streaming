@@ -567,6 +567,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.checkBufferTimeout_ = null;
     this.error_ = void 0;
     this.currentTimeline_ = -1;
+    this.shouldForceTimestampOffsetAfterResync_ = false;
     this.pendingSegment_ = null;
     this.xhrOptions_ = null;
     this.pendingSegments_ = [];
@@ -1214,6 +1215,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.partIndex = null;
     this.syncPoint_ = null;
     this.isPendingTimestampOffset_ = false;
+    this.shouldForceTimestampOffsetAfterResync_ = true;
     this.callQueue_ = [];
     this.loadQueue_ = [];
     this.metadataQueue_.id3 = [];
@@ -1522,6 +1524,12 @@ export default class SegmentLoader extends videojs.EventTarget {
     // 3. the player is not seeking
     if (next.mediaIndex >= (segments.length - 1) && ended && !this.seeking_()) {
       return null;
+    }
+
+    if (this.shouldForceTimestampOffsetAfterResync_) {
+      this.shouldForceTimestampOffsetAfterResync_ = false;
+      next.forceTimestampOffset = true;
+      this.logger_('choose next request. Force timestamp offset after loader resync');
     }
 
     return this.generateSegmentInfo_(next);
