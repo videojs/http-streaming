@@ -1032,6 +1032,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     this.logger_(`playlist update [${oldId} => ${newPlaylist.id || newPlaylist.uri}]`);
+    this.syncController_.updateMediaSequenceMap(newPlaylist, this.currentTime_(), this.loaderType_);
 
     // in VOD, this is always a rendition switch (or we updated our syncInfo above)
     // in LIVE, we always want to update with new playlists (including refreshes)
@@ -1420,7 +1421,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.playlist_,
       this.duration_(),
       this.currentTimeline_,
-      this.currentTime_()
+      this.currentTime_(),
+      this.loaderType_
     );
 
     const next = {
