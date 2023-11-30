@@ -1437,7 +1437,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     if (next.isSyncRequest) {
       next.mediaIndex = getSyncSegmentCandidate(this.currentTimeline_, segments, bufferedEnd);
-      this.logger_(`choose next request. Cant find sync point. Fallback to media Index: ${next.mediaIndex}`);
+      this.logger_(`choose next request. Can not find sync point. Fallback to media Index: ${next.mediaIndex}`);
     } else if (this.mediaIndex !== null) {
       const segment = segments[this.mediaIndex];
       const partIndex = typeof this.partIndex === 'number' ? this.partIndex : -1;
