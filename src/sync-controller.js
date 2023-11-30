@@ -388,6 +388,28 @@ Current map: `, currentMap);
       return null;
     }
 
+    // If we have exact match just return it instead of finding the nearest distance
+    for (const syncPointInfo of syncPoints) {
+      const { syncPoint, strategy } = syncPointInfo;
+      const { segmentIndex, time } = syncPoint;
+
+      if (segmentIndex < 0) {
+        continue;
+      }
+
+      const selectedSegment = playlist.segments[segmentIndex];
+
+      const start = time;
+      const end = start + selectedSegment.duration;
+
+      this.logger_(`Strategy: ${strategy}. Current time: ${currentTime}. selected segment: ${segmentIndex}. Time: [${start} -> ${end}]}`);
+
+      if (currentTime >= start && currentTime < end) {
+        this.logger_('Found sync point with exact match: ', syncPoint);
+        return syncPoint;
+      }
+    }
+
     // Now find the sync-point that is closest to the currentTime because
     // that should result in the most accurate guess about which segment
     // to fetch
