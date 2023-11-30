@@ -212,6 +212,13 @@ export default class SyncController extends videojs.EventTarget {
    *          A sync-point object
    */
   getSyncPoint(playlist, duration, currentTimeline, currentTime) {
+    // Always use VOD sync point for VOD
+    if (duration !== Infinity) {
+      const vodSyncPointStrategy = syncPointStrategies.find(({ name }) => name === 'VOD');
+
+      return vodSyncPointStrategy.run(this, playlist, duration);
+    }
+
     const syncPoints = this.runStrategies_(
       playlist,
       duration,
