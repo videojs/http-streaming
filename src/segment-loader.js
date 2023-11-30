@@ -179,17 +179,9 @@ export const segmentInfoString = (segmentInfo) => {
 
 const timingInfoPropertyForMedia = (mediaType) => `${mediaType}TimingInfo`;
 
-const getTimestampOffset = (buffered, replaceSegmentsUntil, fallback) => {
-  if (replaceSegmentsUntil !== null) {
-    return fallback;
-  }
-
-  if (buffered.length) {
-    return buffered.end(buffered.length - 1);
-  }
-
-  return fallback;
-};
+const getBufferedEndOrFallback = (buffered, fallback) => buffered.length ?
+  buffered.end(buffered.length - 1) :
+  fallback;
 
 /**
  * Returns the timestamp offset to use for the segment.
@@ -204,8 +196,6 @@ const getTimestampOffset = (buffered, replaceSegmentsUntil, fallback) => {
  *        The loader's buffer
  * @param {boolean} calculateTimestampOffsetForEachSegment
  *        Feature flag to always calculate timestampOffset
- * @param {number|null} replaceSegmentsUntil
- *        value if we switched quality recently and replacing buffered with a new quality
  * @param {boolean} overrideCheck
  *        If true, no checks are made to see if the timestamp offset value should be set,
  *        but sets it directly to a value.
@@ -220,11 +210,10 @@ export const timestampOffsetForSegment = ({
   startOfSegment,
   buffered,
   calculateTimestampOffsetForEachSegment,
-  replaceSegmentsUntil,
   overrideCheck
 }) => {
   if (calculateTimestampOffsetForEachSegment) {
-    return getTimestampOffset(buffered, replaceSegmentsUntil, startOfSegment);
+    return getBufferedEndOrFallback(buffered, startOfSegment);
   }
 
   // Check to see if we are crossing a discontinuity to see if we need to set the
@@ -270,7 +259,7 @@ export const timestampOffsetForSegment = ({
   // should often be correct, it's better to rely on the buffered end, as the new
   // content post discontinuity should line up with the buffered end as if it were
   // time 0 for the new content.
-  return getTimestampOffset(buffered, replaceSegmentsUntil, startOfSegment);
+  return getBufferedEndOrFallback(buffered, startOfSegment);
 };
 
 /**
@@ -1611,7 +1600,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       startOfSegment,
       buffered: this.buffered_(),
       calculateTimestampOffsetForEachSegment: this.calculateTimestampOffsetForEachSegment_,
-      replaceSegmentsUntil: this.replaceSegmentsUntil_,
       overrideCheck
     });
 
@@ -2478,7 +2466,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     //
     // Even though keepOriginalTimestamps is set to true for the transmuxer, timestamp
     // offset must be passed to the transmuxer for stream correcting adjustments.
-    if (this.shouldUpdateTransmuxerTimestampOffset_(segmentInfo)) {
+    if (this.shouldUpdateTransmuxerTimestampOffset_(segmentInfo.timestampOffset)) {
       this.gopBuffer_.length = 0;
       // gopsToAlignWith was set before the GOP buffer was cleared
       segmentInfo.gopsToAlignWith = [];
@@ -2769,13 +2757,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
   }
 
-  shouldUpdateTransmuxerTimestampOffset_(segmentInfo) {
-    if (this.calculateTimestampOffsetForEachSegment_) {
-      // is discontinuity
-      return segmentInfo.timeline !== this.currentTimeline_;
-    }
-
-    if (segmentInfo.timestampOffset === null) {
+  shouldUpdateTransmuxerTimestampOffset_(timestampOffset) {
+    if (timestampOffset === null) {
       return false;
     }
 
@@ -2783,12 +2766,12 @@ export default class SegmentLoader extends videojs.EventTarget {
     // audio
 
     if (this.loaderType_ === 'main' &&
-      segmentInfo.timestampOffset !== this.sourceUpdater_.videoTimestampOffset()) {
+        timestampOffset !== this.sourceUpdater_.videoTimestampOffset()) {
       return true;
     }
 
     if (!this.audioDisabled_ &&
-      segmentInfo.timestampOffset !== this.sourceUpdater_.audioTimestampOffset()) {
+        timestampOffset !== this.sourceUpdater_.audioTimestampOffset()) {
       return true;
     }
 
@@ -3092,12 +3075,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.addSegmentMetadataCue_(segmentInfo);
     if (this.replaceSegmentsUntil_ !== null && this.currentTime_() >= this.replaceSegmentsUntil_) {
       this.replaceSegmentsUntil_ = null;
-    }
-
-    if (this.replaceSegmentsUntil_ === null) {
       this.fetchAtBuffer_ = true;
     }
-
     if (this.currentTimeline_ !== segmentInfo.timeline) {
       this.timelineChangeController_.lastTimelineChange({
         type: this.loaderType_,
