@@ -470,7 +470,6 @@
     'pixel-diff-selector',
     'network-info',
     'dts-offset',
-    'offset-each-segment',
     'override-native',
     'preload',
     'mirror-source',
@@ -526,7 +525,6 @@
       'pixel-diff-selector',
       'network-info',
       'dts-offset',
-      'offset-each-segment',
       'exact-manifest-timings',
       'forced-subtitles'
     ].forEach(function(name) {
@@ -611,7 +609,6 @@
               leastPixelDiffSelector: getInputValue(stateEls['pixel-diff-selector']),
               useNetworkInformationApi: getInputValue(stateEls['network-info']),
               useDtsForTimestampOffset: getInputValue(stateEls['dts-offset']),
-              calculateTimestampOffsetForEachSegment: getInputValue(stateEls['offset-each-segment']),
               useForcedSubtitles: getInputValue(stateEls['forced-subtitles'])
             }
           }

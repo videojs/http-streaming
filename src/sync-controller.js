@@ -31,6 +31,86 @@ export const syncPointStrategies = [
       return null;
     }
   },
+  {
+    name: 'MediaSequence',
+    /**
+     * run media sequence strategy
+     *
+     * @param {SyncController} syncController
+     * @param {Object} playlist
+     * @param {number} duration
+     * @param {number} currentTimeline
+     * @param {number} currentTime
+     * @param {string} type
+     */
+    run: (syncController, playlist, duration, currentTimeline, currentTime, type) => {
+      if (!type) {
+        return null;
+      }
+
+      const mediaSequenceMap = syncController.getMediaSequenceMap(type);
+
+      if (!mediaSequenceMap || mediaSequenceMap.size === 0) {
+        return null;
+      }
+
+      if (playlist.mediaSequence === undefined || !Array.isArray(playlist.segments) || !playlist.segments.length) {
+        return null;
+      }
+
+      let currentMediaSequence = playlist.mediaSequence;
+      let segmentIndex = 0;
+
+      for (const segment of playlist.segments) {
+        const range = mediaSequenceMap.get(currentMediaSequence);
+
+        if (!range) {
+          // unexpected case
+          // we expect this playlist to be the same playlist in the map
+          // just break from the loop and move forward to the next strategy
+          break;
+        }
+
+        if (currentTime >= range.start && currentTime < range.end) {
+          // we found segment
+
+          if (Array.isArray(segment.parts) && segment.parts.length) {
+            let currentPartStart = range.start;
+            let partIndex = 0;
+
+            for (const part of segment.parts) {
+              const start = currentPartStart;
+              const end = start + part.duration;
+
+              if (currentTime >= start && currentTime < end) {
+                return {
+                  time: range.start,
+                  segmentIndex,
+                  partIndex
+                };
+              }
+
+              partIndex++;
+              currentPartStart = end;
+            }
+          }
+
+          // no parts found, return sync point for segment
+          return {
+            time: range.start,
+            segmentIndex,
+            partIndex: null
+          };
+        }
+
+        segmentIndex++;
+        currentMediaSequence++;
+      }
+
+      // we didn't find any segments for provided current time
+      return null;
+    }
+  },
   // Stategy "ProgramDateTime": We have a program-date-time tag in this playlist
   {
     name: 'ProgramDateTime',
@@ -193,7 +273,77 @@ export default class SyncController extends videojs.EventTarget {
     this.discontinuities = [];
     this.timelineToDatetimeMappings = {};
 
+    /**
+     * @type {Map<string, Map<number, { start: number, end: number }>>}
+     * @private
+     */
+    this.mediaSequenceStorage_ = new Map();
+
     this.logger_ = logger('SyncController');
+  }
+
+  /**
+   * Get media sequence map by type
+   *
+   * @param {string} type - segment loader type
+   * @return {Map<number, { start: number, end: number }> | undefined}
+   */
+  getMediaSequenceMap(type) {
+    return this.mediaSequenceStorage_.get(type);
+  }
+
+  /**
+   * Update Media Sequence Map -> <MediaSequence, Range>
+   *
+   * @param {Object} playlist - parsed playlist
+   * @param {number} currentTime - current player's time
+   * @param {string} type - segment loader type
+   * @return {void}
+   */
+  updateMediaSequenceMap(playlist, currentTime, type) {
+    // we should not process this playlist if it does not have mediaSequence or segments
+    if (playlist.mediaSequence === undefined || !Array.isArray(playlist.segments) || !playlist.segments.length) {
+      return;
+    }
+
+    const currentMap = this.getMediaSequenceMap(type);
+    const result = new Map();
+
+    let currentMediaSequence = playlist.mediaSequence;
+    let currentBaseTime;
+
+    if (!currentMap) {
+      // first playlist setup:
+      currentBaseTime = 0;
+    } else if (currentMap.has(playlist.mediaSequence)) {
+      // further playlists setup:
+      currentBaseTime = currentMap.get(playlist.mediaSequence).start;
+    } else {
+      // it seems like we have a gap between playlists, use current time as a fallback:
+      this.logger_(`MediaSequence sync for ${type} segment loader - received a gap between playlists.
+Fallback base time to: ${currentTime}.
+Received media sequence: ${currentMediaSequence}.
+Current map: `, currentMap);
+      currentBaseTime = currentTime;
+    }
+
+    this.logger_(`MediaSequence sync for ${type} segment loader.
+Received media sequence: ${currentMediaSequence}.
+base time is ${currentBaseTime}
+Current map: `, currentMap);
+
+    playlist.segments.forEach((segment) => {
+      const start = currentBaseTime;
+      const end = start + segment.duration;
+      const range = { start, end };
+
+      result.set(currentMediaSequence, range);
+
+      currentMediaSequence++;
+      currentBaseTime = end;
+    });
+
+    this.mediaSequenceStorage_.set(type, result);
   }
 
   /**
@@ -208,10 +358,14 @@ export default class SyncController extends videojs.EventTarget {
    *        Duration of the MediaSource (Infinite if playing a live source)
    * @param {number} currentTimeline
    *        The last timeline from which a segment was loaded
+   * @param {number} currentTime
+   *        Current player's time
+   * @param {string} type
+   *        Segment loader type
    * @return {Object}
    *          A sync-point object
    */
-  getSyncPoint(playlist, duration, currentTimeline, currentTime) {
+  getSyncPoint(playlist, duration, currentTimeline, currentTime, type) {
     // Always use VOD sync point for VOD
     if (duration !== Infinity) {
       const vodSyncPointStrategy = syncPointStrategies.find(({ name }) => name === 'VOD');
@@ -223,7 +377,8 @@ export default class SyncController extends videojs.EventTarget {
       playlist,
       duration,
       currentTimeline,
-      currentTime
+      currentTime,
+      type
     );
 
     if (!syncPoints.length) {
@@ -231,6 +386,28 @@ export default class SyncController extends videojs.EventTarget {
       // by fetching a segment in the playlist and constructing
       // a sync-point from that information
       return null;
+    }
+
+    // If we have exact match just return it instead of finding the nearest distance
+    for (const syncPointInfo of syncPoints) {
+      const { syncPoint, strategy } = syncPointInfo;
+      const { segmentIndex, time } = syncPoint;
+
+      if (segmentIndex < 0) {
+        continue;
+      }
+
+      const selectedSegment = playlist.segments[segmentIndex];
+
+      const start = time;
+      const end = start + selectedSegment.duration;
+
+      this.logger_(`Strategy: ${strategy}. Current time: ${currentTime}. selected segment: ${segmentIndex}. Time: [${start} -> ${end}]}`);
+
+      if (currentTime >= start && currentTime < end) {
+        this.logger_('Found sync point with exact match: ', syncPoint);
+        return syncPoint;
+      }
     }
 
     // Now find the sync-point that is closest to the currentTime because
@@ -259,7 +436,8 @@ export default class SyncController extends videojs.EventTarget {
       playlist,
       duration,
       playlist.discontinuitySequence,
-      0
+      0,
+      'main'
     );
 
     // Without sync-points, there is not enough information to determine the expired time
@@ -297,10 +475,14 @@ export default class SyncController extends videojs.EventTarget {
    *        Duration of the MediaSource (Infinity if playing a live source)
    * @param {number} currentTimeline
    *        The last timeline from which a segment was loaded
+   * @param {number} currentTime
+   *        Current player's time
+   * @param {string} type
+   *        Segment loader type
    * @return {Array}
    *          A list of sync-point objects
    */
-  runStrategies_(playlist, duration, currentTimeline, currentTime) {
+  runStrategies_(playlist, duration, currentTimeline, currentTime, type) {
     const syncPoints = [];
 
     // Try to find a sync-point in by utilizing various strategies...
@@ -311,7 +493,8 @@ export default class SyncController extends videojs.EventTarget {
         playlist,
         duration,
         currentTimeline,
-        currentTime
+        currentTime,
+        type
       );
 
       if (syncPoint) {
