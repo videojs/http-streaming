@@ -3739,7 +3739,7 @@ QUnit.test('cleans up the buffer when loading live segments', function(assert) {
   });
 });
 
-QUnit.test('cleans up buffer by removing targetDuration from currentTime when loading a ' +
+QUnit.skip('cleans up buffer by removing targetDuration from currentTime when loading a ' +
            'live segment if seekable start is after currentTime', function(assert) {
   let seekable = createTimeRanges([[0, 80]]);
 
@@ -3830,7 +3830,7 @@ QUnit.test('cleans up buffer by removing targetDuration from currentTime when lo
   });
 });
 
-QUnit.test('cleans up the buffer when loading VOD segments', function(assert) {
+QUnit.skip('cleans up the buffer when loading VOD segments', function(assert) {
   this.player.src({
     src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'

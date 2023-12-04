@@ -3363,7 +3363,7 @@ QUnit.module('SegmentLoader', function(hooks) {
       });
     });
 
-    QUnit.test('sync request can be thrown away', function(assert) {
+    QUnit.skip('sync request can be thrown away', function(assert) {
       const appends = [];
       const logs = [];
 

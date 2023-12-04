@@ -567,6 +567,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.checkBufferTimeout_ = null;
     this.error_ = void 0;
     this.currentTimeline_ = -1;
+    this.shouldForceTimestampOffsetAfterResync_ = false;
     this.pendingSegment_ = null;
     this.xhrOptions_ = null;
     this.pendingSegments_ = [];
@@ -1032,6 +1033,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     this.logger_(`playlist update [${oldId} => ${newPlaylist.id || newPlaylist.uri}]`);
+    this.syncController_.updateMediaSequenceMap(newPlaylist, this.currentTime_(), this.loaderType_);
 
     // in VOD, this is always a rendition switch (or we updated our syncInfo above)
     // in LIVE, we always want to update with new playlists (including refreshes)
@@ -1213,6 +1215,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.partIndex = null;
     this.syncPoint_ = null;
     this.isPendingTimestampOffset_ = false;
+    this.shouldForceTimestampOffsetAfterResync_ = true;
     this.callQueue_ = [];
     this.loadQueue_ = [];
     this.metadataQueue_.id3 = [];
@@ -1420,7 +1423,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.playlist_,
       this.duration_(),
       this.currentTimeline_,
-      this.currentTime_()
+      this.currentTime_(),
+      this.loaderType_
     );
 
     const next = {
@@ -1433,6 +1437,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     if (next.isSyncRequest) {
       next.mediaIndex = getSyncSegmentCandidate(this.currentTimeline_, segments, bufferedEnd);
+      this.logger_(`choose next request. Can not find sync point. Fallback to media Index: ${next.mediaIndex}`);
     } else if (this.mediaIndex !== null) {
       const segment = segments[this.mediaIndex];
       const partIndex = typeof this.partIndex === 'number' ? this.partIndex : -1;
@@ -1461,6 +1466,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       next.mediaIndex = segmentIndex;
       next.startOfSegment = startTime;
       next.partIndex = partIndex;
+
+      this.logger_(`choose next request. Playlist switched and we have a sync point. Media Index: ${next.mediaIndex} `);
     }
 
     const nextSegment = segments[next.mediaIndex];
@@ -1517,6 +1524,12 @@ export default class SegmentLoader extends videojs.EventTarget {
     // 3. the player is not seeking
     if (next.mediaIndex >= (segments.length - 1) && ended && !this.seeking_()) {
       return null;
+    }
+
+    if (this.shouldForceTimestampOffsetAfterResync_) {
+      this.shouldForceTimestampOffsetAfterResync_ = false;
+      next.forceTimestampOffset = true;
+      this.logger_('choose next request. Force timestamp offset after loader resync');
     }
 
     return this.generateSegmentInfo_(next);
