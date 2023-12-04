@@ -1,3 +1,34 @@
+<a name="3.8.0"></a>
+# [3.8.0](https://github.com/videojs/http-streaming/compare/v3.7.0...v3.8.0) (2023-12-04)
+
+### Features
+
+* Content Steering HLS Pathway Cloning ([#1432](https://github.com/videojs/http-streaming/issues/1432)) ([731058b](https://github.com/videojs/http-streaming/commit/731058b))
+* media-sequence sync strategy, remove calculateTimestampOffsetForEachSegment and remove replaceSegmentsUntil ([#1457](https://github.com/videojs/http-streaming/issues/1457)) ([e304c20](https://github.com/videojs/http-streaming/commit/e304c20)), closes [#1452](https://github.com/videojs/http-streaming/issues/1452) [#1451](https://github.com/videojs/http-streaming/issues/1451) [#1444](https://github.com/videojs/http-streaming/issues/1444) [#1439](https://github.com/videojs/http-streaming/issues/1439) [#1426](https://github.com/videojs/http-streaming/issues/1426) [#1414](https://github.com/videojs/http-streaming/issues/1414) [#1458](https://github.com/videojs/http-streaming/issues/1458)
+* public function for updating VHS options ([#1446](https://github.com/videojs/http-streaming/issues/1446)) ([9f2a4de](https://github.com/videojs/http-streaming/commit/9f2a4de))
+
+### Bug Fixes
+
+* Always use VOD sync-point for VOD streams ([#1456](https://github.com/videojs/http-streaming/issues/1456)) ([a5579b0](https://github.com/videojs/http-streaming/commit/a5579b0))
+* check for transmuxer for vtt-segment-loader ([#1452](https://github.com/videojs/http-streaming/issues/1452)) ([b4dd748](https://github.com/videojs/http-streaming/commit/b4dd748))
+* content steering bug fixes and tests ([#1430](https://github.com/videojs/http-streaming/issues/1430)) ([532aa4d](https://github.com/videojs/http-streaming/commit/532aa4d))
+* Do not call load after mediachange for hls playlist loader ([#1447](https://github.com/videojs/http-streaming/issues/1447)) ([28413f8](https://github.com/videojs/http-streaming/commit/28413f8))
+* fix several issues with calculate timestamp offset for each segment ([#1451](https://github.com/videojs/http-streaming/issues/1451)) ([3bbc6ef](https://github.com/videojs/http-streaming/commit/3bbc6ef))
+* prevent wrapping in resetMainLoaderReplaceSegments ([#1439](https://github.com/videojs/http-streaming/issues/1439)) ([719b7f4](https://github.com/videojs/http-streaming/commit/719b7f4))
+* replaceSegmentsUntil flag resetting too early ([#1444](https://github.com/videojs/http-streaming/issues/1444)) ([af39ba5](https://github.com/videojs/http-streaming/commit/af39ba5))
+* use startTime instead of 0 for finiteDuration ([#1448](https://github.com/videojs/http-streaming/issues/1448)) ([dc78d78](https://github.com/videojs/http-streaming/commit/dc78d78))
+* wrap onwarn values in a message object ([#1428](https://github.com/videojs/http-streaming/issues/1428)) ([beccfa1](https://github.com/videojs/http-streaming/commit/beccfa1))
+
+### Chores
+
+* fix tests, remove qunit only ([#1449](https://github.com/videojs/http-streaming/issues/1449)) ([f294133](https://github.com/videojs/http-streaming/commit/f294133))
+* Update mux.js 7.0.1 to 7.0.2 ([#1450](https://github.com/videojs/http-streaming/issues/1450)) ([b22f6f1](https://github.com/videojs/http-streaming/commit/b22f6f1))
+
+### Documentation
+
+* add docs for content steering ([#1442](https://github.com/videojs/http-streaming/issues/1442)) ([cc22082](https://github.com/videojs/http-streaming/commit/cc22082))
+* Update arch.md ([#1459](https://github.com/videojs/http-streaming/issues/1459)) ([a891580](https://github.com/videojs/http-streaming/commit/a891580))
+
 <a name="3.7.0"></a>
 # [3.7.0](https://github.com/videojs/http-streaming/compare/v3.6.0...v3.7.0) (2023-10-12)
 
