@@ -314,7 +314,7 @@ export default class DashPlaylistLoader extends EventTarget {
     this.vhs_ = vhs;
     this.withCredentials = withCredentials;
     this.addMetadataToTextTrack = options.addMetadataToTextTrack;
-    this.keyStatusMap = new Map();
+    this.keyStatusMap_ = new Map();
 
     if (!srcUrlOrPlaylist) {
       throw new Error('A non-empty playlist URL or object is required');
@@ -474,7 +474,7 @@ export default class DashPlaylistLoader extends EventTarget {
     }
 
     this.off();
-    this.keyStatusMap.clear();
+    this.keyStatusMap_.clear();
   }
 
   hasPendingRequest() {
@@ -935,7 +935,7 @@ export default class DashPlaylistLoader extends EventTarget {
         return;
       }
       const playlistKID = playlist.contentProtection.mp4protection.attributes['cenc:default_KID'].replace('-', '');
-      const hasUsableKeystatus = this.keyStatusMap.has(playlistKID) && this.keyStatusMap.get(playlistKID) === 'usable';
+      const hasUsableKeystatus = this.keyStatusMap_.has(playlistKID) && this.keyStatusMap_.get(playlistKID) === 'usable';
 
       if (!hasUsableKeystatus) {
         playlist.excludeUntil = Infinity;
