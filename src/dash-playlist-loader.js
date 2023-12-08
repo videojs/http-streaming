@@ -934,7 +934,7 @@ export default class DashPlaylistLoader extends EventTarget {
         !playlist.contentProtection.mp4protection.attributes['cenc:default_KID']) {
         return;
       }
-      const playlistKID = playlist.contentProtection.mp4protection.attributes['cenc:default_KID'].replace('-', '');
+      const playlistKID = playlist.contentProtection.mp4protection.attributes['cenc:default_KID'].replace(/-/g, '');
       const hasUsableKeystatus = this.keyStatusMap_.has(playlistKID) && this.keyStatusMap_.get(playlistKID) === 'usable';
 
       if (!hasUsableKeystatus) {
