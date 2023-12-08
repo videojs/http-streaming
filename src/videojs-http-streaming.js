@@ -1141,7 +1141,7 @@ class VhsHandler extends Component {
       if (e.status !== 'output-restricted') {
         const shouldDisableNonUsablePlaylists = this.options_.disableNonUsablePlaylists &&
           this.playlistController_.mainPlaylistLoader_.addKeyStatus &&
-          this.playlistController_.mainPlaylistLoader_.enableOnlyUsablePlaylists;
+          this.playlistController_.mainPlaylistLoader_.excludeNonUsablePlaylists;
 
         if (!shouldDisableNonUsablePlaylists) {
           return;
