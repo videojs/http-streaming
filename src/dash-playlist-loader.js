@@ -930,6 +930,10 @@ export default class DashPlaylistLoader extends EventTarget {
 
   excludeNonUsablePlaylists() {
     this.mainPlaylistLoader_.main.playlists.forEach((playlist) => {
+      if (!playlist.contentProtection.mp4protection ||
+        !playlist.contentProtection.mp4protection.attributes['cenc:default_KID']) {
+        return;
+      }
       const playlistKID = playlist.contentProtection.mp4protection.attributes['cenc:default_KID'].replace('-', '');
       const hasUsableKeystatus = this.keyStatusMap.has(playlistKID) && this.keyStatusMap.get(playlistKID) === 'usable';
 
