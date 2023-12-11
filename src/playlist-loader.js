@@ -1194,4 +1194,20 @@ export default class PlaylistLoader extends EventTarget {
 
     return attributes;
   }
+
+  /**
+   * Returns the key ID from a playlist.
+   *
+   * @param {playlist} playlist to fetch the key ID from.
+   * @return a 32 digit hex string that represents the keyId of the encrypted playlist.
+   */
+  getKID(playlist) {
+    // Currently we only parse the keyId for widevine in HLS so only look there.
+    if (playlist.contentProtection &&
+      playlist.contentProtection['com.widevine.alpha'] &&
+      playlist.contentProtection['com.widevine.alpha'].attributes.keyId) {
+      // default KID is a 32 digit hext string often separated by '-'.
+      return playlist.contentProtection['com.widevine.alpha'].attributes.keyId.replace(/-/g, '');
+    }
+  }
 }

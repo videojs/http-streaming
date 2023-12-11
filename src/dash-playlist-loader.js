@@ -22,7 +22,6 @@ import containerRequest from './util/container-request.js';
 import {toUint8} from '@videojs/vhs-utils/es/byte-helpers';
 import logger from './util/logger';
 import {merge} from './util/vjs-compat';
-import { arrayBufferToHexString } from './util/string.js';
 
 const { EventTarget } = videojs;
 
@@ -314,7 +313,6 @@ export default class DashPlaylistLoader extends EventTarget {
     this.vhs_ = vhs;
     this.withCredentials = withCredentials;
     this.addMetadataToTextTrack = options.addMetadataToTextTrack;
-    this.keyStatusMap_ = new Map();
 
     if (!srcUrlOrPlaylist) {
       throw new Error('A non-empty playlist URL or object is required');
@@ -474,7 +472,6 @@ export default class DashPlaylistLoader extends EventTarget {
     }
 
     this.off();
-    this.keyStatusMap_.clear();
   }
 
   hasPendingRequest() {
@@ -928,29 +925,18 @@ export default class DashPlaylistLoader extends EventTarget {
     }
   }
 
-  excludeNonUsablePlaylists() {
-    this.mainPlaylistLoader_.main.playlists.forEach((playlist) => {
-      if (!playlist.contentProtection.mp4protection ||
-        !playlist.contentProtection.mp4protection.attributes['cenc:default_KID']) {
-        return;
-      }
-      const playlistKID = playlist.contentProtection.mp4protection.attributes['cenc:default_KID'].replace(/-/g, '');
-      const hasUsableKeystatus = this.keyStatusMap_.has(playlistKID) && this.keyStatusMap_.get(playlistKID) === 'usable';
-
-      if (!hasUsableKeystatus) {
-        playlist.excludeUntil = Infinity;
-        playlist.lastExcludeReason_ = 'non-usable';
-      } else {
-        delete playlist.excludeUntil;
-        delete playlist.lastExcludeReason_;
-      }
-    });
-  }
-
-  addKeyStatus(keyId, status) {
-    // 32 digit keyId hex string.
-    const keyIdHexString = arrayBufferToHexString(keyId).slice(0, 32);
-
-    this.keyStatusMap_.set(keyIdHexString, status);
+  /**
+   * Returns the default_KID from a DASH playlist.
+   *
+   * @param {playlist} playlist to fetch the default_KID from.
+   * @return a 32 digit hex string that represents the keyId of the encrypted playlist.
+   */
+  getKID(playlist) {
+    if (playlist.contentProtection &&
+      playlist.contentProtection.mp4protection &&
+      playlist.contentProtection.mp4protection.attributes['cenc:default_KID']) {
+      // default KID is a 32 digit hext string separated by '-'.
+      return playlist.contentProtection.mp4protection.attributes['cenc:default_KID'].replace(/-/g, '');
+    }
   }
 }

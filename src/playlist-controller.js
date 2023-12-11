@@ -28,6 +28,7 @@ import logger from './util/logger';
 import {merge, createTimeRanges} from './util/vjs-compat';
 import { addMetadata, createMetadataTrackIfNotExists, addDateRangeMetadata } from './util/text-tracks';
 import ContentSteeringController from './content-steering-controller';
+import { arrayBufferToHexString } from './util/string.js';
 
 const ABORT_EARLY_EXCLUSION_SECONDS = 10;
 
@@ -235,6 +236,7 @@ export class PlaylistController extends videojs.EventTarget {
     this.sourceUpdater_ = new SourceUpdater(this.mediaSource);
     this.inbandTextTracks_ = {};
     this.timelineChangeController_ = new TimelineChangeController();
+    this.keyStatusMap_ = new Map();
 
     const segmentLoaderSettings = {
       vhs: this.vhs_,
@@ -1708,6 +1710,7 @@ export class PlaylistController extends videojs.EventTarget {
     this.mainPlaylistLoader_.dispose();
     this.mainSegmentLoader_.dispose();
     this.contentSteeringController_.dispose();
+    this.keyStatusMap_.clear();
 
     if (this.loadOnPlay_) {
       this.tech_.off('play', this.loadOnPlay_);
@@ -2379,5 +2382,32 @@ export class PlaylistController extends videojs.EventTarget {
     }
 
     this.switchMedia_(nextPlaylist, 'content-steering');
+  }
+
+  excludeNonUsablePlaylistsByKID() {
+    this.mainPlaylistLoader_.main.playlists.forEach((playlist) => {
+      const keyId = this.mainPlaylistLoader_.getKID(playlist);
+      // If the playlist doesn't have a keyID lets not exclude it.
+
+      if (!keyId) {
+        return;
+      }
+      const hasUsableKeystatus = this.keyStatusMap_.has(keyId) && this.keyStatusMap_.get(keyId) === 'usable';
+
+      if (!hasUsableKeystatus) {
+        playlist.excludeUntil = Infinity;
+        playlist.lastExcludeReason_ = 'non-usable';
+      } else {
+        delete playlist.excludeUntil;
+        delete playlist.lastExcludeReason_;
+      }
+    });
+  }
+
+  addKeyStatus(keyId, status) {
+    // 32 digit keyId hex string.
+    const keyIdHexString = arrayBufferToHexString(keyId).slice(0, 32);
+
+    this.keyStatusMap_.set(keyIdHexString, status);
   }
 }
