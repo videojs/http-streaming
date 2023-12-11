@@ -485,7 +485,7 @@ const removeOnResponseHook = (xhr, callback) => {
   }
 };
 
-const debounce = (callback, timeout = 10) => {
+const debounce = (callback, timeout = 1000) => {
   let timeoutId;
 
   return (...args) => {
@@ -1139,19 +1139,12 @@ class VhsHandler extends Component {
 
     this.player_.tech_.on('keystatuschange', (e) => {
       if (e.status !== 'output-restricted') {
-        const shouldDisableNonUsablePlaylists = this.options_.disableNonUsablePlaylists &&
-          this.playlistController_.mainPlaylistLoader_.addKeyStatus &&
-          this.playlistController_.mainPlaylistLoader_.excludeNonUsablePlaylists;
-
-        if (!shouldDisableNonUsablePlaylists) {
-          return;
-        }
         const debounceExcludeAndChange = debounce(() => {
-          this.playlistController_.mainPlaylistLoader_.excludeNonUsablePlaylists();
+          this.playlistController_.excludeNonUsablePlaylistsByKID();
           this.playlistController_.fastQualityChange_();
         });
 
-        this.playlistController_.mainPlaylistLoader_.addKeyStatus(e.keyId, e.status);
+        this.playlistController_.addKeyStatus(e.keyId, e.status);
         // This is called in a loop for each keystatuseschange event from the MediaKeySession
         // so we need to debounce this so we don't repeatedly filter the playlists.
         debounceExcludeAndChange();
