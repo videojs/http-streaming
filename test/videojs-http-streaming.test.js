@@ -4912,15 +4912,24 @@ QUnit.test('eme handles keystatuschange where status is usable', function(assert
   };
 
   const excludes = [];
+  let updatePlaylistByKeyStatusCalled = 0;
+  const keyIdEncoded = new TextEncoder().encode('303E3FF1CAC36019B9265CBFF45C82F2');
+
+  this.player.tech_.vhs.playlistController_.updatePlaylistByKeyStatus = (keyId, status) => {
+    updatePlaylistByKeyStatusCalled++;
+    assert.equal(keyIdEncoded, keyId, 'keyId is expected value');
+    assert.equal(status, 'usable', 'status is expected value');
+  };
 
   this.player.tech_.vhs.playlistController_.excludePlaylist = (exclude) => {
     excludes.push(exclude);
   };
 
   this.player.tech_.vhs.playlistController_.sourceUpdater_.trigger('createdsourcebuffers');
-  this.player.tech_.trigger({type: 'keystatuschange', status: 'usable'});
+  this.player.tech_.trigger({type: 'keystatuschange', keyId: keyIdEncoded, status: 'usable'});
 
   assert.deepEqual(excludes, [], 'did not exclude anything');
+  assert.equal(updatePlaylistByKeyStatusCalled, 1, 'updatePlaylistByKeyStatusCalled called once');
 });
 
 QUnit.test('eme waitingforkey event triggers another setup', function(assert) {

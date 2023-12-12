@@ -28,7 +28,6 @@ import logger from './util/logger';
 import {merge, createTimeRanges} from './util/vjs-compat';
 import { addMetadata, createMetadataTrackIfNotExists, addDateRangeMetadata } from './util/text-tracks';
 import ContentSteeringController from './content-steering-controller';
-import { arrayBufferToHexString } from './util/string.js';
 
 const ABORT_EARLY_EXCLUSION_SECONDS = 10;
 
@@ -979,7 +978,11 @@ export class PlaylistController extends videojs.EventTarget {
    * @private
    */
   fastQualityChange_(media = this.selectPlaylist()) {
-    if (!media || media === this.mainPlaylistLoader_.media()) {
+    if (!media) {
+      return;
+    }
+
+    if (media === this.mainPlaylistLoader_.media()) {
       this.logger_('skipping fastQualityChange because new media is same as old');
       return;
     }
@@ -2384,18 +2387,29 @@ export class PlaylistController extends videojs.EventTarget {
     this.switchMedia_(nextPlaylist, 'content-steering');
   }
 
-  excludeNonUsablePlaylistsByKID() {
+  /**
+   * Iterates through a playlists and check their keyId set and compare with the
+   * keyStatusMap, only enable playlists that have a usable key. If the playlist
+   * has no keyId leave it enabled by default.
+   */
+  excludeNonUsablePlaylistsByKeyId_() {
+
+    if (!this.mainPlaylistLoader_ || !this.mainPlaylistLoader_.main) {
+      return;
+    }
+
     this.mainPlaylistLoader_.main.playlists.forEach((playlist) => {
       const keyIdSet = this.mainPlaylistLoader_.getKeyIdSet(playlist);
 
       // If the playlist doesn't have a keyIDs lets not exclude it.
-      if (!keyIdSet.size) {
+      if (!keyIdSet || !keyIdSet.size) {
         return;
       }
       keyIdSet.forEach((key) => {
-        const hasUsableKeystatus = this.keyStatusMap_.has(key) && this.keyStatusMap_.get(key) === 'usable';
+        const hasUsableKeyStatus = this.keyStatusMap_.has(key) && this.keyStatusMap_.get(key) === 'usable';
 
-        if (!hasUsableKeystatus) {
+        if (!hasUsableKeyStatus) {
+          this.logger_(`playlist has no usable keystatus for keyId ${key} excluding ${playlist.id} for ${playlist.lastExcludeReason_}`);
           playlist.excludeUntil = Infinity;
           playlist.lastExcludeReason_ = 'non-usable';
         } else {
@@ -2406,10 +2420,29 @@ export class PlaylistController extends videojs.EventTarget {
     });
   }
 
-  addKeyStatus(keyId, status) {
-    // 32 digit keyId hex string.
-    const keyIdHexString = arrayBufferToHexString(keyId).slice(0, 32);
+  /**
+   * Adds a keystatus to the keystatus map, tries to convert to string with a TextDecoder if necessary.
+   *
+   * @param {any} keyId the keyId to add a status for
+   * @param {string} status the status of the keyId
+   */
+  addKeyStatus_(keyId, status) {
+    const isString = typeof keyId === 'string';
+    const keyIdHexString = isString ? keyId : new TextDecoder().decode(keyId);
 
-    this.keyStatusMap_.set(keyIdHexString, status);
+    // 32 digit keyId hex string.
+    this.keyStatusMap_.set(keyIdHexString.slice(0, 32), status);
+  }
+
+  /**
+   * Utility function for adding key status to the keyStatusMap and filtering usable encrypted playlists.
+   *
+   * @param {any} keyId the keyId from the keystatuschange event
+   * @param {string} status the key status string
+   */
+  updatePlaylistByKeyStatus(keyId, status) {
+    this.addKeyStatus_(keyId, status);
+    this.excludeNonUsablePlaylistsByKeyId_();
+    this.fastQualityChange_();
   }
 }

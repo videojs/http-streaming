@@ -4864,6 +4864,140 @@ QUnit.test('can pass or select a playlist for fastQualityChange', function(asser
   }, 'calls expected function when not passed a playlist');
 });
 
+QUnit.test('addKeyStatus_ adds keyId and status to the Map', function(assert) {
+  // string keyId
+  const keyIdEncoded = new TextEncoder().encode('a6fcfb2a857c4227adb5a5f51aa27632');
+  const status = 'usable';
+  const pc = this.playlistController;
+  let excludeNonUsablePlaylistsByKeyIdCalled = 0;
+
+  pc.addKeyStatus_ = (id, st) => {
+    assert.equal(id, keyIdEncoded, 'addKeyStatus_ called with expected keyId');
+    assert.equal(st, status, 'addKeyStatus_ called with expected status');
+  };
+
+  pc.excludeNonUsablePlaylistsByKeyId_ = () => {
+    excludeNonUsablePlaylistsByKeyIdCalled++;
+  };
+
+  pc.updatePlaylistByKeyStatus(keyIdEncoded, status);
+  assert.equal(excludeNonUsablePlaylistsByKeyIdCalled, 1, 'excludeNonUsablePlaylistsByKeyIdCalled called once');
+});
+
+QUnit.test('addKeyStatus_ adds keyId and status to the Map', function(assert) {
+  // string keyId
+  const keyId = 'a6fcfb2a857c4227adb5a5f51aa27632';
+  const status = 'usable';
+  const pc = this.playlistController;
+
+  pc.addKeyStatus_(keyId, status);
+
+  assert.equal(pc.keyStatusMap_.size, 1, 'map is expected size');
+  assert.equal(pc.keyStatusMap_.get(keyId), status, 'keyId has expected status');
+
+  // test a non-string keyId
+  const keyId2 = 'd0bebaf8a3cb4c52bae03d20a71e3df3';
+  const keyIdArrayBuffer = new TextEncoder().encode(keyId2);
+
+  pc.addKeyStatus_(keyIdArrayBuffer, 'usable');
+
+  assert.equal(pc.keyStatusMap_.size, 2, 'map is expected size');
+  assert.equal(pc.keyStatusMap_.get(keyId2), status, 'keyId has expected status');
+  // Uint8 keyid.
+});
+
+QUnit.test('dispose clears the keyStatusMap', function(assert) {
+  // string keyId
+  const keyId = 'd0bebaf8a3cb4c52bae03d20a71e3df3';
+  const status = 'usable';
+  const pc = this.playlistController;
+
+  pc.addKeyStatus_(keyId, status);
+
+  assert.equal(pc.keyStatusMap_.size, 1, 'map is expected size');
+  assert.equal(pc.keyStatusMap_.get(keyId), status, 'keyId has expected status');
+
+  pc.dispose();
+
+  assert.equal(pc.keyStatusMap_.size, 0, 'map is expected size');
+});
+
+QUnit.test('excludeNonUsablePlaylistsByKeyId_ excludes non usable HLS playlists', function(assert) {
+  // included playlist
+  const includedKeyId = 'd0bebaf8a3cb4c52bae03d20a71e3df3';
+  const includedStatus = 'usable';
+  const pc = this.playlistController;
+  const includedPlaylist = {
+    contentProtection: {
+      'com.widevine.alpha': {
+        attributes: {
+          keyId: includedKeyId
+        }
+      }
+    }
+  };
+
+  // excluded playlist
+  const excludedPlaylist = {
+    contentProtection: {
+      'com.microsoft.playready': {
+        attributes: {
+          keyId: '89256e53dbe544e9afba38d2ca17d176'
+        }
+      }
+    }
+  };
+
+  pc.mainPlaylistLoader_.main = { playlists: [includedPlaylist, excludedPlaylist] };
+
+  // add included key
+  pc.addKeyStatus_(includedKeyId, includedStatus);
+
+  pc.excludeNonUsablePlaylistsByKeyId_();
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[1].excludeUntil, Infinity, 'excludeUntil is Infinity');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[1].lastExcludeReason_, 'non-usable', 'lastExcludeReason is non-usable');
+});
+
+QUnit.test('excludeNonUsablePlaylistsByKeyId_ excludes non usable DASH playlists', function(assert) {
+  const options = {
+    src: 'test',
+    tech: this.player.tech_,
+    sourceType: 'dash'
+  };
+  const pc = new PlaylistController(options);
+
+  // excluded playlist
+  const excludedPlaylist = {
+    contentProtection: {
+      'com.widevine.alpha': {
+        attributes: {}
+      }
+    }
+  };
+
+  // included playlist
+  const includedKeyId = 'd0bebaf8a3cb4c52bae03d20a71e3df3';
+  const includedStatus = 'usable';
+  const includedPlaylist = {
+    contentProtection: {
+      mp4protection: {
+        attributes: {
+          'cenc:default_KID': '89256e53dbe544e9afba38d2ca17d176'
+        }
+      }
+    }
+  };
+
+  pc.mainPlaylistLoader_.main = { playlists: [includedPlaylist, excludedPlaylist] };
+
+  // add included key
+  pc.addKeyStatus_(includedKeyId, includedStatus);
+
+  pc.excludeNonUsablePlaylistsByKeyId_();
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[0].excludeUntil, Infinity, 'excludeUntil is Infinity');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[0].lastExcludeReason_, 'non-usable', 'lastExcludeReason is non-usable');
+});
+
 QUnit.module('PlaylistController codecs', {
   beforeEach(assert) {
     sharedHooks.beforeEach.call(this, assert);

@@ -951,8 +951,13 @@ export default class DashPlaylistLoader extends EventTarget {
       const keyIds = new Set();
 
       for (const keysystem in playlist.contentProtection) {
+        const defaultKID = playlist.contentProtection[keysystem].attributes['cenc:default_KID'];
+
+        if (!defaultKID) {
+          return;
+        }
         // DASH keyIds are separated by dashes.
-        const keyId = playlist.contentProtection[keysystem].attributes['cenc:default_KID'].replace(/-/g, '');
+        const keyId = defaultKID.replace(/-/g, '');
 
         if (keyId) {
           keyIds.add(keyId);
