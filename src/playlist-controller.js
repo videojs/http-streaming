@@ -2457,9 +2457,10 @@ export class PlaylistController extends videojs.EventTarget {
       };
     };
 
+    // Call Immediately.
     debouncePlaylistUpdate(() => {
       this.excludeNonUsablePlaylistsByKeyId_();
       this.fastQualityChange_();
-    });
+    })();
   }
 }
