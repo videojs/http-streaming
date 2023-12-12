@@ -29,7 +29,6 @@ import {merge, createTimeRanges} from './util/vjs-compat';
 import { addMetadata, createMetadataTrackIfNotExists, addDateRangeMetadata } from './util/text-tracks';
 import ContentSteeringController from './content-steering-controller';
 import { bufferToHexString } from './util/string.js';
-import { debounce } from 'lodash';
 
 const ABORT_EARLY_EXCLUSION_SECONDS = 10;
 
@@ -2444,12 +2443,21 @@ export class PlaylistController extends videojs.EventTarget {
    */
   updatePlaylistByKeyStatus(keyId, status) {
     this.addKeyStatus_(keyId, status);
+
     // this gets called a LOT. Unless we want to change contrib-eme we should debounce here.
     const ONE_SECOND = 1000;
+    const debouncePlaylistUpdate = (fn) => {
+      let timeoutId;
 
-    debounce(() => {
+      return () => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(fn.apply(this), ONE_SECOND);
+      };
+    };
+
+    debouncePlaylistUpdate(() => {
       this.excludeNonUsablePlaylistsByKeyId_();
       this.fastQualityChange_();
-    }, ONE_SECOND);
+    });
   }
 }
