@@ -4866,13 +4866,13 @@ QUnit.test('can pass or select a playlist for fastQualityChange', function(asser
 
 QUnit.test('addKeyStatus_ adds keyId and status to the Map', function(assert) {
   // string keyId
-  const keyIdEncoded = new TextEncoder().encode('a6fcfb2a857c4227adb5a5f51aa27632');
+  const keyIdString = 'a6fcfb2a857c4227adb5a5f51aa27632';
   const status = 'usable';
   const pc = this.playlistController;
   let excludeNonUsablePlaylistsByKeyIdCalled = 0;
 
   pc.addKeyStatus_ = (id, st) => {
-    assert.equal(id, keyIdEncoded, 'addKeyStatus_ called with expected keyId');
+    assert.equal(id, keyIdString, 'addKeyStatus_ called with expected keyId');
     assert.equal(st, status, 'addKeyStatus_ called with expected status');
   };
 
@@ -4880,7 +4880,7 @@ QUnit.test('addKeyStatus_ adds keyId and status to the Map', function(assert) {
     excludeNonUsablePlaylistsByKeyIdCalled++;
   };
 
-  pc.updatePlaylistByKeyStatus(keyIdEncoded, status);
+  pc.updatePlaylistByKeyStatus(keyIdString, status);
   assert.equal(excludeNonUsablePlaylistsByKeyIdCalled, 1, 'excludeNonUsablePlaylistsByKeyIdCalled called once');
 });
 
@@ -4896,8 +4896,9 @@ QUnit.test('addKeyStatus_ adds keyId and status to the Map', function(assert) {
   assert.equal(pc.keyStatusMap_.get(keyId), status, 'keyId has expected status');
 
   // test a non-string keyId
-  const keyId2 = 'd0bebaf8a3cb4c52bae03d20a71e3df3';
-  const keyIdArrayBuffer = new TextEncoder().encode(keyId2);
+  const keyId2 = '1f1574301da34f8bbcc82f4c2d1551b8';
+  const keyIdArrayBuffer = new Uint8Array([31, 21, 116, 48, 29, 163,
+    79, 139, 188, 200, 47, 76, 45, 21, 81, 184]).buffer;
 
   pc.addKeyStatus_(keyIdArrayBuffer, 'usable');
 

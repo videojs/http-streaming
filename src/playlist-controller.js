@@ -28,6 +28,7 @@ import logger from './util/logger';
 import {merge, createTimeRanges} from './util/vjs-compat';
 import { addMetadata, createMetadataTrackIfNotExists, addDateRangeMetadata } from './util/text-tracks';
 import ContentSteeringController from './content-steering-controller';
+import { bufferToHexString } from './util/string.js';
 
 const ABORT_EARLY_EXCLUSION_SECONDS = 10;
 
@@ -2421,14 +2422,14 @@ export class PlaylistController extends videojs.EventTarget {
   }
 
   /**
-   * Adds a keystatus to the keystatus map, tries to convert to string with a TextDecoder if necessary.
+   * Adds a keystatus to the keystatus map, tries to convert to string if necessary.
    *
    * @param {any} keyId the keyId to add a status for
    * @param {string} status the status of the keyId
    */
   addKeyStatus_(keyId, status) {
     const isString = typeof keyId === 'string';
-    const keyIdHexString = isString ? keyId : new TextDecoder().decode(keyId);
+    const keyIdHexString = isString ? keyId : bufferToHexString(keyId);
 
     // 32 digit keyId hex string.
     this.keyStatusMap_.set(keyIdHexString.slice(0, 32), status);

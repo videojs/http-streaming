@@ -4913,7 +4913,7 @@ QUnit.test('eme handles keystatuschange where status is usable', function(assert
 
   const excludes = [];
   let updatePlaylistByKeyStatusCalled = 0;
-  const keyIdEncoded = new TextEncoder().encode('303E3FF1CAC36019B9265CBFF45C82F2');
+  const keyIdEncoded = '303E3FF1CAC36019B9265CBFF45C82F2';
 
   this.player.tech_.vhs.playlistController_.updatePlaylistByKeyStatus = (keyId, status) => {
     updatePlaylistByKeyStatusCalled++;
