@@ -2451,7 +2451,9 @@ export class PlaylistController extends videojs.EventTarget {
 
       return () => {
         clearTimeout(timeoutId);
-        timeoutId = setTimeout(fn.apply(this), ONE_SECOND);
+        timeoutId = setTimeout(() => {
+          fn.apply(this);
+        }, ONE_SECOND);
       };
     };
 
