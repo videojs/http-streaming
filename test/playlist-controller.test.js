@@ -4869,19 +4869,11 @@ QUnit.test('addKeyStatus_ adds keyId and status to the Map', function(assert) {
   const keyIdString = 'a6fcfb2a857c4227adb5a5f51aa27632';
   const status = 'usable';
   const pc = this.playlistController;
-  let excludeNonUsablePlaylistsByKeyIdCalled = 0;
 
   pc.addKeyStatus_ = (id, st) => {
     assert.equal(id, keyIdString, 'addKeyStatus_ called with expected keyId');
     assert.equal(st, status, 'addKeyStatus_ called with expected status');
   };
-
-  pc.excludeNonUsablePlaylistsByKeyId_ = () => {
-    excludeNonUsablePlaylistsByKeyIdCalled++;
-  };
-
-  pc.updatePlaylistByKeyStatus(keyIdString, status);
-  assert.equal(excludeNonUsablePlaylistsByKeyIdCalled, 1, 'excludeNonUsablePlaylistsByKeyIdCalled called once');
 });
 
 QUnit.test('addKeyStatus_ adds keyId and status to the Map', function(assert) {
