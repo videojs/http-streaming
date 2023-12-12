@@ -925,18 +925,40 @@ export default class DashPlaylistLoader extends EventTarget {
     }
   }
 
+  // /**
+  //  * Returns the default_KID from a DASH playlist.
+  //  *
+  //  * @param {playlist} playlist to fetch the default_KID from.
+  //  * @return a 32 digit hex string that represents the keyId of the encrypted playlist.
+  //  */
+  // getKID(playlist) {
+  //   if (playlist.contentProtection &&
+  //     playlist.contentProtection.mp4protection &&
+  //     playlist.contentProtection.mp4protection.attributes['cenc:default_KID']) {
+  //     // default KID is a 32 digit hext string separated by '-'.
+  //     return playlist.contentProtection.mp4protection.attributes['cenc:default_KID'].replace(/-/g, '');
+  //   }
+  // }
+
   /**
-   * Returns the default_KID from a DASH playlist.
+   * Returns the key ID set from a playlist
    *
-   * @param {playlist} playlist to fetch the default_KID from.
-   * @return a 32 digit hex string that represents the keyId of the encrypted playlist.
+   * @param {playlist} playlist to fetch the key ID set from.
+   * @return a Set of 32 digit hex strings that represent the unique keyIds for that playlist.
    */
-  getKID(playlist) {
-    if (playlist.contentProtection &&
-      playlist.contentProtection.mp4protection &&
-      playlist.contentProtection.mp4protection.attributes['cenc:default_KID']) {
-      // default KID is a 32 digit hext string separated by '-'.
-      return playlist.contentProtection.mp4protection.attributes['cenc:default_KID'].replace(/-/g, '');
+  getKeyIdSet(playlist) {
+    if (playlist.contentProtection) {
+      const keyIds = new Set();
+
+      for (const keysystem in playlist.contentProtection) {
+        // DASH keyIds are separated by dashes.
+        const keyId = playlist.contentProtection[keysystem].attributes['cenc:default_KID'].replace(/-/g, '');
+
+        if (keyId) {
+          keyIds.add(keyId);
+        }
+      }
+      return keyIds;
     }
   }
 }

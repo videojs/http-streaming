@@ -2386,21 +2386,23 @@ export class PlaylistController extends videojs.EventTarget {
 
   excludeNonUsablePlaylistsByKID() {
     this.mainPlaylistLoader_.main.playlists.forEach((playlist) => {
-      const keyId = this.mainPlaylistLoader_.getKID(playlist);
-      // If the playlist doesn't have a keyID lets not exclude it.
+      const keyIdSet = this.mainPlaylistLoader_.getKeyIdSet(playlist);
 
-      if (!keyId) {
+      // If the playlist doesn't have a keyIDs lets not exclude it.
+      if (!keyIdSet.size) {
         return;
       }
-      const hasUsableKeystatus = this.keyStatusMap_.has(keyId) && this.keyStatusMap_.get(keyId) === 'usable';
+      keyIdSet.forEach((key) => {
+        const hasUsableKeystatus = this.keyStatusMap_.has(key) && this.keyStatusMap_.get(key) === 'usable';
 
-      if (!hasUsableKeystatus) {
-        playlist.excludeUntil = Infinity;
-        playlist.lastExcludeReason_ = 'non-usable';
-      } else {
-        delete playlist.excludeUntil;
-        delete playlist.lastExcludeReason_;
-      }
+        if (!hasUsableKeystatus) {
+          playlist.excludeUntil = Infinity;
+          playlist.lastExcludeReason_ = 'non-usable';
+        } else {
+          delete playlist.excludeUntil;
+          delete playlist.lastExcludeReason_;
+        }
+      });
     });
   }
 
