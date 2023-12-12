@@ -1756,7 +1756,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // When we have track info, determine what media types this loader is dealing with.
     // Guard against cases where we're not getting track info at all until we are
     // certain that all streams will provide it.
-    if (!shallowEqual(this.currentMediaInfo_, trackInfo)) {
+    if (this.currentMediaInfo_ && !shallowEqual(this.currentMediaInfo_, trackInfo)) {
       this.appendInitSegment_ = {
         audio: true,
         video: true
