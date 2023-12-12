@@ -2410,7 +2410,6 @@ export class PlaylistController extends videojs.EventTarget {
         const hasUsableKeyStatus = this.keyStatusMap_.has(key) && this.keyStatusMap_.get(key) === 'usable';
 
         if (!hasUsableKeyStatus) {
-          this.logger_(`playlist has no usable keystatus for keyId ${key} excluding ${playlist.id} for ${playlist.lastExcludeReason_}`);
           playlist.excludeUntil = Infinity;
           playlist.lastExcludeReason_ = 'non-usable';
         } else {
@@ -2444,8 +2443,13 @@ export class PlaylistController extends videojs.EventTarget {
   updatePlaylistByKeyStatus(keyId, status) {
     this.addKeyStatus_(keyId, status);
     this.excludeNonUsablePlaylistsByKeyId_();
-    const nextPlaylist = this.selectPlaylist();
+    const newPlaylist = this.selectPlaylist();
+    const oldPlaylist = this.mainPlaylistLoader_.media();
+    const keystatusChange = 'keystatus-change';
 
-    this.switchMedia_(nextPlaylist, 'keystatuschange');
+    if (newPlaylist !== oldPlaylist) {
+      this.logger_(`switching playlist from ${oldPlaylist.id} to ${newPlaylist.id} due to a ${keystatusChange}`);
+      this.switchMedia_(newPlaylist, keystatusChange);
+    }
   }
 }

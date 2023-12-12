@@ -4864,16 +4864,25 @@ QUnit.test('can pass or select a playlist for fastQualityChange', function(asser
   }, 'calls expected function when not passed a playlist');
 });
 
-QUnit.test('addKeyStatus_ adds keyId and status to the Map', function(assert) {
+QUnit.test('updatePlaylistByKeyStatus calls the expected functions', function(assert) {
   // string keyId
-  const keyIdString = 'a6fcfb2a857c4227adb5a5f51aa27632';
+  const keyIdArrayBuffer = new Uint8Array([31, 21, 116, 48, 29, 163,
+    79, 139, 188, 200, 47, 76, 45, 21, 81, 184]).buffer;
   const status = 'usable';
   const pc = this.playlistController;
+  let excludeCalls = 0;
 
   pc.addKeyStatus_ = (id, st) => {
-    assert.equal(id, keyIdString, 'addKeyStatus_ called with expected keyId');
+    assert.equal(id, keyIdArrayBuffer, 'addKeyStatus_ called with expected keyId');
     assert.equal(st, status, 'addKeyStatus_ called with expected status');
   };
+
+  pc.excludeNonUsablePlaylistsByKeyId_ = () => {
+    excludeCalls++;
+  };
+
+  pc.updatePlaylistByKeyStatus(keyIdArrayBuffer, status);
+  assert.equal(excludeCalls, 1, 'excludeNonUsablePlaylistsByKeyId_ called once');
 });
 
 QUnit.test('addKeyStatus_ adds keyId and status to the Map', function(assert) {
