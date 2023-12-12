@@ -2445,7 +2445,7 @@ export class PlaylistController extends videojs.EventTarget {
     this.addKeyStatus_(keyId, status);
 
     // this gets called a LOT. Unless we want to change contrib-eme we should debounce here.
-    const ONE_SECOND = 1000;
+    const TWO_SECONDS = 2000;
     const debouncePlaylistUpdate = (fn) => {
       let timeoutId;
 
@@ -2453,7 +2453,7 @@ export class PlaylistController extends videojs.EventTarget {
         clearTimeout(timeoutId);
         timeoutId = setTimeout(() => {
           fn.apply(this);
-        }, ONE_SECOND);
+        }, TWO_SECONDS);
       };
     };
 
