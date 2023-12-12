@@ -979,10 +979,6 @@ export class PlaylistController extends videojs.EventTarget {
    * @private
    */
   fastQualityChange_(media = this.selectPlaylist()) {
-    if (!media) {
-      return;
-    }
-
     if (media === this.mainPlaylistLoader_.media()) {
       this.logger_('skipping fastQualityChange because new media is same as old');
       return;
@@ -2407,12 +2403,14 @@ export class PlaylistController extends videojs.EventTarget {
         return;
       }
       keyIdSet.forEach((key) => {
-        const hasUsableKeyStatus = this.keyStatusMap_.has(key) && this.keyStatusMap_.get(key) === 'usable';
-        const nonUsableExclusion = playlist.lastExcludeReason_ === 'non-usable' && playlist.excludeUntil === Infinity;
+        const USABLE = 'usable';
+        const NON_USABLE = 'non-usable';
+        const hasUsableKeyStatus = this.keyStatusMap_.has(key) && this.keyStatusMap_.get(key) === USABLE;
+        const nonUsableExclusion = playlist.lastExcludeReason_ === NON_USABLE && playlist.excludeUntil === Infinity;
 
         if (!hasUsableKeyStatus) {
           playlist.excludeUntil = Infinity;
-          playlist.lastExcludeReason_ = 'non-usable';
+          playlist.lastExcludeReason_ = NON_USABLE;
         } else if (hasUsableKeyStatus && nonUsableExclusion) {
           delete playlist.excludeUntil;
           delete playlist.lastExcludeReason_;
