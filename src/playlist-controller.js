@@ -2385,7 +2385,7 @@ export class PlaylistController extends videojs.EventTarget {
   }
 
   /**
-   * Iterates through a playlists and check their keyId set and compare with the
+   * Iterates through playlists and check their keyId set and compare with the
    * keyStatusMap, only enable playlists that have a usable key. If the playlist
    * has no keyId leave it enabled by default.
    */
@@ -2411,9 +2411,11 @@ export class PlaylistController extends videojs.EventTarget {
         if (!hasUsableKeyStatus) {
           playlist.excludeUntil = Infinity;
           playlist.lastExcludeReason_ = NON_USABLE;
+          this.logger_(`excluding playlist ${playlist.id} because the key ID ${key} doesn't exist in the keyStatusMap or is not ${USABLE}`);
         } else if (hasUsableKeyStatus && nonUsableExclusion) {
           delete playlist.excludeUntil;
           delete playlist.lastExcludeReason_;
+          this.logger_(`enabling playlist ${playlist.id} because key ID ${key} is ${USABLE}`);
         }
       });
     });
@@ -2442,12 +2444,13 @@ export class PlaylistController extends videojs.EventTarget {
   updatePlaylistByKeyStatus(keyId, status) {
     this.addKeyStatus_(keyId, status);
     this.excludeNonUsablePlaylistsByKeyId_();
-    const newPlaylist = this.selectPlaylist();
     const oldPlaylist = this.mainPlaylistLoader_.media();
+    const oldId = oldPlaylist ? oldPlaylist.id : undefined;
+    const newPlaylist = this.selectPlaylist();
     const keystatusChange = 'keystatus-change';
 
     if (newPlaylist !== oldPlaylist) {
-      this.logger_(`switching playlist from ${oldPlaylist.id} to ${newPlaylist.id} due to a ${keystatusChange}`);
+      this.logger_(`switching playlists from ${oldId} to ${newPlaylist.id} due to a ${keystatusChange}`);
       this.switchMedia_(newPlaylist, keystatusChange);
     }
   }

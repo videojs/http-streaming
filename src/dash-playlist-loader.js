@@ -925,21 +925,6 @@ export default class DashPlaylistLoader extends EventTarget {
     }
   }
 
-  // /**
-  //  * Returns the default_KID from a DASH playlist.
-  //  *
-  //  * @param {playlist} playlist to fetch the default_KID from.
-  //  * @return a 32 digit hex string that represents the keyId of the encrypted playlist.
-  //  */
-  // getKID(playlist) {
-  //   if (playlist.contentProtection &&
-  //     playlist.contentProtection.mp4protection &&
-  //     playlist.contentProtection.mp4protection.attributes['cenc:default_KID']) {
-  //     // default KID is a 32 digit hext string separated by '-'.
-  //     return playlist.contentProtection.mp4protection.attributes['cenc:default_KID'].replace(/-/g, '');
-  //   }
-  // }
-
   /**
    * Returns the key ID set from a playlist
    *

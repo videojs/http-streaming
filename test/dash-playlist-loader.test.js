@@ -44,7 +44,7 @@ QUnit.module('DASH Playlist Loader: unit', {
   }
 });
 
-QUnit.test('can getKID from a playlist', function(assert) {
+QUnit.test('can getKeyIdSet from a playlist', function(assert) {
   const loader = new DashPlaylistLoader('variant.mpd', this.fakeVhs);
   const keyId = '188743e1-bd62-400e-92d9-748f8c753d1a';
   // We currently only pass keyId for widevine content protection.

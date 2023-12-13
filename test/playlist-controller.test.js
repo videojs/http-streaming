@@ -4956,6 +4956,8 @@ QUnit.test('excludeNonUsablePlaylistsByKeyId_ excludes non usable HLS playlists'
   pc.addKeyStatus_(includedKeyId, includedStatus);
 
   pc.excludeNonUsablePlaylistsByKeyId_();
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[0].excludeUntil, 'excludeUntil is Infinity');
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[0].lastExcludeReason_, 'lastExcludeReason is non-usable');
   assert.equal(pc.mainPlaylistLoader_.main.playlists[1].excludeUntil, Infinity, 'excludeUntil is Infinity');
   assert.equal(pc.mainPlaylistLoader_.main.playlists[1].lastExcludeReason_, 'non-usable', 'lastExcludeReason is non-usable');
 });
@@ -4971,20 +4973,22 @@ QUnit.test('excludeNonUsablePlaylistsByKeyId_ excludes non usable DASH playlists
   // excluded playlist
   const excludedPlaylist = {
     contentProtection: {
-      'com.widevine.alpha': {
-        attributes: {}
+      mp4protection: {
+        attributes: {
+          'cenc:default_KID': 'd0bebaf8a3cb4c52bae03d20a71e3df3'
+        }
       }
     }
   };
 
   // included playlist
-  const includedKeyId = 'd0bebaf8a3cb4c52bae03d20a71e3df3';
+  const includedKeyId = '89256e53dbe544e9afba38d2ca17d176';
   const includedStatus = 'usable';
   const includedPlaylist = {
     contentProtection: {
       mp4protection: {
         attributes: {
-          'cenc:default_KID': '89256e53dbe544e9afba38d2ca17d176'
+          'cenc:default_KID': includedKeyId
         }
       }
     }
@@ -4996,8 +5000,65 @@ QUnit.test('excludeNonUsablePlaylistsByKeyId_ excludes non usable DASH playlists
   pc.addKeyStatus_(includedKeyId, includedStatus);
 
   pc.excludeNonUsablePlaylistsByKeyId_();
-  assert.equal(pc.mainPlaylistLoader_.main.playlists[0].excludeUntil, Infinity, 'excludeUntil is Infinity');
-  assert.equal(pc.mainPlaylistLoader_.main.playlists[0].lastExcludeReason_, 'non-usable', 'lastExcludeReason is non-usable');
+
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[0].excludeUntil, 'excludeUntil is Infinity');
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[0].lastExcludeReason_, 'lastExcludeReason is non-usable');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[1].excludeUntil, Infinity, 'excludeUntil is Infinity');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[1].lastExcludeReason_, 'non-usable', 'lastExcludeReason is non-usable');
+});
+
+QUnit.test('excludeNonUsablePlaylistsByKeyId_ re includes non usable DASH playlists', function(assert) {
+  const options = {
+    src: 'test',
+    tech: this.player.tech_,
+    sourceType: 'dash'
+  };
+  const pc = new PlaylistController(options);
+
+  // excluded playlist
+  const excludedKeyId = '89256e53dbe544e9afba38d2ca17d176';
+  const excludedPlaylist = {
+    contentProtection: {
+      mp4protection: {
+        attributes: {
+          'cenc:default_KID': excludedKeyId
+        }
+      }
+    }
+  };
+
+  // included playlist
+  const includedKeyId = 'd0bebaf8a3cb4c52bae03d20a71e3df3';
+  const includedStatus = 'usable';
+  const includedPlaylist = {
+    contentProtection: {
+      mp4protection: {
+        attributes: {
+          'cenc:default_KID': includedKeyId
+        }
+      }
+    }
+  };
+
+  pc.mainPlaylistLoader_.main = { playlists: [includedPlaylist, excludedPlaylist] };
+
+  // add included key
+  pc.addKeyStatus_(includedKeyId, includedStatus);
+  pc.excludeNonUsablePlaylistsByKeyId_();
+
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[0].excludeUntil, 'excludeUntil is Infinity');
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[0].lastExcludeReason_, 'lastExcludeReason is non-usable');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[1].excludeUntil, Infinity, 'excludeUntil is Infinity');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[1].lastExcludeReason_, 'non-usable', 'lastExcludeReason is non-usable');
+
+  // add a usable keystatus to the previously excluded key ID
+  pc.addKeyStatus_(excludedKeyId, includedStatus);
+  pc.excludeNonUsablePlaylistsByKeyId_();
+
+  pc.mainPlaylistLoader_.main.playlists.forEach((playlist) => {
+    assert.notOk(playlist.excludeUntil, 'playlist is not excluded');
+    assert.notOk(playlist.lastExcludeReason_, 'playlist has no lastExclusionReason');
+  });
 });
 
 QUnit.module('PlaylistController codecs', {

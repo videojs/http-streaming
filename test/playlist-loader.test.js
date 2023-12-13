@@ -30,7 +30,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     this.env.restore();
   });
 
-  QUnit.test('can getKID from a playlist', function(assert) {
+  QUnit.test('can getKeyIdSet from a playlist', function(assert) {
     const loader = new PlaylistLoader('variant.m3u8', this.fakeVhs);
     const keyId = '800AACAA522958AE888062B5695DB6BF';
     // We currently only pass keyId for widevine content protection.
