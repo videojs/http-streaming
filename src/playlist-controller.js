@@ -405,7 +405,7 @@ export class PlaylistController extends videojs.EventTarget {
   switchMedia_(playlist, cause, delay) {
     const oldMedia = this.media();
     const oldId = oldMedia && (oldMedia.id || oldMedia.uri);
-    const newId = playlist.id || playlist.uri;
+    const newId = playlist && (playlist.id || playlist.uri);
 
     if (oldId && oldId !== newId) {
       this.logger_(`switch media ${oldId} -> ${newId} from ${cause}`);
@@ -2445,13 +2445,10 @@ export class PlaylistController extends videojs.EventTarget {
     this.addKeyStatus_(keyId, status);
     this.excludeNonUsablePlaylistsByKeyId_();
     const oldPlaylist = this.mainPlaylistLoader_.media();
-    const oldId = oldPlaylist ? oldPlaylist.id : undefined;
     const newPlaylist = this.selectPlaylist();
-    const newId = newPlaylist ? newPlaylist.id : undefined;
     const keystatusChange = 'keystatus-change';
 
     if (newPlaylist !== oldPlaylist) {
-      this.logger_(`switching playlists from ${oldId} to ${newId} due to a ${keystatusChange}`);
       this.switchMedia_(newPlaylist, keystatusChange);
     }
   }
