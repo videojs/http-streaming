@@ -44,6 +44,25 @@ QUnit.module('DASH Playlist Loader: unit', {
   }
 });
 
+QUnit.test('can getKeyIdSet from a playlist', function(assert) {
+  const loader = new DashPlaylistLoader('variant.mpd', this.fakeVhs);
+  const keyId = '188743e1-bd62-400e-92d9-748f8c753d1a';
+  // We currently only pass keyId for widevine content protection.
+  const playlist = {
+    contentProtection: {
+      mp4protection: {
+        attributes: {
+          'cenc:default_KID': keyId
+        }
+      }
+    }
+  };
+  const keyIdSet = loader.getKeyIdSet(playlist);
+
+  assert.ok(keyIdSet.size);
+  assert.ok(keyIdSet.has(keyId.replace(/-/g, '')), 'keyId is expected hex string');
+});
+
 QUnit.test('updateMain: returns falsy when there are no changes', function(assert) {
   const main = {
     playlists: {

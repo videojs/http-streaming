@@ -924,4 +924,26 @@ export default class DashPlaylistLoader extends EventTarget {
       this.addMetadataToTextTrack('EventStream', metadataArray, this.mainPlaylistLoader_.main.duration);
     }
   }
+
+  /**
+   * Returns the key ID set from a playlist
+   *
+   * @param {playlist} playlist to fetch the key ID set from.
+   * @return a Set of 32 digit hex strings that represent the unique keyIds for that playlist.
+   */
+  getKeyIdSet(playlist) {
+    if (playlist.contentProtection) {
+      const keyIds = new Set();
+
+      for (const keysystem in playlist.contentProtection) {
+        const defaultKID = playlist.contentProtection[keysystem].attributes['cenc:default_KID'];
+
+        if (defaultKID) {
+          // DASH keyIds are separated by dashes.
+          keyIds.add(defaultKID.replace(/-/g, ''));
+        }
+      }
+      return keyIds;
+    }
+  }
 }

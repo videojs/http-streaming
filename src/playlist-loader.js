@@ -1194,4 +1194,25 @@ export default class PlaylistLoader extends EventTarget {
 
     return attributes;
   }
+
+  /**
+   * Returns the key ID set from a playlist
+   *
+   * @param {playlist} playlist to fetch the key ID set from.
+   * @return a Set of 32 digit hex strings that represent the unique keyIds for that playlist.
+   */
+  getKeyIdSet(playlist) {
+    if (playlist.contentProtection) {
+      const keyIds = new Set();
+
+      for (const keysystem in playlist.contentProtection) {
+        const keyId = playlist.contentProtection[keysystem].attributes.keyId;
+
+        if (keyId) {
+          keyIds.add(keyId);
+        }
+      }
+      return keyIds;
+    }
+  }
 }

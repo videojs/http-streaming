@@ -30,6 +30,25 @@ QUnit.module('Playlist Loader', function(hooks) {
     this.env.restore();
   });
 
+  QUnit.test('can getKeyIdSet from a playlist', function(assert) {
+    const loader = new PlaylistLoader('variant.m3u8', this.fakeVhs);
+    const keyId = '800AACAA522958AE888062B5695DB6BF';
+    // We currently only pass keyId for widevine content protection.
+    const playlist = {
+      contentProtection: {
+        'com.widevine.alpha': {
+          attributes: {
+            keyId
+          }
+        }
+      }
+    };
+    const keyIdSet = loader.getKeyIdSet(playlist);
+
+    assert.ok(keyIdSet.size);
+    assert.ok(keyIdSet.has(keyId), 'keyId is expected hex string');
+  });
+
   QUnit.test('updateSegments copies over properties', function(assert) {
     assert.deepEqual(
       [

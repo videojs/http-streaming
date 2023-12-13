@@ -28,6 +28,7 @@ import logger from './util/logger';
 import {merge, createTimeRanges} from './util/vjs-compat';
 import { addMetadata, createMetadataTrackIfNotExists, addDateRangeMetadata } from './util/text-tracks';
 import ContentSteeringController from './content-steering-controller';
+import { bufferToHexString } from './util/string.js';
 
 const ABORT_EARLY_EXCLUSION_SECONDS = 10;
 
@@ -235,6 +236,7 @@ export class PlaylistController extends videojs.EventTarget {
     this.sourceUpdater_ = new SourceUpdater(this.mediaSource);
     this.inbandTextTracks_ = {};
     this.timelineChangeController_ = new TimelineChangeController();
+    this.keyStatusMap_ = new Map();
 
     const segmentLoaderSettings = {
       vhs: this.vhs_,
@@ -403,7 +405,7 @@ export class PlaylistController extends videojs.EventTarget {
   switchMedia_(playlist, cause, delay) {
     const oldMedia = this.media();
     const oldId = oldMedia && (oldMedia.id || oldMedia.uri);
-    const newId = playlist.id || playlist.uri;
+    const newId = playlist && (playlist.id || playlist.uri);
 
     if (oldId && oldId !== newId) {
       this.logger_(`switch media ${oldId} -> ${newId} from ${cause}`);
@@ -1708,6 +1710,7 @@ export class PlaylistController extends videojs.EventTarget {
     this.mainPlaylistLoader_.dispose();
     this.mainSegmentLoader_.dispose();
     this.contentSteeringController_.dispose();
+    this.keyStatusMap_.clear();
 
     if (this.loadOnPlay_) {
       this.tech_.off('play', this.loadOnPlay_);
@@ -2379,5 +2382,74 @@ export class PlaylistController extends videojs.EventTarget {
     }
 
     this.switchMedia_(nextPlaylist, 'content-steering');
+  }
+
+  /**
+   * Iterates through playlists and check their keyId set and compare with the
+   * keyStatusMap, only enable playlists that have a usable key. If the playlist
+   * has no keyId leave it enabled by default.
+   */
+  excludeNonUsablePlaylistsByKeyId_() {
+
+    if (!this.mainPlaylistLoader_ || !this.mainPlaylistLoader_.main) {
+      return;
+    }
+
+    this.mainPlaylistLoader_.main.playlists.forEach((playlist) => {
+      const keyIdSet = this.mainPlaylistLoader_.getKeyIdSet(playlist);
+
+      // If the playlist doesn't have keyIDs lets not exclude it.
+      if (!keyIdSet || !keyIdSet.size) {
+        return;
+      }
+      keyIdSet.forEach((key) => {
+        const USABLE = 'usable';
+        const NON_USABLE = 'non-usable';
+        const hasUsableKeyStatus = this.keyStatusMap_.has(key) && this.keyStatusMap_.get(key) === USABLE;
+        const nonUsableExclusion = playlist.lastExcludeReason_ === NON_USABLE && playlist.excludeUntil === Infinity;
+
+        if (!hasUsableKeyStatus) {
+          playlist.excludeUntil = Infinity;
+          playlist.lastExcludeReason_ = NON_USABLE;
+          this.logger_(`excluding playlist ${playlist.id} because the key ID ${key} doesn't exist in the keyStatusMap or is not ${USABLE}`);
+        } else if (hasUsableKeyStatus && nonUsableExclusion) {
+          delete playlist.excludeUntil;
+          delete playlist.lastExcludeReason_;
+          this.logger_(`enabling playlist ${playlist.id} because key ID ${key} is ${USABLE}`);
+        }
+      });
+    });
+  }
+
+  /**
+   * Adds a keystatus to the keystatus map, tries to convert to string if necessary.
+   *
+   * @param {any} keyId the keyId to add a status for
+   * @param {string} status the status of the keyId
+   */
+  addKeyStatus_(keyId, status) {
+    const isString = typeof keyId === 'string';
+    const keyIdHexString = isString ? keyId : bufferToHexString(keyId);
+
+    // 32 digit keyId hex string.
+    this.keyStatusMap_.set(keyIdHexString.slice(0, 32), status);
+  }
+
+  /**
+   * Utility function for adding key status to the keyStatusMap and filtering usable encrypted playlists.
+   *
+   * @param {any} keyId the keyId from the keystatuschange event
+   * @param {string} status the key status string
+   */
+  updatePlaylistByKeyStatus(keyId, status) {
+    this.addKeyStatus_(keyId, status);
+    this.excludeNonUsablePlaylistsByKeyId_();
+    const oldPlaylist = this.mainPlaylistLoader_.media();
+    const newPlaylist = this.selectPlaylist();
+    const keystatusChange = 'keystatus-change';
+
+    if (newPlaylist !== oldPlaylist) {
+      this.switchMedia_(newPlaylist, keystatusChange);
+    }
   }
 }
