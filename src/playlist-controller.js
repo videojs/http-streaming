@@ -2447,10 +2447,11 @@ export class PlaylistController extends videojs.EventTarget {
     const oldPlaylist = this.mainPlaylistLoader_.media();
     const oldId = oldPlaylist ? oldPlaylist.id : undefined;
     const newPlaylist = this.selectPlaylist();
+    const newId = newPlaylist ? newPlaylist.id : undefined;
     const keystatusChange = 'keystatus-change';
 
     if (newPlaylist !== oldPlaylist) {
-      this.logger_(`switching playlists from ${oldId} to ${newPlaylist.id} due to a ${keystatusChange}`);
+      this.logger_(`switching playlists from ${oldId} to ${newId} due to a ${keystatusChange}`);
       this.switchMedia_(newPlaylist, keystatusChange);
     }
   }
