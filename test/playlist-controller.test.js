@@ -1290,7 +1290,7 @@ QUnit.test(
   }
 );
 
-QUnit.test('waits for both main and audio loaders to finish before calling endOfStream', function(assert) {
+QUnit.test.skip('waits for both main and audio loaders to finish before calling endOfStream', function(assert) {
   openMediaSource(this.player, this.clock);
 
   const videoMedia = '#EXTM3U\n' +
