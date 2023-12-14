@@ -1,3 +1,14 @@
+<a name="3.9.0"></a>
+# [3.9.0](https://github.com/videojs/http-streaming/compare/v3.8.0...v3.9.0) (2023-12-14)
+
+### Features
+
+* enable playlists with 'usable' keystatus ([#1460](https://github.com/videojs/http-streaming/issues/1460)) ([7d7c639](https://github.com/videojs/http-streaming/commit/7d7c639))
+
+### Chores
+
+* update mpd-parser to v1.3.0 ([#1461](https://github.com/videojs/http-streaming/issues/1461)) ([39dbe77](https://github.com/videojs/http-streaming/commit/39dbe77))
+
 <a name="3.8.0"></a>
 # [3.8.0](https://github.com/videojs/http-streaming/compare/v3.7.0...v3.8.0) (2023-12-04)
 
