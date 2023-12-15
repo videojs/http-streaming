@@ -979,7 +979,7 @@ export class PlaylistController extends videojs.EventTarget {
    * @private
    */
   fastQualityChange_(media = this.selectPlaylist()) {
-    if (media === this.mainPlaylistLoader_.media()) {
+    if (media && media === this.mainPlaylistLoader_.media()) {
       this.logger_('skipping fastQualityChange because new media is same as old');
       return;
     }
@@ -1710,7 +1710,6 @@ export class PlaylistController extends videojs.EventTarget {
     this.mainPlaylistLoader_.dispose();
     this.mainSegmentLoader_.dispose();
     this.contentSteeringController_.dispose();
-    this.keyStatusMap_.clear();
 
     if (this.loadOnPlay_) {
       this.tech_.off('play', this.loadOnPlay_);
@@ -2444,12 +2443,6 @@ export class PlaylistController extends videojs.EventTarget {
   updatePlaylistByKeyStatus(keyId, status) {
     this.addKeyStatus_(keyId, status);
     this.excludeNonUsablePlaylistsByKeyId_();
-    const oldPlaylist = this.mainPlaylistLoader_.media();
-    const newPlaylist = this.selectPlaylist();
-    const keystatusChange = 'keystatus-change';
-
-    if (newPlaylist !== oldPlaylist) {
-      this.switchMedia_(newPlaylist, keystatusChange);
-    }
+    this.fastQualityChange_();
   }
 }
