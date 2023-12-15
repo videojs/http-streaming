@@ -940,7 +940,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
         if (defaultKID) {
           // DASH keyIds are separated by dashes.
-          keyIds.add(defaultKID.replace(/-/g, ''));
+          keyIds.add(defaultKID.replace(/-/g, '').toLowerCase());
         }
       }
       return keyIds;

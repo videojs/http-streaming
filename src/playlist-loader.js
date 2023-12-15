@@ -1209,7 +1209,7 @@ export default class PlaylistLoader extends EventTarget {
         const keyId = playlist.contentProtection[keysystem].attributes.keyId;
 
         if (keyId) {
-          keyIds.add(keyId);
+          keyIds.add(keyId.toLowerCase());
         }
       }
       return keyIds;

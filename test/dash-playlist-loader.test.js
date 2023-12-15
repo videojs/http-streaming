@@ -47,6 +47,8 @@ QUnit.module('DASH Playlist Loader: unit', {
 QUnit.test('can getKeyIdSet from a playlist', function(assert) {
   const loader = new DashPlaylistLoader('variant.mpd', this.fakeVhs);
   const keyId = '188743e1-bd62-400e-92d9-748f8c753d1a';
+  // Test uppercase keyId from playlist.
+  const uppercaseKeyId = '800AACAA-5229-58AE-8880-62B5695DB6BF';
   // We currently only pass keyId for widevine content protection.
   const playlist = {
     contentProtection: {
@@ -57,10 +59,15 @@ QUnit.test('can getKeyIdSet from a playlist', function(assert) {
       }
     }
   };
-  const keyIdSet = loader.getKeyIdSet(playlist);
+  let keyIdSet = loader.getKeyIdSet(playlist);
 
   assert.ok(keyIdSet.size);
   assert.ok(keyIdSet.has(keyId.replace(/-/g, '')), 'keyId is expected hex string');
+
+  playlist.contentProtection.mp4protection.attributes['cenc:default_KID'] = uppercaseKeyId;
+  keyIdSet = loader.getKeyIdSet(playlist);
+
+  assert.ok(keyIdSet.has(uppercaseKeyId.replace(/-/g, '').toLowerCase()), 'keyId is expected lowercase hex string');
 });
 
 QUnit.test('updateMain: returns falsy when there are no changes', function(assert) {
