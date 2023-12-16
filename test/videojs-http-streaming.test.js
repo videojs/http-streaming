@@ -4871,7 +4871,7 @@ QUnit.test('eme handles keystatuschange where status is output-restricted', func
 
   this.player.tech_.vhs.playlistController_.switchMedia_ = (playlist, cause) => {
     assert.equal(playlist, playlists[2], 'playlist is expected playlist');
-    assert.equal(cause, 'keystatus-change', 'playlist is changed for expected cause');
+    assert.equal(cause, 'fast-quality', 'playlist is changed for expected cause');
     switchMediaCalled++;
   };
 

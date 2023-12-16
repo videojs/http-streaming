@@ -1710,6 +1710,7 @@ export class PlaylistController extends videojs.EventTarget {
     this.mainPlaylistLoader_.dispose();
     this.mainSegmentLoader_.dispose();
     this.contentSteeringController_.dispose();
+    this.keyStatusMap_.clear();
 
     if (this.loadOnPlay_) {
       this.tech_.off('play', this.loadOnPlay_);
