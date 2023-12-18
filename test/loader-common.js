@@ -1433,14 +1433,15 @@ export const LoaderCommonFactory = ({
       // force segmentIndex 4 and part 2 to be choosen
       loader.currentTime_ = () => 46;
       // make the previous part indepenent so we go back to it
-      playlist.segments[4].parts[1].independent = true;
+      playlist.segments[4].parts[2].independent = true;
+      // debugger;
       const segmentInfo = loader.chooseNextRequest_();
 
-      assert.equal(segmentInfo.partIndex, 1, 'still chooses partIndex 1');
+      assert.equal(segmentInfo.partIndex, 2, 'still chooses partIndex 2');
       assert.equal(segmentInfo.mediaIndex, 4, 'same segment');
 
       // force segmentIndex 4 and part 0 to be choosen
-      loader.currentTime_ = () => 42;
+      loader.currentTime_ = () => 40;
       // make the previous part independent
       playlist.segments[3].parts[4].independent = true;
       const segmentInfo2 = loader.chooseNextRequest_();
@@ -1466,7 +1467,7 @@ export const LoaderCommonFactory = ({
       playlist.segments[4].parts[1].independent = true;
       const segmentInfo = loader.chooseNextRequest_();
 
-      assert.equal(segmentInfo.partIndex, 2, 'chooses part 2');
+      assert.equal(segmentInfo.partIndex, 3, 'chooses part 3');
       assert.equal(segmentInfo.mediaIndex, 4, 'same segment');
     });
 
@@ -1491,7 +1492,7 @@ export const LoaderCommonFactory = ({
       playlist.segments[4].parts[1].independent = true;
       const segmentInfo = loader.chooseNextRequest_();
 
-      assert.equal(segmentInfo.partIndex, 2, 'chooses part 2');
+      assert.equal(segmentInfo.partIndex, 3, 'chooses part 3');
       assert.equal(segmentInfo.mediaIndex, 4, 'same segment');
     });
 

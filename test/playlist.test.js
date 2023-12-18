@@ -1403,8 +1403,8 @@ QUnit.module('Playlist', function() {
 
         assert.deepEqual(
           this.getMediaInfoForTime({currentTime: 4}),
-          {segmentIndex: 0, startTime: 0, partIndex: null},
-          'rounds down exact matches'
+          {segmentIndex: 1, startTime: 4, partIndex: null},
+          'rounds up exact matches'
         );
         assert.deepEqual(
           this.getMediaInfoForTime({currentTime: 3.7}),
@@ -1474,7 +1474,7 @@ QUnit.module('Playlist', function() {
         );
         assert.deepEqual(
           this.getMediaInfoForTime({currentTime: 154, startTime: 150}),
-          {segmentIndex: 0, startTime: 150, partIndex: null},
+          {segmentIndex: 1, startTime: 154, partIndex: null},
           'calculates earlier segment on exact boundary match'
         );
         assert.deepEqual(
@@ -1533,19 +1533,19 @@ QUnit.module('Playlist', function() {
 
       assert.deepEqual(
         this.getMediaInfoForTime({currentTime: 10, startTime: 0}),
-        {segmentIndex: 2, startTime: 9, partIndex: 0},
+        {segmentIndex: 2, startTime: 10, partIndex: 1},
         'returns expected part/segment'
       );
 
       assert.deepEqual(
         this.getMediaInfoForTime({currentTime: 11, startTime: 0}),
-        {segmentIndex: 2, startTime: 10, partIndex: 1},
+        {segmentIndex: 2, startTime: 11, partIndex: 2},
         'returns expected part/segment'
       );
 
       assert.deepEqual(
         this.getMediaInfoForTime({currentTime: 11, segmentIndex: -15}),
-        {segmentIndex: 2, startTime: 10, partIndex: 1},
+        {segmentIndex: 2, startTime: 11, partIndex: 2},
         'returns expected part/segment'
       );
     });
