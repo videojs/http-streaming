@@ -46,7 +46,7 @@ QUnit.module('Playlist Loader', function(hooks) {
     const keyIdSet = loader.getKeyIdSet(playlist);
 
     assert.ok(keyIdSet.size);
-    assert.ok(keyIdSet.has(keyId), 'keyId is expected hex string');
+    assert.ok(keyIdSet.has(keyId.toLowerCase()), 'keyId is expected hex string');
   });
 
   QUnit.test('updateSegments copies over properties', function(assert) {
