@@ -2445,5 +2445,8 @@ export class PlaylistController extends videojs.EventTarget {
     this.addKeyStatus_(keyId, status);
     this.excludeNonUsablePlaylistsByKeyId_();
     this.fastQualityChange_();
+    // Listen to loadedplaylist with a single listener and check for new contentProtection elements when a playlist is updated.
+    this.off('loadedplaylist', this.excludeNonUsablePlaylistsByKeyId_.bind(this));
+    this.on('loadedplaylist', this.excludeNonUsablePlaylistsByKeyId_.bind(this));
   }
 }
