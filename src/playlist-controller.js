@@ -2450,9 +2450,10 @@ export class PlaylistController extends videojs.EventTarget {
   addKeyStatus_(keyId, status) {
     const isString = typeof keyId === 'string';
     const keyIdHexString = isString ? keyId : bufferToHexString(keyId);
+    const formattedKeyIdString = keyIdHexString.slice(0, 32).toLowerCase();
 
-    // 32 digit keyId hex string.
-    this.keyStatusMap_.set(keyIdHexString.slice(0, 32), status);
+    this.logger_(`KeyStatus ${status} with keyId ${formattedKeyIdString} added to the keyStatusMap`);
+    this.keyStatusMap_.set(formattedKeyIdString, status);
   }
 
   /**
@@ -2463,7 +2464,9 @@ export class PlaylistController extends videojs.EventTarget {
    */
   updatePlaylistByKeyStatus(keyId, status) {
     this.addKeyStatus_(keyId, status);
-    this.excludeNonUsableThenChangePlaylist_();
+    if (!this.waitingForFastQualityPlaylistReceived_) {
+      this.excludeNonUsableThenChangePlaylist_();
+    }
     // Listen to loadedplaylist with a single listener and check for new contentProtection elements when a playlist is updated.
     this.mainPlaylistLoader_.off('loadedplaylist', this.excludeNonUsableThenChangePlaylist_.bind(this));
     this.mainPlaylistLoader_.on('loadedplaylist', this.excludeNonUsableThenChangePlaylist_.bind(this));
