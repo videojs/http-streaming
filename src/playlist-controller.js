@@ -2433,8 +2433,8 @@ export class PlaylistController extends videojs.EventTarget {
         const excludedForNonUsableKey = playlist.excludeUntil === Infinity && playlist.lastExcludeReason_ === NON_USABLE;
 
         if (isNonHD && excludedForNonUsableKey) {
+          // Only delete the excludeUntil so we don't try and re-exclude these playlists.
           delete playlist.excludeUntil;
-          delete playlist.lastExcludeReason_;
           videojs.log.warn(`enabling non-HD playlist ${playlist.id} because all playlists were excluded due to ${NON_USABLE} keyIds`);
         }
       });
