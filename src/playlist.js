@@ -511,24 +511,7 @@ export const getMediaInfoForTime = function({
 
     time -= partAndSegment.duration;
 
-    if (exactManifestTimings) {
-      if (time > 0) {
-        continue;
-      }
-
-      if (time === 0) {
-        // we are exactly at the end of the current segment
-        // if we passed current time -> it means that we already played current segment
-        // if we passed buffered.end -> it means that this segment is already loaded and buffered
-
-        // we should select the next segment if we have one:
-        if (i !== partsAndSegments.length - 1) {
-          continue;
-        }
-      }
-    } else if ((time - TIME_FUDGE_FACTOR) >= 0) {
-      continue;
-    } else if (time === 0) {
+    if (time === 0) {
       // we are exactly at the end of the current segment
       // if we passed current time -> it means that we already played current segment
       // if we passed buffered.end -> it means that this segment is already loaded and buffered
@@ -537,6 +520,14 @@ export const getMediaInfoForTime = function({
       if (i !== partsAndSegments.length - 1) {
         continue;
       }
+    }
+
+    if (exactManifestTimings) {
+      if (time > 0) {
+        continue;
+      }
+    } else if ((time - TIME_FUDGE_FACTOR) >= 0) {
+      continue;
     }
 
     return {
