@@ -2410,7 +2410,8 @@ export class PlaylistController extends videojs.EventTarget {
         const nonUsableExclusion = playlist.lastExcludeReason_ === NON_USABLE && playlist.excludeUntil === Infinity;
 
         if (!hasUsableKeyStatus) {
-          if (playlist.excludeUntil !== Infinity) {
+          // Only exclude playlists that haven't already been excluded as non-usable.
+          if (!nonUsableExclusion && playlist.lastExcludeReason_ !== NON_USABLE) {
             playlist.excludeUntil = Infinity;
             playlist.lastExcludeReason_ = NON_USABLE;
             this.logger_(`excluding playlist ${playlist.id} because the key ID ${key} doesn't exist in the keyStatusMap or is not ${USABLE}`);
@@ -2434,7 +2435,7 @@ export class PlaylistController extends videojs.EventTarget {
         if (isNonHD && excludedForNonUsableKey) {
           // Only delete the excludeUntil so we don't try and re-exclude these playlists.
           delete playlist.excludeUntil;
-          videojs.log.warn(`enabling non-HD playlist ${playlist.id} because all playlists were excluded due to ${NON_USABLE} keyIds`);
+          videojs.log.warn(`enabling non-HD playlist ${playlist.id} because all playlists were excluded due to ${NON_USABLE} key IDs`);
         }
       });
     }
@@ -2451,7 +2452,7 @@ export class PlaylistController extends videojs.EventTarget {
     const keyIdHexString = isString ? keyId : bufferToHexString(keyId);
     const formattedKeyIdString = keyIdHexString.slice(0, 32).toLowerCase();
 
-    this.logger_(`KeyStatus ${status} with keyId ${formattedKeyIdString} added to the keyStatusMap`);
+    this.logger_(`KeyStatus '${status}' with key ID ${formattedKeyIdString} added to the keyStatusMap`);
     this.keyStatusMap_.set(formattedKeyIdString, status);
   }
 
