@@ -2410,7 +2410,7 @@ export class PlaylistController extends videojs.EventTarget {
         const nonUsableExclusion = playlist.lastExcludeReason_ === NON_USABLE && playlist.excludeUntil === Infinity;
 
         // Lets add a failsafe here where we won't exclude the last possible playlist and try and play.
-        if (!hasUsableKeyStatus) {
+        if (!hasUsableKeyStatus && !nonUsableExclusion) {
           playlist.excludeUntil = Infinity;
           playlist.lastExcludeReason_ = NON_USABLE;
           excludedPlaylistCount++;
