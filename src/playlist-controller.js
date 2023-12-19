@@ -2409,9 +2409,8 @@ export class PlaylistController extends videojs.EventTarget {
         const hasUsableKeyStatus = this.keyStatusMap_.has(key) && this.keyStatusMap_.get(key) === USABLE;
         const nonUsableExclusion = playlist.lastExcludeReason_ === NON_USABLE && playlist.excludeUntil === Infinity;
 
-        // Lets add a failsafe here where we won't exclude the last possible playlist and try and play.
         if (!hasUsableKeyStatus) {
-          if (!nonUsableExclusion) {
+          if (!playlist.excludeUntil === Infinity) {
             playlist.excludeUntil = Infinity;
             playlist.lastExcludeReason_ = NON_USABLE;
             this.logger_(`excluding playlist ${playlist.id} because the key ID ${key} doesn't exist in the keyStatusMap or is not ${USABLE}`);
