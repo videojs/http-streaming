@@ -2394,7 +2394,7 @@ export class PlaylistController extends videojs.EventTarget {
       return;
     }
 
-    let excludedPlaylistCount = 0;
+    let nonUsableKeyStatusCount = 0;
     const NON_USABLE = 'non-usable';
 
     this.mainPlaylistLoader_.main.playlists.forEach((playlist) => {
@@ -2410,11 +2410,14 @@ export class PlaylistController extends videojs.EventTarget {
         const nonUsableExclusion = playlist.lastExcludeReason_ === NON_USABLE && playlist.excludeUntil === Infinity;
 
         // Lets add a failsafe here where we won't exclude the last possible playlist and try and play.
-        if (!hasUsableKeyStatus && !nonUsableExclusion) {
-          playlist.excludeUntil = Infinity;
-          playlist.lastExcludeReason_ = NON_USABLE;
-          excludedPlaylistCount++;
-          this.logger_(`excluding playlist ${playlist.id} because the key ID ${key} doesn't exist in the keyStatusMap or is not ${USABLE}`);
+        if (!hasUsableKeyStatus) {
+          if (!nonUsableExclusion) {
+            playlist.excludeUntil = Infinity;
+            playlist.lastExcludeReason_ = NON_USABLE;
+            this.logger_(`excluding playlist ${playlist.id} because the key ID ${key} doesn't exist in the keyStatusMap or is not ${USABLE}`);
+          }
+          // count all nonUsableKeyStatus
+          nonUsableKeyStatusCount++;
         } else if (hasUsableKeyStatus && nonUsableExclusion) {
           delete playlist.excludeUntil;
           delete playlist.lastExcludeReason_;
@@ -2423,8 +2426,8 @@ export class PlaylistController extends videojs.EventTarget {
       });
     });
 
-    // If for whatever reason we have disabled all the playlists. Lets try re-including the SD renditions as a failsafe.
-    if (excludedPlaylistCount >= this.mainPlaylistLoader_.main.playlists.length) {
+    // If for whatever reason every playlist has a non usable key status. Lets try re-including the SD renditions as a failsafe.
+    if (nonUsableKeyStatusCount >= this.mainPlaylistLoader_.main.playlists.length) {
       this.mainPlaylistLoader_.main.playlists.forEach((playlist) => {
         const isNonHD = playlist && playlist.attributes && playlist.attributes.RESOLUTION && playlist.attributes.RESOLUTION.height < 720;
         const excludedForNonUsableKey = playlist.excludeUntil === Infinity && playlist.lastExcludeReason_ === NON_USABLE;
