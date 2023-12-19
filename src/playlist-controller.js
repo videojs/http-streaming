@@ -2390,10 +2390,12 @@ export class PlaylistController extends videojs.EventTarget {
    * has no keyId leave it enabled by default.
    */
   excludeNonUsablePlaylistsByKeyId_() {
-
     if (!this.mainPlaylistLoader_ || !this.mainPlaylistLoader_.main) {
       return;
     }
+
+    let excludedPlaylistCount = 0;
+    const NON_USABLE = 'non-usable';
 
     this.mainPlaylistLoader_.main.playlists.forEach((playlist) => {
       const keyIdSet = this.mainPlaylistLoader_.getKeyIdSet(playlist);
@@ -2404,13 +2406,14 @@ export class PlaylistController extends videojs.EventTarget {
       }
       keyIdSet.forEach((key) => {
         const USABLE = 'usable';
-        const NON_USABLE = 'non-usable';
         const hasUsableKeyStatus = this.keyStatusMap_.has(key) && this.keyStatusMap_.get(key) === USABLE;
         const nonUsableExclusion = playlist.lastExcludeReason_ === NON_USABLE && playlist.excludeUntil === Infinity;
 
+        // Lets add a failsafe here where we won't exclude the last possible playlist and try and play.
         if (!hasUsableKeyStatus) {
           playlist.excludeUntil = Infinity;
           playlist.lastExcludeReason_ = NON_USABLE;
+          excludedPlaylistCount++;
           this.logger_(`excluding playlist ${playlist.id} because the key ID ${key} doesn't exist in the keyStatusMap or is not ${USABLE}`);
         } else if (hasUsableKeyStatus && nonUsableExclusion) {
           delete playlist.excludeUntil;
@@ -2419,6 +2422,20 @@ export class PlaylistController extends videojs.EventTarget {
         }
       });
     });
+
+    // If for whatever reason we have disabled all the playlists. Lets try re-including the SD renditions as a failsafe.
+    if (excludedPlaylistCount >= this.mainPlaylistLoader_.main.playlists.length) {
+      this.mainPlaylistLoader_.main.playlists.forEach((playlist) => {
+        const isNonHD = playlist && playlist.attributes && playlist.attributes.RESOLUTION && playlist.attributes.RESOLUTION.height < 720;
+        const excludedForNonUsableKey = playlist.excludeUntil === Infinity && playlist.lastExcludeReason_ === NON_USABLE;
+
+        if (isNonHD && excludedForNonUsableKey) {
+          delete playlist.excludeUntil;
+          delete playlist.lastExcludeReason_;
+          videojs.log.warn(`enabling non-HD playlist ${playlist.id} because all playlists were excluded due to ${NON_USABLE} keyIds`);
+        }
+      });
+    }
   }
 
   /**
