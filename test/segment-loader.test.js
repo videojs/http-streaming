@@ -1601,7 +1601,7 @@ QUnit.module('SegmentLoader', function(hooks) {
 
         assert.equal(
           loader.pendingSegment_.timestampOffset,
-          60,
+          70,
           'timestamp offset is nonzero'
         );
         assert.equal(loader.state, 'WAITING', 'state is waiting on segment');

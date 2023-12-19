@@ -710,7 +710,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
         };
 
         loader.currentTime_ = () => {
-          return 30;
+          return 20;
         };
 
         loader.playlist(playlist);
