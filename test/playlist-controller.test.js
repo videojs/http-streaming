@@ -5073,7 +5073,7 @@ QUnit.test('excludeNonUsablePlaylistsByKeyId_ re-includes SD playlists when all 
 
   videojs.log.warn = (text) => warnings.push(text);
 
-  const excludedPlaylist = {
+  const reIncludedPlaylist1 = {
     contentProtection: {
       mp4protection: {
         attributes: {
@@ -5088,7 +5088,7 @@ QUnit.test('excludeNonUsablePlaylistsByKeyId_ re-includes SD playlists when all 
     }
   };
 
-  const includedPlaylist = {
+  const reIncludedPlaylist2 = {
     contentProtection: {
       mp4protection: {
         attributes: {
@@ -5103,14 +5103,31 @@ QUnit.test('excludeNonUsablePlaylistsByKeyId_ re-includes SD playlists when all 
     }
   };
 
-  pc.mainPlaylistLoader_.main = { playlists: [includedPlaylist, excludedPlaylist] };
+  const excludedPlaylist = {
+    contentProtection: {
+      mp4protection: {
+        attributes: {
+          'cenc:default_KID': '89256e53dbe544e9afba38d2ca17d176'
+        }
+      }
+    },
+    attributes: {
+      RESOLUTION: {
+        height: 1080
+      }
+    }
+  };
+
+  pc.mainPlaylistLoader_.main = { playlists: [reIncludedPlaylist1, reIncludedPlaylist2, excludedPlaylist] };
   pc.excludeNonUsablePlaylistsByKeyId_();
 
-  assert.notOk(pc.mainPlaylistLoader_.main.playlists[0].excludeUntil, 'excludeUntil is Infinity');
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[0].excludeUntil, 'excludeUntil is not Infinity');
   assert.equal(pc.mainPlaylistLoader_.main.playlists[0].lastExcludeReason_, 'non-usable', 'lastExcludeReason is non-usable');
-  assert.notOk(pc.mainPlaylistLoader_.main.playlists[1].excludeUntil, 'excludeUntil is Infinity');
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[1].excludeUntil, 'excludeUntil is not Infinity');
   assert.equal(pc.mainPlaylistLoader_.main.playlists[1].lastExcludeReason_, 'non-usable', 'lastExcludeReason is non-usable');
   assert.equal(warnings.length, 2, 're-include warning for both playlists');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[2].excludeUntil, Infinity, 'excludeUntil is Infinity');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[2].lastExcludeReason_, 'non-usable', 'lastExcludeReason is non-usable');
   videojs.log.warn = origWarn;
 });
 
