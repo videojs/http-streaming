@@ -2390,10 +2390,12 @@ export class PlaylistController extends videojs.EventTarget {
    * has no keyId leave it enabled by default.
    */
   excludeNonUsablePlaylistsByKeyId_() {
-
     if (!this.mainPlaylistLoader_ || !this.mainPlaylistLoader_.main) {
       return;
     }
+
+    let nonUsableKeyStatusCount = 0;
+    const NON_USABLE = 'non-usable';
 
     this.mainPlaylistLoader_.main.playlists.forEach((playlist) => {
       const keyIdSet = this.mainPlaylistLoader_.getKeyIdSet(playlist);
@@ -2404,14 +2406,18 @@ export class PlaylistController extends videojs.EventTarget {
       }
       keyIdSet.forEach((key) => {
         const USABLE = 'usable';
-        const NON_USABLE = 'non-usable';
         const hasUsableKeyStatus = this.keyStatusMap_.has(key) && this.keyStatusMap_.get(key) === USABLE;
         const nonUsableExclusion = playlist.lastExcludeReason_ === NON_USABLE && playlist.excludeUntil === Infinity;
 
         if (!hasUsableKeyStatus) {
-          playlist.excludeUntil = Infinity;
-          playlist.lastExcludeReason_ = NON_USABLE;
-          this.logger_(`excluding playlist ${playlist.id} because the key ID ${key} doesn't exist in the keyStatusMap or is not ${USABLE}`);
+          // Only exclude playlists that haven't already been excluded as non-usable.
+          if (playlist.excludeUntil !== Infinity && playlist.lastExcludeReason_ !== NON_USABLE) {
+            playlist.excludeUntil = Infinity;
+            playlist.lastExcludeReason_ = NON_USABLE;
+            this.logger_(`excluding playlist ${playlist.id} because the key ID ${key} doesn't exist in the keyStatusMap or is not ${USABLE}`);
+          }
+          // count all nonUsableKeyStatus
+          nonUsableKeyStatusCount++;
         } else if (hasUsableKeyStatus && nonUsableExclusion) {
           delete playlist.excludeUntil;
           delete playlist.lastExcludeReason_;
@@ -2419,6 +2425,20 @@ export class PlaylistController extends videojs.EventTarget {
         }
       });
     });
+
+    // If for whatever reason every playlist has a non usable key status. Lets try re-including the SD renditions as a failsafe.
+    if (nonUsableKeyStatusCount >= this.mainPlaylistLoader_.main.playlists.length) {
+      this.mainPlaylistLoader_.main.playlists.forEach((playlist) => {
+        const isNonHD = playlist && playlist.attributes && playlist.attributes.RESOLUTION && playlist.attributes.RESOLUTION.height < 720;
+        const excludedForNonUsableKey = playlist.excludeUntil === Infinity && playlist.lastExcludeReason_ === NON_USABLE;
+
+        if (isNonHD && excludedForNonUsableKey) {
+          // Only delete the excludeUntil so we don't try and re-exclude these playlists.
+          delete playlist.excludeUntil;
+          videojs.log.warn(`enabling non-HD playlist ${playlist.id} because all playlists were excluded due to ${NON_USABLE} key IDs`);
+        }
+      });
+    }
   }
 
   /**
@@ -2430,9 +2450,10 @@ export class PlaylistController extends videojs.EventTarget {
   addKeyStatus_(keyId, status) {
     const isString = typeof keyId === 'string';
     const keyIdHexString = isString ? keyId : bufferToHexString(keyId);
+    const formattedKeyIdString = keyIdHexString.slice(0, 32).toLowerCase();
 
-    // 32 digit keyId hex string.
-    this.keyStatusMap_.set(keyIdHexString.slice(0, 32), status);
+    this.logger_(`KeyStatus '${status}' with key ID ${formattedKeyIdString} added to the keyStatusMap`);
+    this.keyStatusMap_.set(formattedKeyIdString, status);
   }
 
   /**
@@ -2443,6 +2464,15 @@ export class PlaylistController extends videojs.EventTarget {
    */
   updatePlaylistByKeyStatus(keyId, status) {
     this.addKeyStatus_(keyId, status);
+    if (!this.waitingForFastQualityPlaylistReceived_) {
+      this.excludeNonUsableThenChangePlaylist_();
+    }
+    // Listen to loadedplaylist with a single listener and check for new contentProtection elements when a playlist is updated.
+    this.mainPlaylistLoader_.off('loadedplaylist', this.excludeNonUsableThenChangePlaylist_.bind(this));
+    this.mainPlaylistLoader_.on('loadedplaylist', this.excludeNonUsableThenChangePlaylist_.bind(this));
+  }
+
+  excludeNonUsableThenChangePlaylist_() {
     this.excludeNonUsablePlaylistsByKeyId_();
     this.fastQualityChange_();
   }

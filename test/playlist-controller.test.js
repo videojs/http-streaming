@@ -5061,6 +5061,76 @@ QUnit.test('excludeNonUsablePlaylistsByKeyId_ re includes non usable DASH playli
   });
 });
 
+QUnit.test('excludeNonUsablePlaylistsByKeyId_ re-includes SD playlists when all playlists are excluded', function(assert) {
+  const options = {
+    src: 'test',
+    tech: this.player.tech_,
+    sourceType: 'dash'
+  };
+  const pc = new PlaylistController(options);
+  const origWarn = videojs.log.warn;
+  const warnings = [];
+
+  videojs.log.warn = (text) => warnings.push(text);
+
+  const reIncludedPlaylist1 = {
+    contentProtection: {
+      mp4protection: {
+        attributes: {
+          'cenc:default_KID': 'd0bebaf8a3cb4c52bae03d20a71e3df3'
+        }
+      }
+    },
+    attributes: {
+      RESOLUTION: {
+        height: 480
+      }
+    }
+  };
+
+  const reIncludedPlaylist2 = {
+    contentProtection: {
+      mp4protection: {
+        attributes: {
+          'cenc:default_KID': '89256e53dbe544e9afba38d2ca17d176'
+        }
+      }
+    },
+    attributes: {
+      RESOLUTION: {
+        height: 360
+      }
+    }
+  };
+
+  const excludedPlaylist = {
+    contentProtection: {
+      mp4protection: {
+        attributes: {
+          'cenc:default_KID': '89256e53dbe544e9afba38d2ca17d176'
+        }
+      }
+    },
+    attributes: {
+      RESOLUTION: {
+        height: 1080
+      }
+    }
+  };
+
+  pc.mainPlaylistLoader_.main = { playlists: [reIncludedPlaylist1, reIncludedPlaylist2, excludedPlaylist] };
+  pc.excludeNonUsablePlaylistsByKeyId_();
+
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[0].excludeUntil, 'excludeUntil is not Infinity');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[0].lastExcludeReason_, 'non-usable', 'lastExcludeReason is non-usable');
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[1].excludeUntil, 'excludeUntil is not Infinity');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[1].lastExcludeReason_, 'non-usable', 'lastExcludeReason is non-usable');
+  assert.equal(warnings.length, 2, 're-include warning for both playlists');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[2].excludeUntil, Infinity, 'excludeUntil is Infinity');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[2].lastExcludeReason_, 'non-usable', 'lastExcludeReason is non-usable');
+  videojs.log.warn = origWarn;
+});
+
 QUnit.module('PlaylistController codecs', {
   beforeEach(assert) {
     sharedHooks.beforeEach.call(this, assert);
