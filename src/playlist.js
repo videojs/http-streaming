@@ -511,7 +511,11 @@ export const getMediaInfoForTime = function({
 
     time -= partAndSegment.duration;
 
-    if (time === 0 || (time + TIME_FUDGE_FACTOR) >= 0) {
+    const canUseFudgeFactor = partAndSegment.duration > TIME_FUDGE_FACTOR;
+    const isExactlyAtTheEnd = time === 0;
+    const isExtremelyCloseToTheEnd = canUseFudgeFactor && (time + TIME_FUDGE_FACTOR >= 0);
+
+    if (isExactlyAtTheEnd || isExtremelyCloseToTheEnd) {
       // 1) We are exactly at the end of the current segment.
       // 2) We are extremely close to the end of the current segment (The difference is less than  1 / 30).
       //    We may encounter this situation when
