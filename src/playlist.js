@@ -511,8 +511,20 @@ export const getMediaInfoForTime = function({
 
     time -= partAndSegment.duration;
 
-    if (time === 0) {
-      // we are exactly at the end of the current segment
+    const canUseFudgeFactor = partAndSegment.duration > TIME_FUDGE_FACTOR;
+    const isExactlyAtTheEnd = time === 0;
+    const isExtremelyCloseToTheEnd = canUseFudgeFactor && (time + TIME_FUDGE_FACTOR >= 0);
+
+    if (isExactlyAtTheEnd || isExtremelyCloseToTheEnd) {
+      // 1) We are exactly at the end of the current segment.
+      // 2) We are extremely close to the end of the current segment (The difference is less than  1 / 30).
+      //    We may encounter this situation when
+      //    we don't have exact match between segment duration info in the manifest and the actual duration of the segment
+      //    For example:
+      //    We appended 3 segments 10 seconds each, meaning we should have 30 sec buffered,
+      //    but we the actual buffered is 29.99999
+      //
+      // In both cases:
       // if we passed current time -> it means that we already played current segment
       // if we passed buffered.end -> it means that this segment is already loaded and buffered
 
