@@ -1,3 +1,13 @@
+<a name="3.9.1"></a>
+## [3.9.1](https://github.com/videojs/http-streaming/compare/v3.9.0...v3.9.1) (2024-01-02)
+
+### Bug Fixes
+
+* Account for difference between duration info in the playlist and the actual duration ([#1470](https://github.com/videojs/http-streaming/issues/1470)) ([455b020](https://github.com/videojs/http-streaming/commit/455b020))
+* keyId filtering loadedplaylist listener and improvements ([#1468](https://github.com/videojs/http-streaming/issues/1468)) ([f12c197](https://github.com/videojs/http-streaming/commit/f12c197))
+* select next if we are at the of the current segment ([#1467](https://github.com/videojs/http-streaming/issues/1467)) ([7debc17](https://github.com/videojs/http-streaming/commit/7debc17))
+* toLowerCase keyIds from manifest and use fastQualityChange ([#1466](https://github.com/videojs/http-streaming/issues/1466)) ([88a5671](https://github.com/videojs/http-streaming/commit/88a5671))
+
 <a name="3.9.0"></a>
 # [3.9.0](https://github.com/videojs/http-streaming/compare/v3.8.0...v3.9.0) (2023-12-14)
 
