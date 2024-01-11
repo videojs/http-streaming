@@ -477,13 +477,17 @@ export default class VTTSegmentLoader extends SegmentLoader {
       return;
     }
 
-    const timestampmap = segmentInfo.timestampmap;
-    const diff = (timestampmap.MPEGTS / ONE_SECOND_IN_TS) - timestampmap.LOCAL + mappingObj.mapping;
+    const { MPEGTS, LOCAL } = segmentInfo.timestampmap;
+    const diff = (MPEGTS / ONE_SECOND_IN_TS) - LOCAL + mappingObj.mapping;
 
     segmentInfo.cues.forEach((cue) => {
-      // First convert cue time to TS time using the timestamp-map provided within the vtt
-      cue.startTime += diff;
-      cue.endTime += diff;
+      const duration = cue.endTime - cue.startTime;
+      const startTime = this.sourceType_ === 'dash' ?
+        cue.startTime + diff :
+        this.handleRollover_(cue.startTime + diff, mappingObj.time);
+
+      cue.startTime = Math.max(startTime, 0);
+      cue.endTime = Math.max(startTime + duration, 0);
     });
 
     if (!playlist.syncInfo) {
@@ -495,5 +499,31 @@ export default class VTTSegmentLoader extends SegmentLoader {
         time: Math.min(firstStart, lastStart - segment.duration)
       };
     }
+  }
+
+  handleRollover_(value, reference) {
+    if (reference === null) {
+      return value;
+    }
+
+    let valueIn90khz = value * ONE_SECOND_IN_TS;
+    const referenceIn90khz = reference * ONE_SECOND_IN_TS;
+
+    let offset;
+
+    if (referenceIn90khz < valueIn90khz) {
+      // - 2^33
+      offset = -8589934592;
+    } else {
+      // + 2^33
+      offset = 8589934592;
+    }
+
+    // distance(value - reference) > 2^32
+    while (Math.abs(valueIn90khz - referenceIn90khz) > 4294967296) {
+      valueIn90khz += offset;
+    }
+
+    return valueIn90khz / ONE_SECOND_IN_TS;
   }
 }
