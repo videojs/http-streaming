@@ -468,7 +468,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
     );
 
     QUnit.test(
-      'should handle rollover for hls source',
+      'should handle rollover when MPEGTS is not equal to 0',
       function(assert) {
         const cues = [
           {
@@ -516,7 +516,6 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
           segment
         };
 
-        loader.sourceType_ = 'hls';
         loader.updateTimeMapping_(segmentInfo, mappingObj, playlist);
 
         assert.deepEqual(
@@ -534,8 +533,6 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
           expectedPlaylist,
           'set syncInfo for playlist based on learned segment start'
         );
-
-        loader.sourceType_ = undefined;
       }
     );
 

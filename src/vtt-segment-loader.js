@@ -490,7 +490,7 @@ export default class VTTSegmentLoader extends SegmentLoader {
 
     segmentInfo.cues.forEach((cue) => {
       const duration = cue.endTime - cue.startTime;
-      const startTime = this.sourceType_ === 'dash' ?
+      const startTime = MPEGTS === 0 ?
         cue.startTime + diff :
         this.handleRollover_(cue.startTime + diff, mappingObj.time);
 
