@@ -468,6 +468,75 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
     );
 
     QUnit.test(
+      'should handle rollover when MPEGTS is not equal to 0',
+      function(assert) {
+        const cues = [
+          {
+            startTime: 0,
+            endTime: 2
+          },
+          {
+            startTime: 2,
+            endTime: 4
+          },
+          {
+            startTime: 4,
+            endTime: 6
+          }
+        ];
+        const expectedCueTimes = [
+          {
+            startTime: 107.59999175347222,
+            endTime: 109.59999175347222
+          },
+          {
+            startTime: 109.59999175347222,
+            endTime: 111.59999175347222
+          },
+          {
+            startTime: 111.59999175347222,
+            endTime: 113.59999175347222
+          }
+        ];
+        const expectedSegment = {
+          duration: 6
+        };
+        const expectedPlaylist = {
+          mediaSequence: 100,
+          syncInfo: { mediaSequence: 102, time: 105.59999175347222 }
+        };
+        const mappingObj = { time: 103.68000000000006, mapping: -405994299.533186 };
+
+        const playlist = { mediaSequence: 100 };
+        const segment = { duration: 6 };
+        const segmentInfo = {
+          timestampmap: { MPEGTS: 6504822210, LOCAL: 0 },
+          mediaIndex: 2,
+          cues,
+          segment
+        };
+
+        loader.updateTimeMapping_(segmentInfo, mappingObj, playlist);
+
+        assert.deepEqual(
+          cues,
+          expectedCueTimes,
+          'adjusted cue timing based on timestampmap'
+        );
+        assert.deepEqual(
+          segment,
+          expectedSegment,
+          'set segment start and end based on cue content'
+        );
+        assert.deepEqual(
+          playlist,
+          expectedPlaylist,
+          'set syncInfo for playlist based on learned segment start'
+        );
+      }
+    );
+
+    QUnit.test(
       'loader logs vtt.js ParsingErrors and does not trigger an error event',
       function(assert) {
         const playlist = playlistWithDuration(40);
