@@ -478,7 +478,15 @@ export default class VTTSegmentLoader extends SegmentLoader {
     }
 
     const { MPEGTS, LOCAL } = segmentInfo.timestampmap;
-    const diff = (MPEGTS / ONE_SECOND_IN_TS) - LOCAL + mappingObj.mapping;
+
+    /**
+     * From the spec:
+     * The MPEGTS media timestamp MUST use a 90KHz timescale,
+     * even when non-WebVTT Media Segments use a different timescale.
+     */
+    const mpegTsInSeconds = MPEGTS / ONE_SECOND_IN_TS;
+
+    const diff = mpegTsInSeconds - LOCAL + mappingObj.mapping;
 
     segmentInfo.cues.forEach((cue) => {
       const duration = cue.endTime - cue.startTime;
@@ -501,6 +509,24 @@ export default class VTTSegmentLoader extends SegmentLoader {
     }
   }
 
+  /**
+   * MPEG-TS PES timestamps are limited to 2^33.
+   * Once they reach 2^33, they roll over to 0.
+   * mux.js handles PES timestamp rollover for the following scenarios:
+   * [forward rollover(right)] ->
+   *    PES timestamps monotonically increase, and once they reach 2^33, they roll over to 0
+   * [backward rollover(left)] -->
+   *    we seek back to position before rollover.
+   *
+   * According to the HLS SPEC:
+   * When synchronizing WebVTT with PES timestamps, clients SHOULD account
+   * for cases where the 33-bit PES timestamps have wrapped and the WebVTT
+   * cue times have not.  When the PES timestamp wraps, the WebVTT Segment
+   * SHOULD have a X-TIMESTAMP-MAP header that maps the current WebVTT
+   * time to the new (low valued) PES timestamp.
+   *
+   * So we want to handle rollover here and align VTT Cue start/end time to the player's time.
+   */
   handleRollover_(value, reference) {
     if (reference === null) {
       return value;
