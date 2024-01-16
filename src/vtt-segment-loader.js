@@ -477,13 +477,25 @@ export default class VTTSegmentLoader extends SegmentLoader {
       return;
     }
 
-    const timestampmap = segmentInfo.timestampmap;
-    const diff = (timestampmap.MPEGTS / ONE_SECOND_IN_TS) - timestampmap.LOCAL + mappingObj.mapping;
+    const { MPEGTS, LOCAL } = segmentInfo.timestampmap;
+
+    /**
+     * From the spec:
+     * The MPEGTS media timestamp MUST use a 90KHz timescale,
+     * even when non-WebVTT Media Segments use a different timescale.
+     */
+    const mpegTsInSeconds = MPEGTS / ONE_SECOND_IN_TS;
+
+    const diff = mpegTsInSeconds - LOCAL + mappingObj.mapping;
 
     segmentInfo.cues.forEach((cue) => {
-      // First convert cue time to TS time using the timestamp-map provided within the vtt
-      cue.startTime += diff;
-      cue.endTime += diff;
+      const duration = cue.endTime - cue.startTime;
+      const startTime = MPEGTS === 0 ?
+        cue.startTime + diff :
+        this.handleRollover_(cue.startTime + diff, mappingObj.time);
+
+      cue.startTime = Math.max(startTime, 0);
+      cue.endTime = Math.max(startTime + duration, 0);
     });
 
     if (!playlist.syncInfo) {
@@ -495,5 +507,49 @@ export default class VTTSegmentLoader extends SegmentLoader {
         time: Math.min(firstStart, lastStart - segment.duration)
       };
     }
+  }
+
+  /**
+   * MPEG-TS PES timestamps are limited to 2^33.
+   * Once they reach 2^33, they roll over to 0.
+   * mux.js handles PES timestamp rollover for the following scenarios:
+   * [forward rollover(right)] ->
+   *    PES timestamps monotonically increase, and once they reach 2^33, they roll over to 0
+   * [backward rollover(left)] -->
+   *    we seek back to position before rollover.
+   *
+   * According to the HLS SPEC:
+   * When synchronizing WebVTT with PES timestamps, clients SHOULD account
+   * for cases where the 33-bit PES timestamps have wrapped and the WebVTT
+   * cue times have not.  When the PES timestamp wraps, the WebVTT Segment
+   * SHOULD have a X-TIMESTAMP-MAP header that maps the current WebVTT
+   * time to the new (low valued) PES timestamp.
+   *
+   * So we want to handle rollover here and align VTT Cue start/end time to the player's time.
+   */
+  handleRollover_(value, reference) {
+    if (reference === null) {
+      return value;
+    }
+
+    let valueIn90khz = value * ONE_SECOND_IN_TS;
+    const referenceIn90khz = reference * ONE_SECOND_IN_TS;
+
+    let offset;
+
+    if (referenceIn90khz < valueIn90khz) {
+      // - 2^33
+      offset = -8589934592;
+    } else {
+      // + 2^33
+      offset = 8589934592;
+    }
+
+    // distance(value - reference) > 2^32
+    while (Math.abs(valueIn90khz - referenceIn90khz) > 4294967296) {
+      valueIn90khz += offset;
+    }
+
+    return valueIn90khz / ONE_SECOND_IN_TS;
   }
 }
