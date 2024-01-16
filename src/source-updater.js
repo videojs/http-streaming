@@ -281,8 +281,13 @@ const actions = {
 
     sourceUpdater.logger_(`changing ${type}Buffer codec from ${sourceUpdater.codecs[type]} to ${codec}`);
 
-    sourceBuffer.changeType(mime);
-    sourceUpdater.codecs[type] = codec;
+    // check if change to the provided type is supported
+    try {
+      sourceBuffer.changeType(mime);
+      sourceUpdater.codecs[type] = codec;
+    } catch (e) {
+      videojs.log.warn(`Failed to changeType on ${type}Buffer`, e);
+    }
   }
 };
 
