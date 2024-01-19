@@ -1472,9 +1472,10 @@ export default class SegmentLoader extends videojs.EventTarget {
         if (segmentEnd > bufferedEnd) {
           const difference = segmentEnd - bufferedEnd;
 
+          // difference <= 0.06
           if (difference <= 2 * TIME_FUDGE_FACTOR) {
             // we are trying to choose segment that had been already appended from previous quality
-            // lest try to choose segment with buffered.end + padding (difference + 2 * TIME_FUDGE_FACTOR)
+            // lest try to choose segment with buffered.end + padding (difference + 0.06)
             mediaInfo = Playlist.getMediaInfoForTime({
               exactManifestTimings: this.exactManifestTimings,
               playlist: this.playlist_,
