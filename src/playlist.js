@@ -554,12 +554,7 @@ export const getMediaInfoForTime = function({
     };
   }
 
-  // We are out of possible candidates so load the last one...
-  return {
-    segmentIndex: partsAndSegments[partsAndSegments.length - 1].segmentIndex,
-    partIndex: partsAndSegments[partsAndSegments.length - 1].partIndex,
-    startTime: currentTime
-  };
+  return null;
 };
 
 /**

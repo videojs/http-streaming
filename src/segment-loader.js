@@ -1452,7 +1452,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       }
     } else {
       // Find the segment containing the end of the buffer or current time.
-      const {segmentIndex, startTime, partIndex} = Playlist.getMediaInfoForTime({
+      let mediaInfo = Playlist.getMediaInfoForTime({
         exactManifestTimings: this.exactManifestTimings,
         playlist: this.playlist_,
         currentTime: this.fetchAtBuffer_ ? bufferedEnd : this.currentTime_(),
@@ -1460,6 +1460,41 @@ export default class SegmentLoader extends videojs.EventTarget {
         startingSegmentIndex: this.syncPoint_.segmentIndex,
         startTime: this.syncPoint_.time
       });
+
+      if (!mediaInfo) {
+        return null;
+      }
+
+      if (this.fetchAtBuffer_) {
+        const segment = segments[mediaInfo.segmentIndex];
+        const segmentEnd = mediaInfo.startTime + segment.duration;
+
+        if (segmentEnd > bufferedEnd) {
+          const difference = segmentEnd - bufferedEnd;
+
+          if (difference <= 2 * TIME_FUDGE_FACTOR) {
+            // we are trying to choose segment that had been already appended from previous quality
+            // lest try to choose segment with buffered.end + padding (difference + 2 * TIME_FUDGE_FACTOR)
+            mediaInfo = Playlist.getMediaInfoForTime({
+              exactManifestTimings: this.exactManifestTimings,
+              playlist: this.playlist_,
+              currentTime: bufferedEnd + difference + 2 * TIME_FUDGE_FACTOR,
+              startingPartIndex: this.syncPoint_.partIndex,
+              startingSegmentIndex: this.syncPoint_.segmentIndex,
+              startTime: this.syncPoint_.time
+            });
+
+            if (!mediaInfo) {
+              // could not find next segment/part
+              // early return and wait until playlist is refreshed
+              return null;
+            }
+            // found next segment/part
+          }
+        }
+      }
+
+      const {segmentIndex, startTime, partIndex} = mediaInfo;
 
       next.getMediaInfoForTime = this.fetchAtBuffer_ ?
         `bufferedEnd ${bufferedEnd}` : `currentTime ${this.currentTime_()}`;
