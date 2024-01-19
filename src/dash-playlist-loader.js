@@ -361,7 +361,8 @@ export default class DashPlaylistLoader extends EventTarget {
         message: 'DASH request error at URL: ' + request.uri,
         response: request.response,
         // MEDIA_ERR_NETWORK
-        code: 2
+        code: 2,
+        errorType: err.errorType || videojs.Errors.DashManifestRequestError,
       };
       if (startingState) {
         this.state = startingState;
@@ -400,6 +401,7 @@ export default class DashPlaylistLoader extends EventTarget {
       try {
         sidx = parseSidx(toUint8(request.response).subarray(8));
       } catch (e) {
+        e.errorType = videojs.Errors.DashManifestSidxParsingError;
         // sidx parsing failed.
         this.requestErrored_(e, request, startingState);
         return;
@@ -431,7 +433,8 @@ export default class DashPlaylistLoader extends EventTarget {
           internal: true,
           playlistExclusionDuration: Infinity,
           // MEDIA_ERR_NETWORK
-          code: 2
+          code: 2,
+          errorType: videojs.Errors.DashManifestSidxContainerError,
         }, request);
       }
 

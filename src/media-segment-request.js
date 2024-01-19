@@ -163,7 +163,8 @@ const parseInitSegment = (segment, callback) => {
     return callback({
       internal: true,
       message: `Found unsupported ${type || 'unknown'} container for initialization segment at URL: ${uri}`,
-      code: REQUEST_ERRORS.FAILURE
+      code: REQUEST_ERRORS.FAILURE,
+      errorType: videojs.Errors.SegmentUnsupportedContainer
     });
   }
 

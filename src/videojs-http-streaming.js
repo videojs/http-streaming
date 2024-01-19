@@ -804,7 +804,11 @@ class VhsHandler extends Component {
         error = {message: error, code: 3};
       }
 
+      // everything necessary should already exist in error
+
       player.error(error);
+
+      // always triggers an error on player.error(error)
     });
 
     const defaultSelector = this.options_.bufferBasedABR ?
@@ -1078,7 +1082,8 @@ class VhsHandler extends Component {
       this.logger_('error while creating EME key session', err);
       this.player_.error({
         message: 'Failed to initialize media keys for EME',
-        code: 3
+        code: 3,
+        errorType: videojs.Errors.EMEKeySessionCreationError
       });
     });
   }
