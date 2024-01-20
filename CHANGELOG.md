@@ -1,3 +1,14 @@
+<a name="2.16.3"></a>
+## [2.16.3](https://github.com/videojs/http-streaming/compare/v2.16.2...v2.16.3) (2024-01-20)
+
+### Bug Fixes
+
+* Check if change to the provided type is supported ([#1463](https://github.com/videojs/http-streaming/issues/1463)) ([8cf0c5f](https://github.com/videojs/http-streaming/commit/8cf0c5f))
+
+### Chores
+
+* npm publish for release workflow ([#1377](https://github.com/videojs/http-streaming/issues/1377)) ([27d1108](https://github.com/videojs/http-streaming/commit/27d1108))
+
 <a name="2.16.2"></a>
 ## [2.16.2](https://github.com/videojs/http-streaming/compare/v2.16.1...v2.16.2) (2023-02-27)
 
