@@ -287,6 +287,7 @@ const actions = {
 
     sourceUpdater.logger_(`changing ${type}Buffer codec from ${sourceUpdater.codecs[type]} to ${codec}`);
 
+    // check if change to the provided type is supported
     try {
       sourceBuffer.changeType(mime);
       sourceUpdater.codecs[type] = codec;
