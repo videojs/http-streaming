@@ -831,6 +831,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.pendingSegment_ = null;
 
     const errorEvent = isAppendError ? 'appendError' : 'error';
+
     this.trigger(errorEvent);
 
     return this.error_;
@@ -2348,9 +2349,9 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.error({
       message: `${type} append of ${bytes.length}b failed for segment ` +
         `#${segmentInfo.mediaIndex} in playlist ${segmentInfo.playlist.id}`,
-        metadata: {
-          errorType: videojs.Errors.SegmentAppendError
-        }
+      metadata: {
+        errorType: videojs.Errors.SegmentAppendError
+      }
     }, true);
   }
 

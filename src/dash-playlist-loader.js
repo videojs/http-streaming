@@ -363,7 +363,7 @@ export default class DashPlaylistLoader extends EventTarget {
         // MEDIA_ERR_NETWORK
         code: 2,
         metadata: {
-          errorType: err.errorType,
+          errorType: err.errorType
         }
       };
       if (startingState) {
@@ -405,8 +405,8 @@ export default class DashPlaylistLoader extends EventTarget {
       } catch (e) {
         e.metadata = {
           errorType: videojs.Errors.DashManifestSidxParsingError
-        }
-        
+        };
+
         // sidx parsing failed.
         this.requestErrored_(e, request, startingState);
         return;

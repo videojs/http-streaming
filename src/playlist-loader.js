@@ -486,7 +486,7 @@ export default class PlaylistLoader extends EventTarget {
       responseText: xhr.responseText,
       code: (xhr.status >= 500) ? 4 : 2,
       metadata: {
-        errorType: videojs.Errors.HlsPlaylistRequestError,
+        errorType: videojs.Errors.HlsPlaylistRequestError
       }
     };
 
