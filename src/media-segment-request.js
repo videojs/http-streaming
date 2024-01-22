@@ -159,12 +159,16 @@ const parseInitSegment = (segment, callback) => {
   // only know how to parse mp4 init segments at the moment
   if (type !== 'mp4') {
     const uri = segment.map.resolvedUri || segment.map.uri;
+    const mediaType = type || 'unknown';
 
     return callback({
       internal: true,
-      message: `Found unsupported ${type || 'unknown'} container for initialization segment at URL: ${uri}`,
+      message: `Found unsupported ${mediaType} container for initialization segment at URL: ${uri}`,
       code: REQUEST_ERRORS.FAILURE,
-      errorType: videojs.Errors.SegmentUnsupportedContainer
+      metadata: {
+        errorType: videojs.Errors.UnsupportedMediaInitialization,
+        mediaType
+      }
     });
   }
 

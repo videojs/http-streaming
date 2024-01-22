@@ -819,15 +819,20 @@ export default class SegmentLoader extends videojs.EventTarget {
    * set an error on the segment loader and null out any pending segements
    *
    * @param {Error} error the error to set on the SegmentLoader
+   * @param {boolean} isAppendError a flag to trigger the `appendError` event.
    * @return {Error} the error that was set or that is currently set
    */
-  error(error) {
+  error(error, isAppendError = false) {
     if (typeof error !== 'undefined') {
       this.logger_('error occurred:', error);
       this.error_ = error;
     }
 
     this.pendingSegment_ = null;
+
+    const errorEvent = isAppendError ? 'appendError' : 'error';
+    this.trigger(errorEvent);
+
     return this.error_;
   }
 
@@ -2278,9 +2283,10 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.error({
         message: 'Quota exceeded error with append of a single segment of content',
         excludeUntil: Infinity,
-        errorType: videojs.Errors.SegmentExceedsBufferQuota
+        metadata: {
+          errorType: videojs.Errors.SegmentExceedsSourceBufferQuota
+        }
       });
-      this.trigger('error');
       return;
     }
 
@@ -2333,18 +2339,19 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     this.logger_('Received non QUOTA_EXCEEDED_ERR on append', error);
-    this.error({
-      message: `${type} append of ${bytes.length}b failed for segment ` +
-        `#${segmentInfo.mediaIndex} in playlist ${segmentInfo.playlist.id}`,
-      errorType: videojs.Errors.SegmentAppendError
-    });
 
     // If an append errors, we often can't recover.
     // (see https://w3c.github.io/media-source/#sourcebuffer-append-error).
     //
     // Trigger a special error so that it can be handled separately from normal,
     // recoverable errors.
-    this.trigger('appenderror');
+    this.error({
+      message: `${type} append of ${bytes.length}b failed for segment ` +
+        `#${segmentInfo.mediaIndex} in playlist ${segmentInfo.playlist.id}`,
+        metadata: {
+          errorType: videojs.Errors.SegmentAppendError
+        }
+    }, true);
   }
 
   appendToSourceBuffer_({ segmentInfo, type, initSegment, data, bytes }) {
@@ -2718,7 +2725,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       // emit an error event to exclude the current playlist
       this.mediaRequestsErrored += 1;
       this.error(error);
-      this.trigger('error');
       return;
     }
 
@@ -2825,9 +2831,10 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.error({
         message: 'No starting media returned, likely due to an unsupported media format.',
         playlistExclusionDuration: Infinity,
-        errorType: videojs.Errors.SegmentUnsupportedMediaFormat
+        metadata: {
+          errorType: videojs.Errors.SegmentUnsupportedMediaFormat
+        }
       });
-      this.trigger('error');
       return;
     }
     // Although transmuxing is done, appends may not yet be finished. Throw a marker
@@ -2907,9 +2914,10 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.error({
         message: illegalMediaSwitchError,
         playlistExclusionDuration: Infinity,
-        errorType: videojs.Errors.SegmentSwitchError
+        metadata: {
+          errorType: videojs.Errors.SegmentSwitchError
+        }
       });
-      this.trigger('error');
       return true;
     }
 

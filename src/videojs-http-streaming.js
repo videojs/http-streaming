@@ -1083,7 +1083,9 @@ class VhsHandler extends Component {
       this.player_.error({
         message: 'Failed to initialize media keys for EME',
         code: 3,
-        errorType: videojs.Errors.EMEKeySessionCreationError
+        metadata: {
+          errorType: videojs.Errors.EMEKeySessionCreationError
+        }
       });
     });
   }

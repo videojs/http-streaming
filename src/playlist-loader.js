@@ -485,7 +485,9 @@ export default class PlaylistLoader extends EventTarget {
       message: `HLS playlist request error at URL: ${uri}.`,
       responseText: xhr.responseText,
       code: (xhr.status >= 500) ? 4 : 2,
-      errorType: videojs.Errors.HlsPlaylistRequestError,
+      metadata: {
+        errorType: videojs.Errors.HlsPlaylistRequestError,
+      }
     };
 
     this.trigger('error');
@@ -853,7 +855,9 @@ export default class PlaylistLoader extends EventTarget {
           responseText: req.responseText,
           // MEDIA_ERR_NETWORK
           code: 2,
-          errorType: videojs.Errors.HlsPlaylistRequestError,
+          metadata: {
+            errorType: videojs.Errors.HlsPlaylistRequestError
+          }
         };
         if (this.state === 'HAVE_NOTHING') {
           this.started = false;

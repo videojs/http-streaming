@@ -362,7 +362,9 @@ export default class DashPlaylistLoader extends EventTarget {
         response: request.response,
         // MEDIA_ERR_NETWORK
         code: 2,
-        errorType: err.errorType || videojs.Errors.DashManifestRequestError,
+        metadata: {
+          errorType: err.errorType,
+        }
       };
       if (startingState) {
         this.state = startingState;
@@ -401,7 +403,10 @@ export default class DashPlaylistLoader extends EventTarget {
       try {
         sidx = parseSidx(toUint8(request.response).subarray(8));
       } catch (e) {
-        e.errorType = videojs.Errors.DashManifestSidxParsingError;
+        e.metadata = {
+          errorType: videojs.Errors.DashManifestSidxParsingError
+        }
+        
         // sidx parsing failed.
         this.requestErrored_(e, request, startingState);
         return;
@@ -423,9 +428,11 @@ export default class DashPlaylistLoader extends EventTarget {
       }
 
       if (!container || container !== 'mp4') {
+        const sidxContainer = container || 'unknown';
+
         return fin({
           status: request.status,
-          message: `Unsupported ${container || 'unknown'} container type for sidx segment at URL: ${uri}`,
+          message: `Unsupported ${sidxContainer} container type for sidx segment at URL: ${uri}`,
           // response is just bytes in this case
           // but we really don't want to return that.
           response: '',
@@ -434,7 +441,10 @@ export default class DashPlaylistLoader extends EventTarget {
           playlistExclusionDuration: Infinity,
           // MEDIA_ERR_NETWORK
           code: 2,
-          errorType: videojs.Errors.DashManifestSidxContainerError,
+          metadata: {
+            errorType: videojs.Errors.UnsupportedSidxContainer,
+            sidxContainer
+          }
         }, request);
       }
 
