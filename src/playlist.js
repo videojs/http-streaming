@@ -554,6 +554,7 @@ export const getMediaInfoForTime = function({
     };
   }
 
+  // We are out of possible candidates so there will not be a segment
   return null;
 };
 
