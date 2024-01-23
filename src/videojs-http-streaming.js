@@ -804,11 +804,7 @@ class VhsHandler extends Component {
         error = {message: error, code: 3};
       }
 
-      // everything necessary should already exist in error
-
       player.error(error);
-
-      // always triggers an error on player.error(error)
     });
 
     const defaultSelector = this.options_.bufferBasedABR ?

@@ -855,7 +855,6 @@ export class PlaylistController extends videojs.EventTarget {
       const error = this.mainSegmentLoader_.error();
 
       this.excludePlaylist({ playlistToExclude: error.playlist, error });
-      // error should be triggered here
     });
 
     this.mainSegmentLoader_.on('appenderror', () => {
@@ -1236,7 +1235,6 @@ export class PlaylistController extends videojs.EventTarget {
       this.error = error;
 
       if (this.mediaSource.readyState !== 'open') {
-        // I assume this should happen in the case of the faulty segment.
         this.trigger('error');
       } else {
         this.sourceUpdater_.endOfStream('network');
