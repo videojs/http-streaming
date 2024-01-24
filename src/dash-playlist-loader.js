@@ -404,7 +404,7 @@ export default class DashPlaylistLoader extends EventTarget {
         sidx = parseSidx(toUint8(request.response).subarray(8));
       } catch (e) {
         e.metadata = {
-          errorType: videojs.Errors.DashManifestSidxParsingError
+          errorType: videojs.Error.DashManifestSidxParsingError
         };
 
         // sidx parsing failed.
@@ -442,7 +442,7 @@ export default class DashPlaylistLoader extends EventTarget {
           // MEDIA_ERR_NETWORK
           code: 2,
           metadata: {
-            errorType: videojs.Errors.UnsupportedSidxContainer,
+            errorType: videojs.Error.UnsupportedSidxContainer,
             sidxContainer
           }
         }, request);

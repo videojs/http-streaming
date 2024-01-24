@@ -2285,7 +2285,7 @@ export default class SegmentLoader extends videojs.EventTarget {
         message: 'Quota exceeded error with append of a single segment of content',
         excludeUntil: Infinity,
         metadata: {
-          errorType: videojs.Errors.SegmentExceedsSourceBufferQuota
+          errorType: videojs.Error.SegmentExceedsSourceBufferQuota
         }
       });
       return;
@@ -2350,7 +2350,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       message: `${type} append of ${bytes.length}b failed for segment ` +
         `#${segmentInfo.mediaIndex} in playlist ${segmentInfo.playlist.id}`,
       metadata: {
-        errorType: videojs.Errors.SegmentAppendError
+        errorType: videojs.Error.SegmentAppendError
       }
     }, true);
   }
@@ -2833,7 +2833,7 @@ export default class SegmentLoader extends videojs.EventTarget {
         message: 'No starting media returned, likely due to an unsupported media format.',
         playlistExclusionDuration: Infinity,
         metadata: {
-          errorType: videojs.Errors.SegmentUnsupportedMediaFormat
+          errorType: videojs.Error.SegmentUnsupportedMediaFormat
         }
       });
       return;
@@ -2916,7 +2916,7 @@ export default class SegmentLoader extends videojs.EventTarget {
         message: illegalMediaSwitchError,
         playlistExclusionDuration: Infinity,
         metadata: {
-          errorType: videojs.Errors.SegmentSwitchError
+          errorType: videojs.Error.SegmentSwitchError
         }
       });
       return true;

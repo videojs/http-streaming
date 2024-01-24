@@ -486,7 +486,7 @@ export default class PlaylistLoader extends EventTarget {
       responseText: xhr.responseText,
       code: (xhr.status >= 500) ? 4 : 2,
       metadata: {
-        errorType: videojs.Errors.HlsPlaylistRequestError
+        errorType: videojs.Error.HlsPlaylistRequestError
       }
     };
 
@@ -856,7 +856,7 @@ export default class PlaylistLoader extends EventTarget {
           // MEDIA_ERR_NETWORK
           code: 2,
           metadata: {
-            errorType: videojs.Errors.HlsPlaylistRequestError
+            errorType: videojs.Error.HlsPlaylistRequestError
           }
         };
         if (this.state === 'HAVE_NOTHING') {
