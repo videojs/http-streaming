@@ -988,7 +988,8 @@ export const mediaSegmentRequest = ({
     }
     const keyRequestOptions = merge(xhrOptions, {
       uri: segment.key.resolvedUri,
-      responseType: 'arraybuffer'
+      responseType: 'arraybuffer',
+      requestType: 'segment-key'
     });
     const keyRequestCallback = handleKeyResponse(segment, objects, finishProcessingFn);
     const keyXhr = xhr(keyRequestOptions, keyRequestCallback);
@@ -1003,7 +1004,8 @@ export const mediaSegmentRequest = ({
     if (differentMapKey) {
       const mapKeyRequestOptions = merge(xhrOptions, {
         uri: segment.map.key.resolvedUri,
-        responseType: 'arraybuffer'
+        responseType: 'arraybuffer',
+        requestType: 'segment-key'
       });
       const mapKeyRequestCallback = handleKeyResponse(segment, [segment.map.key], finishProcessingFn);
       const mapKeyXhr = xhr(mapKeyRequestOptions, mapKeyRequestCallback);
@@ -1013,7 +1015,8 @@ export const mediaSegmentRequest = ({
     const initSegmentOptions = merge(xhrOptions, {
       uri: segment.map.resolvedUri,
       responseType: 'arraybuffer',
-      headers: segmentXhrHeaders(segment.map)
+      headers: segmentXhrHeaders(segment.map),
+      requestType: 'segment-media-initialization'
     });
     const initSegmentRequestCallback = handleInitSegmentResponse({segment, finishProcessingFn});
     const initSegmentXhr = xhr(initSegmentOptions, initSegmentRequestCallback);
@@ -1024,7 +1027,8 @@ export const mediaSegmentRequest = ({
   const segmentRequestOptions = merge(xhrOptions, {
     uri: segment.part && segment.part.resolvedUri || segment.resolvedUri,
     responseType: 'arraybuffer',
-    headers: segmentXhrHeaders(segment)
+    headers: segmentXhrHeaders(segment),
+    requestType: 'segment'
   });
 
   const segmentRequestCallback = handleSegmentResponse({

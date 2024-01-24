@@ -171,7 +171,8 @@ export default class ContentSteeringController extends videojs.EventTarget {
     }
 
     this.request_ = this.xhr_({
-      uri
+      uri,
+      requestType: 'content-steering-manifest'
     }, (error, errorInfo) => {
       if (error) {
         // If the client receives HTTP 410 Gone in response to a manifest request,

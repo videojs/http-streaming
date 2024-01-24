@@ -446,7 +446,8 @@ export default class PlaylistLoader extends EventTarget {
 
     this.request = this.vhs_.xhr({
       uri,
-      withCredentials: this.withCredentials
+      withCredentials: this.withCredentials,
+      requestType: 'hls-playlist'
     }, (error, req) => {
       // disposed
       if (!this.request) {
@@ -689,7 +690,8 @@ export default class PlaylistLoader extends EventTarget {
 
     this.request = this.vhs_.xhr({
       uri: playlist.resolvedUri,
-      withCredentials: this.withCredentials
+      withCredentials: this.withCredentials,
+      requestType: 'hls-playlist'
     }, (error, req) => {
       // disposed
       if (!this.request) {
@@ -835,7 +837,8 @@ export default class PlaylistLoader extends EventTarget {
     // request the specified URL
     this.request = this.vhs_.xhr({
       uri: this.src,
-      withCredentials: this.withCredentials
+      withCredentials: this.withCredentials,
+      requestType: 'hls-playlist'
     }, (error, req) => {
       // disposed
       if (!this.request) {
