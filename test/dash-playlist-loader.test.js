@@ -2000,9 +2000,7 @@ QUnit.test('addSidxSegments_: errors if request for sidx fails', function(assert
     {
       status: 500,
       message: 'DASH request error at URL: sidx.mp4',
-      metadata: {
-        errorType: 'dash-manifest-sidx-parsing-error'
-      },
+      metadata: undefined,
       response: '',
       code: 2
     },

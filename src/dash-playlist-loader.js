@@ -362,9 +362,7 @@ export default class DashPlaylistLoader extends EventTarget {
         response: request.response,
         // MEDIA_ERR_NETWORK
         code: 2,
-        metadata: {
-          errorType: err.metadata.errorType
-        }
+        metadata: err.metadata
       };
       if (startingState) {
         this.state = startingState;
@@ -393,6 +391,7 @@ export default class DashPlaylistLoader extends EventTarget {
     const uri = resolveManifestRedirect(playlist.sidx.resolvedUri);
 
     const fin = (err, request) => {
+      // TODO: add error metdata here once we create an error type in video.js
       if (this.requestErrored_(err, request, startingState)) {
         return;
       }
