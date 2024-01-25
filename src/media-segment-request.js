@@ -167,7 +167,7 @@ const parseInitSegment = (segment, callback) => {
       message: `Found unsupported ${mediaType} container for initialization segment at URL: ${uri}`,
       code: REQUEST_ERRORS.FAILURE,
       metadata: {
-        errorType: videojs.UnsupportedMediaInitialization,
+        errorType: videojs.Error.UnsupportedMediaInitialization,
         mediaType
       }
     });
