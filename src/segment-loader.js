@@ -806,20 +806,15 @@ export default class SegmentLoader extends videojs.EventTarget {
    * set an error on the segment loader and null out any pending segements
    *
    * @param {Error} error the error to set on the SegmentLoader
-   * @param {boolean} isAppendError a flag to trigger the `appendError` event.
    * @return {Error} the error that was set or that is currently set
    */
-  error(error, isAppendError = false) {
+  error(error) {
     if (typeof error !== 'undefined') {
       this.logger_('error occurred:', error);
       this.error_ = error;
     }
 
     this.pendingSegment_ = null;
-
-    const errorEvent = isAppendError ? 'appendError' : 'error';
-
-    this.trigger(errorEvent);
 
     return this.error_;
   }
@@ -2279,6 +2274,7 @@ export default class SegmentLoader extends videojs.EventTarget {
           errorType: videojs.Error.SegmentExceedsSourceBufferQuota
         }
       });
+      this.trigger('error');
       return;
     }
 
@@ -2343,7 +2339,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       metadata: {
         errorType: videojs.Error.SegmentAppendError
       }
-    }, true);
+    });
+    this.trigger('appendError');
   }
 
   appendToSourceBuffer_({ segmentInfo, type, initSegment, data, bytes }) {
@@ -2717,6 +2714,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       // emit an error event to exclude the current playlist
       this.mediaRequestsErrored += 1;
       this.error(error);
+      this.trigger('error');
       return;
     }
 
@@ -2827,6 +2825,7 @@ export default class SegmentLoader extends videojs.EventTarget {
           errorType: videojs.Error.SegmentUnsupportedMediaFormat
         }
       });
+      this.trigger('error');
       return;
     }
     // Although transmuxing is done, appends may not yet be finished. Throw a marker
@@ -2910,6 +2909,7 @@ export default class SegmentLoader extends videojs.EventTarget {
           errorType: videojs.Error.SegmentSwitchError
         }
       });
+      this.trigger('error');
       return true;
     }
 
