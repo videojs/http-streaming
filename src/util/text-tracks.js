@@ -234,7 +234,7 @@ export const addMetadata = ({
   // Map each cue group's endTime to the next group's startTime
   sortedStartTimes.forEach((startTime, idx) => {
     const cueGroup = cuesGroupedByStartTime[startTime];
-    const finiteDuration = isFinite(videoDuration) ? videoDuration : 0;
+    const finiteDuration = isFinite(videoDuration) ? videoDuration : startTime;
     const nextTime = Number(sortedStartTimes[idx + 1]) || finiteDuration;
 
     // Map each cue's endTime the next group's startTime

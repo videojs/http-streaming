@@ -13,10 +13,6 @@ import videojs from 'video.js';
 import window from 'global/window';
 import {merge} from './util/vjs-compat';
 
-const {
-  xhr: videojsXHR
-} = videojs;
-
 const callbackWrapper = function(request, error, response, callback) {
   const reqResponse = request.responseType === 'arraybuffer' ? request.response : request.responseText;
 
@@ -115,7 +111,7 @@ const xhrFactory = function() {
 
     // Use the standard videojs.xhr() method unless `videojs.Vhs.xhr` has been overriden
     // TODO: switch back to videojs.Vhs.xhr.name === 'XhrFunction' when we drop IE11
-    const xhrMethod = videojs.Vhs.xhr.original === true ? videojsXHR : videojs.Vhs.xhr;
+    const xhrMethod = videojs.Vhs.xhr.original === true ? videojs.xhr : videojs.Vhs.xhr;
 
     // call all registered onRequest hooks, assign new options.
     const beforeRequestOptions = callAllRequestHooks(_requestCallbackSet, options);

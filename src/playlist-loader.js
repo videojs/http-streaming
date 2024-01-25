@@ -446,7 +446,8 @@ export default class PlaylistLoader extends EventTarget {
 
     this.request = this.vhs_.xhr({
       uri,
-      withCredentials: this.withCredentials
+      withCredentials: this.withCredentials,
+      requestType: 'hls-playlist'
     }, (error, req) => {
       // disposed
       if (!this.request) {
@@ -692,7 +693,8 @@ export default class PlaylistLoader extends EventTarget {
 
     this.request = this.vhs_.xhr({
       uri: playlist.resolvedUri,
-      withCredentials: this.withCredentials
+      withCredentials: this.withCredentials,
+      requestType: 'hls-playlist'
     }, (error, req) => {
       // disposed
       if (!this.request) {
@@ -838,7 +840,8 @@ export default class PlaylistLoader extends EventTarget {
     // request the specified URL
     this.request = this.vhs_.xhr({
       uri: this.src,
-      withCredentials: this.withCredentials
+      withCredentials: this.withCredentials,
+      requestType: 'hls-playlist'
     }, (error, req) => {
       // disposed
       if (!this.request) {
@@ -1199,5 +1202,26 @@ export default class PlaylistLoader extends EventTarget {
     });
 
     return attributes;
+  }
+
+  /**
+   * Returns the key ID set from a playlist
+   *
+   * @param {playlist} playlist to fetch the key ID set from.
+   * @return a Set of 32 digit hex strings that represent the unique keyIds for that playlist.
+   */
+  getKeyIdSet(playlist) {
+    if (playlist.contentProtection) {
+      const keyIds = new Set();
+
+      for (const keysystem in playlist.contentProtection) {
+        const keyId = playlist.contentProtection[keysystem].attributes.keyId;
+
+        if (keyId) {
+          keyIds.add(keyId.toLowerCase());
+        }
+      }
+      return keyIds;
+    }
   }
 }

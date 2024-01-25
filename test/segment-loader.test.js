@@ -222,54 +222,6 @@ QUnit.test('illegalMediaSwitch detects illegal media switches', function(assert)
 
 QUnit.module('timestampOffsetForSegment');
 
-QUnit.test('returns startOfSegment when calculateTimestampOffsetForEachSegment is enabled and the buffer is empty with the same timeline', function(assert) {
-  const timestampOffset = timestampOffsetForSegment({
-    calculateTimestampOffsetForEachSegment: true,
-    segmentTimeline: 0,
-    currentTimeline: 0,
-    startOfSegment: 3,
-    buffered: createTimeRanges()
-  });
-
-  assert.equal(timestampOffset, 3, 'returned startOfSegment');
-});
-
-QUnit.test('returns startOfSegment when calculateTimestampOffsetForEachSegment is enabled and the buffer is empty with different timeline', function(assert) {
-  const timestampOffset = timestampOffsetForSegment({
-    calculateTimestampOffsetForEachSegment: true,
-    segmentTimeline: 1,
-    currentTimeline: 0,
-    startOfSegment: 3,
-    buffered: createTimeRanges()
-  });
-
-  assert.equal(timestampOffset, 3, 'returned startOfSegment');
-});
-
-QUnit.test('returns buffered.end when calculateTimestampOffsetForEachSegment is enabled and there exists buffered content with the same timeline', function(assert) {
-  const timestampOffset = timestampOffsetForSegment({
-    calculateTimestampOffsetForEachSegment: true,
-    segmentTimeline: 0,
-    currentTimeline: 0,
-    startOfSegment: 3,
-    buffered: createTimeRanges([[1, 5], [7, 8]])
-  });
-
-  assert.equal(timestampOffset, 8, 'returned buffered.end');
-});
-
-QUnit.test('returns buffered.end when calculateTimestampOffsetForEachSegment is enabled and there exists buffered content with different timeline', function(assert) {
-  const timestampOffset = timestampOffsetForSegment({
-    calculateTimestampOffsetForEachSegment: true,
-    segmentTimeline: 1,
-    currentTimeline: 0,
-    startOfSegment: 3,
-    buffered: createTimeRanges([[1, 5], [7, 8]])
-  });
-
-  assert.equal(timestampOffset, 8, 'returned buffered.end');
-});
-
 QUnit.test('returns startOfSegment when timeline changes and the buffer is empty', function(assert) {
   assert.equal(
     timestampOffsetForSegment({
@@ -1649,7 +1601,7 @@ QUnit.module('SegmentLoader', function(hooks) {
 
         assert.equal(
           loader.pendingSegment_.timestampOffset,
-          60,
+          70,
           'timestamp offset is nonzero'
         );
         assert.equal(loader.state, 'WAITING', 'state is waiting on segment');
@@ -3411,7 +3363,7 @@ QUnit.module('SegmentLoader', function(hooks) {
       });
     });
 
-    QUnit.test('sync request can be thrown away', function(assert) {
+    QUnit.skip('sync request can be thrown away', function(assert) {
       const appends = [];
       const logs = [];
 

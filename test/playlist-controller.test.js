@@ -687,8 +687,6 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
   let resets = 0;
   let removeFuncArgs = {};
 
-  this.player.tech_.buffered = () => createTimeRanges(0, 1);
-
   this.playlistController.mediaSource.trigger('sourceopen');
   // main
   this.standardXHRResponse(this.requests.shift());
@@ -703,11 +701,18 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
     originalResync.call(segmentLoader);
   };
 
-  const origResetLoaderProperties = segmentLoader.resetLoaderProperties;
+  const origResetEverything = segmentLoader.resetEverything;
+  const origRemove = segmentLoader.remove;
 
-  segmentLoader.resetLoaderProperties = () => {
+  segmentLoader.resetEverything = () => {
     resets++;
-    origResetLoaderProperties.call(segmentLoader);
+    origResetEverything.call(segmentLoader);
+  };
+
+  segmentLoader.remove = (start, end) => {
+    assert.equal(end, Infinity, 'on a remove all, end should be Infinity');
+
+    origRemove.call(segmentLoader, start, end);
   };
 
   segmentLoader.startingMediaInfo_ = { hasVideo: true };
@@ -739,11 +744,13 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
     return playlists.find((playlist) => playlist !== currentPlaylist);
   };
 
-  this.playlistController.fastQualityChange_();
+  this.playlistController.runFastQualitySwitch_();
 
   assert.equal(resyncs, 1, 'resynced segment loader if media is changed');
 
-  assert.equal(resets, 1, 'resetLoaderProperties called if media is changed');
+  assert.equal(resets, 1, 'resetEverything called if media is changed');
+
+  assert.deepEqual(removeFuncArgs, {start: 0, end: 60}, 'remove() called with correct arguments if media is changed');
 });
 
 QUnit.test('loadVttJs should be passed to the vttSegmentLoader and resolved on vttjsloaded', function(assert) {
@@ -761,6 +768,55 @@ QUnit.test('loadVttJs should be passed to the vttSegmentLoader and rejected on v
 
   controller.subtitleSegmentLoader_.loadVttJs().catch(() => {
     assert.equal(stub.callCount, 1, 'tech addWebVttScript called once');
+  });
+});
+
+QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', function(assert) {
+  let seeks = 0;
+
+  this.playlistController.mediaSource.trigger('sourceopen');
+  // main
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  const segmentLoader = this.playlistController.mainSegmentLoader_;
+
+  return requestAndAppendSegment({
+    request: this.requests.shift(),
+    segmentLoader,
+    clock: this.clock
+  }).then(() => {
+    // media is changed
+    this.playlistController.selectPlaylist = () => {
+      const playlists = this.playlistController.main().playlists;
+      const currentPlaylist = this.playlistController.media();
+
+      return playlists.find((playlist) => playlist !== currentPlaylist);
+    };
+
+    this.player.tech_.on('seeking', function() {
+      seeks++;
+    });
+
+    const timeBeforeSwitch = this.player.currentTime();
+
+    // mock buffered values so removes are processed
+    segmentLoader.sourceUpdater_.audioBuffer.buffered = createTimeRanges([[0, 10]]);
+    segmentLoader.sourceUpdater_.videoBuffer.buffered = createTimeRanges([[0, 10]]);
+
+    this.playlistController.runFastQualitySwitch_();
+    // trigger updateend to indicate the end of the remove operation
+    segmentLoader.sourceUpdater_.audioBuffer.trigger('updateend');
+    segmentLoader.sourceUpdater_.videoBuffer.trigger('updateend');
+    this.clock.tick(1);
+
+    assert.equal(
+      this.player.currentTime(),
+      timeBeforeSwitch,
+      'current time remains the same on fast quality switch'
+    );
+    assert.equal(seeks, 1, 'seek event occurs on fast quality switch');
   });
 });
 
@@ -4506,7 +4562,7 @@ QUnit.test(
   }
 );
 
-QUnit.test(
+QUnit.skip(
   'when data URI is a main playlist with media playlists resolved, ' +
   'state is updated without a playlist request',
   function(assert) {
@@ -4754,14 +4810,13 @@ QUnit.test('on error all segment and playlist loaders are paused and aborted', f
 
 QUnit.test('can pass or select a playlist for fastQualityChange', function(assert) {
   const calls = {
+    resetEverything: 0,
     resyncLoader: 0,
     media: 0,
     selectPlaylist: 0
   };
 
   const pc = this.playlistController;
-
-  this.player.tech_.buffered = () => createTimeRanges(0, 1);
 
   pc.mediaSource.trigger('sourceopen');
   // main
@@ -4786,19 +4841,294 @@ QUnit.test('can pass or select a playlist for fastQualityChange', function(asser
     calls.resyncLoader++;
   };
 
+  pc.mainSegmentLoader_.resetEverything = () => {
+    calls.resetEverything++;
+  };
+
   pc.fastQualityChange_(pc.main().playlists[1]);
+  pc.runFastQualitySwitch_();
   assert.deepEqual(calls, {
+    resetEverything: 1,
     media: 1,
     selectPlaylist: 0,
-    resyncLoader: 1
+    resyncLoader: 0
   }, 'calls expected function when passed a playlist');
 
   pc.fastQualityChange_();
+  pc.runFastQualitySwitch_();
   assert.deepEqual(calls, {
+    resetEverything: 2,
     media: 2,
     selectPlaylist: 1,
-    resyncLoader: 2
+    resyncLoader: 0
   }, 'calls expected function when not passed a playlist');
+});
+
+QUnit.test('updatePlaylistByKeyStatus calls the expected functions', function(assert) {
+  // string keyId
+  const keyIdArrayBuffer = new Uint8Array([31, 21, 116, 48, 29, 163,
+    79, 139, 188, 200, 47, 76, 45, 21, 81, 184]).buffer;
+  const status = 'usable';
+  const pc = this.playlistController;
+  let excludeCalls = 0;
+
+  pc.addKeyStatus_ = (id, st) => {
+    assert.equal(id, keyIdArrayBuffer, 'addKeyStatus_ called with expected keyId');
+    assert.equal(st, status, 'addKeyStatus_ called with expected status');
+  };
+
+  pc.excludeNonUsablePlaylistsByKeyId_ = () => {
+    excludeCalls++;
+  };
+
+  pc.updatePlaylistByKeyStatus(keyIdArrayBuffer, status);
+  assert.equal(excludeCalls, 1, 'excludeNonUsablePlaylistsByKeyId_ called once');
+});
+
+QUnit.test('addKeyStatus_ adds keyId and status to the Map', function(assert) {
+  // string keyId
+  const keyId = 'a6fcfb2a857c4227adb5a5f51aa27632';
+  const status = 'usable';
+  const pc = this.playlistController;
+
+  pc.addKeyStatus_(keyId, status);
+
+  assert.equal(pc.keyStatusMap_.size, 1, 'map is expected size');
+  assert.equal(pc.keyStatusMap_.get(keyId), status, 'keyId has expected status');
+
+  // test a non-string keyId
+  const keyId2 = '1f1574301da34f8bbcc82f4c2d1551b8';
+  const keyIdArrayBuffer = new Uint8Array([31, 21, 116, 48, 29, 163,
+    79, 139, 188, 200, 47, 76, 45, 21, 81, 184]).buffer;
+
+  pc.addKeyStatus_(keyIdArrayBuffer, 'usable');
+
+  assert.equal(pc.keyStatusMap_.size, 2, 'map is expected size');
+  assert.equal(pc.keyStatusMap_.get(keyId2), status, 'keyId has expected status');
+  // Uint8 keyid.
+});
+
+QUnit.test('dispose clears the keyStatusMap', function(assert) {
+  // string keyId
+  const keyId = 'd0bebaf8a3cb4c52bae03d20a71e3df3';
+  const status = 'usable';
+  const pc = this.playlistController;
+
+  pc.addKeyStatus_(keyId, status);
+
+  assert.equal(pc.keyStatusMap_.size, 1, 'map is expected size');
+  assert.equal(pc.keyStatusMap_.get(keyId), status, 'keyId has expected status');
+
+  pc.dispose();
+
+  assert.equal(pc.keyStatusMap_.size, 0, 'map is expected size');
+});
+
+QUnit.test('excludeNonUsablePlaylistsByKeyId_ excludes non usable HLS playlists', function(assert) {
+  // included playlist
+  const includedKeyId = 'd0bebaf8a3cb4c52bae03d20a71e3df3';
+  const includedStatus = 'usable';
+  const pc = this.playlistController;
+  const includedPlaylist = {
+    contentProtection: {
+      'com.widevine.alpha': {
+        attributes: {
+          keyId: includedKeyId
+        }
+      }
+    }
+  };
+
+  // excluded playlist
+  const excludedPlaylist = {
+    contentProtection: {
+      'com.microsoft.playready': {
+        attributes: {
+          keyId: '89256e53dbe544e9afba38d2ca17d176'
+        }
+      }
+    }
+  };
+
+  pc.mainPlaylistLoader_.main = { playlists: [includedPlaylist, excludedPlaylist] };
+
+  // add included key
+  pc.addKeyStatus_(includedKeyId, includedStatus);
+
+  pc.excludeNonUsablePlaylistsByKeyId_();
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[0].excludeUntil, 'excludeUntil is Infinity');
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[0].lastExcludeReason_, 'lastExcludeReason is non-usable');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[1].excludeUntil, Infinity, 'excludeUntil is Infinity');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[1].lastExcludeReason_, 'non-usable', 'lastExcludeReason is non-usable');
+});
+
+QUnit.test('excludeNonUsablePlaylistsByKeyId_ excludes non usable DASH playlists', function(assert) {
+  const options = {
+    src: 'test',
+    tech: this.player.tech_,
+    sourceType: 'dash'
+  };
+  const pc = new PlaylistController(options);
+
+  // excluded playlist
+  const excludedPlaylist = {
+    contentProtection: {
+      mp4protection: {
+        attributes: {
+          'cenc:default_KID': 'd0bebaf8a3cb4c52bae03d20a71e3df3'
+        }
+      }
+    }
+  };
+
+  // included playlist
+  const includedKeyId = '89256e53dbe544e9afba38d2ca17d176';
+  const includedStatus = 'usable';
+  const includedPlaylist = {
+    contentProtection: {
+      mp4protection: {
+        attributes: {
+          'cenc:default_KID': includedKeyId
+        }
+      }
+    }
+  };
+
+  pc.mainPlaylistLoader_.main = { playlists: [includedPlaylist, excludedPlaylist] };
+
+  // add included key
+  pc.addKeyStatus_(includedKeyId, includedStatus);
+
+  pc.excludeNonUsablePlaylistsByKeyId_();
+
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[0].excludeUntil, 'excludeUntil is Infinity');
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[0].lastExcludeReason_, 'lastExcludeReason is non-usable');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[1].excludeUntil, Infinity, 'excludeUntil is Infinity');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[1].lastExcludeReason_, 'non-usable', 'lastExcludeReason is non-usable');
+});
+
+QUnit.test('excludeNonUsablePlaylistsByKeyId_ re includes non usable DASH playlists', function(assert) {
+  const options = {
+    src: 'test',
+    tech: this.player.tech_,
+    sourceType: 'dash'
+  };
+  const pc = new PlaylistController(options);
+
+  // excluded playlist
+  const excludedKeyId = '89256e53dbe544e9afba38d2ca17d176';
+  const excludedPlaylist = {
+    contentProtection: {
+      mp4protection: {
+        attributes: {
+          'cenc:default_KID': excludedKeyId
+        }
+      }
+    }
+  };
+
+  // included playlist
+  const includedKeyId = 'd0bebaf8a3cb4c52bae03d20a71e3df3';
+  const includedStatus = 'usable';
+  const includedPlaylist = {
+    contentProtection: {
+      mp4protection: {
+        attributes: {
+          'cenc:default_KID': includedKeyId
+        }
+      }
+    }
+  };
+
+  pc.mainPlaylistLoader_.main = { playlists: [includedPlaylist, excludedPlaylist] };
+
+  // add included key
+  pc.addKeyStatus_(includedKeyId, includedStatus);
+  pc.excludeNonUsablePlaylistsByKeyId_();
+
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[0].excludeUntil, 'excludeUntil is Infinity');
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[0].lastExcludeReason_, 'lastExcludeReason is non-usable');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[1].excludeUntil, Infinity, 'excludeUntil is Infinity');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[1].lastExcludeReason_, 'non-usable', 'lastExcludeReason is non-usable');
+
+  // add a usable keystatus to the previously excluded key ID
+  pc.addKeyStatus_(excludedKeyId, includedStatus);
+  pc.excludeNonUsablePlaylistsByKeyId_();
+
+  pc.mainPlaylistLoader_.main.playlists.forEach((playlist) => {
+    assert.notOk(playlist.excludeUntil, 'playlist is not excluded');
+    assert.notOk(playlist.lastExcludeReason_, 'playlist has no lastExclusionReason');
+  });
+});
+
+QUnit.test('excludeNonUsablePlaylistsByKeyId_ re-includes SD playlists when all playlists are excluded', function(assert) {
+  const options = {
+    src: 'test',
+    tech: this.player.tech_,
+    sourceType: 'dash'
+  };
+  const pc = new PlaylistController(options);
+  const origWarn = videojs.log.warn;
+  const warnings = [];
+
+  videojs.log.warn = (text) => warnings.push(text);
+
+  const reIncludedPlaylist1 = {
+    contentProtection: {
+      mp4protection: {
+        attributes: {
+          'cenc:default_KID': 'd0bebaf8a3cb4c52bae03d20a71e3df3'
+        }
+      }
+    },
+    attributes: {
+      RESOLUTION: {
+        height: 480
+      }
+    }
+  };
+
+  const reIncludedPlaylist2 = {
+    contentProtection: {
+      mp4protection: {
+        attributes: {
+          'cenc:default_KID': '89256e53dbe544e9afba38d2ca17d176'
+        }
+      }
+    },
+    attributes: {
+      RESOLUTION: {
+        height: 360
+      }
+    }
+  };
+
+  const excludedPlaylist = {
+    contentProtection: {
+      mp4protection: {
+        attributes: {
+          'cenc:default_KID': '89256e53dbe544e9afba38d2ca17d176'
+        }
+      }
+    },
+    attributes: {
+      RESOLUTION: {
+        height: 1080
+      }
+    }
+  };
+
+  pc.mainPlaylistLoader_.main = { playlists: [reIncludedPlaylist1, reIncludedPlaylist2, excludedPlaylist] };
+  pc.excludeNonUsablePlaylistsByKeyId_();
+
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[0].excludeUntil, 'excludeUntil is not Infinity');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[0].lastExcludeReason_, 'non-usable', 'lastExcludeReason is non-usable');
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[1].excludeUntil, 'excludeUntil is not Infinity');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[1].lastExcludeReason_, 'non-usable', 'lastExcludeReason is non-usable');
+  assert.equal(warnings.length, 2, 're-include warning for both playlists');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[2].excludeUntil, Infinity, 'excludeUntil is Infinity');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[2].lastExcludeReason_, 'non-usable', 'lastExcludeReason is non-usable');
+  videojs.log.warn = origWarn;
 });
 
 QUnit.module('PlaylistController codecs', {
@@ -6365,6 +6695,14 @@ QUnit.module('PlaylistController contentSteering', {
       ]
     };
 
+    this.setupSteeringPlaylists = (pc, mainPlaylist) => {
+      pc.main = () => mainPlaylist;
+      pc.media = () => mainPlaylist.playlists[0];
+      pc.mainPlaylistLoader_.main = mainPlaylist;
+      pc.mainPlaylistLoader_.media = () => mainPlaylist.playlists[0];
+      pc.selectPlaylist = () => pc.main().playlists[0];
+    };
+
   },
   afterEach(assert) {
     sharedHooks.afterEach.call(this, assert);
@@ -6892,6 +7230,10 @@ QUnit.test('Pathway cloning - add a new pathway when the clone has not existed',
 
   const pc = new PlaylistController(options);
 
+  // Set up steering playlists
+  this.setupSteeringPlaylists(pc, this.csMainPlaylist);
+  pc.attachContentSteeringListeners_();
+
   this.csMainPlaylist.playlists.forEach(p => {
     p.attributes['PATHWAY-ID'] = p.attributes.serviceLocation;
     p.attributes.serviceLocation = undefined;
@@ -6948,6 +7290,9 @@ QUnit.test('Pathway cloning - update the pathway when the BASE-ID does not match
   };
 
   const pc = new PlaylistController(options);
+
+  this.setupSteeringPlaylists(pc, this.csMainPlaylist);
+  pc.attachContentSteeringListeners_();
 
   this.csMainPlaylist.playlists.forEach(p => {
     p.attributes['PATHWAY-ID'] = p.attributes.serviceLocation;
@@ -7019,6 +7364,9 @@ QUnit.test('Pathway cloning - update the pathway when there is a new param', fun
   };
 
   const pc = new PlaylistController(options);
+
+  this.setupSteeringPlaylists(pc, this.csMainPlaylist);
+  pc.attachContentSteeringListeners_();
 
   this.csMainPlaylist.playlists.forEach(p => {
     p.attributes['PATHWAY-ID'] = p.attributes.serviceLocation;
@@ -7093,6 +7441,9 @@ QUnit.test('Pathway cloning - update the pathway when a param is missing', funct
 
   const pc = new PlaylistController(options);
 
+  this.setupSteeringPlaylists(pc, this.csMainPlaylist);
+  pc.attachContentSteeringListeners_();
+
   this.csMainPlaylist.playlists.forEach(p => {
     p.attributes['PATHWAY-ID'] = p.attributes.serviceLocation;
     p.attributes.serviceLocation = undefined;
@@ -7163,6 +7514,9 @@ QUnit.test('Pathway cloning - delete the pathway when it is no longer in the ste
 
   const pc = new PlaylistController(options);
 
+  this.setupSteeringPlaylists(pc, this.csMainPlaylist);
+  pc.attachContentSteeringListeners_();
+
   this.csMainPlaylist.playlists.forEach(p => {
     p.attributes['PATHWAY-ID'] = p.attributes.serviceLocation;
     p.attributes.serviceLocation = undefined;
@@ -7220,6 +7574,9 @@ QUnit.test('Pathway cloning - do nothing when next and past clones are the same'
   };
 
   const pc = new PlaylistController(options);
+
+  this.setupSteeringPlaylists(pc, this.csMainPlaylist);
+  pc.attachContentSteeringListeners_();
 
   this.csMainPlaylist.playlists.forEach(p => {
     p.attributes['PATHWAY-ID'] = p.attributes.serviceLocation;

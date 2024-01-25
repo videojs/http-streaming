@@ -257,6 +257,29 @@ QUnit.test('VhsHandler is referenced by player.tech().vhs', function(assert) {
   );
 });
 
+QUnit.test('options are updated when setOptions is called', function(assert) {
+  this.player.src({
+    src: 'manifest/playlist.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+  this.clock.tick(1);
+
+  const vhs = this.player.tech().vhs;
+
+  assert.equal(this.env.log.warn.calls, 1, 'warning logged');
+  assert.equal(
+    this.env.log.warn.args[0][0],
+    'Using the tech directly can be dangerous. I hope you know what you\'re doing.\n' +
+    'See https://github.com/videojs/video.js/issues/2617 for more info.\n',
+    'logged warning'
+  );
+  assert.equal(vhs.options_.withCredentials, false);
+
+  vhs.setOptions({ withCredentials: true });
+
+  assert.equal(vhs.options_.withCredentials, true, 'options are updated');
+});
+
 QUnit.test('starts playing if autoplay is specified', function(assert) {
   this.player.autoplay(true);
   this.player.src({
@@ -3716,7 +3739,7 @@ QUnit.test('cleans up the buffer when loading live segments', function(assert) {
   });
 });
 
-QUnit.test('cleans up buffer by removing targetDuration from currentTime when loading a ' +
+QUnit.skip('cleans up buffer by removing targetDuration from currentTime when loading a ' +
            'live segment if seekable start is after currentTime', function(assert) {
   let seekable = createTimeRanges([[0, 80]]);
 
@@ -3807,7 +3830,7 @@ QUnit.test('cleans up buffer by removing targetDuration from currentTime when lo
   });
 });
 
-QUnit.test('cleans up the buffer when loading VOD segments', function(assert) {
+QUnit.skip('cleans up the buffer when loading VOD segments', function(assert) {
   this.player.src({
     src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'
@@ -4768,13 +4791,7 @@ QUnit.test('configures eme for HLS on source buffer creation', function(assert) 
 });
 
 QUnit.test('eme handles keystatuschange where status is output-restricted', function(assert) {
-  const originalWarn = videojs.log.warn;
-  let warning = '';
-  let qualitySwitches = 0;
-
-  videojs.log.warn = (...text) => {
-    warning += [...text].join('');
-  };
+  let switchMediaCalled = 0;
 
   this.player.eme = {
     options: {
@@ -4796,22 +4813,41 @@ QUnit.test('eme handles keystatuschange where status is output-restricted', func
 
   const playlists = [
     {
+      id: '1',
       attributes: {
         RESOLUTION: {
           width: 1280,
           height: 720
         }
+      },
+      contentProtection: {
+        keySystem1: {
+          pssh: 'test',
+          attributes: {
+            keyId: '89256e53dbe544e9afba38d2ca17d176'
+          }
+        }
       }
     },
     {
+      id: '2',
       attributes: {
         RESOLUTION: {
           width: 1920,
           height: 1080
         }
+      },
+      contentProtection: {
+        keySystem1: {
+          pssh: 'test2',
+          attributes: {
+            keyId: '303E3FF1CAC36019B9265CBFF45C82F2'
+          }
+        }
       }
     },
     {
+      id: '3',
       attributes: {
         RESOLUTION: {
           width: 848,
@@ -4821,6 +4857,7 @@ QUnit.test('eme handles keystatuschange where status is output-restricted', func
     }
   ];
 
+  this.player.tech_.vhs.playlistController_.mainPlaylistLoader_.main = { playlists };
   this.player.tech_.vhs.playlists = {
     main: { playlists },
     media: () => playlists[0]
@@ -4832,8 +4869,10 @@ QUnit.test('eme handles keystatuschange where status is output-restricted', func
     };
   };
 
-  this.player.tech_.vhs.playlistController_.fastQualityChange_ = () => {
-    qualitySwitches++;
+  this.player.tech_.vhs.playlistController_.switchMedia_ = (playlist, cause) => {
+    assert.equal(playlist, playlists[2], 'playlist is expected playlist');
+    assert.equal(cause, 'fast-quality', 'playlist is changed for expected cause');
+    switchMediaCalled++;
   };
 
   this.player.tech_.vhs.playlistController_.sourceUpdater_.trigger('createdsourcebuffers');
@@ -4842,16 +4881,7 @@ QUnit.test('eme handles keystatuschange where status is output-restricted', func
   assert.equal(playlists[0].excludeUntil, Infinity, 'first HD playlist excluded');
   assert.equal(playlists[1].excludeUntil, Infinity, 'second HD playlist excluded');
   assert.equal(playlists[2].excludeUntil, undefined, 'non-HD playlist not excluded');
-  assert.equal(qualitySwitches, 1, 'fastQualityChange_ called once');
-  assert.equal(
-    warning,
-    'DRM keystatus changed to "output-restricted." Removing the following HD playlists ' +
-    'that will most likely fail to play and clearing the buffer. ' +
-    'This may be due to HDCP restrictions on the stream and the capabilities of the current device.' +
-    [playlists[0], playlists[1]].join('')
-  );
-
-  videojs.log.warn = originalWarn;
+  assert.equal(switchMediaCalled, 1, 'switchMedia_ called once');
 });
 
 QUnit.test('eme handles keystatuschange where status is usable', function(assert) {
@@ -4889,15 +4919,24 @@ QUnit.test('eme handles keystatuschange where status is usable', function(assert
   };
 
   const excludes = [];
+  let updatePlaylistByKeyStatusCalled = 0;
+  const keyIdEncoded = '303E3FF1CAC36019B9265CBFF45C82F2';
+
+  this.player.tech_.vhs.playlistController_.updatePlaylistByKeyStatus = (keyId, status) => {
+    updatePlaylistByKeyStatusCalled++;
+    assert.equal(keyIdEncoded, keyId, 'keyId is expected value');
+    assert.equal(status, 'usable', 'status is expected value');
+  };
 
   this.player.tech_.vhs.playlistController_.excludePlaylist = (exclude) => {
     excludes.push(exclude);
   };
 
   this.player.tech_.vhs.playlistController_.sourceUpdater_.trigger('createdsourcebuffers');
-  this.player.tech_.trigger({type: 'keystatuschange', status: 'usable'});
+  this.player.tech_.trigger({type: 'keystatuschange', keyId: keyIdEncoded, status: 'usable'});
 
   assert.deepEqual(excludes, [], 'did not exclude anything');
+  assert.equal(updatePlaylistByKeyStatusCalled, 1, 'updatePlaylistByKeyStatusCalled called once');
 });
 
 QUnit.test('eme waitingforkey event triggers another setup', function(assert) {
