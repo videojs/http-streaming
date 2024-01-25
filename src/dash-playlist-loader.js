@@ -636,7 +636,8 @@ export default class DashPlaylistLoader extends EventTarget {
   requestMain_(cb) {
     this.request = this.vhs_.xhr({
       uri: this.mainPlaylistLoader_.srcUrl,
-      withCredentials: this.withCredentials
+      withCredentials: this.withCredentials,
+      requestType: 'dash-manifest'
     }, (error, req) => {
       if (this.requestErrored_(error, req)) {
         if (this.state === 'HAVE_NOTHING') {
@@ -695,7 +696,8 @@ export default class DashPlaylistLoader extends EventTarget {
     this.request = this.vhs_.xhr({
       uri: resolveUrl(this.mainPlaylistLoader_.srcUrl, utcTiming.value),
       method: utcTiming.method,
-      withCredentials: this.withCredentials
+      withCredentials: this.withCredentials,
+      requestType: 'dash-clock-sync'
     }, (error, req) => {
       // disposed
       if (!this.request) {

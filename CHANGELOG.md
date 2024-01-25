@@ -1,3 +1,14 @@
+<a name="3.10.0"></a>
+# [3.10.0](https://github.com/videojs/http-streaming/compare/v3.9.1...v3.10.0) (2024-01-17)
+
+### Features
+
+* handle rollover for VTT cues ([#1472](https://github.com/videojs/http-streaming/issues/1472)) ([8e8a341](https://github.com/videojs/http-streaming/commit/8e8a341))
+
+### Bug Fixes
+
+* Check if change to the provided type is supported ([#1463](https://github.com/videojs/http-streaming/issues/1463)) ([#1475](https://github.com/videojs/http-streaming/issues/1475)) ([e2ab570](https://github.com/videojs/http-streaming/commit/e2ab570))
+
 <a name="3.9.1"></a>
 ## [3.9.1](https://github.com/videojs/http-streaming/compare/v3.9.0...v3.9.1) (2024-01-02)
 
