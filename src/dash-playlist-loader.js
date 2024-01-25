@@ -363,7 +363,7 @@ export default class DashPlaylistLoader extends EventTarget {
         // MEDIA_ERR_NETWORK
         code: 2,
         metadata: {
-          errorType: err.errorType
+          errorType: err.metadata.errorType
         }
       };
       if (startingState) {

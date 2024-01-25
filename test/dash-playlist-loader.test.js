@@ -697,6 +697,10 @@ QUnit.test('addSidxSegments_: adds/triggers error on invalid container', functio
     code: 2,
     internal: true,
     message: 'Unsupported unknown container type for sidx segment at URL: sidx.mp4',
+    metadata: {
+      errorType: 'unsupported-sidx-container-error',
+      sidxContainer: 'unknown'
+    },
     playlist,
     response: '',
     status: 200
@@ -1996,6 +2000,9 @@ QUnit.test('addSidxSegments_: errors if request for sidx fails', function(assert
     {
       status: 500,
       message: 'DASH request error at URL: sidx.mp4',
+      metadata: {
+        errorType: 'dash-manifest-sidx-parsing-error'
+      },
       response: '',
       code: 2
     },
