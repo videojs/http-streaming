@@ -1490,8 +1490,8 @@ QUnit.module('Playlist', function() {
 
         assert.deepEqual(
           this.getMediaInfoForTime({currentTime: 159, startTime: 150}),
-          {segmentIndex: 1, startTime: 154, partIndex: null},
-          'returns last segment when time is equal to end of last segment'
+          null,
+          'returns null when time is equal to end of last segment'
         );
         assert.deepEqual(
           this.getMediaInfoForTime({currentTime: 160, startTime: 150}),

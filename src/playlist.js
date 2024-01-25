@@ -529,9 +529,7 @@ export const getMediaInfoForTime = function({
       // if we passed buffered.end -> it means that this segment is already loaded and buffered
 
       // we should select the next segment if we have one:
-      if (i !== partsAndSegments.length - 1) {
-        continue;
-      }
+      continue;
     }
 
     if (exactManifestTimings) {
