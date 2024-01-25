@@ -41,6 +41,7 @@ Video.js Compatibility: 7.x, 8.x
       - [useCueTags](#usecuetags)
       - [parse708captions](#parse708captions)
       - [overrideNative](#overridenative)
+      - [useManagedMediaSource](#usemanagedmediasource)
       - [playlistExclusionDuration](#playlistexclusionduration)
       - [maxPlaylistRetries](#maxplaylistretries)
       - [bandwidth](#bandwidth)
@@ -56,6 +57,7 @@ Video.js Compatibility: 7.x, 8.x
       - [liveRangeSafeTimeDelta](#liverangesafetimedelta)
       - [useNetworkInformationApi](#usenetworkinformationapi)
       - [useDtsForTimestampOffset](#usedtsfortimestampoffset)
+      - [calculateTimestampOffsetForEachSegment](#calculatetimestampoffsetforeachsegment)
       - [useForcedSubtitles](#useforcedsubtitles)
       - [captionServices](#captionservices)
         - [Format](#format)
@@ -347,6 +349,14 @@ var player = videojs('playerId', {
 ```
 
 Since MSE playback may be desirable on all browsers with some native support other than Safari, `overrideNative: !videojs.browser.IS_SAFARI` could be used.
+
+##### useManagedMediaSource
+* Type: `boolean`
+* can be used as an initialization option
+
+Use ManagedMediaSource when available. If both ManagedMediaSource and MediaSource are present, ManagedMediaSource would be used. This will only be effective if `ovrerideNative` is true, because currently the only browsers that implement ManagedMediaSource also have native support. Safari on iPhone 17.1 has ManagedMediaSource, as does Safari 17 on desktop and iPad. 
+
+Currently, using this option will disable AirPlay.
 
 ##### playlistExclusionDuration
 * Type: `number`
