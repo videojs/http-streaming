@@ -815,6 +815,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     this.pendingSegment_ = null;
+
     return this.error_;
   }
 
@@ -2268,7 +2269,10 @@ export default class SegmentLoader extends videojs.EventTarget {
         `video buffer: ${timeRangesToArray(videoBuffered).join(', ')}, `);
       this.error({
         message: 'Quota exceeded error with append of a single segment of content',
-        excludeUntil: Infinity
+        excludeUntil: Infinity,
+        metadata: {
+          errorType: videojs.Error.SegmentExceedsSourceBufferQuota
+        }
       });
       this.trigger('error');
       return;
@@ -2323,14 +2327,19 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     this.logger_('Received non QUOTA_EXCEEDED_ERR on append', error);
-    this.error(`${type} append of ${bytes.length}b failed for segment ` +
-      `#${segmentInfo.mediaIndex} in playlist ${segmentInfo.playlist.id}`);
 
     // If an append errors, we often can't recover.
     // (see https://w3c.github.io/media-source/#sourcebuffer-append-error).
     //
     // Trigger a special error so that it can be handled separately from normal,
     // recoverable errors.
+    this.error({
+      message: `${type} append of ${bytes.length}b failed for segment ` +
+        `#${segmentInfo.mediaIndex} in playlist ${segmentInfo.playlist.id}`,
+      metadata: {
+        errorType: videojs.Error.SegmentAppendError
+      }
+    });
     this.trigger('appenderror');
   }
 
@@ -2811,7 +2820,10 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (!trackInfo) {
       this.error({
         message: 'No starting media returned, likely due to an unsupported media format.',
-        playlistExclusionDuration: Infinity
+        playlistExclusionDuration: Infinity,
+        metadata: {
+          errorType: videojs.Error.SegmentUnsupportedMediaFormat
+        }
       });
       this.trigger('error');
       return;
@@ -2892,7 +2904,10 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (illegalMediaSwitchError) {
       this.error({
         message: illegalMediaSwitchError,
-        playlistExclusionDuration: Infinity
+        playlistExclusionDuration: Infinity,
+        metadata: {
+          errorType: videojs.Error.SegmentSwitchError
+        }
       });
       this.trigger('error');
       return true;

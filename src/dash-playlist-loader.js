@@ -361,7 +361,8 @@ export default class DashPlaylistLoader extends EventTarget {
         message: 'DASH request error at URL: ' + request.uri,
         response: request.response,
         // MEDIA_ERR_NETWORK
-        code: 2
+        code: 2,
+        metadata: err.metadata
       };
       if (startingState) {
         this.state = startingState;
@@ -390,6 +391,7 @@ export default class DashPlaylistLoader extends EventTarget {
     const uri = resolveManifestRedirect(playlist.sidx.resolvedUri);
 
     const fin = (err, request) => {
+      // TODO: add error metdata here once we create an error type in video.js
       if (this.requestErrored_(err, request, startingState)) {
         return;
       }
@@ -400,6 +402,10 @@ export default class DashPlaylistLoader extends EventTarget {
       try {
         sidx = parseSidx(toUint8(request.response).subarray(8));
       } catch (e) {
+        e.metadata = {
+          errorType: videojs.Error.DashManifestSidxParsingError
+        };
+
         // sidx parsing failed.
         this.requestErrored_(e, request, startingState);
         return;
@@ -421,9 +427,11 @@ export default class DashPlaylistLoader extends EventTarget {
       }
 
       if (!container || container !== 'mp4') {
+        const sidxContainer = container || 'unknown';
+
         return fin({
           status: request.status,
-          message: `Unsupported ${container || 'unknown'} container type for sidx segment at URL: ${uri}`,
+          message: `Unsupported ${sidxContainer} container type for sidx segment at URL: ${uri}`,
           // response is just bytes in this case
           // but we really don't want to return that.
           response: '',
@@ -431,7 +439,11 @@ export default class DashPlaylistLoader extends EventTarget {
           internal: true,
           playlistExclusionDuration: Infinity,
           // MEDIA_ERR_NETWORK
-          code: 2
+          code: 2,
+          metadata: {
+            errorType: videojs.Error.UnsupportedSidxContainer,
+            sidxContainer
+          }
         }, request);
       }
 

@@ -314,7 +314,12 @@ export default class VTTSegmentLoader extends SegmentLoader {
       this.loadVttJs()
         .then(
           () => this.segmentRequestFinished_(error, simpleSegment, result),
-          () => this.stopForError({ message: 'Error loading vtt.js' })
+          () => this.stopForError({
+            message: 'Error loading vtt.js',
+            metadata: {
+              errorType: videojs.Error.VttLoadError
+            }
+          })
         );
       return;
     }
@@ -325,7 +330,10 @@ export default class VTTSegmentLoader extends SegmentLoader {
       this.parseVTTCues_(segmentInfo);
     } catch (e) {
       this.stopForError({
-        message: e.message
+        message: e.message,
+        metadata: {
+          errorType: videojs.Error.VttCueParsingError
+        }
       });
       return;
     }

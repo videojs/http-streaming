@@ -3144,7 +3144,12 @@ QUnit.module('SegmentLoader', function(hooks) {
       }).then(() => {
         assert.deepEqual(
           loader.error_,
-          'video append of 2960b failed for segment #0 in playlist playlist.m3u8',
+          {
+            message: 'video append of 2960b failed for segment #0 in playlist playlist.m3u8',
+            metadata: {
+              errorType: 'segment-append-error'
+            }
+          },
           'loader triggered and saved the appenderror'
         );
       });
@@ -4813,7 +4818,10 @@ QUnit.module('SegmentLoader', function(hooks) {
           loader.error_,
           {
             message: 'Quota exceeded error with append of a single segment of content',
-            excludeUntil: Infinity
+            excludeUntil: Infinity,
+            metadata: {
+              errorType: 'segment-exceeds-source-buffer-quota-error'
+            }
           },
           'loader triggered and saved the error'
         );
