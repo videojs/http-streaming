@@ -4861,7 +4861,10 @@ QUnit.module('SegmentLoader', function(hooks) {
           loader.error_,
           {
             message: 'Quota exceeded error with append of a single segment of content',
-            excludeUntil: Infinity
+            excludeUntil: Infinity,
+            metadata: {
+              errorType: 'segment-exceeds-source-buffer-quota-error'
+            }
           },
           'loader triggered and saved the error'
         );

@@ -245,7 +245,7 @@ export default class VTTSegmentLoader extends SegmentLoader {
     this.error(error);
     this.state = 'READY';
     this.pause();
-    this.trigger('error');
+    // this.trigger('error') is triggered in the `error` function
   }
 
   /**

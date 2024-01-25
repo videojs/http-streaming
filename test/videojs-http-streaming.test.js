@@ -5110,7 +5110,10 @@ QUnit.test('player error when key session creation rejects promise', function(as
       errorObject,
       {
         code: 3,
-        message: 'Failed to initialize media keys for EME'
+        message: 'Failed to initialize media keys for EME',
+        metadata: {
+          errorType: 'eme-key-session-creation-error'
+        }
       },
       'called player error with correct error'
     );
@@ -5120,7 +5123,10 @@ QUnit.test('player error when key session creation rejects promise', function(as
     initializeMediaKeys: (keySystems, callback) => {
       // calling back with an error should lead to promise rejection
       callback({
-        message: 'this is the error message'
+        message: 'this is the error message',
+        metadata: {
+          errorType: 'eme-key-session-creation-error'
+        }
       });
     }
   };
