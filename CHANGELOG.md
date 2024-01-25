@@ -1,3 +1,15 @@
+<a name="3.11.0"></a>
+# [3.11.0](https://github.com/videojs/http-streaming/compare/v3.10.0...v3.11.0) (2024-01-25)
+
+### Features
+
+* add request types ([#1479](https://github.com/videojs/http-streaming/issues/1479)) ([5b87f69](https://github.com/videojs/http-streaming/commit/5b87f69))
+* error type enhancement ([#1478](https://github.com/videojs/http-streaming/issues/1478)) ([8f3a4d1](https://github.com/videojs/http-streaming/commit/8f3a4d1))
+
+### Bug Fixes
+
+* fix repeated segments issue during bandwidth update ([#1477](https://github.com/videojs/http-streaming/issues/1477)) ([823f072](https://github.com/videojs/http-streaming/commit/823f072))
+
 <a name="3.10.0"></a>
 # [3.10.0](https://github.com/videojs/http-streaming/compare/v3.9.1...v3.10.0) (2024-01-17)
 
