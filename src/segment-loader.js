@@ -2340,7 +2340,7 @@ export default class SegmentLoader extends videojs.EventTarget {
         errorType: videojs.Error.SegmentAppendError
       }
     });
-    this.trigger('appendError');
+    this.trigger('appenderror');
   }
 
   appendToSourceBuffer_({ segmentInfo, type, initSegment, data, bytes }) {
