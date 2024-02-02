@@ -1,7 +1,7 @@
 // eslint-disable-next-line no-undef
 const videojs = window.videojs;
 
-class RentitionMenuItem extends videojs.getComponent('MenuItem') {
+class RenditionMenuItem extends videojs.getComponent('MenuItem') {
   constructor(player, options = {}) {
     options.selectable = true;
     options.multiSelectable = false;
@@ -32,7 +32,7 @@ class RentitionMenuItem extends videojs.getComponent('MenuItem') {
   }
 }
 
-videojs.registerComponent('RentitionMenuItem', RentitionMenuItem);
+videojs.registerComponent('RentitionMenuItem', RenditionMenuItem);
 
 class RenditionMenuButton extends videojs.getComponent('MenuButton') {
   constructor(player, options = {}) {
@@ -60,7 +60,7 @@ class RenditionMenuButton extends videojs.getComponent('MenuButton') {
 
   createItems() {
     let items = [
-      new RentitionMenuItem(this.player(), {
+      new RenditionMenuItem(this.player(), {
         label: 'Auto',
         controlText: 'Auto',
         selected: true,
@@ -72,7 +72,7 @@ class RenditionMenuButton extends videojs.getComponent('MenuButton') {
       items = items.concat(Array.from(this.levels).map((level, index) => {
         const label = `${level.height || '?'}p @ ${level.bitrate || '?'}`;
 
-        return new RentitionMenuItem(this.player(), {
+        return new RenditionMenuItem(this.player(), {
           label,
           controlText: label,
           index
