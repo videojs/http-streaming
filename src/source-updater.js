@@ -275,7 +275,13 @@ const actions = {
     }
 
     // do not update codec if we don't need to.
-    if (sourceUpdater.codecs[type] === codec) {
+    // Only update if we change the codec base.
+    // For example, going from avc1.640028 to avc1.64001f does not require a changeType call.
+    const newCodecBase = codec.substring(0, codec.indexOf('.'));
+    const oldCodec = sourceUpdater.codecs[type];
+    const oldCodecBase = oldCodec.substring(0, oldCodec.indexOf('.'));
+
+    if (oldCodecBase === newCodecBase) {
       return;
     }
 
