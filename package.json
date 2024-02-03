@@ -77,6 +77,7 @@
     "@videojs/generator-helpers": "~3.1.0",
     "bootstrap": "^5.1.0",
     "d3": "^3.4.8",
+    "jb-videojs-hls-quality-selector": "^2.0.2",
     "jsdoc": "^3.6.11",
     "karma": "^6.4.0",
     "lodash": "^4.17.4",
@@ -92,7 +93,6 @@
     "videojs-generate-karma-config": "^8.0.1",
     "videojs-generate-rollup-config": "^7.0.0",
     "videojs-generator-verify": "~3.0.1",
-    "videojs-http-source-selector": "^1.1.6",
     "videojs-standard": "^9.0.0",
     "water-plant-uml": "^2.0.2"
   },
