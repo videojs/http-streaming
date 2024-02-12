@@ -1,3 +1,14 @@
+<a name="3.11.1"></a>
+## [3.11.1](https://github.com/videojs/http-streaming/compare/v3.11.0...v3.11.1) (2024-02-12)
+
+### Bug Fixes
+
+* changeType on full codec change only ([#1474](https://github.com/videojs/http-streaming/issues/1474)) ([4e51778](https://github.com/videojs/http-streaming/commit/4e51778))
+
+### Chores
+
+* Replace old quality selector ([#1482](https://github.com/videojs/http-streaming/issues/1482)) ([64376db](https://github.com/videojs/http-streaming/commit/64376db))
+
 <a name="3.11.0"></a>
 # [3.11.0](https://github.com/videojs/http-streaming/compare/v3.10.0...v3.11.0) (2024-01-25)
 
