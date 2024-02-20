@@ -24,3 +24,27 @@ export function createTimeRanges(...args) {
 
   return fn.apply(context, args);
 }
+
+/**
+ * Converts provided buffered ranges to a descriptive string
+ *
+ * @param {TimeRanges} buffered - received buffered time ranges
+ *
+ * @return {string} - descriptive string
+ */
+export function bufferedRangesToString(buffered) {
+  if (buffered.length === 0) {
+    return 'Buffered Ranges are empty';
+  }
+
+  let bufferedRangesStr = 'Buffered Ranges: \n';
+
+  for (let i = 0; i < buffered.length; i++) {
+    const start = buffered.start(i);
+    const end = buffered.end(i);
+
+    bufferedRangesStr += `${start} --> ${end}. Duration (${end - start})\n`;
+  }
+
+  return bufferedRangesStr;
+}
