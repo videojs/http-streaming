@@ -1,3 +1,10 @@
+<a name="3.11.2"></a>
+## [3.11.2](https://github.com/videojs/http-streaming/compare/v3.11.1...v3.11.2) (2024-02-21)
+
+### Reverts
+
+* "fix: fix repeated segments issue during bandwidth update ([#1477](https://github.com/videojs/http-streaming/issues/1477))" ([#1488](https://github.com/videojs/http-streaming/issues/1488)) ([75f7b1a](https://github.com/videojs/http-streaming/commit/75f7b1a))
+
 <a name="3.11.1"></a>
 ## [3.11.1](https://github.com/videojs/http-streaming/compare/v3.11.0...v3.11.1) (2024-02-12)
 
