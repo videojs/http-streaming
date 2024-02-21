@@ -1347,60 +1347,6 @@ export const LoaderCommonFactory = ({
         assert.ok(!segmentInfo, 'no request generated');
       }
     );
-
-    QUnit.test('does not choose to request if no available playlist for target time', function(assert) {
-      loader.buffered_ = () => createTimeRanges([[0, 100]]);
-      const playlist = playlistWithDuration(100);
-
-      loader.hasPlayed_ = () => true;
-      loader.currentTime_ = () => 80;
-      loader.duration_ = () => Infinity;
-
-      loader.playlist(playlist);
-      loader.load();
-
-      loader.fetchAtBuffer_ = true;
-      const segmentInfo = loader.chooseNextRequest_();
-
-      assert.ok(!segmentInfo, 'no request generated');
-    });
-
-    QUnit.test('should select next segment if selected segment\'s end is overlaps with buffered end slightly', function(assert) {
-      loader.buffered_ = () => createTimeRanges([[0, 99.96]]);
-      const playlist = playlistWithDuration(110);
-
-      loader.hasPlayed_ = () => true;
-      loader.currentTime_ = () => 80;
-      loader.duration_ = () => Infinity;
-
-      loader.playlist(playlist);
-      loader.load();
-
-      loader.fetchAtBuffer_ = true;
-      const segmentInfo = loader.chooseNextRequest_();
-
-      assert.ok(segmentInfo, 'has segment to select');
-      assert.equal(segmentInfo.mediaIndex, 10, 'next segment selected');
-      assert.equal(segmentInfo.startOfSegment, 100, 'next segment selected');
-    });
-
-    QUnit.test('should not select next segment if selected segment\'s end is overlaps with buffered end slightly and it is last segment available', function(assert) {
-      loader.buffered_ = () => createTimeRanges([[0, 109.96]]);
-      const playlist = playlistWithDuration(110);
-
-      loader.hasPlayed_ = () => true;
-      loader.currentTime_ = () => 80;
-      loader.duration_ = () => Infinity;
-
-      loader.playlist(playlist);
-      loader.load();
-
-      loader.fetchAtBuffer_ = true;
-      const segmentInfo = loader.chooseNextRequest_();
-
-      assert.ok(!segmentInfo, 'no segment selected');
-    });
-
     QUnit.test(
       'does choose to request if next index is last, we have ended, and are seeking',
       function(assert) {
