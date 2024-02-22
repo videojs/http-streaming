@@ -1455,7 +1455,6 @@ export default class SegmentLoader extends videojs.EventTarget {
         next.mediaIndex = this.mediaIndex + 1;
       }
     } else {
-      // console.log('>>>> ChooseNext request after playlist switch: ', this.mediaSequenceSync_.diagnostics);
 
       let segmentIndex; let partIndex; let startTime;
       const targetTime = this.fetchAtBuffer_ ? bufferedEnd : this.currentTime_();
