@@ -11,7 +11,7 @@ import segmentTransmuxer from './segment-transmuxer';
 import { TIME_FUDGE_FACTOR, timeUntilRebuffer as timeUntilRebuffer_ } from './ranges';
 import { minRebufferMaxBandwidthSelector } from './playlist-selectors';
 import logger from './util/logger';
-import { concatSegments } from './util/segment';
+import {compactSegmentUrlDescription, concatSegments} from './util/segment';
 import {
   createCaptionsTrackIfNotExists,
   addCaptionData,
@@ -23,6 +23,7 @@ import { QUOTA_EXCEEDED_ERR } from './error-codes';
 import {timeRangesToArray, lastBufferedEnd, timeAheadOf} from './ranges.js';
 import {getKnownPartCount} from './playlist.js';
 import {createTimeRanges} from './util/vjs-compat';
+import MediaSequenceSync from './util/media-sequence-sync';
 
 /**
  * The segment loader has no recourse except to fetch a segment in the
@@ -539,6 +540,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.partIndex = null;
 
     // private settings
+    this.mediaSequenceSync_ = new MediaSequenceSync();
     this.hasPlayed_ = settings.hasPlayed;
     this.currentTime_ = settings.currentTime;
     this.seekable_ = settings.seekable;
@@ -1034,7 +1036,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     this.logger_(`playlist update [${oldId} => ${newPlaylist.id || newPlaylist.uri}]`);
-    this.syncController_.updateMediaSequenceMap(newPlaylist, this.currentTime_(), this.loaderType_);
+    this.mediaSequenceSync_.update(newPlaylist, this.currentTime_());
 
     // in VOD, this is always a rendition switch (or we updated our syncInfo above)
     // in LIVE, we always want to update with new playlists (including refreshes)
@@ -1200,6 +1202,7 @@ export default class SegmentLoader extends videojs.EventTarget {
    */
   resetLoader() {
     this.fetchAtBuffer_ = false;
+    this.mediaSequenceSync_.resetAppendedStatus();
     this.resyncLoader();
   }
 
@@ -1452,18 +1455,39 @@ export default class SegmentLoader extends videojs.EventTarget {
         next.mediaIndex = this.mediaIndex + 1;
       }
     } else {
-      // Find the segment containing the end of the buffer or current time.
-      const {segmentIndex, startTime, partIndex} = Playlist.getMediaInfoForTime({
-        exactManifestTimings: this.exactManifestTimings,
-        playlist: this.playlist_,
-        currentTime: this.fetchAtBuffer_ ? bufferedEnd : this.currentTime_(),
-        startingPartIndex: this.syncPoint_.partIndex,
-        startingSegmentIndex: this.syncPoint_.segmentIndex,
-        startTime: this.syncPoint_.time
-      });
+      // console.log('>>>> ChooseNext request after playlist switch: ', this.mediaSequenceSync_.diagnostics);
 
-      next.getMediaInfoForTime = this.fetchAtBuffer_ ?
-        `bufferedEnd ${bufferedEnd}` : `currentTime ${this.currentTime_()}`;
+      let segmentIndex; let partIndex; let startTime;
+      const targetTime = this.fetchAtBuffer_ ? bufferedEnd : this.currentTime_();
+
+      if (this.mediaSequenceSync_.isReliable) {
+        const syncInfo = this.getSyncInfoFromMediaSequenceSync_(targetTime);
+
+        if (!syncInfo) {
+          // no match
+          return null;
+        }
+
+        segmentIndex = syncInfo.segmentIndex;
+        partIndex = syncInfo.partIndex;
+        startTime = syncInfo.startTime;
+      } else {
+        // fallback
+        const mediaInfoForTime = Playlist.getMediaInfoForTime({
+          exactManifestTimings: this.exactManifestTimings,
+          playlist: this.playlist_,
+          currentTime: targetTime,
+          startingPartIndex: this.syncPoint_.partIndex,
+          startingSegmentIndex: this.syncPoint_.segmentIndex,
+          startTime: this.syncPoint_.time
+        });
+
+        segmentIndex = mediaInfoForTime.segmentIndex;
+        partIndex = mediaInfoForTime.partIndex;
+        startTime = mediaInfoForTime.time;
+      }
+
+      next.getMediaInfoForTime = this.fetchAtBuffer_ ? `bufferedEnd ${targetTime}` : `currentTime ${targetTime}`;
       next.mediaIndex = segmentIndex;
       next.startOfSegment = startTime;
       next.partIndex = partIndex;
@@ -1534,6 +1558,35 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     return this.generateSegmentInfo_(next);
+  }
+
+  getSyncInfoFromMediaSequenceSync_(targetTime) {
+    // we should pull the target time to the least available time if we drop out of sync for any reason
+    targetTime = Math.max(targetTime, this.mediaSequenceSync_.start);
+
+    const mediaSequenceSyncInfo = this.mediaSequenceSync_.getSyncInfoForTime(targetTime);
+
+    if (!mediaSequenceSyncInfo) {
+      // no match at all
+      return null;
+    }
+
+    if (!mediaSequenceSyncInfo.isAppended) {
+      // has a perfect match
+      return mediaSequenceSyncInfo;
+    }
+
+    // has match, but segment was already appended.
+    // attempt to auto-advance to the nearest next segment:
+    const nextMediaSequenceSyncInfo = this.mediaSequenceSync_.getSyncInfoForTime(mediaSequenceSyncInfo.end);
+
+    if (!nextMediaSequenceSyncInfo) {
+      // no match at all
+      return null;
+    }
+
+    // got match with the nearest next segment
+    return nextMediaSequenceSyncInfo;
   }
 
   generateSegmentInfo_(options) {
@@ -2493,7 +2546,9 @@ export default class SegmentLoader extends videojs.EventTarget {
       segmentInfo.timeline > 0;
     const isEndOfTimeline = isEndOfStream || (isWalkingForward && isDiscontinuity);
 
-    this.logger_(`Requesting ${segmentInfoString(segmentInfo)}`);
+    this.logger_(`Requesting
+${compactSegmentUrlDescription(segmentInfo.segment.resolvedUri)}
+${segmentInfoString(segmentInfo)}`);
 
     // If there's an init segment associated with this segment, but it is not cached (identified by a lack of bytes),
     // then this init segment has never been seen before and should be appended.
@@ -3019,6 +3074,14 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     const segmentInfo = this.pendingSegment_;
+
+    if (segmentInfo.part && segmentInfo.part.syncInfo) {
+      // low-latency flow
+      segmentInfo.part.syncInfo.markAppended();
+    } else if (segmentInfo.segment.syncInfo) {
+      // normal flow
+      segmentInfo.segment.syncInfo.markAppended();
+    }
 
     // Now that the end of the segment has been reached, we can set the end time. It's
     // best to wait until all appends are done so we're sure that the primary media is

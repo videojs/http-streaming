@@ -1,3 +1,5 @@
+import {compactSegmentUrlDescription} from './segment';
+
 class SyncInfo {
   /**
    * @param {number} start - media sequence start
@@ -85,10 +87,25 @@ export default class MediaSequenceSync {
      */
     this.storage_ = new Map();
     this.diagnostics_ = '';
+    this.isReliable_ = false;
+    this.start_ = -Infinity;
+    this.end_ = Infinity;
+  }
+
+  get start() {
+    return this.start_;
+  }
+
+  get end() {
+    return this.end_;
   }
 
   get diagnostics() {
     return this.diagnostics_;
+  }
+
+  get isReliable() {
+    return this.isReliable_;
   }
 
   resetAppendedStatus() {
@@ -106,7 +123,9 @@ export default class MediaSequenceSync {
   update(playlist, currentTime) {
     const { mediaSequence, segments } = playlist;
 
-    if (!this.isValidPlaylistForUpdate_(mediaSequence, segments)) {
+    this.isReliable_ = this.isReliablePlaylist_(mediaSequence, segments);
+
+    if (!this.isReliable_) {
       return;
     }
 
@@ -121,7 +140,7 @@ export default class MediaSequenceSync {
    * @param {number} targetTime
    * @return {SyncInfo|null}
    */
-  getMediaInfoForTime(targetTime) {
+  getSyncInfoForTime(targetTime) {
     for (const { segmentSyncInfo, partsSyncInfo } of this.storage_.values()) {
       // Normal segment flow:
       if (!partsSyncInfo.length) {
@@ -143,10 +162,12 @@ export default class MediaSequenceSync {
 
   updateStorage_(segments, startingMediaSequence, startingTime) {
     const newStorage = new Map();
-    let newDiagnostics = '';
+    let newDiagnostics = '\n';
 
     let currentStart = startingTime;
     let currentMediaSequence = startingMediaSequence;
+
+    this.start_ = currentStart;
 
     segments.forEach((segment, segmentIndex) => {
       const prevSyncInfoData = this.storage_.get(currentMediaSequence);
@@ -164,6 +185,8 @@ export default class MediaSequenceSync {
         segmentIndex
       });
 
+      segment.syncInfo = segmentSyncInfo;
+
       let currentPartStart = currentStart;
 
       const partsSyncInfo = (segment.parts || []).map((part, partIndex) => {
@@ -174,25 +197,29 @@ export default class MediaSequenceSync {
           prevSyncInfoData.partsSyncInfo[partIndex] &&
           prevSyncInfoData.partsSyncInfo[partIndex].isAppended;
 
-        currentPartStart = partEnd;
-        newDiagnostics += `Media Sequence: ${currentMediaSequence}.${partIndex} | Range: ${partStart} --> ${partEnd} | Appended: ${partIsAppended}\n`;
-
-        return new SyncInfo({
+        const partSyncInfo = new SyncInfo({
           start: partStart,
           end: partEnd,
           appended: partIsAppended,
           segmentIndex,
           partIndex
         });
+
+        currentPartStart = partEnd;
+        newDiagnostics += `Media Sequence: ${currentMediaSequence}.${partIndex} | Range: ${partStart} --> ${partEnd} | Appended: ${partIsAppended}\n`;
+        part.syncInfo = partSyncInfo;
+
+        return partSyncInfo;
       });
 
       newStorage.set(currentMediaSequence, new SyncInfoData(segmentSyncInfo, partsSyncInfo));
-      newDiagnostics += `Media Sequence: ${currentMediaSequence} | Range: ${segmentStart} --> ${segmentEnd} | Appended: ${segmentIsAppended}\n`;
+      newDiagnostics += `${compactSegmentUrlDescription(segment.resolvedUri)} | Media Sequence: ${currentMediaSequence} | Range: ${segmentStart} --> ${segmentEnd} | Appended: ${segmentIsAppended}\n`;
 
       currentMediaSequence++;
       currentStart = segmentEnd;
     });
 
+    this.end_ = currentStart;
     this.storage_ = newStorage;
     this.diagnostics_ = newDiagnostics;
   }
@@ -213,7 +240,7 @@ export default class MediaSequenceSync {
     return fallback;
   }
 
-  isValidPlaylistForUpdate_(mediaSequence, segments) {
+  isReliablePlaylist_(mediaSequence, segments) {
     return mediaSequence !== undefined && Array.isArray(segments) && segments.length;
   }
 }

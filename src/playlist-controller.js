@@ -408,7 +408,8 @@ export class PlaylistController extends videojs.EventTarget {
     const newId = playlist && (playlist.id || playlist.uri);
 
     if (oldId && oldId !== newId) {
-      this.logger_(`switch media ${oldId} -> ${newId} from ${cause}`);
+      this.logger_(`>>>> switch media ${oldId} -> ${newId} from ${cause}`);
+      // console.log('`>>>> selected. switch media: ', cause);
       this.tech_.trigger({type: 'usage', name: `vhs-rendition-change-${cause}`});
     }
     this.mainPlaylistLoader_.media(playlist, delay);
