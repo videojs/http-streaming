@@ -230,10 +230,14 @@ export default class SyncController extends videojs.EventTarget {
     this.discontinuities = [];
     this.timelineToDatetimeMappings = {};
 
-    if (options.sourceType === 'dash') {
-      this.mediaSequenceStorage_ = {main: null, audio: null, vtt: null};
+    if (options.sourceType === 'hls') {
+      this.mediaSequenceStorage_ = {
+        main: new MediaSequenceSync(),
+        audio: new MediaSequenceSync(),
+        vtt: new MediaSequenceSync()
+      };
     } else {
-      this.mediaSequenceStorage_ = {main: new MediaSequenceSync(), audio: new MediaSequenceSync(), vtt: new MediaSequenceSync()};
+      this.mediaSequenceStorage_ = {main: null, audio: null, vtt: null};
     }
     this.logger_ = logger('SyncController');
   }
