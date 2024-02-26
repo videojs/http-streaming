@@ -23,7 +23,6 @@ import { QUOTA_EXCEEDED_ERR } from './error-codes';
 import {timeRangesToArray, lastBufferedEnd, timeAheadOf} from './ranges.js';
 import {getKnownPartCount} from './playlist.js';
 import {createTimeRanges} from './util/vjs-compat';
-import MediaSequenceSync from './util/media-sequence-sync';
 
 /**
  * The segment loader has no recourse except to fetch a segment in the
@@ -540,7 +539,6 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.partIndex = null;
 
     // private settings
-    this.mediaSequenceSync_ = new MediaSequenceSync();
     this.hasPlayed_ = settings.hasPlayed;
     this.currentTime_ = settings.currentTime;
     this.seekable_ = settings.seekable;
@@ -678,6 +676,18 @@ export default class SegmentLoader extends videojs.EventTarget {
         }
       });
     }
+  }
+
+  /**
+   * TODO: Current sync controller consists of many hls-specific strategies
+   * media sequence sync is also hls-specific, and we would like to be protocol-agnostic on this level
+   * this should be a part of the sync-controller and sync controller should expect different strategy list based on the protocol.
+   *
+   * @return {MediaSequenceSync|null}
+   * @private
+   */
+  get mediaSequenceSync_() {
+    return this.syncController_.getMediaSequenceSync(this.loaderType_);
   }
 
   createTransmuxer_() {
@@ -1036,8 +1046,10 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     this.logger_(`playlist update [${oldId} => ${newPlaylist.id || newPlaylist.uri}]`);
-    this.mediaSequenceSync_.update(newPlaylist, this.currentTime_());
 
+    if (this.mediaSequenceSync_) {
+      this.mediaSequenceSync_.update(newPlaylist, this.currentTime_());
+    }
     // in VOD, this is always a rendition switch (or we updated our syncInfo above)
     // in LIVE, we always want to update with new playlists (including refreshes)
     this.trigger('syncinfoupdate');
@@ -1202,7 +1214,9 @@ export default class SegmentLoader extends videojs.EventTarget {
    */
   resetLoader() {
     this.fetchAtBuffer_ = false;
-    this.mediaSequenceSync_.resetAppendedStatus();
+    if (this.mediaSequenceSync_) {
+      this.mediaSequenceSync_.resetAppendedStatus();
+    }
     this.resyncLoader();
   }
 
@@ -1219,7 +1233,11 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.partIndex = null;
     this.syncPoint_ = null;
     this.isPendingTimestampOffset_ = false;
-    this.shouldForceTimestampOffsetAfterResync_ = true;
+    // this is mainly to sync timing-info when switching between renditions with and without timestamp-rollover,
+    // so we don't want it for DASH
+    if (this.sourceType_ === 'hls') {
+      this.shouldForceTimestampOffsetAfterResync_ = true;
+    }
     this.callQueue_ = [];
     this.loadQueue_ = [];
     this.metadataQueue_.id3 = [];
@@ -1459,7 +1477,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       let segmentIndex; let partIndex; let startTime;
       const targetTime = this.fetchAtBuffer_ ? bufferedEnd : this.currentTime_();
 
-      if (this.mediaSequenceSync_.isReliable) {
+      if (this.mediaSequenceSync_ && this.mediaSequenceSync_.isReliable) {
         const syncInfo = this.getSyncInfoFromMediaSequenceSync_(targetTime);
 
         if (!syncInfo) {
@@ -1469,7 +1487,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
         segmentIndex = syncInfo.segmentIndex;
         partIndex = syncInfo.partIndex;
-        startTime = syncInfo.startTime;
+        startTime = syncInfo.start;
       } else {
         // fallback
         const mediaInfoForTime = Playlist.getMediaInfoForTime({
@@ -1560,6 +1578,10 @@ export default class SegmentLoader extends videojs.EventTarget {
   }
 
   getSyncInfoFromMediaSequenceSync_(targetTime) {
+    if (!this.mediaSequenceSync_) {
+      return null;
+    }
+
     // we should pull the target time to the least available time if we drop out of sync for any reason
     targetTime = Math.max(targetTime, this.mediaSequenceSync_.start);
 

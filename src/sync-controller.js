@@ -5,6 +5,7 @@
 import {sumDurations, getPartsAndSegments} from './playlist';
 import videojs from 'video.js';
 import logger from './util/logger';
+import MediaSequenceSync from './util/media-sequence-sync';
 
 // The maximum gap allowed between two media sequence tags when trying to
 // synchronize expired playlist segments.
@@ -29,6 +30,42 @@ export const syncPointStrategies = [
         return syncPoint;
       }
       return null;
+    }
+  },
+  {
+    name: 'MediaSequence',
+    /**
+     * run media sequence strategy
+     *
+     * @param {SyncController} syncController
+     * @param {Object} playlist
+     * @param {number} duration
+     * @param {number} currentTimeline
+     * @param {number} currentTime
+     * @param {string} type
+     */
+    run: (syncController, playlist, duration, currentTimeline, currentTime, type) => {
+      const mediaSequenceSync = syncController.getMediaSequenceSync(type);
+
+      if (!mediaSequenceSync) {
+        return null;
+      }
+
+      if (!mediaSequenceSync.isReliable) {
+        return null;
+      }
+
+      const syncInfo = mediaSequenceSync.getSyncInfoForTime(currentTime);
+
+      if (!syncInfo) {
+        return null;
+      }
+
+      return {
+        time: syncInfo.start,
+        partIndex: syncInfo.partIndex,
+        segmentIndex: syncInfo.segmentIndex
+      };
     }
   },
   // Stategy "ProgramDateTime": We have a program-date-time tag in this playlist
@@ -192,7 +229,22 @@ export default class SyncController extends videojs.EventTarget {
     this.timelines = [];
     this.discontinuities = [];
     this.timelineToDatetimeMappings = {};
+
+    if (options.sourceType === 'dash') {
+      this.mediaSequenceStorage_ = {main: null, audio: null, vtt: null};
+    } else {
+      this.mediaSequenceStorage_ = {main: new MediaSequenceSync(), audio: new MediaSequenceSync(), vtt: new MediaSequenceSync()};
+    }
     this.logger_ = logger('SyncController');
+  }
+
+  /**
+   *
+   * @param {string} loaderType
+   * @return {MediaSequenceSync|null}
+   */
+  getMediaSequenceSync(loaderType) {
+    return this.mediaSequenceStorage_[loaderType] || null;
   }
 
   /**
