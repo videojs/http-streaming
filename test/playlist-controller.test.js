@@ -2273,8 +2273,8 @@ QUnit.test('does not get stuck in a loop due to inconsistent network/caching', f
     assert.notOk(media1ResolvedPlaylist.excludeUntil, 'media1 not excluded');
     assert.equal(
       segmentRequest.uri.substring(segmentRequest.uri.length - 4),
-      '0.ts',
-      'requested first segment'
+      '1.ts',
+      'requested second segment'
     );
 
     // needs a timeout for early abort to occur (we skip the function otherwise, since no
@@ -2298,8 +2298,8 @@ QUnit.test('does not get stuck in a loop due to inconsistent network/caching', f
     assert.ok(media1ResolvedPlaylist.excludeUntil, 'excluded media1');
     assert.equal(
       segmentRequest.uri.substring(segmentRequest.uri.length - 4),
-      '0.ts',
-      'requested first segment'
+      '1.ts',
+      'requested second segment'
     );
 
     // remove aborted request
@@ -2321,8 +2321,8 @@ QUnit.test('does not get stuck in a loop due to inconsistent network/caching', f
     assert.equal(mediaChanges.length, 2, 'did not change media');
     assert.equal(
       segmentRequest.uri.substring(segmentRequest.uri.length - 4),
-      '1.ts',
-      'requested second segment'
+      '2.ts',
+      'requested third segment'
     );
 
     // 1ms for the cached segment response
@@ -2342,8 +2342,8 @@ QUnit.test('does not get stuck in a loop due to inconsistent network/caching', f
     segmentRequest = this.requests[0];
     assert.equal(
       segmentRequest.uri.substring(segmentRequest.uri.length - 4),
-      '2.ts',
-      'requested third segment'
+      '3.ts',
+      'requested 4th segment'
     );
 
     assert.equal(this.env.log.warn.callCount, 1, 'logged a warning');
