@@ -1473,14 +1473,18 @@ export default class SegmentLoader extends videojs.EventTarget {
         next.mediaIndex = this.mediaIndex + 1;
       }
     } else {
-
       let segmentIndex; let partIndex; let startTime;
       const targetTime = this.fetchAtBuffer_ ? bufferedEnd : this.currentTime_();
+
+      if (this.mediaSequenceSync_) {
+        this.logger_(`chooseNextRequest_ request after Quality Switch: For TargetTime: ${targetTime}. Fetch At Buffer: ${this.fetchAtBuffer_}`, this.mediaSequenceSync_.diagnostics);
+      }
 
       if (this.mediaSequenceSync_ && this.mediaSequenceSync_.isReliable) {
         const syncInfo = this.getSyncInfoFromMediaSequenceSync_(targetTime);
 
         if (!syncInfo) {
+          this.logger_('chooseNextRequest_ - no sync info found using media sequence sync');
           // no match
           return null;
         }
@@ -1489,6 +1493,7 @@ export default class SegmentLoader extends videojs.EventTarget {
         partIndex = syncInfo.partIndex;
         startTime = syncInfo.start;
       } else {
+        this.logger_('chooseNextRequest_ - fallback to a regular segment selection algorithm, based on a syncPoint.');
         // fallback
         const mediaInfoForTime = Playlist.getMediaInfoForTime({
           exactManifestTimings: this.exactManifestTimings,
@@ -1583,9 +1588,13 @@ export default class SegmentLoader extends videojs.EventTarget {
     }
 
     // we should pull the target time to the least available time if we drop out of sync for any reason
-    targetTime = Math.max(targetTime, this.mediaSequenceSync_.start);
+    const finalTargetTime = Math.max(targetTime, this.mediaSequenceSync_.start);
 
-    const mediaSequenceSyncInfo = this.mediaSequenceSync_.getSyncInfoForTime(targetTime);
+    if (targetTime !== finalTargetTime) {
+      this.logger_(`getSyncInfoFromMediaSequenceSync_. Pulled target time from ${targetTime} to ${finalTargetTime}`);
+    }
+
+    const mediaSequenceSyncInfo = this.mediaSequenceSync_.getSyncInfoForTime(finalTargetTime);
 
     if (!mediaSequenceSyncInfo) {
       // no match at all
