@@ -1501,7 +1501,7 @@ export default class SegmentLoader extends videojs.EventTarget {
 
         segmentIndex = mediaInfoForTime.segmentIndex;
         partIndex = mediaInfoForTime.partIndex;
-        startTime = mediaInfoForTime.time;
+        startTime = mediaInfoForTime.startTime;
       }
 
       next.getMediaInfoForTime = this.fetchAtBuffer_ ? `bufferedEnd ${targetTime}` : `currentTime ${targetTime}`;
