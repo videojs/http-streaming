@@ -229,16 +229,15 @@ export default class SyncController extends videojs.EventTarget {
     this.timelines = [];
     this.discontinuities = [];
     this.timelineToDatetimeMappings = {};
-
-    if (options.sourceType === 'hls') {
-      this.mediaSequenceStorage_ = {
-        main: new MediaSequenceSync(),
-        audio: new MediaSequenceSync(),
-        vtt: new MediaSequenceSync()
-      };
-    } else {
-      this.mediaSequenceStorage_ = {main: null, audio: null, vtt: null};
-    }
+    // TODO: this map should be only available for HLS. Since only HLS has MediaSequence.
+    //  For some reason this map helps with syncing between quality switch for MPEG-DASH as well.
+    //  Moreover if we disable this map for MPEG-DASH - quality switch will be broken.
+    //  MPEG-DASH should have its own separate sync strategy
+    this.mediaSequenceStorage_ = {
+      main: new MediaSequenceSync(),
+      audio: new MediaSequenceSync(),
+      vtt: new MediaSequenceSync()
+    };
     this.logger_ = logger('SyncController');
   }
 
