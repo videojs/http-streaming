@@ -340,8 +340,7 @@ export default class SyncController extends videojs.EventTarget {
       playlist,
       duration,
       playlist.discontinuitySequence,
-      0,
-      'main'
+      0
     );
 
     // Without sync-points, there is not enough information to determine the expired time
