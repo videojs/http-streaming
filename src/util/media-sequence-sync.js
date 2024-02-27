@@ -174,9 +174,9 @@ export default class MediaSequenceSync {
 
       const segmentStart = currentStart;
       const segmentEnd = segmentStart + segment.duration;
-      const segmentIsAppended = prevSyncInfoData &&
+      const segmentIsAppended = Boolean(prevSyncInfoData &&
         prevSyncInfoData.segmentSyncInfo &&
-        prevSyncInfoData.segmentSyncInfo.isAppended;
+        prevSyncInfoData.segmentSyncInfo.isAppended);
 
       const segmentSyncInfo = new SyncInfo({
         start: segmentStart,
@@ -192,10 +192,10 @@ export default class MediaSequenceSync {
       const partsSyncInfo = (segment.parts || []).map((part, partIndex) => {
         const partStart = currentPartStart;
         const partEnd = currentPartStart + part.duration;
-        const partIsAppended = prevSyncInfoData &&
+        const partIsAppended = Boolean(prevSyncInfoData &&
           prevSyncInfoData.partsSyncInfo &&
           prevSyncInfoData.partsSyncInfo[partIndex] &&
-          prevSyncInfoData.partsSyncInfo[partIndex].isAppended;
+          prevSyncInfoData.partsSyncInfo[partIndex].isAppended);
 
         const partSyncInfo = new SyncInfo({
           start: partStart,

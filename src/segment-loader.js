@@ -2568,7 +2568,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     const isEndOfTimeline = isEndOfStream || (isWalkingForward && isDiscontinuity);
 
     this.logger_(`Requesting
-${compactSegmentUrlDescription(segmentInfo.segment.resolvedUri)}
+${compactSegmentUrlDescription(segmentInfo.uri)}
 ${segmentInfoString(segmentInfo)}`);
 
     // If there's an init segment associated with this segment, but it is not cached (identified by a lack of bytes),
