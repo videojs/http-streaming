@@ -1,3 +1,10 @@
+<a name="3.11.3"></a>
+## [3.11.3](https://github.com/videojs/http-streaming/compare/v3.11.2...v3.11.3) (2024-02-28)
+
+### Bug Fixes
+
+* fix repeated segments ([#1489](https://github.com/videojs/http-streaming/issues/1489)) ([ed8f6bd](https://github.com/videojs/http-streaming/commit/ed8f6bd))
+
 <a name="3.11.2"></a>
 ## [3.11.2](https://github.com/videojs/http-streaming/compare/v3.11.1...v3.11.2) (2024-02-21)
 
