@@ -438,7 +438,7 @@
     var steeringManifestEl = document.querySelector('.steering-manifest');
 
     player.one('loadedmetadata', function() {
-      var steeringController = player.tech_.vhs.playlistController_.contentSteeringController_;
+      var steeringController = player.tech_.vhs && player.tech_.vhs.playlistController_.contentSteeringController_;
 
       if (!steeringController) {
         return;
