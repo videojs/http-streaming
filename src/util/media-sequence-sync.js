@@ -53,8 +53,8 @@ class SyncInfo {
 class SyncInfoData {
   /**
    *
-   * @param {SyncInfo} segmentSyncInfo
-   * @param {Array<SyncInfo>} [partsSyncInfo]
+   * @param {SyncInfo} segmentSyncInfo - sync info for a give segment
+   * @param {Array<SyncInfo>} [partsSyncInfo] - sync infos for a list of parts for a given segment
    */
   constructor(segmentSyncInfo, partsSyncInfo = []) {
     this.segmentSyncInfo_ = segmentSyncInfo;
