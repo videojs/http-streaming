@@ -1049,6 +1049,10 @@ export default class SegmentLoader extends videojs.EventTarget {
 
     if (this.mediaSequenceSync_) {
       this.mediaSequenceSync_.update(newPlaylist, this.currentTime_());
+      this.logger_(`Playlist update:
+currentTime: ${this.currentTime_()}
+bufferedEnd: ${lastBufferedEnd(this.buffered_())}
+`, this.mediaSequenceSync_.diagnostics);
     }
     // in VOD, this is always a rendition switch (or we updated our syncInfo above)
     // in LIVE, we always want to update with new playlists (including refreshes)
@@ -1620,6 +1624,10 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
     if (!nextMediaSequenceSyncInfo) {
       // no match at all
       return null;
+    }
+
+    if (nextMediaSequenceSyncInfo.isAppended) {
+      this.logger_('getSyncInfoFromMediaSequenceSync_: We encounter unexpected scenario where next media sequence sync info is also appended!');
     }
 
     // got match with the nearest next segment
