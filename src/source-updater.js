@@ -9,7 +9,7 @@ import {getMimeForCodec} from '@videojs/vhs-utils/es/codecs.js';
 import window from 'global/window';
 import toTitleCase from './util/to-title-case.js';
 import { QUOTA_EXCEEDED_ERR } from './error-codes';
-import {createTimeRanges} from './util/vjs-compat';
+import {createTimeRanges, bufferedRangesToString} from './util/vjs-compat';
 
 const bufferTypes = [
   'video',
@@ -314,6 +314,11 @@ const onUpdateend = (type, sourceUpdater) => (e) => {
   // updateend events on source buffers. This does not appear to be in the spec. As such,
   // if we encounter an updateend without a corresponding pending action from our queue
   // for that source buffer type, process the next action.
+  const bufferedRangesForType = sourceUpdater[`${type}Buffered`]();
+  const descriptiveString = bufferedRangesToString(bufferedRangesForType);
+
+  sourceUpdater.logger_(`received "updateend" event for ${type} Source Buffer: `, descriptiveString);
+
   if (sourceUpdater.queuePending[type]) {
     const doneFn = sourceUpdater.queuePending[type].doneFn;
 

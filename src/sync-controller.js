@@ -5,6 +5,7 @@
 import {sumDurations, getPartsAndSegments} from './playlist';
 import videojs from 'video.js';
 import logger from './util/logger';
+import MediaSequenceSync from './util/media-sequence-sync';
 
 // The maximum gap allowed between two media sequence tags when trying to
 // synchronize expired playlist segments.
@@ -44,71 +45,27 @@ export const syncPointStrategies = [
      * @param {string} type
      */
     run: (syncController, playlist, duration, currentTimeline, currentTime, type) => {
-      if (!type) {
+      const mediaSequenceSync = syncController.getMediaSequenceSync(type);
+
+      if (!mediaSequenceSync) {
         return null;
       }
 
-      const mediaSequenceMap = syncController.getMediaSequenceMap(type);
-
-      if (!mediaSequenceMap || mediaSequenceMap.size === 0) {
+      if (!mediaSequenceSync.isReliable) {
         return null;
       }
 
-      if (playlist.mediaSequence === undefined || !Array.isArray(playlist.segments) || !playlist.segments.length) {
+      const syncInfo = mediaSequenceSync.getSyncInfoForTime(currentTime);
+
+      if (!syncInfo) {
         return null;
       }
 
-      let currentMediaSequence = playlist.mediaSequence;
-      let segmentIndex = 0;
-
-      for (const segment of playlist.segments) {
-        const range = mediaSequenceMap.get(currentMediaSequence);
-
-        if (!range) {
-          // unexpected case
-          // we expect this playlist to be the same playlist in the map
-          // just break from the loop and move forward to the next strategy
-          break;
-        }
-
-        if (currentTime >= range.start && currentTime < range.end) {
-          // we found segment
-
-          if (Array.isArray(segment.parts) && segment.parts.length) {
-            let currentPartStart = range.start;
-            let partIndex = 0;
-
-            for (const part of segment.parts) {
-              const start = currentPartStart;
-              const end = start + part.duration;
-
-              if (currentTime >= start && currentTime < end) {
-                return {
-                  time: range.start,
-                  segmentIndex,
-                  partIndex
-                };
-              }
-
-              partIndex++;
-              currentPartStart = end;
-            }
-          }
-
-          // no parts found, return sync point for segment
-          return {
-            time: range.start,
-            segmentIndex,
-            partIndex: null
-          };
-        }
-
-        segmentIndex++;
-        currentMediaSequence++;
-      }
-
-      // we didn't find any segments for provided current time
-      return null;
+      return {
+        time: syncInfo.start,
+        partIndex: syncInfo.partIndex,
+        segmentIndex: syncInfo.segmentIndex
+      };
     }
   },
   // Stategy "ProgramDateTime": We have a program-date-time tag in this playlist
@@ -272,78 +229,25 @@ export default class SyncController extends videojs.EventTarget {
     this.timelines = [];
     this.discontinuities = [];
     this.timelineToDatetimeMappings = {};
-
-    /**
-     * @type {Map<string, Map<number, { start: number, end: number }>>}
-     * @private
-     */
-    this.mediaSequenceStorage_ = new Map();
-
+    // TODO: this map should be only available for HLS. Since only HLS has MediaSequence.
+    //  For some reason this map helps with syncing between quality switch for MPEG-DASH as well.
+    //  Moreover if we disable this map for MPEG-DASH - quality switch will be broken.
+    //  MPEG-DASH should have its own separate sync strategy
+    this.mediaSequenceStorage_ = {
+      main: new MediaSequenceSync(),
+      audio: new MediaSequenceSync(),
+      vtt: new MediaSequenceSync()
+    };
     this.logger_ = logger('SyncController');
   }
 
   /**
-   * Get media sequence map by type
    *
-   * @param {string} type - segment loader type
-   * @return {Map<number, { start: number, end: number }> | undefined}
+   * @param {string} loaderType
+   * @return {MediaSequenceSync|null}
    */
-  getMediaSequenceMap(type) {
-    return this.mediaSequenceStorage_.get(type);
-  }
-
-  /**
-   * Update Media Sequence Map -> <MediaSequence, Range>
-   *
-   * @param {Object} playlist - parsed playlist
-   * @param {number} currentTime - current player's time
-   * @param {string} type - segment loader type
-   * @return {void}
-   */
-  updateMediaSequenceMap(playlist, currentTime, type) {
-    // we should not process this playlist if it does not have mediaSequence or segments
-    if (playlist.mediaSequence === undefined || !Array.isArray(playlist.segments) || !playlist.segments.length) {
-      return;
-    }
-
-    const currentMap = this.getMediaSequenceMap(type);
-    const result = new Map();
-
-    let currentMediaSequence = playlist.mediaSequence;
-    let currentBaseTime;
-
-    if (!currentMap) {
-      // first playlist setup:
-      currentBaseTime = 0;
-    } else if (currentMap.has(playlist.mediaSequence)) {
-      // further playlists setup:
-      currentBaseTime = currentMap.get(playlist.mediaSequence).start;
-    } else {
-      // it seems like we have a gap between playlists, use current time as a fallback:
-      this.logger_(`MediaSequence sync for ${type} segment loader - received a gap between playlists.
-Fallback base time to: ${currentTime}.
-Received media sequence: ${currentMediaSequence}.
-Current map: `, currentMap);
-      currentBaseTime = currentTime;
-    }
-
-    this.logger_(`MediaSequence sync for ${type} segment loader.
-Received media sequence: ${currentMediaSequence}.
-base time is ${currentBaseTime}
-Current map: `, currentMap);
-
-    playlist.segments.forEach((segment) => {
-      const start = currentBaseTime;
-      const end = start + segment.duration;
-      const range = { start, end };
-
-      result.set(currentMediaSequence, range);
-
-      currentMediaSequence++;
-      currentBaseTime = end;
-    });
-
-    this.mediaSequenceStorage_.set(type, result);
+  getMediaSequenceSync(loaderType) {
+    return this.mediaSequenceStorage_[loaderType] || null;
   }
 
   /**
@@ -436,8 +340,7 @@ Current map: `, currentMap);
       playlist,
       duration,
       playlist.discontinuitySequence,
-      0,
-      'main'
+      0
     );
 
     // Without sync-points, there is not enough information to determine the expired time

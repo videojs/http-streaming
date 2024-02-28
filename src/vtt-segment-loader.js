@@ -37,8 +37,6 @@ export default class VTTSegmentLoader extends SegmentLoader {
 
     this.subtitlesTrack_ = null;
 
-    this.loaderType_ = 'subtitle';
-
     this.featuresNativeTextTracks_ = settings.featuresNativeTextTracks;
 
     this.loadVttJs = settings.loadVttJs;
