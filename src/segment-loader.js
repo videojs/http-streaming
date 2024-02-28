@@ -1477,7 +1477,12 @@ export default class SegmentLoader extends videojs.EventTarget {
       const targetTime = this.fetchAtBuffer_ ? bufferedEnd : this.currentTime_();
 
       if (this.mediaSequenceSync_) {
-        this.logger_(`chooseNextRequest_ request after Quality Switch: For TargetTime: ${targetTime}. Fetch At Buffer: ${this.fetchAtBuffer_}`, this.mediaSequenceSync_.diagnostics);
+        this.logger_(`chooseNextRequest_ request after Quality Switch:
+For TargetTime: ${targetTime}.
+CurrentTime: ${this.currentTime_()}
+BufferedEnd: ${bufferedEnd}
+Fetch At Buffer: ${this.fetchAtBuffer_}
+`, this.mediaSequenceSync_.diagnostics);
       }
 
       if (this.mediaSequenceSync_ && this.mediaSequenceSync_.isReliable) {
@@ -1488,6 +1493,8 @@ export default class SegmentLoader extends videojs.EventTarget {
           // no match
           return null;
         }
+
+        this.logger_(`chooseNextRequest_ mediaSequence syncInfo (${syncInfo.start} --> ${syncInfo.end})`);
 
         segmentIndex = syncInfo.segmentIndex;
         partIndex = syncInfo.partIndex;
