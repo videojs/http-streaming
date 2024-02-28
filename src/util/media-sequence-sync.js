@@ -236,7 +236,7 @@ export default class MediaSequenceSync {
     }
 
     // Fallback flow.
-    // There is a gab between last recorded playlist and a new one received.
+    // There is a gap between last recorded playlist and a new one received.
     return fallback;
   }
 
