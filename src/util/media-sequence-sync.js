@@ -241,6 +241,6 @@ export default class MediaSequenceSync {
   }
 
   isReliablePlaylist_(mediaSequence, segments) {
-    return mediaSequence !== undefined && Array.isArray(segments) && segments.length;
+    return mediaSequence !== undefined && mediaSequence !== null && Array.isArray(segments) && segments.length;
   }
 }
