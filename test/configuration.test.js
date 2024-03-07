@@ -31,7 +31,14 @@ const options = [{
   default: false,
   test: true,
   alt: false
-}, {
+},
+{
+  name: 'customPixelRatio',
+  default: 1,
+  test: 2,
+  alt: 0.5
+},
+{
   name: 'bandwidth',
   default: 4194304,
   test: 5,
