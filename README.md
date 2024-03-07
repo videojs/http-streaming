@@ -415,6 +415,8 @@ It is worth noting that if the player dimension multiplied by the custom pixel r
 
 `limitRenditionByPlayerDimensions` must be `true` in order for this feature to be enabled. This is the default value.
 
+If `useDevicePixelRatio` is set to `true`, the pixel ratio will be cumulative, and the player will choose renditions based on the value of multiplying the player dimensions both by the device pixel ratio and the custom pixel ratio.
+
 This setting is `1` by default.
 
 ##### allowSeeksWithinUnsafeLiveWindow
