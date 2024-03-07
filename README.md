@@ -411,13 +411,11 @@ This setting is `false` by default.
 
 If set, this will take the initial player dimensions and multiply it by a custom ratio when the player automatically selects renditions. This means that if you have a player where the dimension is `540p`, with a custom pixel ratio of `2`, a rendition of `1080p` or a lower rendition closest to this value  will be chosen. Additionally, if you have a player where the dimension is `540p`, with a custom pixel ratio of `0.5`, a rendition of `270p` or a lower rendition closest to this value will be  chosen. When the custom pixel ratio is 0, the lowest available rendition will be selected.
 
-It is worth noting that if the player dimension multiplied by the custom pixel ratio is greater than any available rendition resolution, a rendition entirely based on bandwidth will be selected, and the player dimension will be disregarded.
+It is worth noting that if the player dimension multiplied by the custom pixel ratio is greater than any available rendition resolution, a rendition will be selected based on bandwidth, and the player dimension will be disregarded.
 
 `limitRenditionByPlayerDimensions` must be `true` in order for this feature to be enabled. This is the default value.
 
-If `useDevicePixelRatio` is set to `true`, the pixel ratio will be cumulative, and the player will choose renditions based on the value of multiplying the player dimensions both by the device pixel ratio and the custom pixel ratio.
-
-This setting is `1` by default.
+If `useDevicePixelRatio` is set to `true`, the custom pixel ratio will be prioritized and overwrite any previous pixel ratio.
 
 ##### allowSeeksWithinUnsafeLiveWindow
 * Type: `boolean`

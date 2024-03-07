@@ -691,7 +691,6 @@ class VhsHandler extends Component {
     this.options_.withCredentials = this.options_.withCredentials || false;
     this.options_.limitRenditionByPlayerDimensions = this.options_.limitRenditionByPlayerDimensions === false ? false : true;
     this.options_.useDevicePixelRatio = this.options_.useDevicePixelRatio || false;
-    this.options_.customPixelRatio = this.options_.customPixelRatio || 1;
     this.options_.useBandwidthFromLocalStorage =
       typeof this.source_.useBandwidthFromLocalStorage !== 'undefined' ?
         this.source_.useBandwidthFromLocalStorage :
@@ -766,10 +765,10 @@ class VhsHandler extends Component {
 
     const customPixelRatio = this.options_.customPixelRatio;
 
-    // Ensure the custom pixel ratio is a number greater than or equal to 0. If it is not, the
-    // value should default to 1.
-    this.customPixelRatio =
-      typeof customPixelRatio === 'number' && customPixelRatio >= 0 ? customPixelRatio : 1;
+    // Ensure the custom pixel ratio is a number greater than or equal to 0
+    if (typeof customPixelRatio === 'number' && customPixelRatio >= 0) {
+      this.customPixelRatio = customPixelRatio;
+    }
   }
   // alias for public method to set options
   setOptions(options = {}) {

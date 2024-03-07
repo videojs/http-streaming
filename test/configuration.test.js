@@ -34,8 +34,8 @@ const options = [{
 },
 {
   name: 'customPixelRatio',
-  default: 1,
-  test: 2,
+  default: undefined,
+  test: 1,
   alt: 0.5
 },
 {

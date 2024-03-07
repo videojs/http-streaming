@@ -366,7 +366,9 @@ export const TEST_ONLY_SIMPLE_SELECTOR = (newSimpleSelector) => {
 export const lastBandwidthSelector = function() {
   let pixelRatio = this.useDevicePixelRatio ? window.devicePixelRatio || 1 : 1;
 
-  pixelRatio = pixelRatio * this.customPixelRatio;
+  if (!isNaN(this.customPixelRatio)) {
+    pixelRatio = this.customPixelRatio;
+  }
 
   return simpleSelector(
     this.playlists.main,
@@ -403,7 +405,9 @@ export const movingAverageBandwidthSelector = function(decay) {
   return function() {
     let pixelRatio = this.useDevicePixelRatio ? window.devicePixelRatio || 1 : 1;
 
-    pixelRatio = pixelRatio * this.customPixelRatio;
+    if (!isNaN(this.customPixelRatio)) {
+      pixelRatio = this.customPixelRatio;
+    }
 
     if (average < 0) {
       average = this.systemBandwidth;

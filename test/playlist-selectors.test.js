@@ -358,7 +358,7 @@ test('lastBandwidthSelector uses customPixelRatio to pick rendition', function(a
   // Picks the lowest possible rendition
   this.vhs.customPixelRatio = 0;
   playlist = lastBandwidthSelector.call(this.vhs);
-  assert.equal(playlist.attributes.RESOLUTION.height, 270, 'selected the rendition with 270p');
+  assert.equal(playlist.attributes.RESOLUTION.height, 270, 'selected the lowest rendition');
 
   this.vhs.customPixelRatio = 0.5;
   playlist = lastBandwidthSelector.call(this.vhs);
@@ -380,7 +380,7 @@ test('lastBandwidthSelector uses customPixelRatio to pick rendition', function(a
   // This value is entirely based on bandwidth.
   this.vhs.customPixelRatio = 4;
   playlist = lastBandwidthSelector.call(this.vhs);
-  assert.equal(playlist.attributes.RESOLUTION.height, 270, 'selected the rendition with 1080p');
+  assert.equal(playlist.attributes.RESOLUTION.height, 270, 'selected the rendition based on bandwidth');
 
   window.getComputedStyle = oldGetComputedStyle;
 });
@@ -414,7 +414,7 @@ test('movingAverageBandwidthSelector uses customPixelRatio to pick rendition', f
   // Picks the lowest possible rendition
   this.vhs.customPixelRatio = 0;
   playlist = selectionFunction.call(this.vhs);
-  assert.equal(playlist.attributes.RESOLUTION.height, 270, 'selected the rendition with 270p');
+  assert.equal(playlist.attributes.RESOLUTION.height, 270, 'selected the lowest rendition');
 
   this.vhs.customPixelRatio = 0.5;
   playlist = selectionFunction.call(this.vhs);
@@ -436,7 +436,7 @@ test('movingAverageBandwidthSelector uses customPixelRatio to pick rendition', f
   // This value is entirely based on bandwidth.
   this.vhs.customPixelRatio = 4;
   playlist = selectionFunction.call(this.vhs);
-  assert.equal(playlist.attributes.RESOLUTION.height, 270, 'selected the rendition with 270p');
+  assert.equal(playlist.attributes.RESOLUTION.height, 270, 'selected the rendition based on bandwidth');
 
   window.getComputedStyle = oldGetComputedStyle;
 });
