@@ -1,11 +1,13 @@
 import { module, test } from 'qunit';
 import document from 'global/document';
+import window from 'global/window';
 import {
   TEST_ONLY_SIMPLE_SELECTOR,
   simpleSelector,
   movingAverageBandwidthSelector,
   minRebufferMaxBandwidthSelector,
-  lowestBitrateCompatibleVariantSelector
+  lowestBitrateCompatibleVariantSelector,
+  lastBandwidthSelector
 } from '../src/playlist-selectors';
 import Config from '../src/config';
 
@@ -325,5 +327,116 @@ test('simpleSelector leastPixelDiffSelector selects least pixel diff resolution.
 
   assert.equal(pixelDiff, main.playlists[5], '1280w x 720h pixel diff higher bandwidth');
   assert.equal(nonPixelDiff, main.playlists[5], '1280w x 720h resolution plus higher bandwidth');
+});
 
+test('lastBandwidthSelector uses customPixelRatio to pick rendition', function(assert) {
+  let playlist;
+  const bandwidth = 20;
+
+  const oldGetComputedStyle = window.getComputedStyle;
+
+  // Mock a 540p player.
+  window.getComputedStyle = function() {
+    return {
+      width: 960,
+      height: 540
+    };
+  };
+
+  // Ensure system bandwith is greater than the rendition bandwidths.
+  this.vhs.systemBandwidth = bandwidth + 10;
+  // This is true by default.
+  this.vhs.limitRenditionByPlayerDimensions = true;
+
+  this.vhs.playlists.main.playlists = [
+    { attributes: { BANDWIDTH: bandwidth, RESOLUTION: { width: 480, height: 270 } } },
+    { attributes: { BANDWIDTH: bandwidth, RESOLUTION: { width: 960, height: 540 } } },
+    { attributes: { BANDWIDTH: bandwidth, RESOLUTION: { width: 1440, height: 810 } } },
+    { attributes: { BANDWIDTH: bandwidth, RESOLUTION: { width: 1920, height: 1080 } } }
+  ];
+
+  // Picks the lowest possible rendition
+  this.vhs.customPixelRatio = 0;
+  playlist = lastBandwidthSelector.call(this.vhs);
+  assert.equal(playlist.attributes.RESOLUTION.height, 270, 'selected the lowest rendition');
+
+  this.vhs.customPixelRatio = 0.5;
+  playlist = lastBandwidthSelector.call(this.vhs);
+  assert.equal(playlist.attributes.RESOLUTION.height, 270, 'selected the rendition with 270p');
+
+  this.vhs.customPixelRatio = 1;
+  playlist = lastBandwidthSelector.call(this.vhs);
+  assert.equal(playlist.attributes.RESOLUTION.height, 540, 'selected the rendition with 540p');
+
+  this.vhs.customPixelRatio = 1.5;
+  playlist = lastBandwidthSelector.call(this.vhs);
+  assert.equal(playlist.attributes.RESOLUTION.height, 810, 'selected the rendition with 810p');
+
+  this.vhs.customPixelRatio = 2;
+  playlist = lastBandwidthSelector.call(this.vhs);
+  assert.equal(playlist.attributes.RESOLUTION.height, 1080, 'selected the rendition with 1080p');
+
+  // Since the customPixelRatio sets the player dimension higher than any available rendition,
+  // This value is entirely based on bandwidth.
+  this.vhs.customPixelRatio = 4;
+  playlist = lastBandwidthSelector.call(this.vhs);
+  assert.equal(playlist.attributes.RESOLUTION.height, 270, 'selected the rendition based on bandwidth');
+
+  window.getComputedStyle = oldGetComputedStyle;
+});
+
+test('movingAverageBandwidthSelector uses customPixelRatio to pick rendition', function(assert) {
+  let playlist;
+  const bandwidth = 20;
+  const selectionFunction = movingAverageBandwidthSelector(1);
+  const oldGetComputedStyle = window.getComputedStyle;
+
+  // Mock a 540p player.
+  window.getComputedStyle = function() {
+    return {
+      width: 960,
+      height: 540
+    };
+  };
+
+  // Ensure system bandwith is greater than the rendition bandwidths.
+  this.vhs.systemBandwidth = bandwidth + 10;
+  // This is true by default.
+  this.vhs.limitRenditionByPlayerDimensions = true;
+
+  this.vhs.playlists.main.playlists = [
+    { attributes: { BANDWIDTH: bandwidth, RESOLUTION: { width: 480, height: 270 } } },
+    { attributes: { BANDWIDTH: bandwidth, RESOLUTION: { width: 960, height: 540 } } },
+    { attributes: { BANDWIDTH: bandwidth, RESOLUTION: { width: 1440, height: 810 } } },
+    { attributes: { BANDWIDTH: bandwidth, RESOLUTION: { width: 1920, height: 1080 } } }
+  ];
+
+  // Picks the lowest possible rendition
+  this.vhs.customPixelRatio = 0;
+  playlist = selectionFunction.call(this.vhs);
+  assert.equal(playlist.attributes.RESOLUTION.height, 270, 'selected the lowest rendition');
+
+  this.vhs.customPixelRatio = 0.5;
+  playlist = selectionFunction.call(this.vhs);
+  assert.equal(playlist.attributes.RESOLUTION.height, 270, 'selected the rendition with 270p');
+
+  this.vhs.customPixelRatio = 1;
+  playlist = selectionFunction.call(this.vhs);
+  assert.equal(playlist.attributes.RESOLUTION.height, 540, 'selected the rendition with 540p');
+
+  this.vhs.customPixelRatio = 1.5;
+  playlist = selectionFunction.call(this.vhs);
+  assert.equal(playlist.attributes.RESOLUTION.height, 810, 'selected the rendition with 810p');
+
+  this.vhs.customPixelRatio = 2;
+  playlist = selectionFunction.call(this.vhs);
+  assert.equal(playlist.attributes.RESOLUTION.height, 1080, 'selected the rendition with 1080p');
+
+  // Since the customPixelRatio sets the player dimension higher than any available rendition,
+  // This value is entirely based on bandwidth.
+  this.vhs.customPixelRatio = 4;
+  playlist = selectionFunction.call(this.vhs);
+  assert.equal(playlist.attributes.RESOLUTION.height, 270, 'selected the rendition based on bandwidth');
+
+  window.getComputedStyle = oldGetComputedStyle;
 });

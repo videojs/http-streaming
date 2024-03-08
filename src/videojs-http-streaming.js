@@ -738,6 +738,7 @@ class VhsHandler extends Component {
     [
       'withCredentials',
       'useDevicePixelRatio',
+      'customPixelRatio',
       'limitRenditionByPlayerDimensions',
       'bandwidth',
       'customTagParsers',
@@ -761,6 +762,13 @@ class VhsHandler extends Component {
 
     this.limitRenditionByPlayerDimensions = this.options_.limitRenditionByPlayerDimensions;
     this.useDevicePixelRatio = this.options_.useDevicePixelRatio;
+
+    const customPixelRatio = this.options_.customPixelRatio;
+
+    // Ensure the custom pixel ratio is a number greater than or equal to 0
+    if (typeof customPixelRatio === 'number' && customPixelRatio >= 0) {
+      this.customPixelRatio = customPixelRatio;
+    }
   }
   // alias for public method to set options
   setOptions(options = {}) {

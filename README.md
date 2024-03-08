@@ -48,6 +48,7 @@ Video.js Compatibility: 7.x, 8.x
       - [enableLowInitialPlaylist](#enablelowinitialplaylist)
       - [limitRenditionByPlayerDimensions](#limitrenditionbyplayerdimensions)
       - [useDevicePixelRatio](#usedevicepixelratio)
+      - [customPixelRatio](#custompixelratio)
       - [allowSeeksWithinUnsafeLiveWindow](#allowseekswithinunsafelivewindow)
       - [customTagParsers](#customtagparsers)
       - [customTagMappers](#customtagmappers)
@@ -403,6 +404,18 @@ This setting is `true` by default.
 
 If true, this will take the device pixel ratio into account when doing rendition switching. This means that if you have a player with the width of `540px` in a high density display with a device pixel ratio of 2, a rendition of `1080p` will be allowed.
 This setting is `false` by default.
+
+##### customPixelRatio
+* Type: `number`
+* can be used as an initialization option.
+
+If set, this will take the initial player dimensions and multiply it by a custom ratio when the player automatically selects renditions. This means that if you have a player where the dimension is `540p`, with a custom pixel ratio of `2`, a rendition of `1080p` or a lower rendition closest to this value  will be chosen. Additionally, if you have a player where the dimension is `540p`, with a custom pixel ratio of `0.5`, a rendition of `270p` or a lower rendition closest to this value will be  chosen. When the custom pixel ratio is 0, the lowest available rendition will be selected.
+
+It is worth noting that if the player dimension multiplied by the custom pixel ratio is greater than any available rendition resolution, a rendition will be selected based on bandwidth, and the player dimension will be disregarded.
+
+`limitRenditionByPlayerDimensions` must be `true` in order for this feature to be enabled. This is the default value.
+
+If `useDevicePixelRatio` is set to `true`, the custom pixel ratio will be prioritized and overwrite any previous pixel ratio.
 
 ##### allowSeeksWithinUnsafeLiveWindow
 * Type: `boolean`
