@@ -1,3 +1,15 @@
+<a name="3.12.0"></a>
+# [3.12.0](https://github.com/videojs/http-streaming/compare/v3.11.3...v3.12.0) (2024-03-12)
+
+### Features
+
+* Custom Pixel Ratio ([#1497](https://github.com/videojs/http-streaming/issues/1497)) ([0e9d9d8](https://github.com/videojs/http-streaming/commit/0e9d9d8))
+
+### Chores
+
+* **demo:** Remove error on iOS on demo page ([#1493](https://github.com/videojs/http-streaming/issues/1493)) ([c50ba7e](https://github.com/videojs/http-streaming/commit/c50ba7e))
+* update mux.js to v7.0.3 ([#1498](https://github.com/videojs/http-streaming/issues/1498)) ([bebcafd](https://github.com/videojs/http-streaming/commit/bebcafd))
+
 <a name="3.11.3"></a>
 ## [3.11.3](https://github.com/videojs/http-streaming/compare/v3.11.2...v3.11.3) (2024-02-28)
 
