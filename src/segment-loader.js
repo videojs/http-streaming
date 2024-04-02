@@ -1238,8 +1238,11 @@ bufferedEnd: ${lastBufferedEnd(this.buffered_())}
     this.syncPoint_ = null;
     this.isPendingTimestampOffset_ = false;
     // this is mainly to sync timing-info when switching between renditions with and without timestamp-rollover,
-    // so we don't want it for DASH
-    if (this.sourceType_ === 'hls') {
+    // so we don't want it for DASH or fragmented mp4 segments.
+    const isFmp4 = this.currentMediaInfo_ && this.currentMediaInfo_.isFmp4;
+    const isHlsTs = this.sourceType_ === 'hls' && !isFmp4;
+
+    if (isHlsTs) {
       this.shouldForceTimestampOffsetAfterResync_ = true;
     }
     this.callQueue_ = [];
