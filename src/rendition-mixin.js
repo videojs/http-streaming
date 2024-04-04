@@ -30,7 +30,7 @@ const enableFunction = (loader, playlistID, changePlaylistFn) => (enable) => {
 
   if (enable !== currentlyEnabled && !incompatible) {
     // Ensure the outside world knows about our changes
-    changePlaylistFn();
+    changePlaylistFn(playlist);
     if (enable) {
       loader.trigger('renditionenabled');
     } else {
