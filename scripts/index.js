@@ -21,7 +21,7 @@
       rep.playlist.disabled = rep.id !== id;
     });
 
-    window.pc.fastQualityChange_();
+    window.pc.fastQualityChange_(selectedOption);
   });
   var isManifestObjectType = function(url) {
     return (/application\/vnd\.videojs\.vhs\+json/).test(url);
