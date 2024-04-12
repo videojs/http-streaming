@@ -154,6 +154,7 @@ const actions = {
     try {
       sourceBuffer.appendBuffer(bytes);
     } catch (e) {
+      sourceUpdater.error(e);
       sourceUpdater.logger_(`Error with code ${e.code} ` +
         (e.code === QUOTA_EXCEEDED_ERR ? '(QUOTA_EXCEEDED_ERR) ' : '') +
         `when appending segment ${segmentInfo.mediaIndex} to ${type}Buffer`);
@@ -174,6 +175,7 @@ const actions = {
     try {
       sourceBuffer.remove(start, end);
     } catch (e) {
+      sourceUpdater.error(e);
       sourceUpdater.logger_(`Remove ${start} to ${end} from ${type}Buffer failed`);
     }
   },
@@ -187,8 +189,12 @@ const actions = {
     }
 
     sourceUpdater.logger_(`Setting ${type}timestampOffset to ${offset}`);
-
-    sourceBuffer.timestampOffset = offset;
+    try {
+      sourceBuffer.timestampOffset = offset;
+    } catch (e) {
+      sourceUpdater.error(e);
+      videojs.log.warn('Failed to set timestampOffset', e);
+    }
   },
   callback: (callback) => (type, sourceUpdater) => {
     callback();
@@ -202,6 +208,7 @@ const actions = {
     try {
       sourceUpdater.mediaSource.endOfStream(error);
     } catch (e) {
+      sourceUpdater.error(e);
       videojs.log.warn('Failed to call media source endOfStream', e);
     }
   },
@@ -211,6 +218,7 @@ const actions = {
       sourceUpdater.mediaSource.duration = duration;
     } catch (e) {
       videojs.log.warn('Failed to set media source duration', e);
+      sourceUpdater.error(e);
     }
   },
   abort: () => (type, sourceUpdater) => {
@@ -229,16 +237,21 @@ const actions = {
     try {
       sourceBuffer.abort();
     } catch (e) {
+      sourceUpdater.error(e);
       videojs.log.warn(`Failed to abort on ${type}Buffer`, e);
     }
   },
   addSourceBuffer: (type, codec) => (sourceUpdater) => {
     const titleType = toTitleCase(type);
     const mime = getMimeForCodec(codec);
+    let sourceBuffer;
 
     sourceUpdater.logger_(`Adding ${type}Buffer with codec ${codec} to mediaSource`);
-
-    const sourceBuffer = sourceUpdater.mediaSource.addSourceBuffer(mime);
+    try {
+      sourceBuffer = sourceUpdater.mediaSource.addSourceBuffer(mime);
+    } catch (e) {
+      sourceUpdater.error(e);
+    }
 
     sourceBuffer.addEventListener('updateend', sourceUpdater[`on${titleType}UpdateEnd_`]);
     sourceBuffer.addEventListener('error', sourceUpdater[`on${titleType}Error_`]);
@@ -292,6 +305,7 @@ const actions = {
       sourceBuffer.changeType(mime);
       sourceUpdater.codecs[type] = codec;
     } catch (e) {
+      sourceUpdater.error(e);
       videojs.log.warn(`Failed to changeType on ${type}Buffer`, e);
     }
   }
@@ -331,6 +345,15 @@ const onUpdateend = (type, sourceUpdater) => (e) => {
   }
 
   shiftQueue(type, sourceUpdater);
+};
+
+const getErrorType = (name) => {
+  switch (name) {
+  case name === 'InvalidStateError':
+    return videojs.Error.MediaSourceInvalidState;
+  default:
+    return videojs.Error.MediaSourceUnknown;
+  }
 };
 
 /**
@@ -374,6 +397,7 @@ export default class SourceUpdater extends videojs.EventTarget {
     this.createdSourceBuffers_ = false;
     this.initializedEme_ = false;
     this.triggeredReady_ = false;
+    this.error_ = null;
   }
 
   initializedEme() {
@@ -878,5 +902,23 @@ export default class SourceUpdater extends videojs.EventTarget {
     }
 
     this.off();
+  }
+
+  /**
+   * Set or get the error on the sourceUpdater, if set this will trigger
+   * the 'error' event on the sourceUpdater.
+   *
+   * @param {Error} error object to set on the sourceUpdater
+   * @return the current sourceUpdater error
+   */
+  error(error) {
+    if (!error) {
+      return this.error_;
+    }
+    error.metadata = {
+      errorType: getErrorType(error.name)
+    };
+    this.error_ = error;
+    this.trigger('error');
   }
 }
