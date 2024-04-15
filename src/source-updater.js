@@ -9,7 +9,7 @@ import {getMimeForCodec} from '@videojs/vhs-utils/es/codecs.js';
 import window from 'global/window';
 import toTitleCase from './util/to-title-case.js';
 import { QUOTA_EXCEEDED_ERR } from './error-codes';
-import {createTimeRanges, prettyBuffered} from './util/vjs-compat';
+import {createTimeRanges, bufferedRangesToString} from './util/vjs-compat';
 
 const bufferTypes = [
   'video',
@@ -275,14 +275,25 @@ const actions = {
     }
 
     // do not update codec if we don't need to.
-    if (sourceUpdater.codecs[type] === codec) {
+    // Only update if we change the codec base.
+    // For example, going from avc1.640028 to avc1.64001f does not require a changeType call.
+    const newCodecBase = codec.substring(0, codec.indexOf('.'));
+    const oldCodec = sourceUpdater.codecs[type];
+    const oldCodecBase = oldCodec.substring(0, oldCodec.indexOf('.'));
+
+    if (oldCodecBase === newCodecBase) {
       return;
     }
 
     sourceUpdater.logger_(`changing ${type}Buffer codec from ${sourceUpdater.codecs[type]} to ${codec}`);
 
-    sourceBuffer.changeType(mime);
-    sourceUpdater.codecs[type] = codec;
+    // check if change to the provided type is supported
+    try {
+      sourceBuffer.changeType(mime);
+      sourceUpdater.codecs[type] = codec;
+    } catch (e) {
+      videojs.log.warn(`Failed to changeType on ${type}Buffer`, e);
+    }
   }
 };
 
@@ -297,17 +308,17 @@ const pushQueue = ({type, sourceUpdater, action, doneFn, name}) => {
 };
 
 const onUpdateend = (type, sourceUpdater) => (e) => {
-  const buffered = sourceUpdater[`${type}Buffered`]();
-  const bufferedAsString = prettyBuffered(buffered);
-
-  sourceUpdater.logger_(`${type} source buffer update end. Buffered: \n`, bufferedAsString);
-
   // Although there should, in theory, be a pending action for any updateend receieved,
   // there are some actions that may trigger updateend events without set definitions in
   // the w3c spec. For instance, setting the duration on the media source may trigger
   // updateend events on source buffers. This does not appear to be in the spec. As such,
   // if we encounter an updateend without a corresponding pending action from our queue
   // for that source buffer type, process the next action.
+  const bufferedRangesForType = sourceUpdater[`${type}Buffered`]();
+  const descriptiveString = bufferedRangesToString(bufferedRangesForType);
+
+  sourceUpdater.logger_(`received "updateend" event for ${type} Source Buffer: `, descriptiveString);
+
   if (sourceUpdater.queuePending[type]) {
     const doneFn = sourceUpdater.queuePending[type].doneFn;
 

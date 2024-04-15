@@ -6,7 +6,7 @@
   <link rel="icon" href="logo.svg">
   <link href="node_modules/bootstrap/dist/css/bootstrap.css" rel="stylesheet">
   <link href="node_modules/video.js/dist/video-js.css" rel="stylesheet">
-  <link href="node_modules/videojs-http-source-selector/dist/videojs-http-source-selector.css" rel="stylesheet">
+  <link href="node_modules/jb-videojs-hls-quality-selector/dist/videojs-hls-quality-selector.css" rel="stylesheet">
   <style>
     .form-check {
       background-color: hsl(0, 0%, 90%);
@@ -142,11 +142,6 @@
         <div class="form-check">
           <input id=dts-offset type="checkbox" class="form-check-input">
           <label class="form-check-label" for="dts-offset">Use DTS instead of PTS for Timestamp Offset calculation (reloads player)</label>
-        </div>
-
-        <div class="form-check">
-          <input id=offset-each-segment type="checkbox" class="form-check-input">
-          <label class="form-check-label" for="offset-each-segment">Calculate timestampOffset for each segment, regardless of its timeline (reloads player)</label>
         </div>
 
         <div class="form-check">

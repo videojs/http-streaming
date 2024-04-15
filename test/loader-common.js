@@ -835,11 +835,11 @@ export const LoaderCommonFactory = ({
 
         const segmentInfo = loader.pendingSegment_;
 
-        assert.equal(segmentInfo.mediaIndex, 3, 'segmentInfo.mediaIndex starts at 3');
+        assert.equal(segmentInfo.mediaIndex, 4, 'segmentInfo.mediaIndex starts at 4');
         assert.equal(
           this.requests[0].url,
-          '3.ts',
-          'requesting the segment at mediaIndex 3'
+          '4.ts',
+          'requesting the segment at mediaIndex 4'
         );
 
         // Update the playlist shifting the mediaSequence by 2 which will result
@@ -849,8 +849,8 @@ export const LoaderCommonFactory = ({
           endList: false
         }));
 
-        assert.equal(segmentInfo.mediaIndex, 1, 'segmentInfo.mediaIndex is updated to 1');
-        expectedLoaderIndex = 1;
+        assert.equal(segmentInfo.mediaIndex, 2, 'segmentInfo.mediaIndex is updated to 2');
+        expectedLoaderIndex = 2;
 
         standardXHRResponse(this.requests.shift(), testData());
 
@@ -1433,14 +1433,15 @@ export const LoaderCommonFactory = ({
       // force segmentIndex 4 and part 2 to be choosen
       loader.currentTime_ = () => 46;
       // make the previous part indepenent so we go back to it
-      playlist.segments[4].parts[1].independent = true;
+      playlist.segments[4].parts[2].independent = true;
+      // debugger;
       const segmentInfo = loader.chooseNextRequest_();
 
-      assert.equal(segmentInfo.partIndex, 1, 'still chooses partIndex 1');
+      assert.equal(segmentInfo.partIndex, 2, 'still chooses partIndex 2');
       assert.equal(segmentInfo.mediaIndex, 4, 'same segment');
 
       // force segmentIndex 4 and part 0 to be choosen
-      loader.currentTime_ = () => 42;
+      loader.currentTime_ = () => 40;
       // make the previous part independent
       playlist.segments[3].parts[4].independent = true;
       const segmentInfo2 = loader.chooseNextRequest_();
@@ -1466,7 +1467,7 @@ export const LoaderCommonFactory = ({
       playlist.segments[4].parts[1].independent = true;
       const segmentInfo = loader.chooseNextRequest_();
 
-      assert.equal(segmentInfo.partIndex, 2, 'chooses part 2');
+      assert.equal(segmentInfo.partIndex, 3, 'chooses part 3');
       assert.equal(segmentInfo.mediaIndex, 4, 'same segment');
     });
 
@@ -1491,7 +1492,7 @@ export const LoaderCommonFactory = ({
       playlist.segments[4].parts[1].independent = true;
       const segmentInfo = loader.chooseNextRequest_();
 
-      assert.equal(segmentInfo.partIndex, 2, 'chooses part 2');
+      assert.equal(segmentInfo.partIndex, 3, 'chooses part 3');
       assert.equal(segmentInfo.mediaIndex, 4, 'same segment');
     });
 

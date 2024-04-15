@@ -26,26 +26,25 @@ export function createTimeRanges(...args) {
 }
 
 /**
- * Converts any buffered time range to a descriptive string
+ * Converts provided buffered ranges to a descriptive string
  *
- * @param {TimeRanges} buffered - time ranges
+ * @param {TimeRanges} buffered - received buffered time ranges
+ *
  * @return {string} - descriptive string
  */
-export function prettyBuffered(buffered) {
-  let result = '';
+export function bufferedRangesToString(buffered) {
+  if (buffered.length === 0) {
+    return 'Buffered Ranges are empty';
+  }
+
+  let bufferedRangesStr = 'Buffered Ranges: \n';
 
   for (let i = 0; i < buffered.length; i++) {
     const start = buffered.start(i);
     const end = buffered.end(i);
 
-    const duration = end - start;
-
-    if (result.length) {
-      result += '\n';
-    }
-
-    result += `[${duration}](${start} -> ${end})`;
+    bufferedRangesStr += `${start} --> ${end}. Duration (${end - start})\n`;
   }
 
-  return result || 'empty';
+  return bufferedRangesStr;
 }

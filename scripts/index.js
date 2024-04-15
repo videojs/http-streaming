@@ -21,7 +21,7 @@
       rep.playlist.disabled = rep.id !== id;
     });
 
-    window.pc.fastQualityChange_();
+    window.pc.fastQualityChange_(selectedOption);
   });
   var isManifestObjectType = function(url) {
     return (/application\/vnd\.videojs\.vhs\+json/).test(url);
@@ -438,11 +438,7 @@
     var steeringManifestEl = document.querySelector('.steering-manifest');
 
     player.one('loadedmetadata', function() {
-      if (!player.tech_vhs) {
-        return;
-      }
-
-      var steeringController = player.tech_.vhs.playlistController_.contentSteeringController_;
+      var steeringController = player.tech_.vhs && player.tech_.vhs.playlistController_.contentSteeringController_;
 
       if (!steeringController) {
         return;
@@ -474,7 +470,6 @@
     'pixel-diff-selector',
     'network-info',
     'dts-offset',
-    'offset-each-segment',
     'override-native',
     'use-mms',
     'preload',
@@ -532,7 +527,6 @@
       'pixel-diff-selector',
       'network-info',
       'dts-offset',
-      'offset-each-segment',
       'exact-manifest-timings',
       'forced-subtitles'
     ].forEach(function(name) {
@@ -566,7 +560,9 @@
       var urls = [
         'node_modules/video.js/dist/alt/video.core',
         'node_modules/videojs-contrib-eme/dist/videojs-contrib-eme',
-        'node_modules/videojs-contrib-quality-levels/dist/videojs-contrib-quality-levels'
+        'node_modules/videojs-contrib-quality-levels/dist/videojs-contrib-quality-levels',
+        'node_modules/jb-videojs-hls-quality-selector/dist/jb-videojs-hls-quality-selector'
+
       ].map(function(url) {
         return url + (event.target.checked ? '.min' : '') + '.js';
       });
@@ -601,6 +597,11 @@
         var mirrorSource = getInputValue(stateEls['mirror-source']);
 
         player = window.player = window.videojs(videoEl, {
+          plugins: {
+            hlsQualitySelector: {
+              displayCurrentQuality: true
+            }
+          },
           liveui: stateEls.liveui.checked,
           enableSourceset: mirrorSource,
           html5: {
@@ -613,7 +614,6 @@
               leastPixelDiffSelector: getInputValue(stateEls['pixel-diff-selector']),
               useNetworkInformationApi: getInputValue(stateEls['network-info']),
               useDtsForTimestampOffset: getInputValue(stateEls['dts-offset']),
-              calculateTimestampOffsetForEachSegment: getInputValue(stateEls['offset-each-segment']),
               useForcedSubtitles: getInputValue(stateEls['forced-subtitles'])
             }
           }

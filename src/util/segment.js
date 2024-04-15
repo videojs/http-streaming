@@ -21,3 +21,24 @@ export const concatSegments = (segmentObj) => {
 
   return tempBuffer;
 };
+
+/**
+ * Example:
+ * https://host.com/path1/path2/path3/segment.ts?arg1=val1
+ * -->
+ * path3/segment.ts
+ *
+ * @param resolvedUri
+ * @return {string}
+ */
+export function compactSegmentUrlDescription(resolvedUri) {
+  try {
+    return new URL(resolvedUri)
+      .pathname
+      .split('/')
+      .slice(-2)
+      .join('/');
+  } catch (e) {
+    return '';
+  }
+}

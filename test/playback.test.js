@@ -333,7 +333,7 @@ if (!videojs.browser.IS_FIREFOX) {
 
       // Firefox sometimes won't loop if seeking directly to the duration, or to too close
       // to the duration (e.g., 10ms from duration). 100ms seems to work.
-      player.currentTime(player.duration() - 0.5);
+      player.currentTime(player.duration() - 1);
     });
 
     player.src({

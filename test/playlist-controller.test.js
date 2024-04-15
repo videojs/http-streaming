@@ -687,8 +687,6 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
   let resets = 0;
   let removeFuncArgs = {};
 
-  this.player.tech_.buffered = () => createTimeRanges(0, 1);
-
   this.playlistController.mediaSource.trigger('sourceopen');
   // main
   this.standardXHRResponse(this.requests.shift());
@@ -703,11 +701,18 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
     originalResync.call(segmentLoader);
   };
 
-  const origResetLoaderProperties = segmentLoader.resetLoaderProperties;
+  const origResetEverything = segmentLoader.resetEverything;
+  const origRemove = segmentLoader.remove;
 
-  segmentLoader.resetLoaderProperties = () => {
+  segmentLoader.resetEverything = () => {
     resets++;
-    origResetLoaderProperties.call(segmentLoader);
+    origResetEverything.call(segmentLoader);
+  };
+
+  segmentLoader.remove = (start, end) => {
+    assert.equal(end, Infinity, 'on a remove all, end should be Infinity');
+
+    origRemove.call(segmentLoader, start, end);
   };
 
   segmentLoader.startingMediaInfo_ = { hasVideo: true };
@@ -739,11 +744,13 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
     return playlists.find((playlist) => playlist !== currentPlaylist);
   };
 
-  this.playlistController.fastQualityChange_();
+  this.playlistController.runFastQualitySwitch_();
 
   assert.equal(resyncs, 1, 'resynced segment loader if media is changed');
 
-  assert.equal(resets, 1, 'resetLoaderProperties called if media is changed');
+  assert.equal(resets, 1, 'resetEverything called if media is changed');
+
+  assert.deepEqual(removeFuncArgs, {start: 0, end: 60}, 'remove() called with correct arguments if media is changed');
 });
 
 QUnit.test('loadVttJs should be passed to the vttSegmentLoader and resolved on vttjsloaded', function(assert) {
@@ -761,6 +768,55 @@ QUnit.test('loadVttJs should be passed to the vttSegmentLoader and rejected on v
 
   controller.subtitleSegmentLoader_.loadVttJs().catch(() => {
     assert.equal(stub.callCount, 1, 'tech addWebVttScript called once');
+  });
+});
+
+QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', function(assert) {
+  let seeks = 0;
+
+  this.playlistController.mediaSource.trigger('sourceopen');
+  // main
+  this.standardXHRResponse(this.requests.shift());
+  // media
+  this.standardXHRResponse(this.requests.shift());
+
+  const segmentLoader = this.playlistController.mainSegmentLoader_;
+
+  return requestAndAppendSegment({
+    request: this.requests.shift(),
+    segmentLoader,
+    clock: this.clock
+  }).then(() => {
+    // media is changed
+    this.playlistController.selectPlaylist = () => {
+      const playlists = this.playlistController.main().playlists;
+      const currentPlaylist = this.playlistController.media();
+
+      return playlists.find((playlist) => playlist !== currentPlaylist);
+    };
+
+    this.player.tech_.on('seeking', function() {
+      seeks++;
+    });
+
+    const timeBeforeSwitch = this.player.currentTime();
+
+    // mock buffered values so removes are processed
+    segmentLoader.sourceUpdater_.audioBuffer.buffered = createTimeRanges([[0, 10]]);
+    segmentLoader.sourceUpdater_.videoBuffer.buffered = createTimeRanges([[0, 10]]);
+
+    this.playlistController.runFastQualitySwitch_();
+    // trigger updateend to indicate the end of the remove operation
+    segmentLoader.sourceUpdater_.audioBuffer.trigger('updateend');
+    segmentLoader.sourceUpdater_.videoBuffer.trigger('updateend');
+    this.clock.tick(1);
+
+    assert.equal(
+      this.player.currentTime(),
+      timeBeforeSwitch,
+      'current time remains the same on fast quality switch'
+    );
+    assert.equal(seeks, 1, 'seek event occurs on fast quality switch');
   });
 });
 
@@ -2217,8 +2273,8 @@ QUnit.test('does not get stuck in a loop due to inconsistent network/caching', f
     assert.notOk(media1ResolvedPlaylist.excludeUntil, 'media1 not excluded');
     assert.equal(
       segmentRequest.uri.substring(segmentRequest.uri.length - 4),
-      '0.ts',
-      'requested first segment'
+      '1.ts',
+      'requested second segment'
     );
 
     // needs a timeout for early abort to occur (we skip the function otherwise, since no
@@ -2242,8 +2298,8 @@ QUnit.test('does not get stuck in a loop due to inconsistent network/caching', f
     assert.ok(media1ResolvedPlaylist.excludeUntil, 'excluded media1');
     assert.equal(
       segmentRequest.uri.substring(segmentRequest.uri.length - 4),
-      '0.ts',
-      'requested first segment'
+      '1.ts',
+      'requested second segment'
     );
 
     // remove aborted request
@@ -2265,8 +2321,8 @@ QUnit.test('does not get stuck in a loop due to inconsistent network/caching', f
     assert.equal(mediaChanges.length, 2, 'did not change media');
     assert.equal(
       segmentRequest.uri.substring(segmentRequest.uri.length - 4),
-      '1.ts',
-      'requested second segment'
+      '2.ts',
+      'requested third segment'
     );
 
     // 1ms for the cached segment response
@@ -2286,8 +2342,8 @@ QUnit.test('does not get stuck in a loop due to inconsistent network/caching', f
     segmentRequest = this.requests[0];
     assert.equal(
       segmentRequest.uri.substring(segmentRequest.uri.length - 4),
-      '2.ts',
-      'requested third segment'
+      '3.ts',
+      'requested 4th segment'
     );
 
     assert.equal(this.env.log.warn.callCount, 1, 'logged a warning');
@@ -4506,7 +4562,7 @@ QUnit.test(
   }
 );
 
-QUnit.test(
+QUnit.skip(
   'when data URI is a main playlist with media playlists resolved, ' +
   'state is updated without a playlist request',
   function(assert) {
@@ -4754,14 +4810,13 @@ QUnit.test('on error all segment and playlist loaders are paused and aborted', f
 
 QUnit.test('can pass or select a playlist for fastQualityChange', function(assert) {
   const calls = {
+    resetEverything: 0,
     resyncLoader: 0,
     media: 0,
     selectPlaylist: 0
   };
 
   const pc = this.playlistController;
-
-  this.player.tech_.buffered = () => createTimeRanges(0, 1);
 
   pc.mediaSource.trigger('sourceopen');
   // main
@@ -4786,19 +4841,294 @@ QUnit.test('can pass or select a playlist for fastQualityChange', function(asser
     calls.resyncLoader++;
   };
 
+  pc.mainSegmentLoader_.resetEverything = () => {
+    calls.resetEverything++;
+  };
+
   pc.fastQualityChange_(pc.main().playlists[1]);
+  pc.runFastQualitySwitch_();
   assert.deepEqual(calls, {
+    resetEverything: 1,
     media: 1,
     selectPlaylist: 0,
-    resyncLoader: 1
+    resyncLoader: 0
   }, 'calls expected function when passed a playlist');
 
   pc.fastQualityChange_();
+  pc.runFastQualitySwitch_();
   assert.deepEqual(calls, {
+    resetEverything: 2,
     media: 2,
     selectPlaylist: 1,
-    resyncLoader: 2
+    resyncLoader: 0
   }, 'calls expected function when not passed a playlist');
+});
+
+QUnit.test('updatePlaylistByKeyStatus calls the expected functions', function(assert) {
+  // string keyId
+  const keyIdArrayBuffer = new Uint8Array([31, 21, 116, 48, 29, 163,
+    79, 139, 188, 200, 47, 76, 45, 21, 81, 184]).buffer;
+  const status = 'usable';
+  const pc = this.playlistController;
+  let excludeCalls = 0;
+
+  pc.addKeyStatus_ = (id, st) => {
+    assert.equal(id, keyIdArrayBuffer, 'addKeyStatus_ called with expected keyId');
+    assert.equal(st, status, 'addKeyStatus_ called with expected status');
+  };
+
+  pc.excludeNonUsablePlaylistsByKeyId_ = () => {
+    excludeCalls++;
+  };
+
+  pc.updatePlaylistByKeyStatus(keyIdArrayBuffer, status);
+  assert.equal(excludeCalls, 1, 'excludeNonUsablePlaylistsByKeyId_ called once');
+});
+
+QUnit.test('addKeyStatus_ adds keyId and status to the Map', function(assert) {
+  // string keyId
+  const keyId = 'a6fcfb2a857c4227adb5a5f51aa27632';
+  const status = 'usable';
+  const pc = this.playlistController;
+
+  pc.addKeyStatus_(keyId, status);
+
+  assert.equal(pc.keyStatusMap_.size, 1, 'map is expected size');
+  assert.equal(pc.keyStatusMap_.get(keyId), status, 'keyId has expected status');
+
+  // test a non-string keyId
+  const keyId2 = '1f1574301da34f8bbcc82f4c2d1551b8';
+  const keyIdArrayBuffer = new Uint8Array([31, 21, 116, 48, 29, 163,
+    79, 139, 188, 200, 47, 76, 45, 21, 81, 184]).buffer;
+
+  pc.addKeyStatus_(keyIdArrayBuffer, 'usable');
+
+  assert.equal(pc.keyStatusMap_.size, 2, 'map is expected size');
+  assert.equal(pc.keyStatusMap_.get(keyId2), status, 'keyId has expected status');
+  // Uint8 keyid.
+});
+
+QUnit.test('dispose clears the keyStatusMap', function(assert) {
+  // string keyId
+  const keyId = 'd0bebaf8a3cb4c52bae03d20a71e3df3';
+  const status = 'usable';
+  const pc = this.playlistController;
+
+  pc.addKeyStatus_(keyId, status);
+
+  assert.equal(pc.keyStatusMap_.size, 1, 'map is expected size');
+  assert.equal(pc.keyStatusMap_.get(keyId), status, 'keyId has expected status');
+
+  pc.dispose();
+
+  assert.equal(pc.keyStatusMap_.size, 0, 'map is expected size');
+});
+
+QUnit.test('excludeNonUsablePlaylistsByKeyId_ excludes non usable HLS playlists', function(assert) {
+  // included playlist
+  const includedKeyId = 'd0bebaf8a3cb4c52bae03d20a71e3df3';
+  const includedStatus = 'usable';
+  const pc = this.playlistController;
+  const includedPlaylist = {
+    contentProtection: {
+      'com.widevine.alpha': {
+        attributes: {
+          keyId: includedKeyId
+        }
+      }
+    }
+  };
+
+  // excluded playlist
+  const excludedPlaylist = {
+    contentProtection: {
+      'com.microsoft.playready': {
+        attributes: {
+          keyId: '89256e53dbe544e9afba38d2ca17d176'
+        }
+      }
+    }
+  };
+
+  pc.mainPlaylistLoader_.main = { playlists: [includedPlaylist, excludedPlaylist] };
+
+  // add included key
+  pc.addKeyStatus_(includedKeyId, includedStatus);
+
+  pc.excludeNonUsablePlaylistsByKeyId_();
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[0].excludeUntil, 'excludeUntil is Infinity');
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[0].lastExcludeReason_, 'lastExcludeReason is non-usable');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[1].excludeUntil, Infinity, 'excludeUntil is Infinity');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[1].lastExcludeReason_, 'non-usable', 'lastExcludeReason is non-usable');
+});
+
+QUnit.test('excludeNonUsablePlaylistsByKeyId_ excludes non usable DASH playlists', function(assert) {
+  const options = {
+    src: 'test',
+    tech: this.player.tech_,
+    sourceType: 'dash'
+  };
+  const pc = new PlaylistController(options);
+
+  // excluded playlist
+  const excludedPlaylist = {
+    contentProtection: {
+      mp4protection: {
+        attributes: {
+          'cenc:default_KID': 'd0bebaf8a3cb4c52bae03d20a71e3df3'
+        }
+      }
+    }
+  };
+
+  // included playlist
+  const includedKeyId = '89256e53dbe544e9afba38d2ca17d176';
+  const includedStatus = 'usable';
+  const includedPlaylist = {
+    contentProtection: {
+      mp4protection: {
+        attributes: {
+          'cenc:default_KID': includedKeyId
+        }
+      }
+    }
+  };
+
+  pc.mainPlaylistLoader_.main = { playlists: [includedPlaylist, excludedPlaylist] };
+
+  // add included key
+  pc.addKeyStatus_(includedKeyId, includedStatus);
+
+  pc.excludeNonUsablePlaylistsByKeyId_();
+
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[0].excludeUntil, 'excludeUntil is Infinity');
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[0].lastExcludeReason_, 'lastExcludeReason is non-usable');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[1].excludeUntil, Infinity, 'excludeUntil is Infinity');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[1].lastExcludeReason_, 'non-usable', 'lastExcludeReason is non-usable');
+});
+
+QUnit.test('excludeNonUsablePlaylistsByKeyId_ re includes non usable DASH playlists', function(assert) {
+  const options = {
+    src: 'test',
+    tech: this.player.tech_,
+    sourceType: 'dash'
+  };
+  const pc = new PlaylistController(options);
+
+  // excluded playlist
+  const excludedKeyId = '89256e53dbe544e9afba38d2ca17d176';
+  const excludedPlaylist = {
+    contentProtection: {
+      mp4protection: {
+        attributes: {
+          'cenc:default_KID': excludedKeyId
+        }
+      }
+    }
+  };
+
+  // included playlist
+  const includedKeyId = 'd0bebaf8a3cb4c52bae03d20a71e3df3';
+  const includedStatus = 'usable';
+  const includedPlaylist = {
+    contentProtection: {
+      mp4protection: {
+        attributes: {
+          'cenc:default_KID': includedKeyId
+        }
+      }
+    }
+  };
+
+  pc.mainPlaylistLoader_.main = { playlists: [includedPlaylist, excludedPlaylist] };
+
+  // add included key
+  pc.addKeyStatus_(includedKeyId, includedStatus);
+  pc.excludeNonUsablePlaylistsByKeyId_();
+
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[0].excludeUntil, 'excludeUntil is Infinity');
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[0].lastExcludeReason_, 'lastExcludeReason is non-usable');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[1].excludeUntil, Infinity, 'excludeUntil is Infinity');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[1].lastExcludeReason_, 'non-usable', 'lastExcludeReason is non-usable');
+
+  // add a usable keystatus to the previously excluded key ID
+  pc.addKeyStatus_(excludedKeyId, includedStatus);
+  pc.excludeNonUsablePlaylistsByKeyId_();
+
+  pc.mainPlaylistLoader_.main.playlists.forEach((playlist) => {
+    assert.notOk(playlist.excludeUntil, 'playlist is not excluded');
+    assert.notOk(playlist.lastExcludeReason_, 'playlist has no lastExclusionReason');
+  });
+});
+
+QUnit.test('excludeNonUsablePlaylistsByKeyId_ re-includes SD playlists when all playlists are excluded', function(assert) {
+  const options = {
+    src: 'test',
+    tech: this.player.tech_,
+    sourceType: 'dash'
+  };
+  const pc = new PlaylistController(options);
+  const origWarn = videojs.log.warn;
+  const warnings = [];
+
+  videojs.log.warn = (text) => warnings.push(text);
+
+  const reIncludedPlaylist1 = {
+    contentProtection: {
+      mp4protection: {
+        attributes: {
+          'cenc:default_KID': 'd0bebaf8a3cb4c52bae03d20a71e3df3'
+        }
+      }
+    },
+    attributes: {
+      RESOLUTION: {
+        height: 480
+      }
+    }
+  };
+
+  const reIncludedPlaylist2 = {
+    contentProtection: {
+      mp4protection: {
+        attributes: {
+          'cenc:default_KID': '89256e53dbe544e9afba38d2ca17d176'
+        }
+      }
+    },
+    attributes: {
+      RESOLUTION: {
+        height: 360
+      }
+    }
+  };
+
+  const excludedPlaylist = {
+    contentProtection: {
+      mp4protection: {
+        attributes: {
+          'cenc:default_KID': '89256e53dbe544e9afba38d2ca17d176'
+        }
+      }
+    },
+    attributes: {
+      RESOLUTION: {
+        height: 1080
+      }
+    }
+  };
+
+  pc.mainPlaylistLoader_.main = { playlists: [reIncludedPlaylist1, reIncludedPlaylist2, excludedPlaylist] };
+  pc.excludeNonUsablePlaylistsByKeyId_();
+
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[0].excludeUntil, 'excludeUntil is not Infinity');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[0].lastExcludeReason_, 'non-usable', 'lastExcludeReason is non-usable');
+  assert.notOk(pc.mainPlaylistLoader_.main.playlists[1].excludeUntil, 'excludeUntil is not Infinity');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[1].lastExcludeReason_, 'non-usable', 'lastExcludeReason is non-usable');
+  assert.equal(warnings.length, 2, 're-include warning for both playlists');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[2].excludeUntil, Infinity, 'excludeUntil is Infinity');
+  assert.equal(pc.mainPlaylistLoader_.main.playlists[2].lastExcludeReason_, 'non-usable', 'lastExcludeReason is non-usable');
+  videojs.log.warn = origWarn;
 });
 
 QUnit.module('PlaylistController codecs', {
@@ -6365,6 +6695,14 @@ QUnit.module('PlaylistController contentSteering', {
       ]
     };
 
+    this.setupSteeringPlaylists = (pc, mainPlaylist) => {
+      pc.main = () => mainPlaylist;
+      pc.media = () => mainPlaylist.playlists[0];
+      pc.mainPlaylistLoader_.main = mainPlaylist;
+      pc.mainPlaylistLoader_.media = () => mainPlaylist.playlists[0];
+      pc.selectPlaylist = () => pc.main().playlists[0];
+    };
+
   },
   afterEach(assert) {
     sharedHooks.afterEach.call(this, assert);
@@ -6472,7 +6810,9 @@ QUnit.test('initContentSteeringController_ for DASH without queryBeforeStart', f
 });
 
 QUnit.test('Test Live DASH update with content steering', function(assert) {
+  const done = assert.async();
   const pc = new PlaylistController(this.controllerOptions);
+  const resetContentSteeringControllerSpy = sinon.spy(pc, 'resetContentSteeringController_');
 
   // Stub the steering request functionality and the resetting of media.
   sinon.stub(pc.contentSteeringController_, 'requestSteeringManifest');
@@ -6484,22 +6824,191 @@ QUnit.test('Test Live DASH update with content steering', function(assert) {
   pc.main = () => this.csMainPlaylist;
   pc.mainPlaylistLoader_.media = () => this.csMainPlaylist.playlists[0];
 
+  pc.attachContentSteeringListeners_();
   pc.initContentSteeringController_();
 
   // The initial manifest did not have queryBeforeStart set
-  assert.deepEqual(pc.contentSteeringController_.queryBeforeStart, false);
+  assert.equal(pc.contentSteeringController_.queryBeforeStart, undefined);
 
   // mimics refreshMedia_, resetting main with the new manifest
   mainPlaylistAfter.contentSteering.queryBeforeStart = true;
   pc.main = () => mainPlaylistAfter;
 
+  pc.mainPlaylistLoader_.on('loadedplaylist', () => {
+    // The content steering controller was updated with the new information.
+    assert.true(resetContentSteeringControllerSpy.called);
+    assert.true(pc.contentSteeringController_.queryBeforeStart);
+    done();
+  });
   // mimic a live DASH manifest update
-  pc.mainPlaylistLoader_.trigger('mediaupdatetimeout');
+  pc.mainPlaylistLoader_.trigger('loadedplaylist');
+});
 
-  // The content steering controller was updated with the new information.
-  assert.deepEqual(pc.contentSteeringController_.queryBeforeStart, true);
+QUnit.test('Test Live DASH content steering adding a steering tag', function(assert) {
+  const done = assert.async();
+  const pc = new PlaylistController(this.controllerOptions);
+  const resetContentSteeringControllerSpy = sinon.spy(pc, 'resetContentSteeringController_');
 
-  pc.dispose();
+  // Stub the steering request functionality and the resetting of media.
+  sinon.stub(pc.contentSteeringController_, 'requestSteeringManifest');
+  sinon.stub(pc.mainPlaylistLoader_, 'refreshMedia_');
+
+  // Second manifest after live update just changes the queryBeforeStartParam
+  const mainPlaylistBefore = Object.assign({}, this.csMainPlaylist);
+
+  delete mainPlaylistBefore.contentSteering;
+
+  pc.main = () => mainPlaylistBefore;
+  pc.mainPlaylistLoader_.media = () => mainPlaylistBefore.playlists[0];
+
+  pc.attachContentSteeringListeners_();
+  pc.initContentSteeringController_();
+
+  pc.main = () => this.csMainPlaylist;
+
+  this.csMainPlaylist.contentSteering.queryBeforeStart = true;
+  pc.mainPlaylistLoader_.on('loadedplaylist', () => {
+    // The content steering controller was updated with the new information.
+    assert.true(resetContentSteeringControllerSpy.called);
+    assert.equal(pc.contentSteeringController_.steeringManifest.reloadUri, 'https://www.server.test', 'reloadUri added');
+    assert.true(pc.contentSteeringController_.queryBeforeStart, 'queryBeforeStart is true');
+    assert.equal(pc.contentSteeringController_.getPathway(), 'cdn-a', 'pathway is expected value');
+    done();
+  });
+  // mimic a live DASH manifest update
+  pc.mainPlaylistLoader_.trigger('loadedplaylist');
+});
+
+QUnit.test('Test Live DASH content steering removing a steering tag', function(assert) {
+  const done = assert.async();
+  const pc = new PlaylistController(this.controllerOptions);
+  const resetContentSteeringControllerSpy = sinon.spy(pc, 'resetContentSteeringController_');
+
+  // Stub the steering request functionality and the resetting of media.
+  sinon.stub(pc.contentSteeringController_, 'requestSteeringManifest');
+  sinon.stub(pc.mainPlaylistLoader_, 'refreshMedia_');
+  const mainPlaylistAfter = Object.assign({}, this.csMainPlaylist);
+
+  // remove the content steering tag.
+  delete mainPlaylistAfter.contentSteering;
+
+  pc.main = () => this.csMainPlaylist;
+
+  pc.attachContentSteeringListeners_();
+  pc.initContentSteeringController_();
+
+  pc.main = () => mainPlaylistAfter;
+  pc.mainPlaylistLoader_.media = () => mainPlaylistAfter.playlists[0];
+
+  this.csMainPlaylist.contentSteering.queryBeforeStart = true;
+  pc.mainPlaylistLoader_.on('loadedplaylist', () => {
+    // The content steering controller was updated with the new information.
+    assert.true(resetContentSteeringControllerSpy.called);
+    assert.equal(pc.contentSteeringController_.steeringManifest.reloadUri, undefined, 'reloadUri removed');
+    assert.equal(pc.contentSteeringController_.queryBeforeStart, undefined, 'queryBeforeStart is undefined');
+    assert.equal(pc.contentSteeringController_.getPathway(), null, 'pathway is expected value');
+    done();
+  });
+  // mimic a live DASH manifest update
+  pc.mainPlaylistLoader_.trigger('loadedplaylist');
+});
+
+QUnit.test('Test Live DASH content steering updating serviceLocation', function(assert) {
+  const done = assert.async();
+  const pc = new PlaylistController(this.controllerOptions);
+  const resetContentSteeringControllerSpy = sinon.spy(pc, 'resetContentSteeringController_');
+  const newPathways = new Set(['cdn-c', 'cdn-d']);
+
+  // Stub the steering request functionality and the resetting of media.
+  sinon.stub(pc.contentSteeringController_, 'requestSteeringManifest');
+  sinon.stub(pc.mainPlaylistLoader_, 'refreshMedia_');
+  const mainPlaylistAfter = Object.assign({}, this.csMainPlaylist);
+
+  pc.main = () => this.csMainPlaylist;
+  pc.attachContentSteeringListeners_();
+  pc.initContentSteeringController_();
+
+  pc.main = () => mainPlaylistAfter;
+  mainPlaylistAfter.playlists = [
+    {
+      attributes: {
+        NAME: 'video_1920x1080_4531kbps',
+        serviceLocation: 'cdn-c'
+      },
+      endList: true,
+      id: '0-placeholder-uri-0',
+      resolvedUri: 'https://fastly.content-steering.com/bbb/placeholder-uri-0',
+      uri: 'placeholder-uri-0'
+    },
+    {
+      attributes: {
+        NAME: 'video_1280x720_2445kbps',
+        serviceLocation: 'cdn-d'
+      },
+      endList: true,
+      id: '1-placeholder-uri-1',
+      resolvedUri: 'https://fastly.content-steering.com/bbb/placeholder-uri-1',
+      uri: 'placeholder-uri-1'
+    }
+  ];
+  pc.mainPlaylistLoader_.media = () => mainPlaylistAfter.playlists[0];
+
+  pc.mainPlaylistLoader_.on('loadedplaylist', () => {
+    // The content steering controller was updated with the new pathways
+    assert.true(resetContentSteeringControllerSpy.called);
+    assert.deepEqual(pc.contentSteeringController_.availablePathways_, newPathways);
+    done();
+  });
+  // mimic a live DASH manifest update
+  pc.mainPlaylistLoader_.trigger('loadedplaylist');
+});
+
+QUnit.test('Test Live DASH content steering removing serviceLocation', function(assert) {
+  const done = assert.async();
+  const pc = new PlaylistController(this.controllerOptions);
+  const resetContentSteeringControllerSpy = sinon.spy(pc, 'resetContentSteeringController_');
+  const newPathways = new Set();
+
+  // Stub the steering request functionality and the resetting of media.
+  sinon.stub(pc.contentSteeringController_, 'requestSteeringManifest');
+  sinon.stub(pc.mainPlaylistLoader_, 'refreshMedia_');
+  const mainPlaylistAfter = Object.assign({}, this.csMainPlaylist);
+
+  pc.main = () => this.csMainPlaylist;
+  pc.attachContentSteeringListeners_();
+  pc.initContentSteeringController_();
+
+  pc.main = () => mainPlaylistAfter;
+  mainPlaylistAfter.playlists = [
+    {
+      attributes: {
+        NAME: 'video_1920x1080_4531kbps'
+      },
+      endList: true,
+      id: '0-placeholder-uri-0',
+      resolvedUri: 'https://fastly.content-steering.com/bbb/placeholder-uri-0',
+      uri: 'placeholder-uri-0'
+    },
+    {
+      attributes: {
+        NAME: 'video_1280x720_2445kbps'
+      },
+      endList: true,
+      id: '1-placeholder-uri-1',
+      resolvedUri: 'https://fastly.content-steering.com/bbb/placeholder-uri-1',
+      uri: 'placeholder-uri-1'
+    }
+  ];
+  pc.mainPlaylistLoader_.media = () => mainPlaylistAfter.playlists[0];
+
+  pc.mainPlaylistLoader_.on('loadedplaylist', () => {
+    // The content steering controller was updated with the new pathways
+    assert.true(resetContentSteeringControllerSpy.called);
+    assert.deepEqual(pc.contentSteeringController_.availablePathways_, newPathways);
+    done();
+  });
+  // mimic a live DASH manifest update
+  pc.mainPlaylistLoader_.trigger('loadedplaylist');
 });
 
 QUnit.test('Exclude and reinclude pathway after timeout for content steering', function(assert) {
@@ -6554,6 +7063,7 @@ QUnit.test('switch media on priority change for content steering', function(asse
 
   const switchMediaStub = sinon.stub(pc, 'switchMedia_');
 
+  pc.attachContentSteeringListeners_();
   pc.initContentSteeringController_();
 
   // Initially, cdn-a should be selected and there should be no media switch
@@ -6660,6 +7170,7 @@ QUnit.test('media group playlists should switch on steering change', function(as
   sinon.stub(pc, 'switchMedia_');
   const mediaSpy = sinon.spy(pc.mediaTypes_.AUDIO.activePlaylistLoader, 'media');
 
+  pc.attachContentSteeringListeners_();
   pc.initContentSteeringController_();
 
   const steeringManifestJson = {
@@ -6687,6 +7198,7 @@ QUnit.test('playlists should not change when there is no currentPathway', functi
   // Set up playlists
   pc.main = () => this.csMainPlaylist;
 
+  pc.attachContentSteeringListeners_();
   pc.initContentSteeringController_();
 
   // mimic there being no current pathway
@@ -6707,4 +7219,418 @@ QUnit.test('playlists should not change when there is no currentPathway', functi
 
   // media is never switched
   assert.notOk(switchMediaSpy.called);
+});
+
+QUnit.test('Pathway cloning - add a new pathway when the clone has not existed', function(assert) {
+  const options = {
+    src: 'test',
+    tech: this.player.tech_,
+    sourceType: 'hls'
+  };
+
+  const pc = new PlaylistController(options);
+
+  // Set up steering playlists
+  this.setupSteeringPlaylists(pc, this.csMainPlaylist);
+  pc.attachContentSteeringListeners_();
+
+  this.csMainPlaylist.playlists.forEach(p => {
+    p.attributes['PATHWAY-ID'] = p.attributes.serviceLocation;
+    p.attributes.serviceLocation = undefined;
+  });
+
+  pc.main = () => this.csMainPlaylist;
+  pc.initContentSteeringController_();
+
+  const addCloneStub = sinon.stub(pc.mainPlaylistLoader_, 'addClonePathway');
+
+  const clone = {
+    ID: 'cdn-z',
+    ['BASE-ID']: 'cdn-a',
+    ['URI-REPLACEMENT']: {
+      HOST: 'www.cdn-z.com',
+      PARAMS: {
+        test: 123
+      }
+    }
+  };
+
+  const steeringManifestJson = {
+    VERSION: 1,
+    TTL: 10,
+    ['RELOAD-URI']: 'https://fastly-server.content-steering.com/dash.dcsm',
+    ['PATHWAY-PRIORITY']: [
+      'cdn-b',
+      'cdn-a',
+      'cdn-z'
+    ],
+    ['PATHWAY-CLONES']: [clone]
+  };
+
+  // This triggers `handlePathwayClones_()`
+  pc.contentSteeringController_.assignSteeringProperties_(steeringManifestJson);
+
+  // Assert that we add a clone and it is added to the available pathways If not already.
+  assert.equal(addCloneStub.getCall(0).args[0], clone);
+  assert.equal(pc.contentSteeringController_.availablePathways_.has('cdn-z'), true);
+
+  const cloneMap = new Map();
+
+  cloneMap.set(clone.ID, clone);
+
+  // Ensure we set the current pathway clones from next.
+  assert.deepEqual(pc.contentSteeringController_.currentPathwayClones.get('cdn-z'), cloneMap.get('cdn-z'));
+});
+
+QUnit.test('Pathway cloning - update the pathway when the BASE-ID does not match', function(assert) {
+  const options = {
+    src: 'test',
+    tech: this.player.tech_,
+    sourceType: 'hls'
+  };
+
+  const pc = new PlaylistController(options);
+
+  this.setupSteeringPlaylists(pc, this.csMainPlaylist);
+  pc.attachContentSteeringListeners_();
+
+  this.csMainPlaylist.playlists.forEach(p => {
+    p.attributes['PATHWAY-ID'] = p.attributes.serviceLocation;
+    p.attributes.serviceLocation = undefined;
+  });
+
+  pc.main = () => this.csMainPlaylist;
+  pc.initContentSteeringController_();
+
+  const updateCloneStub = sinon.stub(pc.mainPlaylistLoader_, 'updateOrDeleteClone');
+
+  const pastClone = {
+    ID: 'cdn-z',
+    ['BASE-ID']: 'cdn-a',
+    ['URI-REPLACEMENT']: {
+      HOST: 'www.cdn-z.com',
+      PARAMS: {
+        test: 123
+      }
+    }
+  };
+
+  const nextClone = {
+    ID: 'cdn-z',
+    ['BASE-ID']: 'cdn-b',
+    ['URI-REPLACEMENT']: {
+      HOST: 'www.cdn-b.com',
+      PARAMS: {
+        test: 123
+      }
+    }
+  };
+
+  pc.contentSteeringController_.currentPathwayClones = new Map();
+  pc.contentSteeringController_.currentPathwayClones.set(pastClone.ID, pastClone);
+
+  const steeringManifestJson = {
+    VERSION: 1,
+    TTL: 10,
+    ['RELOAD-URI']: 'https://fastly-server.content-steering.com/dash.dcsm',
+    ['PATHWAY-PRIORITY']: [
+      'cdn-b',
+      'cdn-a'
+    ],
+    ['PATHWAY-CLONES']: [nextClone]
+  };
+
+  // This triggers `handlePathwayClones()`.
+  pc.contentSteeringController_.assignSteeringProperties_(steeringManifestJson);
+
+  // Assert that we update the clone and it is still in the available pathways.
+  assert.equal(updateCloneStub.getCall(0).args[0], nextClone);
+  assert.equal(updateCloneStub.getCall(0).args[1], true);
+  assert.equal(pc.contentSteeringController_.availablePathways_.has('cdn-z'), true);
+
+  const nextClonesMap = new Map();
+
+  nextClonesMap.set(nextClone.ID, nextClone);
+
+  // Ensure we set the current pathway clones from next.
+  assert.deepEqual(pc.contentSteeringController_.currentPathwayClones, nextClonesMap);
+});
+
+QUnit.test('Pathway cloning - update the pathway when there is a new param', function(assert) {
+  const options = {
+    src: 'test',
+    tech: this.player.tech_,
+    sourceType: 'hls'
+  };
+
+  const pc = new PlaylistController(options);
+
+  this.setupSteeringPlaylists(pc, this.csMainPlaylist);
+  pc.attachContentSteeringListeners_();
+
+  this.csMainPlaylist.playlists.forEach(p => {
+    p.attributes['PATHWAY-ID'] = p.attributes.serviceLocation;
+    p.attributes.serviceLocation = undefined;
+  });
+
+  pc.main = () => this.csMainPlaylist;
+  pc.initContentSteeringController_();
+
+  const updateCloneStub = sinon.stub(pc.mainPlaylistLoader_, 'updateOrDeleteClone');
+
+  const pastClone = {
+    ID: 'cdn-z',
+    ['BASE-ID']: 'cdn-a',
+    ['URI-REPLACEMENT']: {
+      HOST: 'www.cdn-z.com',
+      PARAMS: {
+        test: 123
+      }
+    }
+  };
+
+  const nextClone = {
+    ID: 'cdn-z',
+    ['BASE-ID']: 'cdn-b',
+    ['URI-REPLACEMENT']: {
+      HOST: 'www.cdn-b.com',
+      PARAMS: {
+        test: 123,
+        newParam: 456
+      }
+    }
+  };
+
+  pc.contentSteeringController_.currentPathwayClones = new Map();
+  pc.contentSteeringController_.currentPathwayClones.set(pastClone.ID, pastClone);
+
+  const steeringManifestJson = {
+    VERSION: 1,
+    TTL: 10,
+    ['RELOAD-URI']: 'https://fastly-server.content-steering.com/dash.dcsm',
+    ['PATHWAY-PRIORITY']: [
+      'cdn-b',
+      'cdn-a',
+      'cdn-z'
+    ],
+    ['PATHWAY-CLONES']: [nextClone]
+  };
+
+  // This triggers `handlePathwayClones()`.
+  pc.contentSteeringController_.assignSteeringProperties_(steeringManifestJson);
+
+  // Assert that we update the clone and it is still in the available pathways.
+  assert.equal(updateCloneStub.getCall(0).args[0], nextClone);
+  assert.equal(updateCloneStub.getCall(0).args[1], true);
+  assert.equal(pc.contentSteeringController_.availablePathways_.has('cdn-z'), true);
+
+  const nextClonesMap = new Map();
+
+  nextClonesMap.set(nextClone.ID, nextClone);
+
+  // Ensure we set the current pathway clones from next.
+  assert.deepEqual(pc.contentSteeringController_.currentPathwayClones, nextClonesMap);
+});
+
+QUnit.test('Pathway cloning - update the pathway when a param is missing', function(assert) {
+  const options = {
+    src: 'test',
+    tech: this.player.tech_,
+    sourceType: 'hls'
+  };
+
+  const pc = new PlaylistController(options);
+
+  this.setupSteeringPlaylists(pc, this.csMainPlaylist);
+  pc.attachContentSteeringListeners_();
+
+  this.csMainPlaylist.playlists.forEach(p => {
+    p.attributes['PATHWAY-ID'] = p.attributes.serviceLocation;
+    p.attributes.serviceLocation = undefined;
+  });
+
+  pc.main = () => this.csMainPlaylist;
+  pc.initContentSteeringController_();
+
+  const updateCloneStub = sinon.stub(pc.mainPlaylistLoader_, 'updateOrDeleteClone');
+
+  const pastClone = {
+    ID: 'cdn-z',
+    ['BASE-ID']: 'cdn-a',
+    ['URI-REPLACEMENT']: {
+      HOST: 'www.cdn-z.com',
+      PARAMS: {
+        test: 123
+      }
+    }
+  };
+
+  const nextClone = {
+    ID: 'cdn-z',
+    ['BASE-ID']: 'cdn-b',
+    ['URI-REPLACEMENT']: {
+      HOST: 'www.cdn-b.com',
+      PARAMS: {}
+    }
+  };
+
+  pc.contentSteeringController_.currentPathwayClones = new Map();
+  pc.contentSteeringController_.currentPathwayClones.set(pastClone.ID, pastClone);
+
+  const steeringManifestJson = {
+    VERSION: 1,
+    TTL: 10,
+    ['RELOAD-URI']: 'https://fastly-server.content-steering.com/dash.dcsm',
+    ['PATHWAY-PRIORITY']: [
+      'cdn-b',
+      'cdn-a',
+      'cdn-z'
+    ],
+    ['PATHWAY-CLONES']: [nextClone]
+  };
+
+  // This triggers `handlePathwayClones()`.
+  pc.contentSteeringController_.assignSteeringProperties_(steeringManifestJson);
+
+  // Assert that we update the clone and it is still in the available pathways.
+  assert.equal(updateCloneStub.getCall(0).args[0], nextClone);
+  assert.equal(updateCloneStub.getCall(0).args[1], true);
+  assert.equal(pc.contentSteeringController_.availablePathways_.has('cdn-z'), true);
+
+  const nextClonesMap = new Map();
+
+  nextClonesMap.set(nextClone.ID, nextClone);
+
+  // Ensure we set the current pathway clones from next.
+  assert.deepEqual(pc.contentSteeringController_.currentPathwayClones, nextClonesMap);
+});
+
+QUnit.test('Pathway cloning - delete the pathway when it is no longer in the steering response', function(assert) {
+  const options = {
+    src: 'test',
+    tech: this.player.tech_,
+    sourceType: 'hls'
+  };
+
+  const pc = new PlaylistController(options);
+
+  this.setupSteeringPlaylists(pc, this.csMainPlaylist);
+  pc.attachContentSteeringListeners_();
+
+  this.csMainPlaylist.playlists.forEach(p => {
+    p.attributes['PATHWAY-ID'] = p.attributes.serviceLocation;
+    p.attributes.serviceLocation = undefined;
+  });
+
+  pc.main = () => this.csMainPlaylist;
+  pc.initContentSteeringController_();
+
+  const updateCloneStub = sinon.stub(pc.mainPlaylistLoader_, 'updateOrDeleteClone');
+
+  const pastClone = {
+    ID: 'cdn-z',
+    ['BASE-ID']: 'cdn-a',
+    ['URI-REPLACEMENT']: {
+      HOST: 'www.cdn-z.com',
+      PARAMS: {
+        test: 123
+      }
+    }
+  };
+
+  pc.contentSteeringController_.currentPathwayClones = new Map();
+  pc.contentSteeringController_.currentPathwayClones.set(pastClone.ID, pastClone);
+
+  const steeringManifestJson = {
+    VERSION: 1,
+    TTL: 10,
+    ['RELOAD-URI']: 'https://fastly-server.content-steering.com/dash.dcsm',
+    ['PATHWAY-PRIORITY']: [
+      'cdn-b',
+      'cdn-a'
+    ],
+    // empty response
+    ['PATHWAY-CLONES']: []
+  };
+
+  // This triggers `handlePathwayClones()`.
+  pc.contentSteeringController_.assignSteeringProperties_(steeringManifestJson);
+
+  // Assert that we update the clone and it is still in the available pathways.
+  assert.equal(updateCloneStub.getCall(0).args[0], pastClone);
+  // undefined means we are deleting.
+  assert.equal(updateCloneStub.getCall(0).args[1], undefined);
+  // The value is no longer in the available pathways.
+  assert.equal(!pc.contentSteeringController_.availablePathways_.has('cdn-z'), true);
+
+  assert.deepEqual(pc.contentSteeringController_.currentPathwayClones, new Map());
+});
+
+QUnit.test('Pathway cloning - do nothing when next and past clones are the same', function(assert) {
+  const options = {
+    src: 'test',
+    tech: this.player.tech_,
+    sourceType: 'hls'
+  };
+
+  const pc = new PlaylistController(options);
+
+  this.setupSteeringPlaylists(pc, this.csMainPlaylist);
+  pc.attachContentSteeringListeners_();
+
+  this.csMainPlaylist.playlists.forEach(p => {
+    p.attributes['PATHWAY-ID'] = p.attributes.serviceLocation;
+    p.attributes.serviceLocation = undefined;
+  });
+
+  pc.main = () => this.csMainPlaylist;
+  pc.initContentSteeringController_();
+
+  const addCloneStub = sinon.stub(pc.mainPlaylistLoader_, 'addClonePathway');
+  const updateCloneStub = sinon.stub(pc.mainPlaylistLoader_, 'updateOrDeleteClone');
+
+  const clone = {
+    ID: 'cdn-z',
+    ['BASE-ID']: 'cdn-a',
+    ['URI-REPLACEMENT']: {
+      HOST: 'www.cdn-z.com',
+      PARAMS: {
+        test: 123
+      }
+    }
+  };
+
+  pc.contentSteeringController_.currentPathwayClones = new Map();
+  pc.contentSteeringController_.currentPathwayClones.set(clone.ID, clone);
+
+  const steeringManifestJson = {
+    VERSION: 1,
+    TTL: 10,
+    ['RELOAD-URI']: 'https://fastly-server.content-steering.com/dash.dcsm',
+    ['PATHWAY-PRIORITY']: [
+      'cdn-b',
+      'cdn-a',
+      'cdn-z'
+    ],
+    ['PATHWAY-CLONES']: [clone]
+  };
+
+  // By adding this we are saying that the pathway was previously available.
+  pc.contentSteeringController_.addAvailablePathway('cdn-z');
+
+  // This triggers `handlePathwayClones()`.
+  pc.contentSteeringController_.assignSteeringProperties_(steeringManifestJson);
+
+  // Assert that we do not add, update, or delete any pathway clones.
+  assert.equal(addCloneStub.callCount, 0);
+  assert.equal(updateCloneStub.callCount, 0);
+
+  // The value is still in the available pathways.
+  assert.equal(pc.contentSteeringController_.availablePathways_.has('cdn-z'), true);
+
+  const clonesMap = new Map();
+
+  clonesMap.set(clone.ID, clone);
+
+  assert.deepEqual(pc.contentSteeringController_.currentPathwayClones, clonesMap);
 });

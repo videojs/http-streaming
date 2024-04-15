@@ -11,10 +11,12 @@ import videojs from 'video.js';
  * TTL: number in seconds (optional) until the next content steering manifest reload.
  * RELOAD-URI: string (optional) uri to fetch the next content steering manifest.
  * SERVICE-LOCATION-PRIORITY or PATHWAY-PRIORITY a non empty array of unique string values.
+ * PATHWAY-CLONES: array (optional) (HLS only) pathway clone objects to copy from other playlists.
  */
 class SteeringManifest {
   constructor() {
     this.priority_ = [];
+    this.pathwayClones_ = new Map();
   }
 
   set version(number) {
@@ -43,6 +45,13 @@ class SteeringManifest {
     }
   }
 
+  set pathwayClones(array) {
+    // pathwayClones must be non-empty.
+    if (array && array.length) {
+      this.pathwayClones_ = new Map(array.map((clone) => [clone.ID, clone]));
+    }
+  }
+
   get version() {
     return this.version_;
   }
@@ -57,6 +66,10 @@ class SteeringManifest {
 
   get priority() {
     return this.priority_;
+  }
+
+  get pathwayClones() {
+    return this.pathwayClones_;
   }
 }
 
@@ -75,14 +88,15 @@ export default class ContentSteeringController extends videojs.EventTarget {
 
     this.currentPathway = null;
     this.defaultPathway = null;
-    this.queryBeforeStart = null;
+    this.queryBeforeStart = false;
     this.availablePathways_ = new Set();
-    this.excludedPathways_ = new Set();
     this.steeringManifest = new SteeringManifest();
     this.proxyServerUrl_ = null;
     this.manifestType_ = null;
     this.ttlTimeout_ = null;
     this.request_ = null;
+    this.currentPathwayClones = new Map();
+    this.nextPathwayClones = new Map();
     this.excludedSteeringManifestURLs = new Set();
     this.logger_ = logger('Content Steering');
     this.xhr_ = xhr;
@@ -92,7 +106,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
   /**
    * Assigns the content steering tag properties to the steering controller
    *
-   * @param {string} baseUrl the baseURL from the manifest for resolving the steering manifest url
+   * @param {string} baseUrl the baseURL from the main manifest for resolving the steering manifest url
    * @param {Object} steeringTag the content steering tag from the main manifest
    */
   assignTagProperties(baseUrl, steeringTag) {
@@ -110,23 +124,20 @@ export default class ContentSteeringController extends videojs.EventTarget {
       this.decodeDataUriManifest_(steeringUri.substring(steeringUri.indexOf(',') + 1));
       return;
     }
-    // With DASH queryBeforeStart, we want to use the steeringUri as soon as possible for the request.
-    this.steeringManifest.reloadUri = this.queryBeforeStart ? steeringUri : resolveUrl(baseUrl, steeringUri);
+
+    // reloadUri is the resolution of the main manifest URL and steering URL.
+    this.steeringManifest.reloadUri = resolveUrl(baseUrl, steeringUri);
     // pathwayId is HLS defaultServiceLocation is DASH
     this.defaultPathway = steeringTag.pathwayId || steeringTag.defaultServiceLocation;
     // currently only DASH supports the following properties on <ContentSteering> tags.
-    this.queryBeforeStart = steeringTag.queryBeforeStart || false;
-    this.proxyServerUrl_ = steeringTag.proxyServerURL || null;
+    this.queryBeforeStart = steeringTag.queryBeforeStart;
+    this.proxyServerUrl_ = steeringTag.proxyServerURL;
 
     // trigger a steering event if we have a pathway from the content steering tag.
     // this tells VHS which segment pathway to start with.
     // If queryBeforeStart is true we need to wait for the steering manifest response.
     if (this.defaultPathway && !this.queryBeforeStart) {
       this.trigger('content-steering');
-    }
-
-    if (this.queryBeforeStart) {
-      this.requestSteeringManifest(this.steeringManifest.reloadUri);
     }
   }
 
@@ -136,13 +147,12 @@ export default class ContentSteeringController extends videojs.EventTarget {
    *
    * @param {string} initialUri The optional uri to make the request with.
    *    If set, the request should be made with exactly what is passed in this variable.
-   *    This scenario is specific to DASH when the queryBeforeStart parameter is true.
    *    This scenario should only happen once on initalization.
    */
-  requestSteeringManifest(initialUri) {
+  requestSteeringManifest(initial) {
     const reloadUri = this.steeringManifest.reloadUri;
 
-    if (!initialUri && !reloadUri) {
+    if (!reloadUri) {
       return;
     }
 
@@ -150,7 +160,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
     // ExtUrlQueryInfo tag support. See the DASH content steering spec section 8.1.
 
     // This request URI accounts for manifest URIs that have been excluded.
-    const uri = initialUri || this.getRequestURI(reloadUri);
+    const uri = initial ? reloadUri : this.getRequestURI(reloadUri);
 
     // If there are no valid manifest URIs, we should stop content steering.
     if (!uri) {
@@ -161,7 +171,8 @@ export default class ContentSteeringController extends videojs.EventTarget {
     }
 
     this.request_ = this.xhr_({
-      uri
+      uri,
+      requestType: 'content-steering-manifest'
     }, (error, errorInfo) => {
       if (error) {
         // If the client receives HTTP 410 Gone in response to a manifest request,
@@ -196,8 +207,8 @@ export default class ContentSteeringController extends videojs.EventTarget {
       }
       const steeringManifestJson = JSON.parse(this.request_.responseText);
 
-      this.startTTLTimeout_();
       this.assignSteeringProperties_(steeringManifestJson);
+      this.startTTLTimeout_();
     });
   }
 
@@ -269,7 +280,11 @@ export default class ContentSteeringController extends videojs.EventTarget {
     this.steeringManifest.reloadUri = steeringJson['RELOAD-URI'];
     // HLS = PATHWAY-PRIORITY required. DASH = SERVICE-LOCATION-PRIORITY optional
     this.steeringManifest.priority = steeringJson['PATHWAY-PRIORITY'] || steeringJson['SERVICE-LOCATION-PRIORITY'];
-    // TODO: HLS handle PATHWAY-CLONES. See section 7.2 https://datatracker.ietf.org/doc/draft-pantos-hls-rfc8216bis/
+
+    // Pathway clones to be created/updated in HLS.
+    // See section 7.2 https://datatracker.ietf.org/doc/draft-pantos-hls-rfc8216bis/
+    this.steeringManifest.pathwayClones = steeringJson['PATHWAY-CLONES'];
+    this.nextPathwayClones = this.steeringManifest.pathwayClones;
 
     // 1. apply first pathway from the array.
     // 2. if first pathway doesn't exist in manifest, try next pathway.
@@ -397,7 +412,6 @@ export default class ContentSteeringController extends videojs.EventTarget {
     this.request_ = null;
     this.excludedSteeringManifestURLs = new Set();
     this.availablePathways_ = new Set();
-    this.excludedPathways_ = new Set();
     this.steeringManifest = new SteeringManifest();
   }
 
@@ -413,13 +427,35 @@ export default class ContentSteeringController extends videojs.EventTarget {
   }
 
   /**
-   * clears all pathways from the available pathways set
+   * Clears all pathways from the available pathways set
    */
   clearAvailablePathways() {
     this.availablePathways_.clear();
   }
 
+  /**
+   * Removes a pathway from the available pathways set.
+   */
   excludePathway(pathway) {
     return this.availablePathways_.delete(pathway);
+  }
+
+  /**
+   * Checks the refreshed DASH manifest content steering tag for changes.
+   *
+   * @param {string} baseURL new steering tag on DASH manifest refresh
+   * @param {Object} newTag the new tag to check for changes
+   * @return a true or false whether the new tag has different values
+   */
+  didDASHTagChange(baseURL, newTag) {
+    return !newTag && this.steeringManifest.reloadUri ||
+      newTag && (resolveUrl(baseURL, newTag.serverURL) !== this.steeringManifest.reloadUri ||
+      newTag.defaultServiceLocation !== this.defaultPathway ||
+      newTag.queryBeforeStart !== this.queryBeforeStart ||
+      newTag.proxyServerURL !== this.proxyServerUrl_);
+  }
+
+  getAvailablePathways() {
+    return this.availablePathways_;
   }
 }

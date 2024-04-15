@@ -325,10 +325,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
     // live playlist staleness timeout
     this.on('mediaupdatetimeout', () => {
-      // We handle live content steering in the playlist controller
-      if (!this.media().attributes.serviceLocation) {
-        this.refreshMedia_(this.media().id);
-      }
+      this.refreshMedia_(this.media().id);
     });
 
     this.state = 'HAVE_NOTHING';
@@ -364,7 +361,8 @@ export default class DashPlaylistLoader extends EventTarget {
         message: 'DASH request error at URL: ' + request.uri,
         response: request.response,
         // MEDIA_ERR_NETWORK
-        code: 2
+        code: 2,
+        metadata: err.metadata
       };
       if (startingState) {
         this.state = startingState;
@@ -393,6 +391,7 @@ export default class DashPlaylistLoader extends EventTarget {
     const uri = resolveManifestRedirect(playlist.sidx.resolvedUri);
 
     const fin = (err, request) => {
+      // TODO: add error metdata here once we create an error type in video.js
       if (this.requestErrored_(err, request, startingState)) {
         return;
       }
@@ -403,6 +402,10 @@ export default class DashPlaylistLoader extends EventTarget {
       try {
         sidx = parseSidx(toUint8(request.response).subarray(8));
       } catch (e) {
+        e.metadata = {
+          errorType: videojs.Error.DashManifestSidxParsingError
+        };
+
         // sidx parsing failed.
         this.requestErrored_(e, request, startingState);
         return;
@@ -424,9 +427,11 @@ export default class DashPlaylistLoader extends EventTarget {
       }
 
       if (!container || container !== 'mp4') {
+        const sidxContainer = container || 'unknown';
+
         return fin({
           status: request.status,
-          message: `Unsupported ${container || 'unknown'} container type for sidx segment at URL: ${uri}`,
+          message: `Unsupported ${sidxContainer} container type for sidx segment at URL: ${uri}`,
           // response is just bytes in this case
           // but we really don't want to return that.
           response: '',
@@ -434,7 +439,11 @@ export default class DashPlaylistLoader extends EventTarget {
           internal: true,
           playlistExclusionDuration: Infinity,
           // MEDIA_ERR_NETWORK
-          code: 2
+          code: 2,
+          metadata: {
+            errorType: videojs.Error.UnsupportedSidxContainer,
+            sidxContainer
+          }
         }, request);
       }
 
@@ -639,7 +648,8 @@ export default class DashPlaylistLoader extends EventTarget {
   requestMain_(cb) {
     this.request = this.vhs_.xhr({
       uri: this.mainPlaylistLoader_.srcUrl,
-      withCredentials: this.withCredentials
+      withCredentials: this.withCredentials,
+      requestType: 'dash-manifest'
     }, (error, req) => {
       if (this.requestErrored_(error, req)) {
         if (this.state === 'HAVE_NOTHING') {
@@ -698,7 +708,8 @@ export default class DashPlaylistLoader extends EventTarget {
     this.request = this.vhs_.xhr({
       uri: resolveUrl(this.mainPlaylistLoader_.srcUrl, utcTiming.value),
       method: utcTiming.method,
-      withCredentials: this.withCredentials
+      withCredentials: this.withCredentials,
+      requestType: 'dash-clock-sync'
     }, (error, req) => {
       // disposed
       if (!this.request) {
@@ -925,6 +936,28 @@ export default class DashPlaylistLoader extends EventTarget {
       });
 
       this.addMetadataToTextTrack('EventStream', metadataArray, this.mainPlaylistLoader_.main.duration);
+    }
+  }
+
+  /**
+   * Returns the key ID set from a playlist
+   *
+   * @param {playlist} playlist to fetch the key ID set from.
+   * @return a Set of 32 digit hex strings that represent the unique keyIds for that playlist.
+   */
+  getKeyIdSet(playlist) {
+    if (playlist.contentProtection) {
+      const keyIds = new Set();
+
+      for (const keysystem in playlist.contentProtection) {
+        const defaultKID = playlist.contentProtection[keysystem].attributes['cenc:default_KID'];
+
+        if (defaultKID) {
+          // DASH keyIds are separated by dashes.
+          keyIds.add(defaultKID.replace(/-/g, '').toLowerCase());
+        }
+      }
+      return keyIds;
     }
   }
 }

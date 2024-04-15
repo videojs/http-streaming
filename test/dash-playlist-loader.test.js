@@ -44,6 +44,32 @@ QUnit.module('DASH Playlist Loader: unit', {
   }
 });
 
+QUnit.test('can getKeyIdSet from a playlist', function(assert) {
+  const loader = new DashPlaylistLoader('variant.mpd', this.fakeVhs);
+  const keyId = '188743e1-bd62-400e-92d9-748f8c753d1a';
+  // Test uppercase keyId from playlist.
+  const uppercaseKeyId = '800AACAA-5229-58AE-8880-62B5695DB6BF';
+  // We currently only pass keyId for widevine content protection.
+  const playlist = {
+    contentProtection: {
+      mp4protection: {
+        attributes: {
+          'cenc:default_KID': keyId
+        }
+      }
+    }
+  };
+  let keyIdSet = loader.getKeyIdSet(playlist);
+
+  assert.ok(keyIdSet.size);
+  assert.ok(keyIdSet.has(keyId.replace(/-/g, '')), 'keyId is expected hex string');
+
+  playlist.contentProtection.mp4protection.attributes['cenc:default_KID'] = uppercaseKeyId;
+  keyIdSet = loader.getKeyIdSet(playlist);
+
+  assert.ok(keyIdSet.has(uppercaseKeyId.replace(/-/g, '').toLowerCase()), 'keyId is expected lowercase hex string');
+});
+
 QUnit.test('updateMain: returns falsy when there are no changes', function(assert) {
   const main = {
     playlists: {
@@ -697,6 +723,10 @@ QUnit.test('addSidxSegments_: adds/triggers error on invalid container', functio
     code: 2,
     internal: true,
     message: 'Unsupported unknown container type for sidx segment at URL: sidx.mp4',
+    metadata: {
+      errorType: 'unsupported-sidx-container-error',
+      sidxContainer: 'unknown'
+    },
     playlist,
     response: '',
     status: 200
@@ -1996,6 +2026,7 @@ QUnit.test('addSidxSegments_: errors if request for sidx fails', function(assert
     {
       status: 500,
       message: 'DASH request error at URL: sidx.mp4',
+      metadata: undefined,
       response: '',
       code: 2
     },
@@ -2818,62 +2849,6 @@ QUnit.test('pause does not remove minimum update period timeout when not main', 
   assert.ok(
     mainLoader.minimumUpdatePeriodTimeout_,
     'minimum update period timeout set'
-  );
-});
-
-QUnit.test('Content Steering with Live DASH should NOT update media', function(assert) {
-  const mainLoader = new DashPlaylistLoader('dash-live.mpd', this.fakeVhs);
-
-  const refreshMediaSpy = sinon.stub(mainLoader, 'refreshMedia_');
-
-  mainLoader.load();
-  this.standardXHRResponse(this.requests.shift());
-  this.clock.tick(1);
-
-  const media = mainLoader.main.playlists[0];
-
-  mainLoader.media = () => media;
-
-  // This means content steering is active on the media.
-  media.attributes.serviceLocation = 'cdn-a';
-
-  mainLoader.media(media);
-
-  // This means there was a DASH live update.
-  mainLoader.trigger('mediaupdatetimeout');
-
-  // If refreshMedia_ is only called once, it means it was called on initialization,
-  // and is expected to be called later by the playlist controller.
-  assert.equal(
-    refreshMediaSpy.callCount,
-    1
-  );
-});
-
-QUnit.test('Live DASH without content steering should update media', function(assert) {
-  const mainLoader = new DashPlaylistLoader('dash-live.mpd', this.fakeVhs);
-
-  const refreshMediaSpy = sinon.stub(mainLoader, 'refreshMedia_');
-
-  mainLoader.load();
-  this.standardXHRResponse(this.requests.shift());
-  this.clock.tick(1);
-
-  const media = mainLoader.main.playlists[0];
-
-  mainLoader.media = () => media;
-
-  mainLoader.media(media);
-
-  // This means there was a DASH live update.
-  mainLoader.trigger('mediaupdatetimeout');
-
-  // If refreshMedia_ is called twice, it means it is was called on initialization,
-  // and later when there is a live update. This should all be handled by the
-  // playlist controller.
-  assert.equal(
-    refreshMediaSpy.callCount,
-    2
   );
 });
 
