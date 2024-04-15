@@ -607,7 +607,7 @@
           html5: {
             vhs: {
               overrideNative: getInputValue(stateEls['override-native']),
-              useManagedMediaSource: getInputValue(stateEls['use-mms']),
+              experimentalUseMMS: getInputValue(stateEls['use-mms']),
               bufferBasedABR: getInputValue(stateEls['buffer-water']),
               llhls: getInputValue(stateEls.llhls),
               exactManifestTimings: getInputValue(stateEls['exact-manifest-timings']),

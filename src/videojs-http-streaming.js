@@ -1341,8 +1341,8 @@ const VhsSourceHandler = {
   canHandleSource(srcObj, options = {}) {
     const localOptions = merge(videojs.options, options);
 
-    // If not opting to useManagedMediaSource, and playback is only supported with MediaSource, cannot handle source
-    if (!localOptions.vhs.useManagedMediaSource && !browserSupportsCodec('avc1.4d400d,mp4a.40.2', false)) {
+    // If not opting to experimentalUseMMS, and playback is only supported with MediaSource, cannot handle source
+    if (!localOptions.vhs.experimentalUseMMS && !browserSupportsCodec('avc1.4d400d,mp4a.40.2', false)) {
       return false;
     }
 

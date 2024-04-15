@@ -41,7 +41,7 @@ Video.js Compatibility: 7.x, 8.x
       - [useCueTags](#usecuetags)
       - [parse708captions](#parse708captions)
       - [overrideNative](#overridenative)
-      - [useManagedMediaSource](#usemanagedmediasource)
+      - [experimentalUseMMS](#experimentalusemms)
       - [playlistExclusionDuration](#playlistexclusionduration)
       - [maxPlaylistRetries](#maxplaylistretries)
       - [bandwidth](#bandwidth)
@@ -350,7 +350,7 @@ var player = videojs('playerId', {
 
 Since MSE playback may be desirable on all browsers with some native support other than Safari, `overrideNative: !videojs.browser.IS_SAFARI` could be used.
 
-##### useManagedMediaSource
+##### experimentalUseMMS
 * Type: `boolean`
 * can be used as an initialization option
 

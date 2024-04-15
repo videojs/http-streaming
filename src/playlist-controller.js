@@ -166,7 +166,7 @@ export class PlaylistController extends videojs.EventTarget {
       bufferBasedABR,
       leastPixelDiffSelector,
       captionServices,
-      useManagedMediaSource
+      experimentalUseMMS
     } = options;
 
     if (!src) {
@@ -210,7 +210,7 @@ export class PlaylistController extends videojs.EventTarget {
 
     this.mediaTypes_ = createMediaTypes();
 
-    if (useManagedMediaSource && window.ManagedMediaSource) {
+    if (experimentalUseMMS && window.ManagedMediaSource) {
       // Airplay source not yet implemented. Remote playback must be disabled.
       this.tech_.el_.disableRemotePlayback = true;
       this.mediaSource = new window.ManagedMediaSource();
