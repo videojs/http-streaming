@@ -627,6 +627,7 @@ export class PlaylistController extends videojs.EventTarget {
         }
 
         if (!selectedMedia || !this.shouldSwitchToMedia_(selectedMedia)) {
+          this.error_('Error, no playlist selected', videojs.Error.NoPlaylistSelected);
           return;
         }
 
@@ -923,6 +924,7 @@ export class PlaylistController extends videojs.EventTarget {
 
       // no codecs means that the playlist was excluded
       if (!codecs) {
+        this.error_('Cannot update codecs for the source buffer', videojs.Error.CodecSwitchError);
         return;
       }
 
@@ -1342,8 +1344,10 @@ export class PlaylistController extends videojs.EventTarget {
     const nextPlaylist = this.selectPlaylist();
 
     if (!nextPlaylist) {
-      this.error = 'Playback cannot continue. No available working or supported playlists.';
-      this.trigger('error');
+      this.error_(
+        'Playback cannot continue. No available working or supported playlists.',
+        videojs.Error.NoPlayablePlaylists
+      );
       return;
     }
 
@@ -1811,11 +1815,14 @@ export class PlaylistController extends videojs.EventTarget {
 
     // no codecs, no playback.
     if (!codecs.audio && !codecs.video) {
+      const message = 'Could not determine codecs for playlist.';
+
       this.excludePlaylist({
         playlistToExclude: playlist,
-        error: { message: 'Could not determine codecs for playlist.' },
+        error: { message },
         playlistExclusionDuration: Infinity
       });
+      this.error_(message, videojs.Error.NoValidCodecs);
       return;
     }
 
@@ -1871,6 +1878,7 @@ export class PlaylistController extends videojs.EventTarget {
         },
         playlistExclusionDuration: Infinity
       });
+      this.error_('Cannot update codecs for the source buffer', videojs.Error.UnsupportedCodec);
       return;
     }
     // check if codec switching is happening
@@ -2173,6 +2181,9 @@ export class PlaylistController extends videojs.EventTarget {
    */
   attachContentSteeringListeners_() {
     this.contentSteeringController_.on('content-steering', this.excludeThenChangePathway_.bind(this));
+    this.contentSteeringController_.on('error', () => {
+      this.error_('An error with content steering occurred', videojs.Error.ContentSteeringError);
+    });
     if (this.sourceType_ === 'dash') {
       this.mainPlaylistLoader_.on('loadedplaylist', () => {
         const main = this.main();
@@ -2475,5 +2486,15 @@ export class PlaylistController extends videojs.EventTarget {
   excludeNonUsableThenChangePlaylist_() {
     this.excludeNonUsablePlaylistsByKeyId_();
     this.fastQualityChange_();
+  }
+
+  error_(message, errorType) {
+    this.error = {
+      message,
+      metadata: {
+        errorType
+      }
+    };
+    this.trigger('error');
   }
 }

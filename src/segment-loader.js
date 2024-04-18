@@ -619,6 +619,14 @@ export default class SegmentLoader extends videojs.EventTarget {
     };
 
     this.transmuxer_ = this.createTransmuxer_();
+    // this.transmuxer_.on('error', (error) => {
+    //   this.error({
+    //     message: `Transmuxing error ${error}`,
+    //     metadata: {
+    //       errorType: videojs.Error.TransmuxerError
+    //     }
+    //   });
+    // });
     this.triggerSyncInfoUpdate_ = () => this.trigger('syncinfoupdate');
     this.syncController_.on('syncinfoupdate', this.triggerSyncInfoUpdate_);
 
@@ -1916,6 +1924,13 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
     // This could only happen with fmp4 segments, but
     // should still not happen in general
     if (captionData.length === 0) {
+      this.error({
+        message: 'Caption load error, no caption data.',
+        metadata: {
+          errorType: videojs.Error.ClosedCaptionsLoadError
+        }
+      });
+      this.trigger('error');
       this.logger_('SegmentLoader received no captions from a caption event');
       return;
     }
@@ -2633,7 +2648,8 @@ ${segmentInfoString(segmentInfo)}`);
       doneFn: this.segmentRequestFinished_.bind(this),
       onTransmuxerLog: ({message, level, stream}) => {
         this.logger_(`${segmentInfoString(segmentInfo)} logged from transmuxer stream ${stream} as a ${level}: ${message}`);
-      }
+      },
+      errorFn: this.error.bind(this)
     });
   }
 

@@ -82,7 +82,8 @@ export const processTransmux = (options) => {
     onDone,
     onEndedTimeline,
     onTransmuxerLog,
-    isEndOfTimeline
+    isEndOfTimeline,
+    onError
   } = options;
   const transmuxedData = {
     buffer: []
@@ -128,6 +129,9 @@ export const processTransmux = (options) => {
     }
     if (event.data.action === 'log') {
       onTransmuxerLog(event.data.log);
+    }
+    if (event.data.action === 'error') {
+      onError(event.data.error);
     }
 
     // wait for the transmuxed event since we may have audio and video

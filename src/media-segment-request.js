@@ -71,13 +71,16 @@ const getProgressStats = (progressEvent) => {
  * @param {Error|null} error - if non-null signals an error occured with the XHR
  * @param {Object} request -  the XHR request that possibly generated the error
  */
-const handleErrors = (error, request) => {
+const handleErrors = (error, request, segment) => {
   if (request.timedout) {
     return {
       status: request.status,
       message: 'HLS request timed-out at URL: ' + request.uri,
       code: REQUEST_ERRORS.TIMEOUT,
-      xhr: request
+      xhr: request,
+      metadata: {
+        errorType: videojs.Error.SegmentTimeout
+      }
     };
   }
 
@@ -86,16 +89,26 @@ const handleErrors = (error, request) => {
       status: request.status,
       message: 'HLS request aborted at URL: ' + request.uri,
       code: REQUEST_ERRORS.ABORTED,
-      xhr: request
+      xhr: request,
+      metadata: {
+        errorType: videojs.Error.SegmentAborted
+      }
     };
   }
 
   if (error) {
+    const errorType = segment.part ?
+      videojs.Error.PartialSegmentRequestError :
+      videojs.Error.SegmentRequestError;
+
     return {
       status: request.status,
       message: 'HLS request errored at URL: ' + request.uri,
       code: REQUEST_ERRORS.FAILURE,
-      xhr: request
+      xhr: request,
+      metadata: {
+        errorType
+      }
     };
   }
 
@@ -104,7 +117,10 @@ const handleErrors = (error, request) => {
       status: request.status,
       message: 'Empty HLS response at URL: ' + request.uri,
       code: REQUEST_ERRORS.FAILURE,
-      xhr: request
+      xhr: request,
+      metadata: {
+        errorType: videojs.Error.SegmentEmptyError
+      }
     };
   }
 
@@ -123,7 +139,7 @@ const handleErrors = (error, request) => {
  */
 const handleKeyResponse = (segment, objects, finishProcessingFn) => (error, request) => {
   const response = request.response;
-  const errorObj = handleErrors(error, request);
+  const errorObj = handleErrors(error, request, segment);
 
   if (errorObj) {
     return finishProcessingFn(errorObj, segment);
@@ -134,7 +150,10 @@ const handleKeyResponse = (segment, objects, finishProcessingFn) => (error, requ
       status: request.status,
       message: 'Invalid HLS key at URL: ' + request.uri,
       code: REQUEST_ERRORS.FAILURE,
-      xhr: request
+      xhr: request,
+      metadata: {
+        errorType: videojs.Error.SegmentInvalidKey
+      }
     }, segment);
   }
 
@@ -213,7 +232,7 @@ const parseInitSegment = (segment, callback) => {
  */
 const handleInitSegmentResponse =
 ({segment, finishProcessingFn}) => (error, request) => {
-  const errorObj = handleErrors(error, request);
+  const errorObj = handleErrors(error, request, segment);
 
   if (errorObj) {
     return finishProcessingFn(errorObj, segment);
@@ -256,7 +275,7 @@ const handleSegmentResponse = ({
   finishProcessingFn,
   responseType
 }) => (error, request) => {
-  const errorObj = handleErrors(error, request);
+  const errorObj = handleErrors(error, request, segment);
 
   if (errorObj) {
     return finishProcessingFn(errorObj, segment);
@@ -296,7 +315,8 @@ const transmuxAndNotify = ({
   endedTimelineFn,
   dataFn,
   doneFn,
-  onTransmuxerLog
+  onTransmuxerLog,
+  errorFn
 }) => {
   const fmp4Tracks = segment.map && segment.map.tracks || {};
   const isMuxed = Boolean(fmp4Tracks.audio && fmp4Tracks.video);
@@ -372,6 +392,16 @@ const transmuxAndNotify = ({
       }
       result.type = result.type === 'combined' ? 'video' : result.type;
       doneFn(null, segment, result);
+    },
+    onError: (error) => {
+      const errorObject = {
+        metadata: {
+          errorType: videojs.Error.TransmuxerError
+        },
+        error
+      };
+
+      errorFn(errorObject);
     }
   });
 
@@ -415,7 +445,8 @@ const handleSegmentBytes = ({
   endedTimelineFn,
   dataFn,
   doneFn,
-  onTransmuxerLog
+  onTransmuxerLog,
+  errorFn
 }) => {
   let bytesAsUint8Array = new Uint8Array(bytes);
 
@@ -565,7 +596,8 @@ const handleSegmentBytes = ({
     endedTimelineFn,
     dataFn,
     doneFn,
-    onTransmuxerLog
+    onTransmuxerLog,
+    errorFn
   });
 };
 
@@ -642,7 +674,8 @@ const decryptSegment = ({
   endedTimelineFn,
   dataFn,
   doneFn,
-  onTransmuxerLog
+  onTransmuxerLog,
+  errorFn
 }) => {
   decrypt({
     id: segment.requestId,
@@ -665,7 +698,8 @@ const decryptSegment = ({
       endedTimelineFn,
       dataFn,
       doneFn,
-      onTransmuxerLog
+      onTransmuxerLog,
+      errorFn
     });
   });
 };
@@ -712,7 +746,8 @@ const waitForCompletion = ({
   endedTimelineFn,
   dataFn,
   doneFn,
-  onTransmuxerLog
+  onTransmuxerLog,
+  errorFn
 }) => {
   let count = 0;
   let didError = false;
@@ -759,7 +794,8 @@ const waitForCompletion = ({
             endedTimelineFn,
             dataFn,
             doneFn,
-            onTransmuxerLog
+            onTransmuxerLog,
+            errorFn
           });
         }
         // Otherwise, everything is ready just continue
@@ -776,7 +812,8 @@ const waitForCompletion = ({
           endedTimelineFn,
           dataFn,
           doneFn,
-          onTransmuxerLog
+          onTransmuxerLog,
+          errorFn
         });
       };
 
@@ -966,7 +1003,8 @@ export const mediaSegmentRequest = ({
   endedTimelineFn,
   dataFn,
   doneFn,
-  onTransmuxerLog
+  onTransmuxerLog,
+  errorFn
 }) => {
   const activeXhrs = [];
   const finishProcessingFn = waitForCompletion({
@@ -982,7 +1020,8 @@ export const mediaSegmentRequest = ({
     endedTimelineFn,
     dataFn,
     doneFn,
-    onTransmuxerLog
+    onTransmuxerLog,
+    errorFn
   });
 
   // optionally, request the decryption key

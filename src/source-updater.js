@@ -347,12 +347,12 @@ const onUpdateend = (type, sourceUpdater) => (e) => {
   shiftQueue(type, sourceUpdater);
 };
 
-const getErrorType = (name) => {
+const getErrorTypeFromName = (name) => {
   switch (name) {
   case name === 'InvalidStateError':
     return videojs.Error.MediaSourceInvalidState;
   default:
-    return videojs.Error.MediaSourceUnknown;
+    return name;
   }
 };
 
@@ -911,13 +911,15 @@ export default class SourceUpdater extends videojs.EventTarget {
    * @param {Error} error object to set on the sourceUpdater
    * @return the current sourceUpdater error
    */
-  error(error) {
+  error(error, type) {
     if (!error) {
       return this.error_;
     }
-    error.metadata = {
-      errorType: getErrorType(error.name)
+    const errorMetadata = {
+      errorType: type || getErrorTypeFromName(error.name)
     };
+
+    error.metadata = errorMetadata;
     this.error_ = error;
     this.trigger('error');
   }

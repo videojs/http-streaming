@@ -248,7 +248,7 @@ export const onError = {
    *         console and switches back to default audio track.
    * @function onError.AUDIO
    */
-  AUDIO: (type, settings) => () => {
+  AUDIO: (type, settings, playlistLoader) => () => {
     const {
       mediaTypes: { [type]: mediaType },
       excludePlaylist
@@ -260,6 +260,13 @@ export const onError = {
     const id = (activeGroup.filter(group => group.default)[0] || activeGroup[0]).id;
     const defaultTrack = mediaType.tracks[id];
 
+    playlistLoader.error = {
+      message: 'Error loading audio track.',
+      metadata: {
+        errorType: videojs.Error.AudioTrackLoadError
+      }
+    };
+    playlistLoader.trigger('error');
     if (activeTrack === defaultTrack) {
       // Default track encountered an error. All we can do now is exclude the current
       // rendition and hope another will switch audio groups
@@ -290,11 +297,18 @@ export const onError = {
    *         Error handler. Logs warning to console and disables the active subtitle track
    * @function onError.SUBTITLES
    */
-  SUBTITLES: (type, settings) => () => {
+  SUBTITLES: (type, settings, playlistLoader) => () => {
     const {
       mediaTypes: { [type]: mediaType }
     } = settings;
 
+    playlistLoader.error = {
+      message: 'Error loading subtitles.',
+      metadata: {
+        errorType: videojs.Error.SubtitlesLoadError
+      }
+    };
+    playlistLoader.trigger('error');
     videojs.log.warn('Problem encountered loading the subtitle track.' +
                      'Disabling subtitle track.');
 
@@ -396,7 +410,7 @@ export const setupListeners = {
       }
     });
 
-    playlistLoader.on('error', onError[type](type, settings));
+    playlistLoader.on('error', onError[type](type, settings, playlistLoader));
   }
 };
 
