@@ -1,3 +1,10 @@
+<a name="3.12.2"></a>
+## [3.12.2](https://github.com/videojs/http-streaming/compare/v3.12.1...v3.12.2) (2024-04-22)
+
+### Bug Fixes
+
+* use paren media sequence sync for audio and vtt, since they are opt-in features and can be enabled after main init ([#1505](https://github.com/videojs/http-streaming/issues/1505)) ([bdfe0e0](https://github.com/videojs/http-streaming/commit/bdfe0e0))
+
 <a name="3.12.1"></a>
 ## [3.12.1](https://github.com/videojs/http-streaming/compare/v3.12.0...v3.12.1) (2024-04-16)
 
