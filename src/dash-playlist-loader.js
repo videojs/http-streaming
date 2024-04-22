@@ -129,6 +129,7 @@ export const parseMainXml = ({
     previousManifest
   });
 
+  this.trigger('dashmanifestparsed');
   addPropertiesToMain(manifest, srcUrl, dashGroupId);
 
   return manifest;
@@ -811,6 +812,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
     let mup = mpl.main && mpl.main.minimumUpdatePeriod;
 
+    this.trigger('playlistmupchange');
     // If the minimumUpdatePeriod has a value of 0, that indicates that the current
     // MPD has no future validity, so a new one will need to be acquired when new
     // media segments are to be made available. Thus, we use the target duration

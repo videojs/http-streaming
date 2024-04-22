@@ -217,6 +217,8 @@ export default class PlaybackWatcher {
 
     });
 
+    this.tech_.trigger('stalldetected');
+
     // after 10 possibly stalled appends with no reset, exclude
     if (this[`${type}StalledDownloads_`] < 10) {
       return;

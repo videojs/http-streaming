@@ -527,6 +527,8 @@ export default class PlaylistLoader extends EventTarget {
       manifestString: playlistString
     });
 
+    this.trigger('manifestparsed');
+
     playlist.lastRequest = Date.now();
 
     setupMediaPlaylist({
@@ -792,6 +794,7 @@ export default class PlaylistLoader extends EventTarget {
       window.clearTimeout(this.mediaUpdateTimeout);
       this.mediaUpdateTimeout = null;
     }
+    this.trigger('playlistmupchange');
 
     // we only have use mediaupdatetimeout for live playlists.
     if (!this.media() || this.media().endList) {

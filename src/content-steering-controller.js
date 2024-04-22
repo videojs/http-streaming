@@ -170,6 +170,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
       return;
     }
 
+    this.trigger('contentsteeringrequest');
     this.request_ = this.xhr_({
       uri,
       requestType: 'content-steering-manifest'
@@ -205,6 +206,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
         this.startTTLTimeout_();
         return;
       }
+      this.trigger.apply('contentsteeringresponse');
       const steeringManifestJson = JSON.parse(this.request_.responseText);
 
       this.assignSteeringProperties_(steeringManifestJson);

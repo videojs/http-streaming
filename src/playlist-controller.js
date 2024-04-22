@@ -190,6 +190,7 @@ export class PlaylistController extends videojs.EventTarget {
     this.playlistExclusionDuration = playlistExclusionDuration;
     this.maxPlaylistRetries = maxPlaylistRetries;
     this.enableLowInitialPlaylist = enableLowInitialPlaylist;
+    this.currentPlaylistsLength_ = 0;
 
     if (this.useCueTags_) {
       this.cueTagsTrack_ = this.tech_.addTextTrack(
@@ -608,6 +609,9 @@ export class PlaylistController extends videojs.EventTarget {
       }
       let updatedPlaylist = this.mainPlaylistLoader_.media();
 
+      // fire events and update current length.
+      this.triggerAddedOrRemoved_();
+
       if (!updatedPlaylist) {
         // Add content steering listeners on first load and init.
         this.attachContentSteeringListeners_();
@@ -873,6 +877,7 @@ export class PlaylistController extends videojs.EventTarget {
     });
 
     this.mainSegmentLoader_.on('appenderror', () => {
+      // Move append error here.
       this.error = this.mainSegmentLoader_.error_;
       this.trigger('error');
     });
@@ -889,6 +894,7 @@ export class PlaylistController extends videojs.EventTarget {
     });
 
     this.audioSegmentLoader_.on('appenderror', () => {
+      // TODO: add append error here
       this.error = this.audioSegmentLoader_.error_;
       this.trigger('error');
     });
@@ -952,6 +958,19 @@ export class PlaylistController extends videojs.EventTarget {
       this.logger_('audioSegmentLoader ended');
       this.onEndOfStream();
     });
+
+    this.mainSegmentLoader_.on('appendsdone', () => {
+      this.tech_.trigger('segmentappended');
+    });
+
+    // Do we only want main segments tracked eventing?
+    // this.audioSegmentLoader_.on('appendsdone', () => {
+    //   this.tech_.trigger('segmentappended');
+    // });
+
+    // this.subtitleSegmentLoader_.on('appendsdone', () => {
+    //   this.tech_.trigger('segmentappended');
+    // });
   }
 
   mediaSecondsLoaded_() {
@@ -1005,7 +1024,7 @@ export class PlaylistController extends videojs.EventTarget {
     this.mainSegmentLoader_.resetEverything(() => {
       this.tech_.setCurrentTime(this.tech_.currentTime());
     });
-
+    this.tech_.trigger('qualityswitched');
     // don't need to reset audio as it is reset when media changes
   }
 
@@ -1715,6 +1734,7 @@ export class PlaylistController extends videojs.EventTarget {
     this.mainSegmentLoader_.dispose();
     this.contentSteeringController_.dispose();
     this.keyStatusMap_.clear();
+    this.currentPlaylistsLength_ = 0;
 
     if (this.loadOnPlay_) {
       this.tech_.off('play', this.loadOnPlay_);
@@ -2496,5 +2516,16 @@ export class PlaylistController extends videojs.EventTarget {
       }
     };
     this.trigger('error');
+  }
+
+  triggerAddedOrRemoved_() {
+    const main = this.main();
+
+    if (main.playlists.length > this.currentPlaylistsLength_) {
+      this.tech_.trigger('playlistadded');
+    } else if (main.playlists.length < this.currentPlaylistsLength_) {
+      this.tech_.trigger('playlistremoved');
+    }
+    this.currentPlaylistsLength_ = main.playlists.length;
   }
 }

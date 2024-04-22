@@ -816,6 +816,7 @@ class VhsHandler extends Component {
       const player = videojs.players[this.tech_.options_.playerId];
       let error = this.playlistController_.error;
 
+      // TODO: This will be an issue with new errors. Do we want to assign code 3 automatically here?
       if (typeof error === 'object' && !error.code) {
         error.code = 3;
       } else if (typeof error === 'string') {

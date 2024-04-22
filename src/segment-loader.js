@@ -1984,6 +1984,7 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
 
       addCaptionData({captionArray: captions, inbandTextTracks, timestampOffset});
     });
+    this.trigger('captionchange');
 
     // Reset stored captions since we added parsed
     // captions to a text track at this point
