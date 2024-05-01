@@ -1,3 +1,22 @@
+<a name="3.12.2"></a>
+## [3.12.2](https://github.com/videojs/http-streaming/compare/v3.12.1...v3.12.2) (2024-04-22)
+
+### Bug Fixes
+
+* use paren media sequence sync for audio and vtt, since they are opt-in features and can be enabled after main init ([#1505](https://github.com/videojs/http-streaming/issues/1505)) ([bdfe0e0](https://github.com/videojs/http-streaming/commit/bdfe0e0))
+
+<a name="3.12.1"></a>
+## [3.12.1](https://github.com/videojs/http-streaming/compare/v3.12.0...v3.12.1) (2024-04-16)
+
+### Bug Fixes
+
+* enableFunction not passing playlist to fastQualityChange ([#1502](https://github.com/videojs/http-streaming/issues/1502)) ([e50ecb1](https://github.com/videojs/http-streaming/commit/e50ecb1))
+* llHLS does not need forcedTimestampOffset ([#1501](https://github.com/videojs/http-streaming/issues/1501)) ([f5d1209](https://github.com/videojs/http-streaming/commit/f5d1209))
+
+### Documentation
+
+* removing duplicated step ([#1476](https://github.com/videojs/http-streaming/issues/1476)) ([e4acc57](https://github.com/videojs/http-streaming/commit/e4acc57))
+
 <a name="3.12.0"></a>
 # [3.12.0](https://github.com/videojs/http-streaming/compare/v3.11.3...v3.12.0) (2024-03-12)
 

@@ -5,7 +5,7 @@
 import {sumDurations, getPartsAndSegments} from './playlist';
 import videojs from 'video.js';
 import logger from './util/logger';
-import MediaSequenceSync from './util/media-sequence-sync';
+import {MediaSequenceSync, DependantMediaSequenceSync} from './util/media-sequence-sync';
 
 // The maximum gap allowed between two media sequence tags when trying to
 // synchronize expired playlist segments.
@@ -233,11 +233,11 @@ export default class SyncController extends videojs.EventTarget {
     //  For some reason this map helps with syncing between quality switch for MPEG-DASH as well.
     //  Moreover if we disable this map for MPEG-DASH - quality switch will be broken.
     //  MPEG-DASH should have its own separate sync strategy
-    this.mediaSequenceStorage_ = {
-      main: new MediaSequenceSync(),
-      audio: new MediaSequenceSync(),
-      vtt: new MediaSequenceSync()
-    };
+    const main = new MediaSequenceSync();
+    const audio = new DependantMediaSequenceSync(main);
+    const vtt = new DependantMediaSequenceSync(main);
+
+    this.mediaSequenceStorage_ = {main, audio, vtt};
     this.logger_ = logger('SyncController');
   }
 
