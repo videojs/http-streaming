@@ -631,7 +631,7 @@ export class PlaylistController extends videojs.EventTarget {
         }
 
         if (!selectedMedia || !this.shouldSwitchToMedia_(selectedMedia)) {
-          this.error_('Error, no playlist selected', videojs.Error.NoPlaylistSelected);
+          this.error_('Error, no playlist selected', { errorType: videojs.Error.NoPlaylistSelected });
           return;
         }
 
@@ -930,7 +930,11 @@ export class PlaylistController extends videojs.EventTarget {
 
       // no codecs means that the playlist was excluded
       if (!codecs) {
-        this.error_('Cannot update codecs for the source buffer', videojs.Error.CodecSwitchError);
+        const metadata = {
+          errorType: videojs.Error.CodecSwitchError
+        };
+
+        this.error_('Cannot update codecs for the source buffer', metadata);
         return;
       }
 
@@ -959,18 +963,18 @@ export class PlaylistController extends videojs.EventTarget {
       this.onEndOfStream();
     });
 
-    this.mainSegmentLoader_.on('appendsdone', () => {
-      this.tech_.trigger('segmentappended');
+    this.mainSegmentLoader_.on('appendsdone', ({ segmentInfo }) => {
+      this.tech_.trigger({ type: 'segmentappended', segmentInfo, bubbles: true });
     });
 
-    // Do we only want main segments tracked eventing?
-    // this.audioSegmentLoader_.on('appendsdone', () => {
-    //   this.tech_.trigger('segmentappended');
-    // });
+    // TODO: Do we only want main segments tracked eventing?
+    this.audioSegmentLoader_.on('appendsdone', (segmentInfo) => {
+      this.tech_.trigger({ type: 'segmentappended', segmentInfo, bubbles: true });
+    });
 
-    // this.subtitleSegmentLoader_.on('appendsdone', () => {
-    //   this.tech_.trigger('segmentappended');
-    // });
+    this.subtitleSegmentLoader_.on('appendsdone', (segmentInfo) => {
+      this.tech_.trigger({ type: 'segmentappended', segmentInfo, bubbles: true });
+    });
   }
 
   mediaSecondsLoaded_() {
@@ -1898,7 +1902,13 @@ export class PlaylistController extends videojs.EventTarget {
         },
         playlistExclusionDuration: Infinity
       });
-      this.error_('Cannot update codecs for the source buffer', videojs.Error.UnsupportedCodec);
+      const metadata = {
+        // TODO: fix this.
+        codec: unsupportedCodecs.toString(),
+        errorType: videojs.Error.UnsupportedCodec
+      };
+
+      this.error_('Cannot update codecs for the source buffer', metadata);
       return;
     }
     // check if codec switching is happening
@@ -2202,7 +2212,7 @@ export class PlaylistController extends videojs.EventTarget {
   attachContentSteeringListeners_() {
     this.contentSteeringController_.on('content-steering', this.excludeThenChangePathway_.bind(this));
     this.contentSteeringController_.on('error', () => {
-      this.error_('An error with content steering occurred', videojs.Error.ContentSteeringError);
+      this.error_('An error with content steering occurred', { errorType: videojs.Error.ContentSteeringError });
     });
     if (this.sourceType_ === 'dash') {
       this.mainPlaylistLoader_.on('loadedplaylist', () => {
@@ -2276,6 +2286,7 @@ export class PlaylistController extends videojs.EventTarget {
       variant.lastExcludeReason_ = 'content-steering';
       // TODO: kind of spammy, maybe move this.
       this.logger_(`excluding ${variant.id} for ${variant.lastExcludeReason_}`);
+      this.trigger('excludeplaylist');
     });
 
     if (this.contentSteeringController_.manifestType_ === 'DASH') {
@@ -2508,12 +2519,10 @@ export class PlaylistController extends videojs.EventTarget {
     this.fastQualityChange_();
   }
 
-  error_(message, errorType) {
+  error_(message, metadata) {
     this.error = {
       message,
-      metadata: {
-        errorType
-      }
+      metadata
     };
     this.trigger('error');
   }

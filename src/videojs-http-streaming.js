@@ -1391,6 +1391,7 @@ if (supportsNativeMediaSources()) {
 }
 
 videojs.VhsHandler = VhsHandler;
+// TODO: add error consts to SourceHandler
 videojs.VhsSourceHandler = VhsSourceHandler;
 videojs.Vhs = Vhs;
 if (!videojs.use) {

@@ -263,7 +263,8 @@ export const onError = {
     playlistLoader.error = {
       message: 'Error loading audio track.',
       metadata: {
-        errorType: videojs.Error.AudioTrackLoadError
+        errorType: videojs.Error.AudioTrackLoadError,
+        trackId: id
       }
     };
     playlistLoader.trigger('error');
@@ -301,19 +302,18 @@ export const onError = {
     const {
       mediaTypes: { [type]: mediaType }
     } = settings;
+    const track = mediaType.activeTrack();
 
     playlistLoader.error = {
       message: 'Error loading subtitles.',
       metadata: {
-        errorType: videojs.Error.SubtitlesLoadError
+        errorType: videojs.Error.SubtitlesLoadError,
+        trackId: track.id
       }
     };
     playlistLoader.trigger('error');
     videojs.log.warn('Problem encountered loading the subtitle track.' +
                      'Disabling subtitle track.');
-
-    const track = mediaType.activeTrack();
-
     if (track) {
       track.mode = 'disabled';
     }

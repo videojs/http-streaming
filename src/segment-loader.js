@@ -1927,7 +1927,8 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
       this.error({
         message: 'Caption load error, no caption data.',
         metadata: {
-          errorType: videojs.Error.ClosedCaptionsLoadError
+          errorType: videojs.Error.ClosedCaptionsLoadError,
+          segmentId: simpleSegment.requestId
         }
       });
       this.trigger('error');
@@ -2454,7 +2455,8 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
       message: `${type} append of ${bytes.length}b failed for segment ` +
         `#${segmentInfo.mediaIndex} in playlist ${segmentInfo.playlist.id}`,
       metadata: {
-        errorType: videojs.Error.SegmentAppendError
+        errorType: videojs.Error.SegmentAppendError,
+        segmentInfo
       }
     });
     this.trigger('appenderror');
@@ -3125,7 +3127,7 @@ ${segmentInfoString(segmentInfo)}`);
   handleAppendsDone_() {
     // appendsdone can cause an abort
     if (this.pendingSegment_) {
-      this.trigger('appendsdone');
+      this.trigger({ type: 'appendsdone', segmentInfo: this.pendingSegment_, bubbles: true });
     }
 
     if (!this.pendingSegment_) {

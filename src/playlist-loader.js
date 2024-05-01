@@ -527,7 +527,7 @@ export default class PlaylistLoader extends EventTarget {
       manifestString: playlistString
     });
 
-    this.trigger('manifestparsed');
+    this.trigger('hlsparsed');
 
     playlist.lastRequest = Date.now();
 

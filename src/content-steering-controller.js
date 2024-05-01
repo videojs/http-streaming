@@ -116,7 +116,11 @@ export default class ContentSteeringController extends videojs.EventTarget {
 
     if (!steeringUri) {
       this.logger_(`steering manifest URL is ${steeringUri}, cannot request steering manifest.`);
-      this.trigger('error');
+      const metadata = {
+        errorType: videojs.Error.ContentSteeringManifestError
+      };
+
+      this.trigger({ type: 'error', metadata});
       return;
     }
     // Content steering manifests can be encoded as a data URI. We can decode, parse and return early if that's the case.
@@ -164,8 +168,12 @@ export default class ContentSteeringController extends videojs.EventTarget {
 
     // If there are no valid manifest URIs, we should stop content steering.
     if (!uri) {
+      const metadata = {
+        errorType: videojs.Error.ContentSteeringRequestError
+      };
+
       this.logger_('No valid content steering manifest URIs. Stopping content steering.');
-      this.trigger('error');
+      this.trigger({type: 'error', metadata });
       this.dispose();
       return;
     }
@@ -275,7 +283,11 @@ export default class ContentSteeringController extends videojs.EventTarget {
     this.steeringManifest.version = steeringJson.VERSION;
     if (!this.steeringManifest.version) {
       this.logger_(`manifest version is ${steeringJson.VERSION}, which is not supported.`);
-      this.trigger('error');
+      const metadata = {
+        errorType: videojs.Error.ContentSteeringManifestError
+      };
+
+      this.trigger({ type: 'error', metadata });
       return;
     }
     this.steeringManifest.ttl = steeringJson.TTL;
@@ -298,8 +310,12 @@ export default class ContentSteeringController extends videojs.EventTarget {
 
     // If there are no available pathways, we need to stop content steering.
     if (!this.availablePathways_.size) {
+      const metadata = {
+        errorType: videojs.Error.ContentSteeringManifestError
+      };
+
       this.logger_('There are no available pathways for content steering. Ending content steering.');
-      this.trigger('error');
+      this.trigger({ type: 'error', metadata });
       this.dispose();
     }
 

@@ -129,7 +129,7 @@ export const parseMainXml = ({
     previousManifest
   });
 
-  this.trigger('dashmanifestparsed');
+  this.trigger('dashparsed');
   addPropertiesToMain(manifest, srcUrl, dashGroupId);
 
   return manifest;
