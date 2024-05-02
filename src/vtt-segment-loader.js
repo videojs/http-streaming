@@ -330,7 +330,8 @@ export default class VTTSegmentLoader extends SegmentLoader {
       this.stopForError({
         message: e.message,
         metadata: {
-          errorType: videojs.Error.VttCueParsingError
+          errorType: videojs.Error.VttCueParsingError,
+          textTrack: this.subtitlesTrack_
         }
       });
       return;

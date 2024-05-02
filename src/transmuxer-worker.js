@@ -159,9 +159,9 @@ const wireTransmuxerEvents = function(self, transmuxer) {
     self.postMessage({action: 'log', log});
   });
 
-  transmuxer.on('error', function(error) {
-    self.postMessage({action: 'error', error});
-  });
+  // transmuxer.on('error', function(error) {
+  //   self.postMessage({action: 'error', error});
+  // });
 
 };
 

@@ -631,7 +631,7 @@ export class PlaylistController extends videojs.EventTarget {
         }
 
         if (!selectedMedia || !this.shouldSwitchToMedia_(selectedMedia)) {
-          this.error_('Error, no playlist selected', { errorType: videojs.Error.NoPlaylistSelected });
+          this.error_('Error, no playlist selected', { errorType: videojs.Error.NoPlaylistsSelected });
           return;
         }
 
@@ -1367,9 +1367,13 @@ export class PlaylistController extends videojs.EventTarget {
     const nextPlaylist = this.selectPlaylist();
 
     if (!nextPlaylist) {
+      const metadata = {
+        errorType: videojs.Error.NoPlayablePlaylistsLeft
+      };
+
       this.error_(
         'Playback cannot continue. No available working or supported playlists.',
-        videojs.Error.NoPlayablePlaylists
+        metadata
       );
       return;
     }

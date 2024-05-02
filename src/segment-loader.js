@@ -2451,12 +2451,18 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
     //
     // Trigger a special error so that it can be handled separately from normal,
     // recoverable errors.
+    const { uri, startOfSegment, duration } = segmentInfo;
+
     this.error({
       message: `${type} append of ${bytes.length}b failed for segment ` +
         `#${segmentInfo.mediaIndex} in playlist ${segmentInfo.playlist.id}`,
       metadata: {
         errorType: videojs.Error.SegmentAppendError,
-        segmentInfo
+        segmentInfo: {
+          uri,
+          startOfSegment,
+          duration
+        }
       }
     });
     this.trigger('appenderror');

@@ -117,7 +117,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
     if (!steeringUri) {
       this.logger_(`steering manifest URL is ${steeringUri}, cannot request steering manifest.`);
       const metadata = {
-        errorType: videojs.Error.ContentSteeringManifestError
+        errorType: videojs.Error.ContentSteeringRequestError
       };
 
       this.trigger({ type: 'error', metadata});
@@ -311,7 +311,7 @@ export default class ContentSteeringController extends videojs.EventTarget {
     // If there are no available pathways, we need to stop content steering.
     if (!this.availablePathways_.size) {
       const metadata = {
-        errorType: videojs.Error.ContentSteeringManifestError
+        errorType: videojs.Error.ContentSteeringNoPathwaysError
       };
 
       this.logger_('There are no available pathways for content steering. Ending content steering.');

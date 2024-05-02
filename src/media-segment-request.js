@@ -72,6 +72,10 @@ const getProgressStats = (progressEvent) => {
  * @param {Object} request -  the XHR request that possibly generated the error
  */
 const handleErrors = (error, request, segment) => {
+  const uri = request.uri;
+  const originalError = error;
+  const requestType = request.requestType;
+
   if (request.timedout) {
     return {
       status: request.status,
@@ -79,7 +83,12 @@ const handleErrors = (error, request, segment) => {
       code: REQUEST_ERRORS.TIMEOUT,
       xhr: request,
       metadata: {
-        errorType: videojs.Error.SegmentTimeout
+        errorType: videojs.Error.NetworkRequestTimeout,
+        requestError: {
+          uri,
+          originalError,
+          requestType
+        }
       }
     };
   }
@@ -91,23 +100,29 @@ const handleErrors = (error, request, segment) => {
       code: REQUEST_ERRORS.ABORTED,
       xhr: request,
       metadata: {
-        errorType: videojs.Error.SegmentAborted
+        errorType: videojs.Error.NetworkRequestAborted,
+        requestError: {
+          uri,
+          originalError,
+          requestType
+        }
       }
     };
   }
 
   if (error) {
-    const errorType = segment.part ?
-      videojs.Error.PartialSegmentRequestError :
-      videojs.Error.SegmentRequestError;
-
     return {
       status: request.status,
       message: 'HLS request errored at URL: ' + request.uri,
       code: REQUEST_ERRORS.FAILURE,
       xhr: request,
       metadata: {
-        errorType
+        errorType: videojs.Error.NetworkRequestFailed,
+        requestError: {
+          uri,
+          originalError,
+          requestType
+        }
       }
     };
   }
@@ -117,10 +132,7 @@ const handleErrors = (error, request, segment) => {
       status: request.status,
       message: 'Empty HLS response at URL: ' + request.uri,
       code: REQUEST_ERRORS.FAILURE,
-      xhr: request,
-      metadata: {
-        errorType: videojs.Error.SegmentEmptyError
-      }
+      xhr: request
     };
   }
 
