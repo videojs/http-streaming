@@ -27,14 +27,26 @@ const enableFunction = (loader, playlistID, changePlaylistFn) => (enable) => {
   } else {
     playlist.disabled = true;
   }
+  const metadata = {
+    renditionInfo: {
+      id: playlistID,
+      bandwidth: playlist.attributes.BANDWIDTH,
+      resolution: {
+        width: playlist.attributes.RESOLUTION.width,
+        height: playlist.attributes.RESOLUTION.height
+      },
+      codecs: playlist.attributes.CODECS
+    },
+    cause: 'fast-quality'
+  };
 
   if (enable !== currentlyEnabled && !incompatible) {
     // Ensure the outside world knows about our changes
     changePlaylistFn(playlist);
     if (enable) {
-      loader.trigger('renditionenabled');
+      loader.trigger({ type: 'renditionenabled', metadata });
     } else {
-      loader.trigger('renditiondisabled');
+      loader.trigger({ type: 'renditiondisabled', metadata });
     }
   }
   return enable;

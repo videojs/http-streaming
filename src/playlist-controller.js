@@ -409,7 +409,20 @@ export class PlaylistController extends videojs.EventTarget {
 
     if (oldId && oldId !== newId) {
       this.logger_(`switch media ${oldId} -> ${newId} from ${cause}`);
-      this.tech_.trigger({type: 'usage', name: `vhs-rendition-change-${cause}`});
+      const metadata = {
+        renditionInfo: {
+          id: newId,
+          bandwidth: playlist.attributes.BANDWIDTH,
+          resolution: {
+            width: playlist.attributes.RESOLUTION.width,
+            height: playlist.attributes.RESOLUTION.height
+          },
+          codecs: playlist.attributes.CODECS
+        },
+        cause
+      };
+
+      this.tech_.trigger({type: 'usage', name: `vhs-rendition-change-${cause}`, metadata});
     }
     this.mainPlaylistLoader_.media(playlist, delay);
   }
@@ -726,11 +739,11 @@ export class PlaylistController extends videojs.EventTarget {
       }
     });
 
-    this.mainPlaylistLoader_.on('renditiondisabled', () => {
-      this.tech_.trigger({type: 'usage', name: 'vhs-rendition-disabled'});
+    this.mainPlaylistLoader_.on('renditiondisabled', (metadata) => {
+      this.tech_.trigger({type: 'usage', name: 'vhs-rendition-disabled', metadata});
     });
-    this.mainPlaylistLoader_.on('renditionenabled', () => {
-      this.tech_.trigger({type: 'usage', name: 'vhs-rendition-enabled'});
+    this.mainPlaylistLoader_.on('renditionenabled', (metadata) => {
+      this.tech_.trigger({type: 'usage', name: 'vhs-rendition-enabled', metadata});
     });
   }
 
@@ -1633,8 +1646,11 @@ export class PlaylistController extends videojs.EventTarget {
     }
 
     this.logger_(`seekable updated [${Ranges.printableRange(this.seekable_)}]`);
+    const metadata = {
+      seekableRanges: this.seekable_
+    };
 
-    this.tech_.trigger('seekablechanged');
+    this.tech_.trigger({ type: 'seekablechanged', metadata });
   }
 
   /**
@@ -1781,6 +1797,7 @@ export class PlaylistController extends videojs.EventTarget {
     return true;
   }
 
+  // find from and to for codec switch event
   getCodecsOrExclude_() {
     const media = {
       main: this.mainSegmentLoader_.getCurrentMediaInfo_() || {},

@@ -82,7 +82,8 @@ export const processTransmux = (options) => {
     onDone,
     onEndedTimeline,
     onTransmuxerLog,
-    isEndOfTimeline
+    isEndOfTimeline,
+    triggerSegmentEventFn
   } = options;
   const transmuxedData = {
     buffer: []
@@ -182,6 +183,7 @@ export const processTransmux = (options) => {
     const buffer = bytes instanceof ArrayBuffer ? bytes : bytes.buffer;
     const byteOffset = bytes instanceof ArrayBuffer ? 0 : bytes.byteOffset;
 
+    triggerSegmentEventFn('segmenttransmuxingstart');
     transmuxer.postMessage(
       {
         action: 'push',

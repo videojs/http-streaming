@@ -284,8 +284,15 @@ const actions = {
     if (oldCodecBase === newCodecBase) {
       return;
     }
+    const metadata = {
+      codecsChangeInfo: {
+        from: oldCodec,
+        to: codec
+      }
+    };
 
-    sourceUpdater.logger_(`changing ${type}Buffer codec from ${sourceUpdater.codecs[type]} to ${codec}`);
+    sourceUpdater.trigger({ type: 'codecschange', metadata });
+    sourceUpdater.logger_(`changing ${type}Buffer codec from ${oldCodec} to ${codec}`);
 
     // check if change to the provided type is supported
     try {

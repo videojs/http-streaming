@@ -522,6 +522,14 @@ export default class PlaylistLoader extends EventTarget {
     this.request = null;
     this.state = 'HAVE_METADATA';
 
+    const metadata = {
+      playlistInfo: {
+        type: 'media',
+        uri: url
+      }
+    };
+
+    this.trigger({type: 'playlistparsestart', metadata });
     const playlist = playlistObject || this.parseManifest_({
       url,
       manifestString: playlistString
@@ -550,7 +558,8 @@ export default class PlaylistLoader extends EventTarget {
     }
 
     this.updateMediaUpdateTimeout_(refreshDelay(this.media(), !!update));
-
+    metadata.parsedPlaylist = playlist;
+    this.trigger({ type: 'playlistparsecomplete', metadata });
     this.trigger('loadedplaylist');
   }
 
@@ -690,6 +699,14 @@ export default class PlaylistLoader extends EventTarget {
     }
 
     this.pendingMedia_ = playlist;
+    const metadata = {
+      playlistInfo: {
+        type: 'media',
+        uri: playlist.uri
+      }
+    };
+
+    this.trigger({ type: 'playlistrequeststart', metadata });
 
     this.request = this.vhs_.xhr({
       uri: playlist.resolvedUri,
@@ -708,6 +725,8 @@ export default class PlaylistLoader extends EventTarget {
       if (error) {
         return this.playlistRequestError(this.request, playlist, startingState);
       }
+
+      this.trigger({ type: 'playlistrequestcomplete', metadata });
 
       this.haveMetadata({
         playlistString: req.responseText,
@@ -836,7 +855,14 @@ export default class PlaylistLoader extends EventTarget {
       }, 0);
       return;
     }
+    const metadata = {
+      playlistInfo: {
+        type: 'multivariant',
+        uri: this.src
+      }
+    };
 
+    this.trigger({ type: 'playlistrequeststart', metadata });
     // request the specified URL
     this.request = this.vhs_.xhr({
       uri: this.src,
@@ -857,23 +883,26 @@ export default class PlaylistLoader extends EventTarget {
           message: `HLS playlist request error at URL: ${this.src}.`,
           responseText: req.responseText,
           // MEDIA_ERR_NETWORK
-          code: 2,
-          metadata: {
-            errorType: videojs.Error.HlsPlaylistRequestError
-          }
+          code: 2
         };
         if (this.state === 'HAVE_NOTHING') {
           this.started = false;
         }
         return this.trigger('error');
       }
+      this.trigger({ type: 'playlistrequestcomplete', metadata });
 
       this.src = resolveManifestRedirect(this.src, req);
 
+      this.trigger({ type: 'playlistparsestart', metadata });
       const manifest = this.parseManifest_({
         manifestString: req.responseText,
         url: this.src
       });
+
+      // TODO: Do we want to pass the entire parsed manifest here or just select fields?
+      metadata.parsedPlaylist = manifest;
+      this.trigger({ type: 'playlistparsecomplete', metadata });
 
       this.setupInitialPlaylist(manifest);
     });

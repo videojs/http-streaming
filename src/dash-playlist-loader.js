@@ -646,6 +646,13 @@ export default class DashPlaylistLoader extends EventTarget {
   }
 
   requestMain_(cb) {
+    const metadata = {
+      manifestInfo: {
+        uri: this.mainPlaylistLoader_.srcUrl
+      }
+    };
+
+    this.trigger({type: 'manifestrequeststart', metadata});
     this.request = this.vhs_.xhr({
       uri: this.mainPlaylistLoader_.srcUrl,
       withCredentials: this.withCredentials,
@@ -657,6 +664,7 @@ export default class DashPlaylistLoader extends EventTarget {
         }
         return;
       }
+      this.trigger({type: 'manifestrequestcomplete', metadata});
 
       const mainChanged = req.responseText !== this.mainPlaylistLoader_.mainXml_;
 
@@ -762,7 +770,13 @@ export default class DashPlaylistLoader extends EventTarget {
     this.mediaRequest_ = null;
 
     const oldMain = this.mainPlaylistLoader_.main;
+    const metadata = {
+      manifestInfo: {
+        uri: this.mainPlaylistLoader_.srcUrl
+      }
+    };
 
+    this.trigger({type: 'manifestparsestart', metadata});
     let newMain = parseMainXml({
       mainXml: this.mainPlaylistLoader_.mainXml_,
       srcUrl: this.mainPlaylistLoader_.srcUrl,
@@ -789,6 +803,9 @@ export default class DashPlaylistLoader extends EventTarget {
     }
 
     this.addEventStreamToMetadataTrack_(newMain);
+    metadata.parsedManifest = newMain;
+    // TODO: Do we want to pass the entire parsed manifest here or just select parts?
+    this.trigger({type: 'manifestparsecomplete', metadata});
 
     return Boolean(newMain);
   }

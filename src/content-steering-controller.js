@@ -169,7 +169,13 @@ export default class ContentSteeringController extends videojs.EventTarget {
       this.dispose();
       return;
     }
+    const metadata = {
+      contentSteeringInfo: {
+        uri
+      }
+    };
 
+    this.trigger({ type: 'contentsteeringloadstart', metadata });
     this.request_ = this.xhr_({
       uri,
       requestType: 'content-steering-manifest'
@@ -205,9 +211,20 @@ export default class ContentSteeringController extends videojs.EventTarget {
         this.startTTLTimeout_();
         return;
       }
+      this.trigger({ type: 'contentsteeringloadcomplete', metadata });
       const steeringManifestJson = JSON.parse(this.request_.responseText);
 
       this.assignSteeringProperties_(steeringManifestJson);
+      const parsedMetadata = {
+        contentSteeringInfo: metadata.contentSteeringInfo,
+        contentSteeringManifest: {
+          version: this.steeringManifest.version,
+          reloadUri: this.steeringManifest.reloadUri,
+          priority: this.steeringManifest.priority
+        }
+      };
+
+      this.trigger({ type: 'contentsteeringparsed', metadata: parsedMetadata });
       this.startTTLTimeout_();
     });
   }

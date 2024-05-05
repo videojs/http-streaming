@@ -34,7 +34,14 @@ export default class TimelineChangeController extends videojs.EventTarget {
     if (typeof from === 'number' && typeof to === 'number') {
       this.lastTimelineChanges_[type] = { type, from, to };
       delete this.pendingTimelineChanges_[type];
-      this.trigger('timelinechange');
+      const metadata = {
+        timelineChangeInfo: {
+          from,
+          to
+        }
+      };
+
+      this.trigger({ type: 'timelinechange', metadata });
     }
     return this.lastTimelineChanges_[type];
   }

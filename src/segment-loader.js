@@ -511,6 +511,23 @@ export const getTroublesomeSegmentDurationMessage = (segmentInfo, sourceType) =>
 };
 
 /**
+ * Utility function to reduce a segmentInfo object to a simple event payload.
+ *
+ * @param {SegmentInfo} segmentInfo the full SegmentInfo object to be reduced.
+ * @return the reduced payload.
+ */
+const segmentInfoPayload = (segmentInfo, isInit = false) => {
+  return {
+    type: this.loaderType_,
+    uri: segmentInfo.uri,
+    start: segmentInfo.startOfSegment,
+    duration: segmentInfo.duration,
+    isEncrypted: Boolean(segmentInfo.segment.key),
+    isMediaInitialization: isInit
+  };
+};
+
+/**
  * An object that manages segment loading and appending.
  *
  * @class SegmentLoader
@@ -667,7 +684,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     // since its loads follow main, needs to listen on timeline changes. For more details,
     // see the shouldWaitForTimelineChange function.
     if (this.loaderType_ === 'audio') {
-      this.timelineChangeController_.on('timelinechange', () => {
+      this.timelineChangeController_.on('timelinechange', (metadata) => {
+        this.trigger({type: 'timelinechange', metadata });
         if (this.hasEnoughInfoToLoad_()) {
           this.processLoadQueue_();
         }
@@ -1384,6 +1402,11 @@ bufferedEnd: ${lastBufferedEnd(this.buffered_())}
     if (!segmentInfo) {
       return;
     }
+    const metadata = {
+      segmentInfo: segmentInfoPayload(segmentInfo)
+    };
+
+    this.trigger({ type: 'segmentselected', metadata });
 
     if (typeof segmentInfo.timestampOffset === 'number') {
       this.isPendingTimestampOffset_ = false;
@@ -2464,7 +2487,11 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
         segments
       });
     }
+    const metadata = {
+      segmentInfo: segmentInfoPayload(segmentInfo, Boolean(initSegment))
+    };
 
+    this.trigger({ type: 'segmentappendstart', metadata });
     this.sourceUpdater_.appendBuffer(
       {segmentInfo, type, bytes},
       this.handleAppendError_.bind(this, {segmentInfo, type, bytes})
@@ -2628,11 +2655,16 @@ ${segmentInfoString(segmentInfo)}`);
         this.logger_('received endedtimeline callback');
       },
       id3Fn: this.handleId3_.bind(this),
-
       dataFn: this.handleData_.bind(this),
       doneFn: this.segmentRequestFinished_.bind(this),
       onTransmuxerLog: ({message, level, stream}) => {
         this.logger_(`${segmentInfoString(segmentInfo)} logged from transmuxer stream ${stream} as a ${level}: ${message}`);
+      },
+      triggerSegmentEventFn: ({ type, isInit, keyInfo, trackInfo, timingInfo }) => {
+        const segInfo = segmentInfoPayload(segmentInfo, isInit);
+        const metadata = { segmentInfo: segInfo, keyInfo, trackInfo, timingInfo };
+
+        this.trigger({ type, metadata });
       }
     });
   }
@@ -2746,6 +2778,14 @@ ${segmentInfoString(segmentInfo)}`);
         ` is less than the min to record ${MIN_SEGMENT_DURATION_TO_SAVE_STATS}`);
       return;
     }
+    const metadata = {
+      bandwidthInfo: {
+        from: this.bandwidth,
+        to: stats.bandwidth
+      }
+    };
+
+    this.trigger({type: 'usage', name: 'vhs-bandwidth-update', metadata });
 
     this.bandwidth = stats.bandwidth;
     this.roundTrip = stats.roundTripTime;
@@ -3108,7 +3148,11 @@ ${segmentInfoString(segmentInfo)}`);
   handleAppendsDone_() {
     // appendsdone can cause an abort
     if (this.pendingSegment_) {
-      this.trigger('appendsdone');
+      const metadata = {
+        segmentInfo: segmentInfoPayload(this.pendingSegment_)
+      };
+
+      this.trigger({ type: 'appendsdone', metadata});
     }
 
     if (!this.pendingSegment_) {

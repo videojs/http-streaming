@@ -11,6 +11,7 @@
 import window from 'global/window';
 import * as Ranges from './ranges';
 import logger from './util/logger';
+import { createTimeRange } from 'video.js/dist/types/utils/time';
 
 // Set of events that reset the playback-watcher time check logic and clear the timeout
 const timerCancelEvents = [
@@ -38,6 +39,7 @@ export default class PlaybackWatcher {
     this.allowSeeksWithinUnsafeLiveWindow = options.allowSeeksWithinUnsafeLiveWindow;
     this.liveRangeSafeTimeDelta = options.liveRangeSafeTimeDelta;
     this.media = options.media;
+    this.playedRanges_ = [];
 
     this.consecutiveUpdates = 0;
     this.lastRecordedTime = null;
@@ -205,6 +207,11 @@ export default class PlaybackWatcher {
     // the buffered value for this loader changed
     // appends are working
     if (isBufferedDifferent) {
+      const metadata = {
+        bufferedRanges: buffered
+      };
+
+      pc.trigger({ type: 'bufferedrangeschanged', metadata });
       this.resetSegmentDownloads_(type);
       return;
     }
@@ -271,6 +278,12 @@ export default class PlaybackWatcher {
     } else if (currentTime === this.lastRecordedTime) {
       this.consecutiveUpdates++;
     } else {
+      this.playedRanges_.push(createTimeRange(this.lastRecordedTime, currentTime));
+      const metadata = {
+        playedRanges: this.playedRanges_
+      };
+
+      this.playlistController_.trigger({ type: 'playedrangeschanged', metadata });
       this.consecutiveUpdates = 0;
       this.lastRecordedTime = currentTime;
     }
