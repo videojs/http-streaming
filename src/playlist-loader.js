@@ -21,6 +21,7 @@ import {
 import {getKnownPartCount} from './playlist.js';
 import {merge} from './util/vjs-compat';
 import DateRangesStorage from './util/date-ranges';
+import { getStreamingNetworkErrorMetadata } from './error-codes.js';
 
 const { EventTarget } = videojs;
 
@@ -486,23 +487,29 @@ export default class PlaylistLoader extends EventTarget {
       message: `HLS playlist request error at URL: ${uri}.`,
       responseText: xhr.responseText,
       code: (xhr.status >= 500) ? 4 : 2,
-      metadata: {
-        errorType: videojs.Error.HlsPlaylistRequestError
-      }
+      metadata: getStreamingNetworkErrorMetadata({ requestType: xhr.requestType, xhr, error: xhr.error })
     };
 
     this.trigger('error');
   }
 
   parseManifest_({url, manifestString}) {
-    return parseManifest({
-      onwarn: ({message}) => this.logger_(`m3u8-parser warn for ${url}: ${message}`),
-      oninfo: ({message}) => this.logger_(`m3u8-parser info for ${url}: ${message}`),
-      manifestString,
-      customTagParsers: this.customTagParsers,
-      customTagMappers: this.customTagMappers,
-      llhls: this.llhls
-    });
+    try {
+      return parseManifest({
+        onwarn: ({message}) => this.logger_(`m3u8-parser warn for ${url}: ${message}`),
+        oninfo: ({message}) => this.logger_(`m3u8-parser info for ${url}: ${message}`),
+        manifestString,
+        customTagParsers: this.customTagParsers,
+        customTagMappers: this.customTagMappers,
+        llhls: this.llhls
+      });
+    } catch (error) {
+      this.error = error;
+      this.error.metadata = {
+        errorType: videojs.Error.StreamingHlsPlaylistParserError,
+        error
+      };
+    }
   }
 
   /**
@@ -883,7 +890,8 @@ export default class PlaylistLoader extends EventTarget {
           message: `HLS playlist request error at URL: ${this.src}.`,
           responseText: req.responseText,
           // MEDIA_ERR_NETWORK
-          code: 2
+          code: 2,
+          metadata: getStreamingNetworkErrorMetadata({ requestType: req.requestType, request: req, error })
         };
         if (this.state === 'HAVE_NOTHING') {
           this.started = false;

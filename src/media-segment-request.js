@@ -9,6 +9,7 @@ import {
   isLikelyFmp4MediaSegment
 } from '@videojs/vhs-utils/es/containers';
 import {merge} from './util/vjs-compat';
+import { getStreamingNetworkErrorMetadata } from './error-codes.js';
 
 export const REQUEST_ERRORS = {
   FAILURE: 2,
@@ -72,12 +73,16 @@ const getProgressStats = (progressEvent) => {
  * @param {Object} request -  the XHR request that possibly generated the error
  */
 const handleErrors = (error, request) => {
+  const { requestType } = request;
+  const metadata = getStreamingNetworkErrorMetadata({ requestType, request, error });
+
   if (request.timedout) {
     return {
       status: request.status,
       message: 'HLS request timed-out at URL: ' + request.uri,
       code: REQUEST_ERRORS.TIMEOUT,
-      xhr: request
+      xhr: request,
+      metadata
     };
   }
 
@@ -86,7 +91,8 @@ const handleErrors = (error, request) => {
       status: request.status,
       message: 'HLS request aborted at URL: ' + request.uri,
       code: REQUEST_ERRORS.ABORTED,
-      xhr: request
+      xhr: request,
+      metadata
     };
   }
 
@@ -95,7 +101,8 @@ const handleErrors = (error, request) => {
       status: request.status,
       message: 'HLS request errored at URL: ' + request.uri,
       code: REQUEST_ERRORS.FAILURE,
-      xhr: request
+      xhr: request,
+      metadata
     };
   }
 
@@ -104,7 +111,8 @@ const handleErrors = (error, request) => {
       status: request.status,
       message: 'Empty HLS response at URL: ' + request.uri,
       code: REQUEST_ERRORS.FAILURE,
-      xhr: request
+      xhr: request,
+      metadata
     };
   }
 
@@ -623,7 +631,9 @@ const decrypt = function({id, key, encryptedBytes, decryptionWorker}, callback) 
   };
 
   decryptionWorker.addEventListener('message', decryptionHandler);
-
+  decryptionWorker.addEventListener('error', () => {
+    // call StreamingFailedToDecryptSegmentError here.
+  });
   let keyBytes;
 
   if (key.bytes.slice) {

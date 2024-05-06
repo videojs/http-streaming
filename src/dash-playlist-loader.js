@@ -22,6 +22,7 @@ import containerRequest from './util/container-request.js';
 import {toUint8} from '@videojs/vhs-utils/es/byte-helpers';
 import logger from './util/logger';
 import {merge} from './util/vjs-compat';
+import { getStreamingNetworkErrorMetadata } from './error-codes.js';
 
 const { EventTarget } = videojs;
 
@@ -391,7 +392,12 @@ export default class DashPlaylistLoader extends EventTarget {
     const uri = resolveManifestRedirect(playlist.sidx.resolvedUri);
 
     const fin = (err, request) => {
-      // TODO: add error metdata here once we create an error type in video.js
+      const { requestType } = request;
+
+      if (err) {
+        err.metadata = getStreamingNetworkErrorMetadata({ requestType, request, error: err });
+      }
+
       if (this.requestErrored_(err, request, startingState)) {
         return;
       }
@@ -402,9 +408,7 @@ export default class DashPlaylistLoader extends EventTarget {
       try {
         sidx = parseSidx(toUint8(request.response).subarray(8));
       } catch (e) {
-        e.metadata = {
-          errorType: videojs.Error.DashManifestSidxParsingError
-        };
+        e.metadata = getStreamingNetworkErrorMetadata({requestType, request, parseFailure: true });
 
         // sidx parsing failed.
         this.requestErrored_(e, request, startingState);
@@ -439,11 +443,7 @@ export default class DashPlaylistLoader extends EventTarget {
           internal: true,
           playlistExclusionDuration: Infinity,
           // MEDIA_ERR_NETWORK
-          code: 2,
-          metadata: {
-            errorType: videojs.Error.UnsupportedSidxContainer,
-            sidxContainer
-          }
+          code: 2
         }, request);
       }
 
@@ -462,6 +462,7 @@ export default class DashPlaylistLoader extends EventTarget {
       this.request = this.vhs_.xhr({
         uri,
         responseType: 'arraybuffer',
+        requestType: 'dash-sidx',
         headers: segmentXhrHeaders({byterange: playlist.sidx.byterange})
       }, fin);
     });
@@ -658,6 +659,12 @@ export default class DashPlaylistLoader extends EventTarget {
       withCredentials: this.withCredentials,
       requestType: 'dash-manifest'
     }, (error, req) => {
+      if (error) {
+        const { requestType } = req;
+
+        error.metadata = getStreamingNetworkErrorMetadata({ requestType, request: req, error });
+      }
+
       if (this.requestErrored_(error, req)) {
         if (this.state === 'HAVE_NOTHING') {
           this.started = false;
@@ -725,6 +732,9 @@ export default class DashPlaylistLoader extends EventTarget {
       }
 
       if (error) {
+        const { requestType } = req;
+
+        this.error.metadata = getStreamingNetworkErrorMetadata({ requestType, request: req, error });
         // sync request failed, fall back to using date header from mpd
         // TODO: log warning
         this.mainPlaylistLoader_.clientOffset_ = this.mainLoaded_ - Date.now();
@@ -777,13 +787,24 @@ export default class DashPlaylistLoader extends EventTarget {
     };
 
     this.trigger({type: 'manifestparsestart', metadata});
-    let newMain = parseMainXml({
-      mainXml: this.mainPlaylistLoader_.mainXml_,
-      srcUrl: this.mainPlaylistLoader_.srcUrl,
-      clientOffset: this.mainPlaylistLoader_.clientOffset_,
-      sidxMapping: this.mainPlaylistLoader_.sidxMapping_,
-      previousManifest: oldMain
-    });
+    let newMain;
+
+    try {
+      newMain = parseMainXml({
+        mainXml: this.mainPlaylistLoader_.mainXml_,
+        srcUrl: this.mainPlaylistLoader_.srcUrl,
+        clientOffset: this.mainPlaylistLoader_.clientOffset_,
+        sidxMapping: this.mainPlaylistLoader_.sidxMapping_,
+        previousManifest: oldMain
+      });
+    } catch (error) {
+      this.error = error;
+      this.error.metadata = {
+        errorType: videojs.Error.StreamingDashManifestParserError,
+        error
+      };
+      this.trigger('error');
+    }
 
     // if we have an old main to compare the new main against
     if (oldMain) {

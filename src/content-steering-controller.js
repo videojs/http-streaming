@@ -212,7 +212,18 @@ export default class ContentSteeringController extends videojs.EventTarget {
         return;
       }
       this.trigger({ type: 'contentsteeringloadcomplete', metadata });
-      const steeringManifestJson = JSON.parse(this.request_.responseText);
+      let steeringManifestJson;
+
+      try {
+        steeringManifestJson = JSON.parse(this.request_.responseText);
+      } catch (parseError) {
+        const errorMetadata = {
+          errorType: videojs.Error.StreamingContentSteeringParserError,
+          error: parseError
+        };
+
+        this.trigger({ type: 'error', metadata: errorMetadata });
+      }
 
       this.assignSteeringProperties_(steeringManifestJson);
       const parsedMetadata = {

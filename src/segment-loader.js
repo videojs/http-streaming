@@ -516,9 +516,9 @@ export const getTroublesomeSegmentDurationMessage = (segmentInfo, sourceType) =>
  * @param {SegmentInfo} segmentInfo the full SegmentInfo object to be reduced.
  * @return the reduced payload.
  */
-const segmentInfoPayload = (segmentInfo, isInit = false) => {
+const segmentInfoPayload = (type, segmentInfo, isInit = false) => {
   return {
-    type: this.loaderType_,
+    type,
     uri: segmentInfo.uri,
     start: segmentInfo.startOfSegment,
     duration: segmentInfo.duration,
@@ -1403,7 +1403,7 @@ bufferedEnd: ${lastBufferedEnd(this.buffered_())}
       return;
     }
     const metadata = {
-      segmentInfo: segmentInfoPayload(segmentInfo)
+      segmentInfo: segmentInfoPayload(this.loaderType_, segmentInfo)
     };
 
     this.trigger({ type: 'segmentselected', metadata });
@@ -1519,6 +1519,15 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
         const syncInfo = this.getSyncInfoFromMediaSequenceSync_(targetTime);
 
         if (!syncInfo) {
+          const message = 'No sync info found while using media sequence sync';
+
+          this.error({
+            message,
+            metadata: {
+              errorType: videojs.Error.StreamingFailedToSelectNextSegment,
+              error: new Error(message)
+            }
+          });
           this.logger_('chooseNextRequest_ - no sync info found using media sequence sync');
           // no match
           return null;
@@ -2488,7 +2497,7 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
       });
     }
     const metadata = {
-      segmentInfo: segmentInfoPayload(segmentInfo, Boolean(initSegment))
+      segmentInfo: segmentInfoPayload(this.loaderType_, segmentInfo, Boolean(initSegment))
     };
 
     this.trigger({ type: 'segmentappendstart', metadata });
@@ -2661,7 +2670,7 @@ ${segmentInfoString(segmentInfo)}`);
         this.logger_(`${segmentInfoString(segmentInfo)} logged from transmuxer stream ${stream} as a ${level}: ${message}`);
       },
       triggerSegmentEventFn: ({ type, isInit, keyInfo, trackInfo, timingInfo }) => {
-        const segInfo = segmentInfoPayload(segmentInfo, isInit);
+        const segInfo = segmentInfoPayload(this.loaderType_, segmentInfo, isInit);
         const metadata = { segmentInfo: segInfo, keyInfo, trackInfo, timingInfo };
 
         this.trigger({ type, metadata });
@@ -3149,7 +3158,7 @@ ${segmentInfoString(segmentInfo)}`);
     // appendsdone can cause an abort
     if (this.pendingSegment_) {
       const metadata = {
-        segmentInfo: segmentInfoPayload(this.pendingSegment_)
+        segmentInfo: segmentInfoPayload(this.loaderType_, this.pendingSegment_)
       };
 
       this.trigger({ type: 'appendsdone', metadata});
