@@ -31,10 +31,7 @@ const enableFunction = (loader, playlistID, changePlaylistFn) => (enable) => {
     renditionInfo: {
       id: playlistID,
       bandwidth: playlist.attributes.BANDWIDTH,
-      resolution: {
-        width: playlist.attributes.RESOLUTION.width,
-        height: playlist.attributes.RESOLUTION.height
-      },
+      resolution: playlist.attributes.RESOLUTION,
       codecs: playlist.attributes.CODECS
     },
     cause: 'fast-quality'
@@ -44,9 +41,9 @@ const enableFunction = (loader, playlistID, changePlaylistFn) => (enable) => {
     // Ensure the outside world knows about our changes
     changePlaylistFn(playlist);
     if (enable) {
-      loader.trigger({ type: 'renditionenabled', metadata });
+      loader.trigger({ type: 'renditionenabled', metadata});
     } else {
-      loader.trigger({ type: 'renditiondisabled', metadata });
+      loader.trigger({ type: 'renditiondisabled', metadata});
     }
   }
   return enable;

@@ -372,6 +372,28 @@ export const refreshDelay = (media, update) => {
   return (media.partTargetDuration || media.targetDuration || 10) * 500;
 };
 
+const playlistMetadataPayload = (playlists, type, isLive) => {
+  if (!playlists) {
+    return;
+  }
+  const renditions = [];
+
+  playlists.forEach((playlist) => {
+    renditions.push({
+      id: playlist.id,
+      bandwidth: playlist.attributes.BANDWIDTH,
+      resolution: playlist.attributes.RESOLUTION,
+      codecs: playlist.attributes.CODECS
+    });
+  });
+
+  return {
+    type,
+    isLive,
+    renditions
+  };
+};
+
 /**
  * Load a playlist from a remote location
  *
@@ -565,7 +587,7 @@ export default class PlaylistLoader extends EventTarget {
     }
 
     this.updateMediaUpdateTimeout_(refreshDelay(this.media(), !!update));
-    metadata.parsedPlaylist = playlist;
+    metadata.parsedPlaylist = playlistMetadataPayload(this.main.playlists, metadata.playlistInfo.type, !this.media_.endList);
     this.trigger({ type: 'playlistparsecomplete', metadata });
     this.trigger('loadedplaylist');
   }
@@ -908,8 +930,8 @@ export default class PlaylistLoader extends EventTarget {
         url: this.src
       });
 
-      // TODO: Do we want to pass the entire parsed manifest here or just select fields?
-      metadata.parsedPlaylist = manifest;
+      // we haven't loaded any variant playlists here so we default to false for isLive.
+      metadata.parsedPlaylist = playlistMetadataPayload(manifest.playlists, metadata.type, false);
       this.trigger({ type: 'playlistparsecomplete', metadata });
 
       this.setupInitialPlaylist(manifest);

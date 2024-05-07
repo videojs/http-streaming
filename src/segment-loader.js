@@ -685,6 +685,9 @@ export default class SegmentLoader extends videojs.EventTarget {
       }
     });
 
+    this.sourceUpdater_.on('codecschange', (metadata) => {
+      this.trigger({type: 'codecschange', metadata});
+    });
     // Only the main loader needs to listen for pending timeline changes, as the main
     // loader should wait for audio to be ready to change its timeline so that both main
     // and audio timelines change together. For more details, see the
@@ -2815,7 +2818,8 @@ ${segmentInfoString(segmentInfo)}`);
       }
     };
 
-    this.trigger({type: 'usage', name: 'vhs-bandwidth-update', metadata });
+    // player event with payload
+    this.trigger({type: 'bandwidthupdated', metadata});
 
     this.bandwidth = stats.bandwidth;
     this.roundTrip = stats.roundTripTime;

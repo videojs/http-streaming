@@ -12,6 +12,7 @@ import window from 'global/window';
 import * as Ranges from './ranges';
 import logger from './util/logger';
 import { createTimeRanges } from './util/vjs-compat';
+import videojs from 'video.js';
 
 // Set of events that reset the playback-watcher time check logic and clear the timeout
 const timerCancelEvents = [
@@ -25,7 +26,7 @@ const timerCancelEvents = [
 /**
  * @class PlaybackWatcher
  */
-export default class PlaybackWatcher {
+export default class PlaybackWatcher extends videojs.EventTarget {
   /**
    * Represents an PlaybackWatcher object.
    *
@@ -33,6 +34,7 @@ export default class PlaybackWatcher {
    * @param {Object} options an object that includes the tech and settings
    */
   constructor(options) {
+    super();
     this.playlistController_ = options.playlistController;
     this.tech_ = options.tech;
     this.seekable = options.seekable;
@@ -602,7 +604,14 @@ export default class PlaybackWatcher {
 
     // only seek if we still have not played
     this.tech_.setCurrentTime(nextRange.start(0) + Ranges.TIME_FUDGE_FACTOR);
+    const metadata = {
+      gapInfo: {
+        from: currentTime,
+        to: nextRange.start(0)
+      }
+    };
 
+    this.playlistController_.trigger({type: 'gapjumped', metadata});
     this.tech_.trigger({type: 'usage', name: 'vhs-gap-skip'});
   }
 

@@ -812,6 +812,7 @@ class VhsHandler extends Component {
 
     this.playbackWatcher_ = new PlaybackWatcher(playbackWatcherOptions);
 
+    this.attachStreamingEventListeners_();
     this.playlistController_.on('error', () => {
       const player = videojs.players[this.tech_.options_.playerId];
       let error = this.playlistController_.error;
@@ -1322,6 +1323,61 @@ class VhsHandler extends Component {
     // Trigger an event on the player to notify the user that vhs is ready to set xhr hooks.
     // This allows hooks to be set before the source is set to vhs when handleSource is called.
     this.player_.trigger('xhr-hooks-ready');
+  }
+
+  attachStreamingEventListeners_() {
+    const playlistControllerEvents = [
+      'manifestrequeststart',
+      'manifestrequestcomplete',
+      'manifestparsestart',
+      'manifestparsecomplete',
+      'playlistrequeststart',
+      'playlistrequestcomplete',
+      'playlistparsestart',
+      'playlistparsecomplete',
+      'segmentselected',
+      'segmentloadstart',
+      'segmentloaded',
+      'segmentkeyloadstart',
+      'segmentkeyloadcomplete',
+      'segmentdecryptionstart',
+      'segmentdecryptioncomplete',
+      'segmenttransmuxingstart',
+      'segmenttransmuxingcomplete',
+      'segmenttransmuxingtrackinfoavailable',
+      'segmenttransmuxingtiminginfoavailable',
+      'segmentappendstart',
+      'appendsdone',
+      'renditiondisabled',
+      'renditionenabled',
+      'renditionselected',
+      'bandwidthupdated',
+      'timelinechange',
+      'codecschange',
+      'seekablerangeschanged',
+      'bufferedrangeschanged',
+      'contentsteeringloadstart',
+      'contentsteeringloadcomplete',
+      'contentsteeringparsed'
+    ];
+
+    const playbackWatcher = [
+      'gapjumped',
+      'playedrangeschanged'
+    ];
+
+    // re-emit streaming events and payloads on the player.
+    playlistControllerEvents.forEach((eventName) => {
+      this.playlistController_.on(eventName, (metadata) => {
+        this.player_.trigger({...metadata});
+      });
+    });
+
+    playbackWatcher.forEach((eventName) => {
+      this.playbackWatcher_.on(eventName, (metadata) => {
+        this.player_.trigger({...metadata});
+      });
+    });
   }
 }
 

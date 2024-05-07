@@ -413,16 +413,14 @@ export class PlaylistController extends videojs.EventTarget {
         renditionInfo: {
           id: newId,
           bandwidth: playlist.attributes.BANDWIDTH,
-          resolution: {
-            width: playlist.attributes.RESOLUTION.width,
-            height: playlist.attributes.RESOLUTION.height
-          },
+          resolution: playlist.attributes.RESOLUTION,
           codecs: playlist.attributes.CODECS
         },
         cause
       };
 
-      this.tech_.trigger({type: 'usage', name: `vhs-rendition-change-${cause}`, metadata});
+      this.trigger({type: 'renditionselected', metadata});
+      this.tech_.trigger({type: 'usage', name: `vhs-rendition-change-${cause}`});
     }
     this.mainPlaylistLoader_.media(playlist, delay);
   }
@@ -740,10 +738,32 @@ export class PlaylistController extends videojs.EventTarget {
     });
 
     this.mainPlaylistLoader_.on('renditiondisabled', (metadata) => {
-      this.tech_.trigger({type: 'usage', name: 'vhs-rendition-disabled', metadata});
+      // eslint-disable-next-line
+      this.trigger({...metadata});
+      this.tech_.trigger({type: 'usage', name: 'vhs-rendition-disabled'});
     });
     this.mainPlaylistLoader_.on('renditionenabled', (metadata) => {
-      this.tech_.trigger({type: 'usage', name: 'vhs-rendition-enabled', metadata});
+      this.trigger({...metadata});
+      this.tech_.trigger({type: 'usage', name: 'vhs-rendition-enabled'});
+    });
+
+    const playlistLoaderEvents = [
+      'manifestrequeststart',
+      'manifestrequestcomplete',
+      'manifestparsestart',
+      'manifestparsecomplete',
+      'playlistrequeststart',
+      'playlistrequestcomplete',
+      'playlistparsestart',
+      'playlistparsecomplete',
+      'renditiondisabled',
+      'renditionenabled'
+    ];
+
+    playlistLoaderEvents.forEach((eventName) => {
+      this.mainPlaylistLoader_.on(eventName, (metadata) => {
+        this.trigger({...metadata});
+      });
     });
   }
 
@@ -963,6 +983,40 @@ export class PlaylistController extends videojs.EventTarget {
       this.logger_('audioSegmentLoader ended');
       this.onEndOfStream();
     });
+
+    const segmentLoaderEvents = [
+      'segmentselected',
+      'segmentloadstart',
+      'segmentloaded',
+      'segmentkeyloadstart',
+      'segmentkeyloadcomplete',
+      'segmentdecryptionstart',
+      'segmentdecryptioncomplete',
+      'segmenttransmuxingstart',
+      'segmenttransmuxingcomplete',
+      'segmenttransmuxingtrackinfoavailable',
+      'segmenttransmuxingtiminginfoavailable',
+      'segmentappendstart',
+      'appendsdone',
+      'bandwidthupdated',
+      'timelinechange',
+      'codecschange'
+    ];
+
+    segmentLoaderEvents.forEach((eventName) => {
+      this.mainSegmentLoader_.on(eventName, (metadata) => {
+        this.trigger({...metadata});
+      });
+
+      this.audioSegmentLoader_.on(eventName, (metadata) => {
+        this.trigger({...metadata});
+      });
+
+      this.subtitleSegmentLoader_.on(eventName, (metadata) => {
+        this.trigger({...metadata});
+      });
+    });
+
   }
 
   mediaSecondsLoaded_() {
@@ -1650,7 +1704,8 @@ export class PlaylistController extends videojs.EventTarget {
       seekableRanges: this.seekable_
     };
 
-    this.tech_.trigger({ type: 'seekablechanged', metadata });
+    this.trigger({type: 'seekablerangeschanged', metadata});
+    this.tech_.trigger('seekablechanged');
   }
 
   /**
@@ -2190,6 +2245,18 @@ export class PlaylistController extends videojs.EventTarget {
    */
   attachContentSteeringListeners_() {
     this.contentSteeringController_.on('content-steering', this.excludeThenChangePathway_.bind(this));
+    const contentSteeringEvents = [
+      'contentsteeringloadstart',
+      'contentsteeringloadcomplete',
+      'contentsteeringparsed'
+    ];
+
+    contentSteeringEvents.forEach((eventName) => {
+      this.contentSteeringController_.on(eventName, (metadata) => {
+        this.trigger({...metadata});
+      });
+    });
+
     if (this.sourceType_ === 'dash') {
       this.mainPlaylistLoader_.on('loadedplaylist', () => {
         const main = this.main();

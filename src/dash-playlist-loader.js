@@ -824,9 +824,27 @@ export default class DashPlaylistLoader extends EventTarget {
     }
 
     this.addEventStreamToMetadataTrack_(newMain);
-    metadata.parsedManifest = newMain;
-    // TODO: Do we want to pass the entire parsed manifest here or just select parts?
-    this.trigger({type: 'manifestparsecomplete', metadata});
+    if (newMain) {
+      const { duration, endList } = newMain;
+      const renditions = [];
+
+      newMain.playlists.forEach((playlist) => {
+        renditions.push({
+          id: playlist.id,
+          bandwidth: playlist.attributes.BANDWIDTH,
+          resolution: playlist.attributes.RESOLUTION,
+          codecs: playlist.attributes.CODECS
+        });
+      });
+      const parsedManifest = {
+        duration,
+        isLive: !endList,
+        renditions
+      };
+
+      metadata.parsedManifest = parsedManifest;
+      this.trigger({type: 'manifestparsecomplete', metadata});
+    }
 
     return Boolean(newMain);
   }
