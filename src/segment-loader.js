@@ -2419,10 +2419,7 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
         `video buffer: ${timeRangesToArray(videoBuffered).join(', ')}, `);
       this.error({
         message: 'Quota exceeded error with append of a single segment of content',
-        excludeUntil: Infinity,
-        metadata: {
-          errorType: videojs.Error.SegmentExceedsSourceBufferQuota
-        }
+        excludeUntil: Infinity
       });
       this.trigger('error');
       return;
@@ -2996,10 +2993,7 @@ ${segmentInfoString(segmentInfo)}`);
     if (!trackInfo) {
       this.error({
         message: 'No starting media returned, likely due to an unsupported media format.',
-        playlistExclusionDuration: Infinity,
-        metadata: {
-          errorType: videojs.Error.SegmentUnsupportedMediaFormat
-        }
+        playlistExclusionDuration: Infinity
       });
       this.trigger('error');
       return;
@@ -3080,10 +3074,7 @@ ${segmentInfoString(segmentInfo)}`);
     if (illegalMediaSwitchError) {
       this.error({
         message: illegalMediaSwitchError,
-        playlistExclusionDuration: Infinity,
-        metadata: {
-          errorType: videojs.Error.SegmentSwitchError
-        }
+        playlistExclusionDuration: Infinity
       });
       this.trigger('error');
       return true;
