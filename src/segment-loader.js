@@ -516,14 +516,30 @@ export const getTroublesomeSegmentDurationMessage = (segmentInfo, sourceType) =>
  * @param {SegmentInfo} segmentInfo the full SegmentInfo object to be reduced.
  * @return the reduced payload.
  */
-const segmentInfoPayload = (type, segmentInfo, isInit = false) => {
+export const getSegmentInfoFromSimpleSegment = (segment) => {
+  const { type, resolvedUri, start, duration, isEncrypted, isMediaInitialization } = segment;
+
+  return {
+    type,
+    uri: resolvedUri,
+    start,
+    duration,
+    isEncrypted,
+    isMediaInitialization
+  };
+};
+
+const segmentInfoPayload = (type, segmentInfo) => {
+  const isEncrypted = segmentInfo.segment.key || segmentInfo.segment.map && segmentInfo.segment.map.key;
+  const isMediaInitialization = segmentInfo.segment.map && !segmentInfo.segment.map.bytes;
+
   return {
     type,
     uri: segmentInfo.uri,
     start: segmentInfo.startOfSegment,
     duration: segmentInfo.duration,
-    isEncrypted: Boolean(segmentInfo.segment.key),
-    isMediaInitialization: isInit
+    isEncrypted,
+    isMediaInitialization
   };
 };
 
@@ -1402,6 +1418,7 @@ bufferedEnd: ${lastBufferedEnd(this.buffered_())}
     if (!segmentInfo) {
       return;
     }
+
     const metadata = {
       segmentInfo: segmentInfoPayload(this.loaderType_, segmentInfo)
     };
@@ -2470,7 +2487,7 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
       message: `${type} append of ${bytes.length}b failed for segment ` +
         `#${segmentInfo.mediaIndex} in playlist ${segmentInfo.playlist.id}`,
       metadata: {
-        errorType: videojs.Error.SegmentAppendError
+        errorType: videojs.Error.StreamingFailedToAppendSegment
       }
     });
     this.trigger('appenderror');
@@ -2497,7 +2514,7 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
       });
     }
     const metadata = {
-      segmentInfo: segmentInfoPayload(this.loaderType_, segmentInfo, Boolean(initSegment))
+      segmentInfo: segmentInfoPayload(this.loaderType_, segmentInfo)
     };
 
     this.trigger({ type: 'segmentappendstart', metadata });
@@ -2669,8 +2686,8 @@ ${segmentInfoString(segmentInfo)}`);
       onTransmuxerLog: ({message, level, stream}) => {
         this.logger_(`${segmentInfoString(segmentInfo)} logged from transmuxer stream ${stream} as a ${level}: ${message}`);
       },
-      triggerSegmentEventFn: ({ type, isInit, keyInfo, trackInfo, timingInfo }) => {
-        const segInfo = segmentInfoPayload(this.loaderType_, segmentInfo, isInit);
+      triggerSegmentEventFn: ({ type, segment, keyInfo, trackInfo, timingInfo }) => {
+        const segInfo = getSegmentInfoFromSimpleSegment(segment);
         const metadata = { segmentInfo: segInfo, keyInfo, trackInfo, timingInfo };
 
         this.trigger({ type, metadata });
@@ -2716,6 +2733,8 @@ ${segmentInfoString(segmentInfo)}`);
   createSimplifiedSegmentObj_(segmentInfo) {
     const segment = segmentInfo.segment;
     const part = segmentInfo.part;
+    const isEncrypted = segmentInfo.segment.key || segmentInfo.segment.map && segmentInfo.segment.map.key;
+    const isMediaInitialization = segmentInfo.segment.map && !segmentInfo.segment.map.bytes;
 
     const simpleSegment = {
       resolvedUri: part ? part.resolvedUri : segment.resolvedUri,
@@ -2724,7 +2743,12 @@ ${segmentInfoString(segmentInfo)}`);
       transmuxer: segmentInfo.transmuxer,
       audioAppendStart: segmentInfo.audioAppendStart,
       gopsToAlignWith: segmentInfo.gopsToAlignWith,
-      part: segmentInfo.part
+      part: segmentInfo.part,
+      type: this.loaderType_,
+      start: segmentInfo.startOfSegment,
+      duration: segmentInfo.duration,
+      isEncrypted,
+      isMediaInitialization
     };
 
     const previousSegment = segmentInfo.playlist.segments[segmentInfo.mediaIndex - 1];

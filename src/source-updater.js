@@ -299,6 +299,11 @@ const actions = {
       sourceBuffer.changeType(mime);
       sourceUpdater.codecs[type] = codec;
     } catch (e) {
+      metadata.errorType = videojs.Error.StreamingCodecsChangeError;
+      metadata.error = e;
+      e.metadata = metadata;
+      sourceUpdater.error_ = e;
+      sourceUpdater.trigger('error');
       videojs.log.warn(`Failed to changeType on ${type}Buffer`, e);
     }
   }

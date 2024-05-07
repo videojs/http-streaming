@@ -11,7 +11,7 @@
 import window from 'global/window';
 import * as Ranges from './ranges';
 import logger from './util/logger';
-import { createTimeRange } from 'video.js/dist/types/utils/time';
+import { createTimeRanges } from './util/vjs-compat';
 
 // Set of events that reset the playback-watcher time check logic and clear the timeout
 const timerCancelEvents = [
@@ -278,7 +278,7 @@ export default class PlaybackWatcher {
     } else if (currentTime === this.lastRecordedTime) {
       this.consecutiveUpdates++;
     } else {
-      this.playedRanges_.push(createTimeRange(this.lastRecordedTime, currentTime));
+      this.playedRanges_.push(createTimeRanges([this.lastRecordedTime, currentTime]));
       const metadata = {
         playedRanges: this.playedRanges_
       };

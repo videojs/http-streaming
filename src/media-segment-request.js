@@ -10,6 +10,7 @@ import {
 } from '@videojs/vhs-utils/es/containers';
 import {merge} from './util/vjs-compat';
 import { getStreamingNetworkErrorMetadata } from './error-codes.js';
+import { getSegmentInfoFromSimpleSegment } from './segment-loader.js';
 
 export const REQUEST_ERRORS = {
   FAILURE: 2,
@@ -159,7 +160,7 @@ const handleKeyResponse = (segment, objects, finishProcessingFn, triggerSegmentE
   }
   const keyInfo = { uri: request.uri };
 
-  triggerSegmentEventFn({ type: 'segmentkeyloadcomplete', keyInfo });
+  triggerSegmentEventFn({ type: 'segmentkeyloadcomplete', segment, keyInfo });
   return finishProcessingFn(null, segment);
 };
 
@@ -177,7 +178,6 @@ const parseInitSegment = (segment, callback) => {
       message: `Found unsupported ${mediaType} container for initialization segment at URL: ${uri}`,
       code: REQUEST_ERRORS.FAILURE,
       metadata: {
-        errorType: videojs.Error.UnsupportedMediaInitialization,
         mediaType
       }
     });
@@ -230,7 +230,7 @@ const handleInitSegmentResponse =
   }
   const bytes = new Uint8Array(request.response);
 
-  triggerSegmentEventFn({ type: 'segmentloaded', isInit: true });
+  triggerSegmentEventFn({ type: 'segmentloaded', segment });
   // init segment is encypted, we will have to wait
   // until the key request is done to decrypt.
   if (segment.map.key) {
@@ -273,7 +273,7 @@ const handleSegmentResponse = ({
   if (errorObj) {
     return finishProcessingFn(errorObj, segment);
   }
-  triggerSegmentEventFn({ type: 'segmentloaded' });
+  triggerSegmentEventFn({ type: 'segmentloaded', segment });
   const newBytes =
     // although responseText "should" exist, this guard serves to prevent an error being
     // thrown for two primary cases:
@@ -343,7 +343,7 @@ const transmuxAndNotify = ({
           hasVideo: trackInfo.hasVideo
         };
 
-        triggerSegmentEventFn({ type: 'segmenttransmuxingtrackinfoavailable', trackInfo: info });
+        triggerSegmentEventFn({ type: 'segmenttransmuxingtrackinfoavailable', segment, trackInfo: info });
       }
     },
     onAudioTimingInfo: (audioTimingInfo) => {
@@ -380,7 +380,7 @@ const transmuxAndNotify = ({
         }
       };
 
-      triggerSegmentEventFn({ type: 'segmenttransmuxingtiminginfoavailable', timingInfo });
+      triggerSegmentEventFn({ type: 'segmenttransmuxingtiminginfoavailable', segment, timingInfo });
       videoSegmentTimingInfoFn(videoSegmentTimingInfo);
     },
     onAudioSegmentTimingInfo: (audioSegmentTimingInfo) => {
@@ -395,7 +395,7 @@ const transmuxAndNotify = ({
         }
       };
 
-      triggerSegmentEventFn({ type: 'segmenttransmuxingtiminginfoavailable', timingInfo });
+      triggerSegmentEventFn({ type: 'segmenttransmuxingtiminginfoavailable', segment, timingInfo });
       audioSegmentTimingInfoFn(audioSegmentTimingInfo);
     },
     onId3: (id3Frames, dispatchType) => {
@@ -409,14 +409,15 @@ const transmuxAndNotify = ({
       endedTimelineFn();
     },
     onTransmuxerLog,
-    onDone: (result) => {
+    onDone: (result, error) => {
       if (!doneFn) {
         return;
       }
       result.type = result.type === 'combined' ? 'video' : result.type;
-      triggerSegmentEventFn({ type: 'segmenttransmuxingcomplete' });
-      doneFn(null, segment, result);
+      triggerSegmentEventFn({ type: 'segmenttransmuxingcomplete', segment });
+      doneFn(error, segment, result);
     },
+    segment,
     triggerSegmentEventFn
   });
 
@@ -616,7 +617,8 @@ const handleSegmentBytes = ({
   });
 };
 
-const decrypt = function({id, key, encryptedBytes, decryptionWorker}, callback) {
+const decrypt = function({ segment, decryptionWorker, doneFn }, callback) {
+  const { id, key, encryptedBytes } = segment;
   const decryptionHandler = (event) => {
     if (event.data.source === id) {
       decryptionWorker.removeEventListener('message', decryptionHandler);
@@ -632,7 +634,21 @@ const decrypt = function({id, key, encryptedBytes, decryptionWorker}, callback) 
 
   decryptionWorker.addEventListener('message', decryptionHandler);
   decryptionWorker.addEventListener('error', () => {
-    // call StreamingFailedToDecryptSegmentError here.
+    const message = 'An error occurred in the decryption worker';
+    const segmentInfo = getSegmentInfoFromSimpleSegment(segment);
+    const decryptError = {
+      message,
+      metadata: {
+        error: new Error(message),
+        errorType: videojs.Error.StreamingFailedToDecryptSegment,
+        segmentInfo,
+        keyInfo: {
+          uri: segment.key.resolvedUri || segment.map.key.resolvedUri
+        }
+      }
+    };
+
+    doneFn(decryptError, segment);
   });
   let keyBytes;
 
@@ -696,14 +712,12 @@ const decryptSegment = ({
 }) => {
   triggerSegmentEventFn({ type: 'segmentdecryptionstart' });
   decrypt({
-    id: segment.requestId,
-    key: segment.key,
-    encryptedBytes: segment.encryptedBytes,
+    segment,
     decryptionWorker,
-    triggerSegmentEventFn
+    doneFn
   }, (decryptedBytes) => {
     segment.bytes = decryptedBytes;
-    triggerSegmentEventFn({ type: 'segmentdecryptioncomplete' });
+    triggerSegmentEventFn({ type: 'segmentdecryptioncomplete', segment });
 
     handleSegmentBytes({
       segment,
@@ -840,19 +854,17 @@ const waitForCompletion = ({
       // Keep track of when *all* of the requests have completed
       segment.endOfAllRequests = Date.now();
       if (segment.map && segment.map.encryptedBytes && !segment.map.bytes) {
-        triggerSegmentEventFn({ type: 'segmentdecryptionstart', isInit: true });
+        triggerSegmentEventFn({ type: 'segmentdecryptionstart', segment });
+        // add -init to the "id" to differentiate between segment
+        // and init segment decryption, just in case they happen
+        // at the same time at some point in the future.
+        segment.requestId += '-init';
         return decrypt({
           decryptionWorker,
-          // add -init to the "id" to differentiate between segment
-          // and init segment decryption, just in case they happen
-          // at the same time at some point in the future.
-          id: segment.requestId + '-init',
-          encryptedBytes: segment.map.encryptedBytes,
-          key: segment.map.key,
-          triggerSegmentEventFn
+          segment
         }, (decryptedBytes) => {
           segment.map.bytes = decryptedBytes;
-          triggerSegmentEventFn({ type: 'segmentdecryptioncomplete', isInit: true });
+          triggerSegmentEventFn({ type: 'segmentdecryptioncomplete', segment });
           parseInitSegment(segment, (parseError) => {
             if (parseError) {
               abortAll(activeXhrs);
@@ -1061,7 +1073,7 @@ export const mediaSegmentRequest = ({
     const keyRequestCallback = handleKeyResponse(segment, objects, finishProcessingFn, triggerSegmentEventFn);
     const keyInfo = { uri: segment.key.resolvedUri };
 
-    triggerSegmentEventFn({ type: 'segmentkeyloadstart', keyInfo });
+    triggerSegmentEventFn({ type: 'segmentkeyloadstart', segment, keyInfo });
     const keyXhr = xhr(keyRequestOptions, keyRequestCallback);
 
     activeXhrs.push(keyXhr);
@@ -1080,7 +1092,7 @@ export const mediaSegmentRequest = ({
       const mapKeyRequestCallback = handleKeyResponse(segment, [segment.map.key], finishProcessingFn, triggerSegmentEventFn);
       const keyInfo = { uri: segment.key.resolvedUri };
 
-      triggerSegmentEventFn({ type: 'segmentkeyloadstart', keyInfo });
+      triggerSegmentEventFn({ type: 'segmentkeyloadstart', segment, keyInfo });
       const mapKeyXhr = xhr(mapKeyRequestOptions, mapKeyRequestCallback);
 
       activeXhrs.push(mapKeyXhr);
@@ -1093,7 +1105,7 @@ export const mediaSegmentRequest = ({
     });
     const initSegmentRequestCallback = handleInitSegmentResponse({segment, finishProcessingFn, triggerSegmentEventFn});
 
-    triggerSegmentEventFn({ type: 'segmentloadstart', isInit: true });
+    triggerSegmentEventFn({ type: 'segmentloadstart', segment });
     const initSegmentXhr = xhr(initSegmentOptions, initSegmentRequestCallback);
 
     activeXhrs.push(initSegmentXhr);
@@ -1113,7 +1125,7 @@ export const mediaSegmentRequest = ({
     triggerSegmentEventFn
   });
 
-  triggerSegmentEventFn({ type: 'segmentloadstart' });
+  triggerSegmentEventFn({ type: 'segmentloadstart', segment });
   const segmentXhr = xhr(segmentRequestOptions, segmentRequestCallback);
 
   segmentXhr.addEventListener(
