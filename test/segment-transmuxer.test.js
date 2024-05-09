@@ -84,7 +84,8 @@ QUnit.test('transmux returns data for full appends', function(assert) {
       assert.ok(videoSegmentTimingInfoFn.callCount, 'got videoSegmentTimingInfo events');
       assert.ok(audioSegmentTimingInfoFn.callCount, 'got audioSegmentTimingInfo events');
       done();
-    }
+    },
+    triggerSegmentEventFn: () => {}
   });
 });
 
@@ -111,7 +112,8 @@ QUnit.test('transmux returns captions for full appends', function(assert) {
       assert.ok(dataFn.callCount, 'got data events');
       assert.ok(captionsFn.callCount, 'got captions');
       done();
-    }
+    },
+    triggerSegmentEventFn: () => {}
   });
 });
 
@@ -221,7 +223,8 @@ QUnit.test('processTransmux posts all actions', function(assert) {
     onVideoTimingInfo: noop,
     onId3: noop,
     onCaptions: noop,
-    onDone: noop
+    onDone: noop,
+    triggerSegmentEventFn: () => {}
   });
 
   assert.deepEqual(
@@ -405,7 +408,8 @@ QUnit.test('transmux waits for endTimeline if isEndOfTimeline', function(assert)
       assert.ok(audioSegmentTimingInfoFn.callCount, 'got audioSegmentTimingInfo events');
       assert.ok(onEndedTimelineFn.callCount, 'got onEndedTimeline event');
       done();
-    }
+    },
+    triggerSegmentEventFn: () => {}
   });
 });
 
@@ -445,6 +449,7 @@ QUnit.test('transmux does not wait for endTimeline if not isEndOfTimeline', func
       assert.ok(audioSegmentTimingInfoFn.callCount, 'got audioSegmentTimingInfo events');
       assert.notOk(onEndedTimelineFn.callCount, 'did not get onEndedTimeline event');
       done();
-    }
+    },
+    triggerSegmentEventFn: () => {}
   });
 });

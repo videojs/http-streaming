@@ -3147,7 +3147,7 @@ QUnit.module('SegmentLoader', function(hooks) {
           {
             message: 'video append of 2960b failed for segment #0 in playlist playlist.m3u8',
             metadata: {
-              errorType: 'segment-append-error'
+              errorType: 'streamingfailedtoappendsegment'
             }
           },
           'loader triggered and saved the appenderror'
@@ -4818,10 +4818,7 @@ QUnit.module('SegmentLoader', function(hooks) {
           loader.error_,
           {
             message: 'Quota exceeded error with append of a single segment of content',
-            excludeUntil: Infinity,
-            metadata: {
-              errorType: 'segment-exceeds-source-buffer-quota-error'
-            }
+            excludeUntil: Infinity
           },
           'loader triggered and saved the error'
         );

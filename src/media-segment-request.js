@@ -617,8 +617,7 @@ const handleSegmentBytes = ({
   });
 };
 
-const decrypt = function({ segment, decryptionWorker, doneFn }, callback) {
-  const { id, key, encryptedBytes } = segment;
+const decrypt = function({id, key, encryptedBytes, decryptionWorker, segment, doneFn}, callback) {
   const decryptionHandler = (event) => {
     if (event.data.source === id) {
       decryptionWorker.removeEventListener('message', decryptionHandler);
@@ -632,8 +631,7 @@ const decrypt = function({ segment, decryptionWorker, doneFn }, callback) {
     }
   };
 
-  decryptionWorker.addEventListener('message', decryptionHandler);
-  decryptionWorker.addEventListener('error', () => {
+  decryptionWorker.onerror = () => {
     const message = 'An error occurred in the decryption worker';
     const segmentInfo = getSegmentInfoFromSimpleSegment(segment);
     const decryptError = {
@@ -649,7 +647,9 @@ const decrypt = function({ segment, decryptionWorker, doneFn }, callback) {
     };
 
     doneFn(decryptError, segment);
-  });
+  };
+
+  decryptionWorker.addEventListener('message', decryptionHandler);
   let keyBytes;
 
   if (key.bytes.slice) {
@@ -712,8 +712,11 @@ const decryptSegment = ({
 }) => {
   triggerSegmentEventFn({ type: 'segmentdecryptionstart' });
   decrypt({
-    segment,
+    id: segment.requestId,
+    key: segment.key,
+    encryptedBytes: segment.encryptedBytes,
     decryptionWorker,
+    segment,
     doneFn
   }, (decryptedBytes) => {
     segment.bytes = decryptedBytes;
@@ -859,10 +862,15 @@ const waitForCompletion = ({
         // and init segment decryption, just in case they happen
         // at the same time at some point in the future.
         segment.requestId += '-init';
-        return decrypt({
-          decryptionWorker,
-          segment
-        }, (decryptedBytes) => {
+        return decrypt({ decryptionWorker,
+          // add -init to the "id" to differentiate between segment
+          // and init segment decryption, just in case they happen
+          // at the same time at some point in the future.
+          id: segment.requestId + '-init',
+          encryptedBytes: segment.map.encryptedBytes,
+          key: segment.map.key,
+          segment,
+          doneFn }, (decryptedBytes) => {
           segment.map.bytes = decryptedBytes;
           triggerSegmentEventFn({ type: 'segmentdecryptioncomplete', segment });
           parseInitSegment(segment, (parseError) => {
@@ -1090,7 +1098,7 @@ export const mediaSegmentRequest = ({
         requestType: 'segment-key'
       });
       const mapKeyRequestCallback = handleKeyResponse(segment, [segment.map.key], finishProcessingFn, triggerSegmentEventFn);
-      const keyInfo = { uri: segment.key.resolvedUri };
+      const keyInfo = { uri: segment.map.key.resolvedUri };
 
       triggerSegmentEventFn({ type: 'segmentkeyloadstart', segment, keyInfo });
       const mapKeyXhr = xhr(mapKeyRequestOptions, mapKeyRequestCallback);

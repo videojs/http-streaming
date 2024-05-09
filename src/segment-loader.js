@@ -517,6 +517,9 @@ export const getTroublesomeSegmentDurationMessage = (segmentInfo, sourceType) =>
  * @return the reduced payload.
  */
 export const getSegmentInfoFromSimpleSegment = (segment) => {
+  if (!segment) {
+    return;
+  }
   const { type, resolvedUri, start, duration, isEncrypted, isMediaInitialization } = segment;
 
   return {

@@ -392,17 +392,12 @@ export default class DashPlaylistLoader extends EventTarget {
     const uri = resolveManifestRedirect(playlist.sidx.resolvedUri);
 
     const fin = (err, request) => {
-      const { requestType } = request;
-
-      if (err) {
-        err.metadata = getStreamingNetworkErrorMetadata({ requestType, request, error: err });
-      }
-
       if (this.requestErrored_(err, request, startingState)) {
         return;
       }
 
       const sidxMapping = this.mainPlaylistLoader_.sidxMapping_;
+      const { requestType } = request;
       let sidx;
 
       try {
@@ -424,6 +419,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
       return cb(true);
     };
+    const REQUEST_TYPE = 'dash-sidx';
 
     this.request = containerRequest(uri, this.vhs_.xhr, (err, request, container, bytes) => {
       if (err) {
@@ -465,7 +461,7 @@ export default class DashPlaylistLoader extends EventTarget {
         requestType: 'dash-sidx',
         headers: segmentXhrHeaders({byterange: playlist.sidx.byterange})
       }, fin);
-    });
+    }, REQUEST_TYPE);
   }
 
   dispose() {

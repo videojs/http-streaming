@@ -379,11 +379,17 @@ const playlistMetadataPayload = (playlists, type, isLive) => {
   const renditions = [];
 
   playlists.forEach((playlist) => {
+    // we need attributes to populate rendition data.
+    if (!playlist.attributes) {
+      return;
+    }
+    const { BANDWIDTH, RESOLUTION, CODECS } = playlist.attributes;
+
     renditions.push({
       id: playlist.id,
-      bandwidth: playlist.attributes.BANDWIDTH,
-      resolution: playlist.attributes.RESOLUTION,
-      codecs: playlist.attributes.CODECS
+      bandwidth: BANDWIDTH,
+      resolution: RESOLUTION,
+      codecs: CODECS
     });
   });
 
@@ -509,7 +515,7 @@ export default class PlaylistLoader extends EventTarget {
       message: `HLS playlist request error at URL: ${uri}.`,
       responseText: xhr.responseText,
       code: (xhr.status >= 500) ? 4 : 2,
-      metadata: getStreamingNetworkErrorMetadata({ requestType: xhr.requestType, xhr, error: xhr.error })
+      metadata: getStreamingNetworkErrorMetadata({ requestType: xhr.requestType, request: xhr, error: xhr.error })
     };
 
     this.trigger('error');
