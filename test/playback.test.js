@@ -532,7 +532,7 @@ QUnit.test('Advanced Bip Bop playlist events', function(assert) {
 
   this.player.defaultPlaybackRate(1);
 
-  assert.expect(9);
+  assert.expect(10);
   const player = this.player;
   let playlistrequeststartCallCount = 0;
   let playlistparsestartCallCount = 0;
@@ -660,18 +660,88 @@ QUnit.test('Advanced Bip Bop playlist events', function(assert) {
       expectedMetadata.playlistInfo.type = 'media';
       expectedMetadata.playlistInfo.uri = 'gear1/prog_index.m3u8';
       expectedMetadata.parsedPlaylist.type = 'media';
-      expectedMetadata.renditions[0].id = '0-gear1/prog_index.m3u8';
-      expectedMetadata.renditions[1].id = '1-gear2/prog_index.m3u8';
-      expectedMetadata.renditions[2].id = '2-gear3/prog_index.m3u8';
-      expectedMetadata.renditions[3].id = '3-gear4/prog_index.m3u8';
-      expectedMetadata.renditions[3].id = '4-gear5/prog_index.m3u8';
-      expectedMetadata.renditions[3].id = '5-gear0/prog_index.m3u8';
+      expectedMetadata.parsedPlaylist.renditions[0].id = '0-gear1/prog_index.m3u8';
+      expectedMetadata.parsedPlaylist.renditions[1].id = '1-gear2/prog_index.m3u8';
+      expectedMetadata.parsedPlaylist.renditions[2].id = '2-gear3/prog_index.m3u8';
+      expectedMetadata.parsedPlaylist.renditions[3].id = '3-gear4/prog_index.m3u8';
+      expectedMetadata.parsedPlaylist.renditions[4].id = '4-gear5/prog_index.m3u8';
+      expectedMetadata.parsedPlaylist.renditions[5].id = '5-gear0/prog_index.m3u8';
     }
     assert.deepEqual(event.metadata, expectedMetadata, 'playlistparsecomplete got expected metadata');
     playlistparsecompleteCallCount++;
   });
 
-  playFor(player, 2, function() {
+  playFor(player, 0.1, function() {
+    assert.ok(true, 'played for at least two seconds');
+    assert.equal(player.error(), null, 'has no player errors');
+
+    done();
+  });
+
+  player.src({
+    src: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8',
+    type: 'application/x-mpegURL'
+  });
+});
+
+QUnit.test('Advanced Bip Bop segment events', function(assert) {
+  const done = assert.async();
+
+  this.player.defaultPlaybackRate(1);
+
+  // assert.expect(9);
+  const player = this.player;
+
+  // segment selected
+  player.one('segmentselected', (event) => {
+    // console.log(event);
+    const expectedMetadata = {
+      segmentInfo: {
+        duration: 9.9766,
+        isEncrypted: false,
+        isMediaInitialization: false,
+        start: 0,
+        type: 'main',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/gear1/main.ts'
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'segmentselected got expected metadata');
+  });
+
+  // segment load start
+  player.one('segmentloadstart', (event) => {
+    const expectedMetadata = {
+      segmentInfo: {
+        duration: 9.9766,
+        isEncrypted: false,
+        isMediaInitialization: false,
+        start: 0,
+        type: 'main',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/gear1/main.ts'
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'segmentloadstart got expected metadata');
+  });
+
+  // segment loaded
+  player.one('segmentloaded', (event) => {
+    const expectedMetadata = {
+      segmentInfo: {
+        duration: 9.9766,
+        isEncrypted: false,
+        isMediaInitialization: false,
+        start: 0,
+        type: 'main',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/gear1/main.ts'
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'segmentloaded got expected metadata');
+  });
+
+  playFor(player, 0.1, function() {
     assert.ok(true, 'played for at least two seconds');
     assert.equal(player.error(), null, 'has no player errors');
 

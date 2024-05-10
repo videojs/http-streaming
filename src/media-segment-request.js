@@ -10,7 +10,7 @@ import {
 } from '@videojs/vhs-utils/es/containers';
 import {merge} from './util/vjs-compat';
 import { getStreamingNetworkErrorMetadata } from './error-codes.js';
-import { getSegmentInfoFromSimpleSegment } from './segment-loader.js';
+import { segmentInfoPayload } from './segment-loader.js';
 
 export const REQUEST_ERRORS = {
   FAILURE: 2,
@@ -633,7 +633,7 @@ const decrypt = function({id, key, encryptedBytes, decryptionWorker, segment, do
 
   decryptionWorker.onerror = () => {
     const message = 'An error occurred in the decryption worker';
-    const segmentInfo = getSegmentInfoFromSimpleSegment(segment);
+    const segmentInfo = segmentInfoPayload({segment});
     const decryptError = {
       message,
       metadata: {

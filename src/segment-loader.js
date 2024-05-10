@@ -511,36 +511,23 @@ export const getTroublesomeSegmentDurationMessage = (segmentInfo, sourceType) =>
 };
 
 /**
- * Utility function to reduce a segmentInfo object to a simple event payload.
  *
- * @param {SegmentInfo} segmentInfo the full SegmentInfo object to be reduced.
- * @return the reduced payload.
+ * @param {Object} options type of segment loader and segment either segmentInfo or simple segment
+ * @return a segmentInfo payload for events or errors.
  */
-export const getSegmentInfoFromSimpleSegment = (segment) => {
+export const segmentInfoPayload = ({type, segment}) => {
   if (!segment) {
     return;
   }
-  const { type, resolvedUri, start, duration, isEncrypted, isMediaInitialization } = segment;
+  const isEncrypted = Boolean(segment.key || segment.map && segment.map.ke);
+  const isMediaInitialization = Boolean(segment.map && !segment.map.bytes);
+  const start = segment.startOfSegment === undefined ? segment.start : segment.startOfSegment;
 
   return {
-    type,
-    uri: resolvedUri,
+    type: type || segment.type,
+    uri: segment.uri || segment.resolvedUri,
     start,
-    duration,
-    isEncrypted,
-    isMediaInitialization
-  };
-};
-
-const segmentInfoPayload = (type, segmentInfo) => {
-  const isEncrypted = segmentInfo.segment.key || segmentInfo.segment.map && segmentInfo.segment.map.key;
-  const isMediaInitialization = segmentInfo.segment.map && !segmentInfo.segment.map.bytes;
-
-  return {
-    type,
-    uri: segmentInfo.uri,
-    start: segmentInfo.startOfSegment,
-    duration: segmentInfo.duration,
+    duration: segment.duration,
     isEncrypted,
     isMediaInitialization
   };
@@ -1426,7 +1413,7 @@ bufferedEnd: ${lastBufferedEnd(this.buffered_())}
     }
 
     const metadata = {
-      segmentInfo: segmentInfoPayload(this.loaderType_, segmentInfo)
+      segmentInfo: segmentInfoPayload({type: this.loaderType_, segment: segmentInfo})
     };
 
     this.trigger({ type: 'segmentselected', metadata });
@@ -2517,7 +2504,7 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
       });
     }
     const metadata = {
-      segmentInfo: segmentInfoPayload(this.loaderType_, segmentInfo)
+      segmentInfo: segmentInfoPayload({type: this.loaderType_, segment: segmentInfo})
     };
 
     this.trigger({ type: 'segmentappendstart', metadata });
@@ -2690,8 +2677,19 @@ ${segmentInfoString(segmentInfo)}`);
         this.logger_(`${segmentInfoString(segmentInfo)} logged from transmuxer stream ${stream} as a ${level}: ${message}`);
       },
       triggerSegmentEventFn: ({ type, segment, keyInfo, trackInfo, timingInfo }) => {
-        const segInfo = getSegmentInfoFromSimpleSegment(segment);
-        const metadata = { segmentInfo: segInfo, keyInfo, trackInfo, timingInfo };
+        const segInfo = segmentInfoPayload({segment});
+        const metadata = { segmentInfo: segInfo };
+        // add other properties if necessary.
+
+        if (keyInfo) {
+          metadata.keyInfo = keyInfo;
+        }
+        if (trackInfo) {
+          metadata.trackInfo = trackInfo;
+        }
+        if (timingInfo) {
+          metadata.timingInfo = timingInfo;
+        }
 
         this.trigger({ type, metadata });
       }

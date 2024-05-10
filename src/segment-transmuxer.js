@@ -1,6 +1,6 @@
 import TransmuxWorker from 'worker!./transmuxer-worker.js';
 import videojs from 'video.js';
-import { getSegmentInfoFromSimpleSegment } from './segment-loader';
+import { segmentInfoPayload } from './segment-loader';
 
 export const handleData_ = (event, transmuxedData, callback) => {
   const {
@@ -162,7 +162,7 @@ export const processTransmux = (options) => {
       message: 'Received an error message from the transmuxer worker',
       metadata: {
         errorType: videojs.Error.StreamingFailedToTransmuxSegment,
-        segmentInfo: getSegmentInfoFromSimpleSegment(segment)
+        segmentInfo: segmentInfoPayload({segment})
       }
     };
 
