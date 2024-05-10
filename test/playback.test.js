@@ -684,17 +684,173 @@ QUnit.test('Advanced Bip Bop playlist events', function(assert) {
   });
 });
 
+QUnit.test('Big Buck Bunny manifest events', function(assert) {
+  const done = assert.async();
+
+  this.player.defaultPlaybackRate(1);
+
+  assert.expect(6);
+  const player = this.player;
+
+  player.one('manifestrequeststart', (event) => {
+    const expectedMetadata = {
+      manifestInfo: {
+        uri: 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd'
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'manifestrequeststart got expected metadata');
+  });
+
+  player.one('manifestrequestcomplete', (event) => {
+    const expectedMetadata = {
+      manifestInfo: {
+        uri: 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd'
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'manifestrequestcomplete got expected metadata');
+  });
+
+  player.one('manifestparsestart', (event) => {
+    const expectedMetadata = {
+      manifestInfo: {
+        uri: 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd'
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'manifestparsestart got expected metadata');
+  });
+
+  player.one('manifestparsecomplete', (event) => {
+    const expectedMetadata = {
+      manifestInfo: {
+        uri: 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd'
+      },
+      parsedManifest: {
+        duration: 634.566,
+        isLive: false,
+        renditions: [
+          {
+            bandwidth: 3134488,
+            codecs: 'avc1.64001f',
+            id: '0-placeholder-uri-0',
+            resolution: {
+              height: 576,
+              width: 1024
+            }
+          },
+          {
+            bandwidth: 4952892,
+            codecs: 'avc1.64001f',
+            id: '1-placeholder-uri-1',
+            resolution: {
+              height: 720,
+              width: 1280
+            }
+          },
+          {
+            bandwidth: 9914554,
+            codecs: 'avc1.640028',
+            id: '2-placeholder-uri-2',
+            resolution: {
+              height: 1080,
+              width: 1920
+            }
+          },
+          {
+            bandwidth: 254320,
+            codecs: 'avc1.64000d',
+            id: '3-placeholder-uri-3',
+            resolution: {
+              height: 180,
+              width: 320
+            }
+          },
+          {
+            bandwidth: 507246,
+            codecs: 'avc1.64000d',
+            id: '4-placeholder-uri-4',
+            resolution: {
+              height: 180,
+              width: 320
+            }
+          },
+          {
+            bandwidth: 759798,
+            codecs: 'avc1.640015',
+            id: '5-placeholder-uri-5',
+            resolution: {
+              height: 270,
+              width: 480
+            }
+          },
+          {
+            bandwidth: 1254758,
+            codecs: 'avc1.64001e',
+            id: '6-placeholder-uri-6',
+            resolution: {
+              height: 360,
+              width: 640
+            }
+          },
+          {
+            bandwidth: 1013310,
+            codecs: 'avc1.64001e',
+            id: '7-placeholder-uri-7',
+            resolution: {
+              height: 360,
+              width: 640
+            }
+          },
+          {
+            bandwidth: 1883700,
+            codecs: 'avc1.64001e',
+            id: '8-placeholder-uri-8',
+            resolution: {
+              height: 432,
+              width: 768
+            }
+          },
+          {
+            bandwidth: 14931538,
+            codecs: 'avc1.640033',
+            id: '9-placeholder-uri-9',
+            resolution: {
+              height: 2160,
+              width: 3840
+            }
+          }
+        ]
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'manifestparsestart got expected metadata');
+  });
+
+  playFor(player, 0.1, function() {
+    assert.ok(true, 'played for at least two seconds');
+    assert.equal(player.error(), null, 'has no player errors');
+
+    done();
+  });
+
+  player.src({
+    src: 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd',
+    type: 'application/dash+xml'
+  });
+});
+
 QUnit.test('Advanced Bip Bop segment events', function(assert) {
   const done = assert.async();
 
   this.player.defaultPlaybackRate(1);
 
-  // assert.expect(9);
+  assert.expect(5);
   const player = this.player;
 
   // segment selected
   player.one('segmentselected', (event) => {
-    // console.log(event);
     const expectedMetadata = {
       segmentInfo: {
         duration: 9.9766,
