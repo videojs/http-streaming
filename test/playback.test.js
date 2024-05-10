@@ -526,3 +526,160 @@ QUnit.test('hls manifest object', function(assert) {
     done();
   });
 });
+
+QUnit.test('Advanced Bip Bop playlist events', function(assert) {
+  const done = assert.async();
+
+  this.player.defaultPlaybackRate(1);
+
+  assert.expect(9);
+  const player = this.player;
+  let playlistrequeststartCallCount = 0;
+  let playlistparsestartCallCount = 0;
+  let playlistrequestcompleteCallCount = 0;
+  let playlistparsecompleteCallCount = 0;
+
+  // playlist request start
+  player.on('playlistrequeststart', (event) => {
+    const expectedMetadata = {
+      playlistInfo: {
+        type: 'multivariant',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8'
+      }
+    };
+
+    if (playlistrequeststartCallCount === 1) {
+      expectedMetadata.playlistInfo.type = 'media';
+      expectedMetadata.playlistInfo.uri = 'gear1/prog_index.m3u8';
+    }
+    assert.deepEqual(event.metadata, expectedMetadata, 'playlistrequeststart got expected metadata');
+    playlistrequeststartCallCount++;
+  });
+
+  // playlist request complete
+  player.on('playlistrequestcomplete', (event) => {
+    const expectedMetadata = {
+      playlistInfo: {
+        type: 'multivariant',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8'
+      }
+    };
+
+    if (playlistrequestcompleteCallCount === 1) {
+      expectedMetadata.playlistInfo.type = 'media';
+      expectedMetadata.playlistInfo.uri = 'gear1/prog_index.m3u8';
+    }
+    assert.deepEqual(event.metadata, expectedMetadata, 'playlistrequestcomplete got expected metadata');
+    playlistrequestcompleteCallCount++;
+  });
+
+  // playlist parse start
+  player.on('playlistparsestart', (event) => {
+    const expectedMetadata = {
+      playlistInfo: {
+        type: 'multivariant',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8'
+      }
+    };
+
+    if (playlistparsestartCallCount === 1) {
+      expectedMetadata.playlistInfo.type = 'media';
+      expectedMetadata.playlistInfo.uri = 'gear1/prog_index.m3u8';
+    }
+    assert.deepEqual(event.metadata, expectedMetadata, 'playlistparsestart got expected metadata');
+    playlistparsestartCallCount++;
+  });
+
+  // playlist parse complete
+  player.on('playlistparsecomplete', (event) => {
+    const expectedMetadata = {
+      playlistInfo: {
+        type: 'multivariant',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8'
+      },
+      parsedPlaylist: {
+        isLive: false,
+        renditions: [
+          {
+            bandwidth: 263851,
+            codecs: 'mp4a.40.2, avc1.4d400d',
+            id: undefined,
+            resolution: {
+              height: 234,
+              width: 416
+            }
+          },
+          {
+            bandwidth: 577610,
+            codecs: 'mp4a.40.2, avc1.4d401e',
+            id: undefined,
+            resolution: {
+              height: 360,
+              width: 640
+            }
+          },
+          {
+            bandwidth: 915905,
+            codecs: 'mp4a.40.2, avc1.4d401f',
+            id: undefined,
+            resolution: {
+              height: 540,
+              width: 960
+            }
+          },
+          {
+            bandwidth: 1030138,
+            codecs: 'mp4a.40.2, avc1.4d401f',
+            id: undefined,
+            resolution: {
+              height: 720,
+              width: 1280
+            }
+          },
+          {
+            bandwidth: 1924009,
+            codecs: 'mp4a.40.2, avc1.4d401f',
+            id: undefined,
+            resolution: {
+              height: 1080,
+              width: 1920
+            }
+          },
+          {
+            bandwidth: 41457,
+            codecs: 'mp4a.40.2',
+            id: undefined,
+            resolution: undefined
+          }
+        ],
+        type: 'multivariant'
+      }
+    };
+
+    if (playlistparsecompleteCallCount === 1) {
+      expectedMetadata.playlistInfo.type = 'media';
+      expectedMetadata.playlistInfo.uri = 'gear1/prog_index.m3u8';
+      expectedMetadata.parsedPlaylist.type = 'media';
+      expectedMetadata.renditions[0].id = '0-gear1/prog_index.m3u8';
+      expectedMetadata.renditions[1].id = '1-gear2/prog_index.m3u8';
+      expectedMetadata.renditions[2].id = '2-gear3/prog_index.m3u8';
+      expectedMetadata.renditions[3].id = '3-gear4/prog_index.m3u8';
+      expectedMetadata.renditions[3].id = '4-gear5/prog_index.m3u8';
+      expectedMetadata.renditions[3].id = '5-gear0/prog_index.m3u8';
+    }
+    assert.deepEqual(event.metadata, expectedMetadata, 'playlistparsecomplete got expected metadata');
+    playlistparsecompleteCallCount++;
+  });
+
+  playFor(player, 2, function() {
+    assert.ok(true, 'played for at least two seconds');
+    assert.equal(player.error(), null, 'has no player errors');
+
+    done();
+  });
+
+  player.src({
+    src: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8',
+    type: 'application/x-mpegURL'
+  });
+});

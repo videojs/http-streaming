@@ -185,6 +185,7 @@ export class PlaylistController extends videojs.EventTarget {
     this.withCredentials = withCredentials;
     this.tech_ = tech;
     this.vhs_ = tech.vhs;
+    this.player_ = options.player_;
     this.sourceType_ = sourceType;
     this.useCueTags_ = useCueTags;
     this.playlistExclusionDuration = playlistExclusionDuration;
@@ -762,7 +763,8 @@ export class PlaylistController extends videojs.EventTarget {
 
     playlistLoaderEvents.forEach((eventName) => {
       this.mainPlaylistLoader_.on(eventName, (metadata) => {
-        this.trigger({...metadata});
+        // trigger directly on the player to ensure early events are fired.
+        this.player_.trigger({...metadata});
       });
     });
   }
@@ -1005,15 +1007,15 @@ export class PlaylistController extends videojs.EventTarget {
 
     segmentLoaderEvents.forEach((eventName) => {
       this.mainSegmentLoader_.on(eventName, (metadata) => {
-        this.trigger({...metadata});
+        this.player_.trigger({...metadata});
       });
 
       this.audioSegmentLoader_.on(eventName, (metadata) => {
-        this.trigger({...metadata});
+        this.player_.trigger({...metadata});
       });
 
       this.subtitleSegmentLoader_.on(eventName, (metadata) => {
-        this.trigger({...metadata});
+        this.player_.trigger({...metadata});
       });
     });
 

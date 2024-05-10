@@ -937,7 +937,7 @@ export default class PlaylistLoader extends EventTarget {
       });
 
       // we haven't loaded any variant playlists here so we default to false for isLive.
-      metadata.parsedPlaylist = playlistMetadataPayload(manifest.playlists, metadata.type, false);
+      metadata.parsedPlaylist = playlistMetadataPayload(manifest.playlists, metadata.playlistInfo.type, false);
       this.trigger({ type: 'playlistparsecomplete', metadata });
 
       this.setupInitialPlaylist(manifest);

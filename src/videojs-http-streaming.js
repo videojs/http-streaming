@@ -795,6 +795,8 @@ class VhsHandler extends Component {
     this.options_.seekTo = (time) => {
       this.tech_.setCurrentTime(time);
     };
+    // pass player to allow for player level eventing on construction.
+    this.options_.player_ = this.player_;
 
     this.playlistController_ = new PlaylistController(this.options_);
 
@@ -1327,33 +1329,6 @@ class VhsHandler extends Component {
 
   attachStreamingEventListeners_() {
     const playlistControllerEvents = [
-      'manifestrequeststart',
-      'manifestrequestcomplete',
-      'manifestparsestart',
-      'manifestparsecomplete',
-      'playlistrequeststart',
-      'playlistrequestcomplete',
-      'playlistparsestart',
-      'playlistparsecomplete',
-      'segmentselected',
-      'segmentloadstart',
-      'segmentloaded',
-      'segmentkeyloadstart',
-      'segmentkeyloadcomplete',
-      'segmentdecryptionstart',
-      'segmentdecryptioncomplete',
-      'segmenttransmuxingstart',
-      'segmenttransmuxingcomplete',
-      'segmenttransmuxingtrackinfoavailable',
-      'segmenttransmuxingtiminginfoavailable',
-      'segmentappendstart',
-      'appendsdone',
-      'renditiondisabled',
-      'renditionenabled',
-      'renditionselected',
-      'bandwidthupdated',
-      'timelinechange',
-      'codecschange',
       'seekablerangeschanged',
       'bufferedrangeschanged',
       'contentsteeringloadstart',
