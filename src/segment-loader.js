@@ -676,7 +676,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     });
 
     this.sourceUpdater_.on('codecschange', (metadata) => {
-      this.trigger({type: 'codecschange', metadata});
+      this.trigger({type: 'codecschange', ...metadata});
     });
     // Only the main loader needs to listen for pending timeline changes, as the main
     // loader should wait for audio to be ready to change its timeline so that both main
