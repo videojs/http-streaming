@@ -3178,7 +3178,7 @@ ${segmentInfoString(segmentInfo)}`);
     // appendsdone can cause an abort
     if (this.pendingSegment_) {
       const metadata = {
-        segmentInfo: segmentInfoPayload(this.loaderType_, this.pendingSegment_)
+        segmentInfo: segmentInfoPayload({type: this.loaderType_, segment: this.pendingSegment_})
       };
 
       this.trigger({ type: 'appendsdone', metadata});

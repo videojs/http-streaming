@@ -738,13 +738,10 @@ export class PlaylistController extends videojs.EventTarget {
       }
     });
 
-    this.mainPlaylistLoader_.on('renditiondisabled', (metadata) => {
-      // eslint-disable-next-line
-      this.trigger({...metadata});
+    this.mainPlaylistLoader_.on('renditiondisabled', () => {
       this.tech_.trigger({type: 'usage', name: 'vhs-rendition-disabled'});
     });
-    this.mainPlaylistLoader_.on('renditionenabled', (metadata) => {
-      this.trigger({...metadata});
+    this.mainPlaylistLoader_.on('renditionenabled', () => {
       this.tech_.trigger({type: 'usage', name: 'vhs-rendition-enabled'});
     });
 

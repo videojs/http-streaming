@@ -527,6 +527,7 @@ QUnit.test('hls manifest object', function(assert) {
   });
 });
 
+// playlist event tests (hls specific)
 QUnit.test('Advanced Bip Bop playlist events', function(assert) {
   const done = assert.async();
 
@@ -539,7 +540,6 @@ QUnit.test('Advanced Bip Bop playlist events', function(assert) {
   let playlistrequestcompleteCallCount = 0;
   let playlistparsecompleteCallCount = 0;
 
-  // playlist request start
   player.on('playlistrequeststart', (event) => {
     const expectedMetadata = {
       playlistInfo: {
@@ -556,7 +556,6 @@ QUnit.test('Advanced Bip Bop playlist events', function(assert) {
     playlistrequeststartCallCount++;
   });
 
-  // playlist request complete
   player.on('playlistrequestcomplete', (event) => {
     const expectedMetadata = {
       playlistInfo: {
@@ -573,7 +572,6 @@ QUnit.test('Advanced Bip Bop playlist events', function(assert) {
     playlistrequestcompleteCallCount++;
   });
 
-  // playlist parse start
   player.on('playlistparsestart', (event) => {
     const expectedMetadata = {
       playlistInfo: {
@@ -590,7 +588,6 @@ QUnit.test('Advanced Bip Bop playlist events', function(assert) {
     playlistparsestartCallCount++;
   });
 
-  // playlist parse complete
   player.on('playlistparsecomplete', (event) => {
     const expectedMetadata = {
       playlistInfo: {
@@ -684,6 +681,7 @@ QUnit.test('Advanced Bip Bop playlist events', function(assert) {
   });
 });
 
+// manifest event tests (dash specific)
 QUnit.test('Big Buck Bunny manifest events', function(assert) {
   const done = assert.async();
 
@@ -841,15 +839,15 @@ QUnit.test('Big Buck Bunny manifest events', function(assert) {
   });
 });
 
+// segment event tests
 QUnit.test('Advanced Bip Bop segment events', function(assert) {
   const done = assert.async();
 
   this.player.defaultPlaybackRate(1);
 
-  assert.expect(5);
+  assert.expect(10);
   const player = this.player;
 
-  // segment selected
   player.one('segmentselected', (event) => {
     const expectedMetadata = {
       segmentInfo: {
@@ -865,7 +863,6 @@ QUnit.test('Advanced Bip Bop segment events', function(assert) {
     assert.deepEqual(event.metadata, expectedMetadata, 'segmentselected got expected metadata');
   });
 
-  // segment load start
   player.one('segmentloadstart', (event) => {
     const expectedMetadata = {
       segmentInfo: {
@@ -881,7 +878,6 @@ QUnit.test('Advanced Bip Bop segment events', function(assert) {
     assert.deepEqual(event.metadata, expectedMetadata, 'segmentloadstart got expected metadata');
   });
 
-  // segment loaded
   player.one('segmentloaded', (event) => {
     const expectedMetadata = {
       segmentInfo: {
@@ -895,6 +891,108 @@ QUnit.test('Advanced Bip Bop segment events', function(assert) {
     };
 
     assert.deepEqual(event.metadata, expectedMetadata, 'segmentloaded got expected metadata');
+  });
+
+  // ts specific
+  player.one('segmenttransmuxingstart', (event) => {
+    const expectedMetadata = {
+      segmentInfo: {
+        duration: 9.9766,
+        isEncrypted: false,
+        isMediaInitialization: false,
+        start: 0,
+        type: 'main',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/gear1/main.ts'
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'segmenttransmuxingstart got expected metadata');
+  });
+
+  player.one('segmenttransmuxingcomplete', (event) => {
+    const expectedMetadata = {
+      segmentInfo: {
+        duration: 9.9766,
+        isEncrypted: false,
+        isMediaInitialization: false,
+        start: 0,
+        type: 'main',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/gear1/main.ts'
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'segmenttransmuxingcomplete got expected metadata');
+  });
+
+  // no trackInfoFn for some reason?
+  // player.one('segmenttransmuxingtrackinfoavailable', (event) => {
+  //   const expectedMetadata = {
+  //     segmentInfo: {
+  //       duration: 9.9766,
+  //       isEncrypted: false,
+  //       isMediaInitialization: false,
+  //       start: 0,
+  //       type: 'main',
+  //       uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/gear1/main.ts'
+  //     }
+  //   };
+
+  //   assert.deepEqual(event.metadata, expectedMetadata, 'segmenttransmuxingtrackinfoavailable got expected metadata');
+  // });
+
+  player.one('segmenttransmuxingtiminginfoavailable', (event) => {
+    const expectedMetadata = {
+      segmentInfo: {
+        duration: 9.9766,
+        isEncrypted: false,
+        isMediaInitialization: false,
+        start: 0,
+        type: 'main',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/gear1/main.ts'
+      },
+      timingInfo: {
+        dts: {
+          end: 19.976644444444446,
+          start: 10
+        },
+        pts: {
+          end: 19.976644444444446,
+          start: 10
+        }
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'segmenttransmuxingtiminginfoavailable got expected metadata');
+  });
+
+  player.one('segmentappendstart', (event) => {
+    const expectedMetadata = {
+      segmentInfo: {
+        duration: 9.9766,
+        isEncrypted: false,
+        isMediaInitialization: false,
+        start: 0,
+        type: 'main',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/gear1/main.ts'
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'segmentappendstart got expected metadata');
+  });
+
+  player.one('appendsdone', (event) => {
+    const expectedMetadata = {
+      segmentInfo: {
+        duration: 9.9766,
+        isEncrypted: false,
+        isMediaInitialization: false,
+        start: 0,
+        type: 'main',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/gear1/main.ts'
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'appendsdone got expected metadata');
   });
 
   playFor(player, 0.1, function() {

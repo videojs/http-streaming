@@ -371,12 +371,12 @@ const transmuxAndNotify = ({
     onVideoSegmentTimingInfo: (videoSegmentTimingInfo) => {
       const timingInfo = {
         pts: {
-          start: videoSegmentTimingInfo.start.pts,
-          end: videoSegmentTimingInfo.end.pts
+          start: videoSegmentTimingInfo.start.presentation,
+          end: videoSegmentTimingInfo.end.presentation
         },
         dts: {
-          start: videoSegmentTimingInfo.start.dts,
-          end: videoSegmentTimingInfo.end.dts
+          start: videoSegmentTimingInfo.start.decode,
+          end: videoSegmentTimingInfo.end.decode
         }
       };
 
