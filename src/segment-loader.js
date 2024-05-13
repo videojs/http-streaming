@@ -694,7 +694,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     // see the shouldWaitForTimelineChange function.
     if (this.loaderType_ === 'audio') {
       this.timelineChangeController_.on('timelinechange', (metadata) => {
-        this.trigger({type: 'timelinechange', metadata });
+        this.trigger({type: 'timelinechange', ...metadata });
         if (this.hasEnoughInfoToLoad_()) {
           this.processLoadQueue_();
         }
@@ -1885,6 +1885,16 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
   }
 
   handleTrackInfo_(simpleSegment, trackInfo) {
+    const { hasAudio, hasVideo } = trackInfo;
+    const metadata = {
+      segmentInfo: segmentInfoPayload({type: this.loaderType_, segment: simpleSegment}),
+      trackInfo: {
+        hasAudio,
+        hasVideo
+      }
+    };
+
+    this.trigger({type: 'segmenttransmuxingtrackinfoavailable', metadata});
     this.earlyAbortWhenNeeded_(simpleSegment.stats);
 
     if (this.checkForAbort_(simpleSegment.requestId)) {

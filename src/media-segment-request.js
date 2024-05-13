@@ -338,12 +338,6 @@ const transmuxAndNotify = ({
           trackInfo.isMuxed = true;
         }
         trackInfoFn(segment, trackInfo);
-        const info = {
-          hasAudio: trackInfo.hasAudio,
-          hasVideo: trackInfo.hasVideo
-        };
-
-        triggerSegmentEventFn({ type: 'segmenttransmuxingtrackinfoavailable', segment, trackInfo: info });
       }
     },
     onAudioTimingInfo: (audioTimingInfo) => {

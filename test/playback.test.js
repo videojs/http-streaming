@@ -845,7 +845,7 @@ QUnit.test('Advanced Bip Bop segment events', function(assert) {
 
   this.player.defaultPlaybackRate(1);
 
-  assert.expect(10);
+  assert.expect(11);
   const player = this.player;
 
   player.one('segmentselected', (event) => {
@@ -924,21 +924,24 @@ QUnit.test('Advanced Bip Bop segment events', function(assert) {
     assert.deepEqual(event.metadata, expectedMetadata, 'segmenttransmuxingcomplete got expected metadata');
   });
 
-  // no trackInfoFn for some reason?
-  // player.one('segmenttransmuxingtrackinfoavailable', (event) => {
-  //   const expectedMetadata = {
-  //     segmentInfo: {
-  //       duration: 9.9766,
-  //       isEncrypted: false,
-  //       isMediaInitialization: false,
-  //       start: 0,
-  //       type: 'main',
-  //       uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/gear1/main.ts'
-  //     }
-  //   };
+  player.one('segmenttransmuxingtrackinfoavailable', (event) => {
+    const expectedMetadata = {
+      segmentInfo: {
+        duration: 9.9766,
+        isEncrypted: false,
+        isMediaInitialization: false,
+        start: 0,
+        type: 'main',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/gear1/main.ts'
+      },
+      trackInfo: {
+        hasVideo: true,
+        hasAudio: true
+      }
+    };
 
-  //   assert.deepEqual(event.metadata, expectedMetadata, 'segmenttransmuxingtrackinfoavailable got expected metadata');
-  // });
+    assert.deepEqual(event.metadata, expectedMetadata, 'segmenttransmuxingtrackinfoavailable got expected metadata');
+  });
 
   player.one('segmenttransmuxingtiminginfoavailable', (event) => {
     const expectedMetadata = {
@@ -1005,5 +1008,54 @@ QUnit.test('Advanced Bip Bop segment events', function(assert) {
   player.src({
     src: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8',
     type: 'application/x-mpegURL'
+  });
+});
+
+QUnit.test('Big Buck Bunny streaming events', function(assert) {
+  const done = assert.async();
+
+  this.player.defaultPlaybackRate(1);
+
+  assert.expect(7);
+  const player = this.player;
+
+  player.one('bandwidthupdated', (event) => {
+    assert.notOk(isNaN(event.metadata.bandwidthInfo.from), 'manifestrequeststart got expected metadata');
+    assert.notOk(isNaN(event.metadata.bandwidthInfo.to), 'manifestrequeststart got expected metadata');
+  });
+
+  player.one('timelinechange', (event) => {
+    const expectedMetadata = {
+      timelineChangeInfo: {
+        from: -1,
+        to: 0
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'timelinechange got expected metadata');
+  });
+
+  player.one('seekablerangeschanged', (event) => {
+    assert.ok(event.metadata.seekableRanges, 'manifestparsestart got expected metadata');
+  });
+
+  player.one('bufferedrangeschanged', (event) => {
+    assert.ok(event.metadata.bufferedRanges, 'manifestparsestart got expected metadata');
+  });
+
+  player.one('playedrangeschanged', (event) => {
+    assert.ok(event.metadata.playedRanges, 'manifestparsestart got expected metadata');
+  });
+
+  playFor(player, 0.1, function() {
+    assert.ok(true, 'played for at least two seconds');
+    assert.equal(player.error(), null, 'has no player errors');
+
+    done();
+  });
+
+  player.src({
+    src: 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd',
+    type: 'application/dash+xml'
   });
 });
