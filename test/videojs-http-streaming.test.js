@@ -5149,10 +5149,7 @@ QUnit.test('player error when key session creation rejects promise', function(as
       errorObject,
       {
         code: 3,
-        message: 'Failed to initialize media keys for EME',
-        metadata: {
-          errorType: 'eme-key-session-creation-error'
-        }
+        message: 'Failed to initialize media keys for EME'
       },
       'called player error with correct error'
     );

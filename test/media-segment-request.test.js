@@ -97,7 +97,8 @@ QUnit.module('Media Segment Request - make it to transmuxer', {
       xhrOptions: this.xhrOptions,
       decryptionWorker: this.mockDecrypter,
       segment: {},
-      onTransmuxerLog: () => {}
+      onTransmuxerLog: () => {},
+      triggerSegmentEventFn: () => {}
     };
 
     [
@@ -303,7 +304,8 @@ QUnit.test('cancels outstanding segment request on abort', function(assert) {
     segment: { resolvedUri: '0-test.ts' },
     abortFn: () => aborts++,
     progressFn: this.noop,
-    doneFn: this.noop
+    doneFn: this.noop,
+    triggerSegmentEventFn: this.noop
   });
 
   // Simulate Firefox's handling of aborted segments -
@@ -335,7 +337,8 @@ QUnit.test('cancels outstanding key requests on abort', function(assert) {
     },
     abortFn: () => aborts++,
     progressFn: this.noop,
-    doneFn: this.noop
+    doneFn: this.noop,
+    triggerSegmentEventFn: this.noop
   });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
@@ -378,7 +381,8 @@ QUnit.test('cancels outstanding key requests on failure', function(assert) {
       assert.equal(error.code, REQUEST_ERRORS.FAILURE, 'segment request failed');
 
       done();
-    }
+    },
+    triggerSegmentEventFn: this.noop
   });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
@@ -414,7 +418,8 @@ QUnit.test('cancels outstanding key requests on timeout', function(assert) {
       assert.equal(error.code, REQUEST_ERRORS.TIMEOUT, 'key request failed');
 
       done();
-    }
+    },
+    triggerSegmentEventFn: this.noop
   });
   assert.equal(this.requests.length, 2, 'there are two requests');
 
@@ -453,7 +458,8 @@ QUnit.test(
         assert.equal(error.code, REQUEST_ERRORS.FAILURE, 'request failed');
 
         done();
-      }
+      },
+      triggerSegmentEventFn: this.noop
     });
     assert.equal(this.requests.length, 2, 'there are two requests');
 
@@ -474,6 +480,7 @@ QUnit.test(
   }
 );
 
+// TODO: come back to this
 QUnit.test('the key response is converted to the correct format', function(assert) {
   const done = assert.async();
   const postMessage = this.mockDecrypter.postMessage;
@@ -516,7 +523,8 @@ QUnit.test('the key response is converted to the correct format', function(asser
       // verify stats
       assert.equal(segmentData.stats.bytesReceived, 10, '10 bytes');
       done();
-    }
+    },
+    triggerSegmentEventFn: this.noop
   });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
@@ -563,7 +571,8 @@ QUnit.test('segment with key has bytes decrypted', function(assert) {
       // verify stats
       assert.equal(segmentData.stats.bytesReceived, 8, '8 bytes');
       done();
-    }
+    },
+    triggerSegmentEventFn: this.noop
   });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
@@ -613,7 +622,8 @@ QUnit.test('segment with key bytes does not request key again', function(assert)
       // verify stats
       assert.equal(segmentData.stats.bytesReceived, 8, '8 bytes');
       done();
-    }});
+    },
+    triggerSegmentEventFn: this.noop });
 
   assert.equal(this.requests.length, 1, 'there is one request');
   const segmentReq = this.requests.shift();
@@ -654,7 +664,8 @@ QUnit.test('key 404 calls back with error', function(assert) {
       assert.equal(error.code, REQUEST_ERRORS.FAILURE, 'error code set to FAILURE');
       assert.notOk(segmentData.bytes, 'no bytes in segment');
       done();
-    }
+    },
+    triggerSegmentEventFn: this.noop
   });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
@@ -697,7 +708,8 @@ QUnit.test('key 500 calls back with error', function(assert) {
       assert.equal(error.code, REQUEST_ERRORS.FAILURE, 'error code set to FAILURE');
       assert.notOk(segmentData.bytes, 'no bytes in segment');
       done();
-    }
+    },
+    triggerSegmentEventFn: this.noop
   });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
@@ -775,7 +787,8 @@ QUnit.test('init segment with key has bytes decrypted', function(assert) {
       assert.ok(trackInfo, 'got track info');
       assert.ok(Object.keys(timingInfo).length, 'got timing info');
       done();
-    }
+    },
+    triggerSegmentEventFn: this.noop
   });
 
   assert.equal(this.requests.length, 3, 'there are three requests');
@@ -881,7 +894,8 @@ QUnit.test('segment/init segment share a key and get decrypted', function(assert
       assert.ok(trackInfo, 'got track info');
       assert.ok(Object.keys(timingInfo).length, 'got timing info');
       done();
-    }
+    },
+    triggerSegmentEventFn: this.noop
   });
 
   assert.equal(this.requests.length, 3, 'there are three requests');
@@ -987,7 +1001,8 @@ QUnit.test('segment/init segment different key and get decrypted', function(asse
       assert.ok(trackInfo, 'got track info');
       assert.ok(Object.keys(timingInfo).length, 'got timing info');
       done();
-    }
+    },
+    triggerSegmentEventFn: this.noop
   });
 
   assert.equal(this.requests.length, 4, 'there are four requests');
@@ -1067,7 +1082,8 @@ QUnit.test('encrypted init segment parse error', function(assert) {
       // decrypted webm init segment caused this error.
       assert.ok(error, 'error for invalid init segment');
       done();
-    }
+    },
+    triggerSegmentEventFn: this.noop
   });
 
   assert.equal(this.requests.length, 4, 'there are four requests');
@@ -1133,7 +1149,8 @@ QUnit.test('encrypted init segment request failure', function(assert) {
       });
 
       done();
-    }
+    },
+    triggerSegmentEventFn: this.noop
   });
 
   assert.equal(this.requests.length, 4, 'there are four requests');
@@ -1235,7 +1252,8 @@ QUnit.test('encrypted init segment with decrypted bytes not re-requested', funct
       assert.ok(trackInfo, 'got track info');
       assert.ok(Object.keys(timingInfo).length, 'got timing info');
       done();
-    }
+    },
+    triggerSegmentEventFn: this.noop
   });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
@@ -1289,7 +1307,8 @@ QUnit.test(
         // verify stats
         assert.equal(segmentData.stats.bytesReceived, 8, '8 bytes');
         done();
-      }
+      },
+      triggerSegmentEventFn: this.noop
     });
 
     assert.equal(this.requests.length, 3, 'there are three requests');
@@ -1404,7 +1423,8 @@ QUnit.test('non-TS segment will get parsed for captions', function(assert) {
       assert.ok(gotData, 'received data event');
       transmuxer.off();
       done();
-    }
+    },
+    triggerSegmentEventFn: this.noop
   });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
@@ -1451,7 +1471,8 @@ QUnit.test('webm segment calls back with error', function(assert) {
         'receieved error message'
       );
       done();
-    }
+    },
+    triggerSegmentEventFn: this.noop
   });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
@@ -1561,7 +1582,8 @@ QUnit.test('non-TS segment will get parsed for captions on next segment request 
       assert.equal(gotData, 1, 'received data event');
       transmuxer.off();
       done();
-    }
+    },
+    triggerSegmentEventFn: this.noop
   });
 
   assert.equal(this.requests.length, 2, 'there are two requests');
@@ -1692,7 +1714,8 @@ QUnit.test('can get emsg ID3 frames from fmp4 video segment', function(assert) {
       assert.equal(gotData, 1, 'received data event');
       transmuxer.off();
       done();
-    }
+    },
+    triggerSegmentEventFn: this.noop
   });
   assert.equal(this.requests.length, 2, 'there are two requests');
 
@@ -1822,7 +1845,8 @@ QUnit.test('can get emsg ID3 frames from fmp4 audio segment', function(assert) {
       assert.equal(gotData, 1, 'received data event');
       transmuxer.off();
       done();
-    }
+    },
+    triggerSegmentEventFn: this.noop
   });
   assert.equal(this.requests.length, 2, 'there are two requests');
 

@@ -795,6 +795,8 @@ class VhsHandler extends Component {
     this.options_.seekTo = (time) => {
       this.tech_.setCurrentTime(time);
     };
+    // pass player to allow for player level eventing on construction.
+    this.options_.player_ = this.player_;
 
     this.playlistController_ = new PlaylistController(this.options_);
 
@@ -812,6 +814,7 @@ class VhsHandler extends Component {
 
     this.playbackWatcher_ = new PlaybackWatcher(playbackWatcherOptions);
 
+    this.attachStreamingEventListeners_();
     this.playlistController_.on('error', () => {
       const player = videojs.players[this.tech_.options_.playerId];
       let error = this.playlistController_.error;
@@ -1096,10 +1099,7 @@ class VhsHandler extends Component {
       this.logger_('error while creating EME key session', err);
       this.player_.error({
         message: 'Failed to initialize media keys for EME',
-        code: 3,
-        metadata: {
-          errorType: videojs.Error.EMEKeySessionCreationError
-        }
+        code: 3
       });
     });
   }
@@ -1325,6 +1325,34 @@ class VhsHandler extends Component {
     // Trigger an event on the player to notify the user that vhs is ready to set xhr hooks.
     // This allows hooks to be set before the source is set to vhs when handleSource is called.
     this.player_.trigger('xhr-hooks-ready');
+  }
+
+  attachStreamingEventListeners_() {
+    const playlistControllerEvents = [
+      'seekablerangeschanged',
+      'bufferedrangeschanged',
+      'contentsteeringloadstart',
+      'contentsteeringloadcomplete',
+      'contentsteeringparsed'
+    ];
+
+    const playbackWatcher = [
+      'gapjumped',
+      'playedrangeschanged'
+    ];
+
+    // re-emit streaming events and payloads on the player.
+    playlistControllerEvents.forEach((eventName) => {
+      this.playlistController_.on(eventName, (metadata) => {
+        this.player_.trigger({...metadata});
+      });
+    });
+
+    playbackWatcher.forEach((eventName) => {
+      this.playbackWatcher_.on(eventName, (metadata) => {
+        this.player_.trigger({...metadata});
+      });
+    });
   }
 }
 

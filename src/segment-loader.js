@@ -511,6 +511,29 @@ export const getTroublesomeSegmentDurationMessage = (segmentInfo, sourceType) =>
 };
 
 /**
+ *
+ * @param {Object} options type of segment loader and segment either segmentInfo or simple segment
+ * @return a segmentInfo payload for events or errors.
+ */
+export const segmentInfoPayload = ({type, segment}) => {
+  if (!segment) {
+    return;
+  }
+  const isEncrypted = Boolean(segment.key || segment.map && segment.map.ke);
+  const isMediaInitialization = Boolean(segment.map && !segment.map.bytes);
+  const start = segment.startOfSegment === undefined ? segment.start : segment.startOfSegment;
+
+  return {
+    type: type || segment.type,
+    uri: segment.resolvedUri || segment.uri,
+    start,
+    duration: segment.duration,
+    isEncrypted,
+    isMediaInitialization
+  };
+};
+
+/**
  * An object that manages segment loading and appending.
  *
  * @class SegmentLoader
@@ -652,6 +675,9 @@ export default class SegmentLoader extends videojs.EventTarget {
       }
     });
 
+    this.sourceUpdater_.on('codecschange', (metadata) => {
+      this.trigger({type: 'codecschange', ...metadata});
+    });
     // Only the main loader needs to listen for pending timeline changes, as the main
     // loader should wait for audio to be ready to change its timeline so that both main
     // and audio timelines change together. For more details, see the
@@ -667,7 +693,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     // since its loads follow main, needs to listen on timeline changes. For more details,
     // see the shouldWaitForTimelineChange function.
     if (this.loaderType_ === 'audio') {
-      this.timelineChangeController_.on('timelinechange', () => {
+      this.timelineChangeController_.on('timelinechange', (metadata) => {
+        this.trigger({type: 'timelinechange', ...metadata });
         if (this.hasEnoughInfoToLoad_()) {
           this.processLoadQueue_();
         }
@@ -1385,6 +1412,12 @@ bufferedEnd: ${lastBufferedEnd(this.buffered_())}
       return;
     }
 
+    const metadata = {
+      segmentInfo: segmentInfoPayload({type: this.loaderType_, segment: segmentInfo})
+    };
+
+    this.trigger({ type: 'segmentselected', metadata });
+
     if (typeof segmentInfo.timestampOffset === 'number') {
       this.isPendingTimestampOffset_ = false;
       this.timelineChangeController_.pendingTimelineChange({
@@ -1496,6 +1529,15 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
         const syncInfo = this.getSyncInfoFromMediaSequenceSync_(targetTime);
 
         if (!syncInfo) {
+          const message = 'No sync info found while using media sequence sync';
+
+          this.error({
+            message,
+            metadata: {
+              errorType: videojs.Error.StreamingFailedToSelectNextSegment,
+              error: new Error(message)
+            }
+          });
           this.logger_('chooseNextRequest_ - no sync info found using media sequence sync');
           // no match
           return null;
@@ -1843,6 +1885,16 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
   }
 
   handleTrackInfo_(simpleSegment, trackInfo) {
+    const { hasAudio, hasVideo } = trackInfo;
+    const metadata = {
+      segmentInfo: segmentInfoPayload({type: this.loaderType_, segment: simpleSegment}),
+      trackInfo: {
+        hasAudio,
+        hasVideo
+      }
+    };
+
+    this.trigger({type: 'segmenttransmuxingtrackinfoavailable', metadata});
     this.earlyAbortWhenNeeded_(simpleSegment.stats);
 
     if (this.checkForAbort_(simpleSegment.requestId)) {
@@ -2370,10 +2422,7 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
         `video buffer: ${timeRangesToArray(videoBuffered).join(', ')}, `);
       this.error({
         message: 'Quota exceeded error with append of a single segment of content',
-        excludeUntil: Infinity,
-        metadata: {
-          errorType: videojs.Error.SegmentExceedsSourceBufferQuota
-        }
+        excludeUntil: Infinity
       });
       this.trigger('error');
       return;
@@ -2438,7 +2487,7 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
       message: `${type} append of ${bytes.length}b failed for segment ` +
         `#${segmentInfo.mediaIndex} in playlist ${segmentInfo.playlist.id}`,
       metadata: {
-        errorType: videojs.Error.SegmentAppendError
+        errorType: videojs.Error.StreamingFailedToAppendSegment
       }
     });
     this.trigger('appenderror');
@@ -2464,7 +2513,11 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
         segments
       });
     }
+    const metadata = {
+      segmentInfo: segmentInfoPayload({type: this.loaderType_, segment: segmentInfo})
+    };
 
+    this.trigger({ type: 'segmentappendstart', metadata });
     this.sourceUpdater_.appendBuffer(
       {segmentInfo, type, bytes},
       this.handleAppendError_.bind(this, {segmentInfo, type, bytes})
@@ -2628,11 +2681,27 @@ ${segmentInfoString(segmentInfo)}`);
         this.logger_('received endedtimeline callback');
       },
       id3Fn: this.handleId3_.bind(this),
-
       dataFn: this.handleData_.bind(this),
       doneFn: this.segmentRequestFinished_.bind(this),
       onTransmuxerLog: ({message, level, stream}) => {
         this.logger_(`${segmentInfoString(segmentInfo)} logged from transmuxer stream ${stream} as a ${level}: ${message}`);
+      },
+      triggerSegmentEventFn: ({ type, segment, keyInfo, trackInfo, timingInfo }) => {
+        const segInfo = segmentInfoPayload({segment});
+        const metadata = { segmentInfo: segInfo };
+        // add other properties if necessary.
+
+        if (keyInfo) {
+          metadata.keyInfo = keyInfo;
+        }
+        if (trackInfo) {
+          metadata.trackInfo = trackInfo;
+        }
+        if (timingInfo) {
+          metadata.timingInfo = timingInfo;
+        }
+
+        this.trigger({ type, metadata });
       }
     });
   }
@@ -2675,6 +2744,8 @@ ${segmentInfoString(segmentInfo)}`);
   createSimplifiedSegmentObj_(segmentInfo) {
     const segment = segmentInfo.segment;
     const part = segmentInfo.part;
+    const isEncrypted = segmentInfo.segment.key || segmentInfo.segment.map && segmentInfo.segment.map.key;
+    const isMediaInitialization = segmentInfo.segment.map && !segmentInfo.segment.map.bytes;
 
     const simpleSegment = {
       resolvedUri: part ? part.resolvedUri : segment.resolvedUri,
@@ -2683,7 +2754,12 @@ ${segmentInfoString(segmentInfo)}`);
       transmuxer: segmentInfo.transmuxer,
       audioAppendStart: segmentInfo.audioAppendStart,
       gopsToAlignWith: segmentInfo.gopsToAlignWith,
-      part: segmentInfo.part
+      part: segmentInfo.part,
+      type: this.loaderType_,
+      start: segmentInfo.startOfSegment,
+      duration: segmentInfo.duration,
+      isEncrypted,
+      isMediaInitialization
     };
 
     const previousSegment = segmentInfo.playlist.segments[segmentInfo.mediaIndex - 1];
@@ -2746,6 +2822,15 @@ ${segmentInfoString(segmentInfo)}`);
         ` is less than the min to record ${MIN_SEGMENT_DURATION_TO_SAVE_STATS}`);
       return;
     }
+    const metadata = {
+      bandwidthInfo: {
+        from: this.bandwidth,
+        to: stats.bandwidth
+      }
+    };
+
+    // player event with payload
+    this.trigger({type: 'bandwidthupdated', metadata});
 
     this.bandwidth = stats.bandwidth;
     this.roundTrip = stats.roundTripTime;
@@ -2923,10 +3008,7 @@ ${segmentInfoString(segmentInfo)}`);
     if (!trackInfo) {
       this.error({
         message: 'No starting media returned, likely due to an unsupported media format.',
-        playlistExclusionDuration: Infinity,
-        metadata: {
-          errorType: videojs.Error.SegmentUnsupportedMediaFormat
-        }
+        playlistExclusionDuration: Infinity
       });
       this.trigger('error');
       return;
@@ -3007,10 +3089,7 @@ ${segmentInfoString(segmentInfo)}`);
     if (illegalMediaSwitchError) {
       this.error({
         message: illegalMediaSwitchError,
-        playlistExclusionDuration: Infinity,
-        metadata: {
-          errorType: videojs.Error.SegmentSwitchError
-        }
+        playlistExclusionDuration: Infinity
       });
       this.trigger('error');
       return true;
@@ -3108,7 +3187,11 @@ ${segmentInfoString(segmentInfo)}`);
   handleAppendsDone_() {
     // appendsdone can cause an abort
     if (this.pendingSegment_) {
-      this.trigger('appendsdone');
+      const metadata = {
+        segmentInfo: segmentInfoPayload({type: this.loaderType_, segment: this.pendingSegment_})
+      };
+
+      this.trigger({ type: 'appendsdone', metadata});
     }
 
     if (!this.pendingSegment_) {

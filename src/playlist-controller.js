@@ -185,6 +185,7 @@ export class PlaylistController extends videojs.EventTarget {
     this.withCredentials = withCredentials;
     this.tech_ = tech;
     this.vhs_ = tech.vhs;
+    this.player_ = options.player_;
     this.sourceType_ = sourceType;
     this.useCueTags_ = useCueTags;
     this.playlistExclusionDuration = playlistExclusionDuration;
@@ -409,6 +410,17 @@ export class PlaylistController extends videojs.EventTarget {
 
     if (oldId && oldId !== newId) {
       this.logger_(`switch media ${oldId} -> ${newId} from ${cause}`);
+      const metadata = {
+        renditionInfo: {
+          id: newId,
+          bandwidth: playlist.attributes.BANDWIDTH,
+          resolution: playlist.attributes.RESOLUTION,
+          codecs: playlist.attributes.CODECS
+        },
+        cause
+      };
+
+      this.trigger({type: 'renditionselected', metadata});
       this.tech_.trigger({type: 'usage', name: `vhs-rendition-change-${cause}`});
     }
     this.mainPlaylistLoader_.media(playlist, delay);
@@ -732,6 +744,26 @@ export class PlaylistController extends videojs.EventTarget {
     this.mainPlaylistLoader_.on('renditionenabled', () => {
       this.tech_.trigger({type: 'usage', name: 'vhs-rendition-enabled'});
     });
+
+    const playlistLoaderEvents = [
+      'manifestrequeststart',
+      'manifestrequestcomplete',
+      'manifestparsestart',
+      'manifestparsecomplete',
+      'playlistrequeststart',
+      'playlistrequestcomplete',
+      'playlistparsestart',
+      'playlistparsecomplete',
+      'renditiondisabled',
+      'renditionenabled'
+    ];
+
+    playlistLoaderEvents.forEach((eventName) => {
+      this.mainPlaylistLoader_.on(eventName, (metadata) => {
+        // trigger directly on the player to ensure early events are fired.
+        this.player_.trigger({...metadata});
+      });
+    });
   }
 
   /**
@@ -950,6 +982,40 @@ export class PlaylistController extends videojs.EventTarget {
       this.logger_('audioSegmentLoader ended');
       this.onEndOfStream();
     });
+
+    const segmentLoaderEvents = [
+      'segmentselected',
+      'segmentloadstart',
+      'segmentloaded',
+      'segmentkeyloadstart',
+      'segmentkeyloadcomplete',
+      'segmentdecryptionstart',
+      'segmentdecryptioncomplete',
+      'segmenttransmuxingstart',
+      'segmenttransmuxingcomplete',
+      'segmenttransmuxingtrackinfoavailable',
+      'segmenttransmuxingtiminginfoavailable',
+      'segmentappendstart',
+      'appendsdone',
+      'bandwidthupdated',
+      'timelinechange',
+      'codecschange'
+    ];
+
+    segmentLoaderEvents.forEach((eventName) => {
+      this.mainSegmentLoader_.on(eventName, (metadata) => {
+        this.player_.trigger({...metadata});
+      });
+
+      this.audioSegmentLoader_.on(eventName, (metadata) => {
+        this.player_.trigger({...metadata});
+      });
+
+      this.subtitleSegmentLoader_.on(eventName, (metadata) => {
+        this.player_.trigger({...metadata});
+      });
+    });
+
   }
 
   mediaSecondsLoaded_() {
@@ -1633,7 +1699,11 @@ export class PlaylistController extends videojs.EventTarget {
     }
 
     this.logger_(`seekable updated [${Ranges.printableRange(this.seekable_)}]`);
+    const metadata = {
+      seekableRanges: this.seekable_
+    };
 
+    this.trigger({type: 'seekablerangeschanged', metadata});
     this.tech_.trigger('seekablechanged');
   }
 
@@ -1781,6 +1851,7 @@ export class PlaylistController extends videojs.EventTarget {
     return true;
   }
 
+  // find from and to for codec switch event
   getCodecsOrExclude_() {
     const media = {
       main: this.mainSegmentLoader_.getCurrentMediaInfo_() || {},
@@ -2173,6 +2244,18 @@ export class PlaylistController extends videojs.EventTarget {
    */
   attachContentSteeringListeners_() {
     this.contentSteeringController_.on('content-steering', this.excludeThenChangePathway_.bind(this));
+    const contentSteeringEvents = [
+      'contentsteeringloadstart',
+      'contentsteeringloadcomplete',
+      'contentsteeringparsed'
+    ];
+
+    contentSteeringEvents.forEach((eventName) => {
+      this.contentSteeringController_.on(eventName, (metadata) => {
+        this.trigger({...metadata});
+      });
+    });
+
     if (this.sourceType_ === 'dash') {
       this.mainPlaylistLoader_.on('loadedplaylist', () => {
         const main = this.main();

@@ -2,6 +2,7 @@ import {getId3Offset} from '@videojs/vhs-utils/es/id3-helpers';
 import {detectContainerForBytes} from '@videojs/vhs-utils/es/containers';
 import {stringToBytes, concatTypedArrays} from '@videojs/vhs-utils/es/byte-helpers';
 import {callbackWrapper} from '../xhr';
+import { getStreamingNetworkErrorMetadata } from '../error-codes';
 
 // calls back if the request is readyState DONE
 // which will only happen if the request is complete.
@@ -12,7 +13,7 @@ const callbackOnCompleted = (request, cb) => {
   return;
 };
 
-const containerRequest = (uri, xhr, cb) => {
+const containerRequest = (uri, xhr, cb, requestType) => {
   let bytes = [];
   let id3Offset;
   let finished = false;
@@ -28,6 +29,7 @@ const containerRequest = (uri, xhr, cb) => {
       return;
     }
     if (error) {
+      error.metadata = getStreamingNetworkErrorMetadata({ requestType, request, error });
       return endRequestAndCallback(error, request, '', bytes);
     }
 

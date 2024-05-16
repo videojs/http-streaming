@@ -67,7 +67,7 @@
     "video.js": "^7 || ^8"
   },
   "peerDependencies": {
-    "video.js": "^8.11.0"
+    "video.js": "^8.14.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.21.0",
@@ -93,7 +93,7 @@
     "videojs-generate-karma-config": "^8.0.1",
     "videojs-generate-rollup-config": "^7.0.0",
     "videojs-generator-verify": "~3.0.1",
-    "videojs-standard": "^9.0.0",
+    "videojs-standard": "^9.1.0",
     "water-plant-uml": "^2.0.2"
   },
   "generator-videojs-plugin": {
