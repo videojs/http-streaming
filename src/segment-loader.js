@@ -525,7 +525,7 @@ export const segmentInfoPayload = ({type, segment}) => {
 
   return {
     type: type || segment.type,
-    uri: segment.uri || segment.resolvedUri,
+    uri: segment.resolvedUri || segment.uri,
     start,
     duration: segment.duration,
     isEncrypted,
