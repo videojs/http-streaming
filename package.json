@@ -88,7 +88,7 @@
     "shelljs": "^0.8.5",
     "sinon": "^8.1.1",
     "url-toolkit": "^2.2.1",
-    "videojs-contrib-eme": "^5.0.1",
+    "videojs-contrib-eme": "^5.3.1",
     "videojs-contrib-quality-levels": "^4.0.0",
     "videojs-generate-karma-config": "^8.0.1",
     "videojs-generate-rollup-config": "^7.0.0",
