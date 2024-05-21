@@ -1,3 +1,14 @@
+<a name="3.13.0"></a>
+# [3.13.0](https://github.com/videojs/http-streaming/compare/v3.12.2...v3.13.0) (2024-05-21)
+
+### Features
+
+* streaming events and errors ([#1508](https://github.com/videojs/http-streaming/issues/1508)) ([c94a230](https://github.com/videojs/http-streaming/commit/c94a230))
+
+### Chores
+
+* update contrib-eme to v5.3.1 ([#1512](https://github.com/videojs/http-streaming/issues/1512)) ([e46ba74](https://github.com/videojs/http-streaming/commit/e46ba74))
+
 <a name="3.12.2"></a>
 ## [3.12.2](https://github.com/videojs/http-streaming/compare/v3.12.1...v3.12.2) (2024-04-22)
 
