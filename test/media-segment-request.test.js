@@ -757,7 +757,8 @@ QUnit.test('init segment with key has bytes decrypted', function(assert) {
             bytes: new Uint32Array([0, 0, 0, 1])
           }
         }
-      }
+      },
+      requestId: 'foo.bar.id'
     },
     trackInfoFn(segment, _trackInfo) {
       trackInfo = _trackInfo;
@@ -779,6 +780,7 @@ QUnit.test('init segment with key has bytes decrypted', function(assert) {
         16,
         'key bytes are readable'
       );
+      assert.equal(segmentData.requestId, 'foo.bar.id', 'requestId is expected value');
 
       // verify stats
       assert.equal(segmentData.stats.bytesReceived, 6198, '6198 bytes');
