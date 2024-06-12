@@ -1,3 +1,10 @@
+<a name="3.13.1"></a>
+## [3.13.1](https://github.com/videojs/http-streaming/compare/v3.13.0...v3.13.1) (2024-06-12)
+
+### Bug Fixes
+
+* requestId init tag ([#1518](https://github.com/videojs/http-streaming/issues/1518)) ([a542ec8](https://github.com/videojs/http-streaming/commit/a542ec8))
+
 <a name="3.13.0"></a>
 # [3.13.0](https://github.com/videojs/http-streaming/compare/v3.12.2...v3.13.0) (2024-05-21)
 
