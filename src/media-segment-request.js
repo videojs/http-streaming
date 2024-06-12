@@ -852,10 +852,6 @@ const waitForCompletion = ({
       segment.endOfAllRequests = Date.now();
       if (segment.map && segment.map.encryptedBytes && !segment.map.bytes) {
         triggerSegmentEventFn({ type: 'segmentdecryptionstart', segment });
-        // add -init to the "id" to differentiate between segment
-        // and init segment decryption, just in case they happen
-        // at the same time at some point in the future.
-        segment.requestId += '-init';
         return decrypt({ decryptionWorker,
           // add -init to the "id" to differentiate between segment
           // and init segment decryption, just in case they happen
