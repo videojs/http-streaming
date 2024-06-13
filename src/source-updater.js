@@ -818,7 +818,7 @@ export default class SourceUpdater extends videojs.EventTarget {
     if (typeof offset !== 'undefined' &&
         this.videoBuffer &&
         // no point in updating if it's the same
-        this.videoTimestampOffset !== offset) {
+        this.videoTimestampOffset_ !== offset) {
       pushQueue({
         type: 'video',
         sourceUpdater: this,
