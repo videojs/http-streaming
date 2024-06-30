@@ -24,6 +24,11 @@
     #segment-metadata pre {
       overflow: scroll;
     }
+    button.btn-outline-secondary:hover svg,
+    button.btn-success svg,
+    button.btn-danger svg {
+      fill: white;
+    }
   </style>
 </head>
 <body class="m-4">
@@ -51,6 +56,9 @@
     </li>
     <li class="nav-item" role="presentation">
       <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#content-steering" type="button" role="tab" aria-selected="false">Content Steering</button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#export-logs" type="button" role="tab" aria-selected="false">Logs</button>
     </li>
   </ul>
 
@@ -238,6 +246,30 @@
           </dl>
         </div>
       </div>
+    </div>
+
+    <div class="tab-pane" id="export-logs" role="historypanel">
+      <div class="row">
+        <div class="export-logs col-8">
+          <p>Download or copy the player logs, which should be included when submitting a playback issue.</p>
+          <p>To insert a comment into the player log, use <code>player.log()</code> in the console, e.g. <code>player.log('Seeking to 500');player.currentTime(500);</code></p>
+          <button id="download-logs" class="btn btn-outline-secondary">
+            <span class="icon">
+              <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#5f6368">
+               <path d="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"/>
+             </svg>
+           </span>
+           Download player logs
+          </button>
+          <button id="copy-logs" class="btn btn-outline-secondary">
+            <span class="icon">
+              <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#5f6368">
+                <path d="M360-240q-33 0-56.5-23.5T280-320v-480q0-33 23.5-56.5T360-880h360q33 0 56.5 23.5T800-800v480q0 33-23.5 56.5T720-240H360Zm0-80h360v-480H360v480ZM200-80q-33 0-56.5-23.5T120-160v-560h80v560h440v80H200Zm160-240v-480 480Z"/>
+              </svg>
+            </span>
+            Copy player logs to clipboard
+          </button>
+        </div>
       </div>
     </div>
   </div>
