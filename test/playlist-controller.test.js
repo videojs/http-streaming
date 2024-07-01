@@ -271,7 +271,8 @@ QUnit.test('getAudioTrackPlaylists_ invalid audio groups', function(assert) {
 QUnit.test('throws error when given an empty URL', function(assert) {
   const options = {
     src: 'test',
-    tech: this.player.tech_
+    tech: this.player.tech_,
+    player_: this.player
   };
 
   const controller = new PlaylistController(options);
@@ -323,7 +324,8 @@ QUnit.test('obeys auto preload option', function(assert) {
 QUnit.test('passes options to PlaylistLoader', function(assert) {
   const options = {
     src: 'test',
-    tech: this.player.tech_
+    tech: this.player.tech_,
+    player_: this.player
   };
 
   let controller = new PlaylistController(options);
@@ -344,7 +346,8 @@ QUnit.test('addMetadataToTextTrack adds expected metadata to the metadataTrack',
   const options = {
     src: 'test.mpd',
     tech: this.player.tech_,
-    sourceType: 'dash'
+    sourceType: 'dash',
+    player_: this.player
   };
 
   // Test messageData property manifest
@@ -461,7 +464,8 @@ QUnit.test('addDateRangesToTextTrack adds expected metadata to the metadataTrack
   const options = {
     src: 'manifest/daterange.m3u8',
     tech: this.player.tech_,
-    sourceType: 'hls'
+    sourceType: 'hls',
+    player_: this.player
   };
   const controller = new PlaylistController(options);
   const dateRanges = [{
@@ -522,7 +526,8 @@ QUnit.test('creates appropriate PlaylistLoader for sourceType', function(assert)
   const options = {
     src: 'test',
     tech: this.player.tech_,
-    sourceType: 'hls'
+    sourceType: 'hls',
+    player_: this.player
   };
 
   let pc = new PlaylistController(options);
@@ -555,7 +560,8 @@ QUnit.test('creates appropriate PlaylistLoader for sourceType', function(assert)
 QUnit.test('passes options to SegmentLoader', function(assert) {
   const options = {
     src: 'test',
-    tech: this.player.tech_
+    tech: this.player.tech_,
+    player_: this.player
   };
 
   let controller = new PlaylistController(options);
@@ -755,7 +761,7 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
 
 QUnit.test('loadVttJs should be passed to the vttSegmentLoader and resolved on vttjsloaded', function(assert) {
   const stub = sinon.stub(this.player.tech_, 'addWebVttScript_').callsFake(() => this.player.tech_.trigger('vttjsloaded'));
-  const controller = new PlaylistController({ src: 'test', tech: this.player.tech_});
+  const controller = new PlaylistController({ src: 'test', tech: this.player.tech_, player_: this.player });
 
   controller.subtitleSegmentLoader_.loadVttJs().then(() => {
     assert.equal(stub.callCount, 1, 'tech addWebVttScript called once');
@@ -764,7 +770,7 @@ QUnit.test('loadVttJs should be passed to the vttSegmentLoader and resolved on v
 
 QUnit.test('loadVttJs should be passed to the vttSegmentLoader and rejected on vttjserror', function(assert) {
   const stub = sinon.stub(this.player.tech_, 'addWebVttScript_').callsFake(() => this.player.tech_.trigger('vttjserror'));
-  const controller = new PlaylistController({ src: 'test', tech: this.player.tech_});
+  const controller = new PlaylistController({ src: 'test', tech: this.player.tech_, player_: this.player });
 
   controller.subtitleSegmentLoader_.loadVttJs().catch(() => {
     assert.equal(stub.callCount, 1, 'tech addWebVttScript called once');
@@ -4966,7 +4972,8 @@ QUnit.test('excludeNonUsablePlaylistsByKeyId_ excludes non usable DASH playlists
   const options = {
     src: 'test',
     tech: this.player.tech_,
-    sourceType: 'dash'
+    sourceType: 'dash',
+    player_: this.player
   };
   const pc = new PlaylistController(options);
 
@@ -5011,7 +5018,8 @@ QUnit.test('excludeNonUsablePlaylistsByKeyId_ re includes non usable DASH playli
   const options = {
     src: 'test',
     tech: this.player.tech_,
-    sourceType: 'dash'
+    sourceType: 'dash',
+    player_: this.player
   };
   const pc = new PlaylistController(options);
 
@@ -5065,7 +5073,8 @@ QUnit.test('excludeNonUsablePlaylistsByKeyId_ re-includes SD playlists when all 
   const options = {
     src: 'test',
     tech: this.player.tech_,
-    sourceType: 'dash'
+    sourceType: 'dash',
+    player_: this.player
   };
   const pc = new PlaylistController(options);
   const origWarn = videojs.log.warn;
@@ -6663,7 +6672,8 @@ QUnit.module('PlaylistController contentSteering', {
     this.controllerOptions = {
       src: 'test',
       tech: this.player.tech_,
-      sourceType: 'dash'
+      sourceType: 'dash',
+      player_: this.player
     };
 
     this.csMainPlaylist = {
@@ -6713,7 +6723,8 @@ QUnit.test('initContentSteeringController_ for HLS', function(assert) {
   const options = {
     src: 'test',
     tech: this.player.tech_,
-    sourceType: 'hls'
+    sourceType: 'hls',
+    player_: this.player
   };
 
   const pc = new PlaylistController(options);
@@ -7225,7 +7236,8 @@ QUnit.test('Pathway cloning - add a new pathway when the clone has not existed',
   const options = {
     src: 'test',
     tech: this.player.tech_,
-    sourceType: 'hls'
+    sourceType: 'hls',
+    player_: this.player
   };
 
   const pc = new PlaylistController(options);
@@ -7286,7 +7298,8 @@ QUnit.test('Pathway cloning - update the pathway when the BASE-ID does not match
   const options = {
     src: 'test',
     tech: this.player.tech_,
-    sourceType: 'hls'
+    sourceType: 'hls',
+    player_: this.player
   };
 
   const pc = new PlaylistController(options);
@@ -7360,7 +7373,8 @@ QUnit.test('Pathway cloning - update the pathway when there is a new param', fun
   const options = {
     src: 'test',
     tech: this.player.tech_,
-    sourceType: 'hls'
+    sourceType: 'hls',
+    player_: this.player
   };
 
   const pc = new PlaylistController(options);
@@ -7436,7 +7450,8 @@ QUnit.test('Pathway cloning - update the pathway when a param is missing', funct
   const options = {
     src: 'test',
     tech: this.player.tech_,
-    sourceType: 'hls'
+    sourceType: 'hls',
+    player_: this.player
   };
 
   const pc = new PlaylistController(options);
@@ -7509,7 +7524,8 @@ QUnit.test('Pathway cloning - delete the pathway when it is no longer in the ste
   const options = {
     src: 'test',
     tech: this.player.tech_,
-    sourceType: 'hls'
+    sourceType: 'hls',
+    player_: this.player
   };
 
   const pc = new PlaylistController(options);
@@ -7570,7 +7586,8 @@ QUnit.test('Pathway cloning - do nothing when next and past clones are the same'
   const options = {
     src: 'test',
     tech: this.player.tech_,
-    sourceType: 'hls'
+    sourceType: 'hls',
+    player_: this.player
   };
 
   const pc = new PlaylistController(options);

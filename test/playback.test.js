@@ -526,3 +526,536 @@ QUnit.test('hls manifest object', function(assert) {
     done();
   });
 });
+
+// playlist event tests (hls specific)
+QUnit.test('Advanced Bip Bop playlist events', function(assert) {
+  const done = assert.async();
+
+  this.player.defaultPlaybackRate(1);
+
+  assert.expect(10);
+  const player = this.player;
+  let playlistrequeststartCallCount = 0;
+  let playlistparsestartCallCount = 0;
+  let playlistrequestcompleteCallCount = 0;
+  let playlistparsecompleteCallCount = 0;
+
+  player.on('playlistrequeststart', (event) => {
+    const expectedMetadata = {
+      playlistInfo: {
+        type: 'multivariant',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8'
+      }
+    };
+
+    if (playlistrequeststartCallCount === 1) {
+      expectedMetadata.playlistInfo.type = 'media';
+      expectedMetadata.playlistInfo.uri = 'gear1/prog_index.m3u8';
+    }
+    assert.deepEqual(event.metadata, expectedMetadata, 'playlistrequeststart got expected metadata');
+    playlistrequeststartCallCount++;
+  });
+
+  player.on('playlistrequestcomplete', (event) => {
+    const expectedMetadata = {
+      playlistInfo: {
+        type: 'multivariant',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8'
+      }
+    };
+
+    if (playlistrequestcompleteCallCount === 1) {
+      expectedMetadata.playlistInfo.type = 'media';
+      expectedMetadata.playlistInfo.uri = 'gear1/prog_index.m3u8';
+    }
+    assert.deepEqual(event.metadata, expectedMetadata, 'playlistrequestcomplete got expected metadata');
+    playlistrequestcompleteCallCount++;
+  });
+
+  player.on('playlistparsestart', (event) => {
+    const expectedMetadata = {
+      playlistInfo: {
+        type: 'multivariant',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8'
+      }
+    };
+
+    if (playlistparsestartCallCount === 1) {
+      expectedMetadata.playlistInfo.type = 'media';
+      expectedMetadata.playlistInfo.uri = 'gear1/prog_index.m3u8';
+    }
+    assert.deepEqual(event.metadata, expectedMetadata, 'playlistparsestart got expected metadata');
+    playlistparsestartCallCount++;
+  });
+
+  player.on('playlistparsecomplete', (event) => {
+    const expectedMetadata = {
+      playlistInfo: {
+        type: 'multivariant',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8'
+      },
+      parsedPlaylist: {
+        isLive: false,
+        renditions: [
+          {
+            bandwidth: 263851,
+            codecs: 'mp4a.40.2, avc1.4d400d',
+            id: undefined,
+            resolution: {
+              height: 234,
+              width: 416
+            }
+          },
+          {
+            bandwidth: 577610,
+            codecs: 'mp4a.40.2, avc1.4d401e',
+            id: undefined,
+            resolution: {
+              height: 360,
+              width: 640
+            }
+          },
+          {
+            bandwidth: 915905,
+            codecs: 'mp4a.40.2, avc1.4d401f',
+            id: undefined,
+            resolution: {
+              height: 540,
+              width: 960
+            }
+          },
+          {
+            bandwidth: 1030138,
+            codecs: 'mp4a.40.2, avc1.4d401f',
+            id: undefined,
+            resolution: {
+              height: 720,
+              width: 1280
+            }
+          },
+          {
+            bandwidth: 1924009,
+            codecs: 'mp4a.40.2, avc1.4d401f',
+            id: undefined,
+            resolution: {
+              height: 1080,
+              width: 1920
+            }
+          },
+          {
+            bandwidth: 41457,
+            codecs: 'mp4a.40.2',
+            id: undefined,
+            resolution: undefined
+          }
+        ],
+        type: 'multivariant'
+      }
+    };
+
+    if (playlistparsecompleteCallCount === 1) {
+      expectedMetadata.playlistInfo.type = 'media';
+      expectedMetadata.playlistInfo.uri = 'gear1/prog_index.m3u8';
+      expectedMetadata.parsedPlaylist.type = 'media';
+      expectedMetadata.parsedPlaylist.renditions[0].id = '0-gear1/prog_index.m3u8';
+      expectedMetadata.parsedPlaylist.renditions[1].id = '1-gear2/prog_index.m3u8';
+      expectedMetadata.parsedPlaylist.renditions[2].id = '2-gear3/prog_index.m3u8';
+      expectedMetadata.parsedPlaylist.renditions[3].id = '3-gear4/prog_index.m3u8';
+      expectedMetadata.parsedPlaylist.renditions[4].id = '4-gear5/prog_index.m3u8';
+      expectedMetadata.parsedPlaylist.renditions[5].id = '5-gear0/prog_index.m3u8';
+    }
+    assert.deepEqual(event.metadata, expectedMetadata, 'playlistparsecomplete got expected metadata');
+    playlistparsecompleteCallCount++;
+  });
+
+  playFor(player, 0.1, function() {
+    assert.ok(true, 'played for at least two seconds');
+    assert.equal(player.error(), null, 'has no player errors');
+
+    done();
+  });
+
+  player.src({
+    src: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8',
+    type: 'application/x-mpegURL'
+  });
+});
+
+// manifest event tests (dash specific)
+QUnit.test('Big Buck Bunny manifest events', function(assert) {
+  const done = assert.async();
+
+  this.player.defaultPlaybackRate(1);
+
+  assert.expect(6);
+  const player = this.player;
+
+  player.one('manifestrequeststart', (event) => {
+    const expectedMetadata = {
+      manifestInfo: {
+        uri: 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd'
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'manifestrequeststart got expected metadata');
+  });
+
+  player.one('manifestrequestcomplete', (event) => {
+    const expectedMetadata = {
+      manifestInfo: {
+        uri: 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd'
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'manifestrequestcomplete got expected metadata');
+  });
+
+  player.one('manifestparsestart', (event) => {
+    const expectedMetadata = {
+      manifestInfo: {
+        uri: 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd'
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'manifestparsestart got expected metadata');
+  });
+
+  player.one('manifestparsecomplete', (event) => {
+    const expectedMetadata = {
+      manifestInfo: {
+        uri: 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd'
+      },
+      parsedManifest: {
+        duration: 634.566,
+        isLive: false,
+        renditions: [
+          {
+            bandwidth: 3134488,
+            codecs: 'avc1.64001f',
+            id: '0-placeholder-uri-0',
+            resolution: {
+              height: 576,
+              width: 1024
+            }
+          },
+          {
+            bandwidth: 4952892,
+            codecs: 'avc1.64001f',
+            id: '1-placeholder-uri-1',
+            resolution: {
+              height: 720,
+              width: 1280
+            }
+          },
+          {
+            bandwidth: 9914554,
+            codecs: 'avc1.640028',
+            id: '2-placeholder-uri-2',
+            resolution: {
+              height: 1080,
+              width: 1920
+            }
+          },
+          {
+            bandwidth: 254320,
+            codecs: 'avc1.64000d',
+            id: '3-placeholder-uri-3',
+            resolution: {
+              height: 180,
+              width: 320
+            }
+          },
+          {
+            bandwidth: 507246,
+            codecs: 'avc1.64000d',
+            id: '4-placeholder-uri-4',
+            resolution: {
+              height: 180,
+              width: 320
+            }
+          },
+          {
+            bandwidth: 759798,
+            codecs: 'avc1.640015',
+            id: '5-placeholder-uri-5',
+            resolution: {
+              height: 270,
+              width: 480
+            }
+          },
+          {
+            bandwidth: 1254758,
+            codecs: 'avc1.64001e',
+            id: '6-placeholder-uri-6',
+            resolution: {
+              height: 360,
+              width: 640
+            }
+          },
+          {
+            bandwidth: 1013310,
+            codecs: 'avc1.64001e',
+            id: '7-placeholder-uri-7',
+            resolution: {
+              height: 360,
+              width: 640
+            }
+          },
+          {
+            bandwidth: 1883700,
+            codecs: 'avc1.64001e',
+            id: '8-placeholder-uri-8',
+            resolution: {
+              height: 432,
+              width: 768
+            }
+          },
+          {
+            bandwidth: 14931538,
+            codecs: 'avc1.640033',
+            id: '9-placeholder-uri-9',
+            resolution: {
+              height: 2160,
+              width: 3840
+            }
+          }
+        ]
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'manifestparsestart got expected metadata');
+  });
+
+  playFor(player, 0.1, function() {
+    assert.ok(true, 'played for at least two seconds');
+    assert.equal(player.error(), null, 'has no player errors');
+
+    done();
+  });
+
+  player.src({
+    src: 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd',
+    type: 'application/dash+xml'
+  });
+});
+
+// segment event tests
+QUnit.test('Advanced Bip Bop segment events', function(assert) {
+  const done = assert.async();
+
+  this.player.defaultPlaybackRate(1);
+
+  assert.expect(11);
+  const player = this.player;
+
+  player.one('segmentselected', (event) => {
+    const expectedMetadata = {
+      segmentInfo: {
+        duration: 9.9766,
+        isEncrypted: false,
+        isMediaInitialization: false,
+        start: 0,
+        type: 'main',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/gear1/main.ts'
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'segmentselected got expected metadata');
+  });
+
+  player.one('segmentloadstart', (event) => {
+    const expectedMetadata = {
+      segmentInfo: {
+        duration: 9.9766,
+        isEncrypted: false,
+        isMediaInitialization: false,
+        start: 0,
+        type: 'main',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/gear1/main.ts'
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'segmentloadstart got expected metadata');
+  });
+
+  player.one('segmentloaded', (event) => {
+    const expectedMetadata = {
+      segmentInfo: {
+        duration: 9.9766,
+        isEncrypted: false,
+        isMediaInitialization: false,
+        start: 0,
+        type: 'main',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/gear1/main.ts'
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'segmentloaded got expected metadata');
+  });
+
+  // ts specific
+  player.one('segmenttransmuxingstart', (event) => {
+    const expectedMetadata = {
+      segmentInfo: {
+        duration: 9.9766,
+        isEncrypted: false,
+        isMediaInitialization: false,
+        start: 0,
+        type: 'main',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/gear1/main.ts'
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'segmenttransmuxingstart got expected metadata');
+  });
+
+  player.one('segmenttransmuxingcomplete', (event) => {
+    const expectedMetadata = {
+      segmentInfo: {
+        duration: 9.9766,
+        isEncrypted: false,
+        isMediaInitialization: false,
+        start: 0,
+        type: 'main',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/gear1/main.ts'
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'segmenttransmuxingcomplete got expected metadata');
+  });
+
+  player.one('segmenttransmuxingtrackinfoavailable', (event) => {
+    const expectedMetadata = {
+      segmentInfo: {
+        duration: 9.9766,
+        isEncrypted: false,
+        isMediaInitialization: false,
+        start: 0,
+        type: 'main',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/gear1/main.ts'
+      },
+      trackInfo: {
+        hasVideo: true,
+        hasAudio: true
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'segmenttransmuxingtrackinfoavailable got expected metadata');
+  });
+
+  player.one('segmenttransmuxingtiminginfoavailable', (event) => {
+    const expectedMetadata = {
+      segmentInfo: {
+        duration: 9.9766,
+        isEncrypted: false,
+        isMediaInitialization: false,
+        start: 0,
+        type: 'main',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/gear1/main.ts'
+      },
+      timingInfo: {
+        dts: {
+          end: 19.976644444444446,
+          start: 10
+        },
+        pts: {
+          end: 19.976644444444446,
+          start: 10
+        }
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'segmenttransmuxingtiminginfoavailable got expected metadata');
+  });
+
+  player.one('segmentappendstart', (event) => {
+    const expectedMetadata = {
+      segmentInfo: {
+        duration: 9.9766,
+        isEncrypted: false,
+        isMediaInitialization: false,
+        start: 0,
+        type: 'main',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/gear1/main.ts'
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'segmentappendstart got expected metadata');
+  });
+
+  player.one('appendsdone', (event) => {
+    const expectedMetadata = {
+      segmentInfo: {
+        duration: 9.9766,
+        isEncrypted: false,
+        isMediaInitialization: false,
+        start: 0,
+        type: 'main',
+        uri: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/gear1/main.ts'
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'appendsdone got expected metadata');
+  });
+
+  playFor(player, 0.1, function() {
+    assert.ok(true, 'played for at least two seconds');
+    assert.equal(player.error(), null, 'has no player errors');
+
+    done();
+  });
+
+  player.src({
+    src: 'https://s3.amazonaws.com/_bc_dml/example-content/bipbop-advanced/bipbop_16x9_variant.m3u8',
+    type: 'application/x-mpegURL'
+  });
+});
+
+QUnit.test('Big Buck Bunny streaming events', function(assert) {
+  const done = assert.async();
+
+  this.player.defaultPlaybackRate(1);
+
+  assert.expect(7);
+  const player = this.player;
+
+  player.one('bandwidthupdated', (event) => {
+    assert.notOk(isNaN(event.metadata.bandwidthInfo.from), 'manifestrequeststart got expected metadata');
+    assert.notOk(isNaN(event.metadata.bandwidthInfo.to), 'manifestrequeststart got expected metadata');
+  });
+
+  player.one('timelinechange', (event) => {
+    const expectedMetadata = {
+      timelineChangeInfo: {
+        from: -1,
+        to: 0
+      }
+    };
+
+    assert.deepEqual(event.metadata, expectedMetadata, 'timelinechange got expected metadata');
+  });
+
+  player.one('seekablerangeschanged', (event) => {
+    assert.ok(event.metadata.seekableRanges, 'manifestparsestart got expected metadata');
+  });
+
+  player.one('bufferedrangeschanged', (event) => {
+    assert.ok(event.metadata.bufferedRanges, 'manifestparsestart got expected metadata');
+  });
+
+  player.one('playedrangeschanged', (event) => {
+    assert.ok(event.metadata.playedRanges, 'manifestparsestart got expected metadata');
+  });
+
+  playFor(player, 0.1, function() {
+    assert.ok(true, 'played for at least two seconds');
+    assert.equal(player.error(), null, 'has no player errors');
+
+    done();
+  });
+
+  player.src({
+    src: 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd',
+    type: 'application/dash+xml'
+  });
+});

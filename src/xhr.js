@@ -132,6 +132,7 @@ const xhrFactory = function() {
       return originalAbort.apply(request, arguments);
     };
     request.uri = options.uri;
+    request.requestType = options.requestType;
     request.requestTime = Date.now();
     return request;
   };

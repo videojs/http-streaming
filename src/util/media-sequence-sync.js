@@ -79,11 +79,11 @@ class SyncInfoData {
   }
 }
 
-export default class MediaSequenceSync {
+export class MediaSequenceSync {
   constructor() {
     /**
      * @type {Map<number, SyncInfoData>}
-     * @private
+     * @protected
      */
     this.storage_ = new Map();
     this.diagnostics_ = '';
@@ -158,6 +158,10 @@ export default class MediaSequenceSync {
     }
 
     return null;
+  }
+
+  getSyncInfoForMediaSequence(mediaSequence) {
+    return this.storage_.get(mediaSequence);
   }
 
   updateStorage_(segments, startingMediaSequence, startingTime) {
@@ -242,5 +246,27 @@ export default class MediaSequenceSync {
 
   isReliablePlaylist_(mediaSequence, segments) {
     return mediaSequence !== undefined && mediaSequence !== null && Array.isArray(segments) && segments.length;
+  }
+}
+
+export class DependantMediaSequenceSync extends MediaSequenceSync {
+  constructor(parent) {
+    super();
+
+    this.parent_ = parent;
+  }
+
+  calculateBaseTime_(mediaSequence, fallback) {
+    if (!this.storage_.size) {
+      const info = this.parent_.getSyncInfoForMediaSequence(mediaSequence);
+
+      if (info) {
+        return info.segmentSyncInfo.start;
+      }
+
+      return 0;
+    }
+
+    return super.calculateBaseTime_(mediaSequence, fallback);
   }
 }

@@ -284,14 +284,26 @@ const actions = {
     if (oldCodecBase === newCodecBase) {
       return;
     }
+    const metadata = {
+      codecsChangeInfo: {
+        from: oldCodec,
+        to: codec
+      }
+    };
 
-    sourceUpdater.logger_(`changing ${type}Buffer codec from ${sourceUpdater.codecs[type]} to ${codec}`);
+    sourceUpdater.trigger({ type: 'codecschange', metadata });
+    sourceUpdater.logger_(`changing ${type}Buffer codec from ${oldCodec} to ${codec}`);
 
     // check if change to the provided type is supported
     try {
       sourceBuffer.changeType(mime);
       sourceUpdater.codecs[type] = codec;
     } catch (e) {
+      metadata.errorType = videojs.Error.StreamingCodecsChangeError;
+      metadata.error = e;
+      e.metadata = metadata;
+      sourceUpdater.error_ = e;
+      sourceUpdater.trigger('error');
       videojs.log.warn(`Failed to changeType on ${type}Buffer`, e);
     }
   }
@@ -806,7 +818,7 @@ export default class SourceUpdater extends videojs.EventTarget {
     if (typeof offset !== 'undefined' &&
         this.videoBuffer &&
         // no point in updating if it's the same
-        this.videoTimestampOffset !== offset) {
+        this.videoTimestampOffset_ !== offset) {
       pushQueue({
         type: 'video',
         sourceUpdater: this,
