@@ -42,6 +42,7 @@ export default class PlaybackWatcher extends videojs.EventTarget {
     this.liveRangeSafeTimeDelta = options.liveRangeSafeTimeDelta;
     this.media = options.media;
     this.playedRanges_ = [];
+    this.stuckTimeout_ = null;
 
     this.consecutiveUpdates = 0;
     this.lastRecordedTime = null;
@@ -280,12 +281,14 @@ export default class PlaybackWatcher extends videojs.EventTarget {
     } else if (currentTime === this.lastRecordedTime) {
       this.consecutiveUpdates++;
     } else {
-      this.playedRanges_.push(createTimeRanges([this.lastRecordedTime, currentTime]));
-      const metadata = {
-        playedRanges: this.playedRanges_
-      };
+      if ((this.lastRecordedTime || this.lastRecordedTime === 0) && currentTime) {
+        this.playedRanges_.push(createTimeRanges(this.lastRecordedTime, currentTime));
+        const metadata = {
+          playedRanges: this.playedRanges_
+        };
 
-      this.playlistController_.trigger({ type: 'playedrangeschanged', metadata });
+        this.playlistController_.trigger({ type: 'playedrangeschanged', metadata });
+      }
       this.consecutiveUpdates = 0;
       this.lastRecordedTime = currentTime;
     }
@@ -498,6 +501,21 @@ export default class PlaybackWatcher extends videojs.EventTarget {
       this.resetTimeUpdate_();
       this.skipTheGap_(currentTime);
       return true;
+    }
+
+    // If we're waiting, nothing is buffered and stuck at the last played time attempt a seek to reset loaders and unstick playback.
+    // debounce incase we get a lot of waiting events.
+    const lastPlayedRange = this.playedRanges_[this.playedRanges_.length - 1];
+    const isStuckAtLastPlayedEnd = lastPlayedRange && lastPlayedRange.end(lastPlayedRange.length - 1) === currentTime;
+
+    if (!buffered.length && isStuckAtLastPlayedEnd) {
+      if (this.stuckTimeout_) {
+        clearTimeout(this.stuckTimeout_);
+      }
+      this.stuckTimeout_ = setTimeout(() => {
+        this.logger_('currentTime is stuck and nothing is buffered, attempting to seek to resume playback.');
+        this.playlistController_.setCurrentTime(currentTime);
+      }, 100);
     }
 
     // All checks failed. Returning false to indicate failure to correct waiting

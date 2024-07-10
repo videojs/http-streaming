@@ -1067,7 +1067,7 @@ export class PlaylistController extends videojs.EventTarget {
     // Chrome bug: https://bugs.chromium.org/p/chromium/issues/detail?id=651904
     this.mainSegmentLoader_.pause();
     this.mainSegmentLoader_.resetEverything(() => {
-      this.tech_.setCurrentTime(this.tech_.currentTime());
+      this.mainSegmentLoader_.load();
     });
 
     // don't need to reset audio as it is reset when media changes
