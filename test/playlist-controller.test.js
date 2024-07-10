@@ -688,10 +688,11 @@ QUnit.test(
   }
 );
 
-QUnit.test('resets everything for a fast quality change', function(assert) {
+QUnit.test('resets everything for a fast quality change then calls load', function(assert) {
   let resyncs = 0;
   let resets = 0;
   let removeFuncArgs = {};
+  const done = assert.async();
 
   this.playlistController.mediaSource.trigger('sourceopen');
   // main
@@ -709,16 +710,24 @@ QUnit.test('resets everything for a fast quality change', function(assert) {
 
   const origResetEverything = segmentLoader.resetEverything;
   const origRemove = segmentLoader.remove;
+  const origLoad = segmentLoader.load;
 
-  segmentLoader.resetEverything = () => {
-    resets++;
-    origResetEverything.call(segmentLoader);
+  // ensure load is called
+  segmentLoader.load = () => {
+    done();
+    origLoad.call(segmentLoader);
   };
 
-  segmentLoader.remove = (start, end) => {
-    assert.equal(end, Infinity, 'on a remove all, end should be Infinity');
+  segmentLoader.resetEverything = (doneFn) => {
+    resets++;
+    origResetEverything.call(segmentLoader, doneFn);
+  };
 
-    origRemove.call(segmentLoader, start, end);
+  segmentLoader.remove = (start, end, doneFn) => {
+    assert.equal(end, Infinity, 'on a remove all, end should be Infinity');
+    assert.ok(doneFn);
+    doneFn();
+    origRemove.call(segmentLoader, start, end, doneFn);
   };
 
   segmentLoader.startingMediaInfo_ = { hasVideo: true };
