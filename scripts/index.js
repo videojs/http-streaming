@@ -769,5 +769,75 @@
 
     // run the change handler for the first time
     stateEls.minified.dispatchEvent(newEvent('change'));
+
+    // Setup the download / copy log buttons
+    const downloadLogsButton = document.getElementById('download-logs');
+    const copyLogsButton = document.getElementById('copy-logs');
+
+    /**
+     * Window location and history joined with line breaks, stringifying any objects
+     *
+     * @return {string} Stringified history
+     */
+    const stringifiedLogHistory = () => {
+      const player = document.querySelector('video-js').player;
+      const logs = [].concat(player.log.history());
+      const withVhs = !!player.tech(true).vhs;
+
+      return [
+        window.location.href,
+        window.navigator.userAgent,
+        `Video.js ${window.videojs.VERSION}`,
+        `Using VHS: ${withVhs}`,
+        withVhs ? JSON.stringify(player.tech(true).vhs.version()) : ''
+      ].concat(logs.map(entryArgs => {
+        return entryArgs.map(item => {
+          return typeof item === 'object' ? JSON.stringify(item) : item;
+        });
+      })).join('\n');
+    };
+
+    /**
+     * Turn a bootstrap button class on briefly then revert to btn-outline-ptimary
+     *
+     * @param {HTMLElement} el Element to add class to
+     * @param {string} stateClass Bootstrap button class suffix
+     */
+    const doneFeedback = (el, stateClass) => {
+      el.classList.add(`btn-${stateClass}`);
+      el.classList.remove('btn-outline-secondary');
+
+      window.setTimeout(() => {
+        el.classList.add('btn-outline-secondary');
+        el.classList.remove(`btn-${stateClass}`);
+      }, 1500);
+    };
+
+    downloadLogsButton.addEventListener('click', function() {
+      const logHistory = stringifiedLogHistory();
+      const a = document.createElement('a');
+      const href = URL.createObjectURL(new Blob([logHistory], { type: 'text/plain' }));
+
+      a.setAttribute('download', 'vhs-player-logs.txt');
+      a.setAttribute('target', '_blank');
+      a.href = href;
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(href);
+      doneFeedback(downloadLogsButton, 'success');
+    });
+
+    copyLogsButton.addEventListener('click', function() {
+      const logHistory = stringifiedLogHistory();
+
+      window.navigator.clipboard.writeText(logHistory).then(z => {
+        doneFeedback(copyLogsButton, 'success');
+      }).catch(e => {
+        doneFeedback(copyLogsButton, 'danger');
+        console.log('Copy failed', e);
+      });
+
+    });
   };
+
 }(window));
