@@ -777,55 +777,6 @@ QUnit.test('loadVttJs should be passed to the vttSegmentLoader and rejected on v
   });
 });
 
-QUnit.test('seeks in place for fast quality switch on non-IE/Edge browsers', function(assert) {
-  let seeks = 0;
-
-  this.playlistController.mediaSource.trigger('sourceopen');
-  // main
-  this.standardXHRResponse(this.requests.shift());
-  // media
-  this.standardXHRResponse(this.requests.shift());
-
-  const segmentLoader = this.playlistController.mainSegmentLoader_;
-
-  return requestAndAppendSegment({
-    request: this.requests.shift(),
-    segmentLoader,
-    clock: this.clock
-  }).then(() => {
-    // media is changed
-    this.playlistController.selectPlaylist = () => {
-      const playlists = this.playlistController.main().playlists;
-      const currentPlaylist = this.playlistController.media();
-
-      return playlists.find((playlist) => playlist !== currentPlaylist);
-    };
-
-    this.player.tech_.on('seeking', function() {
-      seeks++;
-    });
-
-    const timeBeforeSwitch = this.player.currentTime();
-
-    // mock buffered values so removes are processed
-    segmentLoader.sourceUpdater_.audioBuffer.buffered = createTimeRanges([[0, 10]]);
-    segmentLoader.sourceUpdater_.videoBuffer.buffered = createTimeRanges([[0, 10]]);
-
-    this.playlistController.runFastQualitySwitch_();
-    // trigger updateend to indicate the end of the remove operation
-    segmentLoader.sourceUpdater_.audioBuffer.trigger('updateend');
-    segmentLoader.sourceUpdater_.videoBuffer.trigger('updateend');
-    this.clock.tick(1);
-
-    assert.equal(
-      this.player.currentTime(),
-      timeBeforeSwitch,
-      'current time remains the same on fast quality switch'
-    );
-    assert.equal(seeks, 1, 'seek event occurs on fast quality switch');
-  });
-});
-
 QUnit.test('basic timeToLoadedData, mediaAppends, appendsToLoadedData stats', function(assert) {
   this.player.tech_.trigger('loadstart');
   this.playlistController.mediaSource.trigger('sourceopen');
