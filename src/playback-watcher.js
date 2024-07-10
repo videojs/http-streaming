@@ -42,7 +42,6 @@ export default class PlaybackWatcher extends videojs.EventTarget {
     this.liveRangeSafeTimeDelta = options.liveRangeSafeTimeDelta;
     this.media = options.media;
     this.playedRanges_ = [];
-    this.stuckTimeout_ = null;
 
     this.consecutiveUpdates = 0;
     this.lastRecordedTime = null;
@@ -500,6 +499,7 @@ export default class PlaybackWatcher extends videojs.EventTarget {
       this.skipTheGap_(currentTime);
       return true;
     }
+
     // All checks failed. Returning false to indicate failure to correct waiting
     return false;
   }
