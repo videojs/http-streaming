@@ -414,8 +414,9 @@ export const shouldFixBadTimelineChanges = (timelineChangeController) => {
   const pendingMainTimelineChange = timelineChangeController.pendingTimelineChange({ type: 'main' });
   const hasPendingTimelineChanges = pendingAudioTimelineChange && pendingMainTimelineChange;
   const differentPendingChanges = hasPendingTimelineChanges && pendingAudioTimelineChange.to !== pendingMainTimelineChange.to;
+  const isNotInitialPendingTimelineChange = hasPendingTimelineChanges && pendingAudioTimelineChange.from !== -1 && pendingMainTimelineChange.from !== -1;
 
-  if (differentPendingChanges) {
+  if (isNotInitialPendingTimelineChange && differentPendingChanges) {
     return true;
   }
 
