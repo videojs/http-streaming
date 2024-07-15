@@ -9,7 +9,9 @@ import {
   mediaDuration,
   getTroublesomeSegmentDurationMessage,
   getSyncSegmentCandidate,
-  segmentInfoString
+  segmentInfoString,
+  shouldFixBadTimelineChanges,
+  fixBadTimelineChange
 } from '../src/segment-loader';
 import mp4probe from 'mux.js/lib/mp4/probe';
 import {
@@ -463,6 +465,78 @@ QUnit.test('main loader does not wait if pending audio timeline change matches s
     }),
     'should not wait'
   );
+});
+
+QUnit.module('shouldFixBadTimelineChange');
+
+QUnit.test('shouldFixBadTimelineChange returns true when timelines are both changing to different timelines', function(assert) {
+  const timelineChangeController = {
+    pendingTimelineChange({ type }) {
+      if (type === 'audio') {
+        return { from: 1, to: 2 };
+      } else if (type === 'main') {
+        return { from: 2, to: 1 };
+      }
+    }
+  };
+
+  assert.ok(shouldFixBadTimelineChanges(timelineChangeController), 'should fix a bad timeline change');
+});
+
+QUnit.test('shouldFixBadTimelineChange returns false when only one timeline has a pending change', function(assert) {
+  const timelineChangeController = {
+    pendingTimelineChange({ type }) {
+      if (type === 'audio') {
+        return { from: 1, to: 2 };
+      }
+    }
+  };
+
+  assert.notOk(shouldFixBadTimelineChanges(timelineChangeController), 'should not fix a timeline change');
+});
+
+QUnit.test('shouldFixBadTimelineChange returns false when both timelines are changing to the same value', function(assert) {
+  const timelineChangeController = {
+    pendingTimelineChange({ type }) {
+      if (type === 'audio') {
+        return { from: 1, to: 2 };
+      } else if (type === 'main') {
+        return { from: 1, to: 2 };
+      }
+    }
+  };
+
+  assert.notOk(shouldFixBadTimelineChanges(timelineChangeController), 'should not fix a good timeline change');
+});
+
+QUnit.test('shouldFixBadTimelineChange returns false when timelineChangeController is undefined', function(assert) {
+  const timelineChangeController = undefined;
+
+  assert.notOk(shouldFixBadTimelineChanges(timelineChangeController), 'should not fix a timeline change with no timelineChangeController');
+});
+
+QUnit.module('fixBadTimelineChange');
+
+QUnit.test('fixBadTimelineChange calls pause, resetEverything and load on a segmentLoader', function(assert) {
+  let pauseCalls = 0;
+  let resetEverythingCalls = 0;
+  let loadCalls = 0;
+  const mockSegmentLoader = {
+    pause() {
+      pauseCalls++;
+    },
+    resetEverything() {
+      resetEverythingCalls++;
+    },
+    load() {
+      loadCalls++;
+    }
+  };
+
+  fixBadTimelineChange(mockSegmentLoader);
+  assert.equal(pauseCalls, 1, 'calls pause once');
+  assert.equal(resetEverythingCalls, 1, 'calls resetEverything once');
+  assert.equal(loadCalls, 1, 'calls load once');
 });
 
 QUnit.module('safeBackBufferTrimTime');
