@@ -280,7 +280,7 @@ export default class PlaybackWatcher extends videojs.EventTarget {
     } else if (currentTime === this.lastRecordedTime) {
       this.consecutiveUpdates++;
     } else {
-      this.playedRanges_.push(createTimeRanges([this.lastRecordedTime, currentTime]));
+      this.playedRanges_.push(createTimeRanges(this.lastRecordedTime, currentTime));
       const metadata = {
         playedRanges: this.playedRanges_
       };
