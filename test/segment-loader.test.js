@@ -521,7 +521,7 @@ QUnit.test('fixBadTimelineChange calls pause, resetEverything and load on a segm
   let pauseCalls = 0;
   let resetEverythingCalls = 0;
   let loadCalls = 0;
-  const mockSegmentLoader = {
+  let mockSegmentLoader = {
     pause() {
       pauseCalls++;
     },
@@ -533,6 +533,13 @@ QUnit.test('fixBadTimelineChange calls pause, resetEverything and load on a segm
     }
   };
 
+  fixBadTimelineChange(mockSegmentLoader);
+  assert.equal(pauseCalls, 1, 'calls pause once');
+  assert.equal(resetEverythingCalls, 1, 'calls resetEverything once');
+  assert.equal(loadCalls, 1, 'calls load once');
+
+  // early return if undefined. call counts remain the same.
+  mockSegmentLoader = undefined;
   fixBadTimelineChange(mockSegmentLoader);
   assert.equal(pauseCalls, 1, 'calls pause once');
   assert.equal(resetEverythingCalls, 1, 'calls resetEverything once');
