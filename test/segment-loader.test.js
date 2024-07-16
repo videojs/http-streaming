@@ -1656,6 +1656,132 @@ QUnit.module('SegmentLoader', function(hooks) {
       });
     });
 
+    QUnit.test('hasEnoughInfoToLoad_ calls fixBadTimelineChange', function(assert) {
+      loader.dispose();
+      loader = new SegmentLoader(LoaderCommonSettings.call(this, {
+        loaderType: 'audio'
+      }), {});
+      const origPause = loader.pause;
+      const origLoad = loader.load;
+      const origResetEverything = loader.resetEverything;
+      let pauseCalls = 0;
+      let loadCalls = 0;
+      let resetEverythingCalls = 0;
+
+      loader.pause = () => {
+        pauseCalls++;
+        origPause.call(loader);
+      };
+      loader.load = () => {
+        loadCalls++;
+        origLoad.call(loader);
+      };
+      loader.resetEverything = () => {
+        resetEverythingCalls++;
+        origResetEverything.call(loader);
+      };
+      loader.timelineChangeController_.pendingTimelineChange = ({ type }) => {
+        if (type === 'audio') {
+          return {
+            from: 3,
+            to: 2
+          };
+        } else if (type === 'main') {
+          return {
+            from: 0,
+            to: 1
+          };
+        }
+      };
+
+      const playlist = playlistWithDuration(20);
+
+      playlist.discontinuityStarts = [1];
+      loader.getCurrentMediaInfo_ = () => {
+        return {
+          hasVideo: true,
+          hasAudio: false,
+          isMuxed: false
+        };
+      };
+
+      return this.setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        loader.playlist(playlist);
+        loader.load();
+        this.clock.tick(1);
+        assert.equal(pauseCalls, 1, '1 pause call expected');
+        assert.equal(loadCalls, 2, '2 load calls expected');
+        assert.equal(resetEverythingCalls, 2, '1 load calls expected');
+      });
+    });
+
+    QUnit.test('hasEnoughInfoToAppend_ calls fixBadTimelineChange', function(assert) {
+      loader.dispose();
+      loader = new SegmentLoader(LoaderCommonSettings.call(this, {
+        loaderType: 'main'
+      }), {});
+      const origPause = loader.pause;
+      const origLoad = loader.load;
+      const origResetEverything = loader.resetEverything;
+      let pauseCalls = 0;
+      let loadCalls = 0;
+      let resetEverythingCalls = 0;
+
+      loader.pause = () => {
+        pauseCalls++;
+        origPause.call(loader);
+      };
+      loader.load = () => {
+        loadCalls++;
+        origLoad.call(loader);
+      };
+      loader.resetEverything = () => {
+        resetEverythingCalls++;
+        origResetEverything.call(loader);
+      };
+      loader.timelineChangeController_.pendingTimelineChange = ({ type }) => {
+        if (type === 'audio') {
+          return {
+            from: 3,
+            to: 2
+          };
+        } else if (type === 'main') {
+          return {
+            from: 0,
+            to: 1
+          };
+        }
+      };
+      this.sourceUpdater_.ready = () => {
+        return true;
+      };
+
+      const playlist = playlistWithDuration(20);
+
+      playlist.discontinuityStarts = [1];
+      loader.getCurrentMediaInfo_ = () => {
+        return {
+          hasVideo: true,
+          hasAudio: false,
+          isMuxed: false
+        };
+      };
+      loader.pendingSegment_ = {
+        foo: 'bar',
+        videoTimingInfo: 1
+      };
+      loader.audioDisabled_ = true;
+
+      return this.setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        loader.playlist(playlist);
+        loader.load();
+        this.clock.tick(1);
+        assert.equal(pauseCalls, 1, '1 pause call expected');
+        assert.equal(loadCalls, 2, '2 load calls expected');
+        assert.equal(resetEverythingCalls, 2, '1 load calls expected');
+      });
+    });
+
     QUnit.test('audio loader does not wait to request segment even if timestamp offset is nonzero', function(assert) {
       loader.dispose();
       loader = new SegmentLoader(LoaderCommonSettings.call(this, {
