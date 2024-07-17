@@ -431,6 +431,7 @@ export const fixBadTimelineChange = (segmentLoader) => {
   segmentLoader.abort_();
   segmentLoader.resetEverything();
   segmentLoader.load();
+  segmentLoader.trigger('fix-timeline-change');
 };
 
 export const mediaDuration = (timingInfos) => {
@@ -2222,9 +2223,6 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
     ) {
       if (shouldFixBadTimelineChanges(this.timelineChangeController_)) {
         fixBadTimelineChange(this);
-        // we want to append segments whenever we can, so
-        // try and fix the bad change then append the segment anyway.
-        return true;
       }
       return false;
     }
