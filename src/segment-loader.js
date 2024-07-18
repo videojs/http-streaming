@@ -431,7 +431,6 @@ export const fixBadTimelineChange = (segmentLoader) => {
   segmentLoader.abort_();
   segmentLoader.resetEverything();
   segmentLoader.load();
-  segmentLoader.trigger('fix-timeline-change');
 };
 
 export const mediaDuration = (timingInfos) => {
