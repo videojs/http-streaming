@@ -166,6 +166,18 @@ export const useFakeMediaSource = function() {
   };
 };
 
+export const useFakeManagedMediaSource = function() {
+  window.ManagedMediaSource = MockMediaSource;
+  window.URL.createObjectURL = (object) => realCreateObjectURL(object instanceof MockMediaSource ? object.nativeMediaSource_ : object);
+
+  return {
+    restore() {
+      window.MediaSource = RealMediaSource;
+      window.URL.createObjectURL = realCreateObjectURL;
+    }
+  };
+};
+
 export const downloadProgress = (xhr, rawEventData) => {
   const text = rawEventData.toString();
 
