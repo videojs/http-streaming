@@ -145,7 +145,7 @@ export const parseMainXml = ({
  */
 const removeOldMediaGroupLabels = (update, newMain) => {
   forEachMediaGroup(update, (properties, type, group, label) => {
-    if (!(label in newMain.mediaGroups[type][group])) {
+    if (!newMain.mediaGroups[type][group] || !(label in newMain.mediaGroups[type][group])) {
       delete update.mediaGroups[type][group][label];
     }
   });
