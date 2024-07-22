@@ -428,7 +428,6 @@ export const fixBadTimelineChange = (segmentLoader) => {
     return;
   }
   segmentLoader.pause();
-  segmentLoader.abort_();
   segmentLoader.resetEverything();
   segmentLoader.load();
 };

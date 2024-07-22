@@ -521,13 +521,9 @@ QUnit.test('fixBadTimelineChange calls pause, resetEverything and load on a segm
   let pauseCalls = 0;
   let resetEverythingCalls = 0;
   let loadCalls = 0;
-  let abortCalls = 0;
   let mockSegmentLoader = {
     pause() {
       pauseCalls++;
-    },
-    abort_() {
-      abortCalls++;
     },
     resetEverything() {
       resetEverythingCalls++;
@@ -548,7 +544,6 @@ QUnit.test('fixBadTimelineChange calls pause, resetEverything and load on a segm
   assert.equal(pauseCalls, 1, 'calls pause once');
   assert.equal(resetEverythingCalls, 1, 'calls resetEverything once');
   assert.equal(loadCalls, 1, 'calls load once');
-  assert.equal(abortCalls, 1, 'calls abort once');
 });
 
 QUnit.module('safeBackBufferTrimTime');
