@@ -406,6 +406,32 @@ export const shouldWaitForTimelineChange = ({
   return false;
 };
 
+export const shouldFixBadTimelineChanges = (timelineChangeController) => {
+  if (!timelineChangeController) {
+    return false;
+  }
+  const pendingAudioTimelineChange = timelineChangeController.pendingTimelineChange({ type: 'audio' });
+  const pendingMainTimelineChange = timelineChangeController.pendingTimelineChange({ type: 'main' });
+  const hasPendingTimelineChanges = pendingAudioTimelineChange && pendingMainTimelineChange;
+  const differentPendingChanges = hasPendingTimelineChanges && pendingAudioTimelineChange.to !== pendingMainTimelineChange.to;
+  const isNotInitialPendingTimelineChange = hasPendingTimelineChanges && pendingAudioTimelineChange.from !== -1 && pendingMainTimelineChange.from !== -1;
+
+  if (isNotInitialPendingTimelineChange && differentPendingChanges) {
+    return true;
+  }
+
+  return false;
+};
+
+export const fixBadTimelineChange = (segmentLoader) => {
+  if (!segmentLoader) {
+    return;
+  }
+  segmentLoader.pause();
+  segmentLoader.resetEverything();
+  segmentLoader.load();
+};
+
 export const mediaDuration = (timingInfos) => {
   let maxDuration = 0;
 
@@ -2130,6 +2156,9 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
         audioDisabled: this.audioDisabled_
       })
     ) {
+      if (shouldFixBadTimelineChanges(this.timelineChangeController_)) {
+        fixBadTimelineChange(this);
+      }
       return false;
     }
 
@@ -2180,6 +2209,7 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
       return false;
     }
 
+    // we need to allow an append here even if we're moving to different timelines.
     if (
       shouldWaitForTimelineChange({
         timelineChangeController: this.timelineChangeController_,
@@ -2189,6 +2219,9 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
         audioDisabled: this.audioDisabled_
       })
     ) {
+      if (shouldFixBadTimelineChanges(this.timelineChangeController_)) {
+        fixBadTimelineChange(this);
+      }
       return false;
     }
 

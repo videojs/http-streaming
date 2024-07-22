@@ -561,7 +561,7 @@
         'node_modules/video.js/dist/alt/video.core',
         'node_modules/videojs-contrib-eme/dist/videojs-contrib-eme',
         'node_modules/videojs-contrib-quality-levels/dist/videojs-contrib-quality-levels',
-        'node_modules/jb-videojs-hls-quality-selector/dist/jb-videojs-hls-quality-selector'
+        'node_modules/videojs-contrib-quality-menu/dist/videojs-contrib-quality-menu'
 
       ].map(function(url) {
         return url + (event.target.checked ? '.min' : '') + '.js';
@@ -598,9 +598,7 @@
 
         player = window.player = window.videojs(videoEl, {
           plugins: {
-            hlsQualitySelector: {
-              displayCurrentQuality: true
-            }
+            qualityMenu: {}
           },
           liveui: stateEls.liveui.checked,
           enableSourceset: mirrorSource,

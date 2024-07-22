@@ -1,3 +1,19 @@
+<a name="3.13.2"></a>
+## [3.13.2](https://github.com/videojs/http-streaming/compare/v3.13.1...v3.13.2) (2024-07-22)
+
+### Bug Fixes
+
+* bad timeline changes ([#1526](https://github.com/videojs/http-streaming/issues/1526)) ([7c63f4e](https://github.com/videojs/http-streaming/commit/7c63f4e))
+* fastQualitySwitch stability ([#1525](https://github.com/videojs/http-streaming/issues/1525)) ([28cb9fd](https://github.com/videojs/http-streaming/commit/28cb9fd))
+* remove extra abort call ([#1528](https://github.com/videojs/http-streaming/issues/1528)) ([7ec606f](https://github.com/videojs/http-streaming/commit/7ec606f))
+* videoTimestampOffset in sourceUpdater ([#1519](https://github.com/videojs/http-streaming/issues/1519)) ([d6851cc](https://github.com/videojs/http-streaming/commit/d6851cc))
+
+### Chores
+
+* Add log export to the demo page ([#1522](https://github.com/videojs/http-streaming/issues/1522)) ([0b4da7c](https://github.com/videojs/http-streaming/commit/0b4da7c))
+* Switch to our quality selector ([#1527](https://github.com/videojs/http-streaming/issues/1527)) ([e3d1c42](https://github.com/videojs/http-streaming/commit/e3d1c42))
+* Update codecov action ([#1523](https://github.com/videojs/http-streaming/issues/1523)) ([bb9133c](https://github.com/videojs/http-streaming/commit/bb9133c))
+
 <a name="3.13.1"></a>
 ## [3.13.1](https://github.com/videojs/http-streaming/compare/v3.13.0...v3.13.1) (2024-06-12)
 
