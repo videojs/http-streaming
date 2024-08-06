@@ -413,6 +413,11 @@ export const shouldFixBadTimelineChanges = (timelineChangeController) => {
   const pendingAudioTimelineChange = timelineChangeController.pendingTimelineChange({ type: 'audio' });
   const pendingMainTimelineChange = timelineChangeController.pendingTimelineChange({ type: 'main' });
   const hasPendingTimelineChanges = pendingAudioTimelineChange && pendingMainTimelineChange;
+
+  if (hasPendingTimelineChanges && pendingAudioTimelineChange.to < pendingMainTimelineChange.to) {
+    timelineChangeController.trigger('audioTimelineBehind');
+  }
+
   const differentPendingChanges = hasPendingTimelineChanges && pendingAudioTimelineChange.to !== pendingMainTimelineChange.to;
   const isNotInitialPendingTimelineChange = hasPendingTimelineChanges && pendingAudioTimelineChange.from !== -1 && pendingMainTimelineChange.from !== -1;
 
