@@ -475,7 +475,8 @@ const checkAndFixTimelines = (segmentLoader) => {
   });
 
   if (waitingForTimelineChange && shouldFixBadTimelineChanges(segmentLoader.timelineChangeController_)) {
-    if (isAudioTimelineBehind(segmentLoader)) {
+    // Audio being behind should only happen on DASH sources.
+    if (segmentLoader.sourceType_ === 'dash' && isAudioTimelineBehind(segmentLoader)) {
       segmentLoader.timelineChangeController_.trigger('audioTimelineBehind');
       return;
     }
