@@ -450,11 +450,7 @@ const isAudioTimelineBehind = (segmentLoader) => {
   const pendingMainTimelineChange = segmentLoader.timelineChangeController_.pendingTimelineChange({ type: 'main' });
   const hasPendingTimelineChanges = pendingAudioTimelineChange && pendingMainTimelineChange;
 
-  if (hasPendingTimelineChanges && pendingAudioTimelineChange.to < pendingMainTimelineChange.to) {
-    return true;
-  }
-
-  return false;
+  return hasPendingTimelineChanges && pendingAudioTimelineChange.to < pendingMainTimelineChange.to;
 };
 
 /**
