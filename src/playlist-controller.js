@@ -936,11 +936,6 @@ export class PlaylistController extends videojs.EventTarget {
     // a previous timeline.
     if (this.sourceType_ === 'dash') {
       this.timelineChangeController_.on('audioTimelineBehind', () => {
-        const mainPendingTimelineChange = this.timelineChangeController_.pendingTimelineChange({ type: 'main' });
-
-        // Adjust the pending audio timeline to match the main timeline
-        this.timelineChangeController_.pendingTimelineChange({ to: mainPendingTimelineChange.to, from: mainPendingTimelineChange.from, type: 'audio' });
-
         const segmentInfo = this.audioSegmentLoader_.pendingSegment_;
 
         if (!segmentInfo || !segmentInfo.segment || !segmentInfo.segment.syncInfo) {
