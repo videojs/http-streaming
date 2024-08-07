@@ -2647,6 +2647,52 @@ QUnit.test(
   }
 );
 
+QUnit.test(
+  'setCurrentTime is not called on audioTimelineBehind when there is no pending segment',
+  function(assert) {
+    const options = {
+      src: 'test',
+      tech: this.player.tech_,
+      sourceType: 'dash',
+      player_: this.player
+    };
+    const pc = new PlaylistController(options);
+    const tech = this.player.tech_;
+    const setCurrentTimeSpy = sinon.spy(tech, 'setCurrentTime');
+
+    pc.timelineChangeController_.trigger('audioTimelineBehind');
+
+    assert.notOk(setCurrentTimeSpy.called, 'setCurrentTime not called');
+  }
+);
+
+QUnit.test(
+  'setCurrentTime to after audio segment when audioTimelineBehind is triggered',
+  function(assert) {
+    const options = {
+      src: 'test',
+      tech: this.player.tech_,
+      sourceType: 'dash',
+      player_: this.player
+    };
+    const pc = new PlaylistController(options);
+    const tech = this.player.tech_;
+    const setCurrentTimeSpy = sinon.spy(tech, 'setCurrentTime');
+
+    pc.audioSegmentLoader_.pendingSegment_ = {
+      segment: {
+        syncInfo: {
+          end: 10
+        }
+      }
+    };
+
+    pc.timelineChangeController_.trigger('audioTimelineBehind');
+
+    assert.ok(setCurrentTimeSpy.calledWith(10.01), 'sets current time to just after the end of the audio segment');
+  }
+);
+
 QUnit.test('calls to update cues on new media', function(assert) {
   const origVhsOptions = videojs.options.vhs;
 

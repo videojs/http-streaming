@@ -929,6 +929,28 @@ export class PlaylistController extends videojs.EventTarget {
       this.onEndOfStream();
     });
 
+    // In DASH, there is the possibility of the video segment and the audio segment
+    // at a current time to be on different timelines. When this occurs, the player
+    // forwards playback to a point where these two segment types are back on the same
+    // timeline. This time will be just after the end of the audio segment that is on
+    // a previous timeline.
+    if (this.sourceType_ === 'dash') {
+      this.timelineChangeController_.on('audioTimelineBehind', () => {
+        const segmentInfo = this.audioSegmentLoader_.pendingSegment_;
+
+        if (!segmentInfo || !segmentInfo.segment || !segmentInfo.segment.syncInfo) {
+          return;
+        }
+
+        // Update the current time to just after the faulty audio segment.
+        // This moves playback to a spot where both audio and video segments
+        // are on the same timeline.
+        const newTime = segmentInfo.segment.syncInfo.end + 0.01;
+
+        this.tech_.setCurrentTime(newTime);
+      });
+    }
+
     this.mainSegmentLoader_.on('earlyabort', (event) => {
       // never try to early abort with the new ABR algorithm
       if (this.bufferBasedABR) {
