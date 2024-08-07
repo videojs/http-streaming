@@ -475,7 +475,7 @@ const checkAndFixTimelines = (segmentLoader) => {
   });
 
   if (waitingForTimelineChange && shouldFixBadTimelineChanges(segmentLoader.timelineChangeController_)) {
-    if (isAudioTimelineBehind) {
+    if (isAudioTimelineBehind(segmentLoader)) {
       segmentLoader.timelineChangeController_.trigger('audioTimelineBehind');
       return;
     }
