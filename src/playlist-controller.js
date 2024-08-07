@@ -934,25 +934,27 @@ export class PlaylistController extends videojs.EventTarget {
     // forwards playback to a point where these two segment types are back on the same
     // timeline. This time will be just after the end of the audio segment that is on
     // a previous timeline.
-    this.timelineChangeController_.on('audioTimelineBehind', () => {
-      const mainPendingTimelineChange = this.timelineChangeController_.pendingTimelineChange({ type: 'main' });
+    if (this.sourceType_ === 'dash') {
+      this.timelineChangeController_.on('audioTimelineBehind', () => {
+        const mainPendingTimelineChange = this.timelineChangeController_.pendingTimelineChange({ type: 'main' });
 
-      // Adjust the pending audio timeline to match the main timeline
-      this.timelineChangeController_.pendingTimelineChange({ to: mainPendingTimelineChange.to, from: mainPendingTimelineChange.from, type: 'audio' });
+        // Adjust the pending audio timeline to match the main timeline
+        this.timelineChangeController_.pendingTimelineChange({ to: mainPendingTimelineChange.to, from: mainPendingTimelineChange.from, type: 'audio' });
 
-      const segmentInfo = this.audioSegmentLoader_.pendingSegment_;
+        const segmentInfo = this.audioSegmentLoader_.pendingSegment_;
 
-      if (!segmentInfo || !segmentInfo.segment || !segmentInfo.segment.syncInfo) {
-        return;
-      }
+        if (!segmentInfo || !segmentInfo.segment || !segmentInfo.segment.syncInfo) {
+          return;
+        }
 
-      // Update the current time to just after the faulty audio segment.
-      // This moves playback to a spot where both audio and video segments
-      // are on the same timeline.
-      const newTime = segmentInfo.segment.syncInfo.end + 0.01;
+        // Update the current time to just after the faulty audio segment.
+        // This moves playback to a spot where both audio and video segments
+        // are on the same timeline.
+        const newTime = segmentInfo.segment.syncInfo.end + 0.01;
 
-      this.tech_.setCurrentTime(newTime);
-    });
+        this.tech_.setCurrentTime(newTime);
+      });
+    }
 
     this.mainSegmentLoader_.on('earlyabort', (event) => {
       // never try to early abort with the new ABR algorithm

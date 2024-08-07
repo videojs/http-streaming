@@ -413,11 +413,6 @@ export const shouldFixBadTimelineChanges = (timelineChangeController) => {
   const pendingAudioTimelineChange = timelineChangeController.pendingTimelineChange({ type: 'audio' });
   const pendingMainTimelineChange = timelineChangeController.pendingTimelineChange({ type: 'main' });
   const hasPendingTimelineChanges = pendingAudioTimelineChange && pendingMainTimelineChange;
-
-  if (hasPendingTimelineChanges && pendingAudioTimelineChange.to < pendingMainTimelineChange.to) {
-    timelineChangeController.trigger('audioTimelineBehind');
-  }
-
   const differentPendingChanges = hasPendingTimelineChanges && pendingAudioTimelineChange.to !== pendingMainTimelineChange.to;
   const isNotInitialPendingTimelineChange = hasPendingTimelineChanges && pendingAudioTimelineChange.from !== -1 && pendingMainTimelineChange.from !== -1;
 
@@ -428,13 +423,56 @@ export const shouldFixBadTimelineChanges = (timelineChangeController) => {
   return false;
 };
 
+/**
+ * Fixes certain bad timeline scenarios. In some cases this may be
+ * resetting the loaders. In others, it may force a timeline change
+ * when a timeline is behind.
+ *
+ * @param {SegmentLoader} segmentLoader
+ */
 export const fixBadTimelineChange = (segmentLoader) => {
   if (!segmentLoader) {
     return;
   }
+
+  const pendingAudioTimelineChange = segmentLoader.timelineChangeController_.pendingTimelineChange({ type: 'audio' });
+  const pendingMainTimelineChange = segmentLoader.timelineChangeController_.pendingTimelineChange({ type: 'main' });
+  const hasPendingTimelineChanges = pendingAudioTimelineChange && pendingMainTimelineChange;
+
+  if (hasPendingTimelineChanges && pendingAudioTimelineChange.to < pendingMainTimelineChange.to) {
+    segmentLoader.timelineChangeController_.trigger('audioTimelineBehind');
+    return;
+  }
+
   segmentLoader.pause();
   segmentLoader.resetEverything();
   segmentLoader.load();
+};
+
+/**
+ * A method to check if the player is waiting for a timeline change, and fixes
+ * certain scenarios where the timelines need to be updated.
+ *
+ * @param {SegmentLoader} segmentLoader
+ */
+export const checkAndFixTimelines = (segmentLoader) => {
+  const segmentInfo = segmentLoader.pendingSegment_;
+
+  if (!segmentInfo) {
+    return;
+  }
+
+  const waitingForTimelineChange = shouldWaitForTimelineChange({
+    timelineChangeController: segmentLoader.timelineChangeController_,
+    currentTimeline: segmentLoader.currentTimeline_,
+    segmentTimeline: segmentInfo.timeline,
+    loaderType: segmentLoader.loaderType_,
+    audioDisabled: segmentLoader.audioDisabled_
+  });
+
+  if (waitingForTimelineChange && shouldFixBadTimelineChanges(segmentLoader.timelineChangeController_)) {
+    fixBadTimelineChange(segmentLoader);
+  }
 };
 
 export const mediaDuration = (timingInfos) => {
@@ -703,6 +741,8 @@ export default class SegmentLoader extends videojs.EventTarget {
     this.sourceUpdater_.on('ready', () => {
       if (this.hasEnoughInfoToAppend_()) {
         this.processCallQueue_();
+      } else {
+        checkAndFixTimelines(this);
       }
     });
 
@@ -717,6 +757,8 @@ export default class SegmentLoader extends videojs.EventTarget {
       this.timelineChangeController_.on('pendingtimelinechange', () => {
         if (this.hasEnoughInfoToAppend_()) {
           this.processCallQueue_();
+        } else {
+          checkAndFixTimelines(this);
         }
       });
     }
@@ -728,9 +770,13 @@ export default class SegmentLoader extends videojs.EventTarget {
         this.trigger({type: 'timelinechange', ...metadata });
         if (this.hasEnoughInfoToLoad_()) {
           this.processLoadQueue_();
+        } else {
+          checkAndFixTimelines(this);
         }
         if (this.hasEnoughInfoToAppend_()) {
           this.processCallQueue_();
+        } else {
+          checkAndFixTimelines(this);
         }
       });
     }
@@ -1966,6 +2012,8 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
     // check if any calls were waiting on the track info
     if (this.hasEnoughInfoToAppend_()) {
       this.processCallQueue_();
+    } else {
+      checkAndFixTimelines(this);
     }
   }
 
@@ -1986,6 +2034,8 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
     // check if any calls were waiting on the timing info
     if (this.hasEnoughInfoToAppend_()) {
       this.processCallQueue_();
+    } else {
+      checkAndFixTimelines(this);
     }
   }
 
@@ -2161,9 +2211,6 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
         audioDisabled: this.audioDisabled_
       })
     ) {
-      if (shouldFixBadTimelineChanges(this.timelineChangeController_)) {
-        fixBadTimelineChange(this);
-      }
       return false;
     }
 
@@ -2224,9 +2271,6 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
         audioDisabled: this.audioDisabled_
       })
     ) {
-      if (shouldFixBadTimelineChanges(this.timelineChangeController_)) {
-        fixBadTimelineChange(this);
-      }
       return false;
     }
 
@@ -2243,6 +2287,8 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
     // If there's anything in the call queue, then this data came later and should be
     // executed after the calls currently queued.
     if (this.callQueue_.length || !this.hasEnoughInfoToAppend_()) {
+      checkAndFixTimelines(this);
+
       this.callQueue_.push(this.handleData_.bind(this, simpleSegment, result));
       return;
     }
@@ -2632,6 +2678,8 @@ Fetch At Buffer: ${this.fetchAtBuffer_}
     }
 
     if (!this.hasEnoughInfoToLoad_()) {
+      checkAndFixTimelines(this);
+
       this.loadQueue_.push(() => {
         // regenerate the audioAppendStart, timestampOffset, etc as they
         // may have changed since this function was added to the queue.
