@@ -424,23 +424,12 @@ export const shouldFixBadTimelineChanges = (timelineChangeController) => {
 };
 
 /**
- * Fixes certain bad timeline scenarios. In some cases this may be
- * resetting the loaders. In others, it may force a timeline change
- * when a timeline is behind.
+ * Fixes certain bad timeline scenarios by resetting the loader.
  *
  * @param {SegmentLoader} segmentLoader
  */
 export const fixBadTimelineChange = (segmentLoader) => {
   if (!segmentLoader) {
-    return;
-  }
-
-  const pendingAudioTimelineChange = segmentLoader.timelineChangeController_.pendingTimelineChange({ type: 'audio' });
-  const pendingMainTimelineChange = segmentLoader.timelineChangeController_.pendingTimelineChange({ type: 'main' });
-  const hasPendingTimelineChanges = pendingAudioTimelineChange && pendingMainTimelineChange;
-
-  if (hasPendingTimelineChanges && pendingAudioTimelineChange.to < pendingMainTimelineChange.to) {
-    segmentLoader.timelineChangeController_.trigger('audioTimelineBehind');
     return;
   }
 
@@ -450,12 +439,31 @@ export const fixBadTimelineChange = (segmentLoader) => {
 };
 
 /**
+ * Check if the pending audio timeline change is behind the
+ * pending main timeline change.
+ *
+ * @param {SegmentLoader} segmentLoader
+ * @return {boolean}
+ */
+const isAudioTimelineBehind = (segmentLoader) => {
+  const pendingAudioTimelineChange = segmentLoader.timelineChangeController_.pendingTimelineChange({ type: 'audio' });
+  const pendingMainTimelineChange = segmentLoader.timelineChangeController_.pendingTimelineChange({ type: 'main' });
+  const hasPendingTimelineChanges = pendingAudioTimelineChange && pendingMainTimelineChange;
+
+  if (hasPendingTimelineChanges && pendingAudioTimelineChange.to < pendingMainTimelineChange.to) {
+    return true;
+  }
+
+  return false;
+};
+
+/**
  * A method to check if the player is waiting for a timeline change, and fixes
  * certain scenarios where the timelines need to be updated.
  *
  * @param {SegmentLoader} segmentLoader
  */
-export const checkAndFixTimelines = (segmentLoader) => {
+const checkAndFixTimelines = (segmentLoader) => {
   const segmentInfo = segmentLoader.pendingSegment_;
 
   if (!segmentInfo) {
@@ -471,6 +479,11 @@ export const checkAndFixTimelines = (segmentLoader) => {
   });
 
   if (waitingForTimelineChange && shouldFixBadTimelineChanges(segmentLoader.timelineChangeController_)) {
+    if (isAudioTimelineBehind) {
+      segmentLoader.timelineChangeController_.trigger('audioTimelineBehind');
+      return;
+    }
+
     fixBadTimelineChange(segmentLoader);
   }
 };
