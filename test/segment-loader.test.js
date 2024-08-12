@@ -1663,7 +1663,7 @@ QUnit.module('SegmentLoader', function(hooks) {
       });
     });
 
-    QUnit.test('hasEnoughInfoToLoad_ calls fixBadTimelineChange', function(assert) {
+    QUnit.test('fixBadTimelineChange on load', function(assert) {
       loader.dispose();
       loader = new SegmentLoader(LoaderCommonSettings.call(this, {
         loaderType: 'audio'
@@ -1722,7 +1722,7 @@ QUnit.module('SegmentLoader', function(hooks) {
       });
     });
 
-    QUnit.test('hasEnoughInfoToAppend_ calls fixBadTimelineChange', function(assert) {
+    QUnit.test('fixBadTimelineChange on append', function(assert) {
       loader.dispose();
       loader = new SegmentLoader(LoaderCommonSettings.call(this, {
         loaderType: 'main'
@@ -1786,6 +1786,48 @@ QUnit.module('SegmentLoader', function(hooks) {
         assert.equal(pauseCalls, 1, '1 pause call expected');
         assert.equal(loadCalls, 2, '2 load calls expected');
         assert.equal(resetEverythingCalls, 2, '1 load calls expected');
+      });
+    });
+
+    QUnit.test('triggers event when DASH audio timeline is behind main', function(assert) {
+      loader.dispose();
+      loader = new SegmentLoader(LoaderCommonSettings.call(this, {
+        loaderType: 'audio',
+        sourceType: 'dash'
+      }), {});
+
+      loader.timelineChangeController_.pendingTimelineChange = ({ type }) => {
+        if (type === 'audio') {
+          return {
+            from: 0,
+            to: 5
+          };
+        } else if (type === 'main') {
+          return {
+            from: 0,
+            to: 10
+          };
+        }
+      };
+
+      const triggerSpy = sinon.spy(loader.timelineChangeController_, 'trigger');
+
+      const playlist = playlistWithDuration(20);
+
+      playlist.discontinuityStarts = [1];
+      loader.getCurrentMediaInfo_ = () => {
+        return {
+          hasVideo: true,
+          hasAudio: true,
+          isMuxed: true
+        };
+      };
+
+      return this.setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        loader.playlist(playlist);
+        loader.load();
+        this.clock.tick(1);
+        assert.ok(triggerSpy.calledWith('audioTimelineBehind'), 'audio timeline behind event is triggered');
       });
     });
 
