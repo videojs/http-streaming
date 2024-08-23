@@ -471,6 +471,7 @@
     'network-info',
     'dts-offset',
     'override-native',
+    'use-mms',
     'preload',
     'mirror-source',
     'forced-subtitles'
@@ -521,6 +522,7 @@
       'llhls',
       'buffer-water',
       'override-native',
+      'use-mms',
       'liveui',
       'pixel-diff-selector',
       'network-info',
@@ -587,6 +589,7 @@
         var videoEl = document.createElement('video-js');
 
         videoEl.setAttribute('controls', '');
+        videoEl.setAttribute('playsInline', '');
         videoEl.setAttribute('preload', stateEls.preload.options[stateEls.preload.selectedIndex].value || 'auto');
         videoEl.className = 'vjs-default-skin';
         fixture.appendChild(videoEl);
@@ -602,6 +605,7 @@
           html5: {
             vhs: {
               overrideNative: getInputValue(stateEls['override-native']),
+              experimentalUseMMS: getInputValue(stateEls['use-mms']),
               bufferBasedABR: getInputValue(stateEls['buffer-water']),
               llhls: getInputValue(stateEls.llhls),
               exactManifestTimings: getInputValue(stateEls['exact-manifest-timings']),
@@ -612,7 +616,6 @@
             }
           }
         });
-
         setupPlayerStats(player);
         setupSegmentMetadata(player);
         setupContentSteeringData(player);

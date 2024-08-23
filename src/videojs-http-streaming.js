@@ -1369,6 +1369,11 @@ const VhsSourceHandler = {
   canHandleSource(srcObj, options = {}) {
     const localOptions = merge(videojs.options, options);
 
+    // If not opting to experimentalUseMMS, and playback is only supported with MediaSource, cannot handle source
+    if (!localOptions.vhs.experimentalUseMMS && !browserSupportsCodec('avc1.4d400d,mp4a.40.2', false)) {
+      return false;
+    }
+
     return VhsSourceHandler.canPlayType(srcObj.type, localOptions);
   },
   handleSource(source, tech, options = {}) {
@@ -1403,13 +1408,14 @@ const VhsSourceHandler = {
 };
 
 /**
- * Check to see if the native MediaSource object exists and supports
- * an MP4 container with both H.264 video and AAC-LC audio.
+ * Check to see if either the native MediaSource or ManagedMediaSource
+ * objectx exist and support an MP4 container with both H.264 video
+ * and AAC-LC audio.
  *
  * @return {boolean} if  native media sources are supported
  */
 const supportsNativeMediaSources = () => {
-  return browserSupportsCodec('avc1.4d400d,mp4a.40.2');
+  return browserSupportsCodec('avc1.4d400d,mp4a.40.2', true);
 };
 
 // register source handlers with the appropriate techs

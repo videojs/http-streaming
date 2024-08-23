@@ -178,6 +178,11 @@
         </div>
 
         <div class="form-check">
+          <input id=use-mms type="checkbox" class="form-check-input" checked>
+          <label class="form-check-label" for="use-mms">[EXPERIMENTAL] Use ManagedMediaSource if available. Use in combination with override native (reloads player)</label>
+        </div>
+
+        <div class="form-check">
           <input id=mirror-source type="checkbox" class="form-check-input" checked>
           <label class="form-check-label" for="mirror-source">Mirror sources from player.src (reloads player, uses EXPERIMENTAL sourceset option)</label>
         </div>
@@ -273,6 +278,7 @@
       </div>
     </div>
   </div>
+
 
   <footer class="text-center p-3" id=unit-test-link>
     <a href="test/debug.html">Run unit tests</a>

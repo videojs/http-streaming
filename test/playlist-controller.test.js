@@ -5,6 +5,7 @@ import window from 'global/window';
 import {
   useFakeEnvironment,
   useFakeMediaSource,
+  useFakeManagedMediaSource,
   createPlayer,
   standardXHRResponse,
   openMediaSource,
@@ -7656,4 +7657,39 @@ QUnit.test('Pathway cloning - do nothing when next and past clones are the same'
   clonesMap.set(clone.ID, clone);
 
   assert.deepEqual(pc.contentSteeringController_.currentPathwayClones, clonesMap);
+});
+
+QUnit.test('uses ManagedMediaSource only when opted in', function(assert) {
+  const mms = useFakeManagedMediaSource();
+
+  const options = {
+    src: 'test',
+    tech: this.player.tech_,
+    player_: this.player
+  };
+
+  const msSpy = sinon.spy(window, 'MediaSource');
+  const mmsSpy = sinon.spy(window, 'ManagedMediaSource');
+
+  const controller1 = new PlaylistController(options);
+
+  assert.equal(true, window.MediaSource.called, 'by default, MediaSource used');
+  assert.equal(false, window.ManagedMediaSource.called, 'by default, ManagedMediaSource not used');
+
+  controller1.dispose();
+  window.MediaSource.resetHistory();
+  window.ManagedMediaSource.resetHistory();
+
+  options.experimentalUseMMS = true;
+
+  const controller2 = new PlaylistController(options);
+
+  assert.equal(false, window.MediaSource.called, 'when opted in, MediaSource not used');
+  assert.equal(true, window.ManagedMediaSource.called, 'whne opted in, ManagedMediaSource used');
+
+  controller2.dispose();
+
+  msSpy.restore();
+  mmsSpy.restore();
+  mms.restore();
 });
