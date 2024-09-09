@@ -1,3 +1,10 @@
+<a name="3.14.1"></a>
+## [3.14.1](https://github.com/videojs/http-streaming/compare/v3.14.0...v3.14.1) (2024-09-09)
+
+### Bug Fixes
+
+* allow vtt rollover with MPEGTS of 0 ([#1537](https://github.com/videojs/http-streaming/issues/1537)) ([2125ecf](https://github.com/videojs/http-streaming/commit/2125ecf))
+
 <a name="3.14.0"></a>
 # [3.14.0](https://github.com/videojs/http-streaming/compare/v3.11.0...v3.14.0) (2024-08-23)
 
