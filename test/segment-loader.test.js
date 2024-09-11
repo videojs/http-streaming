@@ -1789,7 +1789,7 @@ QUnit.module('SegmentLoader', function(hooks) {
       });
     });
 
-    QUnit.test('triggers event when DASH audio timeline is behind main', function(assert) {
+    QUnit.test('triggers event when audio timeline is behind main', function(assert) {
       loader.dispose();
       loader = new SegmentLoader(LoaderCommonSettings.call(this, {
         loaderType: 'audio',
