@@ -1,3 +1,10 @@
+<a name="3.14.2"></a>
+## [3.14.2](https://github.com/videojs/http-streaming/compare/v3.14.1...v3.14.2) (2024-09-17)
+
+### Bug Fixes
+
+* audio segment on incorrect timeline HLS ([#1539](https://github.com/videojs/http-streaming/issues/1539)) ([e4e0c2d](https://github.com/videojs/http-streaming/commit/e4e0c2d))
+
 <a name="3.14.1"></a>
 ## [3.14.1](https://github.com/videojs/http-streaming/compare/v3.14.0...v3.14.1) (2024-09-09)
 
