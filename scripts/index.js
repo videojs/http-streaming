@@ -296,6 +296,26 @@
     return bufferedText;
   }
 
+  var estimateSegmentLatency = function(cue, currentTime) {
+    var playedMs = (currentTime - cue.value.start) * 1000;
+    var offsetDateTime = cue.value.programDateTime + playedMs;
+
+    return (Date.now() - offsetDateTime) / 1000;
+  };
+
+  var updateSegmentLatency = function(segmentMetadata, cue, currentTime) {
+    // try and estimate the segment latency if we have program date time tags.
+    if (cue.value.programDateTime) {
+      var li = document.createElement('li');
+      var latency = document.createElement('latency');
+
+      latency.textContent = 'Estimated segment latency: ' + estimateSegmentLatency(cue, currentTime);
+
+      li.appendChild(latency);
+      segmentMetadata.appendChild(li);
+    }
+  };
+
   var setupSegmentMetadata = function(player) {
     // setup segment metadata
     var segmentMetadata = document.querySelector('#segment-metadata');
@@ -327,6 +347,7 @@
             var li = document.createElement('li');
             var pre = document.createElement('pre');
 
+            updateSegmentLatency(segmentMetadata, cues[j], player.currentTime());
             pre.classList.add('border', 'rounded', 'p-2');
             pre.textContent = text;
             li.appendChild(pre);
