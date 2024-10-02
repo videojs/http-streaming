@@ -7693,3 +7693,30 @@ QUnit.test('uses ManagedMediaSource only when opted in', function(assert) {
   mmsSpy.restore();
   mms.restore();
 });
+
+QUnit.test('ManagedMediaSource startstreaming and endstreaming events start and pause segment loading respectively', function(assert) {
+  const mms = useFakeManagedMediaSource();
+  const options = {
+    src: 'test.m3u8',
+    tech: this.player.tech_,
+    player_: this.player,
+    experimentalUseMMS: true
+  };
+
+  const controller = new PlaylistController(options);
+  const loadSpy = sinon.spy(controller, 'load');
+  const pauseSpy = sinon.spy(controller, 'pause');
+
+  assert.ok(loadSpy.notCalled, 'Segment loading not started yet');
+  assert.ok(pauseSpy.notCalled, 'Segment loading has not been paused');
+
+  controller.mediaSource.trigger('startstreaming');
+
+  assert.ok(loadSpy.calledOnce, 'Segment loading started on startstreaming event');
+
+  controller.mediaSource.trigger('endstreaming');
+
+  assert.ok(pauseSpy.calledOnce, 'Segment loading paused on endstreaming event');
+
+  mms.restore();
+});
