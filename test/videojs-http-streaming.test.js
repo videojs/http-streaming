@@ -3121,6 +3121,45 @@ QUnit.test(
   }
 );
 
+QUnit.test('uses source elements when overriding native HLS in Safari/iOS', function(assert) {
+  const origIsAnySafari = videojs.browser.IS_ANY_SAFARI;
+  const addSourceElementCalls = [];
+  let srcCalls = 0;
+
+  videojs.browser.IS_ANY_SAFARI = true;
+
+  const player = createPlayer({ html5: { vhs: { overrideNative: true } } });
+
+  player.tech_.addSourceElement = function(url) {
+    addSourceElementCalls.push(url);
+  };
+
+  player.tech_.src = function() {
+    srcCalls++;
+  };
+
+  player.src({
+    src: 'http://example.com/manifest/main.m3u8',
+    type: 'application/x-mpegURL'
+  });
+
+  this.clock.tick(1);
+
+  assert.equal(addSourceElementCalls.length, 2, '2 source elements added');
+  assert.equal(srcCalls, 0, 'tech.src() not called');
+
+  const blobUrl = addSourceElementCalls[0];
+  const manifestUrl = addSourceElementCalls[1];
+
+  assert.ok(blobUrl.startsWith('blob:'), 'First source element is a blob URL');
+  assert.equal(manifestUrl, 'http://example.com/manifest/main.m3u8', 'Second source element is the manifest URL');
+
+  // Clean up and restore original flags
+  player.dispose();
+
+  videojs.browser.IS_ANY_SAFARI = origIsAnySafari;
+});
+
 QUnit.test('re-emits mediachange events', function(assert) {
   let mediaChanges = 0;
 
