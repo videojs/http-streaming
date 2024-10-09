@@ -1081,7 +1081,12 @@ class VhsHandler extends Component {
 
     // If we are playing HLS with MSE in Safari, add source elements for both the blob and manifest URLs.
     // The latter will enable Airplay playback on receiver devices.
-    if ((videojs.browser.IS_ANY_SAFARI || videojs.browser.IS_IOS) && this.options_.overrideNative && this.options_.sourceType === 'hls') {
+    if ((
+      videojs.browser.IS_ANY_SAFARI || videojs.browser.IS_IOS) &&
+      this.options_.overrideNative &&
+      this.options_.sourceType === 'hls' &&
+      typeof this.tech_.addSourceElement === 'function'
+    ) {
       this.tech_.addSourceElement(this.mediaSourceUrl_);
       this.tech_.addSourceElement(this.source_.src);
     } else {
