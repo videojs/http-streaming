@@ -7693,3 +7693,39 @@ QUnit.test('uses ManagedMediaSource only when opted in', function(assert) {
   mmsSpy.restore();
   mms.restore();
 });
+
+QUnit.test('ManagedMediaSource startstreaming and endstreaming events start and pause segment loading respectively', function(assert) {
+  const mms = useFakeManagedMediaSource();
+  const options = {
+    src: 'test.m3u8',
+    tech: this.player.tech_,
+    player_: this.player,
+    experimentalUseMMS: true
+  };
+
+  const controller = new PlaylistController(options);
+
+  controller.mediaTypes_.AUDIO.activePlaylistLoader = {};
+  controller.mediaTypes_.SUBTITLES.activePlaylistLoader = {};
+
+  const mainLoadSpy = sinon.spy(controller.mainSegmentLoader_, 'load');
+  const audioLoadSpy = sinon.spy(controller.audioSegmentLoader_, 'load');
+  const subtitleLoadSpy = sinon.spy(controller.subtitleSegmentLoader_, 'load');
+  const mainPauseSpy = sinon.spy(controller.mainSegmentLoader_, 'pause');
+  const audioPauseSpy = sinon.spy(controller.audioSegmentLoader_, 'pause');
+  const subtitlePauseSpy = sinon.spy(controller.subtitleSegmentLoader_, 'pause');
+
+  controller.mediaSource.trigger('startstreaming');
+
+  assert.ok(mainLoadSpy.calledOnce, 'Segment loading started on startstreaming event');
+  assert.ok(audioLoadSpy.calledOnce, 'Audio segment loading started on startstreaming event');
+  assert.ok(subtitleLoadSpy.calledOnce, 'Subtitle segment loading started on startstreaming event');
+
+  controller.mediaSource.trigger('endstreaming');
+
+  assert.ok(mainPauseSpy.calledOnce, 'Main segment loading paused on endstreaming event');
+  assert.ok(audioPauseSpy.calledOnce, 'Audio segment loading paused on endstreaming event');
+  assert.ok(subtitlePauseSpy.calledOnce, 'Subtitle segment loading paused on endstreaming event');
+
+  mms.restore();
+});

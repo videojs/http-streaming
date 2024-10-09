@@ -215,6 +215,7 @@ export class PlaylistController extends videojs.EventTarget {
       // Airplay source not yet implemented. Remote playback must be disabled.
       this.tech_.el_.disableRemotePlayback = true;
       this.mediaSource = new window.ManagedMediaSource();
+
       videojs.log('Using ManagedMediaSource');
     } else if (window.MediaSource) {
       this.mediaSource = new window.MediaSource();
@@ -223,12 +224,16 @@ export class PlaylistController extends videojs.EventTarget {
     this.handleDurationChange_ = this.handleDurationChange_.bind(this);
     this.handleSourceOpen_ = this.handleSourceOpen_.bind(this);
     this.handleSourceEnded_ = this.handleSourceEnded_.bind(this);
+    this.load = this.load.bind(this);
+    this.pause = this.pause.bind(this);
 
     this.mediaSource.addEventListener('durationchange', this.handleDurationChange_);
 
     // load the media source into the player
     this.mediaSource.addEventListener('sourceopen', this.handleSourceOpen_);
     this.mediaSource.addEventListener('sourceended', this.handleSourceEnded_);
+    this.mediaSource.addEventListener('startstreaming', this.load);
+    this.mediaSource.addEventListener('endstreaming', this.pause);
     // we don't have to handle sourceclose since dispose will handle termination of
     // everything, and the MediaSource should not be detached without a proper disposal
 
@@ -1056,11 +1061,28 @@ export class PlaylistController extends videojs.EventTarget {
    */
   load() {
     this.mainSegmentLoader_.load();
+
     if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
       this.audioSegmentLoader_.load();
     }
+
     if (this.mediaTypes_.SUBTITLES.activePlaylistLoader) {
       this.subtitleSegmentLoader_.load();
+    }
+  }
+
+  /**
+   * Call pause on our SegmentLoaders
+   */
+  pause() {
+    this.mainSegmentLoader_.pause();
+
+    if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
+      this.audioSegmentLoader_.pause();
+    }
+
+    if (this.mediaTypes_.SUBTITLES.activePlaylistLoader) {
+      this.subtitleSegmentLoader_.pause();
     }
   }
 
