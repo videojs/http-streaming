@@ -7704,8 +7704,8 @@ QUnit.test('ManagedMediaSource startstreaming and endstreaming events start and 
   };
 
   const controller = new PlaylistController(options);
-  const loadSpy = sinon.spy(controller, 'load');
-  const pauseSpy = sinon.spy(controller, 'pause');
+  const loadSpy = sinon.spy(controller.mainSegmentLoader_, 'load');
+  const pauseSpy = sinon.spy(controller.mainSegmentLoader_, 'pause');
 
   assert.ok(loadSpy.notCalled, 'Segment loading not started yet');
   assert.ok(pauseSpy.notCalled, 'Segment loading has not been paused');
