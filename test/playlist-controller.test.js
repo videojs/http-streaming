@@ -7704,19 +7704,28 @@ QUnit.test('ManagedMediaSource startstreaming and endstreaming events start and 
   };
 
   const controller = new PlaylistController(options);
-  const loadSpy = sinon.spy(controller.mainSegmentLoader_, 'load');
-  const pauseSpy = sinon.spy(controller.mainSegmentLoader_, 'pause');
 
-  assert.ok(loadSpy.notCalled, 'Segment loading not started yet');
-  assert.ok(pauseSpy.notCalled, 'Segment loading has not been paused');
+  controller.mediaTypes_.AUDIO.activePlaylistLoader = {};
+  controller.mediaTypes_.SUBTITLES.activePlaylistLoader = {};
+
+  const mainLoadSpy = sinon.spy(controller.mainSegmentLoader_, 'load');
+  const audioLoadSpy = sinon.spy(controller.audioSegmentLoader_, 'load');
+  const subtitleLoadSpy = sinon.spy(controller.subtitleSegmentLoader_, 'load');
+  const mainPauseSpy = sinon.spy(controller.mainSegmentLoader_, 'pause');
+  const audioPauseSpy = sinon.spy(controller.audioSegmentLoader_, 'pause');
+  const subtitlePauseSpy = sinon.spy(controller.subtitleSegmentLoader_, 'pause');
 
   controller.mediaSource.trigger('startstreaming');
 
-  assert.ok(loadSpy.calledOnce, 'Segment loading started on startstreaming event');
+  assert.ok(mainLoadSpy.calledOnce, 'Segment loading started on startstreaming event');
+  assert.ok(audioLoadSpy.calledOnce, 'Audio segment loading started on startstreaming event');
+  assert.ok(subtitleLoadSpy.calledOnce, 'Subtitle segment loading started on startstreaming event');
 
   controller.mediaSource.trigger('endstreaming');
 
-  assert.ok(pauseSpy.calledOnce, 'Segment loading paused on endstreaming event');
+  assert.ok(mainPauseSpy.calledOnce, 'Main segment loading paused on endstreaming event');
+  assert.ok(audioPauseSpy.calledOnce, 'Audio segment loading paused on endstreaming event');
+  assert.ok(subtitlePauseSpy.calledOnce, 'Subtitle segment loading paused on endstreaming event');
 
   mms.restore();
 });
