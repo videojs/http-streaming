@@ -192,7 +192,6 @@ export class PlaylistController extends videojs.EventTarget {
     this.playlistExclusionDuration = playlistExclusionDuration;
     this.maxPlaylistRetries = maxPlaylistRetries;
     this.enableLowInitialPlaylist = enableLowInitialPlaylist;
-    this.hasManagedMediaSource_ = false;
 
     if (this.useCueTags_) {
       this.cueTagsTrack_ = this.tech_.addTextTrack(
@@ -216,7 +215,6 @@ export class PlaylistController extends videojs.EventTarget {
       // Airplay source not yet implemented. Remote playback must be disabled.
       this.tech_.el_.disableRemotePlayback = true;
       this.mediaSource = new window.ManagedMediaSource();
-      this.hasManagedMediaSource_ = true;
 
       videojs.log('Using ManagedMediaSource');
     } else if (window.MediaSource) {
@@ -226,22 +224,18 @@ export class PlaylistController extends videojs.EventTarget {
     this.handleDurationChange_ = this.handleDurationChange_.bind(this);
     this.handleSourceOpen_ = this.handleSourceOpen_.bind(this);
     this.handleSourceEnded_ = this.handleSourceEnded_.bind(this);
+    this.load = this.load.bind(this);
+    this.pause = this.pause.bind(this);
 
     this.mediaSource.addEventListener('durationchange', this.handleDurationChange_);
 
     // load the media source into the player
     this.mediaSource.addEventListener('sourceopen', this.handleSourceOpen_);
     this.mediaSource.addEventListener('sourceended', this.handleSourceEnded_);
+    this.mediaSource.addEventListener('startstreaming', this.load);
+    this.mediaSource.addEventListener('endstreaming', this.pause);
     // we don't have to handle sourceclose since dispose will handle termination of
     // everything, and the MediaSource should not be detached without a proper disposal
-
-    if (this.hasManagedMediaSource_) {
-      this.handleStartStreaming_ = this.handleStartStreaming_.bind(this);
-      this.handleEndStreaming_ = this.handleEndStreaming_.bind(this);
-
-      this.mediaSource.addEventListener('startstreaming', this.handleStartStreaming_);
-      this.mediaSource.addEventListener('endstreaming', this.handleEndStreaming_);
-    }
 
     this.seekable_ = createTimeRanges();
     this.hasPlayed_ = false;
@@ -1249,26 +1243,6 @@ export class PlaylistController extends videojs.EventTarget {
 
     cues[cues.length - 1].endTime = isNaN(duration) || Math.abs(duration) === Infinity ?
       Number.MAX_VALUE : duration;
-  }
-
-  /**
-   * Handle the startstreaming event on the ManagedMediaSource.
-   * This event indicates that segment loading should be started/resumed.
-   *
-   * @private
-   */
-  handleStartStreaming_() {
-    this.load();
-  }
-
-  /**
-   * Handle the endstreaming event on the ManagedMediaSource.
-   * This event indicates that segment loading should be paused.
-   *
-   * @private
-   */
-  handleEndStreaming_() {
-    this.pause();
   }
 
   /**
