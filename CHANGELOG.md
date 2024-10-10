@@ -1,3 +1,15 @@
+<a name="3.15.0"></a>
+# [3.15.0](https://github.com/videojs/http-streaming/compare/v3.14.2...v3.15.0) (2024-10-10)
+
+### Features
+
+* Add Airplay support when overriding native HLS in Safari/iOS ([#1543](https://github.com/videojs/http-streaming/issues/1543)) ([bfc17b4](https://github.com/videojs/http-streaming/commit/bfc17b4))
+* Add support for ManagedMediaSource 'startstreaming' and 'endstream' event handling ([#1542](https://github.com/videojs/http-streaming/issues/1542)) ([ae1ae70](https://github.com/videojs/http-streaming/commit/ae1ae70))
+
+### Chores
+
+* update mpd-parser to v1.3.1 ([#1544](https://github.com/videojs/http-streaming/issues/1544)) ([a9dd790](https://github.com/videojs/http-streaming/commit/a9dd790))
+
 <a name="3.14.2"></a>
 ## [3.14.2](https://github.com/videojs/http-streaming/compare/v3.14.1...v3.14.2) (2024-09-17)
 
