@@ -411,7 +411,7 @@ export default class VTTSegmentLoader extends SegmentLoader {
           const key = keyValString[0];
           const value = keyValString[1];
 
-          vttCue[key] = Number.isNaN(value) ? value : Number(value);
+          vttCue[key] = isNaN(value) ? value : Number(value);
         });
       }
       segmentInfo.cues.push(vttCue);

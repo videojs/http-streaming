@@ -943,5 +943,62 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
 
       assert.equal(saveSegmentTimingInfoCalls, 0, 'no calls to save timing info');
     });
+
+    QUnit.test('segmentRequestFinished_ adds mp4VttCues', function(assert) {
+      const done = assert.async();
+      const mockSimpleSegment = {};
+      const firstMockCue = {
+        start: 0,
+        end: 1,
+        cueText: 'foo',
+        settings: 'align:start line:8'
+      };
+      const secondMockCue = {
+        start: 1,
+        end: 2,
+        cueText: 'bar',
+        settings: 'align:end line:10'
+      };
+      const mockResult = {
+        mp4VttCues: [firstMockCue, secondMockCue]
+      };
+
+      loader.track(this.track);
+      loader.pendingSegment_ = {
+        segment: { },
+        mp4VttCues: undefined,
+        // for early return.
+        isSyncRequest: true,
+        cues: []
+      };
+      loader.parseMp4VttCues_ = (segmentInfo) => {
+        assert.ok(segmentInfo.mp4VttCues.length, 'there are mp4VttCues');
+        assert.equal(segmentInfo.mp4VttCues[0], firstMockCue, 'first cue is expected value');
+        assert.equal(segmentInfo.mp4VttCues[1], secondMockCue, 'second cue is expected value');
+        done();
+      };
+      loader.saveBandwidthRelatedStats_ = () => { };
+      loader.segmentRequestFinished_(null, mockSimpleSegment, mockResult);
+    });
+
+    QUnit.test('parseMp4VttCues_ adds parsed mp4VttCues to the segmentInfo object', function(assert) {
+      const mockSegmentInfo = {
+        mp4VttCues: [{
+          start: 0,
+          end: 2,
+          cueText: 'foo.bar',
+          settings: 'align:start line:9'
+        }],
+        cues: []
+      };
+
+      loader.parseMp4VttCues_(mockSegmentInfo);
+      assert.ok(mockSegmentInfo.cues.length, 'there are parsed cues');
+      assert.equal(mockSegmentInfo.cues[0].text, 'foo.bar', 'text is expected string');
+      assert.equal(mockSegmentInfo.cues[0].line, 9, 'line is expected number');
+      assert.equal(mockSegmentInfo.cues[0].align, 'start', 'align is correct value');
+      assert.equal(mockSegmentInfo.cues[0].startTime, 0, 'startTime is correct value');
+      assert.equal(mockSegmentInfo.cues[0].endTime, 2, 'startTime is correct value');
+    });
   });
 });
