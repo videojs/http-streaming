@@ -178,9 +178,8 @@ const initMp4Text = (segment, codec) => {
       action: 'initMp4WebVttParser',
       data: segment.map.bytes,
       transmuxer: segment.transmuxer,
-      callback: ({data}) => {
-        segment.map.bytes = data;
-      }
+      // noop no need to return any data
+      callback: () => {}
     });
   }
 };
