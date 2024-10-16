@@ -3,7 +3,9 @@ import {createTransmuxer as createTransmuxer_} from '../src/segment-transmuxer.j
 import {
   mp4Captions as mp4CaptionsSegment,
   muxed as muxedSegment,
-  caption as captionSegment
+  caption as captionSegment,
+  mp4WebVttInit as webVttInit,
+  mp4WebVtt as webVttSegment
 } from 'create-test-data!segments';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
@@ -378,6 +380,46 @@ QUnit.test('returns empty array without mp4 captions', function(assert) {
     trackIds: [1],
     byteLength: data.byteLength,
     byteOffset: 0
+  });
+});
+
+QUnit.test('can parse mp4 webvtt segments', function(assert) {
+  const done = assert.async();
+  const initSegment = webVttInit();
+  const segment = webVttSegment();
+
+  this.transmuxer = createTransmuxer();
+  this.transmuxer.onmessage = (e) => {
+    const message = e.data;
+    const expectedCues = [
+      {
+        cueText: '2024-10-16T05:13:50Z\nen # 864527815',
+        end: 1729055630.9,
+        settings: undefined,
+        start: 1729055630
+      },
+      {
+        cueText: '2024-10-16T05:13:51Z\nen # 864527815',
+        end: 1729055631.9,
+        settings: undefined,
+        start: 1729055631
+      }
+    ];
+
+    assert.equal(message.action, 'getMp4WebVttText', 'returned getMp4WebVttText event');
+    assert.deepEqual(message.mp4VttCues, expectedCues, 'mp4 vtt cues are expected values');
+
+    done();
+  };
+
+  this.transmuxer.postMessage({
+    action: 'initMp4WebVttParser',
+    data: initSegment
+  });
+
+  this.transmuxer.postMessage({
+    action: 'getMp4WebVttText',
+    data: segment
   });
 });
 

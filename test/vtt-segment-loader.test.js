@@ -992,13 +992,17 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
         cues: []
       };
 
+      // add an offset
+      loader.sourceUpdater_.videoTimestampOffset = () => {
+        return 1;
+      };
       loader.parseMp4VttCues_(mockSegmentInfo);
       assert.ok(mockSegmentInfo.cues.length, 'there are parsed cues');
       assert.equal(mockSegmentInfo.cues[0].text, 'foo.bar', 'text is expected string');
       assert.equal(mockSegmentInfo.cues[0].line, 9, 'line is expected number');
       assert.equal(mockSegmentInfo.cues[0].align, 'start', 'align is correct value');
-      assert.equal(mockSegmentInfo.cues[0].startTime, 0, 'startTime is correct value');
-      assert.equal(mockSegmentInfo.cues[0].endTime, 2, 'startTime is correct value');
+      assert.equal(mockSegmentInfo.cues[0].startTime, 1, 'startTime is correct value');
+      assert.equal(mockSegmentInfo.cues[0].endTime, 3, 'startTime is correct value');
     });
   });
 });

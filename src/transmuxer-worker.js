@@ -221,10 +221,6 @@ class MessageHandlers {
 
     // set the timescale for the parser.
     this.webVttParser.init(segment);
-    this.self.postMessage({
-      action: 'initMp4WebVttParser',
-      data: segment.buffer
-    }, [segment.buffer]);
   }
 
   /**
