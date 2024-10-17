@@ -423,6 +423,33 @@ QUnit.test('can parse mp4 webvtt segments', function(assert) {
   });
 });
 
+QUnit.test('returns empty webVttCues array if segment is empty', function(assert) {
+  const done = assert.async();
+  const initSegment = webVttInit();
+  const segment = new Uint8Array();
+
+  this.transmuxer = createTransmuxer();
+  this.transmuxer.onmessage = (e) => {
+    const message = e.data;
+    const expectedCues = [];
+
+    assert.equal(message.action, 'getMp4WebVttText', 'returned getMp4WebVttText event');
+    assert.deepEqual(message.mp4VttCues, expectedCues, 'mp4 vtt cues are expected values');
+
+    done();
+  };
+
+  this.transmuxer.postMessage({
+    action: 'initMp4WebVttParser',
+    data: initSegment
+  });
+
+  this.transmuxer.postMessage({
+    action: 'getMp4WebVttText',
+    data: segment
+  });
+});
+
 QUnit.module('Transmuxer Worker: Partial Transmuxer', {
   beforeEach(assert) {
     assert.timeout(5000);
