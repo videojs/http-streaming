@@ -174,12 +174,9 @@ const handleKeyResponse = (segment, objects, finishProcessingFn, triggerSegmentE
  */
 const initMp4Text = (segment, codec) => {
   if (codec === WEB_VTT_CODEC) {
-    workerCallback({
+    segment.transmuxer.postMessage({
       action: 'initMp4WebVttParser',
-      data: segment.map.bytes,
-      transmuxer: segment.transmuxer,
-      // noop no need to return any data
-      callback: () => {}
+      data: segment.map.bytes
     });
   }
 };
@@ -199,7 +196,7 @@ const parseMp4TextSegment = (segment, codec, doneFn) => {
       data: segment.bytes,
       transmuxer: segment.transmuxer,
       callback: ({data, mp4VttCues}) => {
-        segment.map.bytes = data;
+        segment.bytes = data;
         doneFn(null, segment, { mp4VttCues });
       }
     });
@@ -517,6 +514,10 @@ const handleSegmentBytes = ({
     const isMp4TextSegment = tracks.text && (!tracks.audio || !tracks.video);
 
     if (isMp4TextSegment) {
+      dataFn(segment, {
+        data: bytesAsUint8Array,
+        type: 'text'
+      });
       parseMp4TextSegment(segment, tracks.text.codec, doneFn);
       return;
     }

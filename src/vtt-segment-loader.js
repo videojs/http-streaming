@@ -382,10 +382,13 @@ export default class VTTSegmentLoader extends SegmentLoader {
     this.handleAppendsDone_();
   }
 
-  handleData_() {
-    // noop as we shouldn't be getting video/audio data captions
-    // that we do not support here.
+  handleData_(simpleSegment, result) {
+    // handle segment data for fmp4 encapsulated webvtt
+    if (simpleSegment.type === 'vtt') {
+      super.handleData_(simpleSegment, result);
+    }
   }
+
   updateTimingInfoEnd_() {
     // noop
   }

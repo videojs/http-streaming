@@ -1004,5 +1004,31 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
       assert.equal(mockSegmentInfo.cues[0].startTime, 1, 'startTime is correct value');
       assert.equal(mockSegmentInfo.cues[0].endTime, 3, 'startTime is correct value');
     });
+
+    QUnit.test('parseMp4VttCues_ adds parsed mp4VttCues to the segmentInfo object', function(assert) {
+      const mockSegmentInfo = {
+        mp4VttCues: [{
+          start: 1,
+          end: 3,
+          cueText: 'bar.foo',
+          settings: 'align:end line:10'
+        }],
+        cues: []
+      };
+
+      loader.sourceUpdater_.videoTimestampOffset = () => {
+        return null;
+      };
+      loader.sourceUpdater_.audioTimestampOffset = () => {
+        return 0;
+      };
+      loader.parseMp4VttCues_(mockSegmentInfo);
+      assert.ok(mockSegmentInfo.cues.length, 'there are parsed cues');
+      assert.equal(mockSegmentInfo.cues[0].text, 'bar.foo', 'text is expected string');
+      assert.equal(mockSegmentInfo.cues[0].line, 10, 'line is expected number');
+      assert.equal(mockSegmentInfo.cues[0].align, 'end', 'align is correct value');
+      assert.equal(mockSegmentInfo.cues[0].startTime, 1, 'startTime is correct value');
+      assert.equal(mockSegmentInfo.cues[0].endTime, 3, 'startTime is correct value');
+    });
   });
 });
