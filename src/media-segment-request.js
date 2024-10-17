@@ -18,6 +18,8 @@ export const REQUEST_ERRORS = {
   ABORTED: -102
 };
 
+const WEB_VTT_CODEC = 'wvtt';
+
 /**
  * Abort all requests
  *
@@ -164,6 +166,43 @@ const handleKeyResponse = (segment, objects, finishProcessingFn, triggerSegmentE
   return finishProcessingFn(null, segment);
 };
 
+/**
+ * Processes an mp4 init segment depending on the codec through the transmuxer.
+ *
+ * @param {Object} segment init segment to process
+ * @param {string} codec the codec of the text segments
+ */
+const initMp4Text = (segment, codec) => {
+  if (codec === WEB_VTT_CODEC) {
+    segment.transmuxer.postMessage({
+      action: 'initMp4WebVttParser',
+      data: segment.map.bytes
+    });
+  }
+};
+
+/**
+ * Parses an mp4 text segment with the transmuxer and calls the doneFn from
+ * the segment loader.
+ *
+ * @param {Object} segment the text segment to parse
+ * @param {string} codec the codec of the text segment
+ * @param {Function} doneFn the doneFn passed from the segment loader
+ */
+const parseMp4TextSegment = (segment, codec, doneFn) => {
+  if (codec === WEB_VTT_CODEC) {
+    workerCallback({
+      action: 'getMp4WebVttText',
+      data: segment.bytes,
+      transmuxer: segment.transmuxer,
+      callback: ({data, mp4VttCues}) => {
+        segment.bytes = data;
+        doneFn(null, segment, { mp4VttCues });
+      }
+    });
+  }
+};
+
 const parseInitSegment = (segment, callback) => {
   const type = detectContainerForBytes(segment.map.bytes);
 
@@ -204,6 +243,10 @@ const parseInitSegment = (segment, callback) => {
         if (typeof track.id === 'number' && track.timescale) {
           segment.map.timescales = segment.map.timescales || {};
           segment.map.timescales[track.id] = track.timescale;
+        }
+
+        if (track.type === 'text') {
+          initMp4Text(segment, track.codec);
         }
 
       });
@@ -468,6 +511,16 @@ const handleSegmentBytes = ({
   if (isLikelyFmp4MediaSegment(bytesAsUint8Array)) {
     segment.isFmp4 = true;
     const {tracks} = segment.map;
+    const isMp4TextSegment = tracks.text && (!tracks.audio || !tracks.video);
+
+    if (isMp4TextSegment) {
+      dataFn(segment, {
+        data: bytesAsUint8Array,
+        type: 'text'
+      });
+      parseMp4TextSegment(segment, tracks.text.codec, doneFn);
+      return;
+    }
 
     const trackInfo = {
       isFmp4: true,
