@@ -383,8 +383,10 @@ export default class VTTSegmentLoader extends SegmentLoader {
   }
 
   handleData_(simpleSegment, result) {
+    const isFmp4VttSegment = simpleSegment.type === 'vtt' && result.type === 'text';
     // handle segment data for fmp4 encapsulated webvtt
-    if (simpleSegment.type === 'vtt') {
+
+    if (isFmp4VttSegment) {
       super.handleData_(simpleSegment, result);
     }
   }

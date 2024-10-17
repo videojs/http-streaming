@@ -1005,7 +1005,7 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
       assert.equal(mockSegmentInfo.cues[0].endTime, 3, 'startTime is correct value');
     });
 
-    QUnit.test('parseMp4VttCues_ adds parsed mp4VttCues to the segmentInfo object', function(assert) {
+    QUnit.test('parseMp4VttCues_ adds parsed mp4VttCues to the segmentInfo object using audioTimestamp', function(assert) {
       const mockSegmentInfo = {
         mp4VttCues: [{
           start: 1,
@@ -1029,6 +1029,24 @@ QUnit.module('VTTSegmentLoader', function(hooks) {
       assert.equal(mockSegmentInfo.cues[0].align, 'end', 'align is correct value');
       assert.equal(mockSegmentInfo.cues[0].startTime, 1, 'startTime is correct value');
       assert.equal(mockSegmentInfo.cues[0].endTime, 3, 'startTime is correct value');
+    });
+
+    QUnit.test('handleData_ passes fmp4 vtt segment data to parent loader', function(assert) {
+      const done = assert.async();
+      const mockSimpleSegment = {
+        type: 'vtt',
+        stats: 'fake.stats'
+      };
+      const mockResult = {
+        type: 'text'
+      };
+
+      // mock this function to spy the super handleData call.
+      loader.earlyAbortWhenNeeded_ = (stats) => {
+        assert.equal(stats, 'fake.stats', 'expected stats value is passed.');
+        done();
+      };
+      loader.handleData_(mockSimpleSegment, mockResult);
     });
   });
 });
