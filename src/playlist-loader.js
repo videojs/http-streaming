@@ -537,6 +537,7 @@ export default class PlaylistLoader extends EventTarget {
         errorType: videojs.Error.StreamingHlsPlaylistParserError,
         error
       };
+      this.trigger('error');
     }
   }
 
