@@ -219,7 +219,8 @@ class MessageHandlers {
     }
     const segment = new Uint8Array(data.data, data.byteOffset, data.byteLength);
 
-    // set the timescale for the parser.
+    // Set the timescale for the parser.
+    // This can be called repeatedly in order to set and re-set the timescale.
     this.webVttParser.init(segment);
   }
 
@@ -231,6 +232,8 @@ class MessageHandlers {
    */
   getMp4WebVttText(data) {
     if (!this.webVttParser) {
+      // timescale might not be set yet if the parser is created before an init segment is passed.
+      // default timescale is 90k.
       this.webVttParser = new WebVttParser();
     }
     const segment = new Uint8Array(data.data, data.byteOffset, data.byteLength);

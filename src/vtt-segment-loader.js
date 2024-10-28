@@ -277,9 +277,9 @@ export default class VTTSegmentLoader extends SegmentLoader {
     }
 
     const segmentInfo = this.pendingSegment_;
-    const isMp4WebVttSegment = result.mp4VttCues && result.mp4VttCues.length;
+    const isMp4WebVttSegmentWithCues = result.mp4VttCues && result.mp4VttCues.length;
 
-    if (isMp4WebVttSegment) {
+    if (isMp4WebVttSegmentWithCues) {
       segmentInfo.mp4VttCues = result.mp4VttCues;
     }
 
@@ -334,7 +334,7 @@ export default class VTTSegmentLoader extends SegmentLoader {
       return;
     }
 
-    if (!isMp4WebVttSegment) {
+    if (!isMp4WebVttSegmentWithCues) {
       this.updateTimeMapping_(
         segmentInfo,
         this.syncController_.timelines[segmentInfo.timeline],
@@ -383,7 +383,9 @@ export default class VTTSegmentLoader extends SegmentLoader {
   }
 
   handleData_(simpleSegment, result) {
-    const isFmp4VttSegment = simpleSegment.type === 'vtt' && result.type === 'text';
+    const isVttType = simpleSegment && simpleSegment.type === 'vtt';
+    const isTextResult = result && result.type === 'text';
+    const isFmp4VttSegment = isVttType && isTextResult;
     // handle segment data for fmp4 encapsulated webvtt
 
     if (isFmp4VttSegment) {
