@@ -16,6 +16,7 @@
 
 import {Transmuxer} from 'mux.js/lib/mp4/transmuxer';
 import CaptionParser from 'mux.js/lib/mp4/caption-parser';
+import WebVttParser from 'mux.js/lib/mp4/webvtt-parser';
 import mp4probe from 'mux.js/lib/mp4/probe';
 import tsInspector from 'mux.js/lib/tools/ts-inspector.js';
 import {
@@ -203,6 +204,44 @@ class MessageHandlers {
       action: 'mp4Captions',
       captions: parsed && parsed.captions || [],
       logs: parsed && parsed.logs || [],
+      data: segment.buffer
+    }, [segment.buffer]);
+  }
+
+  /**
+   * Initializes the WebVttParser and passes the init segment.
+   *
+   * @param {Uint8Array} data mp4 boxed WebVTT init segment data
+   */
+  initMp4WebVttParser(data) {
+    if (!this.webVttParser) {
+      this.webVttParser = new WebVttParser();
+    }
+    const segment = new Uint8Array(data.data, data.byteOffset, data.byteLength);
+
+    // Set the timescale for the parser.
+    // This can be called repeatedly in order to set and re-set the timescale.
+    this.webVttParser.init(segment);
+  }
+
+  /**
+   * Parse an mp4 encapsulated WebVTT segment and return an array of cues.
+   *
+   * @param {Uint8Array} data a text/webvtt segment
+   * @return {Object[]} an array of parsed cue objects
+   */
+  getMp4WebVttText(data) {
+    if (!this.webVttParser) {
+      // timescale might not be set yet if the parser is created before an init segment is passed.
+      // default timescale is 90k.
+      this.webVttParser = new WebVttParser();
+    }
+    const segment = new Uint8Array(data.data, data.byteOffset, data.byteLength);
+    const parsed = this.webVttParser.parseSegment(segment);
+
+    this.self.postMessage({
+      action: 'getMp4WebVttText',
+      mp4VttCues: parsed || [],
       data: segment.buffer
     }, [segment.buffer]);
   }
