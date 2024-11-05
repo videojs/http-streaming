@@ -384,6 +384,7 @@ export default class DashPlaylistLoader extends EventTarget {
     // playlist lacks sidx or sidx segments were added to this playlist already.
     if (!playlist.sidx || !sidxKey || this.mainPlaylistLoader_.sidxMapping_[sidxKey]) {
       // keep this function async
+      window.clearTimeout(this.mediaRequest_);
       this.mediaRequest_ = window.setTimeout(() => cb(false), 0);
       return;
     }
@@ -553,6 +554,7 @@ export default class DashPlaylistLoader extends EventTarget {
   haveMetadata({startingState, playlist}) {
     this.state = 'HAVE_METADATA';
     this.loadedPlaylists_[playlist.id] = playlist;
+    window.clearTimeout(this.mediaRequest_);
     this.mediaRequest_ = null;
 
     // This will trigger loadedplaylist
@@ -629,6 +631,7 @@ export default class DashPlaylistLoader extends EventTarget {
     // We don't need to request the main manifest again
     // Call this asynchronously to match the xhr request behavior below
     if (!this.isMain_) {
+      window.clearTimeout(this.mediaRequest_);
       this.mediaRequest_ = window.setTimeout(() => this.haveMain_(), 0);
       return;
     }
@@ -773,6 +776,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
   handleMain_() {
     // clear media request
+    window.clearTimeout(this.mediaRequest_);
     this.mediaRequest_ = null;
 
     const oldMain = this.mainPlaylistLoader_.main;
