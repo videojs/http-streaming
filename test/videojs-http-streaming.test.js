@@ -4920,6 +4920,9 @@ QUnit.test('eme handles keystatuschange where status is output-restricted', func
   assert.equal(playlists[0].excludeUntil, Infinity, 'first HD playlist excluded');
   assert.equal(playlists[1].excludeUntil, Infinity, 'second HD playlist excluded');
   assert.equal(playlists[2].excludeUntil, undefined, 'non-HD playlist not excluded');
+
+  this.clock.tick(110);
+
   assert.equal(switchMediaCalled, 1, 'switchMedia_ called once');
 });
 

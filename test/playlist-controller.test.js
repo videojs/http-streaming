@@ -4859,6 +4859,7 @@ QUnit.test('can pass or select a playlist for fastQualityChange', function(asser
   };
 
   pc.fastQualityChange_(pc.main().playlists[1]);
+  this.clock.tick(110);
   pc.runFastQualitySwitch_();
   assert.deepEqual(calls, {
     resetEverything: 1,
@@ -4868,6 +4869,7 @@ QUnit.test('can pass or select a playlist for fastQualityChange', function(asser
   }, 'calls expected function when passed a playlist');
 
   pc.fastQualityChange_();
+  this.clock.tick(110);
   pc.runFastQualitySwitch_();
   assert.deepEqual(calls, {
     resetEverything: 2,
