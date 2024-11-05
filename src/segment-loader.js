@@ -424,21 +424,6 @@ export const shouldFixBadTimelineChanges = (timelineChangeController) => {
 };
 
 /**
- * Fixes certain bad timeline scenarios by resetting the loader.
- *
- * @param {SegmentLoader} segmentLoader
- */
-export const fixBadTimelineChange = (segmentLoader) => {
-  if (!segmentLoader) {
-    return;
-  }
-
-  segmentLoader.pause();
-  segmentLoader.resetEverything();
-  segmentLoader.load();
-};
-
-/**
  * Check if the pending audio timeline change is behind the
  * pending main timeline change.
  *
@@ -480,7 +465,7 @@ const checkAndFixTimelines = (segmentLoader) => {
       return;
     }
 
-    fixBadTimelineChange(segmentLoader);
+    segmentLoader.timelineChangeController_.trigger('fixBadTimelineChange');
   }
 };
 

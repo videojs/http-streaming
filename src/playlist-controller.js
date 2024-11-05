@@ -977,6 +977,12 @@ export class PlaylistController extends videojs.EventTarget {
       this.tech_.setCurrentTime(newTime);
     });
 
+    this.timelineChangeController_.on('fixBadTimelineChange', () => {
+      // pause, reset-everything and load for all segment-loaders
+      this.logger_('Fix bad timeline change. Restarting al segment loaders...');
+      this.setCurrentTime(this.tech_.currentTime());
+    });
+
     this.mainSegmentLoader_.on('earlyabort', (event) => {
       // never try to early abort with the new ABR algorithm
       if (this.bufferBasedABR) {
