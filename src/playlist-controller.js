@@ -29,6 +29,7 @@ import {merge, createTimeRanges} from './util/vjs-compat';
 import { addMetadata, createMetadataTrackIfNotExists, addDateRangeMetadata } from './util/text-tracks';
 import ContentSteeringController from './content-steering-controller';
 import { bufferToHexString } from './util/string.js';
+import {debounce} from './util/fn';
 
 const ABORT_EARLY_EXCLUSION_SECONDS = 10;
 
@@ -151,6 +152,11 @@ const shouldSwitchToMedia = function({
 export class PlaylistController extends videojs.EventTarget {
   constructor(options) {
     super();
+
+    // Adding a slight debounce to avoid duplicate calls during rapid quality changes, for example:
+    // When selecting quality from the quality list,
+    // where we may have multiple bandwidth profiles for the same vertical resolution.
+    this.fastQualityChange_ = debounce(this.fastQualityChange_.bind(this), 100);
 
     const {
       src,
