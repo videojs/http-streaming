@@ -701,7 +701,16 @@ export class PlaylistController extends videojs.EventTarget {
 
       if (this.sourceType_ === 'dash') {
         // we don't want to re-request the same hls playlist right after it was changed
-        this.mainPlaylistLoader_.load();
+
+        // Initially it was implemented as workaround to restart playlist loader for live
+        // when playlist loader is paused because of playlist exclusions:
+        // see: https://github.com/videojs/http-streaming/pull/1339
+        // but this introduces duplicate "loadedplaylist" event.
+        // Ideally we want to re-think playlist loader life-cycle events,
+        // but simply checking "paused" state should help a lot
+        if (this.mainPlaylistLoader_.isPaused) {
+          this.mainPlaylistLoader_.load();
+        }
       }
 
       // TODO: Create a new event on the PlaylistLoader that signals

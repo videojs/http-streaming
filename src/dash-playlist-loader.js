@@ -304,6 +304,8 @@ export default class DashPlaylistLoader extends EventTarget {
   constructor(srcUrlOrPlaylist, vhs, options = { }, mainPlaylistLoader) {
     super();
 
+    this.isPaused_ = true;
+
     this.mainPlaylistLoader_ = mainPlaylistLoader || this;
     if (!mainPlaylistLoader) {
       this.isMain_ = true;
@@ -343,6 +345,10 @@ export default class DashPlaylistLoader extends EventTarget {
     } else {
       this.childPlaylist_ = srcUrlOrPlaylist;
     }
+  }
+
+  get isPaused() {
+    return this.isPaused_;
   }
 
   requestErrored_(err, request, startingState) {
@@ -466,6 +472,7 @@ export default class DashPlaylistLoader extends EventTarget {
   }
 
   dispose() {
+    this.isPaused_ = true;
     this.trigger('dispose');
     this.stopRequest();
     this.loadedPlaylists_ = {};
@@ -571,6 +578,8 @@ export default class DashPlaylistLoader extends EventTarget {
   }
 
   pause() {
+    this.isPaused_ = true;
+
     if (this.mainPlaylistLoader_.createMupOnMedia_) {
       this.off('loadedmetadata', this.mainPlaylistLoader_.createMupOnMedia_);
       this.mainPlaylistLoader_.createMupOnMedia_ = null;
@@ -590,6 +599,8 @@ export default class DashPlaylistLoader extends EventTarget {
   }
 
   load(isFinalRendition) {
+    this.isPaused_ = false;
+
     window.clearTimeout(this.mediaUpdateTimeout);
     this.mediaUpdateTimeout = null;
 
