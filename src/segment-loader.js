@@ -1117,6 +1117,7 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (!newPlaylist) {
       return;
     }
+
     const oldPlaylist = this.playlist_;
     const segmentInfo = this.pendingSegment_;
 
