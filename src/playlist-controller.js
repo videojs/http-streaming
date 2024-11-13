@@ -980,7 +980,19 @@ export class PlaylistController extends videojs.EventTarget {
     this.timelineChangeController_.on('fixBadTimelineChange', () => {
       // pause, reset-everything and load for all segment-loaders
       this.logger_('Fix bad timeline change. Restarting al segment loaders...');
-      this.setCurrentTime(this.tech_.currentTime());
+      this.mainSegmentLoader_.pause();
+      this.mainSegmentLoader_.resetEverything();
+      if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
+        this.audioSegmentLoader_.pause();
+        this.audioSegmentLoader_.resetEverything();
+      }
+      if (this.mediaTypes_.SUBTITLES.activePlaylistLoader) {
+        this.subtitleSegmentLoader_.pause();
+        this.subtitleSegmentLoader_.resetEverything();
+      }
+
+      // start segment loader loading in case they are paused
+      this.load();
     });
 
     this.mainSegmentLoader_.on('earlyabort', (event) => {
@@ -1130,24 +1142,19 @@ export class PlaylistController extends videojs.EventTarget {
 
   runFastQualitySwitch_() {
     this.waitingForFastQualityPlaylistReceived_ = false;
-    // Delete all buffered data to allow an immediate quality switch.
     this.mainSegmentLoader_.pause();
-    this.mainSegmentLoader_.resetEverything(() => {
-      this.mainSegmentLoader_.load();
-    });
-
+    this.mainSegmentLoader_.resetEverything();
     if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
       this.audioSegmentLoader_.pause();
-      this.audioSegmentLoader_.resetEverything(() => {
-        this.audioSegmentLoader_.load();
-      });
+      this.audioSegmentLoader_.resetEverything();
     }
     if (this.mediaTypes_.SUBTITLES.activePlaylistLoader) {
       this.subtitleSegmentLoader_.pause();
-      this.subtitleSegmentLoader_.resetEverything(() => {
-        this.subtitleSegmentLoader_.load();
-      });
+      this.subtitleSegmentLoader_.resetEverything();
     }
+
+    // start segment loader loading in case they are paused
+    this.load();
   }
 
   /**
