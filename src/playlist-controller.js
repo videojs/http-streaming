@@ -1136,7 +1136,18 @@ export class PlaylistController extends videojs.EventTarget {
       this.mainSegmentLoader_.load();
     });
 
-    // don't need to reset audio as it is reset when media changes
+    if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
+      this.audioSegmentLoader_.pause();
+      this.audioSegmentLoader_.resetEverything(() => {
+        this.audioSegmentLoader_.load();
+      });
+    }
+    if (this.mediaTypes_.SUBTITLES.activePlaylistLoader) {
+      this.subtitleSegmentLoader_.pause();
+      this.subtitleSegmentLoader_.resetEverything(() => {
+        this.subtitleSegmentLoader_.load();
+      });
+    }
   }
 
   /**

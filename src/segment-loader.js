@@ -857,6 +857,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       if (this.pendingSegment_) {
         this.pendingSegment_ = null;
       }
+      this.timelineChangeController_.clearPendingTimelineChange(this.loaderType_);
       return;
     }
 
@@ -1102,6 +1103,15 @@ export default class SegmentLoader extends videojs.EventTarget {
     if (!newPlaylist) {
       return;
     }
+
+    if (this.playlist_ &&
+      this.playlist_.endList &&
+      newPlaylist.endList &&
+      this.playlist_.uri === newPlaylist.uri) {
+      // skip update if both prev and new are vod and have the same URI
+      return;
+    }
+
     const oldPlaylist = this.playlist_;
     const segmentInfo = this.pendingSegment_;
 
