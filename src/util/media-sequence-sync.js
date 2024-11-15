@@ -273,7 +273,7 @@ export class DependantMediaSequenceSync extends MediaSequenceSync {
     this.parent_ = parent;
   }
 
-  calculateBaseTime_(mediaSequence, fallback) {
+  calculateBaseTime_(mediaSequence, segments, fallback) {
     if (!this.storage_.size) {
       const info = this.parent_.getSyncInfoForMediaSequence(mediaSequence);
 
@@ -284,6 +284,6 @@ export class DependantMediaSequenceSync extends MediaSequenceSync {
       return 0;
     }
 
-    return super.calculateBaseTime_(mediaSequence, fallback);
+    return super.calculateBaseTime_(mediaSequence, segments, fallback);
   }
 }
