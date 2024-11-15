@@ -46,11 +46,6 @@ export default class VTTSegmentLoader extends SegmentLoader {
     this.shouldSaveSegmentTimingInfo_ = false;
   }
 
-  createTransmuxer_() {
-    // don't need to transmux any subtitles
-    return null;
-  }
-
   /**
    * Indicates which time ranges are buffered
    *
@@ -282,6 +277,11 @@ export default class VTTSegmentLoader extends SegmentLoader {
     }
 
     const segmentInfo = this.pendingSegment_;
+    const isMp4WebVttSegmentWithCues = result.mp4VttCues && result.mp4VttCues.length;
+
+    if (isMp4WebVttSegmentWithCues) {
+      segmentInfo.mp4VttCues = result.mp4VttCues;
+    }
 
     // although the VTT segment loader bandwidth isn't really used, it's good to
     // maintain functionality between segment loaders
@@ -334,11 +334,13 @@ export default class VTTSegmentLoader extends SegmentLoader {
       return;
     }
 
-    this.updateTimeMapping_(
-      segmentInfo,
-      this.syncController_.timelines[segmentInfo.timeline],
-      this.playlist_
-    );
+    if (!isMp4WebVttSegmentWithCues) {
+      this.updateTimeMapping_(
+        segmentInfo,
+        this.syncController_.timelines[segmentInfo.timeline],
+        this.playlist_
+      );
+    }
 
     if (segmentInfo.cues.length) {
       segmentInfo.timingInfo = {
@@ -380,12 +382,47 @@ export default class VTTSegmentLoader extends SegmentLoader {
     this.handleAppendsDone_();
   }
 
-  handleData_() {
-    // noop as we shouldn't be getting video/audio data captions
-    // that we do not support here.
+  handleData_(simpleSegment, result) {
+    const isVttType = simpleSegment && simpleSegment.type === 'vtt';
+    const isTextResult = result && result.type === 'text';
+    const isFmp4VttSegment = isVttType && isTextResult;
+    // handle segment data for fmp4 encapsulated webvtt
+
+    if (isFmp4VttSegment) {
+      super.handleData_(simpleSegment, result);
+    }
   }
+
   updateTimingInfoEnd_() {
     // noop
+  }
+
+  /**
+   * Utility function for converting mp4 webvtt cue objects into VTTCues.
+   *
+   * @param {Object} segmentInfo with mp4 webvtt cues for parsing into VTTCue objecs
+   */
+  parseMp4VttCues_(segmentInfo) {
+    const timestampOffset = this.sourceUpdater_.videoTimestampOffset() === null ?
+      this.sourceUpdater_.audioTimestampOffset() :
+      this.sourceUpdater_.videoTimestampOffset();
+
+    segmentInfo.mp4VttCues.forEach((cue) => {
+      const start = cue.start + timestampOffset;
+      const end = cue.end + timestampOffset;
+      const vttCue = new window.VTTCue(start, end, cue.cueText);
+
+      if (cue.settings) {
+        cue.settings.split(' ').forEach((cueSetting) => {
+          const keyValString = cueSetting.split(':');
+          const key = keyValString[0];
+          const value = keyValString[1];
+
+          vttCue[key] = isNaN(value) ? value : Number(value);
+        });
+      }
+      segmentInfo.cues.push(vttCue);
+    });
   }
 
   /**
@@ -406,6 +443,14 @@ export default class VTTSegmentLoader extends SegmentLoader {
       throw new NoVttJsError();
     }
 
+    segmentInfo.cues = [];
+    segmentInfo.timestampmap = { MPEGTS: 0, LOCAL: 0 };
+
+    if (segmentInfo.mp4VttCues) {
+      this.parseMp4VttCues_(segmentInfo);
+      return;
+    }
+
     if (typeof window.TextDecoder === 'function') {
       decoder = new window.TextDecoder('utf8');
     } else {
@@ -418,9 +463,6 @@ export default class VTTSegmentLoader extends SegmentLoader {
       window.vttjs,
       decoder
     );
-
-    segmentInfo.cues = [];
-    segmentInfo.timestampmap = { MPEGTS: 0, LOCAL: 0 };
 
     parser.oncue = segmentInfo.cues.push.bind(segmentInfo.cues);
     parser.ontimestampmap = (map) => {
