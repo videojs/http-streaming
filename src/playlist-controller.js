@@ -1642,9 +1642,73 @@ export class PlaylistController extends videojs.EventTarget {
     return this.seekable_;
   }
 
-  onSyncInfoUpdate_() {
-    let audioSeekable;
+  getSeekableRange_(playlistLoader, mediaType) {
+    const media = playlistLoader.media();
 
+    if (!media) {
+      return null;
+    }
+
+    const mediaSequenceSync = this.syncController_.getMediaSequenceSync(mediaType);
+
+    if (mediaSequenceSync && mediaSequenceSync.isReliable) {
+      const start = mediaSequenceSync.start;
+      const end = mediaSequenceSync.end;
+
+      if (!isFinite(start) || !isFinite(end)) {
+        return null;
+      }
+
+      const liveEdgeDelay = Vhs.Playlist.liveEdgeDelay(this.mainPlaylistLoader_.main, media);
+
+      // Make sure our seekable end is not negative
+      const calculatedEnd = Math.max(0, end - liveEdgeDelay);
+
+      if (calculatedEnd < start) {
+        return null;
+      }
+
+      return createTimeRanges([[start, calculatedEnd]]);
+    }
+
+    const expired = this.syncController_.getExpiredTime(media, this.duration());
+
+    if (expired === null) {
+      return null;
+    }
+
+    const seekable = Vhs.Playlist.seekable(
+      media,
+      expired,
+      Vhs.Playlist.liveEdgeDelay(this.mainPlaylistLoader_.main, media)
+    );
+
+    return seekable.length ? seekable : null;
+  }
+
+  computeFinalSeekable_(mainSeekable, audioSeekable) {
+    if (!audioSeekable) {
+      return mainSeekable;
+    }
+
+    const mainStart = mainSeekable.start(0);
+    const mainEnd = mainSeekable.end(0);
+    const audioStart = audioSeekable.start(0);
+    const audioEnd = audioSeekable.end(0);
+
+    if (audioStart > mainEnd || mainStart > audioEnd) {
+      // Seekables are far apart, rely on main
+      return mainSeekable;
+    }
+
+    // Return the overlapping seekable range
+    return createTimeRanges([[
+      Math.max(mainStart, audioStart),
+      Math.min(mainEnd, audioEnd)
+    ]]);
+  }
+
+  onSyncInfoUpdate_() {
     // TODO check for creation of both source buffers before updating seekable
     //
     // A fix was made to this function where a check for
@@ -1668,87 +1732,45 @@ export class PlaylistController extends videojs.EventTarget {
       return;
     }
 
-    let media = this.mainPlaylistLoader_.media();
+    const mainSeekable = this.getSeekableRange_(this.mainPlaylistLoader_, 'main');
 
-    if (!media) {
+    if (!mainSeekable) {
       return;
     }
 
-    let expired = this.syncController_.getExpiredTime(media, this.duration());
-
-    if (expired === null) {
-      // not enough information to update seekable
-      return;
-    }
-
-    const main = this.mainPlaylistLoader_.main;
-    const mainSeekable = Vhs.Playlist.seekable(
-      media,
-      expired,
-      Vhs.Playlist.liveEdgeDelay(main, media)
-    );
-
-    if (mainSeekable.length === 0) {
-      return;
-    }
+    let audioSeekable;
 
     if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
-      media = this.mediaTypes_.AUDIO.activePlaylistLoader.media();
-      expired = this.syncController_.getExpiredTime(media, this.duration());
+      audioSeekable = this.getSeekableRange_(this.mediaTypes_.AUDIO.activePlaylistLoader, 'audio');
 
-      if (expired === null) {
-        return;
-      }
-
-      audioSeekable = Vhs.Playlist.seekable(
-        media,
-        expired,
-        Vhs.Playlist.liveEdgeDelay(main, media)
-      );
-
-      if (audioSeekable.length === 0) {
+      if (!audioSeekable) {
         return;
       }
     }
 
-    let oldEnd;
-    let oldStart;
+    const oldSeekable = this.seekable_;
 
-    if (this.seekable_ && this.seekable_.length) {
-      oldEnd = this.seekable_.end(0);
-      oldStart = this.seekable_.start(0);
+    this.seekable_ = this.computeFinalSeekable_(mainSeekable, audioSeekable);
+
+    if (!this.seekable_) {
+      return;
     }
 
-    if (!audioSeekable) {
-      // seekable has been calculated based on buffering video data so it
-      // can be returned directly
-      this.seekable_ = mainSeekable;
-    } else if (audioSeekable.start(0) > mainSeekable.end(0) ||
-               mainSeekable.start(0) > audioSeekable.end(0)) {
-      // seekables are pretty far off, rely on main
-      this.seekable_ = mainSeekable;
-    } else {
-      this.seekable_ = createTimeRanges([[
-        (audioSeekable.start(0) > mainSeekable.start(0)) ? audioSeekable.start(0) :
-          mainSeekable.start(0),
-        (audioSeekable.end(0) < mainSeekable.end(0)) ? audioSeekable.end(0) :
-          mainSeekable.end(0)
-      ]]);
-    }
-
-    // seekable is the same as last time
-    if (this.seekable_ && this.seekable_.length) {
-      if (this.seekable_.end(0) === oldEnd && this.seekable_.start(0) === oldStart) {
+    if (oldSeekable && oldSeekable.length && this.seekable_.length) {
+      if (oldSeekable.start(0) === this.seekable_.start(0) &&
+        oldSeekable.end(0) === this.seekable_.end(0)) {
+        // Seekable range hasn't changed
         return;
       }
     }
 
     this.logger_(`seekable updated [${Ranges.printableRange(this.seekable_)}]`);
+
     const metadata = {
       seekableRanges: this.seekable_
     };
 
-    this.trigger({type: 'seekablerangeschanged', metadata});
+    this.trigger({ type: 'seekablerangeschanged', metadata });
     this.tech_.trigger('seekablechanged');
   }
 

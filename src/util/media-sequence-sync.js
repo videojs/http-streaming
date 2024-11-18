@@ -132,7 +132,7 @@ export class MediaSequenceSync {
     return this.updateStorage_(
       segments,
       mediaSequence,
-      this.calculateBaseTime_(mediaSequence, currentTime)
+      this.calculateBaseTime_(mediaSequence, segments, currentTime)
     );
   }
 
@@ -228,7 +228,7 @@ export class MediaSequenceSync {
     this.diagnostics_ = newDiagnostics;
   }
 
-  calculateBaseTime_(mediaSequence, fallback) {
+  calculateBaseTime_(mediaSequence, segments, fallback) {
     if (!this.storage_.size) {
       // Initial setup flow.
       return 0;
@@ -237,6 +237,23 @@ export class MediaSequenceSync {
     if (this.storage_.has(mediaSequence)) {
       // Normal flow.
       return this.storage_.get(mediaSequence).segmentSyncInfo.start;
+    }
+
+    const minMediaSequenceFromStorage = Math.min(...this.storage_.keys());
+
+    // This case captures a race condition that can occur if we switch to a new media playlist that is out of date
+    // and still has an older Media Sequence. If this occurs, we extrapolate backwards to get the base time.
+    if (mediaSequence < minMediaSequenceFromStorage) {
+      const mediaSequenceDiff = minMediaSequenceFromStorage - mediaSequence;
+      let baseTime = this.storage_.get(minMediaSequenceFromStorage).segmentSyncInfo.start;
+
+      for (let i = 0; i < mediaSequenceDiff; i++) {
+        const segment = segments[i];
+
+        baseTime -= segment.duration;
+      }
+
+      return baseTime;
     }
 
     // Fallback flow.
@@ -256,7 +273,7 @@ export class DependantMediaSequenceSync extends MediaSequenceSync {
     this.parent_ = parent;
   }
 
-  calculateBaseTime_(mediaSequence, fallback) {
+  calculateBaseTime_(mediaSequence, segments, fallback) {
     if (!this.storage_.size) {
       const info = this.parent_.getSyncInfoForMediaSequence(mediaSequence);
 
@@ -267,6 +284,6 @@ export class DependantMediaSequenceSync extends MediaSequenceSync {
       return 0;
     }
 
-    return super.calculateBaseTime_(mediaSequence, fallback);
+    return super.calculateBaseTime_(mediaSequence, segments, fallback);
   }
 }
