@@ -2488,7 +2488,7 @@ QUnit.test('live playlist starts with correct currentTime value', function(asser
 });
 
 QUnit.test(
-  'estimates seekable ranges for live streams that have been paused for a long time',
+  'estimates seekable ranges for live streams that have been paused for a long time and unreliable MediaSequenceSync',
   function(assert) {
     this.player.src({
       src: 'http://example.com/manifest/liveStart30sBefore.m3u8',
@@ -2504,6 +2504,9 @@ QUnit.test(
     this.player.tech_.vhs.playlists.media().syncInfo = {
       mediaSequence: 130,
       time: 80
+    };
+    this.player.tech_.vhs.playlistController_.syncController_.getMediaSequenceSync = () => {
+      return { isReliable: false };
     };
     this.player.tech_.vhs.playlistController_.onSyncInfoUpdate_();
     assert.equal(
