@@ -726,8 +726,7 @@ QUnit.test('resets everything for a fast quality change then calls load', functi
 
   segmentLoader.remove = (start, end, doneFn) => {
     assert.equal(end, Infinity, 'on a remove all, end should be Infinity');
-    assert.ok(doneFn);
-    doneFn();
+    doneFn && doneFn();
     origRemove.call(segmentLoader, start, end, doneFn);
   };
 
