@@ -1104,7 +1104,6 @@ export default class SegmentLoader extends videojs.EventTarget {
       return;
     }
 
-
     if (this.playlist_ &&
       this.playlist_.endList &&
       newPlaylist.endList &&
