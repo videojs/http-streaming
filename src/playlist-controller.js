@@ -29,6 +29,7 @@ import {merge, createTimeRanges} from './util/vjs-compat';
 import { addMetadata, createMetadataTrackIfNotExists, addDateRangeMetadata } from './util/text-tracks';
 import ContentSteeringController from './content-steering-controller';
 import { bufferToHexString } from './util/string.js';
+import {debounce} from './util/fn';
 
 const ABORT_EARLY_EXCLUSION_SECONDS = 10;
 
@@ -151,6 +152,11 @@ const shouldSwitchToMedia = function({
 export class PlaylistController extends videojs.EventTarget {
   constructor(options) {
     super();
+
+    // Adding a slight debounce to avoid duplicate calls during rapid quality changes, for example:
+    // When selecting quality from the quality list,
+    // where we may have multiple bandwidth profiles for the same vertical resolution.
+    this.fastQualityChange_ = debounce(this.fastQualityChange_.bind(this), 100);
 
     const {
       src,
@@ -701,7 +707,16 @@ export class PlaylistController extends videojs.EventTarget {
 
       if (this.sourceType_ === 'dash') {
         // we don't want to re-request the same hls playlist right after it was changed
-        this.mainPlaylistLoader_.load();
+
+        // Initially it was implemented as workaround to restart playlist loader for live
+        // when playlist loader is paused because of playlist exclusions:
+        // see: https://github.com/videojs/http-streaming/pull/1339
+        // but this introduces duplicate "loadedplaylist" event.
+        // Ideally we want to re-think playlist loader life-cycle events,
+        // but simply checking "paused" state should help a lot
+        if (this.mainPlaylistLoader_.isPaused) {
+          this.mainPlaylistLoader_.load();
+        }
       }
 
       // TODO: Create a new event on the PlaylistLoader that signals
@@ -962,6 +977,24 @@ export class PlaylistController extends videojs.EventTarget {
       this.tech_.setCurrentTime(newTime);
     });
 
+    this.timelineChangeController_.on('fixBadTimelineChange', () => {
+      // pause, reset-everything and load for all segment-loaders
+      this.logger_('Fix bad timeline change. Restarting al segment loaders...');
+      this.mainSegmentLoader_.pause();
+      this.mainSegmentLoader_.resetEverything();
+      if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
+        this.audioSegmentLoader_.pause();
+        this.audioSegmentLoader_.resetEverything();
+      }
+      if (this.mediaTypes_.SUBTITLES.activePlaylistLoader) {
+        this.subtitleSegmentLoader_.pause();
+        this.subtitleSegmentLoader_.resetEverything();
+      }
+
+      // start segment loader loading in case they are paused
+      this.load();
+    });
+
     this.mainSegmentLoader_.on('earlyabort', (event) => {
       // never try to early abort with the new ABR algorithm
       if (this.bufferBasedABR) {
@@ -1109,13 +1142,19 @@ export class PlaylistController extends videojs.EventTarget {
 
   runFastQualitySwitch_() {
     this.waitingForFastQualityPlaylistReceived_ = false;
-    // Delete all buffered data to allow an immediate quality switch.
     this.mainSegmentLoader_.pause();
-    this.mainSegmentLoader_.resetEverything(() => {
-      this.mainSegmentLoader_.load();
-    });
+    this.mainSegmentLoader_.resetEverything();
+    if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
+      this.audioSegmentLoader_.pause();
+      this.audioSegmentLoader_.resetEverything();
+    }
+    if (this.mediaTypes_.SUBTITLES.activePlaylistLoader) {
+      this.subtitleSegmentLoader_.pause();
+      this.subtitleSegmentLoader_.resetEverything();
+    }
 
-    // don't need to reset audio as it is reset when media changes
+    // start segment loader loading in case they are paused
+    this.load();
   }
 
   /**

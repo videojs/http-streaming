@@ -424,21 +424,6 @@ export const shouldFixBadTimelineChanges = (timelineChangeController) => {
 };
 
 /**
- * Fixes certain bad timeline scenarios by resetting the loader.
- *
- * @param {SegmentLoader} segmentLoader
- */
-export const fixBadTimelineChange = (segmentLoader) => {
-  if (!segmentLoader) {
-    return;
-  }
-
-  segmentLoader.pause();
-  segmentLoader.resetEverything();
-  segmentLoader.load();
-};
-
-/**
  * Check if the pending audio timeline change is behind the
  * pending main timeline change.
  *
@@ -480,7 +465,7 @@ const checkAndFixTimelines = (segmentLoader) => {
       return;
     }
 
-    fixBadTimelineChange(segmentLoader);
+    segmentLoader.timelineChangeController_.trigger('fixBadTimelineChange');
   }
 };
 
@@ -872,6 +857,7 @@ export default class SegmentLoader extends videojs.EventTarget {
       if (this.pendingSegment_) {
         this.pendingSegment_ = null;
       }
+      this.timelineChangeController_.clearPendingTimelineChange(this.loaderType_);
       return;
     }
 
@@ -1115,6 +1101,14 @@ export default class SegmentLoader extends videojs.EventTarget {
    */
   playlist(newPlaylist, options = {}) {
     if (!newPlaylist) {
+      return;
+    }
+
+    if (this.playlist_ &&
+      this.playlist_.endList &&
+      newPlaylist.endList &&
+      this.playlist_.uri === newPlaylist.uri) {
+      // skip update if both prev and new are vod and have the same URI
       return;
     }
 

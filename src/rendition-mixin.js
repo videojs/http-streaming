@@ -39,8 +39,9 @@ const enableFunction = (loader, playlistID, changePlaylistFn) => (enable) => {
 
   if (enable !== currentlyEnabled && !incompatible) {
     // Ensure the outside world knows about our changes
-    changePlaylistFn(playlist);
     if (enable) {
+      // call fast quality change only when the playlist is enabled
+      changePlaylistFn(playlist);
       loader.trigger({ type: 'renditionenabled', metadata});
     } else {
       loader.trigger({ type: 'renditiondisabled', metadata});

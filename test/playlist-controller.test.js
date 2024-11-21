@@ -726,8 +726,9 @@ QUnit.test('resets everything for a fast quality change then calls load', functi
 
   segmentLoader.remove = (start, end, doneFn) => {
     assert.equal(end, Infinity, 'on a remove all, end should be Infinity');
-    assert.ok(doneFn);
-    doneFn();
+    if (doneFn) {
+      doneFn();
+    }
     origRemove.call(segmentLoader, start, end, doneFn);
   };
 
@@ -4871,6 +4872,7 @@ QUnit.test('can pass or select a playlist for fastQualityChange', function(asser
   };
 
   pc.fastQualityChange_(pc.main().playlists[1]);
+  this.clock.tick(110);
   pc.runFastQualitySwitch_();
   assert.deepEqual(calls, {
     resetEverything: 1,
@@ -4880,6 +4882,7 @@ QUnit.test('can pass or select a playlist for fastQualityChange', function(asser
   }, 'calls expected function when passed a playlist');
 
   pc.fastQualityChange_();
+  this.clock.tick(110);
   pc.runFastQualitySwitch_();
   assert.deepEqual(calls, {
     resetEverything: 2,
