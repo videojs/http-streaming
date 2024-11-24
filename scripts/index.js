@@ -474,7 +474,8 @@
     'use-mms',
     'preload',
     'mirror-source',
-    'forced-subtitles'
+    'forced-subtitles',
+    'native-text-tracks'
   ].forEach(function(name) {
     stateEls[name] = document.getElementById(name);
   });
@@ -528,7 +529,8 @@
       'network-info',
       'dts-offset',
       'exact-manifest-timings',
-      'forced-subtitles'
+      'forced-subtitles',
+      'native-text-tracks'
     ].forEach(function(name) {
       stateEls[name].addEventListener('change', function(event) {
         saveState();
@@ -603,6 +605,7 @@
           liveui: stateEls.liveui.checked,
           enableSourceset: mirrorSource,
           html5: {
+            nativeTextTracks: getInputValue(stateEls['native-text-tracks']),
             vhs: {
               overrideNative: getInputValue(stateEls['override-native']),
               experimentalUseMMS: getInputValue(stateEls['use-mms']),
