@@ -192,6 +192,7 @@ export class PlaylistController extends videojs.EventTarget {
     this.playlistExclusionDuration = playlistExclusionDuration;
     this.maxPlaylistRetries = maxPlaylistRetries;
     this.enableLowInitialPlaylist = enableLowInitialPlaylist;
+    this.experimentalUseMMS_ = experimentalUseMMS;
 
     if (this.useCueTags_) {
       this.cueTagsTrack_ = this.tech_.addTextTrack(
@@ -1958,7 +1959,7 @@ export class PlaylistController extends videojs.EventTarget {
     }
 
     // fmp4 relies on browser support, while ts relies on muxer support
-    const supportFunction = (isFmp4, codec) => (isFmp4 ? browserSupportsCodec(codec) : muxerSupportsCodec(codec));
+    const supportFunction = (isFmp4, codec) => (isFmp4 ? browserSupportsCodec(codec, this.experimentalUseMMS_) : muxerSupportsCodec(codec));
     const unsupportedCodecs = {};
     let unsupportedAudio;
 
@@ -2100,11 +2101,11 @@ export class PlaylistController extends videojs.EventTarget {
       const codecs = codecsForPlaylist(this.main, variant);
       const unsupported = [];
 
-      if (codecs.audio && !muxerSupportsCodec(codecs.audio) && !browserSupportsCodec(codecs.audio)) {
+      if (codecs.audio && !muxerSupportsCodec(codecs.audio) && !browserSupportsCodec(codecs.audio, this.experimentalUseMMS_)) {
         unsupported.push(`audio codec ${codecs.audio}`);
       }
 
-      if (codecs.video && !muxerSupportsCodec(codecs.video) && !browserSupportsCodec(codecs.video)) {
+      if (codecs.video && !muxerSupportsCodec(codecs.video) && !browserSupportsCodec(codecs.video, this.experimentalUseMMS_)) {
         unsupported.push(`video codec ${codecs.video}`);
       }
 
