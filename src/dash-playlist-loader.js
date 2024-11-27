@@ -304,6 +304,8 @@ export default class DashPlaylistLoader extends EventTarget {
   constructor(srcUrlOrPlaylist, vhs, options = { }, mainPlaylistLoader) {
     super();
 
+    this.isPaused_ = true;
+
     this.mainPlaylistLoader_ = mainPlaylistLoader || this;
     if (!mainPlaylistLoader) {
       this.isMain_ = true;
@@ -345,6 +347,10 @@ export default class DashPlaylistLoader extends EventTarget {
     }
   }
 
+  get isPaused() {
+    return this.isPaused_;
+  }
+
   requestErrored_(err, request, startingState) {
     // disposed
     if (!this.request) {
@@ -384,6 +390,7 @@ export default class DashPlaylistLoader extends EventTarget {
     // playlist lacks sidx or sidx segments were added to this playlist already.
     if (!playlist.sidx || !sidxKey || this.mainPlaylistLoader_.sidxMapping_[sidxKey]) {
       // keep this function async
+      window.clearTimeout(this.mediaRequest_);
       this.mediaRequest_ = window.setTimeout(() => cb(false), 0);
       return;
     }
@@ -465,6 +472,7 @@ export default class DashPlaylistLoader extends EventTarget {
   }
 
   dispose() {
+    this.isPaused_ = true;
     this.trigger('dispose');
     this.stopRequest();
     this.loadedPlaylists_ = {};
@@ -553,6 +561,7 @@ export default class DashPlaylistLoader extends EventTarget {
   haveMetadata({startingState, playlist}) {
     this.state = 'HAVE_METADATA';
     this.loadedPlaylists_[playlist.id] = playlist;
+    window.clearTimeout(this.mediaRequest_);
     this.mediaRequest_ = null;
 
     // This will trigger loadedplaylist
@@ -569,6 +578,8 @@ export default class DashPlaylistLoader extends EventTarget {
   }
 
   pause() {
+    this.isPaused_ = true;
+
     if (this.mainPlaylistLoader_.createMupOnMedia_) {
       this.off('loadedmetadata', this.mainPlaylistLoader_.createMupOnMedia_);
       this.mainPlaylistLoader_.createMupOnMedia_ = null;
@@ -588,6 +599,8 @@ export default class DashPlaylistLoader extends EventTarget {
   }
 
   load(isFinalRendition) {
+    this.isPaused_ = false;
+
     window.clearTimeout(this.mediaUpdateTimeout);
     this.mediaUpdateTimeout = null;
 
@@ -629,6 +642,7 @@ export default class DashPlaylistLoader extends EventTarget {
     // We don't need to request the main manifest again
     // Call this asynchronously to match the xhr request behavior below
     if (!this.isMain_) {
+      window.clearTimeout(this.mediaRequest_);
       this.mediaRequest_ = window.setTimeout(() => this.haveMain_(), 0);
       return;
     }
@@ -773,6 +787,7 @@ export default class DashPlaylistLoader extends EventTarget {
 
   handleMain_() {
     // clear media request
+    window.clearTimeout(this.mediaRequest_);
     this.mediaRequest_ = null;
 
     const oldMain = this.mainPlaylistLoader_.main;
