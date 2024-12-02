@@ -1,3 +1,10 @@
+<a name="3.16.2"></a>
+## [3.16.2](https://github.com/videojs/http-streaming/compare/v3.16.1...v3.16.2) (2024-12-02)
+
+### Bug Fixes
+
+* playlists wrongfully excluded on iOS when using ManagedMediaSource ([#1555](https://github.com/videojs/http-streaming/issues/1555)) ([3c4bbf1](https://github.com/videojs/http-streaming/commit/3c4bbf1))
+
 <a name="3.16.1"></a>
 ## [3.16.1](https://github.com/videojs/http-streaming/compare/v3.16.0...v3.16.1) (2024-11-26)
 
