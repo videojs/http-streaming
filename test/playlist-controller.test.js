@@ -2634,6 +2634,70 @@ QUnit.test(
 );
 
 QUnit.test(
+  'getSeekableRange_ returns a range with an end that is never less than the start',
+  function(assert) {
+    const pc = this.playlistController;
+
+    const fakeMedia = {};
+    const fakePlaylistLoader = {
+      media() {
+        return fakeMedia;
+      }
+    };
+
+    // Ensure mainPlaylistLoader_.main is defined (needed by liveEdgeDelay)
+    pc.mainPlaylistLoader_ = { main: {} };
+
+    const originalLiveEdgeDelay = Vhs.Playlist.liveEdgeDelay;
+
+    // --- Scenario 1: liveEdgeDelay = 0 ---
+    // With a reliable sync info of start=10 and end=15, if liveEdgeDelay is 0 then:
+    //   calculatedEnd = Math.max(10, 15 - 0) = 15
+    // Expected seekable range: [10,15]
+    Vhs.Playlist.liveEdgeDelay = function(main, media) {
+      return 0;
+    };
+
+    pc.syncController_.getMediaSequenceSync = function(type) {
+      if (type === 'main') {
+        return {
+          isReliable: true,
+          start: 10,
+          end: 15
+        };
+      }
+      return null;
+    };
+
+    let seekable = pc.getSeekableRange_(fakePlaylistLoader, 'main');
+
+    timeRangesEqual(
+      seekable,
+      createTimeRanges([[10, 15]]),
+      'With liveEdgeDelay 0, seekable range is [10,15]'
+    );
+
+    // --- Scenario 2: liveEdgeDelay large enough to force clamping ---
+    // With the same sync info (start=10, end=15), if liveEdgeDelay = 10 then:
+    //   calculatedEnd = Math.max(10, 15 - 10) = Math.max(10, 5) = 10
+    // Expected seekable range: [10,10] (the end is clamped to start)
+    Vhs.Playlist.liveEdgeDelay = function(main, media) {
+      return 10;
+    };
+
+    seekable = pc.getSeekableRange_(fakePlaylistLoader, 'main');
+
+    timeRangesEqual(
+      seekable,
+      createTimeRanges([[10, 10]]),
+      'When liveEdgeDelay forces a negative delta, seekable range is clamped to [10,10]'
+    );
+
+    Vhs.Playlist.liveEdgeDelay = originalLiveEdgeDelay;
+  }
+);
+
+QUnit.test(
   'syncInfoUpdate triggers seekablechanged when seekable is updated',
   function(assert) {
     const origSeekable = Playlist.seekable;

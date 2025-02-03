@@ -1702,12 +1702,8 @@ export class PlaylistController extends videojs.EventTarget {
 
       const liveEdgeDelay = Vhs.Playlist.liveEdgeDelay(this.mainPlaylistLoader_.main, media);
 
-      // Make sure our seekable end is not negative
-      const calculatedEnd = Math.max(0, end - liveEdgeDelay);
-
-      if (calculatedEnd < start) {
-        return null;
-      }
+      // Make sure our seekable end is not less than the seekable start
+      const calculatedEnd = Math.max(start, end - liveEdgeDelay);
 
       return createTimeRanges([[start, calculatedEnd]]);
     }
