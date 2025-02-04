@@ -555,39 +555,23 @@ export default class PlaylistLoader extends EventTarget {
   }
 
   filterAudioOnlyVariants_(playlists) {
-    let resolutionFound = false;
-    let videoCodecFound = false;
-    let audioCodecFound = false;
+    // helper function
+    const hasVideo = (playlist) => {
+      const { width, height } = playlist.attributes.RESOLUTION || {};
 
-    for (const playlist of playlists) {
-      const hasResolution = Boolean(playlist.attributes.RESOLUTION && playlist.attributes.RESOLUTION.width && playlist.attributes.RESOLUTION.height);
-
-      if (hasResolution) {
-        resolutionFound = true;
+      if (width && height) {
+        return true;
       }
 
-      const { audio, video } = unwrapCodecList(getCodecs(playlist));
+      // parse codecs string from playlist attributes
+      const codecsList = getCodecs(playlist) || [];
+      // unwrap list
+      const codecsInfo = unwrapCodecList(codecsList);
 
-      if (video) {
-        videoCodecFound = true;
-      }
+      return Boolean(codecsInfo.video);
+    };
 
-      if (audio) {
-        audioCodecFound = true;
-      }
-    }
-
-    if ((resolutionFound || videoCodecFound) && audioCodecFound) {
-      // return only playlists with resolution or video codec available
-      return playlists.filter((playlist) => {
-        const hasResolution = Boolean(playlist.attributes.RESOLUTION && playlist.attributes.RESOLUTION.width && playlist.attributes.RESOLUTION.height);
-        const { video } = unwrapCodecList(getCodecs(playlist));
-
-        return hasResolution || Boolean(video);
-      });
-    }
-
-    return playlists;
+    return playlists.some(hasVideo) ? playlists.filter(hasVideo) : playlists;
   }
 
   /**
