@@ -22,6 +22,7 @@ import {getKnownPartCount} from './playlist.js';
 import {merge} from './util/vjs-compat';
 import DateRangesStorage from './util/date-ranges';
 import { getStreamingNetworkErrorMetadata } from './error-codes.js';
+import {getCodecs, unwrapCodecList} from './util/codecs';
 
 const { EventTarget } = videojs;
 
@@ -523,7 +524,7 @@ export default class PlaylistLoader extends EventTarget {
 
   parseManifest_({url, manifestString}) {
     try {
-      return parseManifest({
+      const parsed = parseManifest({
         onwarn: ({message}) => this.logger_(`m3u8-parser warn for ${url}: ${message}`),
         oninfo: ({message}) => this.logger_(`m3u8-parser info for ${url}: ${message}`),
         manifestString,
@@ -531,6 +532,19 @@ export default class PlaylistLoader extends EventTarget {
         customTagMappers: this.customTagMappers,
         llhls: this.llhls
       });
+
+      /**
+       * VHS does not support switching between variants with and without audio and video
+       * so we want to filter out audio-only variants when variants with video and(or) audio are also detected.
+       */
+
+      if (!parsed.playlists || !parsed.playlists.length) {
+        return parsed;
+      }
+
+      parsed.playlists = this.filterAudioOnlyVariants_(parsed.playlists);
+
+      return parsed;
     } catch (error) {
       this.error = error;
       this.error.metadata = {
@@ -538,6 +552,42 @@ export default class PlaylistLoader extends EventTarget {
         error
       };
     }
+  }
+
+  filterAudioOnlyVariants_(playlists) {
+    let resolutionFound = false;
+    let videoCodecFound = false;
+    let audioCodecFound = false;
+
+    for (const playlist of playlists) {
+      const hasResolution = Boolean(playlist.attributes.RESOLUTION && playlist.attributes.RESOLUTION.width && playlist.attributes.RESOLUTION.height);
+
+      if (hasResolution) {
+        resolutionFound = true;
+      }
+
+      const { audio, video } = unwrapCodecList(getCodecs(playlist));
+
+      if (video) {
+        videoCodecFound = true;
+      }
+
+      if (audio) {
+        audioCodecFound = true;
+      }
+    }
+
+    if ((resolutionFound || videoCodecFound) && audioCodecFound) {
+      // return only playlists with resolution or video codec available
+      return playlists.filter((playlist) => {
+        const hasResolution = Boolean(playlist.attributes.RESOLUTION && playlist.attributes.RESOLUTION.width && playlist.attributes.RESOLUTION.height);
+        const { video } = unwrapCodecList(getCodecs(playlist));
+
+        return hasResolution || Boolean(video);
+      });
+    }
+
+    return playlists;
   }
 
   /**
