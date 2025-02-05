@@ -542,7 +542,7 @@ export default class PlaylistLoader extends EventTarget {
         return parsed;
       }
 
-      parsed.playlists = this.filterAudioOnlyVariants_(parsed.playlists);
+      this.excludeAudioOnlyVariants(parsed.playlists);
 
       return parsed;
     } catch (error) {
@@ -554,10 +554,11 @@ export default class PlaylistLoader extends EventTarget {
     }
   }
 
-  filterAudioOnlyVariants_(playlists) {
+  excludeAudioOnlyVariants(playlists) {
     // helper function
     const hasVideo = (playlist) => {
-      const { width, height } = playlist.attributes.RESOLUTION || {};
+      const attributes = playlist.attributes || {};
+      const { width, height } = attributes.RESOLUTION || {};
 
       if (width && height) {
         return true;
@@ -571,7 +572,13 @@ export default class PlaylistLoader extends EventTarget {
       return Boolean(codecsInfo.video);
     };
 
-    return playlists.some(hasVideo) ? playlists.filter(hasVideo) : playlists;
+    if (playlists.some(hasVideo)) {
+      playlists.forEach((playlist) => {
+        if (!hasVideo(playlist)) {
+          playlist.excludeUntil = Infinity;
+        }
+      });
+    }
   }
 
   /**
