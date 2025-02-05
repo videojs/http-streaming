@@ -1248,7 +1248,7 @@ QUnit.test('buffer checks are noops when only the main is ready', function(asser
   assert.strictEqual(this.requests.length, 1, 'one request was made');
   assert.strictEqual(
     this.requests[0].url,
-    absoluteUrl('manifest/media1.m3u8'),
+    absoluteUrl('manifest/media.m3u8'),
     'media playlist requested'
   );
 
@@ -1269,8 +1269,8 @@ QUnit.test('selects a playlist below the current bandwidth', function(assert) {
 
   // the default playlist has a really high bitrate
   this.player.tech_.vhs.playlists.main.playlists[0].attributes.BANDWIDTH = 9e10;
-  // playlist 1 has a very low bitrate
-  this.player.tech_.vhs.playlists.main.playlists[1].attributes.BANDWIDTH = 1;
+  // playlist 2 has a very low bitrate
+  this.player.tech_.vhs.playlists.main.playlists[2].attributes.BANDWIDTH = 1;
   // but the detected client bandwidth is really low
   this.player.tech_.vhs.bandwidth = 10;
 
@@ -1278,7 +1278,7 @@ QUnit.test('selects a playlist below the current bandwidth', function(assert) {
 
   assert.strictEqual(
     playlist,
-    this.player.tech_.vhs.playlists.main.playlists[1],
+    this.player.tech_.vhs.playlists.main.playlists[2],
     'the low bitrate stream is selected'
   );
 
@@ -1383,12 +1383,12 @@ QUnit.test('raises the minimum bitrate for a stream proportionially', function(a
   this.player.tech_.vhs.bandwidth = 11;
 
   // 9.9 * 1.1 < 11
-  this.player.tech_.vhs.playlists.main.playlists[1].attributes.BANDWIDTH = 9.9;
+  this.player.tech_.vhs.playlists.main.playlists[2].attributes.BANDWIDTH = 9.9;
   const playlist = this.player.tech_.vhs.selectPlaylist();
 
   assert.strictEqual(
     playlist,
-    this.player.tech_.vhs.playlists.main.playlists[1],
+    this.player.tech_.vhs.playlists.main.playlists[2],
     'a lower bitrate stream is selected'
   );
 
@@ -1416,7 +1416,7 @@ QUnit.test('uses the lowest bitrate if no other is suitable', function(assert) {
   // playlist 1 has the lowest advertised bitrate
   assert.strictEqual(
     playlist,
-    this.player.tech_.vhs.playlists.main.playlists[1],
+    this.player.tech_.vhs.playlists.main.playlists[0],
     'the lowest bitrate stream is selected'
   );
 
@@ -2892,7 +2892,7 @@ QUnit.test('resets the switching algorithm if a request times out', function(ass
 
   assert.strictEqual(
     this.player.tech_.vhs.playlists.media(),
-    this.player.tech_.vhs.playlists.main.playlists[1],
+    this.player.tech_.vhs.playlists.main.playlists[0],
     'reset to the lowest bitrate playlist'
   );
 
@@ -4693,7 +4693,7 @@ QUnit.test('populates quality levels list when available', function(assert) {
   // media
   this.standardXHRResponse(this.requests.shift());
 
-  assert.equal(addCount, 4, 'four levels added from main');
+  assert.equal(addCount, 3, 'three levels added from main');
   assert.equal(changeCount, 1, 'selected initial quality level');
 
   this.player.dispose();
@@ -5837,7 +5837,7 @@ QUnit.test('aborts all in-flight work when disposed', function(assert) {
   const vhs = VhsSourceHandler.handleSource({
     src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'
-  }, this.tech);
+  }, this.tech, { vhs: { useNetworkInformationApi: false } });
 
   vhs.mediaSource.trigger('sourceopen');
   // main
@@ -5859,7 +5859,7 @@ QUnit.test('stats are reset on dispose', function(assert) {
   const vhs = VhsSourceHandler.handleSource({
     src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'
-  }, this.tech);
+  }, this.tech, { vhs: { useNetworkInformationApi: false } });
 
   vhs.mediaSource.trigger('sourceopen');
   // main
@@ -5891,7 +5891,7 @@ QUnit.skip('detects fullscreen and triggers a fast quality change', function(ass
   const vhs = VhsSourceHandler.handleSource({
     src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'
-  }, this.tech);
+  }, this.tech, { vhs: { useNetworkInformationApi: false } });
 
   let qualityChanges = 0;
   let fullscreenElementName;
@@ -5933,7 +5933,7 @@ QUnit.test('downloads additional playlists if required', function(assert) {
   const vhs = VhsSourceHandler.handleSource({
     src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'
-  }, this.tech);
+  }, this.tech, { vhs: { useNetworkInformationApi: false } });
 
   // Make segment metadata noop since most test segments dont have real data
   vhs.playlistController_.mainSegmentLoader_.addSegmentMetadataCue_ = () => {};
@@ -5987,7 +5987,7 @@ QUnit.test('waits to download new segments until the media playlist is stable', 
   const vhs = VhsSourceHandler.handleSource({
     src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'
-  }, this.tech);
+  }, this.tech, { vhs: { useNetworkInformationApi: false } });
   const pc = vhs.playlistController_;
 
   pc.mainSegmentLoader_.addSegmentMetadataCue_ = () => {};
@@ -6039,7 +6039,7 @@ QUnit.test('live playlist starts three target durations before live', function(a
   const vhs = VhsSourceHandler.handleSource({
     src: 'manifest/main.m3u8',
     type: 'application/vnd.apple.mpegurl'
-  }, this.tech);
+  }, this.tech, { vhs: { useNetworkInformationApi: false } });
 
   vhs.mediaSource.trigger('sourceopen');
   this.requests.shift().respond(
@@ -6099,7 +6099,7 @@ QUnit.test(
     let vhs = VhsSourceHandler.handleSource({
       src: 'manifest/main.m3u8',
       type: 'application/vnd.apple.mpegurl'
-    }, this.tech);
+    }, this.tech, { vhs: { useNetworkInformationApi: false } });
 
     vhs.playlistController_.selectPlaylist();
     assert.equal(defaultSelectPlaylistCount, 1, 'uses default playlist selector');
@@ -6116,7 +6116,7 @@ QUnit.test(
     vhs = VhsSourceHandler.handleSource({
       src: 'manifest/main.m3u8',
       type: 'application/vnd.apple.mpegurl'
-    }, this.tech);
+    }, this.tech, { vhs: { useNetworkInformationApi: false } });
 
     vhs.playlistController_.selectPlaylist();
     assert.equal(defaultSelectPlaylistCount, 0, 'standard playlist selector not run');
@@ -6170,7 +6170,7 @@ QUnit.test('excludes playlist if key requests fail', function(assert) {
   const vhs = VhsSourceHandler.handleSource({
     src: 'manifest/encrypted-main.m3u8',
     type: 'application/vnd.apple.mpegurl'
-  }, this.tech);
+  }, this.tech, { vhs: { useNetworkInformationApi: false } });
 
   vhs.mediaSource.trigger('sourceopen');
   this.requests.shift()
@@ -6219,7 +6219,7 @@ QUnit.test(
     const vhs = VhsSourceHandler.handleSource({
       src: 'manifest/encrypted-main.m3u8',
       type: 'application/vnd.apple.mpegurl'
-    }, this.tech);
+    }, this.tech, { vhs: { useNetworkInformationApi: false } });
 
     vhs.mediaSource.trigger('sourceopen');
     this.requests.shift()
