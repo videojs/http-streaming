@@ -1,3 +1,217 @@
+<a name="3.16.2"></a>
+## [3.16.2](https://github.com/videojs/http-streaming/compare/v3.16.1...v3.16.2) (2024-12-02)
+
+### Bug Fixes
+
+* playlists wrongfully excluded on iOS when using ManagedMediaSource ([#1555](https://github.com/videojs/http-streaming/issues/1555)) ([3c4bbf1](https://github.com/videojs/http-streaming/commit/3c4bbf1))
+
+<a name="3.16.1"></a>
+## [3.16.1](https://github.com/videojs/http-streaming/compare/v3.16.0...v3.16.1) (2024-11-26)
+
+### Bug Fixes
+
+* multi-period DASH VOD fixes ([#1551](https://github.com/videojs/http-streaming/issues/1551)) ([6fe7d9c](https://github.com/videojs/http-streaming/commit/6fe7d9c))
+
+<a name="3.16.0"></a>
+# [3.16.0](https://github.com/videojs/http-streaming/compare/v3.15.0...v3.16.0) (2024-11-18)
+
+### Features
+
+* parse mp4 webvtt segments ([#1545](https://github.com/videojs/http-streaming/issues/1545)) ([9f1c4ad](https://github.com/videojs/http-streaming/commit/9f1c4ad))
+
+### Bug Fixes
+
+* issues with live playback timing ([#1553](https://github.com/videojs/http-streaming/issues/1553)) ([6b4b7e2](https://github.com/videojs/http-streaming/commit/6b4b7e2))
+
+<a name="3.15.0"></a>
+# [3.15.0](https://github.com/videojs/http-streaming/compare/v3.14.2...v3.15.0) (2024-10-10)
+
+### Features
+
+* Add Airplay support when overriding native HLS in Safari/iOS ([#1543](https://github.com/videojs/http-streaming/issues/1543)) ([bfc17b4](https://github.com/videojs/http-streaming/commit/bfc17b4))
+* Add support for ManagedMediaSource 'startstreaming' and 'endstream' event handling ([#1542](https://github.com/videojs/http-streaming/issues/1542)) ([ae1ae70](https://github.com/videojs/http-streaming/commit/ae1ae70))
+
+### Chores
+
+* update mpd-parser to v1.3.1 ([#1544](https://github.com/videojs/http-streaming/issues/1544)) ([a9dd790](https://github.com/videojs/http-streaming/commit/a9dd790))
+
+<a name="3.14.2"></a>
+## [3.14.2](https://github.com/videojs/http-streaming/compare/v3.14.1...v3.14.2) (2024-09-17)
+
+### Bug Fixes
+
+* audio segment on incorrect timeline HLS ([#1539](https://github.com/videojs/http-streaming/issues/1539)) ([e4e0c2d](https://github.com/videojs/http-streaming/commit/e4e0c2d))
+
+<a name="3.14.1"></a>
+## [3.14.1](https://github.com/videojs/http-streaming/compare/v3.14.0...v3.14.1) (2024-09-09)
+
+### Bug Fixes
+
+* allow vtt rollover with MPEGTS of 0 ([#1537](https://github.com/videojs/http-streaming/issues/1537)) ([2125ecf](https://github.com/videojs/http-streaming/commit/2125ecf))
+
+<a name="3.14.0"></a>
+# [3.14.0](https://github.com/videojs/http-streaming/compare/v3.11.0...v3.14.0) (2024-08-23)
+
+### Features
+
+* Add experimental support for ManagedMediaSource ([#1453](https://github.com/videojs/http-streaming/issues/1453)) ([247047a](https://github.com/videojs/http-streaming/commit/247047a))
+* Custom Pixel Ratio ([#1497](https://github.com/videojs/http-streaming/issues/1497)) ([0e9d9d8](https://github.com/videojs/http-streaming/commit/0e9d9d8))
+* streaming events and errors ([#1508](https://github.com/videojs/http-streaming/issues/1508)) ([c94a230](https://github.com/videojs/http-streaming/commit/c94a230))
+
+### Bug Fixes
+
+* audio segment on incorrect timeline ([#1530](https://github.com/videojs/http-streaming/issues/1530)) ([876ed8c](https://github.com/videojs/http-streaming/commit/876ed8c))
+* bad timeline changes ([#1526](https://github.com/videojs/http-streaming/issues/1526)) ([7c63f4e](https://github.com/videojs/http-streaming/commit/7c63f4e))
+* changeType on full codec change only ([#1474](https://github.com/videojs/http-streaming/issues/1474)) ([4e51778](https://github.com/videojs/http-streaming/commit/4e51778))
+* enableFunction not passing playlist to fastQualityChange ([#1502](https://github.com/videojs/http-streaming/issues/1502)) ([e50ecb1](https://github.com/videojs/http-streaming/commit/e50ecb1))
+* fastQualitySwitch stability ([#1525](https://github.com/videojs/http-streaming/issues/1525)) ([28cb9fd](https://github.com/videojs/http-streaming/commit/28cb9fd))
+* fix repeated segments ([#1489](https://github.com/videojs/http-streaming/issues/1489)) ([ed8f6bd](https://github.com/videojs/http-streaming/commit/ed8f6bd))
+* llHLS does not need forcedTimestampOffset ([#1501](https://github.com/videojs/http-streaming/issues/1501)) ([f5d1209](https://github.com/videojs/http-streaming/commit/f5d1209))
+* remove extra abort call ([#1528](https://github.com/videojs/http-streaming/issues/1528)) ([7ec606f](https://github.com/videojs/http-streaming/commit/7ec606f))
+* requestId init tag ([#1518](https://github.com/videojs/http-streaming/issues/1518)) ([a542ec8](https://github.com/videojs/http-streaming/commit/a542ec8))
+* Resolve issue where live dash manifests without audio would hang ([#1524](https://github.com/videojs/http-streaming/issues/1524)) ([1ecf115](https://github.com/videojs/http-streaming/commit/1ecf115))
+* use paren media sequence sync for audio and vtt, since they are opt-in features and can be enabled after main init ([#1505](https://github.com/videojs/http-streaming/issues/1505)) ([bdfe0e0](https://github.com/videojs/http-streaming/commit/bdfe0e0))
+* videoTimestampOffset in sourceUpdater ([#1519](https://github.com/videojs/http-streaming/issues/1519)) ([d6851cc](https://github.com/videojs/http-streaming/commit/d6851cc))
+
+### Chores
+
+* Add log export to the demo page ([#1522](https://github.com/videojs/http-streaming/issues/1522)) ([0b4da7c](https://github.com/videojs/http-streaming/commit/0b4da7c))
+* **demo:** Remove error on iOS on demo page ([#1493](https://github.com/videojs/http-streaming/issues/1493)) ([c50ba7e](https://github.com/videojs/http-streaming/commit/c50ba7e))
+* Replace old quality selector ([#1482](https://github.com/videojs/http-streaming/issues/1482)) ([64376db](https://github.com/videojs/http-streaming/commit/64376db))
+* Switch to our quality selector ([#1527](https://github.com/videojs/http-streaming/issues/1527)) ([e3d1c42](https://github.com/videojs/http-streaming/commit/e3d1c42))
+* Update codecov action ([#1523](https://github.com/videojs/http-streaming/issues/1523)) ([bb9133c](https://github.com/videojs/http-streaming/commit/bb9133c))
+* update contrib-eme to v5.3.1 ([#1512](https://github.com/videojs/http-streaming/issues/1512)) ([e46ba74](https://github.com/videojs/http-streaming/commit/e46ba74))
+* update m3u8-parser, vhs-utils and aes-decrypter ([#1535](https://github.com/videojs/http-streaming/issues/1535)) ([dba1b79](https://github.com/videojs/http-streaming/commit/dba1b79))
+* update mux.js to v7.0.3 ([#1498](https://github.com/videojs/http-streaming/issues/1498)) ([bebcafd](https://github.com/videojs/http-streaming/commit/bebcafd))
+
+### Documentation
+
+* removing duplicated step ([#1476](https://github.com/videojs/http-streaming/issues/1476)) ([e4acc57](https://github.com/videojs/http-streaming/commit/e4acc57))
+
+### Reverts
+
+* "fix: fix repeated segments issue during bandwidth update ([#1477](https://github.com/videojs/http-streaming/issues/1477))" ([#1488](https://github.com/videojs/http-streaming/issues/1488)) ([75f7b1a](https://github.com/videojs/http-streaming/commit/75f7b1a))
+
+<a name="3.13.3"></a>
+## [3.13.3](https://github.com/videojs/http-streaming/compare/v3.13.2...v3.13.3) (2024-08-12)
+
+### Bug Fixes
+
+* audio segment on incorrect timeline ([#1530](https://github.com/videojs/http-streaming/issues/1530)) ([876ed8c](https://github.com/videojs/http-streaming/commit/876ed8c))
+
+<a name="3.13.2"></a>
+## [3.13.2](https://github.com/videojs/http-streaming/compare/v3.13.1...v3.13.2) (2024-07-22)
+
+### Bug Fixes
+
+* bad timeline changes ([#1526](https://github.com/videojs/http-streaming/issues/1526)) ([7c63f4e](https://github.com/videojs/http-streaming/commit/7c63f4e))
+* fastQualitySwitch stability ([#1525](https://github.com/videojs/http-streaming/issues/1525)) ([28cb9fd](https://github.com/videojs/http-streaming/commit/28cb9fd))
+* remove extra abort call ([#1528](https://github.com/videojs/http-streaming/issues/1528)) ([7ec606f](https://github.com/videojs/http-streaming/commit/7ec606f))
+* videoTimestampOffset in sourceUpdater ([#1519](https://github.com/videojs/http-streaming/issues/1519)) ([d6851cc](https://github.com/videojs/http-streaming/commit/d6851cc))
+
+### Chores
+
+* Add log export to the demo page ([#1522](https://github.com/videojs/http-streaming/issues/1522)) ([0b4da7c](https://github.com/videojs/http-streaming/commit/0b4da7c))
+* Switch to our quality selector ([#1527](https://github.com/videojs/http-streaming/issues/1527)) ([e3d1c42](https://github.com/videojs/http-streaming/commit/e3d1c42))
+* Update codecov action ([#1523](https://github.com/videojs/http-streaming/issues/1523)) ([bb9133c](https://github.com/videojs/http-streaming/commit/bb9133c))
+
+<a name="3.13.1"></a>
+## [3.13.1](https://github.com/videojs/http-streaming/compare/v3.13.0...v3.13.1) (2024-06-12)
+
+### Bug Fixes
+
+* requestId init tag ([#1518](https://github.com/videojs/http-streaming/issues/1518)) ([a542ec8](https://github.com/videojs/http-streaming/commit/a542ec8))
+
+<a name="3.13.0"></a>
+# [3.13.0](https://github.com/videojs/http-streaming/compare/v3.12.2...v3.13.0) (2024-05-21)
+
+### Features
+
+* streaming events and errors ([#1508](https://github.com/videojs/http-streaming/issues/1508)) ([c94a230](https://github.com/videojs/http-streaming/commit/c94a230))
+
+### Chores
+
+* update contrib-eme to v5.3.1 ([#1512](https://github.com/videojs/http-streaming/issues/1512)) ([e46ba74](https://github.com/videojs/http-streaming/commit/e46ba74))
+
+<a name="3.12.2"></a>
+## [3.12.2](https://github.com/videojs/http-streaming/compare/v3.12.1...v3.12.2) (2024-04-22)
+
+### Bug Fixes
+
+* use paren media sequence sync for audio and vtt, since they are opt-in features and can be enabled after main init ([#1505](https://github.com/videojs/http-streaming/issues/1505)) ([bdfe0e0](https://github.com/videojs/http-streaming/commit/bdfe0e0))
+
+<a name="3.12.1"></a>
+## [3.12.1](https://github.com/videojs/http-streaming/compare/v3.12.0...v3.12.1) (2024-04-16)
+
+### Bug Fixes
+
+* enableFunction not passing playlist to fastQualityChange ([#1502](https://github.com/videojs/http-streaming/issues/1502)) ([e50ecb1](https://github.com/videojs/http-streaming/commit/e50ecb1))
+* llHLS does not need forcedTimestampOffset ([#1501](https://github.com/videojs/http-streaming/issues/1501)) ([f5d1209](https://github.com/videojs/http-streaming/commit/f5d1209))
+
+### Documentation
+
+* removing duplicated step ([#1476](https://github.com/videojs/http-streaming/issues/1476)) ([e4acc57](https://github.com/videojs/http-streaming/commit/e4acc57))
+
+<a name="3.12.0"></a>
+# [3.12.0](https://github.com/videojs/http-streaming/compare/v3.11.3...v3.12.0) (2024-03-12)
+
+### Features
+
+* Custom Pixel Ratio ([#1497](https://github.com/videojs/http-streaming/issues/1497)) ([0e9d9d8](https://github.com/videojs/http-streaming/commit/0e9d9d8))
+
+### Chores
+
+* **demo:** Remove error on iOS on demo page ([#1493](https://github.com/videojs/http-streaming/issues/1493)) ([c50ba7e](https://github.com/videojs/http-streaming/commit/c50ba7e))
+* update mux.js to v7.0.3 ([#1498](https://github.com/videojs/http-streaming/issues/1498)) ([bebcafd](https://github.com/videojs/http-streaming/commit/bebcafd))
+
+<a name="3.11.3"></a>
+## [3.11.3](https://github.com/videojs/http-streaming/compare/v3.11.2...v3.11.3) (2024-02-28)
+
+### Bug Fixes
+
+* fix repeated segments ([#1489](https://github.com/videojs/http-streaming/issues/1489)) ([ed8f6bd](https://github.com/videojs/http-streaming/commit/ed8f6bd))
+
+<a name="3.11.2"></a>
+## [3.11.2](https://github.com/videojs/http-streaming/compare/v3.11.1...v3.11.2) (2024-02-21)
+
+### Reverts
+
+* "fix: fix repeated segments issue during bandwidth update ([#1477](https://github.com/videojs/http-streaming/issues/1477))" ([#1488](https://github.com/videojs/http-streaming/issues/1488)) ([75f7b1a](https://github.com/videojs/http-streaming/commit/75f7b1a))
+
+<a name="3.11.1"></a>
+## [3.11.1](https://github.com/videojs/http-streaming/compare/v3.11.0...v3.11.1) (2024-02-12)
+
+### Bug Fixes
+
+* changeType on full codec change only ([#1474](https://github.com/videojs/http-streaming/issues/1474)) ([4e51778](https://github.com/videojs/http-streaming/commit/4e51778))
+
+### Chores
+
+* Replace old quality selector ([#1482](https://github.com/videojs/http-streaming/issues/1482)) ([64376db](https://github.com/videojs/http-streaming/commit/64376db))
+
+<a name="3.11.0"></a>
+# [3.11.0](https://github.com/videojs/http-streaming/compare/v3.10.0...v3.11.0) (2024-01-25)
+
+### Features
+
+* add request types ([#1479](https://github.com/videojs/http-streaming/issues/1479)) ([5b87f69](https://github.com/videojs/http-streaming/commit/5b87f69))
+* error type enhancement ([#1478](https://github.com/videojs/http-streaming/issues/1478)) ([8f3a4d1](https://github.com/videojs/http-streaming/commit/8f3a4d1))
+
+### Bug Fixes
+
+* fix repeated segments issue during bandwidth update ([#1477](https://github.com/videojs/http-streaming/issues/1477)) ([823f072](https://github.com/videojs/http-streaming/commit/823f072))
+
+<a name="3.10.0"></a>
+# [3.10.0](https://github.com/videojs/http-streaming/compare/v3.9.1...v3.10.0) (2024-01-17)
+
+### Features
+
+* handle rollover for VTT cues ([#1472](https://github.com/videojs/http-streaming/issues/1472)) ([8e8a341](https://github.com/videojs/http-streaming/commit/8e8a341))
+
+### Bug Fixes
+
+* Check if change to the provided type is supported ([#1463](https://github.com/videojs/http-streaming/issues/1463)) ([#1475](https://github.com/videojs/http-streaming/issues/1475)) ([e2ab570](https://github.com/videojs/http-streaming/commit/e2ab570))
+
 <a name="3.9.1"></a>
 ## [3.9.1](https://github.com/videojs/http-streaming/compare/v3.9.0...v3.9.1) (2024-01-02)
 

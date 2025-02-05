@@ -2022,6 +2022,13 @@ QUnit.test('addSidxSegments_: errors if request for sidx fails', function(assert
     {
       status: 500,
       message: 'DASH request error at URL: sidx.mp4',
+      metadata: {
+        errorType: 'networkbadstatus',
+        headers: {},
+        requestType: 'dash-sidx',
+        status: 500,
+        uri: 'sidx.mp4'
+      },
       response: '',
       code: 2
     },

@@ -27,14 +27,24 @@ const enableFunction = (loader, playlistID, changePlaylistFn) => (enable) => {
   } else {
     playlist.disabled = true;
   }
+  const metadata = {
+    renditionInfo: {
+      id: playlistID,
+      bandwidth: playlist.attributes.BANDWIDTH,
+      resolution: playlist.attributes.RESOLUTION,
+      codecs: playlist.attributes.CODECS
+    },
+    cause: 'fast-quality'
+  };
 
   if (enable !== currentlyEnabled && !incompatible) {
     // Ensure the outside world knows about our changes
-    changePlaylistFn();
     if (enable) {
-      loader.trigger('renditionenabled');
+      // call fast quality change only when the playlist is enabled
+      changePlaylistFn(playlist);
+      loader.trigger({ type: 'renditionenabled', metadata});
     } else {
-      loader.trigger('renditiondisabled');
+      loader.trigger({ type: 'renditiondisabled', metadata});
     }
   }
   return enable;

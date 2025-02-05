@@ -1,4 +1,6 @@
 import TransmuxWorker from 'worker!./transmuxer-worker.js';
+import videojs from 'video.js';
+import { segmentInfoPayload } from './segment-loader';
 
 export const handleData_ = (event, transmuxedData, callback) => {
   const {
@@ -82,7 +84,9 @@ export const processTransmux = (options) => {
     onDone,
     onEndedTimeline,
     onTransmuxerLog,
-    isEndOfTimeline
+    isEndOfTimeline,
+    segment,
+    triggerSegmentEventFn
   } = options;
   const transmuxedData = {
     buffer: []
@@ -153,8 +157,20 @@ export const processTransmux = (options) => {
     dequeue(transmuxer);
     /* eslint-enable */
   };
+  const handleError = () => {
+    const error = {
+      message: 'Received an error message from the transmuxer worker',
+      metadata: {
+        errorType: videojs.Error.StreamingFailedToTransmuxSegment,
+        segmentInfo: segmentInfoPayload({segment})
+      }
+    };
+
+    onDone(null, error);
+  };
 
   transmuxer.onmessage = handleMessage;
+  transmuxer.onerror = handleError;
 
   if (audioAppendStart) {
     transmuxer.postMessage({
@@ -182,6 +198,7 @@ export const processTransmux = (options) => {
     const buffer = bytes instanceof ArrayBuffer ? bytes : bytes.buffer;
     const byteOffset = bytes instanceof ArrayBuffer ? 0 : bytes.byteOffset;
 
+    triggerSegmentEventFn({ type: 'segmenttransmuxingstart', segment });
     transmuxer.postMessage(
       {
         action: 'push',

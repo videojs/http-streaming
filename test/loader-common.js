@@ -835,11 +835,11 @@ export const LoaderCommonFactory = ({
 
         const segmentInfo = loader.pendingSegment_;
 
-        assert.equal(segmentInfo.mediaIndex, 3, 'segmentInfo.mediaIndex starts at 3');
+        assert.equal(segmentInfo.mediaIndex, 4, 'segmentInfo.mediaIndex starts at 4');
         assert.equal(
           this.requests[0].url,
-          '3.ts',
-          'requesting the segment at mediaIndex 3'
+          '4.ts',
+          'requesting the segment at mediaIndex 4'
         );
 
         // Update the playlist shifting the mediaSequence by 2 which will result
@@ -849,8 +849,8 @@ export const LoaderCommonFactory = ({
           endList: false
         }));
 
-        assert.equal(segmentInfo.mediaIndex, 1, 'segmentInfo.mediaIndex is updated to 1');
-        expectedLoaderIndex = 1;
+        assert.equal(segmentInfo.mediaIndex, 2, 'segmentInfo.mediaIndex is updated to 2');
+        expectedLoaderIndex = 2;
 
         standardXHRResponse(this.requests.shift(), testData());
 

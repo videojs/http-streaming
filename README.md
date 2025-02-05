@@ -41,6 +41,7 @@ Video.js Compatibility: 7.x, 8.x
       - [useCueTags](#usecuetags)
       - [parse708captions](#parse708captions)
       - [overrideNative](#overridenative)
+      - [experimentalUseMMS](#experimentalusemms)
       - [playlistExclusionDuration](#playlistexclusionduration)
       - [maxPlaylistRetries](#maxplaylistretries)
       - [bandwidth](#bandwidth)
@@ -49,6 +50,7 @@ Video.js Compatibility: 7.x, 8.x
       - [limitRenditionByPlayerDimensions](#limitrenditionbyplayerdimensions)
       - [useDevicePixelRatio](#usedevicepixelratio)
       - [usePlayerObjectFit](#useplayerobjectfit)
+      - [customPixelRatio](#custompixelratio)
       - [allowSeeksWithinUnsafeLiveWindow](#allowseekswithinunsafelivewindow)
       - [customTagParsers](#customtagparsers)
       - [customTagMappers](#customtagmappers)
@@ -349,6 +351,14 @@ var player = videojs('playerId', {
 
 Since MSE playback may be desirable on all browsers with some native support other than Safari, `overrideNative: !videojs.browser.IS_SAFARI` could be used.
 
+##### experimentalUseMMS
+* Type: `boolean`
+* can be used as an initialization option
+
+Use ManagedMediaSource when available. If both ManagedMediaSource and MediaSource are present, ManagedMediaSource would be used. This will only be effective if `ovrerideNative` is true, because currently the only browsers that implement ManagedMediaSource also have native support. Safari on iPhone 17.1 has ManagedMediaSource, as does Safari 17 on desktop and iPad. 
+
+Currently, using this option will disable AirPlay.
+
 ##### playlistExclusionDuration
 * Type: `number`
 * can be used as an initialization option
@@ -405,6 +415,7 @@ This setting is `true` by default.
 If true, this will take the device pixel ratio into account when doing rendition switching. This means that if you have a player with the width of `540px` in a high density display with a device pixel ratio of 2, a rendition of `1080p` will be allowed.
 This setting is `false` by default.
 
+
 ##### usePlayerObjectFit
 * Type: `boolean`
 * can be used as an initialization option.
@@ -413,6 +424,20 @@ If true, the video element's `object-fit` CSS property will be taken
 into account when doing rendition switching. This ensures that a
 suitable rendition is selected for videos that are scaled up to cover
 the media element. This setting is `false` by default.
+
+
+##### customPixelRatio
+* Type: `number`
+* can be used as an initialization option.
+
+If set, this will take the initial player dimensions and multiply it by a custom ratio when the player automatically selects renditions. This means that if you have a player where the dimension is `540p`, with a custom pixel ratio of `2`, a rendition of `1080p` or a lower rendition closest to this value  will be chosen. Additionally, if you have a player where the dimension is `540p`, with a custom pixel ratio of `0.5`, a rendition of `270p` or a lower rendition closest to this value will be  chosen. When the custom pixel ratio is 0, the lowest available rendition will be selected.
+
+It is worth noting that if the player dimension multiplied by the custom pixel ratio is greater than any available rendition resolution, a rendition will be selected based on bandwidth, and the player dimension will be disregarded.
+
+`limitRenditionByPlayerDimensions` must be `true` in order for this feature to be enabled. This is the default value.
+
+If `useDevicePixelRatio` is set to `true`, the custom pixel ratio will be prioritized and overwrite any previous pixel ratio.
+
 
 ##### allowSeeksWithinUnsafeLiveWindow
 * Type: `boolean`
@@ -465,13 +490,13 @@ This option defaults to `false`.
 
 ##### useNetworkInformationApi
 * Type: `boolean`,
-* Default: `false`
+* Default: `true`
 * Use [window.networkInformation.downlink](https://developer.mozilla.org/en-US/docs/Web/API/NetworkInformation/downlink) to estimate the network's bandwidth. Per mdn, _The value is never greater than 10 Mbps, as a non-standard anti-fingerprinting measure_. Given this, if bandwidth estimates from both the player and networkInfo are >= 10 Mbps, the player will use the larger of the two values as its bandwidth estimate.
 
 ##### useDtsForTimestampOffset
 * Type: `boolean`,
 * Default: `false`
-* Use [Decode Timestamp](https://www.w3.org/TR/media-source/#decode-timestamp) instead of [Presentation Timestamp](https://www.w3.org/TR/media-source/#presentation-timestamp) for [timestampOffset](https://www.w3.org/TR/media-source/#dom-sourcebuffer-timestampoffset) calculation. This option was introduced to align with DTS-based browsers. This option affects only transmuxed data (eg: transport stream). For more info please check the following [issue](https://github.com/videojs/http-streaming/issues/1247).  
+* Use [Decode Timestamp](https://www.w3.org/TR/media-source/#dfn-decode-timestamp) instead of [Presentation Timestamp](https://www.w3.org/TR/media-source/#presentation-timestamp) for [timestampOffset](https://www.w3.org/TR/media-source/#dom-sourcebuffer-timestampoffset) calculation. This option was introduced to align with DTS-based browsers. This option affects only transmuxed data (eg: transport stream). For more info please check the following [issue](https://github.com/videojs/http-streaming/issues/1247).  
 
 ##### useForcedSubtitles
 * Type: `boolean`

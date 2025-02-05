@@ -19,7 +19,7 @@ const logFn = logger('CodecUtils');
  * @param {Playlist} media the current media playlist
  * @return {Object} an object with the video and audio codecs
  */
-const getCodecs = function(media) {
+export const getCodecs = function(media) {
   // if the codecs were explicitly specified, use them instead of the
   // defaults
   const mediaAttributes = media.attributes || {};

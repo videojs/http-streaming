@@ -166,6 +166,18 @@ export const useFakeMediaSource = function() {
   };
 };
 
+export const useFakeManagedMediaSource = function() {
+  window.ManagedMediaSource = MockMediaSource;
+  window.URL.createObjectURL = (object) => realCreateObjectURL(object instanceof MockMediaSource ? object.nativeMediaSource_ : object);
+
+  return {
+    restore() {
+      window.MediaSource = RealMediaSource;
+      window.URL.createObjectURL = realCreateObjectURL;
+    }
+  };
+};
+
 export const downloadProgress = (xhr, rawEventData) => {
   const text = rawEventData.toString();
 
@@ -355,7 +367,17 @@ export const createPlayer = function(options, src, clock) {
     }
   }
   document.querySelector('#qunit-fixture').appendChild(video);
-  const player = videojs(video, options || {});
+
+  options = options || {};
+  options.html5 = options.html5 || {};
+  options.html5.vhs = options.html5.vhs || {};
+
+  // we should disable useNetworkInformationApi for tests, unless it is explicitly set to some value
+  if (typeof options.html5.vhs.useNetworkInformationApi === 'undefined') {
+    options.html5.vhs.useNetworkInformationApi = false;
+  }
+
+  const player = videojs(video, options);
 
   player.buffered = function() {
     return createTimeRanges(0, 0);

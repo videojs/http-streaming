@@ -11,6 +11,8 @@
 import window from 'global/window';
 import * as Ranges from './ranges';
 import logger from './util/logger';
+import { createTimeRanges } from './util/vjs-compat';
+import videojs from 'video.js';
 
 // Set of events that reset the playback-watcher time check logic and clear the timeout
 const timerCancelEvents = [
@@ -24,7 +26,7 @@ const timerCancelEvents = [
 /**
  * @class PlaybackWatcher
  */
-export default class PlaybackWatcher {
+export default class PlaybackWatcher extends videojs.EventTarget {
   /**
    * Represents an PlaybackWatcher object.
    *
@@ -32,12 +34,14 @@ export default class PlaybackWatcher {
    * @param {Object} options an object that includes the tech and settings
    */
   constructor(options) {
+    super();
     this.playlistController_ = options.playlistController;
     this.tech_ = options.tech;
     this.seekable = options.seekable;
     this.allowSeeksWithinUnsafeLiveWindow = options.allowSeeksWithinUnsafeLiveWindow;
     this.liveRangeSafeTimeDelta = options.liveRangeSafeTimeDelta;
     this.media = options.media;
+    this.playedRanges_ = [];
 
     this.consecutiveUpdates = 0;
     this.lastRecordedTime = null;
@@ -205,6 +209,11 @@ export default class PlaybackWatcher {
     // the buffered value for this loader changed
     // appends are working
     if (isBufferedDifferent) {
+      const metadata = {
+        bufferedRanges: buffered
+      };
+
+      pc.trigger({ type: 'bufferedrangeschanged', metadata });
       this.resetSegmentDownloads_(type);
       return;
     }
@@ -271,6 +280,12 @@ export default class PlaybackWatcher {
     } else if (currentTime === this.lastRecordedTime) {
       this.consecutiveUpdates++;
     } else {
+      this.playedRanges_.push(createTimeRanges([this.lastRecordedTime, currentTime]));
+      const metadata = {
+        playedRanges: this.playedRanges_
+      };
+
+      this.playlistController_.trigger({ type: 'playedrangeschanged', metadata });
       this.consecutiveUpdates = 0;
       this.lastRecordedTime = currentTime;
     }
@@ -589,7 +604,14 @@ export default class PlaybackWatcher {
 
     // only seek if we still have not played
     this.tech_.setCurrentTime(nextRange.start(0) + Ranges.TIME_FUDGE_FACTOR);
+    const metadata = {
+      gapInfo: {
+        from: currentTime,
+        to: nextRange.start(0)
+      }
+    };
 
+    this.playlistController_.trigger({type: 'gapjumped', metadata});
     this.tech_.trigger({type: 'usage', name: 'vhs-gap-skip'});
   }
 

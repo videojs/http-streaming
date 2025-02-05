@@ -697,7 +697,8 @@ class VhsHandler extends Component {
         this.source_.useBandwidthFromLocalStorage :
         this.options_.useBandwidthFromLocalStorage || false;
     this.options_.useForcedSubtitles = this.options_.useForcedSubtitles || false;
-    this.options_.useNetworkInformationApi = this.options_.useNetworkInformationApi || false;
+    this.options_.useNetworkInformationApi = typeof this.options_.useNetworkInformationApi !== 'undefined' ?
+      this.options_.useNetworkInformationApi : true;
     this.options_.useDtsForTimestampOffset = this.options_.useDtsForTimestampOffset || false;
     this.options_.customTagParsers = this.options_.customTagParsers || [];
     this.options_.customTagMappers = this.options_.customTagMappers || [];
@@ -740,6 +741,7 @@ class VhsHandler extends Component {
       'withCredentials',
       'useDevicePixelRatio',
       'usePlayerObjectFit',
+      'customPixelRatio',
       'limitRenditionByPlayerDimensions',
       'bandwidth',
       'customTagParsers',
@@ -764,6 +766,13 @@ class VhsHandler extends Component {
     this.limitRenditionByPlayerDimensions = this.options_.limitRenditionByPlayerDimensions;
     this.useDevicePixelRatio = this.options_.useDevicePixelRatio;
     this.usePlayerObjectFit = this.options_.usePlayerObjectFit;
+
+    const customPixelRatio = this.options_.customPixelRatio;
+
+    // Ensure the custom pixel ratio is a number greater than or equal to 0
+    if (typeof customPixelRatio === 'number' && customPixelRatio >= 0) {
+      this.customPixelRatio = customPixelRatio;
+    }
   }
   // alias for public method to set options
   setOptions(options = {}) {
@@ -790,6 +799,8 @@ class VhsHandler extends Component {
     this.options_.seekTo = (time) => {
       this.tech_.setCurrentTime(time);
     };
+    // pass player to allow for player level eventing on construction.
+    this.options_.player_ = this.player_;
 
     this.playlistController_ = new PlaylistController(this.options_);
 
@@ -807,6 +818,7 @@ class VhsHandler extends Component {
 
     this.playbackWatcher_ = new PlaybackWatcher(playbackWatcherOptions);
 
+    this.attachStreamingEventListeners_();
     this.playlistController_.on('error', () => {
       const player = videojs.players[this.tech_.options_.playerId];
       let error = this.playlistController_.error;
@@ -1071,7 +1083,19 @@ class VhsHandler extends Component {
 
     this.mediaSourceUrl_ = window.URL.createObjectURL(this.playlistController_.mediaSource);
 
-    this.tech_.src(this.mediaSourceUrl_);
+    // If we are playing HLS with MSE in Safari, add source elements for both the blob and manifest URLs.
+    // The latter will enable Airplay playback on receiver devices.
+    if ((
+      videojs.browser.IS_ANY_SAFARI || videojs.browser.IS_IOS) &&
+      this.options_.overrideNative &&
+      this.options_.sourceType === 'hls' &&
+      typeof this.tech_.addSourceElement === 'function'
+    ) {
+      this.tech_.addSourceElement(this.mediaSourceUrl_);
+      this.tech_.addSourceElement(this.source_.src);
+    } else {
+      this.tech_.src(this.mediaSourceUrl_);
+    }
   }
 
   createKeySessions_() {
@@ -1318,6 +1342,34 @@ class VhsHandler extends Component {
     // This allows hooks to be set before the source is set to vhs when handleSource is called.
     this.player_.trigger('xhr-hooks-ready');
   }
+
+  attachStreamingEventListeners_() {
+    const playlistControllerEvents = [
+      'seekablerangeschanged',
+      'bufferedrangeschanged',
+      'contentsteeringloadstart',
+      'contentsteeringloadcomplete',
+      'contentsteeringparsed'
+    ];
+
+    const playbackWatcher = [
+      'gapjumped',
+      'playedrangeschanged'
+    ];
+
+    // re-emit streaming events and payloads on the player.
+    playlistControllerEvents.forEach((eventName) => {
+      this.playlistController_.on(eventName, (metadata) => {
+        this.player_.trigger({...metadata});
+      });
+    });
+
+    playbackWatcher.forEach((eventName) => {
+      this.playbackWatcher_.on(eventName, (metadata) => {
+        this.player_.trigger({...metadata});
+      });
+    });
+  }
 }
 
 /**
@@ -1332,6 +1384,11 @@ const VhsSourceHandler = {
   VERSION: vhsVersion,
   canHandleSource(srcObj, options = {}) {
     const localOptions = merge(videojs.options, options);
+
+    // If not opting to experimentalUseMMS, and playback is only supported with MediaSource, cannot handle source
+    if (!localOptions.vhs.experimentalUseMMS && !browserSupportsCodec('avc1.4d400d,mp4a.40.2', false)) {
+      return false;
+    }
 
     return VhsSourceHandler.canPlayType(srcObj.type, localOptions);
   },
@@ -1367,13 +1424,14 @@ const VhsSourceHandler = {
 };
 
 /**
- * Check to see if the native MediaSource object exists and supports
- * an MP4 container with both H.264 video and AAC-LC audio.
+ * Check to see if either the native MediaSource or ManagedMediaSource
+ * objectx exist and support an MP4 container with both H.264 video
+ * and AAC-LC audio.
  *
  * @return {boolean} if  native media sources are supported
  */
 const supportsNativeMediaSources = () => {
-  return browserSupportsCodec('avc1.4d400d,mp4a.40.2');
+  return browserSupportsCodec('avc1.4d400d,mp4a.40.2', true);
 };
 
 // register source handlers with the appropriate techs
