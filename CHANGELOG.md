@@ -1,3 +1,20 @@
+<a name="3.17.0"></a>
+# [3.17.0](https://github.com/videojs/http-streaming/compare/v3.16.2...v3.17.0) (2025-02-05)
+
+### Features
+
+* Consider object-fit when selecting playlist by player size  ([#1051](https://github.com/videojs/http-streaming/issues/1051)) ([2c52076](https://github.com/videojs/http-streaming/commit/2c52076))
+* useNetworkInfo API by default + exclude audio only renditions when we have video renditions alongside ([#1565](https://github.com/videojs/http-streaming/issues/1565)) ([1289dd4](https://github.com/videojs/http-streaming/commit/1289dd4))
+
+### Bug Fixes
+
+* clamp seekable end to start instead of 0 ([#1564](https://github.com/videojs/http-streaming/issues/1564)) ([14ac65a](https://github.com/videojs/http-streaming/commit/14ac65a))
+* Ensure native segment metadata track has mode hidden ([#1550](https://github.com/videojs/http-streaming/issues/1550)) ([c1d3186](https://github.com/videojs/http-streaming/commit/c1d3186))
+
+### Chores
+
+* Updated link in readme leading to Decode Timestamp doc at w3.org ([#1562](https://github.com/videojs/http-streaming/issues/1562)) ([bc9e667](https://github.com/videojs/http-streaming/commit/bc9e667))
+
 <a name="3.16.2"></a>
 ## [3.16.2](https://github.com/videojs/http-streaming/compare/v3.16.1...v3.16.2) (2024-12-02)
 
