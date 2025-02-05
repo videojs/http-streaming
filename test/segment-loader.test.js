@@ -10,8 +10,7 @@ import {
   getTroublesomeSegmentDurationMessage,
   getSyncSegmentCandidate,
   segmentInfoString,
-  shouldFixBadTimelineChanges,
-  fixBadTimelineChange
+  shouldFixBadTimelineChanges
 } from '../src/segment-loader';
 import mp4probe from 'mux.js/lib/mp4/probe';
 import {
@@ -513,37 +512,6 @@ QUnit.test('shouldFixBadTimelineChange returns false when timelineChangeControll
   const timelineChangeController = undefined;
 
   assert.notOk(shouldFixBadTimelineChanges(timelineChangeController), 'should not fix a timeline change with no timelineChangeController');
-});
-
-QUnit.module('fixBadTimelineChange');
-
-QUnit.test('fixBadTimelineChange calls pause, resetEverything and load on a segmentLoader', function(assert) {
-  let pauseCalls = 0;
-  let resetEverythingCalls = 0;
-  let loadCalls = 0;
-  let mockSegmentLoader = {
-    pause() {
-      pauseCalls++;
-    },
-    resetEverything() {
-      resetEverythingCalls++;
-    },
-    load() {
-      loadCalls++;
-    }
-  };
-
-  fixBadTimelineChange(mockSegmentLoader);
-  assert.equal(pauseCalls, 1, 'calls pause once');
-  assert.equal(resetEverythingCalls, 1, 'calls resetEverything once');
-  assert.equal(loadCalls, 1, 'calls load once');
-
-  // early return if undefined. call counts remain the same.
-  mockSegmentLoader = undefined;
-  fixBadTimelineChange(mockSegmentLoader);
-  assert.equal(pauseCalls, 1, 'calls pause once');
-  assert.equal(resetEverythingCalls, 1, 'calls resetEverything once');
-  assert.equal(loadCalls, 1, 'calls load once');
 });
 
 QUnit.module('safeBackBufferTrimTime');
@@ -1668,17 +1636,11 @@ QUnit.module('SegmentLoader', function(hooks) {
       loader = new SegmentLoader(LoaderCommonSettings.call(this, {
         loaderType: 'audio'
       }), {});
-      const origPause = loader.pause;
       const origLoad = loader.load;
       const origResetEverything = loader.resetEverything;
-      let pauseCalls = 0;
       let loadCalls = 0;
       let resetEverythingCalls = 0;
 
-      loader.pause = () => {
-        pauseCalls++;
-        origPause.call(loader);
-      };
       loader.load = () => {
         loadCalls++;
         origLoad.call(loader);
@@ -1698,6 +1660,14 @@ QUnit.module('SegmentLoader', function(hooks) {
             from: 0,
             to: 1
           };
+        }
+      };
+
+      let fixBadTimelineChangeCount = 0;
+
+      loader.timelineChangeController_.trigger = (type) => {
+        if (type === 'fixBadTimelineChange') {
+          fixBadTimelineChangeCount++;
         }
       };
 
@@ -1716,9 +1686,9 @@ QUnit.module('SegmentLoader', function(hooks) {
         loader.playlist(playlist);
         loader.load();
         this.clock.tick(1);
-        assert.equal(pauseCalls, 1, '1 pause call expected');
-        assert.equal(loadCalls, 2, '2 load calls expected');
-        assert.equal(resetEverythingCalls, 2, '1 load calls expected');
+        assert.equal(loadCalls, 1, '1 load calls expected');
+        assert.equal(resetEverythingCalls, 1, '1 load calls expected');
+        assert.equal(fixBadTimelineChangeCount, 1, '1 fixBadTimelineChangeCount triggered');
       });
     });
 
@@ -1727,17 +1697,11 @@ QUnit.module('SegmentLoader', function(hooks) {
       loader = new SegmentLoader(LoaderCommonSettings.call(this, {
         loaderType: 'main'
       }), {});
-      const origPause = loader.pause;
       const origLoad = loader.load;
       const origResetEverything = loader.resetEverything;
-      let pauseCalls = 0;
       let loadCalls = 0;
       let resetEverythingCalls = 0;
 
-      loader.pause = () => {
-        pauseCalls++;
-        origPause.call(loader);
-      };
       loader.load = () => {
         loadCalls++;
         origLoad.call(loader);
@@ -1759,6 +1723,15 @@ QUnit.module('SegmentLoader', function(hooks) {
           };
         }
       };
+
+      let fixBadTimelineChangeCount = 0;
+
+      loader.timelineChangeController_.trigger = (type) => {
+        if (type === 'fixBadTimelineChange') {
+          fixBadTimelineChangeCount++;
+        }
+      };
+
       this.sourceUpdater_.ready = () => {
         return true;
       };
@@ -1783,9 +1756,10 @@ QUnit.module('SegmentLoader', function(hooks) {
         loader.playlist(playlist);
         loader.load();
         this.clock.tick(1);
-        assert.equal(pauseCalls, 1, '1 pause call expected');
-        assert.equal(loadCalls, 2, '2 load calls expected');
-        assert.equal(resetEverythingCalls, 2, '1 load calls expected');
+        assert.equal(loadCalls, 1, '1 load calls expected');
+        assert.equal(resetEverythingCalls, 1, '1 load calls expected');
+        assert.equal(fixBadTimelineChangeCount, 1, '1 fixBadTimelineChangeCount triggered');
+
       });
     });
 

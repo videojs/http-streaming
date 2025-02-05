@@ -294,7 +294,7 @@ QUnit.test(
 
     renditions[1].enabled(false);
 
-    assert.equal(pc.fastQualityChange_.calls, 2, 'fastQualityChange_ was called twice');
+    assert.equal(pc.fastQualityChange_.calls, 1, 'fastQualityChange_ was called once');
   }
 );
 

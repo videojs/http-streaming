@@ -29,6 +29,7 @@ import {merge, createTimeRanges} from './util/vjs-compat';
 import { addMetadata, createMetadataTrackIfNotExists, addDateRangeMetadata } from './util/text-tracks';
 import ContentSteeringController from './content-steering-controller';
 import { bufferToHexString } from './util/string.js';
+import {debounce} from './util/fn';
 
 const ABORT_EARLY_EXCLUSION_SECONDS = 10;
 
@@ -152,6 +153,11 @@ export class PlaylistController extends videojs.EventTarget {
   constructor(options) {
     super();
 
+    // Adding a slight debounce to avoid duplicate calls during rapid quality changes, for example:
+    // When selecting quality from the quality list,
+    // where we may have multiple bandwidth profiles for the same vertical resolution.
+    this.fastQualityChange_ = debounce(this.fastQualityChange_.bind(this), 100);
+
     const {
       src,
       withCredentials,
@@ -192,6 +198,7 @@ export class PlaylistController extends videojs.EventTarget {
     this.playlistExclusionDuration = playlistExclusionDuration;
     this.maxPlaylistRetries = maxPlaylistRetries;
     this.enableLowInitialPlaylist = enableLowInitialPlaylist;
+    this.usingManagedMediaSource_ = false;
 
     if (this.useCueTags_) {
       this.cueTagsTrack_ = this.tech_.addTextTrack(
@@ -215,6 +222,7 @@ export class PlaylistController extends videojs.EventTarget {
       // Airplay source not yet implemented. Remote playback must be disabled.
       this.tech_.el_.disableRemotePlayback = true;
       this.mediaSource = new window.ManagedMediaSource();
+      this.usingManagedMediaSource_ = true;
 
       videojs.log('Using ManagedMediaSource');
     } else if (window.MediaSource) {
@@ -703,7 +711,16 @@ export class PlaylistController extends videojs.EventTarget {
 
       if (this.sourceType_ === 'dash') {
         // we don't want to re-request the same hls playlist right after it was changed
-        this.mainPlaylistLoader_.load();
+
+        // Initially it was implemented as workaround to restart playlist loader for live
+        // when playlist loader is paused because of playlist exclusions:
+        // see: https://github.com/videojs/http-streaming/pull/1339
+        // but this introduces duplicate "loadedplaylist" event.
+        // Ideally we want to re-think playlist loader life-cycle events,
+        // but simply checking "paused" state should help a lot
+        if (this.mainPlaylistLoader_.isPaused) {
+          this.mainPlaylistLoader_.load();
+        }
       }
 
       // TODO: Create a new event on the PlaylistLoader that signals
@@ -964,6 +981,24 @@ export class PlaylistController extends videojs.EventTarget {
       this.tech_.setCurrentTime(newTime);
     });
 
+    this.timelineChangeController_.on('fixBadTimelineChange', () => {
+      // pause, reset-everything and load for all segment-loaders
+      this.logger_('Fix bad timeline change. Restarting al segment loaders...');
+      this.mainSegmentLoader_.pause();
+      this.mainSegmentLoader_.resetEverything();
+      if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
+        this.audioSegmentLoader_.pause();
+        this.audioSegmentLoader_.resetEverything();
+      }
+      if (this.mediaTypes_.SUBTITLES.activePlaylistLoader) {
+        this.subtitleSegmentLoader_.pause();
+        this.subtitleSegmentLoader_.resetEverything();
+      }
+
+      // start segment loader loading in case they are paused
+      this.load();
+    });
+
     this.mainSegmentLoader_.on('earlyabort', (event) => {
       // never try to early abort with the new ABR algorithm
       if (this.bufferBasedABR) {
@@ -1111,13 +1146,19 @@ export class PlaylistController extends videojs.EventTarget {
 
   runFastQualitySwitch_() {
     this.waitingForFastQualityPlaylistReceived_ = false;
-    // Delete all buffered data to allow an immediate quality switch.
     this.mainSegmentLoader_.pause();
-    this.mainSegmentLoader_.resetEverything(() => {
-      this.mainSegmentLoader_.load();
-    });
+    this.mainSegmentLoader_.resetEverything();
+    if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
+      this.audioSegmentLoader_.pause();
+      this.audioSegmentLoader_.resetEverything();
+    }
+    if (this.mediaTypes_.SUBTITLES.activePlaylistLoader) {
+      this.subtitleSegmentLoader_.pause();
+      this.subtitleSegmentLoader_.resetEverything();
+    }
 
-    // don't need to reset audio as it is reset when media changes
+    // start segment loader loading in case they are paused
+    this.load();
   }
 
   /**
@@ -1644,9 +1685,69 @@ export class PlaylistController extends videojs.EventTarget {
     return this.seekable_;
   }
 
-  onSyncInfoUpdate_() {
-    let audioSeekable;
+  getSeekableRange_(playlistLoader, mediaType) {
+    const media = playlistLoader.media();
 
+    if (!media) {
+      return null;
+    }
+
+    const mediaSequenceSync = this.syncController_.getMediaSequenceSync(mediaType);
+
+    if (mediaSequenceSync && mediaSequenceSync.isReliable) {
+      const start = mediaSequenceSync.start;
+      const end = mediaSequenceSync.end;
+
+      if (!isFinite(start) || !isFinite(end)) {
+        return null;
+      }
+
+      const liveEdgeDelay = Vhs.Playlist.liveEdgeDelay(this.mainPlaylistLoader_.main, media);
+
+      // Make sure our seekable end is not less than the seekable start
+      const calculatedEnd = Math.max(start, end - liveEdgeDelay);
+
+      return createTimeRanges([[start, calculatedEnd]]);
+    }
+
+    const expired = this.syncController_.getExpiredTime(media, this.duration());
+
+    if (expired === null) {
+      return null;
+    }
+
+    const seekable = Vhs.Playlist.seekable(
+      media,
+      expired,
+      Vhs.Playlist.liveEdgeDelay(this.mainPlaylistLoader_.main, media)
+    );
+
+    return seekable.length ? seekable : null;
+  }
+
+  computeFinalSeekable_(mainSeekable, audioSeekable) {
+    if (!audioSeekable) {
+      return mainSeekable;
+    }
+
+    const mainStart = mainSeekable.start(0);
+    const mainEnd = mainSeekable.end(0);
+    const audioStart = audioSeekable.start(0);
+    const audioEnd = audioSeekable.end(0);
+
+    if (audioStart > mainEnd || mainStart > audioEnd) {
+      // Seekables are far apart, rely on main
+      return mainSeekable;
+    }
+
+    // Return the overlapping seekable range
+    return createTimeRanges([[
+      Math.max(mainStart, audioStart),
+      Math.min(mainEnd, audioEnd)
+    ]]);
+  }
+
+  onSyncInfoUpdate_() {
     // TODO check for creation of both source buffers before updating seekable
     //
     // A fix was made to this function where a check for
@@ -1670,87 +1771,45 @@ export class PlaylistController extends videojs.EventTarget {
       return;
     }
 
-    let media = this.mainPlaylistLoader_.media();
+    const mainSeekable = this.getSeekableRange_(this.mainPlaylistLoader_, 'main');
 
-    if (!media) {
+    if (!mainSeekable) {
       return;
     }
 
-    let expired = this.syncController_.getExpiredTime(media, this.duration());
-
-    if (expired === null) {
-      // not enough information to update seekable
-      return;
-    }
-
-    const main = this.mainPlaylistLoader_.main;
-    const mainSeekable = Vhs.Playlist.seekable(
-      media,
-      expired,
-      Vhs.Playlist.liveEdgeDelay(main, media)
-    );
-
-    if (mainSeekable.length === 0) {
-      return;
-    }
+    let audioSeekable;
 
     if (this.mediaTypes_.AUDIO.activePlaylistLoader) {
-      media = this.mediaTypes_.AUDIO.activePlaylistLoader.media();
-      expired = this.syncController_.getExpiredTime(media, this.duration());
+      audioSeekable = this.getSeekableRange_(this.mediaTypes_.AUDIO.activePlaylistLoader, 'audio');
 
-      if (expired === null) {
-        return;
-      }
-
-      audioSeekable = Vhs.Playlist.seekable(
-        media,
-        expired,
-        Vhs.Playlist.liveEdgeDelay(main, media)
-      );
-
-      if (audioSeekable.length === 0) {
+      if (!audioSeekable) {
         return;
       }
     }
 
-    let oldEnd;
-    let oldStart;
+    const oldSeekable = this.seekable_;
 
-    if (this.seekable_ && this.seekable_.length) {
-      oldEnd = this.seekable_.end(0);
-      oldStart = this.seekable_.start(0);
+    this.seekable_ = this.computeFinalSeekable_(mainSeekable, audioSeekable);
+
+    if (!this.seekable_) {
+      return;
     }
 
-    if (!audioSeekable) {
-      // seekable has been calculated based on buffering video data so it
-      // can be returned directly
-      this.seekable_ = mainSeekable;
-    } else if (audioSeekable.start(0) > mainSeekable.end(0) ||
-               mainSeekable.start(0) > audioSeekable.end(0)) {
-      // seekables are pretty far off, rely on main
-      this.seekable_ = mainSeekable;
-    } else {
-      this.seekable_ = createTimeRanges([[
-        (audioSeekable.start(0) > mainSeekable.start(0)) ? audioSeekable.start(0) :
-          mainSeekable.start(0),
-        (audioSeekable.end(0) < mainSeekable.end(0)) ? audioSeekable.end(0) :
-          mainSeekable.end(0)
-      ]]);
-    }
-
-    // seekable is the same as last time
-    if (this.seekable_ && this.seekable_.length) {
-      if (this.seekable_.end(0) === oldEnd && this.seekable_.start(0) === oldStart) {
+    if (oldSeekable && oldSeekable.length && this.seekable_.length) {
+      if (oldSeekable.start(0) === this.seekable_.start(0) &&
+        oldSeekable.end(0) === this.seekable_.end(0)) {
+        // Seekable range hasn't changed
         return;
       }
     }
 
     this.logger_(`seekable updated [${Ranges.printableRange(this.seekable_)}]`);
+
     const metadata = {
       seekableRanges: this.seekable_
     };
 
-    this.trigger({type: 'seekablerangeschanged', metadata});
+    this.trigger({ type: 'seekablerangeschanged', metadata });
     this.tech_.trigger('seekablechanged');
   }
 
@@ -1938,7 +1997,7 @@ export class PlaylistController extends videojs.EventTarget {
     }
 
     // fmp4 relies on browser support, while ts relies on muxer support
-    const supportFunction = (isFmp4, codec) => (isFmp4 ? browserSupportsCodec(codec) : muxerSupportsCodec(codec));
+    const supportFunction = (isFmp4, codec) => (isFmp4 ? browserSupportsCodec(codec, this.usingManagedMediaSource_) : muxerSupportsCodec(codec));
     const unsupportedCodecs = {};
     let unsupportedAudio;
 
@@ -2080,11 +2139,11 @@ export class PlaylistController extends videojs.EventTarget {
       const codecs = codecsForPlaylist(this.main, variant);
       const unsupported = [];
 
-      if (codecs.audio && !muxerSupportsCodec(codecs.audio) && !browserSupportsCodec(codecs.audio)) {
+      if (codecs.audio && !muxerSupportsCodec(codecs.audio) && !browserSupportsCodec(codecs.audio, this.usingManagedMediaSource_)) {
         unsupported.push(`audio codec ${codecs.audio}`);
       }
 
-      if (codecs.video && !muxerSupportsCodec(codecs.video) && !browserSupportsCodec(codecs.video)) {
+      if (codecs.video && !muxerSupportsCodec(codecs.video) && !browserSupportsCodec(codecs.video, this.usingManagedMediaSource_)) {
         unsupported.push(`video codec ${codecs.video}`);
       }
 

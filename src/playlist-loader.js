@@ -22,6 +22,7 @@ import {getKnownPartCount} from './playlist.js';
 import {merge} from './util/vjs-compat';
 import DateRangesStorage from './util/date-ranges';
 import { getStreamingNetworkErrorMetadata } from './error-codes.js';
+import {getCodecs, unwrapCodecList} from './util/codecs';
 
 const { EventTarget } = videojs;
 
@@ -523,7 +524,7 @@ export default class PlaylistLoader extends EventTarget {
 
   parseManifest_({url, manifestString}) {
     try {
-      return parseManifest({
+      const parsed = parseManifest({
         onwarn: ({message}) => this.logger_(`m3u8-parser warn for ${url}: ${message}`),
         oninfo: ({message}) => this.logger_(`m3u8-parser info for ${url}: ${message}`),
         manifestString,
@@ -531,12 +532,52 @@ export default class PlaylistLoader extends EventTarget {
         customTagMappers: this.customTagMappers,
         llhls: this.llhls
       });
+
+      /**
+       * VHS does not support switching between variants with and without audio and video
+       * so we want to filter out audio-only variants when variants with video and(or) audio are also detected.
+       */
+
+      if (!parsed.playlists || !parsed.playlists.length) {
+        return parsed;
+      }
+
+      this.excludeAudioOnlyVariants(parsed.playlists);
+
+      return parsed;
     } catch (error) {
       this.error = error;
       this.error.metadata = {
         errorType: videojs.Error.StreamingHlsPlaylistParserError,
         error
       };
+    }
+  }
+
+  excludeAudioOnlyVariants(playlists) {
+    // helper function
+    const hasVideo = (playlist) => {
+      const attributes = playlist.attributes || {};
+      const { width, height } = attributes.RESOLUTION || {};
+
+      if (width && height) {
+        return true;
+      }
+
+      // parse codecs string from playlist attributes
+      const codecsList = getCodecs(playlist) || [];
+      // unwrap list
+      const codecsInfo = unwrapCodecList(codecsList);
+
+      return Boolean(codecsInfo.video);
+    };
+
+    if (playlists.some(hasVideo)) {
+      playlists.forEach((playlist) => {
+        if (!hasVideo(playlist)) {
+          playlist.excludeUntil = Infinity;
+        }
+      });
     }
   }
 

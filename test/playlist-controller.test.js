@@ -726,8 +726,9 @@ QUnit.test('resets everything for a fast quality change then calls load', functi
 
   segmentLoader.remove = (start, end, doneFn) => {
     assert.equal(end, Infinity, 'on a remove all, end should be Infinity');
-    assert.ok(doneFn);
-    doneFn();
+    if (doneFn) {
+      doneFn();
+    }
     origRemove.call(segmentLoader, start, end, doneFn);
   };
 
@@ -1477,11 +1478,7 @@ QUnit.test('excludes switching from video+audio playlists to audio only', functi
   this.standardXHRResponse(this.requests.shift());
 
   const pc = this.playlistController;
-  let debugLogs = [];
 
-  pc.logger_ = (...logs) => {
-    debugLogs = debugLogs.concat(logs);
-  };
   // segment must be appended before the exclusion logic runs
   return requestAndAppendSegment({
     request: this.requests.shift(),
@@ -1497,11 +1494,6 @@ QUnit.test('excludes switching from video+audio playlists to audio only', functi
     const audioPlaylist = pc.mainPlaylistLoader_.main.playlists[0];
 
     assert.equal(audioPlaylist.excludeUntil, Infinity, 'excluded incompatible playlist');
-    assert.notEqual(
-      debugLogs.indexOf('excluding 0-media.m3u8: codec count "1" !== "2"'),
-      -1,
-      'debug logs about codec count'
-    );
   });
 });
 
@@ -1524,11 +1516,6 @@ QUnit.test('excludes switching from audio-only playlists to video+audio', functi
   // media1
   this.standardXHRResponse(this.requests.shift());
 
-  let debugLogs = [];
-
-  pc.logger_ = (...logs) => {
-    debugLogs = debugLogs.concat(logs);
-  };
   // segment must be appended before the exclusion logic runs
   return requestAndAppendSegment({
     request: this.requests.shift(),
@@ -1539,22 +1526,16 @@ QUnit.test('excludes switching from audio-only playlists to video+audio', functi
   }).then(() => {
     assert.equal(
       pc.mainPlaylistLoader_.media(),
-      pc.mainPlaylistLoader_.main.playlists[0],
-      'selected audio only'
+      pc.mainPlaylistLoader_.main.playlists[1],
+      'selected audio+video'
     );
 
-    const videoAudioPlaylist = pc.mainPlaylistLoader_.main.playlists[1];
+    const audioOnly = pc.mainPlaylistLoader_.main.playlists[0];
 
     assert.equal(
-      videoAudioPlaylist.excludeUntil,
+      audioOnly.excludeUntil,
       Infinity,
       'excluded incompatible playlist'
-    );
-
-    assert.notEqual(
-      debugLogs.indexOf('excluding 1-media1.m3u8: codec count "2" !== "1"'),
-      -1,
-      'debug logs about codec count'
     );
   });
 });
@@ -1681,7 +1662,6 @@ QUnit.test('excludes switching between playlists with different codecs', functio
       'excluding 1-media1.m3u8: video codec "hvc1" !== "avc1"',
       'excluding 2-media2.m3u8: audio codec "ac-3" !== "mp4a"',
       'excluding 3-media3.m3u8: video codec "hvc1" !== "avc1" && audio codec "ac-3" !== "mp4a"',
-      'excluding 5-media5.m3u8: codec count "1" !== "2" && audio codec "ac-3" !== "mp4a"',
       'excluding 6-media6.m3u8: codec count "1" !== "2" && video codec "hvc1" !== "avc1"'
     ].forEach(function(message) {
       assert.notEqual(
@@ -2493,130 +2473,206 @@ QUnit.test(
 );
 
 QUnit.test(
-  'seekable uses the intersection of alternate audio and combined tracks',
+  'seekable uses the intersection of alternate audio and combined tracks with MediaSequenceSync',
   function(assert) {
-    const origSeekable = Playlist.seekable;
     const pc = this.playlistController;
     const mainMedia = {};
     const audioMedia = {};
-    let mainTimeRanges = [];
-    let audioTimeRanges = [];
 
+    // mock mainPlaylistLoader_ and media
     this.playlistController.mainPlaylistLoader_.main = {};
     this.playlistController.mainPlaylistLoader_.media = () => mainMedia;
-    this.playlistController.syncController_.getExpiredTime = () => 0;
 
-    Playlist.seekable = (media) => {
-      if (media === mainMedia) {
-        return createTimeRanges(mainTimeRanges);
-      }
-      return createTimeRanges(audioTimeRanges);
+    // mock SyncController and MediaSequenceSync instances
+    const mainMediaSequenceSync = {
+      isReliable: true,
+      start: 0,
+      end: 10
     };
 
-    timeRangesEqual(pc.seekable(), createTimeRanges(), 'empty when main empty');
-    mainTimeRanges = [[0, 10]];
+    const audioMediaSequenceSync = {
+      isReliable: true,
+      start: 0,
+      end: 10
+    };
+
+    this.playlistController.syncController_.getMediaSequenceSync = (type) => {
+      if (type === 'main') {
+        return mainMediaSequenceSync;
+      }
+
+      if (type === 'audio') {
+        return audioMediaSequenceSync;
+      }
+
+      return null;
+    };
+
+    // helper function to set the start and end for main and audio
+    const setSyncInfo = (mainStart, mainEnd, audioStart, audioEnd) => {
+      mainMediaSequenceSync.start = mainStart;
+      mainMediaSequenceSync.end = mainEnd;
+      audioMediaSequenceSync.start = audioStart;
+      audioMediaSequenceSync.end = audioEnd;
+    };
+
+    // Test cases
+    // No audio loader, only main
+    pc.mediaTypes_.AUDIO.activePlaylistLoader = null;
+    setSyncInfo(0, 10);
     pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
     timeRangesEqual(pc.seekable(), createTimeRanges([[0, 10]]), 'main when no audio');
 
+    // Both main and audio have the same range
     pc.mediaTypes_.AUDIO.activePlaylistLoader = {
       media: () => audioMedia,
-      dispose() {},
-      expired_: 0
+      dispose() { }
     };
-    mainTimeRanges = [];
-    pc.seekable_ = createTimeRanges();
-    pc.onSyncInfoUpdate_();
-
-    timeRangesEqual(pc.seekable(), createTimeRanges(), 'empty when both empty');
-    mainTimeRanges = [[0, 10]];
-    pc.seekable_ = createTimeRanges();
-    pc.onSyncInfoUpdate_();
-    timeRangesEqual(pc.seekable(), createTimeRanges(), 'empty when audio empty');
-    mainTimeRanges = [];
-    audioTimeRanges = [[0, 10]];
-    pc.seekable_ = createTimeRanges();
-    pc.onSyncInfoUpdate_();
-    timeRangesEqual(pc.seekable(), createTimeRanges(), 'empty when main empty');
-    mainTimeRanges = [[0, 10]];
-    audioTimeRanges = [[0, 10]];
+    setSyncInfo(0, 10, 0, 10);
     pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
     timeRangesEqual(pc.seekable(), createTimeRanges([[0, 10]]), 'ranges equal');
-    mainTimeRanges = [[5, 10]];
+
+    // Main starts later than audio
+    setSyncInfo(5, 10, 0, 10);
     pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
     timeRangesEqual(pc.seekable(), createTimeRanges([[5, 10]]), 'main later start');
-    mainTimeRanges = [[0, 10]];
-    audioTimeRanges = [[5, 10]];
+
+    // Audio starts later than main
+    setSyncInfo(0, 10, 5, 10);
     pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
     timeRangesEqual(pc.seekable(), createTimeRanges([[5, 10]]), 'audio later start');
-    mainTimeRanges = [[0, 9]];
-    audioTimeRanges = [[0, 10]];
+
+    // Main ends earlier than audio
+    setSyncInfo(0, 9, 0, 10);
     pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
     timeRangesEqual(pc.seekable(), createTimeRanges([[0, 9]]), 'main earlier end');
-    mainTimeRanges = [[0, 10]];
-    audioTimeRanges = [[0, 9]];
+
+    // Audio ends earlier than main
+    setSyncInfo(0, 10, 0, 9);
     pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
     timeRangesEqual(pc.seekable(), createTimeRanges([[0, 9]]), 'audio earlier end');
-    mainTimeRanges = [[1, 10]];
-    audioTimeRanges = [[0, 9]];
+
+    // Main starts and ends within audio range
+    setSyncInfo(1, 9, 0, 10);
     pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
-    timeRangesEqual(
-      pc.seekable(),
-      createTimeRanges([[1, 9]]),
-      'main later start, audio earlier end'
-    );
-    mainTimeRanges = [[0, 9]];
-    audioTimeRanges = [[1, 10]];
+    timeRangesEqual(pc.seekable(), createTimeRanges([[1, 9]]), 'main within audio');
+
+    // Audio starts and ends within main range
+    setSyncInfo(0, 10, 1, 9);
     pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
-    timeRangesEqual(
-      pc.seekable(),
-      createTimeRanges([[1, 9]]),
-      'audio later start, main earlier end'
-    );
-    mainTimeRanges = [[2, 9]];
+    timeRangesEqual(pc.seekable(), createTimeRanges([[1, 9]]), 'audio within main');
+
+    // No intersection, audio later than main
+    setSyncInfo(1, 10, 11, 20);
     pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
-    timeRangesEqual(
-      pc.seekable(),
-      createTimeRanges([[2, 9]]),
-      'main later start, main earlier end'
-    );
-    mainTimeRanges = [[1, 10]];
-    audioTimeRanges = [[2, 9]];
+    // Should default to main seekable
+    timeRangesEqual(pc.seekable(), createTimeRanges([[1, 10]]), 'no intersection, audio later');
+
+    // No intersection, main later than audio
+    setSyncInfo(11, 20, 1, 10);
     pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
-    timeRangesEqual(
-      pc.seekable(),
-      createTimeRanges([[2, 9]]),
-      'audio later start, audio earlier end'
-    );
-    mainTimeRanges = [[1, 10]];
-    audioTimeRanges = [[11, 20]];
+    // Should default to main seekable
+    timeRangesEqual(pc.seekable(), createTimeRanges([[11, 20]]), 'no intersection, main later');
+
+    // MediaSequenceSync not reliable, fallback to expired time seekable calculation
+    mainMediaSequenceSync.isReliable = false;
+    audioMediaSequenceSync.isReliable = false;
+
+    // Mock getExpiredTime and Playlist.seekable
+    this.playlistController.syncController_.getExpiredTime = (media) => 0;
+
+    const origSeekable = Playlist.seekable;
+
+    Playlist.seekable = (media) => {
+      if (media === mainMedia) {
+        return createTimeRanges([[0, 10]]);
+      }
+      if (media === audioMedia) {
+        return createTimeRanges([[0, 10]]);
+      }
+      return createTimeRanges();
+    };
+
     pc.seekable_ = createTimeRanges();
     pc.onSyncInfoUpdate_();
+    timeRangesEqual(pc.seekable(), createTimeRanges([[0, 10]]), 'fallback to expired time seekable calculation');
+
+    // Restore original Playlist.seekable
+    Playlist.seekable = origSeekable;
+  }
+);
+
+QUnit.test(
+  'getSeekableRange_ returns a range with an end that is never less than the start',
+  function(assert) {
+    const pc = this.playlistController;
+
+    const fakeMedia = {};
+    const fakePlaylistLoader = {
+      media() {
+        return fakeMedia;
+      }
+    };
+
+    // Ensure mainPlaylistLoader_.main is defined (needed by liveEdgeDelay)
+    pc.mainPlaylistLoader_ = { main: {} };
+
+    const originalLiveEdgeDelay = Vhs.Playlist.liveEdgeDelay;
+
+    // --- Scenario 1: liveEdgeDelay = 0 ---
+    // With a reliable sync info of start=10 and end=15, if liveEdgeDelay is 0 then:
+    //   calculatedEnd = Math.max(10, 15 - 0) = 15
+    // Expected seekable range: [10,15]
+    Vhs.Playlist.liveEdgeDelay = function(main, media) {
+      return 0;
+    };
+
+    pc.syncController_.getMediaSequenceSync = function(type) {
+      if (type === 'main') {
+        return {
+          isReliable: true,
+          start: 10,
+          end: 15
+        };
+      }
+      return null;
+    };
+
+    let seekable = pc.getSeekableRange_(fakePlaylistLoader, 'main');
+
     timeRangesEqual(
-      pc.seekable(),
-      createTimeRanges([[1, 10]]),
-      'no intersection, audio later'
-    );
-    mainTimeRanges = [[11, 20]];
-    audioTimeRanges = [[1, 10]];
-    pc.seekable_ = createTimeRanges();
-    pc.onSyncInfoUpdate_();
-    timeRangesEqual(
-      pc.seekable(),
-      createTimeRanges([[11, 20]]),
-      'no intersection, main later'
+      seekable,
+      createTimeRanges([[10, 15]]),
+      'With liveEdgeDelay 0, seekable range is [10,15]'
     );
 
-    Playlist.seekable = origSeekable;
+    // --- Scenario 2: liveEdgeDelay large enough to force clamping ---
+    // With the same sync info (start=10, end=15), if liveEdgeDelay = 10 then:
+    //   calculatedEnd = Math.max(10, 15 - 10) = Math.max(10, 5) = 10
+    // Expected seekable range: [10,10] (the end is clamped to start)
+    Vhs.Playlist.liveEdgeDelay = function(main, media) {
+      return 10;
+    };
+
+    seekable = pc.getSeekableRange_(fakePlaylistLoader, 'main');
+
+    timeRangesEqual(
+      seekable,
+      createTimeRanges([[10, 10]]),
+      'When liveEdgeDelay forces a negative delta, seekable range is clamped to [10,10]'
+    );
+
+    Vhs.Playlist.liveEdgeDelay = originalLiveEdgeDelay;
   }
 );
 
@@ -4859,6 +4915,7 @@ QUnit.test('can pass or select a playlist for fastQualityChange', function(asser
   };
 
   pc.fastQualityChange_(pc.main().playlists[1]);
+  this.clock.tick(110);
   pc.runFastQualitySwitch_();
   assert.deepEqual(calls, {
     resetEverything: 1,
@@ -4868,6 +4925,7 @@ QUnit.test('can pass or select a playlist for fastQualityChange', function(asser
   }, 'calls expected function when passed a playlist');
 
   pc.fastQualityChange_();
+  this.clock.tick(110);
   pc.runFastQualitySwitch_();
   assert.deepEqual(calls, {
     resetEverything: 2,
