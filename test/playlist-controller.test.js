@@ -1478,11 +1478,7 @@ QUnit.test('excludes switching from video+audio playlists to audio only', functi
   this.standardXHRResponse(this.requests.shift());
 
   const pc = this.playlistController;
-  let debugLogs = [];
 
-  pc.logger_ = (...logs) => {
-    debugLogs = debugLogs.concat(logs);
-  };
   // segment must be appended before the exclusion logic runs
   return requestAndAppendSegment({
     request: this.requests.shift(),
@@ -1498,11 +1494,6 @@ QUnit.test('excludes switching from video+audio playlists to audio only', functi
     const audioPlaylist = pc.mainPlaylistLoader_.main.playlists[0];
 
     assert.equal(audioPlaylist.excludeUntil, Infinity, 'excluded incompatible playlist');
-    assert.notEqual(
-      debugLogs.indexOf('excluding 0-media.m3u8: codec count "1" !== "2"'),
-      -1,
-      'debug logs about codec count'
-    );
   });
 });
 
@@ -1525,11 +1516,6 @@ QUnit.test('excludes switching from audio-only playlists to video+audio', functi
   // media1
   this.standardXHRResponse(this.requests.shift());
 
-  let debugLogs = [];
-
-  pc.logger_ = (...logs) => {
-    debugLogs = debugLogs.concat(logs);
-  };
   // segment must be appended before the exclusion logic runs
   return requestAndAppendSegment({
     request: this.requests.shift(),
@@ -1540,22 +1526,16 @@ QUnit.test('excludes switching from audio-only playlists to video+audio', functi
   }).then(() => {
     assert.equal(
       pc.mainPlaylistLoader_.media(),
-      pc.mainPlaylistLoader_.main.playlists[0],
-      'selected audio only'
+      pc.mainPlaylistLoader_.main.playlists[1],
+      'selected audio+video'
     );
 
-    const videoAudioPlaylist = pc.mainPlaylistLoader_.main.playlists[1];
+    const audioOnly = pc.mainPlaylistLoader_.main.playlists[0];
 
     assert.equal(
-      videoAudioPlaylist.excludeUntil,
+      audioOnly.excludeUntil,
       Infinity,
       'excluded incompatible playlist'
-    );
-
-    assert.notEqual(
-      debugLogs.indexOf('excluding 1-media1.m3u8: codec count "2" !== "1"'),
-      -1,
-      'debug logs about codec count'
     );
   });
 });
@@ -1682,7 +1662,6 @@ QUnit.test('excludes switching between playlists with different codecs', functio
       'excluding 1-media1.m3u8: video codec "hvc1" !== "avc1"',
       'excluding 2-media2.m3u8: audio codec "ac-3" !== "mp4a"',
       'excluding 3-media3.m3u8: video codec "hvc1" !== "avc1" && audio codec "ac-3" !== "mp4a"',
-      'excluding 5-media5.m3u8: codec count "1" !== "2" && audio codec "ac-3" !== "mp4a"',
       'excluding 6-media6.m3u8: codec count "1" !== "2" && video codec "hvc1" !== "avc1"'
     ].forEach(function(message) {
       assert.notEqual(
