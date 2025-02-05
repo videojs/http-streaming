@@ -31,6 +31,12 @@ const options = [{
   default: false,
   test: true,
   alt: false
+}, {
+  name: 'usePlayerObjectFit',
+  default: false,
+  test: true,
+  alt: false
+}, {
 },
 {
   name: 'customPixelRatio',

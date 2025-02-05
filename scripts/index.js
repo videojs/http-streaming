@@ -471,6 +471,7 @@
     'network-info',
     'dts-offset',
     'override-native',
+    'object-fit',
     'use-mms',
     'preload',
     'mirror-source',
@@ -523,6 +524,7 @@
       'llhls',
       'buffer-water',
       'override-native',
+      'object-fit',
       'use-mms',
       'liveui',
       'pixel-diff-selector',
@@ -615,7 +617,8 @@
               leastPixelDiffSelector: getInputValue(stateEls['pixel-diff-selector']),
               useNetworkInformationApi: getInputValue(stateEls['network-info']),
               useDtsForTimestampOffset: getInputValue(stateEls['dts-offset']),
-              useForcedSubtitles: getInputValue(stateEls['forced-subtitles'])
+              useForcedSubtitles: getInputValue(stateEls['forced-subtitles']),
+              usePlayerObjectFit: getInputValue(stateEls['object-fit'])
             }
           }
         });

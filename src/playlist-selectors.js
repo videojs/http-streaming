@@ -133,30 +133,38 @@ export const comparePlaylistResolution = function(left, right) {
 /**
  * Chooses the appropriate media playlist based on bandwidth and player size
  *
- * @param {Object} main
+ * @param {Object} settings
+ *        Object of information required to use this selector
+ * @param {Object} settings.main
  *        Object representation of the main manifest
- * @param {number} playerBandwidth
+ * @param {number} settings.bandwidth
  *        Current calculated bandwidth of the player
- * @param {number} playerWidth
+ * @param {number} settings.playerWidth
  *        Current width of the player element (should account for the device pixel ratio)
- * @param {number} playerHeight
+ * @param {number} settings.playerHeight
  *        Current height of the player element (should account for the device pixel ratio)
- * @param {boolean} limitRenditionByPlayerDimensions
+ * @param {number} settings.playerObjectFit
+ *        Current value of the video element's object-fit CSS property. Allows taking into
+ *        account that the video might be scaled up to cover the media element when selecting
+ *        media playlists based on player size.
+ * @param {boolean} settings.limitRenditionByPlayerDimensions
  *        True if the player width and height should be used during the selection, false otherwise
- * @param {Object} playlistController
+ * @param {Object} settings.playlistController
  *        the current playlistController object
  * @return {Playlist} the highest bitrate playlist less than the
  * currently detected bandwidth, accounting for some amount of
  * bandwidth variance
  */
-export let simpleSelector = function(
-  main,
-  playerBandwidth,
-  playerWidth,
-  playerHeight,
-  limitRenditionByPlayerDimensions,
-  playlistController
-) {
+export let simpleSelector = function(settings) {
+  const {
+    main,
+    bandwidth: playerBandwidth,
+    playerWidth,
+    playerHeight,
+    playerObjectFit,
+    limitRenditionByPlayerDimensions,
+    playlistController
+  } = settings;
 
   // If we end up getting called before `main` is available, exit early
   if (!main) {
@@ -271,7 +279,18 @@ export let simpleSelector = function(
   // find the smallest variant that is larger than the player
   // if there is no match of exact resolution
   if (!resolutionBestRep) {
-    resolutionPlusOneList = haveResolution.filter((rep) => rep.width > playerWidth || rep.height > playerHeight);
+    resolutionPlusOneList = haveResolution.filter((rep) => {
+      if (playerObjectFit === 'cover') {
+        // video will be scaled up to cover the player. We need to
+        // make sure rendition is at least as wide and as high as the
+        // player.
+        return rep.width > playerWidth && rep.height > playerHeight;
+      }
+
+      // video will be scaled down to fit inside the player soon as
+      // its resolution exceeds player size in at least one dimension.
+      return rep.width > playerWidth || rep.height > playerHeight;
+    });
 
     // find all the variants have the same smallest resolution
     resolutionPlusOneSmallest = resolutionPlusOneList.filter((rep) => rep.width === resolutionPlusOneList[0].width &&
@@ -370,14 +389,15 @@ export const lastBandwidthSelector = function() {
     pixelRatio = this.customPixelRatio;
   }
 
-  return simpleSelector(
-    this.playlists.main,
-    this.systemBandwidth,
-    parseInt(safeGetComputedStyle(this.tech_.el(), 'width'), 10) * pixelRatio,
-    parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10) * pixelRatio,
-    this.limitRenditionByPlayerDimensions,
-    this.playlistController_
-  );
+  return simpleSelector({
+    main: this.playlists.main,
+    bandwidth: this.systemBandwidth,
+    playerWidth: parseInt(safeGetComputedStyle(this.tech_.el(), 'width'), 10) * pixelRatio,
+    playerHeight: parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10) * pixelRatio,
+    playerObjectFit: this.usePlayerObjectFit ? safeGetComputedStyle(this.tech_.el(), 'objectFit') : '',
+    limitRenditionByPlayerDimensions: this.limitRenditionByPlayerDimensions,
+    playlistController: this.playlistController_
+  });
 };
 
 /**
@@ -425,14 +445,15 @@ export const movingAverageBandwidthSelector = function(decay) {
       lastSystemBandwidth = this.systemBandwidth;
     }
 
-    return simpleSelector(
-      this.playlists.main,
-      average,
-      parseInt(safeGetComputedStyle(this.tech_.el(), 'width'), 10) * pixelRatio,
-      parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10) * pixelRatio,
-      this.limitRenditionByPlayerDimensions,
-      this.playlistController_
-    );
+    return simpleSelector({
+      main: this.playlists.main,
+      bandwidth: average,
+      playerWidth: parseInt(safeGetComputedStyle(this.tech_.el(), 'width'), 10) * pixelRatio,
+      playerHeight: parseInt(safeGetComputedStyle(this.tech_.el(), 'height'), 10) * pixelRatio,
+      playerObjectFit: this.usePlayerObjectFit ? safeGetComputedStyle(this.tech_.el(), 'objectFit') : '',
+      limitRenditionByPlayerDimensions: this.limitRenditionByPlayerDimensions,
+      playlistController: this.playlistController_
+    });
   };
 };
 

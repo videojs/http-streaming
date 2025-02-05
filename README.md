@@ -49,6 +49,7 @@ Video.js Compatibility: 7.x, 8.x
       - [enableLowInitialPlaylist](#enablelowinitialplaylist)
       - [limitRenditionByPlayerDimensions](#limitrenditionbyplayerdimensions)
       - [useDevicePixelRatio](#usedevicepixelratio)
+      - [usePlayerObjectFit](#useplayerobjectfit)
       - [customPixelRatio](#custompixelratio)
       - [allowSeeksWithinUnsafeLiveWindow](#allowseekswithinunsafelivewindow)
       - [customTagParsers](#customtagparsers)
@@ -414,6 +415,17 @@ This setting is `true` by default.
 If true, this will take the device pixel ratio into account when doing rendition switching. This means that if you have a player with the width of `540px` in a high density display with a device pixel ratio of 2, a rendition of `1080p` will be allowed.
 This setting is `false` by default.
 
+
+##### usePlayerObjectFit
+* Type: `boolean`
+* can be used as an initialization option.
+
+If true, the video element's `object-fit` CSS property will be taken
+into account when doing rendition switching. This ensures that a
+suitable rendition is selected for videos that are scaled up to cover
+the media element. This setting is `false` by default.
+
+
 ##### customPixelRatio
 * Type: `number`
 * can be used as an initialization option.
@@ -425,6 +437,7 @@ It is worth noting that if the player dimension multiplied by the custom pixel r
 `limitRenditionByPlayerDimensions` must be `true` in order for this feature to be enabled. This is the default value.
 
 If `useDevicePixelRatio` is set to `true`, the custom pixel ratio will be prioritized and overwrite any previous pixel ratio.
+
 
 ##### allowSeeksWithinUnsafeLiveWindow
 * Type: `boolean`

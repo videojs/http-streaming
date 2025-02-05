@@ -691,6 +691,7 @@ class VhsHandler extends Component {
     this.options_.withCredentials = this.options_.withCredentials || false;
     this.options_.limitRenditionByPlayerDimensions = this.options_.limitRenditionByPlayerDimensions === false ? false : true;
     this.options_.useDevicePixelRatio = this.options_.useDevicePixelRatio || false;
+    this.options_.usePlayerObjectFit = this.options_.usePlayerObjectFit || false;
     this.options_.useBandwidthFromLocalStorage =
       typeof this.source_.useBandwidthFromLocalStorage !== 'undefined' ?
         this.source_.useBandwidthFromLocalStorage :
@@ -739,6 +740,7 @@ class VhsHandler extends Component {
     [
       'withCredentials',
       'useDevicePixelRatio',
+      'usePlayerObjectFit',
       'customPixelRatio',
       'limitRenditionByPlayerDimensions',
       'bandwidth',
@@ -763,6 +765,7 @@ class VhsHandler extends Component {
 
     this.limitRenditionByPlayerDimensions = this.options_.limitRenditionByPlayerDimensions;
     this.useDevicePixelRatio = this.options_.useDevicePixelRatio;
+    this.usePlayerObjectFit = this.options_.usePlayerObjectFit;
 
     const customPixelRatio = this.options_.customPixelRatio;
 
