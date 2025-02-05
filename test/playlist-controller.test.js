@@ -7787,3 +7787,23 @@ QUnit.test('ManagedMediaSource startstreaming and endstreaming events start and 
 
   mms.restore();
 });
+
+QUnit.module('Native tracks', {
+  beforeEach(assert) {
+    this.playerOptions = {
+      html5: {
+        nativeTextTracks: true
+      }
+    };
+    sharedHooks.beforeEach.call(this, assert);
+    this.pc = this.playlistController;
+
+  },
+  afterEach(assert) {
+    sharedHooks.afterEach.call(this, assert);
+  }
+});
+
+QUnit.test('Native text track mode is hidden', function(assert) {
+  assert.strictEqual(this.pc.segmentMetadataTrack_.mode, 'hidden', 'track mode is hidden');
+});

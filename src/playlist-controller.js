@@ -254,6 +254,8 @@ export class PlaylistController extends videojs.EventTarget {
       label: 'segment-metadata'
     }, false).track;
 
+    this.segmentMetadataTrack_.mode = 'hidden';
+
     this.decrypter_ = new Decrypter();
     this.sourceUpdater_ = new SourceUpdater(this.mediaSource);
     this.inbandTextTracks_ = {};
