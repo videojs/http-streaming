@@ -74,6 +74,7 @@ export const startLoaders = (playlistLoader, mediaType) => {
  */
 export const onGroupChanged = (type, settings) => () => {
   const {
+    sourceType,
     segmentLoaders: {
       [type]: segmentLoader,
       main: mainSegmentLoader
@@ -93,7 +94,10 @@ export const onGroupChanged = (type, settings) => () => {
   mediaType.lastGroup_ = activeGroup;
   mediaType.lastTrack_ = activeTrack;
 
-  stopLoaders(segmentLoader, mediaType);
+  if (sourceType !== 'dash') {
+    // only one playlist for dash. do not stop.
+    stopLoaders(segmentLoader, mediaType);
+  }
 
   if (!activeGroup || activeGroup.isMainPlaylist) {
     // there is no group active or active group is a main playlist and won't change
