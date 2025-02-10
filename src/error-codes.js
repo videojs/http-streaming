@@ -10,6 +10,11 @@ export const getStreamingNetworkErrorMetadata = ({ requestType, request, error, 
     uri: request.uri,
     requestType
   };
+
+  if (!videojs.hasOwnProperty('Error')) {
+    return errorMetadata;
+  }
+
   const isBadStatusOrParseFailure = (isBadStatus && !isFailure) || parseFailure;
 
   if (error && isFailure) {
