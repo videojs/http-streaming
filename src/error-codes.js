@@ -19,7 +19,7 @@ export const getStreamingNetworkErrorMetadata = ({ requestType, request, error, 
   } else if (request.aborted) {
     errorMetadata.errorType = videojs.Error.NetworkRequestAborted;
   } else if (request.timedout) {
-    errorMetadata.erroType = videojs.Error.NetworkRequestTimeout;
+    errorMetadata.errorType = videojs.Error.NetworkRequestTimeout;
   } else if (isBadStatusOrParseFailure) {
     const errorType = parseFailure ? videojs.Error.NetworkBodyParserFailed : videojs.Error.NetworkBadStatus;
 
