@@ -27,6 +27,21 @@ import { getStreamingNetworkErrorMetadata } from './error-codes.js';
 const { EventTarget } = videojs;
 
 const dashPlaylistUnchanged = function(a, b) {
+  // derive media sequence for timeshift manifests without startNumber attribute
+  if (
+    b.mediaSequence === 1 &&
+    b.mediaSequence <= a.mediaSequence &&
+    a.segments &&
+    b.segments &&
+    a.segments.length &&
+    b.segments.length
+  ) {
+    const seqDelta = a.segments.findIndex((s) => s.uri === b.segments[0].uri);
+
+    b.mediaSequence =
+      a.mediaSequence + (seqDelta === -1 ? a.segments.length : seqDelta);
+  }
+
   if (!isPlaylistUnchanged(a, b)) {
     return false;
   }
