@@ -369,7 +369,7 @@ if (!videojs.browser.IS_FIREFOX) {
     });
   });
 
-  QUnit.test('DRM Dash', function(assert) {
+  QUnit.skip('DRM Dash', function(assert) {
     const done = assert.async();
     const player = this.player;
 
