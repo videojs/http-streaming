@@ -2,6 +2,7 @@
 
 # videojs-http-streaming (VHS)
 
+
 [![Build Status][travis-icon]][travis-link]
 [![Slack Status][slack-icon]][slack-link]
 [![Greenkeeper badge][greenkeeper-icon]][greenkeeper-link]
