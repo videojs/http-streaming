@@ -49,6 +49,39 @@ QUnit.module('Playlist Loader', function(hooks) {
     assert.ok(keyIdSet.has(keyId.toLowerCase()), 'keyId is expected hex string');
   });
 
+  QUnit.test('does not error if keyId or keysystem.attributes is missing', function(assert) {
+    assert.expect(6);
+    const loader = new PlaylistLoader('variant.m3u8', this.fakeVhs);
+    const playlists = [
+      {
+        contentProtection: {
+          'fake.keysystem': {}
+        }
+      },
+      {
+        contentProtection: {
+          'fake.keysystem': {
+            attributes: {}
+          }
+        }
+      }
+    ];
+
+    let errorHappened = false;
+
+    for (const playlist of playlists) {
+      let keyIdSet;
+
+      try {
+        keyIdSet = loader.getKeyIdSet(playlist);
+      } catch (e) {
+        errorHappened = true;
+      }
+      assert.notOk(errorHappened, 'no error was thrown');
+      assert.notOk(keyIdSet.size, 'keyIdSet is empty');
+    }
+  });
+
   QUnit.test('updateSegments copies over properties', function(assert) {
     assert.deepEqual(
       [

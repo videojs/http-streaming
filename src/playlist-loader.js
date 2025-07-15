@@ -1317,17 +1317,21 @@ export default class PlaylistLoader extends EventTarget {
    * @return a Set of 32 digit hex strings that represent the unique keyIds for that playlist.
    */
   getKeyIdSet(playlist) {
-    if (playlist.contentProtection) {
-      const keyIds = new Set();
+    const keyIds = new Set();
 
-      for (const keysystem in playlist.contentProtection) {
-        const keyId = playlist.contentProtection[keysystem].attributes.keyId;
-
-        if (keyId) {
-          keyIds.add(keyId.toLowerCase());
-        }
-      }
+    if (!playlist || !playlist.contentProtection) {
       return keyIds;
     }
+
+    for (const keysystem in playlist.contentProtection) {
+      if (playlist.contentProtection[keysystem] &&
+          playlist.contentProtection[keysystem].attributes &&
+          playlist.contentProtection[keysystem].attributes.keyId) {
+        const keyId = playlist.contentProtection[keysystem].attributes.keyId;
+
+        keyIds.add(keyId.toLowerCase());
+      }
+    }
+    return keyIds;
   }
 }
