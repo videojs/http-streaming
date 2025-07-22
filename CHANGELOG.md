@@ -1,3 +1,10 @@
+<a name="3.17.2"></a>
+## [3.17.2](https://github.com/videojs/http-streaming/compare/v3.17.1...v3.17.2) (2025-07-22)
+
+### Bug Fixes
+
+* add release workflow permissions ([#1584](https://github.com/videojs/http-streaming/issues/1584)) ([33c61b7](https://github.com/videojs/http-streaming/commit/33c61b7))
+
 <a name="3.17.1"></a>
 ## [3.17.1](https://github.com/videojs/http-streaming/compare/v3.17.0...v3.17.1) (2025-07-22)
 
