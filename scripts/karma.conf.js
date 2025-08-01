@@ -27,6 +27,11 @@ module.exports = function(config) {
       if (CI_TEST_TYPE === 'coverage') {
         defaults = {};
       }
+      // pin Browserstack Firefox version to 64
+      if (defaults.bsFirefox) {
+        // eslint-disable-next-line camelcase
+        defaults.bsFirefox.browser_version = '64.0';
+      }
 
       return defaults;
     },
