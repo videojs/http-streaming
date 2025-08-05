@@ -379,12 +379,17 @@ if (!videojs.browser.IS_FIREFOX) {
     // resolution gets us a playlist with a supported codec.
     // Ideally there would be some way to detect and exclude HEVC playlists
     // that are encrypted.
+    const originalWidth = player.width();
+    const originalHeight = player.height();
+
     player.width(640);
     player.height(360);
 
     player.one('ended', () => {
       assert.ok(true, 'triggered ended');
       assert.equal(player.error(), null, 'no errors');
+      player.width(originalWidth);
+      player.height(originalHeight);
       done();
     });
 
