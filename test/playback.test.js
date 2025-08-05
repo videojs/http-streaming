@@ -366,14 +366,21 @@ if (!videojs.browser.IS_FIREFOX) {
     player.src({
       src: 'https://dash.akamaized.net/dash264/TestCases/10a/1/iis_forest_short_poem_multi_lang_480p_single_adapt_aaclc_sidx.mpd',
       type: 'application/dash+xml'
-    });
+    });the 
   });
 
-  // TODO: investigate cause of playback failure. Source fails with VHS demo page
-  // but plays ok with the DASH.js demo player: https://tinyurl.com/4tw77nmw
-  QUnit.skip('DRM Dash', function(assert) {
+
+  QUnit.test('DRM Dash', function(assert) {
     const done = assert.async();
     const player = this.player;
+
+    // TODO: This is a fudge which gets around HEVC playlists being allowed by VHS
+    // but Widevine / HEVC not being supported in Chrome. Forcing the player to a specific
+    // resolution gets us a playlist with a supported codec.
+    // Ideally there would be some way to detect and exclude HEVC playlists
+    // that are encrypted.
+    player.width(640);
+    player.height(360);
 
     player.one('ended', () => {
       assert.ok(true, 'triggered ended');
