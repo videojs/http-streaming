@@ -250,32 +250,6 @@ QUnit.test('Live DASH', function(assert) {
   player.play();
 });
 
-QUnit.test('Multiperiod dash works and can end', function(assert) {
-  const done = assert.async();
-
-  assert.expect(2);
-  const player = this.player;
-
-  playFor(player, 2, function() {
-    assert.ok(true, 'played for at least two seconds');
-    assert.equal(player.error(), null, 'has no player errors');
-
-    player.one('ended', () => {
-      assert.ok(true, 'triggered ended event');
-      done();
-    });
-
-    player.currentTime(player.duration() - 0.5);
-
-    done();
-  });
-
-  player.src({
-    src: 'https://media.axprod.net/TestVectors/v7-Clear/Manifest_MultiPeriod.mpd',
-    type: 'application/dash+xml'
-  });
-});
-
 // These videos don't work on firefox consistenly. Seems like
 // firefox has lower performance or more aggressive throttling than chrome
 // which causes a variety of issues.
@@ -366,9 +340,8 @@ if (!videojs.browser.IS_FIREFOX) {
     player.src({
       src: 'https://dash.akamaized.net/dash264/TestCases/10a/1/iis_forest_short_poem_multi_lang_480p_single_adapt_aaclc_sidx.mpd',
       type: 'application/dash+xml'
-    });the 
+    });
   });
-
 
   QUnit.test('DRM Dash', function(assert) {
     const done = assert.async();
@@ -421,6 +394,33 @@ if (!videojs.browser.IS_FIREFOX) {
           }
         }
       }
+    });
+  });
+
+  // Firefox 64 cannot retrieve the asset, reporting a CORS issue.
+  QUnit.test('Multiperiod dash works and can end', function(assert) {
+    const done = assert.async();
+
+    assert.expect(2);
+    const player = this.player;
+
+    playFor(player, 2, function() {
+      assert.ok(true, 'played for at least two seconds');
+      assert.equal(player.error(), null, 'has no player errors');
+
+      player.one('ended', () => {
+        assert.ok(true, 'triggered ended event');
+        done();
+      });
+
+      player.currentTime(player.duration() - 0.5);
+
+      done();
+    });
+
+    player.src({
+      src: 'https://media.axprod.net/TestVectors/v7-Clear/Manifest_MultiPeriod.mpd',
+      type: 'application/dash+xml'
     });
   });
 
