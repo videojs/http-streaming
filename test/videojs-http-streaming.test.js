@@ -1,4 +1,4 @@
-import document from 'global/document';
+import document from 'videojs-global-compat/document';
 import videojs from 'video.js';
 import Events from 'video.js';
 import QUnit from 'qunit';
@@ -41,7 +41,7 @@ import {
   getAllPsshKeySystemsOptions,
   waitForKeySessionCreation
 } from '../src/videojs-http-streaming';
-import window from 'global/window';
+import window from 'videojs-global-compat/window';
 // we need this so the plugin registers itself
 import 'videojs-contrib-quality-levels';
 import 'videojs-contrib-eme';
@@ -4163,7 +4163,7 @@ QUnit.test('Allows overriding the global beforeRequest function', function(asser
 
   assert.equal(beforeLocalRequestCalled, 2, 'local beforeRequest was called twice ' +
                                            'for the media playlist and media');
-  assert.equal(beforeGlobalRequestCalled, 1, 'global beforeRequest was called once ' +
+  assert.equal(beforeGlobalRequestCalled, 1, 'videojs-global-compat beforeRequest was called once ' +
                                             'for the main playlist');
   assert.equal(this.env.log.warn.calls, 3, 'warning logged for deprecation');
 
@@ -4305,7 +4305,7 @@ QUnit.test('Allows setting onRequest hooks globally and overriding with player h
   this.player.tech_.vhs.xhr.offRequest(playerRequestHook2);
 
   assert.equal(onRequestHookCallCountGlobal, 0, 'no onRequest global hooks called');
-  assert.equal(actualRequestUrlGlobal, undefined, 'global request url undefined');
+  assert.equal(actualRequestUrlGlobal, undefined, 'videojs-global-compat request url undefined');
   assert.equal(onRequestHookCallCountPlayer, 2, '2 onRequest player hooks called');
   assert.equal(actualRequestUrlPlayer, 'http://localhost:9999/test/media2.m3u8?bar=foo', 'request url modified by player onRequest hook');
 

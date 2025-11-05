@@ -52,8 +52,8 @@ import {
 import sinon from 'sinon';
 import { timeRangesEqual } from './custom-assertions.js';
 import { QUOTA_EXCEEDED_ERR } from '../src/error-codes';
-import window from 'global/window';
-import document from 'global/document';
+import window from 'videojs-global-compat/window';
+import document from 'videojs-global-compat/document';
 import {merge, createTimeRanges} from '../src/util/vjs-compat';
 
 const newEvent = function(name) {

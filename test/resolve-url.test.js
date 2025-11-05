@@ -1,5 +1,5 @@
 import QUnit from 'qunit';
-import window from 'global/window';
+import window from 'videojs-global-compat/window';
 import resolveUrl from '../src/resolve-url';
 
 // A modified subset of tests from https://github.com/tjenkinson/url-toolkit

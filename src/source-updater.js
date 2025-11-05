@@ -6,7 +6,7 @@ import logger from './util/logger';
 import noop from './util/noop';
 import { bufferIntersection } from './ranges.js';
 import {getMimeForCodec} from '@videojs/vhs-utils/es/codecs.js';
-import window from 'global/window';
+import window from 'videojs-global-compat/window';
 import toTitleCase from './util/to-title-case.js';
 import { QUOTA_EXCEEDED_ERR } from './error-codes';
 import {createTimeRanges, bufferedRangesToString} from './util/vjs-compat';

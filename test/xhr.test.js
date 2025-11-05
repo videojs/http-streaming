@@ -1,4 +1,4 @@
-import window from 'global/window';
+import window from 'videojs-global-compat/window';
 import QUnit from 'qunit';
 import {default as xhrFactory, byterangeStr} from '../src/xhr';
 import { useFakeEnvironment } from './test-helpers.js';
@@ -36,7 +36,7 @@ QUnit.test('xhr respects beforeRequest', function(assert) {
   assert.equal(this.env.log.warn.calls, 1, 'warning logged for deprecation');
 
   videojs.Vhs.xhr.beforeRequest = (options) => {
-    options.url = 'global';
+    options.url = 'videojs-global-compat';
     return options;
   };
 
@@ -47,7 +47,7 @@ QUnit.test('xhr respects beforeRequest', function(assert) {
   delete this.xhr.beforeRequest;
 
   this.xhr(defaultOptions);
-  assert.equal(this.requests.shift().url, 'global', 'url changed with global override');
+  assert.equal(this.requests.shift().url, 'videojs-global-compat', 'url changed with global override');
   assert.equal(this.env.log.warn.calls, 1, 'warning logged for deprecation');
 
   delete videojs.Vhs.xhr.beforeRequest;
@@ -62,11 +62,11 @@ QUnit.test('beforeRequest can return a new options object', function(assert) {
   assert.equal(this.requests.shift().url, 'default', 'url the same without override');
 
   videojs.Vhs.xhr.beforeRequest = () => {
-    return { uri: 'global-newOptions'};
+    return { uri: 'videojs-global-compat-newOptions'};
   };
 
   this.xhr(defaultOptions);
-  assert.equal(this.requests.shift().url, 'global-newOptions', 'url changed with global override');
+  assert.equal(this.requests.shift().url, 'videojs-global-compat-newOptions', 'url changed with global override');
   assert.equal(this.env.log.warn.calls, 1, 'warning logged for deprecation');
 
   this.xhr.beforeRequest = () => {
@@ -95,7 +95,7 @@ QUnit.test('calls global and player onRequest hooks respectively', function(asse
   // create the global onRequest set and 2 hooks
   videojs.Vhs.xhr._requestCallbackSet = new Set();
   const globalRequestHook1 = (options) => {
-    options.url = 'global';
+    options.url = 'videojs-global-compat';
     return options;
   };
   const globalRequestHook2 = (options) => {
@@ -112,7 +112,7 @@ QUnit.test('calls global and player onRequest hooks respectively', function(asse
   this.xhr(defaultOptions);
   xhrRequest = this.requests.shift();
 
-  assert.equal(xhrRequest.url, 'global', 'url changed with global onRequest hooks');
+  assert.equal(xhrRequest.url, 'videojs-global-compat', 'url changed with global onRequest hooks');
   assert.equal(xhrRequest.headers.foo, 'bar', 'headers changed with global onRequest hooks');
 
   // create the player onRequest set and 2 hooks
@@ -143,7 +143,7 @@ QUnit.test('calls global and player onRequest hooks respectively', function(asse
   delete this.xhr._requestCallbackSet;
   this.xhr(defaultOptions);
   xhrRequest = this.requests.shift();
-  assert.equal(xhrRequest.url, 'global', 'url changed with player onRequest hooks');
+  assert.equal(xhrRequest.url, 'videojs-global-compat', 'url changed with player onRequest hooks');
   assert.equal(xhrRequest.headers.foo, 'bar', 'headers changed with player onRequest hooks');
 
   delete videojs.Vhs.xhr._requestCallbackSet;
@@ -180,7 +180,7 @@ QUnit.test('xhr calls global and player onResponse hooks respectively', function
   const playerOnResponseHook2 = (request, error, response) => {
     assert.equal(response.headers.foo, 'bar', 'expected headers');
     assert.equal(response.statusCode, 200, 'expected statusCode');
-    assert.equal(globalHookCallCount, 0, 'global response hooks not called yet');
+    assert.equal(globalHookCallCount, 0, 'videojs-global-compat response hooks not called yet');
     done();
   };
 

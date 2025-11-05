@@ -1,6 +1,6 @@
 import QUnit from 'qunit';
 // import sinon from 'sinon';
-// import window from 'global/window';
+// import window from 'videojs-global-compat/window';
 import DateRangesStorage from '../../src/util/date-ranges';
 import xhrFactory from '../../src/xhr';
 import { useFakeEnvironment } from '../test-helpers';
