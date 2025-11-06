@@ -1,5 +1,5 @@
-import document from 'videojs-global-compat/document';
-import window from 'videojs-global-compat/window';
+import document from '@videojs/global-compat/document';
+import window from '@videojs/global-compat/window';
 import QUnit from 'qunit';
 import videojs from 'video.js';
 import SourceUpdater from '../src/source-updater';

@@ -1,5 +1,5 @@
 import QUnit from 'qunit';
-import window from 'videojs-global-compat/window';
+import window from '@videojs/global-compat/window';
 import {
   setupMediaPlaylists,
   resolveMediaGroupUris,

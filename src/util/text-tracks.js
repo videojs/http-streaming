@@ -1,7 +1,7 @@
 /**
  * @file text-tracks.js
  */
-import window from 'videojs-global-compat/window';
+import window from '@videojs/global-compat/window';
 import videojs from 'video.js';
 
 /**

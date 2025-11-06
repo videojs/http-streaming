@@ -1,7 +1,7 @@
 import QUnit from 'qunit';
 import videojs from 'video.js';
-import window from 'videojs-global-compat/window';
-import document from 'videojs-global-compat/document';
+import window from '@videojs/global-compat/window';
+import document from '@videojs/global-compat/document';
 import '../src/videojs-http-streaming';
 import 'videojs-contrib-eme';
 import dashManifestObject from '../scripts/dash-manifest-object.json';

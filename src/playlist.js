@@ -3,7 +3,7 @@
  *
  * Playlist related utilities.
  */
-import window from 'videojs-global-compat/window';
+import window from '@videojs/global-compat/window';
 import {isAudioCodec} from '@videojs/vhs-utils/es/codecs.js';
 import {TIME_FUDGE_FACTOR} from './ranges.js';
 import {createTimeRanges} from './util/vjs-compat';

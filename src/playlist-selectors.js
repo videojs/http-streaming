@@ -1,4 +1,4 @@
-import window from 'videojs-global-compat/window';
+import window from '@videojs/global-compat/window';
 import Config from './config';
 import Playlist from './playlist';
 import { codecsForPlaylist } from './util/codecs.js';

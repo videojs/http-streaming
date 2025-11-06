@@ -10,7 +10,7 @@
  * @return {Request} the xhr request that is going to be made
  */
 import videojs from 'video.js';
-import window from 'videojs-global-compat/window';
+import window from '@videojs/global-compat/window';
 import {merge} from './util/vjs-compat';
 
 const callbackWrapper = function(request, error, response, callback) {

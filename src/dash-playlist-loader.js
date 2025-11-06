@@ -13,7 +13,7 @@ import {
 import { resolveUrl, resolveManifestRedirect } from './resolve-url';
 import parseSidx from 'mux.js/lib/tools/parse-sidx';
 import { segmentXhrHeaders } from './xhr';
-import window from 'videojs-global-compat/window';
+import window from '@videojs/global-compat/window';
 import {
   forEachMediaGroup,
   addPropertiesToMain

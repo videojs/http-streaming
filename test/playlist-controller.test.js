@@ -1,7 +1,7 @@
 import QUnit from 'qunit';
 import sinon from 'sinon';
 import videojs from 'video.js';
-import window from 'videojs-global-compat/window';
+import window from '@videojs/global-compat/window';
 import {
   useFakeEnvironment,
   useFakeMediaSource,

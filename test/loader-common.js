@@ -1,7 +1,7 @@
 import QUnit from 'qunit';
 import xhrFactory from '../src/xhr';
 import Config from '../src/config';
-import document from 'videojs-global-compat/document';
+import document from '@videojs/global-compat/document';
 import {
   playlistWithDuration,
   useFakeEnvironment,
@@ -14,7 +14,7 @@ import SourceUpdater from '../src/source-updater';
 import SyncController from '../src/sync-controller';
 import TimelineChangeController from '../src/timeline-change-controller';
 import Decrypter from 'worker!../src/decrypter-worker.js';
-import window from 'videojs-global-compat/window';
+import window from '@videojs/global-compat/window';
 /* eslint-disable no-unused-vars */
 // we need this so that it can register VHS with videojs
 import { Vhs } from '../src/videojs-http-streaming';

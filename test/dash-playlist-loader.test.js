@@ -1,6 +1,6 @@
 import QUnit from 'qunit';
 import sinon from 'sinon';
-import window from 'videojs-global-compat/window';
+import window from '@videojs/global-compat/window';
 import {
   default as DashPlaylistLoader,
   updateMain,

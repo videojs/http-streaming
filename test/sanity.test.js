@@ -1,6 +1,6 @@
 import QUnit from 'qunit';
 import videojs from 'video.js';
-import window from 'videojs-global-compat/window';
+import window from '@videojs/global-compat/window';
 // needed for plugin registration
 import '../src/videojs-http-streaming';
 

@@ -7,7 +7,7 @@
  */
 import { resolveUrl, resolveManifestRedirect } from './resolve-url';
 import videojs from 'video.js';
-import window from 'videojs-global-compat/window';
+import window from '@videojs/global-compat/window';
 import logger from './util/logger';
 import {
   parseManifest,
