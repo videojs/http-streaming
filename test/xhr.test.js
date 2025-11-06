@@ -36,7 +36,7 @@ QUnit.test('xhr respects beforeRequest', function(assert) {
   assert.equal(this.env.log.warn.calls, 1, 'warning logged for deprecation');
 
   videojs.Vhs.xhr.beforeRequest = (options) => {
-    options.url = 'videojs-global-compat';
+    options.url = 'global';
     return options;
   };
 
@@ -95,7 +95,7 @@ QUnit.test('calls global and player onRequest hooks respectively', function(asse
   // create the global onRequest set and 2 hooks
   videojs.Vhs.xhr._requestCallbackSet = new Set();
   const globalRequestHook1 = (options) => {
-    options.url = 'videojs-global-compat';
+    options.url = 'global';
     return options;
   };
   const globalRequestHook2 = (options) => {
