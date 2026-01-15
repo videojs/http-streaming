@@ -1221,7 +1221,15 @@ export class PlaylistController extends videojs.EventTarget {
         const offset = media.start.timeOffset;
 
         if (offset < 0) {
-          startPoint = Math.max(seekableEnd + offset, seekable.start(0));
+          // Per HLS spec, negative TIME-OFFSET is from the end of the last Media Segment.
+          // For live streams, seekableEnd already has liveEdgeDelay subtracted,
+          // so we need to add it back to get the actual playlist end.
+          // Clamp to seekableEnd to avoid seeking into the unsafe live edge zone.
+          const main = this.mainPlaylistLoader_.main;
+          const liveEdgeDelay = Vhs.Playlist.liveEdgeDelay(main, media);
+          const actualPlaylistEnd = seekableEnd + liveEdgeDelay;
+
+          startPoint = Math.max(Math.min(actualPlaylistEnd + offset, seekableEnd), seekable.start(0));
         } else {
           startPoint = Math.min(seekableEnd, offset);
         }
