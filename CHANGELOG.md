@@ -1,3 +1,10 @@
+<a name="3.17.3"></a>
+## [3.17.3](https://github.com/videojs/http-streaming/compare/v3.17.2...v3.17.3) (2026-01-19)
+
+### Bug Fixes
+
+* calculate EXT-X-START TIME-OFFSET from actual playlist end for live streams ([#1599](https://github.com/videojs/http-streaming/issues/1599)) ([101fb90](https://github.com/videojs/http-streaming/commit/101fb90))
+
 <a name="3.17.2"></a>
 ## [3.17.2](https://github.com/videojs/http-streaming/compare/v3.17.1...v3.17.2) (2025-07-22)
 
