@@ -485,6 +485,30 @@ QUnit.test('seeks to negative offset point', function(assert) {
   assert.strictEqual(currentTime, 35, 'seeked to negative offset');
 });
 
+QUnit.test('seeks to negative offset on live stream from actual playlist end', function(assert) {
+  let currentTime = 0;
+
+  this.player.autoplay(true);
+  this.player.on('seeking', () => {
+    currentTime = this.player.currentTime();
+  });
+  this.player.src({
+    src: 'startLiveNegative.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  openMediaSource(this.player, this.clock);
+  this.player.tech_.trigger('play');
+  this.standardXHRResponse(this.requests.shift());
+  this.clock.tick(1);
+
+  // 6 segments * 10s = 60s total, liveEdgeDelay = 30, TIME-OFFSET = -30
+  // Per HLS spec, offset is from playlist end (60s), so startPoint = 60 - 30 = 30
+  assert.strictEqual(currentTime, 30, 'seeked to negative offset from actual playlist end on live stream');
+});
+
 QUnit.test(
   'duration is set when the source opens after the playlist is loaded',
   function(assert) {
