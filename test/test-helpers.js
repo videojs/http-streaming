@@ -1,10 +1,10 @@
-import document from 'global/document';
+import document from '@videojs/global-compat/document';
 import sinon from 'sinon';
 import videojs from 'video.js';
 import URLToolkit from 'url-toolkit';
 import testDataManifests from 'create-test-data!manifests';
 import xhrFactory from '../src/xhr';
-import window from 'global/window';
+import window from '@videojs/global-compat/window';
 import { muxed as muxedSegment } from 'create-test-data!segments';
 import {bytesToString, isTypedArray} from '@videojs/vhs-utils/es/byte-helpers';
 import {createTimeRanges} from '../src/util/vjs-compat';

@@ -1,6 +1,6 @@
 import QUnit from 'qunit';
 import { updateAdCues, findAdCue } from '../src/ad-cue-tags';
-import window from 'global/window';
+import window from '@videojs/global-compat/window';
 
 QUnit.module('AdCueTags', {
   beforeEach() {

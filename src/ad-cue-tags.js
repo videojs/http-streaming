@@ -1,7 +1,7 @@
 /**
  * @file ad-cue-tags.js
  */
-import window from 'global/window';
+import window from '@videojs/global-compat/window';
 
 /**
  * Searches for an ad cue that overlaps with the given mediaTime

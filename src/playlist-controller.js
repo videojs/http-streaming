@@ -1,7 +1,7 @@
 /**
  * @file playlist-controller.js
  */
-import window from 'global/window';
+import window from '@videojs/global-compat/window';
 import PlaylistLoader from './playlist-loader';
 import DashPlaylistLoader from './dash-playlist-loader';
 import { isEnabled, isLowestEnabledRendition } from './playlist.js';

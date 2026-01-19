@@ -4,8 +4,8 @@
  * The main file for the VHS project.
  * License: https://github.com/videojs/videojs-http-streaming/blob/main/LICENSE
  */
-import document from 'global/document';
-import window from 'global/window';
+import document from '@videojs/global-compat/document';
+import window from '@videojs/global-compat/window';
 import PlaylistLoader from './playlist-loader';
 import Playlist from './playlist';
 import xhrFactory from './xhr';

@@ -8,7 +8,7 @@
  * my life and honor to the Playback Watch, for this Player and all the Players to come.
  */
 
-import window from 'global/window';
+import window from '@videojs/global-compat/window';
 import * as Ranges from './ranges';
 import logger from './util/logger';
 import { createTimeRanges } from './util/vjs-compat';

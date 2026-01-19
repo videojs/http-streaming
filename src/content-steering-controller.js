@@ -1,5 +1,5 @@
 import resolveUrl from './resolve-url';
-import window from 'global/window';
+import window from '@videojs/global-compat/window';
 import logger from './util/logger';
 import videojs from 'video.js';
 

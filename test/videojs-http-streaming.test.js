@@ -1,4 +1,4 @@
-import document from 'global/document';
+import document from '@videojs/global-compat/document';
 import videojs from 'video.js';
 import Events from 'video.js';
 import QUnit from 'qunit';
@@ -41,7 +41,7 @@ import {
   getAllPsshKeySystemsOptions,
   waitForKeySessionCreation
 } from '../src/videojs-http-streaming';
-import window from 'global/window';
+import window from '@videojs/global-compat/window';
 // we need this so the plugin registers itself
 import 'videojs-contrib-quality-levels';
 import 'videojs-contrib-eme';

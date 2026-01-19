@@ -4,7 +4,7 @@
 import Playlist from './playlist';
 import videojs from 'video.js';
 import Config from './config';
-import window from 'global/window';
+import window from '@videojs/global-compat/window';
 import { initSegmentId, segmentKeyId } from './bin-utils';
 import { mediaSegmentRequest, REQUEST_ERRORS } from './media-segment-request';
 import segmentTransmuxer from './segment-transmuxer';
