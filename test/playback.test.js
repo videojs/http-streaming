@@ -250,32 +250,6 @@ QUnit.test('Live DASH', function(assert) {
   player.play();
 });
 
-QUnit.test('Multiperiod dash works and can end', function(assert) {
-  const done = assert.async();
-
-  assert.expect(2);
-  const player = this.player;
-
-  playFor(player, 2, function() {
-    assert.ok(true, 'played for at least two seconds');
-    assert.equal(player.error(), null, 'has no player errors');
-
-    player.one('ended', () => {
-      assert.ok(true, 'triggered ended event');
-      done();
-    });
-
-    player.currentTime(player.duration() - 0.5);
-
-    done();
-  });
-
-  player.src({
-    src: 'https://media.axprod.net/TestVectors/v7-Clear/Manifest_MultiPeriod.mpd',
-    type: 'application/dash+xml'
-  });
-});
-
 // These videos don't work on firefox consistenly. Seems like
 // firefox has lower performance or more aggressive throttling than chrome
 // which causes a variety of issues.
@@ -373,9 +347,22 @@ if (!videojs.browser.IS_FIREFOX) {
     const done = assert.async();
     const player = this.player;
 
+    // TODO: This is a fudge which gets around HEVC playlists being allowed by VHS
+    // but Widevine / HEVC not being supported in Chrome. Forcing the player to a specific
+    // resolution gets us a playlist with a supported codec.
+    // Ideally there would be some way to detect and exclude HEVC playlists
+    // that are encrypted.
+    const originalWidth = player.width();
+    const originalHeight = player.height();
+
+    player.width(640);
+    player.height(360);
+
     player.one('ended', () => {
       assert.ok(true, 'triggered ended');
       assert.equal(player.error(), null, 'no errors');
+      player.width(originalWidth);
+      player.height(originalHeight);
       done();
     });
 
@@ -407,6 +394,33 @@ if (!videojs.browser.IS_FIREFOX) {
           }
         }
       }
+    });
+  });
+
+  // Firefox 64 cannot retrieve the asset, reporting a CORS issue.
+  QUnit.test('Multiperiod dash works and can end', function(assert) {
+    const done = assert.async();
+
+    assert.expect(2);
+    const player = this.player;
+
+    playFor(player, 2, function() {
+      assert.ok(true, 'played for at least two seconds');
+      assert.equal(player.error(), null, 'has no player errors');
+
+      player.one('ended', () => {
+        assert.ok(true, 'triggered ended event');
+        done();
+      });
+
+      player.currentTime(player.duration() - 0.5);
+
+      done();
+    });
+
+    player.src({
+      src: 'https://media.axprod.net/TestVectors/v7-Clear/Manifest_MultiPeriod.mpd',
+      type: 'application/dash+xml'
     });
   });
 
