@@ -1,3 +1,10 @@
+<a name="3.17.4"></a>
+## [3.17.4](https://github.com/videojs/http-streaming/compare/v3.17.3...v3.17.4) (2026-02-05)
+
+### Chores
+
+* get ci passing and update node ([#1585](https://github.com/videojs/http-streaming/issues/1585)) ([8833e33](https://github.com/videojs/http-streaming/commit/8833e33))
+
 <a name="3.17.3"></a>
 ## [3.17.3](https://github.com/videojs/http-streaming/compare/v3.17.2...v3.17.3) (2026-01-19)
 
