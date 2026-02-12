@@ -317,15 +317,22 @@ const handleSegmentResponse = ({
     return finishProcessingFn(errorObj, segment);
   }
   triggerSegmentEventFn({ type: 'segmentloaded', segment });
-  const newBytes =
+  
+  let newBytes;
+  // because the 'response' property from XMLHttpRequest is readonly,
+  // can add customize read-write 'videojsCustomizedResponse' property to request object via the onResponse method.
+  if (('videojsCustomizedResponse' in request) && request.videojsCustomizedResponse) {
+    newBytes = request.videojsCustomizedResponse;
+  } else {
     // although responseText "should" exist, this guard serves to prevent an error being
     // thrown for two primary cases:
     // 1. the mime type override stops working, or is not implemented for a specific
     //    browser
     // 2. when using mock XHR libraries like sinon that do not allow the override behavior
-    (responseType === 'arraybuffer' || !request.responseText) ?
+   newBytes = (responseType === 'arraybuffer' || !request.responseText) ?
       request.response :
       stringToArrayBuffer(request.responseText.substring(segment.lastReachedChar || 0));
+  }
 
   segment.stats = getRequestStats(request);
 
