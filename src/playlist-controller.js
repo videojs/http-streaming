@@ -254,7 +254,13 @@ export class PlaylistController extends videojs.EventTarget {
       label: 'segment-metadata'
     }, false).track;
 
-    this.segmentMetadataTrack_.mode = 'hidden';
+    // Only disable segment metadata track in Safari/iOS when using overrideNative HLS
+    if ((videojs.browser.IS_ANY_SAFARI || videojs.browser.IS_IOS) &&
+      this.sourceType_ === 'hls') {
+      this.segmentMetadataTrack_.mode = 'disabled';
+    } else {
+      this.segmentMetadataTrack_.mode = 'hidden';
+    }
 
     this.decrypter_ = new Decrypter();
     this.sourceUpdater_ = new SourceUpdater(this.mediaSource);
