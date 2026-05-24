@@ -205,7 +205,13 @@ export class PlaylistController extends videojs.EventTarget {
         'metadata',
         'ad-cues'
       );
-      this.cueTagsTrack_.inBandMetadataTrackDispatchType = '';
+      // native tracks on some browsers (e.g. Firefox) have a getter-only
+      // inBandMetadataTrackDispatchType property, which throws when set.
+      try {
+        this.cueTagsTrack_.inBandMetadataTrackDispatchType = '';
+      } catch (e) {
+        // no-op
+      }
     }
 
     this.requestOptions_ = {
