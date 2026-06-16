@@ -635,6 +635,16 @@ const handleSegmentBytes = ({
     return;
   }
 
+  // Keep this below the fmp4 branch above: fmp4 'wvtt' subtitles are parsed there.
+  // Any vtt segment reaching this point is raw WebVTT text. Don't sniff it as a
+  // media container: cue text can contain byte patterns that look like MPEG-TS sync
+  // bytes, causing raw subtitles to be transmuxed and parsed as an empty cue buffer.
+  if (segment.type === 'vtt') {
+    trackInfoFn(segment, {hasAudio: false, hasVideo: false});
+    doneFn(null, segment, {});
+    return;
+  }
+
   if (typeof segment.container === 'undefined') {
     segment.container = detectContainerForBytes(bytesAsUint8Array);
   }
