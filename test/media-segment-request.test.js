@@ -1951,24 +1951,30 @@ QUnit.test('can get webvtt text from an fmp4 segment', function(assert) {
 QUnit.test('raw WebVTT segment misdetected as TS is never transmuxed', function(assert) {
   const done = assert.async();
 
-  // Build raw WebVTT text whose bytes coincidentally satisfy the fuzzy 'ts'
-  // heuristic in detectContainerForBytes: a 0x47 ('G') sync byte at offset i and
-  // again at offset i + 188, within the first 188 bytes. Real subtitle text hits
-  // this by chance, which previously routed the text through the MPEG-TS
-  // transmuxer (0 bytes out -> "Malformed WebVTT signature", 0 cues).
-  const i = 96;
-  const webVttBytes = new Uint8Array(320);
-  const header = 'WEBVTT\nX-TIMESTAMP-MAP=MPEGTS:0,LOCAL:00:00:00.000\n\n00:07.068 --> 00:09.011\n';
+  // Build raw WebVTT text whose cue bytes coincidentally satisfy the fuzzy 'ts'
+  // heuristic in detectContainerForBytes: a 0x47 ('G') byte at offset i and again
+  // at offset i + 188, within the first 188 bytes. Real subtitle text hits this by
+  // chance, which previously routed the text through the MPEG-TS transmuxer
+  // (0 bytes out -> "Malformed WebVTT signature", 0 cues).
+  const webVtt = [
+    'WEBVTT',
+    '',
+    '00:00:01.000 --> 00:00:04.000',
+    '(GENTLE MEADOW AMBIENCE)',
+    'soft meadow sounds drift under rustling leaves while small birds call beside the brook and flowers sway softly.',
+    '',
+    '00:00:05.000 --> 00:00:09.000',
+    '(GARDEN BIRDS CHIRPING)',
+    '',
+    '00:00:09.500 --> 00:00:12.500',
+    '(squirrel chittering nearby)',
+    ''
+  ].join('\n');
+  const webVttBytes = new Uint8Array(webVtt.length);
 
-  for (let n = 0; n < header.length; n++) {
-    webVttBytes[n] = header.charCodeAt(n);
+  for (let n = 0; n < webVtt.length; n++) {
+    webVttBytes[n] = webVtt.charCodeAt(n);
   }
-  // fill the remaining cue body with a benign printable character
-  for (let n = header.length; n < webVttBytes.length; n++) {
-    webVttBytes[n] = 0x2e;
-  }
-  webVttBytes[i] = 0x47;
-  webVttBytes[i + 188] = 0x47;
 
   // Precondition: the heuristic really does misdetect this WebVTT text as 'ts'.
   assert.equal(detectContainerForBytes(webVttBytes), 'ts', 'WebVTT text is misdetected as a TS container');
