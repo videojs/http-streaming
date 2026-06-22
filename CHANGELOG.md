@@ -1,3 +1,10 @@
+<a name="3.17.5"></a>
+## [3.17.5](https://github.com/videojs/http-streaming/compare/v3.17.4...v3.17.5) (2026-06-19)
+
+### Chores
+
+* update vhs-utils to 4.1.2 and mpd-parser to 1.4.0 ([691ed26](https://github.com/videojs/http-streaming/commit/691ed26))
+
 <a name="3.17.4"></a>
 ## [3.17.4](https://github.com/videojs/http-streaming/compare/v3.17.3...v3.17.4) (2026-02-05)
 
