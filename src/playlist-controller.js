@@ -684,6 +684,17 @@ export class PlaylistController extends videojs.EventTarget {
       }
 
       this.handleUpdatedMediaPlaylist(updatedPlaylist);
+
+      // vhs-json fires `loadedmetadata` synchronously, so the segment loader
+      // starts before handleUpdatedMediaPlaylist pauses it — leaving paused
+      // pre-buffer players stalled. Un-pause it here (load() resumes a paused
+      // loader), mirroring the loadedmetadata pre-buffer gate (VoD + preload).
+      if (this.sourceType_ === 'vhs-json' &&
+          updatedPlaylist.endList &&
+          updatedPlaylist.segments &&
+          this.tech_.preload() !== 'none') {
+        this.mainSegmentLoader_.load();
+      }
     });
 
     this.mainPlaylistLoader_.on('error', () => {
