@@ -86,7 +86,6 @@ Video.js Compatibility: 7.x, 8.x
 - [Known Issues and Workarounds](#known-issues-and-workarounds)
   - [Fragmented MP4 Support](#fragmented-mp4-support)
   - [Assets with an Audio-Only Rate Get Stuck in Audio-Only](#assets-with-an-audio-only-rate-get-stuck-in-audio-only)
-  - [DASH Assets with `$Time` Interpolation and `SegmentTimeline`s with No `t`](#dash-assets-with-time-interpolation-and-segmenttimelines-with-no-t)
 - [Testing](#testing)
 - [Debugging](#debugging)
 - [Release History](#release-history)
@@ -1061,15 +1060,6 @@ choose from.
 Follow progress on this in issue [#175](https://github.com/videojs/http-streaming/issues/175).
 
 [HLS Authoring Specification]: https://developer.apple.com/documentation/http_live_streaming/hls_authoring_specification_for_apple_devices
-
-### DASH Assets with `$Time` Interpolation and `SegmentTimeline`s with No `t`
-
-DASH assets which use `$Time` in a `SegmentTemplate`, and also have a
-`SegmentTimeline` where only the first `S` has a `t` and the rest only have a
-`d`, do not load currently.
-
-There is currently no workaround for this, but you can track progress on this
-in issue [#256](https://github.com/videojs/http-streaming/issues/256).
 
 ## Testing
 
