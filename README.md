@@ -491,7 +491,7 @@ This option defaults to `false`.
 ##### useNetworkInformationApi
 * Type: `boolean`,
 * Default: `true`
-* Use [window.networkInformation.downlink](https://developer.mozilla.org/en-US/docs/Web/API/NetworkInformation/downlink) to estimate the network's bandwidth. Per mdn, _The value is never greater than 10 Mbps, as a non-standard anti-fingerprinting measure_. Given this, if bandwidth estimates from both the player and networkInfo are >= 10 Mbps, the player will use the larger of the two values as its bandwidth estimate.
+* Use [window.networkInformation.downlink](https://developer.mozilla.org/en-US/docs/Web/API/NetworkInformation/downlink) to estimate the network's bandwidth. Per mdn, _The value is never greater than 10 Mbps, as a non-standard anti-fingerprinting measure_. Given this, before media segment stats are available, if bandwidth estimates from both the player and networkInfo are >= 10 Mbps, the player will use the larger of the two values as its bandwidth estimate. Once media segment stats are available, the player uses the larger of the player estimate and the networkInfo estimate so networkInfo does not lower a player-specific bandwidth estimate.
 
 ##### useDtsForTimestampOffset
 * Type: `boolean`,
