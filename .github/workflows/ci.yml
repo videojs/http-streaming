@@ -44,6 +44,9 @@ jobs:
       CI_TEST_TYPE: ${{matrix.test-type}}
     runs-on: ${{matrix.os}}
     steps:
+    - name: Disable apparmor, which breaks chromium headless
+      run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
     - name: checkout code
       uses: actions/checkout@v3
 

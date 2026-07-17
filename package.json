@@ -77,12 +77,12 @@
     "@videojs/generator-helpers": "~3.1.0",
     "bootstrap": "^5.1.0",
     "d3": "^3.4.8",
-    "jsdoc": "^3.6.11",
+    "jsdoc": "^4.0.5",
     "karma": "^6.4.0",
     "lodash": "^4.17.4",
     "lodash-compat": "^3.10.0",
     "nomnoml": "^1.5.2",
-    "rollup": "^2.36.1",
+    "rollup": "^2.80.0",
     "rollup-plugin-worker-factory": "0.5.7",
     "shelljs": "^0.8.5",
     "sinon": "^8.1.1",
@@ -107,6 +107,21 @@
     "hooks": {
       "pre-commit": "lint-staged"
     }
+  },
+  "overrides": {
+    "@xmldom/xmldom": "^0.9.0",
+    "serialize-javascript": "^7.0.5",
+    "underscore": "^1.13.8",
+    "handlebars": "^4.7.8",
+    "minimatch": "^3.1.2",
+    "braces": "^3.0.3",
+    "ansi-regex": "^5.0.1",
+    "cross-spawn": "^7.0.6",
+    "semver": "^7.5.4",
+    "trim": "^1.0.1",
+    "trim-newlines": "^4.0.0",
+    "path-to-regexp": "^3.3.0",
+    "axios": "^1.8.0"
   },
   "lint-staged": {
     "*.js": "vjsstandard --fix",
