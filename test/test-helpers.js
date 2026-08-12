@@ -9,6 +9,13 @@ import { muxed as muxedSegment } from 'create-test-data!segments';
 import {bytesToString, isTypedArray} from '@videojs/vhs-utils/es/byte-helpers';
 import {createTimeRanges} from '../src/util/vjs-compat';
 
+if (window.QUnit) {
+  window.QUnit.testStart((details) => {
+    // eslint-disable-next-line no-console
+    console.log(`TEST: ${details.module} > ${details.name}`);
+  });
+}
+
 // return an absolute version of a page-relative URL
 export const absoluteUrl = function(relativeUrl) {
   return URLToolkit.buildAbsoluteURL(window.location.href, relativeUrl);
