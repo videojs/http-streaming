@@ -10,6 +10,18 @@ module.exports = function(config) {
     browsers(aboutToRun) {
       return aboutToRun.filter(function(launcherName) {
         return !(/(Safari|Chromium)/).test(launcherName);
+      }).map(function(launcherName) {
+        return launcherName === 'FirefoxHeadless' ? 'FirefoxHeadlessHighWorkerLimit' : launcherName;
+      });
+    },
+    customLaunchers(defaults) {
+      return Object.assign(defaults || {}, {
+        FirefoxHeadlessHighWorkerLimit: {
+          base: 'FirefoxHeadless',
+          prefs: {
+            'dom.workers.maxPerDomain': 10000
+          }
+        }
       });
     },
     files(defaults) {
