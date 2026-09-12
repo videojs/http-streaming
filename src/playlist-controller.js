@@ -1426,8 +1426,10 @@ export class PlaylistController extends videojs.EventTarget {
     const isFinalRendition = enabledPlaylists.length === 1 && enabledPlaylists[0] === playlistToExclude;
 
     // Don't exclude the only playlist unless it was excluded
-    // forever
-    if (playlists.length === 1 && playlistExclusionDuration !== Infinity) {
+    // forever, or retries have been exhausted.
+    if (playlists.length === 1 &&
+        playlistExclusionDuration !== Infinity &&
+        playlistToExclude.playlistErrors_ <= this.maxPlaylistRetries) {
       videojs.log.warn(`Problem encountered with playlist ${playlistToExclude.id}. ` +
                        'Trying again since it is the only playlist.');
 

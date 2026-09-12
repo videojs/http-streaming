@@ -6689,6 +6689,59 @@ QUnit.test('Playlist is excluded indefinitely if number of playlistErrors_ excee
   this.env.log.warn.callCount = 0;
 });
 
+QUnit.test('single media playlist is excluded indefinitely once playlistErrors_ exceeds maxPlaylistRetries', function(assert) {
+  this.requests.length = 0;
+  this.player.dispose();
+  this.player = createPlayer({ html5: { vhs: { maxPlaylistRetries: 1 } } });
+  this.player.src({
+    src: 'manifest/media.m3u8',
+    type: 'application/vnd.apple.mpegurl'
+  });
+
+  this.clock.tick(1);
+
+  this.playlistController = this.player.tech_.vhs.playlistController_;
+
+  // media playlist with no master
+  this.standardXHRResponse(this.requests.shift());
+
+  const pc = this.playlistController;
+  const mpl = pc.mainPlaylistLoader_;
+  const playlist = mpl.main.playlists[0];
+  let loadCalled = false;
+  let errorTriggered = false;
+
+  mpl.load = () => {
+    loadCalled = true;
+  };
+  pc.on('error', () => {
+    errorTriggered = true;
+  });
+
+  assert.equal(mpl.main.playlists.length, 1, 'source is a single media playlist');
+  assert.equal(playlist.playlistErrors_, 0, 'playlistErrors_ starts at zero');
+
+  pc.excludePlaylist({});
+
+  assert.notOk('excludeUntil' in playlist, 'playlist was not excluded on first error');
+  assert.equal(playlist.playlistErrors_, 1, 'we incremented playlistErrors_');
+  assert.ok(loadCalled, 'retried the only playlist');
+  assert.notOk(errorTriggered, 'did not error before retries were exceeded');
+  assert.equal(this.env.log.warn.callCount, 1, 'logged a warning');
+
+  loadCalled = false;
+  pc.excludePlaylist({});
+
+  assert.equal(playlist.playlistErrors_, 2, 'we incremented playlistErrors_');
+  assert.equal(playlist.excludeUntil, Infinity, 'The playlist was excluded indefinitely');
+  assert.ok(errorTriggered, 'we triggered a playback error');
+  assert.notOk(loadCalled, 'did not retry after exceeding maxPlaylistRetries');
+  assert.equal(this.env.log.error.callCount, 1, 'logged an error');
+
+  this.env.log.warn.callCount = 0;
+  this.env.log.error.callCount = 0;
+});
+
 QUnit.test('should delay loading of new playlist if lastRequest was less than half target duration', function(assert) {
   this.requests.length = 0;
   this.player.dispose();
