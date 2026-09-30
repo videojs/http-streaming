@@ -4688,6 +4688,62 @@ QUnit.test(
   }
 );
 
+[false, true].forEach((nativeTextTracks) => {
+  QUnit.test(`useSegmentMetadataTrack supports initialization and source options (nativeTextTracks: ${nativeTextTracks})`, function(assert) {
+    this.player.dispose();
+    this.player = createPlayer({html5: {
+      nativeTextTracks,
+      vhs: {useSegmentMetadataTrack: false}
+    }});
+
+    const setSource = (options = {}) => {
+      this.player.src(merge({
+        src: 'manifest/main.m3u8',
+        type: 'application/vnd.apple.mpegurl'
+      }, options));
+      this.clock.tick(1);
+      return this.player.tech_.vhs.playlistController_;
+    };
+    const segmentTracks = () => {
+      if (nativeTextTracks) {
+        return this.player.tech_.el().querySelectorAll('track[label="segment-metadata"]');
+      }
+
+      return Array.from(this.player.textTracks()).filter((track) => track.label === 'segment-metadata');
+    };
+
+    let controller = setSource();
+
+    assert.strictEqual(controller.segmentMetadataTrack_, undefined, 'initialization option prevents track creation');
+    assert.strictEqual(controller.mainSegmentLoader_.segmentMetadataTrack_, undefined, 'loader receives no track');
+    assert.strictEqual(segmentTracks().length, 0, 'no segment metadata track is exposed');
+
+    controller = setSource({useSegmentMetadataTrack: true});
+
+    assert.strictEqual(controller.segmentMetadataTrack_.mode, 'hidden', 'source option overrides initialization option');
+    assert.strictEqual(segmentTracks().length, 1, 'source change creates one segment metadata track');
+
+    controller = setSource({useSegmentMetadataTrack: false});
+
+    assert.strictEqual(controller.segmentMetadataTrack_, undefined, 'source option disables track again');
+    assert.strictEqual(segmentTracks().length, 0, 'previous source track is removed');
+
+    const subtitle = this.player.addRemoteTextTrack({kind: 'subtitles', label: 'English'}, false).track;
+
+    assert.strictEqual(subtitle.kind, 'subtitles', 'other text tracks remain available');
+  });
+});
+
+QUnit.test('useSegmentMetadataTrack is enabled by default', function(assert) {
+  this.player.src({src: 'manifest/main.m3u8', type: 'application/vnd.apple.mpegurl'});
+  this.clock.tick(1);
+
+  const vhs = this.player.tech_.vhs;
+
+  assert.strictEqual(vhs.options_.useSegmentMetadataTrack, true, 'default option is enabled');
+  assert.strictEqual(vhs.playlistController_.segmentMetadataTrack_.mode, 'hidden', 'default track remains hidden');
+});
+
 QUnit.test('populates quality levels list when available', function(assert) {
   this.player.src({
     src: 'manifest/main.m3u8',
