@@ -249,12 +249,14 @@ export class PlaylistController extends videojs.EventTarget {
     this.hasPlayed_ = false;
 
     this.syncController_ = new SyncController(options);
-    this.segmentMetadataTrack_ = tech.addRemoteTextTrack({
-      kind: 'metadata',
-      label: 'segment-metadata'
-    }, false).track;
+    if (options.useSegmentMetadataTrack !== false) {
+      this.segmentMetadataTrack_ = tech.addRemoteTextTrack({
+        kind: 'metadata',
+        label: 'segment-metadata'
+      }, false).track;
 
-    this.segmentMetadataTrack_.mode = 'hidden';
+      this.segmentMetadataTrack_.mode = 'hidden';
+    }
 
     this.decrypter_ = new Decrypter();
     this.sourceUpdater_ = new SourceUpdater(this.mediaSource);
