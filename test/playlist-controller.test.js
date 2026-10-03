@@ -108,6 +108,27 @@ const sharedHooks = {
 
 QUnit.module('PlaylistController', sharedHooks);
 
+QUnit.test('segment removal clears inband metadata cues created by the controller', function(assert) {
+  const controller = this.playlistController;
+  const loader = controller.mainSegmentLoader_;
+  const cue = {startTime: 2, endTime: 3};
+  const track = {
+    cues: [cue],
+    removeCue(removedCue) {
+      this.cues.splice(this.cues.indexOf(removedCue), 1);
+    }
+  };
+
+  controller.inbandTextTracks_.metadataTrack_ = track;
+  sinon.stub(loader, 'getMediaInfo_').returns({});
+  sinon.stub(loader.sourceUpdater_, 'removeAudio').callsFake((start, end, done) => done());
+  sinon.stub(loader.sourceUpdater_, 'removeVideo').callsFake((start, end, done) => done());
+
+  loader.remove(0, 4);
+
+  assert.strictEqual(track.cues.length, 0, 'evicted metadata cue is removed');
+});
+
 QUnit.test('getAudioTrackPlaylists_ works', function(assert) {
   const pc = this.playlistController;
   const mainPlaylist = {playlists: [{uri: 'testing'}]};
