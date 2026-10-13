@@ -106,6 +106,7 @@
   },
   "overrides": {
     "serialize-javascript": "^7.0.3",
+    "uuid": "^11.1.1",
     "water-plant-uml": {
       "axios": "^0.34.0"
     }
