@@ -49,6 +49,7 @@
     ]
   },
   "files": [
+    "CHANGELOG.md",
     "CONTRIBUTING.md",
     "dist/",
     "docs/",
