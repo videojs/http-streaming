@@ -19,7 +19,6 @@ const files = [
   'logo.svg',
   'scripts/sources.json',
   'scripts/index.js',
-  'scripts/old-index.js',
   'scripts/dash-manifest-object.json',
   'scripts/hls-manifest-object.json',
   'test/dist/bundle.js'
@@ -37,5 +36,5 @@ files
 
 // copy files/folders to deploy dir
 files
-  .concat('dist', 'index.html', 'old-index.html', 'utils')
+  .concat('dist', 'index.html', 'utils')
   .forEach((file) => sh.cp('-r', file, path.join(deployDir, file)));
