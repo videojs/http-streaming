@@ -16,7 +16,7 @@
     "build": "npm-run-all -s clean -p build:*",
     "build:js": "rollup -c scripts/rollup.config.js",
     "docs": "npm-run-all docs:*",
-    "docs:api": "jsdoc src -g plugins/markdown -r -d docs/api",
+    "docs:api": "jsdoc -c .jsdoc.json src -r -d docs/api",
     "docs:toc": "doctoc --notitle README.md",
     "docs:images:puml": "for i in docs/images/sources/*.puml; do npx water-uml export $i -f png -o \"docs/images/$(echo $i | cut -d '/' -f 4)\"; done",
     "docs:images:nomnoml": "node ./scripts/create-docs-images.js",
