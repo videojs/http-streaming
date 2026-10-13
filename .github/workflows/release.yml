@@ -18,7 +18,7 @@ jobs:
       packages: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         # We neeed to fetch the entire history as conventional-changelog needs
         # access to any number of git commits to build the changelog.
         with:
@@ -30,7 +30,7 @@ jobs:
         id: nvm
 
       - name: setup node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v6
         with:
           node-version: '${{steps.nvm.outputs.NVMRC}}'
           cache: npm
@@ -69,7 +69,7 @@ jobs:
         if: env.NETLIFY_BASE != ''
 
       - name: Create Github release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           body_path: CHANGELOG.md
           token: ${{github.token}}
