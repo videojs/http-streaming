@@ -53,6 +53,7 @@
     "CONTRIBUTING.md",
     "dist/",
     "docs/",
+    "!docs/api/",
     "index.html",
     "scripts/",
     "src/"
