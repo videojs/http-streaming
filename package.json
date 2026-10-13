@@ -79,7 +79,7 @@
     "@videojs/generator-helpers": "~3.1.0",
     "bootstrap": "^5.1.0",
     "d3": "^3.4.8",
-    "jsdoc": "^3.6.11",
+    "jsdoc": "^4.0.5",
     "karma": "^6.4.0",
     "lodash": "^4.17.4",
     "lodash-compat": "^3.10.0",
