@@ -23,6 +23,23 @@ const audioTrackKind_ = (properties) => {
 };
 
 /**
+ * Convert the properties of an HLS track into an textTrackKind.
+ *
+ * @private
+ */
+const textTrackKind_ = (properties) => {
+  if (
+    properties.characteristics &&
+    (properties.characteristics.indexOf('public.accessibility.transcribes-spoken-dialog') >= 0 ||
+      properties.characteristics.indexOf('public.accessibility.describes-music-and-sound') >= 0)
+  ) {
+    return 'captions';
+  }
+
+  return 'subtitles';
+};
+
+/**
  * Pause provided segment loader and playlist loader if active
  *
  * @param {SegmentLoader} segmentLoader
@@ -593,7 +610,7 @@ export const initialize = {
         if (typeof tracks[variantLabel] === 'undefined') {
           const track = tech.addRemoteTextTrack({
             id: variantLabel,
-            kind: 'subtitles',
+            kind: textTrackKind_(properties),
             default: properties.default && properties.autoselect,
             language: properties.language,
             label: variantLabel
