@@ -1,3 +1,17 @@
+<a name="3.17.6"></a>
+## [3.17.6](https://github.com/videojs/http-streaming/compare/v3.17.5...v3.17.6) (2026-10-29)
+
+### Bug Fixes
+
+* update node and run the audit pass ([#1617](https://github.com/videojs/http-streaming/issues/1617)) ([2b97dd0](https://github.com/videojs/http-streaming/commit/2b97dd0)), closes [#1308](https://github.com/videojs/http-streaming/issues/1308)
+* update vhs dependencies ([#1620](https://github.com/videojs/http-streaming/issues/1620)) ([615b9e4](https://github.com/videojs/http-streaming/commit/615b9e4))
+
+### Chores
+
+* **ci:** publish to npm with trusted publishing ([#1618](https://github.com/videojs/http-streaming/issues/1618)) ([44fdd0e](https://github.com/videojs/http-streaming/commit/44fdd0e))
+* **ci:** run karma on local headless browsers instead of BrowserStack ([#1612](https://github.com/videojs/http-streaming/issues/1612)) ([be52182](https://github.com/videojs/http-streaming/commit/be52182))
+* **ci:** stop linking releases to Discussions ([#1619](https://github.com/videojs/http-streaming/issues/1619)) ([32a4a29](https://github.com/videojs/http-streaming/commit/32a4a29))
+
 <a name="3.17.5"></a>
 ## [3.17.5](https://github.com/videojs/http-streaming/compare/v3.17.4...v3.17.5) (2026-06-19)
 
