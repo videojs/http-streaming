@@ -4226,7 +4226,7 @@ QUnit.test('Allows setting onRequest hooks globally', function(assert) {
   this.standardXHRResponse(this.requests.shift());
 
   assert.equal(onRequestHookCallCount, 2, '2 onRequest hooks called');
-  assert.equal(actualRequestUrl, 'http://localhost:9999/test/media2.m3u8?foo=bar', 'request url modified by onRequest hook');
+  assert.equal(actualRequestUrl, `${window.location.origin}/test/media2.m3u8?foo=bar`, 'request url modified by onRequest hook');
   // remove global hooks for other tests
   videojs.Vhs.xhr.offRequest(globalRequestHook1);
   videojs.Vhs.xhr.offRequest(globalRequestHook2);
@@ -4267,7 +4267,7 @@ QUnit.test('Allows setting onRequest hooks on the player', function(assert) {
   this.standardXHRResponse(this.requests.shift());
 
   assert.equal(onRequestHookCallCount, 2, '2 onRequest hooks called');
-  assert.equal(actualRequestUrl, 'http://localhost:9999/test/media2.m3u8?foo=bar', 'request url modified by onRequest hook');
+  assert.equal(actualRequestUrl, `${window.location.origin}/test/media2.m3u8?foo=bar`, 'request url modified by onRequest hook');
   // remove player hooks for other tests
   this.player.tech_.vhs.xhr.offRequest(playerRequestHook1);
   this.player.tech_.vhs.xhr.offRequest(playerRequestHook2);
@@ -4331,13 +4331,13 @@ QUnit.test('Allows setting onRequest hooks globally and overriding with player h
   assert.equal(onRequestHookCallCountGlobal, 0, 'no onRequest global hooks called');
   assert.equal(actualRequestUrlGlobal, undefined, 'global request url undefined');
   assert.equal(onRequestHookCallCountPlayer, 2, '2 onRequest player hooks called');
-  assert.equal(actualRequestUrlPlayer, 'http://localhost:9999/test/media2.m3u8?bar=foo', 'request url modified by player onRequest hook');
+  assert.equal(actualRequestUrlPlayer, `${window.location.origin}/test/media2.m3u8?bar=foo`, 'request url modified by player onRequest hook');
 
   // media
   this.standardXHRResponse(this.requests.shift());
 
   assert.equal(onRequestHookCallCountGlobal, 2, '2 onRequest global hooks called');
-  assert.equal(actualRequestUrlGlobal, 'http://localhost:9999/test/media2-00001.ts?foo=bar', 'request url modified by global onRequest hook');
+  assert.equal(actualRequestUrlGlobal, `${window.location.origin}/test/media2-00001.ts?foo=bar`, 'request url modified by global onRequest hook');
 
   videojs.Vhs.xhr.offRequest(globalRequestHook1);
   videojs.Vhs.xhr.offRequest(globalRequestHook2);
@@ -4375,7 +4375,7 @@ QUnit.test('Allows removing onRequest hooks globally with offRequest', function(
   this.standardXHRResponse(this.requests.shift());
 
   assert.equal(onRequestHookCallCount, 2, '2 onRequest hooks called');
-  assert.equal(actualRequestUrl, 'http://localhost:9999/test/media2.m3u8?foo=bar', 'request url modified by onRequest hook');
+  assert.equal(actualRequestUrl, `${window.location.origin}/test/media2.m3u8?foo=bar`, 'request url modified by onRequest hook');
 
   videojs.Vhs.xhr.offRequest(globalRequestHook1);
 
@@ -4402,7 +4402,7 @@ QUnit.test('Allows setting onResponse hooks globally', function(assert) {
   };
   const globalResponseHook2 = (request, error, response) => {
     assert.equal(onResponseHookCallCount, 1, '1 onResponse hook called');
-    assert.equal(response.url, 'http://localhost:9999/test/media2.m3u8', 'got expected response url');
+    assert.equal(response.url, `${window.location.origin}/test/media2.m3u8`, 'got expected response url');
     done();
   };
 
@@ -4435,7 +4435,7 @@ QUnit.test('Allows setting onResponse hooks on the player', function(assert) {
   };
   const globalResponseHook2 = (request, error, response) => {
     assert.equal(onResponseHookCallCount, 1, '1 onResponse hook called');
-    assert.equal(response.url, 'http://localhost:9999/test/media2.m3u8', 'got expected response url');
+    assert.equal(response.url, `${window.location.origin}/test/media2.m3u8`, 'got expected response url');
     done();
   };
 
@@ -4473,7 +4473,7 @@ QUnit.test('Allows setting onResponse hooks globally and overriding with player 
 
   const globalResponseHook2 = (request, error, response) => {
     assert.equal(onResponseHookCallCountGlobal, 1, 'no global onResponse hook called');
-    assert.equal(response.url, 'http://localhost:9999/test/media2-00001.ts', 'got expected response url');
+    assert.equal(response.url, `${window.location.origin}/test/media2-00001.ts`, 'got expected response url');
     done();
   };
 
@@ -4483,7 +4483,7 @@ QUnit.test('Allows setting onResponse hooks globally and overriding with player 
   const playerResponseHook2 = (request, error, response) => {
     assert.equal(onResponseHookCallCountGlobal, 0, 'no global onResponse hook called');
     assert.equal(onResponseHookCallCountplayer, 1, '1 player onResponse hook called');
-    assert.equal(response.url, 'http://localhost:9999/test/media2.m3u8', 'got expected response url');
+    assert.equal(response.url, `${window.location.origin}/test/media2.m3u8`, 'got expected response url');
   };
 
   // Setup player level xhr hooks.
@@ -4526,7 +4526,7 @@ QUnit.test('Allows removing onResponse hooks globally with offResponse', functio
   };
   const globalResponseHook2 = (request, error, response) => {
     assert.equal(onResponseHookCallCount, 0, '0 onResponse hooks called');
-    assert.equal(response.url, 'http://localhost:9999/test/media2.m3u8', 'got expected response url');
+    assert.equal(response.url, `${window.location.origin}/test/media2.m3u8`, 'got expected response url');
     done();
   };
 
