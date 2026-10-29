@@ -1255,6 +1255,37 @@ QUnit.module('Playlist Loader', function(hooks) {
     }
   );
 
+  QUnit.test(
+    'preserves the playlist selected during loadedplaylist for resolved vhs-json variants',
+    function(assert) {
+      const mainPlaylist = parseManifest({ manifestString: manifests.main });
+      const resolvedPlaylist0 = parseManifest({ manifestString: manifests.media });
+      const resolvedPlaylist1 = parseManifest({ manifestString: manifests.media1 });
+
+      resolvedPlaylist0.attributes = mainPlaylist.playlists[0].attributes;
+      resolvedPlaylist1.attributes = mainPlaylist.playlists[1].attributes;
+      mainPlaylist.playlists[0] = resolvedPlaylist0;
+      mainPlaylist.playlists[1] = resolvedPlaylist1;
+
+      const loader = new PlaylistLoader(mainPlaylist, this.fakeVhs);
+      let loadedmetadataCount = 0;
+      let mediachangeCount = 0;
+
+      loader.on('loadedmetadata', () => loadedmetadataCount++);
+      loader.on('mediachange', () => mediachangeCount++);
+      // simulate ABR selecting the second playlist during loadedplaylist
+      loader.on('loadedplaylist', () => loader.media(mainPlaylist.playlists[1]));
+
+      loader.load();
+      this.clock.tick(1);
+
+      assert.equal(this.requests.length, 0, 'no requests');
+      assert.equal(loadedmetadataCount, 1, 'one loadedmetadata event');
+      assert.equal(mediachangeCount, 0, 'no mediachange, ABR selection was not overridden');
+      assert.deepEqual(loader.media(), resolvedPlaylist1, 'preserves ABR-selected playlist');
+    }
+  );
+
   QUnit.test('resolves relative media playlist URIs', function(assert) {
     const loader = new PlaylistLoader('main.m3u8', this.fakeVhs);
 

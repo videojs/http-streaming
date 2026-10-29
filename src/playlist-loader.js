@@ -1024,7 +1024,10 @@ export default class PlaylistLoader extends EventTarget {
         });
       });
       this.trigger('loadedplaylist');
-      if (!this.request) {
+      // vhs-json playlists resolve via a no-XHR fast path, so `this.request`
+      // stays unset even after ABR picks a variant. Also check `this.media_`
+      // so we don't override that selection with playlists[0].
+      if (!this.request && !this.media_) {
         // no media playlist was specifically selected so start
         // from the first listed one
         this.media(this.main.playlists[0]);
