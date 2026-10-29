@@ -40,11 +40,10 @@ jobs:
       - name: npm install
         run: npm i --prefer-offline --no-audit
 
-      # publish runs build for us via a prepublishOnly script
+      # publish runs build for us via a prepublishOnly script.
+      # auth uses npm trusted publishing (OIDC), which needs id-token: write.
       - name: npm release
         run: npm publish --tag next
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Check if this is a pre-release
         run: echo "IS_PRE_RELEASE=$(npx -p not-prerelease is-prerelease && echo "true" || echo "false")" >> $GITHUB_OUTPUT
