@@ -476,7 +476,8 @@
     'preload',
     'mirror-source',
     'forced-subtitles',
-    'native-text-tracks'
+    'native-text-tracks',
+    'segment-metadata-track'
   ].forEach(function(name) {
     stateEls[name] = document.getElementById(name);
   });
@@ -532,7 +533,8 @@
       'dts-offset',
       'exact-manifest-timings',
       'forced-subtitles',
-      'native-text-tracks'
+      'native-text-tracks',
+      'segment-metadata-track'
     ].forEach(function(name) {
       stateEls[name].addEventListener('change', function(event) {
         saveState();
@@ -618,6 +620,7 @@
               useNetworkInformationApi: getInputValue(stateEls['network-info']),
               useDtsForTimestampOffset: getInputValue(stateEls['dts-offset']),
               useForcedSubtitles: getInputValue(stateEls['forced-subtitles']),
+              useSegmentMetadataTrack: getInputValue(stateEls['segment-metadata-track']),
               usePlayerObjectFit: getInputValue(stateEls['object-fit'])
             }
           }
