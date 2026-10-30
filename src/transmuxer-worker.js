@@ -191,7 +191,10 @@ class MessageHandlers {
   pushMp4Captions(data) {
     if (!this.captionParser) {
       this.captionParser = new CaptionParser();
-      this.captionParser.init();
+      this.captionParser.init({
+        parse708captions: this.options.parse708captions,
+        captionServices: this.options.captionServices
+      });
     }
     const segment = new Uint8Array(data.data, data.byteOffset, data.byteLength);
     const parsed = this.captionParser.parse(
