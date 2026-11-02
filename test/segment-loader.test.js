@@ -2561,6 +2561,30 @@ QUnit.module('SegmentLoader', function(hooks) {
       });
     });
 
+    QUnit.test('appends and removes segments without a segment metadata track', function(assert) {
+      loader.segmentMetadataTrack_ = undefined;
+
+      return this.setupMediaSource(loader.mediaSource_, loader.sourceUpdater_).then(() => {
+        loader.playlist(playlistWithDuration(50));
+        loader.load();
+        this.clock.tick(1);
+
+        const appended = new Promise((resolve, reject) => {
+          loader.one('appended', resolve);
+          loader.one('error', reject);
+        });
+
+        standardXHRResponse(this.requests.shift(), muxedSegment());
+        return appended;
+      }).then(() => {
+        assert.strictEqual(loader.mediaIndex, 0, 'first segment appended without a metadata track');
+        assert.notOk(loader.error(), 'segment processing did not fail');
+        loader.remove(0, 1);
+        this.clock.tick(1);
+        assert.strictEqual(loader.segmentMetadataTrack_, undefined, 'buffer removal does not create a metadata track');
+      });
+    });
+
     QUnit.test('does not add cue for invalid segment timing info', function(assert) {
       const addCueSpy = sinon.spy();
 

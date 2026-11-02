@@ -39,6 +39,7 @@ Video.js Compatibility: 7.x, 8.x
     - [List](#list)
       - [withCredentials](#withcredentials)
       - [useCueTags](#usecuetags)
+      - [useSegmentMetadataTrack](#usesegmentmetadatatrack)
       - [parse708captions](#parse708captions)
       - [overrideNative](#overridenative)
       - [experimentalUseMMS](#experimentalusemms)
@@ -314,6 +315,30 @@ cuesTrack.addEventListener('cuechange', function() {
     console.log('Cue runs from ' + activeCue.startTime +
                 ' to ' + activeCue.endTime);
   }
+});
+```
+
+##### useSegmentMetadataTrack
+* Type: `boolean`
+* Default: `true`
+* can be used as an initialization option or a source option
+
+When set to `false`, VHS does not create the `segment-metadata` text track.
+Segment metadata cues and `cuechange` events from that track are unavailable.
+Other text tracks, including subtitles and in-band metadata, are not affected.
+
+This can be used to work around playback stalls on affected Safari/iOS versions
+when using `overrideNative` with native text tracks. See [#1600](https://github.com/videojs/http-streaming/issues/1600).
+Applications that need the segment metadata track should leave this option enabled.
+
+```javascript
+var player = videojs('playerId', {
+  html5: {
+    vhs: {
+      overrideNative: true,
+      useSegmentMetadataTrack: false
+    }
+  }
 });
 ```
 

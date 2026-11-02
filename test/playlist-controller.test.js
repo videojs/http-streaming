@@ -7807,3 +7807,18 @@ QUnit.module('Native tracks', {
 QUnit.test('Native text track mode is hidden', function(assert) {
   assert.strictEqual(this.pc.segmentMetadataTrack_.mode, 'hidden', 'track mode is hidden');
 });
+
+QUnit.test('does not create a native segment metadata track when disabled', function(assert) {
+  this.player.src({
+    src: 'manifest/main.m3u8',
+    type: 'application/vnd.apple.mpegurl',
+    useSegmentMetadataTrack: false
+  });
+  this.clock.tick(1);
+
+  const controller = this.player.tech_.vhs.playlistController_;
+  const tracks = this.player.tech_.el().querySelectorAll('track[label="segment-metadata"]');
+
+  assert.strictEqual(controller.segmentMetadataTrack_, undefined, 'controller has no segment metadata track');
+  assert.strictEqual(tracks.length, 0, 'no native segment metadata track element is attached');
+});
