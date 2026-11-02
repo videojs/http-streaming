@@ -1253,6 +1253,158 @@ QUnit.module('MediaGroups', function() {
   );
 
   QUnit.test(
+    'initialize subtitles sets text track kind to "subtitles" by default when no characteristics are present',
+    function(assert) {
+      const type = 'SUBTITLES';
+
+      this.main.mediaGroups[type].sub1 = {
+        en: { language: 'en', resolvedUri: 'sub1/en.m3u8' }
+      };
+
+      MediaGroups.initialize[type](type, this.settings);
+
+      assert.equal(
+        this.mediaTypes[type].tracks.en.kind,
+        'subtitles',
+        'track kind is subtitles by default'
+      );
+    }
+  );
+
+  QUnit.test(
+    'initialize subtitles sets text track kind to "captions" when characteristics contains transcribes-spoken-dialog',
+    function(assert) {
+      const type = 'SUBTITLES';
+
+      this.main.mediaGroups[type].sub1 = {
+        en: {
+          language: 'en',
+          resolvedUri: 'sub1/en.m3u8',
+          characteristics: 'public.accessibility.transcribes-spoken-dialog'
+        }
+      };
+
+      MediaGroups.initialize[type](type, this.settings);
+
+      assert.equal(
+        this.mediaTypes[type].tracks.en.kind,
+        'captions',
+        'track kind is captions when transcribing spoken dialog'
+      );
+    }
+  );
+
+  QUnit.test(
+    'initialize subtitles sets text track kind to "captions" when characteristics contains transcribes-spoken-dialog and easy-to-read',
+    function(assert) {
+      const type = 'SUBTITLES';
+
+      this.main.mediaGroups[type].sub1 = {
+        en: {
+          language: 'en',
+          resolvedUri: 'sub1/en.m3u8',
+          characteristics: 'public.accessibility.transcribes-spoken-dialog,public.easy-to-read'
+        }
+      };
+
+      MediaGroups.initialize[type](type, this.settings);
+
+      assert.equal(
+        this.mediaTypes[type].tracks.en.kind,
+        'captions',
+        'track kind is captions when transcribing spoken dialog alongside other characteristics'
+      );
+    }
+  );
+
+  QUnit.test(
+    'initialize subtitles sets text track kind to "captions" when characteristics contains describes-music-and-sound',
+    function(assert) {
+      const type = 'SUBTITLES';
+
+      this.main.mediaGroups[type].sub1 = {
+        en: {
+          language: 'en',
+          resolvedUri: 'sub1/en.m3u8',
+          characteristics: 'public.accessibility.describes-music-and-sound'
+        }
+      };
+
+      MediaGroups.initialize[type](type, this.settings);
+
+      assert.equal(
+        this.mediaTypes[type].tracks.en.kind,
+        'captions',
+        'track kind is captions when describing music and sound'
+      );
+    }
+  );
+
+  QUnit.test(
+    'initialize subtitles sets text track kind to "subtitles" when characteristics does not match caption criteria',
+    function(assert) {
+      const type = 'SUBTITLES';
+
+      this.main.mediaGroups[type].sub1 = {
+        en: {
+          language: 'en',
+          resolvedUri: 'sub1/en.m3u8',
+          characteristics: 'public.accessibility.describes-video'
+        }
+      };
+
+      MediaGroups.initialize[type](type, this.settings);
+
+      assert.equal(
+        this.mediaTypes[type].tracks.en.kind,
+        'subtitles',
+        'track kind is subtitles for non-caption characteristics'
+      );
+    }
+  );
+
+  QUnit.test(
+    'initialize subtitles correctly sets track kind for mixed subtitle and caption renditions',
+    function(assert) {
+      const type = 'SUBTITLES';
+
+      this.main.mediaGroups[type].sub1 = {
+        'en': {
+          language: 'en',
+          resolvedUri: 'sub1/en.m3u8'
+        },
+        'en-cc': {
+          language: 'en',
+          resolvedUri: 'sub1/en-cc.m3u8',
+          characteristics: 'public.accessibility.transcribes-spoken-dialog'
+        },
+        'fr': {
+          language: 'fr',
+          resolvedUri: 'sub1/fr.m3u8'
+        }
+      };
+
+      MediaGroups.initialize[type](type, this.settings);
+
+      assert.equal(
+        this.mediaTypes[type].tracks.en.kind,
+        'subtitles',
+        'en track kind is subtitles'
+      );
+      assert.equal(
+        this.mediaTypes[type].tracks['en-cc'].kind,
+        'captions',
+        'en-cc track kind is captions'
+      );
+      assert.equal(
+        this.mediaTypes[type].tracks.fr.kind,
+        'subtitles',
+        'fr track kind is subtitles'
+      );
+    }
+  );
+
+  QUnit.test(
     'initialize closed-captions correctly generates tracks and NO loaders',
     function(assert) {
       const type = 'CLOSED-CAPTIONS';
