@@ -1096,6 +1096,60 @@ QUnit.module('NetworkInformationApi', hooks => {
   );
 
   QUnit.test(
+    'bandwidth does not use network-information-api to lower bandwidth after media segment stats are available',
+    function(assert) {
+      this.resetNavigatorConnection({
+        downlink: 1.5
+      });
+      this.player = createPlayer({ html5: { vhs: { useNetworkInformationApi: true } } });
+      this.player.src({
+        src: 'manifest/main.m3u8',
+        type: 'application/vnd.apple.mpegurl'
+      });
+
+      this.clock.tick(1);
+
+      const mainSegmentLoader = this.player.tech_.vhs.playlistController_.mainSegmentLoader_;
+
+      mainSegmentLoader.bandwidth = 20e6;
+      mainSegmentLoader.roundTrip = 100;
+
+      assert.strictEqual(
+        this.player.tech_.vhs.bandwidth,
+        20e6,
+        'bandwidth getter returned the higher player-estimated bandwidth value after media segment stats'
+      );
+    }
+  );
+
+  QUnit.test(
+    'bandwidth can use network-information-api to raise bandwidth after media segment stats are available',
+    function(assert) {
+      this.resetNavigatorConnection({
+        downlink: 9
+      });
+      this.player = createPlayer({ html5: { vhs: { useNetworkInformationApi: true } } });
+      this.player.src({
+        src: 'manifest/main.m3u8',
+        type: 'application/vnd.apple.mpegurl'
+      });
+
+      this.clock.tick(1);
+
+      const mainSegmentLoader = this.player.tech_.vhs.playlistController_.mainSegmentLoader_;
+
+      mainSegmentLoader.bandwidth = 2e6;
+      mainSegmentLoader.roundTrip = 100;
+
+      assert.strictEqual(
+        this.player.tech_.vhs.bandwidth,
+        9e6,
+        'bandwidth getter returned the higher network-information-api bandwidth value after media segment stats'
+      );
+    }
+  );
+
+  QUnit.test(
     'bandwidth uses player-estimated bandwidth when networkInformation is not supported',
     function(assert) {
       // Nullify the `connection` property on Navigator
