@@ -4705,6 +4705,49 @@ QUnit.test(
   }
 );
 
+QUnit.test(
+  'vhs-json with resolved variants pre-buffers the segment loader while the tech is paused',
+  function(assert) {
+    // For vhs-json sources, PlaylistLoader.media() fires `loadedmetadata`
+    // synchronously, which starts the segment loader before
+    // handleUpdatedMediaPlaylist pauses it. Without an explicit restart the
+    // loader stays paused and never pre-buffers, regressing TTFF for
+    // paused/pre-buffer scenarios (e.g. off-screen mounting).
+    this.requests.length = 0;
+    this.player.dispose();
+    this.player = createPlayer();
+    this.player.preload('auto');
+
+    const mainPlaylist = parseManifest({ manifestString: manifests.main });
+    const resolvedPlaylist0 = parseManifest({ manifestString: manifests.media });
+    const resolvedPlaylist1 = parseManifest({ manifestString: manifests.media1 });
+
+    resolvedPlaylist0.attributes = mainPlaylist.playlists[0].attributes;
+    resolvedPlaylist1.attributes = mainPlaylist.playlists[1].attributes;
+    // restrict variants to only the resolved ones so ABR cannot pick an
+    // unresolved variant — we want the haveJsonSource path to be taken
+    mainPlaylist.playlists = [resolvedPlaylist0, resolvedPlaylist1];
+    addPropertiesToMain(mainPlaylist, 'main.m3u8');
+
+    this.player.src({
+      src: `data:application/vnd.videojs.vhs+json,${JSON.stringify(mainPlaylist)}`,
+      type: 'application/vnd.videojs.vhs+json'
+    });
+    openMediaSource(this.player, this.clock);
+    // asynchronous setup of initial playlist in playlist loader for JSON sources
+    this.clock.tick(1);
+
+    this.playlistController = this.player.tech_.vhs.playlistController_;
+
+    assert.ok(this.player.paused(), 'tech is paused (pre-buffer scenario)');
+    assert.notOk(
+      this.playlistController.mainSegmentLoader_.paused(),
+      'segment loader is running so pre-buffer can proceed'
+    );
+    assert.ok(this.requests.length >= 1, 'at least one segment request was made');
+  }
+);
+
 QUnit.test('adds duration to media source after loading playlist', function(assert) {
   openMediaSource(this.player, this.clock);
   const pc = this.playlistController;
