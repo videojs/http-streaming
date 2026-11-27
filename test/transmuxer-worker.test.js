@@ -10,11 +10,11 @@ import {
 // needed for plugin registration
 import '../src/videojs-http-streaming';
 
-const createTransmuxer = () => {
-  return createTransmuxer_({
+const createTransmuxer = (options) => {
+  return createTransmuxer_(Object.assign({
     remux: false,
     keepOriginalTimestamps: true
-  });
+  }, options));
 };
 
 // The final done message from the Transmux worker
@@ -340,6 +340,39 @@ QUnit.test('can parse mp4 captions', function(assert) {
       data,
       'data returned to main thread'
     );
+
+    done();
+  };
+
+  this.transmuxer.postMessage({
+    action: 'pushMp4Captions',
+    data,
+    timescales: 30000,
+    trackIds: [1],
+    byteLength: data.byteLength,
+    byteOffset: 0
+  });
+});
+
+QUnit.test('parses mp4 captions when initialized with caption parsing options', function(assert) {
+  const done = assert.async();
+  const data = mp4CaptionsSegment();
+
+  this.transmuxer = createTransmuxer({
+    parse708captions: false,
+    captionServices: {SERVICE1: {language: 'en'}}
+  });
+  this.transmuxer.onmessage = (e) => {
+    const message = e.data;
+
+    assert.equal(message.action, 'mp4Captions', 'returned mp4Captions event');
+    assert.equal(message.captions.length, 2, 'two 608 captions');
+    assert.deepEqual(
+      message.captions.map((caption) => caption.stream),
+      ['CC1', 'CC1'],
+      'only 608 caption streams are present'
+    );
+    assert.deepEqual(message.logs.length, 0, 'no logs returned');
 
     done();
   };
